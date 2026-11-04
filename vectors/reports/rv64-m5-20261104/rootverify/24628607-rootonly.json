@@ -4,31 +4,31 @@
  "stream": "rootverify",
  "milestone": "M5",
  "block": 24628607,
- "commit": "78c3bd5d2",
- "receiver_sha256": "48ba61f968bfd5c6ed191b3df6d6bcb5ef532376131e9e3fa48b82db0b9436c1",
+ "commit": "92cda862e",
+ "receiver_sha256": "f5f7ec5e5ff2d02a9eda3eb57cd7f30e64086e6c3dad6398c0ce4fa4a5eb1ab2",
  "proof_source": "M4 integrate binaries a9acb639 (driver) / 5886e2a5 (lib); format unchanged",
  "proof_dir": "/workspace/m3/runs/m5-rootverify/24628607-2gpu-m4base/case/batch/trial-0/24628607/proof",
  "root_proof_bytes": 706424,
  "table": {
   "path": "/workspace/m3/scratch/m5-rootverify/tables/vk-both.json",
-  "sha256": "fcf11e2b38bafd4720e62cfd2d6ccbe99c6ea7dfba74f9e7dc8d6271ce292a51",
+  "sha256": "cd4fbb2a9b3fa57b8d16180a11aaa0d1351b98e5ddc848614afcd766a158ae65",
   "profile": "rv64-m4-fold-v2-compat/v0",
   "bytes": 40760,
   "entries": 38
  },
  "root_only": [
   {
-   "process_wall_s": 14.607,
-   "loadavg_1m_start": 26.99,
-   "verify_per_block_s": 14.299,
+   "process_wall_s": 14.427,
+   "loadavg_1m_start": 14.57,
+   "verify_per_block_s": 14.088,
    "breakdown_s": {
-    "self_sha": 0.0554,
-    "table_load": 0.0006,
-    "image": 0.4822,
-    "bundle": 0.1378,
-    "native_keys": 8.0695,
-    "fixed_authority": 4.7533,
-    "admission": 0.7866,
+    "self_sha": 0.0525,
+    "table_load": 0.0004,
+    "image": 0.4282,
+    "bundle": 0.1257,
+    "native_keys": 7.7215,
+    "fixed_authority": 4.9434,
+    "admission": 0.8021,
     "root": 0.0132,
     "root_tree": 0.0001,
     "root_authority": 0.0005,
@@ -87,22 +87,22 @@
    ]
   },
   {
-   "process_wall_s": 14.942,
-   "loadavg_1m_start": 28.93,
-   "verify_per_block_s": 14.572,
+   "process_wall_s": 14.032,
+   "loadavg_1m_start": 13.91,
+   "verify_per_block_s": 13.742,
    "breakdown_s": {
-    "self_sha": 0.0519,
-    "table_load": 0.0004,
-    "image": 0.3572,
-    "bundle": 0.1201,
-    "native_keys": 8.1659,
-    "fixed_authority": 4.9952,
-    "admission": 0.8674,
-    "root": 0.0138,
+    "self_sha": 0.0547,
+    "table_load": 0.0005,
+    "image": 0.3726,
+    "bundle": 0.1193,
+    "native_keys": 7.5756,
+    "fixed_authority": 4.8026,
+    "admission": 0.8018,
+    "root": 0.0141,
     "root_tree": 0.0001,
-    "root_authority": 0.0005,
-    "root_decode": 0.0007,
-    "root_verify": 0.0117
+    "root_authority": 0.0006,
+    "root_decode": 0.0008,
+    "root_verify": 0.0118
    },
    "proofs_verified": 1,
    "leaves": 17,
@@ -157,11 +157,11 @@
   }
  ],
  "audit": {
-  "process_wall_s": 57.79,
-  "loadavg_1m_start": 35.38,
+  "process_wall_s": 55.443,
+  "loadavg_1m_start": 21.58,
   "agrees": true,
-  "native_verify_s": 1.594,
-  "recursion_s": 39.217
+  "native_verify_s": 1.653,
+  "recursion_s": 39.109
  },
  "baseline_m4_receiver": {
   "binary_sha256": "1af34c0b1aa97ed54f06c2c19ec98177b5926dfd93f97f74d3bebdb720674dd7",
@@ -172,21 +172,21 @@
   "accepted": true
  },
  "derive_once": {
-  "process_wall_s": null,
-  "derive_once_s": 52.386,
+  "process_wall_s": 52.668,
+  "derive_once_s": 52.046,
   "new_leaf_classes": 17,
   "new_fold_classes": 8,
   "fold_reimplementation_cross_checks": 8,
   "breakdown_s": {
-   "self_sha": 0.053,
+   "self_sha": 0.054,
    "table_load": 0.0,
-   "image": 0.353,
-   "bundle": 0.122,
-   "native_keys": 7.294,
-   "fixed_authority": 4.725,
-   "admission": 0.807,
-   "native_verify": 1.555,
-   "recursion": 37.475
+   "image": 0.362,
+   "bundle": 0.119,
+   "native_keys": 7.452,
+   "fixed_authority": 4.688,
+   "admission": 0.813,
+   "native_verify": 1.58,
+   "recursion": 36.976
   }
  },
  "corpus": {
@@ -215,13 +215,27 @@
   "nonsemantic_rejects": {
    "S01-drop-native-segment": "missing"
   },
-  "control_verify_per_block_s": 15.951,
-  "loadavg_1m_start": 43.74169921875,
-  "wall_s": 162.3
+  "control_verify_per_block_s": 14.32,
+  "loadavg_1m_start": 27.1708984375,
+  "wall_s": 129.6
  },
+ "profiles_corpus_v3_m5_root": {
+  "schema": "rv64-m5-negative-corpus/v3",
+  "ran": 40,
+  "passed": 40,
+  "unexpected_accepts": [],
+  "crashes": [],
+  "nonsemantic_rejects": {
+   "S01-drop-native-segment": "missing"
+  },
+  "wall_s": 114.3,
+  "loadavg_1m_start": 27.63232421875
+ },
+ "stale_table_refused": "VkTableNotDerivedByThisReceiver (table of receiver 48ba61f9 offered to f5f7ec5e)",
  "gate": {
   "verify_per_block_le_1_5_s": false,
   "audit_agrees": true,
-  "negative_corpus_all_pass": true
+  "negative_corpus_all_pass": true,
+  "profiles_corpus_all_pass": true
  }
 }

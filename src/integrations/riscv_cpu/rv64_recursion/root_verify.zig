@@ -15,7 +15,7 @@
 //!   rv64-m3-topo-binding.md). Leaf VKs are keyed by the native leaf class
 //!   (native FIXED binding + declaration + PCS config); see `leafKey` for the
 //!   determinism premise and how derive checks it.
-//! - `rv64-m5-canon/v1`: reserved for canon-vk's canonical leaves/folds
+//! - `rv64-m5-vk-table/v1`: reserved for canon-vk's canonical leaves/folds
 //!   (T_rec/T_nat in the root statement); refused until that format exists.
 const std = @import("std");
 const core = @import("stwo_core");
@@ -38,7 +38,7 @@ pub const Profile = enum {
     pub fn id(self: Profile) []const u8 {
         return switch (self) {
             .m4_fold_v2_compat => "rv64-m4-fold-v2-compat/v0",
-            .m5_canon_v1 => "rv64-m5-canon/v1",
+            .m5_canon_v1 => "rv64-m5-vk-table/v1",
         };
     }
     /// Unknown profile ids are refused; known-but-unimplemented ones too.
@@ -579,7 +579,7 @@ pub fn verifyRoot(a: std.mem.Allocator, table: *const Table, leaves: []const Lea
 
 test "root_verify: profile ids are named and unknown ids refused" {
     try std.testing.expectEqual(Profile.m4_fold_v2_compat, try Profile.parse("rv64-m4-fold-v2-compat/v0"));
-    try std.testing.expectError(error.VkTableProfileNotImplemented, Profile.parse("rv64-m5-canon/v1"));
+    try std.testing.expectError(error.VkTableProfileNotImplemented, Profile.parse("rv64-m5-vk-table/v1"));
     try std.testing.expectError(error.UnknownVkTableProfile, Profile.parse("rv64-m4-fold-v2-compat/v1"));
     try std.testing.expectError(error.UnknownVkTableProfile, Profile.parse(""));
 }

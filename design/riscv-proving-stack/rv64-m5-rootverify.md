@@ -85,25 +85,31 @@ is checked at every combine, as in `runImpl`.
 - **Table provenance:** the table header pins schema, table profile id, native profile label, outer protocol domain,
   fold message version, the program identity of the request's image, and `receiver_sha256` = sha256 of the deriving
   binary (`/proc/self/exe`). `verify-root-candidate` refuses any table not derived by the very same binary
-  (`VkTableNotDerivedByThisReceiver`). The source commit is recorded for humans.
-- **Unknown profile ids are refused** (`UnknownVkTableProfile`). `rv64-m5-canon/v1` is named and reserved; it is refused
-  (`VkTableProfileNotImplemented`) until canon-vk's format exists.
+  (`VkTableNotDerivedByThisReceiver`; measured: the round-1 table of receiver `48ba61f9` offered to `f5f7ec5e` is
+  refused). The source commit is recorded for humans.
+- **Unknown profile ids are refused** (`UnknownVkTableProfile`). `rv64-m5-vk-table/v1` (canon-vk CV2's table name) is
+  reserved; it is refused (`VkTableProfileNotImplemented`) until canon-vk's NS (CV3) is frozen. These ids name the
+  receiver-table format, not a PCS/protocol profile; profiles' PROFILES registry is untouched.
+- **Statement keys:** stdout carries `recursive.{root_digest, root_authority, manifest}` with the same encoding as the
+  full-tree receiver, so a root-only statement compares byte for byte with an audit statement (profiles' corpus v3
+  `--format m5-root` compares against the M4 full-tree control).
 - **Store-supplied VKs are refused:** a table at or under the proof directory is rejected before it is read
   (`StoreSuppliedVkRefused`). Derive never reads the ArtifactStore or a setup cache (`STWO_ZIG_RV64_SETUP_CACHE` set → refuse).
 - **Integrity:** `table_root` = Blake2s over the canonical sorted entries and header ids; it is recomputed on load
   (`VkTableRootMismatch`). It is an integrity check of a receiver-local file, not a trust root.
 
-## 4. Measurements [M] (single observations, pod load 27–35, so not quotable as best-so-far)
+## 4. Measurements [M] (single observations, pod load 9–35, never under the quiet bar of 8)
 
 Proofs: M4 integrate binaries (`a9acb639`), byte-identical format, both dev blocks proved once each into
-`/workspace/m3/runs/m5-rootverify/*-m4base`. Receiver `48ba61f9…` built from this branch.
+`/workspace/m3/runs/m5-rootverify/*-m4base`. Receivers from this branch: round 1 `48ba61f9…` (load 27–35), round 2
+`f5f7ec5e…` (adds the `recursive` statement keys; load 9–22). The receipts hold round 2.
 
-| block | today's receiver (M4 binary, harness receive) | `--audit` (this binary, full tree + root-only) | **root-only verify per block** | of which root proof | one-time derive |
+| block | today's receiver (M4 binary, harness receive, load 13–25) | `--audit` r1 / r2 | **root-only verify per block** r1 (2 runs) / r2 (2 runs) | root proof | derive once r1 / r2 |
 |---|---:|---:|---:|---:|---:|
-| 26235156 | 43.2 s (load 13–25) | 46.0 s | **10.1 / 10.1 s** (2 runs; 9.8 in-process) | 14 ms | 39.2 s |
-| 24628607 | 63.7 s (load 13–25) | 57.8 s | **14.6 / 14.9 s** (2 runs; 14.3 / 14.6 in-process) | 14 ms | 52.4 s (59.0 s merged) |
+| 26235156 | 43.2 s | 46.0 / 41.3 s | **10.1, 10.1 / 10.6, 10.0 s** | 12 ms | 39.2 / 41.1 s |
+| 24628607 | 63.7 s | 57.8 / 55.4 s | **14.6, 14.9 / 14.4, 14.0 s** | 12 ms | 52.4 / 52.7 s |
 
-Root-only breakdown on 24628607 (s): native keys 8.17, native FIXED authority 5.00, admission (inventory + manifest +
+Root-only breakdown on 24628607 (s, round 1 r2): native keys 8.17, native FIXED authority 5.00, admission (inventory + manifest +
 frames + closure) 0.87, image/program 0.36, bundle load 0.12, self sha 0.05, table load 0.0003, root tree 0.0001,
 root authority 0.001, decode 0.001, **OM31 root verify 0.012**.
 
@@ -128,15 +134,18 @@ Cases that mutate bytes the root-only receiver never consumes are `reject_or_sam
 proofs (S02, S04, S06, V01–V03, R06), native proof bodies with a re-hashed bundle (R07–R09) and producer tree metadata
 (K01, K03). Accepting them is a pass only with the control's exact statement (output, root digest, root identity,
 profiles): the root proof attests to in-circuit verification, so on-disk child bytes cannot change what is accepted.
-Result [M] (receiver `48ba61f9…`, table `vk-table-dev-blocks.json`): **51/51 pass on both dev blocks.** All 37 cases that
+Result [M] (receivers `48ba61f9…` and `f5f7ec5e…`, table `vk-table-dev-blocks.json`): **51/51 pass on both dev blocks.** All 37 cases that
 must reject do reject, with no crash and no non-semantic reject. The 14 accepted cases (C00, K02 and the 12
 not-consumed cases) carry exactly the control's statement. Receipts: `vectors/reports/rv64-m5-20261104/rootverify/*-rootonly-corpus.json`.
+Independently, profiles' corpus v3 (`--format m5-root`, `59d251205`) passes **40/40 on both blocks** against
+`f5f7ec5e`, and its control proves that the root-only statement equals the M4 full-tree receiver's statement.
+
 A first corpus pass found a harness bug, not a receiver bug: RV15 v0 swapped two leaf VKs that 26235156 does not use, so
 it was accepted with the control statement. RV15 now rotates every leaf VK.
 
 ## 6. Next levers (in order)
 
-1. **canon-vk format** (`rv64-m5-canon/v1`): parse the root's NS (binding note §2) and run receiver checks §5(3). The
+1. **canon-vk format** (`rv64-m5-vk-table/v1`): parse the root's NS (binding note §2) and run receiver checks §5(3). The
    table rows become T_rec/T_nat entries; the derive hook stays as it is.
 2. **Native VK table for today's format:** record (source root, fixed identity, fixed root) per native class and admit
    bindings from it instead of recomputing native FIXED commitments (−5.0 s on 607 [D]). This needs a verifier-only

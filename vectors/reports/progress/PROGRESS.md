@@ -95,6 +95,9 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 14.6 | — | — | 706 | — | — | — | — | — | — | yes | 78c3bd5d2 | run 1: 1 OM31 proof verified (root, 11 ms); native setup 12.82 s is the floor (M5 moves it to T_nat + in-circuit admission); derive once 52.386 s; corpus 51/51 |
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 14.9 | — | — | 706 | — | — | — | — | — | — | yes | 78c3bd5d2 | run 2: 1 OM31 proof verified (root, 12 ms); native setup 13.16 s is the floor (M5 moves it to T_nat + in-circuit admission); derive once 52.386 s; corpus 51/51 |
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 57.8 | — | — | 706 | — | — | — | — | — | — | yes | 78c3bd5d2 | audit agrees with root-only (root digest + authority); baseline M4 receiver verify-recursion-candidate 63.738 s at load 13-25 |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 14.4 | — | — | 706 | — | — | — | — | — | — | yes | 92cda862e | run 1: 1 OM31 proof verified (11 ms); native setup 12.66 s is the floor; derive once 52.046 s; rootverify corpus 51/51, profiles corpus v3 m5-root 40/40 |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 14.0 | — | — | 706 | — | — | — | — | — | — | yes | 92cda862e | run 2: 1 OM31 proof verified (12 ms); native setup 12.38 s is the floor; derive once 52.046 s; rootverify corpus 51/51, profiles corpus v3 m5-root 40/40 |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 55.4 | — | — | 706 | — | — | — | — | — | — | yes | 92cda862e | audit agrees with root-only (root digest + authority) |
 
 ## 26235156
 
@@ -170,6 +173,9 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 10.1 | — | — | 749 | — | — | — | — | — | — | yes | 78c3bd5d2 | run 1: 1 OM31 proof verified (root, 12 ms); native setup 8.75 s is the floor (M5 moves it to T_nat + in-circuit admission); derive once 39.204 s; corpus 51/51 |
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 10.1 | — | — | 749 | — | — | — | — | — | — | yes | 78c3bd5d2 | run 2: 1 OM31 proof verified (root, 12 ms); native setup 8.81 s is the floor (M5 moves it to T_nat + in-circuit admission); derive once 39.204 s; corpus 51/51 |
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 46.0 | — | — | 749 | — | — | — | — | — | — | yes | 78c3bd5d2 | audit agrees with root-only (root digest + authority); baseline M4 receiver verify-recursion-candidate 43.241 s at load 13-25 |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 10.6 | — | — | 749 | — | — | — | — | — | — | yes | 92cda862e | run 1: 1 OM31 proof verified (12 ms); native setup 9.21 s is the floor; derive once 40.474 s; rootverify corpus 51/51, profiles corpus v3 m5-root 40/40 |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 10.0 | — | — | 749 | — | — | — | — | — | — | yes | 92cda862e | run 2: 1 OM31 proof verified (12 ms); native setup 8.62 s is the floor; derive once 40.474 s; rootverify corpus 51/51, profiles corpus v3 m5-root 40/40 |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 41.3 | — | — | 749 | — | — | — | — | — | — | yes | 92cda862e | audit agrees with root-only (root digest + authority) |
 
 ## 24626900
 

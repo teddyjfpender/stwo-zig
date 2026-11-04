@@ -5,8 +5,8 @@
   "native_profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
   "outer_domain": "stwo/circuit/native-om31/q108-p20-fold4/lens-v1",
   "fold_version": 2,
-  "source_commit": "78c3bd5d2",
-  "receiver_sha256": "48ba61f968bfd5c6ed191b3df6d6bcb5ef532376131e9e3fa48b82db0b9436c1",
+  "source_commit": "92cda862e",
+  "receiver_sha256": "f5f7ec5e5ff2d02a9eda3eb57cd7f30e64086e6c3dad6398c0ce4fa4a5eb1ab2",
   "image": "4f0b7d4ef27f42637434c410367130dd687055d709c37fdd4a3fdc3efab6c6f6"
  },
  "entries": [
@@ -2786,7 +2786,7 @@
   }
  ],
  "table_root": "69fe7c2f183511ada484527af7d8b8a12aa27d0ddfb891b7921c7901926e2dcb",
- "derive_ns": 98178610237,
+ "derive_ns": 94043220418,
  "derived_from": [
   "26235156-request.json",
   "24628607-request.json"

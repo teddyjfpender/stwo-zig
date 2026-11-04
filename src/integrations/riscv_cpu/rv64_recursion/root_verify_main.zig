@@ -203,7 +203,8 @@ pub fn main() !void {
     const fixed_authority_ns = timer.lap();
 
     // Receiver-side admission (today's homes of binding note §9.2) + leaf digests.
-    const leaves = try admitAndDigest(a, arena, &keys, &loaded, statement, pcs, &fixed_set);
+    var manifest_digest: [32]u8 = undefined;
+    const leaves = try admitAndDigest(a, arena, &keys, &loaded, statement, pcs, &fixed_set, &manifest_digest);
     const admission_ns = timer.lap();
     const last = loaded.bundle.requests[loaded.bundle.requests.len - 1].base;
     const output = try Terminal.require(&image, last.cpu, last.memory.terminal);
@@ -312,6 +313,8 @@ pub fn main() !void {
         .folds = report.folds,
         .root_digest = try hex(arena, &report.root_digest),
         .root_identity = try hex(arena, &report.root_identity),
+        // Same keys and encoding as the full-tree receiver, so statements compare across modes.
+        .recursive = .{ .root_digest = report.root_digest, .root_authority = report.root_identity, .manifest = manifest_digest, .proofs_verified = 1 },
         .verify_per_block_ns = verify_ns,
         .breakdown = .{ .self_sha_ns = self_sha_ns, .table_load_ns = table_load_ns, .image_ns = image_ns, .bundle_ns = bundle_ns, .native_keys_ns = native_keys_ns, .fixed_authority_ns = fixed_authority_ns, .admission_ns = admission_ns, .root_ns = root_ns, .root_tree_ns = report.tree_ns, .root_authority_ns = report.authority_ns, .root_decode_ns = report.decode_ns, .root_verify_ns = report.verify_ns },
         .audit = audit_report,
@@ -322,7 +325,7 @@ pub fn main() !void {
 const LeafRow = struct { input: RV.LeafInput, label: []const u8 };
 /// Today's receiver-side admission (exactly `execution_wrap.runImpl`'s frame
 /// construction + `services_root.check`) and the ordered leaf (key, digest)s.
-fn admitAndDigest(a: std.mem.Allocator, arena: std.mem.Allocator, keys: *const Keys, loaded: *const W.Loaded, statement: anytype, pcs: anytype, fixed: *const FixedSet) ![]LeafRow {
+fn admitAndDigest(a: std.mem.Allocator, arena: std.mem.Allocator, keys: *const Keys, loaded: *const W.Loaded, statement: anytype, pcs: anytype, fixed: *const FixedSet, manifest_out: *[32]u8) ![]LeafRow {
     const bundle = &loaded.bundle;
     const setups = keys.cpus;
     const truths = keys.truths;
@@ -355,7 +358,8 @@ fn admitAndDigest(a: std.mem.Allocator, arena: std.mem.Allocator, keys: *const K
             words[ordinal] = try arena.dupe(u32, &TruthLeaf.statementWords(truth, public, stages.stages[ordinal].main));
         }
     }
-    _ = try Root.check(a, setups, truths, bundle.requests, statement, pcs, fixed, bundle.stage_one_bytes, .{ .cpus = cpus, .truths = words[setups.len..] }, .{});
+    const metadata = try Root.check(a, setups, truths, bundle.requests, statement, pcs, fixed, bundle.stage_one_bytes, .{ .cpus = cpus, .truths = words[setups.len..] }, .{});
+    manifest_out.* = metadata.manifest.digest;
     const config_json = try std.json.Stringify.valueAlloc(arena, pcs, .{});
     const rows = try arena.alloc(LeafRow, n);
     for (rows, 0..) |*row, ordinal| {
