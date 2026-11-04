@@ -1,0 +1,83 @@
+{
+  "schema": "rv64-explicit-composite-metadata/v1",
+  "gpu_qualified": false,
+  "cuda_context_created": false,
+  "source_candidate_commits": [
+    "b08bb3803",
+    "ac9efd7f6"
+  ],
+  "base": "/workspace/rv64-gpu-session/assets/library.so",
+  "base_sha256": "25295868fe3410dc2f54b366497cb57e260ef9c1f9f74e03d4266f253f7cc809",
+  "candidate": "/workspace/rv64-composite-idlecap-narrow/build/libstwo-composite-idlecap-narrow-11aa66b18582194b.so",
+  "candidate_sha256": "11aa66b18582194b74e886e2824c9c9bde9b7be8c9464b95d415f662359fc0ba",
+  "compiler": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Fri_Feb_21_20:23:50_PST_2025\nCuda compilation tools, release 12.8, V12.8.93\nBuild cuda_12.8.r12.8/compiler.35583870_0\n",
+  "commands": [
+    [
+      "/usr/local/cuda/bin/nvcc",
+      "-O3",
+      "-std=c++17",
+      "-lineinfo",
+      "-gencode",
+      "arch=compute_120,code=sm_120",
+      "-Xcompiler=-fPIC,-pthread",
+      "-I/workspace/rv64-composite-idlecap-narrow/native",
+      "-MD",
+      "-MF",
+      "/workspace/rv64-composite-idlecap-narrow/build/pcs_native.d",
+      "-c",
+      "/workspace/rv64-composite-idlecap-narrow/native/rv64/pcs_native.cu",
+      "-o",
+      "/workspace/rv64-composite-idlecap-narrow/build/pcs_native.o"
+    ],
+    [
+      "/usr/local/cuda/bin/nvcc",
+      "-O3",
+      "-std=c++17",
+      "-lineinfo",
+      "-gencode",
+      "arch=compute_120,code=sm_120",
+      "-Xcompiler=-fPIC,-pthread",
+      "-I/workspace/rv64-composite-idlecap-narrow/native",
+      "-MD",
+      "-MF",
+      "/workspace/rv64-composite-idlecap-narrow/build/circuit_assignment.d",
+      "-c",
+      "/workspace/rv64-composite-idlecap-narrow/native/rv64/circuit_assignment.cu",
+      "-o",
+      "/workspace/rv64-composite-idlecap-narrow/build/circuit_assignment.o"
+    ],
+    [
+      "/usr/local/cuda/bin/nvcc",
+      "-shared",
+      "-Xcompiler=-pthread",
+      "-Xlinker=-Bsymbolic",
+      "/workspace/rv64-composite-idlecap-narrow/build/pcs_native.o",
+      "/workspace/rv64-composite-idlecap-narrow/build/circuit_assignment.o",
+      "-Xlinker=--no-as-needed",
+      "/workspace/rv64-gpu-session/assets/library.so",
+      "-o",
+      "/workspace/rv64-composite-idlecap-narrow/build/candidate.pending.so"
+    ]
+  ],
+  "object_sha256": {
+    "/workspace/rv64-composite-idlecap-narrow/build/pcs_native.o": "3cbc9824cf38ce899bedb18e08173edd8adc52de9a5d7df5392d27a429b4d6b8",
+    "/workspace/rv64-composite-idlecap-narrow/build/circuit_assignment.o": "1cc05340fd31e97448182a3320976f245fe7353350d5b79a6c68ea5c182d6252"
+  },
+  "old_exports_preserved": 701,
+  "new_owned_export_count": 20,
+  "all16_owner_exports_new": true,
+  "all_unchanged_exports_base": true,
+  "seconds": 4.069275330984965,
+  "default_options_changed": false,
+  "no_preload": true,
+  "full_metadata_local": "/private/tmp/rv64-composite-metadata.json",
+  "full_metadata_remote": "/workspace/rv64-composite-idlecap-narrow/build/metadata.json",
+  "full_metadata_sha256": "dab6f51ff383ab718320f668e18a3658c40f63d542e15e65c006ca202885986e",
+  "source_header_dependency_count": 337,
+  "actual_build_script_local": "/private/tmp/build-rv64-composite.py",
+  "actual_build_script_sha256": "018007057521395c13542ff87faa5b0ca96d4b26f3c1d15de16d2dd46d92e3eb",
+  "proof_parity_checked": false,
+  "physical_device_interop_checked": false,
+  "scope": "ELF/build metadata only; no CUDA context creation, numerical execution or performance qualification",
+  "required_next_gate": "root-directed independent physical device0/device1 context, lease, domain and exact small native proof/CPU receiver checks; options remain off"
+}
