@@ -92,6 +92,34 @@ The design matches the blake-gadget review: one instance, and xor8 rows in `(a<<
 - Hooks for **DW05** (instance count and log are class constants) and **DW06** (the tape is in builder creation order;
   the M5 shadow gather order is non-deterministic).
 
+### DW-R6 (CONDITIONAL): the in-circuit Merkle cap of `m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1` (DW-3)
+
+The fold's child verifier guesses the 8 nodes at level 3 of each child tree. It hashes them to the child root once,
+and every path stops at its cap node. The child proof bytes are unchanged, only the fold circuit differs, so the cap is
+a VK and profile change.
+
+It is sound under the collision bound **iff** all three hold:
+- (i) the cap-to-root hash rebuilds the exact top 3 levels of the binary tree: 8 → 4 → 2 → 1, with the same node
+  hasher and domain tags as the path nodes. A different hasher at the top would let a "cap" that is not the real level
+  be accepted;
+- (ii) the cap node a path ends at is selected by the **top 3 bits of that query's position**, which is an already
+  constrained wire. It must never be selected by a guessed index or a free mux. Otherwise one valid path could be
+  "landed" on any cap slot;
+- (iii) the root it reproduces is the same wire that seeds the child transcript (`mixRoot`).
+
+Cases:
+- **DW12** (W): select the cap node by a guessed index, so a path lands on the wrong slot;
+- **DW13** (W): cap nodes not hashed to the transcript root, or hashed with a different node domain.
+
+The fit arithmetic that the profile depends on is pinned in a test:
+- the 4-ary fold's 8,680,080 G rows [M] drop to ~7.77 M < 2^23 with the ~10.5% cap saving [D];
+- the margin is ~7%: a fold with 8% more G rows re-crosses 2^23 even with the cap.
+
+`m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1`: SIGN-OFF, as DW-R2. Arity is a profile constant, and a mismatching
+`STWO_RV64_FOLD_ARITY` gives a clean `Om31ProfileFoldArityMismatch`.
+
+Both are registered with diet-wire's exact component strings. The speculative staged names from round 1 are removed.
+
 ### DW-R4 (SIGN-OFF): the q51 profile is deferred
 
 The q51 profile OOMs on the GPU [M5]. This is a resource limit, not a soundness one. `m6_outer_diet_m3_b4_q51_p26_fold4_v1`
@@ -179,6 +207,41 @@ receiver, and `PROOF` only *selects* which classes appear. Conditions:
 Once native v2 lands, the table is image-level, so the other block's pin may legitimately verify. **RO09** therefore
 expects `reject_or_same_statement`: changed in corpus v4.
 
+### FV-R3 (CONDITIONAL, medium; found by the corpus [M]): the root-only receiver ignores the fold-arity policy
+
+Corpus v4 `--format m6-root` was run against fold-v3's receiver (sha `1971181a`, per-block receiver-derived tables,
+`--table-root` pin) on both dev blocks. It passed 44/45 (26235156) and 43/44 (24628607). Receipts:
+`vectors/reports/rv64-m6-20261105/profiles/<block>-corpus-v4-fold-v3-receiver.json`.
+
+**The failure is `P04` on both blocks.** With `STWO_RV64_OUTER_PROFILE=r1_b2_q108_p20_fold4` and
+`STWO_RV64_FOLD_ARITY=4`, the receiver accepted a binary-fold proof, with the control's statement.
+- M5's canonical root-only runs rejected P04 only by `VkTableOuterProfileMismatch` (an explicit r1 against a canonical
+  table).
+- On old-format proofs the table header binds the outer profile but not the fold arity, so the arity policy is never
+  consulted.
+
+This is not a false-statement acceptance: the proof is a valid binary-fold proof of the same statement. It is an
+admission-policy hole. It matters once diet-wire's `k3` and `k4-cap3` are separate named profiles with separate review
+verdicts: a receiver whose policy names one arity must not accept another.
+
+Fix:
+- the table header carries the fold arity, i.e. the `versionWord(k)` that rootverify's `foldClassKey` lacks (M5 integrate
+  note);
+- `derive-vk-tables` records the arity policy it ran under;
+- `verify-root-candidate` refuses a table whose arity or profile differs from the current policy, with a clean exit.
+
+P04 then rejects.
+
+The other measured results on both blocks:
+- C00 control accepted;
+- RO08 (stores absent) accepted with the control statement, which is FV-R1's first condition;
+- RO09 (the other block's pin) rejected with `VkTableRootPinMismatch`;
+- RR01–RR05 as expected;
+- no crashes.
+
+Wall per accepted case [M, single observations, load 10–11, above the quiet bar]: **1.6 s (26235156) and 2.1 s
+(24628607)** root-only, against 9.5 / 13.7 s at M5.
+
 ### FV-R2 (PENDING): fold v3 itself
 
 There is nothing to review until FV3 posts the NS word layout and the `T_rec` v2 leaf words for k-ary and set-v2 classes
@@ -197,10 +260,11 @@ When the review happens, it will check:
 
 | name | verdict | blocks promotion until |
 |---|---|---|
-| `m6_outer_setv2_kary_r1_b2_q108_p20_fold4_v1` | SIGN-OFF (DW-R2) | the k = 2 / k = 3 cross-policy R run |
-| `m6_outer_gkr_setv2_kary_r1…`, `m6_outer_diet_*`, `m6_outer_diet_fold_v3_*` | **REOPEN (DW-R1)** | eq constraints ported (native form), DW10 and DW11 hooks |
+| `m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1` | SIGN-OFF (DW-R2) | the k = 2 / k = 3 cross-policy R run; root-only refuses an arity mismatch (FV-R3) |
+| `m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1` | CONDITIONAL (DW-R6) | conditions (i)–(iii); DW12 and DW13 hooks |
+| `m6_outer_diet_*` (all-component), `m6_outer_diet_fold_v3_*` | **REOPEN (DW-R1)** | eq constraints ported (native form), DW10 and DW11 hooks |
 | fused Blake components inside the diet entries | CONDITIONAL (DW-R3) | BG08 over all consumers, DW05 and DW06 |
 | `m6_native_v2_b2_q108_p20_fold4` (v2-strict) | SIGN-OFF design (NV-R1), CONDITIONAL NV-R2 | NV01, NV02 and NV07 hooks; the version bound before stage one, or the argument |
 | `m6_native_v2_gkr_b2_q108_p20_fold4` | CONDITIONAL (NV-R3, NV-R4) | source-bound mass gate; NV06 |
 | `m6_outer_fold_v3_r1…` | PENDING (FV-R2) | the NS layout and T_rec v2 words are posted |
-| standalone root-only receiver | CONDITIONAL (FV-R1) | RO08 green; the source-commit U test |
+| standalone root-only receiver | CONDITIONAL (FV-R1, FV-R3) | RO08 green [M, done]; the source-commit U test; P04 rejects (arity in the table header) |

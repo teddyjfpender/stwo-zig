@@ -1,34 +1,35 @@
-1/32 rv64_om31_security_candidate_test_root.test_0...OK
-2/32 word16_execution.om31_security_candidate_test.test.assumption qualified target is explicit metadata and cannot authorize certification...OK
-3/32 word16_execution.om31_security_candidate_test.test.candidate pins receiver configuration sampler and scope identity...OK
-4/32 word16_execution.om31_security_candidate_test.test.candidate conditional complete-native ledger fits admitted cap but is never certificate...OM31_SECURITY_CANDIDATE identity=dd85fa95f35d7a3aaaadf301e53570cc8d5fea7cd8eef93a7b68377a30b59b91 conditional_weight=6051784140057819474559976
+1/33 rv64_om31_security_candidate_test_root.test_0...OK
+2/33 word16_execution.om31_security_candidate_test.test.assumption qualified target is explicit metadata and cannot authorize certification...OK
+3/33 word16_execution.om31_security_candidate_test.test.candidate pins receiver configuration sampler and scope identity...OK
+4/33 word16_execution.om31_security_candidate_test.test.candidate conditional complete-native ledger fits admitted cap but is never certificate...OM31_SECURITY_CANDIDATE identity=dd85fa95f35d7a3aaaadf301e53570cc8d5fea7cd8eef93a7b68377a30b59b91 conditional_weight=6051784140057819474559976
 OK
-5/32 word16_execution.om31_security_candidate_test.test.candidate rejects characteristic wrap geometry and oversized source scope...OK
-6/32 word16_execution.om31_security_candidate_test.test.candidate binds receiver facts to native raw transcript before dependent challenges...OK
-7/32 word16_execution.om31_security_candidate_test.test.candidate local relation roster matches production raw fraction authority...OK
-8/32 word16_execution.om31_security_candidate_test.test.admitted native identities are byte-identical to the M5 default (golden, proof-neutral M6 edits)...OK
-9/32 word16_execution.om31_security_candidate_test.test.candidate arithmetic rejects arbitrary overflowing budget values...OK
-10/32 word16_execution.om31_security_candidate_test.test.candidate raw modulo exact integer entropy and union threshold reject uniform substitution...OK
-11/32 word16_execution.om31_security_candidate_test.test.m7 candidate profiles are 128 conjectured bits, never weaker under Johnson, off by default...OK
-12/32 word16_execution.om31_security_candidate_test.test.m7 candidate layers pin plan parameters (D2, recsize outer, C1, C2 fold 8/16)...OK
-13/32 word16_execution.om31_security_candidate_test.test.m7 outer LogUp-GKR ledger: OM31 challenges clear 128+23 bits at caps, QM31 would not...OK
-14/32 word16_execution.om31_security_candidate_test.test.m7 outer LogUp characteristic bound: caps would wrap p, realistic M7 facts do not...OK
-15/32 word16_execution.om31_security_candidate_test.test.m5 format versions keep 128 conjectured bits of their base PCS, distinct domains and identities, off by default...OK
-16/32 word16_execution.om31_security_candidate_test.test.m5 native format version hashes the production local relation count (fixes the 9-vs-10 drift)...OK
-17/32 word16_execution.om31_security_candidate_test.test.m7 outer-gkr format version clears the GKR ledger at realistic facts and refuses caps on characteristic...OK
-18/32 word16_execution.om31_security_candidate_test.test.recsize m3_b8 outer candidate: 3*34 + 26 = 128, Johnson x2 = 154...OK
-19/32 word16_execution.om31_security_candidate_test.test.corpus M09 outer GKR challenges must be OM31: QM31 draws fail the 128-bit gate at every fact set...OK
-20/32 word16_execution.om31_security_candidate_test.test.reference Z04: NS mass folds as integers; two children of p-1 are refused, an M31 sum would hide it...OK
-21/32 word16_execution.om31_security_candidate_test.test.reference L05: one-sided upper range check admits k = p - 1; two-sided refuses it...OK
-22/32 word16_execution.om31_security_candidate_test.test.reference BG08: fused Blake2s byte-XOR lookup mass at census sizes stays far below p...OK
-23/32 word16_execution.om31_security_candidate_test.test.reference outer r1 AIR characteristic bound from the 24628607 census: 1.9 bits of margin, a 4x leaf wraps...OK
-24/32 word16_execution.om31_security_candidate_test.test.m5/m7 format versions name the owning stream's component version (outer-gkr section, fused Blake2s AIR, chi chain)...OK
-25/32 word16_execution.om31_security_candidate_test.test.m6 reserved names pin the published domains and owners...OK
-26/32 word16_execution.om31_security_candidate_test.test.m6 diet entries carry outer GKR + one-instance fused Blake + set-v2 + k-ary, composites are supersets...OK
-27/32 word16_execution.om31_security_candidate_test.test.m6 composite identity: changing any one extra component, its order, or the fold arity changes the identity...OK
-28/32 word16_execution.om31_security_candidate_test.test.m6 diet outer GKR clears 128+23 bits at the 24628607 node count; r1 vs m3 equal under the GKR ledger...OK
-29/32 word16_execution.om31_security_candidate_test.test.corpus BG08 m6 one-instance fused Blake: XOR8 table mass over ALL consumers stays below p...OK
-30/32 word16_execution.om31_security_candidate_test.test.m6 k-ary diet folds: integer mass fold at arity 4 (bound) refuses a wrap an M31 sum hides...OK
-31/32 word16_execution.om31_security_candidate_test.test.native v2-gkr GKR section at its declared bounds (NF4): OM31 clears 151 bits, conservative mass wraps p...OK
-32/32 word16_execution.om31_security_candidate.test.public boundary log23 policy v2 separates general clocks and historical identity...OK
-All 32 tests passed.
+5/33 word16_execution.om31_security_candidate_test.test.candidate rejects characteristic wrap geometry and oversized source scope...OK
+6/33 word16_execution.om31_security_candidate_test.test.candidate binds receiver facts to native raw transcript before dependent challenges...OK
+7/33 word16_execution.om31_security_candidate_test.test.candidate local relation roster matches production raw fraction authority...OK
+8/33 word16_execution.om31_security_candidate_test.test.admitted native identities are byte-identical to the M5 default (golden, proof-neutral M6 edits)...OK
+9/33 word16_execution.om31_security_candidate_test.test.candidate arithmetic rejects arbitrary overflowing budget values...OK
+10/33 word16_execution.om31_security_candidate_test.test.candidate raw modulo exact integer entropy and union threshold reject uniform substitution...OK
+11/33 word16_execution.om31_security_candidate_test.test.m7 candidate profiles are 128 conjectured bits, never weaker under Johnson, off by default...OK
+12/33 word16_execution.om31_security_candidate_test.test.m7 candidate layers pin plan parameters (D2, recsize outer, C1, C2 fold 8/16)...OK
+13/33 word16_execution.om31_security_candidate_test.test.m7 outer LogUp-GKR ledger: OM31 challenges clear 128+23 bits at caps, QM31 would not...OK
+14/33 word16_execution.om31_security_candidate_test.test.m7 outer LogUp characteristic bound: caps would wrap p, realistic M7 facts do not...OK
+15/33 word16_execution.om31_security_candidate_test.test.m5 format versions keep 128 conjectured bits of their base PCS, distinct domains and identities, off by default...OK
+16/33 word16_execution.om31_security_candidate_test.test.m5 native format version hashes the production local relation count (fixes the 9-vs-10 drift)...OK
+17/33 word16_execution.om31_security_candidate_test.test.m7 outer-gkr format version clears the GKR ledger at realistic facts and refuses caps on characteristic...OK
+18/33 word16_execution.om31_security_candidate_test.test.recsize m3_b8 outer candidate: 3*34 + 26 = 128, Johnson x2 = 154...OK
+19/33 word16_execution.om31_security_candidate_test.test.corpus M09 outer GKR challenges must be OM31: QM31 draws fail the 128-bit gate at every fact set...OK
+20/33 word16_execution.om31_security_candidate_test.test.reference Z04: NS mass folds as integers; two children of p-1 are refused, an M31 sum would hide it...OK
+21/33 word16_execution.om31_security_candidate_test.test.reference L05: one-sided upper range check admits k = p - 1; two-sided refuses it...OK
+22/33 word16_execution.om31_security_candidate_test.test.reference BG08: fused Blake2s byte-XOR lookup mass at census sizes stays far below p...OK
+23/33 word16_execution.om31_security_candidate_test.test.reference outer r1 AIR characteristic bound from the 24628607 census: 1.9 bits of margin, a 4x leaf wraps...OK
+24/33 word16_execution.om31_security_candidate_test.test.m5/m7 format versions name the owning stream's component version (outer-gkr section, fused Blake2s AIR, chi chain)...OK
+25/33 word16_execution.om31_security_candidate_test.test.m6 reserved names pin the published domains and owners...OK
+26/33 word16_execution.om31_security_candidate_test.test.m6 diet entries carry outer GKR + one-instance fused Blake + set-v2 + k-ary, composites are supersets...OK
+27/33 word16_execution.om31_security_candidate_test.test.m6 composite identity: changing any one extra component, its order, or the fold arity changes the identity...OK
+28/33 word16_execution.om31_security_candidate_test.test.m6 diet outer GKR clears 128+23 bits at the 24628607 node count; r1 vs m3 equal under the GKR ledger...OK
+29/33 word16_execution.om31_security_candidate_test.test.corpus BG08 m6 one-instance fused Blake: XOR8 table mass over ALL consumers stays below p...OK
+30/33 word16_execution.om31_security_candidate_test.test.m6 k-ary diet folds: integer mass fold at arity 4 (bound) refuses a wrap an M31 sum hides...OK
+31/33 word16_execution.om31_security_candidate_test.test.native v2-gkr GKR section at its declared bounds (NF4): OM31 clears 151 bits, conservative mass wraps p...OK
+32/33 word16_execution.om31_security_candidate_test.test.corpus DW12 m6 diet k4 cap3: 4-ary fold G rows fit 2^23 only with the cap [D, diet-wire DW-3]...OK
+33/33 word16_execution.om31_security_candidate.test.public boundary log23 policy v2 separates general clocks and historical identity...OK
+All 33 tests passed.

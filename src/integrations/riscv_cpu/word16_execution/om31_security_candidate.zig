@@ -591,10 +591,13 @@ pub const FormatVersion = enum {
     m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1,
     /// integrate: diet + fold v3 composed, m3.
     m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1,
-    /// diet-wire stage 1+2 (DW-1): set-v2 shape set + 3-ary folds, no GKR, no fused Blake.
-    m6_outer_setv2_kary_r1_b2_q108_p20_fold4_v1,
-    /// diet-wire stage 3: + outer GKR (after the eq-column constraint lands), no fused Blake.
-    m6_outer_gkr_setv2_kary_r1_b2_q108_p20_fold4_v1,
+    /// diet-wire DW-3 (posted name): 3-ary folds as a profile constant (a
+    /// STWO_RV64_FOLD_ARITY other than 3 is Om31ProfileFoldArityMismatch).
+    m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1,
+    /// diet-wire DW-3 (posted name, in test): 4-ary folds whose in-circuit child
+    /// verifier stops every Merkle path at an 8-node cap (c = 3) guessed and hashed
+    /// to the child root once (fold circuits only; child proof bytes unchanged).
+    m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1,
     pub fn name(self: FormatVersion) []const u8 {
         return @tagName(self);
     }
@@ -623,7 +626,7 @@ pub const FormatSpec = struct {
     /// Fold arity is a class constant in {2,3,4} (k-ary binding, binding sec. 4).
     max_fold_arity: u32 = 2,
 };
-pub const FORMAT_VERSIONS = [_]FormatVersion{ .m5_native_chi_chain_v1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1, .m7_outer_gkr_m3_b4_q51_p26_fold4_v1, .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1, .m6_native_v2_b2_q108_p20_fold4, .m6_native_v2_gkr_b2_q108_p20_fold4, .m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1, .m6_outer_setv2_kary_r1_b2_q108_p20_fold4_v1, .m6_outer_gkr_setv2_kary_r1_b2_q108_p20_fold4_v1 };
+pub const FORMAT_VERSIONS = [_]FormatVersion{ .m5_native_chi_chain_v1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1, .m7_outer_gkr_m3_b4_q51_p26_fold4_v1, .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1, .m6_native_v2_b2_q108_p20_fold4, .m6_native_v2_gkr_b2_q108_p20_fold4, .m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 };
 /// M6 component version strings (M6-INTERFACES.md P1). A change of any one is
 /// a new FormatVersion; the owning stream posts the real string, profiles edits.
 /// native-format NF0: protocol `rv64-m6-native/v2`, profiles v2-strict / v2-gkr
@@ -640,7 +643,10 @@ pub const KARY_COMPONENT = "kary-v1";
 pub const FOLD_V3_COMPONENT = "rv64-m6-fold-v3/v1";
 const DIET_EXTRA = [_][]const u8{ FUSED_BLAKE_ONE_INSTANCE_COMPONENT, SET_V2_COMPONENT, KARY_COMPONENT };
 const DIET_FOLD_V3_EXTRA = DIET_EXTRA ++ [_][]const u8{FOLD_V3_COMPONENT};
-const SETV2_KARY_EXTRA = [_][]const u8{ SET_V2_COMPONENT, KARY_COMPONENT };
+/// diet-wire DW-3 component strings (exactly as posted).
+pub const KARY_K3_COMPONENT = "kary-v1(k=3)";
+pub const KARY_K4_COMPONENT = "kary-v1(k=4)";
+pub const FOLD_MERKLE_CAP3_COMPONENT = "merkle-cap-v1(c=3, fold circuits only)";
 /// Local relations of the production raw-fraction roster (fractions.zig gained
 /// byte_pair in 63728c3f8). The M5 native version hashes this, not the stale 9.
 pub const M5_LOCAL_RELATIONS: u64 = 10;
@@ -660,8 +666,8 @@ pub fn formatSpec(version: FormatVersion) FormatSpec {
         .m6_outer_diet_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "diet-wire", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-m3-b4-q51-p26-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_EXTRA, .fused_blake = true, .max_fold_arity = 3 },
         .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "integrate", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-fold-v3-q108-p20-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_FOLD_V3_EXTRA, .fused_blake = true, .max_fold_arity = 3 },
         .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "integrate", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-fold-v3-m3-b4-q51-p26-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_FOLD_V3_EXTRA, .fused_blake = true, .max_fold_arity = 3 },
-        .m6_outer_setv2_kary_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "diet-wire", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-setv2-kary-q108-p20-fold4/lens-v1", .component = SET_V2_COMPONENT, .extra_components = &.{KARY_COMPONENT}, .max_fold_arity = 3 },
-        .m6_outer_gkr_setv2_kary_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "diet-wire", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-gkr-setv2-kary-q108-p20-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &SETV2_KARY_EXTRA, .max_fold_arity = 3 },
+        .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "diet-wire", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-k3-q108-p20-fold4/lens-v1", .component = KARY_K3_COMPONENT, .max_fold_arity = 3 },
+        .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "diet-wire", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-k4-cap3-q108-p20-fold4/lens-v1", .component = KARY_K4_COMPONENT, .extra_components = &.{FOLD_MERKLE_CAP3_COMPONENT}, .max_fold_arity = 4 },
     };
 }
 pub fn formatConjecturedBits(version: FormatVersion) u32 {

@@ -537,6 +537,10 @@ CASES = [
               "carry recurrence) must fail, not the boundary (review DW-R1: E was unconstrained)"),
     dict(id="DW11-prefix-not-cyclic", family="diet-outer", expect="reject", today="m6",
          what="Pre with Pre[0] = 0 and the target carried by the wrap row (non-cyclic edge): the cyclic target_per_row form must fail"),
+    dict(id="DW12-cap-slot-guessed", family="diet-outer", expect="reject", today="m6",
+         what="k4-cap3 fold: a child path ends at a cap node chosen by a guessed index, not the query position's top 3 bits"),
+    dict(id="DW13-cap-not-root", family="diet-outer", expect="reject", today="m6",
+         what="k4-cap3 fold: the 8 guessed cap nodes are not hashed (same node hasher/tags) to the root that seeds the child transcript"),
     dict(id="DW09-q51-under-q108", family="diet-outer", expect="reject", today="m6",
          what="diet m3 (q51) proof verified under the diet r1 (q108) receiver policy, and vice versa"),
     # fold-v3: in-circuit T_rec membership, NS interval chain, PCD self-VK
@@ -609,6 +613,7 @@ CASE_META = {
     "DW01": ("R", "diet-wire"), "DW02": ("R", "diet-wire"), "DW03": ("W", "diet-wire"), "DW04": ("W", "diet-wire"),
     "DW05": ("W", "diet-wire"), "DW06": ("W", "diet-wire"), "DW07": ("R", "diet-wire"), "DW08": ("W", "diet-wire"),
     "DW09": ("R", "diet-wire"), "DW10": ("W", "diet-wire"), "DW11": ("W", "diet-wire"),
+    "DW12": ("W", "diet-wire"), "DW13": ("W", "diet-wire"),
     "F301": ("W", "fold-v3"), "F302": ("W", "fold-v3"), "F303": ("W", "fold-v3"), "F304": ("W", "fold-v3"),
     "F305": ("W", "fold-v3"), "F306": ("U", "fold-v3"), "F307": ("W", "fold-v3"), "F308": ("W", "fold-v3"),
     "RO08": ("R", "fold-v3"), "RO09": ("R", "fold-v3"), "RO10": ("R", "fold-v3"),
