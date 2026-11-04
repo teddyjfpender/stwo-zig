@@ -21,8 +21,34 @@ pub fn build(b: *std.Build) void {
     const run_tests = b.addRunArtifact(tests);
     b.step("test", "Run tensor frontend tests").dependOn(&run_tests.step);
 
+    const use_cuda = b.option(bool, "cuda", "Build the CUDA backend with nvcc and link it (default off; needs the CUDA toolkit)") orelse false;
+    const cuda_arch = b.option([]const u8, "cuda-arch", "nvcc -arch for -Dcuda (default sm_90; sm_120 for RTX 5090)") orelse "sm_90";
+    const nvcc = b.option([]const u8, "nvcc", "nvcc executable for -Dcuda (default: nvcc on PATH)") orelse "nvcc";
+
+    const cuda_emu_bench = b.option(bool, "cuda-emu", "Link the CPU emulation of the CUDA backend into tensor-bench (--cuda then runs the emulated kernels)") orelse false;
+
     const opts = b.addOptions();
     opts.addOption(bool, "metal", use_metal);
+    opts.addOption(bool, "cuda", use_cuda or cuda_emu_bench);
+
+    // CUDA backend. The CPU emulation build (the same kernel and host-layer
+    // sources compiled as C++) is always available; -Dcuda=true builds the
+    // nvcc shared library and runs the identical tests on the device.
+    const cuda_emu = cudaModule(b, target, optimize, tensor, null);
+    const cuda_emu_tests = cudaTests(b, target, optimize, tensor, cuda_emu, engine);
+    b.step("test-cuda-emu", "CUDA backend: kernels + host layer emulated on the CPU, bit-identical to the CPU prover").dependOn(&cuda_emu_tests.step);
+    const cuda_dev: ?*std.Build.Module = if (use_cuda) blk: {
+        const cmd = b.addSystemCommand(&.{ nvcc, "-O3", "-std=c++17", b.fmt("-arch={s}", .{cuda_arch}), "-lineinfo", "-Xcompiler", "-fPIC", "-shared", "-Xlinker", "-soname=libtensor_cuda.so" });
+        cmd.addFileArg(b.path("cuda/tc_host.cu"));
+        cmd.addPrefixedDirectoryArg("-I", b.path("cuda"));
+        for ([_][]const u8{ "cuda/tc_api.h", "cuda/tc_prelude.cuh", "cuda/tc_field.cuh", "cuda/tc_blake2s.cuh", "cuda/tc_kernels.cuh" }) |h| cmd.addFileInput(b.path(h));
+        const so = cmd.addPrefixedOutputFileArg("-o", "libtensor_cuda.so");
+        b.getInstallStep().dependOn(&b.addInstallLibFile(so, "libtensor_cuda.so").step);
+        const m = cudaModule(b, target, optimize, tensor, so);
+        const dev_tests = cudaTests(b, target, optimize, tensor, m, engine);
+        b.step("test-cuda", "CUDA backend on the device: the test-cuda-emu assertions against the nvcc build").dependOn(&dev_tests.step);
+        break :blk m;
+    } else null;
 
     const bench_mod = b.createModule(.{
         .root_source_file = b.path("bench.zig"),
@@ -33,6 +59,8 @@ pub fn build(b: *std.Build) void {
     bench_mod.addImport("stwo_tensor", tensor);
     bench_mod.addImport("stwo_core", core);
     bench_mod.addOptions("build_options", opts);
+
+    if (cuda_dev) |m| bench_mod.addImport("stwo_tensor_cuda", m) else if (cuda_emu_bench) bench_mod.addImport("stwo_tensor_cuda", cuda_emu);
 
     if (use_metal) {
         const metal = metalModule(b, target, optimize, tensor);
@@ -67,6 +95,42 @@ pub fn build(b: *std.Build) void {
     const run_verify = b.addRunArtifact(verify_exe);
     if (b.args) |args| run_verify.addArgs(args);
     b.step("verify", "Verify tensor proof files: zig build verify -- <dir>").dependOn(&run_verify.step);
+}
+
+/// CUDA backend module (cuda/backend.zig). `so` = the nvcc-built
+/// libtensor_cuda.so; null = the CPU emulation build of the same sources.
+fn cudaModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, tensor: *std.Build.Module, so: ?std.Build.LazyPath) *std.Build.Module {
+    const m = b.createModule(.{
+        .root_source_file = b.path("cuda/backend.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+        .link_libcpp = so == null,
+    });
+    m.addImport("stwo_tensor", tensor);
+    if (so) |lib| {
+        m.addObjectFile(lib);
+        m.addRPath(lib.dirname());
+    } else {
+        m.addCSourceFile(.{ .file = b.path("cuda/tc_emu.cpp"), .flags = &.{ "-std=c++17", "-O2", "-Wall", "-Wextra", "-Werror" } });
+    }
+    return m;
+}
+
+fn cudaTests(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, tensor: *std.Build.Module, cuda: *std.Build.Module, engine: *std.Build.Module) *std.Build.Step.Run {
+    const tm = b.createModule(.{
+        .root_source_file = b.path("cuda/test.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    tm.addImport("stwo_tensor", tensor);
+    tm.addImport("stwo_tensor_cuda", cuda);
+    tm.addImport("stwo_prover_engine", engine);
+    const tests = b.addTest(.{ .root_module = tm });
+    const run = b.addRunArtifact(tests);
+    run.has_side_effects = true;
+    return run;
 }
 
 /// The Metal module compiles the stwo-zig Metal backend's MSL sources (field,

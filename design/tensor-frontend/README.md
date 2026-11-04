@@ -117,6 +117,8 @@ Performance notes: `perf.md` (CPU prover), `metal.md` (Metal path),
 `speed.md` (round 2: ext ops, Metal batch and einsums, recommended
 pcs2 + batched-matmul config as the bench default, decoder-layer numbers).
 Proof files and the `tensor-verify` CLI: `wire.md`.
+CUDA backend (designed for H100 / RTX 5090; emulation-verified on the CPU, not
+yet run on a GPU): `cuda.md`, `zig build test-cuda-emu`.
 
 ## Status and caveats
 
