@@ -81,6 +81,8 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         /// Zero disables; otherwise a power of two in4..256. Profile on device.
         tail_count: u32 = 0,
         launches: u64 = 0,
+        batch_fold_sum_calls: u64 = 0,
+        batch_fold_sum_launches: u64 = 0,
         const Self = @This();
 
         fn apiFunction(comptime name: []const u8) type {
@@ -339,6 +341,8 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 var launches: u32 = 0;
                 const status = self.callApi("stwo_rv64_batch_fold_sum_on", .{ owner, self.lane_index, &packets, @as(u32, @intCast(jobs.len)), count, try self.context.deviceSlicePointer(u32, challenge, 8), try eq_values.bind(self.context), try self.context.deviceSlicePointer(u32, lambda, 8), &launches });
                 try self.result(status, launches);
+                self.batch_fold_sum_calls += 1;
+                self.batch_fold_sum_launches += launches;
             } else return error.MissingCudaBatchedFoldSumSymbol;
         }
 
