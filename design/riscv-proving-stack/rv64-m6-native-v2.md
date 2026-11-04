@@ -28,18 +28,41 @@ zero rows). The division component is never omitted under v2 (`omit_empty_divisi
 log). A segment that no rung holds is an error (`NativeChainNotStrict`); there is no UNCLASSED segment under v2.
 
 **Receiver.** `chain.assign` derives `r_k` as the unique rung with vector equality (`Canon.strictRung`) and refuses
-anything else, including a set `omit_empty_division`. The receiver plans its own declarations from its own capture with
-the same code, so the declaration is receiver-derived. Producer bytes never select the class.
+anything else, including a set `omit_empty_division`.
+
+*Correction (adversarial review, 2026-11-05).* An earlier draft said here that the receiver plans its own declarations
+from its own capture. It does not. `verify-recursion-candidate` never captures: it reads the declarations and the
+request counts from the producer's `bundle.json` (`gkr_main.zig` verify branch: `W.read`, then
+`Keys.initWithSuiteAndCaches(loaded.cpu_declarations, ...)`). So **the producer chooses the class**: any rung of the
+segment's family whose vector it declares exactly. The receiver only checks that the declaration *is* some rung
+(`NativeChainNotStrict` otherwise), and every key, FIXED root and vkhash follows from that declaration. This is still
+sound: the rung set is finite and public, and each rung is an ordinary admitted geometry with its own VK. But the
+soundness of the admission relaxation cannot rest on "the prover cannot choose presence". See point 1 below.
 
 **Admission relaxation (policy-gated).** Under v2 only, "present iff it has rows" becomes "absent implies no rows" for
 the bridges (12 families), the bulk kinds, the sponge kinds, the LS-D64 head and tail, and the LS32 tail
 (`protocol.zig presenceAdmitted`, `types.zig dwordCounts`, `geometry.zig lsCounts`). The ALU, BINARY and SHIFT tails
-already admit empty instances (their claims are prover-computed and close through FUNCTION). Outside v2 the old rule
+already admit empty instances on the receiver side (their claims are prover-computed and close through FUNCTION). The
+`geometry.zig factCounts` relaxation is used only by producer witness planning (`provider_tails.zig`, via
+`sources.zig`/`device_headers.zig`), not by admission. Outside v2 the old rule
 is unchanged, byte for byte.
 
 **Why the relaxation is sound.**
-1. *Presence is a class constant.* Under v2 the receiver fixes the component set from (f, r) alone, so the prover cannot
-   choose presence to hide or add a relation. The old rule tied presence to counts because presence was otherwise free.
+1. *Presence is the producer's choice of rung, and that choice cannot hide calls.* The producer picks the rung, so it
+   does choose presence (see the correction above). Two rules make that harmless:
+   - The relaxation is one-sided. `presenceAdmitted` still refuses an *absent* component with non-zero calls or rows, and
+     absent claims must be zero (`NonzeroAbsentServiceClaim`). A rung choice can therefore only *add* instances; it
+     can never drop a component that has work.
+   - An added instance is all padding by its own AIR. Every optional CPU-proof component (bridges, bulk, sponge, LS-D64,
+     LS32 tail) forces `active` to be a prefix whose first row equals `nonempty = (count != 0)`. With count 0 that gives
+     row 0 inactive, every later active row needs an active predecessor, padding forces every other MAIN column to
+     zero, and every lookup numerator is gated by `active`. In the native verifier, `nonempty` is computed from the
+     receiver-admitted count (`qFor(count != 0)`). In the OM31 leaf it is the `is_nonzero` gadget of
+     `om31_native/cpu_leaf.zig flag()`: boolean, `count * (1 - nz) = 0` and `count * inv = nz`. The prover cannot
+     set it.
+   Measured in the tamper suite of this review (fresh receivers, `rv64-m6-20261105/native-format/review-tamper-26235156.json`):
+   activating a present-empty instance (NVT05), a non-zero global claim on a present-empty bridge or LS32 tail
+   (NVT06/07), and an admissible relabel to another rung (NVT02b) are all rejected.
 2. *An empty instance proves nothing extra.* An all-padding instance is the same AIR as a populated one, with the
    receiver-derived public counts set to 0: 0 calls, `first_id` continuing the family span, and claims derived from 0
    calls. Every relation it touches (RAM, KIO, Wire, FUNCTION, range, AND) is closed by the same global and local
@@ -189,3 +212,62 @@ ABI. But the `-rdc` device link of the resident image (`nvcc -shared`) **segfaul
 `BatchTailPacket`, `Roots`) from kernel parameters into a device-side job buffer, written once per batch. That also fits
 the enqueue-only contract better than 30 KiB parameter blocks per launch. The production tree keeps 64, so its bytes are
 unchanged.
+
+*Review note on the segfault diagnosis (unverified either way).* hint-tape reported in M6-INTERFACES (about 23:00 pod time)
+that the pod's 30 GB root overlay (`/`, where nvcc's default TMPDIR lives) reached 100 % and that an **nvcc link
+segfaulted** at that time. During this review `/` was at 91 %. Before anyone redesigns the kernel parameters on the strength
+of "deterministic exit 139", re-run the 128-oracle device link once with `TMPDIR=/workspace/...` and enough free space.
+
+## 6. Adversarial review of v2-strict (2026-11-05, reviewer, head 902284701)
+
+Scope: forging native proofs under `STWO_RV64_NATIVE_VERSION=m6-native-v2-strict` with fresh, separate, cache-disabled,
+GPU-disabled receivers (b4, 001bf1d9) on the accepted 26235156 pair. Script `scripts/rv64_m6_native_v2_tamper.py`.
+Receipt `vectors/reports/rv64-m6-20261105/native-format/review-tamper-26235156.json`. Every mutation is coherent:
+`bundle.json` is rewritten with matching file hashes, so `WideBundleFileChanged` cannot be what rejects.
+
+**Result [M]: 15/15 as expected. No unexpected accepts, no crashes.**
+
+| id | forgery attempt | rejected by |
+|---|---|---|
+| NVT00 | control (unmodified) | accepted (49.1 s wall at load ~23) |
+| NVT01 | cpu-1 sha256 log 8 -> 9 (no rung equals it) | `NativeChainNotStrict` |
+| NVT02 | cpu-1 relabelled as cpu_middle rung 0 (capacities too small) | `InvalidServicesWireRequest` (admission) |
+| NVT02b | cpu-1 relabelled rung 1 -> rung 2: the counts fit, 4 curve bridges become present-empty with zero claims; strict check passes | `GlobalGkrManifestExecution` (keys and FIXED of rung 2 do not match the rung-1 proof) |
+| NVT03 | cpu-3 `omit_empty_division = true` | `NativeChainNotStrict` |
+| NVT04 | cpu-0 `cpu_compact_decode = false` (same rung vector, different flags word) | `GlobalGkrManifestExecution` |
+| NVT05 | present-empty arith256_mod in cpu-0 claims 1 call (cpu-1 12 -> 11, so the truth span still adds up) | `InvalidSumcheck` |
+| NVT06 | non-zero global RAM claim on cpu-0's present-empty arith256_mod | `OodsNotMatching` |
+| NVT07 | non-zero global RAM claim on cpu-1's present-empty LS32 tail | `OodsNotMatching` |
+| NVT08 | cpu-0's present-empty arith256_mod made absent (legal under the old rule) and its claims dropped | `NativeChainNotStrict` |
+| NVT09 | 24628607's cpu-0 (same class, same vkhash 35369d4f, same initial state) replayed as 26235156's cpu-0 | `InvalidCombinedTruthSpan` |
+| NVT09b | NVT09 with the truth spans re-aligned to the donor's counts | `InvalidKeccakComponentGeometry` |
+| NVT10 | cpu-1 <-> cpu-2 (same class 21f356a4), epochs rewritten to the ordinals | `NonAdjacentEthereumCpu` |
+| NVT11 | truth-1 <-> truth-2 proofs and claims (same keccak class 2457324e), spans kept | `GlobalGkrPhysicalRootMismatch` |
+| NVT12 | truth-1 keccak log 14 -> 16 (another strict rung) | `GlobalGkrManifestExecution` |
+
+**Completeness [M].** A fresh v2 receiver run of this review accepted the v2-strict 24628607 bundle
+(`24628607-2gpu-v2s-r6`): `accepted` and `completed_ethereum_block` true, 7 CPU + 10 truth proofs, setup 10.76 s, native
+verify 1.62 s, recursion verify 61.6 s. This is a single observation at load ~20, on a CPU-only receiver. NVT00 is the
+26235156 control.
+
+**Findings.**
+1. *(Fixed in this note.)* Sec. 2 said that the receiver derives the declarations from its own capture. It reads them
+   from the producer's bundle, so the producer chooses the rung. The relaxation is still sound, for the reasons now
+   given in sec. 2 point 1: one-sided presence, plus the AIR's `nonempty` prefix with a receiver-computed or
+   gadget-constrained flag. NVT02b shows that an admissible relabel is caught by the keys and FIXED.
+2. *(Open; completeness, fails closed.)* v2-strict is not total. `canonFitStrict` requires `cpu_log` (and `boundary_log`)
+   to equal the rung exactly. The table has no `cpu_single` family at all, and `cpu_last` only has `cpu_log` 20, 21 and 22.
+   `cpu_log` is fixed by the step count of the capture-time source. So a block that fits in one segment (fewer than
+   about 4.19 M steps), or whose last segment has fewer than 2^19 steps, gets `NativeChainNotStrict` and cannot be
+   proven under v2. That is [E] at least 1 in 8 multi-segment blocks, plus every single-segment block. The real share is higher, because
+the only cpu_log-20 rung (cpu_last rung 0) has no Keccak bridge. Both dev blocks fit:
+   their last segments have cpu_log 22 and 21. Before v2-strict becomes the default, add `cpu_single` rungs and cpu_last
+   rungs down to the smallest cpu_log, or pad the last segment's cpu_log up to a rung. Either is a rung-table change.
+3. *(Open, low.)* The version identity binds R = 4 but not the contents of the rung table. A re-generated table with the
+   same R keeps the same version identity, although (f, r) then names different vectors. vkhash and structure_v2 still
+   differ, so this is not a forgery. Bind a rung-table digest (NF2 `rung_table_id`) into `versionIdentityV2` before the
+   first table change.
+4. *(Open, low, v2-gkr reference only.)* `v2.proveCpu` may try `MAX_SALT_ATTEMPTS = 64` salts, which is 6 bits of grinding
+   over the local elements. The NF4 ledger (2^-194) does not list it. The margin covers it (188 >= 151), but the ledger
+   should carry the term. `v2.verify` returns the global group sums unbound. NF4's "global claims = GKR roots" and the
+   MAIN binding residual are not built. As the status says, nothing in v2.zig is a receiver yet.
