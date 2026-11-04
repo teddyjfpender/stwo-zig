@@ -75,9 +75,56 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
         try S.checked(b.base(@intCast(component), values.words.?, @intCast(owner.value_count), @as(u32, 1) << @intCast(logs[component]), @intCast(owner.key.pp.first_permutation_row), &pp, @intCast(pp_widths[component]), &outputs, @intCast(widths[component]), &counts, 22, status.words.?, stream.?));
         main_at += widths[component];
     }
+    if (fusedBlakeFlags()) |flags| fusedBlakeShadow(owner, &ctx, values.words.?, logs, stream.?, flags);
     try ctx.join();
     var flag: [1]u32 = undefined;
     try ctx.download(try ctx.borrow(status), &flag);
     try ctx.join();
     if (flag[0] != 0) return error.InvalidCircuitDeviceWitness;
+}
+
+// ---------------------------------------------------------------------------
+// fused_blake2s_v1 shadow hook (stream blake-gadget, M5; minimal hook in an
+// enqueue-owned file, see /workspace/m3/M5-INTERFACES.md "blake-gadget").
+// STWO_RV64_FUSED_BLAKE=shadow derives the hint tape of every Blake2s
+// compression of this node from its device values and blake_g_gate address
+// columns, then fills the fused_blake2s_v1 trace (all instance rows) and its
+// XOR multiplicities into scratch memory; =check also re-evaluates every
+// fused constraint on the device. Nothing it writes is read by the prover, so
+// proofs stay byte-identical; it is diagnostic and never fails the prove.
+const FusedShadowFn = *const fn ([*]const u32, u32, [*]const [*]const u32, u32, u32, ?*anyopaque, *[16]u64, ?[*]u32, u64) callconv(.c) c_int;
+/// Fill-scratch rows leased from the session when cudaMallocAsync cannot
+/// supply memory (arena on): 4,096 rows x 3,328 columns = 54.5 MB.
+const FUSED_WORKSPACE_ROWS: u64 = 4096;
+
+fn fusedBlakeFlags() ?u32 {
+    const mode = std.posix.getenv("STWO_RV64_FUSED_BLAKE") orelse return null;
+    if (std.mem.eql(u8, mode, "shadow")) return 0;
+    if (std.mem.eql(u8, mode, "check")) return 1;
+    return null;
+}
+
+fn fusedBlakeShadow(owner: *S.Owner, ctx: anytype, values: [*]u32, logs: anytype, stream: *anyopaque, flags: u32) void {
+    const b = owner.backend;
+    const shadow = b.service.library.lookup(FusedShadowFn, "stwo_fused_blake2s_v1_shadow_on") orelse {
+        std.debug.print("FUSED_BLAKE2S_V1_SHADOW status=missing_symbol\n", .{});
+        return;
+    };
+    const indices = S.lookupIndices(owner.allocator, owner.key, 4) catch return;
+    defer owner.allocator.free(indices);
+    var pp: [10][*]const u32 = undefined;
+    for (&pp, indices[0..10]) |*out, index| out.* = owner.raw_fixed[index].words.?;
+    const g_rows = @as(u32, 1) << @intCast(logs[4]);
+    const workspace_words: u64 = (g_rows / 80) * 26 + 8 + 3 * (1 << 16) + FUSED_WORKSPACE_ROWS * 3328;
+    var workspace = ctx.allocate(@intCast(workspace_words), 0) catch null;
+    defer if (workspace) |*w| ctx.release(w) catch {};
+    var stats: [16]u64 = undefined;
+    const start = std.time.nanoTimestamp();
+    const status = shadow(values, @intCast(owner.value_count), &pp, g_rows, flags, stream, &stats, if (workspace) |w| w.words.? else null, if (workspace != null) workspace_words else 0);
+    const wall: u64 = @intCast(std.time.nanoTimestamp() - start);
+    std.debug.print("FUSED_BLAKE2S_V1_SHADOW status={d} ordinal={d} g_rows={d} chunks={d} shape={d} valid={d} fused_rows={d} instances={d} inst_logs=0x{x} gather_ns={d} fill_ns={d} check_ns={d} check_violations={d} xor_lookups={d} scratch_rows={d} fill_bytes={d} mem={d} wall_ns={d} flags={d} logs={any}\n", .{
+        status,    owner.initial_scope.ordinal, stats[0], stats[1],  stats[2],  stats[3], stats[4], stats[5],
+        stats[14], stats[6],                    stats[7], stats[8],  stats[9],  stats[10], stats[11], stats[12],
+        stats[15], wall,                        flags,    logs,
+    });
 }

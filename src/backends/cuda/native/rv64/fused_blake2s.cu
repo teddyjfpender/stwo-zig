@@ -572,9 +572,14 @@ extern "C" int stwo_fused_blake2s_v1_random_tape_on(uint64_t seed, uint64_t firs
 // stats (out, 16 x u64): 0 g_rows, 1 chunks, 2 shape-matched, 3 valid,
 // 4 fused_rows, 5 instances, 6 gather_ns, 7 fill_ns, 8 check_ns,
 // 9 check_violations, 10 xor_lookups_counted, 11 scratch_rows,
-// 12 bytes_written, 13 status, 14 instance logs packed (8 bits each).
+// 12 bytes_written, 13 status, 14 instance logs packed (8 bits each),
+// 15 memory source (bit0: tape from cudaMallocAsync, bit1: fill scratch from workspace).
+// `workspace` (optional, `workspace_words` u32 words of device memory owned by
+// the caller, e.g. an arena lease) is used when cudaMallocAsync cannot supply
+// the tape or the fill scratch (the static device arena may hold the device).
 extern "C" int stwo_fused_blake2s_v1_shadow_on(const uint32_t* values, uint32_t value_count, const uint32_t* const* gpp,
-                                               uint32_t g_rows, uint32_t flags, void* stream_raw, uint64_t* stats) {
+                                               uint32_t g_rows, uint32_t flags, void* stream_raw, uint64_t* stats,
+                                               uint32_t* workspace, uint64_t workspace_words) {
   cudaStream_t stream = (cudaStream_t)stream_raw;
   for (int i = 0; i < 16; i++) stats[i] = 0;
   const uint64_t chunks = g_rows / 80;
@@ -595,12 +600,30 @@ extern "C" int stwo_fused_blake2s_v1_shadow_on(const uint32_t* values, uint32_t 
   uint32_t logs[MAX_INSTANCES] = {0, 0, 0};
   uint32_t n_inst = 0;
   float gather_ms = 0, fill_ms = 0, check_ms = 0;
+  bool owned = true;  // tape/counters/xor_counts from cudaMallocAsync (else carved from workspace)
+  uint64_t ws_used = 0;
+  const uint64_t fixed_words = chunks * TAPE_WORDS + 8 + 3u * (1u << 16);
   if (cudaMallocAsync((void**)&tape, chunks * TAPE_WORDS * 4, stream) != cudaSuccess ||
       cudaMallocAsync((void**)&counters, 3 * sizeof(unsigned long long), stream) != cudaSuccess ||
       cudaMallocAsync((void**)&xor_counts, 3u * (1u << 16) * 4, stream) != cudaSuccess) {
-    status = 10;
-    goto done;
+    cudaGetLastError();
+    if (tape) cudaFreeAsync(tape, stream);
+    if (counters) cudaFreeAsync(counters, stream);
+    if (xor_counts) cudaFreeAsync(xor_counts, stream);
+    owned = false;
+    if (!workspace || workspace_words < fixed_words) {
+      tape = nullptr;
+      counters = nullptr;
+      xor_counts = nullptr;
+      status = 10;
+      goto done;
+    }
+    counters = (unsigned long long*)workspace;  // 8 words, 8-byte aligned
+    xor_counts = workspace + 8;
+    tape = workspace + 8 + 3u * (1u << 16);
+    ws_used = fixed_words;
   }
+  stats[15] = owned ? 1 : 0;
   cudaMemsetAsync(counters, 0, 3 * sizeof(unsigned long long), stream);
   cudaMemsetAsync(xor_counts, 0, 3u * (1u << 16) * 4, stream);
   cudaEventRecord(ev[0], stream);
@@ -616,14 +639,28 @@ extern "C" int stwo_fused_blake2s_v1_shadow_on(const uint32_t* values, uint32_t 
   for (uint32_t i = 0; i < n_inst; i++) rows_total += 1ull << logs[i];
   // Scratch: the largest instance if it fits, else halve down to 2^12 rows.
   scratch_rows = n_inst ? (1ull << logs[0]) : 0;
-  while (scratch_rows && cudaMallocAsync((void**)&cols, scratch_rows * N_COLUMNS * 4ull, stream) != cudaSuccess) {
-    cudaGetLastError();
-    cols = nullptr;
-    scratch_rows = scratch_rows > 4096 ? scratch_rows / 2 : 0;
-  }
-  if (n_inst && !cols) {
-    status = 12;
-    goto done;
+  {
+    bool cols_owned = true;
+    while (scratch_rows && cudaMallocAsync((void**)&cols, scratch_rows * N_COLUMNS * 4ull, stream) != cudaSuccess) {
+      cudaGetLastError();
+      cols = nullptr;
+      scratch_rows = scratch_rows > 4096 ? scratch_rows / 2 : 0;
+    }
+    if (n_inst && !cols && workspace && workspace_words > ws_used) {
+      // Largest power of two of rows that fits the rest of the workspace.
+      uint64_t fit = (workspace_words - ws_used) / N_COLUMNS;
+      scratch_rows = 1ull << logs[0];
+      while (scratch_rows > fit) scratch_rows /= 2;
+      if (scratch_rows >= 256) {
+        cols = workspace + ws_used;
+        cols_owned = false;
+      }
+    }
+    if (n_inst && !cols) {
+      status = 12;
+      goto done;
+    }
+    if (!cols_owned) stats[15] |= 2;
   }
   {
     cudaEventRecord(ev[2], stream);
@@ -668,10 +705,12 @@ extern "C" int stwo_fused_blake2s_v1_shadow_on(const uint32_t* values, uint32_t 
     stats[10] = sum;
   }
 done:
-  if (cols) cudaFreeAsync(cols, stream);
-  if (xor_counts) cudaFreeAsync(xor_counts, stream);
-  if (counters) cudaFreeAsync(counters, stream);
-  if (tape) cudaFreeAsync(tape, stream);
+  if (cols && !(stats[15] & 2)) cudaFreeAsync(cols, stream);
+  if (owned) {
+    if (xor_counts) cudaFreeAsync(xor_counts, stream);
+    if (counters) cudaFreeAsync(counters, stream);
+    if (tape) cudaFreeAsync(tape, stream);
+  }
   cudaStreamSynchronize(stream);
   for (auto& e : ev) cudaEventDestroy(e);
   cudaGetLastError();
