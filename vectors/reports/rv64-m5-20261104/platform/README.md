@@ -44,7 +44,7 @@ schedule (9.7 GB), composition/commit/projection ingress (rest).
 
 Receipt `24628607-counters-v3-pinned-fences.json` (load 34.6 at start: the 69.96 s request is not quotable).
 
-## v4 (26235156, full stack: driver `a7e737a4`, lib `bfaf0b14`, under the call-site shim)
+## v4 (26235156, full stack: driver `a7e737a4`, lib `c72f975b`, under the call-site shim)
 
 `26235156-callsites-v4-adopt-el2.json`, `26235156-callsites-v4-sites.txt`. Byte-identical to M3/M4.
 
@@ -131,3 +131,16 @@ execution. The remaining ~0.3 s is ELF + input load and the input-dependent memo
 | bound the 12,544 B stack kernel (−2 GB) | **not done**: `secp witness<Add>` keeps a 3,136-word row in local memory, but the next worst kernels are AOT catalogue shards (`rv64_truth_domain_0_shard_47` 11,664 B, `..._7_shard_62` 10,576 B) and `curve witness<bn254_g1_add>` 10,576 B, so fixing one kernel frees ~0.2 GB, not 2 GB |
 | cache Image.Owner / ProgramAuthority | **ProgramAuthority done** (image load 0.49-0.58 → 0.31 s); Image.Owner itself depends on the block input, so it is not cached |
 | filter class preload, persist leaf plans | **not done** (preload is service start only; leaf plans wait on canon-vk keys) |
+
+## Binary identities (from the receipts' `assets`)
+
+| tag | driver | library | commit |
+|---|---|---|---|
+| M4 control | `a9acb639` | `5886e2a5` | `78c3bd5d2` |
+| v3 (runtime only, M4 driver) | `a9acb639` | `bfaf0b14` | `03bdc5db1` |
+| v4 | `a7e737a4` | `c72f975b` | `a7308c5db` |
+| v5 (final) | `d9cfebfb` | `a0e65e6d` | `06e9f64d2` |
+
+Correction: progress rows appended for v4 (`26235156-callsites-v4-adopt-el2`, `daemon-ab-final*`) say "lib bfaf0b14" in
+their notes; the receipts' `assets.library` is authoritative: v4 ran library `c72f975b` (`bfaf0b14` is v3).
+All receivers are the unchanged M4 receiver `1af34c0b`.
