@@ -108,7 +108,8 @@ the same review as the native one (open item 1).
 | committed cells with outer GKR (own) [D] | 1,101.1 M (**×0.568**) | 901.3 M (**×0.526**) |
 | interaction share today | 60.8 % | 61.8 % |
 | GKR fractions | 257.9 M | 246.4 M |
-| GPU GKR prover (tree + traversal, CUDA events, median of 3) [M] | **182.3 ms** (28.0 + 154.3) | **174.9 ms** (26.7 + 148.2) |
+| GPU GKR prover, plain route (tree + traversal, CUDA events) [M] | 182.3 ms (28.0 + 154.3) | 174.9 ms (26.7 + 148.2) |
+| GPU GKR prover, fused fold+next-sum route, byte-identical [M] | **148.2 ms** | **143.2 ms** |
 | device bytes [M] | 26.9 GB | 25.8 GB |
 | in-circuit verifier gates [M, valid circuit on the GPU proof] | G 195,200; qm31 223,203; m31→u32 20,360; triple-XOR 19,520; eq 1,581 | G 193,600; qm31 219,570; m31→u32 20,168; triple-XOR 19,360 |
 | in-circuit verifier cells per verified child [D] | 40.9 M (2.1 % of a leaf; kill line 25 %) | 40.5 M |
@@ -116,9 +117,9 @@ the same review as the native one (open item 1).
 | fresh receiver (transcript + strict draws + shape + terminal vs recomputed inputs) [M] | accepted, 3.3 ms verify + 53 s terminal MLE | accepted |
 
 Tree (33 nodes, 32 child verifications) [D]: 53.39 G → **30.0–30.3 G committed cells (×0.56–0.57)** including
-the in-circuit verifier and the narrower children (176 fewer columns per opened child). GPU [D]: GKR 5.9 GPU-s
+the in-circuit verifier and the narrower children (176 fewer columns per opened child). GPU [D]: GKR 4.8 GPU-s (fold-sum route; 5.9 plain)
 added vs 11.2 GPU-s of committed-cell kernel work removed at the M4.0 all-in rate 0.235 ns per LDE cell (b2) —
-net ≈ −5.3 GPU-s of today's 25.1 recursion kernel GPU-s. Not measured: an end-to-end recursion run (needs the hook).
+net ≈ −6.4 GPU-s of today's 25.1 recursion kernel GPU-s. Not measured: an end-to-end recursion run (needs the hook).
 
 ## 7. Open items
 

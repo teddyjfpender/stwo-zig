@@ -8,7 +8,8 @@ Argument: `design/riscv-proving-stack/rv64-m5-outer-gkr.md`.
 |---|---:|---:|
 | committed cells today: PP + main + OM31 interaction [M] | 1,940.0 M (176 + 585 + 1,180) | 1,715.0 M (136 + 519 + 1,061) |
 | committed cells with outer GKR, own [D] | **1,101.1 M (×0.568)** | **901.3 M (×0.526)** |
-| GPU GKR prover, tree + traversal (median of 3, CUDA events) [M] | **182.3 ms** (28.0 + 154.3) | **174.9 ms** (26.7 + 148.2) |
+| GPU GKR prover, plain route, tree + traversal (median of 3, CUDA events) [M] | 182.3 ms (28.0 + 154.3) | 174.9 ms (26.7 + 148.2) |
+| GPU GKR prover, fused fold+next-sum route (median of 5), byte-identical section [M] | **148.2 ms** (28.0 + 120.2) | **143.2 ms** (26.7 + 116.6) |
 | GKR fractions / kernel calls / device bytes [M] | 257.9 M / 5,515 / 26.9 GB | 246.4 M / 5,337 / 25.8 GB |
 | in-circuit verifier (valid circuit on the GPU-proved section) [M] | G 195,200, qm31 223,203, m31→u32 20,360, triple-XOR 19,520, eq 1,581; 432 strict draws | G 193,600, qm31 219,570, … |
 | in-circuit verifier cells per verified child, today's widths [D] | 40.9 M (2.1 % of the leaf; kill line 25 %) | 40.5 M |
@@ -17,8 +18,8 @@ Argument: `design/riscv-proving-stack/rv64-m5-outer-gkr.md`.
 
 Tree, 33 nodes [D]: 53.39 G → **30.29 G** (today's widths in the parents) / 30.0 G (parents also on GKR widths), i.e. ×0.57/×0.56,
 including the in-circuit verifier and the 176 fewer columns each parent opens per child. The model reproduces the measured
-M4.0 totals exactly (interaction 32.617 G, total 53.391 G). GPU [D]: 5.9 GPU-s of GKR added vs 11.2 GPU-s removed at the M4.0
-all-in rate (0.235 ns per LDE cell, b2): net ≈ −5.3 GPU-s of today's 25.1 recursion kernel GPU-s. Proof [E]: +69.8 KB section,
+M4.0 totals exactly (interaction 32.617 G, total 53.391 G). GPU [D]: 4.8 GPU-s of GKR added (fold-sum route; 5.9 plain) vs 11.2 GPU-s removed at the M4.0
+all-in rate (0.235 ns per LDE cell, b2): net ≈ −6.4 GPU-s of today's 25.1 recursion kernel GPU-s. Proof [E]: +69.8 KB section,
 −76 KB of interaction openings at q = 108 → roughly neutral (−6 KB).
 
 Correctness: GPU section **byte-identical** to the CPU reference prover (test-small class) [M]; 14/14 Zig tests (pod,
@@ -32,6 +33,8 @@ itself (only the all-in [D] rate), the real root proof size.
 | file | what |
 |---|---|
 | `24628607-outer-gkr-receipt.json` | headline receipt |
+| `24628607-outer-gkr-census-foldsum.json` | same census with the fold-sum GPU route |
+| `raw/routes-*.log`, `raw/*-bench-{plain5,foldsum,tail}.json` | route comparison (plain / fold-sum / tail), cmp byte identity |
 | `24628607-outer-gkr-census.json` | per-node cells before/after (33 nodes), per-child parent deltas, tree factors |
 | `outer-gkr-corpus.json` | fresh-receiver corpus, one process per case |
 | `raw/leaf.log`, `raw/fold.log`, `raw/leaf-verify.log` | GPU bench + receiver + cost runs (load average and GPU clocks at start) |

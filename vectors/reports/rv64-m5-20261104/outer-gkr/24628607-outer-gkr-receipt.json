@@ -97,8 +97,9 @@
    29.99112128
   ],
   "gpu_gkr_ms": {
-   "leaf": 182.279,
-   "fold": 174.862
+   "leaf": 148.217,
+   "fold": 143.224,
+   "route": "fold_sum"
   },
   "in_circuit_verifier_cells_per_child_M": 40.923176,
   "section_bytes": 69812
@@ -107,5 +108,26 @@
   "end-to-end recursion time with the flag on (hook H1-H5 not wired: canon-vk files)",
   "GPU time of the classic interaction work removed (only the [D] 0.235 ns/LDE-cell all-in rate)",
   "proof-size delta of a real root (model only)"
- ]
+ ],
+ "gpu_routes": {
+  "note": "same inputs/seed, 5 reps after 1 warmup, CUDA events; every route's section byte-identical to plain (cmp) [M]",
+  "leaf": {
+   "plain_ms": 182.18,
+   "fold_sum_ms": 148.217,
+   "tail_ms": 175.739,
+   "fold_sum_kernel_calls": 2068
+  },
+  "fold": {
+   "plain_ms": 174.14,
+   "fold_sum_ms": 143.224,
+   "tail_ms": 168.922,
+   "fold_sum_kernel_calls": 2052
+  },
+  "loadavg_1m_at_start": {
+   "leaf": 9.12,
+   "fold": 13.52
+  },
+  "production_route": "fold_sum (riscv_cuda/rv64/gkr.zig enqueue with commands.batched_fold_sum = true)"
+ },
+ "census_fold_sum": "24628607-outer-gkr-census-foldsum.json (tree GKR 4.81 GPU-s [D] vs 11.2 GPU-s of committed-cell work removed [D])"
 }

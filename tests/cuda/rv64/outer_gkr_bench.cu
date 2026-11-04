@@ -62,6 +62,10 @@ int main(int argc, char **argv) {
       if (seed_words.size() != 9) throw std::runtime_error("seed must be 9 words");
     }
     const int reps = std::max(1, std::atoi(argv[6]));
+    // Existing fused native routes (gkr_loop_smoke STWO_RV64_TEST_BATCH_*): one at a time; output must stay byte-identical.
+    const bool use_fold_sum = std::getenv("OGKR_FOLD_SUM") != nullptr;
+    const bool use_tail = std::getenv("OGKR_TAIL") != nullptr;
+    if (use_fold_sum && use_tail) throw std::runtime_error("select one fused route at a time");
     std::vector<uint32_t> variables;
     for (int i = 7; i < argc; ++i) variables.push_back(std::stoul(argv[i]));
     const uint32_t count = variables.size();
@@ -166,10 +170,29 @@ int main(int argc, char **argv) {
           CHECK(stwo_rv64_gkr_eq_on(o.ctx, 1, point, l.depth, eq));
           launches += l.depth;
         }
+        bool tail_packed_masks = false;
+        std::vector<bool> prefetched(l.active, false);
         for (uint32_t round = 0; round < l.depth; ++round) {
           const auto left = l.depth - round;
+          if (use_tail && left <= 4) {
+            std::vector<StwoRv64BatchTailOracle> jobs;
+            for (uint32_t j = 0; j < l.active; ++j) {
+              const auto c = current[j];
+              auto &w = workers[ids[j]];
+              const bool folds_more = descriptors[j].variables != 0;
+              const uint32_t bank = folds[j] % 2;
+              jobs.push_back({c.n.words, c.d.words, folds_more ? w.banks_n[bank].words : nullptr,
+                              folds_more ? w.banks_d[bank].words : nullptr, l.masks.words + 32 * j, uint32_t(c.n.stride),
+                              folds_more ? uint32_t(w.banks_n[bank].stride) : 0u, descriptors[j].variables, c.n.coordinates});
+            }
+            CHECK(stwo_rv64_batch_tail_on(o.ctx, 1, batch.words, jobs.data(), l.active, l.depth, round, point, eq, lambda,
+                                          l.records.words + round * round_record_words));
+            ++launches;
+            tail_packed_masks = true;
+            break;
+          }
           for (uint32_t j = 0; j < l.active; ++j)
-            if (descriptors[j].variables >= left) {
+            if (descriptors[j].variables >= left && !prefetched[j]) {
               auto &w = workers[ids[j]];
               const auto c = current[j];
               CHECK(stwo_rv64_gkr_sum_on(o.ctx, 1, c.n, c.d, c.count, eq, lambda, w.a, w.b, w.raw));
@@ -178,20 +201,36 @@ int main(int argc, char **argv) {
           auto *record = l.records.words + round * round_record_words;
           CHECK(stwo_rv64_batch_round_on(o.ctx, 1, batch.words, descriptors.data(), l.active, l.depth, round, point, record));
           ++launches;
+          std::fill(prefetched.begin(), prefetched.end(), false);
+          const bool fused = use_fold_sum && left > 1;
+          std::vector<StwoRv64BatchFoldSumJob> fjobs;
+          std::vector<uint32_t> ready;
           for (uint32_t j = 0; j < l.active; ++j)
             if (descriptors[j].variables >= left) {
               auto &w = workers[ids[j]];
               const uint32_t bank = folds[j]++ % 2;
               auto &c = current[j];
-              CHECK(stwo_rv64_gkr_fold_on(o.ctx, 1, c.n, c.d, c.count, record + 32, w.banks_n[bank], w.banks_d[bank]));
-              ++launches;
+              if (fused) {
+                fjobs.push_back({c.n, c.d, w.banks_n[bank], w.banks_d[bank], w.a, w.b, w.raw});
+                ready.push_back(j);
+              } else {
+                CHECK(stwo_rv64_gkr_fold_on(o.ctx, 1, c.n, c.d, c.count, record + 32, w.banks_n[bank], w.banks_d[bank]));
+                ++launches;
+              }
               c = {w.banks_n[bank], w.banks_d[bank], c.count / 2};
             }
+          if (fused && !fjobs.empty()) {
+            uint32_t fl = 0;
+            CHECK(stwo_rv64_batch_fold_sum_on(o.ctx, 1, fjobs.data(), fjobs.size(), 2u << left, record + 32, eq, lambda, &fl));
+            launches += fl;
+            for (auto j : ready) prefetched[j] = true;
+          }
         }
-        for (uint32_t j = 0; j < l.active; ++j) {
-          CHECK(stwo_rv64_batch_mask_on(o.ctx, 1, current[j].n, current[j].d, l.masks.words + 32 * j));
-          ++launches;
-        }
+        if (!tail_packed_masks)
+          for (uint32_t j = 0; j < l.active; ++j) {
+            CHECK(stwo_rv64_batch_mask_on(o.ctx, 1, current[j].n, current[j].d, l.masks.words + 32 * j));
+            ++launches;
+          }
         CHECK(stwo_rv64_gkr_close_on(o.ctx, 1, state.words, batch.words, l.depth ? l.records.words : nullptr, l.masks.words, l.depth, count, l.active));
         ++launches;
       }
@@ -245,9 +284,9 @@ int main(int argc, char **argv) {
     std::printf("],\"traversal_ms\":[");
     for (size_t i = 0; i < traversal_ms.size(); ++i) std::printf("%s%.3f", i ? "," : "", traversal_ms[i]);
     std::printf("],\"kernel_calls_per_rep\":%llu,\"device_allocated_bytes\":%llu,\"device_total_bytes\":%zu,"
-                "\"device_free_bytes_after\":%zu,\"input_gen_upload_s\":%.3f,\"section_words\":%zu,\"trimmed_round\":%s}\n",
+                "\"device_free_bytes_after\":%zu,\"input_gen_upload_s\":%.3f,\"section_words\":%zu,\"trimmed_round\":%s,\"route\":\"%s\"}\n",
                 (unsigned long long)launches, (unsigned long long)o.allocated_bytes, total_b, free_b, gen_s, outw.size(),
-                trimmed ? "true" : "false");
+                trimmed ? "true" : "false", use_fold_sum ? "fold_sum" : use_tail ? "tail" : "plain");
     CHECK(stwo_exec_context_dependency_release(o.ctx, &ready));
     o.close();
     return trimmed ? 3 : 0;
