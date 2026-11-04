@@ -77,9 +77,33 @@ outputs (table) are cross-checked twice: the root-only self-check against the pa
 
 ## 4. Measurements
 
-See the receipts and `vectors/reports/progress/fold-v3.jsonl`. Every verify is a separate fresh process (CPU only,
-no GPU, `STWO_ZIG_RV64_SETUP_CACHE` unset, private native dir), pinned with `--table-root`. The pod was shared with
-other M6 streams (1-min load 10-30): single observations, above the quiet bar.
+Receipts: `vectors/reports/rv64-m6-20261105/fold-v3/<block>-<step>.json` (+ raw `out/` per step), rows in
+`vectors/reports/progress/fold-v3.jsonl`. Every verify is a separate fresh process (CPU only, no GPU,
+`STWO_ZIG_RV64_SETUP_CACHE` unset, private native dir), pinned with `--table-root`; three repetitions per block.
+The pod was shared with other M6 streams (1-min load 15-47): every number is a single observation above the quiet
+bar (8); expect them to be conservative.
+
+| step | receiver | proofs | 26235156 root-only wall | 24628607 root-only wall | derive 156 / 607 | load |
+|---|---|---|---:|---:|---:|---:|
+| M5 baseline [M, M5 summary] | 7c8e05f0 | canonical | 9.5-9.9 s | 13.7-13.8 s | 30.7 / 45.2 s | 8-10 |
+| 1 native VK table | 1971181a | M5 default | 1.64-1.80 s | 2.01-2.08 s | 41.9 / 57.8 s | 15-19 |
+| 2 + parallel derive, bundle overlap, exit after report | 88416b28 | M5 default | 1.50-1.56 s | 1.84-1.92 s | 23.0 / 30.1 s | 15-19 |
+| 3 + admission once, parallel CPU frames, parallel FIXED acquire | 0f2a4146 | M5 default | 1.31-1.43 s | 1.56-1.61 s | 28.6 / 33.6 s | 26-47 |
+| 3 | 0f2a4146 | M5 canonical | 1.48-1.54 s | 1.54-1.75 s | 24.4 / 32.6 s | 26-36 |
+| 4 (reverted) program metadata overlapped with key builds | 91dbad61 | M5 default | 1.28-1.96 s | 1.64-1.85 s | 28.9 / 34.8 s | 24-30 |
+
+Step 3 breakdown on 24628607 (process-internal 1.32 s of the 1.56 s wall; the rest is exec + address-space
+teardown of a 1.75 GB process): image + program 0.38, native keys restored 0.49 (critical path = the slowest CPU
+component build, 0.36), FIXED bindings 0.00004, admission 0.43 (Inventory 0.20, services_root 0.21), root tree 0.0001,
+root authority 0.001, decode 0.001, **OM31 root verify 0.012** [M]. Derive on 24628607 at load 15 (step 2): keys 2.1
+(16 threads), FIXED 4.4, recursion leaves 12.5 (8 lanes) + folds 8.6 (8 class builds), native verify 1.7 overlapped.
+Step 4 made image/program and keys contend (program 0.35 s, keys 0.67 s) and was reverted; its receipts are kept.
+
+Gate status (per plan): root-only <= 1.5 s per block in a fresh process: **met on 26235156 (both formats), not
+met on 24628607 at this pod load (1.54-1.75 s wall; 1.32 s in-process)**; derive <= 30 s: met only at load 15
+(30.1 s), 33-35 s at load 30-45; --audit agrees on every block and format; rootverify corpus 66/66 and profiles
+m5-root 46/46 per block per format (one harness defect found and fixed: RV25 v0 flipped only one artifact of the
+merged table, which 26235156 does not use, so it was correctly accepted with the control statement).
 
 ## 5. Fold v3 in circuit: status and next steps
 

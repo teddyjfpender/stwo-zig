@@ -229,57 +229,6 @@ pub fn main() !void {
         bundle_thread.join();
         if (bundle_job.result) |*value| value.deinit(a);
     };
-    // Native VK table (M6 fold-v3). Native keys + FIXED bindings come from a
-    // receiver-owned setup cache in a private directory of this process:
-    // derive builds every component from source (parallel, `.prover` mode,
-    // nothing restored) and records each one's VK-only artifact in the table;
-    // verify-root-candidate writes the table's (root-bound, pinnable)
-    // artifacts there and restores keys in `.verifier` mode, so no native
-    // commitment is recomputed. A component absent from the table is built
-    // from source (counted in native_table.misses), never taken from elsewhere.
-    // The directory + cache are prepared on a helper thread while the image
-    // is rebuilt (pure, independent inputs).
-    const native_dir = try privateDir(arena);
-    defer std.fs.cwd().deleteTree(native_dir) catch {};
-    const SetupJob = struct {
-        a: std.mem.Allocator,
-        arena: std.mem.Allocator,
-        dir: []const u8,
-        table: ?*const RV.Table,
-        derive: bool,
-        log_blowup: u32,
-        fixed_bytes: usize,
-        cache: ?SetupCache.Cache = null,
-        written: usize = 0,
-        err: ?anyerror = null,
-        fn run(job: *@This()) void {
-            job.prepare() catch |err| {
-                job.err = err;
-            };
-        }
-        fn prepare(job: *@This()) !void {
-            if (!job.derive) {
-                if (job.table) |t| {
-                    for (t.native.items) |entry| {
-                        const name = try std.fmt.allocPrint(job.arena, "{s}/{s}.rv64-setup", .{ job.dir, std.fmt.bytesToHex(entry.key, .lower) });
-                        try std.fs.cwd().writeFile(.{ .sub_path = name, .data = entry.artifact });
-                        job.written += 1;
-                    }
-                }
-            }
-            job.cache = try SetupCache.Cache.init(job.a, .{ .log_blowup = job.log_blowup }, .{ .mode = if (job.derive) .prover else .verifier, .directory = job.dir, .fixed_setup_bytes = job.fixed_bytes, .identity_only_cpu = false, .max_build_threads = NATIVE_BUILD_THREADS, .store_bulk = false });
-        }
-    };
-    // The arena is not thread-safe: the helper gets its own.
-    var setup_arena = std.heap.ArenaAllocator.init(a);
-    defer setup_arena.deinit();
-    var setup_job = SetupJob{ .a = a, .arena = setup_arena.allocator(), .dir = native_dir, .table = if (loaded_table) |*t| t else null, .derive = derive, .log_blowup = pcs.fri_config.log_blowup_factor, .fixed_bytes = fixed_setup_bytes };
-    const setup_thread = try std.Thread.spawn(.{ .stack_size = 16 << 20 }, SetupJob.run, .{&setup_job});
-    var setup_joined = false;
-    defer if (!setup_joined) {
-        setup_thread.join();
-        if (setup_job.cache) |*c| c.deinit();
-    };
     var image = try Image.Owner.init(a, request.value);
     defer image.deinit();
     var local_native = try NativeCache.Cache.init(a, 256 << 20);
@@ -287,63 +236,10 @@ pub fn main() !void {
     var local_metadata = try MetadataCache.Cache.init(a, 64 << 20);
     defer local_metadata.deinit();
     const caches = @import("../word16_execution/setup.zig").ImmutableCaches{ .native = &local_native, .program = &local_metadata };
-    const image_owner_ns = timer.lap();
-    setup_thread.join();
-    setup_joined = true;
-    if (setup_job.err) |err| {
-        if (setup_job.cache) |*c| c.deinit();
-        return err;
-    }
-    var setup = setup_job.cache.?;
-    defer setup.deinit();
-    const native_written = setup_job.written;
-    try setup.bindRequest(request.value);
-
-    bundle_thread.join();
-    bundle_joined = true;
-    if (bundle_job.err) |err| return err;
-    var loaded = bundle_job.result.?;
-    defer loaded.deinit(a);
-    // bundle_ns: the helper thread's load time (overlapped with the image);
-    // bundle_wait_ns: what the main thread still waited for it.
-    const bundle_wait_ns = timer.lap();
-    const bundle_ns = bundle_job.ns;
-
-    // Program metadata on a helper thread while native keys build (keys read
-    // only the image authority; both share the thread-safe metadata cache).
-    const ProgramJob = struct {
-        a: std.mem.Allocator,
-        image: *const Image.Owner,
-        cache: *const MetadataCache.Cache,
-        result: ?Program = null,
-        err: ?anyerror = null,
-        ns: u64 = 0,
-        fn run(job: *@This()) void {
-            const start = std.time.Instant.now() catch null;
-            job.result = Program.initWithAuthorityAndMetadataCache(job.a, &job.image.authority, job.cache) catch |err| blk: {
-                job.err = err;
-                break :blk null;
-            };
-            if (start) |s0| job.ns = since(s0);
-        }
-    };
-    var program_job = ProgramJob{ .a = a, .image = &image, .cache = caches.program.? };
-    const program_thread = try std.Thread.spawn(.{ .stack_size = 64 << 20 }, ProgramJob.run, .{&program_job});
-    var program_joined = false;
-    defer if (!program_joined) {
-        program_thread.join();
-        if (program_job.result) |*value| value.deinit();
-    };
-    var keys = try Keys.initResident(a, &image, loaded.cpu_declarations, loaded.truth_declarations, true, Suite.experimentalFold4(), caches, &setup);
-    defer keys.deinit();
-    const native_keys_ns = timer.lap();
-    program_thread.join();
-    program_joined = true;
-    if (program_job.err) |err| return err;
-    var program = program_job.result.?;
+    const image_owner_ns = timer.read();
+    var program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, caches.program.?);
     defer program.deinit();
-    const program_wait_ns = timer.lap();
-    const image_ns = image_owner_ns + program_job.ns;
+    const image_ns = timer.lap();
     sha_thread.join();
     sha_joined = true;
     if (sha_job.err) |err| return err;
@@ -359,7 +255,41 @@ pub fn main() !void {
         .image = try hex(arena, &program.identity),
     };
     if (loaded_table) |*t| try RV.requireHeader(t, expected_header);
+
+    bundle_thread.join();
+    bundle_joined = true;
+    if (bundle_job.err) |err| return err;
+    var loaded = bundle_job.result.?;
+    defer loaded.deinit(a);
+    // bundle_ns: the helper thread's load time (overlapped with image_ns);
+    // bundle_wait_ns: what the main thread still waited for it.
+    const bundle_wait_ns = timer.lap();
+    const bundle_ns = bundle_job.ns;
     const statement = try Admission.expectedFromRequests(&image, program.identity, loaded.bundle.requests, request.value.max_steps, request.value.batch_steps, true);
+    // Native VK table (M6 fold-v3). Native keys + FIXED bindings come from a
+    // receiver-owned setup cache in a private directory of this process:
+    // derive builds every component from source (parallel, `.prover` mode,
+    // nothing restored) and records each one's VK-only artifact in the table;
+    // verify-root-candidate writes the table's (root-bound, pinnable)
+    // artifacts there and restores keys in `.verifier` mode, so no native
+    // commitment is recomputed. A component absent from the table is built
+    // from source (counted in native_table.misses), never taken from elsewhere.
+    const native_dir = try privateDir(arena);
+    defer std.fs.cwd().deleteTree(native_dir) catch {};
+    var native_written: usize = 0;
+    if (!derive) if (loaded_table) |*t| {
+        for (t.native.items) |entry| {
+            const name = try std.fmt.allocPrint(arena, "{s}/{s}.rv64-setup", .{ native_dir, std.fmt.bytesToHex(entry.key, .lower) });
+            try std.fs.cwd().writeFile(.{ .sub_path = name, .data = entry.artifact });
+            native_written += 1;
+        }
+    };
+    var setup = try SetupCache.Cache.init(a, .{ .log_blowup = pcs.fri_config.log_blowup_factor }, .{ .mode = if (derive) .prover else .verifier, .directory = native_dir, .fixed_setup_bytes = fixed_setup_bytes, .identity_only_cpu = false, .max_build_threads = NATIVE_BUILD_THREADS, .store_bulk = false });
+    defer setup.deinit();
+    try setup.bindRequest(request.value);
+    var keys = try Keys.initResident(a, &image, loaded.cpu_declarations, loaded.truth_declarations, true, Suite.experimentalFold4(), caches, &setup);
+    defer keys.deinit();
+    const native_keys_ns = timer.lap();
     var fixed_set = if (derive) try fixedSetParallel(a, &setup.fixed, keys.cpus, keys.truths, pcs) else try FixedSet.init(a, &setup.fixed, keys.cpus, keys.truths, pcs);
     defer fixed_set.deinit();
     const fixed_authority_ns = timer.lap();
@@ -516,7 +446,7 @@ pub fn main() !void {
         // Native keys/FIXED restored from the table's receiver-derived VK
         // section (hits) or rebuilt from source (misses: not in the table).
         .native_table = .{ .entries = table.native.items.len, .written = native_written, .hits = native_stats.disk_hits, .misses = native_stats.misses, .max_build_ns = native_stats.max_build_ns, .max_build_kind = native_stats.max_build_kind },
-        .breakdown = .{ .self_sha_ns = self_sha_ns, .table_load_ns = table_load_ns, .image_ns = image_ns, .bundle_ns = bundle_ns, .native_keys_ns = native_keys_ns, .fixed_authority_ns = fixed_authority_ns, .admission_ns = admission_ns, .root_ns = root_ns, .root_tree_ns = report.tree_ns, .root_authority_ns = report.authority_ns, .root_decode_ns = report.decode_ns, .root_verify_ns = report.verify_ns, .bundle_wait_ns = bundle_wait_ns, .image_owner_ns = image_owner_ns, .program_ns = program_job.ns, .program_wait_ns = program_wait_ns, .admission = admission },
+        .breakdown = .{ .self_sha_ns = self_sha_ns, .table_load_ns = table_load_ns, .image_ns = image_ns, .bundle_ns = bundle_ns, .native_keys_ns = native_keys_ns, .fixed_authority_ns = fixed_authority_ns, .admission_ns = admission_ns, .root_ns = root_ns, .root_tree_ns = report.tree_ns, .root_authority_ns = report.authority_ns, .root_decode_ns = report.decode_ns, .root_verify_ns = report.verify_ns, .bundle_wait_ns = bundle_wait_ns, .image_owner_ns = image_owner_ns, .admission = admission },
         .audit = audit_report,
         .receiver_sha256 = &self_sha,
     });

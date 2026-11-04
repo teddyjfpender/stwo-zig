@@ -1,0 +1,140 @@
+{
+ "schema": "rv64-m6-fold-v3-rootonly/v1",
+ "stream": "fold-v3",
+ "milestone": "M6",
+ "step": "step4-old-reverted",
+ "block": 26235156,
+ "format": "old",
+ "source_commit": "3e02d4f7c",
+ "receiver_sha256": "91dbad612f0cbee538960239b35ae91cfa21cc097222a3c0cdb2d7da5555ac2f",
+ "label": "M (single observations per rep; pod shared, 1-min load recorded per step)",
+ "root_only_verify_wall_s": [
+  1.283,
+  1.686,
+  1.956
+ ],
+ "root_only_verify_internal_s": [
+  1.036,
+  1.377,
+  1.697
+ ],
+ "root_only_verify_wall_median_s": 1.686,
+ "root_only_breakdown_r1": {
+  "self_sha_ns": 64395709,
+  "table_load_ns": 1607048,
+  "image_ns": 472287658,
+  "bundle_ns": 136635809,
+  "native_keys_ns": 426315998,
+  "fixed_authority_ns": 15650,
+  "admission_ns": 316300941,
+  "root_ns": 18047890,
+  "root_tree_ns": 58630,
+  "root_authority_ns": 964739,
+  "root_decode_ns": 835809,
+  "root_verify_ns": 14362714,
+  "bundle_wait_ns": 88810,
+  "image_owner_ns": 272317459,
+  "program_ns": 199970199,
+  "program_wait_ns": 9910,
+  "admission": {
+   "inventory_ns": 157366926,
+   "decode_ns": 492870,
+   "seal_ns": 11757957,
+   "words_ns": 88910,
+   "check_ns": 146385988,
+   "keys_ns": 73710
+  }
+ },
+ "native_table": {
+  "entries": 25,
+  "written": 25,
+  "hits": 11,
+  "misses": 0,
+  "max_build_ns": 425714130,
+  "max_build_kind": "cpu"
+ },
+ "accepted": true,
+ "table_root_pinned": true,
+ "root_digest": "bbfbcf4a96b3554a27de09ab921af995e9b24d4500bf82e6ab316733f9547f4b",
+ "root_identity": "c106a19d17a5f73df6fe75544edcf46a1a1cb7d3c74a4788d69f194aec28b1a8",
+ "audit": {
+  "accepted": true,
+  "agrees": true,
+  "native_verify_ns": 1172404953,
+  "recursion_ns": 38085716208,
+  "root_digest": "bbfbcf4a96b3554a27de09ab921af995e9b24d4500bf82e6ab316733f9547f4b",
+  "root_authority": "c106a19d17a5f73df6fe75544edcf46a1a1cb7d3c74a4788d69f194aec28b1a8"
+ },
+ "audit_wall_s": 41.771,
+ "derive_wall_s": 28.865,
+ "derive_breakdown": {
+  "self_sha_ns": 42519003,
+  "table_load_ns": 0,
+  "image_ns": 575840813,
+  "bundle_ns": 82436869,
+  "native_keys_ns": 1892734318,
+  "fixed_authority_ns": 2840000770,
+  "admission_ns": 301817576,
+  "native_verify_ns": 1163573414,
+  "recursion_ns": 22790741446,
+  "recursion_leaves_ns": 10487587237,
+  "recursion_folds_ns": 11305084632
+ },
+ "derive_schedule": {
+  "lanes": 8,
+  "fold_class_builds": 8,
+  "fold_class_restores": 2,
+  "native_verify_overlapped": true
+ },
+ "derive_native_build": {
+  "components": 11,
+  "max_build_ns": 1891571219,
+  "max_build_kind": "cpu",
+  "threads": 16
+ },
+ "derive_merge_wall_s": 40.152,
+ "steps": {
+  "derive-26235156": {
+   "exit": 0,
+   "wall_s": 28.865,
+   "load_end": 29.95,
+   "maxrss_gib": 22.812,
+   "load_start": 31.79
+  },
+  "derive-both": {
+   "exit": 0,
+   "wall_s": 40.152,
+   "load_end": 26.17,
+   "maxrss_gib": 24.309,
+   "load_start": 24.36
+  },
+  "verify-pinned-26235156-r1": {
+   "exit": 0,
+   "wall_s": 1.283,
+   "load_end": 26.17,
+   "maxrss_gib": 1.304,
+   "load_start": 26.17
+  },
+  "verify-pinned-26235156-r2": {
+   "exit": 0,
+   "wall_s": 1.686,
+   "load_end": 28.64,
+   "maxrss_gib": 1.317,
+   "load_start": 26.17
+  },
+  "verify-pinned-26235156-r3": {
+   "exit": 0,
+   "wall_s": 1.956,
+   "load_end": 28.64,
+   "maxrss_gib": 1.276,
+   "load_start": 28.64
+  },
+  "audit-26235156": {
+   "exit": 0,
+   "wall_s": 41.771,
+   "load_end": 33.98,
+   "maxrss_gib": 5.936,
+   "load_start": 30.11
+  }
+ }
+}
