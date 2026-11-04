@@ -104,6 +104,48 @@ def union(intervals):
     return total
 
 
+def merged(intervals):
+    out = []
+    for s, e in sorted(intervals):
+        if out and s <= out[-1][1]:
+            out[-1][1] = max(out[-1][1], e)
+        else:
+            out.append([s, e])
+    return out
+
+
+def busy_within(merged_list, lo, hi):
+    import bisect
+    starts = [s for s, _ in merged_list]
+    i = max(bisect.bisect_right(starts, lo) - 1, 0)
+    total = 0
+    while i < len(merged_list) and merged_list[i][0] < hi:
+        s, e = merged_list[i]
+        total += max(0, min(e, hi) - max(s, lo))
+        i += 1
+    return total
+
+
+def node_gpu_busy(path, nodes):
+    """Per recursive node: device-busy seconds (kernels+memcpy) inside [taken, published]."""
+    db = sqlite3.connect(str(path))
+    cur = db.cursor()
+    base = cur.execute("select utcEpochNs from TARGET_INFO_SESSION_START_TIME").fetchone()[0]
+    per = {}
+    for d, s, e in cur.execute("select deviceId,start,end from CUPTI_ACTIVITY_KIND_KERNEL"):
+        per.setdefault(d, []).append((s + base, e + base))
+    for d, s, e in cur.execute("select deviceId,start,end from CUPTI_ACTIVITY_KIND_MEMCPY"):
+        per.setdefault(d, []).append((s + base, e + base))
+    lists = {d: merged(v) for d, v in per.items()}
+    out = []
+    for n in nodes:
+        busy = busy_within(lists.get(n["device"], []), n["taken_unix_ns"], n["published_unix_ns"])
+        span = n["published_unix_ns"] - n["taken_unix_ns"]
+        out.append({"node": n["node"], "kind": n["kind"], "device": n["device"], "span_s": round(span / 1e9, 3),
+                    "gpu_busy_s": round(busy / 1e9, 3), "host_only_s": round((span - busy) / 1e9, 3)})
+    return out
+
+
 def nsys_view(path, windows):
     db = sqlite3.connect(str(path))
     cur = db.cursor()
@@ -166,6 +208,13 @@ def main():
             t0 = lanes["t0_unix_ns"]
             windows["recursion"] = (t0, t0 + int(lanes["recursion_span_s"] * 1e9))
         result["nsys"] = nsys_view(sqlite, windows)
+        if nodes:
+            per_node = node_gpu_busy(sqlite, nodes)
+            result["nsys"]["per_node"] = per_node
+            for kind in ("leaf", "fold"):
+                items = [x for x in per_node if x["kind"] == kind]
+                if items:
+                    result["nsys"][kind + "_mean"] = {k: round(sum(x[k] for x in items) / len(items), 3) for k in ("span_s", "gpu_busy_s", "host_only_s")}
     out = args.out or args.run / "timeline.json"
     out.write_text(json.dumps(result, indent=1) + "\n")
     brief = {k: result.get(k) for k in ("block", "gpus", "stages")}
@@ -173,6 +222,8 @@ def main():
         brief["recursion"] = {k: result["recursion_lanes"][k] for k in ("recursion_span_s", "fold_tail_after_last_leaf_s", "lanes", "kinds")}
     if "nsys" in result:
         brief["gpu"] = {d: {k: v[k] for k in ("kernels", "kernel_busy_union_s", "any_busy_union_s", "windows")} for d, v in result["nsys"]["devices"].items()}
+        brief["gpu"]["leaf_mean"] = result["nsys"].get("leaf_mean")
+        brief["gpu"]["fold_mean"] = result["nsys"].get("fold_mean")
     print(json.dumps(brief, indent=1))
 
 
