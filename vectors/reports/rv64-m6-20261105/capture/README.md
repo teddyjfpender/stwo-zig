@@ -47,6 +47,23 @@ init (image 0.27–0.34 + program 0.11 + compact 0.08 s; walk boot 0.29–0.36 s
 → batch 0 admission + CPU capture 0.45–0.65 s → segment-0 ledger 0.17–0.25 s → segments 1..6 ledgers → finish 0.12 s.
 Gate (capture ≤ 1.0 s on 607): **NOT MET** on the CPU bench (2.16–2.61 s under load 28–33).
 
+## Production (switched on): resident GPU service, both dev blocks [M]
+
+`scripts/rv64_m4_resident.py daemon 26235156 24628607 --repeat 1 --store none --receive {first|none}`, M5 default producer env,
+M5 integrate CUDA library (`0caf0144…`, CUDA sources unchanged), driver built from `554dd90dd` (`e8ca32a5…`). The traced engine,
+async boot and critical first batch are DEFAULT ON in this driver (no env needed). `--store none` because the store key includes the
+driver hash and /workspace had 1–2 GB free (a fresh store is ≈6.4 GB): setup is therefore cold (9–11 s) in every run below,
+identically for the M5 driver, so compare capture and the other stages, not request wall against the warm M5 receipt.
+
+| run | driver | load | 156 capture | 607 capture | 607 request | 607 native | 607 recursion | proofs vs M3/M5 | receiver |
+|---|---|---:|---:|---:|---:|---:|---:|---|---|
+| c3-m5base | M5 37f94901 | 28 | 2.383 | 2.930 | 40.97 | 7.27 | 19.71 | identical (native bins, bundle, tree, every recursive proof) | not run |
+| c2-on | M6 e8ca32a5 | 38 | 1.719 | 2.234 | 39.62 | 7.17 | 19.16 | identical (native bins, bundle, tree, every recursive proof) | accepted 2/2 (separate receiver process, M5 receiver) |
+| c3-on | M6 e8ca32a5 | 21 | 1.754 | 2.095 | 39.57 | 6.83 | 19.60 | identical (native bins, bundle, tree, every recursive proof) | not run |
+
+Capture stage (production): **607 2.93 → 2.10–2.23 s (−24..−28%), 156 2.38 → 1.72–1.75 s (−27%)** at load 21–38 [M].
+Root hashes `2feed86a…` (607) and `b424203b…` (156) equal the M3/M5 receipts; every native bin, bundle and recursive proof hash matches.
+
 ## Tests (pod, ReleaseSafe)
 
 See `raw/tests-*.log` once copied; `test-riscv64-execution` ran 151/152 on the pre-fix tree (the one failure was the new
