@@ -356,7 +356,7 @@ test {
     _ = @import("keccak_leaf_test.zig");
 }
 
-test "OM31 native PCS with a Merkle cap (diet-wire merkle-cap-v1) accepts the honest proof and rejects cap and path tampering" {
+test "corpus DW13 OM31 native PCS with a Merkle cap (diet-wire merkle-cap-v1) accepts the honest proof and rejects cap node, FRI cap and sibling tampering" {
     for ([_]u32{ 1, 4 }) |fold| {
         const cfg = try config(fold);
         var native = try produce(cfg);

@@ -417,7 +417,7 @@ test "merkle: verifyPath accepts the native path and rejects a flipped bit or si
     }
 }
 
-test "merkle cap: hostCap recovers the level-c nodes, capped paths accept, tampering rejects" {
+test "corpus DW12 merkle cap: hostCap recovers the level-c nodes; a wrong slot bit, sibling or cap node is unsatisfiable" {
     const Hasher = core.vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const height: u32 = 6;
     const cap_log: u32 = 3;
