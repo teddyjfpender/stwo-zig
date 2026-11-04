@@ -25,14 +25,30 @@ const Finalize = circuit.common.finalize;
 ///   padding gates; the padded sizes enter the preprocessed circuit, hence
 ///   the FIXED root and authority identity, so producer and receiver must
 ///   select the same shape (a mismatch is an authority mismatch).
+/// - `set_v2` (diagnostic, non-canonical profiles only; binding note §1
+///   fallback generalised): every node is padded to the FIRST shape of
+///   `SHAPE_SET_V2` that dominates its exact shape. A fold's topology is a
+///   function of its children's shapes, so the binary fold classes are the
+///   ordered pairs over 3 shapes (<= 9; 4-ary <= 81): still a constant set per
+///   build. [D] tax +2.1% cells vs +18.7% for uniform-v1 on both dev blocks.
 pub const Shape = enum {
     exact,
     uniform_v1,
+    set_v2,
     pub fn parse(text: []const u8) !Shape {
         if (std.mem.eql(u8, text, "exact")) return .exact;
         if (std.mem.eql(u8, text, "uniform-v1")) return .uniform_v1;
+        if (std.mem.eql(u8, text, "set-v2")) return .set_v2;
         return error.UnknownOm31OuterShape;
     }
+};
+const LogShape = struct { eq: u32, qm31_ops: u32, triple_xor: u32, m31_to_u32: u32, blake_g_gate: u32 };
+/// Fixed order (ascending estimated cells): small leaf, fold, big leaf = S_OUT_V1.
+/// From the RECURSION_NODE_SHAPE census of both dev blocks (54 nodes).
+pub const SHAPE_SET_V2 = [_]LogShape{
+    .{ .eq = 18, .qm31_ops = 23, .triple_xor = 19, .m31_to_u32 = 20, .blake_g_gate = 22 },
+    .{ .eq = 15, .qm31_ops = 22, .triple_xor = 19, .m31_to_u32 = 20, .blake_g_gate = 23 },
+    .{ .eq = 18, .qm31_ops = 23, .triple_xor = 20, .m31_to_u32 = 21, .blake_g_gate = 23 },
 };
 pub const SHAPE_ENV = "STWO_RV64_OUTER_SHAPE";
 /// Elementwise maximum of the 33 node shapes of 24628607 (diet census
@@ -62,18 +78,22 @@ pub fn checkShapeEnv() !Shape {
         else => return error.UnreadableOm31OuterShape,
     };
     if (canonical) {
-        if (requested == .exact) return error.CanonicalOuterProfileRequiresUniformShape;
+        if (requested != null and requested.? != .uniform_v1) return error.CanonicalOuterProfileRequiresUniformShape;
         return .uniform_v1;
     }
     return requested orelse .exact;
 }
 /// The padding targets of one finalized recursion graph under `shape()`.
-pub fn paddingTargets(ctx: *const C.Context) Finalize.ComponentSizes {
+pub fn paddingTargets(ctx: *const C.Context) !Finalize.ComponentSizes {
     const exact = Finalize.computePaddedSizes(.fromBuilder(&ctx.circuit));
     return switch (shape()) {
         .exact => exact,
         // padToTargets refuses a component above its target.
         .uniform_v1 => Finalize.ComponentSizes.fromLogSizes(S_OUT_V1),
+        .set_v2 => for (SHAPE_SET_V2) |candidate| {
+            const target = Finalize.ComponentSizes.fromLogSizes(candidate);
+            if (exact.eq <= target.eq and exact.qm31_ops <= target.qm31_ops and exact.triple_xor <= target.triple_xor and exact.m31_to_u32 <= target.m31_to_u32 and exact.blake_g_gate <= target.blake_g_gate) break target;
+        } else error.OuterShapeSetExceeded,
     };
 }
 /// Log-only census line: raw and padded component rows of one node.
@@ -219,7 +239,7 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
     if (ctx.trace_only and encoded == null and (factory == null or factory.?.prepare_from_circuit == null)) return error.TraceOnlySourceRequired;
     if (!ctx.trace_only and !try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
     var timer = try std.time.Timer.start();
-    try circuit.common.finalize.padToTargets(C.Q, ctx, paddingTargets(ctx));
+    try circuit.common.finalize.padToTargets(C.Q, ctx, try paddingTargets(ctx));
     const finalize_ns = timer.read();
     // Fold v2 producer only: class-keyed immutable PP reuse (device precommit).
     const class: ?[32]u8 = if (ctx.trace_only and encoded == null and factory != null and factory.?.precommit_fixed != null) Device.class_hint else null;
@@ -388,7 +408,7 @@ pub fn prepareHost(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factor
     if (ctx.circuit.output.items.len != 9) return error.CurrentOm31OutputCount;
     if (!ctx.trace_only or factory.prepare_from_circuit == null) return error.TraceOnlySourceRequired;
     var timer = try std.time.Timer.start();
-    try circuit.common.finalize.padToTargets(C.Q, ctx, paddingTargets(ctx));
+    try circuit.common.finalize.padToTargets(C.Q, ctx, try paddingTargets(ctx));
     var result = HostPrep{ .pp = null, .finalize_ns = timer.lap() };
     errdefer result.deinit(a);
     // Fold v2 classes only (class_hint is threadlocal: read it on this thread).

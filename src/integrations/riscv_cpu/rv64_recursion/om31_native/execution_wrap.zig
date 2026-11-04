@@ -225,7 +225,7 @@ pub fn inspectLeafSchedule(a: std.mem.Allocator, setups: []const *const R.CpuSet
     const native_capture_and_graph_ns = timer.lap();
     const Circuit = @import("stwo_circuit_frontend");
     const pre_padding_variables = graph.ctx.circuit.n_vars;
-    const padding_targets = Outer.paddingTargets(graph.ctx);
+    const padding_targets = try Outer.paddingTargets(graph.ctx);
     // Match outer_wrap.wrapGraphOrLoadWithFactory BEFORE assignment planning.
     // No PP/Authority commitment or proof construction is needed for a census.
     try Circuit.common.finalize.padToTargets(@import("common.zig").Q, graph.ctx, padding_targets);

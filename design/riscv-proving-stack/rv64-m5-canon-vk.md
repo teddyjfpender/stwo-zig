@@ -125,6 +125,29 @@ target fails closed (`ComponentExceedsTarget`).
 
 The measured effect is in the receipts listed in section 6.
 
+## 5c. `set-v2`: a finite shape set instead of one shape (diagnostic, opt-in)
+
+Under uniform-v1 the warm-service cost is the leaf padding tax: +18.7% gate-component cells over the 54 nodes of both dev
+blocks [D]. The binding note §1 fallback ("two shapes, fold classes keyed by the children's shape vector") generalises to any
+finite, build-constant set of shapes.
+
+**Rule.** `SHAPE_SET_V2` is three shapes in a fixed order: small leaf (18, 23, 19, 20, 22), fold (15, 22, 19, 20, 23), and big
+leaf = S_OUT_V1. Each node is padded to the **first** shape in that order that dominates its exact padded shape. A node above
+every shape fails closed (`OuterShapeSetExceeded`).
+
+**Argument.**
+- Producer and receiver compute the same choice. The exact shape is a function of the node's graph, which the receiver rebuilds
+  itself.
+- Padding is only padding gates, as in section 5, and the chosen sizes are bound by the PP, the FIXED root and the authority.
+- A fold's topology depends on its children's shapes. So the fold classes are the ordered tuples over 3 shapes (≤ 9 binary,
+  ≤ 81 4-ary): still a constant set per build, so `T_rec` stays constant.
+- Security bits per proof and the union bound are unchanged.
+
+**Cost [D].** +2.1% cells: 17 leaves use the big shape, 11 the small one and all 26 folds the fold shape, on both blocks.
+
+**Status.** Opt-in through `STWO_RV64_OUTER_SHAPE=set-v2` on non-canonical profiles only (the canonical profile refuses it).
+If it is adopted, profiles names a `_v2` canonical profile. Measured in E10.
+
 ## 5a. Class-PP reuse in the pipelined prep (scheduling only)
 
 The lane path already borrowed a fold class's preprocessed circuit from `PPCache`; the pipelined prep rebuilt it per fold.
