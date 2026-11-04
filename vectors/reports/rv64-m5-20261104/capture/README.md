@@ -107,6 +107,39 @@ Next, in order of measured critical-path weight:
 3. **Segment-0 sponge**: 3,680 Keccak sponge replays (39 µs each) on the serial ledger.
 4. **Address-sharded ledger** (M4 note 3) for the remaining serial chain.
 
+## Candidates measured and NOT shipped [M, CPU diag, interleaved with v6 controls]
+
+Run-to-run noise of the same v6 binary across this session: 607 inflight-4 medians 2.45–2.66 s (load 12–18).
+
+| candidate | 607 median (control) | 156 median (control) | verdict |
+|---|---:|---:|---|
+| v7: execution-only walk authority (skip the walk's ROM fixed columns; `candidates/exec-only-walk-authority.diff`, touches request/authority/full, not capture-owned) | 2.481 (2.657) | 2.414 (2.282) | not shipped: probe shows walk create 0.286 s = authority setup 0.126 + ROM fixed 0.115 s, but the end-to-end effect is inside noise and opposite on 156 |
+| v8: hash-partitioned first-occurrence ALU/BINARY dedup + reserved word census (`prepared.zig`) | 2.647 (2.454) | 2.200 (2.195) | not shipped: first batch captured 0.71–0.73 s either way |
+
+Probe of `Prepared.capture` for segment 0 on v6 (607, load 16): CPU scan 0.111 s (serial was ~0.37), routing 0.058,
+JALR 0.004, grouping 0.120, tail 0.021 s. Batches whose capture finds the helper budget taken run the serial scan
+(0.36–0.53 s); they are off the critical path because the ordered ledger serialises them anyway.
+
+## M7 emulator groundwork (design, from the numbers above)
+
+The traced walk costs ~120 ns/step against ~7 ns/step for the untraced engine. Per step it runs four layers, each
+re-validating: `Session.step` builds a full `Retirement`; `Tape.append` re-checks clock/pc and stores a `Step`;
+`boundary_capture.Capture.append` tracks first touches; `Batch.observe` re-decodes the pc through
+`ProgramAuthority.instructionAt`. Every one of these checks is repeated by the receiver-side authority anyway
+(`Packet.fromNative` admission, then `CPU.Source.capture` re-validates every step against the ROM). The M7 emitter:
+
+1. The fast engine (`fast_execution.Engine`, 120–150 MIPS here) gains a traced mode that writes the compact
+   `Tape.Step` (next_pc, lhs, rhs, previous_rd, result, memory_index, flags) and `memory_before` directly from its
+   register file and its memory access, plus a per-batch first-touch bitmap for the boundary capture.
+2. Service ECALLs keep the existing `Session` handlers (they are ~0.1% of steps).
+3. Output must be byte-identical to `Walk.next` tapes: gate = `captured_values_sha256` on both dev blocks plus a
+   per-batch tape diff test against `Walk.nextTaking`.
+4. Then the sub-batch split becomes cheap: the fast pass publishes 512K-step checkpoints and 8 emitters fill one
+   batch's tape slices in parallel (memory_index offsets and first-touch bitmaps merge in order).
+Expected [E]: batch walk 0.75 s → 0.05–0.1 s; with the chunked CPU capture already in place the 607 capture
+critical path becomes init 0.3 + walk 0.1 + admit 0.05 + capture 0.3 + ledger chain ~0.45 + finish 0.1 ≈ 1.3 s,
+and ≤ 1.0 s needs the ledger work too.
+
 ## Tests (pod, ReleaseSafe, `raw/tests.sh`)
 
 | suite | result |

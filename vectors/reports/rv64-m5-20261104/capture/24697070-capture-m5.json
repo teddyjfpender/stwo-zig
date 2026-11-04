@@ -13,7 +13,13 @@
   "v3": "v2 + page-cached first touch",
   "v4": "v3 + 16-thread budget",
   "v5": "v4 + job-nice option",
-  "v6": "043923ff9 (final: 8-thread budget)"
+  "v6": "043923ff9 (final: 8-thread budget)",
+  "v6b": "043923ff9 (v6, control for v7)",
+  "v6c": "043923ff9 (v6, control for v8)",
+  "v7": "candidate: execution-only walk authority (candidates/exec-only-walk-authority.diff), NOT shipped",
+  "v8": "candidate: partitioned ALU/BINARY dedup + reserved word census, NOT shipped (no gain)",
+  "probe": "v6 + authority timing probe",
+  "probe2": "v6 + prepared phase probe"
  },
  "measurement": "CPU-only `rv64-word16-ethereum-gkr capture REQ - 0 RES` on the shared 2x5090 pod (48 vCPU quota 40.8); load1 recorded per run, all >= 8 (not quiet): compare interleaved pairs, not absolute values.",
  "captured_values_sha256": [

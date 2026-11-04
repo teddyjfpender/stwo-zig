@@ -7,7 +7,10 @@ ROOT = os.path.abspath(os.path.join(HERE, "../../../.."))
 CODE = "043923ff9"   # code commit the v6 binary was built from (base = 78c3bd5d2, M4 integrate)
 BIN = {"base": "78c3bd5d2 (M4 integrate)", "basex": "78c3bd5d2", "basey": "78c3bd5d2", "basez": "78c3bd5d2",
        "v1": "dev (chunked capture + grouping + THP gate)", "v2": "v1 + profile counters", "v3": "v2 + page-cached first touch",
-       "v4": "v3 + 16-thread budget", "v5": "v4 + job-nice option", "v6": CODE + " (final: 8-thread budget)"}
+       "v4": "v3 + 16-thread budget", "v5": "v4 + job-nice option", "v6": CODE + " (final: 8-thread budget)", "v6b": CODE + " (v6, control for v7)", "v6c": CODE + " (v6, control for v8)",
+       "v7": "candidate: execution-only walk authority (candidates/exec-only-walk-authority.diff), NOT shipped",
+       "v8": "candidate: partitioned ALU/BINARY dedup + reserved word census, NOT shipped (no gain)",
+       "probe": "v6 + authority timing probe", "probe2": "v6 + prepared phase probe"}
 def one(path):
     d = json.load(open(path)); c = d.get("capture") or {}
     ci, dc = c.get("capture_inputs") or {}, c.get("direct_capture") or {}
