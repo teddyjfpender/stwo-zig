@@ -1,0 +1,10 @@
+.{
+    .fingerprint = 0xab30a30289898807,
+    .name = .stwo_tensor,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../core" },
+        .stwo_prover_engine = .{ .path = "../prover" },
+    },
+}

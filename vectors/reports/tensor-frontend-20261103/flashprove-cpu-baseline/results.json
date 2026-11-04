@@ -1,0 +1,1374 @@
+{
+ "source": {
+  "repo": "anthropics/FlashProve",
+  "commit": "9e2bdd8f",
+  "tree": "blocks/ (C++17 CPU reference)",
+  "field": "Goldilocks p=2^64-2^32+1, E=F[X]/(X^3-2)",
+  "hash": "BLAKE2b (BLK_HASH=1)"
+ },
+ "machine": {
+  "cpu": "Apple M4 Max (10 P + 4 E cores)",
+  "ram_gb": 36,
+  "os": "macOS (Darwin 24.3.0)",
+  "compiler": "Apple clang 17.0.0",
+  "flags": "-std=c++17 -O3 -mcpu=apple-m4 -DBLK_FIELD=2 -DBLK_HASH=1 -include macos_shim.h",
+  "power": "AC",
+  "host_note": "shared laptop in active use; every job under memguard; one job at a time"
+ },
+ "method": "median of >=5 reps (3 for L=20 toy runs) after 1 warm-up; outputs folded into a volatile sink; multi-thread rows run the same single-thread kernel independently in T threads (EngineCpu itself is single-threaded)",
+ "primitives": {
+  "threads_1": [
+   {
+    "bench": "F mul (z=x*y, arrays)",
+    "params": "N=4096 L1-resident",
+    "threads": 1,
+    "value": 1165320000.0,
+    "unit": "mul/s",
+    "median_s": 0.00702983,
+    "ns_per_item_per_thread": 0.858134
+   },
+   {
+    "bench": "F mul-add (4 reg acc += x*y)",
+    "params": "N=4096 L1-resident",
+    "threads": 1,
+    "value": 1303390000.0,
+    "unit": "muladd/s",
+    "median_s": 0.00628512,
+    "ns_per_item_per_thread": 0.767227
+   },
+   {
+    "bench": "F mul latency chain (a=a*b)",
+    "params": "dependent",
+    "threads": 1,
+    "value": 343134000.0,
+    "unit": "mul/s",
+    "median_s": 0.0238741,
+    "ns_per_item_per_thread": 2.91432
+   },
+   {
+    "bench": "F add (z=x+y, arrays)",
+    "params": "N=4096 L1-resident",
+    "threads": 1,
+    "value": 6310440000.0,
+    "unit": "add/s",
+    "median_s": 0.00129817,
+    "ns_per_item_per_thread": 0.158468
+   },
+   {
+    "bench": "E mul (z=x*y, arrays)",
+    "params": "N=4096 E=F[X]/(X^3-2)",
+    "threads": 1,
+    "value": 225830000.0,
+    "unit": "mul/s",
+    "median_s": 0.00906875,
+    "ns_per_item_per_thread": 4.4281
+   },
+   {
+    "bench": "E mul-add (4 reg acc += x*y)",
+    "params": "N=4096",
+    "threads": 1,
+    "value": 554450000.0,
+    "unit": "muladd/s",
+    "median_s": 0.00369375,
+    "ns_per_item_per_thread": 1.80359
+   },
+   {
+    "bench": "E mul latency chain",
+    "params": "dependent",
+    "threads": 1,
+    "value": 167927000.0,
+    "unit": "mul/s",
+    "median_s": 0.0121957,
+    "ns_per_item_per_thread": 5.95496
+   },
+   {
+    "bench": "ExF mul (z=X*f, arrays)",
+    "params": "N=4096",
+    "threads": 1,
+    "value": 524282000.0,
+    "unit": "mul/s",
+    "median_s": 0.00390629,
+    "ns_per_item_per_thread": 1.90737
+   },
+   {
+    "bench": "ExF mul-add (4 reg acc += X*f)",
+    "params": "N=4096",
+    "threads": 1,
+    "value": 1318950000.0,
+    "unit": "muladd/s",
+    "median_s": 0.00155275,
+    "ns_per_item_per_thread": 0.758179
+   },
+   {
+    "bench": "BLAKE2b leaf()",
+    "params": "width=3 F symbols, salt 40 B",
+    "threads": 1,
+    "value": 9912930.0,
+    "unit": "leaf/s",
+    "median_s": 0.00661117,
+    "ns_per_item_per_thread": 100.878
+   },
+   {
+    "bench": "BLAKE2b leaf()",
+    "params": "width=12 F symbols, salt 40 B",
+    "threads": 1,
+    "value": 5101640.0,
+    "unit": "leaf/s",
+    "median_s": 0.00428196,
+    "ns_per_item_per_thread": 196.015
+   },
+   {
+    "bench": "BLAKE2b leaf()",
+    "params": "width=96 F symbols, salt 40 B",
+    "threads": 1,
+    "value": 1354360.0,
+    "unit": "leaf/s",
+    "median_s": 0.00201571,
+    "ns_per_item_per_thread": 738.355
+   },
+   {
+    "bench": "BLAKE2b leaf()",
+    "params": "width=2048 F symbols, salt 40 B",
+    "threads": 1,
+    "value": 70929.5,
+    "unit": "leaf/s",
+    "median_s": 0.0288738,
+    "ns_per_item_per_thread": 14098.5
+   },
+   {
+    "bench": "BLAKE2b vertex() (1 compression)",
+    "params": "dependent chain",
+    "threads": 1,
+    "value": 10339800.0,
+    "unit": "vertex/s",
+    "median_s": 0.025353,
+    "ns_per_item_per_thread": 96.714
+   },
+   {
+    "bench": "Merkle tree build 2^20 leaves",
+    "params": "width=3 F + 40 B salt",
+    "threads": 1,
+    "value": 4912070.0,
+    "unit": "leaf/s",
+    "median_s": 0.213469,
+    "ns_per_item_per_thread": 203.58
+   },
+   {
+    "bench": "Merkle tree build 2^20 leaves",
+    "params": "width=96 F + 40 B salt",
+    "threads": 1,
+    "value": 1170030.0,
+    "unit": "leaf/s",
+    "median_s": 0.896199,
+    "ns_per_item_per_thread": 854.682
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^16 n=2^17 r=0",
+    "threads": 1,
+    "value": 67594800.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.000969542,
+    "ns_per_item_per_thread": 14.794
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^16 n=2^17 r=218",
+    "threads": 1,
+    "value": 62153800.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.00105442,
+    "ns_per_item_per_thread": 16.0891
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^16 n=2^19 r=86",
+    "threads": 1,
+    "value": 15723100.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.00416812,
+    "ns_per_item_per_thread": 63.6005
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^18 n=2^19 r=0",
+    "threads": 1,
+    "value": 58648500.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.00446975,
+    "ns_per_item_per_thread": 17.0507
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^18 n=2^19 r=218",
+    "threads": 1,
+    "value": 55491000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.00472408,
+    "ns_per_item_per_thread": 18.0209
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^18 n=2^21 r=86",
+    "threads": 1,
+    "value": 13528400.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.0193774,
+    "ns_per_item_per_thread": 73.9188
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^20 n=2^21 r=0",
+    "threads": 1,
+    "value": 51602400.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.0203203,
+    "ns_per_item_per_thread": 19.3789
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^20 n=2^21 r=218",
+    "threads": 1,
+    "value": 49386300.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.0212321,
+    "ns_per_item_per_thread": 20.2485
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^20 n=2^23 r=86",
+    "threads": 1,
+    "value": 11691900.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.0896839,
+    "ns_per_item_per_thread": 85.5292
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^22 n=2^23 r=0",
+    "threads": 1,
+    "value": 45775500.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.0916277,
+    "ns_per_item_per_thread": 21.8457
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^22 n=2^23 r=218",
+    "threads": 1,
+    "value": 43412600.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.0966148,
+    "ns_per_item_per_thread": 23.0348
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^22 n=2^25 r=86",
+    "threads": 1,
+    "value": 11063500.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.379113,
+    "ns_per_item_per_thread": 90.3877
+   },
+   {
+    "bench": "RS encode over E (Encoder<E>)",
+    "params": "ell=2^18 n=2^21 r=86",
+    "threads": 1,
+    "value": 4002400.0,
+    "unit": "msg-elt(E)/s",
+    "median_s": 0.0654967,
+    "ns_per_item_per_thread": 249.85
+   },
+   {
+    "bench": "fold_round (EngineCpu, copied)",
+    "params": "2^18 E entries in m and c",
+    "threads": 1,
+    "value": 456730000.0,
+    "unit": "elt/s",
+    "median_s": 0.000573958,
+    "ns_per_item_per_thread": 2.18948
+   },
+   {
+    "bench": "fold_bind/halve (copied)",
+    "params": "2^18 E entries, one table",
+    "threads": 1,
+    "value": 270530000.0,
+    "unit": "elt/s",
+    "median_s": 0.000969,
+    "ns_per_item_per_thread": 3.69644
+   },
+   {
+    "bench": "fold_round (EngineCpu, copied)",
+    "params": "2^20 E entries in m and c",
+    "threads": 1,
+    "value": 435606000.0,
+    "unit": "elt/s",
+    "median_s": 0.00240717,
+    "ns_per_item_per_thread": 2.29565
+   },
+   {
+    "bench": "fold_bind/halve (copied)",
+    "params": "2^20 E entries, one table",
+    "threads": 1,
+    "value": 318140000.0,
+    "unit": "elt/s",
+    "median_s": 0.00329596,
+    "ns_per_item_per_thread": 3.14327
+   },
+   {
+    "bench": "fold_round (EngineCpu, copied)",
+    "params": "2^22 E entries in m and c",
+    "threads": 1,
+    "value": 427003000.0,
+    "unit": "elt/s",
+    "median_s": 0.00982267,
+    "ns_per_item_per_thread": 2.34191
+   },
+   {
+    "bench": "fold_bind/halve (copied)",
+    "params": "2^22 E entries, one table",
+    "threads": 1,
+    "value": 256774000.0,
+    "unit": "elt/s",
+    "median_s": 0.0163346,
+    "ns_per_item_per_thread": 3.89448
+   },
+   {
+    "bench": "SumcheckCpu::round() (toy summand)",
+    "params": "k=14",
+    "threads": 1,
+    "value": 4886250.0,
+    "unit": "point/s",
+    "median_s": 0.00335308,
+    "ns_per_item_per_thread": 204.656
+   },
+   {
+    "bench": "SumcheckCpu::bind() (3 maps)",
+    "params": "k=14",
+    "threads": 1,
+    "value": 364989000.0,
+    "unit": "elt/s",
+    "median_s": 0.000134667,
+    "ns_per_item_per_thread": 2.73981
+   },
+   {
+    "bench": "SumcheckCpu::round() (toy summand)",
+    "params": "k=16",
+    "threads": 1,
+    "value": 4445280.0,
+    "unit": "point/s",
+    "median_s": 0.0147428,
+    "ns_per_item_per_thread": 224.958
+   },
+   {
+    "bench": "SumcheckCpu::bind() (3 maps)",
+    "params": "k=16",
+    "threads": 1,
+    "value": 345760000.0,
+    "unit": "elt/s",
+    "median_s": 0.000568625,
+    "ns_per_item_per_thread": 2.89218
+   },
+   {
+    "bench": "SumcheckCpu::round() (toy summand)",
+    "params": "k=18",
+    "threads": 1,
+    "value": 4082670.0,
+    "unit": "point/s",
+    "median_s": 0.064209,
+    "ns_per_item_per_thread": 244.938
+   },
+   {
+    "bench": "SumcheckCpu::bind() (3 maps)",
+    "params": "k=18",
+    "threads": 1,
+    "value": 340668000.0,
+    "unit": "elt/s",
+    "median_s": 0.0023085,
+    "ns_per_item_per_thread": 2.93541
+   }
+  ],
+  "threads_10": [
+   {
+    "bench": "F mul (z=x*y, arrays)",
+    "params": "N=4096 L1-resident",
+    "threads": 10,
+    "value": 10443100000.0,
+    "unit": "mul/s",
+    "median_s": 0.00784442,
+    "ns_per_item_per_thread": 0.95757
+   },
+   {
+    "bench": "F mul-add (4 reg acc += x*y)",
+    "params": "N=4096 L1-resident",
+    "threads": 10,
+    "value": 12210500000.0,
+    "unit": "muladd/s",
+    "median_s": 0.006709,
+    "ns_per_item_per_thread": 0.81897
+   },
+   {
+    "bench": "F mul latency chain (a=a*b)",
+    "params": "dependent",
+    "threads": 10,
+    "value": 3064740000.0,
+    "unit": "mul/s",
+    "median_s": 0.0267299,
+    "ns_per_item_per_thread": 3.26292
+   },
+   {
+    "bench": "F add (z=x+y, arrays)",
+    "params": "N=4096 L1-resident",
+    "threads": 10,
+    "value": 58352800000.0,
+    "unit": "add/s",
+    "median_s": 0.00140387,
+    "ns_per_item_per_thread": 0.171371
+   },
+   {
+    "bench": "E mul (z=x*y, arrays)",
+    "params": "N=4096 E=F[X]/(X^3-2)",
+    "threads": 10,
+    "value": 2029030000.0,
+    "unit": "mul/s",
+    "median_s": 0.0100935,
+    "ns_per_item_per_thread": 4.92847
+   },
+   {
+    "bench": "E mul-add (4 reg acc += x*y)",
+    "params": "N=4096",
+    "threads": 10,
+    "value": 5120530000.0,
+    "unit": "muladd/s",
+    "median_s": 0.00399958,
+    "ns_per_item_per_thread": 1.95292
+   },
+   {
+    "bench": "E mul latency chain",
+    "params": "dependent",
+    "threads": 10,
+    "value": 1551230000.0,
+    "unit": "mul/s",
+    "median_s": 0.0132024,
+    "ns_per_item_per_thread": 6.44649
+   },
+   {
+    "bench": "ExF mul (z=X*f, arrays)",
+    "params": "N=4096",
+    "threads": 10,
+    "value": 4857400000.0,
+    "unit": "mul/s",
+    "median_s": 0.00421625,
+    "ns_per_item_per_thread": 2.05872
+   },
+   {
+    "bench": "ExF mul-add (4 reg acc += X*f)",
+    "params": "N=4096",
+    "threads": 10,
+    "value": 12147100000.0,
+    "unit": "muladd/s",
+    "median_s": 0.001686,
+    "ns_per_item_per_thread": 0.823242
+   },
+   {
+    "bench": "BLAKE2b leaf()",
+    "params": "width=3 F symbols, salt 40 B",
+    "threads": 10,
+    "value": 93081500.0,
+    "unit": "leaf/s",
+    "median_s": 0.00704071,
+    "ns_per_item_per_thread": 107.433
+   },
+   {
+    "bench": "BLAKE2b leaf()",
+    "params": "width=12 F symbols, salt 40 B",
+    "threads": 10,
+    "value": 46640000.0,
+    "unit": "leaf/s",
+    "median_s": 0.00468375,
+    "ns_per_item_per_thread": 214.408
+   },
+   {
+    "bench": "BLAKE2b leaf()",
+    "params": "width=96 F symbols, salt 40 B",
+    "threads": 10,
+    "value": 12455300.0,
+    "unit": "leaf/s",
+    "median_s": 0.00219183,
+    "ns_per_item_per_thread": 802.87
+   },
+   {
+    "bench": "BLAKE2b leaf()",
+    "params": "width=2048 F symbols, salt 40 B",
+    "threads": 10,
+    "value": 676675,
+    "unit": "leaf/s",
+    "median_s": 0.0302656,
+    "ns_per_item_per_thread": 14778.1
+   },
+   {
+    "bench": "BLAKE2b vertex() (1 compression)",
+    "params": "dependent chain",
+    "threads": 10,
+    "value": 95507000.0,
+    "unit": "vertex/s",
+    "median_s": 0.0274476,
+    "ns_per_item_per_thread": 104.704
+   },
+   {
+    "bench": "Merkle tree build 2^20 leaves",
+    "params": "width=3 F + 40 B salt",
+    "threads": 10,
+    "value": 44900500.0,
+    "unit": "leaf/s",
+    "median_s": 0.233534,
+    "ns_per_item_per_thread": 222.715
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^16 n=2^17 r=0",
+    "threads": 10,
+    "value": 359093000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.00182504,
+    "ns_per_item_per_thread": 27.8479
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^16 n=2^17 r=218",
+    "threads": 10,
+    "value": 331276000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.00197829,
+    "ns_per_item_per_thread": 30.1863
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^16 n=2^19 r=86",
+    "threads": 10,
+    "value": 95277700.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.00687842,
+    "ns_per_item_per_thread": 104.956
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^18 n=2^19 r=0",
+    "threads": 10,
+    "value": 343338000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.00763517,
+    "ns_per_item_per_thread": 29.1259
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^18 n=2^19 r=218",
+    "threads": 10,
+    "value": 347767000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.00753792,
+    "ns_per_item_per_thread": 28.7549
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^18 n=2^21 r=86",
+    "threads": 10,
+    "value": 99055600.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.0264643,
+    "ns_per_item_per_thread": 100.953
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^20 n=2^21 r=0",
+    "threads": 10,
+    "value": 354558000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.0295742,
+    "ns_per_item_per_thread": 28.2041
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^20 n=2^21 r=218",
+    "threads": 10,
+    "value": 353677000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.0296479,
+    "ns_per_item_per_thread": 28.2744
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^20 n=2^23 r=86",
+    "threads": 10,
+    "value": 87925600.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.119257,
+    "ns_per_item_per_thread": 113.732
+   },
+   {
+    "bench": "fold_round (EngineCpu, copied)",
+    "params": "2^18 E entries in m and c",
+    "threads": 10,
+    "value": 2286720000.0,
+    "unit": "elt/s",
+    "median_s": 0.00114638,
+    "ns_per_item_per_thread": 4.37307
+   },
+   {
+    "bench": "fold_bind/halve (copied)",
+    "params": "2^18 E entries, one table",
+    "threads": 10,
+    "value": 1142070000.0,
+    "unit": "elt/s",
+    "median_s": 0.00229533,
+    "ns_per_item_per_thread": 8.756
+   },
+   {
+    "bench": "fold_round (EngineCpu, copied)",
+    "params": "2^20 E entries in m and c",
+    "threads": 10,
+    "value": 2522740000.0,
+    "unit": "elt/s",
+    "median_s": 0.0041565,
+    "ns_per_item_per_thread": 3.96395
+   },
+   {
+    "bench": "fold_bind/halve (copied)",
+    "params": "2^20 E entries, one table",
+    "threads": 10,
+    "value": 1182520000.0,
+    "unit": "elt/s",
+    "median_s": 0.00886733,
+    "ns_per_item_per_thread": 8.45655
+   }
+  ],
+  "threads_14": [
+   {
+    "bench": "F mul (z=x*y, arrays)",
+    "params": "N=4096 L1-resident",
+    "threads": 14,
+    "value": 8660050000.0,
+    "unit": "mul/s",
+    "median_s": 0.0132433,
+    "ns_per_item_per_thread": 1.61662
+   },
+   {
+    "bench": "F mul-add (4 reg acc += x*y)",
+    "params": "N=4096 L1-resident",
+    "threads": 14,
+    "value": 9779510000.0,
+    "unit": "muladd/s",
+    "median_s": 0.0117274,
+    "ns_per_item_per_thread": 1.43156
+   },
+   {
+    "bench": "F mul latency chain (a=a*b)",
+    "params": "dependent",
+    "threads": 14,
+    "value": 3156810000.0,
+    "unit": "mul/s",
+    "median_s": 0.0363303,
+    "ns_per_item_per_thread": 4.43486
+   },
+   {
+    "bench": "F add (z=x+y, arrays)",
+    "params": "N=4096 L1-resident",
+    "threads": 14,
+    "value": 44086800000.0,
+    "unit": "add/s",
+    "median_s": 0.00260142,
+    "ns_per_item_per_thread": 0.317556
+   },
+   {
+    "bench": "E mul (z=x*y, arrays)",
+    "params": "N=4096 E=F[X]/(X^3-2)",
+    "threads": 14,
+    "value": 1662470000.0,
+    "unit": "mul/s",
+    "median_s": 0.0172466,
+    "ns_per_item_per_thread": 8.4212
+   },
+   {
+    "bench": "E mul-add (4 reg acc += x*y)",
+    "params": "N=4096",
+    "threads": 14,
+    "value": 4033880000.0,
+    "unit": "muladd/s",
+    "median_s": 0.00710779,
+    "ns_per_item_per_thread": 3.4706
+   },
+   {
+    "bench": "E mul latency chain",
+    "params": "dependent",
+    "threads": 14,
+    "value": 1306300000.0,
+    "unit": "mul/s",
+    "median_s": 0.021949,
+    "ns_per_item_per_thread": 10.7173
+   },
+   {
+    "bench": "ExF mul (z=X*f, arrays)",
+    "params": "N=4096",
+    "threads": 14,
+    "value": 3941510000.0,
+    "unit": "mul/s",
+    "median_s": 0.00727437,
+    "ns_per_item_per_thread": 3.55194
+   },
+   {
+    "bench": "ExF mul-add (4 reg acc += X*f)",
+    "params": "N=4096",
+    "threads": 14,
+    "value": 9072820000.0,
+    "unit": "muladd/s",
+    "median_s": 0.00316021,
+    "ns_per_item_per_thread": 1.54307
+   },
+   {
+    "bench": "BLAKE2b leaf()",
+    "params": "width=3 F symbols, salt 40 B",
+    "threads": 14,
+    "value": 77028400.0,
+    "unit": "leaf/s",
+    "median_s": 0.0119112,
+    "ns_per_item_per_thread": 181.751
+   },
+   {
+    "bench": "BLAKE2b leaf()",
+    "params": "width=12 F symbols, salt 40 B",
+    "threads": 14,
+    "value": 39234500.0,
+    "unit": "leaf/s",
+    "median_s": 0.00779492,
+    "ns_per_item_per_thread": 356.828
+   },
+   {
+    "bench": "BLAKE2b leaf()",
+    "params": "width=96 F symbols, salt 40 B",
+    "threads": 14,
+    "value": 8978330.0,
+    "unit": "leaf/s",
+    "median_s": 0.00425692,
+    "ns_per_item_per_thread": 1559.31
+   },
+   {
+    "bench": "BLAKE2b leaf()",
+    "params": "width=2048 F symbols, salt 40 B",
+    "threads": 14,
+    "value": 617735,
+    "unit": "leaf/s",
+    "median_s": 0.0464147,
+    "ns_per_item_per_thread": 22663.4
+   },
+   {
+    "bench": "BLAKE2b vertex() (1 compression)",
+    "params": "dependent chain",
+    "threads": 14,
+    "value": 83306300.0,
+    "unit": "vertex/s",
+    "median_s": 0.0440545,
+    "ns_per_item_per_thread": 168.055
+   },
+   {
+    "bench": "Merkle tree build 2^20 leaves",
+    "params": "width=3 F + 40 B salt",
+    "threads": 14,
+    "value": 49866000.0,
+    "unit": "leaf/s",
+    "median_s": 0.29439,
+    "ns_per_item_per_thread": 280.752
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^16 n=2^17 r=0",
+    "threads": 14,
+    "value": 489640000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.00187383,
+    "ns_per_item_per_thread": 28.5924
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^16 n=2^17 r=218",
+    "threads": 14,
+    "value": 456016000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.002012,
+    "ns_per_item_per_thread": 30.7007
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^16 n=2^19 r=86",
+    "threads": 14,
+    "value": 114507000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.00801267,
+    "ns_per_item_per_thread": 122.264
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^18 n=2^19 r=0",
+    "threads": 14,
+    "value": 425466000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.00862587,
+    "ns_per_item_per_thread": 32.9051
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^18 n=2^19 r=218",
+    "threads": 14,
+    "value": 410669000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.00893667,
+    "ns_per_item_per_thread": 34.0907
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^18 n=2^21 r=86",
+    "threads": 14,
+    "value": 107964000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.0339928,
+    "ns_per_item_per_thread": 129.672
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^20 n=2^21 r=0",
+    "threads": 14,
+    "value": 420654000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.0348982,
+    "ns_per_item_per_thread": 33.2815
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^20 n=2^21 r=218",
+    "threads": 14,
+    "value": 415512000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.0353301,
+    "ns_per_item_per_thread": 33.6934
+   },
+   {
+    "bench": "RS encode over F (Encoder::encode)",
+    "params": "ell=2^20 n=2^23 r=86",
+    "threads": 14,
+    "value": 99115000.0,
+    "unit": "msg-elt/s",
+    "median_s": 0.148111,
+    "ns_per_item_per_thread": 141.25
+   },
+   {
+    "bench": "fold_round (EngineCpu, copied)",
+    "params": "2^18 E entries in m and c",
+    "threads": 14,
+    "value": 2781980000.0,
+    "unit": "elt/s",
+    "median_s": 0.00131921,
+    "ns_per_item_per_thread": 5.03238
+   },
+   {
+    "bench": "fold_bind/halve (copied)",
+    "params": "2^18 E entries, one table",
+    "threads": 14,
+    "value": 1125960000.0,
+    "unit": "elt/s",
+    "median_s": 0.00325946,
+    "ns_per_item_per_thread": 12.4338
+   },
+   {
+    "bench": "fold_round (EngineCpu, copied)",
+    "params": "2^20 E entries in m and c",
+    "threads": 14,
+    "value": 3044370000.0,
+    "unit": "elt/s",
+    "median_s": 0.00482204,
+    "ns_per_item_per_thread": 4.59866
+   },
+   {
+    "bench": "fold_bind/halve (copied)",
+    "params": "2^20 E entries, one table",
+    "threads": 14,
+    "value": 1172520000.0,
+    "unit": "elt/s",
+    "median_s": 0.0125201,
+    "ns_per_item_per_thread": 11.9401
+   }
+  ]
+ },
+ "toy_product_runs": [
+  {
+   "log_len": 12,
+   "vector_len": 4096,
+   "pow_bits_positions": 0,
+   "staging": "repo-default",
+   "prover_median_s": 0.0474,
+   "verifier_median_s": 0.0116,
+   "proof_bytes_min": 175336,
+   "proof_bytes_max": 176872,
+   "all_accepted": true,
+   "reps": 5,
+   "prover_engine_split_last_rep_s": {
+    "commit(encode+merkle)": 0.0416,
+    "evaluate": 0.0003,
+    "fold_begin": 0.0014,
+    "fold_bind": 0.0002,
+    "fold_end": 0.0,
+    "fold_round": 0.0003,
+    "open": 0.0
+   },
+   "base_codes": [
+    {
+     "log_n": 15,
+     "ell": 4096,
+     "r_positions": 87,
+     "rate": 0.12766
+    },
+    {
+     "log_n": 14,
+     "ell": 2048,
+     "r_positions": 88,
+     "rate": 0.13037
+    }
+   ],
+   "log": "toy_L12_w0.log"
+  },
+  {
+   "log_len": 14,
+   "vector_len": 16384,
+   "pow_bits_positions": 0,
+   "staging": "repo-default",
+   "prover_median_s": 0.1949,
+   "verifier_median_s": 0.0141,
+   "proof_bytes_min": 337368,
+   "proof_bytes_max": 339096,
+   "all_accepted": true,
+   "reps": 5,
+   "prover_engine_split_last_rep_s": {
+    "commit(encode+merkle)": 0.1787,
+    "evaluate": 0.0017,
+    "fold_begin": 0.0056,
+    "fold_bind": 0.0007,
+    "fold_end": 0.0001,
+    "fold_round": 0.0013,
+    "open": 0.0001
+   },
+   "base_codes": [
+    {
+     "log_n": 17,
+     "ell": 16384,
+     "r_positions": 86,
+     "rate": 0.12566
+    },
+    {
+     "log_n": 16,
+     "ell": 8192,
+     "r_positions": 86,
+     "rate": 0.12631
+    }
+   ],
+   "log": "toy_L14_w0.log"
+  },
+  {
+   "log_len": 16,
+   "vector_len": 65536,
+   "pow_bits_positions": 0,
+   "staging": "repo-default",
+   "prover_median_s": 0.8018,
+   "verifier_median_s": 0.0353,
+   "proof_bytes_min": 943480,
+   "proof_bytes_max": 945688,
+   "all_accepted": true,
+   "reps": 5,
+   "prover_engine_split_last_rep_s": {
+    "commit(encode+merkle)": 0.705,
+    "evaluate": 0.0061,
+    "fold_begin": 0.0237,
+    "fold_bind": 0.0028,
+    "fold_end": 0.0008,
+    "fold_round": 0.005,
+    "open": 0.0001
+   },
+   "base_codes": [
+    {
+     "log_n": 19,
+     "ell": 65536,
+     "r_positions": 86,
+     "rate": 0.12516
+    },
+    {
+     "log_n": 18,
+     "ell": 32768,
+     "r_positions": 86,
+     "rate": 0.12533
+    }
+   ],
+   "log": "toy_L16_w0.log"
+  },
+  {
+   "log_len": 16,
+   "vector_len": 65536,
+   "pow_bits_positions": 0,
+   "staging": "deep",
+   "prover_median_s": 0.4942,
+   "verifier_median_s": 0.0219,
+   "proof_bytes_min": 269328,
+   "proof_bytes_max": 271496,
+   "all_accepted": true,
+   "reps": 5,
+   "prover_engine_split_last_rep_s": {
+    "commit(encode+merkle)": 0.4242,
+    "evaluate": 0.0052,
+    "fold_begin": 0.0234,
+    "fold_bind": 0.0031,
+    "fold_end": 0.0005,
+    "fold_round": 0.0053,
+    "open": 0.0001
+   },
+   "base_codes": [
+    {
+     "log_n": 19,
+     "ell": 65536,
+     "r_positions": 86,
+     "rate": 0.12516
+    },
+    {
+     "log_n": 16,
+     "ell": 4096,
+     "r_positions": 65,
+     "rate": 0.06349
+    },
+    {
+     "log_n": 13,
+     "ell": 256,
+     "r_positions": 96,
+     "rate": 0.04297
+    },
+    {
+     "log_n": 11,
+     "ell": 256,
+     "r_positions": 160,
+     "rate": 0.20312
+    }
+   ],
+   "log": "toy_L16_w0_deep.log"
+  },
+  {
+   "log_len": 16,
+   "vector_len": 65536,
+   "pow_bits_positions": 20,
+   "staging": "repo-default",
+   "prover_median_s": 0.9596,
+   "verifier_median_s": 0.0306,
+   "proof_bytes_min": 924592,
+   "proof_bytes_max": 925808,
+   "all_accepted": true,
+   "reps": 3,
+   "prover_engine_split_last_rep_s": {
+    "commit(encode+merkle)": 0.6892,
+    "evaluate": 0.0056,
+    "fold_begin": 0.0205,
+    "fold_bind": 0.0027,
+    "fold_end": 0.0007,
+    "fold_round": 0.0049,
+    "open": 0.0001,
+    "search_nonce(PoW)": 0.2172
+   },
+   "base_codes": [
+    {
+     "log_n": 19,
+     "ell": 65536,
+     "r_positions": 73,
+     "rate": 0.12514
+    },
+    {
+     "log_n": 18,
+     "ell": 32768,
+     "r_positions": 73,
+     "rate": 0.12528
+    }
+   ],
+   "log": "toy_L16_w20.log"
+  },
+  {
+   "log_len": 18,
+   "vector_len": 262144,
+   "pow_bits_positions": 0,
+   "staging": "repo-default",
+   "prover_median_s": 3.0952,
+   "verifier_median_s": 0.1225,
+   "proof_bytes_min": 3320248,
+   "proof_bytes_max": 3321784,
+   "all_accepted": true,
+   "reps": 5,
+   "prover_engine_split_last_rep_s": {
+    "commit(encode+merkle)": 2.7928,
+    "evaluate": 0.0231,
+    "fold_begin": 0.0917,
+    "fold_bind": 0.0111,
+    "fold_end": 0.0041,
+    "fold_round": 0.0192,
+    "open": 0.0001
+   },
+   "base_codes": [
+    {
+     "log_n": 21,
+     "ell": 262144,
+     "r_positions": 86,
+     "rate": 0.12504
+    },
+    {
+     "log_n": 20,
+     "ell": 131072,
+     "r_positions": 86,
+     "rate": 0.12508
+    }
+   ],
+   "log": "toy_L18_w0.log"
+  },
+  {
+   "log_len": 18,
+   "vector_len": 262144,
+   "pow_bits_positions": 0,
+   "staging": "deep",
+   "prover_median_s": 2.0459,
+   "verifier_median_s": 0.0118,
+   "proof_bytes_min": 249920,
+   "proof_bytes_max": 251648,
+   "all_accepted": true,
+   "reps": 5,
+   "prover_engine_split_last_rep_s": {
+    "commit(encode+merkle)": 1.7593,
+    "evaluate": 0.0208,
+    "fold_begin": 0.0926,
+    "fold_bind": 0.0127,
+    "fold_end": 0.0027,
+    "fold_round": 0.0223,
+    "open": 0.0003
+   },
+   "base_codes": [
+    {
+     "log_n": 21,
+     "ell": 262144,
+     "r_positions": 86,
+     "rate": 0.12504
+    },
+    {
+     "log_n": 18,
+     "ell": 16384,
+     "r_positions": 65,
+     "rate": 0.06275
+    },
+    {
+     "log_n": 15,
+     "ell": 1024,
+     "r_positions": 53,
+     "rate": 0.03287
+    },
+    {
+     "log_n": 13,
+     "ell": 1024,
+     "r_positions": 89,
+     "rate": 0.13586
+    }
+   ],
+   "log": "toy_L18_w0_deep.log"
+  },
+  {
+   "log_len": 20,
+   "vector_len": 1048576,
+   "pow_bits_positions": 0,
+   "staging": "repo-default",
+   "prover_median_s": 12.8663,
+   "verifier_median_s": 0.4953,
+   "proof_bytes_min": 12773816,
+   "proof_bytes_max": 12775032,
+   "all_accepted": true,
+   "reps": 3,
+   "prover_engine_split_last_rep_s": {
+    "commit(encode+merkle)": 11.5522,
+    "evaluate": 0.0896,
+    "fold_begin": 0.3742,
+    "fold_bind": 0.0449,
+    "fold_end": 0.0148,
+    "fold_round": 0.0788,
+    "open": 0.0002
+   },
+   "base_codes": [
+    {
+     "log_n": 23,
+     "ell": 1048576,
+     "r_positions": 86,
+     "rate": 0.12501
+    },
+    {
+     "log_n": 22,
+     "ell": 524288,
+     "r_positions": 86,
+     "rate": 0.12502
+    }
+   ],
+   "log": "toy_L20_w0.log"
+  },
+  {
+   "log_len": 20,
+   "vector_len": 1048576,
+   "pow_bits_positions": 0,
+   "staging": "deep",
+   "prover_median_s": 8.368,
+   "verifier_median_s": 0.014,
+   "proof_bytes_min": 340520,
+   "proof_bytes_max": 341736,
+   "all_accepted": true,
+   "reps": 3,
+   "prover_engine_split_last_rep_s": {
+    "commit(encode+merkle)": 7.3283,
+    "evaluate": 0.0888,
+    "fold_begin": 0.3854,
+    "fold_bind": 0.0508,
+    "fold_end": 0.0111,
+    "fold_round": 0.0898,
+    "open": 0.0005
+   },
+   "base_codes": [
+    {
+     "log_n": 23,
+     "ell": 1048576,
+     "r_positions": 86,
+     "rate": 0.12501
+    },
+    {
+     "log_n": 20,
+     "ell": 65536,
+     "r_positions": 65,
+     "rate": 0.06256
+    },
+    {
+     "log_n": 17,
+     "ell": 4096,
+     "r_positions": 52,
+     "rate": 0.03165
+    },
+    {
+     "log_n": 15,
+     "ell": 4096,
+     "r_positions": 87,
+     "rate": 0.12766
+    }
+   ],
+   "log": "toy_L20_w0_deep.log"
+  },
+  {
+   "log_len": 20,
+   "vector_len": 1048576,
+   "pow_bits_positions": 20,
+   "staging": "deep",
+   "prover_median_s": 8.6331,
+   "verifier_median_s": 0.0125,
+   "proof_bytes_min": 307864,
+   "proof_bytes_max": 308824,
+   "all_accepted": true,
+   "reps": 3,
+   "prover_engine_split_last_rep_s": {
+    "commit(encode+merkle)": 7.3559,
+    "evaluate": 0.0874,
+    "fold_begin": 0.3567,
+    "fold_bind": 0.051,
+    "fold_end": 0.0104,
+    "fold_round": 0.0914,
+    "open": 0.0004,
+    "search_nonce(PoW)": 0.5156
+   },
+   "base_codes": [
+    {
+     "log_n": 23,
+     "ell": 1048576,
+     "r_positions": 73,
+     "rate": 0.12501
+    },
+    {
+     "log_n": 20,
+     "ell": 65536,
+     "r_positions": 55,
+     "rate": 0.06255
+    },
+    {
+     "log_n": 17,
+     "ell": 4096,
+     "r_positions": 44,
+     "rate": 0.03159
+    },
+    {
+     "log_n": 15,
+     "ell": 4096,
+     "r_positions": 73,
+     "rate": 0.12723
+    }
+   ],
+   "log": "toy_L20_w20_deep.log"
+  }
+ ],
+ "toy_L20_profile_percent": {
+  "coins_chacha20_salts_and_tails": 51.4,
+  "blake2b_leaves_and_vertices": 30.1,
+  "rs_encode_rows": 6.6,
+  "sumcheck_cpu": 4.7,
+  "tensor_evaluate": 3.6,
+  "fold": 1.2,
+  "other": 2.4,
+  "note": "macOS `sample`, 11 s window over one L=20 repo-default prove+verify, top-of-stack, functions with >=5 samples"
+ },
+ "default_config": {
+  "file": "examples/full-size/config/policy.txt (planned with blocks/frame/cp_frame -plan request)",
+  "target_bits": 128,
+  "pow_bits_positions": {
+   "request": 20,
+   "shared_batch": 28,
+   "once_offline": 32
+  },
+  "pow_bits_other_rounds": 0,
+  "salt_bytes": 40,
+  "weight_table": {
+   "rows": 2048,
+   "log_n": 32,
+   "ell": 402653184,
+   "r_random": 44040191,
+   "rate": 0.1041,
+   "opened_columns_per_batch": 64,
+   "opened_columns_one_time_test": 62,
+   "columns_link": 62,
+   "batches_per_copy": 688127,
+   "bytes_per_opened_column_est": 16424
+  },
+  "segment_group_link": {
+   "code_log_n": 23,
+   "ell": 4194304,
+   "r": 219,
+   "rows": 128,
+   "positions": 219,
+   "distance": 0.290134,
+   "stages_positions": [
+    55,
+    55,
+    55,
+    46,
+    44
+   ]
+  },
+  "proof_bytes_planned": {
+   "avg": 19201968,
+   "max": 19681004
+  },
+  "key_file_bytes_avg": 3293929,
+  "entry_file_bytes_avg": 2944241,
+  "reported_h100": {
+   "sec_per_request_batch24": 9.206,
+   "tokens_per_s_batch24": 111.23,
+   "proof_MB": 18.78,
+   "verify_1thread_s": 21.14,
+   "commit_s": 2323.77,
+   "per_stage_breakdown": "not published (searched docs/figures.tsv, paper.txt, docs/*.md)"
+  }
+ }
+}

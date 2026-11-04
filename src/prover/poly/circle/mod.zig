@@ -4,6 +4,7 @@ pub const CanonicCoset = @import("stwo_core").poly.circle.canonic.CanonicCoset;
 pub const CircleDomain = @import("stwo_core").poly.circle.domain.CircleDomain;
 pub const evaluation = @import("evaluation.zig");
 pub const fft_kernels = @import("fft_kernels.zig");
+pub const transforms = @import("transforms.zig");
 pub const poly = @import("poly.zig");
 pub const secure_poly = @import("secure_poly.zig");
 pub const ops = @import("ops.zig");

@@ -1,0 +1,8 @@
+total 8518 (>=5 shown)
+coins/ChaCha20 51.4%
+BLAKE2b leaves+vertices 30.1%
+RS encode_rows 6.6%
+SumcheckCpu 4.7%
+Tensor/evaluate 3.6%
+fold 1.2%
+other 2.4%
