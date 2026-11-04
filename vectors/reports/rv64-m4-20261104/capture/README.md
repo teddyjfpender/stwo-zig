@@ -97,49 +97,80 @@ Request walls are within shared-pod noise: recursion varied by about 2.5 s with 
 
 So "parallelise block import per account/tx" has no host-side target. The levers are the ones below.
 
-## What bounds capture now (24628607, v3, [M])
+## What bounds capture now (24628607, v3 and probe, [M])
 
-The critical path is:
+**Critical path.** These are segment-0 numbers from the 16-worker runs, measured from process start:
+1. `Started.start` runs the walk's own request init synchronously first, about 0.26–0.3 s, mostly ROM authority.
+2. `Image.Owner.init` follows: 0.26 s, of which 0.24 s is `Program` plus ROM authority (`PROBE_IMAGE`).
+3. Meanwhile, the walk's fast first pass runs at 122–142 MIPS.
+4. **The traced segment walk takes 0.66–0.81 s per 4.19M-step batch, at 7.1–7.5 MIPS per worker.**
+5. Admission takes 0.07 s.
+6. **`captureOne` takes about 0.65 s per batch.**
+7. The ledger now takes about 0.06–0.09 s per segment, serially.
+8. Finish takes 0.07–0.11 s.
 
-`walk request init` (≈0.7 s, overlapped with `Image.Owner.init` ≈0.7 s) → `first pass` (0.19–0.22 s, 122–142 MIPS) → **`traced segment walk`** (0.66–0.81 s per 4.19 M-step segment, **7.1–7.5 MIPS per worker**) → admission (0.07 s) → **`captureOne`** (≈0.67 s per batch) → ledger (now ≈0.06–0.09 s per segment) → finish (≈0.07–0.11 s).
+The serial ledger is no longer the long pole. Per-segment producer latency is: about 1.4 s of serial work on one core per segment, and 7 segments against 48 cores. Process-average busy cores are 1.5–1.7 [M]. The gate's "≥16 busy cores during capture" metric needs a per-window sampler (measure stream). It was not measured here, but it is certainly far below 16.
 
-The serial ledger is no longer the long pole. Two things are:
-- **Per-segment producer latency.** The traced walk plus `captureOne` is about 1.5 s for a segment, and only 7 segments exist, against 48 cores.
-- **Init.** Image and ROM authority take about 0.7 s.
+**`captureOne` breakdown** for a full 4.19M-step batch. These come from a throwaway probe build: phase timers in `prepared.zig` and `expected_image.zig`, diff in `raw/probe-instrumentation.diff`, not committed as code. The data is in `raw/cap-*-probe-i16w16.json`, and the digests are unchanged.
 
-Process-average busy cores are 1.5–1.7 [M]. The ≥16 "busy cores during capture" metric needs a per-window CPU sampler (measure stream). It was not measured here, but it is certainly far below 16.
+| phase | time | note |
+|---|---:|---|
+| `CPU.Source.capture` | 0.36–0.39 s | about 58%. One register- and clock-chained loop, about 90 ns/step. `program.lookup` and `factIndex` are already direct-indexed, so the cost is per-step reconstruction, checks and three ArrayList appends. |
+| fact routing | 0.05–0.08 s | |
+| ALU dedup | 0.09–0.15 s | |
+| binary collect | 0.02–0.12 s | |
+| shift and tail | 0.03–0.05 s | |
+| unique-memory-word hash set | 0.01–0.025 s | |
 
 ## Next iteration
 
-Plan to hit ≤1.5 s, then ≤0.6 s at M7 [E]:
+Ordered by measured critical-path weight; target ≤1.5 s first, then ≤0.6 s at M7 [E].
 
-1. **Intra-segment parallel replay.** The fast pass already runs at 122–142 MIPS. Have it publish sub-batch checkpoints, for example every 512 K steps, and replay each 4.19 M-step batch as 8 chunks on 8 workers.
-   - Each chunk produces its tape slice and boundary capture.
-   - An ordered concatenation keeps the batch byte-identical, checked by the same continuity rule as segments.
-   - Expected effect: walk latency 0.8 s → about 0.1–0.15 s per batch [E].
-2. **Chunked `captureOne`.** `CPU.Source.capture` (in `word16_execution/cpu_source.zig`, which no stream owns; I propose capture takes it) is one register- and clock-chained loop.
-   - The register values and the 32 register clocks at chunk boundaries are derivable from the tape (`lhs`, `rhs`, `previous_rd` and the clock index).
-   - So the loop can split into P chunks plus a prefix stitch for `clocks`. The metadata, functions, memory and services arrays then concatenate in order.
-   - Fact deduplication can be split by hash range.
-   - Expected effect: 0.67 s → about 0.1 s per batch [E].
-   - The ordered ledger only needs `cpu.memory` and `cpu.services`, so it can also start before deduplication finishes.
-3. **Init off the request.** The resident service caches `Image.Owner` and `ProgramAuthority.initWithRom`; that belongs to the resident stream. The walk's own `Request` init is the same ELF and authority, so it should borrow the cached copy.
-   - Expected effect: −0.7 s [E].
-4. **Address-sharded ledger** (the plan's prefix-stitch idea), only if it is still on the path after 1 and 2. The profile shows LS dispatch is about 75% of the remaining ledger time.
+1. **Intra-batch parallel traced replay.** The fast pass already runs at 122–142 MIPS.
+   - Have it publish sub-batch checkpoints, for example every 512K steps.
+   - Replay each 4.19M-step batch as 8 chunks on 8 workers. Each chunk produces its tape slice and boundary capture.
+   - Concatenate in order, under the same continuity rule as segments, so the batch stays byte-identical.
+   - Expected effect: walk latency 0.75 s → about 0.1–0.15 s [E].
+2. **Chunked `CPU.Source.capture`.** I propose the capture stream take `word16_execution/cpu_source.zig`, which no stream owns.
+   - The register values at a chunk boundary are in the tape: `lhs`, `rhs` and `previous_rd`.
+   - The 32 register clocks need a prefix stitch: each chunk records its last-write clock per register, and a 32-entry scan fixes up first reads.
+   - The metadata, functions, memory and services arrays concatenate in order.
+   - The dedups split by hash range.
+   - Expected effect: 0.65 s → about 0.1 s per batch [E].
+   - The ordered ledger needs only `cpu.memory` and `cpu.services`, so it can also start before the dedups finish.
+3. **Address-sharded ledger** (the plan's prefix-stitch idea). After items 1 and 2, the serial ledger chain (7 × about 0.07 s) is the long pole again.
+   - LS dispatch is about 75% of it.
    - Fixed-value service lanes (Keccak, secp, SHA-256, arith256, curves) decompose into independent per-address operations.
    - Sponge, bulk and JUMPDEST calls carry cross-address data flow and need a barrier.
-   - Their per-segment counts (2–8 K) make barriers affordable.
-5. **M7 emulator.** Today's baselines [M] are 122–142 MIPS for the fast pass (`fast_execution.Engine`) and 7.1–7.5 MIPS per worker for the traced walk.
-   - The traced walk, not the interpreter, is the cost.
-   - The minimal-trace emulator (ZisK/Airbender style) should emit only the compact tape plus memory and service records that `captureOne` and the ledger consume, at more than 100 MIPS per worker.
-6. **THP for the remaining large producer arenas.** The pod is in THP `madvise` mode, so huge pages only appear where `MADV_HUGEPAGE` is set, as in item 4 above. The other large arenas belong to engine `LargeBlockRecycler` and the tapes.
+   - Their per-segment counts (2–8K) make barriers affordable.
+4. **Init off the request path.** The resident stream caches `Image.Owner` and the ROM authority, and the walk's request should borrow the same authority.
+   - Expected effect: −0.25 s to −0.5 s on the path [E].
+   - Until then, `Started.start` could build the walk on its own thread so that `Image.Owner.init` overlaps it. Batch 0 is gated by the walk, so this gives little on the critical path today.
+5. **M7 emulator.** Baselines [M]: the fast pass runs at 122–142 MIPS and the traced walk at 7.1–7.5 MIPS per worker.
+   - The minimal-trace emulator (ZisK/Airbender style) should emit, directly at more than 100 MIPS per worker, the records that `CPU.Source.capture` reconstructs: the compact tape plus memory, service and function records.
+   - That fuses items 1 and 2.
+6. **THP for the other large producer arenas.** The pod is in `madvise` THP mode. Candidates are the engine `LargeBlockRecycler` and the tapes.
+
+Expected after items 1–3 on 607 [E]: init 0.5 + walk 0.15 + admission 0.07 + capture 0.1 + sharded ledger 0.1 + finish 0.07 ≈ 1.0 s. Item 4 brings that to about 0.7 s.
 
 ## Tests
 
-On the pod, with ReleaseSafe and `-Dcpu=x86_64_v4+sha`, see `raw/tests.sh`:
-- `test-riscv64-capture-prefetch`: 53/53 tests pass, including the 2 new `ledger_table` tests. The suite then aborts in `capture_prefetch_test` "two packet capture equals serial…", with `munmap` EINVAL in `rv64_ethereum_native_prepare.runWithOptions`.
-- That abort is **pre-existing**: the untouched `bcd401ce4` tree fails identically (51/51 tests pass, same test, same signal 6). It is not on the direct-capture path.
-- Further suites are recorded in the commit message.
+Run on the pod with ReleaseSafe and `-Dcpu=x86_64_v4+sha` (`raw/tests.sh`). Every abort below reproduces identically on the untouched `bcd401ce4` tree.
+
+| suite | this branch | untouched `bcd401ce4` |
+|---|---|---|
+| `test-riscv64-word16-global-memory` | **pass** (rc 0) | n/a |
+| `test-riscv64-word16-combined-services` (includes `collector_test` and `boundary_receiver_test`, plus the new `ledger_table` tests via `collector.zig`) | 58/58 tests pass, then **pre-existing** SIGABRT in `wire_test` "Combined compact transport … cleans every read allocation failure" (`munmap` EINVAL `unreachable` in `services/wire.zig` `write`) | 56/56, same test, same abort |
+| `test-riscv64-capture-prefetch` (includes the 2 new `ledger_table` tests: a 200k-op differential test against `AutoHashMap`, and absent-value semantics) | 53/53 tests pass, then **pre-existing** SIGABRT in `capture_prefetch_test` "two packet capture equals serial…" (`munmap` EINVAL in `rv64_ethereum_native_prepare.runWithOptions`) | 51/51, same test, same abort |
+| `test-riscv64-word16-global-execution` | 40/40 tests pass, then **pre-existing** SIGABRT in `wire_test` "global wire v2 streams beyond full cell blocks…" | 38/38, same test, same abort |
+
+**Likely cause of all three aborts: the pod environment, not code.**
+- The global-execution trace is unambiguous: `std.posix.fsync(dir.fd)` returns EINVAL at `word16_global_execution/wire.zig:73`, and the stdlib treats EINVAL as `unreachable`.
+- The other two traces name `munmap` and `free` frames. Both sit in functions that fsync directories (`rv64_ethereum_native_prepare.runWithOptions`, `services/wire.zig` `write`), so those frames are probably ReleaseSafe line mis-attribution.
+- The tests' `tmpDir` lives under `/workspace/...`, and that filesystem appears to reject directory fsync.
+- None of these paths are touched by this commit, and the untouched tree reproduces each abort. I flagged them for the integrate stream: run these suites with a tmp dir on a filesystem that supports directory fsync.
+
+The end-to-end correctness test is the strongest one available: proof-hash parity on both dev blocks, plus the fresh receiver.
 
 ## Files
 
