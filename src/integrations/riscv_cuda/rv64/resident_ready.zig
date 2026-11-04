@@ -17,6 +17,9 @@ pub const Context = struct {
     total_workers: usize,
     pending: usize,
     pub fn create(a: std.mem.Allocator, devices: *Pool, ids: []const u32, total: usize, pending: usize) !*Context {
+        return createWithDeviceFixed(a, devices, ids, total, pending, false);
+    }
+    pub fn createWithDeviceFixed(a: std.mem.Allocator, devices: *Pool, ids: []const u32, total: usize, pending: usize, device_fixed: bool) !*Context {
         const counts = try Policy.workers(.ready_candidate, ids, total, pending);
         if (devices.devices.len != ids.len) return error.InvalidResidentReadyAdmission;
         const owner = try CPU.rv64_recursion_budget.require(Engine.host_budget_allocator.SharedHostBudget, a);
@@ -34,7 +37,7 @@ pub const Context = struct {
             self.initialized_pools += 1;
             self.contexts[i] = try Outer.init(a, &device.native, &device.trace, &device.composition);
             self.initialized_contexts += 1;
-            self.lanes[i] = .{ .physical_device = id, .factory = try self.contexts[i].factoryForTraceOnly(), .pool = &self.pools[i] };
+            self.lanes[i] = .{ .physical_device = id, .factory = if (device_fixed) try self.contexts[i].factoryWithDeviceFixed() else try self.contexts[i].factoryForTraceOnly(), .pool = &self.pools[i] };
         }
         try Execute.validateLanes(self.options());
         return self;

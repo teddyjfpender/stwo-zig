@@ -137,10 +137,35 @@ class ResidentBasket(unittest.TestCase):
             ({"recursion_device_fixed_candidate": True}, False, [1], True),
             ({"recursion_device_fixed_candidate": True}, True, [1], False),
             ({"recursion_device_fixed_candidate": True}, True, [2], True),
-            ({"recursion_device_fixed_candidate": True, "recursion_mode": "ready_candidate"}, True, [1], True),
+            ({"recursion_device_fixed_candidate": True, "recursion_mode": "ready_candidate", "recursion_worker_budget": 33}, True, [2], True),
         ):
             with self.assertRaises(ValueError):
                 R.recursion_options(manifest, combined, counts, strict)
+
+    def test_ready_device_fixed_preserves_both_admissions_and_strict_markers(self):
+        plan = self.ready_plan(recursion_device_fixed_candidate=True)
+        self.assertTrue(plan["recursion_device_fixed_candidate"])
+        self.assertFalse(self.ready_plan().get("recursion_device_fixed_candidate", False))
+        for job in plan["jobs"]:
+            manifest = R.producer_manifest(plan, job)
+            self.assertTrue(manifest["recursion_device_fixed_candidate"])
+            self.assertEqual(manifest["recursion_mode"], "ready_candidate")
+            target = Path(job["target"])
+            (target / "batch").mkdir(parents=True)
+            raw = json.dumps(manifest)
+            for name in ("manifest.json", "batch/resident-device-fixed-manifest.json"):
+                (target / name).write_text(raw)
+            combined = {"fixed_setup_backend": "device_candidate"}
+            entry = dict(combined, producer_manifest_sha256=list(bytes.fromhex(R.B.sha(target / "manifest.json"))))
+            line = "CUDA_OUTER_PREPROCESS ordinal=0 fixed_setup_backend=device_candidate"
+            R.check_device_fixed_execution(plan, job, combined, entry, "\n".join([line] * 6), 3)
+            with self.assertRaisesRegex(ValueError, "every fresh recursive node"):
+                R.check_device_fixed_execution(plan, job, combined, entry, "\n".join([line] * 5), 3)
+            with self.assertRaisesRegex(ValueError, "pinned admission"):
+                R.check_device_fixed_execution(plan, job, {"fixed_setup_backend": "cpu"}, entry, "\n".join([line] * 6), 3)
+        for key, value in (("recursion_worker_budget", 33), ("recursion_max_pending_authorities", 16)):
+            with self.assertRaises(ValueError):
+                self.ready_plan(recursion_device_fixed_candidate=True, **{key: value})
 
     def test_device_fixed_acceptance_requires_actual_backend_for_every_node(self):
         plan = self.fixed_plan()
