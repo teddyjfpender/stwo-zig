@@ -38,12 +38,19 @@ inline fn remIndex(r: anytype, i: usize) i64 {
     return r.acc[i] + (@as(i64, 1) << (r.sh - 1)) - (@as(i64, r.y[i]) << r.sh);
 }
 
+/// Test-only (test builds): count requant remainders by their value mod p,
+/// as the GKR keys see them, instead of refusing out-of-range integers. A
+/// cheating prover that wraps a requant output mod p (so the field remainder
+/// stays in range) then reaches the verifier.
+pub var test_field_remainders: bool = false;
+
 fn countRange(src: KeySrc, hist: []i32, s: usize, e: usize) CountError!void {
     switch (src) {
         .remainder => |r| {
             const m: i64 = @intCast(hist.len);
+            const wrap = @import("builtin").is_test and test_field_remainders;
             for (s..e) |i| {
-                const v = remIndex(r, i);
+                const v = if (wrap) @mod(remIndex(r, i), @as(i64, f.P)) else remIndex(r, i);
                 if (v < 0 or v >= m) return error.RemainderOutOfRange;
                 hist[@intCast(v)] += 1;
             }
@@ -126,7 +133,10 @@ pub fn denominators(pool: *f.Pool, out: []QM31, src: KeySrc, alpha: QM31, beta: 
                     // alpha - v: only the base coordinate changes
                     const a0 = if (f.IS_OM31) c.alpha.c0.c0.a else c.alpha.c0.a;
                     for (s..e) |i| {
-                        const v: u32 = @intCast(remIndex(r, i));
+                        const v: u32 = if (@import("builtin").is_test and test_field_remainders)
+                            @intCast(@mod(remIndex(r, i), @as(i64, f.P)))
+                        else
+                            @intCast(remIndex(r, i));
                         var q = c.alpha;
                         if (f.IS_OM31) {
                             q.c0.c0.a = a0.sub(M31.fromCanonical(v));

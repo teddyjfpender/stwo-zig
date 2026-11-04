@@ -236,8 +236,13 @@ makes the same choice, because it depends on shapes only.
 the hadamard remainder key, the hadamard y_range key, the hadamard requant
 sumcheck and the SiLU column's PCS claim. **Added:** one glu_triple key per
 hidden unit, and the 2^16-row glu table per distinct (table, shift). The
-gate/up matmul y_range keys were already dropped, since `rangeImplied` covers
-glu inputs exactly as it covers lookup inputs.
+up matmul's y_range key is also dropped (`rangeImplied` covers glu inputs
+exactly as it covers lookup inputs; the gate's was already dropped as the
+SiLU lookup's input). Net: lookup_pair, hadamard remainder, hadamard y_range
+and up y_range out, one glu_triple in, so -3 GKR leaves per hidden unit.
+Dropping the up y_range is sound because the up requant remainder is unique
+over the integers (|acc| + 2^s 128 < p / 2), so the only field-level freedom
+is to wrap u mod p, which leaves int8 and is rejected by the glu table.
 
 **Soundness.** Op.glu is the existing, reviewed relation (zk.zig, model.zig
 fused MLP, `security.zig` per-relation degree: arity 3 → degree 2, derived
@@ -257,6 +262,11 @@ unchanged.
   (test-only unchecked glu multiplicities), the verifier rejects h + 1, a
   moved g with u and h fixed, u = 200 with h its natural clamp extension, and
   g = 384;
+* checker test: u wrapped mod p as u - t 2^(31 - s), so the up matmul's
+  field remainder stays in [0, 2^s); the cheating prover counts remainders
+  mod p (test-only `prep.test_field_remainders`) and the verifier rejects
+  (LogUpSumNonZero: only the glu table's int8 domain on u catches it); a
+  control with the hooks on and an honest witness verifies;
 * model with a dense layer, stacked MoE and per-expert MoE all at 2^16: the
   verifier-built statement is byte-identical to the prover's, and the
   per-request proof verifies.

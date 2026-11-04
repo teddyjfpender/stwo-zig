@@ -8,6 +8,7 @@ const std = @import("std");
 const f = @import("field.zig");
 const proto = @import("protocol.zig");
 const xt = @import("ext.zig");
+const prep = @import("prep.zig");
 const model = @import("model.zig");
 
 const TensorInfo = proto.TensorInfo;
@@ -2444,6 +2445,75 @@ test "fused glu: verifier rejects h + 1, a moved g with u fixed, and g / u outsi
     inline for (@typeInfo(GluCheat).@"enum".fields) |fld| {
         gluCheatCase(testing.allocator, @enumFromInt(fld.value)) catch |err| {
             std.debug.print("glu cheat case {s} failed: {}\n", .{ fld.name, err });
+            return err;
+        };
+    }
+}
+
+const UpWrap = enum { honest_wrap_control, up_wrapped };
+
+/// Checker test (fused-glu): the up projection's y_range key is dropped
+/// because the glu triple implies u in int8 (rangeImplied). A smart cheater
+/// wraps u mod p so the up matmul's field remainder stays in [0, 2^s):
+/// u' = u - t 2^(31 - s) (2^31 = 1 mod p), so 2^s u' = 2^s u - t and
+/// r' = r + t. The requant relation then holds over the field, the cheating
+/// prover counts remainders mod p (prep.test_field_remainders), and only the
+/// glu table's int8 domain on u can reject.
+fn upWrapCase(a: std.mem.Allocator, mode: UpWrap) !void {
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    var pc = testCfg();
+    pc.weight_log_cols = 4;
+    const cfg = LayerCfg{ .log_t = 6, .log_d = 4, .log_f = 10, .log_heads = 1, .log_kv_heads = 0 };
+    const fx = try Fixture.init(a, &pool, cfg, pc, 4300);
+    defer fx.deinit(a);
+    const st = fx.b.statement();
+    const gl = for (st.ops) |op| (if (op == .glu) break op.glu) else unreachable;
+    const mu = for (st.ops) |op| (if (op == .matmul and op.matmul.y == gl.u) break op.matmul) else unreachable;
+    // the up projection has no y_range key: only the glu triple bounds u
+    var rel = try proto.deriveRelations(a, st);
+    defer rel.deinit(a);
+    for (rel.keys) |k| if (k.kind == .y_range) try testing.expect(!(st.ops[k.op] == .matmul and st.ops[k.op].matmul.y == gl.u));
+    const acc = try proto.matmulAcc(a, &pool, st.witness[mu.x], fx.b.wit.items[mu.x], fx.sw.ws.matrix(mu.w));
+    defer a.free(acc);
+    const s = mu.shift;
+    const i: usize = 17;
+    const uv = fx.b.wit.items[gl.u];
+    const r = acc[i] + (@as(i64, 1) << (s - 1)) - (@as(i64, uv[i]) << s);
+    try testing.expect(r >= 0 and r < (@as(i64, 1) << s));
+    if (mode == .up_wrapped) {
+        const t: i64 = if (r > 0) -1 else 1;
+        const p: i64 = f.P;
+        const wrapped = @mod(@as(i64, uv[i]) - t * (@as(i64, 1) << (31 - s)), p);
+        // the field remainder is in range, the integer value is far outside int8
+        const r2 = @mod(acc[i] + (@as(i64, 1) << (s - 1)) - (wrapped << s), p);
+        try testing.expectEqual(r + t, r2);
+        try testing.expect(wrapped > 127 and wrapped < p - 128);
+        uv[i] = @intCast(wrapped);
+    }
+    xt.test_unchecked_prover = true;
+    prep.test_field_remainders = true;
+    defer {
+        xt.test_unchecked_prover = false;
+        prep.test_field_remainders = false;
+    }
+    const wv = try fx.b.witnessView(a);
+    defer a.free(wv);
+    var tm: proto.Timings = .{};
+    var proof = try proto.prove(a, &pool, pc, st, &fx.sw.ws, wv, &tm);
+    defer proof.deinit(a);
+    switch (mode) {
+        // control: the cheat hooks alone do not break an honest witness
+        .honest_wrap_control => try proto.verify(a, pc, st, proto.weightKey(&fx.sw.ws), &proof),
+        .up_wrapped => try expectReject(a, pc, st, &fx.sw.ws, &proof),
+    }
+}
+
+test "fused glu (checker): up output wrapped mod p with an in-range field remainder is rejected by the glu int8 domain" {
+    inline for (@typeInfo(UpWrap).@"enum".fields) |fld| {
+        upWrapCase(testing.allocator, @enumFromInt(fld.value)) catch |err| {
+            std.debug.print("up-wrap case {s} failed: {}\n", .{ fld.name, err });
             return err;
         };
     }
