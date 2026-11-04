@@ -316,10 +316,12 @@ theorem softmax_div_err (acc den o : Int)
 exact einsum; the slacks u = 2acc + den - 2od and v = den - 2acc + 2od - 1
 are range-checked to [0, 2^(lt+9))). With the integer bounds the statement
 analysis derives (|acc| <= 2^29 - ..., here: |acc|, |od| <= 2^28 and
-0 < den <= 2^28), the two field identities are integer identities, so o is
-the round-half-up quotient. `lt <= 19` keeps 2^(lt+9) <= 2^28. -/
+|den| <= 2^28), the two field identities are integer identities, so o is
+the round-half-up quotient. `lt <= 19` keeps 2^(lt+9) <= 2^28. `den > 0` is
+not assumed: it follows from the slacks (u + v = 2 den - 1 >= 0), and
+`den >= -2^28` is enough as the lower bound. -/
 theorem softmax_div_sound (lt : Nat) (acc den o od u v : Int) (hlt : lt ≤ 19)
-    (hden : 0 < den) (hden1 : den ≤ 2 ^ 28)
+    (hden0 : -(2 ^ 28) ≤ den) (hden1 : den ≤ 2 ^ 28)
     (hacc : acc.natAbs ≤ 2 ^ 28) (hod : od.natAbs ≤ 2 ^ 28)
     (hodint : od = o * den)
     (hu0 : 0 ≤ u) (hu1 : u < 2 ^ (lt + 9)) (hv0 : 0 ≤ v) (hv1 : v < 2 ^ (lt + 9))
@@ -331,6 +333,7 @@ theorem softmax_div_sound (lt : Nat) (acc den o od u v : Int) (hlt : lt ≤ 19)
   have h28n : (2 : Nat) ^ (28 : Nat) = 268435456 := by decide
   have eu := fieldZero_small _ hfu (by omega)
   have ev := fieldZero_small _ hfv (by omega)
+  have hden : 0 < den := by omega
   subst hodint
   apply softmax_div_unique acc den o hden
   · rw [Int.mul_assoc]; omega

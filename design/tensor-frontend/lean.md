@@ -14,10 +14,11 @@ cd src/tensor && zig build lean              # or: formal/tensor-frontend/script
 ```
 
 `scripts/check.sh` runs `lake build` (every module under `TensorFrontend/`, imported or not), builds
-the `tensor-security-check` executable, prints `#print axioms` for the 24 headline theorems
+the `tensor-security-check` executable, prints `#print axioms` for the 24 headline theorems and the 3 GF(2) instance checks
 (`Audit.lean`) and fails unless each depends only on `propext`, `Classical.choice` and `Quot.sound`
-(or on no axiom). It also fails on any `sorry`, `axiom` declaration or `native_decide` in the
-sources, then runs the security cross-check. Building from scratch takes a few seconds and well
+(or on no axiom). It also fails on any `sorry` / `admit`, any `axiom` declaration (with modifiers
+or indentation), `native_decide`, `implemented_by`, `@[extern]` or `unsafe` in the sources, then runs
+the security cross-check. Building from scratch takes a few seconds and well
 under 1 GB.
 
 ## What is proven
@@ -44,7 +45,7 @@ Z -> M31 gives.
 | `lineq_sound` | the sum of term magnitudes `< p` turns the field identity into an integer identity | `bounds.zig exprMagnitude`, `lineq` / `exprCheck` |
 | `softmax_div_unique` | for `den > 0`, `0 <= 2acc + den - 2 o den < 2 den` holds for exactly one `o`, namely `floor((2acc + den) / (2den))`, the round-half-up quotient | `transformer.zig` softmax-PV (`@divFloor(2x + dn, 2dn)`) |
 | `softmax_div_err` | the same inequality gives `-den < 2(o den - acc) <= den` | the transformer test's rounding check |
-| `softmax_div_sound` | two range-checked slacks `u, v ∈ [0, 2^(lt+9))`, their M31 identities, `od = o·den`, and the bounds `|acc|, |od|, den <= 2^28`, `lt <= 19` together imply `o = round(acc/den)` | `transformer.zig` `rangeWide` pair |
+| `softmax_div_sound` | two range-checked slacks `u, v ∈ [0, 2^(lt+9))`, their M31 identities, `od = o·den` (as integers; this is what `exact_einsum_sound` gives for the `od` einsum), and the bounds `|acc|, |od|, |den| <= 2^28`, `lt <= 19` together imply `den > 0` and `o = round(acc/den)` | `transformer.zig` `rangeWide` pair |
 
 ### 2. Sumcheck soundness (`TensorFrontend/Poly.lean`, `TensorFrontend/Sumcheck.lean`)
 
@@ -92,6 +93,15 @@ dumps the total's full term list (new `Account.writeTerms`, used only when `TENS
 The Zig report prints 113.47 / 96.76, so they agree. The largest integer `K` the exact check accepts
 is 113 / 96. The input is `formal/tensor-frontend/scripts/toy20_johnson_terms.tsv`. If the
 calculator or the configuration changes, re-dump and regenerate.
+
+### 5. Non-vacuity (`TensorFrontend/Instance.lean`)
+
+The sumcheck and LogUp theorems are generic over a `Lean.Grind.Field` with a `FinEnum`. Lean core
+has no finite-field instance, so `Instance.lean` builds one for GF(2) (`Fin 2`), proves
+`IndDeg` for a concrete function and the LogUp characteristic hypothesis for `p = 2`, and
+instantiates `sumcheck_sound` and `logup_identity_sound` on it. This shows only that the
+hypotheses are satisfiable (the theorems are not vacuous). It says nothing about QM31, which is
+still not constructed.
 
 ## Modelling assumptions (stated, not derived)
 

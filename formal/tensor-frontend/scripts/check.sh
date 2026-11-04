@@ -15,7 +15,9 @@ if [ -n "$bad" ]; then
 fi
 n=$(echo "$out" | grep -c "depends on axioms\|does not depend on any axioms" || true)
 echo "axiom audit: $n theorems, only standard axioms"
-if grep -rn --include='*.lean' -E '\bsorry\b|^axiom |native_decide' TensorFrontend Main.lean; then
-  echo "sorry / axiom / native_decide found" >&2; exit 1
+# source scan: sorry/admit, axiom declarations with any modifiers or
+# indentation, native_decide, and escape hatches that bypass the kernel
+if grep -rn --include='*.lean' -E '\bsorry\b|\badmit\b|(^|[[:space:]])axiom[[:space:]]|native_decide|implemented_by|@\[extern|\bunsafe\b|ofReduceBool|trustCompiler' TensorFrontend Main.lean Audit.lean; then
+  echo "sorry / admit / axiom / native_decide / unsafe escape hatch found" >&2; exit 1
 fi
 "$LAKE" exe tensor-security-check

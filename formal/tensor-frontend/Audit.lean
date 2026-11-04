@@ -25,3 +25,6 @@ import TensorFrontend
 #print axioms TensorFrontend.Security.dyadic_union_sound
 #print axioms TensorFrontend.Data.toy20Johnson_with_bits
 #print axioms TensorFrontend.Data.toy20Johnson_without_bits
+#print axioms TensorFrontend.Instance.gf2Field
+#print axioms TensorFrontend.Instance.indDeg_zero
+#print axioms TensorFrontend.Instance.gf2_char
