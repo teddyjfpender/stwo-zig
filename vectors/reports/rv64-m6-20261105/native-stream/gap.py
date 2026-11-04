@@ -3,8 +3,10 @@ run=sys.argv[1]
 db=sqlite3.connect(run+"/nsys/timeline.sqlite")
 names=dict(db.execute("select id,value from StringIds"))
 b=db.execute("select max(end) from CUPTI_ACTIVITY_KIND_KERNEL").fetchone()[0]
-a=b-28746452388
-na=a+int(3.131e9); nb=a+int(9.728e9)
+import json
+q=json.load(open(run+"/receipt.json"))["requests"][1]; st=q["stages"]
+a=b-q["marker"]["request_wall_ns"]
+na=a+int((st["capture_s"]+st["setup_s"])*1e9); nb=na+int(st["native_prove_s"]*1e9)
 # runtime calls with correlation to kernels
 rt=db.execute("select start,end,globalTid,nameId,correlationId from CUPTI_ACTIVITY_KIND_RUNTIME where end>? and start<? order by start",(na,nb)).fetchall()
 k=dict((c,(names.get(s,s))) for c,s in db.execute("select correlationId,shortName from CUPTI_ACTIVITY_KIND_KERNEL where end>? and start<?",(na-int(1e9),nb+int(1e9))))
