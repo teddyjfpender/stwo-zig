@@ -189,50 +189,85 @@ Adversarial tests (`serve.zig`) are rejected for every verifier unless noted:
   `Emb[window]` exactly. For P > 1 the honest prover finds the
   self-consistent y by fixed-point iteration (`decodeGreedy`). Before this
   fix X was a prover-chosen public that nothing related to the tokens.
-* **Model descriptor (LM-3).** `ModelDesc { cfg, gains }` holds every
-  learned parameter that is not in the weight table: the RMSNorm gains, 2
-  per layer + the final norm, int8 in [1, 127]. `buildModel` takes them from
-  the descriptor (they used to come from a per-call seed, so a server could
-  change them per request under one key).
-* **What key.root covers.** key.root is the Merkle root of the committed
-  int8 table: every layer weight (attention, MLP or router + expert stacks),
-  `W_lm` and `Emb`. The verifier-held key also carries the weight shapes
-  (`key.infos`, checked against the descriptor's `weightInfos`). The
-  descriptor (configuration and gains) is **not** in key.root: a client
-  pins `(key.root, key.infos, ModelDesc.digest())` together as the model
-  identity. The digest omits `log_capacity`, a per-request statement
-  parameter. Fixed tables (RoPE, causal mask, exp, SiLU, MoE triangle) are
-  functions of the configuration.
-* **Verifier entry point.** `lm.verifyRequest(key, desc, prompt, y, st, ...)`
-  rebuilds every public (RoPE, mask, gains, MoE triangle, OH, Sel, Lt), the
-  core and ext tables and the weight shapes from (key, descriptor, prompt
-  tokens, claimed output tokens), as FlashProve builds its request instance
-  from the tokens, and rejects (`error.StatementMismatch`) unless the
-  prover's statement carries exactly those. It also requires the Emb op's
-  shift to be 1. Tokens >= V are rejected before anything is built
-  (`error.BadToken`, LM-2): for y >= V the verifier's Sel = 0 and Lt = 1
-  would make the zero einsum vacuous.
-* **Descriptor in the transcript (P2).** `buildModel` sets the statement's
-  `model_digest` to `ModelDesc.digest()`. This is the mechanism the MLP
-  (`model.MlpConfig`) and decoder-stack (`transformer.ModelConfig`)
-  statements use. The digest is mixed into the transcript, and
-  `checkRequestStatement` requires it to equal the verifier's descriptor
-  (`error.StatementMismatch` when it is missing or names another
-  descriptor; regression in `review_lm_test.zig`, LM-3). A request proof is
-  therefore bound to one descriptor even when it is checked by
-  `serve.verifyRequest` alone.
-* **Residual (not closed here).** The statement's *structure* (its op
-  list, witness shapes and the data-chosen requant shifts) is still the
-  prover's. Phase A (fix-stmt) closed this for the decoder stack:
-  `transformer.statementFor` replays a calibrated `ModelConfig` shift plan
-  on a shape-only builder, so the verifier builds the whole statement. The
-  same path for LM requests needs three things: (a) a calibrated shift plan
-  in `ModelDesc`, which is included in its digest; (b) `lm.matmul3`, the
-  stacked-expert batched matmul, drawing its shifts through the builder's
-  plan and supporting `shape_only`; and (c) the per-request `log_capacity`
-  as an explicit request parameter. `lm.verifyRequest` could then compare
-  `wire.encodeStatement` bytes of its own statement with the prover's,
-  instead of comparing publics only.
+* **Model descriptor (LM-3, P2).** `ModelDesc { cfg, gains, shifts }`
+  holds every model constant that is not in the weight table: the RMSNorm
+  gains (2 per layer + the final norm, int8 in [1, 127]) and the **shift
+  plan**, every data-dependent requant shift of `buildModel` in builder
+  order (matmuls, stacked-expert batched matmuls, hadamards, RMSNorm input
+  and gain requants, RoPE / score einsums). Fixed shifts that are code
+  (EMB_SHIFT = 1, RMSNorm's requant_6, RoPE's 7) are not in the plan.
+* **Calibration (offline).** Data-chosen shifts are gone for LM requests.
+  `lm.calibrate(desc, ws, windows, headroom)` runs the forward pass on the
+  calibration windows (full expert capacity) in record mode with the
+  current plan as a per-shift floor, takes the elementwise max, and
+  iterates to a fixed point (no window widens the plan; replaying the plan
+  then reproduces each recorded pass, so every calibration window fits).
+  It then adds `headroom` bits to every shift and checks that every window
+  replays. `calibrateRandom` does this on n random windows (tests: 4
+  windows, headroom 1; bench: `scal=4 headroom=1`). The plan does not
+  depend on log_capacity (empty slots add zero to every accumulator).
+* **Prover under the plan.** With a calibrated descriptor `buildModel`
+  replays the plan (`Builder.shift_plan`), and any requant output outside
+  its range (matmul, batched matmul, hadamard, RMSNorm input requant,
+  requant einsums) is refused with `error.RequantOverflow`: the model is
+  undefined on that input, as in FlashProve. A plan of the wrong length is
+  `error.ShiftPlan`. The model is now causal, so `decodeGreedy`'s fixed
+  point settles in <= P + 1 rounds. Uncalibrated descriptors (shifts =
+  null) still build in record mode (calibration, router calibration, the
+  Metal bit-identity test) but are refused by the verifier
+  (`error.NotCalibrated`).
+* **What key.root and the model digest cover.** key.root is the Merkle
+  root of the committed int8 table: every layer weight (attention, MLP or
+  router + expert stacks), `W_lm` and `Emb`; the verifier-held key also
+  carries the weight shapes (`key.infos`, checked against the descriptor's
+  `weightInfos`). `ModelDesc.digest()` (domain `stwo-tensor-model-desc-v2`)
+  covers every cfg field except log_capacity, the gains and the shift plan
+  (length and values; "no plan" hashes differently). It is the statement's
+  `model_digest` and so is mixed into every request transcript. A client
+  pins `(key.root, key.infos, ModelDesc.digest())` as the model identity;
+  the digest is not inside key.root. Fixed tables (RoPE, causal mask, exp,
+  SiLU, MoE triangle) are functions of the configuration.
+* **Verifier-built statement.** `lm.verifyRequest(pool, pc, key, desc,
+  Request{ prompt, y, log_capacity }, rp, shared, index)` takes **no
+  statement from the prover**. `lm.requestStatement` builds the entire
+  request statement (witness shapes, core ops with their shifts, ext ops
+  with their labels, publics, core and ext tables, weight shapes,
+  model_digest) by running `buildModel` on a **shape-only builder**: no
+  weights (a WeightStore with shapes only), dummy witness values, every
+  shift from the descriptor's plan, the claim y supplied. Since every
+  statement-shaping decision in `buildModel` is a function of (cfg,
+  plan, log_capacity) and the publics are functions of (desc, prompt, y),
+  the result equals the honest prover's statement byte for byte
+  (`wire.encodeStatement`; `lm.checkRequestStatement` asserts this in the
+  tests). The request proof is then checked against it with
+  `serve.verifyRequest`. Tokens >= V and wrong lengths are refused before
+  anything is built (`error.BadToken` / `error.BadRequest`, LM-2): for y >=
+  V the Sel = 0, Lt = 1 tensors would make the zero einsum vacuous. The
+  model bench verifies every request this way (statement build included in
+  verify_s).
+* **Leakage model.** The request is non-hiding by design (as in
+  FlashProve): prompt and output tokens are public, and so is the
+  statement, which the verifier computes from public data only. The one
+  per-request statement parameter is `log_capacity` (expert slots per MoE
+  expert), which the prover fits to the request's largest expert load
+  (`fitCapacity`): it reveals an upper bound on that load, i.e. a coarse
+  fact about the routing of a public input under the committed weights
+  (anyone holding the weights computes that routing anyway). A server that
+  wants no such signal serves a fixed capacity (bench `cap=c`). The shift
+  plan and gains are public model constants. The proof itself (witness
+  commitments, sumchecks, openings) is not zero-knowledge in this mode;
+  the hiding mode (zk.zig) is separate.
+* **Closed residual (P1 op structure).** The adversarial re-checks of the
+  publics-only verifier (review-B-lm-open) each kept the publics the
+  verifier's own and changed the op graph: LM-1 deleted the lineq pinning
+  the committed one-hot to the OH public (reusing another prompt's proof),
+  LM-2 pointed the greedy zero einsum and range key at witness copies of
+  the honest Sel / Lt for a false token, LM-3 pointed the three RMSNorm
+  gain einsums at range-checked witness vectors holding other gains. All
+  three were accepted. With the verifier-built statement each is rejected;
+  regressions in `review_lm_test.zig` ("variant" tests) assert both that
+  the attack's proof is valid for the prover's statement
+  (`serve.verifyRequest`) and that `lm.verifyRequest` rejects it.
 * **LM head and greedy check.** The last 2^log_out positions are sliced with
   fixed-bit labels, then go through the final RMSNorm and the LM head
   (`W_lm [D, V]`, committed). The greedy check on the public output tokens
@@ -251,20 +286,26 @@ Adversarial tests (`serve.zig`) are rejected for every verifier unless noted:
   committed value) and refuses the statement (`StatementUnboundedOperand`;
   regression test in `lm.zig`). The honest m is a logit, so the key never
   refuses an honest request. No new bound rule was needed.
-* **Tests.** Through `lm.verifyRequest`: a different output token or prompt
-  is rejected, and so is a statement over a window whose tail is not y, other
-  gains, a two-hot Sel or an inconsistent Lt, an out-of-vocab prompt or
-  output token, and a key without Emb (`review_lm_test.zig`). Greedy ties
-  are accepted. At the gadget level, for a later tie or a non-maximum the
-  honest prover refuses and an unchecked prover's proof is rejected; an
-  out-of-vocab token is refused by the verifier-side builder. X equals
-  `Emb[window]` (direct reference) and the stacked-MoE output equals a
-  direct integer reference.
-* **Soundness note.** With the publics the verifier's own, the greedy
+* **Tests.** Through `lm.verifyRequest`: honest per-request proofs
+  verify (and the prover's statement is byte-identical to the verifier's);
+  a different output token, prompt or log_capacity is rejected, an
+  uncalibrated descriptor is refused, and so are a statement over a window
+  whose tail is not y, other gains, another or no shift plan, a missing or
+  foreign model_digest, a two-hot Sel or an inconsistent Lt, an
+  out-of-vocab prompt or output token, and a key without Emb; the three
+  re-check variants above are rejected (`review_lm_test.zig`). In `lm.zig`:
+  calibration windows replay with an exact plan length, and a plan too
+  narrow for the data or of the wrong length is refused by the prover.
+  Greedy ties are accepted. At the gadget level, for a later tie or a
+  non-maximum the honest prover refuses and an unchecked prover's proof is
+  rejected. X equals `Emb[window]` (direct reference) and the stacked-MoE
+  output equals a direct integer reference.
+* **Soundness note.** The statement is the verifier's own, so the greedy
   relations bind y to the least maximiser of the committed model's logits
-  on `Emb[window]` (subject to the residual above). ZK note: the request
-  is non-hiding; the prompt and output tokens are public by design (as in
-  FlashProve), so the verifier-built publics leak nothing new.
+  (key.root weights, descriptor gains and shifts) on `Emb[prompt ||
+  y[0..P-1)]`, up to the soundness of the protocol itself and the
+  calibrated-model caveat (inputs outside the plan's ranges have no
+  proof).
 * **Cost of the one-hot input.** The embedding matmul adds T V witness
   entries (OH) and a T V D forward product, and the verifier evaluates the
   T V public. Measured (`tensor-bench model t=6 d=7 f=8 e=1 fe=7 layers=2
@@ -280,8 +321,11 @@ Adversarial tests (`serve.zig`) are rejected for every verifier unless noted:
 * **Setup.** The N-layer stack takes a public token window (X = Emb[window]
   from the committed Emb) and ends with the LM head and greedy check. Bench
   windows are random tokens and the output is their greedy tokens (cost
-  measurement only; not a decoded continuation), verified with
-  `serve.verifyRequest`.
+  measurement only; not a decoded continuation; `out > 0` decodes y), verified
+  with `lm.verifyRequest` from (prompt, y, log_capacity) alone. The shift
+  plan is calibrated offline (`scal`, `headroom`); a window the prover
+  refuses (outside the plan) is replaced by another draw and counted
+  (`shift_plan.refused_windows`).
 * **Proving.** R requests go through the streaming `BatchProver`, and each
   request's witness is dropped after its proof. One shared opening follows.
   Every request is then checked by a single-thread `verifyRequest`.
@@ -514,14 +558,19 @@ Verify per request: about 0.2-0.3 s on one thread.
 
 ## 5. Not done
 
-* The statement structure (ops, shifts) is still prover-supplied; the
-  verifier builds only the publics, tables and shapes (section 1.2).
+* The shift plan is calibrated on random windows with 1 bit of headroom; a
+  real deployment calibrates on representative inputs, and an input outside
+  the plan has no proof (the prover refuses it). The verifier's statement
+  build is a shape-only forward pass (dummy witness values are allocated:
+  O(witness) verifier memory and time; a builder that skips values is not
+  done).
 * The one-hot embedding input is O(T V D) forward and O(T V) verifier work;
   a lookup against Emb is needed for real vocabularies (section 1.2).
 * key.root does not cover the model descriptor; the client pins its digest
   separately.
-* Sections 2-4 were measured before the committed Emb, the descriptor and
-  the slot checks.
+* Sections 2-4 were measured before the committed Emb, the descriptor, the
+  slot checks and the verifier-built statement (verify_s now includes the
+  statement build).
 
 * Memory: the shared-opening table E (16 B per padded table entry) is not
   streamed. The i32 widened copy is gone (`5f77f7d2a`). Peak RSS still grows

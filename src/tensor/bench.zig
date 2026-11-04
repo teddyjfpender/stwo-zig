@@ -661,6 +661,11 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
         try t.lm.calibrateRouters(a, &pool, &desc, &sw.ws, xc, calib);
         try t.lm.recommit(a, &pool, pc, &sw.ws);
     }
+    // P2 shift plan: calibrated offline on scal random windows with
+    // headroom extra bits; part of the descriptor digest (model_digest)
+    const n_scal: usize = @intCast(try kv.get("scal", 4));
+    const headroom: u5 = @intCast(try kv.get("headroom", 1));
+    try t.lm.calibrateRandom(a, &pool, &desc, &sw.ws, n_scal, 888_000, headroom);
     const calib_s = secs(t0);
     const rss_after_commit = peakRssBytes();
     // key=0 skips the offline weight-key proof (its GKR over every weight sets
@@ -700,6 +705,14 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const tokens = try a.alloc(u32, R << @intCast(cfg.log_out));
     defer a.free(tokens);
     const T = @as(usize, 1) << @intCast(lt);
+    const P = @as(usize, 1) << @intCast(cfg.log_out);
+    // the verifier's per-request inputs: prompt tokens, claimed output,
+    // log_capacity (lm.verifyRequest builds the statement from these)
+    const prompts = try a.alloc(u32, R * (T - P + 1));
+    defer a.free(prompts);
+    const caps = try a.alloc(u32, R);
+    defer a.free(caps);
+    var refused: usize = 0;
     const t_all = now();
     for (0..R) |j| {
         builders[j] = tf.Builder.init(a, &pool);
@@ -708,8 +721,49 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
         // the window's tokens (public; X = Emb[window] is proved from the
         // committed Emb). Random windows: the bench measures cost, so the
         // output is the window's greedy tokens, not a decoded continuation.
-        const x = try t.lm.randomTokens(a, T, @as(usize, 1) << @intCast(cfg.log_vocab), 1000 * seed + j);
+        // A window the calibrated model is defined on: the prover refuses
+        // windows whose values leave the shift plan's ranges
+        // (RequantOverflow); the bench then draws another one (counted).
+        // out > 0: the output is decoded (prompt || y[0..P-1) = window).
+        var x: []u32 = undefined;
+        var y_dec: ?[]u32 = null;
+        defer if (y_dec) |v| a.free(v);
+        var attempt: u64 = 0;
+        while (true) : (attempt += 1) {
+            if (attempt == 16) return error.ShiftPlanTooNarrow;
+            const draw = try t.lm.randomTokens(a, T, @as(usize, 1) << @intCast(cfg.log_vocab), 1000 * seed + j + 1_000_000 * attempt);
+            if (P == 1) {
+                var probe = tf.Builder.init(a, &pool);
+                defer probe.deinit();
+                var pd = desc;
+                pd.cfg.log_capacity = lt;
+                _ = t.lm.buildModel(&probe, &pd, &sw.ws, draw, null) catch |e| {
+                    a.free(draw);
+                    if (e == error.RequantOverflow) {
+                        refused += 1;
+                        continue;
+                    }
+                    return e;
+                };
+                x = draw;
+                break;
+            }
+            defer a.free(draw);
+            var pd = desc;
+            pd.cfg.log_capacity = lt;
+            const yv = t.lm.decodeGreedy(a, &pool, &pd, &sw.ws, draw[0 .. T - P + 1]) catch |e| {
+                if (e == error.RequantOverflow or e == error.NoFixedPoint) {
+                    refused += 1;
+                    continue;
+                }
+                return e;
+            };
+            y_dec = yv;
+            x = try t.lm.requestWindow(a, cfg, draw[0 .. T - P + 1], yv);
+            break;
+        }
         defer a.free(x);
+        @memcpy(prompts[j * (T - P + 1) ..][0 .. T - P + 1], x[0 .. T - P + 1]);
         // The expert capacity is a per-request statement parameter. cap=0
         // (default): the smallest power of two holding the request's largest
         // expert load, found by an untimed full-capacity forward pass (a
@@ -722,28 +776,29 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
             rdesc.cfg = rcfg;
             var probe = tf.Builder.init(a, &pool);
             defer probe.deinit();
-            const full = try t.lm.buildModel(&probe, &rdesc, &sw.ws, x, null);
+            const full = try t.lm.buildModel(&probe, &rdesc, &sw.ws, x, y_dec);
             rcfg.log_capacity = t.lm.fitCapacity(full.max_expert_load);
         }
         rdesc.cfg = rcfg;
         t0 = now();
-        const mo = t.lm.buildModel(b, &rdesc, &sw.ws, x, null) catch |e| blk: {
+        const mo = t.lm.buildModel(b, &rdesc, &sw.ws, x, y_dec) catch |e| blk: {
             if (e != error.CapacityExceeded) return e;
             b.deinit();
             builders[j] = tf.Builder.init(a, &pool);
             rcfg.log_capacity = lt;
             rdesc.cfg = rcfg;
-            const full = try t.lm.buildModel(b, &rdesc, &sw.ws, x, null);
+            const full = try t.lm.buildModel(b, &rdesc, &sw.ws, x, y_dec);
             rcfg.log_capacity = t.lm.fitCapacity(full.max_expert_load);
             rdesc.cfg = rcfg;
             b.deinit();
             builders[j] = tf.Builder.init(a, &pool);
             t0 = now();
-            break :blk try t.lm.buildModel(b, &rdesc, &sw.ws, x, null);
+            break :blk try t.lm.buildModel(b, &rdesc, &sw.ws, x, y_dec);
         };
         forward_ns += now().since(t0);
         max_load = @max(max_load, mo.max_expert_load);
         cap_used = @max(cap_used, rcfg.log_capacity);
+        caps[j] = rcfg.log_capacity;
         @memcpy(tokens[j << @intCast(cfg.log_out) ..][0..mo.tokens.len], mo.tokens);
         stmts[j] = b.statement();
         const wv = try b.witnessView(a);
@@ -781,7 +836,10 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var v_sum: f64 = 0;
     for (0..n_verify) |j| {
         t0 = now();
-        try t.serve.verifyRequest(a, pc, stmts[j], key, &batch.requests[j], &batch.shared, j);
+        // the verifier builds the request statement itself from (desc,
+        // prompt, y, log_capacity); the prover's statement is not used
+        const req = t.lm.Request{ .prompt = prompts[j * (T - P + 1) ..][0 .. T - P + 1], .y = tokens[j * P ..][0..P], .log_capacity = caps[j] };
+        try t.lm.verifyRequest(a, &pool, pc, key, &desc, req, &batch.requests[j], &batch.shared, j);
         const s = secs(t0);
         v_min = @min(v_min, s);
         v_max = @max(v_max, s);
@@ -824,6 +882,7 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     try out.print("\"stage_s_sum\":{{\"ext_init\":{d:.4},\"multiplicities\":{d:.4},\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"ext_terminal\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"shared_weight_open\":{d:.4}}},", .{ nsToS(tm_sum.ext_init_ns), nsToS(tm_sum.multiplicities_ns), nsToS(tm_sum.witness_commit_ns), nsToS(tm_sum.gkr_ns), nsToS(tm_sum.ext_terminal_ns), nsToS(tm_sum.op_sumcheck_ns), nsToS(tm_sum.weight_fold_ns), nsToS(tm_sum.batch_ns), nsToS(tm_sum.witness_open_ns), shared_s });
     try out.print("\"request_bytes\":{{\"own\":{d},\"own_max\":{d},\"gkr\":{d},\"sumchecks\":{d},\"ext\":{d},\"witness_opening\":{d},\"shared_claims\":{d},\"shared_opening\":{d},\"per_request_total\":{d},\"amortized\":{d:.0}}},", .{ own_sum / R, own_max, sz0.gkr, sz0.sumchecks, batch.requests[0].core.ext.byteSize(), sz0.witness_opening, shared_claims, shared_open, own_max + shared_claims + shared_open, @as(f64, @floatFromInt(own_sum + shared_claims + shared_open)) / Rf });
     if (batch.shared.opening) |wo| try printLevels(out, "shared_levels", wo);
+    try out.print("\"shift_plan\":{{\"len\":{d},\"headroom\":{d},\"calib_windows\":{d},\"refused_windows\":{d}}},", .{ desc.shifts.?.len, headroom, n_scal, refused });
     try out.print("\"verify_s\":{{\"n\":{d},\"min\":{d:.4},\"mean\":{d:.4},\"max\":{d:.4}}},", .{ n_verify, v_min, v_sum / @as(f64, @floatFromInt(@max(n_verify, 1))), v_max });
     try out.print("\"first_tokens\":[", .{});
     for (tokens[0..@min(tokens.len, 8)], 0..) |tok, i| try out.print("{s}{d}", .{ if (i == 0) "" else ",", tok });

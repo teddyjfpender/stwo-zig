@@ -99,6 +99,9 @@ pub const Builder = struct {
     /// is outside the model).
     shift_plan: ?[]const u5 = null,
     shift_pos: usize = 0,
+    /// record mode only: shift i is at least shift_floor[i] (iterated
+    /// calibration, lm.calibrate: record under the current plan and widen it)
+    shift_floor: ?[]const u5 = null,
     shift_log: std.ArrayList(u5) = .empty,
     /// verifier-side statement construction (statementFor): no weights, dummy
     /// witness values; only the statement is meaningful
@@ -131,28 +134,35 @@ pub const Builder = struct {
         self.arena.deinit();
     }
 
-    fn replaying(self: *const Builder) bool {
+    pub fn replaying(self: *const Builder) bool {
         return self.shift_plan != null;
     }
 
     /// The next requant shift: from the plan (replay) or `chosen` (record).
-    fn nextShift(self: *Builder, chosen: u5) !u5 {
+    pub fn nextShift(self: *Builder, chosen: u5) !u5 {
         if (self.shift_plan) |plan| {
             if (self.shift_pos >= plan.len) return error.ShiftPlan;
             self.shift_pos += 1;
             return plan[self.shift_pos - 1];
         }
-        try self.shift_log.append(self.a, chosen);
-        return chosen;
+        var s = chosen;
+        if (self.shift_floor) |fl| {
+            if (self.shift_pos < fl.len) s = @max(s, fl[self.shift_pos]);
+        }
+        self.shift_pos += 1;
+        try self.shift_log.append(self.a, s);
+        return s;
     }
 
-    fn checkInt8(self: *const Builder, y: []const i32) !void {
+    /// Replay mode, not shape-only: error.RequantOverflow unless every
+    /// value is int8 (the input is outside the calibrated model).
+    pub fn checkInt8(self: *const Builder, y: []const i32) !void {
         if (self.shape_only or !self.replaying()) return;
         for (y) |v| if (v < -128 or v > 127) return error.RequantOverflow;
     }
 
     /// Appends a core op; takes ownership of `acc` (kept if keep_accs).
-    fn pushOp(self: *Builder, op: proto.Op, acc: ?[]i64) !void {
+    pub fn pushOp(self: *Builder, op: proto.Op, acc: ?[]i64) !void {
         try self.core_accs.ensureUnusedCapacity(self.a, 1);
         try self.ops.append(self.a, op);
         self.core_accs.appendAssumeCapacity(if (self.keep_accs) acc else null);
@@ -352,6 +362,10 @@ pub const Builder = struct {
         const n = info.logSize();
         const xs = try self.a.alloc(i32, info.size());
         for (self.wit.items[x], xs) |v, *o| o.* = proto.requant(v, s);
+        self.checkInt8(xs) catch |e| {
+            self.a.free(xs);
+            return e;
+        };
         const id = try self.add(info, xs);
         try self.key(n, try self.expr(&.{ term(1, Ref.w(x), &.{ids(0, n)}), term(-(@as(i64, 1) << s), Ref.w(id), &.{ids(0, n)}) }, @as(i64, 1) << (s - 1)), null, .{ .range = s });
         try self.rangeSigned(id, 8);
