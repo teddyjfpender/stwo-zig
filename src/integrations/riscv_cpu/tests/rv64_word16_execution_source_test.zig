@@ -392,9 +392,10 @@ fn expectSameSource(want: *const S, got: *const S) !void {
     try std.testing.expectEqualSlices(u64, want.rom_counts, got.rom_counts);
     try std.testing.expectEqualSlices(u64, want.counts16, got.counts16);
     try std.testing.expectEqualSlices(u64, want.counts8, got.counts8);
-    try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(want.functions.items), std.mem.sliceAsBytes(got.functions.items));
-    try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(want.memory.items), std.mem.sliceAsBytes(got.memory.items));
-    try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(want.services.items), std.mem.sliceAsBytes(got.services.items));
+    // Field-wise: these record structs have padding bytes with no meaning.
+    try std.testing.expectEqualDeep(want.functions.items, got.functions.items);
+    try std.testing.expectEqualDeep(want.memory.items, got.memory.items);
+    try std.testing.expectEqualDeep(want.services.items, got.services.items);
 }
 fn chunkedResult(program: *const Program, public: X.types.Boundary, log: u32, tape: *const front.rv64.compact_tape.Tape, chunks: usize) anyerror!S {
     return S.captureChunked(a, program, public, 7, log, tape, chunks);
