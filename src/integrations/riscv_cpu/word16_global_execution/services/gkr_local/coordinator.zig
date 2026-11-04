@@ -547,7 +547,17 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
         retained = try std.math.add(usize, retained, retained_worker);
         if (truth_retained == null) disk = try std.math.add(usize, disk, try @import("stwo_prover_engine").file_backed_allocator.ReservedFile.roundedLength(try std.math.add(usize, plan.coefficient_bytes, if (full_nodes) try std.math.add(usize, plan.main_merkle_node_bytes, Store.MERKLE_HEADER_BYTES) else 0)));
     }
-    if (retained > options.max_retained_frontend_bytes) return error.BoundedWideCoordinatorRetainedLimit;
+    if (retained > options.max_retained_frontend_bytes) {
+        std.debug.print("RV64_GKR_RETAINED_ADMISSION requested_bytes={} limit_bytes={} cpu_workers={} truth_workers={} cpu_replay={} truth_device_source={}\n", .{
+            retained,
+            options.max_retained_frontend_bytes,
+            setups.len,
+            truths.len,
+            options.cpu_replay_stage != null,
+            options.truth_device_source_stage != null,
+        });
+        return error.BoundedWideCoordinatorRetainedLimit;
+    }
     result.retained_bytes = retained;
     if (options.retained_store) |store| {
         const stats = store.stats();
