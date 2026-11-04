@@ -99,8 +99,15 @@ root authority 0.001, decode 0.001, **OM31 root verify 0.012** [M]. Derive on 24
 (16 threads), FIXED 4.4, recursion leaves 12.5 (8 lanes) + folds 8.6 (8 class builds), native verify 1.7 overlapped.
 Step 4 made image/program and keys contend (program 0.35 s, keys 0.67 s) and was reverted; its receipts are kept.
 
-Gate status (per plan): root-only <= 1.5 s per block in a fresh process: **met on 26235156 (both formats), not
-met on 24628607 at this pod load (1.54-1.75 s wall; 1.32 s in-process)**; derive <= 30 s: met only at load 15
+Five more fresh processes per block and format with the step-3 binary (= head receiver code) at load 26-29
+[M, `<block>-step3-<format>-reverify.json`]: wall median 26235156 1.51 s (default) / 1.49 s (canonical),
+24628607 1.71 s / 1.68 s; in-process median 1.31 / 1.30 and 1.51 / 1.46 s.
+
+Gate status (per plan): root-only <= 1.5 s per block in a fresh process: **borderline on 26235156 (median 1.49-1.51
+s), not met on 24628607 at this pod load (median 1.68-1.71 s wall)**; the remaining time is image/program rebuild
+(0.38), native key restore (0.49, one CPU component's 0.36 s build is the critical path), admission (0.43) and
+process exec/teardown (~0.2); the next lever is a light admission-only native key (no FIXED column build) and
+persisting the program authority in the table; derive <= 30 s: met only at load 15
 (30.1 s), 33-35 s at load 30-45; --audit agrees on every block and format; rootverify corpus 66/66 and profiles
 m5-root 46/46 per block per format (one harness defect found and fixed: RV25 v0 flipped only one artifact of the
 merged table, which 26235156 does not use, so it was correctly accepted with the control statement).

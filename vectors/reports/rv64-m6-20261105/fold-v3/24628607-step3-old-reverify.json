@@ -1,0 +1,33 @@
+{
+ "schema": "rv64-m6-fold-v3-reverify/v1",
+ "block": 24628607,
+ "format": "old",
+ "receiver_sha256": "0f2a414661578936d504fa8657811af8e93e688c41bd5d00dc0830ee772aa2b1",
+ "source_commit": "fd2abfd03 (= head receiver code)",
+ "table": "step3-old/tables/vk-both.json (pinned)",
+ "label": "M",
+ "walls_s": [
+  1.553,
+  1.96,
+  1.641,
+  1.787,
+  1.706
+ ],
+ "wall_median_s": 1.706,
+ "internal_s": [
+  1.372,
+  1.72,
+  1.464,
+  1.589,
+  1.514
+ ],
+ "internal_median_s": 1.514,
+ "load_1m": [
+  28.71,
+  28.97,
+  27.93,
+  27.93,
+  28.02
+ ],
+ "all_accepted": true
+}
