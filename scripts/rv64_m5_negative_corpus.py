@@ -9,6 +9,13 @@ process exactly as `rv64_m3_pod.py receive` does (same argv shape and env).
   python3 rv64_m5_negative_corpus.py spec                      # print the full spec (incl. pending M5/M7 cases)
   python3 rv64_m5_negative_corpus.py run --run RUN_DIR --donor DONOR_RUN_DIR --out OUT [--jobs 3] [--cases ID,..]
 
+  v4 (M6): --format m6-root (root-only receiver, same expectations as m5-root);
+            --alt-format-run ALT   accepted run of the SAME block under another named format/policy (NV03 DW07 RO10:
+                                   the whole proof dir is replaced by ALT's, the receiver keeps this run's policy);
+            --table-root HEX / --donor-table-root HEX   {table_root} placeholder for --receiver-argv (RO09);
+            receiver policy env (STWO_RV64_NATIVE_VERSION, STWO_RV64_OUTER_PROFILE, STWO_RV64_FOLD_ARITY) is inherited
+            from the caller's environment. Examples: /workspace/m3/runs/m6-profiles/corpus_{fv3,k3,nv2}.sh on the pod.
+
 RUN_DIR is a harness run directory (plan.json + an accepted receiver-*/ dir)
 of a dev block (26235156 or 24628607). DONOR_RUN_DIR is an accepted run of the
 OTHER dev block (cross-block substitutions). Pending cases (format does not
