@@ -32,7 +32,9 @@ ALLOWED = ("STWO_RV64_DEVICE_ARENA", "STWO_RV64_DEVICE_ARENA_RESERVE", "STWO_RV6
 def peak_gb(report):
     s = report["arena"]["arena_summary"]
     if s:
-        return max(d["high_water_bytes"] for d in s) / 1e9
+        inits = {d["device"]: d for d in report["arena"]["arena_init"]}
+        return max(d.get("physical_high_water_bytes", 0) + inits.get(d["device"], {}).get("total_bytes", 0)
+                   - inits.get(d["device"], {}).get("free_after_stack_bytes", 0) for d in s) / 1e9
     phys = (report.get("physical_gpu_memory_peak") or {}).get("peak_used_bytes") or {}
     return max(phys.values()) / 1e9 if phys else None
 

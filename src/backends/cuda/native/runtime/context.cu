@@ -421,6 +421,9 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
     }
     delete[] context->allocations;
     delete context;
+#if STWO_DEVICE_ARENA_HOOK
+    stwo::cuda::runtime::arena::print_summaries();
+#endif
     return 0;
 }
 

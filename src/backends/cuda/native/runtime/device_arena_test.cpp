@@ -124,8 +124,22 @@ static std::vector<uint64_t> fuzz(uint64_t seed, bool verify) {
   return trace;
 }
 
+static void test_allocate_at() {
+  OffsetArena a(uint64_t(16) << 20);
+  EXPECT(a.allocate_at(uint64_t(4) << 20, uint64_t(2) << 20, false));
+  EXPECT(!a.allocate_at(uint64_t(5) << 20, 512, false));      // inside a live range
+  EXPECT(!a.allocate_at(uint64_t(15) << 20, uint64_t(2) << 20, false));  // past the end
+  EXPECT(a.free_extents() == 2 && a.check());
+  int extents = 0;
+  a.for_each_free([&](uint64_t, uint64_t) { ++extents; });
+  EXPECT(extents == 2);
+  EXPECT(a.release(uint64_t(4) << 20));
+  EXPECT(a.free_extents() == 1 && a.check());
+}
+
 int main() {
   test_basic_and_coalesce();
+  test_allocate_at();
   test_classes();
   for (uint64_t seed = 1; seed <= 4; ++seed) {
     const auto first = fuzz(seed, true);

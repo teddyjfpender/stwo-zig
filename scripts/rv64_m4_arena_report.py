@@ -72,7 +72,8 @@ def parse_logs(case):
         elif line.startswith("GPU_ARENA_OVERRUN"):
             result["arena_overrun"].append(kv(line))
         elif line.startswith("GPU_ARENA_SUMMARY"):
-            result["arena_summary"].append(kv(line))
+            d = kv(line)  # cumulative; printed periodically, the last line per device wins
+            result["arena_summary"] = [x for x in result["arena_summary"] if x.get("device") != d.get("device")] + [d]
         elif line.startswith("GPU_POOL_SUMMARY"):
             result["pool_summary"] = kv(line)
         elif line.startswith("GPU_STAGING_SUMMARY"):
@@ -148,8 +149,18 @@ def main():
     pp = receipt.get("producer_process") or {}
     summaries = logs["arena_summary"]
     if summaries:
-        device_peak = {str(s["device"]): round(s["high_water_bytes"] / 1e9, 3) for s in summaries}
+        # Arena physical high-water (chunks mapped incl. pending + small slab) plus what the device
+        # holds outside the arena (context, modules, kernel local memory) = whole-device need.
+        inits = {d["device"]: d for d in logs["arena_init"]}
+        device_peak = {}
+        for s in summaries:
+            i = inits.get(s["device"], {})
+            outside = (i.get("total_bytes", 0) - i.get("free_after_stack_bytes", 0)) if i else 0
+            device_peak[str(s["device"])] = round((s.get("physical_high_water_bytes", s.get("high_water_bytes", 0)) + outside) / 1e9, 3)
+        row_extra = {"arena_physical_hw_gb": {str(s["device"]): round(s.get("physical_high_water_bytes", 0) / 1e9, 3) for s in summaries},
+                     "arena_live_hw_gb": {str(s["device"]): round(s.get("live_high_water_bytes", 0) / 1e9, 3) for s in summaries}}
     else:
+        row_extra = {}
         device_peak = {k: round(v / 1e9, 3) for k, v in ((receipt.get("physical_gpu_memory_peak") or {}).get("peak_used_bytes") or {}).items()}
     row = {"date": receipt.get("started_unix"), "commit": a.commit, "stream": "arena", "milestone": a.milestone,
            "block": a.block, "gpus": receipt.get("gpus"), "request_s": st.get("request_wall_s"),
@@ -157,13 +168,14 @@ def main():
            "recursion_s": st.get("recursion_s"), "verifier_s": ((receipt.get("receiver") or {}).get("process") or {}).get("wall_ns", 0) / 1e9 or None,
            "rss_peak_gib": round(pp.get("peak_rss_bytes", 0) / 2**30, 2) or None,
            "device_peak_gb": device_peak,
-           "device_peak_kind": "arena_live_high_water" if summaries else "nvml_sampled_whole_device",
+           "device_peak_kind": "arena_physical_high_water_plus_outside" if summaries else "nvml_sampled_whole_device",
            "proof_bytes": (lambda f: f.stat().st_size if f.is_file() else None)(run / "case/batch/trial-0" / str(a.block) / "proof/recursion-om31/root.proof"),
            "byte_identical_to": ("m3-baseline" if out.get("parity_vs_m3_baseline", {}).get("byte_identical") else None),
            "receiver_accepted": receipt.get("accepted"), "label": "M",
            "pool_mallocs": (logs["pool_summary"] or {}).get("pool_mallocs"),
            "pageable_copies": ((logs["staging_summary"] or {}).get("pageable_h2d", 0) + (logs["staging_summary"] or {}).get("pageable_d2h", 0)) if logs["staging_summary"] else None,
            "load1": a.load1, "notes": (a.label + (" " + a.notes if a.notes else ""))}
+    row.update(row_extra)
     if a.progress:
         with open(a.progress, "a") as f:
             f.write(json.dumps(row) + "\n")

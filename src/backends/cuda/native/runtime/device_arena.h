@@ -133,6 +133,36 @@ class OffsetArena {
     return true;
   }
 
+  // Carve exactly [offset, offset + aligned(bytes)) out of a free extent.
+  bool allocate_at(uint64_t offset, uint64_t bytes, bool long_lived) {
+    const uint64_t need = aligned(bytes);
+    if (!need || offset % kAlignment) return false;
+    auto it = by_offset_.upper_bound(offset);
+    if (it == by_offset_.begin()) return false;
+    --it;
+    const uint64_t hole = it->first, hole_bytes = it->second;
+    if (offset < hole || offset + need > hole + hole_bytes) return false;
+    erase_free(hole, hole_bytes);
+    if (offset > hole) insert_free(hole, offset - hole);
+    if (offset + need < hole + hole_bytes) insert_free(offset + need, hole + hole_bytes - offset - need);
+    const Class cls = classify(need, long_lived);
+    live_.emplace(offset, Live{need, cls});
+    const unsigned c = static_cast<unsigned>(cls);
+    stats_.used += need;
+    stats_.used_class[c] += need;
+    if (stats_.used > stats_.high_water) stats_.high_water = stats_.used;
+    if (stats_.used_class[c] > stats_.high_water_class[c])
+      stats_.high_water_class[c] = stats_.used_class[c];
+    ++stats_.allocations;
+    return true;
+  }
+
+  // Visit free extents in address order: f(offset, bytes).
+  template <class F>
+  void for_each_free(F f) const {
+    for (const auto &extent : by_offset_) f(extent.first, extent.second);
+  }
+
   // Returns false when offset is not a live allocation (no state change).
   bool release(uint64_t offset, uint64_t *out_bytes = nullptr) {
     auto it = live_.find(offset);
