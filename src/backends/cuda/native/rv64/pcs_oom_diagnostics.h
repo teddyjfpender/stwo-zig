@@ -10,4 +10,13 @@ template<class Query> PoolSnapshot poolSnapshot(Query query) noexcept {
   if (result.status == 0) { result.used = used; result.reserved = reserved; }
   return result;
 }
+template<class Handle, class GetPool, class Query>
+PoolSnapshot defaultPoolSnapshot(GetPool get_pool, Query query) noexcept {
+  Handle pool{};
+  const int status = get_pool(&pool);
+  if (status != 0) return {0, 0, status};
+  return poolSnapshot([&](size_t *used, size_t *reserved) {
+    return query(pool, used, reserved);
+  });
+}
 }
