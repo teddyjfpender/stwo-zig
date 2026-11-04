@@ -77,7 +77,11 @@ The strict receiver argv of the E6 24628607 run, re-run with `STWO_RV64_FOLD_CLA
 Under the canonical profile all 16 folds share one class. The receiver therefore derives one fold authority from its own
 trace-only graph and reuses it, which cuts **−33% verifier wall [M]**.
 
-Under exact, fold classes vary per block (8 of 16), so the same switch buys less (see `recv-ab2` once landed).
+Under exact, fold classes vary per block, so the same switch buys less. On the E1 24628607 proofs it gives 53.41 s
+(8 hits) against 63.81 s off (`24628607-receiver-class-reuse-check-and-exact.jsonl`).
+
+`check` mode on the canonical proofs: **15/15** cached fold authorities equal the freshly rebuilt ones. The run was accepted in
+69.03 s.
 
 The acceptance harness forces mode 0 ("cache-disabled"). The cache is in-process and receiver-derived, so admitting it for
 acceptance is a policy decision for rootverify/integrate. The `check` mode rebuilds every fold and compares.
