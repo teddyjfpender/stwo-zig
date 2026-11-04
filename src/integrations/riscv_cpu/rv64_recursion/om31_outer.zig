@@ -234,6 +234,17 @@ pub fn classKey(children: [2]Child) ![32]u8 {
             std.mem.writeInt(u32, &bytes, log, .little);
             h.update(&bytes);
         }
+        // Full preprocessed layout (column id order + log), from which the
+        // bound AIR's preprocessed_indices are derived. Honest PPs make this
+        // a function of the row logs; hashing it keeps the key collision-free
+        // by construction instead of by that derivation (checker hardening).
+        for (key.layout.entries) |entry| {
+            std.mem.writeInt(u32, &bytes, @intCast(entry.id.len), .little);
+            h.update(&bytes);
+            h.update(entry.id);
+            std.mem.writeInt(u32, &bytes, entry.log_size, .little);
+            h.update(&bytes);
+        }
         std.mem.writeInt(u32, &bytes, @intCast(key.pp.n_outputs), .little);
         h.update(&bytes);
         std.mem.writeInt(u32, &bytes, @intCast(key.bound.total_constraints), .little);

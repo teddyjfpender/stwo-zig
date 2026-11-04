@@ -217,9 +217,12 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
 /// digest check binds the guessed child identity/FIXED root words.
 pub fn restoreWithAuthority(a: std.mem.Allocator, pp: *PP, authority: *Outer.Authority, digest: [32]u8, encoded: []const u8) !Wrapped {
     var timer = try std.time.Timer.start();
-    var decoded = try Wire.decode(a, authority.identity, 8, encoded);
-    errdefer decoded.deinit();
-    var produced = Outer.Produced{ .allocator = a, .outputs = decoded.outputs, .claims = decoded.claims, .proof = .{ .proof = decoded.proof, .aux = .{ .unsorted_query_locations = &.{}, .trace_decommitment = .{ .items = &.{} }, .fri = .{ .first_layer = .{ .all_values = &.{}, .decommitment = .{ .all_node_values = &.{} } }, .inner_layers = &.{} } } } };
+    // Ownership moves from `decoded` to `produced`; exactly one errdefer may
+    // be live (a function-scope `decoded` errdefer double-freed on rejection).
+    var produced = blk: {
+        const decoded = try Wire.decode(a, authority.identity, 8, encoded);
+        break :blk Outer.Produced{ .allocator = a, .outputs = decoded.outputs, .claims = decoded.claims, .proof = .{ .proof = decoded.proof, .aux = .{ .unsorted_query_locations = &.{}, .trace_decommitment = .{ .items = &.{} }, .fri = .{ .first_layer = .{ .all_values = &.{}, .decommitment = .{ .all_node_values = &.{} } }, .inner_layers = &.{} } } } };
+    };
     errdefer produced.deinit();
     const restore_ns = timer.lap();
     try requireDigest(produced.outputs, digest);
