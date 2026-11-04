@@ -5,6 +5,7 @@
 //! No STARK or numerical GKR verification is repeated here.
 const std = @import("std");
 const core = @import("stwo_core");
+const engine = @import("stwo_prover_engine");
 const O = core.fields.om31.OM31;
 const R = @import("../../word16_global_execution/services/roster.zig");
 const P = @import("../../word16_global_execution/services/protocol.zig");
@@ -66,6 +67,53 @@ pub fn commitment(a: std.mem.Allocator, inventory: *const Execution.Inventory, s
     }
     return M.commitViews(inventory.execution_identity, entries);
 }
+fn checkCpuFrames(a: std.mem.Allocator, setups: []const *const R.CpuSetup, requests: []const P.Request, inventory: *const Execution.Inventory, stages: []const M.StageOne, manifest: M.Commitment, frames: []const CpuFrame, out: []M.Claims, threads: usize) !void {
+    if (threads <= 1 or setups.len <= 1) {
+        for (setups, requests, frames, 0..) |setup, request, frame, i| out[i] = try checkCpuFrame(a, setup, request, inventory.first_ids[i], inventory.workers[i], stages[i], manifest, frame);
+        return;
+    }
+    const Job = struct {
+        a: std.mem.Allocator,
+        setups: []const *const R.CpuSetup,
+        requests: []const P.Request,
+        inventory: *const Execution.Inventory,
+        stages: []const M.StageOne,
+        manifest: M.Commitment,
+        frames: []const CpuFrame,
+        out: []M.Claims,
+        errors: []?anyerror,
+        next: std.atomic.Value(usize) = .init(0),
+        pool: ?*engine.work_pool.WorkPool,
+        fn work(job: *@This()) void {
+            var binding: ?engine.work_pool.ScopedPoolBinding = if (job.pool) |p| (engine.work_pool.ScopedPoolBinding.initIfNeeded(p) catch null) else null;
+            defer if (binding) |*b| b.deinit();
+            job.loop();
+        }
+        fn loop(job: *@This()) void {
+            while (true) {
+                const i = job.next.fetchAdd(1, .monotonic);
+                if (i >= job.setups.len) return;
+                job.out[i] = checkCpuFrame(job.a, job.setups[i], job.requests[i], job.inventory.first_ids[i], job.inventory.workers[i], job.stages[i], job.manifest, job.frames[i]) catch |err| {
+                    job.errors[i] = err;
+                    continue;
+                };
+            }
+        }
+    };
+    const errors = try a.alloc(?anyerror, setups.len);
+    defer a.free(errors);
+    @memset(errors, null);
+    var job = Job{ .a = a, .setups = setups, .requests = requests, .inventory = inventory, .stages = stages, .manifest = manifest, .frames = frames, .out = out, .errors = errors, .pool = engine.work_pool.currentScopedPool() };
+    var spawned: [16]std.Thread = undefined;
+    var count: usize = 0;
+    while (count + 1 < @min(threads, setups.len) and count < spawned.len) : (count += 1) {
+        spawned[count] = std.Thread.spawn(.{ .stack_size = 64 << 20 }, Job.work, .{&job}) catch break;
+    }
+    job.loop();
+    for (spawned[0..count]) |t| t.join();
+    // The serial loop's refusal: the first failing CPU frame in index order.
+    for (errors) |err| if (err) |e| return e;
+}
 pub fn checkCpuFrame(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, first: anytype, expected: M.ExpectedWorker, stage: M.StageOne, manifest: M.Commitment, frame: CpuFrame) !M.Claims {
     const local = stage.local orelse return error.ServicesRootReceiptMismatch;
     var plan = try Components.Plan.init(a, setup);
@@ -93,10 +141,25 @@ pub fn check(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
     defer inventory.deinit();
     var stages = try MW.decode(a, inventory.execution_identity, inventory.workers, stage_one_bytes);
     defer stages.deinit();
-    const manifest = try commitment(a, &inventory, stages.stages, frames.cpus);
+    return checkPrepared(a, setups, truths, requests, &inventory, stages.stages, frames, limits, 1);
+}
+/// `check` after its first two steps (hook, M6 fold-v3 root-only receiver):
+/// the caller passes the Inventory and stage-one decode it ALREADY built with
+/// exactly `check`'s arguments (Inventory.initWithAuthority(setups, truths,
+/// requests, expected, config, fixed); MW.decode(execution_identity, workers,
+/// stage_one_bytes)), so admission is not computed twice. `threads > 1`
+/// checks the CPU frames concurrently (independent, read-only inputs); the
+/// result and every refusal are those of the serial loop.
+pub fn checkPrepared(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const P.Request, inventory: *const Execution.Inventory, stages_in: []const M.StageOne, frames: Frames, limits: Limits, threads: usize) !Metadata {
+    try admitSize(setups, truths, frames, limits);
+    if (requests.len != setups.len or inventory.workers.len != setups.len + truths.len or stages_in.len != inventory.workers.len) return error.ServicesRootRoster;
+    const stages = struct {
+        stages: []const M.StageOne,
+    }{ .stages = stages_in };
+    const manifest = try commitment(a, inventory, stages.stages, frames.cpus);
     const claims = try a.alloc(M.Claims, inventory.workers.len);
     defer a.free(claims);
-    for (setups, requests, frames.cpus, 0..) |setup, request, frame, i| claims[i] = try checkCpuFrame(a, setup, request, inventory.first_ids[i], inventory.workers[i], stages.stages[i], manifest, frame);
+    try checkCpuFrames(a, setups, requests, inventory, stages.stages, manifest, frames.cpus, claims[0..setups.len], threads);
     for (truths, frames.truths, 0..) |truth, words, i| {
         const ordinal = setups.len + i;
         claims[ordinal] = switch (truth) {

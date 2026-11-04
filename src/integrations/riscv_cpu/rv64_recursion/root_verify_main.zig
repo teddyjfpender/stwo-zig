@@ -145,9 +145,26 @@ pub fn main() !void {
     const arena = arena_state.allocator();
 
     // Receiver identity first: a table is admitted only by the binary that derived it.
-    const self_start = try std.time.Instant.now();
-    const self_sha = try RV.selfSha256(a);
-    const self_sha_ns = since(self_start);
+    // sha256(/proc/self/exe) runs on a helper thread (joined before the
+    // table header is checked); nothing below depends on it until then.
+    const ShaJob = struct {
+        a: std.mem.Allocator,
+        out: [64]u8 = undefined,
+        err: ?anyerror = null,
+        ns: u64 = 0,
+        fn run(job: *@This()) void {
+            const start = std.time.Instant.now() catch null;
+            job.out = RV.selfSha256(job.a) catch |err| blk: {
+                job.err = err;
+                break :blk undefined;
+            };
+            if (start) |s0| job.ns = since(s0);
+        }
+    };
+    var sha_job = ShaJob{ .a = a };
+    const sha_thread = try std.Thread.spawn(.{ .stack_size = 16 << 20 }, ShaJob.run, .{&sha_job});
+    var sha_joined = false;
+    defer if (!sha_joined) sha_thread.join();
     const proof_real = try std.fs.cwd().realpathAlloc(arena, args[3]);
     const pcs = Candidate.configFor(profile);
 
@@ -219,9 +236,15 @@ pub fn main() !void {
     var local_metadata = try MetadataCache.Cache.init(a, 64 << 20);
     defer local_metadata.deinit();
     const caches = @import("../word16_execution/setup.zig").ImmutableCaches{ .native = &local_native, .program = &local_metadata };
+    const image_owner_ns = timer.read();
     var program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, caches.program.?);
     defer program.deinit();
     const image_ns = timer.lap();
+    sha_thread.join();
+    sha_joined = true;
+    if (sha_job.err) |err| return err;
+    const self_sha = sha_job.out;
+    const self_sha_ns = sha_job.ns;
     const expected_header = RV.Header{
         .profile = RV.Profile.m4_fold_v2_compat.id(),
         .native_profile = nativeLabel(profile),
@@ -267,7 +290,7 @@ pub fn main() !void {
     var keys = try Keys.initResident(a, &image, loaded.cpu_declarations, loaded.truth_declarations, true, Suite.experimentalFold4(), caches, &setup);
     defer keys.deinit();
     const native_keys_ns = timer.lap();
-    var fixed_set = try FixedSet.init(a, &setup.fixed, keys.cpus, keys.truths, pcs);
+    var fixed_set = if (derive) try fixedSetParallel(a, &setup.fixed, keys.cpus, keys.truths, pcs) else try FixedSet.init(a, &setup.fixed, keys.cpus, keys.truths, pcs);
     defer fixed_set.deinit();
     const fixed_authority_ns = timer.lap();
     const native_stats = setup.stats;
@@ -423,7 +446,7 @@ pub fn main() !void {
         // Native keys/FIXED restored from the table's receiver-derived VK
         // section (hits) or rebuilt from source (misses: not in the table).
         .native_table = .{ .entries = table.native.items.len, .written = native_written, .hits = native_stats.disk_hits, .misses = native_stats.misses, .max_build_ns = native_stats.max_build_ns, .max_build_kind = native_stats.max_build_kind },
-        .breakdown = .{ .self_sha_ns = self_sha_ns, .table_load_ns = table_load_ns, .image_ns = image_ns, .bundle_ns = bundle_ns, .native_keys_ns = native_keys_ns, .fixed_authority_ns = fixed_authority_ns, .admission_ns = admission_ns, .root_ns = root_ns, .root_tree_ns = report.tree_ns, .root_authority_ns = report.authority_ns, .root_decode_ns = report.decode_ns, .root_verify_ns = report.verify_ns, .bundle_wait_ns = bundle_wait_ns, .admission = admission },
+        .breakdown = .{ .self_sha_ns = self_sha_ns, .table_load_ns = table_load_ns, .image_ns = image_ns, .bundle_ns = bundle_ns, .native_keys_ns = native_keys_ns, .fixed_authority_ns = fixed_authority_ns, .admission_ns = admission_ns, .root_ns = root_ns, .root_tree_ns = report.tree_ns, .root_authority_ns = report.authority_ns, .root_decode_ns = report.decode_ns, .root_verify_ns = report.verify_ns, .bundle_wait_ns = bundle_wait_ns, .image_owner_ns = image_owner_ns, .admission = admission },
         .audit = audit_report,
         .receiver_sha256 = &self_sha,
     });
@@ -440,6 +463,60 @@ fn deriveLanes() usize {
     const text = std.posix.getenv("STWO_RV64_DERIVE_LANES") orelse return 8;
     const value = std.fmt.parseUnsigned(usize, text, 10) catch return 8;
     return std.math.clamp(value, 1, 32);
+}
+/// `FixedSet.init` with the distinct source keys' candidate FIXED keys
+/// acquired concurrently (`Fixed.Cache` serializes its entry table; the
+/// coefficient identity hashing runs in parallel). Same bindings, same order,
+/// same dedupe (one acquire per distinct source key, retained elsewhere).
+fn fixedSetParallel(a: std.mem.Allocator, cache: *const FixedAuthority.Fixed.Cache, setups: []const *const @import("../word16_global_execution/services/roster.zig").CpuSetup, truths: []const @import("../word16_global_execution/services/roster.zig").Truth, config: PcsConfig) !FixedSet {
+    const Source = @import("../word16_global_execution/keccak/shared/key.zig").Key;
+    const count = try std.math.add(usize, setups.len, truths.len);
+    if (setups.len == 0 or count > 256) return error.WideBeta2FixedInventoryMismatch;
+    const sources = try a.alloc(*const Source, count);
+    defer a.free(sources);
+    for (setups, 0..) |setup, i| sources[i] = &setup.key;
+    for (truths, 0..) |truth, i| sources[setups.len + i] = truth.key();
+    // first[i] = index of the first slot holding the same source key.
+    const first = try a.alloc(usize, count);
+    defer a.free(first);
+    var unique: std.ArrayList(usize) = .empty;
+    defer unique.deinit(a);
+    for (sources, 0..) |source, i| {
+        first[i] = for (sources[0..i], 0..) |earlier, j| {
+            if (earlier == source) break first[j];
+        } else blk: {
+            try unique.append(a, i);
+            break :blk i;
+        };
+    }
+    const acquired = try a.alloc(?FixedAuthority.Binding, count);
+    defer a.free(acquired);
+    @memset(acquired, null);
+    errdefer for (acquired) |*b| if (b.*) |*binding| binding.deinit();
+    const Job = struct {
+        cache: *const FixedAuthority.Fixed.Cache,
+        sources: []const *const Source,
+        unique: []const usize,
+        acquired: []?FixedAuthority.Binding,
+        config: PcsConfig,
+        fn run(job: *const @This(), k: usize) anyerror!void {
+            const i = job.unique[k];
+            job.acquired[i] = try FixedAuthority.Binding.acquire(job.cache, job.sources[i], job.config);
+        }
+    };
+    const job = Job{ .cache = cache, .sources = sources, .unique = unique.items, .acquired = acquired, .config = config };
+    try SetupCache.Cache.parallel(unique.items.len, NATIVE_BUILD_THREADS, &job, Job.run);
+    const bindings = try a.alloc(FixedAuthority.Binding, count);
+    errdefer a.free(bindings);
+    var cells: usize = 0;
+    for (bindings, 0..) |*out, i| {
+        if (first[i] == i) {
+            out.* = acquired[i].?;
+            acquired[i] = null;
+            cells = try std.math.add(usize, cells, out.source_coefficient_cells);
+        } else out.* = bindings[first[i]].retain();
+    }
+    return .{ .allocator = a, .config = config, .cpu_count = setups.len, .bindings = bindings, .source_validations = unique.items.len, .source_coefficient_cells = cells };
 }
 /// Fresh private directory (this process only) for the native setup artifacts.
 fn privateDir(arena: std.mem.Allocator) ![]const u8 {
@@ -518,7 +595,9 @@ fn admitAndDigest(a: std.mem.Allocator, arena: std.mem.Allocator, keys: *const K
         }
     }
     ns.words_ns = clock.lap();
-    const metadata = try Root.check(a, setups, truths, bundle.requests, statement, pcs, fixed, bundle.stage_one_bytes, .{ .cpus = cpus, .truths = words[setups.len..] }, .{});
+    // services_root.check with the Inventory/stage decode built above (same
+    // arguments as check builds them), CPU frames checked concurrently.
+    const metadata = try Root.checkPrepared(a, setups, truths, bundle.requests, &inventory, stages.stages, .{ .cpus = cpus, .truths = words[setups.len..] }, .{}, NATIVE_BUILD_THREADS);
     manifest_out.* = metadata.manifest.digest;
     ns.check_ns = clock.lap();
     const config_json = try std.json.Stringify.valueAlloc(arena, pcs, .{});
