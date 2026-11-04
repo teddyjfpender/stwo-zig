@@ -73,7 +73,7 @@ The tree is the receiver's own `ready_dag.Plan` (node ids = proof file ids, `pub
 Folds of one level that share a fold class reuse one receiver-built authority (the FOLD_CLASS_CACHE rule, judged
 admissible in canon-vk review N3: built from an honest trace-only graph in this process, never persisted). Derive's
 outputs (table) are cross-checked twice: the root-only self-check against the parallel result, and the separate
-`--audit` run (the unchanged sequential receiver) on every gated block.
+`--audit` run (the unchanged sequential receiver, with native setup rebuilt from source; §6 A1) on every gated block.
 
 ## 4. Measurements
 
@@ -125,3 +125,39 @@ the current formats. What fold v3 must still do (unchanged from the binding note
 - under named profile `m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1` (reserved by profiles), never the default.
 The receiver side is ready for it: the plan-driven k-ary tree and `foldClassKeyK` are in place, and the native VK
 section becomes the T_nat leaf source once native-format's strict roster (`rv64-m6-native/v2`, NF2) lands.
+
+## 6. Adversarial review (fold-v3 @ dd7df2402)
+
+**A1 (high, fixed in f33e3c9d2): `--audit` trusted the table's native section.** At dd7df2402 `verify-root-candidate
+--audit` opened the setup cache in `.verifier` mode on the table's artifacts like the root-only path, so the
+"independent" full-tree receiver verified every native and recursion proof under source roots and candidate FIXED
+roots taken from the table it was auditing. `--audit` is the acceptance path of the compat profile (leaf-class
+premise) and the stated cross-check of derive's output; with an unpinned table (self-declared, anyone who can write
+it can reseal it) a party that controls the table and a prover for its chosen preprocessed commitments passes both
+the root-only and the audit check, where at M5 the audit rebuilt everything from source and refused. The native
+section was also never cross-checked by anything except derive itself. Fix: under `--audit` every native component
+is rebuilt from source (`.prover` mode, no artifact written to the private directory, `fixedSetParallel`), and each
+rebuilt VK-only artifact must be byte-identical to the table's entry under the same component key
+(`VkNativeAuditMismatch`; keys absent from the table are counted as `native_audit.absent_from_table`). Corpus
+RV31 (RV29 forgery under `--audit` must fail with `VkNativeAuditMismatch`) and RV32 (audit control: accept, same
+statement, every used native entry matched).
+
+**A2 (medium, mitigated): `derive --merge` launders the merge input.** The merged table's leaf/fold/native entries
+for blocks this derive does not re-check are copied into the output unchecked (repeated keys must be byte-identical,
+others are taken as-is); the operator then pins the OUTPUT root, which authenticates the forged entries too. This
+pre-dates M6 for OM31 entries; the native section widens it. `derive-vk-tables` now accepts `--table-root` for the
+merge input and `rootonly.sh` pins it to the root its own derive printed. Not made mandatory (operator interface);
+integrate should require it.
+
+**Checked, no finding.** Table root binds every header field, OM31 entry and native artifact byte (root-v2, length
+prefixed, sorted, duplicates refused); v0 refused; artifact header binds component key and code identity (=
+sha256 of the running executable) and is SHA-256 sealed; the seam refuses suite or source-column-log mismatch;
+component keys are derived from receiver identity + declared geometry, so a producer-chosen geometry selects only
+an entry derived for that geometry; `STWO_ZIG_RV64_SETUP_CACHE` refused, private native dir created exclusively
+(`makeDir` fails on a planted path); fold arity follows the outer profile (bound by `outer_domain` in the header)
+and k-ary class keys bind `versionWord(k)`; parallel derive restores folds only under an in-process receiver-built
+class authority and re-verifies every restored fold proof (`restoreWithAuthority` -> `Outer.verify`);
+`checkPrepared` re-checks roster sizes and returns the first failing CPU frame in index order. Residual (by design,
+unchanged): without `--table-root` root-only mode trusts a self-declared table; `--source-commit` is a free-text
+label (the binding is `receiver_sha256`); fold v3 in-circuit checks (T_rec membership, NS chain, PCD self-VK) do not
+exist yet, so nothing of that is bound in circuit.

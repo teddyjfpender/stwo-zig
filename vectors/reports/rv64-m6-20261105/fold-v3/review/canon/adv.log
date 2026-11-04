@@ -1,0 +1,32 @@
+d404c8ff56861a3f202732fa2860e979f0a93f36bde3f2a07abfba1ca52972cf  /workspace/m3/build/m6-fold-v3-adv/zig-out/bin/rv64-word16-ethereum-recursion-receiver
+0f2a414661578936d504fa8657811af8e93e688c41bd5d00dc0830ee772aa2b1  /workspace/m3/build/m6-fold-v3/zig-out/bin/rv64-word16-ethereum-recursion-receiver
+format=canon commit=f33e3c9d2
+== derive-26235156 load=40.25 22:39:45
+exit=0 wall=20.269 load_end=48.96 maxrss_kb=28873156
+== derive-24628607 load=48.96 22:40:05
+exit=0 wall=26.914 load_end=42.41 maxrss_kb=31208368
+-- A2 negative: wrong pin on the merge input must be refused
+== derive-both-badpin load=42.41 22:40:32
+exit=1 wall=0.067 load_end=42.41 maxrss_kb=10772
+error: VkTableRootPinMismatch
+== derive-both load=42.41 22:40:32
+exit=0 wall=26.449 load_end=36.75 maxrss_kb=30170896
+pin=23013355e217b21cb00a16c0e0bb4a252aa32a72d799e6c0e32328bcc41a26f0
+== verify-pinned-26235156 load=36.75 22:40:59
+exit=0 wall=1.45 load_end=36.75 maxrss_kb=1320996
+== audit-26235156 load=36.75 22:41:00
+exit=0 wall=36.3 load_end=36.02 maxrss_kb=8294416
+== verify-pinned-24628607 load=36.02 22:41:36
+exit=0 wall=1.539 load_end=34.50 maxrss_kb=1714212
+== audit-24628607 load=34.50 22:41:38
+exit=0 wall=53.273 load_end=29.21 maxrss_kb=8615208
+== NEW corpus 26235156 22:42:31 load=29.21
+exit=0 {"block": 26235156, "ran": 9, "passed": 9, "reject_expected": 7, "rejected_where_reject_expected": 7, "accepted_same_statement": ["RV26-native-section-dropped", "RV32-audit-control"], "unexpected_accepts": [], "crashes": [], "wall_s": 53.3}
+== OLD corpus 26235156 22:43:26 load=25.18
+exit=1 {"block": 26235156, "ran": 2, "passed": 0, "reject_expected": 1, "rejected_where_reject_expected": 1, "accepted_same_statement": ["RV32-audit-control"], "unexpected_accepts": ["RV32-audit-control"], "crashes": [], "wall_s": 39.0}
+== NEW corpus 24628607 22:44:06 load=20.86
+exit=0 {"block": 24628607, "ran": 9, "passed": 9, "reject_expected": 7, "rejected_where_reject_expected": 7, "accepted_same_statement": ["RV26-native-section-dropped", "RV32-audit-control"], "unexpected_accepts": [], "crashes": [], "wall_s": 89.2}
+== OLD corpus 24628607 22:45:37 load=16.21
+exit=1 {"block": 24628607, "ran": 2, "passed": 0, "reject_expected": 1, "rejected_where_reject_expected": 1, "accepted_same_statement": ["RV32-audit-control"], "unexpected_accepts": ["RV32-audit-control"], "crashes": [], "wall_s": 60.6}
+ADV_DONE
+EXIT=0
