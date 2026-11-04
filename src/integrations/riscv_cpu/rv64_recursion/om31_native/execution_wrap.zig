@@ -1419,6 +1419,15 @@ pub const Streaming = struct {
     prep_during_native: usize,
 
     pub fn enabled() bool {
+        // Streaming exists only on the pipelined executor. With
+        // STWO_RV64_RECURSION_PIPELINE=0 (the M5 lane path) keep the M5
+        // handoff instead of failing the request after native production
+        // (runInner would return StreamingRequiresPipelinedRecursion). A
+        // malformed value keeps streaming on, so runInner rejects it exactly
+        // as Pipe.Options.fromEnv does on the M5 path.
+        if (std.posix.getenv("STWO_RV64_RECURSION_PIPELINE")) |text| {
+            if ((std.fmt.parseUnsigned(usize, text, 10) catch 1) == 0) return false;
+        }
         const value = std.posix.getenv("STWO_RV64_RECURSION_STREAM") orelse return true;
         return !std.mem.eql(u8, value, "0");
     }
