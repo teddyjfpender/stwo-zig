@@ -133,6 +133,93 @@ pub const ParallelOptions = struct {
     /// Must remain live and belong to the same shared host budget for the run.
     pool_stack_reservation: ?*const @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.ExternalReservation = null,
 };
+/// Selected native leaf capture plus assignment census only. This neither
+/// verifies the other PCS proofs nor proves/accepts a recursive execution root.
+pub fn inspectLeafSchedule(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, ordinal: usize) !ScheduleInspection {
+    var timer = try std.time.Timer.start();
+    var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, bundle.requests, expected, config, fixed);
+    defer inventory.deinit();
+    if (ordinal >= inventory.workers.len or bundle.cpus.len != setups.len or bundle.truths.len != truths.len) return error.InvalidInspectionOrdinal;
+    var stages = try MW.decode(a, inventory.execution_identity, inventory.workers, bundle.stage_one_bytes);
+    defer stages.deinit();
+    var manifest = try stages.verifyAndSeal(a, inventory.execution_identity, inventory.workers);
+    defer manifest.deinit(a);
+    const admission_ns = timer.lap();
+    const worker = inventory.workers[ordinal];
+    var graph = if (ordinal < setups.len) try Graph.cpuTraceOnly(a, .{ .setup = setups[ordinal], .request = bundle.requests[ordinal], .expected = worker, .first = inventory.first_ids[ordinal], .manifest = &manifest, .index = ordinal, .stage = &stages.stages[ordinal], .config = config, .encoded = &bundle.cpus[ordinal], .fixed = if (fixed) |authority| authority.at(ordinal) else null }) else try Graph.truthTraceOnly(a, .{ .truth = truths[ordinal - setups.len], .expected = worker, .manifest = &manifest, .config = config, .encoded = &bundle.truths[ordinal - setups.len], .fixed = if (fixed) |authority| authority.at(ordinal) else null });
+    defer graph.deinit();
+    if (!graph.ctx.trace_only) return error.InspectionRequiresTraceOnlyGraph;
+    const native_capture_and_graph_ns = timer.lap();
+    const Circuit = @import("stwo_circuit_frontend");
+    const Schedule = Circuit.builder.witness_plan;
+    var metrics: Schedule.BuildMetrics = .{};
+    var plan = try Schedule.buildProfiled(a, graph.ctx, &metrics);
+    defer plan.deinit();
+    const schedule_ns = timer.lap();
+    var task_kinds: [9]usize = @splat(0);
+    var hint_kinds: [9]usize = @splat(0);
+    var permutation_count: usize = 0;
+    var max_permutation_inputs: usize = 0;
+    var permutation_pair_work: u64 = 0;
+    var packed_index_bytes: usize = 0;
+    for (plan.tasks) |task| {
+        task_kinds[@intFromEnum(task.kind)] += 1;
+        if (task.kind == .hint) hint_kinds[@intFromEnum(graph.ctx.witness_metadata.?.origins.items[task.index].kind)] += 1;
+        if (task.kind == .permutation) {
+            var buf: [6]u32 = undefined;
+            const n = Schedule.inputs(graph.ctx, task, &buf).len;
+            var outbuf: [4]u32 = undefined;
+            const output_count = Schedule.outputs(graph.ctx, task, &outbuf).len;
+            packed_index_bytes = try std.math.add(usize, packed_index_bytes, try std.math.mul(usize, try std.math.add(usize, n, output_count), 4));
+            permutation_count += 1;
+            max_permutation_inputs = @max(max_permutation_inputs, n);
+            permutation_pair_work = try std.math.add(u64, permutation_pair_work, try std.math.mul(u64, @intCast(n), @intCast(n)));
+        }
+    }
+    const circuit = &graph.ctx.circuit;
+    const original_gate_counts = [_]usize{ circuit.add.items.len, circuit.sub.items.len, circuit.mul.items.len, circuit.pointwise_mul.items.len, circuit.triple_xor.items.len, circuit.m31_to_u32.items.len, circuit.blake_g_gate.items.len, circuit.permutation.len() };
+    var skipped_definitions: [8]usize = undefined;
+    for (original_gate_counts, task_kinds[0..8], &skipped_definitions) |original, scheduled, *skipped| skipped.* = try std.math.sub(usize, original, scheduled);
+    var origin_kinds: [9]usize = @splat(0);
+    for (graph.ctx.witness_metadata.?.origins.items) |origin| origin_kinds[@intFromEnum(origin.kind)] += 1;
+    const census = try @import("schedule_census.zig").inspect(plan.level_ends, plan.tasks.len);
+    return .{ .ordinal = ordinal, .kind = if (ordinal < setups.len) "cpu" else @tagName(std.meta.activeTag(truths[ordinal - setups.len])), .manifest = manifest.digest, .statement = worker.statement, .graph_digest = graph.digest, .variables = graph.ctx.circuit.n_vars, .public_words = graph.words.len, .seed_count = plan.seeds.len, .constant_seed_count = try std.math.sub(usize, plan.seeds.len, origin_kinds[0]), .packed_index_bytes = packed_index_bytes, .census = census, .task_kinds = task_kinds, .hint_kinds = hint_kinds, .original_gate_counts = original_gate_counts, .skipped_computational_definitions = skipped_definitions, .hint_origin_counts = origin_kinds, .equality_constraint_gates = circuit.eq.items.len, .output_constraint_gates = circuit.output.items.len, .qm31_operation_rows = circuit.nQm31OpsRows(), .permutation_count = permutation_count, .max_permutation_inputs = max_permutation_inputs, .permutation_pair_work = permutation_pair_work, .estimated_device_assignment_bytes = try std.math.mul(usize, graph.ctx.circuit.n_vars, 16), .packed_task_bytes = try std.math.mul(usize, plan.tasks.len, 32), .packed_seed_bytes = try std.math.mul(usize, plan.seeds.len, 20), .host_plan_task_bytes = try std.math.mul(usize, plan.tasks.len, @sizeOf(Schedule.Task)), .host_level_end_bytes = try std.math.mul(usize, plan.level_ends.len, @sizeOf(usize)), .build_metrics = metrics, .admission_ns = admission_ns, .native_capture_and_graph_ns = native_capture_and_graph_ns, .schedule_ns = schedule_ns, .census_ns = timer.lap() };
+}
+pub const ScheduleInspection = struct {
+    ordinal: usize,
+    kind: []const u8,
+    manifest: [32]u8,
+    statement: [32]u8,
+    graph_digest: [32]u8,
+    variables: usize,
+    public_words: usize,
+    seed_count: usize,
+    constant_seed_count: usize,
+    packed_index_bytes: usize,
+    census: @import("schedule_census.zig").Census,
+    task_kinds: [9]usize,
+    hint_kinds: [9]usize,
+    original_gate_counts: [8]usize,
+    skipped_computational_definitions: [8]usize,
+    hint_origin_counts: [9]usize,
+    equality_constraint_gates: usize,
+    output_constraint_gates: usize,
+    qm31_operation_rows: usize,
+    permutation_count: usize,
+    max_permutation_inputs: usize,
+    permutation_pair_work: u64,
+    estimated_device_assignment_bytes: usize,
+    packed_task_bytes: usize,
+    packed_seed_bytes: usize,
+    host_plan_task_bytes: usize,
+    host_level_end_bytes: usize,
+    build_metrics: @import("stwo_circuit_frontend").builder.witness_plan.BuildMetrics,
+    admission_ns: u64,
+    native_capture_and_graph_ns: u64,
+    schedule_ns: u64,
+    census_ns: u64,
+};
+
 pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir, allow_resume: bool, factory: ?Outer.Device.Factory) !Report {
     return runImpl(a, setups, truths, bundle, expected, config, fixed, dir, allow_resume, factory, null, false);
 }
