@@ -542,7 +542,7 @@ const PreparedExecution = struct {
     frames: Root.Frames,
     timer: *std.time.Timer,
 };
-const Outcome = struct { pending: Pending, restored: bool, retired_bytes: usize, graph_ns: u64 = 0, proof_ns: u64 = 0 };
+const Outcome = struct { pending: Pending, restored: bool, retired_bytes: usize, graph_ns: u64 = 0, proof_ns: u64 = 0, wrap_only_ns: u64 = 0, serialize_ns: u64 = 0, write_ns: u64 = 0 };
 const ParallelExecution = struct {
     input: PreparedExecution,
     options: ParallelOptions,
@@ -563,12 +563,17 @@ const ParallelExecution = struct {
         };
         defer binding.deinit();
         while (self.dispatch.take() catch return) |id| {
+            const taken_ns = std.time.nanoTimestamp();
             const outcome = self.prove(id, self.options.lanes[lane].factory) catch |err| {
                 self.dispatch.fail(id, err);
                 return;
             };
             var publication = Publication{ .execution = self, .outcome = outcome };
             self.dispatch.publish(id, &publication, Publication.apply);
+            // Log-only per-node timeline (absolute CLOCK_REALTIME ns, comparable
+            // across lanes and with Nsight Systems); proof bytes are unaffected.
+            const spec = self.plan.nodes[id];
+            std.debug.print("RECURSION_NODE_TIMELINE node={d} kind={s} first_leaf={d} leaf_count={d} lane={d} device={d} taken_unix_ns={d} graph_ns={d} wrap_ns={d} serialize_ns={d} write_ns={d} published_unix_ns={d} restored={}\n", .{ id, if (spec.left == null) "leaf" else "fold", spec.first_leaf, spec.leaf_count, lane, self.options.lanes[lane].physical_device, taken_ns, outcome.graph_ns, outcome.wrap_only_ns, outcome.serialize_ns, outcome.write_ns, std.time.nanoTimestamp(), outcome.restored });
         }
     }
     const Publication = struct {
@@ -630,12 +635,16 @@ const ParallelExecution = struct {
         defer if (encoded) |bytes| a.free(bytes);
         const proof = try a.create(Outer.Wrapped);
         errdefer a.destroy(proof);
+        const wrap_start = timer.read();
         proof.* = try Outer.wrapGraphOrLoadWithFactory(a, ctx, digest, encoded, @intCast(id), factory);
         errdefer proof.deinit();
+        const wrapped = timer.read();
         const bytes = try proof.serialize(a);
         defer a.free(bytes);
+        const serialized = timer.read();
         try @import("publication.zig").write(self.input.dir, name, bytes);
-        return .{ .pending = .{ .proof = proof, .node = id }, .restored = encoded != null, .retired_bytes = proof.retireProverData(), .graph_ns = graph_ns, .proof_ns = timer.read() };
+        const written = timer.read();
+        return .{ .pending = .{ .proof = proof, .node = id }, .restored = encoded != null, .retired_bytes = proof.retireProverData(), .graph_ns = graph_ns, .proof_ns = timer.read(), .wrap_only_ns = wrapped - wrap_start, .serialize_ns = serialized - wrapped, .write_ns = written - serialized };
     }
 };
 
