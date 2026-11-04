@@ -165,8 +165,16 @@ cost is a 4× larger one-time weight encoding (0.08 → 0.28 s at this size), an
 weight count in M31 cells of memory at lb 4. FlashProve's budget is 44M columns because
 its rows are much longer.
 
-Weights also carry 4 pad rows `R_W` (`C_w` cells each) for the masked weight evaluations
-of §4.2. They tolerate about `4·C_w` revealed functionals, which never binds.
+Weights also carry 4 rows `R_W` (`C_w` cells each). They used to pad the masked weight
+evaluations of §4.2, but that was unsound for ZK (review B, ZK-3): every W hat at the
+shared column point `cp` used the functional `Σ_{k<4} eq(s,k)·R_W[k]~(cp)`. So within one
+proof all those hats lay in a 4-dimensional pad span, and the limit was 4 hats per column
+point per proof, not `4·C_w`. A proof with 5 or more matmuls at the shared `cp` revealed
+a fresh linear functional of the long-lived weights. That is any hiding proof under the
+library default `weight_log_cols = 10`; one decoder layer has 7. Each W hat now has its
+**own fresh pad row in the per-proof weight mask table** (§4.4). `R_W` is no longer read
+by any claim (its coefficient is 0). It stays in the commitment only so that the weight
+table's shape, its proximity mask rows and the link proofs are unchanged.
 
 ### 3.5 Recursive hiding PCS (`zk_pcs2.zig`, `Config.two_level`)
 
@@ -370,8 +378,8 @@ To prove `Σ_{x∈{0,1}^n} G(x) = c` for `G = Σ_t coeff_t Π_j F_j` of degree `
   hats `F^_j = (1−γ)F_j(r) + γ p_j` and `u = U(r, γ)`.
 - **Verifier:** `q_Y(γ) = u + ε·G(hats, public values)`. It then queues linear claims:
   `σ` and `u` on the U cells (`Hp.sumForm`, `Hp.evalForm`, tested against brute force),
-  and each hat as `(1−γ)·scale·T(local point) + γ·Pad(last 4 coords)` on the factor's
-  tensors.
+  and each hat as `(1−γ)·scale·T(local point) + γ·P_h` on the factor's tensors. `P_h` is
+  the hat's **own** pad: 4 M31 cells read as one QM31, `Σ_k basis(k)·P_{h,k}` (§4.5).
 
 `zk_sumcheck.proveWith` takes a comptime evaluator for the summand; the GKR layer uses a
 4-multiplication form of its 7-multiplication term list.
@@ -400,7 +408,8 @@ For each relation, `ρ` is a suffix of one common random vector. All matmuls sha
   `Σ_z [X(ρ_t, z)·W(z, ρ_n) + eq(ρ, z)(−2^s Y(z) − r(z))] = −2^(s−1)`.
   This is one sumcheck over `max(lk, lt+ln)` variables with top zero-extension, so the
   hats carry the scale `Π(1 − r_hi)`. The prover folds `X·eq(ρ_t)` and `W·eq(ρ_n)` as in
-  v1. The W hat is a claim on the weight commitment, padded by `R_W(s, colpoint)`.
+  v1. The W hat is a claim on the weight commitment, padded by `M_h~(colpoint)`, its own
+  fresh row of the per-proof weight mask table (§3.4, §4.4).
 - **LogUp** covers range8, the requant output range, the remainder range `2^s` and the
   int8 lookup with `β`. The y-range key of a requant output is dropped when that output is
   also a lookup input: the table match already forces `[-128,128)`. Default proof: hiding
@@ -438,7 +447,8 @@ Within a tree: Leaves, laid out as aligned segments in
 
 - key leaves `(1, α − key(x))`;
 - table leaves `(−m(t), α − key_t)`;
-- one **blinder leaf** `(0, ρ)`, where `ρ` is a uniform non-zero committed cell;
+- one **blinder leaf** `(0, ρ)`, where `ρ = Σ_k basis(k)·b_k` is a uniform non-zero
+  QM31, committed as 4 M31 cells `b_0..b_3` (re-drawn while all four are 0);
 - padding leaves `(0, 1)`.
 
 The split is MSB: node `x` of layer `k−1` is node `x` ⊕ node `x + 2^(k−1)` of layer `k`,
@@ -487,7 +497,13 @@ claims go to the batch.
 - Error: per tree, about `Σ_k (3k + 4)/|F|` plus LogUp's `(#keys + #table)/|F|`.
 
 **ZK.**
-- `d_0 = ρ·Π(other denominators)` is uniform in F*.
+- `d_0 = ρ·D` with `D = Π(other denominators) ≠ 0`. With `ρ` uniform in QM31*,
+  `d_0` is uniform in QM31* for every witness. Before review B (ZK-2), `ρ` was one M31
+  cell. Then `d_0/D(candidate) ∈ M31` held exactly for the true key multiset, which
+  pinned `D` to its coset in QM31*/M31* (about 2^93 cosets) and distinguished any two
+  witnesses whose key histograms differ. The leaf claim reads the 4 limbs through the
+  sparse form `Σ_k basis(k)·b_k`. The limbs appear in no other revealed value, since the
+  leaf claim is a batch claim (§4.5).
 - Layer messages are uniform given the public claim (Lemma 3).
 - Each hat carries `γ·(own pad functional)`.
 - Each layer's 64 pad cells see 5 functionals: the 4 hats at `t_k` (one per pad) and one
@@ -575,8 +591,10 @@ graph).
   (`C + S` QM31 values).
 - **Witness opening.** The proximity row plus group A, each with its own 4 mask rows in
   table 1.
-- **Weight opening.** The weight table plus a fresh per-proof mask table with 4 rows per
-  group, committed at the start with its root in the transcript. Claims are grouped by
+- **Weight opening.** The weight table plus a fresh per-proof mask table, committed at the
+  start with its root in the transcript. It holds one pad row per W hat (rows
+  `0..#matmuls`, ZK-3), then 4 group mask rows per group, then (recursive mode) 4
+  proximity mask rows. Claims are grouped by
   column point:
   - matmuls whose output dimension covers the table's columns share one point, a suffix
     of `ρ`;
@@ -616,23 +634,75 @@ Hybrid over the transcript, in order:
 5. **Openings.** Simulatable given the group claim values (Lemma 2), which steps 3–4
    already simulate.
 
-**Rank condition.** Let `P` be the vector of all pad cells. The revealed linear values
-are `A_D·D + A_P·P`, and they are jointly uniform iff `A_P` has full row rank.
+**Rank condition.** Let `P` be the vector of all pad cells: uniform M31 values drawn by
+the prover, independent of the data `D` (witness and weights). The revealed values that
+are linear in `P` are `V = A_D·D + A_P·P + c`, with `c` public. Count over M31: a
+revealed QM31 value is 4 M31 coordinates, so it is 4 rows of `A_P`. `V` is uniform,
+whatever `D` is, iff `A_P` has full row rank over M31.
 
-- Every pad tensor has 16 cells (or `R_b`/`R_W` rows of `C` cells). It is used only by
-  hats of its own tensor or GKR layer, at points that are fresh random points of
-  different sumchecks.
-- The most uses are about 3 hats per tensor in the MLP: for example `X` in two matmuls
-  and range8, or `Y_g` in matmul, y-range and lookup.
-- `eq` vectors of ≤ 16 distinct random points in 16 dimensions are independent except
-  with probability ≤ 16·4/|F|.
-- Mask rows and `R_b` appear in the batch's table evaluation too, but each revealed value
-  has its own fresh direction: hat ↔ its pad, `σ`/`u` ↔ its U, `μ` and `u` rows ↔ their
-  masks, GKR `d_0` ↔ `ρ`.
+**Counting lemma.** Order the revealed values `v_1, …, v_m`. Suppose each `v_i` has a
+*private block* `B_i`: a set of pad cells that no `v_j` with `j < i` reads, such that the
+restriction of `v_i`'s functional to `B_i` is onto QM31 (M31-rank 4). Then `A_P` is block
+lower-triangular after permuting columns, with full-row-rank diagonal blocks, so it has
+full row rank. Each `v_i` is uniform given `v_1..v_{i−1}` and `D`.
 
-The prover's randomness is fresh per proof, except the weight table's `τ`, `R_W` and
-proximity masks, which are shared across proofs. Their exposure is bounded by the budget
-(columns) and by `4·C_w` (`R_W` functionals).
+**Private blocks** (revealed value → block, cells, why the restriction has rank 4):
+
+| revealed value | private block | cells | rank 4 because |
+|---|---|---|---|
+| op-check hat (`checks`, `vchecks`, `xchecks`), non-weight factor | its dedicated pad `P_h` (`plan.hpad`) | 4 | the restriction is `x ↦ g·c·x` on QM31 with `g·c ≠ 0` (`c ∈ {±1, −2^s, basis(q), −β, −β²}`) |
+| W hat (one per matmul) | its pad row `M_h` of the per-proof weight mask table (`plan.wpad_row`) | `C_w` | `span_M31{eq(cp, j)} = QM31` (below) |
+| accumulator hat `Â` (§4.7) | `P_A` at `t_A` | 16 | as below, with the 4 random coordinates of `t_A` |
+| GKR layer hats `n̂0, n̂1, d̂0, d̂1` | the layer's 4 pads, one each, at `t_k` | 16 each | as below |
+| GKR / virtual `Q̂` | the pad combination at `(t_lead, r_tail)`, after the hats | — | independent second point (§4.3), `O(1)/|F|` |
+| batch hats | `R_b` (one row per table) | `C` | as below |
+| `σ`, round messages | U coefficients | — | Lemma 3; `u` is determined |
+| `d_0` | blinder `ρ` (4 cells) | 4 | `ρ ↦ ρ·D` is a bijection of QM31* (`D ≠ 0`) |
+| opening `μ`, combined rows | mask rows | — | Lemma 2 |
+
+There are three possible failures, and each is now excluded by construction:
+- **A pad shared by more hats than its cells** (ZK-1). Each hat has its own pad, so every
+  pad has exactly one revealed functional. Before, a tensor's pad had `min(16, size)`
+  cells and was shared by every hat of that tensor. A scalar read by 2 checks, a 2-cell
+  tensor read by 3, or any tensor read by 17 or more leaked a witness functional. The
+  test `zk plan: every hat has its own pad` checks the plan's accounting on a scalar
+  product, the MLP (committed-inverse, GKR, virtual remainders) and the decoder layer:
+  one pad per hatted part, no pad shared or reused as another tensor, and one weight pad
+  row per matmul.
+- **A pad that cannot reach all of QM31.** A 1-cell M31 pad would leave
+  `hat − (1−g)·c·T~` inside the M31-line `g·c·M31`. So the dedicated pads have 4 cells,
+  and so does the blinder.
+- **A pad reused across proofs.** All pads are fresh per proof, including the W hats'
+  mask rows. The long-lived `R_W` is no longer read.
+
+**Span of `eq(t, ·)`** (pads read at a random point `t`, `ℓ ≥ 2` coordinates). Let
+`z_i = t_i/(1−t_i)`. Then `eq(t, j) = eq(t, 0)·Π_{i: j_i = 1} z_i`, so the span is
+`eq(t,0)·S_ℓ` with `S_ℓ = span_M31{Π_{i∈I} z_i}`.
+- `S_1 = span{1, z_0}` has dimension 2 unless `z_0 ∈ M31` (probability ≤ p^−3).
+- `S_2 = S_1 + z_1·S_1 = QM31` unless `z_1 ∈ S_1·S_1^{−1}`. That set has at most `p^3`
+  elements, so the probability is ≤ 1/p.
+- Each further coordinate maps a 3-dimensional `S` onto all of QM31 unless `z_i·S = S`.
+  The stabilizer of a 3-dimensional M31-subspace is a subfield `K` with `S` a
+  `K`-space, so `K = M31` and the probability is ≤ p^−3.
+
+The failure probability is about `p^{−1−3(ℓ−2)}`: below 2^−200 for the 16-cell pads
+(`ℓ = 4`) and for `R_b` and `M_h` (`ℓ = lc ≥ 4`, since `C ≥ slots ≥ 16`).
+
+The prover's randomness is fresh per proof, except the weight table's `τ` and proximity
+masks, which are shared across proofs. Their exposure is bounded by the budget (columns),
+and no per-proof claim reads them. The budget is charged under a mutex (`Budget.mu`,
+ZK-4), so concurrent `zk.prove` calls on one `ZkWeights` cannot together open more than
+`slots/2` columns.
+
+**Rate precondition** (ZK-5). The hiding PCS's query and soundness count (§3.1) assumes
+`C + S ≤ E/2`. This is enforced as an error, not only asserted:
+- `makePlan` returns `error.ZkRate` on both sides;
+- `zk_pcs.commit` returns `error.ZkRate`;
+- `verifyOpening` (flat and recursive) returns `error.OpeningShape` for any such shape;
+- `commitWeights` already refused it for the weight table (`WeightMaskSlots`).
+
+Before, a hiding config with `log_blowup ≤ 1` panicked in Debug and ReleaseSafe, and
+committed at rate > 1/2 in ReleaseFast. Hiding (Lemma 1) was unaffected.
 
 **Tests that exercise this** (`zk.zig`):
 - Two proofs of the same statement have different roots and hats.
@@ -717,8 +787,8 @@ and proofs with and without it are not interchangeable.
   tails. So the two functionals are independent except with probability `O(1)/|F|`, and
   `(Â, Q̂)` is jointly uniform.
 - The sumcheck messages are uniform given the public claim `Â` (Lemma 3). `X̂` and `Ŵ`
-  carry their own pads, as in §4.2. `X`'s 16-cell pad gains one more hat per matmul that
-  reads it, and stays far below 16 functionals.
+  carry their own dedicated pads (a 4-cell `P_h` for `X̂`, a fresh mask row for `Ŵ`), as
+  in §4.2 and §4.5.
 - The leaf claim on `P_A` and `Y` is a batch claim. It is never revealed outside the
   `R_b`-padded batch hats.
 
@@ -949,6 +1019,25 @@ Readings:
 - Metal (512 tokens): 0.797 → 0.742 s (−7%), from the commit (0.248 → 0.196 s) and the batch
   (0.082 → 0.074 s). The GKR stays on the CPU (§4.9).
 
+### 5.2 Review-B ZK fixes (branch `codex/tensor-zkfix`, 2026-11-04)
+
+These are dedicated QM31 hat pads (ZK-1), a 4-limb GKR blinder (ZK-2) and per-hat weight
+pad rows (ZK-3). Measured with `tensor-bench ... zk`, ReleaseFast, 1 thread, on AC power;
+"before" is b8db4b40f and "after" is this branch.
+
+| shape | proof bytes before → after | prove s before → after (median) | verify s | witness table cells |
+|---|---|---|---|---|
+| product 20 | 361,320 → 361,320 | 0.331–0.342 → 0.328 | 0.0018 → 0.0019 | 3,186,688 → 3,186,688 |
+| mlp 8 10 11 | 922,400 → 922,760 (+360 B) | 0.206 → 0.211 (±3% run-to-run noise) | 0.016 → 0.016 | 3,526,656 → 3,526,656 |
+
+- The +360 B is the 3 extra mask-table rows in each of the 30 opened weight columns
+  (3 rows × 4 B × 30 queries).
+- The witness table is unchanged in size. The 16-cell per-tensor pads are replaced by
+  4-cell per-hat pads, and both fit the same power-of-two layout.
+- Proof digests: there are no pinned hiding-mode digests. The pinned non-hiding goldens
+  (`proof_digest.zig`, `transformer.zig`) are untouched, so nothing was repinned.
+  Hiding proofs from before this change do not verify under the new layout.
+
 ## 6. Adversarial tests
 
 All pass. Run in `src/tensor` (standalone build): `zig build test -Doptimize=ReleaseSafe`
@@ -994,6 +1083,19 @@ first-version hiding tests:
     (`error.OpeningBudgetExceeded`);
   - a wrong forward value is refused.
 - Two statistical sanity tests (§4.5).
+- Review B regressions (`zk_review_test.zig`, `zk.zig`, `zk_pcs.zig`). Each fails on
+  b8db4b40f and passes after the fix:
+  - `zk regress zk-1` / `zk-1b`: the reviewer's recovery of a scalar from 2 product hats,
+    and the null-vector functional of a 2-cell tensor in 3 products, no longer match;
+  - `zk regress zk-2`: `d_0 / D(true keys)` is not in M31;
+  - `zk regress zk-3`: the null vector of the old 4×5 `R_W` functional matrix no longer
+    cancels the W hats' pads;
+  - `zk plan: every hat has its own pad`: pad accounting on a scalar product, the MLP in
+    3 LogUp modes and the decoder layer;
+  - `zk pcs budget: concurrent charges`: 8 threads charging one budget. Before the fix,
+    4120–4128 columns were opened against a limit of 4096;
+  - `zk rate precondition`: `log_blowup = 1` is refused by `prove`, `witnessShape`,
+    `zk_pcs.commit` and `Shape.rateOk`.
 
 ## 7. Not done / caveats
 
