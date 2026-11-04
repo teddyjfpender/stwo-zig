@@ -1,0 +1,778 @@
+{
+ "p4c": {
+  "setup_ns": 3513403917,
+  "prove_ns": 53973602792,
+  "block_to_inputs": {
+   "clock": "ns since gkr_main entry (monotonic)",
+   "scope": "produce: per-worker source timestamps inside the scheduled prove",
+   "init_done_at_ns": 130390750,
+   "capture_done_at_ns": 1392444208,
+   "plan_done_at_ns": 1429277083,
+   "keys_done_at_ns": 2004270958,
+   "setup_done_at_ns": 4905715166,
+   "coordinator_admitted_at_ns": 5022780875,
+   "t_first_ns": 6139226833,
+   "t_first_any_ns": 5716621166,
+   "t_all_cpu_ns": 16034013041,
+   "t_all_ns": 25328481416,
+   "stages": {
+    "init_ns": 130390750,
+    "capture_import_ns": 1262053458,
+    "plan_ns": 36832875,
+    "setup_ns": 3476438083,
+    "setup_keys_ns": 574993875,
+    "setup_fixed_ns": 2901444208,
+    "coordinator_admission_ns": 117065709
+   },
+   "segments": [
+    {
+     "ordinal": 0,
+     "kind": "cpu",
+     "source_begin_at_ns": 5022887125,
+     "source_ready_at_ns": 6139226833,
+     "source_ns": 1116339708
+    },
+    {
+     "ordinal": 1,
+     "kind": "cpu",
+     "source_begin_at_ns": 5022889541,
+     "source_ready_at_ns": 5716621166,
+     "source_ns": 693731625
+    },
+    {
+     "ordinal": 2,
+     "kind": "cpu",
+     "source_begin_at_ns": 13200936291,
+     "source_ready_at_ns": 13931906750,
+     "source_ns": 730970459
+    },
+    {
+     "ordinal": 3,
+     "kind": "cpu",
+     "source_begin_at_ns": 15214421250,
+     "source_ready_at_ns": 16034013041,
+     "source_ns": 819591791
+    },
+    {
+     "ordinal": 4,
+     "kind": "truth",
+     "source_begin_at_ns": 21424947125,
+     "source_ready_at_ns": 23324230750,
+     "source_ns": 1899283625
+    },
+    {
+     "ordinal": 5,
+     "kind": "truth",
+     "source_begin_at_ns": 23654075666,
+     "source_ready_at_ns": 23886229166,
+     "source_ns": 232153500
+    },
+    {
+     "ordinal": 6,
+     "kind": "truth",
+     "source_begin_at_ns": 24113120375,
+     "source_ready_at_ns": 24449350375,
+     "source_ns": 336230000
+    },
+    {
+     "ordinal": 7,
+     "kind": "truth",
+     "source_begin_at_ns": 24931232083,
+     "source_ready_at_ns": 25096718458,
+     "source_ns": 165486375
+    },
+    {
+     "ordinal": 8,
+     "kind": "truth",
+     "source_begin_at_ns": 25121872583,
+     "source_ready_at_ns": 25131732250,
+     "source_ns": 9859667
+    },
+    {
+     "ordinal": 9,
+     "kind": "truth",
+     "source_begin_at_ns": 25143820875,
+     "source_ready_at_ns": 25263053416,
+     "source_ns": 119232541
+    },
+    {
+     "ordinal": 10,
+     "kind": "truth",
+     "source_begin_at_ns": 25284438708,
+     "source_ready_at_ns": 25284646625,
+     "source_ns": 207917
+    },
+    {
+     "ordinal": 11,
+     "kind": "truth",
+     "source_begin_at_ns": 25327768916,
+     "source_ready_at_ns": 25328481416,
+     "source_ns": 712500
+    }
+   ],
+   "setup_cache": {
+    "resident_hits": 0,
+    "disk_hits": 0,
+    "misses": 12,
+    "stores": 0,
+    "identity_only_sources": 4,
+    "load_ns": 148708,
+    "load_bytes": 0,
+    "load_digest_ns": 0,
+    "store_ns": 0,
+    "store_bytes": 0,
+    "build_ns": 2816158126,
+    "max_build_ns": 570474167,
+    "max_build_kind": "keccak"
+   }
+  },
+  "fresh_receiver": {
+   "accepted": true,
+   "completed_ethereum_block": false,
+   "load_and_setup_ns": 3523425708,
+   "verify_ns": 681930458,
+   "setup_cache": {
+    "resident_hits": 0,
+    "disk_hits": 0,
+    "misses": 12,
+    "stores": 12,
+    "identity_only_sources": 4,
+    "load_ns": 177416,
+    "load_bytes": 0,
+    "load_digest_ns": 0,
+    "store_ns": 386880000,
+    "store_bytes": 915524846,
+    "build_ns": 2559385168,
+    "max_build_ns": 522693125,
+    "max_build_kind": "keccak"
+   },
+   "fixed_setup": {
+    "limit_bytes": 12884901888,
+    "live_bytes": 384240336,
+    "peak_bytes": 1184456032,
+    "keys": 10,
+    "hits": 0,
+    "seals": 10,
+    "loads": 0,
+    "refused": false,
+    "native_coefficients": {
+     "limit_bytes": 12884901888,
+     "retained_bytes": 199452160,
+     "native_backing_bytes": 199416192,
+     "groups": 280,
+     "hits": 686,
+     "duplicate_native_bytes_released": 531145216,
+     "observed_individual_owners": 966,
+     "observed_backing_owners": 0,
+     "observed_spans": 966,
+     "owner_leases": 11
+    }
+   },
+   "source_validations": 10,
+   "source_coefficient_cells": 182640352
+  }
+ },
+ "p4w": {
+  "setup_ns": 197216916,
+  "prove_ns": 52962886791,
+  "block_to_inputs": {
+   "clock": "ns since gkr_main entry (monotonic)",
+   "scope": "produce: per-worker source timestamps inside the scheduled prove",
+   "init_done_at_ns": 121788542,
+   "capture_done_at_ns": 1371787500,
+   "plan_done_at_ns": 1398857292,
+   "keys_done_at_ns": 1568883209,
+   "setup_done_at_ns": 1568891500,
+   "coordinator_admitted_at_ns": 1685809834,
+   "t_first_ns": 2800407334,
+   "t_first_any_ns": 2374960000,
+   "t_all_cpu_ns": 13282607792,
+   "t_all_ns": 22234219792,
+   "stages": {
+    "init_ns": 121788542,
+    "capture_import_ns": 1249998958,
+    "plan_ns": 27069792,
+    "setup_ns": 170034208,
+    "setup_keys_ns": 170025917,
+    "setup_fixed_ns": 8291,
+    "coordinator_admission_ns": 116918334
+   },
+   "segments": [
+    {
+     "ordinal": 0,
+     "kind": "cpu",
+     "source_begin_at_ns": 1685930209,
+     "source_ready_at_ns": 2800407334,
+     "source_ns": 1114477125
+    },
+    {
+     "ordinal": 1,
+     "kind": "cpu",
+     "source_begin_at_ns": 1685934917,
+     "source_ready_at_ns": 2374960000,
+     "source_ns": 689025083
+    },
+    {
+     "ordinal": 2,
+     "kind": "cpu",
+     "source_begin_at_ns": 10099559292,
+     "source_ready_at_ns": 10865513625,
+     "source_ns": 765954333
+    },
+    {
+     "ordinal": 3,
+     "kind": "cpu",
+     "source_begin_at_ns": 12394097250,
+     "source_ready_at_ns": 13282607792,
+     "source_ns": 888510542
+    },
+    {
+     "ordinal": 4,
+     "kind": "truth",
+     "source_begin_at_ns": 18041890542,
+     "source_ready_at_ns": 19909881459,
+     "source_ns": 1867990917
+    },
+    {
+     "ordinal": 5,
+     "kind": "truth",
+     "source_begin_at_ns": 20910552084,
+     "source_ready_at_ns": 21131686250,
+     "source_ns": 221134166
+    },
+    {
+     "ordinal": 6,
+     "kind": "truth",
+     "source_begin_at_ns": 21341769084,
+     "source_ready_at_ns": 21682552834,
+     "source_ns": 340783750
+    },
+    {
+     "ordinal": 7,
+     "kind": "truth",
+     "source_begin_at_ns": 22022914625,
+     "source_ready_at_ns": 22186704542,
+     "source_ns": 163789917
+    },
+    {
+     "ordinal": 8,
+     "kind": "truth",
+     "source_begin_at_ns": 22073517375,
+     "source_ready_at_ns": 22083362250,
+     "source_ns": 9844875
+    },
+    {
+     "ordinal": 9,
+     "kind": "truth",
+     "source_begin_at_ns": 22094689292,
+     "source_ready_at_ns": 22213420042,
+     "source_ns": 118730750
+    },
+    {
+     "ordinal": 10,
+     "kind": "truth",
+     "source_begin_at_ns": 22210978917,
+     "source_ready_at_ns": 22211170834,
+     "source_ns": 191917
+    },
+    {
+     "ordinal": 11,
+     "kind": "truth",
+     "source_begin_at_ns": 22233533459,
+     "source_ready_at_ns": 22234219792,
+     "source_ns": 686333
+    }
+   ],
+   "setup_cache": {
+    "resident_hits": 0,
+    "disk_hits": 12,
+    "misses": 0,
+    "stores": 0,
+    "identity_only_sources": 0,
+    "load_ns": 469031126,
+    "load_bytes": 915537486,
+    "load_digest_ns": 156955083,
+    "store_ns": 0,
+    "store_bytes": 0,
+    "build_ns": 1079392127,
+    "max_build_ns": 166211834,
+    "max_build_kind": "keccak"
+   }
+  },
+  "fresh_receiver": {
+   "accepted": true,
+   "completed_ethereum_block": false,
+   "load_and_setup_ns": 301115792,
+   "verify_ns": 680275250,
+   "setup_cache": {
+    "resident_hits": 0,
+    "disk_hits": 12,
+    "misses": 0,
+    "stores": 0,
+    "identity_only_sources": 0,
+    "load_ns": 10515791,
+    "load_bytes": 12640,
+    "load_digest_ns": 0,
+    "store_ns": 0,
+    "store_bytes": 0,
+    "build_ns": 860321914,
+    "max_build_ns": 135751041,
+    "max_build_kind": "cpu"
+   },
+   "fixed_setup": {
+    "limit_bytes": 12884901888,
+    "live_bytes": 48448,
+    "peak_bytes": 48448,
+    "keys": 10,
+    "hits": 12,
+    "seals": 0,
+    "loads": 10,
+    "refused": false,
+    "native_coefficients": {
+     "limit_bytes": 12884901888,
+     "retained_bytes": 128,
+     "native_backing_bytes": 0,
+     "groups": 0,
+     "hits": 0,
+     "duplicate_native_bytes_released": 0,
+     "observed_individual_owners": 0,
+     "observed_backing_owners": 0,
+     "observed_spans": 0,
+     "owner_leases": 1
+    }
+   },
+   "source_validations": 10,
+   "source_coefficient_cells": 182640352
+  }
+ },
+ "fbc": {
+  "setup_ns": 5031499958,
+  "prove_ns": 81979632917,
+  "block_to_inputs": {
+   "clock": "ns since gkr_main entry (monotonic)",
+   "scope": "produce: per-worker source timestamps inside the scheduled prove",
+   "init_done_at_ns": 121815458,
+   "capture_done_at_ns": 2085673167,
+   "plan_done_at_ns": 2118421625,
+   "keys_done_at_ns": 2686019792,
+   "setup_done_at_ns": 7117062083,
+   "coordinator_admitted_at_ns": 7251900083,
+   "t_first_ns": 8359585833,
+   "t_first_any_ns": 7936862875,
+   "t_all_cpu_ns": 33459094208,
+   "t_all_ns": 41813384083,
+   "stages": {
+    "init_ns": 121815458,
+    "capture_import_ns": 1963857709,
+    "plan_ns": 32748458,
+    "setup_ns": 4998640458,
+    "setup_keys_ns": 567598167,
+    "setup_fixed_ns": 4431042291,
+    "coordinator_admission_ns": 134838000
+   },
+   "segments": [
+    {
+     "ordinal": 0,
+     "kind": "cpu",
+     "source_begin_at_ns": 7252031583,
+     "source_ready_at_ns": 8359585833,
+     "source_ns": 1107554250
+    },
+    {
+     "ordinal": 1,
+     "kind": "cpu",
+     "source_begin_at_ns": 7252034583,
+     "source_ready_at_ns": 7936862875,
+     "source_ns": 684828292
+    },
+    {
+     "ordinal": 2,
+     "kind": "cpu",
+     "source_begin_at_ns": 15987231708,
+     "source_ready_at_ns": 16737415417,
+     "source_ns": 750183709
+    },
+    {
+     "ordinal": 3,
+     "kind": "cpu",
+     "source_begin_at_ns": 17774155083,
+     "source_ready_at_ns": 18566397583,
+     "source_ns": 792242500
+    },
+    {
+     "ordinal": 4,
+     "kind": "cpu",
+     "source_begin_at_ns": 24439946500,
+     "source_ready_at_ns": 25192538292,
+     "source_ns": 752591792
+    },
+    {
+     "ordinal": 5,
+     "kind": "cpu",
+     "source_begin_at_ns": 25893701750,
+     "source_ready_at_ns": 26640100667,
+     "source_ns": 746398917
+    },
+    {
+     "ordinal": 6,
+     "kind": "cpu",
+     "source_begin_at_ns": 32836197208,
+     "source_ready_at_ns": 33459094208,
+     "source_ns": 622897000
+    },
+    {
+     "ordinal": 7,
+     "kind": "truth",
+     "source_begin_at_ns": 34757507000,
+     "source_ready_at_ns": 36543247917,
+     "source_ns": 1785740917
+    },
+    {
+     "ordinal": 8,
+     "kind": "truth",
+     "source_begin_at_ns": 38623468958,
+     "source_ready_at_ns": 38832508750,
+     "source_ns": 209039792
+    },
+    {
+     "ordinal": 9,
+     "kind": "truth",
+     "source_begin_at_ns": 38943030708,
+     "source_ready_at_ns": 39818257000,
+     "source_ns": 875226292
+    },
+    {
+     "ordinal": 10,
+     "kind": "truth",
+     "source_begin_at_ns": 39017278042,
+     "source_ready_at_ns": 39109887333,
+     "source_ns": 92609291
+    },
+    {
+     "ordinal": 11,
+     "kind": "truth",
+     "source_begin_at_ns": 39156852542,
+     "source_ready_at_ns": 40512926833,
+     "source_ns": 1356074291
+    },
+    {
+     "ordinal": 12,
+     "kind": "truth",
+     "source_begin_at_ns": 40619075542,
+     "source_ready_at_ns": 40949073708,
+     "source_ns": 329998166
+    },
+    {
+     "ordinal": 13,
+     "kind": "truth",
+     "source_begin_at_ns": 40794702375,
+     "source_ready_at_ns": 40814382000,
+     "source_ns": 19679625
+    },
+    {
+     "ordinal": 14,
+     "kind": "truth",
+     "source_begin_at_ns": 40825937542,
+     "source_ready_at_ns": 41813384083,
+     "source_ns": 987446541
+    },
+    {
+     "ordinal": 15,
+     "kind": "truth",
+     "source_begin_at_ns": 40987628833,
+     "source_ready_at_ns": 41175988375,
+     "source_ns": 188359542
+    },
+    {
+     "ordinal": 16,
+     "kind": "truth",
+     "source_begin_at_ns": 41207016833,
+     "source_ready_at_ns": 41370979417,
+     "source_ns": 163962584
+    },
+    {
+     "ordinal": 17,
+     "kind": "truth",
+     "source_begin_at_ns": 41557555583,
+     "source_ready_at_ns": 41558745333,
+     "source_ns": 1189750
+    }
+   ],
+   "setup_cache": {
+    "resident_hits": 0,
+    "disk_hits": 0,
+    "misses": 18,
+    "stores": 0,
+    "identity_only_sources": 7,
+    "load_ns": 293124,
+    "load_bytes": 0,
+    "load_digest_ns": 0,
+    "store_ns": 0,
+    "store_bytes": 0,
+    "build_ns": 3188313710,
+    "max_build_ns": 367259917,
+    "max_build_kind": "cpu"
+   }
+  },
+  "fresh_receiver": {
+   "accepted": true,
+   "completed_ethereum_block": true,
+   "load_and_setup_ns": 5026377209,
+   "verify_ns": 879593458,
+   "setup_cache": {
+    "resident_hits": 0,
+    "disk_hits": 0,
+    "misses": 18,
+    "stores": 18,
+    "identity_only_sources": 7,
+    "load_ns": 337457,
+    "load_bytes": 0,
+    "load_digest_ns": 0,
+    "store_ns": 382310625,
+    "store_bytes": 1340259254,
+    "build_ns": 3070224668,
+    "max_build_ns": 351701875,
+    "max_build_kind": "cpu"
+   },
+   "fixed_setup": {
+    "limit_bytes": 12884901888,
+    "live_bytes": 503054832,
+    "peak_bytes": 1210674224,
+    "keys": 16,
+    "hits": 0,
+    "seals": 16,
+    "loads": 0,
+    "refused": false,
+    "native_coefficients": {
+     "limit_bytes": 12884901888,
+     "retained_bytes": 231521408,
+     "native_backing_bytes": 231477632,
+     "groups": 341,
+     "hits": 1249,
+     "duplicate_native_bytes_released": 835789056,
+     "observed_individual_owners": 1590,
+     "observed_backing_owners": 0,
+     "observed_spans": 1590,
+     "owner_leases": 17
+    }
+   },
+   "source_validations": 16,
+   "source_coefficient_cells": 266816672
+  }
+ },
+ "fbw": {
+  "setup_ns": 309767958,
+  "prove_ns": 80606016000,
+  "block_to_inputs": {
+   "clock": "ns since gkr_main entry (monotonic)",
+   "scope": "produce: per-worker source timestamps inside the scheduled prove",
+   "init_done_at_ns": 119553083,
+   "capture_done_at_ns": 2112306750,
+   "plan_done_at_ns": 2154037625,
+   "keys_done_at_ns": 2421958333,
+   "setup_done_at_ns": 2421971000,
+   "coordinator_admitted_at_ns": 2558871583,
+   "t_first_ns": 3708418416,
+   "t_first_any_ns": 3276020291,
+   "t_all_cpu_ns": 28534419333,
+   "t_all_ns": 37179642291,
+   "stages": {
+    "init_ns": 119553083,
+    "capture_import_ns": 1992753667,
+    "plan_ns": 41730875,
+    "setup_ns": 267933375,
+    "setup_keys_ns": 267920708,
+    "setup_fixed_ns": 12667,
+    "coordinator_admission_ns": 136900583
+   },
+   "segments": [
+    {
+     "ordinal": 0,
+     "kind": "cpu",
+     "source_begin_at_ns": 2559030166,
+     "source_ready_at_ns": 3708418416,
+     "source_ns": 1149388250
+    },
+    {
+     "ordinal": 1,
+     "kind": "cpu",
+     "source_begin_at_ns": 2559035208,
+     "source_ready_at_ns": 3276020291,
+     "source_ns": 716985083
+    },
+    {
+     "ordinal": 2,
+     "kind": "cpu",
+     "source_begin_at_ns": 11478873875,
+     "source_ready_at_ns": 12279617208,
+     "source_ns": 800743333
+    },
+    {
+     "ordinal": 3,
+     "kind": "cpu",
+     "source_begin_at_ns": 13544803208,
+     "source_ready_at_ns": 14373767625,
+     "source_ns": 828964417
+    },
+    {
+     "ordinal": 4,
+     "kind": "cpu",
+     "source_begin_at_ns": 19782113833,
+     "source_ready_at_ns": 20571689000,
+     "source_ns": 789575167
+    },
+    {
+     "ordinal": 5,
+     "kind": "cpu",
+     "source_begin_at_ns": 21970067875,
+     "source_ready_at_ns": 22734598041,
+     "source_ns": 764530166
+    },
+    {
+     "ordinal": 6,
+     "kind": "cpu",
+     "source_begin_at_ns": 27930384000,
+     "source_ready_at_ns": 28534419333,
+     "source_ns": 604035333
+    },
+    {
+     "ordinal": 7,
+     "kind": "truth",
+     "source_begin_at_ns": 30735649000,
+     "source_ready_at_ns": 32717268166,
+     "source_ns": 1981619166
+    },
+    {
+     "ordinal": 8,
+     "kind": "truth",
+     "source_begin_at_ns": 33476473958,
+     "source_ready_at_ns": 33699896666,
+     "source_ns": 223422708
+    },
+    {
+     "ordinal": 9,
+     "kind": "truth",
+     "source_begin_at_ns": 33930397958,
+     "source_ready_at_ns": 34819993458,
+     "source_ns": 889595500
+    },
+    {
+     "ordinal": 10,
+     "kind": "truth",
+     "source_begin_at_ns": 34748694333,
+     "source_ready_at_ns": 34842278416,
+     "source_ns": 93584083
+    },
+    {
+     "ordinal": 11,
+     "kind": "truth",
+     "source_begin_at_ns": 34902777916,
+     "source_ready_at_ns": 36250558166,
+     "source_ns": 1347780250
+    },
+    {
+     "ordinal": 12,
+     "kind": "truth",
+     "source_begin_at_ns": 35791801833,
+     "source_ready_at_ns": 36121475916,
+     "source_ns": 329674083
+    },
+    {
+     "ordinal": 13,
+     "kind": "truth",
+     "source_begin_at_ns": 36161586916,
+     "source_ready_at_ns": 36181106875,
+     "source_ns": 19519959
+    },
+    {
+     "ordinal": 14,
+     "kind": "truth",
+     "source_begin_at_ns": 36192529500,
+     "source_ready_at_ns": 37179642291,
+     "source_ns": 987112791
+    },
+    {
+     "ordinal": 15,
+     "kind": "truth",
+     "source_begin_at_ns": 36313271625,
+     "source_ready_at_ns": 36500137541,
+     "source_ns": 186865916
+    },
+    {
+     "ordinal": 16,
+     "kind": "truth",
+     "source_begin_at_ns": 36531084500,
+     "source_ready_at_ns": 36692111625,
+     "source_ns": 161027125
+    },
+    {
+     "ordinal": 17,
+     "kind": "truth",
+     "source_begin_at_ns": 36873486416,
+     "source_ready_at_ns": 36874705416,
+     "source_ns": 1219000
+    }
+   ],
+   "setup_cache": {
+    "resident_hits": 0,
+    "disk_hits": 18,
+    "misses": 0,
+    "stores": 0,
+    "identity_only_sources": 0,
+    "load_ns": 856672958,
+    "load_bytes": 1340279310,
+    "load_digest_ns": 305257039,
+    "store_ns": 0,
+    "store_bytes": 0,
+    "build_ns": 1690688000,
+    "max_build_ns": 212278500,
+    "max_build_kind": "cpu"
+   }
+  },
+  "fresh_receiver": {
+   "accepted": true,
+   "completed_ethereum_block": true,
+   "load_and_setup_ns": 405011667,
+   "verify_ns": 891553708,
+   "setup_cache": {
+    "resident_hits": 0,
+    "disk_hits": 18,
+    "misses": 0,
+    "stores": 0,
+    "identity_only_sources": 0,
+    "load_ns": 1993375,
+    "load_bytes": 20056,
+    "load_digest_ns": 0,
+    "store_ns": 292,
+    "store_bytes": 0,
+    "build_ns": 1351169249,
+    "max_build_ns": 167455500,
+    "max_build_kind": "cpu"
+   },
+   "fixed_setup": {
+    "limit_bytes": 12884901888,
+    "live_bytes": 79072,
+    "peak_bytes": 79072,
+    "keys": 16,
+    "hits": 18,
+    "seals": 0,
+    "loads": 16,
+    "refused": false,
+    "native_coefficients": {
+     "limit_bytes": 12884901888,
+     "retained_bytes": 128,
+     "native_backing_bytes": 0,
+     "groups": 0,
+     "hits": 0,
+     "duplicate_native_bytes_released": 0,
+     "observed_individual_owners": 0,
+     "observed_backing_owners": 0,
+     "observed_spans": 0,
+     "owner_leases": 1
+    }
+   },
+   "source_validations": 16,
+   "source_coefficient_cells": 266816672
+  }
+ }
+}

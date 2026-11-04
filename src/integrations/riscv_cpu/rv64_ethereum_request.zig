@@ -49,13 +49,27 @@ pub fn romProfile(config: Config) rv.execution_profile.Profile {
 pub fn tapeProfile(config: Config) rv.execution_profile.Profile {
     return config.execution_profile;
 }
+pub const Options = struct {
+    /// Build the legacy Poseidon chunk512 sparse cache of the initial image.
+    /// Only the Poseidon frontier/terminal routes (native job collection,
+    /// classic proofs) read it. The in-process Word16 handoff never does: its
+    /// INIT/terminal/global-memory authority is the Word16 statement, and its
+    /// batches carry `Packet.ABSENT_ROOT`. When false, `initial_cache` is an
+    /// EMPTY cache whose root is not the image root and must not be used.
+    poseidon_initial_cache: bool = true,
+};
 pub const Request = struct {
     loaded: rv.elf.LoadedImage,
     authority: Full.ProgramAuthority,
     policy: R.policy.Policy,
     initial_cache: R.values.Cache,
     expected_output: [43]u8,
+    /// False only under `Options.poseidon_initial_cache = false`.
+    has_initial_cache: bool = true,
     pub fn init(a: std.mem.Allocator, config: Config) !Request {
+        return initWithOptions(a, config, .{});
+    }
+    pub fn initWithOptions(a: std.mem.Allocator, config: Config, options: Options) !Request {
         try validateBudget(config);
         const elf = try std.fs.cwd().readFileAlloc(a, config.elf, 64 * 1024 * 1024);
         defer a.free(elf);
@@ -80,9 +94,9 @@ pub const Request = struct {
         const terminal = R.terminal_air.Spec{ .geometry = .chunk512, .halt_flag = config.symbols.halt_flag, .output = expected };
         try terminal.validate();
         _ = try policy.find(.chunk512, terminal.base(), 3);
-        var initial_cache = try R.values.Cache.fromMemory(a, .chunk512, &loaded.memory);
+        var initial_cache = if (options.poseidon_initial_cache) try R.values.Cache.fromMemory(a, .chunk512, &loaded.memory) else try R.values.Cache.empty(a, .chunk512);
         errdefer initial_cache.deinit();
-        return .{ .loaded = loaded, .authority = authority, .policy = policy, .initial_cache = initial_cache, .expected_output = expected };
+        return .{ .loaded = loaded, .authority = authority, .policy = policy, .initial_cache = initial_cache, .expected_output = expected, .has_initial_cache = options.poseidon_initial_cache };
     }
     pub fn deinit(self: *Request) void {
         self.initial_cache.deinit();

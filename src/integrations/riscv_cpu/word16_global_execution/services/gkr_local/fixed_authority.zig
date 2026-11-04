@@ -22,8 +22,8 @@ pub const Binding = struct {
         if (!std.mem.eql(u8, &source.root, &source.tree.root())) return error.FixedSetupIdentityMismatch;
         var lease = try cache.acquireFromKey(source, .{ .log_blowup = config.fri_config.log_blowup_factor });
         errdefer lease.deinit();
-        var cells: usize = 0;
-        for (lease.key.tree.coefficients orelse return error.MissingFixedSetupCoefficients) |column| cells = try std.math.add(usize, cells, column.coeffs.len);
+        // Constant key metadata, also for restored root-only verifier keys.
+        const cells = lease.key.cells;
         return .{ .lease = lease, .source_root = source.root, .source_suite = source.suite, .source_columns = source.tree.columns.len, .fixed_identity = lease.key.identity, .fixed_root = lease.key.root, .source_coefficient_cells = cells, .profile = profile };
     }
     pub fn retain(self: *const Binding) Binding {

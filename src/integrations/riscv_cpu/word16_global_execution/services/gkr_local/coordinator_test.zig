@@ -150,8 +150,11 @@ test "phase task admission retires only numerical GKR scratch and preserves PCS 
 fn admissionStage(comptime T: type) T {
     var result: T = undefined;
     inline for (std.meta.fields(T)) |field| {
-        if (@typeInfo(field.type) != .pointer) @compileError("admission stub expects callback/context pointers only");
-        @field(result, field.name) = @ptrFromInt(4096);
+        switch (@typeInfo(field.type)) {
+            .pointer => @field(result, field.name) = @ptrFromInt(4096),
+            .optional => @field(result, field.name) = null,
+            else => @compileError("admission stub expects callback/context pointers only"),
+        }
     }
     return result;
 }

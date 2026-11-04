@@ -38,6 +38,11 @@ pub const Stats = struct {
     join_wait_ns: u64 = 0,
     /// Parallel segment scheduling (segment_workers > 0 only).
     segments: ?Segments.Stats = null,
+    /// Batch 0 critical path, ns from `capture` start: batch handed over by
+    /// the walk, admitted (`Packet.fromNative`), captured (`captureOne`).
+    first_batch_ready_ns: u64 = 0,
+    first_batch_admit_ns: u64 = 0,
+    first_batch_capture_ns: u64 = 0,
 };
 const Job = struct {
     allocator: std.mem.Allocator,
@@ -56,17 +61,23 @@ const Job = struct {
     native: ?*Native = null,
     err: ?anyerror = null,
     thread: ?std.Thread = null,
+    /// Report-only durations of admission and capture.
+    admit_ns: u64 = 0,
+    capture_ns: u64 = 0,
     fn run(self: *Job) void {
+        var timer = std.time.Timer.start() catch null;
         const tape = self.tape.?;
         self.tape = null;
         self.packet = Packet.fromNative(tape, self.public, self.metadata, self.cells, self.chunks, self.image, self.config) catch |err| {
             self.err = err;
             return;
         };
+        if (timer) |*t| self.admit_ns = t.lap();
         self.native = Capture.Owner.captureOne(self.allocator, self.program, &self.packet.?, self.index) catch |err| {
             self.err = err;
             return;
         };
+        if (timer) |*t| self.capture_ns = t.read();
     }
     fn join(self: *Job) void {
         if (self.thread) |t| t.join();
@@ -144,6 +155,8 @@ const Consumer = struct {
     done: bool = false,
     err: ?anyerror = null,
     join_wait_ns: u64 = 0,
+    first_admit_ns: u64 = 0,
+    first_capture_ns: u64 = 0,
     fn run(self: *Consumer) void {
         while (self.runOne()) {}
     }
@@ -153,6 +166,10 @@ const Consumer = struct {
         var timer = std.time.Timer.start() catch null;
         job.join();
         if (timer) |*t| self.join_wait_ns += t.read();
+        if (job.index == 0) {
+            self.first_admit_ns = job.admit_ns;
+            self.first_capture_ns = job.capture_ns;
+        }
         if (self.err == null and !self.done) self.accept(job) catch |err| {
             self.err = err;
             self.queue.halt();
@@ -189,16 +206,51 @@ pub fn capture(a: std.mem.Allocator, image: *const Image.Owner, program: *const 
 pub fn captureWithSegments(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, prefix_packets: u32, inflight: u8, segment_workers: u8, stats: *Stats) !Capture.Owner {
     if (prefix_packets > 256) return error.TooManyEthereumPackets;
     if (inflight == 0 or inflight > MAX_INFLIGHT) return error.InvalidEthereumCaptureOptions;
-    var walk_config = config;
-    // Never collect batches the requested prefix will not consume.
-    if (prefix_packets != 0 and (walk_config.max_batches == 0 or walk_config.max_batches > prefix_packets)) walk_config.max_batches = prefix_packets;
-    var walk = try Walk.create(a, walk_config);
-    defer walk.destroy();
-    var source = try Segments.Source.init(a, walk, segment_workers);
-    defer {
-        if (source.segments) |seg| stats.segments = seg.stats;
-        source.deinit();
+    var started = try Started.start(a, config, prefix_packets, segment_workers);
+    defer started.deinit(stats);
+    return started.capture(image, program, inflight, stats);
+}
+/// The executing half of the handoff, started before the caller's expected
+/// image/program init so execution overlaps it: the walk's own request
+/// (pinned ELF/input, ROM authority, policy; no legacy Poseidon cache, see
+/// `Request.Options`), the fast first pass and, with segment workers, the
+/// first segment walks. Nothing here is admitted yet: every batch still goes
+/// through `Packet.fromNative` against the caller's independently loaded
+/// image and the ordered owner in `capture`. Heap-pinned (threads borrow it).
+pub const Started = struct {
+    allocator: std.mem.Allocator,
+    config: Request.Config,
+    prefix_packets: u32,
+    walk: *Walk,
+    source: Segments.Source,
+    pub fn start(a: std.mem.Allocator, config: Request.Config, prefix_packets: u32, segment_workers: u8) !*Started {
+        if (prefix_packets > 256) return error.TooManyEthereumPackets;
+        var walk_config = config;
+        // Never collect batches the requested prefix will not consume.
+        if (prefix_packets != 0 and (walk_config.max_batches == 0 or walk_config.max_batches > prefix_packets)) walk_config.max_batches = prefix_packets;
+        const self = try a.create(Started);
+        errdefer a.destroy(self);
+        const walk = try Walk.createWithOptions(a, walk_config, .{ .poseidon_initial_cache = false });
+        errdefer walk.destroy();
+        self.* = .{ .allocator = a, .config = config, .prefix_packets = prefix_packets, .walk = walk, .source = try Segments.Source.init(a, walk, segment_workers) };
+        errdefer self.source.deinit();
+        try self.source.prime();
+        return self;
     }
+    /// Joins every thread and frees the walk (also after a failed `capture`).
+    pub fn deinit(self: *Started, stats: *Stats) void {
+        if (self.source.segments) |seg| stats.segments = seg.stats;
+        self.source.deinit();
+        self.walk.destroy();
+        self.allocator.destroy(self);
+    }
+    /// Admits and captures every batch in index order. Call at most once.
+    pub fn capture(self: *Started, image: *const Image.Owner, program: *const Program, inflight: u8, stats: *Stats) !Capture.Owner {
+        return run(self.allocator, image, program, self.config, self.prefix_packets, inflight, self.walk, &self.source, stats);
+    }
+};
+fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, prefix_packets: u32, inflight: u8, walk: *Walk, source: *Segments.Source, stats: *Stats) !Capture.Owner {
+    if (inflight == 0 or inflight > MAX_INFLIGHT) return error.InvalidEthereumCaptureOptions;
     var ordered = Capture.Ordered.init(a, image, config, prefix_packets);
     defer ordered.deinit();
     var queue = Queue{};
@@ -222,6 +274,7 @@ pub fn captureWithSegments(a: std.mem.Allocator, image: *const Image.Owner, prog
         };
         stats.execution_ns += timer.read() - started;
         const step = maybe orelse break;
+        if (step.index == 0) stats.first_batch_ready_ns = timer.read();
         var finished = step.finished;
         defer finished.deinit();
         var tape = step.tape;
@@ -257,6 +310,10 @@ pub fn captureWithSegments(a: std.mem.Allocator, image: *const Image.Owner, prog
     if (consumer_thread) |t| t.join();
     consumer_thread = null;
     stats.join_wait_ns = consumer.join_wait_ns;
+    if (stats.batches != 0) {
+        stats.first_batch_admit_ns = stats.first_batch_ready_ns + consumer.first_admit_ns;
+        stats.first_batch_capture_ns = stats.first_batch_admit_ns + consumer.first_capture_ns;
+    }
     if (failure) |err| return err;
     if (consumer.err) |err| return err;
     stats.max_inflight = @max(1, stats.max_inflight);

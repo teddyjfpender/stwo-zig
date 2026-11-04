@@ -29,6 +29,83 @@ const FixedAuthority = @import("../services/gkr_local/fixed_authority.zig");
 const FixedSet = @import("../services/gkr_local/fixed_authority_set.zig").Set;
 const Candidate = @import("../../word16_execution/om31_security_candidate.zig");
 const SourceBounds = @import("../services/gkr_local/source_bounds.zig");
+const SetupCache = @import("setup_cache.zig");
+/// Producer-owned trusted setup acceleration; forbidden to fresh receivers.
+const SETUP_CACHE_ENV = "STWO_ZIG_RV64_SETUP_CACHE";
+/// A/B switch for the identity-only CPU source (default on).
+const IDENTITY_ONLY_ENV = "STWO_ZIG_RV64_SETUP_IDENTITY_ONLY_CPU";
+fn requireIndependentReceiverSetup(persisted_selected: bool) !void {
+    if (persisted_selected) return error.PersistedSetupCacheForbiddenForReceiver;
+}
+fn setupCacheOptions(a: std.mem.Allocator, mode: SetupCache.Mode, fixed_setup_bytes: usize) !struct { options: SetupCache.Options, owned: ?[]u8 } {
+    const dir = std.process.getEnvVarOwned(a, SETUP_CACHE_ENV) catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => null,
+        else => return err,
+    };
+    errdefer if (dir) |d| a.free(d);
+    const identity_only = blk: {
+        const v = std.process.getEnvVarOwned(a, IDENTITY_ONLY_ENV) catch break :blk true;
+        defer a.free(v);
+        break :blk !std.mem.eql(u8, v, "0");
+    };
+    const threads = blk: {
+        const v = std.process.getEnvVarOwned(a, "STWO_ZIG_RV64_SETUP_BUILD_THREADS") catch break :blk @as(usize, 8);
+        defer a.free(v);
+        break :blk std.fmt.parseUnsigned(usize, v, 10) catch return error.InvalidSetupBuildThreads;
+    };
+    const directory: ?[]const u8 = if (dir) |d| (if (d.len == 0) null else d) else null;
+    return .{ .options = .{ .mode = mode, .directory = directory, .fixed_setup_bytes = fixed_setup_bytes, .identity_only_cpu = identity_only, .max_build_threads = threads }, .owned = dir };
+}
+/// block_to_inputs phase report (observation only; never proof authority).
+/// Every *_at_ns is nanoseconds since gkr_main entry on the monotonic clock.
+const BlockToInputs = struct {
+    clock: []const u8 = "ns since gkr_main entry (monotonic)",
+    scope: []const u8,
+    init_done_at_ns: u64 = 0,
+    capture_done_at_ns: u64 = 0,
+    plan_done_at_ns: u64 = 0,
+    keys_done_at_ns: u64 = 0,
+    setup_done_at_ns: u64 = 0,
+    coordinator_admitted_at_ns: u64 = 0,
+    t_first_ns: u64 = 0,
+    t_first_any_ns: u64 = 0,
+    t_all_cpu_ns: u64 = 0,
+    t_all_ns: u64 = 0,
+    stages: struct { init_ns: u64 = 0, capture_import_ns: u64 = 0, plan_ns: u64 = 0, setup_ns: u64 = 0, setup_keys_ns: u64 = 0, setup_fixed_ns: u64 = 0, coordinator_admission_ns: u64 = 0 } = .{},
+    segments: []const Segment = &.{},
+    setup_cache: ?SetupCache.Stats = null,
+    /// Capture-relative timeline (init, segment 0 / last / all inputs, ledger).
+    capture: ?CaptureInputs = null,
+    const Segment = struct { ordinal: usize, kind: []const u8, source_begin_at_ns: u64, source_ready_at_ns: u64, source_ns: u64 };
+    fn finish(self: *BlockToInputs, a: std.mem.Allocator, timings: []const C.WorkerTiming, cpu_count: usize) !void {
+        const segments = try a.alloc(Segment, timings.len);
+        var first_any: u64 = std.math.maxInt(u64);
+        for (segments, timings, 0..) |*out, t, i| {
+            out.* = .{ .ordinal = i, .kind = if (i < cpu_count) "cpu" else "truth", .source_begin_at_ns = t.source_begin_ns, .source_ready_at_ns = t.source_ready_ns, .source_ns = t.source_ready_ns -| t.source_begin_ns };
+            if (i < cpu_count) {
+                self.t_all_cpu_ns = @max(self.t_all_cpu_ns, t.source_ready_ns);
+                first_any = @min(first_any, t.source_ready_ns);
+            }
+            self.t_all_ns = @max(self.t_all_ns, t.source_ready_ns);
+        }
+        self.segments = segments;
+        self.t_first_ns = if (timings.len != 0) timings[0].source_ready_ns else 0;
+        self.t_first_any_ns = if (first_any == std.math.maxInt(u64)) 0 else first_any;
+        self.stages = .{
+            .init_ns = self.init_done_at_ns,
+            .capture_import_ns = self.capture_done_at_ns -| self.init_done_at_ns,
+            .plan_ns = self.plan_done_at_ns -| self.capture_done_at_ns,
+            .setup_ns = self.setup_done_at_ns -| self.plan_done_at_ns,
+            .setup_keys_ns = self.keys_done_at_ns -| self.plan_done_at_ns,
+            .setup_fixed_ns = self.setup_done_at_ns -| self.keys_done_at_ns,
+            .coordinator_admission_ns = self.coordinator_admitted_at_ns -| self.setup_done_at_ns,
+        };
+    }
+};
+fn since(origin: std.time.Instant) u64 {
+    const now = std.time.Instant.now() catch return 0;
+    return now.since(origin);
+}
 const CANDIDATE_PROFILE = "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering";
 const CONJECTURED_PROFILE = "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering";
 /// Report label of a receiver-selected candidate profile (historical label for proven).
@@ -256,6 +333,7 @@ pub fn runWithResidentArgs(recycler: *Recycler, all_args: []const [:0]u8, stages
     return runArguments(recycler, all_args, stages, session, false, {});
 }
 fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: ?*ResidentSession, comptime enable_recursion: bool, recursion_execution: if (enable_recursion) CombinedRecursion else void) !void {
+    const process_start = try std.time.Instant.now();
     const recursion_factory = if (enable_recursion) recursion_execution.factory else {};
     const base = recycler.allocator();
     const device_pcs_stage = stages.pcs;
@@ -286,14 +364,22 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         if (recursion_factory == null and recursion_execution.ready == null) return error.CombinedRequiresDeviceRecursion;
         try stages.requireFullyResident();
     }
-    const candidate = inspect_schedule or combined or recurse or std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
+    const candidate = std.mem.eql(u8, args[1], "inputs-candidate") or inspect_schedule or combined or recurse or std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
     const verify = inspect_schedule or recurse or std.mem.eql(u8, args[1], "verify-control") or std.mem.eql(u8, args[1], "verify-candidate");
+    // Persisted roots are operator-trusted acceleration, never independent
+    // receiver authority. Fresh receivers always derive setup from source.
+    if (verify) try requireIndependentReceiverSetup(std.process.hasEnvVarConstant(SETUP_CACHE_ENV));
     const prefix = std.mem.eql(u8, args[1], "verify-prefix-control") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
+    if (prefix) try requireIndependentReceiverSetup(std.process.hasEnvVarConstant(SETUP_CACHE_ENV));
     const produce = combined or std.mem.eql(u8, args[1], "produce-control") or std.mem.eql(u8, args[1], "produce-candidate");
     const plan = std.mem.eql(u8, args[1], "plan");
     if (session != null and !produce) return error.ResidentSessionRequiresProducer;
     const capture_only = std.mem.eql(u8, args[1], "capture");
-    if (!verify and !prefix and !produce and !plan and !capture_only) return error.InvalidWideEthereumMode;
+    // Diagnostic: everything produce-candidate does up to every worker's
+    // prover inputs (setup + per-segment source build), then stops. No proof.
+    const inputs_only = std.mem.eql(u8, args[1], "inputs-candidate");
+    if (!verify and !prefix and !produce and !plan and !capture_only and !inputs_only) return error.InvalidWideEthereumMode;
+    if (inputs_only and args.len != 6) return error.ExpectedInputsConfigJobsPrefixAndResources;
     if (selection.explicit and !candidate) return error.SecurityProfileRequiresCandidateMode;
     const receiver_bytes: ?usize = if (inspect_schedule) @import("schedule_inspection.zig").live_bytes else if (verify or prefix) try ReceiverBudget.limit(args, candidate) else null;
     if (produce and args.len != 7) return error.ExpectedModeConfigJobsOutputPrefixAndResources;
@@ -333,7 +419,42 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     defer pool.deinit();
     var pool_binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer pool_binding.deinit();
+    // Producer modes: operational resources and the capture route are fixed
+    // before any image work so the in-process walk can start first.
+    var resources: ?Resources = null;
+    var control_resource_owner: ?std.json.Parsed(Resources) = null;
+    defer if (control_resource_owner) |*owner| owner.deinit();
+    var candidate_resource_owner: ?std.json.Parsed(CandidateResources) = null;
+    defer if (candidate_resource_owner) |*owner| owner.deinit();
+    if (produce or capture_only or inputs_only) {
+        const limits_bytes = try std.fs.cwd().readFileAlloc(a, args[if (capture_only or inputs_only) 5 else 6], 16384);
+        defer a.free(limits_bytes);
+        if (candidate) {
+            candidate_resource_owner = try std.json.parseFromSlice(CandidateResources, a, limits_bytes, .{});
+            try candidate_resource_owner.?.value.validate();
+            resources = candidate_resource_owner.?.value.operational();
+            fixed_setup_bytes = candidate_resource_owner.?.value.fixed_setup_bytes;
+        } else {
+            control_resource_owner = try std.json.parseFromSlice(Resources, a, limits_bytes, .{});
+            try control_resource_owner.?.value.validate();
+            resources = control_resource_owner.?.value;
+        }
+    }
+    if (combined and resources.?.park_main) return error.CombinedRequiresResidentMain;
+    const uniform_throughput = if (candidate_resource_owner) |owner| owner.value.keccak_uniform_throughput else false;
+    if (uniform_throughput and request.value.execution_profile != .ethereum_services_v3) return error.UniformThroughputRequiresServicesV3;
+    if (resources) |limits| _ = recycler.setCap(limits.recycler_cache_bytes);
+    const count: u32 = if (verify or prefix) 0 else try std.fmt.parseUnsigned(u32, args[if (plan or capture_only or inputs_only) 4 else 5], 10);
+    const direct_capture = !(verify or prefix) and std.mem.eql(u8, args[3], "-");
+    const capture_options = if (resources) |r| r.capture_options else CaptureOptions{};
+    if (!direct_capture and capture_options.execution_workers != 0) return error.ExecutionWorkersRequireDirectCapture;
     var timer = try std.time.Timer.start();
+    // JOBS="-": execution (and the first segment walks) overlaps the expected
+    // image/program init below; admission still happens batch by batch in
+    // `capture` against that independently loaded image.
+    var direct_stats: DirectCapture.Stats = .{};
+    var direct_started: ?*DirectCapture.Started = if (direct_capture) try DirectCapture.Started.start(a, request.value, count, capture_options.execution_workers) else null;
+    defer if (direct_started) |value| value.deinit(&direct_stats);
     var image = try Image.Owner.init(a, request.value);
     defer image.deinit();
     const image_load_ns = timer.read();
@@ -403,41 +524,19 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         if (fixed_cache) |*owner| return emit(a, .{ .profile = selected_profile, .security_qualified = false, .security_target = security_target, .security_profile = security_profile.name(), .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .verify_ns = timer.read() - setup_ns, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells, .source_accounting_profile = source_bounds.?.accounting_profile, .source_shape = source_bounds.?.shape, .source_lookup_only_conditional_degrees = source_bounds.?.conditional_degrees, .receiver_budget = receiver_budget.?.snapshot(), .receiver_recycler_cache_cap_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES, .receiver_worker_stack_upper_bound_bytes = try ReceiverBudget.stackBytes(try Request.effectiveWorkers(request.value)) });
         return emit(a, .{ .profile = PROFILE, .security_qualified = false, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .verify_ns = timer.read() - setup_ns });
     }
-    var resources: ?Resources = null;
-    var control_resource_owner: ?std.json.Parsed(Resources) = null;
-    defer if (control_resource_owner) |*owner| owner.deinit();
-    var candidate_resource_owner: ?std.json.Parsed(CandidateResources) = null;
-    defer if (candidate_resource_owner) |*owner| owner.deinit();
-    if (produce or capture_only) {
-        const limits_bytes = try std.fs.cwd().readFileAlloc(a, args[if (capture_only) 5 else 6], 16384);
-        defer a.free(limits_bytes);
-        if (candidate) {
-            candidate_resource_owner = try std.json.parseFromSlice(CandidateResources, a, limits_bytes, .{});
-            try candidate_resource_owner.?.value.validate();
-            resources = candidate_resource_owner.?.value.operational();
-            fixed_setup_bytes = candidate_resource_owner.?.value.fixed_setup_bytes;
-        } else {
-            control_resource_owner = try std.json.parseFromSlice(Resources, a, limits_bytes, .{});
-            try control_resource_owner.?.value.validate();
-            resources = control_resource_owner.?.value;
-        }
-    }
-    if (combined and resources.?.park_main) return error.CombinedRequiresResidentMain;
-    if (resources) |limits| _ = recycler.setCap(limits.recycler_cache_bytes);
-    const uniform_throughput = if (candidate_resource_owner) |owner| owner.value.keccak_uniform_throughput else false;
-    if (uniform_throughput and request.value.execution_profile != .ethereum_services_v3) return error.UniformThroughputRequiresServicesV3;
-    const count = try std.fmt.parseUnsigned(u32, args[if (plan or capture_only) 4 else 5], 10);
-    const direct_capture = std.mem.eql(u8, args[3], "-");
-    const capture_options = if (resources) |r| r.capture_options else CaptureOptions{};
-    if (!direct_capture and capture_options.execution_workers != 0) return error.ExecutionWorkersRequireDirectCapture;
+    var b2i = BlockToInputs{ .scope = if (inputs_only) "inputs-candidate diagnostic: sequential per-worker source build after setup; no proof" else "produce: per-worker source timestamps inside the scheduled prove" };
+    b2i.init_done_at_ns = since(process_start);
     const cpu_layout = Plan.CpuLayout.forGkrProfile(request.value.execution_profile);
     // The capture's AUIPC/JAL FUNCTION facts depend on the decode layout.
     if (cpu_layout.compact_decode) try program.makeCompact();
     const import_start = timer.read();
-    var direct_stats: DirectCapture.Stats = .{};
-    var captured = if (direct_capture)
-        try DirectCapture.captureWithSegments(a, &image, &program, request.value, count, capture_options.max_inflight_packets, capture_options.execution_workers, &direct_stats)
-    else capture: {
+    var captured = if (direct_started) |started| direct: {
+        defer {
+            started.deinit(&direct_stats);
+            direct_started = null;
+        }
+        break :direct try started.capture(&image, &program, capture_options.max_inflight_packets, &direct_stats);
+    } else capture: {
         var jobs = try std.fs.cwd().openDir(args[3], .{});
         defer jobs.close();
         break :capture try Capture.initWithOptions(a, &image, &program, request.value, jobs, count, capture_options.forPool(&pool));
@@ -446,6 +545,9 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const packet_import_ns = timer.read() - import_start;
     const capture_ns = timer.read();
     const capture_breakdown = .{ .image_load_ns = image_load_ns, .program_ns = program_ns, .pre_import_ns = import_start - image_load_ns - program_ns, .import_ns = packet_import_ns };
+    b2i.capture_done_at_ns = since(process_start);
+    const capture_inputs = CaptureInputs.of(&timer, import_start, capture_ns, &captured);
+    b2i.capture = capture_inputs;
     try program.releaseFixedWitness();
     const capture_cache_released = recycler.releaseCached();
     // Explicit authenticated service scope; classic-only encodings stay closed.
@@ -457,7 +559,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     if (capture_only) {
         const digest_start = timer.read();
         const digest = @import("capture_digest.zig").digest(image.identity, &captured);
-        return emit(a, .{ .scope = "producer capture diagnostic only; no proof or acceptance", .security_qualified = false, .total_steps = captured.total_steps, .final_pc = captured.final_pc, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_options = resources.?.capture_options, .capture_selection = captured.capture_schedule, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .image_and_import_ns = capture_ns, .capture_breakdown = capture_breakdown, .captured_values_sha256 = std.fmt.bytesToHex(digest, .lower), .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .diagnostic_digest_ns = timer.read() - digest_start });
+        return emit(a, .{ .scope = "producer capture diagnostic only; no proof or acceptance", .security_qualified = false, .total_steps = captured.total_steps, .final_pc = captured.final_pc, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_options = resources.?.capture_options, .capture_selection = captured.capture_schedule, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .image_and_import_ns = capture_ns, .capture_breakdown = capture_breakdown, .capture_inputs = capture_inputs, .captured_values_sha256 = std.fmt.bytesToHex(digest, .lower), .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .diagnostic_digest_ns = timer.read() - digest_start });
     }
     if (plan) return emit(a, .{ .profile = PROFILE, .security_qualified = false, .scope = "geometry advice only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
     const operational = resources.?;
@@ -480,21 +582,60 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         try C.assignSpongeIds(requests);
         source_bounds = try SourceBounds.derive(a, program.log_size, cpu, truths, requests);
     }
+    b2i.plan_done_at_ns = since(process_start);
+    var setup_cache: ?SetupCache.Cache = null;
+    var setup_dir: ?[]u8 = null;
+    defer if (setup_dir) |d| a.free(d);
+    if (candidate and session == null and std.process.hasEnvVarConstant(SETUP_CACHE_ENV)) {
+        const selected = try setupCacheOptions(a, .prover, fixed_setup_bytes);
+        setup_dir = selected.owned;
+        setup_cache = try SetupCache.Cache.init(a, .{ .log_blowup = pcs.fri_config.log_blowup_factor }, selected.options);
+        try setup_cache.?.bindRequest(request.value);
+    }
+    defer if (setup_cache) |*owner| owner.deinit();
     const producer_keys_start_ns = timer.read();
-    var keys = if (session) |shared| try shared.acquireKeys(&image, program.identity, cpu, truths, Suite.experimentalFold4()) else try Keys.initWithSuiteAndCaches(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches);
+    var keys = if (setup_cache) |*owner| try Keys.initResident(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches, owner) else if (session) |shared| try shared.acquireKeys(&image, program.identity, cpu, truths, Suite.experimentalFold4()) else try Keys.initWithSuiteAndCaches(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches);
     defer keys.deinit();
     const producer_keys_ns = timer.read() - producer_keys_start_ns;
+    b2i.keys_done_at_ns = since(process_start);
     const producer_fixed_start_ns = timer.read();
-    var local_fixed: ?FixedAuthority.Fixed.Cache = if (candidate and session == null) try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes) else null;
+    var local_fixed: ?FixedAuthority.Fixed.Cache = if (candidate and session == null and setup_cache == null) try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes) else null;
     defer if (local_fixed) |*owner| owner.deinit();
-    const fixed_cache: ?*FixedAuthority.Fixed.Cache = if (!candidate) null else if (session) |shared| try shared.fixedAuthority(fixed_setup_bytes) else &local_fixed.?;
+    const fixed_cache: ?*FixedAuthority.Fixed.Cache = if (!candidate) null else if (setup_cache) |*owner| &owner.fixed else if (session) |shared| try shared.fixedAuthority(fixed_setup_bytes) else &local_fixed.?;
     var fixed_set: ?FixedSet = if (fixed_cache) |owner| if (session) |shared| try FixedSet.initWithValidatedCatalogue(a, owner, keys.cpus, keys.truths, pcs, &shared.validated_fixed) else try FixedSet.init(a, owner, keys.cpus, keys.truths, pcs) else null;
     defer if (fixed_set) |*owner| owner.deinit();
     const producer_fixed_ns = timer.read() - producer_fixed_start_ns;
+    b2i.setup_done_at_ns = since(process_start);
     const expected = P.Expected{ .admission = Driver.admission(&image), .program_identity = program.identity, .total_steps = captured.total_steps, .max_total_steps = request.value.max_steps, .final_pc = captured.final_pc, .final_registers = captured.final_registers };
     const completed = count == 0;
     if (combined and !completed) return error.CombinedRequiresCompleteExecution;
     if (completed and expected.final_pc != image.terminal_pc) return error.MissingEthereumTerminalPacket;
+    if (inputs_only) {
+        const timings = try a.alloc(C.WorkerTiming, keys.cpus.len + keys.truths.len);
+        defer a.free(timings);
+        try C.buildInputsOnly(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, if (fixed_set) |*authority| authority else null, process_start, timings, &b2i.coordinator_admitted_at_ns);
+        b2i.setup_cache = if (setup_cache) |*owner| owner.stats else null;
+        try b2i.finish(a, timings, keys.cpus.len);
+        defer a.free(b2i.segments);
+        // In-process residency: the setup of a next block with the same rungs
+        // in this process (Keys + FixedSet again, all from the resident cache).
+        var resident_setup_ns: ?u64 = null;
+        var resident_stats: ?SetupCache.Stats = null;
+        if (setup_cache) |*owner| {
+            const before = owner.stats.resident_hits;
+            var clock = try std.time.Timer.start();
+            var again = try Keys.initResident(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches, owner);
+            defer again.deinit();
+            var again_set = try FixedSet.init(a, &owner.fixed, again.cpus, again.truths, pcs);
+            defer again_set.deinit();
+            resident_setup_ns = clock.read();
+            try FixedSet.require(&again_set, again.cpus, again.truths, pcs);
+            if (owner.stats.resident_hits - before != again.cpus.len + again.truths.len) return error.SetupCacheResidencyMiss;
+            resident_stats = owner.stats;
+        }
+        if (setup_cache) |*owner| try owner.persist();
+        return emit(a, .{ .scope = "producer block_to_inputs diagnostic only; no proof or acceptance", .security_qualified = false, .total_steps = captured.total_steps, .cpu_proofs = keys.cpus.len, .truth_proofs = keys.truths.len, .block_to_inputs = b2i, .resident_next_block_setup_ns = resident_setup_ns, .resident_stats = resident_stats, .setup_cache_after_persist = if (setup_cache) |*owner| owner.stats else null, .fixed_setup = if (fixed_cache) |owner| owner.snapshot() else null });
+    }
     try std.fs.cwd().makeDir(args[4]);
     // Linux's path-only descriptor cannot be fsync'd. The producer publishes
     // durable bundle entries, so keep an ordinary readable directory handle.
@@ -512,7 +653,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const capture_before_proving = captured.ownership();
     var gkr_tree_policy = @import("../services/gkr_local/child.zig").TreePolicy{};
     const prove_start = timer.read();
-    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .cpu_replay_stage = stages.cpu_replay, .device_source_stage = stages.source, .device_global_stage = stages.global_interaction, .device_trace_commit_stage = stages.trace_commit, .device_cpu_projection = stages.cpu_projection, .device_pcs_stage = device_pcs_stage, .truth_device_pcs_stage = stages.truth_pcs, .truth_device_composition_stage = stages.truth_composition, .truth_device_source_stage = stages.truth_source, .om31_composition_stage = om31_composition_stage, .resident_composition_stage = resident_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
+    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .epoch = process_start, .admitted_at_ns = &b2i.coordinator_admitted_at_ns, .cpu_replay_stage = stages.cpu_replay, .device_source_stage = stages.source, .device_global_stage = stages.global_interaction, .device_trace_commit_stage = stages.trace_commit, .device_cpu_projection = stages.cpu_projection, .device_pcs_stage = device_pcs_stage, .truth_device_pcs_stage = stages.truth_pcs, .truth_device_composition_stage = stages.truth_composition, .truth_device_source_stage = stages.truth_source, .om31_composition_stage = om31_composition_stage, .resident_composition_stage = resident_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
     const capture_after_proving = captured.ownership();
@@ -526,9 +667,13 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const verify_ns = timer.read() - verify_start;
     const publish_start_ns = timer.read();
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
+    b2i.setup_cache = if (setup_cache) |*owner| owner.stats else null;
+    try b2i.finish(a, worker_timings, keys.cpus.len);
+    defer a.free(b2i.segments);
     const native_publish_ns = timer.read() - publish_start_ns;
-    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .keccak_uniform_throughput = uniform_throughput, .resources = operational, .capture_ns = capture_ns, .capture_breakdown = capture_breakdown, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
+    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .keccak_uniform_throughput = uniform_throughput, .resources = operational, .capture_ns = capture_ns, .capture_breakdown = capture_breakdown, .block_to_inputs = b2i, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
     if (fixed_cache) |owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
+    if (setup_cache) |*owner| try owner.persist();
     if (source_bounds) |*value| try Driver.writeJson(a, dir, "candidate-source-bounds.json", .{ .profile = selected_profile, .security_qualified = false, .accounting_profile = value.accounting_profile, .shape = value.shape, .cpu_scopes = value.cpu_scopes, .truth_scopes = value.truth_scopes, .global_signed = value.global_signed, .global_denominator_slots = value.global_denominator_slots, .lookup_only_conditional_degrees = value.conditional_degrees, .transcript_round_bound_qualified = value.transcript_round_bound_qualified, .secp_polynomial_error_budget_qualified = value.secp_polynomial_error_budget_qualified });
     try std.posix.fsync(dir.fd);
     if (combined) {
@@ -574,6 +719,28 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         return emit(a, report);
     }
 }
+/// Producer block-to-inputs timeline, nanoseconds on this CLI's clock (started
+/// after request parse and pool start). Report-only; no protocol effect. On the
+/// packet route it excludes the separate `nativeprepare` process.
+const CaptureInputs = struct {
+    /// Expected image + program init (and compact decode), before capture.
+    init_ns: u64,
+    /// Segment 0 inputs ready: captured, admitted and its ledger shard built.
+    first_inputs_ns: ?u64,
+    /// Last segment's ledger shard built.
+    last_inputs_ns: ?u64,
+    /// All segment inputs ready, including the global boundary cells.
+    all_inputs_ns: u64,
+    /// Serial ordered ledger, summed over segments; and its `finish`.
+    ledger_ns: u64,
+    ledger_finish_ns: u64,
+    fn of(timer: *const std.time.Timer, init_ns: u64, all_ns: u64, captured: *const Capture) CaptureInputs {
+        return .{ .init_ns = init_ns, .first_inputs_ns = sinceTimer(timer, captured.first_inputs_at), .last_inputs_ns = sinceTimer(timer, captured.last_inputs_at), .all_inputs_ns = all_ns, .ledger_ns = captured.timing.ledger_ns, .ledger_finish_ns = captured.timing.finish_ns };
+    }
+    fn sinceTimer(timer: *const std.time.Timer, at: ?std.time.Instant) ?u64 {
+        return if (at) |value| value.since(timer.started) else null;
+    }
+};
 fn emit(a: std.mem.Allocator, value: anytype) !void {
     const json = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });
     defer a.free(json);
@@ -776,4 +943,9 @@ test "uniform resident Keccak resource is opt-in and cannot select security" {
 test "combined mode is explicit and cannot be confused with native or cache modes" {
     try std.testing.expect(isCombinedProducer("produce-and-recurse-candidate"));
     for ([_][]const u8{ "produce-candidate", "produce-control", "recurse-candidate", "resume-recursion-candidate", "verify-candidate" }) |mode| try std.testing.expect(!isCombinedProducer(mode));
+}
+
+test "fresh receiver never admits persisted producer setup roots" {
+    try requireIndependentReceiverSetup(false);
+    try std.testing.expectError(error.PersistedSetupCacheForbiddenForReceiver, requireIndependentReceiverSetup(true));
 }

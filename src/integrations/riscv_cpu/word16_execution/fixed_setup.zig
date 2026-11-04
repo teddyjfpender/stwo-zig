@@ -75,6 +75,12 @@ pub const WideFixedKey = struct {
     root: [32]u8,
     allocator: std.mem.Allocator,
     tree: Tree,
+    /// Committed coefficient cells (constant metadata; also for root-only keys).
+    cells: usize = 0,
+    /// Verifier key restored from an authenticated receiver setup artifact:
+    /// identity, root and shape only. It can bind a statement/transcript but
+    /// can never be appended to a prover PCS.
+    root_only: bool = false,
     fn seal(a: std.mem.Allocator, budget: *Budget, native: *const Native.Cache, coefficients: []const Coefficient, descriptor: CommitmentDescriptor, id: [32]u8) !WideFixedKey {
         var scheme = try Scheme.init(a, try configuration(descriptor));
         defer scheme.deinit(a);
@@ -97,7 +103,9 @@ pub const WideFixedKey = struct {
             tree.shared_owner.?.tree.backing_teardown = token;
             tree.backing_teardown = token;
         }
-        return .{ .descriptor = descriptor, .identity = id, .root = tree.root(), .allocator = a, .tree = tree };
+        var cells: usize = 0;
+        for (coefficients) |c| cells += c.coeffs.len;
+        return .{ .descriptor = descriptor, .identity = id, .root = tree.root(), .allocator = a, .tree = tree, .cells = cells };
     }
     pub fn require(self: *const WideFixedKey, descriptor: CommitmentDescriptor, id: [32]u8, root: [32]u8) !void {
         try descriptor.validate();
@@ -107,6 +115,7 @@ pub const WideFixedKey = struct {
     /// Independently establish authority from the trusted original setup. A
     /// producer's root/identity alone cannot select another program/table key.
     pub fn requireSource(self: *const WideFixedKey, source: anytype) !void {
+        if (self.root_only) return error.RootOnlyFixedSetupKey;
         const coefficients = try sourceCoefficients(source);
         const expected = try coefficientIdentity(coefficients, self.descriptor);
         try self.require(self.descriptor, expected, self.root);
@@ -116,6 +125,7 @@ pub const WideFixedKey = struct {
     /// lease retains its own allocator lifetime even after cache/key release.
     pub fn append(self: *const WideFixedKey, a: std.mem.Allocator, scheme: anytype, channel: anytype, descriptor: CommitmentDescriptor, id: [32]u8, root: [32]u8, expected_config: core.pcs.PcsConfig) !void {
         try self.require(descriptor, id, root);
+        if (self.root_only) return error.RootOnlyFixedSetupKey;
         if (scheme.trees.items.len != 0 or scheme.pending_commit != null or scheme.revision_config != null or scheme.config.fri_config.log_blowup_factor != self.descriptor.log_blowup or scheme.config.lifting_log_size != null or !std.meta.eql(scheme.config, expected_config)) return error.InvalidWideFixedSetupPhase;
         var lease = self.tree.retainShared();
         errdefer lease.deinit(self.allocator);
@@ -126,7 +136,21 @@ pub const WideFixedKey = struct {
         self.* = undefined;
     }
 };
-const Entry = struct { key: WideFixedKey };
+/// Receiver-derived source identity of an entry: the trusted source key's
+/// root (a binding commitment to its coefficients), suite and column count.
+/// It is never producer metadata.
+pub const SourceTag = struct {
+    root: [32]u8,
+    pcs: core.pcs.PcsConfig,
+    columns: usize,
+    pub fn of(source: anytype) SourceTag {
+        return .{ .root = source.root, .pcs = source.suite.config(), .columns = source.tree.columns.len };
+    }
+    fn eql(self: SourceTag, other: SourceTag) bool {
+        return std.mem.eql(u8, &self.root, &other.root) and std.meta.eql(self.pcs, other.pcs) and self.columns == other.columns;
+    }
+};
+const Entry = struct { key: WideFixedKey, source: ?SourceTag = null };
 const State = struct {
     budget: *Budget,
     native: Native.Cache,
@@ -135,6 +159,7 @@ const State = struct {
     entries: std.ArrayList(*Entry) = .empty,
     hits: u64 = 0,
     seals: u64 = 0,
+    loads: u64 = 0,
     fn retain(self: *State) void {
         const old = self.references.fetchAdd(1, .monotonic);
         if (old >= std.math.maxInt(usize) / 2) @panic("too many fixed setup leases");
@@ -165,7 +190,7 @@ pub const Lease = struct {
         self.* = undefined;
     }
 };
-pub const Snapshot = struct { limit_bytes: usize, live_bytes: usize, peak_bytes: usize, keys: usize, hits: u64, seals: u64, refused: bool, native_coefficients: Native.Snapshot };
+pub const Snapshot = struct { limit_bytes: usize, live_bytes: usize, peak_bytes: usize, keys: usize, hits: u64, seals: u64, loads: u64 = 0, refused: bool, native_coefficients: Native.Snapshot };
 pub const Cache = struct {
     state: *State,
     /// Includes cache/control metadata and sealing scratch, not RSS. No global
@@ -191,9 +216,12 @@ pub const Cache = struct {
         state.mutex.lock();
         defer state.mutex.unlock();
         const b = state.budget.snapshot();
-        return .{ .limit_bytes = b.limit + @sizeOf(Budget), .live_bytes = b.live_bytes + @sizeOf(Budget), .peak_bytes = b.peak_live_bytes + @sizeOf(Budget), .keys = state.entries.items.len, .hits = state.hits, .seals = state.seals, .refused = b.exceeded, .native_coefficients = state.native.snapshot() };
+        return .{ .limit_bytes = b.limit + @sizeOf(Budget), .live_bytes = b.live_bytes + @sizeOf(Budget), .peak_bytes = b.peak_live_bytes + @sizeOf(Budget), .keys = state.entries.items.len, .hits = state.hits, .seals = state.seals, .loads = state.loads, .refused = b.exceeded, .native_coefficients = state.native.snapshot() };
     }
     pub fn acquireCoefficients(self: *const Cache, coefficients: []const Coefficient, descriptor: CommitmentDescriptor) !Lease {
+        return self.acquireCoefficientsTagged(coefficients, descriptor, null);
+    }
+    fn acquireCoefficientsTagged(self: *const Cache, coefficients: []const Coefficient, descriptor: CommitmentDescriptor, tag: ?SourceTag) !Lease {
         // Opt-in diagnostics only; no timer starts on the normal path.
         var timing: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING")) std.time.Timer.start() catch null else null;
         const id = try coefficientIdentity(coefficients, descriptor);
@@ -205,6 +233,7 @@ pub const Cache = struct {
             // Independently supplied equivalent setup is accepted only after
             // checking actual ordered native coefficients, not a producer ID.
             if (!std.meta.eql(descriptor, entry.key.descriptor) or !coefficientsEqual(coefficients, entry.key.tree.coefficients orelse return error.MissingFixedSetupCoefficients)) return error.FixedSetupDigestCollision;
+            if (entry.source == null) entry.source = tag;
             state.hits += 1;
             state.retain();
             if (timing) |*clock| std.log.info("immutable fixed acquire: path=hit columns={} blowup={} identity_ns={} equality_and_lookup_ns={} total_ns={}", .{ coefficients.len, descriptor.log_blowup, identity_ns, clock.read() - identity_ns, clock.read() });
@@ -215,7 +244,7 @@ pub const Cache = struct {
         const entry = try a.create(Entry);
         errdefer a.destroy(entry);
         const seal_start_ns = if (timing) |*clock| clock.read() else 0;
-        entry.* = .{ .key = try WideFixedKey.seal(a, state.budget, &state.native, coefficients, descriptor, id) };
+        entry.* = .{ .key = try WideFixedKey.seal(a, state.budget, &state.native, coefficients, descriptor, id), .source = tag };
         if (timing) |*clock| std.log.info("immutable fixed acquire: path=seal columns={} blowup={} identity_ns={} lookup_and_control_ns={} seal_ns={} total_ns={}", .{ coefficients.len, descriptor.log_blowup, identity_ns, seal_start_ns - identity_ns, clock.read() - seal_start_ns, clock.read() });
         state.entries.appendAssumeCapacity(entry);
         state.seals += 1;
@@ -226,8 +255,107 @@ pub const Cache = struct {
     /// Truth: cache.acquireFromKey(truth.key(), descriptor).
     /// The source key remains live until this synchronous call returns.
     pub fn acquireFromKey(self: *const Cache, source: anytype, descriptor: CommitmentDescriptor) !Lease {
+        try source.suite.validate();
+        try descriptor.validate();
+        // Only explicitly restored root-only sources may use their trusted
+        // artifact tag. A new coefficient-bearing source must validate its
+        // actual body, even if it copies another source's root/suite/shape.
+        // Resident frozen ownership is separately admitted by ValidatedCatalogue.
+        const tag = SourceTag.of(source);
+        if (source.tree.coefficients == null) {
+            if (self.acquireTagged(tag, descriptor)) |lease| return lease;
+        }
         const coefficients = try sourceCoefficients(source);
-        return self.acquireCoefficients(coefficients, descriptor);
+        return self.acquireCoefficientsTagged(coefficients, descriptor, tag);
+    }
+    fn acquireTagged(self: *const Cache, tag: SourceTag, descriptor: CommitmentDescriptor) ?Lease {
+        const state = self.state;
+        state.mutex.lock();
+        defer state.mutex.unlock();
+        for (state.entries.items) |entry| if (entry.source) |known| if (known.eql(tag) and std.meta.eql(descriptor, entry.key.descriptor)) {
+            state.hits += 1;
+            state.retain();
+            return .{ .state = state, .key = &entry.key };
+        };
+        return null;
+    }
+    /// Lease on the entry derived from this source tag, without counting a hit
+    /// (artifact export only).
+    pub fn lookupSource(self: *const Cache, tag: SourceTag, descriptor: CommitmentDescriptor) ?Lease {
+        const state = self.state;
+        state.mutex.lock();
+        defer state.mutex.unlock();
+        for (state.entries.items) |entry| if (entry.source) |known| if (known.eql(tag) and std.meta.eql(descriptor, entry.key.descriptor)) {
+            state.retain();
+            return .{ .state = state, .key = &entry.key };
+        };
+        return null;
+    }
+    /// Allocator of this cache's hard budget; loaders allocate adopted trees here.
+    pub fn budgetAllocator(self: *const Cache) std.mem.Allocator {
+        return self.state.budget.allocator();
+    }
+    /// A key restored from an authenticated receiver setup artifact. `tree` is
+    /// exclusive and unshared, allocated with `budgetAllocator()`: compact columns
+    /// with individually owned coefficients and the retained Merkle layers
+    /// (prover), or a root-only shape tree (verifier, `root_only`).
+    pub const Restored = struct {
+        descriptor: CommitmentDescriptor,
+        identity: [32]u8,
+        root: [32]u8,
+        cells: usize,
+        source: SourceTag,
+        tree: Tree,
+        root_only: bool,
+        /// Native sharing digest per column (fixed_native_cache.columnDigest);
+        /// only a lookup hint: a hit still compares every value.
+        column_digests: []const [32]u8 = &.{},
+    };
+    /// Adopt a restored key. Consumes `restored.tree` on success and failure.
+    /// An entry with the same source tag or identity is reused instead (an
+    /// identity match must agree on descriptor, root and, when both carry
+    /// them, every coefficient).
+    pub fn adopt(self: *const Cache, restored: *Restored) !Lease {
+        const state = self.state;
+        const a = state.budget.allocator();
+        var tree = restored.tree;
+        var tree_owned = true;
+        errdefer if (tree_owned) tree.deinit(a);
+        try restored.descriptor.validate();
+        if (!std.mem.eql(u8, &tree.root(), &restored.root)) return error.FixedSetupRootMismatch;
+        if (tree.shared_owner != null or tree.backing_teardown != null or !tree.compact_polynomials) return error.InvalidFixedSetupTree;
+        if (restored.root_only != (tree.coefficients == null)) return error.InvalidFixedSetupTree;
+        state.mutex.lock();
+        defer state.mutex.unlock();
+        for (state.entries.items) |entry| {
+            const same_source = if (entry.source) |known| known.eql(restored.source) else false;
+            if (!same_source and !std.mem.eql(u8, &entry.key.identity, &restored.identity)) continue;
+            if (!std.meta.eql(entry.key.descriptor, restored.descriptor) or !std.mem.eql(u8, &entry.key.identity, &restored.identity)) return error.FixedSetupIdentityMismatch;
+            if (!std.mem.eql(u8, &entry.key.root, &restored.root)) return error.FixedSetupRootMismatch;
+            if (entry.key.tree.coefficients) |known| if (tree.coefficients) |loaded| if (!coefficientsEqual(known, loaded)) return error.FixedSetupDigestCollision;
+            if (entry.source == null) entry.source = restored.source;
+            tree.deinit(a);
+            tree_owned = false;
+            state.hits += 1;
+            state.retain();
+            return .{ .state = state, .key = &entry.key };
+        }
+        try state.entries.ensureUnusedCapacity(a, 1);
+        const entry = try a.create(Entry);
+        errdefer a.destroy(entry);
+        try tree.share(a);
+        if (!restored.root_only) _ = try state.native.internExclusiveSharedTreeBeforePublicationWithDigests(a, &tree, restored.column_digests);
+        if (tree.backing_teardown == null) {
+            const token = engine.pcs.BackingTeardownToken.init(state.budget.retain(), 0, releaseBudget);
+            tree.shared_owner.?.tree.backing_teardown = token;
+            tree.backing_teardown = token;
+        }
+        tree_owned = false;
+        entry.* = .{ .key = .{ .descriptor = restored.descriptor, .identity = restored.identity, .root = restored.root, .allocator = a, .tree = tree, .cells = restored.cells, .root_only = restored.root_only }, .source = restored.source };
+        state.entries.appendAssumeCapacity(entry);
+        state.loads += 1;
+        state.retain();
+        return .{ .state = state, .key = &entry.key };
     }
 };
 
