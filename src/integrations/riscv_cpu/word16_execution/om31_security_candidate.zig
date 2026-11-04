@@ -361,6 +361,12 @@ pub const CandidateProfile = enum {
     c2_b16_q27_p20_fold3,
     /// C2 final compress, FRI arity 16 (same arity as today's fold4).
     c2_b16_q27_p20_fold4,
+    /// C1 alternative (M6 model): blowup 16, 27 queries. 4*27 + 20 = 128. Fewer C1
+    /// queries -> fewer Blake2s compressions for C2 to verify (C2 height).
+    c1_b16_q27_p20_fold4,
+    /// C2 recommended by the M6 size model (rv64-m7-compress-profiles.md): blowup 64,
+    /// 18 queries, FRI arity 8, last layer 2^3. 6*18 + 20 = 128.
+    c2_b64_q18_p20_fold3,
 
     pub fn name(self: CandidateProfile) []const u8 {
         return @tagName(self);
@@ -381,28 +387,31 @@ pub const CandidateSpec = struct {
     /// changes a soundness term; each changes bytes, so each is hashed.
     /// log2 of the Merkle cap: the commitment is the 2^cap_log nodes at that
     /// level (all mixed into the transcript), paths stop below it. 0 = root.
+    /// The M6 model [D] shows a 16-node cap is a net LOSS (+3.4 KB) because the
+    /// core decommitment (vcs_lifted) is already a canonical batched multiproof
+    /// (WitnessTooShort/TooLong), whose top log2(q) levels are nearly free. So
+    /// every registered candidate keeps 0; the field is reserved and hashed.
     merkle_cap_log: u32 = 0,
     /// log2 Merkle arity (1 = binary, today's Blake2s hasher; 2 = arity 4 needs
     /// a new hasher and is not registered).
     merkle_arity_log: u32 = 1,
-    /// Batched (deduplicated) decommitment: the verifier recomputes shared
-    /// nodes; the wire carries exactly the canonical sibling set.
-    multiproof: bool = false,
     // The pruned last FRI layer is `log_last_layer` above (core already sends
     // the last layer as 2^log_last_layer coefficients): stopping FRI 3 layers
     // early drops those layers' sibling openings from every query.
 };
-pub const CANDIDATE_PROFILES = [_]CandidateProfile{ .d2_native_b4_q54_p20_fold4, .m3_outer_b4_q51_p26_fold4, .m3_outer_b8_q34_p26_fold4, .c1_b8_q36_p20_fold4, .c2_b16_q27_p20_fold3, .c2_b16_q27_p20_fold4 };
+pub const CANDIDATE_PROFILES = [_]CandidateProfile{ .d2_native_b4_q54_p20_fold4, .m3_outer_b4_q51_p26_fold4, .m3_outer_b8_q34_p26_fold4, .c1_b8_q36_p20_fold4, .c2_b16_q27_p20_fold3, .c2_b16_q27_p20_fold4, .c1_b16_q27_p20_fold4, .c2_b64_q18_p20_fold3 };
 pub fn candidateSpec(profile: CandidateProfile) CandidateSpec {
     return switch (profile) {
         .d2_native_b4_q54_p20_fold4 => .{ .layer = .native, .log_blowup = 2, .queries = 54, .pow_bits = 20, .fold_step = 4, .domain = "rv64-om31-native-d2-b4-q54-p20-fold4/CANDIDATE-v1" },
         .m3_outer_b4_q51_p26_fold4 => .{ .layer = .outer, .log_blowup = 2, .queries = 51, .pow_bits = 26, .fold_step = 4, .domain = "stwo/circuit/native-om31/m3-b4-q51-p26-fold4/lens-v1" },
         .m3_outer_b8_q34_p26_fold4 => .{ .layer = .outer, .log_blowup = 3, .queries = 34, .pow_bits = 26, .fold_step = 4, .domain = "stwo/circuit/native-om31/m3-b8-q34-p26-fold4/lens-v1" },
-        // C1 runs on device in the request path: caps + multiproof only (cheap host
-        // framing); C2 is the shipped compact proof and takes every framing lever.
-        .c1_b8_q36_p20_fold4 => .{ .layer = .compress1, .log_blowup = 3, .queries = 36, .pow_bits = 20, .fold_step = 4, .domain = "stwo/circuit/native-om31/c1-b8-q36-p20-fold4/lens-v1", .merkle_cap_log = 4, .multiproof = true },
-        .c2_b16_q27_p20_fold3 => .{ .layer = .compress2, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 3, .log_last_layer = 3, .domain = "stwo/circuit/native-om31/c2-b16-q27-p20-fold3/lens-v1", .merkle_cap_log = 4, .multiproof = true },
-        .c2_b16_q27_p20_fold4 => .{ .layer = .compress2, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 4, .log_last_layer = 3, .domain = "stwo/circuit/native-om31/c2-b16-q27-p20-fold4/lens-v1", .merkle_cap_log = 4, .multiproof = true },
+        // C2 entries stop FRI at degree 8 (log_last_layer 3); no candidate uses caps
+        // (rv64-m7-compress-profiles.md: net loss under the core multiproof).
+        .c1_b8_q36_p20_fold4 => .{ .layer = .compress1, .log_blowup = 3, .queries = 36, .pow_bits = 20, .fold_step = 4, .domain = "stwo/circuit/native-om31/c1-b8-q36-p20-fold4/lens-v1" },
+        .c2_b16_q27_p20_fold3 => .{ .layer = .compress2, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 3, .log_last_layer = 3, .domain = "stwo/circuit/native-om31/c2-b16-q27-p20-fold3/lens-v1" },
+        .c2_b16_q27_p20_fold4 => .{ .layer = .compress2, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 4, .log_last_layer = 3, .domain = "stwo/circuit/native-om31/c2-b16-q27-p20-fold4/lens-v1" },
+        .c1_b16_q27_p20_fold4 => .{ .layer = .compress1, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 4, .domain = "stwo/circuit/native-om31/c1-b16-q27-p20-fold4/lens-v1" },
+        .c2_b64_q18_p20_fold3 => .{ .layer = .compress2, .log_blowup = 6, .queries = 18, .pow_bits = 20, .fold_step = 3, .log_last_layer = 3, .domain = "stwo/circuit/native-om31/c2-b64-q18-p20-fold3/lens-v1" },
     };
 }
 pub fn candidateConfig(profile: CandidateProfile) core.pcs.PcsConfig {
@@ -439,7 +448,7 @@ pub fn candidateIdentity(profile: CandidateProfile) [32]u8 {
     h.update(profile.name());
     h.update(s.domain);
     h.update(&Channel.profile.identity());
-    for ([_]u64{ @intFromEnum(s.layer), s.log_blowup, s.queries, s.pow_bits, s.fold_step, s.log_last_layer, candidateConjecturedBits(profile), TARGET_BITS, s.merkle_cap_log, s.merkle_arity_log, @intFromBool(s.multiproof) }) |n| {
+    for ([_]u64{ @intFromEnum(s.layer), s.log_blowup, s.queries, s.pow_bits, s.fold_step, s.log_last_layer, candidateConjecturedBits(profile), TARGET_BITS, s.merkle_cap_log, s.merkle_arity_log }) |n| {
         var bytes: [8]u8 = undefined;
         std.mem.writeInt(u64, &bytes, n, .little);
         h.update(&bytes);

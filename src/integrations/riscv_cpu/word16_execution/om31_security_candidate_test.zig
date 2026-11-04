@@ -220,10 +220,9 @@ test "m7 candidate layers pin plan parameters (D2, recsize outer, C1, C2 fold 8/
     // FRI layer count for a 2^20-row C2 trace: ceil(20/3)=7 vs ceil(20/4)=5 (core nFoldSteps rule).
     try std.testing.expectEqual(@as(usize, 7), core.fri.nFoldSteps(20, c2a.fold_step));
     try std.testing.expectEqual(@as(usize, 5), core.fri.nFoldSteps(20, c2b.fold_step));
-    // M6 framing (rv64-m7-compress-profiles.md): 16-node caps + multiproof on C1 and C2,
+    // M6 framing (rv64-m7-compress-profiles.md): no caps anywhere (net loss under the core multiproof [D]);
     // C2 stops FRI at degree 8 (log_last_layer 3): a 2^17 C2 trace folds a degree ratio of 14.
-    try std.testing.expectEqual(@as(u32, 4), c1.merkle_cap_log);
-    try std.testing.expect(c1.multiproof and c2a.multiproof and c2b.multiproof);
+    for (C.CANDIDATE_PROFILES) |p| try std.testing.expectEqual(@as(u32, 0), C.candidateSpec(p).merkle_cap_log);
     try std.testing.expectEqual(@as(u32, 0), c1.log_last_layer);
     try std.testing.expectEqual(@as(u32, 3), c2a.log_last_layer);
     try std.testing.expectEqual(@as(u32, 3), C.candidateConfig(.c2_b16_q27_p20_fold3).fri_config.log_last_layer_degree_bound);
@@ -231,14 +230,18 @@ test "m7 candidate layers pin plan parameters (D2, recsize outer, C1, C2 fold 8/
     try std.testing.expectEqual(@as(usize, 4), core.fri.nFoldSteps(17 - c2b.log_last_layer, c2b.fold_step));
     // Binary Merkle only: arity 4 needs a new hasher and a new profile id.
     for (C.CANDIDATE_PROFILES) |p| try std.testing.expectEqual(@as(u32, 1), C.candidateSpec(p).merkle_arity_log);
-    // Framing is identity-relevant: the same PCS with different caps is a different candidate.
     try std.testing.expect(!std.mem.eql(u8, &C.candidateIdentity(.c2_b16_q27_p20_fold3), &C.candidateIdentity(.c2_b16_q27_p20_fold4)));
-    // Native and outer candidates keep today's root commitment framing (no cap, no multiproof).
-    for ([_]C.CandidateProfile{ .d2_native_b4_q54_p20_fold4, .m3_outer_b4_q51_p26_fold4, .m3_outer_b8_q34_p26_fold4 }) |p| {
-        const s = C.candidateSpec(p);
-        try std.testing.expectEqual(@as(u32, 0), s.merkle_cap_log);
-        try std.testing.expect(!s.multiproof);
-    }
+    // M6 model picks: C2 b64 q18 (6*18 + 20 = 128, Johnson x2 18*6 + 40 = 148) and C1 b16 q27 (4*27 + 20 = 128, 148).
+    const c2m = C.candidateSpec(.c2_b64_q18_p20_fold3);
+    try std.testing.expectEqual(C.Layer.compress2, c2m.layer);
+    try std.testing.expectEqual(@as(u32, 128), C.candidateConjecturedBits(.c2_b64_q18_p20_fold3));
+    try std.testing.expectEqual(@as(u32, 148), C.candidateJohnsonBitsTimes2(.c2_b64_q18_p20_fold3));
+    try std.testing.expectEqual(@as(u32, 3), c2m.fold_step);
+    try std.testing.expectEqual(@as(u32, 3), c2m.log_last_layer);
+    try std.testing.expectEqual(C.Layer.compress1, C.candidateSpec(.c1_b16_q27_p20_fold4).layer);
+    try std.testing.expectEqual(@as(u32, 148), C.candidateJohnsonBitsTimes2(.c1_b16_q27_p20_fold4));
+    // b64 is inside the core FRI config range (LOG_MAX_BLOWUP_FACTOR = 16).
+    try std.testing.expectEqual(@as(u32, 6), C.candidateConfig(.c2_b64_q18_p20_fold3).fri_config.log_blowup_factor);
 }
 test "m7 outer LogUp-GKR ledger: OM31 challenges clear 128+23 bits at caps, QM31 would not" {
     const caps = C.OuterGkrFacts.caps();
