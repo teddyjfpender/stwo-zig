@@ -491,7 +491,7 @@ fn openColumns(a: std.mem.Allocator, tr: *Transcript, p: pcs.Params, com: *const
     return uq;
 }
 
-fn openRec(
+pub fn openRec(
     comptime T: type,
     a: std.mem.Allocator,
     pool: *f.Pool,
@@ -680,7 +680,7 @@ fn openRec(
     try openRec(i32, a, pool, tr, params, lvl + 1, &vcom, vm, ngroups[0..params.innerGroups()], true, levels);
 }
 
-const T_PROD2 = [_]sc.Term{.{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1 } }};
+pub const T_PROD2 = [_]sc.Term{.{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1 } }};
 
 /// MLE of the limb table V[g][c][k] = limb_c(rows[g][k]) (G' x 4 x C, zero
 /// padded) at pt = (z_g, z_c, z_k).
@@ -750,7 +750,7 @@ fn limbMles(a: std.mem.Allocator, pool: *f.Pool, rows: []const []const QM31, poi
 }
 
 /// S[k] = sum_q gp[q] T_{j_q}[k] where T_j is the circle-basis tensor at j.
-fn querySum(a: std.mem.Allocator, pool: *f.Pool, log_ext: u32, log_c: u32, js: []const usize, gp: []const QM31) ![]QM31 {
+pub fn querySum(a: std.mem.Allocator, pool: *f.Pool, log_ext: u32, log_c: u32, js: []const usize, gp: []const QM31) ![]QM31 {
     const C = @as(usize, 1) << @intCast(log_c);
     const S = try a.alloc(QM31, C);
     @memset(S, QM31.zero());
@@ -829,7 +829,7 @@ fn checkColumns(a: std.mem.Allocator, tr: *Transcript, p: pcs.Params, log_ext: u
     return uq;
 }
 
-fn verifyRec(
+pub fn verifyRec(
     a: std.mem.Allocator,
     tr: *Transcript,
     params: Params,

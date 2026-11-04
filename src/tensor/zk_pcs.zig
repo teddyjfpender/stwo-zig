@@ -228,17 +228,19 @@ pub fn commit(
     const enc = try a.alloc(M31, R * E);
     errdefer a.free(enc);
 
-    const BR = 16;
-    const Ctx = struct { m: pcs.Matrix(T), extra: []const M31, tau: []const M31, enc: []M31, tw: *const pcs.Twiddles, E: usize, C: usize, R: usize, RD: usize, S: usize };
-    const ctx = Ctx{ .m = m, .extra = extra, .tau = tau, .enc = enc, .tw = tw, .E = E, .C = C, .R = R, .RD = RD, .S = slots };
+    // rows encoded per block: 16, fewer for wide rows (per-thread scratch <= 2^22 cells)
+    const BR: usize = @max(1, @min(16, (@as(usize, 1) << 22) / E));
+    const Ctx = struct { m: pcs.Matrix(T), extra: []const M31, tau: []const M31, enc: []M31, tw: *const pcs.Twiddles, E: usize, C: usize, R: usize, RD: usize, S: usize, BR: usize };
+    const ctx = Ctx{ .m = m, .extra = extra, .tau = tau, .enc = enc, .tw = tw, .E = E, .C = C, .R = R, .RD = RD, .S = slots, .BR = BR };
     const n_blocks = (R + BR - 1) / BR;
     pool.parallelFor(n_blocks, 1, &ctx, struct {
         fn run(c: *const Ctx, s: usize, e: usize) void {
-            const buf = std.heap.page_allocator.alloc(M31, c.E * BR) catch @panic("oom");
+            const BR_ = c.BR;
+            const buf = std.heap.page_allocator.alloc(M31, c.E * BR_) catch @panic("oom");
             defer std.heap.page_allocator.free(buf);
             for (s..e) |blk| {
-                const r0 = blk * BR;
-                const r1 = @min(c.R, r0 + BR);
+                const r0 = blk * BR_;
+                const r1 = @min(c.R, r0 + BR_);
                 const nb = r1 - r0;
                 for (0..nb) |bi| {
                     const i = r0 + bi;
