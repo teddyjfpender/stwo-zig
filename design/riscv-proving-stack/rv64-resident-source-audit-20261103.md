@@ -107,3 +107,24 @@ encoder. All hint variants, capability rejection, packing-error precedence,
 CSR handling, joined last-shard failure/retry and pool fallback pass. The
 integrated target passed23 tests and the GNU combined-entry check. See
 `task-pack-disjoint-cpu-candidate-v1.json`; final GPU/basket timing remains open.
+
+## Qualified stable-ordering follow-up
+
+Commit `35b966f63` parallelizes only stable task ordering after the dependency
+walk. Eight fixed logical chunks count their levels and scatter into disjoint
+output ranges; changing physical worker availability between waves cannot
+change task order. The existing source/ordered arrays are reused. One optional
+histogram and the existing serial cursor workspace are limited to16MiB of
+requested scratch; allocator rounding is still charged by the caller budget.
+No-pool, unavailable/cooperative pool, small/deep-narrow schedules, oversize
+scratch and allocation failure keep the original serial path.
+
+The bounded 8,388,608-record/110,003-level CPU case measured22.982ms serial
+versus12.940ms with four workers. The integrated repeat measured26.338ms
+versus13.781ms. These include histogram allocation and are ordering-only
+observations under host workloads, not block speedups. Stable records, level
+ends, real-builder seeds and packed GPU identities match the independent DFS
+control. Different count/scatter shard counts, last-chunk rejection/retry and
+scratch fallback checks pass. The integrated GKR/packing target passed24 tests
+and the focused circuit target43; source GNU entry-point checks also passed.
+See `stable-order-disjoint-cpu-candidate-v1.json`.
