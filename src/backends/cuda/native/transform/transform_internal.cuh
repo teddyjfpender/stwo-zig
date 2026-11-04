@@ -6,6 +6,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// See n2b_fused.cuh: minimum resident CTAs for the 8-stage N2B continuation.
+#ifndef STWO_N2B_LV4_MIN_BLOCKS
+#define STWO_N2B_LV4_MIN_BLOCKS 1
+#endif
+
 namespace stwo::cuda::transform {
 
 constexpr uint32_t kThreadsPerBlock = 256;
@@ -59,9 +64,13 @@ constexpr TransformSchedule kN2bSchedules[] = {
     {3, {6, 6, 9}},
     {3, {6, 6, 10}},
     {3, {6, 6, 11}},
-    {4, {6, 6, 6, 6}},
-    {4, {6, 6, 6, 7}},
-    {4, {6, 6, 6, 8}},
+    // Logs 24-26: three HBM passes instead of four. The 8-stage
+    // continuation is register-resident (STWO_N2B_LV4_MIN_BLOCKS=1, STACK 0
+    // in cuobjdump -res-usage); every partition of the same stages computes
+    // the identical butterfly sequence, so outputs are bit-identical.
+    {3, {8, 8, 8}},
+    {3, {8, 8, 9}},
+    {3, {8, 8, 10}},
 };
 
 constexpr bool valid_schedule(
@@ -105,11 +114,23 @@ constexpr bool selected_schedule_resource_contracts_hold() {
             return false;
         }
     }
-    constexpr uint32_t n2b_indices[] = {7u, 8u, 9u, 10u, 11u, 12u, 13u};
+    // N2B logs 20-23 keep 6-stage continuations; logs 24-26 use the
+    // register-resident 8-stage continuation (compile-time stage loops; the
+    // build's cuobjdump -res-usage must show STACK 0 for n2b_continue<4>).
+    constexpr uint32_t n2b_indices[] = {7u, 8u, 9u, 10u};
     for (uint32_t index : n2b_indices) {
         const TransformSchedule &schedule = kN2bSchedules[index];
         for (uint32_t i = 0; i + 1u < schedule.interval_count; ++i) {
             if (schedule.intervals[i] != 6) return false;
+        }
+    }
+    constexpr uint32_t n2b_wide_indices[] = {11u, 12u, 13u};
+    for (uint32_t index : n2b_wide_indices) {
+        const TransformSchedule &schedule = kN2bSchedules[index];
+        for (uint32_t i = 0; i + 1u < schedule.interval_count; ++i) {
+            if (schedule.intervals[i] != 8 ||
+                STWO_N2B_LV4_MIN_BLOCKS < 1 ||
+                STWO_N2B_LV4_MIN_BLOCKS > 2) return false;
         }
     }
     return true;

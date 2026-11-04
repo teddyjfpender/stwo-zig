@@ -22,6 +22,7 @@ measure only on 26235156 and 24628607; this harness refuses other blocks unless
 import argparse
 import copy
 import fcntl
+import shlex
 import hashlib
 import json
 import os
@@ -229,7 +230,7 @@ def acquire_gpu_lock():
             time.sleep(2)
 
 
-def produce(plan, job, run, nsys=None, counters=False, smaps=False):
+def produce(plan, job, run, nsys=None, counters=False, smaps=False, wrap=None):
     """R.produce_job, with an optional Nsight Systems wrapper and the m3 GPU lock."""
     target = Path(job["target"])
     target.mkdir(parents=True, exist_ok=False)
@@ -258,6 +259,10 @@ def produce(plan, job, run, nsys=None, counters=False, smaps=False):
         argv = ["nsys", "profile", "--trace=cuda", "--sample=none", "--cpuctxsw=none",
                 "--force-overwrite=true", "-o", str(run / "nsys" / "timeline")] + argv
         (run / "nsys").mkdir(exist_ok=True)
+    if wrap:
+        # Profiling hook (stream kernels): e.g. --wrap "ncu --set basic -o {run}/ncu/report"
+        (run / "ncu").mkdir(exist_ok=True)
+        argv = shlex.split(wrap.replace("{run}", str(run))) + argv
     lock = acquire_gpu_lock()
     try:
         monitor = B.DeviceMonitor(worker["device"])
@@ -366,7 +371,8 @@ def prove(args):
     plan, job = make_plan(args, run, paths, root)
     started = time.time()
     load_start = M.loadavg()
-    pending = produce(plan, job, run, nsys=args.nsys, counters=args.counters, smaps=args.smaps)
+    pending = produce(plan, job, run, nsys=args.nsys, counters=args.counters, smaps=args.smaps,
+                      wrap=getattr(args, "wrap", None))
     load_end = M.loadavg()
     proof = proof_dir(job)
     stages, report, combined = stage_breakdown(proof, pending["markers"])
@@ -500,6 +506,7 @@ def main():
         p.add_argument("--library")
         p.add_argument("--receiver")
         p.add_argument("--nsys", action="store_true", help="Wrap the producer in nsys profile (timeline in run/nsys)")
+        p.add_argument("--wrap", help="Prefix the producer argv with this command ({run} expands to the run dir), e.g. ncu")
         p.add_argument("--allow-scale-up", action="store_true")
         p.add_argument("--counters", action="store_true", help="LD_PRELOAD CUDA driver-API counter shim (syncs, launches, pool mallocs, library loads, pageable copies)")
         p.add_argument("--smaps", action="store_true", help="Sample producer smaps; keep a census at peak RSS (run/smaps-peak.json)")

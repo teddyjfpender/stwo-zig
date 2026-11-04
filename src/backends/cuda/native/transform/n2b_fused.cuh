@@ -22,13 +22,20 @@ __device__ __forceinline__ void n2b_shuffle(
     }
 }
 
+// Minimum resident CTAs per SM for the 16-value (8-stage) continuation.
+// At 2 the 512-thread CTA is capped at 64 registers and nvcc demotes the
+// sixteen values to a 64-byte local stack; at 1 they stay in registers
+// (STACK 0), which is what lets the 8-stage interval serve logs 24-26 and
+// remove one full HBM pass (kernels stream, M4 audit).
+// (STWO_N2B_LV4_MIN_BLOCKS is defined in transform_internal.cuh.)
+
 template <
     uint32_t LogValues,
     uint32_t LogWarps = LogValues,
     bool LoadCoefficients = false>
 __global__ __launch_bounds__(
     1u << (kN2bLogWarp + LogWarps),
-    LogValues == 3 ? 6 : 2)
+    LogValues == 3 ? 6 : STWO_N2B_LV4_MIN_BLOCKS)
 void n2b_continue(
     ColumnSlab<const M31> inputs,
     const uint32_t *input_log_sizes,
@@ -76,10 +83,12 @@ void n2b_continue(
     uint32_t layer_size = 1u << (min_stage - 1u);
     uint32_t layer_offset =
         (1u << (log_n - 1u)) - (1u << min_stage);
+    // Compile-time trip counts and strides keep values[] register-resident
+    // (a runtime bound makes nvcc demote it to a local stack).
 #pragma unroll
-    for (uint32_t stage = min_stage; stage < middle_stage; ++stage) {
-        const uint32_t log_stride =
-            LogValues - 1u - (stage - min_stage);
+    for (uint32_t step = 0; step < LogValues; ++step) {
+        const uint32_t stage = min_stage + step;
+        const uint32_t log_stride = LogValues - 1u - step;
 #pragma unroll
         for (uint32_t pair = 0; pair < 1u << (LogValues - 1u); ++pair) {
             const uint32_t group = pair & ((1u << log_stride) - 1u);
@@ -117,9 +126,9 @@ void n2b_continue(
     }
 
 #pragma unroll
-    for (uint32_t stage = middle_stage; stage <= max_stage; ++stage) {
-        const uint32_t log_stride =
-            LogWarps - 1u - (stage - middle_stage);
+    for (uint32_t step = 0; step < LogWarps; ++step) {
+        const uint32_t stage = middle_stage + step;
+        const uint32_t log_stride = LogWarps - 1u - step;
 #pragma unroll
         for (uint32_t pair = 0; pair < 1u << (LogValues - 1u); ++pair) {
             const uint32_t group = pair & ((1u << log_stride) - 1u);

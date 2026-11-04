@@ -202,6 +202,99 @@ __global__ void deep_aggregate_coordinates(StwoRv64DeepPrepare j) {
     j.coefficients[g.coefficient_offset + uint64_t(coordinate) * n + row] = result;
   }
 }
+// Row-major aggregation (kernels stream, M4): one thread owns two coefficient
+// rows and all eight coordinates. Each source coefficient is loaded once
+// (coalesced along the row axis; the lane->row axis is never permuted) instead
+// of once per coordinate warp, and the term -> source -> tree chain is
+// resolved once per CTA into shared memory instead of once per thread and
+// term. Weights are canonical (deep_lines), so every product w*c < p^2 < 2^62;
+// products accumulate lazily in 64 bits and fold below 2^34 every two terms.
+// Field addition is exact, so the canonical result is bit-identical to
+// deep_aggregate_coordinates for every term order.
+constexpr uint32_t kDeepRowThreads = 256;
+constexpr uint32_t kDeepRowsPerThread = 2;
+constexpr uint32_t kDeepTermChunk = 128;
+__device__ __forceinline__ uint64_t deep_fold(uint64_t x) {
+  return (x & q::kPrime) + (x >> 31);
+}
+__device__ __forceinline__ uint32_t deep_canonical(uint64_t x) {
+  // x < 2^34 after a fold; a second fold leaves x < p + 8.
+  const uint32_t folded = uint32_t(deep_fold(x));
+  return folded >= q::kPrime ? folded - q::kPrime : folded;
+}
+__global__ __launch_bounds__(kDeepRowThreads) void deep_aggregate_rows(
+    StwoRv64DeepPrepare j) {
+  if (!*j.valid) return;
+  const auto g = j.groups[blockIdx.y];
+  const uint32_t n = 1u << g.coefficient_log;
+  __shared__ const uint32_t *columns[kDeepTermChunk];
+  __shared__ uint4 weights[kDeepTermChunk][2];
+  constexpr uint32_t tile = kDeepRowThreads * kDeepRowsPerThread;
+  for (uint32_t row0 = blockIdx.x * tile; row0 < n; row0 += gridDim.x * tile) {
+    uint64_t acc[kDeepRowsPerThread][8];
+#pragma unroll
+    for (uint32_t r = 0; r < kDeepRowsPerThread; ++r)
+#pragma unroll
+      for (uint32_t k = 0; k < 8; ++k) acc[r][k] = 0;
+    bool bad = false;
+    for (uint32_t base = g.begin; base < g.end; base += kDeepTermChunk) {
+      const uint32_t count = min(kDeepTermChunk, g.end - base);
+      __syncthreads();
+      for (uint32_t i = threadIdx.x; i < count; i += blockDim.x) {
+        const auto source = j.sources[j.terms[base + i].source];
+        const uint32_t *tree = source.tree == 0   ? j.trees[0]
+                               : source.tree == 1 ? j.trees[1]
+                               : source.tree == 2 ? j.trees[2]
+                                                  : j.trees[3];
+        columns[i] = tree + source.offset;
+        const uint32_t *w = j.weights + uint64_t(base + i) * 8;
+        weights[i][0] = make_uint4(w[0], w[1], w[2], w[3]);
+        weights[i][1] = make_uint4(w[4], w[5], w[6], w[7]);
+      }
+      __syncthreads();
+      if (row0 + threadIdx.x < n) {
+        for (uint32_t i = 0; i < count; ++i) {
+          uint32_t c[kDeepRowsPerThread];
+#pragma unroll
+          for (uint32_t r = 0; r < kDeepRowsPerThread; ++r) {
+            const uint32_t row = row0 + threadIdx.x + r * kDeepRowThreads;
+            c[r] = row < n ? columns[i][row] : 0u;
+            if (c[r] >= q::kPrime) {
+              bad = true;
+              c[r] = 0;
+            }
+          }
+          const uint4 w0 = weights[i][0], w1 = weights[i][1];
+          const uint32_t w[8] = {w0.x, w0.y, w0.z, w0.w,
+                                 w1.x, w1.y, w1.z, w1.w};
+#pragma unroll
+          for (uint32_t r = 0; r < kDeepRowsPerThread; ++r)
+#pragma unroll
+            for (uint32_t k = 0; k < 8; ++k)
+              acc[r][k] += uint64_t(w[k]) * c[r];
+          // acc < 2^34 before each pair of products, < 2^63 + 2^34 after.
+          if ((i & 1u) || i + 1u == count) {
+#pragma unroll
+            for (uint32_t r = 0; r < kDeepRowsPerThread; ++r)
+#pragma unroll
+              for (uint32_t k = 0; k < 8; ++k)
+                acc[r][k] = deep_fold(acc[r][k]);
+          }
+        }
+      }
+    }
+    if (bad) atomicOr(j.status, 2u);
+#pragma unroll
+    for (uint32_t r = 0; r < kDeepRowsPerThread; ++r) {
+      const uint32_t row = row0 + threadIdx.x + r * kDeepRowThreads;
+      if (row >= n) continue;
+#pragma unroll
+      for (uint32_t k = 0; k < 8; ++k)
+        j.coefficients[g.coefficient_offset + uint64_t(k) * n + row] =
+            deep_canonical(acc[r][k]);
+    }
+  }
+}
 __global__ void deep_combine_validate(StwoRv64DeepCombine j, uint32_t *ok) {
   *ok = *j.valid && !atomicOr(j.status, 0u) &&
         deep_layout(j.groups, j.group_count, UINT64_MAX, j.evaluation_words,
@@ -360,17 +453,26 @@ extern "C" int stwo_rv64_deep_prepare_on(void *ctx, uint32_t lane,
   }
   // Launch geometry is independent of device metadata. Grid-stride rows
   // preserve parallelism for large compact groups without host feedback.
+  // STWO_RV64_DEEP_COORDINATES selects the aggregation kernel for A/B runs:
+  // unset or "2" = row-major (default), "1" = per-coordinate warps (M3),
+  // "0" = OM31 per-thread. All three produce identical coefficients.
   const char *coordinate_env = std::getenv("STWO_RV64_DEEP_COORDINATES");
   if (coordinate_env && std::strcmp(coordinate_env, "0") != 0 &&
-      std::strcmp(coordinate_env, "1") != 0)
+      std::strcmp(coordinate_env, "1") != 0 &&
+      std::strcmp(coordinate_env, "2") != 0)
     return int(cudaErrorInvalidValue);
-  const bool scalar_coordinates = !coordinate_env ||
-      std::strcmp(coordinate_env, "1") == 0;
-  if (scalar_coordinates)
+  const char aggregation = coordinate_env ? coordinate_env[0] : '2';
+  if (aggregation == '2') {
+    // 1024 CTAs per group: ~6 resident CTAs per SM on a 170-SM part for the
+    // large groups; small groups exit their grid-stride loop immediately.
+    deep_aggregate_rows<<<dim3(1024, j.group_count), kDeepRowThreads, 0,
+                          c.stream>>>(j);
+  } else if (aggregation == '1') {
     deep_aggregate_coordinates<<<dim3(256, j.group_count), dim3(32, 8), 0,
                                  c.stream>>>(j);
-  else
+  } else {
     deep_aggregate<<<dim3(64, j.group_count), 128, 0, c.stream>>>(j);
+  }
   if (timing) {
     int status = int(cudaEventRecord(spans.events[3], c.stream));
     if (!status) status = int(cudaEventSynchronize(spans.events[3]));

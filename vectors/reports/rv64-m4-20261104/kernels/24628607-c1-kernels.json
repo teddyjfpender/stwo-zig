@@ -1,0 +1,1072 @@
+{
+ "schema": "rv64-m4-kernels-receipt/v1",
+ "stream": "kernels",
+ "milestone": "M4",
+ "block": 24628607,
+ "gpus": 2,
+ "commit": "PENDING",
+ "library_sha256": "0ccf090b9c8cb5f4e01b88770fa901b52dd4ebbcf942810cbb20f8601735962d",
+ "baseline": {
+  "run": "/workspace/m3/runs/m4-kernels/24628607-2gpu-base-nsys",
+  "library_sha256": "fe8a3e10a0788a08d8117b9490090cf644fc9046fb71773a1cf520aafb424411 (integrate @ d6f7b2b5e = bcd401ce4 sources)"
+ },
+ "after": {
+  "run": "/workspace/m3/runs/m4-kernels/24628607-2gpu-c1-nsys"
+ },
+ "correctness": {
+  "byte_identical_to": "rv64-m3-20261104/integrate/scale/24628607 (55/55 proof hashes) and .../26235156 (37/37)",
+  "receiver_accepted": true,
+  "microbench_identical": true
+ },
+ "label": "M (nsys kernel durations, one observation each, pod load avg 42-47); bandwidth/occupancy columns are D (bytes/duration; regs/smem/threads arithmetic)",
+ "ncu": "Nsight Compute unavailable on this pod: ERR_NVGPUCTRPERM (RmProfilingAdminOnly=1, container lacks the capability). Achieved bandwidth is derived from exact traffic / nsys or event duration; occupancy is theoretical from cuobjdump -res-usage.",
+ "peak_tbps": 1.792,
+ "kernel_gpu_s": {
+  "before": 29.909,
+  "after": 25.612
+ },
+ "recursion_kernel_gpu_s": {
+  "before": 24.962,
+  "after": 20.94
+ },
+ "recursion_ns_per_lde_cell": {
+  "before": 0.1977,
+  "after": 0.1659,
+  "definition": "kernel GPU-s inside the recursion window (last recursion_ns of the kernel timeline) / (2 x sum of GPU_PCS_NATIVE coefficient_cells), b2 outer LDE"
+ },
+ "log24_lde_8col_us": {
+  "before": 2811.5,
+  "after": 2092.5,
+  "speedup": 1.344
+ },
+ "families_gpu_s": {
+  "n2b": {
+   "before": 9.153,
+   "after": 7.253
+  },
+  "mixed_leaf_kernel": {
+   "before": 5.556,
+   "after": 5.667
+  },
+  "deep_aggregate_coordinates": {
+   "before": 2.808,
+   "after": null
+  },
+  "deep_aggregate_rows": {
+   "before": null,
+   "after": 0.249
+  },
+  "generate": {
+   "before": 1.865,
+   "after": 1.889
+  },
+  "narrow_run": {
+   "before": 1.752,
+   "after": 1.755
+  },
+  "b2n": {
+   "before": 1.381,
+   "after": 1.384
+  },
+  "deep_combine": {
+   "before": 0.62,
+   "after": 0.621
+  }
+ },
+ "kernels": [
+  {
+   "kernel": "n2b log24 first pass (LDE from 2^23 coefficients, 8 cols)",
+   "before": {
+    "variant": "n2b_continue<3,3,true> 6 stages",
+    "avg_us": 571.1,
+    "regs": 39,
+    "stack_bytes": 0,
+    "smem_bytes": 9216,
+    "threads": 256,
+    "theoretical_occupancy_pct_D": 100,
+    "achieved_tbps_D": 1.41,
+    "pct_of_peak_D": 78.7
+   },
+   "after": {
+    "variant": "n2b_continue<4,4,true> 8 stages",
+    "avg_us": 545.4,
+    "regs": 72,
+    "stack_bytes": 0,
+    "smem_bytes": 33792,
+    "threads": 512,
+    "theoretical_occupancy_pct_D": 33,
+    "achieved_tbps_D": 1.477,
+    "pct_of_peak_D": 82.4
+   },
+   "bytes": 805306368
+  },
+  {
+   "kernel": "n2b log24 middle pass(es) (8 cols)",
+   "before": {
+    "variant": "2 x n2b_continue<3,3,false> 6 stages",
+    "avg_us": 1404.6999999999998,
+    "regs": 38,
+    "stack_bytes": 0,
+    "passes": 2,
+    "achieved_tbps_D": 1.529,
+    "pct_of_peak_D": 85.3
+   },
+   "after": {
+    "variant": "1 x n2b_continue<4,4,false> 8 stages",
+    "avg_us": 695.9,
+    "regs": 60,
+    "stack_bytes": 0,
+    "passes": 1,
+    "achieved_tbps_D": 1.543,
+    "pct_of_peak_D": 86.1
+   },
+   "bytes_per_pass": 1073741824
+  },
+  {
+   "kernel": "n2b log24 final pass (8 cols)",
+   "before": {
+    "variant": "n2b_final_warp<1> 6 stages",
+    "avg_us": 835.7,
+    "regs": 22,
+    "achieved_tbps_D": 1.285,
+    "pct_of_peak_D": 71.7
+   },
+   "after": {
+    "variant": "n2b_final_warp<3> 8 stages",
+    "avg_us": 851.2,
+    "regs": 38,
+    "achieved_tbps_D": 1.261,
+    "pct_of_peak_D": 70.4
+   },
+   "bytes": 1073741824
+  },
+  {
+   "kernel": "DEEP aggregation (all 50 calls)",
+   "before": {
+    "variant": "deep_aggregate_coordinates (8 coordinate warps reload each coefficient; per-thread term->source->tree chain)",
+    "gpu_s": 2.808,
+    "regs": 40,
+    "threads": 256
+   },
+   "after": {
+    "variant": "deep_aggregate_rows (1 load per coefficient, CTA-staged term metadata, lazy 64-bit accumulation)",
+    "gpu_s": 0.249,
+    "regs": 66,
+    "smem_bytes": 6144,
+    "threads": 256,
+    "theoretical_occupancy_pct_D": 50
+   },
+   "speedup": 11.28
+  }
+ ],
+ "microbench": {
+  "tool": "src/backends/cuda/native/transform/bench/n2b_schedule_bench.cu",
+  "device": "RTX 5090 (GPU1)",
+  "results": [
+   {
+    "log_n": 24,
+    "columns": 8,
+    "mode": "n2b",
+    "identical": true,
+    "old": {
+     "schedule": "6,6,6,6",
+     "ms": 2.9419,
+     "ns_per_cell": 0.02192,
+     "passes": [
+      {
+       "ms": 0.7291,
+       "tbps": 1.473
+      },
+      {
+       "ms": 0.7025,
+       "tbps": 1.529
+      },
+      {
+       "ms": 0.7035,
+       "tbps": 1.526
+      },
+      {
+       "ms": 0.8069,
+       "tbps": 1.331
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8,8",
+     "ms": 2.2886,
+     "ns_per_cell": 0.01705,
+     "passes": [
+      {
+       "ms": 0.7332,
+       "tbps": 1.464
+      },
+      {
+       "ms": 0.7066,
+       "tbps": 1.52
+      },
+      {
+       "ms": 0.8489,
+       "tbps": 1.265
+      }
+     ]
+    },
+    "speedup": 1.285,
+    "min_blocks": 1
+   },
+   {
+    "log_n": 24,
+    "columns": 8,
+    "mode": "lde",
+    "identical": true,
+    "old": {
+     "schedule": "6,6,6,6",
+     "ms": 2.7892,
+     "ns_per_cell": 0.02078,
+     "passes": [
+      {
+       "ms": 0.5783,
+       "tbps": 1.392
+      },
+      {
+       "ms": 0.6943,
+       "tbps": 1.547
+      },
+      {
+       "ms": 0.7065,
+       "tbps": 1.52
+      },
+      {
+       "ms": 0.81,
+       "tbps": 1.326
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8,8",
+     "ms": 2.1064,
+     "ns_per_cell": 0.01569,
+     "passes": [
+      {
+       "ms": 0.5499,
+       "tbps": 1.464
+      },
+      {
+       "ms": 0.6943,
+       "tbps": 1.547
+      },
+      {
+       "ms": 0.8622,
+       "tbps": 1.245
+      }
+     ]
+    },
+    "speedup": 1.324,
+    "min_blocks": 1
+   },
+   {
+    "log_n": 25,
+    "columns": 4,
+    "mode": "n2b",
+    "identical": true,
+    "old": {
+     "schedule": "6,6,6,7",
+     "ms": 3.0116,
+     "ns_per_cell": 0.02244,
+     "passes": [
+      {
+       "ms": 0.7393,
+       "tbps": 1.452
+      },
+      {
+       "ms": 0.7086,
+       "tbps": 1.515
+      },
+      {
+       "ms": 0.7014,
+       "tbps": 1.531
+      },
+      {
+       "ms": 0.8622,
+       "tbps": 1.245
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8,9",
+     "ms": 2.2968,
+     "ns_per_cell": 0.01711,
+     "passes": [
+      {
+       "ms": 0.7332,
+       "tbps": 1.464
+      },
+      {
+       "ms": 0.6963,
+       "tbps": 1.542
+      },
+      {
+       "ms": 0.8673,
+       "tbps": 1.238
+      }
+     ]
+    },
+    "speedup": 1.311,
+    "min_blocks": 1
+   },
+   {
+    "log_n": 25,
+    "columns": 4,
+    "mode": "lde",
+    "identical": true,
+    "old": {
+     "schedule": "6,6,6,7",
+     "ms": 2.8525,
+     "ns_per_cell": 0.02125,
+     "passes": [
+      {
+       "ms": 0.5772,
+       "tbps": 1.395
+      },
+      {
+       "ms": 0.6984,
+       "tbps": 1.538
+      },
+      {
+       "ms": 0.7107,
+       "tbps": 1.511
+      },
+      {
+       "ms": 0.8663,
+       "tbps": 1.239
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8,9",
+     "ms": 2.1269,
+     "ns_per_cell": 0.01585,
+     "passes": [
+      {
+       "ms": 0.5633,
+       "tbps": 1.43
+      },
+      {
+       "ms": 0.6984,
+       "tbps": 1.538
+      },
+      {
+       "ms": 0.8653,
+       "tbps": 1.241
+      }
+     ]
+    },
+    "speedup": 1.341,
+    "min_blocks": 1
+   },
+   {
+    "log_n": 26,
+    "columns": 2,
+    "mode": "n2b",
+    "identical": true,
+    "old": {
+     "schedule": "6,6,6,8",
+     "ms": 3.0095,
+     "ns_per_cell": 0.02242,
+     "passes": [
+      {
+       "ms": 0.7332,
+       "tbps": 1.464
+      },
+      {
+       "ms": 0.7045,
+       "tbps": 1.524
+      },
+      {
+       "ms": 0.7035,
+       "tbps": 1.526
+      },
+      {
+       "ms": 0.8684,
+       "tbps": 1.237
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8,10",
+     "ms": 2.2989,
+     "ns_per_cell": 0.01713,
+     "passes": [
+      {
+       "ms": 0.725,
+       "tbps": 1.481
+      },
+      {
+       "ms": 0.7066,
+       "tbps": 1.52
+      },
+      {
+       "ms": 0.8673,
+       "tbps": 1.238
+      }
+     ]
+    },
+    "speedup": 1.309,
+    "min_blocks": 1
+   },
+   {
+    "log_n": 26,
+    "columns": 2,
+    "mode": "lde",
+    "identical": true,
+    "old": {
+     "schedule": "6,6,6,8",
+     "ms": 2.8452,
+     "ns_per_cell": 0.0212,
+     "passes": [
+      {
+       "ms": 0.5719,
+       "tbps": 1.408
+      },
+      {
+       "ms": 0.7004,
+       "tbps": 1.533
+      },
+      {
+       "ms": 0.7066,
+       "tbps": 1.52
+      },
+      {
+       "ms": 0.8663,
+       "tbps": 1.239
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8,10",
+     "ms": 2.1245,
+     "ns_per_cell": 0.01583,
+     "passes": [
+      {
+       "ms": 0.5588,
+       "tbps": 1.441
+      },
+      {
+       "ms": 0.6963,
+       "tbps": 1.542
+      },
+      {
+       "ms": 0.8694,
+       "tbps": 1.235
+      }
+     ]
+    },
+    "speedup": 1.339,
+    "min_blocks": 1
+   },
+   {
+    "log_n": 18,
+    "columns": 64,
+    "mode": "n2b",
+    "identical": true,
+    "old": {
+     "schedule": "8,10",
+     "ms": 0.1044,
+     "ns_per_cell": 0.00623,
+     "passes": [
+      {
+       "ms": 0.0451,
+       "tbps": 2.979
+      },
+      {
+       "ms": 0.0594,
+       "tbps": 2.26
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,10",
+     "ms": 0.1044,
+     "ns_per_cell": 0.00623,
+     "passes": [
+      {
+       "ms": 0.0451,
+       "tbps": 2.979
+      },
+      {
+       "ms": 0.0594,
+       "tbps": 2.26
+      }
+     ]
+    },
+    "speedup": 1.0,
+    "min_blocks": 1
+   },
+   {
+    "log_n": 18,
+    "columns": 64,
+    "mode": "lde",
+    "identical": true,
+    "old": {
+     "schedule": "8,10",
+     "ms": 0.1186,
+     "ns_per_cell": 0.00707,
+     "passes": [
+      {
+       "ms": 0.0572,
+       "tbps": 1.761
+      },
+      {
+       "ms": 0.0614,
+       "tbps": 2.185
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,10",
+     "ms": 0.1184,
+     "ns_per_cell": 0.00706,
+     "passes": [
+      {
+       "ms": 0.057,
+       "tbps": 1.767
+      },
+      {
+       "ms": 0.0614,
+       "tbps": 2.185
+      }
+     ]
+    },
+    "speedup": 1.002,
+    "min_blocks": 1
+   },
+   {
+    "log_n": 16,
+    "columns": 256,
+    "mode": "n2b",
+    "identical": true,
+    "old": {
+     "schedule": "8,8",
+     "ms": 0.0983,
+     "ns_per_cell": 0.00586,
+     "passes": [
+      {
+       "ms": 0.045,
+       "tbps": 2.981
+      },
+      {
+       "ms": 0.0532,
+       "tbps": 2.521
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8",
+     "ms": 0.0983,
+     "ns_per_cell": 0.00586,
+     "passes": [
+      {
+       "ms": 0.0451,
+       "tbps": 2.979
+      },
+      {
+       "ms": 0.0532,
+       "tbps": 2.521
+      }
+     ]
+    },
+    "speedup": 1.0,
+    "min_blocks": 1
+   },
+   {
+    "log_n": 16,
+    "columns": 256,
+    "mode": "lde",
+    "identical": true,
+    "old": {
+     "schedule": "8,8",
+     "ms": 0.1138,
+     "ns_per_cell": 0.00678,
+     "passes": [
+      {
+       "ms": 0.0585,
+       "tbps": 1.72
+      },
+      {
+       "ms": 0.0553,
+       "tbps": 2.427
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8",
+     "ms": 0.1111,
+     "ns_per_cell": 0.00662,
+     "passes": [
+      {
+       "ms": 0.0579,
+       "tbps": 1.74
+      },
+      {
+       "ms": 0.0532,
+       "tbps": 2.521
+      }
+     ]
+    },
+    "speedup": 1.024,
+    "min_blocks": 1
+   },
+   {
+    "log_n": 24,
+    "columns": 8,
+    "mode": "n2b",
+    "identical": true,
+    "old": {
+     "schedule": "6,6,6,6",
+     "ms": 2.942,
+     "ns_per_cell": 0.02192,
+     "passes": [
+      {
+       "ms": 0.7311,
+       "tbps": 1.469
+      },
+      {
+       "ms": 0.7025,
+       "tbps": 1.529
+      },
+      {
+       "ms": 0.7035,
+       "tbps": 1.526
+      },
+      {
+       "ms": 0.8049,
+       "tbps": 1.334
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8,8",
+     "ms": 2.2856,
+     "ns_per_cell": 0.01703,
+     "passes": [
+      {
+       "ms": 0.7311,
+       "tbps": 1.469
+      },
+      {
+       "ms": 0.7066,
+       "tbps": 1.52
+      },
+      {
+       "ms": 0.8479,
+       "tbps": 1.266
+      }
+     ]
+    },
+    "speedup": 1.287,
+    "min_blocks": 2
+   },
+   {
+    "log_n": 24,
+    "columns": 8,
+    "mode": "lde",
+    "identical": true,
+    "old": {
+     "schedule": "6,6,6,6",
+     "ms": 2.7844,
+     "ns_per_cell": 0.02075,
+     "passes": [
+      {
+       "ms": 0.5725,
+       "tbps": 1.407
+      },
+      {
+       "ms": 0.6943,
+       "tbps": 1.547
+      },
+      {
+       "ms": 0.7086,
+       "tbps": 1.515
+      },
+      {
+       "ms": 0.809,
+       "tbps": 1.327
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8,8",
+     "ms": 2.1281,
+     "ns_per_cell": 0.01586,
+     "passes": [
+      {
+       "ms": 0.5757,
+       "tbps": 1.399
+      },
+      {
+       "ms": 0.7045,
+       "tbps": 1.524
+      },
+      {
+       "ms": 0.8479,
+       "tbps": 1.266
+      }
+     ]
+    },
+    "speedup": 1.308,
+    "min_blocks": 2
+   },
+   {
+    "log_n": 25,
+    "columns": 4,
+    "mode": "n2b",
+    "identical": true,
+    "old": {
+     "schedule": "6,6,6,7",
+     "ms": 3.0126,
+     "ns_per_cell": 0.02245,
+     "passes": [
+      {
+       "ms": 0.7352,
+       "tbps": 1.46
+      },
+      {
+       "ms": 0.7066,
+       "tbps": 1.52
+      },
+      {
+       "ms": 0.7045,
+       "tbps": 1.524
+      },
+      {
+       "ms": 0.8663,
+       "tbps": 1.239
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8,9",
+     "ms": 2.2958,
+     "ns_per_cell": 0.01711,
+     "passes": [
+      {
+       "ms": 0.7311,
+       "tbps": 1.469
+      },
+      {
+       "ms": 0.6963,
+       "tbps": 1.542
+      },
+      {
+       "ms": 0.8684,
+       "tbps": 1.237
+      }
+     ]
+    },
+    "speedup": 1.312,
+    "min_blocks": 2
+   },
+   {
+    "log_n": 25,
+    "columns": 4,
+    "mode": "lde",
+    "identical": true,
+    "old": {
+     "schedule": "6,6,6,7",
+     "ms": 2.8764,
+     "ns_per_cell": 0.02143,
+     "passes": [
+      {
+       "ms": 0.598,
+       "tbps": 1.347
+      },
+      {
+       "ms": 0.7025,
+       "tbps": 1.529
+      },
+      {
+       "ms": 0.7065,
+       "tbps": 1.52
+      },
+      {
+       "ms": 0.8694,
+       "tbps": 1.235
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8,9",
+     "ms": 2.1321,
+     "ns_per_cell": 0.01589,
+     "passes": [
+      {
+       "ms": 0.5674,
+       "tbps": 1.419
+      },
+      {
+       "ms": 0.6963,
+       "tbps": 1.542
+      },
+      {
+       "ms": 0.8684,
+       "tbps": 1.236
+      }
+     ]
+    },
+    "speedup": 1.349,
+    "min_blocks": 2
+   },
+   {
+    "log_n": 26,
+    "columns": 2,
+    "mode": "n2b",
+    "identical": true,
+    "old": {
+     "schedule": "6,6,6,8",
+     "ms": 3.0147,
+     "ns_per_cell": 0.02246,
+     "passes": [
+      {
+       "ms": 0.7373,
+       "tbps": 1.456
+      },
+      {
+       "ms": 0.7045,
+       "tbps": 1.524
+      },
+      {
+       "ms": 0.7045,
+       "tbps": 1.524
+      },
+      {
+       "ms": 0.8684,
+       "tbps": 1.237
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8,10",
+     "ms": 2.3009,
+     "ns_per_cell": 0.01714,
+     "passes": [
+      {
+       "ms": 0.7291,
+       "tbps": 1.473
+      },
+      {
+       "ms": 0.7045,
+       "tbps": 1.524
+      },
+      {
+       "ms": 0.8673,
+       "tbps": 1.238
+      }
+     ]
+    },
+    "speedup": 1.31,
+    "min_blocks": 2
+   },
+   {
+    "log_n": 26,
+    "columns": 2,
+    "mode": "lde",
+    "identical": true,
+    "old": {
+     "schedule": "6,6,6,8",
+     "ms": 2.8477,
+     "ns_per_cell": 0.02122,
+     "passes": [
+      {
+       "ms": 0.5755,
+       "tbps": 1.399
+      },
+      {
+       "ms": 0.7004,
+       "tbps": 1.533
+      },
+      {
+       "ms": 0.7045,
+       "tbps": 1.524
+      },
+      {
+       "ms": 0.8673,
+       "tbps": 1.238
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8,10",
+     "ms": 2.1503,
+     "ns_per_cell": 0.01602,
+     "passes": [
+      {
+       "ms": 0.5733,
+       "tbps": 1.405
+      },
+      {
+       "ms": 0.7086,
+       "tbps": 1.515
+      },
+      {
+       "ms": 0.8684,
+       "tbps": 1.237
+      }
+     ]
+    },
+    "speedup": 1.324,
+    "min_blocks": 2
+   },
+   {
+    "log_n": 18,
+    "columns": 64,
+    "mode": "n2b",
+    "identical": true,
+    "old": {
+     "schedule": "8,10",
+     "ms": 0.1044,
+     "ns_per_cell": 0.00623,
+     "passes": [
+      {
+       "ms": 0.0451,
+       "tbps": 2.979
+      },
+      {
+       "ms": 0.0594,
+       "tbps": 2.26
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,10",
+     "ms": 0.1044,
+     "ns_per_cell": 0.00623,
+     "passes": [
+      {
+       "ms": 0.0451,
+       "tbps": 2.979
+      },
+      {
+       "ms": 0.0594,
+       "tbps": 2.26
+      }
+     ]
+    },
+    "speedup": 1.0,
+    "min_blocks": 2
+   },
+   {
+    "log_n": 18,
+    "columns": 64,
+    "mode": "lde",
+    "identical": true,
+    "old": {
+     "schedule": "8,10",
+     "ms": 0.1168,
+     "ns_per_cell": 0.00696,
+     "passes": [
+      {
+       "ms": 0.0554,
+       "tbps": 1.816
+      },
+      {
+       "ms": 0.0614,
+       "tbps": 2.186
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,10",
+     "ms": 0.1159,
+     "ns_per_cell": 0.00691,
+     "passes": [
+      {
+       "ms": 0.0544,
+       "tbps": 1.849
+      },
+      {
+       "ms": 0.0614,
+       "tbps": 2.185
+      }
+     ]
+    },
+    "speedup": 1.008,
+    "min_blocks": 2
+   },
+   {
+    "log_n": 16,
+    "columns": 256,
+    "mode": "n2b",
+    "identical": true,
+    "old": {
+     "schedule": "8,8",
+     "ms": 0.0983,
+     "ns_per_cell": 0.00586,
+     "passes": [
+      {
+       "ms": 0.0451,
+       "tbps": 2.979
+      },
+      {
+       "ms": 0.0532,
+       "tbps": 2.521
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8",
+     "ms": 0.0983,
+     "ns_per_cell": 0.00586,
+     "passes": [
+      {
+       "ms": 0.0451,
+       "tbps": 2.979
+      },
+      {
+       "ms": 0.0532,
+       "tbps": 2.521
+      }
+     ]
+    },
+    "speedup": 1.0,
+    "min_blocks": 2
+   },
+   {
+    "log_n": 16,
+    "columns": 256,
+    "mode": "lde",
+    "identical": true,
+    "old": {
+     "schedule": "8,8",
+     "ms": 0.1086,
+     "ns_per_cell": 0.00648,
+     "passes": [
+      {
+       "ms": 0.0554,
+       "tbps": 1.817
+      },
+      {
+       "ms": 0.0532,
+       "tbps": 2.521
+      }
+     ]
+    },
+    "new": {
+     "schedule": "8,8",
+     "ms": 0.1108,
+     "ns_per_cell": 0.00661,
+     "passes": [
+      {
+       "ms": 0.0555,
+       "tbps": 1.813
+      },
+      {
+       "ms": 0.0553,
+       "tbps": 2.427
+      }
+     ]
+    },
+    "speedup": 0.98,
+    "min_blocks": 2
+   }
+  ]
+ }
+}
