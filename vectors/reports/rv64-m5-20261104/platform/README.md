@@ -56,3 +56,11 @@ Receipt `24628607-counters-v3-pinned-fences.json` (load 34.6 at start: the 69.96
   coefficients per column; only the host range check changes). The binding rl+2 truth role: arena **18.44 → 14.75 GB**
   [M] (3,515 of 3,516 columns direct).
 - `STWO_RV64_EXEC_SYNC=device` (default host): `stwo_exec_context_sync` becomes a device-side all-lane barrier.
+
+## Device memory gate (24628607, v4 stack, one-shot under the counter shim, load 9.2)
+
+`24628607-counters-v4-cap22.json`: with `STWO_RV64_DEVICE_ARENA=22G` the whole-device NVML peak is **27.81 GB on both
+GPUs** (gate ≤ 28 GB; M4 auto carve 31.50 GB; M4's feasible minimum was 28.88 GB at 23 GiB because of the 18.44 GB
+rl+2 composition role). Byte-identical; 3 overruns absorbed by idle-cache eviction. **20G fails**: the recursion leaf
+composition (11.24 GB at eval_log 24) plus 11.4 GB of live leases. So the binding request is now the recursion leaf,
+not the truth role. The 3.27 GB local-memory reservation (12,544 B stack of `secp witness<Add>`) is untouched.
