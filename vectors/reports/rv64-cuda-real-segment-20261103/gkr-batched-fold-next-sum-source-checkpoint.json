@@ -87,5 +87,18 @@
     "Kernel memory/race qualification",
     "Representative full-block exact bytes and fresh CPU receiver",
     "Controlled performance before default activation"
-  ]
+  ],
+  "prepared_physical_gate": {
+    "gpu_executed": false,
+    "base_runtime_sha256": "25295868fe3410dc2f54b366497cb57e260ef9c1f9f74e03d4266f253f7cc809",
+    "candidate_runtime_sha256": "7ece93dc4ddc17bfab1b10e03fe1980e33cfa9f0d2b8ab38530a0567c486c1fb",
+    "changed_object_only": "rv64-batch_oracles.cu.o",
+    "candidate_object_sha256": "925c762e622b66b052f80c3b2d923e7dc0b3cb5fe7ea7ebea71cea4c2efae8f6",
+    "base_object_count": 904,
+    "base_exports_preserved": true,
+    "helper_sha256": "9665e3d9079a92d7e929b6c8e82a48b2408dd205533a6713c775ea5ae5f08225",
+    "helper_cpu_compile_seconds": 3.7921336099971086,
+    "route_requirement": "Positive BATCH_FOLD_SUM_ROUTE calls and kernel_launches required in addition to all native golden/poison checks",
+    "queue_requirement": "Explicit root approval after active production group terminal; exclusive flock, 110-second subprocess timeout; not queued"
+  }
 }
