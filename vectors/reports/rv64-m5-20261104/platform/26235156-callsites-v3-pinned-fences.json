@@ -1,0 +1,234 @@
+{
+  "schema": "rv64-m4-receipt/v2",
+  "label": "measured",
+  "derived_from": "rv64-m3-receipt/v1 + producer logs + proof dir",
+  "stream": "m5-platform",
+  "block": 26235156,
+  "gpus": 2,
+  "run": "/workspace/m3/runs/m5-platform/26235156-2gpu-v3census",
+  "source_commit": "78c3bd5d2",
+  "assets": {
+    "driver": "a9acb6396099d0807103bdc79d00765e8c3c8f864490e3b37667c1d99c64dab3",
+    "library": "bfaf0b14f023047ad6307d347e96dfe3e7e0ab0bd1f4102391d9a2f6e434f39c",
+    "receiver": "1af34c0b1aa97ed54f06c2c19ec98177b5926dfd93f97f74d3bebdb720674dd7",
+    "recursive_receiver": "1af34c0b1aa97ed54f06c2c19ec98177b5926dfd93f97f74d3bebdb720674dd7"
+  },
+  "environment_overrides": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "LD_PRELOAD": "/workspace/m3/build/m5-platform/shim/librv64_cuda_callsites.so",
+    "RV64_CUDA_CALLSITES_OUT": "/workspace/m3/runs/m5-platform/cs-26235156-v3census"
+  },
+  "nsys": false,
+  "host": {
+    "nodename": "f675b38ce80e",
+    "nproc": 192,
+    "cgroup_cpus": 40.8
+  },
+  "loadavg": {
+    "start": {
+      "1m": 23.78,
+      "5m": 20.7,
+      "15m": 20.74,
+      "unix": 1793808108.6417048
+    },
+    "end": {
+      "1m": 20.69,
+      "5m": 20.25,
+      "15m": 20.59,
+      "unix": 1793808146.9031472
+    }
+  },
+  "stages": {
+    "request_s": 30.967,
+    "capture_s": 2.208,
+    "capture_critical_s": 2.208,
+    "setup_s": 8.999,
+    "setup_cold_service_s": 8.999,
+    "setup_warm_s": null,
+    "setup_install_s": null,
+    "native_s": 4.949,
+    "stage1_s": 1.755,
+    "stage1_jobs": 11,
+    "stage2_s": 3.014,
+    "stage2_jobs": 11,
+    "native_verify_side_thread_s": 1.119,
+    "native_verify_on_critical_path_s": 0.0,
+    "recursion_s": 14.692,
+    "recursion_wall_s": 14.692,
+    "recursion_tail_s": 14.692,
+    "fold_tail_after_last_leaf_s": 5.787,
+    "compress_s": 0.0
+  },
+  "stage_boundaries": {
+    "request_s": "request accepted -> final proof bytes written (GPU_RESIDENT_BLOCK request_wall_ns)",
+    "capture_s": "input -> last segment compact records ready (report.capture_ns); M3: nothing overlaps it, so capture_critical_s == capture_s",
+    "setup_s": "report.setup_ns; cold_service when the SetupCache missed, warm when it hit; install is not a separate step yet (null)",
+    "native_s": "report.prove_ns: projection/widening/stage1/barrier/stage2 all count here, never under capture",
+    "stage1_s/stage2_s": "schedule.json phase walls (first claim -> last finish of each phase)",
+    "recursion_s": "combined recursion_ns; recursion starts after the last native proof in M3, so tail == wall",
+    "compress_s": "no compress layer before M7 (0)"
+  },
+  "ram": {
+    "rss_peak_daemon_gib": 22.421,
+    "rss_peak_request_private_gib": null,
+    "rss_scope": "one process per request (no daemon yet): daemon == whole-process peak (getrusage); request_private = private non-file-backed pages at the sampled peak",
+    "smaps_peak_census": null,
+    "smaps_peak_t_s": null
+  },
+  "device_memory": {
+    "device_peak_gb": {
+      "0": 31.503,
+      "1": 31.503
+    },
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak"
+  },
+  "gpu": {
+    "nvml_kernel_activity": {
+      "0": {
+        "samples": 148,
+        "mean_percent": 22.62837837837838,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 148,
+        "mean_percent": 19.16216216216216,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    }
+  },
+  "proof_size": {
+    "proof_bytes_final": 748536,
+    "proof_bytes_root": 748536
+  },
+  "process": {
+    "argv": [
+      "/workspace/m3/build/m4-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+      "combined-batch",
+      "/workspace/m3/runs/m5-platform/26235156-2gpu-v3census/case/manifest.json",
+      "/workspace/m3/runs/m5-platform/26235156-2gpu-v3census/case/batch"
+    ],
+    "exit_code": 0,
+    "wall_ns": 36947133755,
+    "user_seconds": 123.549793,
+    "system_seconds": 47.84169,
+    "peak_rss_bytes": 24073916416,
+    "minor_faults": 15195568,
+    "major_faults": 0
+  },
+  "recursion": {
+    "nodes": 21,
+    "leaves": 11,
+    "folds": 10,
+    "pipeline": {
+      "dag_wall_ns": 14521136242,
+      "lane_device_stage_ns": [
+        9939851088,
+        9121031240
+      ],
+      "lane_device_stage_occupancy": 0.6563151123418817,
+      "peak_ready": 5
+    }
+  },
+  "native": {
+    "cpu_proofs": 4,
+    "truth_proofs": 7,
+    "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+    "output_matches_pin": true
+  },
+  "correctness": {
+    "parity_vs_accepted_v7": {
+      "native_bins": true,
+      "bundle": true,
+      "recursive_tree": false,
+      "recursive_proofs": false,
+      "recursive_mismatched": [
+        "fold-000002.proof",
+        "fold-000005.proof",
+        "fold-000006.proof",
+        "fold-000009.proof",
+        "fold-000012.proof",
+        "fold-000013.proof",
+        "fold-000014.proof",
+        "fold-000017.proof",
+        "fold-000019.proof",
+        "fold-000020.proof",
+        "root.proof"
+      ],
+      "root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+      "control_root_sha256": "4e4b174e65d9c0b5391608ceb692a0852dca3f6c3440b359847123ef20b59a7f",
+      "native_mismatched": [],
+      "byte_identical": false
+    },
+    "receiver": {
+      "status": "not_run",
+      "accepted": null,
+      "receiver_sha256": null,
+      "restored_leaves": null,
+      "restored_folds": null,
+      "producer_strict_checks": null
+    },
+    "accepted": null,
+    "fingerprint_vs_reference": {
+      "reference": "/workspace/m3/runs/integrate/26235156-2gpu-scale/receipt.json",
+      "compared": 37,
+      "identical": true,
+      "mismatched": [],
+      "only_in_a": [],
+      "only_in_b": []
+    }
+  },
+  "verifier": {
+    "verify_per_block_s": null,
+    "derive_vk_tables_once_s": null,
+    "verifier_peak_rss_gib": null
+  },
+  "proof_sha256": {
+    "native": {
+      "cells.bin": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e",
+      "cpu-0.bin": "510f111a57d1e53d77d859588e999f3362204850090bf71a35857a4b7cd1c618",
+      "cpu-1.bin": "373053a942395c839a98df5ab0bd7f622953d4c2b19e53a7c3f2fe51e483a541",
+      "cpu-2.bin": "5503063e34d01682c43ce18259c4248f466dd6d47f032ffc0dc2c55a593a53a5",
+      "cpu-3.bin": "63304115804829b44c63c980cb3042b776d0ccb862017a6c55e44a9c379d5fae",
+      "stage-one.bin": "6cc9389b6a6cf9e1af312f0975e8b2c90025c00c1fcfe177285142a48e540cf3",
+      "truth-0.bin": "b8a71bab37ab9013d2b546456853db71aa60fdf7daaba4cb4afc94ab25367e26",
+      "truth-1.bin": "a4214ac2e2e50c38f47be9afd9e31aafb08ac8927a6a40944632ede5b2df24b5",
+      "truth-2.bin": "9364d4df4d9af76668cd9ec3c1b7839daf2b6fa2e618731ea2d5291a263d1cc2",
+      "truth-3.bin": "ccf388db18ed95ea8030a370bc9dce690d9bbbb73a96bf7d37b1e70b6d8d1007",
+      "truth-4.bin": "9f1a08893281c7ef00a20a04fc602425671e98fc6bccf8f2f322731a8e2fe2c0",
+      "truth-5.bin": "400a67e5395285e6909b9da26d551b04957b59fdc2360ac547fbf4c074504d38",
+      "truth-6.bin": "4aa1b4f358973e90511f4266e9ad5de81d58dab60d5e29861c4c4f5a30c45719"
+    },
+    "bundle": "8a391ea6e155f4eed8026682bf4a0de4106252582b39900a09d63b993a8ecbd9",
+    "recursive": {
+      "proof_sha256": {
+        "fold-000002.proof": "d038213ac9ea40c2e1297fef1f3ec3b38066f15aef829d8c92d7eee4e1a142f1",
+        "fold-000005.proof": "0b0cffbe0d89e31ac178e16bbc59cdda76ae227c52cb0369637fa413a020268e",
+        "fold-000006.proof": "4cfd5b3679864c2423617ff4f4b110ef999684478674d160d906998cf8991515",
+        "fold-000009.proof": "fcabaceead185a9c88dad0568bc480f890eab3737325ed6f55fe4d175430713d",
+        "fold-000012.proof": "405494a459e938c7b5539c14b435bffc89f0ced35d8e01b1359c60f44e30a4db",
+        "fold-000013.proof": "46b9120efb35b6227817d38300a7fb0440d089fc9a1b7e6377915fa7a35f8ded",
+        "fold-000014.proof": "f98cd5c9d90f047a82591b9b35e5b461f3a5801072c90715ce7a9c141d9ba61d",
+        "fold-000017.proof": "983dbba2a933e31121a801fe50a5f6258cda3ddbb272288adf7f61ebda0f4497",
+        "fold-000019.proof": "d72cf0ab4bf40eb39c118dd9e5c839987cc3f9d1fc724c210000039cebb1e887",
+        "fold-000020.proof": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "leaf-000000.proof": "7981ac121655c3d0aa75a03a22c32ee5e1d27ce01fcef84156aef5c67657d265",
+        "leaf-000001.proof": "434116e9b10dd119c407cf0d0163696e8d60b5145dcb6146eeb2ef83fe7f1978",
+        "leaf-000002.proof": "48f274cef00262ded7b89b48d30a4d5f77245ee45f4dac836f6da28532e9034e",
+        "leaf-000003.proof": "25dc65973377764c8da4f449a01e7070c283c6361ee770398d1b2901c2a52f77",
+        "leaf-000004.proof": "7ba98771920c88de78d758753e67265c74b5c9e9a20164a336267beefde18818",
+        "leaf-000005.proof": "e9c9b9d839307412ed936101d3d103f23c64003240f9359fc5474d725cdb9f62",
+        "leaf-000006.proof": "5e57dd38c4b42b74ef658c0250fc6da0f2134813fb5c4ed0b4948bf637b4a07e",
+        "leaf-000007.proof": "ef314af3cfc3de487b5678c2ba1f9e3a3c69c213dc3a23b2095a1b1d96fbca4e",
+        "leaf-000008.proof": "d94fda5f19539e7de0f70bf5a017073320f68b6debe64b3d9bbc0f19506227e4",
+        "leaf-000009.proof": "45498c67464d5092a198fe4eab33594f9e80e546776ac186c9af792f05f12707",
+        "leaf-000010.proof": "e80321063886403b346200c4042eff7bad7e89a90a648d921d913f760213b07e",
+        "root.proof": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e"
+      },
+      "tree_sha256": "77973c06bbf130dac91f12a5f3ffc8c3e3ee5a04c693277c2f7c9f1c77e932a9"
+    }
+  }
+}

@@ -22,6 +22,7 @@ extern "C" int stwo_exec_context_seal_read_only(void *, const void *, size_t);
 extern "C" int stwo_exec_context_alloc_u32(void *, size_t, uint32_t **);
 extern "C" int stwo_exec_context_alloc_u32_long(void *, size_t, uint32_t **);
 extern "C" int stwo_exec_context_free_u32(void *, uint32_t *);
+extern "C" int stwo_exec_arena_enabled(void);
 extern "C" int stwo_exec_context_memcpy_h2d_async(void *, void *, const void *,
                                                   size_t);
 extern "C" int stwo_exec_context_memcpy_d2d_async(void *, void *, const void *,
@@ -153,7 +154,12 @@ struct ResidentOwner {
       size_t free_bytes = 0, total_bytes = 0, used = 0, reserved = 0;
       if (cudaMemGetInfo(&free_bytes, &total_bytes) == cudaSuccess &&
           stwo_exec_context_pool_current(ctx, &used, &reserved) == 0) {
-        uint64_t available = uint64_t(free_bytes) + (reserved > used ? reserved - used : 0);
+        // M5 platform: with the static arena on, physical free memory outside
+        // the carve can never back an allocation; counting it over-admitted
+        // by the reserve and turned evictions into failed allocations
+        // (GPU_ARENA_OVERRUN + retry). Count only the carve's free bytes.
+        uint64_t available = (stwo_exec_arena_enabled() ? 0 : uint64_t(free_bytes)) +
+                             (reserved > used ? reserved - used : 0);
         bool evicted = false;
         for (size_t i = 0; available < bytes && i < blocks.size();) {
           if (blocks[i].used) { ++i; continue; }
@@ -665,6 +671,9 @@ extern "C" int stwo_rv64_gpu_lease_allocate(void *raw, uint64_t words,
     return 0;
   } catch (const std::exception &e) {
     s.error = e.what();
+    // Failure-only diagnostic: the Zig caller maps every failure to one error name.
+    std::fprintf(stderr, "GPU_LEASE_ALLOCATE_FAILED words=%llu kind=%u what=%s\n",
+                 static_cast<unsigned long long>(words), kind, e.what());
     return int(cudaErrorInvalidValue);
   }
 }

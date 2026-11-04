@@ -1,0 +1,1476 @@
+{
+ "schema": "rv64-m5-callsites-summary/v1",
+ "source": "/workspace/m3/runs/m5-platform/census156/cuda-callsites-513558.json",
+ "totals": {
+  "cuStreamSynchronize": {
+   "count": 37304,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 10054344039
+  },
+  "cuMemcpyHtoDAsync": {
+   "count": 9817,
+   "bytes": 47815780468,
+   "pageable": 9817,
+   "pageable_bytes": 47815780468,
+   "ns": 2826579780
+  },
+  "cuMemcpyDtoHAsync": {
+   "count": 2479,
+   "bytes": 77694688,
+   "pageable": 2479,
+   "pageable_bytes": 77694688,
+   "ns": 25415755
+  },
+  "cuEventSynchronize": {
+   "count": 32,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 1955889357
+  }
+ },
+ "rows": [
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72 <- rv64.cpu_projection.Job.callback @ riscv_cuda/rv64/cpu_projection.zig:115",
+   "count": 64,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 12941423,
+   "sites": 4
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "lib: libcudart_static_141dba5462e92d2cffd1abc474df476c510a3a8c @ :? <- cudaStreamSynchronize @ :? <- stwo_exec_context_sync @ ??:?",
+   "count": 2210,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 1381366381,
+   "sites": 10
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72 <- rv64.resident_composition.Job.callback @ riscv_cuda/rv64/resident_composition.zig:471",
+   "count": 3334,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 2683260654,
+   "sites": 11
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72 <- rv64.device_binding_runtime.Call.callback @ riscv_cuda/rv64/device_binding_runtime.zig:244",
+   "count": 72,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 104785036,
+   "sites": 6
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.release @ riscv_cuda/rv64/session_context.zig:62 <- rv64.resident_composition.Job.callback @ riscv_cuda/rv64/resident_composition.zig:471",
+   "count": 6174,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 1445446,
+   "sites": 2
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.core_witness.BuildJob.callback @ riscv_cuda/rv64/core_witness.zig:323",
+   "count": 8,
+   "bytes": 19141760,
+   "pageable": 8,
+   "pageable_bytes": 19141760,
+   "ns": 801498,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.resident_composition.upload @ riscv_cuda/rv64/resident_composition.zig:838 (discriminator 2) <- rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:774 (discriminator 8)",
+   "count": 32,
+   "bytes": 780420096,
+   "pageable": 32,
+   "pageable_bytes": 780420096,
+   "ns": 45672293,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72 <- rv64.trace_commit.Job.callback @ riscv_cuda/rv64/trace_commit.zig:130",
+   "count": 352,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 279873114,
+   "sites": 6
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.global_stage.Job.callback @ riscv_cuda/rv64/global_stage.zig:214",
+   "count": 178,
+   "bytes": 4196,
+   "pageable": 178,
+   "pageable_bytes": 4196,
+   "ns": 1237495,
+   "sites": 2
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.trace_commit.Job.streamRoot @ riscv_cuda/rv64/trace_commit.zig:255 <- rv64.trace_commit.Job.run @ riscv_cuda/rv64/trace_commit.zig:394",
+   "count": 65,
+   "bytes": 258156,
+   "pageable": 65,
+   "pageable_bytes": 258156,
+   "ns": 392130,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.release @ riscv_cuda/rv64/session_context.zig:62 <- rv64.device_binding_runtime.Call.callback @ riscv_cuda/rv64/device_binding_runtime.zig:244",
+   "count": 664,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 135399,
+   "sites": 5
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "lib: libcudart_static_141dba5462e92d2cffd1abc474df476c510a3a8c @ :? <- cudaStreamSynchronize @ :? <- stwo_exec_context_free_u32 @ ??:?",
+   "count": 536,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 125069,
+   "sites": 3
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.resident_composition.upload @ riscv_cuda/rv64/resident_composition.zig:838 (discriminator 2) <- rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:659 (discriminator 8)",
+   "count": 143,
+   "bytes": 72192512,
+   "pageable": 143,
+   "pageable_bytes": 72192512,
+   "ns": 4391538,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72",
+   "count": 410,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 352266301,
+   "sites": 14
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.release @ riscv_cuda/rv64/session_context.zig:62 <- rv64.device_binding_runtime.Call.run @ riscv_cuda/rv64/device_binding_runtime.zig:366",
+   "count": 8,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 2920,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.allocate @ riscv_cuda/rv64/session_context.zig:49 <- rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:606",
+   "count": 1134,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 212100,
+   "sites": 7
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.fixed @ riscv_cuda/rv64/immutable_setup.zig:170 <- rv64.truth_source.MainJob.run @ riscv_cuda/rv64/truth_source.zig:312 (discriminator 2)",
+   "count": 14,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 5770,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.trace_commit.Job.streamRoot @ riscv_cuda/rv64/trace_commit.zig:241 (discriminator 194) <- rv64.trace_commit.Job.run @ riscv_cuda/rv64/trace_commit.zig:394",
+   "count": 376,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 95640,
+   "sites": 3
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.cpu_projection.Job.callback @ riscv_cuda/rv64/cpu_projection.zig:115",
+   "count": 8,
+   "bytes": 32,
+   "pageable": 8,
+   "pageable_bytes": 32,
+   "ns": 171718,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.release @ riscv_cuda/rv64/session_context.zig:62 <- rv64.outer_source_main.generate @ riscv_cuda/rv64/outer_source_main.zig:43 (discriminator 4)",
+   "count": 84,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 22010,
+   "sites": 2
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.device_binding_runtime.Call.callback @ riscv_cuda/rv64/device_binding_runtime.zig:244",
+   "count": 12,
+   "bytes": 33554464,
+   "pageable": 12,
+   "pageable_bytes": 33554464,
+   "ns": 1520495,
+   "sites": 2
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:452 (discriminator 4)",
+   "count": 4,
+   "bytes": 320,
+   "pageable": 4,
+   "pageable_bytes": 320,
+   "ns": 22460,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:351",
+   "count": 8,
+   "bytes": 736,
+   "pageable": 8,
+   "pageable_bytes": 736,
+   "ns": 19750,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72 <- rv64.outer_source.Owner.callback @ riscv_cuda/rv64/outer_source.zig:304",
+   "count": 1512,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 1414660314,
+   "sites": 6
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.fixed @ riscv_cuda/rv64/immutable_setup.zig:169 <- rv64.pcs_native.Context.provideFixed @ riscv_cuda/rv64/pcs_native.zig:86",
+   "count": 8,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 101330,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.resident_composition.upload @ riscv_cuda/rv64/resident_composition.zig:838 (discriminator 2) <- rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:702 (discriminator 8)",
+   "count": 407,
+   "bytes": 3344,
+   "pageable": 407,
+   "pageable_bytes": 3344,
+   "ns": 780388,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.truth_source.MainJob.run @ riscv_cuda/rv64/truth_source.zig:347",
+   "count": 14,
+   "bytes": 56,
+   "pageable": 14,
+   "pageable_bytes": 56,
+   "ns": 182008,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.core_witness.CoreProjection.familyOutput @ riscv_cuda/rv64/core_witness.zig:195 (discriminator 8)",
+   "count": 48,
+   "bytes": 142811264,
+   "pageable": 48,
+   "pageable_bytes": 142811264,
+   "ns": 6096542,
+   "sites": 4
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.trace_commit.Job.run @ riscv_cuda/rv64/trace_commit.zig:428 <- rv64.trace_commit.Job.callback @ riscv_cuda/rv64/trace_commit.zig:130",
+   "count": 31,
+   "bytes": 788928,
+   "pageable": 31,
+   "pageable_bytes": 788928,
+   "ns": 167279,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:120 <- rv64.outer_assignment.Prepared.generate__anon_190762 @ riscv_cuda/rv64/outer_assignment.zig:562 (discriminator 8)",
+   "count": 21,
+   "bytes": 9720565312,
+   "pageable": 21,
+   "pageable_bytes": 9720565312,
+   "ns": 536816655,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72 <- rv64.device_binding_runtime.Runtime.adoptReplay @ riscv_cuda/rv64/device_binding_runtime.zig:140",
+   "count": 40,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 53606530,
+   "sites": 5
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.fixed @ riscv_cuda/rv64/immutable_setup.zig:170 <- rv64.pcs_native.Context.FixedJob.run @ riscv_cuda/rv64/pcs_native.zig:375",
+   "count": 42,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 11720,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.allocate @ riscv_cuda/rv64/session_context.zig:49 <- rv64.resident_composition.allocate @ riscv_cuda/rv64/resident_composition.zig:831",
+   "count": 1050,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 265187,
+   "sites": 3
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72 <- rv64.bulk_sponge.Owner.callback @ riscv_cuda/rv64/bulk_sponge.zig:112",
+   "count": 204,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 26109896,
+   "sites": 5
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.release @ riscv_cuda/rv64/session_context.zig:62 <- rv64.projection_lifetime.retire @ riscv_cuda/rv64/projection_lifetime.zig:19",
+   "count": 32,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 17750,
+   "sites": 2
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.release @ riscv_cuda/rv64/session_context.zig:62 <- rv64.device_binding_runtime.Call.run @ riscv_cuda/rv64/device_binding_runtime.zig:264",
+   "count": 8,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 1440,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:456",
+   "count": 4,
+   "bytes": 8576,
+   "pageable": 4,
+   "pageable_bytes": 8576,
+   "ns": 25990,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72 <- rv64.outer_source_main.generate @ riscv_cuda/rv64/outer_source_main.zig:43 (discriminator 4)",
+   "count": 168,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 831552104,
+   "sites": 4
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.release @ riscv_cuda/rv64/session_context.zig:62",
+   "count": 28,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 10200,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.global_stage.Job.callback @ riscv_cuda/rv64/global_stage.zig:214",
+   "count": 178,
+   "bytes": 65220,
+   "pageable": 178,
+   "pageable_bytes": 65220,
+   "ns": 487708,
+   "sites": 2
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.truth_source.Cleanup.callback @ riscv_cuda/rv64/truth_source.zig:261",
+   "count": 64,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 18190,
+   "sites": 3
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:121 <- rv64.global_stage.Job.run @ riscv_cuda/rv64/global_stage.zig:275",
+   "count": 58,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 21549,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "lib: libcudart_static_1310e5fb72b7ef3b631832b7a0c7e3ebdd0f4cc9 @ :? <- libcudart_static_58f95088c96b3eda011d739033c2a2afd4fe0cab @ :? <- cudaMemcpyAsync @ :?",
+   "count": 1941,
+   "bytes": 1892687224,
+   "pageable": 1941,
+   "pageable_bytes": 1892687224,
+   "ns": 116241742,
+   "sites": 14
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.release @ riscv_cuda/rv64/session_context.zig:62 <- rv64.outer_source.Owner.callback @ riscv_cuda/rv64/outer_source.zig:304",
+   "count": 2394,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 595928,
+   "sites": 7
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72 <- rv64.device_binding_runtime.Call.run @ riscv_cuda/rv64/device_binding_runtime.zig:366",
+   "count": 544,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 5526860,
+   "sites": 3
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.resident_composition.upload @ riscv_cuda/rv64/resident_composition.zig:838 (discriminator 2) <- rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:694",
+   "count": 407,
+   "bytes": 426272,
+   "pageable": 407,
+   "pageable_bytes": 426272,
+   "ns": 784347,
+   "sites": 1
+  },
+  {
+   "sym": "cuEventSynchronize",
+   "site": "lib: libcudart_static_daedcea17177362c37c34d10632b001f03c10dcf @ :? <- cudaEventSynchronize @ :? <- rv64_pcs_pipeline::Result rv64_pcs_pipeline::run<(anonymous namespace)::ResidentOwner>((anonymous namespace)::ResidentOwner&, rv64_pcs_pipeline::Input const&) @ :?",
+   "count": 32,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 1955889357,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:121 <- rv64.cpu_projection.Job.rom @ riscv_cuda/rv64/cpu_projection.zig:149",
+   "count": 4,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 890,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.outer_source_main.generate @ riscv_cuda/rv64/outer_source_main.zig:43 (discriminator 4)",
+   "count": 42,
+   "bytes": 305231724,
+   "pageable": 42,
+   "pageable_bytes": 305231724,
+   "ns": 17568150,
+   "sites": 2
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "lib: libcudart_static_1310e5fb72b7ef3b631832b7a0c7e3ebdd0f4cc9 @ :? <- libcudart_static_58f95088c96b3eda011d739033c2a2afd4fe0cab @ :? <- cudaMemcpyAsync @ :?",
+   "count": 1119,
+   "bytes": 77056976,
+   "pageable": 1119,
+   "pageable_bytes": 77056976,
+   "ns": 14702757,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72 <- rv64.global_stage.Job.callback @ riscv_cuda/rv64/global_stage.zig:214",
+   "count": 890,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 76906282,
+   "sites": 5
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72 <- rv64.trace_commit.Job.run @ riscv_cuda/rv64/trace_commit.zig:394",
+   "count": 766,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 2249089610,
+   "sites": 6
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.allocate @ riscv_cuda/rv64/session_context.zig:49 <- rv64.outer_source_interaction.generate @ riscv_cuda/rv64/outer_source_interaction.zig:43",
+   "count": 166,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 73420,
+   "sites": 3
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.resident_composition.upload @ riscv_cuda/rv64/resident_composition.zig:838 (discriminator 2) <- rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:699",
+   "count": 407,
+   "bytes": 1543584,
+   "pageable": 407,
+   "pageable_bytes": 1543584,
+   "ns": 815248,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.cpu_projection.Job.callback @ riscv_cuda/rv64/cpu_projection.zig:115",
+   "count": 8,
+   "bytes": 1714236048,
+   "pageable": 8,
+   "pageable_bytes": 1714236048,
+   "ns": 90446698,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.release @ riscv_cuda/rv64/session_context.zig:62 <- rv64.device_binding_runtime.Call.run @ riscv_cuda/rv64/device_binding_runtime.zig:284",
+   "count": 8,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 1620,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.deinit @ riscv_cuda/rv64/immutable_setup.zig:195 (discriminator 4)",
+   "count": 288,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 89340,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.evict @ riscv_cuda/rv64/immutable_setup.zig:95 <- rv64.immutable_setup.Cache.fixed @ riscv_cuda/rv64/immutable_setup.zig:149",
+   "count": 1486,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 307140,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:344",
+   "count": 8,
+   "bytes": 79360,
+   "pageable": 8,
+   "pageable_bytes": 79360,
+   "ns": 28430,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.resident_composition.upload @ riscv_cuda/rv64/resident_composition.zig:838 (discriminator 2) <- rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:691",
+   "count": 407,
+   "bytes": 272844,
+   "pageable": 407,
+   "pageable_bytes": 272844,
+   "ns": 898598,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:337",
+   "count": 8,
+   "bytes": 288,
+   "pageable": 8,
+   "pageable_bytes": 288,
+   "ns": 44100,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:451",
+   "count": 4,
+   "bytes": 16,
+   "pageable": 4,
+   "pageable_bytes": 16,
+   "ns": 25490,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.device_binding_runtime.Runtime.adoptReplay @ riscv_cuda/rv64/device_binding_runtime.zig:140",
+   "count": 8,
+   "bytes": 22864,
+   "pageable": 8,
+   "pageable_bytes": 22864,
+   "ns": 70520,
+   "sites": 2
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.outer_fixed.Owner.uploadImpl @ riscv_cuda/rv64/outer_fixed.zig:60",
+   "count": 945,
+   "bytes": 11752766464,
+   "pageable": 945,
+   "pageable_bytes": 11752766464,
+   "ns": 668309292,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.fixed @ riscv_cuda/rv64/immutable_setup.zig:170 <- rv64.pcs_native.Context.provideFixed @ riscv_cuda/rv64/pcs_native.zig:86",
+   "count": 8,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 2920,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.trace_commit.Job.streamRoot @ riscv_cuda/rv64/trace_commit.zig:253 <- rv64.trace_commit.Job.run @ riscv_cuda/rv64/trace_commit.zig:394",
+   "count": 65,
+   "bytes": 1610678272,
+   "pageable": 65,
+   "pageable_bytes": 1610678272,
+   "ns": 163857764,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.trace_commit.Job.run @ riscv_cuda/rv64/trace_commit.zig:495 <- rv64.trace_commit.Job.callback @ riscv_cuda/rv64/trace_commit.zig:130",
+   "count": 31,
+   "bytes": 992,
+   "pageable": 31,
+   "pageable_bytes": 992,
+   "ns": 348260,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72 <- rv64.gkr_stage.Job.callback @ riscv_cuda/rv64/gkr_stage.zig:204",
+   "count": 96,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 523025593,
+   "sites": 8
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.release @ riscv_cuda/rv64/session_context.zig:62 <- rv64.outer_source_interaction.generate @ riscv_cuda/rv64/outer_source_interaction.zig:20 (discriminator 366)",
+   "count": 42,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 10480,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.bulk_sponge.Owner.callback @ riscv_cuda/rv64/bulk_sponge.zig:112",
+   "count": 40,
+   "bytes": 68297808,
+   "pageable": 40,
+   "pageable_bytes": 68297808,
+   "ns": 3204649,
+   "sites": 5
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6)",
+   "count": 34,
+   "bytes": 39388864,
+   "pageable": 34,
+   "pageable_bytes": 39388864,
+   "ns": 2707805,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.outer_source.Owner.callback @ riscv_cuda/rv64/outer_source.zig:304",
+   "count": 483,
+   "bytes": 8400,
+   "pageable": 483,
+   "pageable_bytes": 8400,
+   "ns": 3231291,
+   "sites": 3
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.gkr_stage.Job.callback @ riscv_cuda/rv64/gkr_stage.zig:204",
+   "count": 104,
+   "bytes": 305408,
+   "pageable": 104,
+   "pageable_bytes": 305408,
+   "ns": 783439,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:453",
+   "count": 4,
+   "bytes": 256,
+   "pageable": 4,
+   "pageable_bytes": 256,
+   "ns": 20600,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.truth_source.CompactCleanup.callback @ riscv_cuda/rv64/truth_source.zig:282",
+   "count": 14,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 5540,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.device_binding_runtime.Runtime.adoptReplay @ riscv_cuda/rv64/device_binding_runtime.zig:140",
+   "count": 4,
+   "bytes": 16,
+   "pageable": 4,
+   "pageable_bytes": 16,
+   "ns": 15450,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.outer_source.Owner.dropEvaluations @ riscv_cuda/rv64/outer_source.zig:367 (discriminator 12) <- device_pcs.TraceInputRetirement.invoke @ src/prover_api/device_pcs.zig:58",
+   "count": 462,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 125440,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.device_binding_runtime.Call.callback @ riscv_cuda/rv64/device_binding_runtime.zig:244",
+   "count": 12,
+   "bytes": 22880,
+   "pageable": 12,
+   "pageable_bytes": 22880,
+   "ns": 155648,
+   "sites": 2
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.fixed @ riscv_cuda/rv64/immutable_setup.zig:169 <- rv64.pcs_native.Context.FixedJob.run @ riscv_cuda/rv64/pcs_native.zig:375",
+   "count": 42,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 13066483,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.trace_commit.Job.run @ riscv_cuda/rv64/trace_commit.zig:426 <- rv64.trace_commit.Job.callback @ riscv_cuda/rv64/trace_commit.zig:130",
+   "count": 31,
+   "bytes": 654691328,
+   "pageable": 31,
+   "pageable_bytes": 654691328,
+   "ns": 48762924,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72 <- rv64.device_binding_runtime.Call.run @ riscv_cuda/rv64/device_binding_runtime.zig:264",
+   "count": 544,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 7590917,
+   "sites": 3
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:120 (discriminator 6) <- rv64.global_stage.Job.run @ riscv_cuda/rv64/global_stage.zig:256",
+   "count": 694,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 3106536,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.bridge_witness.Owner.releaseDevice @ riscv_cuda/rv64/bridge_witness.zig:165",
+   "count": 136,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 49939,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.core_witness.CoreProjection.memoryOutput @ riscv_cuda/rv64/core_witness.zig:226 (discriminator 10)",
+   "count": 30,
+   "bytes": 729502976,
+   "pageable": 30,
+   "pageable_bytes": 729502976,
+   "ns": 77428615,
+   "sites": 2
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.bulk_sponge.Owner.bulk @ riscv_cuda/rv64/bulk_sponge.zig:168",
+   "count": 56,
+   "bytes": 19037408,
+   "pageable": 56,
+   "pageable_bytes": 19037408,
+   "ns": 1127519,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:121 <- rv64.outer_assignment.Prepared.generate__anon_190762 @ riscv_cuda/rv64/outer_assignment.zig:562 (discriminator 8)",
+   "count": 42,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 9910,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:686 <- rv64.resident_composition.Job.callback @ riscv_cuda/rv64/resident_composition.zig:471",
+   "count": 407,
+   "bytes": 2197077760,
+   "pageable": 407,
+   "pageable_bytes": 2197077760,
+   "ns": 126166132,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.device_binding_runtime.Call.run @ riscv_cuda/rv64/device_binding_runtime.zig:264",
+   "count": 134,
+   "bytes": 4288,
+   "pageable": 134,
+   "pageable_bytes": 4288,
+   "ns": 774250,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:687 <- rv64.resident_composition.Job.callback @ riscv_cuda/rv64/resident_composition.zig:471",
+   "count": 407,
+   "bytes": 1637064,
+   "pageable": 407,
+   "pageable_bytes": 1637064,
+   "ns": 1299246,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:815 <- rv64.resident_composition.Job.callback @ riscv_cuda/rv64/resident_composition.zig:471",
+   "count": 32,
+   "bytes": 1024,
+   "pageable": 32,
+   "pageable_bytes": 1024,
+   "ns": 416380,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.trace_commit.Job.run @ riscv_cuda/rv64/trace_commit.zig:405 (discriminator 62) <- rv64.trace_commit.Job.callback @ riscv_cuda/rv64/trace_commit.zig:130",
+   "count": 62,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 13790,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.trace_commit.Job.streamRoot @ riscv_cuda/rv64/trace_commit.zig:254 <- rv64.trace_commit.Job.run @ riscv_cuda/rv64/trace_commit.zig:394",
+   "count": 65,
+   "bytes": 1610678272,
+   "pageable": 65,
+   "pageable_bytes": 1610678272,
+   "ns": 92580699,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:795 <- rv64.resident_composition.Job.callback @ riscv_cuda/rv64/resident_composition.zig:471",
+   "count": 32,
+   "bytes": 2368,
+   "pageable": 32,
+   "pageable_bytes": 2368,
+   "ns": 140119,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.outer_source.Owner.dropMainEvaluations @ riscv_cuda/rv64/outer_source.zig:358 <- rv64.outer_source.Owner.callback @ riscv_cuda/rv64/outer_source.zig:304",
+   "count": 42,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 13430,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.fixed @ riscv_cuda/rv64/immutable_setup.zig:169 <- rv64.truth_source.MainJob.run @ riscv_cuda/rv64/truth_source.zig:312 (discriminator 2)",
+   "count": 14,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 47660,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.cpu_projection.Owner.releaseDevice @ riscv_cuda/rv64/cpu_projection.zig:101 (discriminator 2)",
+   "count": 16,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 12930,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:318",
+   "count": 8,
+   "bytes": 67108864,
+   "pageable": 8,
+   "pageable_bytes": 67108864,
+   "ns": 12355527,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:121 <- rv64.global_stage.Job.run @ riscv_cuda/rv64/global_stage.zig:256",
+   "count": 694,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 240010,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.cpu_projection.Owner.releaseDevice @ riscv_cuda/rv64/cpu_projection.zig:102",
+   "count": 16,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 5730,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:120 <- rv64.global_stage.Job.run @ riscv_cuda/rv64/global_stage.zig:256",
+   "count": 347,
+   "bytes": 301198208,
+   "pageable": 347,
+   "pageable_bytes": 301198208,
+   "ns": 17603554,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:342",
+   "count": 8,
+   "bytes": 32,
+   "pageable": 8,
+   "pageable_bytes": 32,
+   "ns": 27580,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:120 <- rv64.outer_source_main.generate @ riscv_cuda/rv64/outer_source_main.zig:55 (discriminator 8)",
+   "count": 945,
+   "bytes": 11752766464,
+   "pageable": 945,
+   "pageable_bytes": 11752766464,
+   "ns": 654153885,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:120 (discriminator 6) <- rv64.global_stage.Job.run @ riscv_cuda/rv64/global_stage.zig:275",
+   "count": 58,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 562568,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:472 (discriminator 2)",
+   "count": 100,
+   "bytes": 228800,
+   "pageable": 100,
+   "pageable_bytes": 228800,
+   "ns": 706720,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:448",
+   "count": 4,
+   "bytes": 22848,
+   "pageable": 4,
+   "pageable_bytes": 22848,
+   "ns": 45220,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.trace_commit.Job.run @ riscv_cuda/rv64/trace_commit.zig:427 <- rv64.trace_commit.Job.callback @ riscv_cuda/rv64/trace_commit.zig:130",
+   "count": 31,
+   "bytes": 654691328,
+   "pageable": 31,
+   "pageable_bytes": 654691328,
+   "ns": 35266721,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.trace_commit.Job.run @ riscv_cuda/rv64/trace_commit.zig:489 (discriminator 22) <- rv64.trace_commit.Job.callback @ riscv_cuda/rv64/trace_commit.zig:130",
+   "count": 62,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 14120,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.bulk_sponge.Owner.releaseLeases @ riscv_cuda/rv64/bulk_sponge.zig:85",
+   "count": 440,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 157889,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.truth_source.MainJob.run @ riscv_cuda/rv64/truth_source.zig:322",
+   "count": 14,
+   "bytes": 56,
+   "pageable": 14,
+   "pageable_bytes": 56,
+   "ns": 65410,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:377",
+   "count": 268,
+   "bytes": 311952,
+   "pageable": 268,
+   "pageable_bytes": 311952,
+   "ns": 645088,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.join @ riscv_cuda/rv64/session_context.zig:72 <- rv64.core_witness.BuildJob.callback @ riscv_cuda/rv64/core_witness.zig:323",
+   "count": 16,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 1736684,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.release @ riscv_cuda/rv64/session_context.zig:62 <- rv64.global_stage.Job.callback @ riscv_cuda/rv64/global_stage.zig:214",
+   "count": 712,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 246029,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:120 (discriminator 6) <- rv64.outer_source_main.generate @ riscv_cuda/rv64/outer_source_main.zig:55 (discriminator 8)",
+   "count": 1890,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 26716954,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.pcs_native.Context.ReleaseJob.run @ riscv_cuda/rv64/pcs_native.zig:305 (discriminator 4)",
+   "count": 86,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 93800,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.immutable_setup.Cache.fixed @ riscv_cuda/rv64/immutable_setup.zig:165 <- rv64.pcs_native.Context.provideFixed @ riscv_cuda/rv64/pcs_native.zig:86",
+   "count": 811,
+   "bytes": 516235136,
+   "pageable": 811,
+   "pageable_bytes": 516235136,
+   "ns": 29488547,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:376",
+   "count": 268,
+   "bytes": 142000,
+   "pageable": 268,
+   "pageable_bytes": 142000,
+   "ns": 694248,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.pcs_native.Context.ReleaseJob.run @ riscv_cuda/rv64/pcs_native.zig:308",
+   "count": 170,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 38120,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.outer_source.Owner.callback @ riscv_cuda/rv64/outer_source.zig:304",
+   "count": 21,
+   "bytes": 4704,
+   "pageable": 21,
+   "pageable_bytes": 4704,
+   "ns": 123550,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.immutable_setup.Cache.fixed @ riscv_cuda/rv64/immutable_setup.zig:165 <- rv64.truth_source.MainJob.run @ riscv_cuda/rv64/truth_source.zig:312 (discriminator 2)",
+   "count": 153,
+   "bytes": 218943488,
+   "pageable": 153,
+   "pageable_bytes": 218943488,
+   "ns": 13205143,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.truth_source.MainJob.run @ riscv_cuda/rv64/truth_source.zig:316 (discriminator 2)",
+   "count": 7,
+   "bytes": 8702128,
+   "pageable": 7,
+   "pageable_bytes": 8702128,
+   "ns": 657058,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.evict @ riscv_cuda/rv64/immutable_setup.zig:95 <- rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:112",
+   "count": 978,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 341400,
+   "sites": 2
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.trace_commit.Job.streamRoot @ riscv_cuda/rv64/trace_commit.zig:318 <- rv64.trace_commit.Job.run @ riscv_cuda/rv64/trace_commit.zig:394",
+   "count": 65,
+   "bytes": 2080,
+   "pageable": 65,
+   "pageable_bytes": 2080,
+   "ns": 1000394,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.device_binding_runtime.Call.run @ riscv_cuda/rv64/device_binding_runtime.zig:366",
+   "count": 134,
+   "bytes": 4288,
+   "pageable": 134,
+   "pageable_bytes": 4288,
+   "ns": 901276,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:120 (discriminator 6) <- rv64.cpu_projection.Job.rom @ riscv_cuda/rv64/cpu_projection.zig:149",
+   "count": 4,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 20690,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "lib: libcudart_static_141dba5462e92d2cffd1abc474df476c510a3a8c @ :? <- cudaStreamSynchronize @ :? <- stwo_exec_context_destroy @ ??:?",
+   "count": 4,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 720,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.core_witness.BuildJob.run @ riscv_cuda/rv64/core_witness.zig:384 (discriminator 8)",
+   "count": 6,
+   "bytes": 164352,
+   "pageable": 6,
+   "pageable_bytes": 164352,
+   "ns": 31980,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.resident_composition.upload @ riscv_cuda/rv64/resident_composition.zig:838 (discriminator 2) <- rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:701",
+   "count": 407,
+   "bytes": 643808,
+   "pageable": 407,
+   "pageable_bytes": 643808,
+   "ns": 867487,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.outer_source_main.generate @ riscv_cuda/rv64/outer_source_main.zig:43 (discriminator 4)",
+   "count": 21,
+   "bytes": 84,
+   "pageable": 21,
+   "pageable_bytes": 84,
+   "ns": 369099,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.resident_composition.upload @ riscv_cuda/rv64/resident_composition.zig:838 (discriminator 2) <- rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:667",
+   "count": 134,
+   "bytes": 119104,
+   "pageable": 134,
+   "pageable_bytes": 119104,
+   "ns": 287639,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.release @ riscv_cuda/rv64/session_context.zig:62 <- rv64.device_binding_runtime.Runtime.adoptReplay @ riscv_cuda/rv64/device_binding_runtime.zig:140",
+   "count": 576,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 207479,
+   "sites": 2
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:403",
+   "count": 4,
+   "bytes": 16,
+   "pageable": 4,
+   "pageable_bytes": 16,
+   "ns": 70420,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:120 <- rv64.cpu_projection.Job.rom @ riscv_cuda/rv64/cpu_projection.zig:149",
+   "count": 2,
+   "bytes": 67108864,
+   "pageable": 2,
+   "pageable_bytes": 67108864,
+   "ns": 3857630,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.core_witness.BuildJob.run @ riscv_cuda/rv64/core_witness.zig:445 (discriminator 10)",
+   "count": 4,
+   "bytes": 87979776,
+   "pageable": 4,
+   "pageable_bytes": 87979776,
+   "ns": 4663487,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:677 <- rv64.resident_composition.Job.callback @ riscv_cuda/rv64/resident_composition.zig:471",
+   "count": 9,
+   "bytes": 36,
+   "pageable": 9,
+   "pageable_bytes": 36,
+   "ns": 26160,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.core_witness.CoreProjection.releaseLeases @ riscv_cuda/rv64/core_witness.zig:164",
+   "count": 548,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 192860,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.session_context.Context.upload @ riscv_cuda/rv64/session_context.zig:66 (discriminator 6) <- rv64.bulk_sponge.Owner.sponge @ riscv_cuda/rv64/bulk_sponge.zig:234",
+   "count": 16,
+   "bytes": 777376,
+   "pageable": 16,
+   "pageable_bytes": 777376,
+   "ns": 81460,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6)",
+   "count": 8,
+   "bytes": 32,
+   "pageable": 8,
+   "pageable_bytes": 32,
+   "ns": 125480,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyDtoHAsync",
+   "site": "rv64.session_context.Context.download @ riscv_cuda/rv64/session_context.zig:76 (discriminator 6) <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:404",
+   "count": 4,
+   "bytes": 256,
+   "pageable": 4,
+   "pageable_bytes": 256,
+   "ns": 28840,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.resident_composition.Job.run @ riscv_cuda/rv64/resident_composition.zig:794 <- rv64.resident_composition.Job.callback @ riscv_cuda/rv64/resident_composition.zig:471",
+   "count": 32,
+   "bytes": 755123200,
+   "pageable": 32,
+   "pageable_bytes": 755123200,
+   "ns": 41743566,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:120 (discriminator 6) <- rv64.outer_assignment.Prepared.generate__anon_190762 @ riscv_cuda/rv64/outer_assignment.zig:562 (discriminator 8)",
+   "count": 42,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 313859,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:121 <- rv64.outer_source_main.generate @ riscv_cuda/rv64/outer_source_main.zig:55 (discriminator 8)",
+   "count": 1890,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 385858,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.release @ riscv_cuda/rv64/session_context.zig:62 <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:276 (discriminator 1602)",
+   "count": 852,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 315948,
+   "sites": 1
+  },
+  {
+   "sym": "cuStreamSynchronize",
+   "site": "rv64.session_context.Context.release @ riscv_cuda/rv64/session_context.zig:62 <- rv64.gkr_stage.Job.execute @ riscv_cuda/rv64/gkr_stage.zig:276 (discriminator 2518)",
+   "count": 860,
+   "bytes": 0,
+   "pageable": 0,
+   "pageable_bytes": 0,
+   "ns": 167190,
+   "sites": 1
+  },
+  {
+   "sym": "cuMemcpyHtoDAsync",
+   "site": "rv64.immutable_setup.Cache.words @ riscv_cuda/rv64/immutable_setup.zig:120 <- rv64.global_stage.Job.run @ riscv_cuda/rv64/global_stage.zig:275",
+   "count": 29,
+   "bytes": 15721856,
+   "pageable": 29,
+   "pageable_bytes": 15721856,
+   "ns": 1160257,
+   "sites": 1
+  }
+ ]
+}

@@ -5,8 +5,9 @@
 // Opt-in, scheduling-only. Neither mechanism changes a kernel argument, a
 // transcript word or the order of device work; proofs are byte-identical.
 //
-//   STWO_RV64_DEVICE_ARENA=0|1|auto|<bytes>[K|M|G]
-//       1/auto: carve (free - reserve) once per device at first allocation.
+//   STWO_RV64_DEVICE_ARENA=0|1|auto|<bytes>[K|M|G]   (M5 platform: default auto)
+//       1/auto: carve (free - reserve) once per device, at the first context
+//       creation on that device (service start), not at the first allocation.
 //       <bytes>: carve exactly that much (a hard device cap; overrun returns
 //       cudaErrorMemoryAllocation to the caller, which may evict idle PCS
 //       cache and retry, but there is never a driver/pool fallback).
@@ -18,7 +19,9 @@
 //   STWO_RV64_DEVICE_ARENA_SMALL_CHUNKS=<n>   small slab chunks (default 16)
 //   STWO_RV64_DEVICE_ARENA_PREMAP=0|1         map the whole carve at init (1)
 //   STWO_RV64_PINNED_STAGING=0|1             pinned H2D/D2H bounce rings
+//       (M5 platform: default 1; v2 fills slots with a parallel memcpy pool)
 //   STWO_RV64_PINNED_STAGING_SLOT=<bytes>    slot size (default 16M), 4 slots
+//   STWO_RV64_PINNED_STAGING_THREADS=<n>     memcpy workers per copy (default 8)
 //   STWO_RV64_DEVICE_ARENA_POISON=<0..255>   test only: fill every arena
 //       allocation and every freed range with this byte (synchronously), so
 //       a proof that reads uninitialised or freed memory stops matching.
@@ -27,9 +30,11 @@
 // freed range was only ever reused by the stream that freed it. The arena is
 // shared by all contexts of a device, so a single-lane free records an event
 // (a fence) on the freeing stream; a later allocation by a different stream
-// waits on every incomplete fence overlapping its range (stream wait for a
-// single-lane owner, host sync for a multi-lane owner). Multi-lane contexts
-// already join every lane before freeing, so their frees need no fence.
+// waits on every incomplete fence overlapping its range: every lane of the
+// allocating context waits on the fence event on the device (M5 platform; the
+// M4 code host-synchronized multi-lane owners). Multi-lane frees no longer
+// host-join their lanes: the context converges every lane onto its
+// coordination stream with events and the fence is recorded there.
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
@@ -43,8 +48,11 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
+#include <deque>
 #include <mutex>
 #include <set>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -55,12 +63,13 @@ constexpr int kMaxDevices = 16;
 struct Config {
   bool parsed = false;
   bool valid = true;
-  bool enabled = false;
+  bool enabled = true;  // M5 platform: default on (auto carve)
   uint64_t bytes = 0;  // 0 = auto
   uint64_t reserve = uint64_t(2) << 30;
   uint64_t stack = 12544;  // the stack-admission worst kernel of the image
-  bool staging = false;
+  bool staging = true;  // M5 platform: default on (parallel fill)
   uint64_t slot_bytes = uint64_t(16) << 20;
+  uint64_t staging_threads = 8;
   uint64_t chunk = uint64_t(32) << 20;  // physical chunk (multiple of the VMM granularity)
   uint64_t small_chunks = 16;           // permanently mapped small slab (16 x 32 MiB)
   bool premap = true;                   // map the whole carve at init
@@ -115,6 +124,8 @@ inline Config parse_config() {
   }
   if (const char *v = getenv("STWO_RV64_PINNED_STAGING_SLOT"))
     if (!parse_bytes(v, &c.slot_bytes) || c.slot_bytes < 4096) c.valid = false;
+  if (const char *v = getenv("STWO_RV64_PINNED_STAGING_THREADS"))
+    if (!parse_bytes(v, &c.staging_threads) || c.staging_threads > 64) c.valid = false;
   if (!c.valid)
     fprintf(stderr, "GPU_ARENA_CONFIG_INVALID (STWO_RV64_DEVICE_ARENA*/STWO_RV64_PINNED_STAGING*)\n");
   return c;
@@ -133,6 +144,10 @@ struct Counters {
   std::atomic<uint64_t> staged_h2d{0}, staged_h2d_bytes{0};
   std::atomic<uint64_t> staged_d2h{0}, staged_d2h_bytes{0};
   std::atomic<uint64_t> staging_slot_waits{0}, staging_rings{0};
+  std::atomic<uint64_t> staged_parallel{0}, staged_parallel_bytes{0};
+  // Host-blocking accounting for the M5 sync diet (context.cu join/free).
+  std::atomic<uint64_t> join_calls{0}, lane_syncs{0}, lane_syncs_skipped{0};
+  std::atomic<uint64_t> free_fences{0}, fence_lane_waits{0};
   std::atomic<uint64_t> poison_allocs{0}, poison_frees{0}, poison_bytes{0};
 };
 inline Counters &counters() {
@@ -462,9 +477,10 @@ inline cudaError_t purge(Device *d) {
 }
 
 // Order a reused range [offset, offset+bytes) after every incomplete fence
-// that overlaps it (stream wait for a single-lane owner, host sync otherwise).
+// that overlaps it. Every lane of the allocating owner waits on the fence on
+// the device (no host sync); with no lane list the M4 host sync remains.
 inline cudaError_t order_range(Device *d, uint64_t offset, uint64_t bytes, cudaStream_t stream,
-                               uint32_t lane_count) {
+                               const cudaStream_t *lanes, uint32_t lane_count) {
   for (const Fence &f : d->fences) {
     if (!overlaps(f, offset, bytes)) continue;
     if (f.stream == stream && lane_count == 1) {
@@ -477,6 +493,14 @@ inline cudaError_t order_range(Device *d, uint64_t offset, uint64_t bytes, cudaS
     if (lane_count == 1) {
       s = cudaStreamWaitEvent(stream, f.event, 0);
       ++d->fence_stream_waits;
+    } else if (lanes) {
+      s = cudaSuccess;  // the query above returned NotReady
+      for (uint32_t lane = 0; s == cudaSuccess && lane < lane_count; ++lane) {
+        if (lanes[lane] == f.stream) continue;  // already ordered behind it
+        s = cudaStreamWaitEvent(lanes[lane], f.event, 0);
+        ++d->fence_stream_waits;
+        counters().fence_lane_waits.fetch_add(1, std::memory_order_relaxed);
+      }
     } else {
       s = cudaEventSynchronize(f.event);
       ++d->fence_host_syncs;
@@ -502,15 +526,16 @@ inline void account_alloc(Device *d, uint64_t offset, uint64_t bytes, bool long_
   ++d->allocations;
 }
 
-inline cudaError_t allocate_small(Device *d, cudaStream_t stream, uint32_t lane_count,
-                                  size_t bytes, bool long_lived, void **out, bool *done) {
+inline cudaError_t allocate_small(Device *d, cudaStream_t stream, const cudaStream_t *lanes,
+                                  uint32_t lane_count, size_t bytes, bool long_lived, void **out,
+                                  bool *done) {
   *done = false;
   uint64_t offset = 0, aligned = 0;
   if (!d->small->allocate(bytes, long_lived, &offset, &aligned)) {
     ++d->small_spills;
     return cudaSuccess;  // spill to the large path
   }
-  const cudaError_t ordered = order_range(d, offset, aligned, stream, lane_count);
+  const cudaError_t ordered = order_range(d, offset, aligned, stream, lanes, lane_count);
   if (ordered != cudaSuccess) {
     d->small->release(offset);
     return ordered;
@@ -521,8 +546,8 @@ inline cudaError_t allocate_small(Device *d, cudaStream_t stream, uint32_t lane_
   return cudaSuccess;
 }
 
-inline cudaError_t allocate_impl(int ordinal, cudaStream_t stream, uint32_t lane_count,
-                                 size_t bytes, bool long_lived, void **out) {
+inline cudaError_t allocate_impl(int ordinal, cudaStream_t stream, const cudaStream_t *lanes,
+                                 uint32_t lane_count, size_t bytes, bool long_lived, void **out) {
   *out = nullptr;
   maybe_print();
   if (!config().valid) return cudaErrorInvalidValue;
@@ -534,7 +559,7 @@ inline cudaError_t allocate_impl(int ordinal, cudaStream_t stream, uint32_t lane
   if (s != cudaSuccess) return s;
   if (bytes < OffsetArena::kSmallBytes && bytes <= d->small_bytes / 8) {
     bool done = false;
-    s = allocate_small(d, stream, lane_count, bytes, long_lived, out, &done);
+    s = allocate_small(d, stream, lanes, lane_count, bytes, long_lived, out, &done);
     if (s != cudaSuccess || done) return s;
   }
   if (bytes > UINT64_MAX - d->chunk) return cudaErrorMemoryAllocation;
@@ -630,7 +655,7 @@ inline cudaError_t allocate_impl(int ordinal, cudaStream_t stream, uint32_t lane
   else ++d->map_misses;
   s = map_slots(d, missing);
   const uint64_t offset = voff + d->small_bytes;
-  if (s == cudaSuccess) s = order_range(d, offset, n * d->chunk, stream, lane_count);
+  if (s == cudaSuccess) s = order_range(d, offset, n * d->chunk, stream, lanes, lane_count);
   if (s != cudaSuccess) return s;
   account_alloc(d, offset, n * d->chunk, long_lived, false);
   if (d->phys_chunks_hw * d->chunk >= d->hw_printed + (uint64_t(1) << 30)) {
@@ -643,9 +668,9 @@ inline cudaError_t allocate_impl(int ordinal, cudaStream_t stream, uint32_t lane
   return cudaSuccess;
 }
 
-inline cudaError_t allocate(int ordinal, cudaStream_t stream, uint32_t lane_count,
-                            size_t bytes, bool long_lived, void **out) {
-  cudaError_t s = allocate_impl(ordinal, stream, lane_count, bytes, long_lived, out);
+inline cudaError_t allocate(int ordinal, cudaStream_t stream, const cudaStream_t *lanes,
+                            uint32_t lane_count, size_t bytes, bool long_lived, void **out) {
+  cudaError_t s = allocate_impl(ordinal, stream, lanes, lane_count, bytes, long_lived, out);
   const int poison = config().poison;
   if (s == cudaSuccess && poison >= 0 && bytes) {
     // Synchronous so every lane of the owner sees the fill before first use.
@@ -751,6 +776,107 @@ inline bool usage(int ordinal, size_t used[2], size_t reserved[2]) {
 
 
 // ---------------- pinned staging ----------------
+// v2 (M5 platform): the M4 bounce filled each 16 MiB slot with one
+// single-threaded memcpy, so 47.8 GB of H2D on 26235156 ran at memcpy speed and
+// was measured slower than the driver's pageable path. A slot is now filled by
+// a small persistent worker pool (the caller thread takes one part), so the
+// host fill of slot k+1 overlaps the DMA of slot k at memory bandwidth. Copy
+// contents, destination and stream order are unchanged: proof-neutral.
+
+class CopyPool {
+ public:
+  static CopyPool &instance() {
+    static CopyPool *pool = new CopyPool(config().staging_threads);  // never destroyed (exit-safe)
+    return *pool;
+  }
+  // Copies `bytes` using up to `threads` workers plus the caller.
+  void copy(char *dst, const char *src, size_t bytes) {
+    const size_t min_part = size_t(1) << 20;
+    size_t parts = workers_.size() + 1;
+    if (bytes / min_part < parts) parts = bytes / min_part;
+    if (parts <= 1) {
+      memcpy(dst, src, bytes);
+      return;
+    }
+    const size_t part = ((bytes / parts) + 63) & ~size_t(63);
+    std::atomic<size_t> remaining{0};
+    std::mutex done_mutex;
+    std::condition_variable done;
+    size_t queued = 0;
+    {
+      std::lock_guard<std::mutex> guard(mutex_);
+      for (size_t at = part; at < bytes; at += part) {
+        const size_t n = bytes - at < part ? bytes - at : part;
+        jobs_.push_back({dst + at, src + at, n, &remaining, &done_mutex, &done});
+        ++queued;
+      }
+      remaining.store(queued, std::memory_order_relaxed);
+    }
+    ready_.notify_all();
+    memcpy(dst, src, part < bytes ? part : bytes);
+    // Help drain (another stager may also be queueing), then wait for ours.
+    for (;;) {
+      Job job{};
+      {
+        std::lock_guard<std::mutex> guard(mutex_);
+        if (jobs_.empty()) break;
+        job = jobs_.front();
+        jobs_.pop_front();
+      }
+      run(job);
+    }
+    std::unique_lock<std::mutex> lock(done_mutex);
+    done.wait(lock, [&] { return remaining.load(std::memory_order_acquire) == 0; });
+  }
+
+ private:
+  struct Job {
+    char *dst;
+    const char *src;
+    size_t bytes;
+    std::atomic<size_t> *remaining;
+    std::mutex *done_mutex;
+    std::condition_variable *done;
+  };
+  explicit CopyPool(uint64_t threads) {
+    for (uint64_t i = 0; i < threads; ++i) workers_.emplace_back([this] { loop(); });
+    for (auto &t : workers_) t.detach();
+  }
+  // The decrement happens under the waiter's mutex: the waiter (whose stack
+  // owns remaining/done) cannot observe zero and return before this worker
+  // has released the mutex, after which the worker touches nothing of it.
+  static void run(const Job &job) {
+    memcpy(job.dst, job.src, job.bytes);
+    std::lock_guard<std::mutex> guard(*job.done_mutex);
+    if (job.remaining->fetch_sub(1, std::memory_order_acq_rel) == 1) job.done->notify_all();
+  }
+  void loop() {
+    for (;;) {
+      Job job{};
+      {
+        std::unique_lock<std::mutex> lock(mutex_);
+        ready_.wait(lock, [&] { return !jobs_.empty(); });
+        job = jobs_.front();
+        jobs_.pop_front();
+      }
+      run(job);
+    }
+  }
+  std::mutex mutex_;
+  std::condition_variable ready_;
+  std::deque<Job> jobs_;
+  std::vector<std::thread> workers_;
+};
+
+inline void staged_memcpy(void *dst, const void *src, size_t bytes) {
+  if (bytes >= (size_t(2) << 20) && config().staging_threads > 0) {
+    counters().staged_parallel.fetch_add(1, std::memory_order_relaxed);
+    counters().staged_parallel_bytes.fetch_add(bytes, std::memory_order_relaxed);
+    CopyPool::instance().copy(static_cast<char *>(dst), static_cast<const char *>(src), bytes);
+  } else {
+    memcpy(dst, src, bytes);
+  }
+}
 
 struct Ring {
   char *host = nullptr;
@@ -846,7 +972,7 @@ inline cudaError_t staged_h2d(cudaStream_t stream, void *destination, const void
     }
     const uint64_t chunk = bytes < ring->slot_bytes - ring->bump ? bytes : ring->slot_bytes - ring->bump;
     char *slot = ring->host + uint64_t(ring->current) * ring->slot_bytes + ring->bump;
-    memcpy(slot, src, chunk);
+    staged_memcpy(slot, src, chunk);
     s = cudaMemcpyAsync(dst, slot, chunk, cudaMemcpyHostToDevice, stream);
     if (s == cudaSuccess) s = cudaEventRecord(ring->events[ring->current], stream);
     if (s != cudaSuccess) return s;
@@ -895,7 +1021,7 @@ inline cudaError_t staged_d2h(cudaStream_t stream, void *destination, const void
       s = cudaEventSynchronize(ring->events[slots[i]]);
       if (s != cudaSuccess) return s;
       ring->armed[slots[i]] = false;
-      memcpy(dst, ring->host + uint64_t(slots[i]) * ring->slot_bytes, sizes[i]);
+      staged_memcpy(dst, ring->host + uint64_t(slots[i]) * ring->slot_bytes, sizes[i]);
       dst += sizes[i];
     }
   }
@@ -955,13 +1081,21 @@ inline void print_summaries() {
   fprintf(stderr,
           "GPU_STAGING_SUMMARY pageable_h2d=%llu pageable_h2d_bytes=%llu pageable_d2h=%llu "
           "pageable_d2h_bytes=%llu pinned_direct=%llu staged_h2d=%llu staged_h2d_bytes=%llu "
-          "staged_d2h=%llu staged_d2h_bytes=%llu slot_waits=%llu rings=%llu\n",
+          "staged_d2h=%llu staged_d2h_bytes=%llu slot_waits=%llu rings=%llu "
+          "staged_parallel=%llu staged_parallel_bytes=%llu staging_threads=%llu\n",
           (unsigned long long)c.pageable_h2d.load(), (unsigned long long)c.pageable_h2d_bytes.load(),
           (unsigned long long)c.pageable_d2h.load(), (unsigned long long)c.pageable_d2h_bytes.load(),
           (unsigned long long)c.pinned_direct.load(), (unsigned long long)c.staged_h2d.load(),
           (unsigned long long)c.staged_h2d_bytes.load(), (unsigned long long)c.staged_d2h.load(),
           (unsigned long long)c.staged_d2h_bytes.load(), (unsigned long long)c.staging_slot_waits.load(),
-          (unsigned long long)c.staging_rings.load());
+          (unsigned long long)c.staging_rings.load(), (unsigned long long)c.staged_parallel.load(),
+          (unsigned long long)c.staged_parallel_bytes.load(), (unsigned long long)config().staging_threads);
+  fprintf(stderr,
+          "GPU_SYNC_SUMMARY join_calls=%llu lane_syncs=%llu lane_syncs_skipped=%llu free_fences=%llu "
+          "fence_lane_waits=%llu\n",
+          (unsigned long long)c.join_calls.load(), (unsigned long long)c.lane_syncs.load(),
+          (unsigned long long)c.lane_syncs_skipped.load(), (unsigned long long)c.free_fences.load(),
+          (unsigned long long)c.fence_lane_waits.load());
   for (int i = 0; i < kMaxDevices; ++i) {
     Device *d = nullptr;
     {

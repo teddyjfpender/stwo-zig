@@ -47,6 +47,9 @@ struct StwoNativeCudaContext {
     int device;
     cudaStream_t stream;
     cudaStream_t lanes[STWO_CUDA_CONTEXT_MAX_LANES];
+    // M5 platform: one reusable event per lane for device-side lane
+    // convergence (frees) instead of host joins.
+    cudaEvent_t lane_events[STWO_CUDA_CONTEXT_MAX_LANES];
     uint32_t lane_count;
     uint32_t dependency_capacity;
     StwoNativeCudaDependency dependencies[STWO_CUDA_CONTEXT_MAX_DEPENDENCIES];
@@ -118,16 +121,55 @@ uint64_t acquire_context_identity() {
     return 0;
 }
 
+// Host join of every lane. M5 platform: a lane whose work has already
+// completed (cudaStreamQuery == cudaSuccess) is not synchronized; that is the
+// same host-visible state a cudaStreamSynchronize would return, without a
+// blocking driver call. Most joins in a request are on idle lanes.
 cudaError_t join_lanes(StwoNativeCudaContext *context) {
     if (context->capture_active) return STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE;
     cudaError_t first = cudaSuccess;
+#if STWO_DEVICE_ARENA_HOOK
+    auto &counters = stwo::cuda::runtime::arena::counters();
+    counters.join_calls.fetch_add(1, std::memory_order_relaxed);
+#endif
     for (uint32_t lane = 0; lane < context->lane_count; ++lane) {
         if (context->lanes[lane] == nullptr) continue;
+#if STWO_DEVICE_ARENA_HOOK
+        const cudaError_t pending = cudaPeekAtLastError();
+        cudaError_t status = cudaStreamQuery(context->lanes[lane]);
+        if (status == cudaErrorNotReady) {
+            // NotReady is a poll result, not an error: never leave it behind
+            // for a later cudaPeekAtLastError launch check.
+            if (pending == cudaSuccess && cudaPeekAtLastError() == cudaErrorNotReady)
+                (void)cudaGetLastError();
+            status = cudaStreamSynchronize(context->lanes[lane]);
+            counters.lane_syncs.fetch_add(1, std::memory_order_relaxed);
+        } else {
+            counters.lane_syncs_skipped.fetch_add(1, std::memory_order_relaxed);
+        }
+#else
         const cudaError_t status = cudaStreamSynchronize(context->lanes[lane]);
+#endif
         if (first == cudaSuccess) first = status;
     }
     return first;
 }
+
+#if STWO_DEVICE_ARENA_HOOK
+// Device-side convergence: the coordination stream waits for every other
+// lane's submitted work. Work enqueued on lane 0 afterwards (and an event
+// recorded there) is ordered after all lanes; the host does not block.
+cudaError_t converge_lanes(StwoNativeCudaContext *context) {
+    if (context->capture_active) return STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE;
+    for (uint32_t lane = 1; lane < context->lane_count; ++lane) {
+        cudaError_t status = cudaEventRecord(context->lane_events[lane], context->lanes[lane]);
+        if (status == cudaSuccess)
+            status = cudaStreamWaitEvent(context->stream, context->lane_events[lane], 0);
+        if (status != cudaSuccess) return status;
+    }
+    return cudaSuccess;
+}
+#endif
 
 cudaError_t require_dependency(
     StwoNativeCudaContext *context,
@@ -343,6 +385,18 @@ extern "C" int stwo_exec_context_create_options(
         status = cudaStreamCreateWithFlags(&context->lanes[lane], cudaStreamNonBlocking);
     }
     context->stream = context->lanes[0];
+#if STWO_DEVICE_ARENA_HOOK
+    for (uint32_t lane = 0; status == cudaSuccess && lane < context->lane_count; ++lane)
+        status = cudaEventCreateWithFlags(&context->lane_events[lane], cudaEventDisableTiming);
+    // M5 platform: carve the static arena when the first context of a device
+    // is created (service start), so request 1 pays no cuMemCreate/map.
+    if (status == cudaSuccess && stwo::cuda::runtime::arena::config().enabled &&
+        stwo::cuda::runtime::arena::config().valid) {
+        cudaError_t carve = cudaSuccess;
+        (void)stwo::cuda::runtime::arena::device(context->device, &carve);
+        status = carve;
+    }
+#endif
 #if !defined(STWO_CUMETAL)
     for (uint32_t slot = 0; status == cudaSuccess && slot < context->dependency_capacity; ++slot) {
         status = cudaEventCreateWithFlags(&context->dependencies[slot].event, cudaEventDisableTiming);
@@ -401,6 +455,11 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
         context->timing_events[marker] = nullptr;
     }
     for (uint32_t lane = 0; lane < context->lane_count; ++lane) {
+        if (context->lane_events[lane] != nullptr) {
+            status = cudaEventDestroy(context->lane_events[lane]);
+            if (status != cudaSuccess) return static_cast<int>(status);
+            context->lane_events[lane] = nullptr;
+        }
         if (context->lanes[lane] == nullptr) continue;
 #if STWO_DEVICE_ARENA_HOOK
         stwo::cuda::runtime::arena::release_ring(context->lanes[lane]);
@@ -926,7 +985,7 @@ static int alloc_u32_from(void *handle, size_t count, uint32_t **out_pointer, bo
         stwo::cuda::runtime::arena::config().enabled && !context->capture_active;
     if (use_arena) {
         status = stwo::cuda::runtime::arena::allocate(
-            context->device, context->stream, context->lane_count,
+            context->device, context->stream, context->lanes, context->lane_count,
             count * sizeof(uint32_t), long_lived,
             reinterpret_cast<void **>(out_pointer));
     } else if (status == cudaSuccess) {
@@ -992,14 +1051,29 @@ extern "C" int stwo_exec_context_free_u32(
             status = cudaErrorInvalidDevicePointer;
         }
     }
-    if (status == cudaSuccess && context->lane_count > 1) status = join_lanes(context);
 #if STWO_DEVICE_ARENA_HOOK
-    if (status == cudaSuccess && stwo::cuda::runtime::arena::owns(context->device, pointer)) {
-        status = context->capture_active
-            ? STWO_CUDA_ERROR_INVALID_CONFIGURATION
-            : stwo::cuda::runtime::arena::release(
-                  context->device, context->stream, pointer, context->lane_count > 1);
+    // M5 platform: an arena range freed by a multi-lane context is fenced on
+    // the device instead of host-joining every lane. Lane 0 waits for all
+    // lanes, the release fence is recorded on lane 0 after that wait, and any
+    // reuse (any lane of any context) waits on the fence on the device.
+    const bool arena_owned = status == cudaSuccess &&
+        stwo::cuda::runtime::arena::owns(context->device, pointer);
+    if (status == cudaSuccess && context->lane_count > 1 && !arena_owned) status = join_lanes(context);
+    if (arena_owned) {
+        if (context->capture_active) {
+            status = STWO_CUDA_ERROR_INVALID_CONFIGURATION;
+        } else {
+            if (context->lane_count > 1) {
+                status = converge_lanes(context);
+                stwo::cuda::runtime::arena::counters().free_fences.fetch_add(1, std::memory_order_relaxed);
+            }
+            if (status == cudaSuccess)
+                status = stwo::cuda::runtime::arena::release(
+                    context->device, context->stream, pointer, false);
+        }
     } else
+#else
+    if (status == cudaSuccess && context->lane_count > 1) status = join_lanes(context);
 #endif
     if (status == cudaSuccess) {
         status = cudaFreeAsync(pointer, context->stream);
@@ -1189,4 +1263,52 @@ extern "C" int stwo_exec_context_memcpy_d2h_async(
 #endif
     }
     return static_cast<int>(status);
+}
+
+// M5 platform: stream-ordered scratch from the static arena for library code
+// that previously called cudaMallocAsync directly (rv64/trace.cu prefix
+// seeds), so no device allocation bypasses the carve. Returns
+// cudaErrorNotSupported when the arena is disabled; callers then keep their
+// original allocator.
+extern "C" int stwo_exec_arena_scratch_alloc(void *stream, size_t bytes, void **out) {
+    if (out == nullptr || bytes == 0) return static_cast<int>(cudaErrorInvalidValue);
+    *out = nullptr;
+#if STWO_DEVICE_ARENA_HOOK
+    if (!stwo::cuda::runtime::arena::config().enabled) return static_cast<int>(cudaErrorNotSupported);
+    int device = -1;
+    cudaError_t status = cudaGetDevice(&device);
+    cudaStream_t s = static_cast<cudaStream_t>(stream);
+    if (status == cudaSuccess)
+        status = stwo::cuda::runtime::arena::allocate(device, s, &s, 1, bytes, false, out);
+    return static_cast<int>(status);
+#else
+    (void)stream;
+    return static_cast<int>(cudaErrorNotSupported);
+#endif
+}
+
+extern "C" int stwo_exec_arena_scratch_free(void *stream, void *pointer) {
+#if STWO_DEVICE_ARENA_HOOK
+    int device = -1;
+    cudaError_t status = cudaGetDevice(&device);
+    if (status == cudaSuccess)
+        status = stwo::cuda::runtime::arena::release(
+            device, static_cast<cudaStream_t>(stream), pointer, false);
+    return static_cast<int>(status);
+#else
+    (void)stream;
+    (void)pointer;
+    return static_cast<int>(cudaErrorNotSupported);
+#endif
+}
+
+// 1 when device allocations come from the static arena (the PCS physical
+// admission must then count only the carve, never cudaMemGetInfo free bytes,
+// which the arena cannot use).
+extern "C" int stwo_exec_arena_enabled(void) {
+#if STWO_DEVICE_ARENA_HOOK
+    return stwo::cuda::runtime::arena::config().enabled && stwo::cuda::runtime::arena::config().valid ? 1 : 0;
+#else
+    return 0;
+#endif
 }

@@ -108,6 +108,14 @@ __global__ void open_paths(StwoRv64TraceOpen j) {
 // the unfinalized Blake state, including its pending block. Lifting that seed
 // is exactly equivalent to repeating the low-height words in every final leaf.
 // Scratch is stream-owned and never aliases caller allocations.
+extern "C" int stwo_exec_arena_scratch_alloc(void *stream, size_t bytes, void **out);
+extern "C" int stwo_exec_arena_scratch_free(void *stream, void *pointer);
+static int scratch_free(cudaStream_t stream, void *pointer) {
+  const int status = stwo_exec_arena_scratch_free(stream, pointer);
+  if (status == int(cudaErrorNotSupported) || status == int(cudaErrorInvalidDevicePointer))
+    return int(cudaFreeAsync(pointer, stream));
+  return status;
+}
 static int native_height_leaves(const b::MixedSegment *segments, uint32_t count,
                                 uint32_t leaves, b::Hash *hashes,
                                 cudaStream_t stream, b::ProgressiveState *scratch = nullptr,
@@ -126,19 +134,25 @@ static int native_height_leaves(const b::MixedSegment *segments, uint32_t count,
       if (size > banks.rows[bank]) return int(cudaErrorInvalidValue);
       next = scratch + banks.offset(bank);
       bank ^= 1u;
-    } else if (!final)
-      status = int(cudaMallocAsync(reinterpret_cast<void **>(&next),
-                                   uint64_t(size) * sizeof(*next), stream));
+    } else if (!final) {
+      // M5 platform: take the seed from the static arena when it is on, so
+      // no device allocation bypasses the carve (default pool otherwise).
+      status = stwo_exec_arena_scratch_alloc(stream, uint64_t(size) * sizeof(*next),
+                                             reinterpret_cast<void **>(&next));
+      if (status == int(cudaErrorNotSupported))
+        status = int(cudaMallocAsync(reinterpret_cast<void **>(&next),
+                                     uint64_t(size) * sizeof(*next), stream));
+    }
     if (!status)
       status = stwo_blake2s_mixed_seeded_eager_on(
           size, end - first, segments + first, absorbed, seed_size, seed,
           next, final ? hashes : nullptr, stream);
     if (seed && !scratch) {
-      const int freed = int(cudaFreeAsync(seed, stream));
+      const int freed = scratch_free(stream, seed);
       if (!status) status = freed;
     }
     if (status) {
-      if (next && !scratch) cudaFreeAsync(next, stream);
+      if (next && !scratch) (void)scratch_free(stream, next);
       return status;
     }
     for (uint32_t i = first; i < end; ++i)
