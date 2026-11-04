@@ -452,12 +452,12 @@ test "m6 diet entries carry outer GKR + one-instance fused Blake + set-v2 + k-ar
     const f3 = C.formatSpec(.m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1);
     try std.testing.expect(!f3.outer_gkr and !f3.fused_blake);
     try std.testing.expectEqualStrings(C.FOLD_V3_COMPONENT, f3.component);
-    // Native v2 (NF0/NF4): protocol rv64-m6-native/v2, profile v2-strict | v2-gkr (+ native GKR section v2).
+    // Native v2 (note sec. 1 + NF4): hashed tag rv64-m6-native-chi-chain/v2, profile v2-strict | v2-gkr (+ GKR section v2).
     const nv = C.formatSpec(.m6_native_v2_b2_q108_p20_fold4);
     const ng = C.formatSpec(.m6_native_v2_gkr_b2_q108_p20_fold4);
-    try std.testing.expectEqualStrings("rv64-m6-native/v2", nv.component);
+    try std.testing.expectEqualStrings("rv64-m6-native-chi-chain/v2", nv.component);
     try std.testing.expectEqualStrings("v2-strict", nv.extra_components[0]);
-    try std.testing.expectEqualStrings("rv64-m6-native/v2", ng.component);
+    try std.testing.expectEqualStrings("rv64-m6-native-chi-chain/v2", ng.component);
     try std.testing.expectEqualStrings("v2-gkr", ng.extra_components[0]);
     try std.testing.expectEqualStrings("stwo/rv64/native-gkr/om31-strict-draw/lane-major/v2", ng.extra_components[1]);
     // diet-wire DW-3 posted entries: k3 (arity constant 3) and k4 + in-circuit 8-node Merkle cap; no GKR, no fused Blake.
@@ -495,7 +495,7 @@ test "m6 diet outer GKR clears 128+23 bits at the 24628607 node count; r1 vs m3 
     // term is the base PCS (1*108 + 20 = 128).
     try std.testing.expectEqual(C.formatConjecturedBits(.m6_outer_diet_r1_b2_q108_p20_fold4_v1), C.formatConjecturedBits(.m6_outer_diet_m3_b4_q51_p26_fold4_v1));
 }
-test "corpus BG08 m6 one-instance fused Blake: XOR8 table mass over ALL consumers stays below p" {
+test "reference BG08 m6 one-instance fused Blake: XOR8 table mass over ALL consumers stays below p" {
     // [D] gadget 704 XOR8 lookups per compression; recsize census largest r1 fold 94,237 compressions;
     // other consumers of the same table bounded by every lookup of the node (r1 leaf 0: 294,945,280).
     const gadget = 94_237 * 704;
@@ -526,7 +526,7 @@ test "native v2-gkr GKR section at its declared bounds (NF4): OM31 clears 151 bi
     try std.testing.expectEqual(@as(u64, 1) << 35, try C.outerGkrMassBound(nf4));
     try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireOuterGkrCharacteristic(nf4, null));
 }
-test "corpus DW12 m6 diet k4 cap3: 4-ary fold G rows fit 2^23 only with the cap [D, diet-wire DW-3]" {
+test "reference DW-R6 m6 diet k4 cap3: 4-ary fold G rows fit 2^23 only with the cap [D, diet-wire DW-3] (not the DW12 hook)" {
     // [M] 4-ary fold blake_g_gate 8,680,080 rows > 2^23 = 8,388,608 (pads to 2^24 -> OOM); cap c = 3 saves
     // ~10.5% G rows per verified child [D] -> ~7.77 M < 2^23. Pin the arithmetic the profile depends on.
     const rows: u64 = 8_680_080;

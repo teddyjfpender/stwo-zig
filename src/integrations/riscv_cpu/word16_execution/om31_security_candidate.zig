@@ -629,9 +629,11 @@ pub const FormatSpec = struct {
 pub const FORMAT_VERSIONS = [_]FormatVersion{ .m5_native_chi_chain_v1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1, .m7_outer_gkr_m3_b4_q51_p26_fold4_v1, .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1, .m6_native_v2_b2_q108_p20_fold4, .m6_native_v2_gkr_b2_q108_p20_fold4, .m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 };
 /// M6 component version strings (M6-INTERFACES.md P1). A change of any one is
 /// a new FormatVersion; the owning stream posts the real string, profiles edits.
-/// native-format NF0: protocol `rv64-m6-native/v2`, profiles v2-strict / v2-gkr
-/// (version = H("rv64-m6-native-version/v2", [2, 10, 3, R, 32, roster, gkr_mode])).
-pub const M6_NATIVE_V2_COMPONENT = "rv64-m6-native/v2";
+/// native-format (rv64-m6-native-v2.md sec. 1 @ aa291ac35): protocol name
+/// `rv64-m6-native/v2`; the HASHED version tag (component) is the chain version
+/// domain `rv64-m6-native-chi-chain/v2` (canon_native.zig `.version_v2`), version =
+/// H(tag, [2, 10, 3, R=4, 32, 1, gkr_mode]); profiles v2-strict / v2-gkr.
+pub const M6_NATIVE_V2_COMPONENT = "rv64-m6-native-chi-chain/v2";
 pub const M6_NATIVE_V2_STRICT_PROFILE = "v2-strict";
 pub const M6_NATIVE_V2_GKR_PROFILE = "v2-gkr";
 /// native-format NF4: native GKR section identity (v2, MAGIC 0x4b47564e).

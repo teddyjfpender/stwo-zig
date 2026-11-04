@@ -83,6 +83,25 @@ policy, and the reverse, must be rejected cleanly (DW07 or DW08 via `--alt-forma
 
 4-ary folds OOM [M, DW-1], so the registry bound for every diet entry is 3.
 
+**Condition run [M], round 2.** Full-tree receiver (M5 integrate receiver-v2), fresh CPU process, on diet-wire's
+`<block>-2gpu-k{2,3}-ab1` proofs. On both blocks and in both directions, the control is accepted under its own arity
+policy and the other arity's whole proof directory is rejected cleanly:
+
+| block | policy | control | other arity | first error |
+|---|---|---|---|---|
+| 26235156 | k = 3 | accepted, 38.4 s | rejected | `MissingRecursiveNodeProof` |
+| 26235156 | k = 2 | accepted, 45.5 s | rejected | `MissingRecursiveNodeProof` |
+| 24628607 | k = 3 | accepted, 58.2 s | rejected | `MissingRecursiveNodeProof` |
+| 24628607 | k = 2 | accepted, 65.0 s | rejected | `MissingRecursiveNodeProof` |
+
+The rejection comes from the receiver-derived plan, which is structural (class "missing"): the policy's node files do
+not exist. It is not a digest check. That is the correct authority for the full-tree path. The root-only path does
+*not* yet consult the arity (FV-R3, P04).
+
+Receipts: `vectors/reports/rv64-m6-20261105/profiles/<block>-corpus-v4-dw07-policy-k{2,3}.json`.
+
+**Verdict:** DW-R2 is signed off for the full-tree receiver. For root-only it waits on FV-R3.
+
 ### DW-R3 (CONDITIONAL): fused Blake2s, one instance per node
 
 The design matches the blake-gadget review: one instance, and xor8 rows in `(a<<8)|b` order. Before promotion:
@@ -110,6 +129,13 @@ It is sound under the collision bound **iff** all three hold:
 Cases:
 - **DW12** (W): select the cap node by a guessed index, so a path lands on the wrong slot;
 - **DW13** (W): cap nodes not hashed to the transcript root, or hashed with a different node domain.
+
+`rv64-m6-diet-wire.md` §5 (`13e429783`) states the soundness as "root = H(cap)". That H must be the **binary-tree
+rebuild** 8 → 4 → 2 → 1 with the path node hasher, not a flat hash of the 8 nodes. A flat hash would give a different
+root from the committed one, and so a "root" that the child transcript never mixed. Condition (i) makes this explicit.
+
+The completeness bound there checks out [D]: at c = 3, 2^(c−1)(1 − 2^-(c−1))^108 = 4 · 0.75^108 ≈ 1.3·10^-13 per tree.
+c = 4 needs a producer-exported cap.
 
 The fit arithmetic that the profile depends on is pinned in a test:
 - the 4-ary fold's 8,680,080 G rows [M] drop to ~7.77 M < 2^23 with the ~10.5% cap saving [D];
@@ -158,6 +184,9 @@ the stage-one local-GKR challenges are drawn from MAIN *before* χ exists (bindi
 Meanwhile, the native candidate `profileIdentity` that the fixed authority mixes is the admitted one. It still hashes
 `LOCAL_RELATIONS = 9` (M6 P4).
 
+Confirmed by a code read at `aa291ac35`: the v2 version identity enters only `manifest.zig:220` (`chainIv(versionIdentity)`).
+Nothing mixes it at native channel start.
+
 Stage-one statements are the same AIR in v1 and v2, so I have no attack. Still, the frozen-heart rule says every
 version-dependent word is mixed before the first challenge that depends on it.
 
@@ -167,6 +196,16 @@ Request, either one of:
 - (b) write in the v2 note why a stage-one transcript shared between versions is harmless.
 
 Case **NV05** checks that a 9-relation identity is refused under v2.
+
+Registry alignment: the hashed tag is `rv64-m6-native-chi-chain/v2` (`canon_native.zig .version_v2`, note §1).
+`rv64-m6-native/v2` is only the policy name. The registry component now equals the hashed tag.
+
+The admission relaxation of note §2 ("absent implies no rows" under v2) is **signed off**:
+- presence is a receiver-derived class constant;
+- an empty instance is closed by the same closures with receiver-derived zero claims;
+- every mass bound already counts the instance at 2^log rows.
+
+NV07 remains the hook that pins it.
 
 ### NV-R3 (CONDITIONAL): the characteristic bound of the v2-gkr section
 
@@ -207,7 +246,7 @@ receiver, and `PROOF` only *selects* which classes appear. Conditions:
 Once native v2 lands, the table is image-level, so the other block's pin may legitimately verify. **RO09** therefore
 expects `reject_or_same_statement`: changed in corpus v4.
 
-### FV-R3 (CONDITIONAL, medium; found by the corpus [M]): the root-only receiver ignores the fold-arity policy
+### FV-R3 (CLOSED in round 3 by fold-v3 b78ff8c9b; found by the corpus [M]): the root-only receiver ignored the fold-arity policy
 
 Corpus v4 `--format m6-root` was run against fold-v3's receiver (sha `1971181a`, per-block receiver-derived tables,
 `--table-root` pin) on both dev blocks. It passed 44/45 (26235156) and 43/44 (24628607). Receipts:
@@ -242,6 +281,17 @@ The other measured results on both blocks:
 Wall per accepted case [M, single observations, load 10–11, above the quiet bar]: **1.6 s (26235156) and 2.1 s
 (24628607)** root-only, against 9.5 / 13.7 s at M5.
 
+**Round 3 [M]: closed.** fold-v3 `b78ff8c9b` derives the expected root from `Plan.initArity(n, foldArity())` with k-ary
+class keys. Its receiver (sha `88416b28`) passes corpus v4 `m6-root` at **45/45 (26235156) and 44/44 (24628607)**,
+with no unexpected accepts and no crashes. **P04 now rejects** with `VkTableMissingFoldClass`, a semantic rejection.
+
+If a table holding both arities were used, the k-ary expected root would still differ from a binary root (different VK
+and digest), so the check does not depend on the table's contents.
+
+Root-only C00: 1.57 s (26235156) and 2.22 s (24628607) [M, single observations, load 14–24].
+
+Receipts: `<block>-corpus-v4-fold-v3-receiver-r3.json`.
+
 ### FV-R2 (PENDING): fold v3 itself
 
 There is nothing to review until FV3 posts the NS word layout and the `T_rec` v2 leaf words for k-ary and set-v2 classes
@@ -267,4 +317,4 @@ When the review happens, it will check:
 | `m6_native_v2_b2_q108_p20_fold4` (v2-strict) | SIGN-OFF design (NV-R1), CONDITIONAL NV-R2 | NV01, NV02 and NV07 hooks; the version bound before stage one, or the argument |
 | `m6_native_v2_gkr_b2_q108_p20_fold4` | CONDITIONAL (NV-R3, NV-R4) | source-bound mass gate; NV06 |
 | `m6_outer_fold_v3_r1…` | PENDING (FV-R2) | the NS layout and T_rec v2 words are posted |
-| standalone root-only receiver | CONDITIONAL (FV-R1, FV-R3) | RO08 green [M, done]; the source-commit U test; P04 rejects (arity in the table header) |
+| standalone root-only receiver | CONDITIONAL (FV-R1) | RO08 green [M, done]; the source-commit U test. FV-R3 closed [M, round 3: 45/45, 44/44] |
