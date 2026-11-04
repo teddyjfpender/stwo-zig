@@ -203,6 +203,10 @@ test "om31 fold seed tape equals graph seeds and class constants are key indepen
         defer a.free(tape);
         try std.testing.expect(tape.len > 0);
         try Tape.compare(a, tape, &graphs[i].ctx);
+        // The builder-call replay (reference) agrees too.
+        const replay = try Tape.recordReplay(a, &pair);
+        defer a.free(replay);
+        try Tape.compare(a, replay, &graphs[i].ctx);
         // Constants (keys ARE the values) and their variables are class data.
         if (reference_constants) |keys| {
             try std.testing.expectEqualSlices(u128, keys, graphs[i].ctx.constants.keys());

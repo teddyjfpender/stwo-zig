@@ -52,7 +52,7 @@ def summarize(pipeline):
 
 def log_census(path):
     text = Path(path).read_text(errors="replace")
-    used = [dict(kv.split("=", 1) for kv in line.split()[1:]) for line in text.splitlines() if line.startswith("FOLD_SEED_TAPE used")]
+    used = [dict(kv.split("=", 1) for kv in line.split()[2:]) for line in text.splitlines() if line.startswith("FOLD_SEED_TAPE used")]
     timing = [dict(kv.split("=", 1) for kv in line.split()[1:] if "=" in kv) for line in text.splitlines() if line.startswith("GPU_OUTER_ASSIGNMENT_TIMING")]
     return {"tape_used": len(used), "tape_fallbacks": text.count("FOLD_SEED_TAPE fallback"),
             "tape_check_ok": text.count("FOLD_SEED_TAPE check_ok"), "tape_check_mismatch": text.count("FOLD_SEED_TAPE check_mismatch"),
