@@ -150,12 +150,52 @@ def append(args):
     print(line)
 
 
+ALIASES = {"load1": "loadavg_1m", "load_avg_1m": "loadavg_1m", "loadavg": "loadavg_1m"}
+LEGACY = []  # (where, moved keys) for rows normalised at read time
+
+
+def normalise(row, where=""):
+    """Read-time normalisation of rows written by hand before the schema settled (integrate, M4).
+
+    History is append-only, so legacy rows are never rewritten on disk. Here: known aliases map onto
+    schema keys, a per-GPU device_peak_gb dict becomes its max, other unknown keys move into
+    row["extra"] (not rendered). Required keys, labels and numeric types are still enforced."""
+    row = dict(row)
+    moved = []
+    for old, new in ALIASES.items():
+        if old in row and new not in row and isinstance(row[old], (int, float)):
+            row[new] = row.pop(old)
+            moved.append(old)
+    dev = row.get("device_peak_gb")
+    if isinstance(dev, dict):
+        values = [v for v in dev.values() if isinstance(v, (int, float))]
+        row["device_peak_gb"] = max(values) if values else None
+        moved.append("device_peak_gb{}")
+    extra = {k: row.pop(k) for k in sorted(set(row) - set(ALL))}
+    rss = row.get("rss_peak_gib")
+    if isinstance(rss, (int, float)) and rss < 1.0:
+        # nsys-wrapped runs recorded the wrapper's RSS (~0.04 GiB), not the producer's
+        extra["rss_peak_gib_wrapper"] = row.pop("rss_peak_gib")
+    if extra:
+        moved.extend(extra)
+    for key in NUMERIC + OPTIONAL_NUMERIC:
+        if key in row and row[key] is not None and not isinstance(row[key], (int, float)):
+            extra[key] = row.pop(key)
+            moved.append(key)
+    if moved:
+        LEGACY.append((where, moved))
+    validate(row, where)
+    if extra:
+        row["extra"] = extra
+    return row
+
+
 def rows():
     out = []
     for path in sorted(PROGRESS.glob("*.jsonl")):
         for n, line in enumerate(path.read_text().splitlines(), 1):
             if line.strip():
-                out.append((path.name, validate(json.loads(line), f"{path.name}:{n}")))
+                out.append((path.name, normalise(json.loads(line), f"{path.name}:{n}")))
     return out
 
 
@@ -284,7 +324,10 @@ def main():
     elif args.command == "render":
         render(args)
     elif args.command == "check":
-        print(f"{len(rows())} rows valid")
+        n = len(rows())
+        print(f"{n} rows valid ({len(LEGACY)} legacy rows normalised at read time; new rows must use schema keys)")
+        for where, moved in LEGACY:
+            print(f"  legacy {where}: {', '.join(moved)}")
     else:
         seed_m3(args)
 

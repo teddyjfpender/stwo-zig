@@ -1,0 +1,41 @@
+[
+ {
+  "block": 26235156,
+  "window_s": 19.41186614,
+  "request_s": 19.412,
+  "recursion_s": 12.268,
+  "gpu0_kernel_busy_s": 6.907,
+  "gpu1_kernel_busy_s": 5.713,
+  "gpu0_recursion_kernel_busy_s": 4.978,
+  "gpu1_recursion_kernel_busy_s": 4.513,
+  "recursion_busy_frac_avg": 0.387,
+  "api": {
+   "cudaStreamSynchronize_v3020": 36536,
+   "cuMemCreate": 1628,
+   "cuMemMap": 5220,
+   "cudaMemcpyAsync_v3020": 16286,
+   "cudaLaunchKernel_v7000": 138377,
+   "cudaEventSynchronize_v3020": 32
+  },
+  "busy_frac_of_request_avg": 0.325
+ },
+ {
+  "block": 24628607,
+  "window_s": 32.198566607,
+  "request_s": 32.199,
+  "recursion_s": 19.624,
+  "gpu0_kernel_busy_s": 8.985,
+  "gpu1_kernel_busy_s": 10.42,
+  "gpu0_recursion_kernel_busy_s": 7.131,
+  "gpu1_recursion_kernel_busy_s": 7.782,
+  "recursion_busy_frac_avg": 0.38,
+  "api": {
+   "cudaStreamSynchronize_v3020": 57908,
+   "cuMemMap": 6541,
+   "cudaMemcpyAsync_v3020": 25865,
+   "cudaLaunchKernel_v7000": 222905,
+   "cudaEventSynchronize_v3020": 50
+  },
+  "busy_frac_of_request_avg": 0.301
+ }
+]
