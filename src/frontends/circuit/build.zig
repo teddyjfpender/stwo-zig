@@ -71,6 +71,13 @@ pub fn build(b: *std.Build) void {
 
     native_verifier_step.dependOn(&native_verifier_tests.step);
 
+    const task_append_root = b.createModule(.{ .root_source_file = b.path("task_append_test_root.zig"), .target = target, .optimize = optimize });
+    task_append_root.addImport("stwo_core", core);
+    task_append_root.addImport("stwo_prover_engine", prover);
+    const task_append_tests = b.addRunArtifact(b.addTest(.{ .root_module = task_append_root }));
+    task_append_tests.setCwd(repository_root);
+    b.step("test-witness-task-append", "Check original witness task registration and bounded CPU dispatch measurements").dependOn(&task_append_tests.step);
+
     const test_step = b.step("test", "Compile and test the stwo_circuit_frontend package");
     test_step.dependOn(&unit_tests.step);
     test_step.dependOn(&fixture_tests.step);
