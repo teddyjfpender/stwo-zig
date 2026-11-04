@@ -79,6 +79,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-retained-parking", .description = "Qualify unmapped sealed MAIN and read-only restored proof custody", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-retained-storage", .description = "Qualify file-retained compact polynomials across shared challenges", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-ethereum-terminal", .description = "Require trusted Ethereum halt and output after complete physical verification", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-m5-canon-native", .description = "M5 canonical native classes, native VK table and chi-chain v1 encodings vs the reference vectors (canon-native)", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-global-execution", .description = "Actual multi-shard CPU and global RAM prefix", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-memory", .description = "Check CPU-owned scalable LS and RAM boundary sources", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-v3-services-recursion", .description = "v3 services (SHA-256, arith256_mod, bulk memory) circuit point parity and in-circuit truth leaves", .scope = .riscv_cpu },
