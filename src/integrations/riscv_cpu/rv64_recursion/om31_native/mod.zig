@@ -96,7 +96,12 @@ pub fn verify(ctx: *common.Context, geometry: *const Shape, witness: *const Proo
     const queries = try circuit.native_verifier.fri.queriesFromBits(Q, ctx, drawn, lifting);
     const logs = try ctx.scratch().alloc([]const u32, geometry.nTrees());
     for (logs, 0..) |*out, tree| out.* = try geometry.extendedLogSizes(ctx.scratch(), tree);
-    try circuit.native_verifier.merkle.decommitTrees(Q, ctx, logs, lifting, witness.queried_values, witness.auth_paths, queries.unpacked, witness.commitments);
+    if (witness.cap_log == 0) {
+        try circuit.native_verifier.merkle.decommitTrees(Q, ctx, logs, lifting, witness.queried_values, witness.auth_paths, queries.unpacked, witness.commitments);
+    } else {
+        // M6 diet-wire Merkle cap (rv64-m6-diet-wire.md section 5).
+        try circuit.native_verifier.merkle.decommitTreesCapped(Q, ctx, logs, lifting, witness.queried_values, witness.auth_paths, queries.unpacked, witness.commitments, witness.caps, witness.cap_log);
+    }
     const plan = try shape.SamplePlan.init(ctx.scratch(), geometry);
     const input = try deep.friInput(ctx, &plan, point, witness.sampled_values, alpha, queries.points, witness.queried_values);
     try fri.decommit(ctx, witness, lifting, geometry.pcs.fri_config, input, queries, alphas);

@@ -544,9 +544,16 @@ fn requireReceiverTrace(ctx: *const @import("common.zig").Context) !void {
 
 const Dag = @import("ready_dag.zig");
 /// Blowup-2 outer profiles (r1 and its canonical form) fold binary (accepted
-/// bytes); every larger-blowup (m3) outer profile folds 4-ary.
+/// bytes); every larger-blowup (m3) outer profile folds 4-ary. A profile with
+/// a required arity (M6 diet `m6_outer_diet_k3_*`: 3) fixes it: an
+/// STWO_RV64_FOLD_ARITY that names another arity fails closed, on the producer
+/// and on the receiver alike.
 pub fn foldArity() !usize {
     const profile = @import("stwo_circuit_cpu_integration").om31.protocol.active();
+    if (profile.requiredFoldArity()) |required| {
+        if (try Dag.policyArity(required) != required) return error.Om31ProfileFoldArityMismatch;
+        return required;
+    }
     return Dag.policyArity(if (profile.config().fri_config.log_blowup_factor == 1) 2 else 4);
 }
 /// Process-entry policy check (driver and receiver): every recursion policy

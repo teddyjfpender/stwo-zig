@@ -291,7 +291,8 @@ fn buildFoldMode(a: std.mem.Allocator, children: []const Child, trace_only: bool
     for (children) |child| {
         try Outer.protocol.validateConfig(child.produced.proof.proof.commitment_scheme_proof.config);
         const geometry = try shape(ctx.scratch(), child.authority);
-        const captured = try V.proof.fromNative(ctx.scratch(), &child.produced.proof.proof, child.capture, &geometry);
+        // M6 diet-wire: the fold's child verifier may stop at a Merkle cap (profile constant; 0 = full paths).
+        const captured = try V.proof.fromNativeCapped(ctx.scratch(), &child.produced.proof.proof, child.capture, &geometry, Outer.protocol.active().foldMerkleCapLog());
         const guessed = try V.proof.guess(&ctx, &captured, &geometry);
         // v2: no constant child key. Guess the identity; the FIXED root is the
         // child's guessed commitments[0] wire. Both are digest-bound below.

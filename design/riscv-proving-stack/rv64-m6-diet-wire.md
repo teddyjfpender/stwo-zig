@@ -32,8 +32,8 @@ so the component pads to 2^24 and the fold's composition domain to eval_log 25. 
 `CudaAllocationFailed` (arena overrun 11.24 GB on top of 15.7 GB live in a 27.3 GB carve). A 3-ary fold of three leaves
 needs 6,510,080 rows (78 % of 2^23), so it keeps the leaf's padded shape and every node still fits the M5 arena.
 
-To make 4-ary fit, a fold must lose about 300 k G rows (≈ 940 compressions per verified child out of ≈ 27 k). §5 lists the
-two candidate diets; neither is built.
+To make 4-ary fit, a fold must lose about 300 k G rows (≈ 940 compressions per verified child out of ≈ 27 k). §5 is the
+diet that does it (Merkle cap, built as the second named profile).
 
 ## 3. Measured effect [M] (receipts `*-k3-ab1*`, `*-k2-ab1*`; same M5 binaries, interleaved)
 
@@ -65,7 +65,7 @@ remove the host gaps (their M6 levers). The root proof grows 0.6–5 % because t
 | outer GKR | not wireable this session (§6) | |
 | fused Blake one-instance | not started (needs a 12th outer component + 2 tables) | sequenced after outer GKR (blake-gadget review: ships with GKR) |
 
-## 5. Merkle cap in the in-circuit verifier (candidate diet, designed, not built)
+## 5. Merkle cap in the in-circuit fold verifier (`merkle-cap-v1`, profile `m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1`)
 
 The in-circuit verifier (`native_verifier/merkle.zig decommitTrees`, `om31_native/fri.zig`) re-expands a full
 authentication path per query (no multiproof dedup). A **cap at level c** (the 2^c nodes c levels below the root) costs
@@ -83,6 +83,14 @@ authentication path per query (no multiproof dedup). A **cap at level c** (the 2
 - Soundness: unchanged binding (root = H(cap), each path ends at cap[top c bits]); a fold-circuit change only, so it is
   a new fold VK set (named version). It does not change committed cells of any node that stays at its power of two:
   its only value is to enable 4-ary (−4.7 G cells on 24628607 vs k = 3 [E]).
+- Built: `native_verifier/merkle.zig` (`selectHash`, `capRoot`, `verifyCap`, `verifyPathToCap`, `decommitTreesCapped`,
+  host `hostCap`, which re-hashes the derived cap to the committed root and refuses an uncovered or inconsistent cap),
+  `om31_native/proof.zig fromNativeCapped` (trace trees from the captured leaf rows, FRI layer trees from the coset group
+  roots exactly as `fri.zig` hashes them), `mod.zig` / `fri.zig` capped decommitment, `om31_outer.zig` selects it from
+  `Profile.foldMerkleCapLog()` (3 for the k4-cap3 profile, 0 for every other profile, so leaves and all pre-M6 folds keep
+  full paths). Tests: gadget accept/reject (cap node, sibling, top bit) and host derivation (merkle.zig); real OM31 proof
+  capped at c = 1 / 2 accepted, cap-node / truncated-sibling / FRI-cap tampering unsatisfiable with unchanged topology
+  (om31_native/test.zig).
 
 ## 6. Outer GKR: what blocks the wiring (design finding)
 

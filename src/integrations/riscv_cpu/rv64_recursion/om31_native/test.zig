@@ -355,3 +355,64 @@ test {
 test {
     _ = @import("keccak_leaf_test.zig");
 }
+
+test "OM31 native PCS with a Merkle cap (diet-wire merkle-cap-v1) accepts the honest proof and rejects cap and path tampering" {
+    for ([_]u32{ 1, 4 }) |fold| {
+        const cfg = try config(fold);
+        var native = try produce(cfg);
+        defer native.proof.deinit(a);
+        defer native.aux.deinit(a);
+        var cap: V.proof.NativeCapture = undefined;
+        _ = try capture(cfg, &native.proof, &cap);
+        defer cap.deinit(a);
+        var arena = std.heap.ArenaAllocator.init(a);
+        defer arena.deinit();
+        const shape = try geometry(arena.allocator(), cfg);
+        var full: circuit.builder.context.GateCounts = undefined;
+        const uncapped = try V.proof.fromNative(arena.allocator(), &native.proof, &cap, &shape);
+        try std.testing.expect(try checkCircuit(&uncapped, &shape, cfg, &full));
+        // Two queries always cover a 1-level cap (node + sibling); c = 2 may be uncovered, never wrong.
+        for ([_]u32{ 1, 2 }) |cap_log| {
+            const values = V.proof.fromNativeCapped(arena.allocator(), &native.proof, &cap, &shape, cap_log) catch |err| {
+                try std.testing.expect(cap_log == 2 and err == error.MerkleCapUncovered);
+                continue;
+            };
+            try std.testing.expectEqual(cap_log, values.cap_log);
+            var capped: circuit.builder.context.GateCounts = undefined;
+            try std.testing.expect(try checkCircuit(&values, &shape, cfg, &capped));
+            try std.testing.expect(capped.blake_g_gate != full.blake_g_gate);
+            // Tamper a trace-tree cap node, a truncated sibling, and a FRI layer cap node: all unsatisfiable,
+            // with the topology (gate counts) unchanged.
+            var found_trace = false;
+            for (values.caps) |tree_cap| if (tree_cap.len != 0) {
+                const node = @constCast(&tree_cap[0]);
+                const before = node.*;
+                node.*[0] ^= 1;
+                var tampered: circuit.builder.context.GateCounts = undefined;
+                try std.testing.expect(!try checkCircuit(&values, &shape, cfg, &tampered));
+                try std.testing.expectEqual(capped, tampered);
+                node.* = before;
+                found_trace = true;
+                break;
+            };
+            try std.testing.expect(found_trace);
+            for (values.auth_paths) |tree_paths| if (tree_paths.len != 0 and tree_paths[0].len != 0) {
+                const sibling = @constCast(&tree_paths[0][0]);
+                const before = sibling.*;
+                sibling.*[3] ^= 0x80;
+                try std.testing.expect(!try checkCircuit(&values, &shape, cfg, null));
+                sibling.* = before;
+                break;
+            };
+            for (values.layers) |layer| if (layer.cap.len != 0) {
+                const node = @constCast(&layer.cap[layer.cap.len - 1]);
+                const before = node.*;
+                node.*[31] ^= 1;
+                try std.testing.expect(!try checkCircuit(&values, &shape, cfg, null));
+                node.* = before;
+                break;
+            };
+            try std.testing.expect(try checkCircuit(&values, &shape, cfg, null));
+        }
+    }
+}
