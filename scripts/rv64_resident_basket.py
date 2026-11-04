@@ -214,26 +214,37 @@ def recursive_snapshot(proof, leaf_count):
     directory = proof / "recursion-om31"
     tree = B.load(directory / "tree.json")
     nodes = tree.get("nodes", [])
-    if leaf_count < 1 or len(nodes) != 2 * leaf_count - 1 or tree.get("root") != len(nodes) - 1:
+    arity = tree.get("fold_arity", 2) if tree.get("schema") == 3 else 2
+    expected = leaf_count + planned_fold_count(leaf_count, arity) if leaf_count >= 1 else -1
+    if leaf_count < 1 or len(nodes) != expected or tree.get("root") != len(nodes) - 1:
         raise ValueError("recursive tree coverage mismatch")
     names, leaves, uses = set(), set(), [0] * len(nodes)
     for index, node in enumerate(nodes):
-        left, right = node.get("left"), node.get("right")
-        if left is None and right is None:
+        if tree.get("schema") == 3:
+            children = node.get("children")
+            if type(children) is not list:
+                raise ValueError("recursive child ordering mismatch")
+        else:
+            left, right = node.get("left"), node.get("right")
+            children = [] if left is None and right is None else [left, right]
+        if not children:
             first = node.get("first_leaf")
             if type(first) is not int or not 0 <= first < leaf_count or first in leaves or node.get("leaf_count") != 1:
                 raise ValueError("recursive leaf coverage mismatch")
             leaves.add(first)
             names.add(f"leaf-{first:06}.proof")
         else:
-            if type(left) is not int or type(right) is not int or not 0 <= left < index or not 0 <= right < index or left == right:
+            if (not 2 <= len(children) <= arity or any(type(c) is not int or not 0 <= c < index for c in children)
+                    or len(set(children)) != len(children)):
                 raise ValueError("recursive child ordering mismatch")
-            a, b = nodes[left], nodes[right]
-            if (node.get("first_leaf") != a["first_leaf"] or b["first_leaf"] != a["first_leaf"] + a["leaf_count"]
-                    or node.get("leaf_count") != a["leaf_count"] + b["leaf_count"]):
+            at = nodes[children[0]]["first_leaf"]
+            for c in children:
+                if nodes[c]["first_leaf"] != at:
+                    raise ValueError("recursive adjacency mismatch")
+                at += nodes[c]["leaf_count"]
+                uses[c] += 1
+            if node.get("first_leaf") != nodes[children[0]]["first_leaf"] or node.get("leaf_count") != at - node.get("first_leaf"):
                 raise ValueError("recursive adjacency mismatch")
-            uses[left] += 1
-            uses[right] += 1
             names.add(f"fold-{index:06}.proof")
     if leaves != set(range(leaf_count)) or uses != [1] * (len(nodes) - 1) + [0] or nodes[-1]["first_leaf"] != 0 or nodes[-1]["leaf_count"] != leaf_count:
         raise ValueError("recursive complete coverage missing")
@@ -349,7 +360,7 @@ def qualify_recursive_trial(plan, job, proof, native, target, trial, prior, log,
     entry = B.load(proof / "combined-entry.json")
     check_ready_execution(plan, job, combined, entry)
     count = native["cpu_proofs"] + native["truth_proofs"]
-    check_device_fixed_execution(plan, job, combined, entry, log, 2 * count - 1)
+    check_device_fixed_execution(plan, job, combined, entry, log, count + planned_fold_count(count, combined.get("recursive", {}).get("fold_arity", 2)))
     if (combined.get("accepted") is not True or combined.get("completed_ethereum_block") is not True
             or combined.get("native_bundle_reload") is not False or combined.get("restored_recursive_proofs") is not False
             or combined.get("native_authority_session_used") is not True or entry.get("accepted") is not True
@@ -365,7 +376,8 @@ def qualify_recursive_trial(plan, job, proof, native, target, trial, prior, log,
     scoped_log = log[start:marker.start()]
     assignment = re.findall(r"GPU_OUTER .*?assignment_bytes=(\d+)", scoped_log)
     uploads = re.findall(r"GPU_OUTER_ASSIGNMENT .*?full_assignment_upload_words=(\d+)", scoped_log)
-    if len(assignment) != 2 * count - 1 or len(uploads) != 2 * count - 1 or set(assignment) != {"0"} or set(uploads) != {"0"}:
+    nodes = count + planned_fold_count(count, recursive.get("fold_arity", 2))
+    if len(assignment) != nodes or len(uploads) != nodes or set(assignment) != {"0"} or set(uploads) != {"0"}:
         raise ValueError("physical zero-CPU-assignment generation evidence missing")
     snapshot = recursive_snapshot(proof, count)
     usage = None
