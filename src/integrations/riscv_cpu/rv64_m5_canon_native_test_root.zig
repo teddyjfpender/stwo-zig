@@ -116,7 +116,7 @@ test "corpus NV01 rv64-m6-native/v2: chain structure/vkhash of a strict segment 
     const Canon = @import("word16_global_execution/ethereum/canon_native.zig");
     const Rungs = @import("word16_global_execution/ethereum/canon_native_rungs.zig");
     const Chain = @import("word16_global_execution/services/gkr_local/chain.zig");
-    const flags: u32 = 0b1111_1110; // production v3 layout: every pair flag on, division never omitted
+    const flags: u32 = 0x0E; // production v3 layout (cpu_fused_tail, cpu_u8_pairs, cpu_compact_decode), division never omitted
     for (Rungs.CPU) |e| for (e.rungs, 0..) |rung, r| {
         // A strict segment's declaration IS the rung vector: the receiver labels it exactly (f, r) and the
         // chain hashes the same structure as the T_nat class entry.
@@ -189,4 +189,38 @@ test "corpus NV04 rv64-m6-native/v2: lambda_k (local GKR digest / marginals) is 
     // and v2 chi differs from v1 chi over the same entries (version identity in the IV)
     v[0].local.?.digest[0] ^= 1;
     try std.testing.expect(!std.mem.eql(u8, &base, &(try M.commitViewsFor(.m5_chain_v1, @splat(9), &v)).digest));
+}
+test "corpus NV01 golden rv64-m6-native/v2: Zig version identity and every class structure equal the Python reference vectors" {
+    const std = @import("std");
+    const Canon = @import("word16_global_execution/ethereum/canon_native.zig");
+    const Chain = @import("word16_global_execution/services/gkr_local/chain.zig");
+    const a = std.testing.allocator;
+    const parsed = try std.json.parseFromSlice(std.json.Value, a, @embedFile("word16_global_execution/ethereum/native_v2_vectors.json"), .{});
+    defer parsed.deinit();
+    const root = parsed.value.object;
+    const hexOf = struct {
+        fn f(s: []const u8) ![32]u8 {
+            var out: [32]u8 = undefined;
+            _ = try std.fmt.hexToBytes(&out, s);
+            return out;
+        }
+    }.f;
+    try std.testing.expectEqual(try hexOf(root.get("version_v2_strict").?.string), Canon.versionIdentityV2(Canon.RUNGS, .strict_local));
+    try std.testing.expectEqual(try hexOf(root.get("version_v2_gkr").?.string), Canon.versionIdentityV2(Canon.RUNGS, .native_gkr));
+    try std.testing.expectEqual(try hexOf(root.get("tags").?.object.get("version_v2").?.string), Canon.Tag.version_v2.digest());
+    const flags: u32 = @intCast(root.get("flags_production").?.integer);
+    var n: usize = 0;
+    for (root.get("cpu").?.array.items) |e| {
+        const o = e.object;
+        const fam: Canon.Family = @enumFromInt(@as(u32, @intCast(o.get("family").?.integer)));
+        try std.testing.expectEqual(try hexOf(o.get("structure_v2").?.string), try Chain.cpuClassStructure(fam, @intCast(o.get("rung").?.integer), flags));
+        n += 1;
+    }
+    for (root.get("truth").?.array.items) |e| {
+        const o = e.object;
+        const fam: Canon.Family = @enumFromInt(@as(u32, @intCast(o.get("family").?.integer)));
+        try std.testing.expectEqual(try hexOf(o.get("structure_v2").?.string), try Chain.truthClassStructure(fam, @intCast(o.get("rung").?.integer), @intCast(o.get("aux").?.integer)));
+        n += 1;
+    }
+    try std.testing.expectEqual(@as(usize, 46), n); // every class of the R = 4 table
 }

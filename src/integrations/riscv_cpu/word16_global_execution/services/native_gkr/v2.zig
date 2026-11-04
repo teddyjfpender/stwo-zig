@@ -300,3 +300,12 @@ fn deriveV2(a: std.mem.Allocator, specs: []const R.ComponentSpec) !R.Roster {
     };
     return .{ .allocator = a, .components = components, .instances = try list.toOwnedSlice(a) };
 }
+test "native GKR v2 bits ledger at the NF4 caps (256 proofs, 128 instances, 28 variables, arity 58) clears 151 bits; the conservative mass does not clear p" {
+    const caps = Cand.OuterGkrFacts{ .outer_proofs = 256, .instances = MAX_INSTANCES, .max_variables = R.MAX_VARIABLES, .max_tuple_arity = MAX_TUPLE_ARITY };
+    try Cand.requireOuterGkrBits(caps, REQUIRED_BITS);
+    // [D] total ~ 2^48.9 terms x 3^8 / 2^256 ~ 2^-194: 194 bits; 195 would still pass, 200 does not.
+    try Cand.requireOuterGkrBits(caps, 190);
+    try testing.expectError(error.Om31CandidateAlgebraicBudgetInsufficient, Cand.requireOuterGkrBits(caps, 200));
+    // profiles NV-R3: the conservative mass 128 x 2^28 = 2^35 >= p, so the gate must take source-bound masses.
+    try testing.expectError(error.Om31CandidateCharacteristicWrap, Cand.requireOuterGkrCharacteristic(caps, null));
+}
