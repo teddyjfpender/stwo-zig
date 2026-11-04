@@ -1,0 +1,89 @@
+{
+  "schema": "rv64-padding-assignment-ranges-cpu-prototype/v1",
+  "base_commit": "ba3dc9404",
+  "branch": "codex/rv64-padding-range-prototype",
+  "status": "CPU-only prototype; production/default scheduler unchanged; GPU unsupported",
+  "api": "Circuit.builder.padding_plan_prototype.Provenance.captureAndPad / Plan.build / Plan.evaluate",
+  "mechanism": {
+    "producer": "Wraps the original finalize.padToTargets in one caller-owned operation; records before/after geometry.",
+    "validation": [
+      "Finalized gate-recording source and explicit original witness origins",
+      "Unchanged nonpadding gate-list/roster counts",
+      "Canonical zero/one constants and prefix origin/constant/output bounds",
+      "Every appended Eq/add/TripleXor/M31ToU32/Blake gate has exact known inputs and consecutive outputs",
+      "Exactly four ranges cover every new variable, without gaps/overlap or arbitrary caller-supplied values",
+      "Existing Schedule.build independently validates prefix writer/input bounds against prepadding variable count",
+      "Range descriptors are revalidated before replay; malformed stored descriptors reject"
+    ],
+    "planning": "Borrowed prefix Context header/gate slices, no full gate copy. Default Schedule builds only the prefix and allocates its smaller producer/task arrays. Original full padded Circuit remains owned by the caller.",
+    "replay": "One full-size assignment allocation. Existing evaluator replays/checks original prefix gates, then bulk-fills canonical2/0 ranges and checks the FULL padded Circuit.",
+    "values": {
+      "qm31_add": "1+1 produces canonical QM31 value2",
+      "triple_xor": "zero",
+      "m31_to_u32": "zero",
+      "blake_g": "zero",
+      "eq": "No assigned variables; original0=0 gates retained"
+    },
+    "authority": "Generation metadata only. This is not a proof-input format or replacement AIR/PP/receiver authority. No graph hash/cache or per-variable seed list is added.",
+    "gpu": "Plan.requireGpuSupported always returns PaddingRangeGpuUnsupported; no native factory selects this type and no range-init kernel exists."
+  },
+  "bounded_fixture": {
+    "prefix_variables": 269,
+    "full_padded_variables": 1441792,
+    "range_assigned_variables": 1441523,
+    "original_tasks": 655355,
+    "compact_tasks": 264,
+    "eliminated_task_records": 655091,
+    "range_descriptors": 4,
+    "original_and_compact_seeds": 5,
+    "assignment_values_exact": 1441792,
+    "observations": [
+      {
+        "original_plan_ns": 8798458,
+        "compact_plan_ns": 301459
+      },
+      {
+        "original_plan_ns": 12311500,
+        "compact_plan_ns": 490708
+      }
+    ],
+    "timing_scope": "Two test-harness observations on Apple M5 Max. This deliberately padding-heavy fixture is not a representative production prefix or a full-block speedup estimate. Timing includes compact range validation/planning, not padding construction, PP commitment or GPU work."
+  },
+  "checks": {
+    "original_frozen_assignment_parity": true,
+    "trace_only_topology_and_values_parity": true,
+    "full45_preprocessed_columns_exact": true,
+    "full_padded_constraint_check": true,
+    "zero_length_ranges_default_plan_exact": true,
+    "gate_input_and_output_alignment_mutants_reject": true,
+    "range_kind_value_overlap_and_bounds_mutants_reject": true,
+    "unexpected_origins_constants_permutations_outputs_reject": true,
+    "prefix_writer_into_padding_rejects": true,
+    "all_build_and_evaluation_allocation_failures_leak_free": true,
+    "borrowed_header_never_deinitialized_or_mutated": true,
+    "gpu_admission_closed": true,
+    "gnu_native_recursive_combined_semantics": true
+  },
+  "unchanged_files": [
+    "src/frontends/circuit/common/finalize.zig",
+    "src/frontends/circuit/witness_generation/plan.zig",
+    "src/frontends/circuit/witness_generation/origins.zig",
+    "src/frontends/circuit/builder/context.zig"
+  ],
+  "source_sha256": {
+    "src/frontends/circuit/builder/mod.zig": "60c65e65da616ac65257541ff220913da10a470bcb3b7b1a2759aec50500348d",
+    "src/frontends/circuit/witness_generation/padding_plan.zig": "88e050bbd142942ff9a68387f8d86241cd43642ba8e660ad3c2b26f9a7648d2c",
+    "src/frontends/circuit/witness_generation/padding_plan_test.zig": "8892bff9ac5eab11c464aae8dc39a30ad857671510396a62dd9f0014cc25b866"
+  },
+  "commands": [
+    "zig build --build-file src/frontends/circuit/build.zig test -Doptimize=ReleaseFast -Dtest-filter=padding range -j2",
+    "zig build --build-file src/integrations/riscv_cuda/build.zig check-rv64-ethereum-gpu check-rv64-ethereum-gpu-recursion check-rv64-ethereum-gpu-combined -Doptimize=ReleaseFast -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4+sha -j2"
+  ],
+  "limits": [
+    "No AIR, PP, constraint, variable shape, public statement or proof wire change.",
+    "No claim of fewer AIR cells or fewer kernel launches/depth; padding records can share existing broad waves.",
+    "Expected opportunity is less host planning/producer workspace/static generation metadata, not reduced verification work.",
+    "No GPU job, budget use, production switch or full proof/basket speedup claim.",
+    "Explicit CPU prototype namespace only; main unchanged for review."
+  ]
+}
