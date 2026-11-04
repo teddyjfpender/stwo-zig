@@ -19,6 +19,16 @@ below use interleaved runs of one binary. Every number is a single observation *
 | P02 | the receiver selects m3 for r1 proofs | arity 4: `MissingRecursiveNodeProof`; arity 2: `Om31CircuitWireProfile` | — | rejected |
 | P03 | unknown outer profile name on the receiver | `error: UnknownOm31OuterProfile`, exit 1, no panic | — | clean rejection (was a panic, exit −6) |
 
+## Nodes and fold depth (r1 binary plan, all runs)
+
+| block | nodes | leaves | folds | fold depth |
+|---|---:|---:|---:|---:|
+| 26235156 | 21 | 11 | 10 | 4 |
+| 24628607 | 33 | 17 | 16 | 5 |
+
+Both are within D_MAX = 8. The census tools are `scripts/rv64_m5_recursion_classes.py` and
+`scripts/rv64_m5_receiver_class_ab.py`.
+
 ## E4: one fold VK, shared across blocks
 
 Distinct outer authorities (circuit VKs) per node kind, from `tree.json`:
