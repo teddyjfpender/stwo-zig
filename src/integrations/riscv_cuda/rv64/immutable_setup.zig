@@ -26,6 +26,7 @@ pub const Cache = struct {
     hits: u64 = 0,
     uploads: u64 = 0,
     evictions: u64 = 0,
+    adoptions: u64 = 0,
     access_clock: u64 = 0,
     const allocator = std.heap.page_allocator;
     pub fn init(library: *std.DynLib, session: *anyopaque, allocate: A.LeaseAllocate, release: A.LeaseRelease, limit: u64) !Cache {
@@ -174,6 +175,43 @@ pub const Cache = struct {
         adopted = true;
         _ = try self.acquire(self.entries.items.len - 1, request);
         return output;
+    }
+    /// M5 platform: adopt words that are already resident on this device
+    /// (the just-committed outer FIXED evaluations) under an authenticated key
+    /// with one device copy, instead of a second host upload of the same
+    /// words when MAIN generation asks for them. The entry is not borrowed, so
+    /// it stays evictable; a later miss simply falls back to `words`. Returns
+    /// false (no state change) when it cannot adopt without evicting a
+    /// borrowed entry or allocating past the device budget.
+    pub fn adoptDevice(self: *Cache, native_context: *anyopaque, source_scope: [8]u32, key: [8]u32, source: [*]const u32, count: u64, context_token: u64, generation: u64) !bool {
+        if (count == 0) return error.InvalidImmutableSetupWords;
+        if (self.index(key)) |i| return self.entries.items[i].lease.count == count;
+        const bytes = try std.math.mul(u64, count, 4);
+        if (bytes > self.limit) return false;
+        self.evict(bytes) catch |err| switch (err) {
+            error.ImmutableSetupStillBorrowed => return false,
+            else => return err,
+        };
+        try self.entries.ensureUnusedCapacity(allocator, 1);
+        if (self.validate(self.session, source, count, context_token, generation, &source_scope) != 0) return error.InvalidImmutableFixedSource;
+        var lease: A.Lease = .{};
+        if (self.allocate(self.session, @intCast(count), 4, &key, &lease) != 0) return false;
+        var adopted = false;
+        errdefer if (!adopted) {
+            _ = self.release(self.session, &lease);
+        };
+        if (self.copy(native_context, @ptrCast(lease.words.?), @ptrCast(source), @intCast(bytes)) != 0 or self.sync(native_context) != 0) return error.ImmutableSetupUploadFailed;
+        if (self.seal(self.session, &lease, &key) != 0) return error.ImmutableSetupSealFailed;
+        if (self.access_clock == std.math.maxInt(u64)) {
+            for (self.entries.items) |*cached| cached.last_used = 0;
+            self.access_clock = 0;
+        }
+        self.access_clock += 1;
+        self.entries.appendAssumeCapacity(.{ .key = key, .lease = lease, .last_used = self.access_clock });
+        adopted = true;
+        self.bytes += bytes;
+        self.adoptions += 1;
+        return true;
     }
     pub fn releaseScope(self: *Cache, scope: [8]u32) !void {
         if (self.unbind(self.session, &scope) != 0) return error.ImmutableSetupUnbindFailed;

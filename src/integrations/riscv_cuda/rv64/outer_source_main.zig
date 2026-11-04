@@ -5,7 +5,7 @@ const circuit = @import("stwo_circuit_frontend");
 const S = @import("outer_source.zig");
 const Native = @import("pcs_native_abi.zig");
 const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
-fn immutableKey(scope: D.Scope, column: usize) [8]u32 {
+pub fn immutableKey(scope: D.Scope, column: usize) [8]u32 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update("circuit/om31/fixed-evaluations/v1\x00");
     hash.update(&scope.fixed);

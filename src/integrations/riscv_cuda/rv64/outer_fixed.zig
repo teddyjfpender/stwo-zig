@@ -63,6 +63,28 @@ pub const Owner = struct {
         }
         try ctx.join();
     }
+    /// M5 platform: MAIN generation of this node re-reads exactly these PP
+    /// evaluations through the immutable cache under
+    /// `immutableKey(scope with fixed = this tree's root, column)`. The root
+    /// commits to these very words, so adopting the resident copy (one device
+    /// copy per column) before dropping it replaces a second host upload of
+    /// the whole forest. Best effort: any failure leaves the cache unchanged
+    /// and MAIN generation uploads as before.
+    fn adopt(raw: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
+        const self: *Owner = @ptrCast(@alignCast(data.?));
+        if (self.raw.words == null) return 0;
+        const cache = self.backend.service.immutable_setup orelse return 0;
+        if (std.process.hasEnvVarConstant("STWO_RV64_OUTER_FIXED_ADOPT_OFF")) return 0;
+        var root_scope = self.scope;
+        root_scope.fixed = self.tree.root;
+        const source_scope = Id.identity(self.scope);
+        for (self.inputs, 0..) |input, i| {
+            const device = input.device orelse return 0;
+            const adopted = cache.adoptDevice(raw, source_scope, @import("outer_source_main.zig").immutableKey(root_scope, i), device.words, device.count, device.context_token, device.generation) catch return 0;
+            if (!adopted) return 0;
+        }
+        return 0;
+    }
     fn dropRaw(_: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *Owner = @ptrCast(@alignCast(data.?));
         if (self.raw.words != null) return self.backend.service.lease_release(self.backend.service.session, &self.raw);
@@ -109,6 +131,7 @@ pub fn precommit(raw: *anyopaque, a: std.mem.Allocator, pp: *const PP, ordinal: 
     if (self.failure) |err| return err;
     try S.checked(status);
     self.tree = try b.trace_commit.commitFixed(a, .{ .scope = scope, .config = try O.protocol.targetConfig(), .tree_index = 0, .columns = &self.inputs });
+    _ = b.service.submit(b.service.session, Owner.adopt, self);
     try S.checked(b.service.submit(b.service.session, Owner.dropRaw, self));
     var logs: [45]u32 = undefined;
     for (pp.columns, &logs) |column, *log| log.* = column.logSize();

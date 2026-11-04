@@ -156,6 +156,39 @@ cudaError_t join_lanes(StwoNativeCudaContext *context) {
 }
 
 #if STWO_DEVICE_ARENA_HOOK
+// STWO_RV64_EXEC_SYNC=host|device (M5 platform; default host).
+// device: stwo_exec_context_sync / join_all_lanes become a device-side
+// all-lane barrier (every lane waits for every other lane's submitted work)
+// instead of a host join. Every host<->device copy already has a host-visible
+// contract of its own (H2D source consumed on return; D2H data present on
+// return, pinned or pageable), so the host join only ordered device work
+// across lanes, which the barrier preserves. Proof bytes cannot change.
+bool device_sync_mode() {
+    static const bool device = [] {
+        const char *v = getenv("STWO_RV64_EXEC_SYNC");
+        return v != nullptr && strcmp(v, "device") == 0;
+    }();
+    return device;
+}
+
+cudaError_t barrier_lanes(StwoNativeCudaContext *context) {
+    if (context->capture_active) return STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE;
+    stwo::cuda::runtime::arena::counters().device_barriers.fetch_add(1, std::memory_order_relaxed);
+    if (context->lane_count < 2) return cudaSuccess;
+    for (uint32_t lane = 0; lane < context->lane_count; ++lane) {
+        const cudaError_t status = cudaEventRecord(context->lane_events[lane], context->lanes[lane]);
+        if (status != cudaSuccess) return status;
+    }
+    for (uint32_t lane = 0; lane < context->lane_count; ++lane)
+        for (uint32_t other = 0; other < context->lane_count; ++other) {
+            if (other == lane) continue;
+            const cudaError_t status =
+                cudaStreamWaitEvent(context->lanes[lane], context->lane_events[other], 0);
+            if (status != cudaSuccess) return status;
+        }
+    return cudaSuccess;
+}
+
 // Device-side convergence: the coordination stream waits for every other
 // lane's submitted work. Work enqueued on lane 0 afterwards (and an event
 // recorded there) is ordered after all lanes; the host does not block.
@@ -490,6 +523,9 @@ extern "C" int stwo_exec_context_sync(void *handle) {
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
+#if STWO_DEVICE_ARENA_HOOK
+    if (device_sync_mode()) return static_cast<int>(barrier_lanes(context));
+#endif
     return static_cast<int>(join_lanes(context));
 }
 
@@ -615,6 +651,9 @@ extern "C" int stwo_exec_context_join_all_lanes(void *handle) {
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
+#if STWO_DEVICE_ARENA_HOOK
+    if (device_sync_mode()) return static_cast<int>(barrier_lanes(context));
+#endif
     return static_cast<int>(join_lanes(context));
 }
 
@@ -770,6 +809,9 @@ extern "C" int stwo_exec_context_timing_elapsed(
         capacity < kProofStageCount) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
+    // Device-mode joins do not complete the terminal marker on the host.
+    status = cudaEventSynchronize(context->timing_events[kProofStageCount]);
+    if (status != cudaSuccess) return static_cast<int>(status);
     for (uint32_t interval = 0; interval < kProofStageCount; ++interval) {
         status = cudaEventElapsedTime(
             &out_elapsed_ms[interval],

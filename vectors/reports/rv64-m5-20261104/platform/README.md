@@ -43,3 +43,16 @@ schedule (9.7 GB), composition/commit/projection ingress (rest).
 | proofs vs M3/M4 | identical | **identical** (all 55 hashes) |
 
 Receipt `24628607-counters-v3-pinned-fences.json` (load 34.6 at start: the 69.96 s request is not quotable).
+
+## v4 (26235156, full stack: driver `a7e737a4`, lib `bfaf0b14`, under the call-site shim)
+
+`26235156-callsites-v4-adopt-el2.json`, `26235156-callsites-v4-sites.txt`. Byte-identical to M3/M4.
+
+- **Outer FIXED adoption.** The precommit already has the node's PP evaluations resident; it now adopts them into the
+  immutable cache (one D2D copy per column, key = the MAIN-generation key derived from the committed fixed root) before
+  dropping them. MAIN generation then hits instead of re-uploading. H2D per request **45.9 → 36.6 GB** [M].
+- **el-2 direct composition extension.** Degree el-2 device columns are extended straight from their lease through a
+  new compact-source LDE entry (`stwo_lde_n2b_columns_compact_on`: same kernels, which already read at most 2^log
+  coefficients per column; only the host range check changes). The binding rl+2 truth role: arena **18.44 → 14.75 GB**
+  [M] (3,515 of 3,516 columns direct).
+- `STWO_RV64_EXEC_SYNC=device` (default host): `stwo_exec_context_sync` becomes a device-side all-lane barrier.

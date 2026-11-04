@@ -147,7 +147,7 @@ struct Counters {
   std::atomic<uint64_t> staged_parallel{0}, staged_parallel_bytes{0};
   // Host-blocking accounting for the M5 sync diet (context.cu join/free).
   std::atomic<uint64_t> join_calls{0}, lane_syncs{0}, lane_syncs_skipped{0};
-  std::atomic<uint64_t> free_fences{0}, fence_lane_waits{0};
+  std::atomic<uint64_t> free_fences{0}, fence_lane_waits{0}, device_barriers{0};
   std::atomic<uint64_t> poison_allocs{0}, poison_frees{0}, poison_bytes{0};
 };
 inline Counters &counters() {
@@ -1092,10 +1092,10 @@ inline void print_summaries() {
           (unsigned long long)c.staged_parallel_bytes.load(), (unsigned long long)config().staging_threads);
   fprintf(stderr,
           "GPU_SYNC_SUMMARY join_calls=%llu lane_syncs=%llu lane_syncs_skipped=%llu free_fences=%llu "
-          "fence_lane_waits=%llu\n",
+          "fence_lane_waits=%llu device_barriers=%llu\n",
           (unsigned long long)c.join_calls.load(), (unsigned long long)c.lane_syncs.load(),
           (unsigned long long)c.lane_syncs_skipped.load(), (unsigned long long)c.free_fences.load(),
-          (unsigned long long)c.fence_lane_waits.load());
+          (unsigned long long)c.fence_lane_waits.load(), (unsigned long long)c.device_barriers.load());
   for (int i = 0; i < kMaxDevices; ++i) {
     Device *d = nullptr;
     {

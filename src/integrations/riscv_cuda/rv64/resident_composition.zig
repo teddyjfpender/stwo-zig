@@ -2,6 +2,7 @@
 //! are ingress only; quotient buckets, interpolation and final coefficients never
 //! return to the host. The sole numerical readback is the committed root.
 const std = @import("std");
+const N2bColumnsCompact = *const fn ([*]const u32, usize, [*]const u32, [*]u32, usize, u32, u32, [*]const u32, u32, u32, usize, ?*anyopaque, *u32) callconv(.c) c_int;
 const CopyRun = @import("device_copy_run.zig").Run;
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
@@ -143,6 +144,9 @@ pub const Context = struct {
     tree: *const @TypeOf(Abi.stwo_rv64_trace_tree_on),
     n2b: N2b,
     n2b_columns: ?*const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on) = null,
+    /// M5 platform: compact-source LDE (degree el-2 columns extended straight
+    /// from their lease). Null on an older library: el-2 columns stay staged.
+    n2b_columns_compact: ?N2bColumnsCompact = null,
     b2n: B2n,
     copy: Copy,
     clear: Clear,
@@ -173,7 +177,7 @@ pub const Context = struct {
             .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"),
             .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream"),
-        }, .role = service.library.lookup(*const @TypeOf(Abi.stwo_rv64_composition_role_on), "stwo_rv64_composition_role_on"), .finish = try sym(*const @TypeOf(Abi.stwo_rv64_composition_finish_on), &service.library, "stwo_rv64_composition_finish_on"), .auxiliary = try sym(*const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on), &service.library, "stwo_rv64_composition_auxiliary_on"), .tree = try sym(*const @TypeOf(Abi.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(*const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on), "stwo_lde_n2b_columns_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Copy, &service.library, "stwo_exec_context_memcpy_d2d_async"), .clear = try sym(Clear, &service.library, "stwo_exec_context_memset_async"), .artifacts = undefined };
+        }, .role = service.library.lookup(*const @TypeOf(Abi.stwo_rv64_composition_role_on), "stwo_rv64_composition_role_on"), .finish = try sym(*const @TypeOf(Abi.stwo_rv64_composition_finish_on), &service.library, "stwo_rv64_composition_finish_on"), .auxiliary = try sym(*const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on), &service.library, "stwo_rv64_composition_auxiliary_on"), .tree = try sym(*const @TypeOf(Abi.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(*const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on), "stwo_lde_n2b_columns_on"), .n2b_columns_compact = service.library.lookup(N2bColumnsCompact, "stwo_lde_n2b_columns_compact_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Copy, &service.library, "stwo_exec_context_memcpy_d2d_async"), .clear = try sym(Clear, &service.library, "stwo_exec_context_memset_async"), .artifacts = undefined };
     }
     pub fn init(a: std.mem.Allocator, service: *Service.Context) !Context {
         var result = try initNumerical(a, service);
@@ -564,6 +568,12 @@ const Job = struct {
             // evaluations, identical proof bytes. STWO_RV64_COMPOSITION_DIRECT=0
             // restores the full coefficient copy.
             const direct_enabled = b.n2b_columns != null and !(if (std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT")) |v| std.mem.eql(u8, v, "0") else false);
+            // M5 platform: degree el-2 device columns are extended directly too
+            // (compact source, stride n/4). Same kernels, same evaluations;
+            // removes their staged-coefficient copy from the arena (3.69 GB on
+            // the 18.44 GB rl+2 truth role). STWO_RV64_COMPOSITION_DIRECT_EL2=0
+            // keeps them staged.
+            const direct_el2 = direct_enabled and b.n2b_columns_compact != null and !(if (std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT_EL2")) |v| std.mem.eql(u8, v, "0") else false);
             const direct = try a.alloc(?D.DeviceCoefficients, column_count);
             defer a.free(direct);
             const staging_offsets = try a.alloc(usize, column_count);
@@ -583,7 +593,9 @@ const Job = struct {
                     };
                     const immutable = if (source_tree == 0 and original.device == null) immutable_fixed[original_index].device else null;
                     const device = if (original.device != null) original.device else immutable orelse b.service.retainedColumn(context.scope, source_tree, original_index, original);
-                    if (direct_enabled and original.log_size + 1 == el and device != null and device.?.count == (n / 2)) {
+                    if ((direct_enabled and original.log_size + 1 == el and device != null and device.?.count == (n / 2)) or
+                        (direct_el2 and el >= 3 and original.log_size + 2 == el and device != null and device.?.count == (n / 4)))
+                    {
                         slot.* = device;
                         direct_columns += 1;
                         continue;
@@ -688,6 +700,11 @@ const Job = struct {
             const direct_logs = try a.alloc(u32, column_count);
             defer a.free(direct_logs);
             @memset(direct_logs, el - 1);
+            for (direct, direct_logs) |slot, *log| {
+                if (slot) |device| if (device.count == n / 4) {
+                    log.* = el - 2;
+                };
+            }
             const direct_log_lease = try upload(a, &context, &leases, direct_logs);
             const parameter_words = try felts(a, role.parameters);
             defer a.free(parameter_words);
@@ -716,14 +733,21 @@ const Job = struct {
             while (column < column_count) {
                 var end = column + 1;
                 if (direct[column]) |first| {
-                    // Merge adjacent columns of one lease into one compact run.
-                    var merged = try CopyRun.init(@intFromPtr(first.words), column * (n / 2), n / 2, first.context_token, first.generation);
+                    // Merge adjacent columns of one lease (and one degree) into
+                    // one compact run.
+                    const stride: usize = @intCast(first.count);
+                    var merged = try CopyRun.init(@intFromPtr(first.words), column * stride, stride, first.context_token, first.generation);
                     while (end < column_count) : (end += 1) {
                         const following = direct[end] orelse break;
-                        if (!try merged.append(try CopyRun.init(@intFromPtr(following.words), end * (n / 2), n / 2, following.context_token, following.generation))) break;
+                        if (following.count != first.count) break;
+                        if (!try merged.append(try CopyRun.init(@intFromPtr(following.words), end * stride, stride, following.context_token, following.generation))) break;
                     }
                     try self.checked("service.lease_validate_range", b.service.lease_validate_range(b.service.session, @ptrFromInt(merged.source), merged.words, merged.context_token, merged.generation, &context.scope));
-                    try self.checked("n2b_columns", b.n2b_columns.?(@ptrFromInt(merged.source), n / 2, direct_log_lease.words.?, arena_ptr + eval_base + column * n, n, el, @intCast(end - column), arena_ptr + tw_base + tw.twiddles.len - n / 2, @intCast(n / 2), @intCast(n / 2), stream.?, &launches));
+                    if (stride == n / 2) {
+                        try self.checked("n2b_columns", b.n2b_columns.?(@ptrFromInt(merged.source), n / 2, direct_log_lease.words.? + column, arena_ptr + eval_base + column * n, n, el, @intCast(end - column), arena_ptr + tw_base + tw.twiddles.len - n / 2, @intCast(n / 2), @intCast(n / 2), stream.?, &launches));
+                    } else {
+                        try self.checked("n2b_columns_compact", b.n2b_columns_compact.?(@ptrFromInt(merged.source), stride, direct_log_lease.words.? + column, arena_ptr + eval_base + column * n, n, el, @intCast(end - column), arena_ptr + tw_base + tw.twiddles.len - n / 2, @intCast(n / 2), @intCast(n / 2), stride, stream.?, &launches));
+                    }
                 } else {
                     while (end < column_count and direct[end] == null) : (end += 1) {}
                     try self.checked("n2b", b.n2b(arena_ptr, arena.count, arena_ptr + desc_base + 6 * column, @intCast(end - column), eval_base + column * n, el, arena_ptr + tw_base, @intCast(tw.twiddles.len), @intCast(n / 2), stream.?, 1, &launches));
