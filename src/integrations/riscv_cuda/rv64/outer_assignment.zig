@@ -128,7 +128,7 @@ pub const Prepared = struct {
     pub fn init(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
         const cache_mode = ClassCache.mode();
         const hint = if (cache_mode == .off) null else @import("stwo_circuit_cpu_integration").om31.device_prove.class_hint;
-        const template = if (hint) |key| ClassCache.find(key) else null;
+        const template = if (hint) |class_key| ClassCache.find(class_key) else null;
         if (template) |t| if (cache_mode == .on) return initFromTemplate(a, ctx, library, t);
         var fresh = try initFull(a, ctx, library);
         errdefer fresh.deinit();
@@ -142,8 +142,8 @@ pub const Prepared = struct {
             ClassCache.checked += 1;
             ClassCache.mutex.unlock();
             std.debug.print("GPU_OUTER_PLAN_CLASS check_ok class={x}\n", .{t.key[0..8]});
-        } else if (hint) |key| {
-            ClassCache.insert(key, &fresh, ctx);
+        } else if (hint) |class_key| {
+            ClassCache.insert(class_key, &fresh, ctx);
             ClassCache.mutex.lock();
             ClassCache.misses += 1;
             ClassCache.mutex.unlock();
