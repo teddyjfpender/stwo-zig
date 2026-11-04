@@ -2,6 +2,7 @@
 #include "pcs_native.h"
 #include "pcs_pipeline.cuh"
 #include "pcs_idle_cache.h"
+#include "pcs_oom_diagnostics.h"
 #include <cstdlib>
 #include "om31.cuh"
 #include "runtime/context_options.h"
@@ -16,6 +17,7 @@
 extern "C" int stwo_exec_context_create_options(const StwoCudaContextOptions *,
                                                 void **);
 extern "C" int stwo_exec_context_destroy(void *);
+extern "C" int stwo_exec_context_pool_current(void *, size_t *, size_t *);
 extern "C" int stwo_exec_context_seal_read_only(void *, const void *, size_t);
 extern "C" int stwo_exec_context_alloc_u32(void *, size_t, uint32_t **);
 extern "C" int stwo_exec_context_free_u32(void *, uint32_t *);
@@ -152,6 +154,33 @@ struct ResidentOwner {
       throw std::runtime_error("live device leases exceed admitted capacity");
     }
   }
+  // Failure-only queries: neither query changes the allocation error or custody.
+  void logAllocationFailure(uint64_t words, const char *phase) noexcept {
+    uint64_t idle = 0, active = 0, leased = 0;
+    for (const auto &block : blocks)
+      (block.used ? active : idle) += block.words * 4;
+    for (const auto &lease : leases)
+      leased += lease.value.count * 4;
+    const auto pool = rv64_pcs_oom_diagnostics::poolSnapshot(
+        [&](size_t *used, size_t *reserved) {
+          return stwo_exec_context_pool_current(ctx, used, reserved);
+        });
+    size_t free_bytes = 0, total_bytes = 0;
+    const auto memory_status = cudaMemGetInfo(&free_bytes, &total_bytes);
+    std::fprintf(stderr,
+      "GPU_OWNER_OOM requested_bytes=%llu retained_bytes=%llu "
+      "lease_bytes=%llu idle_cache_bytes=%llu active_cache_bytes=%llu "
+      "physical_free_bytes=%zu physical_total_bytes=%zu memory_rc=%d "
+        "pool_used_bytes=%zu pool_reserved_bytes=%zu pool_rc=%d "
+        "phase=%s context_token=%llu\n",
+      static_cast<unsigned long long>(words * 4),
+      static_cast<unsigned long long>(retained),
+      static_cast<unsigned long long>(leased),
+      static_cast<unsigned long long>(idle),
+      static_cast<unsigned long long>(active), free_bytes, total_bytes,
+      int(memory_status), pool.used, pool.reserved, pool.status, phase,
+        static_cast<unsigned long long>(token));
+  }
   uint32_t *allocate(uint64_t words) {
     if (!words || words > SIZE_MAX / 4)
       throw std::runtime_error("invalid device allocation");
@@ -160,23 +189,7 @@ struct ResidentOwner {
     int status = stwo_exec_context_alloc_u32(ctx, words, &ptr);
     if (status == int(cudaErrorMemoryAllocation)) {
       (void)cudaGetLastError();
-      uint64_t idle = 0, active = 0, leased = 0;
-      for (const auto &block : blocks)
-        (block.used ? active : idle) += block.words * 4;
-      for (const auto &lease : leases)
-        leased += lease.value.count * 4;
-      size_t free_bytes = 0, total_bytes = 0;
-      const auto memory_status = cudaMemGetInfo(&free_bytes, &total_bytes);
-      std::fprintf(stderr,
-          "GPU_OWNER_OOM requested_bytes=%llu retained_bytes=%llu "
-          "lease_bytes=%llu idle_cache_bytes=%llu active_cache_bytes=%llu "
-          "physical_free_bytes=%zu physical_total_bytes=%zu memory_rc=%d\n",
-          static_cast<unsigned long long>(words * 4),
-          static_cast<unsigned long long>(retained),
-          static_cast<unsigned long long>(leased),
-          static_cast<unsigned long long>(idle),
-          static_cast<unsigned long long>(active), free_bytes, total_bytes,
-          int(memory_status));
+      logAllocationFailure(words, "initial");
       // Logical admission can succeed while idle PCS cache allocations still
       // occupy physical pages. They are not live witnesses: release only the
       // unused blocks, then let the context's bounded pool recovery retry.
@@ -189,6 +202,8 @@ struct ResidentOwner {
       }
       sync();
       status = stwo_exec_context_alloc_u32(ctx, words, &ptr);
+      if (status == int(cudaErrorMemoryAllocation))
+        logAllocationFailure(words, "after_idle_eviction_retry");
     }
     CHECK(status);
     retained += words * 4;
