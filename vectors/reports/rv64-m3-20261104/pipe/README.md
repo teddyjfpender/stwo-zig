@@ -79,7 +79,10 @@ Tuning knobs: `STWO_RV64_RECURSION_HOST_WORKERS` (default 8), `_PREP_POOL_WORKER
 - The device-authority split computes the same fields and the same identity hash (`identityOf`, shared with `initImpl`). The root comes from the same trusted device precommit.
 - The staged plan is bound to its graph by pointer identity. Any mismatch is rejected.
 - The one behavioral difference is fail-fast timing: an invalid native bundle is now rejected when the concurrent `Root.check` joins, not before the first leaf. It is still rejected before anything is published.
-- Byte parity on both development blocks is the empirical check. Acceptance by the independent receiver carries over from the accepted-v7 controls through byte identity. See `receiver-*` below if present.
+- Byte parity on both development blocks is the empirical check.
+- **Independent acceptance (measured):** a fresh, separate, CUDA-disabled CPU receiver accepted both p4 outputs: native plus every restored leaf, fold and root, with zero newly proved nodes (`verify-recursion-candidate`, see `<block>-p4-receiver.json`).
+  - 26235156: 41.4 s receiver wall.
+  - 24628607: 61.9 s receiver wall.
 
 ## Memory (integration note for stream mem)
 
