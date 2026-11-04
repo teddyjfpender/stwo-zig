@@ -13,6 +13,11 @@ below use interleaved runs of one binary. Every number is a single observation *
 | E2 | r1, `STWO_RV64_FOLD_ARITY=4` | producer OOM: the 4-ary r1 fold composition needs 18.4 GB (arena overrun) | not run | **infeasible on 32 GB with today's composition memory** |
 | E3 | `m3_b4_q51_p26` on GPU | `InvalidTraceInputRetirementScope`: the N2B input retirement is blowup-1 only | not run | hook in `outer_source.zig` (retire only at blowup 1) |
 | E4 | `STWO_RV64_OUTER_SHAPE=uniform-v1`, r1 binary | 1 fold VK, root 741,208 B | 1 fold VK (the **same** one), root 745,624 B | receivers accepted 2/2; exact receiver rejects (fail closed) |
+| E5 | interleaved A/B on 24628607, one binary: exact (A) vs uniform-v1 (U), class-PP reuse on | — | recursion A 21.91 / 23.25 s, U 23.61 / 25.94 s | A 55/55 byte-identical (both runs); the U1 receiver accepted |
+| E6 | **NAMED** `m5_outer_canonical_r1_b2_q108_p20_fold4_v1` (uniform-v1 implied) | 1 fold VK `20ff5bd6…`, recursion 14.03 s (load 25.5), root 748 KB | the **same** fold VK, recursion 20.71 s (load 16.6), root 745,752 B | receivers accepted 2/2 |
+| E7 | `m3_b4_q51_p26` 4-ary on GPU, after the retire hook | leaf interaction LDE at blowup 4 requests 5.93 G words (23.7 GB): `CudaAllocationFailed` | not run | **blocked on device memory**: needs a chunked/streaming LDE commit (kernels/M6) |
+| P02 | the receiver selects m3 for r1 proofs | arity 4: `MissingRecursiveNodeProof`; arity 2: `Om31CircuitWireProfile` | — | rejected |
+| P03 | unknown outer profile name on the receiver | `error: UnknownOm31OuterProfile`, exit 1, no panic | — | clean rejection (was a panic, exit −6) |
 
 ## E4: one fold VK, shared across blocks
 
@@ -48,6 +53,9 @@ The values are medians of the pipeline prep stage, which covers graph + padding 
 | E1 24628607 | 2.07 s | 0.70 s | 1.48 s | 0.30 s |
 | E4 26235156 | 2.14 s | 0.53 s | 1.16 s | 0.43 s |
 | E4 24628607 | 2.44 s | 0.76 s | 1.19 s | 0.35 s |
+
+Under uniform-v1 with class-PP reuse (E5 U1, U2; E6), the fold prep median is 0.47 / 0.66 / 0.51 / 0.57 s. The class
+plan cache hits: fold `host_plan` falls 0.756 → 0.012 s.
 
 **The 0.1 s gate is not met.** Making it a store hit needs three things:
 - the per-class PP/plan to be reused in the pipelined prep stage (today it is rebuilt per node; only the device plan cache is

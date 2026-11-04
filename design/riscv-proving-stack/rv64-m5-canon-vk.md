@@ -13,9 +13,11 @@ Interface contract: `/workspace/m3/M5-INTERFACES.md`, section `canon-vk` (CV1 op
 |---|---|---|---|
 | outer profile | `STWO_RV64_OUTER_PROFILE` = `r1_b2_q108_p20_fold4` / `m3_b4_q51_p26_fold4` / `m3_b8_q34_p26_fold4` | r1 | r1: M4 bytes |
 | fold arity | `STWO_RV64_FOLD_ARITY` = 2..4 | 2 (r1), 4 (m3) | 2: M4 bytes |
-| outer shape | `STWO_RV64_OUTER_SHAPE` = `exact` / `uniform-v1` | exact | exact: M4 bytes |
+| outer shape | implied by the profile: the registry-named canonical profiles `m5_outer_canonical_r1_b2_q108_p20_fold4_v1` / `m5_outer_canonical_m3_b4_q51_p26_fold4_v1` (profiles' domain strings) use `uniform-v1`, every other profile uses `exact`. `STWO_RV64_OUTER_SHAPE` may only restate it, or force `uniform-v1` on a non-canonical profile for diagnostics (E4) | exact | exact: M4 bytes |
 
-Every unknown or unreadable value fails closed (panic or `error.InvalidRecursiveFoldArity`). The harness passes producer
+Every unknown or unreadable value fails closed. Since `b833f4e3e`, the driver and receiver entry (`gkr_main.runArguments` →
+`execution_wrap.checkPolicyEnv`) validate profile, shape and arity first, and exit with a clean error instead of a panic (corpus
+`P03`). A canonical profile with `STWO_RV64_OUTER_SHAPE=exact` is refused (`CanonicalOuterProfileRequiresUniformShape`). The harness passes producer
 environment only through `--env`, while the receiver inherits the caller's environment, so both must be set (a mismatch is
 rejected; see section 5).
 
@@ -105,12 +107,44 @@ target fails closed (`ComponentExceedsTarget`).
 
 **Cost [D].** +19.5% recursion cells on 24628607: 32.4 → 38.8 G, from the census row logs × fitted component widths, exact fit.
 
-**Benefit [D].** One fold class per arity:
+**Measured [M]:**
+- One binary fold VK, shared by 26235156 and 24628607 (E4: `bf610ea9…`). Under exact there are 11 distinct fold VKs across
+  the two blocks.
+- An exact receiver rejects uniform-v1 proofs (`Om31CircuitWireAuthority`).
+- The negative corpus passes 36/36 on uniform-v1 proofs.
+- Interleaved same-binary A/B on 24628607 (E5, load 20–37), recursion stage: exact 21.9 / 23.3 s against uniform-v1
+  23.6 / 25.9 s. That is about +2.2 s (+10%).
+  - The cost is leaf padding: leaf device-stage time sums to 18.1 / 19.6 s exact and 21.9 / 25.0 s uniform. Six leaf shapes
+    are padded up to one.
+  - Folds gain: with the class-PP reuse (section 5a) the fold prep median falls 1.05 / 1.24 → 0.47 / 0.66 s.
+
+**Benefit.** One fold class per arity:
 - the producer's class-keyed PP/FIXED cache hits for every fold after the first;
 - `derive-vk-tables` can compute the fold VKs from source with no block;
 - it is the prerequisite for fold v3.
 
 The measured effect is in the receipts listed in section 6.
+
+## 5a. Class-PP reuse in the pipelined prep (scheduling only)
+
+The lane path already borrowed a fold class's preprocessed circuit from `PPCache`; the pipelined prep rebuilt it per fold.
+`prepareHost` now borrows the class PP for fold v2 classes. Ownership:
+- the class key is read on the prep thread, because `class_hint` is threadlocal;
+- a borrowed flag travels `HostPrep` → `Proved` → `Wrapped`, so a borrowed PP is never freed or retired;
+- the first fold of a class is cloned into the cache.
+
+Argument: the fold classKey is collision-free by construction. It hashes every input of the topology: row logs, FIXED logs, the
+full preprocessed layout, output count, constraint count and max eval log. The PP is a pure function of the padded topology, so a
+cached PP equals a fresh one. `STWO_RV64_OUTER_PP_CLASS_CACHE=check` asserts this per fold.
+
+Evidence [M]: under exact, 8 of 16 folds hit, and both E5 exact runs are 55/55 byte-identical to M3/M4.
+
+## 5b. P02 and P03 on this receiver [M]
+
+- **P02.** A receiver selecting `m3_b4_q51_p26` for r1 proofs rejects them.
+  - At the default m3 arity 4 it rejects with `MissingRecursiveNodeProof` (plan mismatch).
+  - With `STWO_RV64_FOLD_ARITY=2` it rejects with `Om31CircuitWireProfile` (the profile domain in the wire header).
+- **P03.** An unknown profile name is a clean error exit; see `p03` in the receipts README.
 
 ## 6. Measurements
 
@@ -124,6 +158,9 @@ See `vectors/reports/rv64-m5-20261104/canon-vk/README.md` (E1 parity; E2 r1 4-ar
 - **Canonical leaves `R_leaf[f, r]`.** These need canon-native's rung padding and the χ-chain native version.
 - **`derive-vk-tables` CLI and the root-only receiver path.** The table formats are frozen in CV2, and the fold VKs become
   derivable once `uniform-v1` holds.
-- **The 0.1 s per-node host preprocess+plan+graph gate.** Today it is 1.6–2.2 s per leaf and 0.6–0.9 s per fold (median prep
-  stage, M4 warm service [M]). Under `uniform-v1` a fold's PP/authority comes from the class cache. The per-leaf graph and plan
-  remain until hint-tape (M6) and canonical leaves.
+- **The 0.1 s per-node host preprocess+plan+graph gate.** Under `uniform-v1` plus class-PP reuse the fold prep is 0.47–0.66 s
+  [M]: graph 0.27–0.35 s plus padding. The class plan cache hits: fold `host_plan` falls 0.756 → 0.012 s. Leaves are still
+  2.0–3.0 s, because each leaf is its own circuit. Meeting 0.1 s needs three things:
+  - canonical leaves, so the leaf PP and plan become class store hits;
+  - a cached padded topology, so padding and graph are not rebuilt;
+  - the M6 hint tape for the witness.
