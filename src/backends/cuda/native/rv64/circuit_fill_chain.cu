@@ -33,29 +33,8 @@ __device__ __forceinline__ uint32_t word(q::QM31 v) { return v.a.a | (v.a.b << 1
 __device__ __forceinline__ q::QM31 packed(uint32_t v) { return {{v & 65535, v >> 16}, {0, 0}}; }
 __device__ __forceinline__ uint32_t ror(uint32_t x, unsigned n) { return (x >> n) | (x << (32 - n)); }
 __device__ void fail(uint32_t* p) { atomicOr(p, 1u); }
-// Shared-memory write-through copy of recently produced values (chain runs).
-// A slot holds (tag = variable, value) and is read only when the tag equals the
-// requested variable. Every variable is written exactly once (single static
-// assignment), and only a slot's owner (tag winner) writes its value, in a
-// barrier phase where no thread reads; so a matching tag always carries that
-// variable's final value. A miss reads global memory, which every output is
-// also stored to: the cache can only change latency, never a value.
-constexpr uint32_t kSlots = 2048;
-struct Cache { uint32_t* tag; uint4* val; };
-struct Produced { uint32_t out = 0, count = 0; q::QM31 v[4]; };
-__device__ __forceinline__ q::QM31 loadv(const StwoCircuitAssignmentJob& j, const Cache* c, uint32_t var) {
-    if (c) {
-        const uint32_t slot = var & (kSlots - 1);
-        if (c->tag[slot] == var) {
-            const uint4 v = c->val[slot];
-            return {{v.x, v.y}, {v.z, v.w}};
-        }
-    }
-    return load(j.values, var);
-}
-// Byte-for-byte the evaluation of circuit_assignment.cu `at`; additionally
-// reports the produced values (not for permutations) when `p` is given.
-__device__ void at(const StwoCircuitAssignmentJob& j, const StwoCircuitAssignmentTask& t, const Cache* c = nullptr, Produced* p = nullptr) {
+// Byte-for-byte the evaluation of circuit_assignment.cu `at`.
+__device__ void at(const StwoCircuitAssignmentJob& j, const StwoCircuitAssignmentTask& t) {
     if (t.kind > 15 || t.out >= j.value_count) { fail(j.status); return; }
     unsigned arity = t.kind == 15 ? 0 : t.kind <= 3 ? 2 : t.kind == 4 ? 3 : t.kind == 6 ? 6 : t.kind == 9 ? 2 : 1;
     if (t.kind == 7) {
@@ -81,7 +60,7 @@ __device__ void at(const StwoCircuitAssignmentJob& j, const StwoCircuitAssignmen
     q::QM31 x[6];
     for (unsigned i = 0; i < arity; ++i) {
         if (t.args[i] >= j.value_count) { fail(j.status); return; }
-        x[i] = loadv(j, c, t.args[i]);
+        x[i] = load(j.values, t.args[i]);
     }
     q::QM31 v{};
     switch (t.kind) {
@@ -93,12 +72,11 @@ __device__ void at(const StwoCircuitAssignmentJob& j, const StwoCircuitAssignmen
         case 5: v = packed(x[0].a.a); break;
         case 6: {
             if (uint64_t(t.out) + 4 > j.value_count) { fail(j.status); return; }
-            uint32_t ga = word(x[0]), gb = word(x[1]), gc = word(x[2]), gd = word(x[3]);
-            ga = ga + gb + word(x[4]); gd = ror(gd ^ ga, 16); gc += gd; gb = ror(gb ^ gc, 12);
-            ga = ga + gb + word(x[5]); gd = ror(gd ^ ga, 8); gc += gd; gb = ror(gb ^ gc, 7);
-            store(j.values, t.out, packed(ga)); store(j.values, t.out + 1, packed(gb));
-            store(j.values, t.out + 2, packed(gc)); store(j.values, t.out + 3, packed(gd));
-            if (p) { p->out = t.out; p->count = 4; p->v[0] = packed(ga); p->v[1] = packed(gb); p->v[2] = packed(gc); p->v[3] = packed(gd); }
+            uint32_t a = word(x[0]), b = word(x[1]), c = word(x[2]), d = word(x[3]);
+            a = a + b + word(x[4]); d = ror(d ^ a, 16); c += d; b = ror(b ^ c, 12);
+            a = a + b + word(x[5]); d = ror(d ^ a, 8); c += d; b = ror(b ^ c, 7);
+            store(j.values, t.out, packed(a)); store(j.values, t.out + 1, packed(b));
+            store(j.values, t.out + 2, packed(c)); store(j.values, t.out + 3, packed(d));
             return;
         }
         case 8: if (zero(x[0])) { fail(j.status); return; } v = q::inverse(x[0]); break;
@@ -111,7 +89,6 @@ __device__ void at(const StwoCircuitAssignmentJob& j, const StwoCircuitAssignmen
         default: fail(j.status); return;
     }
     store(j.values, t.out, v);
-    if (p) { p->out = t.out; p->count = 1; p->v[0] = v; }
 }
 __device__ __forceinline__ StwoCircuitAssignmentTask fetch(const StwoCircuitAssignmentTask* tasks, uint32_t i) {
     // Records are immutable for the whole node: read-only path.
@@ -134,14 +111,9 @@ __device__ __forceinline__ void prefetch_inputs(const StwoCircuitAssignmentJob& 
 __global__ void __launch_bounds__(kChainThreads) chain_run(StwoCircuitAssignmentJob j, const uint32_t* __restrict__ ends, uint32_t first_level, uint32_t levels) {
     __shared__ uint32_t s_ends[kEndsChunk];
     __shared__ uint32_t s_bad;
-    __shared__ uint32_t s_tag[kSlots];
-    __shared__ uint4 s_val[kSlots];
     const auto* tasks = static_cast<const StwoCircuitAssignmentTask*>(j.records);
     const uint32_t tid = threadIdx.x;
     if (tid == 0) s_bad = 0;
-    // Variables are < 2^31 (checked at entry): the all-ones tag never matches.
-    for (uint32_t i = tid; i < kSlots; i += kChainThreads) s_tag[i] = 0xffffffffu;
-    const Cache cache{s_tag, s_val};
     uint32_t begin = j.first;
     for (uint32_t chunk = 0; chunk < levels; chunk += kEndsChunk) {
         const uint32_t n = min(kEndsChunk, levels - chunk);
@@ -178,22 +150,10 @@ __global__ void __launch_bounds__(kChainThreads) chain_run(StwoCircuitAssignment
             const uint32_t end = s_ends[l];
             const StwoCircuitAssignmentTask next3 = record(l + 3);
             prefetch_inputs(j, next2);
-            Produced mine;
-            if (begin + tid < end) at(j, current, &cache, &mine);
-            for (uint32_t i = begin + tid + kChainThreads; i < end; i += kChainThreads) at(j, fetch(tasks, i), &cache, nullptr);
-            // (A) every read of this level is done; (B) tag claims settle;
-            // (C) owners' values are in place and this level's global writes
-            // are visible to the whole CTA before any later level reads them.
-            __syncthreads();
-#pragma unroll
-            for (uint32_t k = 0; k < 4; ++k)
-                if (k < mine.count) s_tag[(mine.out + k) & (kSlots - 1)] = mine.out + k;
-            __syncthreads();
-#pragma unroll
-            for (uint32_t k = 0; k < 4; ++k) {
-                const uint32_t slot = (mine.out + k) & (kSlots - 1);
-                if (k < mine.count && s_tag[slot] == mine.out + k) s_val[slot] = make_uint4(mine.v[k].a.a, mine.v[k].a.b, mine.v[k].b.a, mine.v[k].b.b);
-            }
+            if (begin + tid < end) at(j, current);
+            for (uint32_t i = begin + tid + kChainThreads; i < end; i += kChainThreads) at(j, fetch(tasks, i));
+            // Global writes of this level are visible to the whole CTA after
+            // the barrier, before any later dependency level reads them.
             __syncthreads();
             current = next1;
             next1 = next2;
