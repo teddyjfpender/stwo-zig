@@ -157,6 +157,15 @@ fn printSecurity(out: anytype, a: std.mem.Allocator, pc: proto.Config, st: proto
     var rep = try t.security.accountProof(a, pc, st, key, proof, kp);
     defer rep.deinit();
     try t.security.writeReport(rep, out);
+    // TENSOR_TERMS=<path>: dump the total's full term list (Lean re-check)
+    if (std.posix.getenv("TENSOR_TERMS")) |path| {
+        var file = try std.fs.cwd().createFile(path, .{});
+        defer file.close();
+        var buf: [4096]u8 = undefined;
+        var w = file.writer(&buf);
+        try rep.total.writeTerms(&w.interface);
+        try w.interface.flush();
+    }
     if (pc.weight_outer) |w| try out.print("\"weight_queries\":{d},", .{w.n_queries});
     if (pc.key_outer) |k| try out.print("\"key_queries\":{d},", .{k.n_queries});
     try out.print("\"key_alphas\":{d},", .{pc.key_alphas});

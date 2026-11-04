@@ -67,6 +67,12 @@ pub fn build(b: *std.Build) void {
     const run_verify = b.addRunArtifact(verify_exe);
     if (b.args) |args| run_verify.addArgs(args);
     b.step("verify", "Verify tensor proof files: zig build verify -- <dir>").dependOn(&run_verify.step);
+
+    // Lean formal proofs (formal/tensor-frontend): lake build + axiom audit +
+    // the exact security re-check. Needs elan/lake on PATH; not part of `test`.
+    const run_lean = b.addSystemCommand(&.{"scripts/check.sh"});
+    run_lean.setCwd(b.path("../../formal/tensor-frontend"));
+    b.step("lean", "Build and audit the Lean proofs (formal/tensor-frontend)").dependOn(&run_lean.step);
 }
 
 /// The Metal module compiles the stwo-zig Metal backend's MSL sources (field,

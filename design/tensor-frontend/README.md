@@ -85,6 +85,7 @@ Package: `src/tensor/` (standalone `build.zig`; `zig build test`,
 | proof bytes per batch / request | wire-encoded bytes (`wire.md`, bench `"encoded_bytes"`); struct split into GKR, sumchecks, witness opening, weight opening |
 | verify time | single thread |
 | conjectured / proven security bits | `security.zig` sums every error term (bench `"security"`); see `security.md` |
+| Lean proofs | `formal/tensor-frontend` (zero-dep Lean 4.35): no-wrap / requant / softmax division, sumcheck and LogUp soundness, union-bound accounting; `zig build lean`; see `lean.md` |
 
 ## Benchmarks
 

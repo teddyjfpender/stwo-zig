@@ -193,6 +193,13 @@ pub const Account = struct {
         return .{ .sum_with = -sw, .sum_without = -so, .round_with = -mw, .round_without = -mo, .compiled = compiledLevel(-rw, 256), .worst = worst, .worst_without = worst_o, .n_terms = self.terms.items.len, .rbr_round_with = -rw, .rbr_round_without = -ro, .rbr_compiled = compiledLevel(-rw, 256), .rbr_compiled_without = compiledLevel(-ro, 256), .rbr_worst = worst_r };
     }
 
+    /// Every term, one per line: name, log2_err, pow, count (tab separated,
+    /// full f64 precision). Read by formal/tensor-frontend/scripts/terms_to_lean.py,
+    /// whose output the Lean exact checker (Security.lean) re-sums.
+    pub fn writeTerms(self: Account, out: anytype) !void {
+        for (self.terms.items) |t| try out.print("{s}\t{e}\t{d}\t{e}\n", .{ t.name, t.log2_err, t.pow, t.count });
+    }
+
     pub fn writeJson(self: Account, out: anytype, top: usize) !void {
         const s = self.summary();
         try out.print("{{\"sum_with_work\":{d:.2},\"sum_without_work\":{d:.2},\"round_with_work\":{d:.2},\"round_without_work\":{d:.2},\"compiled\":{d:.2},\"worst\":\"{s}\",\"worst_without_work\":\"{s}\",\"terms\":{d},\"rbr_round_with_work\":{d:.2},\"rbr_round_without_work\":{d:.2},\"rbr_compiled\":{d:.2},\"rbr_compiled_without_work\":{d:.2},\"rbr_worst\":\"{s}\",\"largest\":[", .{ s.sum_with, s.sum_without, s.round_with, s.round_without, s.compiled, s.worst, s.worst_without, s.n_terms, s.rbr_round_with, s.rbr_round_without, s.rbr_compiled, s.rbr_compiled_without, s.rbr_worst });
