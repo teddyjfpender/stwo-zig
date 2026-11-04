@@ -97,6 +97,27 @@ static inline uint32_t tc_emu_atomic_inc(uint32_t *p) { return (*p)++; }
 
 #endif
 
+// Full unroll of constant-trip loops (keeps small arrays in registers).
+#if defined(__CUDACC__)
+#define TC_UNROLL _Pragma("unroll")
+#else
+#define TC_UNROLL
+#endif
+
+// 4-way signed int8 dot product with int32 accumulate: the sm_61+ __dp4a
+// instruction under nvcc, its exact definition in the emulation
+// (c + sum_k (int8)a[k] (int8)b[k] over the four bytes, two's complement).
+#if defined(__CUDACC__)
+#define TC_DP4A(a, b, c) __dp4a((int)(a), (int)(b), (int)(c))
+#else
+static inline int32_t tc_dp4a_emu(uint32_t a, uint32_t b, int32_t c) {
+    int64_t s = c;
+    for (int k = 0; k < 4; ++k) s += (int64_t)(int8_t)(a >> (8 * k)) * (int8_t)(b >> (8 * k));
+    return (int32_t)s;
+}
+#define TC_DP4A(a, b, c) tc_dp4a_emu((uint32_t)(a), (uint32_t)(b), (int32_t)(c))
+#endif
+
 // Block size every reduction kernel is launched with (shared arrays are sized
 // by it). 256 threads x 3 QM31 x 16 B = 12 KB of shared memory per block.
 #define TC_TB 256u

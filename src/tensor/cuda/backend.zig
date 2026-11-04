@@ -16,9 +16,11 @@ const Accel = t.accel.Accel;
 const QM31 = f.QM31;
 const M31 = f.M31;
 const Hash = [32]u8;
+const gkr = @import("gkr.zig");
 
 pub const TcCtx = opaque {};
 pub const TcSc = opaque {};
+pub const TcGkr = opaque {};
 
 pub const Stats = extern struct {
     launches: u64,
@@ -34,6 +36,10 @@ pub const Stats = extern struct {
     matmuls: u64,
     mles: u64,
     gkr_layers: u64,
+    gkr_sessions: u64,
+    gkr_rounds: u64,
+    declined: u64,
+    matmuls_dp4a: u64,
 };
 
 pub const Terms = extern struct {
@@ -73,6 +79,7 @@ pub extern fn tc_eq_table(ctx: *TcCtx, point: [*]const u32, n: u32, gamma: *cons
 pub extern fn tc_combine_rows(ctx: *TcCtx, m: *const anyopaque, is_i8: c_int, R: u64, C: u64, coeffs: [*]const u32, G: u32, out: [*]u32) c_int;
 pub extern fn tc_row_dots_i8(ctx: *TcCtx, m: [*]const i8, R: u64, C: u64, vec: [*]const u32, out: [*]u32) c_int;
 pub extern fn tc_matmul_i32_i8(ctx: *TcCtx, x: [*]const i32, w: [*]const i8, T: u32, K: u32, N: u32, out: [*]i64) c_int;
+pub extern fn tc_matmul_i8_dp4a(ctx: *TcCtx, x: [*]const i8, w: [*]const i8, T: u32, K: u32, N: u32, out: [*]i64) c_int;
 pub extern fn tc_mle_i32(ctx: *TcCtx, v: [*]const i32, log_n: u32, point: [*]const u32, out: *[4]u32) c_int;
 pub extern fn tc_sc_begin(ctx: *TcCtx, factors: [*]const [*]const u32, nf: u32, len: u64, active: u64, terms: *const Terms) ?*TcSc;
 pub extern fn tc_sc_begin_specs(ctx: *TcCtx, specs: [*]const Spec, nf: u32, len: u64, active: u64, terms: *const Terms) ?*TcSc;
@@ -83,6 +90,21 @@ pub extern fn tc_sc_abort(ctx: *TcCtx, s: *TcSc) void;
 pub extern fn tc_commit(ctx: *TcCtx, m: *const anyopaque, is_i8: c_int, R: u64, log_c: u32, log_b: u32, twiddles: [*]const u32, tw_len: u32, enc_out: *?[*]u32, nodes_out: [*]u8) c_int;
 pub extern fn tc_free_visible(ctx: *TcCtx, p: *anyopaque) void;
 pub extern fn tc_set_commit_chunk_rows(ctx: *TcCtx, rows: u64) void;
+pub const GKR_ONES: u32 = 0;
+pub const GKR_BASE: u32 = 1;
+pub const GKR_SECURE: u32 = 2;
+pub const GKR_FOLD: u32 = 1;
+pub const GKR_SUM: u32 = 2;
+pub const GKR_MASK: u32 = 4;
+pub const DECLINED: c_int = 2;
+pub const GKR_MAX_JOBS: usize = 1024;
+pub const GkrInputC = extern struct { kind: u32, log_n: u32, den: [*]const u32, num: ?[*]const u32 };
+pub const GkrJobC = extern struct { inst: u32, layer: u32, cur_log: u32, flags: u32 };
+pub extern fn tc_ok(ctx: *TcCtx) c_int;
+pub extern fn tc_gkr_begin(ctx: *TcCtx, inputs: [*]const GkrInputC, n_inst: u32, top_out: [*]u32) ?*TcGkr;
+pub extern fn tc_gkr_eq(ctx: *TcCtx, g: *TcGkr, y: [*]const u32, y_len: u32, lambda: *const [4]u32) c_int;
+pub extern fn tc_gkr_round(ctx: *TcCtx, g: *TcGkr, jobs: [*]const GkrJobC, n_jobs: u32, r: ?*const [4]u32, out: [*]u32) c_int;
+pub extern fn tc_gkr_end(ctx: *TcCtx, g: *TcGkr) void;
 pub extern fn tc_gkr_layer(ctx: *TcCtx, in_off: [*]const u64, out_off: [*]const u64, n_inst: u32, num: [*]const u32, den: [*]const u32, n_in: u64, num_out: [*]u32, den_out: [*]u32) c_int;
 
 pub fn limbsPtr(x: []const QM31) [*]const u32 {
@@ -94,6 +116,8 @@ pub const Cuda = struct {
     acc: Accel,
     /// weight passes below this many matrix entries stay on the CPU
     min_pass_elems: usize = 1 << 16,
+    /// int8 activations take the dp4a kernel (else the int64 reference)
+    use_dp4a: bool = true,
     /// declined calls (shape outside the device kernels' bounds)
     declined: u64 = 0,
 
@@ -115,9 +139,9 @@ pub const Cuda = struct {
             .combine_i32 = combineI32,
             .row_dots_i8 = rowDotsI8,
             .mle_eval_i32 = mleEvalI32,
-            // LogUp-GKR stays on the CPU until the batched device prover
-            // (tc_gkr_layer + device sumcheck rounds) is wired; cuda.md.
-            .gkr_prove = null,
+            // batched device LogUp-GKR (cuda/gkr.zig): every layer of every
+            // instance on the device, one launch per round for all instances
+            .gkr_prove = gkrProve,
         };
         return self;
     }
@@ -155,9 +179,38 @@ pub const Cuda = struct {
         tc_unpin_all(self.ctx);
     }
 
-    fn err(self: *Cuda) error{CudaFailed} {
+    pub fn err(self: *Cuda) error{CudaFailed} {
         std.log.err("tensor cuda: {s}", .{tc_last_error(self.ctx)});
         return error.CudaFailed;
+    }
+
+    /// rc of a C entry point: 0 ok, DECLINED -> null (CPU path; the context
+    /// stays usable), anything else -> error.CudaFailed.
+    fn check(self: *Cuda, rc: c_int) error{CudaFailed}!bool {
+        if (rc == 0) return true;
+        if (rc == DECLINED) {
+            self.declined += 1;
+            return false;
+        }
+        return self.err();
+    }
+
+    /// A session constructor returned null: declined (null) or failed.
+    fn nullSession(self: *Cuda) error{CudaFailed}!?*anyopaque {
+        if (tc_ok(self.ctx) != 0) {
+            self.declined += 1;
+            return null;
+        }
+        return self.err();
+    }
+
+    fn gkrProve(ctx: *anyopaque, a: std.mem.Allocator, ch: *t.transcript.Channel, inputs: []const t.accel.GkrInput) anyerror!t.accel.GkrResult {
+        const self = from(ctx);
+        if (!gkr.fits(inputs)) {
+            self.declined += 1;
+            return gkr.cpuProveBatch(a, ch, inputs);
+        }
+        return gkr.proveBatch(self, a, ch, inputs);
     }
 
     fn from(ctx: *anyopaque) *Cuda {
@@ -189,7 +242,10 @@ pub const Cuda = struct {
         const nodes = try a.alloc(Hash, 2 * E);
         errdefer a.free(nodes);
         var enc: ?[*]u32 = null;
-        if (tc_commit(self.ctx, m.data.ptr, @intFromBool(T == i8), R, m.log_cols, lb, @ptrCast(tw.tree.twiddles.ptr), @intCast(tw.tree.twiddles.len), &enc, @ptrCast(nodes.ptr)) != 0) return self.err();
+        if (!try self.check(tc_commit(self.ctx, m.data.ptr, @intFromBool(T == i8), R, m.log_cols, lb, @ptrCast(tw.tree.twiddles.ptr), @intCast(tw.tree.twiddles.len), &enc, @ptrCast(nodes.ptr)))) {
+            a.free(nodes);
+            return null;
+        }
         const enc_m: [*]M31 = @ptrCast(enc.?);
         return .{
             .combine = .{ .ctx = self, .i8 = combineI8, .i32 = combineI32 },
@@ -226,7 +282,7 @@ pub const Cuda = struct {
         for (coeffs, 0..) |cg, g| @memcpy(cbuf[g * R ..][0..R], cg[0..R]);
         const flat = try a.alloc(QM31, G * C);
         defer a.free(flat);
-        if (tc_combine_rows(self.ctx, m.data.ptr, @intFromBool(T == i8), R, C, limbsPtr(cbuf), @intCast(G), @ptrCast(flat.ptr)) != 0) return self.err();
+        if (!try self.check(tc_combine_rows(self.ctx, m.data.ptr, @intFromBool(T == i8), R, C, limbsPtr(cbuf), @intCast(G), @ptrCast(flat.ptr)))) return null;
         const out = try a.alloc([]QM31, G);
         var made: usize = 0;
         errdefer {
@@ -250,7 +306,10 @@ pub const Cuda = struct {
         }
         const out = try a.alloc(QM31, R);
         errdefer a.free(out);
-        if (tc_row_dots_i8(self.ctx, m.data.ptr, R, C, limbsPtr(vec), @ptrCast(out.ptr)) != 0) return self.err();
+        if (!try self.check(tc_row_dots_i8(self.ctx, m.data.ptr, R, C, limbsPtr(vec), @ptrCast(out.ptr)))) {
+            a.free(out);
+            return null;
+        }
         return out;
     }
 
@@ -264,7 +323,19 @@ pub const Cuda = struct {
         }
         const out = try a.alloc(i64, T * N);
         errdefer a.free(out);
-        if (tc_matmul_i32_i8(self.ctx, x.ptr, wm.data.ptr, @intCast(T), @intCast(K), @intCast(N), out.ptr) != 0) return self.err();
+        // int8 activations (the common case after requant): dp4a kernel,
+        // 1 B per X entry over PCIe
+        if (self.use_dp4a and K < (1 << 17) and T > 0 and N > 0) dp4a: {
+            for (x) |v| if (v < -128 or v > 127) break :dp4a;
+            const x8 = try a.alloc(i8, x.len);
+            defer a.free(x8);
+            for (x, x8) |v, *o| o.* = @intCast(v);
+            if (try self.check(tc_matmul_i8_dp4a(self.ctx, x8.ptr, wm.data.ptr, @intCast(T), @intCast(K), @intCast(N), out.ptr))) return out;
+        }
+        if (!try self.check(tc_matmul_i32_i8(self.ctx, x.ptr, wm.data.ptr, @intCast(T), @intCast(K), @intCast(N), out.ptr))) {
+            a.free(out);
+            return null;
+        }
         return out;
     }
 
@@ -275,7 +346,7 @@ pub const Cuda = struct {
             return null;
         }
         var out: [4]u32 = undefined;
-        if (tc_mle_i32(self.ctx, values.ptr, @intCast(point.len), limbsPtr(point), &out) != 0) return self.err();
+        if (!try self.check(tc_mle_i32(self.ctx, values.ptr, @intCast(point.len), limbsPtr(point), &out))) return null;
         return f.fromLimbs(out);
     }
 
@@ -303,7 +374,7 @@ pub const Cuda = struct {
         var ptrs: [4][*]const u32 = undefined;
         for (factors, 0..) |fac, j| ptrs[j] = limbsPtr(fac);
         const tt = termsOf(terms, factors.len);
-        const s = tc_sc_begin(self.ctx, &ptrs, @intCast(factors.len), factors[0].len, active, &tt) orelse return self.err();
+        const s = tc_sc_begin(self.ctx, &ptrs, @intCast(factors.len), factors[0].len, active, &tt) orelse return self.nullSession();
         return @ptrCast(s);
     }
 
@@ -331,7 +402,7 @@ pub const Cuda = struct {
             }
         }
         const tt = termsOf(terms, specs.len);
-        const s = tc_sc_begin_specs(self.ctx, &cs, @intCast(specs.len), len, active, &tt) orelse return self.err();
+        const s = tc_sc_begin_specs(self.ctx, &cs, @intCast(specs.len), len, active, &tt) orelse return self.nullSession();
         return @ptrCast(s);
     }
 

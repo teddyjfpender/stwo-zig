@@ -353,6 +353,20 @@ test "cuda matmul accumulators match CPU" {
         const got = (try t.accel.matmulAcc(d.accel(), a, sh[0], x, wm)).?;
         defer a.free(got);
         try std.testing.expectEqualSlices(i64, cpu, got);
+        // int8 activations (incl. -128 and K not a multiple of the tile): the dp4a path
+        for (x) |*v| v.* = switch (r.uintLessThan(u8, 4)) {
+            0 => -128,
+            1 => 127,
+            else => r.intRangeAtMost(i32, -128, 127),
+        };
+        const cpu8 = try proto.matmulAcc(a, &pool, xi, x, wm);
+        defer a.free(cpu8);
+        const before = d.stats();
+        const got8 = (try t.accel.matmulAcc(d.accel(), a, sh[0], x, wm)).?;
+        defer a.free(got8);
+        try std.testing.expectEqual(before.matmuls_dp4a + 1, d.stats().matmuls_dp4a);
+        try std.testing.expectEqual(before.h2d_bytes + T * K, d.stats().h2d_bytes - (if (before.resident_hits == d.stats().resident_hits) K * N else 0));
+        try std.testing.expectEqualSlices(i64, cpu8, got8);
     }
 }
 
@@ -424,6 +438,141 @@ test "cuda batched LogUp-GKR fraction layer (one launch, mixed heights) matches 
     }
 }
 
+const engine = @import("stwo_prover_engine");
+const Fast = engine.lookups.gkr_prover_fast.ForField(QM31);
+
+fn makeGkrInputs(a: std.mem.Allocator, seed: u64, logs: []const u32, kinds: []const u8, owned: bool, keep: *std.ArrayList([]u8)) ![]Fast.Input {
+    var prng = std.Random.DefaultPrng.init(seed);
+    const r = prng.random();
+    const ins = try a.alloc(Fast.Input, logs.len);
+    for (logs, kinds, 0..) |lg, kd, i| {
+        const n = @as(usize, 1) << @intCast(lg);
+        const den = try a.alloc(QM31, n);
+        for (den) |*d| d.* = randQ(r);
+        const num: Fast.Numerators = switch (kd) {
+            0 => .ones,
+            1 => blk: {
+                const b = try a.alloc(M31, n);
+                for (b) |*x| x.* = M31.fromCanonical(r.intRangeLessThan(u32, 0, f.P));
+                if (!owned) try keep.append(a, std.mem.sliceAsBytes(b));
+                break :blk .{ .base = b };
+            },
+            else => blk: {
+                const sv = try a.alloc(QM31, n);
+                for (sv) |*x| x.* = randQ(r);
+                if (!owned) try keep.append(a, std.mem.sliceAsBytes(sv));
+                break :blk .{ .secure = sv };
+            },
+        };
+        if (!owned) try keep.append(a, std.mem.sliceAsBytes(den));
+        ins[i] = .{ .num = num, .den = den, .owned = owned };
+    }
+    return ins;
+}
+
+fn expectSameGkr(rc: *const Fast.ProveBatchResult, rd: *const Fast.ProveBatchResult) !void {
+    try std.testing.expectEqual(rc.proof.sumcheck_proofs.len, rd.proof.sumcheck_proofs.len);
+    for (rc.proof.sumcheck_proofs, rd.proof.sumcheck_proofs) |x, y| {
+        try std.testing.expectEqual(x.round_polys.len, y.round_polys.len);
+        for (x.round_polys, y.round_polys) |px, py| {
+            try std.testing.expectEqual(px.coeffsSlice().len, py.coeffsSlice().len);
+            for (px.coeffsSlice(), py.coeffsSlice()) |cx, cy| try std.testing.expect(cx.eql(cy));
+        }
+    }
+    for (rc.proof.layer_masks_by_instance, rd.proof.layer_masks_by_instance) |mx, my| {
+        try std.testing.expectEqual(mx.len, my.len);
+        for (mx, my) |x, y| for (x.columnsSlice(), y.columnsSlice()) |cx, cy| {
+            try std.testing.expect(cx[0].eql(cy[0]) and cx[1].eql(cy[1]));
+        };
+    }
+    for (rc.proof.output_claims_by_instance, rd.proof.output_claims_by_instance) |x, y| for (x, y) |u, v| try std.testing.expect(u.eql(v));
+    try std.testing.expectEqual(rc.artifact.ood_point.len, rd.artifact.ood_point.len);
+    for (rc.artifact.ood_point, rd.artifact.ood_point) |x, y| try std.testing.expect(x.eql(y));
+    for (rc.artifact.claims_to_verify_by_instance, rd.artifact.claims_to_verify_by_instance) |x, y| for (x, y) |u, v| try std.testing.expect(u.eql(v));
+    try std.testing.expectEqualSlices(usize, rc.artifact.n_variables_by_instance, rd.artifact.n_variables_by_instance);
+}
+
+test "cuda batched LogUp-GKR proof equals the CPU fast prover (mixed heights and kinds, owned/borrowed); launch and traffic budgets" {
+    const a = std.heap.c_allocator;
+    const d = try dev();
+    const logs = [_]u32{ 10, 3, 13, 1, 7, 12, 11, 1 };
+    const kinds = [_]u8{ 0, 1, 2, 0, 1, 0, 1, 2 };
+    const max_n: u64 = 13;
+    var in_bytes: u64 = 0;
+    for (logs, kinds) |lg, kd| in_bytes += (@as(u64, 1) << @intCast(lg)) * (16 + @as(u64, switch (kd) {
+        0 => 0,
+        1 => 4,
+        else => 16,
+    }));
+    for ([_]bool{ true, false }) |owned| {
+        var keep: std.ArrayList([]u8) = .empty;
+        defer {
+            for (keep.items) |b| a.free(b);
+            keep.deinit(a);
+        }
+        const in_cpu = try makeGkrInputs(a, 77, &logs, &kinds, owned, &keep);
+        defer a.free(in_cpu);
+        const in_dev = try makeGkrInputs(a, 77, &logs, &kinds, owned, &keep);
+        defer a.free(in_dev);
+        var tc = Transcript.initDomain("gkr");
+        var rc = try Fast.proveBatch(a, &tc.ch, in_cpu, .{ .threads = 2 }, null);
+        defer rc.deinit(a);
+        var acc = d.accel().*;
+        acc.gkr_min_log = 0;
+        var td = Transcript.initDomain("gkr");
+        const before = d.stats();
+        var rd = try t.accel.gkrProveBatch(&acc, a, &td.ch, in_dev, 2);
+        defer rd.deinit(a);
+        const after = d.stats();
+        try std.testing.expect(tc.draw().eql(td.draw()));
+        try expectSameGkr(&rc, &rd);
+        if (!owned) {
+            var k: usize = 0;
+            while (k < keep.items.len / 2) : (k += 1) try std.testing.expectEqualSlices(u8, keep.items[k], keep.items[k + keep.items.len / 2]);
+        }
+        // Budgets (counted exactly by the emulation; the device counts the same):
+        // launches = 1 top-layer fill + max_n layer builds + 1 claim gather
+        //          + per GKR layer L: 1 eq + L rounds + 1 last fold/mask
+        //          (all instances share every launch).
+        var want_launches: u64 = 2 + max_n;
+        for (0..max_n) |l| want_launches += 2 + l;
+        const launches = after.launches - before.launches;
+        const syncs = after.syncs - before.syncs;
+        const h2d = after.h2d_bytes - before.h2d_bytes;
+        const d2h = after.d2h_bytes - before.d2h_bytes;
+        std.debug.print("\ncuda gkr batch ({d} instances, max 2^{d}): launches {d}, syncs {d}, H2D {d} B (inputs {d} B), D2H {d} B\n", .{ logs.len, max_n, launches, syncs, h2d, in_bytes, d2h });
+        try std.testing.expectEqual(want_launches, launches);
+        try std.testing.expectEqual(@as(u64, 1) + max_n * (max_n + 1) / 2, after.gkr_rounds - before.gkr_rounds);
+        // one sync per round launch (the transcript needs its sums) + the gather
+        try std.testing.expectEqual(after.gkr_rounds - before.gkr_rounds, syncs);
+        // H2D: the inputs once + job tables / eq points (< 4 KB per launch)
+        try std.testing.expect(h2d >= in_bytes and h2d - in_bytes < 4096 * launches);
+        // D2H: only claims, round sums and masks (no layer ever comes back)
+        try std.testing.expect(d2h <= 64 * logs.len * (after.gkr_rounds - before.gkr_rounds));
+        try std.testing.expectEqual(@as(u64, 1), after.gkr_sessions - before.gkr_sessions);
+    }
+}
+
+test "cuda GKR session declines bad shapes without poisoning the context" {
+    const d = try dev();
+    const before = d.stats().declined;
+    var den = [_]QM31{QM31.one()} ** 4;
+    const bad = [_]cuda.GkrInputC{.{ .kind = 7, .log_n = 2, .den = cuda.limbsPtr(&den), .num = null }};
+    var top: [8]u32 = undefined;
+    try std.testing.expect(cuda.tc_gkr_begin(d.ctx, &bad, 1, &top) == null);
+    try std.testing.expectEqual(@as(c_int, 1), cuda.tc_ok(d.ctx));
+    try std.testing.expectEqual(before + 1, d.stats().declined);
+    // a declined weight pass leaves the context usable as well
+    var m = [_]i8{1} ** 16;
+    var out: [4]QM31 = undefined;
+    try std.testing.expectEqual(cuda.DECLINED, cuda.tc_combine_rows(d.ctx, &m, 1, 4, 4, cuda.limbsPtr(&den), 0, @ptrCast(&out)));
+    try std.testing.expectEqual(@as(c_int, 1), cuda.tc_ok(d.ctx));
+    var x = [_]QM31{ QM31.one(), QM31.one() };
+    var y: [2]QM31 = undefined;
+    try std.testing.expectEqual(@as(c_int, 0), cuda.tc_qm_mul_batch(d.ctx, cuda.limbsPtr(&x), cuda.limbsPtr(&x), 2, @ptrCast(&y)));
+    try std.testing.expect(y[0].eql(QM31.one()));
+}
+
 // ---------------------------------------------------------------------------
 // Whole proofs: identical digests with the CUDA accelerator.
 
@@ -432,6 +581,7 @@ fn proveBoth(a: std.mem.Allocator, pool: *f.Pool, pc_cpu: proto.Config, st: prot
     var acc = d.accel().*;
     acc.sc_min_work = 16;
     acc.mle_min_len = 1;
+    acc.gkr_min_log = 0;
     var pc_dev = pc_cpu;
     pc_dev.accel = &acc;
     var tm: proto.Timings = .{};
@@ -443,6 +593,7 @@ fn proveBoth(a: std.mem.Allocator, pool: *f.Pool, pc_cpu: proto.Config, st: prot
     const after = d.stats();
     try std.testing.expect(after.commits > before.commits);
     try std.testing.expect(after.sc_rounds > before.sc_rounds);
+    if (p_cpu.gkr != null) try std.testing.expect(after.gkr_sessions > before.gkr_sessions);
     try std.testing.expectEqual(proofDigest(p_cpu), proofDigest(p_dev));
     try proto.verify(a, pc_cpu, st, proto.weightKey(ws_cpu), &p_dev);
 }
@@ -521,6 +672,7 @@ test "cuda decoder layer proof equals the CPU golden digest" {
     const d = try dev();
     var acc = d.accel().*;
     acc.sc_min_work = 32;
+    acc.gkr_min_log = 0;
     const cfg = tf.LayerCfg{ .log_t = 4, .log_d = 6, .log_f = 7, .log_heads = 2, .log_kv_heads = 1, .fused_qkv = true };
     var pc = proto.Config{ .pcs = .{ .log_blowup = 2, .n_queries = 12, .pow_bits = 1 }, .weight_log_cols = 6, .witness_log_cols_max = 8, .gkr_threads = 4 };
     var sw = try tf.setupWeights(a, &pool, cfg, pc, 4242);
@@ -544,9 +696,11 @@ test "cuda decoder layer proof equals the CPU golden digest" {
     pc.accel = &acc;
     var tm: proto.Timings = .{};
     const before = d.stats().sc_sessions;
+    const gkr_before = d.stats().gkr_sessions;
     var proof = try proto.proveWithAllAccumulators(a, &pool, pc, st, &sw.ws, wv, b.coreAccs(), b.extAccs(), &tm);
     defer proof.deinit(a);
     try std.testing.expect(d.stats().sc_sessions > before + 3);
+    try std.testing.expect(d.stats().gkr_sessions > gkr_before);
     pc.accel = null;
     try proto.verify(a, pc, st, proto.weightKey(&sw.ws), &proof);
     const hx = std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower);
@@ -577,6 +731,7 @@ test "cuda per-request serving batch (dense + MoE stack, LM head, greedy check) 
     var acc = d.accel().*;
     acc.sc_min_work = 16;
     acc.mle_min_len = 1;
+    acc.gkr_min_log = 0;
     var pcg = pc;
     pcg.accel = &acc;
     const R = 2;
@@ -603,6 +758,7 @@ test "cuda per-request serving batch (dense + MoE stack, LM head, greedy check) 
     var b_dev = try t.serve.proveRequests(a, &pool, pcg, &sw.ws, &reqs, null);
     defer b_dev.deinit(a);
     try std.testing.expect(d.stats().sc_rounds > before.sc_rounds);
+    try std.testing.expect(d.stats().gkr_sessions > before.gkr_sessions);
     try std.testing.expectEqual(t.digest.batchDigest(b_cpu), t.digest.batchDigest(b_dev));
     for (0..R) |j| try t.serve.verifyRequest(a, pc, reqs[j].st, proto.weightKey(&sw.ws), &b_dev.requests[j], &b_dev.shared, j);
 }

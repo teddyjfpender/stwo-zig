@@ -40,13 +40,34 @@ struct Factors {
     uint32_t *f[SC_MAX_FACTORS];
 };
 
+// Factor i of the four held in registers, selected without indexing (a
+// runtime index into a thread-local array forces it into local memory: the
+// round kernel's former 224-B frame).
+TC_HD uint32_t sc_sel(uint32_t i, uint32_t x0, uint32_t x1, uint32_t x2, uint32_t x3) {
+    // branch-free mask select on values (no address is ever formed)
+    const uint32_t m0 = 0u - (uint32_t)(i == 0), m1 = 0u - (uint32_t)(i == 1), m2 = 0u - (uint32_t)(i == 2), m3 = 0u - (uint32_t)(i == 3);
+    return (x0 & m0) | (x1 & m1) | (x2 & m2) | (x3 & m3);
+}
+TC_HD qm sc_pick(const qm *cur, uint32_t i) {
+    return qm{sc_sel(i, cur[0].a, cur[1].a, cur[2].a, cur[3].a), sc_sel(i, cur[0].b, cur[1].b, cur[2].b, cur[3].b),
+              sc_sel(i, cur[0].c, cur[1].c, cur[2].c, cur[3].c), sc_sel(i, cur[0].d, cur[1].d, cur[2].d, cur[3].d)};
+}
+
+// Constant-trip loops (terms <= 4, factors per term <= 3) guarded by the
+// runtime counts, so every array index is a compile-time constant after
+// unrolling.
 TC_HD qm sc_eval_terms(const ScTerms &t, const qm *cur) {
     qm v = qm_zero();
-    for (uint32_t k = 0; k < t.n_terms; ++k) {
-        qm prod = cur[t.term_fac[k][0]];
-        for (uint32_t j = 1; j < t.term_len[k]; ++j) prod = qm_mul(prod, cur[t.term_fac[k][j]]);
-        if (!qm_is_one(t.coeff[k])) prod = qm_mul(prod, t.coeff[k]);
-        v = qm_add(v, prod);
+    TC_UNROLL
+    for (uint32_t k = 0; k < 4; ++k) {
+        if (k < t.n_terms) {
+            qm prod = sc_pick(cur, t.term_fac[k][0]);
+            TC_UNROLL
+            for (uint32_t j = 1; j < 3; ++j)
+                if (j < t.term_len[k]) prod = qm_mul(prod, sc_pick(cur, t.term_fac[k][j]));
+            if (!qm_is_one(t.coeff[k])) prod = qm_mul(prod, t.coeff[k]);
+            v = qm_add(v, prod);
+        }
     }
     return v;
 }
@@ -74,7 +95,9 @@ TC_GLOBAL tc_sc_round(Factors fs, ScTerms t, ScRound p, uint32_t *partials, uint
         for (uint64_t x = (uint64_t)TC_BLOCK_ID * TC_BLOCK_DIM + tid; x < p.work; x += stride) {
             qm lo[SC_MAX_FACTORS], diff[SC_MAX_FACTORS], cur[SC_MAX_FACTORS];
             const bool has_hi = x + p.half_len < p.active;
-            for (uint32_t j = 0; j < t.n_factors; ++j) {
+            TC_UNROLL
+            for (uint32_t j = 0; j < SC_MAX_FACTORS; ++j) {
+                if (j >= t.n_factors) { lo[j] = diff[j] = cur[j] = qm_zero(); continue; }
                 qm l, h;
                 if (p.prev_half != 0) {
                     l = sc_folded(fs.f[j], p, x);
@@ -88,16 +111,20 @@ TC_GLOBAL tc_sc_round(Factors fs, ScTerms t, ScRound p, uint32_t *partials, uint
                 cur[j] = l;
             }
             if (p.prev_half != 0) {
-                for (uint32_t j = 0; j < t.n_factors; ++j) {
+                TC_UNROLL
+                for (uint32_t j = 0; j < SC_MAX_FACTORS; ++j) {
+                    if (j >= t.n_factors) continue;
                     qm_store(fs.f[j], x, lo[j]);
                     if (has_hi) qm_store(fs.f[j], x + p.half_len, qm_add(lo[j], diff[j]));
                 }
             }
             qacc_add(a0, sc_eval_terms(t, cur));
-            for (uint32_t j = 0; j < t.n_factors; ++j) cur[j] = qm_add(qm_add(cur[j], diff[j]), diff[j]);
+            TC_UNROLL
+            for (uint32_t j = 0; j < SC_MAX_FACTORS; ++j) cur[j] = qm_add(qm_add(cur[j], diff[j]), diff[j]);
             qacc_add(a2, sc_eval_terms(t, cur));
             if (t.deg >= 3) {
-                for (uint32_t j = 0; j < t.n_factors; ++j) cur[j] = qm_add(cur[j], diff[j]);
+                TC_UNROLL
+                for (uint32_t j = 0; j < SC_MAX_FACTORS; ++j) cur[j] = qm_add(cur[j], diff[j]);
                 qacc_add(a3, sc_eval_terms(t, cur));
             }
         }
@@ -125,11 +152,14 @@ TC_GLOBAL tc_sc_round(Factors fs, ScTerms t, ScRound p, uint32_t *partials, uint
         if (tid == 0 && last) {
             qacc s[3] = {qacc_zero(), qacc_zero(), qacc_zero()};
             const volatile uint32_t *vp = partials;
-            for (uint32_t b = 0; b < TC_NBLOCKS; ++b)
+            for (uint32_t b = 0; b < TC_NBLOCKS; ++b) {
+                TC_UNROLL
                 for (uint32_t k = 0; k < 3; ++k) {
                     const uint64_t o = 4ull * (3 * b + k);
                     qacc_add(s[k], qm{vp[o], vp[o + 1], vp[o + 2], vp[o + 3]});
                 }
+            }
+            TC_UNROLL
             for (uint32_t k = 0; k < 3; ++k) qm_store(result, k, qacc_get(s[k]));
             *counter = 0;  // ready for the next launch (stream-ordered)
         }
@@ -389,6 +419,60 @@ TC_GLOBAL tc_matmul_i32_i8(const int32_t *x, const int8_t *w, uint32_t T, uint32
     TC_END_THREADS
 }
 
+// int8 x int8 path (activations that fit int8): the same 64 x 64 tiles, K
+// packed 4 per u32 in shared memory (xs[row][kq], ws[kq][col], k = 4 kq + byte)
+// and one dp4a per 4 products. int32 accumulators are exact for K < 2^17
+// (|x w| <= 2^14; the host declines larger K to the int64 kernel). X crosses
+// PCIe as 1 B per entry instead of 4.
+static constexpr uint32_t MM_KQ = MM_K / 4;
+
+TC_DEV uint32_t mm_pack4(const int8_t *p, uint64_t stride, uint32_t avail) {
+    uint32_t v = 0;
+    for (uint32_t b = 0; b < 4; ++b)
+        if (b < avail) v |= (uint32_t)(uint8_t)p[b * stride] << (8 * b);
+    return v;
+}
+
+TC_GLOBAL tc_matmul_i8_dp4a(const int8_t *x, const int8_t *w, uint32_t T, uint32_t K, uint32_t N, uint32_t tiles_n, int64_t *out) {
+    TC_SHARED uint32_t xs[MM_B * MM_KQ];
+    TC_SHARED uint32_t ws[MM_KQ * MM_B];
+    TC_PRIV(int32_t, acc, 16);
+    const uint32_t bn = TC_BLOCK_ID % tiles_n, bt = TC_BLOCK_ID / tiles_n;
+    TC_THREADS
+        for (int q = 0; q < 16; ++q) TC_P(acc)[q] = 0;
+    TC_END_THREADS
+    for (uint32_t k0 = 0; k0 < K; k0 += MM_K) {
+        TC_THREADS
+            for (uint32_t e = tid; e < MM_B * MM_KQ; e += TC_BLOCK_DIM) {
+                const uint32_t rt = e / MM_KQ, kq = e % MM_KQ;
+                const uint32_t gt = bt * MM_B + rt, gk = k0 + 4 * kq;
+                xs[e] = (gt < T && gk < K) ? mm_pack4(x + (uint64_t)gt * K + gk, 1, K - gk) : 0u;
+                const uint32_t wq = e / MM_B, wn = e % MM_B;
+                const uint32_t gk2 = k0 + 4 * wq, gn = bn * MM_B + wn;
+                ws[e] = (gk2 < K && gn < N) ? mm_pack4(w + (uint64_t)gk2 * N + gn, N, K - gk2) : 0u;
+            }
+        TC_END_THREADS
+        TC_SYNC();
+        TC_THREADS
+            const uint32_t ty = tid / 16, tx = tid % 16;
+            for (uint32_t kq = 0; kq < MM_KQ; ++kq)
+                for (int a = 0; a < 4; ++a) {
+                    const uint32_t xv = xs[(ty * 4 + a) * MM_KQ + kq];
+                    for (int b = 0; b < 4; ++b) TC_P(acc)[a * 4 + b] = TC_DP4A(xv, ws[kq * MM_B + tx * 4 + b], TC_P(acc)[a * 4 + b]);
+                }
+        TC_END_THREADS
+        TC_SYNC();
+    }
+    TC_THREADS
+        const uint32_t ty = tid / 16, tx = tid % 16;
+        for (int a = 0; a < 4; ++a)
+            for (int b = 0; b < 4; ++b) {
+                const uint32_t gt = bt * MM_B + ty * 4 + a, gn = bn * MM_B + tx * 4 + b;
+                if (gt < T && gn < N) out[(uint64_t)gt * N + gn] = TC_P(acc)[a * 4 + b];
+            }
+    TC_END_THREADS
+}
+
 // ===========================================================================
 // Reed-Solomon row encoding: stwo's forward circle FFT of each row (C
 // coefficients zero-padded to E = 2^log_e), then column-major codeword,
@@ -572,6 +656,158 @@ TC_GLOBAL tc_gkr_layer(const uint64_t *in_off, const uint64_t *out_off, uint32_t
             const qm d0 = qm_load(den_in, s), d1 = qm_load(den_in, s + 1);
             qm_store(num_out, g, qm_add(qm_mul(n0, d1), qm_mul(n1, d0)));
             qm_store(den_out, g, qm_mul(d0, d1));
+        }
+    TC_END_THREADS
+}
+
+
+// ===========================================================================
+// LogUp-GKR sumcheck rounds for ALL live instances in one launch (wired into
+// accel.gkr_prove through tc_gkr_*; the control flow is gkr_prover_fast's).
+//
+// A job is one instance's current layer: offset `off` in the num/den arenas
+// (QM31 elements; every numerator is stored as QM31 so ones and base
+// numerators share the secure code path: field arithmetic is exact, so the
+// values equal the CPU's typed ones) and length `len` after this launch's
+// fold. Flags:
+//   GKR_FOLD  fold by r first (in place: v[p] = v[p] + r (v[p + len] - v[p]))
+//   GKR_SUM   round sums of the (folded) layer, n_terms = len / 4:
+//             e0 = sum_i w_i (n0 + lambda d00 d01), e2 = the same at x = 2,
+//             w_i = pre[i >> eq_lo] suf[i & mask] (gkr_prover_fast's eq
+//             table factored as prefix (x) suffix, as metal/gkr.zig)
+//   GKR_MASK  (without SUM) copy num/den at positions 0, 1 (< len) into the
+//             job's 64-B result slot: the layer mask / the output claim.
+// Fold and sum are fused: the thread owning term i owns positions 2i, 2i+1,
+// len/2 + 2i, len/2 + 2i + 1 of the folded layer, and only it reads their
+// pre-fold sources p and p + len, so the in-place fold is race-free. Blocks
+// are assigned to jobs by `block_start` (prefix sums, n_jobs + 1 entries);
+// block partials (2 QM31) are reduced per job by the last block (ticket
+// counter) straight into `result` (the host-mapped mailbox): one launch, one
+// sync and 32 B per instance per round.
+// ===========================================================================
+
+static constexpr uint32_t GKR_FOLD = 1, GKR_SUM = 2, GKR_MASK = 4;
+
+struct GkrJob {
+    uint64_t off;
+    uint64_t len;
+    uint32_t flags;
+    uint32_t _pad;
+};
+
+TC_DEV qm gkr_fetch(uint32_t *v, uint64_t p, uint64_t len, bool fold, qm r) {
+    const qm lo = qm_load(v, p);
+    if (!fold) return lo;
+    const qm out = qm_add(qm_mul(r, qm_sub(qm_load(v, p + len), lo)), lo);
+    qm_store(v, p, out);
+    return out;
+}
+
+TC_GLOBAL tc_gkr_round(const GkrJob *jobs, uint32_t n_jobs, const uint32_t *block_start, uint32_t *num, uint32_t *den, const uint32_t *pre, const uint32_t *suf, uint32_t eq_lo, qm lambda, qm r, uint32_t *partials, uint32_t *counter, uint32_t *result) {
+    TC_SHARED qm sh[2 * TC_TB];
+    TC_SHARED uint32_t last;
+    uint32_t lo_j = 0, hi_j = n_jobs;  // largest job with block_start <= block id
+    while (hi_j - lo_j > 1) {
+        const uint32_t mid = (lo_j + hi_j) / 2;
+        if (block_start[mid] <= TC_BLOCK_ID) lo_j = mid; else hi_j = mid;
+    }
+    const GkrJob job = jobs[lo_j];
+    const uint32_t jb = TC_BLOCK_ID - block_start[lo_j];
+    const uint32_t nb = block_start[lo_j + 1] - block_start[lo_j];
+    const bool fold = (job.flags & GKR_FOLD) != 0;
+    uint32_t *nm = num + 4 * job.off;
+    uint32_t *dn = den + 4 * job.off;
+    const uint64_t L = job.len;
+    TC_THREADS
+        qacc a0 = qacc_zero(), a2 = qacc_zero();
+        const uint64_t stride = (uint64_t)nb * TC_BLOCK_DIM;
+        if (job.flags & GKR_SUM) {
+            const uint64_t n_terms = L / 4;
+            const uint64_t emask = (1ull << eq_lo) - 1;
+            for (uint64_t i = (uint64_t)jb * TC_BLOCK_DIM + tid; i < n_terms; i += stride) {
+                const uint64_t lo = 2 * i, hi = 2 * (n_terms + i);
+                const qm d00 = gkr_fetch(dn, lo, L, fold, r), d01 = gkr_fetch(dn, lo + 1, L, fold, r);
+                const qm d10 = gkr_fetch(dn, hi, L, fold, r), d11 = gkr_fetch(dn, hi + 1, L, fold, r);
+                const qm n00 = gkr_fetch(nm, lo, L, fold, r), n01 = gkr_fetch(nm, lo + 1, L, fold, r);
+                const qm n10 = gkr_fetch(nm, hi, L, fold, r), n11 = gkr_fetch(nm, hi + 1, L, fold, r);
+                const qm d20 = qm_sub(qm_add(d10, d10), d00), d21 = qm_sub(qm_add(d11, d11), d01);
+                const qm n20 = qm_sub(qm_add(n10, n10), n00), n21 = qm_sub(qm_add(n11, n11), n01);
+                const qm n0 = qm_add(qm_mul(n00, d01), qm_mul(d00, n01));
+                const qm n2 = qm_add(qm_mul(n20, d21), qm_mul(d20, n21));
+                const qm w = qm_mul(qm_load(pre, i >> eq_lo), qm_load(suf, i & emask));
+                qacc_add(a0, qm_mul(w, qm_add(n0, qm_mul(lambda, qm_mul(d00, d01)))));
+                qacc_add(a2, qm_mul(w, qm_add(n2, qm_mul(lambda, qm_mul(d20, d21)))));
+            }
+        } else {
+            for (uint64_t p = (uint64_t)jb * TC_BLOCK_DIM + tid; p < L; p += stride) {
+                const qm vn = gkr_fetch(nm, p, L, fold, r), vd = gkr_fetch(dn, p, L, fold, r);
+                if ((job.flags & GKR_MASK) && p < 2) {
+                    qm_store(result, 4ull * lo_j + p, vn);
+                    qm_store(result, 4ull * lo_j + 2 + p, vd);
+                }
+            }
+        }
+        sh[2 * tid] = qacc_get(a0);
+        sh[2 * tid + 1] = qacc_get(a2);
+    TC_END_THREADS
+    TC_SYNC();
+    for (uint32_t s = TC_BLOCK_DIM >> 1; s > 0; s >>= 1) {
+        TC_THREADS
+            if (tid < s)
+                for (uint32_t k = 0; k < 2; ++k) sh[2 * tid + k] = qm_add(sh[2 * tid + k], sh[2 * (tid + s) + k]);
+        TC_END_THREADS
+        TC_SYNC();
+    }
+    TC_THREADS
+        if (tid == 0) {
+            for (uint32_t k = 0; k < 2; ++k) qm_store(partials, 2ull * TC_BLOCK_ID + k, sh[k]);
+            TC_FENCE();
+            last = (TC_ATOMIC_INC(counter) == TC_NBLOCKS - 1) ? 1u : 0u;
+        }
+    TC_END_THREADS
+    TC_SYNC();
+    TC_THREADS
+        if (tid == 0 && last) {
+            const volatile uint32_t *vp = partials;
+            for (uint32_t j = 0; j < n_jobs; ++j) {
+                if (!(jobs[j].flags & GKR_SUM)) continue;
+                qacc s[2] = {qacc_zero(), qacc_zero()};
+                for (uint32_t b = block_start[j]; b < block_start[j + 1]; ++b)
+                    for (uint32_t k = 0; k < 2; ++k) {
+                        const uint64_t o = 4ull * (2 * b + k);
+                        qacc_add(s[k], qm{vp[o], vp[o + 1], vp[o + 2], vp[o + 3]});
+                    }
+                for (uint32_t k = 0; k < 2; ++k) qm_store(result, 4ull * j + k, qacc_get(s[k]));
+            }
+            *counter = 0;
+        }
+    TC_END_THREADS
+}
+
+// Top layers of many instances: numerators of `ones` (kind 0) and base
+// (kind 1, canonical u32 in `staging`) instances embedded as QM31 into the
+// arena; secure numerators and all denominators are copied directly. One
+// launch; thread g finds its instance by binary search over `prefix`.
+struct GkrTop {
+    uint64_t arena_off;
+    uint64_t staging_off;
+    uint32_t kind;
+    uint32_t _pad;
+};
+
+TC_GLOBAL tc_gkr_top(const GkrTop *tops, const uint64_t *prefix, uint32_t n, const uint32_t *staging, uint32_t *num) {
+    TC_THREADS
+        const uint64_t total = prefix[n];
+        const uint64_t stride = (uint64_t)TC_NBLOCKS * TC_BLOCK_DIM;
+        for (uint64_t g = (uint64_t)TC_BLOCK_ID * TC_BLOCK_DIM + tid; g < total; g += stride) {
+            uint32_t lo = 0, hi = n;
+            while (hi - lo > 1) {
+                const uint32_t mid = (lo + hi) / 2;
+                if (prefix[mid] <= g) lo = mid; else hi = mid;
+            }
+            const uint64_t j = g - prefix[lo];
+            const GkrTop tp = tops[lo];
+            qm_store(num, tp.arena_off + j, qm{tp.kind == 0 ? 1u : staging[tp.staging_off + j], 0, 0, 0});
         }
     TC_END_THREADS
 }

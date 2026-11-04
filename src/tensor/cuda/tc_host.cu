@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <atomic>
 #include <vector>
 
 static thread_local uint64_t *tc_launch_counter = nullptr;
@@ -49,7 +50,10 @@ struct tc_ctx {
     char err[512] = {0};
     char name[256] = {0};
     bool failed = false;
-    // host-visible 64-word mailbox for reduction results, and its device alias
+    // One thread at a time (cuda.md 2.4): entry points take this flag and a
+    // concurrent call is refused (error, context stays usable).
+    std::atomic<bool> busy{false};
+    // host-visible mailbox (TC_MAILBOX_BYTES) for reduction results, and its device alias
     uint32_t *mailbox = nullptr;
     uint32_t *mailbox_dev = nullptr;
     uint32_t *counter = nullptr;   // device ticket counter (kept at 0 between launches)
@@ -67,6 +71,18 @@ struct tc_sc {
 };
 
 static const uint32_t SC_MAX_GROUPS = 1024;
+// host-mapped mailbox: 64 B per GKR job (TC_GKR_MAX_JOBS), 48 B per sumcheck round
+static const uint32_t TC_MAILBOX_BYTES = 64u * TC_GKR_MAX_JOBS;
+
+// A shape outside the kernels' bounds: refused before any device work; the
+// context stays usable and the caller runs the CPU path.
+static int decline(tc_ctx *c, const char *what) {
+    if (c) {
+        snprintf(c->err, sizeof(c->err), "declined: %s", what);
+        c->stats.declined++;
+    }
+    return TC_DECLINED;
+}
 
 static int fail(tc_ctx *c, const char *what) {
     if (c) {
@@ -214,7 +230,7 @@ extern "C" tc_ctx *tc_create(int device) {
         uint64_t threshold = UINT64_MAX;
         cudaMemPoolSetAttribute(pool, cudaMemPoolAttrReleaseThreshold, &threshold);
     }
-    if (cudaHostAlloc((void **)&c->mailbox, 256, cudaHostAllocMapped) != cudaSuccess ||
+    if (cudaHostAlloc((void **)&c->mailbox, TC_MAILBOX_BYTES, cudaHostAllocMapped) != cudaSuccess ||
         cudaHostGetDevicePointer((void **)&c->mailbox_dev, c->mailbox, 0) != cudaSuccess) {
         delete c;
         return nullptr;
@@ -226,7 +242,7 @@ extern "C" tc_ctx *tc_create(int device) {
     }
 #else
     snprintf(c->name, sizeof(c->name), "CPU emulation of the tensor CUDA kernels");
-    c->mailbox = (uint32_t *)calloc(64, 4);
+    c->mailbox = (uint32_t *)calloc(TC_MAILBOX_BYTES, 1);
     c->mailbox_dev = c->mailbox;
     c->counter = (uint32_t *)calloc(1, 4);
     c->partials = (uint32_t *)calloc(SC_MAX_GROUPS * 3, 16);
@@ -257,12 +273,35 @@ extern "C" const char *tc_device_name(tc_ctx *c) { return c ? c->name : ""; }
 extern "C" void tc_get_stats(tc_ctx *c, tc_stats *out) { *out = c->stats; }
 extern "C" void tc_set_commit_chunk_rows(tc_ctx *c, uint64_t rows) { c->commit_chunk_rows = rows; }
 
-// Bind the launch counter of the calling thread to this context.
-#define TC_ENTER(c)                                       \
-    do {                                                  \
-        if (!(c) || (c)->failed) return 1;                \
-        tc_launch_counter = &(c)->stats.launches;         \
-    } while (0)
+// Entry guard: refuses failed contexts and concurrent use from a second
+// thread, and binds the launch counter of the calling thread to this context.
+struct TcBusy {
+    tc_ctx *c;
+    bool ok;
+    explicit TcBusy(tc_ctx *ctx) : c(ctx), ok(!ctx->busy.exchange(true, std::memory_order_acquire)) {}
+    ~TcBusy() {
+        if (ok) c->busy.store(false, std::memory_order_release);
+    }
+};
+static int busy_error(tc_ctx *c) {
+    snprintf(c->err, sizeof(c->err), "tc_ctx used from two threads at once (one context per prover thread)");
+    return 1;
+}
+#define TC_ENTER(c)                               \
+    if (!(c) || (c)->failed) return 1;            \
+    TcBusy tc_busy_(c);                           \
+    if (!tc_busy_.ok) return busy_error(c);       \
+    tc_launch_counter = &(c)->stats.launches
+#define TC_ENTER_PTR(c)                           \
+    if (!(c) || (c)->failed) return nullptr;      \
+    TcBusy tc_busy_(c);                           \
+    if (!tc_busy_.ok) {                           \
+        busy_error(c);                            \
+        return nullptr;                           \
+    }                                             \
+    tc_launch_counter = &(c)->stats.launches
+
+extern "C" int tc_ok(tc_ctx *c) { return c && !c->failed; }
 
 extern "C" int tc_pin(tc_ctx *c, const void *host, uint64_t bytes) {
     TC_ENTER(c);
@@ -350,7 +389,7 @@ extern "C" int tc_eq_table(tc_ctx *c, const uint32_t *point, uint32_t n, const u
 
 extern "C" int tc_combine_rows(tc_ctx *c, const void *m, int is_i8, uint64_t R, uint64_t C, const uint32_t *coeffs, uint32_t G, uint32_t *out) {
     TC_ENTER(c);
-    if (G == 0 || G > 4 || R == 0) return fail(c, "combine: bad shape");
+    if (G == 0 || G > 4 || R == 0) return decline(c, "combine: bad shape");
     c->stats.weight_passes++;
     const uint64_t esz = is_i8 ? 1 : 4;
     bool owned = false;
@@ -383,7 +422,7 @@ extern "C" int tc_combine_rows(tc_ctx *c, const void *m, int is_i8, uint64_t R, 
 extern "C" int tc_row_dots_i8(tc_ctx *c, const int8_t *m, uint64_t R, uint64_t C, const uint32_t *vec, uint32_t *out) {
     TC_ENTER(c);
     // the int64 limb sums are exact while C * 2^7 * (2^31 - 1) < 2^63, i.e. C <= 2^24
-    if (R == 0 || R > 0x7fffffffull || C > (1ull << 24)) return fail(c, "row dots: bad shape");
+    if (R == 0 || R > 0x7fffffffull || C > (1ull << 24)) return decline(c, "row dots: bad shape");
     c->stats.weight_passes++;
     bool owned = false;
     const void *dm = upload(c, m, R * C, &owned);
@@ -402,7 +441,7 @@ extern "C" int tc_row_dots_i8(tc_ctx *c, const int8_t *m, uint64_t R, uint64_t C
 
 extern "C" int tc_matmul_i32_i8(tc_ctx *c, const int32_t *x, const int8_t *w, uint32_t T, uint32_t K, uint32_t N, int64_t *out) {
     TC_ENTER(c);
-    if (K >= (1u << 24)) return fail(c, "matmul: K too large for exact int64 sums");
+    if (K >= (1u << 24)) return decline(c, "matmul: K too large for exact int64 sums");
     c->stats.matmuls++;
     bool owned = false;
     const void *dw = upload(c, w, (uint64_t)K * N, &owned);
@@ -412,6 +451,28 @@ extern "C" int tc_matmul_i32_i8(tc_ctx *c, const int32_t *x, const int8_t *w, ui
     h2d(c, dx, x, 4ull * T * K);
     const uint32_t tiles_n = (N + tc::MM_B - 1) / tc::MM_B, tiles_t = (T + tc::MM_B - 1) / tc::MM_B;
     TC_LAUNCH(tc::tc_matmul_i32_i8, tiles_n * tiles_t, TC_TB, c->stream, dx, (const int8_t *)dw, T, K, N, tiles_n, dout);
+    TC_CHECK_LAUNCH(c);
+    d2h(c, out, dout, 8ull * T * N);
+    int rc = dsync(c);
+    if (owned) dev_free(c, (void *)dw);
+    dev_free(c, dx);
+    dev_free(c, dout);
+    return rc;
+}
+
+extern "C" int tc_matmul_i8_dp4a(tc_ctx *c, const int8_t *x, const int8_t *w, uint32_t T, uint32_t K, uint32_t N, int64_t *out) {
+    TC_ENTER(c);
+    if (K >= (1u << 17) || T == 0 || N == 0) return decline(c, "dp4a matmul: K too large for exact int32 sums");
+    c->stats.matmuls++;
+    c->stats.matmuls_dp4a++;
+    bool owned = false;
+    const void *dw = upload(c, w, (uint64_t)K * N, &owned);
+    int8_t *dx = (int8_t *)dev_alloc(c, (uint64_t)T * K);
+    int64_t *dout = (int64_t *)dev_alloc(c, 8ull * T * N);
+    if (!dw || !dx || !dout) return 1;
+    if (h2d(c, dx, x, (uint64_t)T * K)) return 1;
+    const uint32_t tiles_n = (N + tc::MM_B - 1) / tc::MM_B, tiles_t = (T + tc::MM_B - 1) / tc::MM_B;
+    TC_LAUNCH(tc::tc_matmul_i8_dp4a, tiles_n * tiles_t, TC_TB, c->stream, dx, (const int8_t *)dw, T, K, N, tiles_n, dout);
     TC_CHECK_LAUNCH(c);
     d2h(c, out, dout, 8ull * T * N);
     int rc = dsync(c);
@@ -449,7 +510,7 @@ extern "C" int tc_mle_i32(tc_ctx *c, const int32_t *v, uint32_t log_n, const uin
 
 static tc_sc *sc_new(tc_ctx *c, uint32_t nf, uint64_t len, uint64_t active, const tc_terms *terms) {
     if (nf == 0 || nf > tc::SC_MAX_FACTORS || len < 2) {
-        fail(c, "sumcheck: bad shape");
+        decline(c, "sumcheck: bad shape");
         return nullptr;
     }
     tc_sc *s = new tc_sc();
@@ -469,8 +530,7 @@ static tc_sc *sc_new(tc_ctx *c, uint32_t nf, uint64_t len, uint64_t active, cons
 }
 
 extern "C" tc_sc *tc_sc_begin(tc_ctx *c, const uint32_t *const *factors, uint32_t nf, uint64_t len, uint64_t active, const tc_terms *terms) {
-    if (!c || c->failed) return nullptr;
-    tc_launch_counter = &c->stats.launches;
+    TC_ENTER_PTR(c);
     tc_sc *s = sc_new(c, nf, len, active, terms);
     if (!s) return nullptr;
     for (uint32_t j = 0; j < nf; ++j) h2d(c, s->f[j], factors[j], 16ull * len);
@@ -480,8 +540,7 @@ extern "C" tc_sc *tc_sc_begin(tc_ctx *c, const uint32_t *const *factors, uint32_
 // Factors built on the device: integer vectors upload as int32 (4 B/entry
 // instead of 16), eq factors are never materialised on the host.
 extern "C" tc_sc *tc_sc_begin_specs(tc_ctx *c, const tc_spec *specs, uint32_t nf, uint64_t len, uint64_t active, const tc_terms *terms) {
-    if (!c || c->failed) return nullptr;
-    tc_launch_counter = &c->stats.launches;
+    TC_ENTER_PTR(c);
     tc_sc *s = sc_new(c, nf, len, active, terms);
     if (!s) return nullptr;
     for (uint32_t j = 0; j < nf; ++j) {
@@ -500,15 +559,15 @@ extern "C" tc_sc *tc_sc_begin_specs(tc_ctx *c, const tc_spec *specs, uint32_t nf
             TC_LAUNCH(tc::tc_zero_u32, grid_for(4 * len, 4), TC_TB, c->stream, s->f[j], 4 * len);
             for (uint32_t k = 0; k < sp.n_claims && !rc; ++k) {
                 const tc_claim &cl = sp.claims[k];
-                if (cl.offset + (1ull << cl.point_len) > len) rc = fail(c, "eq claim out of range");
+                if (cl.offset + (1ull << cl.point_len) > len) rc = decline(c, "eq claim out of range");
                 else rc = eq_build(c, cl.point, cl.point_len, qm_from(cl.gamma), 0, cl.offset, true, s->f[j]);
             }
         } else if (sp.kind == TC_SPEC_EQ_PREFIX) {
             const tc_claim &cl = sp.claims[0];
-            if (((1ull << cl.point_len) << sp.free_bits) != len) rc = fail(c, "eq prefix shape");
+            if (((1ull << cl.point_len) << sp.free_bits) != len) rc = decline(c, "eq prefix shape");
             else rc = eq_build(c, cl.point, cl.point_len, tc::qm_one(), sp.free_bits, 0, false, s->f[j]);
         } else {
-            rc = fail(c, "unknown factor spec");
+            rc = decline(c, "unknown factor spec");
         }
         if (rc) {
             tc_sc_abort(c, s);
@@ -577,7 +636,7 @@ extern "C" void tc_sc_abort(tc_ctx *c, tc_sc *s) {
 extern "C" int tc_commit(tc_ctx *c, const void *m, int is_i8, uint64_t R, uint32_t log_c, uint32_t log_b, const uint32_t *twiddles, uint32_t tw_len, uint32_t **enc_out, uint8_t *nodes_out) {
     TC_ENTER(c);
     const uint32_t log_e = log_c + log_b;
-    if (R == 0 || log_e < 3 || log_e > 30 || tw_len != (1u << (log_e - 1))) return fail(c, "commit: bad shape");
+    if (R == 0 || log_e < 3 || log_e > 30 || tw_len != (1u << (log_e - 1))) return decline(c, "commit: bad shape");
     const uint64_t C = 1ull << log_c, E = 1ull << log_e;
     c->stats.commits++;
     const uint64_t esz = is_i8 ? 1 : 4;
@@ -630,6 +689,13 @@ extern "C" int tc_commit(tc_ctx *c, const void *m, int is_i8, uint64_t R, uint32
     }
     TC_LAUNCH(tc::tc_merkle_top, 1, TC_TB, c->stream, nodes, level);
     TC_CHECK_LAUNCH(c);
+#if defined(__CUDACC__)
+    // The CPU reads the codeword (openings) while later kernels of this or
+    // another context may run: attach it to the host after the encode, so
+    // devices without concurrentManagedAccess never fault on those reads,
+    // and the stream sync below orders the attach before any CPU access.
+    TC_CU(c, cudaStreamAttachMemAsync(c->stream, enc, 0, cudaMemAttachHost));
+#endif
     // nodes[0] is unused; the CPU Merkle (pcs.Merkle) keeps 2E entries
     d2h(c, nodes_out + 32, nodes + 8, 32ull * (2 * E - 1));
     memset(nodes_out, 0, 32);
@@ -675,3 +741,242 @@ extern "C" int tc_gkr_layer(tc_ctx *c, const uint64_t *in_off, const uint64_t *o
     dev_free(c, od);
     return rc;
 }
+
+// ---------------------------------------------------------------------------
+// Batched LogUp-GKR sessions (accel.gkr_prove; cuda/gkr.zig drives them with
+// gkr_prover_fast's control flow and transcript).
+//
+// Arena layout: depth j (0 = the inputs) holds layer n_i - j of every
+// instance with n_i >= j, in instance order, so building depth j + 1 from
+// depth j is ONE tc_gkr_layer launch for all instances. Every layer stays
+// on the device until tc_gkr_end; rounds fold layers in place.
+
+struct tc_gkr {
+    uint32_t n_inst = 0;
+    std::vector<uint32_t> n_vars;
+    std::vector<std::vector<uint64_t>> off;  // off[i][k]: layer k (2^k entries) of instance i
+    uint32_t *num = nullptr, *den = nullptr;
+    uint32_t *pre = nullptr, *suf = nullptr, *point = nullptr;
+    uint32_t eq_lo = 0;
+    bool eq_ready = false;
+    qm lambda = {};
+    uint32_t *partials = nullptr;
+    uint64_t partials_blocks = 0;
+    tc::GkrJob *djobs = nullptr;
+    uint32_t *dblock = nullptr;
+};
+
+static void gkr_free(tc_ctx *c, tc_gkr *g) {
+    if (!g) return;
+    dev_free(c, g->num);
+    dev_free(c, g->den);
+    dev_free(c, g->pre);
+    dev_free(c, g->suf);
+    dev_free(c, g->point);
+    dev_free(c, g->partials);
+    dev_free(c, g->djobs);
+    dev_free(c, g->dblock);
+    delete g;
+}
+
+static const uint32_t GKR_BLOCKS_PER_JOB = 256;
+
+// One tc_gkr_round launch + sync; results stay in the mailbox.
+static int gkr_launch(tc_ctx *c, tc_gkr *g, const std::vector<tc::GkrJob> &jobs, qm r) {
+    const uint32_t n = (uint32_t)jobs.size();
+    std::vector<uint32_t> bs(n + 1, 0);
+    for (uint32_t j = 0; j < n; ++j) {
+        const uint64_t units = (jobs[j].flags & tc::GKR_SUM) ? jobs[j].len / 4 : jobs[j].len;
+        uint64_t b = (units + TC_TB * 4 - 1) / (TC_TB * 4);
+        if (b < 1) b = 1;
+        if (b > GKR_BLOCKS_PER_JOB) b = GKR_BLOCKS_PER_JOB;
+        bs[j + 1] = bs[j] + (uint32_t)b;
+    }
+    const uint32_t blocks = bs[n];
+    if (blocks > g->partials_blocks) {
+        dev_free(c, g->partials);
+        g->partials = (uint32_t *)dev_alloc(c, 32ull * blocks);
+        if (!g->partials) return 1;
+        g->partials_blocks = blocks;
+    }
+    if (h2d(c, g->djobs, jobs.data(), sizeof(tc::GkrJob) * n) || h2d(c, g->dblock, bs.data(), 4ull * (n + 1))) return 1;
+    const uint32_t *pre = g->eq_ready ? g->pre : g->num, *suf = g->eq_ready ? g->suf : g->num;
+    TC_LAUNCH(tc::tc_gkr_round, blocks, TC_TB, c->stream, g->djobs, n, g->dblock, g->num, g->den, pre, suf, g->eq_lo, g->lambda, r, g->partials, c->counter, c->mailbox_dev);
+    TC_CHECK_LAUNCH(c);
+    c->stats.gkr_rounds++;
+    return dsync(c);
+}
+
+extern "C" tc_gkr *tc_gkr_begin(tc_ctx *c, const tc_gkr_input *in, uint32_t n, uint32_t *top_out) {
+    TC_ENTER_PTR(c);
+    if (n == 0 || n > TC_GKR_MAX_JOBS) {
+        decline(c, "gkr: instance count");
+        return nullptr;
+    }
+    uint32_t max_n = 0;
+    for (uint32_t i = 0; i < n; ++i) {
+        if (in[i].log_n < 1 || in[i].log_n > 30 || in[i].kind > TC_GKR_SECURE || !in[i].den || (in[i].kind != TC_GKR_ONES && !in[i].num)) {
+            decline(c, "gkr: input shape");
+            return nullptr;
+        }
+        if (in[i].log_n > max_n) max_n = in[i].log_n;
+    }
+    tc_gkr *g = new tc_gkr();
+    g->n_inst = n;
+    g->n_vars.resize(n);
+    g->off.resize(n);
+    std::vector<uint64_t> base(max_n + 2, 0);
+    for (uint32_t i = 0; i < n; ++i) {
+        g->n_vars[i] = in[i].log_n;
+        g->off[i].assign(in[i].log_n + 1, 0);
+    }
+    for (uint32_t j = 0; j <= max_n; ++j) {
+        uint64_t pos = base[j];
+        for (uint32_t i = 0; i < n; ++i)
+            if (g->n_vars[i] >= j) {
+                g->off[i][g->n_vars[i] - j] = pos;
+                pos += 1ull << (g->n_vars[i] - j);
+            }
+        base[j + 1] = pos;
+    }
+    const uint64_t total = base[max_n + 1];
+    g->num = (uint32_t *)dev_alloc(c, 16 * total);
+    g->den = (uint32_t *)dev_alloc(c, 16 * total);
+    g->djobs = (tc::GkrJob *)dev_alloc(c, sizeof(tc::GkrJob) * TC_GKR_MAX_JOBS);
+    g->dblock = (uint32_t *)dev_alloc(c, 4ull * (TC_GKR_MAX_JOBS + 1));
+    if (!g->num || !g->den || !g->djobs || !g->dblock) {
+        gkr_free(c, g);
+        return nullptr;
+    }
+    c->stats.gkr_sessions++;
+    // inputs: den and secure num straight into the arena, base num staged as u32
+    std::vector<tc::GkrTop> tops;
+    std::vector<uint64_t> prefix(1, 0);
+    uint64_t staged = 0;
+    for (uint32_t i = 0; i < n; ++i)
+        if (in[i].kind == TC_GKR_BASE) staged += 1ull << in[i].log_n;
+    uint32_t *staging = staged ? (uint32_t *)dev_alloc(c, 4 * staged) : nullptr;
+    if (staged && !staging) {
+        gkr_free(c, g);
+        return nullptr;
+    }
+    uint64_t soff = 0;
+    int rc = 0;
+    for (uint32_t i = 0; i < n && !rc; ++i) {
+        const uint64_t len = 1ull << in[i].log_n, o = g->off[i][in[i].log_n];
+        rc |= h2d(c, g->den + 4 * o, in[i].den, 16 * len);
+        if (in[i].kind == TC_GKR_SECURE) {
+            rc |= h2d(c, g->num + 4 * o, in[i].num, 16 * len);
+        } else {
+            tops.push_back(tc::GkrTop{o, soff, in[i].kind, 0});
+            prefix.push_back(prefix.back() + len);
+            if (in[i].kind == TC_GKR_BASE) {
+                rc |= h2d(c, staging + soff, in[i].num, 4 * len);
+                soff += len;
+            }
+        }
+    }
+    tc::GkrTop *dtops = nullptr;
+    uint64_t *dprefix = nullptr;
+    if (!rc && !tops.empty()) {
+        dtops = (tc::GkrTop *)dev_alloc(c, sizeof(tc::GkrTop) * tops.size());
+        dprefix = (uint64_t *)dev_alloc(c, 8 * prefix.size());
+        if (!dtops || !dprefix) rc = 1;
+        else {
+            rc |= h2d(c, dtops, tops.data(), sizeof(tc::GkrTop) * tops.size());
+            rc |= h2d(c, dprefix, prefix.data(), 8 * prefix.size());
+            TC_LAUNCH(tc::tc_gkr_top, grid_for(prefix.back(), 4), TC_TB, c->stream, dtops, dprefix, (uint32_t)tops.size(), staging, g->num);
+        }
+    }
+    // all depths: one table upload, one launch per depth
+    std::vector<uint64_t> tab;
+    std::vector<uint64_t> tab_at(max_n, 0), tab_m(max_n, 0);
+    for (uint32_t j = 0; j < max_n; ++j) {
+        tab_at[j] = tab.size();
+        std::vector<uint64_t> outs(1, 0);
+        for (uint32_t i = 0; i < n; ++i)
+            if (g->n_vars[i] >= j + 1) {
+                tab.push_back(g->off[i][g->n_vars[i] - j] - base[j]);
+                outs.push_back(g->off[i][g->n_vars[i] - j - 1] - base[j + 1] + (1ull << (g->n_vars[i] - j - 1)));
+            }
+        tab_m[j] = outs.size() - 1;
+        tab.insert(tab.end(), outs.begin(), outs.end());
+    }
+    uint64_t *dtab = rc ? nullptr : (uint64_t *)dev_alloc(c, 8 * (tab.size() ? tab.size() : 1));
+    if (!rc && !dtab) rc = 1;
+    if (!rc && !tab.empty()) rc |= h2d(c, dtab, tab.data(), 8 * tab.size());
+    for (uint32_t j = 0; j < max_n && !rc; ++j) {
+        const uint64_t m = tab_m[j];
+        const uint64_t *din = dtab + tab_at[j], *dout = dtab + tab_at[j] + m;
+        const uint64_t n_out = base[j + 2] - base[j + 1];
+        TC_LAUNCH(tc::tc_gkr_layer, grid_for(n_out, 4), TC_TB, c->stream, din, dout, (uint32_t)m, g->num + 4 * base[j], g->den + 4 * base[j], g->num + 4 * base[j + 1], g->den + 4 * base[j + 1]);
+        c->stats.gkr_layers++;
+    }
+    // output claims: the roots (layer 0) of all instances, one gather launch
+    if (!rc) {
+        std::vector<tc::GkrJob> jobs(n);
+        for (uint32_t i = 0; i < n; ++i) jobs[i] = tc::GkrJob{g->off[i][0], 1, tc::GKR_MASK, 0};
+        rc = gkr_launch(c, g, jobs, tc::qm_zero());
+    }
+    if (!rc)
+        for (uint32_t i = 0; i < n; ++i) {
+            memcpy(top_out + 8 * i, c->mailbox + 16 * i, 16);
+            memcpy(top_out + 8 * i + 4, c->mailbox + 16 * i + 8, 16);
+            c->stats.d2h_bytes += 32;
+        }
+    dev_free(c, staging);
+    dev_free(c, dtops);
+    dev_free(c, dprefix);
+    dev_free(c, dtab);
+    if (rc) {
+        gkr_free(c, g);
+        return nullptr;
+    }
+    return g;
+}
+
+extern "C" int tc_gkr_eq(tc_ctx *c, tc_gkr *g, const uint32_t *y, uint32_t y_len, const uint32_t lambda[4]) {
+    TC_ENTER(c);
+    if (y_len > 62) return decline(c, "gkr: ood point too long");
+    const uint32_t rl = y_len ? y_len - 1 : 0;
+    const uint32_t n_lo = rl / 2, n_hi = rl - n_lo;
+    dev_free(c, g->pre);
+    dev_free(c, g->suf);
+    dev_free(c, g->point);
+    g->pre = (uint32_t *)dev_alloc(c, 16ull << n_hi);
+    g->suf = (uint32_t *)dev_alloc(c, 16ull << n_lo);
+    g->point = (uint32_t *)dev_alloc(c, 16ull * (rl ? rl : 1));
+    if (!g->pre || !g->suf || !g->point) return 1;
+    if (rl && h2d(c, g->point, y + 4, 16ull * rl)) return 1;
+    const qm gamma = y_len ? tc::qm_sub(tc::qm_one(), qm_from(y)) : tc::qm_one();
+    TC_LAUNCH(tc::tc_eq_halves, 2, TC_TB, c->stream, g->point, n_hi, n_lo, gamma, g->pre, g->suf);
+    TC_CHECK_LAUNCH(c);
+    g->eq_lo = n_lo;
+    g->lambda = qm_from(lambda);
+    g->eq_ready = true;
+    return 0;
+}
+
+extern "C" int tc_gkr_round(tc_ctx *c, tc_gkr *g, const tc_gkr_job *jobs, uint32_t n_jobs, const uint32_t *r, uint32_t *out) {
+    TC_ENTER(c);
+    if (n_jobs == 0 || n_jobs > TC_GKR_MAX_JOBS) return decline(c, "gkr: job count");
+    std::vector<tc::GkrJob> dj(n_jobs);
+    for (uint32_t j = 0; j < n_jobs; ++j) {
+        const tc_gkr_job &jb = jobs[j];
+        const bool fold = jb.flags & TC_GKR_FOLD, sum = jb.flags & TC_GKR_SUM, mask = jb.flags & TC_GKR_MASK;
+        if (jb.inst >= g->n_inst || jb.layer > g->n_vars[jb.inst] || jb.cur_log > jb.layer || (fold && (!r || jb.cur_log < 1)) || (sum && mask) || (!sum && !mask))
+            return decline(c, "gkr: bad job");
+        const uint32_t new_log = fold ? jb.cur_log - 1 : jb.cur_log;
+        if (sum && (!g->eq_ready || new_log < 2)) return decline(c, "gkr: bad sum job");
+        dj[j] = tc::GkrJob{g->off[jb.inst][jb.layer], 1ull << new_log, jb.flags, 0};
+    }
+    if (gkr_launch(c, g, dj, r ? qm_from(r) : tc::qm_zero())) return 1;
+    for (uint32_t j = 0; j < n_jobs; ++j) {
+        const uint32_t words = (dj[j].flags & tc::GKR_SUM) ? 8 : 16;
+        memcpy(out + 16 * j, c->mailbox + 16 * j, 4ull * words);
+        c->stats.d2h_bytes += 4ull * words;
+    }
+    return 0;
+}
+
+extern "C" void tc_gkr_end(tc_ctx *c, tc_gkr *g) { gkr_free(c, g); }

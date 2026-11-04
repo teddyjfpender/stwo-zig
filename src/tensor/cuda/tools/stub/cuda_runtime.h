@@ -16,7 +16,7 @@ typedef struct CUmemPoolHandle_st *cudaMemPool_t;
 typedef int cudaError_t;
 enum { cudaSuccess = 0 };
 enum cudaMemcpyKind { cudaMemcpyHostToDevice = 1, cudaMemcpyDeviceToHost = 2 };
-enum { cudaStreamNonBlocking = 1, cudaHostAllocMapped = 2, cudaMemAttachGlobal = 1 };
+enum { cudaStreamNonBlocking = 1, cudaHostAllocMapped = 2, cudaMemAttachGlobal = 1, cudaMemAttachHost = 2 };
 enum cudaMemPoolAttr { cudaMemPoolAttrReleaseThreshold = 4 };
 struct cudaDeviceProp { char name[256]; size_t totalGlobalMem; int major, minor; };
 extern "C" {
@@ -28,6 +28,7 @@ cudaError_t cudaMallocManaged(void **, size_t, unsigned);
 cudaError_t cudaMemset(void *, int, size_t);
 cudaError_t cudaMemcpyAsync(void *, const void *, size_t, cudaMemcpyKind, cudaStream_t);
 cudaError_t cudaStreamSynchronize(cudaStream_t);
+cudaError_t cudaStreamAttachMemAsync(cudaStream_t, void *, size_t, unsigned);
 cudaError_t cudaStreamCreateWithFlags(cudaStream_t *, unsigned);
 cudaError_t cudaStreamDestroy(cudaStream_t);
 cudaError_t cudaSetDevice(int);
@@ -48,3 +49,10 @@ cudaError_t cudaLaunchKernel(const void *, dim3, dim3, void **, size_t, cudaStre
 // __syncthreads is a clang builtin in CUDA mode
 __device__ inline void __threadfence(void) { __nvvm_membar_gl(); }
 __device__ inline unsigned atomicAdd(unsigned *p, unsigned v) { return (unsigned)__nvvm_atom_add_gen_i((int *)p, (int)v); }
+// sm_61+ 4-way int8 dot product with int32 accumulate (the toolkit's
+// sm_61_intrinsics.hpp lowers it to the same PTX instruction)
+__device__ inline int __dp4a(int a, int b, int c) {
+    int d;
+    asm("dp4a.s32.s32 %0, %1, %2, %3;" : "=r"(d) : "r"(a), "r"(b), "r"(c));
+    return d;
+}

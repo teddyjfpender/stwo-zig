@@ -41,7 +41,7 @@ pub fn build(b: *std.Build) void {
     // CUDA backend. The CPU emulation build (the same kernel and host-layer
     // sources compiled as C++) is always available; -Dcuda=true builds the
     // nvcc shared library and runs the identical tests on the device.
-    const cuda_emu = cudaModule(b, target, optimize, tensor, null);
+    const cuda_emu = cudaModule(b, target, optimize, tensor, engine, null);
     const cuda_emu_tests = cudaTests(b, target, optimize, tensor, cuda_emu, engine);
     b.step("test-cuda-emu", "CUDA backend: kernels + host layer emulated on the CPU, bit-identical to the CPU prover").dependOn(&cuda_emu_tests.step);
     const cuda_dev: ?*std.Build.Module = if (use_cuda) blk: {
@@ -53,7 +53,7 @@ pub fn build(b: *std.Build) void {
         cmd.addArg("-o");
         const so = cmd.addOutputFileArg("libtensor_cuda.so");
         b.getInstallStep().dependOn(&b.addInstallLibFile(so, "libtensor_cuda.so").step);
-        const m = cudaModule(b, target, optimize, tensor, so);
+        const m = cudaModule(b, target, optimize, tensor, engine, so);
         const dev_tests = cudaTests(b, target, optimize, tensor, m, engine);
         b.step("test-cuda", "CUDA backend on the device: the test-cuda-emu assertions against the nvcc build").dependOn(&dev_tests.step);
         // the device test binary at a known path (zig-out/bin/tensor-cuda-test), for compute-sanitizer
@@ -126,7 +126,7 @@ const Challenge = enum { qm31, om31 };
 
 /// CUDA backend module (cuda/backend.zig). `so` = the nvcc-built
 /// libtensor_cuda.so; null = the CPU emulation build of the same sources.
-fn cudaModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, tensor: *std.Build.Module, so: ?std.Build.LazyPath) *std.Build.Module {
+fn cudaModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, tensor: *std.Build.Module, engine: *std.Build.Module, so: ?std.Build.LazyPath) *std.Build.Module {
     const m = b.createModule(.{
         .root_source_file = b.path("cuda/backend.zig"),
         .target = target,
@@ -135,6 +135,7 @@ fn cudaModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bui
         .link_libcpp = so == null,
     });
     m.addImport("stwo_tensor", tensor);
+    m.addImport("stwo_prover_engine", engine);
     if (so) |lib| {
         m.addObjectFile(lib);
         // the cache rpath is relative to the build root (it only resolves when the

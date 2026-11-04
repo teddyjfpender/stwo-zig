@@ -58,7 +58,7 @@ fn accelFor() ?*const t.accel.Accel {
 fn printGpuStats(out: anytype) !void {
     if (build_options.cuda) if (cuda_ctx) |c| {
         const s = c.stats();
-        try out.print("\"cuda\":{{\"launches\":{d},\"h2d_mb\":{d:.1},\"d2h_mb\":{d:.1},\"syncs\":{d},\"sc_rounds\":{d},\"commits\":{d},\"weight_passes\":{d},\"matmuls\":{d},\"mles\":{d},\"declined\":{d}}},", .{ s.launches, @as(f64, @floatFromInt(s.h2d_bytes)) / 1048576.0, @as(f64, @floatFromInt(s.d2h_bytes)) / 1048576.0, s.syncs, s.sc_rounds, s.commits, s.weight_passes, s.matmuls, s.mles, c.declined });
+        try out.print("\"cuda\":{{\"launches\":{d},\"h2d_mb\":{d:.1},\"d2h_mb\":{d:.1},\"syncs\":{d},\"sc_rounds\":{d},\"commits\":{d},\"weight_passes\":{d},\"matmuls\":{d},\"mles\":{d},\"gkr_sessions\":{d},\"gkr_rounds\":{d},\"declined\":{d}}},", .{ s.launches, @as(f64, @floatFromInt(s.h2d_bytes)) / 1048576.0, @as(f64, @floatFromInt(s.d2h_bytes)) / 1048576.0, s.syncs, s.sc_rounds, s.commits, s.weight_passes, s.matmuls, s.mles, s.gkr_sessions, s.gkr_rounds, c.declined });
     };
     if (!build_options.metal) return;
     if (gpu_ctx) |g| try out.print("\"metal\":{{\"commit_gpu_ms\":{d:.2},\"commit_calls\":{d},\"sc_gpu_ms\":{d:.2},\"matmul_gpu_ms\":{d:.2},\"mle_gpu_ms\":{d:.2},\"gkr_gpu_ms\":{d:.2},\"gkr_rounds\":{d},\"sc_rounds\":{d},\"sc_calls\":{d},\"wrapped_mb\":{d:.1},\"copied_mb\":{d:.1},\"pool_hits\":{d}}},", .{ g.stats.commit_gpu_ms, g.stats.commit_calls, g.stats.sc_gpu_ms, g.stats.matmul_gpu_ms, g.stats.mle_gpu_ms, g.stats.gkr_gpu_ms, g.stats.gkr_rounds, g.stats.sc_rounds, g.stats.sc_calls, @as(f64, @floatFromInt(g.stats.wrapped_bytes)) / 1048576.0, @as(f64, @floatFromInt(g.stats.copied_bytes)) / 1048576.0, g.stats.pool_hits });

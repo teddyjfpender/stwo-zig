@@ -1,6 +1,7 @@
 # CUDA backend for the tensor prover
 
-Status as of branch `codex/tensor-cuda` (2026-11-04). **No NVIDIA device and no
+Status as of branch `codex/tensor-cuda2` (2026-11-04; round 4 on top of
+`codex/tensor-cuda`). **No NVIDIA device and no
 nvcc were available while this was written.** Everything below that says
 *measured* or *verified* was run on the M4 Max development Mac, either in the
 CPU emulation of the CUDA kernels or with LLVM's NVPTX backend. Nothing here has
@@ -17,15 +18,19 @@ run on a GPU. All GPU timings are **projections**.
 | eq tables (2 launches for any length) | `tc_eq_halves` + `tc_eq_expand` | emulation-verified vs `f.eqTable` (n = 0 .. 14) |
 | int8 / int32 x QM31 weight fold (combine rows), int8 row dots | `tc_combine_rows`, `tc_sum_chunks`, `tc_row_dots_i8` | emulation-verified vs `pcs.combineRows`, `linalg.rowDots` |
 | int matmul accumulators (int64-exact reference kernel) | `tc_matmul_i32_i8` | emulation-verified vs `protocol.matmulAcc` |
+| int8 x int8 matmul, `dp4a` (int8 activations; X crosses as 1 B/entry) | `tc_matmul_i8_dp4a`, `TC_DP4A` (prelude: `__dp4a` under nvcc, exact byte-wise shim in the emulation) | emulation-verified vs `protocol.matmulAcc` (incl. -128/127 and K < tile); used automatically by `matmulAcc` when every X entry fits int8 and K < 2^17; a mutated byte count fails 4 tests incl. whole proofs. Not IMMA/tensor cores |
 | MLE of int32 vectors | `tc_mle_i32` | emulation-verified vs `f.mleEvalI32` |
 | RS encode (stwo circle FFT), column-major codeword, column leaves, Merkle | `tc_rs_expand`, `tc_rs_layer`, `tc_rs_tail`, `tc_rs_leaves`, `tc_merkle_level`, `tc_merkle_top` | emulation-verified: codeword bytes, all 2E-1 nodes, roots equal `pcs.commit` (9 shapes incl. multi-chunk) |
-| batched LogUp-GKR fraction layer (all instances, one launch) | `tc_gkr_layer` | emulation-verified against the fraction sum only. **Not wired** into `accel.gkr_prove`; GKR stays on the CPU |
+| batched LogUp-GKR fraction layer (all instances, one launch) | `tc_gkr_layer` | emulation-verified; now builds every depth of the device GKR |
+| **device LogUp-GKR, wired into `accel.gkr_prove`** | `tc_gkr_round` (fold of round k-1 fused with round k's sums for all live instances, last-block per-instance reduction; MASK mode = last fold + layer masks), `tc_gkr_top`, `tc_gkr_*` sessions, `cuda/gkr.zig` (gkr_prover_fast's control flow and transcript) | emulation-verified: proofs bit-identical to `Fast.proveBatch` (8 instances 2^1..2^13, ones/base/secure, owned and borrowed inputs; borrowed inputs untouched); every whole-proof test now runs GKR on the device (`gkr_min_log = 0`) and keeps its CPU digest, including the golden decoder digest `837b19ac…`; exact launch/sync/traffic budgets asserted; a mutated `d20` term fails 4 tests |
 | C ABI host layer (stream, pool, mailbox, pinned weights, counters) | `tc_host.cu`, `tc_api.h` | the same file runs in the emulation (CPU memory instead of CUDA calls); the CUDA branches are compiled for the host side only by clang (see below) |
+| shape errors decline (`TC_DECLINED`, counted, context stays usable); one-thread-at-a-time guard; codeword host-attached after encode | `decline()`, `TcBusy`, `cudaStreamAttachMemAsync(.., cudaMemAttachHost)` | decline tested (bad GKR input, bad combine shape, then a normal call succeeds); the busy guard and the attach are not exercised by a test (no threads in the suite; the attach is CUDA-only) |
 | Zig accelerator (`accel.Accel`, the Metal interface) | `cuda/backend.zig` | emulation-verified end to end (whole proofs below) |
 | build: `-Dcuda=true` (nvcc -> `libtensor_cuda.so`), default off | `src/tensor/build.zig` | **untested** (no nvcc here). `zig build` without the flag is unchanged |
 | GPU scripts | `scripts/tensor_cuda_{build,test,prove,ptx_check}.sh` | `prove.sh` dry-run against the emulation build; `ptx_check.sh` run here; build/test scripts untested |
 
-Whole-proof evidence (`zig build test-cuda-emu`, 14 tests, all pass):
+Whole-proof evidence (`zig build test-cuda-emu`, 16 tests, all pass; GKR on the
+device in every whole-proof test since round 4):
 * product toy, small MLP (weights committed on the device, matmuls on the
   device), decoder layer (**the pinned golden digest `837b19ac…` of the Metal
   suite**), 2-request serving batch (dense + MoE stack, LM head, greedy check).
@@ -39,22 +44,27 @@ Whole-proof evidence (`zig build test-cuda-emu`, 14 tests, all pass):
   Blake2s final flag. They failed 5, 6, 10 and 3 of 14 tests.
 
 Device-path evidence without a device (`scripts/tensor_cuda_ptx_check.sh`):
-with `__CUDACC__` defined, all 19 kernels lower to PTX for **sm_90 and sm_120**
+with `__CUDACC__` defined, all 22 kernels (19 + `tc_gkr_round`, `tc_gkr_top`,
+`tc_matmul_i8_dp4a`) lower to PTX for **sm_90 and sm_120**
 through Homebrew clang 22 / NVPTX with `-Wall -Werror`. The host side parses
 against a minimal runtime stub (`cuda/tools/stub/cuda_runtime.h`). This is
 clang's CUDA dialect, not nvcc's. nvcc may still reject something, and the
 stub only declares the runtime API.
 
-The PTX shows four kernels with local-memory frames:
-* `tc_sc_round` uses 224 B. Its factor arrays are indexed by runtime term
-  tables.
+The PTX shows three kernels with local-memory frames:
 * `tc_rs_leaves`, `tc_merkle_level` and `tc_merkle_top` use 64 B each. The
-  Blake2s message is indexed through the sigma table.
+  Blake2s message is indexed through the sigma table (known fix, §4).
+* `tc_sc_round` no longer has one (was 224 B). Its factor loops run to the
+  constant `SC_MAX_FACTORS` under a runtime guard (`TC_UNROLL`), and a term's
+  factor is picked with a branch-free mask select on values (`sc_pick`). A
+  plain `if (i == k) v = cur[k]` select was turned back into an address
+  select over a spilled array by LLVM (160 B), and a not-unrolled 3-way loop
+  in the last-block reduction kept 96 B; both are fixed. The new kernels
+  (`tc_gkr_round`, `tc_matmul_i8_dp4a`) have no frame.
 
-Both are known performance fixes (§4). They do not affect correctness.
-
-**Not done:** GPU execution of anything; nvcc build; device GKR; the int8
-tensor-core matmul; CUDA graphs; multi-GPU; device transcript.
+**Not done:** GPU execution of anything; nvcc build; device-side witness /
+lookup-denominator generation (§2.3); IMMA tensor cores; CUDA graphs (design
+only, §3.1); multi-GPU; device transcript.
 
 ## 2. Design
 
@@ -130,20 +140,47 @@ device: weights (int8, pinned once per serving session), witness tensors,
 | data | target | this increment (measured in the emulation's byte counters) |
 |---|---|---|
 | committed weights (int8) | uploaded once, `tc_pin` | `tc_pin` implemented and tested (second row-dots pass uploads only the 16·C-byte vector). The Zig side does **not** pin automatically. A serving loop must call `Cuda.pin(ws data)` and `unpinAll()`; addresses are not tracked across frees |
-| witness tensors | produced on device by the forward pass | produced on the CPU; matmul accumulators computed on device, but X is uploaded and the int64 accumulators downloaded per matmul |
+| witness tensors | produced on device by the forward pass | produced on the CPU; matmul accumulators computed on device, but X is uploaded (1 B/entry on the dp4a path, 4 B otherwise) and the int64 accumulators downloaded per matmul |
 | sumcheck factor tables | built on device, folded in place | rounds are resident (one launch + 48 B per round; test-enforced budget: factors in once, `rounds x 48 B` + folded tail out). Materialised factors are uploaded from the host; `sc_begin_lazy` builds int/eq factors on the device (eq never crosses, test-enforced) |
-| GKR layers | device, batched | CPU (accel.gkr_prove = null) |
+| GKR layers | device, batched | **device**: all layers of all instances built and folded on the device; only claims, 32 B per instance per round and 64-B masks come back. The inputs (QM31 denominators, base multiplicities) are still built on the CPU and uploaded, which is now the largest H2D item (below) |
 | RS codewords | device; openings gather t columns | encoded on device into **managed** memory: the CPU's opening reads column-major columns, so only the opened columns' pages migrate. Merkle nodes are copied to the host (2E x 32 B) because `pcs.Merkle` owns host nodes |
 | weight-fold partials | device | device; the result vectors (G x C QM31) come back |
 
-Measured (emulation counters, `tensor_cuda_prove.sh small`):
+Measured (emulation counters, `tensor_cuda_prove.sh small`; every line
+`SAME`). Round 3 ran GKR on the CPU; round 4 runs it on the device:
 
-| shape | launches | H2D | D2H | host syncs |
-|---|---:|---:|---:|---:|
-| product 14 | 49 | 1.3 MB | 2.3 MB | 13 |
-| mlp 6/10/12 | 91 | 51 MB | 27 MB | 20 |
-| layer 6/9/11/3 | 313 | 31 MB | 18 MB | 29 |
-| model t=6 d=9 f=11, 2 layers, MoE e=2 | 755 | 98 MB | 51 MB | 65 |
+| shape | launches r3 → r4 | H2D r3 → r4 | D2H r3 → r4 | syncs r3 → r4 | GKR sessions / round launches (r4) |
+|---|---:|---:|---:|---:|---:|
+| product 14 | 49 → 49 | 1.3 → 1.3 MB | 2.3 → 2.3 MB | 13 → 13 | 0 / 0 (largest instance < 2^12) |
+| mlp 6/10/12 | 91 → 650 | 51 → 321 MB | 27 → 27 MB | 20 → 493 | 2 / 473 |
+| layer 6/9/11/3 | 313 → 502 | 31 → 61 MB | 18 → 18 MB | 29 → 183 | 1 / 154 |
+| model t=6 d=9 f=11, 2 layers, MoE e=2 | 755 → 1314 | 98 → 414 MB | 51 → 51 MB | 65 → 538 | 2 / 473 |
+
+Reading the r4 numbers honestly:
+* **H2D went up**, by the GKR inputs. The protocol builds every LogUp
+  denominator `alpha - (k0 + beta k1 + beta^2 k2)` on the CPU as a QM31
+  (16 B/entry), plus base multiplicities (4 B), and the device GKR uploads
+  them. Before, they never left the host. The fix is the device witness
+  (below): the keys are int32 witness columns already, so the device should
+  form the denominators from resident columns (0 B) or from uploaded int32
+  keys (4 B per key column instead of 16 B).
+* **D2H did not grow**: no GKR layer comes back, only claims, sums and masks.
+* The model line also reports `declined: 12` (Zig-side declines, e.g. weight
+  passes under `min_pass_elems`); not investigated in round 4.
+* Emulated wall times (cpu 0.16 s vs "cuda" 1.46 s for the model) measure the
+  single-threaded CPU emulation, not a GPU.
+* **Syncs and launches went up**, by one per GKR sumcheck round (the host
+  transcript needs each round's sums). That is the floor for a host
+  transcript. Per round the launch covers every instance, so the count is
+  `max_n + 2 + sum_l (l + 2)` per GKR batch, independent of the instance count
+  (one less when every numerator is secure: no `tc_gkr_top` fill; test-enforced exactly for the 8-instance batch: 119 launches, 92 syncs).
+  The device transcript (§3) removes the per-round sync.
+
+Budgets asserted in `cuda/test.zig` (emulation counts exactly what the device
+path enqueues): GKR batch launches and syncs exactly as above, H2D = inputs +
+< 4 KB per launch, D2H <= 64 B per instance per launch; sumcheck factors in
+once and 48 B per round; eq never crosses; dp4a matmul H2D = T·K bytes (+ the
+weights unless pinned).
 
 The current increment is **not** "only transcript bytes cross PCIe". The
 remaining traffic is the accel interface's host-owned tables:
@@ -179,13 +216,38 @@ is not optional for the GPU to pay off.
   kernel. Its last block writes the 3 QM31 straight into the mapped mailbox.
   The host then waits for the stream and reads 48 B: no memcpy launch and no
   second reduction kernel.
-* **Failure.** Every launch is checked (`cudaGetLastError`). A failure poisons
-  the context (`tc_ctx.failed`). Every later call returns an error, and the Zig
-  hook surfaces `error.CudaFailed`. The proof fails. It is never published
-  partially and there is no silent CPU fallback mid-proof. This mirrors PR
-  #314's "launch or async failure poisons the job". Declines (shape outside
-  kernel bounds) happen **before** any device work and fall back to the CPU
-  for that call. They are counted (`declined`).
+* **Failure.** Every launch is checked (`cudaGetLastError`). A runtime failure
+  (allocation, launch, copy, sync) poisons the context (`tc_ctx.failed`). Every
+  later call returns an error, and the Zig hook surfaces `error.CudaFailed`.
+  The proof fails. It is never published partially and there is no silent CPU
+  fallback mid-proof. This mirrors PR #314's "launch or async failure poisons
+  the job". **Declines** (shape outside kernel bounds) return `TC_DECLINED`
+  (or a null session with `tc_ok() == 1`) **before** any device work, do not
+  poison, are counted (`stats.declined`, `Cuda.declined`), and the Zig hook
+  returns null so the CPU runs that call. Round 3 poisoned the context on
+  shape errors; that is fixed and tested. GKR: `gkr.fits` mirrors
+  `tc_gkr_begin`'s bounds, and a declined `tc_gkr_begin` (unreachable through
+  the hook today) runs the CPU prover. A decline *inside* a session
+  (`tc_gkr_eq` / `tc_gkr_round`, after device work and transcript use) cannot
+  fall back and surfaces as `error.CudaFailed`; the driver never builds such
+  jobs.
+* **Threads.** A context is single-threaded by design (one stream, one
+  mailbox, one ticket counter). Every entry point that launches or copies now
+  takes an atomic busy flag (`TcBusy`); a second thread entering the same
+  context gets an error (not a poison) instead of most data races. Not
+  guarded: the release/query calls `tc_gkr_end`, `tc_sc_abort`,
+  `tc_free_visible`, `tc_unpin_all`, `tc_get_stats`,
+  `tc_set_commit_chunk_rows` (`tc_sc_abort` / `tc_free_visible` are also
+  called with the flag held), and the refused thread's message is written
+  to the shared `err` buffer. The guard is a misuse detector, not a lock. Use one context per prover thread /
+  request lane.
+* **Managed codeword.** Every entry point ends in a stream sync, so no kernel
+  of this context runs while Zig code (e.g. the openings) reads the codeword.
+  Another context's kernels may, and devices without
+  `concurrentManagedAccess` would fault on that read; the codeword is
+  therefore attached to the host (`cudaStreamAttachMemAsync(...,
+  cudaMemAttachHost)`) at the end of `tc_commit`, ordered before the final
+  sync. CUDA-only code: compiled by the clang host check, not run here.
 * **Several requests.** A serving prover proves several requests in parallel.
   It should run one context per request lane (separate streams) on a shared
   pinned weight copy. Pinned ranges are per context today, so sharing needs a
@@ -210,7 +272,11 @@ is not optional for the GPU to pay off.
 | `tc_rs_tail` | layers min(log_c, 11)-1 .. 1 and the circle layer in shared memory (2^11-word tiles) | 1 per chunk |
 | `tc_rs_leaves` | codeword transpose to column-major + Blake2s absorb (states carried across chunks) | 1 per chunk |
 | `tc_merkle_level` / `tc_merkle_top` | levels above 2048 nodes one launch each; all lower levels in one single-block launch | log2(E) - 11 + 1 |
-| `tc_gkr_layer` | **all instances of a layer in one launch** (binary search over output offsets) | 1 per GKR layer (not wired) |
+| `tc_gkr_layer` | **all instances of a layer depth in one launch** (binary search over output offsets) | 1 per depth (max height) |
+| `tc_gkr_top` | ones/base numerators of all instances embedded into the QM31 arena | 1 per GKR batch |
+| `tc_gkr_round` | fold of round k-1 + round-k sums for **all live instances**, per-instance last-block reduction; MASK mode = last fold + masks (also the output-claim gather) | 1 per GKR sumcheck round + 1 per GKR layer + 1 |
+| `tc_eq_halves` (GKR) | the layer's prefix and suffix eq tables in one launch | 1 per GKR layer |
+| `tc_matmul_i8_dp4a` | int8 activations, 4 products per dp4a | 1 per matmul |
 
 **Per proof.** The emulation counts launches exactly:
 * 313 for the small layer;
@@ -241,7 +307,36 @@ instances split the batches. The tensor design avoids per-instance launches:
 
 With ~50 LogUp instances of heights 10-22 this gives about 22 layers x
 (1 + 22 rounds) ≈ 500 launches, against ~50 x 22 x 22 ≈ 24k with
-per-instance launches.
+per-instance launches. **Implemented (round 4):** the measured count is
+exactly `max_n + 2 + sum_{l < max_n} (l + 2)` launches per batch (eq + rounds
++ last fold per layer, plus the builds), e.g. 119 for max height 13 and
+**299 for height 22**, whatever the number of instances.
+
+### 3.1 CUDA graphs (design; no code yet)
+
+Not implemented in round 4 (time box). The design, so the next increment is
+mechanical:
+* **What is captured.** A GKR layer is fixed once `n_sc_vars` and the live
+  instance set are known: eq launch, `n_sc_vars` round launches, last fold.
+  A sumcheck session is fixed once (len, active, terms) are known. Only the
+  challenge and the job tables change. Put r (and lambda) in a device
+  "parameter slot" that kernels read instead of a by-value argument, and the
+  job tables in a per-round region written before the graph runs.
+* **Why it is not a single graph today.** Each round's r is drawn on the host
+  from that round's sums, so the host must run between launches. A graph per
+  round is one launch anyway. Graphs pay off only together with (a) the device
+  transcript (r drawn on the device; the whole layer is one graph launch and
+  the host replays the mixed bytes) or (b) the per-layer *forward* sequence
+  (matmul -> requant -> range keys -> denominators), which has no host
+  dependency between launches.
+* **Flag.** `TC_GRAPHS=1` in the context: capture with
+  `cudaStreamBeginCapture(ctx->stream, cudaStreamCaptureModeThreadLocal)` on
+  first use of a shape key, `cudaGraphInstantiate` once, `cudaGraphLaunch`
+  later; the emulation path executes the recorded launch list in order, so the
+  test suite can assert graph == eager counters. Capture is legal here because
+  a context owns its stream (PR #314 could not, borrowed lanes).
+* **Expected gain.** Launch latency only: ~900 launches x 3-5 µs ≈ 3-5 ms per
+  1024-token layer today (§3), about 1% of the projected 0.3 s.
 
 Next-level fusion, not done:
 * **CUDA graphs.** A sumcheck session's launch sequence is fixed once its
@@ -270,16 +365,16 @@ Next-level fusion, not done:
 | `hash_commitment/hf_tree.cuh`, `hf_commit_*` | commitment trees with windows | Merkle top levels fused into one launch; leaf states carried across row chunks so the commit is streamable |
 
 Known kernel-quality gaps, from the PTX:
-* `tc_sc_round` keeps its factor arrays in local memory. The fix is to
-  specialise on (n_factors, term shape) with templates. The prover uses about
-  six shapes (`T_PROD2`, `T_EQ3`, `T_PRODUCT`, …), and specialising makes the
-  term loops compile-time.
+* ~~`tc_sc_round` keeps its factor arrays in local memory~~ (fixed in round 4
+  without templates: constant-trip guarded loops + value mask select; 0 B).
 * Blake2s needs a compile-time sigma permutation (fully unrolled rounds), as
   the repo's `native/commitment/blake2s_core.cuh` already does.
 * The tail FFT should use `__shfl_xor_sync` for the lowest 5 layers. That
   needs an emulated warp primitive first.
-* The int8 matmul should use `dp4a` / IMMA tensor cores when the activations
-  fit int8. The Metal path already splits int8 vs wide activations.
+* The int8 matmul uses `dp4a` when the activations fit int8 (round 4). IMMA
+  tensor cores (`mma.sync.aligned.m16n8k32.s8`, sm_80+) are the next step:
+  ~8-16x dp4a throughput. It needs a warp-level emulation shim first
+  (fragment layouts), which the prelude rules currently forbid.
 
 ## 5. Projections (labelled; nothing here was run on a GPU)
 
@@ -361,14 +456,21 @@ largest layer, not the model.
 1. **Run on a GPU host:** `scripts/tensor_cuda_test.sh sm_90` and
    `TENSOR_CUDA_SANITIZE=1`, then `tensor_cuda_prove.sh small|medium`. Fix
    whatever nvcc rejects.
-2. Template `tc_sc_round` on term shapes, unroll Blake2s, then profile with
-   Nsight (`nsys` launch/transfer counts against the emulation's counters).
-3. Device GKR: `tc_gkr_layer` plus a batched multi-instance round kernel
-   behind `accel.gkr_prove`, compared against `Fast.proveBatch` with the Metal
-   GKR test.
-4. Residency: device tensor handles in `Accel` (forward pass, witness commit
-   and factor builders reading device tensors). This removes the H2D column of
-   §2.3.
+2. Unroll Blake2s, then profile with Nsight (`nsys` launch/transfer counts
+   against the emulation's counters).
+3. ~~Device GKR~~ (done in round 4).
+4. **Residency (not done in round 4; the largest remaining gap).** In order of
+   bytes saved:
+   (a) GKR denominators from integer keys: an `Accel.gkr_prove_keys` hook
+   taking (key column ids or int32 key vectors, alpha, beta, table kind) so
+   the device forms `alpha - (k0 + beta k1 + beta^2 k2)` itself; table
+   denominators are a closed form of the index (`tableValue`), so they need
+   no upload at all; multiplicities from a device histogram of the keys;
+   (b) device tensor handles in `Accel` (forward pass: matmul -> requant ->
+   range keys on the device, witness commit and factor builders reading
+   device tensors), which removes the witness/matmul H2D and the int64
+   accumulator D2H;
+   (c) Merkle nodes stay on the device, openings gather paths there.
 5. Gram-matrix multi-round folds for the weight-opening sumchecks; CUDA graphs
    per sumcheck session; device Blake2s transcript.
 6. Device-level weight cache shared by request lanes; weight streaming for
