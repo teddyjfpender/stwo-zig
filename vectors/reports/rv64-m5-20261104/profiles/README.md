@@ -11,7 +11,7 @@ This change touches notes, the corpus harness and the off-by-default registry. I
 |---|---|
 | `{26235156,24628607}-negative-corpus-v3.json` | [M] Full runnable corpus v3 against the **M4 integrate receiver** (`1af34c0b…`, `/workspace/m3/build/m4-integrate`). Fresh, separate, GPU-disabled, cache-disabled process per case. |
 | `{26235156,24628607}-negative-corpus-v3-recsize-receiver.json` | [M] The outer-profile cases against a receiver built from `codex/rv64-m4-recsize-port` @ `d4cdf05fa` (`588791b7…`). It is the first receiver that reads `STWO_RV64_OUTER_PROFILE`; canon-vk merged the same code. |
-| `coverage-canon-vk-59e774b9e.json`, `coverage-canon-native-e3fdff934.json`, `coverage-blake-gadget-47aabadb1.json` | `coverage` of the pushed M5 branches: the U/W-tier hooks (zig tests named `corpus <ID>`) that exist. |
+| `coverage-<stream>-<sha>.json` (5 files) | `coverage` of the latest pushed M5 branches: the U/W-tier hooks (zig tests named `corpus <ID>`) that exist. |
 | `candidate-tests-releasesafe-review2.log` | [M] `zig test -OReleaseSafe` of the candidate registry: 23/24 pass (9 new). The failure is the pre-existing `LOCAL_RELATIONS` 9-vs-10 roster test (`rv64-m7-profiles.md` §2.1). The new M5 roster test pins 10 and passes. |
 | `mass-census.json` | [D] cross-proof LogUp mass of both dev blocks from their accepted `bundle.json` (`scripts/rv64_m5_mass_census.py`). ram is 2^23.9 / 2^24.6, leaving a 7.1 / 6.4-bit margin to p. **One global RAM relation caps a block at about 2 G instructions** [E, linear]. This applies to today's receiver as well (binding §10.2). |
 | `recsize-receiver-build.log` | build exit status of the recsize receiver (CPU only, build lock held) |
@@ -83,6 +83,21 @@ This checks that the harness's M5 root-only mode works before the format exists.
 | `S09`, `X06` under the relaxed root-only expectation | reject (today's receiver still reads natives and cells) | same |
 
 Today a root tamper is found only after the full re-derivation: 50.7 / 73.2 s on a loaded pod, against the M5 gate of ≤ 1.5 s.
+
+### Cross-block roots against the pushed root-only receiver (rootverify `92cda862e`, binary `f5f7ec5e`) [M]
+
+The receiver is rootverify's `verify-root-candidate`, run with its own receiver-derived table `vk-both.json`, through `--format m5-root --receiver-argv`. Receipts: `*-negative-corpus-v3-rootverify-receiver.json`. 5/5 and 6/6 pass.
+
+| case | 26235156 | 24628607 |
+|---|---|---|
+| C00 control | accept, 12.4 s | accept, 17.9 s |
+| V04 cross-block root | reject `Om31CircuitWireAuthority` | reject `Om31CircuitWireAuthority` (**semantic now**, `FileTooBig` before) |
+| V06 same-size cross-block root | reject `Om31CircuitWireAuthority` | reject `Om31CircuitWireAuthority` |
+| V07 whole foreign tree | — (no same-tree donor) | reject `Om31CircuitWireAuthority` |
+| RR01 root flip | reject `RootMismatch` (12.6 s) | reject `RootMismatch` (18.1 s) |
+| T01 wrong expected output | reject `GlobalGkrManifestExecution` | same |
+
+rootverify also ran this corpus v3 in `m5-root` mode against its receiver itself: 40/40 on each block (`/workspace/m3/runs/m5-rootverify/profiles-v3-m5root-*.json`). It ran without `--root-donor`, so V06 and V07 were reported as unsupported there; they are measured here.
 
 ## Review 2 in one paragraph
 
