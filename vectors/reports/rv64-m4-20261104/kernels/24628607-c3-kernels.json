@@ -1,0 +1,1045 @@
+{
+ "schema": "rv64-m4-kernels-receipt/v1",
+ "stream": "kernels",
+ "milestone": "M4",
+ "block": 24628607,
+ "gpus": 2,
+ "commit": "PENDING",
+ "library_sha256": "b5993ed8977c6e7c73a61e1c24b0d4b17ac2f8042fead975e1f9aa5637046612",
+ "parent_receipt": "24628607-c2-kernels.json",
+ "correctness": {
+  "byte_identical_to": "rv64-m3-20261104/integrate/scale/24628607 (55/55) and 26235156 (37/37)",
+  "receiver_accepted": true,
+  "microbench_identical": true
+ },
+ "label": "M (nsys durations, one observation, load avg 39); microbench M (events, GPU1, best of N); bandwidth D",
+ "kernel_gpu_s": {
+  "base": 29.909,
+  "c1": 25.612,
+  "c2": 24.767,
+  "c3": 23.542
+ },
+ "recursion_kernel_gpu_s": {
+  "base": 24.962,
+  "c1": 20.94,
+  "c2": 20.119,
+  "c3": 18.904
+ },
+ "recursion_ns_per_lde_cell": {
+  "base": 0.1977,
+  "c1": 0.1659,
+  "c2": 0.1594,
+  "c3": 0.1498
+ },
+ "families_gpu_s": {
+  "n2b": {
+   "base": 9.153,
+   "c1": 7.253,
+   "c2": 7.263,
+   "c3": 6.949
+  },
+  "mixed_leaf_kernel": {
+   "base": 5.556,
+   "c1": 5.667,
+   "c2": 5.166,
+   "c3": 4.272
+  },
+  "b2n": {
+   "base": 1.381,
+   "c1": 1.384,
+   "c2": 1.024,
+   "c3": 1.024
+  },
+  "generate": {
+   "base": 1.865,
+   "c1": 1.889,
+   "c2": 1.894,
+   "c3": 1.867
+  },
+  "sample_first": {
+   "base": 0.795,
+   "c1": 0.797,
+   "c2": 0.797,
+   "c3": 0.797
+  }
+ },
+ "kernels": [
+  {
+   "kernel": "mixed_leaf_kernel 2^24 rows x 8 columns",
+   "classic_us": 3461.9,
+   "eager_aos_us_c2": 2624.6,
+   "eager_soa_us": 1546.8,
+   "note": "eager states stored word-major (SoA): every state load/store is lane->row contiguous; 601 classic calls remain (Zig trace_commit.zig chain), fixed in the next commit"
+  },
+  {
+   "kernel": "n2b_final_warp<3> log24 x 8 columns",
+   "before_us": 851.2,
+   "after_us": 734.1,
+   "change": "column-fastest grid: CTAs that run together share one tile's twiddles in L2",
+   "achieved_tbps_D": {
+    "before": 1.261,
+    "after": 1.463
+   }
+  }
+ ],
+ "microbench_column_fastest": [
+  {
+   "log_n": 24,
+   "columns": 8,
+   "mode": "n2b",
+   "identical": true,
+   "old": {
+    "schedule": "6,6,6,6",
+    "ms": 2.946,
+    "ns_per_cell": 0.02195,
+    "passes": [
+     {
+      "ms": 0.7311,
+      "tbps": 1.469
+     },
+     {
+      "ms": 0.7004,
+      "tbps": 1.533
+     },
+     {
+      "ms": 0.7055,
+      "tbps": 1.522
+     },
+     {
+      "ms": 0.809,
+      "tbps": 1.327
+     }
+    ]
+   },
+   "new": {
+    "schedule": "8,8,8",
+    "ms": 2.2897,
+    "ns_per_cell": 0.01706,
+    "passes": [
+     {
+      "ms": 0.7311,
+      "tbps": 1.469
+     },
+     {
+      "ms": 0.7045,
+      "tbps": 1.524
+     },
+     {
+      "ms": 0.854,
+      "tbps": 1.257
+     }
+    ]
+   },
+   "speedup": 1.287,
+   "column_fastest": 0
+  },
+  {
+   "log_n": 24,
+   "columns": 8,
+   "mode": "lde",
+   "identical": true,
+   "old": {
+    "schedule": "6,6,6,6",
+    "ms": 2.7801,
+    "ns_per_cell": 0.02071,
+    "passes": [
+     {
+      "ms": 0.5713,
+      "tbps": 1.41
+     },
+     {
+      "ms": 0.6963,
+      "tbps": 1.542
+     },
+     {
+      "ms": 0.7045,
+      "tbps": 1.524
+     },
+     {
+      "ms": 0.8079,
+      "tbps": 1.329
+     }
+    ]
+   },
+   "new": {
+    "schedule": "8,8,8",
+    "ms": 2.0999,
+    "ns_per_cell": 0.01565,
+    "passes": [
+     {
+      "ms": 0.5455,
+      "tbps": 1.476
+     },
+     {
+      "ms": 0.6922,
+      "tbps": 1.551
+     },
+     {
+      "ms": 0.8622,
+      "tbps": 1.245
+     }
+    ]
+   },
+   "speedup": 1.324,
+   "column_fastest": 0
+  },
+  {
+   "log_n": 24,
+   "columns": 104,
+   "mode": "n2b",
+   "identical": true,
+   "old": {
+    "schedule": "8,8,8",
+    "ms": 29.5834,
+    "ns_per_cell": 0.01695,
+    "passes": [
+     {
+      "ms": 9.343,
+      "tbps": 1.494
+     },
+     {
+      "ms": 9.1648,
+      "tbps": 1.523
+     },
+     {
+      "ms": 11.0756,
+      "tbps": 1.26
+     }
+    ]
+   },
+   "new": {
+    "schedule": "8,8,8",
+    "ms": 29.5895,
+    "ns_per_cell": 0.01696,
+    "passes": [
+     {
+      "ms": 9.3614,
+      "tbps": 1.491
+     },
+     {
+      "ms": 9.1505,
+      "tbps": 1.525
+     },
+     {
+      "ms": 11.0776,
+      "tbps": 1.26
+     }
+    ]
+   },
+   "speedup": 1.0,
+   "column_fastest": 0
+  },
+  {
+   "log_n": 24,
+   "columns": 104,
+   "mode": "lde",
+   "identical": true,
+   "old": {
+    "schedule": "8,8,8",
+    "ms": 27.3942,
+    "ns_per_cell": 0.0157,
+    "passes": [
+     {
+      "ms": 7.158,
+      "tbps": 1.463
+     },
+     {
+      "ms": 9.1546,
+      "tbps": 1.525
+     },
+     {
+      "ms": 11.0817,
+      "tbps": 1.26
+     }
+    ]
+   },
+   "new": {
+    "schedule": "8,8,8",
+    "ms": 27.3819,
+    "ns_per_cell": 0.01569,
+    "passes": [
+     {
+      "ms": 7.1395,
+      "tbps": 1.466
+     },
+     {
+      "ms": 9.1607,
+      "tbps": 1.524
+     },
+     {
+      "ms": 11.0817,
+      "tbps": 1.26
+     }
+    ]
+   },
+   "speedup": 1.0,
+   "column_fastest": 0
+  },
+  {
+   "log_n": 22,
+   "columns": 16,
+   "mode": "n2b",
+   "identical": true,
+   "old": {
+    "schedule": "6,6,10",
+    "ms": 1.0629,
+    "ns_per_cell": 0.01584,
+    "passes": [
+     {
+      "ms": 0.3523,
+      "tbps": 1.524
+     },
+     {
+      "ms": 0.3502,
+      "tbps": 1.533
+     },
+     {
+      "ms": 0.3604,
+      "tbps": 1.489
+     }
+    ]
+   },
+   "new": {
+    "schedule": "6,6,10",
+    "ms": 1.0609,
+    "ns_per_cell": 0.01581,
+    "passes": [
+     {
+      "ms": 0.3523,
+      "tbps": 1.524
+     },
+     {
+      "ms": 0.3482,
+      "tbps": 1.542
+     },
+     {
+      "ms": 0.3604,
+      "tbps": 1.489
+     }
+    ]
+   },
+   "speedup": 1.002,
+   "column_fastest": 0
+  },
+  {
+   "log_n": 22,
+   "columns": 16,
+   "mode": "lde",
+   "identical": true,
+   "old": {
+    "schedule": "6,6,10",
+    "ms": 0.993,
+    "ns_per_cell": 0.0148,
+    "passes": [
+     {
+      "ms": 0.2824,
+      "tbps": 1.426
+     },
+     {
+      "ms": 0.3523,
+      "tbps": 1.524
+     },
+     {
+      "ms": 0.3584,
+      "tbps": 1.498
+     }
+    ]
+   },
+   "new": {
+    "schedule": "6,6,10",
+    "ms": 0.9928,
+    "ns_per_cell": 0.01479,
+    "passes": [
+     {
+      "ms": 0.2801,
+      "tbps": 1.437
+     },
+     {
+      "ms": 0.3523,
+      "tbps": 1.524
+     },
+     {
+      "ms": 0.3604,
+      "tbps": 1.489
+     }
+    ]
+   },
+   "speedup": 1.0,
+   "column_fastest": 0
+  },
+  {
+   "log_n": 20,
+   "columns": 64,
+   "mode": "n2b",
+   "identical": true,
+   "old": {
+    "schedule": "6,6,8",
+    "ms": 1.0547,
+    "ns_per_cell": 0.01572,
+    "passes": [
+     {
+      "ms": 0.3482,
+      "tbps": 1.542
+     },
+     {
+      "ms": 0.3502,
+      "tbps": 1.533
+     },
+     {
+      "ms": 0.3564,
+      "tbps": 1.507
+     }
+    ]
+   },
+   "new": {
+    "schedule": "6,6,8",
+    "ms": 1.0547,
+    "ns_per_cell": 0.01572,
+    "passes": [
+     {
+      "ms": 0.3461,
+      "tbps": 1.551
+     },
+     {
+      "ms": 0.3543,
+      "tbps": 1.515
+     },
+     {
+      "ms": 0.3543,
+      "tbps": 1.515
+     }
+    ]
+   },
+   "speedup": 1.0,
+   "column_fastest": 0
+  },
+  {
+   "log_n": 20,
+   "columns": 64,
+   "mode": "lde",
+   "identical": true,
+   "old": {
+    "schedule": "6,6,8",
+    "ms": 0.996,
+    "ns_per_cell": 0.01484,
+    "passes": [
+     {
+      "ms": 0.2854,
+      "tbps": 1.411
+     },
+     {
+      "ms": 0.3523,
+      "tbps": 1.524
+     },
+     {
+      "ms": 0.3584,
+      "tbps": 1.498
+     }
+    ]
+   },
+   "new": {
+    "schedule": "6,6,8",
+    "ms": 0.9876,
+    "ns_per_cell": 0.01472,
+    "passes": [
+     {
+      "ms": 0.2789,
+      "tbps": 1.443
+     },
+     {
+      "ms": 0.3523,
+      "tbps": 1.524
+     },
+     {
+      "ms": 0.3564,
+      "tbps": 1.507
+     }
+    ]
+   },
+   "speedup": 1.009,
+   "column_fastest": 0
+  },
+  {
+   "log_n": 24,
+   "columns": 8,
+   "mode": "n2b",
+   "identical": true,
+   "old": {
+    "schedule": "6,6,6,6",
+    "ms": 2.946,
+    "ns_per_cell": 0.02195,
+    "passes": [
+     {
+      "ms": 0.7332,
+      "tbps": 1.464
+     },
+     {
+      "ms": 0.7025,
+      "tbps": 1.529
+     },
+     {
+      "ms": 0.7035,
+      "tbps": 1.526
+     },
+     {
+      "ms": 0.8069,
+      "tbps": 1.331
+     }
+    ]
+   },
+   "new": {
+    "schedule": "8,8,8",
+    "ms": 2.1637,
+    "ns_per_cell": 0.01612,
+    "passes": [
+     {
+      "ms": 0.7311,
+      "tbps": 1.469
+     },
+     {
+      "ms": 0.6963,
+      "tbps": 1.542
+     },
+     {
+      "ms": 0.7363,
+      "tbps": 1.458
+     }
+    ]
+   },
+   "speedup": 1.362,
+   "column_fastest": 1
+  },
+  {
+   "log_n": 24,
+   "columns": 8,
+   "mode": "lde",
+   "identical": true,
+   "old": {
+    "schedule": "6,6,6,6",
+    "ms": 2.778,
+    "ns_per_cell": 0.0207,
+    "passes": [
+     {
+      "ms": 0.5682,
+      "tbps": 1.417
+     },
+     {
+      "ms": 0.6943,
+      "tbps": 1.547
+     },
+     {
+      "ms": 0.7066,
+      "tbps": 1.52
+     },
+     {
+      "ms": 0.809,
+      "tbps": 1.327
+     }
+    ]
+   },
+   "new": {
+    "schedule": "8,8,8",
+    "ms": 1.9756,
+    "ns_per_cell": 0.01472,
+    "passes": [
+     {
+      "ms": 0.5441,
+      "tbps": 1.48
+     },
+     {
+      "ms": 0.6963,
+      "tbps": 1.542
+     },
+     {
+      "ms": 0.7352,
+      "tbps": 1.46
+     }
+    ]
+   },
+   "speedup": 1.406,
+   "column_fastest": 1
+  },
+  {
+   "log_n": 24,
+   "columns": 104,
+   "mode": "n2b",
+   "identical": true,
+   "old": {
+    "schedule": "8,8,8",
+    "ms": 27.7289,
+    "ns_per_cell": 0.01589,
+    "passes": [
+     {
+      "ms": 9.343,
+      "tbps": 1.494
+     },
+     {
+      "ms": 9.1628,
+      "tbps": 1.523
+     },
+     {
+      "ms": 9.2232,
+      "tbps": 1.513
+     }
+    ]
+   },
+   "new": {
+    "schedule": "8,8,8",
+    "ms": 27.8293,
+    "ns_per_cell": 0.01595,
+    "passes": [
+     {
+      "ms": 9.3676,
+      "tbps": 1.49
+     },
+     {
+      "ms": 9.1607,
+      "tbps": 1.524
+     },
+     {
+      "ms": 9.301,
+      "tbps": 1.501
+     }
+    ]
+   },
+   "speedup": 0.996,
+   "column_fastest": 1
+  },
+  {
+   "log_n": 24,
+   "columns": 104,
+   "mode": "lde",
+   "identical": true,
+   "old": {
+    "schedule": "8,8,8",
+    "ms": 25.5744,
+    "ns_per_cell": 0.01466,
+    "passes": [
+     {
+      "ms": 7.1394,
+      "tbps": 1.466
+     },
+     {
+      "ms": 9.1628,
+      "tbps": 1.523
+     },
+     {
+      "ms": 9.2723,
+      "tbps": 1.505
+     }
+    ]
+   },
+   "new": {
+    "schedule": "8,8,8",
+    "ms": 25.5791,
+    "ns_per_cell": 0.01466,
+    "passes": [
+     {
+      "ms": 7.1297,
+      "tbps": 1.468
+     },
+     {
+      "ms": 9.1546,
+      "tbps": 1.525
+     },
+     {
+      "ms": 9.2948,
+      "tbps": 1.502
+     }
+    ]
+   },
+   "speedup": 1.0,
+   "column_fastest": 1
+  },
+  {
+   "log_n": 22,
+   "columns": 16,
+   "mode": "n2b",
+   "identical": true,
+   "old": {
+    "schedule": "6,6,10",
+    "ms": 1.067,
+    "ns_per_cell": 0.0159,
+    "passes": [
+     {
+      "ms": 0.3543,
+      "tbps": 1.515
+     },
+     {
+      "ms": 0.3502,
+      "tbps": 1.533
+     },
+     {
+      "ms": 0.3625,
+      "tbps": 1.481
+     }
+    ]
+   },
+   "new": {
+    "schedule": "6,6,10",
+    "ms": 1.065,
+    "ns_per_cell": 0.01587,
+    "passes": [
+     {
+      "ms": 0.3563,
+      "tbps": 1.507
+     },
+     {
+      "ms": 0.3502,
+      "tbps": 1.533
+     },
+     {
+      "ms": 0.3584,
+      "tbps": 1.498
+     }
+    ]
+   },
+   "speedup": 1.002,
+   "column_fastest": 1
+  },
+  {
+   "log_n": 22,
+   "columns": 16,
+   "mode": "lde",
+   "identical": true,
+   "old": {
+    "schedule": "6,6,10",
+    "ms": 0.9939,
+    "ns_per_cell": 0.01481,
+    "passes": [
+     {
+      "ms": 0.2812,
+      "tbps": 1.432
+     },
+     {
+      "ms": 0.3523,
+      "tbps": 1.524
+     },
+     {
+      "ms": 0.3604,
+      "tbps": 1.489
+     }
+    ]
+   },
+   "new": {
+    "schedule": "6,6,10",
+    "ms": 0.9946,
+    "ns_per_cell": 0.01482,
+    "passes": [
+     {
+      "ms": 0.2819,
+      "tbps": 1.429
+     },
+     {
+      "ms": 0.3523,
+      "tbps": 1.524
+     },
+     {
+      "ms": 0.3604,
+      "tbps": 1.489
+     }
+    ]
+   },
+   "speedup": 0.999,
+   "column_fastest": 1
+  },
+  {
+   "log_n": 20,
+   "columns": 64,
+   "mode": "n2b",
+   "identical": true,
+   "old": {
+    "schedule": "6,6,8",
+    "ms": 1.0445,
+    "ns_per_cell": 0.01556,
+    "passes": [
+     {
+      "ms": 0.3461,
+      "tbps": 1.551
+     },
+     {
+      "ms": 0.3502,
+      "tbps": 1.533
+     },
+     {
+      "ms": 0.3482,
+      "tbps": 1.542
+     }
+    ]
+   },
+   "new": {
+    "schedule": "6,6,8",
+    "ms": 1.0445,
+    "ns_per_cell": 0.01556,
+    "passes": [
+     {
+      "ms": 0.3461,
+      "tbps": 1.551
+     },
+     {
+      "ms": 0.3523,
+      "tbps": 1.524
+     },
+     {
+      "ms": 0.3461,
+      "tbps": 1.551
+     }
+    ]
+   },
+   "speedup": 1.0,
+   "column_fastest": 1
+  },
+  {
+   "log_n": 20,
+   "columns": 64,
+   "mode": "lde",
+   "identical": true,
+   "old": {
+    "schedule": "6,6,8",
+    "ms": 0.98,
+    "ns_per_cell": 0.0146,
+    "passes": [
+     {
+      "ms": 0.2817,
+      "tbps": 1.43
+     },
+     {
+      "ms": 0.3543,
+      "tbps": 1.515
+     },
+     {
+      "ms": 0.3441,
+      "tbps": 1.56
+     }
+    ]
+   },
+   "new": {
+    "schedule": "6,6,8",
+    "ms": 0.9668,
+    "ns_per_cell": 0.01441,
+    "passes": [
+     {
+      "ms": 0.2684,
+      "tbps": 1.5
+     },
+     {
+      "ms": 0.3502,
+      "tbps": 1.533
+     },
+     {
+      "ms": 0.3482,
+      "tbps": 1.542
+     }
+    ]
+   },
+   "speedup": 1.014,
+   "column_fastest": 1
+  }
+ ],
+ "experiment_two_pass_smem": {
+  "status": "not adopted (negative result)",
+  "results": [
+   {
+    "two_pass": "A13l2t512+B13t512",
+    "log_n": 24,
+    "columns": 8,
+    "mode": "n2b",
+    "identical": true,
+    "reference_ms": 2.1576,
+    "two_pass_ms": 2.2495,
+    "speedup": 0.959
+   },
+   {
+    "two_pass": "A13l2t512+B13t512",
+    "log_n": 24,
+    "columns": 8,
+    "mode": "lde",
+    "identical": true,
+    "reference_ms": 1.9726,
+    "two_pass_ms": 1.9829,
+    "speedup": 0.995
+   },
+   {
+    "two_pass": "A13l2t1024+B13t1024",
+    "log_n": 24,
+    "columns": 8,
+    "mode": "n2b",
+    "identical": true,
+    "reference_ms": 2.1545,
+    "two_pass_ms": 2.7738,
+    "speedup": 0.777
+   },
+   {
+    "two_pass": "A13l2t1024+B13t1024",
+    "log_n": 24,
+    "columns": 8,
+    "mode": "lde",
+    "identical": true,
+    "reference_ms": 1.9729,
+    "two_pass_ms": 2.3695,
+    "speedup": 0.833
+   },
+   {
+    "two_pass": "A14l3t1024+B13t512",
+    "log_n": 24,
+    "columns": 8,
+    "mode": "n2b",
+    "identical": true,
+    "reference_ms": 2.1576,
+    "two_pass_ms": 2.3163,
+    "speedup": 0.931
+   },
+   {
+    "two_pass": "A14l3t1024+B13t512",
+    "log_n": 24,
+    "columns": 8,
+    "mode": "lde",
+    "identical": true,
+    "reference_ms": 1.9755,
+    "two_pass_ms": 1.938,
+    "speedup": 1.019
+   },
+   {
+    "two_pass": "A13l3t512+B14t1024",
+    "log_n": 24,
+    "columns": 8,
+    "mode": "n2b",
+    "identical": true,
+    "reference_ms": 2.1606,
+    "two_pass_ms": 2.3134,
+    "speedup": 0.934
+   },
+   {
+    "two_pass": "A13l3t512+B14t1024",
+    "log_n": 24,
+    "columns": 8,
+    "mode": "lde",
+    "identical": true,
+    "reference_ms": 1.9719,
+    "two_pass_ms": 2.0235,
+    "speedup": 0.975
+   },
+   {
+    "two_pass": "A12l2t512+B12t512",
+    "log_n": 22,
+    "columns": 8,
+    "mode": "n2b",
+    "identical": true,
+    "reference_ms": 0.4956,
+    "two_pass_ms": 0.5155,
+    "speedup": 0.962
+   },
+   {
+    "two_pass": "A12l2t512+B12t512",
+    "log_n": 22,
+    "columns": 8,
+    "mode": "lde",
+    "identical": true,
+    "reference_ms": 0.4524,
+    "two_pass_ms": 0.4616,
+    "speedup": 0.98
+   },
+   {
+    "two_pass": "A12l3t512+B13t512",
+    "log_n": 22,
+    "columns": 8,
+    "mode": "n2b",
+    "identical": true,
+    "reference_ms": 0.4956,
+    "two_pass_ms": 0.4559,
+    "speedup": 1.087
+   },
+   {
+    "two_pass": "A12l3t512+B13t512",
+    "log_n": 22,
+    "columns": 8,
+    "mode": "lde",
+    "identical": true,
+    "reference_ms": 0.4515,
+    "two_pass_ms": 0.4283,
+    "speedup": 1.054
+   },
+   {
+    "two_pass": "A13l2t512+B13t512",
+    "log_n": 24,
+    "columns": 104,
+    "mode": "n2b",
+    "identical": true,
+    "reference_ms": 27.7801,
+    "two_pass_ms": 36.1575,
+    "speedup": 0.768
+   },
+   {
+    "two_pass": "A13l2t512+B13t512",
+    "log_n": 24,
+    "columns": 104,
+    "mode": "lde",
+    "identical": true,
+    "reference_ms": 25.4795,
+    "two_pass_ms": 48.8491,
+    "speedup": 0.522
+   },
+   {
+    "two_pass": "A13l2t1024+B13t1024",
+    "log_n": 24,
+    "columns": 104,
+    "mode": "n2b",
+    "identical": true,
+    "reference_ms": 27.6838,
+    "two_pass_ms": 46.659,
+    "speedup": 0.593
+   },
+   {
+    "two_pass": "A13l2t1024+B13t1024",
+    "log_n": 24,
+    "columns": 104,
+    "mode": "lde",
+    "identical": true,
+    "reference_ms": 25.5316,
+    "two_pass_ms": 45.1914,
+    "speedup": 0.565
+   },
+   {
+    "two_pass": "A14l3t1024+B13t512",
+    "log_n": 24,
+    "columns": 104,
+    "mode": "n2b",
+    "identical": true,
+    "reference_ms": 27.7084,
+    "two_pass_ms": 35.5018,
+    "speedup": 0.78
+   },
+   {
+    "two_pass": "A14l3t1024+B13t512",
+    "log_n": 24,
+    "columns": 104,
+    "mode": "lde",
+    "identical": true,
+    "reference_ms": 25.5153,
+    "two_pass_ms": 29.5668,
+    "speedup": 0.863
+   },
+   {
+    "two_pass": "A13l3t512+B14t1024",
+    "log_n": 24,
+    "columns": 104,
+    "mode": "n2b",
+    "identical": true,
+    "reference_ms": 27.7002,
+    "two_pass_ms": 37.0922,
+    "speedup": 0.747
+   },
+   {
+    "two_pass": "A13l3t512+B14t1024",
+    "log_n": 24,
+    "columns": 104,
+    "mode": "lde",
+    "identical": true,
+    "reference_ms": 25.4608,
+    "two_pass_ms": 30.2416,
+    "speedup": 0.842
+   }
+  ],
+  "note": "naive shared-memory 2-pass N2B (one barrier per stage) is byte-identical but 0.52-1.09x of the 3-pass register-blocked path; a register-blocked 2-pass is the remaining NTT lever (3->2 HBM passes)"
+ }
+}

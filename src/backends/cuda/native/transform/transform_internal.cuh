@@ -10,6 +10,10 @@
 #ifndef STWO_N2B_LV4_MIN_BLOCKS
 #define STWO_N2B_LV4_MIN_BLOCKS 1
 #endif
+// See launch_n2b_final: column-fastest grid order for the final warp pass.
+#ifndef STWO_N2B_FINAL_COLUMN_FASTEST
+#define STWO_N2B_FINAL_COLUMN_FASTEST 1
+#endif
 
 namespace stwo::cuda::transform {
 

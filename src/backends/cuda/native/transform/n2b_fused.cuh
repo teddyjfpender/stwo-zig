@@ -159,10 +159,15 @@ __global__ void n2b_final_warp(
     ColumnSlab<M31> columns,
     uint32_t log_n,
     uint32_t min_stage,
-    const M31 *twiddles) {
-    const uint32_t column_index = blockIdx.y;
+    const M31 *twiddles,
+    uint32_t column_fastest = 0u) {
+    // column_fastest: blockIdx.x is the column and blockIdx.y the tile, so
+    // the CTAs that run together share one tile's twiddles across columns
+    // in L2 (the final stages' layers total ~2^log_n words per column).
+    const uint32_t column_index = column_fastest ? blockIdx.x : blockIdx.y;
+    const uint32_t tile = column_fastest ? blockIdx.y : blockIdx.x;
     const uint32_t lane = threadIdx.x;
-    const uint32_t warp_index = blockDim.y * blockIdx.x + threadIdx.y;
+    const uint32_t warp_index = blockDim.y * tile + threadIdx.y;
     constexpr uint32_t log_values_per_warp =
         LogValues + kN2bLogWarp;
     uint32_t warp_start =
@@ -495,20 +500,29 @@ inline cudaError_t launch_n2b_final(
         const uint32_t warps =
             1u << (log_n - kN2bLogWarp - log_values);
         const uint32_t block_warps = warps < 4u ? warps : 4u;
-        const dim3 grid{warps / block_warps, column_count};
+        const uint32_t tiles = warps / block_warps;
+        // Column-fastest order needs tiles in gridDim.y (<= 65535) and more
+        // than one column to share twiddles with.
+        const uint32_t column_fastest =
+            STWO_N2B_FINAL_COLUMN_FASTEST && column_count > 1u &&
+                    tiles <= 65535u
+                ? 1u
+                : 0u;
+        const dim3 grid = column_fastest ? dim3{column_count, tiles}
+                                         : dim3{tiles, column_count};
         const dim3 block{32, block_warps};
         if (stages == 6) {
             n2b_final_warp<1, IncludeCircle><<<
                 grid, block, 0, stream>>>(
-                    columns, log_n, start_stage, twiddles);
+                    columns, log_n, start_stage, twiddles, column_fastest);
         } else if (stages == 7) {
             n2b_final_warp<2, IncludeCircle><<<
                 grid, block, 0, stream>>>(
-                    columns, log_n, start_stage, twiddles);
+                    columns, log_n, start_stage, twiddles, column_fastest);
         } else {
             n2b_final_warp<3, IncludeCircle><<<
                 grid, block, 0, stream>>>(
-                    columns, log_n, start_stage, twiddles);
+                    columns, log_n, start_stage, twiddles, column_fastest);
         }
     } else if (stages == 9) {
         n2b_final_block<1, IncludeCircle><<<

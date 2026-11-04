@@ -374,9 +374,12 @@ static_assert(sizeof(MixedInputs) + 32 < 4096);
 // more words, so a full trailing block is never final there: Eager compresses
 // it at the end of the call (exactly what the unchunked hash does when the
 // next word arrives) and stores only the hash plus the live pending words
-// (absorbed % 16). Loads read only those words. The leaf hashes are
-// bit-identical; only the internal state convention differs, so eager states
-// must be consumed by eager calls (stwo_blake2s_mixed_seeded_eager_on) only.
+// (absorbed % 16). Loads read only those words, and eager states are stored
+// word-major (SoA, word k of row r at k * rows + r; same 96-byte-per-row
+// footprint) so the lane->row axis stays contiguous in every state access.
+// The leaf hashes are bit-identical; only the internal state convention
+// differs, so eager states must be consumed by eager calls
+// (stwo_blake2s_mixed_seeded_eager_on) only.
 template <bool Prefixed, bool Eager = false>
 __global__ void mixed_leaf_kernel(uint32_t size, uint32_t count,
                                   MixedInputs inputs, uint32_t absorbed_before, uint32_t seed_size,
@@ -387,16 +390,22 @@ __global__ void mixed_leaf_kernel(uint32_t size, uint32_t count,
     uint32_t pending = Eager ? (absorbed_before & 15u) : pending_words(absorbed_before);
     ProgressiveState initial{};
     if (seed != nullptr) {
-        const ProgressiveState &source =
-            seed[lifted_column_index(row, __ffs(size / seed_size) - 1)];
         if constexpr (Eager) {
+            // Word-major (SoA) eager seed: word k of seed row r lives at
+            // k * seed_size + r, so every warp load is one coalesced run.
+            const uint32_t *words_in = reinterpret_cast<const uint32_t *>(seed);
+            const uint32_t seed_row =
+                lifted_column_index(row, __ffs(size / seed_size) - 1);
 #pragma unroll
-            for (uint32_t k = 0; k < 8; ++k) initial.hash[k] = source.hash[k];
+            for (uint32_t k = 0; k < 8; ++k)
+                initial.hash[k] = words_in[size_t(k) * seed_size + seed_row];
 #pragma unroll
-            for (uint32_t k = 0; k < 16; ++k)
-                if (k < pending) initial.pending[k] = source.pending[k];
+            for (uint32_t k = 0; k < 15; ++k)
+                if (k < pending)
+                    initial.pending[k] =
+                        words_in[size_t(8 + k) * seed_size + seed_row];
         } else {
-            initial = source;
+            initial = seed[lifted_column_index(row, __ffs(size / seed_size) - 1)];
         }
     } else {
         initialize_leaf_for<Prefixed>(initial.hash);
@@ -470,18 +479,20 @@ __global__ void mixed_leaf_kernel(uint32_t size, uint32_t count,
         words += columns;
     }
     if (prefix != nullptr) {
-        ProgressiveState &state = prefix[row];
         if constexpr (Eager) {
             if (pending == 16) {
                 compressed_bytes += 64;
                 STWO_COMPRESS_PROGRESSIVE(compressed_bytes, 0);
                 pending = 0;
             }
-            state.hash[0] = h0; state.hash[1] = h1;
-            state.hash[2] = h2; state.hash[3] = h3;
-            state.hash[4] = h4; state.hash[5] = h5;
-            state.hash[6] = h6; state.hash[7] = h7;
-#define STWO_EAGER_PENDING(k) if (pending > k) state.pending[k] = p##k
+            // Word-major (SoA) eager prefix, stride = size rows (coalesced).
+            uint32_t *words_out = reinterpret_cast<uint32_t *>(prefix);
+#define STWO_EAGER_WORD(k, value) words_out[size_t(k) * size + row] = value
+            STWO_EAGER_WORD(0, h0); STWO_EAGER_WORD(1, h1);
+            STWO_EAGER_WORD(2, h2); STWO_EAGER_WORD(3, h3);
+            STWO_EAGER_WORD(4, h4); STWO_EAGER_WORD(5, h5);
+            STWO_EAGER_WORD(6, h6); STWO_EAGER_WORD(7, h7);
+#define STWO_EAGER_PENDING(k) if (pending > k) STWO_EAGER_WORD(8 + k, p##k)
             STWO_EAGER_PENDING(0); STWO_EAGER_PENDING(1);
             STWO_EAGER_PENDING(2); STWO_EAGER_PENDING(3);
             STWO_EAGER_PENDING(4); STWO_EAGER_PENDING(5);
@@ -491,7 +502,9 @@ __global__ void mixed_leaf_kernel(uint32_t size, uint32_t count,
             STWO_EAGER_PENDING(12); STWO_EAGER_PENDING(13);
             STWO_EAGER_PENDING(14);
 #undef STWO_EAGER_PENDING
+#undef STWO_EAGER_WORD
         } else {
+            ProgressiveState &state = prefix[row];
             STWO_STORE_PROGRESSIVE(state);
         }
         return;

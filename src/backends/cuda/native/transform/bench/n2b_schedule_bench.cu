@@ -6,6 +6,7 @@
 //        src/backends/cuda/native/transform/bench/n2b_schedule_bench.cu -o n2b_bench
 //   ./n2b_bench LOG_N COLUMNS OLD NEW   (schedules like 6,6,6,6 and 8,8,8)
 #include "transform/n2b_fused.cuh"
+#include "transform/n2b_smem.cuh"
 
 #include <cstdio>
 #include <cstdlib>
@@ -78,6 +79,72 @@ static void run(const std::vector<uint32_t> &sch, bool lde, uint32_t log_n,
   for (auto &e : ev) CK(cudaEventDestroy(e));
 }
 
+// Two-pass candidates: strided pass A (stages 1..sa) + contiguous pass B.
+template <uint32_t ATile, uint32_t ALane, uint32_t AThreads, uint32_t BTile,
+          uint32_t BThreads>
+static float run_two_pass(bool lde, uint32_t log_n, uint32_t cols,
+                          const M31 *coeffs, const uint32_t *log_sizes,
+                          M31 *evals, const M31 *tw, cudaStream_t s) {
+  const size_t n = size_t(1) << log_n;
+  const uint32_t sa = ATile - ALane;
+  ColumnSlab<M31> slab{evals, n};
+  cudaEvent_t a, b;
+  CK(cudaEventCreate(&a));
+  CK(cudaEventCreate(&b));
+  CK(cudaEventRecord(a, s));
+  if (lde)
+    CK((launch_n2b_smem_pass<ATile, ALane, true, true, AThreads>(
+        {coeffs, n / 2}, log_sizes, slab, log_n, cols, 1, sa, tw, s)));
+  else
+    CK((launch_n2b_smem_pass<ATile, ALane, true, false, AThreads>(
+        {evals, n}, nullptr, slab, log_n, cols, 1, sa, tw, s)));
+  CK((launch_n2b_smem_pass<BTile, 0, false, false, BThreads>(
+      {evals, n}, nullptr, slab, log_n, cols, sa + 1, log_n, tw, s)));
+  CK(cudaEventRecord(b, s));
+  CK(cudaEventSynchronize(b));
+  float ms = 0;
+  CK(cudaEventElapsedTime(&ms, a, b));
+  CK(cudaEventDestroy(a));
+  CK(cudaEventDestroy(b));
+  return ms;
+}
+
+template <uint32_t ATile, uint32_t ALane, uint32_t AThreads, uint32_t BTile,
+          uint32_t BThreads>
+static void compare_two_pass(const char *name, uint32_t log_n, uint32_t cols,
+                             const std::vector<uint32_t> &reference,
+                             const M31 *coeffs, const uint32_t *log_sizes,
+                             M31 *ea, M31 *eb, const M31 *tw, cudaStream_t s,
+                             int reps) {
+  if (ATile - ALane + BTile != log_n) return;
+  const size_t n = size_t(1) << log_n;
+  for (int lde = 0; lde < 2; ++lde) {
+    double best_ref = 1e30, best = 1e30;
+    for (int r = 0; r < reps; ++r) {
+      if (!lde) {
+        fill<<<1024, 256, 0, s>>>(ea, cols * n, 3);
+        fill<<<1024, 256, 0, s>>>(eb, cols * n, 3);
+      }
+      std::vector<float> ms;
+      run(reference, lde, log_n, cols, coeffs, log_sizes, ea, tw, s, &ms);
+      double t = 0;
+      for (float m : ms) t += m;
+      best_ref = t < best_ref ? t : best_ref;
+      const float t2 = run_two_pass<ATile, ALane, AThreads, BTile, BThreads>(
+          lde, log_n, cols, coeffs, log_sizes, eb, tw, s);
+      best = t2 < best ? t2 : best;
+    }
+    std::vector<uint32_t> ha(cols * n), hb(cols * n);
+    CK(cudaMemcpy(ha.data(), ea, cols * n * 4, cudaMemcpyDeviceToHost));
+    CK(cudaMemcpy(hb.data(), eb, cols * n * 4, cudaMemcpyDeviceToHost));
+    const bool same = std::memcmp(ha.data(), hb.data(), cols * n * 4) == 0;
+    std::printf("{\"two_pass\":\"%s\",\"log_n\":%u,\"columns\":%u,\"mode\":\"%s\",\"identical\":%s,\"reference_ms\":%.4f,\"two_pass_ms\":%.4f,\"speedup\":%.3f}\n",
+                name, log_n, cols, lde ? "lde" : "n2b", same ? "true" : "false",
+                best_ref, best, best_ref / best);
+    if (!same) std::exit(3);
+  }
+}
+
 int main(int argc, char **argv) {
   if (argc < 5) {
     std::fprintf(stderr, "usage: LOG_N COLUMNS OLD NEW [REPS]\n");
@@ -137,6 +204,14 @@ int main(int argc, char **argv) {
     }
     std::printf(",\"speedup\":%.3f}\n", best[0] / best[1]);
     if (!same) return 3;
+  }
+  if (std::getenv("TWO_PASS")) {
+    compare_two_pass<13, 2, 512, 13, 512>("A13l2t512+B13t512", log_n, cols, b, coeffs, log_sizes, ea, eb, tw, s, reps);
+    compare_two_pass<13, 2, 1024, 13, 1024>("A13l2t1024+B13t1024", log_n, cols, b, coeffs, log_sizes, ea, eb, tw, s, reps);
+    compare_two_pass<14, 3, 1024, 13, 512>("A14l3t1024+B13t512", log_n, cols, b, coeffs, log_sizes, ea, eb, tw, s, reps);
+    compare_two_pass<13, 3, 512, 14, 1024>("A13l3t512+B14t1024", log_n, cols, b, coeffs, log_sizes, ea, eb, tw, s, reps);
+    compare_two_pass<12, 2, 512, 12, 512>("A12l2t512+B12t512", log_n, cols, b, coeffs, log_sizes, ea, eb, tw, s, reps);
+    compare_two_pass<12, 3, 512, 13, 512>("A12l3t512+B13t512", log_n, cols, b, coeffs, log_sizes, ea, eb, tw, s, reps);
   }
   return 0;
 }
