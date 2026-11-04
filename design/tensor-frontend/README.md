@@ -66,7 +66,7 @@ Package: `src/tensor/` (standalone `build.zig`; `zig build test`,
 | prove ns per witness element | all-in prover cost per committed activation |
 | committed bits per token | witness table size x 32 / tokens |
 | weight-pass ns per weight | int8 x QM31 fold and combine kernels |
-| proof bytes per batch / request | split into GKR, sumchecks, witness opening, weight opening |
+| proof bytes per batch / request | wire-encoded bytes (`wire.md`, bench `"encoded_bytes"`); struct split into GKR, sumchecks, witness opening, weight opening |
 | verify time | single thread |
 | conjectured / proven security bits | `security.zig` sums every error term (bench `"security"`); see `security.md` |
 
@@ -97,6 +97,7 @@ Comparability rules:
 Performance notes: `perf.md` (CPU prover), `metal.md` (Metal path),
 `speed.md` (round 2: ext ops, Metal batch and einsums, recommended
 pcs2 + batched-matmul config as the bench default, decoder-layer numbers).
+Proof files and the `tensor-verify` CLI: `wire.md`.
 
 ## Status and caveats
 
