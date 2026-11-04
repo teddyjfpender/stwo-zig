@@ -24,6 +24,11 @@ pub const Session = struct {
     /// set; every later request in this process reuses it.
     setup: ?SetupCache.Cache = null,
     setup_fixed_bytes: usize = 0,
+    /// M4 resident: fixed-authority validations of the SetupCache's resident,
+    /// pointer-stable (frozen) components, reused by every later request of
+    /// this service (same provenance rule as `validated_fixed`). Its leases live
+    /// in `setup.fixed`, so it is torn down before `setup`.
+    setup_validated: FixedSet.ValidatedCatalogue,
     active: bool = false,
     hits: u64 = 0,
     misses: u64 = 0,
@@ -33,7 +38,7 @@ pub const Session = struct {
         errdefer budget.destroy();
         var native = try Setup.NativeCache.Cache.init(a, 256 << 20);
         errdefer native.deinit();
-        return .{ .allocator = a, .key_budget = budget, .keys = emptyKeys(budget.allocator()), .validated_fixed = .{ .allocator = budget.allocator() }, .native = native, .metadata = try Setup.ProgramMetadata.Cache.init(a, 64 << 20) };
+        return .{ .allocator = a, .key_budget = budget, .keys = emptyKeys(budget.allocator()), .validated_fixed = .{ .allocator = budget.allocator() }, .setup_validated = .{ .allocator = budget.allocator() }, .native = native, .metadata = try Setup.ProgramMetadata.Cache.init(a, 64 << 20) };
     }
     fn emptyKeys(a: std.mem.Allocator) Keys.Owner {
         return .{ .allocator = a, .cpus = &.{}, .truths = &.{} };
@@ -43,6 +48,7 @@ pub const Session = struct {
         self.validated_fixed.deinit();
         self.keys.deinit();
         if (self.fixed) |*cache| cache.deinit();
+        self.setup_validated.deinit();
         if (self.setup) |*cache| cache.deinit();
         self.native.deinit();
         self.metadata.deinit();

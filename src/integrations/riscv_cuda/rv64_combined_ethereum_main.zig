@@ -31,6 +31,10 @@ pub fn main() !void {
         if (arguments.len != 4) return error.ExpectedCombinedBatchManifestAndOutput;
         return @import("rv64/resident_batch.zig").runCombined(a, library, arguments[2], arguments[3]);
     }
+    if (arguments.len >= 2 and std.mem.eql(u8, arguments[1], "combined-serve")) {
+        if (arguments.len != 4) return error.ExpectedCombinedServeManifestAndSpool;
+        return @import("rv64/resident_batch.zig").runServe(a, library, arguments[2], arguments[3]);
+    }
     const planned_text = (try env(a, "STWO_RV64_GPU_PLANNED_CPU_WORKERS")) orelse return error.CombinedRequiresResidentPlan;
     defer a.free(planned_text);
     const planned = std.fmt.parseUnsigned(usize, planned_text, 10) catch return error.InvalidResidentPlan;

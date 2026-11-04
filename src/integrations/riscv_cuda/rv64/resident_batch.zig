@@ -29,12 +29,19 @@ const Manifest = struct {
     warm_order: []const u64 = &.{},
 };
 pub fn run(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, output: []const u8) !void {
-    return runMode(a, library, manifest_path, output, false);
+    return runMode(a, library, manifest_path, output, false, null);
 }
 pub fn runCombined(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, output: []const u8) !void {
-    return runMode(a, library, manifest_path, output, true);
+    return runMode(a, library, manifest_path, output, true, null);
 }
-fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, output: []const u8, comptime combined: bool) !void {
+/// Resident prover service (stwo-rv64d): one process, both CUDA contexts, the
+/// image/authority session and the ArtifactStore-backed SetupCache stay live
+/// while requests arrive through a spool directory (see serveSpool).
+pub fn runServe(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, spool: []const u8) !void {
+    return runMode(a, library, manifest_path, spool, true, spool);
+}
+fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, output: []const u8, comptime combined: bool, serve_spool: ?[]const u8) !void {
+    var init_timer = try std.time.Timer.start();
     const raw = try std.fs.cwd().readFileAlloc(a, manifest_path, 1 << 20);
     defer a.free(raw);
     var parsed = try std.json.parseFromSlice(Manifest, a, raw, .{ .ignore_unknown_fields = true });
@@ -149,6 +156,14 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
             std.debug.print("GPU_RESIDENT_WARM block={} setup_only_ns={} persist_ns={} resident_hits={} disk_hits={} misses={} stores={}\n", .{ block, warm_ns, persist_timer.read(), if (stats) |v| v.resident_hits else 0, if (stats) |v| v.disk_hits else 0, if (stats) |v| v.misses else 0, if (stats) |v| v.stores else 0 });
         }
     }
+    if (combined) {
+        const preload = try @import("outer_assignment.zig").ClassCache.Store.preloadAll();
+        std.debug.print("GPU_RESIDENT_CLASS_PRELOAD loaded={} ns={}\n", .{ preload.loaded, preload.ns });
+    }
+    const svc = .{ .a = a, .base = base, .manifest = &manifest, .pool = pool, .config = &config, .session = &session, .recycler = &recycler, .factory = factory, .ready = ready, .ready_mode = ready_mode, .resource_json = resource_json, .parent = parent, .manifest_sha256 = manifest_sha256 };
+    if (combined) {
+        if (serve_spool) |spool| return serveSpool(svc, spool, init_timer.read());
+    } else if (serve_spool != null) return error.ResidentServiceRequiresCombinedBatch;
     for (0..manifest.repeat) |trial| {
         var seen = std.AutoHashMap(u64, void).init(a);
         defer seen.deinit();
@@ -160,85 +175,213 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
         for (manifest.execution_order, 0..) |block, iteration| {
             if (seen.contains(block)) return error.DuplicateResidentBatchBlock;
             try seen.put(block, {});
-            var name_buf: [24]u8 = undefined;
-            const name = try std.fmt.bufPrint(&name_buf, "{d}", .{block});
-            const item = manifest.blocks.map.get(name) orelse return error.MissingResidentBatchBlock;
-            if (item.expected_cpu_segments == 0 or !std.mem.eql(u8, item.jobs, "-")) return error.ResidentBatchRequiresDirectCapture;
-            try pool.router.replan(cpuCount(item));
-            const directory = try std.fs.path.join(a, &.{ trial_directory, name });
-            defer a.free(directory);
-            try std.fs.cwd().makeDir(directory);
-            const resources = try std.fs.path.join(a, &.{ directory, "resources.json" });
-            defer a.free(resources);
-            const file = try std.fs.cwd().createFile(resources, .{});
-            try file.writeAll(resource_json);
-            file.close();
-            const request = try std.fs.path.resolve(a, &.{ parent, item.request });
-            defer a.free(request);
-            const proof = try std.fs.path.join(a, &.{ directory, "proof" });
-            defer a.free(proof);
-            const prefix = try std.fmt.allocPrint(a, "{d}", .{item.prefix_count});
-            defer a.free(prefix);
-            const parts = [_][]const u8{ "rv64-resident", "--security-profile", manifest.profile, "produce-candidate", request, "-", proof, prefix, resources };
-            var args: [parts.len][:0]u8 = undefined;
-            var made: usize = 0;
-            defer for (args[0..made]) |arg| a.free(arg);
-            for (parts, &args) |part, *arg| {
-                arg.* = try a.dupeZ(u8, part);
-                made += 1;
-            }
-            var hash = std.crypto.hash.sha2.Sha256.init(.{});
-            hash.update("stwo/rv64/resident/block-transaction/v1\x00");
-            hash.update(request);
-            const request_bytes = try std.fs.cwd().readFileAlloc(a, request, 16384);
-            defer a.free(request_bytes);
-            hash.update(request_bytes);
-            var transaction: [16]u8 = undefined;
-            std.mem.writeInt(u64, transaction[0..8], trial, .little);
-            std.mem.writeInt(u64, transaction[8..16], iteration, .little);
-            hash.update(&transaction);
-            const identity = hash.finalResult();
-            for (pool.devices, config.caps) |*device, cap| try device.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = if (combined) manifest.combined_immutable_device_bytes else manifest.immutable_device_bytes, .max_scopes = config.scope_limit });
-            var timer = try std.time.Timer.start();
-            if (combined) {
-                // Same producer and live authority handoff; every trial is fresh.
-                a.free(args[3]);
-                args[3] = try a.dupeZ(u8, "produce-and-recurse-candidate");
-                try Main.runCombinedResidentArgsWithExecution(&recycler, &args, pool.stages(), &session, .{
-                    .factory = factory,
-                    .ready = if (ready) |context| context.options() else null,
-                    .physical_devices = config.ids,
-                    .producer_manifest_sha256 = manifest_sha256,
-                });
-            } else try Main.runWithResidentArgs(&recycler, &args, pool.stages(), &session);
-            for (pool.devices) |*device| try device.native.endBlock(identity);
-            const request_wall_ns = timer.read();
-            // New setup artifacts are written between requests, off the wall.
-            var persist_timer = try std.time.Timer.start();
-            try session.persistSetup();
-            const persist_ns = persist_timer.read();
-            const setup_stats = session.setupStats();
-            if (combined) {
-                const report_path = try std.fs.path.join(base, &.{ proof, "report.json" });
-                defer base.free(report_path);
-                const bytes = try std.fs.cwd().readFileAlloc(base, report_path, 8 << 20);
-                defer base.free(bytes);
-                const summary = try std.json.parseFromSlice(struct { cpu_proofs: usize, completed_ethereum_block: bool }, base, bytes, .{ .ignore_unknown_fields = true });
-                defer summary.deinit();
-                if (summary.value.cpu_proofs != item.expected_cpu_segments or !summary.value.completed_ethereum_block) return error.CombinedBatchCoverageMismatch;
-                const combined_path = try std.fs.path.join(base, &.{ proof, "combined-report.json" });
-                defer base.free(combined_path);
-                const combined_bytes = try std.fs.cwd().readFileAlloc(base, combined_path, 8 << 20);
-                defer base.free(combined_bytes);
-                const combined_audit = try std.json.parseFromSlice(struct { recursion_execution: std.json.Value, fixed_setup_backend: []const u8 }, base, combined_bytes, .{ .ignore_unknown_fields = true });
-                defer combined_audit.deinit();
-                const entry = try std.json.Stringify.valueAlloc(base, .{ .schema = 1, .accepted = true, .request_wall_ns = request_wall_ns, .device_lifecycle_audit = "all request leases released", .device_byte_cap = config.caps[0], .physical_device_ids = config.ids, .device_byte_caps = config.caps, .recursion_mode = @tagName(manifest.recursion_mode), .recursion_execution = combined_audit.value.recursion_execution, .fixed_setup_backend = combined_audit.value.fixed_setup_backend, .recursion_worker_budget = if (ready_mode) manifest.recursion_worker_budget else null, .producer_manifest_sha256 = manifest_sha256, .hardware_parallel_qualified = false, .immutable_device_bytes = manifest.combined_immutable_device_bytes, .host_byte_cap = manifest.combined_host_bytes, .trial = trial, .block = block, .fresh_production = true }, .{ .whitespace = .indent_2 });
-                defer base.free(entry);
-                try @import("combined_publication.zig").write(proof, entry);
-            }
-            std.debug.print("GPU_RESIDENT_BLOCK block={} trial={} iteration={} request_wall_ns={} cached_host_keys={} host_key_cache_hits={} host_key_cache_misses={} host_key_cache_evictions={} gpu_contexts={} setup_cache={} setup_resident_hits={} setup_disk_hits={} setup_misses={} setup_persist_ns={}\n", .{ block, trial, iteration, request_wall_ns, session.keyCount(), session.hits, session.misses, session.evictions, pool.devices.len, setup_stats != null, if (setup_stats) |v| v.resident_hits else 0, if (setup_stats) |v| v.disk_hits else 0, if (setup_stats) |v| v.misses else 0, persist_ns });
+            _ = try requestOne(combined, svc, block, trial, iteration, trial_directory);
         }
     }
+}
+
+/// One request of the resident service: fresh native production plus (combined)
+/// recursion, reusing only the session's immutable setup and the device pool.
+/// Returns the request wall (ns), the same interval GPU_RESIDENT_BLOCK reports.
+fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, iteration: u64, trial_directory: []const u8) !u64 {
+    const a = svc.a;
+    const base = svc.base;
+    const manifest = svc.manifest;
+    const pool = svc.pool;
+    const config = svc.config;
+    const session = svc.session;
+    const recycler = svc.recycler;
+    const factory = svc.factory;
+    const ready = svc.ready;
+    const ready_mode = svc.ready_mode;
+    const resource_json = svc.resource_json;
+    const parent = svc.parent;
+    const manifest_sha256 = svc.manifest_sha256;
+    var name_buf: [24]u8 = undefined;
+    const name = try std.fmt.bufPrint(&name_buf, "{d}", .{block});
+    const item = manifest.blocks.map.get(name) orelse return error.MissingResidentBatchBlock;
+    if (item.expected_cpu_segments == 0 or !std.mem.eql(u8, item.jobs, "-")) return error.ResidentBatchRequiresDirectCapture;
+    try pool.router.replan(cpuCount(item));
+    const directory = try std.fs.path.join(a, &.{ trial_directory, name });
+    defer a.free(directory);
+    try std.fs.cwd().makeDir(directory);
+    const resources = try std.fs.path.join(a, &.{ directory, "resources.json" });
+    defer a.free(resources);
+    const file = try std.fs.cwd().createFile(resources, .{});
+    try file.writeAll(resource_json);
+    file.close();
+    const request = try std.fs.path.resolve(a, &.{ parent, item.request });
+    defer a.free(request);
+    const proof = try std.fs.path.join(a, &.{ directory, "proof" });
+    defer a.free(proof);
+    const prefix = try std.fmt.allocPrint(a, "{d}", .{item.prefix_count});
+    defer a.free(prefix);
+    const parts = [_][]const u8{ "rv64-resident", "--security-profile", manifest.profile, "produce-candidate", request, "-", proof, prefix, resources };
+    var args: [parts.len][:0]u8 = undefined;
+    var made: usize = 0;
+    defer for (args[0..made]) |arg| a.free(arg);
+    for (parts, &args) |part, *arg| {
+        arg.* = try a.dupeZ(u8, part);
+        made += 1;
+    }
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("stwo/rv64/resident/block-transaction/v1\x00");
+    hash.update(request);
+    const request_bytes = try std.fs.cwd().readFileAlloc(a, request, 16384);
+    defer a.free(request_bytes);
+    hash.update(request_bytes);
+    var transaction: [16]u8 = undefined;
+    std.mem.writeInt(u64, transaction[0..8], trial, .little);
+    std.mem.writeInt(u64, transaction[8..16], iteration, .little);
+    hash.update(&transaction);
+    const identity = hash.finalResult();
+    for (pool.devices, config.caps) |*device, cap| try device.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = if (combined) manifest.combined_immutable_device_bytes else manifest.immutable_device_bytes, .max_scopes = config.scope_limit });
+    var timer = try std.time.Timer.start();
+    if (combined) {
+        // Same producer and live authority handoff; every trial is fresh.
+        a.free(args[3]);
+        args[3] = try a.dupeZ(u8, "produce-and-recurse-candidate");
+        try Main.runCombinedResidentArgsWithExecution(recycler, &args, pool.stages(), session, .{
+            .factory = factory,
+            .ready = if (ready) |context| context.options() else null,
+            .physical_devices = config.ids,
+            .producer_manifest_sha256 = manifest_sha256,
+        });
+    } else try Main.runWithResidentArgs(recycler, &args, pool.stages(), session);
+    for (pool.devices) |*device| try device.native.endBlock(identity);
+    const request_wall_ns = timer.read();
+    // New setup artifacts are written between requests, off the wall.
+    var persist_timer = try std.time.Timer.start();
+    // Persisting is an optimisation for later processes: a store write failure
+    // (e.g. ENOSPC) is logged and never fails the request or the service.
+    session.persistSetup() catch |err| std.debug.print("GPU_RESIDENT_STORE persist_setup_error={s}\n", .{@errorName(err)});
+    const persist_ns = persist_timer.read();
+    if (combined) {
+        const Classes = @import("outer_assignment.zig").ClassCache;
+        var class_timer = try std.time.Timer.start();
+        const class_bytes = Classes.Store.persistPending() catch |err| blk: {
+            std.debug.print("GPU_RESIDENT_STORE persist_class_error={s}\n", .{@errorName(err)});
+            break :blk 0;
+        };
+        std.debug.print("GPU_RESIDENT_CLASS_STORE block={} trial={} persisted_bytes={} persist_ns={} memory_hits={} memory_misses={} disk_hits={} disk_stores={}\n", .{ block, trial, class_bytes, class_timer.read(), Classes.hits, Classes.misses, Classes.disk_hits, Classes.disk_stores });
+    }
+    const setup_stats = session.setupStats();
+    if (combined) {
+        const report_path = try std.fs.path.join(base, &.{ proof, "report.json" });
+        defer base.free(report_path);
+        const bytes = try std.fs.cwd().readFileAlloc(base, report_path, 8 << 20);
+        defer base.free(bytes);
+        const summary = try std.json.parseFromSlice(struct { cpu_proofs: usize, completed_ethereum_block: bool }, base, bytes, .{ .ignore_unknown_fields = true });
+        defer summary.deinit();
+        if (summary.value.cpu_proofs != item.expected_cpu_segments or !summary.value.completed_ethereum_block) return error.CombinedBatchCoverageMismatch;
+        const combined_path = try std.fs.path.join(base, &.{ proof, "combined-report.json" });
+        defer base.free(combined_path);
+        const combined_bytes = try std.fs.cwd().readFileAlloc(base, combined_path, 8 << 20);
+        defer base.free(combined_bytes);
+        const combined_audit = try std.json.parseFromSlice(struct { recursion_execution: std.json.Value, fixed_setup_backend: []const u8 }, base, combined_bytes, .{ .ignore_unknown_fields = true });
+        defer combined_audit.deinit();
+        const entry = try std.json.Stringify.valueAlloc(base, .{ .schema = 1, .accepted = true, .request_wall_ns = request_wall_ns, .device_lifecycle_audit = "all request leases released", .device_byte_cap = config.caps[0], .physical_device_ids = config.ids, .device_byte_caps = config.caps, .recursion_mode = @tagName(manifest.recursion_mode), .recursion_execution = combined_audit.value.recursion_execution, .fixed_setup_backend = combined_audit.value.fixed_setup_backend, .recursion_worker_budget = if (ready_mode) manifest.recursion_worker_budget else null, .producer_manifest_sha256 = manifest_sha256, .hardware_parallel_qualified = false, .immutable_device_bytes = manifest.combined_immutable_device_bytes, .host_byte_cap = manifest.combined_host_bytes, .trial = trial, .block = block, .fresh_production = true }, .{ .whitespace = .indent_2 });
+        defer base.free(entry);
+        try @import("combined_publication.zig").write(proof, entry);
+    }
+    std.debug.print("GPU_RESIDENT_BLOCK block={} trial={} iteration={} request_wall_ns={} cached_host_keys={} host_key_cache_hits={} host_key_cache_misses={} host_key_cache_evictions={} gpu_contexts={} setup_cache={} setup_resident_hits={} setup_disk_hits={} setup_misses={} setup_persist_ns={}\n", .{ block, trial, iteration, request_wall_ns, session.keyCount(), session.hits, session.misses, session.evictions, pool.devices.len, setup_stats != null, if (setup_stats) |v| v.resident_hits else 0, if (setup_stats) |v| v.disk_hits else 0, if (setup_stats) |v| v.misses else 0, persist_ns });
+    return request_wall_ns;
+}
+
+/// Spool protocol (all paths under `spool`):
+///   inbox/<name>.request  text: block number (must be a manifest block); taken in
+///                         lexical order; write as <name>.tmp then rename (atomic)
+///   inbox/STOP            exit once the inbox holds no further requests
+///   out/<name>/<block>/proof   the request's proof directory (same layout as a batch trial)
+///   done/<name>.json      {"ok","block","sequence","request_wall_ns","queue_ns"} on success
+///   READY                 written once the device pool and session are live
+/// Device or proof failures are terminal (the error propagates; no fallback).
+fn serveSpool(svc: anytype, spool: []const u8, init_ns: u64) !void {
+    const a = svc.a;
+    var dir = try std.fs.cwd().openDir(spool, .{});
+    defer dir.close();
+    try dir.makePath("inbox");
+    try dir.makePath("out");
+    try dir.makePath("done");
+    {
+        const ready = try std.fmt.allocPrint(a, "{{\"schema\":\"rv64-resident-service/v1\",\"pid\":{d},\"init_ns\":{d}}}\n", .{ if (@import("builtin").os.tag == .linux) std.os.linux.getpid() else 0, init_ns });
+        defer a.free(ready);
+        try dir.writeFile(.{ .sub_path = "READY.tmp", .data = ready });
+        try dir.rename("READY.tmp", "READY");
+    }
+    std.debug.print("GPU_RESIDENT_SERVICE ready init_ns={}\n", .{init_ns});
+    var inbox = try dir.openDir("inbox", .{ .iterate = true });
+    defer inbox.close();
+    var sequence: u64 = 0;
+    var idle = try std.time.Timer.start();
+    while (true) {
+        var next: ?[]u8 = null;
+        defer if (next) |n| a.free(n);
+        var stop = false;
+        var it = inbox.iterate();
+        while (try it.next()) |entry| {
+            if (entry.kind != .file) continue;
+            if (std.mem.eql(u8, entry.name, "STOP")) {
+                stop = true;
+                continue;
+            }
+            if (!std.mem.endsWith(u8, entry.name, ".request")) continue;
+            if (next == null or std.mem.order(u8, entry.name, next.?) == .lt) {
+                if (next) |n| a.free(n);
+                next = try a.dupe(u8, entry.name);
+            }
+        }
+        const name = next orelse {
+            if (stop) break;
+            std.Thread.sleep(5 * std.time.ns_per_ms);
+            continue;
+        };
+        const queue_ns = idle.read();
+        const stem = name[0 .. name.len - ".request".len];
+        const out = try std.fs.path.join(a, &.{ spool, "out", stem });
+        defer a.free(out);
+        // Admission: a malformed, unknown or duplicate request is answered with
+        // done/<stem>.json {"ok":false} and removed, so one bad file can neither
+        // stop the service nor poison its restart. Only failures inside a proof
+        // (device, prover) stay terminal.
+        const block = admit(svc, inbox, name, out) catch |err| {
+            std.debug.print("GPU_RESIDENT_SERVICE reject request={s} error={s}\n", .{ name, @errorName(err) });
+            const rejected = try std.fmt.allocPrint(a, "{{\"ok\":false,\"error\":\"{s}\",\"sequence\":null}}\n", .{@errorName(err)});
+            defer a.free(rejected);
+            const done_name = try std.fmt.allocPrint(a, "done/{s}.json", .{stem});
+            defer a.free(done_name);
+            const tmp_name = try std.fmt.allocPrint(a, "done/{s}.tmp", .{stem});
+            defer a.free(tmp_name);
+            try dir.writeFile(.{ .sub_path = tmp_name, .data = rejected });
+            try inbox.deleteFile(name);
+            try dir.rename(tmp_name, done_name);
+            continue;
+        };
+        try std.fs.cwd().makePath(out);
+        const wall = try requestOne(true, svc, block, sequence, 0, out);
+        const result = try std.fmt.allocPrint(a, "{{\"ok\":true,\"block\":{d},\"sequence\":{d},\"request_wall_ns\":{d},\"queue_ns\":{d}}}\n", .{ block, sequence, wall, queue_ns });
+        defer a.free(result);
+        const done_name = try std.fmt.allocPrint(a, "done/{s}.json", .{stem});
+        defer a.free(done_name);
+        const tmp_name = try std.fmt.allocPrint(a, "done/{s}.tmp", .{stem});
+        defer a.free(tmp_name);
+        try dir.writeFile(.{ .sub_path = tmp_name, .data = result });
+        try inbox.deleteFile(name);
+        try dir.rename(tmp_name, done_name);
+        sequence += 1;
+        idle.reset();
+    }
+    std.debug.print("GPU_RESIDENT_SERVICE stop requests={}\n", .{sequence});
+}
+
+fn admit(svc: anytype, inbox: std.fs.Dir, name: []const u8, out: []const u8) !u64 {
+    var buffer: [64]u8 = undefined;
+    const text = std.mem.trim(u8, inbox.readFile(name, &buffer) catch return error.ResidentRequestUnreadable, " \t\r\n");
+    const block = std.fmt.parseUnsigned(u64, text, 10) catch return error.ResidentRequestMalformed;
+    var name_buf: [24]u8 = undefined;
+    if (svc.manifest.blocks.map.get(try std.fmt.bufPrint(&name_buf, "{d}", .{block})) == null) return error.MissingResidentBatchBlock;
+    if (std.fs.cwd().access(out, .{})) |_| return error.ResidentRequestNameReused else |err| if (err != error.FileNotFound) return err;
+    return block;
 }
 
 fn cpuCount(item: Block) usize {
