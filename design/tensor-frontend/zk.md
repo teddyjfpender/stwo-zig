@@ -1120,6 +1120,32 @@ What remains of the gap:
   gap is closed by the format changes still to do: sent slot tails in `zk_pcs2` (plan step
   8) and the wide lb-2 weight table (step 9).
 
+### 5.4 Matched security presets (branch `codex/tensor-zk-matched`, 2026-11-04)
+
+The hiding numbers above were taken at query counts sized for *conjectured* bits.
+The proven calculator (security.md 11) read them at 33 / 33 bits on the toy. Two
+protocol knobs and two named presets fix that:
+
+* `Config.zk_prox_rows = k`: `k` proximity rows per hiding outer opening, each with
+  its own 4 mask rows. The mask rows sit in table 1 after the existing ones
+  (`maskLog(k)`), in the aux table (rows `1..4k`, group masks at `1 + 4k`), in the
+  weight mask table, in the weight table's extra rows (`WPAD_ROWS + 4k`;
+  `WeightKey.kp` must match the config), and in the link mask table. The proximity
+  term becomes `(R (E + 1)/|F|)^k`. `k > 1` also gives the flat per-proof weight
+  opening proximity rows.
+* `Config.zk_aux = {n_queries, pow_bits}`: aux opening queries / PoW.
+* `zk.Preset.matched` / `.matched_rec` (`zk.applyPreset`, bench `ZK_PRESET=`).
+  Definitions and measurements are in security.md 11.5.
+
+Results (on battery): hiding toy 2^20, 1 core, `matched`: 0.267 s, 4.1 ms, 751 KB,
+116.86 / 101.62 bits (all rounds, with / without work). FlashProve's hiding toy:
+8.63 s, 12 ms, 308 KB, 119.38 / 92.42. 116.9 is the QM31 ceiling of the hiding
+protocol's own sumcheck terms, so FlashProve's with-work figure (a 2^192 field)
+cannot be matched in QM31. Hiding MLP 1024 tokens, `matched_rec`: 1.30 s,
+1.6 MB, 97.0 / 96.6 (request LogUp cap). Zero knowledge: statistical distance
+2^-121 (toy) / 2^-113.4 (MLP), every table within its column budget. `k = 1`
+proofs are byte-identical to before.
+
 ## 6. Adversarial tests
 
 All pass. Run in `src/tensor` (standalone build): `zig build test -Doptimize=ReleaseSafe`
@@ -1192,6 +1218,12 @@ corrupts every zk field class.
 
 ## 7. Not done / caveats
 
+- **Matched presets (5.4).** With work, the hiding toy reaches 116.9 bits and not
+  FlashProve's 119.4. QM31 caps the masked sumcheck terms at 2^-116.9, and only an
+  OM31 hiding mode (not built) moves that cap. The proofs are larger than
+  FlashProve's: 751 KB flat or 448 KB recursive, against 308 KB. The hiding Johnson
+  regime would close that gap: outer OOD answers masked by pads (FlashProve Def 4.2)
+  plus their accounting. The timings were measured on battery.
 - **No OOD / Johnson regime in hiding mode.** zk_pcs2 has no outer OOD sample and refuses
   `pcs2.Params.ood` / `deep`, so its soundness is the unique-decoding and conjectured
   figures of §3.5, not the security.md calculator (§3.5, "OOD samples").
