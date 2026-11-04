@@ -175,7 +175,7 @@ def make_plan(args, run, paths, root):
     plan["producer_cwd"] = str(root)
     plan["assets"] = {"driver": str(paths["driver"]), "library": str(paths["library"]),
                       "receiver": str(paths["receiver"]), "recursive_receiver": str(paths["receiver"])}
-    plan["asset_sha256"] = {k: sha(v) for k, v in plan["assets"].items()}
+    plan["asset_sha256"] = {k: sha(v) if Path(v).is_file() else None for k, v in plan["assets"].items()}
     plan["runtime_target_sha256"] = plan["asset_sha256"]["library"]
     plan["producer_source_commit"] = source_commit(root)
     plan["resident_environment"] = dict(kv.split("=", 1) for kv in args.env)
@@ -201,7 +201,8 @@ def produce(plan, job, run, nsys=None):
     """R.produce_job, with an optional Nsight Systems wrapper and the m3 GPU lock."""
     target = Path(job["target"])
     target.mkdir(parents=True, exist_ok=False)
-    for key, path in plan["assets"].items():
+    for key in ("driver", "library"):
+        path = plan["assets"][key]
         if sha(path) != plan["asset_sha256"][key]:
             raise ValueError("asset changed since planning: " + key)
     manifest = R.producer_manifest(plan, job)
@@ -309,7 +310,7 @@ def prove(args):
         paths["library"] = Path(args.library)
     if args.receiver:
         paths["receiver"] = Path(args.receiver)
-    for key in ("driver", "library", "receiver"):
+    for key in ("driver", "library"):
         if not Path(paths[key]).is_file():
             raise SystemExit(f"missing {key}: {paths[key]} (run build)")
     tag = args.tag or now()
