@@ -108,6 +108,19 @@ def build(args):
         receipt["receiver_sha256"] = sha(paths["receiver"])
     if args.only in (None, "cuda"):
         cat = Path(args.catalogues)
+        if args.skip_catalogue_gate:
+            receipt["catalogue_gate"] = {"status": "skipped_by_flag"}
+        else:
+            # M4 resident: every AOT catalogue family must byte-equal regeneration from THIS tree
+            # (closes the global_aot drift class of 24628590). Fails the build on drift.
+            gate_log = logs / "catalogue-gate.json"
+            started = time.monotonic()
+            for command in (["build-tools", "--stream", args.stream],
+                            ["catalogue-gate", "--stream", args.stream, "--catalogues", str(cat), "--output", str(gate_log), "--strict"]):
+                run_logged([sys.executable, str(root / "scripts/rv64_m4_resident.py"), *command], logs / f"{command[0]}.log", cwd=root)
+            gate = B.load(gate_log)
+            receipt["catalogue_gate"] = {"status": gate["gate"], "statuses": gate["statuses"], "receipt": str(gate_log),
+                                         "seconds": round(time.monotonic() - started, 1)}
         command = [sys.executable, str(root / "scripts/rv64_cuda_resident_image_build.py"), "--source-root", str(root),
                    "--core-domain", str(cat / "core"), "--core-projection", str(cat / "projection"),
                    "--global-projection", str(cat / "global"), "--truth-domain", str(cat / "truth"),
@@ -462,6 +475,7 @@ def main():
     b.add_argument("--catalogues", default=str(M3 / "catalogues-v3"),
                    help="AOT catalogue root (v3 = v2 with the global catalogue regenerated at the integrate head: public-boundary projection guard log<=23)")
     b.add_argument("--jobs", type=int, default=32)
+    b.add_argument("--skip-catalogue-gate", action="store_true", help="do not byte-compare catalogues against regeneration (recorded)")
     b.add_argument("--max-stack-bytes", type=int, default=12544, help="Worst per-thread kernel stack admitted (accepted image: 12544)")
     sub.add_parser("inputs")
     for name in ("prove", "bench"):

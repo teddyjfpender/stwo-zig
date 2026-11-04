@@ -37,6 +37,18 @@ const IDENTITY_ONLY_ENV = "STWO_ZIG_RV64_SETUP_IDENTITY_ONLY_CPU";
 fn requireIndependentReceiverSetup(persisted_selected: bool) !void {
     if (persisted_selected) return error.PersistedSetupCacheForbiddenForReceiver;
 }
+/// M4 resident: the session's SetupCache components are resident and frozen for
+/// the session's life, so their fixed-authority bindings are validated once per
+/// service and reused (pointer provenance, as for the key-owner catalogue). A
+/// failure (for example the fixed cache's byte budget) clears the catalogue and
+/// retries once from scratch: the result is the same pure function either way.
+fn residentSetupFixedSet(a: std.mem.Allocator, owner: anytype, keys: anytype, pcs: anytype, catalogue: *@import("../services/gkr_local/fixed_authority_set.zig").ValidatedCatalogue) !FixedSet {
+    return FixedSet.initWithValidatedCatalogue(a, owner, keys.cpus, keys.truths, pcs, catalogue) catch {
+        catalogue.clear();
+        return FixedSet.initWithValidatedCatalogue(a, owner, keys.cpus, keys.truths, pcs, catalogue);
+    };
+}
+
 fn setupCacheOptions(a: std.mem.Allocator, mode: SetupCache.Mode, fixed_setup_bytes: usize) !struct { options: SetupCache.Options, owned: ?[]u8 } {
     const dir = std.process.getEnvVarOwned(a, SETUP_CACHE_ENV) catch |err| switch (err) {
         error.EnvironmentVariableNotFound => null,
@@ -634,7 +646,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     var local_fixed: ?FixedAuthority.Fixed.Cache = if (candidate and session == null and setup_owner == null) try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes) else null;
     defer if (local_fixed) |*owner| owner.deinit();
     const fixed_cache: ?*FixedAuthority.Fixed.Cache = if (!candidate) null else if (setup_owner) |owner| &owner.fixed else if (session) |shared| try shared.fixedAuthority(fixed_setup_bytes) else &local_fixed.?;
-    var fixed_set: ?FixedSet = if (fixed_cache) |owner| if (session != null and setup_owner == null) try FixedSet.initWithValidatedCatalogue(a, owner, keys.cpus, keys.truths, pcs, &session.?.validated_fixed) else try FixedSet.init(a, owner, keys.cpus, keys.truths, pcs) else null;
+    var fixed_set: ?FixedSet = if (fixed_cache) |owner| if (session != null and setup_owner == null) try FixedSet.initWithValidatedCatalogue(a, owner, keys.cpus, keys.truths, pcs, &session.?.validated_fixed) else if (session_setup != null and setup_owner != null and setup_owner.? == session_setup.?) try residentSetupFixedSet(a, owner, &keys, pcs, &session.?.setup_validated) else try FixedSet.init(a, owner, keys.cpus, keys.truths, pcs) else null;
     defer if (fixed_set) |*owner| owner.deinit();
     const producer_fixed_ns = timer.read() - producer_fixed_start_ns;
     b2i.setup_done_at_ns = since(process_start);

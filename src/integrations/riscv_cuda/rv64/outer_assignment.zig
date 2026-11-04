@@ -37,7 +37,7 @@ pub fn requireProductionCapabilities(library: *std.DynLib) !void {
 /// STWO_RV64_OUTER_PLAN_CLASS_CACHE=0 off, =check rebuild+compare, default on.
 pub const ClassCache = struct {
     pub const Mode = enum { off, on, check };
-    const Template = struct { key: [32]u8, n_vars: u32, n_constants: usize, n_origins: usize, seed_vars: []u32, tasks: []Task, indices: []u32, level_ends: []usize, identity: [32]u8, bytes: usize };
+    const Template = struct { key: [32]u8, n_vars: u32, n_constants: usize, n_origins: usize, seed_vars: []u32, tasks: []Task, indices: []u32, level_ends: []usize, identity: [32]u8, bytes: usize, persisted: bool = false, capability_checked: bool = true };
     const gpa = std.heap.smp_allocator;
     var mutex: std.Thread.Mutex = .{};
     var entries: std.ArrayListUnmanaged(*Template) = .empty;
@@ -56,11 +56,210 @@ pub const ClassCache = struct {
         return std.fmt.parseUnsigned(usize, value, 10) catch 6 << 30;
     }
     fn find(key: [32]u8) ?*Template {
-        mutex.lock();
-        defer mutex.unlock();
-        for (entries.items) |t| if (std.mem.eql(u8, &t.key, &key)) return t;
-        return null;
+        {
+            mutex.lock();
+            defer mutex.unlock();
+            for (entries.items) |t| if (std.mem.eql(u8, &t.key, &key)) return t;
+        }
+        return Store.load(key);
     }
+    pub var disk_hits: usize = 0;
+    pub var disk_stores: usize = 0;
+    /// M4 resident ArtifactStore: fold-class templates persisted across service
+    /// processes (STWO_RV64_OUTER_PLAN_CLASS_STORE=<dir>). A file is bound to
+    /// the class key and to SHA-256(own executable); on load the plan identity
+    /// (schedule_identity over tasks, indices, level ends) is recomputed and must
+    /// equal the stored one, and the usual seed-layout/shape checks still run on
+    /// every use. Any mismatch is a miss-and-rebuild of THIS class and is logged;
+    /// proof bytes cannot depend on the store (an equal plan is the equal
+    /// assignment; the receiver never reads it).
+    pub const Store = struct {
+        const MAGIC = "RV64CLS1";
+        const HEADER = 8 + 4 + 4 + 32 + 32 + 32 + 4 + 4 + 8 * 6;
+        var code: ?[32]u8 = null;
+        var code_mutex: std.Thread.Mutex = .{};
+        fn directory() ?[]const u8 {
+            const value = std.posix.getenv("STWO_RV64_OUTER_PLAN_CLASS_STORE") orelse return null;
+            return if (value.len == 0) null else value;
+        }
+        fn codeIdentity() ![32]u8 {
+            code_mutex.lock();
+            defer code_mutex.unlock();
+            if (code) |c| return c;
+            var buffer: [std.fs.max_path_bytes]u8 = undefined;
+            const path = try std.fs.selfExePath(&buffer);
+            const file = try std.fs.openFileAbsolute(path, .{});
+            defer file.close();
+            var h = std.crypto.hash.sha2.Sha256.init(.{});
+            h.update("rv64-m4-class-store/code/v1\x00");
+            var chunk: [1 << 20]u8 = undefined;
+            while (true) {
+                const n = try file.read(&chunk);
+                if (n == 0) break;
+                h.update(chunk[0..n]);
+            }
+            code = h.finalResult();
+            return code.?;
+        }
+        fn pathFor(buffer: []u8, dir: []const u8, key: [32]u8) ![]const u8 {
+            return std.fmt.bufPrint(buffer, "{s}/{s}.rv64-class", .{ dir, std.fmt.bytesToHex(key, .lower) });
+        }
+        fn load(key: [32]u8) ?*Template {
+            const dir = directory() orelse return null;
+            if (mode() != .on) return null;
+            var timer = std.time.Timer.start() catch return null;
+            const t = loadImpl(dir, key) catch |err| {
+                if (err != error.FileNotFound) std.debug.print("GPU_OUTER_PLAN_CLASS store_reject class={x} error={s}\n", .{ key[0..8], @errorName(err) });
+                return null;
+            };
+            mutex.lock();
+            defer mutex.unlock();
+            for (entries.items) |e| if (std.mem.eql(u8, &e.key, &key)) {
+                destroy(t);
+                return e;
+            };
+            if (held_bytes + t.bytes > limit()) {
+                destroy(t);
+                return null;
+            }
+            entries.append(gpa, t) catch {
+                destroy(t);
+                return null;
+            };
+            held_bytes += t.bytes;
+            disk_hits += 1;
+            std.debug.print("GPU_OUTER_PLAN_CLASS store_hit class={x} bytes={} load_ns={}\n", .{ key[0..8], t.bytes, timer.read() });
+            return t;
+        }
+        fn destroy(t: *Template) void {
+            gpa.free(t.seed_vars);
+            gpa.free(t.tasks);
+            gpa.free(t.indices);
+            gpa.free(t.level_ends);
+            gpa.destroy(t);
+        }
+        fn loadImpl(dir: []const u8, key: [32]u8) !*Template {
+            var buffer: [std.fs.max_path_bytes]u8 = undefined;
+            const file = try std.fs.cwd().openFile(try pathFor(&buffer, dir, key), .{});
+            defer file.close();
+            var header: [HEADER]u8 = undefined;
+            if (try file.readAll(&header) != HEADER) return error.ClassStoreTruncated;
+            if (!std.mem.eql(u8, header[0..8], MAGIC) or std.mem.readInt(u32, header[8..12], .little) != 1) return error.ClassStoreFormat;
+            if (!std.mem.eql(u8, header[16..48], &key)) return error.ClassStoreKey;
+            const own = try codeIdentity();
+            if (!std.mem.eql(u8, header[48..80], &own)) return error.ClassStoreCodeIdentity;
+            const identity = header[80..112].*;
+            const n_vars = std.mem.readInt(u32, header[112..116], .little);
+            var f: [6]u64 = undefined;
+            for (&f, 0..) |*v, i| v.* = std.mem.readInt(u64, header[120 + 8 * i ..][0..8], .little);
+            const n_constants: usize = @intCast(f[0]);
+            const n_origins: usize = @intCast(f[1]);
+            const limit_items: u64 = 1 << 32;
+            for (f[2..]) |v| if (v > limit_items) return error.ClassStoreFormat;
+            const t = try gpa.create(Template);
+            errdefer gpa.destroy(t);
+            const seed_vars = try gpa.alloc(u32, @intCast(f[2]));
+            errdefer gpa.free(seed_vars);
+            const tasks = try gpa.alloc(Task, @intCast(f[3]));
+            errdefer gpa.free(tasks);
+            const indices = try gpa.alloc(u32, @intCast(f[4]));
+            errdefer gpa.free(indices);
+            const level_ends = try gpa.alloc(usize, @intCast(f[5]));
+            errdefer gpa.free(level_ends);
+            inline for (.{ std.mem.sliceAsBytes(seed_vars), std.mem.sliceAsBytes(tasks), std.mem.sliceAsBytes(indices), std.mem.sliceAsBytes(level_ends) }) |bytes| {
+                if (try file.readAll(bytes) != bytes.len) return error.ClassStoreTruncated;
+            }
+            var extra: [1]u8 = undefined;
+            if (try file.read(&extra) != 0) return error.ClassStoreFormat;
+            const recomputed = try @import("schedule_identity.zig").digest(gpa, .{ std.mem.sliceAsBytes(tasks), std.mem.sliceAsBytes(indices), std.mem.sliceAsBytes(level_ends) });
+            if (!std.mem.eql(u8, &recomputed, &identity)) return error.ClassStoreIdentity;
+            const bytes = tasks.len * @sizeOf(Task) + indices.len * 4 + level_ends.len * @sizeOf(usize) + seed_vars.len * 4;
+            t.* = .{ .key = key, .n_vars = n_vars, .n_constants = n_constants, .n_origins = n_origins, .seed_vars = seed_vars, .tasks = tasks, .indices = indices, .level_ends = level_ends, .identity = identity, .bytes = bytes, .persisted = true, .capability_checked = false };
+            return t;
+        }
+        /// Service boot: loads every class template in the store (in parallel,
+        /// up to the in-memory byte limit) so a cold service's first request
+        /// already hits memory. Each file passes the same checks as a lazy load.
+        pub fn preloadAll() !struct { loaded: usize, ns: u64 } {
+            const dir_path = directory() orelse return .{ .loaded = 0, .ns = 0 };
+            if (mode() != .on) return .{ .loaded = 0, .ns = 0 };
+            var timer = try std.time.Timer.start();
+            var dir = std.fs.cwd().openDir(dir_path, .{ .iterate = true }) catch |err| switch (err) {
+                error.FileNotFound => return .{ .loaded = 0, .ns = 0 },
+                else => return err,
+            };
+            defer dir.close();
+            var keys: std.ArrayListUnmanaged([32]u8) = .empty;
+            defer keys.deinit(gpa);
+            var it = dir.iterate();
+            while (try it.next()) |entry| {
+                if (entry.kind != .file or !std.mem.endsWith(u8, entry.name, ".rv64-class") or entry.name.len != 64 + ".rv64-class".len) continue;
+                var key: [32]u8 = undefined;
+                _ = std.fmt.hexToBytes(&key, entry.name[0..64]) catch continue;
+                try keys.append(gpa, key);
+            }
+            _ = try codeIdentity();
+            const Worker = struct {
+                fn run(list: []const [32]u8, next: *std.atomic.Value(usize), loaded: *std.atomic.Value(usize)) void {
+                    while (true) {
+                        const i = next.fetchAdd(1, .monotonic);
+                        if (i >= list.len) return;
+                        if (load(list[i]) != null) _ = loaded.fetchAdd(1, .monotonic);
+                    }
+                }
+            };
+            var next = std.atomic.Value(usize).init(0);
+            var loaded = std.atomic.Value(usize).init(0);
+            var threads: [8]std.Thread = undefined;
+            var spawned: usize = 0;
+            while (spawned < @min(threads.len, keys.items.len)) : (spawned += 1) {
+                threads[spawned] = std.Thread.spawn(.{}, Worker.run, .{ keys.items, &next, &loaded }) catch break;
+            }
+            Worker.run(keys.items, &next, &loaded);
+            for (threads[0..spawned]) |t| t.join();
+            return .{ .loaded = loaded.load(.monotonic), .ns = timer.read() };
+        }
+        /// Writes every template not yet on disk. Called between requests by the
+        /// resident service (off the request wall). Returns bytes written.
+        pub fn persistPending() !u64 {
+            const dir = directory() orelse return 0;
+            try std.fs.cwd().makePath(dir);
+            const own = try codeIdentity();
+            var written: u64 = 0;
+            mutex.lock();
+            defer mutex.unlock();
+            for (entries.items) |t| {
+                if (t.persisted) continue;
+                var buffer: [std.fs.max_path_bytes]u8 = undefined;
+                const final = try pathFor(&buffer, dir, t.key);
+                var tmp_buffer: [std.fs.max_path_bytes]u8 = undefined;
+                const tmp = try std.fmt.bufPrint(&tmp_buffer, "{s}.tmp", .{final});
+                {
+                    const file = try std.fs.cwd().createFile(tmp, .{});
+                    defer file.close();
+                    var header = std.mem.zeroes([HEADER]u8);
+                    @memcpy(header[0..8], MAGIC);
+                    std.mem.writeInt(u32, header[8..12], 1, .little);
+                    @memcpy(header[16..48], &t.key);
+                    @memcpy(header[48..80], &own);
+                    @memcpy(header[80..112], &t.identity);
+                    std.mem.writeInt(u32, header[112..116], t.n_vars, .little);
+                    const f = [6]u64{ t.n_constants, t.n_origins, t.seed_vars.len, t.tasks.len, t.indices.len, t.level_ends.len };
+                    for (f, 0..) |v, i| std.mem.writeInt(u64, header[120 + 8 * i ..][0..8], v, .little);
+                    try file.writeAll(&header);
+                    try file.writeAll(std.mem.sliceAsBytes(t.seed_vars));
+                    try file.writeAll(std.mem.sliceAsBytes(t.tasks));
+                    try file.writeAll(std.mem.sliceAsBytes(t.indices));
+                    try file.writeAll(std.mem.sliceAsBytes(t.level_ends));
+                    written += HEADER + t.bytes;
+                }
+                try std.fs.cwd().rename(tmp, final);
+                t.persisted = true;
+                disk_stores += 1;
+            }
+            return written;
+        }
+    };
     fn originCount(ctx: *const Circuit.builder.Context(Q)) usize {
         return if (ctx.witness_metadata) |m| m.origins.items.len else 0;
     }
@@ -129,7 +328,17 @@ pub const Prepared = struct {
         const cache_mode = ClassCache.mode();
         const hint = if (cache_mode == .off) null else @import("stwo_circuit_cpu_integration").om31.device_prove.class_hint;
         const template = if (hint) |class_key| ClassCache.find(class_key) else null;
-        if (template) |t| if (cache_mode == .on) return initFromTemplate(a, ctx, library, t);
+        if (template) |t| if (cache_mode == .on) {
+            if (!t.capability_checked) {
+                // Disk-loaded template: re-check every task kind against THIS library once.
+                const capabilities = if (library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_capabilities")) |query| query() else 0xfff;
+                for (t.tasks) |task| if (task.kind >= 32 or capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
+                ClassCache.mutex.lock();
+                t.capability_checked = true;
+                ClassCache.mutex.unlock();
+            }
+            return initFromTemplate(a, ctx, library, t);
+        };
         var fresh = try initFull(a, ctx, library);
         errdefer fresh.deinit();
         if (template) |t| {

@@ -154,6 +154,7 @@ pub fn build(b: *std.Build) void {
     projection_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
     projection_root.addImport("stwo_cuda_backend", backend);
     const projection_fixture = b.addExecutable(.{ .name = "rv64-projection-fixtures", .root_module = projection_root });
+    b.step("build-rv64-projection-tool", "Build the projection AOT catalogue generator without running it (catalogue gate)").dependOn(&b.addInstallArtifact(projection_fixture, .{}).step);
     const run_projection = b.addRunArtifact(projection_fixture);
     if (b.args) |args| run_projection.addArgs(args);
     b.step("rv64-projection-fixtures", "Export native source-column projection fixtures").dependOn(&run_projection.step);
@@ -229,6 +230,7 @@ pub fn build(b: *std.Build) void {
     global_root.addImport("stwo_cuda_backend", backend);
     global_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
     const global_fixture = b.addExecutable(.{ .name = "rv64-global-fixtures", .root_module = global_root });
+    b.step("build-rv64-global-tool", "Build the global AOT catalogue generator without running it (catalogue gate)").dependOn(&b.addInstallArtifact(global_fixture, .{}).step);
     const run_global = b.addRunArtifact(global_fixture);
     if (b.args) |args| run_global.addArgs(args);
     b.step("rv64-global-fixtures", "Export native global tuple projections and classic interaction witnesses").dependOn(&run_global.step);
