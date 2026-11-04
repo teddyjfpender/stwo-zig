@@ -161,7 +161,11 @@ reads the same function on both sides. Note that the inner work bound
 (`inner_work_shift`) narrows the level above when the deep blowup is high:
 lb 6 there made proofs larger. lb 3 is the measured optimum.
 
-## 4. Weights: proximity once at a small distance
+## 4. Weights: proximity once at a small distance (`weight_proximity = false`)
+
+> Since 4.2 (review PCS-1) this is the opt-in mode. The default runs a
+> proximity test in every batch's weight opening, and the key's OOD claim
+> pins the decoding.
 
 The weight key proves proximity of the weight table once, at level 0 with
 k proximity rows, `key_outer` queries and distance delta_key, which is far
@@ -201,6 +205,105 @@ unchanged (~7 ms). The request proof does not change. The request LogUp
 (per batch) keeps one (alpha, beta). Doubling it would cost a second
 per-batch GKR, about +25% prover time.
 
+### 4.2 Binding every batch to the key's decoding (review PCS-1, PCS-2, P7)
+
+**The gap.** Without an OOD sample a word can be close to several
+codewords, and a consistency-only opening binds only up to the distance the
+key proved. The review built a table that equals Enc(M1) on a random half of
+the columns and Enc(M2) on the rest. Its key proof (for M1) passed with
+probability ~(1/2)^t_key, and a batch proof for M2 (the down projection
+negated, a valid int8 model) passed with ~(1/2)^t_w. The two proofs are
+ground separately. At the default 54/54 queries this is about 2^74 work, not
+the "conjectured 128". The proven accounting of section 4 was already right:
+it charges (rho + delta_key)^t_w, and for the hybrid delta_key = 1/2. The
+conjectured figure was the problem. A capacity-style proximity conjecture
+says nothing about which codeword a later consistency opening decodes to.
+
+**The fix (proof format change; digests repinned).**
+
+1. *Layout.* `protocol.mixWeightLayout` mixes the root, every tensor's dims,
+   every offset, and (log_rows, log_cols, rows_used). It mixes them into the
+   key transcript (`keyTranscript`) and into every batch transcript
+   (`mixStatement`). `checkKeyLayout` makes `weight_key.verify`, `prove` and
+   `verify` reject a key that is not the canonical `layout(st.weights)`, with
+   `error.WeightKeyShape`: other lengths, other dims, non-canonical or
+   misaligned offsets, a wrong split, or a wrong rows_used. Before, these were
+   panics or a silent reshape. `fullPoint` returns `error.ClaimShape` instead
+   of underflowing.
+2. *Key OOD.* The key transcript draws z_ood (log_rows + log_cols QM31
+   coordinates) right after the layout, before any prover message. The
+   committer publishes v_ood = W~(z_ood) as `WeightKey.ood_value`, computed in
+   `commitWeights`. The key proof mixes v_ood and opens the two claims W(rho)
+   and (z_ood, v_ood) with proximity. Except with binom(L, 2) n / |F| (L =
+   the list size at the key's delta), at most one member D of the list
+   Lambda(T*) matches v_ood, and by 3.2 the range proof is about D.
+3. *Batch OOD claim.* Every batch's weight opening holds the matmul claims and
+   the claim (z_ood, v_ood), grouped by column point (`pcs2.groupByColumn`,
+   now in the flat PCS too).
+4. *Per-batch proximity (`Config.weight_proximity`, default true).* Each
+   batch's weight opening also runs its own proximity test (prox_rows rows at
+   level 0). By 3.2 every accepted claim of that opening holds for one list
+   member C*. The OOD claim is one of them, so C* = D: the same table the key
+   proved in range, in any regime the PCS argument covers (unique, or Johnson
+   with this OOD sample). This is FlashProve's online proof ("folds the
+   table's rows at a sampled point ... compares the fold with them and with
+   the OOD answers", paper.txt 957-958). The opening is accounted as a fresh
+   table with an OOD sample (`security.zig`: `weights L0 proximity`, Johnson
+   when better), and so is the key's level 0.
+
+   With `weight_proximity = false`, the binding is section 4's: the key's MCA
+   set S_D (|S_D| >= (1 - delta_key) E, T* = D there) gives (rho +
+   delta_key)^t_w per batch. The batch OOD claim is then redundant, but it is
+   cheap and keeps one format. This mode is cheaper per query (1.66 bits vs
+   ~0.9 at rho = 1/4) but needs ~900 key queries. It has **no conjectured
+   reading**: under the capacity conjecture, delta_key -> 1 - rho and the
+   per-batch term becomes 1. `tensor-bench` prints `"conjectured_bits":null`
+   for such a configuration. `security.zig` never computes a conjectured
+   figure; it only sums proven terms for the binding the verifier checks
+   (`"weight_binding"` in the report).
+
+**Why per-batch proximity is the default.** It makes each batch
+self-contained: the batch's security does not depend on the key's
+query count, so a client never has to trust a 1.8 MB key proof's
+distance. It is also the only mode in which the bench's conjectured figure
+means anything. It costs +7% bytes at the conjectured config and +22% at
+the balanced proven config (6.5 below), and in exchange the key proof
+shrinks from 1.8 MB to 0.4 MB. Deployments that verify the key once, and
+care about request bytes, can set `weight_proximity = false` and the
+section-4 key parameters.
+
+**LogUp counts below p (P7, PROTO-6).** The multiplicity argument needs every
+relation's fractions below p: with p copies of an off-table key, p/(alpha -
+v) = 0. `weight_key.checkCount` rejects 2^n + 256 >= p (n >= 31), before
+the histogram check. `protocol.checkLogUpCounts` (in prove and verify)
+rejects any request relation whose keys + table rows reach p, or any key of
+log size >= 31, with `error.LogUpCountAboveP`. Maverick-scale relations must
+be chunked below p (section 7); the projection is out of scope until that is
+done.
+
+**PCS-3, PCS-4.** Flat weight openings group claims by column point, so
+`weight_log_cols > min log N` is complete (before, honest proofs failed with
+`OpeningGroupMismatch`). `pcs.verifyOpening` checks every point's length
+before slicing it (`error.OpeningShape`, not a panic).
+
+**Regression tests** (`review_pcs_test.zig`, copied from the review's
+rev-pcs worktree; the attack tests now assert rejection): the swapped-layout
+key is rejected by the key verifier, the prover and the batch verifier, and
+seven malformed keys give errors; flat `weight_log_cols = 5 > log N = 4`
+verifies in both modes; the end-to-end hybrid (key for M1, batch for M2,
+flat and pcs2, both modes, 40 seeds) is never accepted, while the key half
+still passes 5-12 of 40 seeds at t = 2; short and long points are rejected;
+2^31-weight keys and request relations with >= p fractions are rejected.
+`security.zig` checks the accounting of both modes.
+
+**Not done / follow-ups.** zk.zig has the same structure (`verifyWeightProximity`
+once, per-batch `zkp.verifyOpening(..., null, ...)` without proximity, and no
+OOD). There a published v_ood would leak a linear form of the weights. It
+needs FlashProve's masked OOD answers (paper Definition 4.3) and is left to
+the zk stream. In proximity mode the per-batch weight query count is not yet
+re-tuned: 97 queries at Johnson is more than needed for the request's
+LogUp-capped 99.5 bits.
+
 ## 5. Proof-format trims
 
 * **weight_values dropped.** The weight claims' values are the matmul
@@ -215,6 +318,9 @@ per-batch GKR, about +25% prover time.
 * **GKR instance merging per table**: not done (see 7).
 
 ## 6. Measurements
+
+> 6.1-6.4 were measured before the PCS-1 fix (4.2). Proof formats and
+> digests have changed since; 6.5 gives the fix's cost on the same runs.
 
 M4 Max on AC power, binary at `0f1f577ec` (ReleaseFast), host shared with
 other agents (load average 4-11), so times vary by about +-20% between
@@ -320,6 +426,40 @@ theorem: about q/2^124 + 2^-101.
   0.039 s base vs 0.043-0.066 s Johnson), within the run-to-run noise of
   the total (0.28-0.33 s). The key proof with 900 queries is 1.8 MB, once
   per model.
+
+### 6.5 Cost of the PCS-1 fix (key OOD, batch OOD claim, per-batch proximity)
+
+M4 Max on AC power, ReleaseFast, 3 runs each, other agents on the host
+(times +-20%). base = `16ce61448`, fix = this branch. Sizes and bits are
+deterministic. mlp: 12 threads, `TENSOR_BATCH_MATMULS=1`. Bits are the
+request account (sum with / without work); `tensor-bench mlp` accounts
+the key separately.
+
+| run | config | bytes | prove s | verify ms | weight_open s | key bytes | key verify ms | bits |
+|---|---|---|---|---|---|---|---|---|
+| product 20, 1 thread | base, `54 2 20 2 54` | 117 976 | 0.137-0.139 | 0.64-0.66 | - | - | - | 55.0 / 35.0 |
+| | fix | 118 296 | 0.131-0.132 | 0.63 | - | - | - | 55.0 / 35.0 |
+| mlp 9 11 12, conj | base, `64 2 20 2 54 2 20` | 328 704 | 0.157-0.159 | 2.71-2.72 | 0.019-0.023 | 191 368 | 1.1-1.2 | 54.6 / - |
+| | fix, per-batch proximity | 350 464 (+6.6%) | 0.166-0.213 | 2.88-2.90 | 0.030-0.036 | 205 416 | 1.2 | 54.6 / - |
+| | fix, `TENSOR_WEIGHT_PROX=0` | 343 968 (+4.6%) | 0.180-0.197 | 2.78-2.82 | 0.028-0.031 | 205 416 | 1.2 | 54.6 / - (conj: null) |
+| mlp 9 11 12, balanced (6.2) | base, weights 53, key 900 | 522 588 | 0.169-0.173 | 3.77-3.81 | 0.030-0.032 | 1 782 152 | 7.4-7.5 | 99.51 / 86.14 |
+| | fix, `TENSOR_WEIGHT_PROX=0`, weights 53, key 900 | 553 660 (+5.9%) | 0.160-0.196 | 3.92-4.05 | 0.021-0.023 | 1 770 920 | 7.4 | 99.51 / 86.14 |
+| | fix, per-batch proximity, weights 97, key 122 | 640 028 (+22%) | 0.178-0.180 | 4.55-4.60 | 0.033-0.034 | 404 648 | 2.2-2.3 | 99.51 / 87.00 |
+
+* The product toy opens no weights. Its proof changes only through the
+  transcript: other query positions give +320 B of multiproof siblings.
+  Prove and verify times are unchanged.
+* The MLP cost is the OOD claim group (one more group, so a row at the
+  final level), plus in proximity mode the proximity row and its inner
+  level. weight_open grows by ~0.01 s, verify by 0.1-0.8 ms, and commit by
+  the OOD MLE (one row combination, within noise of commit_weights ~0.14 s).
+* With per-batch proximity the request is self-contained. The key falls
+  from 1.78 MB to 0.40 MB and its verify from 7.4 to 2.2 ms at the same
+  request bits. Re-tuning the per-batch weight queries (97 here) is a
+  follow-up.
+* The conjectured config's bench JSON now prints `"conjectured_bits":null`
+  with `TENSOR_WEIGHT_PROX=0`. Its proven account is unchanged (~54-55 bits:
+  that config was never proven 128).
 
 ## 7. Caveats and not done
 

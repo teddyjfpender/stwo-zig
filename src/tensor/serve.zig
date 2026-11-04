@@ -547,7 +547,8 @@ test "per-request path under the security params (witness OOD, weight_outer) and
         try testing.expectEqual(si.logup_fractions, ri.logup_fractions);
         try testing.expectEqual(si.logup_degree_fractions, ri.logup_degree_fractions);
         try testing.expect(std.meta.eql(ri.weight_shape, si.weight_shape));
-        try testing.expectEqual(@as(usize, 1), ri.weight_groups); // one reduced point
+        // one reduced point plus the key OOD claim (PCS-1), grouped by column point
+        try testing.expect(ri.weight_groups >= 1 and ri.weight_groups <= 2);
         try testing.expect(si.weight_groups >= 1);
     }
     // the shared opening is bound to the per-batch weight parameters

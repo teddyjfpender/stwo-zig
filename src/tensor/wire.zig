@@ -86,6 +86,8 @@ const KeyTag = enum(u8) {
     geometry = 0x02,
     infos = 0x03,
     offsets = 0x04,
+    /// v_ood = W(z_ood), z_ood derived from the key transcript (PCS-1)
+    ood_value = 0x05,
     histogram = 0x10,
     gkr = 0x11,
     value = 0x12,
@@ -630,7 +632,7 @@ pub fn proofCaps(a: Allocator, cfg: proto.Config, st: proto.Statement, key: prot
     return .{
         .cfg = cfg,
         .witness = .{ .cfg = cfg, .shape = ws.witness, .groups_min = ws.witness_groups, .groups_max = ws.witness_groups, .with_proximity = true },
-        .weight = if (n_matmul == 0) null else .{ .cfg = wcfg, .shape = kshape, .groups_min = 1, .groups_max = if (wcfg.two_level != null) n_matmul else 1, .with_proximity = false },
+        .weight = if (n_matmul == 0) null else .{ .cfg = wcfg, .shape = kshape, .groups_min = 1, .groups_max = n_matmul + 1, .with_proximity = cfg.weight_proximity },
         .log_total = ws.log_total,
         .inst_log_sizes = ws.inst_log_sizes,
         .max_lookup_values = 2 * ws.n_keys,
@@ -860,6 +862,9 @@ fn encKeyInto(w: *W, key: proto.WeightKey, kp: wk.KeyProof) EncodeError!void {
     try w.len(key.offsets.len);
     for (key.offsets) |o| try w.int(u64, o);
     try w.end(s);
+    s = try w.begin(KeyTag.ood_value);
+    try w.felt(key.ood_value);
+    try w.end(s);
     s = try w.begin(KeyTag.histogram);
     for (kp.histogram) |h| try w.int(u32, h);
     try w.end(s);
@@ -952,6 +957,10 @@ pub fn decodeKey(gpa: Allocator, bytes: []const u8, cfg: proto.Config, st: proto
     key.offsets = offs;
     try r.done();
 
+    r = try ss.required(KeyTag.ood_value);
+    key.ood_value = try r.felt();
+    try r.done();
+
     const n_vars = key.log_rows + key.log_cols;
     r = try ss.required(KeyTag.histogram);
     for (&kp.histogram) |*h| {
@@ -977,7 +986,7 @@ pub fn decodeKey(gpa: Allocator, bytes: []const u8, cfg: proto.Config, st: proto
 
     r = try ss.required(KeyTag.opening);
     const kshape = pcs.Shape{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = lb, .rows_used = key.rows_used };
-    kp.opening = try decOpening(&r, a, .{ .cfg = kcfg, .shape = kshape, .groups_min = 1, .groups_max = 1, .with_proximity = true });
+    kp.opening = try decOpening(&r, a, .{ .cfg = kcfg, .shape = kshape, .groups_min = 1, .groups_max = n_alpha + 1, .with_proximity = true });
     try r.done();
 
     try ss.finish();

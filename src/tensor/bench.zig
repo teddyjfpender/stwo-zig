@@ -148,6 +148,9 @@ fn weightParams(pc: *proto.Config) !void {
     if (std.posix.getenv("TENSOR_KEY_Q")) |v| pc.key_outer = try parseParams(v, o.pow_bits, o.log_blowup);
     // TENSOR_KEY_ALPHAS=2: two independent LogUp alpha in the weight-key proof
     if (std.posix.getenv("TENSOR_KEY_ALPHAS")) |v| pc.key_alphas = try std.fmt.parseInt(u32, v, 10);
+    // TENSOR_WEIGHT_PROX=0: per-batch weight openings without their own
+    // proximity test (binding from the key's distance, security.md 4)
+    if (std.posix.getenv("TENSOR_WEIGHT_PROX")) |v| pc.weight_proximity = !std.mem.eql(u8, v, "0");
 }
 
 fn printSecurity(out: anytype, a: std.mem.Allocator, pc: proto.Config, st: proto.Statement, key: proto.WeightKey, proof: *const proto.Proof, kp: ?*const t.weight_key.KeyProof) !void {
@@ -163,13 +166,25 @@ fn printSecurity(out: anytype, a: std.mem.Allocator, pc: proto.Config, st: proto
     }
 }
 
-fn printTl(out: anytype, pc: proto.Config) !void {
+/// `weight_openings`: the proof opens the weight table per batch. Without a
+/// per-batch proximity test such openings are bound only at the key's proven
+/// distance, so no conjectured figure is printed (null; see "security").
+fn printTl(out: anytype, pc: proto.Config, weight_openings: bool) !void {
+    const conj_ok = !weight_openings or pc.weight_proximity;
+    try out.print("\"weight_proximity\":{},", .{pc.weight_proximity});
     if (pc.two_level) |tl| {
         try out.print("\"prox_rows\":{d},", .{tl.prox_rows});
-        try out.print("\"pcs\":\"pcs2\",\"depth\":{d},\"inner_queries\":{d},\"inner_log_blowup\":{d},\"inner_pow\":{d},\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},", .{ tl.depth, tl.inner.n_queries, tl.inner.log_blowup, tl.inner.pow_bits, tl.conjecturedBits(), tl.provenBits() });
+        try out.print("\"pcs\":\"pcs2\",\"depth\":{d},\"inner_queries\":{d},\"inner_log_blowup\":{d},\"inner_pow\":{d},", .{ tl.depth, tl.inner.n_queries, tl.inner.log_blowup, tl.inner.pow_bits });
+        try printConj(out, conj_ok, tl.conjecturedBits(), tl.provenBits());
     } else {
-        try out.print("\"pcs\":\"flat\",\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},", .{ pc.pcs.conjecturedBits(), pc.pcs.provenBits() });
+        try out.print("\"pcs\":\"flat\",", .{});
+        try printConj(out, conj_ok, pc.pcs.conjecturedBits(), pc.pcs.provenBits());
     }
+}
+
+fn printConj(out: anytype, conj_ok: bool, conj: f64, proven: f64) !void {
+    if (conj_ok) try out.print("\"conjectured_bits\":{d:.1},", .{conj}) else try out.print("\"conjectured_bits\":null,", .{});
+    try out.print("\"proven_bits\":{d:.1},", .{proven});
 }
 
 /// Per-level byte breakdown of a pcs2 opening: [cols, siblings, rows/inner].
@@ -325,7 +340,7 @@ pub fn main() !void {
     const macs = T * n_weights;
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"bench\":\"mlp\",\"fused\":{},\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ fused, lt, ld, lf, threads, queries, lb, pow });
-    try printTl(out, pc);
+    try printTl(out, pc, true);
     try out.print("\"batch_matmuls\":{},", .{pc.batch_matmuls});
     try out.print("\"weight_log_cols\":{d},\"weights\":{d:.0},\"tokens\":{d:.0},\"macs\":{d:.0},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ pc.weight_log_cols, n_weights, T, macs, tm.witness_elems, tm.witness_table_elems });
     try out.print("\"commit_weights_s\":{d:.4},\"weight_key_proof_s\":{d:.4},\"weight_key_verify_s\":{d:.4},\"weight_key_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
@@ -392,7 +407,7 @@ fn runProduct(a: std.mem.Allocator, args: []const [:0]u8) !void {
     defer last.?.deinit(a);
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"bench\":\"product\",\"log_n\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ ln, threads, queries, lb, pow });
-    try printTl(out, pc);
+    try printTl(out, pc, false);
     try printSecurity(out, a, pc, st, proto.weightKey(&ws), &last.?, null);
     try printLevels(out, "witness_levels", last.?.witness_opening);
     try wireOut(out, a, &pool, pc, st, &ws, null, &last.?);
@@ -518,7 +533,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     for (sw.winfos) |wi| n_weights += wi.size();
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"bench\":\"layer\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"log_experts\":{d},\"log_capacity\":{d},\"fused_qkv\":{},\"weight_log_cols\":{d},\"n_layers\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, lh, lkv, le, lcap, fused, wlc, nl, threads, queries, lb, pow });
-    try printTl(out, pc);
+    try printTl(out, pc, true);
     try out.print("\"weights\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_tensors\":{d},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ n_weights, st.ops.len, st.ext.ops.len, st.witness.len, tm.witness_elems, tm.witness_table_elems });
     try out.print("\"recompute_acc\":{},\"batch_matmuls\":{},\"commit_weights_s\":{d:.4},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"prove_first_s\":{d:.4},\"prove_reps\":{d},\"verify_s\":{d:.5},", .{ recompute, pc.batch_matmuls, commit_s, forward_s, prove_s, prove_first_s, reps, verify_s });
     try out.print("\"prep_s\":{{\"accumulators\":{d:.4},\"multiplicities\":{d:.4}}},\"gkr_parts_s\":{{\"input\":{d:.4},\"build\":{d:.4},\"sumcheck\":{d:.4}}},\"terminal_s\":{d:.4},", .{ nsToS(tm.accumulators_ns), nsToS(tm.multiplicities_ns), nsToS(tm.gkr_input_ns), nsToS(tm.gkr_build_ns), nsToS(tm.gkr_sumcheck_ns), nsToS(tm.terminal_ns) });

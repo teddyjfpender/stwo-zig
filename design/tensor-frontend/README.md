@@ -83,7 +83,10 @@ Comparability rules:
   `blocks/toy/product.h`, `a (.) b = c` over 2^L. We run the identical
   statement, and report security under two regimes:
   * *proven*: unique decoding, BCIKS20 correlated agreement;
-  * *conjectured*: up to capacity.
+  * *conjectured*: up to capacity. For weight openings this reading is
+    valid only with per-batch proximity plus the key's OOD claim
+    (`weight_proximity`, the default; security.md 4.2). With it off, the
+    bench prints `conjectured_bits: null`.
 
   FlashProve's toy runs with hiding on. Our hiding mode (stream `zk`) is
   reported separately.
