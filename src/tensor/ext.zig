@@ -838,7 +838,8 @@ fn termPoint(a: std.mem.Allocator, t: Term, nb: u32, rho: []const QM31) ![]QM31 
 fn termScale(t: Term, nb: u32) QM31 {
     var n_sum: u32 = 0;
     for (t.labels[0..nb]) |l| n_sum += @intFromBool(l == SUM);
-    return f.qFromI64(t.coeff).mulM31(M31.fromCanonical(@as(u32, 1) << @intCast(n_sum)));
+    // 2^n_sum mod p = 2^(n_sum mod 31) (2^31 = 1 mod p); total for n_sum <= MAXB
+    return f.qFromI64(t.coeff).mulM31(M31.fromCanonical(@as(u32, 1) << @intCast(n_sum % 31)));
 }
 
 pub fn mlePar(a: std.mem.Allocator, pool: *f.Pool, vals: []const i32, pt: []const QM31) !QM31 {

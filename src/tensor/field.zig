@@ -24,8 +24,24 @@ pub inline fn fromI64(x: i64) M31 {
     return M31.fromCanonical(@intCast(r));
 }
 
+/// Any i32 to its canonical M31 residue. Total on the whole i32 range:
+/// maxInt(i32) = p maps to 0 and minInt(i32) = -2^31 maps to p - 1 (EXT-5 /
+/// KERN-5: the old branch asserted on p and wrapped on -2^31).
 pub inline fn fromI32(x: i32) M31 {
-    return if (x >= 0) M31.fromCanonical(@intCast(x)) else M31.fromCanonical(@intCast(@as(i64, P) + x));
+    var r: i64 = x;
+    if (r < 0) r += P;
+    if (r < 0) r += P; // x = -2^31
+    if (r >= P) r -= P; // x = 2^31 - 1 = p
+    return M31.fromCanonical(@intCast(r));
+}
+
+test "fromI32 is total and canonical on the whole i32 range" {
+    try std.testing.expectEqual(@as(u32, 0), fromI32(std.math.maxInt(i32)).v);
+    try std.testing.expectEqual(@as(u32, P - 1), fromI32(std.math.minInt(i32)).v);
+    try std.testing.expectEqual(@as(u32, P - 1), fromI32(-1).v);
+    try std.testing.expectEqual(@as(u32, 5), fromI32(5).v);
+    for ([_]i32{ std.math.minInt(i32), std.math.minInt(i32) + 1, -@as(i32, P) + 3, -1, 0, 1, std.math.maxInt(i32) - 1, std.math.maxInt(i32) }) |x|
+        try std.testing.expectEqual(fromI64(x).v, fromI32(x).v);
 }
 
 pub inline fn qFromI64(x: i64) QM31 {
