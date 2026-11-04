@@ -139,4 +139,45 @@ step; until then proofs carry today's native protocol and `m5-chi-chain/v1` exis
     occurs in the basket, slot 0);
   - `native_profile` = 1 for `conjectured128_b2_q108_p20_fold4` (production), 2 reserved for `d2_native_b4_q54_p20_fold4`;
   - `vk_hash` = section 3 `vkhash = H(native-vk, [f, r, suite(8), fixed_identity(8), fixed_root(8), profile_identity(8), structure(8)])`
-    (LE u32 words of the digest). 4 CPU families x 4 + truth classes (<= 31 in the basket at R=4) fit DEPTH 6 (64 slots).
+    (LE u32 words of the digest). The basket's 46 classes at R=4 (12 CPU + 34 truth) fit DEPTH 6 (64 slots).
+
+### 8. Native version `m5-chi-chain/v1` is implemented (2026-11-04, commit 63894647e)
+- Selection: `STWO_RV64_NATIVE_VERSION=m5-chi-chain-v1` (producer AND receiver policy; unset or `v1-flat` = historical bytes;
+  any other value panics = fail closed). Old format keeps working unchanged until integrate switches the default.
+- Where: `gkr_local/chain.zig` derives every chain field per worker inside `execution.zig Inventory` (the single
+  receiver-derived inventory used by the native producer, the native verifier and the recursion root): family (section 1),
+  rung (first table rung holding the declaration; `0xFFFFFFFF` = unclassed), `vkhash` (suite words 0 on this route; fixed
+  identity, fixed root, profile identity from the receiver's fixed authority; structure = the declaration's component vector),
+  `stmt_k` (section 4 fields from the admitted request; `legacy` = today's worker statement), `s_in/s_out` (CPU boundary;
+  last CPU segment and every truth carry the halted final state, `s_out = s_in` for truths). `manifest.zig manifestDigest`
+  replaces the flat framing by `chi` when every entry carries chain fields (mixed = `MixedNativeChainVersion`), with
+  `rho_k` over exactly the remaining stage-one fields (MAIN root, local receipt digest, canonical marginals).
+- Tests (`test-riscv64-m5-canon-native`, pod, pass): the manifest's chain digest equals the spec encodings
+  (`canon_native.zig` = Python reference), differs from the flat digest, refuses mixed versions, and changes under a coherent
+  segment permutation.
+
+**Written argument (extends rv64-m5-binding.md 3.3 and rv64-m7-profiles.md 2.1).**
+1. *Coverage.* Today's flat digest commits, per entry: kind, relations, mass, ordinal, statement, fixed root, MAIN root, local
+   receipt digest and marginals, plus `execution` and the profile string. The chain commits every one of them: kind is refined
+   to `family` (injective: each Kind maps to distinct family ids; `delegation` is split by its truth family), relations and
+   mass are words of `stmt_k`, ordinal is `k` (checked equal to the entry ordinal), statement is `stmt_k.legacy`, fixed root is
+   inside `vkhash`, MAIN/local/marginals are `rho_k`, `execution` is the chi statement and the version identity replaces the
+   profile string (domain-separated by its own tag). So chi is a function of a superset of the flat digest's inputs.
+2. *Injectivity.* Every message is a fixed-length (per class) word sequence under a distinct tag, and the chain is
+   sequential, so equal chi implies equal (version, statement, ordered entry list) except with a Blake2s-256 collision in one
+   of at most `3*kappa + kappa + 2` hash evaluations (chain steps, stmt, state, rho, vk, iv, chi): the same lemma as fold v2.
+3. *Fiat-Shamir.* chi is computed after every MAIN root and every local GKR proof is fixed (stage one), exactly as the flat
+   digest was; `drawShared(chi)` is unchanged. The global challenges therefore keep today's soundness accounting (one more
+   random-oracle query per entry, no change to the conjectured-128 native profile, PCS, queries or PoW).
+4. *Authority.* No chain field is read from producer bytes; all are recomputed by the receiver from its own setup, the admitted
+   requests and its fixed authority. A receiver whose policy differs from the producer's derives different challenges:
+   measured, both directions reject with `WideCpuPublicRamMismatch` (receipts `negatives/`).
+5. *LOCAL_RELATIONS 9 -> 10.* The v1 version identity hashes `LOCAL_RELATIONS = 10`; it enters every chi through the IV. The
+   native *candidate* identity in `om31_security_candidate.zig` (profiles' file) still hashes 9: the bump there is a separate
+   one-line change of profiles at promotion (integration note), and it would also change the FIXED/statement bytes.
+6. *Padding.* Rung padding only raises component logs to values the admission already accepts (validated by `Geometry.validate`
+   and the receiver's full admission); masses stay below p (checked); no security parameter changes.
+
+**Not yet in v1 (honest gaps):** the in-circuit leaf rule over these encodings (canon-vk), the `mb` family as separate native
+proofs (INIT/TEARDOWN still ride in cpu_first/cpu_last), the strict-roster presence relaxation (absent bridges/tails committed
+as all-padding), and a receiver CLI flag instead of the environment policy.
