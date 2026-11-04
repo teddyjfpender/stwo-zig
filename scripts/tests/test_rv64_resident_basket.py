@@ -404,6 +404,39 @@ class ResidentBasket(unittest.TestCase):
             (directory / name).write_bytes(data)
         return proof, directory, nodes
 
+    def test_ready_fixed_snapshot_retains_and_detects_changes_to_both_manifest_copies(self):
+        plan = self.ready_plan(recursion_device_fixed_candidate=True)
+        plan["repeat"] = 1
+        job = plan["jobs"][0]
+        target = Path(job["target"])
+        proof = target / "batch/trial-0/1/proof"
+        proof.parent.mkdir(parents=True)
+        original, _, _ = self.recursive_tree()
+        original.rename(proof)
+        (proof / "report.json").write_text(json.dumps({"cpu_proofs": 1, "truth_proofs": 1}))
+        for name in ("bundle.json", "combined-report.json", "combined-entry.json"):
+            (proof / name).write_text("{}")
+        (proof / "cpu-0.bin").write_bytes(b"native proof")
+        names = ("manifest.json", "batch/resident-ready-manifest.json",
+                 "batch/resident-device-fixed-manifest.json")
+        manifest = json.dumps(R.producer_manifest(plan, job))
+        for name in names:
+            (target / name).write_text(manifest)
+        snapshot = R.produced_snapshot(plan, job)
+        self.assertEqual(set(snapshot[0]["producer_manifests"]), set(names))
+        self.assertEqual(len(set(snapshot[0]["producer_manifests"].values())), 1)
+        for name in names[1:]:
+            with self.subTest(manifest=name):
+                path = target / name
+                path.write_text(manifest + "\n")
+                self.assertNotEqual(R.produced_snapshot(plan, job), snapshot)
+                path.write_text(manifest)
+                self.assertEqual(R.produced_snapshot(plan, job), snapshot)
+                path.unlink()
+                with self.assertRaises(FileNotFoundError):
+                    R.produced_snapshot(plan, job)
+                path.write_text(manifest)
+
     def test_recursive_snapshot_checks_physical_coverage_and_root_copy(self):
         proof, directory, nodes = self.recursive_tree()
         snapshot = R.recursive_snapshot(proof, 2)
