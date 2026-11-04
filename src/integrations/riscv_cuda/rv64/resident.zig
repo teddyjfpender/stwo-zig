@@ -53,6 +53,7 @@ pub const TailJob = struct {
 };
 pub const BatchTailOracle = struct { input: Fraction, output: ?Fraction, mask: Slice, variables: u32 };
 pub const BatchTail = struct { state: Slice, point: Slice, lambda: Slice, eq: Plane, records: Slice, variables: u32, first: u32 };
+pub const BatchFoldSum = struct { input: Fraction, folded: Fraction, a: Plane, b: Plane, output: Plane };
 pub const BatchSum = struct { input: Fraction, a: Plane, b: Plane, output: Plane };
 pub const BatchFold = struct { input: Fraction, output: Fraction };
 pub const BatchOracle = struct { raw: ?Plane = null, variables: u32 };
@@ -75,6 +76,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         batched_oracles: bool = false,
         batched_trees: bool = false,
         batched_tail: bool = false,
+        batched_fold_sum: bool = false,
         fused_fold_sum: bool = false,
         /// Zero disables; otherwise a power of two in4..256. Profile on device.
         tail_count: u32 = 0,
@@ -302,6 +304,42 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             var launches: u32 = 0;
             const status = self.callApi("stwo_rv64_batch_fold_on", .{ owner, self.lane_index, &packets, @as(u32, @intCast(jobs.len)), count, try self.context.deviceSlicePointer(u32, challenge, 8), &launches });
             try self.result(status, launches);
+        }
+
+        pub fn requireBatchedFoldSum(self: *Self) !void {
+            if (comptime @hasField(Api, "stwo_rv64_batch_fold_sum_on") or @hasDecl(Api, "stwo_rv64_batch_fold_sum_on")) {
+                if (self.apiPointer("stwo_rv64_batch_fold_sum_on") == null) return error.MissingCudaBatchedFoldSumSymbol;
+            } else return error.MissingCudaBatchedFoldSumSymbol;
+        }
+        pub fn supportsBatchFoldSum(self: *Self) bool {
+            if (comptime @hasField(Api, "stwo_rv64_batch_fold_sum_on") or @hasDecl(Api, "stwo_rv64_batch_fold_sum_on"))
+                return self.batched_oracles and self.batched_fold_sum and self.apiPointer("stwo_rv64_batch_fold_sum_on") != null;
+            return false;
+        }
+        pub fn foldSumBatch(self: *Self, jobs: []const BatchFoldSum, challenge: Slice, eq_values: Plane, lambda: Slice) !void {
+            try self.requireBatchedFoldSum();
+            if (jobs.len == 0 or jobs.len > abi.batch_max_oracles) return error.InvalidGeometry;
+            const count = jobs[0].input.count;
+            if (count < 8) return error.InvalidGeometry;
+            const groups = (count / 8 + 127) / 128;
+            try eq_values.shape(count / 8, 8);
+            var packets: [abi.batch_max_oracles]abi.BatchFoldSumJob = undefined;
+            for (jobs, packets[0..jobs.len]) |job, *packet| {
+                try job.input.validate();
+                try job.folded.validate();
+                if (job.input.count != count or job.folded.count != count / 2) return error.InvalidGeometry;
+                try job.folded.n.shape(count / 2, 8);
+                try job.a.shape(2 * groups, 8);
+                try job.b.shape(2 * groups, 8);
+                try job.output.shape(2, 8);
+                packet.* = .{ .n = try job.input.n.bind(self.context), .d = try job.input.d.bind(self.context), .out_n = try job.folded.n.bind(self.context), .out_d = try job.folded.d.bind(self.context), .a = try job.a.bind(self.context), .b = try job.b.bind(self.context), .out = try job.output.bind(self.context) };
+            }
+            if (comptime @hasField(Api, "stwo_rv64_batch_fold_sum_on") or @hasDecl(Api, "stwo_rv64_batch_fold_sum_on")) {
+                const owner = try self.handle();
+                var launches: u32 = 0;
+                const status = self.callApi("stwo_rv64_batch_fold_sum_on", .{ owner, self.lane_index, &packets, @as(u32, @intCast(jobs.len)), count, try self.context.deviceSlicePointer(u32, challenge, 8), try eq_values.bind(self.context), try self.context.deviceSlicePointer(u32, lambda, 8), &launches });
+                try self.result(status, launches);
+            } else return error.MissingCudaBatchedFoldSumSymbol;
         }
 
         pub fn foldSum(self: *Self, input: Fraction, challenge: Slice, folded: Fraction, eq_values: Plane, lambda: Slice, scratch_a: Plane, scratch_b: Plane, output: Plane) !void {

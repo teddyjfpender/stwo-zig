@@ -6,6 +6,8 @@
 namespace stwo::cuda::rv64 {
 struct SumPacket { StwoRv64BatchSumJob jobs[max_oracles]; };
 struct FoldPacket { StwoRv64BatchFoldJob jobs[max_oracles]; };
+struct FoldSumPacket { StwoRv64BatchFoldSumJob jobs[max_oracles]; };
+static_assert(sizeof(FoldSumPacket)+256<32764,"bounded fold-sum launch metadata");
 static_assert(sizeof(SumPacket) + 256 < 32764, "bounded CUDA launch parameters");
 __device__ __forceinline__ Fraction oracle_read(StwoRv64Plane n, StwoRv64Plane d,
                                                 uint32_t row) {
@@ -52,6 +54,18 @@ __global__ void oracles_fold(const __grid_constant__ FoldPacket packet,
   const auto &job = packet.jobs[blockIdx.y];
   const uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < half) fold_store(job.n, job.d, half, i, from_words(challenge), job.out_n, job.out_d);
+}
+// Each tile computes its folded output and consumes that value in registers.
+// No CTA reads another CTA's output, and oracles retain independent grid rows.
+__global__ void oracles_fold_sum(const __grid_constant__ FoldSumPacket packet,
+    uint32_t count,const uint32_t *challenge,StwoRv64Plane eq,
+    const uint32_t *lambda,bool final) {
+  const auto &job=packet.jobs[blockIdx.y];
+  const uint32_t i=blockIdx.x*blockDim.x+threadIdx.x;
+  Pair value{zero(),zero()};
+  if(i<count/8) value=fold_sum_tile(job.n,job.d,count,i,from_words(challenge),
+      load(eq.words,eq.stride,i),from_words(lambda),job.out_n,job.out_d);
+  oracle_sum(value,final?job.out:job.a);
 }
 __global__ void oracles_layer(const __grid_constant__ FoldPacket packet,
                               uint32_t half) {
@@ -129,4 +143,33 @@ extern "C" int stwo_rv64_batch_layer_on(void *context, uint32_t lane,
   FoldPacket packet{}; std::copy(jobs, jobs + job_count, packet.jobs);
   oracles_layer<<<dim3(oracle_blocks(count / 2), job_count), threads, 0, custody.stream>>>(packet, count / 2);
   const int status = int(cudaPeekAtLastError()); if (!status) *launches = 1; return status;
+}
+
+extern "C" int stwo_rv64_batch_fold_sum_on(void *context,uint32_t lane,
+    const StwoRv64BatchFoldSumJob *jobs,uint32_t job_count,uint32_t count,
+    const uint32_t *challenge,StwoRv64Plane eq,const uint32_t *lambda,
+    uint32_t *launches) {
+  if(!launches)return int(cudaErrorInvalidValue);*launches=0;
+  if(!jobs||!job_count||job_count>max_oracles||!power2(count)||count<8||count>max_count)
+    return int(cudaErrorInvalidValue);
+  const uint32_t groups=oracle_blocks(count/8);
+  RangeCustody<7*max_oracles+3> c(context,lane);
+  if(!c.range(challenge,8,false)||!c.plane(eq,count/8,8,false)||!c.range(lambda,8,false))return c.status;
+  FoldSumPacket packet{};SumPacket reductions{};
+  for(uint32_t i=0;i<job_count;++i) {
+    const auto &j=jobs[i];
+    if(!c.numerator(j.n,count)||!c.plane(j.d,count,8,false)||
+       !c.plane(j.out_n,count/2,8,true)||!c.plane(j.out_d,count/2,8,true)||
+       !c.plane(j.a,2*groups,8,true)||!c.plane(j.b,2*groups,8,true)||!c.plane(j.out,2,8,true))return c.status;
+    packet.jobs[i]=j;reductions.jobs[i]={j.n,j.d,j.a,j.b,j.out};
+  }
+  oracles_fold_sum<<<dim3(groups,job_count),threads,0,c.stream>>>(packet,count,challenge,eq,lambda,groups==1);
+  int status=int(cudaPeekAtLastError());if(status)return status;++*launches;
+  bool current_a=true;
+  for(uint32_t pairs=groups;pairs>1;current_a=!current_a) {
+    const uint32_t blocks=oracle_blocks(pairs);
+    oracles_reduce<<<dim3(blocks,job_count),threads,0,c.stream>>>(reductions,pairs,current_a,blocks==1);
+    status=int(cudaPeekAtLastError());if(status)return status;++*launches;pairs=blocks;
+  }
+  return 0;
 }
