@@ -25,7 +25,7 @@ pub const Owned = struct {
 };
 fn profile() [32]u8 {
     var digest: [32]u8 = undefined;
-    std.crypto.hash.sha2.Sha256.hash(P.domain, &digest, .{});
+    std.crypto.hash.sha2.Sha256.hash(P.domainName(), &digest, .{});
     return digest;
 }
 fn put(bytes: []u8, at: *usize, word: u32) void {

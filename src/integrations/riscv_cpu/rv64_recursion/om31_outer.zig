@@ -90,7 +90,7 @@ const Statement = struct {
         const marker = [_]Word{ try word(ctx, 0x434f4d38), try word(ctx, 1), try word(ctx, 8) };
         try channel.mixU32s(ctx, &marker);
         var profile: [32]u8 = undefined;
-        std.crypto.hash.sha2.Sha256.hash(Outer.protocol.domain, &profile, .{});
+        std.crypto.hash.sha2.Sha256.hash(Outer.protocol.domainName(), &profile, .{});
         const profile_words = try digestWords(ctx, profile);
         try channel.mixU32s(ctx, &profile_words);
         const public = try ctx.scratch().alloc(Word, 9 + self.output_words.len);
@@ -174,13 +174,24 @@ const Statement = struct {
     }
 };
 
-fn messageWords(a: std.mem.Allocator, children: [2]Child) ![]u32 {
+/// Largest fold arity (m3 uses 4; r1 is binary).
+pub const max_arity = 4;
+/// Binary folds keep the v2 message word `version` (byte-identical to the M3
+/// baseline). Any other arity binds the child count into the version word,
+/// `(arity << 8) | version`, so digests (and class keys) of different arities
+/// can never share a message: 2 != 0x302 != 0x402, and the low byte still
+/// names the v2 (guessed, digest-bound child key) semantics.
+pub fn versionWord(arity: usize) !u32 {
+    if (arity < 2 or arity > max_arity) return error.InvalidRecursiveFoldArity;
+    return if (arity == 2) version else (@as(u32, @intCast(arity)) << 8) | version;
+}
+fn messageWords(a: std.mem.Allocator, children: []const Child) ![]u32 {
     var count: usize = 2;
     for (children) |child| count += 17 + 4 * child.produced.outputs.len;
     const words = try a.alloc(u32, count);
     errdefer a.free(words);
     words[0] = domain;
-    words[1] = version;
+    words[1] = try versionWord(children.len);
     var at: usize = 2;
     for (children) |child| {
         if (child.produced.outputs.len != child.authority.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
@@ -198,7 +209,7 @@ fn messageWords(a: std.mem.Allocator, children: [2]Child) ![]u32 {
     }
     return words;
 }
-pub fn expectedDigest(children: [2]Child) ![32]u8 {
+pub fn expectedDigest(children: []const Child) ![32]u8 {
     const a = std.heap.page_allocator;
     const words = try messageWords(a, children);
     defer a.free(words);
@@ -216,12 +227,19 @@ pub fn expectedDigest(children: [2]Child) ![32]u8 {
 /// topology (and hence its PP, FIXED root and authority identity). Child key
 /// VALUES (identity, FIXED root) are excluded because v2 guesses them.
 /// Host-only cache key; never enters a proof or transcript.
-pub fn classKey(children: [2]Child) ![32]u8 {
+///
+/// k-ary generalisation (M4 recsize port): the key hashes the fold's message
+/// version word, `versionWord(children.len)`, which is `version` for binary
+/// folds (so binary keys are unchanged) and binds the arity otherwise, then
+/// each child's geometry in child order. Folds of different arity therefore
+/// never share a class, and same-arity folds share one exactly when every
+/// child position has the same geometry class.
+pub fn classKey(children: []const Child) ![32]u8 {
     var h = std.crypto.hash.sha2.Sha256.init(.{});
     h.update("rv64-om31-fold-class/v2\x00");
-    h.update(Outer.protocol.domain);
+    h.update(Outer.protocol.domainName());
     var bytes: [4]u8 = undefined;
-    std.mem.writeInt(u32, &bytes, version, .little);
+    std.mem.writeInt(u32, &bytes, try versionWord(children.len), .little);
     h.update(&bytes);
     for (children) |child| {
         const key = child.authority;
@@ -254,13 +272,14 @@ pub fn classKey(children: [2]Child) ![32]u8 {
     }
     return h.finalResult();
 }
-pub fn buildFold(a: std.mem.Allocator, children: [2]Child) !Graph {
+pub fn buildFold(a: std.mem.Allocator, children: []const Child) !Graph {
     return buildFoldMode(a, children, false);
 }
-pub fn buildFoldTraceOnly(a: std.mem.Allocator, children: [2]Child) !Graph {
+pub fn buildFoldTraceOnly(a: std.mem.Allocator, children: []const Child) !Graph {
     return buildFoldMode(a, children, true);
 }
-fn buildFoldMode(a: std.mem.Allocator, children: [2]Child, trace_only: bool) !Graph {
+fn buildFoldMode(a: std.mem.Allocator, children: []const Child, trace_only: bool) !Graph {
+    const version_word = try versionWord(children.len);
     var ctx = if (trace_only) try C.Context.initTraceOnly(a, 8) else try C.Context.init(a, 8);
     errdefer ctx.deinit();
     ctx.assert_eq_on_eval = !trace_only;
@@ -268,7 +287,7 @@ fn buildFoldMode(a: std.mem.Allocator, children: [2]Child, trace_only: bool) !Gr
     defer C.lane.finish() catch {};
     var message: std.ArrayList(Word) = .empty;
     defer message.deinit(a);
-    try message.appendSlice(a, &.{ try word(&ctx, domain), try word(&ctx, version) });
+    try message.appendSlice(a, &.{ try word(&ctx, domain), try word(&ctx, version_word) });
     for (children) |child| {
         try Outer.protocol.validateConfig(child.produced.proof.proof.commitment_scheme_proof.config);
         const geometry = try shape(ctx.scratch(), child.authority);

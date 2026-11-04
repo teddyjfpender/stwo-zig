@@ -24,5 +24,6 @@ pub fn evaluate(owner: *S.Owner, a: std.mem.Allocator, randomness: Outer.protoco
         role.* = .{ .id = @intCast(id), .artifact = &entry.metadata, .evaluate = owner.backend.role, .trace_log = component.trace_log_size, .eval_log = component.evaluation_log_size, .widths = .{ component.preprocessed_indices.len, main.end - main.start, inter.end - inter.start }, .offsets = .{ 0, main.start, inter.start }, .fixed_indices = component.preprocessed_indices, .parameters = parameters };
         made += 1;
     }
-    return owner.backend.composition.evaluateRoles(a, roles, randomness, log, split, total, trace, owner.scope);
+    const beta = (try Outer.protocol.targetConfig()).fri_config.log_blowup_factor;
+    return owner.backend.composition.evaluateRolesAtBlowup(a, roles, randomness, log, split, total, trace, owner.scope, beta);
 }

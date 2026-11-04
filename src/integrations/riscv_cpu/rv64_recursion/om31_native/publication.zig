@@ -47,7 +47,7 @@ test "recursion publication failure removes pending bytes without replacing rece
 pub fn requireExisting(dir: std.fs.Dir, plan: @import("ready_dag.zig").Plan) !void {
     for (plan.nodes[0..plan.count], 0..) |node, id| {
         var buffer: [64]u8 = undefined;
-        const name = if (node.left == null) try std.fmt.bufPrint(&buffer, "leaf-{d:0>6}.proof", .{node.first_leaf}) else try std.fmt.bufPrint(&buffer, "fold-{d:0>6}.proof", .{id});
+        const name = if (node.isLeaf()) try std.fmt.bufPrint(&buffer, "leaf-{d:0>6}.proof", .{node.first_leaf}) else try std.fmt.bufPrint(&buffer, "fold-{d:0>6}.proof", .{id});
         try requireFile(dir, name);
     }
     try requireFile(dir, "root.proof");
@@ -67,7 +67,7 @@ test "strict recursion receiver preflights every original node and rejects missi
     const plan = try @import("ready_dag.zig").Plan.init(5);
     for (plan.nodes[0..plan.count], 0..) |node, id| {
         var buffer: [64]u8 = undefined;
-        const name = if (node.left == null) try std.fmt.bufPrint(&buffer, "leaf-{d:0>6}.proof", .{node.first_leaf}) else try std.fmt.bufPrint(&buffer, "fold-{d:0>6}.proof", .{id});
+        const name = if (node.isLeaf()) try std.fmt.bufPrint(&buffer, "leaf-{d:0>6}.proof", .{node.first_leaf}) else try std.fmt.bufPrint(&buffer, "fold-{d:0>6}.proof", .{id});
         try temporary.dir.writeFile(.{ .sub_path = name, .data = "physical node" });
     }
     try temporary.dir.writeFile(.{ .sub_path = "root.proof", .data = "physical root" });

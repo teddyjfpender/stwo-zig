@@ -96,7 +96,7 @@ pub const Authority = struct {
     }
     fn identityOf(root: P.H.Hash, logs: List.PerComponent(u32), n_outputs: usize) [32]u8 {
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
-        hash.update(P.domain);
+        hash.update(P.domainName());
         hash.update(Air.bundle_sha256);
         hash.update(&root);
         var word: [4]u8 = undefined;
