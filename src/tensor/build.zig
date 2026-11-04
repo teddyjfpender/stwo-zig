@@ -58,6 +58,15 @@ pub fn build(b: *std.Build) void {
     const run_bench = b.addRunArtifact(bench);
     if (b.args) |args| run_bench.addArgs(args);
     b.step("bench", "Run tensor benchmarks").dependOn(&run_bench.step);
+
+    // tensor-verify: verifies statement / key / proof files (wire.zig format)
+    const verify_mod = b.createModule(.{ .root_source_file = b.path("verify_cli.zig"), .target = target, .optimize = optimize });
+    verify_mod.addImport("stwo_tensor", tensor);
+    const verify_exe = b.addExecutable(.{ .name = "tensor-verify", .root_module = verify_mod });
+    b.installArtifact(verify_exe);
+    const run_verify = b.addRunArtifact(verify_exe);
+    if (b.args) |args| run_verify.addArgs(args);
+    b.step("verify", "Verify tensor proof files: zig build verify -- <dir>").dependOn(&run_verify.step);
 }
 
 /// The Metal module compiles the stwo-zig Metal backend's MSL sources (field,

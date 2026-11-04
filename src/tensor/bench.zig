@@ -8,6 +8,8 @@
 //! the legacy flat Ligero / per-matmul sumchecks for comparison.
 //!
 //! Prints one JSON object with timings, sizes and derived metrics.
+//! `--emit <dir>` also writes statement.bin / key.bin / proof.bin (wire.zig)
+//! for `tensor-verify <dir>`; "encoded_bytes" reports the true wire sizes.
 const std = @import("std");
 const t = @import("stwo_tensor");
 const f = t.field;
@@ -41,6 +43,35 @@ fn accelFor() ?*const t.accel.Accel {
 fn printGpuStats(out: anytype) !void {
     if (!build_options.metal) return;
     if (gpu_ctx) |g| try out.print("\"metal\":{{\"commit_gpu_ms\":{d:.2},\"commit_calls\":{d},\"sc_gpu_ms\":{d:.2},\"matmul_gpu_ms\":{d:.2},\"mle_gpu_ms\":{d:.2},\"gkr_gpu_ms\":{d:.2},\"gkr_rounds\":{d},\"sc_rounds\":{d},\"sc_calls\":{d},\"wrapped_mb\":{d:.1},\"copied_mb\":{d:.1},\"pool_hits\":{d}}},", .{ g.stats.commit_gpu_ms, g.stats.commit_calls, g.stats.sc_gpu_ms, g.stats.matmul_gpu_ms, g.stats.mle_gpu_ms, g.stats.gkr_gpu_ms, g.stats.gkr_rounds, g.stats.sc_rounds, g.stats.sc_calls, @as(f64, @floatFromInt(g.stats.wrapped_bytes)) / 1048576.0, @as(f64, @floatFromInt(g.stats.copied_bytes)) / 1048576.0, g.stats.pool_hits });
+}
+
+/// `--emit <dir>`: write statement.bin, key.bin and proof.bin (wire.zig) for tensor-verify.
+var emit_dir: ?[]const u8 = null;
+
+/// Prints the true encoded sizes ("encoded_bytes") next to the struct-sum
+/// sizes and, with --emit, writes the files. The key proof is proven here
+/// when the bench did not already prove one (only with --emit).
+fn wireOut(out: anytype, a: std.mem.Allocator, pool: *f.Pool, pc: proto.Config, st: proto.Statement, ws: *const proto.WeightStore, kp_in: ?*const t.weight_key.KeyProof, proof: *const proto.Proof) !void {
+    const pb = try t.wire.encodeProof(a, proof.*);
+    defer a.free(pb);
+    const sb = try t.wire.encodeStatement(a, pc, st);
+    defer a.free(sb);
+    var kp_own: ?t.weight_key.KeyProof = null;
+    defer if (kp_own) |*k| k.deinit(a);
+    if (kp_in == null and emit_dir != null) kp_own = try t.weight_key.prove(a, pool, pc, ws);
+    const kp: ?*const t.weight_key.KeyProof = kp_in orelse if (kp_own) |*k| k else null;
+    const kb: ?[]u8 = if (kp) |k| try t.wire.encodeKey(a, proto.weightKey(ws), k.*) else null;
+    defer if (kb) |x| a.free(x);
+    try out.print("\"encoded_bytes\":{{\"proof\":{d},\"struct_sum\":{d},\"statement\":{d}", .{ pb.len, proof.sizes().total, sb.len });
+    if (kb) |x| try out.print(",\"key\":{d},\"key_struct_sum\":{d}", .{ x.len, kp.?.byteSize() });
+    try out.print("}},", .{});
+    const dir_path = emit_dir orelse return;
+    try std.fs.cwd().makePath(dir_path);
+    var dir = try std.fs.cwd().openDir(dir_path, .{});
+    defer dir.close();
+    try dir.writeFile(.{ .sub_path = "statement.bin", .data = sb });
+    try dir.writeFile(.{ .sub_path = "key.bin", .data = kb.? });
+    try dir.writeFile(.{ .sub_path = "proof.bin", .data = pb });
 }
 
 fn now() std.time.Instant {
@@ -173,8 +204,15 @@ pub fn main() !void {
     defer std.process.argsFree(a, all_args);
     var kept: std.ArrayList([:0]u8) = .empty;
     defer kept.deinit(a);
-    for (all_args) |arg| {
-        if (std.mem.eql(u8, arg, "--metal")) use_metal = true else try kept.append(a, arg);
+    var ai: usize = 0;
+    while (ai < all_args.len) : (ai += 1) {
+        const arg = all_args[ai];
+        if (std.mem.eql(u8, arg, "--metal")) {
+            use_metal = true;
+        } else if (std.mem.eql(u8, arg, "--emit") and ai + 1 < all_args.len) {
+            ai += 1;
+            emit_dir = all_args[ai];
+        } else try kept.append(a, arg);
     }
     if (use_metal and !build_options.metal) return error.MetalNotBuilt;
     const args = kept.items;
@@ -295,6 +333,7 @@ pub fn main() !void {
     try printLevels(out, "witness_levels", proof.witness_opening);
     if (proof.weight_opening) |wo| try printLevels(out, "weight_levels", wo);
     try printSecurity(out, a, pc, st, key, &proof, &prox);
+    try wireOut(out, a, &pool, pc, st, &ws, &prox, &proof);
     try printGpuStats(out);
     try out.print("\"proof_digest\":\"{s}\",\"key_proof_digest\":\"{s}\",", .{ std.fmt.bytesToHex(pd, .lower), std.fmt.bytesToHex(kd, .lower) });
     try out.print("\"proved_macs_per_s\":{d:.4},\"prove_ns_per_weight\":{d:.4},\"prove_ns_per_token\":{d:.1},\"committed_bits_per_token\":{d:.1},\"peak_rss_bytes\":{d}}}\n", .{ macs / prove_s, prove_s * 1e9 / n_weights, prove_s * 1e9 / T, @as(f64, @floatFromInt(tm.witness_table_elems)) * 32.0 / T, peakRssBytes() });
@@ -353,6 +392,7 @@ fn runProduct(a: std.mem.Allocator, args: []const [:0]u8) !void {
     try printTl(out, pc);
     try printSecurity(out, a, pc, st, proto.weightKey(&ws), &last.?, null);
     try printLevels(out, "witness_levels", last.?.witness_opening);
+    try wireOut(out, a, &pool, pc, st, &ws, null, &last.?);
     if (last.?.witness_opening == .two) {
         var inf: proto.VerifyInfo = .{};
         try proto.verifyInfo(a, pc, st, proto.weightKey(&ws), &last.?, &inf);
@@ -483,6 +523,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     try out.print("\"proof_digest\":\"{s}\",\"full_digest\":\"{s}\",", .{ std.fmt.bytesToHex(pd_first, .lower), std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower) });
     try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4},\"ext_init\":{d:.4},\"ext_terminal\":{d:.4},\"ext_ops\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns), nsToS(tm.ext_init_ns), nsToS(tm.ext_terminal_ns), nsToS(tm.ext_ops_ns) });
     try printSecurity(out, a, pc, st, proto.weightKey(&sw.ws), &proof, null);
+    try wireOut(out, a, &pool, pc, st, &sw.ws, null, &proof);
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"ext\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"peak_rss_bytes\":{d}}}\n", .{ sz.gkr, sz.sumchecks, proof.ext.byteSize(), sz.witness_opening, sz.weight_opening, sz.total, peakRssBytes() });
     proof.deinit(a);
     a.free(wview);
