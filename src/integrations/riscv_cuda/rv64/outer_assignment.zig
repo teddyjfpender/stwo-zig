@@ -11,10 +11,12 @@ const N = @import("pcs_native_abi.zig");
 const Events = @import("cuda_events.zig");
 const Span = enum { seed, levels };
 const Recorder = Events.RecorderFor(Span);
+const Runs = @import("assignment_runs.zig");
 pub const Task = extern struct { kind: u32, out: u32, args: [6]u32 = @splat(0) };
 pub const Seed = extern struct { out: u32, value: [4]u32 };
 pub const Job = extern struct { values: [*]u32, records: [*]const u32, indices: ?[*]const u32, status: *u32, value_count: u32, record_count: u32, index_count: u32, first: u32, count: u32, reserved: u32 = 0 };
 pub const Launch = *const fn (*anyopaque, u32, *const Job) callconv(.c) c_int;
+pub const LaunchRun = *const fn (*anyopaque, u32, *const Job, [*]const u32, u32) callconv(.c) c_int;
 pub fn requireProductionMask(mask: u32) !void {
     if (mask & 0xffff != 0xffff) return error.UnsupportedCircuitAssignmentHint;
 }
@@ -37,14 +39,30 @@ pub const Prepared = struct {
     seed: Launch,
     level: Launch,
     timing_api: Events.Api,
+    narrow_plan: ?Runs.Plan = null,
+    narrow_run: ?LaunchRun = null,
     pub fn init(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
         const seed = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;
         const level = library.lookup(Launch, "stwo_circuit_assignment_level_on") orelse return error.MissingCircuitAssignmentKernel;
+        const option = std.process.getEnvVarOwned(a, "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS") catch |err| switch (err) {
+            error.EnvironmentVariableNotFound => null,
+            else => return err,
+        };
+        defer if (option) |value| a.free(value);
+        const enabled = try Runs.parseOptIn(option);
+        const narrow_run = library.lookup(LaunchRun, "stwo_circuit_assignment_narrow_run_on");
+        if (enabled and narrow_run == null) return error.MissingCircuitAssignmentNarrowRunKernel;
         var timer = try std.time.Timer.start();
         var metrics: Schedule.BuildMetrics = .{};
         var plan = try Schedule.buildProfiled(a, ctx, &metrics);
         errdefer plan.deinit();
         const plan_ns = timer.lap();
+        var narrow_plan: ?Runs.Plan = if (enabled) try Runs.Plan.init(a, plan.level_ends, plan.tasks.len) else null;
+        errdefer if (narrow_plan) |*value| value.deinit();
+        const level_stats = if (narrow_plan) |value| value.stats else try Runs.inspect(plan.level_ends, plan.tasks.len);
+        const run_plan_ns = timer.lap();
+        std.debug.print("GPU_OUTER_ASSIGNMENT_LEVELS enabled={} levels={} nonempty={} empty={} width_1_32={} width_33_64={} width_65_128={} width_129_256={} width_gt256={} max_width={} selected_narrow_runs={} selected_narrow_levels={} run_plan_ns={}\n", .{ enabled, level_stats.levels, level_stats.nonempty, level_stats.empty, level_stats.width_1_32, level_stats.width_33_64, level_stats.width_65_128, level_stats.width_129_256, level_stats.width_gt256, level_stats.max_width, if (narrow_plan) |value| value.narrow_runs else 0, if (narrow_plan) |value| value.narrow_levels else 0, run_plan_ns });
+
         const tasks = try a.alloc(Task, plan.tasks.len);
         errdefer a.free(tasks);
         var indices: std.ArrayList(u32) = .empty;
@@ -98,9 +116,10 @@ pub const Prepared = struct {
         const identity = try @import("schedule_identity.zig").digest(a, .{ std.mem.sliceAsBytes(tasks), std.mem.sliceAsBytes(indices.items), std.mem.sliceAsBytes(plan.level_ends) });
         const hash_ns = timer.lap();
         std.debug.print("GPU_OUTER_ASSIGNMENT_PLAN plan_ns={} producer_alloc_zero_ns={} seeds_ns={} tasks_ns={} level_alloc_zero_ns={} dependency_walk_ns={} ready_tasks={} dfs_roots={} ordering_ns={} task_pack_ns={} seed_pack_ns={} hash_ns={} task_bytes={} index_bytes={} levels={} permutation_count={} max_permutation_inputs={} permutation_pair_work={}\n", .{ plan_ns, metrics.producer_init_ns, metrics.seeds_ns, metrics.tasks_ns, metrics.level_init_ns, metrics.walk_ns, metrics.ready_tasks, metrics.dfs_roots, metrics.ordering_ns, task_pack_ns, seed_pack_ns, hash_ns, tasks.len * @sizeOf(Task), indices.items.len * 4, plan.level_ends.len, permutation_count, max_permutation_inputs, permutation_pair_work });
-        return .{ .allocator = a, .reference = if (ctx.trace_only) null else ctx.values().ptr, .count = ctx.circuit.n_vars, .plan = plan, .tasks = tasks, .indices = try indices.toOwnedSlice(a), .seeds = seeds, .identity = identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library) };
+        return .{ .allocator = a, .reference = if (ctx.trace_only) null else ctx.values().ptr, .count = ctx.circuit.n_vars, .plan = plan, .tasks = tasks, .indices = try indices.toOwnedSlice(a), .seeds = seeds, .identity = identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = narrow_plan, .narrow_run = narrow_run };
     }
     pub fn deinit(self: *Prepared) void {
+        if (self.narrow_plan) |*value| value.deinit();
         self.plan.deinit();
         self.allocator.free(self.tasks);
         self.allocator.free(self.indices);
@@ -157,15 +176,35 @@ pub const Prepared = struct {
         const static_ingress_ns = timer.lap();
         try recorder.mark(.levels, false, lane);
         var launches: usize = 1;
-        var begin: usize = 0;
-        for (self.plan.level_ends) |end| {
-            if (end != begin) {
-                job.first = @intCast(begin);
-                job.count = @intCast(end - begin);
-                if (self.level(ctx.native_context, 1, &job) != 0) return error.CudaCircuitAssignmentFailed;
+        var ordinary_level_calls: usize = 0;
+        var narrow_run_calls: usize = 0;
+        if (self.narrow_plan) |plan| {
+            for (plan.runs) |run| {
+                job.first = run.first_task;
+                job.count = run.task_count;
+                const status_code = if (run.kind == .narrow) blk: {
+                    const function = self.narrow_run orelse return error.MissingCircuitAssignmentNarrowRunKernel;
+                    narrow_run_calls += 1;
+                    break :blk function(ctx.native_context, 1, &job, plan.ends[run.first_level..].ptr, run.level_count);
+                } else blk: {
+                    ordinary_level_calls += 1;
+                    break :blk self.level(ctx.native_context, 1, &job);
+                };
+                if (status_code != 0) return error.CudaCircuitAssignmentFailed;
                 launches += 1;
             }
-            begin = end;
+        } else {
+            var begin: usize = 0;
+            for (self.plan.level_ends) |end| {
+                if (end != begin) {
+                    job.first = @intCast(begin);
+                    job.count = @intCast(end - begin);
+                    if (self.level(ctx.native_context, 1, &job) != 0) return error.CudaCircuitAssignmentFailed;
+                    launches += 1;
+                    ordinary_level_calls += 1;
+                }
+                begin = end;
+            }
         }
         try recorder.mark(.levels, true, lane);
         const levels_enqueue_ns = timer.lap();
@@ -189,7 +228,7 @@ pub const Prepared = struct {
         const reference_readback_ns = timer.lap();
         // Event spans include enqueue starvation; they are not sums of
         // individual kernel durations. Nsight supplies the latter.
-        std.debug.print("GPU_OUTER_ASSIGNMENT_TIMING total_ns={} alloc_ns={} seed_upload_ns={} seed_enqueue_ns={} static_ingress_ns={} levels_enqueue_ns={} levels_join_ns={} status_ns={} reference_readback_ns={} seed_stream_ms={d:.3} levels_stream_ms={d:.3} launches={} native_level_calls={}\n", .{ total_timer.read(), alloc_ns, seed_upload_ns, seed_enqueue_ns, static_ingress_ns, levels_enqueue_ns, levels_join_ns, status_ns, reference_readback_ns, try recorder.milliseconds(.seed), try recorder.milliseconds(.levels), launches, launches - 1 });
+        std.debug.print("GPU_OUTER_ASSIGNMENT_TIMING total_ns={} alloc_ns={} seed_upload_ns={} seed_enqueue_ns={} static_ingress_ns={} levels_enqueue_ns={} levels_join_ns={} status_ns={} reference_readback_ns={} seed_stream_ms={d:.3} levels_stream_ms={d:.3} launches={} native_level_calls={} ordinary_level_calls={} narrow_run_calls={}\n", .{ total_timer.read(), alloc_ns, seed_upload_ns, seed_enqueue_ns, static_ingress_ns, levels_enqueue_ns, levels_join_ns, status_ns, reference_readback_ns, try recorder.milliseconds(.seed), try recorder.milliseconds(.levels), launches, launches - 1, ordinary_level_calls, narrow_run_calls });
         std.debug.print("GPU_OUTER_ASSIGNMENT variables={} seed_words={} static_words={} levels={} full_assignment_upload_words=0\n", .{ self.count, self.seeds.len * 5, task_words.len + self.indices.len, self.plan.level_ends.len });
         return values;
     }

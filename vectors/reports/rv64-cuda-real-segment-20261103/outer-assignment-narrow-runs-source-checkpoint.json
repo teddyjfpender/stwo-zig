@@ -1,0 +1,41 @@
+{
+  "schema": "rv64-outer-assignment-narrow-runs-source/v1",
+  "status": "EXPERIMENTAL-host-and-semantic-only-CUDA-UNCOMPILED",
+  "base_commit": "6aa344dbb",
+  "default_enabled": false,
+  "cuda_compiled": false,
+  "gpu_executed": false,
+  "runtime_modified": false,
+  "lease_restarted": false,
+  "flag": "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS",
+  "old_abi_unchanged": true,
+  "new_optional_symbol": "stwo_circuit_assignment_narrow_run_on",
+  "threads": 128,
+  "max_levels_per_run": 256,
+  "task_order_and_constraints_unchanged": true,
+  "production_width_distribution": "not yet measured; average164 does not imply narrow fraction",
+  "host_tests": {
+    "passed": true,
+    "count": 6,
+    "command": "zig test src/integrations/riscv_cuda/rv64/assignment_runs.zig -OReleaseFast"
+  },
+  "semantic_check": {
+    "passed": true,
+    "command": "zig build --build-file src/integrations/riscv_cuda/build.zig check-rv64-ethereum-gpu-recursion -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4+sha -Doptimize=ReleaseFast -j4"
+  },
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/circuit_assignment.cu": "88cf4eac12da32ad55e8ec2a61abe52fd1ba1534f40f1b1e524181df2d428f91",
+    "src/backends/cuda/native/rv64/circuit_assignment.h": "5082543ec2cc67ed302bbc84b77349a7816503a924a6af19b5df7bcb25451872",
+    "src/integrations/riscv_cuda/rv64/outer_assignment.zig": "44f0c7f7064e25856fced04a7d1de974805daeea89294ee894003ee3345b7571",
+    "src/integrations/riscv_cuda/rv64/assignment_runs.zig": "a53e76bc5286a3b33cc7968c0c77ca2c379d71a033ba5f859df83e6a37a45009",
+    "tests/cuda/rv64/assignment_narrow_run_smoke.cu": "4c8a3f285a0f481e65d211698122dddbf25aea1cd65d92d13e1afaba05d4df4a"
+  },
+  "remaining": [
+    "Actual production schedule width/run distribution through independently admitted CPU-only leaf reconstruction",
+    "Bounded SM120 compilation",
+    "Future tiny original-vs-run numerical fixture plus malformed and invalid-task barrier checks",
+    "Connected original outer proof-byte parity with positive narrow_run_calls",
+    "New-kernel sanitizer qualification",
+    "Representative real-leaf performance and memory before activation"
+  ]
+}
