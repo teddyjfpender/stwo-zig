@@ -602,7 +602,7 @@ test "metal decoder layer proof equals the CPU golden digest (ext einsums on the
     pc.accel = null;
     try proto.verify(a, pc, st, proto.weightKey(&sw.ws), &proof);
     const hx = std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower);
-    try std.testing.expectEqualStrings("8424c4b6bc651261df28a2670f751b09e5f7e386564f6a70f2ca69a2a018e9af", &hx);
+    try std.testing.expectEqualStrings("a2bcc5c766a04bf0d67cd9916f261cb298c11297312fe2d39126ceefbb414584", &hx);
 }
 
 test "metal per-request serving batch (dense + MoE stack, LM head, greedy check) equals CPU" {

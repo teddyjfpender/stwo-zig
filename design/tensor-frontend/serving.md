@@ -504,7 +504,10 @@ quoting):
 
 The request is 1024 tokens.
 
-**Witness per request, n_w.**
+**Witness per request, n_w.** (Witness-ledger update, ledger.md: the
+formula projection at model dims is 2.02e10, and 1.64e10 after the
+attn-virtual-d-sel lever (virtual attention D, factored argmax selector;
+ledger.md section 6.1). The fit below is the pre-ledger estimate.)
 * Fit, scaled (upper estimate). The per-token linear term is
   34K x 6.25 per layer: widths are about 5x, and the shared expert adds about
   25%. The attention-pair term is 40 x 5 per pair per layer (40 heads against

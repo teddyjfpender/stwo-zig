@@ -200,7 +200,7 @@ argument and adversarial tests before it lands.
 |---|---|---:|
 | capacity padding: expert stacks at T slots (sorted / ragged dispatch) instead of E · C = 4 T | 3/4 of the routed-expert rows | ~16 % |
 | causal half: commit scores / sel / e for j ≤ t only (on the masked half, sel = 0 and e is the exp table at the masked bias; needs a triangular layout and a proof that the mask is honoured) | ~half of 3 H T² | ~15 % |
-| `d` virtual: the exp key's input is the expression m − S − bias (already a lineq), not a committed column | H T² per layer | ~10 % |
+| `d` virtual: the exp key's input is the expression m − S − bias (already a lineq), not a committed column | H T² per layer | ~10 % (**implemented**, section 6) |
 | fused glu (`Op.glu`, one triple lookup) in the transformer MLPs and expert stacks: drops the committed SiLU output | T F, E C Fe, T Fs | ~7 % |
 | division slacks as virtual keys into one 2^20 range table (instead of 16-bit limb pairs) | 4 T D per layer | ~5 % |
 | residual stream as expressions (lineq sums) where consumers accept expressions | 2 T D per layer | ~2.5 % (needs checking) |
@@ -229,3 +229,80 @@ work. It changes the PCS encoding, so it is a protocol change, not a tweak.
   in ReleaseFast. The model bench at E = 64, T = 512 hit this. Chunk
   starts are now clamped. Outputs for every shape that ran before are
   identical, so no digests change.
+
+## 6. Implemented levers
+
+### 6.1 attn-virtual-d-sel (branch `codex/tensor-wv-attn-virtual-d-sel`)
+
+Two commits, both in `transformer.attention` (statement and soundness:
+transformer.md sections 2 and 3):
+
+1. **D virtual.** `attn/d` (H T²) is no longer committed. The exp key's input
+   is the expression m − S − Bias; the D lineq is gone. Attainment moves from
+   Σ_j sel·D = 0 to z1 = Σ_j sel·S and z2 = Σ_j sel·Bias (committed, H T
+   each) with m − z1 − z2 = 0, and m gets its own signed score_bits range key.
+2. **Factored selector** (log_t ≥ `FACTORED_SEL_MIN_LOG_T` = 4; toy
+   statements keep sel). sel[h,t,j] (H T²) becomes A[h,t,jh] and B[h,t,jl]
+   (j = jl + 2^⌊lt/2⌋ jh), each boolean (zero-check) and one-hot (sum lineq),
+   with partial sums PS = Σ_jl B·S and PB = Σ_jl B·Bias (committed,
+   H T 2^⌈lt/2⌉ each) and z1 = Σ_jh A·PS, z2 = Σ_jh A·PB. bounds.zig's
+   existing one-hot rule covers both einsum levels (no bounds.zig change).
+
+Measured (this Mac, 12 threads, **battery power**, single runs; timings are
+indicative only):
+
+| run | before | after commit 1 | after commit 2 |
+|---|---:|---:|---:|
+| dense layer D 2048, F 4096, 16q/4kv, 1024 tok (noprove): committed elems | 124,371,176 | 107,626,728 | 92,946,664 |
+| same, elems / token / layer (incl. the input) | 121,456 | 105,104 | 90,768 (−25.3 %) |
+| same, bits31 / token / layer | 3.77 M | 3.26 M | 2.81 M |
+| same, GKR leaves direct / virtual | 80.2 M / 48.8 M | 63.5 M / 65.5 M | 63.5 M / 65.5 M |
+| dense layer, 512 tok (proof): committed elems | 45,444,324 | | 37,989,604 (−16.4 %) |
+| same, prove (ns / committed elem) | 0.914 s (20.1) | | 0.845 s (22.2) |
+| same, proof bytes (witness opening) | 469,104 (175,400) | | 466,216 (169,168) |
+| LM embed + dense + MoE (E 64, C 32) + head, 512 tok: committed elems | 39,253,713 | | 31,798,993 (−19.0 %) |
+| same, dense layer / MoE layer elems per token | 25,434 / 34,335 | | 18,154 / 27,055 |
+| same, prove per request (ns / elem) | 1.300 s (33.1) | | 1.163 s (36.6) |
+| same, request bytes (per-request total) | 532,792 | | 539,216 |
+
+The formula check (`ledger_project.py`) matches every class of every run.
+Commit-1 elements were measured on a separate build of the commit-1 tree.
+Proof bytes barely move: the witness opening shrinks with the committed
+columns (−6 KB), and the new einsum sumchecks and ext claims add about the
+same. ns/element rises because the H T² exp-key work (now a 3-term virtual
+expression), the sel·S einsum (now B·S at H T²) and the scores stay while
+committed elements fall; the prove time still falls by 8 to 11 %.
+
+Maverick projection (formulas, section 3):
+
+| | before | after |
+|---|---:|---:|
+| model dims: dense / MoE elems per token per layer | 329,826 / 483,943 | 253,106 / 407,223 |
+| model dims: bits31 per token per layer | 10.2 M / 15.0 M | 7.85 M / 12.6 M |
+| model dims: n_w per request | 2.02e10 | 1.64e10 (−18.7 %) |
+| power-of-two dims: n_w per request | 2.92e10 | 2.32e10 |
+
+Per token per layer at model dims (H = 40): d −40,880 and sel −35,840 in
+both layer kinds. At 22 to 37 ns per element (the battery-power figures
+above), 1.64e10 elements are 365 to 600 s of proving per request on this
+CPU, against 406 to 669 s for 2.02e10 at the "before" ns/element; to be
+re-measured on AC (`TENSOR_LEDGER=1`) before quoting.
+
+Soundness: the exp-table membership of the virtual D_j proves
+m ≥ S_j + Bias_j as integers (|m| < 2^(sb−1) from m's range key,
+|S| < 2^(sb−1), |Bias| ≤ 2^sb + 256, so the expression plus the 2^(sb+2)
+domain is far below p: `bounds.exprCheck`); one-hot A ⊗ B (or sel) with the
+exact einsums gives m = S(j*) + Bias(j*). security.zig accounts ext ops
+generically (`accountExt`): commit 1 removes one lineq over n3 and adds two
+einsum sumchecks over n2, one lineq over n2 and one range relation; commit 2
+removes an n3 zero-check and an n2 lineq, adds two zero-checks over
+n2 + lt/2, two lineqs and four einsum sumchecks, each term far below
+2^−100 over QM31. Adversarial tests (unchecked prover, all rejected): plain
+selector `m_lowered`, `m_raised`, `sel_moved`, `sel_nonbinary`; factored
+selector `m_lowered` (A, B, PS, PB, z1, z2 and e consistent), `m_raised`,
+`a_not_one_hot` (2 and −1, sum 1), `b_two_hot`, `a_moved` (z1, z2 following
+PS, PB), `ps_forged`.
+
+Digests repinned: golden decoder layer flat 837b19ac → 8424c4b6 (commit 1)
+→ a2bcc5c7 (commit 2), pcs2_moe 0d99b4e3 → 79360fbd → 4dd28279, and the
+CUDA-emu and Metal CPU-golden pins with flat.

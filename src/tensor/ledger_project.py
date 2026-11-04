@@ -36,7 +36,7 @@ def slack_limbs(T):
 # transformer.FACTORED_SEL_MIN_LOG_T: log_t at or above which the argmax
 # selector is A[h,t,jh] (x) B[h,t,jl] (2 H T sqrt(T) + partial sums) instead of
 # sel[h,t,j] (H T^2)
-FACTORED_SEL_MIN_LOG_T = 99
+FACTORED_SEL_MIN_LOG_T = 4
 
 
 def argmax_block(H, T):

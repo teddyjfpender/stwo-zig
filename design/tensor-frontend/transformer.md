@@ -132,8 +132,13 @@ signed. One einsum (batch vars t, i; contracted b; x-only h; R-only b').
 * (score_bits = sb, default 8: S in [-2^(sb-1), 2^(sb-1)), mask bias 2^sb + 256,
   exp-table domain 2^(sb+2); the values below are sb = 8. accuracy.md.)
 * Bias[t, j] = 0 if j <= t else -512 (public causal mask). Sm = S + Bias.
-* m[h,t] = max_j Sm; sel[h,t,:] = one-hot of the first argmax.
-* D = m - S - Bias (committed; lineq) in [0, 1024) (lookup domain).
+* m[h,t] = max_j Sm (committed, signed sb-bit range key); j*[h,t] = the first
+  argmax.
+* D = m - S - Bias in [0, 1024) (lookup domain). **Virtual**: D is never
+  committed; the exp key's input is the affine expression m - S - Bias of the
+  committed m, S and the public Bias (witness ledger lever
+  attn-virtual-d-sel; until then D was committed with a lineq, H T^2
+  elements).
 * e = expT(D), expT(d) = round(256 exp(-d/16)) for d < 256, 0 otherwise
   (public 1024-entry lookup). Masked positions have D >= 257, so e = 0.
 * den[h,t] = sum_j e (lineq with a SUM term) in [256, 256 T].
@@ -156,9 +161,22 @@ signed. One einsum (batch vars t, i; contracted b; x-only h; R-only b').
   instead of 1). The FlashProve-style division above removes both: every
   product is below 2^(lt+17) and there is no per-probability quantisation.
 
-Constraints for the rowmax: sel in {0,1} (exact einsum sel * sel = sel, a
-degree-3 zero-check; over the field x^2 = x iff x in {0,1}), sum_j sel = 1
-(lineq), sum_j sel * D = 0 (exact einsum with y = 0).
+Constraints for the rowmax (attainment of m at a one-hot j*):
+* log_t < 4 (`FACTORED_SEL_MIN_LOG_T`, toy statements): sel[h,t,j] in {0,1}
+  (exact einsum sel * sel = sel, a degree-3 zero-check; over the field x^2 = x
+  iff x in {0,1}), sum_j sel = 1 (lineq), z1 = sum_j sel S and
+  z2 = sum_j sel Bias (exact einsums, committed H T each), m - z1 - z2 = 0
+  (lineq).
+* log_t >= 4: the factored selector. j = jl + 2^(lt/2) jh (jl = the low
+  floor(lt/2) bits). A[h,t,jh] and B[h,t,jl] in {0,1} (two zero-checks),
+  sum_jh A = 1 and sum_jl B = 1 (lineqs), PS[h,t,jh] = sum_jl B S and
+  PB[h,t,jh] = sum_jl B Bias (exact einsums, committed), z1 = sum_jh A PS,
+  z2 = sum_jh A PB (exact einsums, committed), m - z1 - z2 = 0. Committed:
+  A, B, PS, PB at H T 2^ceil(lt/2) or less each instead of sel at H T^2 (at
+  T = 1024: 4 x 32 H instead of 1024 H per token).
+
+Before attn-virtual-d-sel the rowmax committed D and sel (2 H T^2) and
+proved sum_j sel D = 0 (exact einsum with y = 0).
 
 **Residual**: z = x + y committed with a lineq (no range check needed: z is
 an integer function of range-checked integers).
@@ -228,9 +246,19 @@ with the prompt). Calibration (`calibrate`) records the shifts on sample
 inputs; an input outside the calibrated model makes the prover error.
 
 Uniqueness arguments:
-* rowmax: sel in {0,1} (sel^2 = sel), sum sel = 1 over <= T < p terms => exactly one j*;
-  D_j in [0,1024) and D_j = m - S_j - Bias_j as integers (bounds below) =>
-  m >= Sm_j for all j; sum_j sel D = D_{j*} = 0 => m = Sm_{j*}. So m = max Sm.
+* rowmax: sel in {0,1} (sel^2 = sel), sum sel = 1 over <= T < p terms => exactly one j*.
+  Factored form: A, B boolean with sum 1 each => one-hots at jh*, jl*, so
+  A (x) B is the one-hot of j* = jl* + 2^(lt/2) jh*; PS[jh] = S(jh, jl*)
+  and z1 = PS(jh*) = S(j*) exactly (one-hot einsums have at most one nonzero
+  term, so |PS|, |z1| <= 2^(sb-1): bounds.zig's one-hot rule, applied
+  twice), likewise z2 = Bias(j*).
+  The exp key on the virtual input m - S_j - Bias_j: |m| < 2^(sb-1) (m's own
+  range key), |S_j| < 2^(sb-1), |Bias| <= 2^sb + 256, so the expression plus
+  the 2^(sb+2) domain stays far below p (bounds.zig `exprCheck`), and table
+  membership gives the integer D_j = m - S_j - Bias_j in [0, 1024) =>
+  m >= Sm_j for all j. m = z1 + z2 = Sm_{j*} (lineq, integer: all terms
+  bounded). So m = max Sm. A masked j* cannot give a larger m: m = S(j*) -
+  2^sb - 256 < -2^(sb-1) <= S(t, t) contradicts m >= Sm_t.
 * division: o int8 and od = o den exactly, with |2 acc + den - 2 od| <
   2^(lt+17) < p - 2^(lt+9) (range-to-integer lemma), so
   0 <= 2 acc + den - 2 o den < 2 den holds over the integers and, since
@@ -307,9 +335,13 @@ matmuls fail validation (tested).
 * tampering of every ext sumcheck (first round), sampled finals, first/last
   ext values, statement (mask, shift, labels) -> rejected;
 * test-only unchecked prover (`ext.test_unchecked_prover`) with invalid
-  witnesses: moved argmax selector, lowered rowmax (consistent D), acc + 1,
+  witnesses: moved argmax selector, lowered m (attained at a smaller score
+  with sel, z1, z2 and e consistent), raised m (not attained), acc + 1,
   wrong rt, residual, exp value, masked-position exp leak,
-  score, sum of squares -> all rejected by the verifier;
+  score, sum of squares -> all rejected by the verifier; at log_t = 4 (the
+  factored selector): lowered m (A, B, PS, PB, z1, z2 consistent), raised m,
+  A non-binary with sum 1, B two-hot, A moved with z1 / z2 following, PS
+  forged -> all rejected;
 * honest prover refuses an invalid witness (error, no proof);
 * fused QKV (GQA and MHA padding cases): RoPE reads the right slice
   (direct reference) and the layer proves/verifies with the wider table;
