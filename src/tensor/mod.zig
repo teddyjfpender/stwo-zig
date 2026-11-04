@@ -59,4 +59,5 @@ test {
     _ = lm;
     _ = wire;
     _ = wire_test;
+    _ = @import("security_regress_test.zig");
 }
