@@ -25,6 +25,8 @@ pub const zk = @import("zk.zig");
 pub const security = @import("security.zig");
 pub const serve = @import("serve.zig");
 pub const lm = @import("lm.zig");
+pub const wire = @import("wire.zig");
+pub const wire_test = @import("wire_test.zig");
 
 test {
     _ = @import("qmul_check_test.zig");
@@ -55,4 +57,6 @@ test {
     _ = security;
     _ = serve;
     _ = lm;
+    _ = wire;
+    _ = wire_test;
 }

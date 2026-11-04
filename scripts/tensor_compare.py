@@ -95,12 +95,24 @@ def fmt_bytes(b):
     return f"{b/1e6:.2f} MB" if b >= 1e6 else f"{b/1e3:.0f} KB"
 
 
+def fmt_proof(r):
+    """Proof size as sent: the wire encoding (tensor-bench "encoded_bytes",
+    wire.zig) when reported, else the struct-field sum marked with '*'."""
+    enc = r.get("encoded_bytes")
+    if enc and "proof" in enc:
+        return fmt_bytes(enc["proof"])
+    pb = r["proof_bytes"]
+    return fmt_bytes(pb["total"] if isinstance(pb, dict) else pb) + "*"
+
+
 def cmd_report(ns):
     rows = [json.loads(l) for l in open(os.path.join(ns.out, "results.jsonl"))]
     by = {}
     for r in rows:
         by[r.get("tag")] = r  # last wins
-    md = ["# Tensor frontend vs FlashProve: measured comparison", ""]
+    md = ["# Tensor frontend vs FlashProve: measured comparison", "",
+          "Proof sizes are wire-encoded bytes (design/tensor-frontend/wire.md, the files `tensor-verify` reads); "
+          "'*' marks rows that only report the struct-field sum.", ""]
     base = None
     if ns.baseline and os.path.exists(ns.baseline):
         base = json.load(open(ns.baseline))
@@ -126,7 +138,7 @@ def cmd_report(ns):
                 continue
             fp = FP_TOY_SAME_MACHINE.get(L)
             fps = (f"{fp[0]:.2f} s", f"{fp[1]*1e3:.0f} ms", fmt_bytes(fp[2]), f"{fp[0]/r['prove_s']:.1f}x") if fp else ("-", "-", "-", "-")
-            md.append(f"| {L} | {name} ({r['queries']}q, rate 1/{2**r['log_blowup']}, {r['pow_bits']} PoW) | {r['prove_s']:.3f} s | {r['verify_s']*1e3:.1f} ms | {fmt_bytes(r['proof_bytes'])} | {fps[0]} | {fps[1]} | {fps[2]} | {fps[3]} |")
+            md.append(f"| {L} | {name} ({r['queries']}q, rate 1/{2**r['log_blowup']}, {r['pow_bits']} PoW) | {r['prove_s']:.3f} s | {r['verify_s']*1e3:.1f} ms | {fmt_proof(r)} | {fps[0]} | {fps[1]} | {fps[2]} | {fps[3]} |")
     md.append("")
     zt = [by[k] for k in sorted(by) if k.startswith("zktoy-") and "prove_s" in by[k]]
     if zt:
@@ -135,14 +147,14 @@ def cmd_report(ns):
         for r in sorted(zt, key=lambda r: r["log_n"]):
             fp = FP_TOY_SAME_MACHINE.get(r["log_n"])
             fps = (f"{fp[0]:.2f} s", f"{fp[1]*1e3:.0f} ms", fmt_bytes(fp[2]), f"{fp[0]/r['prove_s']:.1f}x") if fp else ("-", "-", "-", "-")
-            md.append(f"| {r['log_n']} | {r['prove_s']:.3f} s | {r['verify_s']*1e3:.1f} ms | {fmt_bytes(r['proof_bytes'])} | {fps[0]} | {fps[1]} | {fps[2]} | {fps[3]} |")
+            md.append(f"| {r['log_n']} | {r['prove_s']:.3f} s | {r['verify_s']*1e3:.1f} ms | {fmt_proof(r)} | {fps[0]} | {fps[1]} | {fps[2]} | {fps[3]} |")
         md.append("")
     zm = [by[k] for k in sorted(by) if k.startswith("zkmlp-") and "prove_s" in by[k]]
     if zm:
         md += ["## Zero-knowledge MLP layer (hiding weights + witness, public input/output), D=4096, F=8192, 12 threads", "",
                "| tokens | prove (+fwd) | verify | proof | weight commit (once) | peak RSS |", "|---|---|---|---|---|---|"]
         for r in sorted(zm, key=lambda r: r["log_t"]):
-            md.append(f"| {2**r['log_t']} | {r['prove_s']:.2f} s (+{r['forward_s']:.2f}) | {r['verify_s']*1e3:.0f} ms | {fmt_bytes(r['proof_bytes']['total'])} | {r['commit_weights_s']:.2f} s | {r.get('peak_rss_bytes',0)/1e9:.1f} GB |")
+            md.append(f"| {2**r['log_t']} | {r['prove_s']:.2f} s (+{r['forward_s']:.2f}) | {r['verify_s']*1e3:.0f} ms | {fmt_proof(r)} | {r['commit_weights_s']:.2f} s | {r.get('peak_rss_bytes',0)/1e9:.1f} GB |")
         md.append("")
     mlp = [by[k] for k in sorted(by, key=lambda k: (k.split("-")[1], by[k].get("tokens", 0))) if k.startswith("mlp-") and "prove_s" in by[k]]
     if mlp:
@@ -152,14 +164,14 @@ def cmd_report(ns):
         for r in mlp:
             s = r["stage_s"]
             cfgname = r["tag"].split("-")[1]
-            md.append(f"| {cfgname} | {int(r['tokens'])} | {r['prove_s']:.2f} s (+{r['forward_s']:.2f}) | {r['verify_s']*1e3:.1f} ms | {fmt_bytes(r['proof_bytes']['total'])} | {r['proved_macs_per_s']:.2e} | {r['prove_ns_per_token']/1e3:.0f} | {r['committed_bits_per_token']:.0f} | {s['witness_commit']:.2f}/{s['gkr']:.2f}/{s['op_sumchecks']:.2f}/{s['batch']:.2f}/{s['witness_open']+s['weight_open']:.2f} |")
+            md.append(f"| {cfgname} | {int(r['tokens'])} | {r['prove_s']:.2f} s (+{r['forward_s']:.2f}) | {r['verify_s']*1e3:.1f} ms | {fmt_proof(r)} | {r['proved_macs_per_s']:.2e} | {r['prove_ns_per_token']/1e3:.0f} | {r['committed_bits_per_token']:.0f} | {s['witness_commit']:.2f}/{s['gkr']:.2f}/{s['op_sumchecks']:.2f}/{s['batch']:.2f}/{s['witness_open']+s['weight_open']:.2f} |")
         md.append("")
     lay = [by[k] for k in sorted(by) if k.startswith("layer-") and "prove_s" in by[k]]
     if lay:
         md += ["## Llama-style decoder layer (GQA attention + RoPE + softmax + RMSNorm + SwiGLU), 12 threads", "",
                "| config | tokens | D | F | heads (q/kv) | weights | prove (+fwd) | verify | proof | prove ms/token |", "|---|---|---|---|---|---|---|---|---|---|"]
         for r in lay:
-            md.append(f"| {r['tag'].split('-')[1]} | {2**r['log_t']} | {2**r['log_d']} | {2**r['log_f']} | {2**r['log_heads']}/{2**r['log_kv_heads']} | {r['weights']/1e6:.1f}M | {r['prove_s']:.2f} s (+{r['forward_s']:.2f}) | {r['verify_s']*1e3:.1f} ms | {fmt_bytes(r['proof_bytes']['total'])} | {r['prove_s']*1e3/2**r['log_t']:.2f} |")
+            md.append(f"| {r['tag'].split('-')[1]} | {2**r['log_t']} | {2**r['log_d']} | {2**r['log_f']} | {2**r['log_heads']}/{2**r['log_kv_heads']} | {r['weights']/1e6:.1f}M | {r['prove_s']:.2f} s (+{r['forward_s']:.2f}) | {r['verify_s']*1e3:.1f} ms | {fmt_proof(r)} | {r['prove_s']*1e3/2**r['log_t']:.2f} |")
         md.append("")
     open(os.path.join(ns.out, "COMPARISON.md"), "w").write("\n".join(md) + "\n")
     print("\n".join(md))
