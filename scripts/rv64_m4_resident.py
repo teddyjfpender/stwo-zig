@@ -165,7 +165,7 @@ def plan_for(blocks, args, run, paths, root):
                       "receiver": str(paths["receiver"]), "recursive_receiver": str(paths["receiver"])}
     plan["asset_sha256"] = {k: P.sha(v) if Path(v).is_file() else None for k, v in plan["assets"].items()}
     plan["producer_source_commit"] = P.source_commit(root)
-    plan["resident_environment"] = dict(kv.split("=", 1) for kv in args.env)
+    plan["resident_environment"] = P.producer_env(args)
     return plan
 
 
@@ -682,6 +682,7 @@ def main():
     s.add_argument("--store", choices=("fresh", "reuse", "none"), default="reuse")
     s.add_argument("--catalogues", default=str(M3 / "catalogues-v3"))
     s.add_argument("--env", action="append", default=[])
+    s.add_argument("--no-default-env", action="store_true", help="do not apply rv64_m3_pod.DEFAULT_PRODUCER_ENV")
     s.add_argument("--driver")
     s.add_argument("--library")
     s.add_argument("--receiver")

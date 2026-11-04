@@ -39,6 +39,25 @@ ZIG = os.environ.get("RV64_M3_ZIG", "/workspace/zig/zig")
 NVCC = "/usr/local/cuda/bin/nvcc"
 DEV_BLOCKS = {26235156, 24628607}
 GPU_LOCK = M3 / "locks/gpu.lock"
+# M5 integrate default producer configuration (vectors/reports/rv64-m5-20261104/SUMMARY.md, "Default").
+# Proof-neutral: every flag is scheduling/placement only and the proofs are byte-identical to M3/M4 with or
+# without them; they were passed by hand (--env) in every M3/M4/M5 headline run. Applied unless a --env
+# override names the variable, or --no-default-env is given. The proof FORMAT default is unchanged (outer
+# profile r1_b2_q108_p20_fold4, exact shape, binary folds; flat native manifest digest); the M5 canonical
+# outer profile stays opt-in via --env STWO_RV64_OUTER_PROFILE=m5_outer_canonical_r1_b2_q108_p20_fold4_v1.
+DEFAULT_PRODUCER_ENV = {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1",  # = auto: carve (free - reserve) at service start; 22G is the opt-in <=28 GB cap
+}
+
+
+def producer_env(args):
+    """Default producer env overlaid by the caller's --env K=V overrides (in order)."""
+    env = {} if getattr(args, "no_default_env", False) else dict(DEFAULT_PRODUCER_ENV)
+    env.update(kv.split("=", 1) for kv in args.env)
+    return env
 GPU_LOCK_WAIT = 7200
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -227,7 +246,7 @@ def make_plan(args, run, paths, root):
     plan["asset_sha256"] = {k: sha(v) if Path(v).is_file() else None for k, v in plan["assets"].items()}
     plan["runtime_target_sha256"] = plan["asset_sha256"]["library"]
     plan["producer_source_commit"] = source_commit(root)
-    plan["resident_environment"] = dict(kv.split("=", 1) for kv in args.env)
+    plan["resident_environment"] = producer_env(args)
     B.atomic_json(run / "plan.json", plan)
     return plan, job
 
@@ -519,6 +538,7 @@ def main():
         p.add_argument("--stream", default="infra")
         p.add_argument("--tag")
         p.add_argument("--env", action="append", default=[], help="K=V producer environment override")
+        p.add_argument("--no-default-env", action="store_true", help="do not apply DEFAULT_PRODUCER_ENV (M5 default config)")
         p.add_argument("--driver")
         p.add_argument("--library")
         p.add_argument("--receiver")
