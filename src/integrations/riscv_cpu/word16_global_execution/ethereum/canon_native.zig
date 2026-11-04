@@ -617,8 +617,8 @@ test "canon-native v1 state, stmt_k, rho, chain and chi match the reference byte
     relabelled[1].k = 1;
     try testing.expect(!std.mem.eql(u8, &chi(seq(240), m), &chi(seq(240), try chainFinal(version, &relabelled))));
     try testing.expect(!std.mem.eql(u8, &m, &(try chainFinal(version, segs[0..2]))));
-    // A different version identity (e.g. LOCAL_RELATIONS 9) changes the chain start.
-    try testing.expect(!std.mem.eql(u8, &chainIv(version), &chainIv(versionIdentity(4))));
+    // A different version identity (another rung count) changes the chain start.
+    try testing.expect(!std.mem.eql(u8, &chainIv(version), &chainIv(versionIdentity(3))));
 }
 test "canon-native padding raises present components only and fails closed" {
     var actual: CpuVector = @splat(0);

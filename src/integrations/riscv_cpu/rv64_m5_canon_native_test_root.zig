@@ -8,7 +8,7 @@ test "canon-native generated rung table has R rungs per family and ascending tru
     try std.testing.expectEqual(@as(u32, 4), Rungs.R);
     for (Rungs.CPU) |e| {
         try std.testing.expect(e.rungs.len >= 1 and e.rungs.len <= Rungs.R);
-        for (e.rungs) |v| try std.testing.expect(v[0] >= 22 and v[0] <= 23);
+        for (e.rungs) |v| try std.testing.expect(v[0] >= 5 and v[0] <= 23);
     }
     for (Rungs.TRUTH) |e| for (e.logs[1..], 0..) |l, i| try std.testing.expect(l > e.logs[i]);
 }

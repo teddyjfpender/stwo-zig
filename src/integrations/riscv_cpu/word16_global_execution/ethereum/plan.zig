@@ -674,6 +674,7 @@ fn canonLadder(count: usize, reserve: u32, head: u32, tail: u32) ?Ladder {
     return .{ .head = head, .tail = tail };
 }
 pub const CanonClass = struct { family: Canon.Family, rung: u32 };
+pub const UNCLASSED: u32 = 0xFFFFFFFF;
 /// Pads every CPU declaration to the smallest admissible class rung of its
 /// family (presence-preserving v1 mode). Layout flags, bridges' presence and
 /// every request count are unchanged; the declaration stays an ordinary
@@ -696,7 +697,12 @@ pub fn canonicalCpus(captured: *const Capture, layout: CpuLayout, decls: []W.Cpu
                 break;
             }
         }
-        d.* = chosen orelse return error.CanonNoAdmissibleRung;
+        // No admissible rung (e.g. a short last segment whose cpu_log no rung
+        // carries): keep the planned declaration, reported as unclassed.
+        d.* = chosen orelse {
+            class.* = .{ .family = family, .rung = UNCLASSED };
+            continue;
+        };
         try d.geometry.validate();
         // The JALR source is the only capture-time sized component (facts only,
         // MAIN not yet materialized): rebind its log to the padded class.
@@ -724,7 +730,8 @@ fn canonFit(d: W.CpuDeclaration, actual: Canon.CpuVector, rung: Canon.CpuVector,
         if (paired) continue;
         // Constants of the roster: omitted division, boundary, JUMPDEST table.
         if (c == 8 and d.geometry.omit_empty_division) continue;
-        if (c == 12 or c == 35) {
+        // cpu_log is fixed by the capture-time CPU source (takeCpu checks it).
+        if (c == 0 or c == 12 or c == 35) {
             if (r != a) return null;
             continue;
         }
