@@ -1,0 +1,860 @@
+GPU_COMPOSITION_ARENA ordinal=1 role=20 arena_words=599785868 legacy_arena_words=834666892 direct_columns=56 columns=66 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=1 role=1 arena_words=33816930 legacy_arena_words=46661986 direct_columns=49 columns=59 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=1 role=2 arena_words=4552 legacy_arena_words=6152 direct_columns=50 columns=60 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=1 role=3 arena_words=41157046 legacy_arena_words=57672118 direct_columns=63 columns=73 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=1 role=4 arena_words=7930186 legacy_arena_words=10879306 direct_columns=45 columns=55 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=5 arena_words=10944980 legacy_arena_words=15401428 direct_columns=68 columns=78 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=6 arena_words=6357250 legacy_arena_words=8519938 direct_columns=33 columns=43 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=7 arena_words=231042 legacy_arena_words=330370 direct_columns=97 columns=107 eval_log=11
+GPU_COMPOSITION_ARENA ordinal=1 role=8 arena_words=15925944 legacy_arena_words=22872760 direct_columns=106 columns=116 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=9 arena_words=8585576 legacy_arena_words=11862376 direct_columns=50 columns=60 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=21 arena_words=5046470 legacy_arena_words=6553798 direct_columns=23 columns=33 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=11 arena_words=4653236 legacy_arena_words=5963956 direct_columns=20 columns=30 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=12 arena_words=18356 legacy_arena_words=23476 direct_columns=20 columns=30 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=1 role=13 arena_words=63177394 legacy_arena_words=90702514 direct_columns=105 columns=115 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=1 role=47 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=1 role=48 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=1 role=14 arena_words=5177548 legacy_arena_words=6750412 direct_columns=24 columns=34 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=16 arena_words=10289590 legacy_arena_words=14418358 direct_columns=63 columns=73 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=17 arena_words=495946 legacy_arena_words=680266 direct_columns=45 columns=55 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=1 role=22 arena_words=2220812 legacy_arena_words=3203852 direct_columns=120 columns=130 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=1 role=26 arena_words=236352 legacy_arena_words=345920 direct_columns=214 columns=224 eval_log=10
+GPU_COMPOSITION_ARENA ordinal=1 role=34 arena_words=938638 legacy_arena_words=1344142 direct_columns=99 columns=109 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=1 role=35 arena_words=13042228 legacy_arena_words=18547252 direct_columns=84 columns=94 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=36 arena_words=9765278 legacy_arena_words=13631902 direct_columns=59 columns=69 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=37 arena_words=938638 legacy_arena_words=1344142 direct_columns=99 columns=109 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=1 role=38 arena_words=9452 legacy_arena_words=13292 direct_columns=120 columns=130 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=1 role=39 arena_words=15712 legacy_arena_words=22240 direct_columns=102 columns=112 eval_log=7
+GPU_COMPOSITION_ARENA ordinal=1 role=40 arena_words=7772 legacy_arena_words=10844 direct_columns=96 columns=106 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=1 role=41 arena_words=6580552 legacy_arena_words=9742664 direct_columns=386 columns=396 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=1 role=42 arena_words=1294540 legacy_arena_words=1687756 direct_columns=24 columns=34 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=1 role=43 arena_words=82322 legacy_arena_words=119474 direct_columns=1161 columns=1171 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=1 role=44 arena_words=95692 legacy_arena_words=138956 direct_columns=1352 columns=1362 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=1 role=45 arena_words=187695608 legacy_arena_words=265290232 direct_columns=74 columns=84 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=1 role=46 arena_words=46924280 legacy_arena_words=66322936 direct_columns=74 columns=84 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=0 role=20 arena_words=599785868 legacy_arena_words=834666892 direct_columns=56 columns=66 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=0 role=1 arena_words=33816930 legacy_arena_words=46661986 direct_columns=49 columns=59 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=0 role=2 arena_words=4552 legacy_arena_words=6152 direct_columns=50 columns=60 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=0 role=3 arena_words=41157046 legacy_arena_words=57672118 direct_columns=63 columns=73 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=0 role=4 arena_words=15860042 legacy_arena_words=21758282 direct_columns=45 columns=55 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=0 role=5 arena_words=10944980 legacy_arena_words=15401428 direct_columns=68 columns=78 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=6 arena_words=6357250 legacy_arena_words=8519938 direct_columns=33 columns=43 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=7 arena_words=461442 legacy_arena_words=660098 direct_columns=97 columns=107 eval_log=12
+GPU_COMPOSITION_ARENA ordinal=0 role=8 arena_words=15925944 legacy_arena_words=22872760 direct_columns=106 columns=116 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=9 arena_words=8585576 legacy_arena_words=11862376 direct_columns=50 columns=60 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=21 arena_words=5046470 legacy_arena_words=6553798 direct_columns=23 columns=33 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=11 arena_words=4653236 legacy_arena_words=5963956 direct_columns=20 columns=30 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=12 arena_words=18356 legacy_arena_words=23476 direct_columns=20 columns=30 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=0 role=13 arena_words=63177394 legacy_arena_words=90702514 direct_columns=105 columns=115 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=0 role=47 arena_words=70254790 legacy_arena_words=104857798 direct_columns=33 columns=33 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=0 role=48 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=0 role=14 arena_words=5177548 legacy_arena_words=6750412 direct_columns=24 columns=34 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=15 arena_words=3949234 legacy_arena_words=5669554 direct_columns=105 columns=115 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=0 role=16 arena_words=20578742 legacy_arena_words=28836278 direct_columns=63 columns=73 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=0 role=18 arena_words=1368532 legacy_arena_words=1925588 direct_columns=68 columns=78 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=0 role=22 arena_words=8880908 legacy_arena_words=12813068 direct_columns=120 columns=130 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=0 role=23 arena_words=941376 legacy_arena_words=1379648 direct_columns=214 columns=224 eval_log=12
+GPU_COMPOSITION_ARENA ordinal=0 role=24 arena_words=471360 legacy_arena_words=690496 direct_columns=214 columns=224 eval_log=11
+GPU_COMPOSITION_ARENA ordinal=0 role=25 arena_words=16032 legacy_arena_words=22880 direct_columns=214 columns=224 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=0 role=26 arena_words=236352 legacy_arena_words=345920 direct_columns=214 columns=224 eval_log=10
+GPU_COMPOSITION_ARENA ordinal=0 role=34 arena_words=938638 legacy_arena_words=1344142 direct_columns=99 columns=109 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=0 role=35 arena_words=13042228 legacy_arena_words=18547252 direct_columns=84 columns=94 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=36 arena_words=39059870 legacy_arena_words=54526366 direct_columns=59 columns=69 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=0 role=37 arena_words=60031630 legacy_arena_words=85983886 direct_columns=99 columns=109 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=0 role=38 arena_words=70156 legacy_arena_words=100876 direct_columns=120 columns=130 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=0 role=39 arena_words=60832 legacy_arena_words=86944 direct_columns=102 columns=112 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=0 role=40 arena_words=7772 legacy_arena_words=10844 direct_columns=96 columns=106 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=0 role=41 arena_words=3291464 legacy_arena_words=4872520 direct_columns=386 columns=396 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=0 role=42 arena_words=1294540 legacy_arena_words=1687756 direct_columns=24 columns=34 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=0 role=43 arena_words=9644914 legacy_arena_words=14400370 direct_columns=1161 columns=1171 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=0 role=44 arena_words=89628652 legacy_arena_words=133930988 direct_columns=1352 columns=1362 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=0 role=45 arena_words=187695608 legacy_arena_words=265290232 direct_columns=74 columns=84 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=0 role=46 arena_words=46924280 legacy_arena_words=66322936 direct_columns=74 columns=84 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=2 role=20 arena_words=599785868 legacy_arena_words=834666892 direct_columns=56 columns=66 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=2 role=1 arena_words=33816930 legacy_arena_words=46661986 direct_columns=49 columns=59 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=2 role=2 arena_words=4552 legacy_arena_words=6152 direct_columns=50 columns=60 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=2 role=3 arena_words=41157046 legacy_arena_words=57672118 direct_columns=63 columns=73 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=2 role=4 arena_words=7930186 legacy_arena_words=10879306 direct_columns=45 columns=55 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=5 arena_words=10944980 legacy_arena_words=15401428 direct_columns=68 columns=78 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=6 arena_words=6357250 legacy_arena_words=8519938 direct_columns=33 columns=43 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=7 arena_words=231042 legacy_arena_words=330370 direct_columns=97 columns=107 eval_log=11
+GPU_COMPOSITION_ARENA ordinal=2 role=8 arena_words=15925944 legacy_arena_words=22872760 direct_columns=106 columns=116 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=9 arena_words=8585576 legacy_arena_words=11862376 direct_columns=50 columns=60 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=21 arena_words=5046470 legacy_arena_words=6553798 direct_columns=23 columns=33 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=11 arena_words=4653236 legacy_arena_words=5963956 direct_columns=20 columns=30 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=12 arena_words=18356 legacy_arena_words=23476 direct_columns=20 columns=30 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=2 role=13 arena_words=63177394 legacy_arena_words=90702514 direct_columns=105 columns=115 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=2 role=47 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=2 role=48 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=2 role=14 arena_words=5177548 legacy_arena_words=6750412 direct_columns=24 columns=34 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=15 arena_words=1974962 legacy_arena_words=2835122 direct_columns=105 columns=115 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=2 role=16 arena_words=20578742 legacy_arena_words=28836278 direct_columns=63 columns=73 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=2 role=17 arena_words=1982794 legacy_arena_words=2720074 direct_columns=45 columns=55 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=2 role=22 arena_words=2220812 legacy_arena_words=3203852 direct_columns=120 columns=130 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=2 role=23 arena_words=471360 legacy_arena_words=690496 direct_columns=214 columns=224 eval_log=11
+GPU_COMPOSITION_ARENA ordinal=2 role=24 arena_words=236352 legacy_arena_words=345920 direct_columns=214 columns=224 eval_log=10
+GPU_COMPOSITION_ARENA ordinal=2 role=26 arena_words=236352 legacy_arena_words=345920 direct_columns=214 columns=224 eval_log=10
+GPU_COMPOSITION_ARENA ordinal=2 role=34 arena_words=469646 legacy_arena_words=672398 direct_columns=99 columns=109 eval_log=12
+GPU_COMPOSITION_ARENA ordinal=2 role=35 arena_words=13042228 legacy_arena_words=18547252 direct_columns=84 columns=94 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=36 arena_words=4882846 legacy_arena_words=6816158 direct_columns=59 columns=69 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=2 role=37 arena_words=938638 legacy_arena_words=1344142 direct_columns=99 columns=109 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=2 role=38 arena_words=9452 legacy_arena_words=13292 direct_columns=120 columns=130 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=2 role=39 arena_words=8192 legacy_arena_words=11456 direct_columns=102 columns=112 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=2 role=40 arena_words=7772 legacy_arena_words=10844 direct_columns=96 columns=106 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=2 role=41 arena_words=6580552 legacy_arena_words=9742664 direct_columns=386 columns=396 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=2 role=42 arena_words=1294540 legacy_arena_words=1687756 direct_columns=24 columns=34 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=2 role=43 arena_words=82322 legacy_arena_words=119474 direct_columns=1161 columns=1171 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=2 role=44 arena_words=95692 legacy_arena_words=138956 direct_columns=1352 columns=1362 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=2 role=45 arena_words=187695608 legacy_arena_words=265290232 direct_columns=74 columns=84 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=2 role=46 arena_words=46924280 legacy_arena_words=66322936 direct_columns=74 columns=84 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=3 role=20 arena_words=599785868 legacy_arena_words=834666892 direct_columns=56 columns=66 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=3 role=1 arena_words=33816930 legacy_arena_words=46661986 direct_columns=49 columns=59 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=3 role=2 arena_words=4552 legacy_arena_words=6152 direct_columns=50 columns=60 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=3 role=3 arena_words=41157046 legacy_arena_words=57672118 direct_columns=63 columns=73 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=3 role=4 arena_words=7930186 legacy_arena_words=10879306 direct_columns=45 columns=55 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=5 arena_words=5472724 legacy_arena_words=7700948 direct_columns=68 columns=78 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=3 role=6 arena_words=6357250 legacy_arena_words=8519938 direct_columns=33 columns=43 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=7 arena_words=231042 legacy_arena_words=330370 direct_columns=97 columns=107 eval_log=11
+GPU_COMPOSITION_ARENA ordinal=3 role=8 arena_words=15925944 legacy_arena_words=22872760 direct_columns=106 columns=116 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=9 arena_words=8585576 legacy_arena_words=11862376 direct_columns=50 columns=60 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=21 arena_words=5046470 legacy_arena_words=6553798 direct_columns=23 columns=33 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=11 arena_words=4653236 legacy_arena_words=5963956 direct_columns=20 columns=30 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=12 arena_words=18356 legacy_arena_words=23476 direct_columns=20 columns=30 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=3 role=13 arena_words=63177394 legacy_arena_words=90702514 direct_columns=105 columns=115 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=3 role=47 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=3 role=48 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=3 role=14 arena_words=5177548 legacy_arena_words=6750412 direct_columns=24 columns=34 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=15 arena_words=247474 legacy_arena_words=354994 direct_columns=105 columns=115 eval_log=11
+GPU_COMPOSITION_ARENA ordinal=3 role=16 arena_words=10289590 legacy_arena_words=14418358 direct_columns=63 columns=73 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=18 arena_words=2736596 legacy_arena_words=3850708 direct_columns=68 columns=78 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=3 role=22 arena_words=1110796 legacy_arena_words=1602316 direct_columns=120 columns=130 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=3 role=23 arena_words=1881408 legacy_arena_words=2757952 direct_columns=214 columns=224 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=3 role=24 arena_words=941376 legacy_arena_words=1379648 direct_columns=214 columns=224 eval_log=12
+GPU_COMPOSITION_ARENA ordinal=3 role=26 arena_words=60096 legacy_arena_words=87488 direct_columns=214 columns=224 eval_log=8
+GPU_COMPOSITION_ARENA ordinal=3 role=34 arena_words=469646 legacy_arena_words=672398 direct_columns=99 columns=109 eval_log=12
+GPU_COMPOSITION_ARENA ordinal=3 role=35 arena_words=6521396 legacy_arena_words=9273908 direct_columns=84 columns=94 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=3 role=36 arena_words=4882846 legacy_arena_words=6816158 direct_columns=59 columns=69 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=3 role=37 arena_words=938638 legacy_arena_words=1344142 direct_columns=99 columns=109 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=3 role=38 arena_words=18124 legacy_arena_words=25804 direct_columns=120 columns=130 eval_log=7
+GPU_COMPOSITION_ARENA ordinal=3 role=39 arena_words=30752 legacy_arena_words=43808 direct_columns=102 columns=112 eval_log=8
+GPU_COMPOSITION_ARENA ordinal=3 role=40 arena_words=7772 legacy_arena_words=10844 direct_columns=96 columns=106 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=3 role=41 arena_words=3291464 legacy_arena_words=4872520 direct_columns=386 columns=396 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=3 role=42 arena_words=1294540 legacy_arena_words=1687756 direct_columns=24 columns=34 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=3 role=43 arena_words=82322 legacy_arena_words=119474 direct_columns=1161 columns=1171 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=3 role=44 arena_words=183212 legacy_arena_words=269740 direct_columns=1352 columns=1362 eval_log=7
+GPU_COMPOSITION_ARENA ordinal=3 role=45 arena_words=187695608 legacy_arena_words=265290232 direct_columns=74 columns=84 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=3 role=46 arena_words=93848056 legacy_arena_words=132645368 direct_columns=74 columns=84 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=4 role=20 arena_words=599785868 legacy_arena_words=834666892 direct_columns=56 columns=66 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=4 role=1 arena_words=33816930 legacy_arena_words=46661986 direct_columns=49 columns=59 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=4 role=2 arena_words=4552 legacy_arena_words=6152 direct_columns=50 columns=60 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=4 role=3 arena_words=41157046 legacy_arena_words=57672118 direct_columns=63 columns=73 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=4 role=4 arena_words=7930186 legacy_arena_words=10879306 direct_columns=45 columns=55 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=4 role=5 arena_words=10944980 legacy_arena_words=15401428 direct_columns=68 columns=78 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=4 role=6 arena_words=6357250 legacy_arena_words=8519938 direct_columns=33 columns=43 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=4 role=7 arena_words=231042 legacy_arena_words=330370 direct_columns=97 columns=107 eval_log=11
+GPU_COMPOSITION_ARENA ordinal=4 role=8 arena_words=15925944 legacy_arena_words=22872760 direct_columns=106 columns=116 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=4 role=9 arena_words=8585576 legacy_arena_words=11862376 direct_columns=50 columns=60 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=4 role=21 arena_words=5046470 legacy_arena_words=6553798 direct_columns=23 columns=33 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=4 role=11 arena_words=4653236 legacy_arena_words=5963956 direct_columns=20 columns=30 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=4 role=12 arena_words=18356 legacy_arena_words=23476 direct_columns=20 columns=30 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=4 role=13 arena_words=63177394 legacy_arena_words=90702514 direct_columns=105 columns=115 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=4 role=47 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=4 role=48 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=4 role=14 arena_words=5177548 legacy_arena_words=6750412 direct_columns=24 columns=34 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=4 role=16 arena_words=10289590 legacy_arena_words=14418358 direct_columns=63 columns=73 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=4 role=17 arena_words=1982794 legacy_arena_words=2720074 direct_columns=45 columns=55 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=4 role=22 arena_words=2220812 legacy_arena_words=3203852 direct_columns=120 columns=130 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=4 role=23 arena_words=1881408 legacy_arena_words=2757952 direct_columns=214 columns=224 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=4 role=24 arena_words=941376 legacy_arena_words=1379648 direct_columns=214 columns=224 eval_log=12
+GPU_COMPOSITION_ARENA ordinal=4 role=26 arena_words=236352 legacy_arena_words=345920 direct_columns=214 columns=224 eval_log=10
+GPU_COMPOSITION_ARENA ordinal=4 role=34 arena_words=938638 legacy_arena_words=1344142 direct_columns=99 columns=109 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=4 role=35 arena_words=13042228 legacy_arena_words=18547252 direct_columns=84 columns=94 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=4 role=36 arena_words=9765278 legacy_arena_words=13631902 direct_columns=59 columns=69 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=4 role=37 arena_words=1876622 legacy_arena_words=2687630 direct_columns=99 columns=109 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=4 role=38 arena_words=35468 legacy_arena_words=50828 direct_columns=120 columns=130 eval_log=8
+GPU_COMPOSITION_ARENA ordinal=4 role=39 arena_words=60832 legacy_arena_words=86944 direct_columns=102 columns=112 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=4 role=40 arena_words=7772 legacy_arena_words=10844 direct_columns=96 columns=106 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=4 role=41 arena_words=3291464 legacy_arena_words=4872520 direct_columns=386 columns=396 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=4 role=42 arena_words=1294540 legacy_arena_words=1687756 direct_columns=24 columns=34 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=4 role=43 arena_words=82322 legacy_arena_words=119474 direct_columns=1161 columns=1171 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=4 role=44 arena_words=95692 legacy_arena_words=138956 direct_columns=1352 columns=1362 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=4 role=45 arena_words=187695608 legacy_arena_words=265290232 direct_columns=74 columns=84 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=4 role=46 arena_words=46924280 legacy_arena_words=66322936 direct_columns=74 columns=84 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=5 role=20 arena_words=599785868 legacy_arena_words=834666892 direct_columns=56 columns=66 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=5 role=1 arena_words=33816930 legacy_arena_words=46661986 direct_columns=49 columns=59 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=5 role=2 arena_words=4552 legacy_arena_words=6152 direct_columns=50 columns=60 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=5 role=3 arena_words=41157046 legacy_arena_words=57672118 direct_columns=63 columns=73 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=5 role=4 arena_words=15860042 legacy_arena_words=21758282 direct_columns=45 columns=55 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=5 role=5 arena_words=21889492 legacy_arena_words=30802388 direct_columns=68 columns=78 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=5 role=6 arena_words=6357250 legacy_arena_words=8519938 direct_columns=33 columns=43 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=5 role=7 arena_words=58242 legacy_arena_words=83074 direct_columns=97 columns=107 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=5 role=8 arena_words=15925944 legacy_arena_words=22872760 direct_columns=106 columns=116 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=5 role=9 arena_words=8585576 legacy_arena_words=11862376 direct_columns=50 columns=60 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=5 role=21 arena_words=5046470 legacy_arena_words=6553798 direct_columns=23 columns=33 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=5 role=11 arena_words=4653236 legacy_arena_words=5963956 direct_columns=20 columns=30 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=5 role=12 arena_words=18356 legacy_arena_words=23476 direct_columns=20 columns=30 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=5 role=13 arena_words=63177394 legacy_arena_words=90702514 direct_columns=105 columns=115 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=5 role=47 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=5 role=48 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=5 role=14 arena_words=5177548 legacy_arena_words=6750412 direct_columns=24 columns=34 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=5 role=15 arena_words=3949234 legacy_arena_words=5669554 direct_columns=105 columns=115 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=5 role=16 arena_words=20578742 legacy_arena_words=28836278 direct_columns=63 columns=73 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=5 role=17 arena_words=7930186 legacy_arena_words=10879306 direct_columns=45 columns=55 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=5 role=22 arena_words=2220812 legacy_arena_words=3203852 direct_columns=120 columns=130 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=5 role=25 arena_words=16032 legacy_arena_words=22880 direct_columns=214 columns=224 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=5 role=26 arena_words=60096 legacy_arena_words=87488 direct_columns=214 columns=224 eval_log=8
+GPU_COMPOSITION_ARENA ordinal=5 role=34 arena_words=3752590 legacy_arena_words=5374606 direct_columns=99 columns=109 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=5 role=35 arena_words=6521396 legacy_arena_words=9273908 direct_columns=84 columns=94 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=5 role=36 arena_words=4882846 legacy_arena_words=6816158 direct_columns=59 columns=69 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=5 role=37 arena_words=30016142 legacy_arena_words=42992270 direct_columns=99 columns=109 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=5 role=38 arena_words=9452 legacy_arena_words=13292 direct_columns=120 columns=130 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=5 role=39 arena_words=15712 legacy_arena_words=22240 direct_columns=102 columns=112 eval_log=7
+GPU_COMPOSITION_ARENA ordinal=5 role=40 arena_words=7772 legacy_arena_words=10844 direct_columns=96 columns=106 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=5 role=41 arena_words=824648 legacy_arena_words=1219912 direct_columns=386 columns=396 eval_log=11
+GPU_COMPOSITION_ARENA ordinal=5 role=42 arena_words=1294540 legacy_arena_words=1687756 direct_columns=24 columns=34 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=5 role=43 arena_words=9644914 legacy_arena_words=14400370 direct_columns=1161 columns=1171 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=5 role=44 arena_words=22413292 legacy_arena_words=33488876 direct_columns=1352 columns=1362 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=5 role=45 arena_words=187695608 legacy_arena_words=265290232 direct_columns=74 columns=84 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=6 role=20 arena_words=299893132 legacy_arena_words=417333644 direct_columns=56 columns=66 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=6 role=1 arena_words=33816930 legacy_arena_words=46661986 direct_columns=49 columns=59 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=6 role=2 arena_words=4552 legacy_arena_words=6152 direct_columns=50 columns=60 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=6 role=3 arena_words=41157046 legacy_arena_words=57672118 direct_columns=63 columns=73 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=6 role=4 arena_words=1982794 legacy_arena_words=2720074 direct_columns=45 columns=55 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=6 role=5 arena_words=5472724 legacy_arena_words=7700948 direct_columns=68 columns=78 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=6 role=6 arena_words=1589506 legacy_arena_words=2130178 direct_columns=33 columns=43 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=6 role=8 arena_words=31851192 legacy_arena_words=45744824 direct_columns=106 columns=116 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=6 role=9 arena_words=8585576 legacy_arena_words=11862376 direct_columns=50 columns=60 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=6 role=21 arena_words=5046470 legacy_arena_words=6553798 direct_columns=23 columns=33 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=6 role=11 arena_words=4653236 legacy_arena_words=5963956 direct_columns=20 columns=30 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=6 role=12 arena_words=18356 legacy_arena_words=23476 direct_columns=20 columns=30 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=6 role=13 arena_words=15794866 legacy_arena_words=22676146 direct_columns=105 columns=115 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=7 role=0 arena_words=4609036904 legacy_arena_words=4609036904 direct_columns=0 columns=3516 eval_log=20
+GPU_OWNER_OOM requested_bytes=18436147616 retained_bytes=8951157136 lease_bytes=4424167056 idle_cache_bytes=4459881216 active_cache_bytes=0 physical_free_bytes=10682368 physical_total_bytes=33679736832 memory_rc=0 pool_used_bytes=8951157136 pool_reserved_bytes=27581743104 pool_rc=0 phase=initial context_token=2 device_index=1 device_rc=0 default_pool_used_bytes=0 default_pool_reserved_bytes=0 default_pool_rc=0
+GPU_COMPOSITION_ARENA ordinal=6 role=47 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=6 role=48 arena_words=70254790 legacy_arena_words=104857798 direct_columns=33 columns=33 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=6 role=14 arena_words=5177548 legacy_arena_words=6750412 direct_columns=24 columns=34 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=6 role=17 arena_words=495946 legacy_arena_words=680266 direct_columns=45 columns=55 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=6 role=18 arena_words=2736596 legacy_arena_words=3850708 direct_columns=68 columns=78 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=6 role=23 arena_words=30082368 legacy_arena_words=44107072 direct_columns=214 columns=224 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=6 role=24 arena_words=15041856 legacy_arena_words=22054208 direct_columns=214 columns=224 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=6 role=25 arena_words=7521600 legacy_arena_words=11027776 direct_columns=214 columns=224 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=6 role=34 arena_words=59278 legacy_arena_words=84622 direct_columns=99 columns=109 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=6 role=35 arena_words=408116 legacy_arena_words=580148 direct_columns=84 columns=94 eval_log=12
+GPU_COMPOSITION_ARENA ordinal=6 role=36 arena_words=1221022 legacy_arena_words=1704350 direct_columns=59 columns=69 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=6 role=37 arena_words=938638 legacy_arena_words=1344142 direct_columns=99 columns=109 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=6 role=45 arena_words=93848056 legacy_arena_words=132645368 direct_columns=74 columns=84 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=6 role=46 arena_words=46924280 legacy_arena_words=66322936 direct_columns=74 columns=84 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=8 role=0 arena_words=288084584 legacy_arena_words=288084584 direct_columns=0 columns=3516 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=8 role=1 arena_words=266338454 legacy_arena_words=266338454 direct_columns=0 columns=25 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=8 role=2 arena_words=8323222 legacy_arena_words=8323222 direct_columns=0 columns=25 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=7 role=1 arena_words=266338454 legacy_arena_words=266338454 direct_columns=0 columns=25 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=7 role=2 arena_words=8323222 legacy_arena_words=8323222 direct_columns=0 columns=25 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=9 role=0 arena_words=2304529000 legacy_arena_words=2304529000 direct_columns=0 columns=3516 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=9 role=1 arena_words=266338454 legacy_arena_words=266338454 direct_columns=0 columns=25 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=9 role=2 arena_words=8323222 legacy_arena_words=8323222 direct_columns=0 columns=25 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=10 role=5 arena_words=286819350 legacy_arena_words=286819350 direct_columns=0 columns=7001 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=11 role=5 arena_words=71736342 legacy_arena_words=71736342 direct_columns=0 columns=7001 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=12 role=5 arena_words=9003798 legacy_arena_words=9003798 direct_columns=0 columns=7001 eval_log=10
+GPU_COMPOSITION_ARENA ordinal=13 role=6 arena_words=224632962 legacy_arena_words=224632962 direct_columns=0 columns=5483 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=14 role=6 arena_words=56182914 legacy_arena_words=56182914 direct_columns=0 columns=5483 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=15 role=3 arena_words=60898840 legacy_arena_words=91323928 direct_columns=7428 columns=7428 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=16 role=4 arena_words=1422942 legacy_arena_words=2130014 direct_columns=1381 columns=1381 eval_log=10
+GPU_COMPOSITION_ARENA ordinal=1 role=0 arena_words=7602260 legacy_arena_words=11272276 direct_columns=14 columns=14 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=1 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=1 role=2 arena_words=154141110 legacy_arena_words=230687158 direct_columns=73 columns=73 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=1 role=3 arena_words=132120762 legacy_arena_words=197132474 direct_columns=31 columns=31 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=1 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=1 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=1 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=1 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=1 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=1 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=1 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=0 arena_words=7602260 legacy_arena_words=11272276 direct_columns=14 columns=14 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=0 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=0 role=2 arena_words=154141110 legacy_arena_words=230687158 direct_columns=73 columns=73 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=0 role=3 arena_words=132120762 legacy_arena_words=197132474 direct_columns=31 columns=31 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=0 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=0 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=0 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=0 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=0 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=0 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=0 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_OWNER_OOM requested_bytes=3489660928 retained_bytes=23861601892 lease_bytes=11623178112 idle_cache_bytes=12003366628 active_cache_bytes=0 physical_free_bytes=10682368 physical_total_bytes=33679736832 memory_rc=0 pool_used_bytes=23861601892 pool_reserved_bytes=27581743104 pool_rc=0 phase=initial context_token=1 device_index=0 device_rc=0 default_pool_used_bytes=0 default_pool_reserved_bytes=0 default_pool_rc=0
+GPU_COMPOSITION_ARENA ordinal=2 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=2 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=2 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=2 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=2 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=2 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=2 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=2 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=2 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=2 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=2 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=0 arena_words=7602260 legacy_arena_words=11272276 direct_columns=14 columns=14 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=3 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=3 role=2 arena_words=154141110 legacy_arena_words=230687158 direct_columns=73 columns=73 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=3 role=3 arena_words=132120762 legacy_arena_words=197132474 direct_columns=31 columns=31 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=3 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=3 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=3 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=3 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=3 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=3 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=3 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=4 role=0 arena_words=7602260 legacy_arena_words=11272276 direct_columns=14 columns=14 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=4 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=4 role=2 arena_words=154141110 legacy_arena_words=230687158 direct_columns=73 columns=73 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=4 role=3 arena_words=132120762 legacy_arena_words=197132474 direct_columns=31 columns=31 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=4 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=4 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=4 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=4 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=4 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=4 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=4 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=4 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=7 role=0 arena_words=7602260 legacy_arena_words=11272276 direct_columns=14 columns=14 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=7 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=7 role=2 arena_words=154141110 legacy_arena_words=230687158 direct_columns=73 columns=73 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=7 role=3 arena_words=132120762 legacy_arena_words=197132474 direct_columns=31 columns=31 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=7 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_OWNER_OOM requested_bytes=11240738728 retained_bytes=15959733388 lease_bytes=10630073720 idle_cache_bytes=5094549268 active_cache_bytes=0 physical_free_bytes=10682368 physical_total_bytes=33679736832 memory_rc=0 pool_used_bytes=15959733388 pool_reserved_bytes=27581743104 pool_rc=0 phase=initial context_token=2 device_index=1 device_rc=0 default_pool_used_bytes=0 default_pool_reserved_bytes=0 default_pool_rc=0
+GPU_COMPOSITION_ARENA ordinal=7 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=7 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=7 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=7 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=7 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=7 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=7 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=5 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=5 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=5 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=5 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=5 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=5 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=5 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=5 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=5 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=5 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=5 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=5 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=6 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=6 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=6 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=6 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=6 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=6 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=6 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=6 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=6 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=6 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=6 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=6 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=8 role=0 arena_words=7602260 legacy_arena_words=11272276 direct_columns=14 columns=14 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=8 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=8 role=2 arena_words=154141110 legacy_arena_words=230687158 direct_columns=73 columns=73 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=8 role=3 arena_words=132120762 legacy_arena_words=197132474 direct_columns=31 columns=31 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=8 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=8 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=8 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=8 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=8 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=8 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=8 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=8 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=9 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=9 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=9 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=9 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=9 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=9 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=9 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=9 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=9 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=9 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=9 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=9 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=10 role=0 arena_words=7602260 legacy_arena_words=11272276 direct_columns=14 columns=14 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=10 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=10 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=10 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=10 role=4 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=10 role=5 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=10 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=10 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=10 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=10 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=10 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=10 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=11 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=11 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=11 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=11 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=11 role=4 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=15 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=15 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=11 role=5 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=15 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=15 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=15 role=4 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=11 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=11 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=11 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=11 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=11 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=11 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=15 role=5 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=15 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=15 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=15 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=15 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=15 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=15 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=12 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=12 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=12 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=12 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=12 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=12 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=12 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=12 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=12 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=12 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=12 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=12 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=16 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=16 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=16 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=16 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=16 role=4 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=16 role=5 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=16 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=16 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=16 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=16 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=16 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=16 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=13 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=13 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=13 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=13 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=13 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=13 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=13 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=13 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=13 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=13 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=13 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=13 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=17 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=17 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=17 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=17 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=17 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=17 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=17 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=17 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=17 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=17 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=17 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=17 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=14 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=14 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=14 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=14 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=14 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=14 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=14 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=14 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=14 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=14 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=14 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=14 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=18 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=18 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=18 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=18 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=18 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_OWNER_OOM requested_bytes=11240738728 retained_bytes=16059829364 lease_bytes=10216414296 idle_cache_bytes=5608357916 active_cache_bytes=0 physical_free_bytes=10682368 physical_total_bytes=33679736832 memory_rc=0 pool_used_bytes=16059829364 pool_reserved_bytes=27581743104 pool_rc=0 phase=initial context_token=1 device_index=0 device_rc=0 default_pool_used_bytes=0 default_pool_reserved_bytes=0 default_pool_rc=0
+GPU_COMPOSITION_ARENA ordinal=18 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=18 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=18 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=18 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=18 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=18 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=18 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=19 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=19 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=19 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=19 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=19 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=19 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=19 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=19 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=19 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=19 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=19 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=19 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=22 role=0 arena_words=237652 legacy_arena_words=352340 direct_columns=14 columns=14 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=22 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=22 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=22 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=22 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=22 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=22 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=22 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=22 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=22 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=22 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=22 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=20 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=20 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=20 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=20 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=20 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=20 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=20 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=20 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=20 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=20 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=20 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=20 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=23 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=23 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=23 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=23 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=23 role=4 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=23 role=5 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=23 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=23 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=23 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=23 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=23 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=23 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=21 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=21 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=21 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=21 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=21 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=21 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=21 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=21 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=21 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=21 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=21 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=21 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=24 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=24 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=24 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=24 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=24 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=24 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=24 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=24 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=24 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=24 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=24 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=24 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=25 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=25 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=25 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=25 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=25 role=4 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=25 role=5 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=25 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=25 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=25 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=25 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=25 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=25 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=31 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=31 role=1 arena_words=153092312 legacy_arena_words=228589784 direct_columns=36 columns=36 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=31 role=2 arena_words=38535606 legacy_arena_words=57672118 direct_columns=73 columns=73 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=31 role=3 arena_words=33030330 legacy_arena_words=49283258 direct_columns=31 columns=31 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=31 role=4 arena_words=702546922 legacy_arena_words=1052771306 direct_columns=167 columns=167 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=31 role=5 arena_words=702546922 legacy_arena_words=1052771306 direct_columns=167 columns=167 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=31 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=31 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=31 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=31 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=31 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=31 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=26 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=26 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=26 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=26 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=26 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=26 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=26 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=26 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=26 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=26 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=26 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=26 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=27 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=27 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=27 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=27 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=27 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=27 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=27 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=27 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=27 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=27 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=27 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=27 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=28 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=28 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=28 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=28 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=28 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=28 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=28 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=28 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=28 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=28 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=28 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=28 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=29 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=29 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=29 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=29 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=29 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=29 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=29 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=29 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=29 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=29 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=29 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=29 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=30 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=30 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=30 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=30 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=30 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=30 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=30 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=30 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=30 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=30 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=30 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=30 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=32 role=0 arena_words=950356 legacy_arena_words=1409108 direct_columns=14 columns=14 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=32 role=1 arena_words=306184408 legacy_arena_words=457179352 direct_columns=36 columns=36 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=32 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=32 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=32 role=4 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=32 role=5 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=32 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=32 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=32 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=32 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=32 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=32 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_PCS_STREAM tree=0 columns=188 leaves=8388608 calls=1 chunk_words=59313280 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=720619960
+GPU_PCS_STREAM tree=1 columns=3111 leaves=8388608 calls=4 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=720619960
+GPU_PCS_STREAM tree=2 columns=1760 leaves=8388608 calls=3 chunk_words=134217728 bank_words=134217720,201326592 scratch_words=536870912 legacy_rebuild_words=720619960
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=720619960
+GPU_PCS_STREAM tree=0 columns=215 leaves=8388608 calls=1 chunk_words=69520896 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=872467000
+GPU_PCS_STREAM tree=1 columns=3606 leaves=8388608 calls=6 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=872467000
+GPU_PCS_STREAM tree=2 columns=2008 leaves=8388608 calls=3 chunk_words=133817856 bank_words=134217720,201326592 scratch_words=536870912 legacy_rebuild_words=872467000
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=872467000
+GPU_PCS_STREAM tree=0 columns=207 leaves=8388608 calls=1 chunk_words=59489216 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=727278328
+GPU_PCS_STREAM tree=1 columns=3449 leaves=8388608 calls=4 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=727278328
+GPU_PCS_STREAM tree=2 columns=1936 leaves=8388608 calls=3 chunk_words=134217728 bank_words=134217720,201326592 scratch_words=536870912 legacy_rebuild_words=727278328
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=727278328
+GPU_PCS_STREAM tree=0 columns=207 leaves=8388608 calls=1 chunk_words=60424064 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=746121144
+GPU_PCS_STREAM tree=1 columns=3472 leaves=8388608 calls=4 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=746121144
+GPU_PCS_STREAM tree=2 columns=1936 leaves=8388608 calls=3 chunk_words=133362688 bank_words=134217720,201326592 scratch_words=536870912 legacy_rebuild_words=746121144
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=746121144
+GPU_PCS_STREAM tree=0 columns=204 leaves=8388608 calls=1 chunk_words=59462464 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=721121272
+GPU_PCS_STREAM tree=1 columns=3379 leaves=8388608 calls=4 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=721121272
+GPU_PCS_STREAM tree=2 columns=1904 leaves=8388608 calls=3 chunk_words=134217728 bank_words=134217720,201326592 scratch_words=536870912 legacy_rebuild_words=721121272
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=721121272
+GPU_PCS_STREAM tree=0 columns=196 leaves=8388608 calls=1 chunk_words=59333376 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=751139960
+GPU_PCS_STREAM tree=1 columns=3276 leaves=8388608 calls=5 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=751139960
+GPU_PCS_STREAM tree=2 columns=1832 leaves=8388608 calls=3 chunk_words=134206464 bank_words=134217720,201326592 scratch_words=536870912 legacy_rebuild_words=751139960
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=751139960
+GPU_PCS_STREAM tree=0 columns=170 leaves=4194304 calls=1 chunk_words=49063232 bank_words=67108856,0 scratch_words=301438336 legacy_rebuild_words=487036280
+GPU_PCS_STREAM tree=1 columns=1120 leaves=4194304 calls=3 chunk_words=133666176 bank_words=67108856,100663296 scratch_words=301438336 legacy_rebuild_words=487036280
+GPU_PCS_STREAM tree=2 columns=744 leaves=4194304 calls=2 chunk_words=133564416 bank_words=50331648,67108856 scratch_words=301438336 legacy_rebuild_words=487036280
+GPU_PCS_STREAM tree=3 columns=16 leaves=4194304 calls=1 chunk_words=67108864 bank_words=67108856,0 scratch_words=301438336 legacy_rebuild_words=487036280
+GPU_PCS_STREAM tree=0 columns=46 leaves=4194304 calls=1 chunk_words=31326208 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=205258744
+GPU_PCS_STREAM tree=1 columns=1925 leaves=4194304 calls=1 chunk_words=67338240 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=205258744
+GPU_PCS_STREAM tree=2 columns=1592 leaves=4194304 calls=1 chunk_words=120324096 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=205258744
+GPU_PCS_STREAM tree=3 columns=32 leaves=4194304 calls=1 chunk_words=134217728 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=205258744
+GPU_PCS_STREAM tree=0 columns=46 leaves=4194304 calls=1 chunk_words=47054848 bank_words=67108856,0 scratch_words=213909504 legacy_rebuild_words=1095368696
+GPU_PCS_STREAM tree=1 columns=1925 leaves=4194304 calls=8 chunk_words=134217728 bank_words=12582912,67108856 scratch_words=213909504 legacy_rebuild_words=1095368696
+GPU_PCS_STREAM tree=2 columns=1592 leaves=4194304 calls=7 chunk_words=134217728 bank_words=67108856,12582912 scratch_words=213909504 legacy_rebuild_words=1095368696
+GPU_PCS_STREAM tree=3 columns=32 leaves=4194304 calls=1 chunk_words=134217728 bank_words=67108856,0 scratch_words=213909504 legacy_rebuild_words=1095368696
+GPU_PCS_STREAM tree=0 columns=46 leaves=4194304 calls=1 chunk_words=38666240 bank_words=67108856,0 scratch_words=207618048 legacy_rebuild_words=584974328
+GPU_PCS_STREAM tree=1 columns=1925 leaves=4194304 calls=4 chunk_words=134217728 bank_words=6291456,67108856 scratch_words=207618048 legacy_rebuild_words=584974328
+GPU_PCS_STREAM tree=2 columns=1592 leaves=4194304 calls=4 chunk_words=134217728 bank_words=6291456,67108856 scratch_words=207618048 legacy_rebuild_words=584974328
+GPU_PCS_STREAM tree=3 columns=32 leaves=4194304 calls=1 chunk_words=134217728 bank_words=67108856,0 scratch_words=207618048 legacy_rebuild_words=584974328
+GPU_PCS_STREAM tree=0 columns=4 leaves=16384 calls=1 chunk_words=65536 bank_words=262136,0 scratch_words=84279296 legacy_rebuild_words=84279288
+GPU_PCS_STREAM tree=1 columns=1869 leaves=16384 calls=1 chunk_words=30621696 bank_words=262136,0 scratch_words=84279296 legacy_rebuild_words=84279288
+GPU_PCS_STREAM tree=2 columns=5128 leaves=16384 calls=1 chunk_words=84017152 bank_words=262136,0 scratch_words=84279296 legacy_rebuild_words=84279288
+GPU_PCS_STREAM tree=3 columns=32 leaves=16384 calls=1 chunk_words=524288 bank_words=262136,0 scratch_words=84279296 legacy_rebuild_words=84279288
+GPU_PCS_STREAM tree=0 columns=4 leaves=4096 calls=1 chunk_words=16384 bank_words=65528,0 scratch_words=21069824 legacy_rebuild_words=21069816
+GPU_PCS_STREAM tree=1 columns=1869 leaves=4096 calls=1 chunk_words=7655424 bank_words=65528,0 scratch_words=21069824 legacy_rebuild_words=21069816
+GPU_PCS_STREAM tree=2 columns=5128 leaves=4096 calls=1 chunk_words=21004288 bank_words=65528,0 scratch_words=21069824 legacy_rebuild_words=21069816
+GPU_PCS_STREAM tree=3 columns=32 leaves=4096 calls=1 chunk_words=131072 bank_words=65528,0 scratch_words=21069824 legacy_rebuild_words=21069816
+GPU_PCS_STREAM tree=0 columns=4 leaves=512 calls=1 chunk_words=2048 bank_words=8184,0 scratch_words=2633728 legacy_rebuild_words=2633720
+GPU_PCS_STREAM tree=1 columns=1869 leaves=512 calls=1 chunk_words=956928 bank_words=8184,0 scratch_words=2633728 legacy_rebuild_words=2633720
+GPU_PCS_STREAM tree=2 columns=5128 leaves=512 calls=1 chunk_words=2625536 bank_words=8184,0 scratch_words=2633728 legacy_rebuild_words=2633720
+GPU_PCS_STREAM tree=3 columns=32 leaves=512 calls=1 chunk_words=16384 bank_words=8184,0 scratch_words=2633728 legacy_rebuild_words=2633720
+GPU_PCS_STREAM tree=0 columns=4 leaves=16384 calls=1 chunk_words=65536 bank_words=262136,0 scratch_words=66322432 legacy_rebuild_words=66322424
+GPU_PCS_STREAM tree=1 columns=1447 leaves=16384 calls=1 chunk_words=23707648 bank_words=262136,0 scratch_words=66322432 legacy_rebuild_words=66322424
+GPU_PCS_STREAM tree=2 columns=4032 leaves=16384 calls=1 chunk_words=66060288 bank_words=262136,0 scratch_words=66322432 legacy_rebuild_words=66322424
+GPU_PCS_STREAM tree=3 columns=32 leaves=16384 calls=1 chunk_words=524288 bank_words=262136,0 scratch_words=66322432 legacy_rebuild_words=66322424
+GPU_PCS_STREAM tree=0 columns=4 leaves=4096 calls=1 chunk_words=16384 bank_words=65528,0 scratch_words=16580608 legacy_rebuild_words=16580600
+GPU_PCS_STREAM tree=1 columns=1447 leaves=4096 calls=1 chunk_words=5926912 bank_words=65528,0 scratch_words=16580608 legacy_rebuild_words=16580600
+GPU_PCS_STREAM tree=2 columns=4032 leaves=4096 calls=1 chunk_words=16515072 bank_words=65528,0 scratch_words=16580608 legacy_rebuild_words=16580600
+GPU_PCS_STREAM tree=3 columns=32 leaves=4096 calls=1 chunk_words=131072 bank_words=65528,0 scratch_words=16580608 legacy_rebuild_words=16580600
+GPU_PCS_STREAM tree=0 columns=4 leaves=1024 calls=1 chunk_words=4096 bank_words=16376,0 scratch_words=1015808 legacy_rebuild_words=1015800
+GPU_PCS_STREAM tree=1 columns=401 leaves=1024 calls=1 chunk_words=410624 bank_words=16376,0 scratch_words=1015808 legacy_rebuild_words=1015800
+GPU_PCS_STREAM tree=2 columns=976 leaves=1024 calls=1 chunk_words=999424 bank_words=16376,0 scratch_words=1015808 legacy_rebuild_words=1015800
+GPU_PCS_STREAM tree=3 columns=16 leaves=1024 calls=1 chunk_words=16384 bank_words=16376,0 scratch_words=1015808 legacy_rebuild_words=1015800
+GPU_PCS_STREAM tree=0 columns=3 leaves=8192 calls=1 chunk_words=24576 bank_words=131064,0 scratch_words=60825600 legacy_rebuild_words=60825592
+GPU_PCS_STREAM tree=1 columns=7409 leaves=8192 calls=1 chunk_words=60694528 bank_words=131064,0 scratch_words=60825600 legacy_rebuild_words=60825592
+GPU_PCS_STREAM tree=2 columns=16 leaves=8192 calls=1 chunk_words=131072 bank_words=131064,0 scratch_words=60825600 legacy_rebuild_words=60825592
+GPU_PCS_STREAM tree=3 columns=16 leaves=8192 calls=1 chunk_words=131072 bank_words=131064,0 scratch_words=60825600 legacy_rebuild_words=60825592
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=2 chunk_words=130123264 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1906577400
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1906577400
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1906577400
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1906577400
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=2 chunk_words=129140224 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=2 chunk_words=129140224 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=2 chunk_words=129140224 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=17 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=17 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598768632
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598768632
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=17 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598768632
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2598768632
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=2 chunk_words=129140224 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=2 chunk_words=129140224 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=0 columns=45 leaves=4194304 calls=1 chunk_words=94012928 bank_words=67108856,0 scratch_words=335544320 legacy_rebuild_words=837292024
+GPU_PCS_STREAM tree=1 columns=114 leaves=4194304 calls=3 chunk_words=134217728 bank_words=100663296,100663296 scratch_words=335544320 legacy_rebuild_words=837292024
+GPU_PCS_STREAM tree=2 columns=304 leaves=4194304 calls=6 chunk_words=134217728 bank_words=100663296,100663296 scratch_words=335544320 legacy_rebuild_words=837292024
+GPU_PCS_STREAM tree=3 columns=16 leaves=4194304 calls=1 chunk_words=67108864 bank_words=67108856,0 scratch_words=335544320 legacy_rebuild_words=837292024
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=17 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104{
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=8 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=16 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2641104888
+GPU_PCS_STREAM tree=0 columns=45 leaves=8388608 calls=2 chunk_words=129205760 bank_words=201326592,134217720 scratch_words=536870912 legacy_rebuild_words=1458311160
+GPU_PCS_STREAM tree=1 columns=114 leaves=8388608 calls=5 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=1458311160
+GPU_PCS_STREAM tree=2 columns=304 leaves=8388608 calls=10 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=1458311160
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=1458311160
