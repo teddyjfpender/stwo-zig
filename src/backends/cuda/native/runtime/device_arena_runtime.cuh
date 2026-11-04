@@ -19,6 +19,9 @@
 //   STWO_RV64_DEVICE_ARENA_PREMAP=0|1         map the whole carve at init (1)
 //   STWO_RV64_PINNED_STAGING=0|1             pinned H2D/D2H bounce rings
 //   STWO_RV64_PINNED_STAGING_SLOT=<bytes>    slot size (default 16M), 4 slots
+//   STWO_RV64_DEVICE_ARENA_POISON=<0..255>   test only: fill every arena
+//       allocation and every freed range with this byte (synchronously), so
+//       a proof that reads uninitialised or freed memory stops matching.
 //
 // Cross-context reuse: every context used to own a private async pool, so a
 // freed range was only ever reused by the stream that freed it. The arena is
@@ -61,6 +64,7 @@ struct Config {
   uint64_t chunk = uint64_t(32) << 20;  // physical chunk (multiple of the VMM granularity)
   uint64_t small_chunks = 16;           // permanently mapped small slab (16 x 32 MiB)
   bool premap = true;                   // map the whole carve at init
+  int poison = -1;                      // test only: fill byte on alloc/free (-1 = off)
 };
 
 inline bool parse_bytes(const char *text, uint64_t *out) {
@@ -104,6 +108,11 @@ inline Config parse_config() {
     if (!strcmp(v, "0")) c.premap = false;
     else if (strcmp(v, "1")) c.valid = false;
   }
+  if (const char *v = getenv("STWO_RV64_DEVICE_ARENA_POISON")) {
+    uint64_t byte = 0;
+    if (parse_bytes(v, &byte) && byte <= 255) c.poison = int(byte);
+    else c.valid = false;
+  }
   if (const char *v = getenv("STWO_RV64_PINNED_STAGING_SLOT"))
     if (!parse_bytes(v, &c.slot_bytes) || c.slot_bytes < 4096) c.valid = false;
   if (!c.valid)
@@ -124,6 +133,7 @@ struct Counters {
   std::atomic<uint64_t> staged_h2d{0}, staged_h2d_bytes{0};
   std::atomic<uint64_t> staged_d2h{0}, staged_d2h_bytes{0};
   std::atomic<uint64_t> staging_slot_waits{0}, staging_rings{0};
+  std::atomic<uint64_t> poison_allocs{0}, poison_frees{0}, poison_bytes{0};
 };
 inline Counters &counters() {
   static Counters c;
@@ -511,8 +521,8 @@ inline cudaError_t allocate_small(Device *d, cudaStream_t stream, uint32_t lane_
   return cudaSuccess;
 }
 
-inline cudaError_t allocate(int ordinal, cudaStream_t stream, uint32_t lane_count,
-                            size_t bytes, bool long_lived, void **out) {
+inline cudaError_t allocate_impl(int ordinal, cudaStream_t stream, uint32_t lane_count,
+                                 size_t bytes, bool long_lived, void **out) {
   *out = nullptr;
   maybe_print();
   if (!config().valid) return cudaErrorInvalidValue;
@@ -633,6 +643,20 @@ inline cudaError_t allocate(int ordinal, cudaStream_t stream, uint32_t lane_coun
   return cudaSuccess;
 }
 
+inline cudaError_t allocate(int ordinal, cudaStream_t stream, uint32_t lane_count,
+                            size_t bytes, bool long_lived, void **out) {
+  cudaError_t s = allocate_impl(ordinal, stream, lane_count, bytes, long_lived, out);
+  const int poison = config().poison;
+  if (s == cudaSuccess && poison >= 0 && bytes) {
+    // Synchronous so every lane of the owner sees the fill before first use.
+    s = cudaMemsetAsync(*out, poison, bytes, stream);
+    if (s == cudaSuccess) s = cudaStreamSynchronize(stream);
+    counters().poison_allocs.fetch_add(1, std::memory_order_relaxed);
+    counters().poison_bytes.fetch_add(bytes, std::memory_order_relaxed);
+  }
+  return s;
+}
+
 // `joined`: every lane of the freeing context has completed (multi-lane
 // contexts join before free), so no fence or deferral is needed.
 inline cudaError_t release(int ordinal, cudaStream_t stream, void *pointer, bool joined) {
@@ -649,6 +673,15 @@ inline cudaError_t release(int ordinal, cudaStream_t stream, void *pointer, bool
   if (live == d->live_bytes_by_offset.end()) return cudaErrorInvalidDevicePointer;
   const uint64_t bytes = live->second & ~uint64_t(1);
   const bool long_lived = (live->second & 1) != 0;
+  if (config().poison >= 0) {
+    // Ordered after the freeing stream's last use; a joined free has no
+    // fence, so it must complete before the range becomes reusable.
+    s = cudaMemsetAsync(pointer, config().poison, bytes, stream);
+    if (s == cudaSuccess && joined) s = cudaStreamSynchronize(stream);
+    if (s != cudaSuccess) return s;
+    counters().poison_frees.fetch_add(1, std::memory_order_relaxed);
+    counters().poison_bytes.fetch_add(bytes, std::memory_order_relaxed);
+  }
   cudaEvent_t event = nullptr;
   if (!joined) {
     if (!d->spare.empty()) {
@@ -913,10 +946,12 @@ inline void print_summaries() {
   Counters &c = counters();
   fprintf(stderr,
           "GPU_POOL_SUMMARY pool_mallocs=%llu pool_trims=%llu pool_oom_recoveries=%llu "
-          "arena_enabled=%d staging_enabled=%d\n",
+          "arena_enabled=%d staging_enabled=%d poison=%d poison_allocs=%llu poison_frees=%llu "
+          "poison_bytes=%llu\n",
           (unsigned long long)c.pool_mallocs.load(), (unsigned long long)c.pool_trims.load(),
           (unsigned long long)c.pool_oom_recoveries.load(), int(config().enabled),
-          int(config().staging));
+          int(config().staging), config().poison, (unsigned long long)c.poison_allocs.load(),
+          (unsigned long long)c.poison_frees.load(), (unsigned long long)c.poison_bytes.load());
   fprintf(stderr,
           "GPU_STAGING_SUMMARY pageable_h2d=%llu pageable_h2d_bytes=%llu pageable_d2h=%llu "
           "pageable_d2h_bytes=%llu pinned_direct=%llu staged_h2d=%llu staged_h2d_bytes=%llu "

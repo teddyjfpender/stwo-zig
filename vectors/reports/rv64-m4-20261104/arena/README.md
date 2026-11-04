@@ -148,3 +148,9 @@ only". There are two concrete, separately measurable diet items, not done here:
 - Pinned staging stays opt-in. The win needs pinned source buffers in capture/witness ingress, which belong
   to other streams.
 - Pod disk was 100% full at 13:06; this stream keeps one 2 GB library copy plus the `base/` binaries.
+
+## Adversarial re-verification (6100cbca9)
+
+I rebuilt from a fresh checkout and ran all 9 runs again (arena on and off, plus the poison mode added in this commit),
+all byte-identical to M3. Both receivers accepted. No request speedup was reproduced on 24628607. See
+`adversarial-6100cbca9.md` / `.json`.

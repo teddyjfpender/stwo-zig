@@ -1,0 +1,491 @@
+{
+ "schema": "rv64-m4-arena-adversarial/v1",
+ "label": "M",
+ "date": "2026-11-04",
+ "subject": {
+  "branch": "codex/rv64-m4-arena",
+  "head": "6100cbca9f17e5bf0cf68dcdacf1ef7d5b754395"
+ },
+ "rebuild": {
+  "source": "fresh detached checkout of 6100cbca9, podsync to /workspace/m3/src/m4-arena-adv, rv64_m3_pod.py build --only cuda (catalogues-v3, shared object store, 2 TUs compiled, 133 s)",
+  "library_sha256": "0d49e7935a8e4d5e94b8599f95cd589909b5cbe132ec9b5d9a8620a5b04ad195",
+  "poison_library_sha256": "2aebed83228812447cc52f7d7287d9199fb80b972034dc3ba66a7175c6b05a43 (6100cbca9 + STWO_RV64_DEVICE_ARENA_POISON hook, this commit)",
+  "driver_sha256": "b28544a1efc336fd23d7fc102d99b725432fb76d7dbe8b6c727b2799d3d551aa",
+  "receiver_sha256": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b"
+ },
+ "parity_method": "independent sha256 of every proof/*.bin, bundle.json, recursion-om31/tree.json and recursion-om31/*.proof, compared name-by-name (no extra or missing files) against vectors/reports/rv64-m3-20261104/integrate/scale/<block>.json. parity_vs_accepted_v7 is false for these runs AND for the M3 baseline receipts themselves (M3 changed the recursive tree vs v7), so it is not the comparator.",
+ "runs": [
+  {
+   "run": "24628607-2gpu-v-off1",
+   "block": "24628607",
+   "tag": "v-off1",
+   "load1_start": 17.31,
+   "lib_sha256_16": "0d49e7935a8e4d5e",
+   "env": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1"
+   },
+   "stages": {
+    "request_wall_s": 50.761,
+    "capture_s": 3.392,
+    "setup_s": 12.653,
+    "native_prove_s": 7.206,
+    "native_verify_s": 1.911,
+    "native_total_before_report_s": 23.486,
+    "recursion_s": 27.233
+   },
+   "peak_rss_bytes": 25085911040,
+   "nvml_peak_used_bytes": {
+    "0": 33382465536,
+    "1": 33281802240
+   },
+   "independent_hash_compare": "CMP files_mine=55 files_ref=55 mismatched=[] identical=True root_bytes=706424",
+   "harness_parity_vs_accepted_v7": false,
+   "pool_summary": "GPU_POOL_SUMMARY pool_mallocs=14619 pool_trims=8 pool_oom_recoveries=4 arena_enabled=0 staging_enabled=0",
+   "arena_summary": {},
+   "receiver": {
+    "status": "not_run",
+    "accepted": null,
+    "wall_s": null
+   }
+  },
+  {
+   "run": "24628607-2gpu-v-on1",
+   "block": "24628607",
+   "tag": "v-on1",
+   "load1_start": 29.94,
+   "lib_sha256_16": "0d49e7935a8e4d5e",
+   "env": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1"
+   },
+   "stages": {
+    "request_wall_s": 49.715,
+    "capture_s": 3.443,
+    "setup_s": 13.007,
+    "native_prove_s": 7.77,
+    "native_verify_s": 1.923,
+    "native_total_before_report_s": 24.361,
+    "recursion_s": 25.317
+   },
+   "peak_rss_bytes": 25549520896,
+   "nvml_peak_used_bytes": {
+    "0": 31501320192,
+    "1": 31501320192
+   },
+   "independent_hash_compare": "CMP files_mine=55 files_ref=55 mismatched=[] identical=True root_bytes=706424",
+   "harness_parity_vs_accepted_v7": false,
+   "pool_summary": "GPU_POOL_SUMMARY pool_mallocs=0 pool_trims=0 pool_oom_recoveries=0 arena_enabled=1 staging_enabled=0",
+   "arena_summary": {
+    "0": {
+     "live_high_water_bytes": "26698512896",
+     "allocations": "7915",
+     "releases": "7915",
+     "overruns": "10",
+     "map_ms": "428.466",
+     "unmap_ms": "140.998",
+     "fence_records": "0",
+     "steals": "32"
+    },
+    "1": {
+     "live_high_water_bytes": "26748176384",
+     "allocations": "8182",
+     "releases": "8182",
+     "overruns": "12",
+     "map_ms": "577.260",
+     "unmap_ms": "149.769",
+     "fence_records": "0",
+     "steals": "41"
+    }
+   },
+   "receiver": {
+    "status": "accepted",
+    "accepted": true,
+    "wall_s": 64.892018429
+   }
+  },
+  {
+   "run": "24628607-2gpu-v-on2",
+   "block": "24628607",
+   "tag": "v-on2",
+   "load1_start": 17.75,
+   "lib_sha256_16": "0d49e7935a8e4d5e",
+   "env": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1"
+   },
+   "stages": {
+    "request_wall_s": 51.231,
+    "capture_s": 3.44,
+    "setup_s": 12.83,
+    "native_prove_s": 8.17,
+    "native_verify_s": 1.981,
+    "native_total_before_report_s": 24.592,
+    "recursion_s": 26.601
+   },
+   "peak_rss_bytes": 25341874176,
+   "nvml_peak_used_bytes": {
+    "0": 31501320192,
+    "1": 31501320192
+   },
+   "independent_hash_compare": "CMP files_mine=55 files_ref=55 mismatched=[] identical=True root_bytes=706424",
+   "harness_parity_vs_accepted_v7": false,
+   "pool_summary": "GPU_POOL_SUMMARY pool_mallocs=0 pool_trims=0 pool_oom_recoveries=0 arena_enabled=1 staging_enabled=0",
+   "arena_summary": {
+    "0": {
+     "live_high_water_bytes": "26698512896",
+     "allocations": "8768",
+     "releases": "8768",
+     "overruns": "14",
+     "map_ms": "646.959",
+     "unmap_ms": "158.014",
+     "fence_records": "0",
+     "steals": "31"
+    },
+    "1": {
+     "live_high_water_bytes": "26378160128",
+     "allocations": "7451",
+     "releases": "7451",
+     "overruns": "9",
+     "map_ms": "528.431",
+     "unmap_ms": "199.308",
+     "fence_records": "0",
+     "steals": "34"
+    }
+   },
+   "receiver": {
+    "status": "not_run",
+    "accepted": null,
+    "wall_s": null
+   }
+  },
+  {
+   "run": "24628607-2gpu-v-poison-a5",
+   "block": "24628607",
+   "tag": "v-poison-a5",
+   "load1_start": 22.02,
+   "lib_sha256_16": "2aebed8322881244",
+   "env": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1",
+    "STWO_RV64_DEVICE_ARENA_POISON": "165"
+   },
+   "stages": {
+    "request_wall_s": 52.63,
+    "capture_s": 3.276,
+    "setup_s": 12.959,
+    "native_prove_s": 7.661,
+    "native_verify_s": 2.027,
+    "native_total_before_report_s": 24.108,
+    "recursion_s": 28.473
+   },
+   "peak_rss_bytes": 25052266496,
+   "nvml_peak_used_bytes": {
+    "0": 31501320192,
+    "1": 31501320192
+   },
+   "independent_hash_compare": "CMP files_mine=55 files_ref=55 mismatched=[] identical=True root_bytes=706424",
+   "harness_parity_vs_accepted_v7": false,
+   "pool_summary": "GPU_POOL_SUMMARY pool_mallocs=0 pool_trims=0 pool_oom_recoveries=0 arena_enabled=1 staging_enabled=0 poison=165 poison_allocs=16099 poison_frees=16099 poison_bytes=4872774392408",
+   "arena_summary": {
+    "0": {
+     "live_high_water_bytes": "26698512896",
+     "allocations": "8882",
+     "releases": "8882",
+     "overruns": "12",
+     "map_ms": "354.020",
+     "unmap_ms": "166.197",
+     "fence_records": "0",
+     "steals": "36"
+    },
+    "1": {
+     "live_high_water_bytes": "26748176384",
+     "allocations": "7217",
+     "releases": "7217",
+     "overruns": "10",
+     "map_ms": "579.195",
+     "unmap_ms": "173.006",
+     "fence_records": "0",
+     "steals": "33"
+    }
+   },
+   "receiver": {
+    "status": "not_run",
+    "accepted": null,
+    "wall_s": null
+   }
+  },
+  {
+   "run": "26235156-2gpu-v-off1",
+   "block": "26235156",
+   "tag": "v-off1",
+   "load1_start": 61.62,
+   "lib_sha256_16": "0d49e7935a8e4d5e",
+   "env": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1"
+   },
+   "stages": {
+    "request_wall_s": 37.514,
+    "capture_s": 2.689,
+    "setup_s": 8.658,
+    "native_prove_s": 5.542,
+    "native_verify_s": 1.131,
+    "native_total_before_report_s": 17.083,
+    "recursion_s": 20.399
+   },
+   "peak_rss_bytes": 23853404160,
+   "nvml_peak_used_bytes": {
+    "0": 33655095296,
+    "1": 33648803840
+   },
+   "independent_hash_compare": "CMP files_mine=37 files_ref=37 mismatched=[] identical=True root_bytes=748536",
+   "harness_parity_vs_accepted_v7": false,
+   "pool_summary": "GPU_POOL_SUMMARY pool_mallocs=9329 pool_trims=10 pool_oom_recoveries=5 arena_enabled=0 staging_enabled=0",
+   "arena_summary": {},
+   "receiver": {
+    "status": "not_run",
+    "accepted": null,
+    "wall_s": null
+   }
+  },
+  {
+   "run": "26235156-2gpu-v-on1",
+   "block": "26235156",
+   "tag": "v-on1",
+   "load1_start": 51.13,
+   "lib_sha256_16": "0d49e7935a8e4d5e",
+   "env": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1"
+   },
+   "stages": {
+    "request_wall_s": 34.459,
+    "capture_s": 2.527,
+    "setup_s": 8.821,
+    "native_prove_s": 4.939,
+    "native_verify_s": 1.112,
+    "native_total_before_report_s": 16.485,
+    "recursion_s": 17.939
+   },
+   "peak_rss_bytes": 23984304128,
+   "nvml_peak_used_bytes": {
+    "0": 31501320192,
+    "1": 31501320192
+   },
+   "independent_hash_compare": "CMP files_mine=37 files_ref=37 mismatched=[] identical=True root_bytes=748536",
+   "harness_parity_vs_accepted_v7": false,
+   "pool_summary": "GPU_POOL_SUMMARY pool_mallocs=0 pool_trims=0 pool_oom_recoveries=0 arena_enabled=1 staging_enabled=0",
+   "arena_summary": {
+    "0": {
+     "live_high_water_bytes": "26378196992",
+     "allocations": "4947",
+     "releases": "4947",
+     "overruns": "8",
+     "map_ms": "253.094",
+     "unmap_ms": "118.965",
+     "fence_records": "0",
+     "steals": "18"
+    },
+    "1": {
+     "live_high_water_bytes": "26647545856",
+     "allocations": "5316",
+     "releases": "5316",
+     "overruns": "8",
+     "map_ms": "198.611",
+     "unmap_ms": "83.389",
+     "fence_records": "0",
+     "steals": "23"
+    }
+   },
+   "receiver": {
+    "status": "accepted",
+    "accepted": true,
+    "wall_s": 43.741952235
+   }
+  },
+  {
+   "run": "26235156-2gpu-v-on2",
+   "block": "26235156",
+   "tag": "v-on2",
+   "load1_start": 14.41,
+   "lib_sha256_16": "0d49e7935a8e4d5e",
+   "env": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1"
+   },
+   "stages": {
+    "request_wall_s": 34.19,
+    "capture_s": 2.575,
+    "setup_s": 8.674,
+    "native_prove_s": 5.405,
+    "native_verify_s": 1.258,
+    "native_total_before_report_s": 16.762,
+    "recursion_s": 17.395
+   },
+   "peak_rss_bytes": 25789394944,
+   "nvml_peak_used_bytes": {
+    "0": 31501320192,
+    "1": 31501320192
+   },
+   "independent_hash_compare": "CMP files_mine=37 files_ref=37 mismatched=[] identical=True root_bytes=748536",
+   "harness_parity_vs_accepted_v7": false,
+   "pool_summary": "GPU_POOL_SUMMARY pool_mallocs=0 pool_trims=0 pool_oom_recoveries=0 arena_enabled=1 staging_enabled=0",
+   "arena_summary": {
+    "0": {
+     "live_high_water_bytes": "26414113280",
+     "allocations": "5526",
+     "releases": "5526",
+     "overruns": "9",
+     "map_ms": "437.695",
+     "unmap_ms": "114.277",
+     "fence_records": "0",
+     "steals": "28"
+    },
+    "1": {
+     "live_high_water_bytes": "26378258432",
+     "allocations": "4853",
+     "releases": "4853",
+     "overruns": "7",
+     "map_ms": "251.693",
+     "unmap_ms": "59.669",
+     "fence_records": "0",
+     "steals": "19"
+    }
+   },
+   "receiver": {
+    "status": "not_run",
+    "accepted": null,
+    "wall_s": null
+   }
+  },
+  {
+   "run": "26235156-2gpu-v-poison-a5",
+   "block": "26235156",
+   "tag": "v-poison-a5",
+   "load1_start": 20.38,
+   "lib_sha256_16": "2aebed8322881244",
+   "env": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1",
+    "STWO_RV64_DEVICE_ARENA_POISON": "165"
+   },
+   "stages": {
+    "request_wall_s": 35.175,
+    "capture_s": 2.535,
+    "setup_s": 8.85,
+    "native_prove_s": 5.29,
+    "native_verify_s": 1.256,
+    "native_total_before_report_s": 16.835,
+    "recursion_s": 18.306
+   },
+   "peak_rss_bytes": 25723559936,
+   "nvml_peak_used_bytes": {
+    "0": 31501320192,
+    "1": 31501320192
+   },
+   "independent_hash_compare": "CMP files_mine=37 files_ref=37 mismatched=[] identical=True root_bytes=748536",
+   "harness_parity_vs_accepted_v7": false,
+   "pool_summary": "GPU_POOL_SUMMARY pool_mallocs=0 pool_trims=0 pool_oom_recoveries=0 arena_enabled=1 staging_enabled=0 poison=165 poison_allocs=10185 poison_frees=10185 poison_bytes=3136157300916",
+   "arena_summary": {
+    "0": {
+     "live_high_water_bytes": "26748147712",
+     "allocations": "5304",
+     "releases": "5304",
+     "overruns": "6",
+     "map_ms": "326.865",
+     "unmap_ms": "149.647",
+     "fence_records": "0",
+     "steals": "20"
+    },
+    "1": {
+     "live_high_water_bytes": "26698664448",
+     "allocations": "4881",
+     "releases": "4881",
+     "overruns": "8",
+     "map_ms": "346.795",
+     "unmap_ms": "95.324",
+     "fence_records": "0",
+     "steals": "23"
+    }
+   },
+   "receiver": {
+    "status": "not_run",
+    "accepted": null,
+    "wall_s": null
+   }
+  },
+  {
+   "run": "26235156-2gpu-v-poison-ff",
+   "block": "26235156",
+   "tag": "v-poison-ff",
+   "load1_start": 34.47,
+   "lib_sha256_16": "2aebed8322881244",
+   "env": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1",
+    "STWO_RV64_DEVICE_ARENA_POISON": "255"
+   },
+   "stages": {
+    "request_wall_s": 34.495,
+    "capture_s": 2.592,
+    "setup_s": 8.57,
+    "native_prove_s": 5.405,
+    "native_verify_s": 1.275,
+    "native_total_before_report_s": 16.683,
+    "recursion_s": 17.778
+   },
+   "peak_rss_bytes": 23894945792,
+   "nvml_peak_used_bytes": {
+    "0": 31501320192,
+    "1": 31501320192
+   },
+   "independent_hash_compare": "CMP files_mine=37 files_ref=37 mismatched=[] identical=True root_bytes=748536",
+   "harness_parity_vs_accepted_v7": false,
+   "pool_summary": "GPU_POOL_SUMMARY pool_mallocs=0 pool_trims=0 pool_oom_recoveries=0 arena_enabled=1 staging_enabled=0 poison=255 poison_allocs=10260 poison_frees=10260 poison_bytes=3153123476992",
+   "arena_summary": {
+    "0": {
+     "live_high_water_bytes": "26478860288",
+     "allocations": "5449",
+     "releases": "5449",
+     "overruns": "8",
+     "map_ms": "324.981",
+     "unmap_ms": "153.285",
+     "fence_records": "0",
+     "steals": "25"
+    },
+    "1": {
+     "live_high_water_bytes": "26647545856",
+     "allocations": "4811",
+     "releases": "4811",
+     "overruns": "7",
+     "map_ms": "256.277",
+     "unmap_ms": "135.223",
+     "fence_records": "0",
+     "steals": "19"
+    }
+   },
+   "receiver": {
+    "status": "not_run",
+    "accepted": null,
+    "wall_s": null
+   }
+  }
+ ]
+}
