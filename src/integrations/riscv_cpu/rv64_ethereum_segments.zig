@@ -13,7 +13,18 @@
 const std = @import("std");
 const rv = @import("stwo_riscv_frontend").rv64;
 const Walk = @import("rv64_ethereum_native_prepare.zig").Walk;
+const Native = @import("rv64_ethereum_batch.zig");
 pub const MAX_WORKERS = 32;
+
+/// M6 traced fast engine for segment walks (`STWO_RV64_TRACED_ENGINE`,
+/// default on; `0` restores the M5 reference loop). Scheduling only: the
+/// batches are byte-identical either way. Tests may force it.
+pub var traced_engine_override: ?bool = null;
+pub fn tracedEngineEnabled() bool {
+    if (traced_engine_override) |value| return value;
+    const text = std.posix.getenv("STWO_RV64_TRACED_ENGINE") orelse return true;
+    return !std.mem.eql(u8, text, "0");
+}
 
 pub const Stats = struct {
     segments: u32 = 0,
@@ -34,6 +45,15 @@ pub const Stats = struct {
     /// Split of `walk_ns_total`: traced execution and `batch.finish`.
     walk_traced_ns: u64 = 0,
     walk_finish_ns: u64 = 0,
+    /// M6 traced fast engine: on, program build time, and the steps it
+    /// retired (the rest went through the reference `captureNext`).
+    traced_engine: bool = false,
+    traced_program_ns: u64 = 0,
+    walk_fast_retired: u64 = 0,
+    /// Split of `walk_traced_ns`: traced fast runs, and reference steps.
+    walk_fast_ns: u64 = 0,
+    walk_reference_ns: u64 = 0,
+    walk_reference_steps: u64 = 0,
 };
 
 const FirstPass = struct {
@@ -64,6 +84,10 @@ const Worker = struct {
     retired: u64 = 0,
     traced_ns: u64 = 0,
     finish_ns: u64 = 0,
+    fast_retired: u64 = 0,
+    fast_ns: u64 = 0,
+    reference_ns: u64 = 0,
+    reference_steps: u64 = 0,
     fn run(self: *Worker) void {
         var timer = std.time.Timer.start() catch null;
         self.work() catch |err| {
@@ -92,6 +116,10 @@ const Worker = struct {
         self.retired = taken.tape.len;
         self.traced_ns = walk.traced_ns;
         self.finish_ns = walk.finish_ns;
+        self.fast_retired = walk.fast_retired;
+        self.fast_ns = walk.fast_ns;
+        self.reference_ns = walk.reference_ns;
+        self.reference_steps = walk.reference_steps;
         self.taken = taken;
     }
 };
@@ -101,6 +129,8 @@ pub const Segments = struct {
     main: *Walk,
     workers: u8,
     engine: rv.fast_execution.Engine,
+    /// Traced program for segment walks (a restricted copy of `engine`'s).
+    program: ?rv.fast_execution.Engine = null,
     recorder: rv.checkpoint.Recorder,
     pass: FirstPass = .{},
     pass_thread: ?std.Thread = null,
@@ -121,6 +151,18 @@ pub const Segments = struct {
         self.engine = try rv.fast_execution.Engine.init(a, main.memory, .{ .stop_pcs = &.{main.config.terminal_pc}, .isa = main.session.keccak.base.decoder.isa });
         errdefer self.engine.deinit();
         self.engine.attach();
+        if (tracedEngineEnabled()) {
+            var timer = std.time.Timer.start() catch null;
+            self.program = try rv.fast_execution.Engine.cloneProgram(a, &self.engine);
+            self.program.?.restrict(@as(*const @TypeOf(main.request.authority), &main.request.authority), Native.admitsFast);
+            main.fast_program = &self.program.?;
+            if (timer) |*t| self.stats.traced_program_ns = t.read();
+            self.stats.traced_engine = true;
+        }
+        errdefer if (self.program) |*p| {
+            main.fast_program = null;
+            p.deinit();
+        };
         self.recorder = try rv.checkpoint.Recorder.init(a, &self.engine);
         errdefer self.recorder.deinit();
         self.stats.workers = workers;
@@ -143,6 +185,10 @@ pub const Segments = struct {
         }
         self.pass.checkpoints.deinit(a);
         self.recorder.deinit();
+        if (self.program) |*p| {
+            if (self.main.fast_program == p) self.main.fast_program = null;
+            p.deinit();
+        }
         self.engine.deinit();
         a.destroy(self);
     }
@@ -316,6 +362,10 @@ pub const Segments = struct {
         self.stats.walk_retired += w.retired;
         self.stats.walk_traced_ns += w.traced_ns;
         self.stats.walk_finish_ns += w.finish_ns;
+        self.stats.walk_fast_retired += w.fast_retired;
+        self.stats.walk_fast_ns += w.fast_ns;
+        self.stats.walk_reference_ns += w.reference_ns;
+        self.stats.walk_reference_steps += w.reference_steps;
         self.main.batches = self.next_index;
         if (w.completed) {
             self.main.completed = true;

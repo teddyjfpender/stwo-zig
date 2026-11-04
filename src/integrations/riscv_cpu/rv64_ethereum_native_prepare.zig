@@ -62,6 +62,18 @@ pub const Walk = struct {
     /// (`captureNext` loop) and `batch.finish`, summed over batches.
     traced_ns: u64 = 0,
     finish_ns: u64 = 0,
+    /// M6 traced fast engine. `fast_program` (borrowed, immutable, restricted
+    /// to this request's authority with `Native.admitsFast`) is inherited by
+    /// segment walks; `fast` executes on this walk's own memory. Null: the
+    /// reference `captureNext` loop. Output bytes are identical either way.
+    fast_program: ?*const rv.fast_execution.Engine = null,
+    fast: ?rv.fast_execution.Engine = null,
+    /// Steps retired by `fast` (report-only), and the split of `traced_ns`
+    /// into fast runs and reference `captureNext` steps (count, time).
+    fast_retired: u64 = 0,
+    fast_ns: u64 = 0,
+    reference_ns: u64 = 0,
+    reference_steps: u64 = 0,
     pub const Step = struct {
         index: u32,
         batch: Native.Batch,
@@ -101,7 +113,17 @@ pub const Walk = struct {
         errdefer a.destroy(memory);
         memory.* = try rv.checkpoint.materialize(a, parent.memory, cp);
         errdefer memory.deinit();
-        return createOn(a, parent.config, parent.request, false, memory, true, cp.cpu, cp.counters, index);
+        const self = try createOn(a, parent.config, parent.request, false, memory, true, cp.cpu, cp.counters, index);
+        errdefer self.destroy();
+        if (parent.fast_program) |program| try self.useFast(program);
+        return self;
+    }
+    /// Execute ordinary instructions with the traced fast engine borrowing
+    /// `program` (built on an image with this walk's mappings).
+    pub fn useFast(self: *Walk, program: *const rv.fast_execution.Engine) !void {
+        if (self.fast != null or self.pending or self.tape.len != 0) return error.InvalidEthereumBatchSeed;
+        self.fast = try rv.fast_execution.Engine.initBorrowing(self.allocator, self.memory, program);
+        self.fast_program = program;
     }
     fn createOn(a: std.mem.Allocator, config: Request.Config, request: *Request.Request, owns_request: bool, memory: *rv.memory.Memory, owns_memory: bool, cpu_state: rv.machine.Cpu, counters: rv.checkpoint.Counters, index: u32) !*Walk {
         const self = try a.create(Walk);
@@ -114,6 +136,12 @@ pub const Walk = struct {
         self.owns_memory = owns_memory;
         self.traced_ns = 0;
         self.finish_ns = 0;
+        self.fast_program = null;
+        self.fast = null;
+        self.fast_retired = 0;
+        self.fast_ns = 0;
+        self.reference_ns = 0;
+        self.reference_steps = 0;
         self.identity = try Packet.identityFor(config, &self.request.authority, &self.request.policy);
         self.session = try rv.ethereum_services.Session.initWithProfile(a, cpu_state, memory, .{ .max_retirements = config.max_steps }, Request.tapeProfile(config));
         errdefer self.session.deinit();
@@ -133,6 +161,7 @@ pub const Walk = struct {
     }
     pub fn destroy(self: *Walk) void {
         const a = self.allocator;
+        if (self.fast) |*engine| engine.deinit();
         self.capture.deinit();
         self.tape.deinit();
         self.session.deinit();
@@ -166,12 +195,32 @@ pub const Walk = struct {
         for (&batch.curve_first, self.curve_calls) |*first, total| first.* = @intCast(total + 1);
         const memory = self.memory;
         var timer = std.time.Timer.start() catch null;
+        // M6: fault the tape (and a memory_before reserve) in on a helper
+        // while the walk writes it, instead of one fault per 85 steps on the
+        // walk's own thread. Scheduling only (MADV_POPULATE_WRITE keeps bytes).
+        var populate: ?Populate = if (self.fast != null and self.tape.len == 0) Populate.start(self.allocator, &self.tape) else null;
+        defer if (populate) |*p| p.join();
         while (self.tape.len < self.tape.storage.len) {
-            try Native.captureNext(&self.session, &self.tape, &self.capture, &batch);
+            if (self.fast) |*engine| {
+                // Fast traced run up to the next instruction it cannot
+                // retire; it never executes the terminal pc (a stop pc).
+                const before = self.tape.len;
+                const t0 = if (timer) |*t| t.read() else 0;
+                try Native.runFast(engine, &self.session, &self.tape, &self.capture, &batch, std.math.maxInt(u64));
+                const t1 = if (timer) |*t| t.read() else 0;
+                self.fast_ns += t1 - t0;
+                self.fast_retired += self.tape.len - before;
+                if (self.tape.len != before and c.pc == config.terminal_pc) {
+                    try self.complete();
+                    break;
+                }
+                if (self.tape.len == self.tape.storage.len) break;
+                try Native.captureNext(&self.session, &self.tape, &self.capture, &batch);
+                self.reference_ns += (if (timer) |*t| t.read() else 0) - t1;
+                self.reference_steps += 1;
+            } else try Native.captureNext(&self.session, &self.tape, &self.capture, &batch);
             if (c.pc == config.terminal_pc) {
-                if (try memory.load(config.symbols.halt_flag, 4) != 1 or try memory.load(config.symbols.output_len, 4) != 43) return error.InvalidEthereumCompletion;
-                for (self.request.expected_output, 0..) |byte, i| if (try memory.load(config.symbols.output_data + i, 1) != byte) return error.EthereumOutputMismatch;
-                self.completed = true;
+                try self.complete();
                 break;
             }
         }
@@ -182,6 +231,13 @@ pub const Walk = struct {
         if (timer) |*t| self.finish_ns += t.read();
         self.pending = true;
         return .{ .index = self.batches, .batch = batch, .finished = finished };
+    }
+    fn complete(self: *Walk) !void {
+        const config = self.config;
+        const memory = self.memory;
+        if (try memory.load(config.symbols.halt_flag, 4) != 1 or try memory.load(config.symbols.output_len, 4) != 43) return error.InvalidEthereumCompletion;
+        for (self.request.expected_output, 0..) |byte, i| if (try memory.load(config.symbols.output_data + i, 1) != byte) return error.EthereumOutputMismatch;
+        self.completed = true;
     }
     fn account(self: *Walk, batch: *const Native.Batch) void {
         for (&self.calls, batch.calls) |*total, count| total.* += count;
@@ -219,6 +275,41 @@ pub const Walk = struct {
         errdefer step.finished.deinit();
         const tape = try self.advanceTakingTape(&step.batch);
         return .{ .index = step.index, .finished = step.finished, .tape = tape };
+    }
+};
+/// Opt-in helper (`STWO_RV64_TAPE_POPULATE=1`) that pre-populates a fresh
+/// tape's storage and a memory_before reserve. Linux MADV_POPULATE_WRITE
+/// faults pages in writable without touching their bytes, so it may run
+/// while the walk writes the same pages; any failure only loses the hint.
+/// Measured NET LOSS on 24628607 (M6 capture receipt v3): fast steps 45 ->
+/// 31 ns, but 7 concurrent populates contend on the address space and slow
+/// the reference steps and the first pass (walk max 0.35 -> 0.79 s). Off.
+const Populate = struct {
+    thread: ?std.Thread = null,
+    fn start(a: std.mem.Allocator, tape: *rv.compact_tape.Tape) ?Populate {
+        if (@import("builtin").os.tag != .linux) return null;
+        const v = std.posix.getenv("STWO_RV64_TAPE_POPULATE") orelse return null;
+        if (!std.mem.eql(u8, v, "1")) return null;
+        // Ordinary RV64 code issues a load/store on well under half its steps.
+        tape.memory_before.ensureTotalCapacity(a, tape.storage.len / 2) catch {};
+        const regions = [2][]u8{ std.mem.sliceAsBytes(tape.storage), std.mem.sliceAsBytes(tape.memory_before.allocatedSlice()) };
+        const t = std.Thread.spawn(.{}, populate, .{regions}) catch return null;
+        return .{ .thread = t };
+    }
+    fn populate(regions: [2][]u8) void {
+        const page = std.heap.page_size_min;
+        for (regions) |bytes| {
+            if (bytes.len < 2 * page) continue;
+            const lo = std.mem.alignForward(usize, @intFromPtr(bytes.ptr), page);
+            const hi = std.mem.alignBackward(usize, @intFromPtr(bytes.ptr) + bytes.len, page);
+            if (hi <= lo) continue;
+            const MADV_POPULATE_WRITE = 23;
+            _ = std.os.linux.madvise(@ptrFromInt(lo), hi - lo, MADV_POPULATE_WRITE);
+        }
+    }
+    fn join(self: *Populate) void {
+        if (self.thread) |t| t.join();
+        self.thread = null;
     }
 };
 /// One batch's ordered publication: graph from the sparse cache, durable

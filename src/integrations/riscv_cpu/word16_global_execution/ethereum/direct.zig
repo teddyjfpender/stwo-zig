@@ -48,6 +48,10 @@ pub const Stats = struct {
     /// when a streaming native stage 1 (M6) could start on each segment.
     segments_ready: u32 = 0,
     segment_ready_ns: [MAX_READY_TIMES]u64 = @splat(0),
+    /// M6 async start: walk request init + segment start (on its own
+    /// thread), and how long `capture` then waited for it.
+    start_boot_ns: u64 = 0,
+    start_join_ns: u64 = 0,
 };
 pub const MAX_READY_TIMES = 32;
 /// Records each segment's ready instant into `Stats`, then forwards to the
@@ -86,6 +90,10 @@ const Job = struct {
     admit_ns: u64 = 0,
     capture_ns: u64 = 0,
     fn run(self: *Job) void {
+        // The first batch gates the whole ordered ledger: its CPU capture
+        // takes all its range helpers (M6; `STWO_RV64_CAPTURE_CRITICAL=0` off).
+        if (self.index == 0 and criticalFirst()) @import("../../word16_execution/cpu_source.zig").critical_capture = true;
+        defer @import("../../word16_execution/cpu_source.zig").critical_capture = false;
         lowerJobPriority();
         var timer = std.time.Timer.start() catch null;
         const tape = self.tape.?;
@@ -119,6 +127,10 @@ const Job = struct {
         self.allocator.destroy(self);
     }
 };
+fn criticalFirst() bool {
+    const text = std.posix.getenv("STWO_RV64_CAPTURE_CRITICAL") orelse return true;
+    return !std.mem.eql(u8, text, "0");
+}
 /// `STWO_RV64_CAPTURE_JOB_NICE=N` (1..19): run batch admission/capture (and
 /// the range threads it spawns, which inherit it) at nice N, so the serial
 /// ordered ledger and the segment walks win CPU under a quota. Scheduling only.
@@ -258,9 +270,20 @@ pub fn captureWithSegments(a: std.mem.Allocator, image: *const Image.Owner, prog
 pub const Started = struct {
     allocator: std.mem.Allocator,
     config: Request.Config,
+    walk_config: Request.Config,
     prefix_packets: u32,
-    walk: *Walk,
-    source: Segments.Source,
+    segment_workers: u8,
+    /// Set by `boot` (null until joined, or after a boot failure).
+    walk: ?*Walk = null,
+    source: ?Segments.Source = null,
+    /// M6: the walk's own request init (pinned ELF/input, ROM authority,
+    /// policy) and segment start run on this thread, so they overlap the
+    /// caller's expected image/program init instead of preceding it.
+    /// `STWO_RV64_CAPTURE_ASYNC_START=0` boots on the caller's thread.
+    boot_thread: ?std.Thread = null,
+    boot_err: ?anyerror = null,
+    /// Report-only: walk request init and segment start.
+    boot_ns: u64 = 0,
     /// Optional per-segment readiness hook (M6), set before `capture`.
     ready: ?Capture.Ready = null,
     pub fn start(a: std.mem.Allocator, config: Request.Config, prefix_packets: u32, segment_workers: u8) !*Started {
@@ -270,23 +293,59 @@ pub const Started = struct {
         if (prefix_packets != 0 and (walk_config.max_batches == 0 or walk_config.max_batches > prefix_packets)) walk_config.max_batches = prefix_packets;
         const self = try a.create(Started);
         errdefer a.destroy(self);
-        const walk = try Walk.createWithOptions(a, walk_config, .{ .poseidon_initial_cache = false });
-        errdefer walk.destroy();
-        self.* = .{ .allocator = a, .config = config, .prefix_packets = prefix_packets, .walk = walk, .source = try Segments.Source.init(a, walk, segment_workers), .ready = null };
-        errdefer self.source.deinit();
-        try self.source.prime();
+        self.* = .{ .allocator = a, .config = config, .walk_config = walk_config, .prefix_packets = prefix_packets, .segment_workers = segment_workers, .ready = null };
+        const async_start = if (std.posix.getenv("STWO_RV64_CAPTURE_ASYNC_START")) |v| !std.mem.eql(u8, v, "0") else true;
+        if (async_start) {
+            if (std.Thread.spawn(.{}, bootThread, .{self})) |t| {
+                self.boot_thread = t;
+                return self;
+            } else |_| {}
+        }
+        try self.boot();
         return self;
+    }
+    fn bootThread(self: *Started) void {
+        self.boot() catch |err| {
+            self.boot_err = err;
+        };
+    }
+    fn boot(self: *Started) !void {
+        var timer = std.time.Timer.start() catch null;
+        defer if (timer) |*t| {
+            self.boot_ns = t.read();
+        };
+        const a = self.allocator;
+        const walk = try Walk.createWithOptions(a, self.walk_config, .{ .poseidon_initial_cache = false });
+        errdefer walk.destroy();
+        var source = try Segments.Source.init(a, walk, self.segment_workers);
+        errdefer source.deinit();
+        try source.prime();
+        self.walk = walk;
+        self.source = source;
+    }
+    /// Waits for the boot (walk init and segment start); its error, if any.
+    fn joinBoot(self: *Started) !void {
+        if (self.boot_thread) |t| t.join();
+        self.boot_thread = null;
+        if (self.boot_err) |err| return err;
     }
     /// Joins every thread and frees the walk (also after a failed `capture`).
     pub fn deinit(self: *Started, stats: *Stats) void {
-        if (self.source.segments) |seg| stats.segments = seg.stats;
-        self.source.deinit();
-        self.walk.destroy();
+        self.joinBoot() catch {};
+        stats.start_boot_ns = self.boot_ns;
+        if (self.source) |*source| {
+            if (source.segments) |seg| stats.segments = seg.stats;
+            source.deinit();
+        }
+        if (self.walk) |walk| walk.destroy();
         self.allocator.destroy(self);
     }
     /// Admits and captures every batch in index order. Call at most once.
     pub fn capture(self: *Started, image: *const Image.Owner, program: *const Program, inflight: u8, stats: *Stats) !Capture.Owner {
-        return run(self.allocator, image, program, self.config, self.prefix_packets, inflight, self.walk, &self.source, self.ready, stats);
+        var timer = std.time.Timer.start() catch null;
+        try self.joinBoot();
+        if (timer) |*t| stats.start_join_ns = t.read();
+        return run(self.allocator, image, program, self.config, self.prefix_packets, inflight, self.walk.?, &self.source.?, self.ready, stats);
     }
 };
 fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, prefix_packets: u32, inflight: u8, walk: *Walk, source: *Segments.Source, ready: ?Capture.Ready, stats: *Stats) !Capture.Owner {

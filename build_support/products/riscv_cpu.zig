@@ -192,6 +192,7 @@ pub fn addProduct(context: Context) void {
         .{ .name = "rv64-om-classic-control", .source = "src/integrations/riscv_cpu/rv64_om_classic_control_main.zig" },
         .{ .name = "rv64-word16-ethereum", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_main.zig" },
         .{ .name = "rv64-word16-ethereum-gkr", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_gkr_main.zig" },
+        .{ .name = "rv64-capture-bench", .source = "src/integrations/riscv_cpu/rv64_capture_bench_main.zig" },
         .{ .name = "rv64-logup-gkr-prototype", .source = "src/integrations/riscv_cpu/rv64_logup_gkr_prototype_main.zig" },
         .{ .name = "rv64-logup-kernel-bench", .source = "src/integrations/riscv_cpu/rv64_logup_kernel_bench_main.zig" },
         .{ .name = "rv64-word16-combined-services-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_combined_services_fixture_main.zig" },

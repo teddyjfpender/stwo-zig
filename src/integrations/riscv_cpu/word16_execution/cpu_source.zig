@@ -81,8 +81,16 @@ fn helperBudget() usize {
     const text = std.posix.getenv("STWO_RV64_CPU_CAPTURE_THREADS") orelse return 8;
     return std.fmt.parseInt(usize, text, 10) catch 8;
 }
+/// M6: a capture on a thread marked critical (the batch the ordered ledger
+/// waits on first, see `direct.Job`) is granted `wanted` helpers even past
+/// the shared budget (bounded: one batch's ranges). Scheduling only.
+pub threadlocal var critical_capture: bool = false;
 /// Reserves up to `wanted` helper threads; returns the number granted.
 fn reserveHelpers(wanted: usize) usize {
+    if (critical_capture) {
+        _ = helper_threads_in_use.fetchAdd(wanted, .monotonic);
+        return wanted;
+    }
     const budget = helperBudget();
     var used = helper_threads_in_use.load(.monotonic);
     while (true) {
