@@ -50,7 +50,36 @@ static void copy_coalescing() {
  }
  owner.release(scratch);owner.release(lease);owner.reset();std::printf("PASS coefficient coalescing copies=1 columns=3 native_rejects=%u authority_splits=%u\n",rejected,split);
 }
+static void phase_retirement() {
+ ResidentOwner o(0,64*1024*1024);Scope scope{};scope[0]=23;
+ auto a=o.plane(1024,1),b=o.plane(512,1);auto live=o.lease(64,2,scope);
+ const uint32_t pattern=0x12345678;
+ assert(cudaMemcpy(live.words,&pattern,4,cudaMemcpyHostToDevice)==cudaSuccess);
+ unsigned rejects=0;
+ auto reject=[&](std::vector<StwoRv64Plane> planes){try{o.retirePlanes(planes);}catch(const std::exception&){++rejects;return;}assert(false);};
+ auto partial=b;partial.stride--;
+ reject({a,partial});assert(o.blocks[0].used&&o.blocks[1].used);
+ reject({a,a});assert(o.blocks[0].used&&o.blocks[1].used);
+ reject({{live.words,live.count,1,0}});
+ auto protected_source=o.sourcePlane(256,1);reject({a,protected_source});assert(o.blocks[0].used);
+ std::array<uint32_t,4> circle{1,0,0,1};
+ auto domain=o.domain(5,{},rv64_pcs_pipeline::Words{circle.data(),circle.size()});
+ reject({domain});
+ std::array<uint32_t,64> legacy{};auto legacy_domain=o.domain(5,rv64_pcs_pipeline::Words{legacy.data(),legacy.size()},{});reject({legacy_domain});
+ void*raw=nullptr;CHECK(stwo_exec_context_lane_stream(o.ctx,1,&raw));
+ assert(cudaMemsetAsync(a.words,0x5a,4096,reinterpret_cast<cudaStream_t>(raw))==cudaSuccess);
+ o.retirePlanes({a,b});assert(!o.blocks[0].used&&!o.blocks[1].used);
+ reject({a});
+ auto reuse=o.plane(800,1);assert(reuse.words==a.words&&o.blocks[0].words==1024&&o.blocks[0].active_words==800);
+ reject({a});assert(o.blocks[0].used);
+ o.retirePlane(reuse);assert(!o.blocks[0].used);
+ uint32_t actual=0;assert(cudaMemcpy(&actual,live.words,4,cudaMemcpyDeviceToHost)==cudaSuccess&&actual==pattern);
+ assert(o.leases.size()==1&&o.domains.size()==1);
+ assert(rejects==8);o.release(live);o.reset();auto retagged=o.plane(200,1);assert(retagged.words==protected_source.words);o.retirePlane(retagged);
+ std::printf("PASS phase retirement rejects=%u exact_oversized_reuse=1 source_and_domain_preserved=1\n",rejects);
+}
 int main() {
+    phase_retirement();
     copy_coalescing();
     ResidentOwner owner(0, 256 * 1024 * 1024);
     Scope scope{}; scope[0] = 1;

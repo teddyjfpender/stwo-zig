@@ -57,6 +57,28 @@ inline Input parse(FixtureWords &file) {
 #include <fstream>
 struct FileOwner : Owner {
   explicit FileOwner(int device) : Owner(device) {}
+  std::vector<StwoRv64Plane> temporaries;
+  std::vector<uint32_t*> protected_sources;
+  StwoRv64Plane plane(uint64_t count,uint32_t coordinates) {
+    const auto p=Owner::plane(count,coordinates); temporaries.push_back(p);return p;
+  }
+  StwoRv64Plane sourcePlane(uint64_t count,uint32_t coordinates) {
+    const auto p=plane(count,coordinates);protected_sources.push_back(p.words);return p;
+  }
+  void retirePlanes(const std::vector<StwoRv64Plane>& planes) {
+    std::vector<uint32_t*> selected;
+    for(const auto&p:planes) {
+      auto i=std::find_if(temporaries.begin(),temporaries.end(),[&](const auto&v){return v.words==p.words&&v.stride==p.stride&&v.coordinates==p.coordinates&&v.reserved==p.reserved;});
+      if(i==temporaries.end()||std::find(protected_sources.begin(),protected_sources.end(),p.words)!=protected_sources.end()||std::find(selected.begin(),selected.end(),p.words)!=selected.end())throw std::runtime_error("foreign or partial temporary retirement");
+      selected.push_back(p.words);
+    }
+    CHECK(stwo_exec_context_sync(ctx));
+    for(auto pointer:selected) {
+      CHECK(stwo_exec_context_free_u32(ctx,pointer));
+      allocations.erase(std::find(allocations.begin(),allocations.end(),pointer));
+      temporaries.erase(std::find_if(temporaries.begin(),temporaries.end(),[&](const auto&p){return p.words==pointer;}));
+    }
+  }
   void uploadBorrowed(StwoRv64Plane p, const uint32_t *data, size_t words) {
     if (words)
       CHECK(stwo_exec_context_memcpy_h2d_async(ctx, p.words, data, words * 4));
@@ -75,7 +97,7 @@ struct FileOwner : Owner {
   }
   StwoRv64Plane domain(uint32_t, rv64_pcs_pipeline::Words data,
                        rv64_pcs_pipeline::Words) {
-    auto p = plane(data.size(), 1);
+    auto p = sourcePlane(data.size(), 1);
     uploadBorrowed(p, data.data(), data.size());
     return p;
   }

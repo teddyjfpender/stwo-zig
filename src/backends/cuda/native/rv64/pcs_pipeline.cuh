@@ -188,7 +188,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
         (void)o.validateCoefficient(transfers[0].source,input.scope.data());
         coefficient_trees[t]={const_cast<uint32_t*>(transfers[0].source.data()),count,1,0};
       } else {
-        coefficient_trees[t]=o.plane(count,1);
+        coefficient_trees[t]=o.sourcePlane(count,1);
         for(const auto &v:transfers) o.uploadCoefficient({coefficient_trees[t].words+v.destination,v.source.size(),1,0},v.source,input.scope.data());
       }
       for(uint32_t g=d[2];g<d[2]+d[3];++g) {
@@ -207,7 +207,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
                  combined_coeff_base = rolling_sources ? 0 : source_eval_base + aggregate.evaluations,
                  combined_eval_base = combined_coeff_base + aggregate.combined_coefficients,
                  twiddle_base = combined_eval_base + aggregate.combined_evaluations,
-                 descriptor_base = twiddle_base + h[19];
+                 descriptor_base = twiddle_base + (rolling_sources ? 0 : h[19]);
   const uint64_t arena_words = descriptor_base + uint64_t(sc + 8 * gc) * 6;
   const auto arena = o.plane(arena_words, 1);
   std::vector<CoefficientTransfer> coefficient_transfers;
@@ -230,15 +230,16 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   if (!rolling_sources) for (const auto &transfer:coefficient_transfers)
     o.uploadCoefficient({arena.words+transfer.destination,transfer.source.size(),1,0},
                         transfer.source,transfer.scope.data());
-  o.uploadBorrowed({arena.words + twiddle_base, h[19], 1, 0}, twiddles.data(),
-                   twiddles.size());
-  const auto rolling_evaluations = rolling_sources ? o.plane(max_tree_evaluations,1) : StwoRv64Plane{};
-  const auto rolling_tree = rolling_sources ? o.plane(max_tree_nodes,1) : StwoRv64Plane{};
+  if (!rolling_sources) o.uploadBorrowed({arena.words + twiddle_base, h[19], 1, 0}, twiddles.data(),
+                                        twiddles.size());
+  StwoRv64Plane rolling_evaluations{}, rolling_tree{};
+  const auto source_tw = rolling_sources ? upload(twiddles) : StwoRv64Plane{};
   const auto trace_roots = rolling_sources ? o.plane(nt*8,1) : StwoRv64Plane{};
-  std::vector<StwoRv64Plane> source_descriptors, combined_descriptors;
+  std::vector<StwoRv64Plane> source_descriptors, combined_descriptors, combined_logs;
   std::vector<uint32_t> group_trees(sgc), group_logs;
   if(rolling_sources) for(uint32_t t=0;t<nt;++t) for(uint32_t g=tree_info[t*6+2];g<tree_info[t*6+2]+tree_info[t*6+3];++g) group_trees[g]=t;
   std::vector<b::MixedSegment> trace_segments;
+  std::vector<uint64_t> trace_evaluation_offsets;
   uint64_t descriptor_offset = descriptor_base;
   auto descriptor = [&](uint64_t source, uint64_t destination,
                         uint32_t coefficient_log, std::vector<uint32_t> &v) {
@@ -255,7 +256,8 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     const uint64_t eval_offset = rolling_sources ? local_eval_offset : uint64_t(s[0]) | (uint64_t(s[1]) << 32);
     if (rolling_sources && s[4] != group_logs.size()) throw std::runtime_error("rolling source group coverage");
     const uint32_t m = 1u << s[3];
-    if (s[4] + s[5] > sc || s[3] != s[2] + h[5])
+    if (s[4] + s[5] > sc || s[3] != s[2] + h[5] ||
+        (rolling_sources && (s[6]>h[19] || s[7]>h[19]-s[6])))
       throw std::runtime_error("source group geometry");
     std::vector<uint32_t> packets;
     for (uint32_t j = 0; j < s[5]; ++j) {
@@ -269,7 +271,8 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     o.upload(p, packets);
     source_descriptors.push_back(p);
     descriptor_offset += packets.size();
-    trace_segments.push_back({(rolling_sources ? rolling_evaluations.words : arena.words+source_eval_base)+eval_offset, m,
+    trace_evaluation_offsets.push_back(eval_offset);
+    trace_segments.push_back({rolling_sources ? nullptr : arena.words+source_eval_base+eval_offset, m,
                               uint64_t(m) * s[5], m, 0});
     local_eval_offset+=uint64_t(m)*s[5];
     group_logs.insert(group_logs.end(),s[5],s[2]);
@@ -277,11 +280,25 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   if (rolling_sources && group_logs.size()!=sc) throw std::runtime_error("rolling source group coverage");
   for (uint32_t g = 0; g < gc; ++g) {
     const auto *d = groups.data() + g * 8;
+    if(d[2]>28||d[3]>28||(rolling_sources&&d[3]!=d[2]+1))
+      throw std::runtime_error("combined extension geometry");
     const uint32_t n = 1u << d[2], m = 1u << d[3], count = d[1] - d[0];
-    if (!count || d[1] > tc)
+    const uint64_t coefficient_offset=uint64_t(d[4])|(uint64_t(d[5])<<32);
+    const uint64_t evaluation_offset=uint64_t(d[6])|(uint64_t(d[7])<<32);
+    if (!count || d[0]>=d[1] || d[1] > tc ||
+        (rolling_sources &&
+         (coefficient_offset>aggregate.combined_coefficients || uint64_t(n)*8>aggregate.combined_coefficients-coefficient_offset ||
+          evaluation_offset>aggregate.combined_evaluations || uint64_t(m)*8>aggregate.combined_evaluations-evaluation_offset ||
+          deep_tw[g*2]>h[19] || deep_tw[g*2+1]>h[19]-deep_tw[g*2])))
       throw std::runtime_error("DEEP group geometry");
     std::vector<uint32_t> packets;
-    for (uint32_t c = 0; c < 8; ++c)
+    if (rolling_sources) {
+      // Compact columns N2B accepts the separate forward-twiddle plane.
+      // Keep the existing arena reservation; only the first eight log words
+      // are consumed on this beta1 path.
+      packets.assign(8,d[2]);
+      packets.resize(8*6,0);
+    } else for (uint32_t c = 0; c < 8; ++c)
       descriptor(
           combined_coeff_base + (uint64_t(d[4]) | (uint64_t(d[5]) << 32)) +
               uint64_t(c) * n,
@@ -291,6 +308,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     StwoRv64Plane p{arena.words + descriptor_offset, packets.size(), 1, 0};
     o.upload(p, packets);
     combined_descriptors.push_back(p);
+    combined_logs.push_back(rolling_sources ? StwoRv64Plane{p.words,8,1,0} : StwoRv64Plane{});
     descriptor_offset += packets.size();
     sample_scratch_words =
         std::max(sample_scratch_words, uint64_t((n + 1023) / 1024) * count * 8);
@@ -347,12 +365,13 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     // The shared rolling allocation includes both prefix-state banks. Logical
     // Merkle offsets exclude this admitted tail, exactly as in the legacy path.
     v.tree_capacity = v.tree_words + prefix.words();
-    v.tree = rolling_sources ? StwoRv64Plane{rolling_tree.words,v.tree_capacity,1,0} : o.plane(v.tree_capacity, 1);
+    v.tree = rolling_sources ? StwoRv64Plane{} : o.plane(v.tree_capacity, 1);
     v.values = o.plane(uint64_t(v.columns) * queries, 1);
     v.paths = o.plane(uint64_t(queries) * v.log * 8, 1);
     traces.push_back(v);
   }
   const auto last = o.plane(1u << h[5], 8);
+  const auto fri_roots = rolling_sources && layers ? o.plane(uint64_t(layers)*8,1) : StwoRv64Plane{};
   std::vector<FriStorage> storage;
   for (uint32_t i = 0; i < layers; ++i) {
     const auto *d = descriptions.data() + i * 8;
@@ -406,7 +425,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
       const uint64_t offset=uint64_t(source[0])|(uint64_t(source[1])<<32);
       CHECK(stwo_lde_n2b_columns_on(coefficient_trees[t].words+offset, uint64_t(1)<<d[2],
         coefficient_logs.words+d[4], const_cast<uint32_t*>(trace_segments[g].columns), uint64_t(1)<<d[3], d[3], d[5],
-        arena.words+twiddle_base+d[6],d[7],1u<<(d[3]-1),stream_raw,&launches));
+        source_tw.words+d[6],d[7],1u<<(d[3]-1),stream_raw,&launches));
       return;
     }
     CHECK(stwo_lde_n2b_addressed_on(
@@ -418,7 +437,12 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   auto extend_combined = [&](uint32_t g) {
     const auto *d = groups.data() + g * 8;
     uint32_t launches = 0;
-    CHECK(stwo_lde_n2b_addressed_on(
+    if (rolling_sources) {
+      CHECK(stwo_lde_n2b_columns_on(
+          arena.words+combined_coeff_base+(uint64_t(d[4])|(uint64_t(d[5])<<32)),uint64_t(1)<<d[2],combined_logs[g].words,
+          arena.words+combined_eval_base+(uint64_t(d[6])|(uint64_t(d[7])<<32)),uint64_t(1)<<d[3],d[3],8,
+          source_tw.words+deep_tw[g*2],deep_tw[g*2+1],1u<<(d[3]-1),stream_raw,&launches));
+    } else CHECK(stwo_lde_n2b_addressed_on(
         arena.words, arena_words, combined_descriptors[g].words, 8,
         combined_eval_base + (uint64_t(d[6]) | (uint64_t(d[7]) << 32)), d[3],
         arena.words + twiddle_base + deep_tw[g * 2], deep_tw[g * 2 + 1],
@@ -526,10 +550,19 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   combine.output_log = log;
   CHECK(stwo_rv64_deep_combine_on(o.ctx, 1, &combine));
   phase_mark(4);
+  if (rolling_sources) {
+    // Source opening uses only original coefficients, compact logs and fresh
+    // immutable forward twiddles. None of the combined DEEP arena survives.
+    o.retirePlanes({arena, sample_scratch_a, sample_scratch_b, sample_valid,
+                    values, weights, linear, deep_valid, factors, point_ready,
+                    point_arena, parameter, alpha, src, term, grp, recipe,
+                    permutation, seed});
+  }
   for (uint32_t i = 0; i < layers; ++i) {
     auto &s = storage[i];
     CHECK(stwo_rv64_fri_tree_on(o.ctx, 1, s.column, s.count, s.leaf,
                                 s.tree.words, s.tree_words));
+    if (rolling_sources) CHECK(cudaMemcpyAsync(fri_roots.words+uint64_t(i)*8,s.tree.words+s.tree_words-8,8*sizeof(uint32_t),cudaMemcpyDeviceToDevice,stream));
     mix(s.tree.words + s.tree_words - 8, 8, 0);
     draw(s.alpha.words);
     StwoRv64FriFold fold{};
@@ -548,6 +581,11 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   CHECK(stwo_rv64_fri_terminal_on(o.ctx, 1, last, 1u << h[5], terminal.words,
                                   status.words));
   mix(terminal.words, 8, 1);
+  if (rolling_sources) {
+    std::vector<StwoRv64Plane> finished{fri_tw,last};
+    for (const auto &s : storage) finished.push_back(s.alpha);
+    o.retirePlanes(finished);
+  }
   phase_mark(5);
   if (h[22]) {
     CHECK(stwo_blake2s_pow_persistent_on(
@@ -568,6 +606,20 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
                          s.count,        queries,       s.steps,
                          s.leaf,         s.shift,       0};
     CHECK(stwo_rv64_fri_open_on(o.ctx, 1, &open));
+  }
+  if (rolling_sources) {
+    // FRI openings have now consumed every full column and tree. Only their
+    // tiny roots and queried values/paths remain part of the proof output.
+    std::vector<StwoRv64Plane> finished;
+    for (const auto &s : storage) { finished.push_back(s.column);finished.push_back(s.tree); }
+    if (storage.empty()) finished.push_back(deep);
+    o.retirePlanes(finished);
+    rolling_evaluations = o.plane(max_tree_evaluations,1);
+    rolling_tree = o.plane(max_tree_nodes,1);
+    for (uint32_t g=0;g<sgc;++g)
+      trace_segments[g].columns = rolling_evaluations.words+trace_evaluation_offsets[g];
+    for (auto &t : traces) t.tree = {rolling_tree.words,t.tree_capacity,1,0};
+    CHECK(stwo_exec_context_sync(o.ctx)); // Late async-pool allocations must be ready on lane1.
   }
   for (auto &t : traces) {
     if(rolling_sources) {
@@ -603,7 +655,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   readbacks.push_back(terminal);
   readbacks.push_back(raw);
   for (const auto &s : storage) {
-    readbacks.push_back({s.tree.words + s.tree_words - 8, 8, 1, 0});
+    readbacks.push_back({rolling_sources ? fri_roots.words+uint64_t(&s-storage.data())*8 : s.tree.words + s.tree_words - 8, 8, 1, 0});
     readbacks.push_back(s.values);
     readbacks.push_back(s.paths);
   }

@@ -72,6 +72,8 @@ struct ResidentOwner {
     uint32_t *ptr;
     uint64_t words;
     bool used;
+    uint64_t active_words;
+    bool retirable;
   };
   struct Leased {
     StwoRv64GpuLease value;
@@ -184,22 +186,54 @@ struct ResidentOwner {
     uint32_t *ptr;
     if (selected < blocks.size()) {
       blocks[selected].used = true;
+      blocks[selected].active_words = words;
+      blocks[selected].retirable = true;
       ptr = blocks[selected].ptr;
     } else {
       ptr = allocate(words);
-      blocks.push_back({ptr, words, true});
+      blocks.push_back({ptr, words, true, words, true});
     }
     allocated_bytes += words * 4;
     return {ptr, count, coordinates, 0};
   }
+  StwoRv64Plane sourcePlane(uint64_t count,uint32_t coordinates) {
+    const auto p=plane(count,coordinates);
+    for(auto &block:blocks) if(block.ptr==p.words) { block.retirable=false;return p; }
+    throw std::runtime_error("source reservation missing");
+  }
+  // Validate the entire phase transition before joining or changing custody.
+  // Only whole active temporary reservations qualify, never leases/domains.
+  void retirePlanes(const std::vector<StwoRv64Plane> &planes) {
+    std::vector<size_t> selected;
+    selected.reserve(planes.size());
+    for (const auto &plane : planes) {
+      if (!plane.words || !plane.coordinates || plane.reserved ||
+          plane.stride > UINT64_MAX / plane.coordinates)
+        throw std::runtime_error("invalid temporary retirement");
+      const uint64_t words=plane.stride*plane.coordinates;
+      size_t i=0;
+      for (;i<blocks.size()&&blocks[i].ptr!=plane.words;++i) {}
+      if (i==blocks.size() || !blocks[i].used || !blocks[i].retirable || blocks[i].active_words!=words ||
+          std::find(selected.begin(),selected.end(),i)!=selected.end())
+        throw std::runtime_error("foreign, stale, duplicate or partial temporary retirement");
+      selected.push_back(i);
+    }
+    sync(); // Join both lanes once before any temporary can be reused.
+    uint64_t words=0;
+    for (auto i:selected) { words+=blocks[i].active_words;blocks[i].used=false;blocks[i].active_words=0; }
+    std::printf("GPU_PCS_PHASE_RETIRE planes=%zu logical_words=%llu\n",selected.size(),static_cast<unsigned long long>(words));
+  }
+  void retirePlane(StwoRv64Plane plane) { retirePlanes({plane}); }
   void reset() {
     sync();
     ingress.clear();
     for (auto event : events)
       CHECK(cudaEventDestroy(event));
     events.clear();
-    for (auto &block : blocks)
+    for (auto &block : blocks) {
       block.used = false;
+      block.active_words = 0;
+    }
     allocated_bytes = 0;
   }
   cudaEvent_t event() {
@@ -265,7 +299,7 @@ struct ResidentOwner {
   }
   StwoRv64Plane domain(uint32_t log, Words legacy, Words parameters) {
     if (legacy.size()) {
-      auto p = plane(legacy.size(), 1);
+      auto p = sourcePlane(legacy.size(), 1);
       uploadBorrowed(p, legacy.data(), legacy.size());
       return p;
     }
