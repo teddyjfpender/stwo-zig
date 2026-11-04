@@ -8,6 +8,7 @@ const W = @import("../services/wire.zig");
 const Setup = @import("../../word16_execution/setup.zig");
 const Fixed = @import("../services/gkr_local/fixed_authority.zig").Fixed;
 const FixedSet = @import("../services/gkr_local/fixed_authority_set.zig");
+const SetupCache = @import("setup_cache.zig");
 pub const Session = struct {
     allocator: std.mem.Allocator,
     key_budget: *engine.host_budget_allocator.SharedHostBudget,
@@ -18,6 +19,11 @@ pub const Session = struct {
     fixed: ?Fixed.Cache = null,
     fixed_limit: usize = 0,
     namespace: ?[32]u8 = null,
+    /// Session-lifetime candidate setup (resident + optionally persisted,
+    /// #320). Created on the first request when STWO_ZIG_RV64_SETUP_CACHE is
+    /// set; every later request in this process reuses it.
+    setup: ?SetupCache.Cache = null,
+    setup_fixed_bytes: usize = 0,
     active: bool = false,
     hits: u64 = 0,
     misses: u64 = 0,
@@ -37,10 +43,20 @@ pub const Session = struct {
         self.validated_fixed.deinit();
         self.keys.deinit();
         if (self.fixed) |*cache| cache.deinit();
+        if (self.setup) |*cache| cache.deinit();
         self.native.deinit();
         self.metadata.deinit();
         self.key_budget.destroy();
         self.* = undefined;
+    }
+    /// Write artifacts for components first built by earlier requests. The
+    /// caller runs this between requests so disk writes stay off request wall.
+    pub fn persistSetup(self: *Session) !void {
+        if (self.active) return error.ResidentRequestAlreadyActive;
+        if (self.setup) |*cache| try cache.persist();
+    }
+    pub fn setupStats(self: *const Session) ?SetupCache.Stats {
+        return if (self.setup) |cache| cache.stats else null;
     }
     pub fn caches(self: *Session) Setup.ImmutableCaches {
         return .{ .native = &self.native, .program = &self.metadata };

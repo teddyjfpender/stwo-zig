@@ -61,8 +61,10 @@ pub const Verified = struct {
     }
 };
 pub fn verify(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: M.ExpectedWorker, first: anytype, manifest: *const M.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const Worker.CpuEncoded, fixed: ?*const Fixed.Binding) !Verified {
-    _ = try Worker.verifyCpuWithAuthority(a, setup, request, expected, first, manifest, index, config, encoded, fixed);
-    var proof = try W.decodePhysical(a, encoded.bytes);
+    // One native verification per leaf: every non-core check of
+    // verifyCpuWithAuthority runs here, then the identical core verifier runs
+    // once below with proof capture (same verifyImpl, components, transcript).
+    var proof = try Worker.admitCpuBeforeCoreVerify(a, setup, request, expected, first, manifest, index, config, encoded, fixed);
     errdefer proof.deinit(a);
     var plan = try Components.Plan.init(a, setup);
     defer plan.deinit();

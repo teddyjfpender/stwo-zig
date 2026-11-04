@@ -21,6 +21,12 @@ const Manifest = struct {
     recursion_device_fixed_candidate: bool = false,
     recursion_worker_budget: usize = 0,
     recursion_max_pending_authorities: usize = 17,
+    /// Warm resident service: before any timed request, run setup only
+    /// (warm-setup-candidate: capture, plan, keys, FIXED; no proof) for these
+    /// blocks through the session. Requires STWO_ZIG_RV64_SETUP_CACHE so the
+    /// session owns a SetupCache (empty value = residency only, a directory =
+    /// also seed from / persist to disk). Operational only; proofs unchanged.
+    warm_order: []const u64 = &.{},
 };
 pub fn run(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, output: []const u8) !void {
     return runMode(a, library, manifest_path, output, false);
@@ -62,7 +68,7 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
             try config.validatePlan(cpuCount(item));
         }
     }
-    const budget: ?*@import("stwo_prover_engine").host_budget_allocator.SharedHostBudget = if (combined) try @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.create(a, manifest.combined_host_bytes) else null;
+    const budget: ?*@import("stwo_prover_engine").host_budget_allocator.SharedHostBudget = if (combined) try @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.create(std.heap.smp_allocator, manifest.combined_host_bytes) else null;
     defer if (budget) |owner| owner.destroy();
     var recycler = Main.Recycler.init(if (budget) |owner| owner.allocator() else std.heap.smp_allocator, 1 << 30);
     defer recycler.deinit();
@@ -107,6 +113,42 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     const resource_json = try std.json.Stringify.valueAlloc(a, manifest.resources, .{});
     defer a.free(resource_json);
     const parent = std.fs.path.dirname(manifest_path) orelse ".";
+    if (manifest.warm_order.len != 0) {
+        if (!std.process.hasEnvVarConstant("STWO_ZIG_RV64_SETUP_CACHE")) return error.WarmServiceRequiresSetupCache;
+        const warm_directory = try std.fs.path.join(a, &.{ output, "warm" });
+        defer a.free(warm_directory);
+        try std.fs.cwd().makePath(warm_directory);
+        const resources = try std.fs.path.join(a, &.{ warm_directory, "resources.json" });
+        defer a.free(resources);
+        {
+            const file = try std.fs.cwd().createFile(resources, .{});
+            defer file.close();
+            try file.writeAll(resource_json);
+        }
+        for (manifest.warm_order) |block| {
+            var name_buf: [24]u8 = undefined;
+            const name = try std.fmt.bufPrint(&name_buf, "{d}", .{block});
+            const item = manifest.blocks.map.get(name) orelse return error.MissingResidentBatchBlock;
+            const request = try std.fs.path.resolve(a, &.{ parent, item.request });
+            defer a.free(request);
+            const parts = [_][]const u8{ "rv64-resident", "--security-profile", manifest.profile, "warm-setup-candidate", request, "-", "0", resources };
+            var args: [parts.len][:0]u8 = undefined;
+            var made: usize = 0;
+            defer for (args[0..made]) |arg| a.free(arg);
+            for (parts, &args) |part, *arg| {
+                arg.* = try a.dupeZ(u8, part);
+                made += 1;
+            }
+            try pool.router.replan(cpuCount(item));
+            var warm_timer = try std.time.Timer.start();
+            try Main.runWithResidentArgs(&recycler, &args, pool.stages(), &session);
+            const warm_ns = warm_timer.read();
+            var persist_timer = try std.time.Timer.start();
+            try session.persistSetup();
+            const stats = session.setupStats();
+            std.debug.print("GPU_RESIDENT_WARM block={} setup_only_ns={} persist_ns={} resident_hits={} disk_hits={} misses={} stores={}\n", .{ block, warm_ns, persist_timer.read(), if (stats) |v| v.resident_hits else 0, if (stats) |v| v.disk_hits else 0, if (stats) |v| v.misses else 0, if (stats) |v| v.stores else 0 });
+        }
+    }
     for (0..manifest.repeat) |trial| {
         var seen = std.AutoHashMap(u64, void).init(a);
         defer seen.deinit();
@@ -171,6 +213,11 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
             } else try Main.runWithResidentArgs(&recycler, &args, pool.stages(), &session);
             for (pool.devices) |*device| try device.native.endBlock(identity);
             const request_wall_ns = timer.read();
+            // New setup artifacts are written between requests, off the wall.
+            var persist_timer = try std.time.Timer.start();
+            try session.persistSetup();
+            const persist_ns = persist_timer.read();
+            const setup_stats = session.setupStats();
             if (combined) {
                 const report_path = try std.fs.path.join(base, &.{ proof, "report.json" });
                 defer base.free(report_path);
@@ -189,7 +236,7 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
                 defer base.free(entry);
                 try @import("combined_publication.zig").write(proof, entry);
             }
-            std.debug.print("GPU_RESIDENT_BLOCK block={} trial={} iteration={} request_wall_ns={} cached_host_keys={} host_key_cache_hits={} host_key_cache_misses={} host_key_cache_evictions={} gpu_contexts={}\n", .{ block, trial, iteration, request_wall_ns, session.keyCount(), session.hits, session.misses, session.evictions, pool.devices.len });
+            std.debug.print("GPU_RESIDENT_BLOCK block={} trial={} iteration={} request_wall_ns={} cached_host_keys={} host_key_cache_hits={} host_key_cache_misses={} host_key_cache_evictions={} gpu_contexts={} setup_cache={} setup_resident_hits={} setup_disk_hits={} setup_misses={} setup_persist_ns={}\n", .{ block, trial, iteration, request_wall_ns, session.keyCount(), session.hits, session.misses, session.evictions, pool.devices.len, setup_stats != null, if (setup_stats) |v| v.resident_hits else 0, if (setup_stats) |v| v.disk_hits else 0, if (setup_stats) |v| v.misses else 0, persist_ns });
         }
     }
 }

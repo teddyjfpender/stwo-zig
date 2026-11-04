@@ -558,6 +558,25 @@ pub const CpuWorker = struct {
 pub fn verifyCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: anytype, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const CpuEncoded) !Manifest.Claims {
     return verifyCpuWithAuthority(a, setup, request, expected, first, pending, index, config, encoded, null);
 }
+/// Every check `verifyCpuWithAuthority` performs except the core STARK
+/// verification itself, in the same order. A caller that runs the identical
+/// core verifier (same components, transcript and commitment receiver) with
+/// proof capture obtains exactly the acceptance of `verifyCpuWithAuthority`
+/// without verifying the proof twice. Returns the decoded physical proof.
+pub fn admitCpuBeforeCoreVerify(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: anytype, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const CpuEncoded, fixed: ?*const Fixed.Binding) !W.Proof {
+    try validate(a, setup, request, expected, first, config, fixed);
+    var plan = try Components.Plan.init(a, setup);
+    defer plan.deinit();
+    try checkManifest(expected, pending, index);
+    var proof = try W.decodePhysical(a, encoded.bytes);
+    errdefer proof.deinit(a);
+    const roots = proof.commitment_scheme_proof.commitments.items;
+    if (roots.len != 4 or !std.meta.eql(proof.commitment_scheme_proof.config, config) or proof.commitment_scheme_proof.revision_config != null) return error.WideCpuProofShape;
+    try pending.checkPhysicalRoots(index, roots[0], roots[1]);
+    try publicClaims(request, &plan, pending.shared, encoded.claims);
+    if (pending.entries[index].local == null) return error.WideCpuLocalRequired;
+    return proof;
+}
 pub fn verifyCpuWithAuthority(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: anytype, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const CpuEncoded, fixed: ?*const Fixed.Binding) !Manifest.Claims {
     try validate(a, setup, request, expected, first, config, fixed);
     var plan = try Components.Plan.init(a, setup);

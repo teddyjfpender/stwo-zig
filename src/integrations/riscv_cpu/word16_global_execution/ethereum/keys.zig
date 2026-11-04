@@ -81,6 +81,11 @@ pub const Owner = struct {
                     var s = try R.CpuSetup.initWithAuthorityAndSuiteAndCaches(b.a, &b.image.authority, b.d.geometry, b.d.bridges, b.suite, b.caches);
                     errdefer s.deinit();
                     if (b.retire) try s.releaseFixedWitness();
+                    // Resident components outlive this request's Image (a
+                    // session-owned cache serves later blocks): take custody
+                    // of the raw ROM arrays, exactly as the session key cache
+                    // does. Copies only; no setup value changes.
+                    try s.materials.program.retainRawAuthority();
                     return s;
                 }
             };
