@@ -249,6 +249,41 @@ lh + 2 lt <= 26) and by builder assertions:
 
 All inequality operands therefore satisfy the range-to-integer lemma.
 
+### Statement-level bounds (verifier side; `src/tensor/bounds.zig`)
+
+The table above is a property of the honest builder. Since review-A
+(PROTO-1, PROTO-2, PROTO-4, EXT-2), `verify` no longer trusts it:
+`validateStatement` re-derives, from the public statement alone, a bound
+`|t| <= 2^b` for every witness tensor it can, and rejects the statement
+unless every multiplication and relation is wrap-free:
+
+* bound sources: core op outputs / lookup / range8 (int8); requant einsum
+  outputs (`ob - 1`); a key whose input (or lookup output) is a single +-1
+  term over plain, pairwise-distinct variable labels covering **every** bit
+  of the tensor (a SUM, FIX or repeated label covers only a reduction or a
+  slice and bounds nothing: PROTO-1 / EXT-2); boolean selectors `y = y (.) y`
+  with identity labels (bound 0); exact einsums `bound(a) + bound(b) + n_k`
+  (PROTO-2: replaces the old `EXT_EXACT_BOUND` exemption), or `bound(b)`
+  alone when `a` is a proved boolean selector one-hot over the contracted
+  bits (`sum_S a = 1`, or `sum_S a = s` with `s` boolean, nested through
+  `s`'s own one-hot sets); lineqs solved for a +-1 term (FIX-labelled slices
+  count once all slices of the tensor are covered). Derived to a fixpoint.
+* checks: core matmul `bx + 7 + log K <= 30`, hadamard `ba + bb <= 30`;
+  requant einsum accumulator `<= 2^29` and `shift + out_bits <= 30`; exact
+  einsum / zero-check `<= 2^29 < p/2`; every key expression that is not a
+  bound source has bounded terms with `|expr| + table size < p`; every
+  lineq whose terms are all bounded has `|expr| < p` (an integer identity).
+  Unbounded operands fail closed with `StatementUnboundedOperand`.
+* shapes, ids, table ids and `n_dims` are checked before any indexing
+  (PROTO-4: the old pass indexed `bound[y]` and `tables[id]` raw).
+
+MoE stays valid structurally: Disp is boolean and one-hot over tokens
+(`occ = sum_t Disp`, `occ` boolean), so `Xe = Disp . y2` has bound 7, and
+Disp is one-hot over `(c, x)` (`sum_c Disp = sel`, `sum_x sel = 1`), so the
+combine output has the bound of the stacked expert outputs (7, from the
+per-expert FIX-slice lineqs). Removing `Disp^2 = Disp` makes the expert
+matmuls fail validation (tested).
+
 ## 5. Tests (src/tensor/transformer.zig)
 
 * full layer (T=8, D=32, F=64, 4 heads, 2 kv heads) and a 2-layer stack

@@ -191,3 +191,242 @@ test "EXT-3: honest softmax is normalised on flat rows (T = 256, 512, 1024)" {
     try testing.expectEqual(@as(i32, 1), o[2 * 1]); // round(1/2) = 1 (half up)
     try testing.expectEqual(@as(i32, 0), o[2 * 2]);
 }
+
+// The old reciprocal gadget, as a statement: rden in [0, 2^16) by a range key,
+// den = sum_j e with e from the exp table (|den| <= 2^(lt+8)), pr = rden * den
+// exact. At lt = 8 the integer product reaches 2^32: validateStatement now
+// rejects it from the statement alone (EXT-1, statement-level no-wrap check).
+test "EXT-1: an exact product that can exceed p is rejected by validateStatement" {
+    const lt: u32 = 8;
+    const infos = [_]TI{ TI.vec(2 * lt), TI.vec(2 * lt), TI.vec(lt), TI.vec(lt), TI.vec(lt) }; // d, e, den, rden, pr
+    var et = tf.expTable();
+    const tables = [_]xt.LookupTable{.{ .log_size = 10, .values = &et }};
+    const all2 = xt.labels(tf.ids(0, 2 * lt));
+    const all1 = xt.labels(tf.ids(0, lt));
+    const sum_lab = tf.cat(&.{ tf.ids(0, lt), tf.sums(lt) });
+    const eops = [_]xt.Op{
+        .{ .key = .{ .n = @intCast(2 * lt), .input = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(0), .labels = all2 }} }, .output = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(1), .labels = all2 }} }, .table = .{ .lookup = 0 } } },
+        .{ .lineq = .{ .n = @intCast(lt), .expr = .{ .terms = &.{ .{ .coeff = 1, .t = Ref.w(2), .labels = all1 }, .{ .coeff = -1, .t = Ref.w(1), .labels = sum_lab } } } } },
+        .{ .key = .{ .n = @intCast(lt), .input = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(3), .labels = all1 }} }, .table = .{ .range = 16 } } },
+        .{ .einsum = .{ .a = Ref.w(3), .b = Ref.w(2), .y = 4, .n_out = @intCast(lt), .n_k = 0, .a_labels = all1, .b_labels = all1 } },
+    };
+    var st = proto.Statement{ .witness = &infos, .weights = &.{}, .tables = &.{}, .ops = &.{}, .ext = .{ .ops = &eops, .tables = &tables } };
+    try testing.expectError(error.StatementAccumulatorBound, proto.validateStatement(st));
+    // at lt = 4 the same gadget (rden < 2^12) fits: 12 + 12 <= 29
+    const lt4: u32 = 4;
+    const infos4 = [_]TI{ TI.vec(2 * lt4), TI.vec(2 * lt4), TI.vec(lt4), TI.vec(lt4), TI.vec(lt4) };
+    const a2 = xt.labels(tf.ids(0, 2 * lt4));
+    const a1 = xt.labels(tf.ids(0, lt4));
+    const sl = tf.cat(&.{ tf.ids(0, lt4), tf.sums(lt4) });
+    const eops4 = [_]xt.Op{
+        .{ .key = .{ .n = @intCast(2 * lt4), .input = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(0), .labels = a2 }} }, .output = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(1), .labels = a2 }} }, .table = .{ .lookup = 0 } } },
+        .{ .lineq = .{ .n = @intCast(lt4), .expr = .{ .terms = &.{ .{ .coeff = 1, .t = Ref.w(2), .labels = a1 }, .{ .coeff = -1, .t = Ref.w(1), .labels = sl } } } } },
+        .{ .key = .{ .n = @intCast(lt4), .input = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(3), .labels = a1 }} }, .table = .{ .range = 12 } } },
+        .{ .einsum = .{ .a = Ref.w(3), .b = Ref.w(2), .y = 4, .n_out = @intCast(lt4), .n_k = 0, .a_labels = a1, .b_labels = a1 } },
+    };
+    st = .{ .witness = &infos4, .weights = &.{}, .tables = &.{}, .ops = &.{}, .ext = .{ .ops = &eops4, .tables = &tables } };
+    try proto.validateStatement(st);
+}
+
+// ---------------------------------------------------------------------------
+// PROTO-1, PROTO-2, PROTO-4, EXT-2: validateStatement bound derivation.
+
+fn cfgP() proto.Config {
+    return .{ .pcs = .{ .log_blowup = 2, .n_queries = 8, .pow_bits = 1 }, .weight_log_cols = 2, .witness_log_cols_max = 4, .gkr_threads = 1 };
+}
+
+/// integer matmul X[T,K] . W[K,N] (i64)
+fn matmulI64(a: std.mem.Allocator, x: []const i32, w: []const i8, T: usize, K: usize, N: usize) ![]i64 {
+    const out = try a.alloc(i64, T * N);
+    for (0..T) |t| for (0..N) |n| {
+        var s: i64 = 0;
+        for (0..K) |k| s += @as(i64, x[t * K + k]) * w[k * N + n];
+        out[t * N + n] = s;
+    };
+    return out;
+}
+
+fn modP(v: i64) i64 {
+    var r = @mod(v, P_M31);
+    if (r > @divFloor(P_M31, 2)) r -= P_M31;
+    return r;
+}
+
+/// Proves a cheating witness (the integer accumulator wraps mod p) and returns
+/// the verifier's verdict; validation errors are returned before proving.
+fn proveCheat(st: proto.Statement, x: []const i32, extra: []const []const i32, w: *const [16]i8) !void {
+    const a = testing.allocator;
+    try proto.validateStatement(st);
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const acc_int = try matmulI64(a, x, w, 2, 4, 4);
+    defer a.free(acc_int);
+    var accf: [8]i64 = undefined;
+    var y: [8]i32 = undefined;
+    for (0..8) |i| {
+        accf[i] = modP(acc_int[i]);
+        y[i] = proto.requant(accf[i], 1);
+    }
+    const pc = cfgP();
+    const wv = [_][]const i8{w};
+    var ws = try proto.commitWeights(a, &pool, pc, st.weights, &wv);
+    defer ws.deinit(a);
+    var wit: [4][]const i32 = undefined;
+    for (extra, 0..) |e, i| wit[i] = e;
+    wit[extra.len] = &y;
+    var accs: [1]?[]i64 = .{&accf};
+    var tm: proto.Timings = .{};
+    var proof = try proto.proveWithAccumulators(a, &pool, pc, st, &ws, wit[0 .. extra.len + 1], &accs, &tm);
+    defer proof.deinit(a);
+    try proto.verify(a, pc, st, proto.weightKey(&ws), &proof);
+    return error.UnboundedOperandAccepted;
+}
+
+// PROTO-2 (was R2): EXT_EXACT_BOUND let an unbounded tensor be a matmul operand.
+test "PROTO-2: exact ext einsum output of an unbounded witness is not a valid matmul operand" {
+    const infos = [_]TI{ TI.vec(3), TI.mat(1, 2), TI.mat(1, 2) };
+    const winfos = [_]TI{TI.mat(2, 2)};
+    var w: [16]i8 = [_]i8{0} ** 16;
+    for (0..8) |i| w[i] = 1;
+    var ones: [8]i32 = [_]i32{1} ** 8;
+    const pubs = [_]xt.Public{.{ .log_size = 3, .values = &ones }};
+    const eops = [_]xt.Op{.{ .einsum = .{ .a = xt.Ref.w(0), .b = xt.Ref.p(0), .y = 1, .n_out = 3, .n_k = 0, .a_labels = xt.labels(&.{ 0, 1, 2 }), .b_labels = xt.labels(&.{ 0, 1, 2 }) } }};
+    const ops = [_]proto.Op{.{ .matmul = .{ .x = 1, .w = 0, .y = 2, .shift = 1 } }};
+    const st = proto.Statement{ .witness = &infos, .weights = &winfos, .tables = &.{}, .ops = &ops, .ext = .{ .ops = &eops, .publics = &pubs } };
+    const big: i32 = 1 << 30;
+    var u: [8]i32 = .{ big, big, 0, 0, big, big, 0, 0 };
+    try testing.expectError(error.StatementUnboundedOperand, proveCheat(st, &u, &.{ &u, &u }, &w));
+    // with U range-checked (int8) the same einsum output is a valid operand:
+    // bound(X) = bound(U) + bound(ones) + n_k = 7 + 0 + 0
+    const kops = [_]xt.Op{
+        .{ .key = .{ .n = 3, .input = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(0), .labels = xt.labels(&.{ 0, 1, 2 }) }}, .constant = 128 }, .table = .{ .range = 8 } } },
+        eops[0],
+    };
+    var st2 = st;
+    st2.ext.ops = &kops;
+    try proto.validateStatement(st2);
+}
+
+fn keyStatement(comptime use_sum: bool, eops: *[1]xt.Op, terms: *[1]xt.Term) proto.Statement {
+    const S = struct {
+        const infos = [_]TI{ TI.mat(1, 2), TI.mat(1, 2) };
+        const winfos = [_]TI{TI.mat(2, 2)};
+        const ops = [_]proto.Op{.{ .matmul = .{ .x = 0, .w = 0, .y = 1, .shift = 1 } }};
+    };
+    const lab = if (use_sum) xt.labels(&.{ xt.SUM, 0, 1 }) else xt.labels(&.{ xt.FIX0, 0, 1 });
+    terms[0] = .{ .coeff = 1, .t = xt.Ref.w(0), .labels = lab };
+    eops[0] = .{ .key = .{ .n = 2, .input = .{ .terms = terms }, .table = .{ .range = 8 } } };
+    return .{ .witness = &S.infos, .weights = &S.winfos, .tables = &.{}, .ops = &S.ops, .ext = .{ .ops = eops } };
+}
+
+// PROTO-1 (was R3a / R3b): a key with a SUM label, or on a FIX0 slice, bounded
+// the whole tensor; the verifier accepted wrapped matmul accumulators.
+test "PROTO-1: SUM- or FIX-labelled range keys do not bound a matmul operand" {
+    var w: [16]i8 = [_]i8{0} ** 16;
+    for (0..8) |i| w[i] = 1;
+    const big: i32 = 1 << 30;
+    inline for (.{ true, false }) |use_sum| {
+        var eops: [1]xt.Op = undefined;
+        var terms: [1]xt.Term = undefined;
+        const st = keyStatement(use_sum, &eops, &terms);
+        try xt.validate(st);
+        var x: [8]i32 = if (use_sum) .{ big, big, 0, 0, -big + 3, -big + 3, 5, 5 } else .{ 3, 3, 3, 3, big, big, 0, 0 };
+        try testing.expectError(error.StatementUnboundedOperand, proveCheat(st, &x, &.{&x}, &w));
+    }
+}
+
+// EXT-2 (was "validateStatement infers a full-tensor bound from a FIX-slice /
+// SUM range key").
+test "EXT-2: validateStatement fails closed on FIX-slice and SUM range keys" {
+    const infos = [_]TI{ TI.mat(1, 2), TI.mat(1, 2) };
+    const winfo = [_]TI{TI.mat(2, 2)};
+    const ops = [_]proto.Op{.{ .matmul = .{ .x = 0, .w = 0, .y = 1, .shift = 1 } }};
+    const base = proto.Statement{ .witness = &infos, .weights = &winfo, .tables = &.{}, .ops = &ops };
+    try testing.expectError(error.StatementUnboundedOperand, proto.validateStatement(base));
+    const k_slice = [_]xt.Op{.{ .key = .{ .n = 2, .input = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(0), .labels = xt.labels(&.{ xt.FIX0, 0, 1 }) }}, .constant = 128 }, .table = .{ .range = 8 } } }};
+    var st = base;
+    st.ext = .{ .ops = &k_slice };
+    try xt.validate(st);
+    try testing.expectError(error.StatementUnboundedOperand, proto.validateStatement(st));
+    const k_sum = [_]xt.Op{.{ .key = .{ .n = 0, .input = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(0), .labels = xt.labels(&.{ xt.FIX0, xt.SUM, xt.SUM }) }}, .constant = 128 }, .table = .{ .range = 8 } } }};
+    st.ext = .{ .ops = &k_sum };
+    try xt.validate(st);
+    try testing.expectError(error.StatementUnboundedOperand, proto.validateStatement(st));
+    // repeated (diagonal) labels do not cover the tensor either
+    const k_diag = [_]xt.Op{.{ .key = .{ .n = 2, .input = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(0), .labels = xt.labels(&.{ 0, 0, 1 }) }}, .constant = 128 }, .table = .{ .range = 8 } } }};
+    st.ext = .{ .ops = &k_diag };
+    try testing.expect(std.meta.isError(proto.validateStatement(st)));
+    // a plain key over all bits bounds the operand
+    const k_full = [_]xt.Op{.{ .key = .{ .n = 3, .input = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(0), .labels = xt.labels(&.{ 0, 1, 2 }) }}, .constant = 128 }, .table = .{ .range = 8 } } }};
+    st.ext = .{ .ops = &k_full };
+    try proto.validateStatement(st);
+}
+
+// PROTO-4 (was R5, opt-in panic probe): malformed ext statements are rejected
+// before any indexing, in every build mode.
+test "PROTO-4: validateStatement rejects out-of-range ids and bad shapes without indexing" {
+    const infos = [_]TI{ TI.vec(2), TI.vec(2) };
+    const eops = [_]xt.Op{.{ .einsum = .{ .a = xt.Ref.w(0), .b = xt.Ref.w(1), .y = 9, .n_out = 2, .n_k = 0, .a_labels = xt.labels(&.{ 0, 1 }), .b_labels = xt.labels(&.{ 0, 1 }) } }};
+    var st = proto.Statement{ .witness = &infos, .weights = &.{}, .tables = &.{}, .ops = &.{}, .ext = .{ .ops = &eops } };
+    try testing.expectError(error.ExtStatement, proto.validateStatement(st));
+    // y >= 4096 (old: out-of-bounds stack write in ReleaseFast)
+    var big = eops;
+    big[0].einsum.y = 5000;
+    st.ext.ops = &big;
+    try testing.expectError(error.ExtStatement, proto.validateStatement(st));
+    // key on a lookup table that does not exist
+    const kops = [_]xt.Op{.{ .key = .{ .n = 2, .input = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(0), .labels = xt.labels(&.{ 0, 1 }) }} }, .output = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(1), .labels = xt.labels(&.{ 0, 1 }) }} }, .table = .{ .lookup = 3 } } }};
+    st.ext.ops = &kops;
+    try testing.expectError(error.ExtStatement, proto.validateStatement(st));
+    // n_dims beyond MAX_DIMS
+    var bad = infos;
+    bad[0].n_dims = 9;
+    st = .{ .witness = &bad, .weights = &.{}, .tables = &.{}, .ops = &.{} };
+    try testing.expectError(error.StatementShape, proto.validateStatement(st));
+    // core op ids out of range
+    const cops = [_]proto.Op{.{ .hadamard = .{ .a = 0, .b = 7, .y = 1, .shift = 1 } }};
+    st = .{ .witness = &infos, .weights = &.{}, .tables = &.{}, .ops = &cops };
+    try testing.expectError(error.StatementShape, proto.validateStatement(st));
+}
+
+// PROTO-2 with MoE: the dispatch selector is boolean (Disp^2 = Disp) and one-hot
+// over tokens (occ = sum_t Disp, occ boolean), so Xe = Disp . y is int8-bounded
+// (7) and a valid expert matmul operand; without the boolean proof it is not.
+test "PROTO-2: MoE dispatch output validates via the proved one-hot selector, not without it" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const cfg = tf.LayerCfg{ .log_t = 3, .log_d = 4, .log_f = 5, .log_heads = 1, .log_kv_heads = 0, .log_experts = 2, .log_capacity = 3, .router_log_cols = 3 };
+    const pc = proto.Config{ .pcs = .{ .log_blowup = 2, .n_queries = 12, .pow_bits = 1 }, .weight_log_cols = 3, .witness_log_cols_max = 8, .gkr_threads = 2 };
+    var sw = try tf.setupWeights(a, &pool, cfg, pc, 900);
+    defer {
+        sw.ws.deinit(a);
+        for (sw.wdata) |w| a.free(w);
+        a.free(sw.wdata);
+        a.free(sw.winfos);
+    }
+    var b = tf.Builder.init(a, &pool);
+    defer b.deinit();
+    const c = try tf.initCtx(&b, cfg, &sw.ws, 901);
+    const x = try model.randomInput(a, @as(usize, 1) << @intCast(cfg.log_t + cfg.log_d), 902);
+    defer a.free(x);
+    const out = try tf.buildStack(&b, c, x);
+    const st = b.statement();
+    try proto.validateStatement(st);
+    // drop Disp^2 = Disp: Xe loses its bound, the expert matmuls are rejected
+    const xops = try a.dupe(xt.Op, st.ext.ops);
+    defer a.free(xops);
+    const disp = out.moe.?.disp;
+    var dropped = false;
+    for (xops) |*op| if (op.* == .einsum and op.einsum.y != null and op.einsum.y.? == disp and op.einsum.a.id == disp) {
+        // keep the op count; turn it into a harmless zero-check on a boolean
+        op.* = .{ .lineq = .{ .n = 0, .expr = .{} } };
+        dropped = true;
+    };
+    try testing.expect(dropped);
+    var st2 = st;
+    st2.ext.ops = xops;
+    try testing.expectError(error.StatementUnboundedOperand, proto.validateStatement(st2));
+}

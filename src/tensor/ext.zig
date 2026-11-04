@@ -1537,6 +1537,9 @@ test "fixed-bit labels: einsum on a slice and an expression on a slice prove/ver
     };
     const infos = [_]proto.TensorInfo{ proto.TensorInfo.vec(5), proto.TensorInfo.vec(2), proto.TensorInfo.vec(2), proto.TensorInfo.vec(4) };
     const ops = [_]Op{
+        // operand ranges (validateStatement requires bounded einsum operands)
+        .{ .key = .{ .n = 5, .input = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(0), .labels = labels(&.{ 0, 1, 2, 3, 4 }) }}, .constant = 4 }, .table = .{ .range = 3 } } },
+        .{ .key = .{ .n = 2, .input = .{ .terms = &.{.{ .coeff = 1, .t = Ref.w(1), .labels = labels(&.{ 0, 1 }) }}, .constant = 8 }, .table = .{ .range = 4 } } },
         .{ .einsum = .{ .a = Ref.w(0), .b = Ref.w(1), .y = 2, .n_out = 2, .n_k = 2, .a_labels = labels(&.{ 0, 1, FIX1, 2, 3 }), .b_labels = labels(&.{ 2, 3 }) } },
         .{ .lineq = .{ .n = 4, .expr = .{ .terms = &.{ .{ .coeff = 1, .t = Ref.w(3), .labels = labels(&.{ 0, 1, 2, 3 }) }, .{ .coeff = -1, .t = Ref.w(0), .labels = labels(&.{ 0, 1, FIX0, 2, 3 }) } } } } },
     };
@@ -1553,7 +1556,7 @@ test "fixed-bit labels: einsum on a slice and an expression on a slice prove/ver
     try proto.verify(a, pc, st, proto.weightKey(&ws), &proof);
     // the other slice must not verify (statement tamper)
     var ops2 = ops;
-    ops2[0].einsum.a_labels[2] = FIX0;
+    ops2[2].einsum.a_labels[2] = FIX0;
     var st2 = st;
     st2.ext.ops = &ops2;
     if (proto.verify(a, pc, st2, proto.weightKey(&ws), &proof)) |_| return error.TamperAccepted else |_| {}
