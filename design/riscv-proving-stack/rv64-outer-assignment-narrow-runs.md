@@ -1,11 +1,13 @@
 # Experimental narrow assignment-level runs
 
-The retained production log for block 26235168 reports 17,980,712 ready tasks
-and 109,504 dependency levels. Generation made 109,503 native level calls and
-spent 508 ms enqueueing them on that node. The mean of approximately 164 tasks
-per level does not establish the fraction at or below 256 threads. The retained
-proof/bundle/log artifacts inspected here do not contain the full level-end
-array; no real width distribution or speedup is claimed.
+The retained production log for block 26235168 reports 17,980,712
+`ready_tasks` and 109,504 dependency levels, with 109,503 native level calls and
+508 ms of enqueue time on that node. `ready_tasks` counts the scheduler's fast
+path and excludes tasks visited through DFS; it is not the full task count.
+Neither that counter nor a layer average establishes the width distribution.
+Initially the retained proof/bundle/log artifacts did not contain full
+level-end arrays. The later CPU reconstruction below supplies the missing
+census. No GPU speedup is claimed.
 
 A later CPU-only diagnostic reconstructed two independently admitted real leaves,
 applied the exact outer padding used by production, and matched retained GPU

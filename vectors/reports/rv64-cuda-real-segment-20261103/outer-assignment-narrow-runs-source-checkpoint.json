@@ -26,7 +26,7 @@
   "source_sha256": {
     "src/backends/cuda/native/rv64/circuit_assignment.cu": "0c9b97528ef5e1d0643388fb5863da45daaf9d8a2b3ec191f87d7a1cb3a97ecd",
     "src/backends/cuda/native/rv64/circuit_assignment.h": "d768bca762dfd510dd817ac1574050de857b18f24c53e62786e6c6f9356ff9a2",
-    "src/integrations/riscv_cuda/rv64/outer_assignment.zig": "44f0c7f7064e25856fced04a7d1de974805daeea89294ee894003ee3345b7571",
+    "src/integrations/riscv_cuda/rv64/outer_assignment.zig": "112734eefda2ecaa9fdc1f8658f7bb334eab70f414e9758f992dc5061321406c",
     "src/integrations/riscv_cuda/rv64/assignment_runs.zig": "eb78cb0ac179e91820f92b09d1da23094fc416a14fb728ba7989266b9f9d2da7",
     "tests/cuda/rv64/assignment_narrow_run_smoke.cu": "605f0ef4fba16f5cb9b4f20e05792cbe37836a5f923a8cb419b55311ca95c310"
   },
