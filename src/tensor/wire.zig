@@ -42,7 +42,9 @@ pub const MAGIC = "STZW".*;
 /// 1: QM31 challenge field (the default build). 2: a degree-8 build
 /// (-Dchallenge=om31); its header carries two more bytes after the kind:
 /// the challenge-field degree (8) and the security level
-/// (proto.SecurityLevel; 0 for keys). Each build accepts only its own
+/// (proto.SecurityLevel; for keys the level the key was proven at, and
+/// decodeKey refuses a key whose level is not the statement's with
+/// error.SecurityLevelMismatch). Each build accepts only its own
 /// version: a QM31 verifier refuses OM31 files and vice versa
 /// (error.ChallengeFieldMismatch), so a proof is never decoded under the
 /// wrong field.
@@ -302,7 +304,6 @@ const Sections = struct {
         if (f.IS_OM31) {
             if (try r.byte() != f.CHALLENGE_DEGREE) return error.ChallengeFieldMismatch;
             level = std.meta.intToEnum(proto.SecurityLevel, try r.byte()) catch return error.NonCanonical;
-            if (kind == .key and level != .custom) return error.NonCanonical;
         }
         return .{ .r = r, .level = level };
     }
@@ -872,7 +873,7 @@ fn decInfo(r: *R) DecodeError!proto.TensorInfo {
 }
 
 fn encKeyInto(w: *W, key: proto.WeightKey, kp: wk.KeyProof) EncodeError!void {
-    try w.header(.key, .custom);
+    try w.header(.key, kp.security);
     var s = try w.begin(KeyTag.root);
     try w.bytes(&key.root);
     try w.end(s);
@@ -939,6 +940,7 @@ pub fn decodeKey(gpa: Allocator, bytes: []const u8, cfg: proto.Config, st: proto
     errdefer arena.deinit();
     const a = arena.allocator();
     var ss = try Sections.open(bytes, .key);
+    if (ss.level != cfg.security) return error.SecurityLevelMismatch;
     var key: proto.WeightKey = undefined;
     var kp: wk.KeyProof = undefined;
 
@@ -1017,6 +1019,7 @@ pub fn decodeKey(gpa: Allocator, bytes: []const u8, cfg: proto.Config, st: proto
     try r.done();
 
     try ss.finish();
+    kp.security = ss.level;
     return .{ .arena = arena, .key = key, .proof = kp };
 }
 

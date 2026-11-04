@@ -181,6 +181,13 @@ fn printSecurity(out: anytype, a: std.mem.Allocator, pc: proto.Config, st: proto
     var rep = try t.security.accountProof(a, pc, st, key, proof, kp);
     defer rep.deinit();
     try t.security.writeReport(rep, out);
+    // prover-side runtime level check (security.md 10); the layer bench has
+    // no key proof, so it checks the request terms (conditional on the key)
+    if (pc.security != .custom) {
+        if (rep.conditional_on_key) {
+            if (!(rep.total.summary().sum_without >= pc.security.targetBits())) return error.SecurityBelowLevel;
+        } else try t.security.checkLevel(rep, pc.security);
+    }
     // TENSOR_TERMS=<path>: dump the total's full term list (Lean re-check)
     if (std.posix.getenv("TENSOR_TERMS")) |path| {
         var file = try std.fs.cwd().createFile(path, .{});
@@ -232,6 +239,13 @@ fn printLevels(out: anytype, name: []const u8, op: proto.Opening) !void {
     try out.print("],", .{});
 }
 
+/// The bench's recycling allocator (null with TENSOR_RECYCLE=0).
+var recycler_ptr: ?*t.recycle.Recycler = null;
+
+fn rssTrace(tag: []const u8) void {
+    if (std.posix.getenv("TENSOR_RSS_TRACE") == null) return;
+    std.debug.print("rss {s}: {d} MB\n", .{ tag, peakRssBytes() >> 20 });
+}
 fn peakRssBytes() u64 {
     var ru: std.posix.rusage = undefined;
     ru = std.posix.getrusage(std.posix.rusage.SELF);
@@ -251,6 +265,7 @@ pub fn main() !void {
     defer recycler.deinit();
     const no_recycle = if (std.posix.getenv("TENSOR_RECYCLE")) |v| std.mem.eql(u8, v, "0") else false;
     const a = if (no_recycle) std.heap.c_allocator else recycler.allocator();
+    if (!no_recycle) recycler_ptr = &recycler;
     const all_args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, all_args);
     var kept: std.ArrayList([:0]u8) = .empty;
@@ -327,23 +342,31 @@ pub fn main() !void {
     var t0 = now();
     var ws = try proto.commitWeights(a, &pool, pc, &winfos, &wv);
     const commit_s = secs(t0);
+    rssTrace("commit");
     t0 = now();
     // TENSOR_KEY_CPU=1 keeps the offline weight-key proof on the CPU
     var pc_key = pc;
     if (std.posix.getenv("TENSOR_KEY_CPU") != null) pc_key.accel = null;
     var prox = try t.weight_key.prove(a, &pool, pc_key, &ws);
     const prox_s = secs(t0);
+    rssTrace("key_prove");
     const kd = t.digest.keyProofDigest(prox);
     const key = proto.weightKey(&ws);
     t0 = now();
     try t.weight_key.verify(a, pc, key, &prox);
     const prox_verify_s = secs(t0);
+    // The weight key is a one-time offline proof (a deployment makes it in
+    // another process): release the blocks it left cached, so the batch
+    // proof's peak is not the key's cache plus its own (D 4096 at bits128).
+    if (recycler_ptr) |r| r.trim();
+    rssTrace("key_verify");
 
     cfg.accel = pc.accel;
     const x = try model.randomInput(a, @as(usize, 1) << @intCast(lt + ld), 9);
     t0 = now();
     var built = try model.buildMlp(a, &pool, &ws, cfg, x);
     const forward_s = secs(t0);
+    rssTrace("forward");
     const st = built.statement();
     const wview = try a.alloc([]const i32, built.witness.len);
     for (built.witness, 0..) |w, i| wview[i] = w;
@@ -356,6 +379,7 @@ pub fn main() !void {
     var proof = if (recompute) try proto.prove(a, &pool, pc, st, &ws, wview, &tm) else try proto.proveWithAccumulators(a, &pool, pc, st, &ws, wview, built.accs, &tm);
     var prove_s = secs(t0);
     const prove_first_s = prove_s;
+    rssTrace("prove");
     for (1..@max(reps, 1)) |_| {
         proof.deinit(a);
         var tm2: proto.Timings = .{};
@@ -370,6 +394,7 @@ pub fn main() !void {
     t0 = now();
     try proto.verify(a, pc, st, key, &proof);
     const verify_s = secs(t0);
+    rssTrace("verify");
     const sz = proof.sizes();
     const pd = t.digest.proofDigest(proof);
 

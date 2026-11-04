@@ -827,7 +827,8 @@ without work, then compiled with work.
 | MLP 1024 tok, d=2^10 f=2^11, 12 thr | johnson | QM31 | 0.203 | 0.036 | 590,378 | 98.74 / 94.40 | 99.52 |
 | MLP 1024 tok, d=2^10 f=2^11, 12 thr | **bits128** | OM31 | 0.367 | 0.055 | 1,026,844 | **152.08 / 132.08** | 126.46 |
 | MLP 1024 tok, d=2^12 f=2^13, 12 thr | johnson | QM31 | 0.798 | 0.132 | 897,073 | 95.57 / 93.92 | 96.00 |
-| MLP 1024 tok, d=2^12 f=2^13 | bits128 | OM31 | not run: killed by memguard at 13.8 GB peak (8 GB reservation) | | | | |
+| MLP 1024 tok, d=2^12 f=2^13 | bits128 | OM31 | round 3: killed by memguard at 13.8 GB peak (8 GB reservation) | | | | |
+| MLP 1024 tok, d=2^12 f=2^13, 12 thr | **bits128** (round 4) | OM31 | 1.580 | 0.195 | 1,553,419 | **152.08 / 132.08** | 126.46 |
 | layer 512 tok (decoder layer, 12 thr) | johnson | QM31 | 0.789 | 0.048 | 911,810 | 96.43 / 94.59 | 96.43 |
 | layer 512 tok (decoder layer, 12 thr) | **bits128** | OM31 | 1.618 | 0.071 | 1,574,644 | **152.67 / 132.67** | 126.46 |
 
@@ -841,13 +842,15 @@ prove time and 11% bytes. On the MLP and the layer the total cost is about
 1.8-2.0x prove time and about 1.7x bytes.
 
 **Not done / caveats.**
-* The peak memory of the large MLP (d=2^12) roughly doubles in the om31
-  build: about 9.4 GB becomes more than 13.8 GB. The likely cause is the
-  weight-key LogUp-GKR layers, now 32-byte felts; this was not profiled.
-  It was not measured within this host's memory rules.
-* No Metal path for OM31: the build disables Metal. No ZK mode.
+* ~~The peak memory of the large MLP (d=2^12) roughly doubles in the om31
+  build~~ - profiled and cut in round 4 (`codex/tensor-sec2`), see
+  "Round 4" below. The D 4096 MLP at bits128 now runs under the 8 GB
+  reservation.
+* No Metal path for OM31: the build disables Metal (CPU only, so proofs
+  are the CPU prover's by construction). No ZK mode. See "Round 4".
 * The OM31 kernels are the generic Karatsuba ones (`packed_om31`). No
-  OM31-specific tuning of the sumcheck, eqsum or pcs2 limb kernels was done.
+  OM31-specific tuning of the sumcheck, eqsum or pcs2 limb kernels was done
+  (still true after round 4).
 * The levels are proven bounds under the calculator's definitions (Johnson
   regime per BCHKS25, the same terms as sections 2-4). They inherit that
   argument and are not separately machine-checked.
@@ -878,3 +881,98 @@ prove time and 11% bytes. On the MLP and the layer the total cost is about
   without-work number only.
 * Peak RSS of the 512-token decoder layer at bits128 is about 9.7 GB
   (measured in the independent check), close to this host's memory limit.
+
+### Round 4 (branch `codex/tensor-sec2`)
+
+**1. Memory: the weight-key LogUp-GKR, profiled and cut.** A phase trace
+(`TENSOR_RSS_TRACE=1 tensor-bench[-om31] mlp ...` prints the peak RSS after
+commit / key proof / key verify / forward / prove / verify) at d=2^11
+f=2^12, 1024 tokens, gave:
+
+| phase (peak RSS, MB) | commit | key proof | forward | prove |
+|---|---|---|---|---|
+| johnson, QM31 | 829 | 2,065 | 2,085 | 3,339 |
+| bits128, OM31, before | 650 | 3,585 | 3,602 | 4,877 |
+| bits128, OM31, after | 650 | 2,051 | 2,140 | ~4,600 |
+
+The growth was the key proof: one LogUp singles instance over the whole
+weight table (n = 2^25 here, 2^27 at D 4096), held as the input column
+(n|F|) plus every generic layer (~2n|F|), about 3n|F| = 12 GB at 32-byte
+felts for D 4096. Fix (engine `gkr_prover_fast`, `Input.regen`): a singles
+input can be given as a function `den(i)` instead of a column. The prover
+builds layer n-2 straight from the function (a 2 KiB stack window per task),
+keeps the lower layers in one block of 2^n entries, and refills that block
+with layer n-1 for the step that reads it and then with the input column
+for the last step. Peak layer memory ~3n|F| -> ~n|F| (plus eq tables),
+whatever the allocator caches. Values are recomputed with the same field
+operations, so proofs are byte-identical: the proof and key digests of the
+MLP bench are unchanged in both builds, every pinned digest still passes,
+and `gkr_regen_test.zig` compares regen vs materialised GKR proofs and
+artifacts for 7 shapes (n = 2..2^13, the small path n < 3, mixed instance
+sizes) at 1 and 4 threads, in both builds. `weight_key.prove` uses it on the
+CPU path (`cfg.accel == null`); a device prover still gets the column.
+The bench also trims its recycling allocator after the (offline, one-time)
+key proof, so the batch proof does not add its peak to the key's cache.
+
+Full size, MLP 1024 tok, D 4096, F 8192, 12 threads, `memguard --gb 8`
+(kill at 10.4 GB), one prove run each (no best-of-3; other agents were
+running, so the times are indicative):
+
+| config | field | peak RSS | key proof | prove s | verify s | proof bytes | key bytes | bits (all rounds) |
+|---|---|---|---|---|---|---|---|---|
+| johnson (round 4 build) | QM31 | 6.88 GB (was 9.4) | 0.94 s | 0.846 | 0.130 | 897,073 | 504,080 | 95.6 / 93.9 |
+| **bits128** (round 4) | OM31 | **9.55 GB** (was > 13.8, killed) | 2.22 s | 1.580 | 0.195 | 1,553,419 | 858,834 | **152.08 / 132.08** |
+
+Phases of the bits128 run (peak RSS): commit 2.6 GB, key proof 8.1 GB,
+prove 9.1 GB, end 9.55 GB. The key proof is still the largest phase:
+the 4 GB GKR block plus eq tables (1 GB at the last step) on top of the
+2.6 GB weight commitment. The peak after it is the batch proof (+1 GB) and
+the wire encoding / accounting. Cost ratio at this size: prove 1.87x,
+verify 1.50x, proof bytes 1.73x, key proof 2.4x. The johnson digest
+(proof bytes 897,073) is the round-3 one: the change is memory only.
+
+**3. Runtime level check, key level.** `SecurityLevel.targetBits()` is 128
+/ 160 (0 for `.custom`). `security.checkLevel(report, level)` refuses
+(`error.SecurityBelowLevel`) a report whose all-rounds-added,
+without-work number is under the target, whose LogUp count reaches p, or
+that is conditional on an unaccounted weight key.
+`security.verifyAtLevel` = verify + account (with the key proof) + check.
+`tensor-verify[-om31]` runs it after `proto.verify` and prints
+`level_target_bits`, `bits_all_rounds_without_work` and `level_check_s`.
+The benches run it on the prover side (the layer bench, which has no key
+proof, checks the request terms against the target). The key proof now
+records its level (`KeyProof.security`, from `Config.security`), the key
+file header carries it (byte 7 in degree-8 builds), and `wire.decodeKey`
+and `weight_key.verify` refuse a key whose level is not the statement's
+with `error.SecurityLevelMismatch` (before, a generic sumcheck failure).
+Tests in `sec128_test.zig` (product and MLP at bits128 / bits160): key
+header byte = level; `checkLevel` and `verifyAtLevel` pass; a bits128
+report checked against bits160 is refused; an MLP report without its key
+proof is refused; a key file relabelled to another level or to `.custom`
+gives `SecurityLevelMismatch`, an unknown level byte `NonCanonical`; an
+in-memory key proof with another level is refused by `weight_key.verify`
+and `verifyAtLevel`. A statement relabelled to another level now fails at
+key decode with `SecurityLevelMismatch` (it was `SecurityParams`).
+
+**Not done in round 4.**
+* OM31 arithmetic tuning (task 2): not started. The cost ratio vs johnson
+  is the round-3 one (toy 1.6x prove; MLP / layer 1.8-2.0x).
+* ZK under OM31: not done. Design note, from reading the code: two
+  blockers. (a) The hiding PCS is 4-limb specific: `zk_pcs2.zig` keeps
+  `limb_vals: [4]QM31`, `limbPoints` / `limbMles` return `[4]...`, and the
+  committed limb rows are indexed `gc / 4`, `gc % 4`; `zk.zig` reaches an
+  `unreachable` on the om31 build path (line ~1678). These become
+  `[f.N_LIMBS]` (8 limb rows per combined felt, as the non-hiding pcs2
+  already commits 8 x C limbs), with `f.FELT_BYTES` in the encoders.
+  (b) The levels need OOD samples and deep levels, and `zk_pcs2` refuses
+  both (`error.ZkOodUnsupported`, `error.ZkDeepUnsupported`): hiding OOD
+  answers need their own masking term. (b) is the larger piece. Until both
+  are done `zk.prove` / `zk.verify` return `error.Unsupported` in om31
+  builds and `checkSecurity` refuses `hiding` at a level.
+* Metal under OM31: the guard is the build itself (`-Dchallenge=om31`
+  forces `use_metal = false`, so `--metal` gives `error.MetalNotBuilt` and
+  every proof is the CPU prover's). A device path needs OM31 kernels for the
+  GKR layer build / fold (8-limb Karatsuba over the existing QM31 kernel),
+  the pcs2 combine (8 limbs per coefficient) and the eq table; the commit
+  (M31 RS encode + Merkle) is field-independent and could run on the GPU
+  unchanged. Not built.

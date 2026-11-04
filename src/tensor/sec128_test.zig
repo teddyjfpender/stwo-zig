@@ -154,7 +154,40 @@ fn exercise(a: std.mem.Allocator, c: *Case, min_bits: f64) !void {
     }
     try testing.expectEqual(@intFromEnum(c.cfg.security), pb[7]);
     try testing.expectEqual(@intFromEnum(c.cfg.security), sb[7]);
+    // the key header carries the level the key was proven at
+    try testing.expectEqual(@intFromEnum(c.cfg.security), kb[7]);
     try verifyBytes(a, sb, kb, pb);
+
+    // runtime level check: the statement's account reaches its target ...
+    try security.checkLevel(rep, c.cfg.security);
+    try security.verifyAtLevel(a, c.cfg, c.st, key, &c.proof, if (reads_weights) &c.kp else null);
+    // ... and a report is refused against a higher target than it reaches
+    if (c.cfg.security == .bits128) try testing.expectError(error.SecurityBelowLevel, security.checkLevel(rep, .bits160));
+    // a statement that reads weights, accounted without its key: refused
+    if (reads_weights) {
+        var cond = try security.accountProof(a, c.cfg, c.st, key, &c.proof, null);
+        defer cond.deinit();
+        try testing.expect(cond.conditional_on_key);
+        try testing.expectError(error.SecurityBelowLevel, security.checkLevel(cond, c.cfg.security));
+    }
+    // key / level mismatch: a clear error, from the file header and from
+    // the in-memory key proof
+    {
+        const kbad = try a.dupe(u8, kb);
+        defer a.free(kbad);
+        kbad[7] = if (c.cfg.security == .bits128) @intFromEnum(proto.SecurityLevel.bits160) else @intFromEnum(proto.SecurityLevel.bits128);
+        var sf = try wire.decodeStatement(a, sb);
+        defer sf.deinit();
+        try testing.expectError(error.SecurityLevelMismatch, wire.decodeKey(a, kbad, sf.cfg, sf.st));
+        kbad[7] = @intFromEnum(proto.SecurityLevel.custom);
+        try testing.expectError(error.SecurityLevelMismatch, wire.decodeKey(a, kbad, sf.cfg, sf.st));
+        kbad[7] = 9;
+        try testing.expectError(error.NonCanonical, wire.decodeKey(a, kbad, sf.cfg, sf.st));
+        var kp2 = c.kp;
+        kp2.security = .custom;
+        try testing.expectError(error.SecurityLevelMismatch, wk.verify(a, c.cfg, key, &kp2));
+        try testing.expectError(error.SecurityLevelMismatch, security.verifyAtLevel(a, c.cfg, c.st, key, &c.proof, &kp2));
+    }
     {
         var sf = try wire.decodeStatement(a, sb);
         defer sf.deinit();
@@ -186,7 +219,8 @@ fn exercise(a: std.mem.Allocator, c: *Case, min_bits: f64) !void {
     const sbad = try a.dupe(u8, sb);
     defer a.free(sbad);
     sbad[7] = if (c.cfg.security == .bits128) @intFromEnum(proto.SecurityLevel.bits160) else @intFromEnum(proto.SecurityLevel.bits128);
-    try testing.expectError(error.SecurityParams, verifyBytes(a, sbad, kb, pb));
+    // (the key file's header still names the key's own level: refused at key decode)
+    try testing.expectError(error.SecurityLevelMismatch, verifyBytes(a, sbad, kb, pb));
 
     // random single-bit flips in the proof body: all rejected (never accepted, never a panic)
     var prng = std.Random.DefaultPrng.init(5);
