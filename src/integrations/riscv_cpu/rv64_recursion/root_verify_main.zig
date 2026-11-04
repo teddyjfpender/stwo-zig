@@ -3,7 +3,12 @@
 //! before the legacy modes; no CUDA module is imported.
 //!
 //!   [--security-profile P] derive-vk-tables CONFIG OUT TABLE_OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] [--merge TABLE] [--source-commit SHA]
-//!   [--security-profile P] verify-root-candidate CONFIG OUT TABLE FIXED_SETUP_BYTES [RECEIVER_BYTES] [--audit]
+//!   [--security-profile P] verify-root-candidate CONFIG OUT TABLE FIXED_SETUP_BYTES [RECEIVER_BYTES] [--audit] [--table-root HEX]
+//!
+//! --table-root pins the table: the receiver records the root printed by its
+//! own derive in a place the producer cannot write and passes it here. Without
+//! the pin the table's header and root are self-declared (anyone who can write
+//! the file can relabel and reseal it), and stdout says `table_root_pinned: false`.
 //!
 //! derive-vk-tables (one-time, reported separately): runs today's full
 //! independent receiver (native verify + every recursion proof, fresh
@@ -97,17 +102,21 @@ pub fn main() !void {
     // Positional: mode CONFIG OUT TABLE FIXED [RECEIVER]; then flags.
     var positional: usize = 5;
     var receiver_bytes = DEFAULT_RECEIVER_BYTES;
-    if (args.len > 6 and args[6][0] != '-') {
+    if (args.len > 6 and args[6].len > 0 and args[6][0] != '-') {
         receiver_bytes = try std.fmt.parseUnsigned(usize, args[6], 10);
         positional = 6;
     }
     var audit = false;
     var merge: ?[]const u8 = null;
+    var table_root_pin: ?[]const u8 = null;
     var source_commit: []const u8 = "unrecorded";
     var i: usize = positional + 1;
     while (i < args.len) : (i += 1) {
         if (std.mem.eql(u8, args[i], "--audit") and !derive) {
             audit = true;
+        } else if (std.mem.eql(u8, args[i], "--table-root") and !derive and i + 1 < args.len) {
+            table_root_pin = args[i + 1];
+            i += 1;
         } else if (std.mem.eql(u8, args[i], "--merge") and derive and i + 1 < args.len) {
             merge = args[i + 1];
             i += 1;
@@ -145,6 +154,7 @@ pub fn main() !void {
         const bytes = try std.fs.cwd().readFileAlloc(a, path, 64 << 20);
         defer a.free(bytes);
         loaded_table = try RV.Table.fromJson(a, bytes);
+        if (table_root_pin) |pin| try RV.requirePinnedRoot(&loaded_table.?, pin);
         table_load_ns = since(start);
     }
     if (derive) {
@@ -306,8 +316,9 @@ pub fn main() !void {
         .outer_profile = Om31.protocol.domain,
         .table_profile = table.header.profile,
         .table_root = try hex(arena, &table_root),
+        .table_root_pinned = table_root_pin != null,
         .security_qualified = false,
-        .acceptance_scope = "root-only: one OM31 proof verified (root.proof) under a receiver-derived table VK; leaves/folds bound by recomputed digests; native proofs and child recursion proofs neither verified nor read. Receiver-side admission (statement, inventory, manifest, frames, closure) as today. Profile rv64-m4-fold-v2-compat/v0 rests on the leaf-class premise (root_verify.zig leafKey); --audit is the acceptance path for this profile until M5 canonical leaves.",
+        .acceptance_scope = "root-only: one OM31 proof verified (root.proof) under a receiver-derived table VK; leaves/folds bound by recomputed digests; native proofs and child recursion proofs neither verified nor read. Receiver-side admission (statement, inventory, manifest, frames, closure) as today. The table VK is the trust root of this mode: it is authenticated only by the --table-root pin (table_root_pinned); without it the table header and root are self-declared. Profile rv64-m4-fold-v2-compat/v0 rests on the leaf-class premise (root_verify.zig leafKey); --audit is the acceptance path for this profile until M5 canonical leaves.",
         .proofs_verified = 1,
         .leaves = report.leaves,
         .folds = report.folds,

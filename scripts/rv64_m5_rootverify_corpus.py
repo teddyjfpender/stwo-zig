@@ -59,12 +59,14 @@ def u32(v):
 
 def table_root(t):
     h = hashlib.blake2s(digest_size=32)
-    h.update(b"rv64-vk-receiver-table/v0/root\x00")
+    # root-v1: every header field is bound (adversarial review A1).
+    h.update(b"rv64-vk-receiver-table/v0/root-v1\x00")
     hd = t["header"]
-    for part in (hd["profile"], hd["native_profile"], hd["outer_domain"], hd["image"]):
+    for part in (hd["schema"], hd["profile"], hd["native_profile"], hd["outer_domain"], hd["source_commit"], hd["receiver_sha256"], hd["image"]):
         b = part.encode()
         h.update(len(b).to_bytes(8, "little"))
         h.update(b)
+    h.update(u32(hd["fold_version"]))
     kinds = {"leaf": 0, "fold": 1}
     for e in sorted(t["entries"], key=lambda e: (kinds[e["kind"]], bytes.fromhex(e["key"]))):
         vk = e["vk"]
@@ -138,6 +140,25 @@ RV_CASES = [
          special="donor_table"),
     dict(id="RV15-leaf-vk-rotate", family="child-vk", what="leaf VKs rotated across leaf classes (keys kept: every leaf maps to another honest leaf circuit), root re-sealed",
          table=coherent(lambda t: rotate_leaf_vks(t))),
+    # Adversarial review (A1/A3): header binding and the operator pin.
+    dict(id="RV16-relabel-commit-unsealed", family="table-policy", what="header source_commit relabelled WITHOUT re-sealing (v0 root left it unbound)",
+         table=lambda t: t["header"].__setitem__("source_commit", "forged")),
+    dict(id="RV17-relabel-fold-version-unsealed", family="table-policy", what="header fold_version + 1 WITHOUT re-sealing",
+         table=lambda t: t["header"].__setitem__("fold_version", t["header"]["fold_version"] + 1)),
+    dict(id="RV18-pinned-control", family="table-policy", expect="accept", what="unmodified table pinned with --table-root (operator pin of its derive output)",
+         pin="control"),
+    dict(id="RV19-pinned-resealed-tamper", family="table-policy", what="leaf VKs rotated and root re-sealed, but receiver pins the derived root",
+         table=coherent(lambda t: rotate_leaf_vks(t)), pin="control"),
+    dict(id="RV20-pinned-resealed-relabel", family="table-policy", what="source_commit relabelled and re-sealed (accepted unpinned: self-declared); pinned -> refused",
+         table=coherent(lambda t: t["header"].__setitem__("source_commit", "forged")), pin="control"),
+    dict(id="RV21-unpinned-resealed-relabel", family="table-policy", expect="reject_or_same_statement",
+         what="source_commit relabelled and re-sealed, NOT pinned: the header is self-declared, so acceptance with the control statement is the documented behaviour",
+         table=coherent(lambda t: t["header"].__setitem__("source_commit", "forged"))),
+    dict(id="RV22-producer-tree-table", family="table-policy", expect="reject_or_same_statement",
+         what="table placed in the producer's run tree NEXT TO proof/ (not under it): passes the path guard; only the pin authenticates",
+         special="beside_proof_dir"),
+    dict(id="RV23-producer-tree-tamper-pinned", family="table-policy", what="producer-tree table with rotated leaf VKs, re-sealed, receiver pins the derived root",
+         table=coherent(lambda t: rotate_leaf_vks(t)), special="beside_proof_dir", pin="control"),
 ]
 
 
@@ -180,6 +201,10 @@ def run_case(case, ctx, mode):
             inside = proof / "vk-table.json"
             shutil.copyfile(table, inside)
             table = inside
+        if mode == "rv" and case.get("special") == "beside_proof_dir":
+            beside = proof.parent / "producer-vk-table.json"
+            shutil.copyfile(table, beside)
+            table = beside
     except Exception as error:
         result.update(status="harness_error", error=f"mutation failed: {error!r}", passed=False)
         shutil.rmtree(work, ignore_errors=True)
@@ -188,6 +213,9 @@ def run_case(case, ctx, mode):
     request_path.write_text(json.dumps(request, indent=1))
     command = ["nice", "-n", "10", str(ctx["receiver"]), "--security-profile", argv["profile"], "verify-root-candidate",
                str(request_path), str(proof), str(table), str(ctx["fixed_setup_bytes"]), str(HOST_BYTES)]
+    if mode == "rv" and case.get("pin") == "control":
+        command += ["--table-root", ctx["control_table_root"]]
+        result["table_root_pin"] = ctx["control_table_root"]
     started = time.monotonic()
     timed_out = False
     with open(work / "stdout", "wb") as out, open(work / "stderr", "wb") as err:
@@ -268,6 +296,9 @@ def main():
     ctx["work"].mkdir(parents=True, exist_ok=True)
     c00, control_statement, control_stdout = control(ctx)
     ctx["control_statement"] = control_statement
+    ctx["control_table_root"] = control_stdout["table_root"]
+    if table_root(json.loads(Path(args.table).read_text())) != ctx["control_table_root"]:
+        raise SystemExit("harness table_root mirror disagrees with the receiver")
     wanted = set(args.cases.split(",")) if args.cases else None
     m3 = [c for c in N.CASES if c["today"] == "m3" and (wanted is None or c["id"] in wanted)]
     rv = [c for c in RV_CASES if wanted is None or c["id"] in wanted]

@@ -319,13 +319,20 @@ pub const Table = struct {
     /// Domain-tagged digest over the canonical (sorted) entry list.
     pub fn root(self: *const Table) [32]u8 {
         var h = std.crypto.hash.blake2.Blake2s256.init(.{});
-        h.update("rv64-vk-receiver-table/v0/root\x00");
-        for ([_][]const u8{ self.header.profile, self.header.native_profile, self.header.outer_domain, self.header.image }) |part| {
+        // v1 root: EVERY header field is bound (the v0 root left schema,
+        // fold_version, source_commit and receiver_sha256 out, so a stale
+        // table could be relabelled to the current receiver without a reseal).
+        // The root is still unkeyed: anyone who can write the table can reseal
+        // it. Authenticity comes from where the table lives and, when the
+        // operator passes it, the `--table-root` pin; never from this digest.
+        h.update("rv64-vk-receiver-table/v0/root-v1\x00");
+        for ([_][]const u8{ self.header.schema, self.header.profile, self.header.native_profile, self.header.outer_domain, self.header.source_commit, self.header.receiver_sha256, self.header.image }) |part| {
             var bytes: [8]u8 = undefined;
             std.mem.writeInt(u64, &bytes, part.len, .little);
             h.update(&bytes);
             h.update(part);
         }
+        updateU32(&h, self.header.fold_version);
         for (self.entries.items) |entry| {
             h.update(&[_]u8{@intFromEnum(entry.kind)});
             h.update(&entry.key);
@@ -426,8 +433,20 @@ pub fn requireHeader(table: *const Table, expected: Header) !void {
     if (!std.mem.eql(u8, table.header.receiver_sha256, expected.receiver_sha256)) return error.VkTableNotDerivedByThisReceiver;
     if (!std.mem.eql(u8, table.header.image, expected.image)) return error.VkTableImageMismatch;
 }
-/// Refuse any table that lives in (or under) the producer's proof directory:
-/// producer-supplied VKs are never admitted, whatever their content.
+/// Operator pin: when the receiver passes `--table-root HEX` (recorded from its
+/// own derive output in a place the producer cannot write), the loaded table's
+/// recomputed root must equal it. This is the only authenticity check of the
+/// table; the header and root alone are self-declared.
+pub fn requirePinnedRoot(table: *const Table, pin_hex: []const u8) !void {
+    var pin: [32]u8 = undefined;
+    hex32(&pin, pin_hex) catch return error.InvalidVkTableRootPin;
+    if (!std.mem.eql(u8, &pin, &table.root())) return error.VkTableRootPinMismatch;
+}
+/// Refuse any table that lives in (or under) the producer's proof directory.
+/// This is a guard against the obvious in-store case only: the receiver
+/// cannot know the producer's whole run tree, so a table placed next to the
+/// proof directory passes this check (measured, review A3). Authenticity is
+/// the operator's `--table-root` pin.
 pub fn requireReceiverLocal(table_real: []const u8, proof_real: []const u8) !void {
     if (std.mem.startsWith(u8, table_real, proof_real) and (table_real.len == proof_real.len or table_real[proof_real.len] == '/')) return error.StoreSuppliedVkRefused;
 }
@@ -634,6 +653,28 @@ test "root_verify: table JSON round trip, root binding and header policy" {
     const at = std.mem.indexOf(u8, tampered, "\"total_constraints\": 101").?;
     tampered[at + "\"total_constraints\": 10".len] = '9';
     try std.testing.expectError(error.VkTableRootMismatch, Table.fromJson(a, tampered));
+    // Every header field is bound: relabelling the deriving receiver (review A1)
+    // or the fold version without a reseal breaks the root.
+    for ([_][]const u8{ "\"receiver_sha256\": \"r\"", "\"source_commit\": \"c\"" }) |needle| {
+        const relabel = try a.dupe(u8, bytes);
+        defer a.free(relabel);
+        const at_field = std.mem.indexOf(u8, relabel, needle).?;
+        relabel[at_field + needle.len - 2] = 'z';
+        try std.testing.expectError(error.VkTableRootMismatch, Table.fromJson(a, relabel));
+    }
+    var plain = try testTable(a);
+    defer plain.deinit();
+    var relabelled = try testTable(a);
+    defer relabelled.deinit();
+    relabelled.header.fold_version +%= 1;
+    try std.testing.expect(!std.mem.eql(u8, &relabelled.root(), &plain.root()));
+    // Operator pin.
+    const pin = try hexAlloc(a, &back.root());
+    defer a.free(pin);
+    try requirePinnedRoot(&back, pin);
+    pin[0] = if (pin[0] == '0') '1' else '0';
+    try std.testing.expectError(error.VkTableRootPinMismatch, requirePinnedRoot(&back, pin));
+    try std.testing.expectError(error.InvalidVkTableRootPin, requirePinnedRoot(&back, "00"));
 }
 test "root_verify: tree shape, adjacency and missing classes" {
     const a = std.testing.allocator;
