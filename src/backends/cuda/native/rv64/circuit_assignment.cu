@@ -53,7 +53,7 @@ __device__ void at(const StwoCircuitAssignmentJob &j,const StwoCircuitAssignment
 }
 __global__ void seed(StwoCircuitAssignmentJob j){const auto i=blockIdx.x*blockDim.x+threadIdx.x;if(i>=j.count)return;const auto &s=static_cast<const StwoCircuitAssignmentSeed*>(j.records)[j.first+i];if(s.out>=j.value_count){fail(j.status);return;}for(unsigned k=0;k<4;++k)if(s.value[k]>=q::kPrime){fail(j.status);return;}store(j.values,s.out,{{s.value[0],s.value[1]},{s.value[2],s.value[3]}});}
 __global__ void level(StwoCircuitAssignmentJob j){const auto i=blockIdx.x*blockDim.x+threadIdx.x;if(i<j.count)at(j,static_cast<const StwoCircuitAssignmentTask*>(j.records)[j.first+i]);}
-constexpr uint32_t narrow_threads=128,narrow_max_levels=256;
+constexpr uint32_t narrow_threads=256,narrow_max_levels=256;
 struct NarrowRun { StwoCircuitAssignmentJob job;uint32_t levels;uint32_t ends[narrow_max_levels]; };
 static_assert(sizeof(NarrowRun)<32764,"bounded narrow assignment run packet");
 __global__ void narrow_run(const __grid_constant__ NarrowRun run) {
