@@ -1909,10 +1909,10 @@ test "decoder layer witness matches a direct integer reference (RoPE, GQA scores
     }
 }
 
-const Cheat = enum { sel_nonbinary, acc_plus_one, sel_moved, m_lowered, m_raised, rt_plus_one, residual, exp_value, masked_exp, score, ss_value };
+const Cheat = enum { sel_nonbinary, acc_plus_one, sel_moved, m_lowered, m_raised, m_z_raised, z_split, rt_plus_one, residual, exp_value, masked_exp, score, ss_value };
 
 /// Factored-selector cheats (log_t >= FACTORED_SEL_MIN_LOG_T).
-const FCheat = enum { m_lowered, m_raised, a_not_one_hot, b_two_hot, a_moved, ps_forged };
+const FCheat = enum { m_lowered, m_raised, m_z_raised, z_split, a_not_one_hot, b_two_hot, a_moved, ps_forged, ps_off_support, pb_forged };
 
 /// log_t = 4: the factored argmax selector (ljh = ljl = 2).
 const FactCfg = LayerCfg{ .log_t = 4, .log_d = 4, .log_f = 5, .log_heads = 1, .log_kv_heads = 0 };
@@ -1984,6 +1984,19 @@ fn cheatCase(a: std.mem.Allocator, cheat: Cheat) !void {
             m[row] += 1;
             const et = b.xtables.items[fx.c.exp_table].values;
             for (0..T) |j| b.wit.items[at.e][row * T + j] = et[@intCast(m[row] - S[row * T + j] - bias[(T - 1) * T + j])];
+        },
+        .m_z_raised => {
+            // m and z1 raised together: the lineq m = z1 + z2 and every exp key
+            // (D >= 1) hold; only the one-hot einsum z1 = sum_j sel S can fail
+            m[row] += 1;
+            b.wit.items[at.z1][row] += 1;
+            const et = b.xtables.items[fx.c.exp_table].values;
+            for (0..T) |j| b.wit.items[at.e][row * T + j] = et[@intCast(m[row] - S[row * T + j] - bias[(T - 1) * T + j])];
+        },
+        .z_split => {
+            // z1 + z2 unchanged (lineq holds), each forged
+            b.wit.items[at.z1][row] += 1;
+            b.wit.items[at.z2][row] -= 1;
         },
         .acc_plus_one => b.wit.items[at.acc][0] += 1,
         .sel_nonbinary => {
@@ -2092,6 +2105,26 @@ fn fcheatCase(a: std.mem.Allocator, cheat: FCheat) !void {
         },
         .b_two_hot => B[row * Tl + (jl + 1) % Tl] = 1,
         .ps_forged => b.wit.items[at.ps.?][row * Th + jh] += 1,
+        .m_z_raised => {
+            // m, PS(jh*) and z1 raised together: lineq, z1 = sum A PS and
+            // every exp key hold; only PS = sum_jl B S can fail
+            b.wit.items[at.m][row] += 1;
+            b.wit.items[at.ps.?][row * Th + jh] += 1;
+            b.wit.items[at.z1][row] += 1;
+            const bias = b.vals(Ref.p(fx.c.bias));
+            const et = b.xtables.items[fx.c.exp_table].values;
+            for (0..T) |j| b.wit.items[at.e][row * T + j] = et[@intCast(b.wit.items[at.m][row] - S[row * T + j] - bias[(T - 1) * T + j])];
+        },
+        .z_split => {
+            // z1 + z2 unchanged (lineq holds), PS / PB at jh* following
+            b.wit.items[at.z1][row] += 1;
+            b.wit.items[at.z2][row] -= 1;
+            b.wit.items[at.ps.?][row * Th + jh] += 1;
+            b.wit.items[at.pb.?][row * Th + jh] -= 1;
+        },
+        // off the A support: z1 is unaffected, only PS = sum_jl B S can fail
+        .ps_off_support => b.wit.items[at.ps.?][row * Th + (jh + 1) % Th] += 5,
+        .pb_forged => b.wit.items[at.pb.?][row * Th + jh] += 1,
     }
     xt.test_unchecked_prover = true;
     defer xt.test_unchecked_prover = false;
