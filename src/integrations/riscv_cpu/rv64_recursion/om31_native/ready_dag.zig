@@ -71,6 +71,11 @@ pub const Queue = struct {
         return .{ .plan = plan, .limit = limit };
     }
     pub fn take(self: *Queue) !?usize {
+        return self.takeFiltered(true);
+    }
+    /// Same admission as take(); with `leaves` false only a ready parent may
+    /// start (a host prep pool bounds how many leaves it prepares ahead).
+    pub fn takeFiltered(self: *Queue, leaves: bool) !?usize {
         if (self.failure != null or self.completed == self.plan.count) return null;
         // A newly generated parent needs an additional slot until its two
         // children can be retired. Leaves always leave that slot available.
@@ -80,12 +85,12 @@ pub const Queue = struct {
                 if (self.status[node.left.?] == .done and self.status[node.right.?] == .done) return self.start(i);
             }
         }
-        if (self.live + self.active + 1 < self.limit) {
+        if (leaves and self.live + self.active + 1 < self.limit) {
             for (self.plan.nodes[0..self.plan.count], 0..) |node, i| {
                 if (self.status[i] == .pending and node.left == null) return self.start(i);
             }
         }
-        if (self.active == 0) return error.RecursiveReadyDeadlock;
+        if (self.active == 0 and leaves) return error.RecursiveReadyDeadlock;
         return null;
     }
     fn start(self: *Queue, id: usize) usize {
@@ -329,4 +334,43 @@ test "ready production dispatcher threads cancel dispatch drain failures and pre
         try std.testing.expect(!mock.durable[id]);
         try std.testing.expect(!mock.retained[id]);
     }
+}
+
+test "ready recursion parent-only admission never starts a leaf and never reports a false deadlock" {
+    const plan = try Plan.init(5);
+    var q = try Queue.init(&plan, 2, 13);
+    try std.testing.expectEqual(@as(?usize, null), try q.takeFiltered(false));
+    const first = (try q.take()).?;
+    const second = (try q.take()).?;
+    try std.testing.expectEqual(@as(?usize, null), try q.takeFiltered(false));
+    q.complete(first);
+    q.complete(second);
+    // Leaves 0 and 1 are done: their parent is the only parent-only candidate.
+    try std.testing.expectEqual(@as(?usize, 2), try q.takeFiltered(false));
+    try std.testing.expectEqual(@as(?usize, null), try q.takeFiltered(false));
+    try std.testing.expect((try q.takeFiltered(true)) != null);
+}
+
+test "ready recursion admission stays live with pipelined prep-ahead concurrency above lane count" {
+    // The pipelined executor keeps up to prep_ahead + lanes + finishing nodes
+    // active at once under the unchanged 17-slot authority limit.
+    for ([_]usize{ 4, 6, 8, 12, 16 }) |concurrency| for (1..257) |n| {
+        const plan = try Plan.init(n);
+        var q = try Queue.init(&plan, 2, 17);
+        var active: std.ArrayList(usize) = .empty;
+        defer active.deinit(std.testing.allocator);
+        var step: usize = 0;
+        while (q.completed < plan.count) : (step += 1) {
+            while (active.items.len < concurrency) {
+                const next = try q.take() orelse break;
+                try active.append(std.testing.allocator, next);
+            }
+            try std.testing.expect(active.items.len != 0);
+            // Alternate newest-first and oldest-first completion.
+            const id = if (step % 2 == 0) active.pop().? else active.orderedRemove(0);
+            q.complete(id);
+            try std.testing.expect(q.live + q.active <= q.limit);
+        }
+        try std.testing.expectEqual(@as(usize, 1), q.live);
+    };
 }

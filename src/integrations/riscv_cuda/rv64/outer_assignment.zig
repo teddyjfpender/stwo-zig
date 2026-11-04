@@ -125,6 +125,22 @@ pub const Prepared = struct {
         std.debug.print("GPU_OUTER_ASSIGNMENT_PLAN plan_ns={} producer_alloc_zero_ns={} seeds_ns={} tasks_ns={} level_alloc_zero_ns={} dependency_walk_ns={} ready_tasks={} dfs_roots={} ordering_ns={} task_pack_ns={} seed_pack_ns={} hash_ns={} task_bytes={} index_bytes={} levels={} permutation_count={} max_permutation_inputs={} permutation_pair_work={}\n", .{ plan_ns, metrics.producer_init_ns, metrics.seeds_ns, metrics.tasks_ns, metrics.level_init_ns, metrics.walk_ns, metrics.ready_tasks, metrics.dfs_roots, metrics.ordering_ns, task_pack_ns, seed_pack_ns, hash_ns, tasks.len * @sizeOf(Task), indices.items.len * 4, plan.level_ends.len, permutation_count, max_permutation_inputs, permutation_pair_work });
         return .{ .allocator = a, .reference = if (ctx.trace_only) null else ctx.values().ptr, .count = ctx.circuit.n_vars, .plan = plan, .tasks = tasks, .indices = try indices.toOwnedSlice(a), .seeds = seeds, .identity = identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = narrow_plan, .narrow_run = narrow_run };
     }
+    /// Re-resolve kernel entry points against the adopting device's library.
+    /// Plan/pack/seed/identity bytes are library independent. The same mapped
+    /// image (identical entry points) needs no capability re-check.
+    pub fn rebind(self: *Prepared, library: *std.DynLib) !void {
+        const seed = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;
+        const level = library.lookup(Launch, "stwo_circuit_assignment_level_on") orelse return error.MissingCircuitAssignmentKernel;
+        if (seed == self.seed and level == self.level) return;
+        const capabilities = if (library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_capabilities")) |query| query() else 0xfff;
+        for (self.tasks) |task| if (capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
+        const narrow_run = library.lookup(LaunchRun, "stwo_circuit_assignment_narrow_run_on");
+        if (self.narrow_plan != null and narrow_run == null) return error.MissingCircuitAssignmentNarrowRunKernel;
+        self.timing_api = try Events.Api.load(library);
+        self.seed = seed;
+        self.level = level;
+        self.narrow_run = narrow_run;
+    }
     pub fn deinit(self: *Prepared) void {
         if (self.narrow_plan) |*value| value.deinit();
         self.plan.deinit();

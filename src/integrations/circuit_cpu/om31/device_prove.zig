@@ -30,8 +30,25 @@ pub const PrecommittedFixed = struct {
     prepare_from_circuit: *const fn (*anyopaque, std.mem.Allocator, *const Native.Authority, *const circuit.builder.Context(P.Q), D.Scope) anyerror!Source,
     release: *const fn (*anyopaque) void,
 };
+/// Device-free, factory-owned host preparation of one exact finalized graph
+/// (e.g. the device assignment plan). It may be built on any thread before
+/// device admission; it is bound to `graph` by identity and consumed only by a
+/// device source preparing that same graph. `destroy` releases an unconsumed one.
+pub const HostPrepared = struct {
+    context: *anyopaque,
+    graph: *const anyopaque,
+    destroy: *const fn (*anyopaque) void,
+};
 pub const Factory = struct {
     context: *anyopaque,
+    /// Optional device-free host stage. Thread-safe with respect to this
+    /// factory's device work: it never touches device or active-proof state.
+    prepare_host: ?*const fn (*anyopaque, std.mem.Allocator, *const circuit.builder.Context(P.Q)) anyerror!HostPrepared = null,
+    /// Moves a HostPrepared into this factory's next trace-only source. Takes
+    /// ownership on every path; a refused value is destroyed before returning.
+    stage_host: ?*const fn (*anyopaque, HostPrepared) anyerror!void = null,
+    /// Discards a staged value that no source consumed. Idempotent.
+    unstage_host: ?*const fn (*anyopaque) void = null,
     /// Explicit default-off prover setup. Receivers/restores never invoke it.
     precommit_fixed: ?*const fn (*anyopaque, std.mem.Allocator, *const circuit.common.preprocessed.PreprocessedCircuit, u32) anyerror!PrecommittedFixed = null,
     /// Consumes only immutable authority and narrow builder assignments; source

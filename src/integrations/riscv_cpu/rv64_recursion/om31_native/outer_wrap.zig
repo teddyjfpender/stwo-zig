@@ -115,6 +115,161 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
     errdefer capture.deinit(a);
     return .{ .allocator = a, .pp = pp, .authority = authority, .produced = produced, .capture = capture, .digest = digest, .restored = encoded != null, .timings = .{ .preprocess_ns = preprocess_ns, .finalize_ns = finalize_ns, .preprocessed_columns_ns = columns_ns, .authority_ns = authority_ns, .prove_ns = if (encoded != null) 0 else source_ns, .verify_ns = timer.lap(), .restore_ns = if (encoded != null) source_ns else 0 } };
 }
+// ---------------------------------------------------------------------------
+// Staged form of wrapGraphOrLoadWithFactory for NEW trace-only device proofs.
+// The three stages execute exactly the same operations in exactly the same
+// order on the same graph as the monolithic function; only the thread that
+// runs each stage changes. Host prep is device-free and may run on any thread
+// ahead of device admission. Proof bytes are therefore unchanged.
+// ---------------------------------------------------------------------------
+
+/// Device-free host stage output: padded graph (mutated in place), owned
+/// preprocessed columns, the root-independent device authority and an
+/// optional factory-owned assignment plan.
+pub const HostPrep = struct {
+    pp: ?*PP,
+    authority: ?Outer.Authority.DevicePrepared = null,
+    host: ?Device.HostPrepared = null,
+    finalize_ns: u64 = 0,
+    columns_ns: u64 = 0,
+    authority_ns: u64 = 0,
+    host_plan_ns: u64 = 0,
+    pub fn deinit(self: *HostPrep, a: std.mem.Allocator) void {
+        if (self.host) |h| h.destroy(h.context);
+        self.host = null;
+        if (self.authority) |*authority| authority.deinit();
+        self.authority = null;
+        if (self.pp) |pp| {
+            pp.deinit(a);
+            a.destroy(pp);
+        }
+        self.pp = null;
+    }
+};
+/// PP columns (+ root-independent device authority). Reads the padded graph
+/// only; runs concurrently with the assignment plan, which also only reads it.
+const ColumnsJob = struct {
+    a: std.mem.Allocator,
+    ctx: *const C.Context,
+    pool: ?*@import("stwo_prover_engine").work_pool.WorkPool,
+    device_authority: bool,
+    pp: ?*PP = null,
+    authority: ?Outer.Authority.DevicePrepared = null,
+    columns_ns: u64 = 0,
+    authority_ns: u64 = 0,
+    failure: ?anyerror = null,
+    fn run(self: *ColumnsJob) void {
+        const Pools = @import("stwo_prover_engine").work_pool;
+        var binding: ?Pools.ScopedPoolBinding = if (self.pool) |pool| (Pools.ScopedPoolBinding.initIfNeeded(pool) catch null) else null;
+        defer if (binding) |*b| b.deinit();
+        self.runImpl() catch |err| {
+            self.failure = err;
+        };
+    }
+    fn runImpl(self: *ColumnsJob) !void {
+        var timer = try std.time.Timer.start();
+        const pp = try self.a.create(PP);
+        errdefer self.a.destroy(pp);
+        pp.* = try PP.fromBuilderCircuit(self.a, &self.ctx.circuit);
+        self.pp = pp;
+        self.columns_ns = timer.lap();
+        if (self.device_authority) self.authority = try Outer.Authority.prepareForDeviceProver(self.a, pp);
+        self.authority_ns = timer.read();
+    }
+};
+/// Stage 1 (any thread, no device): pad to the exact original targets, then
+/// build PP columns (+ device authority prep) and the factory's assignment plan
+/// from the padded graph, concurrently. Both are pure functions of the graph.
+pub fn prepareHost(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factory) !HostPrep {
+    if (ctx.circuit.output.items.len != 9) return error.CurrentOm31OutputCount;
+    if (!ctx.trace_only or factory.prepare_from_circuit == null) return error.TraceOnlySourceRequired;
+    var timer = try std.time.Timer.start();
+    try circuit.common.finalize.padToTargets(C.Q, ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&ctx.circuit)));
+    var result = HostPrep{ .pp = null, .finalize_ns = timer.lap() };
+    errdefer result.deinit(a);
+    var columns = ColumnsJob{ .a = a, .ctx = ctx, .pool = @import("stwo_prover_engine").work_pool.currentScopedPool(), .device_authority = factory.precommit_fixed != null };
+    const side = std.Thread.spawn(.{ .stack_size = 8 << 20 }, ColumnsJob.run, .{&columns}) catch null;
+    if (side == null) columns.run();
+    const plan: ?(anyerror!Device.HostPrepared) = if (factory.prepare_host) |prepare| prepare(factory.context, a, ctx) else null;
+    result.host_plan_ns = timer.read();
+    if (side) |thread| thread.join();
+    result.pp = columns.pp;
+    result.authority = columns.authority;
+    result.columns_ns = columns.columns_ns;
+    result.authority_ns = columns.authority_ns - columns.columns_ns;
+    if (plan) |value| {
+        result.host = value catch |err| return err;
+    }
+    if (columns.failure) |err| return err;
+    return result;
+}
+/// Device stage output: proof material before the independent native verify.
+pub const Proved = struct {
+    pp: *PP,
+    authority: *Outer.Authority,
+    produced: Outer.Produced,
+    timings: Timings,
+    pub fn deinit(self: *Proved, a: std.mem.Allocator) void {
+        self.produced.deinit();
+        self.authority.deinit();
+        a.destroy(self.authority);
+        self.pp.deinit(a);
+        a.destroy(self.pp);
+        self.* = undefined;
+    }
+};
+/// Stage 2 (the device lane): FIXED precommit, authority, staged assignment
+/// handoff and device proof. Consumes `prep` (PP and staged plan) on every path.
+pub fn proveDevice(a: std.mem.Allocator, ctx: *C.Context, prep: *HostPrep, digest: [32]u8, ordinal: u32, factory: Device.Factory) !Proved {
+    const pp = prep.pp orelse return error.MissingHostPrep;
+    prep.pp = null;
+    errdefer {
+        pp.deinit(a);
+        a.destroy(pp);
+    }
+    if (prep.host) |host| {
+        prep.host = null;
+        const stage = factory.stage_host orelse {
+            host.destroy(host.context);
+            return error.HostPrepStagingUnsupported;
+        };
+        // stage_host takes ownership on every path (destroys it on refusal).
+        try stage(factory.context, host);
+    }
+    // A staged plan not consumed by the device source (early failure) is
+    // discarded; a consumed plan has already moved into source custody.
+    defer if (factory.unstage_host) |unstage| unstage(factory.context);
+    var timer = try std.time.Timer.start();
+    const authority = try a.create(Outer.Authority);
+    errdefer a.destroy(authority);
+    var precommitted: ?Device.PrecommittedFixed = if (factory.precommit_fixed) |precommit| try precommit(factory.context, a, pp, ordinal) else null;
+    defer if (precommitted) |fixed| fixed.release(fixed.context);
+    authority.* = if (precommitted) |fixed| blk: {
+        if (prep.authority) |*prepared| break :blk try prepared.finish(pp, fixed.tree.root);
+        break :blk try Outer.Authority.initForDeviceProver(a, pp, fixed.tree.root);
+    } else try Outer.Authority.init(a, pp);
+    errdefer authority.deinit();
+    const authority_ns = timer.lap();
+    std.log.info("CUDA_OUTER_PREPROCESS ordinal={d} finalize_ns={d} columns_ns={d} authority_ns={d} host_authority_ns={d} total_ns={d} fixed_setup_backend={s}", .{ ordinal, prep.finalize_ns, prep.columns_ns, authority_ns, prep.authority_ns, prep.finalize_ns + prep.columns_ns + authority_ns, if (precommitted != null) @as([]const u8, "device_candidate") else "cpu" });
+    std.log.info("CUDA_OUTER_AUTHORITY ordinal={d} vars={d} row_logs={any}", .{ ordinal, ctx.circuit.n_vars, authority.logs.toArray() });
+    var expected: [8]C.Q = undefined;
+    for (&expected, 0..) |*out, i| out.* = circuit.builder.ivalue.packU32(C.Q, std.mem.readInt(u32, digest[4 * i ..][0..4], .little));
+    const produced = if (precommitted) |*fixed| try Device.proveFromPrecommittedCircuit(a, authority, ctx, &expected, ordinal, fixed) else try Device.proveFromCircuit(a, authority, ctx, &expected, ordinal, factory);
+    return .{ .pp = pp, .authority = authority, .produced = produced, .timings = .{ .preprocess_ns = prep.finalize_ns + prep.columns_ns + authority_ns, .finalize_ns = prep.finalize_ns, .preprocessed_columns_ns = prep.columns_ns, .authority_ns = authority_ns, .prove_ns = timer.read(), .verify_ns = 0 } };
+}
+/// Stage 3 (any thread, no device): canonical digest check and the same fresh
+/// independent native verification/capture the monolithic path performs.
+pub fn finishProved(a: std.mem.Allocator, proved: *Proved, digest: [32]u8) !Wrapped {
+    var timer = try std.time.Timer.start();
+    try requireDigest(proved.produced.outputs, digest);
+    var capture = try Outer.verify(a, proved.authority, proved.produced.outputs, proved.produced.claims, &proved.produced.proof.proof);
+    errdefer capture.deinit(a);
+    var timings = proved.timings;
+    timings.verify_ns = timer.read();
+    const result = Wrapped{ .allocator = a, .pp = proved.pp, .authority = proved.authority, .produced = proved.produced, .capture = capture, .digest = digest, .restored = false, .timings = timings };
+    proved.* = undefined;
+    return result;
+}
 /// Output values must be canonical packed raw-u32 words, not arbitrary QM31s
 /// that happen to reduce to the same field value.
 pub fn requireDigest(outputs: []const C.Q, expected: [32]u8) !void {
