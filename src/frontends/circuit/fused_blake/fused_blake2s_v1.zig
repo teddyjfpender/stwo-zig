@@ -429,6 +429,12 @@ const Fill = struct {
 /// Writes one honest row (canonical M31 values, all < 2^16) and returns the
 /// compression output (the next chaining value).
 pub fn fillRow(row: []u32, rec: TapeRecord) [8]u32 {
+    return fillRowWithSchedule(row, rec, &SIGMA);
+}
+
+/// `fillRow` with an explicit message schedule: tests only (negative corpus
+/// BG04 fills a row with a wrong schedule and checks `Eval` rejects it).
+pub fn fillRowWithSchedule(row: []u32, rec: TapeRecord, schedule: *const [10][16]u8) [8]u32 {
     std.debug.assert(row.len == N_COLUMNS);
     var f = Fill{ .row = row };
     for (rec.m) |w| {
@@ -441,7 +447,7 @@ pub fn fillRow(row: []u32, rec: TapeRecord) [8]u32 {
     @memcpy(v[8..16], &IV);
     v[12] ^= rec.t0;
     if (rec.last) v[14] = ~v[14];
-    for (SIGMA) |s| for (G_INDICES, 0..) |idx, gi| {
+    for (schedule) |s| for (G_INDICES, 0..) |idx, gi| {
         const out = f.g(v[idx[0]], v[idx[1]], v[idx[2]], v[idx[3]], rec.m[s[2 * gi]], rec.m[s[2 * gi + 1]]);
         for (idx, out) |k, w| v[k] = w;
     };
@@ -639,7 +645,7 @@ pub fn checkRow(cells: []const u32, pp: Pp, scratch_row: []F, scratch_lookups: [
     return .{ .out = out, .violations = e.violations, .bad_lookups = bad, .gate = gate, .n_constraints = e.n_constraints, .max_degree = e.max_degree, .n_lookups = e.n_lookups };
 }
 
-fn checkFieldRow(row: []const F, pp: Pp, scratch_lookups: []Lookup) RowCheck {
+pub fn checkFieldRow(row: []const F, pp: Pp, scratch_lookups: []Lookup) RowCheck {
     var e = Eval{ .row = row, .lookups = scratch_lookups };
     const out = e.run(pp);
     var bad: usize = 0;
@@ -667,7 +673,7 @@ fn wordFromBytes(b: Bytes) u32 {
     return x;
 }
 
-fn testPp(rec: TapeRecord) Pp {
+pub fn testPp(rec: TapeRecord) Pp {
     var addr_h: [8]u32 = undefined;
     var addr_m: [16]u32 = undefined;
     var addr_out: [8]u32 = undefined;
@@ -677,18 +683,18 @@ fn testPp(rec: TapeRecord) Pp {
     return Pp.forRecord(rec, addr_h, addr_m, addr_out, @splat(1));
 }
 
-const Scratch = struct {
+pub const Scratch = struct {
     cells: []u32,
     row: []F,
     lookups: []Lookup,
-    fn init() !Scratch {
+    pub fn init() !Scratch {
         const cells = try testing.allocator.alloc(u32, N_COLUMNS);
         errdefer testing.allocator.free(cells);
         const row = try testing.allocator.alloc(F, N_COLUMNS);
         errdefer testing.allocator.free(row);
         return .{ .cells = cells, .row = row, .lookups = try testing.allocator.alloc(Lookup, N_LOOKUPS) };
     }
-    fn deinit(self: Scratch) void {
+    pub fn deinit(self: Scratch) void {
         testing.allocator.free(self.cells);
         testing.allocator.free(self.row);
         testing.allocator.free(self.lookups);
@@ -696,7 +702,7 @@ const Scratch = struct {
 };
 
 /// Hashes `msg` through chained fused rows; every row must be satisfied.
-fn fusedBlake2s(s: Scratch, msg: []const u8) ![32]u8 {
+pub fn fusedBlake2s(s: Scratch, msg: []const u8) ![32]u8 {
     var h: [8]u32 = IV;
     h[0] ^= PARAM0;
     const n_blocks = @max(1, (msg.len + 63) / 64);

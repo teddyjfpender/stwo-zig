@@ -10,6 +10,7 @@ const component_list = @import("common/component_list.zig");
 
 test {
     _ = v1;
+    _ = @import("fused_blake/corpus_test.zig");
 }
 
 test "fused_blake2s_v1 constants match the circuit's relation ids and table shape" {
