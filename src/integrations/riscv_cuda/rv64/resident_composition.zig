@@ -556,10 +556,54 @@ const Job = struct {
             var geometry_borrow = try b.geometry(artifact, rl, el, widths, source_metadata, aux, tw.twiddles.len);
             defer geometry_borrow.deinit(b.allocator);
             const geometry = &geometry_borrow.value;
-            const eval_base = geometry.eval_base;
-            const tw_base = geometry.tw_base;
-            const desc_base = geometry.desc_base;
-            var arena = try context.allocate(geometry.arena_words, 0);
+            // Direct extension: a device column of degree el-1 is extended
+            // straight from its retained lease (compact stride) instead of
+            // first being copied into the arena. The row kernel reads only the
+            // evaluations, so the arena keeps just a staging slab for host,
+            // lower-degree and auxiliary columns. Exact field LDE: identical
+            // evaluations, identical proof bytes. STWO_RV64_COMPOSITION_DIRECT=0
+            // restores the full coefficient copy.
+            const direct_enabled = b.n2b_columns != null and !(if (std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT")) |v| std.mem.eql(u8, v, "0") else false);
+            const direct = try a.alloc(?D.DeviceCoefficients, column_count);
+            defer a.free(direct);
+            const staging_offsets = try a.alloc(usize, column_count);
+            defer a.free(staging_offsets);
+            var staging_words: usize = 0;
+            var direct_columns: usize = 0;
+            for (direct, staging_offsets, 0..) |*slot, *offset, i| {
+                slot.* = null;
+                offset.* = staging_words;
+                if (i < source_metadata.len) {
+                    const original = source_metadata[i];
+                    const source_tree: u32 = if (i < widths[0]) 0 else if (i < widths[0] + widths[1]) 1 else 2;
+                    const original_index = switch (source_tree) {
+                        0 => if (role.fixed_indices) |indices| indices[i] else offsets[0] + i,
+                        1 => offsets[1] + i - widths[0],
+                        else => offsets[2] + i - widths[0] - widths[1],
+                    };
+                    const immutable = if (source_tree == 0 and original.device == null) immutable_fixed[original_index].device else null;
+                    const device = if (original.device != null) original.device else immutable orelse b.service.retainedColumn(context.scope, source_tree, original_index, original);
+                    if (direct_enabled and original.log_size + 1 == el and device != null and device.?.count == (n / 2)) {
+                        slot.* = device;
+                        direct_columns += 1;
+                        continue;
+                    }
+                    staging_words += @as(usize, 1) << @intCast(original.log_size);
+                } else staging_words += @as(usize, 1) << @intCast(rl);
+            }
+            const eval_base = staging_words;
+            const tw_base = try std.math.add(usize, eval_base, try std.math.mul(usize, column_count, n));
+            const desc_base = std.mem.alignForward(usize, tw_base + tw.twiddles.len, 2);
+            const arena_words = desc_base + column_count * 6;
+            const descriptors = try a.alloc(u32, column_count * 6);
+            defer a.free(descriptors);
+            for (0..column_count) |i| {
+                const degree: u32 = if (i < source_metadata.len) source_metadata[i].log_size else rl;
+                const destination = eval_base + i * n;
+                descriptors[i * 6 ..][0..6].* = .{ @truncate(staging_offsets[i]), @truncate(@as(u64, staging_offsets[i]) >> 32), @truncate(destination), @truncate(@as(u64, destination) >> 32), degree, 0 };
+            }
+            std.debug.print("GPU_COMPOSITION_ARENA ordinal={} role={} arena_words={} legacy_arena_words={} direct_columns={} columns={} eval_log={}\n", .{ self.scope.ordinal, id, arena_words, geometry.arena_words, direct_columns, column_count, el });
+            var arena = try context.allocate(arena_words, 0);
             defer {
                 context.join() catch {};
                 context.release(&arena) catch {};
@@ -569,6 +613,8 @@ const Job = struct {
             var copy_run: ?CopyRun = null;
             try events.mark(.coefficients, false, stream0.?);
             for (source_metadata, 0..) |original, i| {
+                if (direct[i] != null) continue;
+                coefficient_offset = staging_offsets[i];
                 const values = original.coefficients;
                 const length: usize = if (original.device) |device| @intCast(device.count) else values.len;
                 const target = arena_ptr + coefficient_offset;
@@ -604,6 +650,7 @@ const Job = struct {
                 try self.copyRun(raw, &context, arena_ptr, pending);
                 device_copy_calls += 1;
             }
+            coefficient_offset = if (source_metadata.len < column_count) staging_offsets[source_metadata.len] else staging_words;
             try events.mark(.coefficients, true, stream0.?);
             if (aux != 0) {
                 var role_tw_borrow = try b.tw(rl);
@@ -637,7 +684,11 @@ const Job = struct {
                 try events.mark(.auxiliary, true, stream.?);
             }
             try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(arena_ptr + tw_base), tw.twiddles.ptr, tw.twiddles.len * 4));
-            try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(arena_ptr + desc_base), geometry.descriptors.ptr, geometry.descriptors.len * 4));
+            try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(arena_ptr + desc_base), descriptors.ptr, descriptors.len * 4));
+            const direct_logs = try a.alloc(u32, column_count);
+            defer a.free(direct_logs);
+            @memset(direct_logs, el - 1);
+            const direct_log_lease = try upload(a, &context, &leases, direct_logs);
             const parameter_words = try felts(a, role.parameters);
             defer a.free(parameter_words);
             const params = try upload(a, &context, &leases, parameter_words);
@@ -661,7 +712,24 @@ const Job = struct {
             try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, 1, &stream));
             var launches: u32 = 0;
             try events.mark(.domain_fft, false, stream.?);
-            try self.checked("n2b", b.n2b(arena_ptr, arena.count, arena_ptr + desc_base, @intCast(column_count), eval_base, el, arena_ptr + tw_base, @intCast(tw.twiddles.len), @intCast(n / 2), stream.?, 1, &launches));
+            var column: usize = 0;
+            while (column < column_count) {
+                var end = column + 1;
+                if (direct[column]) |first| {
+                    // Merge adjacent columns of one lease into one compact run.
+                    var merged = try CopyRun.init(@intFromPtr(first.words), column * (n / 2), n / 2, first.context_token, first.generation);
+                    while (end < column_count) : (end += 1) {
+                        const following = direct[end] orelse break;
+                        if (!try merged.append(try CopyRun.init(@intFromPtr(following.words), end * (n / 2), n / 2, following.context_token, following.generation))) break;
+                    }
+                    try self.checked("service.lease_validate_range", b.service.lease_validate_range(b.service.session, @ptrFromInt(merged.source), merged.words, merged.context_token, merged.generation, &context.scope));
+                    try self.checked("n2b_columns", b.n2b_columns.?(@ptrFromInt(merged.source), n / 2, direct_log_lease.words.?, arena_ptr + eval_base + column * n, n, el, @intCast(end - column), arena_ptr + tw_base + tw.twiddles.len - n / 2, @intCast(n / 2), @intCast(n / 2), stream.?, &launches));
+                } else {
+                    while (end < column_count and direct[end] == null) : (end += 1) {}
+                    try self.checked("n2b", b.n2b(arena_ptr, arena.count, arena_ptr + desc_base + 6 * column, @intCast(end - column), eval_base + column * n, el, arena_ptr + tw_base, @intCast(tw.twiddles.len), @intCast(n / 2), stream.?, 1, &launches));
+                }
+                column = end;
+            }
             try events.mark(.domain_fft, true, stream.?);
             const packet = Abi.CompositionRole{ .role = id, .trace_log = rl, .eval_log = el, .first_row = 0, .row_count = @intCast(n), .trees = .{ arena_ptr + eval_base, arena_ptr + eval_base + widths[0] * n, arena_ptr + eval_base + (widths[0] + widths[1]) * n }, .tree_words = .{ @max(@as(usize, 1), widths[0] * n), @max(@as(usize, 1), widths[1] * n), @max(@as(usize, 1), widths[2] * n) }, .column_offsets = @ptrCast(@alignCast(masks.words.?)), .mask_count = mask_offsets.len, .parameters = params.words.?, .parameter_count = role.parameters.len, .powers = pw.words.?, .constraint_count = artifact.program.roots.len, .denominator_inverses = denom.words.?, .output = buckets[el].?.words.? };
             try events.mark(.rows, false, stream.?);
