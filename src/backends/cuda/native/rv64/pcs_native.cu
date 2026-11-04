@@ -117,8 +117,17 @@ struct ResidentOwner {
       retained -= blocks[i].words * 4;
       blocks.erase(blocks.begin() + i);
     }
-    if (retained > cap - bytes)
+    if (retained > cap - bytes) {
+      // Capture the live admission point before exception cleanup releases the
+      // temporary planes. No query or synchronization is added on success.
+      std::fprintf(stderr,
+          "GPU_OWNER_LOGICAL_CAP requested_bytes=%llu retained_bytes=%llu cap_bytes=%llu token=%llu\n",
+          static_cast<unsigned long long>(bytes),
+          static_cast<unsigned long long>(retained),
+          static_cast<unsigned long long>(cap),
+          static_cast<unsigned long long>(token));
       throw std::runtime_error("live device leases exceed admitted capacity");
+    }
   }
   uint32_t *allocate(uint64_t words) {
     if (!words || words > SIZE_MAX / 4)
