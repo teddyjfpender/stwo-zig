@@ -64,6 +64,16 @@ pub fn rq(v: i64, s: u5) i64 {
     return if (s == 0) v else proto.requant(v, s);
 }
 
+/// exp table over a domain of 2^log entries (log = LayerCfg.expLog()):
+/// round(256 exp(-d / 16)) for d < 256, else 0. Caller frees.
+pub fn expTableN(a: std.mem.Allocator, log: u32) ![]i32 {
+    const t = try a.alloc(i32, @as(usize, 1) << @intCast(log));
+    for (t, 0..) |*v, d| {
+        v.* = if (d < 256) @intFromFloat(@round(256.0 * @exp(-@as(f64, @floatFromInt(d)) / 16.0))) else 0;
+    }
+    return t;
+}
+
 pub fn expTable() [1024]i32 {
     var t: [1024]i32 = undefined;
     for (&t, 0..) |*v, d| {
@@ -462,8 +472,22 @@ pub const LayerCfg = struct {
     /// Q, K, V consumed as fixed-bit column slices; lets the weight table use
     /// 2^min(log_d, log_f) columns instead of 2^logDkv
     fused_qkv: bool = false,
+    /// attention score width: S = rq(Qr . Kr) in [-2^(sb-1), 2^(sb-1)) at a
+    /// fixed 1/16-nat scale (the exp table's). 8 (default) is the original
+    /// int8 score; a trained model's logits need ~13 bits (accuracy.md).
+    /// Masked bias 2^sb + 256 and exp-table domain 2^(sb+2) follow from it.
+    score_bits: u32 = 8,
     /// RMSNorm reciprocal precision: inv = floor(2^INV_BITS / rt)
     pub const INV_BITS = 15;
+
+    /// causal mask bias: any masked D = m - S + bias is >= 256 (e = 0)
+    pub fn maskBias(self: LayerCfg) i32 {
+        return (@as(i32, 1) << @intCast(self.score_bits)) + 256;
+    }
+    /// D = m - S - Bias < 2^sb + maskBias <= 2^(sb+2)
+    pub fn expLog(self: LayerCfg) u32 {
+        return self.score_bits + 2;
+    }
 
     pub fn isMoe(self: LayerCfg) bool {
         return self.log_experts > 0;
@@ -525,6 +549,8 @@ pub const LayerCfg = struct {
         if (self.log_d > 14 or self.log_f > 15 or self.logDh() > 13) return error.BadConfig;
         if (self.log_heads + 2 * self.log_t > 26 or self.log_t > 12) return error.BadConfig;
         if (self.isMoe() and (self.log_experts > 6 or self.log_capacity > self.log_t)) return error.BadConfig;
+        // exp-table domain 2^(sb+2) <= 2^16 (one LogUp table); sel * D sums stay < 2^(lt+16)
+        if (self.score_bits < 8 or self.score_bits > 14) return error.BadConfig;
     }
 };
 
@@ -579,10 +605,15 @@ pub fn ropeTable(a: std.mem.Allocator, log_t: u32, log_dh: u32) ![]i32 {
 
 /// Causal additive mask Bias[t, j] = 0 (j <= t) or -512 (j > t).
 pub fn causalBias(a: std.mem.Allocator, log_t: u32) ![]i32 {
+    return causalBiasN(a, log_t, MASK_BIAS);
+}
+
+/// Causal additive mask with bias `mask` (LayerCfg.maskBias()).
+pub fn causalBiasN(a: std.mem.Allocator, log_t: u32, mask: i32) ![]i32 {
     const T = @as(usize, 1) << @intCast(log_t);
     const out = try a.alloc(i32, T * T);
     for (0..T) |t| for (0..T) |j| {
-        out[t * T + j] = if (j <= t) 0 else -512;
+        out[t * T + j] = if (j <= t) 0 else -mask;
     };
     return out;
 }
@@ -618,11 +649,12 @@ pub fn initCtxPublics(b: *Builder, cfg: LayerCfg, ws: *const proto.WeightStore, 
     const rt = try ropeTable(b.a, cfg.log_t, cfg.logDh());
     defer b.a.free(rt);
     const rope_id = try b.public(cfg.log_t + cfg.logDh() + 1, rt);
-    const cb = try causalBias(b.a, cfg.log_t);
+    const cb = try causalBiasN(b.a, cfg.log_t, cfg.maskBias());
     defer b.a.free(cb);
     const bias = try b.public(2 * cfg.log_t, cb);
-    const et = expTable();
-    const exp_table = try b.xtable(10, &et);
+    const et = try expTableN(b.a, cfg.expLog());
+    defer b.a.free(et);
+    const exp_table = try b.xtable(@intCast(cfg.expLog()), et);
     const silu = try b.coreTable(model.siluTable());
     const gammas = try b.arena.allocator().alloc(u32, 2 * cfg.n_layers);
     var prng = std.Random.DefaultPrng.init(seed);
@@ -756,7 +788,7 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8
         &.{ ids(lh, lt), ids(0, lkv), ids(lkv, lg), ids(n3, ldh) },
         &.{ ids(lh + lt, lt), ids(0, lkv), ids(n3, ldh) },
         null,
-        8,
+        @intCast(cfg.score_bits),
     );
     const T = @as(usize, 1) << @intCast(lt);
     const H = @as(usize, 1) << @intCast(lh);
@@ -803,7 +835,7 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8
     try b.einsumInto(sel_id, Ref.w(sel_id), Ref.w(sel_id), 0, &.{all3}, &.{all3});
     try b.lineq(n2, try b.expr(&.{term(1, Ref.w(sel_id), &.{ ids(0, n2), sums(lt) })}, -1));
     _ = try b.einsumExact(null, n2, Ref.w(sel_id), Ref.w(dd_id), lt, &.{all3}, &.{all3});
-    // e = exp_table(D) (domain [0, 1024) also range-checks D)
+    // e = exp_table(D) (domain [0, 2^expLog) also range-checks D)
     const et = b.xtables.items[c.exp_table].values;
     const e = try b.a.alloc(i32, H * T * T);
     for (dd, e) |d, *o| o.* = et[@intCast(d)];
@@ -1142,6 +1174,7 @@ pub const ModelConfig = struct {
         const c = self.cfg;
         const hdr = [_]u64{ c.log_t, c.log_d, c.log_f, c.log_heads, c.log_kv_heads, c.n_layers, c.log_experts, c.log_capacity, c.router_log_cols, @intFromBool(c.fused_qkv), LayerCfg.INV_BITS, self.ctx_seed, self.shifts.len };
         h.update(std.mem.sliceAsBytes(&hdr));
+        if (c.score_bits != 8) h.update(std.mem.asBytes(&@as(u64, c.score_bits)));
         h.update(std.mem.sliceAsBytes(self.shifts));
         var out: [32]u8 = undefined;
         h.final(&out);

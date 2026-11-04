@@ -59,6 +59,13 @@ pub fn build(b: *std.Build) void {
     if (b.args) |args| run_bench.addArgs(args);
     b.step("bench", "Run tensor benchmarks").dependOn(&run_bench.step);
 
+    // tensor-accuracy: replays a quantized model file through lm.buildModel
+    // (scripts/tensor_accuracy.py), optionally calibrates / proves requests
+    const acc_mod = b.createModule(.{ .root_source_file = b.path("accuracy_cli.zig"), .target = target, .optimize = optimize });
+    acc_mod.addImport("stwo_tensor", tensor);
+    const acc_exe = b.addExecutable(.{ .name = "tensor-accuracy", .root_module = acc_mod });
+    b.installArtifact(acc_exe);
+
     // tensor-verify: verifies statement / key / proof files (wire.zig format)
     const verify_mod = b.createModule(.{ .root_source_file = b.path("verify_cli.zig"), .target = target, .optimize = optimize });
     verify_mod.addImport("stwo_tensor", tensor);
