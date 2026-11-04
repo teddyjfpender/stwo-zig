@@ -1,0 +1,1426 @@
+{
+  "schema": "rv64-m4-receipt/v2",
+  "label": "measured",
+  "derived_from": "rv64-m3-receipt/v1 + producer logs + proof dir",
+  "stream": "m5-platform",
+  "block": 24628607,
+  "gpus": 2,
+  "run": "/workspace/m3/runs/m5-platform/24628607-2gpu-v3counters",
+  "source_commit": "78c3bd5d2",
+  "assets": {
+    "driver": "a9acb6396099d0807103bdc79d00765e8c3c8f864490e3b37667c1d99c64dab3",
+    "library": "bfaf0b14f023047ad6307d347e96dfe3e7e0ab0bd1f4102391d9a2f6e434f39c",
+    "receiver": "1af34c0b1aa97ed54f06c2c19ec98177b5926dfd93f97f74d3bebdb720674dd7",
+    "recursive_receiver": "1af34c0b1aa97ed54f06c2c19ec98177b5926dfd93f97f74d3bebdb720674dd7"
+  },
+  "environment_overrides": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1"
+  },
+  "nsys": false,
+  "host": {
+    "nodename": "f675b38ce80e",
+    "nproc": 192,
+    "cgroup_cpus": 40.8
+  },
+  "loadavg": {
+    "start": {
+      "1m": 34.57,
+      "5m": 26.26,
+      "15m": 22.84,
+      "unix": 1793808316.7205396
+    },
+    "end": {
+      "1m": 31.05,
+      "5m": 27.92,
+      "15m": 23.87,
+      "unix": 1793808431.2343116
+    }
+  },
+  "stages": {
+    "request_s": 69.959,
+    "capture_s": 5.41,
+    "capture_critical_s": 5.41,
+    "setup_s": 18.87,
+    "setup_cold_service_s": 18.87,
+    "setup_warm_s": null,
+    "setup_install_s": null,
+    "native_s": 10.995,
+    "stage1_s": 4.059,
+    "stage1_jobs": 17,
+    "stage2_s": 6.628,
+    "stage2_jobs": 17,
+    "native_verify_side_thread_s": 4.866,
+    "native_verify_on_critical_path_s": 0.0,
+    "recursion_s": 34.271,
+    "recursion_wall_s": 34.271,
+    "recursion_tail_s": 34.271,
+    "fold_tail_after_last_leaf_s": 11.801,
+    "compress_s": 0.0
+  },
+  "stage_boundaries": {
+    "request_s": "request accepted -> final proof bytes written (GPU_RESIDENT_BLOCK request_wall_ns)",
+    "capture_s": "input -> last segment compact records ready (report.capture_ns); M3: nothing overlaps it, so capture_critical_s == capture_s",
+    "setup_s": "report.setup_ns; cold_service when the SetupCache missed, warm when it hit; install is not a separate step yet (null)",
+    "native_s": "report.prove_ns: projection/widening/stage1/barrier/stage2 all count here, never under capture",
+    "stage1_s/stage2_s": "schedule.json phase walls (first claim -> last finish of each phase)",
+    "recursion_s": "combined recursion_ns; recursion starts after the last native proof in M3, so tail == wall",
+    "compress_s": "no compress layer before M7 (0)"
+  },
+  "ram": {
+    "rss_peak_daemon_gib": 23.437,
+    "rss_peak_request_private_gib": 21.49,
+    "rss_scope": "one process per request (no daemon yet): daemon == whole-process peak (getrusage); request_private = private non-file-backed pages at the sampled peak",
+    "smaps_peak_census": {
+      "rss_total_bytes": 24943235072,
+      "categories": {
+        "file:driver-binary": {
+          "mappings": 4,
+          "rss": 8802304,
+          "private": 8794112,
+          "anonymous": 8192,
+          "vsize": 12271616
+        },
+        "anon": {
+          "mappings": 1497,
+          "rss": 22785376256,
+          "private": 22785376256,
+          "anonymous": 22785376256,
+          "vsize": 675896594432
+        },
+        "heap_brk": {
+          "mappings": 1,
+          "rss": 4169728,
+          "private": 4169728,
+          "anonymous": 4169728,
+          "vsize": 4370432
+        },
+        "nvidia_device_mapping": {
+          "mappings": 54,
+          "rss": 134193152,
+          "private": 134193152,
+          "anonymous": 0,
+          "vsize": 138649600
+        },
+        "memfd_or_deleted": {
+          "mappings": 10,
+          "rss": 150994944,
+          "private": 150994944,
+          "anonymous": 0,
+          "vsize": 150994944
+        },
+        "file:libcuda-driver": {
+          "mappings": 6,
+          "rss": 17027072,
+          "private": 1409024,
+          "anonymous": 1294336,
+          "vsize": 71376896
+        },
+        "file:other-shared-lib": {
+          "mappings": 45,
+          "rss": 3981312,
+          "private": 1654784,
+          "anonymous": 147456,
+          "vsize": 6201344
+        },
+        "file:libstwo-native": {
+          "mappings": 5,
+          "rss": 1838477312,
+          "private": 1838477312,
+          "anonymous": 61440,
+          "vsize": 1966399488
+        },
+        "stack": {
+          "mappings": 1,
+          "rss": 208896,
+          "private": 208896,
+          "anonymous": 208896,
+          "vsize": 208896
+        },
+        "special": {
+          "mappings": 3,
+          "rss": 4096,
+          "private": 0,
+          "anonymous": 0,
+          "vsize": 28672
+        }
+      },
+      "anon_size_classes": {
+        "<=128KiB": {
+          "mappings": 535,
+          "rss": 33505280
+        },
+        "<=64MiB": {
+          "mappings": 378,
+          "rss": 5153017856
+        },
+        ">1GiB": {
+          "mappings": 7,
+          "rss": 6927568896
+        },
+        "<=1GiB": {
+          "mappings": 59,
+          "rss": 10439561216
+        },
+        "<=2MiB": {
+          "mappings": 518,
+          "rss": 231723008
+        }
+      },
+      "pinned_rss_bytes": 0,
+      "top_mappings": [
+        {
+          "lo": "0x778e16c50000",
+          "size": 4493869056,
+          "rss": 4493856768,
+          "anon": 4493856768,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x7786df76d000",
+          "size": 2433744896,
+          "rss": 2433712128,
+          "anon": 2433712128,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x77916186c000",
+          "size": 1963798528,
+          "rss": 1836269568,
+          "anon": 0,
+          "perms": "r--p",
+          "name": "/workspace/m3/build/m5-platform/cuda/native/libstwo-rv64-native.so",
+          "flags": "rd mr mw me sd"
+        },
+        {
+          "lo": "0x77877b31d000",
+          "size": 888209408,
+          "rss": 888061952,
+          "anon": 888061952,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x7788d534b000",
+          "size": 838860800,
+          "rss": 838860800,
+          "anon": 838860800,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778f22a02000",
+          "size": 694149120,
+          "rss": 694149120,
+          "anon": 694149120,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x7787d98a1000",
+          "size": 631635968,
+          "rss": 631574528,
+          "anon": 631574528,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778859b10000",
+          "size": 436207616,
+          "rss": 436207616,
+          "anon": 436207616,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x7788075c9000",
+          "size": 419430400,
+          "rss": 419430400,
+          "anon": 419430400,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x7788a744a000",
+          "size": 385875968,
+          "rss": 385875968,
+          "anon": 385875968,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x77888ef91000",
+          "size": 352321536,
+          "rss": 352321536,
+          "anon": 352321536,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778a74000000",
+          "size": 268570624,
+          "rss": 268439552,
+          "anon": 268439552,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778828290000",
+          "size": 320630784,
+          "rss": 234881024,
+          "anon": 234881024,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x77894ed88000",
+          "size": 320630784,
+          "rss": 234881024,
+          "anon": 234881024,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x77897774f000",
+          "size": 320630784,
+          "rss": 234881024,
+          "anon": 234881024,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x77898a916000",
+          "size": 320630784,
+          "rss": 234881024,
+          "anon": 234881024,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x77899dadd000",
+          "size": 320630784,
+          "rss": 234881024,
+          "anon": 234881024,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x7789bd87e000",
+          "size": 320630784,
+          "rss": 234881024,
+          "anon": 234881024,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x7789367e8000",
+          "size": 228196352,
+          "rss": 228184064,
+          "anon": 228184064,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778969def000",
+          "size": 227934208,
+          "rss": 227893248,
+          "anon": 227893248,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778b69860000",
+          "size": 201588736,
+          "rss": 201588736,
+          "anon": 201588736,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778873bd0000",
+          "size": 201326592,
+          "rss": 201326592,
+          "anon": 201326592,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778923d88000",
+          "size": 180355072,
+          "rss": 180355072,
+          "anon": 180355072,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x7787cf4c2000",
+          "size": 170852352,
+          "rss": 170819584,
+          "anon": 170819584,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x7788be771000",
+          "size": 167772160,
+          "rss": 167772160,
+          "anon": 167772160,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x7787b4a6a000",
+          "size": 229134336,
+          "rss": 163942400,
+          "anon": 163942400,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778a423d4000",
+          "size": 141950976,
+          "rss": 141914112,
+          "anon": 141914112,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778b90ab0000",
+          "size": 134676480,
+          "rss": 134430720,
+          "anon": 134430720,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778b182e0000",
+          "size": 131338240,
+          "rss": 131207168,
+          "anon": 131207168,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778821290000",
+          "size": 117440512,
+          "rss": 117440512,
+          "anon": 117440512,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778882094000",
+          "size": 142503936,
+          "rss": 117440512,
+          "anon": 117440512,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x77891b5a1000",
+          "size": 142503936,
+          "rss": 117440512,
+          "anon": 117440512,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778bb0732000",
+          "size": 116187136,
+          "rss": 116027392,
+          "anon": 116027392,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778b9a4b0000",
+          "size": 110305280,
+          "rss": 110305280,
+          "anon": 110305280,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778b37a50000",
+          "size": 108134400,
+          "rss": 108134400,
+          "anon": 108134400,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778b52d43000",
+          "size": 103882752,
+          "rss": 103882752,
+          "anon": 103882752,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x7789b1b16000",
+          "size": 100663296,
+          "rss": 100663296,
+          "anon": 100663296,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x7787ffd94000",
+          "size": 86638592,
+          "rss": 86577152,
+          "anon": 86577152,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x778914188000",
+          "size": 83886080,
+          "rss": 83886080,
+          "anon": 83886080,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        },
+        {
+          "lo": "0x7789442ee000",
+          "size": 83886080,
+          "rss": 83886080,
+          "anon": 83886080,
+          "perms": "rw-p",
+          "name": "",
+          "flags": "rd wr mr mw me ac sd"
+        }
+      ]
+    },
+    "smaps_peak_t_s": 49.309
+  },
+  "device_memory": {
+    "device_peak_gb": {
+      "0": 31.503,
+      "1": 31.503
+    },
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak"
+  },
+  "gpu": {
+    "nvml_kernel_activity": {
+      "0": {
+        "samples": 317,
+        "mean_percent": 13.217665615141955,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 317,
+        "mean_percent": 14.1198738170347,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    }
+  },
+  "proof_size": {
+    "proof_bytes_final": 706424,
+    "proof_bytes_root": 706424
+  },
+  "process": {
+    "argv": [
+      "/workspace/m3/build/m4-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+      "combined-batch",
+      "/workspace/m3/runs/m5-platform/24628607-2gpu-v3counters/case/manifest.json",
+      "/workspace/m3/runs/m5-platform/24628607-2gpu-v3counters/case/batch"
+    ],
+    "exit_code": 0,
+    "wall_ns": 80818393812,
+    "user_seconds": 195.028497,
+    "system_seconds": 77.449348,
+    "peak_rss_bytes": 25165545472,
+    "minor_faults": 21261761,
+    "major_faults": 0
+  },
+  "recursion": {
+    "nodes": 33,
+    "leaves": 17,
+    "folds": 16,
+    "pipeline": {
+      "dag_wall_ns": 33757764091,
+      "lane_device_stage_ns": [
+        22467218935,
+        24242324971
+      ],
+      "lane_device_stage_occupancy": 0.691834088597903,
+      "peak_ready": 6
+    }
+  },
+  "native": {
+    "cpu_proofs": 7,
+    "truth_proofs": 10,
+    "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+    "output_matches_pin": true
+  },
+  "correctness": {
+    "parity_vs_accepted_v7": {
+      "native_bins": true,
+      "bundle": true,
+      "recursive_tree": false,
+      "recursive_proofs": false,
+      "recursive_mismatched": [
+        "fold-000002.proof",
+        "fold-000005.proof",
+        "fold-000006.proof",
+        "fold-000009.proof",
+        "fold-000012.proof",
+        "fold-000013.proof",
+        "fold-000014.proof",
+        "fold-000017.proof",
+        "fold-000020.proof",
+        "fold-000021.proof",
+        "fold-000024.proof",
+        "fold-000027.proof",
+        "fold-000028.proof",
+        "fold-000029.proof",
+        "fold-000030.proof",
+        "fold-000032.proof",
+        "root.proof"
+      ],
+      "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+      "control_root_sha256": "07a537d3244bc27dcf1c11634bfa1f4746d93899aeb9abaa1afc9cfd127cdddf",
+      "native_mismatched": [],
+      "byte_identical": false
+    },
+    "receiver": {
+      "status": "not_run",
+      "accepted": null,
+      "receiver_sha256": null,
+      "restored_leaves": null,
+      "restored_folds": null,
+      "producer_strict_checks": null
+    },
+    "accepted": null,
+    "fingerprint_vs_reference": {
+      "reference": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+      "compared": 55,
+      "identical": true,
+      "mismatched": [],
+      "only_in_a": [],
+      "only_in_b": []
+    }
+  },
+  "verifier": {
+    "verify_per_block_s": null,
+    "derive_vk_tables_once_s": null,
+    "verifier_peak_rss_gib": null
+  },
+  "proof_sha256": {
+    "native": {
+      "cells.bin": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1",
+      "cpu-0.bin": "cac9c335bf241d149c9e18cfd586b452772840815c79bfceaa635baeaab701dc",
+      "cpu-1.bin": "6577164eeea71a3d125fef5e541c7f9bb1a7ee28fbf78a10114df4f1180703b0",
+      "cpu-2.bin": "84195a81e9f07ec36178fc661d5a5417a6f23ce07e95f1520cfd48292346051f",
+      "cpu-3.bin": "dab97ee3286b07ff75fbe558234ed395fc4611108a1ad3723433daae1b532fba",
+      "cpu-4.bin": "881469a76adb62af859af8aab845347116b8710585f7f4a6932a9027af95a531",
+      "cpu-5.bin": "11f1f6803999416ac991d9186ec4cdc8d3ee8fb790d3bc1f1442ebcfdd0190d3",
+      "cpu-6.bin": "0b97341fbe90dd30c6e1744f95864f5e4d92efb45d429bdfc5e2eacb58b7ed9a",
+      "stage-one.bin": "7fec3b71d5243d3aae41ae92d80b0b5c6a97eedec3b2a8b04aaf6e5765bd0598",
+      "truth-0.bin": "232cd69be3048f1afd1e01d5c074c38760b4dbda540bfcddc3b3cc0769b09d4b",
+      "truth-1.bin": "b783e801c3611f78bd141dda63fa9e0bd409c529109995d2f1e7dc12453a0410",
+      "truth-2.bin": "60c0640e426c5244ac61ea1aa13cb9fa1f5f170817aefdfbfe27c397ca1d1651",
+      "truth-3.bin": "f85c229528814b1527d8c2c6336f9aa50aa9964e9a3858aa306f56f46fbd43dd",
+      "truth-4.bin": "e6b67f1417c0181bb6f460b293383d6dd9a55734eed62711a38999cc5717bc0f",
+      "truth-5.bin": "e7da39cb6c2cfafd3b5e578e0b1b056cf86184becf955531a17074b7ce56bfe3",
+      "truth-6.bin": "966b549031f9f51b1613b7ae7aab94fcbae6afa3792ecc3c1246fdebb8c7ddb5",
+      "truth-7.bin": "588690cb3be8cd39379fbbf315eb35e747ec6cfa09988741a229afb321216d98",
+      "truth-8.bin": "8b0ec4a14e36b1741350624e5931c62b00b41bf53425ad583d198967ef7d306f",
+      "truth-9.bin": "dc4c4cac1e2cea7d96eb8e501b092cb76635ef19218e475008c170d99b83d839"
+    },
+    "bundle": "eed289d3d554135c1b01d6bcb4a6e093907f4a4e737a203c1e8f6b9fc0259edf",
+    "recursive": {
+      "proof_sha256": {
+        "fold-000002.proof": "c87838fb004bc21af8da6aacf7a829351345aaa6fd0c6bf6f3a8d8d4c962ca6b",
+        "fold-000005.proof": "29d83c802efb8ee656f7045d1c633b5462cf4dd98e4b03c8d2423b53c2b50c6a",
+        "fold-000006.proof": "bb9a337903ba71f5b958f32d50726241cded1a3785b4fb8b4274f8d6c70430fc",
+        "fold-000009.proof": "ec82cc550d6b1f89ef51aea2fe117d76bd275914e101bd3a1e89c21f6dfbb3c5",
+        "fold-000012.proof": "974312204c3da54ad86f4251e0dc159e97eeda00a2133cbd0d88febaa6fef790",
+        "fold-000013.proof": "487dca1502502bb3653648d71035a7699c71643bb25b5023e3b6cd94268b7c00",
+        "fold-000014.proof": "77a74e6767bde85752e6f7bc156aba4a2c628a79e07530356de0b1d70b5c80e5",
+        "fold-000017.proof": "0a9136f232615636830c8e86bacbe292055f1a5408b6bc986e6e4c4b18cec547",
+        "fold-000020.proof": "6c7ad5c0e0a3dec204dca140ad0695fc94f05b3d2681f53ce8af683c766eb38b",
+        "fold-000021.proof": "83df2f32430660cbeac7fb4501f388a28c1e871b682406189d68e8297d3dd407",
+        "fold-000024.proof": "e0cf7797301490001e10279784352bb3762f530c49fc0210ee046911429532e6",
+        "fold-000027.proof": "1d4f924a943459eb7e1d0d831a725541b16d6ef7f7c02e8db9497a09060ba435",
+        "fold-000028.proof": "8a70e7b2f4f798a582f87fcbf92adf8123d9358affd1fa164d00141946438396",
+        "fold-000029.proof": "d5e002028f7ae5f00546aef76fa1852ca61b5601f685cd85337b77fa29c3e417",
+        "fold-000030.proof": "1807f28d1ed4392fc2178997901fc5f1e1bccf7e5f08fc3ab28d95132ff0d129",
+        "fold-000032.proof": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "leaf-000000.proof": "f65013886fd794c8af4473f7cdd0e1169cbf11ae8f084af97a9dded5f7a6a790",
+        "leaf-000001.proof": "3713ee56a9c6c55733540f1ea598c0c21ffd76be0ecab7c6c66a0bebb7676751",
+        "leaf-000002.proof": "9ac35570632bfc4f58ce254a91908df266c8e510c9f6b65dd6119a3c4bacdde7",
+        "leaf-000003.proof": "13ae952a3cbbee7005a242ff4199c9ae21d031305106eb33fa9261557ddc39ef",
+        "leaf-000004.proof": "26646070cf0919a3f6f9c790b45ca1d7805de01fe1d528255c1850d21392c9a8",
+        "leaf-000005.proof": "fafd31180c97c22b4707210879213e71024dad1cbe0712431335dde1e364002f",
+        "leaf-000006.proof": "7ea4c25dae4b526c9f47b2b34b4d4e21f26d1520fbf356e17d8dfff99f328795",
+        "leaf-000007.proof": "620e943e67723d0e4dbdb7398d7fdf93e373feb857dbca7154c36b1a0fe4f0bc",
+        "leaf-000008.proof": "884486bcd75b992c0a7597e4d4d1465bc26db10e21c4381d1cf0cb98f3450240",
+        "leaf-000009.proof": "ee9e962fe5b618dcc2aada084adfba31faa4d39c507d7b1654e8d66b17de4369",
+        "leaf-000010.proof": "691e306170449ab82b43353b45dd96e62dd8de1aae6068545a4a36da4c575f8d",
+        "leaf-000011.proof": "fc35b8a3e417a5f04655a7b3716973d0f7256782950b43fa46853b9e4a82b5aa",
+        "leaf-000012.proof": "5e1271dec6011f9e70315ab029c8c838b97787f1c5828206e6bd3549b7b70d05",
+        "leaf-000013.proof": "c1a180eb4b93c0764e9864d96a2aa518342690de75d6cc02fbe4038036c37c57",
+        "leaf-000014.proof": "47397d9f3f069b98d18565014c659bd3111e0826df6de13eefffaa8854abf093",
+        "leaf-000015.proof": "d6c2254a28dc7561f1d9b9041971c142b84fcf4286b524f33f72431dd3f1587f",
+        "leaf-000016.proof": "c5737907d23e08c26dbad238af2f84dc6d48181f930c6d43b69b76c00cc2c0a2",
+        "root.proof": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450"
+      },
+      "tree_sha256": "3c9e73259a012f58d4d5e1c132a5135855704b7b9abb7d80f22307382c298e59"
+    }
+  },
+  "counters": {
+    "hook_active": true,
+    "stream_synchronize": 6632,
+    "ctx_synchronize": 0,
+    "event_synchronize": 4026,
+    "sync_total": 10658,
+    "sync_s": 19.006,
+    "kernel_launches": 222913,
+    "launch_api_s": 1.165,
+    "graph_launches": 0,
+    "host_func_launches": 0,
+    "pool_mallocs": 0,
+    "pool_malloc_s": 0.0,
+    "pool_trims": 0,
+    "pool_trim_s": 0.0,
+    "library_loads": 683,
+    "library_load_s": 4.708,
+    "library_unload_s": 0.0,
+    "pageable_copies": 0,
+    "pageable_copy_bytes": 0,
+    "pageable_copy_s": 0.0,
+    "pinned_or_device_copies": 21857,
+    "host_pinned_allocs": 2,
+    "host_pinned_alloc_bytes": 134217728,
+    "host_register_bytes": 0,
+    "cuda_threads": 3,
+    "symbols": {
+      "cuStreamSynchronize": {
+        "class": "sync",
+        "count": 6632,
+        "ns": 15961266188,
+        "bytes": 0
+      },
+      "cuEventSynchronize": {
+        "class": "sync",
+        "count": 4026,
+        "ns": 3044842350,
+        "bytes": 0
+      },
+      "cuStreamWaitEvent": {
+        "class": "other",
+        "count": 15879,
+        "ns": 4626912,
+        "bytes": 0
+      },
+      "cuStreamQuery": {
+        "class": "other",
+        "count": 26004,
+        "ns": 12692945,
+        "bytes": 0
+      },
+      "cuEventQuery": {
+        "class": "other",
+        "count": 20500,
+        "ns": 12622093,
+        "bytes": 0
+      },
+      "cuEventRecord": {
+        "class": "other",
+        "count": 58699,
+        "ns": 26232093,
+        "bytes": 0
+      },
+      "cuLaunchKernel": {
+        "class": "launch",
+        "count": 222913,
+        "ns": 1165193428,
+        "bytes": 0
+      },
+      "cuMemHostAlloc": {
+        "class": "alloc",
+        "count": 2,
+        "ns": 123130782,
+        "bytes": 134217728
+      },
+      "cuMemFreeHost": {
+        "class": "alloc",
+        "count": 2,
+        "ns": 69609578,
+        "bytes": 0
+      },
+      "cuLibraryLoadData": {
+        "class": "library_load",
+        "count": 683,
+        "ns": 4708195109,
+        "bytes": 0
+      },
+      "cuLibraryUnload": {
+        "class": "other",
+        "count": 683,
+        "ns": 17110,
+        "bytes": 0
+      },
+      "cuMemcpyHtoDAsync": {
+        "class": "copy",
+        "count": 17892,
+        "ns": 89576407,
+        "bytes": 71943200072
+      },
+      "cuMemcpyDtoHAsync": {
+        "class": "copy",
+        "count": 3965,
+        "ns": 12628421,
+        "bytes": 121449044
+      },
+      "cuMemcpyDtoDAsync": {
+        "class": "copy",
+        "count": 6297,
+        "ns": 45208792,
+        "bytes": 307892882096
+      },
+      "cuMemsetD8Async": {
+        "class": "other",
+        "count": 993,
+        "ns": 10302378,
+        "bytes": 96550622904
+      }
+    },
+    "per_thread": [
+      {
+        "tid": 610666,
+        "first_s": 0.358,
+        "last_s": 78.452,
+        "sync": 5432,
+        "launch": 110301,
+        "pool_malloc": 0,
+        "pageable_copy": 0,
+        "copy": 14350,
+        "library_load": 683,
+        "alloc": 2,
+        "other": 61861
+      },
+      {
+        "tid": 611029,
+        "first_s": 8.394,
+        "last_s": 78.794,
+        "sync": 5226,
+        "launch": 112612,
+        "pool_malloc": 0,
+        "pageable_copy": 0,
+        "copy": 13804,
+        "library_load": 0,
+        "alloc": 2,
+        "other": 60214
+      },
+      {
+        "tid": 610665,
+        "first_s": 79.314,
+        "last_s": 79.314,
+        "sync": 0,
+        "launch": 0,
+        "pool_malloc": 0,
+        "pageable_copy": 0,
+        "copy": 0,
+        "library_load": 0,
+        "alloc": 0,
+        "other": 683
+      }
+    ],
+    "per_node": {
+      "alignment": {
+        "offset_ns": 46707624706,
+        "end_anchors_ns": [
+          49498051107,
+          45357198305
+        ],
+        "in_window_fraction_of_recursion_activity": 0.9498
+      },
+      "lane_thread_tids": {
+        "0": 610666,
+        "1": 611029
+      },
+      "per_kind": {
+        "leaf": {
+          "nodes": 17,
+          "sync_per_node": 191.4,
+          "launch_per_node": 5725.6,
+          "pool_malloc_per_node": 0.0,
+          "pageable_copy_per_node": 0.0,
+          "copy_per_node": 532.9,
+          "library_load_per_node": 0.0,
+          "alloc_per_node": 0.0,
+          "other_per_node": 2237.2,
+          "device_stage_s_mean": 1.677,
+          "span_s_mean": 7.458
+        },
+        "fold": {
+          "nodes": 16,
+          "sync_per_node": 115.6,
+          "launch_per_node": 3342.9,
+          "pool_malloc_per_node": 0.0,
+          "pageable_copy_per_node": 0.0,
+          "copy_per_node": 326.6,
+          "library_load_per_node": 0.0,
+          "alloc_per_node": 0.0,
+          "other_per_node": 1350.6,
+          "device_stage_s_mean": 1.137,
+          "span_s_mean": 3.793
+        }
+      },
+      "recursion_totals": {
+        "sync": 5102,
+        "launch": 150822,
+        "pool_malloc": 0,
+        "pageable_copy": 0,
+        "copy": 14285,
+        "library_load": 0,
+        "alloc": 0,
+        "other": 59642
+      },
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "leaf",
+          "lane": 1,
+          "device_stage_s": 1.809,
+          "span_s": 8.13,
+          "sync": 173,
+          "launch": 4048,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 478,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 2111
+        },
+        {
+          "node": 1,
+          "kind": "leaf",
+          "lane": 0,
+          "device_stage_s": 3.128,
+          "span_s": 6.186,
+          "sync": 265,
+          "launch": 14577,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 785,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 3179
+        },
+        {
+          "node": 2,
+          "kind": "fold",
+          "lane": 0,
+          "device_stage_s": 1.638,
+          "span_s": 5.381,
+          "sync": 192,
+          "launch": 8696,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 538,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 2458
+        },
+        {
+          "node": 3,
+          "kind": "leaf",
+          "lane": 0,
+          "device_stage_s": 1.887,
+          "span_s": 8.149,
+          "sync": 140,
+          "launch": 4848,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 445,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 1858
+        },
+        {
+          "node": 4,
+          "kind": "leaf",
+          "lane": 1,
+          "device_stage_s": 1.944,
+          "span_s": 10.169,
+          "sync": 246,
+          "launch": 5181,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 631,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 2469
+        },
+        {
+          "node": 5,
+          "kind": "fold",
+          "lane": 0,
+          "device_stage_s": 1.254,
+          "span_s": 4.571,
+          "sync": 172,
+          "launch": 7068,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 466,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 1826
+        },
+        {
+          "node": 6,
+          "kind": "fold",
+          "lane": 0,
+          "device_stage_s": 1.511,
+          "span_s": 4.479,
+          "sync": 217,
+          "launch": 3396,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 597,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 2415
+        },
+        {
+          "node": 7,
+          "kind": "leaf",
+          "lane": 0,
+          "device_stage_s": 1.939,
+          "span_s": 10.228,
+          "sync": 308,
+          "launch": 5478,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 838,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 3501
+        },
+        {
+          "node": 8,
+          "kind": "leaf",
+          "lane": 1,
+          "device_stage_s": 3.2,
+          "span_s": 5.861,
+          "sync": 272,
+          "launch": 15114,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 796,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 3228
+        },
+        {
+          "node": 9,
+          "kind": "fold",
+          "lane": 1,
+          "device_stage_s": 1.392,
+          "span_s": 5.312,
+          "sync": 173,
+          "launch": 3292,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 492,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 1911
+        },
+        {
+          "node": 10,
+          "kind": "leaf",
+          "lane": 1,
+          "device_stage_s": 1.231,
+          "span_s": 9.295,
+          "sync": 118,
+          "launch": 8260,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 390,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 1520
+        },
+        {
+          "node": 11,
+          "kind": "leaf",
+          "lane": 0,
+          "device_stage_s": 1.142,
+          "span_s": 8.717,
+          "sync": 151,
+          "launch": 2942,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 320,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 1176
+        },
+        {
+          "node": 12,
+          "kind": "fold",
+          "lane": 1,
+          "device_stage_s": 1.26,
+          "span_s": 4.802,
+          "sync": 139,
+          "launch": 11441,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 452,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 2020
+        },
+        {
+          "node": 13,
+          "kind": "fold",
+          "lane": 0,
+          "device_stage_s": 1.164,
+          "span_s": 3.827,
+          "sync": 131,
+          "launch": 3308,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 371,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 1346
+        },
+        {
+          "node": 14,
+          "kind": "fold",
+          "lane": 0,
+          "device_stage_s": 0.935,
+          "span_s": 2.215,
+          "sync": 105,
+          "launch": 3308,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 345,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 1357
+        },
+        {
+          "node": 15,
+          "kind": "leaf",
+          "lane": 0,
+          "device_stage_s": 1.198,
+          "span_s": 7.036,
+          "sync": 126,
+          "launch": 3272,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 388,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 1771
+        },
+        {
+          "node": 16,
+          "kind": "leaf",
+          "lane": 1,
+          "device_stage_s": 1.805,
+          "span_s": 7.749,
+          "sync": 237,
+          "launch": 3623,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 613,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 2793
+        },
+        {
+          "node": 17,
+          "kind": "fold",
+          "lane": 1,
+          "device_stage_s": 1.547,
+          "span_s": 6.112,
+          "sync": 313,
+          "launch": 5715,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 839,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 3467
+        },
+        {
+          "node": 18,
+          "kind": "leaf",
+          "lane": 1,
+          "device_stage_s": 1.701,
+          "span_s": 6.861,
+          "sync": 177,
+          "launch": 8562,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 525,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 2299
+        },
+        {
+          "node": 19,
+          "kind": "leaf",
+          "lane": 0,
+          "device_stage_s": 1.565,
+          "span_s": 8.98,
+          "sync": 176,
+          "launch": 3251,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 490,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 1806
+        },
+        {
+          "node": 20,
+          "kind": "fold",
+          "lane": 0,
+          "device_stage_s": 1.368,
+          "span_s": 5.304,
+          "sync": 47,
+          "launch": 647,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 166,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 659
+        },
+        {
+          "node": 21,
+          "kind": "fold",
+          "lane": 1,
+          "device_stage_s": 0.955,
+          "span_s": 2.511,
+          "sync": 0,
+          "launch": 0,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 0,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 0
+        },
+        {
+          "node": 22,
+          "kind": "leaf",
+          "lane": 1,
+          "device_stage_s": 1.562,
+          "span_s": 7.982,
+          "sync": 178,
+          "launch": 3309,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 498,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 1804
+        },
+        {
+          "node": 23,
+          "kind": "leaf",
+          "lane": 0,
+          "device_stage_s": 1.441,
+          "span_s": 8.36,
+          "sync": 205,
+          "launch": 7760,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 674,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 2978
+        },
+        {
+          "node": 24,
+          "kind": "fold",
+          "lane": 1,
+          "device_stage_s": 1.06,
+          "span_s": 4.337,
+          "sync": 179,
+          "launch": 3311,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 498,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 2232
+        },
+        {
+          "node": 25,
+          "kind": "leaf",
+          "lane": 0,
+          "device_stage_s": 0.808,
+          "span_s": 4.401,
+          "sync": 128,
+          "launch": 2573,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 269,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 1470
+        },
+        {
+          "node": 26,
+          "kind": "leaf",
+          "lane": 1,
+          "device_stage_s": 1.515,
+          "span_s": 5.953,
+          "sync": 281,
+          "launch": 3766,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 667,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 2803
+        },
+        {
+          "node": 27,
+          "kind": "fold",
+          "lane": 1,
+          "device_stage_s": 1.038,
+          "span_s": 3.749,
+          "sync": 0,
+          "launch": 0,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 0,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 0
+        },
+        {
+          "node": 28,
+          "kind": "fold",
+          "lane": 0,
+          "device_stage_s": 0.612,
+          "span_s": 1.835,
+          "sync": 45,
+          "launch": 647,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 119,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 405
+        },
+        {
+          "node": 29,
+          "kind": "fold",
+          "lane": 0,
+          "device_stage_s": 0.877,
+          "span_s": 1.737,
+          "sync": 0,
+          "launch": 0,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 0,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 0
+        },
+        {
+          "node": 30,
+          "kind": "fold",
+          "lane": 1,
+          "device_stage_s": 0.644,
+          "span_s": 1.828,
+          "sync": 136,
+          "launch": 2657,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 343,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 1513
+        },
+        {
+          "node": 31,
+          "kind": "leaf",
+          "lane": 1,
+          "device_stage_s": 0.637,
+          "span_s": 2.735,
+          "sync": 72,
+          "launch": 772,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 252,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 1267
+        },
+        {
+          "node": 32,
+          "kind": "fold",
+          "lane": 1,
+          "device_stage_s": 0.942,
+          "span_s": 2.695,
+          "sync": 0,
+          "launch": 0,
+          "pool_malloc": 0,
+          "pageable_copy": 0,
+          "copy": 0,
+          "library_load": 0,
+          "alloc": 0,
+          "other": 0
+        }
+      ],
+      "scope": "device-stage window of each node on its GPU's CUDA thread (10 ms bins; one CUDA thread per GPU serves native and recursion)"
+    },
+    "file": "/workspace/m3/runs/m5-platform/24628607-2gpu-v3counters/counters/cuda-counters-610665.json"
+  }
+}

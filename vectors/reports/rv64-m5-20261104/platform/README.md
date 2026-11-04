@@ -29,3 +29,17 @@ context on every free), ~10 k were joins of already-idle lanes, the rest genuine
 H2D bytes came from: the recursion PP forest uploaded twice per node (`outer_fixed.uploadImpl` 11.75 GB
 and again `immutable_setup.words` from `outer_source_main.generate` 11.75 GB), the outer assignment
 schedule (9.7 GB), composition/commit/projection ingress (rest).
+
+## 24628607, one-shot under the measure stream's counter shim (same config as M4 `integrate/24628607-g5-counters`)
+
+| counter shim, per request | M4 g5 (lib `5886e2a5`) | v3 lib (`03bdc5db1`), M4 driver |
+|---|---:|---:|
+| syncs (stream + ctx + event) | 57,816 | **10,658 (5.4x fewer)** |
+| of which `cuStreamSynchronize` | 57,766 | 6,632 (8.7x) |
+| of which `cuEventSynchronize` | 50 | 4,026 (~3,965 staged D2H that replace pageable D2H's implicit sync) |
+| pageable copies | 19,613 / 71.1 GB | **0** (71.9 GB H2D staged pinned) |
+| launches | 222,913 | 222,913 |
+| pool mallocs | 0 | 0 |
+| proofs vs M3/M4 | identical | **identical** (all 55 hashes) |
+
+Receipt `24628607-counters-v3-pinned-fences.json` (load 34.6 at start: the 69.96 s request is not quotable).
