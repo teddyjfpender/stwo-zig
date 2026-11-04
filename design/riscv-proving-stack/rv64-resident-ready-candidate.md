@@ -49,3 +49,17 @@ ordering and pass the independent CPU receiver. Two/four devices then require
 physical hardware, memory-fit, failure and independent-receiver qualification.
 Existing native/combined serial runs and the queued GPU FIXED precommit candidate
 are separate controls and are not silently combined with this experiment.
+
+The first physical one-lane gate is now independently accepted: block26235156,
+4CPU+7truth native workers,11 fresh outer leaves+10 fresh folds, no restored
+proofs. Every13 native .bin file, bundle,22 outer proofs including root and the
+ordered tree are byte-identical to the original accepted serial control. A
+fresh ARM CPU receiver under independently rebuilt authority accepted native
+and root together, with artifacts unchanged. Original mode/manifest/stacks were
+checked by the strict candidate harness. The actual lane has8 workers; the
+unchanged native request has16, hence15MiB reserved native helper stacks,
+7MiB lane helpers and8MiB coordinator stack. The request took173.149s; the old
+serial control took152.918s under different source/runtime/worker allocation.
+This establishes the production API/custody/parity path, no acceleration or
+2/4-device result. Serial remains the default. Receipt ready-n1-qualified-v1.json
+pins the producer, runtime, original plan and independent receiver result.
