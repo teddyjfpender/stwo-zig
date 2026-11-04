@@ -22,7 +22,7 @@ The fresh receiver accepted the two `bench` runs (607 counters and 156 counters)
 |---|---|---|---|
 | reconciled recursion kernel time on 607 | > 20 GPU-s ⇒ L4 cell diet moves ahead of L3 | **25.12 GPU-s** [M] | **TRIGGERED** |
 | RSS intercept irreducible (e.g. driver-pinned) | irreducible ⇒ re-scope the RAM target | ≥ 16 GiB of the 22.5 GiB peak has named, architectural owners. 0 pinned host bytes. | **not triggered**; the RAM target stands |
-| M5 canonical padding tax, 3 rungs | > 40 % of native cells ⇒ 4th rung, then fallback | rows-weighted: 87 % with 3 class rungs, 48 % with 4 (whole-CPU family) | **provisionally triggered on rows**. A cell-weighted number needs per-AIR widths (open item 2) |
+| M5 canonical padding tax, 3 rungs | > 40 % of native cells ⇒ 4th rung, then fallback | rows-weighted, CPU split into first/middle/last families: **+24.6 % with 3 class rungs (37 classes)**, +20.9 % with 4 (46). Unsplit: +87 % / +48 % | **not triggered** with the split; the cell-weighted confirmation needs per-AIR widths (open item 2) |
 
 ### What the GPU trigger means for the plan
 
@@ -154,7 +154,19 @@ Two rung models (`geometry-rung-tax.json`, `scripts/rv64_m40_geometry.py`):
 **Interpretation:**
 - Per-AIR rungs are cheap in rows but do not shrink the VK table: 341 classes.
 - Class vectors shrink the table but pay heavily on CPU.
-- CPU's tax is driven by the **public-boundary components**: initial and terminal logs are 23 on the first and last segments and 5 elsewhere. The model should therefore split CPU into first, middle and last families (`--split-boundary`; the run is queued, see open items).
+- CPU's tax is driven by the **public-boundary components**: initial and terminal logs are 23 on the first and last segments and 5 elsewhere.
+- **Split CPU into first, middle and last families** (`--split-boundary`, `geometry-rung-tax-split-boundary.json`). Class vectors then cost:
+
+  | rungs | extra rows | classes |
+  |---|---:|---:|
+  | R=1 | +71 % | 13 |
+  | R=2 | +31 % | 26 |
+  | **R=3** | **+24.6 %** | **37** |
+  | R=4 | +20.9 % | 46 |
+
+  At R=3 per family: cpu first +4.5 %, middle +26 %, last +26 %, keccak +3.8 %, add +27 %, double +20 %, arith256_mod +41 %. Per-AIR rungs at R=3: +1.7 % / 346 classes.
+
+  **Recommendation for M5:** treat the boundary segments as their own families, and use 3 class rungs per family. That gives about 37 native classes per basket. The plan assumed 12; the VK table is still constant per image.
 - All numbers are **rows-weighted, not cells-weighted**. The CPU main AIR, the widest, is constant at 2^22, so the cell tax is lower than the row tax.
 
 **Do not apply the M5 kill rule from these numbers alone.** Canon-native should export per-AIR widths, then re-run the script with `--widths`.
@@ -267,7 +279,7 @@ This model uses the logged column counts:
 ## Open items (measure stream, next session)
 
 1. Malloc interposer in the shim, to name the 9 GiB untraced (cudart and driver) and close the 90 % RSS gate.
-2. A cells-weighted rung tax: per-AIR widths from canon-native, plus the `--split-boundary` run (queued on the pod: `/workspace/m3/runs/m4-measure/analysis/geometry-split.json`).
+2. A cells-weighted rung tax: per-AIR widths from canon-native, then re-run `scripts/rv64_m40_geometry.py --split-boundary` with widths.
 3. The in-circuit per-origin Blake counter (the spec is above; it needs a log-only hook in canon-vk's files).
 4. A quiet-pod timing rerun of the two dev blocks for quotable walls. Timings here were taken at load 32–103.
 
@@ -280,7 +292,7 @@ This model uses the logged column counts:
 | `24628607-m40-mmap.json`, `24628607-m40-mmap-census.json` | shim plus mmap tracer; RSS-weighted call-site census at the peak |
 | `24628607-m40-counters-smaps.json` | RSS time series plus the peak smaps census |
 | `26235156-m40-counters.json` | v2 receipt with the shim and smaps; bench, receiver accepted |
-| `geometry-rung-tax.json` | item 5 |
+| `geometry-rung-tax.json`, `geometry-rung-tax-split-boundary.json` | item 5 (CPU as one family, and as first/middle/last) |
 | `models-24628607.json` | items 3, 6, 7 and 8 |
 
 Tools: `scripts/rv64_measure.py` (receipt-v2, fingerprint, nsys, mmap-census, smaps), `scripts/rv64_progress.py`, `scripts/rv64_m40_geometry.py`, `scripts/rv64_m40_models.py`, `tools/rv64-cuda-counters/`.
