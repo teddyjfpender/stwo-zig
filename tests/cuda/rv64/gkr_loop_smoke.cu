@@ -13,6 +13,7 @@
 using namespace stwo::cuda::rv64;
 using rv64_fixture::equal;
 using rv64_fixture::Fixture;
+static uint64_t fused_calls=0,fused_kernel_launches=0;
 struct LayerFraction {
   StwoRv64Plane n, d;
   uint32_t count;
@@ -294,6 +295,8 @@ static void exercise(const std::string &directory, uint32_t id,
         if(!stwo_rv64_batch_fold_sum_on(o.ctx,1,bad.data(),bad.size(),2u<<left,record+32,eq,lambda,&launches)||launches)
           throw std::runtime_error("fold-sum accepted input/output alias or enqueued before preflight");
         CHECK(stwo_rv64_batch_fold_sum_on(o.ctx,1,jobs.data(),jobs.size(),2u<<left,record+32,eq,lambda,&launches));
+        if(!launches)throw std::runtime_error("fold-sum route did not launch");
+        ++fused_calls;fused_kernel_launches+=launches;
         for(auto j:ready)prefetched[j]=true;
       }
     }
@@ -450,6 +453,10 @@ int main(int argc, char **argv) {
       exercise(argv[1], 3, attack);
     for (uint32_t attack = 1; attack <= 11; ++attack)
       exercise(argv[1], 5, 0, attack);
+    if(std::getenv("STWO_RV64_TEST_BATCH_FOLD_SUM")) {
+      if(!fused_calls||!fused_kernel_launches)throw std::runtime_error("fold-sum route not exercised");
+      std::printf("BATCH_FOLD_SUM_ROUTE calls=%llu kernel_launches=%llu\n",static_cast<unsigned long long>(fused_calls),static_cast<unsigned long long>(fused_kernel_launches));
+    }
     std::printf(
         "{\"schema\":\"rv64-om31-full-gkr-binding-v3\",\"cases\":9,\"poison_"
         "cases\":9,"
