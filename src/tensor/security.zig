@@ -801,6 +801,8 @@ pub const ZkLevel = struct {
     params: pcs.Params,
     /// zk_pcs2: log G' and log(2C) of the committed-row sumcheck
     rec: ?struct { log_g: u32, log_m: u32 } = null,
+    /// proximity rows (Config.zk_prox_rows), each with its own beta and mask rows
+    n_prox: u32 = 1,
 };
 
 fn putTerm(ac: ?*Account, tot: *f64, nm: []const u8, kind: Kind, l2: f64, pow: u32, count: f64, rbr: ?[2]f64) !void {
@@ -824,9 +826,11 @@ fn zkLevelTerms(acc: ?*Account, name: []const u8, lv: ZkLevel, mode: ZkMode, del
     switch (mode) {
         .fresh => {
             const d = @min(delta_fresh orelse ud.delta, ud.delta);
-            // one proximity row: independent beta per row, beta_mu on the 4
-            // mask rows (one QM31 word); R rows x (E + 1) bad lines
-            try putTerm(acc, &total, try std.fmt.bufPrint(&buf, "{s} proximity x1", .{name}), .prox, std.math.log2(lv.rows * ud.count) - LOG2_F, 0, 1, null);
+            // k proximity rows: independent beta per row, beta_mu on each row's
+            // own 4 mask rows (one QM31 word); R rows x (E + 1) bad lines, all k
+            // combinations bad: (R (E + 1)/|F|)^k (security.md 3.2)
+            const kf: f64 = @floatFromInt(lv.n_prox);
+            try putTerm(acc, &total, try std.fmt.bufPrint(&buf, "{s} proximity x{d}", .{ name, lv.n_prox }), .prox, kf * (std.math.log2(lv.rows * ud.count) - LOG2_F), 0, 1, null);
             agree = @max(1 - d, rho);
         },
         .untested_mask => |m| {
@@ -877,12 +881,12 @@ fn zkInnerInfos(a: std.mem.Allocator, outer: pcs.Params, p2: pcs2.Params, n_out:
 /// A whole hiding opening of stacked `shapes` (same columns and slots) with
 /// `n_groups` claim groups: the outer level and, in recursive mode (`p2`),
 /// the committed-row levels below it.
-fn accountZkOpening(a: std.mem.Allocator, acc: *Account, name: []const u8, shapes: []const zkp.Shape, n_groups: usize, outer: pcs.Params, p2: ?pcs2.Params, mode: ZkMode, delta_fresh: ?f64) !void {
+fn accountZkOpening(a: std.mem.Allocator, acc: *Account, name: []const u8, shapes: []const zkp.Shape, n_groups: usize, outer: pcs.Params, p2: ?pcs2.Params, mode: ZkMode, delta_fresh: ?f64, kp: u32) !void {
     var rows: f64 = 0;
     for (shapes) |s| rows += @floatFromInt(s.n_rows);
     const s0 = shapes[0];
-    const n_out = n_groups + @intFromBool(mode == .fresh);
-    var lv = ZkLevel{ .log_e = s0.logExt(), .msg = @floatFromInt(s0.msgLen()), .rows = rows, .n_groups = n_groups, .params = outer };
+    const n_out = n_groups + @as(usize, if (mode == .fresh) kp else 0);
+    var lv = ZkLevel{ .log_e = s0.logExt(), .msg = @floatFromInt(s0.msgLen()), .rows = rows, .n_groups = n_groups, .params = outer, .n_prox = kp };
     var buf: [96]u8 = undefined;
     if (p2) |p| {
         const ish = zkp2.innerShapeFor(outer, p, n_out, s0.log_cols);
@@ -978,6 +982,7 @@ pub fn accountHiding(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statemen
     if (weight_prox) |wp| try zk.verifyWeightProximity(a, cfg, wkey orelse return error.NoWeightKey, wp);
     const si = try zk.secInfo(a, cfg, st, wkey);
     const p2: ?pcs2.Params = cfg.two_level;
+    const kp = try zk.proxRows(cfg);
     var req = Account.init(a);
     errdefer req.deinit();
 
@@ -1006,13 +1011,13 @@ pub fn accountHiding(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statemen
 
     // witness opening (proximity row on the mask rows of table 1), aux opening
     const n_wg = nMus(proof.opening);
-    try accountZkOpening(a, &req, "witness", si.witness[0..si.n_tabs], n_wg, cfg.pcs, p2, .fresh, null);
-    const ap = zk.auxParams();
+    try accountZkOpening(a, &req, "witness", si.witness[0..si.n_tabs], n_wg, cfg.pcs, p2, .fresh, null, kp);
+    const ap = zk.auxParams(cfg);
     if (proof.aux_opening) |ao| {
         // zeta merges the batch hiding polynomial's two claims (sigma_b via
         // sumForm, u_b via evalForm) into one: sigma_b + zeta u_b
         try req.field("aux zeta", 1, 1);
-        try accountZkOpening(a, &req, "aux", &.{si.aux}, ao.mus.len, ap.params, null, .fresh, null);
+        try accountZkOpening(a, &req, "aux", &.{si.aux}, ao.mus.len, ap.params, null, .fresh, null, kp);
     }
 
     // weights: per-proof opening, and the commit-time proximity proof
@@ -1022,12 +1027,12 @@ pub fn accountHiding(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statemen
     if (proof.weight_opening) |wo| {
         const ws = [2]zkp.Shape{ si.weight orelse return error.ProofShape, si.weight_mask.? };
         const ng = nMus(wo);
-        if (wo == .rec) {
-            try accountZkOpening(a, &req, "weights", &ws, ng, wpp, p2, .fresh, null);
+        if (try zk.weightProxRows(cfg)) {
+            try accountZkOpening(a, &req, "weights", &ws, ng, wpp, if (wo == .rec) p2 else null, .fresh, null, kp);
         } else {
             flat_w = true;
-            delta_key = chooseZkDeltaKey(ws, ng, wpp);
-            try accountZkOpening(a, &req, "weights", &ws, ng, wpp, null, .{ .untested_mask = .{ .delta_key = delta_key } }, null);
+            delta_key = chooseZkDeltaKey(ws, ng, wpp, kp);
+            try accountZkOpening(a, &req, "weights", &ws, ng, wpp, null, .{ .untested_mask = .{ .delta_key = delta_key } }, null, kp);
         }
     }
     var key: ?Account = null;
@@ -1035,7 +1040,7 @@ pub fn accountHiding(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statemen
     if (weight_prox) |wp| if (si.weight) |wsh| {
         var k = Account.init(a);
         errdefer k.deinit();
-        try accountZkOpening(a, &k, "weight proximity", &.{wsh}, 0, wpp, if (wp == .rec) p2 else null, .fresh, if (flat_w) delta_key else null);
+        try accountZkOpening(a, &k, "weight proximity", &.{wsh}, 0, wpp, if (wp == .rec) p2 else null, .fresh, if (flat_w) delta_key else null, kp);
         key = k;
     };
     var total = Account.init(a);
@@ -1057,11 +1062,12 @@ pub fn accountHiding(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statemen
     // dependent (O(1)/|F|, counted as 16/|F|), and the eq-span of a pad read
     // at a random point not all of QM31 (<= p^-7 each, zk.md 4.5)
     var ev: f64 = @floatFromInt(proof.checks.len + proof.vchecks.len + proof.xchecks.len + proof.gkr_layers.len + 1);
-    ev += @floatFromInt(n_wg + 1);
-    if (proof.aux_opening) |ao| ev += @floatFromInt(ao.mus.len + 1);
-    if (proof.weight_opening) |wo| ev += @floatFromInt(nMus(wo) + 1);
+    // one beta_mu per proximity row (kp), one gamma_mu per group
+    ev += @floatFromInt(n_wg + kp);
+    if (proof.aux_opening) |ao| ev += @floatFromInt(ao.mus.len + kp);
+    if (proof.weight_opening) |wo| ev += @floatFromInt(nMus(wo) + kp);
     // the weight proximity proof's beta_mu (once per commitment)
-    if (weight_prox != null) ev += 1;
+    if (weight_prox != null) ev += @floatFromInt(kp);
     ev += 16 * @as(f64, @floatFromInt(si.two_point_pads));
     const log_p = std.math.log2(@as(f64, @floatFromInt(f.P)));
     const sd = logAdd(std.math.log2(ev) - LOG2_F, std.math.log2(@as(f64, @floatFromInt(@max(si.point_pads, 1)))) - 7 * log_p);
@@ -1073,9 +1079,9 @@ pub fn accountHiding(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statemen
 
 /// delta_key balancing the weight proximity proof (fresh at delta_key) with
 /// the flat per-proof weight opening (untested mask table). Analysis only.
-fn chooseZkDeltaKey(ws: [2]zkp.Shape, ng: usize, wpp: pcs.Params) f64 {
+fn chooseZkDeltaKey(ws: [2]zkp.Shape, ng: usize, wpp: pcs.Params, kp: u32) f64 {
     const ud = uniqueProxMsg(@floatFromInt(ws[0].msgLen()), ws[0].logExt());
-    const lk = ZkLevel{ .log_e = ws[0].logExt(), .msg = @floatFromInt(ws[0].msgLen()), .rows = @floatFromInt(ws[0].n_rows), .n_groups = 0, .params = wpp };
+    const lk = ZkLevel{ .log_e = ws[0].logExt(), .msg = @floatFromInt(ws[0].msgLen()), .rows = @floatFromInt(ws[0].n_rows), .n_groups = 0, .params = wpp, .n_prox = kp };
     var lw = lk;
     lw.rows += @floatFromInt(ws[1].n_rows);
     lw.n_groups = ng;
@@ -1486,4 +1492,149 @@ test "hiding flat weight opening: untested mask table reads 1 - delta + delta_ke
         }
     }
     try std.testing.expect(seen_q and seen_m);
+}
+
+/// Hiding protocol terms only (no PCS opening): the QM31 ceiling of a hiding proof.
+fn hidingProtocolCeiling(acc: Account) f64 {
+    var sw = -std.math.inf(f64);
+    for (acc.terms.items) |t| {
+        const pcs_term = std.mem.startsWith(u8, t.name, "witness L") or std.mem.startsWith(u8, t.name, "aux L") or std.mem.startsWith(u8, t.name, "weights L") or std.mem.startsWith(u8, t.name, "weight proximity L");
+        if (!pcs_term) sw = logAdd(sw, t.withWork() + std.math.log2(t.count));
+    }
+    return -sw;
+}
+
+/// The matched presets: every PCS query round >= 96 bits without work and >= 116
+/// with, k = 2 proximity rows (>= 190 bits), the total within `slack` of the
+/// protocol ceiling with work and >= FlashProve's 92.42 without work.
+fn expectMatched(rep: HidingReport, slack: f64) !void {
+    const s = rep.total.summary();
+    var n_q: usize = 0;
+    var n_p: usize = 0;
+    for (rep.total.terms.items) |t| {
+        if (t.kind == .query) {
+            if (-t.log2_err < 96 or -t.withWork() < 116) std.debug.print("matched: weak query term {s} {d:.2} pow {d}\n", .{ t.name, -t.log2_err, t.pow });
+            try std.testing.expect(-t.log2_err >= 96);
+            try std.testing.expect(-t.withWork() >= 116);
+            n_q += 1;
+        }
+        if (t.kind == .prox and std.mem.indexOf(u8, t.name, "proximity x") != null) {
+            try std.testing.expect(std.mem.indexOf(u8, t.name, "proximity x2") != null);
+            try std.testing.expect(-t.log2_err >= 190);
+            n_p += 1;
+        }
+    }
+    if (n_q < 2 or n_p < 2 or s.sum_without < 92.42 or s.sum_with < hidingProtocolCeiling(rep.total) - slack)
+        std.debug.print("matched: n_q {d} n_p {d} with {d:.2} without {d:.2} ceiling {d:.2} worst {s}\n", .{ n_q, n_p, s.sum_with, s.sum_without, hidingProtocolCeiling(rep.total), s.worst });
+    try std.testing.expect(n_q >= 2 and n_p >= 2);
+    try std.testing.expect(s.sum_without >= 92.42);
+    try std.testing.expect(s.sum_with >= hidingProtocolCeiling(rep.total) - slack);
+    try std.testing.expect(rep.leak.withinBudget());
+    try std.testing.expect(rep.leak.sd_bits > 100);
+}
+
+test "hiding matched presets: toy at the protocol ceiling, both readings, tampering" {
+    if (f.IS_OM31) return error.SkipZigTest;
+    const a = std.testing.allocator;
+    const model = @import("model.zig");
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    var built = try model.buildProduct(a, 18, 3);
+    defer built.deinit(a);
+    const st = built.statement();
+    const wv = try a.alloc([]const i32, built.witness.len);
+    defer a.free(wv);
+    for (built.witness, 0..) |w, k| wv[k] = w;
+    const base = proto.Config{ .pcs = .{ .log_blowup = 2, .n_queries = 54, .pow_bits = 20 }, .weight_log_cols = 2, .witness_log_cols_max = 14, .gkr_threads = 4, .hiding = true };
+    for ([_]zk.Preset{ .matched, .matched_rec }) |pr| {
+        const cfg = zk.applyPreset(base, pr);
+        var tm: proto.Timings = .{};
+        var proof = try zk.prove(a, &pool, cfg, st, null, wv, &tm);
+        defer proof.deinit(a);
+        var rep = try accountHiding(a, cfg, st, null, &.{}, &proof, null, null);
+        defer rep.deinit();
+        try expectMatched(rep, if (pr == .matched) 0.3 else 2.5);
+        // the default config does not accept a preset proof
+        try std.testing.expect(std.meta.isError(zk.verify(a, base, st, null, &proof)));
+        // tamper: the second proximity row of the witness opening
+        const one = f.QM31.one();
+        const prow: *f.QM31 = switch (proof.opening) {
+            .flat => |*o| &o.rows[1][3],
+            .rec => |*o| &o.mus[0],
+        };
+        prow.* = prow.*.add(one);
+        try std.testing.expect(std.meta.isError(zk.verify(a, cfg, st, null, &proof)));
+        prow.* = prow.*.sub(one);
+        // tamper: the aux opening's second proximity row, its PoW nonce
+        const ao = &proof.aux_opening.?;
+        try std.testing.expectEqual(@as(usize, 3), ao.rows.len);
+        ao.rows[1][0] = ao.rows[1][0].add(one);
+        try std.testing.expect(std.meta.isError(zk.verify(a, cfg, st, null, &proof)));
+        ao.rows[1][0] = ao.rows[1][0].sub(one);
+        ao.pow_nonce +%= 1;
+        try std.testing.expect(std.meta.isError(zk.verify(a, cfg, st, null, &proof)));
+        ao.pow_nonce -%= 1;
+        try zk.verify(a, cfg, st, null, &proof);
+    }
+}
+
+test "hiding matched presets: small MLP (flat weights with proximity rows, and recursive)" {
+    if (f.IS_OM31) return error.SkipZigTest;
+    const a = std.testing.allocator;
+    const model = @import("model.zig");
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    const mc = model.Mlp{ .log_t = 5, .log_d = 8, .log_f = 9, .fused = true };
+    const winfos = model.mlpWeightInfos(mc);
+    var wdata: [3][]i8 = undefined;
+    for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 100 + i, -8, 7);
+    defer for (wdata) |w| a.free(w);
+    const wvv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
+    const base = proto.Config{ .pcs = .{ .log_blowup = 2, .n_queries = 54, .pow_bits = 20 }, .weight_log_cols = 12, .witness_log_cols_max = 14, .gkr_threads = 4, .hiding = true, .weight_mask_slots = 1024 };
+    for ([_]zk.Preset{ .matched, .matched_rec }) |pr| {
+        const cfg = zk.applyPreset(base, pr);
+        var zw = try zk.commitWeights(a, &pool, cfg, &winfos, &wvv);
+        defer zw.deinit(a);
+        var prox = try zk.proveWeightProximity(a, &pool, cfg, &zw);
+        defer prox.deinit(a);
+        const key = zw.key();
+        // a key committed for one proximity row is refused under the preset
+        var k1 = key;
+        k1.kp = 1;
+        try std.testing.expect(std.meta.isError(zk.verifyWeightProximity(a, cfg, k1, prox)));
+        const x = try model.randomInput(a, @as(usize, 1) << (mc.log_t + mc.log_d), 9);
+        defer a.free(x);
+        const pv = zw.plainView();
+        var built = try model.buildMlp(a, &pool, &pv, mc, x);
+        defer built.deinit(a);
+        const st = built.statement();
+        const wv = try a.alloc([]const i32, built.witness.len);
+        defer a.free(wv);
+        for (built.witness, 0..) |w, k| wv[k] = w;
+        var tm: proto.Timings = .{};
+        var proof = try zk.prove(a, &pool, cfg, st, &zw, wv, &tm);
+        defer proof.deinit(a);
+        var rep = try accountHiding(a, cfg, st, key, &.{}, &proof, prox, zw.budgetUsed());
+        defer rep.deinit();
+        // the weight opening is fresh (proximity rows over W and the mask table)
+        try std.testing.expect(!rep.weights_flat);
+        try expectMatched(rep, if (pr == .matched) 0.3 else 2.5);
+        // tamper: the weight opening's second proximity row
+        const one = f.QM31.one();
+        const wrow: *f.QM31 = switch (proof.weight_opening.?) {
+            .flat => |*o| &o.rows[1][2],
+            .rec => |*o| &o.mus[0],
+        };
+        wrow.* = wrow.*.add(one);
+        try std.testing.expect(std.meta.isError(zk.verify(a, cfg, st, key, &proof)));
+        wrow.* = wrow.*.sub(one);
+        try zk.verify(a, cfg, st, key, &proof);
+        // re-randomization + link under the preset
+        var rr = try zk.rerandomizeWeights(a, &pool, cfg, &zw);
+        defer rr.new.deinit(a);
+        defer rr.link.deinit(a);
+        try zk.verifyWeightLink(a, cfg, key, rr.new.key(), rr.link);
+    }
 }

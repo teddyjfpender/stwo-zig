@@ -387,7 +387,19 @@ pub fn combine(
 // Openings.
 
 /// Four consecutive mask rows of table `table` starting at `row`.
-pub const MaskRef = struct { table: usize, row: usize };
+/// Mask rows of a combined row: 4 rows from `row`. For the proximity rows,
+/// `count` rows, row i masked by rows row + 4i .. row + 4i + 3 (fresh beta_i
+/// and beta_mu_i each: the proximity term is eps^count, security.md 3.2).
+pub const MaskRef = struct {
+    table: usize,
+    row: usize,
+    count: usize = 1,
+};
+
+/// Number of proximity rows of an opening.
+pub fn nProx(prox: ?MaskRef) usize {
+    return if (prox) |p| p.count else 0;
+}
 
 pub const Claim = struct {
     /// row coefficient vector per table (len n_rows of that table, or 0 = zero)
@@ -476,7 +488,7 @@ pub fn drawCoeffs(a: std.mem.Allocator, tr: *Transcript, shapes: []const Shape, 
         gammas[gi] = try a.alloc(QM31, g.claims.len + 1);
         tr.drawN(gammas[gi]);
     }
-    const n_out = groups.len + @intFromBool(prox != null);
+    const n_out = groups.len + nProx(prox);
     const v = try a.alloc([][]QM31, n_out);
     for (v) |*o| {
         o.* = try a.alloc([]QM31, shapes.len);
@@ -487,10 +499,13 @@ pub fn drawCoeffs(a: std.mem.Allocator, tr: *Transcript, shapes: []const Shape, 
     }
     var k0: usize = 0;
     if (prox) |pm| {
-        for (v[0], 0..) |t, ti| tr.drawN(t[0..shapes[ti].n_rows]);
-        const bmu = tr.draw();
-        for (0..4) |k| v[0][pm.table][pm.row + k] = bmu.mul(basis(k));
-        k0 = 1;
+        if (pm.count == 0) return error.OpeningShape;
+        for (0..pm.count) |i| {
+            for (v[i], 0..) |t, ti| tr.drawN(t[0..shapes[ti].n_rows]);
+            const bmu = tr.draw();
+            for (0..4) |k| v[i][pm.table][pm.row + 4 * i + k] = bmu.mul(basis(k));
+        }
+        k0 = pm.count;
     }
     for (groups, 0..) |g, gi| {
         const o = v[k0 + gi];
@@ -579,7 +594,7 @@ pub fn verifyOpening(
         if (r.len != ML) return error.OpeningShape;
         tr.mixFelts(r);
     }
-    const k0: usize = @intFromBool(prox != null);
+    const k0: usize = nProx(prox);
     for (groups, 0..) |g, gi| {
         var lhs = QM31.zero();
         for (proof.rows[k0 + gi][0..C], g.col) |u, b| lhs = lhs.add(u.mul(b));

@@ -51,16 +51,68 @@ const PAD_LOG: u32 = 4;
 /// Dedicated hat pad: 4 M31 cells read as one QM31 (sum_k basis(k) P_k).
 const HPAD_LOG: u32 = 2;
 const WPAD_ROWS: usize = 4; // 2 row variables
-const N_MASK_ROWS: u32 = 3; // log2(8) mask rows in table 1 (proximity, group A)
+/// log2 of the mask rows of table 1: 4 per proximity row, then 4 for group A
+/// (8 rows, log 3, at the default one proximity row).
+fn maskLog(kp: u32) u32 {
+    return log2Ceil(4 * kp + 4);
+}
+
+/// Proximity rows of every hiding outer opening (Config.zk_prox_rows, 1..4).
+pub fn proxRows(cfg: proto.Config) !u32 {
+    if (cfg.zk_prox_rows < 1 or cfg.zk_prox_rows > 4) return error.ZkProxRows;
+    return cfg.zk_prox_rows;
+}
+
+/// Named hiding presets (zk.md 5.4, security.md 11.5).
+pub const Preset = enum {
+    /// the bench defaults the original hiding numbers were taken at
+    default,
+    /// FlashProve-matched reading, flat hiding PCS: every PCS opening >= 96
+    /// proven bits without work and >= 120 with, so the proof sits at the
+    /// QM31 ceiling of the hiding protocol's own terms (toy 116.9 with work;
+    /// the request LogUp caps an MLP at ~97). 2 proximity rows per opening.
+    matched,
+    /// as `matched` with the recursive hiding PCS (zk_pcs2, depth 1): smaller
+    /// proofs, ~1.6 bits lower with work (the lambda round t log G'/|F|).
+    matched_rec,
+};
+
+/// Apply a hiding preset on top of `base` (threads, weight layout, accel kept).
+pub fn applyPreset(base: proto.Config, preset: Preset) proto.Config {
+    var c = base;
+    if (preset == .default) return c;
+    c.hiding = true;
+    // witness: unique decoding at rate (C + 256)/8C, 0.82 bits per query
+    c.pcs = .{ .log_blowup = 3, .n_queries = 124, .pow_bits = 20 };
+    c.zk_prox_rows = 2;
+    // aux table (9 + 4 rows x 256 columns): 128 queries at lb 4 + 20 bits of work
+    c.zk_aux = .{ .n_queries = 128, .pow_bits = 20 };
+    // weights: lb 4, 0.89 bits per query
+    c.weight_pcs = .{ .log_blowup = 4, .n_queries = 112, .pow_bits = 20 };
+    // budget for the proximity proof and >= 3 more openings (proofs, links)
+    c.weight_mask_slots = @max(c.weight_mask_slots, 4 * zkp.slotsFor(112));
+    c.two_level = if (preset == .matched_rec) .{ .inner = .{ .log_blowup = 4, .n_queries = 116, .pow_bits = 20 }, .depth = 1, .inner_work_shift = 0, .prox_rows = 2 } else null;
+    return c;
+}
+
+/// Extra rows of the hiding weight table: 4 pad rows (R_W), then 4 proximity
+/// mask rows per proximity row of the commit-time proximity proof.
+fn wExtraRows(kp: u32) usize {
+    return WPAD_ROWS + 4 * @as(usize, kp);
+}
 
 // Aux table (per proof): row 0 = batch hiding-polynomial coefficients,
-// rows 1..4 proximity masks, rows 5..8 group masks; 256 columns.
+// rows 1..4k proximity masks (k = zk_prox_rows), then 4 group masks; 256 columns.
 const AUX_LC: u32 = 8;
 const AUX_LB: u32 = 4;
-const AUX_ROWS: usize = 9;
+fn auxRows(kp: u32) usize {
+    return 5 + 4 * @as(usize, kp);
+}
 
-/// Aux-table opening parameters: no grinding, queries for >= 128 conjectured bits.
-pub fn auxParams() struct { params: pcs.Params, slots: u32 } {
+/// Aux-table opening parameters: Config.zk_aux if set (slots for its queries),
+/// else no grinding, queries for >= 128 conjectured bits.
+pub fn auxParams(cfg: proto.Config) struct { params: pcs.Params, slots: u32 } {
+    if (cfg.zk_aux) |x| return .{ .params = .{ .log_blowup = AUX_LB, .n_queries = x.n_queries, .pow_bits = x.pow_bits }, .slots = zkp.slotsFor(x.n_queries) };
     var q: usize = 1;
     while (true) : (q += 1) {
         const s = zkp.slotsFor(q);
@@ -70,8 +122,8 @@ pub fn auxParams() struct { params: pcs.Params, slots: u32 } {
     }
 }
 
-fn auxShape() zkp.Shape {
-    return .{ .log_cols = AUX_LC, .log_blowup = AUX_LB, .slots = auxParams().slots, .n_rows = AUX_ROWS };
+fn auxShape(cfg: proto.Config, kp: u32) zkp.Shape {
+    return .{ .log_cols = AUX_LC, .log_blowup = AUX_LB, .slots = auxParams(cfg).slots, .n_rows = auxRows(kp) };
 }
 
 fn qi(v: i64) QM31 {
@@ -150,6 +202,8 @@ const Plan = struct {
     lc: u32,
     slots: u32,
     rho_len: u32,
+    /// proximity rows per hiding outer opening (proxRows)
+    kp: u32 = 1,
     /// virtual remainders: post-GKR checks in (tree, segment) order
     virt: bool = false,
     vchecks: []Check = &.{},
@@ -191,7 +245,7 @@ fn recLogCols(cfg: proto.Config, p2: pcs2.Params, used0: usize, log_total: u32, 
     var l = lo;
     while (l <= @max(lo, log_total + 1)) : (l += 1) {
         const C = @as(usize, 1) << @intCast(l);
-        const used = used0 + 9 * C; // + batch pad row and 8 mask rows
+        const used = used0 + (1 + (@as(usize, 1) << @intCast(maskLog(proxRows(cfg) catch 1)))) * C; // + batch pad row and the mask rows
         const rows = (used + C - 1) / C;
         const budget = @max(used >> @intCast(p2.inner_work_shift), @as(usize, 1) << 14);
         if (l > lo and ((8 * C) << @intCast(p2.inner.log_blowup)) > budget) break;
@@ -256,6 +310,7 @@ fn opShift(op: proto.Op) u5 {
 }
 
 fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Config) !Plan {
+    if (wkey) |k| try k.check(cfg);
     // wide core-matmul outputs (out_bits != 8) are not in the hiding
     // protocol yet: refuse rather than prove a weaker relation
     for (st.ops) |op| if (op == .matmul and op.matmul.out_bits != 8) return error.Unsupported;
@@ -509,7 +564,7 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
         const rb1: u32 = @intCast(inf1.items.len);
         try inf1.append(a, TensorInfo.vec(lc));
         const masks: u32 = @intCast(inf1.items.len);
-        try inf1.append(a, TensorInfo.vec(lc + N_MASK_ROWS));
+        try inf1.append(a, TensorInfo.vec(lc + maskLog(try proxRows(cfg))));
         var rb2: u32 = NONE;
         if (has2) {
             rb2 = @intCast(inf2.items.len);
@@ -524,6 +579,7 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
         const N = @max(l1.log_total, l2.log_total);
         if (zks.Hp.entries(N, 2) * 4 > (@as(usize, 1) << AUX_LC)) return error.StatementShape;
         return .{
+            .kp = try proxRows(cfg),
             .nw = nw,
             .rem = rem,
             .rels = try rels.toOwnedSlice(a),
@@ -1075,9 +1131,15 @@ pub const WeightKey = struct {
     log_cols: u32,
     rows_used: usize,
     slots: u32,
+    /// proximity rows the table was committed for (Config.zk_prox_rows): sets its extra rows
+    kp: u32 = 1,
 
     fn shape(self: WeightKey, log_blowup: u32) zkp.Shape {
-        return .{ .log_cols = self.log_cols, .log_blowup = log_blowup, .slots = self.slots, .n_rows = self.rows_used + 2 * WPAD_ROWS };
+        return .{ .log_cols = self.log_cols, .log_blowup = log_blowup, .slots = self.slots, .n_rows = self.rows_used + wExtraRows(self.kp) };
+    }
+    /// The key's layout must be the one `cfg` commits (extra rows depend on zk_prox_rows).
+    fn check(self: WeightKey, cfg: proto.Config) !void {
+        if (self.kp != try proxRows(cfg)) return error.WeightKeyShape;
     }
 };
 
@@ -1089,9 +1151,11 @@ pub const ZkWeights = struct {
     log_cols: u32,
     rows_used: usize,
     /// extra M31 rows: 0..3 R_W (no longer read by any claim since review B ZK-3:
-    /// W hats are padded in the per-proof mask table), 4..7 proximity masks
+    /// W hats are padded in the per-proof mask table), then 4 proximity masks per
+    /// proximity row (4..7 at kp = 1)
     extra: []M31,
     com: zkp.Commitment,
+    kp: u32 = 1,
 
     pub fn deinit(self: *ZkWeights, a: std.mem.Allocator) void {
         a.free(self.offsets);
@@ -1107,7 +1171,7 @@ pub const ZkWeights = struct {
         return .{ .data = self.table, .log_rows = self.log_rows, .log_cols = self.log_cols, .rows_used = self.rows_used };
     }
     pub fn key(self: *const ZkWeights) WeightKey {
-        return .{ .root = self.com.root(), .infos = self.infos, .offsets = self.offsets, .log_rows = self.log_rows, .log_cols = self.log_cols, .rows_used = self.rows_used, .slots = self.com.shape.slots };
+        return .{ .root = self.com.root(), .infos = self.infos, .offsets = self.offsets, .log_rows = self.log_rows, .log_cols = self.log_cols, .rows_used = self.rows_used, .slots = self.com.shape.slots, .kp = self.kp };
     }
     /// View usable by model builders (forward pass only; has no commitment).
     pub fn plainView(self: *const ZkWeights) proto.WeightStore {
@@ -1142,13 +1206,14 @@ pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, inf
     defer tw.deinit(a);
     const ru = (lay.used + C - 1) >> @intCast(lc);
     var rng = proverRng();
-    const extra = try a.alloc(M31, 2 * WPAD_ROWS * C);
+    const kp = try proxRows(cfg);
+    const extra = try a.alloc(M31, wExtraRows(kp) * C);
     errdefer a.free(extra);
     rng.fillM31(extra);
     const m = pcs.Matrix(i8){ .data = table, .log_rows = lr, .log_cols = lc, .rows_used = ru };
     var com = try zkp.commit(i8, a, pool, &tw, &rng, m, extra, slots, wpcs(cfg).log_blowup);
     try com.enableBudget(a);
-    return .{ .infos = infos, .offsets = lay.offsets, .table = table, .log_rows = lr, .log_cols = lc, .rows_used = ru, .extra = extra, .com = com };
+    return .{ .infos = infos, .offsets = lay.offsets, .table = table, .log_rows = lr, .log_cols = lc, .rows_used = ru, .extra = extra, .com = com, .kp = kp };
 }
 
 /// Proximity of the hiding weight table, once per commitment (consumes n_queries of the budget).
@@ -1156,22 +1221,25 @@ pub fn proveWeightProximity(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Conf
     var tr = Transcript.initDomain("stwo-tensor-zk-weights-v1");
     tr.mixDigest(zw.com.root());
     const shapes = [_]zkp.Shape{zw.com.shape};
-    const pm = zkp.MaskRef{ .table = 0, .row = zw.rows_used + WPAD_ROWS };
+    if (zw.kp != try proxRows(cfg)) return error.WeightKeyShape;
+    const pm = zkp.MaskRef{ .table = 0, .row = zw.rows_used + WPAD_ROWS, .count = zw.kp };
     var co = try zkp.drawCoeffs(a, &tr, &shapes, &.{}, &.{}, pm);
     defer co.deinit(a);
-    const cv = [_][]const QM31{co.v[0][0]};
-    const rows = try zkp.combine(i8, a, pool, &zw.com, zw.tableMatrix(), zw.extra, &cv);
+    var cvb: [4][]const QM31 = undefined;
+    for (co.v, 0..) |o, i| cvb[i] = o[0];
+    const rows = try zkp.combine(i8, a, pool, &zw.com, zw.tableMatrix(), zw.extra, cvb[0..co.v.len]);
     const coms = [_]*const zkp.Commitment{&zw.com};
-    return finishAny(a, pool, &tr, cfg, wpcs(cfg), &coms, &co, &.{}, 1, try a.alloc(QM31, 0), rows);
+    return finishAny(a, pool, &tr, cfg, wpcs(cfg), &coms, &co, &.{}, zw.kp, try a.alloc(QM31, 0), rows);
 }
 
 pub fn verifyWeightProximity(a: std.mem.Allocator, cfg: proto.Config, key: WeightKey, proof: Opening) !void {
     try canonical.check(proof);
     var tr = Transcript.initDomain("stwo-tensor-zk-weights-v1");
     tr.mixDigest(key.root);
+    try key.check(cfg);
     const shapes = [_]zkp.Shape{key.shape(wpcs(cfg).log_blowup)};
     const roots = [_]Hash{key.root};
-    try verifyAny(a, &tr, cfg, wpcs(cfg), &shapes, &roots, &.{}, .{ .table = 0, .row = key.rows_used + WPAD_ROWS }, proof);
+    try verifyAny(a, &tr, cfg, wpcs(cfg), &shapes, &roots, &.{}, .{ .table = 0, .row = key.rows_used + WPAD_ROWS, .count = key.kp }, proof);
 }
 
 // ---------------------------------------------------------------------------
@@ -1201,12 +1269,12 @@ pub const WeightLink = struct {
 };
 
 fn linkGroup(a: std.mem.Allocator, tr: *Transcript, old: WeightKey, new: WeightKey) ![]zkp.Group {
-    if (old.log_rows != new.log_rows or old.log_cols != new.log_cols or old.rows_used != new.rows_used or old.slots != new.slots or old.infos.len != new.infos.len) return error.WeightLinkShape;
+    if (old.log_rows != new.log_rows or old.log_cols != new.log_cols or old.rows_used != new.rows_used or old.slots != new.slots or old.kp != new.kp or old.infos.len != new.infos.len) return error.WeightLinkShape;
     for (old.infos, new.infos, old.offsets, new.offsets) |x, y, ox, oy| if (!std.meta.eql(x, y) or ox != oy) return error.WeightLinkShape;
     const z = try a.alloc(QM31, old.log_rows + old.log_cols);
     tr.drawN(z);
     const eqr = try f.eqTable(a, z[0..old.log_rows], QM31.one());
-    const nr = old.rows_used + 2 * WPAD_ROWS;
+    const nr = old.rows_used + wExtraRows(old.kp);
     const ro = try a.alloc(QM31, nr);
     const rn = try a.alloc(QM31, nr);
     @memset(ro, QM31.zero());
@@ -1257,10 +1325,12 @@ pub fn proveWeightLink(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, o
     defer tw.deinit(a);
     // mask table: 4 group mask rows (+ 4 proximity mask rows in the recursive mode,
     // whose proximity row also covers this otherwise untested table)
-    const rec = (try zk2(cfg)) != null;
-    const mrows: u32 = if (rec) 3 else 2;
+    const rec = try weightProxRows(cfg);
+    const kp = try proxRows(cfg);
+    if (old.kp != kp) return error.WeightKeyShape;
+    const mrows: u32 = if (rec) log2Ceil(4 + 4 * @as(usize, kp)) else 2;
     const mdata = try randVec(ar, &rng, @as(usize, 1) << @intCast(old.log_cols + mrows));
-    const mm = pcs.Matrix(i32){ .data = mdata, .log_rows = mrows, .log_cols = old.log_cols };
+    const mm = pcs.Matrix(i32){ .data = mdata, .log_rows = mrows, .log_cols = old.log_cols, .rows_used = if (rec) 4 + 4 * @as(usize, kp) else 4 };
     var mcom = try zkp.commit(i32, a, pool, &tw, &rng, mm, &.{}, old.com.shape.slots, wp.log_blowup);
     defer mcom.deinit(a);
     var tr = linkTranscript(old.key(), new.key(), mcom.root());
@@ -1268,7 +1338,7 @@ pub fn proveWeightLink(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, o
     const mus = try a.alloc(QM31, 1);
     mus[0] = zkp.maskValue(i32, mm, 0, groups[0].col);
     const shapes = [_]zkp.Shape{ old.com.shape, new.com.shape, mcom.shape };
-    const prox: ?zkp.MaskRef = if (rec) .{ .table = 2, .row = 4 } else null;
+    const prox: ?zkp.MaskRef = if (rec) .{ .table = 2, .row = 4, .count = kp } else null;
     var co = try zkp.drawCoeffs(a, &tr, &shapes, groups, mus, prox);
     defer co.deinit(a);
     const rows = try combineMulti(a, pool, co, .{
@@ -1277,7 +1347,7 @@ pub fn proveWeightLink(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, o
         .{ .com = &mcom, .m = mm, .extra = @as([]const M31, &.{}) },
     });
     const coms = [_]*const zkp.Commitment{ &old.com, &new.com, &mcom };
-    const opening = try finishAny(a, pool, &tr, cfg, wp, &coms, &co, groups, @intFromBool(rec), mus, rows);
+    const opening = try finishAny(a, pool, &tr, cfg, wp, &coms, &co, groups, if (rec) kp else 0, mus, rows);
     return .{ .mask_root = mcom.root(), .opening = opening };
 }
 
@@ -1289,11 +1359,14 @@ pub fn verifyWeightLink(a: std.mem.Allocator, cfg: proto.Config, old: WeightKey,
     const wp = wpcs(cfg);
     var tr = linkTranscript(old, new, link.mask_root);
     const groups = try linkGroup(ar, &tr, old, new);
-    const rec = (try zk2(cfg)) != null;
-    const mshape = zkp.Shape{ .log_cols = old.log_cols, .log_blowup = wp.log_blowup, .slots = old.slots, .n_rows = if (rec) 8 else 4 };
+    const rec = try weightProxRows(cfg);
+    try old.check(cfg);
+    try new.check(cfg);
+    const kp = old.kp;
+    const mshape = zkp.Shape{ .log_cols = old.log_cols, .log_blowup = wp.log_blowup, .slots = old.slots, .n_rows = if (rec) 4 + 4 * @as(usize, kp) else 4 };
     const shapes = [_]zkp.Shape{ old.shape(wp.log_blowup), new.shape(wp.log_blowup), mshape };
     const roots = [_]Hash{ old.root, new.root, link.mask_root };
-    const prox: ?zkp.MaskRef = if (rec) .{ .table = 2, .row = 4 } else null;
+    const prox: ?zkp.MaskRef = if (rec) .{ .table = 2, .row = 4, .count = kp } else null;
     try verifyAny(ar, &tr, cfg, wp, &shapes, &roots, groups, prox, link.opening);
 }
 
@@ -1442,6 +1515,14 @@ fn mixStatement(tr: *Transcript, st: Statement, weight_root: Hash, cfg: proto.Co
         tr.mixU64(p.inner.pow_bits);
         tr.mixU64(p.inner_work_shift);
         tr.mixU64(p.prox_rows);
+    }
+    if (cfg.zk_prox_rows != 1 or cfg.zk_aux != null) {
+        // hiding proximity rows / aux opening parameters (default transcript unchanged)
+        tr.mixU64(0x7a6b_7072_6f78); // "zkprox"
+        tr.mixU64(cfg.zk_prox_rows);
+        const ap = auxParams(cfg).params;
+        tr.mixU64(ap.n_queries);
+        tr.mixU64(ap.pow_bits);
     }
     tr.mixU64(st.witness.len);
     for (st.witness) |t| {
@@ -1830,7 +1911,8 @@ pub fn provePublicWithAccumulators(
     const ar = arena_state.allocator();
     const wkey: ?WeightKey = if (zw) |w| w.key() else null;
     const plan = try makePlan(ar, st, wkey, cfg);
-    const rec = (try zk2(cfg)) != null;
+    // weight opening with proximity rows (recursive mode, or zk_prox_rows > 1)
+    const rec = try weightProxRows(cfg);
     var rng = proverRng();
 
     // --- accumulators, remainders, multiplicities
@@ -1945,11 +2027,12 @@ pub fn provePublicWithAccumulators(
     var com1 = try zkp.commit(i32, a, pool, &tw, &rng, m1, &.{}, plan.slots, cfg.pcs.log_blowup);
     defer com1.deinit(a);
     // aux table: batch hiding polynomial + its own masks
-    const aux_data = try randVec(ar, &rng, @as(usize, 16) << AUX_LC);
-    const maux = pcs.Matrix(i32){ .data = aux_data, .log_rows = 4, .log_cols = AUX_LC, .rows_used = AUX_ROWS };
+    const aux_lr = log2Ceil(auxRows(plan.kp));
+    const aux_data = try randVec(ar, &rng, @as(usize, 1) << @intCast(aux_lr + AUX_LC));
+    const maux = pcs.Matrix(i32){ .data = aux_data, .log_rows = aux_lr, .log_cols = AUX_LC, .rows_used = auxRows(plan.kp) };
     var auxtw = try pcs.Twiddles.init(a, AUX_LC + AUX_LB);
     defer auxtw.deinit(a);
-    var comx = try zkp.commit(i32, a, pool, &auxtw, &rng, maux, &.{}, auxParams().slots, AUX_LB);
+    var comx = try zkp.commit(i32, a, pool, &auxtw, &rng, maux, &.{}, auxParams(cfg).slots, AUX_LB);
     defer comx.deinit(a);
     // per-proof weight mask table
     var wmask_com: ?zkp.Commitment = null;
@@ -2267,14 +2350,14 @@ pub fn provePublicWithAccumulators(
     t0 = try std.time.Instant.now();
     const ospec = try openingSpec(ar, plan, bout.point, bout.proof);
     const mus = try a.alloc(QM31, 1);
-    mus[0] = zkp.maskValue(i32, m1, plan.maskRow() + 4, ospec.groups[0].col);
+    mus[0] = zkp.maskValue(i32, m1, plan.maskRow() + 4 * plan.kp, ospec.groups[0].col);
     const shapes = [2]zkp.Shape{ plan.shape(0, cfg.pcs.log_blowup), plan.shape(1, cfg.pcs.log_blowup) };
-    var co = try zkp.drawCoeffs(a, &tr, shapes[0..n_tabs], ospec.groups, mus, .{ .table = 0, .row = plan.maskRow() });
+    var co = try zkp.drawCoeffs(a, &tr, shapes[0..n_tabs], ospec.groups, mus, .{ .table = 0, .row = plan.maskRow(), .count = plan.kp });
     defer co.deinit(a);
     const rows = try combineTables(a, pool, co, .{ &com1, if (com2) |*c| c else null }, .{ m1, pcs.Matrix(i32){ .data = tab2, .log_rows = if (plan.has2) plan.lay[1].log_total - plan.lc else 0, .log_cols = plan.lc, .rows_used = plan.rowsUsed(1) } }, n_tabs);
     var coms_buf: [2]*const zkp.Commitment = .{ &com1, &com1 };
     if (com2) |*c| coms_buf[1] = c;
-    var opening = try finishAny(a, pool, &tr, cfg, cfg.pcs, coms_buf[0..n_tabs], &co, ospec.groups, 1, mus, rows);
+    var opening = try finishAny(a, pool, &tr, cfg, cfg.pcs, coms_buf[0..n_tabs], &co, ospec.groups, plan.kp, mus, rows);
     errdefer opening.deinit(a);
     // aux opening: sigma_b + zeta u_b on row 0 (zeta drawn after u_b is mixed)
     var aux_open: zkp.Opening = undefined;
@@ -2282,14 +2365,15 @@ pub fn provePublicWithAccumulators(
         const zeta = tr.draw();
         const xg = try auxGroup(ar, plan, bout.point, bout.proof, zeta);
         const xmus = try a.alloc(QM31, 1);
-        xmus[0] = zkp.maskValue(i32, maux, 5, xg[0].col);
+        xmus[0] = zkp.maskValue(i32, maux, 1 + 4 * plan.kp, xg[0].col);
         const xshapes = [_]zkp.Shape{comx.shape};
-        var xco = try zkp.drawCoeffs(a, &tr, &xshapes, xg, xmus, .{ .table = 0, .row = 1 });
+        var xco = try zkp.drawCoeffs(a, &tr, &xshapes, xg, xmus, .{ .table = 0, .row = 1, .count = plan.kp });
         defer xco.deinit(a);
-        const cv = [_][]const QM31{ xco.v[0][0], xco.v[1][0] };
-        const xrows = try zkp.combine(i32, a, pool, &comx, maux, &.{}, &cv);
+        var cvb: [5][]const QM31 = undefined;
+        for (xco.v, 0..) |o, i| cvb[i] = o[0];
+        const xrows = try zkp.combine(i32, a, pool, &comx, maux, &.{}, cvb[0..xco.v.len]);
         const xcoms = [_]*const zkp.Commitment{&comx};
-        aux_open = try zkp.finish(a, &tr, auxParams().params, &xcoms, xmus, xrows);
+        aux_open = try zkp.finish(a, &tr, auxParams(cfg).params, &xcoms, xmus, xrows);
     }
     errdefer aux_open.deinit(a);
     timings.witness_open_ns = nowNs(t0);
@@ -2306,7 +2390,7 @@ pub fn provePublicWithAccumulators(
         const wmus = try a.alloc(QM31, wg.len);
         for (wg, 0..) |g, gi| wmus[gi] = zkp.maskValue(i32, wmm, g.mask.row, g.col);
         const wshapes = [_]zkp.Shape{ w.key().shape(wpcs(cfg).log_blowup), wmask_com.?.shape };
-        const wprox: ?zkp.MaskRef = if (rec) .{ .table = 1, .row = wmaskGroupBase(plan) + 4 * ng } else null;
+        const wprox: ?zkp.MaskRef = if (rec) .{ .table = 1, .row = wmaskGroupBase(plan) + 4 * ng, .count = plan.kp } else null;
         var wco = try zkp.drawCoeffs(a, &tr, &wshapes, wg, wmus, wprox);
         defer wco.deinit(a);
         const r0 = try combineMulti(a, pool, wco, .{
@@ -2314,7 +2398,7 @@ pub fn provePublicWithAccumulators(
             .{ .com = &wmask_com.?, .m = wmm, .extra = @as([]const M31, &.{}) },
         });
         const wcoms = [_]*const zkp.Commitment{ &w.com, &wmask_com.? };
-        wopen = try finishAny(a, pool, &tr, cfg, wpcs(cfg), &wcoms, &wco, wg, @intFromBool(rec), wmus, r0);
+        wopen = try finishAny(a, pool, &tr, cfg, wpcs(cfg), &wcoms, &wco, wg, if (rec) plan.kp else 0, wmus, r0);
     }
     timings.weight_open_ns = nowNs(t0);
 
@@ -2463,7 +2547,7 @@ fn openingSpec(a: std.mem.Allocator, plan: Plan, point: []const QM31, bp: zks.Ma
     }
     _ = C;
     const groups = try a.alloc(zkp.Group, 1);
-    groups[0] = .{ .col = colA, .claims = claimsA, .mask = .{ .table = 0, .row = plan.maskRow() + 4 } };
+    groups[0] = .{ .col = colA, .claims = claimsA, .mask = .{ .table = 0, .row = plan.maskRow() + 4 * plan.kp } };
     return .{ .groups = groups };
 }
 
@@ -2480,7 +2564,7 @@ fn auxGroup(a: std.mem.Allocator, plan: Plan, point: []const QM31, bp: zks.Maske
     for (0..ne) |e| for (0..4) |k| {
         col[4 * e + k] = fs[e].add(zeta.mul(fe[e])).mul(zkp.basis(k));
     };
-    const rv = try a.alloc(QM31, AUX_ROWS);
+    const rv = try a.alloc(QM31, auxRows(plan.kp));
     @memset(rv, QM31.zero());
     rv[0] = QM31.one();
     const rows = try a.alloc([]const QM31, 1);
@@ -2488,7 +2572,7 @@ fn auxGroup(a: std.mem.Allocator, plan: Plan, point: []const QM31, bp: zks.Maske
     const claims = try a.alloc(zkp.Claim, 1);
     claims[0] = .{ .rows = rows, .value = bp.sigma.add(zeta.mul(bp.u_val)) };
     const groups = try a.alloc(zkp.Group, 1);
-    groups[0] = .{ .col = col, .claims = claims, .mask = .{ .table = 0, .row = 5 } };
+    groups[0] = .{ .col = col, .claims = claims, .mask = .{ .table = 0, .row = 1 + 4 * plan.kp } };
     return groups;
 }
 
@@ -2529,8 +2613,15 @@ fn weightGroupCount(plan: Plan, st: Statement, key: WeightKey) usize {
 /// Rows of the per-proof weight mask table: one fresh pad row per W hat (rows
 /// 0..n_wpad, ZK-3), then 4 group mask rows per group, plus 4 proximity mask rows in
 /// the recursive mode (its proximity row also tests the mask table).
+/// The per-proof weight opening (and the link proof) carries proximity rows:
+/// in the recursive mode, and in the flat mode when zk_prox_rows > 1 (then its
+/// proximity rows also test the per-proof mask table, security.md 11.2 fresh).
+pub fn weightProxRows(cfg: proto.Config) !bool {
+    return (try zk2(cfg)) != null or (try proxRows(cfg)) > 1;
+}
+
 fn wmaskRows(plan: Plan, st: Statement, key: WeightKey, rec: bool) usize {
-    return plan.n_wpad + 4 * weightGroupCount(plan, st, key) + @as(usize, if (rec) 4 else 0);
+    return plan.n_wpad + 4 * weightGroupCount(plan, st, key) + @as(usize, if (rec) 4 * plan.kp else 0);
 }
 
 /// First group-mask row of the weight mask table (after the W hats' pad rows).
@@ -2540,7 +2631,7 @@ fn wmaskGroupBase(plan: Plan) usize {
 
 fn weightGroup(a: std.mem.Allocator, plan: Plan, key: WeightKey, wcl: []const WClaim, max_groups: usize, wmr: usize) ![]zkp.Group {
     const lr = key.log_rows;
-    const nr = key.rows_used + 2 * WPAD_ROWS;
+    const nr = key.rows_used + wExtraRows(key.kp);
     var cols: std.ArrayList([]const QM31) = .empty;
     var members: std.ArrayList(std.ArrayList(zkp.Claim)) = .empty;
     for (wcl) |c| {
@@ -2681,22 +2772,22 @@ pub fn verifyPublic(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey
     const ospec = try openingSpec(ar, plan, bv.point, proof.batch);
     const shapes = [2]zkp.Shape{ plan.shape(0, cfg.pcs.log_blowup), plan.shape(1, cfg.pcs.log_blowup) };
     const roots = [2]Hash{ proof.root1, proof.root2 orelse proof.root1 };
-    try verifyAny(ar, &tr, cfg, cfg.pcs, shapes[0..n_tabs], roots[0..n_tabs], ospec.groups, .{ .table = 0, .row = plan.maskRow() }, proof.opening);
+    try verifyAny(ar, &tr, cfg, cfg.pcs, shapes[0..n_tabs], roots[0..n_tabs], ospec.groups, .{ .table = 0, .row = plan.maskRow(), .count = plan.kp }, proof.opening);
     {
         const aop = proof.aux_opening orelse return error.ProofShape;
         const zeta = tr.draw();
         const xg = try auxGroup(ar, plan, bv.point, proof.batch, zeta);
         var auxtw = try pcs.Twiddles.init(a, AUX_LC + AUX_LB);
         defer auxtw.deinit(a);
-        const xshapes = [_]zkp.Shape{auxShape()};
+        const xshapes = [_]zkp.Shape{auxShape(cfg, plan.kp)};
         const xroots = [_]Hash{proof.aux_root};
-        try zkp.verifyOpening(ar, &tr, auxParams().params, &auxtw, &xshapes, &xroots, xg, .{ .table = 0, .row = 1 }, aop);
+        try zkp.verifyOpening(ar, &tr, auxParams(cfg).params, &auxtw, &xshapes, &xroots, xg, .{ .table = 0, .row = 1, .count = plan.kp }, aop);
     }
 
     // weight opening
     if (proof.weight_opening) |wop| {
         const wk = wkey.?;
-        const rec = (try zk2(cfg)) != null;
+        const rec = try weightProxRows(cfg);
         const ng = weightGroupCount(plan, st, wk);
         const wmr = wmaskRows(plan, st, wk, rec);
         const wg = try weightGroup(ar, plan, wk, wclaims.items, ng, wmr);
@@ -2704,7 +2795,7 @@ pub fn verifyPublic(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey
         const mshape = zkp.Shape{ .log_cols = wk.log_cols, .log_blowup = wpcs(cfg).log_blowup, .slots = wk.slots, .n_rows = wmr };
         const wshapes = [_]zkp.Shape{ wshape, mshape };
         const wroots = [_]Hash{ wk.root, proof.wmask_root.? };
-        const wprox: ?zkp.MaskRef = if (rec) .{ .table = 1, .row = wmaskGroupBase(plan) + 4 * ng } else null;
+        const wprox: ?zkp.MaskRef = if (rec) .{ .table = 1, .row = wmaskGroupBase(plan) + 4 * ng, .count = plan.kp } else null;
         try verifyAny(ar, &tr, cfg, wpcs(cfg), &wshapes, &wroots, wg, wprox, wop);
     } else if (wclaims.items.len != 0) return error.ProofShape;
 }
@@ -2741,7 +2832,7 @@ pub fn secInfo(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?We
             return if (r.kind == .glu) 2 else 1;
         }
     }.f;
-    var out = SecInfo{ .witness = .{ plan.shape(0, cfg.pcs.log_blowup), plan.shape(1, cfg.pcs.log_blowup) }, .n_tabs = if (plan.has2) 2 else 1, .aux = auxShape() };
+    var out = SecInfo{ .witness = .{ plan.shape(0, cfg.pcs.log_blowup), plan.shape(1, cfg.pcs.log_blowup) }, .n_tabs = if (plan.has2) 2 else 1, .aux = auxShape(cfg, plan.kp) };
     if (plan.grels.len > 0) {
         for (plan.grels) |g| {
             var deg: f64 = 1;
@@ -2771,7 +2862,7 @@ pub fn secInfo(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?We
         if (has_matmul) {
             const lb = wpcs(cfg).log_blowup;
             out.weight = wk.shape(lb);
-            out.weight_mask = .{ .log_cols = wk.log_cols, .log_blowup = lb, .slots = wk.slots, .n_rows = wmaskRows(plan, st, wk, (try zk2(cfg)) != null) };
+            out.weight_mask = .{ .log_cols = wk.log_cols, .log_blowup = lb, .slots = wk.slots, .n_rows = wmaskRows(plan, st, wk, try weightProxRows(cfg)) };
         }
     }
     return out;

@@ -458,7 +458,7 @@ pub fn verify(
     var co = try zkp.drawCoeffs(a, tr, shapes, groups, proof.mus, prox);
     defer co.deinit(a);
     const n_out = co.v.len;
-    const k0: usize = @intFromBool(prox != null);
+    const k0: usize = zkp.nProx(prox);
     const pp = innerParams(outer, p2);
     const ish = innerShapeFor(outer, p2, n_out, lc);
     tr.mixDigest(proof.inner_root);

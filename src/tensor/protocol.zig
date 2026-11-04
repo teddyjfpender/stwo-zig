@@ -239,6 +239,14 @@ pub const Config = struct {
     /// remainder leaf claim is routed through a matmul / hadamard sumcheck at the
     /// GKR leaf point with a pad-masked accumulator hat (zk.md §4.7)
     zk_virtual_remainders: bool = false,
+    /// hiding mode: proximity rows per hiding outer opening (witness, aux,
+    /// weights, weight proximity, link), each masked by its own 4 mask rows.
+    /// k rows give the proximity term (R (E + 1)/|F|)^k (security.md 3.2, 11.2);
+    /// 1 (default) is the original protocol, byte for byte. At most 4.
+    zk_prox_rows: u32 = 1,
+    /// hiding mode: aux-table opening queries and PoW bits (null = zk.auxParams'
+    /// default: queries for 128 conjectured bits, no PoW). Slots follow the queries.
+    zk_aux: ?struct { n_queries: usize, pow_bits: u32 = 0 } = null,
     /// Security level (security.md section 10). `.custom` (default): the
     /// parameters above, whatever they are - every existing proof. Any other
     /// level fixes every soundness parameter (securityConfig) and needs the
