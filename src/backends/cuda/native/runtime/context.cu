@@ -428,7 +428,15 @@ extern "C" int stwo_exec_context_pool_trim(void *handle) {
         [&]() { return static_cast<int>(require_context(handle, &context)); },
         [&]() { return context->capture_active; },
         [&]() { return static_cast<int>(join_lanes(context)); },
-        [&]() { return static_cast<int>(cudaMemPoolTrimTo(context->pool, 0)); },
+        [&]() {
+            // Both lifetime pools: freed long-lived pages (retired setup,
+            // evicted domains) must not stay pinned in the long pool's
+            // reservation after an explicit phase trim.
+            cudaError_t trimmed = cudaMemPoolTrimTo(context->pool, 0);
+            if (trimmed == cudaSuccess && context->long_pool != nullptr)
+                trimmed = cudaMemPoolTrimTo(context->long_pool, 0);
+            return static_cast<int>(trimmed);
+        },
         static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE));
 }
 
