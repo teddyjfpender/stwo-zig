@@ -133,6 +133,40 @@ class BasketTests(unittest.TestCase):
         log.write_text("CPU work finished in1ms\n")
         self.assertEqual(B.gpu_diagnostics(log)["kernel_launches"], 0)
 
+    def test_recursive_assignment_counters_stay_separate_from_native_counters(self):
+        log = self.root / "producer.stderr"
+        log.write_text("GPU_GKR ordinal=0 gkr_kernel_launches=42\n"
+                       "GPU_GKR_SPANS traversal_ms=3.5\n"
+                       "GPU_OUTER_ASSIGNMENT_TIMING total_ns=9000000 seed_stream_ms=0.5 levels_stream_ms=7.0 launches=120000\n"
+                       "GPU_OUTER_ASSIGNMENT_TIMING total_ns=5000000 levels_stream_ms=4.0 launches=9000\n")
+        result = B.gpu_diagnostics(log)
+        self.assertEqual(result["kernel_launches"], 42)
+        self.assertEqual(result["device_ms"], 3.5)
+        assignment = result["outer_assignment"]
+        self.assertEqual(assignment["records"], 2)
+        self.assertEqual(assignment["kernel_launches"], 129000)
+        self.assertEqual(assignment["event_ms"], 11.5)
+        self.assertEqual(assignment["node_wall_ns"], 14000000)
+        self.assertIn("overlap", assignment["scope"])
+
+    def test_monitor_retains_activity_and_memory_when_utilization_is_unavailable(self):
+        monitor = B.DeviceMonitor("0,1")
+        def sample(*args, **kwargs):
+            monitor.stop.set()
+            return B.subprocess.CompletedProcess([], 0,
+                stdout="0, GPU-a, 100, 87\n0, GPU-a, 200, 13\n1, GPU-b, 300, N/A\n1, GPU-b, 400, 101\n2, GPU-c, 999, 100\n")
+        with patch.object(B.subprocess, "run", side_effect=sample):
+            monitor.run()
+        monitor.thread = threading.Thread(target=lambda: None)
+        monitor.thread.start()
+        result = monitor.finish()
+        self.assertEqual(result["errors"], [])
+        self.assertEqual(result["samples"], 4)
+        self.assertEqual(result["peak_used_bytes"], {"0": 200 << 20, "1": 400 << 20})
+        self.assertEqual(result["kernel_activity"]["0"], {"samples": 2, "mean_percent": 50, "min_percent": 13, "max_percent": 87})
+        self.assertEqual(result["kernel_activity"]["1"], {"samples": 0, "mean_percent": None, "min_percent": None, "max_percent": None})
+        self.assertIn("not SM occupancy", result["kernel_activity_scope"])
+
     def job(self, gpu):
         target = self.root / "run"
         request = self.root / "request.json"

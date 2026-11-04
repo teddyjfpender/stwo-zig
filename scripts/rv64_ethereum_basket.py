@@ -167,7 +167,12 @@ def job_for(block, entry, manifest, root, backend, output, profile):
 def gpu_diagnostics(path):
     """Actual backend evidence; GPU time is never inferred from process wall."""
     records = []
+    assignment = []
     for line in Path(path).read_text(errors="replace").splitlines():
+        if line.startswith("GPU_OUTER_ASSIGNMENT_TIMING "):
+            assignment.append({key: float(value) if "." in value else int(value)
+                               for key, value in re.findall(r"(\w+)=([0-9]+(?:\.[0-9]+)?)", line)})
+            continue
         if not line.startswith(("GPU_GKR_SPANS ", "GPU_GKR ", "GPU_COMPOSITION_TIMING ", "GPU_PCS_NATIVE ", "GPU_CPU_PROJECTION ")):
             continue
         fields = {key: float(value) if "." in value else int(value)
@@ -183,6 +188,12 @@ def gpu_diagnostics(path):
         elif r["stage"] == "GPU_PCS_NATIVE":
             device_ms += r.get("device_ns", 0) / 1e6
     return {"kernel_launches": launches, "device_ms": device_ms, "records": records,
+            "outer_assignment": {
+                "records": len(assignment),
+                "kernel_launches": sum(r.get("launches", 0) for r in assignment),
+                "event_ms": sum(r.get("seed_stream_ms", 0) + r.get("levels_stream_ms", 0) for r in assignment),
+                "node_wall_ns": sum(r.get("total_ns", 0) for r in assignment),
+                "scope": "Summed assignment event spans and node wall; concurrent nodes overlap. Separate from legacy GKR launch/device_ms counters; not GPU occupancy."},
             "launch_count_scope": "Source-derived GKR traversal only, not CUPTI; excludes other stages",
             "device_time_scope": "Summed GKR/composition CUDA-event spans and PCS resident time; includes enqueue gaps; excludes untimed stages and overlaps",
             "memory_scope": "Native logical counters; physical device peak is sampled separately"}
@@ -204,7 +215,14 @@ class DeviceMonitor:
                 for line in result.stdout.splitlines():
                     index, uuid, memory, utilization = [part.strip() for part in line.split(",")]
                     if int(index) in self.devices:
-                        self.samples.append({"device": int(index), "uuid": uuid, "memory_used_bytes": int(memory) * 1024 * 1024})
+                        try:
+                            active = int(utilization)
+                        except ValueError:
+                            active = None
+                        if active is not None and not 0 <= active <= 100:
+                            active = None
+                        self.samples.append({"device": int(index), "uuid": uuid, "memory_used_bytes": int(memory) * 1024 * 1024,
+                                             "kernel_active_percent": active})
             except (OSError, ValueError, subprocess.SubprocessError) as error:
                 if not self.errors:
                     self.errors.append(str(error))
@@ -213,8 +231,16 @@ class DeviceMonitor:
     def finish(self):
         self.stop.set()
         self.thread.join()
+        utilization = {}
+        for device in sorted(self.devices):
+            values = [s["kernel_active_percent"] for s in self.samples
+                      if s["device"] == device and s.get("kernel_active_percent") is not None]
+            utilization[str(device)] = {"samples": len(values), "mean_percent": sum(values) / len(values) if values else None,
+                                        "min_percent": min(values) if values else None, "max_percent": max(values) if values else None}
         return {"scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
                 "samples": len(self.samples), "errors": self.errors,
+                "kernel_activity": utilization,
+                "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
                 "peak_used_bytes": {str(device): max((s["memory_used_bytes"] for s in self.samples if s["device"] == device), default=None) for device in sorted(self.devices)}}
 
 
