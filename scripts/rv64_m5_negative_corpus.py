@@ -51,6 +51,12 @@ def rec(*names):
     return [f"recursion-om31/{n}" for n in names]
 
 
+def nth_fold(proof, i):
+    """i-th fold proof of the tree in file order (binary trees: 0 -> fold-000002, 1 -> fold-000005, as before; k-ary trees
+    name folds by their node index, diet-wire M6)."""
+    return "recursion-om31/" + sorted(p.name for p in (proof / "recursion-om31").glob("fold-*.proof"))[i]
+
+
 def flip(path, where):
     data = bytearray(path.read_bytes())
     offset = {"head": min(64, len(data) - 1), "mid": len(data) // 2, "tail": len(data) - 9}[where]
@@ -209,11 +215,11 @@ CASES = [
          what="tree.json: remove the first leaf node", mutate=lambda c: json_edit(c["proof"] / "recursion-om31/tree.json", lambda t: t["nodes"].pop(0))),
     # child VK / rung / class
     dict(id="V01-cross-class-fold", family="child-vk", expect="reject", today="m3",
-         what="fold-000005.proof copied over fold-000002.proof (different child classes)",
-         mutate=lambda c: shutil.copyfile(c["proof"] / rec("fold-000005.proof")[0], c["proof"] / rec("fold-000002.proof")[0])),
+         what="second fold proof copied over the first (binary: fold-000005 over fold-000002; different child classes)",
+         mutate=lambda c: shutil.copyfile(c["proof"] / nth_fold(c["proof"], 1), c["proof"] / nth_fold(c["proof"], 0))),
     dict(id="V02-cross-block-fold", family="child-vk", expect="reject", today="m3",
-         what="donor block fold-000002.proof in place of fold-000002.proof",
-         mutate=lambda c: shutil.copyfile(c["donor"] / rec("fold-000002.proof")[0], c["proof"] / rec("fold-000002.proof")[0])),
+         what="donor block's first fold proof in place of this block's first fold proof (binary: fold-000002)",
+         mutate=lambda c: shutil.copyfile(c["donor"] / nth_fold(c["donor"], 0), c["proof"] / nth_fold(c["proof"], 0))),
     dict(id="V03-cross-block-leaf", family="child-vk", expect="reject", today="m3",
          what="donor block leaf-000000.proof (other native VK, same family/position)",
          mutate=lambda c: shutil.copyfile(c["donor"] / rec("leaf-000000.proof")[0], c["proof"] / rec("leaf-000000.proof")[0])),

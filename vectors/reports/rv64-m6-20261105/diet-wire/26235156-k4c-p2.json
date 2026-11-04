@@ -1,0 +1,401 @@
+{
+ "schema": "rv64-m6-diet-receipt/v1",
+ "stream": "diet-wire",
+ "milestone": "M6",
+ "run": "26235156-2gpu-k4c-p2",
+ "block": 26235156,
+ "source_commit": "13e429783",
+ "assets": {
+  "driver": "2650f2739e8ffd9b922cccf77238546852c84a9ffacb5e0b16ec77f9234373d6",
+  "library": "0caf01442286e63b80c57a4e0811690115ec60103e957a4e5df9d48e01ca37d6",
+  "receiver": "8fc782bd582e1d41f8d46bf3a7ba5d28efa98bb441d226c073096f98d4fb29e4",
+  "recursive_receiver": "8fc782bd582e1d41f8d46bf3a7ba5d28efa98bb441d226c073096f98d4fb29e4"
+ },
+ "environment_overrides": {
+  "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+  "STWO_RV64_GPU_CPU_REPLAY": "1",
+  "STWO_RV64_CORE_SINGLE_STREAM": "1",
+  "STWO_RV64_DEVICE_ARENA": "1",
+  "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1"
+ },
+ "loadavg": {
+  "start": {
+   "1m": 52.52,
+   "5m": 26.1,
+   "15m": 19.64,
+   "unix": 1793828154.759057
+  },
+  "end": {
+   "1m": 33.89,
+   "5m": 27.15,
+   "15m": 20.76,
+   "unix": 1793828270.918617
+  }
+ },
+ "label": "M (one observation) except committed_cells = D (measured row logs x component_facts widths)",
+ "outer_profile": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
+ "fold_arity": 4,
+ "outer_shape": "exact",
+ "nodes": 15,
+ "leaves": 11,
+ "folds": 4,
+ "stages_s": {
+  "request_wall_s": 33.004,
+  "capture_s": 2.427,
+  "setup_s": 9.998,
+  "native_prove_s": 5.338,
+  "native_verify_s": 1.235,
+  "native_total_before_report_s": 17.885,
+  "recursion_s": 15.097
+ },
+ "recursion_total_s": 15.092869929,
+ "dag_wall_s": 14.902347359,
+ "lane_device_stage_s": [
+  7.851697713,
+  8.010719704
+ ],
+ "device_stage_gpu_s": 15.862417417,
+ "lane_device_stage_occupancy": 0.5322120413271733,
+ "device_peak_gb": 31.503417344,
+ "arena_overruns": 8,
+ "largest_overrun_gb": 11.240738728,
+ "committed_cells": {
+  "total": 24061855488,
+  "leaves": 16631309056,
+  "folds": 7430546432,
+  "per_node": [
+   {
+    "node": 2,
+    "kind": "leaf",
+    "logs": [
+     18,
+     23,
+     20,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 584532224,
+    "interaction": 1179781120,
+    "pp_gate_columns": 103809024,
+    "total": 1868122368
+   },
+   {
+    "node": 0,
+    "kind": "leaf",
+    "logs": [
+     18,
+     23,
+     20,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 584532224,
+    "interaction": 1179781120,
+    "pp_gate_columns": 103809024,
+    "total": 1868122368
+   },
+   {
+    "node": 1,
+    "kind": "leaf",
+    "logs": [
+     18,
+     23,
+     20,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 584532224,
+    "interaction": 1179781120,
+    "pp_gate_columns": 103809024,
+    "total": 1868122368
+   },
+   {
+    "node": 3,
+    "kind": "leaf",
+    "logs": [
+     18,
+     23,
+     19,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 574046464,
+    "interaction": 1154615296,
+    "pp_gate_columns": 101187584,
+    "total": 1829849344
+   },
+   {
+    "node": 6,
+    "kind": "leaf",
+    "logs": [
+     14,
+     23,
+     19,
+     20,
+     22,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 350765312,
+    "interaction": 691275776,
+    "pp_gate_columns": 51904512,
+    "total": 1093945600
+   },
+   {
+    "node": 5,
+    "kind": "leaf",
+    "logs": [
+     14,
+     23,
+     19,
+     20,
+     22,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 350765312,
+    "interaction": 691275776,
+    "pp_gate_columns": 51904512,
+    "total": 1093945600
+   },
+   {
+    "node": 7,
+    "kind": "leaf",
+    "logs": [
+     14,
+     23,
+     19,
+     20,
+     22,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 350765312,
+    "interaction": 691275776,
+    "pp_gate_columns": 51904512,
+    "total": 1093945600
+   },
+   {
+    "node": 8,
+    "kind": "leaf",
+    "logs": [
+     14,
+     23,
+     19,
+     20,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 568869120,
+    "interaction": 1127483392,
+    "pp_gate_columns": 98041856,
+    "total": 1794394368
+   },
+   {
+    "node": 11,
+    "kind": "leaf",
+    "logs": [
+     14,
+     23,
+     19,
+     20,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 568869120,
+    "interaction": 1127483392,
+    "pp_gate_columns": 98041856,
+    "total": 1794394368
+   },
+   {
+    "node": 10,
+    "kind": "leaf",
+    "logs": [
+     14,
+     23,
+     19,
+     20,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 568869120,
+    "interaction": 1127483392,
+    "pp_gate_columns": 98041856,
+    "total": 1794394368
+   },
+   {
+    "node": 12,
+    "kind": "leaf",
+    "logs": [
+     13,
+     21,
+     18,
+     19,
+     21,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 158843136,
+    "interaction": 347277312,
+    "pp_gate_columns": 25952256,
+    "total": 532072704
+   },
+   {
+    "node": 4,
+    "kind": "fold",
+    "logs": [
+     16,
+     23,
+     20,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 583745792,
+    "interaction": 1178208256,
+    "pp_gate_columns": 103809024,
+    "total": 1865763072
+   },
+   {
+    "node": 9,
+    "kind": "fold",
+    "logs": [
+     16,
+     23,
+     20,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 583745792,
+    "interaction": 1178208256,
+    "pp_gate_columns": 103809024,
+    "total": 1865763072
+   },
+   {
+    "node": 13,
+    "kind": "fold",
+    "logs": [
+     16,
+     23,
+     20,
+     20,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 579551488,
+    "interaction": 1153042432,
+    "pp_gate_columns": 100663296,
+    "total": 1833257216
+   },
+   {
+    "node": 14,
+    "kind": "fold",
+    "logs": [
+     16,
+     23,
+     20,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 583745792,
+    "interaction": 1178208256,
+    "pp_gate_columns": 103809024,
+    "total": 1865763072
+   }
+  ]
+ },
+ "proof_bytes": {
+  "root": 750136,
+  "all_node_proofs": 11144520,
+  "tree_json": 366570
+ },
+ "receiver": {
+  "accepted": true,
+  "status": "accepted",
+  "receiver_sha256": "8fc782bd582e1d41f8d46bf3a7ba5d28efa98bb441d226c073096f98d4fb29e4",
+  "gpu_disabled": {
+   "CUDA_VISIBLE_DEVICES": "",
+   "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+   "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+   "STWO_RV64_FOLD_CLASS_CACHE": "0"
+  },
+  "wall_s": 43.831822748
+ }
+}

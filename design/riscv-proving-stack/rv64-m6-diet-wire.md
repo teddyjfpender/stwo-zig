@@ -20,6 +20,11 @@ runs of one binary.*
 | fold message | v2 digest with version word `(3 << 8) \| 2`; `classKey` binds the arity (CV1) |
 | T_rec outer_profile id | `@intFromEnum + 1` = 6 (existing ids unchanged, pinned by test) |
 
+**Second named profile `m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1`** (components `kary-v1` k = 4 and `merkle-cap-v1`
+c = 3 on fold circuits; domain `stwo/circuit/native-om31/m6-diet-k4-cap3-q108-p20-fold4/lens-v1`; T_rec id 7): same PCS and
+shape rules, arity 4 as a profile constant, fold child verifiers stop at an 8-node Merkle cap (§5). This is the stage that
+pays: −26 % / −31 % committed recursion cells and −25..−34 % recursion GPU work on the dev blocks (§3b).
+
 Soundness: nothing new. The k-ary fold is the fold v2 argument with k children (`rv64-m5-binding.md` §4, the k-ary lemma,
 reviewed "no issue"); arity is a class constant and the receiver re-derives the plan from the leaf count and the profile.
 A diet proof under an r1 receiver (or the reverse) fails at the first outer authority because the domain differs
@@ -56,11 +61,45 @@ M5: per-node host preparation (graph 0.2–1.0 s + host plan 0.7–1.9 s per nod
 gate it; device-stage occupancy is 0.54–0.69. The cell diet turns into wall time only once hint-tape / enqueue / sched
 remove the host gaps (their M6 levers). The root proof grows 0.6–5 % because the root verifies up to 3 children.
 
+## 3b. The two named profiles on this tree's binaries [M] (receipts `*-k3-p1`, `*-k4c-p1`, `*-r1-p2`, `*-k4c-p2`, `*-p3`)
+
+Driver and receiver built from this branch (6a6d95e9f); CUDA library = M5 `0caf0144` (CUDA sources unchanged by this
+branch; this tree's nvcc link segfaulted once and was not retried). One-shot `rv64_m3_pod.py bench`, fresh cache-disabled
+receiver per run. p2 ran with the negative corpus in parallel (1-min load 34–53): A/B within p2 is interleaved, absolute
+times are not quotable.
+
+| | 26235156 r1 (p2) | 26235156 k4-cap3 (p1 / p2) | 24628607 r1 (p2) | 24628607 k3 (p1) | 24628607 k4-cap3 (p1 / p2) |
+|---|---:|---:|---:|---:|---:|
+| nodes | 21 | **15** | 33 | 26 | **23** |
+| committed recursion cells [D] | 32.70 G | **24.06 G (×0.736)** | 51.62 G | 41.20 G | **35.79 G (×0.693)** |
+| fold cells [D] | 16.07 G | 7.43 G | 26.13 G | 15.71 G | 10.31 G |
+| device-stage GPU-s | 21.22 | 13.95 / 15.86 | 32.11 | 24.74 | **21.59 / 22.04** |
+| recursion stage | 17.40 s | 12.76 / 15.10 s | 26.21 s | 20.58 s | 20.21 / 21.20 s |
+| root proof | 748,536 B | 750,136 B | 706,424 B | 743,768 B | 708,696 B |
+| fresh full-tree receiver | accepted, 48.5 s | accepted, 34.7 / 43.8 s | accepted, 69.7 s | accepted, 54.0 s | accepted, 50.3 / 52.7 s |
+| device peak (NVML) | 31.5 GB | 31.5 GB | 31.5 GB | 31.5 GB | 31.5 GB |
+
+The 4-ary fold of four leaves needs **7,767,120 G rows** (k-ary r1 without the cap: 8,680,080), the [D] estimate of §5
+was 7.77 M. Every fold keeps the leaf shape (eval_log 24), so the device peak is unchanged.
+
+Gate evidence [M]:
+- negative corpus v3 (`--format m3`, full-tree receiver, fresh process per case): k4-cap3 **42/42** on both dev blocks,
+  k3 42/42 (26235156; 24628607 in the receipts), 0 unexpected accepts, 0 crashes. V01/V02 were made k-ary aware (they
+  named binary fold files; binary trees pick the same files as before).
+- cross-profile (DW07, `cross.sh`): a k4-cap3 proof under r1 / k3 receivers and a k3 proof under the k4-cap3 receiver →
+  `MissingRecursiveNodeProof` (plan differs); an r1+arity-3 proof under the k3 receiver and a k3 proof under r1+arity-3
+  → `Om31CircuitWireProfile` (same plan, domain differs); `STWO_RV64_FOLD_ARITY=2` under k4-cap3 →
+  `Om31ProfileFoldArityMismatch` (clean exit 1); the control accepts.
+- root-only (`derive-vk-tables` / `verify-root-candidate`, fold-v3 files): **fails on k-ary trees** with
+  `VkDeriveLeafCoverage`: `root_verify.zig` `recordLeaf/recordFold/foldClassKey/foldDigest` and the sink are binary
+  (`[2]Bridge.Child`) and the k-ary verify path does not feed the sink. The full-tree receiver (today's `--audit`
+  equivalent) accepts. Owner: fold-v3.
+
 ## 4. What the M7 levers need (measured blockers)
 
 | lever | status today [M] | what unlocks it |
 |---|---|---|
-| 4-ary folds | OOM: blake_g_gate 2^23 + 3.5 % → 2^24 | ≈ 3.5 % fewer G rows per fold (§5) or a split Blake instance (AIR roster change) |
+| 4-ary folds | **fits with merkle-cap-v1** (7.77 M G rows); without the cap OOM (2^23 + 3.5 % → 2^24) | done (§3b) |
 | `m3_b4_q51_p26` outer profile (k = 3) | OOM on the first leaf: interaction tree, 304 columns, LDE at blowup 4 requests 5.93 G words (23.7 GB), `GPU_TRACE_ALLOCATION_FAILURE tree=2` | outer GKR: the four GKR-bound components drop 240 of 304 interaction columns and add 64 binding columns → 128 columns, ≈ 2.5 G words (10 GB) [D] |
 | outer GKR | not wireable this session (§6) | |
 | fused Blake one-instance | not started (needs a 12th outer component + 2 tables) | sequenced after outer GKR (blake-gadget review: ships with GKR) |
