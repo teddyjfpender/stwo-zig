@@ -163,3 +163,42 @@ class OffhostQualification(unittest.TestCase):
         with patch.object(O.B, "measure", side_effect=reprove), self.assertRaisesRegex(ValueError, "device proof counts"):
             self.invoke()
         self.assertFalse((self.root / "qualification/result.json").exists())
+
+    def remote_request(self):
+        request = O.B.load(self.request)
+        request.update(elf="/workspace/original/guest.elf", input="/workspace/original/input.bin")
+        O.B.atomic_json(self.request, request)
+        self.plan["jobs"][0]["request_sha256"] = O.B.sha(self.request)
+        O.B.atomic_json(self.plan_path, self.plan)
+        pending = O.B.load(self.case / "produced.json")
+        pending["plan_sha256"] = O.R.plan_identity(self.plan)
+        O.B.atomic_json(self.case / "produced.json", pending)
+    def mapped_invoke(self, mapping):
+        return O.qualify(self.plan_path, self.case, 1, 1, self.request, self.assets["driver"], self.assets["library"], self.root / "qualification", self.assets["receiver"], O.B.sha(self.assets["receiver"]), lock=self.root / "receiver.lock", guest_paths=mapping)
+    def test_explicit_paths_are_hashed_and_only_operational_copy_changes(self):
+        self.remote_request()
+        before = self.request.read_bytes()
+        def measure(*args, **kwargs):
+            operational = O.B.load(args[0][7])
+            self.assertEqual(operational["elf"], str(self.assets["elf"].resolve()))
+            self.assertEqual(operational["input"], str(self.assets["input"].resolve()))
+            self.assertNotIn("STWO_ZIG_RV64_SETUP_CACHE", args[3])
+            saved = self.request
+            self.request = Path(args[0][7])
+            try: return self.measure(*args, **kwargs)
+            finally: self.request = saved
+        with patch.dict(O.os.environ, {"STWO_ZIG_RV64_SETUP_CACHE": "/tmp/untrusted-cache"}), patch.object(O.B, "measure", side_effect=measure):
+            result = self.mapped_invoke({"elf":self.assets["elf"],"input":self.assets["input"]})
+        self.assertTrue(result["accepted"])
+        self.assertEqual(self.request.read_bytes(), before)
+        self.assertEqual(result["request_overrides"]["elf"]["from"], "/workspace/original/guest.elf")
+        self.assertEqual(result["request_overrides"]["input"]["from"], "/workspace/original/input.bin")
+    def test_mutated_mapped_bytes_refuse_before_receiver(self):
+        self.remote_request();self.assets["input"].write_bytes(b"changed")
+        with patch.object(O.B,"measure") as launch, self.assertRaisesRegex(ValueError,"guest/input"):
+            self.mapped_invoke({"elf":self.assets["elf"],"input":self.assets["input"]})
+        launch.assert_not_called()
+    def test_unknown_mapping_refuses_before_receiver(self):
+        with patch.object(O.B,"measure") as launch, self.assertRaisesRegex(ValueError,"unknown guest/input"):
+            self.mapped_invoke({"secret":self.assets["elf"]})
+        launch.assert_not_called()
