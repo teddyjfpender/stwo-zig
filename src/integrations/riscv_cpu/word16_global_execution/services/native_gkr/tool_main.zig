@@ -17,10 +17,13 @@ const Slot = struct { name: []const u8, log: u32, local_terms: u32, ram_queries:
 const Part = struct { kind: []const u8, log: u32, local_queries: u32 = 0, global_queries: u32 = 0, global_relation: []const u8 };
 const Census = struct { cpus: []struct { slots: []Slot }, truths: []struct { family: []const u8, parts: []Part } };
 
-fn kindIndex(relation: []const u8) usize {
+/// Strict relation-name mapping (adversarial review A2): an unknown or "none" relation with nonzero
+/// queries is an error, never silently folded into RAM.
+fn kindIndex(relation: []const u8) !usize {
+    if (std.mem.eql(u8, relation, "ram")) return @intFromEnum(R.Kind.ram);
     if (std.mem.eql(u8, relation, "kio")) return @intFromEnum(R.Kind.kio);
     if (std.mem.eql(u8, relation, "wire")) return @intFromEnum(R.Kind.wire);
-    return @intFromEnum(R.Kind.ram);
+    return error.UnknownNativeGkrRelation;
 }
 fn specsFor(a: std.mem.Allocator, census: Census, which: []const u8) ![]R.ComponentSpec {
     var list = std.ArrayList(R.ComponentSpec).empty;
@@ -31,7 +34,11 @@ fn specsFor(a: std.mem.Allocator, census: Census, which: []const u8) ![]R.Compon
             var terms: [R.KINDS]u32 = @splat(0);
             terms[0] = s.local_terms;
             terms[@intFromEnum(R.Kind.ram)] = s.ram_queries;
-            if (s.other_queries != 0) terms[kindIndex(s.other_relation)] = s.other_queries;
+            if (s.other_queries != 0) {
+                const k = try kindIndex(s.other_relation);
+                if (terms[k] != 0) return error.UnknownNativeGkrRelation; // never overwrite the RAM count
+                terms[k] = s.other_queries;
+            }
             try list.append(a, .{ .origin = .{ 0x100, @intCast(k) }, .row_log = s.log, .terms = terms });
         }
     } else if (std.mem.startsWith(u8, which, "truth-")) {
@@ -40,7 +47,7 @@ fn specsFor(a: std.mem.Allocator, census: Census, which: []const u8) ![]R.Compon
         for (census.truths[i].parts, 0..) |p, k| {
             var terms: [R.KINDS]u32 = @splat(0);
             terms[0] = p.local_queries;
-            if (p.global_queries != 0) terms[kindIndex(p.global_relation)] = p.global_queries;
+            if (p.global_queries != 0) terms[try kindIndex(p.global_relation)] = p.global_queries;
             try list.append(a, .{ .origin = .{ 0x200, @intCast(k) }, .row_log = p.log, .terms = terms });
         }
     } else return error.UnknownProof;

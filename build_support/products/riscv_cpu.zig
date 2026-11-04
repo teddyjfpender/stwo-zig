@@ -41,7 +41,7 @@ pub fn addProduct(context: Context) void {
         .{ "security-policy", "src/integrations/riscv_cpu/rv64_security_policy_test_root.zig", 23 },
         .{ "om-classic-control", "src/integrations/riscv_cpu/rv64_om_classic_control_test_root.zig", 1 },
         .{ "services-gkr-local", "src/integrations/riscv_cpu/rv64_services_gkr_local_test_root.zig", 40 },
-        .{ "native-gkr", "src/integrations/riscv_cpu/rv64_native_gkr_test_root.zig", 10 },
+        .{ "native-gkr", "src/integrations/riscv_cpu/rv64_native_gkr_test_root.zig", 15 },
         .{ "logup-gkr-prototype", "src/integrations/riscv_cpu/rv64_logup_gkr_prototype_test_root.zig", 22 },
         .{ "selective-openings", "src/integrations/riscv_cpu/rv64_selective_opening_test_root.zig", 7 },
         .{ "word16-program-metadata", "src/integrations/riscv_cpu/rv64_word16_program_metadata_test_root.zig", 13 },

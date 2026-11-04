@@ -48,7 +48,7 @@ interaction is already 1.8x below ZisK per gas; v1 makes it 3.7x below.
 - The roster, the term counts and the row logs are functions of receiver-derived geometry: sumcheck lengths, mask
   counts and root counts are class constants, never proof values (profiles finding 4.2(4)).
 - Strict canonical order `(component, kind)`; any reordering or relabelling is refused (`NativeGkrRosterOrder/Shape`).
-- Bounds: 64 instances (CUDA `batch_max_oracles`; must rise to 128 for production, §8), 28 variables, lane log 10.
+- Bounds: 64 instances (CUDA `batch_max_oracles`; must rise to 128 for production, §8), 28 variables, lane log 12 (`MAX_LANE_LOG`; secp add truth uses 11).
 
 ### 3.2 Layout
 Lane-major, `index = lane * 2^row_log + row` (outer-gkr convention). With the GKR point convention (instance `g` reads
@@ -64,7 +64,7 @@ Continuing the native proof's raw-Blake OM31 channel at the point where M4 draws
 2. `mixU32s([MAGIC, VERSION, ordinal])`, then statement, FIXED root, MAIN root and the 32-byte shared seed `chi`;
 3. `mixU32s(roster.header)` (every component's origin, row log and four term counts; every instance's
    `(component, kind, lane_log)`), then `mixFelts([salt])`;
-4. the batched LogUp-GKR of the shared engine verifier kernel (roots mixed at layer 0 before any layer challenge);
+4. the batched LogUp-GKR of the shared engine verifier kernel (each instance's root is mixed when the instance joins the batch, i.e. at layer `L - n_g`, before that layer's `alpha, lambda` and before every challenge of its own point; see §9 A7);
 5. `gamma`, then `rho_g` for every instance (late binding), then the INTER commitment (binding pairs only).
 All draws are **strict** (outer-gkr §3: a draw with any raw word `>= 2p` rejects the section; the prover re-salts).
 
@@ -106,7 +106,7 @@ union error is ≤ 2^-193 (2^-198 strict). GKR-specific terms add under 0.001 bi
 which M4's classic global LogUp already carries. **v1 is not a field-size risk.** The obligations are binding and
 statement placement:
 
-1. **Claims before consumers.** The roots are mixed at layer 0 before the first layer challenge; `gamma, rho` are drawn
+1. **Claims before consumers.** Each root is mixed when its instance joins the batch (layer `L - n_g`), before the `alpha, lambda` of that layer and before every coordinate of its own GKR point (each layer's point is fresh from that layer's sumcheck); `gamma, rho` are drawn
    after the whole section; the INTER commitment follows them. An adversary fixes every terminal claim before seeing
    `rho, gamma`.
 2. **Binding theorem (per component).** Suppose the committed MAIN rows define fractions `n_g, d_g` and the prover's
@@ -208,3 +208,40 @@ Left, in order:
 3. Receiver: global claims from roots; canon-native chain `/v2`; profiles registry entry and identity bump.
 4. Leaf hook (canon-vk) with outer-gkr's gadget.
 5. Fresh-receiver acceptance and the NG corpus at tier R on real proofs of the two dev blocks.
+
+## 9. Adversarial review (2026-11-04, head 48f38757b)
+
+Forgery attempts against the v1 section, CPU reference receiver. Tests `native GKR v1 adversarial A*` in
+`services/native_gkr/tests.zig` (suite minimum raised 10 -> 15); 26235156 completeness and tier-R receipts in
+`vectors/reports/rv64-m5-20261104/native-gkr/review/`.
+
+| id | attack | result |
+|---|---|---|
+| A1 | roster that drops a nonzero relation group (fractions bound by nothing) | **was accepted by `Roster.validate`** (only order and per-instance term match were checked; `derive` was complete, but `verify`/`decode` trust `validate`). **Fixed:** every nonzero `(component, kind)` term count must own exactly one instance (`NativeGkrRosterShape`), as outer-gkr's `validate` already does. |
+| A2 | census relation name outside {ram, kio, wire} | tool `specsFor` folded it **silently into RAM** and could overwrite the RAM count. **Fixed:** `UnknownNativeGkrRelation`. Tool only; v1 shapes unchanged (re-derived, identical to `<block>-v1-shape.json`). |
+| A3 | forged real global leaf, self-consistent GKR | refused: exposed RAM claim does not close, and MAIN binding fails even if the closure is lied about. |
+| A4 | replay under another ordinal / statement / FIXED / MAIN | refused (transcript scope). |
+| A5 | relabel local group as RAM (move local mass into an exposed claim), same wire length | refused (header). |
+| A6 | swap roots of two same-shape instances | refused. |
+| A7 | root of a late-joining instance chosen after earlier layer challenges | not a forgery: the kernel mixes a root when its instance joins (not at layer 0, as §3.3/§4(1) previously said; corrected); every challenge that reduces it is drawn after, and its point uses only coordinates drawn after it joined. |
+
+Open obligations for production (not forgeries today, because nothing selects v1):
+- **Characteristic / bits gate.** v1 has no `requireSecurity` analogue of outer-gkr's (`requireOuterGkrBits` and
+  `requireOuterGkrCharacteristic`). The per-relation mass bounds of M4 (`source_bounds`, `manifest`
+  `GlobalGkrCharacteristicBound`, the receiver's `GlobalRamCharacteristicBound` / `CombinedLookupMassExceeded`) must stay on
+  the v1 receiver path, extended to the truth-local relations that move from classic LogUp to GKR. Before admission, add a
+  roster-level gate with the multiplicity weights from the source bounds, not with multiplicity 1.
+- **Local lookup elements.** §3.3 does not say where v1 draws the local relation elements (`alpha, z`). They must be drawn after MAIN,
+  in the per-proof channel, before the section header, for example right after `chi`. Freeze this in the AIR change.
+- **Roster authority.** The v3 truth term counts (secp, arith256, sha256) in the census are estimates (`queries_exact = false`).
+  The production roster must come from the emitters themselves (`fractions.zig`, `global_cpu.queriesFor`, the truth catalogues),
+  with an assertion that the term counts equal the emitter counts. With A1 in place, a missing group is refused, but a group
+  that is smaller than its emitter is not.
+- **Ledger wording.** The `a` in the tuple term (58 RAM / 50 KIO) is the query count of `sponge.call`, not a tuple arity. It is an
+  overestimate, so the bound is still conservative. The salt is unrestricted on the wire. That is ordinary Fiat-Shamir grinding
+  (each attempt costs a full transcript), so read the union error as per random-oracle query.
+- **AIR binding (§8.1) and leaf hook (§8.4).** The reference `requireBinding` recomputes the prefix from the receiver's
+  fractions. The AIR must constrain the eq recurrence and endpoints with `z_row` equal to the last `r` coordinates of the
+  **final** GKR point, use the M4 cyclic form (`target_per_row = boundary / 2^r`, `binding.prefixResidualFor`), and evaluate
+  padded lanes as the constant `gamma * w_g(lane)`. The leaf must take `z_row`, `w_g`, `rho`, `gamma` and the boundary from its
+  in-circuit GKR replay, never from the native proof.

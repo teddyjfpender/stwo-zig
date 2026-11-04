@@ -85,6 +85,16 @@ pub const Roster = struct {
             if (previous) |p| if (p.component > inst.component or (p.component == inst.component and @intFromEnum(p.kind) >= @intFromEnum(inst.kind))) return error.NativeGkrRosterOrder;
             previous = inst;
         }
+        // Completeness: every nonzero (component, kind) term count owns exactly one instance. With the
+        // strict order and the per-instance term match above, no relation group can be dropped from the
+        // batch (a dropped group's fractions would be bound by nothing). Adversarial review A1.
+        for (self.components, 0..) |c, ci| {
+            var want: usize = 0;
+            for (c.terms) |t| want += @intFromBool(t != 0);
+            var got: usize = 0;
+            for (self.instances) |inst| got += @intFromBool(inst.component == ci);
+            if (got != want) return error.NativeGkrRosterShape;
+        }
     }
     /// Committed binding pairs = components that own at least one instance.
     pub fn bindingPairs(self: *const Roster) usize {

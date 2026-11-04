@@ -264,3 +264,116 @@ test "native GKR v1 transcript: verifier continues exactly where the prover's re
         return error.TestUnexpectedResult;
     } else |_| {}
 }
+
+// ------------------------------------------------------------------------------------------------
+// Adversarial review (2026-11-04, head 48f38757b): forgery attempts against the v1 section.
+
+fn verifyRejects(a: std.mem.Allocator, roster: *const R.Roster, sc: *const S.Scope, section: *const S.Section) bool {
+    var ch = channel();
+    if (S.verify(a, &ch, roster, sc, section)) |vv| {
+        var owned = vv;
+        owned.deinit(a);
+        return false;
+    } else |_| return true;
+}
+
+test "native GKR v1 adversarial A1: a roster that drops a nonzero relation group is refused" {
+    const a = std.testing.allocator;
+    var roster = try R.derive(a, &toySpecs());
+    defer roster.deinit();
+    // Drop every instance of one kind in turn (e.g. bridge.keccak's KIO group): order and per-instance
+    // term checks still pass, only the completeness rule can refuse it.
+    for (0..roster.instances.len) |drop| {
+        const kept = try a.alloc(R.Instance, roster.instances.len - 1);
+        var n: usize = 0;
+        for (roster.instances, 0..) |inst, i| if (i != drop) {
+            kept[n] = inst;
+            n += 1;
+        };
+        var forged = R.Roster{ .allocator = a, .components = try a.dupe(R.ComponentSpec, roster.components), .instances = kept };
+        defer forged.deinit();
+        try std.testing.expectError(error.NativeGkrRosterShape, forged.validate());
+    }
+}
+
+test "native GKR v1 adversarial A3: a forged REAL global leaf (valid GKR) fails cross-proof closure and the MAIN binding" {
+    const a = std.testing.allocator;
+    var roster = try R.derive(a, &toySpecs());
+    defer roster.deinit();
+    var honest = try inputsFor(a, &roster, 0x5eed);
+    defer honest.deinit(a);
+    var forged = try inputsFor(a, &roster, 0x5eed);
+    defer forged.deinit(a);
+    // Instance 2 = ls RAM group (2 real lanes, row log 5): lane 0, row 4 is a real fraction.
+    try std.testing.expectEqual(R.Kind.ram, roster.instances[2].kind);
+    forged.numerators[2][4] = forged.numerators[2][4].add(M31.one());
+    const ch = channel();
+    const sc = scope();
+    var section = try S.proveCpu(a, &ch, &roster, &sc, &forged);
+    defer section.deinit(a);
+    const words = try S.encode(a, &roster, &section);
+    defer a.free(words);
+    const honest_claims = try globalSums(&roster, &honest);
+    const forged_claims = try globalSums(&roster, &forged);
+    try std.testing.expect(!honest_claims.ram.eql(forged_claims.ram));
+    // Self-consistent forgery (prover's own leaves) is a valid GKR ...
+    try std.testing.expect(accepts(a, &roster, words, &forged, forged_claims));
+    // ... but the exposed RAM claim does not close against the honest block, and the binding
+    // against the committed MAIN fractions fails even when the closure is lied about.
+    try std.testing.expect(!accepts(a, &roster, words, &honest, honest_claims));
+    try std.testing.expect(!accepts(a, &roster, words, &honest, forged_claims));
+}
+
+test "native GKR v1 adversarial A4: a section replayed under another ordinal, statement, FIXED or MAIN root is refused" {
+    const a = std.testing.allocator;
+    var f = try Fixture.init(a);
+    defer f.deinit(a);
+    const sc = scope();
+    try std.testing.expect(!verifyRejects(a, &f.roster, &sc, &f.section));
+    var o = sc;
+    o.ordinal += 1;
+    try std.testing.expect(verifyRejects(a, &f.roster, &o, &f.section));
+    o = sc;
+    o.statement[31] ^= 0x80;
+    try std.testing.expect(verifyRejects(a, &f.roster, &o, &f.section));
+    o = sc;
+    o.fixed[0] ^= 1;
+    try std.testing.expect(verifyRejects(a, &f.roster, &o, &f.section));
+    o = sc;
+    o.main[17] ^= 4;
+    try std.testing.expect(verifyRejects(a, &f.roster, &o, &f.section));
+}
+
+test "native GKR v1 adversarial A5: relabelling a local group as RAM (moving local mass into an exposed claim) is refused" {
+    const a = std.testing.allocator;
+    var f = try Fixture.init(a);
+    defer f.deinit(a);
+    const words = try S.encode(a, &f.roster, &f.section);
+    defer a.free(words);
+    var specs = toySpecs();
+    // cpu component: 14 local terms become 14 RAM terms (same instance count, same shape, same wire length).
+    specs[0].terms = .{ 0, 14, 0, 0 };
+    var other = try R.derive(a, &specs);
+    defer other.deinit();
+    try std.testing.expectEqual(S.wordCount(&f.roster), S.wordCount(&other));
+    try std.testing.expect(!accepts(a, &other, words, &f.inputs, f.honest));
+    var shifted = f.honest;
+    shifted.ram = shifted.ram.add(O.one());
+    try std.testing.expect(!accepts(a, &other, words, &f.inputs, shifted));
+}
+
+test "native GKR v1 adversarial A6: swapping the roots of two same-shape instances is refused" {
+    const a = std.testing.allocator;
+    var f = try Fixture.init(a);
+    defer f.deinit(a);
+    const words = try S.encode(a, &f.roster, &f.section);
+    defer a.free(words);
+    const mutated = try a.dupe(u32, words);
+    defer a.free(mutated);
+    // Roots start at word 12, 16 words per instance. Instances 3 (initial RAM) and 6 (bridge kio): swap.
+    const r0 = 12 + 16 * 3;
+    const r1 = 12 + 16 * 6;
+    for (0..16) |k| std.mem.swap(u32, &mutated[r0 + k], &mutated[r1 + k]);
+    try std.testing.expect(!std.mem.eql(u32, words, mutated));
+    try std.testing.expect(!accepts(a, &f.roster, mutated, &f.inputs, f.honest));
+}
