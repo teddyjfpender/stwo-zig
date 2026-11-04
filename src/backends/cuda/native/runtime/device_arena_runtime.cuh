@@ -221,7 +221,7 @@ struct Device {
   uint64_t hw_printed = 0;
   // accounting
   uint64_t live = 0, live_hw = 0, live_long = 0, live_long_hw = 0, live_small = 0, live_small_hw = 0;
-  uint64_t phys_chunks_hw = 0;  // chunks mapped (live or pending) high-water
+  uint64_t phys_chunks_hw = 0;  // chunks in use (small slab + mapped large) high-water
   uint64_t allocations = 0, releases = 0, overruns = 0, largest_overrun = 0, used_at_overrun = 0;
   uint64_t free_chunks_at_overrun = 0, small_spills = 0;
   uint64_t map_calls = 0, unmap_calls = 0, pending_host_syncs = 0;
@@ -626,7 +626,7 @@ inline cudaError_t allocate(int ordinal, cudaStream_t stream, uint32_t lane_coun
   if (d->phys_chunks_hw * d->chunk >= d->hw_printed + (uint64_t(1) << 30)) {
     d->hw_printed = d->phys_chunks_hw * d->chunk;
     fprintf(stderr, "GPU_ARENA_HW device=%d physical_high_water_bytes=%llu live_bytes=%llu long_bytes=%llu t_ms=%.1f\n",
-            ordinal, (unsigned long long)(d->phys_chunks_hw * d->chunk + d->small_bytes),
+            ordinal, (unsigned long long)(d->phys_chunks_hw * d->chunk),
             (unsigned long long)d->live, (unsigned long long)d->live_long, now_ms());
   }
   *out = d->base + offset;
@@ -947,7 +947,7 @@ inline void print_summaries() {
             "reuse_hits=%llu map_misses=%llu steals=%llu stolen_chunks=%llu mapped_free_bytes=%llu "
             "init_ms=%.3f free_before_bytes=%llu free_after_stack_bytes=%llu stack_after=%llu t_ms=%.1f\n",
             i, (unsigned long long)d->capacity(), (unsigned long long)d->chunk,
-            (unsigned long long)(d->phys_chunks_hw * d->chunk + d->small_bytes),
+            (unsigned long long)(d->phys_chunks_hw * d->chunk),
             (unsigned long long)d->live_hw, (unsigned long long)d->live_long_hw,
             (unsigned long long)d->live_small_hw, (unsigned long long)d->small_bytes,
             (unsigned long long)d->allocations, (unsigned long long)d->releases,

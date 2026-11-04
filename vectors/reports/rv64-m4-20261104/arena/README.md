@@ -90,13 +90,41 @@ Physical budget per 5090 (from `GPU_ARENA_INIT`): 33.68 GB total; **1.18 GB** co
 **3.01 GB** kernel local memory for the 12,544 B/thread stack worst kernel (`secp witness<Add>`);
 2 GiB reserve; arena carve 27.31 GB.
 
-- **Live high-water inside the arena: 26.4-26.8 GB per device on both blocks.** That includes the PCS idle
+- **Live high-water inside the arena: 26.4-26.8 GB per device on both blocks with the auto carve; 23.6-24.1
+  GB under the 23 GiB cap.** That includes the PCS idle
   cache, which grows to fill whatever the device offers. The 33.65 GB NVML "peak" of the pool path was
   reservation, not need.
 - Overruns at the carve ceiling are absorbed by the existing PCS idle-cache eviction (11-14 per device on
   607), exactly as pool OOMs were before (4 recovered pool OOMs plus trims). Proofs stay identical.
-- **Cap sweep** (`scripts/rv64_m4_arena_sweep.py`, presets `presets-v1.json`, fingerprint gate = byte
-  identity vs M3, native-slowdown gate 15%): see `sweep-156-a7.json` and the section below.
+- Whole-device footprint = arena physical high-water + outside (context/modules + local memory):
+  **31.50 GB** with the auto carve (vs 33.65 GB NVML-sampled on the pool path), **28.88 GB** with a 23 GiB cap.
+  (An earlier print counted the 512 MiB slab twice; the rows/receipt post-processing and the code are fixed.)
+
+### Cap sweep: the binding request [M]
+
+`scripts/rv64_m4_arena_sweep.py` (presets `presets-v1.json`; gate = byte identity vs M3 plus native slowdown
+<= 15%) on 26235156, result `26235156-sweep-v1.json`, plus one 23 GiB probe:
+
+| arena cap | device total | result | request | native | recursion | load1 |
+|---|---:|---|---:|---:|---:|---:|
+| auto (27.31 GB) | 31.50 GB | identical | 34.76 | 5.06 | — | 74.4 |
+| **23 GiB (24.70 GB)** | **28.88 GB** | **identical**, 17 recovered overruns | **34.16** | 5.17 | 17.41 | 34.9 |
+| 22 GiB (23.62 GB) | 27.81 GB | **fails**: `CudaAllocationFailed` | — | — | — | 61.3 |
+| 18 GiB, 18 GiB + idle cache 0 | ≤ 23.5 GB | fail (same request) | — | — | — | — |
+
+The binding request is a single **18.44 GB composition arena** (rl+2 role: 3,516 columns at `eval_log` 20,
+= 14.75 GB of evaluations + 3.69 GB of staged coefficients). It fails while **4.32 GB of leases** must stay
+live; the idle PCS cache was already evicted to 0. A request can only succeed when
+live + 18.44 GB <= carve, so presets alone cannot go below about 28.9 GB per device.
+**The M4 GPU0 ≤ 28 GB gate is therefore not met by presets.** The plan's kill rule applies to "presets
+only". There are two concrete, separately measurable diet items, not done here:
+
+1. **Direct extension for degree el-2 columns** in `resident_composition.zig`. The staged-coefficient
+   copy (3.69 GB) disappears, as M3's change 4 did for el-1 columns (16.84 → 11.24 GB). This needs
+   `stwo_lde_n2b_columns_on` to accept a compact el-2 source (a kernel change outside the AOT catalogues).
+   Expected device total about 25.2 GB [E].
+2. **Local-memory diet:** the 12,544 B/thread stack worst kernel reserves 3.01 GB per GPU. Bounding it at
+   4 KB frees about 2 GB [E]. Together with item 1 that gives about 23 GB, inside the ≤24 GB target [E].
 
 ## Gates (plan M4) — status
 
@@ -107,7 +135,7 @@ Physical budget per 5090 (from `GPU_ARENA_INIT`): 33.68 GB total; **1.18 GB** co
 | proofs byte-identical | **met** on both dev blocks (all native, bundle, tree and recursive proofs vs the M3 receipts) |
 | fresh receiver accepts | **met** on both dev blocks (a7 bench: 607 69.4 s, 156 45.2 s receiver wall) |
 | device peak counters per stage | `GPU_ARENA_INIT/HW/OVERRUN/SUMMARY` + arena-backed `GPU_DEVICE_PEAK pool_used_bytes`; see the receipts |
-| GPU0 peak <= 28 GB | see the sweep section |
+| GPU0 peak <= 28 GB | **not met: 28.88 GB** is the minimum feasible hard cap (23 GiB arena), byte-identical with no slowdown. 22 GiB fails on the 18.44 GB composition request; see the sweep section for the two diet items |
 | measured request delta | 607: 53.87 → 51.93 s; 156: 35.92 → 34.97 (a6) / 35.96 (a7) s. **[M] single observations on a host at load 28-65; within noise**, not claimed as a speedup. The robust deltas are the counters above and the driver ms in each receipt |
 
 ## Integration notes
