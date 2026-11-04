@@ -7,6 +7,7 @@
 
 #include "common/provider_compat.cuh"
 #include "context_options.h"
+#include "pool_trim_policy.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -407,6 +408,16 @@ extern "C" int stwo_exec_context_sync(void *handle) {
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
     return static_cast<int>(join_lanes(context));
+}
+
+extern "C" int stwo_exec_context_pool_trim(void *handle) {
+    StwoNativeCudaContext *context = nullptr;
+    return stwo::cuda::runtime::trim_pool(
+        [&]() { return static_cast<int>(require_context(handle, &context)); },
+        [&]() { return context->capture_active; },
+        [&]() { return static_cast<int>(join_lanes(context)); },
+        [&]() { return static_cast<int>(cudaMemPoolTrimTo(context->pool, 0)); },
+        static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE));
 }
 
 extern "C" int stwo_exec_context_memory_info(
