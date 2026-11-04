@@ -10,6 +10,8 @@ pub const Report = struct {
     diagnostic: bool = true,
     accepted: bool = false,
     gpu_supported: bool = false,
+    inferred_suffix_matches_captured_provenance: bool = false,
+    inferred_prefix_plan_exact: bool = false,
     full_variables: usize,
     prefix_variables: usize,
     ranged_variables: usize,
@@ -62,6 +64,24 @@ pub fn compare(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), pro
     const original_fingerprint = fingerprint(ctx);
     var compact = try Padding.Plan.build(a, ctx, provenance);
     defer compact.deinit();
+    const inferred = try @import("derived_suffix_experiment.zig").derive(ctx);
+    if (inferred.prefix != provenance.before.variables or inferred.full != ctx.circuit.n_vars or inferred.add != provenance.before.add or inferred.triple != provenance.before.triple or inferred.m31 != provenance.before.m31 or inferred.blake != provenance.before.blake) return error.DerivedSuffixGeometryMismatch;
+    var ordinal: usize = 0;
+    for (compact.ranges) |range| if (range.count != 0) {
+        const actual = inferred.ranges[ordinal];
+        if (actual.first != range.first or actual.count != range.count or actual.value != range.value().toM31Array()[0].toU32()) return error.DerivedSuffixRangeMismatch;
+        ordinal += 1;
+    };
+    if (ordinal != inferred.count) return error.DerivedSuffixRangeMismatch;
+    var derived_plan = try inferred.build(a, ctx, null);
+    var transferred = false;
+    defer if (!transferred) derived_plan.deinit();
+    if (derived_plan.tasks.len != compact.prefix_plan.tasks.len or derived_plan.seeds.len != compact.prefix_plan.seeds.len or !std.mem.eql(usize, derived_plan.level_ends, compact.prefix_plan.level_ends)) return error.DerivedSuffixPlanMismatch;
+    for (derived_plan.tasks, compact.prefix_plan.tasks) |left, right| if (!std.meta.eql(left, right)) return error.DerivedSuffixPlanMismatch;
+    for (derived_plan.seeds, compact.prefix_plan.seeds) |left, right| if (!std.meta.eql(left, right)) return error.DerivedSuffixPlanMismatch;
+    compact.prefix_plan.deinit();
+    compact.prefix_plan = derived_plan;
+    transferred = true;
     const compact_plan_ns = timer.lap();
     try std_testing_expect_unsupported.check(&compact);
     const old_values = try Schedule.evaluate(a, ctx, ordinary);
@@ -96,7 +116,7 @@ pub fn compare(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), pro
         removed += range.gate_count;
     }
     if (removed != ordinary.tasks.len - compact.prefix_plan.tasks.len or ordinary.seeds.len != compact.prefix_plan.seeds.len or ranged != ctx.circuit.n_vars - provenance.before.variables) return error.PaddingRangeCensusMismatch;
-    return .{ .full_variables = ctx.circuit.n_vars, .prefix_variables = provenance.before.variables, .ranged_variables = ranged, .ordinary_tasks = ordinary.tasks.len, .compact_tasks = compact.prefix_plan.tasks.len, .eliminated_tasks = removed, .descriptors = compact.ranges.len, .ordinary_seeds = ordinary.seeds.len, .compact_seeds = compact.prefix_plan.seeds.len, .ordinary_levels = ordinary.level_ends.len, .compact_levels = compact.prefix_plan.level_ends.len, .all_assignment_values_exact = true, .assignment_sha256 = assignment_digest, .full_padded_circuit_checked = true, .original_circuit_unchanged = true, .original_circuit_sha256 = original_fingerprint, .pp_columns_exact = columns, .pp_cells_exact = cells, .compact_plan_ns = compact_plan_ns, .ordinary_evaluate_ns = ordinary_evaluate_ns, .compact_evaluate_ns = compact_evaluate_ns, .assignment_comparison_ns = assignment_comparison_ns, .pp_comparison_ns = pp_comparison_ns, .total_ns = total.read() };
+    return .{ .inferred_suffix_matches_captured_provenance = true, .inferred_prefix_plan_exact = true, .full_variables = ctx.circuit.n_vars, .prefix_variables = provenance.before.variables, .ranged_variables = ranged, .ordinary_tasks = ordinary.tasks.len, .compact_tasks = compact.prefix_plan.tasks.len, .eliminated_tasks = removed, .descriptors = compact.ranges.len, .ordinary_seeds = ordinary.seeds.len, .compact_seeds = compact.prefix_plan.seeds.len, .ordinary_levels = ordinary.level_ends.len, .compact_levels = compact.prefix_plan.level_ends.len, .all_assignment_values_exact = true, .assignment_sha256 = assignment_digest, .full_padded_circuit_checked = true, .original_circuit_unchanged = true, .original_circuit_sha256 = original_fingerprint, .pp_columns_exact = columns, .pp_cells_exact = cells, .compact_plan_ns = compact_plan_ns, .ordinary_evaluate_ns = ordinary_evaluate_ns, .compact_evaluate_ns = compact_evaluate_ns, .assignment_comparison_ns = assignment_comparison_ns, .pp_comparison_ns = pp_comparison_ns, .total_ns = total.read() };
 }
 // This is an admission assertion, not a test-only std.testing dependency.
 const std_testing_expect_unsupported = struct {
