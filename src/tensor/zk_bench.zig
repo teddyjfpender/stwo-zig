@@ -63,6 +63,19 @@ fn twoLevelFromEnv() !?t.pcs2.Params {
     };
 }
 
+/// Hiding proximity rows / aux opening from ZK_PROX [ZK_AUX_Q ZK_AUX_POW] (unset = defaults).
+fn zkExtrasFromEnv(c: *proto.Config) !void {
+    // ZK_PRESET=matched|matched_rec: the named preset (zk.applyPreset); the
+    // positional query/blowup/PoW arguments and ZK_* overrides are then ignored
+    if (std.posix.getenv("ZK_PRESET")) |v| {
+        c.* = zk.applyPreset(c.*, std.meta.stringToEnum(zk.Preset, v) orelse return error.UnknownPreset);
+        return;
+    }
+    c.zk_prox_rows = @intCast(try envU("ZK_PROX", 1));
+    if (std.posix.getenv("ZK_AUX_Q")) |_| c.zk_aux = .{ .n_queries = @intCast(try envU("ZK_AUX_Q", 0)), .pow_bits = @intCast(try envU("ZK_AUX_POW", 0)) };
+    if (c.two_level) |*p| p.prox_rows = @intCast(try envU("ZK_INNER_PROX", p.prox_rows));
+}
+
 fn pcsJson(out: anytype, tl: ?t.pcs2.Params) !void {
     if (tl) |p| {
         try out.print("\"pcs\":\"zk_pcs2\",\"depth\":{d},\"inner_queries\":{d},\"inner_log_blowup\":{d},\"inner_pow\":{d},\"inner_conjectured_bits\":{d:.1},\"inner_query_bits_unique\":{d:.1},", .{ p.depth, p.inner.n_queries, p.inner.log_blowup, p.inner.pow_bits, p.inner.conjecturedBits(), p.inner.provenBits() });
@@ -101,13 +114,17 @@ pub fn main(a: std.mem.Allocator, args: [][:0]u8) !void {
 fn runProduct(a: std.mem.Allocator, args: [][:0]u8) !void {
     const ln = try std.fmt.parseInt(u32, args[2], 10);
     const threads: usize = if (args.len > 3) try std.fmt.parseInt(usize, args[3], 10) else 1;
-    const queries: usize = if (args.len > 4) try std.fmt.parseInt(usize, args[4], 10) else 54;
-    const lb: u32 = if (args.len > 5) try std.fmt.parseInt(u32, args[5], 10) else 2;
-    const pow: u32 = if (args.len > 6) try std.fmt.parseInt(u32, args[6], 10) else 20;
+    var queries: usize = if (args.len > 4) try std.fmt.parseInt(usize, args[4], 10) else 54;
+    var lb: u32 = if (args.len > 5) try std.fmt.parseInt(u32, args[5], 10) else 2;
+    var pow: u32 = if (args.len > 6) try std.fmt.parseInt(u32, args[6], 10) else 20;
     var pool: f.Pool = undefined;
     try pool.init(a, threads);
     defer pool.deinit();
-    const pc = proto.Config{ .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow }, .weight_log_cols = 2, .witness_log_cols_max = 14, .gkr_threads = threads, .hiding = true, .two_level = try twoLevelFromEnv(), .accel = bench_accel };
+    var pc = proto.Config{ .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow }, .weight_log_cols = 2, .witness_log_cols_max = 14, .gkr_threads = threads, .hiding = true, .two_level = try twoLevelFromEnv(), .accel = bench_accel };
+    try zkExtrasFromEnv(&pc);
+    queries = pc.pcs.n_queries;
+    lb = pc.pcs.log_blowup;
+    pow = pc.pcs.pow_bits;
     var built = try model.buildProduct(a, ln, 5);
     defer built.deinit(a);
     const st = built.statement();
@@ -142,7 +159,7 @@ fn runProduct(a: std.mem.Allocator, args: [][:0]u8) !void {
     msg_len = (@as(usize, 1) << @intCast(ws.log_cols)) + ws.slots;
     const lc = ws.log_cols;
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"product\",\"hiding\":true,\"log_n\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"witness_log_cols\":{d},", .{ ln, threads, queries, lb, pow, lc });
+    try out.print("{{\"bench\":\"product\",\"hiding\":true,\"log_n\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"witness_log_cols\":{d},\"preset\":\"{s}\",\"zk_prox_rows\":{d},\"aux_queries\":{d},\"aux_pow\":{d},", .{ ln, threads, queries, lb, pow, lc, std.posix.getenv("ZK_PRESET") orelse "none", pc.zk_prox_rows, zk.auxParams(pc).params.n_queries, zk.auxParams(pc).params.pow_bits });
     try pcsJson(out, pc.two_level);
     if (lvs.len > 0) {
         try out.print("\"witness_levels\":[", .{});
@@ -161,9 +178,9 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     const ld = try std.fmt.parseInt(u32, args[3], 10);
     const lf = try std.fmt.parseInt(u32, args[4], 10);
     const threads: usize = if (args.len > 5) try std.fmt.parseInt(usize, args[5], 10) else 12;
-    const queries: usize = if (args.len > 6) try std.fmt.parseInt(usize, args[6], 10) else 64;
-    const lb: u32 = if (args.len > 7) try std.fmt.parseInt(u32, args[7], 10) else 2;
-    const pow: u32 = if (args.len > 8) try std.fmt.parseInt(u32, args[8], 10) else 20;
+    var queries: usize = if (args.len > 6) try std.fmt.parseInt(usize, args[6], 10) else 64;
+    var lb: u32 = if (args.len > 7) try std.fmt.parseInt(u32, args[7], 10) else 2;
+    var pow: u32 = if (args.len > 8) try std.fmt.parseInt(u32, args[8], 10) else 20;
     var pool: f.Pool = undefined;
     try pool.init(a, threads);
     defer pool.deinit();
@@ -173,23 +190,29 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     // Weight table (committed once): higher blowup, slots = C_w, queries for 128 conjectured bits.
     // hiding weight table may be wider than the smallest output dim (one opening group per such matmul)
     const wlc: u32 = if (std.posix.getenv("ZK_WEIGHT_LC")) |v| try std.fmt.parseInt(u32, v, 10) else @min(ld + 2, 14);
-    const wlb: u32 = if (std.posix.getenv("ZK_WEIGHT_LB")) |v| try std.fmt.parseInt(u32, v, 10) else 4;
+    var wlb: u32 = if (std.posix.getenv("ZK_WEIGHT_LB")) |v| try std.fmt.parseInt(u32, v, 10) else 4;
     const wslots: u32 = if (std.posix.getenv("ZK_WEIGHT_SLOTS")) |v| try std.fmt.parseInt(u32, v, 10) else @as(u32, 1) << @intCast(wlc - 2);
     const wbits = std.math.log2(@as(f64, @floatFromInt(@as(u64, 1) << @intCast(wlc + wlb))) / @as(f64, @floatFromInt((@as(u64, 1) << @intCast(wlc)) + wslots)));
     const wq_auto: usize = @intFromFloat(@ceil((128.0 - @as(f64, @floatFromInt(pow))) / wbits));
-    const wq: usize = if (std.posix.getenv("ZK_WEIGHT_Q")) |v| try std.fmt.parseInt(usize, v, 10) else wq_auto;
-    const pc = proto.Config{
+    var wq: usize = if (std.posix.getenv("ZK_WEIGHT_Q")) |v| try std.fmt.parseInt(usize, v, 10) else wq_auto;
+    var pc = proto.Config{
         .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow },
         .weight_log_cols = wlc,
         .witness_log_cols_max = 14,
         .gkr_threads = threads,
         .hiding = true,
         .weight_mask_slots = wslots,
-        .weight_pcs = .{ .log_blowup = wlb, .n_queries = wq, .pow_bits = pow },
+        .weight_pcs = .{ .log_blowup = wlb, .n_queries = wq, .pow_bits = @intCast(try envU("ZK_WEIGHT_POW", pow)) },
         .two_level = try twoLevelFromEnv(),
         .zk_virtual_remainders = (try envU("ZK_VIRTUAL", 0)) != 0,
         .accel = bench_accel,
     };
+    try zkExtrasFromEnv(&pc);
+    queries = pc.pcs.n_queries;
+    lb = pc.pcs.log_blowup;
+    pow = pc.pcs.pow_bits;
+    wlb = zk.wpcs(pc).log_blowup;
+    wq = zk.wpcs(pc).n_queries;
     const winfos = model.mlpWeightInfos(cfg);
     var wdata: [3][]i8 = undefined;
     for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 100 + i, -8, 7);
@@ -257,7 +280,7 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     const pw = queryBitsUnique(queries, wml, @intCast(wtlc + lb), pow);
     const pk = queryBitsUnique(wq, kml, key.log_cols + wlb, pow);
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"mlp\",\"hiding\":true,\"metal\":{},\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_mask_slots\":{d},\"weight_log_blowup\":{d},\"weight_queries\":{d},\"weight_log_cols\":{d},\"witness_log_cols\":{d},\"public_io\":{},\"fused\":{},\"virtual_remainders\":{},", .{ bench_accel != null, lt, ld, lf, threads, queries, lb, pow, pc.weight_mask_slots, wlb, wq, wlc, wtlc, public_io, fused, pc.zk_virtual_remainders });
+    try out.print("{{\"bench\":\"mlp\",\"hiding\":true,\"metal\":{},\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_mask_slots\":{d},\"weight_log_blowup\":{d},\"weight_queries\":{d},\"weight_log_cols\":{d},\"witness_log_cols\":{d},\"public_io\":{},\"fused\":{},\"virtual_remainders\":{},\"preset\":\"{s}\",\"zk_prox_rows\":{d},\"aux_queries\":{d},\"aux_pow\":{d},\"weight_pow\":{d},", .{ bench_accel != null, lt, ld, lf, threads, queries, lb, pow, pc.weight_mask_slots, wlb, wq, wlc, wtlc, public_io, fused, pc.zk_virtual_remainders, std.posix.getenv("ZK_PRESET") orelse "none", pc.zk_prox_rows, zk.auxParams(pc).params.n_queries, zk.auxParams(pc).params.pow_bits, zk.wpcs(pc).pow_bits });
     try pcsJson(out, pc.two_level);
     try out.print("\"commit_weights_s\":{d:.4},\"weight_proximity_s\":{d:.4},\"weight_proximity_verify_s\":{d:.4},\"weight_proximity_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
     try out.print("\"conjectured_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},\"query_bits_unique\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},", .{ cw, ck, pw, pk });

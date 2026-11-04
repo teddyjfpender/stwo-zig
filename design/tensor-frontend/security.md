@@ -1248,3 +1248,84 @@ Reading:
 * The flat weight opening is weaker than the recursive one (31.3 vs 46.7 bits
   with work, 11.3 vs 26.7 without): the per-proof mask table has no proximity
   row there, so `W`'s commit-time distance `delta_key` is paid twice.
+
+### 11.5 Matched presets (branch `codex/tensor-zk-matched`): k proximity rows, aux knobs
+
+**What capped 11.4.** Each hiding opening had one proximity row (`R (E + 1)/|F|`,
+~2^-100 for the toy witness), the aux opening had 38 queries and no PoW, and the
+query counts were sized for conjectured bits.
+
+**Changes.** `Config.zk_prox_rows = k` (default 1): each hiding outer opening
+(witness, aux, per-proof weights, commit-time weight proximity, link) sends `k`
+proximity rows, row `i` with its own `beta_i` and its own 4 mask rows (`beta_mu_i`).
+The rows are independent, so by 3.2 the proximity term is `(R (E + 1)/|F|)^k`.
+Each row is masked by mask rows used nowhere else: row `i` gives the other proximity
+rows' masks coefficient 0 (`zk_pcs.drawCoeffs`). With random cross coefficients the
+`4k x 4k` M31 block from the proximity masks to the `k` rows is generic and singular
+with probability ~1/p = 2^-31 per opening, revealing a fixed combination of data rows;
+block diagonal it is invertible iff every `beta_mu_i != 0`. Soundness keeps the
+`k`-th power: row `i` tests `[D; M_i]` (`D` every row but the other rows' masks), the
+`k` events are independent, and `D` far makes each `[D; M_i]` far. So the zero-knowledge argument
+is the one in zk.md 3.3 applied `k` times (one more rare coin, `beta_mu_i = 0`, per
+row). With `k > 1` the flat per-proof weight opening also carries the proximity
+rows over `[W; M]` (accounted `fresh`, not `untested_mask`).
+`Config.zk_aux = {n_queries, pow_bits}` sets the aux opening (its slots follow the
+queries). The new parameters are bound in the transcript only when they are not
+the defaults, so `k = 1`, `zk_aux = null` proofs and digests do not change.
+`zk.applyPreset(cfg, .matched | .matched_rec)` (bench: `ZK_PRESET=...`):
+
+| preset | witness | aux | weights | k | PCS |
+|---|---|---|---|---|---|
+| `matched` | 124 q, lb 3, PoW 20 | 128 q, lb 4, PoW 20 | 112 q, lb 4, PoW 20, slots >= 1024 | 2 | flat (`zk_pcs`) |
+| `matched_rec` | same | same | same | 2 | `zk_pcs2` depth 1, inner 116 q lb 4 PoW 20, `inner_work_shift` 0, 2 prox rows |
+
+**The QM31 ceiling.** FlashProve's 119.38 / 92.42 uses Goldilocks with a cubic
+extension (|E| ~ 2^192, paper Table 2). Our challenges are QM31 (2^124). The hiding
+protocol's own Schwartz-Zippel terms, with no PCS at all, add up to 2^-116.9 on the
+toy: the masked zero-check's 21 rounds at 3/|F| (2^-118.0), the batch sumcheck's 23
+rounds at 2/|F| (2^-118.5), the zero-check claim 21/|F| (2^-119.6). On the MLP the
+request LogUp alone is 2^-97.0. So **119.4 bits with work is not reachable at any
+PCS cost in the QM31 hiding mode**, and 128 / 128 is not either. That needs the
+degree-8 challenge field (`-Dchallenge=om31`, section 10), and OM31 has no hiding
+mode yet. The presets put every PCS opening at >= 96 bits without work and >= 116
+with, so the totals sit at the ceiling: within 0.1 bit (`matched`) or 1.6 bits
+(`matched_rec`, whose lambda round `t log G'/|F|` is ~2^-116).
+
+**Measurements** (2026-11-04, M4 Max **on battery**, ReleaseFast, memguard, one job
+at a time; toy times best of 3 in-process, MLP best of 3 runs; bits and bytes
+deterministic up to the hiding randomness):
+
+| config | prove s | verify ms | bytes | all rounds w/ / w/o | ZK distance | weakest |
+|---|---|---|---|---|---|---|
+| **FlashProve hiding toy** (its printout) | 8.63 | 12 | 308 KB | **119.38 / 92.42** | - | - |
+| hiding toy 2^20, 1 core, old default (54 q, k 1) | 0.196 | 1.8 | 361 320 | 33.06 / 32.90 | 2^-121.4 | aux queries |
+| hiding toy, **`matched`** | **0.267** | 4.1 | 750 720 | **116.86 / 101.62** | 2^-121.0 | zk-check rounds (protocol) |
+| hiding toy, `matched_rec` | 0.323 | 2.8 | 447 784 | 115.28 / 102.36 | 2^-121.0 | witness L0 lambda |
+| non-hiding toy, Johnson+OOD (6.0) | 0.130 | 1.3 | 249 032 | 113.47 / 96.76 | - | lambda |
+| hiding MLP 1024 x 2048 x 4096, 12 thr, `matched_rec`, `ZK_WEIGHT_LC=15` | **1.30** | 120 | 1 601 992 | **97.00 / 96.62** | 2^-113.4 | request LogUp |
+| hiding MLP, `matched` (flat, weight lc 13) | 1.27 | 151 | 4 156 808 | 97.00 / 96.62 | 2^-113.4 | request LogUp |
+| non-hiding MLP, Johnson+OOD (122 / 76 lb3, weights 80, key 900, 2 alpha) | 0.361 | 62 | 726 368 | 97.98 / 79.68 | - | request LogUp |
+
+Commands: `ZK_PRESET=matched tensor-bench product 20 1 zk`;
+`ZK_PRESET=matched_rec ZK_WEIGHT_LC=15 tensor-bench mlp 10 11 12 12 zk`;
+non-hiding: `TENSOR_OOD=1 TENSOR_DEEP=76,3,20 tensor-bench product 20 1 122 2 20 2 76 3 20 2 2`
+and `TENSOR_BATCH_MATMULS=1 TENSOR_OOD=1 TENSOR_DEEP=76,3,20 TENSOR_WEIGHT_Q=80
+TENSOR_KEY_Q=900 TENSOR_KEY_ALPHAS=2 tensor-bench mlp 10 11 12 12 122 2 20 2 76 3 20 3 2`.
+
+ZK parameters at the presets: the witness opens 124 of 128 columns, the aux table
+128 of 128. MLP weights (lc 15, slots 8192): 224 of 4096 used after the proximity
+proof and one proof, so 34 more proofs fit. All within budget. The weight proximity
+proof (once per commitment) reads 116.6 / 99.8.
+
+Reading:
+* Toy against FlashProve's toy, all rounds added: 116.86 vs 119.38 with work
+  (2.5 bits below, the QM31 ceiling) and 101.62 vs 92.42 without work (9.2 above),
+  at 0.267 s vs 8.63 s (32x, on battery). The flat proof is 2.4x larger (751 KB vs
+  308 KB). `matched_rec` gives 448 KB (1.45x) at 115.28 / 102.36.
+* Hiding vs non-hiding at the same reading: toy 0.267 vs 0.130 s (2.1x) at 116.9 vs
+  113.5 bits; MLP 1.30 vs 0.36 s (3.6x), 1.6 MB vs 0.73 MB, both at the LogUp cap
+  (97.0 / 98.0 with work; 96.6 vs 79.7 without).
+* Proof size is the cost of unique decoding: ~0.82 bits per witness query against
+  ~1 for Johnson with OOD. Moving hiding openings to the Johnson regime needs
+  masked OOD answers (FlashProve Def 4.2 pads) in zk_pcs / zk_pcs2. That was not
+  done here (zk.md 7).

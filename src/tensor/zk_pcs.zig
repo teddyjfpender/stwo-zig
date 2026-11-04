@@ -387,7 +387,19 @@ pub fn combine(
 // Openings.
 
 /// Four consecutive mask rows of table `table` starting at `row`.
-pub const MaskRef = struct { table: usize, row: usize };
+/// Mask rows of a combined row: 4 rows from `row`. For the proximity rows,
+/// `count` rows, row i masked by rows row + 4i .. row + 4i + 3 (fresh beta_i
+/// and beta_mu_i each: the proximity term is eps^count, security.md 3.2).
+pub const MaskRef = struct {
+    table: usize,
+    row: usize,
+    count: usize = 1,
+};
+
+/// Number of proximity rows of an opening.
+pub fn nProx(prox: ?MaskRef) usize {
+    return if (prox) |p| p.count else 0;
+}
 
 pub const Claim = struct {
     /// row coefficient vector per table (len n_rows of that table, or 0 = zero)
@@ -476,7 +488,7 @@ pub fn drawCoeffs(a: std.mem.Allocator, tr: *Transcript, shapes: []const Shape, 
         gammas[gi] = try a.alloc(QM31, g.claims.len + 1);
         tr.drawN(gammas[gi]);
     }
-    const n_out = groups.len + @intFromBool(prox != null);
+    const n_out = groups.len + nProx(prox);
     const v = try a.alloc([][]QM31, n_out);
     for (v) |*o| {
         o.* = try a.alloc([]QM31, shapes.len);
@@ -487,10 +499,26 @@ pub fn drawCoeffs(a: std.mem.Allocator, tr: *Transcript, shapes: []const Shape, 
     }
     var k0: usize = 0;
     if (prox) |pm| {
-        for (v[0], 0..) |t, ti| tr.drawN(t[0..shapes[ti].n_rows]);
-        const bmu = tr.draw();
-        for (0..4) |k| v[0][pm.table][pm.row + k] = bmu.mul(basis(k));
-        k0 = 1;
+        if (pm.count == 0) return error.OpeningShape;
+        for (0..pm.count) |i| {
+            for (v[i], 0..) |t, ti| tr.drawN(t[0..shapes[ti].n_rows]);
+            const bmu = tr.draw();
+            // Row i reads only its own 4 mask rows: the other proximity rows'
+            // masks get coefficient 0 here. With the random coefficients drawN
+            // put there, the 4k x 4k M31 block mapping the proximity masks to
+            // the k combined rows is not triangular and is singular with
+            // probability ~1/p (2^-31 per opening), not ~k/|F|; a singular
+            // block reveals a fixed linear combination of data rows in the
+            // clear. Block diagonal, it is invertible iff every beta_mu_i != 0.
+            // Soundness: row i still tests every row outside the other rows'
+            // masks, with its own masks (security.md 3.2 on [D; M_i], the
+            // k events independent). k = 1: nothing changes.
+            for (0..pm.count) |j| if (j != i) for (0..4) |k| {
+                v[i][pm.table][pm.row + 4 * j + k] = QM31.zero();
+            };
+            for (0..4) |k| v[i][pm.table][pm.row + 4 * i + k] = bmu.mul(basis(k));
+        }
+        k0 = pm.count;
     }
     for (groups, 0..) |g, gi| {
         const o = v[k0 + gi];
@@ -579,7 +607,7 @@ pub fn verifyOpening(
         if (r.len != ML) return error.OpeningShape;
         tr.mixFelts(r);
     }
-    const k0: usize = @intFromBool(prox != null);
+    const k0: usize = nProx(prox);
     for (groups, 0..) |g, gi| {
         var lhs = QM31.zero();
         for (proof.rows[k0 + gi][0..C], g.col) |u, b| lhs = lhs.add(u.mul(b));
@@ -900,4 +928,34 @@ test "zk pcs: SIMD salted leaves and parallel levels equal scalar leafHash + has
             for (0..E) |j| try std.testing.expect(rb[j].eql(com.enc[j * rows + r]));
         }
     };
+}
+
+test "zk pcs: k proximity rows read only their own masks (mask block invertible)" {
+    // With k > 1 the mask block of the k proximity rows must be block diagonal:
+    // with random cross coefficients it is a generic 4k x 4k M31 matrix,
+    // singular with probability ~1/p, and a singular block reveals a fixed
+    // combination of data rows in the clear (zero knowledge lost).
+    if (f.IS_OM31) return error.SkipZigTest;
+    const a = std.testing.allocator;
+    const kp = 3;
+    const row0 = 2;
+    const shapes = [_]Shape{.{ .log_cols = 4, .log_blowup = 2, .slots = 8, .n_rows = row0 + 4 * kp + 1 }};
+    var tr = Transcript.initDomain("zkpcs-prox-block");
+    var co = try drawCoeffs(a, &tr, &shapes, &.{}, &.{}, .{ .table = 0, .row = row0, .count = kp });
+    defer co.deinit(a);
+    try std.testing.expectEqual(@as(usize, kp), co.v.len);
+    // M31 matrix: output coordinate (4 i + c) x mask row (4 j + k)
+    var mat: [16 * kp * kp]M31 = undefined;
+    for (0..kp) |i| for (0..kp) |j| for (0..4) |k| {
+        const x = co.v[i][0][row0 + 4 * j + k];
+        if (i != j) try std.testing.expect(x.isZero());
+        const xs = x.toM31Array();
+        for (0..4) |c| mat[(4 * i + c) * 4 * kp + 4 * j + k] = xs[c];
+    };
+    try std.testing.expectEqual(@as(usize, 4 * kp), try rankM31(a, 4 * kp, 4 * kp, &mat));
+    // the data rows and the row after the masks keep their random coefficients
+    for (0..kp) |i| {
+        try std.testing.expect(!co.v[i][0][0].isZero());
+        try std.testing.expect(!co.v[i][0][row0 + 4 * kp].isZero());
+    }
 }
