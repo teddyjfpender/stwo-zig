@@ -148,3 +148,26 @@ planning on the measured graph, before paying for obtaining that count.
 Production keeps its existing growth policy. See
 `rv64-witness-task-append-inline.md` and its compact receipt; the original
 per-run samples are retained with their hash outside the source tree.
+
+## Real padding-range reference gate
+
+An isolated CPU experiment on accepted block24628607 leaf0 replaced
+4,064,058 computational padding task records with four validated value ranges.
+All45,088,768 assignment values match the ordinary full schedule; seeds and
+120,241 total dependency levels are unchanged. The original padded circuit
+fingerprint remains fixed, its full constraints pass, and45 PP columns from
+that same unchanged full circuit (175,686,400 cells) compare exactly.
+This is assignment/PP evidence, not GPU proof-byte or root acceptance.
+
+The measured geometry implies130,049,856 fewer bytes of packed task records
+and47,262,888 fewer producer-slot bytes. No AIR cells or constraint gates are
+removed, and no GPU time, transfer saving or launch reduction is measured by
+this reference gate. The15.725s diagnostic includes cold key setup and both
+reference assignments/checks; its compact-plan timer includes a fingerprint,
+so it is not a plan A/B. Peak requested live allocation was5.836GB under the
+24GiB cap, with8.576GB measured RSS. All79 artifact files stayed unchanged.
+
+The prototype (`680b130d2`) and real source experiment (`851555b75`) are isolated;
+GPU admission is explicitly unsupported. The main branch retains only the
+compact `padding-ranges-real-cpu0-diagnostic-v1.json` receipt. Full raw evidence
+is preserved durably and pinned to its original Git artifact and hash.
