@@ -120,6 +120,8 @@ pcs2 + batched-matmul config as the bench default, decoder-layer numbers).
 Proof files and the `tensor-verify` CLI: `wire.md`.
 Accuracy of the integer model vs the float model (stories260K, scale-matched
 quantizer, `score_bits`, emulated wider activations): `accuracy.md`.
+CUDA backend (designed for H100 / RTX 5090; emulation-verified on the CPU, not
+yet run on a GPU): `cuda.md`, `zig build test-cuda-emu`.
 
 ## Status and caveats
 

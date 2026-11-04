@@ -25,7 +25,20 @@ const metal = if (build_options.metal) @import("stwo_tensor_metal") else struct 
 var use_metal = false;
 var gpu_ctx: if (build_options.metal) ?*metal.Gpu else ?*anyopaque = null;
 
+/// `--cuda` selects the CUDA backend (built with -Dcuda=true).
+var use_cuda = false;
+const cuda = if (build_options.cuda) @import("stwo_tensor_cuda") else struct {};
+var cuda_ctx: if (build_options.cuda) ?*cuda.Cuda else ?*anyopaque = null;
+
 fn accelFor() ?*const t.accel.Accel {
+    if (build_options.cuda and use_cuda) {
+        if (cuda_ctx == null) {
+            const dev: c_int = if (std.posix.getenv("TENSOR_CUDA_DEVICE")) |v| std.fmt.parseInt(c_int, v, 10) catch 0 else 0;
+            cuda_ctx = cuda.Cuda.init(std.heap.c_allocator, dev) catch |e| std.debug.panic("cuda init: {s}", .{@errorName(e)});
+            std.debug.print("tensor cuda: {s}\n", .{cuda_ctx.?.deviceName()});
+        }
+        return cuda_ctx.?.accel();
+    }
     if (!build_options.metal or !use_metal) return null;
     if (gpu_ctx == null) {
         gpu_ctx = metal.Gpu.init(std.heap.c_allocator) catch |e| std.debug.panic("metal init: {s}", .{@errorName(e)});
@@ -43,6 +56,10 @@ fn accelFor() ?*const t.accel.Accel {
 }
 
 fn printGpuStats(out: anytype) !void {
+    if (build_options.cuda) if (cuda_ctx) |c| {
+        const s = c.stats();
+        try out.print("\"cuda\":{{\"launches\":{d},\"h2d_mb\":{d:.1},\"d2h_mb\":{d:.1},\"syncs\":{d},\"sc_rounds\":{d},\"commits\":{d},\"weight_passes\":{d},\"matmuls\":{d},\"mles\":{d},\"declined\":{d}}},", .{ s.launches, @as(f64, @floatFromInt(s.h2d_bytes)) / 1048576.0, @as(f64, @floatFromInt(s.d2h_bytes)) / 1048576.0, s.syncs, s.sc_rounds, s.commits, s.weight_passes, s.matmuls, s.mles, c.declined });
+    };
     if (!build_options.metal) return;
     if (gpu_ctx) |g| try out.print("\"metal\":{{\"commit_gpu_ms\":{d:.2},\"commit_calls\":{d},\"sc_gpu_ms\":{d:.2},\"matmul_gpu_ms\":{d:.2},\"mle_gpu_ms\":{d:.2},\"gkr_gpu_ms\":{d:.2},\"gkr_rounds\":{d},\"sc_rounds\":{d},\"sc_calls\":{d},\"wrapped_mb\":{d:.1},\"copied_mb\":{d:.1},\"pool_hits\":{d}}},", .{ g.stats.commit_gpu_ms, g.stats.commit_calls, g.stats.sc_gpu_ms, g.stats.matmul_gpu_ms, g.stats.mle_gpu_ms, g.stats.gkr_gpu_ms, g.stats.gkr_rounds, g.stats.sc_rounds, g.stats.sc_calls, @as(f64, @floatFromInt(g.stats.wrapped_bytes)) / 1048576.0, @as(f64, @floatFromInt(g.stats.copied_bytes)) / 1048576.0, g.stats.pool_hits });
 }
@@ -246,12 +263,15 @@ pub fn main() !void {
         } else if (std.mem.eql(u8, arg, "--security") and ai + 1 < all_args.len) {
             ai += 1;
             sec_level = std.meta.stringToEnum(proto.SecurityLevel, all_args[ai]) orelse return error.UnknownSecurityLevel;
+        } else if (std.mem.eql(u8, arg, "--cuda")) {
+            use_cuda = true;
         } else if (std.mem.eql(u8, arg, "--emit") and ai + 1 < all_args.len) {
             ai += 1;
             emit_dir = all_args[ai];
         } else try kept.append(a, arg);
     }
     if (use_metal and !build_options.metal) return error.MetalNotBuilt;
+    if (use_cuda and !build_options.cuda) return error.CudaNotBuilt;
     const args = kept.items;
     if (@import("zk_bench.zig").takeFlag(args)) |zargs| return @import("zk_bench.zig").mainAccel(a, zargs, accelFor());
     if (args.len >= 3 and std.mem.eql(u8, args[1], "product")) return runProduct(a, args);
@@ -825,8 +845,10 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
         defer a.free(wv);
         var tm: proto.Timings = .{};
         t0 = now();
-        // salt: default (secret, from std.crypto.random)
-        try bp.add(.{ .st = stmts[j], .witness = wv }, &tm);
+        // salt: default (secret, from std.crypto.random); TENSOR_TEST_SALT=1
+        // fixes it (serve.testSalt) so CPU and device digests can be compared
+        const fixed_salt: ?[32]u8 = if (std.posix.getenv("TENSOR_TEST_SALT") != null) t.serve.testSalt(j) else null;
+        try bp.add(.{ .st = stmts[j], .witness = wv, .salt = fixed_salt }, &tm);
         prove_ns += now().since(t0);
         if (j == 0) tm_first = tm;
         inline for (@typeInfo(proto.Timings).@"struct".fields) |fld| {
@@ -894,6 +916,7 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     try out.print("\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_log_cols\":{d},", .{ outer.n_queries, outer.log_blowup, outer.pow_bits, pc.weight_log_cols });
     try out.print("\"weights\":{d},\"active_weights_per_token\":{d},\"witness_tensors\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_elems_per_request\":{d},\"witness_table_elems\":{d},\"stacked_experts\":{},\"weight_claims_per_request\":{d},\"weight_points_per_request\":{d},", .{ n_weights, active, n_wit, n_core, n_ext, witness_elems, table_elems, cfg.stacked_experts, n_claims / R, n_points / R });
     try out.print("\"offline\":{{\"calib_passes\":{d},\"calib_s\":{d:.3},\"commit_s\":{d:.3},\"key_proof_s\":{d:.3},\"key_verify_s\":{d:.4},\"key_bytes\":{d},\"rss_after_commit\":{d},\"rss_after_key\":{d}}},", .{ calib, calib_s, commit_s, key_s, key_verify_s, if (prox) |p| p.byteSize() else 0, rss_after_commit, rss_after_key });
+    if (std.posix.getenv("TENSOR_TEST_SALT") != null) try out.print("\"proof_digest\":\"{s}\",", .{std.fmt.bytesToHex(t.digest.batchDigest(batch), .lower)});
     try out.print("\"forward_s\":{d:.4},\"prove_requests_s\":{d:.4},\"shared_open_s\":{d:.4},\"wall_s\":{d:.4},", .{ nsToS(forward_ns), nsToS(prove_ns), shared_s, total_s });
     // serving cost = forward + per-request proving + shared opening (the
     // untimed capacity probe and witness dropping are excluded)
