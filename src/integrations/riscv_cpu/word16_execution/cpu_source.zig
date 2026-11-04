@@ -60,6 +60,192 @@ pub const ProjectionStage = struct {
     /// through MAIN commitment and transfers their custody to its proof scope.
     project: *const fn (*anyopaque, *const Source, Device.Scope) anyerror!DeviceProjection,
 };
+/// Upper bound on parallel capture ranges per tape.
+pub const MAX_CAPTURE_CHUNKS = 16;
+/// Steps per capture range below which a tape is not split further.
+pub const MIN_CAPTURE_CHUNK_STEPS: usize = 1 << 18;
+/// Default range count for `Source.capture`: `STWO_RV64_CPU_CAPTURE_CHUNKS`
+/// (1 = serial scan) or 8, bounded so every range has at least
+/// `MIN_CAPTURE_CHUNK_STEPS` steps. Producer scheduling only.
+pub fn captureChunks(steps: usize) usize {
+    const wanted: usize = if (std.posix.getenv("STWO_RV64_CPU_CAPTURE_CHUNKS")) |text| std.fmt.parseInt(usize, text, 10) catch 8 else 8;
+    return @max(1, @min(@min(wanted, MAX_CAPTURE_CHUNKS), steps / MIN_CAPTURE_CHUNK_STEPS));
+}
+/// Process-wide budget of extra capture threads (`STWO_RV64_CPU_CAPTURE_THREADS`,
+/// default 8). Concurrent batch captures share it first come, first served,
+/// so a burst of finished segment walks cannot oversubscribe the host (a CPU
+/// quota then throttles the serial ordered ledger, the capture critical path).
+/// Any grant yields the same Source; it only changes how many ranges run.
+var helper_threads_in_use = std.atomic.Value(usize).init(0);
+fn helperBudget() usize {
+    const text = std.posix.getenv("STWO_RV64_CPU_CAPTURE_THREADS") orelse return 8;
+    return std.fmt.parseInt(usize, text, 10) catch 8;
+}
+/// Reserves up to `wanted` helper threads; returns the number granted.
+fn reserveHelpers(wanted: usize) usize {
+    const budget = helperBudget();
+    var used = helper_threads_in_use.load(.monotonic);
+    while (true) {
+        const grant = @min(wanted, budget -| used);
+        if (grant == 0) return 0;
+        used = helper_threads_in_use.cmpxchgWeak(used, used + grant, .monotonic, .monotonic) orelse return grant;
+    }
+}
+fn releaseHelpers(count: usize) void {
+    _ = helper_threads_in_use.fetchSub(count, .monotonic);
+}
+/// Runs `func` on every item, items[1..] on their own threads (inline if a
+/// thread cannot be spawned), items[0] on the caller, and joins them all.
+fn parallel(comptime T: type, items: []T, comptime func: fn (*T) void) void {
+    var threads: [MAX_CAPTURE_CHUNKS]?std.Thread = @splat(null);
+    for (items[1..], 1..) |*item, i| threads[i] = std.Thread.spawn(.{}, func, .{item}) catch blk: {
+        func(item);
+        break :blk null;
+    };
+    func(&items[0]);
+    for (threads[1..items.len]) |t| if (t) |thread| thread.join();
+}
+/// One contiguous step range of `Source.capture` (see `captureChunked`).
+const Scan = struct {
+    const Expectation = struct { index: usize, register: u5, value: u64 };
+    const Fixup = struct { index: usize, slot: u2, register: u5 };
+    allocator: std.mem.Allocator,
+    program: *const Program,
+    tape: *const Tape,
+    metadata: []Metadata,
+    epoch: u16,
+    stride: u32,
+    start: usize,
+    end: usize,
+    /// In: the pc before step `start`. Out: the pc after the last step.
+    pc: u64,
+    registers: [32]u64,
+    clocks: [32]u32 = @splat(0),
+    /// Registers whose value (resp. access clock) is known in this range:
+    /// all of them for the first range; otherwise x0, plus each register
+    /// once it is first read/written (resp. accessed) here.
+    known: u32 = ~@as(u32, 0),
+    touched: u32 = ~@as(u32, 0),
+    /// First reads of registers unknown on entry, in step order.
+    expectations: [96]Expectation = undefined,
+    expected: usize = 0,
+    /// First accesses of registers whose clock is unknown on entry.
+    fixups: [96]Fixup = undefined,
+    fixed: usize = 0,
+    /// Serial scan: the Source's ROM counts. Stitched range: its own.
+    rom_counts: []u64 = &.{},
+    rom_local: []u32 = &.{},
+    functions: std.ArrayList(FunctionFact) = .empty,
+    memory: std.ArrayList(MemoryRecord) = .empty,
+    services: std.ArrayList(ServiceRecord) = .empty,
+    err: ?anyerror = null,
+    err_index: usize = 0,
+    fn deinit(self: *Scan) void {
+        self.functions.deinit(self.allocator);
+        self.memory.deinit(self.allocator);
+        self.services.deinit(self.allocator);
+    }
+    fn runStitched(self: *Scan) void {
+        self.run(true);
+    }
+    fn run(self: *Scan, comptime stitched: bool) void {
+        if (stitched) {
+            // Typical density (FUNCTION ~1/2, memory ~1/3 of steps): reserve
+            // virtual capacity once instead of regrowing; growth still works.
+            const n = self.end - self.start;
+            self.functions.ensureTotalCapacity(self.allocator, n / 2) catch {};
+            self.memory.ensureTotalCapacity(self.allocator, n / 2) catch {};
+        }
+        var index = self.start;
+        while (index < self.end) : (index += 1) {
+            self.step(stitched, index) catch |err| {
+                self.err = err;
+                self.err_index = index;
+                return;
+            };
+        }
+    }
+    inline fn adopt(self: *Scan, id: u5, value: u64, index: usize) void {
+        const bit = @as(u32, 1) << id;
+        if (self.known & bit != 0) return;
+        self.known |= bit;
+        self.registers[id] = value;
+        self.expectations[self.expected] = .{ .index = index, .register = id, .value = value };
+        self.expected += 1;
+    }
+    inline fn step(self: *Scan, comptime stitched: bool, index: usize) !void {
+        const program = self.program;
+        const pc = self.pc;
+        const registers = &self.registers;
+        const clocks = &self.clocks;
+        const meta = &self.metadata[index];
+        const word = try program.lookup(pc);
+        const entry = program.entries[word];
+        if (!entry.valid or (program.compact and !entry.compactValid())) return error.UnadmittedExecutionInstruction;
+        const record = try self.tape.restore(index, .{ .raw = entry.raw, .instruction = entry.instruction }, .local);
+        const effects = front.rv64.execution_profile.effects(.ethereum_services_v2, entry.instruction.opcode);
+        if (stitched) {
+            self.adopt(entry.ids[0], record.lhs.toInt(), index);
+            self.adopt(entry.ids[1], record.rhs.toInt(), index);
+            if (effects.writes_rd) self.adopt(entry.ids[2], record.previous_rd.toInt(), index);
+        }
+        const jump = entry.instruction.opcode == .JAL or entry.dynamic_next;
+        if (record.clock != index + 1 or record.pc.toInt() != pc or record.instruction != entry.raw or record.opcode != entry.instruction.opcode or record.rs1 != entry.ids[0] or record.rs2 != entry.ids[1] or record.rd != entry.ids[2] or record.lhs.toInt() != registers[entry.ids[0]] or record.rhs.toInt() != registers[entry.ids[1]] or record.previous_rd.toInt() != (if (effects.writes_rd) registers[entry.ids[2]] else 0) or record.writes_rd != (effects.writes_rd and entry.ids[2] != 0) or record.immediate.toInt() != @as(u64, @bitCast(entry.instruction.imm))) return error.InvalidExecutionAdvice;
+        if ((!entry.branch and record.branch_taken != jump) or (entry.branch and record.result.toInt() != 0)) return error.InvalidExecutionAdvice;
+        const next = record.next_pc.toInt();
+        if (next & 3 != 0 or (!entry.dynamic_next and next != entry.staticNext(entry.branch and record.branch_taken))) return error.InvalidExecutionAdvice;
+        if (program.compact and !X.features.compactPcAdmitted(next)) return error.InvalidExecutionAdvice;
+        const c = if (entry.branch) @intFromBool(record.branch_taken) else record.result.toInt();
+        const rom_row = try program.factIndex(word, entry.branch and record.branch_taken);
+        meta.* = .{ .values = .{ record.lhs.toInt(), record.rhs.toInt(), c, record.previous_rd.toInt(), next }, .clocks = undefined, .rom_row = @intCast(rom_row) };
+        for (entry.ids, 0..) |id, slot| {
+            if (stitched and id != 0 and self.touched & (@as(u32, 1) << @intCast(id)) == 0) {
+                self.touched |= @as(u32, 1) << @intCast(id);
+                self.fixups[self.fixed] = .{ .index = index, .slot = @intCast(slot), .register = @intCast(id) };
+                self.fixed += 1;
+                meta.clocks[slot] = 0; // patched by the ordered stitch
+            } else meta.clocks[slot] = if (id == 0) 0 else clocks[id];
+            if (id != 0) clocks[id] = @intCast(4 * index + slot + 1);
+        }
+        if (stitched) self.rom_local[L.physical(rom_row, program.log_size)] += 1 else self.rom_counts[L.physical(rom_row, program.log_size)] += 1;
+        const a = self.allocator;
+        if (entry.function) {
+            if (record.memory != null) return error.InvalidExecutionAdvice;
+            // Compact decode folds AUIPC/JAL to ADD(0, pc+imm) / ADD(0, pc+4).
+            const fact_a = if (entry.use_pc and !program.compact) pc else meta.values[0];
+            const fact_b = if (!entry.use_immediate) meta.values[1] else if (program.compact) entry.compactB() else entry.immediate;
+            try self.functions.append(a, .{ .operation = entry.operation, .a = fact_a, .b = fact_b, .c = if (entry.dynamic_next) next else c });
+        } else if (entry.instruction.opcode == .ECALL) {
+            if (record.memory != null or c != 0) return error.InvalidExecutionAdvice;
+            try self.services.append(a, .{ .pointer = meta.values[0], .tag = meta.values[1], .epoch = self.epoch, .tick = @intCast(self.stride * (index + 1)) });
+        } else {
+            const effect = record.memory orelse return error.MissingExecutionMemory;
+            try self.memory.append(a, .{ .opcode = entry.instruction.opcode, .a = meta.values[0], .immediate = entry.immediate, .b = meta.values[1], .c = c, .epoch = self.epoch, .tick = @intCast(self.stride * (index + 1)), .effect = effect });
+        }
+        // A written register is already known: its previous value was adopted.
+        if (effects.writes_rd and entry.ids[2] != 0) registers[entry.ids[2]] = record.result.toInt();
+        self.pc = next;
+    }
+};
+/// Ordered concatenation of one range's records, plus one slice of the ROM
+/// count reduction, run in parallel after the stitch.
+const Join = struct {
+    scan: *const Scan,
+    functions: []FunctionFact,
+    memory: []MemoryRecord,
+    services: []ServiceRecord,
+    rom: []u64,
+    rom_start: usize,
+    local_counts: []const []u32,
+    fn run(self: *Join) void {
+        @memcpy(self.functions, self.scan.functions.items);
+        @memcpy(self.memory, self.scan.memory.items);
+        @memcpy(self.services, self.scan.services.items);
+        for (self.local_counts) |counts| for (self.rom, counts[self.rom_start..][0..self.rom.len]) |*total, n| {
+            total.* += n;
+        };
+    }
+};
 pub const Source = struct {
     allocator: std.mem.Allocator,
     program: *const Program,
@@ -117,7 +303,29 @@ pub const Source = struct {
     }
     /// Validates/restores Tape once and retains only narrow advice and facts.
     /// Neither MAIN nor its range histograms are constructed in this phase.
+    /// Long tapes are scanned as up to `captureChunks` contiguous ranges on
+    /// parallel threads and stitched in order (see `captureChunked`).
     pub fn capture(a: std.mem.Allocator, program: *const Program, public: X.types.Boundary, epoch: u16, log_size: u32, tape: *const Tape) !Source {
+        const wanted = captureChunks(public.steps);
+        const helpers = if (wanted > 1) reserveHelpers(wanted - 1) else 0;
+        defer releaseHelpers(helpers);
+        return captureChunked(a, program, public, epoch, log_size, tape, helpers + 1);
+    }
+    /// Producer scheduling only: every `chunks` value returns the same Source
+    /// (metadata, ROM counts, FUNCTION/memory/service records in step order)
+    /// and the error the serial scan returns, for the same reason.
+    ///
+    /// A chunk [start, end) starts at the tape's own recorded pc
+    /// (`storage[start-1].next_pc`, exactly the serial loop's `pc`). Register
+    /// values and access clocks entering the chunk are unknown: the first read
+    /// of a register adopts the tape's value and records an expectation; the
+    /// first access of a register records a clock fix-up. The ordered stitch
+    /// then checks every expectation against the true prefix state (an
+    /// unmet one fails as the serial check at that step would) and patches the
+    /// fix-ups before folding the chunk's state into the prefix. Checks inside
+    /// a chunk are the serial checks verbatim, so once the expectations hold
+    /// they see the serial register file.
+    pub fn captureChunked(a: std.mem.Allocator, program: *const Program, public: X.types.Boundary, epoch: u16, log_size: u32, tape: *const Tape, requested_chunks: usize) !Source {
         _ = try X.types.inputs(public, epoch, log_size);
         if (tape.len != public.steps or tape.initial_pc != public.initial_pc) return error.InvalidExecutionAdvice;
         const metadata = try a.alloc(Metadata, public.steps);
@@ -131,53 +339,80 @@ pub const Source = struct {
         @memset(rom_counts, 0);
         @memset(counts16, 0);
         @memset(counts8, 0);
+        const stride: u32 = L.ramStride(log_size);
+        const steps: usize = public.steps;
+        const chunks = @max(1, @min(requested_chunks, @min(MAX_CAPTURE_CHUNKS, steps)));
         var functions: std.ArrayList(FunctionFact) = .empty;
         errdefer functions.deinit(a);
         var memory: std.ArrayList(MemoryRecord) = .empty;
         errdefer memory.deinit(a);
         var services: std.ArrayList(ServiceRecord) = .empty;
         errdefer services.deinit(a);
-        var registers = public.initial_registers;
-        var clocks: [32]u32 = @splat(0);
-        var pc = public.initial_pc;
-        const stride: u32 = L.ramStride(log_size);
-        for (metadata, 0..) |*meta, index| {
-            const word = try program.lookup(pc);
-            const entry = program.entries[word];
-            if (!entry.valid or (program.compact and !entry.compactValid())) return error.UnadmittedExecutionInstruction;
-            const record = try tape.restore(index, .{ .raw = entry.raw, .instruction = entry.instruction }, .local);
-            const effects = front.rv64.execution_profile.effects(.ethereum_services_v2, entry.instruction.opcode);
-            const jump = entry.instruction.opcode == .JAL or entry.dynamic_next;
-            if (record.clock != index + 1 or record.pc.toInt() != pc or record.instruction != entry.raw or record.opcode != entry.instruction.opcode or record.rs1 != entry.ids[0] or record.rs2 != entry.ids[1] or record.rd != entry.ids[2] or record.lhs.toInt() != registers[entry.ids[0]] or record.rhs.toInt() != registers[entry.ids[1]] or record.previous_rd.toInt() != (if (effects.writes_rd) registers[entry.ids[2]] else 0) or record.writes_rd != (effects.writes_rd and entry.ids[2] != 0) or record.immediate.toInt() != @as(u64, @bitCast(entry.instruction.imm))) return error.InvalidExecutionAdvice;
-            if ((!entry.branch and record.branch_taken != jump) or (entry.branch and record.result.toInt() != 0)) return error.InvalidExecutionAdvice;
-            const next = record.next_pc.toInt();
-            if (next & 3 != 0 or (!entry.dynamic_next and next != entry.staticNext(entry.branch and record.branch_taken))) return error.InvalidExecutionAdvice;
-            if (program.compact and !X.features.compactPcAdmitted(next)) return error.InvalidExecutionAdvice;
-            const c = if (entry.branch) @intFromBool(record.branch_taken) else record.result.toInt();
-            const rom_row = try program.factIndex(word, entry.branch and record.branch_taken);
-            meta.* = .{ .values = .{ record.lhs.toInt(), record.rhs.toInt(), c, record.previous_rd.toInt(), next }, .clocks = undefined, .rom_row = @intCast(rom_row) };
-            for (entry.ids, 0..) |id, slot| {
-                meta.clocks[slot] = if (id == 0) 0 else clocks[id];
-                if (id != 0) clocks[id] = @intCast(4 * index + slot + 1);
+        if (chunks == 1) {
+            var scan = Scan{ .allocator = a, .program = program, .tape = tape, .metadata = metadata, .epoch = epoch, .stride = stride, .start = 0, .end = steps, .pc = public.initial_pc, .registers = public.initial_registers, .rom_counts = rom_counts };
+            errdefer scan.deinit();
+            scan.run(false);
+            if (scan.err) |err| return err;
+            if (scan.pc != public.final_pc or !std.mem.eql(u64, &scan.registers, &public.final_registers) or !std.mem.eql(u32, &scan.clocks, &public.register_clocks)) return error.InvalidExecutionBoundary;
+            functions = scan.functions;
+            memory = scan.memory;
+            services = scan.services;
+        } else {
+            var scans: [MAX_CAPTURE_CHUNKS]Scan = undefined;
+            var local_counts: [MAX_CAPTURE_CHUNKS][]u32 = undefined;
+            var made: usize = 0;
+            defer for (scans[0..made], local_counts[0..made]) |*scan, counts| {
+                scan.deinit();
+                a.free(counts);
+            };
+            for (0..chunks) |c| {
+                const start = steps * c / chunks;
+                const counts = try a.alloc(u32, program.size());
+                errdefer a.free(counts);
+                @memset(counts, 0);
+                local_counts[c] = counts;
+                scans[c] = .{ .allocator = a, .program = program, .tape = tape, .metadata = metadata, .epoch = epoch, .stride = stride, .start = start, .end = steps * (c + 1) / chunks, .pc = if (start == 0) public.initial_pc else tape.storage[start - 1].next_pc, .registers = if (start == 0) public.initial_registers else @splat(0), .known = if (start == 0) ~@as(u32, 0) else 1, .touched = if (start == 0) ~@as(u32, 0) else 0, .rom_local = counts };
+                made += 1;
             }
-            rom_counts[L.physical(rom_row, program.log_size)] += 1;
-            if (entry.function) {
-                if (record.memory != null) return error.InvalidExecutionAdvice;
-                // Compact decode folds AUIPC/JAL to ADD(0, pc+imm) / ADD(0, pc+4).
-                const fact_a = if (entry.use_pc and !program.compact) pc else meta.values[0];
-                const fact_b = if (!entry.use_immediate) meta.values[1] else if (program.compact) entry.compactB() else entry.immediate;
-                try functions.append(a, .{ .operation = entry.operation, .a = fact_a, .b = fact_b, .c = if (entry.dynamic_next) next else c });
-            } else if (entry.instruction.opcode == .ECALL) {
-                if (record.memory != null or c != 0) return error.InvalidExecutionAdvice;
-                try services.append(a, .{ .pointer = meta.values[0], .tag = meta.values[1], .epoch = epoch, .tick = @intCast(stride * (index + 1)) });
-            } else {
-                const effect = record.memory orelse return error.MissingExecutionMemory;
-                try memory.append(a, .{ .opcode = entry.instruction.opcode, .a = meta.values[0], .immediate = entry.immediate, .b = meta.values[1], .c = c, .epoch = epoch, .tick = @intCast(stride * (index + 1)), .effect = effect });
+            parallel(Scan, scans[0..chunks], Scan.runStitched);
+            // Ordered stitch: the first failing step wins, as in the serial scan.
+            var registers = public.initial_registers;
+            var clocks: [32]u32 = @splat(0);
+            for (scans[0..chunks]) |*scan| {
+                for (scan.expectations[0..scan.expected]) |e| if (registers[e.register] != e.value) {
+                    if (scan.err == null or e.index <= scan.err_index) return error.InvalidExecutionAdvice;
+                    break;
+                };
+                if (scan.err) |err| return err;
+                for (scan.fixups[0..scan.fixed]) |f| metadata[f.index].clocks[f.slot] = clocks[f.register];
+                for (0..32) |r| {
+                    if (scan.known & (@as(u32, 1) << @intCast(r)) != 0) registers[r] = scan.registers[r];
+                    if (scan.touched & (@as(u32, 1) << @intCast(r)) != 0) clocks[r] = scan.clocks[r];
+                }
             }
-            if (effects.writes_rd and entry.ids[2] != 0) registers[entry.ids[2]] = record.result.toInt();
-            pc = next;
+            if (scans[chunks - 1].pc != public.final_pc or !std.mem.eql(u64, &registers, &public.final_registers) or !std.mem.eql(u32, &clocks, &public.register_clocks)) return error.InvalidExecutionBoundary;
+            var totals: [3]usize = @splat(0);
+            for (scans[0..chunks]) |*scan| {
+                totals[0] += scan.functions.items.len;
+                totals[1] += scan.memory.items.len;
+                totals[2] += scan.services.items.len;
+            }
+            try functions.ensureTotalCapacityPrecise(a, totals[0]);
+            try memory.ensureTotalCapacityPrecise(a, totals[1]);
+            try services.ensureTotalCapacityPrecise(a, totals[2]);
+            functions.items.len = totals[0];
+            memory.items.len = totals[1];
+            services.items.len = totals[2];
+            var joins: [MAX_CAPTURE_CHUNKS]Join = undefined;
+            var offsets: [3]usize = @splat(0);
+            for (scans[0..chunks], 0..) |*scan, c| {
+                joins[c] = .{ .scan = scan, .functions = functions.items[offsets[0]..][0..scan.functions.items.len], .memory = memory.items[offsets[1]..][0..scan.memory.items.len], .services = services.items[offsets[2]..][0..scan.services.items.len], .rom = rom_counts[rom_counts.len * c / chunks .. rom_counts.len * (c + 1) / chunks], .rom_start = rom_counts.len * c / chunks, .local_counts = local_counts[0..chunks] };
+                offsets[0] += scan.functions.items.len;
+                offsets[1] += scan.memory.items.len;
+                offsets[2] += scan.services.items.len;
+            }
+            parallel(Join, joins[0..chunks], Join.run);
         }
-        if (pc != public.final_pc or !std.mem.eql(u64, &registers, &public.final_registers) or !std.mem.eql(u32, &clocks, &public.register_clocks)) return error.InvalidExecutionBoundary;
         if (program.compact) try X.types.validateCompactInputs(try X.types.inputs(public, epoch, log_size), log_size);
         return .{ .allocator = a, .program = program, .compact = program.compact, .public = public, .epoch = epoch, .log_size = log_size, .metadata = metadata, .rom_counts = rom_counts, .counts16 = counts16, .counts8 = counts8, .functions = functions, .memory = memory, .services = services };
     }

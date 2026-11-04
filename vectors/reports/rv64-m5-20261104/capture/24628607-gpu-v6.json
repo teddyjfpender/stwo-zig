@@ -1,0 +1,257 @@
+{
+  "schema": "rv64-m4-receipt/v2",
+  "label": "measured",
+  "derived_from": "rv64-m3-receipt/v1 + producer logs + proof dir",
+  "stream": "m5-capture",
+  "block": 24628607,
+  "gpus": 2,
+  "run": "/workspace/m3/runs/m5-capture/24628607-2gpu-v6",
+  "source_commit": "043923ff9",
+  "assets": {
+    "driver": "611289e22fb585a6df9266a251539f3f15ea359cfbfb0379557e5391476cc3dc",
+    "library": "5886e2a52d2382cfa947cf432967c92da5d42cc9a1f745b8d5960f3c844dba5f",
+    "receiver": "ead7c71f6b45eb52345e52a71284b2cfe3d7173e72dce851eedb7b9acc7ab1dd",
+    "recursive_receiver": "ead7c71f6b45eb52345e52a71284b2cfe3d7173e72dce851eedb7b9acc7ab1dd"
+  },
+  "environment_overrides": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1"
+  },
+  "nsys": false,
+  "host": {
+    "nodename": "f675b38ce80e",
+    "nproc": 192,
+    "cgroup_cpus": 40.8
+  },
+  "loadavg": {
+    "start": {
+      "1m": 13.02,
+      "5m": 14.54,
+      "15m": 18.9,
+      "unix": 1793812905.8355474
+    },
+    "end": {
+      "1m": 24.05,
+      "5m": 16.8,
+      "15m": 19.42,
+      "unix": 1793812956.609658
+    }
+  },
+  "stages": {
+    "request_s": 43.12,
+    "capture_s": 2.445,
+    "capture_critical_s": 2.445,
+    "setup_s": 12.546,
+    "setup_cold_service_s": 12.546,
+    "setup_warm_s": null,
+    "setup_install_s": null,
+    "native_s": 7.377,
+    "stage1_s": 2.539,
+    "stage1_jobs": 17,
+    "stage2_s": 4.564,
+    "stage2_jobs": 17,
+    "native_verify_side_thread_s": 2.001,
+    "native_verify_on_critical_path_s": 0.0,
+    "recursion_s": 20.57,
+    "recursion_wall_s": 20.57,
+    "recursion_tail_s": 20.57,
+    "fold_tail_after_last_leaf_s": 7.263,
+    "compress_s": 0.0
+  },
+  "stage_boundaries": {
+    "request_s": "request accepted -> final proof bytes written (GPU_RESIDENT_BLOCK request_wall_ns)",
+    "capture_s": "input -> last segment compact records ready (report.capture_ns); M3: nothing overlaps it, so capture_critical_s == capture_s",
+    "setup_s": "report.setup_ns; cold_service when the SetupCache missed, warm when it hit; install is not a separate step yet (null)",
+    "native_s": "report.prove_ns: projection/widening/stage1/barrier/stage2 all count here, never under capture",
+    "stage1_s/stage2_s": "schedule.json phase walls (first claim -> last finish of each phase)",
+    "recursion_s": "combined recursion_ns; recursion starts after the last native proof in M3, so tail == wall",
+    "compress_s": "no compress layer before M7 (0)"
+  },
+  "ram": {
+    "rss_peak_daemon_gib": 23.398,
+    "rss_peak_request_private_gib": null,
+    "rss_scope": "one process per request (no daemon yet): daemon == whole-process peak (getrusage); request_private = private non-file-backed pages at the sampled peak",
+    "smaps_peak_census": null,
+    "smaps_peak_t_s": null
+  },
+  "device_memory": {
+    "device_peak_gb": {
+      "0": 31.503,
+      "1": 31.503
+    },
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak"
+  },
+  "gpu": {
+    "nvml_kernel_activity": {
+      "0": {
+        "samples": 194,
+        "mean_percent": 21.314432989690722,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 194,
+        "mean_percent": 24.211340206185568,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    }
+  },
+  "proof_size": {
+    "proof_bytes_final": 706424,
+    "proof_bytes_root": 706424
+  },
+  "process": {
+    "argv": [
+      "/workspace/m3/build/m5-capture/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+      "combined-batch",
+      "/workspace/m3/runs/m5-capture/24628607-2gpu-v6/case/manifest.json",
+      "/workspace/m3/runs/m5-capture/24628607-2gpu-v6/case/batch"
+    ],
+    "exit_code": 0,
+    "wall_ns": 49374855600,
+    "user_seconds": 160.586465,
+    "system_seconds": 66.550869,
+    "peak_rss_bytes": 25123127296,
+    "minor_faults": 21599913,
+    "major_faults": 0
+  },
+  "recursion": {
+    "nodes": 33,
+    "leaves": 17,
+    "folds": 16,
+    "pipeline": {
+      "dag_wall_ns": 20316697999,
+      "lane_device_stage_ns": [
+        13305875099,
+        14210571137
+      ],
+      "lane_device_stage_occupancy": 0.6771879524259891,
+      "peak_ready": 6
+    }
+  },
+  "native": {
+    "cpu_proofs": 7,
+    "truth_proofs": 10,
+    "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+    "output_matches_pin": true
+  },
+  "correctness": {
+    "parity_vs_accepted_v7": {
+      "native_bins": true,
+      "bundle": true,
+      "recursive_tree": false,
+      "recursive_proofs": false,
+      "recursive_mismatched": [
+        "fold-000002.proof",
+        "fold-000005.proof",
+        "fold-000006.proof",
+        "fold-000009.proof",
+        "fold-000012.proof",
+        "fold-000013.proof",
+        "fold-000014.proof",
+        "fold-000017.proof",
+        "fold-000020.proof",
+        "fold-000021.proof",
+        "fold-000024.proof",
+        "fold-000027.proof",
+        "fold-000028.proof",
+        "fold-000029.proof",
+        "fold-000030.proof",
+        "fold-000032.proof",
+        "root.proof"
+      ],
+      "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+      "control_root_sha256": "07a537d3244bc27dcf1c11634bfa1f4746d93899aeb9abaa1afc9cfd127cdddf",
+      "native_mismatched": [],
+      "byte_identical": false
+    },
+    "receiver": {
+      "status": "accepted",
+      "accepted": true,
+      "receiver_sha256": "ead7c71f6b45eb52345e52a71284b2cfe3d7173e72dce851eedb7b9acc7ab1dd",
+      "restored_leaves": 17,
+      "restored_folds": 16,
+      "producer_strict_checks": "pass"
+    },
+    "accepted": true,
+    "fingerprint_vs_reference": {
+      "reference": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+      "compared": 55,
+      "identical": true,
+      "mismatched": [],
+      "only_in_a": [],
+      "only_in_b": []
+    }
+  },
+  "verifier": {
+    "verify_per_block_s": 62.305,
+    "derive_vk_tables_once_s": null,
+    "verifier_peak_rss_gib": 6.82
+  },
+  "proof_sha256": {
+    "native": {
+      "cells.bin": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1",
+      "cpu-0.bin": "cac9c335bf241d149c9e18cfd586b452772840815c79bfceaa635baeaab701dc",
+      "cpu-1.bin": "6577164eeea71a3d125fef5e541c7f9bb1a7ee28fbf78a10114df4f1180703b0",
+      "cpu-2.bin": "84195a81e9f07ec36178fc661d5a5417a6f23ce07e95f1520cfd48292346051f",
+      "cpu-3.bin": "dab97ee3286b07ff75fbe558234ed395fc4611108a1ad3723433daae1b532fba",
+      "cpu-4.bin": "881469a76adb62af859af8aab845347116b8710585f7f4a6932a9027af95a531",
+      "cpu-5.bin": "11f1f6803999416ac991d9186ec4cdc8d3ee8fb790d3bc1f1442ebcfdd0190d3",
+      "cpu-6.bin": "0b97341fbe90dd30c6e1744f95864f5e4d92efb45d429bdfc5e2eacb58b7ed9a",
+      "stage-one.bin": "7fec3b71d5243d3aae41ae92d80b0b5c6a97eedec3b2a8b04aaf6e5765bd0598",
+      "truth-0.bin": "232cd69be3048f1afd1e01d5c074c38760b4dbda540bfcddc3b3cc0769b09d4b",
+      "truth-1.bin": "b783e801c3611f78bd141dda63fa9e0bd409c529109995d2f1e7dc12453a0410",
+      "truth-2.bin": "60c0640e426c5244ac61ea1aa13cb9fa1f5f170817aefdfbfe27c397ca1d1651",
+      "truth-3.bin": "f85c229528814b1527d8c2c6336f9aa50aa9964e9a3858aa306f56f46fbd43dd",
+      "truth-4.bin": "e6b67f1417c0181bb6f460b293383d6dd9a55734eed62711a38999cc5717bc0f",
+      "truth-5.bin": "e7da39cb6c2cfafd3b5e578e0b1b056cf86184becf955531a17074b7ce56bfe3",
+      "truth-6.bin": "966b549031f9f51b1613b7ae7aab94fcbae6afa3792ecc3c1246fdebb8c7ddb5",
+      "truth-7.bin": "588690cb3be8cd39379fbbf315eb35e747ec6cfa09988741a229afb321216d98",
+      "truth-8.bin": "8b0ec4a14e36b1741350624e5931c62b00b41bf53425ad583d198967ef7d306f",
+      "truth-9.bin": "dc4c4cac1e2cea7d96eb8e501b092cb76635ef19218e475008c170d99b83d839"
+    },
+    "bundle": "eed289d3d554135c1b01d6bcb4a6e093907f4a4e737a203c1e8f6b9fc0259edf",
+    "recursive": {
+      "proof_sha256": {
+        "fold-000002.proof": "c87838fb004bc21af8da6aacf7a829351345aaa6fd0c6bf6f3a8d8d4c962ca6b",
+        "fold-000005.proof": "29d83c802efb8ee656f7045d1c633b5462cf4dd98e4b03c8d2423b53c2b50c6a",
+        "fold-000006.proof": "bb9a337903ba71f5b958f32d50726241cded1a3785b4fb8b4274f8d6c70430fc",
+        "fold-000009.proof": "ec82cc550d6b1f89ef51aea2fe117d76bd275914e101bd3a1e89c21f6dfbb3c5",
+        "fold-000012.proof": "974312204c3da54ad86f4251e0dc159e97eeda00a2133cbd0d88febaa6fef790",
+        "fold-000013.proof": "487dca1502502bb3653648d71035a7699c71643bb25b5023e3b6cd94268b7c00",
+        "fold-000014.proof": "77a74e6767bde85752e6f7bc156aba4a2c628a79e07530356de0b1d70b5c80e5",
+        "fold-000017.proof": "0a9136f232615636830c8e86bacbe292055f1a5408b6bc986e6e4c4b18cec547",
+        "fold-000020.proof": "6c7ad5c0e0a3dec204dca140ad0695fc94f05b3d2681f53ce8af683c766eb38b",
+        "fold-000021.proof": "83df2f32430660cbeac7fb4501f388a28c1e871b682406189d68e8297d3dd407",
+        "fold-000024.proof": "e0cf7797301490001e10279784352bb3762f530c49fc0210ee046911429532e6",
+        "fold-000027.proof": "1d4f924a943459eb7e1d0d831a725541b16d6ef7f7c02e8db9497a09060ba435",
+        "fold-000028.proof": "8a70e7b2f4f798a582f87fcbf92adf8123d9358affd1fa164d00141946438396",
+        "fold-000029.proof": "d5e002028f7ae5f00546aef76fa1852ca61b5601f685cd85337b77fa29c3e417",
+        "fold-000030.proof": "1807f28d1ed4392fc2178997901fc5f1e1bccf7e5f08fc3ab28d95132ff0d129",
+        "fold-000032.proof": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "leaf-000000.proof": "f65013886fd794c8af4473f7cdd0e1169cbf11ae8f084af97a9dded5f7a6a790",
+        "leaf-000001.proof": "3713ee56a9c6c55733540f1ea598c0c21ffd76be0ecab7c6c66a0bebb7676751",
+        "leaf-000002.proof": "9ac35570632bfc4f58ce254a91908df266c8e510c9f6b65dd6119a3c4bacdde7",
+        "leaf-000003.proof": "13ae952a3cbbee7005a242ff4199c9ae21d031305106eb33fa9261557ddc39ef",
+        "leaf-000004.proof": "26646070cf0919a3f6f9c790b45ca1d7805de01fe1d528255c1850d21392c9a8",
+        "leaf-000005.proof": "fafd31180c97c22b4707210879213e71024dad1cbe0712431335dde1e364002f",
+        "leaf-000006.proof": "7ea4c25dae4b526c9f47b2b34b4d4e21f26d1520fbf356e17d8dfff99f328795",
+        "leaf-000007.proof": "620e943e67723d0e4dbdb7398d7fdf93e373feb857dbca7154c36b1a0fe4f0bc",
+        "leaf-000008.proof": "884486bcd75b992c0a7597e4d4d1465bc26db10e21c4381d1cf0cb98f3450240",
+        "leaf-000009.proof": "ee9e962fe5b618dcc2aada084adfba31faa4d39c507d7b1654e8d66b17de4369",
+        "leaf-000010.proof": "691e306170449ab82b43353b45dd96e62dd8de1aae6068545a4a36da4c575f8d",
+        "leaf-000011.proof": "fc35b8a3e417a5f04655a7b3716973d0f7256782950b43fa46853b9e4a82b5aa",
+        "leaf-000012.proof": "5e1271dec6011f9e70315ab029c8c838b97787f1c5828206e6bd3549b7b70d05",
+        "leaf-000013.proof": "c1a180eb4b93c0764e9864d96a2aa518342690de75d6cc02fbe4038036c37c57",
+        "leaf-000014.proof": "47397d9f3f069b98d18565014c659bd3111e0826df6de13eefffaa8854abf093",
+        "leaf-000015.proof": "d6c2254a28dc7561f1d9b9041971c142b84fcf4286b524f33f72431dd3f1587f",
+        "leaf-000016.proof": "c5737907d23e08c26dbad238af2f84dc6d48181f930c6d43b69b76c00cc2c0a2",
+        "root.proof": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450"
+      },
+      "tree_sha256": "3c9e73259a012f58d4d5e1c132a5135855704b7b9abb7d80f22307382c298e59"
+    }
+  }
+}

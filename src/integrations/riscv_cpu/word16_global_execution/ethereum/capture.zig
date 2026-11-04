@@ -130,7 +130,10 @@ pub const Ordered = struct {
     /// Optional M6 hook, see `Ready`.
     on_ready: ?Ready = null,
     pub fn init(a: std.mem.Allocator, image: *const Image.Owner, config: Request.Config, prefix_packets: u32) Ordered {
-        return .{ .origin = std.time.Instant.now() catch null, .allocator = a, .image = image, .config = config, .prefix_packets = prefix_packets, .collector = Collector.Builder.init(a, Memory.fromOwner(image)), .pc = image.initial_pc, .regs = image.initial_registers };
+        var collector = Collector.Builder.init(a, Memory.fromOwner(image));
+        // Same image, page-at-a-time first-touch reads (exact, see OwnerPages).
+        collector.ledger.pages = .{ .owner = image };
+        return .{ .origin = std.time.Instant.now() catch null, .allocator = a, .image = image, .config = config, .prefix_packets = prefix_packets, .collector = collector, .pc = image.initial_pc, .regs = image.initial_registers };
     }
     /// Ordered adjacency/budget admission of the next packet, before its
     /// capture is accepted. Advances the expected chain state.

@@ -22,7 +22,7 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 | 26235156 | capture_s | 2.54 | 2.15 | 1.18x | integrate 2026-11-04 |
 | 26235156 | native_s | 5.16 | 4.85 | 1.06x | platform 2026-11-04 |
 | 26235156 | proof_bytes | 748536 | 748536 | 1.00x | arena 2026-11-04 |
-| 26235156 | recursion_s | 18.07 | 14.49 | 1.25x | platform 2026-11-04 |
+| 26235156 | recursion_s | 18.07 | 14.30 | 1.26x | capture 2026-11-04 |
 | 26235156 | request_s | 34.28 | 26.33 | 1.30x | platform 2026-11-04 |
 | 26235156 | rss_peak_gib | 22.30 | 22.22 | 1.00x | arena 2026-11-04 |
 | 26235156 | setup_s | 8.33 | 4.71 | 1.77x | platform 2026-11-04 |
@@ -47,6 +47,14 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 | 2026-11-04 | M4 | capture | 0 | M | — | 2.52 | — | — | — | — | 5.4 | — | — | — | — | — | — | — | captured_values_sha256 e5f5e7606c584ca6 | — | capture-v3@bcd401ce4 | CPU capture diagnostic v3-i16w16-r1 inflight=16 workers=16 ledger=0.427 s load=54 |
 | 2026-11-04 | M4 | capture | 0 | M | — | 2.98 | — | — | — | — | 4.7 | — | — | — | — | — | — | — | captured_values_sha256 e5f5e7606c584ca6 | — | capture-v3@bcd401ce4 | CPU capture diagnostic v3-i4-r1 inflight=4 workers=8 ledger=0.544 s load=55 |
 | 2026-11-04 | M4 | capture | 0 | M | — | 2.64 | — | — | — | — | 5.5 | — | — | — | — | — | — | — | captured_values_sha256 e5f5e7606c584ca6 | — | capture-v3@bcd401ce4 | CPU capture diagnostic v3-i8-r1 inflight=8 workers=8 ledger=0.504 s load=55 |
+| 2026-11-04 | M5 | capture | 0 | M | — | 2.61 | — | — | — | — | 5.1 | — | — | — | — | — | — | — | captured_values_sha256 e5f5e7606c584ca6 | — | 043923ff9 | v6-i4-r1: first_inputs=1.6697 ledger=0.4814 stalls=0 |
+| 2026-11-04 | M5 | capture | 0 | M | — | 2.52 | — | — | — | — | 5.1 | — | — | — | — | — | — | — | captured_values_sha256 e5f5e7606c584ca6 | — | 043923ff9 | v6-i4-r2: first_inputs=1.5103 ledger=0.4266 stalls=0 |
+| 2026-11-04 | M5 | capture | 0 | M | — | 2.50 | — | — | — | — | 5.2 | — | — | — | — | — | — | — | captured_values_sha256 e5f5e7606c584ca6 | — | 043923ff9 | v6-i4-r3: first_inputs=1.5184 ledger=0.3343 stalls=0 |
+| 2026-11-04 | M5 | capture | 0 | M | — | 2.57 | — | — | — | — | 5.1 | — | — | — | — | — | — | — | captured_values_sha256 e5f5e7606c584ca6 | — | 043923ff9 | v6-i8-r1: first_inputs=1.6119 ledger=0.4552 stalls=0 |
+| 2026-11-04 | M5 | capture | 0 | M | — | 2.49 | — | — | — | — | 5.2 | — | — | — | — | — | — | — | captured_values_sha256 e5f5e7606c584ca6 | — | 043923ff9 | v6-i8-r2: first_inputs=1.6059 ledger=0.403 stalls=0 |
+| 2026-11-04 | M5 | capture | 0 | M | — | 2.60 | — | — | — | — | 5.4 | — | — | — | — | — | — | — | captured_values_sha256 e5f5e7606c584ca6 | — | 043923ff9 | v6-i8-r3: first_inputs=1.6796 ledger=0.4547 stalls=0 |
+| 2026-11-04 | M5 | capture | 2 | M | 43.12 | 2.44 | 12.55 | 7.38 | 20.57 | 62.3 | 23.4 | 31.5 | 706 | — | — | — | — | — | runs/integrate/24628607-2gpu-scale/receipt | yes | 043923ff9 | one-shot GPU bench, cold setup; capture 2.445 s production path (M4 capture stream 3.050, M3 3.275); 55/55 identical to M3 integrate; inflight 4 |
+| 2026-11-04 | M5 | capture | 2 | M | 44.41 | 2.53 | 12.79 | 7.28 | 21.61 | 64.1 | 23.4 | 31.5 | 706 | — | — | — | — | — | runs/integrate/24628607-2gpu-scale/receipt | yes | 043923ff9 | as v6 with --capture-inflight 8; capture 2.533 s at load 24.9 (no gain over 4); 55/55 identical |
 | 2026-11-04 | M4 | diet | 0 | D | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | ff0ee67b8 | cell census, no prover change. CPU0 leaf today 1174.4M cells [M]. Per-leaf own-cell factors: fused Blake2s k=1 x0.53 (CPU0 x0.56), outer GKR x0.60-0.64, fused+GKR x0.36 (CPU0 446M x0.38). Tree incl. parent verification q108/q51: fused k=2 x0.69/x0.61, GKR x0.62/x0.62, fused+GKR x0.44/x0.39. In-circuit GKR verifier per child 17.49M + binding 1.56M cells [M fit, exact on held-out shapes]. Fused AIR 3328 main + 1376 lookups per compression vs 80 G + 8 triple_xor (8672 cells) [M]. |
 | 2026-11-04 | M4 | integrate | 2 | M | 36.30 | 3.29 | 5.62 | 6.62 | 20.53 | 61.8 | 26.6 | 31.5 | 706 | — | — | — | — | — | M3 integrate scale receipt | yes | cbe06a3f3 | — |
 | 2026-11-04 | M4 | integrate | 2 | M | 30.21 | 3.65 | 0.56 | 6.70 | 19.05 | — | 27.4 | 31.5 | 706 | — | — | — | — | — | M3 integrate scale receipt | — | cbe06a3f3 | — |
@@ -135,6 +143,11 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 | 2026-11-04 | M4 | capture | 0 | M | — | 2.21 | — | — | — | — | 3.2 | — | — | — | — | — | — | — | captured_values_sha256 c9f3d40fa8c9e3b7 | — | capture-v3@bcd401ce4 | CPU capture diagnostic v3-i16w16-r1 inflight=16 workers=16 ledger=0.268 s load=51 |
 | 2026-11-04 | M4 | capture | 0 | M | — | 2.30 | — | — | — | — | 3.2 | — | — | — | — | — | — | — | captured_values_sha256 c9f3d40fa8c9e3b7 | — | capture-v3@bcd401ce4 | CPU capture diagnostic v3-i4-r1 inflight=4 workers=8 ledger=0.294 s load=52 |
 | 2026-11-04 | M4 | capture | 0 | M | — | 2.27 | — | — | — | — | 3.3 | — | — | — | — | — | — | — | captured_values_sha256 c9f3d40fa8c9e3b7 | — | capture-v3@bcd401ce4 | CPU capture diagnostic v3-i8-r1 inflight=8 workers=8 ledger=0.353 s load=51 |
+| 2026-11-04 | M5 | capture | 0 | M | — | 2.32 | — | — | — | — | 3.3 | — | — | — | — | — | — | — | captured_values_sha256 c9f3d40fa8c9e3b7 | — | 043923ff9 | v6-i4-r1: first_inputs=1.494 ledger=0.2286 stalls=0 |
+| 2026-11-04 | M5 | capture | 0 | M | — | 2.19 | — | — | — | — | 3.4 | — | — | — | — | — | — | — | captured_values_sha256 c9f3d40fa8c9e3b7 | — | 043923ff9 | v6-i4-r2: first_inputs=1.4899 ledger=0.2899 stalls=0 |
+| 2026-11-04 | M5 | capture | 0 | M | — | 2.19 | — | — | — | — | 3.3 | — | — | — | — | — | — | — | captured_values_sha256 c9f3d40fa8c9e3b7 | — | 043923ff9 | v6-i8-r1: first_inputs=1.4661 ledger=0.2694 stalls=0 |
+| 2026-11-04 | M5 | capture | 0 | M | — | 2.26 | — | — | — | — | 3.4 | — | — | — | — | — | — | — | captured_values_sha256 c9f3d40fa8c9e3b7 | — | 043923ff9 | v6-i8-r2: first_inputs=1.5081 ledger=0.2687 stalls=0 |
+| 2026-11-04 | M5 | capture | 2 | M | 30.63 | 2.20 | 9.01 | 4.95 | 14.30 | 42.0 | 22.3 | 31.5 | 749 | — | — | — | — | — | runs/integrate/26235156-2gpu-scale/receipt | yes | 043923ff9 | one-shot GPU bench, cold setup, M3 scale env + arena; capture 2.203 s production path; 37/37 hashes identical to M3 integrate; inflight 4 (template) |
 | 2026-11-04 | M4 | integrate | 2 | M | 26.99 | 2.15 | 4.74 | 5.01 | 14.92 | 41.2 | 26.6 | 31.5 | 749 | — | — | — | — | — | M3 integrate scale receipt | yes | cbe06a3f3 | — |
 | 2026-11-04 | M4 | integrate | 2 | M | 19.63 | 2.18 | 0.54 | 4.54 | 12.20 | — | 27.4 | 31.5 | 749 | — | — | — | — | — | M3 integrate scale receipt | — | cbe06a3f3 | — |
 | 2026-11-04 | M4 | integrate | 2 | M | 20.43 | 2.35 | 0.12 | 3.98 | 13.79 | — | 27.4 | 31.5 | 749 | — | — | — | — | — | M3 integrate scale receipt | — | cbe06a3f3 | — |
@@ -246,6 +259,7 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 | date | ms | stream | GPUs | lbl | request s | capture | setup | native | recursion | verifier | RSS GiB | dev GB | proof KB | syncs | launches | pool mallocs | lib loads | pageable | byte-identical to | receiver | commit | notes |
 |---|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|
 | 2026-11-03 | v7 | m3-baseline | 1 | M | 430.00 | 9.70 | 46.86 | 28.17 | 335.77 | 258.2 | — | — | 746 | — | — | — | — | — | — | yes | 923e63b45 | accepted v7, 1x RTX 5090 (verifier = strict shared-authority receiver wall; native verify on path) |
+| 2026-11-04 | M5 | capture | 0 | M | — | 4.31 | — | — | — | — | 7.7 | — | — | — | — | — | — | — | captured_values_sha256 03e02ceba5a21e13 | — | 043923ff9 | v6-i4-probe: first_inputs=1.9137 ledger=0.8281 stalls=0 |
 | 2026-11-04 | M4 | integrate | 2 | M | 82.64 | 12.12 | 23.40 | 13.15 | 33.56 | 114.9 | 24.7 | 31.5 | 750 | — | — | — | — | — | M3 integrate scale receipt | yes | cbe06a3f3 | — |
 | 2026-11-04 | M3 | m3-baseline | 2 | M | 86.37 | 5.74 | 23.35 | 14.40 | 42.54 | 142.4 | 26.4 | 33.6 | 750 | — | — | — | — | — | — | yes | ff2f71cf1 | M3 baseline (summary.json); native+bundle byte-identical to v7, folds/root differ by design (fold v2) |
 

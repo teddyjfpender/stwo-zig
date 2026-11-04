@@ -211,6 +211,8 @@ def make_plan(args, run, paths, root):
     devices = list(range(args.gpus))
     job.update(devices=devices, device_count=args.gpus, request=str(request_path), request_sha256=sha(request_path),
                target=str(run / "case"))
+    if getattr(args, "capture_inflight", None):
+        job["resources"]["capture_options"]["max_inflight_packets"] = args.capture_inflight
     if args.gpus == 1:
         schedule = job["resources"]["schedule"]
         total = sum(schedule.get("lane_workers") or [schedule["workers_per_lane"]] * schedule["lanes"])
@@ -523,6 +525,7 @@ def main():
         p.add_argument("--nsys", action="store_true", help="Wrap the producer in nsys profile (timeline in run/nsys)")
         p.add_argument("--wrap", help="Prefix the producer argv with this command ({run} expands to the run dir), e.g. ncu")
         p.add_argument("--allow-scale-up", action="store_true")
+        p.add_argument("--capture-inflight", type=int, help="override the plan template's capture_options.max_inflight_packets (producer scheduling only; stream capture hook)")
         p.add_argument("--counters", action="store_true", help="LD_PRELOAD CUDA driver-API counter shim (syncs, launches, pool mallocs, library loads, pageable copies)")
         p.add_argument("--smaps", action="store_true", help="Sample producer smaps; keep a census at peak RSS (run/smaps-peak.json)")
         p.add_argument("--reference", help="Receipt (v1/v2) to fingerprint-diff all proof hashes against (e.g. the M3 baseline)")

@@ -21,6 +21,53 @@ pub const Options = struct {
     /// Legacy wrapper keeps its caller-declared padded JALR geometry.
     jalr_log: ?u32 = null,
 };
+/// Concurrent provider grouping for `captureInternal` (producer scheduling
+/// only: each result is exactly the serial function's result).
+const Grouping = struct {
+    a: std.mem.Allocator,
+    af: []const B.operations.AluFact,
+    bf: []const Binary.Fact,
+    zf: []const Zbb.Fact,
+    memory: []const CPU.MemoryRecord,
+    deduplicate_binary: bool,
+    alu: anyerror!B.alu_experiment.source.WeightedFacts = error.Unstarted,
+    binary: anyerror!Binary.WeightedFacts = error.Unstarted,
+    zbb: anyerror!Zbb.Weighted = error.Unstarted,
+    words: anyerror!u32 = error.Unstarted,
+    const Part = enum { alu, binary, zbb };
+    fn run(self: *Grouping) void {
+        // Small inputs are not worth a thread.
+        const parallel = self.af.len + self.bf.len + self.memory.len >= 1 << 16;
+        var threads: [2]?std.Thread = @splat(null);
+        if (parallel) {
+            threads[0] = std.Thread.spawn(.{}, runBinaryZbb, .{self}) catch null;
+            threads[1] = std.Thread.spawn(.{}, runWords, .{self}) catch null;
+        }
+        if (threads[0] == null) runBinaryZbb(self);
+        if (threads[1] == null) runWords(self);
+        self.alu = B.alu_experiment.source.deduplicate(self.a, self.af);
+        for (threads) |t| if (t) |thread| thread.join();
+    }
+    fn runBinaryZbb(self: *Grouping) void {
+        self.binary = Binary.collect(self.a, self.bf, self.deduplicate_binary);
+        self.zbb = Zbb.collect(self.a, self.zf);
+    }
+    fn runWords(self: *Grouping) void {
+        var words: std.AutoHashMapUnmanaged(u64, void) = .empty;
+        defer words.deinit(self.a);
+        for (self.memory) |record| words.put(self.a, record.effect.address.toInt() & ~@as(u64, 7), {}) catch |err| {
+            self.words = err;
+            return;
+        };
+        self.words = @intCast(words.count());
+    }
+    /// Frees every successful result after `failed` (the caller unwraps in
+    /// order, so earlier ones are already owned by its errdefers).
+    fn release(self: *Grouping, failed: Part) void {
+        if (@intFromEnum(failed) < @intFromEnum(Part.binary)) if (self.binary) |*v| v.deinit() else |_| {};
+        if (@intFromEnum(failed) < @intFromEnum(Part.zbb)) if (self.zbb) |*v| v.deinit() else |_| {};
+    }
+};
 pub const Prepared = struct {
     allocator: std.mem.Allocator,
     device_cpu_projection: ?CPU.ProjectionStage = null,
@@ -156,15 +203,27 @@ pub const Prepared = struct {
         const extra_binary = try jalr.binaryFacts(a);
         defer a.free(extra_binary);
         try bf.appendSlice(a, extra_binary);
-        var alu = try B.alu_experiment.source.deduplicate(a, af.items);
+        // The four groupings are independent pure functions of finished
+        // inputs: run them concurrently, then adopt in the serial order (so a
+        // failure reports the error the serial sequence would report first).
+        var group = Grouping{ .a = a, .af = af.items, .bf = bf.items, .zf = zf.items, .memory = cpu.memory.items, .deduplicate_binary = options.deduplicate_binary };
+        group.run();
+        var alu = group.alu catch |err| {
+            group.release(.alu);
+            return err;
+        };
         errdefer alu.deinit();
-        var binary = try Binary.collect(a, bf.items, options.deduplicate_binary);
+        var binary = group.binary catch |err| {
+            group.release(.binary);
+            return err;
+        };
         errdefer binary.deinit();
-        var zbb = try Zbb.collect(a, zf.items);
+        var zbb = group.zbb catch |err| {
+            group.release(.zbb);
+            return err;
+        };
         errdefer zbb.deinit();
-        var words: std.AutoHashMapUnmanaged(u64, void) = .empty;
-        defer words.deinit(a);
-        for (cpu.memory.items) |record| try words.put(a, record.effect.address.toInt() & ~@as(u64, 7), {});
+        const unique_memory_words = try group.words;
         const raw_shift_count: u32 = @intCast(sf.items.len);
         const grouped_shift = if (options.deduplicate_shift) try Shift.collect(a, sf.items, true) else null;
         const shift = if (grouped_shift) |value| value.facts else try sf.toOwnedSlice(a);
@@ -177,7 +236,7 @@ pub const Prepared = struct {
         // Every provider fact is now independently owned. Avoid retaining a
         // second copy until all execution shards have sealed their MAIN.
         cpu.releaseFunctionFacts();
-        return .{ .allocator = a, .program_identity = program.identity, .cpu = cpu, .jalr = jalr, .alu = alu, .binary = binary, .shift = shift, .shift_weights = shift_weights, .division = division, .multiplication = multiplication, .zbb = zbb, .raw_counts = .{ .alu = @intCast(af.items.len), .binary = @intCast(bf.items.len), .shift = raw_shift_count, .jalr = @intCast(jf.items.len), .division = @intCast(division.len), .multiplication = raw_mul_count, .memory = @intCast(cpu.memory.items.len), .service = @intCast(cpu.services.items.len) }, .unique_memory_words = @intCast(words.count()) };
+        return .{ .allocator = a, .program_identity = program.identity, .cpu = cpu, .jalr = jalr, .alu = alu, .binary = binary, .shift = shift, .shift_weights = shift_weights, .division = division, .multiplication = multiplication, .zbb = zbb, .raw_counts = .{ .alu = @intCast(af.items.len), .binary = @intCast(bf.items.len), .shift = raw_shift_count, .jalr = @intCast(jf.items.len), .division = @intCast(division.len), .multiplication = raw_mul_count, .memory = @intCast(cpu.memory.items.len), .service = @intCast(cpu.services.items.len) }, .unique_memory_words = unique_memory_words };
     }
     pub fn geometry(self: *const Prepared) !G.Geometry {
         const cpu = self.cpu orelse return error.PreparedExecutionConsumed;
