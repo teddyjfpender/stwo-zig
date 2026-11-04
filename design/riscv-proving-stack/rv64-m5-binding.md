@@ -2,7 +2,7 @@
 
 Stream `profiles` (RV64 M4–M7), branch `codex/rv64-m4-profiles`, 2026-11-04. This note gates M5 (plan §4.2–4.4, §5 "M5 entry"). No M5 code may merge until this note has been reviewed and the M5 cases of the negative corpus (§7) pass.
 
-**Status:** design, reviewed by nobody yet. Labels: **[M]** measured (receipt exists), **[D]** arithmetic on measured numbers, **[E]** estimate.
+**Status:** design. Adversarial review 1 (2026-11-04, §9) found 3 blocking gaps (F1–F3) and 9 smaller ones. §2, §3.2, §4.1, §5 and §6 are amended in place and marked **[R1]**. The note stays **not approved** until a second reviewer signs off on §9. Labels: **[M]** measured (receipt exists), **[D]** arithmetic on measured numbers, **[E]** estimate.
 
 Related material:
 - the fold v2 note (`rv64-m3-topo-binding.md`, code in `om31_outer.zig`);
@@ -78,8 +78,18 @@ NS = ( T_nat[8], T_rec[8], img[8], stmt[8], chi[8 as OM31 words],
        seg_lo, seg_hi, kappa,
        m_in[8], m_out[8],          // ordered segment chain, interval form (§3.2)
        s_in[W], s_out[W],          // boundary machine state at seg_lo start / seg_hi end
-       bus[8 as OM31 words] )      // sum of global-relation LogUp claims over [seg_lo, seg_hi]
+       bus[R][8 as OM31 words],    // [R1] one sum per global relation R in {ram, kio, wire}, never one combined sum
+       mass[M],                    // [R1] integer LogUp masses per characteristic bound (ram, kio, wire, range16, range8, and, io)
+       ctr_in[F], ctr_out[F],      // [R1] per-family cumulative call / truth-id counters (today: firstIds, truth spans, sponge ids)
+       steps_in, steps_out,        // [R1] cumulative CPU step counter (today: first_step mixed per segment)
+       E[..],                      // [R1] global expected words every CPU transcript mixes (total_steps, max_total_steps, final pc/regs)
+       depth )                     // [R1] fold height; leaf 0, fold 1 + max child depth; checked <= D_MAX
 ```
+
+**[R1] Typing rule.** Every field is one of three types and the circuit enforces the type on every node:
+- *digest* words: u32 via `guessU32` limbs;
+- *OM31* coordinates (`chi`, `bus`): canonical, each coordinate `< p`. A u32 limb pair can encode `w` and `w + p` for one M31 value, so the `< p` check is required for hash inputs and for comparisons;
+- *counters* (`seg_*`, `kappa`, `mass`, `ctr`, `steps`, `depth`): integers with an explicit bit bound. Folds add them as integers and range-check the sum against its bound; they never add them in M31 and compare afterwards. Two children with mass `p − 1` each would wrap to `p − 2`.
 
 Choices made here:
 - `T_rec` is a **public input**, not a constant. No circuit hashes its own VK, and the PCD self-reference disappears.
@@ -109,7 +119,7 @@ Canonical rungs make this possible. Every AIR of family f is padded to height `2
 **Guessed, range-checked:**
 - `V^nat` words: FIXED root, preprocessed roots, identity;
 - the segment index `k`;
-- the boundary statement `(s_in, s_out)` and any per-segment statement words `stmt_k`;
+- the boundary statement `(s_in, s_out)` and the per-segment request `stmt_k`. **[R1]** `stmt_k` is today's per-segment `Request`: steps, `ls_count`, `calls[F]`, sponge counts and `first_id`, `ls_dword` and bridge presence. It is *not* free: constraint 7 below checks every field;
 - `χ`;
 - the MAIN root(s) `ρ_k`;
 - the global-relation claim `c_k`;
@@ -117,7 +127,7 @@ Canonical rungs make this possible. Every AIR of family f is padded to height `2
 
 ### 3.2 Constraints of the leaf
 
-1. **Transcript seeding (frozen-heart rule).** The in-circuit native verifier begins its Fiat–Shamir transcript exactly as the native verifier does. It mixes the profile, the guessed `V^nat` words, `img`, `stmt`, `k`, `stmt_k`, `χ`, and each committed root, in native order, **before** any challenge is drawn.
+1. **Transcript seeding (frozen-heart rule).** The in-circuit native verifier begins its Fiat–Shamir transcript exactly as the native verifier does. It mixes the profile, the guessed `V^nat` words, `img`, `stmt`, `k`, `stmt_k`, `s_in`, `s_out`, `ctr_in`, `steps_in`, `E`, `χ`, and each committed root, in native order, **before** any challenge is drawn. **[R1]** Mixing a word only binds the challenges to it. Step 3 must also *use* `s_in`/`s_out` as the public boundary values of the native AIR, through its boundary constraints or its public LogUp terms. A boundary that is mixed but not constrained proves nothing about the trace (`Z12`).
 
    The words mixed are the same wires that are hashed in steps 2 and 4. A producer therefore cannot choose a VK or a statement after seeing a challenge: changing any of them changes every challenge.
 2. **Native VK membership.** `MerkleVerify(T_nat, index(f,r), leafhash_nat(f, r, V^nat), path)`.
@@ -125,8 +135,21 @@ Canonical rungs make this possible. Every AIR of family f is padded to height `2
    - The index is a constant, and `leafhash_nat` is tagged and covers (f, r). So a VK of another class, or one that is not in the table, fails unless there is a Blake2s collision.
 3. **Native verification.** Every check that today's leaf performs, against structure `S^nat_{f,r}` and the guessed roots.
 4. **Chain step.** Set `m_out = H("rv64-m5-seg" ‖ m_in ‖ k ‖ f ‖ r ‖ vkhash(V^nat) ‖ stmt_k ‖ s_in ‖ s_out ‖ ρ_k)`, with `m_in` guessed. The claim `c_k` is deliberately **not** in the chain (§3.3).
-5. **Interval and other outputs.** `seg_lo = seg_hi = k`, `κ = 1`, `bus = c_k`.
-6. **Pass-through.** `T_nat`, `T_rec`, `img`, `stmt`, `χ` go to the outputs. `T_rec` is unused by a leaf but carried, so that `NS` is uniform.
+5. **Interval and other outputs.** `seg_lo = seg_hi = k`, with `k < MAX_PROOFS` range-checked in the leaf (`Z05`). `κ = 1`, `depth = 0`, `bus[R] = c_k[R]` per relation, `mass = mass(f, r, stmt_k)`, `ctr_out = ctr_in + calls(stmt_k)` and `steps_out = steps_in + steps(stmt_k)`.
+   - **[R1]** If relation R is absent for (f, r), a circuit constant, then `c_k[R] = 0` is asserted (today `NonzeroAbsentGlobalGkrClaim`, case `Z11`).
+   - **[R1] State rule per family.** Only CPU-family leaves may change machine state. Every other family (truth/service shards, the memory-boundary family) asserts `s_out = s_in`. Without this, a keccak-shard leaf placed between two CPU segments can jump the machine to an arbitrary halted state with the wanted output. The interval chain only enforces *continuity* (`NS_{i+1}.s_in = NS_i.s_out`), so this rule is load-bearing (`Z01`).
+6. **Pass-through.** `T_nat`, `T_rec`, `img`, `stmt`, `χ`, `E` go to the outputs. `T_rec` is unused by a leaf but carried, so that `NS` is uniform.
+7. **[R1] Per-segment admission.** The leaf re-checks in-circuit the per-segment part of today's receiver admission (`global_execution/protocol.zig validateInventory` and `services/protocol.zig admit*`), against `stmt_k` and the constant `S^nat_{f,r}`:
+   - steps ≤ `max_prefix_steps`;
+   - `ls_count` ≤ steps, and service calls ≤ steps;
+   - geometry capacity per bridge;
+   - bridge presence ⇔ `calls[F] ≠ 0`;
+   - sponge permutation bounds;
+   - per-proof AND, range16 and range8 mass < p;
+   - epoch = CPU ordinal + 1. Today `epoch = index + 1` counts CPU requests only, so the epoch is a CPU-segment counter in `ctr` and not the global index `k`;
+   - initial memory only at the first CPU segment and teardown only at the last, both expressed through the memory-boundary family (§5.1).
+   
+   A truth leaf checks `first_id = ctr_in[f]` and `ctr_out[f] = ctr_in[f] + count`. That is the truth span of today's `InvalidCombinedTruthSpan` in interval form (`Z03`).
 
 The leaf **does not** prove `m_in` is anything in particular. The interval form leaves it free, and the folds and root pin it down. That is what makes the accumulator independent of the tree shape.
 
@@ -160,14 +183,17 @@ For children `c_1 … c_k`, in order, each with guessed outer VK `V_i = (I_i, R_
    - The kind fields are inside the hashed leaf, so they cannot be relabelled.
    - The fold's own VK is in `T_rec`, as are its siblings'. No circuit contains its own VK: the circularity is broken by `T_rec` being an input.
 3. **Child verification** against structure `S_out`, which is constant. This is v2's in-circuit verifier, unchanged.
-4. **Agreement.** `NS_i.{T_nat, T_rec, img, stmt, χ}` equal the fold's own corresponding outputs for every i.
+4. **Agreement.** `NS_i.{T_nat, T_rec, img, stmt, χ, E}` equal the fold's own corresponding outputs for every i.
 5. **Adjacency and interval.**
    - `NS_{i+1}.seg_lo = NS_i.seg_hi + 1`;
    - `NS_{i+1}.m_in = NS_i.m_out`;
    - `NS_{i+1}.s_in = NS_i.s_out` (state continuity).
+   - **[R1]** `NS_{i+1}.ctr_in = NS_i.ctr_out` and `NS_{i+1}.steps_in = NS_i.steps_out`. Outputs take the first child's `_in` and the last child's `_out`.
    - Outputs: `seg_lo = NS_1.seg_lo`, `seg_hi = NS_k.seg_hi`, `m_in = NS_1.m_in`, `m_out = NS_k.m_out`, `s_in = NS_1.s_in`, `s_out = NS_k.s_out`.
-   - Range: `seg_lo ≤ seg_hi < MAX_PROOFS`, using a 16-bit range check on both.
-6. **Count and bus.** `κ = Σ κ_i` and `bus = Σ bus_i`, in OM31.
+   - Range: `seg_lo ≤ seg_hi < MAX_PROOFS`. **[R1]** A 16-bit range check on the values bounds them by 2^16, not by `MAX_PROOFS`. The circuit range-checks `seg_hi − seg_lo` and `MAX_PROOFS − 1 − seg_hi` in [0, 2^16) **for every child, not only for the outputs**, so that `seg_hi + 1` can never wrap in M31.
+6. **Count and bus.** `κ = Σ κ_i` as integers, and `bus[R] = Σ bus_i[R]` in OM31 for each R separately.
+   - **[R1]** `mass[M] = Σ mass_i[M]` as integers, and each sum is `< p`. This is today's `GlobalRamCharacteristicBound` and `CombinedLookupMassExceeded`, enforced at every node. LogUp over a field of characteristic p is sound only while the total multiplicity of any key is below p, and per-leaf bounds × `MAX_PROOFS` exceed p: 256 × 2^24 × 2 > 2^31 (`Z04`).
+   - **[R1]** `depth = 1 + max_i depth_i ≤ D_MAX`, with D_MAX = 8 suggested (`Z06`).
 
 Arity is a **class constant**. The three fold circuits are distinct and so have distinct VKs. A fold of arity k cannot be presented as arity k', because its VK sits at a different `T_rec` leaf with `k` in the hashed leaf, and its structure differs.
 
@@ -223,8 +249,29 @@ The final proof is the top fold, or, from M7, C2 wrapping it with `NS` passed th
    - `seg_lo = 0`, `seg_hi = κ − 1` and `1 ≤ κ ≤ MAX_PROOFS`;
    - `m_in = IV` and `χ = H("rv64-m5-chi" ‖ stmt ‖ m_out)`;
    - `s_in = initial(stmt)` and `s_out = final(stmt)`, where the final state has the halt flag set and the output commitment equals `expected_output`;
-   - `bus = expected_bus(stmt)`, the public INIT/TEARDOWN boundary terms the receiver computes itself, as today's `max_public_boundary_log` path does.
-4. Uses `κ` and the (f, r) histogram to instantiate the native error ledger (`Facts`). `κ` is producer-chosen, so the ledger is evaluated at the cap `MAX_PROOFS`, never at the claimed κ.
+   - **[R1]** `ctr_in = 1` for every family and `steps_in = 0`. `steps_out = E.total_steps ≤ E.max_total_steps`, and `E` is consistent with `s_out` (final pc and registers). For every family, the CPU call total equals the truth coverage, and Keccak sponge ids start after the Keccak-f total. This is today's `admit` tail, now on `ctr_out`;
+   - **[R1]** `mass[M] < p` (already enforced at each node; re-checked here);
+   - **[R1]** `bus[R] = 0` for each R separately, with no cross-relation cancellation (`Z09`). The INIT and TEARDOWN terms are **not** public receiver terms. They come from the memory-boundary leaves of §5.1, and `χ` used there is `NS.χ`, after the `χ` check above.
+4. Instantiates the native error ledger (`Facts`) at the caps: `MAX_PROOFS` segments, all at the largest admitted rung. **[R1]** The (f, r) histogram is not in `NS`, and `κ` is producer-chosen, so neither may be used.
+
+### 5.1 [R1] The RAM boundary needs its own leaf family
+
+Today the receiver reads `cells.bin`, the touched set with its initial and terminal cells. With those it:
+- checks sortedness, alignment, equal address sets and rights;
+- checks initial values against the image (`UntrustedGlobalMemoryInitialization`);
+- bounds terminal epochs by the segment count;
+- adds the INIT and TEARDOWN fractions to the RAM closure.
+
+The terminal memory is a **result of execution**, not a function of `stmt`. A root-only receiver therefore cannot compute "expected_bus(stmt)" as v0 of this note said. If an implementation took the teardown terms from the producer, the producer could pick terminal cells that balance any forged RAM trace and any claimed output (`Z10`).
+
+M5 needs a **memory-boundary family** `mb`, whose leaves are canonical like every other (f, r):
+- A leaf takes a chunk of touched cells. It proves sortedness against the previous chunk's last address, carried as a `ctr`-style counter.
+- It proves each initial value against the image commitment in `img`/`stmt`, by Merkle opening or by a sorted merge with the image table.
+- It contributes the INIT and TEARDOWN fractions to `bus[ram]` and their count to `mass[ram]`.
+- It derives the output commitment from the output-region cells.
+- It asserts `s_out = s_in`.
+
+The receiver checks only the root. The case `X06` (coherent terminal-value flip) already exercises the M3 equivalent of this obligation.
 
 The receiver does **not** need κ in advance. Segmentation is the producer's choice. Soundness only needs every segment to be counted once, which the interval chain guarantees.
 
@@ -259,12 +306,14 @@ The argument is by induction on node height. Let `Φ(NS)` be the statement in §
   - Hence Φ(NS).
 - **Root.** The receiver checks pin the interval to `[0, κ−1]`, the chain start to `IV`, and the states to the statement. χ is fixed by `m_out`, which contains every MAIN root, so χ was determined after all of them. The native soundness of the global relation then gives bus balance.
 
+**[R1] Correction (depth).** v0 said the depth is constant. It is not: the tree shape is the producer's choice, and a comb-shaped tree of arity-2 folds has depth κ − 1 = 255. The `depth` field (§2) with `D_MAX` restores the constant-depth premise. Without that field the extraction caveat below does not hold.
+
 **Union.** Over a tree with `κ ≤ 256` leaves and at most `κ − 1` folds, plus C1 and C2, the union runs over:
 - at most 2κ + 1 outer attempts, each 2^-128 under its own profile;
 - κ native attempts;
 - the hash collisions, which are 2^-256-scaled terms with H ≤ 3·(2κ+2) + 1 scopes, as in the recsize note.
 
-There is one **caveat**, and it is the standard one for PCD. A knowledge-soundness extractor for depth d recursion blows up with d. Our depth is constant: ⌈log_4 256⌉ = 4 fold levels, plus C1, C2 and the leaf. The extraction loss is therefore a constant factor that the per-attempt accounting does not hide. This is the same caveat today's r1/m3 recursion carries implicitly. The note states it, and it does not change any profile.
+There is one **caveat**, and it is the standard one for PCD. A knowledge-soundness extractor for depth d recursion blows up with d. With the [R1] `depth ≤ D_MAX` check, the depth is constant: at most D_MAX fold levels (4 for a balanced 4-ary tree), plus C1, C2 and the leaf. The extraction loss is therefore a constant factor that the per-attempt accounting does not hide. This is the same caveat today's r1/m3 recursion carries implicitly. The note states it, and it does not change any profile.
 
 **What breaks the claim (review checklist):**
 1. any `S^nat` or `S_out` field guessed instead of constant;
@@ -273,7 +322,13 @@ There is one **caveat**, and it is the standard one for PCD. A knowledge-soundne
 4. a node summary field not compared in step 4 of §4.1;
 5. the membership index not range-checked to the table size;
 6. `T_rec` derivation that is not reproducible;
-7. `bus` or `χ` checked against producer-supplied expected values.
+7. `bus` or `χ` checked against producer-supplied expected values;
+8. **[R1]** a non-CPU leaf that does not assert `s_out = s_in`;
+9. **[R1]** any field of `stmt_k` left unconstrained, or any receiver check of today's `validateInventory` / `admit` / `checkClaimsClosure` without an in-circuit home (the table in §9);
+10. **[R1]** a counter or mass added in M31 instead of as a range-checked integer, or a range check applied only to a node's outputs and not to its children;
+11. **[R1]** OM31 coordinates not checked canonical (`< p`) before hashing or comparing;
+12. **[R1]** Merkle leaf and internal-node hashes without distinct domain tags, or a variable path depth;
+13. **[R1]** global relations summed into one `bus` (cross-relation cancellation).
 
 ---
 
@@ -306,6 +361,8 @@ Ids are stable, and `scripts/rv64_m5_negative_corpus.py spec` prints the machine
 | N01–N03 | null slot | real slot re-tagged null; null with payload; non-trailing null | m5 (null variant only) | §4.2 |
 | P01 | profile | receiver selects another native profile | m3 | profile identity in transcript |
 | P02 | profile | receiver selects another outer profile | m5 (needs recsize) | outer domain in identity, wire and transcript |
+| X06 | χ / RAM teardown | **coherent** terminal-cell value flip in `cells.bin`, with rehashed bundle | m3 | §5.1 memory-boundary leaf; today the RAM closure |
+| Z01–Z12 | review 1 (§9) | truth leaf state jump; free `stmt_k`; family counter gap; mass wrap; segment index wrap; depth; non-canonical word; Merkle node as leaf; cross-relation cancellation; forged teardown; absent-relation claim; boundary not in AIR | m5 | §9 F1–F12 |
 | M01–M04 | outer GKR / compress | GKR round or claim tamper; C2 under C1 profile; compress over another root | m7 | `rv64-m7-profiles.md` §4–5 |
 
 ### Today's receiver (M3 integrate build `7b823d49…`, source `d6f7b2b5e`) [M]
@@ -338,3 +395,63 @@ What today's receiver relies on, and what M5 must replace:
 | rungs, constant roster, the native χ chain (§3.3, a native format change) | canon-native |
 | corpus `m5` cases: implement the mutations once the format exists | profiles (spec), canon-vk (hooks) |
 | review of this note | integrate, before any M5 merge |
+
+---
+
+## 9. Adversarial review 1 (2026-11-04)
+
+The reviewer worked from today's receiver code, not from the plan. For each check the M3 receiver performs, the question was where that check lives once the receiver reads only the root. Where v0 had no home for a check, that is a finding. The fixes are made inline above and marked [R1].
+
+### 9.1 Findings
+
+| id | severity | finding | where fixed |
+|---|---|---|---|
+| F1 | **blocking** | `NS` had no field for any **cross-segment admission** check of today's receiver. Missing: the per-family call counters and truth-id spans (`firstIds`, `InvalidCombinedTruthSpan`, sponge ids after Keccak-f), the cumulative step counter (`first_step`, `GlobalExecutionCoverageMismatch`), and the LogUp **characteristic bounds** (`GlobalRamCharacteristicBound`, `CombinedLookupMassExceeded`, `CombinedRangeMassExceeded`). `stmt_k` was guessed and unconstrained. A producer could skip or repeat truth ids, or push a relation's multiplicity mass past p so that LogUp multiplicities wrap. Per-leaf caps do not save this: 256 × 2^24 × 2 > p. | §2 `mass`/`ctr`/`steps`/`E`, §3.2(5,7), §4.1(5,6), §5(3) |
+| F2 | **blocking** | `expected_bus(stmt)` cannot include RAM TEARDOWN. The terminal memory is an execution result, and today the receiver reads it from `cells.bin`. A root-only receiver either lacks it or takes it from the producer, and the latter lets the producer balance a forged RAM trace and choose the output. The same applies to the touched-set checks (`UntrustedGlobalMemoryInitialization`, `GlobalTouchedSetMismatch`, `InvalidGlobalMemoryTerminal`). | §5.1 memory-boundary family; `X06` (runnable today), `Z10` |
+| F3 | **blocking** | Non-CPU leaves had no state rule. The chain enforces only continuity, so a truth-shard leaf with `s_out ≠ s_in` can move the machine to any halted state. | §3.2(5) state rule; `Z01` |
+| F4 | high | One combined `bus`. Today the ram, kio and wire relations close separately, and claims of absent relations must be zero (`checkClaimsClosure`). | §2 `bus[R]`, §3.2(5), §5(3); `Z09`, `Z11` |
+| F5 | high | The tree depth is not bounded. Shape is free, so a comb gives depth κ − 1, and the PCD caveat's "constant depth 4" was false. | §2 `depth`, §4.1(6), §6 correction; `Z06` |
+| F6 | medium | Range checks. "A 16-bit range check on both" does not prove `< MAX_PROOFS`. It applied only to fold outputs, so interior children and leaves could carry `k = p − 1` and wrap `seg_hi + 1` to 0. Counters and masses were summed in M31. | §2 typing rule, §3.2(5), §4.1(5); `Z04`, `Z05` |
+| F7 | medium | The boundary was mixed but not constrained. Mixing `s_in`/`s_out` into the transcript does not bind them to the trace; the native AIR must use them as public boundary values. v0's step 1 did not even list them. | §3.2(1); `Z12` |
+| F8 | medium | Non-canonical OM31 words. `χ` and `bus` are carried as u32 limbs, and `w` and `w + p` alias the same M31 value. Today `NoncanonicalGlobalGkrCoordinate` rejects this. | §2 typing rule; `Z07` |
+| F9 | medium | The global `Expected` words (`total_steps`, `max_total_steps`, final pc/registers) are mixed into **every** CPU transcript by `beginMaterials`. In M5 they are producer values: they need an agreement field and a root consistency check. | §2 `E`, §4.1(4), §5(3) |
+| F10 | low | Merkle membership did not state leaf/node domain separation or a fixed depth (`T_nat`, `T_rec`). | checklist 12; `Z08` |
+| F11 | low | Receiver step 4 used an (f, r) histogram that is not in `NS`. | §5(4) |
+| F12 | low | `χ` used in `bus` closure must be `NS.χ` taken after the `χ = H(stmt ‖ m_out)` check. The order is now stated. | §5(3) |
+
+No issue was found with these parts:
+- the canonical-leaf constants;
+- `T_rec` as a public input (the PCD self-VK break);
+- per-arity fold classes over null slots;
+- the interval chain itself;
+- χ excluding `c_k`;
+- the k-ary v2 lemma.
+
+The `S_out` argument (fold-class explosion without one uniform shape) checks out: Σ_{k=2..4} 12^k = 22,896.
+
+### 9.2 Today's receiver checks and their M5 home
+
+| today (file: error) | M5 home |
+|---|---|
+| `global_execution/protocol.zig`: `InvalidGlobalExecutionEpoch` | §3.2(7): epoch = CPU ordinal + 1, from `ctr` |
+| `UntrustedGlobalGenesis`, `GlobalCpuBoundaryMismatch` | §5(3) `s_in`; §4.1(5) continuity; F3 rule |
+| `ExecutionPrefixBudgetExceeded`, `InvalidExecutionMemoryCount`, `GlobalMemoryCapacity`, `GlobalArithmeticCapacity` | §3.2(7) |
+| `GlobalExecutionCoverageMismatch`, `GlobalExecutionBudgetExceeded` | `steps` chain, §5(3) |
+| `RepeatedGlobalInitialization`, `PrematureGlobalTeardown`, `GlobalTouchedSetMismatch`, `UntrustedGlobalMemoryInitialization`, `InvalidGlobalMemoryTerminal` | §5.1 `mb` family |
+| `GlobalRamCharacteristicBound` | `mass[ram]`, §4.1(6) |
+| `services/protocol.zig`: `InvalidCombinedTruthSpan`, `firstIds` | `ctr` chain, §3.2(7), §5(3) |
+| `CombinedLookupMassExceeded`, `CombinedRangeMassExceeded` | per-proof part: §3.2(7); cross-proof part: `mass` |
+| `InvalidCombinedBridgePresence`, `InvalidCombinedServiceCount`, `InvalidServicesWireRequest` | §3.2(7) |
+| `MixedWord16PcsSuites` | the suite is a field of `S^nat` (constant), and `T_nat` holds one suite |
+| `gkr_local/manifest.zig`: `UnclosedGlobalGkr{Ram,Kio,Wire}`, `NonzeroAbsentGlobalGkrClaim`, `NoncanonicalGlobalGkrCoordinate` | `bus[R]`, §3.2(5), typing rule |
+| `GlobalGkrPhysicalRootMismatch` | §3.2(4): `ρ_k` is the leaf's own verified root, in the chain |
+
+**Exit criterion added to M5:** canon-vk keeps this table complete. Any new receiver-side check added before M5 merges gets a row here first.
+
+### 9.3 Must hold before M5 code merges
+
+1. A second reviewer signs §9 and the [R1] amendments.
+2. Every row of §9.2 is implemented in-circuit, with a test naming the row.
+3. Each `Z` case and each `m5` case has a hook and is rejected by the M5 root-only receiver. `X06` and every `m3` case stay rejected.
+4. canon-native's χ-chain version also defines the `mb` family and `stmt_k` encoding, with a byte-level test that the native prover and the in-circuit chain agree.
+5. The `mass` bounds are re-derived from the code's mass formulas (`admit*`), not copied from this note.

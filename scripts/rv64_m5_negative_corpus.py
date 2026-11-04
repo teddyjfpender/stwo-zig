@@ -15,7 +15,15 @@ OTHER dev block (cross-block substitutions). Pending cases (format does not
 exist yet) are listed in the receipt with status "pending" and never run.
 
 Verdict rule: a case PASSES when the receiver's verdict equals the expectation.
-  reject                 : exit != 0, or stdout accepted/completed not both true.
+  reject                 : a CLEAN rejection: exit code > 0 with no crash marker
+                           (signal, panic, unreachable, segfault, timeout) and
+                           stdout accepted/completed not both true. A crash is
+                           never a pass: a receiver that dies on every mutated
+                           input would otherwise pass the whole corpus.
+                           Each rejection is classed (reject_class): semantic,
+                           resource (size/memory caps) or missing (absent file);
+                           non-semantic classes still pass but are listed in
+                           the receipt so a reviewer sees what did the work.
   accept                 : exit 0 and accepted and completed_ethereum_block (controls).
   reject_or_same_statement: producer-advisory metadata the receiver re-derives.
                            Accepting is allowed only if the receiver's statement
@@ -34,7 +42,7 @@ import subprocess
 import sys
 import time
 
-SCHEMA = "rv64-m5-negative-corpus/v1"
+SCHEMA = "rv64-m5-negative-corpus/v2"
 DEV_BLOCKS = {26235156, 24628607}
 HOST_BYTES = 34359738368
 
@@ -97,6 +105,26 @@ def coherent_drop_last_cpu(proof):
 def coherent_dup_cpu(proof, src, dst):
     shutil.copyfile(proof / f"cpu-{src}.bin", proof / f"cpu-{dst}.bin")
     bundle(proof, lambda v: v["cpus"].__setitem__(dst, json.loads(json.dumps(v["cpus"][src]))))
+
+
+def coherent_terminal_value_flip(proof):
+    """Flip the low value byte of the middle TERMINAL RAM cell in cells.bin
+    (layout: cells_wire.zig, 16-byte header, n initial then n terminal 23-byte
+    cells: address u64, value u64, epoch u16, tick u32, rights u8) and rewrite
+    bundle.json cells_sha256. Rights, epoch and tick stay canonical, so only
+    the RAM TEARDOWN closure (the global LogUp-GKR ram relation) can reject.
+    This is the M3 analogue of the M5 teardown obligation (binding note 9.F2)."""
+    path = proof / "cells.bin"
+    data = bytearray(path.read_bytes())
+    n = int.from_bytes(data[8:12], "little")
+    if n == 0 or len(data) != 16 + 2 * n * 23:
+        raise ValueError(f"unexpected cells.bin layout n={n} len={len(data)}")
+    offset = 16 + n * 23 + (n // 2) * 23 + 8
+    data[offset] ^= 0x01
+    path.write_bytes(bytes(data))
+    h = digest_list(path)
+    bundle(proof, lambda v: v.__setitem__("cells_sha256", h))
+    return offset
 
 
 def coherent_flip(proof, name, setter):
@@ -204,6 +232,10 @@ CASES = [
     dict(id="X04-coherent-cells-flip", family="chi", expect="reject", today="m3",
          what="flip one bit mid cells.bin AND rewrite bundle.json cells_sha256",
          mutate=lambda c: coherent_flip(c["proof"], "cells.bin", lambda v, h: v.__setitem__("cells_sha256", h))),
+    dict(id="X06-coherent-terminal-value", family="chi", expect="reject", today="m3",
+         what="cells.bin: flip the value of the middle TERMINAL cell AND rewrite bundle.json cells_sha256 "
+              "(canonical rights/epoch/tick; only the RAM teardown closure can reject)",
+         mutate=lambda c: coherent_terminal_value_flip(c["proof"])),
     # statement / profile (receiver policy)
     dict(id="T01-wrong-output", family="statement", expect="reject", today="m3",
          what="receiver request expected_output: last byte changed (claimed block output differs)",
@@ -234,6 +266,31 @@ CASES = [
          what="root bus-balance sum != 0 (one segment's claimed sum shifted, chain re-hashed)"),
     dict(id="X05-chi-root-mismatch", family="chi", expect="reject", today="m5",
          what="root statement chi != H(statement || MAIN roots sorted by segment index)"),
+    # Added by the 2026-11-04 adversarial review (rv64-m5-binding.md section 9). Pending formats.
+    dict(id="Z01-truth-leaf-state-jump", family="segment-chain", expect="reject", today="m5",
+         what="non-CPU (truth/service) leaf outputs s_out != s_in (machine state jumped by a segment without CPU rows)"),
+    dict(id="Z02-free-segment-request", family="statement", expect="reject", today="m5",
+         what="stmt_k (per-segment request: calls, first ids, steps, ls_count, first_step) altered, chain re-hashed"),
+    dict(id="Z03-family-counter-gap", family="segment-chain", expect="reject", today="m5",
+         what="per-family call/truth-id counters: a truth shard skips or repeats an id range (truth span), chain re-hashed"),
+    dict(id="Z04-mass-wrap", family="bus", expect="reject", today="m5",
+         what="an accumulated LogUp mass (ram/kio/wire/range/AND) >= p, or two child masses whose field sum wraps below p"),
+    dict(id="Z05-segment-index-wrap", family="segment-chain", expect="reject", today="m5",
+         what="leaf k >= MAX_PROOFS or k = p-1 so that seg_hi + 1 wraps to 0 in M31"),
+    dict(id="Z06-depth-exceeded", family="segment-chain", expect="reject", today="m5",
+         what="degenerate (comb-shaped) tree with fold depth > D_MAX"),
+    dict(id="Z07-noncanonical-word", family="chi", expect="reject", today="m5",
+         what="chi or bus coordinate presented as w + p (u32 alias of the same M31 value)"),
+    dict(id="Z08-merkle-node-as-leaf", family="child-vk", expect="reject", today="m5",
+         what="T_nat/T_rec membership with an internal node presented as a leaf (shorter path / missing leaf-node domain tags)"),
+    dict(id="Z09-cross-relation-cancel", family="bus", expect="reject", today="m5",
+         what="ram imbalance d and wire imbalance -d: single summed bus balances, per-relation closure must not"),
+    dict(id="Z10-forged-teardown", family="bus", expect="reject", today="m5",
+         what="terminal memory (teardown) chosen by the producer to balance a forged RAM trace / output (receiver lacks cells)"),
+    dict(id="Z11-absent-relation-claim", family="bus", expect="reject", today="m5",
+         what="segment of an (f,r) without relation R carries a non-zero R claim"),
+    dict(id="Z12-boundary-not-in-air", family="segment-chain", expect="reject", today="m5",
+         what="leaf s_in/s_out mixed into the transcript but differing from the native trace's first/last state"),
     dict(id="M01-gkr-sumcheck-tamper", family="outer-gkr", expect="reject", today="m7",
          what="outer LogUp-GKR: one sumcheck round polynomial coefficient changed"),
     dict(id="M02-gkr-claim-tamper", family="outer-gkr", expect="reject", today="m7",
@@ -292,6 +349,20 @@ def environment():
     return env
 
 
+CRASH_MARKERS = ("panic:", "reached unreachable", "Segmentation fault", "SIGSEGV", "SIGABRT", "integer overflow", "index out of bounds")
+RESOURCE_ERRORS = ("FileTooBig", "OutOfMemory", "StreamTooLong")
+MISSING_ERRORS = ("FileNotFound", "MissingRecursiveNodeProof")
+
+
+def reject_class(first_error):
+    e = first_error or ""
+    if any(m in e for m in MISSING_ERRORS):
+        return "missing"
+    if any(m in e for m in RESOURCE_ERRORS):
+        return "resource"
+    return "semantic"
+
+
 def run_case(case, ctx):
     work = ctx["work"] / case["id"]
     shutil.rmtree(work, ignore_errors=True)
@@ -319,8 +390,13 @@ def run_case(case, ctx):
     command = ["nice", "-n", "10", str(ctx["receiver"]), "--security-profile", argv["profile"], "verify-recursion-candidate",
                str(request_path), str(proof), str(ctx["fixed_setup_bytes"]), str(HOST_BYTES)]
     started = time.monotonic()
+    timed_out = False
     with open(work / "stdout", "wb") as out, open(work / "stderr", "wb") as err:
-        proc = subprocess.run(command, stdout=out, stderr=err, env=env, cwd=ctx["cwd"], timeout=1800)
+        try:
+            proc = subprocess.run(command, stdout=out, stderr=err, env=env, cwd=ctx["cwd"], timeout=1800)
+            returncode = proc.returncode
+        except subprocess.TimeoutExpired:
+            timed_out, returncode = True, None
     wall = time.monotonic() - started
     stderr = (work / "stderr").read_text(errors="replace").splitlines()
     first_error = next((line for line in stderr if line.startswith("error") or "error:" in line[:40]), None)
@@ -328,19 +404,21 @@ def run_case(case, ctx):
     same = None
     try:
         stdout = json.loads((work / "stdout").read_text())
-        accepted = proc.returncode == 0 and stdout.get("accepted") is True and stdout.get("completed_ethereum_block") is True
+        accepted = returncode == 0 and stdout.get("accepted") is True and stdout.get("completed_ethereum_block") is True
         if accepted:
             same = statement(stdout) == ctx["control_statement"]
     except Exception:
         pass
-    verdict = "accept" if accepted else "reject"
+    crashed = timed_out or returncode is None or returncode < 0 or any(m in line for line in stderr for m in CRASH_MARKERS)
+    verdict = "accept" if accepted else ("crash" if crashed else "reject")
     if case["expect"] == "accept":
         passed = accepted and same is True
     elif case["expect"] == "reject":
-        passed = not accepted
+        passed = verdict == "reject"
     else:  # reject_or_same_statement
-        passed = (not accepted) or same is True
-    result.update(status="ran", verdict=verdict, exit_code=proc.returncode, wall_s=round(wall, 2), first_error=first_error,
+        passed = verdict == "reject" or (accepted and same is True)
+    result.update(status="timeout" if timed_out else "ran", verdict=verdict, exit_code=returncode, wall_s=round(wall, 2),
+                  first_error=first_error, reject_class=reject_class(first_error) if verdict == "reject" else None,
                   last_stderr=stderr[-1] if stderr else None, same_statement_as_control=same, passed=passed)
     shutil.rmtree(work, ignore_errors=True)
     print(json.dumps({k: result.get(k) for k in ("id", "verdict", "passed", "exit_code", "wall_s", "first_error")}, default=str), flush=True)
@@ -390,11 +468,13 @@ def main():
                "loadavg_1m_end": os.getloadavg()[0], "wall_s": round(time.time() - started, 1),
                "ran": len(results), "passed": sum(1 for x in results if x.get("passed")),
                "unexpected_accepts": [x["id"] for x in results if x.get("verdict") == "accept" and x["expect"] == "reject"],
+               "crashes": [x["id"] for x in results if x.get("verdict") == "crash"],
+               "nonsemantic_rejects": {x["id"]: x["reject_class"] for x in results if x.get("reject_class") not in (None, "semantic")},
                "results": results, "pending": pending}
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(receipt, indent=1, default=str))
-    print(json.dumps({k: receipt[k] for k in ("block", "ran", "passed", "unexpected_accepts", "wall_s")}))
+    print(json.dumps({k: receipt[k] for k in ("block", "ran", "passed", "unexpected_accepts", "crashes", "nonsemantic_rejects", "wall_s")}))
     sys.exit(0 if receipt["passed"] == receipt["ran"] else 1)
 
 

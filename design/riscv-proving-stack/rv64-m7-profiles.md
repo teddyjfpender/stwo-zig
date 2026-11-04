@@ -22,6 +22,8 @@ Labels: **[M]** measured, **[D]** arithmetic on measured or pinned numbers, **[E
 
 Conjectured bits are `log_blowup · queries + pow` (the ethSTARK conjecture, the same rule as the accepted native and r1 outer profiles). Johnson bits are `queries · log_blowup / 2 + pow`, the provable regime with per-query error about √ρ.
 
+**[R1] The Johnson column is an upper bound.** The exact per-query error is √ρ + η for a proximity slack η > 0, so the per-query bits are `−log₂(√ρ + η) < log_blowup / 2`. The column also leaves out the commit-phase (list-decoding) term. With OM31 challenges that term is negligible, but it is not zero. The column is therefore a ranking between profiles, not a provable bound. The ranking holds: every candidate pays the same η penalty per query, and none has fewer `queries · log_blowup` than the default.
+
 | entry | layer | log b | q | pow | log₂ FRI arity | conj. bits | Johnson bits | identity domain |
 |---|---|---:|---:|---:|---:|---:|---:|---|
 | `conjectured128_b2_q108_p20_fold4` (admitted, today) | native | 1 | 108 | 20 | 4 | 128 | 74 | `…CONJECTURED-ethstark/v2` |
@@ -38,6 +40,12 @@ The tests pin four properties:
 - each config's fold step is the declared one.
 
 **No layer drops below the 128 label under the conjecture, and none drops below today's Johnson-regime level either.**
+
+Review 1 re-did every row by hand:
+- conjectured: 1·108 + 20 = 2·54 + 20 = 2·51 + 26 = 3·36 + 20 = 4·27 + 20 = 128;
+- Johnson: 54 + 20 = 74 four times, and 51 + 26 = 77 for `m3`.
+
+No error was found in that arithmetic.
 
 PoW is checked after the last FRI commitment and before queries are derived (`core/pcs/verifier_family.zig`), as for the accepted profiles. So it counts toward the query phase. The grind cost is 2^20 per C1/C2/D2 proof. C1 and C2 run once per request, so their grind is negligible. D2 grinds once per native segment.
 
@@ -65,6 +73,10 @@ Every outer/compress challenge is OM31: in-circuit lanes are 8-coordinate (`om31
 Raising the blowup from 2 to 16 grows the evaluation domain by 8× and loses 3 bits on the FRI/DEEP terms. The OODS term does not change.
 
 With c = 512 columns, 8 samples per column and v = 30 [D, conservative]:
+
+Review 1 recomputed the table. For example, outer r1 b2 has OODS 512·8·32·2^22 = 2^39 and FRI envelope 513·2^16·2^23·31 ≈ 2^52.95. That gives a total of about 2^53 against μ = 2^-243.3, so 190.3 bits. The other rows follow from the domain size: +1 log of `N_eval` costs 1 bit.
+
+**[R1] These are per-proof figures.** The union over a request costs log₂(outer proofs) ≤ 8 more bits for the outer layers (about 181–183 bits at `p = 256`). For D2 it costs log₂(MAX_PROOFS) = 8 bits (about 181 bits). Both stay more than 50 bits above 128.
 
 | layer | trace log | bits per proof (algebraic union) |
 |---|---:|---:|
@@ -152,19 +164,27 @@ The union over outer proofs multiplies these by `p`. Per-challenge error is degr
 
 **Findings:**
 1. **The outer GKR must draw its challenges in OM31.** Our in-circuit lanes already do. With QM31 challenges, the tuple-compression term alone gives 72–87 bits, below 128. The plan's "about 2^-110 to 2^-115" was a QM31 sumcheck-only estimate. It left out the tuple term, which is not GKR-specific and is present for committed LogUp as well.
-2. With OM31, GKR adds weight of about 2^25 to a union dominated by the 2^52 tuple term. Its marginal cost is under 0.001 bit. **Outer GKR is not a soundness risk under this model.** The obligations are completeness and binding, below.
+2. With OM31, GKR adds weight of about 2^25 to a union dominated by the 2^52 tuple term. Its marginal cost is under 0.001 bit. **Outer GKR is not a soundness risk under this model.** The obligations are completeness and binding (below), plus the characteristic bound (item 5).
+
+   Review 1 re-derived the caps total: 2^52 (tuple) + 2^46 (poles) + 2^25.4 + 2 × 2^20.9 ≈ 2^52.02. With 3^8/2^256 = 2^-243.32 that gives 191.3 bits, and with 2^52.02/p^4 it gives 72.0 bits. Both match the tests.
 3. **Binding (as native `gkr_late_binding`, basis `binding_theorem_required`).**
    - The GKR claims must be mixed into the outer transcript before the challenges that consume them.
    - The final layer's evaluation claims must be checked against the committed base columns through the outer PCS (OODS), not taken from the prover.
    - Each instance's (relation, component) tag must be inside the mixed instance list.
    - The reviewer checks these three points against the code. The corpus cases are `M01` (round tamper) and `M02` (final-claim tamper).
 4. **The in-circuit verifier must use constant round counts per class.** `v` per instance is a function of `S_out` (`rv64-m5-binding.md` §1). The sumcheck length is therefore a constant and is never muxed. This is the same rule as for log sizes.
+5. **[R1] Characteristic bound, which no field-size ledger covers.** LogUp over M31 needs every key's total multiplicity to stay below p. The reason is that m and m + p are the same field element whatever the challenge field, so OM31 challenges do not help.
+   - The native receiver enforces this today (`GlobalRamCharacteristicBound`, `CombinedLookupMassExceeded`).
+   - The outer circuit needs the same check. At caps the conservative mass `instances · 2^v` = 2^37 ≥ p, so the caps are **not** admissible unless the circuit has a measured per-relation mass.
+   - Pinned in `outerGkrMassBound` and `requireOuterGkrCharacteristic`, with a test: caps wrap, and the realistic facts (2^28) do not.
+   - The same bound applies to committed outer LogUp, so it already constrains today's r1 circuits. canon-vk should confirm it for the current outer AIR.
 
 ### 4.3 Obligations before the outer-gkr stream merges
 
 - A CPU reference verifier, plus a tamper corpus: every round coefficient, every claim, instance order.
 - `M01` and `M02` rejected by a fresh receiver.
 - The `OuterGkrFacts` of the real circuit, read from the class constants, pass `requireOuterGkrBits(·, 151)`.
+- **[R1]** The real circuit's worst per-relation multiplicity mass passes `requireOuterGkrCharacteristic`.
 - The kill rule of plan §5 (25% of leaf cells) is measured by outer-gkr, not here.
 
 ---
@@ -172,6 +192,8 @@ The union over outer proofs multiplies these by `p`. Per-challenge error is degr
 ## 5. C1 and C2: statement passthrough and binding
 
 - C1 verifies exactly one top-level node proof, a fold or leaf with outputs `NS`, under a VK it checks for membership in `T_rec`. This is `rv64-m5-binding.md` §4.1(2) with k = 1. C1 outputs `NS` unchanged.
+  - **[R1]** "Unchanged" covers every field of the amended `NS`, including `bus[R]`, `mass`, `ctr`, `steps`, `E` and `depth`. C1 also applies the `NS` typing rule, with canonical OM31 words, to its child's outputs.
+  - C1's own VK must **not** be in `T_rec`. Otherwise a fold could take a C1 proof as a child, and the depth bound would not count it.
 - C2 verifies exactly one C1 proof, against a C1 VK that is a constant of C2. That is allowed because C1 is not self-recursive. C2 outputs `NS` unchanged.
 - The receiver verifies C2 under its derived C2 VK and applies the root checks of `rv64-m5-binding.md` §5 to the passed-through `NS`.
 - The domain strings in §1 are hashed into authority identity, wire header, outer transcript and in-circuit transcript, exactly as recsize does for `m3`. A C2 proof therefore cannot verify under C1 parameters, which is case `M03`.

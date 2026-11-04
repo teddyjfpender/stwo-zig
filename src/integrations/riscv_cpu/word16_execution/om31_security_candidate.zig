@@ -489,6 +489,24 @@ pub fn requireOuterGkrBitsQm31(facts: OuterGkrFacts, bits: u16) !void {
     const p: u512 = core.fields.m31.Modulus;
     if ((try outerGkrTotal(facts)) << @intCast(bits) > p * p * p * p) return error.Om31CandidateAlgebraicBudgetInsufficient;
 }
+/// Characteristic bound for the outer LogUp (committed or GKR). Over M31 a
+/// LogUp sum is sound only while the total multiplicity of every key stays
+/// below p (the native receiver enforces the same as GlobalRamCharacteristicBound
+/// / CombinedLookupMassExceeded). The Schwartz-Zippel ledger above does not
+/// cover it: a multiplicity m and m + p are the same field element whatever the
+/// challenge field. Conservative mass: every instance of one outer proof feeds a
+/// single relation at full height, instances * 2^max_variables. Review 1
+/// (rv64-m7-profiles.md section 4.2, finding 5).
+pub fn outerGkrMassBound(facts: OuterGkrFacts) !u64 {
+    try facts.validate();
+    return std.math.mul(u64, facts.instances, @as(u64, 1) << @intCast(facts.max_variables)) catch return error.Om31CandidateBudgetOverflow;
+}
+/// `relation_mass`: the circuit's measured worst per-relation multiplicity
+/// mass (null = use the conservative outerGkrMassBound). Must be < p.
+pub fn requireOuterGkrCharacteristic(facts: OuterGkrFacts, relation_mass: ?u64) !void {
+    const mass = relation_mass orelse try outerGkrMassBound(facts);
+    if (mass >= core.fields.m31.Modulus) return error.Om31CandidateCharacteristicWrap;
+}
 
 pub fn requireBenchmarkControlUnchanged() !void {
     try Policy.requireClaim(Policy.benchmarkControl(), .nominal_control_only_v1, .benchmark_control_only);

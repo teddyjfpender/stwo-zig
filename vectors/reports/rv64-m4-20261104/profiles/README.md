@@ -31,6 +31,29 @@ The pod was busy with other streams during these runs, so the walls are not quie
   - `CircuitCheckFailure` or `UntrustedGlobalMemoryInitialization` for stage-one or cells flips.
 - Root-proof mutations (`R04`, `R05`, `V04`) are only rejected at the end of the full re-derivation, about 48 s on 26235156, or by a size cap (`FileTooBig` on 24628607). In M5 the root check comes first (`rv64-m5-binding.md` §5).
 
+## Adversarial review 1 (2026-11-04): corpus v2 [M]
+
+The harness is now `rv64-m5-negative-corpus/v2`, with two changes.
+- **Verdict rule.** A `reject` now passes only as a *clean* rejection: exit code > 0 and no crash marker (signal, panic, unreachable, segfault, timeout). Before, any failing exit counted, so a receiver that crashed on every mutated input would have passed the whole corpus.
+- **Classification.** Each rejection is classed as `semantic`, `resource` or `missing`. The receipt lists the non-semantic ones.
+
+New runnable case `X06-coherent-terminal-value`: it flips the value of the middle **terminal** RAM cell in `cells.bin` and rehashes `bundle.json`. Rights, epoch and tick stay canonical, so only the RAM teardown closure can reject it. This is the M3 analogue of review finding F2.
+
+There are 12 new pending cases, `Z01`–`Z12` (`rv64-m5-binding.md` §9).
+
+| block | ran | passed | crashes | non-semantic rejects | X06 | control receiver wall | corpus wall (2 jobs) | load 1m start → end |
+|---|---:|---:|---|---|---|---:|---:|---|
+| 26235156 | 36 | **36** | none | S01, S02 missing | rejected, `InvalidSumcheck` | 46.5 s | 271 s | 28 → 74 |
+| 24628607 | 36 | **36** | none | S01, S02 missing; V04 resource (`FileTooBig`) | rejected, `InvalidSumcheck` | 69.3 s | 390 s | 74 → 34 |
+
+Receipts: `{26235156,24628607}-negative-corpus-v2.json`. The receiver is the same M3 integrate build (`7b823d49`), run on the same accepted cold proofs, with nothing re-proven. The walls come from a loaded pod.
+
+What this shows:
+- `V04` on 24628607 is rejected by a **size cap**, not cryptographically. The M5 corpus should add a coherent cross-block root case of the right size.
+- `S01` and `S02` add nothing beyond the coherent `S09`.
+
+Candidate tests: `candidate-tests-releasesafe-review1.log` gives 13/14 pass. The new characteristic-bound test passes, and the one failure is the same pre-existing `LOCAL_RELATIONS` failure.
+
 ## Pre-existing test failure (not caused by this change)
 
 The test "candidate local relation roster matches production raw fraction authority" fails at baseline `bcd401ce4`: `expected 9, found 10`.

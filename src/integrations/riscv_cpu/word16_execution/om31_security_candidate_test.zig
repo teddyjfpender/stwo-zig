@@ -209,3 +209,17 @@ test "m7 outer LogUp-GKR ledger: OM31 challenges clear 128+23 bits at caps, QM31
     bad.max_variables = C.MAX_GKR_VARIABLES + 1;
     try std.testing.expectError(error.Om31CandidateScopeExceeded, C.requireOuterGkrBits(bad, 128));
 }
+test "m7 outer LogUp characteristic bound: caps would wrap p, realistic M7 facts do not" {
+    // Review 1: the field-size ledger says nothing about multiplicity wrap mod p.
+    // At caps (128 instances x 2^30 rows feeding one relation) the conservative
+    // mass is 2^37 >= p, so caps are NOT admissible without a measured
+    // per-relation mass; the realistic M7 facts (16 x 2^24 = 2^28) are.
+    const caps = C.OuterGkrFacts.caps();
+    try std.testing.expectEqual(@as(u64, 1) << 37, try C.outerGkrMassBound(caps));
+    try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireOuterGkrCharacteristic(caps, null));
+    const real = C.OuterGkrFacts{ .outer_proofs = 40, .instances = 16, .max_variables = 24, .max_tuple_arity = 8 };
+    try C.requireOuterGkrCharacteristic(real, null);
+    // A measured per-relation mass overrides the conservative bound, and is itself bounded by p.
+    try C.requireOuterGkrCharacteristic(caps, (@as(u64, 1) << 31) - 2);
+    try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireOuterGkrCharacteristic(caps, (@as(u64, 1) << 31) - 1));
+}
