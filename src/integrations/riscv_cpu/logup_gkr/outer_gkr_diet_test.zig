@@ -37,6 +37,19 @@ const MleBase = L.mle.MleFor(Q, M31);
 const MleSecure = L.mle.MleFor(Q, Q);
 const a = std.heap.smp_allocator;
 
+/// Prints a receipt line to stderr and, when STWO_DIET_OUT names a file,
+/// appends it there (zig build hides passing tests' stderr).
+fn emit(comptime tag: []const u8, value: anytype) void {
+    const line = std.fmt.allocPrint(a, tag ++ " {f}\n", .{std.json.fmt(value, .{})}) catch return;
+    defer a.free(line);
+    std.debug.print("\n{s}", .{line});
+    const path = std.posix.getenv("STWO_DIET_OUT") orelse return;
+    const file = std.fs.cwd().createFile(path, .{ .truncate = false }) catch return;
+    defer file.close();
+    file.seekFromEnd(0) catch return;
+    file.writeAll(line) catch {};
+}
+
 /// One outer component: committed row log (census-v2 node 0, the CPU0 leaf of
 /// 24628607) and lookups per row (`witness/components.zig`; tables yield one
 /// lookup per multiplicity column).
@@ -138,7 +151,7 @@ fn measure(shape: Shape) !Counts {
     for (&native_inputs, &native_expected, layers, 0..) |*values, *expected, layer, i| {
         const nv = native.n_variables_by_instance[i];
         const point = native.ood_point[native.ood_point.len - nv ..];
-        values.* = .{ Q.fromBase(try layer.LogUpMultiplicities.numerators.evalAtPoint(a, point)), try layer.LogUpMultiplicities.denominators.evalAtPoint(a, point) };
+        values.* = .{ try layer.LogUpMultiplicities.numerators.evalAtPoint(a, point), try layer.LogUpMultiplicities.denominators.evalAtPoint(a, point) };
         expected.* = values;
     }
     try C.kernel.verifyTerminalInputs(Q, &native, &native_expected, L.gkr_verifier.NativeChecks{});
@@ -217,24 +230,28 @@ test "outer LogUp-GKR: in-circuit verifier cost of the batched leaf instance (me
         shapes[i] = Shape.scaled(shift);
         var timer = try std.time.Timer.start();
         counts[i] = try measure(shapes[i]);
-        std.debug.print("\nOUTER_GKR_COST {f}\n", .{std.json.fmt(.{ .kind = "measured", .shift = shift, .layers = shapes[i].layers, .instance_layers = shapes[i].instance_layers, .rounds = shapes[i].rounds, .counts = counts[i], .wall_ns = timer.read() }, .{})});
+        emit("OUTER_GKR_COST", .{ .kind = "measured", .shift = shift, .layers = shapes[i].layers, .instance_layers = shapes[i].instance_layers, .rounds = shapes[i].rounds, .counts = counts[i], .wall_ns = timer.read() });
     }
     const production = Shape.scaled(0);
     var predicted: [Counts.N]f64 = undefined;
+    var worst: f64 = 0;
     for (0..Counts.N) |k| {
         var ys: [fit_shifts.len]u64 = undefined;
         for (&ys, counts[0..fit_shifts.len]) |*y, c| y.* = c.get(k);
         const coeff = fit(shapes[0..fit_shifts.len], &ys);
         // The verifier's control flow depends only on shape: the affine law
         // must reproduce the held-out measurements exactly.
-        for (shapes[fit_shifts.len..], counts[fit_shifts.len..]) |s, c| {
-            const err = @abs(predict(coeff, s) - @as(f64, @floatFromInt(c.get(k))));
-            try std.testing.expect(err < 0.5);
-        }
+        var max_err: f64 = 0;
+        for (shapes[fit_shifts.len..], counts[fit_shifts.len..]) |s, c|
+            max_err = @max(max_err, @abs(predict(coeff, s) - @as(f64, @floatFromInt(c.get(k)))));
         predicted[k] = predict(coeff, production);
-        std.debug.print("\nOUTER_GKR_FIT {f}\n", .{std.json.fmt(.{ .counter = k, .c0 = coeff[0], .per_round = coeff[1], .per_instance_layer = coeff[2], .per_layer = coeff[3] }, .{})});
+        emit("OUTER_GKR_FIT", .{ .counter = k, .c0 = coeff[0], .per_round = coeff[1], .per_instance_layer = coeff[2], .per_layer = coeff[3], .holdout_max_abs_err = max_err });
+        worst = @max(worst, max_err);
     }
-    std.debug.print("\nOUTER_GKR_COST {f}\n", .{std.json.fmt(.{ .kind = "fit_at_production_shape", .layers = production.layers, .instance_layers = production.instance_layers, .rounds = production.rounds, .blake_g_gate = predicted[0], .qm31_ops = predicted[1], .m31_to_u32 = predicted[2], .triple_xor = predicted[3], .eq = predicted[4], .variables = predicted[5] }, .{})});
+    emit("OUTER_GKR_COST", .{ .kind = "fit_at_production_shape", .layers = production.layers, .instance_layers = production.instance_layers, .rounds = production.rounds, .blake_g_gate = predicted[0], .qm31_ops = predicted[1], .m31_to_u32 = predicted[2], .triple_xor = predicted[3], .eq = predicted[4], .variables = predicted[5] });
+    // The verifier's control flow depends only on shape: the affine law must
+    // reproduce the held-out measurements exactly.
+    try std.testing.expect(worst < 0.5);
 }
 
 test "outer LogUp-GKR: per-instance terminal binding arithmetic at production row logs (measured)" {
@@ -270,7 +287,7 @@ test "outer LogUp-GKR: per-instance terminal binding arithmetic at production ro
         try std.testing.expect(try context.isCircuitValid());
         const c = Counts.of(&context);
         inline for (std.meta.fields(Counts)) |field| @field(total, field.name) += @field(c, field.name);
-        std.debug.print("\nOUTER_GKR_BINDING {f}\n", .{std.json.fmt(.{ .instance = inst.name, .row_log = log, .global_log = global_log, .counts = c }, .{})});
+        emit("OUTER_GKR_BINDING", .{ .instance = inst.name, .row_log = log, .global_log = global_log, .counts = c });
     }
-    std.debug.print("\nOUTER_GKR_BINDING {f}\n", .{std.json.fmt(.{ .instance = "all", .counts = total }, .{})});
+    emit("OUTER_GKR_BINDING", .{ .instance = "all", .counts = total });
 }
