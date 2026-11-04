@@ -278,7 +278,7 @@ pub const StackReservations = struct {
 /// Builds original trace-only verifier graphs; never computes a prover witness,
 /// invokes a factory or rewrites the producer's proof/tree/report artifacts.
 pub fn verifyExisting(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir) !Report {
-    try @import("publication.zig").requireExisting(dir, try Dag.Plan.initArity(setups.len + truths.len, try Dag.policyArity()));
+    try @import("publication.zig").requireExisting(dir, try Dag.Plan.initArity(setups.len + truths.len, try foldArity()));
     return runImpl(a, setups, truths, bundle, expected, config, fixed, dir, true, null, null, true);
 }
 pub fn validateLanes(options: ParallelOptions) !void {
@@ -337,7 +337,7 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     // leaf, every parent, the root and this exact metadata check again below.
     const metadata = try Root.check(a, setups, truths, bundle.requests, expected, config, fixed, bundle.stage_one_bytes, frames, .{});
     const prepared = PreparedExecution{ .allocator = a, .setups = setups, .truths = truths, .bundle = bundle, .expected = expected, .config = config, .fixed = fixed, .dir = dir, .allow_resume = allow_resume, .inventory = &inventory, .stages = &stages, .manifest = &manifest, .words = words, .frames = frames, .timer = &timer, .existing_only = existing_only, .factory = factory };
-    const arity = try Dag.policyArity();
+    const arity = try foldArity();
     if (parallel) |options| return runPreparedParallel(prepared, options, arity);
     // m3 k-ary trees use the plan-driven path; binary r1 keeps the original
     // streaming carry below byte for byte.
@@ -461,6 +461,11 @@ fn requireReceiverTrace(ctx: *const @import("common.zig").Context) !void {
 }
 
 const Dag = @import("ready_dag.zig");
+/// r1 folds binary (accepted bytes); every m3 outer profile folds 4-ary.
+pub fn foldArity() !usize {
+    const profile = @import("stwo_circuit_cpu_integration").om31.protocol.active();
+    return Dag.policyArity(if (profile == .r1_b2_q108_p20_fold4) 2 else 4);
+}
 const Pools = @import("stwo_prover_engine").work_pool;
 const PreparedExecution = struct {
     allocator: std.mem.Allocator,

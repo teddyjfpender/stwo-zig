@@ -26,19 +26,17 @@ pub const Node = struct {
         return if (self.arity == 0) null else self.children[self.arity - 1];
     }
 };
-/// Fold arity policy: r1 outer profile folds binary; m3 profiles fold 4-ary.
-/// `STWO_RV64_FOLD_ARITY` (2..4) overrides it identically for producer and
-/// receiver; it changes node identities, digests and the root, never soundness.
-pub fn policyArity() !usize {
+/// Fold arity policy: the caller supplies the outer profile's default (r1: 2,
+/// m3: 4). `STWO_RV64_FOLD_ARITY` (2..4) overrides it identically for producer
+/// and receiver; it changes node identities, digests and the root only.
+pub fn policyArity(profile_default: usize) !usize {
     var buffer: [16]u8 = undefined;
     var fba = std.heap.FixedBufferAllocator.init(&buffer);
-    if (std.process.getEnvVarOwned(fba.allocator(), "STWO_RV64_FOLD_ARITY")) |text| {
-        const value = std.fmt.parseInt(usize, text, 10) catch return error.InvalidRecursiveFoldArity;
-        if (value < 2 or value > max_arity) return error.InvalidRecursiveFoldArity;
-        return value;
-    } else |_| {}
-    const Profile = @import("stwo_circuit_cpu_integration").om31.protocol;
-    return if (Profile.active() == .r1_b2_q108_p20_fold4) 2 else 4;
+    const value = if (std.process.getEnvVarOwned(fba.allocator(), "STWO_RV64_FOLD_ARITY")) |text|
+        std.fmt.parseInt(usize, text, 10) catch return error.InvalidRecursiveFoldArity
+    else |_| profile_default;
+    if (value < 2 or value > max_arity) return error.InvalidRecursiveFoldArity;
+    return value;
 }
 pub const Plan = struct {
     nodes: [max_nodes]Node = undefined,
