@@ -1,7 +1,7 @@
 //! Private execution grouping of an already authenticated, dependency-layered
 //! assignment schedule. No topology, ordering, origin or transcript changes.
 const std = @import("std");
-pub const threads: u32 = 128;
+pub const threads: u32 = 256;
 pub const max_levels: u32 = 256;
 pub const Kind = enum { ordinary, narrow };
 pub const Run = struct { kind: Kind, first_task: u32, task_count: u32, first_level: u32, level_count: u32 };
@@ -92,20 +92,20 @@ pub const Plan = struct {
 };
 
 test "narrow runs preserve broad barriers, empty levels and exact task coverage" {
-    const ends = [_]usize{ 0, 1, 129, 258, 259, 259, 261 };
-    var p = try Plan.init(std.testing.allocator, &ends, 261);
+    const ends = [_]usize{ 0, 1, 257, 514, 515, 515, 517 };
+    var p = try Plan.init(std.testing.allocator, &ends, 517);
     defer p.deinit();
     try std.testing.expectEqual(@as(usize, 3), p.runs.len);
     try std.testing.expectEqual(Kind.narrow, p.runs[0].kind);
     try std.testing.expectEqual(Kind.ordinary, p.runs[1].kind);
-    try std.testing.expectEqual(@as(u32, 129), p.runs[1].task_count);
+    try std.testing.expectEqual(@as(u32, 257), p.runs[1].task_count);
     try std.testing.expectEqual(Kind.narrow, p.runs[2].kind);
     var next: u32 = 0;
     for (p.runs) |r| {
         try std.testing.expectEqual(next, r.first_task);
         next += r.task_count;
     }
-    try std.testing.expectEqual(@as(u32, 261), next);
+    try std.testing.expectEqual(@as(u32, 517), next);
     try std.testing.expectEqual(@as(usize, 2), p.stats.empty);
 }
 test "narrow runs are bounded to256 levels and leave singleton old route" {
@@ -133,10 +133,10 @@ test "histogram reports actual widths without inferring them from average" {
     try std.testing.expectEqual(@as(usize, 1), s.width_gt256);
 }
 test "host grouping preserves dependency chain values across broad barriers" {
-    const ends = [_]usize{ 0, 1, 2, 131, 132, 133 };
-    var p = try Plan.init(std.testing.allocator, &ends, 133);
+    const ends = [_]usize{ 0, 1, 2, 259, 260, 261 };
+    var p = try Plan.init(std.testing.allocator, &ends, 261);
     defer p.deinit();
-    var original: [134]u64 = @splat(0);
+    var original: [262]u64 = @splat(0);
     original[0] = 7;
     var prior: usize = 0;
     for (ends) |end| {
@@ -144,7 +144,7 @@ test "host grouping preserves dependency chain values across broad barriers" {
         for (prior..end) |task| original[task + 1] = original[dependency] + task + 3;
         prior = end;
     }
-    var grouped: [134]u64 = @splat(0);
+    var grouped: [262]u64 = @splat(0);
     grouped[0] = 7;
     for (p.runs) |r| {
         var begin: usize = r.first_task;

@@ -20,6 +20,6 @@ extern "C" int stwo_circuit_assignment_level_on(void*,uint32_t,const StwoCircuit
 extern "C" uint32_t stwo_circuit_assignment_capabilities();
 
 // Optional generation-only grouping. Host level_ends are absolute task offsets;
-// max256 levels, width<=128 each. Exactly one CTA executes the entire run.
+// max256 levels, width<=256 each. Exactly one CTA executes the entire run.
 extern "C" int stwo_circuit_assignment_narrow_run_on(void*,uint32_t,
     const StwoCircuitAssignmentJob*,const uint32_t *level_ends,uint32_t levels);
