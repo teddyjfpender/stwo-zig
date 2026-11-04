@@ -58,3 +58,21 @@ candidates. Their combination is rejected, defaults remain serial CPU FIXED,
 and strict independent verification cannot be disabled for either candidate.
 See `rv64-resident-ready-candidate.md`, `rv64-outer-device-fixed-precommit.md`
 and `rv64-gkr-batched-fold-next-sum.md` for route-specific gates.
+
+## Qualified CPU preparation follow-up
+
+Commit `c80592fac` fills independent preprocessed row intervals on the existing
+scoped pool. Validation, multiplicity scatter, allocations, permutation lowering
+and stable column ordering stay on the caller. No pool, cache or histogram is
+created by this path. Workers join before errors release any column; an
+unavailable pool falls back to the same serial fill.
+
+A bounded Blake-heavy CPU case (2^21 Blake rows, 2^20 binary rows and all fixed
+tables) measured 61.483ms serial versus 21.513ms with four workers, medians of
+three runs. The integrated repeat measured 61.350ms versus 21.388ms. These are
+column-construction timings, not projected full-block savings. Exact all45
+columns/layout, native FIXED root, authority identity, proof bytes and fresh
+CPU acceptance pass. Last-shard errors, retry, leased-pool fallback and all
+allocation failures are covered. The three GNU entry-point checks also pass.
+The fifteen-block cold report predates this change; no new basket timing is
+claimed. See `pp-disjoint-column-fill-cpu-candidate-v1.json`.
