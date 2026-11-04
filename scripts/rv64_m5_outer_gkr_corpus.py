@@ -74,7 +74,7 @@ def main():
     words = load(honest)
     lay = layout(SMALL_VARS)
     assert lay["total"] == len(words), (lay["total"], len(words))
-    good = ["--inputs-seed", "4242", "--balanced"]
+    good = ["--class", "test-small", "--inputs-seed", "4242", "--balanced"]
     L = lay["layers"]
 
     def bump(i):
@@ -135,15 +135,20 @@ def main():
         rc, out, dt = verify(a.tool, path, extra)
         results.append({"case": cid, "what": what, "expect": "reject", "rc": rc, "out": out, "wall_s": round(dt, 3), "pass": rc == 2})
     # M02: the authenticated input evaluations (here: regenerated from a different input seed) differ.
-    rc, out, dt = verify(a.tool, honest, ["--inputs-seed", "4243", "--balanced"])
+    rc, out, dt = verify(a.tool, honest, ["--class", "test-small", "--inputs-seed", "4243", "--balanced"])
     results.append({"case": "M02", "what": "terminal claims vs different authenticated inputs", "expect": "reject", "rc": rc, "out": out, "wall_s": round(dt, 3), "pass": rc == 2})
-    rc, out, dt = verify(a.tool, unbalanced, ["--inputs-seed", "4243"])
+    rc, out, dt = verify(a.tool, unbalanced, ["--class", "test-small", "--inputs-seed", "4243"])
     results.append({"case": "G17", "what": "unbalanced LogUp sum with no external term (closure)", "expect": "reject", "rc": rc, "out": out, "wall_s": round(dt, 3), "pass": rc == 2})
+    # G18: class substitution. An HONEST test-small section where the receiver expects the production leaf
+    # class must be refused by the receiver-pinned class (the wire's class id never selects the constants).
+    for cid, cls in (("G18", "leaf-cpu-24628607"), ("G18f", "fold-24628607")):
+        rc, out, dt = verify(a.tool, honest, ["--class", cls, "--no-closure", "--no-terminal"])
+        results.append({"case": cid, "what": f"honest test-small section presented as {cls} (class substitution)", "expect": "reject", "rc": rc, "out": out, "wall_s": round(dt, 3), "pass": rc == 2})
     if a.gpu_leaf:
         lw = load(a.gpu_leaf)
         ll = layout(LEAF_VARS)
         assert ll["total"] == len(lw)
-        rc, out, dt = verify(a.tool, a.gpu_leaf, ["--no-closure", "--no-terminal"])
+        rc, out, dt = verify(a.tool, a.gpu_leaf, ["--class", "leaf-cpu-24628607", "--no-closure", "--no-terminal"])
         results.append({"case": "H02", "what": "honest GPU-proved leaf-cpu-24628607 section (transcript, strict draws, shape)", "expect": "accept", "rc": rc, "out": out, "wall_s": round(dt, 3), "pass": rc == 0})
         for cid, what, idx in [("M01L", "GPU leaf: round coefficient layer 20 round 7", ll["layers"][20]["rounds"] + 32 * 7 + 3),
                                ("G11L", "GPU leaf: mask value layer 26", ll["layers"][26]["masks"] + 5),
@@ -152,7 +157,7 @@ def main():
             w[idx] = (w[idx] + 1) % P
             path = a.workdir / f"{cid}.bin"
             save(path, w)
-            rc, out, dt = verify(a.tool, path, ["--no-closure", "--no-terminal"])
+            rc, out, dt = verify(a.tool, path, ["--class", "leaf-cpu-24628607", "--no-closure", "--no-terminal"])
             results.append({"case": cid, "what": what, "expect": "reject", "rc": rc, "out": out, "wall_s": round(dt, 3), "pass": rc == 2})
     summary = {"schema": "rv64-m5-outer-gkr-corpus/v1", "profile": "outer_gkr_om31_strict_v1", "fresh_process_per_case": True,
                "cases": len(results), "passed": sum(r["pass"] for r in results), "results": results}

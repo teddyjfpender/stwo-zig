@@ -80,6 +80,7 @@ union is dominated by the tuple term, which is not GKR-specific (committed LogUp
 |---|---|---|
 | GKR claims mixed before the challenges that consume them | header + salt mixed first; roots mixed at layer 0 before α, λ (shared kernel) | done, tested |
 | each instance's (relation/component, group) tag inside the mixed list | one header word per instance, class-constant order | done; corpus G03/G04/G13 |
+| class pinned by the receiver, never by the proof | `decode(a, expected_class, words)`: the wire class id must equal the class the receiver derives from the node statement/VK (review fix; before it, an honest test-small section was accepted where a leaf was expected) | done; corpus G18/G18f, Zig tamper test |
 | constant round counts per class, never muxed | class constants; strict shape; 4 coefficients per round | done; corpus G05/G10/G15/G16 |
 | root closure | `Σ n_root/d_root` (each `d_root ≠ 0`) + classic claimed sums + public bus term = 0, checked by the outer verifier | section exposes `root_sum`; CPU G17, circuit closure test |
 | final-layer claims bound to committed columns via the outer PCS | **hook obligation** (§5): eq + weighted-prefix binding columns opened at OODS | `requireTerminal` CPU + circuit (M02 rejected); AIR side not built (canon-vk) |
@@ -135,3 +136,13 @@ net ≈ −6.4 GPU-s of today's 25.1 recursion kernel GPU-s. Not measured: an en
    tuples → fractions inside the first tree/sum kernels (as the native GKR stage does from MAIN), cutting ~9 GB.
 5. Proof size: the section sends 4 coefficients per round; deriving c0 from the claim would save 25 % of round bytes
    (a kernel and format change, version 2).
+6. (review, 2026-11-04) Power-of-two headroom in the folds is unmeasured. Each fold adds about 2 × 195 k G-gate rows and
+   2 × 223 k qm31 rows for its two children's sections (net about +200 k G rows after the hashing saved on the narrower children).
+   If a fold's `blake_g_gate` (2^23) or `qm31_ops` (2^22) occupancy is within that margin, the component doubles. For
+   blake_g_gate that is +663 M cells at GKR widths, about x0.53 -> x0.9 for that node. Before the tree factor is quoted as
+   measured, record per-node used rows next to the census-v2 row logs.
+7. (review) The GPU GKR time does not include projecting the tuples into fractions (the bench starts from materialized
+   inputs) or generating the E/Pre columns. The -6.4 GPU-s net [D] is therefore optimistic by that amount.
+8. (review) `conservativeMass` counts only GKR-instance lanes. The characteristic bound is per relation over ALL uses,
+   including the classic components that share a relation with the GKR instances (qm31_ops, eq). For the leaf it still
+   holds: 2^27.9 + 3·2^23 + 2·2^18 ≈ 2^28.1 < p. canon-vk's per-relation mass check must sum both sides.

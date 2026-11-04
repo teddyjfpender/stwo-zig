@@ -4,8 +4,10 @@
 //!   info <class>                                       class facts (JSON)
 //!   seed <class> <salt>                                 9-word CUDA traversal seed after header+salt
 //!   prove-cpu <class> <inputs-seed> <balanced:0|1> <out.bin>
-//!   verify <section.bin> [--inputs-seed N] [--balanced] [--no-closure] [--no-terminal]
-//!   cost <section.bin> [--inputs-seed N] [--balanced]  in-circuit gadget gate counts (JSON)
+//!   verify <section.bin> --class <class> [--inputs-seed N] [--balanced] [--no-closure] [--no-terminal]
+//!   cost <section.bin> --class <class> [--inputs-seed N] [--balanced]  in-circuit gadget gate counts (JSON)
+//! `--class` is REQUIRED for verify/cost: the receiver pins the class it expects (in production it is
+//! derived from the verified node's statement/VK); the wire's class id must match, never selects it.
 //! Exit 0 = accepted, 2 = rejected (with the error name on stdout), 1 = usage/IO.
 const std = @import("std");
 const core = @import("stwo_core");
@@ -44,12 +46,16 @@ fn writeWords(path: []const u8, words: []const u32) !void {
     try f.writeAll(buf[0..at]);
 }
 
-const Options = struct { inputs_seed: ?u64 = null, balanced: bool = false, closure: bool = true, terminal: bool = true };
+const Options = struct { class: ?*const P.Class = null, inputs_seed: ?u64 = null, balanced: bool = false, closure: bool = true, terminal: bool = true };
 fn options(args: []const []const u8) !Options {
     var o = Options{};
     var i: usize = 0;
     while (i < args.len) : (i += 1) {
-        if (std.mem.eql(u8, args[i], "--inputs-seed")) {
+        if (std.mem.eql(u8, args[i], "--class")) {
+            i += 1;
+            if (i == args.len) return error.Usage;
+            o.class = P.classByName(args[i]) catch return error.Usage;
+        } else if (std.mem.eql(u8, args[i], "--inputs-seed")) {
             i += 1;
             if (i == args.len) return error.Usage;
             o.inputs_seed = try std.fmt.parseInt(u64, args[i], 0);
@@ -61,6 +67,7 @@ fn options(args: []const []const u8) !Options {
             o.terminal = false;
         } else return error.Usage;
     }
+    if (o.class == null) return error.Usage;
     return o;
 }
 
@@ -79,7 +86,7 @@ fn classInfo(c: *const P.Class) void {
 }
 
 fn receive(a: std.mem.Allocator, words: []const u32, o: Options) !void {
-    var section = try S.decode(a, words);
+    var section = try S.decode(a, o.class.?, words);
     defer section.deinit(a);
     var channel = S.benchChannel();
     var timer = try std.time.Timer.start();
@@ -158,7 +165,7 @@ pub fn main() !u8 {
         const o = options(args[3..]) catch return 1;
         const words = try readWords(a, args[2]);
         defer a.free(words);
-        var section = try S.decode(a, words);
+        var section = try S.decode(a, o.class.?, words);
         defer section.deinit(a);
         var channel = S.benchChannel();
         var verified = try S.verify(a, &channel, &section);

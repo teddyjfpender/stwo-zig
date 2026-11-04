@@ -91,7 +91,7 @@ const Fixture = struct {
 /// The full receiver decision on encoded words: decode, verify, closure (no external term),
 /// terminal against inputs evaluated at the transcript's own point.
 fn receive(words: []const u32, inputs: *const S.Inputs) !void {
-    var section = try S.decode(a, words);
+    var section = try S.decode(a, &P.TEST_SMALL, words);
     defer section.deinit(a);
     var channel = S.benchChannel();
     var verified = try S.verify(a, &channel, &section);
@@ -152,7 +152,7 @@ test "outer GKR tamper corpus: every single-word change of the encoded section i
     std.debug.print("\nOUTER_GKR_TAMPER {f}\n", .{std.json.fmt(.{ .class = P.TEST_SMALL.name, .words = words.len, .rejected = rejected }, .{})});
     try std.testing.expectEqual(words.len, rejected);
     // Instance order: swapping two instances' roots and masks (same height) is rejected.
-    var section = try S.decode(a, f.words);
+    var section = try S.decode(a, &P.TEST_SMALL, f.words);
     defer section.deinit(a);
     std.mem.swap([]O, &section.proof.output_claims_by_instance[0], &section.proof.output_claims_by_instance[2]);
     std.mem.swap([]S.G.GkrMask, &section.proof.layer_masks_by_instance[0], &section.proof.layer_masks_by_instance[2]);
@@ -174,7 +174,14 @@ test "outer GKR tamper corpus: every single-word change of the encoded section i
     try std.testing.expectError(error.OuterGkrTerminalMismatch, S.requireTerminal(&v2, expected));
     // A section of one class is not a section of another (class constants, not proof values).
     words[2] = P.LEAF_CPU_24628607.id;
-    try std.testing.expectError(error.MalformedOuterGkrSection, S.decode(a, words));
+    try std.testing.expectError(error.OuterGkrClassMismatch, S.decode(a, &P.TEST_SMALL, words));
+    try std.testing.expectError(error.MalformedOuterGkrSection, S.decode(a, &P.LEAF_CPU_24628607, words));
+    words[2] = P.TEST_SMALL.id;
+    // Class substitution: an HONEST, fully valid section of the scaled test class presented where the
+    // receiver expects the production leaf class is refused by the receiver-pinned class (the wire's
+    // class id is never trusted to pick the constants).
+    try std.testing.expectError(error.OuterGkrClassMismatch, S.decode(a, &P.LEAF_CPU_24628607, f.words));
+    try std.testing.expectError(error.OuterGkrClassMismatch, S.decode(a, &P.FOLD_24628607, f.words));
     // Wrong starting transcript (section moved to another outer proof) is rejected.
     var other = S.RawChannel.init();
     if (S.verify(a, &other, &f.section)) |v| {
@@ -303,7 +310,7 @@ test "corpus M07 outer GKR root claim chosen after the challenges (late mix) is 
 test "corpus M08 outer GKR one round polynomial dropped is refused by the class shape" {
     var f = try Fixture.init(&P.TEST_SMALL, 26);
     defer f.deinit();
-    var section = try S.decode(a, f.words);
+    var section = try S.decode(a, &P.TEST_SMALL, f.words);
     defer section.deinit(a);
     // Shallow copy with layer 6 one round short (no ownership transferred; the original is freed intact).
     const sc = try a.dupe(@TypeOf(section.proof.sumcheck_proofs[0]), section.proof.sumcheck_proofs);
@@ -361,4 +368,50 @@ test "outer GKR binding columns: shared lane-major row point, prefix boundary eq
     var cols = try B.columns(a, &P.TEST_SMALL, .blake_g_gate, point, &f.inputs, &ch);
     defer cols.deinit(a);
     try std.testing.expect(!B.boundaryHolds(&cols, B.expectedBoundary(&P.TEST_SMALL, .blake_g_gate, verified.artifact.claims_to_verify_by_instance, &ch)));
+}
+
+test "outer GKR completeness on edge inputs: all-padding instance, zero numerators, repeated denominators, -1 uses" {
+    // Review: random inputs only exercise generic rounds. Real outer traces carry padding fractions (0, 1),
+    // zero multiplicities, repeated tuples (identical denominators) and -1 use numerators. The honest prover
+    // must still produce a section the strict receiver accepts (nonzero leading coefficients, strict draws).
+    const class = &P.TEST_SMALL;
+    var inputs = try S.synthetic(a, class, 77, false);
+    defer inputs.deinit(a);
+    const minus_one = M31.zero().sub(M31.one());
+    // instance 0: entirely padding (0, 1)
+    for (inputs.numerators[0], inputs.denominators[0]) |*n, *d| {
+        n.* = M31.zero();
+        d.* = O.one();
+    }
+    // instance 1: upper half padding, lower half -1 uses of ONE repeated tuple
+    const half = inputs.numerators[1].len / 2;
+    const repeated = inputs.denominators[1][0];
+    for (inputs.numerators[1], inputs.denominators[1], 0..) |*n, *d, j| {
+        if (j >= half) {
+            n.* = M31.zero();
+            d.* = O.one();
+        } else {
+            n.* = minus_one;
+            d.* = repeated;
+        }
+    }
+    // instance 3: zero numerators everywhere (unused table rows), denominators untouched
+    for (inputs.numerators[3]) |*n| n.* = M31.zero();
+    const start = S.benchChannel();
+    var section = try S.proveCpu(a, &start, class, &inputs);
+    defer section.deinit(a);
+    const words = try S.encode(a, &section);
+    defer a.free(words);
+    var decoded = try S.decode(a, class, words);
+    defer decoded.deinit(a);
+    var channel = S.benchChannel();
+    var verified = try S.verify(a, &channel, &decoded);
+    defer verified.deinit(a);
+    try S.requireClosure(&verified, verified.root_sum.neg());
+    const expected = try S.terminalExpected(a, &inputs, &verified);
+    defer a.free(expected);
+    try S.requireTerminal(&verified, expected);
+    // The all-padding instance's root is (0, 1) exactly.
+    try std.testing.expect(decoded.proof.output_claims_by_instance[0][0].isZero());
+    try std.testing.expect(decoded.proof.output_claims_by_instance[0][1].eql(O.one()));
 }

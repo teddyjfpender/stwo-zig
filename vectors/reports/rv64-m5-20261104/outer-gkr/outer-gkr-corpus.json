@@ -2,8 +2,8 @@
  "schema": "rv64-m5-outer-gkr-corpus/v1",
  "profile": "outer_gkr_om31_strict_v1",
  "fresh_process_per_case": true,
- "cases": 26,
- "passed": 26,
+ "cases": 28,
+ "passed": 28,
  "results": [
   {
    "case": "H01",
@@ -17,11 +17,11 @@
     "draws": 75,
     "closure_checked": true,
     "terminal_checked": true,
-    "verify_ns": 538479,
-    "terminal_ns": 1030857,
+    "verify_ns": 714459,
+    "terminal_ns": 3404804,
     "section_bytes": 13876
    },
-   "wall_s": 0.003,
+   "wall_s": 0.006,
    "pass": true
   },
   {
@@ -33,7 +33,7 @@
     "accepted": false,
     "error": "MalformedOuterGkrSection"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.002,
    "pass": true
   },
   {
@@ -45,7 +45,7 @@
     "accepted": false,
     "error": "MalformedOuterGkrSection"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.002,
    "pass": true
   },
   {
@@ -55,7 +55,7 @@
    "rc": 2,
    "out": {
     "accepted": false,
-    "error": "MalformedOuterGkrSection"
+    "error": "OuterGkrClassMismatch"
    },
    "wall_s": 0.001,
    "pass": true
@@ -81,7 +81,7 @@
     "accepted": false,
     "error": "MalformedOuterGkrSection"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.002,
    "pass": true
   },
   {
@@ -93,7 +93,7 @@
     "accepted": false,
     "error": "InvalidSumcheck"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.002,
    "pass": true
   },
   {
@@ -117,7 +117,7 @@
     "accepted": false,
     "error": "InvalidSumcheck"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.003,
    "pass": true
   },
   {
@@ -129,7 +129,7 @@
     "accepted": false,
     "error": "InvalidSumcheck"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.003,
    "pass": true
   },
   {
@@ -141,7 +141,7 @@
     "accepted": false,
     "error": "InvalidSumcheck"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.002,
    "pass": true
   },
   {
@@ -153,7 +153,7 @@
     "accepted": false,
     "error": "InvalidSumcheck"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.004,
    "pass": true
   },
   {
@@ -165,7 +165,7 @@
     "accepted": false,
     "error": "InvalidSumcheck"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.003,
    "pass": true
   },
   {
@@ -177,7 +177,7 @@
     "accepted": false,
     "error": "OuterGkrShapeMismatch"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.002,
    "pass": true
   },
   {
@@ -189,7 +189,7 @@
     "accepted": false,
     "error": "CircuitCheckFailure"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.003,
    "pass": true
   },
   {
@@ -201,7 +201,7 @@
     "accepted": false,
     "error": "CircuitCheckFailure"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.004,
    "pass": true
   },
   {
@@ -213,7 +213,7 @@
     "accepted": false,
     "error": "InvalidSumcheck"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.002,
    "pass": true
   },
   {
@@ -225,7 +225,7 @@
     "accepted": false,
     "error": "NonCanonicalOuterGkrWord"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.002,
    "pass": true
   },
   {
@@ -261,7 +261,7 @@
     "accepted": false,
     "error": "OuterGkrTerminalMismatch"
    },
-   "wall_s": 0.002,
+   "wall_s": 0.004,
    "pass": true
   },
   {
@@ -272,6 +272,30 @@
    "out": {
     "accepted": false,
     "error": "OuterGkrClosureMismatch"
+   },
+   "wall_s": 0.003,
+   "pass": true
+  },
+  {
+   "case": "G18",
+   "what": "honest test-small section presented as leaf-cpu-24628607 (class substitution)",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "OuterGkrClassMismatch"
+   },
+   "wall_s": 0.002,
+   "pass": true
+  },
+  {
+   "case": "G18f",
+   "what": "honest test-small section presented as fold-24628607 (class substitution)",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "OuterGkrClassMismatch"
    },
    "wall_s": 0.001,
    "pass": true
@@ -288,11 +312,11 @@
     "draws": 432,
     "closure_checked": false,
     "terminal_checked": false,
-    "verify_ns": 1745096,
+    "verify_ns": 5354351,
     "terminal_ns": 0,
     "section_bytes": 69812
    },
-   "wall_s": 0.003,
+   "wall_s": 0.009,
    "pass": true
   },
   {
@@ -304,7 +328,7 @@
     "accepted": false,
     "error": "InvalidSumcheck"
    },
-   "wall_s": 0.003,
+   "wall_s": 0.006,
    "pass": true
   },
   {
@@ -316,7 +340,7 @@
     "accepted": false,
     "error": "CircuitCheckFailure"
    },
-   "wall_s": 0.003,
+   "wall_s": 0.008,
    "pass": true
   },
   {
@@ -328,7 +352,7 @@
     "accepted": false,
     "error": "CircuitCheckFailure"
    },
-   "wall_s": 0.001,
+   "wall_s": 0.003,
    "pass": true
   }
  ]

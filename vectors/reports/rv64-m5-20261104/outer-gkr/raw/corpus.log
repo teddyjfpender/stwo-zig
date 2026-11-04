@@ -1,8 +1,8 @@
-{"cases": 26, "passed": 26}
+{"cases": 28, "passed": 28}
 H01   PASS rc=0 accepted :: honest test-small section (closure + terminal)
 G01   PASS rc=2 MalformedOuterGkrSection :: header magic
 G02   PASS rc=2 MalformedOuterGkrSection :: header version
-G03   PASS rc=2 MalformedOuterGkrSection :: class id of another class (leaf)
+G03   PASS rc=2 OuterGkrClassMismatch :: class id of another class (leaf)
 G04   PASS rc=2 MalformedOuterGkrSection :: instance count
 G05   PASS rc=2 MalformedOuterGkrSection :: layer count
 G06   PASS rc=2 InvalidSumcheck :: salt (transcript nonce) changed
@@ -21,8 +21,9 @@ G15   PASS rc=2 MalformedOuterGkrSection :: truncated section
 G16   PASS rc=2 MalformedOuterGkrSection :: appended word
 M02   PASS rc=2 OuterGkrTerminalMismatch :: terminal claims vs different authenticated inputs
 G17   PASS rc=2 OuterGkrClosureMismatch :: unbalanced LogUp sum with no external term (closure)
+G18   PASS rc=2 OuterGkrClassMismatch :: honest test-small section presented as leaf-cpu-24628607 (class substitution)
+G18f  PASS rc=2 OuterGkrClassMismatch :: honest test-small section presented as fold-24628607 (class substitution)
 H02   PASS rc=0 accepted :: honest GPU-proved leaf-cpu-24628607 section (transcript, strict draws, shape)
 M01L  PASS rc=2 InvalidSumcheck :: GPU leaf: round coefficient layer 20 round 7
 G11L  PASS rc=2 CircuitCheckFailure :: GPU leaf: mask value layer 26
 G07L  PASS rc=2 CircuitCheckFailure :: GPU leaf: root of blake lane group 0
-EXIT=0

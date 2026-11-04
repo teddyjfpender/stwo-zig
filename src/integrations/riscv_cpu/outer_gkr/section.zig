@@ -69,6 +69,7 @@ pub const VerifyError = error{
     OuterGkrTerminalMismatch,
     NonCanonicalOuterGkrWord,
     MalformedOuterGkrSection,
+    OuterGkrClassMismatch,
 };
 
 /// Strict structural admission against the class constants (never inferred from the proof).
@@ -316,9 +317,13 @@ pub fn encode(a: std.mem.Allocator, section: *const Section) ![]u32 {
     std.debug.assert(at == out.len);
     return out;
 }
-pub fn decode(a: std.mem.Allocator, words: []const u32) !Section {
+/// `expected` is the class the RECEIVER derives from the verified node's statement/VK (never from the
+/// proof): the wire's class id must equal it, so an honest section of another class (e.g. the scaled
+/// test class) is refused instead of being verified against its own, prover-chosen constants.
+pub fn decode(a: std.mem.Allocator, expected: *const P.Class, words: []const u32) !Section {
     if (words.len < 5 or words[0] != P.MAGIC or words[1] != P.VERSION) return error.MalformedOuterGkrSection;
-    const class = P.classById(words[2]) catch return error.MalformedOuterGkrSection;
+    if (words[2] != expected.id) return error.OuterGkrClassMismatch;
+    const class = expected;
     try class.validate();
     const l = class.layers();
     if (words[3] != class.instances.len or words[4] != l or words.len != wordCount(class)) return error.MalformedOuterGkrSection;
