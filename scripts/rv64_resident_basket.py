@@ -59,10 +59,15 @@ def device_resources(resources, device_count):
 
 def recursion_options(manifest, combined, counts, strict):
     mode = manifest.get("recursion_mode", "serial")
+    fixed = manifest.get("recursion_device_fixed_candidate", False)
+    if type(fixed) is not bool:
+        raise ValueError("device FIXED opt-in must be Boolean")
+    if fixed and (mode != "serial" or not combined or strict is not True):
+        raise ValueError("device FIXED candidate requires serial combined proving and a strict receiver")
     if mode == "serial":
         if combined and counts != [1]:
             raise ValueError("combined recursion supports exactly one GPU; 2/4-device admission remains closed")
-        return {}
+        return {"recursion_device_fixed_candidate": True} if fixed else {}
     if mode != "ready_candidate" or not combined or not strict:
         raise ValueError("ready_candidate requires combined proving and a strict recursive receiver")
     workers = positive(manifest.get("recursion_worker_budget"), "recursion worker budget")
@@ -120,7 +125,7 @@ def build_plan(basket, manifest, root, driver, receiver, library, output, device
             absent.append("request for block " + str(number))
         else:
             request = B.load(request_path)
-            if recursion and request.get("workers") is not None and recursion["recursion_worker_budget"] > positive(request["workers"], "request workers"):
+            if "recursion_worker_budget" in recursion and request.get("workers") is not None and recursion["recursion_worker_budget"] > positive(request["workers"], "request workers"):
                 raise ValueError("recursion worker budget exceeds native request workers")
             if entry.get("prefix_count", 0) or entry.get("jobs", "-") != "-":
                 raise ValueError("only full direct-capture requests are admitted")
@@ -289,11 +294,33 @@ def check_ready_execution(plan, job, combined, entry):
         raise ValueError("ready recursion execution differs from pinned admission")
 
 
+def check_device_fixed_execution(plan, job, combined, entry, log, node_count):
+    if not plan.get("recursion_device_fixed_candidate", False):
+        return
+    if plan.get("strict_recursive_receiver") is not True:
+        raise ValueError("device FIXED qualification requires the strict recursive receiver")
+    target = Path(job["target"])
+    if B.load(target / "manifest.json") != producer_manifest(plan, job):
+        raise ValueError("device FIXED producer manifest differs from pinned plan")
+    digest = B.sha(target / "manifest.json")
+    if B.sha(target / "batch/resident-device-fixed-manifest.json") != digest:
+        raise ValueError("device FIXED producer manifest copy changed")
+    if (combined.get("fixed_setup_backend") != "device_candidate"
+            or entry.get("fixed_setup_backend") != "device_candidate"
+            or entry.get("producer_manifest_sha256") != list(bytes.fromhex(digest))):
+        raise ValueError("device FIXED execution differs from pinned admission")
+    records = [line for line in log.splitlines() if "CUDA_OUTER_PREPROCESS " in line]
+    if (len(records) != node_count * plan.get("repeat", 2)
+            or any("fixed_setup_backend=device_candidate" not in line for line in records)):
+        raise ValueError("every fresh recursive node must exercise device FIXED setup")
+
+
 def qualify_recursive_trial(plan, job, proof, native, target, trial, prior, log, environment, received_override=None, shared_usage=None):
     combined = B.load(proof / "combined-report.json")
     entry = B.load(proof / "combined-entry.json")
     check_ready_execution(plan, job, combined, entry)
     count = native["cpu_proofs"] + native["truth_proofs"]
+    check_device_fixed_execution(plan, job, combined, entry, log, 2 * count - 1)
     if (combined.get("accepted") is not True or combined.get("completed_ethereum_block") is not True
             or combined.get("native_bundle_reload") is not False or combined.get("restored_recursive_proofs") is not False
             or combined.get("native_authority_session_used") is not True or entry.get("accepted") is not True
@@ -364,6 +391,8 @@ def producer_manifest(plan, job):
     if plan.get("recursion_mode", "serial") == "ready_candidate":
         for key in ("recursion_mode", "recursion_worker_budget", "recursion_max_pending_authorities"):
             manifest[key] = plan[key]
+    if plan.get("recursion_device_fixed_candidate", False):
+        manifest["recursion_device_fixed_candidate"] = True
     return manifest
 
 
@@ -432,6 +461,9 @@ def produced_snapshot(plan, job):
         if plan.get("recursion_mode", "serial") == "ready_candidate":
             item["producer_manifests"] = {name: B.sha(Path(job["target"]) / name)
                                           for name in ("manifest.json", "batch/resident-ready-manifest.json")}
+        if plan.get("recursion_device_fixed_candidate", False):
+            item["producer_manifests"] = {name: B.sha(Path(job["target"]) / name)
+                                          for name in ("manifest.json", "batch/resident-device-fixed-manifest.json")}
         result.append(item)
     return result
 
@@ -598,6 +630,8 @@ def render(plan, results):
     recursion_scope = "Includes fresh native and recursive proving; one GPU only."
     if plan.get("recursion_mode") == "ready_candidate":
         recursion_scope = "Explicit ready_candidate recursion; only completed physical rows establish qualification. No projected multi-GPU figures."
+    if plan.get("recursion_device_fixed_candidate", False):
+        recursion_scope = "Explicit serial device FIXED setup candidate; no worst-shape memory or speedup claim is implied."
     lines = ["# Resident Ethereum basket measurements", "", "128-bit security target under documented conjectured assumptions; no whole-protocol certificate. " + (recursion_scope if plan.get("combined") else "No recursion or projected GPU figures."), "",
              "| GPUs | Block | Status | Cold prove s | Warm prove s | Cold request s | Warm request s |", "|---:|---:|---|---:|---:|---:|---:|"]
     for job in plan["jobs"]:

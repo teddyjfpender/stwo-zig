@@ -120,6 +120,48 @@ class ResidentBasket(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "pinned plan"):
             R.check_ready_execution(plan, job, combined, entry)
 
+    def fixed_plan(self):
+        manifest = dict(self.manifest, recursion_device_fixed_candidate=True)
+        return R.build_plan(self.basket, manifest, self.root, *self.assets[:3], self.root / "fixed",
+                            [0], [1], 28 << 30, R.B.sha(self.assets[2]), combined=True,
+                            recursive_receiver=self.assets[1], strict_recursive_receiver=True, repeat=1)
+
+    def test_device_fixed_optin_is_preserved_and_rejects_unsupported_combinations(self):
+        plan = self.fixed_plan()
+        self.assertTrue(R.producer_manifest(plan, plan["jobs"][0])["recursion_device_fixed_candidate"])
+        self.assertIn("no worst-shape memory or speedup claim", R.render(plan, []))
+        self.assertNotIn("recursion_device_fixed_candidate", self.plan())
+        for manifest, combined, counts, strict in (
+            ({"recursion_device_fixed_candidate": 1}, True, [1], True),
+            ({"recursion_device_fixed_candidate": True}, False, [1], True),
+            ({"recursion_device_fixed_candidate": True}, True, [1], False),
+            ({"recursion_device_fixed_candidate": True}, True, [2], True),
+            ({"recursion_device_fixed_candidate": True, "recursion_mode": "ready_candidate"}, True, [1], True),
+        ):
+            with self.assertRaises(ValueError):
+                R.recursion_options(manifest, combined, counts, strict)
+
+    def test_device_fixed_acceptance_requires_actual_backend_for_every_node(self):
+        plan = self.fixed_plan()
+        job = plan["jobs"][0]
+        target = Path(job["target"])
+        (target / "batch").mkdir(parents=True)
+        raw = json.dumps(R.producer_manifest(plan, job))
+        for name in ("manifest.json", "batch/resident-device-fixed-manifest.json"):
+            (target / name).write_text(raw)
+        combined = {"fixed_setup_backend": "device_candidate"}
+        entry = dict(combined, producer_manifest_sha256=list(bytes.fromhex(R.B.sha(target / "manifest.json"))))
+        line = "info: CUDA_OUTER_PREPROCESS ordinal=0 fixed_setup_backend=device_candidate"
+        log = "\n".join([line] * 3)
+        R.check_device_fixed_execution(plan, job, combined, entry, log, 3)
+        for bad_log in (line, log.replace("device_candidate", "cpu")):
+            with self.assertRaisesRegex(ValueError, "every fresh recursive node"):
+                R.check_device_fixed_execution(plan, job, combined, entry, bad_log, 3)
+        with self.assertRaisesRegex(ValueError, "pinned admission"):
+            R.check_device_fixed_execution(plan, job, {"fixed_setup_backend": "cpu"}, entry, log, 3)
+        with self.assertRaisesRegex(ValueError, "strict recursive receiver"):
+            R.check_device_fixed_execution(dict(plan, strict_recursive_receiver=False), job, combined, entry, log, 3)
+
     def test_missing_cases_remain_explicit_in_report(self):
         self.manifest["blocks"] = {}
         p = self.plan()
