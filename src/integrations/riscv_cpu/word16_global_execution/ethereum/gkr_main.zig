@@ -386,7 +386,8 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     if (prefix) try requireIndependentReceiverSetup(std.process.hasEnvVarConstant(SETUP_CACHE_ENV));
     const produce = combined or std.mem.eql(u8, args[1], "produce-control") or std.mem.eql(u8, args[1], "produce-candidate");
     const plan = std.mem.eql(u8, args[1], "plan");
-    if (session != null and !produce) return error.ResidentSessionRequiresProducer;
+    // Session-scoped setup warm-up (inputs-candidate) is producer-side too.
+    if (session != null and !produce and !std.mem.eql(u8, args[1], "inputs-candidate")) return error.ResidentSessionRequiresProducer;
     const capture_only = std.mem.eql(u8, args[1], "capture");
     // Diagnostic: everything produce-candidate does up to every worker's
     // prover inputs (setup + per-segment source build), then stops. No proof.
@@ -599,23 +600,38 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     var setup_cache: ?SetupCache.Cache = null;
     var setup_dir: ?[]u8 = null;
     defer if (setup_dir) |d| a.free(d);
-    if (candidate and session == null and std.process.hasEnvVarConstant(SETUP_CACHE_ENV)) {
-        const selected = try setupCacheOptions(a, .prover, fixed_setup_bytes);
-        setup_dir = selected.owned;
-        setup_cache = try SetupCache.Cache.init(a, .{ .log_blowup = pcs.fri_config.log_blowup_factor }, selected.options);
-        try setup_cache.?.bindRequest(request.value);
+    // A resident session owns one SetupCache for its whole lifetime (warm,
+    // persisted, seeded from disk); a one-shot process keeps a local one.
+    var session_setup: ?*SetupCache.Cache = null;
+    if (candidate and std.process.hasEnvVarConstant(SETUP_CACHE_ENV)) {
+        if (session) |shared| {
+            if (shared.setup == null) {
+                const selected = try setupCacheOptions(shared.allocator, .prover, fixed_setup_bytes);
+                defer if (selected.owned) |d| shared.allocator.free(d);
+                shared.setup = try SetupCache.Cache.init(shared.allocator, .{ .log_blowup = pcs.fri_config.log_blowup_factor }, selected.options);
+                shared.setup_fixed_bytes = fixed_setup_bytes;
+            } else if (shared.setup_fixed_bytes != fixed_setup_bytes) return error.ResidentFixedBudgetChanged;
+            session_setup = &shared.setup.?;
+            try session_setup.?.bindRequest(request.value);
+        } else {
+            const selected = try setupCacheOptions(a, .prover, fixed_setup_bytes);
+            setup_dir = selected.owned;
+            setup_cache = try SetupCache.Cache.init(a, .{ .log_blowup = pcs.fri_config.log_blowup_factor }, selected.options);
+            try setup_cache.?.bindRequest(request.value);
+        }
     }
     defer if (setup_cache) |*owner| owner.deinit();
+    const setup_owner: ?*SetupCache.Cache = if (setup_cache) |*owner| owner else session_setup;
     const producer_keys_start_ns = timer.read();
-    var keys = if (setup_cache) |*owner| try Keys.initResident(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches, owner) else if (session) |shared| try shared.acquireKeys(&image, program.identity, cpu, truths, Suite.experimentalFold4()) else try Keys.initWithSuiteAndCaches(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches);
+    var keys = if (setup_owner) |owner| try Keys.initResident(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches, owner) else if (session) |shared| try shared.acquireKeys(&image, program.identity, cpu, truths, Suite.experimentalFold4()) else try Keys.initWithSuiteAndCaches(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches);
     defer keys.deinit();
     const producer_keys_ns = timer.read() - producer_keys_start_ns;
     b2i.keys_done_at_ns = since(process_start);
     const producer_fixed_start_ns = timer.read();
-    var local_fixed: ?FixedAuthority.Fixed.Cache = if (candidate and session == null and setup_cache == null) try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes) else null;
+    var local_fixed: ?FixedAuthority.Fixed.Cache = if (candidate and session == null and setup_owner == null) try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes) else null;
     defer if (local_fixed) |*owner| owner.deinit();
-    const fixed_cache: ?*FixedAuthority.Fixed.Cache = if (!candidate) null else if (setup_cache) |*owner| &owner.fixed else if (session) |shared| try shared.fixedAuthority(fixed_setup_bytes) else &local_fixed.?;
-    var fixed_set: ?FixedSet = if (fixed_cache) |owner| if (session) |shared| try FixedSet.initWithValidatedCatalogue(a, owner, keys.cpus, keys.truths, pcs, &shared.validated_fixed) else try FixedSet.init(a, owner, keys.cpus, keys.truths, pcs) else null;
+    const fixed_cache: ?*FixedAuthority.Fixed.Cache = if (!candidate) null else if (setup_owner) |owner| &owner.fixed else if (session) |shared| try shared.fixedAuthority(fixed_setup_bytes) else &local_fixed.?;
+    var fixed_set: ?FixedSet = if (fixed_cache) |owner| if (session != null and setup_owner == null) try FixedSet.initWithValidatedCatalogue(a, owner, keys.cpus, keys.truths, pcs, &session.?.validated_fixed) else try FixedSet.init(a, owner, keys.cpus, keys.truths, pcs) else null;
     defer if (fixed_set) |*owner| owner.deinit();
     const producer_fixed_ns = timer.read() - producer_fixed_start_ns;
     b2i.setup_done_at_ns = since(process_start);
@@ -627,14 +643,14 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         const timings = try a.alloc(C.WorkerTiming, keys.cpus.len + keys.truths.len);
         defer a.free(timings);
         try C.buildInputsOnly(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, if (fixed_set) |*authority| authority else null, process_start, timings, &b2i.coordinator_admitted_at_ns);
-        b2i.setup_cache = if (setup_cache) |*owner| owner.stats else null;
+        b2i.setup_cache = if (setup_owner) |owner| owner.stats else null;
         try b2i.finish(a, timings, keys.cpus.len);
         defer a.free(b2i.segments);
         // In-process residency: the setup of a next block with the same rungs
         // in this process (Keys + FixedSet again, all from the resident cache).
         var resident_setup_ns: ?u64 = null;
         var resident_stats: ?SetupCache.Stats = null;
-        if (setup_cache) |*owner| {
+        if (setup_owner) |owner| {
             const before = owner.stats.resident_hits;
             var clock = try std.time.Timer.start();
             var again = try Keys.initResident(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches, owner);
@@ -646,8 +662,8 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
             if (owner.stats.resident_hits - before != again.cpus.len + again.truths.len) return error.SetupCacheResidencyMiss;
             resident_stats = owner.stats;
         }
-        if (setup_cache) |*owner| try owner.persist();
-        return emit(a, .{ .scope = "producer block_to_inputs diagnostic only; no proof or acceptance", .security_qualified = false, .total_steps = captured.total_steps, .cpu_proofs = keys.cpus.len, .truth_proofs = keys.truths.len, .block_to_inputs = b2i, .resident_next_block_setup_ns = resident_setup_ns, .resident_stats = resident_stats, .setup_cache_after_persist = if (setup_cache) |*owner| owner.stats else null, .fixed_setup = if (fixed_cache) |owner| owner.snapshot() else null });
+        if (setup_owner) |owner| try owner.persist();
+        return emit(a, .{ .scope = "producer block_to_inputs diagnostic only; no proof or acceptance", .security_qualified = false, .total_steps = captured.total_steps, .cpu_proofs = keys.cpus.len, .truth_proofs = keys.truths.len, .block_to_inputs = b2i, .resident_next_block_setup_ns = resident_setup_ns, .resident_stats = resident_stats, .setup_cache_after_persist = if (setup_owner) |owner| owner.stats else null, .fixed_setup = if (fixed_cache) |owner| owner.snapshot() else null });
     }
     try std.fs.cwd().makeDir(args[4]);
     // Linux's path-only descriptor cannot be fsync'd. The producer publishes
@@ -675,17 +691,32 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         for (0..observations.pointers.len) |i| try profiling.finish(a, i);
         try Driver.writeJson(a, dir, "schedule.json", .{ .schema_version = 1, .indexing = "array index is original worker ordinal", .time_basis = "nanoseconds from each phase schedule start; stage1/stage2 origins distinct", .stage1 = observations.stage1_trace, .stage2 = observations.stage2_trace });
     }
-    const verify_start = timer.read();
-    const output = try Receiver.verifyWithAuthority(a, &image, &keys, &bundle, request.value.max_steps, request.value.batch_steps, completed, pcs, if (fixed_set) |*authority| authority else null);
-    const verify_ns = timer.read() - verify_start;
+    // Combined requests overlap the same-process native verify with recursion
+    // (scheduling only; joined before report.json/combined-report.json).
+    const NativeVerify = @import("native_verify_overlap.zig");
+    const overlap_verify = combined and NativeVerify.enabled();
+    var side_verify = NativeVerify.Job(@TypeOf(image), @TypeOf(keys), @TypeOf(bundle), FixedSet, @TypeOf(pcs)){ .a = a, .image = &image, .keys = &keys, .bundle = &bundle, .max_steps = request.value.max_steps, .batch_steps = request.value.batch_steps, .completed = completed, .config = pcs, .fixed = if (fixed_set) |*authority| authority else null, .worker_count = NativeVerify.workers(a, pool.workerCount()) };
+    // Never leave a running reader of keys/bundle behind on an error path.
+    defer _ = side_verify.join() catch {};
+    var output: ?[43]u8 = null;
+    var verify_ns: u64 = 0;
+    if (overlap_verify) {
+        try side_verify.start();
+    } else {
+        const verify_start = timer.read();
+        output = try Receiver.verifyWithAuthority(a, &image, &keys, &bundle, request.value.max_steps, request.value.batch_steps, completed, pcs, if (fixed_set) |*authority| authority else null);
+        verify_ns = timer.read() - verify_start;
+    }
     const publish_start_ns = timer.read();
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
-    b2i.setup_cache = if (setup_cache) |*owner| owner.stats else null;
+    b2i.setup_cache = if (setup_owner) |owner| owner.stats else null;
     try b2i.finish(a, worker_timings, keys.cpus.len);
     defer a.free(b2i.segments);
     const native_publish_ns = timer.read() - publish_start_ns;
-    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .keccak_uniform_throughput = uniform_throughput, .resources = operational, .capture_ns = capture_ns, .capture_breakdown = capture_breakdown, .block_to_inputs = b2i, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
+    const native_report = .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = &output, .keccak_uniform_throughput = uniform_throughput, .resources = operational, .capture_ns = capture_ns, .capture_breakdown = capture_breakdown, .block_to_inputs = b2i, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = &verify_ns, .native_verify_overlapped_with_recursion = overlap_verify, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null };
+    if (!overlap_verify) try Driver.writeJson(a, dir, "report.json", native_report);
     if (fixed_cache) |owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
+    // A session persists new artifacts between requests, off the request wall.
     if (setup_cache) |*owner| try owner.persist();
     if (source_bounds) |*value| try Driver.writeJson(a, dir, "candidate-source-bounds.json", .{ .profile = selected_profile, .security_qualified = false, .accounting_profile = value.accounting_profile, .shape = value.shape, .cpu_scopes = value.cpu_scopes, .truth_scopes = value.truth_scopes, .global_signed = value.global_signed, .global_denominator_slots = value.global_denominator_slots, .lookup_only_conditional_degrees = value.conditional_degrees, .transcript_round_bound_qualified = value.transcript_round_bound_qualified, .secp_polynomial_error_budget_qualified = value.secp_polynomial_error_budget_qualified });
     try std.posix.fsync(dir.fd);
@@ -723,10 +754,19 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         };
         recursion.native_prove_ns = prove_ns;
         const recursion_ns = timer.read() - recursion_start_ns;
+        var native_verify_join_wait_ns: u64 = 0;
+        if (overlap_verify) {
+            const join_start = timer.read();
+            output = try side_verify.join();
+            native_verify_join_wait_ns = timer.read() - join_start;
+            verify_ns = side_verify.ns;
+            // Acceptance artifacts only after the complete native verify.
+            try Driver.writeJson(a, dir, "report.json", native_report);
+        }
         // execution_wrap already published its report exclusively. Native timing
         // belongs in this combined report; never republish the existing file.
         const fixed_setup_backend: []const u8 = if (try recursion_execution.usesDeviceFixed()) "device_candidate" else "cpu";
-        const report = .{ .schema = 1, .accepted = true, .completed_ethereum_block = true, .fixed_setup_backend = fixed_setup_backend, .authority_handoff = "live independently derived keys and fixed authority; direct in-memory bundle", .native_bundle_reload = false, .recursion_execution = recursion_operational, .native_authority_session_used = session != null, .native_authority_classes = if (session) |shared| shared.keyCount() else @as(usize, 0), .restored_recursive_proofs = false, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .profile = selected_profile, .capture_ns = capture_ns, .native_setup_ns = setup_ns, .setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = producer_keys_ns, .fixed_authority_ns = producer_fixed_ns }, .native_prove_ns = prove_ns, .native_verify_ns = verify_ns, .native_publish_ns = native_publish_ns, .recursion_ns = recursion_ns, .combined_ns = timer.read(), .recursive = recursion };
+        const report = .{ .schema = 1, .accepted = true, .completed_ethereum_block = true, .fixed_setup_backend = fixed_setup_backend, .authority_handoff = "live independently derived keys and fixed authority; direct in-memory bundle", .native_bundle_reload = false, .recursion_execution = recursion_operational, .native_authority_session_used = session != null, .native_authority_classes = if (session) |shared| shared.keyCount() else @as(usize, 0), .restored_recursive_proofs = false, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .profile = selected_profile, .capture_ns = capture_ns, .native_setup_ns = setup_ns, .setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = producer_keys_ns, .fixed_authority_ns = producer_fixed_ns }, .native_prove_ns = prove_ns, .native_verify_ns = verify_ns, .native_verify_overlapped_with_recursion = overlap_verify, .native_verify_join_wait_ns = native_verify_join_wait_ns, .native_verify_workers = if (overlap_verify) side_verify.worker_count else pool.workerCount(), .native_publish_ns = native_publish_ns, .recursion_ns = recursion_ns, .combined_ns = timer.read(), .recursive = recursion };
         try Driver.writeJson(a, dir, "combined-report.json", report);
         try std.posix.fsync(dir.fd);
         return emit(a, report);

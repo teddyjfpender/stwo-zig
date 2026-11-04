@@ -69,7 +69,7 @@ test "shared external: host resize cannot grow past an external reservation" {
     // is switched before any user allocation so resize is predictably in place.
     const owner = try Budget.create(std.testing.allocator, 32);
     defer owner.destroy();
-    owner.bounded.child = child.allocator();
+    owner.heap_child = child.allocator();
     const a = owner.allocator();
     var bytes = try a.alloc(u8, 8);
     defer a.free(bytes);

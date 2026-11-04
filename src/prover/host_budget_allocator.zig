@@ -180,14 +180,30 @@ test "host budget allocator accounts in-place resize and remap" {
     try std.testing.expectEqual(@as(usize, 0), bounded.live_bytes);
 }
 
-/// Stable, synchronized owner for allocations whose lifetimes cross threads.
-/// The control object itself is allocated outside `limit`. The child allocator
-/// must support any other concurrent users that bypass this owner's mutex.
+/// Stable, lock-free owner for allocations whose lifetimes cross threads.
+/// The control object itself is allocated outside `limit`.
+///
+/// Admission is one atomic reserve on the combined heap+external total, so the
+/// hard limit is never exceeded and no global mutex sits on the allocation
+/// path. The heap child MUST itself be thread-safe (smp_allocator,
+/// page_allocator, a thread-safe GPA, a LargeBlockRecycler, or another
+/// SharedHostBudget); this owner no longer serializes it. Charges are the
+/// requested length, exactly as before.
 pub const SharedHostBudget = struct {
     child: std.mem.Allocator,
+    /// Allocator that serves heap bytes. Equal to `child` unless a test swaps it
+    /// before the first user allocation.
+    heap_child: std.mem.Allocator,
     backing_owner: ?*SharedHostBudget = null,
-    bounded: HostBudgetAllocator,
-    synchronized: std.heap.ThreadSafeAllocator,
+    limit: usize,
+    /// heap + external; the only admission counter. Invariant: total <= limit.
+    total: std.atomic.Value(usize) = .init(0),
+    heap_live: std.atomic.Value(usize) = .init(0),
+    external_live: std.atomic.Value(usize) = .init(0),
+    peak_total: std.atomic.Value(usize) = .init(0),
+    peak_heap: std.atomic.Value(usize) = .init(0),
+    peak_external: std.atomic.Value(usize) = .init(0),
+    exceeded: std.atomic.Value(bool) = .init(false),
     references: std.atomic.Value(usize),
 
     pub const Snapshot = struct {
@@ -205,11 +221,7 @@ pub const SharedHostBudget = struct {
 
     pub fn create(child: std.mem.Allocator, limit: usize) !*SharedHostBudget {
         const self = try child.create(SharedHostBudget);
-        self.child = child;
-        self.backing_owner = null;
-        self.references = .init(1);
-        self.bounded = .init(child, limit);
-        self.synchronized = .{ .child_allocator = self.bounded.allocator() };
+        self.* = .{ .child = child, .heap_child = child, .limit = limit, .references = .init(1) };
         return self;
     }
 
@@ -246,6 +258,50 @@ pub const SharedHostBudget = struct {
         return @ptrCast(@alignCast(a.ptr));
     }
 
+    /// Atomically reserve `growth` against the combined limit. A refusal
+    /// changes no counter except the sticky `exceeded` flag.
+    fn admit(self: *SharedHostBudget, growth: usize) bool {
+        var current = self.total.load(.monotonic);
+        while (true) {
+            if (current > self.limit or growth > self.limit - current) {
+                self.exceeded.store(true, .monotonic);
+                return false;
+            }
+            current = self.total.cmpxchgWeak(current, current + growth, .monotonic, .monotonic) orelse {
+                _ = self.peak_total.fetchMax(current + growth, .monotonic);
+                return true;
+            };
+        }
+    }
+
+    /// Return admitted bytes that were never (or are no longer) used.
+    fn unadmit(self: *SharedHostBudget, bytes: usize) void {
+        const previous = self.total.fetchSub(bytes, .monotonic);
+        if (previous < bytes) @panic("host budget total underflow");
+    }
+
+    fn heapGrew(self: *SharedHostBudget, growth: usize) void {
+        const now = self.heap_live.fetchAdd(growth, .monotonic) + growth;
+        _ = self.peak_heap.fetchMax(now, .monotonic);
+    }
+
+    fn heapShrank(self: *SharedHostBudget, shrink: usize) void {
+        const previous = self.heap_live.fetchSub(shrink, .monotonic);
+        if (previous < shrink) @panic("host budget heap underflow");
+        self.unadmit(shrink);
+    }
+
+    fn externalGrew(self: *SharedHostBudget, growth: usize) void {
+        const now = self.external_live.fetchAdd(growth, .monotonic) + growth;
+        _ = self.peak_external.fetchMax(now, .monotonic);
+    }
+
+    fn externalShrank(self: *SharedHostBudget, shrink: usize) void {
+        const previous = self.external_live.fetchSub(shrink, .monotonic);
+        if (previous < shrink) @panic("copied external reservation released twice");
+        self.unadmit(shrink);
+    }
+
     /// Consuming local ownership token. take() clears the source, and deinit()
     /// is harmless when repeated on that same object. Raw struct copies do not
     /// acquire leases and are forbidden by this contract; Zig does not enforce
@@ -272,18 +328,12 @@ pub const SharedHostBudget = struct {
         pub fn resize(self: *ExternalReservation, bytes: usize) !void {
             if (!self.active) return error.ExternalReservationReleased;
             if (self.owner) |owner| {
-                owner.synchronized.mutex.lock();
-                defer owner.synchronized.mutex.unlock();
-                const bounded = &owner.bounded;
                 if (bytes > self.bytes) {
                     const growth = bytes - self.bytes;
-                    if (!bounded.admitsGrowth(growth)) return error.OutOfMemory;
-                    bounded.external_live_bytes += growth;
-                    bounded.recordCombinedPeak();
+                    if (!owner.admit(growth)) return error.OutOfMemory;
+                    owner.externalGrew(growth);
                 } else {
-                    const shrink = self.bytes - bytes;
-                    if (shrink > bounded.external_live_bytes) @panic("copied external reservation released twice");
-                    bounded.external_live_bytes -= shrink;
+                    owner.externalShrank(self.bytes - bytes);
                 }
             }
             self.bytes = bytes;
@@ -294,12 +344,8 @@ pub const SharedHostBudget = struct {
             const bytes = self.bytes;
             self.* = .empty();
             if (owner) |retained| {
-                retained.synchronized.mutex.lock();
-                if (bytes > retained.bounded.external_live_bytes) @panic("copied external reservation released twice");
-                retained.bounded.external_live_bytes -= bytes;
-                retained.synchronized.mutex.unlock();
-                // destroy() snapshots through the same mutex; never call it
-                // while holding that mutex. The token's lease is still live.
+                retained.externalShrank(bytes);
+                // The token's lease is still live until this release.
                 retained.destroy();
             }
         }
@@ -308,39 +354,69 @@ pub const SharedHostBudget = struct {
     /// Reserve before calling an external allocation factory. Failure changes
     /// no live count or lease; zero-byte aliases retain only owner lifetime.
     pub fn reserveExternal(self: *SharedHostBudget, bytes: usize) !ExternalReservation {
-        self.synchronized.mutex.lock();
-        defer self.synchronized.mutex.unlock();
-        if (!self.bounded.admitsGrowth(bytes)) return error.OutOfMemory;
+        if (!self.admit(bytes)) return error.OutOfMemory;
         _ = self.retain();
-        self.bounded.external_live_bytes += bytes;
-        self.bounded.recordCombinedPeak();
+        self.externalGrew(bytes);
         return .{ .owner = self, .bytes = bytes, .active = true };
     }
 
     fn sharedAlloc(ctx: *anyopaque, len: usize, alignment: std.mem.Alignment, ra: usize) ?[*]u8 {
         const self: *SharedHostBudget = @ptrCast(@alignCast(ctx));
-        return self.synchronized.allocator().rawAlloc(len, alignment, ra);
+        if (!self.admit(len)) return null;
+        const result = self.heap_child.rawAlloc(len, alignment, ra) orelse {
+            self.unadmit(len);
+            return null;
+        };
+        self.heapGrew(len);
+        return result;
     }
 
     fn sharedResize(ctx: *anyopaque, memory: []u8, alignment: std.mem.Alignment, len: usize, ra: usize) bool {
         const self: *SharedHostBudget = @ptrCast(@alignCast(ctx));
-        return self.synchronized.allocator().rawResize(memory, alignment, len, ra);
+        if (len > memory.len) {
+            const growth = len - memory.len;
+            if (!self.admit(growth)) return false;
+            if (!self.heap_child.rawResize(memory, alignment, len, ra)) {
+                self.unadmit(growth);
+                return false;
+            }
+            self.heapGrew(growth);
+            return true;
+        }
+        if (!self.heap_child.rawResize(memory, alignment, len, ra)) return false;
+        self.heapShrank(memory.len - len);
+        return true;
     }
 
     fn sharedRemap(ctx: *anyopaque, memory: []u8, alignment: std.mem.Alignment, len: usize, ra: usize) ?[*]u8 {
         const self: *SharedHostBudget = @ptrCast(@alignCast(ctx));
-        return self.synchronized.allocator().rawRemap(memory, alignment, len, ra);
+        if (len > memory.len) {
+            const growth = len - memory.len;
+            if (!self.admit(growth)) return null;
+            const result = self.heap_child.rawRemap(memory, alignment, len, ra) orelse {
+                self.unadmit(growth);
+                return null;
+            };
+            self.heapGrew(growth);
+            return result;
+        }
+        const result = self.heap_child.rawRemap(memory, alignment, len, ra) orelse return null;
+        self.heapShrank(memory.len - len);
+        return result;
     }
 
     fn sharedFree(ctx: *anyopaque, memory: []u8, alignment: std.mem.Alignment, ra: usize) void {
         const self: *SharedHostBudget = @ptrCast(@alignCast(ctx));
-        self.synchronized.allocator().rawFree(memory, alignment, ra);
+        self.heap_child.rawFree(memory, alignment, ra);
+        self.heapShrank(memory.len);
     }
 
+    /// Counters are read individually; under concurrent traffic the fields
+    /// are each exact but not one atomic cut. Quiescent snapshots are exact.
     pub fn snapshot(self: *SharedHostBudget) Snapshot {
-        self.synchronized.mutex.lock();
-        defer self.synchronized.mutex.unlock();
-        return .{ .live_bytes = self.bounded.live_bytes + self.bounded.external_live_bytes, .peak_live_bytes = self.bounded.peak_live_bytes, .host_live_bytes = self.bounded.live_bytes, .external_live_bytes = self.bounded.external_live_bytes, .peak_host_bytes = self.bounded.peak_host_bytes, .peak_external_bytes = self.bounded.peak_external_bytes, .limit = self.bounded.limit, .exceeded = self.bounded.budget_exceeded };
+        const heap = self.heap_live.load(.acquire);
+        const ext = self.external_live.load(.acquire);
+        return .{ .live_bytes = heap + ext, .peak_live_bytes = self.peak_total.load(.acquire), .host_live_bytes = heap, .external_live_bytes = ext, .peak_host_bytes = self.peak_heap.load(.acquire), .peak_external_bytes = self.peak_external.load(.acquire), .limit = self.limit, .exceeded = self.exceeded.load(.acquire) };
     }
 
     /// Opt-in stage snapshots for callers already routing through this budget.
@@ -372,6 +448,38 @@ pub const SharedHostBudget = struct {
         if (parent) |owner| owner.destroy();
     }
 };
+
+test "shared host budget admits exactly once under heavy contention" {
+    const owner = try SharedHostBudget.create(std.heap.page_allocator, 64 * 1000);
+    defer owner.destroy();
+    const Worker = struct {
+        fn run(o: *SharedHostBudget, admitted: *std.atomic.Value(usize)) void {
+            var held: [64][]u8 = undefined;
+            var n: usize = 0;
+            for (0..2000) |_| {
+                if (n == held.len) {
+                    for (held[0..n]) |h| o.allocator().free(h);
+                    n = 0;
+                }
+                if (o.allocator().alloc(u8, 1000)) |b| {
+                    held[n] = b;
+                    n += 1;
+                    _ = admitted.fetchAdd(1, .monotonic);
+                    if (o.snapshot().peak_live_bytes > o.limit) @panic("limit exceeded");
+                } else |_| {}
+            }
+            for (held[0..n]) |h| o.allocator().free(h);
+        }
+    };
+    var admitted = std.atomic.Value(usize).init(0);
+    var threads: [8]std.Thread = undefined;
+    for (&threads) |*t| t.* = try std.Thread.spawn(.{}, Worker.run, .{ owner, &admitted });
+    for (threads) |t| t.join();
+    const state = owner.snapshot();
+    try std.testing.expectEqual(@as(usize, 0), state.live_bytes);
+    try std.testing.expect(state.peak_live_bytes <= 64 * 1000);
+    try std.testing.expect(admitted.load(.monotonic) > 0);
+}
 
 test "shared host budget preserves exact accounting across thread transfer" {
     const owner = try SharedHostBudget.create(std.testing.allocator, 32);
