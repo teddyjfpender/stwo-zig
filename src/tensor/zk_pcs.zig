@@ -292,16 +292,34 @@ pub fn commit(
     const nodes = try a.alloc(Hash, 2 * E);
     const LCtx = struct { enc: []const M31, salts: []const [SALT]u8, nodes: []Hash, R: usize, E: usize };
     const lctx = LCtx{ .enc = enc, .salts = salts, .nodes = nodes, .R = R, .E = E };
-    pool.parallelFor(E, 64, &lctx, struct {
+    // Salted leaves, four columns per 4-lane SIMD Blake2s call: each message
+    // column_j || salt_j is assembled in per-worker scratch, so the digests equal
+    // leafHash (scalar Blake2s over the same bytes; pinned by the seeded tests).
+    const n_groups = (E + 3) / 4;
+    pool.parallelFor(n_groups, 16, &lctx, struct {
         fn run(c: *const LCtx, s: usize, e: usize) void {
-            for (s..e) |j| c.nodes[c.E + j] = leafHash(c.enc[j * c.R .. (j + 1) * c.R], &c.salts[j]);
+            const L = c.R * 4 + SALT;
+            const buf = std.heap.page_allocator.alloc(u8, 4 * L) catch @panic("oom");
+            defer std.heap.page_allocator.free(buf);
+            for (s..e) |g| {
+                const j0 = g * 4;
+                if (j0 + 4 <= c.E) {
+                    var msgs: [4][]const u8 = undefined;
+                    for (0..4) |l| {
+                        const mb = buf[l * L ..][0..L];
+                        @memcpy(mb[0 .. c.R * 4], std.mem.sliceAsBytes(c.enc[(j0 + l) * c.R ..][0..c.R]));
+                        @memcpy(mb[c.R * 4 ..], &c.salts[j0 + l]);
+                        msgs[l] = mb;
+                    }
+                    const hs = Hasher.hashEqual4WithMode(.auto, &msgs);
+                    @memcpy(c.nodes[c.E + j0 ..][0..4], &hs);
+                } else {
+                    for (j0..c.E) |j| c.nodes[c.E + j] = leafHash(c.enc[j * c.R .. (j + 1) * c.R], &c.salts[j]);
+                }
+            }
         }
     }.run);
-    var level = E / 2;
-    while (level >= 1) : (level /= 2) {
-        for (level..2 * level) |idx| nodes[idx] = pcs.hashNode(nodes[2 * idx], nodes[2 * idx + 1]);
-        if (level == 1) break;
-    }
+    pcs.buildLevels(pool, nodes, E);
     return .{ .shape = shape, .enc = enc, .tau = tau, .salts = salts, .tree = .{ .nodes = nodes, .n_leaves = E } };
 }
 
@@ -837,4 +855,33 @@ test "zk pcs budget: concurrent charges never exceed the limit (ZK-4)" {
     try std.testing.expectEqual(b.opened.count(), u[0]);
     try std.testing.expect(succeeded == u[0] or succeeded + 1 == u[0]);
     try std.testing.expectEqual(LIMIT - u[0], b.left());
+}
+
+test "zk pcs: SIMD salted leaves and parallel levels equal scalar leafHash + hashNode tree" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 3);
+    defer pool.deinit();
+    for ([_]u32{ 2, 3, 6 }) |lc| for ([_]usize{ 1, 3, 5, 17 }) |rows| {
+        const lb: u32 = 2;
+        var tw = try pcs.Twiddles.init(a, lc + lb);
+        defer tw.deinit(a);
+        const C = @as(usize, 1) << @intCast(lc);
+        const data = try a.alloc(i32, rows * C);
+        defer a.free(data);
+        for (data, 0..) |*d, i| d.* = @as(i32, @intCast(i % 97)) - 40;
+        var log_rows: u32 = 0;
+        while ((@as(usize, 1) << @intCast(log_rows)) < rows) log_rows += 1;
+        const m = pcs.Matrix(i32){ .data = data, .log_rows = log_rows, .log_cols = lc, .rows_used = rows };
+        var rng = Rng.initSeed([_]u8{@intCast(rows)} ** 32);
+        var com = try commit(i32, a, &pool, &tw, &rng, m, &.{}, 2, lb);
+        defer com.deinit(a);
+        const E = @as(usize, 1) << @intCast(lc + lb);
+        const nodes = try a.alloc(Hash, 2 * E);
+        defer a.free(nodes);
+        for (0..E) |j| nodes[E + j] = leafHash(com.column(j), &com.salts[j]);
+        var i = E - 1;
+        while (i >= 1) : (i -= 1) nodes[i] = pcs.hashNode(nodes[2 * i], nodes[2 * i + 1]);
+        try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(nodes[1..]), std.mem.sliceAsBytes(com.tree.nodes[1..]));
+    };
 }
