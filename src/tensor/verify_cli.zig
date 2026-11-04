@@ -80,12 +80,18 @@ fn run(a: std.mem.Allocator, paths: [3][]const u8, out: anytype) !void {
     t0 = now();
     try proto.verify(a, sf.cfg, sf.st, kf.key, &pf.proof);
     const verify_s = since(t0);
+    // a non-custom level: the statement's own account must reach the target
+    t0 = now();
+    var rep = try t.security.accountProof(a, sf.cfg, sf.st, kf.key, &pf.proof, &kf.proof);
+    defer rep.deinit();
+    try t.security.checkLevel(rep, sf.cfg.security);
+    const level_check_s = since(t0);
 
     try out.print("{{\"ok\":true,\"statement_digest\":\"{s}\",\"statement_bytes\":{d},\"key_bytes\":{d},\"proof_bytes\":{d},", .{ std.fmt.bytesToHex(digest, .lower), sb.len, kb.len, pb.len });
     // the level and field the proof was checked at: the statement's header
     // sets them, so a client that does not pin statement_digest must check
     // these (a custom-level statement accepts a custom-level proof)
-    try out.print("\"security_level\":\"{s}\",\"challenge_degree\":{d},", .{ sf.cfg.security.name(), t.field.CHALLENGE_DEGREE });
+    try out.print("\"security_level\":\"{s}\",\"challenge_degree\":{d},\"level_target_bits\":{d:.0},\"bits_all_rounds_without_work\":{d:.2},\"level_check_s\":{d:.5},", .{ sf.cfg.security.name(), t.field.CHALLENGE_DEGREE, sf.cfg.security.targetBits(), rep.total.summary().sum_without, level_check_s });
     try out.print("\"witness_tensors\":{d},\"weights\":{d},\"ops\":{d},\"ext_ops\":{d},", .{ sf.st.witness.len, sf.st.weights.len, sf.st.ops.len, sf.st.ext.ops.len });
     if (sf.cfg.two_level) |tl| {
         try out.print("\"pcs\":\"pcs2\",\"depth\":{d},\"conjectured_bits\":{d:.1},\"query_bits_unique\":{d:.1},", .{ tl.depth, tl.conjecturedBits(), tl.provenBits() });

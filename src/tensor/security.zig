@@ -654,6 +654,27 @@ fn accountWeights(a: std.mem.Allocator, wacc: *Account, cfg: proto.Config, key: 
 /// Runs the verifier (which must accept) to read the shapes it checked, and
 /// the key verifier on `key_proof`. Without a key proof, a proof that reads
 /// weights gets `conditional_on_key` (its total lacks the key's terms).
+/// Runtime level check (security.md 10): a non-custom level claims
+/// `level.targetBits()` bits, all rounds added without PoW credit, for the
+/// statement as proven. Refuses (error.SecurityBelowLevel) a report under the
+/// target, one whose LogUp count reaches p, or one that is only conditional
+/// on an unaccounted weight key. `.custom` claims nothing and passes.
+pub fn checkLevel(r: Report, level: proto.SecurityLevel) !void {
+    if (level == .custom) return;
+    if (!r.logup_ok or r.conditional_on_key) return error.SecurityBelowLevel;
+    if (!(r.total.summary().sum_without >= level.targetBits())) return error.SecurityBelowLevel;
+}
+
+/// proto.verify plus the runtime level check: verifies the proof (inside
+/// accountProof's verifyInfo), accounts it with the key proof, and refuses
+/// a statement that does not reach its level's target.
+pub fn verifyAtLevel(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statement, key: proto.WeightKey, proof: *const proto.Proof, key_proof: ?*const weight_key.KeyProof) !void {
+    if (key_proof) |kp| if (kp.security != cfg.security) return error.SecurityLevelMismatch;
+    var rep = try accountProof(a, cfg, st, key, proof, key_proof);
+    defer rep.deinit();
+    try checkLevel(rep, cfg.security);
+}
+
 pub fn accountProof(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statement, key: proto.WeightKey, proof: *const proto.Proof, key_proof: ?*const weight_key.KeyProof) !Report {
     var info: proto.VerifyInfo = .{};
     try proto.verifyInfo(a, cfg, st, key, proof, &info);

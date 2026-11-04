@@ -53,6 +53,9 @@ const Fast = lookups.gkr_prover_fast.ForField(QM31);
 const GkrVerifier = lookups.gkr_verifier.ForField(QM31);
 
 pub const KeyProof = struct {
+    /// the level the key was proven at (Config.security; bound in the
+    /// transcript of degree-8 builds and written in the key file header)
+    security: proto.SecurityLevel = .custom,
     histogram: [256]u32,
     gkr: GkrVerifier.GkrBatchProof,
     value: QM31,
@@ -126,17 +129,29 @@ pub fn prove(a: std.mem.Allocator, pool: *f.Pool, cfg0: proto.Config, ws: *const
     for (0..256) |v| mult[v] = M31.fromCanonical(hist[v] % f.P);
     var tden: [2][256]QM31 = undefined;
     var inputs: [4]Fast.Input = undefined;
+    // The key column den_i = alpha - (w_i + 128) is a function of the int8
+    // table: on the CPU the GKR prover recomputes it (and its first two
+    // layers) on demand instead of holding it (Fast.Regen), so the key
+    // proof's layer memory is about n|F| instead of 3 n|F|; the proof is
+    // identical. A device prover gets the materialised column.
+    var regen_ctx: [2]KeyDen = undefined;
+    const log_n: u32 = @intCast(std.math.log2_int(usize, n));
     for (alphas[0..n_alpha], 0..) |al, j| {
-        const den = try a.alloc(QM31, n);
-        const Ctx = struct { t: []const i8, den: []QM31, alpha: QM31 };
-        const ctx = Ctx{ .t = ws.table, .den = den, .alpha = al };
-        pool.parallelFor(n, 8192, &ctx, struct {
-            fn run(c: *const Ctx, s: usize, e: usize) void {
-                for (s..e) |i| c.den[i] = c.alpha.sub(f.qFromI64(@as(i64, c.t[i]) + 128));
-            }
-        }.run);
+        regen_ctx[j] = .{ .t = ws.table, .alpha = al };
+        if (cfg.accel == null and std.math.isPowerOfTwo(n)) {
+            inputs[2 * j] = .{ .num = .ones, .den = &.{}, .owned = false, .regen = .{ .ctx = &regen_ctx[j], .fill = KeyDen.fillErased, .log_len = log_n } };
+        } else {
+            const den = try a.alloc(QM31, n);
+            const Ctx = struct { k: *const KeyDen, den: []QM31 };
+            const ctx = Ctx{ .k = &regen_ctx[j], .den = den };
+            pool.parallelFor(n, 8192, &ctx, struct {
+                fn run(c: *const Ctx, s: usize, e: usize) void {
+                    KeyDen.fill(c.k, c.den[s..e], s);
+                }
+            }.run);
+            inputs[2 * j] = .{ .num = .ones, .den = den, .owned = true };
+        }
         for (0..256) |v| tden[j][v] = al.sub(QM31.fromBase(M31.fromCanonical(@intCast(v))));
-        inputs[2 * j] = .{ .num = .ones, .den = den, .owned = true };
         inputs[2 * j + 1] = .{ .num = .{ .base = &mult }, .den = &tden[j], .owned = false };
     }
     var res = try @import("accel.zig").gkrProveBatch(cfg.accel, a, &tr.ch, inputs[0 .. 2 * n_alpha], cfg.gkr_threads);
@@ -150,8 +165,20 @@ pub fn prove(a: std.mem.Allocator, pool: *f.Pool, cfg0: proto.Config, ws: *const
         .{ .two = try pcs2.open(i8, a, pool, &tr, tl, &ws.com, ws.tableMatrix(), groups, true) }
     else
         .{ .flat = try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), groups, true) };
-    return .{ .histogram = hist, .gkr = res.proof, .value = value, .opening = opening };
+    return .{ .security = cfg0.security, .histogram = hist, .gkr = res.proof, .value = value, .opening = opening };
 }
+
+/// den_i = alpha - (w_i + 128) of the key instance (one alpha).
+const KeyDen = struct {
+    t: []const i8,
+    alpha: QM31,
+    fn fill(k: *const KeyDen, out: []QM31, start: usize) void {
+        for (out, k.t[start..][0..out.len]) |*d, w| d.* = k.alpha.sub(QM31.fromBase(M31.fromCanonical(@intCast(@as(i32, w) + 128))));
+    }
+    fn fillErased(ctx: *const anyopaque, out: []QM31, start: usize) void {
+        fill(@ptrCast(@alignCast(ctx)), out, start);
+    }
+};
 
 /// Number of independent LogUp challenges of the key proof (1 or 2).
 pub fn alphaCount(cfg: proto.Config) !usize {
@@ -162,6 +189,8 @@ pub fn alphaCount(cfg: proto.Config) !usize {
 }
 
 pub fn verify(a: std.mem.Allocator, cfg0: proto.Config, key: proto.WeightKey, proof: *const KeyProof) !void {
+    // a key proven at another level: a clear error before any transcript work
+    if (proof.security != cfg0.security) return error.SecurityLevelMismatch;
     // every transmitted limb in [0, P) before any arithmetic (KERN-1)
     try proto.checkSecurity(cfg0);
     try canonical.check(proof);

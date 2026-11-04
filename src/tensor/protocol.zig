@@ -265,6 +265,17 @@ pub const SecurityLevel = enum(u8) {
     pub fn name(self: SecurityLevel) []const u8 {
         return @tagName(self);
     }
+
+    /// The bits the level claims: all rounds added, without PoW credit
+    /// (security.Summary.sum_without), checked at run time by
+    /// security.checkLevel. 0 for .custom (no claim).
+    pub fn targetBits(self: SecurityLevel) f64 {
+        return switch (self) {
+            .custom => 0,
+            .bits128 => 128,
+            .bits160 => 160,
+        };
+    }
 };
 
 /// The PCS parameters of a level: Johnson regime with OOD samples on every

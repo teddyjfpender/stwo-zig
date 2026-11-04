@@ -792,7 +792,8 @@ The agreement then sits at sqrt(rho)(1 + 1/m), about 0.500 at rate 1/4 and
 
 **Binding.**
 * Wire format: a degree-8 build writes VERSION 2, with header
-  MAGIC, 2, kind, degree (8), level (0 for keys). Each build decodes only its
+  MAGIC, 2, kind, degree (8), level (for keys, since round 4, the level the
+  key was proven at; round 3 wrote 0). Each build decodes only its
   own version. A QM31 verifier given an OM31 file, or the reverse, fails
   with `error.ChallengeFieldMismatch`. A proof whose header level is not the
   statement config's fails with `error.SecurityLevelMismatch`. The
@@ -827,7 +828,8 @@ without work, then compiled with work.
 | MLP 1024 tok, d=2^10 f=2^11, 12 thr | johnson | QM31 | 0.203 | 0.036 | 590,378 | 98.74 / 94.40 | 99.52 |
 | MLP 1024 tok, d=2^10 f=2^11, 12 thr | **bits128** | OM31 | 0.367 | 0.055 | 1,026,844 | **152.08 / 132.08** | 126.46 |
 | MLP 1024 tok, d=2^12 f=2^13, 12 thr | johnson | QM31 | 0.798 | 0.132 | 897,073 | 95.57 / 93.92 | 96.00 |
-| MLP 1024 tok, d=2^12 f=2^13 | bits128 | OM31 | not run: killed by memguard at 13.8 GB peak (8 GB reservation) | | | | |
+| MLP 1024 tok, d=2^12 f=2^13 | bits128 | OM31 | round 3: killed by memguard at 13.8 GB peak (8 GB reservation) | | | | |
+| MLP 1024 tok, d=2^12 f=2^13, 12 thr | **bits128** (round 4) | OM31 | 1.580 | 0.195 | 1,553,419 | **152.08 / 132.08** | 126.46 |
 | layer 512 tok (decoder layer, 12 thr) | johnson | QM31 | 0.789 | 0.048 | 911,810 | 96.43 / 94.59 | 96.43 |
 | layer 512 tok (decoder layer, 12 thr) | **bits128** | OM31 | 1.618 | 0.071 | 1,574,644 | **152.67 / 132.67** | 126.46 |
 
@@ -841,13 +843,16 @@ prove time and 11% bytes. On the MLP and the layer the total cost is about
 1.8-2.0x prove time and about 1.7x bytes.
 
 **Not done / caveats.**
-* The peak memory of the large MLP (d=2^12) roughly doubles in the om31
-  build: about 9.4 GB becomes more than 13.8 GB. The likely cause is the
-  weight-key LogUp-GKR layers, now 32-byte felts; this was not profiled.
-  It was not measured within this host's memory rules.
-* No Metal path for OM31: the build disables Metal. No ZK mode.
+* ~~The peak memory of the large MLP (d=2^12) roughly doubles in the om31
+  build~~ - profiled and cut in round 4 (`codex/tensor-sec2`), see
+  "Round 4" below. The D 4096 MLP at bits128 now runs under memguard's
+  `--gb 8` reservation (killed at 1.3x = 10.4 GB), with a peak of
+  9.1-9.55 GB: above 8 GB itself.
+* No Metal path for OM31: the build disables Metal (CPU only, so proofs
+  are the CPU prover's by construction). No ZK mode. See "Round 4".
 * The OM31 kernels are the generic Karatsuba ones (`packed_om31`). No
-  OM31-specific tuning of the sumcheck, eqsum or pcs2 limb kernels was done.
+  OM31-specific tuning of the sumcheck, eqsum or pcs2 limb kernels was done
+  (still true after round 4).
 * The levels are proven bounds under the calculator's definitions (Johnson
   regime per BCHKS25, the same terms as sections 2-4). They inherit that
   argument and are not separately machine-checked.
@@ -878,3 +883,138 @@ prove time and 11% bytes. On the MLP and the layer the total cost is about
   without-work number only.
 * Peak RSS of the 512-token decoder layer at bits128 is about 9.7 GB
   (measured in the independent check), close to this host's memory limit.
+
+### Round 4 (branch `codex/tensor-sec2`)
+
+**1. Memory: the weight-key LogUp-GKR, profiled and cut.** A phase trace
+(`TENSOR_RSS_TRACE=1 tensor-bench[-om31] mlp ...` prints the peak RSS after
+commit / key proof / key verify / forward / prove / verify) at d=2^11
+f=2^12, 1024 tokens, gave:
+
+| phase (peak RSS, MB) | commit | key proof | forward | prove |
+|---|---|---|---|---|
+| johnson, QM31 | 829 | 2,065 | 2,085 | 3,339 |
+| bits128, OM31, before | 650 | 3,585 | 3,602 | 4,877 |
+| bits128, OM31, after | 650 | 2,051 | 2,140 | ~4,600 |
+
+The growth was the key proof: one LogUp singles instance over the whole
+weight table (n = 2^25 here, 2^27 at D 4096), held as the input column
+(n|F|) plus every generic layer (~2n|F|), about 3n|F| = 12 GB at 32-byte
+felts for D 4096. Fix (engine `gkr_prover_fast`, `Input.regen`): a singles
+input can be given as a function `den(i)` instead of a column. The prover
+builds layer n-2 straight from the function (a stack window of 4,096 felts per task: 128 KiB in OM31, 64 KiB in QM31),
+keeps the lower layers in one block of 2^n entries, and refills that block
+with layer n-1 for the step that reads it and then with the input column
+for the last step. Peak layer memory ~3n|F| -> ~n|F| (plus eq tables),
+whatever the allocator caches. Values are recomputed with the same field
+operations, so proofs are byte-identical: the proof and key digests of the
+MLP bench are unchanged in both builds, every pinned digest still passes,
+and `gkr_regen_test.zig` compares regen vs materialised GKR proofs and
+artifacts for 7 shapes (n = 2..2^13, the small path n < 3, mixed instance
+sizes) at 1 and 4 threads, in both builds. `weight_key.prove` uses it on the
+CPU path (`cfg.accel == null`); a device prover still gets the column.
+The bench also trims its recycling allocator after the (offline, one-time)
+key proof, so the batch proof does not add its peak to the key's cache.
+
+Full size, MLP 1024 tok, D 4096, F 8192, 12 threads, `memguard --gb 8`
+(kill at 10.4 GB), one prove run each (no best-of-3; other agents were
+running, so the times are indicative):
+
+| config | field | peak RSS | key proof | prove s | verify s | proof bytes | key bytes | bits (all rounds) |
+|---|---|---|---|---|---|---|---|---|
+| johnson (round 4 build) | QM31 | 6.88 GB (was 9.4) | 0.94 s | 0.846 | 0.130 | 897,073 | 504,080 | 95.6 / 93.9 |
+| **bits128** (round 4) | OM31 | **9.55 GB** (was > 13.8, killed) | 2.22 s | 1.580 | 0.195 | 1,553,419 | 858,834 | **152.08 / 132.08** |
+
+Phases of the bits128 run (peak RSS): commit 2.6 GB, key proof 8.1 GB,
+prove 9.1 GB, end 9.55 GB. The key proof is still the largest phase:
+the 4 GB GKR block plus eq tables (1 GB at the last step) on top of the
+2.6 GB weight commitment. The peak after it is the batch proof (+1 GB) and
+the wire encoding / accounting. Cost ratio at this size: prove 1.87x,
+verify 1.50x, proof bytes 1.73x, key proof 2.4x. The johnson digest
+(proof bytes 897,073) is the round-3 one: the change is memory only.
+
+**3. Runtime level check, key level.** `SecurityLevel.targetBits()` is 128
+/ 160 (0 for `.custom`). `security.checkLevel(report, level)` refuses
+(`error.SecurityBelowLevel`) a report whose all-rounds-added,
+without-work number is under the target, whose LogUp count reaches p, or
+that is conditional on an unaccounted weight key.
+`security.verifyAtLevel` = verify + account (with the key proof) + check.
+`tensor-verify[-om31]` runs it after `proto.verify` and prints
+`level_target_bits`, `bits_all_rounds_without_work` and `level_check_s`.
+(The check re-runs the verifier inside `accountProof`, so `level_check_s` is
+about one more verify: 0.234 s next to verify_s 0.215 s on the D 4096 MLP.)
+The benches run it on the prover side (the layer bench, which has no key
+proof, checks the request terms against the target). The key proof now
+records its level (`KeyProof.security`, from `Config.security`), the key
+file header carries it (byte 7 in degree-8 builds), and `wire.decodeKey`
+and `weight_key.verify` refuse a key whose level is not the statement's
+with `error.SecurityLevelMismatch` (before, a generic sumcheck failure).
+Tests in `sec128_test.zig` (product and MLP at bits128 / bits160): key
+header byte = level; `checkLevel` and `verifyAtLevel` pass; a bits128
+report checked against bits160 is refused; an MLP report without its key
+proof is refused; a key file relabelled to another level or to `.custom`
+gives `SecurityLevelMismatch`, an unknown level byte `NonCanonical`; an
+in-memory key proof with another level is refused by `weight_key.verify`
+and `verifyAtLevel`. A statement relabelled to another level now fails at
+key decode with `SecurityLevelMismatch` (it was `SecurityParams`).
+
+**Not done in round 4.**
+* OM31 arithmetic tuning (task 2): not started. The cost ratio vs johnson
+  is the round-3 one (toy 1.6x prove; MLP / layer 1.8-2.0x).
+* ZK under OM31: not done. Design note, from reading the code: two
+  blockers. (a) The hiding PCS is 4-limb specific: `zk_pcs2.zig` keeps
+  `limb_vals: [4]QM31`, `limbPoints` / `limbMles` return `[4]...`, and the
+  committed limb rows are indexed `gc / 4`, `gc % 4`; `zk.zig` reaches an
+  `unreachable` on the om31 build path (line ~1678). These become
+  `[f.N_LIMBS]` (8 limb rows per combined felt, as the non-hiding pcs2
+  already commits 8 x C limbs), with `f.FELT_BYTES` in the encoders.
+  (b) The levels need OOD samples and deep levels, and `zk_pcs2` refuses
+  both (`error.ZkOodUnsupported`, `error.ZkDeepUnsupported`): hiding OOD
+  answers need their own masking term. (b) is the larger piece. Until both
+  are done `zk.prove` / `zk.verify` return `error.Unsupported` in om31
+  builds and `checkSecurity` refuses `hiding` at a level.
+* Metal under OM31: the guard is the build itself (`-Dchallenge=om31`
+  forces `use_metal = false`, so `--metal` gives `error.MetalNotBuilt` and
+  every proof is the CPU prover's). A device path needs OM31 kernels for the
+  GKR layer build / fold (8-limb Karatsuba over the existing QM31 kernel),
+  the pcs2 combine (8 limbs per coefficient) and the eq table; the commit
+  (M31 RS encode + Merkle) is field-independent and could run on the GPU
+  unchanged. Not built.
+
+**Round 4 independent check** (same branch, after commit 0cdd3f0da; host
+loaded by other agents, load average 5-8, so times are indicative).
+* Gates on the final commit: `zig build test` ReleaseSafe 186/186 and
+  ReleaseFast 186/186, om31 ReleaseSafe 73 passed / 4 skipped, test-metal
+  18/18 (the implementer had not re-run the suites after the last edits, nor
+  ReleaseFast or Metal).
+* Digests, base (ce11aff51) vs round 4, same command: QM31 johnson MLP at
+  D 4096 (proof `7ecede43...`, key `3eb1793f...`) and OM31 bits128 MLP at
+  d=2^11 f=2^12 (proof `9b144642...`, key `df352a25...`, identical wire
+  sizes) are byte-identical. QM31 prove time is unchanged within noise
+  (0.79-0.96 s base, 0.84-0.94 s round 4, alternating runs).
+* Peak RSS: QM31 D 4096 10.59 GB -> 7.23 GB; OM31 bits128 d=2^11 5.11 GB ->
+  4.33 GB; OM31 bits128 D 4096 9.13 GB (phase trace: commit 2,597 MiB, key
+  proof 8,089 MiB, prove 8,710 MiB). It runs under `--gb 8` but its peak is
+  above 8 GB. Times at D 4096 bits128 on this loaded host: key proof 3.18 s,
+  prove 2.63 s (the 1.58 s above was not reproduced here), verify 0.207 s,
+  proof 1,553,419 B, key 858,834 B, 152.08 / 132.08 bits.
+* Toy 2^20 bits128, 1 core: 443,066 B, 133.67 bits without work (the three
+  query terms 2^-134.99 + 2^-134.99 + 2^-135.99 = 2^-133.67), as in round 3.
+* `tensor-verify-om31` on the emitted D 4096 files: ok, target 128,
+  132.08. Header byte 7 tampering: key to custom / bits160 ->
+  SecurityLevelMismatch, key to 7 -> NonCanonical, statement or proof to
+  custom / bits160 -> SecurityLevelMismatch, all three to custom ->
+  InvalidSumcheck (transcript), all three to bits160 -> SecurityParams.
+  A real statement below its own level's target was not constructed (the
+  preset parameters are fixed per level); the below-target refusal is
+  exercised only by a bits128 report checked against the 160-bit target.
+* After the two added tests: ReleaseSafe 188/188, om31 75 passed /
+  4 skipped, test-cuda-emu 14/14.
+* Added to `gkr_regen_test.zig`: every allocation failure of a regen batch
+  (two instances) is leak- and double-free-free
+  (`checkAllAllocationFailures`), and the weight key's batch shape (regen
+  instance next to the 256-entry base-multiplicity instance, n = 2^3..2^14,
+  1 and 4 threads) gives identical proofs regen vs materialised.
+* Docs corrected: the key header level (round 3 wrote 0), the regen stack
+  window (4,096 felts, not 2 KiB), and "fits 8 GB" (it fits the `--gb 8`
+  reservation's 10.4 GB kill, not 8 GB).

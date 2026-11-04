@@ -39,6 +39,7 @@ test {
         _ = pcs;
         _ = pcs2;
         _ = @import("sec128_test.zig");
+        _ = @import("gkr_regen_test.zig");
         _ = weight_key;
         _ = security;
         _ = wire_test;
@@ -51,6 +52,7 @@ test {
         return;
     }
     _ = @import("qmul_check_test.zig");
+    _ = @import("gkr_regen_test.zig");
     _ = @import("review_pcs_test.zig");
     _ = @import("review_fix_test.zig");
     _ = @import("zk_review_test.zig");
