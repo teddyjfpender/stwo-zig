@@ -476,9 +476,19 @@ pub fn inTable(l: Lookup) bool {
     }
 }
 
-/// Table multiplicities: three 2^16 counters, indexed x | y << 8 (the row of
-/// the table that holds (x, y, ...)). `xor8` counts add to the circuit's
-/// existing VerifyBitwiseXor_8 multiplicity column.
+/// The table row that holds `(x, y, ...)`: `(x << 8) | y`, the circuit's
+/// `bitwise_xor_8_*` convention (`core/preprocessed_tables.zig` `BitwiseXor`,
+/// `witness/components.zig` `xorRow`: operand `a` in the high bits). The two
+/// split tables use the same row order.
+pub inline fn tableRow(x: u32, y: u32) u32 {
+    return (x << 8) | y;
+}
+
+/// Table multiplicities: three 2^16 counters indexed by `tableRow`. `xor8`
+/// counts add to the circuit's existing VerifyBitwiseXor_8 multiplicity
+/// column (the `xor8` relation's column), so the index order must be the
+/// circuit's: an `x | y << 8` index transposes the histogram and the shared
+/// table's LogUp no longer balances.
 pub const Multiplicities = struct {
     xor8: []u32,
     split4: []u32,
@@ -502,7 +512,7 @@ pub const Multiplicities = struct {
     }
     pub fn count(self: Multiplicities, lookups: []const Lookup) void {
         for (lookups) |l| {
-            const index = l.tuple[0].v | (l.tuple[1].v << 8);
+            const index = tableRow(l.tuple[0].v, l.tuple[1].v);
             switch (l.relation) {
                 .xor8 => self.xor8[index] += 1,
                 .xor8_split4 => self.split4[index] += 1,
@@ -777,6 +787,26 @@ test "fused_blake2s_v1: completeness on random compressions (+ multiplicity bala
     std.debug.print("FUSED_BLAKE2S_V1 cpu_random_rows={d} violations={d}\n", .{ n, violations });
 }
 
+// Edge records: all-ones / all-zero / alternating words (every addition at
+// its largest carry), t0 at 0, 1, 64, 2^31 and 2^32 - 1, both flag values.
+test "fused_blake2s_v1: completeness on edge records (max carries, t0 extremes)" {
+    const s = try Scratch.init();
+    defer s.deinit();
+    const words = [_]u32{ 0, 0xffff_ffff, 0xaaaa_aaaa, 0x5555_5555, 0xffff_0000, 0x0000_ffff, 0x8000_0000, 1 };
+    const t0s = [_]u32{ 0, 1, 64, 1 << 31, 0xffff_ffff };
+    var n: usize = 0;
+    for (words) |hw| for (words) |mw| for (t0s) |t0| for ([_]bool{ false, true }) |last| {
+        const rec = TapeRecord{ .h = @splat(hw), .m = @splat(mw), .t0 = t0, .last = last };
+        const out = fillRow(s.cells, rec);
+        try testing.expectEqualSlices(u32, &referenceCompress(rec), &out);
+        const r = checkRow(s.cells, testPp(rec), s.row, s.lookups);
+        try testing.expectEqual(@as(usize, 0), r.violations + r.bad_lookups);
+        for (r.out, out) |b, w| try testing.expectEqual(w, wordFromBytes(b));
+        n += 1;
+    };
+    try testing.expectEqual(@as(usize, 8 * 8 * 5 * 2), n);
+}
+
 test "fused_blake2s_v1: row shape (columns, lookups, constraint degree)" {
     const s = try Scratch.init();
     defer s.deinit();
@@ -890,6 +920,19 @@ test "fused_blake2s_v1: instance plans (no power-of-two padding tax)" {
         worst = @max(worst, @as(f64, @floatFromInt(r - n)) / @as(f64, @floatFromInt(n)));
     }
     try testing.expect(worst <= 0.15);
+}
+
+test "fused_blake2s_v1: table rows follow the circuit's bitwise_xor_8 order (a high, b low)" {
+    // `BitwiseXor.value` (core/preprocessed_tables.zig): row 1000 holds
+    // a = 1000 / 256 = 3, b = 1000 % 256 = 232 (upstream test_packed_at_bitwise_xor).
+    try testing.expectEqual(@as(u32, 1000), tableRow(3, 232));
+    try testing.expectEqual(@as(u32, 0x0100), tableRow(1, 0));
+    const mults = try Multiplicities.init(testing.allocator);
+    defer mults.deinit(testing.allocator);
+    var lookups = [_]Lookup{.{ .relation = .xor8, .numerator = F.one, .tuple = .{ F.from(1), F.from(2), F.from(3), F.zero, F.zero }, .len = 3 }};
+    mults.count(&lookups);
+    try testing.expectEqual(@as(u32, 1), mults.xor8[0x0102]);
+    try testing.expectEqual(@as(u32, 0), mults.xor8[0x0201]);
 }
 
 test "fused_blake2s_v1: tape record round trip" {

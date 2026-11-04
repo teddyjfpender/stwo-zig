@@ -142,10 +142,12 @@ struct Writer {
     word(r);
     return r;
   }
+  // Table row (x << 8) | y: the circuit's bitwise_xor_8 order (`tableRow`
+  // in the Zig spec; operand x in the high byte of the row index).
   __device__ inline void count(uint32_t* table, uint32_t x, uint32_t y) {
     if (table) {
 #pragma unroll
-      for (int j = 0; j < 4; j++) atomicAdd(&table[((x >> (8 * j)) & 0xff) | (((y >> (8 * j)) & 0xff) << 8)], 1u);
+      for (int j = 0; j < 4; j++) atomicAdd(&table[(((x >> (8 * j)) & 0xff) << 8) | ((y >> (8 * j)) & 0xff)], 1u);
     }
   }
   __device__ inline uint32_t xor_(uint32_t x, uint32_t y) {

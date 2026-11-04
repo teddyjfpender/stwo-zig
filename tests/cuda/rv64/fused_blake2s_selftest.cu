@@ -72,6 +72,44 @@ static void host_compress(const uint32_t* w, uint32_t out[8]) {
   for (int i = 0; i < 8; i++) out[i] = w[i] ^ v[i] ^ v[i + 8];
 }
 
+// Independent host histogram of one record's XOR lookups, at table row
+// (x << 8) | y (the circuit's bitwise_xor_8 order: `bitwise_xor_8_0` = a =
+// row >> 8). m8 / m4 / m7 = plain, split-4, split-7 tables.
+static void host_count_pairs(uint32_t* t, uint32_t x, uint32_t y) {
+  for (int j = 0; j < 4; j++) t[(((x >> (8 * j)) & 0xff) << 8) | ((y >> (8 * j)) & 0xff)]++;
+}
+static void host_counts(const uint32_t* w, uint32_t* m8, uint32_t* m4, uint32_t* m7) {
+  uint32_t v[16];
+  for (int i = 0; i < 8; i++) v[i] = w[i];
+  for (int i = 0; i < 8; i++) v[8 + i] = H_IV[i];
+  v[12] ^= w[24];
+  if (w[25] & 1) v[14] = ~v[14];
+  const uint32_t* m = w + 8;
+  for (int r = 0; r < 10; r++)
+    for (int g = 0; g < 8; g++) {
+      uint32_t& a = v[H_G[g][0]];
+      uint32_t& b = v[H_G[g][1]];
+      uint32_t& c = v[H_G[g][2]];
+      uint32_t& d = v[H_G[g][3]];
+      a = a + b + m[H_SIGMA[r][2 * g]];
+      host_count_pairs(m8, d, a);
+      d = rotr(d ^ a, 16);
+      c = c + d;
+      host_count_pairs(m4, b, c);
+      b = rotr(b ^ c, 12);
+      a = a + b + m[H_SIGMA[r][2 * g + 1]];
+      host_count_pairs(m8, d, a);
+      d = rotr(d ^ a, 8);
+      c = c + d;
+      host_count_pairs(m7, b, c);
+      b = rotr(b ^ c, 7);
+    }
+  for (int i = 0; i < 8; i++) {
+    host_count_pairs(m8, w[i], v[i]);
+    host_count_pairs(m8, w[i] ^ v[i], v[i + 8]);
+  }
+}
+
 static void host_blake2s(const uint8_t* msg, size_t len, uint8_t digest[32]) {
   uint32_t h[8];
   for (int i = 0; i < 8; i++) h[i] = H_IV[i];
@@ -193,6 +231,31 @@ int main(int argc, char** argv) {
   failures += violations != 0;
   failures += spot_bad != 0;
   failures += !mult_ok;
+
+  // 3b. Exact multiplicity histogram (not only its sum): 4,096 random rows
+  // plus 16 padding rows filled on the device must equal the host count at
+  // every (table, row). Pins the (x << 8) | y row order of the shared
+  // VerifyBitwiseXor_8 table; a transposed index fails here.
+  {
+    const uint64_t n = std::min<uint64_t>(batch, 4096), pad = 16;
+    CK(cudaMemset(counts, 0, 3u * (1u << 16) * 4));
+    if (stwo_fused_blake2s_v1_random_tape_on(seed ^ 0x77, 0, n, tape, stream)) failures++;
+    if (stwo_fused_blake2s_v1_fill_on(tape, n, 0, n + pad, cols, batch, counts, stream)) failures++;
+    CK(cudaStreamSynchronize(stream));
+    std::vector<uint32_t> dev(3u << 16), want(3u << 16, 0);
+    CK(cudaMemcpy(dev.data(), counts, dev.size() * 4, cudaMemcpyDeviceToHost));
+    uint32_t w[26];
+    for (uint64_t r = 0; r < n + pad; r++) {
+      if (r < n) random_record(seed ^ 0x77, r, w);
+      else std::memset(w, 0, sizeof(w));
+      host_counts(w, want.data(), want.data() + (1u << 16), want.data() + (2u << 16));
+    }
+    uint64_t mismatched = 0;
+    for (size_t i = 0; i < dev.size(); i++) mismatched += dev[i] != want[i];
+    std::printf("FUSED_BLAKE2S_V1 gpu_mult_histogram rows=%llu padding=%llu mismatched_entries=%llu\n", (unsigned long long)n,
+                (unsigned long long)pad, (unsigned long long)mismatched);
+    failures += mismatched != 0;
+  }
 
   // 5. Negative: single-cell corruptions must be caught.
   {

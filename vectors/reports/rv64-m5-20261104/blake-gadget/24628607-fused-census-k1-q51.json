@@ -14,11 +14,15 @@
  "cells_today_total": 48744032512,
  "cells_fused_own_total": 23835082752,
  "own_factor_tree": 0.4889846310136976,
+ "max_instances": 3,
+ "fused_instances_mean": 3,
  "columns_today": 418,
- "columns_fused": 8937,
+ "columns_fused": 26601,
+ "columns_fused_delta": 26183,
  "parent_queries": 51,
- "parent_extra_cells_per_child": 239826888.0,
- "tree_factor_with_parent_width": 0.6464287327939652,
+ "parent_extra_cells_per_child": 737103816.0,
+ "children": 32,
+ "tree_factor_with_parent_width": 0.9728863702921042,
  "fill_ms_total": 42.302379,
  "gather_ms_total": 34.390708,
  "check_ms_total": 47.916723,
@@ -51,6 +55,8 @@
    "triple_xor_rows_real_if_blake_only": 528248,
    "fused_rows": 66048,
    "fused_instances": 3,
+   "fused_rows_logged": 66048,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.00025738856589152537,
    "cells_today": 1764313344,
    "cells_blake_today": 1466321152,
@@ -63,6 +69,7 @@
    "xor_lookups_counted": 88768512,
    "xor_lookups_expected": 88768512,
    "wall_ms": 47.870544,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 65536
   },
   {
@@ -89,6 +96,8 @@
    "triple_xor_rows_real_if_blake_only": 563408,
    "fused_rows": 70656,
    "fused_instances": 3,
+   "fused_rows_logged": 70656,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0032552083333333703,
    "cells_today": 1764313344,
    "cells_blake_today": 1466321152,
@@ -101,6 +110,7 @@
    "xor_lookups_counted": 94961664,
    "xor_lookups_expected": 94961664,
    "wall_ms": 105.975589,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 65536
   },
   {
@@ -127,6 +137,8 @@
    "triple_xor_rows_real_if_blake_only": 580472,
    "fused_rows": 73728,
    "fused_instances": 3,
+   "fused_rows_logged": 73728,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.01585557725694442,
    "cells_today": 1764313344,
    "cells_blake_today": 1466321152,
@@ -139,6 +151,7 @@
    "xor_lookups_counted": 99090432,
    "xor_lookups_expected": 99090432,
    "wall_ms": 29.670917,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 65536
   },
   {
@@ -165,6 +178,8 @@
    "triple_xor_rows_real_if_blake_only": 562504,
    "fused_rows": 70656,
    "fused_instances": 3,
+   "fused_rows_logged": 70656,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.004854506340579712,
    "cells_today": 1764313344,
    "cells_blake_today": 1466321152,
@@ -177,6 +192,7 @@
    "xor_lookups_counted": 94961664,
    "xor_lookups_expected": 94961664,
    "wall_ms": 30.546635,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 65536
   },
   {
@@ -203,6 +219,8 @@
    "triple_xor_rows_real_if_blake_only": 556312,
    "fused_rows": 69632,
    "fused_instances": 3,
+   "fused_rows_logged": 69632,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0013355928308823595,
    "cells_today": 1764313344,
    "cells_blake_today": 1466321152,
@@ -215,6 +233,7 @@
    "xor_lookups_counted": 93585408,
    "xor_lookups_expected": 93585408,
    "wall_ms": 66.230031,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 65536
   },
   {
@@ -241,6 +260,8 @@
    "triple_xor_rows_real_if_blake_only": 545016,
    "fused_rows": 68608,
    "fused_instances": 3,
+   "fused_rows_logged": 68608,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.007010844216417955,
    "cells_today": 1764313344,
    "cells_blake_today": 1466321152,
@@ -253,6 +274,7 @@
    "xor_lookups_counted": 92209152,
    "xor_lookups_expected": 92209152,
    "wall_ms": 30.242855,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 65536
   },
   {
@@ -279,6 +301,8 @@
    "triple_xor_rows_real_if_blake_only": 337712,
    "fused_rows": 43008,
    "fused_instances": 3,
+   "fused_rows_logged": 43008,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.01846168154761907,
    "cells_today": 1044990208,
    "cells_blake_today": 776358144,
@@ -291,6 +315,7 @@
    "xor_lookups_counted": 57802752,
    "xor_lookups_expected": 57802752,
    "wall_ms": 36.108115,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -317,6 +342,8 @@
    "triple_xor_rows_real_if_blake_only": 406784,
    "fused_rows": 51200,
    "fused_instances": 3,
+   "fused_rows_logged": 51200,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0068749999999999645,
    "cells_today": 1042041088,
    "cells_blake_today": 776358144,
@@ -329,6 +356,7 @@
    "xor_lookups_counted": 68812800,
    "xor_lookups_expected": 68812800,
    "wall_ms": 27.526361,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -355,6 +383,8 @@
    "triple_xor_rows_real_if_blake_only": 406784,
    "fused_rows": 51200,
    "fused_instances": 3,
+   "fused_rows_logged": 51200,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0068749999999999645,
    "cells_today": 1042041088,
    "cells_blake_today": 776358144,
@@ -367,6 +397,7 @@
    "xor_lookups_counted": 68812800,
    "xor_lookups_expected": 68812800,
    "wall_ms": 22.910309,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -393,6 +424,8 @@
    "triple_xor_rows_real_if_blake_only": 406784,
    "fused_rows": 51200,
    "fused_instances": 3,
+   "fused_rows_logged": 51200,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0068749999999999645,
    "cells_today": 1042041088,
    "cells_blake_today": 776358144,
@@ -405,6 +438,7 @@
    "xor_lookups_counted": 68812800,
    "xor_lookups_expected": 68812800,
    "wall_ms": 18.668756,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -431,6 +465,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -443,6 +479,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 26.838941,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -469,6 +506,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -481,6 +520,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 29.191828,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -507,6 +547,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -519,6 +561,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 26.926622,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -545,6 +588,8 @@
    "triple_xor_rows_real_if_blake_only": 506104,
    "fused_rows": 65536,
    "fused_instances": 3,
+   "fused_rows_logged": 65536,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0346832275390625,
    "cells_today": 1696352512,
    "cells_blake_today": 1430669568,
@@ -557,6 +602,7 @@
    "xor_lookups_counted": 88080384,
    "xor_lookups_expected": 88080384,
    "wall_ms": 25.972514,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -583,6 +629,8 @@
    "triple_xor_rows_real_if_blake_only": 486216,
    "fused_rows": 65536,
    "fused_instances": 3,
+   "fused_rows_logged": 65536,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0726165771484375,
    "cells_today": 1696352512,
    "cells_blake_today": 1430669568,
@@ -595,6 +643,7 @@
    "xor_lookups_counted": 88080384,
    "xor_lookups_expected": 88080384,
    "wall_ms": 52.713695,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -621,6 +670,8 @@
    "triple_xor_rows_real_if_blake_only": 465464,
    "fused_rows": 65536,
    "fused_instances": 3,
+   "fused_rows_logged": 65536,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.1121978759765625,
    "cells_today": 1696254208,
    "cells_blake_today": 1430669568,
@@ -633,6 +684,7 @@
    "xor_lookups_counted": 88080384,
    "xor_lookups_expected": 88080384,
    "wall_ms": 26.418432,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -659,6 +711,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -671,6 +725,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 26.701702,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -697,6 +752,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -709,6 +766,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 27.64636,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -735,6 +793,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -747,6 +807,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 26.761942,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -773,6 +834,8 @@
    "triple_xor_rows_real_if_blake_only": 417952,
    "fused_rows": 53248,
    "fused_instances": 3,
+   "fused_rows_logged": 53248,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.018855168269230727,
    "cells_today": 1042041088,
    "cells_blake_today": 776358144,
@@ -785,6 +848,7 @@
    "xor_lookups_counted": 71565312,
    "xor_lookups_expected": 71565312,
    "wall_ms": 49.856351,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -811,6 +875,8 @@
    "triple_xor_rows_real_if_blake_only": 398064,
    "fused_rows": 50176,
    "fused_instances": 3,
+   "fused_rows_logged": 50176,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.008330676020408156,
    "cells_today": 1042041088,
    "cells_blake_today": 776358144,
@@ -823,6 +889,7 @@
    "xor_lookups_counted": 67436544,
    "xor_lookups_expected": 67436544,
    "wall_ms": 13.586625,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -849,6 +916,8 @@
    "triple_xor_rows_real_if_blake_only": 520656,
    "fused_rows": 65536,
    "fused_instances": 3,
+   "fused_rows_logged": 65536,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.006927490234375,
    "cells_today": 1696352512,
    "cells_blake_today": 1430669568,
@@ -861,6 +930,7 @@
    "xor_lookups_counted": 88080384,
    "xor_lookups_expected": 88080384,
    "wall_ms": 25.316105,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -887,6 +957,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -899,6 +971,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 30.111426,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -925,6 +998,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -937,6 +1012,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 26.862172,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -963,6 +1039,8 @@
    "triple_xor_rows_real_if_blake_only": 147448,
    "fused_rows": 18432,
    "fused_instances": 3,
+   "fused_rows_logged": 18432,
+   "fused_instances_logged": 3,
    "fused_padding_share": 5.4253472222209886e-05,
    "cells_today": 506218752,
    "cells_blake_today": 431376640,
@@ -975,6 +1053,7 @@
    "xor_lookups_counted": 24772608,
    "xor_lookups_expected": 24772608,
    "wall_ms": 8.913794,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 16384
   },
   {
@@ -1001,6 +1080,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -1013,6 +1094,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 26.619823,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -1039,6 +1121,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -1051,6 +1135,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 28.534809,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -1077,6 +1162,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -1089,6 +1176,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 26.446342,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -1115,6 +1203,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -1127,6 +1217,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 26.713152,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -1153,6 +1244,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -1165,6 +1258,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 26.603252,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -1191,6 +1285,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -1203,6 +1299,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 26.692392,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -1229,6 +1326,8 @@
    "triple_xor_rows_real_if_blake_only": 434008,
    "fused_rows": 57344,
    "fused_instances": 3,
+   "fused_rows_logged": 57344,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.0539376395089286,
    "cells_today": 1579108608,
    "cells_blake_today": 1430669568,
@@ -1241,6 +1340,7 @@
    "xor_lookups_counted": 77070336,
    "xor_lookups_expected": 77070336,
    "wall_ms": 26.519153,
+   "parent_extra_cells_as_child": 737103816.0,
    "scratch_rows": 32768
   },
   {
@@ -1267,6 +1367,8 @@
    "triple_xor_rows_real_if_blake_only": 416728,
    "fused_rows": 53248,
    "fused_instances": 3,
+   "fused_rows_logged": 53248,
+   "fused_instances_logged": 3,
    "fused_padding_share": 0.021728515625,
    "cells_today": 924797184,
    "cells_blake_today": 776358144,
@@ -1279,6 +1381,7 @@
    "xor_lookups_counted": 71565312,
    "xor_lookups_expected": 71565312,
    "wall_ms": 14.186155,
+   "parent_extra_cells_as_child": null,
    "scratch_rows": 32768
   }
  ]

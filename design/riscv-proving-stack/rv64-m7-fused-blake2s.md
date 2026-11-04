@@ -69,9 +69,17 @@ Let the row's cells be **c** and its preprocessed values be:
 - **LogUp `M/|F|` term.** Lookups per compression fall from 80·26 + 8·12 = 2,176 to 1,376. The circuit's LogUp soundness term `≈ (total lookups)/|F_ext|` per relation therefore shrinks by about 37 % on Blake traffic. Table sizes are unchanged (2^16), plus two new 2^16 tables.
 - **Composition degree.** The fused main constraints have degree ≤ 3. The circuit's paired LogUp interaction constraints already reach degree 3: the cumulative difference times two linear denominators. So the composition degree bound, and with it the profile's blowup argument, should be unchanged. canon-vk must confirm this against the circuit's composition bound when it wires the component; it is listed as obligation 2a below.
 - **FRI/PCS.** No change; the profile's query and blowup terms apply as stated in §1.
-- **Width.** Parents open 6,080 more columns per child query than today's 311.
-  - That is a cost, not a soundness term. The diet census put it at +174 M cells per verified child at q51 and +369 M at q108 [D].
-  - This is why the combined fused + outer-GKR configuration (GKR removes the 2,752 interaction columns) is the target. Without GKR, a k = 2 layout is the fallback (×0.61 tree at q51 [D]).
+- **Width.** This is a cost, not a soundness term. A parent opens every committed column of every child component at each query, and every power-of-two instance is its own component.
+  - One k = 1 instance has 8,937 committed columns (main plus 2× interaction), against 418 today. Three instances have 26,601.
+  - Review correction: the first census counted one instance. Recomputed on 24628607 (`fused_census.py --max-instances`) [D, first order]:
+
+    | layout | q108 tree, 3 instances | q108 tree, 1 instance | q51 tree, 3 instances | q51 tree, 1 instance |
+    |---|---:|---:|---:|---:|
+    | k = 1 | ×1.51 | ×0.93 | ×0.97 | ×0.76 |
+    | k = 2 | ×1.10 | ×0.82 | ×0.79 | ×0.72 |
+
+  - So `MAX_INSTANCES = 3` is a net loss at q108. The M7 profile should fix **one instance per node**, unless a measured parent cost says otherwise. The parent's OODS evaluation, which also runs per instance, is not in this model either.
+  - The target stays fused + outer GKR (GKR removes the 2,752 interaction columns) at q51. Without GKR, the k = 2 layout is the fallback.
 
 ## 8.4 Obligations before a proof-format merge (M7)
 
@@ -83,4 +91,10 @@ Let the row's cells be **c** and its preprocessed values be:
    - a padding row with a non-zero `mult_out`;
    - a proof whose profile says `g_gate` but whose VK has `fused_blake2s`.
 4. A fresh-receiver acceptance on both dev blocks, under the named profile.
+4b. Review items (2026-11-04) for the builder record and the prover:
+   - **XOR table row order.** `xor8` multiplicities add to the circuit's shared `VerifyBitwiseXor_8` column, whose row `(a << 8) | b` holds `(a, b, a ^ b)`. `Multiplicities`, the CUDA fill and BG03 used `a | b << 8` until the review fix; `tableRow` now pins the order. The two split tables must be built in the same order. The GPU selftest compares the device histogram with an independent host count entry by entry.
+   - **Tape order.** The production tape must follow the order of the preprocessed `addr_*` and `mult_out` rows. The shadow gather appends records with an `atomicAdd` slot, so its tape order is not deterministic. That is fine for a shadow, but it cannot feed a committed trace. The builder record must emit the tape in compression-creation order.
+   - **Intermediate wires.** Fusing deletes the 76 intermediate state words of each compression from the Gate relation. The builder must therefore assert that no intermediate G output has a use outside its own compression; today's circuit has none (`blake2sU32s`, `blake_chain`). If one did, completeness would break, not soundness, because its yield would be gone.
+   - **ZK blinding.** `addZkBlinding` adds random `blake_g_gate` and `triple_xor` rows, and v1 defines no blinding row. A profile that enables blinding must define one, for example a random-input compression whose inputs come from trivial add gates, with `mult_out = 0`. The rv64 outer path does not blind today.
+   - **Lookup mass.** BG08 checks the bound offline. canon-vk must enforce `compressions × 704 < p` for the `xor8` key mass at circuit construction, counting padding rows, which all add to key `(0, 0)`.
 5. **Until 1–4 are done, the only production path is the shadow flag** (`STWO_RV64_FUSED_BLAKE=shadow|check`). It does not change proof bytes; see the receipts under `vectors/reports/rv64-m5-20261104/blake-gadget/`.

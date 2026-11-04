@@ -75,8 +75,10 @@ fn xorLogupSum(ch: Challenge, lookups: []const v1.Lookup, m: v1.Multiplicities) 
         sum = sum.add(l.numerator.mul(inv(ch.z.sub(combine(ch, l.relation, l.tuple[0..l.len])))));
     }
     for (0..1 << 16) |index| {
-        const x: u32 = @intCast(index & 0xff);
-        const y: u32 = @intCast(index >> 8);
+        // Row `index` of each table holds (x, y) = (index >> 8, index & 0xff)
+        // (`v1.tableRow`, the circuit's bitwise_xor_8 order).
+        const x: u32 = @intCast(index >> 8);
+        const y: u32 = @intCast(index & 0xff);
         const z = x ^ y;
         const rows = [_]struct { rel: v1.Relation, mult: u32, tuple: [4]F, len: usize }{
             .{ .rel = .xor8, .mult = m.xor8[index], .tuple = .{ F.from(x), F.from(y), F.from(z), F.zero }, .len = 3 },
