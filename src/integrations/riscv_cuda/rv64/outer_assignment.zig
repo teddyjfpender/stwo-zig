@@ -27,6 +27,87 @@ pub fn requireProductionCapabilities(library: *std.DynLib) !void {
     const query = library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_capabilities") orelse return error.MissingCircuitAssignmentKernel;
     try requireProductionMask(query());
 }
+/// Producer-only, in-process fold-class assignment templates. A v2 fold's
+/// topology is a function of its class (om31_outer.classKey), so tasks,
+/// permutation indices, level ends and the seed-variable layout are reused;
+/// only seed VALUES are re-read from the new graph. Proof-neutral: an equal
+/// plan yields the equal assignment. A wrong reuse cannot be accepted (the
+/// receiver checks every proof under its own authority) and the seed-layout
+/// check below rejects any graph whose constants/guesses differ in layout.
+/// STWO_RV64_OUTER_PLAN_CLASS_CACHE=0 off, =check rebuild+compare, default on.
+pub const ClassCache = struct {
+    pub const Mode = enum { off, on, check };
+    const Template = struct { key: [32]u8, n_vars: u32, n_constants: usize, n_origins: usize, seed_vars: []u32, tasks: []Task, indices: []u32, level_ends: []usize, identity: [32]u8, bytes: usize };
+    const gpa = std.heap.smp_allocator;
+    var mutex: std.Thread.Mutex = .{};
+    var entries: std.ArrayListUnmanaged(*Template) = .empty;
+    var held_bytes: usize = 0;
+    pub var hits: usize = 0;
+    pub var misses: usize = 0;
+    pub var checked: usize = 0;
+    pub fn mode() Mode {
+        const value = std.posix.getenv("STWO_RV64_OUTER_PLAN_CLASS_CACHE") orelse return .on;
+        if (std.mem.eql(u8, value, "0")) return .off;
+        if (std.mem.eql(u8, value, "check")) return .check;
+        return .on;
+    }
+    fn limit() usize {
+        const value = std.posix.getenv("STWO_RV64_OUTER_PLAN_CLASS_CACHE_BYTES") orelse return 6 << 30;
+        return std.fmt.parseUnsigned(usize, value, 10) catch 6 << 30;
+    }
+    fn find(key: [32]u8) ?*Template {
+        mutex.lock();
+        defer mutex.unlock();
+        for (entries.items) |t| if (std.mem.eql(u8, &t.key, &key)) return t;
+        return null;
+    }
+    fn originCount(ctx: *const Circuit.builder.Context(Q)) usize {
+        return if (ctx.witness_metadata) |m| m.origins.items.len else 0;
+    }
+    /// Same order as witness_plan.buildImpl: constants, then seed origins.
+    fn seedsFor(a: std.mem.Allocator, t: *const Template, ctx: *const Circuit.builder.Context(Q)) ![]Seed {
+        if (ctx.circuit.n_vars != t.n_vars or ctx.constants.count() != t.n_constants or originCount(ctx) != t.n_origins) return error.PlanClassShapeMismatch;
+        const seeds = try a.alloc(Seed, t.seed_vars.len);
+        errdefer a.free(seeds);
+        var i: usize = 0;
+        for (ctx.constants.keys(), ctx.constants.values()) |key, variable| {
+            if (i >= seeds.len or t.seed_vars[i] != variable.idx) return error.PlanClassSeedLayout;
+            seeds[i] = .{ .out = variable.idx, .value = Circuit.builder.ivalue.limbs(Circuit.builder.context.constantFromKey(key)) };
+            i += 1;
+        }
+        for (ctx.witness_metadata.?.origins.items) |origin| if (origin.kind == .seed) {
+            if (i >= seeds.len or t.seed_vars[i] != origin.out) return error.PlanClassSeedLayout;
+            seeds[i] = .{ .out = origin.out, .value = Circuit.builder.ivalue.limbs(origin.value) };
+            i += 1;
+        };
+        if (i != seeds.len) return error.PlanClassSeedLayout;
+        return seeds;
+    }
+    fn insert(key: [32]u8, p: *const Prepared, ctx: *const Circuit.builder.Context(Q)) void {
+        insertImpl(key, p, ctx) catch |err| std.debug.print("GPU_OUTER_PLAN_CLASS insert_error={s}\n", .{@errorName(err)});
+    }
+    fn insertImpl(key: [32]u8, p: *const Prepared, ctx: *const Circuit.builder.Context(Q)) !void {
+        const bytes = p.tasks.len * @sizeOf(Task) + p.indices.len * 4 + p.plan.level_ends.len * @sizeOf(usize) + p.seeds.len * 4;
+        mutex.lock();
+        defer mutex.unlock();
+        for (entries.items) |t| if (std.mem.eql(u8, &t.key, &key)) return;
+        if (held_bytes + bytes > limit()) return;
+        const t = try gpa.create(Template);
+        errdefer gpa.destroy(t);
+        const seed_vars = try gpa.alloc(u32, p.seeds.len);
+        errdefer gpa.free(seed_vars);
+        for (seed_vars, p.seeds) |*out, seed| out.* = seed.out;
+        const tasks = try gpa.dupe(Task, p.tasks);
+        errdefer gpa.free(tasks);
+        const indices = try gpa.dupe(u32, p.indices);
+        errdefer gpa.free(indices);
+        const level_ends = try gpa.dupe(usize, p.plan.level_ends);
+        errdefer gpa.free(level_ends);
+        t.* = .{ .key = key, .n_vars = ctx.circuit.n_vars, .n_constants = ctx.constants.count(), .n_origins = originCount(ctx), .seed_vars = seed_vars, .tasks = tasks, .indices = indices, .level_ends = level_ends, .identity = p.identity, .bytes = bytes };
+        try entries.append(gpa, t);
+        held_bytes += bytes;
+    }
+};
 pub const Prepared = struct {
     allocator: std.mem.Allocator,
     reference: ?[*]const Q,
@@ -42,7 +123,56 @@ pub const Prepared = struct {
     timing_api: Events.Api,
     narrow_plan: ?Runs.Plan = null,
     narrow_run: ?LaunchRun = null,
+    /// tasks/indices/plan.level_ends are owned by a ClassCache template.
+    borrowed: bool = false,
     pub fn init(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
+        const cache_mode = ClassCache.mode();
+        const hint = if (cache_mode == .off) null else @import("stwo_circuit_cpu_integration").om31.device_prove.class_hint;
+        const template = if (hint) |key| ClassCache.find(key) else null;
+        if (template) |t| if (cache_mode == .on) return initFromTemplate(a, ctx, library, t);
+        var fresh = try initFull(a, ctx, library);
+        errdefer fresh.deinit();
+        if (template) |t| {
+            // check mode: the template must equal the freshly built plan.
+            if (!std.mem.eql(u8, std.mem.sliceAsBytes(t.tasks), std.mem.sliceAsBytes(fresh.tasks)) or !std.mem.eql(u32, t.indices, fresh.indices) or !std.mem.eql(usize, t.level_ends, fresh.plan.level_ends) or !std.mem.eql(u8, &t.identity, &fresh.identity)) return error.PlanClassMismatch;
+            const seeds = try ClassCache.seedsFor(a, t, ctx);
+            defer a.free(seeds);
+            if (!std.mem.eql(u8, std.mem.sliceAsBytes(seeds), std.mem.sliceAsBytes(fresh.seeds))) return error.PlanClassMismatch;
+            ClassCache.mutex.lock();
+            ClassCache.checked += 1;
+            ClassCache.mutex.unlock();
+            std.debug.print("GPU_OUTER_PLAN_CLASS check_ok class={x}\n", .{t.key[0..8]});
+        } else if (hint) |key| {
+            ClassCache.insert(key, &fresh, ctx);
+            ClassCache.mutex.lock();
+            ClassCache.misses += 1;
+            ClassCache.mutex.unlock();
+        }
+        return fresh;
+    }
+    fn initFromTemplate(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib, t: *const ClassCache.Template) !Prepared {
+        var timer = try std.time.Timer.start();
+        const seed = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;
+        const level = library.lookup(Launch, "stwo_circuit_assignment_level_on") orelse return error.MissingCircuitAssignmentKernel;
+        const option = std.process.getEnvVarOwned(a, "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS") catch |err| switch (err) {
+            error.EnvironmentVariableNotFound => null,
+            else => return err,
+        };
+        defer if (option) |value| a.free(value);
+        const enabled = try Runs.parseOptIn(option);
+        const narrow_run = library.lookup(LaunchRun, "stwo_circuit_assignment_narrow_run_on");
+        if (enabled and narrow_run == null) return error.MissingCircuitAssignmentNarrowRunKernel;
+        const seeds = try ClassCache.seedsFor(a, t, ctx);
+        errdefer a.free(seeds);
+        var narrow_plan: ?Runs.Plan = if (enabled) try Runs.Plan.init(a, t.level_ends, t.tasks.len) else null;
+        errdefer if (narrow_plan) |*value| value.deinit();
+        ClassCache.mutex.lock();
+        ClassCache.hits += 1;
+        ClassCache.mutex.unlock();
+        std.debug.print("GPU_OUTER_ASSIGNMENT_PLAN class_cache_hit=true class={x} seeds_ns={} task_bytes={} levels={}\n", .{ t.key[0..8], timer.read(), t.tasks.len * @sizeOf(Task), t.level_ends.len });
+        return .{ .allocator = a, .reference = if (ctx.trace_only) null else ctx.values().ptr, .count = ctx.circuit.n_vars, .plan = .{ .allocator = a, .tasks = &.{}, .seeds = &.{}, .level_ends = t.level_ends }, .tasks = t.tasks, .indices = t.indices, .seeds = seeds, .identity = t.identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = narrow_plan, .narrow_run = narrow_run, .borrowed = true };
+    }
+    fn initFull(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
         const seed = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;
         const level = library.lookup(Launch, "stwo_circuit_assignment_level_on") orelse return error.MissingCircuitAssignmentKernel;
         const option = std.process.getEnvVarOwned(a, "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS") catch |err| switch (err) {
@@ -127,6 +257,11 @@ pub const Prepared = struct {
     }
     pub fn deinit(self: *Prepared) void {
         if (self.narrow_plan) |*value| value.deinit();
+        if (self.borrowed) {
+            self.allocator.free(self.seeds);
+            self.* = undefined;
+            return;
+        }
         self.plan.deinit();
         self.allocator.free(self.tasks);
         self.allocator.free(self.indices);

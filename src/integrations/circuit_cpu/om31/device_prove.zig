@@ -30,6 +30,10 @@ pub const PrecommittedFixed = struct {
     prepare_from_circuit: *const fn (*anyopaque, std.mem.Allocator, *const Native.Authority, *const circuit.builder.Context(P.Q), D.Scope) anyerror!Source,
     release: *const fn (*anyopaque) void,
 };
+/// Host-only producer hint (fold v2): the geometry class of the fold graph the
+/// calling thread is about to prove, or null. Device factories may key
+/// topology-only caches (assignment plans) by it; it never enters a proof.
+pub threadlocal var class_hint: ?[32]u8 = null;
 pub const Factory = struct {
     context: *anyopaque,
     /// Explicit default-off prover setup. Receivers/restores never invoke it.

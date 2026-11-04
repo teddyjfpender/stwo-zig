@@ -617,6 +617,9 @@ const ParallelExecution = struct {
             const graph_ns = timer.lap();
             var name_buffer: [64]u8 = undefined;
             const name = try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{id});
+            // Fold v2: topology-only producer caches key by geometry class.
+            Outer.Device.class_hint = try Bridge.classKey(children);
+            defer Outer.Device.class_hint = null;
             return self.wrap(a, &graph.ctx, digest, id, name, factory, graph_ns, &timer);
         }
         const ordinal = spec.first_leaf;
