@@ -503,6 +503,19 @@ pub fn drawCoeffs(a: std.mem.Allocator, tr: *Transcript, shapes: []const Shape, 
         for (0..pm.count) |i| {
             for (v[i], 0..) |t, ti| tr.drawN(t[0..shapes[ti].n_rows]);
             const bmu = tr.draw();
+            // Row i reads only its own 4 mask rows: the other proximity rows'
+            // masks get coefficient 0 here. With the random coefficients drawN
+            // put there, the 4k x 4k M31 block mapping the proximity masks to
+            // the k combined rows is not triangular and is singular with
+            // probability ~1/p (2^-31 per opening), not ~k/|F|; a singular
+            // block reveals a fixed linear combination of data rows in the
+            // clear. Block diagonal, it is invertible iff every beta_mu_i != 0.
+            // Soundness: row i still tests every row outside the other rows'
+            // masks, with its own masks (security.md 3.2 on [D; M_i], the
+            // k events independent). k = 1: nothing changes.
+            for (0..pm.count) |j| if (j != i) for (0..4) |k| {
+                v[i][pm.table][pm.row + 4 * j + k] = QM31.zero();
+            };
             for (0..4) |k| v[i][pm.table][pm.row + 4 * i + k] = bmu.mul(basis(k));
         }
         k0 = pm.count;
@@ -915,4 +928,34 @@ test "zk pcs: SIMD salted leaves and parallel levels equal scalar leafHash + has
             for (0..E) |j| try std.testing.expect(rb[j].eql(com.enc[j * rows + r]));
         }
     };
+}
+
+test "zk pcs: k proximity rows read only their own masks (mask block invertible)" {
+    // With k > 1 the mask block of the k proximity rows must be block diagonal:
+    // with random cross coefficients it is a generic 4k x 4k M31 matrix,
+    // singular with probability ~1/p, and a singular block reveals a fixed
+    // combination of data rows in the clear (zero knowledge lost).
+    if (f.IS_OM31) return error.SkipZigTest;
+    const a = std.testing.allocator;
+    const kp = 3;
+    const row0 = 2;
+    const shapes = [_]Shape{.{ .log_cols = 4, .log_blowup = 2, .slots = 8, .n_rows = row0 + 4 * kp + 1 }};
+    var tr = Transcript.initDomain("zkpcs-prox-block");
+    var co = try drawCoeffs(a, &tr, &shapes, &.{}, &.{}, .{ .table = 0, .row = row0, .count = kp });
+    defer co.deinit(a);
+    try std.testing.expectEqual(@as(usize, kp), co.v.len);
+    // M31 matrix: output coordinate (4 i + c) x mask row (4 j + k)
+    var mat: [16 * kp * kp]M31 = undefined;
+    for (0..kp) |i| for (0..kp) |j| for (0..4) |k| {
+        const x = co.v[i][0][row0 + 4 * j + k];
+        if (i != j) try std.testing.expect(x.isZero());
+        const xs = x.toM31Array();
+        for (0..4) |c| mat[(4 * i + c) * 4 * kp + 4 * j + k] = xs[c];
+    };
+    try std.testing.expectEqual(@as(usize, 4 * kp), try rankM31(a, 4 * kp, 4 * kp, &mat));
+    // the data rows and the row after the masks keep their random coefficients
+    for (0..kp) |i| {
+        try std.testing.expect(!co.v[i][0][0].isZero());
+        try std.testing.expect(!co.v[i][0][row0 + 4 * kp].isZero());
+    }
 }

@@ -1259,7 +1259,13 @@ query counts were sized for conjectured bits.
 (witness, aux, per-proof weights, commit-time weight proximity, link) sends `k`
 proximity rows, row `i` with its own `beta_i` and its own 4 mask rows (`beta_mu_i`).
 The rows are independent, so by 3.2 the proximity term is `(R (E + 1)/|F|)^k`.
-Each row is masked by mask rows used nowhere else, so the zero-knowledge argument
+Each row is masked by mask rows used nowhere else: row `i` gives the other proximity
+rows' masks coefficient 0 (`zk_pcs.drawCoeffs`). With random cross coefficients the
+`4k x 4k` M31 block from the proximity masks to the `k` rows is generic and singular
+with probability ~1/p = 2^-31 per opening, revealing a fixed combination of data rows;
+block diagonal it is invertible iff every `beta_mu_i != 0`. Soundness keeps the
+`k`-th power: row `i` tests `[D; M_i]` (`D` every row but the other rows' masks), the
+`k` events are independent, and `D` far makes each `[D; M_i]` far. So the zero-knowledge argument
 is the one in zk.md 3.3 applied `k` times (one more rare coin, `beta_mu_i = 0`, per
 row). With `k > 1` the flat per-proof weight opening also carries the proximity
 rows over `[W; M]` (accounted `fresh`, not `untested_mask`).
