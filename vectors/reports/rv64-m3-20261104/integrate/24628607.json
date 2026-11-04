@@ -1,0 +1,220 @@
+{
+ "schema": "rv64-m3-integrate-block/v1",
+ "label": "measured",
+ "block": 24628607,
+ "gpus": 2,
+ "instructions": 26894777,
+ "source_commit_driver": "423b53a87",
+ "harness_commit": "ff2f71cf1",
+ "assets": {
+  "driver": "91ce664287c5e69cce6151fad4790fe4341ce315802a9dfb39d5cbe1911819a6",
+  "library": "7de22322c180ed0072967bc2bd85c245a8c1b7b907182247bbe3bb1d5bb80247",
+  "receiver": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b",
+  "recursive_receiver": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b"
+ },
+ "note": "Single observations on the shared pod. 'warm' = new process seeded from a persisted STWO_ZIG_RV64_SETUP_CACHE directory written by the 'seed' run (setup cache is host stream M1b). Native verify runs on a side thread overlapped with recursion (join wait ~16 us), so it is not on the request critical path; its side-thread time is shown for reference. Byte parity vs accepted v7: native bins, bundle and all 17 leaf proofs identical; 16 folds + root + tree differ by design (topo fold message v2). Acceptance = fresh separate CPU-only receiver built from this tree with the fold class cache disabled.",
+ "comparison": {
+  "accepted_2gpu_v7_request_s": 98.924,
+  "baseline_1gpu_v7_request_s": 236.8,
+  "m3_target_request_s": 10.0
+ },
+ "runs": {
+  "cold": {
+   "run": "/workspace/m3/runs/integrate/24628607-2gpu-cold1",
+   "environment_overrides": {},
+   "stages": {
+    "request_wall_s": 52.435,
+    "capture_s": 3.25,
+    "setup_s": 12.675,
+    "native_prove_s": 6.329,
+    "native_verify_s": 1.884,
+    "native_total_before_report_s": 22.394,
+    "recursion_s": 29.971
+   },
+   "native_verify_on_critical_path_s": 0.0,
+   "producer_process": {
+    "argv": [
+     "/workspace/m3/build/integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+     "combined-batch",
+     "/workspace/m3/runs/integrate/24628607-2gpu-cold1/case/manifest.json",
+     "/workspace/m3/runs/integrate/24628607-2gpu-cold1/case/batch"
+    ],
+    "exit_code": 0,
+    "wall_ns": 59257013346,
+    "user_seconds": 173.505888,
+    "system_seconds": 67.981874,
+    "peak_rss_bytes": 27078680576,
+    "minor_faults": 20765588,
+    "major_faults": 0
+   },
+   "parity_vs_accepted_v7": {
+    "native_bins": true,
+    "bundle": true,
+    "recursive_tree": false,
+    "recursive_proofs": false,
+    "byte_identical": false,
+    "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450"
+   },
+   "recursive_mismatched_count": 17,
+   "receiver": {
+    "status": "accepted",
+    "accepted": true,
+    "restored_leaves": 17,
+    "restored_folds": 16,
+    "receiver_wall_s": 63.9,
+    "producer_strict_checks": "pass"
+   }
+  },
+  "seed_cold_persisting_setup_cache": {
+   "run": "/workspace/m3/runs/integrate/24628607-2gpu-seed",
+   "environment_overrides": {
+    "STWO_ZIG_RV64_SETUP_CACHE": "/workspace/m3/cache/setup-integrate"
+   },
+   "stages": {
+    "request_wall_s": 47.49,
+    "capture_s": 3.292,
+    "setup_s": 7.376,
+    "native_prove_s": 6.407,
+    "native_verify_s": 1.923,
+    "native_total_before_report_s": 17.271,
+    "recursion_s": 30.168
+   },
+   "native_verify_on_critical_path_s": 0.0,
+   "producer_process": {
+    "argv": [
+     "/workspace/m3/build/integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+     "combined-batch",
+     "/workspace/m3/runs/integrate/24628607-2gpu-seed/case/manifest.json",
+     "/workspace/m3/runs/integrate/24628607-2gpu-seed/case/batch"
+    ],
+    "exit_code": 0,
+    "wall_ns": 55037058107,
+    "user_seconds": 164.698111,
+    "system_seconds": 71.754899,
+    "peak_rss_bytes": 26737786880,
+    "minor_faults": 22164524,
+    "major_faults": 0
+   },
+   "parity_vs_accepted_v7": {
+    "native_bins": true,
+    "bundle": true,
+    "recursive_tree": false,
+    "recursive_proofs": false,
+    "byte_identical": false,
+    "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450"
+   },
+   "recursive_mismatched_count": 17,
+   "receiver": {
+    "status": "not_run",
+    "accepted": null,
+    "restored_leaves": null,
+    "restored_folds": null,
+    "receiver_wall_s": null,
+    "producer_strict_checks": null
+   }
+  },
+  "warm_disk_seeded": {
+   "run": "/workspace/m3/runs/integrate/24628607-2gpu-warm1",
+   "environment_overrides": {
+    "STWO_ZIG_RV64_SETUP_CACHE": "/workspace/m3/cache/setup-integrate"
+   },
+   "stages": {
+    "request_wall_s": 41.114,
+    "capture_s": 3.388,
+    "setup_s": 0.769,
+    "native_prove_s": 6.512,
+    "native_verify_s": 1.948,
+    "native_total_before_report_s": 10.824,
+    "recursion_s": 30.211
+   },
+   "native_verify_on_critical_path_s": 0.0,
+   "producer_process": {
+    "argv": [
+     "/workspace/m3/build/integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+     "combined-batch",
+     "/workspace/m3/runs/integrate/24628607-2gpu-warm1/case/manifest.json",
+     "/workspace/m3/runs/integrate/24628607-2gpu-warm1/case/batch"
+    ],
+    "exit_code": 0,
+    "wall_ns": 47650507038,
+    "user_seconds": 116.264981,
+    "system_seconds": 67.601277,
+    "peak_rss_bytes": 25369849856,
+    "minor_faults": 20574903,
+    "major_faults": 0
+   },
+   "parity_vs_accepted_v7": {
+    "native_bins": true,
+    "bundle": true,
+    "recursive_tree": false,
+    "recursive_proofs": false,
+    "byte_identical": false,
+    "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450"
+   },
+   "recursive_mismatched_count": 17,
+   "receiver": {
+    "status": "accepted",
+    "accepted": true,
+    "restored_leaves": 17,
+    "restored_folds": 16,
+    "receiver_wall_s": 63.2,
+    "producer_strict_checks": "pass"
+   }
+  },
+  "warm_disk_seeded_narrow_runs": {
+   "run": "/workspace/m3/runs/integrate/24628607-2gpu-warm-narrow",
+   "environment_overrides": {
+    "STWO_ZIG_RV64_SETUP_CACHE": "/workspace/m3/cache/setup-integrate",
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1"
+   },
+   "stages": {
+    "request_wall_s": 37.443,
+    "capture_s": 3.243,
+    "setup_s": 0.721,
+    "native_prove_s": 6.252,
+    "native_verify_s": 1.846,
+    "native_total_before_report_s": 10.348,
+    "recursion_s": 27.039
+   },
+   "native_verify_on_critical_path_s": 0.0,
+   "producer_process": {
+    "argv": [
+     "/workspace/m3/build/integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+     "combined-batch",
+     "/workspace/m3/runs/integrate/24628607-2gpu-warm-narrow/case/manifest.json",
+     "/workspace/m3/runs/integrate/24628607-2gpu-warm-narrow/case/batch"
+    ],
+    "exit_code": 0,
+    "wall_ns": 44047709304,
+    "user_seconds": 113.916955,
+    "system_seconds": 67.046835,
+    "peak_rss_bytes": 25548513280,
+    "minor_faults": 20618132,
+    "major_faults": 0
+   },
+   "parity_vs_accepted_v7": {
+    "native_bins": true,
+    "bundle": true,
+    "recursive_tree": false,
+    "recursive_proofs": false,
+    "byte_identical": false,
+    "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450"
+   },
+   "recursive_mismatched_count": 17,
+   "receiver": {
+    "status": "accepted",
+    "accepted": true,
+    "restored_leaves": 17,
+    "restored_folds": 16,
+    "receiver_wall_s": 63.7,
+    "producer_strict_checks": "pass"
+   }
+  }
+ },
+ "derived": {
+  "cold_vs_98.9_speedup": 1.89,
+  "warm_narrow_vs_98.9_speedup": 2.64,
+  "warm_narrow_vs_m3_target_ratio": 3.74,
+  "recursive_proofs_identical_cold_warm_narrow": true
+ }
+}

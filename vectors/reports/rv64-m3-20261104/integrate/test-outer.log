@@ -1,0 +1,8 @@
+test-riscv64-om31-outer
++- run test stderr
+OUTER leaf key ready
+OUTER leaf proved/verified; building fold
+OUTER graph built; checking gates
+OUTER proving folded root
+OM31_FOLD_ROOT fresh_accepted=true child_count=2 native_wire_roundtrip=true output_tamper_rejected=true bytes=702968
+EXIT=0 secs=482

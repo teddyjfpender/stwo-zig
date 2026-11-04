@@ -1,0 +1,61 @@
+{
+  "schema": "rv64-m3-build/v1",
+  "stream": "integrate",
+  "source_root": "/workspace/m3/src/integrate",
+  "source_commit": "423b53a87",
+  "host": "f675b38ce80e",
+  "zig_seconds": {
+    "build-rv64-ethereum-gpu-combined": 328.07,
+    "build-rv64-ethereum-recursion-receiver": 270.77
+  },
+  "driver_sha256": "91ce664287c5e69cce6151fad4790fe4341ce315802a9dfb39d5cbe1911819a6",
+  "receiver_sha256": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b",
+  "cuda_seconds": 130.73,
+  "cuda_objects": {
+    "compiled": 2,
+    "cached": 695
+  },
+  "library_sha256": "7de22322c180ed0072967bc2bd85c245a8c1b7b907182247bbe3bb1d5bb80247",
+  "stack_admission": {
+    "functions": 2778,
+    "limit_bytes": 12544,
+    "top": [
+      {
+        "stack_bytes": 12544,
+        "function": "_ZN4stwo4cuda4rv644secp7witnessINS2_3AddEEEv19StwoRv64SecpWitness"
+      },
+      {
+        "stack_bytes": 11664,
+        "function": "rv64_truth_domain_0_shard_47"
+      },
+      {
+        "stack_bytes": 10576,
+        "function": "rv64_truth_domain_7_shard_62"
+      },
+      {
+        "stack_bytes": 10576,
+        "function": "_ZN4stwo4cuda4rv645curve7witnessINS2_12bn254_g1_addEEEv20StwoRv64CurveWitness"
+      },
+      {
+        "stack_bytes": 9040,
+        "function": "rv64_joined_domain_44_shard_26"
+      },
+      {
+        "stack_bytes": 8944,
+        "function": "_ZN4stwo4cuda4rv644secp7witnessINS2_6DoubleEEEv19StwoRv64SecpWitness"
+      },
+      {
+        "stack_bytes": 8816,
+        "function": "_ZN4stwo4cuda4rv645curve7witnessINS2_17bls12_381_fp2_mulEEEv20StwoRv64CurveWitness"
+      },
+      {
+        "stack_bytes": 7936,
+        "function": "_ZN4stwo4cuda4rv645curve7witnessINS2_15bn254_g1_doubleEEEv20StwoRv64CurveWitness"
+      }
+    ],
+    "reservation_estimate_bytes_5090": 3275489280,
+    "admitted": true
+  },
+  "catalogues": "/workspace/m3/catalogues-v2",
+  "catalogue_note": "catalogues-v2 = frozen rebuild-package catalogue (48/49 core roles byte-equal to rv64-joined-fixtures --domain at fbb6c6c76; 8/41 equal --grouped-domain) with core roles 43/44 replaced by --grouped-domain output, split per group. Native .cu sources come from this stream's tree. Regenerate if a stream changes AIR/outer kernels."
+}
