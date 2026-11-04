@@ -58,7 +58,41 @@ Under uniform-v1 with class-PP reuse (E5 U1, U2; E6), the fold prep median is 0.
 plan cache hits: fold `host_plan` falls 0.756 → 0.012 s.
 
 **The 0.1 s gate is not met.** Making it a store hit needs three things:
-- the per-class PP/plan to be reused in the pipelined prep stage (today it is rebuilt per node; only the device plan cache is
-  class-keyed);
+- per-class PP/plan reuse for **leaves** (done for folds in `b833f4e3e`; every leaf is still its own circuit);
 - canonical leaves;
 - the hint tape (M6).
+
+## Receiver: in-process fold-class reuse under the canonical profile (E6 24628607) [M]
+
+The strict receiver argv of the E6 24628607 run, re-run with `STWO_RV64_FOLD_CLASS_CACHE` in {0, 1}, interleaved
+(`24628607-e6-receiver-class-reuse-ab.jsonl`):
+
+| mode | wall | accepted | class hits |
+|---|---:|---|---:|
+| 0 (the acceptance harness setting) | 67.62 / 67.74 s | yes / yes | 0 |
+| 1 (receiver-built class authority, never persisted, never producer-fed) | **45.49 / 44.66 s** | yes / yes | 15 / 15 |
+
+Under the canonical profile all 16 folds share one class. The receiver therefore derives one fold authority from its own
+trace-only graph and reuses it, which cuts **−33% verifier wall [M]**.
+
+Under exact, fold classes vary per block (8 of 16), so the same switch buys less (see `recv-ab2` once landed).
+
+The acceptance harness forces mode 0 ("cache-disabled"). The cache is in-process and receiver-derived, so admitting it for
+acceptance is a policy decision for rootverify/integrate. The `check` mode rebuilds every fold and compares.
+
+## Leaf and fold topology census (E8, lane path, `STWO_RV64_TOPOLOGY_CENSUS=1`) [M]
+
+`{26235156,24628607}-e8-topology-census.txt` has one line per node, after padding (exact shape). The leaf/fold split below is a
+heuristic: it classifies by interned-constant count (> 1000 = leaf).
+
+| block | leaves: distinct gate graphs | folds: distinct gate graphs |
+|---|---:|---:|
+| 26235156 | 10 of 10 | 9 of 11 |
+| 24628607 | 16 of 16 | 9 of 17 |
+
+Every leaf circuit has its own gate graph. The fingerprint hashes constant var ids, so constant-count differences alone already
+separate graphs. Canonical leaves `R_leaf[f, r]` therefore need two things:
+- constant-independent topology: native VK words guessed and table-checked, not interned;
+- canon-native's rung padding.
+
+Only then can a leaf VK be shared.

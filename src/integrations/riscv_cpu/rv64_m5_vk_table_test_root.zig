@@ -3,6 +3,7 @@
 const std = @import("std");
 test {
     _ = @import("rv64_recursion/vk_table.zig");
+    _ = @import("rv64_recursion/node_summary.zig");
 }
 const P = @import("stwo_circuit_cpu_integration").om31.protocol;
 test "canon-vk canonical outer profiles: registry domains, base PCS configs, fail-closed parse" {
