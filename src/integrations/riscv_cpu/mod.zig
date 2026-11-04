@@ -295,6 +295,8 @@ test {
 pub const rv64_om31_outer = @import("rv64_recursion/om31_outer.zig");
 
 pub const rv64_om31_execution_wrap = @import("rv64_recursion/om31_native/execution_wrap.zig");
+pub const rv64_root_verify = @import("rv64_recursion/root_verify.zig");
+pub const rv64_root_verify_main = @import("rv64_recursion/root_verify_main.zig");
 
 /// Exact production allocator adapter, also used by ready-lane budget admission.
 pub const rv64_large_block_recycler = @import("rv64_large_block_recycler.zig");
