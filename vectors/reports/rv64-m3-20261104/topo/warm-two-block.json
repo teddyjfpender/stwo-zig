@@ -1,0 +1,83 @@
+{
+ "schema": "rv64-m3-topo-warm-two-block/v1",
+ "measured": true,
+ "order": [
+  26235156,
+  24628607
+ ],
+ "driver_sha256": "f4c3ff65e4e346ee781ec7c30b21e49adaf5477f0a0b9a906ca7912986d8892e",
+ "receiver_sha256": "79ccbbbcb742297e632c17d28cfe4361bf01898fe417282cf8e00f688155e360",
+ "library_sha256": "25295868fe3410dc2f54b366497cb57e260ef9c1f9f74e03d4266f253f7cc809",
+ "gpus": 2,
+ "runs": {
+  "mb-v2b": {
+   "environment": "plan class cache on (default)",
+   "blocks": {
+    "26235156": {
+     "request_wall_s": 63.476,
+     "capture_s": 3.991,
+     "setup_s": 8.827,
+     "native_prove_s": 6.352,
+     "native_verify_s": 3.522,
+     "recursion_s": 40.612,
+     "nodes": 21,
+     "distinct_authorities": 19,
+     "fold_plan_class_hits": 2,
+     "root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+     "independent_receiver": {
+      "accepted": true,
+      "fold_class_cache": "hits=2 misses=8 checked=0 classes=8",
+      "process": "separate, CUDA_VISIBLE_DEVICES empty, PCS helper /bin/false"
+     }
+    },
+    "24628607": {
+     "request_wall_s": 91.628,
+     "capture_s": 5.658,
+     "setup_s": 10.837,
+     "native_prove_s": 10.912,
+     "native_verify_s": 5.517,
+     "recursion_s": 58.496,
+     "nodes": 33,
+     "distinct_authorities": 25,
+     "fold_plan_class_hits": 13,
+     "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+     "independent_receiver": {
+      "accepted": true,
+      "fold_class_cache": "hits=8 misses=8 checked=0 classes=8",
+      "process": "separate, CUDA_VISIBLE_DEVICES empty, PCS helper /bin/false"
+     }
+    }
+   }
+  },
+  "mb-v2b-off": {
+   "environment": "STWO_RV64_OUTER_PLAN_CLASS_CACHE=0",
+   "blocks": {
+    "26235156": {
+     "request_wall_s": 62.522,
+     "capture_s": 3.953,
+     "setup_s": 8.619,
+     "native_prove_s": 6.301,
+     "native_verify_s": 3.517,
+     "recursion_s": 39.969,
+     "nodes": 21,
+     "distinct_authorities": 19,
+     "fold_plan_class_hits": 0,
+     "root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e"
+    },
+    "24628607": {
+     "request_wall_s": 96.359,
+     "capture_s": 4.828,
+     "setup_s": 11.463,
+     "native_prove_s": 10.659,
+     "native_verify_s": 5.574,
+     "recursion_s": 63.616,
+     "nodes": 33,
+     "distinct_authorities": 25,
+     "fold_plan_class_hits": 0,
+     "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450"
+    }
+   }
+  }
+ },
+ "recursive_proofs_identical_on_vs_off": true
+}
