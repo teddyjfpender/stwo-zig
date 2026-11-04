@@ -20,8 +20,12 @@ A batch of R requests is proved as R independent request proofs plus one
   `T_j = H(REQ_DOMAIN, salt_j, statement_j, ...)`. That covers the witness
   commitment, LogUp-GKR, the op sumchecks, the claim batching and the witness
   opening. The output is the request's weight claims `(w, local point, value)`
-  and its final digest `d_j`. The salt is fresh and uniform, it goes first into
-  the transcript, and it is sent only in request j's own proof.
+  and its final digest `d_j`. The salt goes first into the transcript and is
+  sent only in request j's own proof. It must be 256-bit uniform, **secret**
+  (known to the server and client j only) and **never reused**. By default
+  (`Request.salt = null`) `BatchProver.add` draws it from `std.crypto.random`;
+  an explicit salt (`testSalt`) is for tests and reproducible runs only
+  (SERVE-2).
 * The batch transcript absorbs the weight root, R, and then, for each request
   in order, its digest, its distinct claim points and its claims as
   `(w, point index, value)`.
@@ -35,9 +39,25 @@ A batch of R requests is proved as R independent request proofs plus one
   weight root. The opening therefore has a single point, whatever R is.
 * `verifyRequest(i)` does four things. It replays T_i and checks the request's
   own part (`verifyCore`). It checks that `d_i` equals slot i's digest. It
-  checks that slot i holds exactly the claims T_i derived: same count, same
-  full points, same values. Finally it replays the batch transcript and
-  checks the reduction and the opening, covering all slots.
+  **rebuilds slot i itself** from the claims T_i derived (`claimSet`, as the
+  prover does; each full point is split into weight id and local point by
+  its block prefix) and requires byte-for-byte equality: points in
+  first-use order, `point_of`, `w`, values. Finally it checks that every
+  slot is canonical, replays the batch transcript and checks the reduction
+  and the opening, covering all slots.
+* **Canonical slots (SERVE-1).** Every slot must have each point referenced
+  by a claim, its points pairwise distinct and in first-use order, and each
+  claim's point of its weight's size. A slot is therefore the unique
+  encoding of its claim list: no unreferenced data reaches the batch
+  transcript, and a `SharedOpening` is unique for given request proofs.
+  Before this, a server could pad any slot with junk points (a free knob on
+  the batch transcript and non-unique accepted openings); soundness was not
+  affected, since the full-point equality already pinned the claims.
+* **Bounds (SERVE-3).** Before any per-claim allocation the verifier
+  requires `<= max_claims_per_weight * |weights|` claims per slot (4 per
+  weight; an honest request makes at most one per weight per matmul class)
+  and `<= max_slots` (2^16) slots. Verifier memory and work are
+  O(sum of slot sizes * log|W|): linear in the bytes downloaded, never more.
 
 **Soundness for request i.** It does not depend on the other slots being
 honest.
@@ -116,14 +136,37 @@ slots, which hold their digests, claim points and weight-claim values:
   something about its routing balance. A fixed `cap=` closes this, at the cost
   of padding.
 
+* **This needs secret salts (SERVE-2).** With a known salt, the digest and
+  points are a deterministic function of the request's statement, so a
+  client could confirm a guess of another client's prompt by replaying it.
+  The pre-fix bench used `testSalt(seed * 1000 + j)`, a public function of
+  the index; it now uses the default random salt. FlashProve's longer-term
+  fix applies here too: commit the slots as salted leaves of a batch tree,
+  derive gamma from its root, and send each client its leaf, a path and the
+  aggregates the reduction needs, so no client sees another slot in the
+  clear.
+
+**Availability coupling (by design, SERVE-3).** The batch is accepted or
+rejected as a whole: one false or malformed slot makes every client's
+verifier reject, and a client cannot tell "my request was false" from "some
+other slot was bad". Conversely, R and batch membership are not attested: a
+server may add true slots with arbitrary digests (no client behind them)
+and every verifier accepts. Neither affects soundness for request i.
+
 Zero knowledge (the `codex/tensor-zk` stream) does not cover the serving split
-yet.
+yet. ZK note for these fixes: the canonical-slot and own-slot checks add no
+prover messages (the slot was already sent), and the default salt is the
+only secret the leakage argument above needs; a hiding serving split would
+additionally have to hide the slot values (weight evaluations at
+request-dependent points), which the salted-tree layout would do.
 
 Adversarial tests (`serve.zig`) are rejected for every verifier unless noted:
 * a wrong slot index, a wrong salt, or a tampered own part;
 * a changed value, point or digest in the request's own slot;
 * another request's false claim or digest;
 * a malformed, swapped or dropped slot, or a redirected point index;
+* an unreferenced, duplicated or out-of-order point in any slot, and a slot
+  over the claim cap (`review_serve_test.zig`);
 * a tampered opening, a tampered reduction round, or a tampered reduced value;
 * a wrong key root.
 
@@ -138,8 +181,58 @@ Adversarial tests (`serve.zig`) are rejected for every verifier unless noted:
   sumcheck over (e, k) of `eq(rho_e, e) X~(e, rho_t, k) W~(e, k, rho_n)`, of
   degree 3. This produces one X claim and **one weight claim for the whole
   expert stack**.
-* **Input.** The window's embeddings are a public input. A lineq binds them
-  to the committed layer-0 input.
+* **Input (LM-1).** The public input is the window's **tokens**: window =
+  prompt `x` (T - P + 1 tokens) `|| y[0..P-1)`. The token embedding
+  `Emb [V, D]` is a committed weight (after the LM head). The verifier builds
+  `OH = 2 * onehot(window)` `[T, V]`; a lineq binds it to the committed
+  matmul input, and `X = rq_1(OH . Emb)` (fixed shift 1) equals
+  `Emb[window]` exactly. For P > 1 the honest prover finds the
+  self-consistent y by fixed-point iteration (`decodeGreedy`). Before this
+  fix X was a prover-chosen public that nothing related to the tokens.
+* **Model descriptor (LM-3).** `ModelDesc { cfg, gains }` holds every
+  learned parameter that is not in the weight table: the RMSNorm gains, 2
+  per layer + the final norm, int8 in [1, 127]. `buildModel` takes them from
+  the descriptor (they used to come from a per-call seed, so a server could
+  change them per request under one key).
+* **What key.root covers.** key.root is the Merkle root of the committed
+  int8 table: every layer weight (attention, MLP or router + expert stacks),
+  `W_lm` and `Emb`. The verifier-held key also carries the weight shapes
+  (`key.infos`, checked against the descriptor's `weightInfos`). The
+  descriptor (configuration and gains) is **not** in key.root: a client
+  pins `(key.root, key.infos, ModelDesc.digest())` together as the model
+  identity. The digest omits `log_capacity`, a per-request statement
+  parameter. Fixed tables (RoPE, causal mask, exp, SiLU, MoE triangle) are
+  functions of the configuration.
+* **Verifier entry point.** `lm.verifyRequest(key, desc, prompt, y, st, ...)`
+  rebuilds every public (RoPE, mask, gains, MoE triangle, OH, Sel, Lt), the
+  core and ext tables and the weight shapes from (key, descriptor, prompt
+  tokens, claimed output tokens), as FlashProve builds its request instance
+  from the tokens, and rejects (`error.StatementMismatch`) unless the
+  prover's statement carries exactly those. It also requires the Emb op's
+  shift to be 1. Tokens >= V are rejected before anything is built
+  (`error.BadToken`, LM-2): for y >= V the verifier's Sel = 0 and Lt = 1
+  would make the zero einsum vacuous.
+* **Descriptor in the transcript (P2).** `buildModel` sets the statement's
+  `model_digest` to `ModelDesc.digest()`. This is the mechanism the MLP
+  (`model.MlpConfig`) and decoder-stack (`transformer.ModelConfig`)
+  statements use. The digest is mixed into the transcript, and
+  `checkRequestStatement` requires it to equal the verifier's descriptor
+  (`error.StatementMismatch` when it is missing or names another
+  descriptor; regression in `review_lm_test.zig`, LM-3). A request proof is
+  therefore bound to one descriptor even when it is checked by
+  `serve.verifyRequest` alone.
+* **Residual (not closed here).** The statement's *structure* (its op
+  list, witness shapes and the data-chosen requant shifts) is still the
+  prover's. Phase A (fix-stmt) closed this for the decoder stack:
+  `transformer.statementFor` replays a calibrated `ModelConfig` shift plan
+  on a shape-only builder, so the verifier builds the whole statement. The
+  same path for LM requests needs three things: (a) a calibrated shift plan
+  in `ModelDesc`, which is included in its digest; (b) `lm.matmul3`, the
+  stacked-expert batched matmul, drawing its shifts through the builder's
+  plan and supporting `shape_only`; and (c) the per-request `log_capacity`
+  as an explicit request parameter. `lm.verifyRequest` could then compare
+  `wire.encodeStatement` bytes of its own statement with the prover's,
+  instead of comparing publics only.
 * **LM head and greedy check.** The last 2^log_out positions are sliced with
   fixed-bit labels, then go through the final RMSNorm and the LM head
   (`W_lm [D, V]`, committed). The greedy check on the public output tokens
@@ -158,16 +251,37 @@ Adversarial tests (`serve.zig`) are rejected for every verifier unless noted:
   committed value) and refuses the statement (`StatementUnboundedOperand`;
   regression test in `lm.zig`). The honest m is a logit, so the key never
   refuses an honest request. No new bound rule was needed.
-* **Tests.** A different output token is rejected, and so is a different
-  prompt. Greedy ties are accepted. For a later tie, a non-maximum or an
-  out-of-vocab token, the honest prover refuses, and an unchecked prover's
-  proof is rejected by the verifier. The stacked-MoE output equals a direct
-  integer reference.
+* **Tests.** Through `lm.verifyRequest`: a different output token or prompt
+  is rejected, and so is a statement over a window whose tail is not y, other
+  gains, a two-hot Sel or an inconsistent Lt, an out-of-vocab prompt or
+  output token, and a key without Emb (`review_lm_test.zig`). Greedy ties
+  are accepted. At the gadget level, for a later tie or a non-maximum the
+  honest prover refuses and an unchecked prover's proof is rejected; an
+  out-of-vocab token is refused by the verifier-side builder. X equals
+  `Emb[window]` (direct reference) and the stacked-MoE output equals a
+  direct integer reference.
+* **Soundness note.** With the publics the verifier's own, the greedy
+  relations bind y to the least maximiser of the committed model's logits
+  on `Emb[window]` (subject to the residual above). ZK note: the request
+  is non-hiding; the prompt and output tokens are public by design (as in
+  FlashProve), so the verifier-built publics leak nothing new.
+* **Cost of the one-hot input.** The embedding matmul adds T V witness
+  entries (OH) and a T V D forward product, and the verifier evaluates the
+  T V public. Measured (`tensor-bench model t=6 d=7 f=8 e=1 fe=7 layers=2
+  h=1 kv=0 r=2 q=20 iq=20 pow=8 ipow=8 key=0`, before -> after): v=8:
+  0.058 -> 0.056 s/request, 194.6 -> 198.1 KB per request, verify 3.1 -> 3.7
+  ms; v=12: 0.057 -> 0.073 s/request, 201.1 -> 214.2 KB, verify 3.6 -> 8.5 ms,
+  witness elements +43%. At real vocabularies (V ~ 2^17) a lookup of the
+  window's rows against the committed Emb (O(T D)) and a succinct OH
+  evaluation (O(T log V)) are needed; not done.
 
 ### 1.3 Bench (`tensor-bench model`)
 
-* **Setup.** The N-layer stack takes public prompt embeddings and ends with
-  the LM head and greedy check.
+* **Setup.** The N-layer stack takes a public token window (X = Emb[window]
+  from the committed Emb) and ends with the LM head and greedy check. Bench
+  windows are random tokens and the output is their greedy tokens (cost
+  measurement only; not a decoded continuation), verified with
+  `serve.verifyRequest`.
 * **Proving.** R requests go through the streaming `BatchProver`, and each
   request's witness is dropped after its proof. One shared opening follows.
   Every request is then checked by a single-thread `verifyRequest`.
@@ -399,6 +513,15 @@ Verify per request: about 0.2-0.3 s on one thread.
   heads) is assumed, not measured.
 
 ## 5. Not done
+
+* The statement structure (ops, shifts) is still prover-supplied; the
+  verifier builds only the publics, tables and shapes (section 1.2).
+* The one-hot embedding input is O(T V D) forward and O(T V) verifier work;
+  a lookup against Emb is needed for real vocabularies (section 1.2).
+* key.root does not cover the model descriptor; the client pins its digest
+  separately.
+* Sections 2-4 were measured before the committed Emb, the descriptor and
+  the slot checks.
 
 * Memory: the shared-opening table E (16 B per padded table entry) is not
   streamed. The i32 widened copy is gone (`5f77f7d2a`). Peak RSS still grows

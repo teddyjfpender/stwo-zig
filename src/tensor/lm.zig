@@ -3,16 +3,27 @@
 //! input, an LM head and the greedy-token output check.
 //!
 //! Statement for a request (prompt x of T - P + 1 tokens, output y of P
-//! tokens, P = 2^log_out, the window is x || y[0..P-1]):
+//! tokens, P = 2^log_out, the window is x || y[0..P-1), T tokens):
 //!
-//!   X = Emb[window]                       public input [T, D], bound by a lineq
+//!   OH = 2 * onehot(window)               public [T, V], built by the verifier from the tokens
+//!   X = rq_1(OH . Emb) = Emb[window]      core matmul, shift 1 (exact), Emb [V, D] committed
 //!   H = Layer_{L-1}(... Layer_0(X))       dense / MoE decoder layers (transformer.zig)
 //!   Hs = H[T-P .. T)                      last P positions (fixed-bit slice, lineq)
 //!   logits = rq(RMSNorm(Hs, g) . W_lm)    core matmul, W_lm [D, V] committed, int8
 //!   y[t] = greedy(logits[t]) = min{v : logits[t, v] = max_v' logits[t, v']}
 //!
+//! Every learned parameter is either committed in the weight table (layer
+//! weights, W_lm, Emb: covered by key.root) or in the verifier-held model
+//! descriptor (`ModelDesc`: the RMSNorm gains), whose values the verifier
+//! itself writes into the statement. `verifyRequest` takes (key, descriptor,
+//! prompt tokens, claimed output tokens) and builds every public (RoPE,
+//! mask, gains, tables, OH, Sel, Lt) itself; the prover's statement must
+//! carry exactly those. Its op structure (and requant shifts) is still the
+//! prover's: serving.md 1.2.
+//!
 //! Greedy check (y public): Sel[t, v] = [v = y_t] and Lt[t, v] = [v < y_t] are
-//! public tensors the verifier builds from y. Committed m [P] and
+//! public tensors the verifier builds from y, after rejecting any y_t >= V
+//! (for y_t >= V, Sel = 0 and Lt = 1 would make (3) vacuous). Committed m [P] and
 //! Dr [P, V] with
 //!   (0) m + 128 in [0, 256)                        (range key: m int8)
 //!       (over max(log P, 1) variables: m is broadcast when P = 1)
@@ -35,6 +46,7 @@ const proto = @import("protocol.zig");
 const xt = @import("ext.zig");
 const tf = @import("transformer.zig");
 const model = @import("model.zig");
+const serve = @import("serve.zig");
 
 const TensorInfo = proto.TensorInfo;
 const Ref = xt.Ref;
@@ -109,6 +121,16 @@ pub const ModelCfg = struct {
         return self.layerBase(self.n_layers);
     }
 
+    /// the token embedding Emb [V, D] (committed, after the LM head)
+    pub fn embIndex(self: ModelCfg) u32 {
+        return self.lmHead() + 1;
+    }
+
+    /// RMSNorm gain vectors: 2 per layer (attention, MLP) + the final norm
+    pub fn nGainVecs(self: ModelCfg) usize {
+        return 2 * @as(usize, self.n_layers) + 1;
+    }
+
     pub fn nMoeLayers(self: ModelCfg) u32 {
         var n: u32 = 0;
         for (0..self.n_layers) |l| n += @intFromBool(self.isMoeLayer(@intCast(l)));
@@ -120,6 +142,8 @@ pub const ModelCfg = struct {
         if (self.log_out > self.log_t or self.log_vocab < 1 or self.log_vocab > 20) return error.BadConfig;
         // logits [P, V] index space and the greedy einsum (t, v) fit the ext label space
         if (self.log_out + self.log_vocab > xt.MAXB - 2) return error.BadConfig;
+        // the window's one-hot [T, V] (lineq) and the embedding matmul
+        if (self.log_t + self.log_vocab > xt.MAXB - 2) return error.BadConfig;
         for (0..self.n_layers) |l| try self.layerCfg(@intCast(l)).validate();
     }
 };
@@ -141,7 +165,126 @@ pub fn weightInfos(a: std.mem.Allocator, cfg: ModelCfg) ![]TensorInfo {
         } else try out.appendSlice(a, wi);
     }
     try out.append(a, TensorInfo.mat(cfg.log_d, cfg.log_vocab));
+    try out.append(a, TensorInfo.mat(cfg.log_vocab, cfg.log_d)); // Emb
     return out.toOwnedSlice(a);
+}
+
+/// Requant shift of the embedding matmul: OH holds 2 at the token, so the
+/// accumulator is 2 Emb[tok, d] and rq_1 returns Emb[tok, d] exactly.
+pub const EMB_SHIFT: u5 = 1;
+
+/// The verifier-held model descriptor: the configuration and every learned
+/// parameter that is not in the committed weight table (the RMSNorm gains).
+/// A client pins (key.root, key.infos, desc.digest()); see serving.md 1.2.
+pub const ModelDesc = struct {
+    cfg: ModelCfg,
+    /// int8 gains in [1, 127]: gains[(2 l) D ..] attention norm of layer l,
+    /// gains[(2 l + 1) D ..] its MLP norm, gains[(2 L) D ..] the final norm
+    gains: []const i32,
+
+    pub fn validate(self: ModelDesc) !void {
+        try self.cfg.validate();
+        const D = @as(usize, 1) << @intCast(self.cfg.log_d);
+        if (self.gains.len != self.cfg.nGainVecs() * D) return error.BadConfig;
+        for (self.gains) |g| if (g < 1 or g > 127) return error.BadConfig;
+    }
+
+    pub fn gain(self: ModelDesc, i: usize) []const i32 {
+        const D = @as(usize, 1) << @intCast(self.cfg.log_d);
+        return self.gains[i * D ..][0..D];
+    }
+
+    /// Digest of the descriptor (all fields except the per-request
+    /// log_capacity, a statement parameter the prover fits per request).
+    pub fn digest(self: ModelDesc) [32]u8 {
+        var h = std.crypto.hash.blake2.Blake2s256.init(.{});
+        h.update("stwo-tensor-model-desc-v1");
+        var c = self.cfg;
+        c.log_capacity = 0;
+        inline for (@typeInfo(ModelCfg).@"struct".fields) |fld| {
+            const v: u64 = switch (@typeInfo(fld.type)) {
+                .bool => @intFromBool(@field(c, fld.name)),
+                else => @field(c, fld.name),
+            };
+            h.update(std.mem.asBytes(&v));
+        }
+        h.update(std.mem.asBytes(&@as(u64, self.gains.len)));
+        for (self.gains) |g| h.update(std.mem.asBytes(&@as(i32, g)));
+        var out: [32]u8 = undefined;
+        h.final(&out);
+        return out;
+    }
+
+    /// Synthetic gains in [48, 80] (benches and tests), owned: `deinit`.
+    pub fn synthetic(a: std.mem.Allocator, cfg: ModelCfg, seed: u64) !ModelDesc {
+        const D = @as(usize, 1) << @intCast(cfg.log_d);
+        const g = try a.alloc(i32, cfg.nGainVecs() * D);
+        var prng = std.Random.DefaultPrng.init(seed);
+        for (g[0 .. g.len - D]) |*v| v.* = prng.random().intRangeAtMost(i32, 48, 80);
+        var prng2 = std.Random.DefaultPrng.init(seed ^ 0x5eed);
+        for (g[g.len - D ..]) |*v| v.* = prng2.random().intRangeAtMost(i32, 48, 80);
+        return .{ .cfg = cfg, .gains = g };
+    }
+
+    pub fn deinit(self: *ModelDesc, a: std.mem.Allocator) void {
+        a.free(self.gains);
+    }
+};
+
+/// The window x || y[0..P-1) of a request (T tokens), after checking the
+/// lengths and that every prompt and output token is < V (LM-2).
+pub fn requestWindow(a: std.mem.Allocator, cfg: ModelCfg, prompt: []const u32, y: []const u32) ![]u32 {
+    const T = @as(usize, 1) << @intCast(cfg.log_t);
+    const P = @as(usize, 1) << @intCast(cfg.log_out);
+    const V = @as(usize, 1) << @intCast(cfg.log_vocab);
+    if (prompt.len != T - P + 1 or y.len != P) return error.BadRequest;
+    for (prompt) |t| if (t >= V) return error.BadToken;
+    for (y) |t| if (t >= V) return error.BadToken;
+    const w = try a.alloc(u32, T);
+    @memcpy(w[0..prompt.len], prompt);
+    @memcpy(w[prompt.len..], y[0 .. P - 1]);
+    return w;
+}
+
+/// OH = 2 * onehot(window) [T, V] (the embedding matmul's public input).
+fn onehotValues(a: std.mem.Allocator, cfg: ModelCfg, window: []const u32) ![]i32 {
+    const T = @as(usize, 1) << @intCast(cfg.log_t);
+    const V = @as(usize, 1) << @intCast(cfg.log_vocab);
+    if (window.len != T) return error.BadRequest;
+    for (window) |t| if (t >= V) return error.BadToken;
+    const oh = try a.alloc(i32, T * V);
+    @memset(oh, 0);
+    for (window, 0..) |t, i| oh[i * V + t] = 2;
+    return oh;
+}
+
+/// Sel[t, v] = [v = y_t], Lt[t, v] = [v < y_t] ([P, V]); error.BadToken for
+/// any y_t >= V (then Sel = 0, Lt = 1 would make the zero einsum vacuous).
+fn greedyPublicValues(a: std.mem.Allocator, tokens: []const u32, V: usize) !struct { sel: []i32, lt: []i32 } {
+    for (tokens) |t| if (t >= V) return error.BadToken;
+    const sel = try a.alloc(i32, tokens.len * V);
+    errdefer a.free(sel);
+    const ltv = try a.alloc(i32, tokens.len * V);
+    for (tokens, 0..) |tok, t| for (0..V) |v| {
+        sel[t * V + v] = @intFromBool(v == tok);
+        ltv[t * V + v] = @intFromBool(v < tok);
+    };
+    return .{ .sel = sel, .lt = ltv };
+}
+
+/// Shared publics (RoPE, mask, exp table, SiLU, gains, MoE triangle) with the
+/// descriptor's gains. Used by the prover (`buildModel`) and the verifier
+/// (`requestPublics`), so both produce the same list in the same order.
+fn requestCtx(b: *tf.Builder, desc: *const ModelDesc, ws: *const proto.WeightStore) !tf.Ctx {
+    const cfg = desc.cfg;
+    var ctx_cfg = cfg.layerCfg(if (cfg.log_experts > 0) cfg.moe_every - 1 else 0);
+    ctx_cfg.n_layers = cfg.n_layers;
+    const c0 = try tf.initCtxPublics(b, ctx_cfg, ws, 0);
+    std.debug.assert(c0.gammas.len == 2 * cfg.n_layers);
+    for (c0.gammas, 0..) |gid, i| {
+        b.publics.items[gid].values = try b.arena.allocator().dupe(i32, desc.gain(i));
+    }
+    return c0;
 }
 
 /// Weights one token touches: attention and dense MLPs, each MoE layer's
@@ -161,7 +304,8 @@ pub fn activeWeightsPerToken(cfg: ModelCfg, infos: []const TensorInfo) usize {
             } else if (i < lc.wExpert(1)) n += sz; // per-expert layout: one expert's three matrices
         }
     }
-    return n + infos[cfg.lmHead()].size();
+    // + the LM head and one embedding row
+    return n + infos[cfg.lmHead()].size() + infos[cfg.embIndex()].size() / (@as(usize, 1) << @intCast(cfg.log_vocab));
 }
 
 pub fn nWeights(a: std.mem.Allocator, cfg: ModelCfg) !usize {
@@ -255,27 +399,19 @@ pub fn greedyCheck(b: *tf.Builder, logits: u32, lp: u32, lv: u32, tokens: []cons
     const rows = @as(usize, 1) << @intCast(lr);
     const L = b.wit.items[logits][(rows - P) * V ..];
     const rowfix = tf.fixesOf(rows - 1, lr - lp); // top row bits = 1: the last 2^lp rows
-    const sel = try b.a.alloc(i32, P * V);
-    defer b.a.free(sel);
-    const ltv = try b.a.alloc(i32, P * V);
-    defer b.a.free(ltv);
+    const gp = try greedyPublicValues(b.a, tokens, V);
+    defer b.a.free(gp.sel);
+    defer b.a.free(gp.lt);
+    const sel = gp.sel;
+    const ltv = gp.lt;
     const m = try b.a.alloc(i32, P);
     const dr = b.a.alloc(i32, P * V) catch |e| {
         b.a.free(m);
         return e;
     };
     for (0..P) |t| {
-        if (tokens[t] >= V) {
-            b.a.free(m);
-            b.a.free(dr);
-            return error.BadToken;
-        }
         m[t] = L[t * V + tokens[t]];
-        for (0..V) |v| {
-            sel[t * V + v] = @intFromBool(v == tokens[t]);
-            ltv[t * V + v] = @intFromBool(v < tokens[t]);
-            dr[t * V + v] = m[t] - L[t * V + v];
-        }
+        for (0..V) |v| dr[t * V + v] = m[t] - L[t * V + v];
     }
     const n = lp + lv;
     const sel_id = try b.public(n, sel);
@@ -333,10 +469,11 @@ pub const ModelOut = struct {
 /// dominant directions of a calibration window's router inputs
 /// (w_x -= sum_k mu_k (mu_k . w_x), |mu_k| = 1, then rounded); routing then
 /// follows the rest of the token's features. Edits `ws.table` in place; the caller re-commits.
-pub fn calibrateRouters(a: std.mem.Allocator, pool: *f.Pool, cfg: ModelCfg, ws: *proto.WeightStore, x: []const i32, passes: usize) !void {
+pub fn calibrateRouters(a: std.mem.Allocator, pool: *f.Pool, desc: *const ModelDesc, ws: *proto.WeightStore, window: []const u32, passes: usize) !void {
+    const cfg = desc.cfg;
     if (cfg.log_experts == 0) return;
-    var full = cfg;
-    full.log_capacity = cfg.log_t;
+    var full = desc.*;
+    full.cfg.log_capacity = cfg.log_t;
     const T = @as(usize, 1) << @intCast(cfg.log_t);
     const D = @as(usize, 1) << @intCast(cfg.log_d);
     const E = @as(usize, 1) << @intCast(cfg.log_experts);
@@ -346,7 +483,7 @@ pub fn calibrateRouters(a: std.mem.Allocator, pool: *f.Pool, cfg: ModelCfg, ws: 
             if (!cfg.isMoeLayer(@intCast(l))) continue;
             var b = tf.Builder.init(a, pool);
             defer b.deinit();
-            const mo = try buildModel(&b, full, ws, 7, x, null);
+            const mo = try buildModel(&b, &full, ws, window, null);
             const y = b.wit.items[mo.router_in[moe_i]];
             moe_i += 1;
             // the K dominant directions of the router inputs (top right
@@ -426,28 +563,40 @@ pub fn fitCapacity(max_load: usize) u32 {
     return std.math.log2_int_ceil(usize, @max(max_load, 1));
 }
 
-/// Builds a request: public input embeddings x_in [T, D] (int8), the layer
-/// stack, the LM head and the greedy check. `claim` overrides the output
-/// tokens (tests: a non-greedy claim must not verify).
-pub fn buildModel(b: *tf.Builder, cfg: ModelCfg, ws: *const proto.WeightStore, seed: u64, x_in: []const i32, claim: ?[]const u32) !ModelOut {
-    try cfg.validate();
+/// Builds a request over a window of T tokens (`requestWindow`): X =
+/// Emb[window] from the committed embedding, the layer stack, the LM head and
+/// the greedy check. `claim` is the claimed output (null: the greedy tokens
+/// of this window's logits; a request's verifiable claim must also satisfy
+/// window = prompt || claim[0..P-1), see `decodeGreedy`).
+pub fn buildModel(b: *tf.Builder, desc: *const ModelDesc, ws: *const proto.WeightStore, window: []const u32, claim: ?[]const u32) !ModelOut {
+    const cfg = desc.cfg;
+    try desc.validate();
     const lt = cfg.log_t;
     const ld = cfg.log_d;
-    // shared publics (RoPE, mask, exp table, SiLU, gammas, MoE triangle)
-    var ctx_cfg = cfg.layerCfg(if (cfg.log_experts > 0) cfg.moe_every - 1 else 0);
-    ctx_cfg.n_layers = cfg.n_layers;
-    const c0 = try tf.initCtxPublics(b, ctx_cfg, ws, seed);
+    const lv = cfg.log_vocab;
+    // P2: the statement carries the digest of the verifier-held model
+    // definition (mixed into the transcript), as model.MlpConfig and
+    // transformer.ModelConfig statements do
+    b.model_digest = desc.digest();
+    const c0 = try requestCtx(b, desc, ws);
     {
         const wi = try weightInfos(b.a, cfg);
         defer b.a.free(wi);
         try b.weight_infos.appendSlice(b.a, wi);
     }
-    // public input bound to the committed layer-0 input
-    const n_x = lt + ld;
-    const x_pub = try b.public(n_x, x_in);
-    var x = try b.add(TensorInfo.mat(lt, ld), try b.a.dupe(i32, x_in));
+    // X = rq_1(OH . Emb) with OH = 2 onehot(window) public (bound by a lineq
+    // to the committed matmul input): X[t] = Emb[window[t]]
+    const n_oh = lt + lv;
+    const oh_vals = try onehotValues(b.a, cfg, window);
+    defer b.a.free(oh_vals);
+    const oh_pub = try b.public(n_oh, oh_vals);
+    const oh = try b.add(TensorInfo.mat(lt, lv), try b.a.dupe(i32, oh_vals));
+    try b.lineq(n_oh, try b.expr(&.{ term(1, Ref.w(oh), &.{ids(0, n_oh)}), term(-1, Ref.p(oh_pub), &.{ids(0, n_oh)}) }, 0));
+    // operand bound for the matmul accumulator check (OH in [0, 4); it is
+    // pinned to the public by the lineq anyway)
+    try b.key(n_oh, try b.expr(&.{term(1, Ref.w(oh), &.{ids(0, n_oh)})}, 0), null, .{ .range = 2 });
+    var x = try b.matmulShift(ws, oh, cfg.embIndex(), EMB_SHIFT);
     const x_id = x;
-    try b.lineq(n_x, try b.expr(&.{ term(1, Ref.w(x), &.{ids(0, n_x)}), term(-1, Ref.p(x_pub), &.{ids(0, n_x)}) }, 0));
     var max_load: usize = 0;
     var router_in: std.ArrayList(u32) = .empty;
     var router_logits: std.ArrayList(u32) = .empty;
@@ -488,15 +637,11 @@ pub fn buildModel(b: *tf.Builder, cfg: ModelCfg, ws: *const proto.WeightStore, s
         const ones = tf.fixesOf((@as(usize, 1) << @intCast(lt - lh)) - 1, lt - lh);
         try b.lineq(lh + ld, try b.expr(&.{ term(1, Ref.w(hs), &.{ids(0, lh + ld)}), term(-1, Ref.w(x), &.{ ones, ids(0, lh + ld) }) }, 0));
     }
-    // final RMSNorm (public gamma) and LM head
+    // final RMSNorm (descriptor gain, public) and LM head
     var ch = c0;
     ch.cfg = cfg.layerCfg(0);
     ch.cfg.log_t = lh;
-    var prng = std.Random.DefaultPrng.init(seed ^ 0x5eed);
-    const g = try b.a.alloc(i32, @as(usize, 1) << @intCast(ld));
-    defer b.a.free(g);
-    for (g) |*v| v.* = prng.random().intRangeAtMost(i32, 48, 80);
-    const gamma = try b.public(ld, g);
+    const gamma = try b.public(ld, desc.gain(2 * cfg.n_layers));
     const r = try tf.rmsnorm(b, ch, hs, gamma, false);
     const logits = try b.matmul(ws, r.y, cfg.lmHead());
     const P = @as(usize, 1) << @intCast(lp);
@@ -509,11 +654,131 @@ pub fn buildModel(b: *tf.Builder, cfg: ModelCfg, ws: *const proto.WeightStore, s
     return .{ .x = x_id, .hidden = x, .logits = logits, .greedy = gc, .tokens = toks, .max_expert_load = max_load, .router_in = router_in.items, .router_logits = router_logits.items };
 }
 
+/// Honest greedy decoding: the output y with y = greedy(logits of the window
+/// prompt || y[0..P-1)), found by fixed-point iteration (the model is causal
+/// up to the data-chosen requant shifts, so this settles in <= P rounds in
+/// practice; error.NoFixedPoint otherwise). Owned result.
+pub fn decodeGreedy(a: std.mem.Allocator, pool: *f.Pool, desc: *const ModelDesc, ws: *const proto.WeightStore, prompt: []const u32) ![]u32 {
+    const P = @as(usize, 1) << @intCast(desc.cfg.log_out);
+    const y = try a.alloc(u32, P);
+    errdefer a.free(y);
+    @memset(y, 0);
+    for (0..2 * P + 2) |_| {
+        const w = try requestWindow(a, desc.cfg, prompt, y);
+        defer a.free(w);
+        var b = tf.Builder.init(a, pool);
+        defer b.deinit();
+        const mo = try buildModel(&b, desc, ws, w, null);
+        if (std.mem.eql(u32, mo.tokens, y)) return y;
+        @memcpy(y, mo.tokens);
+    }
+    return error.NoFixedPoint;
+}
+
+/// Verifier side: checks that the prover's statement `st` carries this
+/// descriptor's digest as its model_digest and exactly the
+/// publics, tables and weight shapes this verifier builds itself from the
+/// descriptor, the prompt tokens and the claimed output tokens (rejecting
+/// out-of-vocabulary tokens first), and that the key has the descriptor's
+/// weight shapes.
+pub fn checkRequestStatement(a: std.mem.Allocator, key: proto.WeightKey, desc: *const ModelDesc, prompt: []const u32, y: []const u32, st: proto.Statement) !void {
+    const cfg = desc.cfg;
+    try desc.validate();
+    const window = try requestWindow(a, cfg, prompt, y);
+    defer a.free(window);
+    const wi = try weightInfos(a, cfg);
+    defer a.free(wi);
+    if (!eqlInfos(wi, key.infos) or !eqlInfos(wi, st.weights)) return error.StatementMismatch;
+    // the transcript binds this verifier's descriptor (P2 model_digest)
+    const md = st.model_digest orelse return error.StatementMismatch;
+    if (!std.mem.eql(u8, &md, &desc.digest())) return error.StatementMismatch;
+    // the verifier's own publics, in the prover's order (requestCtx, OH, final
+    // gain, Sel, Lt); no witness and no weights are touched
+    var dummy_pool: f.Pool = undefined;
+    var dummy_ws: proto.WeightStore = undefined;
+    var vb = tf.Builder.init(a, &dummy_pool);
+    defer vb.deinit();
+    _ = try requestCtx(&vb, desc, &dummy_ws);
+    const oh = try onehotValues(a, cfg, window);
+    defer a.free(oh);
+    _ = try vb.public(cfg.log_t + cfg.log_vocab, oh);
+    _ = try vb.public(cfg.log_d, desc.gain(2 * cfg.n_layers));
+    const gp = try greedyPublicValues(a, y, @as(usize, 1) << @intCast(cfg.log_vocab));
+    defer a.free(gp.sel);
+    defer a.free(gp.lt);
+    _ = try vb.public(cfg.log_out + cfg.log_vocab, gp.sel);
+    _ = try vb.public(cfg.log_out + cfg.log_vocab, gp.lt);
+    const mine = vb.statement();
+    if (mine.ext.publics.len != st.ext.publics.len) return error.StatementMismatch;
+    for (mine.ext.publics, st.ext.publics) |p, q| {
+        if (p.log_size != q.log_size or !std.mem.eql(i32, p.values, q.values)) return error.StatementMismatch;
+    }
+    if (mine.tables.len != st.tables.len or mine.ext.tables.len != st.ext.tables.len) return error.StatementMismatch;
+    for (mine.tables, st.tables) |p, q| if (!std.mem.eql(i8, &p.values, &q.values)) return error.StatementMismatch;
+    for (mine.ext.tables, st.ext.tables) |p, q| {
+        if (p.log_size != q.log_size or !std.mem.eql(i32, p.values, q.values)) return error.StatementMismatch;
+    }
+    // the embedding is read only by the shift-1 matmul (X = Emb[window] exactly)
+    for (st.ops) |op| if (op == .matmul and op.matmul.w == cfg.embIndex() and op.matmul.shift != EMB_SHIFT) return error.StatementMismatch;
+}
+
+fn eqlInfos(x: []const TensorInfo, y: []const TensorInfo) bool {
+    if (x.len != y.len) return false;
+    for (x, y) |p, q| if (!std.meta.eql(p, q)) return false;
+    return true;
+}
+
+/// Verifies request `index` of a served batch for (key, descriptor, public
+/// prompt tokens, claimed output tokens): every public is the verifier's own
+/// (`checkRequestStatement`), then `serve.verifyRequest`.
+pub fn verifyRequest(a: std.mem.Allocator, pc: proto.Config, key: proto.WeightKey, desc: *const ModelDesc, prompt: []const u32, y: []const u32, st: proto.Statement, rp: *const serve.RequestProof, shared: *const serve.SharedOpening, index: usize) !void {
+    try checkRequestStatement(a, key, desc, prompt, y, st);
+    try serve.verifyRequest(a, pc, st, key, rp, shared, index);
+}
+
 // ---------------------------------------------------------------------------
 // Tests.
 
 const testing = std.testing;
-const serve = @import("serve.zig");
+
+/// Deterministic tokens in [0, V) (tests and benches).
+pub fn randomTokens(a: std.mem.Allocator, n: usize, V: usize, seed: u64) ![]u32 {
+    const out = try a.alloc(u32, n);
+    var prng = std.Random.DefaultPrng.init(seed);
+    for (out) |*t| t.* = prng.random().uintLessThan(u32, @intCast(V));
+    return out;
+}
+
+/// A decoded request (tests): prompt, honest greedy output y, and the
+/// builder holding its witness for window = prompt || y[0..P-1).
+pub const TestRequest = struct {
+    prompt: []u32,
+    y: []u32,
+    b: tf.Builder,
+    mo: ModelOut,
+
+    pub fn init(a: std.mem.Allocator, pool: *f.Pool, desc: *const ModelDesc, ws: *const proto.WeightStore, seed: u64) !TestRequest {
+        const cfg = desc.cfg;
+        const T = @as(usize, 1) << @intCast(cfg.log_t);
+        const P = @as(usize, 1) << @intCast(cfg.log_out);
+        const prompt = try randomTokens(a, T - P + 1, @as(usize, 1) << @intCast(cfg.log_vocab), seed);
+        errdefer a.free(prompt);
+        const y = try decodeGreedy(a, pool, desc, ws, prompt);
+        errdefer a.free(y);
+        const w = try requestWindow(a, cfg, prompt, y);
+        defer a.free(w);
+        var b = tf.Builder.init(a, pool);
+        errdefer b.deinit();
+        const mo = try buildModel(&b, desc, ws, w, y);
+        return .{ .prompt = prompt, .y = y, .b = b, .mo = mo };
+    }
+
+    pub fn deinit(self: *TestRequest, a: std.mem.Allocator) void {
+        a.free(self.prompt);
+        a.free(self.y);
+        self.b.deinit();
+    }
+};
 
 fn testPc() proto.Config {
     return .{
@@ -543,18 +808,17 @@ test "model with one checked output token (log_out = 0) proves and verifies" {
         a.free(sw.wdata);
         a.free(sw.winfos);
     }
-    var b = tf.Builder.init(a, &pool);
-    defer b.deinit();
-    const x = try model.randomInput(a, @as(usize, 1) << @intCast(cfg.log_t + cfg.log_d), 77);
-    defer a.free(x);
-    const mo = try buildModel(&b, cfg, &sw.ws, 3, x, null);
-    try testing.expectEqual(@as(usize, 1), mo.tokens.len);
-    const wv = try b.witnessView(a);
+    var desc = try ModelDesc.synthetic(a, cfg, 3);
+    defer desc.deinit(a);
+    var rq = try TestRequest.init(a, &pool, &desc, &sw.ws, 77);
+    defer rq.deinit(a);
+    try testing.expectEqual(@as(usize, 1), rq.mo.tokens.len);
+    const wv = try rq.b.witnessView(a);
     defer a.free(wv);
-    const reqs = [_]serve.Request{.{ .st = b.statement(), .witness = wv, .salt = serve.testSalt(5) }};
+    const reqs = [_]serve.Request{.{ .st = rq.b.statement(), .witness = wv, .salt = serve.testSalt(5) }};
     var batch = try serve.proveRequests(a, &pool, pc, &sw.ws, &reqs, null);
     defer batch.deinit(a);
-    try serve.verifyRequest(a, pc, reqs[0].st, proto.weightKey(&sw.ws), &batch.requests[0], &batch.shared, 0);
+    try verifyRequest(a, pc, proto.weightKey(&sw.ws), &desc, rq.prompt, rq.y, reqs[0].st, &batch.requests[0], &batch.shared, 0);
 }
 
 const SmallModel = ModelCfg{ .log_t = 3, .log_d = 4, .log_heads = 1, .log_kv_heads = 0, .log_f = 5, .n_layers = 2, .log_experts = 1, .log_f_expert = 4, .log_capacity = 3, .log_vocab = 6, .log_out = 1, .weight_log_cols = 3 };
@@ -577,15 +841,27 @@ test "model stack (dense + MoE interleaved), LM head and greedy output: per-requ
     }
     const key = proto.weightKey(&sw.ws);
     const R = 2;
-    var bs: [R]tf.Builder = undefined;
+    var desc = try ModelDesc.synthetic(a, cfg, 3);
+    defer desc.deinit(a);
+    var trs: [R]TestRequest = undefined;
+    var bs: [R]*tf.Builder = undefined;
     var outs: [R]ModelOut = undefined;
     var views: [R][]const []const i32 = undefined;
     var reqs: [R]serve.Request = undefined;
     for (0..R) |j| {
-        bs[j] = tf.Builder.init(a, &pool);
-        const x = try model.randomInput(a, @as(usize, 1) << (cfg.log_t + cfg.log_d), 40 + j);
-        defer a.free(x);
-        outs[j] = try buildModel(&bs[j], cfg, &sw.ws, 3, x, null);
+        trs[j] = try TestRequest.init(a, &pool, &desc, &sw.ws, 40 + j);
+        bs[j] = &trs[j].b;
+        outs[j] = trs[j].mo;
+        // X = Emb[window] (direct reference against the committed table)
+        {
+            const w = try requestWindow(a, cfg, trs[j].prompt, trs[j].y);
+            defer a.free(w);
+            const D = @as(usize, 1) << cfg.log_d;
+            const emb = sw.ws.matrix(cfg.embIndex()).data;
+            for (w, 0..) |tok, t| for (0..D) |d| {
+                try testing.expectEqual(@as(i32, emb[tok * D + d]), bs[j].wit.items[outs[j].x][t * D + d]);
+            };
+        }
         // the claimed tokens are the least maximisers (direct reference)
         const V = @as(usize, 1) << cfg.log_vocab;
         const Lall = bs[j].wit.items[outs[j].logits];
@@ -601,11 +877,12 @@ test "model stack (dense + MoE interleaved), LM head and greedy output: per-requ
     }
     defer for (0..R) |j| {
         a.free(views[j]);
-        bs[j].deinit();
+        trs[j].deinit(a);
     };
     var batch = try serve.proveRequests(a, &pool, pc, &sw.ws, &reqs, null);
     defer batch.deinit(a);
     for (0..R) |j| try serve.verifyRequest(a, pc, reqs[j].st, key, &batch.requests[j], &batch.shared, j);
+    for (0..R) |j| try verifyRequest(a, pc, key, &desc, trs[j].prompt, trs[j].y, reqs[j].st, &batch.requests[j], &batch.shared, j);
     // single-proof protocol on the same statement as well
     {
         var tm: proto.Timings = .{};
@@ -634,24 +911,16 @@ test "model stack (dense + MoE interleaved), LM head and greedy output: per-requ
         st2.ext.publics = pubs;
         try testing.expect(std.meta.isError(serve.verifyRequest(a, pc, st2, key, &batch.requests[0], &batch.shared, 0)));
     }
-    // a different public prompt -> reject
+    // the verifier is given a different prompt or a different output -> reject
     {
-        const st = reqs[1].st;
-        const pubs = try a.dupe(xt.Public, st.ext.publics);
-        defer a.free(pubs);
-        var found = false;
-        for (pubs, 0..) |p, i| if (p.log_size == cfg.log_t + cfg.log_d and std.mem.eql(i32, p.values, bs[1].wit.items[outs[1].x])) {
-            const nx = try a.dupe(i32, p.values);
-            nx[5] +%= 1;
-            pubs[i].values = nx;
-            found = true;
-            break;
-        };
-        try testing.expect(found);
-        defer for (pubs, st.ext.publics) |p, q| if (p.values.ptr != q.values.ptr) a.free(p.values);
-        var st2 = st;
-        st2.ext.publics = pubs;
-        try testing.expect(std.meta.isError(serve.verifyRequest(a, pc, st2, key, &batch.requests[1], &batch.shared, 1)));
+        const pr = try a.dupe(u32, trs[1].prompt);
+        defer a.free(pr);
+        pr[2] = (pr[2] + 1) % (@as(u32, 1) << cfg.log_vocab);
+        try testing.expectError(error.StatementMismatch, verifyRequest(a, pc, key, &desc, pr, trs[1].y, reqs[1].st, &batch.requests[1], &batch.shared, 1));
+        const yy = try a.dupe(u32, trs[1].y);
+        defer a.free(yy);
+        yy[yy.len - 1] = (yy[yy.len - 1] + 1) % (@as(u32, 1) << cfg.log_vocab);
+        try testing.expectError(error.StatementMismatch, verifyRequest(a, pc, key, &desc, trs[1].prompt, yy, reqs[1].st, &batch.requests[1], &batch.shared, 1));
     }
 }
 
@@ -909,15 +1178,14 @@ test "model with per-expert MoE layout (stacked_experts = false) still proves pe
         a.free(sw.wdata);
         a.free(sw.winfos);
     }
-    var b = tf.Builder.init(a, &pool);
-    defer b.deinit();
-    const x = try model.randomInput(a, @as(usize, 1) << @intCast(cfg.log_t + cfg.log_d), 78);
-    defer a.free(x);
-    _ = try buildModel(&b, cfg, &sw.ws, 3, x, null);
-    const wv = try b.witnessView(a);
+    var desc = try ModelDesc.synthetic(a, cfg, 3);
+    defer desc.deinit(a);
+    var rq = try TestRequest.init(a, &pool, &desc, &sw.ws, 78);
+    defer rq.deinit(a);
+    const wv = try rq.b.witnessView(a);
     defer a.free(wv);
-    const reqs = [_]serve.Request{.{ .st = b.statement(), .witness = wv, .salt = serve.testSalt(6) }};
+    const reqs = [_]serve.Request{.{ .st = rq.b.statement(), .witness = wv, .salt = serve.testSalt(6) }};
     var batch = try serve.proveRequests(a, &pool, pc, &sw.ws, &reqs, null);
     defer batch.deinit(a);
-    try serve.verifyRequest(a, pc, reqs[0].st, proto.weightKey(&sw.ws), &batch.requests[0], &batch.shared, 0);
+    try verifyRequest(a, pc, proto.weightKey(&sw.ws), &desc, rq.prompt, rq.y, reqs[0].st, &batch.requests[0], &batch.shared, 0);
 }

@@ -361,6 +361,11 @@ pub const Builder = struct {
     // --- core ops (weights) -------------------------------------------------
 
     pub fn matmul(self: *Builder, ws: *const proto.WeightStore, x: u32, w: u32) !u32 {
+        return self.matmulShift(ws, x, w, null);
+    }
+
+    /// As `matmul`, with a fixed requant shift (null: chosen from the data).
+    pub fn matmulShift(self: *Builder, ws: *const proto.WeightStore, x: u32, w: u32, shift: ?u5) !u32 {
         const xi = self.infos.items[x];
         const n_y = @as(usize, 1) << @intCast(xi.log_dims[0] + ws.infos[w].log_dims[1]);
         const acc = if (self.shape_only) blk: {
@@ -371,7 +376,9 @@ pub const Builder = struct {
             try proto.matmulAcc(self.a, self.pool, xi, self.wit.items[x], ws.matrix(w));
         var acc_owned = true;
         defer if (acc_owned) self.a.free(acc);
-        const s = try self.nextShift(if (self.replaying()) 0 else model.chooseShift(acc));
+        // a fixed shift is part of the code-level model definition (e.g. the
+        // embedding gather's rq_1): never recorded in or read from a shift plan
+        const s = if (shift) |fs| fs else try self.nextShift(if (self.replaying()) 0 else model.chooseShift(acc));
         const y = try self.a.alloc(i32, acc.len);
         for (acc, y) |v, *o| o.* = proto.requant(v, s);
         self.checkInt8(y) catch |e| {

@@ -644,6 +644,8 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
 
     // --- offline: commit the weights, weight key proof
     var t0 = now();
+    var desc = try t.lm.ModelDesc.synthetic(a, cfg, 7);
+    defer desc.deinit(a);
     var sw = try t.lm.setupWeights(a, &pool, cfg, pc, 100 + seed);
     const commit_s = secs(t0);
     for (sw.wdata) |w| a.free(w); // the store keeps its own table
@@ -654,9 +656,9 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const calib: usize = @intCast(try kv.get("calib", 1));
     t0 = now();
     if (le > 0 and calib > 0) {
-        const xc = try model.randomInput(a, @as(usize, 1) << @intCast(lt + ld), 999_999);
+        const xc = try t.lm.randomTokens(a, @as(usize, 1) << @intCast(lt), @as(usize, 1) << @intCast(cfg.log_vocab), 999_999);
         defer a.free(xc);
-        try t.lm.calibrateRouters(a, &pool, cfg, &sw.ws, xc, calib);
+        try t.lm.calibrateRouters(a, &pool, &desc, &sw.ws, xc, calib);
         try t.lm.recommit(a, &pool, pc, &sw.ws);
     }
     const calib_s = secs(t0);
@@ -697,15 +699,16 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var n_ext: usize = 0;
     const tokens = try a.alloc(u32, R << @intCast(cfg.log_out));
     defer a.free(tokens);
-    const D = @as(usize, 1) << @intCast(ld);
     const T = @as(usize, 1) << @intCast(lt);
     const t_all = now();
     for (0..R) |j| {
         builders[j] = tf.Builder.init(a, &pool);
         n_built += 1;
         const b = &builders[j];
-        // the window's embedding rows (public input; int8)
-        const x = try model.randomInput(a, T * D, 1000 * seed + j);
+        // the window's tokens (public; X = Emb[window] is proved from the
+        // committed Emb). Random windows: the bench measures cost, so the
+        // output is the window's greedy tokens, not a decoded continuation.
+        const x = try t.lm.randomTokens(a, T, @as(usize, 1) << @intCast(cfg.log_vocab), 1000 * seed + j);
         defer a.free(x);
         // The expert capacity is a per-request statement parameter. cap=0
         // (default): the smallest power of two holding the request's largest
@@ -713,25 +716,30 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
         // serving prover knows the routing after its forward pass anyway).
         // cap=c > 0: fixed, refit only on overflow.
         var rcfg = cfg;
+        var rdesc = desc;
         if (cap_arg == 0 and le > 0) {
             rcfg.log_capacity = lt;
+            rdesc.cfg = rcfg;
             var probe = tf.Builder.init(a, &pool);
             defer probe.deinit();
-            const full = try t.lm.buildModel(&probe, rcfg, &sw.ws, 7, x, null);
+            const full = try t.lm.buildModel(&probe, &rdesc, &sw.ws, x, null);
             rcfg.log_capacity = t.lm.fitCapacity(full.max_expert_load);
         }
+        rdesc.cfg = rcfg;
         t0 = now();
-        const mo = t.lm.buildModel(b, rcfg, &sw.ws, 7, x, null) catch |e| blk: {
+        const mo = t.lm.buildModel(b, &rdesc, &sw.ws, x, null) catch |e| blk: {
             if (e != error.CapacityExceeded) return e;
             b.deinit();
             builders[j] = tf.Builder.init(a, &pool);
             rcfg.log_capacity = lt;
-            const full = try t.lm.buildModel(b, rcfg, &sw.ws, 7, x, null);
+            rdesc.cfg = rcfg;
+            const full = try t.lm.buildModel(b, &rdesc, &sw.ws, x, null);
             rcfg.log_capacity = t.lm.fitCapacity(full.max_expert_load);
+            rdesc.cfg = rcfg;
             b.deinit();
             builders[j] = tf.Builder.init(a, &pool);
             t0 = now();
-            break :blk try t.lm.buildModel(b, rcfg, &sw.ws, 7, x, null);
+            break :blk try t.lm.buildModel(b, &rdesc, &sw.ws, x, null);
         };
         forward_ns += now().since(t0);
         max_load = @max(max_load, mo.max_expert_load);
@@ -742,7 +750,8 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
         defer a.free(wv);
         var tm: proto.Timings = .{};
         t0 = now();
-        try bp.add(.{ .st = stmts[j], .witness = wv, .salt = t.serve.testSalt(seed * 1000 + j) }, &tm);
+        // salt: default (secret, from std.crypto.random)
+        try bp.add(.{ .st = stmts[j], .witness = wv }, &tm);
         prove_ns += now().since(t0);
         if (j == 0) tm_first = tm;
         inline for (@typeInfo(proto.Timings).@"struct".fields) |fld| {
