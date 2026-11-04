@@ -80,14 +80,19 @@ TOY_CONFIGS = {
     # name: (queries, log_blowup, pow_bits, extra pcs2 args)
     "proven128": (160, 2, 20, [2, 160, 2, 20, 2]),  # unique decoding, rate 1/4: 160 * 0.678 + 20 = 128.5 bits; pcs2 depth 2
     "conj128": (54, 2, 20, [2, 54]),                # up-to-capacity conjecture, rate 1/4: 54 * 2 + 20 = 128 bits; pcs2 depth 2
+    # Johnson regime with OOD samples, 2 proximity rows, deep levels at rate 1/8 (security.md): ~113.5 / 96.8 bits all rounds
+    "johnson": (122, 2, 20, [2, 76, 3, 20, 2, 2]),
 }
+CONFIG_ENV = {"johnson": {"TENSOR_OOD": "1", "TENSOR_DEEP": "76,3,20"}}
 os.environ["TENSOR_BATCH_MATMULS"] = "1"
 os.environ.setdefault("TENSOR_PROVE_REPS", "3")
 
 
-def run_one(binary, args, gb, label):
+def run_one(binary, args, gb, label, env=None):
     cmd = [MEMGUARD, "run", "--gb", str(gb), "--label", label, "--", binary] + [str(a) for a in args]
-    p = subprocess.run(cmd, capture_output=True, text=True)
+    e = dict(os.environ)
+    e.update(env or {})
+    p = subprocess.run(cmd, capture_output=True, text=True, env=e)
     for line in p.stdout.splitlines():
         if line.startswith("{"):
             return json.loads(line)
@@ -111,22 +116,28 @@ def cmd_run(ns):
     if "toy" in suites:
         for name, (q, lb, pw, ex) in TOY_CONFIGS.items():
             for L in (16, 18, 20, 22):
-                emit(f"toy-{name}-L{L}-1t", run_one(ns.bin, ["product", L, 1, q, lb, pw] + ex, 6, "cmp-toy"))
-            emit(f"toy-{name}-L20-12t", run_one(ns.bin, ["product", 20, 12, q, lb, pw] + ex, 6, "cmp-toy"))
+                emit(f"toy-{name}-L{L}-1t", run_one(ns.bin, ["product", L, 1, q, lb, pw] + ex, 6, "cmp-toy", CONFIG_ENV.get(name)))
+            emit(f"toy-{name}-L20-12t", run_one(ns.bin, ["product", 20, 12, q, lb, pw] + ex, 6, "cmp-toy", CONFIG_ENV.get(name)))
     if "zk" in suites:
         for L in (16, 18, 20, 22):
             emit(f"zktoy-hiding-L{L}-1t", run_one(ns.bin, ["product", L, 1, 56, 2, 20, "zk"], 6, "cmp-zk"))
         for lt in (8, 9, 10):
             os.environ["ZK_WEIGHT_LB"] = "3"
             emit(f"zkmlp-hiding-t{lt}", run_one(ns.bin, ["mlp", lt, 12, 13, 12, 64, 2, 20, "zk"], 14, "cmp-zk"))
+    if "metal" in suites:
+        for name in ("conj128", "johnson"):
+            q, lb, pw, ex = TOY_CONFIGS[name]
+            emit(f"metal-mlp-{name}-t10", run_one(ns.bin, ["mlp", 10, 12, 13, 12, q, lb, pw] + ex + ["--metal"], 10, "cmp-metal", CONFIG_ENV.get(name)))
+            emit(f"metal-layer-{name}-t10", run_one(ns.bin, ["layer", 10, 11, 12, 4, 12, q, lb, pw, 2, 1, 0, 10, 1] + ex + ["--metal"], 12, "cmp-metal", CONFIG_ENV.get(name)))
+            emit(f"metal-toy-{name}-L22", run_one(ns.bin, ["product", 22, 12, q, lb, pw] + ex + ["--metal"], 6, "cmp-metal", CONFIG_ENV.get(name)))
     if "mlp" in suites:
         for name, (q, lb, pw, ex) in TOY_CONFIGS.items():
             for lt in (8, 9, 10, 11):
-                emit(f"mlp-{name}-t{lt}", run_one(ns.bin, ["mlp", lt, 12, 13, 12, q, lb, pw] + ex, 10 if lt < 11 else 14, "cmp-mlp"))
+                emit(f"mlp-{name}-t{lt}", run_one(ns.bin, ["mlp", lt, 12, 13, 12, q, lb, pw] + ex, 10 if lt < 11 else 14, "cmp-mlp", CONFIG_ENV.get(name)))
     if "layer" in suites:
         for name, (q, lb, pw, ex) in TOY_CONFIGS.items():
             for lt in (9, 10):
-                emit(f"layer-{name}-t{lt}", run_one(ns.bin, ["layer", lt, 11, 12, 4, 12, q, lb, pw, 2, 1, 0, lt, 1] + ex, 12, "cmp-layer"))
+                emit(f"layer-{name}-t{lt}", run_one(ns.bin, ["layer", lt, 11, 12, 4, 12, q, lb, pw, 2, 1, 0, lt, 1] + ex, 12, "cmp-layer", CONFIG_ENV.get(name)))
 
 
 def fmt_bytes(b):
