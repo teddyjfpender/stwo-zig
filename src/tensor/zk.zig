@@ -256,6 +256,9 @@ fn opShift(op: proto.Op) u5 {
 }
 
 fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Config) !Plan {
+    // wide core-matmul outputs (out_bits != 8) are not in the hiding
+    // protocol yet: refuse rather than prove a weaker relation
+    for (st.ops) |op| if (op == .matmul and op.matmul.out_bits != 8) return error.Unsupported;
     var inf1: std.ArrayList(TensorInfo) = .empty;
     var inf2: std.ArrayList(TensorInfo) = .empty;
     const nw: u32 = @intCast(st.witness.len);

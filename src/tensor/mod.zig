@@ -89,4 +89,5 @@ test {
     _ = @import("review_kern_test.zig");
     _ = @import("review_proto3_pcs4_test.zig");
     _ = @import("security_regress_test.zig");
+    _ = @import("wide_test.zig");
 }

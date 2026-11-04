@@ -59,6 +59,20 @@ pub fn chooseShiftBits(acc: []const i64, ob: u5) !u5 {
     return error.RequantOverflow;
 }
 
+/// model.chooseShift generalised to `bits`: smallest s >= 1 with
+/// |acc| <= (2^(bits-1) - 1) 2^s - 2^(s-1) (symmetric range; bits = 8 is
+/// exactly model.chooseShift).
+pub fn chooseShiftSym(acc: []const i64, bits: u5) u5 {
+    var mx: i64 = 0;
+    for (acc) |v| mx = @max(mx, @as(i64, @intCast(@abs(v))));
+    const top = (@as(i64, 1) << (bits - 1)) - 1;
+    var s: u5 = 1;
+    while (s < 30) : (s += 1) {
+        if (mx <= (top << s) - (@as(i64, 1) << (s - 1))) break;
+    }
+    return s;
+}
+
 /// requant with s = 0 meaning identity.
 pub fn rq(v: i64, s: u5) i64 {
     return if (s == 0) v else proto.requant(v, s);
@@ -167,8 +181,14 @@ pub const Builder = struct {
     /// Replay mode, not shape-only: error.RequantOverflow unless every
     /// value is int8 (the input is outside the calibrated model).
     pub fn checkInt8(self: *const Builder, y: []const i32) !void {
+        return self.checkBits(y, 8);
+    }
+
+    /// As checkInt8 for a signed `bits`-wide range [-2^(bits-1), 2^(bits-1)).
+    pub fn checkBits(self: *const Builder, y: []const i32, bits: u5) !void {
         if (self.shape_only or !self.replaying()) return;
-        for (y) |v| if (v < -128 or v > 127) return error.RequantOverflow;
+        const lim = @as(i32, 1) << (bits - 1);
+        for (y) |v| if (v < -lim or v >= lim) return error.RequantOverflow;
     }
 
     /// Appends a core op; takes ownership of `acc` (kept if keep_accs).
@@ -368,17 +388,22 @@ pub const Builder = struct {
     /// xs = round(x / 2^s) = floor((x + 2^(s-1)) / 2^s) as a committed int8
     /// tensor: remainder key x + 2^(s-1) - 2^s xs in [0, 2^s) and xs range.
     pub fn requantLinear(self: *Builder, x: u32, s: u5) !u32 {
+        return self.requantLinearBits(x, s, 8);
+    }
+
+    /// As requantLinear with a signed `bits`-wide output (8 = int8).
+    pub fn requantLinearBits(self: *Builder, x: u32, s: u5, bits: u5) !u32 {
         const info = self.infos.items[x];
         const n = info.logSize();
         const xs = try self.a.alloc(i32, info.size());
         for (self.wit.items[x], xs) |v, *o| o.* = proto.requant(v, s);
-        self.checkInt8(xs) catch |e| {
+        self.checkBits(xs, bits) catch |e| {
             self.a.free(xs);
             return e;
         };
         const id = try self.add(info, xs);
         try self.key(n, try self.expr(&.{ term(1, Ref.w(x), &.{ids(0, n)}), term(-(@as(i64, 1) << s), Ref.w(id), &.{ids(0, n)}) }, @as(i64, 1) << (s - 1)), null, .{ .range = s });
-        try self.rangeSigned(id, 8);
+        try self.rangeSigned(id, bits);
         return id;
     }
 
@@ -390,6 +415,13 @@ pub const Builder = struct {
 
     /// As `matmul`, with a fixed requant shift (null: chosen from the data).
     pub fn matmulShift(self: *Builder, ws: *const proto.WeightStore, x: u32, w: u32, shift: ?u5) !u32 {
+        return self.matmulBits(ws, x, w, shift, 8);
+    }
+
+    /// Core matmul with a signed `out_bits`-wide output (8 = the int8 op;
+    /// 9..16: proto Op.matmul.out_bits, a 2^out_bits range key on Y).
+    /// Data-chosen shifts use chooseShiftSym(acc, out_bits).
+    pub fn matmulBits(self: *Builder, ws: *const proto.WeightStore, x: u32, w: u32, shift: ?u5, out_bits: u5) !u32 {
         const xi = self.infos.items[x];
         const n_y = @as(usize, 1) << @intCast(xi.log_dims[0] + ws.infos[w].log_dims[1]);
         const acc = if (self.shape_only) blk: {
@@ -402,16 +434,16 @@ pub const Builder = struct {
         defer if (acc_owned) self.a.free(acc);
         // a fixed shift is part of the code-level model definition (e.g. the
         // embedding gather's rq_1): never recorded in or read from a shift plan
-        const s = if (shift) |fs| fs else try self.nextShift(if (self.replaying()) 0 else model.chooseShift(acc));
+        const s = if (shift) |fs| fs else try self.nextShift(if (self.replaying()) 0 else chooseShiftSym(acc, out_bits));
         const y = try self.a.alloc(i32, acc.len);
         for (acc, y) |v, *o| o.* = proto.requant(v, s);
-        self.checkInt8(y) catch |e| {
+        self.checkBits(y, out_bits) catch |e| {
             self.a.free(y);
             return e;
         };
         const id = try self.add(TensorInfo.mat(xi.log_dims[0], ws.infos[w].log_dims[1]), y);
         acc_owned = false;
-        try self.pushOp(.{ .matmul = .{ .x = x, .w = w, .y = id, .shift = s } }, acc);
+        try self.pushOp(.{ .matmul = .{ .x = x, .w = w, .y = id, .shift = s, .out_bits = out_bits } }, acc);
         return id;
     }
 
@@ -477,8 +509,32 @@ pub const LayerCfg = struct {
     /// int8 score; a trained model's logits need ~13 bits (accuracy.md).
     /// Masked bias 2^sb + 256 and exp-table domain 2^(sb+2) follow from it.
     score_bits: u32 = 8,
+    /// activation width A (accuracy.md "Wide activations"): RMSNorm input
+    /// view xs and output y, the q / k / v / gate / up projections, the
+    /// SiLU table domain (2^A entries, input scale 2^-(A-4)), the gated
+    /// hadamard and the attention output O are signed A-bit; RoPE outputs
+    /// A + 1 bits. 8 (default) is the original int8 model, unchanged.
+    act_bits: u32 = 8,
+    /// residual width R: the embedding (two int8 limbs above 8 bits, lm.zig)
+    /// and the residual increments o Wo, hm Wd are signed R-bit.
+    resid_bits: u32 = 8,
     /// RMSNorm reciprocal precision: inv = floor(2^INV_BITS / rt)
     pub const INV_BITS = 15;
+    /// act_bits > 8: inv = floor(2^INV_BITS_WIDE / rt) with rt >= 64 (eps)
+    pub const INV_BITS_WIDE = 21;
+    /// act_bits > 8: u = rq(xs inv, U_SHIFT_WIDE)
+    pub const U_SHIFT_WIDE = 10;
+
+    pub fn actBits(self: LayerCfg) u5 {
+        return @intCast(self.act_bits);
+    }
+    pub fn residBits(self: LayerCfg) u5 {
+        return @intCast(self.resid_bits);
+    }
+    /// SiLU table: 2^A entries over input g in [-2^(A-1), 2^(A-1)) at scale 2^-(A-4)
+    pub fn siluFrac(self: LayerCfg) u5 {
+        return @intCast(self.act_bits - 4);
+    }
 
     /// causal mask bias: any masked D = m - S + bias is >= 256 (e = 0)
     pub fn maskBias(self: LayerCfg) i32 {
@@ -551,6 +607,14 @@ pub const LayerCfg = struct {
         if (self.isMoe() and (self.log_experts > 6 or self.log_capacity > self.log_t)) return error.BadConfig;
         // exp-table domain 2^(sb+2) <= 2^16 (one LogUp table); sel * D sums stay < 2^(lt+16)
         if (self.score_bits < 8 or self.score_bits > 14) return error.BadConfig;
+        // A-bit tables (SiLU 2^A, RoPE out A + 1 bits) stay <= 2^16 entries;
+        // R-bit increments: shift + R <= 30 (bounds.zig re-derives every
+        // accumulator bound from the statement, so wider widths that could
+        // wrap are rejected there regardless)
+        if (self.act_bits < 8 or self.act_bits > 14) return error.BadConfig;
+        if (self.resid_bits < 8 or self.resid_bits > 16) return error.BadConfig;
+        // wide widths are implemented for dense layers only
+        if (self.isMoe() and (self.act_bits != 8 or self.resid_bits != 8)) return error.BadConfig;
     }
 };
 
@@ -630,6 +694,8 @@ pub const Ctx = struct {
     silu: u32,
     gammas: []u32, // 2 per layer
     tri: u32 = 0, // MoE tie-break triangle (public)
+    /// act_bits > 8: SiLU as an ext lookup table over 2^A entries
+    silu_x: ?u32 = null,
     /// test-only: route ties to the LAST maximiser (must be rejected)
     test_last_argmax: bool = false,
 };
@@ -676,7 +742,52 @@ pub fn initCtxPublics(b: *Builder, cfg: LayerCfg, ws: *const proto.WeightStore, 
         };
         tri = try b.public(2 * cfg.log_experts, tv);
     }
-    return .{ .cfg = cfg, .ws = ws, .rope = rope_id, .bias = bias, .exp_table = exp_table, .silu = silu, .gammas = gammas, .tri = tri };
+    var silu_x: ?u32 = null;
+    if (cfg.act_bits > 8) {
+        const st = try siluTableWide(b.a, cfg.actBits(), cfg.siluFrac());
+        defer b.a.free(st);
+        silu_x = try b.xtable(cfg.actBits(), st);
+    }
+    return .{ .cfg = cfg, .ws = ws, .rope = rope_id, .bias = bias, .exp_table = exp_table, .silu = silu, .gammas = gammas, .tri = tri, .silu_x = silu_x };
+}
+
+/// SiLU over g in [-2^(bits-1), 2^(bits-1)) at input / output scale
+/// 2^-frac, indexed by g + 2^(bits-1); round half away from zero, clamped to
+/// the signed bits-wide range (bits = 8, frac = 4 is model.siluTable).
+pub fn siluTableWide(a: std.mem.Allocator, bits: u5, frac: u5) ![]i32 {
+    const n = @as(usize, 1) << bits;
+    const half: i32 = @intCast(n / 2);
+    const t = try a.alloc(i32, n);
+    const sc: f64 = @floatFromInt(@as(u32, 1) << frac);
+    for (t, 0..) |*o, i| {
+        const v: f64 = @as(f64, @floatFromInt(@as(i32, @intCast(i)) - half)) / sc;
+        const sv = v / (1.0 + @exp(-v));
+        const q: i32 = @intFromFloat(@round(sv * sc));
+        o.* = std.math.clamp(q, -half, half - 1);
+    }
+    return t;
+}
+
+/// RMSNorm parameters (transformer.md 4; accuracy.md "Wide activations").
+/// rt = isqrt(((ss + ceps) << m1) >> s1), inv = floor(2^k / rt),
+/// u = rq(xs inv, us). act_bits = 8: the original constants. act_bits > 8:
+/// s1 - m1 = ld + 2 A - 27 keeps rt < 2^13 for |xs| <= 2^(A-1) (so rt * rt
+/// and inv * rt stay below 2^29), and ceps = 2^(12 + s1 - m1) forces
+/// rt >= 64 (an eps), so inv <= 2^(k-6) = 2^15 fits its 16-bit range.
+pub const RmsParams = struct { s1: u5, m1: u5, ceps: i64, k: u5, us: u5, a: u5 };
+
+pub fn rmsParams(cfg: LayerCfg) RmsParams {
+    const ld: i32 = @intCast(cfg.log_d);
+    if (cfg.act_bits == 8) {
+        const s1: u5 = if (ld >= 8) @intCast(ld - 8) else 0;
+        const m1: u5 = if (ld < 8) @intCast(8 - ld) else 0;
+        return .{ .s1 = s1, .m1 = m1, .ceps = @as(i64, 1) << s1, .k = LayerCfg.INV_BITS, .us = 6, .a = 8 };
+    }
+    const A: i32 = @intCast(cfg.act_bits);
+    const d = ld + 2 * A - 27;
+    const s1: u5 = if (d >= 0) @intCast(d) else 0;
+    const m1: u5 = if (d < 0) @intCast(-d) else 0;
+    return .{ .s1 = s1, .m1 = m1, .ceps = @as(i64, 1) << @intCast(12 + @as(i32, s1) - @as(i32, m1)), .k = LayerCfg.INV_BITS_WIDE, .us = LayerCfg.U_SHIFT_WIDE, .a = cfg.actBits() };
 }
 
 // ---------------------------------------------------------------------------
@@ -691,25 +802,28 @@ pub fn rmsnorm(b: *Builder, c: Ctx, x: u32, gamma: u32, x_int8: bool) !RmsOut {
     const lt = c.cfg.log_t;
     const ld = c.cfg.log_d;
     const n = lt + ld;
-    // xs: int8 view of x
+    const rp = rmsParams(c.cfg);
+    const A = rp.a;
+    const lim = @as(i64, 1) << (A - 1);
+    // xs: signed A-bit view of x (A = 8: int8)
     var xs = x;
     if (x_int8) {
-        try b.rangeSigned(x, 8);
+        try b.rangeSigned(x, A);
     } else {
         var s0: u5 = 0;
         if (!b.replaying()) for (b.wit.items[x]) |v| {
-            while (rq(v, s0) < -128 or rq(v, s0) > 127) s0 += 1;
+            while (rq(v, s0) < -lim or rq(v, s0) >= lim) s0 += 1;
         };
         s0 = try b.nextShift(s0);
-        if (s0 == 0) try b.rangeSigned(x, 8) else xs = try b.requantLinear(x, s0);
+        if (s0 == 0) try b.rangeSigned(x, A) else xs = try b.requantLinearBits(x, s0, A);
     }
     const xr = Ref.w(xs);
     // ss[t] = sum_d xs^2
     const ss = (try b.einsumExact(TensorInfo.vec(lt), lt, xr, xr, ld, &.{ids(0, n)}, &.{ids(0, n)})).?;
     // rt = max{r >= 0 : r^2 2^s1 <= (ss + c) 2^m1}
-    const s1: u5 = if (ld >= 8) @intCast(ld - 8) else 0;
-    const m1: u5 = if (ld < 8) @intCast(8 - ld) else 0;
-    const ceps: i64 = @as(i64, 1) << s1;
+    const s1 = rp.s1;
+    const m1 = rp.m1;
+    const ceps: i64 = rp.ceps;
     const T = @as(usize, 1) << @intCast(lt);
     const rt = try b.a.alloc(i32, T);
     for (b.wit.items[ss], rt) |v, *o| {
@@ -717,7 +831,7 @@ pub fn rmsnorm(b: *Builder, c: Ctx, x: u32, gamma: u32, x_int8: bool) !RmsOut {
         o.* = @intCast(std.math.sqrt(N >> s1));
     }
     const rt_id = try b.addVec(lt, rt);
-    const nmax: u64 = @intCast(((@as(i64, 1) << @intCast(ld + 14)) + ceps) << m1);
+    const nmax: u64 = @intCast(((@as(i64, 1) << @intCast(ld + 2 * (@as(u32, A) - 1))) + ceps) << m1);
     const rtmax = std.math.sqrt(nmax >> s1);
     // rt in [0, 2^rt_bits) with 2^s1 * rt^2 < 2^30: rt2 = rt * rt cannot wrap mod p
     const rt_bits: u32 = std.math.log2_int_ceil(u64, rtmax + 1);
@@ -733,7 +847,7 @@ pub fn rmsnorm(b: *Builder, c: Ctx, x: u32, gamma: u32, x_int8: bool) !RmsOut {
     // upper: 2^s1 (rt2 + 2 rt + 1) - 1 - (ss + c) 2^m1 >= 0
     try b.rangeWide(lt, try b.expr(&.{ term(p_s1, Ref.w(rt2), &.{tl}), term(2 * p_s1, Ref.w(rt_id), &.{tl}), term(-p_m1, Ref.w(ss), &.{tl}) }, p_s1 - 1 - ceps * p_m1), gap_bits);
     // inv = floor(2^K / rt)
-    const K = LayerCfg.INV_BITS;
+    const K = rp.k;
     const inv = try b.a.alloc(i32, T);
     for (rt, inv) |r, *o| o.* = @divFloor(@as(i32, 1) << K, r);
     const inv_id = try b.addVec(lt, inv);
@@ -742,9 +856,9 @@ pub fn rmsnorm(b: *Builder, c: Ctx, x: u32, gamma: u32, x_int8: bool) !RmsOut {
     // 2^K - pr in [0, rt): 2^K - pr >= 0 and rt - 1 - 2^K + pr >= 0
     try b.rangeWide(lt, try b.expr(&.{term(-1, Ref.w(pr), &.{tl})}, @as(i64, 1) << K), 16);
     try b.rangeWide(lt, try b.expr(&.{ term(1, Ref.w(rt_id), &.{tl}), term(1, Ref.w(pr), &.{tl}) }, -1 - (@as(i64, 1) << K)), 16);
-    // u = requant_6(xs * inv) (16-bit), y = requant(u * gamma) (int8)
-    const u = try b.einsumRequant(TensorInfo.mat(lt, ld), xr, Ref.w(inv_id), 0, &.{ids(0, n)}, &.{tl}, 6, 16);
-    const y = try b.einsumRequant(TensorInfo.mat(lt, ld), Ref.w(u), Ref.p(gamma), 0, &.{ids(0, n)}, &.{ids(lt, ld)}, null, 8);
+    // u = requant_us(xs * inv) (16-bit), y = requant(u * gamma) (A-bit)
+    const u = try b.einsumRequant(TensorInfo.mat(lt, ld), xr, Ref.w(inv_id), 0, &.{ids(0, n)}, &.{tl}, rp.us, 16);
+    const y = try b.einsumRequant(TensorInfo.mat(lt, ld), Ref.w(u), Ref.p(gamma), 0, &.{ids(0, n)}, &.{ids(lt, ld)}, null, A);
     return .{ .y = y, .xs = xs, .ss = ss, .rt = rt_id, .inv = inv_id, .u = u };
 }
 
@@ -763,7 +877,7 @@ pub fn rope(b: *Builder, c: Ctx, x: u32, log_heads: u32, colfix: []const u8) !u3
         &.{ ids(0, lt), colfix, ids(lt, log_heads), i_vars, ids(n_out, 1) },
         &.{ ids(0, lt), i_vars, ids(n_out - 1, 1), ids(n_out, 1) },
         7,
-        9,
+        c.cfg.actBits() + 1,
     );
 }
 
@@ -879,7 +993,7 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8
         o.* = @intCast(@divFloor(2 * @as(i64, x) + dn, 2 * dn));
     }
     const O = try b.add(TensorInfo.mat(lt, lh + ldh), ov);
-    try b.rangeSigned(O, 8);
+    try b.rangeSigned(O, cfg.actBits());
     const all_o = ids(0, n_o);
     const den_lab = cat(&.{ ids(lt, lh), ids(0, lt) });
     const od = (try b.einsumExact(TensorInfo.mat(lt, lh + ldh), n_o, Ref.w(O), Ref.w(den_id), 0, &.{all_o}, &.{den_lab[0..n2]})).?;
@@ -1086,12 +1200,47 @@ pub fn decoderLayerAt(b: *Builder, c: Ctx, layer: u32, wb: u32, x: u32, x_int8: 
         const mo = try moe(b, c, wb, r2.y);
         return .{ .out = try residual(b, h, mo.out), .h = h, .attn = at, .rms1 = r1, .rms2 = r2, .q = q, .qr = qr, .moe = mo };
     }
-    const g = try b.matmul(c.ws, r2.y, wb + cfg.wGate());
-    const u = try b.matmul(c.ws, r2.y, wb + cfg.wUp());
-    const act = try b.lookup(g, c.silu);
-    const hm = try b.hadamard(act, u);
-    const mo = try b.matmul(c.ws, hm, wb + cfg.wDown());
+    const mo = try denseMlp(b, c, wb, r2.y);
     return .{ .out = try residual(b, h, mo), .h = h, .attn = at, .rms1 = r1, .rms2 = r2, .q = q, .qr = qr };
+}
+
+/// Dense SwiGLU MLP on y [T, D]: rq(SiLU(y Wg) (.) (y Wu)) Wd. int8
+/// (act_bits = 8): core matmuls, core lookup and hadamard, as before. Wide:
+/// A-bit gate / up / hadamard outputs, the SiLU as an ext lookup over 2^A
+/// entries (its key also range-checks g), the hadamard as a requant einsum
+/// (A-bit, symmetric data-chosen shift) and an R-bit down projection.
+pub fn denseMlp(b: *Builder, c: Ctx, wb: u32, y: u32) !u32 {
+    const cfg = c.cfg;
+    if (cfg.act_bits == 8) {
+        const g = try b.matmul(c.ws, y, wb + cfg.wGate());
+        const u = try b.matmul(c.ws, y, wb + cfg.wUp());
+        const act = try b.lookup(g, c.silu);
+        const hm = try b.hadamard(act, u);
+        return b.matmulBits(c.ws, hm, wb + cfg.wDown(), null, cfg.residBits());
+    }
+    const A = cfg.actBits();
+    const g = try b.matmulBits(c.ws, y, wb + cfg.wGate(), null, A);
+    const u = try b.matmulBits(c.ws, y, wb + cfg.wUp(), null, A);
+    const n = b.infos.items[g].logSize();
+    const half = @as(i64, 1) << (A - 1);
+    const tab = b.xtables.items[c.silu_x.?].values;
+    const av = try b.a.alloc(i32, b.wit.items[g].len);
+    for (b.wit.items[g], av) |v, *o| o.* = tab[@intCast(v + half)];
+    const info = b.infos.items[g];
+    const act = try b.add(info, av);
+    try b.key(n, try b.expr(&.{term(1, Ref.w(g), &.{ids(0, n)})}, half), try b.expr(&.{term(1, Ref.w(act), &.{ids(0, n)})}, 0), .{ .lookup = c.silu_x.? });
+    // hadamard shift: chooseShiftSym(act * u, A) in record mode (the plan's
+    // entry in replay), as model.chooseShift for the int8 core hadamard
+    var sh: u5 = 0;
+    if (!b.replaying()) {
+        const acc = try b.a.alloc(i64, av.len);
+        defer b.a.free(acc);
+        for (av, b.wit.items[u], acc) |p, q, *o| o.* = @as(i64, p) * q;
+        sh = chooseShiftSym(acc, A);
+    }
+    sh = try b.nextShift(sh);
+    const hm = try b.einsumRequant(info, Ref.w(act), Ref.w(u), 0, &.{ids(0, n)}, &.{ids(0, n)}, sh, A);
+    return b.matmulBits(c.ws, hm, wb + cfg.wDown(), null, cfg.residBits());
 }
 
 pub const AttnBlockOut = struct { h: u32, attn: AttnOut, rms1: RmsOut, rms2: RmsOut, q: u32, qr: u32 };
@@ -1113,7 +1262,7 @@ pub fn attnBlock(b: *Builder, c: Ctx, layer: u32, wb: u32, x: u32, x_int8: bool)
     var vfix: []const u8 = &.{};
     if (cfg.fused_qkv) {
         // columns: Q [0, D), K [D, D + Dkv), V [D + Dkv, D + 2 Dkv)
-        const qkv = try b.matmul(c.ws, y1, wb + cfg.wQ());
+        const qkv = try b.matmulBits(c.ws, y1, wb + cfg.wQ(), null, cfg.actBits());
         const D = @as(usize, 1) << @intCast(cfg.log_d);
         const Dkv = @as(usize, 1) << @intCast(cfg.logDkv());
         const lq = cfg.qkvLogCols();
@@ -1124,14 +1273,14 @@ pub fn attnBlock(b: *Builder, c: Ctx, layer: u32, wb: u32, x: u32, x_int8: bool)
         k = qkv;
         v = qkv;
     } else {
-        q = try b.matmul(c.ws, y1, wb + cfg.wQ());
-        k = try b.matmul(c.ws, y1, wb + cfg.wK());
-        v = try b.matmul(c.ws, y1, wb + cfg.wV());
+        q = try b.matmulBits(c.ws, y1, wb + cfg.wQ(), null, cfg.actBits());
+        k = try b.matmulBits(c.ws, y1, wb + cfg.wK(), null, cfg.actBits());
+        v = try b.matmulBits(c.ws, y1, wb + cfg.wV(), null, cfg.actBits());
     }
     const qr = try rope(b, c, q, cfg.log_heads, qfix);
     const kr = try rope(b, c, k, cfg.log_kv_heads, kfix);
     const at = try attention(b, c, qr, kr, v, vfix);
-    const ao = try b.matmul(c.ws, at.o, wb + cfg.wO());
+    const ao = try b.matmulBits(c.ws, at.o, wb + cfg.wO(), null, cfg.residBits());
     const h = try residual(b, x, ao);
     const r2 = try rmsnorm(b, c, h, c.gammas[2 * layer + 1], false);
     return .{ .h = h, .attn = at, .rms1 = r1, .rms2 = r2, .q = q, .qr = qr };
@@ -1175,6 +1324,11 @@ pub const ModelConfig = struct {
         const hdr = [_]u64{ c.log_t, c.log_d, c.log_f, c.log_heads, c.log_kv_heads, c.n_layers, c.log_experts, c.log_capacity, c.router_log_cols, @intFromBool(c.fused_qkv), LayerCfg.INV_BITS, self.ctx_seed, self.shifts.len };
         h.update(std.mem.sliceAsBytes(&hdr));
         if (c.score_bits != 8) h.update(std.mem.asBytes(&@as(u64, c.score_bits)));
+        // widths: tagged, only when not the int8 default (pinned digests keep)
+        if (c.act_bits != 8 or c.resid_bits != 8) {
+            h.update("wide");
+            h.update(std.mem.sliceAsBytes(&[_]u64{ c.act_bits, c.resid_bits }));
+        }
         h.update(std.mem.sliceAsBytes(self.shifts));
         var out: [32]u8 = undefined;
         h.final(&out);

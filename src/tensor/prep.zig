@@ -18,12 +18,16 @@ pub const KeySrc = union(enum) {
     range8: struct { v: []const i32 },
     /// in + 128 in [0, 256) and out == table[in + 128]
     lookup: struct { in: []const i32, out: []const i32, table: *const [256]i8 },
+    /// v + off in [0, mult.len) (wide core-matmul outputs: off = 2^(ob-1),
+    /// mult.len = 2^ob)
+    range_off: struct { v: []const i32, off: i64 },
 
     fn len(self: KeySrc) usize {
         return switch (self) {
             .remainder => |r| r.y.len,
             .range8 => |r| r.v.len,
             .lookup => |l| l.in.len,
+            .range_off => |r| r.v.len,
         };
     }
 };
@@ -54,6 +58,14 @@ fn countRange(src: KeySrc, hist: []i32, s: usize, e: usize) CountError!void {
             if (v < 0 or v >= 256) return error.ValueOutOfRange;
             if (l.table[@intCast(v)] != l.out[i]) return error.LookupMismatch;
             hist[@intCast(v)] += 1;
+        },
+        .range_off => |r| {
+            const m: i64 = @intCast(hist.len);
+            for (r.v[s..e]) |x| {
+                const v = @as(i64, x) + r.off;
+                if (v < 0 or v >= m) return error.ValueOutOfRange;
+                hist[@intCast(v)] += 1;
+            }
         },
     }
 }
@@ -103,7 +115,7 @@ pub fn denominators(pool: *f.Pool, out: []QM31, src: KeySrc, alpha: QM31, beta: 
             const key = f.qFromI64(@as(i64, @intCast(j)) - 128).add(beta.mul(f.qFromI64(lk.table[j])));
             l.* = alpha.sub(key);
         },
-        .remainder => {},
+        .remainder, .range_off => {},
     }
     const Ctx = struct { out: []QM31, src: KeySrc, alpha: QM31, lut: *const [256]QM31 };
     const ctx = Ctx{ .out = out, .src = src, .alpha = alpha, .lut = &lut };
@@ -129,6 +141,19 @@ pub fn denominators(pool: *f.Pool, out: []QM31, src: KeySrc, alpha: QM31, beta: 
                 },
                 .lookup => |l| for (s..e) |i| {
                     c.out[i] = c.lut[@intCast(l.in[i] + 128)];
+                },
+                .range_off => |r| {
+                    const a0 = if (f.IS_OM31) c.alpha.c0.c0.a else c.alpha.c0.a;
+                    for (s..e) |i| {
+                        const v: u32 = @intCast(@as(i64, r.v[i]) + r.off);
+                        var q = c.alpha;
+                        if (f.IS_OM31) {
+                            q.c0.c0.a = a0.sub(M31.fromCanonical(v));
+                        } else {
+                            q.c0.a = a0.sub(M31.fromCanonical(v));
+                        }
+                        c.out[i] = q;
+                    }
                 },
             }
         }

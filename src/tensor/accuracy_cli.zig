@@ -94,9 +94,12 @@ pub fn main() !void {
     const raw = try std.fs.cwd().readFileAlloc(a, args[1], 1 << 30);
     defer a.free(raw);
     var r = Reader{ .b = raw };
-    if (!std.mem.eql(u8, try r.bytes(8), "STWOACC1")) return error.BadMagic;
-    var h: [11]u32 = undefined;
-    for (&h) |*v| v.* = try r.u32_();
+    // STWOACC1: int8 activations / residual; STWOACC2 adds act_bits, resid_bits
+    const magic = try r.bytes(8);
+    const v2 = std.mem.eql(u8, magic, "STWOACC2");
+    if (!v2 and !std.mem.eql(u8, magic, "STWOACC1")) return error.BadMagic;
+    var h: [13]u32 = .{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 8 };
+    for (h[0..if (v2) 13 else 11]) |*v| v.* = try r.u32_();
     const cfg = lm.ModelCfg{
         .log_t = h[0],
         .log_d = h[1],
@@ -109,6 +112,8 @@ pub fn main() !void {
         .fused_qkv = h[8] != 0,
         .weight_log_cols = h[9],
         .score_bits = h[10],
+        .act_bits = h[11],
+        .resid_bits = h[12],
     };
     try cfg.validate();
     const n_g = try r.u32_();
@@ -256,6 +261,20 @@ pub fn main() !void {
             bad[0] = (bad[0] + 1) % @as(u32, @intCast(V));
             if (std.meta.isError(lm.verifyRequest(a, &pool, pc, key, &desc, .{ .prompt = x.prompt, .y = bad }, &batch.requests[k], &batch.shared, k))) n_rej += 1;
         }
+        // proof cost: committed witness elements and wire-encoded proof bytes
+        // per request (core proof), shared weight-opening bytes per batch
+        var wit_elems: usize = 0;
+        for (trs.items) |x| for (x.b.statement().witness) |inf| {
+            wit_elems += inf.size();
+        };
+        var enc_bytes: usize = 0;
+        for (batch.requests) |rp| {
+            const pb = try t.wire.encodeProof(a, rp.core);
+            defer a.free(pb);
+            enc_bytes += pb.len + 32;
+        }
+        const n_r = @max(trs.items.len, 1);
+        try out.print(",\"witness_elems_per_request\":{d},\"committed_bits_per_request\":{d},\"request_proof_bytes_mean\":{d},\"shared_opening_bytes\":{d}", .{ wit_elems / n_r, 32 * wit_elems / n_r, enc_bytes / n_r, batch.shared.byteSize() });
         try out.print(",\"proved\":{d},\"verified\":{d},\"wrong_token_rejected\":{d},\"prove_batch_s\":{d:.3},\"verify_total_s\":{d:.3},\"tokens\":[", .{ trs.items.len, n_ver, n_rej, prove_s, ver_s });
         for (trs.items, 0..) |x, k| try out.print("{s}{d}", .{ if (k == 0) "" else ",", x.y[0] });
         try out.print("]", .{});
