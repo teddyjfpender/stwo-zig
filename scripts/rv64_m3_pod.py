@@ -459,8 +459,8 @@ def main():
     b = sub.add_parser("build")
     b.add_argument("--stream", default="infra")
     b.add_argument("--only", choices=("zig", "cuda"))
-    b.add_argument("--catalogues", default=str(M3 / "catalogues-v2"),
-                   help="AOT catalogue root (v2 = frozen catalogue with generator-regenerated grouped core roles 43/44)")
+    b.add_argument("--catalogues", default=str(M3 / "catalogues-v3"),
+                   help="AOT catalogue root (v3 = v2 with the global catalogue regenerated at the integrate head: public-boundary projection guard log<=23)")
     b.add_argument("--jobs", type=int, default=32)
     b.add_argument("--max-stack-bytes", type=int, default=12544, help="Worst per-thread kernel stack admitted (accepted image: 12544)")
     sub.add_parser("inputs")
