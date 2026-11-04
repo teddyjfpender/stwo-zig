@@ -21,4 +21,12 @@ extern "C" int
 stwo_rv64_trace_open_on(void *, uint32_t,
                         const stwo::cuda::blake2s::MixedSegment *, uint32_t,
                         const StwoRv64TraceOpen *);
+// Streaming opening halves (see trace.cu). Values: one live evaluation chunk,
+// job->values already offset to the chunk's first column. Paths: finished tree.
+extern "C" int
+stwo_rv64_trace_open_values_on(void *, uint32_t,
+                               const stwo::cuda::blake2s::MixedSegment *, uint32_t,
+                               const StwoRv64TraceOpen *);
+extern "C" int stwo_rv64_trace_open_paths_on(void *, uint32_t,
+                                             const StwoRv64TraceOpen *);
 #endif

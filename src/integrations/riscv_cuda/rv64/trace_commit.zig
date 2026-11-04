@@ -10,9 +10,26 @@ const A = @import("abi.zig");
 const Native = @import("pcs_native_abi.zig");
 const Service = @import("pcs_native.zig");
 const SC = @import("session_context.zig");
+const StreamPlan = @import("trace_stream_plan.zig");
 const M = D.M;
 const N2b = *const fn ([*]u32, usize, ?*const anyopaque, u32, usize, u32, [*]const u32, u32, u32, *anyopaque, u32, *u32) callconv(.c) c_int;
 const N2bColumns = *const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on);
+const MixedSeeded = *const fn (u32, u32, [*]const A.MixedSegment, u32, u32, ?*const anyopaque, ?*anyopaque, ?*anyopaque, *anyopaque) callconv(.c) c_int;
+const Layer = *const fn (*const anyopaque, u32, *anyopaque, *anyopaque) callconv(.c) c_int;
+const PoolCurrent = *const fn (*anyopaque, *usize, *usize) callconv(.c) c_int;
+const LiveLeases = *const fn (*anyopaque, *[5]u64, *u64) callconv(.c) c_int;
+/// Streaming is the default whenever the loaded image exports the primitives.
+/// STWO_RV64_TRACE_STREAM=0 restores the established full-LDE arena;
+/// STWO_RV64_TRACE_STREAM_CHUNK_WORDS bounds one evaluation chunk. Neither
+/// changes any committed word: the root is schedule-independent.
+fn streamBudget() ?usize {
+    if (std.posix.getenv("STWO_RV64_TRACE_STREAM")) |v| if (std.mem.eql(u8, v, "0")) return null;
+    if (std.posix.getenv("STWO_RV64_TRACE_STREAM_CHUNK_WORDS")) |v| {
+        const words = std.fmt.parseInt(usize, v, 10) catch return StreamPlan.default_chunk_words;
+        return if (words == 0) StreamPlan.default_chunk_words else words;
+    }
+    return StreamPlan.default_chunk_words;
+}
 const B2n = *const fn ([*]const u32, usize, [*]u32, usize, u32, u32, [*]const u32, u32, u32, *anyopaque, *u32) callconv(.c) c_int;
 fn sym(comptime T: type, lib: *std.DynLib, name: [:0]const u8) !T {
     return lib.lookup(T, name) orelse error.MissingTraceCommitSymbol;
@@ -36,6 +53,10 @@ pub const Context = struct {
     tree: *const @TypeOf(A.stwo_rv64_trace_tree_on),
     prefix_workspace: ?*const fn ([*]const A.MixedSegment, u32, *u64) callconv(.c) c_int = null,
     rebind: Native.LeaseRebind,
+    mixed_seeded: ?MixedSeeded = null,
+    layer: ?Layer = null,
+    pool_current: ?PoolCurrent = null,
+    live_leases: ?LiveLeases = null,
     returned: std.ArrayList([]D.Column) = .empty,
     twiddles: [29]?engine.poly.twiddles.TwiddleTree([]M) = @splat(null),
     mutex: std.Thread.Mutex = .{},
@@ -48,7 +69,7 @@ pub const Context = struct {
             .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"),
             .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream"),
-        }, .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(N2bColumns, "stwo_lde_n2b_columns_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .tree = try sym(*const @TypeOf(A.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .prefix_workspace = service.library.lookup(*const fn ([*]const A.MixedSegment, u32, *u64) callconv(.c) c_int, "stwo_rv64_trace_prefix_workspace_words"), .rebind = try sym(Native.LeaseRebind, &service.library, "stwo_rv64_gpu_lease_rebind") };
+        }, .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(N2bColumns, "stwo_lde_n2b_columns_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .tree = try sym(*const @TypeOf(A.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .prefix_workspace = service.library.lookup(*const fn ([*]const A.MixedSegment, u32, *u64) callconv(.c) c_int, "stwo_rv64_trace_prefix_workspace_words"), .rebind = try sym(Native.LeaseRebind, &service.library, "stwo_rv64_gpu_lease_rebind"), .mixed_seeded = service.library.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_on"), .layer = service.library.lookup(Layer, "stwo_blake2s_layer_on"), .pool_current = service.library.lookup(PoolCurrent, "stwo_exec_context_pool_current"), .live_leases = service.library.lookup(LiveLeases, "stwo_rv64_gpu_session_live_leases") };
     }
     pub fn deinit(self: *Context) void {
         for (self.returned.items) |columns| std.heap.page_allocator.free(columns);
@@ -144,6 +165,160 @@ const Job = struct {
         }
         if (pending_copy) |copy_run| try DeviceCopy.execute(ctx, b.copy, destination, copy_run);
     }
+    /// Device occupancy at this commit's peak point: every scratch lease is
+    /// live and nothing has been released yet. Optional exports only.
+    fn samplePeak(self: *Job, ctx: *SC.Context, mode: []const u8, scratch_bytes: usize, legacy_bytes: usize, coefficient_bytes: usize, calls: usize) void {
+        const b = self.backend;
+        var used: usize = 0;
+        var reserved: usize = 0;
+        var kinds: [5]u64 = @splat(0);
+        var lease_bytes: u64 = 0;
+        const pool_status: c_int = if (b.pool_current) |query| query(ctx.native_context, &used, &reserved) else -1;
+        const lease_status: c_int = if (b.live_leases) |query| query(b.service.session, &kinds, &lease_bytes) else -1;
+        std.debug.print("GPU_DEVICE_PEAK stage=trace_commit tree={} mode={s} columns={} calls={} coefficient_bytes={} scratch_bytes={} legacy_scratch_bytes={} live_lease_bytes={} live_kinds={any} pool_used_bytes={} pool_reserved_bytes={} pool_status={} lease_status={}\n", .{ self.request.tree_index, mode, self.request.columns.len, calls, coefficient_bytes, scratch_bytes, legacy_bytes, lease_bytes, kinds, used, reserved, pool_status, lease_status });
+    }
+    fn liveLeaseBytes(self: *Job) ?u64 {
+        const query = self.backend.live_leases orelse return null;
+        var kinds: [5]u64 = @splat(0);
+        var bytes: u64 = 0;
+        return if (query(self.backend.service.session, &kinds, &bytes) == 0) bytes else null;
+    }
+    /// Chunked LDE -> Merkle commit. Only the compact coefficient lease, one
+    /// bounded evaluation chunk and two progressive-state banks are ever live;
+    /// the tree is built in the bank that is dead after the final absorption.
+    fn streamRoot(self: *Job, ctx: *SC.Context, raw: *anyopaque, order: []const usize, offsets: []const usize, coefficient_ptr: [*]u32, beta: u32, tw: *const engine.poly.twiddles.TwiddleTree([]M), budget: usize) ![32]u8 {
+        const b = self.backend;
+        const a = self.a;
+        const r = self.request;
+        const mixed = b.mixed_seeded.?;
+        const layer = b.layer.?;
+        const rows = try a.alloc(u32, order.len);
+        defer a.free(rows);
+        const logs = try a.alloc(u32, order.len);
+        defer a.free(logs);
+        var coefficient_cells: usize = 0;
+        for (order, rows, logs) |original, *row, *log| {
+            log.* = r.columns[original].log_size;
+            row.* = @as(u32, 1) << @intCast(log.* + beta);
+            coefficient_cells += @as(usize, 1) << @intCast(log.*);
+        }
+        const inverse_base = tw.twiddles.len;
+        const logs_base = inverse_base + tw.itwiddles.len;
+        const aux_words = StreamPlan.alignUp(logs_base + logs.len);
+        // Admission by predicted peak: the chunk is the only schedule-free
+        // term, so shrink it (never below one column) until the predicted
+        // scratch fits beside the live leases under the device byte cap.
+        const live = self.liveLeaseBytes();
+        const admissible: ?usize = if (live) |bytes| (if (b.service.byte_cap > bytes) @intCast((b.service.byte_cap - bytes) / 4) else 0) else null;
+        var chunk_budget = budget;
+        var p = try StreamPlan.plan(a, rows, chunk_budget);
+        defer p.deinit(a);
+        while (admissible) |limit| {
+            if (aux_words + p.scratchWords() <= limit or chunk_budget <= rows[0]) break;
+            chunk_budget /= 2;
+            const smaller = try StreamPlan.plan(a, rows, chunk_budget);
+            p.deinit(a);
+            p = smaller;
+        }
+        const total = try std.math.add(usize, aux_words, p.scratchWords());
+        var scratch = try self.allocate(ctx, total, 0, "stream_scratch");
+        defer {
+            ctx.join() catch {};
+            _ = b.api.release(b.service.session, &scratch);
+        }
+        const base = scratch.words.?;
+        _ = try ctx.borrow(scratch);
+        const chunk = base + aux_words + p.chunkOffset();
+        const banks = [2][*]u32{ base + aux_words + p.bankOffset(0), base + aux_words + p.bankOffset(1) };
+        try check(b.api.upload(raw, base, tw.twiddles.ptr, tw.twiddles.len * 4));
+        try check(b.api.upload(raw, base + inverse_base, tw.itwiddles.ptr, tw.itwiddles.len * 4));
+        try check(b.api.upload(raw, base + logs_base, logs.ptr, logs.len * 4));
+        try ctx.join();
+        var stream: ?*anyopaque = null;
+        try check(b.api.lane_stream(raw, 1, &stream));
+        const lane = stream orelse return error.InvalidLane;
+        var launches: u32 = 0;
+        // Interpolate evaluation-encoded inputs in place, exactly as the
+        // established path does (same batching over adjacent equal heights).
+        var interpolation_first: usize = 0;
+        while (interpolation_first < order.len) {
+            const column = r.columns[order[interpolation_first]];
+            if (column.encoding != .evaluations) {
+                interpolation_first += 1;
+                continue;
+            }
+            var interpolation_end = interpolation_first + 1;
+            while (interpolation_end < order.len and
+                r.columns[order[interpolation_end]].log_size == column.log_size and
+                r.columns[order[interpolation_end]].encoding == .evaluations) : (interpolation_end += 1)
+            {}
+            const n = @as(usize, 1) << @intCast(column.log_size);
+            const inverse_offset = inverse_base + tw.itwiddles.len - n / 2;
+            const at = coefficient_ptr + offsets[order[interpolation_first]];
+            try check(b.b2n(at, n, at, n, column.log_size, @intCast(interpolation_end - interpolation_first), base + inverse_offset, @intCast(n / 2), @intCast(n / 2), lane, &launches));
+            interpolation_first = interpolation_end;
+        }
+        var hashes: [*]u32 = banks[0];
+        for (p.calls) |c| {
+            var segments: [StreamPlan.max_segments]A.MixedSegment = undefined;
+            var count: u32 = 0;
+            var cursor: usize = 0;
+            var i: usize = c.first;
+            while (i < c.end) {
+                var j = i + 1;
+                while (j < c.end and rows[j] == rows[i]) : (j += 1) {}
+                const lde_rows: usize = rows[i];
+                const n = lde_rows >> @intCast(beta);
+                const destination = chunk + cursor;
+                try check(b.n2b_columns.?(coefficient_ptr + offsets[order[i]], n, base + logs_base + i, destination, lde_rows, logs[i] + beta, @intCast(j - i), base + tw.twiddles.len - lde_rows / 2, @intCast(lde_rows / 2), @intCast(lde_rows / 2), lane, &launches));
+                segments[count] = .{ .columns = destination, .stride_words = lde_rows, .capacity_words = lde_rows * (j - i), .source_size = @intCast(lde_rows) };
+                count += 1;
+                cursor += lde_rows * (j - i);
+                i = j;
+            }
+            const seed: ?*const anyopaque = if (c.seed_bank) |bank| @ptrCast(banks[bank]) else null;
+            const out: *anyopaque = @ptrCast(banks[c.out_bank]);
+            try check(mixed(c.size, count, &segments, c.absorbed, c.seed_size, seed, if (c.final) null else out, if (c.final) out else null, lane));
+            if (c.final) hashes = banks[c.out_bank];
+        }
+        // Merkle layers above the leaves, in the same dead bank. Identical to
+        // stwo_rv64_trace_tree_on's layer loop.
+        var offset: usize = 0;
+        var next_offset: usize = p.leaves;
+        var nodes: usize = p.leaves;
+        while (nodes > 1) : (nodes >>= 1) {
+            try check(layer(@ptrCast(hashes + offset * 8), @intCast(nodes / 2), @ptrCast(hashes + next_offset * 8), lane));
+            offset = next_offset;
+            next_offset += nodes / 2;
+        }
+        const legacy = StreamPlan.legacyScratchWords(rows, tw.twiddles.len + tw.itwiddles.len + 7 * order.len);
+        self.samplePeak(ctx, "stream", total * 4, legacy * 4, coefficient_cells * 4, p.calls.len);
+        try ctx.join();
+        var root_words: [8]u32 = undefined;
+        try check(b.api.download(raw, &root_words, hashes + p.tree_words - 8, 32));
+        try ctx.join();
+        var root: [32]u8 = undefined;
+        for (root_words, 0..) |v, k| std.mem.writeInt(u32, root[4 * k ..][0..4], v, .little);
+        std.debug.print("GPU_TRACE_STREAM tree={} columns={} leaves={} calls={} chunk_budget_words={} chunk_words={} bank_words={any} aux_words={} scratch_words={} legacy_scratch_words={}\n", .{ r.tree_index, order.len, p.leaves, p.calls.len, chunk_budget, p.chunk_words, p.bank_words, aux_words, total, legacy });
+        return root;
+    }
+    fn publish(self: *Job, ctx: *SC.Context, root: [32]u8, coefficients: *Native.Lease, offsets: []const usize, scope: [8]u32, coefficient_cells: usize, transferred: *bool) !void {
+        const b = self.backend;
+        const r = self.request;
+        if (r.expected_main_root) |expected| if (!std.mem.eql(u8, &root, &expected)) return error.DeviceMainReplayRootMismatch;
+        var final_scope = r.scope;
+        if (r.tree_index == 1) final_scope.main = root;
+        const promoted = @import("pcs_scope.zig").identity(final_scope);
+        std.debug.print("GPU_TRACE_OWNERSHIP tree={} coefficient_words={} scratch_words={} final_coefficient_copy_words={}\n", .{ r.tree_index, coefficient_cells, 0, @as(usize, 0) });
+        const columns = try std.heap.page_allocator.alloc(D.Column, r.columns.len);
+        errdefer std.heap.page_allocator.free(columns);
+        for (columns, r.columns, 0..) |*column, input, i| column.* = .{ .log_size = input.log_size, .device = .{ .words = coefficients.words.? + offsets[i], .count = @as(u64, 1) << @intCast(input.log_size), .context_token = coefficients.context_token, .generation = coefficients.generation } };
+        try check(b.rebind(b.service.session, coefficients, &scope, &promoted));
+        try b.service.retainDeviceLease(promoted, coefficients.*);
+        transferred.* = true;
+        _ = ctx;
+        self.result = .{ .root = root, .columns = columns };
+    }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
         const b = self.backend;
         const a = self.a;
@@ -189,6 +364,13 @@ const Job = struct {
         if (r.retire_input) |retirement| {
             try self.copyInputs(&ctx, try ctx.borrow(coefficients), coefficients.words.?, order, offsets);
             try retireJoinedInput(&ctx, retirement, r.scope);
+        }
+        const stream_budget: ?usize = if (separate_coefficients and b.mixed_seeded != null and b.layer != null) streamBudget() else null;
+        if (stream_budget) |budget| {
+            if (r.retire_input == null) try self.copyInputs(&ctx, try ctx.borrow(coefficients), coefficients.words.?, order, offsets);
+            const root = try self.streamRoot(&ctx, raw, order, offsets, coefficients.words.?, beta, tw, budget);
+            try self.publish(&ctx, root, &coefficients, offsets, scope, coefficient_cells, &transferred);
+            return;
         }
         const tw_base = try std.math.add(usize, if (separate_coefficients) 0 else coefficient_cells, eval_cells);
         const inverse_base = try std.math.add(usize, tw_base, tw.twiddles.len);
@@ -283,6 +465,7 @@ const Job = struct {
             ctx.join() catch {};
             _ = b.api.release(b.service.session, &tree);
         }
+        self.samplePeak(&ctx, "legacy", (arena_cells + tree_capacity) * 4, (arena_cells + tree_capacity) * 4, coefficient_cells * 4, 0);
         try check(b.tree(raw, 1, @ptrCast(segments.items.ptr), @intCast(segments.items.len), eval_log, tree.words.?, tree_capacity));
         try ctx.join();
         var root_words: [8]u32 = undefined;

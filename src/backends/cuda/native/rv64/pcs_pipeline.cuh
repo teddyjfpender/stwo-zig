@@ -8,6 +8,7 @@
 #include "rv64/samples.h"
 #include "rv64/trace.h"
 #include "rv64/prefix_banks.h"
+#include "rv64/trace_stream_plan.h"
 #include "rv64/pcs_framing.h"
 #include <algorithm>
 #include <array>
@@ -35,6 +36,25 @@ extern "C" int stwo_lde_n2b_addressed_on(uint32_t *, size_t, const void *,
                                          const uint32_t *, uint32_t, uint32_t,
                                          void *, uint32_t, uint32_t *);
 extern "C" int stwo_lde_n2b_columns_on(const uint32_t *, size_t, const uint32_t *, uint32_t *, size_t, uint32_t, uint32_t, const uint32_t *, uint32_t, uint32_t, void *, uint32_t *);
+// Opaque state/hash pointers: this TU does not include the Blake2s core.
+// States are 24-word ProgressiveState rows; hashes are 32-byte aligned.
+extern "C" int stwo_blake2s_mixed_seeded_on(
+    uint32_t, uint32_t, const stwo::cuda::blake2s::MixedSegment *, uint32_t,
+    uint32_t, const void *, void *, void *, void *);
+extern "C" int stwo_blake2s_layer_on(const void *, uint32_t, void *, void *);
+// Streaming source rebuild is the default for rolling sources. "0" restores
+// the established max-tree LDE plane; a positive value bounds one chunk.
+inline uint64_t pcsStreamBudget() {
+  const char *v = std::getenv("STWO_RV64_PCS_STREAM");
+  if (v && std::strcmp(v, "0") == 0) return 0;
+  const char *w = std::getenv("STWO_RV64_PCS_STREAM_CHUNK_WORDS");
+  if (w && *w) {
+    char *end = nullptr;
+    const unsigned long long parsed = std::strtoull(w, &end, 10);
+    if (end && !*end && parsed) return parsed;
+  }
+  return stwo::cuda::rv64::stream::kDefaultChunkWords;
+}
 extern "C" int stwo_blake2s_pow_persistent_on(const uint32_t *, uint32_t,
                                               unsigned long long, uint32_t *,
                                               unsigned long long *, uint32_t *,
@@ -232,7 +252,10 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
                         transfer.source,transfer.scope.data());
   if (!rolling_sources) o.uploadBorrowed({arena.words + twiddle_base, h[19], 1, 0}, twiddles.data(),
                                         twiddles.size());
-  StwoRv64Plane rolling_evaluations{}, rolling_tree{};
+  StwoRv64Plane rolling_evaluations{}, rolling_tree{}, stream_scratch{};
+  const uint64_t stream_budget = rolling_sources ? pcsStreamBudget() : 0;
+  uint64_t stream_scratch_words = 0;
+  std::vector<stwo::cuda::rv64::stream::Plan> stream_plans;
   const auto source_tw = rolling_sources ? upload(twiddles) : StwoRv64Plane{};
   const auto trace_roots = rolling_sources ? o.plane(nt*8,1) : StwoRv64Plane{};
   std::vector<StwoRv64Plane> source_descriptors, combined_descriptors, combined_logs;
@@ -614,14 +637,94 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     for (const auto &s : storage) { finished.push_back(s.column);finished.push_back(s.tree); }
     if (storage.empty()) finished.push_back(deep);
     o.retirePlanes(finished);
-    rolling_evaluations = o.plane(max_tree_evaluations,1);
-    rolling_tree = o.plane(max_tree_nodes,1);
-    for (uint32_t g=0;g<sgc;++g)
-      trace_segments[g].columns = rolling_evaluations.words+trace_evaluation_offsets[g];
-    for (auto &t : traces) t.tree = {rolling_tree.words,t.tree_capacity,1,0};
+    if (stream_budget) {
+      for (const auto &t : traces) {
+        std::vector<uint32_t> rows;
+        for (uint32_t g = t.group; g < t.group + t.groups; ++g)
+          rows.insert(rows.end(), source_groups[g * 8 + 5], 1u << source_groups[g * 8 + 3]);
+        stwo::cuda::rv64::stream::Plan p;
+        if (!stwo::cuda::rv64::stream::plan(rows, stream_budget, &p, 1u << t.log))
+          throw std::runtime_error("streamed source geometry");
+        stream_scratch_words = std::max(stream_scratch_words, p.scratchWords());
+        stream_plans.push_back(std::move(p));
+      }
+      stream_scratch = o.plane(stream_scratch_words, 1);
+    } else {
+      rolling_evaluations = o.plane(max_tree_evaluations,1);
+      rolling_tree = o.plane(max_tree_nodes,1);
+      for (uint32_t g=0;g<sgc;++g)
+        trace_segments[g].columns = rolling_evaluations.words+trace_evaluation_offsets[g];
+      for (auto &t : traces) t.tree = {rolling_tree.words,t.tree_capacity,1,0};
+    }
     CHECK(stwo_exec_context_sync(o.ctx)); // Late async-pool allocations must be ready on lane1.
   }
   for (auto &t : traces) {
+    if (rolling_sources && stream_budget) {
+      // Chunked rebuild: LDE a bounded column chunk, read its queried values,
+      // absorb it into the progressive leaf state, then reuse the chunk. The
+      // tree is built in the bank that is dead after the final absorption.
+      const size_t ti = size_t(&t - traces.data());
+      const auto &p = stream_plans[ti];
+      uint32_t *base = stream_scratch.words, *chunk = base;
+      uint32_t *banks[2] = {base + p.bankOffset(0), base + p.bankOffset(1)};
+      uint32_t *hashes = banks[0];
+      for (const auto &c : p.calls) {
+        b::MixedSegment segments[stwo::cuda::rv64::stream::kMaxSegments];
+        uint32_t count = 0, column = 0, g = t.group;
+        uint64_t cursor = 0;
+        for (uint32_t k = c.first; k < c.end;) {
+          while (column + source_groups[g * 8 + 5] <= k) column += source_groups[g++ * 8 + 5];
+          const auto *d = source_groups.data() + g * 8;
+          const uint32_t j = k - column, run = std::min(c.end, column + d[5]) - k;
+          const uint64_t n = uint64_t(1) << d[2], m = uint64_t(1) << d[3];
+          const auto *source = source_words.data() + 4 * d[4];
+          const uint64_t offset = (uint64_t(source[0]) | (uint64_t(source[1]) << 32)) + uint64_t(j) * n;
+          if (count == stwo::cuda::rv64::stream::kMaxSegments)
+            throw std::runtime_error("streamed segment overflow");
+          uint32_t launches = 0;
+          CHECK(stwo_lde_n2b_columns_on(coefficient_trees[ti].words + offset, n,
+            coefficient_logs.words + d[4] + j, chunk + cursor, m, d[3], run,
+            source_tw.words + d[6], d[7], uint32_t(m / 2), stream_raw, &launches));
+          segments[count++] = {chunk + cursor, m, m * run, uint32_t(m), 0};
+          cursor += m * run;
+          k += run;
+        }
+        StwoRv64TraceOpen values{nullptr, raw.words,
+                                 t.values.words + uint64_t(c.first) * queries,
+                                 nullptr, status.words, 0,
+                                 uint64_t(c.end - c.first) * queries, 0,
+                                 t.log, log, queries, 0};
+        CHECK(stwo_rv64_trace_open_values_on(o.ctx, 1, segments, count, &values));
+        const void *seed = c.seed_bank < 0 ? nullptr : banks[c.seed_bank];
+        auto *out = banks[c.out_bank];
+        CHECK(stwo_blake2s_mixed_seeded_on(c.size, count, segments, c.absorbed,
+            c.seed_size, seed, c.final ? nullptr : out, c.final ? out : nullptr,
+            stream_raw));
+        if (c.final) hashes = out;
+      }
+      uint64_t offset = 0, next_offset = p.leaves;
+      for (uint32_t nodes = p.leaves; nodes > 1; nodes >>= 1) {
+        CHECK(stwo_blake2s_layer_on(hashes + offset * 8, nodes / 2, hashes + next_offset * 8, stream_raw));
+        offset = next_offset;
+        next_offset += nodes / 2;
+      }
+      CHECK(cudaMemcpyAsync(trace_roots.words + ti * 8, hashes + p.tree_words - 8,
+                            8 * sizeof(uint32_t), cudaMemcpyDeviceToDevice, stream));
+      StwoRv64TraceOpen paths{hashes, raw.words, nullptr, t.paths.words,
+                              status.words, p.tree_words, 0,
+                              uint64_t(queries) * t.log * 8, t.log, log,
+                              queries, 0};
+      CHECK(stwo_rv64_trace_open_paths_on(o.ctx, 1, &paths));
+      std::printf("GPU_PCS_STREAM tree=%zu columns=%u leaves=%u calls=%zu chunk_words=%llu "
+                  "bank_words=%llu,%llu scratch_words=%llu legacy_rebuild_words=%llu\n",
+                  ti, t.columns, p.leaves, p.calls.size(),
+                  static_cast<unsigned long long>(p.chunk_words),
+                  static_cast<unsigned long long>(p.bank_words[0]),
+                  static_cast<unsigned long long>(p.bank_words[1]),
+                  static_cast<unsigned long long>(stream_scratch_words),
+                  static_cast<unsigned long long>(max_tree_evaluations + max_tree_nodes));
+      continue;
+    }
     if(rolling_sources) {
       for(uint32_t g=t.group;g<t.group+t.groups;++g) extend_source(g);
       CHECK(stwo_rv64_trace_tree_on(o.ctx,1,trace_segments.data()+t.group,t.groups,t.log,t.tree.words,t.tree_capacity));
