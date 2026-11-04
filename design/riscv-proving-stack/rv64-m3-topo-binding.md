@@ -83,3 +83,12 @@ proofs are unchanged and byte-identical. Accepted v1 controls stay verifiable on
 Leaves remain proof-dependent: CPU leaf pre-finalize variable counts differ per segment (19.3M–33.3M vars on 24628607) because
 each segment has its own native setup (component roster/sizes), not because of key constants. Making leaves class-only needs
 canonical native segment geometry (a native-side change) — see the stream report.
+
+## Producer class caches (completeness only)
+
+The producer reuses, per `classKey`, the fold assignment plan (`outer_assignment.zig` `ClassCache`: tasks, indices,
+level ends, seed-variable layout; seed values are re-read from each graph and their layout is checked) and the immutable
+PP (`outer_wrap.zig` `PPCache`; authority and device FIXED precommit stay per proof). Neither enters a proof or the
+receiver. A wrong reuse could only produce a proof that the independent receiver rejects. On 24628607/26235156 the
+`=check` modes rebuilt every reused plan/PP and found them byte-equal (15/15 each), and proofs are byte-identical with the
+caches on and off (`vectors/reports/rv64-m3-20261104/topo/warm-two-block.json`).
