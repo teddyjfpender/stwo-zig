@@ -2681,6 +2681,71 @@ pub fn verifyPublic(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey
     } else if (wclaims.items.len != 0) return error.ProofShape;
 }
 
+/// Public shape facts of a hiding proof that security.zig (`accountHiding`)
+/// reads; a deterministic function of (cfg, statement, weight key), as the
+/// verifier's plan is.
+pub const SecInfo = struct {
+    /// sum over LogUp trees (committed-inverse mode: relations) of
+    /// max(arity - 1, 1) * fractions (security.zig accountLogup)
+    logup_degree_fractions: f64 = 0,
+    /// largest fraction count of one tree / relation (multiset needs < p)
+    logup_max_fractions: f64 = 0,
+    witness: [2]zkp.Shape,
+    n_tabs: usize,
+    aux: zkp.Shape,
+    /// weight table and per-proof weight mask table (proofs with matmuls)
+    weight: ?zkp.Shape = null,
+    weight_mask: ?zkp.Shape = null,
+    /// 16-cell pads read at two points (GKR layers k >= 2, virtual / exact checks)
+    two_point_pads: usize = 0,
+    /// pads read once at a random point (GKR layer pads, accumulator pads)
+    point_pads: usize = 0,
+};
+
+pub fn secInfo(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?WeightKey) !SecInfo {
+    var arena_state = std.heap.ArenaAllocator.init(a);
+    defer arena_state.deinit();
+    const plan = try makePlan(arena_state.allocator(), st, wkey, cfg);
+    const relDeg = struct {
+        fn f(r: Rel) f64 {
+            return if (r.kind == .glu) 2 else 1;
+        }
+    }.f;
+    var out = SecInfo{ .witness = .{ plan.shape(0, cfg.pcs.log_blowup), plan.shape(1, cfg.pcs.log_blowup) }, .n_tabs = if (plan.has2) 2 else 1, .aux = auxShape() };
+    if (plan.grels.len > 0) {
+        for (plan.grels) |g| {
+            var deg: f64 = 1;
+            for (g.segs) |sg| if (sg.kind != .blinder and sg.rel < plan.rels.len) {
+                deg = @max(deg, relDeg(plan.rels[sg.rel]));
+            };
+            const leaves = std.math.exp2(@as(f64, @floatFromInt(g.n)));
+            out.logup_degree_fractions += deg * leaves;
+            out.logup_max_fractions = @max(out.logup_max_fractions, leaves);
+            out.point_pads += 4 * g.n;
+            out.two_point_pads += 4 * (g.n - @min(g.n, 1));
+        }
+    } else for (plan.rels, 0..) |r, ri| {
+        var n: f64 = std.math.exp2(@as(f64, @floatFromInt(r.log_size)));
+        for (plan.keys) |k| if (k.rel == ri) {
+            n += std.math.exp2(@as(f64, @floatFromInt(k.log_size)));
+        };
+        out.logup_degree_fractions += relDeg(r) * n;
+        out.logup_max_fractions = @max(out.logup_max_fractions, n);
+    }
+    out.two_point_pads += plan.vchecks.len + plan.xchecks.len;
+    out.point_pads += plan.vchecks.len + plan.xchecks.len;
+    if (wkey) |wk| {
+        var has_matmul = false;
+        for (st.ops) |op| has_matmul = has_matmul or op == .matmul;
+        if (has_matmul) {
+            const lb = wpcs(cfg).log_blowup;
+            out.weight = wk.shape(lb);
+            out.weight_mask = .{ .log_cols = wk.log_cols, .log_blowup = lb, .slots = wk.slots, .n_rows = wmaskRows(plan, st, wk, (try zk2(cfg)) != null) };
+        }
+    }
+    return out;
+}
+
 // ---------------------------------------------------------------------------
 // Hiding LogUp-GKR (default LogUp of the hiding mode).
 //
