@@ -339,7 +339,7 @@ pub fn validateDeclarations(cpus: anytype, truths: anytype, memory_words: u32, l
         for (0..T.FAMILIES) |k| {
             const f: T.Family = @enumFromInt(k);
             const log = cpu.declaration.bridges.at(f);
-            if ((log != null) != (calls[k] != 0) or totals[k] >= core.fields.m31.Modulus - 1) return error.InvalidServicesWireRequest;
+            if (!@import("protocol.zig").presenceAdmitted(log != null, calls[k] != 0) or totals[k] >= core.fields.m31.Modulus - 1) return error.InvalidServicesWireRequest;
             if (log) |l| {
                 if (k == 0) {
                     _ = try A.crypto.keccak.word16_bridge.types.validateGeometry(calls[k], @intCast(1 + totals[k]), l);

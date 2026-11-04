@@ -190,14 +190,18 @@ pub const Commitment = struct { digest: [32]u8, shared: Shared };
 /// Fiat–Shamir derivation only, never acceptance. Views must already be bound
 /// to the complete receiver-owned inventory and authenticated leaf statements.
 pub fn commitViews(execution: [32]u8, entries: []const CommitmentView) !Commitment {
+    return commitViewsFor(try @import("chain.zig").version(), execution, entries);
+}
+/// Explicit-version form (tests, table tools); production uses the policy.
+pub fn commitViewsFor(version: @import("chain.zig").Version, execution: [32]u8, entries: []const CommitmentView) !Commitment {
     if (entries.len == 0 or entries.len > MAX_WORKERS) return error.GlobalGkrManifestRoster;
-    const digest = try manifestDigest(execution, entries);
+    const digest = try manifestDigest(version, execution, entries);
     return .{ .digest = digest, .shared = drawShared(digest) };
 }
 /// Flat v1 digest (historical bytes) unless every entry carries m5 chain
 /// fields; then chi = H(chi, stmt || m_kappa) over the ordered segment chain.
-fn manifestDigest(execution: [32]u8, entries: anytype) ![32]u8 {
-    if (try chainDigest(execution, entries)) |chi| return chi;
+fn manifestDigest(version: @import("chain.zig").Version, execution: [32]u8, entries: anytype) ![32]u8 {
+    if (try chainDigestFor(version, execution, entries)) |chi| return chi;
     var writer = Writer{};
     try emitCanonical(execution, entries, &writer);
     var digest: [32]u8 = undefined;
@@ -205,11 +209,15 @@ fn manifestDigest(execution: [32]u8, entries: anytype) ![32]u8 {
     return digest;
 }
 pub fn chainDigest(execution: [32]u8, entries: anytype) !?[32]u8 {
-    var present: usize = 0;
-    for (entries) |entry| present += @intFromBool(entry.chain != null);
-    if (present == 0) return null;
-    if (present != entries.len) return error.MixedNativeChainVersion;
-    var m = Canon.chainIv(Canon.versionIdentity(Canon.RUNGS));
+    return chainDigestFor(try @import("chain.zig").version(), execution, entries);
+}
+pub fn chainDigestFor(version: @import("chain.zig").Version, execution: [32]u8, entries: anytype) !?[32]u8 {
+    // The version is receiver POLICY, not data (canon-native review A4): a
+    // chained policy with an entry lacking chain fields is refused, and a
+    // flat policy never reads chain fields.
+    if (!version.chained()) return null;
+    for (entries) |entry| if (entry.chain == null) return error.NativeChainMissing;
+    var m = Canon.chainIv(try @import("chain.zig").versionIdentity(version));
     for (entries, 0..) |entry, k| {
         if (entry.scope.ordinal != k) return error.NativeChainOrder;
         const c = entry.chain.?;
@@ -275,6 +283,6 @@ pub fn verifyAndSeal(a: std.mem.Allocator, execution: [32]u8, expected: []const 
         entries[i] = .{ .kind = worker.kind, .global_relations = worker.global_relations, .mass = worker.mass, .scope = scope, .local = if (stage.local) |local| try Child.verifyPending(a, scope, worker.local_instances.?, local.proof, local.receipt_digest) else null, .chain = worker.chain };
         initialized += 1;
     }
-    const digest = try manifestDigest(execution, entries);
+    const digest = try manifestDigest(try @import("chain.zig").version(), execution, entries);
     return .{ .entries = entries, .digest = digest, .shared = drawShared(digest) };
 }

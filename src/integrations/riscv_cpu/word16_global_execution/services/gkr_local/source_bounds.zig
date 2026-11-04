@@ -298,7 +298,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
         const first = try P.firstIds(requests, ordinal);
         for (std.enums.values(Types.Family), request.calls, first) |family, calls, first_id| {
             const optional = declaration.bridges.at(family);
-            if ((optional != null) != (calls != 0)) return error.InvalidCombinedBridgePresence;
+            if (!P.presenceAdmitted(optional != null, calls != 0)) return error.InvalidCombinedBridgePresence;
             if (optional) |log| {
                 if (family == .keccak) _ = try A.crypto.keccak.word16_bridge.types.validateGeometry(calls, first_id, log) else _ = try A.crypto.secp256k1.word16_bridge.types.validateGeometry(Types.bridgeKind(family), calls, first_id, log);
                 const origin = Frame.Origin{ .bridge = family };
@@ -310,7 +310,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
         inline for (Types.bulk_kinds) |kind| {
             const optional = declaration.bridges.bulk.at(kind);
             const active = request.bulk.rows(kind);
-            if ((optional != null) != (active != 0)) return error.InvalidCombinedBridgePresence;
+            if (!P.presenceAdmitted(optional != null, active != 0)) return error.InvalidCombinedBridgePresence;
             if (optional) |log| {
                 _ = try A.crypto.bulk_memory.types.validateGeometry(kind, active, log);
                 const origin = Frame.Origin{ .bulk = kind };
@@ -322,7 +322,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
         for (Types.sponge_kinds) |kind| {
             const optional = declaration.bridges.sponge.at(kind);
             const active = request.sponge.rows(kind);
-            if ((optional != null) != (active != 0)) return error.InvalidCombinedBridgePresence;
+            if (!P.presenceAdmitted(optional != null, active != 0)) return error.InvalidCombinedBridgePresence;
             if (optional) |log| {
                 _ = try A.crypto.keccak_sponge.types.validateGeometry(kind, active, log);
                 const origin = Frame.Origin{ .sponge = kind };

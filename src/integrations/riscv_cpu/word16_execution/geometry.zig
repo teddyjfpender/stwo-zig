@@ -129,7 +129,9 @@ pub const Geometry = struct {
         const tail = total - head;
         if (self.ls_tail_log) |log| {
             if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
-            if (tail == 0 or tail >= rows(log)) return error.InvalidLsTailCapacity;
+            // rv64-m6-native/v2 strict roster: a rung's tail is a class
+            // constant and may be all padding (presence is not a count).
+            if ((tail == 0 and !@import("native_policy.zig").strictRoster()) or tail >= rows(log)) return error.InvalidLsTailCapacity;
         } else if (tail != 0) return error.InvalidLsTailCapacity;
         return .{ .head = head, .tail = tail };
     }

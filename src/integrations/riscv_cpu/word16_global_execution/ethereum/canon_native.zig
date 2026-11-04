@@ -156,6 +156,10 @@ pub const Tag = enum {
     iv,
     seg,
     chi,
+    /// rv64-m6-native/v2 (stream native-format): new version identity and a
+    /// structure digest that also binds the geometry layout flags.
+    version_v2,
+    structure_v2,
     pub fn name(t: Tag) []const u8 {
         return switch (t) {
             .class_key => "rv64-m5-class-key/v1",
@@ -172,6 +176,8 @@ pub const Tag = enum {
             .iv => "rv64-m5-chain-iv/v1",
             .seg => "rv64-m5-seg",
             .chi => "rv64-m5-chi",
+            .version_v2 => "rv64-m6-native-chi-chain/v2",
+            .structure_v2 => "rv64-m6-native-structure/v2",
         };
     }
     pub fn digest(t: Tag) [32]u8 {
@@ -216,6 +222,51 @@ pub fn versionIdentity(rungs: u32) Digest {
     var h = Hasher.init(.version);
     h.words(&.{ 1, LOCAL_RELATIONS, GLOBAL_RELATIONS, rungs, @intFromEnum(Family.mb) });
     return h.final();
+}
+/// rv64-m6-native/v2 version identity: v1 words + strict roster flag + gkr mode
+/// (0 = v2-strict, 1 = v2-gkr). Enters every chi through the chain IV.
+pub const V2_NAME = "rv64-m6-native/v2";
+pub const GkrMode = enum(u32) { strict_local = 0, native_gkr = 1 };
+pub fn versionIdentityV2(rungs: u32, mode: GkrMode) Digest {
+    var h = Hasher.init(.version_v2);
+    h.words(&.{ 2, LOCAL_RELATIONS, GLOBAL_RELATIONS, rungs, @intFromEnum(Family.mb), 1, @intFromEnum(mode) });
+    return h.final();
+}
+/// Geometry layout flags word of a v2 class (bit i = flag i below). Under v2
+/// `omit_empty_division` is always false (division is committed at its rung
+/// log), so the word is a class constant of the production layout.
+pub const LAYOUT_FLAGS = .{ "omit_empty_division", "cpu_fused_tail", "cpu_u8_pairs", "cpu_compact_decode", "mul_u8_pairs", "ls_fused_pairs", "alu_fused_tail", "ls_dword_fused_pairs" };
+pub fn layoutFlags(g: anytype) u32 {
+    var w: u32 = 0;
+    inline for (LAYOUT_FLAGS, 0..) |name, i| w |= @as(u32, @intFromBool(@field(g, name))) << i;
+    return w;
+}
+/// v2 S^nat: v1 (id, log) pairs of the RUNG vector + the layout flags word.
+/// Strict roster => the declaration vector equals the rung vector, so the
+/// chain and T_nat hash the same digest (canon-native review A1).
+pub fn structureDigestV2(family: u32, rung: u32, ids: []const u32, logs: []const u32, flags: u32) Digest {
+    std.debug.assert(ids.len == logs.len);
+    var h = Hasher.init(.structure_v2);
+    h.words(&.{ family, rung, @intCast(ids.len) });
+    for (ids, logs) |id, log| h.words(&.{ id, log });
+    h.word(flags);
+    return h.final();
+}
+pub fn cpuStructureV2(family: Family, rung: u32, v: CpuVector, flags: u32) Digest {
+    var ids: [CPU_COMPONENT_COUNT]u32 = undefined;
+    var logs: [CPU_COMPONENT_COUNT]u32 = undefined;
+    var n: usize = 0;
+    for (v, 0..) |log, i| if (log != 0) {
+        ids[n] = @intCast(i);
+        logs[n] = log;
+        n += 1;
+    };
+    return structureDigestV2(@intFromEnum(family), rung, ids[0..n], logs[0..n], flags);
+}
+/// Exact strict-roster rung: the unique rung whose vector equals `actual`.
+pub fn strictRung(rungs: []const CpuVector, actual: CpuVector) ?usize {
+    for (rungs, 0..) |r, i| if (std.mem.eql(u32, &r, &actual)) return i;
+    return null;
 }
 /// S^nat summary of one class: (component id, log) pairs sorted by id; absent logs are 0.
 pub fn structureDigest(family: u32, rung: u32, ids: []const u32, logs: []const u32) Digest {

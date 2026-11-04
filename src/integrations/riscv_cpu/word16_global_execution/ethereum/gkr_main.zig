@@ -593,14 +593,18 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     // M5 canon-native (opt-in, producer geometry only): pad every declaration
     // to its canonical class rung. The padded declarations are ordinary
     // admitted geometries; the receiver policy is unchanged.
-    if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| if (std.mem.eql(u8, flag, "1")) {
+    // M6 native-format: rv64-m6-native/v2 (strict roster) ALWAYS pads every
+    // declaration to exactly its class rung vector (fails closed otherwise).
+    const strict_roster = (try @import("../../word16_execution/native_policy.zig").current()).strictRoster();
+    const canon_flag = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false;
+    if (strict_roster or canon_flag) {
         const Rungs = @import("canon_native_rungs.zig");
         const classes = try a.alloc(Plan.CanonClass, cpu.len + truths.len);
         defer a.free(classes);
-        try Plan.canonicalCpus(&captured, cpu_layout, cpu, Rungs, classes[0..cpu.len]);
+        try Plan.canonicalCpusMode(&captured, cpu_layout, cpu, Rungs, classes[0..cpu.len], strict_roster);
         try Plan.canonicalTruths(truths, Rungs, classes[cpu.len..]);
-        for (classes, 0..) |c, i| std.debug.print("RV64_CANON_CLASS ordinal={d} family={s} rung={d} rungs={d}\n", .{ i, @tagName(c.family), c.rung, Rungs.R });
-    };
+        for (classes, 0..) |c, i| std.debug.print("RV64_CANON_CLASS ordinal={d} family={s} rung={d} rungs={d} strict={}\n", .{ i, @tagName(c.family), c.rung, Rungs.R, strict_roster });
+    }
     if (capture_only) {
         const digest_start = timer.read();
         const digest = @import("capture_digest.zig").digest(image.identity, &captured);
