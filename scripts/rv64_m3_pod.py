@@ -401,12 +401,14 @@ def receive(args, run=None):
     environment = dict(os.environ)
     environment.pop("STWO_ZIG_RV64_SETUP_CACHE", None)  # cache-disabled
     environment = R.receiver_environment(environment, out / "gpu-disabled")
+    # Acceptance is cache-disabled: the fold v2 receiver class cache defaults on, so force it off.
+    environment["STWO_RV64_FOLD_CLASS_CACHE"] = "0"
     command = ["nice", "-n", "10", *B.command(receiver, plan["profile"], "verify-recursion-candidate", request_path, proof,
                                                job["resources"]["fixed_setup_bytes"], args.host_bytes)]
     usage = B.measure(command, out, "strict-receiver", environment, cwd=plan["producer_cwd"])
     verdict = {"status": "rejected", "accepted": False, "receiver_sha256": sha(receiver), "argv": command,
                "process": usage, "directory": str(out), "host": os.uname().nodename,
-               "gpu_disabled": {"CUDA_VISIBLE_DEVICES": "", "STWO_RV64_GPU_PCS_HELPER": "/bin/false", "STWO_ZIG_RV64_SETUP_CACHE": "unset"}}
+               "gpu_disabled": {"CUDA_VISIBLE_DEVICES": "", "STWO_RV64_GPU_PCS_HELPER": "/bin/false", "STWO_ZIG_RV64_SETUP_CACHE": "unset", "STWO_RV64_FOLD_CLASS_CACHE": "0"}}
     try:
         if usage.get("exit_code") != 0:
             raise ValueError(f"receiver exit {usage.get('exit_code')}")
