@@ -12,11 +12,17 @@
 //! = sum_c gamma_c v_c and, at t random encoded columns j, that
 //! Enc(u_g)[j] = sum_i a_g[i] T[i][j] (column consistency).
 //!
-//! Proximity: the codeword is tested once with a random combination
-//! u_prox = sum_i beta_i row_i (checked at the same columns). For a table that
-//! is committed once and opened many times (weights) the proximity test runs
-//! once at commitment time (`proveProximity`); later openings only need
-//! consistency queries, because the decoded rows are already fixed.
+//! Proximity: the codeword is tested with a random combination
+//! u_prox = sum_i beta_i row_i (checked at the same columns). An opening
+//! WITHOUT proximity (consistency queries only) binds its claims only to a
+//! table whose proximity was proven earlier, and only at that proof's
+//! distance delta: a cheating row passes a query with probability <= rho +
+//! delta (security.md 4). Beyond unique decoding a word is close to several
+//! codewords, and two openings of one root can decode differently (a table
+//! that equals Enc(M1) on half the columns and Enc(M2) on the rest opens as
+//! either, ~(1/2)^t per opening). The weights therefore carry an OOD claim
+//! fixed by the key, and per-batch weight openings run their own proximity
+//! test by default (protocol.Config.weight_proximity, security.md 4.2).
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
@@ -35,7 +41,10 @@ pub const Params = struct {
     n_queries: usize = 64,
     pow_bits: u32 = 20,
 
-    /// Conjectured security (up to capacity, ethSTARK-style): bits per query = log_blowup.
+    /// Conjectured security (up to capacity, ethSTARK-style): bits per query =
+    /// log_blowup. Meaningful only for an opening that runs its own proximity
+    /// test and whose decoding is pinned (unique decoding, or an OOD claim);
+    /// not for consistency-only openings (see the file header).
     pub fn conjecturedBits(self: Params) f64 {
         return @as(f64, @floatFromInt(self.n_queries * self.log_blowup + self.pow_bits));
     }
@@ -520,6 +529,8 @@ pub fn verifyOpening(
     if (RU > R) return error.OpeningShape;
     const C = @as(usize, 1) << @intCast(shape.log_cols);
     const log_ext = shape.log_cols + shape.log_blowup;
+    // every point must have the table's arity before any slicing (PCS-4)
+    for (groups) |g| for (g.claims) |c| if (c.point.len != shape.log_rows + shape.log_cols) return error.OpeningShape;
     const gammas = try drawGammas(a, tr, groups);
     defer freeNested(a, gammas);
     const n_rows_out = groups.len + @intFromBool(with_proximity);
