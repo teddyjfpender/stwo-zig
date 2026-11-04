@@ -145,7 +145,9 @@ Model: layer `k` has `k` variables. `PT k, QT k` are the layers' multilinear ext
 combined variable is the first one. `LayerConsistent` (a structure, i.e. a hypothesis) states what
 the honest MLEs satisfy: layer `k` at `r` is `Σ_x eq(r,x) (fraction combination of layer k+1)`,
 layer `k+1` is linear in its first variable, and every batched summand has `IndDeg 3`. These are
-facts of multilinear extensions, stated like `IndDeg`, not derived. Only one GKR instance is
+facts of multilinear extensions, stated like `IndDeg`, not derived. `LayerConsistent N` asks for
+them only for the layers `k < N` of the `N`-layer circuit (an earlier draft quantified over all
+`k`, which forced an infinite tower of layers below the leaves). Only one GKR instance is
 modelled. The Zig verifier batches several instances (powers of the batching challenge, degree
 `<= 2 · instances`) and handles masks for instances of different depth. Neither is formalised.
 
@@ -188,6 +190,13 @@ each would need its own soundness case in `sound_pass`.
   true sumcheck claim gives the M31 remainder identity. This is the statement's layout, not
   randomness.
 * the bound conditions, which `validate_sound` discharges.
+
+Scope: the theorem is about one output entry `y` and one sumcheck whose true claim gives that
+entry's identity (`MatmulEncoding.ident`). For a whole output matrix the identity is checked at a
+random point of the output MLE, which adds a Schwartz-Zippel term (`opClaimDim / |F|` in
+security.zig) and is not modelled; neither are the int8 weights (taken as `hw`, from the key
+proof). `OpInt`-style integer statements in `Bounds.lean` are existential over the operand list
+(the same list the field identity uses), not tied to a fixed index map.
 
 ## Modelling assumptions (stated, not derived)
 

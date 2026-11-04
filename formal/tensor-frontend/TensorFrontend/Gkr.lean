@@ -329,19 +329,19 @@ theorem errSum_gkr (Prov : Nat → List (List F) → LayerProver F) (N : Nat) :
 
 /-- The honest circuit's multilinear extensions are layer-consistent
 (stated hypothesis; see the module header). -/
-structure LayerConsistent (PT QT : Nat → List F → F) : Prop where
-  p : ∀ k r, PT k r = Vp (PT (k + 1)) (QT (k + 1)) k r
-  q : ∀ k r, QT k r = Vq (PT (k + 1)) (QT (k + 1)) k r
-  linP : ∀ k mu rho, PT (k + 1) (mu :: rho) = (1 - mu) * PT (k + 1) (0 :: rho) + mu * PT (k + 1) (1 :: rho)
-  linQ : ∀ k mu rho, QT (k + 1) (mu :: rho) = (1 - mu) * QT (k + 1) (0 :: rho) + mu * QT (k + 1) (1 :: rho)
-  deg : ∀ k r lam, IndDeg 3 k (summand (PT (k + 1)) (QT (k + 1)) r lam)
+structure LayerConsistent (N : Nat) (PT QT : Nat → List F → F) : Prop where
+  p : ∀ k, k < N → ∀ r, PT k r = Vp (PT (k + 1)) (QT (k + 1)) k r
+  q : ∀ k, k < N → ∀ r, QT k r = Vq (PT (k + 1)) (QT (k + 1)) k r
+  linP : ∀ k, k < N → ∀ mu rho, PT (k + 1) (mu :: rho) = (1 - mu) * PT (k + 1) (0 :: rho) + mu * PT (k + 1) (1 :: rho)
+  linQ : ∀ k, k < N → ∀ mu rho, QT (k + 1) (mu :: rho) = (1 - mu) * QT (k + 1) (0 :: rho) + mu * QT (k + 1) (1 :: rho)
+  deg : ∀ k, k < N → ∀ r lam, IndDeg 3 k (summand (PT (k + 1)) (QT (k + 1)) r lam)
 
 /-- **LogUp-GKR soundness (N layers).** A false root claim `(cp, cq)` ends,
 after the `N` layer reductions, in true claims about the input layer (what
 an ideal input oracle accepts) for at most a `Σ_(k<N) (3k + 2) / |F|`
 fraction of all challenge tuples, for every adaptive prover. -/
-theorem gkr_sound (PT QT : Nat → List F → F) (hc : LayerConsistent PT QT)
-    (Prov : Nat → List (List F) → LayerProver F) (N : Nat) (cp cq : F)
+theorem gkr_sound (PT QT : Nat → List F → F) (N : Nat) (hc : LayerConsistent N PT QT)
+    (Prov : Nat → List (List F) → LayerProver F) (cp cq : F)
     (hbad : ¬ (cp = PT 0 [] ∧ cq = QT 0 [])) :
     (space (gkrSteps Prov N)).countP
         (fun as => good PT QT (run (gkrSteps Prov N) ([], some (0, [], cp, cq)) as)) * card F ≤
@@ -349,7 +349,8 @@ theorem gkr_sound (PT QT : Nat → List F → F) (hc : LayerConsistent PT QT)
   apply chain_sound
   · simp only [good, decide_eq_false_iff_not]; exact hbad
   · intro st hst s hs
-    obtain ⟨k, _, rfl⟩ := List.mem_map.mp hst
+    obtain ⟨k, hkN, rfl⟩ := List.mem_map.mp hst
+    have hkN : k < N := List.mem_range.mp hkN
     obtain ⟨h, o⟩ := s
     cases o with
     | none => simp [gkrStep, good]
@@ -358,7 +359,7 @@ theorem gkr_sound (PT QT : Nat → List F → F) (hc : LayerConsistent PT QT)
       by_cases hk : k' = k
       · subst hk
         have hb : ¬ (a = Vp (PT (k' + 1)) (QT (k' + 1)) k' r ∧ b = Vq (PT (k' + 1)) (QT (k' + 1)) k' r) := by
-          rw [← hc.p, ← hc.q]
+          rw [← hc.p k' hkN, ← hc.q k' hkN]
           simpa [good] using hs
         have heq : (layerΩ F k').countP (fun ω => good PT QT ((gkrStep Prov k').next (h, some (k', r, a, b)) ω)) =
             (layerΩ F k').countP (fun ω => goodOut (PT (k' + 1)) (QT (k' + 1)) (layerOut k' r a b (Prov k' h) ω)) := by
@@ -370,7 +371,7 @@ theorem gkr_sound (PT QT : Nat → List F → F) (hc : LayerConsistent PT QT)
         show (layerΩ F k').countP _ * card F ≤ (3 * k' + 2) * (layerΩ F k').length
         rw [heq]
         exact layer_sound k' (PT (k' + 1)) (QT (k' + 1)) r a b (Prov k' h)
-          (hc.linP k') (hc.linQ k') (hc.deg k' r) hb
+          (hc.linP k' hkN) (hc.linQ k' hkN) (hc.deg k' hkN r) hb
       · simp [gkrStep, hk, good]
 
 end TensorFrontend.Gkr
