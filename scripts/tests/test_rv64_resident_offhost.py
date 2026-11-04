@@ -74,8 +74,9 @@ class OffhostQualification(unittest.TestCase):
         O.B.atomic_json(self.case / "produced.json", pending)
         self.calls = []
 
-    def measure(self, argv, directory, name, environment):
+    def measure(self, argv, directory, name, environment, cwd=None):
         self.calls.append(argv)
+        self.assertEqual(cwd, O.RECEIVER_CWD)
         self.assertEqual(name, "strict-receiver")
         self.assertEqual(argv[6], "verify-recursion-candidate")
         self.assertEqual(argv[-1], str(32 << 30))
@@ -96,6 +97,13 @@ class OffhostQualification(unittest.TestCase):
     def invoke(self):
         return O.qualify(self.plan_path, self.case, 1, 1, self.request, self.assets["driver"], self.assets["library"],
                          self.root / "qualification", self.assets["receiver"], O.B.sha(self.assets["receiver"]), lock=self.root / "receiver.lock")
+
+    def test_measure_uses_explicit_receiver_working_directory(self):
+        working = self.root / "receiver working directory"
+        working.mkdir()
+        O.B.measure([sys.executable, "-c", "import os; print(os.getcwd())"],
+                    self.root, "cwd-probe", cwd=working)
+        self.assertEqual((self.root / "cwd-probe.stdout").read_text().strip(), str(working.resolve()))
 
     def test_maps_io_without_rewriting_original_authority_and_runs_one_receiver(self):
         before = O.file_snapshot(self.case)
@@ -137,8 +145,8 @@ class OffhostQualification(unittest.TestCase):
         launch.assert_not_called()
 
     def test_receiver_repair_is_rejected_after_fresh_report(self):
-        def repair(*args):
-            usage = self.measure(*args)
+        def repair(*args, **kwargs):
+            usage = self.measure(*args, **kwargs)
             (self.case / "batch/trial-0/1/proof/recursion-om31/root.proof").write_bytes(b"evil")
             return usage
         with patch.object(O.B, "measure", side_effect=repair), self.assertRaisesRegex(ValueError, "root proof differs|changed"):
@@ -146,8 +154,8 @@ class OffhostQualification(unittest.TestCase):
 
 
     def test_strict_receiver_cannot_report_new_recursive_proofs(self):
-        def reprove(*args):
-            usage = self.measure(*args)
+        def reprove(*args, **kwargs):
+            usage = self.measure(*args, **kwargs)
             response = O.B.load(args[1] / "strict-receiver.stdout")
             response["recursive"]["gpu_new_leaf_proofs"] = 1
             O.B.atomic_json(args[1] / "strict-receiver.stdout", response)

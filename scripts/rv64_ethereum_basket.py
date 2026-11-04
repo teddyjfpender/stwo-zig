@@ -49,11 +49,11 @@ def command(driver, profile, mode, request, output, *tail):
             str(request), str(output), *map(str, tail)]
 
 
-def measure(argv, directory, name, environment=None):
+def measure(argv, directory, name, environment=None, cwd=None):
     """Per-child wait4 usage, never differences of shared process-wide counters."""
     start = time.monotonic_ns()
     with (directory / (name + ".stdout")).open("wb") as stdout, (directory / (name + ".stderr")).open("wb") as stderr:
-        process = subprocess.Popen(argv, stdout=stdout, stderr=stderr, env=environment)
+        process = subprocess.Popen(argv, stdout=stdout, stderr=stderr, env=environment, cwd=cwd)
         _, status, usage = os.wait4(process.pid, 0)
         process.returncode = os.waitstatus_to_exitcode(status)
     result = {"argv": argv, "exit_code": process.returncode,

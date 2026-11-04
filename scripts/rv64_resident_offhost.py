@@ -18,6 +18,7 @@ import rv64_resident_basket as R
 B = R.B
 ARM_RECEIVER = "/private/tmp/rv64-cpu-v2-arm/bin/rv64-word16-ethereum-recursion-receiver"
 ARM_SHA256 = "0025ac3c498822c9ce1db66c1aad9bbaf76fa6490e4172342ada25167bf30395"
+RECEIVER_CWD = Path(__file__).resolve().parents[1]
 RECYCLER_BYTES = 4 << 30  # Contract of the independently qualified receiver.
 
 
@@ -101,7 +102,7 @@ def qualify(plan_path, case, block, device_count, request_path, driver, library,
         for name, info in source_assets.items():
             if B.sha(info["local"]) != info["sha256"]:
                 raise ValueError("guest/input changed before receiver launch: " + name)
-        usage = B.measure(command, output, "strict-receiver", environment)
+        usage = B.measure(command, output, "strict-receiver", environment, cwd=RECEIVER_CWD)
     received = B.load(output / "strict-receiver.stdout")
     trials = []
     for trial in range(repeat):
@@ -141,7 +142,7 @@ def qualify(plan_path, case, block, device_count, request_path, driver, library,
               "receiver_host_live_cap_bytes": host_bytes, "receiver_recycler_cache_cap_bytes": RECYCLER_BYTES,
               "recycler_cap_basis": "qualified receiver build contract; not an operational CLI override",
               "receiver_host": {"system": platform.system(), "machine": platform.machine()},
-              "receiver_argv": command, "receiver_process": usage, "receiver_lock": str(lock),
+              "receiver_argv": command, "receiver_cwd": str(RECEIVER_CWD), "receiver_process": usage, "receiver_lock": str(lock),
               "path_mapping": {"target": {"original": declared["target"], "local": str(case)},
                                "request": {"original": declared["request"], "local": str(request_path)},
                                "assets": {k: {"original": original["assets"][k], "local": str(p), "sha256": pins[k]} for k, p in mapped_assets.items()},
