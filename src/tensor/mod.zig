@@ -54,4 +54,5 @@ test {
     _ = @import("canonical_proof_test.zig");
     _ = @import("review_kern_test.zig");
     _ = @import("review_proto3_pcs4_test.zig");
+    _ = @import("review_recheck_kern_test.zig");
 }

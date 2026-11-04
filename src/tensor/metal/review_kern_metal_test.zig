@@ -88,3 +88,43 @@ test "review-kern metal: fp32 matmul at the 2^23 partial-sum bound (K = 2^12, x 
     for (0..(@as(usize, 1) << lk)) |k| w[k << ln] = -127;
     try checkMatmul(a, &pool, g, lt, lk, ln, x, w);
 }
+
+// --- independent re-check variants (not committed) ---
+fn variant(lt: u32, lk: u32, ln: u32, seed: u64, lo: i32, hi: i32, force: []const i32) !void {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const g = try gpu();
+    const x = try a.alloc(i32, @as(usize, 1) << @intCast(lt + lk));
+    defer a.free(x);
+    var prng = std.Random.DefaultPrng.init(seed);
+    const r = prng.random();
+    for (x) |*v| v.* = r.intRangeAtMost(i32, lo, hi);
+    for (force, 0..) |v, i| x[i * 37 % x.len] = v;
+    const w = try a.alloc(i8, @as(usize, 1) << @intCast(lk + ln));
+    defer a.free(w);
+    for (w) |*v| v.* = r.int(i8);
+    try checkMatmul(a, &pool, g, lt, lk, ln, x, w);
+}
+test "recheck metal: full int8 range [-128,127] incl both ends (fp32 path), K=2^10" {
+    try variant(6, 10, 6, 11, -128, 127, &.{ -128, 127 });
+}
+test "recheck metal: single +128 among negatives, K=2^12 (int32 path)" {
+    try variant(6, 12, 6, 12, -128, 0, &.{128});
+}
+test "recheck metal: single -129 among int8 (int32 path)" {
+    try variant(6, 9, 6, 13, -128, 127, &.{-129});
+}
+test "recheck metal: |x| = 2^15-1 both signs, K=2^12 (int32 path, multi-chunk)" {
+    try variant(6, 12, 6, 14, -(1 << 15) + 1, (1 << 15) - 1, &.{ (1 << 15) - 1, -(1 << 15) + 1 });
+}
+test "recheck metal: x = 2^15 (declined -> CPU)" {
+    const a = std.testing.allocator;
+    const g = try gpu();
+    var x = [_]i32{1 << 15} ** (64 * 64);
+    var w = [_]i8{1} ** (64 * 64);
+    const wm = pcs.Matrix(i8){ .data = &w, .log_rows = 6, .log_cols = 6 };
+    const dev = try t.accel.matmulAcc(g.accel(), a, 6, &x, wm);
+    try std.testing.expect(dev == null);
+}
