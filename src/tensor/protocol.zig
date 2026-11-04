@@ -101,6 +101,9 @@ pub const WeightStore = struct {
     log_cols: u32,
     rows_used: usize,
     com: pcs.Committed,
+    /// MLE of the table at the key's OOD point (`weightOodPoint`), computed at
+    /// commit time and published in the WeightKey (security.md 4.2).
+    ood_value: QM31 = QM31.zero(),
 
     pub fn deinit(self: *WeightStore, a: std.mem.Allocator) void {
         a.free(self.offsets);
@@ -180,7 +183,18 @@ pub const Config = struct {
     /// LogUp-GKR, so the LogUp error is squared also round by round
     /// (security.md 4.1). 1 keeps the key proof unchanged.
     key_alphas: u32 = 1,
-    /// max log columns of the weight table (must be <= min log N over matmuls)
+    /// Per-batch weight openings run their own proximity test (k = prox_rows
+    /// random rows), next to the matmul claims and the key's OOD claim
+    /// (z_ood, v_ood). Then each batch opening binds the claims to the one
+    /// list member that matches v_ood, in any decoding regime (Johnson with
+    /// OOD, or the capacity conjecture), as FlashProve's online proof does.
+    /// false: consistency queries only; the binding then rests on the weight
+    /// key's proximity at distance delta_key, and each query costs
+    /// -log2(rho + delta_key) bits (security.md 4, 4.2). Conjectured bits are
+    /// not meaningful in that mode (bench prints null).
+    weight_proximity: bool = true,
+    /// max log columns of the weight table (claims are grouped by column
+    /// point, so any value <= the table's log size is complete)
     weight_log_cols: u32 = 10,
     witness_log_cols_max: u32 = 14,
     gkr_threads: usize = 8,
@@ -234,7 +248,76 @@ pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []
     const ru = (lay.used + (@as(usize, 1) << @intCast(lc)) - 1) >> @intCast(lc);
     const m = pcs.Matrix(i8){ .data = table, .log_rows = lr, .log_cols = lc, .rows_used = ru };
     const com = try accel.commit(cfg.accel, i8, a, pool, &tw, m, lb);
-    return .{ .infos = infos, .offsets = lay.offsets, .table = table, .log_rows = lr, .log_cols = lc, .rows_used = ru, .com = com };
+    var ws = WeightStore{ .infos = infos, .offsets = lay.offsets, .table = table, .log_rows = lr, .log_cols = lc, .rows_used = ru, .com = com };
+    // OOD answer at the point derived from the root and layout
+    const z = try weightOodPoint(a, weightKey(&ws));
+    defer a.free(z);
+    ws.ood_value = try tableMleI8(a, pool, ws.tableMatrix(), z);
+    return ws;
+}
+
+/// MLE of a committed i8 table (rows >= rows_used zero) at a point.
+pub fn tableMleI8(a: std.mem.Allocator, pool: *f.Pool, m: pcs.Matrix(i8), point: []const QM31) !QM31 {
+    std.debug.assert(point.len == m.log_rows + m.log_cols);
+    const eq_r = try f.eqTable(a, point[0..m.log_rows], QM31.one());
+    defer a.free(eq_r);
+    const cv = [_][]const QM31{eq_r};
+    const rows = try pcs.combineRows(i8, a, pool, m, &cv, 7);
+    defer {
+        for (rows) |r| a.free(r);
+        a.free(rows);
+    }
+    const eq_c = try f.eqTablePar(a, pool, point[m.log_rows..], QM31.one());
+    defer a.free(eq_c);
+    var v = QM31.zero();
+    for (rows[0], eq_c) |u, e| v = v.add(u.mul(e));
+    return v;
+}
+
+/// Mixes the whole weight layout (root, tensor shapes, offsets, table split),
+/// so the key proof and every batch proof commit to one layout (PCS-2).
+pub fn mixWeightLayout(tr: *Transcript, key: WeightKey) void {
+    tr.mixDigest(key.root);
+    tr.mixU64(key.infos.len);
+    for (key.infos, 0..) |t, i| {
+        tr.mixU64(t.n_dims);
+        for (t.log_dims) |d| tr.mixU64(d);
+        tr.mixU64(if (i < key.offsets.len) key.offsets[i] else std.math.maxInt(u64));
+    }
+    tr.mixU32s(&.{ key.log_rows, key.log_cols });
+    tr.mixU64(key.rows_used);
+}
+
+/// The weight-key transcript up to the OOD point: domain, root, layout.
+/// The key proof continues from here (weight_key.zig).
+pub fn keyTranscript(key: WeightKey) Transcript {
+    var tr = Transcript.initDomain("stwo-tensor-weight-key-v2");
+    mixWeightLayout(&tr, key);
+    return tr;
+}
+
+/// The weight table's OOD point: drawn in the key transcript right after the
+/// root and layout, before any prover message (security.md 4.2).
+pub fn weightOodPoint(a: std.mem.Allocator, key: WeightKey) ![]QM31 {
+    var tr = keyTranscript(key);
+    const z = try a.alloc(QM31, key.log_rows + key.log_cols);
+    tr.drawN(z);
+    return z;
+}
+
+/// The verifier-held key must describe the layout `infos` determines: same
+/// tensors, canonical offsets, and a table split of exactly that size. Errors
+/// instead of panics on any mismatch (PCS-2 / PROTO-5).
+pub fn checkKeyLayout(a: std.mem.Allocator, infos: []const TensorInfo, key: WeightKey) !void {
+    if (key.infos.len != infos.len or key.offsets.len != infos.len) return error.WeightKeyShape;
+    for (key.infos, infos) |x, y| if (!std.meta.eql(x, y)) return error.WeightKeyShape;
+    if (infos.len == 0) return;
+    const lay = try layout(a, infos, &.{});
+    defer a.free(lay.offsets);
+    if (!std.mem.eql(usize, lay.offsets, key.offsets)) return error.WeightKeyShape;
+    if (key.log_cols > lay.log_total or key.log_rows + key.log_cols != lay.log_total) return error.WeightKeyShape;
+    const C = @as(usize, 1) << @intCast(key.log_cols);
+    if (key.rows_used != (lay.used + C - 1) / C) return error.WeightKeyShape;
 }
 
 // ---------------------------------------------------------------------------
@@ -270,6 +353,29 @@ const Relations = struct {
         a.free(self.ext_keys);
     }
 };
+
+/// LogUp over M31 needs every relation's fraction count (keys + table rows)
+/// below p: a key value outside the table then has a nonzero net
+/// multiplicity mod p (P7 / PROTO-6). Relations are summed per table, as the
+/// verifier checks them (`LogUpSumNonZero`).
+fn checkLogUpCounts(rel: Relations) !void {
+    for (rel.tables, 0..) |t, ti| {
+        if (t.log_size >= 31) return error.LogUpCountAboveP;
+        var d: u64 = @as(u64, 1) << @intCast(t.log_size);
+        for (rel.keys) |k| if (k.table == ti) {
+            if (k.log_size >= 31) return error.LogUpCountAboveP;
+            d += @as(u64, 1) << @intCast(k.log_size);
+        };
+        if (d >= f.P) return error.LogUpCountAboveP;
+    }
+}
+
+/// `checkLogUpCounts` of a statement's relations.
+pub fn checkStatementLogUp(a: std.mem.Allocator, st: Statement) !void {
+    var rel = try deriveRelations(a, st);
+    defer rel.deinit(a);
+    try checkLogUpCounts(rel);
+}
 
 fn tableIndex(list: *std.ArrayList(RelTable), a: std.mem.Allocator, kind: TableKind, n_witness: usize) !usize {
     return tableIndexX(list, a, kind, n_witness, .{});
@@ -485,7 +591,8 @@ pub fn chooseWeightLogCols(cfg: Config, a: std.mem.Allocator, infos: []const Ten
     const tl = (try weightOpenConfig(cfg)).two_level orelse return cfg.weight_log_cols;
     const lay = try layout(a, infos, &.{});
     defer a.free(lay.offsets);
-    return pcs2.bestOuter(tl, lay.log_total, lay.used, n_groups, false, @min(lay.log_total, PCS2_MAX_LOG_COLS)).log_cols;
+    // + 1 group for the key's OOD claim; proximity rows per Config.weight_proximity
+    return pcs2.bestOuter(tl, lay.log_total, lay.used, n_groups + 1, cfg.weight_proximity, @min(lay.log_total, PCS2_MAX_LOG_COLS)).log_cols;
 }
 
 pub const WitnessClaim = struct { tensor: usize, point: []QM31, value: QM31 };
@@ -574,8 +681,9 @@ pub const Timings = struct {
     ext_ops_ns: u64 = 0,
 };
 
-fn mixStatement(tr: *Transcript, st: Statement, weight_root: [32]u8) void {
-    tr.mixDigest(weight_root);
+fn mixStatement(tr: *Transcript, st: Statement, key: WeightKey) void {
+    mixWeightLayout(tr, key);
+    tr.mixFelt(key.ood_value);
     tr.mixU64(st.witness.len);
     for (st.witness) |t| {
         tr.mixU64(t.n_dims);
@@ -603,6 +711,9 @@ fn mixStatement(tr: *Transcript, st: Statement, weight_root: [32]u8) void {
 }
 
 fn fullPoint(a: std.mem.Allocator, log_total: u32, offset: usize, log_size: u32, local: []const QM31) ![]QM31 {
+    if (log_size > log_total or local.len != log_size) return error.ClaimShape;
+    if (log_size < 64 and offset & ((@as(usize, 1) << @intCast(log_size)) - 1) != 0) return error.ClaimShape;
+    if (log_total < 64 and (offset >> @intCast(log_total)) != 0) return error.ClaimShape;
     const out = try a.alloc(QM31, log_total);
     const nb = log_total - log_size;
     const block = offset >> @intCast(log_size);
@@ -1051,8 +1162,10 @@ pub fn proveWithAllAccumulators(
         .hadamard => |h| if (x == null or x.?.len != st.witness[h.y].size()) return error.AccumulatorShape,
         else => {},
     };
+    try checkKeyLayout(a, st.weights, weightKey(ws));
     var rel = try deriveRelations(a, st);
     defer rel.deinit(a);
+    try checkLogUpCounts(rel);
     const t_init = try std.time.Instant.now();
     var eps = try xt.proverInitWith(a, pool, st, witness, ext_acc);
     defer eps.deinit(a);
@@ -1096,7 +1209,7 @@ pub fn proveWithAllAccumulators(
     for (all) |v| timings.witness_elems += v.len;
 
     var tr = Transcript.initDomain("stwo-tensor-v1");
-    mixStatement(&tr, st, ws.com.root());
+    mixStatement(&tr, st, weightKey(ws));
     tr.mixDigest(wcom.root());
     // OOD sample of the witness table: fixes the decoded witness before any
     // challenge (security.md, section 3)
@@ -1409,10 +1522,13 @@ pub fn proveWithAllAccumulators(
         .{ .flat = try pcs.open(i32, a, pool, &tr, cfg.pcs, &wcom, wm, wgroups, true) };
     timings.witness_open_ns = nowNs(t0);
 
-    // --- weight opening (single combined row; proximity proven at commit time)
+    // --- weight opening: the matmul claims plus the key's OOD claim, grouped
+    // by column point; with Config.weight_proximity its own proximity test
     t0 = try std.time.Instant.now();
-    const wcl = try a.alloc(pcs.Claim, weight_claims.items.len);
+    const wcl = try a.alloc(pcs.Claim, weight_claims.items.len + 1);
     defer a.free(wcl);
+    const wood_z = try weightOodPoint(a, weightKey(ws));
+    defer a.free(wood_z);
     const wcfg = try weightOpenConfig(cfg);
     const full_pts = try a.alloc([]QM31, weight_claims.items.len);
     defer {
@@ -1424,16 +1540,15 @@ pub fn proveWithAllAccumulators(
         full_pts[i] = try fullPoint(a, wlog_total, ws.offsets[c.w], ws.infos[c.w].logSize(), c.point);
         wcl[i] = .{ .point = full_pts[i], .value = c.value };
     }
-    const wtgroups = [_]pcs.Group{.{ .claims = wcl }};
+    wcl[weight_claims.items.len] = .{ .point = wood_z, .value = ws.ood_value };
     var wtopen: ?Opening = null;
-    if (wcl.len > 0) {
-        if (wcfg.two_level) |tl| {
-            const gs = try pcs2.groupByColumn(a, wcl, ws.log_rows);
-            defer pcs2.freeGroups(a, gs);
-            wtopen = .{ .two = try pcs2.open(i8, a, pool, &tr, tl, &ws.com, ws.tableMatrix(), gs, false) };
-        } else {
-            wtopen = .{ .flat = try pcs.open(i8, a, pool, &tr, wcfg.pcs, &ws.com, ws.tableMatrix(), &wtgroups, false) };
-        }
+    if (weight_claims.items.len > 0) {
+        const gs = try pcs2.groupByColumn(a, wcl, ws.log_rows);
+        defer pcs2.freeGroups(a, gs);
+        wtopen = if (wcfg.two_level) |tl|
+            .{ .two = try pcs2.open(i8, a, pool, &tr, tl, &ws.com, ws.tableMatrix(), gs, cfg.weight_proximity) }
+        else
+            .{ .flat = try pcs.open(i8, a, pool, &tr, wcfg.pcs, &ws.com, ws.tableMatrix(), gs, cfg.weight_proximity) };
     }
     timings.weight_open_ns = nowNs(t0);
 
@@ -1462,10 +1577,13 @@ pub const WeightKey = struct {
     log_rows: u32,
     log_cols: u32,
     rows_used: usize,
+    /// the table's MLE at `weightOodPoint(key)`, certified by the key proof;
+    /// every batch's weight opening includes the claim (z_ood, ood_value)
+    ood_value: QM31,
 };
 
 pub fn weightKey(ws: *const WeightStore) WeightKey {
-    return .{ .root = ws.com.root(), .infos = ws.infos, .offsets = ws.offsets, .log_rows = ws.log_rows, .log_cols = ws.log_cols, .rows_used = ws.rows_used };
+    return .{ .root = ws.com.root(), .infos = ws.infos, .offsets = ws.offsets, .log_rows = ws.log_rows, .log_cols = ws.log_cols, .rows_used = ws.rows_used, .ood_value = ws.ood_value };
 }
 
 /// Public well-formedness checks the soundness argument relies on:
@@ -1573,7 +1691,9 @@ pub const VerifyInfo = struct {
     witness_shape: pcs.Shape = .{ .log_rows = 0, .log_cols = 0, .log_blowup = 0 },
     witness_groups: usize = 0,
     weight_shape: ?pcs.Shape = null,
+    /// weight groups include the key's OOD claim group
     weight_groups: usize = 0,
+    weight_proximity: bool = false,
     /// LogUp: number of fractions (keys + table rows) summed over all
     /// relations, and of the largest relation (must stay below p)
     logup_fractions: f64 = 0,
@@ -1592,8 +1712,10 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
 pub fn verifyInfo(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, proof: *const Proof, info: ?*VerifyInfo) !void {
     try validateStatement(st);
     try xt.validate(st);
+    try checkKeyLayout(a, st.weights, key);
     var rel = try deriveRelations(a, st);
     defer rel.deinit(a);
+    try checkLogUpCounts(rel);
     const ext = try extendedInfos(a, st, rel);
     defer a.free(ext);
     const lay = try layout(a, ext, &.{});
@@ -1602,7 +1724,7 @@ pub fn verifyInfo(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightK
     const olb = outerParams(cfg).log_blowup;
 
     var tr = Transcript.initDomain("stwo-tensor-v1");
-    mixStatement(&tr, st, key.root);
+    mixStatement(&tr, st, key);
     tr.mixDigest(proof.witness_root);
     if ((proof.witness_ood != null) != witnessOod(cfg)) return error.ProofShape;
     const wood_pt = try a.alloc(QM31, if (witnessOod(cfg)) lay.log_total else 0);
@@ -1881,25 +2003,27 @@ pub fn verifyInfo(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightK
     }
 
     // weight claims: the values are the matmul finals for W (not resent)
+    // plus the key's OOD claim (z_ood, v_ood), which pins the decoding
     if (expected_w.items.len != weight_pts.items.len) return error.ProofShape;
-    const wcl = try a.alloc(pcs.Claim, weight_pts.items.len);
+    const n_wc = weight_pts.items.len;
+    const wcl = try a.alloc(pcs.Claim, n_wc + 1);
     defer a.free(wcl);
     for (weight_pts.items, expected_w.items, 0..) |p, v, i| wcl[i] = .{ .point = p, .value = v };
-    const kgroups = [_]pcs.Group{.{ .claims = wcl }};
-    if ((wcl.len == 0) != (proof.weight_opening == null)) return error.ProofShape;
+    const wood_z = try weightOodPoint(a, key);
+    defer a.free(wood_z);
+    wcl[n_wc] = .{ .point = wood_z, .value = key.ood_value };
+    if ((n_wc == 0) != (proof.weight_opening == null)) return error.ProofShape;
     if (proof.weight_opening) |wop| {
         const wcfg = try weightOpenConfig(cfg);
         const kshape = pcs.Shape{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = olb, .rows_used = key.rows_used };
-        if (wcfg.two_level != null) {
-            const gs = try pcs2.groupByColumn(a, wcl, key.log_rows);
-            defer pcs2.freeGroups(a, gs);
-            try verifyOpeningAny(a, &tr, wcfg, kshape, key.root, gs, false, wop);
-            if (info) |inf| inf.weight_groups = gs.len;
-        } else {
-            try verifyOpeningAny(a, &tr, wcfg, kshape, key.root, &kgroups, false, wop);
-            if (info) |inf| inf.weight_groups = 1;
+        const gs = try pcs2.groupByColumn(a, wcl, key.log_rows);
+        defer pcs2.freeGroups(a, gs);
+        try verifyOpeningAny(a, &tr, wcfg, kshape, key.root, gs, cfg.weight_proximity, wop);
+        if (info) |inf| {
+            inf.weight_groups = gs.len;
+            inf.weight_shape = kshape;
+            inf.weight_proximity = cfg.weight_proximity;
         }
-        if (info) |inf| inf.weight_shape = kshape;
     }
 }
 

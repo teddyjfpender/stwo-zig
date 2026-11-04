@@ -1576,8 +1576,8 @@ test "fused QKV projection (fixed-bit slices) proves and verifies; RoPE reads th
 // einsum accumulator (score and PV contractions of 2^4 terms), the split-eq
 // einsum sumcheck (sel * sel, sel * D) and the split-eq MLE evaluations.
 
-const GOLDEN_LAYER_FLAT = "e1f73d3d222a787247fb475e6866f8e74942fbbaba24aac2d41e832a37f6fac9";
-const GOLDEN_LAYER_PCS2_MOE = "e56d65d0aad12bc9bec7644049d9c09e1b6500104e42120a52591457e5f522c7";
+const GOLDEN_LAYER_FLAT = "44acf59378f8adf115c71a8d73cb2a94647add37eaacb9ef3146f0fa93a5d8ea";
+const GOLDEN_LAYER_PCS2_MOE = "f2457baf0a568eabdc7656806297c2fec733a84a110e35a4863fb74003c3456c";
 
 fn layerDigest(cfg: LayerCfg, pc_in: proto.Config, threads: usize) ![32]u8 {
     return layerDigestOpt(cfg, pc_in, threads, false);

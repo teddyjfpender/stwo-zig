@@ -22,10 +22,19 @@
 //!     unique decoding, delta < (1 - rho)/2, or - with an OOD sample on the
 //!     table - the Johnson regime delta = 1 - sqrt(rho)(1 + 1/m); the
 //!     calculator picks the better per level;
-//!   * the weight table: proximity proven once in the weight key at a small
-//!     delta_key; per-batch consistency queries pass a cheating prover with
-//!     probability <= (rho + delta_key) each. delta_key is chosen to balance
-//!     the key and the per-batch terms.
+//!   * the weight table carries an OOD claim fixed by the key (z_ood drawn
+//!     after the root and layout, v_ood in the WeightKey), opened in the key
+//!     and in every batch (security.md 4.2). Two modes:
+//!       - Config.weight_proximity (default): every per-batch weight opening
+//!         runs its own proximity test, so it is accounted as a fresh table
+//!         with an OOD sample (unique or Johnson, whichever is better), and
+//!         so is the key's level 0;
+//!       - otherwise: proximity proven once in the weight key at a small
+//!         delta_key (unique decoding); per-batch consistency queries pass a
+//!         cheating prover with probability <= (rho + delta_key) each.
+//!         delta_key is chosen to balance the key and the per-batch terms.
+//!     No conjectured figure is ever derived here: every term is a proven
+//!     bound for the binding the verifier actually checks.
 const std = @import("std");
 const f = @import("field.zig");
 const pcs = @import("pcs.zig");
@@ -433,6 +442,10 @@ pub const Report = struct {
     total: Account,
     delta_key: f64,
     logup_ok: bool,
+    /// per-batch weight openings ran their own proximity test (4.2)
+    weight_proximity: bool = false,
+    /// the proof opened the weight table at all
+    weight_openings: bool = false,
 
     pub fn deinit(self: *Report) void {
         self.request.deinit();
@@ -474,11 +487,14 @@ pub fn accountProof(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statement
     const kcfg = try proto.keyConfig(cfg);
     const wcfg = try proto.weightOpenConfig(cfg);
     const kshape = pcs.Shape{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = proto.outerParams(cfg).log_blowup, .rows_used = key.rows_used };
-    const kinf = try openingInfos(a, kcfg, kshape, 1, true);
+    // key opening: W(rho) and the OOD claim (two column points)
+    const kinf = try openingInfos(a, kcfg, kshape, 2, true);
     defer a.free(kinf);
-    const winf2: ?[]pcs2.LevelInfo = if (info.weight_shape) |ws| try openingInfos(a, wcfg, ws, info.weight_groups, false) else null;
+    const wprox = info.weight_proximity;
+    const winf2: ?[]pcs2.LevelInfo = if (info.weight_shape) |ws| try openingInfos(a, wcfg, ws, info.weight_groups, wprox) else null;
     defer if (winf2) |x| a.free(x);
-    {
+    const key_vars = key.log_rows + key.log_cols;
+    if (!wprox) {
         const ud = uniqueProx(kinf[0].log_cols, kinf[0].params.log_blowup);
         var best = -std.math.inf(f64);
         var i: usize = 1;
@@ -494,7 +510,15 @@ pub fn accountProof(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statement
             }
         }
     }
-    if (winf2) |w| try accountOpening(&req, "weights", w, tl_ood, false, .{ .consistency = delta_key });
+    if (winf2) |w| {
+        if (wprox) {
+            // own proximity rows + the key's OOD claim: a fresh table with an
+            // OOD sample (security.md 4.2)
+            try accountOpening(&req, "weights", w, tl_ood, true, .fresh);
+        } else {
+            try accountOpening(&req, "weights", w, tl_ood, false, .{ .consistency = delta_key });
+        }
+    }
 
     if (key_proof) |kp| {
         var k = Account.init(a);
@@ -507,11 +531,14 @@ pub fn accountProof(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statement
         const single = std.math.log2(2 * (n_weights + 256)) - LOG2_F;
         try k.add(if (ka == 1) "key logup alpha" else "key logup alpha x2", .logup, @as(f64, @floatFromInt(ka)) * single, 0, 1);
         try accountGkr(&k, "key gkr", &kp.gkr);
-        // key opening: level 0 at delta_key (unique decoding), inner levels fresh
+        // key opening: level 0 at delta_key (unique decoding) when the batches
+        // rely on it, else fresh with the OOD sample; inner levels fresh
         var buf: [32]u8 = undefined;
         for (kinf, 0..) |li, lvl| {
             const nm = try std.fmt.bufPrint(&buf, "key L{d}", .{lvl});
-            if (lvl == 0) {
+            if (lvl == 0 and wprox) {
+                _ = try levelTerms(&k, nm, li, .fresh, try bestProx(nm, li, key_vars), key_vars);
+            } else if (lvl == 0) {
                 var px = uniqueProx(li.log_cols, li.params.log_blowup);
                 px.delta = delta_key;
                 _ = try levelTerms(&k, nm, li, .fresh, px, null);
@@ -526,11 +553,11 @@ pub fn accountProof(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statement
     errdefer total.deinit();
     try total.addAll(req, "");
     if (kacc) |k| try total.addAll(k, "");
-    return .{ .request = req, .key = kacc, .total = total, .delta_key = delta_key, .logup_ok = info.logup_max_relation < P };
+    return .{ .request = req, .key = kacc, .total = total, .delta_key = delta_key, .logup_ok = info.logup_max_relation < P, .weight_proximity = wprox, .weight_openings = info.weight_shape != null };
 }
 
 pub fn writeReport(r: Report, out: anytype) !void {
-    try out.print("\"security\":{{\"delta_key\":{d:.4},\"logup_below_p\":{},\"request\":", .{ r.delta_key, r.logup_ok });
+    try out.print("\"security\":{{\"weight_binding\":\"{s}\",\"delta_key\":{d:.4},\"logup_below_p\":{},\"request\":", .{ if (!r.weight_openings) "no weight openings" else if (r.weight_proximity) "per-batch proximity + key OOD" else "key distance + key OOD", r.delta_key, r.logup_ok });
     try r.request.writeJson(out, 6);
     if (r.key) |k| {
         try out.print(",\"key\":", .{});
@@ -638,4 +665,51 @@ test "end-to-end accounting of a product proof: more queries, more bits" {
         try std.testing.expect(std.meta.isError(accountProof(a, pc, st, proto.weightKey(&ws), &proof, null)));
     }
     try std.testing.expect(results[1] > results[0] + 20);
+}
+
+test "weight binding modes: per-batch proximity is accounted fresh, consistency at delta_key" {
+    const a = std.testing.allocator;
+    const model = @import("model.zig");
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const cfg = model.Mlp{ .log_t = 3, .log_d = 4, .log_f = 5, .fused = false };
+    const winfos = model.mlpWeightInfos(cfg);
+    var wdata: [3][]i8 = undefined;
+    for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 600 + i, -8, 7);
+    defer for (wdata) |w| a.free(w);
+    for ([_]bool{ true, false }) |wprox| {
+        var pc = proto.Config{ .pcs = .{ .log_blowup = 2, .n_queries = 40, .pow_bits = 2 }, .weight_log_cols = 4, .witness_log_cols_max = 6, .gkr_threads = 1 };
+        pc.weight_proximity = wprox;
+        var ws = try proto.commitWeights(a, &pool, pc, &winfos, &.{ wdata[0], wdata[1], wdata[2] });
+        defer ws.deinit(a);
+        var kp = try weight_key.prove(a, &pool, pc, &ws);
+        defer kp.deinit(a);
+        const x = try model.randomInput(a, @as(usize, 1) << (cfg.log_t + cfg.log_d), 5);
+        defer a.free(x);
+        var built = try model.buildMlp(a, &pool, &ws, cfg, x);
+        defer built.deinit(a);
+        const wview = try a.alloc([]const i32, built.witness.len);
+        defer a.free(wview);
+        for (built.witness, 0..) |w, i| wview[i] = w;
+        var tm: proto.Timings = .{};
+        var proof = try proto.prove(a, &pool, pc, built.statement(), &ws, wview, &tm);
+        defer proof.deinit(a);
+        var rep = try accountProof(a, pc, built.statement(), proto.weightKey(&ws), &proof, &kp);
+        defer rep.deinit();
+        try std.testing.expectEqual(wprox, rep.weight_proximity);
+        var has_prox = false;
+        var has_consistency = false;
+        for (rep.request.terms.items) |t| {
+            if (std.mem.startsWith(u8, t.name, "weights L0 proximity")) has_prox = true;
+            if (std.mem.startsWith(u8, t.name, "weights L0 queries") and t.kind == .query) {
+                // consistency mode: per-query agreement rho + delta_key > 1 - delta
+                has_consistency = std.mem.indexOf(u8, t.name, "at 0.") != null and !wprox;
+            }
+        }
+        try std.testing.expectEqual(wprox, has_prox);
+        try std.testing.expectEqual(!wprox, has_consistency);
+        // no term is ever a conjectured (rho^t) figure: query agreement >= rho + something
+        for (rep.total.terms.items) |t| if (t.kind == .query) try std.testing.expect(t.log2_err >= 40 * std.math.log2(0.25) + 1);
+    }
 }

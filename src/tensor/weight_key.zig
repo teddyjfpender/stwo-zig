@@ -8,7 +8,10 @@
 //! plays the same role.
 //!
 //! Protocol (non-interactive, Blake2s transcript):
-//!   1. mix weight root and shape.
+//!   0. mix weight root and the whole layout (tensor shapes, offsets, split);
+//!      draw the OOD point z_ood (protocol.weightOodPoint) and mix the key's
+//!      OOD answer v_ood = W(z_ood) (WeightKey.ood_value).
+//!   1. (shape is part of step 0.)
 //!   2. prover sends the histogram m[v], v in [0,256), of (w + 128) over the
 //!      whole 2^n table, padding zeros included.
 //!   3. alpha <- transcript. A LogUp-GKR batch of 2 instances:
@@ -18,10 +21,14 @@
 //!   4. Terminal claims: key instance den(rho) = alpha - W(rho) - 128 gives
 //!      W(rho). Table instance: den(rho') = alpha - id(rho'), and num(rho')
 //!      = MLE(m)(rho') is computed by the verifier from the sent histogram.
-//!   5. One PCS opening of the weight table at rho, with proximity.
+//!   5. One PCS opening of the weight table, with proximity, of two claim
+//!      groups: W(rho) and the OOD claim (z_ood, v_ood). The OOD claim pins
+//!      the decoded table D beyond unique decoding; every batch's weight
+//!      opening carries the same claim, so the range proof and every batch
+//!      speak about the same D (security.md 4.2).
 //! Soundness: if some w_i is outside [0,256) after the +128 shift (as a field
 //! element), the LogUp identity fails with probability >= 1 - O(N/|QM31|) over
-//! alpha (sum m_v < p). The GKR soundness error is then added, plus the PCS
+//! alpha (needs 2^n + 256 < p: `error.LogUpCountAboveP` otherwise). The GKR soundness error is then added, plus the PCS
 //! binding of W(rho) to the committed table.
 //!
 //! With Config.key_alphas = 2, step 3 draws alpha_1, alpha_2 back to back
@@ -68,11 +75,24 @@ pub const KeyProof = struct {
     }
 };
 
-fn startTranscript(key: proto.WeightKey) Transcript {
-    var tr = Transcript.initDomain("stwo-tensor-weight-key-v1");
-    tr.mixDigest(key.root);
-    tr.mixU32s(&.{ key.log_rows, key.log_cols, @intCast(key.rows_used) });
+/// Steps 0-1: layout, OOD point (returned in `z`, caller frees), OOD answer.
+fn startTranscript(a: std.mem.Allocator, key: proto.WeightKey, z: *[]QM31) !Transcript {
+    var tr = proto.keyTranscript(key);
+    z.* = try a.alloc(QM31, key.log_rows + key.log_cols);
+    tr.drawN(z.*);
+    tr.mixFelt(key.ood_value);
     return tr;
+}
+
+/// LogUp over M31: 2^n keys + 256 table rows must stay below p (P7).
+pub fn checkCount(n_vars: u32) !void {
+    if (n_vars >= 31 or (@as(u64, 1) << @intCast(n_vars)) + 256 >= f.P) return error.LogUpCountAboveP;
+}
+
+/// The key's two opened claim groups: W(rho) and the OOD claim.
+fn keyGroups(a: std.mem.Allocator, key: proto.WeightKey, rho: []const QM31, value: QM31, z: []const QM31) ![]pcs.Group {
+    const cl = [_]pcs.Claim{ .{ .point = rho, .value = value }, .{ .point = z, .value = key.ood_value } };
+    return pcs2.groupByColumn(a, &cl, key.log_rows);
 }
 
 fn histMle(a: std.mem.Allocator, h: [256]u32, point: []const QM31) !QM31 {
@@ -85,7 +105,10 @@ pub fn prove(a: std.mem.Allocator, pool: *f.Pool, cfg0: proto.Config, ws: *const
     // the key's opening runs at the key-time outer parameters (Config.key_outer)
     const cfg = try proto.keyConfig(cfg0);
     const key = proto.weightKey(ws);
-    var tr = startTranscript(key);
+    try checkCount(key.log_rows + key.log_cols);
+    var z: []QM31 = &.{};
+    var tr = try startTranscript(a, key, &z);
+    defer a.free(z);
     const n = ws.table.len;
     var hist = [_]u32{0} ** 256;
     for (ws.table) |w| hist[@intCast(@as(i32, w) + 128)] += 1;
@@ -118,12 +141,12 @@ pub fn prove(a: std.mem.Allocator, pool: *f.Pool, cfg0: proto.Config, ws: *const
     const L = res.artifact.ood_point.len;
     const rho = res.artifact.ood_point[L - (key.log_rows + key.log_cols) ..];
     const value = alpha.sub(res.artifact.claims_to_verify_by_instance[0][1]).sub(f.qFromI64(128));
-    const claims = [_]pcs.Claim{.{ .point = rho, .value = value }};
-    const groups = [_]pcs.Group{.{ .claims = &claims }};
+    const groups = try keyGroups(a, key, rho, value, z);
+    defer pcs2.freeGroups(a, groups);
     const opening: proto.Opening = if (cfg.two_level) |tl|
-        .{ .two = try pcs2.open(i8, a, pool, &tr, tl, &ws.com, ws.tableMatrix(), &groups, true) }
+        .{ .two = try pcs2.open(i8, a, pool, &tr, tl, &ws.com, ws.tableMatrix(), groups, true) }
     else
-        .{ .flat = try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &groups, true) };
+        .{ .flat = try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), groups, true) };
     return .{ .histogram = hist, .gkr = res.proof, .value = value, .opening = opening };
 }
 
@@ -137,10 +160,14 @@ pub fn alphaCount(cfg: proto.Config) !usize {
 
 pub fn verify(a: std.mem.Allocator, cfg0: proto.Config, key: proto.WeightKey, proof: *const KeyProof) !void {
     const cfg = try proto.keyConfig(cfg0);
-    var tr = startTranscript(key);
+    try proto.checkKeyLayout(a, key.infos, key);
+    const n_vars = key.log_rows + key.log_cols;
+    try checkCount(n_vars);
+    var z: []QM31 = &.{};
+    var tr = try startTranscript(a, key, &z);
+    defer a.free(z);
     var total: u64 = 0;
     for (proof.histogram) |h| total += h;
-    const n_vars = key.log_rows + key.log_cols;
     if (total != (@as(u64, 1) << @intCast(n_vars))) return error.KeyHistogram;
     var hw: [256]u32 = proof.histogram;
     tr.mixU32s(&hw);
@@ -176,10 +203,10 @@ pub fn verify(a: std.mem.Allocator, cfg0: proto.Config, key: proto.WeightKey, pr
         if (j == 0) value = v else if (!v.eql(value)) return error.KeyTerminal;
     }
     if (!value.eql(proof.value)) return error.KeyTerminal;
-    const claims = [_]pcs.Claim{.{ .point = rho, .value = value }};
-    const groups = [_]pcs.Group{.{ .claims = &claims }};
+    const groups = try keyGroups(a, key, rho, value, z);
+    defer pcs2.freeGroups(a, groups);
     const shape = pcs.Shape{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = proto.outerParams(cfg).log_blowup, .rows_used = key.rows_used };
-    try proto.verifyOpeningAny(a, &tr, cfg, shape, key.root, &groups, true, proof.opening);
+    try proto.verifyOpeningAny(a, &tr, cfg, shape, key.root, groups, true, proof.opening);
 }
 
 test "weight key: range proof verifies, tampering rejected" {
