@@ -26,6 +26,9 @@ INTER = [4, 8, 24, 12, 52, 4, 32, 4, 4, 4, 4]
 INTER_COMMIT = 2  # OM31: committed M31 interaction columns per facts column
 REMOVED = {"triple_xor", "blake_g_gate", "verify_bitwise_xor_12", "verify_bitwise_xor_4", "verify_bitwise_xor_7", "verify_bitwise_xor_9"}
 FUSED_MAIN, FUSED_INTER = 3328, 2752
+# Analytic k=2 layout (two rows of 5 rounds per compression), diet README §1 [D]: per compression
+# 3,584 main + 2,944 interaction (facts units); per row 1,792 + 1,472.
+LAYOUTS = {"k1": (1, FUSED_MAIN, FUSED_INTER), "k2": (2, 3584 // 2, 2944 // 2)}
 SPLIT_TABLES = 2 * (1 << 16) * (1 + INTER_COMMIT * 4)
 LINE = re.compile(r"FUSED_BLAKE2S_V1_SHADOW (.*)")
 
@@ -47,9 +50,10 @@ def columns_today():
     return sum(MAIN) + INTER_COMMIT * sum(INTER)
 
 
-def columns_fused():
+def columns_fused(layout="k1"):
+    _, main, inter = LAYOUTS[layout]
     kept = sum(m + INTER_COMMIT * i for c, m, i in zip(COMPONENTS, MAIN, INTER) if c not in REMOVED)
-    return kept + FUSED_MAIN + INTER_COMMIT * FUSED_INTER + 2 * (1 + INTER_COMMIT * 4)
+    return kept + main + INTER_COMMIT * inter + 2 * (1 + INTER_COMMIT * 4)
 
 
 def main():
@@ -58,7 +62,7 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--block")
     ap.add_argument("--queries", type=int, default=108, help="queries per verified child (r1 = 108)")
-    ap.add_argument("--fused-instance-count", type=int, default=3)
+    ap.add_argument("--layout", choices=sorted(LAYOUTS), default="k1", help="k1 = built v1 [M rows]; k2 = analytic [D]")
     args = ap.parse_args()
     nodes = []
     for path in args.logs:
@@ -68,7 +72,8 @@ def main():
     rows = []
     for n in nodes:
         today, per = node_cells(n["logs"])
-        fused_own = today - sum(per[c] for c in REMOVED) + n["fused_rows"] * (FUSED_MAIN + INTER_COMMIT * FUSED_INTER) + SPLIT_TABLES
+        k, lmain, linter = LAYOUTS[args.layout]
+        fused_own = today - sum(per[c] for c in REMOVED) + k * n["fused_rows"] * (lmain + INTER_COMMIT * linter) + SPLIT_TABLES
         g_real = 80 * n["valid"]
         rows.append({
             "ordinal": n["ordinal"], "status": n["status"], "logs": n["logs"],
@@ -84,15 +89,16 @@ def main():
             "xor_lookups_expected": n["fused_rows"] * (704 + 320 + 320), "wall_ms": n["wall_ns"] / 1e6,
             "scratch_rows": n["scratch_rows"],
         })
-    delta_cols = columns_fused() - columns_today()
+    delta_cols = columns_fused(args.layout) - columns_today()
     # Each verified child costs the parent q * delta_cols / 16 more compressions (column hashing at each query).
     parent_extra_compressions = args.queries * delta_cols / 16
-    parent_extra_cells = parent_extra_compressions * (FUSED_MAIN + INTER_COMMIT * FUSED_INTER)
+    k, lmain, linter = LAYOUTS[args.layout]
+    parent_extra_cells = parent_extra_compressions * k * (lmain + INTER_COMMIT * linter)
     total_today = sum(r["cells_today"] for r in rows)
     total_fused = sum(r["cells_fused_own"] for r in rows)
     n_children = max(len(rows) - 1, 0)
     summary = {
-        "schema": "rv64-m5-blake-gadget-census/v1", "block": args.block, "nodes": len(rows),
+        "schema": "rv64-m5-blake-gadget-census/v1", "block": args.block, "layout": args.layout, "nodes": len(rows),
         "labels": {"compressions,g_rows,fill_ms,gather_ms,check": "M", "cells": "D (committed base cells from logged log sizes)",
                    "parent_width": "D first order, DEEP rows excluded"},
         "compressions_total": sum(r["compressions"] for r in rows),
@@ -100,7 +106,7 @@ def main():
         "xor_multiplicity_balance": all(r["xor_lookups_counted"] == r["xor_lookups_expected"] for r in rows),
         "cells_today_total": total_today, "cells_fused_own_total": total_fused,
         "own_factor_tree": total_fused / total_today if total_today else None,
-        "columns_today": columns_today(), "columns_fused": columns_fused(),
+        "columns_today": columns_today(), "columns_fused": columns_fused(args.layout),
         "parent_queries": args.queries, "parent_extra_cells_per_child": parent_extra_cells,
         "tree_factor_with_parent_width": (total_fused + n_children * parent_extra_cells) / total_today if total_today else None,
         "fill_ms_total": sum(r["fill_ms"] for r in rows), "gather_ms_total": sum(r["gather_ms"] for r in rows),
