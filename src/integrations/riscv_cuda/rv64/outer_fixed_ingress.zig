@@ -11,12 +11,12 @@ pub const Ops = struct {
 pub const Raw = struct {
     lease: N.Lease = .{},
     scope: [8]u32 = @splat(0),
-    fn require(self: Raw, ops: Ops) !void {
+    pub fn validate(self: Raw, ops: Ops) !void {
         if (self.lease.words == null or self.lease.count == 0 or self.lease.kind != 0 or self.lease.reserved != 0 or self.lease.context_token == 0 or self.lease.generation == 0 or std.mem.allEqual(u32, &self.scope, 0)) return error.InvalidOuterFixedIngress;
         if (ops.validate(ops.session, &self.lease, &self.scope) != 0) return error.InvalidOuterFixedIngress;
     }
     pub fn promote(self: *Raw, next: [8]u32, ops: Ops) !void {
-        try self.require(ops);
+        try self.validate(ops);
         if (std.mem.allEqual(u32, &next, 0) or std.mem.eql(u32, &self.scope, &next)) return error.InvalidOuterFixedIngressScope;
         // Native rebind validates the full descriptor before changing authority.
         // No allocation or fallible bookkeeping follows that mutation.
@@ -31,7 +31,7 @@ pub const Raw = struct {
     }
     pub fn release(self: *Raw, ops: Ops) !void {
         if (self.lease.words == null) return;
-        try self.require(ops);
+        try self.validate(ops);
         // Failed release preserves custody for error cleanup/retry.
         if (ops.release(ops.session, &self.lease) != 0) return error.OuterFixedIngressReleaseFailed;
         self.* = .{};

@@ -80,10 +80,11 @@ pub const Owner = struct {
     fn release(raw: *anyopaque) void {
         const self: *Owner = @ptrCast(@alignCast(raw));
         const b = self.backend;
-        _ = b.service.submit(b.service.session, dropRaw, self);
+        const release_status = b.service.submit(b.service.session, dropRaw, self);
         b.service.finishProofScope(self.scope);
         b.mutex.lock();
         std.debug.assert(b.fixed_pending == self);
+        if (release_status != 0) b.cleanup_failed = true;
         b.fixed_pending = null;
         b.mutex.unlock();
         self.allocator.destroy(self);
@@ -94,6 +95,7 @@ pub fn precommit(raw: *anyopaque, a: std.mem.Allocator, pp: *const PP, ordinal: 
     b.mutex.lock();
     var locked = true;
     defer if (locked) b.mutex.unlock();
+    try b.requireHealthyLocked();
     if (b.active != null or b.fixed_pending != null) return error.OuterProofAlreadyActive;
     b.fixed_nonce = try std.math.add(u64, b.fixed_nonce, 1);
     var hash = std.crypto.hash.sha2.Sha256.init(.{});

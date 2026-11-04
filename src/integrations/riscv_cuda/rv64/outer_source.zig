@@ -57,6 +57,7 @@ pub const Context = struct {
     active: ?*Owner = null,
     fixed_pending: ?*@import("outer_fixed.zig").Owner = null,
     fixed_nonce: u64 = 0,
+    cleanup_failed: bool = false,
     assignment: ?Assignment.Prepared = null,
     mutex: std.Thread.Mutex = .{},
     pub fn init(a: std.mem.Allocator, service: *Service.Context, trace_commit: *TC.Context, composition: *RC.Context) !Context {
@@ -133,6 +134,10 @@ pub const Context = struct {
         }
         self.body_identity = identity;
     }
+    /// Caller holds mutex; a failed native cleanup poisons this backend.
+    pub fn requireHealthyLocked(self: *Context) !void {
+        if (self.cleanup_failed) return error.CudaOuterCleanupFailed;
+    }
     fn prepare(raw: *anyopaque, a: std.mem.Allocator, key: *const Outer.prove.Authority, values: []const Outer.protocol.Q, scope: D.Scope) !Dev.Source {
         return prepareImpl(raw, a, key, values, scope, null, null);
     }
@@ -147,6 +152,7 @@ pub const Context = struct {
         self.mutex.lock();
         var locked = true;
         defer if (locked) self.mutex.unlock();
+        try self.requireHealthyLocked();
         if (self.active != null or self.fixed_pending != fixed) return error.OuterProofAlreadyActive;
         var owns_assignment = false;
         var previous_assignment: ?Assignment.Prepared = null;
@@ -306,11 +312,19 @@ pub const Owner = struct {
         if (setup.pp != self.key.pp or setup.raw.lease.context_token != token or setup.scope.ordinal != self.initial_scope.ordinal or !std.mem.eql(u8, &setup.tree.root, &self.initial_scope.fixed) or !std.mem.allEqual(u8, &self.initial_scope.main, 0)) return error.InvalidOuterFixedIngress;
         // Validate the original roster BEFORE native authority changes. There is
         // no allocation/fallible metadata operation after successful transfer.
+        try setup.raw.validate(self.fixedIngressOps());
+        var expected: usize = 0;
+        for (self.key.pp.columns) |column| {
+            if (column.values.len == 0 or !std.math.isPowerOfTwo(column.values.len)) return error.InvalidOuterFixedIngress;
+            expected = try std.math.add(usize, expected, column.values.len);
+        }
+        if (expected != setup.raw.lease.count) return error.InvalidOuterFixedIngress;
         var at: usize = 0;
         var columns: [45]Native.Lease = undefined;
         for (self.key.pp.columns, setup.inputs, &columns) |column, input, *out| {
             const view = input.device orelse return error.InvalidOuterFixedIngress;
-            if (input.encoding != .evaluations or input.log_size != column.logSize() or view.count != column.values.len or view.words != setup.raw.lease.words.? + at or view.context_token != setup.raw.lease.context_token or view.generation != setup.raw.lease.generation) return error.InvalidOuterFixedIngress;
+            const address = try std.math.add(usize, @intFromPtr(setup.raw.lease.words.?), try std.math.mul(usize, at, 4));
+            if (input.encoding != .evaluations or input.log_size != column.logSize() or view.count != column.values.len or @intFromPtr(view.words) != address or view.context_token != setup.raw.lease.context_token or view.generation != setup.raw.lease.generation) return error.InvalidOuterFixedIngress;
             out.* = .{ .words = @constCast(view.words), .count = view.count, .context_token = view.context_token, .generation = view.generation, .kind = 0 };
             at = try std.math.add(usize, at, column.values.len);
         }
@@ -368,7 +382,7 @@ pub const Owner = struct {
         const self: *Owner = @ptrCast(@alignCast(raw));
         const b = self.backend;
         const a = self.allocator;
-        _ = b.service.submit(b.service.session, releaseDevice, self);
+        const release_status = b.service.submit(b.service.session, releaseDevice, self);
         b.service.finishProofScope(self.scope);
         if (!std.meta.eql(self.scope, self.initial_scope)) b.service.finishProofScope(self.initial_scope);
         self.leases.deinit(a);
@@ -376,6 +390,7 @@ pub const Owner = struct {
         a.free(self.inter_columns);
         b.mutex.lock();
         std.debug.assert(b.active == self);
+        if (release_status != 0) b.cleanup_failed = true;
         self.retireAssignmentLocked();
         b.active = null;
         b.mutex.unlock();
@@ -563,4 +578,70 @@ test "raw FIXED retirement preserves views on failure and clears every view on s
     for (owner.raw_fixed) |view| try std.testing.expect(view.words == null);
     try owner.dropFixedIngress(&fake, 9);
     try std.testing.expectEqual(@as(usize, 2), fake.calls);
+}
+
+test "failed raw FIXED owner cleanup poisons reuse and block sealing while native retains custody" {
+    const a = std.testing.allocator;
+    const Fake = struct {
+        poisoned: bool = false,
+        native_live: usize = 2,
+        teardown_releases: usize = 0,
+        fn submit(raw: *anyopaque, callback_fn: Native.Callback, data: ?*anyopaque) callconv(.c) c_int {
+            const f: *@This() = @ptrCast(@alignCast(raw));
+            if (f.poisoned) return 1;
+            const status = callback_fn(raw, 9, data);
+            // Match Service::run: nonzero callback poisons every later job.
+            if (status != 0) f.poisoned = true;
+            return status;
+        }
+        fn validate(_: *anyopaque, lease: *const Native.Lease, _: *const [8]u32) callconv(.c) c_int {
+            return if (lease.context_token == 9 and lease.generation == 11 and lease.words != null) 0 else 1;
+        }
+        fn rebind(_: *anyopaque, _: *const Native.Lease, _: *const [8]u32, _: *const [8]u32) callconv(.c) c_int {
+            return 1;
+        }
+        fn release(_: *anyopaque, _: *Native.Lease) callconv(.c) c_int {
+            return 1;
+        }
+        fn teardown(f: *@This()) void {
+            // ResidentOwner's registry owns all allocations independently of
+            // the destroyed Zig proof owner, even after callback poisoning.
+            f.teardown_releases = f.native_live;
+            f.native_live = 0;
+        }
+    };
+    var fake = Fake{};
+    var service: Service.Context = undefined;
+    service.session = &fake;
+    service.submit = Fake.submit;
+    service.lease_validate = Fake.validate;
+    service.lease_release = Fake.release;
+    service.cache_mutex = .{};
+    service.cache = .empty;
+    service.immutable_setup = null;
+    service.active_block = @splat(8);
+    var trace_commit: TC.Context = undefined;
+    trace_commit.rebind = Fake.rebind;
+    var backend: Context = undefined;
+    backend.service = &service;
+    backend.trace_commit = &trace_commit;
+    backend.mutex = .{};
+    backend.cleanup_failed = false;
+    backend.assignment = null;
+    const owner = try a.create(Owner);
+    owner.* = .{ .allocator = a, .backend = &backend, .key = undefined, .input = &.{}, .value_count = 0, .initial_scope = .{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 }, .scope = .{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 }, .main_columns = &.{}, .inter_columns = &.{}, .pcs = undefined, .composition_stage = undefined };
+    owner.raw_fixed_owned = .{ .lease = .{ .words = @ptrFromInt(4096), .count = 360, .context_token = 9, .generation = 11, .kind = 0 }, .scope = @splat(3) };
+    try owner.leases.append(a, .{ .words = @ptrFromInt(8192), .count = 8, .context_token = 9, .generation = 12, .kind = 1 });
+    backend.active = owner;
+    Owner.release(owner);
+    try std.testing.expect(backend.active == null and backend.cleanup_failed and fake.poisoned);
+    backend.mutex.lock();
+    try std.testing.expectError(error.CudaOuterCleanupFailed, backend.requireHealthyLocked());
+    backend.mutex.unlock();
+    try std.testing.expectError(error.ResidentSessionAuditFailed, service.endBlock(@splat(8)));
+    try std.testing.expect(service.active_block != null);
+    try std.testing.expectEqual(@as(usize, 2), fake.native_live);
+    fake.teardown();
+    try std.testing.expectEqual(@as(usize, 0), fake.native_live);
+    try std.testing.expectEqual(@as(usize, 2), fake.teardown_releases);
 }

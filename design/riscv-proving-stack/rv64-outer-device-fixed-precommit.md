@@ -134,3 +134,26 @@ measured even though duplicate ingress/cache aliases are removed. Required next
 gates are tiny cold/warm exact root/key/full-proof parity, lease audits on both
 success and refusal, then a real case and worst-shape memory qualification.
 No GPU instance was started for this follow-up.
+
+Cleanup failure is terminal at the actual native-session boundary, rather than
+an unlimited retry promise. Service::loop treats any nonzero owner callback as
+poisoning, synchronizes, and refuses every subsequent callback/prove. Raw and
+ordinary allocation records remain in the independent native ResidentOwner
+registry even after the Zig proof owner is destroyed. endBlock's submitted
+request-lease audit therefore fails and leaves the block active; no request can
+seal or reuse that session. ResidentOwner teardown joins before releasing its
+registered allocations (and aborts if the join cannot be confirmed).
+
+The isolated source now also records a sticky backend cleanup_failed bit when
+either proof-owner or precommit cleanup submit fails. Subsequent preparation
+or precommit refuses before accepting another owner. An integrated failure
+mock exercises proof-owner destruction, retained native raw/ordinary custody,
+sticky refusal, endBlock refusal and terminal native teardown. This is a host
+lifecycle check of the existing native failure contract, not a CUDA failure
+injection qualification. The standalone custody primitive's release-retry test
+applies before a session callback has reported terminal failure.
+
+Ingress roster validation now validates the exact full raw native lease before
+reading any roster address, checks the total trusted PP count, and uses checked
+integer byte-address arithmetic for every expected subspan. It constructs no
+GPU pointer by unchecked addition from an unvalidated or stale descriptor.

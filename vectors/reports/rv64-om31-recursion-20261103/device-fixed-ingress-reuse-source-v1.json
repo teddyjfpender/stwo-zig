@@ -19,7 +19,11 @@
     "failed initial transfer preserves precommit owner",
     "failed final rebind preserves previous namespace",
     "failed release preserves source custody/views",
-    "successful release is exactly once and clears views"
+    "successful release is exactly once and clears views",
+    "exact raw lease validated before any expected-span address arithmetic",
+    "checked byte offsets and total roster word count",
+    "nonzero cleanup submit poisons host backend; next preparation refuses",
+    "integrated cleanup mock confirms endBlock refusal and independent native-registry teardown custody"
   ],
   "hardware_jobs": 0,
   "no_claims": [
@@ -34,12 +38,12 @@
     "worst-shape28GiB memory gate"
   ],
   "host_tests": {
-    "passed": 157,
-    "integration_tests": 143,
+    "passed": 158,
+    "integration_tests": 144,
     "numerical_tests": 14,
     "prefix_bank_executor": "passed",
     "command": "zig build --build-file src/integrations/riscv_cuda/build.zig test -Doptimize=ReleaseFast -j2 --summary all",
-    "log_sha256": "10e799e1d53f102fc3a00b438d046a1d10dc61c174d461a0600dbf1897f1f90b"
+    "log_sha256": "65bedaff75f38ef5a1554ed3a8cf9d91676bb382d7fb3f1eb52b1f22a9ed136e"
   },
   "gnu_semantic": {
     "passed": true,
@@ -51,6 +55,7 @@
     "target": "x86_64-linux-gnu",
     "cpu": "x86_64_v4+sha",
     "emitted_binary": false,
-    "log_sha256": "c83087aaaa2afa996aeb59b48432b786d7ca0909d65bea03d02cc4caa0a2c8b9"
-  }
+    "log_sha256": "101bb5eee48e3b0d743f25d0e26d50233e01ff557fab687bc0f045c3d38ccd48"
+  },
+  "cleanup_failure_contract": "Native callback failure poisons the session; no in-session retry or sealing. Native ResidentOwner registry owns unreleased raw/ordinary allocations until joined terminal teardown. Host backend also records sticky cleanup failure."
 }
