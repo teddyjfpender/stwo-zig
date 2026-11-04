@@ -6,7 +6,13 @@ pub fn build(b: *std.Build) void {
     const dep_opts = .{ .target = target, .optimize = optimize };
     const core = b.dependency("stwo_core", dep_opts).module("stwo_core");
     const engine = b.dependency("stwo_prover_engine", dep_opts).module("stwo_prover_engine");
-    const use_metal = b.option(bool, "metal", "Build the Metal GPU path (default: on for macOS)") orelse (target.result.os.tag == .macos);
+    // Challenge field (security.md section 10): qm31 (default, |F| = p^4) or
+    // om31 (degree 8, |F| = p^8; the >=128-bit levels). A build-time choice:
+    // the default build is byte-for-byte the qm31 protocol.
+    const challenge = b.option(Challenge, "challenge", "Challenge field: qm31 (default) or om31 (degree 8, 128-bit levels)") orelse .qm31;
+    const use_metal = (b.option(bool, "metal", "Build the Metal GPU path (default: on for macOS)") orelse (target.result.os.tag == .macos)) and challenge == .qm31;
+    const topts = b.addOptions();
+    topts.addOption(u32, "challenge_degree", if (challenge == .om31) 8 else 4);
 
     const tensor = b.addModule("stwo_tensor", .{
         .root_source_file = b.path("mod.zig"),
@@ -15,6 +21,7 @@ pub fn build(b: *std.Build) void {
     });
     tensor.addImport("stwo_core", core);
     tensor.addImport("stwo_prover_engine", engine);
+    tensor.addOptions("tensor_options", topts);
 
     const test_filters = b.option([]const []const u8, "test-filter", "Only run tests whose name contains this string") orelse &.{};
     const tests = b.addTest(.{ .root_module = tensor, .filters = test_filters });
@@ -53,7 +60,7 @@ pub fn build(b: *std.Build) void {
         b.step("test-metal", "Metal GPU path: CPU/GPU bit-identity tests").dependOn(&run_mt.step);
     }
 
-    const bench = b.addExecutable(.{ .name = "tensor-bench", .root_module = bench_mod });
+    const bench = b.addExecutable(.{ .name = if (challenge == .om31) "tensor-bench-om31" else "tensor-bench", .root_module = bench_mod });
     b.installArtifact(bench);
     const run_bench = b.addRunArtifact(bench);
     if (b.args) |args| run_bench.addArgs(args);
@@ -69,7 +76,7 @@ pub fn build(b: *std.Build) void {
     // tensor-verify: verifies statement / key / proof files (wire.zig format)
     const verify_mod = b.createModule(.{ .root_source_file = b.path("verify_cli.zig"), .target = target, .optimize = optimize });
     verify_mod.addImport("stwo_tensor", tensor);
-    const verify_exe = b.addExecutable(.{ .name = "tensor-verify", .root_module = verify_mod });
+    const verify_exe = b.addExecutable(.{ .name = if (challenge == .om31) "tensor-verify-om31" else "tensor-verify", .root_module = verify_mod });
     b.installArtifact(verify_exe);
     const run_verify = b.addRunArtifact(verify_exe);
     if (b.args) |args| run_verify.addArgs(args);
@@ -81,6 +88,8 @@ pub fn build(b: *std.Build) void {
     run_lean.setCwd(b.path("../../formal/tensor-frontend"));
     b.step("lean", "Build and audit the Lean proofs (formal/tensor-frontend)").dependOn(&run_lean.step);
 }
+
+const Challenge = enum { qm31, om31 };
 
 /// The Metal module compiles the stwo-zig Metal backend's MSL sources (field,
 /// Blake2s, circle transform, commitment kernels) together with the tensor

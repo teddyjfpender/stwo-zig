@@ -1663,13 +1663,23 @@ const ProverCtx = struct {
                 v = v.add(p.coeff.mul(acc));
             } else {
                 const cells = self.vecs[p.table][p.pad];
-                const pv = f.fromLimbs(.{ @intCast(cells[0]), @intCast(cells[1]), @intCast(cells[2]), @intCast(cells[3]) });
+                const pv = cellsFelt(cells, 0);
                 v = v.add(p.coeff.mul(pv));
             }
         }
         return v;
     }
 };
+
+/// The QM31 felt stored in 4 consecutive cells. ZK mode is QM31-only: an
+/// -Dchallenge=om31 build rejects hiding configs (zkSupported) before any
+/// of this runs.
+fn cellsFelt(cells: []const i32, at: usize) QM31 {
+    if (f.IS_OM31) unreachable;
+    var l: f.Limbs = undefined;
+    for (&l, 0..) |*x, k| x.* = @intCast(cells[at + k]);
+    return f.fromLimbs(l);
+}
 
 fn PadCtx(comptime NF: usize) type {
     return struct {
@@ -1686,7 +1696,7 @@ fn PadCtx(comptime NF: usize) type {
 fn hpOf(plan: Plan, vecs: []const []const i32, u_id: u32, n: u32, deg: u32, buf: []QM31) zks.Hp {
     const cells = vecs[u_id];
     _ = plan;
-    for (buf, 0..) |*x, e| x.* = f.fromLimbs(.{ @intCast(cells[4 * e]), @intCast(cells[4 * e + 1]), @intCast(cells[4 * e + 2]), @intCast(cells[4 * e + 3]) });
+    for (buf, 0..) |*x, e| x.* = cellsFelt(cells, 4 * e);
     return .{ .n = n, .d = deg, .c = buf };
 }
 
@@ -1788,6 +1798,8 @@ pub fn provePublic(
     public: []const PublicTensor,
     timings: *proto.Timings,
 ) !Proof {
+    // ZK mode is QM31-only (cellsFelt) and has no security levels
+    if (f.IS_OM31 or cfg.security != .custom) return error.Unsupported;
     for (public) |pt| {
         if (pt.id >= witness.len or !std.mem.eql(i32, witness[pt.id], pt.values)) return error.PublicMismatch;
     }
@@ -2453,7 +2465,7 @@ fn auxGroup(a: std.mem.Allocator, plan: Plan, point: []const QM31, bp: zks.Maske
 }
 
 fn hpFromCells(cells: []const i32, n: u32, deg: u32, buf: []QM31) zks.Hp {
-    for (buf, 0..) |*x, e| x.* = f.fromLimbs(.{ @intCast(cells[4 * e]), @intCast(cells[4 * e + 1]), @intCast(cells[4 * e + 2]), @intCast(cells[4 * e + 3]) });
+    for (buf, 0..) |*x, e| x.* = cellsFelt(cells, 4 * e);
     return .{ .n = n, .d = deg, .c = buf };
 }
 
@@ -2546,6 +2558,7 @@ fn weightGroup(a: std.mem.Allocator, plan: Plan, key: WeightKey, wcl: []const WC
 // Verifier.
 
 pub fn verifyPublic(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?WeightKey, public: []const PublicTensor, proof: *const Proof) !void {
+    if (f.IS_OM31 or cfg.security != .custom) return error.Unsupported;
     // every transmitted limb in [0, P) before any arithmetic (KERN-1)
     try canonical.check(proof);
     var arena_state = std.heap.ArenaAllocator.init(a);
@@ -2950,7 +2963,7 @@ fn gkrProveRel(
         },
         .blinder => {
             const b = vecs1[g.blinder];
-            lden[n][o] = f.fromLimbs(.{ @intCast(b[0]), @intCast(b[1]), @intCast(b[2]), @intCast(b[3]) });
+            lden[n][o] = cellsFelt(b, 0);
         },
     };
     var k: usize = n;

@@ -95,7 +95,7 @@ pub const ClaimSet = struct {
 
     pub fn byteSize(self: ClaimSet) usize {
         var s: usize = 32 + 8;
-        for (self.points) |p| s += 4 + p.len * 16;
+        for (self.points) |p| s += 4 + p.len * f.FELT_BYTES;
         return s + self.w.len * (4 + 4 + 16);
     }
 };

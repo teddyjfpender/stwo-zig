@@ -38,7 +38,7 @@ const M31 = f.M31;
 const QM31 = f.QM31;
 const lookups = engine.lookups;
 const Fast = lookups.gkr_prover_fast.ForField(QM31);
-const GkrVerifier = lookups.gkr_verifier;
+const GkrVerifier = lookups.gkr_verifier.ForField(QM31);
 
 // ---------------------------------------------------------------------------
 // Statement.
@@ -232,7 +232,91 @@ pub const Config = struct {
     /// remainder leaf claim is routed through a matmul / hadamard sumcheck at the
     /// GKR leaf point with a pad-masked accumulator hat (zk.md §4.7)
     zk_virtual_remainders: bool = false,
+    /// Security level (security.md section 10). `.custom` (default): the
+    /// parameters above, whatever they are - every existing proof. Any other
+    /// level fixes every soundness parameter (securityConfig) and needs the
+    /// degree-8 challenge field (an -Dchallenge=om31 build); prover and
+    /// verifier both refuse a config that does not match its level.
+    security: SecurityLevel = .custom,
 };
+
+/// Selectable security levels. The number is the calculator's "all rounds
+/// added, without work" reading (FlashProve's 92.42-bit row): -log2 of the
+/// sum of every round's error with no proof-of-work credit, over proven
+/// (Johnson-regime, BCHKS25) proximity bounds. PoW is still run (20 bits
+/// before every query phase) and shows up only in the with-work reading.
+pub const SecurityLevel = enum(u8) {
+    custom = 0,
+    /// >= 128 bits all rounds added without work: measured 132-134 on the
+    /// toy, MLP and layer benches (security.md 10), asserted for product
+    /// and MLP proofs in sec128_test.zig
+    bits128 = 1,
+    /// >= 160 bits all rounds added without work (the compiled N/2^L reading
+    /// stays capped near 126 bits by the 256-bit Merkle/Fiat-Shamir hash)
+    bits160 = 2,
+
+    /// challenge-field degree the level needs
+    pub fn challengeDegree(self: SecurityLevel) u32 {
+        return if (self == .custom) 4 else 8;
+    }
+
+    pub fn name(self: SecurityLevel) []const u8 {
+        return @tagName(self);
+    }
+};
+
+/// The PCS parameters of a level: Johnson regime with OOD samples on every
+/// table (pcs2 depth 2, 2 proximity rows), outer level at rate 1/4 (~1 bit
+/// per query: agreement sqrt(1/4)(1 + 1/m) with m large, which the degree-8
+/// field allows), committed-row levels at rate 1/8 (~1.5 bits per query),
+/// 20 PoW bits before every query phase. Weight openings run their own
+/// proximity test with the outer parameters; key LogUp uses one alpha (the
+/// field term is ~2^-220 already). Non-soundness knobs of `base` (threads,
+/// accel, prefault, batching, weight_log_cols, ...) are kept.
+pub fn securityConfig(base: Config, level: SecurityLevel) Config {
+    if (level == .custom) return base;
+    const q: [2]usize = switch (level) {
+        .custom => unreachable,
+        .bits128 => .{ 136, 90 },
+        .bits160 => .{ 168, 112 },
+    };
+    var c = base;
+    c.security = level;
+    const outer = pcs.Params{ .n_queries = q[0], .log_blowup = 2, .pow_bits = 20 };
+    const inner = pcs.Params{ .n_queries = q[1], .log_blowup = 3, .pow_bits = 20 };
+    c.pcs = outer;
+    const shift = if (base.two_level) |tl| tl.inner_work_shift else (pcs2.Params{}).inner_work_shift;
+    c.two_level = .{ .outer = outer, .inner = inner, .depth = 2, .inner_work_shift = shift, .prox_rows = 2, .deep = inner, .ood = true };
+    c.weight_outer = null;
+    c.key_outer = null;
+    c.key_alphas = 1;
+    c.weight_proximity = true;
+    c.hiding = false;
+    return c;
+}
+
+/// Refuses a config whose soundness parameters are not exactly its level's,
+/// or whose level needs a larger challenge field than this build's
+/// (error.ChallengeFieldTooSmall: rebuild with -Dchallenge=om31). Run by
+/// every prover and verifier entry (proveCore, verifyCore, weight key).
+pub fn checkSecurity(cfg: Config) !void {
+    if (cfg.security == .custom) return;
+    if (f.CHALLENGE_DEGREE < cfg.security.challengeDegree()) return error.ChallengeFieldTooSmall;
+    const want = securityConfig(cfg, cfg.security);
+    const ok = std.meta.eql(cfg.pcs, want.pcs) and cfg.two_level != null and blk: {
+        var a = cfg.two_level.?;
+        a.inner_work_shift = want.two_level.?.inner_work_shift;
+        break :blk std.meta.eql(a, want.two_level.?);
+    } and cfg.weight_outer == null and cfg.key_outer == null and cfg.key_alphas == 1 and cfg.weight_proximity and !cfg.hiding;
+    if (!ok) return error.SecurityParams;
+}
+
+/// Binds the level into the transcript (degree-8 builds only: QM31
+/// transcripts are unchanged), so a proof made at one level never verifies
+/// at another even if the parameters were made to coincide.
+pub fn mixSecurity(tr: *Transcript, cfg: Config) void {
+    if (f.IS_OM31) tr.mixU32s(&.{ 0x5345434c, @intFromEnum(cfg.security) });
+}
 
 /// Recommended configuration (stream `speed`): the recursive committed-row
 /// PCS (pcs2, depth 2) and shape-class batched matmul sumchecks. `outer` is
@@ -626,6 +710,9 @@ pub const Proof = struct {
     /// (W(r, rho_n)) already in the proof; the verifier rebuilds them.
     weight_opening: ?Opening,
     ext: xt.ProofPart = .{},
+    /// the level the proof was made at (Config.security); carried in the
+    /// wire header of degree-8 proofs, not hashed
+    security: SecurityLevel = .custom,
 
     pub fn deinit(self: *Proof, a: std.mem.Allocator) void {
         if (self.gkr) |*g| g.deinit(a);
@@ -646,16 +733,16 @@ pub const Proof = struct {
         var gk: usize = 0;
         if (self.gkr) |g| {
             for (g.sumcheck_proofs) |p| for (p.round_polys) |rp| {
-                gk += rp.coeffsSlice().len * 16;
+                gk += rp.coeffsSlice().len * f.FELT_BYTES;
             };
             for (g.layer_masks_by_instance) |ms| for (ms) |m| {
                 gk += m.columnsSlice().len * 32;
             };
-            for (g.output_claims_by_instance) |c| gk += c.len * 16;
+            for (g.output_claims_by_instance) |c| gk += c.len * f.FELT_BYTES;
         }
-        var s: usize = self.lookup_in_values.len * 16 + self.batch_sumcheck.byteSize() + 16 + @as(usize, if (self.witness_ood != null) 16 else 0);
+        var s: usize = self.lookup_in_values.len * f.FELT_BYTES + self.batch_sumcheck.byteSize() + f.FELT_BYTES + @as(usize, if (self.witness_ood != null) f.FELT_BYTES else 0);
         for (self.op_sumchecks) |p| s += p.byteSize();
-        for (self.op_finals) |x| s += x.len * 16;
+        for (self.op_finals) |x| s += x.len * f.FELT_BYTES;
         s += self.ext.byteSize();
         const wo = self.witness_opening.byteSize();
         const wto = if (self.weight_opening) |w| w.byteSize() else 0;
@@ -1315,6 +1402,7 @@ pub fn proveCore(
     tr_io: *Transcript,
     weight_claims_out: *std.ArrayList(WeightClaimP),
 ) !Proof {
+    try checkSecurity(cfg);
     if (acc.len != st.ops.len) return error.AccumulatorShape;
     for (st.ops, acc) |op, x| switch (op) {
         .matmul => |m| if (x == null or x.?.len != st.witness[m.y].size()) return error.AccumulatorShape,
@@ -1369,6 +1457,7 @@ pub fn proveCore(
 
     var tr = tr_io.*;
     mixStatement(&tr, st, weightKey(ws));
+    mixSecurity(&tr, cfg);
     tr.mixDigest(wcom.root());
     // OOD sample of the witness table: fixes the decoded witness before any
     // challenge (security.md, section 3)
@@ -1692,6 +1781,7 @@ pub fn proveCore(
     weight_claims = .empty;
 
     return .{
+        .security = cfg.security,
         .witness_root = wcom.root(),
         .gkr = gkr_proof,
         .lookup_in_values = try lookup_vals.toOwnedSlice(a),
@@ -1868,6 +1958,8 @@ pub fn verifyWeightOpening(a: std.mem.Allocator, tr: *Transcript, cfg: Config, k
 /// caller's transcript. Appends the weight claims to `out` (protocol order)
 /// and fills the witness/LogUp part of `info` when given.
 pub fn verifyCore(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, proof: *const Proof, tr_io: *Transcript, out: *VerifierWeightClaims, info: ?*VerifyInfo) !void {
+    try checkSecurity(cfg);
+    if (proof.security != cfg.security) return error.SecurityLevelMismatch;
     // every transmitted limb in [0, P) before any arithmetic (KERN-1)
     try canonical.check(proof);
     try validateStatement(st);
@@ -1888,6 +1980,7 @@ pub fn verifyCore(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightK
 
     var tr = tr_io.*;
     mixStatement(&tr, st, key);
+    mixSecurity(&tr, cfg);
     tr.mixDigest(proof.witness_root);
     if ((proof.witness_ood != null) != witnessOod(cfg)) return error.ProofShape;
     const wood_pt = try a.alloc(QM31, if (witnessOod(cfg)) lay.log_total else 0);

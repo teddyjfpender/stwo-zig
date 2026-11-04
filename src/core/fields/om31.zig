@@ -127,6 +127,24 @@ pub const OM31 = struct {
     pub fn fromInner(x: Q) Self {
         return wrap(A.fromInner(x));
     }
+    pub const Error = Q.Error;
+    /// The QM31-subfield element (a, b, c, d): QM31's constructor, so code
+    /// written against QM31 keeps every constant's meaning (tensor frontend).
+    pub fn fromU32Unchecked(a: u32, b: u32, c: u32, d: u32) Self {
+        return fromInner(Q.fromU32Unchecked(a, b, c, d));
+    }
+    pub fn addM31(x: Self, y: M31) Self {
+        return .{ .c0 = x.c0.addM31(y), .c1 = x.c1 };
+    }
+    pub fn subM31(x: Self, y: M31) Self {
+        return .{ .c0 = x.c0.subM31(y), .c1 = x.c1 };
+    }
+    pub fn isBase(x: Self) bool {
+        return x.c1.isZero() and x.c0.isBase();
+    }
+    pub fn format(self: Self, writer: anytype) !void {
+        try writer.print("({f}, {f})", .{ self.c0, self.c1 });
+    }
     pub fn add(x: Self, y: Self) Self {
         return wrap(arithmetic(x).add(arithmetic(y)));
     }

@@ -1883,6 +1883,8 @@ fn checkGolden(name: []const u8, golden: []const u8, d: [32]u8) !void {
 }
 
 test "golden decoder layer digests (flat; pcs2 + batched matmuls + MoE), 1 vs 5 threads" {
+    // QM31 digests; the -Dchallenge=om31 build pins none (sec128_test.zig)
+    if (f.IS_OM31) return error.SkipZigTest;
     const cfg = LayerCfg{ .log_t = 4, .log_d = 6, .log_f = 7, .log_heads = 2, .log_kv_heads = 1, .fused_qkv = true };
     var pc = testCfg();
     pc.weight_log_cols = 6;

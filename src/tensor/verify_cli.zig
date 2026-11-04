@@ -82,6 +82,10 @@ fn run(a: std.mem.Allocator, paths: [3][]const u8, out: anytype) !void {
     const verify_s = since(t0);
 
     try out.print("{{\"ok\":true,\"statement_digest\":\"{s}\",\"statement_bytes\":{d},\"key_bytes\":{d},\"proof_bytes\":{d},", .{ std.fmt.bytesToHex(digest, .lower), sb.len, kb.len, pb.len });
+    // the level and field the proof was checked at: the statement's header
+    // sets them, so a client that does not pin statement_digest must check
+    // these (a custom-level statement accepts a custom-level proof)
+    try out.print("\"security_level\":\"{s}\",\"challenge_degree\":{d},", .{ sf.cfg.security.name(), t.field.CHALLENGE_DEGREE });
     try out.print("\"witness_tensors\":{d},\"weights\":{d},\"ops\":{d},\"ext_ops\":{d},", .{ sf.st.witness.len, sf.st.weights.len, sf.st.ops.len, sf.st.ext.ops.len });
     if (sf.cfg.two_level) |tl| {
         try out.print("\"pcs\":\"pcs2\",\"depth\":{d},\"conjectured_bits\":{d:.1},\"query_bits_unique\":{d:.1},", .{ tl.depth, tl.conjecturedBits(), tl.provenBits() });

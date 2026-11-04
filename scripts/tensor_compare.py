@@ -82,8 +82,20 @@ TOY_CONFIGS = {
     "conj128": (54, 2, 20, [2, 54]),                # up-to-capacity conjecture, rate 1/4: 54 * 2 + 20 = 128 bits; pcs2 depth 2
     # Johnson regime with OOD samples, 2 proximity rows, deep levels at rate 1/8 (security.md): ~113.5 / 96.8 bits all rounds
     "johnson": (122, 2, 20, [2, 76, 3, 20, 2, 2]),
+    # Config.security = .bits128 (security.md section 10): degree-8 challenge field (OM31, the
+    # -Dchallenge=om31 build's tensor-bench-om31) + Johnson/OOD PCS at 136 / 90 queries; the
+    # preset overrides the query arguments (kept for the pcs2 work shift). >= 128 bits all rounds
+    # added without PoW credit on toy, MLP and layer.
+    "sec128": (122, 2, 20, [2, 76, 3, 20, 2, 2]),
 }
 CONFIG_ENV = {"johnson": {"TENSOR_OOD": "1", "TENSOR_DEEP": "76,3,20"}}
+# configs that need another binary (suffix on --bin) and extra flags
+CONFIG_BIN_SUFFIX = {"sec128": "-om31"}
+CONFIG_FLAGS = {"sec128": ["--security", "bits128"]}
+
+
+def bin_for(binary, name):
+    return binary + CONFIG_BIN_SUFFIX.get(name, "")
 os.environ["TENSOR_BATCH_MATMULS"] = "1"
 os.environ.setdefault("TENSOR_PROVE_REPS", "3")
 
@@ -116,8 +128,8 @@ def cmd_run(ns):
     if "toy" in suites:
         for name, (q, lb, pw, ex) in TOY_CONFIGS.items():
             for L in (16, 18, 20, 22):
-                emit(f"toy-{name}-L{L}-1t", run_one(ns.bin, ["product", L, 1, q, lb, pw] + ex, 6, "cmp-toy", CONFIG_ENV.get(name)))
-            emit(f"toy-{name}-L20-12t", run_one(ns.bin, ["product", 20, 12, q, lb, pw] + ex, 6, "cmp-toy", CONFIG_ENV.get(name)))
+                emit(f"toy-{name}-L{L}-1t", run_one(bin_for(ns.bin, name), ["product", L, 1, q, lb, pw] + ex + CONFIG_FLAGS.get(name, []), 6, "cmp-toy", CONFIG_ENV.get(name)))
+            emit(f"toy-{name}-L20-12t", run_one(bin_for(ns.bin, name), ["product", 20, 12, q, lb, pw] + ex + CONFIG_FLAGS.get(name, []), 6, "cmp-toy", CONFIG_ENV.get(name)))
     if "zk" in suites:
         for L in (16, 18, 20, 22):
             emit(f"zktoy-hiding-L{L}-1t", run_one(ns.bin, ["product", L, 1, 56, 2, 20, "zk"], 6, "cmp-zk"))
@@ -133,11 +145,11 @@ def cmd_run(ns):
     if "mlp" in suites:
         for name, (q, lb, pw, ex) in TOY_CONFIGS.items():
             for lt in (8, 9, 10, 11):
-                emit(f"mlp-{name}-t{lt}", run_one(ns.bin, ["mlp", lt, 12, 13, 12, q, lb, pw] + ex, 10 if lt < 11 else 14, "cmp-mlp", CONFIG_ENV.get(name)))
+                emit(f"mlp-{name}-t{lt}", run_one(bin_for(ns.bin, name), ["mlp", lt, 12, 13, 12, q, lb, pw] + ex + CONFIG_FLAGS.get(name, []), 10 if lt < 11 else 14, "cmp-mlp", CONFIG_ENV.get(name)))
     if "layer" in suites:
         for name, (q, lb, pw, ex) in TOY_CONFIGS.items():
             for lt in (9, 10):
-                emit(f"layer-{name}-t{lt}", run_one(ns.bin, ["layer", lt, 11, 12, 4, 12, q, lb, pw, 2, 1, 0, lt, 1] + ex, 12, "cmp-layer", CONFIG_ENV.get(name)))
+                emit(f"layer-{name}-t{lt}", run_one(bin_for(ns.bin, name), ["layer", lt, 11, 12, 4, 12, q, lb, pw, 2, 1, 0, lt, 1] + ex + CONFIG_FLAGS.get(name, []), 12, "cmp-layer", CONFIG_ENV.get(name)))
 
 
 def fmt_bytes(b):

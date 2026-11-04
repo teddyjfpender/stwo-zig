@@ -111,11 +111,16 @@ pub fn denominators(pool: *f.Pool, out: []QM31, src: KeySrc, alpha: QM31, beta: 
         fn run(c: *const Ctx, s: usize, e: usize) void {
             switch (c.src) {
                 .remainder => |r| {
-                    const a0 = c.alpha.c0.a;
+                    // alpha - v: only the base coordinate changes
+                    const a0 = if (f.IS_OM31) c.alpha.c0.c0.a else c.alpha.c0.a;
                     for (s..e) |i| {
                         const v: u32 = @intCast(remIndex(r, i));
                         var q = c.alpha;
-                        q.c0.a = a0.sub(M31.fromCanonical(v));
+                        if (f.IS_OM31) {
+                            q.c0.c0.a = a0.sub(M31.fromCanonical(v));
+                        } else {
+                            q.c0.a = a0.sub(M31.fromCanonical(v));
+                        }
                         c.out[i] = q;
                     }
                 },
