@@ -113,6 +113,12 @@ pub const Shape = struct {
     pub fn msgLen(self: Shape) usize {
         return self.nCols() + self.slots;
     }
+    /// Rate precondition of the hiding PCS: message (C + S) at most half the codeword.
+    /// The query-count / soundness argument (zk.md 3.1) assumes it; refused as an
+    /// error on both sides, never only asserted (ZK-5).
+    pub fn rateOk(self: Shape) bool {
+        return self.msgLen() <= (@as(usize, 1) << @intCast(self.logExt())) / 2;
+    }
     /// Max distinct columns that may ever be opened.
     pub fn budget(self: Shape) usize {
         return self.slots / 2;
@@ -127,10 +133,17 @@ pub fn slotsFor(n_queries: usize) u32 {
 }
 
 /// Tracks distinct opened columns of a long-lived commitment.
+///
+/// Thread-safe (ZK-4): the budget is charged through the `*Budget` of a commitment
+/// that callers hold as `*const` (a `ZkWeights` shared by concurrent `zk.prove`
+/// calls), so the check-and-update of `charge` and the reads of `left`/`used` hold
+/// `mu`. Without it two concurrent openings could both pass the check and together
+/// open more than `slots/2` distinct columns, breaking Lemma 1 for the weights.
 pub const Budget = struct {
     opened: std.DynamicBitSetUnmanaged = .{},
     count: usize = 0,
     limit: usize,
+    mu: std.Thread.Mutex = .{},
 
     pub fn init(a: std.mem.Allocator, n_cols_ext: usize, limit: usize) !Budget {
         return .{ .opened = try std.DynamicBitSetUnmanaged.initEmpty(a, n_cols_ext), .limit = limit };
@@ -138,21 +151,36 @@ pub const Budget = struct {
     pub fn deinit(self: *Budget, a: std.mem.Allocator) void {
         self.opened.deinit(a);
     }
-    /// Charge a set of query positions; fails (without charging) if the union
-    /// would exceed the budget.
+    /// Charge a set of query positions atomically; fails (without charging) if the
+    /// union would exceed the budget.
     pub fn charge(self: *Budget, idx: []const usize) !void {
+        self.mu.lock();
+        defer self.mu.unlock();
         var extra: usize = 0;
-        var seen = std.AutoHashMap(usize, void).init(std.heap.page_allocator);
-        defer seen.deinit();
-        for (idx) |j| {
-            if (!self.opened.isSet(j) and !seen.contains(j)) {
-                extra += 1;
-                try seen.put(j, {});
-            }
+        // distinct new positions (query sets are small: quadratic dedup, no allocation)
+        for (idx, 0..) |j, i| {
+            if (j >= self.opened.bit_length) return error.OpeningShape;
+            if (self.opened.isSet(j)) continue;
+            const dup = for (idx[0..i]) |k| {
+                if (k == j) break true;
+            } else false;
+            if (!dup) extra += 1;
         }
         if (self.count + extra > self.limit) return error.OpeningBudgetExceeded;
         for (idx) |j| self.opened.set(j);
         self.count += extra;
+    }
+    /// Columns still openable.
+    pub fn left(self: *Budget) usize {
+        self.mu.lock();
+        defer self.mu.unlock();
+        return self.limit - self.count;
+    }
+    /// Distinct columns opened so far and the limit.
+    pub fn used(self: *Budget) [2]usize {
+        self.mu.lock();
+        defer self.mu.unlock();
+        return .{ self.count, self.limit };
     }
 };
 
@@ -218,7 +246,7 @@ pub fn commit(
     const shape = Shape{ .log_cols = m.log_cols, .log_blowup = log_blowup, .slots = slots, .n_rows = R };
     const E = @as(usize, 1) << @intCast(shape.logExt());
     std.debug.assert(tw.domain.logSize() == shape.logExt());
-    std.debug.assert(shape.msgLen() <= E / 2);
+    if (!shape.rateOk()) return error.ZkRate;
     const tau = try a.alloc(M31, R * slots);
     errdefer a.free(tau);
     rng.fillM31(tau);
@@ -511,7 +539,7 @@ pub fn verifyOpening(
     const C = shapes[0].nCols();
     const ML = shapes[0].msgLen();
     const log_ext = shapes[0].logExt();
-    for (shapes) |s| if (s.logExt() != log_ext or s.nCols() != C or s.slots != shapes[0].slots) return error.OpeningShape;
+    for (shapes) |s| if (s.logExt() != log_ext or s.nCols() != C or s.slots != shapes[0].slots or !s.rateOk()) return error.OpeningShape;
     for (groups) |g| {
         if (g.col.len != C) return error.OpeningShape;
         for (g.claims) |c| {
@@ -775,4 +803,38 @@ test "zk pcs budget refuses to exceed slots/2 distinct columns" {
     try std.testing.expectError(error.OpeningBudgetExceeded, b.charge(&.{ 4, 5 }));
     try b.charge(&.{ 4, 1 });
     try std.testing.expectEqual(@as(usize, 4), b.count);
+}
+
+test "zk pcs budget: concurrent charges never exceed the limit (ZK-4)" {
+    const a = std.testing.allocator;
+    const N_COLS: usize = 1 << 14;
+    const LIMIT: usize = 4096;
+    const N_THREADS = 8;
+    var b = try Budget.init(a, N_COLS, LIMIT);
+    defer b.deinit(a);
+    var ok = [_]std.atomic.Value(usize){std.atomic.Value(usize).init(0)} ** N_THREADS;
+    const W = struct {
+        fn run(bp: *Budget, t: usize, cnt: *std.atomic.Value(usize)) void {
+            // each thread charges its own distinct columns, one at a time, and a
+            // column shared by all threads (charged once overall)
+            var j: usize = t;
+            while (j < N_COLS) : (j += N_THREADS) {
+                const idx = [_]usize{ j, 0 };
+                bp.charge(&idx) catch continue;
+                _ = cnt.fetchAdd(1, .monotonic);
+            }
+        }
+    };
+    var th: [N_THREADS]std.Thread = undefined;
+    for (&th, 0..) |*h, t| h.* = try std.Thread.spawn(.{}, W.run, .{ &b, t, &ok[t] });
+    for (th) |h| h.join();
+    var succeeded: usize = 0;
+    for (&ok) |*c| succeeded += c.load(.monotonic);
+    const u = b.used();
+    // every successful charge added exactly one new column (column 0 at most once
+    // more), and the bitset agrees with the count
+    try std.testing.expect(u[0] <= LIMIT);
+    try std.testing.expectEqual(b.opened.count(), u[0]);
+    try std.testing.expect(succeeded == u[0] or succeeded + 1 == u[0]);
+    try std.testing.expectEqual(LIMIT - u[0], b.left());
 }

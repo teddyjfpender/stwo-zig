@@ -447,7 +447,7 @@ pub fn verify(
     const log_m = lc + 1;
     const log_ext = shapes[0].logExt();
     if (S > C or !std.math.isPowerOfTwo(S)) return error.OpeningShape;
-    for (shapes) |s| if (s.logExt() != log_ext or s.nCols() != C or s.slots != S) return error.OpeningShape;
+    for (shapes) |s| if (s.logExt() != log_ext or s.nCols() != C or s.slots != S or !s.rateOk()) return error.OpeningShape;
     for (groups) |g| {
         if (g.col.len != C) return error.OpeningShape;
         for (g.claims) |c| {
