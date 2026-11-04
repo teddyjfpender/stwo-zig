@@ -377,7 +377,10 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         if (recursion_factory == null and recursion_execution.ready == null) return error.CombinedRequiresDeviceRecursion;
         try stages.requireFullyResident();
     }
-    const candidate = std.mem.eql(u8, args[1], "inputs-candidate") or inspect_schedule or combined or recurse or std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
+    // warm-setup-candidate: inputs-candidate stopped right after keys + FIXED
+    // (resident-service pre-warm; no source build, no proof).
+    const warm_setup = std.mem.eql(u8, args[1], "warm-setup-candidate");
+    const candidate = std.mem.eql(u8, args[1], "inputs-candidate") or warm_setup or inspect_schedule or combined or recurse or std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
     const verify = inspect_schedule or recurse or std.mem.eql(u8, args[1], "verify-control") or std.mem.eql(u8, args[1], "verify-candidate");
     // Persisted roots are operator-trusted acceleration, never independent
     // receiver authority. Fresh receivers always derive setup from source.
@@ -387,11 +390,11 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const produce = combined or std.mem.eql(u8, args[1], "produce-control") or std.mem.eql(u8, args[1], "produce-candidate");
     const plan = std.mem.eql(u8, args[1], "plan");
     // Session-scoped setup warm-up (inputs-candidate) is producer-side too.
-    if (session != null and !produce and !std.mem.eql(u8, args[1], "inputs-candidate")) return error.ResidentSessionRequiresProducer;
+    if (session != null and !produce and !std.mem.eql(u8, args[1], "inputs-candidate") and !warm_setup) return error.ResidentSessionRequiresProducer;
     const capture_only = std.mem.eql(u8, args[1], "capture");
     // Diagnostic: everything produce-candidate does up to every worker's
     // prover inputs (setup + per-segment source build), then stops. No proof.
-    const inputs_only = std.mem.eql(u8, args[1], "inputs-candidate");
+    const inputs_only = std.mem.eql(u8, args[1], "inputs-candidate") or warm_setup;
     if (!verify and !prefix and !produce and !plan and !capture_only and !inputs_only) return error.InvalidWideEthereumMode;
     if (inputs_only and args.len != 6) return error.ExpectedInputsConfigJobsPrefixAndResources;
     if (selection.explicit and !candidate) return error.SecurityProfileRequiresCandidateMode;
@@ -635,6 +638,10 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     defer if (fixed_set) |*owner| owner.deinit();
     const producer_fixed_ns = timer.read() - producer_fixed_start_ns;
     b2i.setup_done_at_ns = since(process_start);
+    if (warm_setup) {
+        if (fixed_set) |*authority| try FixedSet.require(authority, keys.cpus, keys.truths, pcs);
+        return emit(a, .{ .scope = "warm-setup-candidate: resident setup pre-warm only; no proof or acceptance", .security_qualified = false, .total_steps = captured.total_steps, .cpu_proofs = keys.cpus.len, .truth_proofs = keys.truths.len, .keys_ns = producer_keys_ns, .fixed_ns = producer_fixed_ns, .setup_cache = if (setup_owner) |owner| owner.stats else null });
+    }
     const expected = P.Expected{ .admission = Driver.admission(&image), .program_identity = program.identity, .total_steps = captured.total_steps, .max_total_steps = request.value.max_steps, .final_pc = captured.final_pc, .final_registers = captured.final_registers };
     const completed = count == 0;
     if (combined and !completed) return error.CombinedRequiresCompleteExecution;

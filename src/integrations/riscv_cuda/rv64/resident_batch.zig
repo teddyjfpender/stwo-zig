@@ -22,7 +22,7 @@ const Manifest = struct {
     recursion_worker_budget: usize = 0,
     recursion_max_pending_authorities: usize = 17,
     /// Warm resident service: before any timed request, run setup only
-    /// (inputs-candidate: capture, plan, keys, FIXED; no proof) for these
+    /// (warm-setup-candidate: capture, plan, keys, FIXED; no proof) for these
     /// blocks through the session. Requires STWO_ZIG_RV64_SETUP_CACHE so the
     /// session owns a SetupCache (empty value = residency only, a directory =
     /// also seed from / persist to disk). Operational only; proofs unchanged.
@@ -131,7 +131,7 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
             const item = manifest.blocks.map.get(name) orelse return error.MissingResidentBatchBlock;
             const request = try std.fs.path.resolve(a, &.{ parent, item.request });
             defer a.free(request);
-            const parts = [_][]const u8{ "rv64-resident", "--security-profile", manifest.profile, "inputs-candidate", request, "-", "0", resources };
+            const parts = [_][]const u8{ "rv64-resident", "--security-profile", manifest.profile, "warm-setup-candidate", request, "-", "0", resources };
             var args: [parts.len][:0]u8 = undefined;
             var made: usize = 0;
             defer for (args[0..made]) |arg| a.free(arg);
