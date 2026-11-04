@@ -602,7 +602,7 @@ test "metal decoder layer proof equals the CPU golden digest (ext einsums on the
     pc.accel = null;
     try proto.verify(a, pc, st, proto.weightKey(&sw.ws), &proof);
     const hx = std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower);
-    try std.testing.expectEqualStrings("44acf59378f8adf115c71a8d73cb2a94647add37eaacb9ef3146f0fa93a5d8ea", &hx);
+    try std.testing.expectEqualStrings("837b19acbf642dbe2707dd2bf04a0dba665c9b3785e650e6adf057ae4f77811f", &hx);
 }
 
 test "metal per-request serving batch (dense + MoE stack, LM head, greedy check) equals CPU" {
@@ -636,11 +636,13 @@ test "metal per-request serving batch (dense + MoE stack, LM head, greedy check)
     var bs: [R]tf.Builder = undefined;
     var views: [R][]const []const i32 = undefined;
     var reqs: [R]t.serve.Request = undefined;
+    var desc = try t.lm.ModelDesc.synthetic(a, cfg, 3);
+    defer desc.deinit(a);
     for (0..R) |j| {
         bs[j] = tf.Builder.init(a, &pool);
-        const x = try model.randomInput(a, @as(usize, 1) << (cfg.log_t + cfg.log_d), 40 + j);
-        defer a.free(x);
-        _ = try t.lm.buildModel(&bs[j], cfg, &sw.ws, 3, x, null);
+        const w = try t.lm.randomTokens(a, @as(usize, 1) << cfg.log_t, @as(usize, 1) << cfg.log_vocab, 40 + j);
+        defer a.free(w);
+        _ = try t.lm.buildModel(&bs[j], &desc, &sw.ws, w, null);
         views[j] = try bs[j].witnessView(a);
         reqs[j] = .{ .st = bs[j].statement(), .witness = views[j], .salt = t.serve.testSalt(j) };
     }

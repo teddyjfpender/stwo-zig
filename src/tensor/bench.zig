@@ -184,7 +184,7 @@ fn printTl(out: anytype, pc: proto.Config, weight_openings: bool) !void {
 
 fn printConj(out: anytype, conj_ok: bool, conj: f64, proven: f64) !void {
     if (conj_ok) try out.print("\"conjectured_bits\":{d:.1},", .{conj}) else try out.print("\"conjectured_bits\":null,", .{});
-    try out.print("\"proven_bits\":{d:.1},", .{proven});
+    try out.print("\"query_bits_unique\":{d:.1},", .{proven});
 }
 
 /// Per-level byte breakdown of a pcs2 opening: [cols, siblings, rows/inner].
@@ -540,8 +540,20 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     try printGpuStats(out);
     try out.print("\"proof_digest\":\"{s}\",\"full_digest\":\"{s}\",", .{ std.fmt.bytesToHex(pd_first, .lower), std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower) });
     try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4},\"ext_init\":{d:.4},\"ext_terminal\":{d:.4},\"ext_ops\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns), nsToS(tm.ext_init_ns), nsToS(tm.ext_terminal_ns), nsToS(tm.ext_ops_ns) });
-    try printSecurity(out, a, pc, st, proto.weightKey(&sw.ws), &proof, null);
-    try wireOut(out, a, &pool, pc, st, &sw.ws, null, &proof);
+    // TENSOR_LAYER_KEY=1: also prove and verify the weight-key proof (offline,
+    // once per model), so the security total is complete (SEC-3). Off by
+    // default: its GKR over every layer weight sets the peak RSS (6.8 GB conj,
+    // 9.9 GB Johnson at layer 9 11 12 against ~2-4 GB without); without it
+    // the report says `conditional_on_key` and prints no unconditional total.
+    const layer_key = if (std.posix.getenv("TENSOR_LAYER_KEY")) |v| std.mem.eql(u8, v, "1") else false;
+    var pc_key = pc;
+    if (std.posix.getenv("TENSOR_KEY_CPU") != null) pc_key.accel = null;
+    var lkp: ?t.weight_key.KeyProof = if (layer_key) try t.weight_key.prove(a, &pool, pc_key, &sw.ws) else null;
+    defer if (lkp) |*k| k.deinit(a);
+    if (lkp) |*k| try t.weight_key.verify(a, pc, proto.weightKey(&sw.ws), k);
+    const lkp_ptr: ?*const t.weight_key.KeyProof = if (lkp) |*k| k else null;
+    try printSecurity(out, a, pc, st, proto.weightKey(&sw.ws), &proof, lkp_ptr);
+    try wireOut(out, a, &pool, pc, st, &sw.ws, lkp_ptr, &proof);
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"ext\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"peak_rss_bytes\":{d}}}\n", .{ sz.gkr, sz.sumchecks, proof.ext.byteSize(), sz.witness_opening, sz.weight_opening, sz.total, peakRssBytes() });
     proof.deinit(a);
     a.free(wview);
@@ -632,6 +644,8 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
 
     // --- offline: commit the weights, weight key proof
     var t0 = now();
+    var desc = try t.lm.ModelDesc.synthetic(a, cfg, 7);
+    defer desc.deinit(a);
     var sw = try t.lm.setupWeights(a, &pool, cfg, pc, 100 + seed);
     const commit_s = secs(t0);
     for (sw.wdata) |w| a.free(w); // the store keeps its own table
@@ -642,9 +656,9 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const calib: usize = @intCast(try kv.get("calib", 1));
     t0 = now();
     if (le > 0 and calib > 0) {
-        const xc = try model.randomInput(a, @as(usize, 1) << @intCast(lt + ld), 999_999);
+        const xc = try t.lm.randomTokens(a, @as(usize, 1) << @intCast(lt), @as(usize, 1) << @intCast(cfg.log_vocab), 999_999);
         defer a.free(xc);
-        try t.lm.calibrateRouters(a, &pool, cfg, &sw.ws, xc, calib);
+        try t.lm.calibrateRouters(a, &pool, &desc, &sw.ws, xc, calib);
         try t.lm.recommit(a, &pool, pc, &sw.ws);
     }
     const calib_s = secs(t0);
@@ -685,15 +699,16 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var n_ext: usize = 0;
     const tokens = try a.alloc(u32, R << @intCast(cfg.log_out));
     defer a.free(tokens);
-    const D = @as(usize, 1) << @intCast(ld);
     const T = @as(usize, 1) << @intCast(lt);
     const t_all = now();
     for (0..R) |j| {
         builders[j] = tf.Builder.init(a, &pool);
         n_built += 1;
         const b = &builders[j];
-        // the window's embedding rows (public input; int8)
-        const x = try model.randomInput(a, T * D, 1000 * seed + j);
+        // the window's tokens (public; X = Emb[window] is proved from the
+        // committed Emb). Random windows: the bench measures cost, so the
+        // output is the window's greedy tokens, not a decoded continuation.
+        const x = try t.lm.randomTokens(a, T, @as(usize, 1) << @intCast(cfg.log_vocab), 1000 * seed + j);
         defer a.free(x);
         // The expert capacity is a per-request statement parameter. cap=0
         // (default): the smallest power of two holding the request's largest
@@ -701,25 +716,30 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
         // serving prover knows the routing after its forward pass anyway).
         // cap=c > 0: fixed, refit only on overflow.
         var rcfg = cfg;
+        var rdesc = desc;
         if (cap_arg == 0 and le > 0) {
             rcfg.log_capacity = lt;
+            rdesc.cfg = rcfg;
             var probe = tf.Builder.init(a, &pool);
             defer probe.deinit();
-            const full = try t.lm.buildModel(&probe, rcfg, &sw.ws, 7, x, null);
+            const full = try t.lm.buildModel(&probe, &rdesc, &sw.ws, x, null);
             rcfg.log_capacity = t.lm.fitCapacity(full.max_expert_load);
         }
+        rdesc.cfg = rcfg;
         t0 = now();
-        const mo = t.lm.buildModel(b, rcfg, &sw.ws, 7, x, null) catch |e| blk: {
+        const mo = t.lm.buildModel(b, &rdesc, &sw.ws, x, null) catch |e| blk: {
             if (e != error.CapacityExceeded) return e;
             b.deinit();
             builders[j] = tf.Builder.init(a, &pool);
             rcfg.log_capacity = lt;
-            const full = try t.lm.buildModel(b, rcfg, &sw.ws, 7, x, null);
+            rdesc.cfg = rcfg;
+            const full = try t.lm.buildModel(b, &rdesc, &sw.ws, x, null);
             rcfg.log_capacity = t.lm.fitCapacity(full.max_expert_load);
+            rdesc.cfg = rcfg;
             b.deinit();
             builders[j] = tf.Builder.init(a, &pool);
             t0 = now();
-            break :blk try t.lm.buildModel(b, rcfg, &sw.ws, 7, x, null);
+            break :blk try t.lm.buildModel(b, &rdesc, &sw.ws, x, null);
         };
         forward_ns += now().since(t0);
         max_load = @max(max_load, mo.max_expert_load);
@@ -730,7 +750,8 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
         defer a.free(wv);
         var tm: proto.Timings = .{};
         t0 = now();
-        try bp.add(.{ .st = stmts[j], .witness = wv, .salt = t.serve.testSalt(seed * 1000 + j) }, &tm);
+        // salt: default (secret, from std.crypto.random)
+        try bp.add(.{ .st = stmts[j], .witness = wv }, &tm);
         prove_ns += now().since(t0);
         if (j == 0) tm_first = tm;
         inline for (@typeInfo(proto.Timings).@"struct".fields) |fld| {
@@ -791,7 +812,7 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const Rf: f64 = @floatFromInt(R);
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"bench\":\"model\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"layers\":{d},\"moe_layers\":{d},\"log_experts\":{d},\"log_f_expert\":{d},\"log_capacity\":{d},\"log_capacity_used\":{d},\"max_expert_load\":{d},\"log_vocab\":{d},\"log_out\":{d},\"requests\":{d},\"threads\":{d},\"accel\":{},\"batch_matmuls\":{},", .{ lt, ld, lf, cfg.log_heads, cfg.log_kv_heads, cfg.n_layers, cfg.nMoeLayers(), le, lfe, cfg.log_capacity, cap_used, max_load, cfg.log_vocab, cfg.log_out, R, threads, pc.accel != null, pc.batch_matmuls });
-    try printTl(out, pc);
+    try printTl(out, pc, true); // the shared opening opens the weight table
     try out.print("\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_log_cols\":{d},", .{ outer.n_queries, outer.log_blowup, outer.pow_bits, pc.weight_log_cols });
     try out.print("\"weights\":{d},\"active_weights_per_token\":{d},\"witness_tensors\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_elems_per_request\":{d},\"witness_table_elems\":{d},\"stacked_experts\":{},\"weight_claims_per_request\":{d},\"weight_points_per_request\":{d},", .{ n_weights, active, n_wit, n_core, n_ext, witness_elems, table_elems, cfg.stacked_experts, n_claims / R, n_points / R });
     try out.print("\"offline\":{{\"calib_passes\":{d},\"calib_s\":{d:.3},\"commit_s\":{d:.3},\"key_proof_s\":{d:.3},\"key_verify_s\":{d:.4},\"key_bytes\":{d},\"rss_after_commit\":{d},\"rss_after_key\":{d}}},", .{ calib, calib_s, commit_s, key_s, key_verify_s, if (prox) |p| p.byteSize() else 0, rss_after_commit, rss_after_key });

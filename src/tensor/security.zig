@@ -4,19 +4,27 @@
 //! challenges drawn together) is bad, as the soundness argument in
 //! design/tensor-frontend/security.md counts it. Field terms are
 //! (numerator / |QM31|); query terms are (agreement)^t; rounds preceded by a
-//! proof of work carry its bits. The report gives, like FlashProve's
-//! accounting ("whole bound with work / without work"):
+//! proof of work carry its bits. The report gives FlashProve's three
+//! readings (FlashProve docs/limits.md, "the soundness figure"):
 //!
 //!   * sum_with / sum_without   -log2 of the sum of all terms, PoW counted
-//!     (each query term divided by 2^pow) or not;
-//!   * round_with / round_without  -log2 of the largest single term;
-//!   * compiled   FlashProve's compiled level for round_with (the largest L
-//!     with 2^-L >= 2^-w + 8.5 * 2^(L - 256));
-//!   * rbr_round_with / rbr_round_without / rbr_compiled  the same maxima
-//!     with the lambda/query pair of each inner level in its round-by-round
-//!     (Markov) form instead of the interactive mean-value form
-//!     (security.md 3.3). Every other term is already a per-round bound.
-//!
+//!     (each query term divided by 2^pow) or not. This is FlashProve's
+//!     "all rounds added" row (119.38 with work / 92.42 without), NOT their
+//!     headline number;
+//!   * round_with / round_without  -log2 of the largest single term, with
+//!     the lambda/query pair of each inner level in the interactive
+//!     mean-value form (security.md 3.3); a diagnostic, not a FS bound;
+//!   * rbr_round_with / rbr_round_without  the same maxima with that pair in
+//!     its round-by-round (Markov) form. Every other term is already a
+//!     per-round bound, so these are the round-by-round errors eps_rbr;
+//!   * rbr_compiled (alias `compiled`) / rbr_compiled_without  FlashProve's
+//!     "whole bound as one number" (126.21 with work / 96.23 without): the
+//!     largest L with 2^-L >= 2^-w + 8.5 * 2^(L - 256) for w =
+//!     rbr_round_with (resp. rbr_round_without), read as
+//!     "a cheater making N hash calls succeeds with probability <= N / 2^L".
+//!     It is computed from the round-by-round maximum only (SEC-6): the
+//!     Fiat-Shamir compilation needs per-round errors.
+
 //! Regimes per committed table (security.md section 2-4):
 //!   * fresh tables (witness, committed rows) opened with k proximity rows:
 //!     unique decoding, delta < (1 - rho)/2, or - with an OOD sample on the
@@ -41,6 +49,8 @@ const pcs = @import("pcs.zig");
 const pcs2 = @import("pcs2.zig");
 const proto = @import("protocol.zig");
 const weight_key = @import("weight_key.zig");
+const serve = @import("serve.zig");
+const engine = @import("stwo_prover_engine");
 
 /// log2 |QM31| = 4 log2(2^31 - 1)
 pub const LOG2_F: f64 = 4.0 * 30.99999999932819;
@@ -79,6 +89,7 @@ pub const Summary = struct {
     sum_without: f64,
     round_with: f64,
     round_without: f64,
+    /// = rbr_compiled (kept for JSON readers); FlashProve's compiled number
     compiled: f64,
     worst: []const u8,
     worst_without: []const u8,
@@ -86,6 +97,8 @@ pub const Summary = struct {
     rbr_round_with: f64,
     rbr_round_without: f64,
     rbr_compiled: f64,
+    /// compiledLevel(rbr_round_without): FlashProve's compiled number without work (96.23)
+    rbr_compiled_without: f64,
     rbr_worst: []const u8,
 };
 
@@ -138,6 +151,17 @@ pub const Account = struct {
         }
     }
 
+    /// As addAll, with every term's error multiplied by 2^shift (a union
+    /// over 2^shift independent copies of each round; serving's batch reading)
+    pub fn addAllShifted(self: *Account, other: Account, prefix: []const u8, shift: f64) !void {
+        for (other.terms.items) |t| {
+            const n = try std.fmt.allocPrint(self.a, "{s}{s}", .{ prefix, t.name });
+            defer self.a.free(n);
+            const r: ?[2]f64 = if (t.rbr) |x| .{ x[0] + shift, x[1] + shift } else null;
+            try self.addRbr(n, t.kind, t.log2_err + shift, t.pow, t.count, r);
+        }
+    }
+
     pub fn summary(self: Account) Summary {
         var sw = -std.math.inf(f64);
         var so = -std.math.inf(f64);
@@ -166,12 +190,12 @@ pub const Account = struct {
                 worst_o = t.name;
             }
         }
-        return .{ .sum_with = -sw, .sum_without = -so, .round_with = -mw, .round_without = -mo, .compiled = compiledLevel(-mw, 256), .worst = worst, .worst_without = worst_o, .n_terms = self.terms.items.len, .rbr_round_with = -rw, .rbr_round_without = -ro, .rbr_compiled = compiledLevel(-rw, 256), .rbr_worst = worst_r };
+        return .{ .sum_with = -sw, .sum_without = -so, .round_with = -mw, .round_without = -mo, .compiled = compiledLevel(-rw, 256), .worst = worst, .worst_without = worst_o, .n_terms = self.terms.items.len, .rbr_round_with = -rw, .rbr_round_without = -ro, .rbr_compiled = compiledLevel(-rw, 256), .rbr_compiled_without = compiledLevel(-ro, 256), .rbr_worst = worst_r };
     }
 
     pub fn writeJson(self: Account, out: anytype, top: usize) !void {
         const s = self.summary();
-        try out.print("{{\"sum_with_work\":{d:.2},\"sum_without_work\":{d:.2},\"round_with_work\":{d:.2},\"round_without_work\":{d:.2},\"compiled\":{d:.2},\"worst\":\"{s}\",\"worst_without_work\":\"{s}\",\"terms\":{d},\"rbr_round_with_work\":{d:.2},\"rbr_round_without_work\":{d:.2},\"rbr_compiled\":{d:.2},\"rbr_worst\":\"{s}\",\"largest\":[", .{ s.sum_with, s.sum_without, s.round_with, s.round_without, s.compiled, s.worst, s.worst_without, s.n_terms, s.rbr_round_with, s.rbr_round_without, s.rbr_compiled, s.rbr_worst });
+        try out.print("{{\"sum_with_work\":{d:.2},\"sum_without_work\":{d:.2},\"round_with_work\":{d:.2},\"round_without_work\":{d:.2},\"compiled\":{d:.2},\"worst\":\"{s}\",\"worst_without_work\":\"{s}\",\"terms\":{d},\"rbr_round_with_work\":{d:.2},\"rbr_round_without_work\":{d:.2},\"rbr_compiled\":{d:.2},\"rbr_compiled_without_work\":{d:.2},\"rbr_worst\":\"{s}\",\"largest\":[", .{ s.sum_with, s.sum_without, s.round_with, s.round_without, s.compiled, s.worst, s.worst_without, s.n_terms, s.rbr_round_with, s.rbr_round_without, s.rbr_compiled, s.rbr_compiled_without, s.rbr_worst });
         // the `top` largest terms (with work), each as [name, -log2 err, pow, count]
         const idx = try self.a.alloc(usize, self.terms.items.len);
         defer self.a.free(idx);
@@ -390,13 +414,23 @@ pub fn openingInfos(a: std.mem.Allocator, cfg: proto.Config, shape: pcs.Shape, n
 // ---------------------------------------------------------------------------
 // Protocol terms.
 
-fn accountSumcheck(acc: *Account, name: []const u8, p: anytype) !void {
+/// A sumcheck of `rounds` rounds of degree `deg`, whose input claim is an
+/// identity checked at a random point of `claim_dim` variables (the GKR point
+/// or a fresh rho), possibly combined over several identities with fresh
+/// coefficients (class xi, batching gamma): deg/|F| per round, and for the
+/// claim (max(rounds, claim_dim) + 1)/|F| - a nonzero polynomial,
+/// multilinear in the point and of degree 1 in the coefficients (SEC-4).
+fn accountSumcheck(acc: *Account, name: []const u8, p: anytype, claim_dim: u32) !void {
     const n: f64 = @floatFromInt(p.rounds.len);
     try acc.field(name, @floatFromInt(p.deg), n);
-    // the claim's own randomness (zero-check point / batching coefficients):
-    // a nonzero polynomial of degree <= rounds + 1 at a random point
-    try acc.field(name, n + 1, 1);
+    try acc.field(name, @max(n, @as(f64, @floatFromInt(claim_dim))) + 1, 1);
 }
+
+/// Largest round-polynomial degree the LogUp-GKR verifier accepts
+/// (verifier_kernel.MAX_DEGREE). A cheating round polynomial of lower degree
+/// still disagrees with the true degree-3 one at up to 3 points, so every
+/// round is charged 3/|F|, whatever its sent length (SEC-5).
+const GKR_ROUND_DEGREE: f64 = @floatFromInt(engine.lookups.verifier_kernel.MAX_DEGREE);
 
 fn accountGkr(acc: *Account, name: []const u8, g: anytype) !void {
     // per layer: instance batching (powers, degree <= 2 * instances) and the
@@ -410,9 +444,41 @@ fn accountGkr(acc: *Account, name: []const u8, g: anytype) !void {
         }
         if (active == 0) active = @floatFromInt(g.layer_masks_by_instance.len);
         try acc.field(try std.fmt.bufPrint(&buf, "{s} batching", .{name}), 2 * active + 1, 1);
-        for (sp.round_polys) |rp| try acc.field(try std.fmt.bufPrint(&buf, "{s} rounds", .{name}), @floatFromInt(rp.coeffsSlice().len - 1), 1);
+        try acc.field(try std.fmt.bufPrint(&buf, "{s} rounds", .{name}), GKR_ROUND_DEGREE, @floatFromInt(sp.round_polys.len));
         try acc.field(try std.fmt.bufPrint(&buf, "{s} mask fold", .{name}), active, 1);
     }
+}
+
+/// Claim dimension of the core op sumchecks: each one's input claim is an
+/// identity (acc = r + 2^s y - sum_k X W, or the hadamard zero-check) at the
+/// GKR point of the op output's MLE. One bound for all of them: the largest
+/// output (shape classes share one size; conservative by < 1 bit on a
+/// 2^-120 term otherwise).
+fn opClaimDim(st: proto.Statement) u32 {
+    var d: u32 = 0;
+    for (st.ops) |op| switch (op) {
+        .matmul => |m| d = @max(d, st.witness[m.y].logSize()),
+        .hadamard => |h| d = @max(d, st.witness[h.y].logSize()),
+        else => {},
+    };
+    return d;
+}
+
+/// Ext ops: einsum sumchecks (one per einsum, in order; the claim is at an
+/// n_out-variable point) and linear equations (expr~(rho) = 0 at a fresh
+/// rho of n variables, no sumcheck: n/|F| each, SEC-4).
+fn accountExt(acc: *Account, st: proto.Statement, part: anytype) !void {
+    var si: usize = 0;
+    for (st.ext.ops) |op| switch (op) {
+        .einsum => |e| {
+            if (si >= part.sumchecks.len) return error.ExtAccount;
+            try accountSumcheck(acc, "ext sumcheck", part.sumchecks[si], e.n_out);
+            si += 1;
+        },
+        .lineq => |l| try acc.field("ext lineq", @floatFromInt(l.n), 1),
+        .key => {},
+    };
+    if (si != part.sumchecks.len) return error.ExtAccount;
 }
 
 /// LogUp: a key of arity a enters as the denominator alpha - (v_0 + beta
@@ -436,9 +502,12 @@ fn accountLogupDegree(acc: *Account, name: []const u8, degree_fractions: f64) !v
 }
 
 pub const Report = struct {
+    /// per-request reading: the terms verifier i checks for request i
     request: Account,
     key: ?Account,
-    /// request and key terms together (a client checks both)
+    /// request and key terms together (a client checks both). When
+    /// `conditional_on_key`, the weight-key terms are missing and this is a
+    /// bound only given a verified key proof at `delta_key` (SEC-3).
     total: Account,
     delta_key: f64,
     logup_ok: bool,
@@ -446,44 +515,109 @@ pub const Report = struct {
     weight_proximity: bool = false,
     /// the proof opened the weight table at all
     weight_openings: bool = false,
+    /// the request reads weight claims, but no key proof was accounted:
+    /// nothing here proves the weight table's proximity at delta_key
+    conditional_on_key: bool = false,
+    /// serving only (accountServe): "some request of the batch is false and
+    /// its verifier accepts" - each request's own terms + log2(n_requests),
+    /// the shared terms once, plus the key (SEC-7)
+    batch: ?Account = null,
+    n_requests: usize = 1,
 
     pub fn deinit(self: *Report) void {
         self.request.deinit();
         if (self.key) |*k| k.deinit();
         self.total.deinit();
+        if (self.batch) |*b| b.deinit();
     }
 };
 
-/// Every term of a request proof (and, if given, of the weight-key proof).
-/// Runs the verifier (which must accept) to read the shapes it checked.
-pub fn accountProof(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statement, key: proto.WeightKey, proof: *const proto.Proof, key_proof: ?*const weight_key.KeyProof) !Report {
-    var info: proto.VerifyInfo = .{};
-    try proto.verifyInfo(a, cfg, st, key, proof, &info);
-    var req = Account.init(a);
-    errdefer req.deinit();
-    const P: f64 = @floatFromInt(f.P);
-
+/// The request's own terms (everything but the weight opening): LogUp, GKR,
+/// op and ext sumchecks, lineqs, the witness batch and the witness opening.
+fn accountRequestCore(a: std.mem.Allocator, req: *Account, cfg: proto.Config, st: proto.Statement, info: proto.VerifyInfo, proof: *const proto.Proof) !void {
     if (proof.gkr) |*g| {
         // per-relation degree; never above the global-arity bound
         if (info.logup_degree_fractions < info.logup_fractions or info.logup_degree_fractions > @as(f64, @floatFromInt(@max(info.logup_max_arity, 2) - 1)) * info.logup_fractions) return error.LogupAccount;
-        try accountLogupDegree(&req, "logup alpha,beta", info.logup_degree_fractions);
-        try accountGkr(&req, "gkr", g);
+        try accountLogupDegree(req, "logup alpha,beta", info.logup_degree_fractions);
+        try accountGkr(req, "gkr", g);
     }
-    for (proof.op_sumchecks) |p| try accountSumcheck(&req, "op sumcheck", p);
-    for (proof.ext.sumchecks) |p| try accountSumcheck(&req, "ext sumcheck", p);
+    const od = opClaimDim(st);
+    for (proof.op_sumchecks) |p| try accountSumcheck(req, "op sumcheck", p, od);
+    try accountExt(req, st, proof.ext);
     try req.field("witness batch gamma", 1, 1);
-    try accountSumcheck(&req, "witness batch sumcheck", proof.batch_sumcheck);
+    try accountSumcheck(req, "witness batch sumcheck", proof.batch_sumcheck, 0);
 
     const tl_ood = if (cfg.two_level) |tl| tl.ood else false;
     const winf = try openingInfos(a, cfg, info.witness_shape, info.witness_groups, true);
     defer a.free(winf);
-    try accountOpening(&req, "witness", winf, tl_ood, proto.witnessOod(cfg), .fresh);
+    try accountOpening(req, "witness", winf, tl_ood, proto.witnessOod(cfg), .fresh);
+}
 
-    // weights: choose delta_key to balance the key's level-0 query term with
-    // the per-batch consistency term
+/// delta_key balancing the key's level-0 query term with the per-batch
+/// consistency term (`winf2`: the weight opening, if any). Analysis only:
+/// the verifier does not depend on it.
+fn chooseDeltaKey(kinf0: pcs2.LevelInfo, winf2: ?[]const pcs2.LevelInfo) !f64 {
+    const ud = uniqueProx(kinf0.log_cols, kinf0.params.log_blowup);
+    var best = -std.math.inf(f64);
     var delta_key: f64 = 0;
-    var kacc: ?Account = null;
-    errdefer if (kacc) |*k| k.deinit();
+    var i: usize = 1;
+    while (i <= 2000) : (i += 1) {
+        const dk = ud.delta * @as(f64, @floatFromInt(i)) / 2000.0;
+        var px = ud;
+        px.delta = dk;
+        const kb = -(try levelTerms(null, "k", kinf0, .fresh, px, null));
+        const wb = if (winf2) |w| -(try levelTerms(null, "w", w[0], .{ .consistency = dk }, ud, null)) else std.math.inf(f64);
+        if (@min(kb, wb) > best) {
+            best = @min(kb, wb);
+            delta_key = dk;
+        }
+    }
+    return delta_key;
+}
+
+/// The weight-key proof's terms. Verifies the key proof first (SEC-2): once
+/// weight_key.verify accepts, the proof's parameters are keyConfig(cfg)'s,
+/// so the cfg-derived level infos below are the proof's.
+fn accountKey(a: std.mem.Allocator, cfg: proto.Config, key: proto.WeightKey, kp: *const weight_key.KeyProof, kinf: []const pcs2.LevelInfo, delta_key: f64, wprox: bool) !Account {
+    try weight_key.verify(a, cfg, key, kp);
+    const tl_ood = if (cfg.two_level) |tl| tl.ood else false;
+    var k = Account.init(a);
+    errdefer k.deinit();
+    const n_weights = std.math.exp2(@as(f64, @floatFromInt(key.log_rows + key.log_cols)));
+    // key_alphas independent alpha drawn in one round: the error is the
+    // single-alpha bound to that power (weight_key.zig, security.md 4.1)
+    const ka = try weight_key.alphaCount(cfg);
+    if (kp.gkr.output_claims_by_instance.len != 2 * ka) return error.KeyShape;
+    const single = std.math.log2(2 * (n_weights + 256)) - LOG2_F;
+    try k.add(if (ka == 1) "key logup alpha" else "key logup alpha x2", .logup, @as(f64, @floatFromInt(ka)) * single, 0, 1);
+    try accountGkr(&k, "key gkr", &kp.gkr);
+    // key opening: level 0 at delta_key (unique decoding) when the batches
+    // rely on it, else fresh with the OOD sample; inner levels fresh
+    const key_vars = key.log_rows + key.log_cols;
+    var buf: [32]u8 = undefined;
+    for (kinf, 0..) |li, lvl| {
+        const nm = try std.fmt.bufPrint(&buf, "key L{d}", .{lvl});
+        if (lvl == 0 and wprox) {
+            _ = try levelTerms(&k, nm, li, .fresh, try bestProx(nm, li, key_vars), key_vars);
+        } else if (lvl == 0) {
+            var px = uniqueProx(li.log_cols, li.params.log_blowup);
+            px.delta = delta_key;
+            _ = try levelTerms(&k, nm, li, .fresh, px, null);
+        } else {
+            const ov: ?u32 = if (tl_ood) li.log_rows + li.log_cols else null;
+            _ = try levelTerms(&k, nm, li, .fresh, try bestProx(nm, li, ov), ov);
+        }
+    }
+    return k;
+}
+
+/// Weight opening (fresh with its own proximity rows under
+/// cfg.weight_proximity, else consistency at delta_key) and key terms, shared by
+/// accountProof and accountServe. Appends the opening to `wacc`.
+const WeightPart = struct { delta_key: f64, key: ?Account, weight_proximity: bool, weight_openings: bool };
+
+fn accountWeights(a: std.mem.Allocator, wacc: *Account, cfg: proto.Config, key: proto.WeightKey, info: proto.VerifyInfo, key_proof: ?*const weight_key.KeyProof) !WeightPart {
+    const tl_ood = if (cfg.two_level) |tl| tl.ood else false;
     const kcfg = try proto.keyConfig(cfg);
     const wcfg = try proto.weightOpenConfig(cfg);
     const kshape = pcs.Shape{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = proto.outerParams(cfg).log_blowup, .rows_used = key.rows_used };
@@ -493,78 +627,97 @@ pub fn accountProof(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statement
     const wprox = info.weight_proximity;
     const winf2: ?[]pcs2.LevelInfo = if (info.weight_shape) |ws| try openingInfos(a, wcfg, ws, info.weight_groups, wprox) else null;
     defer if (winf2) |x| a.free(x);
-    const key_vars = key.log_rows + key.log_cols;
-    if (!wprox) {
-        const ud = uniqueProx(kinf[0].log_cols, kinf[0].params.log_blowup);
-        var best = -std.math.inf(f64);
-        var i: usize = 1;
-        while (i <= 2000) : (i += 1) {
-            const dk = ud.delta * @as(f64, @floatFromInt(i)) / 2000.0;
-            var px = ud;
-            px.delta = dk;
-            const kb = -(try levelTerms(null, "k", kinf[0], .fresh, px, null));
-            const wb = if (winf2) |w| -(try levelTerms(null, "w", w[0], .{ .consistency = dk }, ud, null)) else std.math.inf(f64);
-            if (@min(kb, wb) > best) {
-                best = @min(kb, wb);
-                delta_key = dk;
-            }
-        }
-    }
+    const delta_key = if (wprox) 0 else try chooseDeltaKey(kinf[0], winf2);
     if (winf2) |w| {
         if (wprox) {
             // own proximity rows + the key's OOD claim: a fresh table with an
             // OOD sample (security.md 4.2)
-            try accountOpening(&req, "weights", w, tl_ood, true, .fresh);
+            try accountOpening(wacc, "weights", w, tl_ood, true, .fresh);
         } else {
-            try accountOpening(&req, "weights", w, tl_ood, false, .{ .consistency = delta_key });
+            try accountOpening(wacc, "weights", w, tl_ood, false, .{ .consistency = delta_key });
         }
     }
+    const k: ?Account = if (key_proof) |kp| try accountKey(a, cfg, key, kp, kinf, delta_key, wprox) else null;
+    return .{ .delta_key = delta_key, .key = k, .weight_proximity = wprox, .weight_openings = info.weight_shape != null };
+}
 
-    if (key_proof) |kp| {
-        var k = Account.init(a);
-        errdefer k.deinit();
-        const n_weights = std.math.exp2(@as(f64, @floatFromInt(key.log_rows + key.log_cols)));
-        // key_alphas independent alpha drawn in one round: the error is the
-        // single-alpha bound to that power (weight_key.zig, security.md 4.1)
-        const ka = try weight_key.alphaCount(cfg);
-        if (kp.gkr.output_claims_by_instance.len != 2 * ka) return error.KeyShape;
-        const single = std.math.log2(2 * (n_weights + 256)) - LOG2_F;
-        try k.add(if (ka == 1) "key logup alpha" else "key logup alpha x2", .logup, @as(f64, @floatFromInt(ka)) * single, 0, 1);
-        try accountGkr(&k, "key gkr", &kp.gkr);
-        // key opening: level 0 at delta_key (unique decoding) when the batches
-        // rely on it, else fresh with the OOD sample; inner levels fresh
-        var buf: [32]u8 = undefined;
-        for (kinf, 0..) |li, lvl| {
-            const nm = try std.fmt.bufPrint(&buf, "key L{d}", .{lvl});
-            if (lvl == 0 and wprox) {
-                _ = try levelTerms(&k, nm, li, .fresh, try bestProx(nm, li, key_vars), key_vars);
-            } else if (lvl == 0) {
-                var px = uniqueProx(li.log_cols, li.params.log_blowup);
-                px.delta = delta_key;
-                _ = try levelTerms(&k, nm, li, .fresh, px, null);
-            } else {
-                const ov: ?u32 = if (tl_ood) li.log_rows + li.log_cols else null;
-                _ = try levelTerms(&k, nm, li, .fresh, try bestProx(nm, li, ov), ov);
-            }
-        }
-        kacc = k;
-    }
+/// Every term of a request proof (and, if given, of the weight-key proof).
+/// Runs the verifier (which must accept) to read the shapes it checked, and
+/// the key verifier on `key_proof`. Without a key proof, a proof that reads
+/// weights gets `conditional_on_key` (its total lacks the key's terms).
+pub fn accountProof(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statement, key: proto.WeightKey, proof: *const proto.Proof, key_proof: ?*const weight_key.KeyProof) !Report {
+    var info: proto.VerifyInfo = .{};
+    try proto.verifyInfo(a, cfg, st, key, proof, &info);
+    var req = Account.init(a);
+    errdefer req.deinit();
+    try accountRequestCore(a, &req, cfg, st, info, proof);
+    var wp = try accountWeights(a, &req, cfg, key, info, key_proof);
+    errdefer if (wp.key) |*k| k.deinit();
     var total = Account.init(a);
     errdefer total.deinit();
     try total.addAll(req, "");
-    if (kacc) |k| try total.addAll(k, "");
-    return .{ .request = req, .key = kacc, .total = total, .delta_key = delta_key, .logup_ok = info.logup_max_relation < P, .weight_proximity = wprox, .weight_openings = info.weight_shape != null };
+    if (wp.key) |k| try total.addAll(k, "");
+    return .{ .request = req, .key = wp.key, .total = total, .delta_key = wp.delta_key, .logup_ok = info.logup_max_relation < @as(f64, @floatFromInt(f.P)), .conditional_on_key = key_proof == null and info.weight_shape != null, .weight_proximity = wp.weight_proximity, .weight_openings = wp.weight_openings };
+}
+
+/// Serving (serve.zig): request `index` of a batch with a shared weight
+/// opening. Runs serve.verifyRequestInfo (and the key verifier). Terms:
+///   * the request's own terms (accountRequestCore, as a single proof);
+///   * shared: the cross-request reduction - n_all independent gamma, a
+///     nonzero linear form in them vanishes with 1/|F| - and its degree-2
+///     sumcheck over log|W| variables, 2 log|W|/|F| (+ its claim term), and
+///     the one weight opening at the reduced point (one group).
+/// `request` is the per-request reading (verifier i accepts a false
+/// statement i); `batch` the joint reading (some request of the batch is
+/// false and accepted): each request's own rounds are a union over the
+/// n_requests transcripts T_j, +log2(n) bits each, as FlashProve's printout
+/// reads it; the shared rounds are one transcript and are charged once
+/// (FlashProve argues this in its report, row SO-1.4; serving.md).
+pub fn accountServe(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statement, key: proto.WeightKey, rp: *const serve.RequestProof, shared: *const serve.SharedOpening, index: usize, key_proof: ?*const weight_key.KeyProof) !Report {
+    var info: proto.VerifyInfo = .{};
+    try serve.verifyRequestInfo(a, cfg, st, key, rp, shared, index, &info);
+    var own = Account.init(a);
+    defer own.deinit();
+    try accountRequestCore(a, &own, cfg, st, info, &rp.core);
+    var sh = Account.init(a);
+    defer sh.deinit();
+    if (shared.reduction) |red| {
+        try sh.field("serve reduction gamma", 1, 1);
+        try accountSumcheck(&sh, "serve reduction sumcheck", red, key.log_rows + key.log_cols);
+    }
+    var wp = try accountWeights(a, &sh, cfg, key, info, key_proof);
+    errdefer if (wp.key) |*k| k.deinit();
+    var req = Account.init(a);
+    errdefer req.deinit();
+    try req.addAll(own, "");
+    try req.addAll(sh, "");
+    var total = Account.init(a);
+    errdefer total.deinit();
+    try total.addAll(req, "");
+    if (wp.key) |k| try total.addAll(k, "");
+    const n = shared.requests.len;
+    var bat = Account.init(a);
+    errdefer bat.deinit();
+    try bat.addAllShifted(own, "", std.math.log2(@as(f64, @floatFromInt(@max(n, 1)))));
+    try bat.addAll(sh, "");
+    if (wp.key) |k| try bat.addAll(k, "");
+    return .{ .request = req, .key = wp.key, .total = total, .delta_key = wp.delta_key, .logup_ok = info.logup_max_relation < @as(f64, @floatFromInt(f.P)), .conditional_on_key = key_proof == null and info.weight_shape != null, .weight_proximity = wp.weight_proximity, .weight_openings = wp.weight_openings, .batch = bat, .n_requests = n };
 }
 
 pub fn writeReport(r: Report, out: anytype) !void {
-    try out.print("\"security\":{{\"weight_binding\":\"{s}\",\"delta_key\":{d:.4},\"logup_below_p\":{},\"request\":", .{ if (!r.weight_openings) "no weight openings" else if (r.weight_proximity) "per-batch proximity + key OOD" else "key distance + key OOD", r.delta_key, r.logup_ok });
+    try out.print("\"security\":{{\"weight_binding\":\"{s}\",\"delta_key\":{d:.4},\"logup_below_p\":{},\"conditional_on_key\":{},\"request\":", .{ if (!r.weight_openings) "no weight openings" else if (r.weight_proximity) "per-batch proximity + key OOD" else "key distance + key OOD", r.delta_key, r.logup_ok, r.conditional_on_key });
     try r.request.writeJson(out, 6);
     if (r.key) |k| {
         try out.print(",\"key\":", .{});
         try k.writeJson(out, 4);
     }
-    try out.print(",\"total\":", .{});
+    // without a verified key proof the sum is not a bound by itself (SEC-3)
+    try out.print(",\"{s}\":", .{if (r.conditional_on_key) "total_conditional_on_key" else "total"});
     try r.total.writeJson(out, 6);
+    if (r.batch) |b| {
+        try out.print(",\"n_requests\":{d},\"{s}\":", .{ r.n_requests, if (r.conditional_on_key) "batch_conditional_on_key" else "batch" });
+        try b.writeJson(out, 6);
+    }
     try out.print("}},", .{});
 }
 
@@ -712,4 +865,137 @@ test "weight binding modes: per-batch proximity is accounted fresh, consistency 
         // no term is ever a conjectured (rho^t) figure: query agreement >= rho + something
         for (rep.total.terms.items) |t| if (t.kind == .query) try std.testing.expect(t.log2_err >= 40 * std.math.log2(0.25) + 1);
     }
+}
+
+test "SEC-6: compiled is FlashProve's compiled level of the round-by-round maximum" {
+    var acc = Account.init(std.testing.allocator);
+    defer acc.deinit();
+    // a lambda term whose mean-value form (2^-112) is smaller than its
+    // round-by-round form (2^-110): the compiled level must use the latter
+    try acc.addRbr("lambda", .lambda, -112, 0, 1, .{ -110, -110 });
+    try acc.add("q", .query, -130, 20, 1);
+    const s = acc.summary();
+    try std.testing.expectApproxEqAbs(@as(f64, 112), s.round_with, 1e-9);
+    try std.testing.expectApproxEqAbs(@as(f64, 110), s.rbr_round_with, 1e-9);
+    try std.testing.expectApproxEqAbs(compiledLevel(110, 256), s.compiled, 1e-9);
+    try std.testing.expectEqual(s.rbr_compiled, s.compiled);
+}
+
+test "SEC-5: every GKR round is charged degree 3, whatever its sent length" {
+    // a degree-1 (2 coefficients) and an empty round polynomial: the verifier
+    // accepts degree <= 3, so both are charged 3/|F|
+    const Poly = struct {
+        c: []const u8,
+        pub fn coeffsSlice(self: @This()) []const u8 {
+            return self.c;
+        }
+    };
+    const Sp = struct { round_polys: []const Poly };
+    const G = struct { sumcheck_proofs: []const Sp, layer_masks_by_instance: []const []const u8 };
+    const polys = [_]Poly{ .{ .c = &.{ 1, 2 } }, .{ .c = &.{} } };
+    const g = G{ .sumcheck_proofs = &.{ .{ .round_polys = &.{} }, .{ .round_polys = &polys } }, .layer_masks_by_instance = &.{&.{ 0, 0 }} };
+    var acc = Account.init(std.testing.allocator);
+    defer acc.deinit();
+    try accountGkr(&acc, "gkr", g);
+    var charged: f64 = 0;
+    for (acc.terms.items) |t| {
+        if (std.mem.eql(u8, t.name, "gkr rounds")) charged += t.count * std.math.exp2(t.log2_err + LOG2_F);
+    }
+    try std.testing.expectApproxEqAbs(@as(f64, 6), charged, 1e-6);
+}
+
+test "SEC-4: each lineq is charged n/|F| for its random point" {
+    const ops = [_]proto.xt.Op{ .{ .lineq = .{ .n = 7, .expr = .{} } }, .{ .lineq = .{ .n = 5, .expr = .{} } } };
+    const st = proto.Statement{ .witness = &.{}, .weights = &.{}, .tables = &.{}, .ops = &.{}, .ext = .{ .ops = &ops } };
+    const Part = struct { sumchecks: []const struct { rounds: []const u8, deg: u32 } = &.{} };
+    var acc = Account.init(std.testing.allocator);
+    defer acc.deinit();
+    try accountExt(&acc, st, Part{});
+    var nums: [2]f64 = undefined;
+    var k: usize = 0;
+    for (acc.terms.items) |t| if (std.mem.eql(u8, t.name, "ext lineq")) {
+        nums[k] = std.math.exp2(t.log2_err + LOG2_F);
+        k += 1;
+    };
+    try std.testing.expectEqual(@as(usize, 2), k);
+    try std.testing.expectApproxEqAbs(@as(f64, 7), nums[0], 1e-6);
+    try std.testing.expectApproxEqAbs(@as(f64, 5), nums[1], 1e-6);
+}
+
+test "SEC-7: serving accounts the shared reduction and the batch reading" {
+    const a = std.testing.allocator;
+    const model = @import("model.zig");
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    var pc = proto.Config{
+        .two_level = .{ .outer = .{ .log_blowup = 2, .n_queries = 16, .pow_bits = 2 }, .inner = .{ .log_blowup = 3, .n_queries = 12, .pow_bits = 1 }, .depth = 1, .ood = true, .prox_rows = 2 },
+        .weight_outer = .{ .log_blowup = 2, .n_queries = 9, .pow_bits = 2 },
+        .key_outer = .{ .log_blowup = 2, .n_queries = 40, .pow_bits = 2 },
+        .gkr_threads = 2,
+        .batch_matmuls = true,
+    };
+    const cfg = model.Mlp{ .log_t = 3, .log_d = 5, .log_f = 6 };
+    const winfos = model.mlpWeightInfos(cfg);
+    pc.weight_log_cols = try proto.chooseWeightLogCols(pc, a, &winfos, 2);
+    var wdata: [3][]i8 = undefined;
+    for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 100 + i, -8, 7);
+    defer for (wdata) |w| a.free(w);
+    const wv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
+    var ws = try proto.commitWeights(a, &pool, pc, &winfos, &wv);
+    defer ws.deinit(a);
+    const R = 4;
+    var built: [R]model.Built = undefined;
+    var views: [R][]const []const i32 = undefined;
+    var reqs: [R]serve.Request = undefined;
+    for (0..R) |j| {
+        const x = try model.randomInput(a, @as(usize, 1) << (cfg.log_t + cfg.log_d), 9 + j);
+        defer a.free(x);
+        built[j] = try model.buildMlp(a, &pool, &ws, cfg, x);
+        const v = try a.alloc([]const i32, built[j].witness.len);
+        for (built[j].witness, 0..) |w, i| v[i] = w;
+        views[j] = v;
+        reqs[j] = .{ .st = built[j].statement(), .witness = v, .acc = built[j].accs, .salt = serve.testSalt(j) };
+    }
+    defer for (0..R) |j| {
+        built[j].deinit(a);
+        a.free(views[j]);
+    };
+    var bt = try serve.proveRequests(a, &pool, pc, &ws, &reqs, null);
+    defer bt.deinit(a);
+    const key = proto.weightKey(&ws);
+    var kp = try weight_key.prove(a, &pool, pc, &ws);
+    defer kp.deinit(a);
+    var rep = try accountServe(a, pc, reqs[1].st, key, &bt.requests[1], &bt.shared, 1, &kp);
+    defer rep.deinit();
+    try std.testing.expect(!rep.conditional_on_key);
+    try std.testing.expectEqual(@as(usize, R), rep.n_requests);
+    var red: f64 = 0;
+    var gam = false;
+    var lu_req: f64 = 0;
+    var lu_bat: f64 = 0;
+    var w_req: f64 = 0;
+    var w_bat: f64 = 0;
+    for (rep.request.terms.items) |t| {
+        if (std.mem.eql(u8, t.name, "serve reduction sumcheck") and t.count > 1) red = t.count * std.math.exp2(t.log2_err + LOG2_F);
+        if (std.mem.eql(u8, t.name, "serve reduction gamma")) gam = true;
+        if (std.mem.eql(u8, t.name, "logup alpha,beta")) lu_req = t.log2_err;
+        if (std.mem.startsWith(u8, t.name, "weights L0 queries")) w_req = t.log2_err;
+    }
+    for (rep.batch.?.terms.items) |t| {
+        if (std.mem.eql(u8, t.name, "logup alpha,beta")) lu_bat = t.log2_err;
+        if (std.mem.startsWith(u8, t.name, "weights L0 queries")) w_bat = t.log2_err;
+    }
+    // 2 log|W| / |F| for the reduction rounds, one gamma
+    try std.testing.expectApproxEqAbs(@as(f64, @floatFromInt(2 * (key.log_rows + key.log_cols))), red, 1e-6);
+    try std.testing.expect(gam);
+    // each request's own rounds: + log2 R in the batch reading; shared once
+    try std.testing.expectApproxEqAbs(lu_req + 2, lu_bat, 1e-9);
+    try std.testing.expect(w_req < 0);
+    try std.testing.expectEqual(w_req, w_bat);
+    const sr = rep.request.summary();
+    const sb = rep.batch.?.summary();
+    try std.testing.expect(sb.sum_with < sr.sum_with);
+    // the per-request reading of request 1 against slot 0 is refused
+    try std.testing.expect(std.meta.isError(accountServe(a, pc, reqs[1].st, key, &bt.requests[1], &bt.shared, 0, &kp)));
 }

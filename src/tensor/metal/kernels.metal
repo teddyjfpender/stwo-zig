@@ -19,7 +19,12 @@ struct TmExpandParams {
     uint row0;   // first source row of the chunk
 };
 
-inline uint tm_from_i32(int x) { return x >= 0 ? uint(x) : uint(x + 0x7fffffff); }
+// Canonical M31 residue of any int (KERN-5): INT_MIN -> p - 1, INT_MAX = p -> 0.
+inline uint tm_from_i32(int x) {
+    uint u = x >= 0 ? uint(x) : uint(x) + 0x7fffffffu; // x < 0: x + p (mod 2^32)
+    u = (u == 0x7fffffffu) ? 0u : u;                  // x = INT_MAX = p
+    return (u == 0xffffffffu) ? 0x7ffffffeu : u;      // x = INT_MIN: -1 + p
+}
 
 kernel void tm_expand_i32(
     device const int *src [[buffer(0)]],

@@ -5,8 +5,9 @@
 //!
 //!  * Table 1 (committed first, hiding PCS of zk_pcs.zig): the witness tensors,
 //!    the requant remainders (committed here, virtual in v1), LogUp
-//!    multiplicities, a 16-cell pad per hatted tensor, the coefficients of
-//!    every hiding polynomial, the batch pad row and 16 mask rows.
+//!    multiplicities, a dedicated 4-cell (one QM31) pad per hat, the 4-limb
+//!    GKR blinders, the coefficients of every hiding polynomial, the batch pad
+//!    row and 16 mask rows.
 //!  * Table 2 (committed after the LogUp challenges alpha, beta): the inverses
 //!    h_k = 1/(alpha - key_k) of every LogUp key instance (4 M31 limb tensors)
 //!    with their pads. LogUp is proved with committed inverses instead of GKR:
@@ -23,7 +24,8 @@
 //!    table (pad row R_b) plus one claim on the batch hiding polynomial; these
 //!    are opened together (one multi-table opening, shared queries).
 //!  * Weight claims (one hat per matmul, sharing the column point) are opened
-//!    against the weight commitment together with a fresh per-proof mask table.
+//!    against the weight commitment together with a fresh per-proof mask table,
+//!    which also holds each W hat's own pad row (zk.md 4.5, rank argument).
 const std = @import("std");
 const f = @import("field.zig");
 const canonical = @import("canonical.zig");
@@ -46,6 +48,8 @@ const Statement = proto.Statement;
 const Hash = [32]u8;
 const NONE: u32 = std.math.maxInt(u32);
 const PAD_LOG: u32 = 4;
+/// Dedicated hat pad: 4 M31 cells read as one QM31 (sum_k basis(k) P_k).
+const HPAD_LOG: u32 = 2;
 const WPAD_ROWS: usize = 4; // 2 row variables
 const N_MASK_ROWS: u32 = 3; // log2(8) mask rows in table 1 (proximity, group A)
 
@@ -97,7 +101,9 @@ const CheckKind = enum { product, hadamard, matmul, key, matmul_v, hadamard_v, e
 /// A masked sumcheck. `matmul_v` / `hadamard_v` (virtual remainders) run after the
 /// GKR at their remainder leaf point: `key` is the remainder key, `apad` the
 /// 16-cell pad of the accumulator hat, `tree` the GKR tree holding the key.
-const Check = struct { kind: CheckKind, idx: u32, n: u32, deg: u32, u: u32, key: u32 = 0, apad: u32 = 0, tree: u32 = 0 };
+/// `pad0`/`npad`: the check's dedicated hat pads `plan.hpad[pad0..][0..npad]`, one per
+/// hatted (non-weight) part in spec order (zk.md 4.5: one QM31 pad per hat).
+const Check = struct { kind: CheckKind, idx: u32, n: u32, deg: u32, u: u32, key: u32 = 0, apad: u32 = 0, tree: u32 = 0, pad0: u32 = 0, npad: u32 = 0 };
 const Lay = struct { offsets: []usize, log_total: u32, used: usize };
 /// One layer k (1..n) of a hiding GKR tree: its hiding polynomial and the pads of its 4 finals.
 const GLayer = struct { u: u32, pads: [4]u32 };
@@ -131,7 +137,12 @@ const Plan = struct {
     grels: []GRel,
     batch_n: u32,
     infos: [2][]TensorInfo,
-    pad: [2][]u32,
+    /// dedicated hat pads (4 M31 cells = one uniform QM31 each), in the part's table
+    hpad: []u32,
+    /// weight-mask pad row of each matmul op (NONE otherwise); rows 0..n_wpad of the
+    /// per-proof weight mask table, one per W hat
+    wpad_row: []u32 = &.{},
+    n_wpad: u32 = 0,
     rb: [2]u32,
     masks: u32,
     lay: [2]Lay,
@@ -265,7 +276,6 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
         },
         else => {},
     };
-    const n_hat1: u32 = @intCast(inf1.items.len);
     var rels: std.ArrayList(Rel) = .empty;
     var keys: std.ArrayList(Key) = .empty;
     for (st.ops, 0..) |op, i| {
@@ -321,26 +331,12 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
             try keys.append(a, .{ .kind = .ext, .op = @intCast(xi), .log_size = xk.log_size, .rel = try findRelX(&rels, a, &inf1, kind, st.ext), .h = 0 });
         }
     }
-    // pads for hatted table-1 tensors (witness + remainders)
-    const n_pre_pad: u32 = @intCast(inf1.items.len);
-    const pad1 = try a.alloc(u32, n_pre_pad);
-    @memset(pad1, NONE);
-    for (0..n_hat1) |i| {
-        pad1[i] = @intCast(inf1.items.len);
-        try inf1.append(a, TensorInfo.vec(@min(PAD_LOG, inf1.items[i].logSize())));
-    }
     // table 2: inverse limbs + pads (committed-inverse LogUp only)
     const gkr = cfg.zk_logup_gkr;
     if (!gkr) for (keys.items) |*k| {
         k.h = @intCast(inf2.items.len);
         for (0..4) |_| try inf2.append(a, TensorInfo.vec(k.log_size));
     };
-    const n_limbs: u32 = @intCast(inf2.items.len);
-    const pad2 = try a.alloc(u32, n_limbs);
-    for (0..n_limbs) |i| {
-        pad2[i] = @intCast(inf2.items.len);
-        try inf2.append(a, TensorInfo.vec(@min(PAD_LOG, inf2.items[i].logSize())));
-    }
     // checks
     var checks: std.ArrayList(Check) = .empty;
     var rho_len: u32 = 1;
@@ -410,8 +406,10 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
             const lay = try proto.layout(a, sizes.items, &.{});
             const seg_log = try a.alloc(u32, sizes.items.len);
             for (sizes.items, 0..) |x, i| seg_log[i] = x.logSize();
+            // blinder rho = sum_k basis(k) b_k: 4 M31 cells, uniform in QM31* (ZK-2: an
+            // M31 blinder leaves d_0 / D(keys) in M31 and identifies the key multiset)
             const blinder: u32 = @intCast(inf1.items.len);
-            try inf1.append(a, TensorInfo.vec(0));
+            try inf1.append(a, TensorInfo.vec(2));
             const n = @max(lay.log_total, 1);
             const layers = try a.alloc(GLayer, n);
             for (layers, 0..) |*l, k0| {
@@ -471,6 +469,28 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
         },
         else => {},
     };
+    // dedicated hat pads: one 4-cell (QM31) pad per hatted part of every check, in
+    // the part's table (ZK-1: a pad shared by several hats, or smaller than 4 cells,
+    // lets the verifier cancel it and read a witness functional)
+    var hpad: std.ArrayList(u32) = .empty;
+    inline for (.{ &checks, &vchecks, &xchecks }) |list| for (list.items) |*c| {
+        var tb: [8]u8 = undefined;
+        const tabs = try hatPartTables(st, keys.items, c.*, &tb);
+        c.pad0 = @intCast(hpad.items.len);
+        c.npad = @intCast(tabs.len);
+        for (tabs) |t| {
+            const inf = if (t == 0) &inf1 else &inf2;
+            try hpad.append(a, @intCast(inf.items.len));
+            try inf.append(a, TensorInfo.vec(HPAD_LOG));
+        }
+    };
+    const wpad_row = try a.alloc(u32, st.ops.len);
+    @memset(wpad_row, NONE);
+    var n_wpad: u32 = 0;
+    for (st.ops, 0..) |op, i| if (op == .matmul) {
+        wpad_row[i] = n_wpad;
+        n_wpad += 1;
+    };
     const has2 = !gkr and keys.items.len > 0;
     // column split from table 1 without the C-dependent tensors
     const est = try proto.layout(a, inf1.items, &.{});
@@ -479,6 +499,9 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
     const slots = zkp.slotsFor(cfg.pcs.n_queries);
     lc = @max(lc, log2Ceil(slots));
     if (try zk2(cfg)) |p2| lc = recLogCols(cfg, p2, est.used, est.log_total, slots);
+    // rate precondition C + S <= E/2 of the hiding witness tables (ZK-5): refused on
+    // both sides (commitWeights refuses the same for the weight table)
+    if ((@as(usize, 1) << @intCast(lc)) + slots > (@as(usize, 1) << @intCast(lc + cfg.pcs.log_blowup)) / 2) return error.ZkRate;
     {
         const rb1: u32 = @intCast(inf1.items.len);
         try inf1.append(a, TensorInfo.vec(lc));
@@ -506,7 +529,9 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
             .grels = grels.items,
             .batch_n = N,
             .infos = .{ try inf1.toOwnedSlice(a), try inf2.toOwnedSlice(a) },
-            .pad = .{ pad1, pad2 },
+            .hpad = try hpad.toOwnedSlice(a),
+            .wpad_row = wpad_row,
+            .n_wpad = n_wpad,
             .rb = .{ rb1, rb2 },
             .masks = masks,
             .lay = .{ .{ .offsets = l1.offsets, .log_total = l1.log_total, .used = l1.used }, l2 },
@@ -531,12 +556,15 @@ const Form = union(enum) { eq: []const QM31, ones, dense: []const QM31, sparse: 
 const LTerm = struct { table: u8, id: u32, coeff: QM31, form: Form };
 const LClaim = struct { terms: []const LTerm, value: QM31 };
 
-/// Weight-table hat claim: c_data * W_w(local) + c_pad * R_W(s, colpoint).
-const WClaim = struct { w: u32, local: []const QM31, c_data: QM31, s: [2]QM31, c_pad: QM31, value: QM31 };
+/// Weight-table hat claim: c_data * W_w(local) + c_pad * M_prow(colpoint), with M_prow
+/// the hat's own fresh pad row of the per-proof weight mask table (ZK-3).
+const WClaim = struct { w: u32, local: []const QM31, c_data: QM31, prow: u32, c_pad: QM31, value: QM31 };
 
 /// Operand point of an ext einsum factor: rho on folded output vars, the sumcheck point elsewhere.
 const LabMap = struct { labels: xt.Labels, nb: u32, rho: []const QM31, lay: xt.Layout };
-const Part = struct { table: u8, id: u32, coeff: QM31, prefix: []const QM31 = &.{}, suffix: []const QM31 = &.{}, weight: bool = false, lab: ?LabMap = null };
+/// `pad`: the hat's dedicated pad (table-local id; for a weight part the pad row of
+/// the per-proof weight mask table), set by `assignPads` on both sides.
+const Part = struct { table: u8, id: u32, coeff: QM31, prefix: []const QM31 = &.{}, suffix: []const QM31 = &.{}, weight: bool = false, lab: ?LabMap = null, pad: u32 = NONE };
 /// A public ext tensor read at a label point.
 const PubMle = struct { id: u32, lab: LabMap };
 const FSpec = struct {
@@ -561,17 +589,6 @@ fn publicValue(a: std.mem.Allocator, st: Statement, sp: FSpec, r: []const QM31) 
     if (sp.pub_mle) |pm| return xt.publicMle(a, st.ext, pm.id, try pm.lab.lay.operandPoint(a, pm.lab.labels, pm.lab.nb, pm.lab.rho, r));
     if (sp.pub_prefix) return f.eqEval(sp.pub_point, r[0..sp.pub_point.len]);
     return zeroExtScale(r, sp.m).mul(f.eqEval(sp.pub_point, r[r.len - sp.m ..]));
-}
-
-/// Pad point of a hatted part: the last plog coordinates of its local point, or for
-/// label-driven (ext) parts of (local ++ r), so that every hat's pad point carries
-/// fresh sumcheck coordinates.
-fn padPoint(a: std.mem.Allocator, p: Part, loc: []const QM31, r: []const QM31, plog: u32) ![]const QM31 {
-    if (p.lab == null) return loc[loc.len - plog ..];
-    const cat = try a.alloc(QM31, loc.len + r.len);
-    @memcpy(cat[0..loc.len], loc);
-    @memcpy(cat[loc.len..], r);
-    return cat[cat.len - plog ..];
 }
 
 /// Q~(r) of a Q factor: eq(r_head, 0) * P~(qlead, r_tail).
@@ -634,6 +651,7 @@ fn checkClaims(
     const r = point[0..n];
     const g = point[n];
     const one_m_g = QM31.one().sub(g);
+    _ = plan;
     var hi: usize = 0;
     for (specs) |sp| {
         if (sp.public) continue;
@@ -656,7 +674,7 @@ fn checkClaims(
                 .w = p.id,
                 .local = try localPoint(a, p, r, sp.m),
                 .c_data = p.coeff.mul(one_m_g).mul(scale),
-                .s = .{ r[n - 2], r[n - 1] },
+                .prow = p.pad,
                 .c_pad = p.coeff.mul(g),
                 .value = hat.sub(sp.konst),
             });
@@ -666,13 +684,69 @@ fn checkClaims(
         for (sp.parts, 0..) |p, pi| {
             std.debug.assert(!p.weight);
             const loc = try localPoint(a, p, r, sp.m);
-            const pid = plan.pad[p.table][p.id];
-            const plog = plan.ls(p.table, pid);
+            if (p.pad == NONE) return error.StatementShape;
             terms[2 * pi] = .{ .table = p.table, .id = p.id, .coeff = p.coeff.mul(one_m_g).mul(scale), .form = .{ .eq = loc } };
-            terms[2 * pi + 1] = .{ .table = p.table, .id = pid, .coeff = p.coeff.mul(g), .form = .{ .eq = try padPoint(a, p, loc, r, plog) } };
+            terms[2 * pi + 1] = .{ .table = p.table, .id = p.pad, .coeff = p.coeff.mul(g), .form = .{ .sparse = try hpadForm(a) } };
         }
         try claims.append(a, .{ .terms = terms, .value = hat.sub(sp.konst) });
     }
+}
+
+/// Tables of the hatted non-weight parts of a check, in spec order (mirrors
+/// checkSpecs / vcheckSpecs; `assignPads` checks the two agree).
+fn hatPartTables(st: Statement, keys: []const Key, c: Check, buf: *[8]u8) ![]const u8 {
+    var n: usize = 0;
+    switch (c.kind) {
+        .product => n = 3,
+        .hadamard => n = 4,
+        .matmul => n = 3, // x, y, r (the W part is padded in the weight mask table)
+        .matmul_v => n = 1,
+        .hadamard_v => n = 2,
+        .key => {
+            for (0..4) |i| buf[i] = 1;
+            const extra: usize = switch (keys[c.idx].kind) {
+                .remainder, .y_range, .plain_range => 1,
+                .lookup_pair => 2,
+                .glu_triple => 3,
+                .ext => return error.StatementShape,
+            };
+            for (4..4 + extra) |i| buf[i] = 0;
+            return buf[0 .. 4 + extra];
+        },
+        .einsum_v, .einsum_x => {
+            const e = st.ext.ops[c.idx].einsum;
+            n = @as(usize, @intFromBool(!e.a.public)) + @intFromBool(!e.b.public);
+        },
+    }
+    @memset(buf[0..n], 0);
+    return buf[0..n];
+}
+
+/// Sets each hatted part's dedicated pad (both sides, after checkSpecs / vcheckSpecs):
+/// non-weight parts in spec order take `plan.hpad[c.pad0..]`; a weight part takes the
+/// pad row of its matmul in the weight mask table.
+fn assignPads(plan: Plan, c: Check, specs: []const FSpec) !void {
+    var k: u32 = 0;
+    for (specs) |sp| {
+        if (sp.public or sp.qpad != null) continue;
+        for (@constCast(sp.parts)) |*p| {
+            if (p.weight) {
+                p.pad = plan.wpad_row[c.idx];
+                continue;
+            }
+            if (k >= c.npad) return error.StatementShape;
+            p.pad = plan.hpad[c.pad0 + k];
+            k += 1;
+        }
+    }
+    if (k != c.npad) return error.StatementShape;
+}
+
+/// Sparse form of a dedicated hat pad: P = sum_k basis(k) P_k (one uniform QM31).
+fn hpadForm(a: std.mem.Allocator) ![]Sparse {
+    const out = try a.alloc(Sparse, 4);
+    for (out, 0..) |*x, k| x.* = .{ .idx = @intCast(k), .v = zkp.basis(k) };
+    return out;
 }
 
 fn keyFactorD(a: std.mem.Allocator, plan: Plan, st: Statement, k: Key, alpha: QM31, beta: QM31, n: u32) !FSpec {
@@ -1011,7 +1085,8 @@ pub const ZkWeights = struct {
     log_rows: u32,
     log_cols: u32,
     rows_used: usize,
-    /// extra M31 rows: 0..3 pad R_W, 4..7 proximity masks
+    /// extra M31 rows: 0..3 R_W (no longer read by any claim since review B ZK-3:
+    /// W hats are padded in the per-proof mask table), 4..7 proximity masks
     extra: []M31,
     com: zkp.Commitment,
 
@@ -1037,13 +1112,11 @@ pub const ZkWeights = struct {
     }
     /// Columns still openable; re-randomize (rerandomizeWeights) while this is >= one opening.
     pub fn budgetLeft(self: *const ZkWeights) usize {
-        const b = self.com.budget.?;
-        return b.limit - b.count;
+        return self.com.budget.?.left();
     }
     /// Distinct weight columns opened so far / budget.
     pub fn budgetUsed(self: *const ZkWeights) [2]usize {
-        const b = self.com.budget.?;
-        return .{ b.count, b.limit };
+        return self.com.budget.?.used();
     }
 };
 
@@ -1562,6 +1635,8 @@ const ProverCtx = struct {
     vecs: [2][]const []const i32,
     zw: ?*const ZkWeights,
     acc: ?*const accel.Accel = null,
+    /// per-proof weight mask table (rows 0..n_wpad: the W hats' pad rows)
+    wmask: []const i32 = &.{},
 
     fn padValue(self: *const ProverCtx, sp: FSpec, r: []const QM31) QM31 {
         if (sp.qpad) |qp| {
@@ -1581,19 +1656,14 @@ const ProverCtx = struct {
                 defer self.a.free(full);
                 const eqc = f.eqTable(self.a, full[zw.log_rows..], QM31.one()) catch @panic("oom");
                 defer self.a.free(eqc);
-                const eqs = f.eqTable(self.a, &.{ r[r.len - 2], r[r.len - 1] }, QM31.one()) catch @panic("oom");
-                defer self.a.free(eqs);
+                // the hat's own pad row of the per-proof weight mask table
+                const prow = self.wmask[@as(usize, p.pad) * C ..][0..C];
                 var acc = QM31.zero();
-                for (0..WPAD_ROWS) |i| {
-                    var row = QM31.zero();
-                    for (0..C) |j| row = row.add(eqc[j].mulM31(zw.extra[i * C + j]));
-                    acc = acc.add(eqs[i].mul(row));
-                }
+                for (0..C) |j| acc = acc.add(eqc[j].mulM31(f.fromI32(prow[j])));
                 v = v.add(p.coeff.mul(acc));
             } else {
-                const pid = self.plan.pad[p.table][p.id];
-                const plog = self.plan.ls(p.table, pid);
-                const pv = f.mleEvalI32(self.a, self.vecs[p.table][pid], padPoint(self.a, p, loc, r, plog) catch @panic("oom")) catch @panic("oom");
+                const cells = self.vecs[p.table][p.pad];
+                const pv = f.fromLimbs(.{ @intCast(cells[0]), @intCast(cells[1]), @intCast(cells[2]), @intCast(cells[3]) });
                 v = v.add(p.coeff.mul(pv));
             }
         }
@@ -1821,7 +1891,9 @@ pub fn provePublic(
     }
     for (plan.grels) |g| {
         const b: []i32 = @constCast(vecs1[g.blinder]);
-        while (b[0] == 0) b[0] = @intCast(rng.m31().v);
+        while (b[0] == 0 and b[1] == 0 and b[2] == 0 and b[3] == 0) {
+            for (b) |*x| x.* = @intCast(rng.m31().v);
+        }
     }
     // --- table 1 commit
     const C = plan.nCols();
@@ -1902,7 +1974,7 @@ pub fn provePublic(
 
     const rho = try ar.alloc(QM31, plan.rho_len);
     tr.drawN(rho);
-    const pc = ProverCtx{ .a = ar, .plan = plan, .vecs = .{ vecs1, vecs2 }, .zw = zw, .acc = cfg.accel };
+    const pc = ProverCtx{ .a = ar, .plan = plan, .vecs = .{ vecs1, vecs2 }, .zw = zw, .acc = cfg.accel, .wmask = wmask_data };
 
     var claims: std.ArrayList(LClaim) = .empty;
     var wclaims: std.ArrayList(WClaim) = .empty;
@@ -1916,6 +1988,7 @@ pub fn provePublic(
     for (plan.checks) |c| {
         const tc = try std.time.Instant.now();
         const specs = try checkSpecs(ar, plan, st, wkey, c, rho, alpha, beta);
+        try assignPads(plan, c, specs);
         const hp = hpOf(plan, vecs1, c.u, c.n, c.deg, hpbuf[0..zks.Hp.entries(c.n, c.deg)]);
         const len = @as(usize, 1) << @intCast(c.n);
         const claim = checkClaim(st, c);
@@ -2016,6 +2089,7 @@ pub fn provePublic(
     for (plan.vchecks, vrems.items) |c, vr| {
         const tc = try std.time.Instant.now();
         const specs = try vcheckSpecs(ar, st, wkey, c, vr);
+        try assignPads(plan, c, specs);
         const hp = hpOf(plan, vecs1, c.u, c.n, c.deg, hpbuf[0..zks.Hp.entries(c.n, c.deg)]);
         const len = @as(usize, 1) << @intCast(c.n);
         // et = eq((0, t_tail), .) and Q = [head = 0] P_A(t_lead, tail): supported on the first 2^mp entries
@@ -2098,6 +2172,7 @@ pub fn provePublic(
         const vr = VRem{ .local = rho_x, .t_a = t_a, .ahat = yhat };
         try exactHatClaim(ar, e, c, vr, &claims);
         const specs = try vcheckSpecs(ar, st, wkey, c, vr);
+        try assignPads(plan, c, specs);
         const hp = hpOf(plan, vecs1, c.u, c.n, c.deg, hpbuf[0..zks.Hp.entries(c.n, c.deg)]);
         const qv = try qVectors(a, c.n, vr.t_a, vecs1[c.apad]);
         defer a.free(qv.et);
@@ -2186,12 +2261,12 @@ pub fn provePublic(
         const w = zw.?;
         const wmr = wmaskRows(plan, st, w.key(), rec);
         const ng = weightGroupCount(plan, st, w.key());
-        const wg = try weightGroup(ar, w.key(), wclaims.items, ng);
+        const wg = try weightGroup(ar, plan, w.key(), wclaims.items, ng, wmr);
         const wmm = pcs.Matrix(i32){ .data = wmask_data, .log_rows = log2Ceil(wmr), .log_cols = w.log_cols, .rows_used = wmr };
         const wmus = try a.alloc(QM31, wg.len);
         for (wg, 0..) |g, gi| wmus[gi] = zkp.maskValue(i32, wmm, g.mask.row, g.col);
         const wshapes = [_]zkp.Shape{ w.key().shape(wpcs(cfg).log_blowup), wmask_com.?.shape };
-        const wprox: ?zkp.MaskRef = if (rec) .{ .table = 1, .row = 4 * ng } else null;
+        const wprox: ?zkp.MaskRef = if (rec) .{ .table = 1, .row = wmaskGroupBase(plan) + 4 * ng } else null;
         var wco = try zkp.drawCoeffs(a, &tr, &wshapes, wg, wmus, wprox);
         defer wco.deinit(a);
         const r0 = try combineMulti(a, pool, wco, .{
@@ -2411,13 +2486,19 @@ fn weightGroupCount(plan: Plan, st: Statement, key: WeightKey) usize {
     return own + shared.count();
 }
 
-/// Rows of the per-proof weight mask table: 4 per group, plus 4 proximity mask
-/// rows in the recursive mode (its proximity row also tests the mask table).
+/// Rows of the per-proof weight mask table: one fresh pad row per W hat (rows
+/// 0..n_wpad, ZK-3), then 4 group mask rows per group, plus 4 proximity mask rows in
+/// the recursive mode (its proximity row also tests the mask table).
 fn wmaskRows(plan: Plan, st: Statement, key: WeightKey, rec: bool) usize {
-    return 4 * weightGroupCount(plan, st, key) + @as(usize, if (rec) 4 else 0);
+    return plan.n_wpad + 4 * weightGroupCount(plan, st, key) + @as(usize, if (rec) 4 else 0);
 }
 
-fn weightGroup(a: std.mem.Allocator, key: WeightKey, wcl: []const WClaim, max_groups: usize) ![]zkp.Group {
+/// First group-mask row of the weight mask table (after the W hats' pad rows).
+fn wmaskGroupBase(plan: Plan) usize {
+    return plan.n_wpad;
+}
+
+fn weightGroup(a: std.mem.Allocator, plan: Plan, key: WeightKey, wcl: []const WClaim, max_groups: usize, wmr: usize) ![]zkp.Group {
     const lr = key.log_rows;
     const nr = key.rows_used + 2 * WPAD_ROWS;
     var cols: std.ArrayList([]const QM31) = .empty;
@@ -2443,17 +2524,20 @@ fn weightGroup(a: std.mem.Allocator, key: WeightKey, wcl: []const WClaim, max_gr
         const rv = try a.alloc(QM31, nr);
         @memcpy(rv[0..key.rows_used], eqr[0..key.rows_used]);
         @memset(rv[key.rows_used..], QM31.zero());
-        const eqs = try f.eqTable(a, &c.s, c.c_pad);
-        for (0..WPAD_ROWS) |k| rv[key.rows_used + k] = eqs[k];
+        // the pad lives in the mask table (row prow), not in the long-lived R_W rows
+        if (c.prow >= plan.n_wpad) return error.ProofShape;
+        const mv = try a.alloc(QM31, wmr);
+        @memset(mv, QM31.zero());
+        mv[c.prow] = c.c_pad;
         const rows = try a.alloc([]const QM31, 2);
         rows[0] = rv;
-        rows[1] = &.{};
+        rows[1] = mv;
         try members.items[gi.?].append(a, .{ .rows = rows, .value = c.value });
     }
     if (cols.items.len > max_groups) return error.WeightColumnPoint;
     const groups = try a.alloc(zkp.Group, cols.items.len);
     for (groups, cols.items, members.items, 0..) |*g, cp, *mem, gi| {
-        g.* = .{ .col = try f.eqTable(a, cp, QM31.one()), .claims = mem.items, .mask = .{ .table = 1, .row = 4 * gi } };
+        g.* = .{ .col = try f.eqTable(a, cp, QM31.one()), .claims = mem.items, .mask = .{ .table = 1, .row = wmaskGroupBase(plan) + 4 * gi } };
     }
     return groups;
 }
@@ -2492,6 +2576,7 @@ pub fn verifyPublic(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey
     var vrems: std.ArrayList(VRem) = .empty;
     for (plan.checks, proof.checks) |c, cp| {
         const specs = try checkSpecs(ar, plan, st, wkey, c, rho, alpha, beta);
+        try assignPads(plan, c, specs);
         try verifyCheck(ar, &tr, plan, st, c, specs, checkClaim(st, c), cp, &claims, &wclaims, wkey);
     }
     if (plan.grels.len > 0) {
@@ -2512,6 +2597,7 @@ pub fn verifyPublic(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey
     if (vrems.items.len != plan.vchecks.len or proof.vrem_hats.len != plan.vchecks.len or proof.vchecks.len != plan.vchecks.len) return error.ProofShape;
     for (plan.vchecks, vrems.items, proof.vchecks) |c, vr, cp| {
         const specs = try vcheckSpecs(ar, st, wkey, c, vr);
+        try assignPads(plan, c, specs);
         try verifyCheck(ar, &tr, plan, st, c, specs, vr.ahat, cp, &claims, &wclaims, wkey);
     }
     // exact einsums and linear equalities
@@ -2526,6 +2612,7 @@ pub fn verifyPublic(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey
         const vr = VRem{ .local = rho_x, .t_a = t_a, .ahat = yhat };
         try exactHatClaim(ar, e, c, vr, &claims);
         const specs = try vcheckSpecs(ar, st, wkey, c, vr);
+        try assignPads(plan, c, specs);
         try verifyCheck(ar, &tr, plan, st, c, specs, yhat, cp, &claims, &wclaims, wkey);
     }
     try lineqClaims(ar, &tr, st, &claims);
@@ -2571,12 +2658,12 @@ pub fn verifyPublic(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey
         const rec = (try zk2(cfg)) != null;
         const ng = weightGroupCount(plan, st, wk);
         const wmr = wmaskRows(plan, st, wk, rec);
-        const wg = try weightGroup(ar, wk, wclaims.items, ng);
+        const wg = try weightGroup(ar, plan, wk, wclaims.items, ng, wmr);
         const wshape = wk.shape(wpcs(cfg).log_blowup);
         const mshape = zkp.Shape{ .log_cols = wk.log_cols, .log_blowup = wpcs(cfg).log_blowup, .slots = wk.slots, .n_rows = wmr };
         const wshapes = [_]zkp.Shape{ wshape, mshape };
         const wroots = [_]Hash{ wk.root, proof.wmask_root.? };
-        const wprox: ?zkp.MaskRef = if (rec) .{ .table = 1, .row = 4 * ng } else null;
+        const wprox: ?zkp.MaskRef = if (rec) .{ .table = 1, .row = wmaskGroupBase(plan) + 4 * ng } else null;
         try verifyAny(ar, &tr, cfg, wpcs(cfg), &wshapes, &wroots, wg, wprox, wop);
     } else if (wclaims.items.len != 0) return error.ProofShape;
 }
@@ -2758,7 +2845,7 @@ fn gkrLeafClaims(a: std.mem.Allocator, plan: Plan, st: Statement, g: GRel, alpha
                 try nterms.append(a, .{ .table = 0, .id = rel.mult, .coeff = omg.mul(blk).neg(), .form = .{ .eq = local } });
                 den_pub = den_pub.add(blk.mul(alpha.sub(try relKeyMle(a, st, rel, local, beta)).sub(shift)));
             },
-            .blinder => try dterms.append(a, .{ .table = 0, .id = g.blinder, .coeff = omg.mul(blk), .form = .{ .eq = local } }),
+            .blinder => try dterms.append(a, .{ .table = 0, .id = g.blinder, .coeff = omg.mul(blk), .form = .{ .sparse = try hpadForm(a) } }),
         }
     }
     den_pub = den_pub.add(QM31.one().sub(sum_blk));
@@ -2861,7 +2948,10 @@ fn gkrProveRel(
                 lden[n][o + t] = alpha.sub(relKey(st, rel.kind, t, beta)).sub(shift);
             }
         },
-        .blinder => lden[n][o] = QM31.fromBase(f.fromI32(vecs1[g.blinder][0])),
+        .blinder => {
+            const b = vecs1[g.blinder];
+            lden[n][o] = f.fromLimbs(.{ @intCast(b[0]), @intCast(b[1]), @intCast(b[2]), @intCast(b[3]) });
+        },
     };
     var k: usize = n;
     while (k > 0) : (k -= 1) {
@@ -3343,15 +3433,21 @@ test "zk mlp: hiding weights + witness, verify, tamper, opening budget" {
     {
         var cfgi = cfg;
         cfgi.zk_logup_gkr = false;
+        // committed-inverse LogUp has no ext-op support (ZkVirtualNeedsGkr):
+        // prove the core MLP; its I/O is bound by provePublic / verifyPublic,
+        // not by the non-hiding P1 ext lineqs
+        var sti = st;
+        sti.ext = .{};
         var zwi = try commitWeights(a, &pool, cfgi, &winfos, &wvv);
         defer zwi.deinit(a);
-        var pi = try prove(a, &pool, cfgi, st, &zwi, wv, &tm);
+        try std.testing.expectError(error.ZkVirtualNeedsGkr, prove(a, &pool, cfgi, st, &zwi, wv, &tm));
+        var pi = try prove(a, &pool, cfgi, sti, &zwi, wv, &tm);
         defer pi.deinit(a);
-        try verify(a, cfgi, st, zwi.key(), &pi);
+        try verify(a, cfgi, sti, zwi.key(), &pi);
         try std.testing.expect(pi.root2 != null and pi.gkr_layers.len == 0);
-        try std.testing.expect(std.meta.isError(verify(a, cfg, st, zwi.key(), &pi)));
+        try std.testing.expect(std.meta.isError(verify(a, cfg, sti, zwi.key(), &pi)));
         pi.checks[pi.checks.len - 1].rounds[0][0] = pi.checks[pi.checks.len - 1].rounds[0][0].add(QM31.one());
-        try std.testing.expect(std.meta.isError(verify(a, cfgi, st, zwi.key(), &pi)));
+        try std.testing.expect(std.meta.isError(verify(a, cfgi, sti, zwi.key(), &pi)));
     }
 
     // re-randomized weights with a link proof: new commitment serves new proofs
@@ -4250,7 +4346,7 @@ test "zk decoder layer (GQA attention, RoPE, softmax, RMSNorm, SwiGLU): verifies
     }
 }
 
-const ZkCheat = enum { prob_plus_one, rden_plus_one, rt_plus_one, residual, exp_value, masked_exp, score, ss_value, sel_nonbinary };
+const ZkCheat = enum { od_plus_one, den_plus_one, rt_plus_one, residual, exp_value, masked_exp, score, ss_value, sel_nonbinary };
 
 fn zkCheatCase(a: std.mem.Allocator, pool: *f.Pool, cheat: ZkCheat) !void {
     const lc = tfm.LayerCfg{ .log_t = 2, .log_d = 4, .log_f = 5, .log_heads = 2, .log_kv_heads = 1 };
@@ -4268,8 +4364,8 @@ fn zkCheatCase(a: std.mem.Allocator, pool: *f.Pool, cheat: ZkCheat) !void {
         jstar = j;
     };
     switch (cheat) {
-        .prob_plus_one => b.wit.items[at.probs][row * T] += 1,
-        .rden_plus_one => b.wit.items[at.rden][row] += 1,
+        .od_plus_one => b.wit.items[at.od][0] += 1, // od = o (.) den, the exact product in the division inequality (EXT-1; replaces probs)
+        .den_plus_one => b.wit.items[at.den][row] += 1, // den = sum_j e, the row denominator (replaces rden)
         .rt_plus_one => b.wit.items[fx.out.rms1.rt][0] += 1,
         .residual => b.wit.items[fx.out.h][0] += 1,
         .exp_value => b.wit.items[at.e][row * T + jstar] -= 1,
@@ -4292,11 +4388,17 @@ fn zkCheatCase(a: std.mem.Allocator, pool: *f.Pool, cheat: ZkCheat) !void {
     var tm: proto.Timings = .{};
     var proof = prove(a, pool, cfg, st, &fx.zw, wv, &tm) catch |e| {
         // some cheats break a core relation the hiding prover always checks (not a verifier test)
+        if (cheat == .od_plus_one or cheat == .den_plus_one) return e;
         if (e == error.RemainderOutOfRange or e == error.ValueOutOfRange or e == error.LookupMismatch) return error.SkipZkCheat;
         return e;
     };
     defer proof.deinit(a);
-    if (verify(a, cfg, st, fx.zw.key(), &proof)) |_| return error.TamperAccepted else |_| {}
+    if (verify(a, cfg, st, fx.zw.key(), &proof)) |_| return error.TamperAccepted else |e| {
+        // the softmax-PV cheats must run (not skipped by the hiding prover)
+        // and be caught by the masked sumcheck of the relation they break:
+        // od = o (.) den (exact einsum) and den = sum_j e (lineq)
+        if ((cheat == .od_plus_one or cheat == .den_plus_one) and e != error.MaskedSumcheck) return e;
+    }
 }
 
 test "zk decoder layer: verifier rejects invalid attention / softmax / RMSNorm / residual witnesses (cheating prover)" {
@@ -4347,4 +4449,120 @@ test "zk MoE top-1 layer (routing, dispatch, combine): verifies under both PCS m
         }
         try verify(a, cfg, st, fx.zw.key(), &proof);
     }
+}
+
+/// Pad accounting of a plan (zk.md 4.5, rank argument): every hatted part of every
+/// check has its own 4-cell pad, no pad is shared or doubles as another tensor, and
+/// every matmul has its own weight-mask pad row.
+fn expectDedicatedPads(a: std.mem.Allocator, plan: Plan, st: Statement) !void {
+    var seen = [2]std.AutoHashMap(u32, void){ .init(a), .init(a) };
+    defer for (&seen) |*s| s.deinit();
+    var total: usize = 0;
+    for ([_][]const Check{ plan.checks, plan.vchecks, plan.xchecks }) |list| for (list) |c| {
+        var tb: [8]u8 = undefined;
+        const tabs = try hatPartTables(st, plan.keys, c, &tb);
+        try std.testing.expectEqual(tabs.len, @as(usize, c.npad));
+        for (tabs, plan.hpad[c.pad0..][0..c.npad]) |t, id| {
+            try std.testing.expectEqual(HPAD_LOG, plan.ls(t, id));
+            if (t == 0) try std.testing.expect(id >= plan.nw);
+            const gop = try seen[t].getOrPut(id);
+            try std.testing.expect(!gop.found_existing);
+        }
+        total += c.npad;
+    };
+    try std.testing.expectEqual(plan.hpad.len, total);
+    var n_mm: u32 = 0;
+    for (st.ops, 0..) |op, i| if (op == .matmul) {
+        try std.testing.expectEqual(n_mm, plan.wpad_row[i]);
+        n_mm += 1;
+    };
+    try std.testing.expectEqual(n_mm, plan.n_wpad);
+}
+
+test "zk plan: every hat has its own pad (product, MLP committed / virtual remainders, decoder layer)" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    var arena_state = std.heap.ArenaAllocator.init(a);
+    defer arena_state.deinit();
+    const ar = arena_state.allocator();
+    // scalar product: the ZK-1 shape (two hats on one scalar)
+    {
+        const s0 = TensorInfo.vec(0);
+        const infos = [_]TensorInfo{ s0, s0, s0, s0, s0 };
+        const ops = [_]proto.Op{ .{ .product = .{ .a = 0, .b = 1, .c = 2 } }, .{ .product = .{ .a = 0, .b = 3, .c = 4 } } };
+        const st = Statement{ .witness = &infos, .weights = &.{}, .tables = &.{}, .ops = &ops };
+        const plan = try makePlan(ar, st, null, testCfg());
+        try expectDedicatedPads(a, plan, st);
+        try std.testing.expectEqual(@as(usize, 6), plan.hpad.len);
+    }
+    // MLP: committed-inverse LogUp, GKR with committed and virtual remainders
+    const mc = model.Mlp{ .log_t = 3, .log_d = 6, .log_f = 7, .fused = false };
+    const winfos = model.mlpWeightInfos(mc);
+    var wdata: [3][]i8 = undefined;
+    for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 500 + i, -8, 7);
+    defer for (wdata) |w| a.free(w);
+    const wvv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
+    var zw = try commitWeights(a, &pool, testCfg(), &winfos, &wvv);
+    defer zw.deinit(a);
+    const x = try model.randomInput(a, @as(usize, 1) << @intCast(mc.log_t + mc.log_d), 501);
+    defer a.free(x);
+    const pv = zw.plainView();
+    var built = try model.buildMlp(a, &pool, &pv, mc, x);
+    defer built.deinit(a);
+    const st = built.statement();
+    // committed-inverse LogUp has no ext ops: its MLP statement is the core
+    // one without the P1 I/O lineqs (hiding I/O goes through provePublic)
+    var st_core = st;
+    st_core.ext = .{};
+    for ([_][2]bool{ .{ false, false }, .{ true, false }, .{ true, true } }) |mode| {
+        var cfg = testCfg();
+        cfg.zk_logup_gkr = mode[0];
+        cfg.zk_virtual_remainders = mode[1];
+        const stm = if (mode[0]) st else st_core;
+        const plan = try makePlan(ar, stm, zw.key(), cfg);
+        try expectDedicatedPads(a, plan, stm);
+        try std.testing.expectEqual(@as(u32, 3), plan.n_wpad);
+    }
+    // decoder layer: ext einsums (exact and requant), attention, softmax, RMSNorm
+    {
+        const lc = tfm.LayerCfg{ .log_t = 3, .log_d = 5, .log_f = 6, .log_heads = 2, .log_kv_heads = 1 };
+        const cfg = layerCfgZk();
+        var fx: LayerFixture = undefined;
+        try fx.init(a, &pool, cfg, lc, 302);
+        defer fx.deinit(a);
+        const lst = fx.b.statement();
+        const plan = try makePlan(ar, lst, fx.zw.key(), cfg);
+        try std.testing.expect(plan.xchecks.len > 0 and plan.vchecks.len > 0);
+        try expectDedicatedPads(a, plan, lst);
+    }
+}
+
+test "zk rate precondition C + S <= E/2 is an error on both sides (log_blowup 1)" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 1);
+    defer pool.deinit();
+    var cfg = testCfg();
+    cfg.pcs.log_blowup = 1;
+    const v = TensorInfo.vec(3);
+    const infos = [_]TensorInfo{ v, v, v };
+    const ops = [_]proto.Op{.{ .product = .{ .a = 0, .b = 1, .c = 2 } }};
+    const st = Statement{ .witness = &infos, .weights = &.{}, .tables = &.{}, .ops = &ops };
+    const w = [_]i32{ 1, 2, 3, 4, 5, 6, 7, 8 };
+    const wv = [_][]const i32{ &w, &w, &[_]i32{ 1, 4, 9, 16, 25, 36, 49, 64 } };
+    var tm: proto.Timings = .{};
+    try std.testing.expectError(error.ZkRate, prove(a, &pool, cfg, st, null, &wv, &tm));
+    try std.testing.expectError(error.ZkRate, witnessShape(a, cfg, st, null));
+    // the PCS layer: commit refuses, verifyOpening rejects such a shape
+    var rng = zkp.Rng.initSeed([_]u8{7} ** 32);
+    var tw = try pcs.Twiddles.init(a, 5);
+    defer tw.deinit(a);
+    const data = [_]i32{0} ** 64;
+    const m = pcs.Matrix(i32){ .data = &data, .log_rows = 2, .log_cols = 4 };
+    try std.testing.expectError(error.ZkRate, zkp.commit(i32, a, &pool, &tw, &rng, m, &.{}, 16, 1));
+    const bad = zkp.Shape{ .log_cols = 4, .log_blowup = 1, .slots = 16, .n_rows = 4 };
+    try std.testing.expect(!bad.rateOk());
+    try std.testing.expect((zkp.Shape{ .log_cols = 4, .log_blowup = 2, .slots = 16, .n_rows = 4 }).rateOk());
 }

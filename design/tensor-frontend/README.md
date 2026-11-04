@@ -6,6 +6,22 @@ of running them through the RV64 zkVM. It targets the same statement class as
 Anthropic's FlashProve ("the committed integer model, run on this prompt,
 produces these outputs"), and is benchmarked against it.
 
+**Statement binding (review-A P1 / P2).** The non-hiding MLP and decoder
+statements bind the model input and output as public tensors (ext publics
+plus `witness == public` lineqs; the verifier evaluates their MLEs), and
+the model definition is public: `model.MlpConfig` / `transformer.ModelConfig`
+(shapes, every requant shift, RMSNorm gammas via the config seed; tables
+follow from the shapes) is hashed into the statement (`model_digest`). A
+client rebuilds the statement itself from (config, prompt input, claimed
+output) with `model.mlpStatement` / `transformer.statementFor`, without
+weights, and never takes a prover-supplied statement. Shifts are a
+model-definition decision: they are calibrated offline (`calibrateMlp`,
+`transformer.calibrate`) and fixed for every input; an input whose requant
+output leaves int8 under them is outside the model and the prover refuses
+it. Benches (`buildMlp`; `buildStack` in record mode) calibrate on the
+bench input itself, i.e. they prove under the fixed config calibrated on
+that input (same proof cost as any fixed config of the same shape).
+
 Package: `src/tensor/` (standalone `build.zig`; `zig build test`,
 `zig build -Doptimize=ReleaseFast` builds `tensor-bench`).
 

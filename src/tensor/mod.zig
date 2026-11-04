@@ -32,6 +32,10 @@ pub const canonical = @import("canonical.zig");
 test {
     _ = @import("qmul_check_test.zig");
     _ = @import("review_pcs_test.zig");
+    _ = @import("review_fix_test.zig");
+    _ = @import("zk_review_test.zig");
+    _ = @import("review_serve_test.zig");
+    _ = @import("review_lm_test.zig");
     _ = field;
     _ = transcript;
     _ = sumcheck;
@@ -65,4 +69,5 @@ test {
     _ = @import("canonical_proof_test.zig");
     _ = @import("review_kern_test.zig");
     _ = @import("review_proto3_pcs4_test.zig");
+    _ = @import("security_regress_test.zig");
 }
