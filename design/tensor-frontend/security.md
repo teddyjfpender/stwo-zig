@@ -776,7 +776,7 @@ or repetition.
   extension has neither soundness problem, and its cost is measured below.
 
 **Parameters** (`securityConfig`). pcs2 depth 2 in the Johnson regime, with
-OOD samples on every table and 2 proximity rows. The outer level runs at rate
+OOD samples on every table and 1 proximity row (2 before section 10.1). The outer level runs at rate
 1/4 and the committed-row levels (inner and deep) at rate 1/8. Each query
 phase is preceded by 20 PoW bits, which count only in the with-work reading.
 Weight openings run their own proximity test with the outer parameters. The
@@ -787,7 +787,7 @@ The agreement then sits at sqrt(rho)(1 + 1/m), about 0.500 at rate 1/4 and
 
 | level   | outer queries (lb 2) | inner/deep queries (lb 3) | PoW |
 |---------|----------------------|---------------------------|-----|
-| bits128 | 136                  | 90                        | 20  |
+| bits128 | 133 (136 before 10.1) | 88 (90 before 10.1)      | 20  |
 | bits160 | 168                  | 112                       | 20  |
 
 **Binding.**
@@ -807,8 +807,8 @@ The agreement then sits at sqrt(rho)(1 + 1/m), about 0.500 at rate 1/4 and
 **Accounting.** `security.LOG2_F` is the build's log2 |F| (124 or 248). The
 calculator is otherwise unchanged. All three benches print `security_level`
 and `challenge_degree`, and `tensor-bench-om31 ... --security bits128`
-applies the preset; the query arguments are then ignored except the pcs2
-work shift. "All rounds added without work" is FlashProve's 92.42-bit row
+applies the preset; the query and pcs2 arguments are then ignored (since
+10.1 the preset also fixes the work shift). "All rounds added without work" is FlashProve's 92.42-bit row
 reading: -log2 of the sum of every term with no PoW credit. The compiled
 reading (N/2^L, digest 256 bits, c_h = 8.5) is capped near 126.4 bits by the
 hash, for any field. FlashProve's 126.21 sits at the same cap. The levels
@@ -878,3 +878,102 @@ prove time and 11% bytes. On the MLP and the layer the total cost is about
   without-work number only.
 * Peak RSS of the 512-token decoder layer at bits128 is about 9.7 GB
   (measured in the independent check), close to this host's memory limit.
+
+### 10.1 Cheaper bits128 (branch `codex/tensor-sec-fast`)
+
+Two changes. Neither touches the OM31 field arithmetic.
+
+**1. Structured batch prover (`batch_eq.zig`; prover algebra only).** The
+witness batch sumcheck proves sum_x F(x) E(x) with
+E = sum_c gamma_c [x in block_c] eq(z_c, x - off_c). The old prover
+materialised E (one OM31 table the size of the witness, 128 MB on the toy)
+and folded it every round. Every block is an aligned subcube
+(`protocol.layout`), so E = sum_c gamma_c eq(P_c, .) is a sum of full eq
+weights whose leading coordinates are Boolean (the block index). The new
+prover never builds E:
+* *prefix rounds* (bit beta of the block index): e(t) = beta ? t : 1 - t,
+  and the linear q_c(t) = <eq(z_c), F_k(t, ...)> has q_c(beta) = the claim's
+  running value. Only the sibling value q_c(1 - beta) is new. It is free
+  when it is another claim's running value (same point, sibling block) or
+  when the block lies past the active part. Otherwise it is one inner
+  product over the block.
+* *local rounds*: claims with the same (size, point) form a group with one
+  shared split-eq table (Gruen, as in `eqsum.zig`): one pass per group per
+  round, with q(1) taken from the group's value.
+
+Only F is folded (base field to OM31 in round 0, as before). The round values
+are the same field elements, so proofs and transcripts are byte-identical.
+The proof is the default suite: 186/186 pass, every pinned QM31 digest
+included. The prover is chosen only when its cost model is below 0.6 of the
+materialised prover's. The toy (one point, three blocks) qualifies. The MLP
+(12 claims in 9 groups) does not: there the many small per-group passes
+measured slower. `TENSOR_BATCH_EQ=0` forces the old prover. Tests:
+`batch_eq.zig`, 60 random aligned layouts plus the toy shape, against
+`fillRegion` + `proveBaseTimesExt`. Each test compares rounds, point,
+finals and the next transcript draw.
+
+**2. Level parameters.** These follow from the calculator's own terms:
+* *1 proximity row instead of 2.* With k rows the term is
+  k (log2(R * count) - log2|F|). Over QM31 it took k = 2 to push this below
+  the query terms. Over OM31 the term with k = 1 is about 2^-159 on the
+  toy (`witness L0..L2 proximity x1`), against query terms of 2^-131. The extra row
+  only cost bytes and prove time: one more combined row per level, and inner
+  tables 4/3 as large.
+* *133 / 88 queries instead of 136 / 90.* The largest workload has 9 query
+  terms (witness, weights and key, x 3 levels). With 1 bit per outer query
+  and 1.5 bits per inner query, they sum to 2^-129.07 on the MLP. That is the
+  minimum over toy / MLP / layer and stays >= 128 (asserted in
+  `sec128_test.zig`).
+* *pcs2 work shift fixed at 1* (it is not a soundness parameter). Shift 1
+  lets the outer table use 2^14 columns, which halves the outer column
+  openings. Toy at 133/88 with 1 proximity row: shift 2 gives 0.20 s /
+  437 KB, shift 1 gives 0.23 s / 323 KB. Before this branch the preset kept
+  the bench's shift: the doc rows above used shift 2, and the bench default
+  of 3 gives 682 KB.
+
+**Measured, same conditions** (M-series laptop, memguard, one job at a time,
+TENSOR_PROVE_REPS=3 for MLP / layer, best of 3 for the toy). *The host was on
+battery for these runs*, so absolute times may run a little slow. Before and
+after were measured back to back under the same conditions. Bytes and bits
+do not depend on the power state. "before" is the `codex/tensor-frontend`
+ce11aff51 build with the same command lines (section 10 commands: toy
+`product 20 1 122 2 20 2 76 3 20 2 2`, MLP `mlp 10 10 11 12 122 2 20 2 76 3
+20 2 2`, layer `layer 9 11 12 4 12 122 2 20 2 1 0 9 1 2 76 3 20 2 2`, plus
+`--security bits128`).
+
+| bench | config | prove s | verify s | proof bytes | bits (all rounds, with / without work) |
+|-------|--------|---------|----------|-------------|-------------------|
+| toy 2^20, 1 core | johnson QM31 (this branch; digest unchanged) | 0.141 | 0.0015 | 249,192 | 113.47 / 96.76 |
+| toy 2^20, 1 core | bits128 before | 0.280 | 0.0025 | 443,066 | 153.67 / 133.67 |
+| toy 2^20, 1 core | **bits128 after** | **0.234** | 0.0018 | **323,350** | 150.65 / **130.65** |
+| MLP 1024 tok, d=2^10 f=2^11, 12 thr | johnson QM31 (AC, section 10) | 0.190 | 0.033 | 590,378 | 98.74 / 94.40 |
+| MLP 1024 tok, d=2^10 f=2^11, 12 thr | bits128 before | 0.359 | 0.054 | 1,026,844 | 152.08 / 132.08 |
+| MLP 1024 tok, d=2^10 f=2^11, 12 thr | **bits128 after** | 0.363 | 0.052 | **818,940** | 149.06 / **129.07** |
+| layer 512 tok, 12 thr | johnson QM31 (AC, section 10) | 0.789 | 0.048 | 911,810 | 96.43 / 94.59 |
+| layer 512 tok, 12 thr | bits128 before | 1.575 | 0.066 | 1,574,644 | 152.67 / 132.67 |
+| layer 512 tok, 12 thr | **bits128 after** | 1.539 | 0.064 | **1,331,844** | 149.64 / **129.64** |
+
+MLP weight key: 521,456 to 399,244 bytes. Toy stage split, before / after
+(s): witness commit 0.061 / 0.065, op sumchecks 0.043 / 0.038, batch
+**0.096 / 0.035**, witness open 0.070 / 0.085 (shift 1). The structured batch
+also speeds up the QM31 toy: batch 0.034 to 0.013 s, prove 0.162 to
+0.141 s, with an identical digest.
+
+**Not reached / caveats.**
+* The toy is at 1.66x the QM31 johnson prove time (target 1.15x) and 323 KB
+  (FlashProve 308 KB). Shift 0 gives 308.5 KB at about 0.26 s. Inner rate
+  1/16 (66 inner queries) at shift 0 gives 295 KB at 0.25 s. Both trade time
+  for bytes, so neither is the default.
+* The remaining OM31 overheads on the toy are the op sumcheck (0.038 vs
+  0.014 s: rounds >= 1 run on OM31 folds) and the pcs2 combine at level 0
+  (about 31 ms: 8 limbs x 3 rows of i64 multiply-accumulate). A NEON SMLAL
+  rewrite of `pcs.combineRows` measured no faster. The time goes elsewhere
+  (strided row reads), not into the multiplies or the reductions. Not done:
+  small-value rounds 1-2 of `eqsum` (Bagad-Domb-Thaler), a lazily folded F in
+  `batch_eq`, and any GKR change. GKR is 0.15 of the MLP's 0.36 s and 0.69 of
+  the layer's 1.54 s, in the engine's OM31 GKR prover.
+* MLP and layer prove time is about unchanged. Their batch has many claim
+  groups, so it keeps the materialised prover: 0.31 s of the layer's
+  1.54 s is that batch, and it is the next target.
+* The layer peaked at 10.2-10.7 GB RSS (8 GB memguard reservation), as
+  before.

@@ -83,8 +83,8 @@ TOY_CONFIGS = {
     # Johnson regime with OOD samples, 2 proximity rows, deep levels at rate 1/8 (security.md): ~113.5 / 96.8 bits all rounds
     "johnson": (122, 2, 20, [2, 76, 3, 20, 2, 2]),
     # Config.security = .bits128 (security.md section 10): degree-8 challenge field (OM31, the
-    # -Dchallenge=om31 build's tensor-bench-om31) + Johnson/OOD PCS at 136 / 90 queries; the
-    # preset overrides the query arguments (kept for the pcs2 work shift). >= 128 bits all rounds
+    # -Dchallenge=om31 build's tensor-bench-om31) + Johnson/OOD PCS at 133 / 88 queries, 1 prox row,
+    # work shift 1; the preset overrides the pcs2 arguments (security.md 10.1). >= 128 bits all rounds
     # added without PoW credit on toy, MLP and layer.
     "sec128": (122, 2, 20, [2, 76, 3, 20, 2, 2]),
 }
