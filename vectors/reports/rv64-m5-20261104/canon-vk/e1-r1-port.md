@@ -1,7 +1,7 @@
 # canon-vk E1: recsize port merged, r1 default — GPU byte parity (2026-11-04)
 
 Closes the gate the diet stream left open (`diet/recsize-port/README.md` "Not done"): the k-ary / m3-profile port, merged
-into canon-vk (`3bdbcfacd`), is byte-identical to the M3/M4 baseline under the default r1 binary profile on GPU.
+into canon-vk (`97e391d1a`; the receipts' `source_commit` `3bdbcfacd` is the same tree before a message-only amend), is byte-identical to the M3/M4 baseline under the default r1 binary profile on GPU.
 
 | block | proofs compared | identical | fresh receiver | request | recursion | load 1m |
 |---|---:|---|---|---:|---:|---:|
