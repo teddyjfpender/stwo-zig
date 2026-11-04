@@ -33,11 +33,48 @@ FP_PUBLISHED = {
 }
 
 # Same statement as FlashProve's blocks/toy/product.h (a (.) b = c over 2^L), measured on this Mac.
-FP_TOY_SAME_MACHINE = {  # L: (prove_s, verify_s, proof_bytes), deep staging, 1 core, hiding on
+FP_TOY_SAME_MACHINE = {  # L: (prove_s, verify_s, proof_bytes), deep staging, 1 core, hiding on, 0 PoW bits
     16: (0.49, 0.022, 269e3),
     18: (2.05, 0.012, 251e3),
     20: (8.37, 0.014, 341e3),
 }
+# FlashProve toy at 20 PoW bits (matched to our pow 20), L=20, hiding on, 1 core
+FP_TOY_W20 = {20: (8.63, 0.0125, 308e3)}
+# FlashProve's own bound conventions (docs/figures.tsv, docs/limits.md):
+#   all rounds added: 119.38 (with work) / 92.42 (without)
+#   compiled single number (N/2^L): 126.21 / 96.23
+FP_BOUNDS = {"all_rounds_with": 119.38, "all_rounds_without": 92.42, "compiled_with": 126.21, "compiled_without": 96.23}
+
+
+def sec_fields(r):
+    """Extract whole-bound bits from a bench row's security calculator output (any nesting)."""
+    out = {}
+    def walk(o, pre=""):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                walk(v, pre + k + ".")
+        elif isinstance(o, (int, float)):
+            out[pre[:-1]] = o
+    walk(r.get("security") or {})
+    def pick(*names):
+        for n in names:
+            for k, v in out.items():
+                if k.endswith(n) and ("total" in k or "request" in k):
+                    return v
+        for n in names:
+            for k, v in out.items():
+                if k.endswith(n):
+                    return v
+        return None
+    return {"sum_with": pick("sum_with_work"), "sum_without": pick("sum_without_work"),
+            "rbr_compiled": pick("rbr_compiled"), "compiled": pick("compiled")}
+
+
+def bits_cell(r):
+    f = sec_fields(r)
+    if f["sum_with"] is None:
+        return "n/a (old build)"
+    return f"{f['sum_with']:.1f} / {f['sum_without']:.1f}"
 
 TOY_CONFIGS = {
     # name: (queries, log_blowup, pow_bits, extra pcs2 args)
@@ -45,6 +82,7 @@ TOY_CONFIGS = {
     "conj128": (54, 2, 20, [2, 54]),                # up-to-capacity conjecture, rate 1/4: 54 * 2 + 20 = 128 bits; pcs2 depth 2
 }
 os.environ["TENSOR_BATCH_MATMULS"] = "1"
+os.environ.setdefault("TENSOR_PROVE_REPS", "3")
 
 
 def run_one(binary, args, gb, label):
@@ -88,7 +126,7 @@ def cmd_run(ns):
     if "layer" in suites:
         for name, (q, lb, pw, ex) in TOY_CONFIGS.items():
             for lt in (9, 10):
-                emit(f"layer-{name}-t{lt}", run_one(ns.bin, ["layer", lt, 11, 12, 4, 12, q, lb, pw, 2, 1] + ex, 12, "cmp-layer"))
+                emit(f"layer-{name}-t{lt}", run_one(ns.bin, ["layer", lt, 11, 12, 4, 12, q, lb, pw, 2, 1, 0, lt, 1] + ex, 12, "cmp-layer"))
 
 
 def fmt_bytes(b):
@@ -127,10 +165,12 @@ def cmd_report(ns):
                f"| RS encode 2^20 rate 1/2 (codeword symbols/s) | {p['rs_encode'][2]['codeword_symbols_per_s']:.2e} | 1.35e8 (2^16) / 8.7e7 (2^22) |",
                f"| sumcheck deg 2, all rounds, per entry | {p['sumcheck_deg2_2p20_ns_per_entry']:.1f} ns | ~5 ns first round (fold_round 2.2 + halve 2.8) |",
                ""]
-    md += ["## Same statement, same machine: a (.) b = c over 2^L (FlashProve blocks/toy/product.h)", "",
-           "FlashProve: deep staging (their best proof size), hiding on, 1 core. Ours: non-hiding unless noted.", "",
-           "| L | config | ours prove | ours verify | ours proof | FlashProve prove | FlashProve verify | FlashProve proof | prove speedup |",
-           "|---|---|---|---|---|---|---|---|---|"]
+    md += ["## Same relation (a (.) b = c over 2^L), same machine, NON-hiding (ours) vs hiding (FlashProve)", "",
+           "FlashProve: its sequential CPU reference (blocks/toy/product.h, not the CUDA cp_prove), deep staging, hiding on, 0 PoW, 1 core.",
+           "Ours here is NON-hiding; the like-for-like hiding comparison is the next section. 'bits' = our soundness calculator's",
+           "all-rounds-added bound with / without PoW (FlashProve's own all-rounds figure: 119.38 / 92.42).", "",
+           "| L | config | bits (w/ / w/o PoW) | ours prove | ours verify | ours proof | FlashProve prove | FlashProve verify | FlashProve proof | prove ratio |",
+           "|---|---|---|---|---|---|---|---|---|---|"]
     for name in TOY_CONFIGS:
         for L in (16, 18, 20, 22):
             r = by.get(f"toy-{name}-L{L}-1t")
@@ -138,14 +178,15 @@ def cmd_report(ns):
                 continue
             fp = FP_TOY_SAME_MACHINE.get(L)
             fps = (f"{fp[0]:.2f} s", f"{fp[1]*1e3:.0f} ms", fmt_bytes(fp[2]), f"{fp[0]/r['prove_s']:.1f}x") if fp else ("-", "-", "-", "-")
-            md.append(f"| {L} | {name} ({r['queries']}q, rate 1/{2**r['log_blowup']}, {r['pow_bits']} PoW) | {r['prove_s']:.3f} s | {r['verify_s']*1e3:.1f} ms | {fmt_proof(r)} | {fps[0]} | {fps[1]} | {fps[2]} | {fps[3]} |")
+            md.append(f"| {L} | {name} ({r['queries']}q, rate 1/{2**r['log_blowup']}, {r['pow_bits']} PoW) | {bits_cell(r)} | {r['prove_s']:.3f} s | {r['verify_s']*1e3:.1f} ms | {fmt_proof(r)} | {fps[0]} | {fps[1]} | {fps[2]} | {fps[3]} |")
     md.append("")
     zt = [by[k] for k in sorted(by) if k.startswith("zktoy-") and "prove_s" in by[k]]
     if zt:
-        md += ["## Zero-knowledge (hiding) mode, same statement and machine as FlashProve's hiding CPU toy", "",
-               "| L | ours prove | ours verify | ours proof | FlashProve prove | FlashProve verify | FlashProve proof | prove speedup |", "|---|---|---|---|---|---|---|---|"]
+        md += ["## HEADLINE: hiding vs hiding, same relation and machine (FlashProve sequential CPU reference, 20-bit PoW where available)", "",
+               "Both sides zero-knowledge. Our hiding-mode bits are the query term only (unique decoding) until the calculator covers hiding openings.", "",
+               "| L | ours prove | ours verify | ours proof | FlashProve prove | FlashProve verify | FlashProve proof | prove ratio |", "|---|---|---|---|---|---|---|---|"]
         for r in sorted(zt, key=lambda r: r["log_n"]):
-            fp = FP_TOY_SAME_MACHINE.get(r["log_n"])
+            fp = FP_TOY_W20.get(r["log_n"]) or FP_TOY_SAME_MACHINE.get(r["log_n"])
             fps = (f"{fp[0]:.2f} s", f"{fp[1]*1e3:.0f} ms", fmt_bytes(fp[2]), f"{fp[0]/r['prove_s']:.1f}x") if fp else ("-", "-", "-", "-")
             md.append(f"| {r['log_n']} | {r['prove_s']:.3f} s | {r['verify_s']*1e3:.1f} ms | {fmt_proof(r)} | {fps[0]} | {fps[1]} | {fps[2]} | {fps[3]} |")
         md.append("")
@@ -159,12 +200,12 @@ def cmd_report(ns):
     mlp = [by[k] for k in sorted(by, key=lambda k: (k.split("-")[1], by[k].get("tokens", 0))) if k.startswith("mlp-") and "prove_s" in by[k]]
     if mlp:
         md += ["## SwiGLU MLP layer (D=4096, F=8192, 100.7M int8 weights), 12 threads", "",
-               "| config | tokens | prove (+ integer forward) | verify | proof | proved MAC/s | prove us/token | committed bits/token | stage split (commit/GKR/op/batch/open) |",
+               "| config | tokens | prove (+ integer forward) | verify | proof | proved MAC/s (fwd+prove) | prove us/token | committed bits/token | stage split (commit/GKR/op/batch/open) |",
                "|---|---|---|---|---|---|---|---|---|"]
         for r in mlp:
             s = r["stage_s"]
             cfgname = r["tag"].split("-")[1]
-            md.append(f"| {cfgname} | {int(r['tokens'])} | {r['prove_s']:.2f} s (+{r['forward_s']:.2f}) | {r['verify_s']*1e3:.1f} ms | {fmt_proof(r)} | {r['proved_macs_per_s']:.2e} | {r['prove_ns_per_token']/1e3:.0f} | {r['committed_bits_per_token']:.0f} | {s['witness_commit']:.2f}/{s['gkr']:.2f}/{s['op_sumchecks']:.2f}/{s['batch']:.2f}/{s['witness_open']+s['weight_open']:.2f} |")
+            md.append(f"| {cfgname} | {int(r['tokens'])} | {r['prove_s']:.2f} s (+{r['forward_s']:.2f}) | {r['verify_s']*1e3:.1f} ms | {fmt_proof(r)} | {r['macs']/(r['prove_s']+r['forward_s']):.2e} | {r['prove_ns_per_token']/1e3:.0f} | {r['committed_bits_per_token']:.0f} | {s['witness_commit']:.2f}/{s['gkr']:.2f}/{s['op_sumchecks']:.2f}/{s['batch']:.2f}/{s['witness_open']+s['weight_open']:.2f} |")
         md.append("")
     lay = [by[k] for k in sorted(by) if k.startswith("layer-") and "prove_s" in by[k]]
     if lay:
