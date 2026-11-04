@@ -242,7 +242,7 @@
    "env": {
     "STWO_ZIG_RV64_SETUP_CACHE": "(empty: residency only)"
    },
-   "what": "warm_order pre-warm of 24628607 (inputs-candidate, setup only, 37.1 s at startup) then timed 24628607; a CPU test build ran concurrently",
+   "what": "driver 0ccf7519: warm_order pre-warm via inputs-candidate (37.1 s at startup) then timed 24628607; a CPU test build ran concurrently",
    "blocks": {
     "trial-0/24628607": {
      "native_equal": true,
@@ -285,6 +285,58 @@
    "markers": [
     "GPU_RESIDENT_WARM block=24628607 setup_only_ns=37085088819 persist_ns=650 resident_hits=17 disk_hits=0 misses=17 stores=0",
     "GPU_RESIDENT_BLOCK block=24628607 trial=0 iteration=0 request_wall_ns=67946963095 cached_host_keys=0 host_key_cache_hits=0 host_key_cache_misses=0 host_key_cache_evictions=0 gpu_contexts=2 setup_cache=true setup_resident_hits=34 setup_disk_hits=0 setup_misses=17 setup_persist_ns=200",
+    "EXIT=0"
+   ]
+  },
+  "r5-warmlean": {
+   "manifest": "m/warm-same.json",
+   "env": {
+    "STWO_ZIG_RV64_SETUP_CACHE": "(empty: residency only)"
+   },
+   "driver": "/workspace/m3/build/host/driver-warm sha256 00ca4fbc... (source 4be54de25)",
+   "what": "warm_order pre-warm via warm-setup-candidate (10.6 s at startup) then timed 24628607",
+   "blocks": {
+    "trial-0/24628607": {
+     "native_equal": true,
+     "bundle_equal": true,
+     "recursive_equal": true,
+     "stages_s": {
+      "capture": 3.334203308,
+      "setup": 0.939004485,
+      "native_prove": 5.769923126,
+      "native_verify_cpu": 1.594844803,
+      "native_verify_join_wait": 6.91e-05,
+      "native_publish": 0.203299842,
+      "recursion": 55.325979062,
+      "combined": 65.604498491
+     },
+     "overlapped_verify": true,
+     "setup_cache": {
+      "resident_hits": 17,
+      "disk_hits": 0,
+      "misses": 17,
+      "stores": 0,
+      "identity_only_sources": 7,
+      "load_ns": 0,
+      "load_bytes": 0,
+      "load_digest_ns": 0,
+      "store_ns": 0,
+      "store_bytes": 0,
+      "build_ns": 7452736965,
+      "max_build_ns": 917519611,
+      "max_build_kind": "keccak"
+     },
+     "setup_breakdown": {
+      "image_ns": 519671615,
+      "program_ns": 74255401,
+      "native_keys_ns": 579329,
+      "fixed_authority_ns": 782851103
+     }
+    }
+   },
+   "markers": [
+    "GPU_RESIDENT_WARM block=24628607 setup_only_ns=10562156395 persist_ns=640 resident_hits=0 disk_hits=0 misses=17 stores=0",
+    "GPU_RESIDENT_BLOCK block=24628607 trial=0 iteration=0 request_wall_ns=65657932005 cached_host_keys=0 host_key_cache_hits=0 host_key_cache_misses=0 host_key_cache_evictions=0 gpu_contexts=2 setup_cache=true setup_resident_hits=17 setup_disk_hits=0 setup_misses=17 setup_persist_ns=290",
     "EXIT=0"
    ]
   }

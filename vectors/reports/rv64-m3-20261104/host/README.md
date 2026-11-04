@@ -59,6 +59,7 @@ unset): **26235156 accepted, 24628607 accepted** (run r2).
 | 24628607 | r3 trial 0: new process seeded from disk | 62.91 | 3.27 | 0.69 | 5.71 | 0 (1.63) | 53.05 |
 | 24628607 | r3 trial 1: warm, same process | 64.37 | 3.34 | 0.16 | 5.73 | 0 (1.59) | 54.79 |
 | 24628607 | r4: `warm_order` startup pre-warm (residency only), then timed; CPU build ran concurrently | 67.95 | 3.86 | 1.09 | 6.12 | 0 (1.60) | 56.66 |
+| 24628607 | r5: lean `warm-setup-candidate` pre-warm (residency only), then timed (driver 4be54de25) | 65.66 | 3.33 | 0.94 | 5.77 | 0 (1.59) | 55.33 |
 
 Non-recursion time of 24628607 (capture + setup + native prove + publish): 35.3 s -> 9.4 s (disk-seeded
 cold) / 9.5 s (warm). Native verify join wait is ~70 us: it is fully hidden behind recursion.
@@ -86,10 +87,14 @@ image/ROM authority 0.55 s), publish 0.2 s.
   their ledger slices in parallel and only a cheap boundary stitch stays serial; cache the ELF-only ROM
   authority (`ProgramAuthority.initWithRom`) in the session. Together ~1.5-2 s [E].
 - Disk-seeded load is 2.3 s summed (1.34 GB) but overlapped: 0.69 s on the wall. Warm 0.16 s.
-- r4: the `warm_order` pre-warm (setup-only `inputs-candidate`) costs 37 s at startup (its per-worker
-  source-build diagnostic is serial) and still leaves 0.86 s of FIXED work on the first timed request,
-  whereas a real first request (r3 trial 1) leaves 0.017 s. A leaner warm-up (keys + FixedSet only, no
-  source build) is the follow-up; disk seeding (r3 trial 0, 0.69 s) is already the better cold path.
+- Startup pre-warm: `inputs-candidate` (r4) cost 37 s; the lean `warm-setup-candidate` (r5) costs 10.6 s.
+  Both still leave ~0.8 s of FIXED work on the first timed request, whereas a request after a real
+  produce (r3 trial 1) leaves 0.017 s. Not yet explained (open). Disk seeding (r3 trial 0, setup 0.69 s)
+  is the better cold path today.
+- Pre-existing failure, not from this branch: `test-riscv64-om31-native-pcs` panics (integer overflow in
+  `captured.deinit`, `om31_native/test.zig:124`) identically on pristine `fbb6c6c76`; 23/23 other tests
+  pass on both. `test-rv64-recursion-ready` passes; allocator unit tests (8 + 19 incl. external-memory
+  root, Debug and ReleaseSafe) pass.
 - `warm_order` lets a service pre-warm setup at startup; per-block geometry classes are data-dependent
   (ALU/binary rungs), so pre-warming from representative blocks plus the persisted disk cache is the
   practical way to cover distinct blocks.
