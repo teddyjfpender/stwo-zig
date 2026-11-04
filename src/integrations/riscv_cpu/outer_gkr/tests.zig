@@ -184,7 +184,8 @@ test "outer GKR tamper corpus: every single-word change of the encoded section i
     } else |_| {}
 }
 
-fn circuitRun(f: *const Fixture, comptime mutation: enum { none, coefficient, mask, salt, terminal, closure }) !bool {
+const Mutation = enum { none, coefficient, mask, salt, terminal, closure, root, swap, tag };
+fn circuitRun(f: *const Fixture, comptime mutation: Mutation) !bool {
     var context = try CG.Context.init(a, 0);
     defer context.deinit();
     lane.begin(&context);
@@ -200,10 +201,18 @@ fn circuitRun(f: *const Fixture, comptime mutation: enum { none, coefficient, ma
         .coefficient => bump(&context, wired.proof.sumcheck_proofs[5].round_polys[2].coefficients[1]),
         .mask => bump(&context, wired.proof.layer_masks_by_instance[1][3].columns[0][1]),
         .salt => bump(&context, wired.salt),
+        .root => bump(&context, wired.proof.output_claims_by_instance[4][0]),
+        .swap => {
+            std.mem.swap([]CG.F, &wired.proof.output_claims_by_instance[0], &wired.proof.output_claims_by_instance[2]);
+            std.mem.swap([]@TypeOf(wired.proof.layer_masks_by_instance[0][0]), &wired.proof.layer_masks_by_instance[0], &wired.proof.layer_masks_by_instance[2]);
+        },
         else => {},
     }
     var channel = try CG.Channel.initBench(&context);
-    var result = try CG.verify(&context, &channel, f.section.class, &wired);
+    // M06: the verifying circuit's class constant carries a relabelled tag (class id word of the mixed header).
+    var relabelled = f.section.class.*;
+    relabelled.id +%= 1;
+    var result = try CG.verify(&context, &channel, if (mutation == .tag) &relabelled else f.section.class, &wired);
     defer result.deinit(a);
     var native_channel = S.benchChannel();
     var native = try S.verify(a, &native_channel, &f.section);
@@ -253,4 +262,69 @@ test "outer GKR circuit strict draw: raw words >= 2p make the graph unsatisfiabl
         try context.finalize(false);
         try std.testing.expectEqual(case.ok, try context.isCircuitValid());
     }
+}
+
+
+// ---- negative corpus v3 hooks (scripts/rv64_m5_negative_corpus.py; owner outer-gkr). W = one witness value of the
+// in-circuit verifier mutated, the graph must be unsatisfiable; U = statement check refuses.
+test "corpus M01 outer GKR sumcheck round coefficient tamper makes the verifier circuit unsatisfiable" {
+    var f = try Fixture.init(&P.TEST_SMALL, 21);
+    defer f.deinit();
+    try std.testing.expect(try circuitRun(&f, .none));
+    try std.testing.expect(!try circuitRun(&f, .coefficient));
+}
+test "corpus M02 outer GKR final claim inconsistent with the authenticated input evaluation is unsatisfiable" {
+    var f = try Fixture.init(&P.TEST_SMALL, 22);
+    defer f.deinit();
+    try std.testing.expect(!try circuitRun(&f, .terminal));
+}
+test "corpus M05 outer GKR instances permuted in the proof against the class roster are unsatisfiable" {
+    var f = try Fixture.init(&P.TEST_SMALL, 23);
+    defer f.deinit();
+    try std.testing.expect(!try circuitRun(&f, .swap));
+    // The roster itself is a class constant: a permuted roster is not a class.
+    var bad = P.TEST_SMALL;
+    var swapped: [8]P.Instance = undefined;
+    @memcpy(&swapped, P.TEST_SMALL.instances);
+    std.mem.swap(P.Instance, &swapped[0], &swapped[2]);
+    bad.instances = &swapped;
+    try std.testing.expectError(error.InvalidOuterGkrClass, bad.validate());
+}
+test "corpus M06 outer GKR relabelled tag in the mixed header is unsatisfiable" {
+    var f = try Fixture.init(&P.TEST_SMALL, 24);
+    defer f.deinit();
+    try std.testing.expect(!try circuitRun(&f, .tag));
+}
+test "corpus M07 outer GKR root claim chosen after the challenges (late mix) is unsatisfiable" {
+    var f = try Fixture.init(&P.TEST_SMALL, 25);
+    defer f.deinit();
+    try std.testing.expect(!try circuitRun(&f, .root));
+}
+test "corpus M08 outer GKR one round polynomial dropped is refused by the class shape" {
+    var f = try Fixture.init(&P.TEST_SMALL, 26);
+    defer f.deinit();
+    var section = try S.decode(a, f.words);
+    defer section.deinit(a);
+    // Shallow copy with layer 6 one round short (no ownership transferred; the original is freed intact).
+    const sc = try a.dupe(@TypeOf(section.proof.sumcheck_proofs[0]), section.proof.sumcheck_proofs);
+    defer a.free(sc);
+    sc[6].round_polys = sc[6].round_polys[0 .. sc[6].round_polys.len - 1];
+    var shallow = section.proof;
+    shallow.sumcheck_proofs = sc;
+    const cut = S.Section{ .class = section.class, .salt = section.salt, .proof = shallow };
+    try std.testing.expectError(error.OuterGkrShapeMismatch, S.checkShape(&P.TEST_SMALL, &cut.proof));
+    var channel = S.benchChannel();
+    try std.testing.expectError(error.OuterGkrShapeMismatch, S.verify(a, &channel, &cut));
+    var context = try CG.Context.init(a, 0);
+    defer context.deinit();
+    lane.begin(&context);
+    defer lane.finish() catch {};
+    try std.testing.expectError(error.OuterGkrShapeMismatch, CG.wireSection(&context, &cut));
+}
+test "corpus M10 outer GKR relation mass of the real classes stays below p and a wrapping mass is refused" {
+    for ([_]*const P.Class{ &P.LEAF_CPU_24628607, &P.FOLD_24628607 }) |c| {
+        try candidate.requireOuterGkrCharacteristic(c.facts(40), c.conservativeMass());
+        try std.testing.expect(c.conservativeMass() < (1 << 28));
+    }
+    try std.testing.expectError(error.Om31CandidateCharacteristicWrap, candidate.requireOuterGkrCharacteristic(P.LEAF_CPU_24628607.facts(40), core.fields.m31.Modulus));
 }

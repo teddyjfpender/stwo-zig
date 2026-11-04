@@ -1,0 +1,28 @@
+{"cases": 26, "passed": 26}
+H01   PASS rc=0 accepted :: honest test-small section (closure + terminal)
+G01   PASS rc=2 MalformedOuterGkrSection :: header magic
+G02   PASS rc=2 MalformedOuterGkrSection :: header version
+G03   PASS rc=2 MalformedOuterGkrSection :: class id of another class (leaf)
+G04   PASS rc=2 MalformedOuterGkrSection :: instance count
+G05   PASS rc=2 MalformedOuterGkrSection :: layer count
+G06   PASS rc=2 InvalidSumcheck :: salt (transcript nonce) changed
+G07   PASS rc=2 InvalidSumcheck :: root numerator, instance 0
+G08   PASS rc=2 InvalidSumcheck :: root denominator, instance 3
+G09   PASS rc=2 InvalidSumcheck :: root denominator set to zero (pole), instance 0
+M01a  PASS rc=2 InvalidSumcheck :: round coefficient: layer 1 round 0 c0
+M01b  PASS rc=2 InvalidSumcheck :: round coefficient: last layer, last round, c2
+M01c  PASS rc=2 InvalidSumcheck :: round coefficient: middle layer, coordinate 7
+G10   PASS rc=2 OuterGkrShapeMismatch :: round leading coefficient zeroed (degree-3 shape)
+G11   PASS rc=2 CircuitCheckFailure :: mask value, first layer
+G12   PASS rc=2 CircuitCheckFailure :: mask value, last layer, last active instance
+G13   PASS rc=2 InvalidSumcheck :: instance order: roots of instances 0 and 2 swapped
+G14   PASS rc=2 NonCanonicalOuterGkrWord :: non-canonical coefficient word (= p)
+G15   PASS rc=2 MalformedOuterGkrSection :: truncated section
+G16   PASS rc=2 MalformedOuterGkrSection :: appended word
+M02   PASS rc=2 OuterGkrTerminalMismatch :: terminal claims vs different authenticated inputs
+G17   PASS rc=2 OuterGkrClosureMismatch :: unbalanced LogUp sum with no external term (closure)
+H02   PASS rc=0 accepted :: honest GPU-proved leaf-cpu-24628607 section (transcript, strict draws, shape)
+M01L  PASS rc=2 InvalidSumcheck :: GPU leaf: round coefficient layer 20 round 7
+G11L  PASS rc=2 CircuitCheckFailure :: GPU leaf: mask value layer 26
+G07L  PASS rc=2 CircuitCheckFailure :: GPU leaf: root of blake lane group 0
+EXIT=0
