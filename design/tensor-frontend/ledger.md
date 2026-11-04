@@ -265,7 +265,7 @@ the same magnitude the lineq check used) that is the same integer set. For
 the slacks |e| <= 2 |acc| + |den| + 2 |od| < 2^(lt+19) <= 2^30 at lt <= 11
 (acc, od < 2^(lt+16)), and 2^30 + 2^20 < p; bounds.zig re-derives this per
 statement from the proved bounds and rejects the statement otherwise. LogUp counts: range(lt + 9) gets 2 T D keys per layer
-(Maverick: 48 · 2 · 2^10 · 5120 ≈ 5.0e8 < p, `checkLogUpCounts`), and the
+(Maverick: 48 · 2 · 2^10 · 5120 ≈ 5.0e8 at model dims, 48 · 2 · 2^23 ≈ 8.1e8 at the power-of-two D 8192 stwo-zig builds; both < p, `checkLogUpCounts`), and the
 range(16) relation loses 4 T D limb keys per layer (−1.0e9 at Maverick),
 which helps the per-relation LogUp bound that a full-scale run needs.
 Security accounting is derived from the statement (`security.zig`): one
@@ -282,6 +282,17 @@ values. Attention at T = 256 with one 2048-wide head: no limb or slack
 tensors, exactly two range(17) keys, validateStatement passes, it proves, and
 EXT-1's attack (inflate o on the last row with od = o · den recomputed) is
 rejected for o in {1, 64, 127, -1}.
+
+`wide_slack_adv_test.zig` (independent check) requires every cheat to be
+*produced* by the unchecked prover and then rejected by the verifier, so no
+rejection comes from a prover-side check: `3a - b` in {-1, -65535, 2^17,
+2^17 + 1, 3 (2^16 - 1)} rejected and the edges 0, 2^17 - 1 accepted; a proof
+for the statement with the key retargeted to range(18) verifies against that
+statement but is rejected against the honest one; attention at T 256 with a
+2048-wide head rejects o ± 1 (od recomputed) on rows 0, 1, 37, 255; and a
+virtual key whose expression can reach p (c a - b with c = 2^15) is refused
+by validateStatement (StatementAccumulatorBound). Mutants that drop the key
+or key into range(bits + 1) fail these tests.
 
 ### Measured (battery power; times indicative only)
 

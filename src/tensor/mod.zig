@@ -60,6 +60,7 @@ test {
     _ = @import("review_pcs_test.zig");
     _ = @import("review_fix_test.zig");
     _ = @import("wide_slack_test.zig");
+    _ = @import("wide_slack_adv_test.zig");
     _ = @import("zk_review_test.zig");
     _ = @import("review_serve_test.zig");
     _ = @import("review_lm_test.zig");
