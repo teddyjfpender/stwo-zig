@@ -46,6 +46,8 @@ test {
         _ = eqsum;
         _ = prep;
         _ = canonical;
+        // wide core-matmul range keys (prep range_off has an OM31 branch)
+        _ = @import("wide_test.zig");
         return;
     }
     _ = @import("qmul_check_test.zig");
@@ -89,4 +91,5 @@ test {
     _ = @import("review_kern_test.zig");
     _ = @import("review_proto3_pcs4_test.zig");
     _ = @import("security_regress_test.zig");
+    _ = @import("wide_test.zig");
 }

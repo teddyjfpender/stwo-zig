@@ -24,7 +24,10 @@ ACC = os.path.join(HERE, "tensor_accuracy.py")
 ZIG = os.path.join(ROOT, "src", "tensor", "zig-out", "bin", "tensor-accuracy")
 MG = os.path.expanduser("~/Coding/ge-ops/bin/memguard")
 
-EVAL_CONFIGS = ["lmcal-h1", "matched-s8-h0", "matched-s13-h0", "matched-s13-h1", "emu-s13-r16-h0", "emu-a12-s13-r16-h0", "emu-a16-s13-r16-h0"]
+EVAL_CONFIGS = ["lmcal-h1", "matched-s8-h0", "matched-s13-h0", "matched-s13-h1", "emu-s13-r16-h0", "emu-a12-s13-r16-h0", "emu-a16-s13-r16-h0",
+                "matched-a8-s13-r16-h0", "matched-a10-s13-r16-h0", "matched-a12-s13-r16-h0", "matched-a12-s13-r16-h1"]
+# proved wide-width configs (lm.ModelCfg.act_bits / resid_bits): replay + bit identity + prove
+WIDE_ZIG = ["matched-a8-s13-r16-h0", "matched-a10-s13-r16-h0", "matched-a12-s13-r16-h0", "matched-a12-s13-r16-h1"]
 
 
 def run(cmd, gb=3, label="acc"):
@@ -58,7 +61,7 @@ def main():
            "--corpus", os.path.join(cache, "corpus", "tinystories-valid-head.txt"), "--out", d)
     summary = {"zig": {}, "eval": {}}
     # --- Zig: lm.calibrate plan for the naive path; replay + bit-identity checks
-    for cfg, zcal in [("lmcal-h1", True), ("lmcal-s13-h1", True), ("matched-s13-h0", False)]:
+    for cfg, zcal in [("lmcal-h1", True), ("lmcal-s13-h1", True), ("matched-s13-h0", False)] + [(c, False) for c in WIDE_ZIG]:
         py("export", "--dir", d, "--config", cfg, *(["--no-plan"] if zcal else []))
         model = os.path.join(d, f"{cfg}.model.bin")
         zout = os.path.join(d, f"zig-{cfg}.out.bin")

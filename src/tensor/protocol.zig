@@ -72,7 +72,9 @@ pub const Table = struct {
 };
 
 pub const Op = union(enum) {
-    matmul: struct { x: u32, w: u32, y: u32, shift: u5 },
+    /// out_bits: Y + 2^(out_bits-1) in [0, 2^out_bits) (8 = int8, the
+    /// original op; 9..16 wide activations, accuracy.md "Wide activations")
+    matmul: struct { x: u32, w: u32, y: u32, shift: u5, out_bits: u5 = 8 },
     hadamard: struct { a: u32, b: u32, y: u32, shift: u5 },
     lookup: struct { in: u32, out: u32, table: u32 },
     range8: struct { in: u32 },
@@ -515,7 +517,7 @@ fn deriveRelations(a: std.mem.Allocator, st: Statement) !Relations {
             .matmul => |m| {
                 const ls = st.witness[m.y].logSize();
                 try keys.append(a, .{ .kind = .remainder, .op = i, .log_size = ls, .table = try tableIndex(&tabs, a, .{ .range = m.shift }, nw) });
-                if (!rangeImplied(st, m.y)) try keys.append(a, .{ .kind = .y_range, .op = i, .log_size = ls, .table = try tableIndex(&tabs, a, .{ .range = 8 }, nw) });
+                if (!rangeImplied(st, m.y)) try keys.append(a, .{ .kind = .y_range, .op = i, .log_size = ls, .table = try tableIndex(&tabs, a, .{ .range = m.out_bits }, nw) });
             },
             .hadamard => |h| {
                 const ls = st.witness[h.y].logSize();
@@ -551,6 +553,14 @@ fn extendedInfos(a: std.mem.Allocator, st: Statement, rel: Relations) ![]TensorI
     @memcpy(out[0..st.witness.len], st.witness);
     for (rel.tables, 0..) |t, i| out[st.witness.len + i] = TensorInfo.vec(t.log_size);
     return out;
+}
+
+/// Offset of an op's y_range key: Y + yOffset in [0, 2^out_bits).
+pub fn yOffset(op: Op) i64 {
+    return switch (op) {
+        .matmul => |m| @as(i64, 1) << (m.out_bits - 1),
+        else => 128,
+    };
 }
 
 fn shiftHalf(s: u5) i64 {
@@ -798,7 +808,8 @@ fn mixStatement(tr: *Transcript, st: Statement, key: WeightKey) void {
         tr.mixU32s(&w);
     }
     for (st.ops) |op| switch (op) {
-        .matmul => |m| tr.mixU32s(&.{ 1, m.x, m.w, m.y, m.shift }),
+        // a wide output mixes out_bits (tag 7); int8 ops keep their encoding
+        .matmul => |m| if (m.out_bits == 8) tr.mixU32s(&.{ 1, m.x, m.w, m.y, m.shift }) else tr.mixU32s(&.{ 7, m.x, m.w, m.y, m.shift, m.out_bits }),
         .hadamard => |h| tr.mixU32s(&.{ 2, h.a, h.b, h.y, h.shift }),
         .lookup => |l| tr.mixU32s(&.{ 3, l.in, l.out, l.table }),
         .range8 => |r| tr.mixU32s(&.{ 4, r.in }),
@@ -837,13 +848,17 @@ fn keySrc(st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst
             };
             break :blk .{ .remainder = .{ .acc = acc[k.op].?, .y = w[y_id], .sh = sh } };
         },
-        .y_range => .{ .range8 = .{ .v = w[
-            switch (st.ops[k.op]) {
-                .matmul => |m| m.y,
-                .hadamard => |h| h.y,
-                else => unreachable,
-            }
-        ] } },
+        .y_range => blk: {
+            const y = w[
+                switch (st.ops[k.op]) {
+                    .matmul => |m| m.y,
+                    .hadamard => |h| h.y,
+                    else => unreachable,
+                }
+            ];
+            const off = yOffset(st.ops[k.op]);
+            break :blk if (off == 128) .{ .range8 = .{ .v = y } } else .{ .range_off = .{ .v = y, .off = off } };
+        },
         .plain_range => .{ .range8 = .{ .v = w[st.ops[k.op].range8.in] } },
         .lookup_pair => blk: {
             const l = st.ops[k.op].lookup;
@@ -884,7 +899,7 @@ fn keyValuesInto(out: []QM31, pool: *f.Pool, st: Statement, w: []const []const i
                             .hadamard => |h| h.y,
                             else => unreachable,
                         };
-                        break :blk f.qFromI64(@as(i64, c.w[y_id][i]) + 128);
+                        break :blk f.qFromI64(@as(i64, c.w[y_id][i]) + yOffset(c.st.ops[c.k.op]));
                     },
                     .plain_range => f.qFromI64(@as(i64, c.w[c.st.ops[c.k.op].range8.in][i]) + 128),
                     .lookup_pair => blk: {
@@ -1097,9 +1112,10 @@ fn multiplicities(a: std.mem.Allocator, pool: *f.Pool, st: Statement, rel: Relat
                     .range8 => |r| r.in,
                     else => unreachable,
                 };
+                const off: i64 = if (k.kind == .y_range) yOffset(st.ops[k.op]) else 128;
                 for (0..n) |i| {
-                    const v = @as(i64, w[y_id][i]) + 128;
-                    if (v < 0 or v >= 256) return error.ValueOutOfRange;
+                    const v = @as(i64, w[y_id][i]) + off;
+                    if (v < 0 or v >= 2 * off) return error.ValueOutOfRange;
                     mult[@intCast(v)] += 1;
                 }
             },
@@ -1554,7 +1570,7 @@ pub fn proveCore(
                 if (k.kind == .remainder) {
                     const has_range = i + 1 < rel.keys.len and rel.keys[i + 1].kind == .y_range and rel.keys[i + 1].op == k.op;
                     if (has_range) {
-                        y_vals[i] = alpha.sub(art.claims_to_verify_by_instance[i + 1][1]).sub(f.qFromI64(128));
+                        y_vals[i] = alpha.sub(art.claims_to_verify_by_instance[i + 1][1]).sub(f.qFromI64(yOffset(st.ops[k.op])));
                     } else {
                         const y_id: u32 = switch (st.ops[k.op]) {
                             .matmul => |m| m.y,
@@ -1575,7 +1591,7 @@ pub fn proveCore(
                         else => unreachable,
                     };
                     const den = art.claims_to_verify_by_instance[i][1];
-                    try claims.append(a, .{ .tensor = y_id, .point = try a.dupe(QM31, pt), .value = alpha.sub(den).sub(f.qFromI64(128)) });
+                    try claims.append(a, .{ .tensor = y_id, .point = try a.dupe(QM31, pt), .value = alpha.sub(den).sub(f.qFromI64(yOffset(st.ops[k.op]))) });
                 }
             },
             .plain_range => {
@@ -2046,7 +2062,7 @@ pub fn verifyCore(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightK
             .remainder => {
                 const has_range = i + 1 < rel.keys.len and rel.keys[i + 1].kind == .y_range and rel.keys[i + 1].op == k.op;
                 if (has_range) {
-                    y_vals[i] = alpha.sub(art.claims_to_verify_by_instance[i + 1][1]).sub(f.qFromI64(128));
+                    y_vals[i] = alpha.sub(art.claims_to_verify_by_instance[i + 1][1]).sub(f.qFromI64(yOffset(st.ops[k.op])));
                 } else {
                     const y_id: u32 = switch (st.ops[k.op]) {
                         .matmul => |m| m.y,
@@ -2080,7 +2096,7 @@ pub fn verifyCore(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightK
                     .hadamard => |h| h.y,
                     else => unreachable,
                 };
-                try claims.append(a, .{ .tensor = y_id, .point = try a.dupe(QM31, pt), .value = alpha.sub(cv[1]).sub(f.qFromI64(128)) });
+                try claims.append(a, .{ .tensor = y_id, .point = try a.dupe(QM31, pt), .value = alpha.sub(cv[1]).sub(f.qFromI64(yOffset(st.ops[k.op]))) });
             },
             .plain_range => try claims.append(a, .{ .tensor = st.ops[k.op].range8.in, .point = try a.dupe(QM31, pt), .value = alpha.sub(cv[1]).sub(f.qFromI64(128)) }),
             .lookup_pair => {

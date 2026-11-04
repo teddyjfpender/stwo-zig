@@ -278,17 +278,26 @@ class Cfg:
         self.inv_bits = 15  # LayerCfg.INV_BITS
         self.margin = 1.05
         self.G = 64
+        # proved wide widths (Zig lm.ModelCfg.act_bits / resid_bits): the
+        # RMSNorm constants of transformer.rmsParams and int8 logits
+        self.zig_wide = False
+        self.logit_bits = None  # None: A bits (emulation); 8 in Zig
 
 
 CONFIGS = {}
 
 
-def _cfg(name, mode="matched", h=0, S=8, A=8, R=8):
+def _cfg(name, mode="matched", h=0, S=8, A=8, R=8, zig=False):
     c = Cfg(name)
     c.mode, c.headroom, c.S, c.A, c.R = mode, h, S, A, R
     if A > 8:  # wider SiLU table (same +-8 range, finer), finer RMSNorm reciprocal / u
         c.silu_bits, c.silu_frac, c.inv_bits = A, A - 4, 15 + 2 * (A - 8)
         c.u_shift = c.inv_bits - 4 - 10  # u = 2^10 x / rms (16-bit), was 2^5
+    if zig:
+        c.zig_wide = True
+        c.logit_bits = 8
+        if A > 8:  # transformer.LayerCfg.INV_BITS_WIDE / U_SHIFT_WIDE
+            c.inv_bits, c.u_shift = 21, 10
     CONFIGS[name] = c
 
 
@@ -302,6 +311,11 @@ _cfg("matched-s13-h1", h=1, S=13)
 _cfg("emu-s13-r16-h0", S=13, R=16)
 _cfg("emu-a12-s13-r16-h0", S=13, A=12, R=16)
 _cfg("emu-a16-s13-r16-h0", S=13, A=16, R=16)
+# implemented in Zig (lm.ModelCfg.act_bits / resid_bits), proved
+_cfg("matched-a12-s13-r16-h0", S=13, A=12, R=16, zig=True)
+_cfg("matched-a12-s13-r16-h1", h=1, S=13, A=12, R=16, zig=True)
+_cfg("matched-a10-s13-r16-h0", S=13, A=10, R=16, zig=True)
+_cfg("matched-a8-s13-r16-h0", S=13, A=8, R=16, zig=True)
 
 
 def pad_to(a, shape):
@@ -453,8 +467,13 @@ class IntModel:
         ld = self.lD
         s1 = ld - 8 if ld >= 8 else 0
         m1 = 8 - ld if ld < 8 else 0
+        ceps = 1 << s1
+        if cfg.zig_wide and A > 8:  # transformer.rmsParams
+            d = ld + 2 * A - 27
+            s1, m1 = max(d, 0), max(-d, 0)
+            ceps = 1 << (12 + s1 - m1)
         ss = (xs * xs).sum(-1)
-        rt = isqrt_vec(((ss + (1 << s1)) << m1) >> s1)
+        rt = isqrt_vec(((ss + ceps) << m1) >> s1)
         inv = (1 << cfg.inv_bits) // rt
         u = requant(xs * inv[..., None], cfg.u_shift)
         rf.check(name + ".u", u, -(1 << 15), (1 << 15) - 1)
@@ -465,7 +484,10 @@ class IntModel:
         rf.check(name + ".y", y, -lim, lim - 1)
         # float scale of y in units of the normalised (pre-gain) activation
         # rt ~ 16 rms(xs), inv ~ 2^(K-4) / rms, u ~ 2^(K-4-u_shift) x / rms
-        s_y = (1 << self.shift[name + ".y"]) / (float(1 << (cfg.inv_bits - 4 - cfg.u_shift)) * cfg.G)
+        if cfg.zig_wide:  # rt ~ rms(xs) sqrt(D 2^(m1 - s1)) exactly (up to eps / rounding)
+            s_y = (1 << self.shift[name + ".y"]) / (float(1 << (cfg.inv_bits - cfg.u_shift)) / math.sqrt(self.D * 2.0 ** (m1 - s1)) * cfg.G)
+        else:
+            s_y = (1 << self.shift[name + ".y"]) / (float(1 << (cfg.inv_bits - 4 - cfg.u_shift)) * cfg.G)
         return y, s_y
 
     def rope(self, x, nh, rf, name):
@@ -568,7 +590,7 @@ class IntModel:
             rec["resid"].append(x)
         xh = x if head_last is None else x[:, -head_last:]
         yf, s_yf = self.rmsnorm("head", xh, False, calib, rf)
-        logits, lacc = self.matmul("logits", yf, s_yf, calib, rf, target=None)
+        logits, lacc = self.matmul("logits", yf, s_yf, calib, rf, target=None, bits=cfg.logit_bits)
         rec["logit_scale"] = s_yf * self.wscale["logits"] * (1 << self.shift["logits"])
         rec["logit_acc_scale"] = None if "logits" not in self.wscale else s_yf * self.wscale["logits"]
         rec["logit_acc"] = lacc
@@ -674,15 +696,24 @@ def metrics(m, im, toks):
 
 def write_model(path, im, log_out=0, weight_log_cols=6):
     cfg = im.cfg
-    assert cfg.A == 8 and cfg.R == 8 and 8 <= cfg.S <= 14, "only int8 activations / residual increments are implemented in Zig"
-    hdr = [im.log_t, im.lD, im.lH, im.lKV, im.lF, im.L, im.lV, log_out, 0, weight_log_cols, cfg.S]
+    wide = cfg.A != 8 or cfg.R != 8
+    assert 8 <= cfg.S <= 14 and (not wide or cfg.zig_wide), "only the zig_wide configs have wide activations / residuals in Zig"
+    hdr = [im.log_t, im.lD, im.lH, im.lKV, im.lF, im.L, im.lV, log_out, 0, weight_log_cols, cfg.S] + ([cfg.A, cfg.R] if wide else [])
     order = []
     for l in range(im.L):
         order += [f"l{l}.q", f"l{l}.k", f"l{l}.v", f"l{l}.o", f"l{l}.gate", f"l{l}.up", f"l{l}.down"]
     order += ["logits", "emb"]
+    W = dict(im.W)
+    if cfg.R > 8:  # lm.ModelCfg.embLoIndex: Emb = 2^8 EmbHi + EmbLo, both int8
+        e = W["emb"]
+        lo = ((e + 128) & 255) - 128
+        hi = (e - lo) >> 8
+        assert np.array_equal(hi * 256 + lo, e)
+        W["emb"], W["emb_lo"] = hi, lo
+        order.append("emb_lo")
     with open(path, "wb") as fo:
-        fo.write(b"STWOACC1")
-        fo.write(struct.pack("<11I", *hdr))
+        fo.write(b"STWOACC2" if wide else b"STWOACC1")
+        fo.write(struct.pack(f"<{len(hdr)}I", *hdr))
         gains = np.full((2 * im.L + 1) * im.Dp, cfg.G, dtype="<i4")
         fo.write(struct.pack("<I", gains.size))
         fo.write(gains.tobytes())
@@ -691,7 +722,7 @@ def write_model(path, im, log_out=0, weight_log_cols=6):
         fo.write(plan.tobytes())
         fo.write(struct.pack("<I", len(order)))
         for n in order:
-            w = im.W[n]
+            w = W[n]
             assert w.min() >= -128 and w.max() <= 127
             fo.write(struct.pack("<I", w.size))
             fo.write(w.astype(np.int8).tobytes())

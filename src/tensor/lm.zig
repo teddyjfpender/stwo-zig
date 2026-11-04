@@ -83,6 +83,12 @@ pub const ModelCfg = struct {
     stacked_experts: bool = true,
     /// attention score width (tf.LayerCfg.score_bits); 8 = original int8
     score_bits: u32 = 8,
+    /// activation / residual widths (tf.LayerCfg.act_bits / resid_bits);
+    /// 8 / 8 = the original int8 model. resid_bits > 8 commits the embedding
+    /// as two int8 limbs Emb = 2^8 EmbHi + EmbLo (EmbLo in [-128, 128),
+    /// weight embLoIndex(), appended after Emb so int8 indices are unchanged).
+    act_bits: u32 = 8,
+    resid_bits: u32 = 8,
 
     pub fn isMoeLayer(self: ModelCfg, l: u32) bool {
         return self.log_experts > 0 and l % self.moe_every == self.moe_every - 1;
@@ -102,6 +108,8 @@ pub const ModelCfg = struct {
             .router_log_cols = self.weight_log_cols,
             .fused_qkv = self.fused_qkv,
             .score_bits = self.score_bits,
+            .act_bits = self.act_bits,
+            .resid_bits = self.resid_bits,
         };
     }
 
@@ -129,6 +137,17 @@ pub const ModelCfg = struct {
     /// the token embedding Emb [V, D] (committed, after the LM head)
     pub fn embIndex(self: ModelCfg) u32 {
         return self.lmHead() + 1;
+    }
+
+    /// resid_bits > 8: the embedding's low limb EmbLo [V, D] (after Emb,
+    /// which then holds the high limb)
+    pub fn embLoIndex(self: ModelCfg) u32 {
+        std.debug.assert(self.wideEmb());
+        return self.lmHead() + 2;
+    }
+
+    pub fn wideEmb(self: ModelCfg) bool {
+        return self.resid_bits > 8;
     }
 
     /// RMSNorm gain vectors: 2 per layer (attention, MLP) + the final norm
@@ -170,7 +189,8 @@ pub fn weightInfos(a: std.mem.Allocator, cfg: ModelCfg) ![]TensorInfo {
         } else try out.appendSlice(a, wi);
     }
     try out.append(a, TensorInfo.mat(cfg.log_d, cfg.log_vocab));
-    try out.append(a, TensorInfo.mat(cfg.log_vocab, cfg.log_d)); // Emb
+    try out.append(a, TensorInfo.mat(cfg.log_vocab, cfg.log_d)); // Emb (EmbHi when wide)
+    if (cfg.wideEmb()) try out.append(a, TensorInfo.mat(cfg.log_vocab, cfg.log_d)); // EmbLo
     return out.toOwnedSlice(a);
 }
 
@@ -220,7 +240,13 @@ pub const ModelDesc = struct {
             };
             // score_bits is mixed in only when not the default, so every
             // descriptor that predates it keeps its digest
-            if (comptime !std.mem.eql(u8, fld.name, "score_bits")) {
+            if (comptime std.mem.eql(u8, fld.name, "act_bits") or std.mem.eql(u8, fld.name, "resid_bits")) {
+                // widths: tagged, mixed in only when not the int8 default
+                if (v != 8) {
+                    h.update(fld.name);
+                    h.update(std.mem.asBytes(&v));
+                }
+            } else if (comptime !std.mem.eql(u8, fld.name, "score_bits")) {
                 h.update(std.mem.asBytes(&v));
             } else if (v != 8) h.update(std.mem.asBytes(&v));
         }
@@ -613,6 +639,15 @@ pub fn fitCapacity(max_load: usize) u32 {
 /// set, and every window must replay. Sets desc.shifts (owned by `a`; frees
 /// any previous plan). An input that later overflows the plan is refused by
 /// the prover (error.RequantOverflow).
+///
+/// Scope (accuracy.md, finding 1): this chooses shifts for a model that is
+/// *defined by its integer weights* (benches, random weights). It cannot
+/// produce the scale-matched plan of a checkpoint quantized from float
+/// weights: that plan is a joint choice of float weight scales and shifts
+/// (residual scale, softmax temperature, SiLU input scale), and the float
+/// weights are not an input here. Run on max-abs-quantized float weights it
+/// yields the context-free model of accuracy.md; use the scale-matched
+/// quantizer (scripts/tensor_accuracy.py) and pass its plan as desc.shifts.
 pub fn calibrate(a: std.mem.Allocator, pool: *f.Pool, desc: *ModelDesc, ws: *const proto.WeightStore, windows: []const []const u32, headroom: u5) !void {
     if (windows.len == 0) return error.CalibrationFailed;
     if (desc.shifts) |p| a.free(p);
@@ -722,7 +757,21 @@ pub fn buildModel(b: *tf.Builder, desc: *const ModelDesc, ws: *const proto.Weigh
     // pinned to the public by the lineq anyway)
     try b.key(n_oh, try b.expr(&.{term(1, Ref.w(oh), &.{ids(0, n_oh)})}, 0), null, .{ .range = 2 });
     var x = try b.matmulShift(ws, oh, cfg.embIndex(), EMB_SHIFT);
+    if (cfg.wideEmb()) {
+        // X = 2^8 rq_1(OH . EmbHi) + rq_1(OH . EmbLo): two int8 gathers
+        // (each range-checked by its core op) and an exact lineq, so
+        // |X| <= 2^15 + 2^7 (bounds.zig derives it from the statement)
+        const xlo = try b.matmulShift(ws, oh, cfg.embLoIndex(), EMB_SHIFT);
+        const nx = lt + ld;
+        const xv = try b.a.alloc(i32, b.wit.items[x].len);
+        for (xv, b.wit.items[x], b.wit.items[xlo]) |*o, hi, lo| o.* = 256 * hi + lo;
+        const xw = try b.add(TensorInfo.mat(lt, ld), xv);
+        try b.lineq(nx, try b.expr(&.{ term(1, Ref.w(xw), &.{ids(0, nx)}), term(-256, Ref.w(x), &.{ids(0, nx)}), term(-1, Ref.w(xlo), &.{ids(0, nx)}) }, 0));
+        x = xw;
+    }
     const x_id = x;
+    // layer 0 reads X directly (range-checked at A bits) unless X is wider
+    const x0_in_range = cfg.resid_bits <= cfg.act_bits;
     var max_load: usize = 0;
     var router_in: std.ArrayList(u32) = .empty;
     var router_logits: std.ArrayList(u32) = .empty;
@@ -732,12 +781,12 @@ pub fn buildModel(b: *tf.Builder, desc: *const ModelDesc, ws: *const proto.Weigh
         const wb = cfg.layerBase(@intCast(l));
         var route: ?MoeLayer = null;
         if (cfg.isStackedLayer(@intCast(l))) {
-            const ab = try tf.attnBlock(b, c, @intCast(l), wb, x, l == 0);
+            const ab = try tf.attnBlock(b, c, @intCast(l), wb, x, l == 0 and x0_in_range);
             const ms = try moeStacked(b, c, wb, ab.rms2.y);
             x = try tf.residual(b, ab.h, ms.out);
             route = .{ .y = ab.rms2.y, .logits = ms.route.logits, .expert_of = ms.route.expert_of };
         } else {
-            const o = try tf.decoderLayerAt(b, c, @intCast(l), wb, x, l == 0);
+            const o = try tf.decoderLayerAt(b, c, @intCast(l), wb, x, l == 0 and x0_in_range);
             x = o.out;
             if (o.moe) |m| route = .{ .y = o.rms2.y, .logits = m.logits, .expert_of = m.expert_of };
         }
@@ -1450,4 +1499,128 @@ test "shift plan: calibrated windows replay; the prover refuses inputs outside t
     var b2 = tf.Builder.init(a, &pool);
     defer b2.deinit();
     try testing.expectError(error.ShiftPlan, buildModel(&b2, &sd, &sw.ws, w0, null));
+}
+
+const WideModel = ModelCfg{ .log_t = 3, .log_d = 4, .log_heads = 1, .log_kv_heads = 0, .log_f = 5, .n_layers = 2, .log_vocab = 6, .log_out = 0, .weight_log_cols = 3, .score_bits = 13, .act_bits = 12, .resid_bits = 16 };
+
+test "wide widths (act_bits 12, resid_bits 16): proves and verifies; in the digest; int8 descriptor and a limb tamper rejected" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    const cfg = WideModel;
+    var pc = testPc();
+    pc.weight_log_cols = cfg.weight_log_cols;
+    var sw = try setupWeights(a, &pool, cfg, pc, 902);
+    defer {
+        sw.ws.deinit(a);
+        for (sw.wdata) |w| a.free(w);
+        a.free(sw.wdata);
+        a.free(sw.winfos);
+    }
+    // one extra committed weight: the embedding's low limb
+    try testing.expectEqual(cfg.embIndex() + 2, @as(u32, @intCast(sw.winfos.len)));
+    var desc = try testDesc(a, &pool, cfg, &sw.ws, 5);
+    defer desc.deinit(a);
+    var d8 = desc;
+    d8.cfg.act_bits = 8;
+    d8.cfg.resid_bits = 8;
+    try testing.expect(!std.mem.eql(u8, &desc.digest(), &d8.digest()));
+    var rq = try TestRequest.init(a, &pool, &desc, &sw.ws, 79);
+    defer rq.deinit(a);
+    // the statement has wide core matmuls (A-bit and R-bit outputs) and a
+    // 2^12-entry SiLU ext table
+    var n_wide: usize = 0;
+    for (rq.b.ops.items) |op| if (op == .matmul and op.matmul.out_bits != 8) {
+        n_wide += 1;
+    };
+    // per layer (fused QKV): qkv, o, gate, up, down
+    try testing.expectEqual(@as(usize, 2 * 5), n_wide);
+    var has_silu = false;
+    for (rq.b.xtables.items) |t| has_silu = has_silu or t.log_size == 12;
+    try testing.expect(has_silu);
+    // the residual stream really is wide (|X| > 127 somewhere)
+    var mx: i32 = 0;
+    for (rq.b.wit.items[rq.mo.x]) |v| mx = @max(mx, @as(i32, @intCast(@abs(v))));
+    try testing.expect(mx > 127);
+    const wv = try rq.b.witnessView(a);
+    defer a.free(wv);
+    const reqs = [_]serve.Request{.{ .st = rq.b.statement(), .witness = wv, .salt = serve.testSalt(7) }};
+    var batch = try serve.proveRequests(a, &pool, pc, &sw.ws, &reqs, null);
+    defer batch.deinit(a);
+    const key = proto.weightKey(&sw.ws);
+    try verifyRequest(a, &pool, pc, key, &desc, .{ .prompt = rq.prompt, .y = rq.y }, &batch.requests[0], &batch.shared, 0);
+    try checkRequestStatement(a, &pool, pc, key, &desc, .{ .prompt = rq.prompt, .y = rq.y }, reqs[0].st);
+    // a verifier holding a narrower activation width rejects
+    var other = desc;
+    other.cfg.act_bits = 11;
+    try testing.expect(std.meta.isError(verifyRequest(a, &pool, pc, key, &other, .{ .prompt = rq.prompt, .y = rq.y }, &batch.requests[0], &batch.shared, 0)));
+
+    // limb tamper: X = 2^8 hi + lo still holds with hi - 1, lo + 256, but
+    // lo leaves int8 (and no longer is rq_1 of its gather): refused
+    var hi_id: ?u32 = null;
+    var lo_id: ?u32 = null;
+    for (rq.b.ops.items) |op| if (op == .matmul) {
+        if (op.matmul.w == cfg.embIndex()) hi_id = op.matmul.y;
+        if (op.matmul.w == cfg.embLoIndex()) lo_id = op.matmul.y;
+    };
+    const wt = try a.alloc([]i32, wv.len);
+    defer a.free(wt);
+    var owned: [2][]i32 = undefined;
+    for (wt, wv) |*d, s| d.* = @constCast(s);
+    owned[0] = try a.dupe(i32, wv[hi_id.?]);
+    defer a.free(owned[0]);
+    owned[1] = try a.dupe(i32, wv[lo_id.?]);
+    defer a.free(owned[1]);
+    owned[0][0] -= 1;
+    owned[1][0] += 256;
+    wt[hi_id.?] = owned[0];
+    wt[lo_id.?] = owned[1];
+    const treqs = [_]serve.Request{.{ .st = rq.b.statement(), .witness = @ptrCast(wt), .salt = serve.testSalt(8) }};
+    try testing.expect(std.meta.isError(serve.proveRequests(a, &pool, pc, &sw.ws, &treqs, null)));
+}
+
+/// The verifier-built statement of a calibrated wide model (random weights).
+fn wideStatement(a: std.mem.Allocator, pool: *f.Pool, cfg: ModelCfg) !tf.Builder {
+    var pc = testPc();
+    pc.weight_log_cols = cfg.weight_log_cols;
+    var sw = try setupWeights(a, pool, cfg, pc, 903);
+    defer {
+        sw.ws.deinit(a);
+        for (sw.wdata) |w| a.free(w);
+        a.free(sw.wdata);
+        a.free(sw.winfos);
+    }
+    var desc = try ModelDesc.synthetic(a, cfg, 6);
+    defer desc.deinit(a);
+    try calibrateRandom(a, pool, &desc, &sw.ws, 1, 6000, 1);
+    const T = @as(usize, 1) << @intCast(cfg.log_t);
+    const prompt = try a.alloc(u32, T);
+    defer a.free(prompt);
+    @memset(prompt, 1);
+    return requestStatement(a, pool, &desc, .{ .prompt = prompt, .y = &.{1} });
+}
+
+test "wide widths: statement validation rejects shapes that could wrap" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    // the stories260K shape class (D = 2^6) at A = 12 validates
+    var cfg = WideModel;
+    cfg.log_d = 6;
+    cfg.log_f = 6;
+    cfg.weight_log_cols = 6;
+    {
+        var b = try wideStatement(a, &pool, cfg);
+        defer b.deinit();
+        try @import("bounds.zig").validateStatement(b.statement());
+    }
+    // A = 12 RMSNorm at D = 2^8: ss = sum xs^2 can reach 2^(22 + 8) > p / 2
+    // and rt * rt 2^s1 2^30: the builder refuses the shape (the statement-
+    // level check of a wide matmul's wrapped accumulator is wide_test.zig)
+    cfg.log_d = 8;
+    cfg.log_f = 8;
+    cfg.weight_log_cols = 8;
+    try testing.expectError(error.BadConfig, wideStatement(a, &pool, cfg));
 }

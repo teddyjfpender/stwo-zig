@@ -1150,9 +1150,11 @@ fn encStatementInto(w: *W, cfg: proto.Config, st: proto.Statement) EncodeError!v
     try w.len(st.ops.len);
     for (st.ops) |op| switch (op) {
         .matmul => |m| {
-            try w.byte(1);
+            // int8 output: tag 1 (unchanged); wide output: tag 7 + out_bits
+            try w.byte(if (m.out_bits == 8) 1 else 7);
             for ([_]u32{ m.x, m.w, m.y }) |v| try w.u(v);
             try w.byte(m.shift);
+            if (m.out_bits != 8) try w.byte(m.out_bits);
         },
         .hadamard => |h| {
             try w.byte(2);
@@ -1308,6 +1310,12 @@ pub fn decodeStatement(gpa: Allocator, bytes: []const u8) DecodeError!StatementF
             4 => .{ .range8 = .{ .in = try r.int(u32) } },
             5 => .{ .product = .{ .a = try r.int(u32), .b = try r.int(u32), .c = try r.int(u32) } },
             6 => .{ .glu = .{ .g = try r.int(u32), .u = try r.int(u32), .h = try r.int(u32), .table = try r.int(u32), .shift = try shift5(&r) } },
+            7 => blk: {
+                const m: @FieldType(proto.Op, "matmul") = .{ .x = try r.int(u32), .w = try r.int(u32), .y = try r.int(u32), .shift = try shift5(&r), .out_bits = try shift5(&r) };
+                // canonical: tag 7 only for wide outputs
+                if (m.out_bits == 8) return error.NonCanonical;
+                break :blk .{ .matmul = m };
+            },
             else => return error.NonCanonical,
         };
     }

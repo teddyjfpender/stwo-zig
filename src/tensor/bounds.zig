@@ -345,6 +345,11 @@ pub fn validateStatementBounds(st: Statement, out: ?[]u8) !void {
         .matmul => |m| {
             if (m.x >= n or m.y >= n or m.w >= st.weights.len) return error.StatementShape;
             if (m.shift < 1 or m.shift > 22) return error.StatementShift;
+            // wide output: Y + 2^(ob-1) in [0, 2^ob) is a 2^ob range key
+            // (<= 2^16 entries); the remainder identity acc + 2^(s-1) - 2^s Y
+            // needs 2^s |Y| < p / 2 as well: s + ob <= 30
+            if (m.out_bits < 8 or m.out_bits > 16) return error.StatementShape;
+            if (@as(u32, m.shift) + m.out_bits > 30) return error.StatementAccumulatorBound;
             const xi = st.witness[m.x];
             const wi = st.weights[m.w];
             // [T, K] . [K, N], or batched [E, T, K] . [E, K, N] -> [E, T, N]
@@ -390,7 +395,7 @@ pub fn validateStatementBounds(st: Statement, out: ?[]u8) !void {
     @memset(s.bound, UNB);
     @memset(s.boolean, false);
     for (st.ops) |op| switch (op) {
-        .matmul => |m| s.setb(m.y, 7),
+        .matmul => |m| s.setb(m.y, m.out_bits - 1),
         .hadamard => |h| s.setb(h.y, 7),
         .lookup => |l| {
             s.setb(l.out, 7);
