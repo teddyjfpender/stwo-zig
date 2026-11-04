@@ -1,0 +1,58 @@
+{
+ "label": "measured",
+ "trace_commit": {
+  "main": {
+   "count": 60,
+   "max_scratch_bytes": 6421091416,
+   "max_legacy_scratch_bytes": 6421091416,
+   "max_live_lease_bytes": 13923385080,
+   "max_pool_used_bytes": 27272984436,
+   "max_pool_reserved_bytes": 29527900160,
+   "modes": [
+    "legacy"
+   ],
+   "max_predicted_peak_bytes": 13923385080
+  },
+  "inter": {
+   "count": 50,
+   "max_scratch_bytes": 11183087904,
+   "max_legacy_scratch_bytes": 11183087904,
+   "max_live_lease_bytes": 21066377152,
+   "max_pool_used_bytes": 28306365460,
+   "max_pool_reserved_bytes": 29527900160,
+   "modes": [
+    "legacy"
+   ],
+   "max_predicted_peak_bytes": 21066377152
+  },
+  "fixed": {
+   "count": 33,
+   "max_scratch_bytes": 3234733260,
+   "max_legacy_scratch_bytes": 3234733260,
+   "max_live_lease_bytes": 6697457068,
+   "max_pool_used_bytes": 20054595912,
+   "max_pool_reserved_bytes": 29527900160,
+   "modes": [
+    "legacy"
+   ],
+   "max_predicted_peak_bytes": 6697457068
+  }
+ },
+ "pcs": {
+  "count": 50,
+  "max_retained_bytes": 24568525764,
+  "max_device_bytes": 15123767428
+ },
+ "streams": {
+  "trace": 0,
+  "pcs": 0,
+  "max_pcs_scratch_words": 0,
+  "max_pcs_legacy_rebuild_words": 0
+ },
+ "allocation_failures": {
+  "owner_oom": 28,
+  "memory_failure": 0,
+  "logical_cap": 0,
+  "max_requested_bytes": 18436147616
+ }
+}

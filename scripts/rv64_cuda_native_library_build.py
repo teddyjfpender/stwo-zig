@@ -11,7 +11,9 @@ import re
 import signal
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
+import threading
 import time
 
 import rv64_cuda_private_host_symbols as PrivateHost
@@ -40,10 +42,100 @@ def run_checked(command, log, timeout):
         raise subprocess.CalledProcessError(code, command)
 
 
+# Optional content-addressed object store shared by every source tree on one
+# host. Keys and dependency records replace tree-specific absolute prefixes by
+# tokens, so /workspace/m3/src/<stream> trees reuse each other's objects while
+# every recorded dependency is still re-hashed inside the tree being built.
+OBJECT_STORE = None
+PATH_TOKENS = []  # [(absolute_prefix, token)], longest prefix first
+
+
+def configure_object_store(store, tokens):
+    """Enable the shared store; tokens maps absolute prefixes to stable names."""
+    global OBJECT_STORE, PATH_TOKENS
+    OBJECT_STORE = Path(store).resolve() if store else None
+    if OBJECT_STORE:
+        OBJECT_STORE.mkdir(parents=True, exist_ok=True)
+    PATH_TOKENS = sorted(((str(Path(p).resolve()), t) for p, t in tokens), key=lambda item: -len(item[0]))
+
+
+def tokenize(text, tokens=None):
+    for prefix, token in (PATH_TOKENS if tokens is None else tokens):
+        text = text.replace(prefix, token)
+    return text
+
+
+def detokenize(text):
+    for prefix, token in PATH_TOKENS:
+        if text.startswith(token):
+            return prefix + text[len(token):]
+    return text
+
+
+def portable_key(version, flags, source_sha, tokens=None):
+    return hashlib.sha256((version + repr([tokenize(f, tokens) for f in flags]) + source_sha).encode()).hexdigest()
+
+
+def _unique(path, tag):
+    return path.with_name(f".{path.name}.{os.getpid()}.{threading.get_ident()}.{tag}")
+
+
+def link_or_copy(src, dst):
+    pending = _unique(dst, "link")
+    pending.unlink(missing_ok=True)
+    try:
+        os.link(src, pending)
+    except OSError:
+        shutil.copyfile(src, pending)
+    os.replace(pending, dst)
+
+
+def store_lookup(key):
+    """Return (object, absolute dependency map) when every dependency matches here."""
+    if OBJECT_STORE is None:
+        return None
+    entry = OBJECT_STORE / key[:2] / key
+    try:
+        record = json.loads((entry / "stamp.json").read_text())
+        deps = {detokenize(p): h for p, h in record["dependencies"].items()}
+        if not deps or sha(entry / "object.o") != record["object_sha256"]:
+            return None
+        if not all(Path(p).is_file() and sha(Path(p)) == h for p, h in deps.items()):
+            return None
+    except (OSError, ValueError, KeyError):
+        return None
+    return entry / "object.o", deps
+
+
+def store_publish(key, obj, dependencies, tokens=None):
+    if OBJECT_STORE is None:
+        return
+    entry = OBJECT_STORE / key[:2] / key
+    if (entry / "stamp.json").is_file():
+        return
+    staging = OBJECT_STORE / ".staging" / f"{key}.{os.getpid()}.{threading.get_ident()}"
+    staging.mkdir(parents=True, exist_ok=True)
+    try:
+        link_or_copy(obj, staging / "object.o")
+        record = {"dependencies": {tokenize(p, tokens): h for p, h in dependencies.items()},
+                  "object_sha256": sha(staging / "object.o")}
+        (staging / "stamp.json").write_text(json.dumps(record, sort_keys=True))
+        entry.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            os.rename(staging, entry)
+        except OSError:
+            pass  # Another builder published the same key first.
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging, ignore_errors=True)
+
+
 def compile_native(nvcc, version, flags, source, obj, log_path, timeout):
     """Publish an object only after compilation and its dependency scan pass."""
     dep, stamp = obj.with_suffix(".d"), obj.with_suffix(".json")
-    key = hashlib.sha256((version + repr(flags) + sha(source)).encode()).hexdigest()
+    source_sha = sha(source)
+    key = hashlib.sha256((version + repr(flags) + source_sha).encode()).hexdigest()
+    shared = portable_key(version, flags, source_sha)
     if obj.is_file() and stamp.is_file():
         try:
             old = json.loads(stamp.read_text())
@@ -51,9 +143,18 @@ def compile_native(nvcc, version, flags, source, obj, log_path, timeout):
                     old.get("object_sha256") == sha(obj) and
                     all(Path(p).is_file() and sha(Path(p)) == h
                         for p, h in old["dependencies"].items())):
+                store_publish(shared, obj, old["dependencies"])
                 return True
         except (OSError, ValueError):
             pass  # An incomplete cache record cannot establish a hit.
+    hit = store_lookup(shared)
+    if hit:
+        stored, dependencies = hit
+        obj.parent.mkdir(parents=True, exist_ok=True)
+        link_or_copy(stored, obj)
+        stamp.write_text(json.dumps({"key": key, "dependencies": dependencies,
+                                     "object_sha256": sha(obj), "store_key": shared}, sort_keys=True))
+        return True
     pending = obj.with_name(f".{obj.name}.{os.getpid()}.pending")
     pending_dep = pending.with_suffix(".d")
     pending_stamp = pending.with_suffix(".json")
@@ -72,6 +173,7 @@ def compile_native(nvcc, version, flags, source, obj, log_path, timeout):
         os.replace(pending, obj)
         os.replace(pending_dep, dep)
         os.replace(pending_stamp, stamp)
+        store_publish(shared, obj, dependencies)
     finally:
         for path in (pending, pending_dep, pending_stamp):
             path.unlink(missing_ok=True)
@@ -90,9 +192,11 @@ def main():
     parser.add_argument("--compile-timeout", type=float, default=180, help="Seconds per compiler process group")
     parser.add_argument("--link-timeout", type=float, default=180)
     parser.add_argument("--required-symbols", type=Path, help="Required export manifest; defaults to the native RV64 contract")
+    parser.add_argument("--object-store", type=Path, help="Shared content-addressed object store (path-independent keys)")
+    parser.add_argument("--path-token", action="append", default=[], help="PREFIX=TOKEN normalization for the object store")
     args = parser.parse_args()
-    if not 1 <= args.jobs <= 16 or any(not math.isfinite(t) or t <= 0 for t in (args.compile_timeout, args.link_timeout)):
-        parser.error("jobs must be 1..16 and compiler/link deadlines must be positive")
+    if not 1 <= args.jobs <= 96 or any(not math.isfinite(t) or t <= 0 for t in (args.compile_timeout, args.link_timeout)):
+        parser.error("jobs must be 1..96 and compiler/link deadlines must be positive")
     root, build = args.source_root.resolve(), args.build.resolve()
     native = root / "src/backends/cuda/native"
     symbol_path = args.required_symbols or native / "rv64/required_symbols.json"
@@ -100,6 +204,9 @@ def main():
     if not required or len(set(required)) != len(required) or any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", s) for s in required):
         parser.error("invalid required native export manifest")
     build.mkdir(parents=True, exist_ok=True)
+    if args.object_store:
+        tokens = [tuple(item.split("=", 1)) for item in args.path_token] or [(str(build), "@BUILD"), (str(root), "@ROOT")]
+        configure_object_store(args.object_store, tokens)
     logs = build / "logs"
     logs.mkdir(exist_ok=True)
     sources = ["rv64/pcs_native.cu", "runtime/context.cu", "transform/lde.cu", "transform/n2b.cu", "transform/b2n_retained.cu", "transform/composition_split.cu",

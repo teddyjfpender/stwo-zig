@@ -143,6 +143,31 @@ struct ResidentOwner {
       retained -= blocks[i].words * 4;
       blocks.erase(blocks.begin() + i);
     }
+    // Physical admission for large requests: the logical cap can exceed what
+    // the device can still back (driver, modules, other pools). Evict idle
+    // cached blocks first when free physical memory plus the pool's unused
+    // reservation cannot hold the request, instead of failing the allocation
+    // and recovering through a joined trim. Scheduling-only: no live lease,
+    // plane or proof word is affected.
+    if (bytes >= (uint64_t(1) << 30)) {
+      size_t free_bytes = 0, total_bytes = 0, used = 0, reserved = 0;
+      if (cudaMemGetInfo(&free_bytes, &total_bytes) == cudaSuccess &&
+          stwo_exec_context_pool_current(ctx, &used, &reserved) == 0) {
+        uint64_t available = uint64_t(free_bytes) + (reserved > used ? reserved - used : 0);
+        bool evicted = false;
+        for (size_t i = 0; available < bytes && i < blocks.size();) {
+          if (blocks[i].used) { ++i; continue; }
+          if (!evicted) { sync(); evicted = true; }
+          CHECK(stwo_exec_context_free_u32(ctx, blocks[i].ptr));
+          retained -= blocks[i].words * 4;
+          available += blocks[i].words * 4;
+          blocks.erase(blocks.begin() + i);
+        }
+        if (evicted) sync();
+      } else {
+        (void)cudaGetLastError();
+      }
+    }
     if (retained > cap - bytes) {
       // Capture the live admission point before exception cleanup releases the
       // temporary planes. No query or synchronization is added on success.

@@ -26,6 +26,20 @@ def main(paths, out=None):
     oom = {"owner_oom": 0, "memory_failure": 0, "logical_cap": 0, "max_requested_bytes": 0}
     streams = {"trace": 0, "pcs": 0, "max_pcs_scratch_words": 0, "max_pcs_legacy_rebuild_words": 0}
     for line in text.splitlines():
+        try:
+            parse(line, commit, trees, pcs, oom, streams)
+        except (KeyError, ValueError):
+            streams["unparsed_lines"] = streams.get("unparsed_lines", 0) + 1  # interleaved lane output
+    for c in commit.values():
+        c["modes"] = sorted(c["modes"])
+        c["max_predicted_peak_bytes"] = c["max_live_lease_bytes"]  # live leases include this commit's scratch
+    result = {"label": "measured", "trace_commit": dict(commit), "pcs": pcs, "streams": streams, "allocation_failures": oom}
+    print(json.dumps(result, indent=1))
+    if out:
+        json.dump(result, open(out, "w"), indent=1)
+
+def parse(line, commit, trees, pcs, oom, streams):
+    if True:
         if line.startswith("GPU_DEVICE_PEAK stage=trace_commit"):
             v = kv(line); c = commit[trees.get(v["tree"], v["tree"])]
             c["count"] += 1; c["modes"].add(v["mode"])
@@ -49,13 +63,6 @@ def main(paths, out=None):
             oom["memory_failure"] += 1
         elif line.startswith("GPU_OWNER_LOGICAL_CAP"):
             oom["logical_cap"] += 1
-    for c in commit.values():
-        c["modes"] = sorted(c["modes"])
-        c["max_predicted_peak_bytes"] = c["max_live_lease_bytes"]  # live leases include this commit's scratch
-    result = {"label": "measured", "trace_commit": dict(commit), "pcs": pcs, "streams": streams, "allocation_failures": oom}
-    print(json.dumps(result, indent=1))
-    if out:
-        json.dump(result, open(out, "w"), indent=1)
 
 if __name__ == "__main__":
     args = sys.argv[1:]

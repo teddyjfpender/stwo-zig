@@ -161,7 +161,7 @@ def bounded_compile_source(source, obj, build, max_bytes=32768, raw_directory=No
     prebounded = "volatile OM31 *ext_bank" in text
     if prebounded and (raw_directory is None or len(text.encode()) < 512 << 10):
         return source, None
-    name = source.stem + "-" + hashlib.sha256((str(source) + N.sha(source)).encode()).hexdigest()[:16]
+    name = source.stem + "-" + hashlib.sha256((N.tokenize(str(source)) + N.sha(source)).encode()).hexdigest()[:16]
     lowered = build / "bounded-aot" / (name + ".cu")
     if obj.is_file() and not lowered.is_file():
         return source, None
@@ -213,13 +213,21 @@ def main():
     parser.add_argument("--nvcc", default="/usr/local/cuda/bin/nvcc")
     parser.add_argument("--jobs", type=int, default=6)
     parser.add_argument("--compile-timeout", type=float, default=180)
+    parser.add_argument("--link-timeout", type=float, default=180, help="Seconds for the final shared-library link")
     parser.add_argument("--split-core-role", type=int, action="append", default=[], help="Split a grouped core optimizer unit into single-group kernels")
     parser.add_argument("--core-module-max-bytes", type=int, default=128 << 10, help="Bound single-group core SSA optimizer units above this size")
+    parser.add_argument("--object-store", type=Path, help="Shared content-addressed object store reused across source trees")
+    parser.add_argument("--catalogue-root", type=Path, help="Common parent of the generated AOT catalogues (store token @CAT)")
     args = parser.parse_args()
-    if not 1 <= args.jobs <= 16 or not 0 < args.compile_timeout < float("inf") or args.core_module_max_bytes < 1:
+    if not 1 <= args.jobs <= 96 or not 0 < args.compile_timeout < float("inf") or args.core_module_max_bytes < 1:
         parser.error("bounded jobs and finite positive compiler deadline required")
     root, build = args.source_root.resolve(), args.build.resolve()
     build.mkdir(parents=True, exist_ok=True)
+    tokens = [(str(build), "@BUILD"), (str(root), "@ROOT")]
+    if args.catalogue_root:
+        tokens.append((str(args.catalogue_root.resolve()), "@CAT"))
+    if args.object_store:
+        N.configure_object_store(args.object_store, tokens)
     logs = build / "aot-logs"
     logs.mkdir(exist_ok=True)
     core, header = core_catalog(args.core_domain.resolve())
@@ -259,7 +267,7 @@ def main():
     def compile_one(source):
         # Full path distinguishes role-local dispatch.cpp names; source/dependency
         # and compiler pins are validated by the shared atomic cache publisher.
-        name = source.stem + "-" + hashlib.sha256(str(source).encode()).hexdigest()[:12]
+        name = source.stem + "-" + hashlib.sha256(N.tokenize(str(source)).encode()).hexdigest()[:12]
         obj = objects / (name + ".o")
         actual, lowered = bounded_compile_source(source, obj, build, raw_directory=args.truth_domain.resolve())
         if lowered:
@@ -290,9 +298,13 @@ def main():
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
         compiled = [obj for group in pool.map(compile_one, sources) for obj in group]
 
-    command = [sys.executable, str(root / "scripts/rv64_cuda_native_library_build.py"), "--source-root", str(root), "--build", str(build / "native"), "--nvcc", args.nvcc, "--jobs", str(args.jobs), "--compile-timeout", str(args.compile_timeout), "--extra-native-source", "rv64/curve_witness.cu"]
+    command = [sys.executable, str(root / "scripts/rv64_cuda_native_library_build.py"), "--source-root", str(root), "--build", str(build / "native"), "--nvcc", args.nvcc, "--jobs", str(args.jobs), "--compile-timeout", str(args.compile_timeout), "--link-timeout", str(args.link_timeout), "--extra-native-source", "rv64/curve_witness.cu"]
     if device_link:
         command += ["--device-link"]
+    if args.object_store:
+        command += ["--object-store", str(args.object_store)]
+        for prefix, token in tokens:
+            command += ["--path-token", prefix + "=" + token]
     if args.outer_circuit_dir:
         command += ["--extra-native-source", "circuit/base_witness.cu", "--extra-native-source", "rv64/circuit_interaction.cu", "--extra-native-source", "rv64/circuit_assignment.cu"]
     for obj in compiled:
