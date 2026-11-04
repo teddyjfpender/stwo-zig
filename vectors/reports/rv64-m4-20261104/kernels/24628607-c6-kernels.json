@@ -4,7 +4,7 @@
  "milestone": "M4",
  "block": 24628607,
  "gpus": 2,
- "commit": "PENDING",
+ "commit": "494c3f463",
  "library_sha256": "224f0668be8587d409f5f46b6ffcbf52efe42043b9fe51f9dd9a094919f476b4",
  "driver_sha256": "e4e885b7 (c5 tree; c6 changes no Zig)",
  "receiver_sha256": "f3dcc05d",
