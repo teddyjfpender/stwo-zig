@@ -1,7 +1,7 @@
 {
  "schema": "rv64-m5-negative-corpus/v3",
- "src": "/private/tmp/claude-501/-Users-theodorepender-Coding-stwo-zig/3268cd4b-cf9c-479c-a67f-1c72486c40d2/scratchpad/cov-canon-vk/src",
- "implemented": 0,
+ "src": "/private/tmp/claude-501/-Users-theodorepender-Coding-stwo-zig/3268cd4b-cf9c-479c-a67f-1c72486c40d2/scratchpad/cov2-blake-gadget/src",
+ "implemented": 8,
  "total": 53,
  "cases": [
   {
@@ -324,56 +324,72 @@
    "tier": "W",
    "owner": "blake-gadget",
    "today": "m7",
-   "hooks": []
+   "hooks": [
+    "frontends/circuit/fused_blake/corpus_test.zig:103"
+   ]
   },
   {
    "id": "BG02-g-output",
    "tier": "W",
    "owner": "blake-gadget",
    "today": "m7",
-   "hooks": []
+   "hooks": [
+    "frontends/circuit/fused_blake/corpus_test.zig:122"
+   ]
   },
   {
    "id": "BG03-xor-multiplicity",
    "tier": "W",
    "owner": "blake-gadget",
    "today": "m7",
-   "hooks": []
+   "hooks": [
+    "frontends/circuit/fused_blake/corpus_test.zig:134"
+   ]
   },
   {
    "id": "BG04-schedule",
    "tier": "W",
    "owner": "blake-gadget",
    "today": "m7",
-   "hooks": []
+   "hooks": [
+    "frontends/circuit/fused_blake/corpus_test.zig:165"
+   ]
   },
   {
    "id": "BG05-limb-range",
    "tier": "W",
    "owner": "blake-gadget",
    "today": "m7",
-   "hooks": []
+   "hooks": [
+    "frontends/circuit/fused_blake/corpus_test.zig:177"
+   ]
   },
   {
    "id": "BG06-padding-rows",
    "tier": "W",
    "owner": "blake-gadget",
    "today": "m7",
-   "hooks": []
+   "hooks": [
+    "frontends/circuit/fused_blake/corpus_test.zig:201"
+   ]
   },
   {
    "id": "BG07-final-flag-counter",
    "tier": "W",
    "owner": "blake-gadget",
    "today": "m7",
-   "hooks": []
+   "hooks": [
+    "frontends/circuit/fused_blake/corpus_test.zig:223"
+   ]
   },
   {
    "id": "BG08-xor-mass",
    "tier": "U",
    "owner": "blake-gadget",
    "today": "m7",
-   "hooks": []
+   "hooks": [
+    "frontends/circuit/fused_blake/corpus_test.zig:238"
+   ]
   }
  ]
 }

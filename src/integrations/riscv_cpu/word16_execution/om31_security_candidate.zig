@@ -551,6 +551,10 @@ pub const FormatSpec = struct {
     /// Carries an outer LogUp-GKR section: must also pass requireOuterGkrBits
     /// and requireOuterGkrCharacteristic for the real circuit's facts.
     outer_gkr: bool = false,
+    /// Owning stream's own version string of the component this format adds
+    /// (outer-gkr section domain, fused Blake2s AIR id, native chain version).
+    /// Hashed into the identity, so a change of the component is a new version.
+    component: []const u8 = "",
 };
 pub const FORMAT_VERSIONS = [_]FormatVersion{ .m5_native_chi_chain_v1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1, .m7_outer_gkr_m3_b4_q51_p26_fold4_v1, .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1 };
 /// Local relations of the production raw-fraction roster (fractions.zig gained
@@ -560,11 +564,11 @@ const R1_OUTER: PcsParams = .{ .log_blowup = 1, .queries = 108, .pow_bits = 20, 
 const M3_OUTER: PcsParams = .{ .log_blowup = 2, .queries = 51, .pow_bits = 26, .fold_step = 4 };
 pub fn formatSpec(version: FormatVersion) FormatSpec {
     return switch (version) {
-        .m5_native_chi_chain_v1_b2_q108_p20_fold4 => .{ .layer = .native, .owner = "canon-native", .pcs = .{ .log_blowup = 1, .queries = 108, .pow_bits = 20, .fold_step = 4 }, .domain = "rv64-m5-native-chi-chain/v1/conjectured128_b2_q108_p20_fold4\x00", .local_relations = M5_LOCAL_RELATIONS },
+        .m5_native_chi_chain_v1_b2_q108_p20_fold4 => .{ .layer = .native, .owner = "canon-native", .pcs = .{ .log_blowup = 1, .queries = 108, .pow_bits = 20, .fold_step = 4 }, .domain = "rv64-m5-native-chi-chain/v1/conjectured128_b2_q108_p20_fold4\x00", .local_relations = M5_LOCAL_RELATIONS, .component = "rv64-m5-native-chi-chain/v1" },
         .m5_outer_canonical_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "canon-vk", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m5-canonical-q108-p20-fold4/lens-v1" },
         .m5_outer_canonical_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "canon-vk", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m5-canonical-m3-b4-q51-p26-fold4/lens-v1" },
-        .m7_outer_gkr_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "outer-gkr", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m7-outer-gkr-m3-b4-q51-p26-fold4/lens-v1", .outer_gkr = true },
-        .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "blake-gadget", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m7-fused-blake-m3-b4-q51-p26-fold4/lens-v1" },
+        .m7_outer_gkr_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "outer-gkr", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m7-outer-gkr-m3-b4-q51-p26-fold4/lens-v1", .outer_gkr = true, .component = "stwo/rv64/outer-gkr/om31-strict-draw/lane-major/v1" },
+        .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "blake-gadget", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m7-fused-blake-m3-b4-q51-p26-fold4/lens-v1", .component = "fused_blake2s_v1" },
     };
 }
 pub fn formatConjecturedBits(version: FormatVersion) u32 {
@@ -582,6 +586,10 @@ pub fn formatIdentity(version: FormatVersion) [32]u8 {
     h.update(FORMAT_ID_DOMAIN);
     h.update(version.name());
     h.update(s.domain);
+    var len_bytes: [8]u8 = undefined;
+    std.mem.writeInt(u64, &len_bytes, s.component.len, .little);
+    h.update(&len_bytes);
+    h.update(s.component);
     h.update(&Channel.profile.identity());
     for ([_]u64{ @intFromEnum(s.layer), s.pcs.log_blowup, s.pcs.queries, s.pcs.pow_bits, s.pcs.fold_step, s.local_relations, @intFromBool(s.outer_gkr), formatConjecturedBits(version), TARGET_BITS }) |n| {
         var bytes: [8]u8 = undefined;

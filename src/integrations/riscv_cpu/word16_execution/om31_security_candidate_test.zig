@@ -342,3 +342,13 @@ test "reference outer r1 AIR characteristic bound from the 24628607 census: 1.9 
     try C.requireOuterGkrCharacteristic(facts, 2 * lookups);
     try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireOuterGkrCharacteristic(facts, 4 * 2 * lookups));
 }
+test "m5/m7 format versions name the owning stream's component version (outer-gkr section, fused Blake2s AIR, chi chain)" {
+    try std.testing.expectEqualStrings("stwo/rv64/outer-gkr/om31-strict-draw/lane-major/v1", C.formatSpec(.m7_outer_gkr_m3_b4_q51_p26_fold4_v1).component);
+    try std.testing.expectEqualStrings("fused_blake2s_v1", C.formatSpec(.m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1).component);
+    try std.testing.expectEqualStrings("rv64-m5-native-chi-chain/v1", C.formatSpec(.m5_native_chi_chain_v1_b2_q108_p20_fold4).component);
+    // Every version that adds a component names it; the canonical-only outer versions add none.
+    for (C.FORMAT_VERSIONS) |v| {
+        const s = C.formatSpec(v);
+        if (s.outer_gkr or s.layer == .native) try std.testing.expect(s.component.len > 0);
+    }
+}

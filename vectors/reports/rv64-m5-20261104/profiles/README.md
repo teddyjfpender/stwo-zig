@@ -12,7 +12,7 @@ This change touches notes, the corpus harness and the off-by-default registry. I
 | `{26235156,24628607}-negative-corpus-v3.json` | [M] Full runnable corpus v3 against the **M4 integrate receiver** (`1af34c0b…`, `/workspace/m3/build/m4-integrate`). Fresh, separate, GPU-disabled, cache-disabled process per case. |
 | `{26235156,24628607}-negative-corpus-v3-recsize-receiver.json` | [M] The outer-profile cases against a receiver built from `codex/rv64-m4-recsize-port` @ `d4cdf05fa` (`588791b7…`). It is the first receiver that reads `STWO_RV64_OUTER_PROFILE`; canon-vk merged the same code. |
 | `coverage-canon-vk-59e774b9e.json`, `coverage-canon-native-e3fdff934.json`, `coverage-blake-gadget-47aabadb1.json` | `coverage` of the pushed M5 branches: the U/W-tier hooks (zig tests named `corpus <ID>`) that exist. |
-| `candidate-tests-releasesafe-review2.log` | [M] `zig test -OReleaseSafe` of the candidate registry: 22/23 pass (8 new). The failure is the pre-existing `LOCAL_RELATIONS` 9-vs-10 roster test (`rv64-m7-profiles.md` §2.1). The new M5 roster test pins 10 and passes. |
+| `candidate-tests-releasesafe-review2.log` | [M] `zig test -OReleaseSafe` of the candidate registry: 23/24 pass (9 new). The failure is the pre-existing `LOCAL_RELATIONS` 9-vs-10 roster test (`rv64-m7-profiles.md` §2.1). The new M5 roster test pins 10 and passes. |
 | `mass-census.json` | [D] cross-proof LogUp mass of both dev blocks from their accepted `bundle.json` (`scripts/rv64_m5_mass_census.py`). ram is 2^23.9 / 2^24.6, leaving a 7.1 / 6.4-bit margin to p. **One global RAM relation caps a block at about 2 G instructions** [E, linear]. This applies to today's receiver as well (binding §10.2). |
 | `recsize-receiver-build.log` | build exit status of the recsize receiver (CPU only, build lock held) |
 
@@ -59,7 +59,16 @@ The M4 receiver rejects the remaining 34 (26235156) and 35 (24628607) cases with
 | U (statement-check unit test) | 7 | 3 |
 | W (circuit witness mutation) | 29 | 14 |
 
-**Hook coverage today: 0 of 53 U/W hooks** on canon-vk `59e774b9e`, canon-native `e3fdff934` and blake-gadget `47aabadb1`. blake-gadget's tests cover BG01 (completeness against std Blake2s256 and the RFC vector), BG02, BG05 and BG07 (all 13,312 single-cell perturbations, negative rows) and BG06 (padding rows) in substance. canon-vk's `vk_table.zig` tests cover G03, G05 and Z08 in substance, but they are not named `corpus <ID>`. The profiles tree has 1 hook (`M09`).
+**Hook coverage** (`coverage-<stream>-<sha>.json`, re-run on the latest pushes):
+
+| stream | commit | own hooks |
+|---|---|---|
+| blake-gadget | `0ac650b69` | **8/8** (BG01–BG08) |
+| outer-gkr | `0e609b431` | **7/7** (M01, M02, M05–M08, M10) |
+| canon-vk | `2ac415114` | 0/22 (G03, G05 and Z08 exist in substance in `vk_table.zig`, not named) |
+| canon-native | `529a2d925` | 0/8 |
+| rootverify | `92cda862e` | 0/6 U tier (its own RV R-tier corpus, 51/51) |
+| profiles | this branch | 1/1 (M09) |
 
 ### Root-only format dry run (`--format m5-root`, today's M4 receiver) [M]
 

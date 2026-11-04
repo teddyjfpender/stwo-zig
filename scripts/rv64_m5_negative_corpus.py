@@ -227,10 +227,10 @@ CASES = [
     # than 24628607's own (748,536 > 706,424 B) and was stopped by FileTooBig, not cryptographically. The
     # shape donor (--root-donor) is an accepted proof of ANOTHER block whose root.proof is no larger than this
     # block's; it is only read, never proven or measured.
-    dict(id="V06-coherent-cross-block-root", family="child-vk", expect="reject", today="m3", requires=("root_donor_fits",),
+    dict(id="V06-coherent-cross-block-root", family="child-vk", expect="reject", today="m3-cap", requires=("root_donor_fits",),
          what="root.proof of a same-size-class accepted proof of another block (passes the size cap)",
          mutate=lambda c: shutil.copyfile(c["root_donor"] / rec("root.proof")[0], c["proof"] / rec("root.proof")[0])),
-    dict(id="V07-coherent-cross-block-tree", family="child-vk", expect="reject", today="m3", requires=("root_donor_same_tree",),
+    dict(id="V07-coherent-cross-block-tree", family="child-vk", expect="reject", today="m3-cap", requires=("root_donor_same_tree",),
          what="the WHOLE recursion-om31 directory (tree.json, every leaf, fold and root) of a same-shape accepted proof of another block",
          mutate=lambda c: (shutil.rmtree(c["proof"] / "recursion-om31"), shutil.copytree(c["root_donor"] / "recursion-om31", c["proof"] / "recursion-om31"))),
     # tampered bytes (native roots, outer proofs)
@@ -281,24 +281,26 @@ CASES = [
          mutate=lambda c: c["argv"].__setitem__("profile", "proven_beta2_q256_p0_fold4")),
     # Outer profile selection (recsize): runnable once the receiver reads STWO_RV64_OUTER_PROFILE (capability
     # detected from the receiver binary); otherwise listed as unsupported, never counted as a pass.
+    # today="m3-cap": runnable today but only when `capabilities()` grants every `requires` entry. Harnesses that
+    # import CASES and filter on today == "m3" therefore keep their v2 behaviour.
     # STWO_RV64_FOLD_ARITY=2 keeps the receiver's tree plan equal to the proofs' binary tree, so only the outer
     # profile differs and a rejection cannot come from a missing node file (P02d shows that weaker path).
-    dict(id="P02-wrong-outer-profile", family="profile", expect="reject", today="m3", requires=("outer_profile_env",),
+    dict(id="P02-wrong-outer-profile", family="profile", expect="reject", today="m3-cap", requires=("outer_profile_env",),
          what="receiver selects outer m3_b4_q51_p26_fold4 (STWO_RV64_OUTER_PROFILE) with binary folds for r1 binary-fold proofs",
          mutate=lambda c: c["env"].update(STWO_RV64_OUTER_PROFILE="m3_b4_q51_p26_fold4", STWO_RV64_FOLD_ARITY="2")),
-    dict(id="P02b-wrong-outer-profile-b8", family="profile", expect="reject", today="m3", requires=("outer_profile_env",),
+    dict(id="P02b-wrong-outer-profile-b8", family="profile", expect="reject", today="m3-cap", requires=("outer_profile_env",),
          what="receiver selects outer m3_b8_q34_p26_fold4 with binary folds for r1 proofs",
          mutate=lambda c: c["env"].update(STWO_RV64_OUTER_PROFILE="m3_b8_q34_p26_fold4", STWO_RV64_FOLD_ARITY="2")),
-    dict(id="P02d-wrong-outer-profile-default-arity", family="profile", expect="reject", today="m3", requires=("outer_profile_env",),
+    dict(id="P02d-wrong-outer-profile-default-arity", family="profile", expect="reject", today="m3-cap", requires=("outer_profile_env",),
          what="receiver selects outer m3 with its default arity 4 (tree plan differs too)",
          mutate=lambda c: c["env"].__setitem__("STWO_RV64_OUTER_PROFILE", "m3_b4_q51_p26_fold4")),
-    dict(id="P04-wrong-fold-arity", family="profile", expect="reject", today="m3", requires=("outer_profile_env",),
+    dict(id="P04-wrong-fold-arity", family="profile", expect="reject", today="m3-cap", requires=("outer_profile_env",),
          what="receiver keeps r1 but plans 4-ary folds (STWO_RV64_FOLD_ARITY=4) for binary-fold proofs",
          mutate=lambda c: c["env"].update(STWO_RV64_OUTER_PROFILE="r1_b2_q108_p20_fold4", STWO_RV64_FOLD_ARITY="4")),
-    dict(id="P03-unknown-outer-profile", family="profile", expect="reject", today="m3", requires=("outer_profile_env",),
+    dict(id="P03-unknown-outer-profile", family="profile", expect="reject", today="m3-cap", requires=("outer_profile_env",),
          what="receiver given an unknown outer profile name: must refuse CLEANLY (an error exit, not a panic)",
          mutate=lambda c: c["env"].__setitem__("STWO_RV64_OUTER_PROFILE", "m9_b2_q1_p0_fold4")),
-    dict(id="C01-control-explicit-r1", family="control", expect="accept", today="m3", requires=("outer_profile_env",),
+    dict(id="C01-control-explicit-r1", family="control", expect="accept", today="m3-cap", requires=("outer_profile_env",),
          what="unmodified proof, receiver selects the r1 outer profile explicitly",
          mutate=lambda c: c["env"].__setitem__("STWO_RV64_OUTER_PROFILE", "r1_b2_q108_p20_fold4")),
     # Pending: formats that do not exist until M5 / M7 (spec only; never run).
@@ -476,7 +478,7 @@ def case_key(case_id):
 
 
 def tier_owner(case):
-    if case["today"] == "m3" and case_key(case["id"]) not in CASE_META:
+    if case["today"] in ("m3", "m3-cap") and case_key(case["id"]) not in CASE_META:
         return "R", "profiles"
     return CASE_META[case_key(case["id"])]
 
@@ -710,12 +712,12 @@ def main():
             raise SystemExit("--root-donor must be another block")
     wanted = set(args.cases.split(",")) if args.cases else None
     fmt_ok = lambda c: args.format in c.get("formats", ("m3", "m5-root", "m5-audit"))
-    candidates = [c for c in CASES if "mutate" in c and fmt_ok(c) and (c["today"] == "m3" or args.format != "m3") and (wanted is None or c["id"] in wanted)]
+    candidates = [c for c in CASES if "mutate" in c and fmt_ok(c) and (c["today"] in ("m3", "m3-cap") or args.format != "m3") and (wanted is None or c["id"] in wanted)]
     unsupported = [{"id": c["id"], "missing": [r for r in c.get("requires", ()) if not caps.get(r)]} for c in candidates if not all(caps.get(r) for r in c.get("requires", ()))]
     skip = {u["id"] for u in unsupported}
     runnable = [c for c in candidates if c["id"] not in skip]
     pending = [{k: v for k, v in c.items() if k != "mutate"} | {"status": "pending", "tier": tier_owner(c)[0], "owner": tier_owner(c)[1]}
-               for c in CASES if "mutate" not in c or (c["today"] != "m3" and args.format == "m3")]
+               for c in CASES if "mutate" not in c or (c["today"] not in ("m3", "m3-cap") and args.format == "m3")]
     load = os.getloadavg()[0]
     started = time.time()
     with cf.ThreadPoolExecutor(max_workers=args.jobs) as pool:

@@ -247,6 +247,13 @@ The registry is `FormatVersion`, `formatSpec`, `formatIdentity` and `FORMAT_VERS
 | `m7_outer_gkr_m3_b4_q51_p26_fold4_v1` | outer-gkr | outer m3 | 128 | 154 | outer LogUp-GKR section (§4) |
 | `m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1` | blake-gadget | outer m3 | 128 | 154 | fused Blake2s component AIR |
 
+**Component versions** (hashed into `formatIdentity`, as length plus bytes):
+- `m5_native_chi_chain_v1…` → canon-native `rv64-m5-native-chi-chain/v1`;
+- `m7_outer_gkr…` → outer-gkr section domain `stwo/rv64/outer-gkr/om31-strict-draw/lane-major/v1` (`outer_gkr_om31_strict_v1`);
+- `m7_outer_fused_blake…` → blake-gadget `fused_blake2s_v1`.
+
+A new component version is a new format version.
+
 The tests (`om31_security_candidate_test.zig`) pin these properties:
 - every version is 128 conjectured bits and at least today's Johnson level;
 - each base PCS equals an existing named profile;

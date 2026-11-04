@@ -1,6 +1,6 @@
 {
  "schema": "rv64-m5-negative-corpus/v3",
- "src": "/private/tmp/claude-501/-Users-theodorepender-Coding-stwo-zig/3268cd4b-cf9c-479c-a67f-1c72486c40d2/scratchpad/cov-canon-native/src",
+ "src": "/private/tmp/claude-501/-Users-theodorepender-Coding-stwo-zig/3268cd4b-cf9c-479c-a67f-1c72486c40d2/scratchpad/cov2-rootverify/src",
  "implemented": 0,
  "total": 53,
  "cases": [
