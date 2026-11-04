@@ -1,0 +1,534 @@
+{
+  "schema": "rv64-witness-task-append-inline/v1",
+  "source_base": "9b8f9b9dc",
+  "production_change": "Only inline keyword on existing append; all bounds, seeded/in-place filtering, duplicate and missing producer checks unchanged. No reserve, census or new production data.",
+  "runner": {
+    "system": "Darwin",
+    "machine": "arm64"
+  },
+  "benchmark_scope": "CPU representative constructed finalized BlakeG+QM31 arithmetic circuits, not captured production leaf/fold graphs. Original production BuildMetrics/page_allocator; no per-append instrumentation.",
+  "validation": [
+    "all graph constraints accepted",
+    "scheduled replay exactly matches all original builder values",
+    "every tasks/seeds/level_ends array matches independent DFS reference",
+    "task/seed/level field fingerprints and counts exactly equal across both control and both inline executables",
+    "95 tests pass per invocation, including original duplicate/missing/forward-reference/cycle regressions"
+  ],
+  "build_cost": {
+    "control_test_compile_seconds": 6,
+    "inline_test_compile_seconds": 7,
+    "control_compile_max_rss_mib": 518,
+    "inline_compile_max_rss_mib": 510,
+    "test_max_rss_mib": 95
+  },
+  "gnu_combined_semantic": {
+    "passed": true,
+    "target": "x86_64-linux-gnu",
+    "cpu": "x86_64_v4+sha",
+    "log_sha256": "a123ea1f75b16425566cb04548d81147fa54a642c2a9ed59065e4fe23bed6915"
+  },
+  "hardware_jobs": 0,
+  "production_speed_or_peak_claim": false,
+  "summary": [
+    {
+      "rounds": 1000,
+      "control": {
+        "samples": 6,
+        "tasks_ns_median": 44396.0,
+        "plan_ns_median": 162020.5,
+        "tasks": 3260,
+        "seeds": 10,
+        "variables": 6270,
+        "task_bytes": 39120,
+        "fingerprint": "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575"
+      },
+      "inline": {
+        "samples": 6,
+        "tasks_ns_median": 27708.0,
+        "plan_ns_median": 112250.0,
+        "tasks": 3260,
+        "seeds": 10,
+        "variables": 6270,
+        "task_bytes": 39120,
+        "fingerprint": "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575"
+      }
+    },
+    {
+      "rounds": 25000,
+      "control": {
+        "samples": 6,
+        "tasks_ns_median": 629312.0,
+        "plan_ns_median": 2539375.0,
+        "tasks": 75260,
+        "seeds": 10,
+        "variables": 150270,
+        "task_bytes": 903120,
+        "fingerprint": "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991"
+      },
+      "inline": {
+        "samples": 6,
+        "tasks_ns_median": 481771.0,
+        "plan_ns_median": 2114917.0,
+        "tasks": 75260,
+        "seeds": 10,
+        "variables": 150270,
+        "task_bytes": 903120,
+        "fingerprint": "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991"
+      }
+    },
+    {
+      "rounds": 250000,
+      "control": {
+        "samples": 6,
+        "tasks_ns_median": 6442875.0,
+        "plan_ns_median": 22948895.5,
+        "tasks": 750260,
+        "seeds": 10,
+        "variables": 1500270,
+        "task_bytes": 9003120,
+        "fingerprint": "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb"
+      },
+      "inline": {
+        "samples": 6,
+        "tasks_ns_median": 5037770.5,
+        "plan_ns_median": 21364791.5,
+        "tasks": 750260,
+        "seeds": 10,
+        "variables": 1500270,
+        "task_bytes": 9003120,
+        "fingerprint": "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb"
+      }
+    }
+  ],
+  "runs": [
+    {
+      "name": "control",
+      "variant": "control",
+      "log_sha256": "bce3a405d5478c13068a193a4ebaf8be7bd137c880b0a336c3561ab43ed23baf",
+      "samples": [
+        {
+          "rounds": 1000,
+          "trial": 0,
+          "variables": 6270,
+          "tasks": 3260,
+          "seeds": 10,
+          "task_bytes": 39120,
+          "tasks_ns": 89042,
+          "plan_ns": 247959,
+          "fingerprint": "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575"
+        },
+        {
+          "rounds": 1000,
+          "trial": 1,
+          "variables": 6270,
+          "tasks": 3260,
+          "seeds": 10,
+          "task_bytes": 39120,
+          "tasks_ns": 60083,
+          "plan_ns": 218000,
+          "fingerprint": "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575"
+        },
+        {
+          "rounds": 1000,
+          "trial": 2,
+          "variables": 6270,
+          "tasks": 3260,
+          "seeds": 10,
+          "task_bytes": 39120,
+          "tasks_ns": 70666,
+          "plan_ns": 230875,
+          "fingerprint": "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575"
+        },
+        {
+          "rounds": 25000,
+          "trial": 0,
+          "variables": 150270,
+          "tasks": 75260,
+          "seeds": 10,
+          "task_bytes": 903120,
+          "tasks_ns": 1151958,
+          "plan_ns": 4243208,
+          "fingerprint": "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991"
+        },
+        {
+          "rounds": 25000,
+          "trial": 1,
+          "variables": 150270,
+          "tasks": 75260,
+          "seeds": 10,
+          "task_bytes": 903120,
+          "tasks_ns": 1015834,
+          "plan_ns": 3331500,
+          "fingerprint": "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991"
+        },
+        {
+          "rounds": 25000,
+          "trial": 2,
+          "variables": 150270,
+          "tasks": 75260,
+          "seeds": 10,
+          "task_bytes": 903120,
+          "tasks_ns": 629666,
+          "plan_ns": 2799000,
+          "fingerprint": "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991"
+        },
+        {
+          "rounds": 250000,
+          "trial": 0,
+          "variables": 1500270,
+          "tasks": 750260,
+          "seeds": 10,
+          "task_bytes": 9003120,
+          "tasks_ns": 6759875,
+          "plan_ns": 23413000,
+          "fingerprint": "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb"
+        },
+        {
+          "rounds": 250000,
+          "trial": 1,
+          "variables": 1500270,
+          "tasks": 750260,
+          "seeds": 10,
+          "task_bytes": 9003120,
+          "tasks_ns": 6261792,
+          "plan_ns": 22102209,
+          "fingerprint": "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb"
+        },
+        {
+          "rounds": 250000,
+          "trial": 2,
+          "variables": 1500270,
+          "tasks": 750260,
+          "seeds": 10,
+          "task_bytes": 9003120,
+          "tasks_ns": 6016292,
+          "plan_ns": 21981167,
+          "fingerprint": "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb"
+        }
+      ],
+      "tests_passed": 95
+    },
+    {
+      "name": "inline",
+      "variant": "inline",
+      "log_sha256": "1df45a92c522d38474c75b4bb591004c74ef11d844be62f61607f62a78b6ffd8",
+      "samples": [
+        {
+          "rounds": 1000,
+          "trial": 0,
+          "variables": 6270,
+          "tasks": 3260,
+          "seeds": 10,
+          "task_bytes": 39120,
+          "tasks_ns": 23000,
+          "plan_ns": 95125,
+          "fingerprint": "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575"
+        },
+        {
+          "rounds": 1000,
+          "trial": 1,
+          "variables": 6270,
+          "tasks": 3260,
+          "seeds": 10,
+          "task_bytes": 39120,
+          "tasks_ns": 19958,
+          "plan_ns": 89834,
+          "fingerprint": "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575"
+        },
+        {
+          "rounds": 1000,
+          "trial": 2,
+          "variables": 6270,
+          "tasks": 3260,
+          "seeds": 10,
+          "task_bytes": 39120,
+          "tasks_ns": 21375,
+          "plan_ns": 98583,
+          "fingerprint": "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575"
+        },
+        {
+          "rounds": 25000,
+          "trial": 0,
+          "variables": 150270,
+          "tasks": 75260,
+          "seeds": 10,
+          "task_bytes": 903120,
+          "tasks_ns": 470834,
+          "plan_ns": 2117959,
+          "fingerprint": "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991"
+        },
+        {
+          "rounds": 25000,
+          "trial": 1,
+          "variables": 150270,
+          "tasks": 75260,
+          "seeds": 10,
+          "task_bytes": 903120,
+          "tasks_ns": 478042,
+          "plan_ns": 2111875,
+          "fingerprint": "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991"
+        },
+        {
+          "rounds": 25000,
+          "trial": 2,
+          "variables": 150270,
+          "tasks": 75260,
+          "seeds": 10,
+          "task_bytes": 903120,
+          "tasks_ns": 467625,
+          "plan_ns": 2051292,
+          "fingerprint": "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991"
+        },
+        {
+          "rounds": 250000,
+          "trial": 0,
+          "variables": 1500270,
+          "tasks": 750260,
+          "seeds": 10,
+          "task_bytes": 9003120,
+          "tasks_ns": 5037666,
+          "plan_ns": 21388833,
+          "fingerprint": "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb"
+        },
+        {
+          "rounds": 250000,
+          "trial": 1,
+          "variables": 1500270,
+          "tasks": 750260,
+          "seeds": 10,
+          "task_bytes": 9003120,
+          "tasks_ns": 4987291,
+          "plan_ns": 21525208,
+          "fingerprint": "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb"
+        },
+        {
+          "rounds": 250000,
+          "trial": 2,
+          "variables": 1500270,
+          "tasks": 750260,
+          "seeds": 10,
+          "task_bytes": 9003120,
+          "tasks_ns": 4991625,
+          "plan_ns": 21425459,
+          "fingerprint": "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb"
+        }
+      ],
+      "tests_passed": 95
+    },
+    {
+      "name": "control-repeat",
+      "variant": "control",
+      "log_sha256": "657ee60c26643abfb755890a6b49b1ebcdaa2419927b3f3e64f227799341782c",
+      "samples": [
+        {
+          "rounds": 1000,
+          "trial": 0,
+          "variables": 6270,
+          "tasks": 3260,
+          "seeds": 10,
+          "task_bytes": 39120,
+          "tasks_ns": 27542,
+          "plan_ns": 106041,
+          "fingerprint": "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575"
+        },
+        {
+          "rounds": 1000,
+          "trial": 1,
+          "variables": 6270,
+          "tasks": 3260,
+          "seeds": 10,
+          "task_bytes": 39120,
+          "tasks_ns": 28709,
+          "plan_ns": 99917,
+          "fingerprint": "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575"
+        },
+        {
+          "rounds": 1000,
+          "trial": 2,
+          "variables": 6270,
+          "tasks": 3260,
+          "seeds": 10,
+          "task_bytes": 39120,
+          "tasks_ns": 26875,
+          "plan_ns": 99000,
+          "fingerprint": "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575"
+        },
+        {
+          "rounds": 25000,
+          "trial": 0,
+          "variables": 150270,
+          "tasks": 75260,
+          "seeds": 10,
+          "task_bytes": 903120,
+          "tasks_ns": 628958,
+          "plan_ns": 2279750,
+          "fingerprint": "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991"
+        },
+        {
+          "rounds": 25000,
+          "trial": 1,
+          "variables": 150270,
+          "tasks": 75260,
+          "seeds": 10,
+          "task_bytes": 903120,
+          "tasks_ns": 609083,
+          "plan_ns": 2218625,
+          "fingerprint": "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991"
+        },
+        {
+          "rounds": 25000,
+          "trial": 2,
+          "variables": 150270,
+          "tasks": 75260,
+          "seeds": 10,
+          "task_bytes": 903120,
+          "tasks_ns": 610333,
+          "plan_ns": 2226084,
+          "fingerprint": "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991"
+        },
+        {
+          "rounds": 250000,
+          "trial": 0,
+          "variables": 1500270,
+          "tasks": 750260,
+          "seeds": 10,
+          "task_bytes": 9003120,
+          "tasks_ns": 6420500,
+          "plan_ns": 22896250,
+          "fingerprint": "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb"
+        },
+        {
+          "rounds": 250000,
+          "trial": 1,
+          "variables": 1500270,
+          "tasks": 750260,
+          "seeds": 10,
+          "task_bytes": 9003120,
+          "tasks_ns": 6574292,
+          "plan_ns": 23001541,
+          "fingerprint": "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb"
+        },
+        {
+          "rounds": 250000,
+          "trial": 2,
+          "variables": 1500270,
+          "tasks": 750260,
+          "seeds": 10,
+          "task_bytes": 9003120,
+          "tasks_ns": 6465250,
+          "plan_ns": 23315417,
+          "fingerprint": "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb"
+        }
+      ],
+      "tests_passed": 95
+    },
+    {
+      "name": "inline-repeat",
+      "variant": "inline",
+      "log_sha256": "ffef163cbef252252fa4b322448fcba4f2d53faef65ba4ef932efcd6673623e2",
+      "samples": [
+        {
+          "rounds": 1000,
+          "trial": 0,
+          "variables": 6270,
+          "tasks": 3260,
+          "seeds": 10,
+          "task_bytes": 39120,
+          "tasks_ns": 33958,
+          "plan_ns": 208416,
+          "fingerprint": "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575"
+        },
+        {
+          "rounds": 1000,
+          "trial": 1,
+          "variables": 6270,
+          "tasks": 3260,
+          "seeds": 10,
+          "task_bytes": 39120,
+          "tasks_ns": 32416,
+          "plan_ns": 130250,
+          "fingerprint": "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575"
+        },
+        {
+          "rounds": 1000,
+          "trial": 2,
+          "variables": 6270,
+          "tasks": 3260,
+          "seeds": 10,
+          "task_bytes": 39120,
+          "tasks_ns": 32750,
+          "plan_ns": 125917,
+          "fingerprint": "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575"
+        },
+        {
+          "rounds": 25000,
+          "trial": 0,
+          "variables": 150270,
+          "tasks": 75260,
+          "seeds": 10,
+          "task_bytes": 903120,
+          "tasks_ns": 583667,
+          "plan_ns": 2580292,
+          "fingerprint": "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991"
+        },
+        {
+          "rounds": 25000,
+          "trial": 1,
+          "variables": 150270,
+          "tasks": 75260,
+          "seeds": 10,
+          "task_bytes": 903120,
+          "tasks_ns": 605250,
+          "plan_ns": 2277833,
+          "fingerprint": "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991"
+        },
+        {
+          "rounds": 25000,
+          "trial": 2,
+          "variables": 150270,
+          "tasks": 75260,
+          "seeds": 10,
+          "task_bytes": 903120,
+          "tasks_ns": 485500,
+          "plan_ns": 2111208,
+          "fingerprint": "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991"
+        },
+        {
+          "rounds": 250000,
+          "trial": 0,
+          "variables": 1500270,
+          "tasks": 750260,
+          "seeds": 10,
+          "task_bytes": 9003120,
+          "tasks_ns": 5063167,
+          "plan_ns": 21340750,
+          "fingerprint": "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb"
+        },
+        {
+          "rounds": 250000,
+          "trial": 1,
+          "variables": 1500270,
+          "tasks": 750260,
+          "seeds": 10,
+          "task_bytes": 9003120,
+          "tasks_ns": 5043667,
+          "plan_ns": 21121000,
+          "fingerprint": "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb"
+        },
+        {
+          "rounds": 250000,
+          "trial": 2,
+          "variables": 1500270,
+          "tasks": 750260,
+          "seeds": 10,
+          "task_bytes": 9003120,
+          "tasks_ns": 5037875,
+          "plan_ns": 21152500,
+          "fingerprint": "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb"
+        }
+      ],
+      "tests_passed": 95
+    }
+  ],
+  "conclusion": "Inlining lets constant gate-family kinds specialize existing registration dispatch. Repeated CPU measurements improve the task stage and whole plan on these validated graphs. Production CPU0/Keccak/fold and GPU proofs remain unmeasured for this source slice; no protocol or memory policy change."
+}

@@ -80,7 +80,7 @@ pub fn outputs(ctx: *const C.Context(Q), task: Task, buf: *[4]u32) []const u32 {
     };
     return buf[0..1];
 }
-fn append(a: std.mem.Allocator, ctx: *const C.Context(Q), tasks: *std.ArrayList(Task), producer: []u32, task: Task) !void {
+inline fn append(a: std.mem.Allocator, ctx: *const C.Context(Q), tasks: *std.ArrayList(Task), producer: []u32, task: Task) !void {
     var obuf: [4]u32 = undefined;
     var ibuf: [6]u32 = undefined;
     const out = outputs(ctx, task, &obuf);
