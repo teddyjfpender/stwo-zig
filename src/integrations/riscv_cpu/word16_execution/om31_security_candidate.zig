@@ -320,6 +320,176 @@ pub fn requireWholeProtocolPromotion(reviews: Reviews) !void {
     // a certificate. A reviewed construction needs a new receiver registry ID.
     return error.NoReviewedWholeProtocol128Certificate;
 }
+// ---------------------------------------------------------------------------
+// M7 candidate profiles (stream profiles, 2026-11-04). OFF BY DEFAULT.
+//
+// These are NOT members of `Profile`, `PROFILES`, `Profile.parse` or the outer
+// `protocol.Profile`: no CLI flag, environment variable, proof byte or
+// receiver policy can select one. They exist so the M7 arithmetic is pinned
+// and tested before any circuit or prover depends on it. Promotion of an entry
+// = moving it into the layer's admitted registry (native: `Profile`; outer /
+// compress: `circuit_cpu/om31/protocol.zig`, owner canon-vk/compress) together
+// with fresh-receiver acceptance and the reviewed note
+// design/riscv-proving-stack/rv64-m7-profiles.md.
+//
+// `fold_step` is the LOG2 FRI folding arity per layer (core/fri: positions >>=
+// fold_step). Today's "fold4" therefore already folds 16-to-1 per FRI layer;
+// "FRI fold 8" is fold_step 3 and "fold 16" is fold_step 4.
+// ---------------------------------------------------------------------------
+pub const Layer = enum { native, outer, compress1, compress2 };
+pub const CandidateProfile = enum {
+    /// D2: native blowup 4, 54 queries, 20-bit PoW. 2*54 + 20 = 128.
+    d2_native_b4_q54_p20_fold4,
+    /// Outer leaf/fold/root (recsize 5d68d0f01 `m3_b4_q51_p26_fold4`). 2*51 + 26 = 128.
+    m3_outer_b4_q51_p26_fold4,
+    /// C1 narrow compress: blowup 8, 36 queries, 20-bit PoW. 3*36 + 20 = 128.
+    c1_b8_q36_p20_fold4,
+    /// C2 final compress, FRI arity 8: blowup 16, 27 queries, 20-bit PoW. 4*27 + 20 = 128.
+    c2_b16_q27_p20_fold3,
+    /// C2 final compress, FRI arity 16 (same arity as today's fold4).
+    c2_b16_q27_p20_fold4,
+
+    pub fn name(self: CandidateProfile) []const u8 {
+        return @tagName(self);
+    }
+};
+pub const CandidateSpec = struct {
+    layer: Layer,
+    log_blowup: u32,
+    queries: u32,
+    pow_bits: u32,
+    /// log2 FRI arity per layer.
+    fold_step: u32,
+    log_last_layer: u32 = 0,
+    /// Domain string to hash into authority identity, wire header and both
+    /// transcripts once promoted (outer convention of protocol.zig).
+    domain: []const u8,
+};
+pub const CANDIDATE_PROFILES = [_]CandidateProfile{ .d2_native_b4_q54_p20_fold4, .m3_outer_b4_q51_p26_fold4, .c1_b8_q36_p20_fold4, .c2_b16_q27_p20_fold3, .c2_b16_q27_p20_fold4 };
+pub fn candidateSpec(profile: CandidateProfile) CandidateSpec {
+    return switch (profile) {
+        .d2_native_b4_q54_p20_fold4 => .{ .layer = .native, .log_blowup = 2, .queries = 54, .pow_bits = 20, .fold_step = 4, .domain = "rv64-om31-native-d2-b4-q54-p20-fold4/CANDIDATE-v1" },
+        .m3_outer_b4_q51_p26_fold4 => .{ .layer = .outer, .log_blowup = 2, .queries = 51, .pow_bits = 26, .fold_step = 4, .domain = "stwo/circuit/native-om31/m3-b4-q51-p26-fold4/lens-v1" },
+        .c1_b8_q36_p20_fold4 => .{ .layer = .compress1, .log_blowup = 3, .queries = 36, .pow_bits = 20, .fold_step = 4, .domain = "stwo/circuit/native-om31/c1-b8-q36-p20-fold4/lens-v1" },
+        .c2_b16_q27_p20_fold3 => .{ .layer = .compress2, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 3, .domain = "stwo/circuit/native-om31/c2-b16-q27-p20-fold3/lens-v1" },
+        .c2_b16_q27_p20_fold4 => .{ .layer = .compress2, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 4, .domain = "stwo/circuit/native-om31/c2-b16-q27-p20-fold4/lens-v1" },
+    };
+}
+pub fn candidateConfig(profile: CandidateProfile) core.pcs.PcsConfig {
+    const s = candidateSpec(profile);
+    var fri = core.fri.FriConfig.init(s.log_last_layer, s.log_blowup, s.queries) catch unreachable;
+    fri.fold_step = s.fold_step;
+    return .{ .pow_bits = s.pow_bits, .fri_config = fri };
+}
+/// ethSTARK-conjecture bits: log_blowup * queries + PoW (same formula as
+/// `conjecturedBits` and `protocol.Profile.conjecturedBits`).
+pub fn candidateConjecturedBits(profile: CandidateProfile) u32 {
+    const c = candidateConfig(profile);
+    return c.fri_config.log_blowup_factor * @as(u32, @intCast(c.fri_config.n_queries)) + c.pow_bits;
+}
+/// Twice the query bits under the provable Johnson regime (per-query error
+/// about sqrt(rho)): 2 * (queries * log_blowup / 2 + pow). Doubled to stay integral.
+pub fn candidateJohnsonBitsTimes2(profile: CandidateProfile) u32 {
+    const s = candidateSpec(profile);
+    return s.queries * s.log_blowup + 2 * s.pow_bits;
+}
+/// Johnson-regime doubled bits of the admitted native default (108 + 40 = 148).
+pub fn baselineJohnsonBitsTimes2() u32 {
+    const c = configFor(DEFAULT_PROFILE);
+    return @as(u32, @intCast(c.fri_config.n_queries)) * c.fri_config.log_blowup_factor + 2 * c.pow_bits;
+}
+pub const CANDIDATE_ID_DOMAIN = "rv64-om31-m7-candidate-profile/v1\x00";
+/// Candidate identity: distinct domain, layer, every PCS parameter and the
+/// conjectured bits. Never equal to an admitted `profileIdentity`.
+pub fn candidateIdentity(profile: CandidateProfile) [32]u8 {
+    const s = candidateSpec(profile);
+    var h = std.crypto.hash.sha2.Sha256.init(.{});
+    h.update(CANDIDATE_ID_DOMAIN);
+    h.update(profile.name());
+    h.update(s.domain);
+    h.update(&Channel.profile.identity());
+    for ([_]u64{ @intFromEnum(s.layer), s.log_blowup, s.queries, s.pow_bits, s.fold_step, s.log_last_layer, candidateConjecturedBits(profile), TARGET_BITS }) |n| {
+        var bytes: [8]u8 = undefined;
+        std.mem.writeInt(u64, &bytes, n, .little);
+        h.update(&bytes);
+    }
+    return h.finalResult();
+}
+/// A candidate config is never an admitted native profile: `profileFor`
+/// must keep rejecting it until promotion.
+pub fn requireCandidateNotAdmitted(profile: CandidateProfile) !void {
+    if (profileFor(candidateConfig(profile))) |_| return error.Om31CandidateProfileAlreadyAdmitted else |_| {}
+}
+
+/// Outer LogUp-GKR (M7) algebraic budget, reporting only. Same conditional
+/// root-count model as `ledger` (Schwartz-Zippel per challenge, raw-modulo
+/// point probability 3^8/2^256, no PoW credited), applied to the outer proofs
+/// of one request whose interaction columns are proven by a batched LogUp-GKR
+/// instead of committed LogUp columns. See rv64-m7-profiles.md section 4.
+pub const OuterGkrFacts = struct {
+    /// Outer proofs in one request (leaves + folds + root + compress).
+    outer_proofs: u64,
+    /// Batched GKR instances per outer proof (relations x components).
+    instances: u64,
+    /// log2 of the largest instance (rows); = number of GKR layers.
+    max_variables: u32,
+    /// Max tuple arity of a LogUp relation in the outer circuit AIR.
+    max_tuple_arity: u64,
+    /// Sumcheck round-polynomial degree (LogUp fraction layer: 3).
+    round_degree: u64 = 3,
+    pub fn caps() OuterGkrFacts {
+        return .{ .outer_proofs = 256, .instances = 128, .max_variables = 30, .max_tuple_arity = 128 };
+    }
+    pub fn validate(self: OuterGkrFacts) !void {
+        if (self.outer_proofs == 0 or self.outer_proofs > 256 or self.instances == 0 or self.instances > 1024 or self.max_variables < 1 or self.max_variables > MAX_GKR_VARIABLES or self.max_tuple_arity == 0 or self.max_tuple_arity > MAX_TUPLE_ARITY or self.round_degree == 0 or self.round_degree > 8)
+            return error.Om31CandidateScopeExceeded;
+    }
+};
+pub const OuterGkrTerm = enum { sumcheck_rounds, instance_mix, layer_binding, tuple_compression, pole_events };
+pub const OUTER_GKR_TERMS = @typeInfo(OuterGkrTerm).@"enum".fields.len;
+pub fn outerGkrLedger(facts: OuterGkrFacts) ![OUTER_GKR_TERMS]u512 {
+    try facts.validate();
+    const p: u512 = facts.outer_proofs;
+    const i: u512 = facts.instances;
+    const v: u512 = facts.max_variables;
+    const d: u512 = facts.round_degree;
+    const n: u512 = @as(u512, 1) << @intCast(facts.max_variables);
+    const arity: u512 = facts.max_tuple_arity;
+    var out: [OUTER_GKR_TERMS]u512 = undefined;
+    // Layer k has k sumcheck rounds of degree d: sum_{k<=v} k*d = d*v(v+1)/2,
+    // per instance (overbound: no credit for batching instances in one sumcheck).
+    out[@intFromEnum(OuterGkrTerm.sumcheck_rounds)] = p * i * d * v * (v + 1) / 2;
+    // Random linear combination of instances (numerator and denominator) per layer.
+    out[@intFromEnum(OuterGkrTerm.instance_mix)] = p * (2 * i + 2) * v;
+    // Reducing two evaluation claims to one per layer (line restriction), degree <= 2.
+    out[@intFromEnum(OuterGkrTerm.layer_binding)] = p * i * 2 * v;
+    // Distinct tuples colliding under alpha-compression (degree arity), over N rows.
+    out[@intFromEnum(OuterGkrTerm.tuple_compression)] = p * i * arity * n;
+    // z hitting a compressed tuple (denominator pole), or the cleared rational identity in z.
+    out[@intFromEnum(OuterGkrTerm.pole_events)] = p * i * 2 * n;
+    return out;
+}
+fn outerGkrTotal(facts: OuterGkrFacts) !u512 {
+    var total: u512 = 0;
+    for (try outerGkrLedger(facts)) |t| total = std.math.add(u512, total, t) catch return error.Om31CandidateBudgetOverflow;
+    return total;
+}
+/// Necessary arithmetic for OM31 challenges: union of the terms times the
+/// raw-modulo point probability 3^8/2^256 is at most 2^-bits. Not a theorem.
+pub fn requireOuterGkrBits(facts: OuterGkrFacts, bits: u16) !void {
+    if (bits == 0 or bits > 256) return error.InvalidSecurityTarget;
+    const weighted = std.math.mul(u512, try outerGkrTotal(facts), 6561) catch return error.Om31CandidateBudgetOverflow;
+    if (weighted > (@as(u512, 1) << 256) >> @intCast(bits)) return error.Om31CandidateAlgebraicBudgetInsufficient;
+}
+/// The same ledger if the GKR challenges were QM31 (|F| = p^4, about 2^124):
+/// shows why the outer GKR must draw OM31 challenges (the plan's
+/// 2^-110..2^-115 estimate is this QM31 case).
+pub fn requireOuterGkrBitsQm31(facts: OuterGkrFacts, bits: u16) !void {
+    if (bits == 0 or bits > 124) return error.InvalidSecurityTarget;
+    const p: u512 = core.fields.m31.Modulus;
+    if ((try outerGkrTotal(facts)) << @intCast(bits) > p * p * p * p) return error.Om31CandidateAlgebraicBudgetInsufficient;
+}
+
 pub fn requireBenchmarkControlUnchanged() !void {
     try Policy.requireClaim(Policy.benchmarkControl(), .nominal_control_only_v1, .benchmark_control_only);
 }
