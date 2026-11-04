@@ -13,7 +13,7 @@
 using namespace stwo::cuda::rv64;
 using rv64_fixture::equal;
 using rv64_fixture::Fixture;
-static uint64_t fused_calls=0,fused_kernel_launches=0;
+static uint64_t fused_calls=0,fused_kernel_launches=0,mixed_calls=0;
 struct LayerFraction {
   StwoRv64Plane n, d;
   uint32_t count;
@@ -275,7 +275,8 @@ static void exercise(const std::string &directory, uint32_t id,
       CHECK(stwo_rv64_batch_round_on(o.ctx, 1, batch.words, descriptors.data(),
                                      l.active, l.depth, round, point, record));
       std::fill(prefetched.begin(),prefetched.end(),false);
-      const bool fused=std::getenv("STWO_RV64_TEST_BATCH_FOLD_SUM")&&left>1;
+      const bool mixed=std::getenv("STWO_RV64_TEST_MIXED_FOLD_SUM");
+      const bool fused=(mixed||std::getenv("STWO_RV64_TEST_BATCH_FOLD_SUM"))&&left>1;
       std::vector<StwoRv64BatchFoldSumJob> jobs;
       std::vector<uint32_t> ready;
       for (uint32_t j = 0; j < l.active; ++j)
@@ -291,12 +292,28 @@ static void exercise(const std::string &directory, uint32_t id,
           c = {w.banks_n[bank], w.banks_d[bank], c.count / 2};
         }
       if(fused) {
+        if(mixed) for(uint32_t j=0;j<l.active;++j) if(descriptors[j].variables==left-1) {
+          auto &w=workers[ids[j]];const auto c=current[j];
+          jobs.push_back({c.n,c.d,{},{},w.a,w.b,w.raw});ready.push_back(j);
+        }
+        const auto function=mixed?stwo_rv64_batch_mixed_fold_sum_on:stwo_rv64_batch_fold_sum_on;
+        if(mixed) for(size_t j=0;j<jobs.size();++j) if(!jobs[j].out_n.words) {
+          auto malformed=jobs;malformed[j].out_d=malformed[j].d;uint32_t rejected=123;
+          if(!function(o.ctx,1,malformed.data(),malformed.size(),2u<<left,record+32,eq,lambda,&rejected)||rejected)
+            throw std::runtime_error("mixed waking accepted partially-null output");
+          malformed=jobs;malformed[j].out_n.reserved=1;rejected=123;
+          if(!function(o.ctx,1,malformed.data(),malformed.size(),2u<<left,record+32,eq,lambda,&rejected)||rejected)
+            throw std::runtime_error("mixed waking accepted reserved output metadata");
+          malformed=jobs;malformed[j].a=malformed[j].d;rejected=123;
+          if(!function(o.ctx,1,malformed.data(),malformed.size(),2u<<left,record+32,eq,lambda,&rejected)||rejected)
+            throw std::runtime_error("mixed waking accepted input/scratch alias");
+        }
         auto bad=jobs;bad[0].out_d=bad[0].d;uint32_t launches=123;
-        if(!stwo_rv64_batch_fold_sum_on(o.ctx,1,bad.data(),bad.size(),2u<<left,record+32,eq,lambda,&launches)||launches)
+        if(!function(o.ctx,1,bad.data(),bad.size(),2u<<left,record+32,eq,lambda,&launches)||launches)
           throw std::runtime_error("fold-sum accepted input/output alias or enqueued before preflight");
-        CHECK(stwo_rv64_batch_fold_sum_on(o.ctx,1,jobs.data(),jobs.size(),2u<<left,record+32,eq,lambda,&launches));
+        CHECK(function(o.ctx,1,jobs.data(),jobs.size(),2u<<left,record+32,eq,lambda,&launches));
         if(!launches)throw std::runtime_error("fold-sum route did not launch");
-        ++fused_calls;fused_kernel_launches+=launches;
+        ++fused_calls;fused_kernel_launches+=launches;if(mixed)++mixed_calls;
         for(auto j:ready)prefetched[j]=true;
       }
     }
@@ -443,7 +460,7 @@ static void exercise(const std::string &directory, uint32_t id,
 }
 int main(int argc, char **argv) {
   try {
-    if(std::getenv("STWO_RV64_TEST_BATCH_FOLD_SUM")&&std::getenv("STWO_RV64_TEST_BATCH_TAIL"))
+    if((std::getenv("STWO_RV64_TEST_BATCH_FOLD_SUM")||std::getenv("STWO_RV64_TEST_MIXED_FOLD_SUM"))&&std::getenv("STWO_RV64_TEST_BATCH_TAIL"))
       throw std::runtime_error("select one GKR fusion at a time");
     if (argc != 2)
       throw std::runtime_error("expected full native GKR fixture directory");
@@ -453,7 +470,11 @@ int main(int argc, char **argv) {
       exercise(argv[1], 3, attack);
     for (uint32_t attack = 1; attack <= 11; ++attack)
       exercise(argv[1], 5, 0, attack);
-    if(std::getenv("STWO_RV64_TEST_BATCH_FOLD_SUM")) {
+    if(std::getenv("STWO_RV64_TEST_MIXED_FOLD_SUM")) {
+      if(!mixed_calls)throw std::runtime_error("mixed route not exercised");
+      std::printf("MIXED_FOLD_SUM_ROUTE calls=%llu\n",static_cast<unsigned long long>(mixed_calls));
+    }
+    if(std::getenv("STWO_RV64_TEST_BATCH_FOLD_SUM")||std::getenv("STWO_RV64_TEST_MIXED_FOLD_SUM")) {
       if(!fused_calls||!fused_kernel_launches)throw std::runtime_error("fold-sum route not exercised");
       std::printf("BATCH_FOLD_SUM_ROUTE calls=%llu kernel_launches=%llu\n",static_cast<unsigned long long>(fused_calls),static_cast<unsigned long long>(fused_kernel_launches));
     }

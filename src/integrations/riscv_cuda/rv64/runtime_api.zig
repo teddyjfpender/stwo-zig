@@ -5,6 +5,7 @@ pub const Api = struct {
     stwo_rv64_batch_tail_on: ?*const @TypeOf(A.stwo_rv64_batch_tail_on) = null,
     stwo_rv64_batch_sum_on: ?*const @TypeOf(A.stwo_rv64_batch_sum_on) = null,
     stwo_rv64_batch_fold_sum_on: ?*const @TypeOf(A.stwo_rv64_batch_fold_sum_on) = null,
+    stwo_rv64_batch_mixed_fold_sum_on: ?*const @TypeOf(A.stwo_rv64_batch_mixed_fold_sum_on) = null,
     stwo_rv64_batch_fold_on: ?*const @TypeOf(A.stwo_rv64_batch_fold_on) = null,
     stwo_rv64_batch_layer_on: ?*const @TypeOf(A.stwo_rv64_batch_layer_on) = null,
     stwo_rv64_batch_masks_on: ?*const @TypeOf(A.stwo_rv64_batch_masks_on) = null,

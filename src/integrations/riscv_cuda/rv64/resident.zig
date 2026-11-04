@@ -53,6 +53,7 @@ pub const TailJob = struct {
 };
 pub const BatchTailOracle = struct { input: Fraction, output: ?Fraction, mask: Slice, variables: u32 };
 pub const BatchTail = struct { state: Slice, point: Slice, lambda: Slice, eq: Plane, records: Slice, variables: u32, first: u32 };
+pub const BatchMixedFoldSum = struct { input: Fraction, folded: ?Fraction, a: Plane, b: Plane, output: Plane };
 pub const BatchFoldSum = struct { input: Fraction, folded: Fraction, a: Plane, b: Plane, output: Plane };
 pub const BatchSum = struct { input: Fraction, a: Plane, b: Plane, output: Plane };
 pub const BatchFold = struct { input: Fraction, output: Fraction };
@@ -83,6 +84,8 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         launches: u64 = 0,
         batch_fold_sum_calls: u64 = 0,
         batch_fold_sum_launches: u64 = 0,
+        mixed_fold_sum_calls: u64 = 0,
+        mixed_fold_sum_launches: u64 = 0,
         const Self = @This();
 
         fn apiFunction(comptime name: []const u8) type {
@@ -344,6 +347,49 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 self.batch_fold_sum_calls += 1;
                 self.batch_fold_sum_launches += launches;
             } else return error.MissingCudaBatchedFoldSumSymbol;
+        }
+
+        pub fn supportsMixedBatchFoldSum(self: *Self) bool {
+            if (comptime @hasField(Api, "stwo_rv64_batch_mixed_fold_sum_on") or @hasDecl(Api, "stwo_rv64_batch_mixed_fold_sum_on"))
+                return self.batched_oracles and self.batched_fold_sum and self.apiPointer("stwo_rv64_batch_mixed_fold_sum_on") != null;
+            return false;
+        }
+        pub fn foldSumMixedBatch(self: *Self, jobs: []const BatchMixedFoldSum, count: u32, challenge: Slice, eq_values: Plane, lambda: Slice) !void {
+            if (!self.supportsMixedBatchFoldSum()) return error.MissingCudaMixedBatchFoldSumSymbol;
+            if (jobs.len == 0 or jobs.len > abi.batch_max_oracles or count < 8 or count > 1 << 28 or !std.math.isPowerOfTwo(count)) return error.InvalidGeometry;
+            const groups = (count / 8 + 127) / 128;
+            try eq_values.shape(count / 8, 8);
+            var packets: [abi.batch_max_oracles]abi.BatchMixedFoldSumJob = undefined;
+            for (jobs, packets[0..jobs.len]) |job, *packet| {
+                try job.input.validate();
+                const expected = if (job.folded != null) count else count / 2;
+                if (job.input.count != expected) return error.InvalidGeometry;
+                var out_n = abi.MixedOutputPlane{};
+                var out_d = abi.MixedOutputPlane{};
+                if (job.folded) |folded| {
+                    try folded.validate();
+                    if (folded.count != count / 2) return error.InvalidGeometry;
+                    try folded.n.shape(count / 2, 8);
+                    const n = try folded.n.bind(self.context);
+                    const d = try folded.d.bind(self.context);
+                    out_n = .{ .words = n.words, .stride = n.stride, .coordinates = n.coordinates };
+                    out_d = .{ .words = d.words, .stride = d.stride, .coordinates = d.coordinates };
+                }
+                try job.a.shape(2 * groups, 8);
+                try job.b.shape(2 * groups, 8);
+                try job.output.shape(2, 8);
+                packet.* = .{ .n = try job.input.n.bind(self.context), .d = try job.input.d.bind(self.context), .out_n = out_n, .out_d = out_d, .a = try job.a.bind(self.context), .b = try job.b.bind(self.context), .out = try job.output.bind(self.context) };
+            }
+            if (comptime @hasField(Api, "stwo_rv64_batch_mixed_fold_sum_on") or @hasDecl(Api, "stwo_rv64_batch_mixed_fold_sum_on")) {
+                const owner = try self.handle();
+                var launches: u32 = 0;
+                const status = self.callApi("stwo_rv64_batch_mixed_fold_sum_on", .{ owner, self.lane_index, &packets, @as(u32, @intCast(jobs.len)), count, try self.context.deviceSlicePointer(u32, challenge, 8), try eq_values.bind(self.context), try self.context.deviceSlicePointer(u32, lambda, 8), &launches });
+                try self.result(status, launches);
+                self.batch_fold_sum_calls += 1;
+                self.batch_fold_sum_launches += launches;
+                self.mixed_fold_sum_calls += 1;
+                self.mixed_fold_sum_launches += launches;
+            } else return error.MissingCudaMixedBatchFoldSumSymbol;
         }
 
         pub fn foldSum(self: *Self, input: Fraction, challenge: Slice, folded: Fraction, eq_values: Plane, lambda: Slice, scratch_a: Plane, scratch_b: Plane, output: Plane) !void {

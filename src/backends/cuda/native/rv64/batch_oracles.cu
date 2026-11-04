@@ -67,6 +67,29 @@ __global__ void oracles_fold_sum(const __grid_constant__ FoldSumPacket packet,
       load(eq.words,eq.stride,i),from_words(lambda),job.out_n,job.out_d);
   oracle_sum(value,final?job.out:job.a);
 }
+// Only this entry accepts null folded planes: the oracle wakes next round.
+__global__ void oracles_mixed_fold_sum(const __grid_constant__ FoldSumPacket packet,
+    uint32_t count,const uint32_t *challenge,StwoRv64Plane eq,
+    const uint32_t *lambda,bool final) {
+  const auto &job=packet.jobs[blockIdx.y];
+  const uint32_t i=blockIdx.x*blockDim.x+threadIdx.x;
+  Pair value{zero(),zero()};
+  if(i<count/8) {
+    const auto e=load(eq.words,eq.stride,i),l=from_words(lambda);
+    if(job.out_n.words) value=fold_sum_tile(job.n,job.d,count,i,from_words(challenge),e,l,job.out_n,job.out_d);
+    else {
+      const uint32_t terms=count/8,j=2*i,k=2*(terms+i);
+      if(job.n.coordinates==1)
+        value=sum_term_base(job.n.words[j],load(job.d.words,job.d.stride,j),
+            job.n.words[j+1],load(job.d.words,job.d.stride,j+1),
+            job.n.words[k],load(job.d.words,job.d.stride,k),
+            job.n.words[k+1],load(job.d.words,job.d.stride,k+1),e,l);
+      else value=sum_term(oracle_read(job.n,job.d,j),oracle_read(job.n,job.d,j+1),
+          oracle_read(job.n,job.d,k),oracle_read(job.n,job.d,k+1),e,l);
+    }
+  }
+  oracle_sum(value,final?job.out:job.a);
+}
 __global__ void oracles_layer(const __grid_constant__ FoldPacket packet,
                               uint32_t half) {
   const auto &job = packet.jobs[blockIdx.y];
@@ -164,6 +187,39 @@ extern "C" int stwo_rv64_batch_fold_sum_on(void *context,uint32_t lane,
     packet.jobs[i]=j;reductions.jobs[i]={j.n,j.d,j.a,j.b,j.out};
   }
   oracles_fold_sum<<<dim3(groups,job_count),threads,0,c.stream>>>(packet,count,challenge,eq,lambda,groups==1);
+  int status=int(cudaPeekAtLastError());if(status)return status;++*launches;
+  bool current_a=true;
+  for(uint32_t pairs=groups;pairs>1;current_a=!current_a) {
+    const uint32_t blocks=oracle_blocks(pairs);
+    oracles_reduce<<<dim3(blocks,job_count),threads,0,c.stream>>>(reductions,pairs,current_a,blocks==1);
+    status=int(cudaPeekAtLastError());if(status)return status;++*launches;pairs=blocks;
+  }
+  return 0;
+}
+
+extern "C" int stwo_rv64_batch_mixed_fold_sum_on(void *context,uint32_t lane,
+    const StwoRv64BatchFoldSumJob *jobs,uint32_t job_count,uint32_t count,
+    const uint32_t *challenge,StwoRv64Plane eq,const uint32_t *lambda,
+    uint32_t *launches) {
+  if(!launches)return int(cudaErrorInvalidValue);*launches=0;
+  if(!jobs||!job_count||job_count>max_oracles||!power2(count)||count<8||count>max_count)
+    return int(cudaErrorInvalidValue);
+  const uint32_t groups=oracle_blocks(count/8);
+  RangeCustody<7*max_oracles+3> c(context,lane);
+  if(!c.range(challenge,8,false)||!c.plane(eq,count/8,8,false)||!c.range(lambda,8,false))return c.status;
+  FoldSumPacket packet{};SumPacket reductions{};
+  for(uint32_t i=0;i<job_count;++i) {
+    const auto &j=jobs[i];
+    const bool waking=!j.out_n.words;
+    if(waking) {
+      if(j.out_n.stride||j.out_n.coordinates||j.out_n.reserved||j.out_d.words||j.out_d.stride||j.out_d.coordinates||j.out_d.reserved)
+        return int(cudaErrorInvalidValue);
+    } else if(!c.plane(j.out_n,count/2,8,true)||!c.plane(j.out_d,count/2,8,true))return c.status;
+    if(!c.numerator(j.n,waking?count/2:count)||!c.plane(j.d,waking?count/2:count,8,false)||
+       !c.plane(j.a,2*groups,8,true)||!c.plane(j.b,2*groups,8,true)||!c.plane(j.out,2,8,true))return c.status;
+    packet.jobs[i]=j;reductions.jobs[i]={j.n,j.d,j.a,j.b,j.out};
+  }
+  oracles_mixed_fold_sum<<<dim3(groups,job_count),threads,0,c.stream>>>(packet,count,challenge,eq,lambda,groups==1);
   int status=int(cudaPeekAtLastError());if(status)return status;++*launches;
   bool current_a=true;
   for(uint32_t pairs=groups;pairs>1;current_a=!current_a) {

@@ -1,0 +1,45 @@
+{
+  "schema": "rv64-gkr-mixed-fold-wake-source-checkpoint/v1",
+  "status": "EXPERIMENTAL-host-and-semantic-only-CUDA-UNCOMPILED",
+  "default_enabled": false,
+  "isolated_from_qualified_ab": true,
+  "cuda_compiled": false,
+  "gpu_executed": false,
+  "production_runtime_modified": false,
+  "lease_restarted": false,
+  "qualified_predecessor_source": "017f38ec4",
+  "qualified_predecessor_runtime_sha256": "7ece93dc4ddc17bfab1b10e03fe1980e33cfa9f0d2b8ab38530a0567c486c1fb",
+  "new_optional_symbol": "stwo_rv64_batch_mixed_fold_sum_on",
+  "job_bytes": 168,
+  "old_abi_unchanged": true,
+  "host_tests": {
+    "passed": true,
+    "count": 18,
+    "named_tests": 17,
+    "root_aggregation_tests": 1,
+    "command": "zig build --build-file src/integrations/riscv_cuda/build.zig test-rv64-batch-plan -Doptimize=ReleaseFast -j4"
+  },
+  "production_semantic": {
+    "passed": true,
+    "command": "zig build --build-file src/integrations/riscv_cuda/build.zig check-rv64-ethereum-gpu -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4+sha -Doptimize=ReleaseFast -j4"
+  },
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/batch.h": "a0f998a72eb4d654021894dbc6ff5043fb7f3bbbef0a8988702d9be4e519a2d8",
+    "src/backends/cuda/native/rv64/batch_oracles.cu": "76cc251e0b02a67bff3e5de1c6291864884b28b8b5bc2539ab790725ec554888",
+    "src/integrations/riscv_cuda/rv64/abi.zig": "5c31dae70c7850b168914a4d7f620dfa5948e8780dbc59da2fcda959be25915b",
+    "src/integrations/riscv_cuda/rv64/runtime_api.zig": "b004499c4b0be5b5c933a3da9c535e3ae3724ac7709bec87c58e9648a87bd121",
+    "src/integrations/riscv_cuda/rv64/resident.zig": "8ffe0af547150dd55de9eb90b5b2db1f92758e7218b38b2d41ea93815d26d096",
+    "src/integrations/riscv_cuda/rv64/batch.zig": "52b6488e505c5679952b78162f140dcd9bd1c0262865f228bfad8cc1fc20c313",
+    "src/integrations/riscv_cuda/rv64/gkr_stage.zig": "bea86057dec4a5dbf8fd101247fad0750de2805117f7a558ccb9a92ff1540507",
+    "src/integrations/riscv_cuda/rv64/tests/batch_test.zig": "dbe6921f98e72e66058141987bdbb0dfb84085f8556f37565c892fcd580ea8eb",
+    "tests/cuda/rv64/gkr_loop_smoke.cu": "29ef92a5a9354d4af4ebe883db2b3e9356c8f06ac81227cb7d0f76e210c853a9"
+  },
+  "remaining": [
+    "Bounded SM120 compilation",
+    "Physical native golden transcript/mask/artifact parity; assert new route exercised",
+    "Actual alias/null/reserved preflight negatives",
+    "New-kernel sanitizer checks",
+    "Controlled full-block exact bytes and fresh CPU receivers",
+    "Performance evidence before any default activation"
+  ]
+}

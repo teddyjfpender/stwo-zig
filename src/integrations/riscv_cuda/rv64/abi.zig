@@ -399,3 +399,12 @@ pub extern "c" fn stwo_rv64_batch_fold_on(*anyopaque, u32, [*]const BatchFoldJob
 pub extern "c" fn stwo_rv64_batch_layer_on(*anyopaque, u32, [*]const BatchFoldJob, u32, u32, *u32) c_int;
 
 pub extern "c" fn stwo_rv64_batch_fold_sum_on(*anyopaque, u32, [*]const BatchFoldSumJob, u32, u32, [*]const u32, Plane, [*]const u32, *u32) c_int;
+// Nullable output fields are specific to the NEW waking-oracle ABI. The old
+// Plane/168-byte FoldSumJob contract remains non-null and unchanged.
+pub const MixedOutputPlane = extern struct { words: ?[*]u32 = null, stride: u64 = 0, coordinates: u32 = 0, reserved: u32 = 0 };
+pub const BatchMixedFoldSumJob = extern struct { n: Plane, d: Plane, out_n: MixedOutputPlane, out_d: MixedOutputPlane, a: Plane, b: Plane, out: Plane };
+comptime {
+    if (@sizeOf(BatchMixedFoldSumJob) != 168 or @sizeOf(MixedOutputPlane) != @sizeOf(Plane)) @compileError("mixed fold-wake ABI drift");
+    for (.{ "n", "d", "out_n", "out_d", "a", "b", "out" }) |field| if (@offsetOf(BatchMixedFoldSumJob, field) != @offsetOf(BatchFoldSumJob, field)) @compileError("mixed fold-wake field offset drift");
+}
+pub extern "c" fn stwo_rv64_batch_mixed_fold_sum_on(*anyopaque, u32, [*]const BatchMixedFoldSumJob, u32, u32, [*]const u32, Plane, [*]const u32, *u32) c_int;

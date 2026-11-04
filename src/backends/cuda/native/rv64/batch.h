@@ -66,3 +66,9 @@ extern "C" int stwo_rv64_batch_tail_on(void *, uint32_t, uint32_t *,
     const uint32_t *, StwoRv64Plane, const uint32_t *, uint32_t *);
 
 #endif
+
+// Same168-byte job ABI. Only here, BOTH zero folded planes mark a waking
+// count/2-input oracle whose ordinary raw sum is computed without a fold.
+extern "C" int stwo_rv64_batch_mixed_fold_sum_on(void *,uint32_t,
+    const StwoRv64BatchFoldSumJob *,uint32_t,uint32_t,const uint32_t *,
+    StwoRv64Plane,const uint32_t *,uint32_t *);

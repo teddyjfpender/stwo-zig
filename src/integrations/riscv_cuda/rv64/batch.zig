@@ -162,6 +162,25 @@ pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
             active_folds += 1;
             current[j] = next;
         }
+        if (comptime @hasDecl(@TypeOf(commands.*), "supportsMixedBatchFoldSum") and @hasDecl(@TypeOf(commands.*), "foldSumMixedBatch")) {
+            if (fuse_next and commands.supportsMixedBatchFoldSum()) {
+                var mixed_jobs: [abi.batch_max_oracles]R.BatchMixedFoldSum = undefined;
+                var count: usize = 0;
+                for (fused_jobs[0..active_folds], fused_indices[0..active_folds]) |job, j| {
+                    mixed_jobs[count] = .{ .input = job.input, .folded = job.folded, .a = job.a, .b = job.b, .output = job.output };
+                    count += 1;
+                    prefetched[j] = true;
+                }
+                for (work.oracles, 0..) |o, j| {
+                    if (variables[j] != remaining - 1) continue;
+                    mixed_jobs[count] = .{ .input = current[j], .folded = null, .a = o.scratch_a, .b = o.scratch_b, .output = o.sums };
+                    count += 1;
+                    prefetched[j] = true;
+                }
+                try commands.foldSumMixedBatch(mixed_jobs[0..count], fold_jobs[0].input.count, challenge, work.eq, input.lambda);
+                continue;
+            }
+        }
         if (comptime @hasDecl(@TypeOf(commands.*), "foldSumBatch")) {
             if (fuse_next) {
                 try commands.foldSumBatch(fused_jobs[0..active_folds], challenge, work.eq, input.lambda);

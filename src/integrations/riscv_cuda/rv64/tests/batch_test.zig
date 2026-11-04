@@ -18,6 +18,10 @@ const Commands = struct {
     fold_sum_available: bool = true,
     fail_fold_sum: bool = false,
     fold_sum_batches: usize = 0,
+    mixed_available: bool = false,
+    mixed_batches: usize = 0,
+    waking_base_seen: bool = false,
+    waking_secure_seen: bool = false,
     fused_base_seen: bool = false,
     fused_secure_seen: bool = false,
     raw_addresses: [3]usize = @splat(0),
@@ -58,6 +62,30 @@ const Commands = struct {
             try std.testing.expectEqual(@as(u32, 8), job.folded.n.coordinates);
             if (job.input.n.coordinates == 1) self.fused_base_seen = true else self.fused_secure_seen = true;
             self.sums[self.sum_count] = job.folded.count;
+            self.sum_count += 1;
+            try self.markRaw(job.output);
+        }
+    }
+    pub fn supportsMixedBatchFoldSum(self: *@This()) bool {
+        return self.supportsBatchFoldSum() and self.mixed_available;
+    }
+    pub fn foldSumMixedBatch(self: *@This(), jobs: []const R.BatchMixedFoldSum, count: u32, _: Slice, _: R.Plane, _: Slice) !void {
+        self.calls += 1;
+        self.mixed_batches += 1;
+        if (self.fail_fold_sum) {
+            self.poisoned = true;
+            return error.CudaEnqueueFailed;
+        }
+        for (jobs) |job| {
+            if (job.folded) |folded| {
+                try std.testing.expectEqual(count, job.input.count);
+                try std.testing.expectEqual(count / 2, folded.count);
+            } else {
+                try std.testing.expectEqual(count / 2, job.input.count);
+                try std.testing.expect(job.input.count >= 4);
+                if (job.input.n.coordinates == 1) self.waking_base_seen = true else self.waking_secure_seen = true;
+            }
+            self.sums[self.sum_count] = count / 2;
             self.sum_count += 1;
             try self.markRaw(job.output);
         }
@@ -402,6 +430,13 @@ const CounterContext = struct {
 const CounterApi = struct {
     var calls: usize = 0;
     var failure: bool = false;
+    pub fn stwo_rv64_batch_mixed_fold_sum_on(_: *anyopaque, _: u32, jobs: [*]const Abi.BatchMixedFoldSumJob, count: u32, _: u32, _: [*]const u32, _: Abi.Plane, _: [*]const u32, launches: *u32) c_int {
+        std.debug.assert(count == 2 and jobs[0].out_n.words != null and jobs[0].out_d.words != null);
+        std.debug.assert(jobs[1].out_n.words == null and jobs[1].out_d.words == null and jobs[1].out_n.stride == 0 and jobs[1].out_d.coordinates == 0);
+        calls += 1;
+        launches.* = 3;
+        return if (failure) 1 else 0;
+    }
     pub fn stwo_rv64_batch_fold_sum_on(_: *anyopaque, _: u32, _: [*]const Abi.BatchFoldSumJob, _: u32, _: u32, _: [*]const u32, _: Abi.Plane, _: [*]const u32, launches: *u32) c_int {
         calls += 1;
         launches.* = 3;
@@ -440,4 +475,58 @@ test "batched fold sum counters record only successful native enqueues" {
     try std.testing.expectEqual(@as(u64, 3), c.batch_fold_sum_launches);
     try std.testing.expectEqual(@as(usize, 2), CounterApi.calls);
     CounterApi.failure = false;
+}
+
+test "one mixed fold-wake grid eliminates newly waking ordinary sums" {
+    for ([_][3]u32{ .{ 8, 64, 2 }, .{ 64, 8, 2 } }) |sizes| {
+        var f = Fixture.initSized(sizes);
+        f.bind();
+        var context = Context{};
+        var c = Commands{ .context = &context, .batched_oracles = true, .fold_sum_enabled = true, .mixed_available = true };
+        const out = try B.enqueue(&c, f.request, f.shared);
+        try std.testing.expectEqual(@as(u32, 5), out.rounds);
+        try std.testing.expectEqual(@as(usize, 1), c.sum_batches);
+        try std.testing.expectEqual(@as(usize, 4), c.mixed_batches);
+        try std.testing.expectEqual(@as(usize, 0), c.fold_sum_batches);
+        try std.testing.expectEqual(@as(usize, 1), c.fold_batches);
+        try std.testing.expectEqual(@as(u32, 3), c.masks);
+        try std.testing.expect(if (sizes[0] == 8) c.waking_base_seen else c.waking_secure_seen);
+        // The vars0 oracle has no raw output; markRaw rejects it if accidentally scheduled.
+    }
+}
+test "mixed fold-wake keeps all-source preflight and native failure poisoning" {
+    var f = Fixture.initSized(.{ 8, 64, 2 });
+    f.bind();
+    var context = Context{};
+    var c = Commands{ .context = &context, .batched_oracles = true, .fold_sum_enabled = true, .mixed_available = true };
+    f.work[1].banks[1].d.data.generation = 1;
+    try std.testing.expectError(error.InvalidDeviceAddress, B.enqueue(&c, f.request, f.shared));
+    try std.testing.expectEqual(@as(usize, 0), c.calls);
+    f = Fixture.initSized(.{ 8, 64, 2 });
+    f.bind();
+    c.fail_fold_sum = true;
+    try std.testing.expectError(error.CudaEnqueueFailed, B.enqueue(&c, f.request, f.shared));
+    const calls = c.calls;
+    try std.testing.expectError(error.JobPoisoned, B.enqueue(&c, f.request, f.shared));
+    try std.testing.expectEqual(calls, c.calls);
+}
+
+test "typed mixed ABI preserves old layout and explicitly packs waking null outputs" {
+    try std.testing.expectEqual(@as(usize, 168), @sizeOf(Abi.BatchMixedFoldSumJob));
+    for ([_]bool{ false, true }) |base_waking| {
+        CounterApi.calls = 0;
+        CounterApi.failure = false;
+        var context = CounterContext{};
+        var c = R.Commands(CounterContext, CounterApi){ .context = &context, .lane_index = 1, .batched_oracles = true, .batched_fold_sum = true };
+        var jobs = [_]R.BatchMixedFoldSum{
+            .{ .input = CounterFixture.leaf(8), .folded = CounterFixture.fraction(4), .a = CounterFixture.plane(8), .b = CounterFixture.plane(8), .output = CounterFixture.plane(8) },
+            .{ .input = if (base_waking) CounterFixture.leaf(4) else CounterFixture.fraction(4), .folded = null, .a = CounterFixture.plane(8), .b = CounterFixture.plane(8), .output = CounterFixture.plane(8) },
+        };
+        try c.foldSumMixedBatch(&jobs, 8, CounterFixture.slice(), CounterFixture.plane(8), CounterFixture.slice());
+        try std.testing.expectEqual(@as(u64, 1), c.mixed_fold_sum_calls);
+        try std.testing.expectEqual(@as(u64, 3), c.mixed_fold_sum_launches);
+        jobs[1].input.count = 8;
+        try std.testing.expectError(error.InvalidGeometry, c.foldSumMixedBatch(&jobs, 8, CounterFixture.slice(), CounterFixture.plane(8), CounterFixture.slice()));
+        try std.testing.expectEqual(@as(usize, 1), CounterApi.calls);
+    }
 }
