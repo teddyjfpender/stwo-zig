@@ -12,9 +12,25 @@ const Events = @import("cuda_events.zig");
 const Span = enum { seed, levels };
 const Recorder = Events.RecorderFor(Span);
 const Pack = @import("outer_assignment_pack.zig");
+const Suffix = @import("assignment_suffix.zig");
 pub const Task = Pack.Task;
 pub const Seed = extern struct { out: u32, value: [4]u32 };
 pub const Job = extern struct { values: [*]u32, records: [*]const u32, indices: ?[*]const u32, status: *u32, value_count: u32, record_count: u32, index_count: u32, first: u32, count: u32, reserved: u32 = 0 };
+pub const RangeJob = extern struct {
+    session: *anyopaque,
+    values: N.Lease,
+    status: N.Lease,
+    scope: [8]u32,
+    full_count: u32,
+    prefix_count: u32,
+    range_count: u32,
+    reserved: u32 = 0,
+    ranges: [4]Suffix.Range,
+};
+pub const RangeLaunch = *const fn (*anyopaque, u32, *const RangeJob) callconv(.c) c_int;
+pub fn requireRangeSupport(enabled: bool, launch: ?RangeLaunch) !void {
+    if (enabled and launch == null) return error.MissingCircuitAssignmentRangeKernel;
+}
 pub const Launch = *const fn (*anyopaque, u32, *const Job) callconv(.c) c_int;
 pub fn requireProductionMask(mask: u32) !void {
     if (mask & 0xffff != 0xffff) return error.UnsupportedCircuitAssignmentHint;
@@ -24,6 +40,7 @@ pub fn requireProductionCapabilities(library: *std.DynLib) !void {
     _ = library.lookup(Launch, "stwo_circuit_assignment_level_on") orelse return error.MissingCircuitAssignmentKernel;
     const query = library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_capabilities") orelse return error.MissingCircuitAssignmentKernel;
     try requireProductionMask(query());
+    if (try Suffix.enabled()) try requireRangeSupport(true, library.lookup(RangeLaunch, "stwo_circuit_assignment_ranges_on"));
 }
 pub const Prepared = struct {
     allocator: std.mem.Allocator,
@@ -38,12 +55,19 @@ pub const Prepared = struct {
     seed: Launch,
     level: Launch,
     timing_api: Events.Api,
+    range_launch: ?RangeLaunch = null,
+    suffix: ?Suffix.Tail = null,
     pub fn init(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
         const seed = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;
         const level = library.lookup(Launch, "stwo_circuit_assignment_level_on") orelse return error.MissingCircuitAssignmentKernel;
+        const range_enabled = try Suffix.enabled();
+        const range_launch = if (range_enabled) library.lookup(RangeLaunch, "stwo_circuit_assignment_ranges_on") else null;
+        try requireRangeSupport(range_enabled, range_launch);
         var timer = try std.time.Timer.start();
+        const suffix = if (range_enabled) try Suffix.derive(ctx) else null;
+        const suffix_derivation_ns = timer.lap();
         var metrics: Schedule.BuildMetrics = .{};
-        var plan = try Schedule.buildProfiled(a, ctx, &metrics);
+        var plan = if (suffix) |tail| try tail.build(a, ctx, &metrics) else try Schedule.buildProfiled(a, ctx, &metrics);
         errdefer plan.deinit();
         const plan_ns = timer.lap();
         const tasks = try a.alloc(Task, plan.tasks.len);
@@ -102,10 +126,12 @@ pub const Prepared = struct {
         const seed_pack_ns = timer.lap();
         // This cache identity binds every generation byte. Chunking changes
         // only the private immutable-cache key, never the proof transcript.
-        const identity = try @import("schedule_identity.zig").digest(a, .{ std.mem.sliceAsBytes(tasks), std.mem.sliceAsBytes(indices.items), std.mem.sliceAsBytes(plan.level_ends) });
+        const original_identity = try @import("schedule_identity.zig").digest(a, .{ std.mem.sliceAsBytes(tasks), std.mem.sliceAsBytes(indices.items), std.mem.sliceAsBytes(plan.level_ends) });
+        const identity = if (suffix) |tail| Suffix.identity(original_identity, tail) else original_identity;
         const hash_ns = timer.lap();
         std.debug.print("GPU_OUTER_ASSIGNMENT_PLAN plan_ns={} producer_alloc_zero_ns={} seeds_ns={} tasks_ns={} level_alloc_zero_ns={} dependency_walk_ns={} ready_tasks={} dfs_roots={} ordering_ns={} task_pack_ns={} seed_pack_ns={} hash_ns={} task_bytes={} index_bytes={} levels={} permutation_count={} max_permutation_inputs={} permutation_pair_work={}\n", .{ plan_ns, metrics.producer_init_ns, metrics.seeds_ns, metrics.tasks_ns, metrics.level_init_ns, metrics.walk_ns, metrics.ready_tasks, metrics.dfs_roots, metrics.ordering_ns, task_pack_ns, seed_pack_ns, hash_ns, tasks.len * @sizeOf(Task), indices.items.len * 4, plan.level_ends.len, permutation_count, max_permutation_inputs, permutation_pair_work });
-        return .{ .allocator = a, .reference = if (ctx.trace_only) null else ctx.values().ptr, .count = ctx.circuit.n_vars, .plan = plan, .tasks = tasks, .indices = try indices.toOwnedSlice(a), .seeds = seeds, .identity = identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library) };
+        if (suffix) |tail| std.debug.print("GPU_OUTER_ASSIGNMENT_SUFFIX candidate=true full_variables={} prefix_variables={} range_records={} derivation_ns={} gpu_qualified=false\n", .{ tail.full, tail.prefix, tail.count, suffix_derivation_ns });
+        return .{ .range_launch = range_launch, .suffix = suffix, .allocator = a, .reference = if (ctx.trace_only) null else ctx.values().ptr, .count = ctx.circuit.n_vars, .plan = plan, .tasks = tasks, .indices = try indices.toOwnedSlice(a), .seeds = seeds, .identity = identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library) };
     }
     pub fn deinit(self: *Prepared) void {
         self.plan.deinit();
@@ -139,22 +165,39 @@ pub const Prepared = struct {
         errdefer ctx.release(&values) catch {};
         var status = try ctx.allocate(1, 0);
         defer ctx.release(&status) catch {};
-        var seed_lease = try ctx.allocate(self.seeds.len * 5, 0);
-        defer ctx.release(&seed_lease) catch {};
+        var seed_lease: ?N.Lease = if (self.seeds.len == 0) null else try ctx.allocate(self.seeds.len * 5, 0);
+        defer if (seed_lease) |*lease| ctx.release(lease) catch {};
         const alloc_ns = timer.lap();
-        try ctx.upload(try ctx.borrow(seed_lease), @as([*]const u32, @ptrCast(self.seeds.ptr))[0 .. self.seeds.len * 5]);
+        if (seed_lease) |lease| try ctx.upload(try ctx.borrow(lease), @as([*]const u32, @ptrCast(self.seeds.ptr))[0 .. self.seeds.len * 5]);
         try ctx.upload(try ctx.borrow(status), &.{0});
-        var job: Job = .{ .values = values.words.?, .records = seed_lease.words.?, .indices = null, .status = @ptrCast(status.words.?), .value_count = @intCast(self.count), .record_count = @intCast(self.seeds.len), .index_count = 0, .first = 0, .count = @intCast(self.seeds.len) };
+        var job: Job = .{ .values = values.words.?, .records = if (seed_lease) |lease| lease.words.? else values.words.?, .indices = null, .status = @ptrCast(status.words.?), .value_count = @intCast(self.count), .record_count = @intCast(self.seeds.len), .index_count = 0, .first = 0, .count = @intCast(self.seeds.len) };
         try ctx.join();
         const seed_upload_ns = timer.lap();
+        var range_calls: usize = 0;
+        var range_kernels: usize = 0;
+        if (self.suffix) |tail| if (tail.count != 0) {
+            _ = try ctx.borrow(values);
+            _ = try ctx.borrow(status);
+            const range_job = RangeJob{ .session = ctx.session, .values = values, .status = status, .scope = ctx.scope, .full_count = @intCast(self.count), .prefix_count = tail.prefix, .range_count = tail.count, .ranges = tail.ranges };
+            const launch = self.range_launch orelse return error.MissingCircuitAssignmentRangeKernel;
+            if (launch(ctx.native_context, 1, &range_job) != 0) {
+                // A late launch error may follow earlier successful range
+                // enqueues. Drain before any error defer releases their lease.
+                ctx.join() catch {};
+                return error.CudaCircuitAssignmentRangeFailed;
+            }
+            range_calls += 1;
+            range_kernels += tail.count;
+        };
+        const range_enqueue_ns: u64 = if (self.suffix != null) timer.lap() else 0;
         try recorder.mark(.seed, false, lane);
-        if (self.seed(ctx.native_context, 1, &job) != 0) return error.CudaCircuitAssignmentFailed;
+        if (self.seeds.len != 0 and self.seed(ctx.native_context, 1, &job) != 0) return error.CudaCircuitAssignmentFailed;
         try recorder.mark(.seed, true, lane);
         const seed_enqueue_ns = timer.lap();
         const task_words = @as([*]const u32, @ptrCast(self.tasks.ptr))[0 .. self.tasks.len * 8];
-        const tasks = try service.immutableWords(ctx.native_context, ctx.scope, self.key(owner.initial_scope.fixed, 0), task_words);
+        const tasks: ?N.Lease = if (task_words.len == 0) null else try service.immutableWords(ctx.native_context, ctx.scope, self.key(owner.initial_scope.fixed, 0), task_words);
         const indices: ?N.Lease = if (self.indices.len == 0) null else try service.immutableWords(ctx.native_context, ctx.scope, self.key(owner.initial_scope.fixed, 1), self.indices);
-        job.records = tasks.words.?;
+        if (tasks) |lease| job.records = lease.words.?;
         job.record_count = @intCast(self.tasks.len);
         if (indices) |lease| {
             job.indices = lease.words.?;
@@ -163,7 +206,8 @@ pub const Prepared = struct {
         try ctx.join();
         const static_ingress_ns = timer.lap();
         try recorder.mark(.levels, false, lane);
-        var launches: usize = 1;
+        var launches: usize = @intFromBool(self.seeds.len != 0) + range_kernels;
+        var level_calls: usize = 0;
         var begin: usize = 0;
         for (self.plan.level_ends) |end| {
             if (end != begin) {
@@ -171,6 +215,7 @@ pub const Prepared = struct {
                 job.count = @intCast(end - begin);
                 if (self.level(ctx.native_context, 1, &job) != 0) return error.CudaCircuitAssignmentFailed;
                 launches += 1;
+                level_calls += 1;
             }
             begin = end;
         }
@@ -196,7 +241,8 @@ pub const Prepared = struct {
         const reference_readback_ns = timer.lap();
         // Event spans include enqueue starvation; they are not sums of
         // individual kernel durations. Nsight supplies the latter.
-        std.debug.print("GPU_OUTER_ASSIGNMENT_TIMING total_ns={} alloc_ns={} seed_upload_ns={} seed_enqueue_ns={} static_ingress_ns={} levels_enqueue_ns={} levels_join_ns={} status_ns={} reference_readback_ns={} seed_stream_ms={d:.3} levels_stream_ms={d:.3} launches={} native_level_calls={}\n", .{ total_timer.read(), alloc_ns, seed_upload_ns, seed_enqueue_ns, static_ingress_ns, levels_enqueue_ns, levels_join_ns, status_ns, reference_readback_ns, try recorder.milliseconds(.seed), try recorder.milliseconds(.levels), launches, launches - 1 });
+        std.debug.print("GPU_OUTER_ASSIGNMENT_TIMING total_ns={} alloc_ns={} seed_upload_ns={} seed_enqueue_ns={} static_ingress_ns={} levels_enqueue_ns={} levels_join_ns={} status_ns={} reference_readback_ns={} seed_stream_ms={d:.3} levels_stream_ms={d:.3} launches={} native_level_calls={}\n", .{ total_timer.read(), alloc_ns, seed_upload_ns, seed_enqueue_ns, static_ingress_ns, levels_enqueue_ns, levels_join_ns, status_ns, reference_readback_ns, try recorder.milliseconds(.seed), try recorder.milliseconds(.levels), launches, level_calls });
+        if (self.suffix != null) std.debug.print("GPU_OUTER_ASSIGNMENT_RANGE_CALLS calls={} kernel_launches={} enqueue_ns={} full_variables={} prefix_variables={} status_joined_before_ready=true candidate_gpu_qualified=false\n", .{ range_calls, range_kernels, range_enqueue_ns, self.count, if (self.suffix) |tail| tail.prefix else self.count });
         std.debug.print("GPU_OUTER_ASSIGNMENT variables={} seed_words={} static_words={} levels={} full_assignment_upload_words=0\n", .{ self.count, self.seeds.len * 5, task_words.len + self.indices.len, self.plan.level_ends.len });
         return values;
     }

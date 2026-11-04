@@ -1,0 +1,93 @@
+{
+  "schema": "rv64-default-off-assignment-suffix-candidate/v1",
+  "base_commit": "94b734e97",
+  "branch": "codex/rv64-gpu-padding-range-candidate",
+  "status": "Host/CPU qualified source candidate only; NVCC and physical GPU proof qualification pending",
+  "default": "Legacy full scheduler unchanged unless STWO_RV64_OUTER_PADDING_RANGES=1;0/absent are off, other text rejects.",
+  "geometry": "FULL Circuit/PP/Authority/count/values lease remain unchanged. Only generation Plan sees borrowed prefix.",
+  "derivation": [
+    "Reverse contiguous suffix:BlakeG(allzero,4outputs),M31zero,TripleXorzero,Add1+1=2.",
+    "Every removed writer matches exact consecutive output address; no arbitrary tail-zero assumption.",
+    "Canonical constants0/1, retained EQ/public/constant/origin/per-kind-hint/permutation refs below cut required.",
+    "Existing prefix Schedule validates retained producing/input refs; no Context metadata/hooks/version enum added."
+  ],
+  "optional_native_API": {
+    "symbol": "stwo_circuit_assignment_ranges_on",
+    "old_abi_changed": false,
+    "required_before_planning_when_enabled": true,
+    "descriptor_count_max": 4,
+    "range_record_bytes": 16,
+    "job_bytes": 200,
+    "validation": "Exact existing mutablekind0 values/status leases, session/token/generation/scope/fullspan/context/allocation/nonoverlap; all descriptors valid before first enqueue.",
+    "values": "Only canonical0/2 in coordinate0, all other QM31coordinates0.",
+    "error_custody": "Partial launch error drains before lease-release error defers; seed/status errors never cleared.",
+    "control_flow": "Ranges\u2192seeds\u2192retained tasks on same lane; full joined status check before values ready for MAIN.",
+    "empty_tasks": "No empty immutableWords entry or level launch; fullvalues/ranges/seeds remain initialized.",
+    "calls": "API and kernel counters increment only after successful native launch return, not from flags.",
+    "native_image": "No image/builder promotion; optional sourceTU must be explicitly included in a future qualified image."
+  },
+  "host_tests": {
+    "full_assignment_constraint_parity": true,
+    "empty_task_prefix": true,
+    "no_empty_immutable_cache_call": true,
+    "actual_production_generate_method_mocked": true,
+    "last_range_error_drain_and_zero_live_leases": true,
+    "seed_error_remains_terminal": true,
+    "legacy_capability_mask_and_missing_optional_symbol": true,
+    "EQ_public_constant_origin_perm_forwardref_negatives": true,
+    "native_CXX_emulation_exact_values_and_prefix_preservation": true,
+    "native_bad_value_bounds_gap_overlap_reserved_token_generation_scope_kind_alias_reject_no_writes": true,
+    "readonly_kind_forgery_reject": true,
+    "all3GNU_semantics": true
+  },
+  "independent_review": "gpu_real_composition read-only review: no blocking finding; physicalGPU/NVCC/fullproof pending.",
+  "real_CPU0_diagnostic": {
+    "receipt_commit": "5f04e2d3d",
+    "source_experiment_commit": "510326e3d",
+    "result_sha256": "b9e1515dee4947d9880ac4514dbce09dcff8be8f399057c0248cf2ebbbc2f14c",
+    "inferred_prefix_variables": 33273046,
+    "full_variables": 45088768,
+    "ordinary_tasks": 18990989,
+    "prefix_tasks": 14926931,
+    "seed_count_unchanged": 931955,
+    "levels_unchanged": 120241,
+    "assignment_values_exact": 45088768,
+    "PP_columns_exact": 45,
+    "PP_cells_exact": 175686400,
+    "note": "Exact copy of candidate pure derive/build bodies was CPU-diagnosed on authenticated realCPU0; no nativeGPU range kernel executed."
+  },
+  "future_GPU_gate": {
+    "script": "tests/cuda/rv64/qualify_assignment_ranges.py",
+    "route": "Existing production joined-tool --outer-dag-control/proof/check; no separate proving pipeline.",
+    "requirements": [
+      "Pinned newnativeimage andtoolSHA",
+      "ActualrangeAPIcalls>0 andfullassignmentD2Hqualificationreference",
+      "Cold/warm/fullproofbytesexactCPUcontrol",
+      "TwofreshCPUreceivers withCUDAhidden",
+      "Scope/generation/custody negatives and physical CUDA sanitizers still needed before promotion"
+    ],
+    "executed": false
+  },
+  "commands": [
+    "zig build --build-file src/integrations/riscv_cuda/build.zig test-rv64-gkr-plan -Doptimize=ReleaseFast -j2",
+    "c++ -std=c++17 -O2 -Wall -Wextra -Werror -DSTWO_CIRCUIT_RANGE_HOST_EMULATION -Isrc/backends/cuda/native/rv64 -x c++ src/backends/cuda/native/rv64/circuit_assignment_ranges.cu tests/cuda/rv64/assignment_ranges_host.cpp -o /private/tmp/rv64-assignment-ranges-host",
+    "/private/tmp/rv64-assignment-ranges-host",
+    "zig build --build-file src/integrations/riscv_cuda/build.zig check-rv64-ethereum-gpu check-rv64-ethereum-gpu-recursion check-rv64-ethereum-gpu-combined -Doptimize=ReleaseFast -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4+sha -j2"
+  ],
+  "source_sha256": {
+    "src/integrations/riscv_cuda/rv64/assignment_suffix.zig": "ef23e647b496d230e307e067af45c868cc50f4f4fa8685c093ceabc9e5973ca0",
+    "src/integrations/riscv_cuda/rv64/outer_assignment.zig": "8a2940485bced619db0bcb6a87bff96e2c212db5fdce13eaec0db61742b9b724",
+    "src/backends/cuda/native/rv64/circuit_assignment_ranges.h": "1e6d7804de6022e872f9cf77da04c2819d400758873a509f096dfc739de2f33d",
+    "src/backends/cuda/native/rv64/circuit_assignment_ranges.cu": "18ac15f00c40799c93b16be8e91ca6bf902ff9bd0177e221a37d1ceb0a94b96c",
+    "src/integrations/riscv_cuda/rv64/tests/assignment_suffix_test.zig": "c9a86a702e78b70ddf8a9abf9856af55062a337f7d03b20ace93e30feb7a81dc",
+    "src/integrations/riscv_cuda/rv64/tests/assignment_suffix_generate_test.zig": "ebb1fa106f1e9b9bb4421e04e9104ecc9b063f4e4b34d8371ebd635415a64e88",
+    "tests/cuda/rv64/assignment_ranges_host.cpp": "cd7909d95a1eb0e70c76b43bfbf87ae985454173df09acfe5c532bda2d10684f",
+    "tests/cuda/rv64/qualify_assignment_ranges.py": "791381bbd4f789e74c8c196b4891065fa5498640e2ed2e0c12da6dcc9aeeeb92"
+  },
+  "limits": [
+    "No GPU/NVCC/rental/budget use or runtime promotion.",
+    "No fewer AIR cells, proof constraints, layers/kernel calls or production timing gain claimed.",
+    "Qualified default images keep the old path; enabling candidate against an old image fails closed.",
+    "Isolated branch only, main unchanged for review."
+  ]
+}
