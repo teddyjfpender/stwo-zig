@@ -907,11 +907,12 @@ bound.
 | LogUp (`logup alpha,beta,tau`) | `2 sum_tree g_tree 2^n_tree / |F|` | as section 2 / `accountLogup`, per tree: `g = 2` if the tree holds a `glu` triple relation, else 1; all `2^n` leaves counted (padding `(0,1)` and the blinder `(0, rho)` included). The tag `tau * rel` keeps denominators of different relations in one tree distinct (degree 1 in `tau`). The blinder adds `0/rho`; `d_0 != 0` is checked, so no leaf denominator is 0 |
 | committed-inverse LogUp (no GKR) | same, fractions = table + keys per relation | |
 | masked sumcheck, every one (`... eps`, `... rounds`) | `1/|F|` for `eps` (drawn after `sigma`, the combined claim `sigma + eps c` is linear in `eps`), `d/|F|` for each of the `n` x-rounds and the `Y` round | zk.md 4.1; `n + 1` and `d` read from the accepted proof (`rounds.len`, `deg`) |
-| zero-check / exact / virtual check claims (`zk check claim`, ...) | `(n + 1)/|F|` | as `accountSumcheck`'s claim term |
+| zero-check / exact / virtual check claims (`zk check claim`, ...) | `max(n + 1, n_claim + 1)/|F|` | as `accountSumcheck`'s claim term; an exact einsum's identity lives in the `n_out` coordinates of `rho_x` (`n_claim = n_out`, which can exceed its `n_batch + n_k` summed variables) |
 | GKR layer k (`gkr lambda`, `gkr fold`) | `1/|F|` each, plus the layer's masked sumcheck (degree 3, `k` rounds incl. `Y`) | zk.md 4.3: per tree `sum_k (3k + 4)/|F|` |
 | ext lineq | `n/|F|` | SEC-4 |
 | public tensor | `n/|F|` (`T~(z)` against `MLE(values)(z)`) | zk.md 4.4b |
 | batch | `1/|F|` (gamma) + masked sumcheck of degree 2 | |
+| aux zeta | `1/|F|` | `zeta` merges the batch hiding polynomial's `sigma_b` and `u_b` claims into one aux-table claim |
 
 Hats are not separate rounds: each hat `(1 - gamma) T~(r) + gamma P_h` becomes a
 linear claim on committed cells (`P_h` fixed at commitment), batched by gamma
@@ -930,16 +931,23 @@ same queries):
   (`2^-pow` with work).
 * **flat weight opening** (no proximity row). The weight table was tested at
   commit time (the `weight_proximity` account, fresh at a distance `delta_key`);
-  the per-proof mask table is tested by nobody. Either the mask-table words
-  have correlated agreement - bad with `R_m (E + 1)/|F|` (`weights L0
-  mask-table agreement`) - and are `delta`-close, so a query passes with
-  `rho_c + delta_key + delta`; or the combination is `delta`-far and a query
-  passes with `1 - delta`. At `delta = (1 - rho_c - delta_key)/2` both are
-  `(1 + rho_c + delta_key)/2`. `delta_key` is chosen to balance the proximity
-  proof against this (`chooseZkDeltaKey`, analysis only; `delta_key` printed).
-  zk.md 3.3's argument ("the mask term is a non-zero multiple of a fixed far
-  word", `(1 - delta)^t`) skips the correlated-agreement step; this is the
-  bound with it.
+  the per-proof mask table is tested by nobody. Per claim group, the
+  generators `V_c` of the gamma-combination (claim row `c` over the stacked
+  `[W; M]`; on `M` a fixed pad row times `c_pad`, plus the 4 group mask rows)
+  either have correlated agreement at `delta_v = delta - delta_key` - bad with
+  `R (E + 1)/|F|` per group, `R` all stacked rows (`weights L0 mask-table
+  agreement`, count = groups) - so every `M` part agrees with a codeword off
+  `delta_v + delta_key <= delta` (uniquely decoded pads) and a query passes
+  with `rho_c + delta_v`; or the combination is `delta_v`-far and a query
+  passes with `1 - delta_v`. Both are `<= 1 - delta + delta_key`.
+  (A first version read the far case at `1 - delta` with `delta` measured on
+  the mask part alone, giving `(1 + rho_c + delta_key)/2`; that drops the
+  `delta_key` bad positions of `W`, which the combined word inherits.)
+  `delta_key` is chosen to balance the proximity proof (`1 - delta_key`)
+  against this (`chooseZkDeltaKey`, analysis only; `delta_key` printed): the
+  balance is `delta_key = delta/2`. zk.md 3.3's argument ("the mask term is a
+  non-zero multiple of a fixed far word", `(1 - delta)^t`) skips the
+  correlated-agreement step; this is the bound with it.
 * **zk_pcs2** (`Config.two_level`): the outer level adds the lambda round
   (`t log G'/|F|`, round-by-round form as section 3.3), `gamma'` (`1/|F|`) and the
   committed-row sumcheck (`2 (log G' + lc + 1)/|F|`); the levels below are plain
@@ -980,7 +988,7 @@ queries, slots `C_w/4`):
 | hiding `product 20 1 zk` (flat) | 33.06 | 32.90 | aux L0 queries (38 at 0.547, no PoW) | witness L0 queries 56.1 with work |
 | hiding `product 20 1 zk`, `ZK_DEPTH=1` | 33.06 | 32.81 | aux L0 queries | witness L0 56.4, witness L1 56.6 |
 | non-hiding `product 20 1` (same q / lb / PoW) | 54.98 | 34.98 | witness L2 queries | |
-| hiding `mlp 10 11 12 12 zk` (flat), total | 32.71 | 14.89 | aux L0 queries | weights L0 / proximity 35.9 at `delta_key = 0.307` |
+| hiding `mlp 10 11 12 12 zk` (flat), total | 30.13 | 10.34 | weights L0 / weight proximity queries (30 at 0.770), 31.3 with work | aux L0 queries 33.06 (`delta_key = 0.2305`) |
 | hiding `mlp 10 11 12 12 zk`, `ZK_DEPTH=1`, total | 33.06 | 25.73 | aux L0 queries | weights L0 46.7 (= the bench's `query_bits_unique.weights`) |
 
 ZK parameters of the MLP runs: statistical distance `2^-113.4` (1573 rare-coin
@@ -996,5 +1004,6 @@ Reading:
 * The aux opening (38 queries, **no PoW**) caps every hiding proof at 33 bits.
   It is the cheapest fix: the aux table is 9 rows x 256 columns, so more
   queries (and slots) or PoW cost little.
-* The flat weight opening is weaker than the recursive one (35.9 vs 46.7 bits):
-  the per-proof mask table has no proximity row there.
+* The flat weight opening is weaker than the recursive one (31.3 vs 46.7 bits
+  with work, 11.3 vs 26.7 without): the per-proof mask table has no proximity
+  row there, so `W`'s commit-time distance `delta_key` is paid twice.

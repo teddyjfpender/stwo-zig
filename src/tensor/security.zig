@@ -754,14 +754,19 @@ pub fn uniqueProxMsg(msg: f64, log_e: u32) Proximity {
 pub const ZkMode = union(enum) {
     /// a proximity row (with its own 4 mask rows) covers every stacked table
     fresh,
-    /// no proximity row (flat weight opening): the weight table was
+    /// no proximity row (flat weight opening): the weight table W was
     /// proximity-tested at commit time at distance delta_key, the per-proof
-    /// mask table (`mask_rows` rows) by nobody. Either its words have
-    /// correlated agreement (count (E + 1) per row, union bound over the
-    /// rows) and are delta-close, or the combination is delta-far and the
-    /// queries reject; with delta = (1 - rho_c - delta_key)/2 a query passes
-    /// with probability <= (1 + rho_c + delta_key)/2 (security.md 11.2).
-    untested_mask: struct { delta_key: f64, mask_rows: f64 },
+    /// mask table M by nobody. Per claim group, the generators V_c (claim
+    /// row c over the stacked [W; M], a fixed pad row of M) of the
+    /// gamma-combination either have correlated agreement at
+    /// delta_v = delta_ud - delta_key (bad with (E + 1)/|F| per stacked row,
+    /// union bound) - then every M part is (delta_v + delta_key)-close, so
+    /// uniquely decoded, and a query passes with <= rho_c + delta_v - or the
+    /// combination is delta_v-far and a query passes with <= 1 - delta_v.
+    /// Both <= 1 - delta_ud + delta_key (security.md 11.2). The far case
+    /// cannot be read at 1 - delta with delta measured on M alone: W is only
+    /// delta_key-close, so its bad positions add delta_key.
+    untested_mask: struct { delta_key: f64 },
 };
 
 /// One hiding outer level (zk_pcs flat, or level 0 of zk_pcs2).
@@ -804,8 +809,10 @@ fn zkLevelTerms(acc: ?*Account, name: []const u8, lv: ZkLevel, mode: ZkMode, del
             agree = @max(1 - d, rho);
         },
         .untested_mask => |m| {
-            try putTerm(acc, &total, try std.fmt.bufPrint(&buf, "{s} mask-table agreement", .{name}), .prox, std.math.log2(m.mask_rows * ud.count) - LOG2_F, 0, 1, null);
-            agree = @min((1 + rho + m.delta_key) / 2, 1);
+            // one correlated-agreement event per claim group (each group's
+            // gamma-combination is its own test), over all stacked rows
+            try putTerm(acc, &total, try std.fmt.bufPrint(&buf, "{s} mask-table agreement", .{name}), .prox, std.math.log2(lv.rows * ud.count) - LOG2_F, 0, @floatFromInt(lv.n_groups), null);
+            agree = @min(1 - ud.delta + m.delta_key, 1);
         },
     }
     var rbr_query: ?[2]f64 = null;
@@ -873,14 +880,15 @@ fn accountZkOpening(a: std.mem.Allocator, acc: *Account, name: []const u8, shape
 
 /// A masked sumcheck (zk_sumcheck.verify, zk.md 4.1): eps drawn after sigma
 /// (1/|F|), the n x-rounds and the Y round, degree d each (d/|F|); for an
-/// identity checked at a random point of n variables (zero-checks, exact
-/// einsums, virtual checks) also its claim term (n + 1)/|F|, as accountSumcheck.
-fn accountMasked(acc: *Account, name: []const u8, mp: zks.MaskedProof, identity: bool) !void {
+/// identity checked at a random point of `claim_dim` variables (zero-checks,
+/// exact einsums at rho_x, virtual checks) also its claim term
+/// max(n + 1, claim_dim + 1)/|F|, as accountSumcheck.
+fn accountMasked(acc: *Account, name: []const u8, mp: zks.MaskedProof, claim_dim: ?u32) !void {
     var buf: [96]u8 = undefined;
     const n: f64 = @floatFromInt(mp.rounds.len);
     try acc.field(try std.fmt.bufPrint(&buf, "{s} eps", .{name}), 1, 1);
     try acc.field(try std.fmt.bufPrint(&buf, "{s} rounds", .{name}), @floatFromInt(mp.deg), n);
-    if (identity) try acc.field(try std.fmt.bufPrint(&buf, "{s} claim", .{name}), n, 1);
+    if (claim_dim) |cd| try acc.field(try std.fmt.bufPrint(&buf, "{s} claim", .{name}), @max(n, @as(f64, @floatFromInt(cd)) + 1), 1);
 }
 
 /// Zero-knowledge parameters of a hiding proof, reported apart from soundness.
@@ -958,12 +966,14 @@ pub fn accountHiding(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statemen
     // GKR layer k: lambda (two claims), the masked sumcheck, the fold c
     for (proof.gkr_layers) |lp| {
         try req.field("gkr lambda", 1, 1);
-        try accountMasked(&req, "gkr layer", lp, false);
+        try accountMasked(&req, "gkr layer", lp, null);
         try req.field("gkr fold", 1, 1);
     }
-    for (proof.checks) |cp| try accountMasked(&req, "zk check", cp, true);
-    for (proof.vchecks) |cp| try accountMasked(&req, "zk vcheck", cp, true);
-    for (proof.xchecks) |cp| try accountMasked(&req, "zk xcheck", cp, true);
+    for (proof.checks) |cp| try accountMasked(&req, "zk check", cp, 0);
+    for (proof.vchecks) |cp| try accountMasked(&req, "zk vcheck", cp, 0);
+    // exact einsums: Y~(rho_x) = sum ... is an identity in the n_out
+    // coordinates of rho_x, which may exceed the summed variables
+    for (proof.xchecks) |cp| try accountMasked(&req, "zk xcheck", cp, si.xcheck_out_max);
     for (st.ext.ops) |op| switch (op) {
         .lineq => |l| try req.field("ext lineq", @floatFromInt(l.n), 1),
         else => {},
@@ -971,13 +981,18 @@ pub fn accountHiding(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statemen
     // public tensors: T~(z) = MLE(values)(z) at a fresh z (zk.md 4.4b)
     for (public) |p| try req.field("public tensor", @floatFromInt(st.witness[p.id].logSize()), 1);
     try req.field("batch gamma", 1, 1);
-    try accountMasked(&req, "batch", proof.batch, false);
+    try accountMasked(&req, "batch", proof.batch, null);
 
     // witness opening (proximity row on the mask rows of table 1), aux opening
     const n_wg = nMus(proof.opening);
     try accountZkOpening(a, &req, "witness", si.witness[0..si.n_tabs], n_wg, cfg.pcs, p2, .fresh, null);
     const ap = zk.auxParams();
-    if (proof.aux_opening) |ao| try accountZkOpening(a, &req, "aux", &.{si.aux}, ao.mus.len, ap.params, null, .fresh, null);
+    if (proof.aux_opening) |ao| {
+        // zeta merges the batch hiding polynomial's two claims (sigma_b via
+        // sumForm, u_b via evalForm) into one: sigma_b + zeta u_b
+        try req.field("aux zeta", 1, 1);
+        try accountZkOpening(a, &req, "aux", &.{si.aux}, ao.mus.len, ap.params, null, .fresh, null);
+    }
 
     // weights: per-proof opening, and the commit-time proximity proof
     const wpp = zk.wpcs(cfg);
@@ -991,7 +1006,7 @@ pub fn accountHiding(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statemen
         } else {
             flat_w = true;
             delta_key = chooseZkDeltaKey(ws, ng, wpp);
-            try accountZkOpening(a, &req, "weights", &ws, ng, wpp, null, .{ .untested_mask = .{ .delta_key = delta_key, .mask_rows = @floatFromInt(ws[1].n_rows) } }, null);
+            try accountZkOpening(a, &req, "weights", &ws, ng, wpp, null, .{ .untested_mask = .{ .delta_key = delta_key } }, null);
         }
     }
     var key: ?Account = null;
@@ -1024,6 +1039,8 @@ pub fn accountHiding(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statemen
     ev += @floatFromInt(n_wg + 1);
     if (proof.aux_opening) |ao| ev += @floatFromInt(ao.mus.len + 1);
     if (proof.weight_opening) |wo| ev += @floatFromInt(nMus(wo) + 1);
+    // the weight proximity proof's beta_mu (once per commitment)
+    if (weight_prox != null) ev += 1;
     ev += 16 * @as(f64, @floatFromInt(si.two_point_pads));
     const log_p = std.math.log2(@as(f64, @floatFromInt(f.P)));
     const sd = logAdd(std.math.log2(ev) - LOG2_F, std.math.log2(@as(f64, @floatFromInt(@max(si.point_pads, 1)))) - 7 * log_p);
@@ -1047,7 +1064,7 @@ fn chooseZkDeltaKey(ws: [2]zkp.Shape, ng: usize, wpp: pcs.Params) f64 {
     while (i <= 2000) : (i += 1) {
         const d = ud.delta * @as(f64, @floatFromInt(i)) / 2000.0;
         const kb = -(zkLevelTerms(null, "k", lk, .fresh, d) catch unreachable);
-        const wb = -(zkLevelTerms(null, "w", lw, .{ .untested_mask = .{ .delta_key = d, .mask_rows = @floatFromInt(ws[1].n_rows) } }, null) catch unreachable);
+        const wb = -(zkLevelTerms(null, "w", lw, .{ .untested_mask = .{ .delta_key = d } }, null) catch unreachable);
         if (@min(kb, wb) > best) {
             best = @min(kb, wb);
             dk = d;
@@ -1423,4 +1440,29 @@ test "hiding toy: every hiding term, matching hand-derived values" {
         try std.testing.expect(std.meta.isError(accountHiding(a, cfg, st, null, &.{}, &proof, null, null)));
         proof.batch.u_val = proof.batch.u_val.sub(f.QM31.one());
     }
+}
+
+test "hiding flat weight opening: untested mask table reads 1 - delta + delta_key" {
+    // W is only delta_key-close (commit-time proof), so the far case of the
+    // mask-table split passes a query with 1 - delta_v; delta_v = delta - delta_key
+    const lv = ZkLevel{ .log_e = 10, .msg = 256 + 64, .rows = 40, .n_groups = 3, .params = .{ .log_blowup = 2, .n_queries = 30, .pow_bits = 0 } };
+    var acc = Account.init(std.testing.allocator);
+    defer acc.deinit();
+    const dk = 0.1;
+    _ = try zkLevelTerms(&acc, "w", lv, .{ .untested_mask = .{ .delta_key = dk } }, null);
+    const ud = uniqueProxMsg(lv.msg, lv.log_e);
+    var seen_q = false;
+    var seen_m = false;
+    for (acc.terms.items) |t| {
+        if (std.mem.startsWith(u8, t.name, "w queries")) {
+            try std.testing.expectApproxEqAbs(30 * std.math.log2(1 - ud.delta + dk), t.log2_err, 1e-12);
+            seen_q = true;
+        }
+        if (std.mem.eql(u8, t.name, "w mask-table agreement")) {
+            try std.testing.expectEqual(@as(f64, 3), t.count);
+            try std.testing.expectApproxEqAbs(std.math.log2(40 * ud.count) - LOG2_F, t.log2_err, 1e-12);
+            seen_m = true;
+        }
+    }
+    try std.testing.expect(seen_q and seen_m);
 }

@@ -2700,6 +2700,8 @@ pub const SecInfo = struct {
     two_point_pads: usize = 0,
     /// pads read once at a random point (GKR layer pads, accumulator pads)
     point_pads: usize = 0,
+    /// largest n_out of an exact einsum (its claim is an identity at rho_x)
+    xcheck_out_max: u32 = 0,
 };
 
 pub fn secInfo(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?WeightKey) !SecInfo {
@@ -2732,6 +2734,7 @@ pub fn secInfo(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?We
         out.logup_degree_fractions += relDeg(r) * n;
         out.logup_max_fractions = @max(out.logup_max_fractions, n);
     }
+    for (plan.xchecks) |c| out.xcheck_out_max = @max(out.xcheck_out_max, st.ext.ops[c.idx].einsum.n_out);
     out.two_point_pads += plan.vchecks.len + plan.xchecks.len;
     out.point_pads += plan.vchecks.len + plan.xchecks.len;
     if (wkey) |wk| {
