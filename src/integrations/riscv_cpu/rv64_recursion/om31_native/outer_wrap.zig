@@ -7,6 +7,64 @@ const Wire = @import("stwo_circuit_cpu_integration").om31.wire;
 pub const Device = @import("stwo_circuit_cpu_integration").om31.device_prove;
 const C = @import("common.zig");
 const PP = circuit.common.preprocessed.PreprocessedCircuit;
+const Finalize = circuit.common.finalize;
+/// Outer shape versions (canon-vk M5; binding note §1 `S_out`).
+/// - `exact` (default): every gate component is padded to the next power of
+///   two of its own row count, as in M4 (bytes unchanged).
+/// - `uniform_v1`: every recursion node (leaf and fold) is padded to the one
+///   shape `S_OUT_V1`. A fold's topology is a function of its children's
+///   shapes (fold v2 `classKey`), so with one shape a fold circuit depends
+///   only on its arity: one fold VK per arity, derivable without any block.
+///   A node whose exact shape exceeds `S_OUT_V1` fails closed
+///   (`ComponentExceedsTarget`). Padding only appends the builder's own
+///   padding gates; the padded sizes enter the preprocessed circuit, hence
+///   the FIXED root and authority identity, so producer and receiver must
+///   select the same shape (a mismatch is an authority mismatch).
+pub const Shape = enum {
+    exact,
+    uniform_v1,
+    pub fn parse(text: []const u8) !Shape {
+        if (std.mem.eql(u8, text, "exact")) return .exact;
+        if (std.mem.eql(u8, text, "uniform-v1")) return .uniform_v1;
+        return error.UnknownOm31OuterShape;
+    }
+};
+pub const SHAPE_ENV = "STWO_RV64_OUTER_SHAPE";
+/// Elementwise maximum of the 33 node shapes of 24628607 (diet census
+/// `24628607-cell-census-q108.json`, leaf-dominated): log2 rows of eq,
+/// qm31_ops, triple_xor, m31_to_u32, blake_g_gate. [D] tax +19.5% cells.
+pub const S_OUT_V1 = struct { eq: u32 = 18, qm31_ops: u32 = 23, triple_xor: u32 = 20, m31_to_u32: u32 = 21, blake_g_gate: u32 = 23 }{};
+var shape_selected = std.atomic.Value(u8).init(0xff);
+/// Process-wide; resolved once from `STWO_RV64_OUTER_SHAPE` (default exact).
+/// Unknown or unreadable values fail closed.
+pub fn shape() Shape {
+    const current = shape_selected.load(.acquire);
+    if (current != 0xff) return @enumFromInt(current);
+    var buffer: [32]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&buffer);
+    const resolved: Shape = if (std.process.getEnvVarOwned(fba.allocator(), SHAPE_ENV)) |text|
+        Shape.parse(text) catch @panic("unknown STWO_RV64_OUTER_SHAPE")
+    else |err| switch (err) {
+        error.EnvironmentVariableNotFound => .exact,
+        else => @panic("unreadable STWO_RV64_OUTER_SHAPE"),
+    };
+    _ = shape_selected.cmpxchgStrong(0xff, @intFromEnum(resolved), .acq_rel, .acquire);
+    return @enumFromInt(shape_selected.load(.acquire));
+}
+/// The padding targets of one finalized recursion graph under `shape()`.
+pub fn paddingTargets(ctx: *const C.Context) Finalize.ComponentSizes {
+    const exact = Finalize.computePaddedSizes(.fromBuilder(&ctx.circuit));
+    return switch (shape()) {
+        .exact => exact,
+        // padToTargets refuses a component above its target.
+        .uniform_v1 => Finalize.ComponentSizes.fromLogSizes(S_OUT_V1),
+    };
+}
+/// Log-only census line: raw and padded component rows of one node.
+pub fn reportShape(label: []const u8, id: usize, raw: Finalize.ComponentSizes, ctx: *const C.Context) void {
+    const padded = Finalize.rawComponentSizes(.fromBuilder(&ctx.circuit));
+    std.debug.print("RECURSION_NODE_SHAPE node={d} kind={s} shape={s} raw=[{d},{d},{d},{d},{d}] padded=[{d},{d},{d},{d},{d}]\n", .{ id, label, @tagName(shape()), raw.eq, raw.qm31_ops, raw.triple_xor, raw.m31_to_u32, raw.blake_g_gate, padded.eq, padded.qm31_ops, padded.triple_xor, padded.m31_to_u32, padded.blake_g_gate });
+}
 pub const Timings = struct {
     preprocess_ns: u64,
     prove_ns: u64,
@@ -145,7 +203,7 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
     if (ctx.trace_only and encoded == null and (factory == null or factory.?.prepare_from_circuit == null)) return error.TraceOnlySourceRequired;
     if (!ctx.trace_only and !try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
     var timer = try std.time.Timer.start();
-    try circuit.common.finalize.padToTargets(C.Q, ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&ctx.circuit)));
+    try circuit.common.finalize.padToTargets(C.Q, ctx, paddingTargets(ctx));
     const finalize_ns = timer.read();
     // Fold v2 producer only: class-keyed immutable PP reuse (device precommit).
     const class: ?[32]u8 = if (ctx.trace_only and encoded == null and factory != null and factory.?.precommit_fixed != null) Device.class_hint else null;
@@ -299,7 +357,7 @@ pub fn prepareHost(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factor
     if (ctx.circuit.output.items.len != 9) return error.CurrentOm31OutputCount;
     if (!ctx.trace_only or factory.prepare_from_circuit == null) return error.TraceOnlySourceRequired;
     var timer = try std.time.Timer.start();
-    try circuit.common.finalize.padToTargets(C.Q, ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&ctx.circuit)));
+    try circuit.common.finalize.padToTargets(C.Q, ctx, paddingTargets(ctx));
     var result = HostPrep{ .pp = null, .finalize_ns = timer.lap() };
     errdefer result.deinit(a);
     var columns = ColumnsJob{ .a = a, .ctx = ctx, .pool = @import("stwo_prover_engine").work_pool.currentScopedPool(), .device_authority = factory.precommit_fixed != null };

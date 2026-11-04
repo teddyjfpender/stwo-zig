@@ -51,6 +51,8 @@ pub const Report = struct {
     /// Plan arity (r1: 2, m3: 4 unless STWO_RV64_FOLD_ARITY overrides).
     /// Receivers derive the expected fold count from it and the leaf count.
     fold_arity: usize = 2,
+    /// Outer padding shape (`outer_wrap.Shape`): exact (M4) or uniform-v1.
+    outer_shape: []const u8 = "exact",
 };
 const Pending = struct {
     proof: *Outer.Wrapped,
@@ -223,7 +225,7 @@ pub fn inspectLeafSchedule(a: std.mem.Allocator, setups: []const *const R.CpuSet
     const native_capture_and_graph_ns = timer.lap();
     const Circuit = @import("stwo_circuit_frontend");
     const pre_padding_variables = graph.ctx.circuit.n_vars;
-    const padding_targets = Circuit.common.finalize.computePaddedSizes(.fromBuilder(&graph.ctx.circuit));
+    const padding_targets = Outer.paddingTargets(graph.ctx);
     // Match outer_wrap.wrapGraphOrLoadWithFactory BEFORE assignment planning.
     // No PP/Authority commitment or proof construction is needed for a census.
     try Circuit.common.finalize.padToTargets(@import("common.zig").Q, graph.ctx, padding_targets);
@@ -525,7 +527,7 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     defer a.free(tree);
     if (existing_only) try @import("publication.zig").requireBytes(a, dir, "tree.json", tree) else try dir.writeFile(.{ .sub_path = "tree.json", .data = tree });
     const trace_only_backend = factory != null and factory.?.prepare_from_circuit != null;
-    const report = Report{ .outer_backend = if (existing_only) "cpu_trace_only_receiver" else if (trace_only_backend) "cuda_trace_only" else if (factory != null) "cuda_from_host_assignment" else "cpu", .assignment_source = if (existing_only) "none_receiver_trace_only" else if (trace_only_backend) "gpu_original_circuit_dag" else "cpu_circuit_builder", .gpu_new_leaf_proofs = if (factory != null) n - restored_leaves else 0, .gpu_new_fold_proofs = if (factory != null) n - 1 - restored_folds else 0, .leaf_proofs = n, .restored_leaves = restored_leaves, .fold_proofs = n - 1, .restored_folds = restored_folds, .peak_pending_authorities = peak_pending, .retired_preprocessed_bytes = retired_bytes, .root_node = final.node, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = graph_ns, .wrap_ns = wrap_ns, .fold_ns = fold_ns, .root_verify_ns = verify_ns, .total_ns = timer.read(), .root_proof_bytes = bytes.len };
+    const report = Report{ .outer_shape = @tagName(Outer.shape()), .outer_backend = if (existing_only) "cpu_trace_only_receiver" else if (trace_only_backend) "cuda_trace_only" else if (factory != null) "cuda_from_host_assignment" else "cpu", .assignment_source = if (existing_only) "none_receiver_trace_only" else if (trace_only_backend) "gpu_original_circuit_dag" else "cpu_circuit_builder", .gpu_new_leaf_proofs = if (factory != null) n - restored_leaves else 0, .gpu_new_fold_proofs = if (factory != null) n - 1 - restored_folds else 0, .leaf_proofs = n, .restored_leaves = restored_leaves, .fold_proofs = n - 1, .restored_folds = restored_folds, .peak_pending_authorities = peak_pending, .retired_preprocessed_bytes = retired_bytes, .root_node = final.node, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = graph_ns, .wrap_ns = wrap_ns, .fold_ns = fold_ns, .root_verify_ns = verify_ns, .total_ns = timer.read(), .root_proof_bytes = bytes.len };
     const report_bytes = try std.json.Stringify.valueAlloc(a, report, .{ .whitespace = .indent_2 });
     defer a.free(report_bytes);
     if (!existing_only) try dir.writeFile(.{ .sub_path = "report.json", .data = report_bytes });
@@ -768,7 +770,7 @@ fn finishPlanned(shared: *ParallelExecution, plan: *const Dag.Plan, backend: []c
     const n = input.inventory.workers.len;
     const folds = plan.count - n;
     const from_gpu = scheduler_info != null or input.factory != null;
-    const report = Report{ .fold_arity = plan.arity, .outer_backend = backend, .assignment_source = if (input.existing_only) "none_receiver_trace_only" else if (std.mem.eql(u8, backend, "cuda_trace_only")) "gpu_original_circuit_dag" else "cpu_circuit_builder", .gpu_new_leaf_proofs = if (from_gpu) n - shared.restored_leaves else 0, .gpu_new_fold_proofs = if (from_gpu) folds - shared.restored_folds else 0, .leaf_proofs = n, .restored_leaves = shared.restored_leaves, .fold_proofs = folds, .restored_folds = shared.restored_folds, .peak_pending_authorities = shared.dispatch.queue.peak, .retired_preprocessed_bytes = shared.retired_bytes, .root_node = plan.root, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = shared.graph_ns, .wrap_ns = shared.wrap_ns, .fold_ns = shared.fold_ns, .root_verify_ns = verify_ns, .total_ns = input.timer.read(), .root_proof_bytes = bytes.len };
+    const report = Report{ .outer_shape = @tagName(Outer.shape()), .fold_arity = plan.arity, .outer_backend = backend, .assignment_source = if (input.existing_only) "none_receiver_trace_only" else if (std.mem.eql(u8, backend, "cuda_trace_only")) "gpu_original_circuit_dag" else "cpu_circuit_builder", .gpu_new_leaf_proofs = if (from_gpu) n - shared.restored_leaves else 0, .gpu_new_fold_proofs = if (from_gpu) folds - shared.restored_folds else 0, .leaf_proofs = n, .restored_leaves = shared.restored_leaves, .fold_proofs = folds, .restored_folds = shared.restored_folds, .peak_pending_authorities = shared.dispatch.queue.peak, .retired_preprocessed_bytes = shared.retired_bytes, .root_node = plan.root, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = shared.graph_ns, .wrap_ns = shared.wrap_ns, .fold_ns = shared.fold_ns, .root_verify_ns = verify_ns, .total_ns = input.timer.read(), .root_proof_bytes = bytes.len };
     if (input.existing_only) return report;
     const report_bytes = try std.json.Stringify.valueAlloc(a, report, .{ .whitespace = .indent_2 });
     defer a.free(report_bytes);
@@ -1041,7 +1043,9 @@ const Pipelined = struct {
         if (children != null) Outer.Device.class_hint = try Bridge.classKey(kids);
         defer Outer.Device.class_hint = null;
         // Any lane's factory: host prep reads only immutable library symbols.
+        const raw_shape = @import("stwo_circuit_frontend").common.finalize.rawComponentSizes(.fromBuilder(&job.ctx().circuit));
         job.host = try Outer.prepareHost(a, job.ctx(), self.options.lanes[0].factory);
+        Outer.reportShape(job.record.kind, job.id, raw_shape, job.ctx());
         job.record.variables = job.ctx().circuit.n_vars;
         job.record.finalize_ns = job.host.?.finalize_ns;
         job.record.columns_ns = job.host.?.columns_ns;
@@ -1244,7 +1248,7 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
     try @import("publication.zig").write(input.dir, "tree.json", tree);
     const n = input.inventory.workers.len;
     const folds = plan.count - n;
-    const report = Report{ .fold_arity = plan.arity, .outer_backend = "cuda_trace_only", .assignment_source = "gpu_original_circuit_dag", .gpu_new_leaf_proofs = n - shared.restored_leaves, .gpu_new_fold_proofs = folds - shared.restored_folds, .leaf_proofs = n, .restored_leaves = shared.restored_leaves, .fold_proofs = folds, .restored_folds = shared.restored_folds, .peak_pending_authorities = shared.queue.peak, .retired_preprocessed_bytes = shared.retired_bytes, .root_node = plan.root, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = shared.graph_ns, .wrap_ns = shared.wrap_ns, .fold_ns = shared.fold_ns, .root_verify_ns = verify_ns, .total_ns = input.timer.read(), .root_proof_bytes = bytes.len };
+    const report = Report{ .outer_shape = @tagName(Outer.shape()), .fold_arity = plan.arity, .outer_backend = "cuda_trace_only", .assignment_source = "gpu_original_circuit_dag", .gpu_new_leaf_proofs = n - shared.restored_leaves, .gpu_new_fold_proofs = folds - shared.restored_folds, .leaf_proofs = n, .restored_leaves = shared.restored_leaves, .fold_proofs = folds, .restored_folds = shared.restored_folds, .peak_pending_authorities = shared.queue.peak, .retired_preprocessed_bytes = shared.retired_bytes, .root_node = plan.root, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = shared.graph_ns, .wrap_ns = shared.wrap_ns, .fold_ns = shared.fold_ns, .root_verify_ns = verify_ns, .total_ns = input.timer.read(), .root_proof_bytes = bytes.len };
     const report_bytes = try std.json.Stringify.valueAlloc(a, report, .{ .whitespace = .indent_2 });
     defer a.free(report_bytes);
     try @import("publication.zig").write(input.dir, "report.json", report_bytes);

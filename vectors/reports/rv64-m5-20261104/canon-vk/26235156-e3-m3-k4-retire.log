@@ -1,0 +1,4 @@
+info: rv64 OM31 pipelined recursion: nodes=15 lanes=2 host_workers=8 prep_pool_workers=24 prep_ahead=6
+error: rv64 OM31 pipelined recursion node 5 failed: InvalidTraceInputRetirementScope
+error: rv64 OM31 pipelined recursion node 2 failed: InvalidTraceInputRetirementScope
+error: InvalidTraceInputRetirementScope
