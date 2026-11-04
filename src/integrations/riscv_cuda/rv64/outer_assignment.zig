@@ -62,7 +62,7 @@ pub const Prepared = struct {
         errdefer if (narrow_plan) |*value| value.deinit();
         const level_stats = if (narrow_plan) |value| value.stats else try Runs.inspect(plan.level_ends, plan.tasks.len);
         const run_plan_ns = timer.lap();
-        std.debug.print("GPU_OUTER_ASSIGNMENT_LEVELS enabled={} levels={} nonempty={} empty={} width_1_32={} width_33_64={} width_65_128={} width_129_256={} width_gt256={} max_width={} selected_narrow_runs={} selected_narrow_levels={} run_plan_ns={}\n", .{ enabled, level_stats.levels, level_stats.nonempty, level_stats.empty, level_stats.width_1_32, level_stats.width_33_64, level_stats.width_65_128, level_stats.width_129_256, level_stats.width_gt256, level_stats.max_width, if (narrow_plan) |value| value.narrow_runs else 0, if (narrow_plan) |value| value.narrow_levels else 0, run_plan_ns });
+        std.debug.print("GPU_OUTER_ASSIGNMENT_LEVELS enabled={} cta_threads={} max_run_levels={} levels={} nonempty={} empty={} width_1_32={} width_33_64={} width_65_128={} width_129_256={} width_gt256={} max_width={} selected_narrow_runs={} selected_narrow_levels={} run_plan_ns={}\n", .{ enabled, Runs.threads, Runs.max_levels, level_stats.levels, level_stats.nonempty, level_stats.empty, level_stats.width_1_32, level_stats.width_33_64, level_stats.width_65_128, level_stats.width_129_256, level_stats.width_gt256, level_stats.max_width, if (narrow_plan) |value| value.narrow_runs else 0, if (narrow_plan) |value| value.narrow_levels else 0, run_plan_ns });
 
         const tasks = try a.alloc(Task, plan.tasks.len);
         errdefer a.free(tasks);
