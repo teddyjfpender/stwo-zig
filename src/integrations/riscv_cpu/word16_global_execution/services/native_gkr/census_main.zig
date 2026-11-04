@@ -31,9 +31,11 @@ const Slot = struct {
     ram_cols: usize,
     other_cols: usize,
     other_relation: []const u8,
+    ram_queries: usize = 0,
+    other_queries: usize = 0,
 };
 const Cpu = struct { slots: []Slot, main_cells: u64, inter_cells: u64, inter_cols: usize };
-const TruthPart = struct { kind: []const u8, log: u32, main_cols: usize, local_cols: usize, global_cols: usize, global_relation: []const u8 };
+const TruthPart = struct { kind: []const u8, log: u32, main_cols: usize, local_cols: usize, global_cols: usize, global_relation: []const u8, local_queries: usize = 0, global_queries: usize = 0, queries_exact: bool = false };
 const Truth = struct { family: []const u8, calls: u32, logs: [2]u32, parts: []TruthPart, main_cells: u64, inter_cells: u64 };
 
 fn originName(a: std.mem.Allocator, origin: anytype) ![]const u8 {
@@ -102,6 +104,8 @@ pub fn main() !void {
                 .ram_cols = l.ramWidth(),
                 .other_cols = l.otherWidth(),
                 .other_relation = if (l.other_queries == 0) "none" else if (Global.isKio(slot.origin)) "kio" else "wire",
+                .ram_queries = l.ram_queries,
+                .other_queries = l.other_queries,
             };
             main_cells += rows * s.main_cols;
             inter_cells += rows * (s.binding_cols + s.ram_cols + s.other_cols);
@@ -131,11 +135,12 @@ pub fn main() !void {
             for (try TruthShapes.shapesForDeclaration(d)) |shape| {
                 const w = shape.widths();
                 const local = shape.localWidth();
-                try parts.append(a, .{ .kind = @tagName(shape.kind), .log = shape.log_size, .main_cols = w[1], .local_cols = local, .global_cols = w[2] - local, .global_relation = if (w[2] > local) "kio" else "none" });
+                try parts.append(a, .{ .kind = @tagName(shape.kind), .log = shape.log_size, .main_cols = w[1], .local_cols = local, .global_cols = w[2] - local, .global_relation = if (w[2] > local) "kio" else "none", .local_queries = shape.instance().queries, .global_queries = if (shape.kind == .keccak) shape.keccak_policy.ioLookups() else 0, .queries_exact = true });
             }
         } else {
             const desc = try V3.descriptorForDeclaration(d);
-            try parts.append(a, .{ .kind = @tagName(d.family), .log = desc.log_size, .main_cols = desc.shape.main, .local_cols = desc.shape.byte_batches * 8, .global_cols = desc.shape.wire_batches * 8, .global_relation = "wire" });
+            // v3 batches pack two fractions per inverse column: queries ~ 2 x batches (estimate).
+            try parts.append(a, .{ .kind = @tagName(d.family), .log = desc.log_size, .main_cols = desc.shape.main, .local_cols = desc.shape.byte_batches * 8, .global_cols = desc.shape.wire_batches * 8, .global_relation = "wire", .local_queries = 2 * desc.shape.byte_batches, .global_queries = 2 * desc.shape.wire_batches });
         }
         var main_cells: u64 = 0;
         var inter_cells: u64 = 0;
