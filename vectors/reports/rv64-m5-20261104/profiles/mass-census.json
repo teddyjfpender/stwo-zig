@@ -1,0 +1,34 @@
+{
+ "schema": "rv64-m5-mass-census/v1",
+ "label": "D",
+ "source": "bundle.json requests of the accepted M3 cold proofs /workspace/m3/runs/integrate/<block>-2gpu-cold1 (byte-identical to M4)",
+ "formula": "mass_authority.zig per CPU segment: 2 ls + 2 ls_dword + 50 K + 58 sponge_calls + 36 perms + bulk.ram (6 calls + 4 copy + 2 set + 4 ucopy + 8 cmp_calls + 4 cmp_words) + 2 * memory_words (mb init + teardown); kio = 50 K + 100 (sponge calls + perms) + 50 (K + perms) truth side",
+ "lower_bound_note": "ram omits the secp/sha256/arith256 packet words and JUMPDEST terms (small): it is a lower bound",
+ "p": 2147483647,
+ "blocks": {
+  "26235156": {
+   "cpu_segments": 4,
+   "ram_lower_bound": 15713510,
+   "ram_log2": 23.91,
+   "ram_margin_bits": 7.09,
+   "max_segment_ram": 4650148,
+   "init_plus_teardown": 1374684,
+   "kio": 3550600,
+   "kio_log2": 21.76,
+   "keccak_calls": 1432,
+   "sponge_perms": 19562
+  },
+  "24628607": {
+   "cpu_segments": 7,
+   "ram_lower_bound": 26223886,
+   "ram_log2": 24.64,
+   "ram_margin_bits": 6.36,
+   "max_segment_ram": 5348132,
+   "init_plus_teardown": 2064432,
+   "kio": 4992950,
+   "kio_log2": 22.25,
+   "keccak_calls": 1949,
+   "sponge_perms": 28049
+  }
+ }
+}

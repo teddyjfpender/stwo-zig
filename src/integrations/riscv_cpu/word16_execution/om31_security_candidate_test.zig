@@ -223,3 +223,132 @@ test "m7 outer LogUp characteristic bound: caps would wrap p, realistic M7 facts
     try C.requireOuterGkrCharacteristic(caps, (@as(u64, 1) << 31) - 2);
     try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireOuterGkrCharacteristic(caps, (@as(u64, 1) << 31) - 1));
 }
+
+// ---- M5/M7 named format versions and NS reference models (stream profiles, review 2) ----
+const ADMITTED_OUTER_DOMAINS = [_][]const u8{ "stwo/circuit/native-om31/q108-p20-fold4/lens-v1", "stwo/circuit/native-om31/m3-b4-q51-p26-fold4/lens-v1", "stwo/circuit/native-om31/m3-b8-q34-p26-fold4/lens-v1" };
+test "m5 format versions keep 128 conjectured bits of their base PCS, distinct domains and identities, off by default" {
+    const baseline = C.baselineJohnsonBitsTimes2();
+    for (C.FORMAT_VERSIONS, 0..) |v, k| {
+        const s = C.formatSpec(v);
+        // Hand arithmetic: 1*108 + 20 = 2*51 + 26 = 128; Johnson x2: 108 + 40 = 148, 102 + 52 = 154.
+        try std.testing.expectEqual(@as(u32, 128), C.formatConjecturedBits(v));
+        try std.testing.expect(C.formatJohnsonBitsTimes2(v) >= baseline);
+        try std.testing.expectEqual(@as(u32, 4), s.pcs.fold_step);
+        // Its base PCS is an existing named profile: admitted native default, r1 outer, or the m3 candidate.
+        switch (s.layer) {
+            .native => {
+                const today = C.configFor(C.DEFAULT_PROFILE);
+                try std.testing.expectEqual(today.fri_config.log_blowup_factor, s.pcs.log_blowup);
+                try std.testing.expectEqual(@as(u32, @intCast(today.fri_config.n_queries)), s.pcs.queries);
+                try std.testing.expectEqual(today.pow_bits, s.pcs.pow_bits);
+                // The M5 native version must not hash an identity with different caps under the old domain.
+                try std.testing.expect(!std.mem.eql(u8, s.domain, C.CONJECTURED_ID_DOMAIN));
+                try std.testing.expectEqual(@as(u64, 10), s.local_relations);
+            },
+            .outer => {
+                const m3 = C.candidateSpec(.m3_outer_b4_q51_p26_fold4);
+                const is_r1 = s.pcs.log_blowup == 1 and s.pcs.queries == 108 and s.pcs.pow_bits == 20;
+                const is_m3 = s.pcs.log_blowup == m3.log_blowup and s.pcs.queries == m3.queries and s.pcs.pow_bits == m3.pow_bits;
+                try std.testing.expect(is_r1 or is_m3);
+                for (ADMITTED_OUTER_DOMAINS) |d| try std.testing.expect(!std.mem.eql(u8, s.domain, d));
+            },
+            else => return error.TestUnexpectedResult,
+        }
+        for (C.PROFILES) |admitted| try std.testing.expect(!std.mem.eql(u8, &C.profileIdentity(admitted), &C.formatIdentity(v)));
+        for (C.CANDIDATE_PROFILES) |c| {
+            try std.testing.expect(!std.mem.eql(u8, &C.candidateIdentity(c), &C.formatIdentity(v)));
+            try std.testing.expect(!std.mem.eql(u8, C.candidateSpec(c).domain, s.domain));
+        }
+        for (C.FORMAT_VERSIONS[k + 1 ..]) |w| {
+            try std.testing.expect(!std.mem.eql(u8, &C.formatIdentity(v), &C.formatIdentity(w)));
+            try std.testing.expect(!std.mem.eql(u8, s.domain, C.formatSpec(w).domain));
+        }
+        // Off by default: not parseable as an admitted native profile.
+        try std.testing.expectError(error.UnknownOm31CandidateProfile, C.Profile.parse(v.name()));
+    }
+    // Admitted registry untouched.
+    try std.testing.expectEqual(@as(usize, 2), C.PROFILES.len);
+    try std.testing.expectEqual(C.Profile.conjectured128_b2_q108_p20_fold4, C.DEFAULT_PROFILE);
+}
+test "m5 native format version hashes the production local relation count (fixes the 9-vs-10 drift)" {
+    const actual = @import("../word16_global_execution/services/gkr_local/fractions.zig").Relation;
+    try std.testing.expectEqual(C.M5_LOCAL_RELATIONS, @typeInfo(actual).@"enum".fields.len);
+    try std.testing.expectEqual(C.M5_LOCAL_RELATIONS, C.formatSpec(.m5_native_chi_chain_v1_b2_q108_p20_fold4).local_relations);
+}
+test "m7 outer-gkr format version clears the GKR ledger at realistic facts and refuses caps on characteristic" {
+    const real = C.OuterGkrFacts{ .outer_proofs = 40, .instances = 16, .max_variables = 24, .max_tuple_arity = 8 };
+    var seen: usize = 0;
+    for (C.FORMAT_VERSIONS) |v| {
+        if (!C.formatSpec(v).outer_gkr) continue;
+        seen += 1;
+        try C.requireOuterGkrBits(real, C.TARGET_BITS + 2 + 21);
+        try C.requireOuterGkrCharacteristic(real, null);
+        try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireOuterGkrCharacteristic(C.OuterGkrFacts.caps(), null));
+    }
+    try std.testing.expectEqual(@as(usize, 1), seen);
+}
+test "recsize m3_b8 outer candidate: 3*34 + 26 = 128, Johnson x2 = 154" {
+    try std.testing.expectEqual(@as(u32, 128), C.candidateConjecturedBits(.m3_outer_b8_q34_p26_fold4));
+    try std.testing.expectEqual(@as(u32, 154), C.candidateJohnsonBitsTimes2(.m3_outer_b8_q34_p26_fold4));
+    try std.testing.expectEqualStrings("stwo/circuit/native-om31/m3-b8-q34-p26-fold4/lens-v1", C.candidateSpec(.m3_outer_b8_q34_p26_fold4).domain);
+}
+test "corpus M09 outer GKR challenges must be OM31: QM31 draws fail the 128-bit gate at every fact set" {
+    const real = C.OuterGkrFacts{ .outer_proofs = 40, .instances = 16, .max_variables = 24, .max_tuple_arity = 8 };
+    for ([_]C.OuterGkrFacts{ C.OuterGkrFacts.caps(), real }) |f| {
+        try std.testing.expectError(error.Om31CandidateAlgebraicBudgetInsufficient, C.requireOuterGkrBitsQm31(f, 124));
+        try std.testing.expectError(error.Om31CandidateAlgebraicBudgetInsufficient, C.requireOuterGkrBitsQm31(f, 88));
+        try C.requireOuterGkrBits(f, C.TARGET_BITS);
+    }
+}
+test "reference Z04: NS mass folds as integers; two children of p-1 are refused, an M31 sum would hide it" {
+    const p = core.fields.m31.Modulus;
+    const big = [_]u64{ p - 1, 0, 0 };
+    try std.testing.expectError(error.M5MassCharacteristicWrap, C.m5FoldMass(&.{ big, big }));
+    // The field sum wraps to p - 2 < p: exactly the bug review 1 F6 names.
+    try std.testing.expectEqual(@as(u64, p - 2), C.m5FieldMassForTesting(&.{ big, big })[0]);
+    // Per-child canonical check, then integer sum.
+    try std.testing.expectError(error.M5ChildMassNoncanonical, C.m5FoldMass(&.{ .{ p, 0, 0 }, .{ 0, 0, 0 } }));
+    const ok = try C.m5FoldMass(&.{ .{ 1, 2, 3 }, .{ 4, 5, 6 }, .{ 7, 8, 9 }, .{ 10, 11, 12 } });
+    try std.testing.expectEqual([_]u64{ 22, 26, 30 }, ok);
+    try std.testing.expectError(error.M5FoldArity, C.m5FoldMass(&.{.{ 0, 0, 0 }}));
+    // Caps arithmetic [D]: 256 CPU leaves with ls = 2^23 - 1 carry ram mass 2 * ls each: total about 2^32 > p.
+    try std.testing.expect(256 * 2 * ((@as(u64, 1) << 23) - 1) > p);
+}
+test "reference L05: one-sided upper range check admits k = p - 1; two-sided refuses it" {
+    const p: u32 = @intCast(core.fields.m31.Modulus);
+    try std.testing.expect(C.m5LeafIndexAdmits(p - 1, false)); // MAX - 1 - (p - 1) = MAX in M31
+    try std.testing.expect(!C.m5LeafIndexAdmits(p - 1, true));
+    try std.testing.expect(C.m5LeafIndexAdmits(0, true));
+    try std.testing.expect(C.m5LeafIndexAdmits(@intCast(C.MAX_PROOFS - 1), true));
+    try std.testing.expect(!C.m5LeafIndexAdmits(@intCast(C.MAX_PROOFS), true));
+}
+test "reference BG08: fused Blake2s byte-XOR lookup mass at census sizes stays far below p" {
+    // Byte-XOR model: 10 rounds x 8 G x 4 xors x 4 bytes + final 16 xors x 4 bytes = 1344 per compression.
+    const per = 10 * 8 * 4 * 4 + 16 * 4;
+    try std.testing.expectEqual(@as(u64, 1344), per);
+    // [D] recsize census: r1 arity-4 fold = 7,538,960 Blake G = 94,237 compressions -> 1.27e8 < p.
+    try C.requireBlakeLookupMass(7_538_960 / 80, per);
+    // Largest admissible count is (p - 1) / 1344 = 1,597,830 compressions per proof and table.
+    const max = (core.fields.m31.Modulus - 1) / per;
+    try C.requireBlakeLookupMass(max, per);
+    try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireBlakeLookupMass(max + 1, per));
+}
+test "reference outer r1 AIR characteristic bound from the 24628607 census: 1.9 bits of margin, a 4x leaf wraps" {
+    // [D] leaf 0: 589,890,560 interaction cells; pairFractions puts 2 lookups per secure (4-cell) column per row.
+    const lookups: u64 = 589_890_560 / 4 * 2;
+    try std.testing.expectEqual(@as(u64, 294_945_280), lookups);
+    // Absolute mass <= uses + yields = 2 x use entries (unit-multiplicity uses assumed; canon-vk confirms).
+    const facts = C.OuterGkrFacts{ .outer_proofs = 33, .instances = 16, .max_variables = 24, .max_tuple_arity = 8 };
+    try C.requireOuterGkrCharacteristic(facts, 2 * lookups);
+    try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireOuterGkrCharacteristic(facts, 4 * 2 * lookups));
+}
+test "m5/m7 format versions name the owning stream's component version (outer-gkr section, fused Blake2s AIR, chi chain)" {
+    try std.testing.expectEqualStrings("stwo/rv64/outer-gkr/om31-strict-draw/lane-major/v1", C.formatSpec(.m7_outer_gkr_m3_b4_q51_p26_fold4_v1).component);
+    try std.testing.expectEqualStrings("fused_blake2s_v1", C.formatSpec(.m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1).component);
+    try std.testing.expectEqualStrings("rv64-m5-native-chi-chain/v1", C.formatSpec(.m5_native_chi_chain_v1_b2_q108_p20_fold4).component);
+    // Every version that adds a component names it; the canonical-only outer versions add none.
+    for (C.FORMAT_VERSIONS) |v| {
+        const s = C.formatSpec(v);
+        if (s.outer_gkr or s.layer == .native) try std.testing.expect(s.component.len > 0);
+    }
+}
