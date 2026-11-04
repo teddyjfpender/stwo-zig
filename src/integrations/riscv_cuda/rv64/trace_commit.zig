@@ -221,15 +221,23 @@ const Job = struct {
             p = smaller;
         }
         const total = try std.math.add(usize, aux_words, p.scratchWords());
-        var scratch = try self.allocate(ctx, total, 0, "stream_scratch");
-        defer {
+        // Lifetime-shaped leases: no request is larger than one bank, so a
+        // fragmented pool reservation can still serve the commit.
+        var leases = [3]Native.Lease{ .{}, .{}, .{} };
+        defer for (&leases) |*lease| if (lease.words != null) {
             ctx.join() catch {};
-            _ = b.api.release(b.service.session, &scratch);
-        }
-        const base = scratch.words.?;
-        _ = try ctx.borrow(scratch);
-        const chunk = base + aux_words + p.chunkOffset();
-        const banks = [2][*]u32{ base + aux_words + p.bankOffset(0), base + aux_words + p.bankOffset(1) };
+            _ = b.api.release(b.service.session, lease);
+        };
+        leases[0] = try self.allocate(ctx, aux_words + @max(p.chunk_words, 1), 0, "stream_aux_chunk");
+        for (0..2) |k| if (p.bank_words[k] != 0) {
+            leases[k + 1] = try self.allocate(ctx, p.bank_words[k], 0, "stream_bank");
+        };
+        for (leases) |lease| if (lease.words != null) {
+            _ = try ctx.borrow(lease);
+        };
+        const base = leases[0].words.?;
+        const chunk = base + aux_words;
+        const banks = [2][*]u32{ leases[1].words orelse base, leases[2].words orelse base };
         try check(b.api.upload(raw, base, tw.twiddles.ptr, tw.twiddles.len * 4));
         try check(b.api.upload(raw, base + inverse_base, tw.itwiddles.ptr, tw.itwiddles.len * 4));
         try check(b.api.upload(raw, base + logs_base, logs.ptr, logs.len * 4));

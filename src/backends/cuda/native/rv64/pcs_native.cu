@@ -20,6 +20,7 @@ extern "C" int stwo_exec_context_destroy(void *);
 extern "C" int stwo_exec_context_pool_current(void *, size_t *, size_t *);
 extern "C" int stwo_exec_context_seal_read_only(void *, const void *, size_t);
 extern "C" int stwo_exec_context_alloc_u32(void *, size_t, uint32_t **);
+extern "C" int stwo_exec_context_alloc_u32_long(void *, size_t, uint32_t **);
 extern "C" int stwo_exec_context_free_u32(void *, uint32_t *);
 extern "C" int stwo_exec_context_memcpy_h2d_async(void *, void *, const void *,
                                                   size_t);
@@ -199,12 +200,16 @@ struct ResidentOwner {
     // when the caller tries its original, independently checked allocation retry.
     (void)cudaGetLastError();
   }
-  uint32_t *allocate(uint64_t words) {
+  // long_lived: immutable setup leases and cached domains, which outlive the
+  // request; everything else is per-request scratch. Logical admission and
+  // custody are unchanged; only the backing pool is segregated by lifetime.
+  uint32_t *allocate(uint64_t words, bool long_lived = false) {
     if (!words || words > SIZE_MAX / 4)
       throw std::runtime_error("invalid device allocation");
     ensure(words * 4);
     uint32_t *ptr = nullptr;
-    int status = stwo_exec_context_alloc_u32(ctx, words, &ptr);
+    auto alloc = long_lived ? stwo_exec_context_alloc_u32_long : stwo_exec_context_alloc_u32;
+    int status = alloc(ctx, words, &ptr);
     if (status == int(cudaErrorMemoryAllocation)) {
       (void)cudaGetLastError();
       logAllocationFailure(words, "initial");
@@ -219,7 +224,7 @@ struct ResidentOwner {
         blocks.erase(blocks.begin() + i);
       }
       sync();
-      status = stwo_exec_context_alloc_u32(ctx, words, &ptr);
+      status = alloc(ctx, words, &ptr);
       if (status == int(cudaErrorMemoryAllocation))
         logAllocationFailure(words, "after_idle_eviction_retry");
     }
@@ -371,7 +376,7 @@ struct ResidentOwner {
         return domain.plane;
       }
     const uint64_t words = uint64_t(2) << log;
-    auto *ptr = allocate(words);
+    auto *ptr = allocate(words, true);
     StwoRv64Plane result{ptr, words, 1, 0};
     void *raw = nullptr;
     CHECK(stwo_exec_context_lane_stream(ctx, 0, &raw));
@@ -387,7 +392,7 @@ struct ResidentOwner {
   StwoRv64GpuLease lease(uint64_t words, uint32_t kind, const Scope &scope) {
     if (kind > 4 || (kind && !nonzero(scope)))
       throw std::runtime_error("invalid device lease namespace");
-    auto *ptr = allocate(words);
+    auto *ptr = allocate(words, kind == 4);
     const uint64_t generation = next_generation.fetch_add(1);
     if (!generation)
       throw std::runtime_error("device lease generation exhausted");
