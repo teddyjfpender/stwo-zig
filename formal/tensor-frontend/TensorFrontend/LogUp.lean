@@ -504,20 +504,16 @@ theorem countP_mem_le (U : List F) :
     have h2 := countP_eq_le_one _ FinEnum.nodup u
     simp only [List.length_cons]; omega
 
-/-- **LogUp, random-evaluation form.** If the multiset relation fails (with
-all counts below the characteristic), then among all `x ∈ F` at most
-`2 U - 1` are poles or make the fractional sum vanish, where `U` is the
-number of distinct poles (`<= |T| + |A|`). -/
-theorem logup_random_sound (p : Nat) (hchar : ∀ k, 0 < k → k < p → (ncast k : F) ≠ 0)
-    (T : List (F × Nat)) (A : List F) (hT : ∀ z, tcount T z < p) (hA : ∀ z, acount A z < p)
-    (hbad : ¬ MultisetOK T A) :
+/-- **Random evaluation of a nonzero fractional sum.** If the grouped cleared
+numerator of `L` is not the zero polynomial, at most `2 U - 1` points of `F`
+are poles of `L` or zeros of `fsum L` (`U` = number of distinct poles). -/
+theorem fsum_random_count (L : List (F × F)) (hnz : ¬ AllZero (num (group L))) :
     (FinEnum.elems (F := F)).countP
-        (fun x => decide (x ∈ poles (pairs T A)) || decide (fsum (pairs T A) x = 0))
-      ≤ 2 * (dd (poles (pairs T A))).length - 1 := by
-  let G := group (pairs T A)
+        (fun x => decide (x ∈ poles L) || decide (fsum L x = 0))
+      ≤ 2 * (dd (poles L)).length - 1 := by
+  let G := group L
   have hnd : (poles G).Nodup := by rw [poles_group]; exact nodup_dd _
-  have hnz : ¬ AllZero (num G) := fun hz => hbad (logup_identity_sound p hchar T A hT hA hz)
-  have hU : (dd (poles (pairs T A))).length = G.length := by simp [G, group]
+  have hU : (dd (poles (L))).length = G.length := by simp [G, group]
   -- the zero set of num G
   have hroots := roots_le (num G) hnz
     ((FinEnum.elems (F := F)).filter (fun x => decide (eval (num G) x = 0)))
@@ -527,30 +523,43 @@ theorem logup_random_sound (p : Nat) (hchar : ∀ k, 0 < k → k < p → (ncast 
   rw [← List.countP_eq_length_filter] at hroots
   -- split the count
   have hsplit : ∀ l : List F,
-      l.countP (fun x => decide (x ∈ poles (pairs T A)) || decide (fsum (pairs T A) x = 0)) ≤
-        l.countP (fun x => decide (x ∈ dd (poles (pairs T A)))) +
+      l.countP (fun x => decide (x ∈ poles (L)) || decide (fsum (L) x = 0)) ≤
+        l.countP (fun x => decide (x ∈ dd (poles (L)))) +
           l.countP (fun x => decide (eval (num G) x = 0)) := by
     intro l
     induction l with
     | nil => simp
     | cons y l ih =>
       simp only [List.countP_cons]
-      by_cases hp : y ∈ poles (pairs T A)
-      · have : y ∈ dd (poles (pairs T A)) := (mem_dd _ _).mpr hp
+      by_cases hp : y ∈ poles (L)
+      · have : y ∈ dd (poles (L)) := (mem_dd _ _).mpr hp
         simp [hp, this]; omega
-      · have hp' : y ∉ dd (poles (pairs T A)) := fun e => hp ((mem_dd _ _).mp e)
+      · have hp' : y ∉ dd (poles (L)) := fun e => hp ((mem_dd _ _).mp e)
         have hpG : y ∉ poles G := by rw [poles_group]; exact hp'
-        by_cases hf : fsum (pairs T A) y = 0
+        by_cases hf : fsum (L) y = 0
         · have : eval (num G) y = 0 := by
             rw [← fsum_eq G y hpG, ← fsum_group, hf]; grind
           simp [hp, hp', hf, this]; omega
         · simp [hp, hp', hf]; omega
   have h1 := hsplit FinEnum.elems
-  have h2 := countP_mem_le (F := F) (dd (poles (pairs T A)))
+  have h2 := countP_mem_le (F := F) (dd (poles (L)))
   have hpos : 0 < G.length := by
-    cases hG : G with
+    cases hG : group L with
     | nil => exact absurd (by rw [hG]; simp [num]; intro x hx; cases hx) hnz
-    | cons _ _ => simp
+    | cons _ _ => show 0 < (group L).length; rw [hG]; simp
   omega
+
+
+/-- **LogUp, random-evaluation form.** If the multiset relation fails (with
+all counts below the characteristic), then among all `x ∈ F` at most
+`2 U - 1` are poles or make the fractional sum vanish, where `U` is the
+number of distinct poles (`<= |T| + |A|`). -/
+theorem logup_random_sound (p : Nat) (hchar : ∀ k, 0 < k → k < p → (ncast k : F) ≠ 0)
+    (T : List (F × Nat)) (A : List F) (hT : ∀ z, tcount T z < p) (hA : ∀ z, acount A z < p)
+    (hbad : ¬ MultisetOK T A) :
+    (FinEnum.elems (F := F)).countP
+        (fun x => decide (x ∈ poles (pairs T A)) || decide (fsum (pairs T A) x = 0))
+      ≤ 2 * (dd (poles (pairs T A))).length - 1 :=
+  fsum_random_count _ (fun hz => hbad (logup_identity_sound p hchar T A hT hA hz))
 
 end TensorFrontend.LogUp
