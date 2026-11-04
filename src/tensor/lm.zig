@@ -14,12 +14,13 @@
 //!
 //! Every learned parameter is either committed in the weight table (layer
 //! weights, W_lm, Emb: covered by key.root) or in the verifier-held model
-//! descriptor (`ModelDesc`: the RMSNorm gains), whose values the verifier
-//! itself writes into the statement. `verifyRequest` takes (key, descriptor,
-//! prompt tokens, claimed output tokens) and builds every public (RoPE,
-//! mask, gains, tables, OH, Sel, Lt) itself; the prover's statement must
-//! carry exactly those. Its op structure (and requant shifts) is still the
-//! prover's: serving.md 1.2.
+//! descriptor (`ModelDesc`: the RMSNorm gains and the calibrated requant
+//! shift plan, covered by `ModelDesc.digest()`, the statement's
+//! model_digest). `verifyRequest` takes (key, descriptor, prompt tokens,
+//! claimed output tokens, log_capacity) and builds the ENTIRE statement
+//! itself (`requestStatement`: shapes, ops, ext ops, labels, publics,
+//! tables, shifts, model_digest) on a shape-only builder; the prover's
+//! statement is never used. serving.md 1.2.
 //!
 //! Greedy check (y public): Sel[t, v] = [v = y_t] and Lt[t, v] = [v < y_t] are
 //! public tensors the verifier builds from y, after rejecting any y_t >= V
@@ -47,6 +48,7 @@ const xt = @import("ext.zig");
 const tf = @import("transformer.zig");
 const model = @import("model.zig");
 const serve = @import("serve.zig");
+const wire = @import("wire.zig");
 
 const TensorInfo = proto.TensorInfo;
 const Ref = xt.Ref;
@@ -174,19 +176,26 @@ pub fn weightInfos(a: std.mem.Allocator, cfg: ModelCfg) ![]TensorInfo {
 pub const EMB_SHIFT: u5 = 1;
 
 /// The verifier-held model descriptor: the configuration and every learned
-/// parameter that is not in the committed weight table (the RMSNorm gains).
-/// A client pins (key.root, key.infos, desc.digest()); see serving.md 1.2.
+/// parameter that is not in the committed weight table (the RMSNorm gains),
+/// plus the requant shift plan (`calibrate`, offline). A client pins
+/// (key.root, key.infos, desc.digest()); see serving.md 1.2.
 pub const ModelDesc = struct {
     cfg: ModelCfg,
     /// int8 gains in [1, 127]: gains[(2 l) D ..] attention norm of layer l,
     /// gains[(2 l + 1) D ..] its MLP norm, gains[(2 L) D ..] the final norm
     gains: []const i32,
+    /// every data-dependent requant shift of `buildModel`, in builder order
+    /// (fixed shifts such as EMB_SHIFT are code, not plan). null: not yet
+    /// calibrated; `buildModel` then chooses shifts from the data (record
+    /// mode, calibration only) and `verifyRequest` refuses the descriptor.
+    shifts: ?[]const u5 = null,
 
     pub fn validate(self: ModelDesc) !void {
         try self.cfg.validate();
         const D = @as(usize, 1) << @intCast(self.cfg.log_d);
         if (self.gains.len != self.cfg.nGainVecs() * D) return error.BadConfig;
         for (self.gains) |g| if (g < 1 or g > 127) return error.BadConfig;
+        if (self.shifts) |p| for (p) |v| if (v > 30) return error.BadConfig;
     }
 
     pub fn gain(self: ModelDesc, i: usize) []const i32 {
@@ -194,11 +203,11 @@ pub const ModelDesc = struct {
         return self.gains[i * D ..][0..D];
     }
 
-    /// Digest of the descriptor (all fields except the per-request
-    /// log_capacity, a statement parameter the prover fits per request).
+    /// Digest of the descriptor (all fields, the shift plan included, except
+    /// the per-request log_capacity, a public request parameter).
     pub fn digest(self: ModelDesc) [32]u8 {
         var h = std.crypto.hash.blake2.Blake2s256.init(.{});
-        h.update("stwo-tensor-model-desc-v1");
+        h.update("stwo-tensor-model-desc-v2");
         var c = self.cfg;
         c.log_capacity = 0;
         inline for (@typeInfo(ModelCfg).@"struct".fields) |fld| {
@@ -210,6 +219,10 @@ pub const ModelDesc = struct {
         }
         h.update(std.mem.asBytes(&@as(u64, self.gains.len)));
         for (self.gains) |g| h.update(std.mem.asBytes(&@as(i32, g)));
+        if (self.shifts) |p| {
+            h.update(std.mem.asBytes(&@as(u64, p.len + 1)));
+            for (p) |v| h.update(&[_]u8{v});
+        } else h.update(std.mem.asBytes(&@as(u64, 0)));
         var out: [32]u8 = undefined;
         h.final(&out);
         return out;
@@ -226,8 +239,11 @@ pub const ModelDesc = struct {
         return .{ .cfg = cfg, .gains = g };
     }
 
+    /// Frees the gains and the shift plan (both owned by `a`).
     pub fn deinit(self: *ModelDesc, a: std.mem.Allocator) void {
         a.free(self.gains);
+        if (self.shifts) |p| a.free(p);
+        self.shifts = null;
     }
 };
 
@@ -274,7 +290,7 @@ fn greedyPublicValues(a: std.mem.Allocator, tokens: []const u32, V: usize) !stru
 
 /// Shared publics (RoPE, mask, exp table, SiLU, gains, MoE triangle) with the
 /// descriptor's gains. Used by the prover (`buildModel`) and the verifier
-/// (`requestPublics`), so both produce the same list in the same order.
+/// (`requestStatement`, shape-only), so both produce the same list in order.
 fn requestCtx(b: *tf.Builder, desc: *const ModelDesc, ws: *const proto.WeightStore) !tf.Ctx {
     const cfg = desc.cfg;
     var ctx_cfg = cfg.layerCfg(if (cfg.log_experts > 0) cfg.moe_every - 1 else 0);
@@ -346,17 +362,30 @@ const MoeLayer = struct { y: u32, logits: u32, expert_of: []const usize };
 /// Y[e] = requant(X[e] . W[e]) for X [E, T, K] and a stacked weight W [E, K, N]
 /// (a core matmul with 3-dim operands; protocol.zig proves it as a batched
 /// matmul with one weight claim).
+/// The shift comes from the builder's plan (replay) or the data (record);
+/// shape-only builders never touch the weights.
 pub fn matmul3(b: *tf.Builder, ws: *const proto.WeightStore, x: u32, w: u32) !u32 {
     const xi = b.infos.items[x];
     const wi = ws.infos[w];
     std.debug.assert(xi.n_dims == 3 and wi.n_dims == 3);
-    const acc = try proto.batchedMatmulAcc(b.a, b.pool, xi, b.wit.items[x], ws.matrix(w), null);
-    defer b.a.free(acc);
-    const s = model.chooseShift(acc);
+    const yi = TensorInfo{ .log_dims = .{ xi.log_dims[0], xi.log_dims[1], wi.log_dims[2] }, .n_dims = 3 };
+    const acc = if (b.shape_only) blk: {
+        const z = try b.a.alloc(i64, yi.size());
+        @memset(z, 0);
+        break :blk z;
+    } else try proto.batchedMatmulAcc(b.a, b.pool, xi, b.wit.items[x], ws.matrix(w), null);
+    var acc_owned = true;
+    defer if (acc_owned) b.a.free(acc);
+    const s = try b.nextShift(if (b.replaying()) 0 else model.chooseShift(acc));
     const y = try b.a.alloc(i32, acc.len);
     for (acc, y) |v, *o| o.* = proto.requant(v, s);
-    const id = try b.add(.{ .log_dims = .{ xi.log_dims[0], xi.log_dims[1], wi.log_dims[2] }, .n_dims = 3 }, y);
-    try b.ops.append(b.a, .{ .matmul = .{ .x = x, .w = w, .y = id, .shift = s } });
+    b.checkInt8(y) catch |e| {
+        b.a.free(y);
+        return e;
+    };
+    const id = try b.add(yi, y);
+    acc_owned = false;
+    try b.pushOp(.{ .matmul = .{ .x = x, .w = w, .y = id, .shift = s } }, acc);
     return id;
 }
 
@@ -448,6 +477,9 @@ pub fn greedyTokens(a: std.mem.Allocator, L: []const i32, P: usize, V: usize) ![
 }
 
 pub const ModelOut = struct {
+    /// committed one-hot input, its public OH, and X = rq_1(OH . Emb)
+    oh: u32,
+    oh_pub: u32,
     x: u32,
     hidden: u32,
     logits: u32,
@@ -474,6 +506,7 @@ pub fn calibrateRouters(a: std.mem.Allocator, pool: *f.Pool, desc: *const ModelD
     if (cfg.log_experts == 0) return;
     var full = desc.*;
     full.cfg.log_capacity = cfg.log_t;
+    full.shifts = null; // routers change: any plan is recalibrated afterwards
     const T = @as(usize, 1) << @intCast(cfg.log_t);
     const D = @as(usize, 1) << @intCast(cfg.log_d);
     const E = @as(usize, 1) << @intCast(cfg.log_experts);
@@ -563,14 +596,100 @@ pub fn fitCapacity(max_load: usize) u32 {
     return std.math.log2_int_ceil(usize, @max(max_load, 1));
 }
 
+/// Offline shift calibration (P2): every data-dependent requant shift of
+/// `buildModel` becomes a model constant. The forward pass runs on each
+/// calibration window at full expert capacity in record mode with the
+/// current plan as a floor; the plan is the elementwise max, iterated until
+/// no window widens it (a fixed point: replaying the plan reproduces the
+/// recorded passes, so every calibration window fits). `headroom` extra
+/// bits are then added to every shift for inputs outside the calibration
+/// set, and every window must replay. Sets desc.shifts (owned by `a`; frees
+/// any previous plan). An input that later overflows the plan is refused by
+/// the prover (error.RequantOverflow).
+pub fn calibrate(a: std.mem.Allocator, pool: *f.Pool, desc: *ModelDesc, ws: *const proto.WeightStore, windows: []const []const u32, headroom: u5) !void {
+    if (windows.len == 0) return error.CalibrationFailed;
+    if (desc.shifts) |p| a.free(p);
+    desc.shifts = null;
+    var full = desc.*;
+    full.cfg.log_capacity = desc.cfg.log_t;
+    var plan: ?[]u5 = null;
+    errdefer if (plan) |p| a.free(p);
+    var converged = false;
+    for (0..32) |_| {
+        var changed = false;
+        for (windows) |w| {
+            var b = tf.Builder.init(a, pool);
+            defer b.deinit();
+            b.shift_floor = plan;
+            _ = try buildModel(&b, &full, ws, w, null);
+            const rec = b.shift_log.items;
+            if (plan) |p| {
+                if (p.len != rec.len) return error.ShiftPlan;
+                for (p, rec) |*u, v| if (v > u.*) {
+                    u.* = v;
+                    changed = true;
+                };
+            } else {
+                plan = try a.dupe(u5, rec);
+                changed = true;
+            }
+        }
+        if (!changed) {
+            converged = true;
+            break;
+        }
+    }
+    if (!converged) return error.CalibrationFailed;
+    for (plan.?) |*u| u.* = @min(30, @as(u32, u.*) + headroom);
+    full.shifts = plan.?;
+    for (windows) |w| {
+        var b = tf.Builder.init(a, pool);
+        defer b.deinit();
+        _ = buildModel(&b, &full, ws, w, null) catch |e| {
+            if (e == error.RequantOverflow) return error.CalibrationFailed;
+            return e;
+        };
+    }
+    desc.shifts = plan.?;
+    plan = null;
+}
+
+/// `calibrate` on n random windows (tests, benches; a real deployment
+/// calibrates on representative inputs).
+pub fn calibrateRandom(a: std.mem.Allocator, pool: *f.Pool, desc: *ModelDesc, ws: *const proto.WeightStore, n: usize, seed: u64, headroom: u5) !void {
+    const T = @as(usize, 1) << @intCast(desc.cfg.log_t);
+    const V = @as(usize, 1) << @intCast(desc.cfg.log_vocab);
+    const ws_list = try a.alloc([]u32, n);
+    var made: usize = 0;
+    defer {
+        for (ws_list[0..made]) |w| a.free(w);
+        a.free(ws_list);
+    }
+    for (ws_list, 0..) |*w, i| {
+        w.* = try randomTokens(a, T, V, seed + i);
+        made += 1;
+    }
+    try calibrate(a, pool, desc, ws, @ptrCast(ws_list), headroom);
+}
+
 /// Builds a request over a window of T tokens (`requestWindow`): X =
 /// Emb[window] from the committed embedding, the layer stack, the LM head and
 /// the greedy check. `claim` is the claimed output (null: the greedy tokens
 /// of this window's logits; a request's verifiable claim must also satisfy
 /// window = prompt || claim[0..P-1), see `decodeGreedy`).
+/// With a calibrated descriptor every requant shift is replayed from
+/// desc.shifts, and an input whose values leave the plan's ranges is
+/// refused (error.RequantOverflow: the model is undefined there). Without
+/// one (desc.shifts == null) the shifts are chosen from the data (record
+/// mode: calibration, cost benches). On a shape-only builder (`b.shape_only`,
+/// the verifier's `requestStatement`) no weight or witness value is read and
+/// `claim` must be given.
 pub fn buildModel(b: *tf.Builder, desc: *const ModelDesc, ws: *const proto.WeightStore, window: []const u32, claim: ?[]const u32) !ModelOut {
     const cfg = desc.cfg;
     try desc.validate();
+    if (b.shape_only and (claim == null or desc.shifts == null)) return error.BadRequest;
+    b.shift_plan = desc.shifts;
+    b.shift_pos = 0;
     const lt = cfg.log_t;
     const ld = cfg.log_d;
     const lv = cfg.log_vocab;
@@ -651,13 +770,14 @@ pub fn buildModel(b: *tf.Builder, desc: *const ModelDesc, ws: *const proto.Weigh
     defer b.a.free(greedy);
     const toks = try b.arena.allocator().dupe(u32, claim orelse greedy);
     const gc = try greedyCheck(b, logits, lp, cfg.log_vocab, toks);
-    return .{ .x = x_id, .hidden = x, .logits = logits, .greedy = gc, .tokens = toks, .max_expert_load = max_load, .router_in = router_in.items, .router_logits = router_logits.items };
+    if (desc.shifts) |p| if (b.shift_pos != p.len) return error.ShiftPlan;
+    return .{ .oh = oh, .oh_pub = oh_pub, .x = x_id, .hidden = x, .logits = logits, .greedy = gc, .tokens = toks, .max_expert_load = max_load, .router_in = router_in.items, .router_logits = router_logits.items };
 }
 
 /// Honest greedy decoding: the output y with y = greedy(logits of the window
-/// prompt || y[0..P-1)), found by fixed-point iteration (the model is causal
-/// up to the data-chosen requant shifts, so this settles in <= P rounds in
-/// practice; error.NoFixedPoint otherwise). Owned result.
+/// prompt || y[0..P-1)), found by fixed-point iteration (with a calibrated
+/// descriptor the model is causal, so this settles in <= P + 1 rounds;
+/// error.NoFixedPoint otherwise). Owned result.
 pub fn decodeGreedy(a: std.mem.Allocator, pool: *f.Pool, desc: *const ModelDesc, ws: *const proto.WeightStore, prompt: []const u32) ![]u32 {
     const P = @as(usize, 1) << @intCast(desc.cfg.log_out);
     const y = try a.alloc(u32, P);
@@ -675,51 +795,70 @@ pub fn decodeGreedy(a: std.mem.Allocator, pool: *f.Pool, desc: *const ModelDesc,
     return error.NoFixedPoint;
 }
 
-/// Verifier side: checks that the prover's statement `st` carries this
-/// descriptor's digest as its model_digest and exactly the
-/// publics, tables and weight shapes this verifier builds itself from the
-/// descriptor, the prompt tokens and the claimed output tokens (rejecting
-/// out-of-vocabulary tokens first), and that the key has the descriptor's
-/// weight shapes.
-pub fn checkRequestStatement(a: std.mem.Allocator, key: proto.WeightKey, desc: *const ModelDesc, prompt: []const u32, y: []const u32, st: proto.Statement) !void {
-    const cfg = desc.cfg;
-    try desc.validate();
-    const window = try requestWindow(a, cfg, prompt, y);
+/// A request as the verifier sees it: public prompt tokens, claimed output
+/// tokens, and the request parameters. `log_capacity` (expert slots per
+/// MoE expert) is a public per-request parameter (null: the descriptor's);
+/// it is in the statement's shapes, so it reveals an upper bound on the
+/// request's largest expert load (serving.md 1.2, leakage).
+pub const Request = struct {
+    prompt: []const u32,
+    y: []const u32,
+    log_capacity: ?u32 = null,
+};
+
+/// The descriptor a request is built under (the request's log_capacity).
+pub fn requestDesc(desc: *const ModelDesc, req: Request) ModelDesc {
+    var d = desc.*;
+    if (req.log_capacity) |c| d.cfg.log_capacity = c;
+    return d;
+}
+
+/// Verifier side: the ENTIRE statement of `req` under the calibrated
+/// descriptor (shapes, ops, ext ops, labels, publics, tables, shifts,
+/// model_digest), built on a shape-only builder from (desc, prompt, y,
+/// log_capacity) alone: no weights, no witness values, no prover input.
+/// Out-of-vocabulary tokens and wrong lengths are refused first
+/// (error.BadToken / error.BadRequest); an uncalibrated descriptor is
+/// refused (error.NotCalibrated). The returned builder owns the statement
+/// (`b.statement()`; its witness values are dummies).
+pub fn requestStatement(a: std.mem.Allocator, pool: *f.Pool, desc: *const ModelDesc, req: Request) !tf.Builder {
+    if (desc.shifts == null) return error.NotCalibrated;
+    const d = requestDesc(desc, req);
+    try d.validate();
+    const window = try requestWindow(a, d.cfg, req.prompt, req.y);
     defer a.free(window);
+    const winfos = try weightInfos(a, d.cfg);
+    defer a.free(winfos);
+    // shapes only: the shape-only matmuls read ws.infos, never the weights
+    const offsets = [_]usize{};
+    const ws = proto.WeightStore{ .infos = winfos, .offsets = @constCast(&offsets), .table = &.{}, .log_rows = 0, .log_cols = 0, .rows_used = 0, .com = undefined };
+    var b = tf.Builder.init(a, pool);
+    errdefer b.deinit();
+    b.shape_only = true;
+    _ = try buildModel(&b, &d, &ws, window, req.y);
+    return b;
+}
+
+/// The key must hold exactly the descriptor's weight shapes.
+fn checkKey(a: std.mem.Allocator, key: proto.WeightKey, cfg: ModelCfg) !void {
     const wi = try weightInfos(a, cfg);
     defer a.free(wi);
-    if (!eqlInfos(wi, key.infos) or !eqlInfos(wi, st.weights)) return error.StatementMismatch;
-    // the transcript binds this verifier's descriptor (P2 model_digest)
-    const md = st.model_digest orelse return error.StatementMismatch;
-    if (!std.mem.eql(u8, &md, &desc.digest())) return error.StatementMismatch;
-    // the verifier's own publics, in the prover's order (requestCtx, OH, final
-    // gain, Sel, Lt); no witness and no weights are touched
-    var dummy_pool: f.Pool = undefined;
-    var dummy_ws: proto.WeightStore = undefined;
-    var vb = tf.Builder.init(a, &dummy_pool);
+    if (!eqlInfos(wi, key.infos)) return error.StatementMismatch;
+}
+
+/// Diagnostic (prover side / tests): error.StatementMismatch unless the
+/// prover's statement `st` is byte-identical (wire.encodeStatement) to the
+/// verifier's own `requestStatement`. `verifyRequest` does not need this:
+/// it never reads the prover's statement.
+pub fn checkRequestStatement(a: std.mem.Allocator, pool: *f.Pool, pc: proto.Config, key: proto.WeightKey, desc: *const ModelDesc, req: Request, st: proto.Statement) !void {
+    try checkKey(a, key, requestDesc(desc, req).cfg);
+    var vb = try requestStatement(a, pool, desc, req);
     defer vb.deinit();
-    _ = try requestCtx(&vb, desc, &dummy_ws);
-    const oh = try onehotValues(a, cfg, window);
-    defer a.free(oh);
-    _ = try vb.public(cfg.log_t + cfg.log_vocab, oh);
-    _ = try vb.public(cfg.log_d, desc.gain(2 * cfg.n_layers));
-    const gp = try greedyPublicValues(a, y, @as(usize, 1) << @intCast(cfg.log_vocab));
-    defer a.free(gp.sel);
-    defer a.free(gp.lt);
-    _ = try vb.public(cfg.log_out + cfg.log_vocab, gp.sel);
-    _ = try vb.public(cfg.log_out + cfg.log_vocab, gp.lt);
-    const mine = vb.statement();
-    if (mine.ext.publics.len != st.ext.publics.len) return error.StatementMismatch;
-    for (mine.ext.publics, st.ext.publics) |p, q| {
-        if (p.log_size != q.log_size or !std.mem.eql(i32, p.values, q.values)) return error.StatementMismatch;
-    }
-    if (mine.tables.len != st.tables.len or mine.ext.tables.len != st.ext.tables.len) return error.StatementMismatch;
-    for (mine.tables, st.tables) |p, q| if (!std.mem.eql(i8, &p.values, &q.values)) return error.StatementMismatch;
-    for (mine.ext.tables, st.ext.tables) |p, q| {
-        if (p.log_size != q.log_size or !std.mem.eql(i32, p.values, q.values)) return error.StatementMismatch;
-    }
-    // the embedding is read only by the shift-1 matmul (X = Emb[window] exactly)
-    for (st.ops) |op| if (op == .matmul and op.matmul.w == cfg.embIndex() and op.matmul.shift != EMB_SHIFT) return error.StatementMismatch;
+    const mine = try wire.encodeStatement(a, pc, vb.statement());
+    defer a.free(mine);
+    const theirs = wire.encodeStatement(a, pc, st) catch return error.StatementMismatch;
+    defer a.free(theirs);
+    if (!std.mem.eql(u8, mine, theirs)) return error.StatementMismatch;
 }
 
 fn eqlInfos(x: []const TensorInfo, y: []const TensorInfo) bool {
@@ -728,12 +867,16 @@ fn eqlInfos(x: []const TensorInfo, y: []const TensorInfo) bool {
     return true;
 }
 
-/// Verifies request `index` of a served batch for (key, descriptor, public
-/// prompt tokens, claimed output tokens): every public is the verifier's own
-/// (`checkRequestStatement`), then `serve.verifyRequest`.
-pub fn verifyRequest(a: std.mem.Allocator, pc: proto.Config, key: proto.WeightKey, desc: *const ModelDesc, prompt: []const u32, y: []const u32, st: proto.Statement, rp: *const serve.RequestProof, shared: *const serve.SharedOpening, index: usize) !void {
-    try checkRequestStatement(a, key, desc, prompt, y, st);
-    try serve.verifyRequest(a, pc, st, key, rp, shared, index);
+/// Verifies request `index` of a served batch for (key, calibrated
+/// descriptor, public prompt tokens, claimed output tokens, log_capacity):
+/// the verifier builds the request statement itself (`requestStatement`)
+/// and checks the request proof against it (`serve.verifyRequest`). No
+/// prover-supplied statement is involved.
+pub fn verifyRequest(a: std.mem.Allocator, pool: *f.Pool, pc: proto.Config, key: proto.WeightKey, desc: *const ModelDesc, req: Request, rp: *const serve.RequestProof, shared: *const serve.SharedOpening, index: usize) !void {
+    try checkKey(a, key, requestDesc(desc, req).cfg);
+    var vb = try requestStatement(a, pool, desc, req);
+    defer vb.deinit();
+    try serve.verifyRequest(a, pc, vb.statement(), key, rp, shared, index);
 }
 
 // ---------------------------------------------------------------------------
@@ -780,6 +923,15 @@ pub const TestRequest = struct {
     }
 };
 
+/// Synthetic gains (seed) + a shift plan calibrated on 4 random windows
+/// with 1 bit of headroom (tests). Owned: `deinit`.
+pub fn testDesc(a: std.mem.Allocator, pool: *f.Pool, cfg: ModelCfg, ws: *const proto.WeightStore, seed: u64) !ModelDesc {
+    var d = try ModelDesc.synthetic(a, cfg, seed);
+    errdefer d.deinit(a);
+    try calibrateRandom(a, pool, &d, ws, 4, 5000 + seed, 1);
+    return d;
+}
+
 fn testPc() proto.Config {
     return .{
         .two_level = .{
@@ -808,7 +960,7 @@ test "model with one checked output token (log_out = 0) proves and verifies" {
         a.free(sw.wdata);
         a.free(sw.winfos);
     }
-    var desc = try ModelDesc.synthetic(a, cfg, 3);
+    var desc = try testDesc(a, &pool, cfg, &sw.ws, 3);
     defer desc.deinit(a);
     var rq = try TestRequest.init(a, &pool, &desc, &sw.ws, 77);
     defer rq.deinit(a);
@@ -818,7 +970,8 @@ test "model with one checked output token (log_out = 0) proves and verifies" {
     const reqs = [_]serve.Request{.{ .st = rq.b.statement(), .witness = wv, .salt = serve.testSalt(5) }};
     var batch = try serve.proveRequests(a, &pool, pc, &sw.ws, &reqs, null);
     defer batch.deinit(a);
-    try verifyRequest(a, pc, proto.weightKey(&sw.ws), &desc, rq.prompt, rq.y, reqs[0].st, &batch.requests[0], &batch.shared, 0);
+    try verifyRequest(a, &pool, pc, proto.weightKey(&sw.ws), &desc, .{ .prompt = rq.prompt, .y = rq.y }, &batch.requests[0], &batch.shared, 0);
+    try checkRequestStatement(a, &pool, pc, proto.weightKey(&sw.ws), &desc, .{ .prompt = rq.prompt, .y = rq.y }, reqs[0].st);
 }
 
 const SmallModel = ModelCfg{ .log_t = 3, .log_d = 4, .log_heads = 1, .log_kv_heads = 0, .log_f = 5, .n_layers = 2, .log_experts = 1, .log_f_expert = 4, .log_capacity = 3, .log_vocab = 6, .log_out = 1, .weight_log_cols = 3 };
@@ -841,7 +994,7 @@ test "model stack (dense + MoE interleaved), LM head and greedy output: per-requ
     }
     const key = proto.weightKey(&sw.ws);
     const R = 2;
-    var desc = try ModelDesc.synthetic(a, cfg, 3);
+    var desc = try testDesc(a, &pool, cfg, &sw.ws, 3);
     defer desc.deinit(a);
     var trs: [R]TestRequest = undefined;
     var bs: [R]*tf.Builder = undefined;
@@ -882,7 +1035,9 @@ test "model stack (dense + MoE interleaved), LM head and greedy output: per-requ
     var batch = try serve.proveRequests(a, &pool, pc, &sw.ws, &reqs, null);
     defer batch.deinit(a);
     for (0..R) |j| try serve.verifyRequest(a, pc, reqs[j].st, key, &batch.requests[j], &batch.shared, j);
-    for (0..R) |j| try verifyRequest(a, pc, key, &desc, trs[j].prompt, trs[j].y, reqs[j].st, &batch.requests[j], &batch.shared, j);
+    for (0..R) |j| try verifyRequest(a, &pool, pc, key, &desc, .{ .prompt = trs[j].prompt, .y = trs[j].y }, &batch.requests[j], &batch.shared, j);
+    // the prover's statement is byte-identical to the verifier's own
+    for (0..R) |j| try checkRequestStatement(a, &pool, pc, key, &desc, .{ .prompt = trs[j].prompt, .y = trs[j].y }, reqs[j].st);
     // single-proof protocol on the same statement as well
     {
         var tm: proto.Timings = .{};
@@ -916,11 +1071,17 @@ test "model stack (dense + MoE interleaved), LM head and greedy output: per-requ
         const pr = try a.dupe(u32, trs[1].prompt);
         defer a.free(pr);
         pr[2] = (pr[2] + 1) % (@as(u32, 1) << cfg.log_vocab);
-        try testing.expectError(error.StatementMismatch, verifyRequest(a, pc, key, &desc, pr, trs[1].y, reqs[1].st, &batch.requests[1], &batch.shared, 1));
+        try testing.expect(std.meta.isError(verifyRequest(a, &pool, pc, key, &desc, .{ .prompt = pr, .y = trs[1].y }, &batch.requests[1], &batch.shared, 1)));
         const yy = try a.dupe(u32, trs[1].y);
         defer a.free(yy);
         yy[yy.len - 1] = (yy[yy.len - 1] + 1) % (@as(u32, 1) << cfg.log_vocab);
-        try testing.expectError(error.StatementMismatch, verifyRequest(a, pc, key, &desc, trs[1].prompt, yy, reqs[1].st, &batch.requests[1], &batch.shared, 1));
+        try testing.expect(std.meta.isError(verifyRequest(a, &pool, pc, key, &desc, .{ .prompt = trs[1].prompt, .y = yy }, &batch.requests[1], &batch.shared, 1)));
+        // another request parameter (log_capacity) -> another statement
+        try testing.expect(std.meta.isError(verifyRequest(a, &pool, pc, key, &desc, .{ .prompt = trs[1].prompt, .y = trs[1].y, .log_capacity = cfg.log_capacity - 1 }, &batch.requests[1], &batch.shared, 1)));
+        // an uncalibrated descriptor is refused
+        var raw = desc;
+        raw.shifts = null;
+        try testing.expectError(error.NotCalibrated, verifyRequest(a, &pool, pc, key, &raw, .{ .prompt = trs[1].prompt, .y = trs[1].y }, &batch.requests[1], &batch.shared, 1));
     }
 }
 
@@ -1178,7 +1339,7 @@ test "model with per-expert MoE layout (stacked_experts = false) still proves pe
         a.free(sw.wdata);
         a.free(sw.winfos);
     }
-    var desc = try ModelDesc.synthetic(a, cfg, 3);
+    var desc = try testDesc(a, &pool, cfg, &sw.ws, 3);
     defer desc.deinit(a);
     var rq = try TestRequest.init(a, &pool, &desc, &sw.ws, 78);
     defer rq.deinit(a);
@@ -1187,5 +1348,59 @@ test "model with per-expert MoE layout (stacked_experts = false) still proves pe
     const reqs = [_]serve.Request{.{ .st = rq.b.statement(), .witness = wv, .salt = serve.testSalt(6) }};
     var batch = try serve.proveRequests(a, &pool, pc, &sw.ws, &reqs, null);
     defer batch.deinit(a);
-    try verifyRequest(a, pc, proto.weightKey(&sw.ws), &desc, rq.prompt, rq.y, reqs[0].st, &batch.requests[0], &batch.shared, 0);
+    try verifyRequest(a, &pool, pc, proto.weightKey(&sw.ws), &desc, .{ .prompt = rq.prompt, .y = rq.y }, &batch.requests[0], &batch.shared, 0);
+    try checkRequestStatement(a, &pool, pc, proto.weightKey(&sw.ws), &desc, .{ .prompt = rq.prompt, .y = rq.y }, reqs[0].st);
+}
+
+test "shift plan: calibrated windows replay; the prover refuses inputs outside the plan's ranges" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const cfg = SmallModel;
+    var pc = testPc();
+    pc.weight_log_cols = cfg.weight_log_cols;
+    var sw = try setupWeights(a, &pool, cfg, pc, 700);
+    defer {
+        sw.ws.deinit(a);
+        for (sw.wdata) |w| a.free(w);
+        a.free(sw.wdata);
+        a.free(sw.winfos);
+    }
+    const T = @as(usize, 1) << cfg.log_t;
+    const V = @as(usize, 1) << cfg.log_vocab;
+    const w0 = try randomTokens(a, T, V, 11);
+    defer a.free(w0);
+    var desc = try ModelDesc.synthetic(a, cfg, 3);
+    defer desc.deinit(a);
+    const d_raw = desc.digest();
+    // headroom 0: the plan is the fixed point on the calibration window
+    try calibrate(a, &pool, &desc, &sw.ws, &.{w0}, 0);
+    try testing.expect(!std.mem.eql(u8, &d_raw, &desc.digest()));
+    {
+        var b = tf.Builder.init(a, &pool);
+        defer b.deinit();
+        _ = try buildModel(&b, &desc, &sw.ws, w0, null);
+        try testing.expectEqual(desc.shifts.?.len, b.shift_pos);
+    }
+    // a plan too narrow for the data (every shift lowered to 1): refused
+    const narrow = try a.alloc(u5, desc.shifts.?.len);
+    defer a.free(narrow);
+    var lowered = false;
+    for (narrow, desc.shifts.?) |*n, s| {
+        n.* = @min(s, 1);
+        lowered = lowered or s > 1;
+    }
+    try testing.expect(lowered);
+    var nd = desc;
+    nd.shifts = narrow;
+    var b = tf.Builder.init(a, &pool);
+    defer b.deinit();
+    try testing.expectError(error.RequantOverflow, buildModel(&b, &nd, &sw.ws, w0, null));
+    // a plan of the wrong length is refused
+    var sd = desc;
+    sd.shifts = desc.shifts.?[0 .. desc.shifts.?.len - 1];
+    var b2 = tf.Builder.init(a, &pool);
+    defer b2.deinit();
+    try testing.expectError(error.ShiftPlan, buildModel(&b2, &sd, &sw.ws, w0, null));
 }
