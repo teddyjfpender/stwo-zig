@@ -82,7 +82,7 @@ NS = ( T_nat[8], T_rec[8], img[8], stmt[8], chi[8 as OM31 words],
        s_in[W], s_out[W],          // boundary machine state at seg_lo start / seg_hi end
        bus[R][8 as OM31 words],    // [R1] one sum per global relation R in {ram, kio, wire}, never one combined sum
        mass[3],                    // [R1][R2] integer LogUp masses of the CROSS-PROOF relations {ram, kio, wire} only (§10.2)
-       ctr_in[C], ctr_out[C],      // [R1][R2] C = 2F + 2 counters: CPU calls per family, truth ids per family, sponge id, CPU ordinal (§10.2)
+       ctr_in[C], ctr_out[C],      // [R1][R2] CPU calls and truth ids per family, sponge id, CPU ordinal, mb last address (§10.2)
        steps_in, steps_out,        // [R1] cumulative CPU step counter (today: first_step mixed per segment)
        E[..],                      // [R1] global expected words every CPU transcript mixes (total_steps, max_total_steps, final pc/regs)
        out[W_out], out_seen,       // [R2] terminal words of halt_flag, output_len, output_data, with a presence mask (F14)
@@ -537,6 +537,17 @@ New findings:
 
 Each sum is bounded by `< p` at every node. At the caps it is not implied by per-leaf bounds: 256 CPU leaves with `ls = 2^23 − 1` give a ram mass of about 2^32 > p [D]. The bound is load-bearing (`Z04`).
 
+**Headroom on real blocks** [D, from the accepted bundles; `scripts/rv64_m5_mass_census.py`, receipt `vectors/reports/rv64-m5-20261104/profiles/mass-census.json`]:
+
+| block | CPU segments | ram mass (lower bound) | ram margin to p | largest segment | init + teardown | kio mass |
+|---|---:|---:|---:|---:|---:|---:|
+| 26235156 | 4 | 15,713,510 (2^23.9) | 7.1 bits | 4,650,148 | 1,374,684 | 3,550,600 (2^21.8) |
+| 24628607 | 7 | 26,223,886 (2^24.6) | 6.4 bits | 5,348,132 | 2,064,432 | 4,992,950 (2^22.3) |
+
+ram mass grows about linearly with instructions: roughly one unit per instruction on 24628607 (26.9 M instructions). So **one global RAM relation under one χ admits a block of about 2 G instructions (2^6.4 ≈ 84 × 24628607)** before `GlobalRamCharacteristicBound` refuses it [E, linear extrapolation].
+- This is far above the basket. It is, however, a hard protocol ceiling, and it applies to today's receiver as well.
+- Lifting it needs RAM relations split by address range or epoch, each with its own mass, or a larger multiplicity field. It does not need larger challenges.
+
 **Gadget.** A mass is a canonical u32 (two u16 limbs) `< p`. A fold of k ≤ 4 children sums the limbs as integers: low limbs `< 2^18`, carry into the high limbs, total `< 2^33`. It then guesses `d = p − 1 − sum` as a canonical u32 and checks `sum + d = p − 1` limb-wise. Every limb operation stays below 2^20 ≪ p, so nothing wraps in M31. The reference model is `m5FoldMass` in `om31_security_candidate.zig`; its test pins that two children of `p − 1` fail.
 
 **Per-proof masses** (leaf only, §3.2(7), never in `NS`). These are local relations; the leaf checks each `< p` exactly as `admit` does:
@@ -545,7 +556,7 @@ Each sum is bounded by `< p` at every node. At the caps it is not implied by per
 - AND = `andMass + sponge AND + dword pairs + Zbb`, when a byte-pair layout or Zbb is present;
 - the sponge `8·binary_rows + andCount(perm)·2^l`.
 
-**Counters** (`NS.ctr`, C = 2F + 2). Every counter is a range-checked integer; leaves add, folds chain.
+**Counters** (`NS.ctr`: 2F + 2 counters plus the two-word `mb_addr`). Every counter is a range-checked integer; leaves add, folds chain.
 
 | counter | leaf rule | root rule | today |
 |---|---|---|---|
@@ -553,8 +564,9 @@ Each sum is bounded by `< p` at every node. At the caps it is not implied by per
 | `truth[f]`, per family | truth leaf of family f: `first_id = truth_in[f]`, `truth_out = truth_in + count`, `count ≥ 1` | `truth_in = 1`; `truth_out[f] = call_out[f]` for f ≠ keccak and `= call_out[keccak] + perms_total` for keccak | `next[family]`, `InvalidCombinedTruthSpan` |
 | `sponge` | CPU leaf with sponge rows: `sponge.first_id = sponge_in`, `sponge_out = sponge_in + perms` | `sponge_in = call_out[keccak]`, i.e. sponge ids start after every Keccak-f call; `perms_total = sponge_out − sponge_in` | `next_sponge = totals[0] + 1` |
 | `cpu_ordinal` | CPU leaf: `epoch = cpu_ordinal_in + 1`, `cpu_ordinal_out = cpu_ordinal_in + 1` | `cpu_ordinal_in = 0`, `cpu_ordinal_out ≥ 1` | `r.epoch == index + 1` |
+| `mb_addr` (u64 + `started` bit) | `mb` leaf: `prev_last_addr = mb_addr_in`; if started, `first_addr > mb_addr_in` (u64 compare on limbs); `mb_addr_out = last_addr`, started; others pass through. canon-native's `stmt_mb.prev_last_addr` is this value | `started_in = 0`; `started_out = 1` iff any cell was touched | sortedness and `initial[i-1].address >= b.address` of `validateInventory` |
 
-The `steps` chain is §2. The root also checks `call_out[f] − 1 ≤ 2^32 − 1` and `50·(call_out[keccak] − 1) < p`, which are today's `total > maxInt(u32)` and `50·totals[0]` checks. The second is implied by the kio mass bound, and is kept so the table has no exceptions.
+Touched-set completeness needs no counter: an address the CPU touches without an `mb` INIT/TEARDOWN pair leaves `bus[ram] ≠ 0`. The `steps` chain is §2. The root also checks `call_out[f] − 1 ≤ 2^32 − 1` and `50·(call_out[keccak] − 1) < p`, which are today's `total > maxInt(u32)` and `50·totals[0]` checks. The second is implied by the kio mass bound, and is kept so the table has no exceptions.
 
 ### 10.3 What the reviewer did not find
 

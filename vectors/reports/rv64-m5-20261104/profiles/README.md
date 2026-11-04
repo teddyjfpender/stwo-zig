@@ -13,6 +13,7 @@ This change touches notes, the corpus harness and the off-by-default registry. I
 | `{26235156,24628607}-negative-corpus-v3-recsize-receiver.json` | [M] The outer-profile cases against a receiver built from `codex/rv64-m4-recsize-port` @ `d4cdf05fa` (`588791b7…`). It is the first receiver that reads `STWO_RV64_OUTER_PROFILE`; canon-vk merged the same code. |
 | `coverage-canon-vk-59e774b9e.json`, `coverage-canon-native-e3fdff934.json` | `coverage` of the pushed M5 branches: the U/W-tier hooks (zig tests named `corpus <ID>`) that exist. |
 | `candidate-tests-releasesafe-review2.log` | [M] `zig test -OReleaseSafe` of the candidate registry: 21/22 pass. The failure is the pre-existing `LOCAL_RELATIONS` 9-vs-10 roster test (`rv64-m7-profiles.md` §2.1). The new M5 roster test pins 10 and passes. |
+| `mass-census.json` | [D] cross-proof LogUp mass of both dev blocks from their accepted `bundle.json` (`scripts/rv64_m5_mass_census.py`). ram is 2^23.9 / 2^24.6, leaving a 7.1 / 6.4-bit margin to p. **One global RAM relation caps a block at about 2 G instructions** [E, linear]. This applies to today's receiver as well (binding §10.2). |
 | `recsize-receiver-build.log` | build exit status of the recsize receiver (CPU only, build lock held) |
 
 Notes: `design/riscv-proving-stack/rv64-m5-binding.md` §10 (review 2) and `rv64-m7-profiles.md` §8 (format versions).
