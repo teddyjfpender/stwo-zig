@@ -1,0 +1,13 @@
+{
+  "schema": "rv64-m3-build/v1",
+  "stream": "topo",
+  "source_root": "/workspace/m3/src/topo",
+  "source_commit": "90b01aa5b",
+  "host": "f675b38ce80e",
+  "zig_seconds": {
+    "build-rv64-ethereum-gpu-combined": 315.44,
+    "build-rv64-ethereum-recursion-receiver": 263.25
+  },
+  "driver_sha256": "fb19fa04678d799d707412486ea372a368e52180a936b26e704befbcd7322a94",
+  "receiver_sha256": "2689aa62460ef4a095fdb17e3c326e343d627ce7ae3fc8280a63e8c66304eab9"
+}

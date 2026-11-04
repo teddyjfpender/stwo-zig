@@ -1,6 +1,6 @@
 # Stream topo — proof-independent fold topology (RV64 M3)
 
-Branch `codex/rv64-m3-topo`, built on the pod from this tree (zig only). The CUDA runtime is the accepted
+Branch `codex/rv64-m3-topo`, built on the pod from this tree (zig only; binaries `build-v2{a,b,c}.json`). The CUDA runtime is the accepted
 `library.so` (sha 25295868…). Infra showed that this pairing gives byte-identical output for
 26235156 (`/workspace/m3/runs/infra/26235156-2gpu-srcdriver-acceptedlib`). Hardware: 2× RTX 5090.
 Every timing below is a **single measured observation**, not a median. Binding argument:
@@ -21,7 +21,11 @@ Every timing below is a **single measured observation**, not a median. Binding a
    tasks, permutation indices, level ends and seed layout of a class, and re-reads only the seed values.
    This does not change proofs. Modes: `STWO_RV64_OUTER_PLAN_CLASS_CACHE=0|check`; the default is on. The class hint
    is passed through `device_prove.class_hint` (threadlocal, host-only).
-4. **Topology census** (`om31_native/topology_fingerprint.zig`). `STWO_RV64_TOPOLOGY_CENSUS=1` logs per-node digests
+4. **Producer fold-class PP cache** (`om31_native/outer_wrap.zig` `PPCache`). Later folds of a class reuse the
+   immutable preprocessed circuit, so the columns are not rebuilt. The authority and the device FIXED precommit are
+   still built per proof. This does not change proofs. Modes: `STWO_RV64_OUTER_PP_CLASS_CACHE=0|check`; the default
+   is on.
+5. **Topology census** (`om31_native/topology_fingerprint.zig`). `STWO_RV64_TOPOLOGY_CENSUS=1` logs per-node digests
    of the gate graph, the constant table and the witness origins.
 
 ## Measured
@@ -66,11 +70,17 @@ In v2 the number of fold topologies equals the number of fold geometry classes.
 | v2a: v2, no plan cache, cold | 98.66 | 63.86 | 0 |
 | v2b: v2 + plan cache, cold | 97.12 | 63.40 | 8/16 |
 | warm two-block, plan cache **off**, 24628607 second | 96.36 | 63.62 | 0 |
-| warm two-block, plan cache **on**, 24628607 second | **91.63** | **58.50** | **13/16** |
-| warm two-block, on, 26235156 first (cold) | 63.48 | 40.61 | 2/10 |
+| warm two-block, plan cache **on**, 24628607 second | 91.63 | 58.50 | 13/16 |
+| warm two-block, plan + PP cache **check**, 24628607 second | 96.60 | 64.62 | 0 hits (15 checks ok) |
+| warm two-block, plan + PP cache **on**, 24628607 second | **87.46** | **54.93** | **13/16 plan, 13/16 PP** |
+| warm two-block, plan + PP cache on, 26235156 first (cold) | 64.76 | 41.83 | 2/10 |
 
-- **Measured, attributable:** in the warm resident process, with only the plan cache toggled, the plan cache cuts
-  24628607 recursion by 5.1 s (63.62 → 58.50). Cross-block reuse raises the fold hits from 8 (cold) to 13 of 16.
+- **Measured, attributable** (single observations, same warm two-block layout; only the caches are toggled):
+  - The plan cache alone cuts 24628607 recursion by 5.1 s (63.62 → 58.50).
+  - The plan + PP caches cut it by 8.7 s (63.62 → **54.93**). The request goes 96.36 → **87.46** s.
+  - Cross-block reuse raises the fold hits from 8 (cold) to 13 of 16.
+  - The recursive proofs are byte-identical across all four warm runs. Both blocks are accepted by fresh receivers
+    (`warm-two-block.json`).
 - Cold, the effect is within run-to-run noise: fold node mean 2.67 → 2.48 s, and the fold tail after the last leaf
   11.96 → 10.43 s (`rv64_m3_timeline.py`).
 - CPU receiver, fold verification time (`recv-v2.jsonl`): 21.8 s with the class cache off, 10.5 s with it on.
@@ -91,8 +101,8 @@ In v2 the number of fold topologies equals the number of fold geometry classes.
 - **Narrow-run assignment kernel: not qualified.** The accepted `library.so` does not export
   `stwo_circuit_assignment_narrow_run_on`, and infra's from-source CUDA image was still compiling during this stream.
   It stays default-off.
-- **The producer fold PP/authority/device-FIXED cache is not done.** It would save about 0.35 s per fold hit
-  (estimate: PP columns + authority). The PP must keep its columns and be shared across lanes.
-- The plan templates are allocated from `smp_allocator`, outside `SharedHostBudget` accounting (up to the default cap
-  of 6 GiB).
+- The device FIXED precommit and the authority (AIR parse/bind) still run for every fold. They could become
+  class-cached too, if the immutable device FIXED forest can be shared across proofs.
+- The plan templates and the PP cache are allocated from `smp_allocator`, outside `SharedHostBudget` accounting.
+  Each has a default cap of 6 GiB (`*_CLASS_CACHE_BYTES`); the PP cache holds about 0.36–0.54 GB per fold class.
 - No persisted (on-disk) cross-process cache. Reuse across blocks is in-process (resident service) only.
