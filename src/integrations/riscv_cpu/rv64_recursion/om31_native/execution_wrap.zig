@@ -331,10 +331,13 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
         }
     }
     const frames = Root.Frames{ .cpus = cpus, .truths = truth_frames };
+    // Pipelined route: the identical metadata check runs once on a side thread
+    // concurrently with the DAG and must succeed before root publication.
+    if (parallel) |options| if (try Pipe.Options.fromEnv(a, options)) |pipe| return runPreparedParallel(.{ .allocator = a, .setups = setups, .truths = truths, .bundle = bundle, .expected = expected, .config = config, .fixed = fixed, .dir = dir, .allow_resume = allow_resume, .inventory = &inventory, .stages = &stages, .manifest = &manifest, .words = words, .frames = frames, .timer = &timer }, options, pipe);
     // Early rejection only. Acceptance still requires every freshly verified
     // leaf, every parent, the root and this exact metadata check again below.
     const metadata = try Root.check(a, setups, truths, bundle.requests, expected, config, fixed, bundle.stage_one_bytes, frames, .{});
-    if (parallel) |options| return runPreparedParallel(.{ .allocator = a, .setups = setups, .truths = truths, .bundle = bundle, .expected = expected, .config = config, .fixed = fixed, .dir = dir, .allow_resume = allow_resume, .inventory = &inventory, .stages = &stages, .manifest = &manifest, .words = words, .frames = frames, .timer = &timer }, options);
+    if (parallel) |options| return runPreparedParallel(.{ .allocator = a, .setups = setups, .truths = truths, .bundle = bundle, .expected = expected, .config = config, .fixed = fixed, .dir = dir, .allow_resume = allow_resume, .inventory = &inventory, .stages = &stages, .manifest = &manifest, .words = words, .frames = frames, .timer = &timer }, options, null);
     var nodes: std.ArrayList(Node) = .empty;
     defer nodes.deinit(a);
     try nodes.ensureTotalCapacity(a, 2 * n - 1);
@@ -569,14 +572,14 @@ const ParallelExecution = struct {
     }
 };
 
-fn runPreparedParallel(input: PreparedExecution, options: ParallelOptions) !Report {
+fn runPreparedParallel(input: PreparedExecution, options: ParallelOptions, pipeline: ?Pipe.Options) !Report {
     const a = input.allocator;
     const plan = try Dag.Plan.init(input.inventory.workers.len);
     const budget = try @import("../../rv64_recursion_budget.zig").require(SharedBudget, a);
     const stack_bytes = 8 << 20;
     const nodes = try a.alloc(Node, plan.count);
     defer a.free(nodes);
-    if (try Pipe.Options.fromEnv(a, options)) |pipe| return runPipelined(input, options, pipe, &plan, nodes, budget);
+    if (pipeline) |pipe| return runPipelined(input, options, pipe, &plan, nodes, budget);
     var shared = ParallelExecution{ .input = input, .options = options, .plan = &plan, .dispatch = .{ .queue = try Dag.Queue.init(&plan, options.lanes.len, options.max_pending_authorities) }, .nodes = nodes };
     defer for (shared.proofs[0..plan.count]) |proof| if (proof) |p| p.deinit(a);
     var threads: [4]std.Thread = undefined;
@@ -1004,6 +1007,26 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
         for (shared.finishing.items) |job| job.destroy(a);
         for (shared.proofs[0..plan.count]) |proof| if (proof) |p| p.deinit(a);
     }
+    const RootCheck = struct {
+        input: *const PreparedExecution,
+        metadata: ?Root.Metadata = null,
+        failure: ?anyerror = null,
+        ns: u64 = 0,
+        fn run(self: *@This()) void {
+            var timer = std.time.Timer.start() catch unreachable;
+            const in = self.input;
+            self.metadata = Root.check(in.allocator, in.setups, in.truths, in.bundle.requests, in.expected, in.config, in.fixed, in.bundle.stage_one_bytes, in.frames, .{}) catch |err| blk: {
+                self.failure = err;
+                break :blk null;
+            };
+            self.ns = timer.read();
+        }
+    };
+    var root_check = RootCheck{ .input = &input };
+    const root_thread = std.Thread.spawn(.{ .stack_size = coordinator_stack }, RootCheck.run, .{&root_check}) catch null;
+    var root_joined = false;
+    defer if (!root_joined) if (root_thread) |thread| thread.join();
+    if (root_thread == null) root_check.run();
     std.log.info("rv64 OM31 pipelined recursion: nodes={d} lanes={d} host_workers={d} prep_pool_workers={d} prep_ahead={d}", .{ plan.count, options.lanes.len, pipe.host_workers, pipe.prep_pool_workers, pipe.prep_ahead });
     var threads: [36]std.Thread = undefined;
     var launched: usize = 0;
@@ -1023,6 +1046,9 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
     };
     for (threads[0..launched]) |thread| thread.join();
     const recursion_wall_ns = shared.now();
+    if (root_thread) |thread| thread.join();
+    root_joined = true;
+    if (root_check.failure) |err| return err;
     if (shared.fatal) |err| return err;
     if (shared.queue.failure) |failure| return failure.err;
     if (shared.queue.completed != plan.count or shared.queue.active != 0 or shared.queue.live != 1) return error.RecursiveLeafCoverage;
@@ -1032,7 +1058,7 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
     try Outer.requireDigest(final.proof.produced.outputs, info.digest);
     var fresh = try Prove.verify(a, final.proof.authority, final.proof.produced.outputs, final.proof.produced.claims, &final.proof.produced.proof.proof);
     defer fresh.deinit(a);
-    const metadata = try Root.check(a, input.setups, input.truths, input.bundle.requests, input.expected, input.config, input.fixed, input.bundle.stage_one_bytes, input.frames, .{});
+    const metadata = root_check.metadata orelse return error.RecursiveRootMetadataMissing;
     const verify_ns = input.timer.read() - verify_start;
     const bytes = try final.proof.serialize(a);
     defer a.free(bytes);
@@ -1058,7 +1084,7 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
     const scheduler = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .candidate = true, .pipelined = true, .lanes = options.lanes.len, .pool_worker_budget = options.pool_worker_budget, .max_pending_authorities = options.max_pending_authorities, .peak_authority_slots = shared.queue.peak, .host_budget = budget.snapshot() }, .{ .whitespace = .indent_2 });
     defer a.free(scheduler);
     try @import("publication.zig").write(input.dir, "scheduler.json", scheduler);
-    const timeline = try std.json.Stringify.valueAlloc(a, .{ .schema = "rv64-om31-pipelined-recursion-timeline/v1", .measured = true, .scope = "ns since pipeline start; device stage = precommit+authority+device proof on that lane; occupancy is lane device-stage wall / (lanes * DAG wall), an upper bound on GPU kernel busy", .options = pipe, .lanes = options.lanes.len, .dag_wall_ns = recursion_wall_ns, .lane_device_stage_ns = lane_busy[0..options.lanes.len], .lane_device_stage_occupancy = occupancy, .peak_leaves_ahead = shared.peak_leaves_ahead, .peak_ready = shared.peak_ready, .nodes = records }, .{ .whitespace = .indent_1 });
+    const timeline = try std.json.Stringify.valueAlloc(a, .{ .schema = "rv64-om31-pipelined-recursion-timeline/v1", .measured = true, .scope = "ns since pipeline start; device stage = precommit+authority+device proof on that lane; occupancy is lane device-stage wall / (lanes * DAG wall), an upper bound on GPU kernel busy", .options = pipe, .lanes = options.lanes.len, .dag_wall_ns = recursion_wall_ns, .concurrent_root_metadata_check_ns = root_check.ns, .root_publication_ns = input.timer.read() - verify_start, .lane_device_stage_ns = lane_busy[0..options.lanes.len], .lane_device_stage_occupancy = occupancy, .peak_leaves_ahead = shared.peak_leaves_ahead, .peak_ready = shared.peak_ready, .nodes = records }, .{ .whitespace = .indent_1 });
     defer a.free(timeline);
     try @import("publication.zig").write(input.dir, "pipeline.json", timeline);
     std.log.info("rv64 OM31 pipelined recursion done: dag_wall_ns={d} lane_device_stage_occupancy={d:.3}", .{ recursion_wall_ns, occupancy });
