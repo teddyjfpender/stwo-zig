@@ -16,6 +16,8 @@ const Manifest = struct {
     immutable_device_bytes: u64 = 512 << 20,
     combined_immutable_device_bytes: u64 = 2 << 30,
     combined_host_bytes: usize = 48 << 30,
+    recursion_device_fixed_candidate: bool = false,
+    recursion_mode: []const u8 = "serial",
 };
 pub fn run(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, output: []const u8) !void {
     return runMode(a, library, manifest_path, output, false);
@@ -29,6 +31,9 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     var parsed = try std.json.parseFromSlice(Manifest, a, raw, .{ .ignore_unknown_fields = true });
     defer parsed.deinit();
     const manifest = parsed.value;
+    try @import("serial_fixed_policy.zig").validate(combined, manifest.recursion_mode, manifest.recursion_device_fixed_candidate);
+    var manifest_sha256: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(raw, &manifest_sha256, .{});
     if (!std.mem.eql(u8, manifest.schema, "rv64-ethereum-basket-inputs/v1") or manifest.execution_order.len == 0 or manifest.execution_order.len > 256 or manifest.repeat == 0 or manifest.repeat > 16) return error.InvalidResidentBatchManifest;
     // This entry never admits the host-retained comparison route.
     if (std.process.hasEnvVarConstant("STWO_RV64_GPU_HOST_RETAINED") or !std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE") or !std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING")) return error.ResidentBatchRequiresDevicePipeline;
@@ -60,8 +65,17 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     try pool.stages().requireFullyResident();
     var outer: if (combined) @import("outer_source.zig").Context else void = if (combined) try @import("outer_source.zig").Context.init(base, &pool.devices[0].native, &pool.devices[0].trace, &pool.devices[0].composition) else {};
     defer if (combined) outer.deinit();
-    const factory = if (combined) try outer.factoryForTraceOnly() else {};
+    const factory = if (combined) (if (manifest.recursion_device_fixed_candidate) try outer.factoryWithDeviceFixed() else try outer.factoryForTraceOnly()) else {};
     try std.fs.cwd().makePath(output);
+    if (manifest.recursion_device_fixed_candidate) {
+        var root_dir = try std.fs.cwd().openDir(output, .{ .iterate = true });
+        defer root_dir.close();
+        const original = try root_dir.createFile("resident-device-fixed-manifest.json", .{ .exclusive = true });
+        defer original.close();
+        try original.writeAll(raw);
+        try std.posix.fsync(original.handle);
+        try std.posix.fsync(root_dir.fd);
+    }
     const resource_json = try std.json.Stringify.valueAlloc(a, manifest.resources, .{});
     defer a.free(resource_json);
     const parent = std.fs.path.dirname(manifest_path) orelse ".";
@@ -132,7 +146,13 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
                 const summary = try std.json.parseFromSlice(struct { cpu_proofs: usize, completed_ethereum_block: bool }, base, bytes, .{ .ignore_unknown_fields = true });
                 defer summary.deinit();
                 if (summary.value.cpu_proofs != item.expected_cpu_segments or !summary.value.completed_ethereum_block) return error.CombinedBatchCoverageMismatch;
-                const entry = try std.json.Stringify.valueAlloc(base, .{ .schema = 1, .accepted = true, .request_wall_ns = request_wall_ns, .device_lifecycle_audit = "all request leases released", .device_byte_cap = config.caps[0], .immutable_device_bytes = manifest.combined_immutable_device_bytes, .host_byte_cap = manifest.combined_host_bytes, .trial = trial, .block = block, .fresh_production = true }, .{ .whitespace = .indent_2 });
+                const combined_path = try std.fs.path.join(base, &.{ proof, "combined-report.json" });
+                defer base.free(combined_path);
+                const combined_bytes = try std.fs.cwd().readFileAlloc(base, combined_path, 8 << 20);
+                defer base.free(combined_bytes);
+                const selected = try std.json.parseFromSlice(struct { fixed_setup_backend: []const u8 }, base, combined_bytes, .{ .ignore_unknown_fields = true });
+                defer selected.deinit();
+                const entry = try std.json.Stringify.valueAlloc(base, .{ .schema = 1, .accepted = true, .request_wall_ns = request_wall_ns, .device_lifecycle_audit = "all request leases released", .device_byte_cap = config.caps[0], .fixed_setup_backend = selected.value.fixed_setup_backend, .producer_manifest_sha256 = manifest_sha256, .immutable_device_bytes = manifest.combined_immutable_device_bytes, .host_byte_cap = manifest.combined_host_bytes, .trial = trial, .block = block, .fresh_production = true }, .{ .whitespace = .indent_2 });
                 defer base.free(entry);
                 try @import("combined_publication.zig").write(proof, entry);
             }
