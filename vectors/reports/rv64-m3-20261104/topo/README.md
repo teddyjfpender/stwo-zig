@@ -106,3 +106,21 @@ In v2 the number of fold topologies equals the number of fold geometry classes.
 - The plan templates and the PP cache are allocated from `smp_allocator`, outside `SharedHostBudget` accounting.
   Each has a default cap of 6 GiB (`*_CLASS_CACHE_BYTES`); the PP cache holds about 0.36–0.54 GB per fold class.
 - No persisted (on-disk) cross-process cache. Reuse across blocks is in-process (resident service) only.
+
+## Independent check (2026-11-04, receipts in `check/`)
+
+- **Bug fixed (7afb20e2b):** `outer_wrap.restoreWithAuthority` (receiver fold-class cache-hit path) double-freed the
+  decoded proof on any rejection. A tampered fold at a cache-hit position made the receiver crash with SIGSEGV
+  (exit 139) instead of rejecting with an error. It never accepted. After the fix the same cases return
+  `CurrentOm31OutputDigest`.
+- **Hardening (7afb20e2b):** `classKey` now also hashes the full preprocessed layout (column ids and logs). Host-only;
+  proofs unchanged.
+- **Adversarial results (measured, CPU receiver, 26235156):** all rejected:
+  - cross-block same-class fold substitution (same class authority, different children), cache on and off;
+  - cross-class fold substitution;
+  - same-class upper-fold swap at cache-hit positions;
+  - leaf swap.
+- **Narrow-run assignment (measured, 2x5090, 26235156, infra from-source library):** `NARROW_RUNS=0`, `=1` and `=1`
+  with the plan cache off gave 37/37 byte-identical proof files, and the root equals the accepted-library root. The
+  receiver accepted with the class cache `0` and `check`. Recursion took 42.7 s with narrow runs off and 38.6 s with
+  them on. These are single observations.
