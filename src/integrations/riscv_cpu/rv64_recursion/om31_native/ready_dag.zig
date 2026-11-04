@@ -350,3 +350,27 @@ test "ready recursion parent-only admission never starts a leaf and never report
     try std.testing.expectEqual(@as(?usize, null), try q.takeFiltered(false));
     try std.testing.expect((try q.takeFiltered(true)) != null);
 }
+
+test "ready recursion admission stays live with pipelined prep-ahead concurrency above lane count" {
+    // The pipelined executor keeps up to prep_ahead + lanes + finishing nodes
+    // active at once under the unchanged 17-slot authority limit.
+    for ([_]usize{ 4, 6, 8, 12, 16 }) |concurrency| for (1..257) |n| {
+        const plan = try Plan.init(n);
+        var q = try Queue.init(&plan, 2, 17);
+        var active: std.ArrayList(usize) = .empty;
+        defer active.deinit(std.testing.allocator);
+        var step: usize = 0;
+        while (q.completed < plan.count) : (step += 1) {
+            while (active.items.len < concurrency) {
+                const next = try q.take() orelse break;
+                try active.append(std.testing.allocator, next);
+            }
+            try std.testing.expect(active.items.len != 0);
+            // Alternate newest-first and oldest-first completion.
+            const id = if (step % 2 == 0) active.pop().? else active.orderedRemove(0);
+            q.complete(id);
+            try std.testing.expect(q.live + q.active <= q.limit);
+        }
+        try std.testing.expectEqual(@as(usize, 1), q.live);
+    };
+}
