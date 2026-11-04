@@ -82,11 +82,14 @@ is checked at every combine, as in `runImpl`.
 
 ### 3.2 Receiver policy (what is never producer-chosen)
 
-- **Table provenance:** the table header pins schema, table profile id, native profile label, outer protocol domain,
+- **Table provenance:** the table header records schema, table profile id, native profile label, outer protocol domain,
   fold message version, the program identity of the request's image, and `receiver_sha256` = sha256 of the deriving
-  binary (`/proc/self/exe`). `verify-root-candidate` refuses any table not derived by the very same binary
+  binary (`/proc/self/exe`). `verify-root-candidate` refuses a table whose header names another binary
   (`VkTableNotDerivedByThisReceiver`; measured: the round-1 table of receiver `48ba61f9` offered to `f5f7ec5e` is
-  refused). The source commit is recorded for humans.
+  refused). **This is a label check, not authentication** (review §7, A1): the header is self-declared, and the
+  v0 root did not even cover `receiver_sha256`, so a relabelled stale table was accepted without a reseal. The
+  table is the trust root of root-only mode (whoever writes it chooses the root circuit); it is authenticated only
+  by the operator pin `--table-root` (below).
 - **Unknown profile ids are refused** (`UnknownVkTableProfile`). `rv64-m5-vk-table/v1` (canon-vk CV2's table name) is
   reserved; it is refused (`VkTableProfileNotImplemented`) until canon-vk's NS (CV3) is frozen. These ids name the
   receiver-table format, not a PCS/protocol profile; profiles' PROFILES registry is untouched.
@@ -94,9 +97,15 @@ is checked at every combine, as in `runImpl`.
   full-tree receiver, so a root-only statement compares byte for byte with an audit statement (profiles' corpus v3
   `--format m5-root` compares against the M4 full-tree control).
 - **Store-supplied VKs are refused:** a table at or under the proof directory is rejected before it is read
-  (`StoreSuppliedVkRefused`). Derive never reads the ArtifactStore or a setup cache (`STWO_ZIG_RV64_SETUP_CACHE` set → refuse).
-- **Integrity:** `table_root` = Blake2s over the canonical sorted entries and header ids; it is recomputed on load
-  (`VkTableRootMismatch`). It is an integrity check of a receiver-local file, not a trust root.
+  (`StoreSuppliedVkRefused`). This guards the in-store case only: a table next to `proof/` in the producer's run tree
+  passes it (review A3, measured). Derive never reads the ArtifactStore or a setup cache (`STWO_ZIG_RV64_SETUP_CACHE` set → refuse).
+- **Integrity:** `table_root` = Blake2s over the canonical sorted entries and **every** header field (root-v1 since
+  review §7; v0 omitted schema, fold version, source commit and receiver sha); it is recomputed on load
+  (`VkTableRootMismatch`). It is unkeyed: anyone who can write the file can reseal it.
+- **Authenticity (operator pin):** `verify-root-candidate ... --table-root HEX` requires the loaded table's
+  recomputed root to equal the value the receiver recorded from its own `derive-vk-tables` output, kept where the
+  producer cannot write (`VkTableRootPinMismatch`). Stdout reports `table_root_pinned`. An unpinned root-only
+  acceptance is only as trustworthy as the filesystem location of the table.
 
 ## 4. Measurements [M] (single observations, pod load 9–35, never under the quiet bar of 8)
 
@@ -154,3 +163,39 @@ it was accepted with the control statement. RV15 now rotates every leaf VK.
    `keys.zig` is canon-native's).
 4. **Parallel `--audit`:** the full-tree path is sequential (1 s PP + FIXED per node, 33 nodes) and is the derive cost;
    a node-parallel DAG on 48 cores bounds it by the tree's critical path (about 6 nodes) [E].
+
+## 7. Adversarial review 1 (2026-11-04, of `d562c78f9`)
+
+Scope: try to forge against the root-only receiver; check the code against `rv64-m5-binding.md`. Labels as above.
+
+**Findings.**
+
+| id | severity | finding | status |
+|---|---|---|---|
+| A1 | medium | `table_root` v0 bound only profile, native profile, outer domain and image. A stale round-1 table (receiver `48ba61f9`) with only `header.receiver_sha256` relabelled to `f5f7ec5e` was **accepted** by `f5f7ec5e` with no reseal [M]. "Refused unless derived by this exact binary" was a self-declared label. | fixed: root-v1 binds every header field; RV16/RV17 |
+| A2 | medium (design) | The table is the trust root of root-only mode. Root acceptance = "the root proof verifies under the table's VK for the recomputed class with the recomputed digest"; every VK is taken from the table, so a writer of the table chooses the root circuit (e.g. one with free outputs) [D]. Header checks and the unkeyed root cannot authenticate it. | mitigated: `--table-root` operator pin (RV18–RV20, RV23); unpinned acceptance labelled `table_root_pinned: false` |
+| A3 | low | `StoreSuppliedVkRefused` covers `OUT` only; a table beside `proof/` in the producer's run tree was accepted [M]. The receiver cannot know the producer's whole tree. | documented; the pin is the real check (RV22/RV23) |
+| A4 | low | `args[6][0]` indexed an empty argv string (out of bounds); `realpath` check then re-open by path (TOCTOU on a receiver-chosen path). | argv fixed; TOCTOU documented |
+| A5 | info (M3 code) | `leaf_graph.finish` checks circuit frame digest = `Blake2s(expectedWords)` only when `!trace_only`; receivers build trace-only, so the word-order agreement between `Statement.init` and `expectedWords` is checked at prove time and by derive's `VkLeafDigestReimplementationDrift` over honest proofs, never per receive. A drift would reject honest proofs; the positional order was read and matches (ordinal, statement, fixed, main, manifest, receipt, claims, steps, epoch, pc pairs, registers, clocks, sponge id, slot triples). | no change |
+
+**Checked and found consistent (no forge found).**
+- `admitAndDigest` is `runImpl`'s frame construction and `services_root.check` verbatim (same `expectedWords`,
+  `TruthLeaf/KeccakLeaf.statementWords`, terminal marginals, manifest digest); the root-only path drops only the native
+  verify (`Capture.verify`/`verifyCpuWithAuthority`) and child recursion verifies. The non-core native checks
+  (`validate`, `checkManifest`, `checkPhysicalRoots`, `publicClaims`) are either receiver-derived tautologies
+  (statement, roster, mass, relations come from `Inventory`), in-circuit (FIXED root constant, MAIN root and claims as
+  frame words), or repeated by `services_root.checkCpuFrame` (canonical claims, public RAM claims).
+- The in-circuit native verifier (`om31_native/mod.zig verify`) covers transcript, OODS composition, FRI commit,
+  **PoW** (`channel.pow`), query draw, Merkle decommitment and FRI decommit. CPU leaf request scalars are guessed frame
+  words (`cpu_leaf.Statement.init`), so leaf constants are setup/geometry/config/FIXED binding, all in `leafKey`.
+- `expectedRoot` = `runImpl` tree (streaming carry, rightmost-upward finalisation), adjacency checked per combine,
+  `folds = n − 1`, coverage `[0, n)`. `foldClassKey`/`foldDigest` cross-checked against the circuit on every fold derive
+  builds. `verifyRoot` binds the wire decode to the recomputed identity, requires canonical 8-word outputs equal to the
+  recomputed digest, then a fresh `Prove.verify` (FIXED root = table root, `lookupSum = 0`).
+- Statement fields of today's format: there is no NS, χ, κ, bus or null-slot field in `rv64-m4-fold-v2-compat/v0`;
+  those binding-note §2/§5(3) checks belong to `rv64-m5-vk-table/v1`, which is refused (`VkTableProfileNotImplemented`).
+  The leaf-class premise (§3.1) is evidenced only for truth leaves: 1 of 27 leaf keys repeats across the dev blocks,
+  so for CPU leaves derive's `VkLeafClassMismatch` guard has not yet fired on a repeated key. `--audit` stays the
+  acceptance path, as stated.
+
+**Measurements of the fix** are in `vectors/reports/rv64-m5-20261104/rootverify/review/`.
