@@ -65,9 +65,36 @@ __host__ __device__ __forceinline__ void at(const StwoCircuitOm31Fractions &j,un
   store(j.denominators+uint64_t(pair)*8*rows,rows,row,d);
 }
 #ifndef STWO_CIRCUIT_OM31_HOST_EMULATION
+// Compile-time pair dispatch (kernels stream, M4). lookup_at loads every base
+// column of the component into c[] and then switches on the lookup index;
+// with a runtime index (blockIdx.y) nothing can be pruned, so each thread
+// loaded all base columns (52 for Kind 4, the Blake G gate) into a 288-byte
+// local array for two lookups. A constant pair lets every case keep only the
+// columns it reads. Same arithmetic in the same order: identical fractions.
+template<unsigned Kind,unsigned Pair>
+__device__ __forceinline__ void at_pair(const StwoCircuitOm31Fractions &j,unsigned row) {
+  if constexpr(Pair<tuples::kSecure[Kind]) at<Kind>(j,row,Pair);
+}
 template<unsigned Kind> __global__ void generate(StwoCircuitOm31Fractions j) {
   const unsigned row=blockIdx.x*blockDim.x+threadIdx.x;
-  if(row<(1u<<j.row_log)) at<Kind>(j,row,blockIdx.y);
+  if(row>=(1u<<j.row_log)) return;
+  static_assert(tuples::kSecure[Kind]<=13,"pair dispatch covers 13 pairs");
+  switch(blockIdx.y) {
+    case 0: at_pair<Kind,0>(j,row); break;
+    case 1: at_pair<Kind,1>(j,row); break;
+    case 2: at_pair<Kind,2>(j,row); break;
+    case 3: at_pair<Kind,3>(j,row); break;
+    case 4: at_pair<Kind,4>(j,row); break;
+    case 5: at_pair<Kind,5>(j,row); break;
+    case 6: at_pair<Kind,6>(j,row); break;
+    case 7: at_pair<Kind,7>(j,row); break;
+    case 8: at_pair<Kind,8>(j,row); break;
+    case 9: at_pair<Kind,9>(j,row); break;
+    case 10: at_pair<Kind,10>(j,row); break;
+    case 11: at_pair<Kind,11>(j,row); break;
+    case 12: at_pair<Kind,12>(j,row); break;
+    default: break;
+  }
 }
 #endif
 } // namespace
