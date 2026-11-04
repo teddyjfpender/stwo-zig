@@ -49,10 +49,11 @@
       "stale old shape cannot retire reused smaller logical reservation"
     ],
     "oversized_cache_reuse": true,
-    "source_and_domain_data_preserved": true,
     "protection_reset_on_new_reservation": true,
     "existing_coalescing_and_oom_custody_regressions": "PASS",
-    "log_sha256": "b7a25fcad621956e7a277209e81eb7a18883de0332c176b9d24860321c8f6005"
+    "log_sha256": "b7a25fcad621956e7a277209e81eb7a18883de0332c176b9d24860321c8f6005",
+    "source_and_domain_reservations_preserved": true,
+    "live_coefficient_lease_data_preserved": true
   },
   "physical_native_pcs_gate": {
     "result": "PASS",
@@ -90,7 +91,7 @@
     "Forward twiddles upload once; compact combined beta1 N2B uses disjoint eight-log views that retire with the arena.",
     "All joins precede temporary cache reuse; final root readback consumes compact device snapshots.",
     "allocated_bytes remains cumulative requested allocation traffic, not simultaneous memory peak.",
-    "The8+15 native source basket is already qualified on the previous runtime, not newly claimed by this small gate.",
+    "The previous15-block native source basket is prior-runtime evidence, not newly requalified by this small gate.",
     "Actual previously blocked large PCS shape still requires qualification with this runtime under the same cap."
   ],
   "superseded_preflights": {
