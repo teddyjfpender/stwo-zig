@@ -16,7 +16,7 @@ Host tests cover zero-copy ownership, capacity/OOM failure atomicity, join-befor
 ## Thesis checkpoint, 2026-11-04
 
 This is a scope audit, not a completion or speedup claim. The fifteen-block
-native receipt and the ten-block recursive receipt are separate qualification
+native receipt and the twelve-block recursive receipt are separate qualification
 sets. They contain versioned, concurrent-workload observations; they do not
 establish quiet basket medians or the thesis's projected subsecond timings.
 
@@ -24,12 +24,12 @@ establish quiet basket medians or the thesis's projected subsecond timings.
 |---|---|---|
 | Overlap independent proofs | Native two-lane controls exist; the ready recursion DAG and exact recycler-backed shared-budget admission pass host tests | Physical one-lane parity, then admitted multi-device runs; source-tested admission is not measured overlap |
 | Keep numerical proving resident | Source audit and all fifteen native blocks exercise device MAIN/INTER, coefficient ingress, composition and PCS; CPU execution supplies compact advice | Continue to distinguish immutable host setup, execution and verification from device proving; eliminate duplicate recursive fixed commitment |
-| Bound memory over the whole request | INTER retirement, compact composition coefficients and smaller prefix banks have exact-proof gates; phase-separated PCS has physical tiny parity and ownership tests | Largest actual recursive shape under the unchanged cap, then complete recursive basket; logical caps are not sampled physical peaks |
+| Bound memory over the whole request | INTER retirement, compact composition coefficients and smaller prefix banks have exact-proof gates; phase-separated PCS has physical tiny parity, ownership tests and fresh acceptance of the complete largest block | Complete recursive basket; logical caps are not sampled physical peaks |
 | Reduce GKR launches | Real-block persistent-tail A/B preserves bytes and reduces launches, but establishes no end-to-end gain; default stays off | Multi-CTA fold/next-sum candidate needs numerical GPU parity and timing; graph capture and cross-proof traversal batching remain open |
 | Fuse transforms and commitment hashing | Generated composition kernels and existing resident FRI/commitment stages execute in production | FFT/leaf-hash and FRI-fold/hash fusion are still optimization work, not delivered by phase retirement |
 | Retain immutable geometry | Earlier audit shows no added warm geometry misses; admitted shape metadata is bounded | Do not confuse unique per-node recursive authorities with reusable per-program setup |
 | Profile the real path | Real Nsight Systems source receipt records copies, launches, joins and GPU activity | Hardware counters remain blocked by host policy; do not infer occupancy or sustained bandwidth from event spans |
-| Benchmark the complete basket | Fifteen native blocks independently accepted; ten recursive roots independently accepted | Five recursive cases, controlled repeated timings and physical 2/4-device measurements remain open |
+| Benchmark the complete basket | Fifteen native blocks independently accepted; twelve recursive roots independently accepted | Three recursive cases, controlled repeated timings and physical 2/4-device measurements remain open |
 
 The newest recursive setup sample is block25229951:115 nodes, with summed
 finalize11.117s, column generation66.426s and authority construction178.305s.
@@ -43,7 +43,7 @@ Evidence: `vectors/reports/rv64-cuda-real-segment-20261103/` contains
 `gkr-mixed-persistent-tail-real-block-ab.json`,
 `resident-real-nsys-source-v1.json` and
 `pcs-phase-retirement-physical-gate.json`.
-`vectors/reports/rv64-om31-recursion-20261103/recursive-basket-ten-accepted-v2.json`
+`vectors/reports/rv64-om31-recursion-20261103/recursive-basket-twelve-accepted-v4.json`
 pins the accepted recursive cases and their distinct producer groups.
 The security description remains **128-bit security target under documented
 assumptions**, without a certified whole-protocol claim.

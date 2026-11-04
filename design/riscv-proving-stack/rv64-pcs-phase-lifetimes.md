@@ -31,7 +31,8 @@ before the compute lane uses it.
 
 Native temporary retirement validates all whole, active reservations before
 one phase join and before changing any cache block's state. It rejects partial,
-duplicate, stale, leased, domain and protected source-coefficient reservations.
+duplicate, inactive, old-shape, leased, domain and protected source-coefficient
+reservations.
 Logical active size is tracked separately from reusable block capacity. A new
 reservation resets its protection tag; a protected physical block is therefore
 reusable as normal scratch after a request ends. This internal helper does not
