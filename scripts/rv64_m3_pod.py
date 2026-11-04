@@ -42,6 +42,7 @@ GPU_LOCK_WAIT = 7200
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import rv64_resident_basket as R  # noqa: E402
+import rv64_measure as M  # noqa: E402  (stream measure: counters, smaps census, receipt v2)
 B = R.B
 
 
@@ -228,7 +229,7 @@ def acquire_gpu_lock():
             time.sleep(2)
 
 
-def produce(plan, job, run, nsys=None):
+def produce(plan, job, run, nsys=None, counters=False, smaps=False):
     """R.produce_job, with an optional Nsight Systems wrapper and the m3 GPU lock."""
     target = Path(job["target"])
     target.mkdir(parents=True, exist_ok=False)
@@ -248,6 +249,10 @@ def produce(plan, job, run, nsys=None):
             environment.pop(key, None)
     environment["STWO_RV64_GPU_LIBRARY"] = plan["assets"]["library"]
     environment["CUDA_MODULE_LOADING"] = "EAGER"
+    if counters:
+        if nsys:
+            raise SystemExit("--counters and --nsys both use the CUDA API path; run them separately")
+        environment.update(M.shim_environment(run / "counters"))
     argv = [plan["assets"]["driver"], "combined-batch", str(target / "manifest.json"), str(target / "batch")]
     if nsys:
         argv = ["nsys", "profile", "--trace=cuda", "--sample=none", "--cpuctxsw=none",
@@ -257,11 +262,18 @@ def produce(plan, job, run, nsys=None):
     try:
         monitor = B.DeviceMonitor(worker["device"])
         monitor.thread.start()
+        sampler = M.SmapsSampler(str(target / "manifest.json"), run / "smaps-peak.json").start() if smaps else None
         try:
             usage = B.measure(argv, target, "producer", environment, cwd=plan["producer_cwd"])
         finally:
             memory = monitor.finish()
             B.atomic_json(target / "gpu-memory.json", memory)
+            if sampler:
+                pinned = []
+                for f in M.shim_files(run):
+                    pinned = [(p, n) for p, n, kind in M.load(f).get("pinned_host", {}).get("list", []) if kind != 3 and n]
+                    break
+                sampler.finish(pinned)
     finally:
         fcntl.flock(lock, fcntl.LOCK_UN)
         lock.close()
@@ -353,13 +365,16 @@ def prove(args):
     run.mkdir(parents=True, exist_ok=False)
     plan, job = make_plan(args, run, paths, root)
     started = time.time()
-    pending = produce(plan, job, run, nsys=args.nsys)
+    load_start = M.loadavg()
+    pending = produce(plan, job, run, nsys=args.nsys, counters=args.counters, smaps=args.smaps)
+    load_end = M.loadavg()
     proof = proof_dir(job)
     stages, report, combined = stage_breakdown(proof, pending["markers"])
     log = (Path(job["target"]) / "producer.stdout").read_text(errors="replace") + (Path(job["target"]) / "producer.stderr").read_text(errors="replace")
     leaves = report.get("cpu_proofs", 0) + report.get("truth_proofs", 0)
     receipt = {"schema": "rv64-m3-receipt/v1", "label": "measured", "stream": args.stream, "block": args.block,
                "gpus": args.gpus, "run": str(run), "started_unix": started, "source_commit": plan["producer_source_commit"],
+               "loadavg": {"start": load_start, "end": load_end}, "host": M.host_info(),
                "assets": plan["asset_sha256"], "environment_overrides": plan["resident_environment"], "nsys": bool(args.nsys),
                "stages": stages, "producer_process": pending["producer_process"], "gpu": pending["gpu"],
                "physical_gpu_memory_peak": pending["physical_gpu_memory"],
@@ -378,8 +393,17 @@ def prove(args):
     except Exception as error:
         receipt["proof_sha256"]["recursive_error"] = repr(error)
     B.atomic_json(receipt_path(run), receipt)
+    write_v2(run, args)
     summary(receipt)
     return run
+
+
+def write_v2(run, args):
+    """Receipt schema v2 (stream measure) next to receipt.json; never fails the run."""
+    try:
+        B.atomic_json(run / "receipt-v2.json", M.build_v2(run, getattr(args, "reference", None)))
+    except Exception as error:
+        sys.stderr.write(f"receipt-v2 failed: {error!r}\n")
 
 
 def receive(args, run=None):
@@ -441,6 +465,7 @@ def receive(args, run=None):
     receipt["receiver"] = verdict
     receipt["accepted"] = bool(verdict["accepted"] and receipt.get("native", {}).get("output_matches_pin"))
     B.atomic_json(path, receipt)
+    write_v2(run, args)
     summary(receipt)
     return verdict
 
@@ -476,6 +501,9 @@ def main():
         p.add_argument("--receiver")
         p.add_argument("--nsys", action="store_true", help="Wrap the producer in nsys profile (timeline in run/nsys)")
         p.add_argument("--allow-scale-up", action="store_true")
+        p.add_argument("--counters", action="store_true", help="LD_PRELOAD CUDA driver-API counter shim (syncs, launches, pool mallocs, library loads, pageable copies)")
+        p.add_argument("--smaps", action="store_true", help="Sample producer smaps; keep a census at peak RSS (run/smaps-peak.json)")
+        p.add_argument("--reference", help="Receipt (v1/v2) to fingerprint-diff all proof hashes against (e.g. the M3 baseline)")
         p.add_argument("--workers", type=int, default=16)
         p.add_argument("--host-bytes", type=int, default=32 << 30)
     r = sub.add_parser("receive")
@@ -484,6 +512,7 @@ def main():
     r.add_argument("--receiver")
     r.add_argument("--workers", type=int, default=16)
     r.add_argument("--host-bytes", type=int, default=32 << 30)
+    r.add_argument("--reference")
     q = sub.add_parser("parity")
     q.add_argument("--run", required=True)
     args = parser.parse_args()
