@@ -1088,6 +1088,7 @@ const Pipelined = struct {
             if (in.dir.statFile(name)) |_| return false else |err| if (err != error.FileNotFound) return err;
         }
         const class = try Bridge.classKey(kids);
+        if (!Outer.tapeReady(self.options.lanes[0].factory, class)) return false;
         const values = try FoldTape.record(a, kids);
         defer a.free(values);
         const record_ns = timer.lap();

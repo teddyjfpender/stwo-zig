@@ -437,6 +437,12 @@ pub fn prepareHost(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factor
 /// class plan are both cached, from the seed tape on `Device.seed_tape` and a
 /// flags-only stub graph (no padding, no PP build, no graph walk). Returns null
 /// (caller builds the ordinary graph) on any cache miss; proof-neutral.
+/// Cheap pre-check before recording a tape: the class PP is cached (PP and
+/// plan templates are adopted together by the first fold of a class).
+pub fn tapeReady(factory: Device.Factory, class: [32]u8) bool {
+    if (factory.precommit_fixed == null or factory.prepare_host == null or PPCache.mode() != .on) return false;
+    return PPCache.find(class) != null;
+}
 pub fn prepareHostTape(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factory, class: [32]u8) !?HostPrep {
     if (factory.precommit_fixed == null or PPCache.mode() != .on) return null;
     const prepare = factory.prepare_host orelse return null;
