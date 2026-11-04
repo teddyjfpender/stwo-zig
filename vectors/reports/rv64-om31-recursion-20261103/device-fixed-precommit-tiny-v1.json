@@ -28,7 +28,7 @@
     "rv64-joined-fixtures": "529ebf0cc3f2eae4c1c51b9d4376de41fb1101be2d51f7f1a1f6ce927c1b68a3"
   },
   "source_base": "0433b978e",
-  "qualification_scope": "Original605-variable circuit, all deterministic production hint families; CPU fixed-root/key oracle, two exact GPU full proofs, two fresh independent CPU receivers.",
+  "qualification_scope": "Original605-variable deterministic-hint circuit; CPU fixed-root/key oracle, two exact GPU full proofs, two fresh independent CPU receivers.",
   "security_scope": "Existing native OM31 q108/P20/fold4 target under documented assumptions, not a new whole-protocol certificate.",
   "remote_status": "/workspace/rv64-gpu-session/qualification/device-fixed-ae02d1abf/status.json",
   "runtime_kernel_change": false,
