@@ -184,7 +184,7 @@ fn printTl(out: anytype, pc: proto.Config, weight_openings: bool) !void {
 
 fn printConj(out: anytype, conj_ok: bool, conj: f64, proven: f64) !void {
     if (conj_ok) try out.print("\"conjectured_bits\":{d:.1},", .{conj}) else try out.print("\"conjectured_bits\":null,", .{});
-    try out.print("\"proven_bits\":{d:.1},", .{proven});
+    try out.print("\"query_bits_unique\":{d:.1},", .{proven});
 }
 
 /// Per-level byte breakdown of a pcs2 opening: [cols, siblings, rows/inner].
@@ -540,8 +540,20 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     try printGpuStats(out);
     try out.print("\"proof_digest\":\"{s}\",\"full_digest\":\"{s}\",", .{ std.fmt.bytesToHex(pd_first, .lower), std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower) });
     try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4},\"ext_init\":{d:.4},\"ext_terminal\":{d:.4},\"ext_ops\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns), nsToS(tm.ext_init_ns), nsToS(tm.ext_terminal_ns), nsToS(tm.ext_ops_ns) });
-    try printSecurity(out, a, pc, st, proto.weightKey(&sw.ws), &proof, null);
-    try wireOut(out, a, &pool, pc, st, &sw.ws, null, &proof);
+    // TENSOR_LAYER_KEY=1: also prove and verify the weight-key proof (offline,
+    // once per model), so the security total is complete (SEC-3). Off by
+    // default: its GKR over every layer weight sets the peak RSS (6.8 GB conj,
+    // 9.9 GB Johnson at layer 9 11 12 against ~2-4 GB without); without it
+    // the report says `conditional_on_key` and prints no unconditional total.
+    const layer_key = if (std.posix.getenv("TENSOR_LAYER_KEY")) |v| std.mem.eql(u8, v, "1") else false;
+    var pc_key = pc;
+    if (std.posix.getenv("TENSOR_KEY_CPU") != null) pc_key.accel = null;
+    var lkp: ?t.weight_key.KeyProof = if (layer_key) try t.weight_key.prove(a, &pool, pc_key, &sw.ws) else null;
+    defer if (lkp) |*k| k.deinit(a);
+    if (lkp) |*k| try t.weight_key.verify(a, pc, proto.weightKey(&sw.ws), k);
+    const lkp_ptr: ?*const t.weight_key.KeyProof = if (lkp) |*k| k else null;
+    try printSecurity(out, a, pc, st, proto.weightKey(&sw.ws), &proof, lkp_ptr);
+    try wireOut(out, a, &pool, pc, st, &sw.ws, lkp_ptr, &proof);
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"ext\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"peak_rss_bytes\":{d}}}\n", .{ sz.gkr, sz.sumchecks, proof.ext.byteSize(), sz.witness_opening, sz.weight_opening, sz.total, peakRssBytes() });
     proof.deinit(a);
     a.free(wview);

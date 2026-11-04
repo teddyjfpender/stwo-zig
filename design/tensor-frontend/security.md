@@ -9,10 +9,19 @@ gone (see 5).
 ## 1. The calculator
 
 `security.accountProof(a, cfg, st, key, proof, key_proof)` runs the verifier
-(`protocol.verifyInfo` records the shapes it checked; a rejected proof is not
-accounted). It then lists **every challenge of the protocol with its error
-term**. The bench prints the result as `"security"` for `product`, `mlp` and
-`layer`:
+(`protocol.verifyInfo` records the shapes it checked) and, when a key proof
+is given, the key verifier `weight_key.verify` (review B SEC-2). A proof or
+key proof that either verifier rejects is not accounted. It then lists
+**every challenge of the protocol with its error term**. Without a key proof,
+a proof that reads weights is reported as `conditional_on_key` (SEC-3): its
+weight opening is only a consistency check against a table whose proximity
+the key proof proves, so the sum is a bound only given a verified key proof
+at `delta_key`, and the JSON prints it as `total_conditional_on_key`, not
+`total`. `security.accountServe(...)` does the same for one request of a
+served batch (1.2). The bench prints the result as `"security"` for
+`product`, `mlp` and `layer`. The layer bench proves the key only with
+`TENSOR_LAYER_KEY=1`, because its GKR over every layer weight sets the
+memory peak.
 
 ```
 TENSOR_OOD=1 TENSOR_DEEP=76,3,20 \
@@ -27,16 +36,59 @@ work_shift prox_rows`; `TENSOR_DEEP=q,lb[,pow]` sets the levels >= 2;
 `TENSOR_KEY_Q=q[,pow]` the weight-key proof, both at the outer blowup;
 `TENSOR_KEY_ALPHAS=2` gives the weight-key LogUp two independent alpha, 4.1.)
 
-The report gives these figures, in FlashProve's style:
+### 1.1 The figures, and which FlashProve number each one matches
 
-| figure | meaning |
+Until review B (SEC-1) this section called `sum_*` the "whole bound" and
+compared it with FlashProve's 126.21 / 96.23. That was the wrong row.
+FlashProve (`docs/limits.md`, "the soundness figure"; `docs/figures.tsv`
+rows `whole-bound-with-work` / `-without-work`) prints four readings of the
+same rounds:
+
+| FlashProve row | with work | without work | definition | our figure |
+|---|---|---|---|---|
+| the weakest single round | 128.00 | 96.23 | -log2 of the largest per-round error | `rbr_round_with_work` / `rbr_round_without_work` |
+| the whole bound "as one number" (`cp_verify -plan accounting`) | 126.21 | 96.23 | the largest L with 2^-L >= 2^-w + 8.5 * 2^(L-256), w = the weakest round; read as "a cheater making N hash calls succeeds with probability <= N/2^L" | `rbr_compiled` (alias `compiled`) / `rbr_compiled_without_work` |
+| all rounds of one key file's, leaf file's and request's proof, added | 119.38 | 92.42 | -log2 of the sum of every round's error | `sum_with_work` / `sum_without_work` |
+| a cheater who computes no hashes, at the verifier's own hash count | 108.32 | 76.55 | the compiled bound times the verifier's own N | not computed (we do not count verifier hashes) |
+
+| JSON field | meaning |
 |---|---|
-| `sum_with_work` / `sum_without_work` | -log2 of the sum of all terms. With work, every query term is divided by 2^pow. This is the **whole bound** (FlashProve: 126.21 with work / 96.23 without). |
-| `round_with_work` / `round_without_work` | -log2 of the largest single term (FlashProve's "largest round error"). |
-| `compiled` | FlashProve's compiled level for `round_with_work` (the largest L with 2^-L >= 2^-w + 8.5 * 2^(L-256)); it gives 126.21 at w = 128, as theirs does (tested). |
-| `rbr_round_with_work` / `rbr_round_without_work` / `rbr_compiled` / `rbr_worst` | the largest single term with each inner level's lambda/query pair in its round-by-round (Markov) form (3.3). Every other term is already a per-round bound, so these are the round-by-round figures. |
-| `request` / `key` / `total` | the per-batch proof, the one-time weight-key proof, and both together (a client checks both). |
+| `sum_with_work` / `sum_without_work` | -log2 of the sum of all terms; with work, every query term is divided by 2^pow. **FlashProve's "all rounds added" (119.38 / 92.42).** It sums the mean-value lambda form (3.3), which is an interactive bound. |
+| `round_with_work` / `round_without_work` | -log2 of the largest single term with the mean-value lambda form. A diagnostic only: it is not a per-round bound (3.3). |
+| `rbr_round_with_work` / `rbr_round_without_work` / `rbr_worst` | -log2 of the largest per-round error, with each inner level's lambda/query pair in its round-by-round (Markov) form (3.3). Every other term already is a per-round bound. **FlashProve's "weakest single round" (128.00 / 96.23).** |
+| `rbr_compiled` (= `compiled`) / `rbr_compiled_without_work` | FlashProve's compiled level (c_h = 8.5, 256-bit digests) of `rbr_round_*`. **FlashProve's "whole bound as one number" (126.21 / 96.23)**; tested at 126.21 for w = 128. Until SEC-6, `compiled` was taken from `round_with_work` (the mean-value maximum), which is not the per-round error the Fiat-Shamir compilation needs; it overstated the toy by 0.1 bit. Below ~120 bits the 8.5 * 2^(L-256) term is negligible, so `rbr_compiled` = `rbr_round_with_work` to 0.01 bit on every config here. |
+| `request` / `key` / `total` (or `total_conditional_on_key`) | the per-batch proof, the one-time weight-key proof, and both together (a client checks both). |
+| `batch`, `n_requests` (serving only) | the joint reading of a served batch (1.2). |
 | `largest` | the six largest terms, each as `[name, bits, pow, count]`. |
+
+The `proven_bits` JSON field of `printTl` / `tensor-verify` / `zk_bench` is
+now `query_bits_unique` (SEC-8): -t log2(1 - delta_ud) + pow of the PCS
+query rounds alone, which is not a soundness bound.
+
+### 1.2 Serving: per-request and batch readings (`accountServe`, SEC-7)
+
+`security.accountServe(a, cfg, st, key, rp, shared, index, key_proof)` runs
+`serve.verifyRequestInfo` and adds, to the request's own terms (the same
+terms as a single proof, without its weight opening), the shared ones:
+
+* the cross-request combination: n_all independent gamma. A false slot
+  claim gives a nonzero linear form in the gammas, which vanishes with
+  probability 1/|F|.
+* the reduction sumcheck: degree 2 over log|W| variables, 2 log|W|/|F|
+  (with its claim term).
+* one weight opening at the reduced point (one group), at `delta_key`.
+
+`request` is the **per-request reading**: verifier i accepts a false
+statement i. `batch` is the **joint reading**: some request of the batch is
+false and its verifier accepts. Each request's own rounds run on its own
+transcript T_j, so the union over the batch charges them log2(n_requests)
+bits each, as FlashProve's printout says for a joint count ("each round of
+a request's own chains reads log2(N) bits less"). The shared rounds run once
+on the batch transcript, after every slot is fixed, so they are charged
+once. FlashProve argues that step only in its report (row SO-1.4). Here it
+is the plain union bound over the n transcripts, which only the request
+rounds need. The tests pin both readings: logup + 2 bits at 4 requests, and
+the weight-opening terms are unchanged.
 
 ## 2. Error terms
 
@@ -48,8 +100,10 @@ number of queries, and k the number of proximity rows.
 | term | bound | source / argument |
 |---|---|---|
 | LogUp (alpha, beta) | 2 sum_rel g_rel D_rel / \|F\| with g_rel = max(arity - 1, 1) of the relation (its table kind and its keys; ext tables counted as arity 3), D_rel = its keys + table rows. Weight key: (2 D / \|F\|)^k with k = `key_alphas` | A key of arity a enters as alpha - (v_0 + beta v_1 + ... + beta^(a-1) v_(a-1)): total degree g. Distinct keys give distinct denominators that are monic in alpha, hence coprime. If the multiset identity fails (a net multiplicity c_s != 0 mod p), sum_s c_s/d_s is a nonzero rational function, whose numerator over the common denominator has total degree <= (N - 1) g for N <= D distinct keys (Schwartz-Zippel), plus N g/\|F\| for a zero denominator. Needs D_rel < p (reported as `logup_below_p`). The verifier checks each relation's sum separately (`LogUpSumNonZero` per table), so the union bound runs per relation (dddb8387c). Until 0f1f577ec the calculator used 2 max(arity, 2) D with the global maximum arity, which added the alpha- and beta-degrees (1 bit loose for arity <= 2, 0.6 bit for arity 3). |
-| GKR, per layer | (2 n + 1)/\|F\| for instance batching, deg/\|F\| per round, n/\|F\| for the mask fold | Schwartz-Zippel on stwo's batched LogUp-GKR; n = instances active at the layer. |
-| sumchecks (op, ext, batch, class) | deg/\|F\| per round, plus (rounds + 1)/\|F\| for the claim's own randomness (zero-check point, batching xi or gamma) | Schwartz-Zippel / LFKN. |
+| GKR, per layer | (2 n + 1)/\|F\| for instance batching, 3/\|F\| per round, n/\|F\| for the mask fold | Schwartz-Zippel on stwo's batched LogUp-GKR; n = instances active at the layer. Every round is charged the verifier's maximum degree 3 (`verifier_kernel.MAX_DEGREE`), not the degree of the polynomial the proof sends (SEC-5): a cheating round polynomial of lower degree still differs from the true degree-3 one, and agrees with it at up to 3 points. Honest LogUp layers have degree 3, so no figure moves. |
+| sumchecks (op, ext, batch, class) | deg/\|F\| per round, plus (max(rounds, claim_dim) + 1)/\|F\| for the claim | Schwartz-Zippel / LFKN. The claim of an op sumcheck is an identity checked at a random point: the matmul accumulator acc~(rho) = r~ + 2^s y~ - sum_k X~ W~ at the GKR point over lt + ln variables (not the lk rounds); requant and plain einsums at n_out variables; the class batching xi adds one degree (SEC-4). The op bound uses the largest matmul/hadamard output (conservative across shape classes). |
+| ext lineq | n/\|F\| per linear equation | expr~(rho) = 0 at a fresh rho of n variables, with no sumcheck: a nonzero multilinear polynomial (SEC-4). These terms were missing before. |
+| serving: shared reduction | 1/\|F\| (gamma) + 2 log\|W\|/\|F\| (rounds) + (log\|W\| + 1)/\|F\| (claim) | 1.2 |
 | PCS: claim gammas | 1/\|F\| per group | independent coefficients |
 | PCS: proximity | (R * count / \|F\|)^k | k independent rows drawn in one challenge (3.2). count = E + 1 in unique decoding (BCIKS20 Thm 1.6, plus one for the circle subcode). Johnson: count = (2 M^5 + 3 M delta rho)/(3 rho^1.5) E + M/sqrt(rho) + L with M = m + 1/2 (BCHKS25 Thm 4.6 with M = 1, which FlashProve machine-checks as its Lemma 5.13, plus a list size for the circle subcode). The factor R is the conservative reduction from a line to a uniform combination of R rows (ePrint 2026/680 Lemma 4.7; FlashProve argues that the factor is not needed). |
 | PCS: OOD collision (Johnson only) | binom(L, 2) * n_vars / \|F\| | Two distinct members of the list have distinct MLEs, which agree at a random point with probability <= n_vars/\|F\|. L is the Johnson list bound (a - rho)/(a^2 - rho) with a = 1 - delta. |
@@ -327,8 +381,62 @@ other agents (load average 4-11), so times vary by about +-20% between
 identical runs and are quoted as ranges over 2-3 runs. Sizes, digests and
 bits are deterministic. Every run goes through `memguard` (6 GB; peak RSS
 0.3 GB toy, 2.6 GB MLP). "Bits" are the calculator's `total` (request +
-key): whole bound (sum) with / without work, largest round with / without,
-and the round-by-round largest round with / without (`rbr_*`, 3.3).
+key): all rounds added (`sum_*`, FlashProve's 119.38 / 92.42 row) with /
+without work, largest round with / without, and the round-by-round largest
+round with / without (`rbr_*`, 3.3). The compiled single number is 6.0.
+
+### 6.0 Corrected comparison with FlashProve (review B, calculator at `codex/tensor-secfix`)
+
+Re-run after the review-B fixes (SEC-1..8): M4 Max on AC power, ReleaseFast,
+every run through `memguard`, one job at a time, one run each (times are
+single samples; bits, bytes and digests are deterministic). The proofs are
+byte-identical to 6.1 / 6.2: the fixes change the calculator, not the
+protocol. The product Johnson digest is still `eaa5aa01ffec`, and the MLP
+sizes are unchanged. "All rounds added" = `sum_*`, "weakest round" =
+`rbr_round_*`, "compiled" = `rbr_compiled` / `rbr_compiled_without_work`
+(definitions in 1.1). Every column is our `total` (request + key) where the
+config has a key, `request` otherwise.
+
+| config | bytes | prove s | verify ms | all rounds added w/ / w/o | weakest round (rbr) w/ / w/o | compiled w/ / w/o | weakest term |
+|---|---|---|---|---|---|---|---|
+| **FlashProve CPU toy** (its printout, `docs/limits.md`) | 341 KB | 8.37 | 14 | **119.38 / 92.42** | 128.00 / 96.23 | **126.21 / 96.23** | smallness test |
+| product 20, base conj (54/54, d2) | 117 976 | 0.14 | 0.6 | 54.98 / 34.98 | 56.49 / 36.49 | 56.49 / 36.49 | witness L2 queries |
+| product 20, unique decoding, 2 prox (160/160) | 299 160 | 0.15 | 1.7 | 114.26 / 106.86 | 117.90 / 108.40 | 117.90 / 108.40 | witness L1 queries |
+| product 20, **Johnson+OOD** (122 / 76 lb3 / 76 lb3, 2 prox) | 246 920 | 0.16 | 1.3 | **113.47 / 96.76** | 115.56 / 97.10 | **115.56 / 97.10** | witness L1 lambda (rbr) |
+| mlp 9 11 12, base conj (64/54), 1 alpha | 328 704 | 0.27 | 2.6 | 53.99 / 33.99 | 56.56 / 36.56 | 56.56 / 36.56 | witness L2 queries |
+| mlp 9 11 12, **Johnson+OOD balanced** (97 / 61 / 61, weights 53, key 900, 2 alpha) | 522 588 | 0.28 | 3.6 | **99.50 / 86.14** | 99.52 / 88.13 | **99.52 / 88.13** | request LogUp |
+| layer 9 11 12, base conj (54/54), with key (`TENSOR_LAYER_KEY=1`) | 451 312 | 1.18 | 17.4 | 53.43 / 33.43 | 56.56 / 36.56 | 56.56 / 36.56 | weights L2 queries |
+| layer 9 11 12, **Johnson+OOD balanced**, with key | 682 624 | 1.31 | 18.8 | **96.55 / 86.14** | 96.55 / 88.13 | **96.55 / 88.13** | request LogUp |
+| layer 9 11 12, Johnson+OOD balanced, no key (default) | 682 624 | 1.25 | 18.6 | 96.55 / 86.84 *(conditional on key)* | 96.55 / 88.13 | 96.55 / 88.13 | request LogUp |
+
+Commands (after `tensor-bench`; mlp and layer at 4 threads, which does not
+change bits or bytes): the 6.1 / 6.2 rows, and for the layer `layer 9 11 12 3
+4 54 2 20 1 1 0 9 1 2 54` (conj) and `TENSOR_OOD=1 TENSOR_DEEP=61,3,20
+TENSOR_WEIGHT_Q=53 TENSOR_KEY_Q=900 TENSOR_KEY_ALPHAS=2 layer 9 11 12 3 4 97
+2 20 1 1 0 9 1 2 61 3 20 3 2`. The layer key proof takes the peak RSS from
+5.7 GB to 9.9 GB, which is why it is opt-in.
+
+Like for like:
+
+* **Toy against FlashProve's toy.** All rounds added: 113.47 vs 119.38 with
+  work (5.9 bits below), and 96.76 vs 92.42 without work (4.3 bits above).
+  Compiled single number: 115.56 vs 126.21 with work (10.7 bits below), and
+  97.10 vs 96.23 without work (0.9 bit above). Our proof is 28% smaller
+  (247 KB vs 341 KB). The with-work gap is the QM31 field. Our weakest round
+  with work is a field term (lambda, OOD collision, at ~2^-116), which proof
+  of work cannot raise, so neither number with work can reach FlashProve's
+  128 / 126.21 with a 2^124 field (7). Without work the PCS query rounds
+  set both numbers, and ours are higher.
+* The old 6.4 compared the 113.5 sum with 126.21. That compared our "all
+  rounds added" with FlashProve's compiled number, which understated us by
+  the 6.8-bit gap between FlashProve's own two rows. The corrected
+  comparison is the two bullets above.
+* MLP and layer have no FlashProve counterpart at this size. Both are capped
+  by the request LogUp (2^-99.5 at MLP 512, 2^-96.6 at layer 9 11 12), the
+  same in every reading.
+* The review-B term changes (SEC-4 claim dimensions and lineqs, SEC-5 GKR
+  degree 3) move no figure at 0.01-bit precision. Each new or increased term
+  is ~2^-120, against sums of ~2^-99 to 2^-113.
 
 ### 6.1 Toy: `product 20`, 1 thread, best of 3 (prove and verify)
 
@@ -410,13 +518,14 @@ theorem: about q/2^124 + 2^-101.
 * The base "proven-query 128" configs are about 100 bits (toy) and 96
   bits (MLP 512) once every term is counted. A single proximity row with
   R x E/|F| (toy, and the MLP key) and LogUp are the limits.
-* **Toy:** 247 KB at 113.5 proven bits (whole bound with work), 28% below
-  FlashProve's 341 KB, with 115.7 bits for the largest round (115.6
-  round-by-round). 203 KB still gives 107.8 bits, above the old 250 KB
-  config. Without work, 97 bits, comparable to FlashProve's 96.23. Against
-  the unique-decoding config with the same bits (299 KB), Johnson + OOD
-  saves 17%. Prove 0.16-0.21 s vs FlashProve's 8.37 s; verify 1.3-1.5 ms
-  vs 14 ms.
+* **Toy:** 247 KB at 113.5 bits with all rounds added and work counted
+  (FlashProve 119.38), or 115.6 as a compiled single number (FlashProve
+  126.21). Without work: 96.8 all rounds added (FlashProve 92.42) and 97.1
+  compiled (FlashProve 96.23), so both are above FlashProve's. Corrected in
+  review B (SEC-1); see 6.0. 203 KB still gives 107.8 bits (all rounds
+  added), above the old 250 KB config. Against the unique-decoding config
+  with the same bits (299 KB), Johnson + OOD saves 17%. Prove 0.16-0.21 s vs
+  FlashProve's 8.37 s; verify 1.3-1.5 ms vs 14 ms.
 * **MLP 512:** the balanced config is 523 KB at 99.5 bits, 29% below the
   731 KB proven-query config at 96.7 bits, so it is smaller and has more bits. The
   122/76 config keeps ~95 bits without work at 632 KB (-14%). The lean
@@ -463,7 +572,8 @@ the key separately.
 
 ## 7. Caveats and not done
 
-* **QM31 caps every whole bound at ~114 bits.** About 100 sumcheck/GKR
+* **QM31 caps the all-rounds-added sum at ~114 bits** (and every per-round
+  figure at ~116). About 100 sumcheck/GKR
   rounds at 2-3/|F|, the lambda terms (t log G'/|F| ~ 2^-116) and the OOD
   collisions (~2^-114 to 2^-116) add up there. A largest round above ~122
   bits is impossible with a 2^124 field. Reaching 120+ for the whole bound
@@ -491,6 +601,36 @@ the key separately.
 * Metal: the OOD MLEs run on the CPU (`pcs.combineRows`, exact integer
   arithmetic), so proofs stay bit-identical (`test-metal` 10/10).
 
+### 7.1 Review B notes: soundness and zero knowledge
+
+* **SEC-1 (naming).** Labels and the comparison only (1.1, 6.0). No bound changed.
+* **SEC-2 (key proof verified before it is accounted).** `accountKey` runs
+  `weight_key.verify(a, cfg, key, kp)` first. Soundness: the key terms are
+  read from `keyConfig(cfg)` and the GKR shape, which is valid only for an
+  accepted proof whose parameters are cfg's. `weight_key.verify` checks
+  exactly that. Before the fix, a tampered key proof was reported at 12.05
+  bits (review test). The only bench caller already verified first.
+* **SEC-3 (no key proof).** `conditional_on_key` and
+  `total_conditional_on_key`, as in 1. The per-batch weight term
+  (rho + delta_key)^t is valid only if the table is delta_key-close, and
+  only a verified key proof gives that.
+* **SEC-4 (claim dimensions, lineqs).** See the section 2 rows. Each
+  missing term was ~2^-120.
+* **SEC-5 (GKR rounds).** 3/|F| per round from `round_polys.len`. The old
+  `coeffsSlice().len - 1` underflowed on an empty round polynomial (pinned
+  by a test that aborted on the old code).
+* **SEC-6 (compiled).** `compiled` = `rbr_compiled`.
+* **SEC-7 (serving).** 1.2. The joint reading charges log2(n) bits on each
+  request's own rounds. The shared rounds are charged once.
+* **SEC-8 (hiding mode).** zk_bench's `proven_bits` is now
+  `query_bits_unique`. It omits the R (E + 1)/|F| proximity term (2^-97 to
+  2^-100 with one row) and all protocol terms. The calculator does not cover
+  hiding openings yet (zk.md 3.5, "So `security.zig`").
+* **Zero knowledge.** Every review-B change is to the calculator,
+  bench labels or docs. No prover message, transcript or opening changes,
+  so hiding-mode proofs and their simulators (zk.md) are untouched, and no
+  proof digest moves. Nothing was repinned.
+
 ## 8. Tests
 
 * `pcs2.zig`: OOD roundtrips at depth 1, 2 and 3 with deep params. At every
@@ -513,7 +653,16 @@ the key separately.
   and a 3-alpha verifier, and with a tampered histogram, a tampered value,
   or any tampered output claim of the second alpha's instances. The 1-alpha
   proof keeps 2 instances.
-* 55/55 tests (ReleaseFast and ReleaseSafe), `test-metal` 10/10.
+* `security_regress_test.zig` (review B; each failed on the old calculator):
+  a rejected key proof is refused (SEC-2), a request without a key proof
+  reports `total_conditional_on_key` (SEC-3), and the matmul claim is charged
+  at least lt + ln (SEC-4). `security.zig` adds: compiled from the RBR
+  maximum (SEC-6), GKR rounds at degree 3 including an empty round
+  polynomial (SEC-5), lineq n/|F| (SEC-4), and a 4-request served batch with
+  the reduction terms, the +2-bit joint reading of the request rounds, the
+  shared weight terms counted once, and a slot mismatch refused (SEC-7).
+* 55/55 tests (ReleaseFast and ReleaseSafe), `test-metal` 10/10 (at the
+  r2-sec merge); 111/111 tensor tests after review B.
 
 ## 9. Verifier input hygiene and prover bounds (review A: KERN-1..4, PROTO-3, PCS-4)
 

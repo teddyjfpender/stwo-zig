@@ -36,8 +36,12 @@ fn conjBits(queries: usize, msg_len: usize, log_ext: u32, pow: u32) f64 {
     return @as(f64, @floatFromInt(queries)) * std.math.log2(e / @as(f64, @floatFromInt(msg_len))) + @as(f64, @floatFromInt(pow));
 }
 
-/// Proven (unique decoding, delta = (1 - rate)/2) bits of a hiding opening.
-fn provenBits(queries: usize, msg_len: usize, log_ext: u32, pow: u32) f64 {
+/// Query bits of a hiding opening in unique decoding, delta = (1 - rate)/2:
+/// -t log2(1 - delta) + pow. NOT a soundness bound (SEC-8): it leaves out the
+/// proximity term R (E + 1)/|F| of each proximity row (~2^-97..2^-100 with
+/// one row, which caps the opening) and every protocol term. security.zig
+/// does not cover hiding openings yet (zk.md 3.5).
+fn queryBitsUnique(queries: usize, msg_len: usize, log_ext: u32, pow: u32) f64 {
     const rate = @as(f64, @floatFromInt(msg_len)) / @as(f64, @floatFromInt(@as(u64, 1) << @intCast(log_ext)));
     const delta = (1.0 - rate) / 2.0;
     return -@as(f64, @floatFromInt(queries)) * std.math.log2(1.0 - delta) + @as(f64, @floatFromInt(pow));
@@ -61,7 +65,7 @@ fn twoLevelFromEnv() !?t.pcs2.Params {
 
 fn pcsJson(out: anytype, tl: ?t.pcs2.Params) !void {
     if (tl) |p| {
-        try out.print("\"pcs\":\"zk_pcs2\",\"depth\":{d},\"inner_queries\":{d},\"inner_log_blowup\":{d},\"inner_pow\":{d},\"inner_conjectured_bits\":{d:.1},\"inner_proven_bits\":{d:.1},", .{ p.depth, p.inner.n_queries, p.inner.log_blowup, p.inner.pow_bits, p.inner.conjecturedBits(), p.inner.provenBits() });
+        try out.print("\"pcs\":\"zk_pcs2\",\"depth\":{d},\"inner_queries\":{d},\"inner_log_blowup\":{d},\"inner_pow\":{d},\"inner_conjectured_bits\":{d:.1},\"inner_query_bits_unique\":{d:.1},", .{ p.depth, p.inner.n_queries, p.inner.log_blowup, p.inner.pow_bits, p.inner.conjecturedBits(), p.inner.provenBits() });
     } else try out.print("\"pcs\":\"zk_pcs\",", .{});
 }
 
@@ -141,7 +145,7 @@ fn runProduct(a: std.mem.Allocator, args: [][:0]u8) !void {
         for (lvs, 0..) |x, i| try out.print("{s}{d}", .{ if (i == 0) "" else ",", x });
         try out.print("],", .{});
     }
-    try out.print("\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},", .{ conjBits(queries, msg_len, @intCast(lc + lb), pow), provenBits(queries, msg_len, @intCast(lc + lb), pow) });
+    try out.print("\"conjectured_bits\":{d:.1},\"query_bits_unique\":{d:.1},", .{ conjBits(queries, msg_len, @intCast(lc + lb), pow), queryBitsUnique(queries, msg_len, @intCast(lc + lb), pow) });
     try out.print("\"prove_s\":{d:.5},\"verify_s\":{d:.5},\"proof_bytes\":{d},\"proof_parts\":{{\"sumchecks\":{d},\"witness_opening\":{d}}},\"prove_ns_per_entry\":{d:.2},", .{ best_prove, best_verify, size, sz.sumchecks, sz.witness_opening, best_prove * 1e9 / @as(f64, @floatFromInt(@as(u64, 1) << @intCast(ln))) });
     try stagesJson(out, tm);
     try out.print("\"witness_table_elems\":{d},\"peak_rss_bytes\":{d}}}\n", .{ tm.witness_table_elems, peakRssBytes() });
@@ -239,13 +243,13 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     const kml = (@as(usize, 1) << @intCast(key.log_cols)) + key.slots;
     const cw = conjBits(queries, wml, @intCast(wtlc + lb), pow);
     const ck = conjBits(wq, kml, key.log_cols + wlb, pow);
-    const pw = provenBits(queries, wml, @intCast(wtlc + lb), pow);
-    const pk = provenBits(wq, kml, key.log_cols + wlb, pow);
+    const pw = queryBitsUnique(queries, wml, @intCast(wtlc + lb), pow);
+    const pk = queryBitsUnique(wq, kml, key.log_cols + wlb, pow);
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"bench\":\"mlp\",\"hiding\":true,\"metal\":{},\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_mask_slots\":{d},\"weight_log_blowup\":{d},\"weight_queries\":{d},\"weight_log_cols\":{d},\"witness_log_cols\":{d},\"public_io\":{},\"fused\":{},\"virtual_remainders\":{},", .{ bench_accel != null, lt, ld, lf, threads, queries, lb, pow, pc.weight_mask_slots, wlb, wq, wlc, wtlc, public_io, fused, pc.zk_virtual_remainders });
     try pcsJson(out, pc.two_level);
     try out.print("\"commit_weights_s\":{d:.4},\"weight_proximity_s\":{d:.4},\"weight_proximity_verify_s\":{d:.4},\"weight_proximity_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
-    try out.print("\"conjectured_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},\"proven_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},", .{ cw, ck, pw, pk });
+    try out.print("\"conjectured_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},\"query_bits_unique\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},", .{ cw, ck, pw, pk });
     try levelsJson(out, "witness_levels", proof.opening);
     if (proof.weight_opening) |wo| try levelsJson(out, "weight_levels", wo);
     try stagesJson(out, tm);

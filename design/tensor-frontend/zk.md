@@ -343,9 +343,13 @@ the analogous OOD, and its claims are unchanged:
   the outer table, and the transcript header does not bind `deep`. So hiding mode
   refuses both fields instead of honouring them silently. Then no config can look as if
   it had Johnson-regime soundness in hiding mode.
-- So `security.zig` (`accountProof`, the `proven_bits` beyond unique decoding) applies
-  to non-hiding proofs only. Hiding proofs report the conjectured and unique-decoding
-  bits of §3.5 and §5, as before. The per-batch `weight_outer` / `key_outer` /
+- So `security.zig` (`accountProof`, the bounds beyond unique decoding) applies
+  to non-hiding proofs only. Hiding proofs report the conjectured bits and the
+  unique-decoding query bits of §3.5 and §5. Since review B (SEC-8) zk_bench prints the
+  latter as `query_bits_unique` (formerly `proven_bits`): -t log2(1 - delta) + pow of the
+  query rounds alone. **It is not a soundness bound.** It leaves out the proximity term
+  R (E + 1)/|F| of each proximity row (about 2^-97 to 2^-100 with one row, which caps
+  the opening) and every protocol term, until `security.zig` covers hiding openings. The per-batch `weight_outer` / `key_outer` /
   `key_alphas` parameters of the non-hiding protocol also do not apply here. Hiding
   mode has its own weight parameters (`Config.weight_pcs`, the commit-time proximity
   proof and the opening budget of §3.4).

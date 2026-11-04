@@ -84,9 +84,9 @@ fn run(a: std.mem.Allocator, paths: [3][]const u8, out: anytype) !void {
     try out.print("{{\"ok\":true,\"statement_digest\":\"{s}\",\"statement_bytes\":{d},\"key_bytes\":{d},\"proof_bytes\":{d},", .{ std.fmt.bytesToHex(digest, .lower), sb.len, kb.len, pb.len });
     try out.print("\"witness_tensors\":{d},\"weights\":{d},\"ops\":{d},\"ext_ops\":{d},", .{ sf.st.witness.len, sf.st.weights.len, sf.st.ops.len, sf.st.ext.ops.len });
     if (sf.cfg.two_level) |tl| {
-        try out.print("\"pcs\":\"pcs2\",\"depth\":{d},\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},", .{ tl.depth, tl.conjecturedBits(), tl.provenBits() });
+        try out.print("\"pcs\":\"pcs2\",\"depth\":{d},\"conjectured_bits\":{d:.1},\"query_bits_unique\":{d:.1},", .{ tl.depth, tl.conjecturedBits(), tl.provenBits() });
     } else {
-        try out.print("\"pcs\":\"flat\",\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},", .{ sf.cfg.pcs.conjecturedBits(), sf.cfg.pcs.provenBits() });
+        try out.print("\"pcs\":\"flat\",\"conjectured_bits\":{d:.1},\"query_bits_unique\":{d:.1},", .{ sf.cfg.pcs.conjecturedBits(), sf.cfg.pcs.provenBits() });
     }
     try out.print("\"key_decode_s\":{d:.5},\"key_verify_s\":{d:.5},\"proof_decode_s\":{d:.5},\"verify_s\":{d:.5}}}\n", .{ key_decode_s, key_verify_s, decode_s, verify_s });
 }
