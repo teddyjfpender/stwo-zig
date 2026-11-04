@@ -1,6 +1,8 @@
 // In-process service over the SAME PCS pipeline used by the debug CLI.
 #include "pcs_native.h"
 #include "pcs_pipeline.cuh"
+#include "pcs_idle_cache.h"
+#include <cstdlib>
 #include "om31.cuh"
 #include "runtime/context_options.h"
 #include <algorithm>
@@ -86,6 +88,7 @@ struct ResidentOwner {
     Scope seed;
     StwoRv64Plane plane;
   };
+  rv64_pcs_idle_cache::Limit idle_cache;
   std::vector<Block> blocks;
   std::vector<Leased> leases;
   std::vector<Domain> domains;
@@ -94,6 +97,11 @@ struct ResidentOwner {
   explicit ResidentOwner(uint32_t device, uint64_t byte_cap) : cap(byte_cap) {
     if (!cap)
       throw std::runtime_error("missing device byte admission");
+    // Strict parse is before CUDA context/pool creation. Unset preserves the
+    // established upper-cache policy and all default logs. Zero means no idle
+    // upper-cache blocks; it does not disable or trim the runtime async pool.
+    idle_cache = rv64_pcs_idle_cache::parse(
+        std::getenv("STWO_RV64_PCS_IDLE_CACHE_BYTES"), cap);
     token = next_token.fetch_add(1);
     if (!token)
       throw std::runtime_error("context token exhausted");
@@ -107,6 +115,19 @@ struct ResidentOwner {
     }
   }
   void sync() { CHECK(stwo_exec_context_sync(ctx)); }
+  void trimIdleCache() {
+    if (!idle_cache.enabled) return;
+    const auto result = rv64_pcs_idle_cache::trim(
+        idle_cache, blocks, retained, [&](uint32_t *ptr) {
+          CHECK(stwo_exec_context_free_u32(ctx, ptr));
+        });
+    if (result.released)
+      std::printf("GPU_PCS_IDLE_CACHE cap_bytes=%llu before_bytes=%llu after_bytes=%llu released_blocks=%zu\n",
+          static_cast<unsigned long long>(idle_cache.bytes),
+          static_cast<unsigned long long>(result.before),
+          static_cast<unsigned long long>(result.after), result.released);
+  }
+
   void ensure(uint64_t bytes) {
     if (bytes > cap)
       throw std::runtime_error("device allocation exceeds admitted capacity");
@@ -222,6 +243,7 @@ struct ResidentOwner {
     uint64_t words=0;
     for (auto i:selected) { words+=blocks[i].active_words;blocks[i].used=false;blocks[i].active_words=0; }
     std::printf("GPU_PCS_PHASE_RETIRE planes=%zu logical_words=%llu\n",selected.size(),static_cast<unsigned long long>(words));
+    trimIdleCache();
   }
   void retirePlane(StwoRv64Plane plane) { retirePlanes({plane}); }
   void reset() {
@@ -235,6 +257,7 @@ struct ResidentOwner {
       block.active_words = 0;
     }
     allocated_bytes = 0;
+    trimIdleCache();
   }
   cudaEvent_t event() {
     cudaEvent_t e;

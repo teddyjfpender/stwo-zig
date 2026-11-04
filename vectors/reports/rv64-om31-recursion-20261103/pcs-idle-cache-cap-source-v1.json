@@ -1,0 +1,52 @@
+{
+  "schema": "rv64-pcs-idle-cache-cap-source/v1",
+  "source_base": "e5d977e0d",
+  "qualification": "host shared-policy/phase-owner emulation only; NOT CUDA compiled or GPU qualified",
+  "default_enabled": false,
+  "environment": "STWO_RV64_PCS_IDLE_CACHE_BYTES",
+  "parse": "Unset preserves old policy. Canonical decimal0..admitted device bytes,0evicts all idle upper blocks. Invalid text/overflow/cap raise rejected before CUDA context allocation.",
+  "trim_scope": "Only unused ResidentOwner.blocks, after existing joined retirePlanes/reset. Largest-first with stable vector-order ties. No active block, live lease or domain selection.",
+  "ownership": "Each successful existing context-free call immediately updates retained bytes and removes only its exact block. Failed free keeps failed+remaining records; exception poisons native session and terminal context teardown owns remaining allocations.",
+  "async_pool": "Returns unused upper allocations to existing cudaMallocFromPoolAsync pool. Does not call cudaMemPoolTrimTo or alter release threshold, logical cap, proof protocol or ABI.",
+  "source_evidence": {
+    "block": 26235159,
+    "log_path": "/private/tmp/rv64-offhost-queue/groups/phase-final-2529/cases/26235159/producer.stderr",
+    "log_sha256": "516fa96c639b93ed9faf6ce382d3719321e31d3086fbf79a2cf51fcf822d3c03",
+    "outer_nodes": 149,
+    "outer_owner_oom_recoveries": 89,
+    "all_phase_owner_oom_recoveries": 92,
+    "first_outer_recovery": {
+      "requested_bytes": 3489660928,
+      "retained_bytes": 25541957944,
+      "lease_bytes": 12267415232,
+      "idle_cache_bytes": 13038146168,
+      "active_cache_bytes": 0,
+      "physical_free_bytes": 5963776,
+      "physical_total_bytes": 33670758400,
+      "memory_rc": 0
+    }
+  },
+  "expected_behavior_not_measured": "Bound upper-idle ownership to permit existing same-context async pool reuse across role scratch/leases before physical OOM recovery.",
+  "hardware_jobs": 0,
+  "no_claims": [
+    "GPU proof parity",
+    "reduced OOM count",
+    "physical memory/RSS reduction",
+    "speedup"
+  ],
+  "pending": [
+    "nativeCUDAcompile",
+    "tiny old/new default exactproof/freshCPU",
+    "optionalcap positive/negative custody+failure injection",
+    "largest shape exactproof/freshCPU under same28GiB",
+    "quiet controlled warm timing/recovery count"
+  ],
+  "host_checks": {
+    "passed": 8881,
+    "mask_cap_cases": 1024,
+    "command": "zig build --build-file src/integrations/riscv_cuda/build.zig test-pcs-idle-cache -Doptimize=ReleaseFast -j2 --summary all",
+    "log_sha256": "ab092b6c26f3403ca444c16984fe2bb9eb00bdd327a752f5255ca6ecbe963a67",
+    "compiler": "Host C++17; -Wall -Wextra -Werror; shared actual production policy + joined-phase owner emulation",
+    "native_cuda_compiled": false
+  }
+}
