@@ -395,6 +395,10 @@ pub const Prepared = struct {
     chain_run: ?LaunchChain = null,
     /// tasks/indices/plan.level_ends are owned by a ClassCache template.
     borrowed: bool = false,
+    /// Class plans (folds: a template exists or will) keep their static words
+    /// in the device immutable cache; a one-shot plan (a leaf: its own class)
+    /// uploads them into request leases so it never evicts class entries.
+    reusable: bool = true,
     pub fn init(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
         // M6 hint-tape (HT1): a seed tape replaces the graph for this class.
         if (Dev.seed_tape) |tape| return initFromTape(a, library, tape);
@@ -589,6 +593,7 @@ pub const Prepared = struct {
             for (tasks) |task| if (capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
         }
         const task_pack_ns = timer.lap();
+        if (std.posix.getenv("STWO_RV64_OUTER_ASSIGNMENT_CENSUS") != null) levelKindCensus(tasks, plan.level_ends);
         const seeds = try a.alloc(Seed, plan.seeds.len);
         errdefer a.free(seeds);
         for (plan.seeds, seeds) |input, *out| out.* = .{ .out = input.variable, .value = Circuit.builder.ivalue.limbs(input.value) };
@@ -598,11 +603,54 @@ pub const Prepared = struct {
         const identity = try @import("schedule_identity.zig").digest(a, .{ std.mem.sliceAsBytes(tasks), std.mem.sliceAsBytes(indices.items), std.mem.sliceAsBytes(plan.level_ends) });
         const hash_ns = timer.lap();
         std.debug.print("GPU_OUTER_ASSIGNMENT_PLAN plan_ns={} producer_alloc_zero_ns={} seeds_ns={} tasks_ns={} level_alloc_zero_ns={} dependency_walk_ns={} ready_tasks={} dfs_roots={} ordering_ns={} task_pack_ns={} seed_pack_ns={} hash_ns={} task_bytes={} index_bytes={} levels={} permutation_count={} max_permutation_inputs={} permutation_pair_work={}\n", .{ plan_ns, metrics.producer_init_ns, metrics.seeds_ns, metrics.tasks_ns, metrics.level_init_ns, metrics.walk_ns, metrics.ready_tasks, metrics.dfs_roots, metrics.ordering_ns, task_pack_ns, seed_pack_ns, hash_ns, tasks.len * @sizeOf(Task), indices.items.len * 4, plan.level_ends.len, permutation_count, max_permutation_inputs, permutation_pair_work });
-        return .{ .allocator = a, .reference = if (ctx.trace_only) null else ctx.values().ptr, .count = ctx.circuit.n_vars, .plan = plan, .tasks = tasks, .indices = try indices.toOwnedSlice(a), .seeds = seeds, .identity = identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = narrow_plan, .narrow_run = grouping.narrow, .chain_run = grouping.chain };
+        return .{ .allocator = a, .reference = if (ctx.trace_only) null else ctx.values().ptr, .count = ctx.circuit.n_vars, .plan = plan, .tasks = tasks, .indices = try indices.toOwnedSlice(a), .seeds = seeds, .identity = identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = narrow_plan, .narrow_run = grouping.narrow, .chain_run = grouping.chain, .reusable = reusableClassPlan() };
     }
     /// Re-resolve kernel entry points against the adopting device's library.
     /// Plan/pack/seed/identity bytes are library independent. The same mapped
     /// image (identical entry points) needs no capability re-check.
+    /// Diagnostic (STWO_RV64_OUTER_ASSIGNMENT_CENSUS=1): dependency levels by
+    /// width class and by their most expensive task kind, to attribute the
+    /// per-level latency of the device DAG. Host only; never changes a plan.
+    fn levelKindCensus(tasks: []const Task, level_ends: []const usize) void {
+        const classes = [_][]const u8{ "inverse", "permutation", "blake_g", "mul", "other" };
+        var levels = [_]u64{0} ** 5;
+        var level_tasks = [_]u64{0} ** 5;
+        var wide_levels: u64 = 0;
+        var wide_tasks: u64 = 0;
+        var width1: u64 = 0;
+        var begin: usize = 0;
+        for (level_ends) |end| {
+            defer begin = end;
+            const width = end - begin;
+            if (width == 0) continue;
+            if (width > 2048) {
+                wide_levels += 1;
+                wide_tasks += width;
+                continue;
+            }
+            width1 += @intFromBool(width == 1);
+            var class: usize = 4;
+            for (tasks[begin..end]) |t| {
+                const c: usize = switch (t.kind) {
+                    8, 9, 10 => 0,
+                    7 => 1,
+                    6 => 2,
+                    2, 3 => 3,
+                    else => 4,
+                };
+                class = @min(class, c);
+            }
+            levels[class] += 1;
+            level_tasks[class] += width;
+        }
+        std.debug.print("GPU_OUTER_ASSIGNMENT_KINDS wide_levels={} wide_tasks={} narrow_width1={}", .{ wide_levels, wide_tasks, width1 });
+        for (classes, levels, level_tasks) |name, l, t| std.debug.print(" {s}_levels={} {s}_tasks={}", .{ name, l, name, t });
+        std.debug.print("\n", .{});
+    }
+    fn reusableClassPlan() bool {
+        if (std.posix.getenv("STWO_RV64_OUTER_ASSIGNMENT_LEAF_IMMUTABLE")) |value| if (std.mem.eql(u8, value, "1")) return true;
+        return @import("stwo_circuit_cpu_integration").om31.device_prove.class_hint != null;
+    }
     pub fn rebind(self: *Prepared, library: *std.DynLib) !void {
         const seed = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;
         const level = library.lookup(Launch, "stwo_circuit_assignment_level_on") orelse return error.MissingCircuitAssignmentKernel;
@@ -673,8 +721,18 @@ pub const Prepared = struct {
         try recorder.mark(.seed, true, lane);
         const seed_enqueue_ns = timer.lap();
         const task_words = @as([*]const u32, @ptrCast(self.tasks.ptr))[0 .. self.tasks.len * 8];
-        const tasks = try service.immutableWords(ctx.native_context, ctx.scope, self.key(owner.initial_scope.fixed, 0), task_words);
-        const indices: ?N.Lease = if (self.indices.len == 0) null else try service.immutableWords(ctx.native_context, ctx.scope, self.key(owner.initial_scope.fixed, 1), self.indices);
+        var one_shot: [3]?N.Lease = .{ null, null, null };
+        defer for (&one_shot) |*lease| if (lease.*) |*l| ctx.release(l) catch {};
+        const Static = struct {
+            fn words(prepared: *const Prepared, c: *SC.Context, svc: anytype, slot: *?N.Lease, fixed: [32]u8, kind: u32, data: []const u32) !N.Lease {
+                if (prepared.reusable) return svc.immutableWords(c.native_context, c.scope, prepared.key(fixed, kind), data);
+                slot.* = try c.allocate(data.len, 0);
+                try c.upload(try c.borrow(slot.*.?), data);
+                return slot.*.?;
+            }
+        };
+        const tasks = try Static.words(self, ctx, service, &one_shot[0], owner.initial_scope.fixed, 0, task_words);
+        const indices: ?N.Lease = if (self.indices.len == 0) null else try Static.words(self, ctx, service, &one_shot[1], owner.initial_scope.fixed, 1, self.indices);
         job.records = tasks.words.?;
         job.record_count = @intCast(self.tasks.len);
         if (indices) |lease| {
@@ -684,7 +742,7 @@ pub const Prepared = struct {
         // Chain runs read the plan's absolute level ends from the device.
         var chain_ends: ?N.Lease = null;
         if (self.narrow_plan) |plan| for (plan.runs) |run| if (run.kind == .chain) {
-            chain_ends = try service.immutableWords(ctx.native_context, ctx.scope, self.key(owner.initial_scope.fixed, 2), plan.ends);
+            chain_ends = try Static.words(self, ctx, service, &one_shot[2], owner.initial_scope.fixed, 2, plan.ends);
             break;
         };
         try ctx.join();
