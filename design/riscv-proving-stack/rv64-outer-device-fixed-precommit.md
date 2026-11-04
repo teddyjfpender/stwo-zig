@@ -99,6 +99,6 @@ the combined report derives fixed_setup_backend from the selected factory,
 and combined-entry copies that result rather than echoing the requested flag.
 The exact original manifest is durably saved as
 batch/resident-device-fixed-manifest.json with its hash in combined-entry.
-CPU receiver and restore admission remain unchanged. This wiring has host
-admission and semantic checks only until a complete real case proves exact
-proof/root/tree parity and passes fresh independent CPU verification.
+CPU receiver and restore admission remain unchanged. This wiring is now qualified on one complete real block,26235156:11 leaves and10 folds all used actual device_candidate FIXED precommit, with zero CPU assignments and zero request leases after endBlock. All13 native proof files, bundle,22 recursive proof files including root, and ordered tree match the independently accepted original serial control exactly. A fresh independent ARM CPU receiver reconstructed native and outer authority and accepted all proofs; its result SHA256 is2315e8b7efc30bad87f690fe9fe01cafc2006b05ca11ecf4eab589338cd8ffd4.
+
+The observed request wall was126.221s. This is one observation, with different source/runtime/resources from the original control, and establishes no causal speed ratio. It does not qualify worst-shape memory fit or enable the default. The compact receipt is `serial-device-fixed-qualified-v1.json`.
