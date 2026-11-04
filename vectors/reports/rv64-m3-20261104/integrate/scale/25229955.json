@@ -7768,6 +7768,57 @@
     "byte_identical": false
   },
   "receiver": {
-    "status": "not_run"
-  }
+    "status": "accepted",
+    "accepted": true,
+    "receiver_sha256": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b",
+    "argv": [
+      "nice",
+      "-n",
+      "10",
+      "/workspace/m3/build/integrate/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+      "--security-profile",
+      "conjectured128_b2_q108_p20_fold4",
+      "verify-recursion-candidate",
+      "/workspace/m3/runs/integrate/25229955-2gpu-scale/receiver-20261104T101947/receiver-request.json",
+      "/workspace/m3/runs/integrate/25229955-2gpu-scale/case/batch/trial-0/25229955/proof",
+      "12884901888",
+      "103079215104"
+    ],
+    "process": {
+      "argv": [
+        "nice",
+        "-n",
+        "10",
+        "/workspace/m3/build/integrate/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-recursion-candidate",
+        "/workspace/m3/runs/integrate/25229955-2gpu-scale/receiver-20261104T101947/receiver-request.json",
+        "/workspace/m3/runs/integrate/25229955-2gpu-scale/case/batch/trial-0/25229955/proof",
+        "12884901888",
+        "103079215104"
+      ],
+      "exit_code": 0,
+      "wall_ns": 254942207568,
+      "user_seconds": 768.749138,
+      "system_seconds": 97.888443,
+      "peak_rss_bytes": 12219645952,
+      "minor_faults": 44027667,
+      "major_faults": 0
+    },
+    "directory": "/workspace/m3/runs/integrate/25229955-2gpu-scale/receiver-20261104T101947",
+    "host": "f675b38ce80e",
+    "gpu_disabled": {
+      "CUDA_VISIBLE_DEVICES": "",
+      "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+      "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+      "STWO_RV64_FOLD_CLASS_CACHE": "0"
+    },
+    "native_receiver_accepted": true,
+    "recursive_receiver_accepted": true,
+    "restored_leaves": 49,
+    "restored_folds": 48,
+    "producer_strict_checks": "pass"
+  },
+  "accepted": true
 }

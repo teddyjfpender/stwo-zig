@@ -36,9 +36,11 @@ for block in ORDER:
                    receiver_accepted=r.get("accepted"), receiver_wall_s=round(rc["process"]["wall_ns"] / 1e9, 1) if rc.get("process", {}).get("wall_ns") else None,
                    receiver_restored_leaves=rc.get("restored_leaves"), receiver_restored_folds=rc.get("restored_folds"),
                    producer_peak_rss_gib=round(r["producer_process"]["peak_rss_bytes"] / 2**30, 1),
-                   run=r.get("run"))
+                   run=r.get("run"), assets=r.get("assets"), environment_overrides=r.get("environment_overrides"),
+                   source_commit=r.get("source_commit"))
     rows.append(row)
-summary = {"schema": "rv64-m3-summary/v1", "label": "measured unless noted", "rows": rows,
+tot = sum(r["request_s"] for r in rows if r.get("request_s")); base = sum(r["v7_1gpu_request_s"] for r in rows)
+summary = {"schema": "rv64-m3-summary/v1", "totals": {"request_s_sum_15": round(tot, 1), "v7_1gpu_request_s_sum_15": round(base, 1), "speedup": round(base / tot, 2), "accepted": sum(1 for r in rows if r.get("receiver_accepted"))}, "label": "measured unless noted", "rows": rows,
            "reference": {"accepted_2gpu_v7_24628607_request_s": V7_2GPU_24628607, "m3_target_24628607_request_s": 10.0}}
 json.dump(summary, open(HERE.parent / "summary.json", "w"), indent=1)
 print("| block | instr (M) | CPU+truth | request s | capture | setup | native prove | recursion | v7 1-GPU s | speedup | receiver |")
