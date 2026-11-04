@@ -1568,6 +1568,44 @@ pub fn validateStatement(st: Statement) !void {
     };
 }
 
+/// Statement-derived proof shape that the wire decoder (wire.zig) bounds its
+/// lengths by: the witness table's opening shape and the LogUp-GKR instance
+/// sizes (relation keys first, then tables, as in the verifier).
+pub const WireShape = struct {
+    witness: pcs.Shape,
+    witness_groups: usize,
+    log_total: u32,
+    n_keys: usize,
+    inst_log_sizes: []u32,
+
+    pub fn deinit(self: *WireShape, a: std.mem.Allocator) void {
+        a.free(self.inst_log_sizes);
+    }
+};
+
+pub fn wireShape(a: std.mem.Allocator, cfg: Config, st: Statement) !WireShape {
+    try validateStatement(st);
+    try xt.validate(st);
+    var rel = try deriveRelations(a, st);
+    defer rel.deinit(a);
+    const ext = try extendedInfos(a, st, rel);
+    defer a.free(ext);
+    const lay = try layout(a, ext, &.{});
+    defer a.free(lay.offsets);
+    const split = witnessSplit(cfg, lay.log_total, lay.used);
+    const sizes = try a.alloc(u32, rel.keys.len + rel.tables.len);
+    for (rel.keys, 0..) |k, i| sizes[i] = k.log_size;
+    for (rel.tables, 0..) |t, i| sizes[rel.keys.len + i] = t.log_size;
+    const w_ru = (lay.used + (@as(usize, 1) << @intCast(split.lc)) - 1) >> @intCast(split.lc);
+    return .{
+        .witness = .{ .log_rows = split.lr, .log_cols = split.lc, .log_blowup = outerParams(cfg).log_blowup, .rows_used = w_ru },
+        .witness_groups = 1 + @as(usize, @intFromBool(witnessOod(cfg))),
+        .log_total = lay.log_total,
+        .n_keys = rel.keys.len,
+        .inst_log_sizes = sizes,
+    };
+}
+
 /// What the verifier checked, for the soundness calculator (security.zig).
 pub const VerifyInfo = struct {
     witness_shape: pcs.Shape = .{ .log_rows = 0, .log_cols = 0, .log_blowup = 0 },

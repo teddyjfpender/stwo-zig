@@ -16,7 +16,8 @@ pub fn build(b: *std.Build) void {
     tensor.addImport("stwo_core", core);
     tensor.addImport("stwo_prover_engine", engine);
 
-    const tests = b.addTest(.{ .root_module = tensor });
+    const test_filters = b.option([]const []const u8, "test-filter", "Only run tests whose name contains this string") orelse &.{};
+    const tests = b.addTest(.{ .root_module = tensor, .filters = test_filters });
     const run_tests = b.addRunArtifact(tests);
     b.step("test", "Run tensor frontend tests").dependOn(&run_tests.step);
 
