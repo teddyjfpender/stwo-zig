@@ -4374,7 +4374,7 @@ fn zkCheatCase(a: std.mem.Allocator, pool: *f.Pool, cheat: ZkCheat) !void {
     const at = fx.out.attn;
     const T = @as(usize, 1) << @intCast(lc.log_t);
     const row = T - 1; // head 0, last token: no masked positions
-    const sel = b.wit.items[at.sel];
+    const sel = b.wit.items[at.sel.?];
     var jstar: usize = 0;
     for (0..T) |j| if (sel[row * T + j] == 1) {
         jstar = j;

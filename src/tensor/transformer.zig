@@ -937,7 +937,20 @@ pub fn rope(b: *Builder, c: Ctx, x: u32, log_heads: u32, colfix: []const u8) !u3
     );
 }
 
-pub const AttnOut = struct { o: u32, scores: u32, acc: u32, od: u32, m: u32, sel: u32, d: u32, e: u32, den: u32 };
+/// sel = the one-hot argmax selector; z1 = S(j*), z2 = Bias(j*). D = m - S -
+/// Bias is virtual (an exp-key input expression, never committed).
+pub const AttnOut = struct {
+    o: u32,
+    scores: u32,
+    acc: u32,
+    od: u32,
+    m: u32,
+    sel: ?u32 = null,
+    z1: u32,
+    z2: u32,
+    e: u32,
+    den: u32,
+};
 
 /// Causal GQA attention core: qr [T, H dh], kr / v [T, Hkv dh] -> O [T, H dh].
 pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8) !AttnOut {
@@ -969,55 +982,75 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8
     const sv = b.wit.items[S];
     // rowmax over masked scores + first-argmax selector
     const m = try b.a.alloc(i32, H * T);
-    const sel = try b.a.alloc(i32, H * T * T);
-    @memset(sel, 0);
+    const arg = try b.a.alloc(usize, H * T);
+    defer b.a.free(arg);
     for (0..H * T) |row| {
         const t = row % T;
         var best: i32 = std.math.minInt(i32);
-        var arg: usize = 0;
+        var aj: usize = 0;
         for (0..T) |j| {
             const val = sv[row * T + j] + bias[t * T + j];
             if (val > best) {
                 best = val;
-                arg = j;
+                aj = j;
             }
         }
         m[row] = best;
-        sel[row * T + arg] = 1;
+        arg[row] = aj;
     }
     b.tag("m");
     const m_id = try b.addVec(n2, m);
-    b.tag("sel");
-    const sel_id = try b.addVec(n3, sel);
-    const dd = try b.a.alloc(i32, H * T * T);
-    for (dd, 0..) |*o, i| {
+    // m in S's signed range: the honest max is attained at an unmasked j
+    // (j = t is never masked, and a masked S + Bias < -2^(sb-1) <= S(t, t)),
+    // so |m| < 2^(sb-1). This bounds m from its own key (bounds.zig).
+    b.tag("m.range");
+    try b.rangeSigned(m_id, cfg.score_bits);
+    const all3 = ids(0, n3);
+    const bias_lab = ids(lh, 2 * lt);
+    // D = m - S - Bias is NOT committed (virtual): the exp key below takes the
+    // affine expression itself. Membership in the exp table's domain proves
+    // D in [0, 2^expLog) as an integer (bounds.zig: |expr| + dom < p), i.e.
+    // m >= S_j + Bias_j for every j. Attainment: a boolean one-hot selector
+    // at some j* with z1 = S(j*), z2 = Bias(j*) (exact one-hot einsums) and
+    // m = z1 + z2. Together: m = max_j (S + Bias).
+    var z1: u32 = undefined;
+    var z2: u32 = undefined;
+    var sel_id: ?u32 = null;
+    {
+        // selector sel[h, t, j] (H T^2)
+        const sel = try b.a.alloc(i32, H * T * T);
+        @memset(sel, 0);
+        for (arg, 0..) |j, row| sel[row * T + j] = 1;
+        b.tag("sel");
+        const sid = try b.addVec(n3, sel);
+        sel_id = sid;
+        // sel in {0,1} (sel * sel == sel: one degree-3 zero-check, cheaper than
+        // a 1-bit LogUp key over H T^2), sum_j sel = 1
+        try b.einsumInto(sid, Ref.w(sid), Ref.w(sid), 0, &.{all3}, &.{all3});
+        try b.lineq(n2, try b.expr(&.{term(1, Ref.w(sid), &.{ ids(0, n2), sums(lt) })}, -1));
+        b.tag("argmax.z1");
+        z1 = (try b.einsumExact(TensorInfo.vec(n2), n2, Ref.w(sid), Ref.w(S), lt, &.{all3}, &.{all3})).?;
+        b.tag("argmax.z2");
+        z2 = (try b.einsumExact(TensorInfo.vec(n2), n2, Ref.w(sid), Ref.p(c.bias), lt, &.{all3}, &.{bias_lab})).?;
+    }
+    // m = S(j*) + Bias(j*)
+    try b.lineq(n2, try b.expr(&.{ term(1, Ref.w(m_id), &.{ids(0, n2)}), term(-1, Ref.w(z1), &.{ids(0, n2)}), term(-1, Ref.w(z2), &.{ids(0, n2)}) }, 0));
+    // e = exp_table(m - S - Bias) (domain [0, 2^expLog) also range-checks D)
+    const et = b.xtables.items[c.exp_table].values;
+    const e = try b.a.alloc(i32, H * T * T);
+    for (e, 0..) |*o, i| {
         const row = i / T;
         const t = row % T;
         const j = i % T;
-        o.* = m[row] - sv[i] - bias[t * T + j];
+        o.* = et[@intCast(m[row] - sv[i] - bias[t * T + j])];
     }
-    b.tag("d");
-    const dd_id = try b.addVec(n3, dd);
-    const all3 = ids(0, n3);
-    // D - m + S + Bias = 0
-    try b.lineq(n3, try b.expr(&.{
-        term(1, Ref.w(dd_id), &.{all3}),
-        term(-1, Ref.w(m_id), &.{ids(0, n2)}),
-        term(1, Ref.w(S), &.{all3}),
-        term(1, Ref.p(c.bias), &.{ids(lh, 2 * lt)}),
-    }, 0));
-    // sel in {0,1} (sel * sel == sel: one degree-3 zero-check, cheaper than a
-    // 1-bit LogUp key over H T^2), sum_j sel = 1, sum_j sel * D = 0
-    try b.einsumInto(sel_id, Ref.w(sel_id), Ref.w(sel_id), 0, &.{all3}, &.{all3});
-    try b.lineq(n2, try b.expr(&.{term(1, Ref.w(sel_id), &.{ ids(0, n2), sums(lt) })}, -1));
-    _ = try b.einsumExact(null, n2, Ref.w(sel_id), Ref.w(dd_id), lt, &.{all3}, &.{all3});
-    // e = exp_table(D) (domain [0, 2^expLog) also range-checks D)
-    const et = b.xtables.items[c.exp_table].values;
-    const e = try b.a.alloc(i32, H * T * T);
-    for (dd, e) |d, *o| o.* = et[@intCast(d)];
     b.tag("e");
     const e_id = try b.addVec(n3, e);
-    try b.key(n3, try b.expr(&.{term(1, Ref.w(dd_id), &.{all3})}, 0), try b.expr(&.{term(1, Ref.w(e_id), &.{all3})}, 0), .{ .lookup = c.exp_table });
+    try b.key(n3, try b.expr(&.{
+        term(1, Ref.w(m_id), &.{ids(0, n2)}),
+        term(-1, Ref.w(S), &.{all3}),
+        term(-1, Ref.p(c.bias), &.{bias_lab}),
+    }, 0), try b.expr(&.{term(1, Ref.w(e_id), &.{all3})}, 0), .{ .lookup = c.exp_table });
     // den = sum_j e
     const den = try b.a.alloc(i32, H * T);
     for (den, 0..) |*o, row| {
@@ -1070,7 +1103,7 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8
     try b.rangeWide(n_o, try b.expr(&.{ term(2, Ref.w(acc_id), &.{all_o}), term(1, Ref.w(den_id), &.{den_lab[0..n2]}), term(-2, Ref.w(od), &.{all_o}) }, 0), lt + 9);
     b.tag("div.slack_hi");
     try b.rangeWide(n_o, try b.expr(&.{ term(1, Ref.w(den_id), &.{den_lab[0..n2]}), term(-2, Ref.w(acc_id), &.{all_o}), term(2, Ref.w(od), &.{all_o}) }, -1), lt + 9);
-    return .{ .o = O, .scores = S, .acc = acc_id, .od = od, .m = m_id, .sel = sel_id, .d = dd_id, .e = e_id, .den = den_id };
+    return .{ .o = O, .scores = S, .acc = acc_id, .od = od, .m = m_id, .sel = sel_id, .z1 = z1, .z2 = z2, .e = e_id, .den = den_id };
 }
 
 /// z = x + y (committed, lineq).
@@ -1825,7 +1858,33 @@ test "decoder layer witness matches a direct integer reference (RoPE, GQA scores
     }
 }
 
-const Cheat = enum { sel_nonbinary, acc_plus_one, sel_moved, max_lowered, rt_plus_one, residual, exp_value, masked_exp, score, ss_value };
+const Cheat = enum { sel_nonbinary, acc_plus_one, sel_moved, m_lowered, m_raised, rt_plus_one, residual, exp_value, masked_exp, score, ss_value };
+
+/// Lower m of `row` to the (masked) score at some j2 < max, keeping m = z1 + z2
+/// attained at j2 (z1, z2 consistent) and e recomputed wherever the new D is
+/// in the exp domain: only the exp key at the true argmax (D < 0) can fail.
+fn lowerMax(b: *Builder, at: AttnOut, c: Ctx, row: usize) !usize {
+    const T = @as(usize, 1) << @intCast(c.cfg.log_t);
+    const t = row % T;
+    const bias = b.vals(Ref.p(c.bias));
+    const S = b.wit.items[at.scores];
+    const m = b.wit.items[at.m];
+    var jlow: ?usize = null;
+    for (0..T) |j| if (S[row * T + j] + bias[t * T + j] < m[row]) {
+        jlow = j;
+    };
+    const j2 = jlow orelse return error.NoLowerScore;
+    const nm = S[row * T + j2] + bias[t * T + j2];
+    m[row] = nm;
+    b.wit.items[at.z1][row] = S[row * T + j2];
+    b.wit.items[at.z2][row] = bias[t * T + j2];
+    const et = b.xtables.items[c.exp_table].values;
+    for (0..T) |j| {
+        const d = nm - S[row * T + j] - bias[t * T + j];
+        if (d >= 0 and d < et.len) b.wit.items[at.e][row * T + j] = et[@intCast(d)];
+    }
+    return j2;
+}
 
 fn cheatCase(a: std.mem.Allocator, cheat: Cheat) !void {
     var pool: f.Pool = undefined;
@@ -1840,9 +1899,8 @@ fn cheatCase(a: std.mem.Allocator, cheat: Cheat) !void {
     const T = @as(usize, 1) << @intCast(SmallCfg.log_t);
     const bias = b.vals(Ref.p(fx.c.bias));
     const S = b.wit.items[at.scores];
-    const sel = b.wit.items[at.sel];
+    const sel = b.wit.items[at.sel.?];
     const m = b.wit.items[at.m];
-    const Dd = b.wit.items[at.d];
     const row = T - 1; // head 0, last token: all positions unmasked
     var jstar: usize = 0;
     for (0..T) |j| if (sel[row * T + j] == 1) {
@@ -1858,14 +1916,17 @@ fn cheatCase(a: std.mem.Allocator, cheat: Cheat) !void {
             sel[row * T + jstar] = 0;
             sel[row * T + jlow.?] = 1;
         },
-        .max_lowered => {
-            // claim the max is a smaller score; D recomputed consistently
-            const j2 = jlow.?;
-            const nm = S[row * T + j2] + bias[(T - 1) * T + j2];
-            m[row] = nm;
+        .m_lowered => {
+            // claim the max is a smaller score, attained (sel, z1, z2) consistently
+            const j2 = try lowerMax(b, at, fx.c, row);
             sel[row * T + jstar] = 0;
             sel[row * T + j2] = 1;
-            for (0..T) |j| Dd[row * T + j] = nm - S[row * T + j] - bias[(T - 1) * T + j];
+        },
+        .m_raised => {
+            // m above every score: D >= 1 everywhere (in the exp domain), not attained
+            m[row] += 1;
+            const et = b.xtables.items[fx.c.exp_table].values;
+            for (0..T) |j| b.wit.items[at.e][row * T + j] = et[@intCast(m[row] - S[row * T + j] - bias[(T - 1) * T + j])];
         },
         .acc_plus_one => b.wit.items[at.acc][0] += 1,
         .sel_nonbinary => {
@@ -2101,10 +2162,16 @@ test "fused QKV projection (fixed-bit slices) proves and verifies; RoPE reads th
 // unmodified prover (base 61ba1ce6c + the Builder.add aliasing fix). Every
 // prover optimisation must reproduce these bytes. The shapes reach the GEMM
 // einsum accumulator (score and PV contractions of 2^4 terms), the split-eq
-// einsum sumcheck (sel * sel, sel * D) and the split-eq MLE evaluations.
+// einsum sumcheck (selector zero-checks, one-hot argmax einsums) and the
+// split-eq MLE evaluations.
+//
+// Repinned (codex/tensor-wv-attn-virtual-d-sel, commit 1): attn/d removed
+// (the exp key takes m - S - Bias as a virtual input; m = z1 + z2 attained
+// by one-hot einsums, m range-keyed). Previous pins: flat 837b19ac...,
+// pcs2_moe 0d99b4e3....
 
-const GOLDEN_LAYER_FLAT = "837b19acbf642dbe2707dd2bf04a0dba665c9b3785e650e6adf057ae4f77811f";
-const GOLDEN_LAYER_PCS2_MOE = "0d99b4e3b1d02bf55691128c7c5da83fa91a2338ccf31fad20c003a654ad05ad";
+const GOLDEN_LAYER_FLAT = "8424c4b6bc651261df28a2670f751b09e5f7e386564f6a70f2ca69a2a018e9af";
+const GOLDEN_LAYER_PCS2_MOE = "79360fbd7a7ec15c21fe15b0b685e488b67f73613cb72769c967305efcbddc23";
 
 fn layerDigest(cfg: LayerCfg, pc_in: proto.Config, threads: usize) ![32]u8 {
     return layerDigestOpt(cfg, pc_in, threads, false);

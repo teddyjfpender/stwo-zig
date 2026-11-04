@@ -33,6 +33,28 @@ def slack_limbs(T):
     return 2 if (int(math.log2(T)) + 9) > 16 else 1
 
 
+# transformer.FACTORED_SEL_MIN_LOG_T: log_t at or above which the argmax
+# selector is A[h,t,jh] (x) B[h,t,jl] (2 H T sqrt(T) + partial sums) instead of
+# sel[h,t,j] (H T^2)
+FACTORED_SEL_MIN_LOG_T = 99
+
+
+def argmax_block(H, T):
+    """attention argmax witness: D = m - S - Bias is virtual (never committed)."""
+    lt = int(math.log2(T))
+    r = {("attn", "argmax.z1"): H * T, ("attn", "argmax.z2"): H * T}
+    if lt < FACTORED_SEL_MIN_LOG_T:
+        r[("attn", "sel")] = H * T * T
+    else:
+        Tl = 1 << (lt // 2)
+        Th = T // Tl
+        r[("attn", "sel.a")] = H * T * Th
+        r[("attn", "sel.b")] = H * T * Tl
+        r[("attn", "argmax.ps")] = H * T * Th
+        r[("attn", "argmax.pb")] = H * T * Th
+    return r
+
+
 def isqrt_limbs(D):
     # RMSNorm isqrt slacks: gap_bits = log2(D) + 5 (int8 activations)
     return 2 if int(math.log2(D)) + 5 > 16 else 0
@@ -58,8 +80,9 @@ def attn_block(s, first):
     r[("attn.proj", "qkv")] = T * s["Q"]
     r[("rope", "q_rot")] = T * D
     r[("rope", "k_rot")] = T * Dkv
-    for n in ("scores", "sel", "d", "e"):
+    for n in ("scores", "e"):
         r[("attn", n)] = H * T * T
+    r.update(argmax_block(H, T))
     for n in ("m", "den"):
         r[("attn", n)] = H * T
     for n in ("acc", "o", "od"):
@@ -270,7 +293,9 @@ def main(paths):
 
 def family(part, scope, name):
     if scope == "attn" and name in ("scores", "sel", "d", "e"):
-        return f"{part}: attention T^2 (scores/sel/d/e)"
+        return f"{part}: attention T^2 (scores/sel/e)"
+    if scope == "attn" and (name.startswith("sel.") or name.startswith("argmax.")):
+        return f"{part}: attention argmax (sel.a/sel.b/ps/pb/z1/z2)"
     if scope == "attn":
         return f"{part}: attention T.D (acc/o/od/slack limbs, m/den)"
     if scope in ("rms1", "rms2", "rms.head"):

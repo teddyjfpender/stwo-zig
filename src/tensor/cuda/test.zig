@@ -704,7 +704,7 @@ test "cuda decoder layer proof equals the CPU golden digest" {
     pc.accel = null;
     try proto.verify(a, pc, st, proto.weightKey(&sw.ws), &proof);
     const hx = std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower);
-    try std.testing.expectEqualStrings("837b19acbf642dbe2707dd2bf04a0dba665c9b3785e650e6adf057ae4f77811f", &hx);
+    try std.testing.expectEqualStrings("8424c4b6bc651261df28a2670f751b09e5f7e386564f6a70f2ca69a2a018e9af", &hx);
 }
 
 test "cuda per-request serving batch (dense + MoE stack, LM head, greedy check) equals CPU" {
