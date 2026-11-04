@@ -197,8 +197,8 @@ binding reference (`bindingColumns`, `expectedBoundary`, `requireBinding`), stri
 NG05 padded-lane forgery vs MAIN, NG06 rho separation; census tool `rv64-native-gkr-census`; tool
 `rv64-native-gkr-tool` (exact real-roster shapes, CPU prove, fresh-process receiver); tier-R corpus
 (`scripts/rv64_native_gkr_corpus.py`): every word of a real-roster section (24628607 truth-9, 5,329/5,329 fresh
-processes rejected/accepted as required), 415/415 sampled cases on truth-4 (secp add), and a sampled run on the CPU
-proof cpu-6 (receipts `realshape/corpus-*.json`).
+processes rejected/accepted as required), 415/415 sampled cases on truth-4 (secp add), and 23/23 sampled cases on the CPU
+proof cpu-6 (40 instances; receipts `realshape/corpus-*.json`).
 
 Left, in order:
 1. Native AIR: per-component binding residual over all groups (`role.zig`/truth roles), drop `global_cpu.emitFor` and
