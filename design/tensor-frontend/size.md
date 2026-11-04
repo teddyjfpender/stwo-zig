@@ -17,7 +17,11 @@ tensor-bench model <log_total> <used> <n_rows> <q> <lb> <depth> <inner_q> <inner
 ```
 
 Recommended configs:
-* conjectured 128: `54 2 20 2 54 2 20` (product) / `64 2 20 2 54 2 20` (MLP), batching on;
+* conjectured 128: `54 2 20 2 54 2 20` (product) / `64 2 20 2 54 2 20` (MLP), batching on.
+  For the MLP this reading holds only with per-batch weight proximity
+  (`Config.weight_proximity`, the default since security.md 4.2). Before
+  that, the per-batch weight openings were consistency-only, and a hybrid
+  table broke binding at ~2^74 work (review PCS-1);
 * proven-query 128 (unique decoding): `160 2 20 2 160 2 20` (see 4.3 for the
   field-size caveat), batching on.
 
@@ -193,9 +197,12 @@ verifier-derived y_j -> gamma' -> sumcheck rounds -> limb values -> next level.
    combination is delta-far except with the BCIKS20 unique-decoding error
    `~ E/|F|`, and then the lambda-combined check catches it except with
    `(1 - delta)^t + t log G'/|F|` (as in 2).
-5. *Weights.* Proximity of the weight table is proven once at commit time
-   (`proveWeightProximity`, now also via pcs2); per-batch weight openings
-   are consistency-only, as before; item 2 applies to the decoded weight rows.
+5. *Weights.* Superseded by security.md 4.2. The weight key fixes an OOD
+   answer v_ood, and every batch's weight opening contains the claim
+   (z_ood, v_ood) and, by default, its own proximity rows. "The decoded rows
+   are already fixed" held only within the key's proven distance:
+   consistency-only openings bind at (rho + delta_key) per query. Under a
+   capacity conjecture that bound is vacuous.
 
 ### 4.2 Shape-class batching
 
