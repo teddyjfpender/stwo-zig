@@ -50,7 +50,7 @@ host/device forests retain the prior immutable-cache path. Host tests cover
 all-device, mixed, all-host and empty selection. A device-only descriptor is
 never accepted as pointer authority merely because this predicate returns true.
 
-Source qualification at this checkpoint: three actual native OM31 proof/wire
+Source qualification at this checkpoint: three native OM31 proof/authority
 checks passed, including identical original authority identity and refusal of
 CPU proving without host FIXED. Fifteen custody/router tests passed, including
 failure-atomic rebind and allocation-policy mixtures. GNU recursion, combined
@@ -60,3 +60,15 @@ cadc3db8e075fbebd8d37eabad8b7a3b9960588f1b2d8b731f4280a38e29a797.
 An attempted cross-target test execution was correctly refused by macOS; the
 same tests were then executed natively on ARM and passed. No GPU precommit
 proof, performance A/B or production enablement is established at this commit.
+
+
+The first bounded physical gate reached exact CPU/GPU FIXED-root and authority
+identity parity, generated original MAIN/INTER on device with zero assignment
+upload, then failed `MissingPreprocessedTree`. The core still equated FIXED
+presence with a host polynomial tree. No GPU proof was accepted. The follow-up
+uses genuine logical slot0 metadata for those guards and preprocessed-column
+count, while missing FIXED still rejects and CPU/default counts stay unchanged.
+A direct host test covers host-only, device-only, mixed later host storage,
+missing, MAIN-only and empty-host-tree cases. The original native proof/fresh
+receiver regression still passes. Full physical proof parity remains pending;
+this observed partial progress is not a performance result.

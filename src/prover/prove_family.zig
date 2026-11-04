@@ -12,7 +12,7 @@ const prover_api = @import("stwo_prover_api");
 const stage_profile = prover_api.stage_profile;
 const work_profile = prover_api.work_profile;
 
-const PREPROCESSED_TRACE_IDX = verifier_types.PREPROCESSED_TRACE_IDX;
+const logical_slots = @import("pcs/logical_slots.zig");
 const TreeVec = @import("stwo_core").pcs.TreeVec;
 const WorkRecorder = work_profile.Recorder(true);
 const completeAirCompositionWork = proof_work_completion.completeAirCompositionWork;
@@ -353,7 +353,7 @@ pub fn ForField(comptime Secure: type) type {
             diagnostic_phase: *prover_api.ProvePhase,
         ) !proof_mod.ExtendedStarkProof(H) {
             var scheme = commitment_scheme;
-            if (scheme.trees.items.len == 0) {
+            if (logical_slots.preprocessedColumnCount(scheme) == null) {
                 scheme.deinit(allocator);
                 return ProvingError.MissingPreprocessedTree;
             }
@@ -439,14 +439,12 @@ pub fn ForField(comptime Secure: type) type {
             var oods_mask_work_capture = oods_work.Capture{};
             var oods_constraint_work_capture = oods_work.Capture{};
 
-            if (scheme.trees.items.len <= PREPROCESSED_TRACE_IDX) {
-                return ProvingError.MissingPreprocessedTree;
-            }
+            const preprocessed_columns = logical_slots.preprocessedColumnCount(scheme) orelse return ProvingError.MissingPreprocessedTree;
 
             diagnostic_subphase.* = .geometry;
             const component_provers = component_prover.ComponentProvers{
                 .components = components,
-                .n_preprocessed_columns = scheme.trees.items[PREPROCESSED_TRACE_IDX].columns.len,
+                .n_preprocessed_columns = preprocessed_columns,
                 .composition_stage = composition_stage,
                 .cpu_composition_execution = cpu_composition_execution,
                 .task_recorder = if (recorder) |active|
@@ -493,7 +491,7 @@ pub fn ForField(comptime Secure: type) type {
                     MC.mixRoot(channel, tree.root);
                     break :composition_execution;
                 }
-                if (scheme.device_om31_trace_trees[1] != null or scheme.device_om31_trace_trees[2] != null) return error.DeviceTraceRequiresResidentComposition;
+                if (scheme.device_om31_trace_trees[0] != null or scheme.device_om31_trace_trees[1] != null or scheme.device_om31_trace_trees[2] != null) return error.DeviceTraceRequiresResidentComposition;
                 const residency_handles = scheme.backendResidencyHandles(allocator) catch |err| {
                     prover_api.EvaluationDiagnostic.recordFirst(evaluation_diagnostic, .{
                         .stage = .residency,
@@ -777,7 +775,7 @@ pub fn ForField(comptime Secure: type) type {
             sampled_points: TreeVec([][]CirclePointQM31),
             sampled_values: TreeVec([][]QM31),
         ) !proof_mod.ExtendedStarkProof(H) {
-            if (commitment_scheme.trees.items.len == 0) return ProvingError.MissingPreprocessedTree;
+            if (logical_slots.preprocessedColumnCount(commitment_scheme) == null) return ProvingError.MissingPreprocessedTree;
 
             const commitment_proof = try commitment_scheme.proveValuesFromSamples(
                 allocator,
