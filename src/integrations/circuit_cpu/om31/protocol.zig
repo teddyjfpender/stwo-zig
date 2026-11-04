@@ -31,6 +31,13 @@ pub const Profile = enum {
     m3_b4_q51_p26_fold4,
     /// M3 alternative: blowup 8, 34 queries, 26-bit PoW. 3*34 + 26 = 128.
     m3_b8_q34_p26_fold4,
+    /// M5 canonical recursion (canon-vk; profiles registry name
+    /// `m5_outer_canonical_r1_b2_q108_p20_fold4_v1`): r1 PCS, every node
+    /// padded to the uniform outer shape S_OUT_V1 (one fold VK per arity).
+    m5_outer_canonical_r1_b2_q108_p20_fold4_v1,
+    /// M5 canonical recursion under the m3 PCS (registry
+    /// `m5_outer_canonical_m3_b4_q51_p26_fold4_v1`).
+    m5_outer_canonical_m3_b4_q51_p26_fold4_v1,
 
     pub fn parse(text: []const u8) !Profile {
         inline for (@typeInfo(Profile).@"enum".fields) |field| {
@@ -48,17 +55,23 @@ pub const Profile = enum {
             .r1_b2_q108_p20_fold4 => "stwo/circuit/native-om31/q108-p20-fold4/lens-v1",
             .m3_b4_q51_p26_fold4 => "stwo/circuit/native-om31/m3-b4-q51-p26-fold4/lens-v1",
             .m3_b8_q34_p26_fold4 => "stwo/circuit/native-om31/m3-b8-q34-p26-fold4/lens-v1",
+            .m5_outer_canonical_r1_b2_q108_p20_fold4_v1 => "stwo/circuit/native-om31/m5-canonical-q108-p20-fold4/lens-v1",
+            .m5_outer_canonical_m3_b4_q51_p26_fold4_v1 => "stwo/circuit/native-om31/m5-canonical-m3-b4-q51-p26-fold4/lens-v1",
         };
     }
     pub fn config(self: Profile) PcsConfig {
         const log_blowup: u32, const queries: usize, const pow: u32 = switch (self) {
-            .r1_b2_q108_p20_fold4 => .{ 1, 108, 20 },
-            .m3_b4_q51_p26_fold4 => .{ 2, 51, 26 },
+            .r1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1 => .{ 1, 108, 20 },
+            .m3_b4_q51_p26_fold4, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1 => .{ 2, 51, 26 },
             .m3_b8_q34_p26_fold4 => .{ 3, 34, 26 },
         };
         var fri = core.fri.ForField(O).FriConfig.init(0, log_blowup, queries) catch unreachable;
         fri.fold_step = 4;
         return .{ .pow_bits = pow, .fri_config = fri };
+    }
+    /// M5 canonical recursion profiles pad every node to one outer shape.
+    pub fn canonical(self: Profile) bool {
+        return self == .m5_outer_canonical_r1_b2_q108_p20_fold4_v1 or self == .m5_outer_canonical_m3_b4_q51_p26_fold4_v1;
     }
     /// ethSTARK-style conjectured FRI bits: log_blowup * queries + PoW.
     pub fn conjecturedBits(self: Profile) u32 {
@@ -104,6 +117,17 @@ pub fn select(profile: Profile) !void {
 pub fn selectForTesting(profile: Profile) void {
     if (!@import("builtin").is_test) @compileError("selectForTesting is test-only");
     selected.store(@intFromEnum(profile), .release);
+}
+/// Fallible env check for process entry points: an unknown or unreadable
+/// `STWO_RV64_OUTER_PROFILE` is a clean error exit, never a panic (corpus P03).
+pub fn checkEnv() !Profile {
+    var buffer: [64]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&buffer);
+    const text = std.process.getEnvVarOwned(fba.allocator(), PROFILE_ENV) catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => return DEFAULT_PROFILE,
+        else => return error.UnreadableOm31OuterProfile,
+    };
+    return Profile.parse(text);
 }
 pub fn domainName() []const u8 {
     return active().domainName();
@@ -158,4 +182,17 @@ test "om31 outer profiles are 128 conjectured bits, distinct and exact" {
     var b = Channel.init();
     mixProfile(&b);
     try std.testing.expect(!std.mem.eql(u8, &a.digestBytes(), &b.digestBytes()));
+}
+test "om31 m5 canonical outer profiles: registry domains, base PCS configs, fail-closed parse" {
+    const r = Profile.m5_outer_canonical_r1_b2_q108_p20_fold4_v1;
+    const m = Profile.m5_outer_canonical_m3_b4_q51_p26_fold4_v1;
+    try std.testing.expect(std.meta.eql(r.config(), Profile.r1_b2_q108_p20_fold4.config()));
+    try std.testing.expect(std.meta.eql(m.config(), Profile.m3_b4_q51_p26_fold4.config()));
+    try std.testing.expectEqualStrings("stwo/circuit/native-om31/m5-canonical-q108-p20-fold4/lens-v1", r.domainName());
+    try std.testing.expectEqualStrings("stwo/circuit/native-om31/m5-canonical-m3-b4-q51-p26-fold4/lens-v1", m.domainName());
+    try std.testing.expect(r.canonical() and m.canonical() and !Profile.r1_b2_q108_p20_fold4.canonical());
+    try std.testing.expectEqual(@as(u32, 128), r.conjecturedBits());
+    try std.testing.expectEqual(@as(u32, 128), m.conjecturedBits());
+    try std.testing.expectEqual(r, try Profile.parse(r.name()));
+    try std.testing.expectError(error.UnknownOm31OuterProfile, Profile.parse("m5_outer_canonical_r1"));
 }

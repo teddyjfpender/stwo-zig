@@ -480,7 +480,7 @@ test "vk table: T_rec canonical order, duplicates and validation are refused" {
     try std.testing.expectError(error.EmptyVkTable, buildRec(a, &.{}));
 }
 
-test "vk table: host path recomputes the root; leaf, empty and node tags are separated" {
+test "corpus Z08 vk table: host path recomputes the root; leaf, empty and node tags are separated" {
     const a = std.testing.allocator;
     const entries = sampleRec();
     var table = try buildRec(a, &entries);
@@ -519,7 +519,7 @@ fn membershipCircuit(payload: [RecEntry.N_PAYLOAD]u32, table: *const Table, inde
     return ctx.isCircuitValid();
 }
 
-test "vk table: in-circuit membership agrees with the host and rejects forgeries" {
+test "corpus G03 G05 vk table: in-circuit membership admits members only (forged VK, arity relabel, wrong index, wrong root)" {
     const a = std.testing.allocator;
     const entries = sampleRec();
     var table = try buildRec(a, &entries);
@@ -553,7 +553,7 @@ test "vk table: a non-Boolean index bit is unsatisfiable" {
     try std.testing.expect(!try ctx.isCircuitValid());
 }
 
-test "vk table: T_nat membership at a constant index" {
+test "corpus G01 vk table: T_nat membership at a constant index refuses another rung's VK" {
     const a = std.testing.allocator;
     var entries: [3]NatEntry = undefined;
     for (&entries, 0..) |*e, i| e.* = .{ .family = 1, .rung = @intCast(i), .vk_hash = @splat(@intCast(9 + i)) };

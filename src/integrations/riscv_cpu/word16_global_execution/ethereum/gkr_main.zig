@@ -359,6 +359,9 @@ pub fn runWithResidentArgs(recycler: *Recycler, all_args: []const [:0]u8, stages
 }
 fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: ?*ResidentSession, comptime enable_recursion: bool, recursion_execution: if (enable_recursion) CombinedRecursion else void) !void {
     const process_start = try std.time.Instant.now();
+    // canon-vk M5: outer profile / shape / fold arity env must parse, or the
+    // process exits with a clean error before any work (never a panic, P03).
+    try @import("../../rv64_recursion/om31_native/execution_wrap.zig").checkPolicyEnv();
     const recursion_factory = if (enable_recursion) recursion_execution.factory else {};
     const base = recycler.allocator();
     const device_pcs_stage = stages.pcs;

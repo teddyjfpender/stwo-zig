@@ -326,7 +326,12 @@ pub const Owner = struct {
         // INTER evaluations; MAIN coefficients already have independent custody.
         try self.run(dropMainEvaluations);
         const commit = self.backend.trace_commit.stage();
-        const tree = try commit.commit(commit.context, a, .{ .scope = scope, .config = try Outer.protocol.targetConfig(), .tree_index = 2, .columns = self.inter_columns, .retire_input = .{ .context = self, .scope = scope, .retire = retireInteractionInputs } });
+        // Input retirement (N2B) is a blowup-1 memory path; m3 outer profiles
+        // (blowup 4/8) commit without it (canon-vk hook, M5). r1 is unchanged.
+        const config = try Outer.protocol.targetConfig();
+        var request: D.TraceCommitRequest = .{ .scope = scope, .config = config, .tree_index = 2, .columns = self.inter_columns };
+        if (config.fri_config.log_blowup_factor == 1) request.retire_input = .{ .context = self, .scope = scope, .retire = retireInteractionInputs };
+        const tree = try commit.commit(commit.context, a, request);
         self.inter_ready = true;
         try self.run(dropEvaluations);
         self.backend.service.finishProofScope(self.initial_scope);

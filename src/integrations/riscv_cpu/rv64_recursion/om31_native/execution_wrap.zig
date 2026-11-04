@@ -539,10 +539,18 @@ fn requireReceiverTrace(ctx: *const @import("common.zig").Context) !void {
 }
 
 const Dag = @import("ready_dag.zig");
-/// r1 folds binary (accepted bytes); every m3 outer profile folds 4-ary.
+/// Blowup-2 outer profiles (r1 and its canonical form) fold binary (accepted
+/// bytes); every larger-blowup (m3) outer profile folds 4-ary.
 pub fn foldArity() !usize {
     const profile = @import("stwo_circuit_cpu_integration").om31.protocol.active();
-    return Dag.policyArity(if (profile == .r1_b2_q108_p20_fold4) 2 else 4);
+    return Dag.policyArity(if (profile.config().fri_config.log_blowup_factor == 1) 2 else 4);
+}
+/// Process-entry policy check (driver and receiver): every recursion policy
+/// env value parses, or the process exits with a clean error (corpus P03).
+pub fn checkPolicyEnv() !void {
+    _ = try @import("stwo_circuit_cpu_integration").om31.protocol.checkEnv();
+    _ = try Outer.checkShapeEnv();
+    _ = try foldArity();
 }
 const Pools = @import("stwo_prover_engine").work_pool;
 const PreparedExecution = struct {
