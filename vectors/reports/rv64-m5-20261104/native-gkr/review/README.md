@@ -8,4 +8,4 @@ Pod, ReleaseSafe, CPU only (no GPU). Synthetic fractions on the real v1 rosters 
   cpu-1 (59 instances, 122.7 M fractions) all accepted. cpu-1: CPU reference prove 73.1 s (11.4 GiB peak RSS), verify 88.4 s with the
   binding recompute (4.5 GiB), pod load 10-19. Single observation.
 - Tier R corpus, one fresh receiver process per case: truth-6 every word 4,753/4,753, truth-5 every word 3,393/3,393.
-  `corpus-156-cpu-1.json` is a sampled run, if present.
+  cpu-1 sampled 25/25 (`corpus-156-cpu-1.json`, includes cross-proof substitution of truth-3).
