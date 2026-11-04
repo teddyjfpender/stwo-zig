@@ -19,11 +19,16 @@ const Config = @import("stwo_core").pcs.ForField(@import("stwo_core").fields.om3
 
 pub const VERSION_ENV = "STWO_RV64_NATIVE_VERSION";
 pub const UNCLASSED: u32 = 0xFFFFFFFF;
-pub fn enabled() bool {
-    const value = std.posix.getenv(VERSION_ENV) orelse return false;
-    if (std.mem.eql(u8, value, Canon.VERSION_NAME) or std.mem.eql(u8, value, "m5-chi-chain-v1")) return true;
-    if (value.len == 0 or std.mem.eql(u8, value, "v1-flat")) return false;
-    @panic("unknown STWO_RV64_NATIVE_VERSION (expected m5-chi-chain-v1 or v1-flat)");
+/// Unknown values are refused with a clean error (never a panic: negative
+/// corpus P03 counts a receiver abort as a FAIL).
+pub fn select(value: ?[]const u8) error{UnknownNativeVersion}!bool {
+    const v = value orelse return false;
+    if (std.mem.eql(u8, v, Canon.VERSION_NAME) or std.mem.eql(u8, v, "m5-chi-chain-v1")) return true;
+    if (v.len == 0 or std.mem.eql(u8, v, "v1-flat")) return false;
+    return error.UnknownNativeVersion;
+}
+pub fn enabled() error{UnknownNativeVersion}!bool {
+    return select(std.posix.getenv(VERSION_ENV));
 }
 /// First class rung (table order) whose vector holds the declaration; the
 /// receiver derives it from the declaration alone.
@@ -72,7 +77,7 @@ pub fn assign(setups: []const *const R.CpuSetup, truths: []const R.Truth, reques
             .cpu_ordinal = b.epoch,
             .steps_in = steps_in,
             .steps = b.cpu.steps,
-            .ls_count = @intCast(b.memory.ls_count),
+            .ls_count = std.math.cast(u32, b.memory.ls_count) orelse return error.NativeChainCounterRange,
             .ls_dword = request.ls_dword,
             .calls = request.calls,
             .first_ids = first_ids[i],
@@ -83,6 +88,13 @@ pub fn assign(setups: []const *const R.CpuSetup, truths: []const R.Truth, reques
             .legacy = w.statement,
         }).digest();
         steps_in = try std.math.add(u64, steps_in, b.cpu.steps);
+        // Defense in depth (binding 4.1 rule 5, state continuity): the chain
+        // hashes s_in/s_out, so refuse a discontinuous roster here instead of
+        // relying only on the admission that ran before.
+        if (i + 1 < setups.len) {
+            const next = requests[i + 1].base.cpu;
+            if (b.cpu.final_pc != next.initial_pc or !std.mem.eql(u64, &b.cpu.final_registers, &next.initial_registers)) return error.NativeChainStateDiscontinuity;
+        }
         w.chain = .{
             .family = @intFromEnum(family),
             .rung = rung,

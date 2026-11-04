@@ -143,7 +143,7 @@ step; until then proofs carry today's native protocol and `m5-chi-chain/v1` exis
 
 ### 8. Native version `m5-chi-chain/v1` is implemented (2026-11-04, commit 63894647e)
 - Selection: `STWO_RV64_NATIVE_VERSION=m5-chi-chain-v1` (producer AND receiver policy; unset or `v1-flat` = historical bytes;
-  any other value panics = fail closed). Old format keeps working unchanged until integrate switches the default.
+  any other value is refused with a clean `error.UnknownNativeVersion`, exit 1 = fail closed; it was a panic until review 1). Old format keeps working unchanged until integrate switches the default.
 - Where: `gkr_local/chain.zig` derives every chain field per worker inside `execution.zig Inventory` (the single
   receiver-derived inventory used by the native producer, the native verifier and the recursion root): family (section 1),
   rung (first table rung holding the declaration; `0xFFFFFFFF` = unclassed), `vkhash` (suite words 0 on this route; fixed
@@ -181,3 +181,40 @@ step; until then proofs carry today's native protocol and `m5-chi-chain/v1` exis
 **Not yet in v1 (honest gaps):** the in-circuit leaf rule over these encodings (canon-vk), the `mb` family as separate native
 proofs (INIT/TEARDOWN still ride in cpu_first/cpu_last), the strict-roster presence relaxation (absent bridges/tails committed
 as all-padding), and a receiver CLI flag instead of the environment policy.
+
+### 8.1 Adversarial review 1 (2026-11-04, reviewed 7c289553a)
+
+Scope: every chain field, vkhash, class key, stmt_k, s_in/s_out, chi and the version policy against rv64-m5-binding.md 3.2-3.3
+and 4.1. Receipts: `vectors/reports/rv64-m5-20261104/canon-native/negatives/adversarial-review-1.{json,md}`.
+
+**No forgery found on today's route.** Every chain field is recomputed by the receiver inside `Inventory`, and chi covers a
+superset of the flat digest's inputs. `kind` is refined injectively by `family`, because `extendedTruth` is a function of the
+truth family. The ordinal is checked. Marginals are canonical. A new unit test perturbs each of the 14 inputs and each perturbation
+yields a distinct chi.
+
+Fixed on the branch:
+- **V01 (medium, measured):** an unknown `STWO_RV64_NATIVE_VERSION` made the receiver abort (exit 134). Corpus rule P03 counts
+  that as a FAIL. It is now `error.UnknownNativeVersion` with exit 1. The selector is case-sensitive: `M5-CHI-CHAIN-V1` is refused.
+- Defence in depth: `chain.assign` refuses a CPU roster where `s_out_k != s_in_{k+1}`. This is binding 4.1 rule 5, and admission
+  already enforces it today. The `ls_count` cast into `stmt_k` is checked.
+
+Open findings, not fixed. All of them block promotion to the in-circuit leaf rule; none of them allows a forgery today:
+- **A1 (high for canon-vk promotion):** `vkhash` hashes `cpuStructure(f, r, declaration vector)`, while the T_nat spec hashes
+  `structure_digest(f, r, rung vector)`.
+  - With presence-preserving padding, any segment that has a component absent where the rung has it gets a `vkhash` that no
+    T_nat leaf for (f, r) contains.
+  - `cpuRung` also labels any dominated declaration with rung r, including unpadded ones when `STWO_RV64_CANON_RUNGS` is unset.
+    So the (f, r) label does not imply S^nat_{f,r}.
+  - An in-circuit leaf with a constant S^nat therefore cannot reproduce these chi values. Guessing the structure instead would
+    violate binding 3.1.
+  - Fix: either the strict roster (vector == rung vector), or label as UNCLASSED every segment whose vector is not exactly the
+    rung vector. Either way chain bytes change: v2, or re-freeze v1 before canon-vk pins it.
+- **A2 (medium):** the version is pure receiver policy and no proof byte names it. A mismatch is rejected only deep in
+  verification (`WideCpuPublicRamMismatch`). Registry rule (profiles): the domain string should also enter the wire header.
+- **A3 (medium):** `vkhash.suite = 0`. When no fixed authority is present, `fixed_identity` and `profile_identity` are also 0. The
+  PCS config is bound only through `execution_identity`, and `assign` ignores `config`. V^nat as defined in binding sec. 1 needs the
+  profile id before T_nat is used in-circuit.
+- **A4 (low):** `manifestDigest` picks flat or chain from the presence of data, not from policy. A receiver path that builds
+  entries without `.chain` silently uses the flat digest. The result fails closed through a challenge mismatch, but the error is
+  misleading.
+- **A5 (low, profiles):** `om31_security_candidate.zig` still hashes LOCAL_RELATIONS = 9 (see item 5 above).
