@@ -79,3 +79,25 @@ array staged through shared memory (1024 per chunk), and the next level's first 
 current level's dependent loads. Levels wider than 2048 keep the ordinary grid launch. Barrier semantics are the M5 narrow
 run's (one `__syncthreads` per level orders the CTA's global writes before any later level reads them). Same tasks, same
 seeds, same values: proof-neutral; `STWO_RV64_OUTER_ASSIGNMENT_CHAIN=0` restores the M5 narrow runs.
+
+### HT2 measured [M] (resident service, both dev blocks, every proof byte-identical, fresh M5 receiver accepted)
+
+| variant | leaf DAG stream | leaf launches | fold DAG stream | fold launches |
+|---|---:|---:|---:|---:|
+| M5 narrow runs | 136.1 ms | 6,303 | 16.0 ms | 2,108 |
+| chain v1 (unbounded runs, record prefetch) | 133.3 ms | 596 | 14.5 ms | 689 |
+| v2 (+3-deep record pipeline, L2 prefetch of inputs 2 levels ahead) | 133.2 ms | 596 | 14.6 ms | 689 |
+| **v3 (+16-byte value access, vectorised wide-level kernel) — shipped** | **113.0 ms** | **596** | **11.7 ms** | **689** |
+| v4 (+shared-memory write-through value cache, 3 barriers/level) — reverted | 133.8 ms | 596 | 13.4 ms | 689 |
+
+What bounds the DAG (ncu unavailable in the container, ERR_NVGPUCTRPERM; each hypothesis tested by a variant): not
+launches (v1: 10x fewer, same time), not record or old-input DRAM latency (v2 unchanged), partly memory transactions per
+warp instruction (v3 -15/-20%); extra barrier phases cost more than shared-memory hits save (v4). A leaf plan is ~146 k
+levels: 101 k Blake-G levels of mean width 26 (parallel hash chains), 30 k mul levels (width ~150), 579 levels wider
+than 2048 (6.2 M tasks) — `level-census.json`. At ~0.77 us per level the DAG is a serial-depth problem: the next leap is
+the true hint tape for leaves (seed the transcript/Merkle chaining values recorded by the native verifier so the chains
+start in parallel) or fewer Blake levels (fused Blake gadget), not more kernel tuning.
+
+Leaf (one-shot) plans upload their task/index/ends words into request leases instead of the device immutable cache
+(`STWO_RV64_OUTER_ASSIGNMENT_LEAF_IMMUTABLE=1` restores M5 placement); the cache was thrashing (≈1.3-1.6 k evictions per
+request). Fold static ingress stayed ~23 ms: the remaining churn is the per-leaf PP raw columns (outer_source_main).
