@@ -67,13 +67,15 @@ number of hashed scopes, changes:
 H enters only the 2^-256-scaled collision term. Fewer nodes means *less* loss.
 
 **2. Algebraic terms in the outer field (OM31, 2^248, μ = 2^-243.3).** Raising the
-blowup from 2 to 4 doubles the DEEP/FRI evaluation domain (2N → 4N). That adds one bit
-to the DEEP-batching and FRI-fold terms and nothing to the OODS term, which is already
-taken over 32N. The native table shows these terms at 197–209 bits. Repeated at outer
-sizes (traces ≤ 2^28, outer column count ≈ 90 (FIXED+MAIN+INTER), ≤ 16 composition
-columns), they lose ≤ 1 bit at b4 and ≤ 2 bits at b8. The union stays above 2^-190,
-which is far below the 2^-128 query term. Under the conjecture, the composition and
-LogUp claims of the circuit AIR do not depend on the rate.
+outer blowup from 2 to 4 doubles the DEEP/FRI evaluation domain (2N → 4N). Each term
+whose weight is proportional to that domain therefore loses exactly 1 bit (2 bits at
+b8). The OODS term is taken over a fixed multiple of N and does not change. [D] The
+outer weights themselves (outer trace sizes, about 90 columns, ≤ 16 composition
+columns, the circuit AIR's constraint count) have not been rerun through
+`model.py` for outer proofs. That is an open item. [E] By analogy with the native
+table (197–209 bits at weights up to 10^14), the outer union is expected to stay
+above about 2^-190, far below the 2^-128 query term. Under the conjecture, the
+composition and LogUp claims of the circuit AIR do not depend on the rate.
 
 **3. Fold arity.** A 4-ary fold verifies four complete outer proofs in one circuit,
 using the same verifier code as the binary fold: each child gets its own guessed proof,
@@ -93,6 +95,21 @@ per-attempt 2^-128 terms, as in r1.
 same ethSTARK assumption and ideal hashes, and has a slightly smaller collision-term
 multiplier. It is not a proven bound, no certificate exists, and `security_qualified`
 stays false.
+
+## CPU outer prover at blowup > 2
+
+The CPU circuit component read the committed LDE directly at the 2n evaluation domain. That is valid only at
+blowup 2, and it is why m3 first failed with `InvalidLogSize`. When an LDE is taller than 2x its polynomial,
+`component.zig` now evaluates each column it reads from that column's coefficients on its own 2x canonic
+domain, then applies the same lifted read as before. This is exactly what the beta1 route reads. At r1 no
+column triggers this path (`needsShadow` is false), so r1 proofs are unchanged. The GPU composition already
+re-evaluates trace polynomials from coefficients on the evaluation domain.
+
+## Measured effect
+
+See `vectors/reports/rv64-m3-20261104/recsize/README.md`. Per verified child, an m3 fold is 0.50x r1 in
+variables, tasks and Blake gates. Over the 17-leaf tree, fold variables total 0.34x (6 folds, depth 3,
+instead of 16 folds, depth 5). Leaf circuits are unchanged.
 
 ## What is not covered / open
 

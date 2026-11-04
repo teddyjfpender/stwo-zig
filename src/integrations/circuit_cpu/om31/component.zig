@@ -138,10 +138,67 @@ pub const Component = struct {
             for (roots) |value| acc.accumulate(value.mul(inv));
         }
     }
+    /// Outer profiles with blowup > 2 (m3) commit LDEs larger than the 2n
+    /// evaluation domain. Their reads are re-expressed exactly as the beta1
+    /// route sees them: each read column's minimal polynomial evaluated on its
+    /// own 2x canonic domain (coefficient log + 1), then lifted as before.
+    const Shadow = struct {
+        values: [3][]?[]M,
+        fn deinit(self: *Shadow, a: std.mem.Allocator) void {
+            for (self.values) |tree| {
+                for (tree) |entry| if (entry) |v| a.free(v);
+                a.free(tree);
+            }
+        }
+    };
+    fn needsShadow(trace: *const ProverAir.Trace) bool {
+        for (trace.polys.items) |tree| for (tree) |poly| {
+            if (poly.device != null) continue;
+            const coefficients = poly.coefficients orelse continue;
+            if (poly.log_size != coefficients.logSize() + 1) return true;
+        };
+        return false;
+    }
+    fn buildShadow(self: *const Component, a: std.mem.Allocator, trace: *const ProverAir.Trace) !Shadow {
+        var shadow: Shadow = .{ .values = undefined };
+        var made: usize = 0;
+        errdefer {
+            for (shadow.values[0..made]) |tree| {
+                for (tree) |entry| if (entry) |v| a.free(v);
+                a.free(tree);
+            }
+        }
+        for (&shadow.values, 0..) |*tree, t| {
+            const n = if (t < trace.polys.items.len) trace.polys.items[t].len else 0;
+            tree.* = try a.alloc(?[]M, n);
+            @memset(tree.*, null);
+            made += 1;
+        }
+        const Circle = prover.poly.circle;
+        for (0..3) |t| {
+            if (t >= trace.polys.items.len) continue;
+            const globals: []const u32 = if (t == 0) self.captured.preprocessed_indices else &.{};
+            const span = if (t == 0) G.Span{ .start = 0, .end = 0 } else try G.span(self.captured.*, @intCast(t));
+            const count = if (t == 0) globals.len else span.end - span.start;
+            for (0..count) |i| {
+                const global: usize = if (t == 0) globals[i] else span.start + i;
+                if (global >= trace.polys.items[t].len or shadow.values[t][global] != null) continue;
+                const poly = trace.polys.items[t][global];
+                const coefficients = poly.coefficients orelse return error.Om31CircuitRequiresHostLde;
+                const log = coefficients.logSize() + 1;
+                if (poly.log_size == log) continue;
+                var evaluation = try coefficients.evaluate(a, Circle.CanonicCoset.new(log).circleDomain());
+                _ = &evaluation;
+                shadow.values[t][global] = @constCast(evaluation.values);
+            }
+        }
+        return shadow;
+    }
     const DomainRead = struct {
         component: *const Component,
         trace: *const ProverAir.Trace,
         row: usize,
+        shadow: ?*const Shadow = null,
         fn get(raw: *const anyopaque, tree: u8, column: u32, offset: i32) !O {
             const self: *const DomainRead = @ptrCast(@alignCast(raw));
             if (tree >= self.trace.polys.items.len) return error.MissingOm31Trace;
@@ -150,7 +207,10 @@ pub const Component = struct {
                 break :blk self.component.captured.preprocessed_indices[column];
             } else (try G.span(self.component.captured.*, tree)).start + column;
             if (global >= self.trace.polys.items[tree].len) return error.MissingOm31Trace;
-            const poly = self.trace.polys.items[tree][global];
+            var poly = self.trace.polys.items[tree][global];
+            if (self.shadow) |shadow| if (shadow.values[tree][global]) |values| {
+                poly = .{ .log_size = std.math.log2_int(usize, values.len), .values = values };
+            };
             // The initial native beta1 proof retains its exact2n LDE; no
             // hidden scalar re-expansion or fabricated host device columns.
             if (poly.device != null or poly.values.len == 0) return error.Om31CircuitRequiresHostLde;
@@ -173,9 +233,13 @@ pub const Component = struct {
         const params = try self.extensionParameters();
         defer self.allocator.free(params);
         const n = @as(usize, 1) << @intCast(self.captured.evaluation_log_size);
+        var shadow_storage: ?Shadow = if (needsShadow(trace)) try self.buildShadow(a, trace) else null;
+        defer if (shadow_storage) |*shadow| shadow.deinit(a);
+        const shadow: ?*const Shadow = if (shadow_storage) |*value| value else null;
         const workers = if (pool) |p| @min(p.workerCount(), @max(1, n / 4096)) else 1;
         if (workers == 1) {
             var job = try Rows.init(a, self, trace, params, column.*, 0, n);
+            job.shadow = shadow;
             defer job.deinit(a);
             return job.evaluate();
         }
@@ -189,6 +253,7 @@ pub const Component = struct {
         defer for (jobs[0..prepared]) |*job| job.deinit(a);
         for (jobs[0..workers], 0..) |*job, i| {
             job.* = try Rows.init(a, self, trace, params, column.*, n * i / workers, n * (i + 1) / workers);
+            job.shadow = shadow;
             prepared += 1;
         }
         var group = std.Thread.WaitGroup{};
@@ -213,6 +278,7 @@ pub const Component = struct {
         first: usize,
         end: usize,
         failure: ?anyerror = null,
+        shadow: ?*const Shadow = null,
         fn init(a: std.mem.Allocator, component: *const Component, trace: *const ProverAir.Trace, parameters: []const O, column: Domain.ColumnAccumulator, first: usize, end: usize) !Rows {
             const scratch = try a.alloc(E.Scratch, component.captured.parts.len);
             errdefer a.free(scratch);
@@ -238,7 +304,7 @@ pub const Component = struct {
         }
         fn evaluate(self: *Rows) !void {
             const component = self.component;
-            var read = DomainRead{ .component = component, .trace = self.trace, .row = self.first };
+            var read = DomainRead{ .component = component, .trace = self.trace, .row = self.first, .shadow = self.shadow };
             for (self.first..self.end) |r| {
                 read.row = r;
                 var value = O.zero();
