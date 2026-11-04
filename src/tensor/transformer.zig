@@ -533,6 +533,16 @@ pub const Ctx = struct {
 };
 
 pub fn initCtx(b: *Builder, cfg: LayerCfg, ws: *const proto.WeightStore, seed: u64) !Ctx {
+    const c = try initCtxPublics(b, cfg, ws, seed);
+    const wi = try layerWeightInfos(b.a, cfg);
+    defer b.a.free(wi);
+    try b.weight_infos.appendSlice(b.a, wi);
+    return c;
+}
+
+/// As `initCtx`, without registering the weight infos (callers with their own
+/// weight layout, e.g. `lm.zig`'s interleaved dense/MoE stack, append them).
+pub fn initCtxPublics(b: *Builder, cfg: LayerCfg, ws: *const proto.WeightStore, seed: u64) !Ctx {
     try cfg.validate();
     const rt = try ropeTable(b.a, cfg.log_t, cfg.logDh());
     defer b.a.free(rt);
@@ -551,11 +561,6 @@ pub fn initCtx(b: *Builder, cfg: LayerCfg, ws: *const proto.WeightStore, seed: u
     for (gammas) |*gid| {
         for (g) |*v| v.* = prng.random().intRangeAtMost(i32, 48, 80);
         gid.* = try b.public(cfg.log_d, g);
-    }
-    {
-        const wi = try layerWeightInfos(b.a, cfg);
-        defer b.a.free(wi);
-        try b.weight_infos.appendSlice(b.a, wi);
     }
     var tri: u32 = 0;
     if (cfg.isMoe()) {
@@ -787,16 +792,55 @@ pub const MoeOut = struct { out: u32, logits: u32, sel: u32, dr: u32, pre: u32, 
 /// x*(t) = first argmax, tokens dispatched to per-expert slots, each expert
 /// runs its SwiGLU MLP on its 2^log_capacity slots only, outputs combined.
 pub fn moe(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeOut {
+    const r = try moeRoute(b, c, wb, y);
     const cfg = c.cfg;
     const lt = cfg.log_t;
     const ld = cfg.log_d;
+    const le = cfg.log_experts;
+    const lc = cfg.log_capacity;
+    const E = @as(usize, 1) << @intCast(le);
+    const C = @as(usize, 1) << @intCast(lc);
+    const D = @as(usize, 1) << @intCast(ld);
+    const disp_id = r.disp;
+    // experts: Xe_x[c, d] = sum_t Disp[x, c, t] y[t, d]; SwiGLU on C slots
+    const mo_all = try b.a.alloc(i32, E * C * D);
+    var mo_ids: [64]u32 = undefined;
+    for (0..E) |x| {
+        const xe = (try b.einsumExact(TensorInfo.mat(lc, ld), lc + ld, Ref.w(disp_id), Ref.w(y), lt, &.{ fixesOf(x, le), ids(0, lc), ids(lc + ld, lt) }, &.{ ids(lc + ld, lt), ids(lc, ld) })).?;
+        const we = wb + cfg.wExpert(@intCast(x));
+        const g = try b.matmul(c.ws, xe, we);
+        const u = try b.matmul(c.ws, xe, we + 1);
+        const act = try b.lookup(g, c.silu);
+        const hm = try b.hadamard(act, u);
+        const mo = try b.matmul(c.ws, hm, we + 2);
+        @memcpy(mo_all[x * C * D ..][0 .. C * D], b.wit.items[mo]);
+        mo_ids[x] = mo;
+    }
+    // stack MO[x, c, d] = mo_x[c, d]
+    const nmo = le + lc + ld;
+    const mo_st = try b.addVec(nmo, mo_all);
+    for (0..E) |x| {
+        try b.lineq(lc + ld, try b.expr(&.{ term(1, Ref.w(mo_st), &.{ fixesOf(x, le), ids(0, lc + ld) }), term(-1, Ref.w(mo_ids[x]), &.{ids(0, lc + ld)}) }, 0));
+    }
+    // combine out[t, d] = sum_{x, c} Disp[x, c, t] MO[x, c, d]
+    const n_out = lt + ld;
+    const out = (try b.einsumExact(TensorInfo.mat(lt, ld), n_out, Ref.w(disp_id), Ref.w(mo_st), le + lc, &.{ ids(n_out, le + lc), ids(0, lt) }, &.{ ids(n_out, le + lc), ids(lt, ld) })).?;
+    return .{ .out = out, .logits = r.logits, .sel = r.sel, .dr = r.dr, .pre = r.pre, .disp = disp_id, .occ = r.occ, .mo = mo_st, .slot_of = r.slot_of, .expert_of = r.expert_of };
+}
+
+pub const MoeRoute = struct { logits: u32, sel: u32, dr: u32, pre: u32, disp: u32, occ: u32, slot_of: []usize, expert_of: []usize };
+
+/// Top-1 routing of an MoE layer: router logits, first-argmax selection and
+/// the dispatch tensor Disp[x, c, t] with its slot constraints (see moe()).
+pub fn moeRoute(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeRoute {
+    const cfg = c.cfg;
+    const lt = cfg.log_t;
     const le = cfg.log_experts;
     const lc = cfg.log_capacity;
     const lrc = cfg.routerLogCols();
     const T = @as(usize, 1) << @intCast(lt);
     const E = @as(usize, 1) << @intCast(le);
     const C = @as(usize, 1) << @intCast(lc);
-    const D = @as(usize, 1) << @intCast(ld);
     const Ncol = @as(usize, 1) << @intCast(lrc);
     const ar = b.arena.allocator();
     const logits = try b.matmul(c.ws, y, wb + cfg.wRouter());
@@ -871,30 +915,7 @@ pub fn moe(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeOut {
     const occ_id = try b.addVec(le + lc, occ);
     try b.lineq(le + lc, try b.expr(&.{ term(1, Ref.w(occ_id), &.{ids(0, le + lc)}), term(-1, Ref.w(disp_id), &.{ ids(0, le + lc), sums(lt) }) }, 0));
     try b.einsumInto(occ_id, Ref.w(occ_id), Ref.w(occ_id), 0, &.{ids(0, le + lc)}, &.{ids(0, le + lc)});
-    // experts: Xe_x[c, d] = sum_t Disp[x, c, t] y[t, d]; SwiGLU on C slots
-    const mo_all = try b.a.alloc(i32, E * C * D);
-    var mo_ids: [64]u32 = undefined;
-    for (0..E) |x| {
-        const xe = (try b.einsumExact(TensorInfo.mat(lc, ld), lc + ld, Ref.w(disp_id), Ref.w(y), lt, &.{ fixesOf(x, le), ids(0, lc), ids(lc + ld, lt) }, &.{ ids(lc + ld, lt), ids(lc, ld) })).?;
-        const we = wb + cfg.wExpert(@intCast(x));
-        const g = try b.matmul(c.ws, xe, we);
-        const u = try b.matmul(c.ws, xe, we + 1);
-        const act = try b.lookup(g, c.silu);
-        const hm = try b.hadamard(act, u);
-        const mo = try b.matmul(c.ws, hm, we + 2);
-        @memcpy(mo_all[x * C * D ..][0 .. C * D], b.wit.items[mo]);
-        mo_ids[x] = mo;
-    }
-    // stack MO[x, c, d] = mo_x[c, d]
-    const nmo = le + lc + ld;
-    const mo_st = try b.addVec(nmo, mo_all);
-    for (0..E) |x| {
-        try b.lineq(lc + ld, try b.expr(&.{ term(1, Ref.w(mo_st), &.{ fixesOf(x, le), ids(0, lc + ld) }), term(-1, Ref.w(mo_ids[x]), &.{ids(0, lc + ld)}) }, 0));
-    }
-    // combine out[t, d] = sum_{x, c} Disp[x, c, t] MO[x, c, d]
-    const n_out = lt + ld;
-    const out = (try b.einsumExact(TensorInfo.mat(lt, ld), n_out, Ref.w(disp_id), Ref.w(mo_st), le + lc, &.{ ids(n_out, le + lc), ids(0, lt) }, &.{ ids(n_out, le + lc), ids(lt, ld) })).?;
-    return .{ .out = out, .logits = logits, .sel = sel_id, .dr = dr_id, .pre = pre, .disp = disp_id, .occ = occ_id, .mo = mo_st, .slot_of = slot_of, .expert_of = expert_of };
+    return .{ .logits = logits, .sel = sel_id, .dr = dr_id, .pre = pre, .disp = disp_id, .occ = occ_id, .slot_of = slot_of, .expert_of = expert_of };
 }
 
 const FIX0S = [_]u8{xt.FIX0} ** xt.MAXB;
@@ -929,8 +950,38 @@ pub const LayerOut = struct { out: u32, h: u32, attn: AttnOut, rms1: RmsOut, rms
 
 /// One Llama-style decoder layer: x -> x + Attn(RMSNorm(x)) -> h + MLP(RMSNorm(h)).
 pub fn decoderLayer(b: *Builder, c: Ctx, layer: u32, x: u32, x_int8: bool) !LayerOut {
+    return decoderLayerAt(b, c, layer, layer * c.cfg.weightsPerLayer(), x, x_int8);
+}
+
+/// `decoderLayer` with an explicit first weight index `wb` (layers of
+/// different kinds, e.g. dense and MoE, interleaved in one weight store).
+pub fn decoderLayerAt(b: *Builder, c: Ctx, layer: u32, wb: u32, x: u32, x_int8: bool) !LayerOut {
+    const ab = try attnBlock(b, c, layer, wb, x, x_int8);
+    const h = ab.h;
+    const at = ab.attn;
+    const r1 = ab.rms1;
+    const r2 = ab.rms2;
+    const q = ab.q;
+    const qr = ab.qr;
     const cfg = c.cfg;
-    const wb = layer * cfg.weightsPerLayer();
+    if (cfg.isMoe()) {
+        const mo = try moe(b, c, wb, r2.y);
+        return .{ .out = try residual(b, h, mo.out), .h = h, .attn = at, .rms1 = r1, .rms2 = r2, .q = q, .qr = qr, .moe = mo };
+    }
+    const g = try b.matmul(c.ws, r2.y, wb + cfg.wGate());
+    const u = try b.matmul(c.ws, r2.y, wb + cfg.wUp());
+    const act = try b.lookup(g, c.silu);
+    const hm = try b.hadamard(act, u);
+    const mo = try b.matmul(c.ws, hm, wb + cfg.wDown());
+    return .{ .out = try residual(b, h, mo), .h = h, .attn = at, .rms1 = r1, .rms2 = r2, .q = q, .qr = qr };
+}
+
+pub const AttnBlockOut = struct { h: u32, attn: AttnOut, rms1: RmsOut, rms2: RmsOut, q: u32, qr: u32 };
+
+/// First half of a decoder layer: h = x + Attn(RMSNorm(x)), and the MLP's
+/// input RMSNorm(h) (rms2.y). Weights wb + wQ.. wb + wO.
+pub fn attnBlock(b: *Builder, c: Ctx, layer: u32, wb: u32, x: u32, x_int8: bool) !AttnBlockOut {
+    const cfg = c.cfg;
     const r1 = try rmsnorm(b, c, x, c.gammas[2 * layer], x_int8);
     const y1 = r1.y;
     var q: u32 = undefined;
@@ -965,16 +1016,7 @@ pub fn decoderLayer(b: *Builder, c: Ctx, layer: u32, x: u32, x_int8: bool) !Laye
     const ao = try b.matmul(c.ws, at.o, wb + cfg.wO());
     const h = try residual(b, x, ao);
     const r2 = try rmsnorm(b, c, h, c.gammas[2 * layer + 1], false);
-    if (cfg.isMoe()) {
-        const mo = try moe(b, c, wb, r2.y);
-        return .{ .out = try residual(b, h, mo.out), .h = h, .attn = at, .rms1 = r1, .rms2 = r2, .q = q, .qr = qr, .moe = mo };
-    }
-    const g = try b.matmul(c.ws, r2.y, wb + cfg.wGate());
-    const u = try b.matmul(c.ws, r2.y, wb + cfg.wUp());
-    const act = try b.lookup(g, c.silu);
-    const hm = try b.hadamard(act, u);
-    const mo = try b.matmul(c.ws, hm, wb + cfg.wDown());
-    return .{ .out = try residual(b, h, mo), .h = h, .attn = at, .rms1 = r1, .rms2 = r2, .q = q, .qr = qr };
+    return .{ .h = h, .attn = at, .rms1 = r1, .rms2 = r2, .q = q, .qr = qr };
 }
 
 /// Stack of cfg.n_layers decoder layers on int8 input x [T, D].

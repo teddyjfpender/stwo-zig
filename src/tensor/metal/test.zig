@@ -604,3 +604,136 @@ test "metal decoder layer proof equals the CPU golden digest (ext einsums on the
     const hx = std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower);
     try std.testing.expectEqualStrings("e1f73d3d222a787247fb475e6866f8e74942fbbaba24aac2d41e832a37f6fac9", &hx);
 }
+
+test "metal per-request serving batch (dense + MoE stack, LM head, greedy check) equals CPU" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    const tf = t.transformer;
+    const cfg = t.lm.ModelCfg{ .log_t = 3, .log_d = 4, .log_heads = 1, .log_kv_heads = 0, .log_f = 5, .n_layers = 2, .log_experts = 1, .log_f_expert = 4, .log_capacity = 3, .log_vocab = 6, .log_out = 1, .weight_log_cols = 3 };
+    var pc = proto.Config{
+        .two_level = .{ .outer = .{ .log_blowup = 2, .n_queries = 12, .pow_bits = 1 }, .inner = .{ .log_blowup = 3, .n_queries = 10, .pow_bits = 1 }, .depth = 1 },
+        .gkr_threads = 2,
+        .batch_matmuls = true,
+    };
+    pc.weight_log_cols = cfg.weight_log_cols;
+    var sw = try t.lm.setupWeights(a, &pool, cfg, pc, 700);
+    defer {
+        sw.ws.deinit(a);
+        for (sw.wdata) |w| a.free(w);
+        a.free(sw.wdata);
+        a.free(sw.winfos);
+    }
+    const g = try gpu();
+    var acc = g.accel().*;
+    acc.sc_min_work = 16;
+    acc.mle_min_len = 1;
+    acc.gkr_min_log = 0;
+    var pcg = pc;
+    pcg.accel = &acc;
+    const R = 2;
+    var bs: [R]tf.Builder = undefined;
+    var views: [R][]const []const i32 = undefined;
+    var reqs: [R]t.serve.Request = undefined;
+    for (0..R) |j| {
+        bs[j] = tf.Builder.init(a, &pool);
+        const x = try model.randomInput(a, @as(usize, 1) << (cfg.log_t + cfg.log_d), 40 + j);
+        defer a.free(x);
+        _ = try t.lm.buildModel(&bs[j], cfg, &sw.ws, 3, x, null);
+        views[j] = try bs[j].witnessView(a);
+        reqs[j] = .{ .st = bs[j].statement(), .witness = views[j], .salt = t.serve.testSalt(j) };
+    }
+    defer for (0..R) |j| {
+        a.free(views[j]);
+        bs[j].deinit();
+    };
+    var b_cpu = try t.serve.proveRequests(a, &pool, pc, &sw.ws, &reqs, null);
+    defer b_cpu.deinit(a);
+    const before = g.stats;
+    var b_gpu = try t.serve.proveRequests(a, &pool, pcg, &sw.ws, &reqs, null);
+    defer b_gpu.deinit(a);
+    try std.testing.expect(g.stats.sc_rounds > before.sc_rounds);
+    try std.testing.expect(g.stats.gkr_calls > before.gkr_calls);
+    try std.testing.expectEqual(t.digest.batchDigest(b_cpu), t.digest.batchDigest(b_gpu));
+    for (0..R) |j| try t.serve.verifyRequest(a, pc, reqs[j].st, proto.weightKey(&sw.ws), &b_gpu.requests[j], &b_gpu.shared, j);
+}
+
+// ---------------------------------------------------------------------------
+// Hiding mode (zk.zig): device hooks give byte-identical proofs for a fixed
+// (test-only) prover seed.
+
+const zk = t.zk;
+
+fn zkBoth(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, st: proto.Statement, winfos: []const t.protocol.TensorInfo, wdata: []const []const i8, wview: []const []const i32, expect_commit: bool, expect_matmul: bool) !void {
+    const g = try gpu();
+    var acc = g.accel().*;
+    acc.sc_min_work = 16; // exercise device rounds on small tests
+    acc.mle_min_len = 1;
+    var cfg_gpu = cfg;
+    cfg_gpu.accel = &acc;
+    const seed = [_]u8{0x5a} ** 32;
+    var digests: [2][32]u8 = undefined;
+    const before = g.stats;
+    for ([_]proto.Config{ cfg, cfg_gpu }, 0..) |c, i| {
+        zk.setTestSeed(seed);
+        defer zk.setTestSeed(null);
+        var zw: ?zk.ZkWeights = null;
+        defer if (zw) |*w| w.deinit(a);
+        if (winfos.len > 0) zw = try zk.commitWeights(a, pool, c, winfos, wdata);
+        var tm: proto.Timings = .{};
+        var p = try zk.prove(a, pool, c, st, if (zw) |*w| w else null, wview, &tm);
+        defer p.deinit(a);
+        try zk.verify(a, c, st, if (zw) |*w| w.key() else null, &p);
+        digests[i] = zk.proofDigest(&p);
+    }
+    try std.testing.expectEqualSlices(u8, &digests[0], &digests[1]);
+    // the device path actually ran
+    try std.testing.expect(g.stats.sc_rounds > before.sc_rounds);
+    if (expect_commit) try std.testing.expect(g.stats.commit_calls > before.commit_calls);
+    if (expect_matmul) try std.testing.expect(g.stats.matmul_calls > before.matmul_calls or g.stats.weight_pass_calls > before.weight_pass_calls);
+}
+
+test "metal hiding proofs equal CPU hiding proofs (seeded): product, MLP; flat and recursive PCS" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    const base = proto.Config{ .pcs = .{ .log_blowup = 2, .n_queries = 8, .pow_bits = 2 }, .weight_log_cols = 6, .witness_log_cols_max = 7, .gkr_threads = 1, .hiding = true, .weight_mask_slots = 64 };
+    var rec = base;
+    rec.two_level = .{ .inner = .{ .log_blowup = 2, .n_queries = 8, .pow_bits = 1 }, .depth = 1, .inner_work_shift = 0 };
+    // product toy (masked op check + batch sumcheck on the device)
+    {
+        var built = try model.buildProduct(a, 12, 3);
+        defer built.deinit(a);
+        const wv = try a.alloc([]const i32, built.witness.len);
+        defer a.free(wv);
+        for (built.witness, 0..) |w, i| wv[i] = w;
+        try zkBoth(a, &pool, base, built.statement(), &.{}, &.{}, wv, false, false);
+        try zkBoth(a, &pool, rec, built.statement(), &.{}, &.{}, wv, true, false);
+    }
+    // fused MLP with virtual remainders (matmul accumulators, weight folds, virtual checks)
+    {
+        const mc = model.Mlp{ .log_t = 4, .log_d = 6, .log_f = 7, .fused = true };
+        const winfos = model.mlpWeightInfos(mc);
+        var wdata: [3][]i8 = undefined;
+        for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 100 + i, -8, 7);
+        defer for (wdata) |w| a.free(w);
+        const wvv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
+        var zw0 = try zk.commitWeights(a, &pool, base, &winfos, &wvv);
+        defer zw0.deinit(a);
+        const x = try model.randomInput(a, @as(usize, 1) << (mc.log_t + mc.log_d), 9);
+        defer a.free(x);
+        const pv = zw0.plainView();
+        var built = try model.buildMlp(a, &pool, &pv, mc, x);
+        defer built.deinit(a);
+        const wv = try a.alloc([]const i32, built.witness.len);
+        defer a.free(wv);
+        for (built.witness, 0..) |w, i| wv[i] = w;
+        for ([_]proto.Config{ base, rec }) |c0| {
+            var c = c0;
+            c.zk_virtual_remainders = true;
+            try zkBoth(a, &pool, c, built.statement(), &winfos, &wvv, wv, c.two_level != null, true);
+        }
+    }
+}

@@ -13,7 +13,7 @@ How to run (bench args after the legacy ones select pcs2):
 tensor-bench product <log_n> <thr> <q> <lb> <pow> [depth inner_q inner_lb inner_pow work_shift prox_rows]
 tensor-bench mlp <lt> <ld> <lf> <thr> <q> <lb> <pow> [depth inner_q inner_lb inner_pow work_shift prox_rows]
 TENSOR_BATCH_MATMULS=1 tensor-bench mlp ...          # shape-class batching
-tensor-bench model <log_total> <used> <n_rows> <q> <lb> <depth> <inner_q> <inner_lb> [work_shift]
+tensor-bench size-model <log_total> <used> <n_rows> <q> <lb> <depth> <inner_q> <inner_lb> [work_shift]
 ```
 
 Recommended configs:

@@ -29,7 +29,15 @@
 const std = @import("std");
 const f = @import("field.zig");
 const sc = @import("sumcheck.zig");
+const accel = @import("accel.zig");
 const Transcript = @import("transcript.zig").Transcript;
+
+/// Test-only: a cheating prover (adversarial tests) skips its own claim-consistency
+/// asserts so that the verifier is exercised on false claims.
+pub var test_cheating_prover: bool = false;
+fn cheating() bool {
+    return @import("builtin").is_test and test_cheating_prover;
+}
 
 const QM31 = f.QM31;
 const M31 = f.M31;
@@ -262,9 +270,47 @@ pub fn prove(
     return proveWith(NF, terms, TermsEval(NF, terms), a, pool, tr, claim, factors, active_in, public, hp, pad_ctx);
 }
 
+/// As `prove`, with the data rounds (round sums and folds of the factors) on a
+/// device accelerator when it accepts them; byte-identical messages (exact field
+/// arithmetic; the hiding-polynomial part and all challenges stay on the CPU).
+pub fn proveAccel(
+    dev: ?*const accel.Accel,
+    comptime NF: usize,
+    comptime terms: []const Term,
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    tr: *Transcript,
+    claim: QM31,
+    factors: [NF][]QM31,
+    active_in: usize,
+    public: [NF]bool,
+    hp: Hp,
+    pad_ctx: anytype,
+) !ProveOut {
+    return proveWithDev(dev, NF, terms, TermsEval(NF, terms), a, pool, tr, claim, factors, active_in, public, hp, pad_ctx);
+}
+
 /// As `prove`, with a hand-written evaluator `Ev.eval(*const [NF]QM31) QM31`
 /// that must compute the same polynomial as `terms` (which still fixes the degree).
 pub fn proveWith(
+    comptime NF: usize,
+    comptime terms: []const Term,
+    comptime Ev: type,
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    tr: *Transcript,
+    claim: QM31,
+    factors: [NF][]QM31,
+    active_in: usize,
+    public: [NF]bool,
+    hp: Hp,
+    pad_ctx: anytype,
+) !ProveOut {
+    return proveWithDev(null, NF, terms, Ev, a, pool, tr, claim, factors, active_in, public, hp, pad_ctx);
+}
+
+fn proveWithDev(
+    dev: ?*const accel.Accel,
     comptime NF: usize,
     comptime terms: []const Term,
     comptime Ev: type,
@@ -300,11 +346,49 @@ pub fn proveWith(
     const max_chunks = pool.n_threads * 4 + 2;
     const partial = try a.alloc([MAX_DEG + 1]QM31, max_chunks);
     defer a.free(partial);
+    // device session: starts once the cube fits the factor buffers and the round work
+    // is large; the device folds with the previous challenge before each round
+    const dev_ok = comptime (NF <= 4 and terms.len <= 4 and deg <= 3);
+    var sess: ?*anyopaque = null;
+    var dev_done = dev == null or !dev_ok;
+    var pending_r: ?QM31 = null;
+    errdefer if (sess) |ss| dev.?.sc_abort(dev.?.ctx, ss);
     for (0..n) |round| {
         const half = len / 2;
         const work = @min(half, active);
         var g: [MAX_DEG + 1]QM31 = [_]QM31{QM31.zero()} ** (MAX_DEG + 1);
-        if (work > 0) {
+        var on_dev = false;
+        if (!dev_done and dev_ok) {
+            const A = dev.?;
+            if (sess == null and work >= A.sc_min_work) {
+                var fits = true;
+                inline for (factors) |fac| fits = fits and fac.len >= len;
+                if (fits) {
+                    var views: [NF][]QM31 = undefined;
+                    inline for (0..NF) |j| views[j] = factors[j][0..len];
+                    sess = try A.sc_begin(A.ctx, &views, terms, active);
+                    if (sess == null) dev_done = true;
+                }
+            }
+            if (sess) |ss| {
+                if (work >= A.sc_min_work) {
+                    const sums = try A.sc_round(A.ctx, ss, pending_r);
+                    g[0] = sums[0];
+                    g[2] = sums[1];
+                    g[3] = sums[2];
+                    on_dev = true;
+                } else {
+                    // hand the folded prefix back to the CPU for the small rounds
+                    var outs: [NF][]QM31 = undefined;
+                    inline for (0..NF) |j| outs[j] = factors[j][0..len];
+                    sess = null;
+                    try A.sc_finish(A.ctx, ss, pending_r.?, &outs);
+                    pending_r = null;
+                    dev_done = true;
+                }
+            }
+        }
+        if (work > 0 and !on_dev) {
             const target = pool.n_threads * 4;
             var chunk = (work + target - 1) / target;
             if (chunk < 2048) chunk = 2048;
@@ -340,10 +424,21 @@ pub fn proveWith(
         point[round] = r;
         g_claim = sc.interpolateAt(g[0 .. deg + 1], r);
         before = before.mul(r).add(hp.wEval(round, r));
-        const fctx = FoldCtx(NF){ .fac = factors, .half = half, .active = active, .r = r };
-        pool.parallelFor(work, 4096, &fctx, comptime foldKernel(NF));
+        if (on_dev) {
+            pending_r = r;
+        } else {
+            const fctx = FoldCtx(NF){ .fac = factors, .half = half, .active = active, .r = r };
+            pool.parallelFor(work, 4096, &fctx, comptime foldKernel(NF));
+        }
         len = half;
         active = work;
+    }
+    if (sess) |ss| {
+        // every remaining round ran on the device: apply the last fold and copy back
+        var outs: [NF][]QM31 = undefined;
+        inline for (0..NF) |j| outs[j] = factors[j][0..len];
+        sess = null;
+        try dev.?.sc_finish(dev.?.ctx, ss, pending_r.?, &outs);
     }
     var fin: [NF]QM31 = undefined;
     inline for (0..NF) |j| fin[j] = if (active > 0) factors[j][0] else QM31.zero();
@@ -361,7 +456,7 @@ pub fn proveWith(
         gy[t] = evalTerms(terms, NF, &vals);
         qy[t] = before.add(hp.wEval(n, Y)).add(eps.mul(gy[t]));
     }
-    std.debug.assert(gy[0].eql(g_claim));
+    if (!cheating()) std.debug.assert(gy[0].eql(g_claim));
     var msg = [_]QM31{QM31.zero()} ** MAX_DEG;
     for (1..deg + 1) |t| msg[t - 1] = qy[t];
     tr.mixFelts(msg[0..deg]);
@@ -598,7 +693,7 @@ pub fn proveGkrLayer(
         gy[tt] = evalTerms(terms, 7, &vals);
         qy[tt] = before.add(hp.wEval(n, Y)).add(eps.mul(gy[tt]));
     }
-    std.debug.assert(gy[0].eql(g_claim));
+    if (!cheating()) std.debug.assert(gy[0].eql(g_claim));
     var msg = [_]QM31{QM31.zero()} ** MAX_DEG;
     for (1..deg + 1) |tt| msg[tt - 1] = qy[tt];
     tr.mixFelts(msg[0..deg]);
