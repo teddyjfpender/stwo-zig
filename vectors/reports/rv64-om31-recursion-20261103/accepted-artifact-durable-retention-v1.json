@@ -15,5 +15,12 @@
     "serial-fixed"
   ],
   "gkr_ab_preserved": true,
-  "original_evidence_mutated": false
+  "original_evidence_mutated": false,
+  "replay_input_index": {
+    "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261104/replay-input-retention.json",
+    "sha256": "397f8931807c49262433084bc7fa4b87fdacf7020c726b95950e67c70bd39b7b",
+    "input_blocks": 15,
+    "guest_and_independent_receiver_pinned": true,
+    "original_plans_requests_receiver_outputs_preserved": true
+  }
 }
