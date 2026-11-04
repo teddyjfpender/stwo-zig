@@ -225,6 +225,9 @@ static pthread_mutex_t g_dump_mu = PTHREAD_MUTEX_INITIALIZER;
 static void dump(void) {
   const char *dir = getenv("RV64_SYNC_TRACE_OUT");
   if (!dir || !g_sites) return;
+  uint64_t any = 0;
+  for (int k = 0; k < K_COUNT; k++) any += g_count[k];
+  if (!any) return;  // helper processes (nvidia-smi, flock, ...) that never touched CUDA
   pthread_mutex_lock(&g_dump_mu);
   char path[4096];
   snprintf(path, sizeof path, "%s/sync-trace-%d.json", dir, (int)getpid());

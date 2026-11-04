@@ -1,6 +1,6 @@
 {
  "schema": "rv64-sync-allowlist/v1",
- "total": 67,
+ "total": 58,
  "files": [
   "src/integrations/circuit_cpu/om31/device_prove.zig",
   "src/integrations/riscv_cuda/rv64/outer_source.zig",
@@ -44,18 +44,18 @@
   "src/integrations/riscv_cuda/rv64/outer_assignment.zig::reject::session_join": 1,
   "src/integrations/riscv_cuda/rv64/outer_fixed.zig::adopt::host_sync": 1,
   "src/integrations/riscv_cuda/rv64/outer_fixed.zig::uploadImpl::session_join": 1,
-  "src/integrations/riscv_cuda/rv64/outer_source_interaction.zig::generate::session_join": 3,
-  "src/integrations/riscv_cuda/rv64/outer_source_interaction.zig::generate::staged_readback": 2,
-  "src/integrations/riscv_cuda/rv64/outer_source_main.zig::generate::session_join": 3,
+  "src/integrations/riscv_cuda/rv64/outer_source_interaction.zig::generate::session_join": 1,
+  "src/integrations/riscv_cuda/rv64/outer_source_interaction.zig::generate::staged_readback": 1,
+  "src/integrations/riscv_cuda/rv64/outer_source_main.zig::generate::session_join": 1,
   "src/integrations/riscv_cuda/rv64/outer_source_main.zig::generate::staged_readback": 1,
   "src/integrations/riscv_cuda/rv64/resident_composition.zig::run::session_join": 11,
   "src/integrations/riscv_cuda/rv64/resident_composition.zig::run::staged_readback": 1,
   "src/integrations/riscv_cuda/rv64/session_context.zig::download::staged_readback": 1,
   "src/integrations/riscv_cuda/rv64/session_context.zig::join::host_sync": 1,
   "src/integrations/riscv_cuda/rv64/trace_commit.zig::retireJoinedInput::session_join": 1,
-  "src/integrations/riscv_cuda/rv64/trace_commit.zig::run::session_join": 7,
+  "src/integrations/riscv_cuda/rv64/trace_commit.zig::run::session_join": 5,
   "src/integrations/riscv_cuda/rv64/trace_commit.zig::run::staged_readback": 1,
-  "src/integrations/riscv_cuda/rv64/trace_commit.zig::streamRoot::session_join": 4,
+  "src/integrations/riscv_cuda/rv64/trace_commit.zig::streamRoot::session_join": 2,
   "src/integrations/riscv_cuda/rv64/trace_commit.zig::streamRoot::staged_readback": 1
  }
 }

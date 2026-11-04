@@ -54,9 +54,12 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
         if (words.len == 0) return error.MissingCircuitProverData;
         owner.raw_fixed[i] = try b.service.immutableWords(raw, ctx.scope, immutableKey(owner.initial_scope, i), words);
     }
-    try ctx.join();
+    // M6 enqueue: the assignment returns joined and immutable uploads join
+    // themselves, so the only pending work is lane 0 (clears, staged
+    // uploads). Gate kernels go on lane 0 behind it: no host join here, and
+    // the status readback below is ordered after them on the same lane.
     var stream: ?*anyopaque = null;
-    try S.checked(b.api.lane_stream(raw, 1, &stream));
+    try S.checked(b.api.lane_stream(raw, 0, &stream));
     var counts: [22][*]u32 = undefined;
     for (&counts, owner.main_columns[92..]) |*out, input| out.* = @constCast(input.device.?.words);
     const pp_widths = [_]usize{ 1, 7, 4, 1, 10 };
@@ -76,7 +79,6 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
         main_at += widths[component];
     }
     if (fusedBlakeFlags()) |flags| fusedBlakeShadow(owner, &ctx, values.words.?, logs, stream.?, flags);
-    try ctx.join();
     var flag: [1]u32 = undefined;
     try ctx.download(try ctx.borrow(status), &flag);
     try ctx.join();

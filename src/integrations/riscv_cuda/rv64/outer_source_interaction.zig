@@ -19,7 +19,18 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
     var parameters = try ctx.allocate(56, 0);
     defer ctx.release(&parameters) catch {};
     try ctx.upload(try ctx.borrow(parameters), &parameter_words);
-    var claims: [11]Outer.protocol.O = undefined;
+    // M6 enqueue: every copy, clear and kernel of this stage is ordered on
+    // lane 0 (the context stream, which also carries the staged uploads), so
+    // no host join is needed between components. The eleven claims and the
+    // shared status word (kernels only OR failure bits into it) live in one
+    // lease and come back in ONE staged readback after the last component.
+    // Kernel lane choice and readback batching cannot change any word.
+    const component_count = 11;
+    var results = try ctx.allocate(8 * component_count + 1, 0);
+    defer ctx.release(&results) catch {};
+    const status_word = results.words.? + 8 * component_count;
+    try S.checked(b.clear(raw, status_word, 0, 4));
+    var claims: [component_count]Outer.protocol.O = undefined;
     var main_at: usize = 0;
     var inter_at: usize = 0;
     const kinds = std.enums.values(@import("stwo_circuit_frontend").common.component_list.ComponentList);
@@ -45,12 +56,7 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
         const prefix = try Prefix.Plan.init(log);
         var scratch = try ctx.allocate(prefix.scratch_words, 0);
         defer ctx.release(&scratch) catch {};
-        var claim = try ctx.allocate(8, 0);
-        defer ctx.release(&claim) catch {};
-        var status = try ctx.allocate(1, 0);
-        defer ctx.release(&status) catch {};
-        try S.checked(b.clear(raw, status.words.?, 0, 4));
-        try ctx.join();
+        const claim_words = results.words.? + 8 * ci;
         const source_scope = @import("pcs_scope.zig").identity(owner.initial_scope);
         for (owner.main_columns[main_at..][0..width]) |column| {
             const input = column.device orelse return error.MissingOuterDeviceMain;
@@ -58,29 +64,33 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
             try S.checked(b.service.lease_validate_range(b.service.session, input.words, input.count, input.context_token, input.generation, &source_scope));
         }
         const first = owner.main_columns[main_at].device.?;
-        const job = S.Fractions{ .fixed = fixed.words.?, .main = first.words, .parameters = parameters.words.?, .numerators = numerators.words.?, .denominators = output.words.?, .status = @ptrCast(status.words.?), .fixed_words = indices.len * rows, .main_words = width * rows, .numerator_words = 8 * pairs * rows, .denominator_words = 8 * pairs * rows, .component = @intCast(ci), .row_log = log };
-        try S.checked(b.fractions(raw, 1, &job));
-        const global = Abi.GlobalPairs{ .output = output.words.?, .contributions = numerators.words.?, .scan_scratch = scratch.words.?, .claim = claim.words.?, .status = @ptrCast(status.words.?), .stride = rows, .scan_words = prefix.scratch_words, .row_log = log, .pairs = @intCast(pairs) };
-        try S.checked(b.global_pairs(raw, 1, &global));
-        const cumulative = S.Cumulative{ .output = output.words.?, .contributions = numerators.words.?, .claim = claim.words.?, .stride = rows, .row_log = log, .pairs = @intCast(pairs) };
-        try S.checked(b.cumulative(raw, 1, &cumulative));
-        try ctx.join();
-        var flag: [1]u32 = undefined;
-        var words: [8]u32 = undefined;
-        try ctx.download(try ctx.borrow(status), &flag);
-        try ctx.download(try ctx.borrow(claim), &words);
-        try ctx.join();
-        if (flag[0] != 0) return error.InvalidCircuitDeviceInteraction;
-        var coordinates: [8]Outer.protocol.M = undefined;
-        for (&coordinates, words) |*out, word| {
-            if (word >= @import("stwo_core").fields.m31.Modulus) return error.NoncanonicalOuterClaim;
-            out.* = Outer.protocol.M.fromCanonical(word);
-        }
-        claims[ci] = Outer.protocol.O.fromM31Array(coordinates);
+        const job = S.Fractions{ .fixed = fixed.words.?, .main = first.words, .parameters = parameters.words.?, .numerators = numerators.words.?, .denominators = output.words.?, .status = @ptrCast(status_word), .fixed_words = indices.len * rows, .main_words = width * rows, .numerator_words = 8 * pairs * rows, .denominator_words = 8 * pairs * rows, .component = @intCast(ci), .row_log = log };
+        try S.checked(b.fractions(raw, 0, &job));
+        const global = Abi.GlobalPairs{ .output = output.words.?, .contributions = numerators.words.?, .scan_scratch = scratch.words.?, .claim = claim_words, .status = @ptrCast(status_word), .stride = rows, .scan_words = prefix.scratch_words, .row_log = log, .pairs = @intCast(pairs) };
+        try S.checked(b.global_pairs(raw, 0, &global));
+        const cumulative = S.Cumulative{ .output = output.words.?, .contributions = numerators.words.?, .claim = claim_words, .stride = rows, .row_log = log, .pairs = @intCast(pairs) };
+        try S.checked(b.cumulative(raw, 0, &cumulative));
+        // fixed/numerators/scratch are released at the end of this iteration
+        // while lane 0 still reads them: an arena range is fenced on the
+        // device (reuse waits on lane 0), a pool range is host-joined by free.
         for (0..8 * pairs) |i| owner.inter_columns[inter_at + i] = .{ .log_size = log, .encoding = .evaluations, .device = .{ .words = output.words.? + i * rows, .count = rows, .context_token = token, .generation = output.generation } };
         main_at += width;
         inter_at += 8 * pairs;
     }
     if (inter_at != owner.inter_columns.len or main_at != owner.main_columns.len) return error.InvalidCircuitInteractionRoster;
+    // One staged D2H on lane 0: data is present on return and ordered after
+    // every kernel above. The join then finds idle lanes (no driver sync).
+    var words: [8 * component_count + 1]u32 = undefined;
+    try ctx.download(try ctx.borrow(results), &words);
+    try ctx.join();
+    if (words[8 * component_count] != 0) return error.InvalidCircuitDeviceInteraction;
+    for (&claims, 0..) |*claim, ci| {
+        var coordinates: [8]Outer.protocol.M = undefined;
+        for (&coordinates, words[8 * ci ..][0..8]) |*out, word| {
+            if (word >= @import("stwo_core").fields.m31.Modulus) return error.NoncanonicalOuterClaim;
+            out.* = Outer.protocol.M.fromCanonical(word);
+        }
+        claim.* = Outer.protocol.O.fromM31Array(coordinates);
+    }
     owner.claims = Outer.witness.Claims.fromArray(claims);
 }

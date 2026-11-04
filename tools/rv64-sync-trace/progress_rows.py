@@ -50,7 +50,8 @@ def main():
                "proof_bytes": r.get("proof_bytes_root"), "loadavg_1m": round(load, 1) if load is not None else None,
                "byte_identical_to": "M5 default = rv64-m3-20261104/integrate/scale (all hashes)" if parity.get("byte_identical") else "NOT byte-identical",
                "config": args.config + f"; request {i} ({'seed' if first else 'warm'})", "receipt": args.receipt_path, "run": d["run"]}
-        w = next((w for w in windows if w["block"] == r["block"]), None) if windows else None
+        # window.py emits one row per request in receipt order
+        w = windows[i] if len(windows) == len(d["requests"]) and windows[i]["block"] == r["block"] else None
         if w:
             row["syncs"] = w["recursion"]["blocking_total"]
             row["launches"] = w["recursion"]["kinds"].get("launch", 0)
