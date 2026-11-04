@@ -1455,7 +1455,7 @@ pub fn provePublic(
                 const eq_t = try f.eqTablePar(a, pool, pt[0..lt], QM31.one());
                 defer a.free(eq_t);
                 const xm = pcs.Matrix(i32){ .data = witness[m.x], .log_rows = lt, .log_cols = lk };
-                const fx = try zeroExt(a, try linalg.colCombine(i32, a, pool, xm, eq_t, 8), len);
+                const fx = try zeroExt(a, try linalg.colCombine(i32, a, pool, xm, eq_t, proto.operandBoundLog2(st, m.x)), len);
                 defer a.free(fx);
                 const eq_n = try f.eqTablePar(a, pool, pt[lt..], QM31.one());
                 defer a.free(eq_n);
