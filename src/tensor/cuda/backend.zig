@@ -244,7 +244,7 @@ pub const Cuda = struct {
         const self = from(ctx);
         const R = m.nRows();
         const C = m.nCols();
-        if (vec.len != C or R * C < self.min_pass_elems or R >= (1 << 31)) {
+        if (vec.len != C or R * C < self.min_pass_elems or R >= (1 << 31) or C > (1 << 24)) {
             self.declined += 1;
             return null;
         }

@@ -42,11 +42,16 @@ pub fn build(b: *std.Build) void {
         cmd.addFileArg(b.path("cuda/tc_host.cu"));
         cmd.addPrefixedDirectoryArg("-I", b.path("cuda"));
         for ([_][]const u8{ "cuda/tc_api.h", "cuda/tc_prelude.cuh", "cuda/tc_field.cuh", "cuda/tc_blake2s.cuh", "cuda/tc_kernels.cuh" }) |h| cmd.addFileInput(b.path(h));
-        const so = cmd.addPrefixedOutputFileArg("-o", "libtensor_cuda.so");
+        // separate "-o" and path: nvcc does not document the joined "-o<file>" form
+        cmd.addArg("-o");
+        const so = cmd.addOutputFileArg("libtensor_cuda.so");
         b.getInstallStep().dependOn(&b.addInstallLibFile(so, "libtensor_cuda.so").step);
         const m = cudaModule(b, target, optimize, tensor, so);
         const dev_tests = cudaTests(b, target, optimize, tensor, m, engine);
         b.step("test-cuda", "CUDA backend on the device: the test-cuda-emu assertions against the nvcc build").dependOn(&dev_tests.step);
+        // the device test binary at a known path (zig-out/bin/tensor-cuda-test), for compute-sanitizer
+        const inst = b.addInstallArtifact(dev_tests.producer.?, .{ .dest_sub_path = "tensor-cuda-test" });
+        b.step("install-cuda-test", "Install the CUDA device test binary as zig-out/bin/tensor-cuda-test").dependOn(&inst.step);
         break :blk m;
     } else null;
 
@@ -110,7 +115,11 @@ fn cudaModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bui
     m.addImport("stwo_tensor", tensor);
     if (so) |lib| {
         m.addObjectFile(lib);
+        // the cache rpath is relative to the build root (it only resolves when the
+        // binary runs with cwd = src/tensor, as zig build's test runs do); the
+        // installed bench finds zig-out/lib/libtensor_cuda.so via $ORIGIN
         m.addRPath(lib.dirname());
+        m.addRPathSpecial("$ORIGIN/../lib");
     } else {
         m.addCSourceFile(.{ .file = b.path("cuda/tc_emu.cpp"), .flags = &.{ "-std=c++17", "-O2", "-Wall", "-Wextra", "-Werror" } });
     }

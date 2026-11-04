@@ -189,7 +189,9 @@ test "cuda sumcheck (fused fold + round, last-block reduction) matches CPU (deg 
     try checkSumcheck(3, &T_EQ3, a, &pool, d, 11, 1500, 3);
     try checkSumcheck(4, &T_PRODUCT, a, &pool, d, 12, 4096, 4);
     try checkSumcheck(4, &T_PRODUCT, a, &pool, d, 14, 9999, 5);
-    // > 1024 * 256 * 4 work items: multi-block grid-stride + 1024 partials
+    // 2^17 work items: a 128-block grid, 4 grid-stride iterations per thread, and
+    // 128 last-block partials. The SC_MAX_GROUPS = 1024 cap (work >= 2^20) is
+    // not reached by any test.
     try checkSumcheck(2, &T_PROD2, a, &pool, d, 18, 200_001, 6);
 }
 

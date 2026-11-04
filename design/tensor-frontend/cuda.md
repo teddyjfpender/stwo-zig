@@ -12,7 +12,7 @@ run on a GPU. All GPU timings are **projections**.
 |---|---|---|
 | M31/CM31/QM31 with lazy reduction | `src/tensor/cuda/tc_field.cuh` | emulation-verified vs the Zig field (20k random + edge limbs) |
 | Blake2s (plain, as the tensor PCS uses it) | `tc_blake2s.cuh` | emulation-verified (Merkle roots and every node equal the CPU's) |
-| sumcheck round: fused fold of the previous round + {s(0), s(2), s(3)}, multi-term, deg <= 3, <= 4 factors, last-block device reduction | `tc_kernels.cuh` `tc_sc_round`, `tc_sc_fold` | emulation-verified: proofs, points, finals and transcripts equal `sc.proveActive` (6 shapes, partial `active`, 1024-block grids) |
+| sumcheck round: fused fold of the previous round + {s(0), s(2), s(3)}, multi-term, deg <= 3, <= 4 factors, last-block device reduction | `tc_kernels.cuh` `tc_sc_round`, `tc_sc_fold` | emulation-verified: proofs, points, finals and transcripts equal `sc.proveActive` (6 shapes, partial `active`, grids up to 128 blocks; the 1024-block cap is not exercised) |
 | implicit factors built on the device (int32 vectors, sums of gamma*eq at offsets, eq-prefix broadcast) | `tc_eq_halves`, `tc_eq_expand`, `tc_int_to_qm`; `tc_sc_begin_specs` | emulation-verified vs `accel.proveFactors(null, ...)` |
 | eq tables (2 launches for any length) | `tc_eq_halves` + `tc_eq_expand` | emulation-verified vs `f.eqTable` (n = 0 .. 14) |
 | int8 / int32 x QM31 weight fold (combine rows), int8 row dots | `tc_combine_rows`, `tc_sum_chunks`, `tc_row_dots_i8` | emulation-verified vs `pcs.combineRows`, `linalg.rowDots` |

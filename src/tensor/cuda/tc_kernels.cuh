@@ -264,7 +264,8 @@ TC_GLOBAL tc_sum_chunks(const uint32_t *partials, uint64_t n, uint64_t n_chunks,
 }
 
 // out[k] = sum_n m[k][n] vec[n]: one block per row, exact int64 limb sums
-// (C / blockDim <= 2^25 products per thread), integer tree in shared memory.
+// for C <= 2^24 (all C products end up in one int64 per limb: C * 2^7 * 2^31
+// < 2^63; the host checks it), integer tree in shared memory.
 TC_GLOBAL tc_row_dots_i8(const int8_t *m, uint64_t C, const uint32_t *vec, uint32_t *out) {
     TC_SHARED int64_t sh[4 * TC_TB];
     const uint64_t k = TC_BLOCK_ID;

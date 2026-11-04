@@ -12,8 +12,11 @@ COMMON=(-Doptimize=ReleaseSafe -Dcuda=true -Dcuda-arch="$ARCH" -Dnvcc="$NVCC" -D
 echo "== emulation suite (CPU)"; zig build test-cuda-emu "${COMMON[@]}"
 echo "== device suite"; zig build test-cuda "${COMMON[@]}"
 if [[ "${TENSOR_CUDA_SANITIZE:-0}" == 1 ]]; then
-  # rebuild the test binary, then run it under the sanitizer (memcheck, racecheck)
-  BIN="$(find .zig-cache -name test -type f -newer cuda/test.zig -perm -u+x | head -1)"
+  # install the device test binary at a fixed path, then run it under the sanitizer
+  # (a find over .zig-cache could pick the emulation or CPU test binary, which
+  # make no CUDA calls and would pass vacuously)
+  zig build install-cuda-test "${COMMON[@]}"
+  BIN="$PWD/zig-out/bin/tensor-cuda-test"
   for tool in memcheck racecheck synccheck; do
     echo "== compute-sanitizer --tool $tool"; compute-sanitizer --tool "$tool" --error-exitcode 1 "$BIN"
   done

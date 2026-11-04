@@ -382,7 +382,8 @@ extern "C" int tc_combine_rows(tc_ctx *c, const void *m, int is_i8, uint64_t R, 
 
 extern "C" int tc_row_dots_i8(tc_ctx *c, const int8_t *m, uint64_t R, uint64_t C, const uint32_t *vec, uint32_t *out) {
     TC_ENTER(c);
-    if (R == 0 || R > 0x7fffffffull || C > (1ull << 32)) return fail(c, "row dots: bad shape");
+    // the int64 limb sums are exact while C * 2^7 * (2^31 - 1) < 2^63, i.e. C <= 2^24
+    if (R == 0 || R > 0x7fffffffull || C > (1ull << 24)) return fail(c, "row dots: bad shape");
     c->stats.weight_passes++;
     bool owned = false;
     const void *dm = upload(c, m, R * C, &owned);
