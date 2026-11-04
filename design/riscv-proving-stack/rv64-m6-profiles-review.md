@@ -141,6 +141,29 @@ The fit arithmetic that the profile depends on is pinned in a test:
 - the 4-ary fold's 8,680,080 G rows [M] drop to ~7.77 M < 2^23 with the ~10.5% cap saving [D];
 - the margin is ~7%: a fold with 8% more G rows re-crosses 2^23 even with the cap.
 
+**Round 4: code review of diet-wire `6a6d95e9f`** (`native_verifier/merkle.zig` `capRoot`, `verifyCap`,
+`verifyPathToCap`, `selectHash`, `decommitTreesCapped`; `om31_native/fri.zig`; `mod.zig`).
+
+- **(i) holds.** `capRoot` is the binary rebuild with `hashNode`, the same node hash that `merkleNode` uses after its
+  conditional flip, in cap index order (2i, 2i+1).
+- **(ii) holds.** `selectHash` muxes with `condFlipU32` on `bits[siblings.len..]`, the query's own boolean position bits
+  from `treePositionBits` (LSB first). That equals `position >> (height − c)`, the same index `hostCap` fills. Nothing is
+  a guessed index.
+- **(iii) holds.** `verifyCap` is checked against `witness.commitments[t]` and `layer.commitment`, the roots the child
+  transcript mixes. These are the same wires the uncapped `verifyPath` uses.
+
+The in-circuit test covers four cases: valid accepts; a cap node, a sibling or a top position bit changed each rejects.
+
+**Verdict: SIGN-OFF on code**, with two follow-ups (non-blocking):
+- (a) rename those tamper cases `corpus DW12 …` (the bit/slot case) and `corpus DW13 …` (the cap-node / root case), so
+  `coverage` counts them;
+- (b) the cap shape comes from the witness: `fri.zig` uses `cap_log = log2(layer.cap.len)`, and `mod.zig` uses
+  `witness.cap_log`.
+  - This is safe today, because the fold VK is receiver-derived from the profile, and any other shape is another circuit
+    and fails the VK.
+  - Still, assert `cap.len == 2^capLogFor(height, profile.foldMerkleCapLog())` at construction (`ShapeMismatch`), so
+    the VK is visibly a function of the profile alone and a producer-side shape bug fails at build time, not at verify.
+
 `m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1`: SIGN-OFF, as DW-R2. Arity is a profile constant, and a mismatching
 `STWO_RV64_FOLD_ARITY` gives a clean `Om31ProfileFoldArityMismatch`.
 
@@ -311,7 +334,7 @@ When the review happens, it will check:
 | name | verdict | blocks promotion until |
 |---|---|---|
 | `m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1` | SIGN-OFF (DW-R2) | the k = 2 / k = 3 cross-policy R run; root-only refuses an arity mismatch (FV-R3) |
-| `m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1` | CONDITIONAL (DW-R6) | conditions (i)–(iii); DW12 and DW13 hooks |
+| `m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1` | SIGN-OFF on code (DW-R6, round 4) | non-blocking: name the DW12 and DW13 hooks; assert the cap shape from the profile; fresh-receiver acceptance plus the corpus on a k4-cap3 proof pair (integrate) |
 | `m6_outer_diet_*` (all-component), `m6_outer_diet_fold_v3_*` | **REOPEN (DW-R1)** | eq constraints ported (native form), DW10 and DW11 hooks |
 | fused Blake components inside the diet entries | CONDITIONAL (DW-R3) | BG08 over all consumers, DW05 and DW06 |
 | `m6_native_v2_b2_q108_p20_fold4` (v2-strict) | SIGN-OFF design (NV-R1), CONDITIONAL NV-R2 | NV01, NV02 and NV07 hooks; the version bound before stage one, or the argument |
