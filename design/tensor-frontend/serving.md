@@ -47,11 +47,27 @@ honest.
 3. The reduction sumcheck adds 2 log|W| / |F|.
 4. The opened value binds W~(r) to the committed root.
 
-Here |F| = 2^124 (QM31) and log|W| <= 39 for Maverick. The prover can choose
-the other slots freely and so grind the batch transcript, at one hash per
-attempt. That is the same Fiat-Shamir grinding exposure as any single proof:
-2^k attempts multiply the per-attempt error by 2^k. The PCS query and PoW
-parameters are those of the single-batch protocol.
+Here |F| = 2^124 (QM31) and log|W| <= 39 for Maverick.
+
+**Fiat-Shamir: a round-by-round statement, not a grinding-cost argument
+(review B DOC-1).** The prover chooses the other slots freely. It can retry
+the batch challenges by changing any slot, junk points included, and a
+retry costs one batch-transcript hash, with no proof to recompute (not even
+inside the victim's own slot, whose claims it may leave as they are). So
+the old wording, "one hash per attempt, the same exposure as a single
+proof", is right about the price but argues the wrong way. Soundness does
+not rest on retries being expensive. It rests on the round-by-round error
+of each challenge. Every challenge of the batch transcript (gamma, each
+reduction round, each challenge of the shared opening) is drawn by one hash
+of a state that fixes everything sent before it. For each such state the
+fraction of challenges that turn a bad state into a good one is at most
+that round's error eps_r, whatever the slots hold. A prover making Q hash
+queries therefore succeeds with probability at most Q * max_r eps_r (plus
+the hash-collision term). That is the compiled single number of
+security.md 1.1, independent of slot content and of how cheap a retry is.
+The PCS query and PoW parameters are those of the single-batch protocol:
+PoW raises the per-query error of the query rounds, exactly as for one
+proof.
 
 **Single-batch protocol is unchanged.** It is the R = 1 case of the same
 `proveCore` / `verifyCore` split, with one weight-claim group. Its golden
@@ -77,9 +93,15 @@ the r2-sec changes and was re-expressed on top of them:
 * `verifyRequestInfo(..., ?*VerifyInfo)` fills the same accounting as
   `proto.verifyInfo`: the request's witness and LogUp shapes, and the shared
   opening's weight shape with `weight_groups = 1`. The calculator
-  (`security.accountProof`) does not yet add the cross-request terms (the
-  gamma combination, 1/|F|, and the reduction sumcheck, 2 log|W| / |F|);
-  both are far below the PCS terms.
+  `security.accountServe` (review B SEC-7, DOC-1) accounts a served
+  request. It adds the cross-request terms to the request's own terms: the
+  gamma combination 1/|F|, the reduction sumcheck 2 log|W|/|F| plus its claim
+  term, and the one shared weight opening. It reports two readings
+  (security.md 1.2). `request` is per request: verifier i accepts a false
+  statement i. `batch` is joint: some request of the batch is false and
+  accepted. The joint reading adds log2(R) bits to each request's own
+  rounds, and charges the shared rounds once. Both terms are far below the
+  PCS terms.
 
 **Leakage between clients.** v1 is non-hiding, so a request's own proof leaks
 its activations to its own verifier. Every client also receives the other
