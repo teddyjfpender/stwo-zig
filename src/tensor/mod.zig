@@ -32,6 +32,7 @@ test {
     _ = @import("qmul_check_test.zig");
     _ = @import("review_serve_test.zig");
     _ = @import("review_lm_test.zig");
+    _ = @import("recheck_test.zig");
     _ = field;
     _ = transcript;
     _ = sumcheck;
