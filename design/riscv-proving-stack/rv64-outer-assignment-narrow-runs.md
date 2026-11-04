@@ -3,9 +3,27 @@
 The retained production log for block 26235168 reports 17,980,712 ready tasks
 and 109,504 dependency levels. Generation made 109,503 native level calls and
 spent 508 ms enqueueing them on that node. The mean of approximately 164 tasks
-per level does not establish the fraction at or below 128 threads. The retained
+per level does not establish the fraction at or below 256 threads. The retained
 proof/bundle/log artifacts inspected here do not contain the full level-end
 array; no real width distribution or speedup is claimed.
+
+A later CPU-only diagnostic reconstructed two independently admitted real leaves,
+applied the exact outer padding used by production, and matched retained GPU
+variables/tasks/levels. CPU0 had 45,088,768 variables /18,990,989 tasks /120,241
+levels; Keccak7 had 26,738,688 /13,484,113 /146,140. Bounded 256-thread runs project
+6,869 and 3,712 level calls versus 120,240 and 146,139 old nonempty-level calls.
+The corresponding 128-thread projections are 22,542 and 23,410. This motivated
+selecting 256 rather than 128 threads in this isolated successor, not a claim of
+faster GPU execution. Only 24.37% and 38.05% of tasks fall in the selected runs;
+broad 257+ levels retain their old parallel route. A 129–256-task level formerly
+used two 128-thread CTAs, so the new one 256-thread CTA can trade SM parallelism
+and register occupancy against launch overhead. That trade remains unmeasured.
+
+Diagnostic source edc22ba74 / binary 11116523a1cc103b049717278c8122855f62e997a787e686a3888f211b6a8a22;
+CPU result 9bf1759341a47ab97bd2a4bc9a478841541bdd17666051646964703aa6bad4d9;
+Keccak result 668eedc2af7b40bece9aa97895ce7c3ab4e8cd39f3f6784b05d34e5cd969434f.
+Earlier unpadded diagnostic records remain exploratory and are not the production
+assignment geometry. No GPU run was performed for either diagnostic.
 
 The existing schedule builder assigns each task one level above all of its
 producers, rejecting duplicate producers and cycles, then preserves task order
@@ -18,10 +36,10 @@ existing complete-kernel ordering boundary before and after it.
 This isolated candidate adds optional `stwo_circuit_assignment_narrow_run_on`.
 The old 56-byte Job, 16-kind capability mask and ordinary entry are unchanged.
 The new entry takes at most 256 absolute host level-end offsets. It validates
-monotonicity, each width <= 128, final coverage equal to Job.first+Job.count, all
+monotonicity, each width <= 256, final coverage equal to Job.first+Job.count, all
 usual record bounds and reserved fields, then applies the original allocation
 registry and writable-alias custody. It copies the bounded offsets into an
-approximately 1.1 KB launch packet and launches exactly one 128-thread CTA.
+approximately 1.1 KB launch packet and launches exactly one 256-thread CTA.
 There is no new device geometry allocation, upload, cache namespace or lease.
 The kernel calls the original task evaluator; errors set the same status word.
 Every thread still reaches every barrier after an evaluator error return.
@@ -48,7 +66,7 @@ histogram buckets, valid prior-level dependency replay, and strict opt-in.
 The full GNU GPU-recursion production semantic check passes. New CUDA source
 and `assignment_narrow_run_smoke.cu` remain UNCOMPILED and UNEXECUTED. That future
 bounded fixture compares the original and grouped routes to an independent
-small scalar oracle, includes a 129-task broad barrier, rejects malformed
+small scalar oracle, includes a 257-task broad barrier, rejects malformed
 coverage/width/reserved/alias/context cases, and checks that invalid-task status
 does not strand threads at a barrier. Afterwards the existing connected
 `--outer-dag-proof` fixture must prove exact native bytes with a positive
