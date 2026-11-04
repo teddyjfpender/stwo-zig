@@ -173,7 +173,7 @@ Reading the r4 numbers honestly:
   transcript needs each round's sums). That is the floor for a host
   transcript. Per round the launch covers every instance, so the count is
   `max_n + 2 + sum_l (l + 2)` per GKR batch, independent of the instance count
-  (test-enforced exactly for the 8-instance batch: 119 launches, 92 syncs).
+  (one less when every numerator is secure: no `tc_gkr_top` fill; test-enforced exactly for the 8-instance batch: 119 launches, 92 syncs).
   The device transcript (§3) removes the per-round sync.
 
 Budgets asserted in `cuda/test.zig` (emulation counts exactly what the device
@@ -225,11 +225,21 @@ is not optional for the GPU to pay off.
   (or a null session with `tc_ok() == 1`) **before** any device work, do not
   poison, are counted (`stats.declined`, `Cuda.declined`), and the Zig hook
   returns null so the CPU runs that call. Round 3 poisoned the context on
-  shape errors; that is fixed and tested.
+  shape errors; that is fixed and tested. GKR: `gkr.fits` mirrors
+  `tc_gkr_begin`'s bounds, and a declined `tc_gkr_begin` (unreachable through
+  the hook today) runs the CPU prover. A decline *inside* a session
+  (`tc_gkr_eq` / `tc_gkr_round`, after device work and transcript use) cannot
+  fall back and surfaces as `error.CudaFailed`; the driver never builds such
+  jobs.
 * **Threads.** A context is single-threaded by design (one stream, one
-  mailbox, one ticket counter). Every entry point now takes an atomic busy
-  flag (`TcBusy`); a second thread entering the same context gets an error
-  (not a poison) instead of a data race. Use one context per prover thread /
+  mailbox, one ticket counter). Every entry point that launches or copies now
+  takes an atomic busy flag (`TcBusy`); a second thread entering the same
+  context gets an error (not a poison) instead of most data races. Not
+  guarded: the release/query calls `tc_gkr_end`, `tc_sc_abort`,
+  `tc_free_visible`, `tc_unpin_all`, `tc_get_stats`,
+  `tc_set_commit_chunk_rows` (`tc_sc_abort` / `tc_free_visible` are also
+  called with the flag held), and the refused thread's message is written
+  to the shared `err` buffer. The guard is a misuse detector, not a lock. Use one context per prover thread /
   request lane.
 * **Managed codeword.** Every entry point ends in a stream sync, so no kernel
   of this context runs while Zig code (e.g. the openings) reads the codeword.

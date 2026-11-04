@@ -56,7 +56,10 @@ pub fn cpuProveBatch(a: std.mem.Allocator, channel: anytype, inputs: []const Fas
 }
 
 pub fn proveBatch(cu: *be.Cuda, a: std.mem.Allocator, channel: anytype, inputs: []const Fast.Input) !Fast.ProveBatchResult {
-    defer for (inputs) |input| freeInput(a, input);
+    // owned inputs are freed here, unless a declined session hands them to
+    // the CPU prover (which frees them itself)
+    var free_inputs = true;
+    defer if (free_inputs) for (inputs) |input| freeInput(a, input);
     const n_inst = inputs.len;
     const ctx = cu.ctx;
 
@@ -86,7 +89,14 @@ pub fn proveBatch(cu: *be.Cuda, a: std.mem.Allocator, channel: anytype, inputs: 
     }
     const top = try a.alloc(u32, 8 * n_inst);
     defer a.free(top);
-    const g = be.tc_gkr_begin(ctx, tin.ptr, @intCast(n_inst), top.ptr) orelse return cu.err();
+    const g = be.tc_gkr_begin(ctx, tin.ptr, @intCast(n_inst), top.ptr) orelse {
+        // declined before any device work or transcript use (context still
+        // usable): the CPU proves the batch; anything else is a failure
+        if (be.tc_ok(ctx) == 0) return cu.err();
+        cu.declined += 1;
+        free_inputs = false;
+        return cpuProveBatch(a, channel, inputs);
+    };
     defer be.tc_gkr_end(ctx, g);
 
     const output_claims = try a.alloc([2]S, n_inst);
