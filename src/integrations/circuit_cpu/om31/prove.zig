@@ -86,7 +86,7 @@ pub const Authority = struct {
             break :blk fixed.?.root();
         };
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
-        hash.update(P.domain);
+        hash.update(P.domainName());
         hash.update(Air.bundle_sha256);
         hash.update(&root);
         var word: [4]u8 = undefined;

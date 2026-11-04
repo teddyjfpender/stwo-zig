@@ -25,20 +25,20 @@ test "om31 outer bridge actual child verifies in shared lane" {
     try std.testing.expectError(error.Om31CircuitProverDataRetired, Outer.prove.prove(a, &authority, ctx.values()));
     const child = Bridge.Child{ .authority = &authority, .produced = &produced, .capture = &capture };
     produced.outputs[0] = produced.outputs[0].add(Outer.protocol.Q.one());
-    try std.testing.expectError(error.EqFailedOnEval, Bridge.buildFold(a, .{ child, child }));
+    try std.testing.expectError(error.EqFailedOnEval, Bridge.buildFold(a, &.{ child, child }));
     produced.outputs[0] = produced.outputs[0].sub(Outer.protocol.Q.one());
     produced.proof.proof.commitment_scheme_proof.commitments.items[0][0] ^= 1;
-    try std.testing.expectError(error.EqFailedOnEval, Bridge.buildFold(a, .{ child, child }));
+    try std.testing.expectError(error.EqFailedOnEval, Bridge.buildFold(a, &.{ child, child }));
     produced.proof.proof.commitment_scheme_proof.commitments.items[0][0] ^= 1;
     produced.claims.eq = produced.claims.eq.add(Outer.protocol.O.basis());
-    try std.testing.expectError(error.EqFailedOnEval, Bridge.buildFold(a, .{ child, child }));
+    try std.testing.expectError(error.EqFailedOnEval, Bridge.buildFold(a, &.{ child, child }));
     produced.claims.eq = produced.claims.eq.sub(Outer.protocol.O.basis());
     std.debug.print("OUTER leaf proved/verified; building fold\n", .{});
-    var graph = try Bridge.buildFold(a, .{ child, child });
+    var graph = try Bridge.buildFold(a, &.{ child, child });
     defer graph.deinit();
     std.debug.print("OUTER graph built; checking gates\n", .{});
     {
-        var trace = try Bridge.buildFoldTraceOnly(a, .{ child, child });
+        var trace = try Bridge.buildFoldTraceOnly(a, &.{ child, child });
         defer trace.deinit();
         try std.testing.expectEqualDeep(graph.ctx.circuit, trace.ctx.circuit);
         try std.testing.expectEqual(@as(usize, 0), trace.ctx.value_table.capacity);
@@ -57,7 +57,7 @@ test "om31 outer bridge actual child verifies in shared lane" {
         std.debug.print("OUTER failure={any}\n", .{failure});
         return error.InvalidOuterGraph;
     }
-    try std.testing.expectEqual(try Bridge.expectedDigest(.{ child, child }), graph.output_digest);
+    try std.testing.expectEqual(try Bridge.expectedDigest(&.{ child, child }), graph.output_digest);
     const graph_only = std.process.hasEnvVarConstant("STWO_OM31_OUTER_GRAPH_ONLY");
     if (graph_only) return;
     const Q = Outer.protocol.Q;

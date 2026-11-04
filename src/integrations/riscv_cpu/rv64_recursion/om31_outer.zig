@@ -72,7 +72,7 @@ const Statement = struct {
         const marker = [_]Word{ try word(ctx, 0x434f4d38), try word(ctx, 1), try word(ctx, 8) };
         try channel.mixU32s(ctx, &marker);
         var profile: [32]u8 = undefined;
-        std.crypto.hash.sha2.Sha256.hash(Outer.protocol.domain, &profile, .{});
+        std.crypto.hash.sha2.Sha256.hash(Outer.protocol.domainName(), &profile, .{});
         const profile_words = try digestWords(ctx, profile);
         try channel.mixU32s(ctx, &profile_words);
         const public = try ctx.scratch().alloc(Word, 9 + self.output_words.len);
@@ -156,13 +156,22 @@ const Statement = struct {
     }
 };
 
-fn messageWords(a: std.mem.Allocator, children: [2]Child) ![]u32 {
+/// Largest fold arity (m3 uses 4; r1 is binary).
+pub const max_arity = 4;
+/// Binary folds keep the historical r1 message word 1 (byte-identical). Any
+/// other arity binds the child count into the version word so digests of
+/// different arities can never share a message.
+pub fn versionWord(arity: usize) !u32 {
+    if (arity < 2 or arity > max_arity) return error.InvalidRecursiveFoldArity;
+    return if (arity == 2) 1 else (@as(u32, @intCast(arity)) << 8) | 2;
+}
+fn messageWords(a: std.mem.Allocator, children: []const Child) ![]u32 {
     var count: usize = 2;
     for (children) |child| count += 9 + 4 * child.produced.outputs.len;
     const words = try a.alloc(u32, count);
     errdefer a.free(words);
     words[0] = domain;
-    words[1] = 1;
+    words[1] = try versionWord(children.len);
     var at: usize = 2;
     for (children) |child| {
         if (child.produced.outputs.len != child.authority.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
@@ -177,7 +186,7 @@ fn messageWords(a: std.mem.Allocator, children: [2]Child) ![]u32 {
     }
     return words;
 }
-pub fn expectedDigest(children: [2]Child) ![32]u8 {
+pub fn expectedDigest(children: []const Child) ![32]u8 {
     const a = std.heap.page_allocator;
     const words = try messageWords(a, children);
     defer a.free(words);
@@ -191,13 +200,14 @@ pub fn expectedDigest(children: [2]Child) ![32]u8 {
     h.final(&digest);
     return digest;
 }
-pub fn buildFold(a: std.mem.Allocator, children: [2]Child) !Graph {
+pub fn buildFold(a: std.mem.Allocator, children: []const Child) !Graph {
     return buildFoldMode(a, children, false);
 }
-pub fn buildFoldTraceOnly(a: std.mem.Allocator, children: [2]Child) !Graph {
+pub fn buildFoldTraceOnly(a: std.mem.Allocator, children: []const Child) !Graph {
     return buildFoldMode(a, children, true);
 }
-fn buildFoldMode(a: std.mem.Allocator, children: [2]Child, trace_only: bool) !Graph {
+fn buildFoldMode(a: std.mem.Allocator, children: []const Child, trace_only: bool) !Graph {
+    const version = try versionWord(children.len);
     var ctx = if (trace_only) try C.Context.initTraceOnly(a, 8) else try C.Context.init(a, 8);
     errdefer ctx.deinit();
     ctx.assert_eq_on_eval = !trace_only;
@@ -205,7 +215,7 @@ fn buildFoldMode(a: std.mem.Allocator, children: [2]Child, trace_only: bool) !Gr
     defer C.lane.finish() catch {};
     var message: std.ArrayList(Word) = .empty;
     defer message.deinit(a);
-    try message.appendSlice(a, &.{ try word(&ctx, domain), try word(&ctx, 1) });
+    try message.appendSlice(a, &.{ try word(&ctx, domain), try word(&ctx, version) });
     for (children) |child| {
         try Outer.protocol.validateConfig(child.produced.proof.proof.commitment_scheme_proof.config);
         const geometry = try shape(ctx.scratch(), child.authority);

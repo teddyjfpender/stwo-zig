@@ -359,6 +359,12 @@ pub const Context = struct {
     /// authorities. Parameters, column gathering and root order are explicit;
     /// caller-owned executable metadata must outlive this synchronous call.
     pub fn evaluateRoles(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope) !D.Tree {
+        return self.evaluateRolesAtBlowup(a, roles, alpha, log, split, total, trace_raw, scope, self.log_blowup);
+    }
+    /// Per-call commitment blowup: a shared context serves native (beta 1) and
+    /// outer recursion profiles (m3: beta 2/3) without mutating shared state.
+    pub fn evaluateRolesAtBlowup(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, log_blowup: u32) !D.Tree {
+        if (log_blowup < 1 or log_blowup > 4) return error.UnsupportedResidentCompositionBlowup;
         const trace: *const Trace = @ptrCast(@alignCast(trace_raw));
         if (trace.polys.items.len != 3 or roles.len == 0 or log < 5 or log > 28 or split < 1 or split > 2) return error.InvalidResidentCompositionRoles;
         var constraints: usize = 0;
@@ -378,7 +384,7 @@ pub const Context = struct {
         if (constraints != total) return error.WrongResidentConstraintCount;
         self.mutex.lock();
         defer self.mutex.unlock();
-        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = trace, .scope = scope };
+        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = trace, .scope = scope, .log_blowup = log_blowup };
         if (self.service.submit(self.service.session, Job.callback, &job) != 0) return job.failure orelse error.CudaResidentCompositionFailed;
         const result = job.result orelse return error.CudaResidentCompositionFailed;
         try self.result_columns.append(self.allocator, @constCast(result.columns));
@@ -453,6 +459,7 @@ const Job = struct {
     total: usize,
     trace: *const Trace,
     scope: D.Scope,
+    log_blowup: ?u32 = null,
     result: ?D.Tree = null,
     failure: ?anyerror = null,
     active_role: u32 = 999,
@@ -679,7 +686,7 @@ const Job = struct {
         const coeff_count = 8 * n;
         const chunk_log = self.log - self.split;
         const count = @as(usize, 8) << @intCast(self.split);
-        const beta = b.log_blowup;
+        const beta = self.log_blowup orelse b.log_blowup;
         if (beta < 1 or beta > 4) return error.UnsupportedResidentCompositionBlowup;
         const commit_log = chunk_log + beta;
         const commit_rows = @as(usize, 1) << @intCast(commit_log);
