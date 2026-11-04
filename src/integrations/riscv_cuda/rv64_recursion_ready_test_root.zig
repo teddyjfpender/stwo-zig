@@ -51,3 +51,23 @@ test "strict receiver public API refuses incomplete physical nodes before graph 
     defer temporary.cleanup();
     try std.testing.expectError(error.MissingRecursiveNodeProof, Execution.verifyExisting(std.testing.allocator, &.{undefined}, &.{}, undefined, undefined, undefined, null, temporary.dir));
 }
+
+test "ready actual API admits known recycler budget and validates borrowed stack owner" {
+    const budget = try Shared.create(std.testing.allocator, 32 << 20);
+    defer budget.destroy();
+    var recycler = @import("stwo_riscv_cpu_integration").rv64_large_block_recycler.LargeBlockRecycler.init(budget.allocator(), 4 << 20);
+    defer recycler.deinit();
+    // Invalid lane admission is reached only after exact backing validation;
+    // the absent execution authorities are never accessed by this refusal.
+    try std.testing.expectError(error.InvalidRecursionAdmission, Execution.runWithFactories(recycler.allocator(), &.{}, &.{}, undefined, undefined, undefined, null, undefined, false, .{ .lanes = &.{}, .pool_worker_budget = 0 }));
+    var pool: @import("stwo_prover_engine").work_pool.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 2, .stack_size = 1 << 20, .backing_allocator = recycler.allocator() });
+    defer pool.deinit();
+    const lanes = [_]Execution.Lane{.{ .physical_device = 0, .pool = &pool, .factory = undefined }};
+    var existing = try budget.reserveExternal(1 << 20);
+    defer existing.deinit();
+    var stacks = try Execution.StackReservations.init(recycler.allocator(), .{ .lanes = &lanes, .pool_worker_budget = 2, .pool_stack_reservation = &existing });
+    try std.testing.expectEqual(@as(usize, 9 << 20), budget.snapshot().external_live_bytes);
+    stacks.deinit();
+    try std.testing.expectEqual(@as(usize, 1 << 20), budget.snapshot().external_live_bytes);
+}

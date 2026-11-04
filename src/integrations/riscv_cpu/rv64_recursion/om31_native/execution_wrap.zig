@@ -140,7 +140,7 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
 /// supplied lane must own a distinct physical device and an atomic GPU factory.
 /// All graph/proof allocations share this identifiable synchronized budget.
 pub fn runWithFactories(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir, allow_resume: bool, options: ParallelOptions) !Report {
-    const budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.fromAllocator(a) orelse return error.SharedRecursionBudgetRequired;
+    const budget = try @import("../../rv64_recursion_budget.zig").require(SharedBudget, a);
     try validateLanes(options);
     _ = budget.retain();
     defer budget.destroy();
@@ -155,7 +155,7 @@ pub const StackReservations = struct {
     coordinators: SharedBudget.ExternalReservation,
     helpers: SharedBudget.ExternalReservation,
     pub fn init(a: std.mem.Allocator, options: ParallelOptions) !StackReservations {
-        const budget = SharedBudget.fromAllocator(a) orelse return error.SharedRecursionBudgetRequired;
+        const budget = try @import("../../rv64_recursion_budget.zig").require(SharedBudget, a);
         var helper_bytes: usize = 0;
         for (options.lanes) |lane| {
             const bytes = try std.math.mul(usize, lane.pool.workerCount() - 1, lane.pool.stackSize());
@@ -164,7 +164,7 @@ pub const StackReservations = struct {
         var helpers = SharedBudget.ExternalReservation.empty();
         errdefer helpers.deinit();
         if (options.pool_stack_reservation) |existing| {
-            try existing.requireOwner(a, existing.bytes);
+            try existing.requireOwner(budget.allocator(), existing.bytes);
             if (existing.bytes < helper_bytes) return error.InsufficientRecursionPoolStackReservation;
         } else helpers = try budget.reserveExternal(helper_bytes);
         const coordinators = try budget.reserveExternal(try std.math.mul(usize, options.lanes.len, 8 << 20));
@@ -475,7 +475,7 @@ const ParallelExecution = struct {
 fn runPreparedParallel(input: PreparedExecution, options: ParallelOptions) !Report {
     const a = input.allocator;
     const plan = try Dag.Plan.init(input.inventory.workers.len);
-    const budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.fromAllocator(a).?;
+    const budget = try @import("../../rv64_recursion_budget.zig").require(SharedBudget, a);
     const stack_bytes = 8 << 20;
     const nodes = try a.alloc(Node, plan.count);
     defer a.free(nodes);

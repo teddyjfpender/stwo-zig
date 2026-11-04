@@ -62,3 +62,25 @@ telemetry before enabling a driver option. The measured recursive trace is
 roughly 48.7 billion MAIN+INTER cells across 33 nodes versus roughly 4.56 billion
 native cells. Multi-device scheduling addresses this measured workload; it does
 not remove that representation amplification.
+
+### Production recycler-backed shared budget
+
+The explicit ready-lane route admits a direct `SharedHostBudget` allocator or
+exactly one `LargeBlockRecycler` whose immediate child is that direct budget.
+It checks both allocator vtable identities; arbitrary wrappers, nested recyclers
+and unbudgeted children remain rejected. The general shared-budget identity
+check stays direct-only, so unrelated callers gain no new ancestry inference.
+
+Graph and proof allocations continue through the supplied recycler. Its rounded
+live capacity, idle cache and bookkeeping remain charged to the same synchronized
+budget, together with explicit pool/coordinator stack reservations. The ready
+run retains the shared owner until every lane joins. Its caller must keep the
+recycler alive through that join, as with every borrowed allocator; retaining
+the backing owner does not transfer the caller-owned recycler itself.
+
+Borrowed stack reservations validate against the resolved direct owner and are
+never charged twice. Tests exercise cached capacity at the external-reservation
+boundary, cache reuse without new backing growth, refusal of fresh growth, and
+rejection of reservations from a different owner. This admission bridge changes
+no proof, default lane count or hardware qualification gate. One-lane physical
+proof parity remains required before multi-device production enablement.
