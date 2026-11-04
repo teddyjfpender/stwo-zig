@@ -996,3 +996,120 @@ test "masked sumcheck: completeness, final check, rejection" {
     const hats3 = [4]QM31{ f0, out.proof.hats[0], out.proof.hats[1], out.proof.hats[2] };
     try std.testing.expect(!vo3.final_claim.eql(out.proof.u_val.add(vo3.eps.mul(evalTermsRt(&TT, 4, hats3)))));
 }
+
+test "gkr layer prover equals generic at sizes that split eq and spawn chunks (both fold schedules)" {
+    // n >= 12 makes e_hi non-trivial (lo_bits = 11) and half > 2048 runs the
+    // multi-chunk spawn path with the fused fold; the small-size test above covers neither.
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 3);
+    defer pool.deinit();
+    defer fuse_fold = null;
+    var prng = std.Random.DefaultPrng.init(91);
+    const rnd = prng.random();
+    const R = struct {
+        fn q(r: std.Random) QM31 {
+            return QM31.fromU32Unchecked(r.uintLessThan(u32, f.P), r.uintLessThan(u32, f.P), r.uintLessThan(u32, f.P), r.uintLessThan(u32, f.P));
+        }
+    };
+    for ([_]usize{ 12, 13, 14 }) |n| for ([_]bool{ false, true }) |fuse| {
+        fuse_fold = fuse;
+        const len = @as(usize, 1) << @intCast(n);
+        const p = try a.alloc(QM31, n);
+        defer a.free(p);
+        for (p) |*x| x.* = R.q(rnd);
+        var base: [6][]QM31 = undefined;
+        for (&base) |*v| {
+            v.* = try a.alloc(QM31, len);
+            for (v.*) |*x| x.* = R.q(rnd);
+        }
+        defer for (base) |v| a.free(v);
+        const small = @min(len, 37);
+        for (small..len) |x| {
+            base[4][x] = QM31.zero();
+            base[5][x] = QM31.zero();
+        }
+        const eq = try f.eqTable(a, p, QM31.one());
+        defer a.free(eq);
+        var claim = QM31.zero();
+        for (0..len) |x| claim = claim.add(eq[x].mul(gkrH(base[0][x], base[1][x], base[2][x], base[3][x]))).add(base[4][x].mul(base[5][x]));
+        const c = try a.alloc(QM31, Hp.entries(n, 3));
+        defer a.free(c);
+        for (c) |*x| x.* = R.q(rnd);
+        const hp = Hp{ .n = n, .d = 3, .c = c };
+        var pads: [7]QM31 = undefined;
+        for (&pads) |*x| x.* = R.q(rnd);
+        var g: [7][]QM31 = undefined;
+        g[0] = try a.dupe(QM31, eq);
+        for (0..6) |j| g[j + 1] = try a.dupe(QM31, base[j]);
+        defer for (g) |v| a.free(v);
+        var t1 = Transcript.initDomain("gkr-eq");
+        var o1 = try prove(7, &TG, a, &pool, &t1, claim, g, len, .{ true, false, false, false, false, true, false }, hp, Pad7{ .p = pads });
+        defer o1.proof.deinit(a);
+        defer a.free(o1.point);
+        var s: [6][]QM31 = undefined;
+        for (0..6) |j| s[j] = try a.dupe(QM31, base[j]);
+        defer for (s) |v| a.free(v);
+        var t2 = Transcript.initDomain("gkr-eq");
+        var o2 = try proveGkrLayer(&TG, a, &pool, &t2, claim, p, .{ s[0], s[1], s[2], s[3] }, s[4], s[5], small, hp, Pad7{ .p = pads });
+        defer o2.proof.deinit(a);
+        defer a.free(o2.point);
+        try std.testing.expect(o1.proof.sigma.eql(o2.proof.sigma) and o1.proof.u_val.eql(o2.proof.u_val));
+        for (o1.proof.rounds, o2.proof.rounds) |x, y| for (x, y) |u, v| try std.testing.expect(u.eql(v));
+        for (o1.proof.hats, o2.proof.hats) |x, y| try std.testing.expect(x.eql(y));
+        try std.testing.expect(t1.draw().eql(t2.draw()));
+    };
+}
+
+test "masked sumcheck: fused and unfused fold schedules agree on odd active prefixes, multi-chunk" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 3);
+    defer pool.deinit();
+    defer fuse_fold = null;
+    const n = 14;
+    const len = 1 << n;
+    var prng = std.Random.DefaultPrng.init(5);
+    const r = prng.random();
+    const c = try a.alloc(QM31, Hp.entries(n, 3));
+    defer a.free(c);
+    for (c) |*x| x.* = QM31.fromU32Unchecked(r.uintLessThan(u32, f.P), 3, r.uintLessThan(u32, f.P), 1);
+    const hp = Hp{ .n = n, .d = 3, .c = c };
+    const pads = NoPad{ .p = .{ QM31.zero(), QM31.fromU32Unchecked(5, 0, 0, 0), QM31.fromU32Unchecked(6, 1, 0, 0), QM31.fromU32Unchecked(7, 0, 2, 0) } };
+    const public = [4]bool{ true, false, false, false };
+    for ([_]usize{ len, len / 2 + 1, 12345, 4097, 3 }) |active| {
+        var orig: [4][]QM31 = undefined;
+        for (&orig) |*o| {
+            o.* = try a.alloc(QM31, len);
+            for (o.*, 0..) |*v, i| v.* = if (i < active) QM31.fromU32Unchecked(r.uintLessThan(u32, f.P), r.uintLessThan(u32, f.P), 0, r.uintLessThan(u32, f.P)) else QM31.zero();
+        }
+        defer for (orig) |o| a.free(o);
+        var claim = QM31.zero();
+        for (0..len) |i| claim = claim.add(orig[0][i].mul(orig[1][i]).mul(orig[2][i]).sub(orig[0][i].mul(orig[3][i])));
+        var outs: [2]ProveOut = undefined;
+        var draws: [2]QM31 = undefined;
+        for ([_]bool{ false, true }, 0..) |fuse, k| {
+            fuse_fold = fuse;
+            var fac: [4][]QM31 = undefined;
+            for (&fac, orig) |*x, o| x.* = try a.dupe(QM31, o);
+            defer for (fac) |x| a.free(x);
+            var tp = Transcript.initDomain("msc-fuse");
+            outs[k] = try prove(4, &TT, a, &pool, &tp, claim, fac, active, public, hp, pads);
+            draws[k] = tp.draw();
+        }
+        defer for (&outs) |*o| {
+            o.proof.deinit(a);
+            a.free(o.point);
+        };
+        try std.testing.expect(draws[0].eql(draws[1]));
+        try std.testing.expect(outs[0].proof.u_val.eql(outs[1].proof.u_val));
+        for (outs[0].proof.rounds, outs[1].proof.rounds) |x, y| for (x, y) |u, v| try std.testing.expect(u.eql(v));
+        for (outs[0].proof.hats, outs[1].proof.hats) |x, y| try std.testing.expect(x.eql(y));
+        var tv = Transcript.initDomain("msc-fuse");
+        const vo = try verify(a, &tv, claim, n, 3, 3, outs[1].proof);
+        defer a.free(vo.point);
+        const f0 = try f.mleEval(a, orig[0], vo.point[0..n]);
+        const hats = [4]QM31{ f0, outs[1].proof.hats[0], outs[1].proof.hats[1], outs[1].proof.hats[2] };
+        try std.testing.expect(vo.final_claim.eql(outs[1].proof.u_val.add(vo.eps.mul(evalTermsRt(&TT, 4, hats)))));
+    }
+}
