@@ -1,8 +1,8 @@
 //! CPU-only diagnostics over original dependency levels; never proof authority.
 const std = @import("std");
 pub const bucket_upper_bounds = [_]usize{ 1, 4, 16, 32, 64, 128, 256, 1024, 4096, std.math.maxInt(u32) };
-pub const Potential = struct { cta_threads: usize, max_levels_per_run: usize = 256, ordinary_calls: usize = 0, fused_runs: usize = 0, fused_nonempty_levels: usize = 0, projected_level_calls: usize = 0 };
-pub const Census = struct { levels: usize, nonempty_levels: usize = 0, empty_levels: usize = 0, tasks: usize, max_width: usize = 0, bucket_counts: [bucket_upper_bounds.len]usize = @splat(0), cta128: Potential, cta256: Potential };
+pub const Potential = struct { cta_threads: usize, max_levels_per_run: usize = 256, ordinary_calls: usize = 0, fused_runs: usize = 0, fused_nonempty_levels: usize = 0, projected_level_calls: usize = 0, fused_tasks: usize = 0 };
+pub const Census = struct { levels: usize, nonempty_levels: usize = 0, empty_levels: usize = 0, tasks: usize, max_width: usize = 0, bucket_counts: [bucket_upper_bounds.len]usize = @splat(0), bucket_task_counts: [bucket_upper_bounds.len]usize = @splat(0), cta128: Potential, cta256: Potential };
 fn potential(ends: []const usize, width_limit: usize) Potential {
     var p = Potential{ .cta_threads = width_limit };
     var i: usize = 0;
@@ -27,6 +27,7 @@ fn potential(ends: []const usize, width_limit: usize) Potential {
         if (nonempty > 1) {
             p.fused_runs += 1;
             p.fused_nonempty_levels += nonempty;
+            p.fused_tasks += end - begin;
         } else p.ordinary_calls += 1;
         begin = end;
     }
@@ -44,6 +45,7 @@ pub fn inspect(ends: []const usize, tasks: usize) !Census {
             c.nonempty_levels += 1;
             for (bucket_upper_bounds, 0..) |upper, i| if (width <= upper) {
                 c.bucket_counts[i] += 1;
+                c.bucket_task_counts[i] += width;
                 break;
             };
         }
@@ -61,6 +63,8 @@ test "real-width census distinguishes128 and256 and preserves broad barriers" {
     try std.testing.expectEqual(@as(usize, 5), c.cta128.projected_level_calls);
     try std.testing.expectEqual(@as(usize, 1), c.cta256.projected_level_calls);
     try std.testing.expectEqual(@as(usize, 256), c.max_width);
+    try std.testing.expectEqual(@as(usize, 129), c.cta128.fused_tasks);
+    try std.testing.expectEqual(@as(usize, 516), c.cta256.fused_tasks);
 }
 test "census bounds narrow runs and rejects malformed ranges" {
     var ends: [514]usize = undefined;
