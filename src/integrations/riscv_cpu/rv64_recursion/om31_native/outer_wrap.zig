@@ -433,6 +433,30 @@ pub fn prepareHost(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factor
     if (result.pp_borrowed) std.debug.print("GPU_OUTER_PP_CLASS pipelined hit=true class={x}\n", .{class.?[0..8]});
     return result;
 }
+/// M6 hint-tape (HT1) minimal hook: host prep of a fold whose class PP and
+/// class plan are both cached, from the seed tape on `Device.seed_tape` and a
+/// flags-only stub graph (no padding, no PP build, no graph walk). Returns null
+/// (caller builds the ordinary graph) on any cache miss; proof-neutral.
+pub fn prepareHostTape(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factory, class: [32]u8) !?HostPrep {
+    if (factory.precommit_fixed == null or PPCache.mode() != .on) return null;
+    const prepare = factory.prepare_host orelse return null;
+    if (Device.seed_tape == null or Device.class_hint == null) return error.MissingSeedTape;
+    const pp = PPCache.find(class) orelse return null;
+    var timer = try std.time.Timer.start();
+    var result = HostPrep{ .pp = pp, .pp_borrowed = true };
+    errdefer result.deinit(a);
+    result.authority = try Outer.Authority.prepareForDeviceProver(a, pp);
+    result.authority_ns = timer.lap();
+    result.host = prepare(factory.context, a, ctx) catch |err| switch (err) {
+        error.SeedTapeClassMiss => {
+            result.deinit(a);
+            return null;
+        },
+        else => return err,
+    };
+    result.host_plan_ns = timer.read();
+    return result;
+}
 /// Device stage output: proof material before the independent native verify.
 pub const Proved = struct {
     pp: *PP,

@@ -13,6 +13,7 @@ const Span = enum { seed, levels };
 const Recorder = Events.RecorderFor(Span);
 const Pack = @import("outer_assignment_pack.zig");
 const Runs = @import("assignment_runs.zig");
+const Dev = @import("stwo_circuit_cpu_integration").om31.device_prove;
 pub const Task = Pack.Task;
 pub const Seed = extern struct { out: u32, value: [4]u32 };
 pub const Job = extern struct { values: [*]u32, records: [*]const u32, indices: ?[*]const u32, status: *u32, value_count: u32, record_count: u32, index_count: u32, first: u32, count: u32, reserved: u32 = 0 };
@@ -37,7 +38,11 @@ pub fn requireProductionCapabilities(library: *std.DynLib) !void {
 /// STWO_RV64_OUTER_PLAN_CLASS_CACHE=0 off, =check rebuild+compare, default on.
 pub const ClassCache = struct {
     pub const Mode = enum { off, on, check };
-    const Template = struct { key: [32]u8, n_vars: u32, n_constants: usize, n_origins: usize, seed_vars: []u32, tasks: []Task, indices: []u32, level_ends: []usize, identity: [32]u8, bytes: usize, persisted: bool = false, capability_checked: bool = true, rejected: bool = false };
+    /// `constants` are the values of the class's interned constants, in seed
+    /// order (the first `n_constants` seeds). A v2 fold's constants are class
+    /// data; every full-graph hit re-checks them and a disagreement clears
+    /// `constants_stable`, which disables the seed tape (HT1) for that class.
+    const Template = struct { key: [32]u8, n_vars: u32, n_constants: usize, n_origins: usize, seed_vars: []u32, constants: [][4]u32, tasks: []Task, indices: []u32, level_ends: []usize, identity: [32]u8, bytes: usize, persisted: bool = false, capability_checked: bool = true, rejected: bool = false, constants_stable: bool = true };
     const gpa = std.heap.smp_allocator;
     var mutex: std.Thread.Mutex = .{};
     var entries: std.ArrayListUnmanaged(*Template) = .empty;
@@ -45,6 +50,9 @@ pub const ClassCache = struct {
     pub var hits: usize = 0;
     pub var misses: usize = 0;
     pub var checked: usize = 0;
+    /// M6 hint-tape: fold plans built from a seed tape (no verifier graph).
+    pub var tape_hits: usize = 0;
+    pub var tape_refusals: usize = 0;
     pub fn mode() Mode {
         const value = std.posix.getenv("STWO_RV64_OUTER_PLAN_CLASS_CACHE") orelse return .on;
         if (std.mem.eql(u8, value, "0")) return .off;
@@ -84,7 +92,9 @@ pub const ClassCache = struct {
     /// proof bytes cannot depend on the store (an equal plan is the equal
     /// assignment; the receiver never reads it).
     pub const Store = struct {
-        const MAGIC = "RV64CLS1";
+        /// v2 (M6 hint-tape) appends the class constant values after the seed
+        /// variables; a v1 file is a logged miss and is rewritten as v2.
+        const MAGIC = "RV64CLS2";
         const HEADER = 8 + 4 + 4 + 32 + 32 + 32 + 4 + 4 + 8 * 6;
         var code: ?[32]u8 = null;
         var code_mutex: std.Thread.Mutex = .{};
@@ -144,6 +154,7 @@ pub const ClassCache = struct {
         }
         fn destroy(t: *Template) void {
             gpa.free(t.seed_vars);
+            gpa.free(t.constants);
             gpa.free(t.tasks);
             gpa.free(t.indices);
             gpa.free(t.level_ends);
@@ -155,7 +166,7 @@ pub const ClassCache = struct {
             defer file.close();
             var header: [HEADER]u8 = undefined;
             if (try file.readAll(&header) != HEADER) return error.ClassStoreTruncated;
-            if (!std.mem.eql(u8, header[0..8], MAGIC) or std.mem.readInt(u32, header[8..12], .little) != 1) return error.ClassStoreFormat;
+            if (!std.mem.eql(u8, header[0..8], MAGIC) or std.mem.readInt(u32, header[8..12], .little) != 2) return error.ClassStoreFormat;
             if (!std.mem.eql(u8, header[16..48], &key)) return error.ClassStoreKey;
             const own = try codeIdentity();
             if (!std.mem.eql(u8, header[48..80], &own)) return error.ClassStoreCodeIdentity;
@@ -171,21 +182,24 @@ pub const ClassCache = struct {
             errdefer gpa.destroy(t);
             const seed_vars = try gpa.alloc(u32, @intCast(f[2]));
             errdefer gpa.free(seed_vars);
+            if (n_constants > seed_vars.len) return error.ClassStoreFormat;
+            const constants = try gpa.alloc([4]u32, n_constants);
+            errdefer gpa.free(constants);
             const tasks = try gpa.alloc(Task, @intCast(f[3]));
             errdefer gpa.free(tasks);
             const indices = try gpa.alloc(u32, @intCast(f[4]));
             errdefer gpa.free(indices);
             const level_ends = try gpa.alloc(usize, @intCast(f[5]));
             errdefer gpa.free(level_ends);
-            inline for (.{ std.mem.sliceAsBytes(seed_vars), std.mem.sliceAsBytes(tasks), std.mem.sliceAsBytes(indices), std.mem.sliceAsBytes(level_ends) }) |bytes| {
+            inline for (.{ std.mem.sliceAsBytes(seed_vars), std.mem.sliceAsBytes(constants), std.mem.sliceAsBytes(tasks), std.mem.sliceAsBytes(indices), std.mem.sliceAsBytes(level_ends) }) |bytes| {
                 if (try file.readAll(bytes) != bytes.len) return error.ClassStoreTruncated;
             }
             var extra: [1]u8 = undefined;
             if (try file.read(&extra) != 0) return error.ClassStoreFormat;
             const recomputed = try @import("schedule_identity.zig").digest(gpa, .{ std.mem.sliceAsBytes(tasks), std.mem.sliceAsBytes(indices), std.mem.sliceAsBytes(level_ends) });
             if (!std.mem.eql(u8, &recomputed, &identity)) return error.ClassStoreIdentity;
-            const bytes = tasks.len * @sizeOf(Task) + indices.len * 4 + level_ends.len * @sizeOf(usize) + seed_vars.len * 4;
-            t.* = .{ .key = key, .n_vars = n_vars, .n_constants = n_constants, .n_origins = n_origins, .seed_vars = seed_vars, .tasks = tasks, .indices = indices, .level_ends = level_ends, .identity = identity, .bytes = bytes, .persisted = true, .capability_checked = false };
+            const bytes = tasks.len * @sizeOf(Task) + indices.len * 4 + level_ends.len * @sizeOf(usize) + seed_vars.len * 4 + constants.len * 16;
+            t.* = .{ .key = key, .n_vars = n_vars, .n_constants = n_constants, .n_origins = n_origins, .seed_vars = seed_vars, .constants = constants, .tasks = tasks, .indices = indices, .level_ends = level_ends, .identity = identity, .bytes = bytes, .persisted = true, .capability_checked = false };
             return t;
         }
         /// Service boot: loads every class template in the store (in parallel,
@@ -255,7 +269,7 @@ pub const ClassCache = struct {
                     defer file.close();
                     var header = std.mem.zeroes([HEADER]u8);
                     @memcpy(header[0..8], MAGIC);
-                    std.mem.writeInt(u32, header[8..12], 1, .little);
+                    std.mem.writeInt(u32, header[8..12], 2, .little);
                     @memcpy(header[16..48], &t.key);
                     @memcpy(header[48..80], &own);
                     @memcpy(header[80..112], &t.identity);
@@ -264,6 +278,7 @@ pub const ClassCache = struct {
                     for (f, 0..) |v, i| std.mem.writeInt(u64, header[120 + 8 * i ..][0..8], v, .little);
                     try file.writeAll(&header);
                     try file.writeAll(std.mem.sliceAsBytes(t.seed_vars));
+                    try file.writeAll(std.mem.sliceAsBytes(t.constants));
                     try file.writeAll(std.mem.sliceAsBytes(t.tasks));
                     try file.writeAll(std.mem.sliceAsBytes(t.indices));
                     try file.writeAll(std.mem.sliceAsBytes(t.level_ends));
@@ -302,7 +317,9 @@ pub const ClassCache = struct {
         insertImpl(key, p, ctx) catch |err| std.debug.print("GPU_OUTER_PLAN_CLASS insert_error={s}\n", .{@errorName(err)});
     }
     fn insertImpl(key: [32]u8, p: *const Prepared, ctx: *const Circuit.builder.Context(Q)) !void {
-        const bytes = p.tasks.len * @sizeOf(Task) + p.indices.len * 4 + p.plan.level_ends.len * @sizeOf(usize) + p.seeds.len * 4;
+        const n_constants = ctx.constants.count();
+        if (n_constants > p.seeds.len) return error.PlanClassSeedLayout;
+        const bytes = p.tasks.len * @sizeOf(Task) + p.indices.len * 4 + p.plan.level_ends.len * @sizeOf(usize) + p.seeds.len * 4 + n_constants * 16;
         mutex.lock();
         defer mutex.unlock();
         for (entries.items) |t| if (std.mem.eql(u8, &t.key, &key)) return;
@@ -312,13 +329,16 @@ pub const ClassCache = struct {
         const seed_vars = try gpa.alloc(u32, p.seeds.len);
         errdefer gpa.free(seed_vars);
         for (seed_vars, p.seeds) |*out, seed| out.* = seed.out;
+        const constants = try gpa.alloc([4]u32, n_constants);
+        errdefer gpa.free(constants);
+        for (constants, p.seeds[0..n_constants]) |*out, seed| out.* = seed.value;
         const tasks = try gpa.dupe(Task, p.tasks);
         errdefer gpa.free(tasks);
         const indices = try gpa.dupe(u32, p.indices);
         errdefer gpa.free(indices);
         const level_ends = try gpa.dupe(usize, p.plan.level_ends);
         errdefer gpa.free(level_ends);
-        t.* = .{ .key = key, .n_vars = ctx.circuit.n_vars, .n_constants = ctx.constants.count(), .n_origins = originCount(ctx), .seed_vars = seed_vars, .tasks = tasks, .indices = indices, .level_ends = level_ends, .identity = p.identity, .bytes = bytes };
+        t.* = .{ .key = key, .n_vars = ctx.circuit.n_vars, .n_constants = n_constants, .n_origins = originCount(ctx), .seed_vars = seed_vars, .constants = constants, .tasks = tasks, .indices = indices, .level_ends = level_ends, .identity = p.identity, .bytes = bytes };
         try entries.append(gpa, t);
         held_bytes += bytes;
     }
@@ -341,6 +361,8 @@ pub const Prepared = struct {
     /// tasks/indices/plan.level_ends are owned by a ClassCache template.
     borrowed: bool = false,
     pub fn init(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
+        // M6 hint-tape (HT1): a seed tape replaces the graph for this class.
+        if (Dev.seed_tape) |tape| return initFromTape(a, library, tape);
         const cache_mode = ClassCache.mode();
         const hint = if (cache_mode == .off) null else @import("stwo_circuit_cpu_integration").om31.device_prove.class_hint;
         var template = if (hint) |class_key| ClassCache.find(class_key) else null;
@@ -387,8 +409,76 @@ pub const Prepared = struct {
         }
         return initFromTemplate(a, ctx, library, t);
     }
-    fn initFromTemplate(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib, t: *const ClassCache.Template) !Prepared {
+    /// HT1: every topology byte (tasks, levels, seed variables, constants)
+    /// comes from the class template; the tape supplies only the seed-origin
+    /// values, in variable order. Any template doubt is a refusal (the caller
+    /// then builds the ordinary graph), never a substitution.
+    fn initFromTape(a: std.mem.Allocator, library: *std.DynLib, tape: *Dev.SeedTape) !Prepared {
         var timer = try std.time.Timer.start();
+        const refuse = struct {
+            fn f(reason: []const u8) error{SeedTapeClassMiss} {
+                ClassCache.mutex.lock();
+                ClassCache.tape_refusals += 1;
+                ClassCache.mutex.unlock();
+                std.debug.print("GPU_OUTER_SEED_TAPE refused={s}\n", .{reason});
+                return error.SeedTapeClassMiss;
+            }
+        }.f;
+        if (ClassCache.mode() != .on) return refuse("class_cache_mode");
+        const class_key = Dev.class_hint orelse return refuse("no_class_hint");
+        const t = ClassCache.find(class_key) orelse return refuse("no_template");
+        ClassCache.mutex.lock();
+        const stable = t.constants_stable and !t.rejected;
+        const checked = t.capability_checked;
+        ClassCache.mutex.unlock();
+        if (!stable or t.constants.len != t.n_constants) return refuse("constants_unstable");
+        if (t.n_constants + tape.values.len != t.seed_vars.len) {
+            std.debug.print("GPU_OUTER_SEED_TAPE length_mismatch class={x} tape={} template_seed_origins={}\n", .{ t.key[0..8], tape.values.len, t.seed_vars.len - t.n_constants });
+            return refuse("length");
+        }
+        if (!checked) {
+            const capabilities = if (library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_capabilities")) |query| query() else 0xfff;
+            for (t.tasks) |task| if (task.kind >= 32 or capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
+            ClassCache.mutex.lock();
+            t.capability_checked = true;
+            ClassCache.mutex.unlock();
+        }
+        const seeds = try a.alloc(Seed, t.seed_vars.len);
+        errdefer a.free(seeds);
+        for (seeds[0..t.n_constants], t.seed_vars[0..t.n_constants], t.constants) |*out, variable, value| out.* = .{ .out = variable, .value = value };
+        for (seeds[t.n_constants..], t.seed_vars[t.n_constants..], tape.values) |*out, variable, value| out.* = .{ .out = variable, .value = value };
+        const seeds_ns = timer.lap();
+        const prepared = try fromTemplateSeeds(a, library, t, seeds, null);
+        tape.n_vars = t.n_vars;
+        tape.consumed = true;
+        ClassCache.mutex.lock();
+        ClassCache.tape_hits += 1;
+        ClassCache.mutex.unlock();
+        std.debug.print("GPU_OUTER_ASSIGNMENT_PLAN seed_tape=true class={x} seeds_ns={} total_ns={} seeds={} task_bytes={} levels={}\n", .{ t.key[0..8], seeds_ns, timer.read(), seeds.len, t.tasks.len * @sizeOf(Task), t.level_ends.len });
+        return prepared;
+    }
+    fn initFromTemplate(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib, t: *ClassCache.Template) !Prepared {
+        var timer = try std.time.Timer.start();
+        const seeds = try ClassCache.seedsFor(a, t, ctx);
+        errdefer a.free(seeds);
+        // HT1 premise check on every full-graph hit: the class constants are
+        // the template's. A disagreement only disables the tape for the class.
+        if (t.constants.len == t.n_constants) for (seeds[0..t.n_constants], t.constants) |seed, value| {
+            if (!std.mem.eql(u32, &seed.value, &value)) {
+                ClassCache.mutex.lock();
+                t.constants_stable = false;
+                ClassCache.mutex.unlock();
+                std.debug.print("GPU_OUTER_SEED_TAPE constants_unstable class={x} var={}\n", .{ t.key[0..8], seed.out });
+                break;
+            }
+        };
+        const seeds_ns = timer.read();
+        const prepared = try fromTemplateSeeds(a, library, t, seeds, if (ctx.trace_only) null else ctx.values().ptr);
+        std.debug.print("GPU_OUTER_ASSIGNMENT_PLAN class_cache_hit=true class={x} seeds_ns={} task_bytes={} levels={}\n", .{ t.key[0..8], seeds_ns, t.tasks.len * @sizeOf(Task), t.level_ends.len });
+        return prepared;
+    }
+    /// Takes ownership of `seeds` on success.
+    fn fromTemplateSeeds(a: std.mem.Allocator, library: *std.DynLib, t: *const ClassCache.Template, seeds: []Seed, reference: ?[*]const Q) !Prepared {
         const seed = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;
         const level = library.lookup(Launch, "stwo_circuit_assignment_level_on") orelse return error.MissingCircuitAssignmentKernel;
         const option = std.process.getEnvVarOwned(a, "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS") catch |err| switch (err) {
@@ -399,15 +489,12 @@ pub const Prepared = struct {
         const enabled = try Runs.parseOptIn(option);
         const narrow_run = library.lookup(LaunchRun, "stwo_circuit_assignment_narrow_run_on");
         if (enabled and narrow_run == null) return error.MissingCircuitAssignmentNarrowRunKernel;
-        const seeds = try ClassCache.seedsFor(a, t, ctx);
-        errdefer a.free(seeds);
         var narrow_plan: ?Runs.Plan = if (enabled) try Runs.Plan.init(a, t.level_ends, t.tasks.len) else null;
         errdefer if (narrow_plan) |*value| value.deinit();
         ClassCache.mutex.lock();
         ClassCache.hits += 1;
         ClassCache.mutex.unlock();
-        std.debug.print("GPU_OUTER_ASSIGNMENT_PLAN class_cache_hit=true class={x} seeds_ns={} task_bytes={} levels={}\n", .{ t.key[0..8], timer.read(), t.tasks.len * @sizeOf(Task), t.level_ends.len });
-        return .{ .allocator = a, .reference = if (ctx.trace_only) null else ctx.values().ptr, .count = ctx.circuit.n_vars, .plan = .{ .allocator = a, .tasks = &.{}, .seeds = &.{}, .level_ends = t.level_ends }, .tasks = t.tasks, .indices = t.indices, .seeds = seeds, .identity = t.identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = narrow_plan, .narrow_run = narrow_run, .borrowed = true };
+        return .{ .allocator = a, .reference = reference, .count = t.n_vars, .plan = .{ .allocator = a, .tasks = &.{}, .seeds = &.{}, .level_ends = t.level_ends }, .tasks = t.tasks, .indices = t.indices, .seeds = seeds, .identity = t.identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = narrow_plan, .narrow_run = narrow_run, .borrowed = true };
     }
     fn initFull(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
         const seed = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;

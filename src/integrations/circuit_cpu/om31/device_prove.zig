@@ -43,6 +43,14 @@ pub const HostPrepared = struct {
 /// calling thread is about to prove, or null. Device factories may key
 /// topology-only caches (assignment plans) by it; it never enters a proof.
 pub threadlocal var class_hint: ?[32]u8 = null;
+/// Host-only producer hint (M6 hint-tape v1): the seed-origin values of the
+/// v2 fold graph whose class is `class_hint`, in variable order, recorded from
+/// the fold's guess prologue instead of building the verifier graph. A device
+/// factory that sees it must take every topology byte (tasks, levels, seed
+/// variables, constants) from its class template and fail closed on a miss;
+/// it reports the template's variable count in `n_vars`. Never enters a proof.
+pub const SeedTape = struct { values: []const [4]u32, n_vars: u32 = 0, consumed: bool = false };
+pub threadlocal var seed_tape: ?*SeedTape = null;
 pub const Factory = struct {
     context: *anyopaque,
     /// Optional device-free host stage. Thread-safe with respect to this
