@@ -585,6 +585,17 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     defer a.free(cpu);
     const truths = try Plan.truthsWithOptions(a, &captured, .{ .v3 = request.value.execution_profile == .ethereum_services_v3, .uniform_throughput = uniform_throughput }, if (resources) |limits| limits.keccak_max_log else 18);
     defer a.free(truths);
+    // M5 canon-native (opt-in, producer geometry only): pad every declaration
+    // to its canonical class rung. The padded declarations are ordinary
+    // admitted geometries; the receiver policy is unchanged.
+    if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| if (std.mem.eql(u8, flag, "1")) {
+        const Rungs = @import("canon_native_rungs.zig");
+        const classes = try a.alloc(Plan.CanonClass, cpu.len + truths.len);
+        defer a.free(classes);
+        try Plan.canonicalCpus(&captured, cpu_layout, cpu, Rungs, classes[0..cpu.len]);
+        try Plan.canonicalTruths(truths, Rungs, classes[cpu.len..]);
+        for (classes, 0..) |c, i| std.debug.print("RV64_CANON_CLASS ordinal={d} family={s} rung={d} rungs={d}\n", .{ i, @tagName(c.family), c.rung, Rungs.R });
+    };
     if (capture_only) {
         const digest_start = timer.read();
         const digest = @import("capture_digest.zig").digest(image.identity, &captured);

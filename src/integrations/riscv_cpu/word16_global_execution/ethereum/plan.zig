@@ -658,3 +658,94 @@ test "uniform resident Keccak covers the real block without changing the default
     }
     try std.testing.expectEqual(@as(u32, 29_999), next);
 }
+
+// ---------------------------------------------------------------- M5 canonical rungs (stream canon-native)
+const Canon = @import("canon_native.zig");
+/// Head/tail ladder fitted to a canonical rung: the head takes the rung head;
+/// a tail is present only when the count overflows the head (today's
+/// admission: a present tail has rows). Null when the rung cannot hold `count`.
+fn canonLadder(count: usize, reserve: u32, head: u32, tail: u32) ?Ladder {
+    if (head == 0) return null;
+    const cap = (@as(usize, 1) << @intCast(head)) - reserve;
+    if (count <= cap) return .{ .head = head };
+    if (tail == 0) return null;
+    const rest = count - cap;
+    if (rest + reserve > (@as(usize, 1) << @intCast(tail))) return null;
+    return .{ .head = head, .tail = tail };
+}
+pub const CanonClass = struct { family: Canon.Family, rung: u32 };
+/// Pads every CPU declaration to the smallest admissible class rung of its
+/// family (presence-preserving v1 mode). Layout flags, bridges' presence and
+/// every request count are unchanged; the declaration stays an ordinary
+/// admitted geometry (validated here), so statement authority is untouched.
+pub fn canonicalCpus(captured: *const Capture, layout: CpuLayout, decls: []W.CpuDeclaration, table: anytype, classes: []CanonClass) !void {
+    if (decls.len != captured.native.items.len or classes.len != decls.len) return error.CanonRosterMismatch;
+    for (captured.native.items, decls, classes, 0..) |n, *d, *class, i| {
+        const family = Canon.Family.cpu(i, decls.len);
+        const rungs = for (table.CPU) |e| {
+            if (e.family == family) break e.rungs;
+        } else return error.CanonFamilyMissing;
+        const events = captured.advice.events[i];
+        const dword: usize = if (layout.ls_dword) @import("../services/pipeline.zig").dwordCount(events) else 0;
+        const actual = Canon.cpuVector(d.*);
+        var chosen: ?W.CpuDeclaration = null;
+        for (rungs, 0..) |rung, r| {
+            if (canonFit(d.*, actual, rung, .{ n.alu.facts.len, n.binary.facts.len, n.shift.len, events.len - dword, dword })) |padded| {
+                chosen = padded;
+                class.* = .{ .family = family, .rung = @intCast(r) };
+                break;
+            }
+        }
+        d.* = chosen orelse return error.CanonNoAdmissibleRung;
+        try d.geometry.validate();
+    }
+}
+const PAIRS = [_]struct { head: usize, tail: usize, reserve: u32 }{
+    .{ .head = 1, .tail = 2, .reserve = 0 }, // alu
+    .{ .head = 3, .tail = 4, .reserve = 0 }, // binary
+    .{ .head = 5, .tail = 6, .reserve = 0 }, // shift
+    .{ .head = 10, .tail = 11, .reserve = 1 }, // ls (core LS32 events)
+    .{ .head = 38, .tail = 39, .reserve = 1 }, // ls_dword
+};
+fn canonFit(d: W.CpuDeclaration, actual: Canon.CpuVector, rung: Canon.CpuVector, counts: [5]usize) ?W.CpuDeclaration {
+    var v = actual;
+    for (actual, rung, 0..) |a, r, c| {
+        if (a == 0) continue;
+        var paired = false;
+        for (PAIRS) |p| if (c == p.head or c == p.tail) {
+            paired = true;
+        };
+        if (paired) continue;
+        // Constants of the roster: omitted division, boundary, JUMPDEST table.
+        if (c == 8 and d.geometry.omit_empty_division) continue;
+        if (c == 12 or c == 35) {
+            if (r != a) return null;
+            continue;
+        }
+        if (r == 0 or r < a) return null;
+        v[c] = r;
+    }
+    for (PAIRS, counts) |p, count| {
+        if (actual[p.head] == 0) continue; // absent pair (ls_dword off) stays absent
+        const l = canonLadder(count, p.reserve, rung[p.head], rung[p.tail]) orelse return null;
+        v[p.head] = l.head;
+        v[p.tail] = l.tail orelse 0;
+    }
+    return Canon.applyCpuVector(d, v);
+}
+/// Raises each truth log to the smallest rung of its (family, profile word)
+/// that holds it. Call spans, first ids and the profile word are unchanged.
+pub fn canonicalTruths(truths_: []W.TruthDeclaration, table: anytype, classes: []CanonClass) !void {
+    if (classes.len != truths_.len) return error.CanonRosterMismatch;
+    for (truths_, classes) |*t, *class| {
+        const family = Canon.Family.truth(t.family);
+        const e = for (table.TRUTH) |e| {
+            if (e.family == family and e.aux == t.logs[1]) break e;
+        } else return error.CanonFamilyMissing;
+        const r = for (e.logs, 0..) |l, r| {
+            if (l >= t.logs[0]) break r;
+        } else return error.CanonNoAdmissibleRung;
+        t.logs[0] = e.logs[r];
+        class.* = .{ .family = family, .rung = @intCast(r) };
+    }
+}

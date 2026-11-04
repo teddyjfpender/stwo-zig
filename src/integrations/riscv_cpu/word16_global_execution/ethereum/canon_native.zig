@@ -22,8 +22,8 @@ pub const VERSION_NAME = "rv64-m5-native-chi-chain/v1";
 /// the v1 identity carries the 9 -> 10 bump of rv64-m7-profiles.md 2.1.
 pub const LOCAL_RELATIONS: u32 = 10;
 pub const GLOBAL_RELATIONS: u32 = 3;
-/// Class rungs per family (plan M5 kill rule: 4 when the cells-weighted tax exceeds 40 %).
-pub const RUNGS: u32 = 3;
+/// Class rungs per family: the plan M5 kill rule fired (cells-weighted strict-roster tax at R=3 is 41.6 % > 40 %).
+pub const RUNGS: u32 = 4;
 
 pub const Family = enum(u32) {
     cpu_first = 0,

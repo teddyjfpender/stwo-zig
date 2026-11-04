@@ -60,7 +60,7 @@ def proofs_of(bundle):
             comps["terminal_log"] = g["boundary_log"]
         comps.update(flatten(cpu["declaration"].get("bridges")))
         flags = tuple(sorted(k for k, v in g.items() if isinstance(v, bool) and v))
-        out.append({"family": cpu_family(i, n), "comps": comps, "flags": flags})
+        out.append({"family": cpu_family(i, n), "aux": 0, "comps": comps, "flags": flags})
     for t in bundle["truths"]:
         d = t["declaration"]
         out.append({"family": ref.TRUTH_BASE + ref.TRUTH_NAMES.index(d["family"]), "comps": {"main": d["logs"][0]}, "aux": d["logs"][1]})
@@ -98,44 +98,51 @@ def cost(vec, comps_present, widths, which, model):
     return sum(widths.of(k, which) * 2 ** vec[k] for k in keys)
 
 
-def group_rungs(proofs, r, widths, which, model):
+def group_memo(proofs, widths, which, model):
+    """Proofs sorted by today's cells; memo[(i, j)] = (padded cells, max vector) of group i..j, built incrementally."""
     vs = sorted(proofs, key=lambda p: cost(p["comps"], p["comps"].keys(), widths, which, "present"))
     n = len(vs)
+    w = {k: widths.of(k, which) for p in vs for k in p["comps"]}
+    memo = {}
+    for i in range(n):
+        m, cnt = {}, {}
+        for j in range(i, n):
+            for k, l in vs[j]["comps"].items():
+                if l > m.get(k, 0):
+                    m[k] = l
+                cnt[k] = cnt.get(k, 0) + 1
+            size = j - i + 1
+            if model == "present":
+                c = sum(w[k] * 2 ** m[k] * cnt[k] for k in m)
+            else:
+                c = size * sum(w[k] * 2 ** m[k] for k in m)
+            memo[(i, j)] = (c, dict(m))
     real = sum(cost(p["comps"], p["comps"].keys(), widths, which, "present") for p in vs)
+    return vs, memo, real
 
-    def gmax(i, j):
-        m = {}
-        for p in vs[i:j + 1]:
-            for k, l in p["comps"].items():
-                m[k] = max(m.get(k, 0), l)
-        return m
 
-    def gcost(i, j):
-        m = gmax(i, j)
-        return sum(cost(m, p["comps"].keys(), widths, which, model) for p in vs[i:j + 1]), m
+def group_rungs(prepared, r):
+    vs, memo, real = prepared
+    n = len(vs)
     inf = float("inf")
     dp = [[inf] * (r + 1) for _ in range(n + 1)]
     back = [[None] * (r + 1) for _ in range(n + 1)]
     dp[0] = [0] * (r + 1)
-    memo = {}
     for j in range(1, n + 1):
-        for i in range(1, j + 1):
-            memo[(i - 1, j - 1)] = gcost(i - 1, j - 1)
         for k in range(1, r + 1):
             for i in range(1, j + 1):
                 c = dp[i - 1][k - 1] + memo[(i - 1, j - 1)][0]
                 if c < dp[j][k]:
                     dp[j][k], back[j][k] = c, i - 1
     kk = min(range(1, min(r, n) + 1), key=lambda x: dp[n][x])
+    padded = dp[n][kk]
     groups, j = [], n
     while j > 0 and kk > 0:
         i = back[j][kk]
-        groups.append({"proofs": j - i, "rung": memo[(i, j - 1)][1]})
+        groups.append({"proofs": j - i, "rung": dict(memo[(i, j - 1)][1])})
         j, kk = i, kk - 1
     groups = groups[::-1]
-    # rungs ascending by roster cells
-    return {"real": real, "padded": dp[n][min(range(1, min(r, n) + 1), key=lambda x: dp[n][x])], "rungs": [g["rung"] for g in groups],
-            "proofs_per_rung": [g["proofs"] for g in groups]}
+    return {"real": real, "padded": padded, "rungs": [g["rung"] for g in groups], "proofs_per_rung": [g["proofs"] for g in groups]}
 
 
 def select(rungs, comps):
@@ -163,17 +170,18 @@ def main():
     for block, ps in blocks.items():
         for p in ps:
             p["block"] = block
-            fams.setdefault(p["family"], []).append(p)
+            fams.setdefault((p["family"], p["aux"]), []).append(p)
     out = {"schema": "rv64-m5-canon-rungs/v1", "label": "D (arithmetic on measured M3 bundles + exported widths)",
            "blocks": sorted(blocks), "proofs": sum(len(v) for v in blocks.values()), "families": {}, "summary": {}}
     for which in ("cells", "main"):
         for model in ("present", "roster"):
+            prepared = {fk: group_memo(ps, widths, which, model) for fk, ps in fams.items()}
             for r in (1, 2, 3, 4):
                 tot_real = tot_pad = cpu_real = cpu_pad = 0
                 dev = {b: [0, 0] for b in DEV}
                 classes = 0
-                for fam, ps in fams.items():
-                    res = group_rungs(ps, r, widths, which, model)
+                for (fam, aux), ps in sorted(fams.items()):
+                    res = group_rungs(prepared[(fam, aux)], r)
                     classes += len(res["rungs"])
                     tot_real += res["real"]
                     tot_pad += res["padded"]
@@ -186,7 +194,7 @@ def main():
                             dev[p["block"]][0] += cost(p["comps"], p["comps"].keys(), widths, which, "present")
                             dev[p["block"]][1] += cost(res["rungs"][i], p["comps"].keys(), widths, which, model)
                     if which == "cells" and model == "present":
-                        fe = out["families"].setdefault(ref.FAMILY_NAMES[fam], {})
+                        fe = out["families"].setdefault(ref.FAMILY_NAMES[fam] + ("@%d" % aux if fam >= ref.TRUTH_BASE else ""), {"family": fam, "aux": aux})
                         fe[str(r)] = {"tax": round(res["padded"] / res["real"] - 1, 4), "proofs": len(ps), "proofs_per_rung": res["proofs_per_rung"],
                                       "rungs": res["rungs"]}
                 key = f"{which}/{model}/R{r}"
@@ -207,10 +215,11 @@ def write_zig(path, out, R):
              "//! v1 canonical rung table: per family, R class rung vectors ascending (component logs, 0 = absent).",
              "const C = @import(\"canon_native.zig\");", f"pub const R: u32 = {R};",
              "pub const Entry = struct { family: C.Family, rungs: []const C.CpuVector };",
-             "pub const TruthEntry = struct { family: C.Family, logs: []const u32 };"]
+             "pub const TruthEntry = struct { family: C.Family, aux: u32, logs: []const u32 };"]
     cpu, truth = [], []
-    for name, fe in sorted(out["families"].items(), key=lambda kv: [k for k, v in ref.FAMILY_NAMES.items() if v == kv[0]][0]):
+    for key, fe in sorted(out["families"].items(), key=lambda kv: (kv[1]["family"], kv[1]["aux"])):
         rungs = fe[str(R)]["rungs"]
+        name = ref.FAMILY_NAMES[fe["family"]]
         if name.startswith("cpu"):
             vecs = []
             for v in rungs:
@@ -218,7 +227,7 @@ def write_zig(path, out, R):
                 vecs.append("        .{ " + ", ".join(map(str, vec)) + " },")
             cpu.append(f"    .{{ .family = .{name}, .rungs = &[_]C.CpuVector{{\n" + "\n".join(vecs) + "\n    } },")
         else:
-            truth.append(f"    .{{ .family = .{name}, .logs = &.{{ " + ", ".join(str(v["main"]) for v in rungs) + " } },")
+            truth.append(f"    .{{ .family = .{name}, .aux = {fe['aux']}, .logs = &.{{ " + ", ".join(str(v["main"]) for v in rungs) + " } },")
     lines.append("pub const CPU = [_]Entry{\n" + "\n".join(cpu) + "\n};")
     lines.append("pub const TRUTH = [_]TruthEntry{\n" + "\n".join(truth) + "\n};")
     Path(path).write_text("\n".join(lines) + "\n")

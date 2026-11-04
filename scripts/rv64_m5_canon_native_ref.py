@@ -24,7 +24,7 @@ import struct
 VERSION_NAME = "rv64-m5-native-chi-chain/v1"
 LOCAL_RELATIONS = 10  # production gkr_local/fractions.zig Relation (byte_pair added); rv64-m7-profiles.md sec. 2.1
 GLOBAL_RELATIONS = 3  # ram, kio, wire (separate bus sums, binding note F4)
-RUNGS = 3             # class rungs per family (kill rule: 4 if the cells-weighted tax > 40 %)
+RUNGS = 4             # class rungs per family: plan M5 kill rule fired (cells-weighted strict-roster tax 41.6 % > 40 % at R=3)
 FAMILIES_TRUTH = 12   # services/types.zig FAMILIES
 
 # family ids (u32)
