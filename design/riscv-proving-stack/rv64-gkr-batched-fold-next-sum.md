@@ -37,10 +37,20 @@ optional symbol and batched oracles; 0 disables it. Other values reject. The
 persistent-tail option cannot be enabled simultaneously. Older images retain
 the established path. No active production runtime was replaced for this work.
 
-At this checkpoint only host scheduling/ownership tests, a full production
-semantic check and offline SM120 compilation pass. The mock checks every active
-raw sum is ready before every shared draw, including newly waking base-numerator
-oracles, count 8 to count 4, terminal folding, missing capability and poisoning.
-Real native transcript/mask/artifact parity and representative performance
-remain unqualified. The existing connected GKR golden harness has an opt-in
-mode ready for that future gate; it has not run on the GPU for this candidate.
+Host scheduling/ownership tests, the full production semantic check and offline
+SM120 compilation pass. The mock checks every active raw sum is ready before
+every shared draw, including newly waking base-numerator oracles, count 8 to
+count 4, terminal folding, missing capability and poisoning.
+
+The optional numerical route subsequently passed its one guarded GPU invocation
+on a 5090: nine native GKR goldens, nine GKR poison cases, eleven binding poison
+cases, and 178 metadata/witness checks. Positive route counters confirmed 578
+fused calls and 578 kernel launches across that entire tiny-fixture invocation.
+Those are not launch counts per production segment or block. Native transcript,
+mask and compact-artifact parity passed. The helper process took 3.277 seconds,
+including initialization; that is not a kernel benchmark or a speedup claim.
+
+Representative full-block qualification, new-kernel sanitizer checks and
+performance remain pending. The option remains OFF and no active production
+runtime was replaced. See the separate source-checkpoint and numerical-gate
+receipts for their precise qualification scopes.

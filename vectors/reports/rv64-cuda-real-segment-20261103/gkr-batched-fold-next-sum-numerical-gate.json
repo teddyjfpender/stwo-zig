@@ -83,5 +83,11 @@
     "No performance claim",
     "No new-kernel sanitizer qualification yet",
     "No whole-protocol security certification implied"
-  ]
+  ],
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX5090",
+    "gpu_uuid": "GPU-c3ff44b5-d5e9-24c7-3902-8cdca1d3f154",
+    "driver": "595.91.07",
+    "reported_memory_mib": 32607
+  }
 }
