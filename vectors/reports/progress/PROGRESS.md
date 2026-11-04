@@ -11,21 +11,21 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 
 | block | column | M3 baseline | best | factor | by |
 |---|---|---:|---:|---:|---|
-| 24628607 | capture_s | 3.27 | 3.05 | 1.07x | capture 2026-11-04 |
+| 24628607 | capture_s | 3.27 | 2.97 | 1.10x | platform 2026-11-04 |
 | 24628607 | native_s | 7.83 | 6.62 | 1.18x | integrate 2026-11-04 |
 | 24628607 | proof_bytes | 706424 | 706424 | 1.00x | arena 2026-11-04 |
 | 24628607 | recursion_s | 27.27 | 20.53 | 1.33x | integrate 2026-11-04 |
 | 24628607 | request_s | 51.11 | 36.30 | 1.41x | integrate 2026-11-04 |
 | 24628607 | rss_peak_gib | 25.00 | 23.33 | 1.07x | arena 2026-11-04 |
-| 24628607 | setup_s | 12.55 | 5.62 | 2.23x | integrate 2026-11-04 |
+| 24628607 | setup_s | 12.55 | 5.52 | 2.27x | platform 2026-11-04 |
 | 24628607 | verifier_s | 77.30 | 61.80 | 1.25x | integrate 2026-11-04 |
 | 26235156 | capture_s | 2.54 | 2.15 | 1.18x | integrate 2026-11-04 |
-| 26235156 | native_s | 5.16 | 4.93 | 1.05x | capture 2026-11-04 |
+| 26235156 | native_s | 5.16 | 4.85 | 1.06x | platform 2026-11-04 |
 | 26235156 | proof_bytes | 748536 | 748536 | 1.00x | arena 2026-11-04 |
-| 26235156 | recursion_s | 18.07 | 14.92 | 1.21x | integrate 2026-11-04 |
-| 26235156 | request_s | 34.28 | 26.99 | 1.27x | integrate 2026-11-04 |
+| 26235156 | recursion_s | 18.07 | 14.49 | 1.25x | platform 2026-11-04 |
+| 26235156 | request_s | 34.28 | 26.33 | 1.30x | platform 2026-11-04 |
 | 26235156 | rss_peak_gib | 22.30 | 22.22 | 1.00x | arena 2026-11-04 |
-| 26235156 | setup_s | 8.33 | 4.74 | 1.76x | integrate 2026-11-04 |
+| 26235156 | setup_s | 8.33 | 4.71 | 1.77x | platform 2026-11-04 |
 | 26235156 | verifier_s | 50.50 | 41.20 | 1.23x | integrate 2026-11-04 |
 
 ## 24628607
@@ -90,6 +90,9 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 | 2026-11-04 | M5 | platform | 2 | M | 28.65 | 2.96 | 0.15 | 5.93 | 19.30 | — | 27.5 | 31.5 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 (= M4) | yes | 06e9f64d2 | v5 stack (driver d9cfebfb): ProgramAuthority service cache: image load 306 ms (v4 same harness 489-579 ms); capture unchanged (image load overlaps execution). Load 11.8 at service start: not quiet-host quotable. |
 | 2026-11-04 | M5 | platform | 2 | M | 45.40 | 2.94 | 13.32 | 7.56 | 21.26 | — | 23.5 | 31.5 | 706 | 10587 | 223004 | 0 | 683 | 0 | rv64-m3-20261104/integrate/scale/24628607 (= M4) | — | 06e9f64d2 | FINAL v5 stack, default (host-mode) joins, one-shot under the counter shim, load 20.2 (cold setup in request; timing not quotable). vs M4 g5-counters: syncs 57,816 -> 10,587 (5.5x), pageable copies 19,613 / 71.1 GB -> 0, H2D 71.1 -> 55.1 GB staged pinned (-22%), launches 222,913 -> 223,004. |
 | 2026-11-04 | M5 | platform | 2 | M | 44.56 | 3.05 | 12.71 | 7.30 | 21.30 | — | 23.5 | 31.5 | 706 | 5414 | 223004 | 0 | 683 | 0 | rv64-m3-20261104/integrate/scale/24628607 (= M4) | — | 06e9f64d2 | FINAL v5 stack with STWO_RV64_EXEC_SYNC=device (opt-in), one-shot under the counter shim, load 14.3. syncs 57,816 -> 5,414 (10.7x; stream 0, event 5,414 = staged D2H + span-timing reads); pageable 0; request 44.56 vs 45.40 host mode (single observations, different load). |
+| 2026-11-04 | M5 | platform | 2 | M | 38.94 | 2.97 | 5.52 | 7.25 | 22.90 | — | 26.8 | 27.8 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 (= M4) | — | 8a7183d07+v6-trim | v6 (driver 81d76b54, lib a0e65e6d): composition arena allocation failure releases unborrowed immutable setup (2.06 GB) and retries. Whole-device peak 27.81 GB on both GPUs in the resident service (gate <= 28 GB; M4 31.50). Load 7.2: timing not quiet-host quotable. |
+| 2026-11-04 | M5 | platform | 2 | M | 30.14 | 3.19 | 0.25 | 6.49 | 20.01 | — | 27.6 | 27.8 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 (= M4) | yes | 8a7183d07+v6-trim | v6 (driver 81d76b54, lib a0e65e6d): composition arena allocation failure releases unborrowed immutable setup (2.06 GB) and retries. Whole-device peak 27.81 GB on both GPUs in the resident service (gate <= 28 GB; M4 31.50). Load 14.5: timing not quiet-host quotable. |
+| 2026-11-04 | M5 | platform | 2 | M | 29.68 | 2.93 | 0.15 | 6.11 | 20.16 | — | 27.6 | 27.8 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 (= M4) | yes | 8a7183d07+v6-trim | v6 (driver 81d76b54, lib a0e65e6d): composition arena allocation failure releases unborrowed immutable setup (2.06 GB) and retries. Whole-device peak 27.81 GB on both GPUs in the resident service (gate <= 28 GB; M4 31.50). Load 14.5: timing not quiet-host quotable. |
 | 2026-11-04 | M4.0 | profiles | 0 | M | — | — | — | — | — | 68.2 | — | — | — | — | — | — | — | — | — | yes | d6f7b2b5e | negative corpus v1: 35/35 runnable cases pass (34 rejected, K02 advisory metadata accepted with identical statement); verifier wall is the control case under a loaded pod (load 46-75), not a quiet timing |
 | 2026-11-04 | M4.0 | profiles | 0 | M | — | — | — | — | — | 69.3 | — | — | — | — | — | — | — | — | — | yes | d6f7b2b5e | negative corpus v2: 36/36 clean (no crashes); X06 coherent terminal-cell flip rejected (InvalidSumcheck); non-semantic rejects ['S01-drop-native-segment', 'S02-drop-leaf', 'V04-cross-block-root']; verifier wall is the control case on a loaded pod (load 74-33), not a quiet timing |
 | 2026-11-04 | M4 | resident | 2 | M | 46.22 | 4.25 | 6.89 | 7.41 | 27.47 | 70.0 | 27.9 | 33.7 | 706 | — | — | — | — | — | M3 integrate scale receipt | yes | bcd401ce4 (driver b28544a1, M3 integrate binaries) | batch service, store fresh; harness-only (store+service) |
@@ -164,6 +167,9 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 | 2026-11-04 | M5 | platform | 2 | M | 31.44 | 2.26 | 9.00 | 4.88 | 15.20 | — | 22.6 | 31.5 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 (= M4) | — | 78c3bd5d2 | v5 stack (driver d9cfebfb: + ProgramAuthority service cache, batched adoption join; lib + events.cu elapsed wait), host-mode syncs, one-shot under the call-site shim (one-shot = one request per block, so the authority cache only misses). cuStreamSynchronize 3,996, cuEventSynchronize 2,526; H2D 36.6 GB, pageable 0. |
 | 2026-11-04 | M5 | platform | 2 | M | 20.63 | 2.19 | 0.14 | 4.58 | 13.54 | — | 27.5 | 31.5 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 (= M4) | yes | 06e9f64d2 | v5 stack (driver d9cfebfb): ProgramAuthority service cache: image load 307 ms (v4 same harness 489-579 ms); capture unchanged (image load overlaps execution). Load 11.8 at service start: not quiet-host quotable. |
 | 2026-11-04 | M5 | platform | 2 | M | 19.52 | 2.20 | 0.15 | 4.23 | 12.75 | — | 27.5 | 31.5 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 (= M4) | yes | 06e9f64d2 | v5 stack (driver d9cfebfb): ProgramAuthority service cache: image load 319 ms (v4 same harness 489-579 ms); capture unchanged (image load overlaps execution). Load 11.8 at service start: not quiet-host quotable. |
+| 2026-11-04 | M5 | platform | 2 | M | 26.33 | 2.17 | 4.71 | 4.85 | 14.49 | — | 26.8 | 27.8 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 (= M4) | — | 8a7183d07+v6-trim | v6 (driver 81d76b54, lib a0e65e6d): composition arena allocation failure releases unborrowed immutable setup (2.06 GB) and retries. Whole-device peak 27.81 GB on both GPUs in the resident service (gate <= 28 GB; M4 31.50). Load 7.2: timing not quiet-host quotable. |
+| 2026-11-04 | M5 | platform | 2 | M | 21.68 | 2.37 | 0.14 | 4.92 | 14.12 | — | 27.6 | 27.8 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 (= M4) | yes | 8a7183d07+v6-trim | v6 (driver 81d76b54, lib a0e65e6d): composition arena allocation failure releases unborrowed immutable setup (2.06 GB) and retries. Whole-device peak 27.81 GB on both GPUs in the resident service (gate <= 28 GB; M4 31.50). Load 14.5: timing not quiet-host quotable. |
+| 2026-11-04 | M5 | platform | 2 | M | 19.72 | 2.18 | 0.13 | 4.54 | 12.69 | — | 27.6 | 27.8 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 (= M4) | yes | 8a7183d07+v6-trim | v6 (driver 81d76b54, lib a0e65e6d): composition arena allocation failure releases unborrowed immutable setup (2.06 GB) and retries. Whole-device peak 27.81 GB on both GPUs in the resident service (gate <= 28 GB; M4 31.50). Load 14.5: timing not quiet-host quotable. |
 | 2026-11-04 | M4.0 | profiles | 0 | M | — | — | — | — | — | 47.4 | — | — | — | — | — | — | — | — | — | yes | d6f7b2b5e | negative corpus v1: 35/35 runnable cases pass (34 rejected, K02 advisory metadata accepted with identical statement); verifier wall is the control case under a loaded pod (load 46-75), not a quiet timing |
 | 2026-11-04 | M4.0 | profiles | 0 | M | — | — | — | — | — | 46.5 | — | — | — | — | — | — | — | — | — | yes | d6f7b2b5e | negative corpus v2: 36/36 clean (no crashes); X06 coherent terminal-cell flip rejected (InvalidSumcheck); non-semantic rejects ['S01-drop-native-segment', 'S02-drop-leaf']; verifier wall is the control case on a loaded pod (load 28-74), not a quiet timing |
 | 2026-11-04 | M4 | resident | 2 | M | 34.84 | 2.81 | 5.20 | 5.47 | 21.14 | 47.4 | 27.9 | 33.7 | 749 | — | — | — | — | — | M3 integrate scale receipt | yes | bcd401ce4 (driver b28544a1, M3 integrate binaries) | batch service, store fresh; harness-only (store+service) |

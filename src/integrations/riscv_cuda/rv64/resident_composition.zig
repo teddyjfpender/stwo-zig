@@ -615,7 +615,17 @@ const Job = struct {
                 descriptors[i * 6 ..][0..6].* = .{ @truncate(staging_offsets[i]), @truncate(@as(u64, staging_offsets[i]) >> 32), @truncate(destination), @truncate(@as(u64, destination) >> 32), degree, 0 };
             }
             std.debug.print("GPU_COMPOSITION_ARENA ordinal={} role={} arena_words={} legacy_arena_words={} direct_columns={} columns={} eval_log={}\n", .{ self.scope.ordinal, id, arena_words, geometry.arena_words, direct_columns, column_count, el });
-            var arena = try context.allocate(arena_words, 0);
+            // M5 platform: under device pressure, release unborrowed immutable
+            // setup (other nodes' PP/schedules kept by a resident service) and
+            // retry once before failing. Scheduling only: misses re-upload.
+            var arena = context.allocate(arena_words, 0) catch |err| blk: {
+                if (err != error.CudaAllocationFailed) return err;
+                const cache = b.service.immutable_setup orelse return err;
+                const freed = try cache.trimUnborrowed();
+                std.debug.print("GPU_COMPOSITION_IMMUTABLE_TRIM ordinal={} role={} arena_words={} released_bytes={}\n", .{ self.scope.ordinal, id, arena_words, freed });
+                if (freed == 0) return err;
+                break :blk try context.allocate(arena_words, 0);
+            };
             defer {
                 context.join() catch {};
                 context.release(&arena) catch {};

@@ -215,6 +215,29 @@ pub const Cache = struct {
         self.adoptions += 1;
         return true;
     }
+    /// M5 platform: release every unborrowed entry (device-pressure relief for
+    /// a resident service, whose cache otherwise keeps up to `limit` bytes of
+    /// other nodes' setup). Borrowed entries are untouched; a later miss simply
+    /// uploads again. Returns the bytes released.
+    pub fn trimUnborrowed(self: *Cache) !u64 {
+        var freed: u64 = 0;
+        var i: usize = 0;
+        while (i < self.entries.items.len) {
+            if (self.entries.items[i].users != 0) {
+                i += 1;
+                continue;
+            }
+            var entry = self.entries.items[i];
+            const bytes = entry.lease.count * 4;
+            if (self.release(self.session, &entry.lease) != 0) return error.InvalidImmutableSetupLease;
+            _ = self.entries.swapRemove(i);
+            self.bytes -= bytes;
+            self.evictions += 1;
+            allocator.free(entry.columns);
+            freed += bytes;
+        }
+        return freed;
+    }
     pub fn releaseScope(self: *Cache, scope: [8]u32) !void {
         if (self.unbind(self.session, &scope) != 0) return error.ImmutableSetupUnbindFailed;
         var i: usize = 0;

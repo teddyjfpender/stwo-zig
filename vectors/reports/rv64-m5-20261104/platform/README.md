@@ -127,7 +127,7 @@ execution. The remaining ~0.3 s is ELF + input load and the input-dependent memo
 | syncs cut ≥ 5x | **met: 5.5x** default (57,816 → 10,587 on 607); 10.7x with the opt-in device joins |
 | request time measured | ABBA in the resident service on a loaded host: 607 31.19 → 29.18 s, 156 21.33 → 20.32 s (n = 4 each) |
 | arena default on, carved at service start | **met** (`GPU_ARENA_INIT` before warm boot; trace.cu bypass closed; admission no longer counts free bytes outside the carve) |
-| GPU0 peak ≤ 28 GB | **one-shot only**: 27.81 GB with a 22 GiB carve (el-2 direct −3.69 GB). In the service the 2nd 607 request needs > 22 GiB (recursion-leaf composition 11.24 GB + 11.9 GB live) |
+| GPU0 peak ≤ 28 GB | **met with `STWO_RV64_DEVICE_ARENA=22G`** (v6): 27.81 GB on both GPUs, one-shot and in the resident service (6/6 requests byte-identical, receivers accepted). Needs el-2 direct (−3.69 GB) and the v6 immutable-cache trim on composition OOM (releases ~2.06 GB of other nodes' setup). Default carve stays auto (31.5 GB) |
 | bound the 12,544 B stack kernel (−2 GB) | **not done**: `secp witness<Add>` keeps a 3,136-word row in local memory, but the next worst kernels are AOT catalogue shards (`rv64_truth_domain_0_shard_47` 11,664 B, `..._7_shard_62` 10,576 B) and `curve witness<bn254_g1_add>` 10,576 B, so fixing one kernel frees ~0.2 GB, not 2 GB |
 | cache Image.Owner / ProgramAuthority | **ProgramAuthority done** (image load 0.49-0.58 → 0.31 s); Image.Owner itself depends on the block input, so it is not cached |
 | filter class preload, persist leaf plans | **not done** (preload is service start only; leaf plans wait on canon-vk keys) |
@@ -144,3 +144,19 @@ execution. The remaining ~0.3 s is ELF + input load and the input-dependent memo
 Correction: progress rows appended for v4 (`26235156-callsites-v4-adopt-el2`, `daemon-ab-final*`) say "lib bfaf0b14" in
 their notes; the receipts' `assets.library` is authoritative: v4 ran library `c72f975b` (`bfaf0b14` is v3).
 All receivers are the unchanged M4 receiver `1af34c0b`.
+
+## v6: GPU peak ≤ 28 GB in the resident service (`daemon-v6cap22-{seed,warm}.json`)
+
+The v4 22 GiB service run failed because a resident service keeps up to the immutable-setup budget (2 GiB) of
+*other* nodes' PP/schedules alive. v6: when the composition arena allocation fails, `resident_composition` releases
+every unborrowed immutable-cache entry (`Cache.trimUnborrowed`) and retries once (scheduling only; a later miss
+re-uploads). With `STWO_RV64_DEVICE_ARENA=22G`:
+
+| run | 26235156 | 24628607 | whole-device peak | parity |
+|---|---:|---:|---:|---|
+| seed (setup cold in request) | 26.33 s | 38.94 s | 27.81 GB / 27.81 GB | identical |
+| warm | 21.68 / 19.72 s | 30.14 / 29.68 s | 27.81 GB / 27.81 GB | identical (receivers accepted) |
+
+Trims fired 1x (seed) and 2x (warm), each releasing 2.06 GB; 9 and 18 arena overruns were absorbed. The 607 warm
+requests are ~0.5-1 s above the auto-carve v5 run (29.32 / 28.65 s), single observations at load 14: the smaller
+carve leaves less room for the PCS idle cache. Recommendation for integrate: run the M5 gate with 22G.
