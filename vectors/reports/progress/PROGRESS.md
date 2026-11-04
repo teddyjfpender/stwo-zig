@@ -98,6 +98,8 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 14.4 | — | — | 706 | — | — | — | — | — | — | yes | 92cda862e | run 1: 1 OM31 proof verified (11 ms); native setup 12.66 s is the floor; derive once 52.046 s; rootverify corpus 51/51, profiles corpus v3 m5-root 40/40 |
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 14.0 | — | — | 706 | — | — | — | — | — | — | yes | 92cda862e | run 2: 1 OM31 proof verified (12 ms); native setup 12.38 s is the floor; derive once 52.046 s; rootverify corpus 51/51, profiles corpus v3 m5-root 40/40 |
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 55.4 | — | — | 706 | — | — | — | — | — | — | yes | 92cda862e | audit agrees with root-only (root digest + authority) |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 13.9 | — | — | 706 | — | — | — | — | — | — | yes | 508d339be | adversarial review: header fields bound in table_root; unpinned (table self-declared); single observation, load above quiet bar |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 13.6 | — | — | 706 | — | — | — | — | — | — | yes | 508d339be | adversarial review: header fields bound in table_root; operator pin checked, table_root_pinned=true; single observation, load above quiet bar |
 
 ## 26235156
 
@@ -176,6 +178,8 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 10.6 | — | — | 749 | — | — | — | — | — | — | yes | 92cda862e | run 1: 1 OM31 proof verified (12 ms); native setup 9.21 s is the floor; derive once 40.474 s; rootverify corpus 51/51, profiles corpus v3 m5-root 40/40 |
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 10.0 | — | — | 749 | — | — | — | — | — | — | yes | 92cda862e | run 2: 1 OM31 proof verified (12 ms); native setup 8.62 s is the floor; derive once 40.474 s; rootverify corpus 51/51, profiles corpus v3 m5-root 40/40 |
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 41.3 | — | — | 749 | — | — | — | — | — | — | yes | 92cda862e | audit agrees with root-only (root digest + authority) |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 9.5 | — | — | 706 | — | — | — | — | — | — | yes | 508d339be | adversarial review: header fields bound in table_root; unpinned (table self-declared); single observation, load above quiet bar |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 9.5 | — | — | 706 | — | — | — | — | — | — | yes | 508d339be | adversarial review: header fields bound in table_root; operator pin checked, table_root_pinned=true; single observation, load above quiet bar |
 
 ## 24626900
 
