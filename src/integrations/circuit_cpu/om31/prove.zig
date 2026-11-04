@@ -94,6 +94,27 @@ pub const Authority = struct {
         for (pp.columns, &fixed_logs) |column, *log| log.* = column.logSize();
         return .{ .allocator = a, .pp = pp, .layout = layout, .logs = logs, .fixed_logs = fixed_logs, .bound = bound };
     }
+    /// RECEIVER ONLY (stream rootverify, M5 root-only path): a verifier-only
+    /// authority rebuilt from a compact, receiver-derived verifier key
+    /// (column layout, output count, FIXED root). The layout fixes the
+    /// component row logs and FIXED column logs; the bound AIR is the pinned
+    /// bundle bound to them, exactly as in init(). The identity is RECOMPUTED
+    /// here from (root, logs, n_outputs), never taken from the key, so a key
+    /// whose recorded identity disagrees is rejected by the caller. The result
+    /// is born retired: it can verify, never prove. `stub` must outlive the
+    /// authority and carry `n_outputs` (its column values are never read).
+    pub fn initVerifier(a: std.mem.Allocator, stub: *const Preprocessed, layout: circuit.common.preprocessed.ColumnLayout, root: P.H.Hash) !Authority {
+        const bytes = try std.fs.cwd().readFileAlloc(a, Air.bundle_path, 64 << 20);
+        defer a.free(bytes);
+        var template = try parsePinnedAir(a, bytes);
+        defer template.deinit();
+        const logs = try List.circuitComponentLogSizes(&layout);
+        _ = try validateGatherMass(logs, stub.n_outputs);
+        const bound = try Air.bind(a, &template, logs, &layout);
+        var fixed_logs: [circuit.common.preprocessed.N_PREPROCESSED_COLUMNS]u32 = undefined;
+        for (layout.entries, &fixed_logs) |entry, *log| log.* = entry.log_size;
+        return .{ .allocator = a, .pp = stub, .layout = layout, .logs = logs, .fixed_logs = fixed_logs, .bound = bound, .fixed = null, .fixed_root = root, .retired = true, .identity = identityOf(root, logs, stub.n_outputs) };
+    }
     fn identityOf(root: P.H.Hash, logs: List.PerComponent(u32), n_outputs: usize) [32]u8 {
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
         hash.update(P.domain);

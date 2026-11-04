@@ -166,6 +166,8 @@ fn combine(a: std.mem.Allocator, left: Pending, right: Pending, nodes: *std.Arra
     proof.* = try Outer.wrapGraphOrLoadWithFactory(a, &graph.ctx, digest, encoded, @intCast(nodes.items.len), factory);
     std.log.info("rv64 OM31 recursion fold accepted: preprocess_ns={d} prove_ns={d} restore_ns={d} verify_ns={d}", .{ proof.timings.preprocess_ns, proof.timings.prove_ns, proof.timings.restore_ns, proof.timings.verify_ns });
     errdefer proof.deinit();
+    // rootverify derive hook (no-op unless derive-vk-tables runs).
+    @import("../root_verify.zig").recordFold(children, class_key, digest, proof.authority);
     if (!existing_only) try save(a, dir, name, proof);
     const retired_bytes = proof.retireProverData();
     if (hit) |entry| {
@@ -445,6 +447,8 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
             proof.* = try Outer.wrapGraphOrLoadWithFactory(a, graph.ctx, graph.digest, encoded, @intCast(nodes.items.len), factory);
             std.log.info("rv64 OM31 recursion leaf {d}/{d} accepted: preprocess_ns={d} prove_ns={d} restore_ns={d} verify_ns={d}", .{ ordinal + 1, n, proof.timings.preprocess_ns, proof.timings.prove_ns, proof.timings.restore_ns, proof.timings.verify_ns });
             errdefer proof.deinit();
+            // rootverify derive hook (no-op unless derive-vk-tables runs).
+            @import("../root_verify.zig").recordLeaf(ordinal, proof.authority, graph.digest);
             if (!existing_only) try save(a, dir, name, proof);
             retired_bytes += proof.retireProverData();
             const node = nodes.items.len;

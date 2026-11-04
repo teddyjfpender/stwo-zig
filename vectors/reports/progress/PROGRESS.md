@@ -92,6 +92,9 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 | 2026-11-04 | M4 | resident | 2 | M | 37.45 | 3.38 | 0.18 | 7.00 | 26.68 | — | 28.0 | 33.7 | 706 | — | — | — | — | — | M3 integrate scale receipt | — | fe2c2754e (driver d6af8aae: + class preload) | daemon, store fresh (seed) |
 | 2026-11-04 | M4 | resident | 2 | M | 35.71 | 3.15 | 0.17 | 6.52 | 25.58 | 65.7 | 27.9 | 33.7 | 706 | — | — | — | — | — | M3 integrate scale receipt | yes | fe2c2754e (driver d6af8aae: + class preload) | HEADLINE: daemon, --warm boot (service_start 13.5 s reported separately), receivers with store deleted |
 | 2026-11-04 | M4 | resident | 2 | M | 37.06 | 3.22 | 0.16 | 6.95 | 26.53 | 70.3 | 27.9 | 33.7 | 706 | — | — | — | — | — | M3 integrate scale receipt | yes | fe2c2754e (driver d6af8aae: + class preload) | HEADLINE: daemon, --warm boot (service_start 13.5 s reported separately), receivers with store deleted |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 14.6 | — | — | 706 | — | — | — | — | — | — | yes | 78c3bd5d2 | run 1: 1 OM31 proof verified (root, 11 ms); native setup 12.82 s is the floor (M5 moves it to T_nat + in-circuit admission); derive once 52.386 s; corpus 51/51 |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 14.9 | — | — | 706 | — | — | — | — | — | — | yes | 78c3bd5d2 | run 2: 1 OM31 proof verified (root, 12 ms); native setup 13.16 s is the floor (M5 moves it to T_nat + in-circuit admission); derive once 52.386 s; corpus 51/51 |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 57.8 | — | — | 706 | — | — | — | — | — | — | yes | 78c3bd5d2 | audit agrees with root-only (root digest + authority); baseline M4 receiver verify-recursion-candidate 63.738 s at load 13-25 |
 
 ## 26235156
 
@@ -164,6 +167,9 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 | 2026-11-04 | M4 | resident | 2 | M | 25.05 | 2.66 | 0.12 | 4.63 | 17.40 | — | 25.3 | 33.7 | 749 | — | — | — | — | — | M3 integrate scale receipt | — | adv-fix tree (driver 3b7cdb28) | fixed driver, --store fresh: 1st request builds+persists store |
 | 2026-11-04 | M4 | resident | 2 | M | 25.75 | 2.55 | 0.12 | 5.10 | 17.83 | 43.1 | 26.6 | 33.7 | 749 | — | — | — | — | — | M3 integrate scale receipt | yes | adv-fix tree (driver 3b7cdb28) | fixed driver, reuse+warm; one class template tampered (seed_vars[0]^=1) -> store_reject_on_use + fresh rebuild; 2 malformed/unknown spool requests rejected with ok:false, service continued |
 | 2026-11-04 | M4 | resident | 2 | M | 24.20 | 2.58 | 0.13 | 4.75 | 16.56 | — | 26.6 | 33.7 | 749 | — | — | — | — | — | M3 integrate scale receipt | — | adv-fix tree (driver 3b7cdb28) | fixed driver, reuse+warm; one class template tampered (seed_vars[0]^=1) -> store_reject_on_use + fresh rebuild; 2 malformed/unknown spool requests rejected with ok:false, service continued |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 10.1 | — | — | 749 | — | — | — | — | — | — | yes | 78c3bd5d2 | run 1: 1 OM31 proof verified (root, 12 ms); native setup 8.75 s is the floor (M5 moves it to T_nat + in-circuit admission); derive once 39.204 s; corpus 51/51 |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 10.1 | — | — | 749 | — | — | — | — | — | — | yes | 78c3bd5d2 | run 2: 1 OM31 proof verified (root, 12 ms); native setup 8.81 s is the floor (M5 moves it to T_nat + in-circuit admission); derive once 39.204 s; corpus 51/51 |
+| 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 46.0 | — | — | 749 | — | — | — | — | — | — | yes | 78c3bd5d2 | audit agrees with root-only (root digest + authority); baseline M4 receiver verify-recursion-candidate 43.241 s at load 13-25 |
 
 ## 24626900
 
