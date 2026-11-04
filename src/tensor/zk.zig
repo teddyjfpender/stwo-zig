@@ -2927,6 +2927,16 @@ fn padPartial(a: std.mem.Allocator, cells: []const i32, lead: []const QM31) ![]Q
     return buf[0..len];
 }
 
+fn parFill(pool: *f.Pool, x: []QM31, v: QM31) void {
+    const C = struct { x: []QM31, v: QM31 };
+    const c = C{ .x = x, .v = v };
+    pool.parallelFor(x.len, 1 << 16, &c, struct {
+        fn run(cc: *const C, s: usize, e: usize) void {
+            @memset(cc.x[s..e], cc.v);
+        }
+    }.run);
+}
+
 fn gkrProveRel(
     a: std.mem.Allocator,
     ar: std.mem.Allocator,
@@ -2965,8 +2975,8 @@ fn gkrProveRel(
     }
     lnum[n] = try a.alloc(QM31, L);
     lden[n] = try a.alloc(QM31, L);
-    @memset(lnum[n], QM31.zero());
-    @memset(lden[n], QM31.one());
+    parFill(pool, lnum[n], QM31.zero());
+    parFill(pool, lden[n], QM31.one());
     for (g.segs, g.seg_off) |sg, o| switch (sg.kind) {
         .key => {
             const kk_ = plan.keys[sg.idx];
@@ -3115,7 +3125,7 @@ fn gkrProveRel(
             accv = try mleI64(a, pool, xps.?.acc[plan.xkeys[rk.op].op].?, local);
         } else {
             const sh = opShift(st.ops[rk.op]);
-            accv = (try f.mleEvalI32(a, rvals[rk.op], local)).sub(qi(shiftHalf(sh))).add(qi(@as(i64, 1) << sh).mul(try f.mleEvalI32(a, witness[opY(st.ops[rk.op])], local)));
+            accv = (try f.mleEvalI32Par(a, pool, rvals[rk.op], local)).sub(qi(shiftHalf(sh))).add(qi(@as(i64, 1) << sh).mul(try f.mleEvalI32Par(a, pool, witness[opY(st.ops[rk.op])], local)));
         }
         const ahat = accv.add(try f.mleEvalI32(a, vecs1[vc.apad], &t_a));
         tr.mixFelt(ahat);

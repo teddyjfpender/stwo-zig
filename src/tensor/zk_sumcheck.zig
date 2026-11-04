@@ -525,7 +525,13 @@ pub fn verify(a: std.mem.Allocator, tr: *Transcript, claim: QM31, n: usize, deg:
 // ---------------------------------------------------------------------------
 // Specialized GKR-layer prover (eq factored out, Gruen-style).
 
-const GCtx = struct { fac: [4][]QM31, E: []const QM31, half: usize, partial: [][2]QM31, chunk: usize };
+/// One round of the GKR-layer prover over x < half. eq(p_rest, x) is split as
+/// e_hi[x >> lo_bits] * e_lo[x & (2^lo_bits - 1)] (never materialized). With
+/// `fold`, the factors still hold the previous round's 2 * (2 half) values and
+/// are folded by `rp` on the fly (in place, at x and x + half): one pass per
+/// round instead of a fold pass plus a sum pass. Field arithmetic is exact, so
+/// the sums and folded values equal the unfused eq-table kernel's.
+const GCtx = struct { fac: [4][]QM31, e_hi: []const QM31, e_lo: []const QM31, lo_bits: u6, half: usize, fold: bool, rp: QM31, partial: [][2]QM31, chunk: usize };
 
 inline fn gkrH(a0: QM31, a1: QM31, d0: QM31, d1: QM31) QM31 {
     return a0.mul(d1).add(d0.mul(a1.add(d1)));
@@ -534,29 +540,42 @@ inline fn gkrH(a0: QM31, a1: QM31, d0: QM31, d1: QM31) QM31 {
 fn gkrKernel(c: *const GCtx, s: usize, e: usize) void {
     var acc0 = QM31.zero();
     var acc2 = QM31.zero();
-    for (s..e) |x| {
-        const l0 = c.fac[0][x];
-        const l1 = c.fac[1][x];
-        const l2 = c.fac[2][x];
-        const l3 = c.fac[3][x];
-        const h0 = c.fac[0][x + c.half];
-        const h1 = c.fac[1][x + c.half];
-        const h2 = c.fac[2][x + c.half];
-        const h3 = c.fac[3][x + c.half];
-        const ex = c.E[x];
-        acc0 = acc0.add(ex.mul(gkrH(l0, l1, l2, l3)));
-        acc2 = acc2.add(ex.mul(gkrH(h0.add(h0).sub(l0), h1.add(h1).sub(l1), h2.add(h2).sub(l2), h3.add(h3).sub(l3))));
+    const mask = (@as(usize, 1) << c.lo_bits) - 1;
+    const len = 2 * c.half;
+    var x = s;
+    while (x < e) {
+        const hi = x >> c.lo_bits;
+        const bend = @min(e, (hi + 1) << c.lo_bits);
+        var in0 = QM31.zero();
+        var in2 = QM31.zero();
+        while (x < bend) : (x += 1) {
+            var l: [4]QM31 = undefined;
+            var h: [4]QM31 = undefined;
+            if (c.fold) {
+                inline for (0..4) |j| {
+                    const v = c.fac[j];
+                    const lo_ = v[x];
+                    const hi_ = v[x + c.half];
+                    l[j] = lo_.add(c.rp.mul(v[x + len].sub(lo_)));
+                    h[j] = hi_.add(c.rp.mul(v[x + c.half + len].sub(hi_)));
+                    v[x] = l[j];
+                    v[x + c.half] = h[j];
+                }
+            } else {
+                inline for (0..4) |j| {
+                    l[j] = c.fac[j][x];
+                    h[j] = c.fac[j][x + c.half];
+                }
+            }
+            const el = c.e_lo[x & mask];
+            in0 = in0.add(el.mul(gkrH(l[0], l[1], l[2], l[3])));
+            in2 = in2.add(el.mul(gkrH(h[0].add(h[0]).sub(l[0]), h[1].add(h[1]).sub(l[1]), h[2].add(h[2]).sub(l[2]), h[3].add(h[3]).sub(l[3]))));
+        }
+        const eh = c.e_hi[hi];
+        acc0 = acc0.add(eh.mul(in0));
+        acc2 = acc2.add(eh.mul(in2));
     }
     c.partial[s / c.chunk] = .{ acc0, acc2 };
-}
-
-const GFold = struct { fac: [4][]QM31, half: usize, r: QM31 };
-
-fn gkrFold(c: *const GFold, s: usize, e: usize) void {
-    inline for (0..4) |j| {
-        const v = c.fac[j];
-        for (s..e) |x| v[x] = v[x].add(c.r.mul(v[x + c.half].sub(v[x])));
-    }
 }
 
 /// Prover for the GKR layer summand
@@ -603,10 +622,16 @@ pub fn proveGkrLayer(
     const partial = try a.alloc([2]QM31, max_chunks);
     defer a.free(partial);
     const three = smallQ(3);
+    // challenge of the previous round, not yet folded into `fac` (fused into this round's pass)
+    var pending: ?QM31 = null;
     for (0..n) |round| {
         const half = len / 2;
-        const E = try f.eqTablePar(a, pool, p[round + 1 ..], QM31.one());
-        defer a.free(E);
+        const rest = p[round + 1 ..];
+        const lo_bits: usize = @min(rest.len, 11);
+        const e_hi = try f.eqTable(a, rest[0 .. rest.len - lo_bits], QM31.one());
+        defer a.free(e_hi);
+        const e_lo = try f.eqTable(a, rest[rest.len - lo_bits ..], QM31.one());
+        defer a.free(e_lo);
         var s0 = QM31.zero();
         var s2 = QM31.zero();
         {
@@ -615,7 +640,7 @@ pub fn proveGkrLayer(
             if (chunk < 2048) chunk = 2048;
             if (chunk > half) chunk = half;
             const n_chunks = (half + chunk - 1) / chunk;
-            const ctx = GCtx{ .fac = fac, .E = E, .half = half, .partial = partial, .chunk = chunk };
+            const ctx = GCtx{ .fac = fac, .e_hi = e_hi, .e_lo = e_lo, .lo_bits = @intCast(lo_bits), .half = half, .fold = pending != null, .rp = pending orelse QM31.zero(), .partial = partial, .chunk = chunk };
             if (n_chunks <= 1) {
                 gkrKernel(&ctx, 0, half);
             } else {
@@ -670,8 +695,7 @@ pub fn proveGkrLayer(
         g_claim = sc.interpolateAt(g[0 .. deg + 1], r);
         before = before.mul(r).add(hp.wEval(round, r));
         pre = pre.mul(QM31.one().sub(pi).sub(r).add(pi.mul(r).mul(smallQ(2))));
-        const fctx = GFold{ .fac = fac, .half = half, .r = r };
-        pool.parallelFor(half, 4096, &fctx, gkrFold);
+        pending = r;
         for (0..@min(small, half)) |x| {
             const eh = if (x + half < small) et[x + half] else QM31.zero();
             const qh = if (x + half < small) q[x + half] else QM31.zero();
@@ -680,6 +704,10 @@ pub fn proveGkrLayer(
         }
         small = @min(small, half);
         len = half;
+    }
+    if (pending) |r| {
+        // the last round's fold (2 -> 1)
+        inline for (0..4) |j| fac[j][0] = fac[j][0].add(r.mul(fac[j][1].sub(fac[j][0])));
     }
     const fin = [7]QM31{ pre, fac[0][0], fac[1][0], fac[2][0], fac[3][0], et[0], q[0] };
     const public = [7]bool{ true, false, false, false, false, true, false };
