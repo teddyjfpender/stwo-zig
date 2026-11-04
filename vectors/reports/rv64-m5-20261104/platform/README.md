@@ -64,3 +64,21 @@ GPUs** (gate ≤ 28 GB; M4 auto carve 31.50 GB; M4's feasible minimum was 28.88 
 rl+2 composition role). Byte-identical; 3 overruns absorbed by idle-cache eviction. **20G fails**: the recursion leaf
 composition (11.24 GB at eval_log 24) plus 11.4 GB of live leases. So the binding request is now the recursion leaf,
 not the truth role. The 3.27 GB local-memory reservation (12,544 B stack of `secp witness<Add>`) is untouched.
+
+## Request time in the resident service: ABBA A/B against the M4 binaries (v4 stack, auto carve)
+
+Same harness and config as the M4 headline (`rv64_m4_resident.py daemon`, `--warm`, store reuse, M3 scale env), run
+back to back in the order final / M4 / M4 / final, two requests per block per run. **Loaded host** (1-min load 15-34 at
+service start), so the means below are labelled [M] but are not quiet-host quotable. Every request of every run is
+byte-identical to M3/M4; the 4 fresh receivers (M4 receiver binary, store renamed away) of `daemon-ab-final-warm`
+accepted.
+
+| block | M4 control (n=4) request / recursion | v4 (n=4) request / recursion | Δ request |
+|---|---:|---:|---:|
+| 24628607 | 31.19 / 21.39 s | **29.18 / 19.49 s** | −2.0 s (−6.4%) |
+| 26235156 | 21.33 / 14.02 s | **20.32 / 13.11 s** | −1.0 s (−4.7%) |
+
+Native prove and capture are unchanged within noise (6.29 vs 6.31 s, 3.05 vs 2.97 s on 607): the gain is in recursion,
+where the host no longer blocks on ~47 k syncs and 19.6 k pageable copies per request.
+A 22 GiB carve in the resident service **failed** on the second 24628607 request (recursion-leaf composition 11.24 GB with
+11.9 GB live: the service keeps more resident state than the one-shot), so the ≤ 28 GB device gate holds only one-shot.
