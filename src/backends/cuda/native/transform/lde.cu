@@ -1,4 +1,5 @@
 #include "n2b_fused.cuh"
+#include "n2b_smem.cuh"
 #include "transform_internal.cuh"
 
 // Production schedules load and zero-extend coefficients in their first N2B
@@ -150,6 +151,29 @@ int lde_columns_on(
         reinterpret_cast<cudaStream_t>(stream_raw);
     const auto *domain_twiddles = reinterpret_cast<const M31 *>(
         twiddles + twiddle_words - evaluation_domain_size);
+    if (n2b_wide_supported(log_n) && n2b_wide_enabled()) {
+        // Two HBM passes: the strided pass loads and zero-extends the
+        // coefficients itself, then the contiguous pass finishes in place.
+        for (uint32_t base = 0; base < polynomial_count;
+             base += kMaxColumnsPerLaunch) {
+            const uint32_t remaining = polynomial_count - base;
+            const uint32_t chunk = remaining < kMaxColumnsPerLaunch
+                ? remaining
+                : kMaxColumnsPerLaunch;
+            const cudaError_t status = launch_n2b_wide<true>(
+                {reinterpret_cast<const M31 *>(coefficients) +
+                     static_cast<size_t>(base) * coefficient_column_stride_words,
+                 coefficient_column_stride_words},
+                coefficient_log_sizes + base,
+                {reinterpret_cast<M31 *>(evaluations) +
+                     static_cast<size_t>(base) * evaluation_column_stride_words,
+                 evaluation_column_stride_words},
+                log_n, chunk, include_circle, domain_twiddles, stream);
+            if (status != cudaSuccess) return static_cast<int>(status);
+            *launches_out += 2;
+        }
+        return 0;
+    }
     const bool fuse_first_interval =
         log_n >= kFirstFusedLogN && log_n <= kLastFusedLogN;
     const uint32_t blocks = static_cast<uint32_t>(

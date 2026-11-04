@@ -1,5 +1,6 @@
 #include "../common/circle_twiddle.cuh"
 #include "n2b_fused.cuh"
+#include "n2b_smem.cuh"
 #include "transform_internal.cuh"
 
 // Qualified multi-stage intervals from pinned rfft.cu drive production logs;
@@ -133,6 +134,28 @@ cudaError_t n2b_columns_on(
     cudaStream_t stream,
     bool include_circle,
     uint32_t *launches_out) {
+    if (n2b_wide_supported(log_n) && n2b_wide_enabled()) {
+        // Two HBM passes (register-blocked strided + contiguous) for log 24.
+        auto *field_columns = reinterpret_cast<M31 *>(columns);
+        const auto *domain_twiddles = reinterpret_cast<const M31 *>(
+            twiddles + twiddle_words - evaluation_domain_size);
+        for (uint32_t base = 0; base < polynomial_count;
+             base += kMaxColumnsPerLaunch) {
+            const uint32_t remaining = polynomial_count - base;
+            const uint32_t chunk = remaining < kMaxColumnsPerLaunch
+                ? remaining
+                : kMaxColumnsPerLaunch;
+            M31 *slab_base =
+                field_columns + static_cast<size_t>(base) * column_stride_words;
+            const cudaError_t status = launch_n2b_wide<false>(
+                {slab_base, column_stride_words}, nullptr,
+                {slab_base, column_stride_words}, log_n, chunk,
+                include_circle, domain_twiddles, stream);
+            if (status != cudaSuccess) return status;
+            *launches_out += 2;
+        }
+        return cudaSuccess;
+    }
     if (log_n >= kFirstFusedLogN && log_n <= kLastFusedLogN) {
         return n2b_fused_columns_from_interval_on(
             columns,

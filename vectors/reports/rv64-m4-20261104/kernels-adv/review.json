@@ -1,0 +1,178 @@
+{
+ "schema": "rv64-m4-adversarial-review/v1",
+ "stream": "kernels-adv",
+ "target_branch": "codex/rv64-m4-kernels",
+ "target_head": "bde21212d88720d92ad3e83518dcd710752be520",
+ "label": "M (one observation per run, pod load 1m 10.9-16.1); D derived",
+ "rebuild": {
+  "source": "git worktree at bde21212d synced to /workspace/m3/src/m4-kernels-adv, scripts/rv64_m3_pod.py build (catalogues-v3)",
+  "library_sha256": "13edf22030a300815c97383f342d12c3448952dad32e40653cc5972545be5bdc",
+  "driver_sha256": "23c36dbe7cd17e66df7cb9e55857b1a6aab3f57b9ea16a63a4d3db9804f9013f",
+  "receiver_sha256": "d7cf136e59d7f5b2c916e4ddfd7add94422f0b044986876d64b4d5ce8bdabffe",
+  "stack_admission": "admitted (worst 12544 B)",
+  "vs_stream_build": "library differs from the stream's c24bfda1 only in path-hashed anonymous-namespace symbol names (_GLOBAL__N__<hash>): cuobjdump -sass of the 5 per-build objects (transform n2b/lde/b2n_retained/composition_split, rv64 pcs_native) is identical after normalising those names; pod sources of both trees diff-identical. Driver/receiver differ for the same reason (build path)."
+ },
+ "proof_parity": {
+  "method": "independent: sha256 of every file under run/case/batch/trial-0/<block>/proof matched by name against every hash in vectors/reports/rv64-m3-20261104/integrate/scale/<block>.json (tools/rv64-m4-kernels-adv/proof_file_parity.py), plus the harness fingerprint",
+  "26235156": {
+   "branch": "37/37",
+   "m3_control": "37/37"
+  },
+  "24628607": {
+   "branch": "55/55",
+   "branch_nsys": "55/55",
+   "m3_control": "55/55"
+  },
+  "receiver": "fresh CPU-only receiver built from this rebuild accepted every branch run; M3 control receiver accepted every control run"
+ },
+ "timings_same_load_A_B": {
+  "note": "branch and M3 control (build/integrate binaries d6f7b2b5e, src-identical to bcd401ce4) run back to back, same env (NARROW_RUNS, GPU_CPU_REPLAY, CORE_SINGLE_STREAM)",
+  "26235156": {
+   "branch": {
+    "request_s": 31.286,
+    "capture_s": 2.439,
+    "setup_s": 8.696,
+    "native_s": 4.84,
+    "recursion_s": 15.13,
+    "verifier_s": 41.561,
+    "rss_peak_gib": 22.104,
+    "device_peak_gb": 33.651,
+    "proof_bytes": 748536,
+    "load_1m": 13.58
+   },
+   "m3_control": {
+    "request_s": 35.041,
+    "capture_s": 2.466,
+    "setup_s": 8.588,
+    "native_s": 5.297,
+    "recursion_s": 18.512,
+    "verifier_s": 41.244,
+    "rss_peak_gib": 22.254,
+    "device_peak_gb": 33.655,
+    "proof_bytes": 748536,
+    "load_1m": 15.51
+   },
+   "delta_D": {
+    "request": "-10.7%",
+    "recursion": "-18.3%"
+   },
+   "stream_claim": {
+    "request_s": 32.26,
+    "recursion_s": 15.45
+   }
+  },
+  "24628607": {
+   "branch": {
+    "request_s": 44.697,
+    "capture_s": 3.17,
+    "setup_s": 12.511,
+    "native_s": 7.514,
+    "recursion_s": 21.325,
+    "verifier_s": 61.572,
+    "rss_peak_gib": 23.368,
+    "device_peak_gb": 33.382,
+    "proof_bytes": 706424,
+    "load_1m": 10.93
+   },
+   "branch_nsys": {
+    "request_s": 44.467,
+    "recursion_s": 21.132,
+    "load_1m": 11.66
+   },
+   "m3_control": {
+    "request_s": 50.162,
+    "capture_s": 3.187,
+    "setup_s": 12.451,
+    "native_s": 7.697,
+    "recursion_s": 26.641,
+    "verifier_s": 61.713,
+    "rss_peak_gib": 23.341,
+    "device_peak_gb": 33.649,
+    "proof_bytes": 706424,
+    "load_1m": 15.21
+   },
+   "delta_D": {
+    "request": "-10.9%",
+    "recursion": "-20.0%"
+   },
+   "stream_claim": {
+    "request_s": 45.41,
+    "recursion_s": 21.86
+   }
+  },
+  "verifier": "unchanged by this branch: 61.6 vs 61.7 s (24628607) and 41.6 vs 41.2 s (26235156) same-load; the stream's 77 -> 63.5 s verifier reading is host load, not the branch"
+ },
+ "kernel_gpu_s_24628607": {
+  "method": "sum(end-start) over CUPTI_ACTIVITY_KIND_KERNEL in the nsys sqlite, both GPUs (same query applied to the stream's base and c7 timelines)",
+  "m3_base_timeline_stream": 29.909,
+  "c7_timeline_stream": 19.43,
+  "this_rebuild": 19.435,
+  "launches": 222913,
+  "families_this_rebuild": {
+   "n2b": 5.096,
+   "mixed_leaf": 3.074,
+   "b2n": 1.024,
+   "generate": 0.824,
+   "deep_aggregate": 0.25
+  },
+  "families_m3_base": {
+   "n2b": 9.153,
+   "mixed_leaf": 5.556,
+   "b2n": 1.381,
+   "generate": 1.865,
+   "deep_aggregate": 2.808
+  }
+ },
+ "differential_tests": {
+  "transform": "tools/rv64-m4-kernels-adv/xform_diff.cu built against the M3 tree (bcd401ce4) and the branch, driving the PRODUCTION extern C entries (stwo_ntt_n2b_columns_on, stwo_lde_n2b_columns_on, _before_circle_on, stwo_ntt_b2n_columns_compact_on incl. exact alias, _to_retained_on) on identical inputs: N2B logs 18,20-26 x {1,3,9} cols x stride {n, n+256}; LDE logs 19-25 x {1,5} cols x circle {0,1} with mixed coefficient logs {L-1, L-2, L-4, 3, L+2 (clamped)} and padded strides; B2N logs 20,22-26. 110/110 digests identical (tests/xm3.out vs tests/xbr.out). Closes a gap in the stream's own bench, which only compares new schedules with each other and never with coefficient log < L-1 or include_circle=0.",
+  "eager_blake": "tools/rv64-m4-kernels-adv/blake_eager.cu: 12 split plans (absorbed%16 == 0 at non-final ends, 15/16/17/31/40/48-column calls, single-word finals, lifted seeds with seed_size < size, multi-segment calls); eager chain == classic chain == single unchunked call for all 12, prefix banks poisoned (0xC3); eager final call absorbing no word is rejected (rc 1).",
+  "compute_sanitizer": {
+   "blake memcheck": "0 errors",
+   "blake initcheck (no poison)": "0 errors: eager loads read only words the previous call wrote",
+   "xform memcheck logs 21-24": "0 errors",
+   "xform initcheck logs 21-24": "0 errors",
+   "xform racecheck logs 21-24 (all wide strided variants High=8..11 and W2)": "0 hazards",
+   "digests under sanitizers": "identical to M3"
+  }
+ },
+ "static_review": {
+  "eager_blake": "pending = absorbed & 15 invariant holds through the per-word and 16-word fast paths; non-final compress of a full block with last=0 is what the unchunked hash does when the next word arrives; SoA writes 23*size words <= the 24*size-word banks (trace_stream_plan state_words=24, PrefixBanks, native_height_leaves cudaMallocAsync); seed_size equals the producer call's size in all three chains (trace.cu, pcs_pipeline.cuh, trace_commit.zig); no other consumer of those banks.",
+  "deep_aggregate_rows": "weights are canonical OM31 coordinates (deep_lines), coefficients checked < p; acc < 2^34 + 2*(p-1)^2 < 2^64 between folds; fold output < 2^34, canonical() exact; __syncthreads are block-uniform (row0 loop depends only on blockIdx); source.tree < 4 and n <= tree_words - offset validated in deep_prepare_validate.",
+  "wide_ntt": "stage<->bit mapping and twiddle indices checked per phase for High=8..11 and W2 (13 stages); tiles disjoint so in-place N2B and the addressed LDE tile are race-free; LDE rejects coefficient/evaluation overlap before the wide path; 67.6 KB dynamic smem attribute set before launch.",
+  "b2n_n2b_continue": "fixed-trip loops equal the old runtime bounds for every launch (stages 6 or 8 == 2*LogValues; other values rejected).",
+  "generate_pair_dispatch": "static_assert kSecure<=13 covers every gridDim.y; same at<Kind>(row,pair) body."
+ },
+ "findings": [
+  {
+   "severity": "low",
+   "claim": "Stream receipts carry a stale source_commit (bcd401ce4) for c1-c7 runs",
+   "evidence": "vectors/reports/rv64-m4-20261104/kernels/24628607-c7.json and 26235156-c7.json source_commit=bcd401ce4; /workspace/m3/src/m4-kernels/.m3-commit=bcd401ce4; ledger rows say 0023c93de. Provenance is recoverable from library/driver sha in assets.",
+   "fixed": false
+  },
+  {
+   "severity": "low",
+   "claim": "Ledger rows from --nsys runs report rss_peak_gib 0.041 (nsys wrapper), not the producer",
+   "evidence": "kernels.jsonl 24628607 0023c93de nsys row rss_peak_gib 0.041 vs 23.3 plain",
+   "fixed": false
+  },
+  {
+   "severity": "low",
+   "claim": "Verifier improvement 77 -> 63.5 s in the stream's notes is host load, not the branch",
+   "evidence": "same-load A/B: 61.57 (branch) vs 61.71 s (M3) on 24628607",
+   "fixed": false
+  },
+  {
+   "severity": "low",
+   "claim": "trace.cu comment above native_height_leaves still says a seed includes its pending block; with the eager entry it does not",
+   "evidence": "src/backends/cuda/native/rv64/trace.cu native_height_leaves header comment",
+   "fixed": false
+  },
+  {
+   "severity": "info",
+   "claim": "Library sha is build-path dependent (anonymous-namespace names hash the source path), so c24bfda1 cannot be reproduced bit-for-bit from another source dir",
+   "evidence": "SASS identical after normalising _GLOBAL__N__<hash>",
+   "fixed": false
+  }
+ ],
+ "verdict": "sound: no high- or medium-severity issue found; byte-identity, receiver acceptance and the kernel GPU-s / recursion / request speedups reproduce"
+}

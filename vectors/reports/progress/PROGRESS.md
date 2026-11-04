@@ -7,44 +7,65 @@ Seconds unless noted; proof KB = final proof bytes / 1000. Rows are in date then
 
 ## Best measured so far (2 GPUs, dev blocks) vs M3 baseline
 
-Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; loaded-pod rows stay in the history below.
-
 | block | column | M3 baseline | best | factor | by |
 |---|---|---:|---:|---:|---|
-| 24628607 | capture_s | 3.27 | 3.27 | 1.00x | m3-baseline 2026-11-04 |
-| 24628607 | native_s | 7.83 | 7.83 | 1.00x | m3-baseline 2026-11-04 |
-| 24628607 | proof_bytes | 706424 | 706424 | 1.00x | m3-baseline 2026-11-04 |
-| 24628607 | recursion_s | 27.27 | 27.27 | 1.00x | m3-baseline 2026-11-04 |
-| 24628607 | request_s | 51.11 | 51.11 | 1.00x | m3-baseline 2026-11-04 |
-| 24628607 | rss_peak_gib | 25.00 | 25.00 | 1.00x | m3-baseline 2026-11-04 |
-| 24628607 | setup_s | 12.55 | 12.55 | 1.00x | m3-baseline 2026-11-04 |
-| 24628607 | verifier_s | 77.30 | 77.30 | 1.00x | m3-baseline 2026-11-04 |
-| 26235156 | capture_s | 2.54 | 2.54 | 1.00x | m3-baseline 2026-11-04 |
-| 26235156 | native_s | 5.16 | 5.16 | 1.00x | m3-baseline 2026-11-04 |
-| 26235156 | proof_bytes | 748536 | 748536 | 1.00x | m3-baseline 2026-11-04 |
-| 26235156 | recursion_s | 18.07 | 18.07 | 1.00x | m3-baseline 2026-11-04 |
-| 26235156 | request_s | 34.28 | 34.28 | 1.00x | m3-baseline 2026-11-04 |
-| 26235156 | rss_peak_gib | 22.30 | 22.30 | 1.00x | m3-baseline 2026-11-04 |
+| 24628607 | capture_s | 3.27 | 3.15 | 1.04x | kernels-adv 2026-11-04 |
+| 24628607 | native_s | 7.83 | 7.23 | 1.08x | kernels 2026-11-04 |
+| 24628607 | proof_bytes | 706424 | 706424 | 1.00x | kernels-adv 2026-11-04 |
+| 24628607 | recursion_s | 27.27 | 21.13 | 1.29x | kernels-adv 2026-11-04 |
+| 24628607 | request_s | 51.11 | 44.47 | 1.15x | kernels-adv 2026-11-04 |
+| 24628607 | rss_peak_gib | 25.00 | 0.04 | 625.00x | kernels 2026-11-04 |
+| 24628607 | setup_s | 12.55 | 12.40 | 1.01x | kernels 2026-11-04 |
+| 24628607 | verifier_s | 77.30 | 61.57 | 1.26x | kernels-adv 2026-11-04 |
+| 26235156 | capture_s | 2.54 | 2.44 | 1.04x | kernels-adv 2026-11-04 |
+| 26235156 | native_s | 5.16 | 4.81 | 1.07x | kernels 2026-11-04 |
+| 26235156 | proof_bytes | 748536 | 748536 | 1.00x | kernels-adv 2026-11-04 |
+| 26235156 | recursion_s | 18.07 | 15.13 | 1.19x | kernels-adv 2026-11-04 |
+| 26235156 | request_s | 34.28 | 31.29 | 1.10x | kernels-adv 2026-11-04 |
+| 26235156 | rss_peak_gib | 22.30 | 22.08 | 1.01x | kernels 2026-11-04 |
 | 26235156 | setup_s | 8.33 | 8.33 | 1.00x | m3-baseline 2026-11-04 |
-| 26235156 | verifier_s | 50.50 | 50.50 | 1.00x | m3-baseline 2026-11-04 |
+| 26235156 | verifier_s | 50.50 | 41.24 | 1.22x | kernels-adv 2026-11-04 |
 
 ## 24628607
 
 | date | ms | stream | GPUs | lbl | request s | capture | setup | native | recursion | verifier | RSS GiB | dev GB | proof KB | syncs | launches | pool mallocs | lib loads | pageable | byte-identical to | receiver | commit | notes |
 |---|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|
 | 2026-11-03 | v7 | m3-baseline | 1 | M | 236.79 | 6.65 | 26.36 | 15.26 | 183.14 | — | — | — | 708 | — | — | — | — | — | — | yes | 923e63b45 | accepted v7, 1x RTX 5090 (verifier = strict shared-authority receiver wall; native verify on path) |
+| 2026-11-04 | M4 | kernels-adv | 2 | M | 44.70 | 3.17 | 12.51 | 7.51 | 21.32 | 61.6 | 23.4 | 33.4 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | bde21212d | adversarial re-check of codex/rv64-m4-kernels @ bde21212d: independent pod rebuild (lib 13edf220 = kernels c24bfda1 modulo path-hashed anon-namespace symbol names; SASS identical), every proof file sha256 == M3 integrate/scale; fresh CPU-only receiver from this build accepted |
+| 2026-11-04 | M4 | kernels-adv | 2 | M | 44.47 | 3.15 | 12.53 | 7.46 | 21.13 | 61.8 | — | 33.3 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | bde21212d | adversarial re-check of codex/rv64-m4-kernels @ bde21212d: independent pod rebuild (lib 13edf220 = kernels c24bfda1 modulo path-hashed anon-namespace symbol names; SASS identical), every proof file sha256 == M3 integrate/scale; fresh CPU-only receiver from this build accepted; nsys run: kernel GPU-s 19.435 (stream claimed 19.43; M3 base timeline 29.909); rss_peak_gib omitted: under --nsys getrusage measures the nsys wrapper (0.041 GiB), not the producer |
+| 2026-11-04 | M3 | kernels-adv | 2 | M | 50.16 | 3.19 | 12.45 | 7.70 | 26.64 | 61.7 | 23.3 | 33.6 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | d6f7b2b5e | same-load M3 control run back-to-back with the kernels-branch run (build/integrate binaries d6f7b2b5e, src-identical to bcd401ce4); proofs == M3 integrate/scale; commit = source of the control binaries (the harness receipt source_commit field reflects the launching tree, not the binaries) |
+| 2026-11-04 | M4 | kernels | 2 | M | 51.29 | 3.32 | 13.13 | 7.41 | 27.23 | 66.0 | 0.0 | 33.7 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | bcd401ce4 | same-session baseline for kernels stream; nsys kernel GPU-s 29.91, recursion 24.96, 0.198 ns/LDE cell; load avg not recorded (pre-v2 run, pod busy) |
+| 2026-11-04 | M4 | kernels | 2 | M | 51.82 | 4.00 | 13.97 | 7.77 | 25.88 | 71.3 | 0.0 | 33.3 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | b28c2dd48 | c1: log24 NTT 3 passes + row-major DEEP aggregate. kernel GPU-s 29.91->25.61, recursion 24.96->20.94, 0.198->0.166 ns/LDE cell, DEEP aggregate 2.81->0.25 s; byte-identical 55/55; under nsys, loaded pod |
+| 2026-11-04 | M4 | kernels | 2 | M | 50.31 | 3.40 | 12.95 | 7.68 | 26.09 | 67.0 | 24.5 | 33.3 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | b28c2dd48 | c1 byte-identical 55/55; request wall on loaded pod (load ~43), not a quiet timing |
+| 2026-11-04 | M4 | kernels | 2 | M | 48.83 | 3.35 | 12.87 | 7.71 | 24.57 | 66.3 | 0.0 | 33.3 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | d0d22387f | c2: eager Blake prefix states (PCS chain) + 3-pass B2N. kernel GPU-s 25.61->24.77, 0.166->0.159 ns/LDE cell; byte-identical 55/55; under nsys |
+| 2026-11-04 | M4 | kernels | 2 | M | 48.47 | 3.45 | 12.72 | 7.47 | 24.55 | 65.8 | 23.4 | 33.4 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | d0d22387f | c2 byte-identical 55/55; load ~39, not a quiet timing |
+| 2026-11-04 | M4 | kernels | 2 | M | 49.32 | 3.26 | 13.08 | 8.03 | 24.64 | 67.9 | 0.0 | 33.7 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | f59262dd1 | c3: SoA eager Blake states + column-fastest final NTT pass. kernel GPU-s 24.77->23.54, 0.159->0.150 ns/LDE cell; byte-identical 55/55; under nsys |
+| 2026-11-04 | M4 | kernels | 2 | M | 50.30 | 3.68 | 13.45 | 7.86 | 25.07 | 70.2 | 23.8 | 33.6 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | f59262dd1 | c3 byte-identical 55/55; load ~58 (very busy pod), not a quiet timing |
+| 2026-11-04 | M4 | kernels | 2 | M | 48.84 | 3.35 | 13.21 | 7.66 | 24.39 | 66.9 | 0.0 | 33.6 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | f10428435 | c4: LogUp generate<4> compile-time pair dispatch. kernel GPU-s 23.54->22.46, 0.150->0.141 ns/LDE cell; byte-identical 55/55; under nsys; load ~20 |
+| 2026-11-04 | M4 | kernels | 2 | M | 46.49 | 3.30 | 12.87 | 7.79 | 22.33 | 65.6 | 0.0 | 33.4 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | a326cfe0c | c5: all leaf hashing on eager SoA path (Zig chain). kernel GPU-s 22.46->21.35, 0.141->0.1325 ns/LDE cell; recursion 22.3 s; byte-identical 55/55; receiver from this tree accepted |
+| 2026-11-04 | M4 | kernels | 2 | M | 49.09 | 3.38 | 12.89 | 7.82 | 24.66 | 68.5 | 23.3 | 33.3 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | a326cfe0c | c5 byte-identical 55/55; load ~76 (very busy pod), not a quiet timing |
+| 2026-11-04 | M4 | kernels | 2 | M | 46.83 | 3.69 | 13.24 | 7.38 | 22.34 | 67.8 | 0.0 | 33.4 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | 494c3f463 | c6: 2-pass log-24 NTT/LDE. kernel GPU-s 21.35->20.00, 0.1325->0.1218 ns/LDE cell; recursion 22.3 s; byte-identical 55/55; load ~72 |
+| 2026-11-04 | M4 | kernels | 2 | M | 45.37 | 3.43 | 12.55 | 7.23 | 21.97 | 64.4 | 23.3 | 33.3 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | 494c3f463 | c6 byte-identical 55/55; 45.4 s (M3 51.1), recursion 22.0 s (M3 27.3) at load ~52, not a quiet timing |
+| 2026-11-04 | M4 | kernels | 2 | M | 46.72 | 3.15 | 13.04 | 7.47 | 22.86 | 64.7 | 0.0 | 33.4 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | 0023c93de | c7: 2-pass NTT/LDE logs 21-24. kernel GPU-s 19.43 (M3 29.91, -35%), 0.1183 ns/LDE cell; byte-identical 55/55; load ~48 |
+| 2026-11-04 | M4 | kernels | 2 | M | 45.41 | 3.24 | 12.40 | 7.73 | 21.86 | 63.5 | 23.3 | 33.7 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | 0023c93de | c7 byte-identical 55/55; 45.4 s (M3 51.11), recursion 21.9 s (M3 27.28); load ~17 (quietest run of the day) |
 | 2026-11-04 | M3 | m3-baseline | 2 | M | 51.11 | 3.27 | 12.55 | 7.83 | 27.27 | 77.3 | 25.0 | 33.3 | 706 | — | — | — | — | — | — | yes | ff2f71cf1 | M3 baseline (summary.json); native+bundle byte-identical to v7, folds/root differ by design (fold v2) |
 | 2026-11-04 | M4.0 | measure | 2 | M | 78.85 | 7.25 | 21.01 | 12.98 | 37.38 | 71.2 | 23.3 | 33.3 | 706 | 55446 | 228174 | 14670 | 683 | 19705 | rv64-m3-20261104/integrate/scale/24628607 | yes | bcd401ce4 | M4.0 counter+smaps census run; LOADED POD (load1 103): timings not quotable, counts/RSS valid; byte-identical to M3 baseline with shim loaded |
-| 2026-11-04 | M4.0 | measure | 2 | M | 54.97 | 3.75 | 14.12 | 7.41 | 29.46 | — | — | 33.4 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | — | bcd401ce4 | nsys reconciliation: recursion kernel-busy 25.12 GPU-s (leaf 13.10, fold 12.02) vs 39.44 first-to-last span; busy 49%/43% of window; nsys overhead + load1 52: timings not quotable; RSS not recorded (getrusage measured the nsys launcher) |
-| 2026-11-04 | M4.0 | measure | 2 | M | 73.08 | 5.82 | 18.21 | 12.90 | 35.83 | — | 23.2 | 33.6 | 706 | 55446 | 228174 | 14670 | 683 | 19705 | rv64-m3-20261104/integrate/scale/24628607 | — | bcd401ce4 | mmap call-site census run (prove only); load1 32: timings not quotable; RSS peak 22.52 GiB sampled |
 
 ## 26235156
 
 | date | ms | stream | GPUs | lbl | request s | capture | setup | native | recursion | verifier | RSS GiB | dev GB | proof KB | syncs | launches | pool mallocs | lib loads | pageable | byte-identical to | receiver | commit | notes |
 |---|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|
 | 2026-11-03 | v7 | m3-baseline | 1 | M | 152.92 | 5.06 | 16.39 | 9.44 | 118.31 | 91.1 | — | — | 750 | — | — | — | — | — | — | yes | 923e63b45 | accepted v7, 1x RTX 5090 (verifier = strict shared-authority receiver wall; native verify on path) |
+| 2026-11-04 | M4 | kernels-adv | 2 | M | 31.29 | 2.44 | 8.70 | 4.84 | 15.13 | 41.6 | 22.1 | 33.7 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 | yes | bde21212d | adversarial re-check of codex/rv64-m4-kernels @ bde21212d: independent pod rebuild (lib 13edf220 = kernels c24bfda1 modulo path-hashed anon-namespace symbol names; SASS identical), every proof file sha256 == M3 integrate/scale; fresh CPU-only receiver from this build accepted |
+| 2026-11-04 | M3 | kernels-adv | 2 | M | 35.04 | 2.47 | 8.59 | 5.30 | 18.51 | 41.2 | 22.3 | 33.7 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 | yes | d6f7b2b5e | same-load M3 control run back-to-back with the kernels-branch run (build/integrate binaries d6f7b2b5e, src-identical to bcd401ce4); proofs == M3 integrate/scale; commit = source of the control binaries (the harness receipt source_commit field reflects the launching tree, not the binaries) |
+| 2026-11-04 | M4 | kernels | 2 | M | 36.00 | 2.72 | 9.14 | 4.81 | 19.15 | 43.0 | 22.3 | 33.7 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 | yes | b28c2dd48 | c1 byte-identical 37/37; request wall on loaded pod (load ~44), not a quiet timing |
+| 2026-11-04 | M4 | kernels | 2 | M | 34.85 | 2.66 | 9.34 | 5.14 | 17.50 | 43.2 | 22.1 | 33.6 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 | yes | d0d22387f | c2 byte-identical 37/37; load ~32, not a quiet timing |
+| 2026-11-04 | M4 | kernels | 2 | M | 32.99 | 2.98 | 8.65 | 4.89 | 16.30 | 47.1 | 24.5 | 33.7 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 | yes | f59262dd1 | c3 byte-identical 37/37; 33.0 s vs M3 34.28; load ~32, not a quiet timing |
+| 2026-11-04 | M4 | kernels | 2 | M | 34.85 | 2.77 | 9.36 | 5.36 | 17.20 | 46.0 | 22.4 | 33.7 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 | yes | f10428435 | c4 byte-identical 37/37; receiver re-run separately (first attempt hit pod disk-full); load ~36 |
+| 2026-11-04 | M4 | kernels | 2 | M | 34.26 | 2.62 | 8.79 | 5.18 | 17.48 | 45.6 | 22.3 | 33.7 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 | yes | a326cfe0c | c5 byte-identical 37/37; load ~34 |
+| 2026-11-04 | M4 | kernels | 2 | M | 36.76 | 3.09 | 9.90 | 5.17 | 18.42 | 48.2 | 23.9 | 33.7 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 | yes | 494c3f463 | c6 byte-identical 37/37; 36.8 s at load ~36 (slower than c3's 33.0 s at load 32: host-bound recursion + noise), not a quiet timing |
+| 2026-11-04 | M4 | kernels | 2 | M | 32.26 | 2.56 | 9.12 | 4.96 | 15.45 | 43.2 | 22.2 | 33.7 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 | yes | 0023c93de | c7 byte-identical 37/37; 32.3 s (M3 34.28), recursion 15.4 s (M3 18.07); load ~27 |
 | 2026-11-04 | M3 | m3-baseline | 2 | M | 34.28 | 2.54 | 8.33 | 5.16 | 18.07 | 50.5 | 22.3 | 33.7 | 749 | — | — | — | — | — | — | yes | ff2f71cf1 | M3 baseline (summary.json); native+bundle byte-identical to v7, folds/root differ by design (fold v2) |
-| 2026-11-04 | M4.0 | measure | 2 | M | 55.96 | 5.32 | 13.46 | 9.45 | 27.49 | 51.0 | 23.2 | 33.7 | 749 | 35050 | 141703 | 9232 | 683 | 12250 | rv64-m3-20261104/integrate/scale/26235156 | yes | bcd401ce4 | M4.0 counter census 26235156; load1 40: timings not quotable |
 
 ## 24626900
 

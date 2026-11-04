@@ -6,6 +6,15 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// See n2b_fused.cuh: minimum resident CTAs for the 8-stage N2B continuation.
+#ifndef STWO_N2B_LV4_MIN_BLOCKS
+#define STWO_N2B_LV4_MIN_BLOCKS 1
+#endif
+// See launch_n2b_final: column-fastest grid order for the final warp pass.
+#ifndef STWO_N2B_FINAL_COLUMN_FASTEST
+#define STWO_N2B_FINAL_COLUMN_FASTEST 1
+#endif
+
 namespace stwo::cuda::transform {
 
 constexpr uint32_t kThreadsPerBlock = 256;
@@ -42,9 +51,11 @@ constexpr TransformSchedule kB2nSchedules[] = {
     {3, {9, 6, 6}},
     {3, {10, 6, 6}},
     {3, {7, 8, 8}},
-    {4, {6, 6, 6, 6}},
-    {4, {7, 6, 6, 6}},
-    {4, {8, 6, 6, 6}},
+    // Logs 24-26: three HBM passes instead of four through the
+    // register-resident 8-stage B2N continuation (STACK 0).
+    {3, {8, 8, 8}},
+    {3, {9, 8, 8}},
+    {3, {10, 8, 8}},
 };
 
 constexpr TransformSchedule kN2bSchedules[] = {
@@ -59,9 +70,13 @@ constexpr TransformSchedule kN2bSchedules[] = {
     {3, {6, 6, 9}},
     {3, {6, 6, 10}},
     {3, {6, 6, 11}},
-    {4, {6, 6, 6, 6}},
-    {4, {6, 6, 6, 7}},
-    {4, {6, 6, 6, 8}},
+    // Logs 24-26: three HBM passes instead of four. The 8-stage
+    // continuation is register-resident (STWO_N2B_LV4_MIN_BLOCKS=1, STACK 0
+    // in cuobjdump -res-usage); every partition of the same stages computes
+    // the identical butterfly sequence, so outputs are bit-identical.
+    {3, {8, 8, 8}},
+    {3, {8, 8, 9}},
+    {3, {8, 8, 10}},
 };
 
 constexpr bool valid_schedule(
@@ -99,17 +114,38 @@ constexpr bool selected_schedule_resource_contracts_hold() {
     // These rows replace the 8-stage continuation, whose sixteen dynamic
     // values require a local stack on the supported AOT toolchain. The
     // selected 6-stage continuation holds eight values in registers.
-    constexpr uint32_t b2n_indices[] = {2u, 3u, 8u, 9u, 11u, 12u, 13u};
+    constexpr uint32_t b2n_indices[] = {2u, 3u, 8u, 9u};
     for (uint32_t index : b2n_indices) {
         if (!schedule_tail_is_stack_free(kB2nSchedules[index], 1)) {
             return false;
         }
     }
-    constexpr uint32_t n2b_indices[] = {7u, 8u, 9u, 10u, 11u, 12u, 13u};
+    // B2N logs 24-26: 8-stage continuations, register-resident since the
+    // compile-time stage loops (cuobjdump -res-usage: b2n_continue<4> STACK 0).
+    constexpr uint32_t b2n_wide_indices[] = {11u, 12u, 13u};
+    for (uint32_t index : b2n_wide_indices) {
+        const TransformSchedule &schedule = kB2nSchedules[index];
+        for (uint32_t i = 1; i < schedule.interval_count; ++i) {
+            if (schedule.intervals[i] != 8) return false;
+        }
+    }
+    // N2B logs 20-23 keep 6-stage continuations; logs 24-26 use the
+    // register-resident 8-stage continuation (compile-time stage loops; the
+    // build's cuobjdump -res-usage must show STACK 0 for n2b_continue<4>).
+    constexpr uint32_t n2b_indices[] = {7u, 8u, 9u, 10u};
     for (uint32_t index : n2b_indices) {
         const TransformSchedule &schedule = kN2bSchedules[index];
         for (uint32_t i = 0; i + 1u < schedule.interval_count; ++i) {
             if (schedule.intervals[i] != 6) return false;
+        }
+    }
+    constexpr uint32_t n2b_wide_indices[] = {11u, 12u, 13u};
+    for (uint32_t index : n2b_wide_indices) {
+        const TransformSchedule &schedule = kN2bSchedules[index];
+        for (uint32_t i = 0; i + 1u < schedule.interval_count; ++i) {
+            if (schedule.intervals[i] != 8 ||
+                STWO_N2B_LV4_MIN_BLOCKS < 1 ||
+                STWO_N2B_LV4_MIN_BLOCKS > 2) return false;
         }
     }
     return true;

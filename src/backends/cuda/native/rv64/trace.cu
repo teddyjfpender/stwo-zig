@@ -9,6 +9,12 @@ extern "C" int stwo_blake2s_mixed_leaf_on(uint32_t, uint32_t,
 extern "C" int stwo_blake2s_mixed_seeded_on(
     uint32_t, uint32_t, const b::MixedSegment *, uint32_t, uint32_t,
     const b::ProgressiveState *, b::ProgressiveState *, b::Hash *, void *);
+// Eager prefix states (kernels stream): native_height_leaves below is a
+// self-contained chain (each seed is its own previous call's prefix), so it
+// may skip the deferred full block and halve its prefix-state HBM traffic.
+extern "C" int stwo_blake2s_mixed_seeded_eager_on(
+    uint32_t, uint32_t, const b::MixedSegment *, uint32_t, uint32_t,
+    const b::ProgressiveState *, b::ProgressiveState *, b::Hash *, void *);
 extern "C" int stwo_blake2s_layer_on(const b::Hash *, uint32_t, b::Hash *,
                                      void *);
 namespace stwo::cuda::rv64 {
@@ -124,7 +130,7 @@ static int native_height_leaves(const b::MixedSegment *segments, uint32_t count,
       status = int(cudaMallocAsync(reinterpret_cast<void **>(&next),
                                    uint64_t(size) * sizeof(*next), stream));
     if (!status)
-      status = stwo_blake2s_mixed_seeded_on(
+      status = stwo_blake2s_mixed_seeded_eager_on(
           size, end - first, segments + first, absorbed, seed_size, seed,
           next, final ? hashes : nullptr, stream);
     if (seed && !scratch) {
