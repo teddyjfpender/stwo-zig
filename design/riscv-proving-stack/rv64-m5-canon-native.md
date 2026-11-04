@@ -103,3 +103,40 @@ The global claims `c_k` are computed after chi and are NOT in the chain (binding
   class key, T_nat leaves/root/path/header, state, stmt (cpu/truth/mb), rho, chain, chi).
 
 ### 6. Rung table and tax (filled in by the cells-weighted run, see receipts under vectors/reports/rv64-m5-20261104/canon-native/)
+Cells-weighted tax [D] (`scripts/rv64_m5_canon_rungs.py`, 15 M3 bundles, 579 proofs, widths exported by the
+`canon_native_widths.zig` test = `widths-gkr-v3.json`; weight = main + interaction columns; CPU families dominate the weight,
+truth proofs are rows-weighted inside their family, so the aggregate is CPU-conservative):
+
+| model | R=2 | R=3 | R=4 | classes R3/R4 |
+|---|---:|---:|---:|---:|
+| strict roster (every rung component committed; needs the presence relaxation) | +57.1 % | **+41.6 %** | **+35.9 %** | 37 / 46 |
+| presence-preserving (v1 admissible today: absent bridges/tails stay absent) | +41.1 % | +30.0 % | +25.5 % | 37 / 46 |
+
+**Kill rule (plan M5): fired at R=3 (41.6 % > 40 %) -> v1 uses R = 4** (35.9 % strict, 25.5 % presence-preserving).
+Per family at R=4 (presence-preserving): cpu_first +2.6 %, cpu_middle +27.3 %, cpu_last +27.2 %, keccak +1.4 %, add +8.2 %,
+double +9.2 %, arith256_mod +10.6 %, the rest <= 1.7 %. Dev blocks (presence-preserving R=4, CPU cells): 26235156 +17.8 %,
+24628607 +17.4 %. Receipt: `vectors/reports/rv64-m5-20261104/canon-native/rung-tax-cells.json`. The generated table is
+`ethereum/canon_native_rungs.zig` (R=4; `rung_table_id` is computed from it).
+
+**Amendment 2026-11-04 (same v1 tag):** R = 4 (kill rule). `version_identity`, `chain[0..3]` and `chi` of the vectors file
+changed accordingly; every other vector is unchanged.
+
+### 7. Producer mode available now: `STWO_RV64_CANON_RUNGS=1` (presence-preserving, today's native protocol)
+`Plan.canonicalCpus/canonicalTruths` pad every declaration to the smallest admissible rung of its family (head/tail ladders are
+refitted so a present tail always has rows; jtab, boundary and omitted division stay constants). The padded declarations are
+ordinary admitted geometries, so today's receiver verifies them unchanged and statement authority does not move. Each class
+logs `RV64_CANON_CLASS ordinal family rung`. The chi-chain wiring into the native prover/verifier (sections 4-5) is the next
+step; until then proofs carry today's native protocol and `m5-chi-chain/v1` exists as encodings + agreement tests only.
+
+### canon-native reconciliation with CV2 (2026-11-04, same v1 tag)
+- **T_nat tree = CV2** (`rv64_recursion/vk_table.zig`, DEPTH 6, CV2 leaf/node hashing). canon-native section 3 tree
+  (`tnat-leaf`/`tnat-empty`/`merkle-node`, depth ceil(log2 n)) is **withdrawn as the T_nat tree** to keep one definition; its
+  vectors stay only as hash-agreement tests of the encodings.
+- canon-native supplies the CV2 `T_nat` leaf words `[TAG_NAT, 1, family, rung, native_profile, vk_hash[8]]`:
+  - `family` = canon-native ids (section 1: cpu_first 0, cpu_middle 1, cpu_last 2, cpu_single 3, truth 16+f, mb 32);
+  - `rung` = 0..R-1, R = 4 (ascending; the rung vectors are `ethereum/canon_native_rungs.zig`); truth rungs are keyed by
+    (family, profile word logs[1]) -> a family with two Keccak policies uses `rung = policy_slot*4 + r` (only r27 = 1770517
+    occurs in the basket, slot 0);
+  - `native_profile` = 1 for `conjectured128_b2_q108_p20_fold4` (production), 2 reserved for `d2_native_b4_q54_p20_fold4`;
+  - `vk_hash` = section 3 `vkhash = H(native-vk, [f, r, suite(8), fixed_identity(8), fixed_root(8), profile_identity(8), structure(8)])`
+    (LE u32 words of the digest). 4 CPU families x 4 + truth classes (<= 31 in the basket at R=4) fit DEPTH 6 (64 slots).
