@@ -113,10 +113,13 @@ def forge_native(field):
 
 
 def flip_artifact_byte(t):
-    e = t["native"][0]
-    art = bytearray(bytes.fromhex(e["artifact"]))
-    art[300] ^= 1
-    e["artifact"] = art.hex()
+    """One VK byte flipped in EVERY native artifact (a merged table holds
+    components the block under test never uses; flipping only one of those
+    is a not-consumed mutation, measured: RV25 v0 on 26235156)."""
+    for e in t["native"]:
+        art = bytearray(bytes.fromhex(e["artifact"]))
+        art[300] ^= 1
+        e["artifact"] = art.hex()
 
 
 def swap_native(t):
@@ -206,9 +209,9 @@ RV_CASES = [
     dict(id="RV23-producer-tree-tamper-pinned", family="table-policy", what="producer-tree table with rotated leaf VKs, re-sealed, receiver pins the derived root",
          table=coherent(lambda t: rotate_leaf_vks(t)), special="beside_proof_dir", pin="control"),
     # M6 fold-v3: the receiver-derived native VK section (schema v1, root-v2).
-    dict(id="RV24-native-artifact-flip-unsealed", family="native-table", what="one native artifact byte flipped WITHOUT re-sealing the table root",
+    dict(id="RV24-native-artifact-flip-unsealed", family="native-table", what="one VK byte flipped in every native artifact WITHOUT re-sealing the table root",
          table=flip_artifact_byte),
-    dict(id="RV25-native-artifact-flip-resealed", family="native-table", what="one native artifact byte flipped (artifact VK seal now wrong), table re-sealed",
+    dict(id="RV25-native-artifact-flip-resealed", family="native-table", what="one VK byte flipped in every native artifact (artifact VK seal now wrong), table re-sealed",
          table=coherent(flip_artifact_byte)),
     dict(id="RV26-native-section-dropped", family="native-table", expect="reject_or_same_statement",
          what="native section removed, table re-sealed, NOT pinned: every component is rebuilt from source (slow path), statement must equal the control",
