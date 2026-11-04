@@ -270,6 +270,10 @@ pub fn commit(
                 const r0 = blk * BR_;
                 const r1 = @min(c.R, r0 + BR_);
                 const nb = r1 - r0;
+                // messages C + S zero-padded to 2C (S <= C by rateOk) go through the
+                // batched dyadic-extension FFT, bit-identical to encode(C + S)
+                const ml = 2 * c.C;
+                var views: [16][]M31 = undefined;
                 for (0..nb) |bi| {
                     const i = r0 + bi;
                     const rb = buf[bi * c.E .. (bi + 1) * c.E];
@@ -279,8 +283,10 @@ pub fn commit(
                         @memcpy(rb[0..c.C], c.extra[(i - c.RD) * c.C ..][0..c.C]);
                     }
                     @memcpy(rb[c.C..][0..c.S], c.tau[i * c.S ..][0..c.S]);
-                    c.tw.encode(rb, c.C + c.S);
+                    @memset(rb[c.C + c.S .. ml], M31.zero());
+                    views[bi] = rb;
                 }
+                c.tw.encodeBatch(views[0..nb], ml);
                 for (0..c.E) |j| {
                     const dst = c.enc[j * c.R + r0 ..][0..nb];
                     for (0..nb) |bi| dst[bi] = buf[bi * c.E + j];
@@ -883,5 +889,15 @@ test "zk pcs: SIMD salted leaves and parallel levels equal scalar leafHash + has
         var i = E - 1;
         while (i >= 1) : (i -= 1) nodes[i] = pcs.hashNode(nodes[2 * i], nodes[2 * i + 1]);
         try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(nodes[1..]), std.mem.sliceAsBytes(com.tree.nodes[1..]));
+        // batched dyadic encode of the (C + S)-coefficient rows equals encode(C + S)
+        const S: usize = com.shape.slots;
+        const rb = try a.alloc(M31, E);
+        defer a.free(rb);
+        for (0..rows) |r| {
+            for (0..C) |j| rb[j] = f.fromI32(data[r * C + j]);
+            @memcpy(rb[C..][0..S], com.tau[r * S ..][0..S]);
+            tw.encode(rb, C + S);
+            for (0..E) |j| try std.testing.expect(rb[j].eql(com.enc[j * rows + r]));
+        }
     };
 }
