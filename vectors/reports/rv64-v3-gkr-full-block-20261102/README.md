@@ -1,5 +1,14 @@
 # Complete V3 native GKR block qualification
 
+Current delivery status: all requested native V3 integration gates are complete,
+including sponge, LS-D64, U8-pair CPU, throughput Keccak and cross-shard
+RAM/KIO/Wire closure. Compact decode is now qualified too; statements below
+about its rejection describe the original block-run snapshot. See the
+[current gate ledger](../../../design/riscv-proving-stack/rv64-pr308-pr309-integration-plan.md)
+and [closure qualification](../rv64-v3-closure-20261103/qualification.json).
+Truth providers retain independently verified OM31 classic proofs; integration
+does not mean every truth-local lookup has been converted to GKR.
+
 Ethereum mainnet block **24,628,607** completes through the authenticated V3
 services lane. Seven CPU GKR proofs and eleven OM31 classic truth proofs close
 one shared execution's RAM, Keccak I/O and service Wire claims. Truth-local

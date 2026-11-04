@@ -1,5 +1,24 @@
 # V3 bulk services: authenticated GKR foundation
 
+## Current status: integrated and qualified
+
+The foundation and closed-admission statements below are historical. The full
+services coordinator now admits the qualified V3 roster through
+`gkr_local/service_scope.zig`. Other truth families, sponge, LS-D64, U8-pair CPU
+and policy-aware throughput Keccak are integrated. Complete acceptance verifies
+every physical CPU/truth proof and closes RAM, Keccak I/O and Wire claims across
+the execution. Retention planning and weighted JUMPDEST accounting are included.
+See the [delivery ledger](rv64-pr308-pr309-integration-plan.md),
+[complete-block receipt](../../vectors/reports/rv64-v3-gkr-full-block-20261102/README.md)
+and [roster-specific security review](rv64-v3-bounded-security-review.md).
+
+Truth providers retain independent OM31 classic proofs; they are authenticated
+participants in the GKR execution, not unauthenticated outputs. Converting their
+internal lookups to GKR is a separate optimisation. The four unqualified classic fused layouts remain rejected. Compact decode
+is now separately qualified; see [the current profile update](rv64-v3-bounded-security-review.md#named-profiles-and-compact-decode-2026-11-02-update). Recursion and GPU qualification are separate.
+
+## Historical foundation snapshot
+
 Foundation snapshot: the nine bulk-memory/JUMPDEST components at PR308 snapshot
 `2490495dd16a35a2961cd113870a0a490ff36018`. This is a qualified component
 foundation, **not production v3 GKR admission**. `v2_scope.zig`, CPU roster
