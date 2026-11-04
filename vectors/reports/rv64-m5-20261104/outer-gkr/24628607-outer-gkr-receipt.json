@@ -1,0 +1,133 @@
+{
+ "schema": "rv64-m5-outer-gkr-receipt/v1",
+ "date": "2026-11-04",
+ "stream": "outer-gkr",
+ "milestone": "M5",
+ "block": 24628607,
+ "profile": "outer_gkr_om31_strict_v1",
+ "source_commit_built": "see git log (pod build of the synced tree, base 78c3bd5d2)",
+ "hardware": "1x RTX 5090 (pod 2x5090), CUDA 12.8 sm_120, Zig 0.15.2",
+ "loadavg_1m": {
+  "leaf_run_start": 26.99,
+  "fold_run_start": "see raw/fold.log"
+ },
+ "timing_hygiene": "GPU times are CUDA-event kernel windows on the compute lane (median of 3 after 1 warmup); host load (26-35) does not enter them. CPU walls of the receiver are single observations on a loaded pod.",
+ "gpu_bench": {
+  "leaf": {
+   "schema": "rv64-outer-gkr-gpu-bench/v1",
+   "class_id": 16,
+   "instances": 8,
+   "layers": 27,
+   "fractions": 257949696,
+   "reps": 3,
+   "tree_ms_median": 28.002,
+   "traversal_ms_median": 154.277,
+   "total_ms_median": 182.279,
+   "tree_ms": [
+    28.006,
+    28.002,
+    27.987
+   ],
+   "traversal_ms": [
+    154.129,
+    154.561,
+    154.277
+   ],
+   "kernel_calls_per_rep": 5515,
+   "device_allocated_bytes": 26933300156,
+   "device_total_bytes": 33679736832,
+   "device_free_bytes_after": 6199377920,
+   "input_gen_upload_s": 35.003,
+   "section_words": 17453,
+   "trimmed_round": false
+  },
+  "fold": {
+   "schema": "rv64-outer-gkr-gpu-bench/v1",
+   "class_id": 32,
+   "instances": 8,
+   "layers": 27,
+   "fractions": 246415360,
+   "reps": 3,
+   "tree_ms_median": 26.657,
+   "traversal_ms_median": 148.205,
+   "total_ms_median": 174.862,
+   "tree_ms": [
+    26.657,
+    26.667,
+    26.624
+   ],
+   "traversal_ms": [
+    148.35,
+    148.205,
+    147.777
+   ],
+   "kernel_calls_per_rep": 5337,
+   "device_allocated_bytes": 25776982460,
+   "device_total_bytes": 33679736832,
+   "device_free_bytes_after": 7340228608,
+   "input_gen_upload_s": 36.35,
+   "section_words": 17325,
+   "trimmed_round": false
+  }
+ },
+ "gpu_cpu_parity": {
+  "class": "test-small",
+  "byte_identical": true,
+  "label": "M"
+ },
+ "fresh_receiver": {
+  "leaf": "accepted (transcript+strict draws+shape+terminal vs independently regenerated inputs), verify 3.3 ms, terminal MLE 53.4 s CPU, 12.65 GiB RSS",
+  "fold": "accepted, 48.8 s wall, 12.26 GiB RSS"
+ },
+ "corpus": "outer-gkr-corpus.json: 26/26 fresh-process cases; exhaustive in-process single-word sweep 3469/3469 rejected (raw/test4.log)",
+ "tests": "raw/tests-14.txt: 14/14 (ReleaseSafe, pod)",
+ "census": "24628607-outer-gkr-census.json",
+ "headline": {
+  "leaf_cells_M": [
+   1939.999744,
+   1101.138944
+  ],
+  "fold_cells_M": [
+   1715.014656,
+   901.31968
+  ],
+  "tree_cells_G": [
+   53.391444992,
+   30.293653888,
+   29.99112128
+  ],
+  "gpu_gkr_ms": {
+   "leaf": 148.217,
+   "fold": 143.224,
+   "route": "fold_sum"
+  },
+  "in_circuit_verifier_cells_per_child_M": 40.923176,
+  "section_bytes": 69812
+ },
+ "not_measured": [
+  "end-to-end recursion time with the flag on (hook H1-H5 not wired: canon-vk files)",
+  "GPU time of the classic interaction work removed (only the [D] 0.235 ns/LDE-cell all-in rate)",
+  "proof-size delta of a real root (model only)"
+ ],
+ "gpu_routes": {
+  "note": "same inputs/seed, 5 reps after 1 warmup, CUDA events; every route's section byte-identical to plain (cmp) [M]",
+  "leaf": {
+   "plain_ms": 182.18,
+   "fold_sum_ms": 148.217,
+   "tail_ms": 175.739,
+   "fold_sum_kernel_calls": 2068
+  },
+  "fold": {
+   "plain_ms": 174.14,
+   "fold_sum_ms": 143.224,
+   "tail_ms": 168.922,
+   "fold_sum_kernel_calls": 2052
+  },
+  "loadavg_1m_at_start": {
+   "leaf": 9.12,
+   "fold": 13.52
+  },
+  "production_route": "fold_sum (riscv_cuda/rv64/gkr.zig enqueue with commands.batched_fold_sum = true)"
+ },
+ "census_fold_sum": "24628607-outer-gkr-census-foldsum.json (tree GKR 4.81 GPU-s [D] vs 11.2 GPU-s of committed-cell work removed [D])"
+}

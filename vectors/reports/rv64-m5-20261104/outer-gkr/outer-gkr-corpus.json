@@ -1,0 +1,359 @@
+{
+ "schema": "rv64-m5-outer-gkr-corpus/v1",
+ "profile": "outer_gkr_om31_strict_v1",
+ "fresh_process_per_case": true,
+ "cases": 28,
+ "passed": 28,
+ "results": [
+  {
+   "case": "H01",
+   "what": "honest test-small section (closure + terminal)",
+   "expect": "accept",
+   "rc": 0,
+   "out": {
+    "accepted": true,
+    "class": "test-small",
+    "profile": "outer_gkr_om31_strict_v1",
+    "draws": 75,
+    "closure_checked": true,
+    "terminal_checked": true,
+    "verify_ns": 714459,
+    "terminal_ns": 3404804,
+    "section_bytes": 13876
+   },
+   "wall_s": 0.006,
+   "pass": true
+  },
+  {
+   "case": "G01",
+   "what": "header magic",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "MalformedOuterGkrSection"
+   },
+   "wall_s": 0.002,
+   "pass": true
+  },
+  {
+   "case": "G02",
+   "what": "header version",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "MalformedOuterGkrSection"
+   },
+   "wall_s": 0.002,
+   "pass": true
+  },
+  {
+   "case": "G03",
+   "what": "class id of another class (leaf)",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "OuterGkrClassMismatch"
+   },
+   "wall_s": 0.001,
+   "pass": true
+  },
+  {
+   "case": "G04",
+   "what": "instance count",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "MalformedOuterGkrSection"
+   },
+   "wall_s": 0.001,
+   "pass": true
+  },
+  {
+   "case": "G05",
+   "what": "layer count",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "MalformedOuterGkrSection"
+   },
+   "wall_s": 0.002,
+   "pass": true
+  },
+  {
+   "case": "G06",
+   "what": "salt (transcript nonce) changed",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "InvalidSumcheck"
+   },
+   "wall_s": 0.002,
+   "pass": true
+  },
+  {
+   "case": "G07",
+   "what": "root numerator, instance 0",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "InvalidSumcheck"
+   },
+   "wall_s": 0.001,
+   "pass": true
+  },
+  {
+   "case": "G08",
+   "what": "root denominator, instance 3",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "InvalidSumcheck"
+   },
+   "wall_s": 0.003,
+   "pass": true
+  },
+  {
+   "case": "G09",
+   "what": "root denominator set to zero (pole), instance 0",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "InvalidSumcheck"
+   },
+   "wall_s": 0.003,
+   "pass": true
+  },
+  {
+   "case": "M01a",
+   "what": "round coefficient: layer 1 round 0 c0",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "InvalidSumcheck"
+   },
+   "wall_s": 0.002,
+   "pass": true
+  },
+  {
+   "case": "M01b",
+   "what": "round coefficient: last layer, last round, c2",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "InvalidSumcheck"
+   },
+   "wall_s": 0.004,
+   "pass": true
+  },
+  {
+   "case": "M01c",
+   "what": "round coefficient: middle layer, coordinate 7",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "InvalidSumcheck"
+   },
+   "wall_s": 0.003,
+   "pass": true
+  },
+  {
+   "case": "G10",
+   "what": "round leading coefficient zeroed (degree-3 shape)",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "OuterGkrShapeMismatch"
+   },
+   "wall_s": 0.002,
+   "pass": true
+  },
+  {
+   "case": "G11",
+   "what": "mask value, first layer",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "CircuitCheckFailure"
+   },
+   "wall_s": 0.003,
+   "pass": true
+  },
+  {
+   "case": "G12",
+   "what": "mask value, last layer, last active instance",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "CircuitCheckFailure"
+   },
+   "wall_s": 0.004,
+   "pass": true
+  },
+  {
+   "case": "G13",
+   "what": "instance order: roots of instances 0 and 2 swapped",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "InvalidSumcheck"
+   },
+   "wall_s": 0.002,
+   "pass": true
+  },
+  {
+   "case": "G14",
+   "what": "non-canonical coefficient word (= p)",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "NonCanonicalOuterGkrWord"
+   },
+   "wall_s": 0.002,
+   "pass": true
+  },
+  {
+   "case": "G15",
+   "what": "truncated section",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "MalformedOuterGkrSection"
+   },
+   "wall_s": 0.001,
+   "pass": true
+  },
+  {
+   "case": "G16",
+   "what": "appended word",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "MalformedOuterGkrSection"
+   },
+   "wall_s": 0.001,
+   "pass": true
+  },
+  {
+   "case": "M02",
+   "what": "terminal claims vs different authenticated inputs",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "OuterGkrTerminalMismatch"
+   },
+   "wall_s": 0.004,
+   "pass": true
+  },
+  {
+   "case": "G17",
+   "what": "unbalanced LogUp sum with no external term (closure)",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "OuterGkrClosureMismatch"
+   },
+   "wall_s": 0.003,
+   "pass": true
+  },
+  {
+   "case": "G18",
+   "what": "honest test-small section presented as leaf-cpu-24628607 (class substitution)",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "OuterGkrClassMismatch"
+   },
+   "wall_s": 0.002,
+   "pass": true
+  },
+  {
+   "case": "G18f",
+   "what": "honest test-small section presented as fold-24628607 (class substitution)",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "OuterGkrClassMismatch"
+   },
+   "wall_s": 0.001,
+   "pass": true
+  },
+  {
+   "case": "H02",
+   "what": "honest GPU-proved leaf-cpu-24628607 section (transcript, strict draws, shape)",
+   "expect": "accept",
+   "rc": 0,
+   "out": {
+    "accepted": true,
+    "class": "leaf-cpu-24628607",
+    "profile": "outer_gkr_om31_strict_v1",
+    "draws": 432,
+    "closure_checked": false,
+    "terminal_checked": false,
+    "verify_ns": 5354351,
+    "terminal_ns": 0,
+    "section_bytes": 69812
+   },
+   "wall_s": 0.009,
+   "pass": true
+  },
+  {
+   "case": "M01L",
+   "what": "GPU leaf: round coefficient layer 20 round 7",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "InvalidSumcheck"
+   },
+   "wall_s": 0.006,
+   "pass": true
+  },
+  {
+   "case": "G11L",
+   "what": "GPU leaf: mask value layer 26",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "CircuitCheckFailure"
+   },
+   "wall_s": 0.008,
+   "pass": true
+  },
+  {
+   "case": "G07L",
+   "what": "GPU leaf: root of blake lane group 0",
+   "expect": "reject",
+   "rc": 2,
+   "out": {
+    "accepted": false,
+    "error": "CircuitCheckFailure"
+   },
+   "wall_s": 0.003,
+   "pass": true
+  }
+ ]
+}
