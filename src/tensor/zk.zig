@@ -3343,15 +3343,21 @@ test "zk mlp: hiding weights + witness, verify, tamper, opening budget" {
     {
         var cfgi = cfg;
         cfgi.zk_logup_gkr = false;
+        // committed-inverse LogUp has no ext-op support (ZkVirtualNeedsGkr):
+        // prove the core MLP; its I/O is bound by provePublic / verifyPublic,
+        // not by the non-hiding P1 ext lineqs
+        var sti = st;
+        sti.ext = .{};
         var zwi = try commitWeights(a, &pool, cfgi, &winfos, &wvv);
         defer zwi.deinit(a);
-        var pi = try prove(a, &pool, cfgi, st, &zwi, wv, &tm);
+        try std.testing.expectError(error.ZkVirtualNeedsGkr, prove(a, &pool, cfgi, st, &zwi, wv, &tm));
+        var pi = try prove(a, &pool, cfgi, sti, &zwi, wv, &tm);
         defer pi.deinit(a);
-        try verify(a, cfgi, st, zwi.key(), &pi);
+        try verify(a, cfgi, sti, zwi.key(), &pi);
         try std.testing.expect(pi.root2 != null and pi.gkr_layers.len == 0);
-        try std.testing.expect(std.meta.isError(verify(a, cfg, st, zwi.key(), &pi)));
+        try std.testing.expect(std.meta.isError(verify(a, cfg, sti, zwi.key(), &pi)));
         pi.checks[pi.checks.len - 1].rounds[0][0] = pi.checks[pi.checks.len - 1].rounds[0][0].add(QM31.one());
-        try std.testing.expect(std.meta.isError(verify(a, cfgi, st, zwi.key(), &pi)));
+        try std.testing.expect(std.meta.isError(verify(a, cfgi, sti, zwi.key(), &pi)));
     }
 
     // re-randomized weights with a link proof: new commitment serves new proofs
@@ -4250,7 +4256,7 @@ test "zk decoder layer (GQA attention, RoPE, softmax, RMSNorm, SwiGLU): verifies
     }
 }
 
-const ZkCheat = enum { prob_plus_one, rden_plus_one, rt_plus_one, residual, exp_value, masked_exp, score, ss_value, sel_nonbinary };
+const ZkCheat = enum { od_plus_one, den_plus_one, rt_plus_one, residual, exp_value, masked_exp, score, ss_value, sel_nonbinary };
 
 fn zkCheatCase(a: std.mem.Allocator, pool: *f.Pool, cheat: ZkCheat) !void {
     const lc = tfm.LayerCfg{ .log_t = 2, .log_d = 4, .log_f = 5, .log_heads = 2, .log_kv_heads = 1 };
@@ -4268,8 +4274,8 @@ fn zkCheatCase(a: std.mem.Allocator, pool: *f.Pool, cheat: ZkCheat) !void {
         jstar = j;
     };
     switch (cheat) {
-        .prob_plus_one => b.wit.items[at.od][0] += 1, // division-inequality output (softmax restructure, EXT-1)
-        .rden_plus_one => b.wit.items[at.den][row] += 1, // row denominator (replaces rden)
+        .od_plus_one => b.wit.items[at.od][0] += 1, // od = o (.) den, the exact product in the division inequality (EXT-1; replaces probs)
+        .den_plus_one => b.wit.items[at.den][row] += 1, // den = sum_j e, the row denominator (replaces rden)
         .rt_plus_one => b.wit.items[fx.out.rms1.rt][0] += 1,
         .residual => b.wit.items[fx.out.h][0] += 1,
         .exp_value => b.wit.items[at.e][row * T + jstar] -= 1,
@@ -4292,11 +4298,17 @@ fn zkCheatCase(a: std.mem.Allocator, pool: *f.Pool, cheat: ZkCheat) !void {
     var tm: proto.Timings = .{};
     var proof = prove(a, pool, cfg, st, &fx.zw, wv, &tm) catch |e| {
         // some cheats break a core relation the hiding prover always checks (not a verifier test)
+        if (cheat == .od_plus_one or cheat == .den_plus_one) return e;
         if (e == error.RemainderOutOfRange or e == error.ValueOutOfRange or e == error.LookupMismatch) return error.SkipZkCheat;
         return e;
     };
     defer proof.deinit(a);
-    if (verify(a, cfg, st, fx.zw.key(), &proof)) |_| return error.TamperAccepted else |_| {}
+    if (verify(a, cfg, st, fx.zw.key(), &proof)) |_| return error.TamperAccepted else |e| {
+        // the softmax-PV cheats must run (not skipped by the hiding prover)
+        // and be caught by the masked sumcheck of the relation they break:
+        // od = o (.) den (exact einsum) and den = sum_j e (lineq)
+        if ((cheat == .od_plus_one or cheat == .den_plus_one) and e != error.MaskedSumcheck) return e;
+    }
 }
 
 test "zk decoder layer: verifier rejects invalid attention / softmax / RMSNorm / residual witnesses (cheating prover)" {

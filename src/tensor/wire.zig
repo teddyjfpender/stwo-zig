@@ -103,6 +103,8 @@ const StTag = enum(u8) {
     ext_ops = 0x06,
     ext_publics = 0x07,
     ext_tables = 0x08,
+    /// optional: Statement.model_digest (P2); absent = null
+    model_digest = 0x09,
 };
 
 const OPENING_FLAT: u8 = 0;
@@ -1207,6 +1209,11 @@ fn encStatementInto(w: *W, cfg: proto.Config, st: proto.Statement) EncodeError!v
         for (t.values) |v| try w.int(i32, v);
     }
     try w.end(s);
+    if (st.model_digest) |d| {
+        s = try w.begin(StTag.model_digest);
+        try w.bytes(&d);
+        try w.end(s);
+    }
 }
 
 /// Canonical encoding of a statement together with the verifier config
@@ -1344,6 +1351,12 @@ pub fn decodeStatement(gpa: Allocator, bytes: []const u8) DecodeError!StatementF
     }
     try r.done();
     st.ext = .{ .ops = xops, .publics = pubs, .tables = xtabs };
+
+    if (try ss.optional(StTag.model_digest)) |rd| {
+        var rm = rd;
+        st.model_digest = try rm.hash();
+        try rm.done();
+    }
 
     try ss.finish();
     return .{ .arena = arena, .cfg = cfg, .st = st };

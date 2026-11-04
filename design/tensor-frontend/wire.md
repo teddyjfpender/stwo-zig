@@ -102,7 +102,9 @@ does) and requires the infos, offsets and geometry to equal it exactly.
 i8 each), 0x05 ops (op tag 1..6 as in `mixStatement`, u32 operands, shift
 u8), 0x06 ext ops (einsum / key / lineq with refs, 32-byte label arrays,
 exprs of `coeff:i64 ref labels` terms + constant), 0x07 publics (log size +
-exactly 2^log i32 values), 0x08 ext lookup tables. The config holds what the
+exactly 2^log i32 values), 0x08 ext lookup tables, 0x09 (optional) the
+32-byte `model_digest` (P2; absent = null, so statements without a model
+digest encode as before). The config holds what the
 verifier reads: `pcs`, `two_level` (outer, inner, depth, inner_work_shift,
 prox_rows, deep, ood), `batch_matmuls`, `weight_outer`, `key_outer`,
 `key_alphas`, `weight_log_cols`, `witness_log_cols_max`. Prover-only fields

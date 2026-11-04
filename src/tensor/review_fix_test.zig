@@ -42,13 +42,16 @@ const Att = struct {
 /// score is 0, so row t has den = 256 (t + 1)); v[j, :] = v_of(j). The
 /// operands are range-checked (9-bit q / k as RoPE outputs, int8 v) so the
 /// statement passes validateStatement's no-wrap checks.
+const att_winfo = [_]TensorInfo{TensorInfo.mat(2, 2)};
+
 fn buildAtt(a: std.mem.Allocator, att: *Att, lt: u32, v_of: *const fn (usize) i32) !void {
     try att.pool.init(a, 2);
     att.pc = .{ .pcs = .{ .log_blowup = 2, .n_queries = 8, .pow_bits = 1 }, .weight_log_cols = 2, .witness_log_cols_max = 8, .gkr_threads = 2 };
     var dummy: [16]i8 = [_]i8{0} ** 16;
     const dv = [_][]const i8{&dummy};
-    const winfo = [_]TensorInfo{TensorInfo.mat(2, 2)};
-    att.ws = try proto.commitWeights(a, &att.pool, att.pc, &winfo, &dv);
+    // WeightStore borrows `infos` (the key's layout is checked against it at
+    // prove and verify time), so they must outlive the store: container scope.
+    att.ws = try proto.commitWeights(a, &att.pool, att.pc, &att_winfo, &dv);
     att.b = tf.Builder.init(a, &att.pool);
     const b = &att.b;
     try b.weight_infos.append(a, TensorInfo.mat(2, 2));

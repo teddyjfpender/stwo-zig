@@ -14,9 +14,15 @@
 //! Greedy check (y public): Sel[t, v] = [v = y_t] and Lt[t, v] = [v < y_t] are
 //! public tensors the verifier builds from y. Committed m [P] and
 //! Dr [P, V] with
+//!   (0) m + 128 in [0, 256)                        (range key: m int8)
+//!       (over max(log P, 1) variables: m is broadcast when P = 1)
 //!   (1) Dr - m + logits = 0                        (lineq)
 //!   (2) Dr - Lt in [0, 256)                        (range key)
 //!   (3) sum_v Sel[t, v] Dr[t, v] = 0 for every t   (exact einsum, zero)
+//! (0) is what makes (1)-(3) integer statements (bounds.zig, no witness):
+//! |m| <= 2^7 and |logits| <= 2^7 give |Dr| <= 2^8 from (1), so the key
+//! input Dr - Lt and the products Sel Dr cannot wrap mod p. The honest m is
+//! a logit, so (0) never refuses an honest request.
 //! (3) gives Dr[t, y_t] = 0, so m_t = logits[t, y_t]; then
 //! Dr[t, v] = logits[t, y_t] - logits[t, v], an integer in (-256, 256), and
 //! (2) forces logits[t, v] <= logits[t, y_t] for every v and strict inequality
@@ -277,6 +283,10 @@ pub fn greedyCheck(b: *tf.Builder, logits: u32, lp: u32, lv: u32, tokens: []cons
     const m_id = try b.addVec(lp, m);
     const dr_id = try b.addVec(n, dr);
     const all = ids(0, n);
+    // (0) m int8: bounds Dr through (1) for the statement-level analysis.
+    // Over max(lp, 1) variables (m broadcast when lp = 0): LogUp instances
+    // need >= 2 entries; m's labels still cover all of its bits.
+    try b.key(@max(lp, 1), try b.expr(&.{term(1, Ref.w(m_id), &.{ids(0, lp)})}, 128), null, .{ .range = 8 });
     // (1) Dr - m + logits = 0
     try b.lineq(n, try b.expr(&.{ term(1, Ref.w(dr_id), &.{all}), term(-1, Ref.w(m_id), &.{ids(0, lp)}), term(1, Ref.w(logits), &.{ rowfix, all }) }, 0));
     // (2) Dr - Lt in [0, 256)
@@ -695,6 +705,43 @@ test "greedy check: least maximiser accepted; later tie, non-maximum and out-of-
     try testing.expectEqual(Outcome.verifier_rejected, try gadgetCase(a, &[_]i32{ -128, -128, -128, 127 }, 0, true));
     // out-of-vocabulary token
     try testing.expectEqual(Outcome.prover_refused, try gadgetCase(a, &row, 8, false));
+}
+
+// The m range key (0) is load-bearing for the statement-level analysis: the
+// greedy statement without it leaves Dr (and so the key Dr - Lt and the
+// products Sel Dr) unbounded and validateStatement refuses it (no rule may
+// bound Dr from (1) while m is unconstrained).
+test "greedy check: the m range key bounds Dr; without it the statement is refused" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    var pc = testPc();
+    pc.weight_log_cols = 2;
+    const dummy_info = [_]TensorInfo{TensorInfo.mat(2, 2)};
+    var dummy: [16]i8 = [_]i8{0} ** 16;
+    const dv = [_][]const i8{&dummy};
+    var ws = try proto.commitWeights(a, &pool, pc, &dummy_info, &dv);
+    defer ws.deinit(a);
+    var b = tf.Builder.init(a, &pool);
+    defer b.deinit();
+    try b.weight_infos.appendSlice(a, &dummy_info);
+    const row = [_]i32{ -3, 7, 9, 1, -128, 9, 7, 0 };
+    const L = try b.addVec(3, try a.dupe(i32, &row));
+    try b.rangeSigned(L, 8);
+    const n_before = b.xops.items.len;
+    _ = try greedyCheck(&b, L, 0, 3, &.{2});
+    const st = b.statement();
+    try proto.validateStatement(st);
+    // drop key (0): the first key greedyCheck added
+    const xops = try a.alloc(xt.Op, st.ext.ops.len - 1);
+    defer a.free(xops);
+    try testing.expect(st.ext.ops[n_before] == .key);
+    @memcpy(xops[0..n_before], st.ext.ops[0..n_before]);
+    @memcpy(xops[n_before..], st.ext.ops[n_before + 1 ..]);
+    var st2 = st;
+    st2.ext.ops = xops;
+    try testing.expectError(error.StatementUnboundedOperand, proto.validateStatement(st2));
 }
 
 test "stacked-expert MoE (batched matmuls): matches a direct integer reference; proves, verifies; cheats rejected" {

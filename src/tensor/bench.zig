@@ -791,7 +791,7 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const Rf: f64 = @floatFromInt(R);
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"bench\":\"model\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"layers\":{d},\"moe_layers\":{d},\"log_experts\":{d},\"log_f_expert\":{d},\"log_capacity\":{d},\"log_capacity_used\":{d},\"max_expert_load\":{d},\"log_vocab\":{d},\"log_out\":{d},\"requests\":{d},\"threads\":{d},\"accel\":{},\"batch_matmuls\":{},", .{ lt, ld, lf, cfg.log_heads, cfg.log_kv_heads, cfg.n_layers, cfg.nMoeLayers(), le, lfe, cfg.log_capacity, cap_used, max_load, cfg.log_vocab, cfg.log_out, R, threads, pc.accel != null, pc.batch_matmuls });
-    try printTl(out, pc);
+    try printTl(out, pc, true); // the shared opening opens the weight table
     try out.print("\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_log_cols\":{d},", .{ outer.n_queries, outer.log_blowup, outer.pow_bits, pc.weight_log_cols });
     try out.print("\"weights\":{d},\"active_weights_per_token\":{d},\"witness_tensors\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_elems_per_request\":{d},\"witness_table_elems\":{d},\"stacked_experts\":{},\"weight_claims_per_request\":{d},\"weight_points_per_request\":{d},", .{ n_weights, active, n_wit, n_core, n_ext, witness_elems, table_elems, cfg.stacked_experts, n_claims / R, n_points / R });
     try out.print("\"offline\":{{\"calib_passes\":{d},\"calib_s\":{d:.3},\"commit_s\":{d:.3},\"key_proof_s\":{d:.3},\"key_verify_s\":{d:.4},\"key_bytes\":{d},\"rss_after_commit\":{d},\"rss_after_key\":{d}}},", .{ calib, calib_s, commit_s, key_s, key_verify_s, if (prox) |p| p.byteSize() else 0, rss_after_commit, rss_after_key });

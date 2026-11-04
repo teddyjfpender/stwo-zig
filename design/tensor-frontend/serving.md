@@ -126,6 +126,16 @@ Adversarial tests (`serve.zig`) are rejected for every verifier unless noted:
   `sum_v [v = y] Dr = 0` (zero einsum).
   Together they imply that y is the **least** maximiser. The selector is
   public, so no binary, one-hot or V x V tie-break check is needed.
+  A fourth relation, `m + 128 in [0, 256)` (range key over max(log P, 1)
+  variables, m broadcast when P = 1), makes the other three integer
+  statements for the verifier's witness-free bound analysis (`bounds.zig`,
+  transformer.md section 4): m and logits are int8, so the lineq bounds
+  `|Dr| <= 2^8`, the range-key input `Dr - [v < y]` and the products
+  `[v = y] Dr` stay far below p, and none of the field identities can wrap.
+  Without it the analysis cannot bound Dr (m would be an unconstrained
+  committed value) and refuses the statement (`StatementUnboundedOperand`;
+  regression test in `lm.zig`). The honest m is a logit, so the key never
+  refuses an honest request. No new bound rule was needed.
 * **Tests.** A different output token is rejected, and so is a different
   prompt. Greedy ties are accepted. For a later tie, a non-maximum or an
   out-of-vocab token, the honest prover refuses, and an unchecked prover's
