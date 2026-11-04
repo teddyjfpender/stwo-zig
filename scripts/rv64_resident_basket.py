@@ -57,6 +57,22 @@ def device_resources(resources, device_count):
     return result
 
 
+def recursion_options(manifest, combined, counts, strict):
+    mode = manifest.get("recursion_mode", "serial")
+    if mode == "serial":
+        if combined and counts != [1]:
+            raise ValueError("combined recursion supports exactly one GPU; 2/4-device admission remains closed")
+        return {}
+    if mode != "ready_candidate" or not combined or not strict:
+        raise ValueError("ready_candidate requires combined proving and a strict recursive receiver")
+    workers = positive(manifest.get("recursion_worker_budget"), "recursion worker budget")
+    pending = positive(manifest.get("recursion_max_pending_authorities", 17), "recursion pending bound")
+    if workers < max(counts) or workers > 32 or not 9 + 2 * max(counts) <= pending <= 256:
+        raise ValueError("invalid ready recursion admission")
+    return {"recursion_mode": mode, "recursion_worker_budget": workers,
+            "recursion_max_pending_authorities": pending}
+
+
 def build_plan(basket, manifest, root, driver, receiver, library, output, devices, counts, cap, expected_runtime=RUNTIME, combined=False, recursive_receiver=None, repeat=2, strict_recursive_receiver=False):
     if type(repeat) is not int or repeat not in (1, 2):
         raise ValueError("repeat must be 1 (fresh cold) or 2 (fresh cold/warm)")
@@ -68,8 +84,7 @@ def build_plan(basket, manifest, root, driver, receiver, library, output, device
         raise ValueError("distinct nonnegative physical devices required")
     if not counts or len(set(counts)) != len(counts) or any(n not in (1, 2, 4) or n > len(devices) for n in counts):
         raise ValueError("matrix requires available distinct 1/2/4-device groups")
-    if combined and counts != [1]:
-        raise ValueError("combined recursion supports exactly one GPU; 2/4-device admission remains closed")
+    recursion = recursion_options(manifest, combined, counts, strict_recursive_receiver)
     if strict_recursive_receiver and not combined:
         raise ValueError("strict recursive receiver requires complete combined proving")
     if combined and recursive_receiver is None:
@@ -105,6 +120,8 @@ def build_plan(basket, manifest, root, driver, receiver, library, output, device
             absent.append("request for block " + str(number))
         else:
             request = B.load(request_path)
+            if recursion and request.get("workers") is not None and recursion["recursion_worker_budget"] > positive(request["workers"], "request workers"):
+                raise ValueError("recursion worker budget exceeds native request workers")
             if entry.get("prefix_count", 0) or entry.get("jobs", "-") != "-":
                 raise ValueError("only full direct-capture requests are admitted")
             for key in ("elf", "input"):
@@ -130,7 +147,7 @@ def build_plan(basket, manifest, root, driver, receiver, library, output, device
                          "input_sha256": request["input_sha256"] if request else None,
                          "segments": entry["expected_cpu_segments"] if request else None,
                          "target": str(target), "resources": device_resources(resources, n)})
-    return {"schema": SCHEMA, "combined": combined, "repeat": repeat, "strict_recursive_receiver": strict_recursive_receiver, "profile": PROFILE,
+    return {"schema": SCHEMA, **recursion, "combined": combined, "repeat": repeat, "strict_recursive_receiver": strict_recursive_receiver, "profile": PROFILE,
             "immutable_host_key_bytes": manifest.get("immutable_host_key_bytes", 8 << 30),
             "combined_immutable_device_bytes": manifest.get("combined_immutable_device_bytes", 2 << 30),
             "combined_host_bytes": manifest.get("combined_host_bytes", 48 << 30), "runtime_target_sha256": expected_runtime,
@@ -242,9 +259,38 @@ def receiver_environment(environment, directory=None):
     return result
 
 
+def check_ready_execution(plan, job, combined, entry):
+    if plan.get("recursion_mode", "serial") != "ready_candidate":
+        return
+    target = Path(job["target"])
+    if B.load(target / "manifest.json") != producer_manifest(plan, job):
+        raise ValueError("ready producer manifest differs from pinned plan")
+    digest = B.sha(target / "manifest.json")
+    if B.sha(target / "batch/resident-ready-manifest.json") != digest:
+        raise ValueError("ready producer manifest copy changed")
+    execution = combined.get("recursion_execution", {})
+    total, n = plan["recursion_worker_budget"], job["device_count"]
+    expected_workers = [total // n + int(i < total % n) for i in range(n)]
+    expected_hash = list(bytes.fromhex(digest))
+    if (entry.get("recursion_mode") != "ready_candidate" or entry.get("recursion_worker_budget") != total
+            or entry.get("physical_device_ids") != job["devices"]
+            or entry.get("producer_manifest_sha256") != expected_hash
+            or execution != entry.get("recursion_execution")
+            or execution.get("mode") != "ready_candidate"
+            or execution.get("physical_device_ids") != job["devices"]
+            or execution.get("lane_workers") != expected_workers
+            or execution.get("producer_manifest_sha256") != expected_hash
+            or execution.get("lane_helper_stack_reserved_bytes") != (total - n) * (1 << 20)
+            or execution.get("coordinator_stack_reserved_bytes") != n * (8 << 20)
+            or type(execution.get("native_helper_stack_reserved_bytes")) is not int
+            or execution["native_helper_stack_reserved_bytes"] < 0):
+        raise ValueError("ready recursion execution differs from pinned admission")
+
+
 def qualify_recursive_trial(plan, job, proof, native, target, trial, prior, log, environment, received_override=None, shared_usage=None):
     combined = B.load(proof / "combined-report.json")
     entry = B.load(proof / "combined-entry.json")
+    check_ready_execution(plan, job, combined, entry)
     count = native["cpu_proofs"] + native["truth_proofs"]
     if (combined.get("accepted") is not True or combined.get("completed_ethereum_block") is not True
             or combined.get("native_bundle_reload") is not False or combined.get("restored_recursive_proofs") is not False
@@ -306,6 +352,19 @@ def gpu_lease(plan):
             fcntl.flock(handle, fcntl.LOCK_UN)
 
 
+def producer_manifest(plan, job):
+    manifest = {"schema": "rv64-ethereum-basket-inputs/v1", "profile": plan["profile"],
+                "blocks": {str(job["block"]): {"request": job["request"], "expected_cpu_segments": job["segments"]}},
+                "execution_order": [job["block"]], "resources": job["resources"], "repeat": plan.get("repeat", 2),
+                "immutable_host_key_bytes": plan.get("immutable_host_key_bytes", 8 << 30), "immutable_device_bytes": 512 << 20,
+                "combined_host_bytes": plan.get("combined_host_bytes", 48 << 30),
+                "combined_immutable_device_bytes": plan.get("combined_immutable_device_bytes", 2 << 30)}
+    if plan.get("recursion_mode", "serial") == "ready_candidate":
+        for key in ("recursion_mode", "recursion_worker_budget", "recursion_max_pending_authorities"):
+            manifest[key] = plan[key]
+    return manifest
+
+
 def produce_job(plan, job):
     target = Path(job["target"])
     target.mkdir(parents=True, exist_ok=False)
@@ -320,12 +379,7 @@ def produce_job(plan, job):
     for key in ("elf", "input"):
         if B.sha(B.absolute(request[key], Path(job["request"]).parent)) != request[key + "_sha256"]:
             raise ValueError("guest/input changed since planning")
-    manifest = {"schema": "rv64-ethereum-basket-inputs/v1", "profile": plan["profile"],
-                "blocks": {str(job["block"]): {"request": job["request"], "expected_cpu_segments": job["segments"]}},
-                "execution_order": [job["block"]], "resources": job["resources"], "repeat": plan.get("repeat", 2),
-                "immutable_host_key_bytes": plan.get("immutable_host_key_bytes", 8 << 30), "immutable_device_bytes": 512 << 20,
-                "combined_host_bytes": plan.get("combined_host_bytes", 48 << 30),
-                "combined_immutable_device_bytes": plan.get("combined_immutable_device_bytes", 2 << 30)}
+    manifest = producer_manifest(plan, job)
     B.atomic_json(target / "manifest.json", manifest)
     worker = {"device": ",".join(map(str, job["devices"])), "device_caps_bytes": [plan["device_cap_bytes"]] * job["device_count"],
               "planned_cpu_workers": job["segments"], "retained_scopes": 64}
@@ -373,6 +427,9 @@ def produced_snapshot(plan, job):
         item = {"native": {name: B.sha(proof / name) for name in sorted(names)}}
         if plan.get("combined"):
             item["recursive"] = recursive_snapshot(proof, native["cpu_proofs"] + native["truth_proofs"])
+        if plan.get("recursion_mode", "serial") == "ready_candidate":
+            item["producer_manifests"] = {name: B.sha(Path(job["target"]) / name)
+                                          for name in ("manifest.json", "batch/resident-ready-manifest.json")}
         result.append(item)
     return result
 
@@ -536,7 +593,10 @@ def run_job(plan, job):
 
 def render(plan, results):
     by_key = {(r["device_count"], r["block"]): r for r in results}
-    lines = ["# Resident Ethereum basket measurements", "", "128-bit security target under documented conjectured assumptions; no whole-protocol certificate. " + ("Includes fresh native and recursive proving; one GPU only." if plan.get("combined") else "No recursion or projected GPU figures."), "",
+    recursion_scope = "Includes fresh native and recursive proving; one GPU only."
+    if plan.get("recursion_mode") == "ready_candidate":
+        recursion_scope = "Explicit ready_candidate recursion; only completed physical rows establish qualification. No projected multi-GPU figures."
+    lines = ["# Resident Ethereum basket measurements", "", "128-bit security target under documented conjectured assumptions; no whole-protocol certificate. " + (recursion_scope if plan.get("combined") else "No recursion or projected GPU figures."), "",
              "| GPUs | Block | Status | Cold prove s | Warm prove s | Cold request s | Warm request s |", "|---:|---:|---|---:|---:|---:|---:|"]
     for job in plan["jobs"]:
         r = by_key.get((job["device_count"], job["block"]))
