@@ -230,6 +230,23 @@ The admission relaxation of note §2 ("absent implies no rows" under v2) is **si
 
 NV07 remains the hook that pins it.
 
+**Round 5: corpus on v2-strict [M].** Receiver: native-format's full-tree build (sha `001bf1d9`), a fresh CPU process
+per case. Proofs: native-format `26235156-2gpu-v2s-r5` and `24628607-2gpu-v2s-r6`, each accepted by its own receiver.
+
+| block | policy | cases | result | NV03 (the other version's proof dir) |
+|---|---|---|---|---|
+| 26235156 | v2-strict | full corpus v4, 44 cases | **44/44**, no unexpected accepts, no crashes | M5 default proof rejected: `NativeChainNotStrict` |
+| 26235156 | default v1-flat | C00 + NV03 | 2/2 | v2s proof rejected: `InvalidServicesWireRequest` |
+| 24628607 | default v1-flat | C00 + NV03 | 2/2 | v2s proof rejected: `InvalidLsTailCapacity` |
+
+Every rejection is semantic. In the reverse runs (v1 policy on the M5 default proof), C00 is accepted by this build, so
+the default bytes still verify.
+
+The 24628607 v2-strict full run was cut short by a full `/workspace` disk (ENOSPC copying a 118 MB proof dir at three
+jobs) and was re-run at one job.
+
+Full-tree C00 wall [M, single observations, load 23–31]: 60.4 s (26235156) and 90.8 s (24628607).
+
 ### NV-R3 (CONDITIONAL): the characteristic bound of the v2-gkr section
 
 At the NF4 bounds (128 instances × 2^28 rows), the conservative mass is 2^35 ≥ p. This is pinned: the test
