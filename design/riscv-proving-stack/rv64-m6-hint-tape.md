@@ -58,3 +58,24 @@ a host-only producer hint (like `class_hint`) and never enters a proof, a transc
 - The GPU DAG assignment is kept: measured at 16 ms of stream time per fold (2.1 k launches), it is not the fold cost;
   a fused fill kernel would save at most that (kill rule of plan §5 M6: keep the narrow-run DAG for the class).
 - Durable-bytes restore and the lane (non-pipelined) path keep the full graph.
+
+## Measured (v1, resident service, both dev blocks; pod not quiet, single observations) [M]
+
+Warm requests, M5 baseline -> tape on: 24628607 fold host prep median 0.403 -> 0.025 s, fold tail 4.81 -> 3.32 s, recursion
+18.87 -> 17.01 s, request 28.10 -> 26.30 s; 26235156 0.385 -> 0.019 s, 2.98 -> 2.30 s, 11.94 -> 10.82 s, 18.78 -> 17.24 s.
+Every proof byte-identical to the M5 default receipts; check mode 26/26 folds equal; fresh M5 receiver accepted.
+Receipts: `vectors/reports/rv64-m6-20261105/hint-tape/`.
+
+## v2: dependency-chain runs for the device DAG (HT2)
+
+The recursion is now device-bound between the first leaf wave and the fold tail, so device time of the assignment
+matters: leaves spend 120-150 ms of stream time in the DAG (146 k levels, 3.7-10.5 k launches), folds 16 ms (9 k levels,
+2.1 k launches). The M5 narrow runs cap a CTA run at 256 levels of width <= 256 (grid-constant packet) and load every task
+record from DRAM after the barrier, so the record load sits on the per-level dependency latency.
+
+`circuit_fill_chain.cu` keeps the exact task evaluation and level order and changes only the execution grouping:
+one CTA (512 threads) runs any number of consecutive levels of width <= 2048 (strided), level ends come from a device
+array staged through shared memory (1024 per chunk), and the next level's first record is prefetched before the
+current level's dependent loads. Levels wider than 2048 keep the ordinary grid launch. Barrier semantics are the M5 narrow
+run's (one `__syncthreads` per level orders the CTA's global writes before any later level reads them). Same tasks, same
+seeds, same values: proof-neutral; `STWO_RV64_OUTER_ASSIGNMENT_CHAIN=0` restores the M5 narrow runs.
