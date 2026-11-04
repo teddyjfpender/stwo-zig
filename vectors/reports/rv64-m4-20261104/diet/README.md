@@ -11,7 +11,8 @@ Labels: **[M]** measured by a test/run in this commit; **[D]** arithmetic on mea
 | `src/frontends/circuit/diet/fused_blake2s.zig` | fused Blake2s compression AIR: fill, evaluator, tables, 5 tests |
 | `src/integrations/riscv_cpu/logup_gkr/outer_gkr_diet_test.zig` | batched outer LogUp-GKR: prove, native verify, in-circuit verify, cost law, binding cost |
 | `scripts/diet/diet_census.py` | per-node / per-tree cell model (reads widths from `component_list.zig`, row logs from census-v2) |
-| `outer-gkr-run1.jsonl` | raw `OUTER_GKR_*` lines from the pod run (`test-riscv64-outer-gkr-diet`, ReleaseFast) |
+| `outer-gkr-run1.jsonl`, `outer-gkr-run2.jsonl` | raw `OUTER_GKR_*` lines from two pod runs (`test-riscv64-outer-gkr-diet`, ReleaseFast); every count is identical across the runs |
+| `outer-gkr-run2-build.log` | run 2: the step passes (2/2). Run 1 produced the same numbers, but its exactness assertion was too strict for packed qm31 rows, and it pulled in a pre-existing failing `mle_point` test, so the step is now filtered to the diet tests |
 | `24628607-cell-census-q108.json`, `-q51.json` | full census output: per node, per lever, tree totals; q = queries of the verified child (r1 108, m3 51) |
 | `fused-blake2s-test.log` | pod run of the fused AIR tests |
 
