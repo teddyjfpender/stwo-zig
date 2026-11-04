@@ -39,6 +39,10 @@ pub const HostPrepared = struct {
     graph: *const anyopaque,
     destroy: *const fn (*anyopaque) void,
 };
+/// Host-only producer hint (fold v2): the geometry class of the fold graph the
+/// calling thread is about to prove, or null. Device factories may key
+/// topology-only caches (assignment plans) by it; it never enters a proof.
+pub threadlocal var class_hint: ?[32]u8 = null;
 pub const Factory = struct {
     context: *anyopaque,
     /// Optional device-free host stage. Thread-safe with respect to this

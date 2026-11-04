@@ -86,15 +86,71 @@ fn save(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, proof: *const O
     try dir.writeFile(.{ .sub_path = name, .data = bytes });
 }
 const Fold = struct { pending: Pending, restored: bool, retired_preprocessed_bytes: usize };
+/// Receiver-only, in-process fold v2 class authorities. Each entry was built by
+/// THIS process from an honest trace-only fold graph; a later fold of the same
+/// geometry class (Bridge.classKey) reuses its retired PP + verifier Authority
+/// and skips graph/PP/FIXED construction. Never persisted, never producer-fed.
+/// STWO_RV64_FOLD_CLASS_CACHE=0 disables; =check rebuilds and compares.
+pub const FoldClasses = struct {
+    const PPT = @import("stwo_circuit_frontend").common.preprocessed.PreprocessedCircuit;
+    const Entry = struct { key: [32]u8, pp: *PPT, authority: *Prove.Authority };
+    allocator: std.mem.Allocator,
+    entries: std.ArrayList(Entry) = .empty,
+    check: bool = false,
+    hits: usize = 0,
+    misses: usize = 0,
+    checked: usize = 0,
+    pub fn fromEnv(a: std.mem.Allocator) ?FoldClasses {
+        const value = std.posix.getenv("STWO_RV64_FOLD_CLASS_CACHE") orelse "1";
+        if (std.mem.eql(u8, value, "0")) return null;
+        return .{ .allocator = a, .check = std.mem.eql(u8, value, "check") };
+    }
+    pub fn deinit(self: *FoldClasses) void {
+        for (self.entries.items) |entry| {
+            entry.authority.deinit();
+            self.allocator.destroy(entry.authority);
+            entry.pp.deinit(self.allocator);
+            self.allocator.destroy(entry.pp);
+        }
+        self.entries.deinit(self.allocator);
+    }
+    fn find(self: *const FoldClasses, key: [32]u8) ?Entry {
+        for (self.entries.items) |entry| if (std.mem.eql(u8, &entry.key, &key)) return entry;
+        return null;
+    }
+    /// Takes ownership of a freshly verified, retired fold's PP/Authority.
+    fn adopt(self: *FoldClasses, key: [32]u8, proof: *Outer.Wrapped) !void {
+        if (proof.borrowed or !proof.authority.retired) return error.FoldClassAdoptRequiresRetiredOwner;
+        try self.entries.append(self.allocator, .{ .key = key, .pp = proof.pp, .authority = proof.authority });
+        proof.borrowed = true;
+    }
+};
 /// Borrows children throughout construction. The caller releases them ONLY
 /// after the new parent has a complete proof, fresh capture and durable bytes.
-fn combine(a: std.mem.Allocator, left: Pending, right: Pending, nodes: *std.ArrayList(Node), dir: std.fs.Dir, allow_resume: bool, factory: ?Outer.Device.Factory, existing_only: bool) !Fold {
+fn combine(a: std.mem.Allocator, left: Pending, right: Pending, nodes: *std.ArrayList(Node), dir: std.fs.Dir, allow_resume: bool, factory: ?Outer.Device.Factory, existing_only: bool, classes: ?*FoldClasses) !Fold {
     const l = nodes.items[left.node];
     const r = nodes.items[right.node];
     if (l.first_leaf + l.leaf_count != r.first_leaf) return error.RecursiveLeafAdjacency;
     std.log.info("rv64 OM31 recursion fold: [{d},{d}) + [{d},{d})", .{ l.first_leaf, l.first_leaf + l.leaf_count, r.first_leaf, r.first_leaf + r.leaf_count });
     const children = [2]Bridge.Child{ child(left), child(right) };
     const digest = try Bridge.expectedDigest(children);
+    const class_key = try Bridge.classKey(children);
+    const hit: ?FoldClasses.Entry = if (!existing_only) null else if (classes) |cache| cache.find(class_key) else null;
+    if (hit) |entry| if (!classes.?.check) {
+        var timer = try std.time.Timer.start();
+        var name_buffer: [64]u8 = undefined;
+        const name = try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{nodes.items.len});
+        const encoded = (try cached(a, dir, name, allow_resume)) orelse return error.MissingRecursiveNodeProof;
+        defer a.free(encoded);
+        const proof = try a.create(Outer.Wrapped);
+        errdefer a.destroy(proof);
+        proof.* = try Outer.restoreWithAuthority(a, entry.pp, entry.authority, digest, encoded);
+        classes.?.hits += 1;
+        std.log.info("rv64 OM31 recursion fold accepted (class cache hit): class={x} restore_ns={d} verify_ns={d} total_ns={d}", .{ class_key[0..8], proof.timings.restore_ns, proof.timings.verify_ns, timer.read() });
+        const node = nodes.items.len;
+        nodes.appendAssumeCapacity(.{ .first_leaf = l.first_leaf, .leaf_count = l.leaf_count + r.leaf_count, .left = left.node, .right = right.node, .authority = proof.authority.identity, .digest = digest });
+        return .{ .pending = .{ .proof = proof, .node = node }, .restored = true, .retired_preprocessed_bytes = 0 };
+    };
     const build_fold = if (existing_only or (factory != null and factory.?.prepare_from_circuit != null)) &Bridge.buildFoldTraceOnly else &Bridge.buildFold;
     var graph = try build_fold(a, children);
     defer graph.deinit();
@@ -112,6 +168,16 @@ fn combine(a: std.mem.Allocator, left: Pending, right: Pending, nodes: *std.Arra
     errdefer proof.deinit();
     if (!existing_only) try save(a, dir, name, proof);
     const retired_bytes = proof.retireProverData();
+    if (hit) |entry| {
+        // check mode: the class authority must equal the freshly rebuilt one.
+        if (!std.mem.eql(u8, &entry.authority.identity, &proof.authority.identity)) return error.FoldClassAuthorityMismatch;
+        classes.?.checked += 1;
+        std.log.info("rv64 OM31 recursion fold class check ok: class={x}", .{class_key[0..8]});
+    } else if (existing_only) if (classes) |cache| {
+        try cache.adopt(class_key, proof);
+        cache.misses += 1;
+        std.log.info("rv64 OM31 recursion fold class adopted: class={x} identity={x}", .{ class_key[0..8], proof.authority.identity[0..8] });
+    };
     const node = nodes.items.len;
     nodes.appendAssumeCapacity(.{ .first_leaf = l.first_leaf, .leaf_count = l.leaf_count + r.leaf_count, .left = left.node, .right = right.node, .authority = proof.authority.identity, .digest = digest });
     return .{ .pending = .{ .proof = proof, .node = node }, .restored = encoded != null, .retired_preprocessed_bytes = retired_bytes };
@@ -341,6 +407,9 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     var nodes: std.ArrayList(Node) = .empty;
     defer nodes.deinit(a);
     try nodes.ensureTotalCapacity(a, 2 * n - 1);
+    // Declared before `stack`: borrowed fold proofs must deinit first.
+    var fold_classes: ?FoldClasses = if (existing_only) FoldClasses.fromEnv(a) else null;
+    defer if (fold_classes) |*cache| cache.deinit();
     var stack = [_]?Pending{null} ** 9;
     defer for (stack) |item| if (item) |p| p.deinit(a);
     var graph_ns: u64 = 0;
@@ -394,7 +463,7 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
         while (stack[level]) |left| : (level += 1) {
             const start = timer.read();
             peak_pending = @max(peak_pending, pending_count + 1);
-            const parent = try combine(a, left, current.?, &nodes, dir, allow_resume, factory, existing_only);
+            const parent = try combine(a, left, current.?, &nodes, dir, allow_resume, factory, existing_only, if (fold_classes) |*cache| cache else null);
             fold_ns += timer.read() - start;
             restored_folds += @intFromBool(parent.restored);
             retired_bytes += parent.retired_preprocessed_bytes;
@@ -409,6 +478,7 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     }
     var root: ?Pending = null;
     defer if (root) |p| p.deinit(a);
+    defer if (fold_classes) |cache| std.debug.print("FOLD_CLASS_CACHE hits={d} misses={d} checked={d} classes={d}\n", .{ cache.hits, cache.misses, cache.checked, cache.entries.items.len });
     for (&stack) |*entry| if (entry.*) |left| {
         entry.* = null;
         if (root) |right| {
@@ -417,7 +487,7 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
             defer if (owns_left) left.deinit(a);
             const start = timer.read();
             peak_pending = @max(peak_pending, pending_count + 1);
-            const parent = try combine(a, left, right, &nodes, dir, allow_resume, factory, existing_only);
+            const parent = try combine(a, left, right, &nodes, dir, allow_resume, factory, existing_only, if (fold_classes) |*cache| cache else null);
             fold_ns += timer.read() - start;
             restored_folds += @intFromBool(parent.restored);
             retired_bytes += parent.retired_preprocessed_bytes;
@@ -550,6 +620,9 @@ const ParallelExecution = struct {
             const graph_ns = timer.lap();
             var name_buffer: [64]u8 = undefined;
             const name = try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{id});
+            // Fold v2: topology-only producer caches key by geometry class.
+            Outer.Device.class_hint = try Bridge.classKey(children);
+            defer Outer.Device.class_hint = null;
             return self.wrap(a, &graph.ctx, digest, id, name, factory, graph_ns, &timer);
         }
         const ordinal = spec.first_leaf;
