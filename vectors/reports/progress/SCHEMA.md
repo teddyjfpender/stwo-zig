@@ -38,7 +38,7 @@ Columns (number or absent; seconds unless noted). Definitions are the receipt-v2
 | `native_verify_s` | native verify on the critical path (0 when overlapped) |
 | `fold_tail_s` | recursion DAG wall after the last leaf finished |
 | `syncs`, `launches`, `pool_mallocs`, `library_loads`, `pageable_copies` | per-request CUDA driver-API counts from the counter shim (`--counters`): stream+ctx+event synchronize; cuLaunchKernel(Ex); cuMemAllocFromPoolAsync+cuMemAllocAsync; cuLibraryLoadData+cuModuleLoad*; H2D/D2H copies touching unregistered host memory |
-| `loadavg_1m` | pod 1-minute load average at producer start (timing hygiene: quote only quiet runs, < 8) |
+| `loadavg_1m` | pod 1-minute load average at producer start (timing hygiene: quote only quiet runs, < 8; rows at >= 8 never enter the PROGRESS.md best-so-far table) |
 | `instructions_m`, `nodes` | executed instructions (millions), recursion node count |
 
 Text: `byte_identical_to` (name of the reference receipt whose every proof hash matches: the strongest

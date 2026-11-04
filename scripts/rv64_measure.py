@@ -224,6 +224,8 @@ class SmapsSampler:
         if self.peak_maps:
             result["peak_t_s"] = self.peak_maps[0]
             result["peak_census"] = census(self.peak_maps[1], pinned)
+            result["peak_vmas_columns"] = ["lo", "size", "rss", "anonymous", "perms", "name"]
+            result["peak_vmas"] = [[m["lo"], m["size"], m.get("Rss", 0), m.get("Anonymous", 0), m["perms"], m["name"]] for m in self.peak_maps[1] if m.get("Rss", 0)]
         self.out.parent.mkdir(parents=True, exist_ok=True)
         with open(self.out, "w") as handle:
             json.dump(result, handle)
@@ -275,26 +277,46 @@ def pipeline_nodes(proof):
     return load(path)
 
 
-def lane_threads(counter, nodes, min_launch=1000):
-    """Map lane -> shim thread record, and an offset (shim ns - pipeline ns).
+def align_lanes(events_by_thread, nodes, step_ns=5_000_000, radius_ns=1_500_000_000):
+    """Map lane -> thread and find offset (thread clock = pipeline clock + offset).
 
-    Lane threads are spawned at pipeline start and make their first CUDA call when their first
-    node's device stage starts. Threads are matched to lanes by first-call order."""
+    CUDA work is issued by one device thread per GPU for the whole request (native AND recursion), so
+    first-call anchoring is wrong. Recursion is the last GPU phase: anchor each lane's last node
+    device_end on its thread's last activity, then refine by a local search that maximises activity
+    inside the nodes' device windows. events_by_thread: {tid: sorted [(t_ns, weight)]}."""
     lanes = sorted({n["lane"] for n in nodes if n.get("lane") is not None})
-    firsts = {lane: min(n["stamps"]["device_start"] for n in nodes if n.get("lane") == lane) for lane in lanes}
-    rec_start = min(firsts.values())
-    candidates = [t for t in counter["threads"] if t["count"][1] >= min_launch]
-    # The lane threads are the latest-starting heavy launchers (native-stage threads start earlier).
-    candidates.sort(key=lambda t: t["first_ns"])
-    chosen = candidates[-len(lanes):] if len(candidates) >= len(lanes) else []
-    if not chosen:
-        return None, None
-    chosen.sort(key=lambda t: t["first_ns"])
-    order = sorted(lanes, key=lambda lane: firsts[lane])
-    mapping = dict(zip(order, chosen))
-    offsets = [mapping[lane]["first_ns"] - firsts[lane] for lane in order]
-    return mapping, {"offsets_ns": offsets, "offset_ns": int(sum(offsets) / len(offsets)), "spread_ns": max(offsets) - min(offsets),
-                     "recursion_start_pipeline_ns": rec_start}
+    windows = {lane: sorted((n["stamps"]["device_start"], n["stamps"]["device_end"]) for n in nodes if n.get("lane") == lane) for lane in lanes}
+    heavy = sorted(events_by_thread, key=lambda t: -sum(w for _, w in events_by_thread[t]))[:len(lanes)]
+    if len(heavy) < len(lanes):
+        return None
+
+    def score(mapping, offset):
+        total = 0
+        for lane, tid in mapping.items():
+            ev = events_by_thread[tid]
+            times = [t for t, _ in ev]
+            for lo, hi in windows[lane]:
+                i, j = bisect.bisect_left(times, lo + offset), bisect.bisect_right(times, hi + offset)
+                total += sum(w for _, w in ev[i:j])
+        return total
+
+    best = None
+    import itertools
+    for perm in itertools.permutations(heavy):
+        mapping = dict(zip(lanes, perm))
+        anchors = [events_by_thread[tid][-1][0] - windows[lane][-1][1] for lane, tid in mapping.items()]
+        center = int(sum(anchors) / len(anchors))
+        for k in range(-radius_ns // step_ns, radius_ns // step_ns + 1):
+            off = center + k * step_ns
+            sc = score(mapping, off)
+            if best is None or sc > best[0]:
+                best = (sc, mapping, off, anchors)
+    sc, mapping, off, anchors = best
+    total_rec = 0
+    lo_all = min(w[0][0] for w in windows.values()) + off
+    for tid in mapping.values():
+        total_rec += sum(w for t, w in events_by_thread[tid] if t >= lo_all)
+    return {"mapping": mapping, "offset_ns": off, "end_anchors_ns": anchors, "in_window_fraction_of_recursion_activity": round(sc / max(1, total_rec), 4)}
 
 
 def bin_sum(bins, lo_ns, hi_ns, bin_ns):
@@ -304,24 +326,33 @@ def bin_sum(bins, lo_ns, hi_ns, bin_ns):
 
 def per_node_counters(counter, pipeline):
     nodes = pipeline["nodes"]
-    mapping, align = lane_threads(counter, nodes)
-    if not mapping:
-        return None
-    classes = counter["classes"]
     bin_ns = counter["bin_ns"]
+    events = {}
+    for t in counter["threads"]:
+        ev = {}
+        for klass, bins in t["bins"].items():
+            for b, c in bins:
+                ev[b] = ev.get(b, 0) + c
+        if ev:
+            events[t["tid"]] = sorted((b * bin_ns, c) for b, c in ev.items())
+    align = align_lanes(events, nodes, step_ns=bin_ns)
+    if not align:
+        return None
+    by_tid = {t["tid"]: t for t in counter["threads"]}
+    classes = counter["classes"]
     out = []
     for n in nodes:
         lane = n.get("lane")
         if lane is None:
             continue
-        thread = mapping[lane]
+        thread = by_tid[align["mapping"][lane]]
         lo = n["stamps"]["device_start"] + align["offset_ns"]
         hi = n["stamps"]["device_end"] + align["offset_ns"]
         row = {"node": n["id"], "kind": n["kind"], "lane": lane, "device_stage_s": round((n["stamps"]["device_end"] - n["stamps"]["device_start"]) / 1e9, 3),
                "span_s": round((n["stamps"]["finish_end"] - n["stamps"]["taken"]) / 1e9, 3)}
         for klass in classes:
             bins = thread["bins"].get(klass)
-            row[klass] = bin_sum(bins, lo, hi, bin_ns) if bins else 0
+            row[klass] = bin_sum(bins, lo, hi - 1, bin_ns) if bins else 0
         out.append(row)
     summary = {}
     for kind in ("leaf", "fold"):
@@ -330,8 +361,10 @@ def per_node_counters(counter, pipeline):
             summary[kind] = {"nodes": len(rows), **{f"{k}_per_node": round(sum(r[k] for r in rows) / len(rows), 1) for k in classes},
                              "device_stage_s_mean": round(sum(r["device_stage_s"] for r in rows) / len(rows), 3),
                              "span_s_mean": round(sum(r["span_s"] for r in rows) / len(rows), 3)}
-    return {"alignment": align, "lane_thread_tids": {str(k): v["tid"] for k, v in mapping.items()}, "per_kind": summary, "nodes": out,
-            "scope": "device-stage window of each node on its lane thread (10 ms bins); prep/finish threads are reported per thread, not per node"}
+    rec = {k: sum(r[k] for r in out) for k in classes}
+    return {"alignment": {k: v for k, v in align.items() if k != "mapping"}, "lane_thread_tids": {str(k): v for k, v in align["mapping"].items()},
+            "per_kind": summary, "recursion_totals": rec, "nodes": out,
+            "scope": "device-stage window of each node on its GPU's CUDA thread (10 ms bins; one CUDA thread per GPU serves native and recursion)"}
 
 
 def counters_view(counter, pipeline):
@@ -441,23 +474,18 @@ def nsys_view(sqlite_path, pipeline=None, phases=None):
     out["kernel_top"] = [{"name": n[:80], "calls": c, "s": round(ns / 1e9, 3)} for n, (c, ns) in sorted(kt.items(), key=lambda kv: -kv[1][1])[:25]]
     if pipeline:
         # correlation -> launching thread, for attributing kernels to lane threads
-        corr_tid = {corr: tid for table, s, e, corr, tid, nid in api}
-        launch_ids = {i for i, v in names.items() if v.startswith(("cuLaunchKernel", "cudaLaunchKernel"))}
-        firsts = {}
-        for table, s, e, corr, tid, nid in api:
-            if nid in launch_ids:
-                firsts.setdefault(tid, [s, 0])
-                firsts[tid][1] += 1
-                firsts[tid][0] = min(firsts[tid][0], s)
+        corr_tid = {corr: tid for table, s_, e, corr, tid, nid in api}
         nodes = pipeline["nodes"]
-        lanes = sorted({n["lane"] for n in nodes if n.get("lane") is not None})
-        lane_first = {lane: min(n["stamps"]["device_start"] for n in nodes if n.get("lane") == lane) for lane in lanes}
-        heavy = sorted([(f[0], tid) for tid, f in firsts.items() if f[1] >= 1000])
-        chosen = sorted(heavy[-len(lanes):])
-        order = sorted(lanes, key=lambda lane: lane_first[lane])
-        lane_tid = {lane: tid for lane, (_, tid) in zip(order, chosen)}
-        offsets = [first - lane_first[lane] for lane, (first, _) in zip(order, chosen)]
-        offset = int(sum(offsets) / len(offsets))
+        events = {}
+        for d, ks, ke, corr, pid, nid in kernels:
+            tid = corr_tid.get(corr)
+            events.setdefault(tid, []).append((ks, (ke - ks) // 1000 + 1))
+        for tid in events:
+            events[tid].sort()
+        align = align_lanes(events, nodes, step_ns=2_000_000)
+        lane_tid = align["mapping"]
+        offset = align["offset_ns"]
+        offsets = align["end_anchors_ns"]
         # kernels per launching thread
         per_tid = {}
         for d, s, e, corr, pid, nid in kernels:
@@ -487,7 +515,8 @@ def nsys_view(sqlite_path, pipeline=None, phases=None):
         for d, iv in sorted(by_dev.items()):
             m = merged(iv)
             window[str(d)] = round(busy(m, rec_lo, rec_hi) / 1e9, 3)
-        out["recursion"] = {"alignment": {"offsets_ns": offsets, "spread_ns": max(offsets) - min(offsets), "lane_tids": {str(k): v for k, v in lane_tid.items()}},
+        out["recursion"] = {"alignment": {"offset_ns": offset, "end_anchors_ns": offsets, "in_window_fraction": align["in_window_fraction_of_recursion_activity"],
+                                          "lane_tids": {str(k): v for k, v in lane_tid.items()}},
                             "window_s": round((rec_hi - rec_lo) / 1e9, 3), "device_busy_in_window_s": window,
                             "device_busy_fraction": {d: round(v / ((rec_hi - rec_lo) / 1e9), 3) for d, v in window.items()},
                             "per_kind": kinds, "nodes": rows,
@@ -610,7 +639,7 @@ def build_v2(run, reference=None):
             "recursion_s": "combined recursion_ns; recursion starts after the last native proof in M3, so tail == wall",
             "compress_s": "no compress layer before M7 (0)",
         },
-        "ram": {"rss_peak_daemon_gib": round(proc.get("peak_rss_bytes", 0) / 2**30, 3) if proc.get("peak_rss_bytes") else None,
+        "ram": {"rss_peak_daemon_gib": round(proc.get("peak_rss_bytes", 0) / 2**30, 3) if proc.get("peak_rss_bytes") and not v1.get("nsys") else None,
                 "rss_peak_request_private_gib": round(rss_private / 2**30, 3) if rss_private else None,
                 "rss_scope": "one process per request (no daemon yet): daemon == whole-process peak (getrusage); request_private = private non-file-backed pages at the sampled peak",
                 "smaps_peak_census": (smaps or {}).get("peak_census"), "smaps_peak_t_s": (smaps or {}).get("peak_t_s")},
@@ -645,6 +674,199 @@ def build_v2(run, reference=None):
     return v2
 
 
+# ----------------------------------------------------------------------------- mmap census
+
+ALLOC_FRAMES = ("large_block_recycler", "LargeBlockRecycler", "Recycler", "host_budget_allocator", "SharedHostBudget", "sharedAlloc", "alignedAlloc", "rawAlloc", "heap.", "mem.Allocator", "Allocator.", "array_list", "posix.", "PageAllocator", "smp_allocator", "hash_map", "multi_array_list",
+                "array_hash_map", "ArrayList", "HashMap", "mmap", "debug.", "process.", "Thread.", "start.", "callMain", "posixCallMainAndExit")
+
+
+def parse_maps(text):
+    mods = []
+    for line in text.split("\n"):
+        parts = line.split()
+        if len(parts) >= 6 and "x" in parts[1]:
+            lo, hi = (int(x, 16) for x in parts[0].split("-"))
+            mods.append((lo, hi, int(parts[2], 16), parts[5]))
+    return sorted(mods)
+
+
+def symbolize(binary, addrs, maps_text=""):
+    """addr -> (function, location). Driver frames via addr2line on the (non-PIE) driver; frames in other
+    modules via addr2line on the module with a file offset, or labelled with the module name."""
+    import subprocess
+    mods = parse_maps(maps_text)
+    groups = {}
+    for a in addrs:
+        mod = next(((lo, hi, off, path) for lo, hi, off, path in mods if lo <= a < hi), None)
+        if mod is None or os.path.realpath(mod[3]) == os.path.realpath(str(binary)):
+            groups.setdefault(str(binary), []).append((a, a))
+        else:
+            groups.setdefault(mod[3], []).append((a, a - mod[0] + mod[2]))
+    res = {}
+    for path, pairs in groups.items():
+        if "libcuda" in path or "libnvidia" in path or not os.path.isfile(path):
+            for a, _ in pairs:
+                res[a] = (f"[{os.path.basename(path)}]", os.path.basename(path))
+            continue
+        out = subprocess.run(["addr2line", "-f", "-C", "-e", path] + [hex(x) for _, x in pairs], capture_output=True, text=True).stdout.splitlines()
+        for i, (a, _) in enumerate(pairs):
+            fn = out[2 * i] if 2 * i < len(out) else "?"
+            loc = out[2 * i + 1] if 2 * i + 1 < len(out) else "?"
+            if fn == "??":
+                fn = f"[{os.path.basename(path)}]"
+            res[a] = (fn, loc.split("/src/")[-1] if "/src/" in loc else loc.rsplit("/", 2)[-1])
+    return res
+
+
+def mmap_census(run, at_s=None, binary=None, top=400):
+    """Live anonymous mmap bytes (>= 1 MiB, from the shim's RV64_MMAP_TRACE) per call site at the peak."""
+    import struct
+    run = Path(run)
+    sites_file = sorted((run / "counters").glob("mmap-sites-*.json"), key=lambda p: p.stat().st_size)[-1]
+    meta = load(sites_file)
+    raw = (run / "counters" / sites_file.name.replace("mmap-sites-", "mmap-trace-").replace(".json", ".bin")).read_bytes()
+    size = meta["event_bytes"]
+    events = [struct.unpack_from("<QQQQIB", raw, i) for i in range(0, len(raw) - size + 1, size)]
+    origin = meta["origin_monotonic_ns"]
+    live, starts, total, curve = {}, [], 0, []
+
+    def remove(addr, length):
+        nonlocal total
+        lo, hi = addr, addr + length
+        i = max(bisect.bisect_right(starts, lo) - 1, 0)
+        removed_site = None
+        while i < len(starts) and starts[i] < hi:
+            st = starts[i]
+            ln, site = live[st]
+            en = st + ln
+            if en <= lo:
+                i += 1
+                continue
+            removed_site = site
+            del live[st]
+            starts.pop(i)
+            total -= ln
+            if st < lo:
+                live[st] = (lo - st, site); bisect.insort(starts, st); total += lo - st; i += 1
+            if en > hi:
+                live[hi] = (en - hi, site); bisect.insort(starts, hi); total += en - hi; i += 1
+        return removed_site
+
+    pending_site = None
+    for t, addr, length, aux, site, op in events:
+        if op == 0:
+            remove(addr, length)
+            live[addr] = (length, site); bisect.insort(starts, addr); total += length
+        elif op == 1:
+            remove(addr, length)
+        elif op == 2:
+            pending_site = remove(addr, length)
+        elif op == 3:
+            if pending_site is not None:
+                remove(addr, length)
+                live[addr] = (length, pending_site); bisect.insort(starts, addr); total += length
+            pending_site = None
+        curve.append((t - origin, total))
+    if not curve:
+        return {"error": "no events"}
+    smaps_t = None
+    if (run / "smaps-peak.json").is_file():
+        smaps_t = load(run / "smaps-peak.json").get("peak_t_s")
+    if at_s is None and smaps_t is not None:
+        peak_t = int(smaps_t * 1e9)
+    elif at_s is None:
+        peak_t, peak_live = max(curve, key=lambda x: x[1])
+    else:
+        peak_t = int(at_s * 1e9)
+    # replay again up to peak_t to get the per-site snapshot
+    live.clear(); starts.clear(); total = 0; pending_site = None
+    for t, addr, length, aux, site, op in events:
+        if t - origin > peak_t:
+            break
+        if op == 0:
+            remove(addr, length); live[addr] = (length, site); bisect.insort(starts, addr); total += length
+        elif op == 1:
+            remove(addr, length)
+        elif op == 2:
+            pending_site = remove(addr, length)
+        elif op == 3:
+            if pending_site is not None:
+                remove(addr, length); live[addr] = (length, pending_site); bisect.insort(starts, addr); total += length
+            pending_site = None
+    # RSS weighting: distribute each anonymous VMA's RSS at the smaps peak over the live tracked regions
+    # inside it (proportional to overlap; page_allocator regions are written in full, reservations are
+    # PROT_NONE VMAs with ~0 RSS). Untracked RSS inside a VMA stays 'untracked'.
+    smaps = load(run / "smaps-peak.json") if (run / "smaps-peak.json").is_file() else {}
+    vmas = smaps.get("peak_vmas") or []
+    rss_site = {}
+    untracked_anon = 0
+    for lo, size, rss, anon, perms, name in vmas:
+        if name and not name.startswith("[heap"):
+            continue
+        hi = lo + size
+        i = max(bisect.bisect_right(starts, lo) - 1, 0)
+        cover = []
+        while i < len(starts) and starts[i] < hi:
+            st = starts[i]
+            ln, site = live[st]
+            ov = min(hi, st + ln) - max(lo, st)
+            if ov > 0:
+                cover.append((site, ov))
+            i += 1
+        covered = sum(ov for _, ov in cover)
+        frac = rss / size if size else 0
+        for site, ov in cover:
+            rss_site[site] = rss_site.get(site, 0) + ov * frac
+        untracked_anon += rss * (1 - min(1, covered / size)) if size else 0
+    by_site = {}
+    for st, (ln, site) in live.items():
+        b = by_site.setdefault(site, [0, 0, 0])
+        b[0] += ln
+        b[1] += 1
+    for site, r in rss_site.items():
+        by_site.setdefault(site, [0, 0, 0])[2] = r
+    key = 2 if vmas else 0
+    ranked = sorted(by_site.items(), key=lambda kv: -kv[1][key])
+    sites = {x["id"]: x for x in meta["sites"]}
+    if binary is None:
+        plan = load(run / "plan.json")
+        binary = plan["assets"]["driver"]
+    addrs = sorted({int(f, 16) for sid, _ in ranked[:top] if sid in sites for f in sites[sid]["frames"]})
+    sym = symbolize(binary, addrs, meta.get("maps", ""))
+    rows = []
+    for sid, (bytes_, n, rss_b) in ranked[:top]:
+        frames = [int(f, 16) for f in sites.get(sid, {}).get("frames", [])]
+        named = [sym.get(a, ("?", "?")) for a in frames]
+        label = next(((fn, loc) for fn, loc in named if fn != "??" and not any(k in fn for k in ALLOC_FRAMES)), named[0] if named else ("?", "?"))
+        rows.append({"site": sid, "rss_gib": round(rss_b / 2**30, 3), "live_virtual_gib": round(bytes_ / 2**30, 3), "regions": n, "label": label[0][:140], "where": label[1],
+                     "stack": [f"{fn[:90]} @ {loc}" for fn, loc in named[:10]]})
+    by_label = {}
+    for sid, (bytes_, n, rss_b) in ranked:
+        frames = [int(f, 16) for f in sites.get(sid, {}).get("frames", [])]
+        if sid not in [r["site"] for r in rows]:
+            continue
+    for r in rows:
+        b = by_label.setdefault(r["label"], {"rss_gib": 0.0, "sites": 0, "where": r["where"]})
+        b["rss_gib"] = round(b["rss_gib"] + r["rss_gib"], 3)
+        b["sites"] += 1
+    # downsampled curve (1 s)
+    pts, last = [], -1
+    for t, v in curve:
+        sec = t // 1_000_000_000
+        if sec != last:
+            pts.append([round(t / 1e9, 2), round(v / 2**30, 3)])
+            last = sec
+    return {"schema": "rv64-mmap-census/v1", "label": "measured", "events": len(events), "dropped": meta.get("dropped"),
+            "small_maps": meta["small_maps"], "small_map_bytes": meta["small_bytes"],
+            "peak_t_s": round(peak_t / 1e9, 3), "live_tracked_bytes_at_peak": total, "live_tracked_gib_at_peak": round(total / 2**30, 3),
+            "rss_weighted": bool(vmas), "smaps_peak_t_s": smaps.get("peak_t_s"),
+            "anon_rss_at_smaps_peak_gib": round(sum(v[2] for v in vmas if not v[5] or v[5].startswith("[heap")) / 2**30, 3) if vmas else None,
+            "tracked_rss_gib": round(sum(rss_site.values()) / 2**30, 3), "untracked_anon_rss_gib": round(untracked_anon / 2**30, 3),
+            "by_caller": dict(sorted(by_label.items(), key=lambda kv: -kv[1]["rss_gib"])),
+            "sites_at_peak": rows, "live_curve_gib_1s": pts,
+            "scope": "anonymous mmaps >= 1 MiB through libc mmap (Zig page_allocator); glibc-internal malloc mmaps and CUDA driver allocations are NOT traced"}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -658,6 +880,10 @@ def main():
     n = sub.add_parser("nsys")
     n.add_argument("run")
     n.add_argument("--out")
+    mc = sub.add_parser("mmap-census")
+    mc.add_argument("run")
+    mc.add_argument("--at", type=float, help="seconds since process start (default: peak of live tracked bytes)")
+    mc.add_argument("--out")
     m = sub.add_parser("smaps")
     m.add_argument("pid", type=int)
     m.add_argument("--out")
@@ -671,6 +897,9 @@ def main():
     elif args.command == "nsys":
         run = Path(args.run)
         result = nsys_view(run / "nsys/timeline.sqlite", pipeline_nodes(proof_dir(run)))
+        out = Path(args.out) if args.out else None
+    elif args.command == "mmap-census":
+        result = mmap_census(args.run, args.at)
         out = Path(args.out) if args.out else None
     else:
         result = census(parse_smaps(args.pid))

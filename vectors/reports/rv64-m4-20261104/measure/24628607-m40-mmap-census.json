@@ -1,0 +1,3555 @@
+{
+ "schema": "rv64-mmap-census/v1",
+ "label": "measured",
+ "events": 32560,
+ "dropped": 0,
+ "small_maps": 19143,
+ "small_map_bytes": 1675038720,
+ "peak_t_s": 50.151,
+ "live_tracked_bytes_at_peak": 309629894656,
+ "live_tracked_gib_at_peak": 288.365,
+ "rss_weighted": true,
+ "smaps_peak_t_s": 50.151,
+ "anon_rss_at_smaps_peak_gib": 21.226,
+ "tracked_rss_gib": 12.199,
+ "untracked_anon_rss_gib": 9.027,
+ "by_caller": {
+  "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit": {
+   "rss_gib": 4.343,
+   "sites": 27,
+   "where": "frontends/circuit/common/preprocessed.zig:?"
+  },
+  "rv64.outer_assignment.Prepared.init": {
+   "rss_gib": 2.993,
+   "sites": 2,
+   "where": "integrations/riscv_cuda/rv64/outer_assignment.zig:133"
+  },
+  "witness_generation.plan.buildImpl__anon_103593": {
+   "rss_gib": 1.204,
+   "sites": 3,
+   "where": "frontends/circuit/witness_generation/plan.zig:244"
+  },
+  "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .source_trace_arena = false, .preprocessed_preparation_c": {
+   "rss_gib": 0.589,
+   "sites": 4,
+   "where": "prover/pcs/tree_builders.zig:588"
+  },
+  "vcs_lifted.streaming_committer.StreamingCommitter(vcs_lifted.blake2_merkle.Blake2sMerkleHasherProtocolGeneric(false,.domain_prefixed),vcs_li": {
+   "rss_gib": 0.321,
+   "sites": 2,
+   "where": "prover/vcs_lifted/streaming_committer.zig:669"
+  },
+  "common.preprocessed.TraceBuilder.block__anon_172832": {
+   "rss_gib": 0.25,
+   "sites": 1,
+   "where": "frontends/circuit/common/preprocessed.zig:654 (discriminator 6)"
+  },
+  "rv64.trace_commit.Context.tw": {
+   "rss_gib": 0.218,
+   "sites": 2,
+   "where": "integrations/riscv_cuda/rv64/trace_commit.zig:81 (discriminator 2)"
+  },
+  "rv64.air.delegations.keccak.tables.Trace.initPolicy": {
+   "rss_gib": 0.201,
+   "sites": 4,
+   "where": "frontends/riscv/rv64/air/delegations/keccak/tables.zig:45"
+  },
+  "word16_global_execution.services.gkr_local.fixed_authority_set.ValidatedCatalogue.acquire": {
+   "rss_gib": 0.195,
+   "sites": 2,
+   "where": "integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:32"
+  },
+  "pcs.commitment_tree.CommitmentTreeProverForBackend(mod.configured(.{ .wide_preparation = false, .source_trace_arena = false, .preprocessed_p": {
+   "rss_gib": 0.186,
+   "sites": 2,
+   "where": "prover/pcs/commitment_tree.zig:320 (discriminator 2)"
+  },
+  "pcs.columns.preparation.prepareColumnsWithArenaOwnership__anon_92920": {
+   "rss_gib": 0.172,
+   "sites": 2,
+   "where": "prover/pcs/columns/preparation.zig:396"
+  },
+  "word16_global_execution.keccak.shared.key.Key.sealWithSuite": {
+   "rss_gib": 0.155,
+   "sites": 1,
+   "where": "integrations/riscv_cpu/word16_global_execution/keccak/shared/key.zig:43"
+  },
+  "word16_execution.expected_image.Owner.init": {
+   "rss_gib": 0.151,
+   "sites": 4,
+   "where": "integrations/riscv_cpu/word16_execution/expected_image.zig:40"
+  },
+  "rv64.resident_composition.Context.tw": {
+   "rss_gib": 0.148,
+   "sites": 4,
+   "where": "integrations/riscv_cuda/rv64/resident_composition.zig:220"
+  },
+  "pcs.commit_polys.commit__anon_96291": {
+   "rss_gib": 0.135,
+   "sites": 2,
+   "where": "prover/pcs/commit_polys.zig:54"
+  },
+  "word16_global_execution.services.roster.CpuSetup.sealWithCache": {
+   "rss_gib": 0.118,
+   "sites": 1,
+   "where": "integrations/riscv_cpu/word16_global_execution/services/roster.zig:121"
+  },
+  "common.preprocessed.PreprocessedCircuit.fromCircuit": {
+   "rss_gib": 0.101,
+   "sites": 1,
+   "where": "frontends/circuit/common/preprocessed.zig:499"
+  },
+  "rv64.bulk_sponge.Owner.callback": {
+   "rss_gib": 0.089,
+   "sites": 6,
+   "where": "integrations/riscv_cuda/rv64/bulk_sponge.zig:112"
+  },
+  "rv64.pcs_geometry_cache.Cache.build": {
+   "rss_gib": 0.078,
+   "sites": 4,
+   "where": "integrations/riscv_cuda/rv64/pcs_geometry_cache.zig:111"
+  },
+  "poly.twiddle_source.TwiddleSource.getWithWorkRecorder": {
+   "rss_gib": 0.059,
+   "sites": 4,
+   "where": "prover/poly/twiddle_source.zig:132"
+  },
+  "rv64_recursion.om31_native.mod.verify__anon_101314": {
+   "rss_gib": 0.056,
+   "sites": 3,
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:99"
+  },
+  "word16_global_execution.ethereum.keys.Owner.initPolicy": {
+   "rss_gib": 0.048,
+   "sites": 5,
+   "where": "integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234"
+  },
+  "word16_global_execution.services.gkr_local.coordinator.produceFrozen": {
+   "rss_gib": 0.046,
+   "sites": 2,
+   "where": "integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig:453"
+  },
+  "atomic.Value(u32).fetchOr": {
+   "rss_gib": 0.046,
+   "sites": 2,
+   "where": "atomic.zig:74"
+  },
+  "witness_generation.ordering.parallel__anon_141395": {
+   "rss_gib": 0.041,
+   "sites": 1,
+   "where": "frontends/circuit/witness_generation/ordering.zig:57"
+  },
+  "word16_execution.program.Program.initWithAuthorityAndMetadataCache": {
+   "rss_gib": 0.04,
+   "sites": 2,
+   "where": "integrations/riscv_cpu/word16_execution/program.zig:65"
+  },
+  "word16_execution.program.Program.makeCompact": {
+   "rss_gib": 0.031,
+   "sites": 1,
+   "where": "integrations/riscv_cpu/word16_execution/program.zig:158"
+  },
+  "rv64.global_stage.Context.generateRationalLocked": {
+   "rss_gib": 0.028,
+   "sites": 4,
+   "where": "integrations/riscv_cuda/rv64/global_stage.zig:180 (discriminator 2)"
+  },
+  "rv64.gkr_twiddles.Cache.acquire": {
+   "rss_gib": 0.024,
+   "sites": 2,
+   "where": "integrations/riscv_cuda/rv64/gkr_twiddles.zig:45"
+  },
+  "word16_execution.family_input.Batch.alu": {
+   "rss_gib": 0.019,
+   "sites": 1,
+   "where": "integrations/riscv_cpu/word16_execution/family_input.zig:39"
+  },
+  "word16_global_execution.services.collector.Builder.append": {
+   "rss_gib": 0.014,
+   "sites": 3,
+   "where": "integrations/riscv_cpu/word16_global_execution/services/collector.zig:?"
+  },
+  "rv64_recursion.om31_native.cpu_child.Writer.field": {
+   "rss_gib": 0.013,
+   "sites": 2,
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:132 (discriminator 8)"
+  },
+  "word16_global_execution.services.gkr_local.worker_protocol.decodePhysical": {
+   "rss_gib": 0.011,
+   "sites": 3,
+   "where": "integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig:123"
+  },
+  "word16_global_execution.ethereum.gkr_receiver.verifyWithAuthority": {
+   "rss_gib": 0.009,
+   "sites": 1,
+   "where": "integrations/riscv_cpu/word16_global_execution/ethereum/gkr_receiver.zig:18"
+  },
+  "word16_execution.setup.Materials.fromProgram": {
+   "rss_gib": 0.008,
+   "sites": 1,
+   "where": "integrations/riscv_cpu/word16_execution/setup.zig:115"
+  },
+  "native_verifier.merkle.merkleNode__anon_140066": {
+   "rss_gib": 0.008,
+   "sites": 2,
+   "where": "frontends/circuit/native_verifier/merkle.zig:84"
+  },
+  "rv64.device_binding_runtime.Call.run": {
+   "rss_gib": 0.008,
+   "sites": 2,
+   "where": "integrations/riscv_cuda/rv64/device_binding_runtime.zig:319"
+  },
+  "native_verifier.channel.NativeChannel.mixFelts__anon_136599": {
+   "rss_gib": 0.006,
+   "sites": 3,
+   "where": "frontends/circuit/native_verifier/channel.zig:94"
+  },
+  "rv64_recursion.om31_native.leaf_graph.cpuMode": {
+   "rss_gib": 0.005,
+   "sites": 2,
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:97"
+  },
+  "rv64_recursion.om31_native.mod.verify__anon_102894": {
+   "rss_gib": 0.005,
+   "sites": 2,
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:100"
+  },
+  "rv64.core_witness.BuildJob.callback": {
+   "rss_gib": 0.005,
+   "sites": 2,
+   "where": "integrations/riscv_cuda/rv64/core_witness.zig:323"
+  },
+  "rv64_recursion.om31_native.cpu_leaf.Statement.init__anon_100369": {
+   "rss_gib": 0.005,
+   "sites": 2,
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/cpu_leaf.zig:108"
+  },
+  "native_verifier.channel.NativeChannel.hashWithDigest__anon_167069": {
+   "rss_gib": 0.004,
+   "sites": 2,
+   "where": "frontends/circuit/native_verifier/channel.zig:79"
+  },
+  "native_verifier.merkle.hashLeafM31s__anon_167504": {
+   "rss_gib": 0.003,
+   "sites": 1,
+   "where": "frontends/circuit/native_verifier/merkle.zig:57"
+  },
+  "word16_global_execution.services.gkr_local.worker_protocol.encodePhysical": {
+   "rss_gib": 0.003,
+   "sites": 1,
+   "where": "integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig:120"
+  },
+  "word16_execution.prepared.Prepared.captureForCombinedServices": {
+   "rss_gib": 0.003,
+   "sites": 1,
+   "where": "integrations/riscv_cpu/word16_execution/prepared.zig:99"
+  },
+  "common.preprocessed.TraceBuilder.block__anon_172818": {
+   "rss_gib": 0.003,
+   "sites": 2,
+   "where": "frontends/circuit/common/preprocessed.zig:654 (discriminator 6)"
+  },
+  "rv64_recursion.om31_native.proof.guess": {
+   "rss_gib": 0.001,
+   "sites": 1,
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/proof.zig:155"
+  },
+  "rv64_program_authority.Authority.initWithRom": {
+   "rss_gib": 0.001,
+   "sites": 1,
+   "where": "integrations/riscv_cpu/rv64_program_authority.zig:57 (discriminator 4)"
+  },
+  "word16_execution.prepared.Prepared.captureInternal": {
+   "rss_gib": 0.001,
+   "sites": 1,
+   "where": "integrations/riscv_cpu/word16_execution/prepared.zig:167 (discriminator 6)"
+  },
+  "rv64.device_source.Context.build": {
+   "rss_gib": 0.001,
+   "sites": 1,
+   "where": "integrations/riscv_cuda/rv64/device_source.zig:68 (discriminator 4)"
+  },
+  "rv64_recursion.om31_native.leaf_graph.truthMode": {
+   "rss_gib": 0.001,
+   "sites": 1,
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:132"
+  },
+  "family.ForField(fields.om31.OM31).readProofWireBinary": {
+   "rss_gib": 0.001,
+   "sites": 1,
+   "where": "interop/proof_wire/family.zig:706 (discriminator 6)"
+  },
+  "[libcuda.so.570.195.03]": {
+   "rss_gib": 0.0,
+   "sites": 16,
+   "where": "libcuda.so.570.195.03"
+  }
+ },
+ "sites_at_peak": [
+  {
+   "site": 215,
+   "rss_gib": 2.897,
+   "live_virtual_gib": 3.077,
+   "regions": 6,
+   "label": "rv64.outer_assignment.Prepared.init",
+   "where": "integrations/riscv_cuda/rv64/outer_assignment.zig:133",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "rv64.outer_assignment.Prepared.init @ integrations/riscv_cuda/rv64/outer_assignment.zig:133",
+    "rv64.outer_source.Context.prepareHost @ integrations/riscv_cuda/rv64/outer_source.zig:88",
+    "rv64_recursion.om31_native.outer_wrap.prepareHost @ integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig:308 (discriminator 4)",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 212,
+   "rss_gib": 1.154,
+   "live_virtual_gib": 1.154,
+   "regions": 6,
+   "label": "witness_generation.plan.buildImpl__anon_103593",
+   "where": "frontends/circuit/witness_generation/plan.zig:244",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "witness_generation.plan.buildImpl__anon_103593 @ frontends/circuit/witness_generation/plan.zig:244",
+    "rv64.outer_assignment.Prepared.initFull @ integrations/riscv_cuda/rv64/outer_assignment.zig:188",
+    "rv64.outer_assignment.Prepared.init @ integrations/riscv_cuda/rv64/outer_assignment.zig:133",
+    "rv64.outer_source.Context.prepareHost @ integrations/riscv_cuda/rv64/outer_source.zig:88",
+    "rv64_recursion.om31_native.outer_wrap.prepareHost @ integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig:308 (discriminator 4)",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 85,
+   "rss_gib": 0.298,
+   "live_virtual_gib": 0.298,
+   "regions": 16,
+   "label": "vcs_lifted.streaming_committer.StreamingCommitter(vcs_lifted.blake2_merkle.Blake2sMerkleHasherProtocolGeneric(false,.domain_prefixed),vcs_li",
+   "where": "prover/vcs_lifted/streaming_committer.zig:669",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "vcs_lifted.streaming_committer.StreamingCommitter(vcs_lifted.blake2_merkle.Blake2sMerkleHa @ prover/vcs_lifted/streaming_committer.zig:669",
+    "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .sourc @ prover/pcs/tree_builders.zig:588",
+    "word16_global_execution.services.roster.CpuSetup.sealWithCache @ integrations/riscv_cpu/word16_global_execution/services/roster.zig:121",
+    "word16_global_execution.services.roster.CpuSetup.initWithAuthorityAndSuiteAndCaches @ integrations/riscv_cpu/word16_global_execution/services/roster.zig:70",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58"
+   ]
+  },
+  {
+   "site": 184,
+   "rss_gib": 0.25,
+   "live_virtual_gib": 0.25,
+   "regions": 8,
+   "label": "common.preprocessed.TraceBuilder.block__anon_172832",
+   "where": "frontends/circuit/common/preprocessed.zig:654 (discriminator 6)",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "common.preprocessed.TraceBuilder.block__anon_172832 @ frontends/circuit/common/preprocessed.zig:654 (discriminator 6)",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 84,
+   "rss_gib": 0.25,
+   "live_virtual_gib": 0.25,
+   "regions": 1,
+   "label": "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .source_trace_arena = false, .preprocessed_preparation_c",
+   "where": "prover/pcs/tree_builders.zig:588",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .sourc @ prover/pcs/tree_builders.zig:588",
+    "word16_global_execution.services.roster.CpuSetup.sealWithCache @ integrations/riscv_cpu/word16_global_execution/services/roster.zig:121",
+    "word16_global_execution.services.roster.CpuSetup.initWithAuthorityAndSuiteAndCaches @ integrations/riscv_cpu/word16_global_execution/services/roster.zig:70",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)"
+   ]
+  },
+  {
+   "site": 182,
+   "rss_gib": 0.25,
+   "live_virtual_gib": 0.25,
+   "regions": 8,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 183,
+   "rss_gib": 0.25,
+   "live_virtual_gib": 0.25,
+   "regions": 8,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 202,
+   "rss_gib": 0.219,
+   "live_virtual_gib": 0.219,
+   "regions": 8,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 203,
+   "rss_gib": 0.219,
+   "live_virtual_gib": 0.219,
+   "regions": 8,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 204,
+   "rss_gib": 0.219,
+   "live_virtual_gib": 0.219,
+   "regions": 8,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 205,
+   "rss_gib": 0.219,
+   "live_virtual_gib": 0.219,
+   "regions": 8,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 206,
+   "rss_gib": 0.219,
+   "live_virtual_gib": 0.219,
+   "regions": 8,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 200,
+   "rss_gib": 0.219,
+   "live_virtual_gib": 0.219,
+   "regions": 8,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 201,
+   "rss_gib": 0.219,
+   "live_virtual_gib": 0.219,
+   "regions": 8,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 186,
+   "rss_gib": 0.219,
+   "live_virtual_gib": 0.219,
+   "regions": 7,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 187,
+   "rss_gib": 0.219,
+   "live_virtual_gib": 0.219,
+   "regions": 7,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 188,
+   "rss_gib": 0.219,
+   "live_virtual_gib": 0.219,
+   "regions": 7,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 189,
+   "rss_gib": 0.219,
+   "live_virtual_gib": 0.219,
+   "regions": 7,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 196,
+   "rss_gib": 0.203,
+   "live_virtual_gib": 0.203,
+   "regions": 7,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 197,
+   "rss_gib": 0.203,
+   "live_virtual_gib": 0.203,
+   "regions": 7,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 198,
+   "rss_gib": 0.203,
+   "live_virtual_gib": 0.203,
+   "regions": 7,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 199,
+   "rss_gib": 0.203,
+   "live_virtual_gib": 0.203,
+   "regions": 7,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 185,
+   "rss_gib": 0.187,
+   "live_virtual_gib": 0.188,
+   "regions": 6,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 180,
+   "rss_gib": 0.168,
+   "live_virtual_gib": 0.168,
+   "regions": 1,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 83,
+   "rss_gib": 0.164,
+   "live_virtual_gib": 0.164,
+   "regions": 14,
+   "label": "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .source_trace_arena = false, .preprocessed_preparation_c",
+   "where": "prover/pcs/tree_builders.zig:340",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .sourc @ prover/pcs/tree_builders.zig:340",
+    "word16_global_execution.services.roster.CpuSetup.sealWithCache @ integrations/riscv_cpu/word16_global_execution/services/roster.zig:121",
+    "word16_global_execution.services.roster.CpuSetup.initWithAuthorityAndSuiteAndCaches @ integrations/riscv_cpu/word16_global_execution/services/roster.zig:70",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)"
+   ]
+  },
+  {
+   "site": 86,
+   "rss_gib": 0.164,
+   "live_virtual_gib": 0.164,
+   "regions": 3,
+   "label": "rv64.air.delegations.keccak.tables.Trace.initPolicy",
+   "where": "frontends/riscv/rv64/air/delegations/keccak/tables.zig:45",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "rv64.air.delegations.keccak.tables.Trace.initPolicy @ frontends/riscv/rv64/air/delegations/keccak/tables.zig:45",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:253",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)"
+   ]
+  },
+  {
+   "site": 98,
+   "rss_gib": 0.156,
+   "live_virtual_gib": 0.156,
+   "regions": 82,
+   "label": "word16_global_execution.services.gkr_local.fixed_authority_set.ValidatedCatalogue.acquire",
+   "where": "integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:32",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.ValidatedCatalogue.acquire @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:32",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.Set.initPolicy @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:61 (discriminator 4)",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.Set.initWithValidatedCatalo @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:48",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35",
+    "__libc_init_first @ ??:?"
+   ]
+  },
+  {
+   "site": 79,
+   "rss_gib": 0.156,
+   "live_virtual_gib": 0.156,
+   "regions": 31,
+   "label": "pcs.columns.preparation.prepareColumnsWithArenaOwnership__anon_92920",
+   "where": "prover/pcs/columns/preparation.zig:396",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "pcs.columns.preparation.prepareColumnsWithArenaOwnership__anon_92920 @ prover/pcs/columns/preparation.zig:396",
+    "pcs.columns.preparation.prepareColumnsForCommitOwnedForBackendWithWorkRecorder__anon_92907 @ prover/pcs/columns/preparation.zig:198",
+    "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .sourc @ prover/pcs/tree_builders.zig:340",
+    "word16_global_execution.services.roster.CpuSetup.sealWithCache @ integrations/riscv_cpu/word16_global_execution/services/roster.zig:121",
+    "word16_global_execution.services.roster.CpuSetup.initWithAuthorityAndSuiteAndCaches @ integrations/riscv_cpu/word16_global_execution/services/roster.zig:70",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234"
+   ]
+  },
+  {
+   "site": 88,
+   "rss_gib": 0.155,
+   "live_virtual_gib": 0.156,
+   "regions": 20,
+   "label": "word16_global_execution.keccak.shared.key.Key.sealWithSuite",
+   "where": "integrations/riscv_cpu/word16_global_execution/keccak/shared/key.zig:43",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "word16_global_execution.keccak.shared.key.Key.sealWithSuite @ integrations/riscv_cpu/word16_global_execution/keccak/shared/key.zig:43",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:253",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)"
+   ]
+  },
+  {
+   "site": 99,
+   "rss_gib": 0.146,
+   "live_virtual_gib": 0.146,
+   "regions": 22,
+   "label": "pcs.commitment_tree.CommitmentTreeProverForBackend(mod.configured(.{ .wide_preparation = false, .source_trace_arena = false, .preprocessed_p",
+   "where": "prover/pcs/commitment_tree.zig:320 (discriminator 2)",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "pcs.commitment_tree.CommitmentTreeProverForBackend(mod.configured(.{ .wide_preparation = f @ prover/pcs/commitment_tree.zig:320 (discriminator 2)",
+    "pcs.commit_polys.commit__anon_96291 @ prover/pcs/commit_polys.zig:114",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.ValidatedCatalogue.acquire @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:32",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.Set.initPolicy @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:61 (discriminator 4)",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.Set.initWithValidatedCatalo @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:48",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334"
+   ]
+  },
+  {
+   "site": 80,
+   "rss_gib": 0.118,
+   "live_virtual_gib": 0.118,
+   "regions": 64,
+   "label": "word16_global_execution.services.roster.CpuSetup.sealWithCache",
+   "where": "integrations/riscv_cpu/word16_global_execution/services/roster.zig:121",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "word16_global_execution.services.roster.CpuSetup.sealWithCache @ integrations/riscv_cpu/word16_global_execution/services/roster.zig:121",
+    "word16_global_execution.services.roster.CpuSetup.initWithAuthorityAndSuiteAndCaches @ integrations/riscv_cpu/word16_global_execution/services/roster.zig:70",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334"
+   ]
+  },
+  {
+   "site": 34,
+   "rss_gib": 0.118,
+   "live_virtual_gib": 0.118,
+   "regions": 1,
+   "label": "word16_execution.expected_image.Owner.init",
+   "where": "integrations/riscv_cpu/word16_execution/expected_image.zig:40",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "word16_execution.expected_image.Owner.init @ integrations/riscv_cpu/word16_execution/expected_image.zig:40",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:475",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35",
+    "__libc_init_first @ ??:?",
+    "__libc_start_main @ ??:?"
+   ]
+  },
+  {
+   "site": 78,
+   "rss_gib": 0.113,
+   "live_virtual_gib": 0.113,
+   "regions": 12,
+   "label": "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .source_trace_arena = false, .preprocessed_preparation_c",
+   "where": "prover/pcs/tree_builders.zig:453",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .sourc @ prover/pcs/tree_builders.zig:453",
+    "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .sourc @ prover/pcs/tree_builders.zig:340",
+    "word16_global_execution.services.roster.CpuSetup.sealWithCache @ integrations/riscv_cpu/word16_global_execution/services/roster.zig:121",
+    "word16_global_execution.services.roster.CpuSetup.initWithAuthorityAndSuiteAndCaches @ integrations/riscv_cpu/word16_global_execution/services/roster.zig:70",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58"
+   ]
+  },
+  {
+   "site": 129,
+   "rss_gib": 0.109,
+   "live_virtual_gib": 0.109,
+   "regions": 6,
+   "label": "rv64.trace_commit.Context.tw",
+   "where": "integrations/riscv_cuda/rv64/trace_commit.zig:81 (discriminator 2)",
+   "stack": [
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "rv64.trace_commit.Context.tw @ integrations/riscv_cuda/rv64/trace_commit.zig:81 (discriminator 2)",
+    "rv64.trace_commit.Job.callback @ integrations/riscv_cuda/rv64/trace_commit.zig:130",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 128,
+   "rss_gib": 0.109,
+   "live_virtual_gib": 0.109,
+   "regions": 6,
+   "label": "rv64.trace_commit.Context.tw",
+   "where": "integrations/riscv_cuda/rv64/trace_commit.zig:81 (discriminator 2)",
+   "stack": [
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64.trace_commit.Context.tw @ integrations/riscv_cuda/rv64/trace_commit.zig:81 (discriminator 2)",
+    "rv64.trace_commit.Job.callback @ integrations/riscv_cuda/rv64/trace_commit.zig:130",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 209,
+   "rss_gib": 0.101,
+   "live_virtual_gib": 0.102,
+   "regions": 32,
+   "label": "common.preprocessed.PreprocessedCircuit.fromCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:499",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "common.preprocessed.PreprocessedCircuit.fromCircuit @ frontends/circuit/common/preprocessed.zig:499",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 216,
+   "rss_gib": 0.096,
+   "live_virtual_gib": 0.096,
+   "regions": 6,
+   "label": "rv64.outer_assignment.Prepared.init",
+   "where": "integrations/riscv_cuda/rv64/outer_assignment.zig:133",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "rv64.outer_assignment.Prepared.init @ integrations/riscv_cuda/rv64/outer_assignment.zig:133",
+    "rv64.outer_source.Context.prepareHost @ integrations/riscv_cuda/rv64/outer_source.zig:88",
+    "rv64_recursion.om31_native.outer_wrap.prepareHost @ integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig:308 (discriminator 4)",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 122,
+   "rss_gib": 0.075,
+   "live_virtual_gib": 0.075,
+   "regions": 13,
+   "label": "rv64.bulk_sponge.Owner.callback",
+   "where": "integrations/riscv_cuda/rv64/bulk_sponge.zig:112",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "rv64.bulk_sponge.Owner.callback @ integrations/riscv_cuda/rv64/bulk_sponge.zig:112",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 97,
+   "rss_gib": 0.068,
+   "live_virtual_gib": 0.068,
+   "regions": 32,
+   "label": "pcs.commit_polys.commit__anon_96291",
+   "where": "prover/pcs/commit_polys.zig:54",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "pcs.commit_polys.commit__anon_96291 @ prover/pcs/commit_polys.zig:54",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.ValidatedCatalogue.acquire @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:32",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.Set.initPolicy @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:61 (discriminator 4)",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.Set.initWithValidatedCatalo @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:48",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)"
+   ]
+  },
+  {
+   "site": 102,
+   "rss_gib": 0.067,
+   "live_virtual_gib": 0.067,
+   "regions": 24,
+   "label": "pcs.commit_polys.commit__anon_96291",
+   "where": "prover/pcs/commit_polys.zig:54",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "pcs.commit_polys.commit__anon_96291 @ prover/pcs/commit_polys.zig:54",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.ValidatedCatalogue.acquire @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:32",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.Set.initPolicy @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:68 (discriminator 4)",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.Set.initWithValidatedCatalo @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:48",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)"
+   ]
+  },
+  {
+   "site": 151,
+   "rss_gib": 0.066,
+   "live_virtual_gib": 0.066,
+   "regions": 3,
+   "label": "rv64.resident_composition.Context.tw",
+   "where": "integrations/riscv_cuda/rv64/resident_composition.zig:220",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "rv64.resident_composition.Context.tw @ integrations/riscv_cuda/rv64/resident_composition.zig:220",
+    "rv64.resident_composition.Job.run @ integrations/riscv_cuda/rv64/resident_composition.zig:553",
+    "rv64.resident_composition.Job.callback @ integrations/riscv_cuda/rv64/resident_composition.zig:471",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 225,
+   "rss_gib": 0.062,
+   "live_virtual_gib": 0.062,
+   "regions": 2,
+   "label": "rv64.resident_composition.Context.tw",
+   "where": "integrations/riscv_cuda/rv64/resident_composition.zig:220",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64.resident_composition.Context.tw @ integrations/riscv_cuda/rv64/resident_composition.zig:220",
+    "rv64.resident_composition.Job.run @ integrations/riscv_cuda/rv64/resident_composition.zig:553",
+    "rv64.resident_composition.Job.callback @ integrations/riscv_cuda/rv64/resident_composition.zig:471",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 226,
+   "rss_gib": 0.062,
+   "live_virtual_gib": 0.062,
+   "regions": 2,
+   "label": "rv64.pcs_geometry_cache.Cache.build",
+   "where": "integrations/riscv_cuda/rv64/pcs_geometry_cache.zig:111",
+   "stack": [
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64.pcs_geometry_cache.Cache.build @ integrations/riscv_cuda/rv64/pcs_geometry_cache.zig:111",
+    "rv64.pcs_request_export.prepareRequestWithFraming @ integrations/riscv_cuda/rv64/pcs_request_export.zig:145 (discriminator 4)",
+    "rv64.pcs_native.Context.prove @ integrations/riscv_cuda/rv64/pcs_native.zig:412",
+    "pcs.scheme_family.ForField(fields.om31.OM31).CommitmentSchemeProver(mod.configured(.{ .wid @ prover/pcs/scheme_family.zig:462",
+    "prove_family.ForField(fields.om31.OM31).proveExSampledPointsWithRecorderDiagnosed__anon_10 @ prover/prove_family.zig:361",
+    "prove_family.ForField(fields.om31.OM31).proveExComponentsWithRecorder__anon_106878 @ prover/prove_family.zig:679",
+    "om31.device_prove.proveOwned @ integrations/circuit_cpu/om31/device_prove.zig:168",
+    "om31.device_prove.proveFromPrecommittedCircuit @ integrations/circuit_cpu/om31/device_prove.zig:119",
+    "rv64_recursion.om31_native.outer_wrap.proveDevice @ integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig:372 (discriminator 4)"
+   ]
+  },
+  {
+   "site": 90,
+   "rss_gib": 0.062,
+   "live_virtual_gib": 0.062,
+   "regions": 4,
+   "label": "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .source_trace_arena = false, .preprocessed_preparation_c",
+   "where": "prover/pcs/tree_builders.zig:340",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .sourc @ prover/pcs/tree_builders.zig:340",
+    "word16_global_execution.keccak.shared.key.Key.sealWithSuite @ integrations/riscv_cpu/word16_global_execution/keccak/shared/key.zig:43",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:253",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334"
+   ]
+  },
+  {
+   "site": 194,
+   "rss_gib": 0.055,
+   "live_virtual_gib": 0.055,
+   "regions": 8,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 195,
+   "rss_gib": 0.053,
+   "live_virtual_gib": 0.055,
+   "regions": 8,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 193,
+   "rss_gib": 0.052,
+   "live_virtual_gib": 0.055,
+   "regions": 8,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 210,
+   "rss_gib": 0.05,
+   "live_virtual_gib": 0.05,
+   "regions": 1,
+   "label": "witness_generation.plan.buildImpl__anon_103593",
+   "where": "frontends/circuit/witness_generation/plan.zig:168",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "witness_generation.plan.buildImpl__anon_103593 @ frontends/circuit/witness_generation/plan.zig:168",
+    "rv64.outer_assignment.Prepared.initFull @ integrations/riscv_cuda/rv64/outer_assignment.zig:188",
+    "rv64.outer_assignment.Prepared.init @ integrations/riscv_cuda/rv64/outer_assignment.zig:133",
+    "rv64.outer_source.Context.prepareHost @ integrations/riscv_cuda/rv64/outer_source.zig:88",
+    "rv64_recursion.om31_native.outer_wrap.prepareHost @ integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig:308 (discriminator 4)",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 213,
+   "rss_gib": 0.041,
+   "live_virtual_gib": 0.041,
+   "regions": 6,
+   "label": "witness_generation.ordering.parallel__anon_141395",
+   "where": "frontends/circuit/witness_generation/ordering.zig:57",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "witness_generation.ordering.parallel__anon_141395 @ frontends/circuit/witness_generation/ordering.zig:57",
+    "witness_generation.plan.buildImpl__anon_103593 @ frontends/circuit/witness_generation/plan.zig:248",
+    "rv64.outer_assignment.Prepared.initFull @ integrations/riscv_cuda/rv64/outer_assignment.zig:188",
+    "rv64.outer_assignment.Prepared.init @ integrations/riscv_cuda/rv64/outer_assignment.zig:133",
+    "rv64.outer_source.Context.prepareHost @ integrations/riscv_cuda/rv64/outer_source.zig:88",
+    "rv64_recursion.om31_native.outer_wrap.prepareHost @ integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig:308 (discriminator 4)",
+    "pthread_condattr_setpshared @ ??:?"
+   ]
+  },
+  {
+   "site": 104,
+   "rss_gib": 0.04,
+   "live_virtual_gib": 0.04,
+   "regions": 5,
+   "label": "pcs.commitment_tree.CommitmentTreeProverForBackend(mod.configured(.{ .wide_preparation = false, .source_trace_arena = false, .preprocessed_p",
+   "where": "prover/pcs/commitment_tree.zig:320 (discriminator 2)",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "pcs.commitment_tree.CommitmentTreeProverForBackend(mod.configured(.{ .wide_preparation = f @ prover/pcs/commitment_tree.zig:320 (discriminator 2)",
+    "pcs.commit_polys.commit__anon_96291 @ prover/pcs/commit_polys.zig:114",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.ValidatedCatalogue.acquire @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:32",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.Set.initPolicy @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:68 (discriminator 4)",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.Set.initWithValidatedCatalo @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:48",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334"
+   ]
+  },
+  {
+   "site": 103,
+   "rss_gib": 0.039,
+   "live_virtual_gib": 0.039,
+   "regions": 5,
+   "label": "word16_global_execution.services.gkr_local.fixed_authority_set.ValidatedCatalogue.acquire",
+   "where": "integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:32",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.ValidatedCatalogue.acquire @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:32",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.Set.initPolicy @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:68 (discriminator 4)",
+    "word16_global_execution.services.gkr_local.fixed_authority_set.Set.initWithValidatedCatalo @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig:48",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35",
+    "__libc_init_first @ ??:?"
+   ]
+  },
+  {
+   "site": 174,
+   "rss_gib": 0.032,
+   "live_virtual_gib": 0.038,
+   "regions": 6,
+   "label": "rv64_recursion.om31_native.mod.verify__anon_101314",
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:99",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "rv64_recursion.om31_native.mod.verify__anon_101314 @ integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:99",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 63,
+   "rss_gib": 0.031,
+   "live_virtual_gib": 0.031,
+   "regions": 1,
+   "label": "word16_execution.program.Program.initWithAuthorityAndMetadataCache",
+   "where": "integrations/riscv_cpu/word16_execution/program.zig:65",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "word16_execution.program.Program.initWithAuthorityAndMetadataCache @ integrations/riscv_cpu/word16_execution/program.zig:65",
+    "word16_execution.setup.Materials.initWithAuthorityAndSuiteAndMetadataCache @ integrations/riscv_cpu/word16_execution/setup.zig:71 (discriminator 4)",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334"
+   ]
+  },
+  {
+   "site": 73,
+   "rss_gib": 0.031,
+   "live_virtual_gib": 0.031,
+   "regions": 1,
+   "label": "word16_execution.program.Program.makeCompact",
+   "where": "integrations/riscv_cpu/word16_execution/program.zig:158",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "word16_execution.program.Program.makeCompact @ integrations/riscv_cpu/word16_execution/program.zig:158",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)"
+   ]
+  },
+  {
+   "site": 71,
+   "rss_gib": 0.031,
+   "live_virtual_gib": 0.031,
+   "regions": 7,
+   "label": "word16_global_execution.ethereum.keys.Owner.initPolicy",
+   "where": "integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35"
+   ]
+  },
+  {
+   "site": 37,
+   "rss_gib": 0.027,
+   "live_virtual_gib": 0.027,
+   "regions": 1,
+   "label": "word16_execution.expected_image.Owner.init",
+   "where": "integrations/riscv_cpu/word16_execution/expected_image.zig:40",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "word16_execution.expected_image.Owner.init @ integrations/riscv_cpu/word16_execution/expected_image.zig:40",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:475",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35",
+    "__libc_init_first @ ??:?",
+    "__libc_start_main @ ??:?"
+   ]
+  },
+  {
+   "site": 191,
+   "rss_gib": 0.023,
+   "live_virtual_gib": 0.023,
+   "regions": 6,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 192,
+   "rss_gib": 0.023,
+   "live_virtual_gib": 0.023,
+   "regions": 6,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 91,
+   "rss_gib": 0.023,
+   "live_virtual_gib": 0.023,
+   "regions": 3,
+   "label": "vcs_lifted.streaming_committer.StreamingCommitter(vcs_lifted.blake2_merkle.Blake2sMerkleHasherProtocolGeneric(false,.domain_prefixed),vcs_li",
+   "where": "prover/vcs_lifted/streaming_committer.zig:669",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "vcs_lifted.streaming_committer.StreamingCommitter(vcs_lifted.blake2_merkle.Blake2sMerkleHa @ prover/vcs_lifted/streaming_committer.zig:669",
+    "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .sourc @ prover/pcs/tree_builders.zig:588",
+    "word16_global_execution.keccak.shared.key.Key.sealWithSuite @ integrations/riscv_cpu/word16_global_execution/keccak/shared/key.zig:43",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:253",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)"
+   ]
+  },
+  {
+   "site": 190,
+   "rss_gib": 0.023,
+   "live_virtual_gib": 0.023,
+   "regions": 6,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 108,
+   "rss_gib": 0.023,
+   "live_virtual_gib": 0.023,
+   "regions": 1,
+   "label": "word16_global_execution.services.gkr_local.coordinator.produceFrozen",
+   "where": "integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig:453",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "word16_global_execution.services.gkr_local.coordinator.produceFrozen @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig:453",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:692 (discriminator 14)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35",
+    "__libc_init_first @ ??:?",
+    "__libc_start_main @ ??:?"
+   ]
+  },
+  {
+   "site": 61,
+   "rss_gib": 0.023,
+   "live_virtual_gib": 0.023,
+   "regions": 1,
+   "label": "atomic.Value(u32).fetchOr",
+   "where": "atomic.zig:74",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "atomic.Value(u32).fetchOr @ atomic.zig:74",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:555",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35",
+    "__libc_init_first @ ??:?",
+    "__libc_start_main @ ??:?"
+   ]
+  },
+  {
+   "site": 107,
+   "rss_gib": 0.023,
+   "live_virtual_gib": 0.023,
+   "regions": 1,
+   "label": "word16_global_execution.services.gkr_local.coordinator.produceFrozen",
+   "where": "integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig:453",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_125100 @ Allocator.zig:283 (discriminator 4)",
+    "word16_global_execution.services.gkr_local.coordinator.produceFrozen @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig:453",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:692 (discriminator 14)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35",
+    "__libc_init_first @ ??:?",
+    "__libc_start_main @ ??:?"
+   ]
+  },
+  {
+   "site": 62,
+   "rss_gib": 0.023,
+   "live_virtual_gib": 0.023,
+   "regions": 1,
+   "label": "atomic.Value(u32).fetchOr",
+   "where": "atomic.zig:74",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "atomic.Value(u32).fetchOr @ atomic.zig:74",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:555",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35",
+    "__libc_init_first @ ??:?",
+    "__libc_start_main @ ??:?"
+   ]
+  },
+  {
+   "site": 82,
+   "rss_gib": 0.022,
+   "live_virtual_gib": 0.022,
+   "regions": 4,
+   "label": "poly.twiddle_source.TwiddleSource.getWithWorkRecorder",
+   "where": "prover/poly/twiddle_source.zig:132",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "poly.twiddle_source.TwiddleSource.getWithWorkRecorder @ prover/poly/twiddle_source.zig:132",
+    "pcs.columns.circle_transforms.extendCoefficientColumnsByGroupForBackend__anon_93725 @ prover/pcs/columns/circle_transforms.zig:483",
+    "pcs.columns.preparation.prepareColumnsWithArenaOwnership__anon_92920 @ prover/pcs/columns/preparation.zig:396",
+    "pcs.columns.preparation.prepareColumnsForCommitOwnedForBackendWithWorkRecorder__anon_92907 @ prover/pcs/columns/preparation.zig:198",
+    "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .sourc @ prover/pcs/tree_builders.zig:340",
+    "word16_global_execution.services.roster.CpuSetup.sealWithCache @ integrations/riscv_cpu/word16_global_execution/services/roster.zig:121"
+   ]
+  },
+  {
+   "site": 81,
+   "rss_gib": 0.022,
+   "live_virtual_gib": 0.022,
+   "regions": 4,
+   "label": "poly.twiddle_source.TwiddleSource.getWithWorkRecorder",
+   "where": "prover/poly/twiddle_source.zig:132",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "poly.twiddle_source.TwiddleSource.getWithWorkRecorder @ prover/poly/twiddle_source.zig:132",
+    "pcs.columns.circle_transforms.extendCoefficientColumnsByGroupForBackend__anon_93725 @ prover/pcs/columns/circle_transforms.zig:483",
+    "pcs.columns.preparation.prepareColumnsWithArenaOwnership__anon_92920 @ prover/pcs/columns/preparation.zig:396",
+    "pcs.columns.preparation.prepareColumnsForCommitOwnedForBackendWithWorkRecorder__anon_92907 @ prover/pcs/columns/preparation.zig:198",
+    "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .sourc @ prover/pcs/tree_builders.zig:340",
+    "word16_global_execution.services.roster.CpuSetup.sealWithCache @ integrations/riscv_cpu/word16_global_execution/services/roster.zig:121"
+   ]
+  },
+  {
+   "site": 208,
+   "rss_gib": 0.02,
+   "live_virtual_gib": 0.02,
+   "regions": 5,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 117,
+   "rss_gib": 0.019,
+   "live_virtual_gib": 0.019,
+   "regions": 4,
+   "label": "word16_execution.family_input.Batch.alu",
+   "where": "integrations/riscv_cpu/word16_execution/family_input.zig:39",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "word16_execution.family_input.Batch.alu @ integrations/riscv_cpu/word16_execution/family_input.zig:39",
+    "rv64.core_witness.BuildJob.callback @ integrations/riscv_cuda/rv64/core_witness.zig:323",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 207,
+   "rss_gib": 0.018,
+   "live_virtual_gib": 0.02,
+   "regions": 5,
+   "label": "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit",
+   "where": "frontends/circuit/common/preprocessed.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 92,
+   "rss_gib": 0.016,
+   "live_virtual_gib": 0.016,
+   "regions": 2,
+   "label": "rv64.air.delegations.keccak.tables.Trace.initPolicy",
+   "where": "frontends/riscv/rv64/air/delegations/keccak/tables.zig:45",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "rv64.air.delegations.keccak.tables.Trace.initPolicy @ frontends/riscv/rv64/air/delegations/keccak/tables.zig:45",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:253",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)"
+   ]
+  },
+  {
+   "site": 93,
+   "rss_gib": 0.016,
+   "live_virtual_gib": 0.016,
+   "regions": 2,
+   "label": "rv64.air.delegations.keccak.tables.Trace.initPolicy",
+   "where": "frontends/riscv/rv64/air/delegations/keccak/tables.zig:45",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "rv64.air.delegations.keccak.tables.Trace.initPolicy @ frontends/riscv/rv64/air/delegations/keccak/tables.zig:45",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:253",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)"
+   ]
+  },
+  {
+   "site": 130,
+   "rss_gib": 0.016,
+   "live_virtual_gib": 0.016,
+   "regions": 2,
+   "label": "rv64.gkr_twiddles.Cache.acquire",
+   "where": "integrations/riscv_cuda/rv64/gkr_twiddles.zig:45",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "rv64.gkr_twiddles.Cache.acquire @ integrations/riscv_cuda/rv64/gkr_twiddles.zig:45",
+    "rv64.gkr_stage.Job.execute @ integrations/riscv_cuda/rv64/gkr_stage.zig:311",
+    "rv64.gkr_stage.Job.callback @ integrations/riscv_cuda/rv64/gkr_stage.zig:204",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 89,
+   "rss_gib": 0.016,
+   "live_virtual_gib": 0.016,
+   "regions": 1,
+   "label": "pcs.columns.preparation.prepareColumnsWithArenaOwnership__anon_92920",
+   "where": "prover/pcs/columns/preparation.zig:396",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "pcs.columns.preparation.prepareColumnsWithArenaOwnership__anon_92920 @ prover/pcs/columns/preparation.zig:396",
+    "pcs.columns.preparation.prepareColumnsForCommitOwnedForBackendWithWorkRecorder__anon_92907 @ prover/pcs/columns/preparation.zig:198",
+    "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .sourc @ prover/pcs/tree_builders.zig:340",
+    "word16_global_execution.keccak.shared.key.Key.sealWithSuite @ integrations/riscv_cpu/word16_global_execution/keccak/shared/key.zig:43",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:253",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58"
+   ]
+  },
+  {
+   "site": 175,
+   "rss_gib": 0.015,
+   "live_virtual_gib": 0.018,
+   "regions": 3,
+   "label": "rv64_recursion.om31_native.mod.verify__anon_101314",
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:99",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "rv64_recursion.om31_native.mod.verify__anon_101314 @ integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:99",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 144,
+   "rss_gib": 0.014,
+   "live_virtual_gib": 0.016,
+   "regions": 2,
+   "label": "rv64.resident_composition.Context.tw",
+   "where": "integrations/riscv_cuda/rv64/resident_composition.zig:220",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "rv64.resident_composition.Context.tw @ integrations/riscv_cuda/rv64/resident_composition.zig:220",
+    "rv64.resident_composition.Job.run @ integrations/riscv_cuda/rv64/resident_composition.zig:656",
+    "rv64.resident_composition.Job.callback @ integrations/riscv_cuda/rv64/resident_composition.zig:471",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 96,
+   "rss_gib": 0.011,
+   "live_virtual_gib": 0.011,
+   "regions": 7,
+   "label": "word16_global_execution.ethereum.keys.Owner.initPolicy",
+   "where": "integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:350 (discriminator 6)",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:350 (discriminator 6)",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35"
+   ]
+  },
+  {
+   "site": 176,
+   "rss_gib": 0.009,
+   "live_virtual_gib": 0.017,
+   "regions": 2,
+   "label": "rv64_recursion.om31_native.mod.verify__anon_101314",
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:100",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_125100 @ Allocator.zig:283 (discriminator 4)",
+    "rv64_recursion.om31_native.mod.verify__anon_101314 @ integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:100",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 39,
+   "rss_gib": 0.009,
+   "live_virtual_gib": 0.009,
+   "regions": 1,
+   "label": "word16_execution.program.Program.initWithAuthorityAndMetadataCache",
+   "where": "integrations/riscv_cpu/word16_execution/program.zig:68",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "word16_execution.program.Program.initWithAuthorityAndMetadataCache @ integrations/riscv_cpu/word16_execution/program.zig:68",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:483",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35",
+    "__libc_init_first @ ??:?",
+    "__libc_start_main @ ??:?"
+   ]
+  },
+  {
+   "site": 163,
+   "rss_gib": 0.009,
+   "live_virtual_gib": 0.009,
+   "regions": 1,
+   "label": "word16_global_execution.ethereum.gkr_receiver.verifyWithAuthority",
+   "where": "integrations/riscv_cpu/word16_global_execution/ethereum/gkr_receiver.zig:18",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "word16_global_execution.ethereum.gkr_receiver.verifyWithAuthority @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_receiver.zig:18",
+    "word16_global_execution.ethereum.native_verify_overlap.Job(word16_execution.expected_image @ integrations/riscv_cpu/word16_global_execution/ethereum/native_verify_overlap.zig:85",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 172,
+   "rss_gib": 0.009,
+   "live_virtual_gib": 0.011,
+   "regions": 3,
+   "label": "rv64_recursion.om31_native.cpu_child.Writer.field",
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:132 (discriminator 8)",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "array_list.Aligned(builder.circuit.Var,null).appendSlice @ array_list.zig:975",
+    "rv64_recursion.om31_native.cpu_child.Writer.field @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:132 (discriminator 8)",
+    "rv64_recursion.om31_native.cpu_leaf.Statement.init__anon_100369 @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_leaf.zig:77 (discriminator 2)",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 72,
+   "rss_gib": 0.008,
+   "live_virtual_gib": 0.009,
+   "regions": 7,
+   "label": "word16_execution.setup.Materials.fromProgram",
+   "where": "integrations/riscv_cpu/word16_execution/setup.zig:115",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "word16_execution.setup.Materials.fromProgram @ integrations/riscv_cpu/word16_execution/setup.zig:115",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)"
+   ]
+  },
+  {
+   "site": 95,
+   "rss_gib": 0.008,
+   "live_virtual_gib": 0.008,
+   "regions": 1,
+   "label": "poly.twiddle_source.TwiddleSource.getWithWorkRecorder",
+   "where": "prover/poly/twiddle_source.zig:132",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "poly.twiddle_source.TwiddleSource.getWithWorkRecorder @ prover/poly/twiddle_source.zig:132",
+    "pcs.columns.circle_transforms.extendCoefficientColumnsByGroupForBackend__anon_93725 @ prover/pcs/columns/circle_transforms.zig:483",
+    "pcs.columns.preparation.prepareColumnsWithArenaOwnership__anon_92920 @ prover/pcs/columns/preparation.zig:396",
+    "pcs.columns.preparation.prepareColumnsForCommitOwnedForBackendWithWorkRecorder__anon_92907 @ prover/pcs/columns/preparation.zig:198",
+    "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .sourc @ prover/pcs/tree_builders.zig:340",
+    "word16_global_execution.keccak.shared.key.Key.sealWithSuite @ integrations/riscv_cpu/word16_global_execution/keccak/shared/key.zig:43"
+   ]
+  },
+  {
+   "site": 146,
+   "rss_gib": 0.008,
+   "live_virtual_gib": 0.023,
+   "regions": 2,
+   "label": "rv64.pcs_geometry_cache.Cache.build",
+   "where": "integrations/riscv_cuda/rv64/pcs_geometry_cache.zig:111",
+   "stack": [
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64.pcs_geometry_cache.Cache.build @ integrations/riscv_cuda/rv64/pcs_geometry_cache.zig:111",
+    "rv64.pcs_request_export.prepareRequestWithFraming @ integrations/riscv_cuda/rv64/pcs_request_export.zig:145 (discriminator 4)",
+    "rv64.pcs_native.Context.prove @ integrations/riscv_cuda/rv64/pcs_native.zig:412",
+    "rv64.resident_router.Router.drop @ integrations/riscv_cuda/rv64/resident_router.zig:189",
+    "pcs.scheme_family.ForField(fields.om31.OM31).CommitmentSchemeProver(mod.configured(.{ .wid @ prover/pcs/scheme_family.zig:462",
+    "prove_family.ForField(fields.om31.OM31).proveExSampledPointsWithRecorderDiagnosed__anon_15 @ prover/prove_family.zig:361",
+    "prove_family.ForField(fields.om31.OM31).proveExComponentsWithRecorder__anon_154128 @ prover/prove_family.zig:679",
+    "word16_global_execution.services.gkr_local.cpu_worker.CpuWorker.complete @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig:528",
+    "word16_global_execution.services.gkr_local.coordinator.Run.stageTwo @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig:366"
+   ]
+  },
+  {
+   "site": 158,
+   "rss_gib": 0.008,
+   "live_virtual_gib": 0.008,
+   "regions": 1,
+   "label": "rv64.pcs_geometry_cache.Cache.build",
+   "where": "integrations/riscv_cuda/rv64/pcs_geometry_cache.zig:111",
+   "stack": [
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64.pcs_geometry_cache.Cache.build @ integrations/riscv_cuda/rv64/pcs_geometry_cache.zig:111",
+    "rv64.pcs_request_export.prepareRequestWithFraming @ integrations/riscv_cuda/rv64/pcs_request_export.zig:145 (discriminator 4)",
+    "rv64.pcs_native.Context.prove @ integrations/riscv_cuda/rv64/pcs_native.zig:412",
+    "rv64.resident_router.Router.truthPcs @ integrations/riscv_cuda/rv64/resident_router.zig:366",
+    "pcs.scheme_family.ForField(fields.om31.OM31).CommitmentSchemeProver(mod.configured(.{ .wid @ prover/pcs/scheme_family.zig:462",
+    "prove_family.ForField(fields.om31.OM31).proveExSampledPointsWithRecorderDiagnosed__anon_15 @ prover/prove_family.zig:361",
+    "prove_family.ForField(fields.om31.OM31).proveExComponentsWithRecorder__anon_154128 @ prover/prove_family.zig:679",
+    "word16_global_execution.services.gkr_local.truth_worker.TruthWorker.complete @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker.zig:231 (discriminator 8)",
+    "word16_global_execution.services.schedule.runWithOptions__anon_123743.Shared.lane @ integrations/riscv_cpu/word16_global_execution/services/schedule.zig:221"
+   ]
+  },
+  {
+   "site": 131,
+   "rss_gib": 0.008,
+   "live_virtual_gib": 0.008,
+   "regions": 1,
+   "label": "rv64.gkr_twiddles.Cache.acquire",
+   "where": "integrations/riscv_cuda/rv64/gkr_twiddles.zig:45",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64.gkr_twiddles.Cache.acquire @ integrations/riscv_cuda/rv64/gkr_twiddles.zig:45",
+    "rv64.gkr_stage.Job.execute @ integrations/riscv_cuda/rv64/gkr_stage.zig:311",
+    "rv64.gkr_stage.Job.callback @ integrations/riscv_cuda/rv64/gkr_stage.zig:204",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 156,
+   "rss_gib": 0.008,
+   "live_virtual_gib": 0.008,
+   "regions": 2,
+   "label": "rv64.global_stage.Context.generateRationalLocked",
+   "where": "integrations/riscv_cuda/rv64/global_stage.zig:180 (discriminator 2)",
+   "stack": [
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64.global_stage.Context.generateRationalLocked @ integrations/riscv_cuda/rv64/global_stage.zig:180 (discriminator 2)",
+    "atomic.Value(u32).swap @ atomic.zig:22",
+    "word16_global_execution.services.gkr_local.truth_worker.TruthWorker.complete @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker.zig:182",
+    "word16_global_execution.services.schedule.runWithOptions__anon_123743.Shared.lane @ integrations/riscv_cpu/word16_global_execution/services/schedule.zig:221",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 157,
+   "rss_gib": 0.008,
+   "live_virtual_gib": 0.008,
+   "regions": 2,
+   "label": "rv64.global_stage.Context.generateRationalLocked",
+   "where": "integrations/riscv_cuda/rv64/global_stage.zig:180 (discriminator 2)",
+   "stack": [
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "rv64.global_stage.Context.generateRationalLocked @ integrations/riscv_cuda/rv64/global_stage.zig:180 (discriminator 2)",
+    "atomic.Value(u32).swap @ atomic.zig:22",
+    "word16_global_execution.services.gkr_local.truth_worker.TruthWorker.complete @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker.zig:182",
+    "word16_global_execution.services.schedule.runWithOptions__anon_123743.Shared.lane @ integrations/riscv_cpu/word16_global_execution/services/schedule.zig:221",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 94,
+   "rss_gib": 0.007,
+   "live_virtual_gib": 0.008,
+   "regions": 1,
+   "label": "poly.twiddle_source.TwiddleSource.getWithWorkRecorder",
+   "where": "prover/poly/twiddle_source.zig:132",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "poly.twiddle_source.TwiddleSource.getWithWorkRecorder @ prover/poly/twiddle_source.zig:132",
+    "pcs.columns.circle_transforms.extendCoefficientColumnsByGroupForBackend__anon_93725 @ prover/pcs/columns/circle_transforms.zig:483",
+    "pcs.columns.preparation.prepareColumnsWithArenaOwnership__anon_92920 @ prover/pcs/columns/preparation.zig:396",
+    "pcs.columns.preparation.prepareColumnsForCommitOwnedForBackendWithWorkRecorder__anon_92907 @ prover/pcs/columns/preparation.zig:198",
+    "pcs.tree_builders.StreamingTreeBuilder(mod.configured(.{ .wide_preparation = false, .sourc @ prover/pcs/tree_builders.zig:340",
+    "word16_global_execution.keccak.shared.key.Key.sealWithSuite @ integrations/riscv_cpu/word16_global_execution/keccak/shared/key.zig:43"
+   ]
+  },
+  {
+   "site": 58,
+   "rss_gib": 0.006,
+   "live_virtual_gib": 0.006,
+   "regions": 1,
+   "label": "word16_global_execution.services.collector.Builder.append",
+   "where": "integrations/riscv_cpu/word16_global_execution/services/collector.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "word16_global_execution.services.collector.Builder.append @ integrations/riscv_cpu/word16_global_execution/services/collector.zig:?",
+    "word16_global_execution.ethereum.direct.Consumer.accept @ integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig:192",
+    "word16_global_execution.ethereum.direct.Consumer.run @ integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig:161 (discriminator 2)",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 150,
+   "rss_gib": 0.006,
+   "live_virtual_gib": 0.008,
+   "regions": 1,
+   "label": "rv64.resident_composition.Context.tw",
+   "where": "integrations/riscv_cuda/rv64/resident_composition.zig:220",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64.resident_composition.Context.tw @ integrations/riscv_cuda/rv64/resident_composition.zig:220",
+    "rv64.resident_composition.Job.run @ integrations/riscv_cuda/rv64/resident_composition.zig:656",
+    "rv64.resident_composition.Job.callback @ integrations/riscv_cuda/rv64/resident_composition.zig:471",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 59,
+   "rss_gib": 0.006,
+   "live_virtual_gib": 0.006,
+   "regions": 1,
+   "label": "word16_global_execution.services.collector.Builder.append",
+   "where": "integrations/riscv_cpu/word16_global_execution/services/collector.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "word16_global_execution.services.collector.Builder.append @ integrations/riscv_cpu/word16_global_execution/services/collector.zig:?",
+    "word16_global_execution.ethereum.direct.Consumer.accept @ integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig:192",
+    "word16_global_execution.ethereum.direct.Consumer.run @ integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig:161 (discriminator 2)",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 143,
+   "rss_gib": 0.006,
+   "live_virtual_gib": 0.006,
+   "regions": 4,
+   "label": "rv64.global_stage.Context.generateRationalLocked",
+   "where": "integrations/riscv_cuda/rv64/global_stage.zig:180 (discriminator 2)",
+   "stack": [
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "rv64.global_stage.Context.generateRationalLocked @ integrations/riscv_cuda/rv64/global_stage.zig:180 (discriminator 2)",
+    "rv64.global_stage.Context.generate @ integrations/riscv_cuda/rv64/global_stage.zig:134 (discriminator 2)",
+    "rv64.resident_router.Router.globalWitness @ integrations/riscv_cuda/rv64/resident_router.zig:250",
+    "word16_global_execution.services.gkr_local.cpu_worker.CpuWorker.complete @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig:415 (discriminator 2)",
+    "word16_global_execution.services.gkr_local.coordinator.Run.stageTwo @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig:366",
+    "word16_global_execution.services.schedule.runWithOptions__anon_123743.Shared.lane @ integrations/riscv_cpu/word16_global_execution/services/schedule.zig:221",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 142,
+   "rss_gib": 0.006,
+   "live_virtual_gib": 0.006,
+   "regions": 4,
+   "label": "rv64.global_stage.Context.generateRationalLocked",
+   "where": "integrations/riscv_cuda/rv64/global_stage.zig:180 (discriminator 2)",
+   "stack": [
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64.global_stage.Context.generateRationalLocked @ integrations/riscv_cuda/rv64/global_stage.zig:180 (discriminator 2)",
+    "rv64.global_stage.Context.generate @ integrations/riscv_cuda/rv64/global_stage.zig:134 (discriminator 2)",
+    "rv64.resident_router.Router.globalWitness @ integrations/riscv_cuda/rv64/resident_router.zig:250",
+    "word16_global_execution.services.gkr_local.cpu_worker.CpuWorker.complete @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig:415 (discriminator 2)",
+    "word16_global_execution.services.gkr_local.coordinator.Run.stageTwo @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig:366",
+    "word16_global_execution.services.schedule.runWithOptions__anon_123743.Shared.lane @ integrations/riscv_cpu/word16_global_execution/services/schedule.zig:221",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 164,
+   "rss_gib": 0.006,
+   "live_virtual_gib": 0.007,
+   "regions": 5,
+   "label": "word16_global_execution.services.gkr_local.worker_protocol.decodePhysical",
+   "where": "integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig:123",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "word16_global_execution.services.gkr_local.worker_protocol.decodePhysical @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig:123",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 177,
+   "rss_gib": 0.005,
+   "live_virtual_gib": 0.008,
+   "regions": 1,
+   "label": "native_verifier.merkle.merkleNode__anon_140066",
+   "where": "frontends/circuit/native_verifier/merkle.zig:84",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "native_verifier.merkle.merkleNode__anon_140066 @ frontends/circuit/native_verifier/merkle.zig:84",
+    "native_verifier.merkle.decommitTrees__anon_102255 @ frontends/circuit/native_verifier/merkle.zig:192",
+    "rv64_recursion.om31_native.mod.verify__anon_101314 @ integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:99",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 87,
+   "rss_gib": 0.005,
+   "live_virtual_gib": 0.005,
+   "regions": 3,
+   "label": "rv64.air.delegations.keccak.tables.Trace.initPolicy",
+   "where": "frontends/riscv/rv64/air/delegations/keccak/tables.zig:45",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "rv64.air.delegations.keccak.tables.Trace.initPolicy @ frontends/riscv/rv64/air/delegations/keccak/tables.zig:45",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:253",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)"
+   ]
+  },
+  {
+   "site": 127,
+   "rss_gib": 0.005,
+   "live_virtual_gib": 0.005,
+   "regions": 1,
+   "label": "rv64.bulk_sponge.Owner.callback",
+   "where": "integrations/riscv_cuda/rv64/bulk_sponge.zig:112",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "rv64.bulk_sponge.Owner.callback @ integrations/riscv_cuda/rv64/bulk_sponge.zig:112",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 35,
+   "rss_gib": 0.005,
+   "live_virtual_gib": 0.005,
+   "regions": 1,
+   "label": "word16_execution.expected_image.Owner.init",
+   "where": "integrations/riscv_cpu/word16_execution/expected_image.zig:40",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "word16_execution.expected_image.Owner.init @ integrations/riscv_cpu/word16_execution/expected_image.zig:40",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:475",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35",
+    "__libc_init_first @ ??:?",
+    "__libc_start_main @ ??:?"
+   ]
+  },
+  {
+   "site": 217,
+   "rss_gib": 0.004,
+   "live_virtual_gib": 0.004,
+   "regions": 3,
+   "label": "word16_global_execution.services.gkr_local.worker_protocol.decodePhysical",
+   "where": "integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig:123",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "word16_global_execution.services.gkr_local.worker_protocol.decodePhysical @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig:123",
+    "word16_global_execution.ethereum.gkr_receiver.verifyWithAuthority @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_receiver.zig:21",
+    "word16_global_execution.ethereum.native_verify_overlap.Job(word16_execution.expected_image @ integrations/riscv_cpu/word16_global_execution/ethereum/native_verify_overlap.zig:85",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 120,
+   "rss_gib": 0.004,
+   "live_virtual_gib": 0.004,
+   "regions": 1,
+   "label": "rv64.bulk_sponge.Owner.callback",
+   "where": "integrations/riscv_cuda/rv64/bulk_sponge.zig:112",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64.bulk_sponge.Owner.callback @ integrations/riscv_cuda/rv64/bulk_sponge.zig:112",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 145,
+   "rss_gib": 0.004,
+   "live_virtual_gib": 0.004,
+   "regions": 1,
+   "label": "rv64.device_binding_runtime.Call.run",
+   "where": "integrations/riscv_cuda/rv64/device_binding_runtime.zig:319",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64.device_binding_runtime.Call.run @ integrations/riscv_cuda/rv64/device_binding_runtime.zig:319",
+    "rv64.device_binding_runtime.Call.callback @ integrations/riscv_cuda/rv64/device_binding_runtime.zig:244",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 141,
+   "rss_gib": 0.004,
+   "live_virtual_gib": 0.004,
+   "regions": 1,
+   "label": "rv64.device_binding_runtime.Call.run",
+   "where": "integrations/riscv_cuda/rv64/device_binding_runtime.zig:319",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "rv64.device_binding_runtime.Call.run @ integrations/riscv_cuda/rv64/device_binding_runtime.zig:319",
+    "rv64.device_binding_runtime.Call.callback @ integrations/riscv_cuda/rv64/device_binding_runtime.zig:244",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 173,
+   "rss_gib": 0.004,
+   "live_virtual_gib": 0.004,
+   "regions": 1,
+   "label": "rv64_recursion.om31_native.cpu_child.Writer.field",
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:132 (discriminator 8)",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "array_list.Aligned(builder.circuit.Var,null).appendSlice @ array_list.zig:975",
+    "rv64_recursion.om31_native.cpu_child.Writer.field @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:132 (discriminator 8)",
+    "rv64_recursion.om31_native.cpu_leaf.Statement.init__anon_100369 @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_leaf.zig:77 (discriminator 2)",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 222,
+   "rss_gib": 0.003,
+   "live_virtual_gib": 0.003,
+   "regions": 1,
+   "label": "native_verifier.merkle.merkleNode__anon_140066",
+   "where": "frontends/circuit/native_verifier/merkle.zig:84",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "native_verifier.merkle.merkleNode__anon_140066 @ frontends/circuit/native_verifier/merkle.zig:84",
+    "native_verifier.merkle.decommitTrees__anon_102255 @ frontends/circuit/native_verifier/merkle.zig:192",
+    "rv64_recursion.om31_native.mod.verify__anon_102894 @ integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:99",
+    "rv64_recursion.om31_native.leaf_graph.truthTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:119",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 181,
+   "rss_gib": 0.003,
+   "live_virtual_gib": 0.006,
+   "regions": 1,
+   "label": "native_verifier.merkle.hashLeafM31s__anon_167504",
+   "where": "frontends/circuit/native_verifier/merkle.zig:57",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "native_verifier.merkle.hashLeafM31s__anon_167504 @ frontends/circuit/native_verifier/merkle.zig:57",
+    "rv64_recursion.om31_native.mod.verify__anon_101314 @ integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:99",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 166,
+   "rss_gib": 0.003,
+   "live_virtual_gib": 0.004,
+   "regions": 3,
+   "label": "rv64_recursion.om31_native.leaf_graph.cpuMode",
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:97",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64_recursion.om31_native.leaf_graph.cpuMode @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:97",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 224,
+   "rss_gib": 0.003,
+   "live_virtual_gib": 0.005,
+   "regions": 1,
+   "label": "rv64_recursion.om31_native.mod.verify__anon_102894",
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:100",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_125100 @ Allocator.zig:283 (discriminator 4)",
+    "rv64_recursion.om31_native.mod.verify__anon_102894 @ integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:100",
+    "rv64_recursion.om31_native.leaf_graph.truthTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:119",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 118,
+   "rss_gib": 0.003,
+   "live_virtual_gib": 0.003,
+   "regions": 1,
+   "label": "rv64.core_witness.BuildJob.callback",
+   "where": "integrations/riscv_cuda/rv64/core_witness.zig:323",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_125100 @ Allocator.zig:283 (discriminator 4)",
+    "rv64.core_witness.BuildJob.callback @ integrations/riscv_cuda/rv64/core_witness.zig:323",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 70,
+   "rss_gib": 0.003,
+   "live_virtual_gib": 0.003,
+   "regions": 2,
+   "label": "word16_global_execution.ethereum.keys.Owner.initPolicy",
+   "where": "integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35"
+   ]
+  },
+  {
+   "site": 162,
+   "rss_gib": 0.003,
+   "live_virtual_gib": 0.003,
+   "regions": 2,
+   "label": "word16_global_execution.services.gkr_local.worker_protocol.encodePhysical",
+   "where": "integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig:120",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "word16_global_execution.services.gkr_local.worker_protocol.encodePhysical @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig:120",
+    "word16_global_execution.services.schedule.runWithOptions__anon_123743.Shared.lane @ integrations/riscv_cpu/word16_global_execution/services/schedule.zig:221",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 223,
+   "rss_gib": 0.003,
+   "live_virtual_gib": 0.003,
+   "regions": 1,
+   "label": "rv64_recursion.om31_native.cpu_leaf.Statement.init__anon_100369",
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/cpu_leaf.zig:108",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64_recursion.om31_native.cpu_leaf.Statement.init__anon_100369 @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_leaf.zig:108",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 51,
+   "rss_gib": 0.003,
+   "live_virtual_gib": 0.003,
+   "regions": 2,
+   "label": "word16_execution.prepared.Prepared.captureForCombinedServices",
+   "where": "integrations/riscv_cpu/word16_execution/prepared.zig:99",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "word16_execution.prepared.Prepared.captureForCombinedServices @ integrations/riscv_cpu/word16_execution/prepared.zig:99",
+    "word16_global_execution.ethereum.direct.Job.run @ integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig:76",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 165,
+   "rss_gib": 0.002,
+   "live_virtual_gib": 0.003,
+   "regions": 2,
+   "label": "rv64_recursion.om31_native.leaf_graph.cpuMode",
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:89",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "rv64_recursion.om31_native.leaf_graph.cpuMode @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:89",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 119,
+   "rss_gib": 0.002,
+   "live_virtual_gib": 0.002,
+   "regions": 2,
+   "label": "rv64.core_witness.BuildJob.callback",
+   "where": "integrations/riscv_cuda/rv64/core_witness.zig:323",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_125100 @ Allocator.zig:283 (discriminator 4)",
+    "rv64.core_witness.BuildJob.callback @ integrations/riscv_cuda/rv64/core_witness.zig:323",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 170,
+   "rss_gib": 0.002,
+   "live_virtual_gib": 0.002,
+   "regions": 1,
+   "label": "native_verifier.channel.NativeChannel.mixFelts__anon_136599",
+   "where": "frontends/circuit/native_verifier/channel.zig:94",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "native_verifier.channel.NativeChannel.mixFelts__anon_136599 @ frontends/circuit/native_verifier/channel.zig:94",
+    "rv64_recursion.om31_native.cpu_child.Channel.mixFelts @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:36",
+    "rv64_recursion.om31_native.cpu_child.verify @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:157",
+    "rv64_recursion.om31_native.cpu_leaf.Statement.init__anon_100369 @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_leaf.zig:77 (discriminator 2)",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?"
+   ]
+  },
+  {
+   "site": 221,
+   "rss_gib": 0.002,
+   "live_virtual_gib": 0.002,
+   "regions": 1,
+   "label": "rv64_recursion.om31_native.mod.verify__anon_102894",
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:90",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "rv64_recursion.om31_native.mod.verify__anon_102894 @ integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig:90",
+    "rv64_recursion.om31_native.leaf_graph.truthTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:119",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 60,
+   "rss_gib": 0.002,
+   "live_virtual_gib": 0.002,
+   "regions": 1,
+   "label": "word16_global_execution.services.collector.Builder.append",
+   "where": "integrations/riscv_cpu/word16_global_execution/services/collector.zig:?",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_125100 @ Allocator.zig:283 (discriminator 4)",
+    "word16_global_execution.services.collector.Builder.append @ integrations/riscv_cpu/word16_global_execution/services/collector.zig:?",
+    "word16_global_execution.ethereum.direct.Consumer.accept @ integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig:192",
+    "word16_global_execution.ethereum.direct.Consumer.run @ integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig:161 (discriminator 2)",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 167,
+   "rss_gib": 0.002,
+   "live_virtual_gib": 0.002,
+   "regions": 1,
+   "label": "native_verifier.channel.NativeChannel.mixFelts__anon_136599",
+   "where": "frontends/circuit/native_verifier/channel.zig:94",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "native_verifier.channel.NativeChannel.mixFelts__anon_136599 @ frontends/circuit/native_verifier/channel.zig:94",
+    "rv64_recursion.om31_native.cpu_child.Channel.mixFelts @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:36",
+    "rv64_recursion.om31_native.cpu_child.verify @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:157",
+    "rv64_recursion.om31_native.cpu_leaf.Statement.init__anon_100369 @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_leaf.zig:77 (discriminator 2)",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?"
+   ]
+  },
+  {
+   "site": 178,
+   "rss_gib": 0.002,
+   "live_virtual_gib": 0.002,
+   "regions": 1,
+   "label": "rv64_recursion.om31_native.cpu_leaf.Statement.init__anon_100369",
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/cpu_leaf.zig:76",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "rv64_recursion.om31_native.cpu_leaf.Statement.init__anon_100369 @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_leaf.zig:76",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 214,
+   "rss_gib": 0.002,
+   "live_virtual_gib": 0.002,
+   "regions": 2,
+   "label": "common.preprocessed.TraceBuilder.block__anon_172818",
+   "where": "frontends/circuit/common/preprocessed.zig:654 (discriminator 6)",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "common.preprocessed.TraceBuilder.block__anon_172818 @ frontends/circuit/common/preprocessed.zig:654 (discriminator 6)",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 65,
+   "rss_gib": 0.002,
+   "live_virtual_gib": 0.002,
+   "regions": 1,
+   "label": "word16_global_execution.ethereum.keys.Owner.initPolicy",
+   "where": "integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35"
+   ]
+  },
+  {
+   "site": 168,
+   "rss_gib": 0.002,
+   "live_virtual_gib": 0.002,
+   "regions": 1,
+   "label": "native_verifier.channel.NativeChannel.mixFelts__anon_136599",
+   "where": "frontends/circuit/native_verifier/channel.zig:94",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "native_verifier.channel.NativeChannel.mixFelts__anon_136599 @ frontends/circuit/native_verifier/channel.zig:94",
+    "rv64_recursion.om31_native.cpu_child.Channel.mixFelts @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:36",
+    "rv64_recursion.om31_native.cpu_child.verify @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:157",
+    "rv64_recursion.om31_native.cpu_leaf.Statement.init__anon_100369 @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_leaf.zig:77 (discriminator 2)",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?"
+   ]
+  },
+  {
+   "site": 126,
+   "rss_gib": 0.002,
+   "live_virtual_gib": 0.002,
+   "regions": 1,
+   "label": "rv64.bulk_sponge.Owner.callback",
+   "where": "integrations/riscv_cuda/rv64/bulk_sponge.zig:112",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "rv64.bulk_sponge.Owner.callback @ integrations/riscv_cuda/rv64/bulk_sponge.zig:112",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 125,
+   "rss_gib": 0.002,
+   "live_virtual_gib": 0.002,
+   "regions": 1,
+   "label": "rv64.bulk_sponge.Owner.callback",
+   "where": "integrations/riscv_cuda/rv64/bulk_sponge.zig:112",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64.bulk_sponge.Owner.callback @ integrations/riscv_cuda/rv64/bulk_sponge.zig:112",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 171,
+   "rss_gib": 0.002,
+   "live_virtual_gib": 0.002,
+   "regions": 1,
+   "label": "native_verifier.channel.NativeChannel.hashWithDigest__anon_167069",
+   "where": "frontends/circuit/native_verifier/channel.zig:79",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "native_verifier.channel.NativeChannel.hashWithDigest__anon_167069 @ frontends/circuit/native_verifier/channel.zig:79",
+    "rv64_recursion.om31_native.cpu_child.Channel.mixFelts @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:36",
+    "rv64_recursion.om31_native.cpu_child.verify @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:157",
+    "rv64_recursion.om31_native.cpu_leaf.Statement.init__anon_100369 @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_leaf.zig:77 (discriminator 2)",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?"
+   ]
+  },
+  {
+   "site": 169,
+   "rss_gib": 0.002,
+   "live_virtual_gib": 0.002,
+   "regions": 1,
+   "label": "native_verifier.channel.NativeChannel.hashWithDigest__anon_167069",
+   "where": "frontends/circuit/native_verifier/channel.zig:79",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "native_verifier.channel.NativeChannel.hashWithDigest__anon_167069 @ frontends/circuit/native_verifier/channel.zig:79",
+    "rv64_recursion.om31_native.cpu_child.Channel.mixFelts @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:36",
+    "rv64_recursion.om31_native.cpu_child.verify @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig:157",
+    "rv64_recursion.om31_native.cpu_leaf.Statement.init__anon_100369 @ integrations/riscv_cpu/rv64_recursion/om31_native/cpu_leaf.zig:77 (discriminator 2)",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?"
+   ]
+  },
+  {
+   "site": 33,
+   "rss_gib": 0.001,
+   "live_virtual_gib": 0.002,
+   "regions": 1,
+   "label": "word16_execution.expected_image.Owner.init",
+   "where": "integrations/riscv_cpu/word16_execution/expected_image.zig:40",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "word16_execution.expected_image.Owner.init @ integrations/riscv_cpu/word16_execution/expected_image.zig:40",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:475",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35",
+    "__libc_init_first @ ??:?",
+    "__libc_start_main @ ??:?"
+   ]
+  },
+  {
+   "site": 220,
+   "rss_gib": 0.001,
+   "live_virtual_gib": 0.001,
+   "regions": 1,
+   "label": "rv64_recursion.om31_native.proof.guess",
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/proof.zig:155",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64_recursion.om31_native.proof.guess @ integrations/riscv_cpu/rv64_recursion/om31_native/proof.zig:155",
+    "rv64_recursion.om31_native.keccak_leaf.build @ integrations/riscv_cpu/rv64_recursion/om31_native/keccak_leaf.zig:152",
+    "rv64_recursion.om31_native.leaf_graph.truthTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:119",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 38,
+   "rss_gib": 0.001,
+   "live_virtual_gib": 0.001,
+   "regions": 1,
+   "label": "rv64_program_authority.Authority.initWithRom",
+   "where": "integrations/riscv_cpu/rv64_program_authority.zig:57 (discriminator 4)",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "rv64_program_authority.Authority.initWithRom @ integrations/riscv_cpu/rv64_program_authority.zig:57 (discriminator 4)",
+    "word16_execution.expected_image.Owner.init @ integrations/riscv_cpu/word16_execution/expected_image.zig:40",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:475",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35",
+    "__libc_init_first @ ??:?"
+   ]
+  },
+  {
+   "site": 54,
+   "rss_gib": 0.001,
+   "live_virtual_gib": 0.001,
+   "regions": 1,
+   "label": "word16_execution.prepared.Prepared.captureInternal",
+   "where": "integrations/riscv_cpu/word16_execution/prepared.zig:167 (discriminator 6)",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_125100 @ Allocator.zig:283 (discriminator 4)",
+    "hash_map.HashMapUnmanaged(u64,void,hash_map.AutoContext(u64),80).getOrPutContextAdapted__a @ hash_map.zig:1115",
+    "word16_execution.prepared.Prepared.captureInternal @ integrations/riscv_cpu/word16_execution/prepared.zig:167 (discriminator 6)",
+    "word16_execution.prepared.Prepared.captureForCombinedServices @ integrations/riscv_cpu/word16_execution/prepared.zig:99",
+    "word16_global_execution.ethereum.direct.Job.run @ integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig:76",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 134,
+   "rss_gib": 0.001,
+   "live_virtual_gib": 0.001,
+   "regions": 1,
+   "label": "rv64.device_source.Context.build",
+   "where": "integrations/riscv_cuda/rv64/device_source.zig:68 (discriminator 4)",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "rv64.device_source.Context.build @ integrations/riscv_cuda/rv64/device_source.zig:68 (discriminator 4)",
+    "word16_global_execution.services.pipeline.DeviceSourceStage.invoke @ integrations/riscv_cpu/word16_global_execution/services/pipeline.zig:36",
+    "rv64.resident_router.Router.sourceWitness @ integrations/riscv_cuda/rv64/resident_router.zig:290",
+    "word16_global_execution.services.pipeline.DeviceSourceStage.invoke @ integrations/riscv_cpu/word16_global_execution/services/pipeline.zig:36",
+    "word16_global_execution.services.gkr_local.coordinator.Run.stageOne @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig:240 (discriminator 2)",
+    "word16_global_execution.services.schedule.runWithOptions__anon_123616.Shared.lane @ integrations/riscv_cpu/word16_global_execution/services/schedule.zig:221",
+    "pthread_condattr_setpshared @ ??:?"
+   ]
+  },
+  {
+   "site": 124,
+   "rss_gib": 0.001,
+   "live_virtual_gib": 0.001,
+   "regions": 1,
+   "label": "rv64.bulk_sponge.Owner.callback",
+   "where": "integrations/riscv_cuda/rv64/bulk_sponge.zig:112",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "rv64.bulk_sponge.Owner.callback @ integrations/riscv_cuda/rv64/bulk_sponge.zig:112",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "std::error_code::default_error_condition() const @ ??:?",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 230,
+   "rss_gib": 0.001,
+   "live_virtual_gib": 0.001,
+   "regions": 1,
+   "label": "common.preprocessed.TraceBuilder.block__anon_172818",
+   "where": "frontends/circuit/common/preprocessed.zig:654 (discriminator 6)",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "common.preprocessed.TraceBuilder.block__anon_172818 @ frontends/circuit/common/preprocessed.zig:654 (discriminator 6)",
+    "common.preprocessed.PreprocessedCircuit.fromBuilderCircuit @ frontends/circuit/common/preprocessed.zig:?",
+    "heap.CAllocator.alignedFree @ heap.zig:185",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 67,
+   "rss_gib": 0.001,
+   "live_virtual_gib": 0.001,
+   "regions": 1,
+   "label": "word16_global_execution.ethereum.keys.Owner.initPolicy",
+   "where": "integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "word16_global_execution.ethereum.keys.Owner.initPolicy @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:234",
+    "word16_global_execution.ethereum.keys.Owner.initWithSharedCache @ integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig:58",
+    "word16_global_execution.ethereum.gkr_main.runArguments__anon_25642 @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:629 (discriminator 34)",
+    "word16_global_execution.ethereum.gkr_main.runCombinedResidentArgsWithExecution @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig:334",
+    "rv64.resident_batch.runMode__anon_124215 @ integrations/riscv_cuda/rv64/resident_batch.zig:207 (discriminator 2)",
+    "rv64.resident_batch.runCombined @ integrations/riscv_cuda/rv64/resident_batch.zig:35"
+   ]
+  },
+  {
+   "site": 211,
+   "rss_gib": 0.001,
+   "live_virtual_gib": 0.001,
+   "regions": 1,
+   "label": "word16_global_execution.services.gkr_local.worker_protocol.decodePhysical",
+   "where": "integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig:123",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "word16_global_execution.services.gkr_local.worker_protocol.decodePhysical @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig:123",
+    "word16_global_execution.ethereum.gkr_receiver.verifyWithAuthority @ integrations/riscv_cpu/word16_global_execution/ethereum/gkr_receiver.zig:21",
+    "word16_global_execution.ethereum.native_verify_overlap.Job(word16_execution.expected_image @ integrations/riscv_cpu/word16_global_execution/ethereum/native_verify_overlap.zig:85",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 219,
+   "rss_gib": 0.001,
+   "live_virtual_gib": 0.001,
+   "regions": 1,
+   "label": "rv64_recursion.om31_native.leaf_graph.truthMode",
+   "where": "integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:132",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:129",
+    "rv64_recursion.om31_native.leaf_graph.truthMode @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:132",
+    "rv64_recursion.om31_native.leaf_graph.truthTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:119",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 218,
+   "rss_gib": 0.001,
+   "live_virtual_gib": 0.001,
+   "regions": 1,
+   "label": "family.ForField(fields.om31.OM31).readProofWireBinary",
+   "where": "interop/proof_wire/family.zig:706 (discriminator 6)",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "heap.arena_allocator.ArenaAllocator.createNode @ arena_allocator.zig:176 (discriminator 2)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "family.ForField(fields.om31.OM31).readProofWireBinary @ interop/proof_wire/family.zig:706 (discriminator 6)",
+    "word16_global_execution.services.gkr_local.worker_protocol.decodePhysical @ integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig:123",
+    "rv64_recursion.om31_native.leaf_graph.cpuTraceOnly @ integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig:81",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 231,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 0.001,
+   "regions": 1,
+   "label": "witness_generation.plan.buildImpl__anon_103593",
+   "where": "frontends/circuit/witness_generation/plan.zig:242",
+   "stack": [
+    "host_budget_allocator.SharedHostBudget.sharedAlloc @ prover/host_budget_allocator.zig:366 (discriminator 2)",
+    "rv64_large_block_recycler.LargeBlockRecycler.alloc @ integrations/riscv_cpu/rv64_large_block_recycler.zig:130 (discriminator 4)",
+    "mem.Allocator.rawAlloc @ Allocator.zig:?",
+    "witness_generation.plan.buildImpl__anon_103593 @ frontends/circuit/witness_generation/plan.zig:242",
+    "rv64.outer_assignment.Prepared.initFull @ integrations/riscv_cuda/rv64/outer_assignment.zig:188",
+    "rv64.outer_assignment.Prepared.init @ integrations/riscv_cuda/rv64/outer_assignment.zig:133",
+    "rv64.outer_source.Context.prepareHost @ integrations/riscv_cuda/rv64/outer_source.zig:88",
+    "rv64_recursion.om31_native.outer_wrap.prepareHost @ integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig:308 (discriminator 4)",
+    "pthread_condattr_setpshared @ ??:?",
+    "__clone @ ??:?"
+   ]
+  },
+  {
+   "site": 0,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 8.062,
+   "regions": 1,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "pthread_mutexattr_settype @ ??:?",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0"
+   ]
+  },
+  {
+   "site": 1,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 8.002,
+   "regions": 1,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "pthread_mutexattr_settype @ ??:?",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0"
+   ]
+  },
+  {
+   "site": 2,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 0.035,
+   "regions": 2,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "pthread_mutexattr_settype @ ??:?",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0"
+   ]
+  },
+  {
+   "site": 3,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 0.035,
+   "regions": 2,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0"
+   ]
+  },
+  {
+   "site": 4,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 0.125,
+   "regions": 2,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0"
+   ]
+  },
+  {
+   "site": 5,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 0.051,
+   "regions": 6,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03"
+   ]
+  },
+  {
+   "site": 6,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 0.004,
+   "regions": 2,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03"
+   ]
+  },
+  {
+   "site": 7,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 0.004,
+   "regions": 2,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03"
+   ]
+  },
+  {
+   "site": 8,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 0.004,
+   "regions": 2,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03"
+   ]
+  },
+  {
+   "site": 9,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 0.004,
+   "regions": 2,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03"
+   ]
+  },
+  {
+   "site": 10,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 0.188,
+   "regions": 2,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03"
+   ]
+  },
+  {
+   "site": 11,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 0.812,
+   "regions": 2,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03"
+   ]
+  },
+  {
+   "site": 12,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 1.125,
+   "regions": 36,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03"
+   ]
+  },
+  {
+   "site": 13,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 125.5,
+   "regions": 2,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0"
+   ]
+  },
+  {
+   "site": 14,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 125.5,
+   "regions": 2,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0",
+    "[rv64-word16-ethereum-gpu-combined] @ ??:0"
+   ]
+  },
+  {
+   "site": 121,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 6.438,
+   "regions": 2,
+   "label": "[libcuda.so.570.195.03]",
+   "where": "libcuda.so.570.195.03",
+   "stack": [
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03",
+    "[libcuda.so.570.195.03] @ libcuda.so.570.195.03"
+   ]
+  },
+  {
+   "site": 227,
+   "rss_gib": 0.0,
+   "live_virtual_gib": 0.031,
+   "regions": 1,
+   "label": "rv64.pcs_geometry_cache.Cache.build",
+   "where": "integrations/riscv_cuda/rv64/pcs_geometry_cache.zig:111",
+   "stack": [
+    "mem.Allocator.allocBytesWithAlignment__anon_127283 @ Allocator.zig:283 (discriminator 4)",
+    "rv64.pcs_geometry_cache.Cache.build @ integrations/riscv_cuda/rv64/pcs_geometry_cache.zig:111",
+    "rv64.pcs_request_export.prepareRequestWithFraming @ integrations/riscv_cuda/rv64/pcs_request_export.zig:145 (discriminator 4)",
+    "rv64.pcs_native.Context.prove @ integrations/riscv_cuda/rv64/pcs_native.zig:412",
+    "pcs.scheme_family.ForField(fields.om31.OM31).CommitmentSchemeProver(mod.configured(.{ .wid @ prover/pcs/scheme_family.zig:462",
+    "prove_family.ForField(fields.om31.OM31).proveExSampledPointsWithRecorderDiagnosed__anon_10 @ prover/prove_family.zig:361",
+    "prove_family.ForField(fields.om31.OM31).proveExComponentsWithRecorder__anon_106878 @ prover/prove_family.zig:679",
+    "om31.device_prove.proveOwned @ integrations/circuit_cpu/om31/device_prove.zig:168",
+    "om31.device_prove.proveFromPrecommittedCircuit @ integrations/circuit_cpu/om31/device_prove.zig:119",
+    "rv64_recursion.om31_native.outer_wrap.proveDevice @ integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig:372 (discriminator 4)"
+   ]
+  }
+ ],
+ "live_curve_gib_1s": [
+  [
+   0.0,
+   0.0
+  ],
+  [
+   4.52,
+   16.118
+  ],
+  [
+   5.0,
+   16.87
+  ],
+  [
+   6.0,
+   142.785
+  ],
+  [
+   7.17,
+   143.805
+  ],
+  [
+   8.04,
+   269.667
+  ],
+  [
+   9.0,
+   271.486
+  ],
+  [
+   10.0,
+   272.946
+  ],
+  [
+   11.11,
+   273.177
+  ],
+  [
+   12.0,
+   273.609
+  ],
+  [
+   13.05,
+   273.349
+  ],
+  [
+   14.1,
+   271.9
+  ],
+  [
+   15.0,
+   272.338
+  ],
+  [
+   16.1,
+   272.929
+  ],
+  [
+   17.02,
+   272.909
+  ],
+  [
+   18.04,
+   273.008
+  ],
+  [
+   19.45,
+   273.051
+  ],
+  [
+   20.64,
+   273.078
+  ],
+  [
+   21.09,
+   273.053
+  ],
+  [
+   22.01,
+   273.155
+  ],
+  [
+   23.04,
+   273.407
+  ],
+  [
+   24.0,
+   273.554
+  ],
+  [
+   25.25,
+   273.798
+  ],
+  [
+   26.01,
+   273.784
+  ],
+  [
+   27.29,
+   273.759
+  ],
+  [
+   28.05,
+   273.798
+  ],
+  [
+   29.03,
+   273.841
+  ],
+  [
+   30.11,
+   273.903
+  ],
+  [
+   31.02,
+   274.076
+  ],
+  [
+   32.0,
+   274.091
+  ],
+  [
+   33.02,
+   277.293
+  ],
+  [
+   34.15,
+   277.304
+  ],
+  [
+   35.01,
+   277.387
+  ],
+  [
+   36.07,
+   277.368
+  ],
+  [
+   37.0,
+   281.051
+  ],
+  [
+   38.03,
+   280.459
+  ],
+  [
+   39.0,
+   280.546
+  ],
+  [
+   40.0,
+   279.999
+  ],
+  [
+   41.03,
+   279.327
+  ],
+  [
+   42.06,
+   278.814
+  ],
+  [
+   43.05,
+   278.749
+  ],
+  [
+   44.08,
+   278.757
+  ],
+  [
+   45.04,
+   278.768
+  ],
+  [
+   46.0,
+   279.212
+  ],
+  [
+   47.01,
+   284.931
+  ],
+  [
+   48.0,
+   287.722
+  ],
+  [
+   49.0,
+   286.291
+  ],
+  [
+   50.0,
+   288.156
+  ],
+  [
+   51.02,
+   288.3
+  ],
+  [
+   52.02,
+   285.4
+  ],
+  [
+   53.01,
+   286.402
+  ],
+  [
+   54.05,
+   284.454
+  ],
+  [
+   55.0,
+   286.662
+  ],
+  [
+   56.0,
+   285.917
+  ],
+  [
+   57.03,
+   285.721
+  ],
+  [
+   58.01,
+   285.705
+  ],
+  [
+   59.0,
+   286.237
+  ],
+  [
+   60.01,
+   286.29
+  ],
+  [
+   61.0,
+   286.484
+  ],
+  [
+   62.04,
+   286.211
+  ],
+  [
+   63.0,
+   286.346
+  ],
+  [
+   64.01,
+   286.198
+  ],
+  [
+   65.02,
+   285.973
+  ],
+  [
+   66.0,
+   284.9
+  ],
+  [
+   67.0,
+   284.35
+  ],
+  [
+   68.1,
+   283.728
+  ],
+  [
+   69.0,
+   282.505
+  ],
+  [
+   70.0,
+   281.955
+  ],
+  [
+   71.03,
+   282.807
+  ],
+  [
+   72.0,
+   282.331
+  ],
+  [
+   73.01,
+   282.406
+  ],
+  [
+   74.11,
+   282.393
+  ],
+  [
+   75.02,
+   282.406
+  ],
+  [
+   76.02,
+   282.393
+  ],
+  [
+   77.02,
+   282.538
+  ],
+  [
+   78.0,
+   282.393
+  ],
+  [
+   79.02,
+   282.444
+  ],
+  [
+   80.02,
+   282.532
+  ],
+  [
+   81.02,
+   281.774
+  ],
+  [
+   82.15,
+   30.266
+  ],
+  [
+   83.04,
+   29.641
+  ],
+  [
+   84.0,
+   21.469
+  ]
+ ],
+ "scope": "anonymous mmaps >= 1 MiB through libc mmap (Zig page_allocator); glibc-internal malloc mmaps and CUDA driver allocations are NOT traced"
+}

@@ -22,6 +22,10 @@
 #define _GNU_SOURCE
 #include <cuda.h>
 #include <dlfcn.h>
+#include <execinfo.h>
+#include <stdarg.h>
+#include <sys/mman.h>
+#include <sys/syscall.h>
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdint.h>
@@ -317,6 +321,121 @@ void *dlsym(void *handle, const char *symbol) {
   return q;
 }
 
+
+// ----------------------------------------------------------------------------- mmap tracer
+// RV64_MMAP_TRACE=1: interpose mmap/munmap/mremap (Zig's page_allocator calls libc mmap
+// directly), forward through raw syscalls, and log every anonymous mapping >= 1 MiB with a
+// call-site id (hash of a backtrace), plus every munmap/mremap. An offline pass computes live
+// bytes per call site at any instant (e.g. the RSS peak). Smaller maps are only summed.
+#define TRACE_MIN (1ull << 20)
+#define MAX_EVENTS (1 << 21)
+#define MAX_SITES 8192
+#define SITE_DEPTH 14
+typedef struct { uint64_t t_ns, addr, len, aux; uint32_t site; uint8_t op; } MapEvent;  // op 0 map 1 unmap 2 remap(aux=new addr)
+static MapEvent *g_events;
+static _Atomic int g_nevents;
+static _Atomic uint64_t g_small_maps, g_small_bytes;
+typedef struct { uint64_t hash; int depth; void *frames[SITE_DEPTH]; uint64_t count, bytes; } Site;
+static Site g_sites[MAX_SITES];
+static _Atomic int g_nsites;
+static pthread_mutex_t g_site_mu = PTHREAD_MUTEX_INITIALIZER;
+static int g_trace;
+static __thread int t_in_trace;
+
+static void push_event(uint8_t op, uint64_t addr, uint64_t len, uint64_t aux, uint32_t site) {
+  if (!g_events) return;
+  int i = atomic_fetch_add(&g_nevents, 1);
+  if (i < MAX_EVENTS) g_events[i] = (MapEvent){mono_ns(), addr, len, aux, site, op};
+}
+
+static uint32_t site_of(uint64_t len) {
+  void *frames[SITE_DEPTH + 2];
+  int n = backtrace(frames, SITE_DEPTH + 2);
+  uint64_t h = 1469598103934665603ull;
+  int skip = 2, depth = n - skip < SITE_DEPTH ? n - skip : SITE_DEPTH;
+  if (depth < 0) depth = 0;
+  for (int i = 0; i < depth; i++) { h ^= (uint64_t)(uintptr_t)frames[i + skip]; h *= 1099511628211ull; }
+  pthread_mutex_lock(&g_site_mu);
+  int ns = g_nsites, found = -1;
+  for (int i = 0; i < ns; i++) if (g_sites[i].hash == h) { found = i; break; }
+  if (found < 0 && ns < MAX_SITES) {
+    found = ns;
+    g_sites[ns].hash = h;
+    g_sites[ns].depth = depth;
+    memcpy(g_sites[ns].frames, frames + skip, depth * sizeof(void *));
+    g_nsites = ns + 1;
+  }
+  if (found >= 0) { g_sites[found].count++; g_sites[found].bytes += len; }
+  pthread_mutex_unlock(&g_site_mu);
+  return found < 0 ? 0xffffffffu : (uint32_t)found;
+}
+
+void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off) {
+  void *p = (void *)syscall(SYS_mmap, addr, len, prot, flags, fd, off);
+  if (g_trace && p != MAP_FAILED && (flags & MAP_ANONYMOUS) && !t_in_trace) {
+    if (len >= TRACE_MIN) {
+      t_in_trace = 1;
+      push_event(0, (uint64_t)(uintptr_t)p, len, 0, site_of(len));
+      t_in_trace = 0;
+    } else { atomic_fetch_add_explicit(&g_small_maps, 1, memory_order_relaxed); atomic_fetch_add_explicit(&g_small_bytes, len, memory_order_relaxed); }
+  }
+  return p;
+}
+void *mmap64(void *addr, size_t len, int prot, int flags, int fd, off_t off) { return mmap(addr, len, prot, flags, fd, off); }
+int munmap(void *addr, size_t len) {
+  long rc = syscall(SYS_munmap, addr, len);
+  if (g_trace && rc == 0 && len >= 4096 && !t_in_trace) push_event(1, (uint64_t)(uintptr_t)addr, len, 0, 0);
+  return (int)rc;
+}
+void *mremap(void *old, size_t old_len, size_t new_len, int flags, ...) {
+  void *new_addr = NULL;
+  if (flags & MREMAP_FIXED) { va_list ap; va_start(ap, flags); new_addr = va_arg(ap, void *); va_end(ap); }
+  void *p = (void *)syscall(SYS_mremap, old, old_len, new_len, flags, new_addr);
+  if (g_trace && p != MAP_FAILED && !t_in_trace && (old_len >= TRACE_MIN || new_len >= TRACE_MIN)) {
+    push_event(2, (uint64_t)(uintptr_t)old, old_len, (uint64_t)(uintptr_t)p, 0);
+    push_event(3, (uint64_t)(uintptr_t)p, new_len, 0, 0);  // op 3: remapped region now live at p with new_len
+  }
+  return p;
+}
+
+static void dump_mmap_trace(void) {
+  const char *dir = getenv("RV64_CUDA_COUNTERS_OUT");
+  if (!g_trace || !dir || !*dir) return;
+  g_trace = 0;
+  char path[4096];
+  snprintf(path, sizeof path, "%s/mmap-trace-%d.bin", dir, (int)getpid());
+  FILE *f = fopen(path, "wb");
+  if (f) {
+    int n = g_nevents < MAX_EVENTS ? g_nevents : MAX_EVENTS;
+    fwrite(g_events, sizeof(MapEvent), n, f);
+    fclose(f);
+  }
+  snprintf(path, sizeof path, "%s/mmap-sites-%d.json", dir, (int)getpid());
+  f = fopen(path, "w");
+  if (!f) return;
+  fprintf(f, "{\"schema\":\"rv64-mmap-trace/v1\",\"event_bytes\":%zu,\"events\":%d,\"dropped\":%d,\"small_maps\":%llu,\"small_bytes\":%llu,\"origin_monotonic_ns\":%llu,\"sites\":[",
+          sizeof(MapEvent), g_nevents, g_nevents > MAX_EVENTS ? g_nevents - MAX_EVENTS : 0, (unsigned long long)g_small_maps, (unsigned long long)g_small_bytes,
+          (unsigned long long)g_origin_mono);
+  for (int i = 0; i < g_nsites; i++) {
+    fprintf(f, "%s{\"id\":%d,\"count\":%llu,\"bytes\":%llu,\"frames\":[", i ? "," : "", i, (unsigned long long)g_sites[i].count, (unsigned long long)g_sites[i].bytes);
+    for (int k = 0; k < g_sites[i].depth; k++) fprintf(f, "%s\"%p\"", k ? "," : "", g_sites[i].frames[k]);
+    fprintf(f, "]}");
+  }
+  fprintf(f, "],\"maps\":\"");
+  // /proc/self/maps for offline symbolization (load bases)
+  FILE *m = fopen("/proc/self/maps", "r");
+  if (m) {
+    char line[4096];
+    while (fgets(line, sizeof line, m)) {
+      if (!strstr(line, " r-xp ") && !strstr(line, " r--p ")) continue;
+      for (char *c = line; *c; c++) { if (*c == '\n') fputs("\\n", f); else if (*c == '"' || *c == '\\') { fputc('\\', f); fputc(*c, f); } else fputc(*c, f); }
+    }
+    fclose(m);
+  }
+  fprintf(f, "\"}\n");
+  fclose(f);
+}
+
 // ----------------------------------------------------------------------------- dump
 static void dump_bins(FILE *f, const uint32_t *bins) {
   fputc('[', f);
@@ -382,5 +501,16 @@ __attribute__((constructor)) static void init(void) {
   g_origin_mono = mono_ns();
   const char *b = getenv("RV64_CUDA_COUNTERS_BIN_MS");
   if (b && atoi(b) > 0) g_bin_ns = (uint64_t)atoi(b) * 1000000ull;
+  const char *t = getenv("RV64_MMAP_TRACE");
+  if (t && *t == '1') {
+    g_events = (MapEvent *)syscall(SYS_mmap, NULL, (size_t)MAX_EVENTS * sizeof(MapEvent), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
+    if (g_events == MAP_FAILED) g_events = NULL;
+    void *warm[4];
+    t_in_trace = 1;
+    backtrace(warm, 4);  // loads libgcc_s before tracing starts
+    t_in_trace = 0;
+    g_trace = g_events != NULL;
+  }
+  atexit(dump_mmap_trace);
   atexit(dump);
 }

@@ -7,6 +7,8 @@ Seconds unless noted; proof KB = final proof bytes / 1000. Rows are in date then
 
 ## Best measured so far (2 GPUs, dev blocks) vs M3 baseline
 
+Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; loaded-pod rows stay in the history below.
+
 | block | column | M3 baseline | best | factor | by |
 |---|---|---:|---:|---:|---|
 | 24628607 | capture_s | 3.27 | 3.27 | 1.00x | m3-baseline 2026-11-04 |
@@ -14,9 +16,9 @@ Seconds unless noted; proof KB = final proof bytes / 1000. Rows are in date then
 | 24628607 | proof_bytes | 706424 | 706424 | 1.00x | m3-baseline 2026-11-04 |
 | 24628607 | recursion_s | 27.27 | 27.27 | 1.00x | m3-baseline 2026-11-04 |
 | 24628607 | request_s | 51.11 | 51.11 | 1.00x | m3-baseline 2026-11-04 |
-| 24628607 | rss_peak_gib | 25.00 | 23.33 | 1.07x | measure 2026-11-04 |
+| 24628607 | rss_peak_gib | 25.00 | 25.00 | 1.00x | m3-baseline 2026-11-04 |
 | 24628607 | setup_s | 12.55 | 12.55 | 1.00x | m3-baseline 2026-11-04 |
-| 24628607 | verifier_s | 77.30 | 71.17 | 1.09x | measure 2026-11-04 |
+| 24628607 | verifier_s | 77.30 | 77.30 | 1.00x | m3-baseline 2026-11-04 |
 | 26235156 | capture_s | 2.54 | 2.54 | 1.00x | m3-baseline 2026-11-04 |
 | 26235156 | native_s | 5.16 | 5.16 | 1.00x | m3-baseline 2026-11-04 |
 | 26235156 | proof_bytes | 748536 | 748536 | 1.00x | m3-baseline 2026-11-04 |
@@ -33,6 +35,8 @@ Seconds unless noted; proof KB = final proof bytes / 1000. Rows are in date then
 | 2026-11-03 | v7 | m3-baseline | 1 | M | 236.79 | 6.65 | 26.36 | 15.26 | 183.14 | — | — | — | 708 | — | — | — | — | — | — | yes | 923e63b45 | accepted v7, 1x RTX 5090 (verifier = strict shared-authority receiver wall; native verify on path) |
 | 2026-11-04 | M3 | m3-baseline | 2 | M | 51.11 | 3.27 | 12.55 | 7.83 | 27.27 | 77.3 | 25.0 | 33.3 | 706 | — | — | — | — | — | — | yes | ff2f71cf1 | M3 baseline (summary.json); native+bundle byte-identical to v7, folds/root differ by design (fold v2) |
 | 2026-11-04 | M4.0 | measure | 2 | M | 78.85 | 7.25 | 21.01 | 12.98 | 37.38 | 71.2 | 23.3 | 33.3 | 706 | 55446 | 228174 | 14670 | 683 | 19705 | rv64-m3-20261104/integrate/scale/24628607 | yes | bcd401ce4 | M4.0 counter+smaps census run; LOADED POD (load1 103): timings not quotable, counts/RSS valid; byte-identical to M3 baseline with shim loaded |
+| 2026-11-04 | M4.0 | measure | 2 | M | 54.97 | 3.75 | 14.12 | 7.41 | 29.46 | — | — | 33.4 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | — | bcd401ce4 | nsys reconciliation: recursion kernel-busy 25.12 GPU-s (leaf 13.10, fold 12.02) vs 39.44 first-to-last span; busy 49%/43% of window; nsys overhead + load1 52: timings not quotable; RSS not recorded (getrusage measured the nsys launcher) |
+| 2026-11-04 | M4.0 | measure | 2 | M | 73.08 | 5.82 | 18.21 | 12.90 | 35.83 | — | 23.2 | 33.6 | 706 | 55446 | 228174 | 14670 | 683 | 19705 | rv64-m3-20261104/integrate/scale/24628607 | — | bcd401ce4 | mmap call-site census run (prove only); load1 32: timings not quotable; RSS peak 22.52 GiB sampled |
 
 ## 26235156
 
@@ -40,6 +44,7 @@ Seconds unless noted; proof KB = final proof bytes / 1000. Rows are in date then
 |---|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|
 | 2026-11-03 | v7 | m3-baseline | 1 | M | 152.92 | 5.06 | 16.39 | 9.44 | 118.31 | 91.1 | — | — | 750 | — | — | — | — | — | — | yes | 923e63b45 | accepted v7, 1x RTX 5090 (verifier = strict shared-authority receiver wall; native verify on path) |
 | 2026-11-04 | M3 | m3-baseline | 2 | M | 34.28 | 2.54 | 8.33 | 5.16 | 18.07 | 50.5 | 22.3 | 33.7 | 749 | — | — | — | — | — | — | yes | ff2f71cf1 | M3 baseline (summary.json); native+bundle byte-identical to v7, folds/root differ by design (fold v2) |
+| 2026-11-04 | M4.0 | measure | 2 | M | 55.96 | 5.32 | 13.46 | 9.45 | 27.49 | 51.0 | 23.2 | 33.7 | 749 | 35050 | 141703 | 9232 | 683 | 12250 | rv64-m3-20261104/integrate/scale/26235156 | yes | bcd401ce4 | M4.0 counter census 26235156; load1 40: timings not quotable |
 
 ## 24626900
 

@@ -34,6 +34,7 @@ OPTIONAL_NUMERIC = ["native_verify_s", "fold_tail_s", "rss_request_private_gib",
                     "pageable_copies", "loadavg_1m", "instructions_m", "nodes"]
 OPTIONAL_TEXT = ["byte_identical_to", "receiver_accepted", "notes", "receipt", "config", "run"]
 LABELS = {"M", "D", "E"}
+QUIET_LOAD = 8.0  # protocol: quote timings only from runs with 1-min load average < 8
 ALL = REQUIRED + NUMERIC + OPTIONAL_NUMERIC + OPTIONAL_TEXT
 
 
@@ -187,12 +188,15 @@ def render(args):
     for _, r in data:
         if r["label"] != "M" or r["block"] not in (26235156, 24628607) or r.get("gpus") != 2:
             continue
+        if (r.get("loadavg_1m") or 0) >= QUIET_LOAD:  # timing hygiene: only quiet runs compete
+            continue
         b = best.setdefault(r["block"], {})
         for key in ("request_s", "capture_s", "setup_s", "native_s", "recursion_s", "verifier_s", "rss_peak_gib", "proof_bytes"):
             if r.get(key) is not None and (b.get(key) is None or r[key] < b[key][0]):
                 b[key] = (r[key], r["date"], r["stream"])
     if best:
         lines += ["## Best measured so far (2 GPUs, dev blocks) vs M3 baseline", "",
+                  f"Only label-M rows from quiet runs (`loadavg_1m` < {QUIET_LOAD:g} or not recorded) compete; loaded-pod rows stay in the history below.", "",
                   "| block | column | M3 baseline | best | factor | by |", "|---|---|---:|---:|---:|---|"]
         base = {r["block"]: r for _, r in data if r["stream"] == "m3-baseline" and r["milestone"] == "M3" and r.get("gpus") == 2}
         for block in (24628607, 26235156):
