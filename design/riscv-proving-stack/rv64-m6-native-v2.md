@@ -133,4 +133,10 @@ unaffected by the strict roster.
   wire admission;
 - flat proof under v2: rejected (`NativeChainNotStrict`).
 
-The negative corpus v3 results on both v2 blocks are in `corpus-*.json`.
+**Negative corpus v3 [M]** (`rv64_m5_negative_corpus.py run`, fresh receivers with the v2 policy): 42/42 on 26235156 and
+42/42 on 24628607. No unexpected accepts and no crashes (`corpus-<block>-v2-strict.json`).
+
+**v2-gkr roster bound [D]** (`v2gkr-roster-caps.json`, from the strict-class census): the CPU rosters reach **68
+instances** (cpu-5 on 607, cpu-1/2 on 156), above v1's 64 (`rv64-native-gkr-tool shape` refuses them with
+`NativeGkrRosterShape`). The maximum is 27 variables and lane log 11. That is why v2 sets 128 instances and why CUDA
+`batch_max_oracles` 64 -> 128 is a hard prerequisite. The flat classes peak at exactly 64.
