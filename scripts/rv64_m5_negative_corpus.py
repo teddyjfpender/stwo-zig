@@ -301,8 +301,10 @@ CASES = [
          what="receiver given an unknown outer profile name: must refuse CLEANLY (an error exit, not a panic)",
          mutate=lambda c: c["env"].__setitem__("STWO_RV64_OUTER_PROFILE", "m9_b2_q1_p0_fold4")),
     dict(id="C01-control-explicit-r1", family="control", expect="accept", today="m3-cap", requires=("outer_profile_env",),
-         what="unmodified proof, receiver selects the r1 outer profile explicitly",
-         mutate=lambda c: c["env"].__setitem__("STWO_RV64_OUTER_PROFILE", "r1_b2_q108_p20_fold4")),
+         what="unmodified proof, receiver selects the proof's outer profile explicitly (r1 unless the caller's "
+              "STWO_RV64_OUTER_PROFILE names another, e.g. an M5 canonical profile; M5 integrate)",
+         mutate=lambda c: c["env"].__setitem__("STWO_RV64_OUTER_PROFILE",
+                                               os.environ.get("STWO_RV64_OUTER_PROFILE") or "r1_b2_q108_p20_fold4")),
     # Pending: formats that do not exist until M5 / M7 (spec only; never run).
     dict(id="N01-forged-null-slot", family="null-slot", expect="reject", today="m5",
          what="k-ary fold: real child slot re-tagged null (child dropped while kappa kept)"),

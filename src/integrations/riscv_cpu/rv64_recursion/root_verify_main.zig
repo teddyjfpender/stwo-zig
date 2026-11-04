@@ -86,6 +86,11 @@ fn emit(a: std.mem.Allocator, value: anytype) !void {
 
 pub fn main() !void {
     const process_start = try std.time.Instant.now();
+    // Receiver policy env (outer profile, shape, arity) is validated before
+    // anything resolves it: an unknown value is a clean error exit, never the
+    // panic in protocol.active() (corpus P03; M5 integrate: this entry is
+    // dispatched before gkr_main.runArguments, which does the same check).
+    try ExecWrap.checkPolicyEnv();
     var recycler = Recycler.init(std.heap.smp_allocator, ReceiverBudget.RECYCLER_CACHE_BYTES);
     defer recycler.deinit();
     const base = recycler.allocator();
