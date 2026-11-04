@@ -847,7 +847,7 @@ pub fn mlePar(a: std.mem.Allocator, pool: *f.Pool, vals: []const i32, pt: []cons
 }
 
 fn publicMle(a: std.mem.Allocator, x: Ext, id: u32, pt: []const QM31) !QM31 {
-    return f.mleEvalI32(a, x.publics[id].values, pt);
+    return f.mleFoldI32(a, x.publics[id].values, pt);
 }
 
 // ---------------------------------------------------------------------------

@@ -199,6 +199,39 @@ pub fn mleEval(allocator: std.mem.Allocator, values: []const QM31, point: []cons
     return buf[0];
 }
 
+/// MLE of an integer vector at a point by folding (MSB first); the first fold
+/// multiplies QM31 by M31 differences only (verifier-side public tensors:
+/// half the memory and about a third of the work of the eq-table form).
+pub fn mleFoldI32(a: std.mem.Allocator, v: []const i32, z: []const QM31) !QM31 {
+    std.debug.assert(v.len == @as(usize, 1) << @intCast(z.len));
+    if (z.len == 0) return QM31.fromBase(fromI32(v[0]));
+    const half = v.len / 2;
+    const buf = try a.alloc(QM31, half);
+    defer a.free(buf);
+    for (buf, v[0..half], v[half..]) |*o, lo, hi| {
+        const l = fromI32(lo);
+        o.* = QM31.fromBase(l).add(z[0].mulM31(fromI32(hi).sub(l)));
+    }
+    var len = half;
+    for (z[1..]) |r| {
+        const h = len / 2;
+        for (0..h) |i| buf[i] = buf[i].add(r.mul(buf[i + h].sub(buf[i])));
+        len = h;
+    }
+    return buf[0];
+}
+
+test "mleFoldI32 matches mleEvalI32 (field)" {
+    const a = std.testing.allocator;
+    var v: [64]i32 = undefined;
+    for (&v, 0..) |*x, i| x.* = @as(i32, @intCast(i * 37 % 101)) - 50;
+    v[3] = std.math.minInt(i32);
+    v[9] = std.math.maxInt(i32);
+    var z: [6]QM31 = undefined;
+    for (&z, 0..) |*x, i| x.* = QM31.fromU32Unchecked(@intCast(i * 7 + 3), 11, @intCast(i), 5);
+    try std.testing.expect((try mleFoldI32(a, &v, &z)).eql(try mleEvalI32(a, &v, &z)));
+}
+
 pub fn mleEvalI32(allocator: std.mem.Allocator, values: []const i32, point: []const QM31) !QM31 {
     const eq = try eqTable(allocator, point, QM31.one());
     defer allocator.free(eq);
