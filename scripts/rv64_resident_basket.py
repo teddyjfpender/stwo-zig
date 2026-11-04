@@ -62,8 +62,8 @@ def recursion_options(manifest, combined, counts, strict):
     fixed = manifest.get("recursion_device_fixed_candidate", False)
     if type(fixed) is not bool:
         raise ValueError("device FIXED opt-in must be Boolean")
-    if fixed and (mode != "serial" or not combined or strict is not True):
-        raise ValueError("device FIXED candidate requires serial combined proving and a strict receiver")
+    if fixed and (mode not in ("serial", "ready_candidate") or not combined or strict is not True):
+        raise ValueError("device FIXED candidate requires combined proving and a strict receiver")
     if mode == "serial":
         if combined and counts != [1]:
             raise ValueError("combined recursion supports exactly one GPU; 2/4-device admission remains closed")
@@ -74,8 +74,11 @@ def recursion_options(manifest, combined, counts, strict):
     pending = positive(manifest.get("recursion_max_pending_authorities", 17), "recursion pending bound")
     if workers < max(counts) or workers > 32 or not 9 + 2 * max(counts) <= pending <= 256:
         raise ValueError("invalid ready recursion admission")
-    return {"recursion_mode": mode, "recursion_worker_budget": workers,
-            "recursion_max_pending_authorities": pending}
+    result = {"recursion_mode": mode, "recursion_worker_budget": workers,
+              "recursion_max_pending_authorities": pending}
+    if fixed:
+        result["recursion_device_fixed_candidate"] = True
+    return result
 
 
 def build_plan(basket, manifest, root, driver, receiver, library, output, devices, counts, cap, expected_runtime=RUNTIME, combined=False, recursive_receiver=None, repeat=2, strict_recursive_receiver=False):

@@ -298,12 +298,25 @@ pub const CombinedRecursion = struct {
     ready: ?@import("../../rv64_recursion/om31_native/execution_wrap.zig").ParallelOptions = null,
     physical_devices: []const u32 = &.{},
     producer_manifest_sha256: ?[32]u8 = null,
+    /// Derive telemetry from the installed callbacks, never the manifest flag.
+    /// Mixed lane policies cannot be reported as one authenticated backend.
+    pub fn usesDeviceFixed(self: CombinedRecursion) !bool {
+        if (self.ready) |ready| {
+            if (ready.lanes.len == 0) return error.InvalidCombinedRecursionSelection;
+            const selected = ready.lanes[0].factory.precommit_fixed != null;
+            for (ready.lanes) |lane| if ((lane.factory.precommit_fixed != null) != selected)
+                return error.MixedCombinedFixedBackends;
+            return selected;
+        }
+        return if (self.factory) |factory| factory.precommit_fixed != null else false;
+    }
     pub fn validate(self: CombinedRecursion) !void {
         if (self.ready) |ready| {
             if (self.factory != null or ready.lanes.len != self.physical_devices.len) return error.InvalidCombinedRecursionSelection;
             try @import("../../rv64_recursion/om31_native/execution_wrap.zig").validateLanes(ready);
             for (ready.lanes, self.physical_devices) |lane, device| if (lane.physical_device != device) return error.InvalidCombinedRecursionSelection;
         } else if (self.factory == null or self.physical_devices.len > 1) return error.InvalidCombinedRecursionSelection;
+        _ = try self.usesDeviceFixed();
     }
 };
 /// Persistent combined requests reuse only bounded independently derived setup.
@@ -712,7 +725,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         const recursion_ns = timer.read() - recursion_start_ns;
         // execution_wrap already published its report exclusively. Native timing
         // belongs in this combined report; never republish the existing file.
-        const fixed_setup_backend: []const u8 = if (recursion_factory != null and recursion_factory.?.precommit_fixed != null) "device_candidate" else "cpu";
+        const fixed_setup_backend: []const u8 = if (try recursion_execution.usesDeviceFixed()) "device_candidate" else "cpu";
         const report = .{ .schema = 1, .accepted = true, .completed_ethereum_block = true, .fixed_setup_backend = fixed_setup_backend, .authority_handoff = "live independently derived keys and fixed authority; direct in-memory bundle", .native_bundle_reload = false, .recursion_execution = recursion_operational, .native_authority_session_used = session != null, .native_authority_classes = if (session) |shared| shared.keyCount() else @as(usize, 0), .restored_recursive_proofs = false, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .profile = selected_profile, .capture_ns = capture_ns, .native_setup_ns = setup_ns, .setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = producer_keys_ns, .fixed_authority_ns = producer_fixed_ns }, .native_prove_ns = prove_ns, .native_verify_ns = verify_ns, .native_publish_ns = native_publish_ns, .recursion_ns = recursion_ns, .combined_ns = timer.read(), .recursive = recursion };
         try Driver.writeJson(a, dir, "combined-report.json", report);
         try std.posix.fsync(dir.fd);

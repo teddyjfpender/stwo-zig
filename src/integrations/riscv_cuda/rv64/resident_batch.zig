@@ -78,7 +78,7 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     defer if (combined) {
         if (outer) |*context| context.deinit();
     };
-    const ready: if (combined) ?*@import("resident_ready.zig").Context else void = if (combined) (if (ready_mode) try @import("resident_ready.zig").Context.create(base, pool, config.ids, manifest.recursion_worker_budget, manifest.recursion_max_pending_authorities) else null) else {};
+    const ready: if (combined) ?*@import("resident_ready.zig").Context else void = if (combined) (if (ready_mode) try @import("resident_ready.zig").Context.createWithDeviceFixed(base, pool, config.ids, manifest.recursion_worker_budget, manifest.recursion_max_pending_authorities, manifest.recursion_device_fixed_candidate) else null) else {};
     defer if (combined) {
         if (ready) |context| context.deinit();
     };
