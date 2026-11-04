@@ -67,3 +67,32 @@ The existing `tests/cuda/rv64/qualify_assignment_ranges.py` runs CPU control, tw
 The narrow and range source branches BOTH modify `outer_assignment.zig` from different bases. Do not wholesale cherry-pick one module over the other or over current packing/planning improvements. First port each independently onto the pinned producer. A combined successor must group the new prefix schedule (not the removed canonical suffix), then fill ranges exactly once before later readers; counters and CPU reference checks must show both routes executed. Independent results do not qualify this combination.
 
 No option is enabled by availability of a symbol. Keep the original base image, source/binary hashes, authored manifest, explicit caps and strict offhost receiver intact for each one-change comparison. The next actual action is object-archive availability verification or explicit approval of the dependency-image experiment, after the current basket releases the measured host.
+
+## Local recovery completed: clean CPU-only rebuild is feasible
+
+A bounded index review of the named handoff/native/global archives found no relocatable objects. Existing local generated directories do contain the complete catalogues. The cached existing joined exporter `src/integrations/riscv_cuda/.zig-cache/o/7d21a4936891d4ad792fda1528740073/rv64-joined-fixtures` regenerated `--grouped-domain` in0.55s without a build; all49 native `.bin` fixtures matched the retained catalogue bytewise. Only grouped case8 was substituted into a copy of the original core catalogue, preserving every other original core source, and the existing splitter admitted roles8/41 at32KiB.
+
+The existing builder's pure catalogue/partition/lowering functions then completed locally, with no NVCC:68 core inputs,230 truth partition modules,47 source projections,28 global kernels,13 outer modules,237 rational modules;623 inputs/58,235,935 bytes before RDC. Applying its existing bounded lowering produced865 AOT compile units across7 RDC source groups,61,751,593 bytes. Expect roughly908 total native+AOT compiler invocations, not a one-TU build. The SHA-per-source preflight remains `/private/tmp/rv64-native-rebuild-preflight/preflight.json`; it is build-input evidence, not GPU qualification.
+
+A ready input archive is `/private/tmp/rv64-native-cpu-rebuild-package.tar.gz`,44,634,594 bytes, SHA-256 `c71e1e2e152454882e2de6078e45be6a65cf4b11017fb82f3c83a8c154206ca6`. Its1608 files occupy126,997,278 raw bytes. It contains frozen primary source74a102f3f, the exact idle-cap PCS/header and narrow-assignment CU/header candidates, scripts and fixture headers, all catalogues, and a SHA-per-file manifest. No generated files or binaries were added to the repository.
+
+On a separate x86 CPU-only host with CUDA12.8 NVCC (suggest8–16vCPU,32–64GiB RAM), extract the archive and use the existing builder:
+
+```sh
+ROOT=/workspace/rv64-native-cpu-rebuild-package
+python3 "$ROOT/scripts/rv64_cuda_resident_image_build.py" \
+ --source-root "$ROOT" --core-domain "$ROOT/catalogues/core" \
+ --core-projection "$ROOT/catalogues/projection" \
+ --global-projection "$ROOT/catalogues/global" \
+ --truth-domain "$ROOT/catalogues/truth" \
+ --truth-partitions "$ROOT/catalogues/truth-parts" \
+ --truth-rational "$ROOT/catalogues/rational" \
+ --outer-circuit-dir "$ROOT/catalogues/outer" \
+ --build /workspace/build/idlecap-narrow --nvcc /usr/local/cuda/bin/nvcc \
+ --jobs 6 --compile-timeout 180 --split-core-role 8 --split-core-role 41 \
+ --core-module-max-bytes 32768
+```
+
+Preserve the cache between attempts. A planning allowance of20–60min at6 compiler slots is unmeasured; a short pilot of representative native/grouped/RDC units should replace that estimate before committing a budget. The strict worst-case per-unit ceiling does not guarantee that total duration. CUDA driver/GPU calls remain deferred to qualification; check that the CPU host can load the resulting CUDA libraries for symbol checks without a device.
+
+The explicit-dependency alternative was also audited further. All16 defined owner exports (five native PCS create/prove/release/destroy/error, session submit/live-leases, five lease allocate/validate-range/validate/rebind/release, three immutable bind/unbind/seal, and request-version) are in one TU. Public session/context types remain opaque. Other native CUs and all623 generated inputs contain no calls to those owner APIs. Unchanged numerical code consumes the existing raw runtime context, not the new private ResidentOwner. Consequently the source review found no immediate ownership blocker to a bounded two-DSO experiment, provided ALL16 exports originate from the new candidate and the original numerical functions originate from the pinned base. Actual ELF binding, runtime/context ABI, CUDA module registration and full lease/proof guards are still untested. This is the faster experiment if a new CPU compiler host cannot be provisioned promptly; it must not be described as a qualified monolithic replacement.
