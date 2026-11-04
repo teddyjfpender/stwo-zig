@@ -42,7 +42,7 @@ import subprocess
 import sys
 import time
 
-SCHEMA = "rv64-m5-negative-corpus/v2"
+SCHEMA = "rv64-m5-negative-corpus/v3"
 DEV_BLOCKS = {26235156, 24628607}
 HOST_BYTES = 34359738368
 
@@ -134,6 +134,32 @@ def coherent_flip(proof, name, setter):
     return offset
 
 
+def sidecar_edit(proof):
+    """Edit every integer named like a statement field in producer JSON sidecars (report/tree/root statement)."""
+    names = {"kappa", "leaf_count", "cpu_proofs", "seg_hi", "seg_lo", "depth", "chi", "bus", "mass"}
+
+    def walk(v):
+        if isinstance(v, dict):
+            for k in list(v):
+                if k in names and isinstance(v[k], int):
+                    v[k] += 1
+                else:
+                    walk(v[k])
+        elif isinstance(v, list):
+            for x in v:
+                walk(x)
+    edited = 0
+    for path in list(proof.rglob("*.json")):
+        try:
+            value = json.loads(path.read_text())
+        except Exception:
+            continue
+        walk(value)
+        path.write_text(json.dumps(value))
+        edited += 1
+    return edited
+
+
 # Each case: id, family (spec section 7), expect, today ("m3" runnable now | "m5"/"m7" pending), what, mutate(ctx).
 # ctx: proof (Path, mutable copy), donor (Path, read-only), request (dict, mutable), env (dict, mutable), argv (dict, mutable)
 CASES = [
@@ -197,6 +223,16 @@ CASES = [
     dict(id="V05-cross-block-native", family="child-vk", expect="reject", today="m3",
          what="donor block cpu-0.bin in place of cpu-0.bin (wrong native segment, other block)",
          mutate=lambda c: shutil.copyfile(c["donor"] / "cpu-0.bin", c["proof"] / "cpu-0.bin")),
+    # Review 2 (codex/rv64-m5-profiles): a cross-block ROOT that passes the size cap. V04's donor root is larger
+    # than 24628607's own (748,536 > 706,424 B) and was stopped by FileTooBig, not cryptographically. The
+    # shape donor (--root-donor) is an accepted proof of ANOTHER block whose root.proof is no larger than this
+    # block's; it is only read, never proven or measured.
+    dict(id="V06-coherent-cross-block-root", family="child-vk", expect="reject", today="m3", requires=("root_donor_fits",),
+         what="root.proof of a same-size-class accepted proof of another block (passes the size cap)",
+         mutate=lambda c: shutil.copyfile(c["root_donor"] / rec("root.proof")[0], c["proof"] / rec("root.proof")[0])),
+    dict(id="V07-coherent-cross-block-tree", family="child-vk", expect="reject", today="m3", requires=("root_donor_same_tree",),
+         what="the WHOLE recursion-om31 directory (tree.json, every leaf, fold and root) of a same-shape accepted proof of another block",
+         mutate=lambda c: (shutil.rmtree(c["proof"] / "recursion-om31"), shutil.copytree(c["root_donor"] / "recursion-om31", c["proof"] / "recursion-om31"))),
     # tampered bytes (native roots, outer proofs)
     dict(id="R01-native-head-flip", family="native-root", expect="reject", today="m3",
          what="flip one bit at byte 64 of cpu-0.bin (commitment/header region)", mutate=lambda c: flip(c["proof"] / "cpu-0.bin", "head")),
@@ -243,9 +279,29 @@ CASES = [
     dict(id="P01-wrong-native-profile", family="profile", expect="reject", today="m3",
          what="receiver selects proven_beta2_q256_p0_fold4 for conjectured128 proofs",
          mutate=lambda c: c["argv"].__setitem__("profile", "proven_beta2_q256_p0_fold4")),
+    # Outer profile selection (recsize): runnable once the receiver reads STWO_RV64_OUTER_PROFILE (capability
+    # detected from the receiver binary); otherwise listed as unsupported, never counted as a pass.
+    # STWO_RV64_FOLD_ARITY=2 keeps the receiver's tree plan equal to the proofs' binary tree, so only the outer
+    # profile differs and a rejection cannot come from a missing node file (P02d shows that weaker path).
+    dict(id="P02-wrong-outer-profile", family="profile", expect="reject", today="m3", requires=("outer_profile_env",),
+         what="receiver selects outer m3_b4_q51_p26_fold4 (STWO_RV64_OUTER_PROFILE) with binary folds for r1 binary-fold proofs",
+         mutate=lambda c: c["env"].update(STWO_RV64_OUTER_PROFILE="m3_b4_q51_p26_fold4", STWO_RV64_FOLD_ARITY="2")),
+    dict(id="P02b-wrong-outer-profile-b8", family="profile", expect="reject", today="m3", requires=("outer_profile_env",),
+         what="receiver selects outer m3_b8_q34_p26_fold4 with binary folds for r1 proofs",
+         mutate=lambda c: c["env"].update(STWO_RV64_OUTER_PROFILE="m3_b8_q34_p26_fold4", STWO_RV64_FOLD_ARITY="2")),
+    dict(id="P02d-wrong-outer-profile-default-arity", family="profile", expect="reject", today="m3", requires=("outer_profile_env",),
+         what="receiver selects outer m3 with its default arity 4 (tree plan differs too)",
+         mutate=lambda c: c["env"].__setitem__("STWO_RV64_OUTER_PROFILE", "m3_b4_q51_p26_fold4")),
+    dict(id="P04-wrong-fold-arity", family="profile", expect="reject", today="m3", requires=("outer_profile_env",),
+         what="receiver keeps r1 but plans 4-ary folds (STWO_RV64_FOLD_ARITY=4) for binary-fold proofs",
+         mutate=lambda c: c["env"].update(STWO_RV64_OUTER_PROFILE="r1_b2_q108_p20_fold4", STWO_RV64_FOLD_ARITY="4")),
+    dict(id="P03-unknown-outer-profile", family="profile", expect="reject", today="m3", requires=("outer_profile_env",),
+         what="receiver given an unknown outer profile name: must refuse CLEANLY (an error exit, not a panic)",
+         mutate=lambda c: c["env"].__setitem__("STWO_RV64_OUTER_PROFILE", "m9_b2_q1_p0_fold4")),
+    dict(id="C01-control-explicit-r1", family="control", expect="accept", today="m3", requires=("outer_profile_env",),
+         what="unmodified proof, receiver selects the r1 outer profile explicitly",
+         mutate=lambda c: c["env"].__setitem__("STWO_RV64_OUTER_PROFILE", "r1_b2_q108_p20_fold4")),
     # Pending: formats that do not exist until M5 / M7 (spec only; never run).
-    dict(id="P02-wrong-outer-profile", family="profile", expect="reject", today="m5",
-         what="receiver selects outer m3_b4_q51_p26 for r1 proofs (needs recsize merged into the receiver)"),
     dict(id="N01-forged-null-slot", family="null-slot", expect="reject", today="m5",
          what="k-ary fold: real child slot re-tagged null (child dropped while kappa kept)"),
     dict(id="N02-null-with-payload", family="null-slot", expect="reject", today="m5",
@@ -299,11 +355,171 @@ CASES = [
          what="C2 proof verified under C1 profile (or fold-step 3 vs 4)"),
     dict(id="M04-compress-inner-root", family="compress", expect="reject", today="m7",
          what="C1/C2 proof wrapping a different root statement digest"),
+    # ---- Review 2 / M5 stream formats (rv64-m5-binding.md section 10). Pending; tiers and owners in CASE_META.
+    # Canonical leaf R_leaf[f,r]
+    dict(id="L01-transcript-seed-mismatch", family="canonical-leaf", expect="reject", today="m5",
+         what="leaf: V^nat word used by membership differs from the word mixed into the in-circuit native transcript"),
+    dict(id="L02-understated-mass", family="canonical-leaf", expect="reject", today="m5",
+         what="leaf: NS.mass[R] below mass_authority(f, r, stmt_k)[R] for one relation"),
+    dict(id="L03-local-gkr-not-chained", family="canonical-leaf", expect="reject", today="m5",
+         what="chain step: local GKR receipt digest / terminal marginals changed, m_out unchanged (F13)"),
+    dict(id="L04-relation-mask", family="canonical-leaf", expect="reject", today="m5",
+         what="leaf: relation mask not the (f, r) constant (keccak shard claims ram, cpu shard drops ram)"),
+    dict(id="L05-index-one-sided", family="canonical-leaf", expect="reject", today="m5",
+         what="leaf k = p - 1: passes a one-sided MAX_PROOFS - 1 - k < 2^16 check (two-sided range required)"),
+    # Memory-boundary family mb (binding section 5.1)
+    dict(id="MB01-unsorted-chunk", family="memory-boundary", expect="reject", today="m5",
+         what="mb leaf: chunk address not above the previous chunk's last address (overlap or repeat)"),
+    dict(id="MB02-initial-not-image", family="memory-boundary", expect="reject", today="m5",
+         what="mb leaf: initial value or rights of a touched word differ from the image commitment (incl. zero default)"),
+    dict(id="MB03-terminal-epoch", family="memory-boundary", expect="reject", today="m5",
+         what="mb leaf: terminal epoch above the CPU ordinal counter"),
+    dict(id="MB04-output-word", family="memory-boundary", expect="reject", today="m5",
+         what="halt flag / output_len / output words: missing, duplicated across chunks, or not from terminal cells (F14)"),
+    dict(id="MB05-touched-count", family="memory-boundary", expect="reject", today="m5",
+         what="mb: initial count != terminal count, or init/teardown mass omitted from mass[ram]"),
+    # k-ary fold
+    dict(id="G06-compress-vk-as-child", family="child-vk", expect="reject", today="m5",
+         what="fold child admitted by a T_rec entry of kind compress1/compress2 (fold must constrain child kind in {leaf, fold})"),
+    dict(id="KF01-child-order", family="kary-fold", expect="reject", today="m5",
+         what="fold: two children swapped (adjacency seg/m/s/ctr/steps must fail)"),
+    dict(id="KF02-agreement", family="kary-fold", expect="reject", today="m5",
+         what="fold: one child with different T_nat/T_rec/img/stmt/chi/E than the fold's outputs"),
+    dict(id="KF03-counter-in-field", family="kary-fold", expect="reject", today="m5",
+         what="fold: ctr/steps/kappa summed in M31 (child values p-1 and 2 give 1)"),
+    # Root-only receiver (format m5-root). Process tier: mutations of the M5 proof directory or receiver policy.
+    dict(id="RR01-root-flip-fast", family="root-only", expect="reject", today="m5", formats=("m5-root",),
+         what="root proof bit flip: rejected by the root-only receiver FIRST (wall recorded; gate <= 1.5 s)",
+         mutate=lambda c: flip(c["proof"] / c["root_path"], "mid")),
+    dict(id="RR02-root-truncate-extend", family="root-only", expect="reject", today="m5", formats=("m5-root",),
+         what="root proof with 32 zero bytes appended (truncation is R05)",
+         mutate=lambda c: (lambda p: p.write_bytes(p.read_bytes() + bytes(32)))(c["proof"] / c["root_path"])),
+    dict(id="RR03-store-supplied-vk", family="root-only", expect="reject_or_same_statement", today="m5", formats=("m5-root",),
+         what="a VK / vk-table file planted in the proof directory: never read (same statement) or refused",
+         mutate=lambda c: [(c["proof"] / n).write_bytes(bytes(range(256)) * 4) for n in ("vk-tables.bin", "T_rec.bin", "T_nat.bin", "recursion-om31/vk-tables.bin")]),
+    dict(id="RR04-tampered-vk-cache", family="root-only", expect="reject", today="m5",
+         what="receiver-local derive-vk-tables cache edited (one T_rec leaf): refused, or re-derived and rejected"),
+    dict(id="RR05-sidecar-ns", family="root-only", expect="reject_or_same_statement", today="m5", formats=("m5-root",),
+         what="producer sidecar NS/statement JSON edited (kappa, chi, bus): the receiver reads NS from the proof only",
+         mutate=lambda c: sidecar_edit(c["proof"])),
+    dict(id="RR06-unknown-profile-id", family="root-only", expect="reject", today="m5",
+         what="unknown profile id in the root header or receiver policy: clean refusal, no panic"),
+    dict(id="RR07-audit-disagrees", family="root-only", expect="reject", today="m5",
+         what="--audit on every reject case of this corpus also rejects; on C00 it agrees with root-only"),
+    # Outer LogUp-GKR (outer-gkr stream) beyond M01/M02
+    dict(id="M05-gkr-instance-order", family="outer-gkr", expect="reject", today="m7",
+         what="outer GKR: two instances permuted in the mixed instance list"),
+    dict(id="M06-gkr-instance-tag", family="outer-gkr", expect="reject", today="m7",
+         what="outer GKR: an instance's (relation, component) tag relabelled"),
+    dict(id="M07-gkr-late-mix", family="outer-gkr", expect="reject", today="m7",
+         what="outer GKR: claims mixed after the challenge that consumes them (transcript order)"),
+    dict(id="M08-gkr-round-count", family="outer-gkr", expect="reject", today="m7",
+         what="outer GKR: one round polynomial dropped (shorter sumcheck than the class constant)"),
+    dict(id="M09-gkr-qm31-challenge", family="outer-gkr", expect="reject", today="m7",
+         what="outer GKR challenge drawn in QM31 (4 coords) instead of OM31 (8): arithmetic gate must refuse"),
+    dict(id="M10-gkr-mass", family="outer-gkr", expect="reject", today="m7",
+         what="outer relation multiplicity mass >= p for the real circuit facts"),
+    # Fused Blake2s gadget (blake-gadget stream)
+    dict(id="BG01-reference-vectors", family="blake-gadget", expect="accept", today="m7",
+         what="completeness: gadget digest == reference Blake2s-256 (RFC 7693 vectors, 0/1/63/64/65/128-byte and random messages, keyed=0)"),
+    dict(id="BG02-g-output", family="blake-gadget", expect="reject", today="m7",
+         what="one G-function output word altered in the witness"),
+    dict(id="BG03-xor-multiplicity", family="blake-gadget", expect="reject", today="m7",
+         what="XOR lookup multiplicity shifted between two table rows"),
+    dict(id="BG04-schedule", family="blake-gadget", expect="reject", today="m7",
+         what="message schedule sigma or a rotation amount changed for one round row"),
+    dict(id="BG05-limb-range", family="blake-gadget", expect="reject", today="m7",
+         what="u32 word as non-canonical limbs (16-bit limb >= 2^16, or w + 2^32 split)"),
+    dict(id="BG06-padding-rows", family="blake-gadget", expect="reject", today="m7",
+         what="padding row with non-zero lookup multiplicity or non-zero output"),
+    dict(id="BG07-final-flag-counter", family="blake-gadget", expect="reject", today="m7",
+         what="finalization flag f0 or byte counter t of a compression changed"),
+    dict(id="BG08-xor-mass", family="blake-gadget", expect="reject", today="m7",
+         what="XOR/range table mass >= p at the gadget's max compressions per proof"),
 ]
+
+# Tier: R = fresh receiver process on a mutated proof directory / receiver policy (this harness runs it);
+#       U = unit test of a receiver/root statement check on a mutated public statement (no proof);
+#       W = circuit witness mutation: the named constraint must fail (constraint checker / mock prover).
+# Owner: the M5 stream that writes the hook. A U/W hook is a zig test whose name starts with
+# "corpus <ID>" (e.g. test "corpus Z01 truth leaf asserts s_out == s_in"); `coverage --src DIR` finds them.
+CASE_META = {
+    "P02": ("R", "rootverify"), "P02b": ("R", "rootverify"), "P02d": ("R", "rootverify"), "P04": ("R", "rootverify"), "P03": ("R", "rootverify"), "C01": ("R", "rootverify"),
+    "N01": ("W", "canon-vk"), "N02": ("W", "canon-vk"), "N03": ("W", "canon-vk"),
+    "K04": ("U", "rootverify"), "G01": ("W", "canon-vk"), "G02": ("U", "rootverify"), "G03": ("W", "canon-vk"),
+    "G04": ("W", "canon-vk"), "G05": ("W", "canon-vk"), "G06": ("W", "canon-vk"), "B01": ("U", "rootverify"), "X05": ("U", "rootverify"),
+    "Z01": ("W", "canon-vk"), "Z02": ("W", "canon-vk"), "Z03": ("W", "canon-vk"), "Z04": ("W", "canon-vk"),
+    "Z05": ("W", "canon-vk"), "Z06": ("W", "canon-vk"), "Z07": ("U", "rootverify"), "Z08": ("W", "canon-vk"),
+    "Z09": ("U", "rootverify"), "Z10": ("W", "canon-native"), "Z11": ("W", "canon-vk"), "Z12": ("W", "canon-native"),
+    "M01": ("W", "outer-gkr"), "M02": ("W", "outer-gkr"), "M03": ("R", "compress"), "M04": ("W", "compress"),
+    "L01": ("W", "canon-vk"), "L02": ("W", "canon-vk"), "L03": ("U", "canon-native"), "L04": ("W", "canon-vk"),
+    "L05": ("W", "canon-vk"), "MB01": ("W", "canon-native"), "MB02": ("W", "canon-native"), "MB03": ("W", "canon-native"),
+    "MB04": ("W", "canon-native"), "MB05": ("W", "canon-native"), "KF01": ("W", "canon-vk"), "KF02": ("W", "canon-vk"),
+    "KF03": ("W", "canon-vk"), "RR01": ("R", "rootverify"), "RR02": ("R", "rootverify"), "RR03": ("R", "rootverify"),
+    "RR04": ("R", "rootverify"), "RR05": ("R", "rootverify"), "RR06": ("R", "rootverify"), "RR07": ("R", "rootverify"),
+    "M05": ("W", "outer-gkr"), "M06": ("W", "outer-gkr"), "M07": ("W", "outer-gkr"), "M08": ("W", "outer-gkr"),
+    "M09": ("U", "profiles"), "M10": ("U", "outer-gkr"), "BG01": ("W", "blake-gadget"), "BG02": ("W", "blake-gadget"),
+    "BG03": ("W", "blake-gadget"), "BG04": ("W", "blake-gadget"), "BG05": ("W", "blake-gadget"),
+    "BG06": ("W", "blake-gadget"), "BG07": ("W", "blake-gadget"), "BG08": ("U", "blake-gadget"),
+}
+
+# Under the M5 root-only receiver (format "m5-root") the receiver reads ONLY the root proof and its policy.
+# A mutation of a file it never reads cannot change the statement, so those cases must be rejected or
+# accepted with the control's statement; their protection moved into the circuits (W-tier cases above).
+# `--format m5-audit` keeps today's expectations (the full-tree re-verify must still reject them).
+ROOT_ONLY_UNREAD = {"S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "V01", "V02", "V03", "V05",
+                    "R01", "R02", "R03", "R06", "R07", "R08", "R09", "X01", "X02", "X03", "X04", "X06"}
+
+
+def case_key(case_id):
+    return case_id.split("-", 1)[0]
+
+
+def tier_owner(case):
+    if case["today"] == "m3" and case_key(case["id"]) not in CASE_META:
+        return "R", "profiles"
+    return CASE_META[case_key(case["id"])]
+
+
+def expectation(case, fmt):
+    if fmt == "m5-root" and case["expect"] == "reject" and case_key(case["id"]) in ROOT_ONLY_UNREAD:
+        return "reject_or_same_statement"
+    return case["expect"]
 
 
 def spec():
-    return [{k: v for k, v in case.items() if k != "mutate"} for case in CASES]
+    out = []
+    for case in CASES:
+        tier, owner = tier_owner(case)
+        row = {k: v for k, v in case.items() if k != "mutate"} | {"tier": tier, "owner": owner}
+        if expectation(case, "m5-root") != case["expect"]:
+            row["expect_m5_root"] = expectation(case, "m5-root")
+        out.append(row)
+    return out
+
+
+def coverage(src):
+    """U/W hooks: zig tests named 'corpus <ID> ...' anywhere under src. Returns {case_id: [file:line, ...]}."""
+    import re
+    found = {}
+    pattern = re.compile(r'test\s+"corpus\s+([A-Z]+[0-9]+[a-z]?)\b')
+    for path in Path(src).rglob("*.zig"):
+        try:
+            text = path.read_text(errors="replace")
+        except OSError:
+            continue
+        for number, line in enumerate(text.splitlines(), 1):
+            m = pattern.search(line)
+            if m:
+                found.setdefault(m.group(1), []).append(f"{path.relative_to(src)}:{number}")
+    rows = []
+    for case in CASES:
+        tier, owner = tier_owner(case)
+        if tier == "R":
+            continue
+        rows.append({"id": case["id"], "tier": tier, "owner": owner, "today": case["today"],
+                     "hooks": found.get(case_key(case["id"]), [])})
+    return rows
 
 
 def sha(path):
@@ -363,6 +579,22 @@ def reject_class(first_error):
     return "semantic"
 
 
+def capabilities(receiver, proof, root_donor, root_path):
+    """What the receiver binary and the donors allow. Detected, never assumed."""
+    caps = {"outer_profile_env": False, "root_donor_fits": False, "root_donor_same_tree": False}
+    try:
+        caps["outer_profile_env"] = b"STWO_RV64_OUTER_PROFILE" in Path(receiver).read_bytes()
+    except OSError:
+        pass
+    if root_donor:
+        _, _, other = proof_dir(Path(root_donor))
+        mine, theirs = proof / root_path, other / root_path
+        caps["root_donor_fits"] = theirs.is_file() and theirs.stat().st_size <= mine.stat().st_size
+        names = lambda d: sorted(p.name for p in (d / "recursion-om31").iterdir())
+        caps["root_donor_same_tree"] = caps["root_donor_fits"] and names(proof) == names(other)
+    return caps
+
+
 def run_case(case, ctx):
     work = ctx["work"] / case["id"]
     shutil.rmtree(work, ignore_errors=True)
@@ -375,8 +607,11 @@ def run_case(case, ctx):
     env = environment()
     (work / "gpu-disabled").mkdir()
     env["STWO_RV64_GPU_WORKDIR"] = str(work / "gpu-disabled")
-    mctx = {"proof": proof, "donor": ctx["donor"], "request": request, "env": env, "argv": argv}
-    result = {"id": case["id"], "family": case["family"], "expect": case["expect"], "what": case["what"]}
+    mctx = {"proof": proof, "donor": ctx["donor"], "root_donor": ctx.get("root_donor"), "root_path": ctx["root_path"],
+            "request": request, "env": env, "argv": argv}
+    expect = expectation(case, ctx["format"])
+    tier, owner = tier_owner(case)
+    result = {"id": case["id"], "family": case["family"], "expect": expect, "tier": tier, "owner": owner, "what": case["what"]}
     try:
         detail = case["mutate"](mctx)
         if isinstance(detail, int):
@@ -387,8 +622,8 @@ def run_case(case, ctx):
         return result
     request_path = work / "receiver-request.json"
     request_path.write_text(json.dumps(request, indent=1))
-    command = ["nice", "-n", "10", str(ctx["receiver"]), "--security-profile", argv["profile"], "verify-recursion-candidate",
-               str(request_path), str(proof), str(ctx["fixed_setup_bytes"]), str(HOST_BYTES)]
+    command = ["nice", "-n", "10", *[a.format(receiver=ctx["receiver"], profile=argv["profile"], request=request_path, proof=proof,
+                                             fixed=ctx["fixed_setup_bytes"], host=HOST_BYTES) for a in ctx["argv_template"]]]
     started = time.monotonic()
     timed_out = False
     with open(work / "stdout", "wb") as out, open(work / "stderr", "wb") as err:
@@ -411,9 +646,9 @@ def run_case(case, ctx):
         pass
     crashed = timed_out or returncode is None or returncode < 0 or any(m in line for line in stderr for m in CRASH_MARKERS)
     verdict = "accept" if accepted else ("crash" if crashed else "reject")
-    if case["expect"] == "accept":
+    if expect == "accept":
         passed = accepted and same is True
-    elif case["expect"] == "reject":
+    elif expect == "reject":
         passed = verdict == "reject"
     else:  # reject_or_same_statement
         passed = verdict == "reject" or (accepted and same is True)
@@ -429,7 +664,14 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("spec")
+    cv = sub.add_parser("coverage", help="list U/W-tier cases and the zig 'corpus <ID>' tests that implement them")
+    cv.add_argument("--src", required=True)
+    cv.add_argument("--out")
     r = sub.add_parser("run")
+    r.add_argument("--root-donor", help="accepted run of ANY other block whose root.proof is no larger than RUN's (read only; V06/V07)")
+    r.add_argument("--format", choices=("m3", "m5-root", "m5-audit"), default="m3")
+    r.add_argument("--receiver-argv", help="JSON list template; {receiver} {profile} {request} {proof} {fixed} {host}")
+    r.add_argument("--root-path", default="recursion-om31/root.proof")
     r.add_argument("--run", required=True)
     r.add_argument("--donor", required=True)
     r.add_argument("--out", required=True)
@@ -441,6 +683,13 @@ def main():
     if args.cmd == "spec":
         print(json.dumps({"schema": SCHEMA, "cases": spec()}, indent=1))
         return
+    if args.cmd == "coverage":
+        rows = coverage(args.src)
+        value = {"schema": SCHEMA, "src": args.src, "implemented": sum(1 for r in rows if r["hooks"]), "total": len(rows), "cases": rows}
+        if args.out:
+            Path(args.out).write_text(json.dumps(value, indent=1))
+        print(json.dumps({k: value[k] for k in ("implemented", "total")} | {"missing_by_owner": {o: [r["id"] for r in rows if r["owner"] == o and not r["hooks"]] for o in sorted({r["owner"] for r in rows})}}, indent=1))
+        return
     run, donor_run = Path(args.run), Path(args.donor)
     plan, job, proof = proof_dir(run)
     _, djob, donor_proof = proof_dir(donor_run)
@@ -448,13 +697,25 @@ def main():
         raise SystemExit("run and donor must be the two different dev blocks (26235156, 24628607)")
     recv_dir, control_stdout = accepted_receiver_dir(run)
     receiver = Path(args.receiver or plan["assets"]["recursive_receiver"])
+    default_argv = ["{receiver}", "--security-profile", "{profile}", "verify-recursion-candidate", "{request}", "{proof}", "{fixed}", "{host}"]
     ctx = {"proof": proof, "donor": donor_proof, "request_path": recv_dir / "receiver-request.json", "profile": plan["profile"],
            "receiver": receiver, "fixed_setup_bytes": job["resources"]["fixed_setup_bytes"], "cwd": plan.get("producer_cwd") or "/",
-           "control_statement": statement(control_stdout), "work": Path(args.work) / str(job["block"])}
+           "control_statement": statement(control_stdout), "work": Path(args.work) / str(job["block"]), "format": args.format,
+           "argv_template": json.loads(args.receiver_argv) if args.receiver_argv else default_argv, "root_path": args.root_path}
     ctx["work"].mkdir(parents=True, exist_ok=True)
+    caps = capabilities(receiver, proof, args.root_donor, args.root_path)
+    if args.root_donor:
+        _, rjob, ctx["root_donor"] = proof_dir(Path(args.root_donor))
+        if rjob["block"] == job["block"]:
+            raise SystemExit("--root-donor must be another block")
     wanted = set(args.cases.split(",")) if args.cases else None
-    runnable = [c for c in CASES if c["today"] == "m3" and (wanted is None or c["id"] in wanted)]
-    pending = [{k: v for k, v in c.items() if k != "mutate"} | {"status": "pending"} for c in CASES if c["today"] != "m3"]
+    fmt_ok = lambda c: args.format in c.get("formats", ("m3", "m5-root", "m5-audit"))
+    candidates = [c for c in CASES if "mutate" in c and fmt_ok(c) and (c["today"] == "m3" or args.format != "m3") and (wanted is None or c["id"] in wanted)]
+    unsupported = [{"id": c["id"], "missing": [r for r in c.get("requires", ()) if not caps.get(r)]} for c in candidates if not all(caps.get(r) for r in c.get("requires", ()))]
+    skip = {u["id"] for u in unsupported}
+    runnable = [c for c in candidates if c["id"] not in skip]
+    pending = [{k: v for k, v in c.items() if k != "mutate"} | {"status": "pending", "tier": tier_owner(c)[0], "owner": tier_owner(c)[1]}
+               for c in CASES if "mutate" not in c or (c["today"] != "m3" and args.format == "m3")]
     load = os.getloadavg()[0]
     started = time.time()
     with cf.ThreadPoolExecutor(max_workers=args.jobs) as pool:
@@ -470,6 +731,8 @@ def main():
                "unexpected_accepts": [x["id"] for x in results if x.get("verdict") == "accept" and x["expect"] == "reject"],
                "crashes": [x["id"] for x in results if x.get("verdict") == "crash"],
                "nonsemantic_rejects": {x["id"]: x["reject_class"] for x in results if x.get("reject_class") not in (None, "semantic")},
+               "format": args.format, "capabilities": caps, "root_donor": args.root_donor, "unsupported": unsupported,
+               "walls_s": {x["id"]: x.get("wall_s") for x in results},
                "results": results, "pending": pending}
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)

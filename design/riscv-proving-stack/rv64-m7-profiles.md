@@ -29,6 +29,7 @@ Conjectured bits are `log_blowup · queries + pow` (the ethSTARK conjecture, the
 | `conjectured128_b2_q108_p20_fold4` (admitted, today) | native | 1 | 108 | 20 | 4 | 128 | 74 | `…CONJECTURED-ethstark/v2` |
 | `d2_native_b4_q54_p20_fold4` | native (D2) | 2 | 54 | 20 | 4 | 128 | 74 | `rv64-om31-native-d2-b4-q54-p20-fold4/CANDIDATE-v1` |
 | `m3_outer_b4_q51_p26_fold4` | leaf/fold/root | 2 | 51 | 26 | 4 | 128 | 77 | `stwo/circuit/native-om31/m3-b4-q51-p26-fold4/lens-v1` (= recsize `5d68d0f01`) |
+| `m3_outer_b8_q34_p26_fold4` **[R2]** | leaf/fold/root (recsize alternative) | 3 | 34 | 26 | 4 | 128 | 77 | `…/m3-b8-q34-p26-fold4/lens-v1` (= recsize `protocol.zig`) |
 | `c1_b8_q36_p20_fold4` | compress 1 | 3 | 36 | 20 | 4 | 128 | 74 | `…/c1-b8-q36-p20-fold4/lens-v1` |
 | `c2_b16_q27_p20_fold3` | compress 2, arity 8 | 4 | 27 | 20 | 3 | 128 | 74 | `…/c2-b16-q27-p20-fold3/lens-v1` |
 | `c2_b16_q27_p20_fold4` | compress 2, arity 16 | 4 | 27 | 20 | 4 | 128 | 74 | `…/c2-b16-q27-p20-fold4/lens-v1` |
@@ -223,3 +224,34 @@ The union over outer proofs multiplies these by `p`. Per-challenge error is degr
 4. Get fresh-receiver acceptance on 26235156 and 24628607 under the new profile, with receipts.
 5. For D2: re-run the ledger with `log_blowup` (§2). For C2 with arity-4 Merkle: assign a new id.
 6. `security_qualified` stays false. No entry creates a certificate (`requireWholeProtocolPromotion` still returns `NoReviewedWholeProtocol128Certificate`).
+
+---
+
+## 8. [R2] M5/M7 named format versions (review 2, 2026-11-04)
+
+A **format version** keeps the PCS parameters of an existing profile and changes what is proven or how it is framed. So it neither gains nor loses conjectured bits. It still needs its own domain string and identity, so that no proof of one version verifies under another.
+
+The registry is `FormatVersion`, `formatSpec`, `formatIdentity` and `FORMAT_VERSIONS` in `om31_security_candidate.zig`. Every entry is off by default.
+
+| version | owner | base PCS | conj. bits | Johnson ×2 | what changes |
+|---|---|---|---:|---:|---|
+| `m5_native_chi_chain_v1_b2_q108_p20_fold4` | canon-native | native b2 q108 p20 | 1·108 + 20 = 128 | 148 | χ chain with `λ_k` (binding F13), `mb` family, `LOCAL_RELATIONS` = 10 (closes §2.1) |
+| `m5_outer_canonical_r1_b2_q108_p20_fold4_v1` | canon-vk | outer r1 | 128 | 148 | canonical leaf, k-ary folds, `NS` |
+| `m5_outer_canonical_m3_b4_q51_p26_fold4_v1` | canon-vk | outer m3 | 2·51 + 26 = 128 | 154 | the same circuits on recsize m3 |
+| `m7_outer_gkr_m3_b4_q51_p26_fold4_v1` | outer-gkr | outer m3 | 128 | 154 | outer LogUp-GKR section (§4) |
+| `m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1` | blake-gadget | outer m3 | 128 | 154 | fused Blake2s component AIR |
+
+The tests (`om31_security_candidate_test.zig`) pin these properties:
+- every version is 128 conjectured bits and at least today's Johnson level;
+- each base PCS equals an existing named profile;
+- domains and identities are pairwise distinct, and distinct from every admitted identity, every candidate and the admitted outer domains;
+- the native version hashes the **production** relation count (10), tested against `fractions.zig` directly;
+- the outer-GKR version passes `requireOuterGkrBits(·, 151)` and the characteristic bound at the realistic M7 facts, and still refuses the caps;
+- the admitted registry is untouched (2 profiles, default unchanged).
+
+**Reference models** for the M5 node summary, which the gadgets must match:
+- `m5FoldMass`: integer fold of `NS.mass`. Two children of `p − 1` are refused; an M31 sum would give `p − 2`.
+- `m5LeafIndexAdmits`: the one-sided index check admits `k = p − 1`; the two-sided check refuses it.
+- `requireBlakeLookupMass`: the fused-Blake lookup mass. With byte-XOR, 1,344 lookups per compression give a maximum of 1,597,830 compressions per proof and table [D]. The recsize census's largest fold, r1 arity 4, needs 94,237, about 17× below that.
+
+**Outer GKR, corpus `M09`.** The arithmetic gate refuses QM31 challenges at both the caps and the realistic facts (≤ 87 bits), and accepts OM31 at 128.

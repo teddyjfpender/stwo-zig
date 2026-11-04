@@ -342,6 +342,8 @@ pub const CandidateProfile = enum {
     d2_native_b4_q54_p20_fold4,
     /// Outer leaf/fold/root (recsize 5d68d0f01 `m3_b4_q51_p26_fold4`). 2*51 + 26 = 128.
     m3_outer_b4_q51_p26_fold4,
+    /// Outer alternative of recsize (protocol.zig `m3_b8_q34_p26_fold4`). 3*34 + 26 = 128.
+    m3_outer_b8_q34_p26_fold4,
     /// C1 narrow compress: blowup 8, 36 queries, 20-bit PoW. 3*36 + 20 = 128.
     c1_b8_q36_p20_fold4,
     /// C2 final compress, FRI arity 8: blowup 16, 27 queries, 20-bit PoW. 4*27 + 20 = 128.
@@ -365,11 +367,12 @@ pub const CandidateSpec = struct {
     /// transcripts once promoted (outer convention of protocol.zig).
     domain: []const u8,
 };
-pub const CANDIDATE_PROFILES = [_]CandidateProfile{ .d2_native_b4_q54_p20_fold4, .m3_outer_b4_q51_p26_fold4, .c1_b8_q36_p20_fold4, .c2_b16_q27_p20_fold3, .c2_b16_q27_p20_fold4 };
+pub const CANDIDATE_PROFILES = [_]CandidateProfile{ .d2_native_b4_q54_p20_fold4, .m3_outer_b4_q51_p26_fold4, .m3_outer_b8_q34_p26_fold4, .c1_b8_q36_p20_fold4, .c2_b16_q27_p20_fold3, .c2_b16_q27_p20_fold4 };
 pub fn candidateSpec(profile: CandidateProfile) CandidateSpec {
     return switch (profile) {
         .d2_native_b4_q54_p20_fold4 => .{ .layer = .native, .log_blowup = 2, .queries = 54, .pow_bits = 20, .fold_step = 4, .domain = "rv64-om31-native-d2-b4-q54-p20-fold4/CANDIDATE-v1" },
         .m3_outer_b4_q51_p26_fold4 => .{ .layer = .outer, .log_blowup = 2, .queries = 51, .pow_bits = 26, .fold_step = 4, .domain = "stwo/circuit/native-om31/m3-b4-q51-p26-fold4/lens-v1" },
+        .m3_outer_b8_q34_p26_fold4 => .{ .layer = .outer, .log_blowup = 3, .queries = 34, .pow_bits = 26, .fold_step = 4, .domain = "stwo/circuit/native-om31/m3-b8-q34-p26-fold4/lens-v1" },
         .c1_b8_q36_p20_fold4 => .{ .layer = .compress1, .log_blowup = 3, .queries = 36, .pow_bits = 20, .fold_step = 4, .domain = "stwo/circuit/native-om31/c1-b8-q36-p20-fold4/lens-v1" },
         .c2_b16_q27_p20_fold3 => .{ .layer = .compress2, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 3, .domain = "stwo/circuit/native-om31/c2-b16-q27-p20-fold3/lens-v1" },
         .c2_b16_q27_p20_fold4 => .{ .layer = .compress2, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 4, .domain = "stwo/circuit/native-om31/c2-b16-q27-p20-fold4/lens-v1" },
@@ -506,6 +509,127 @@ pub fn outerGkrMassBound(facts: OuterGkrFacts) !u64 {
 pub fn requireOuterGkrCharacteristic(facts: OuterGkrFacts, relation_mass: ?u64) !void {
     const mass = relation_mass orelse try outerGkrMassBound(facts);
     if (mass >= core.fields.m31.Modulus) return error.Om31CandidateCharacteristicWrap;
+}
+
+// ---------------------------------------------------------------------------
+// M5/M7 named FORMAT versions (stream profiles, review 2, 2026-11-04). OFF BY DEFAULT.
+//
+// A format version keeps the PCS parameters of a base profile and changes what
+// is proven or how it is framed (canonical leaves, the chi chain, NS, an outer
+// GKR section, the fused Blake2s AIR). It therefore needs its own domain string
+// and identity, so no proof of one version verifies under another, but it adds
+// no conjectured bits and loses none. Same promotion rule as the candidates:
+// the owning stream moves the entry into its admitted registry together with
+// fresh-receiver acceptance and the reviewed notes rv64-m5-binding.md (sec. 10)
+// and rv64-m7-profiles.md.
+// ---------------------------------------------------------------------------
+pub const PcsParams = struct { log_blowup: u32, queries: u32, pow_bits: u32, fold_step: u32 };
+pub const FormatVersion = enum {
+    /// canon-native: native proof with the M5 chi chain (binding 3.3, lambda_k of
+    /// F13), the mb family and LOCAL_RELATIONS = 10 (fixes the 9-vs-10 drift).
+    m5_native_chi_chain_v1_b2_q108_p20_fold4,
+    /// canon-vk: canonical leaf / k-ary fold / NS (binding 2-4) on the r1 outer PCS.
+    m5_outer_canonical_r1_b2_q108_p20_fold4_v1,
+    /// canon-vk: the same circuits on the recsize m3 outer PCS (M7 merge).
+    m5_outer_canonical_m3_b4_q51_p26_fold4_v1,
+    /// outer-gkr: canonical circuits with the interaction proven by a batched
+    /// LogUp-GKR section (OM31 challenges, rv64-m7-profiles.md sec. 4).
+    m7_outer_gkr_m3_b4_q51_p26_fold4_v1,
+    /// blake-gadget: canonical circuits with the fused Blake2s component AIR.
+    m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1,
+    pub fn name(self: FormatVersion) []const u8 {
+        return @tagName(self);
+    }
+};
+pub const FormatSpec = struct {
+    layer: Layer,
+    owner: []const u8,
+    pcs: PcsParams,
+    domain: []const u8,
+    /// Native only: local relation count hashed into the identity.
+    local_relations: u64 = 0,
+    /// Carries an outer LogUp-GKR section: must also pass requireOuterGkrBits
+    /// and requireOuterGkrCharacteristic for the real circuit's facts.
+    outer_gkr: bool = false,
+};
+pub const FORMAT_VERSIONS = [_]FormatVersion{ .m5_native_chi_chain_v1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1, .m7_outer_gkr_m3_b4_q51_p26_fold4_v1, .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1 };
+/// Local relations of the production raw-fraction roster (fractions.zig gained
+/// byte_pair in 63728c3f8). The M5 native version hashes this, not the stale 9.
+pub const M5_LOCAL_RELATIONS: u64 = 10;
+const R1_OUTER: PcsParams = .{ .log_blowup = 1, .queries = 108, .pow_bits = 20, .fold_step = 4 };
+const M3_OUTER: PcsParams = .{ .log_blowup = 2, .queries = 51, .pow_bits = 26, .fold_step = 4 };
+pub fn formatSpec(version: FormatVersion) FormatSpec {
+    return switch (version) {
+        .m5_native_chi_chain_v1_b2_q108_p20_fold4 => .{ .layer = .native, .owner = "canon-native", .pcs = .{ .log_blowup = 1, .queries = 108, .pow_bits = 20, .fold_step = 4 }, .domain = "rv64-m5-native-chi-chain/v1/conjectured128_b2_q108_p20_fold4\x00", .local_relations = M5_LOCAL_RELATIONS },
+        .m5_outer_canonical_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "canon-vk", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m5-canonical-q108-p20-fold4/lens-v1" },
+        .m5_outer_canonical_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "canon-vk", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m5-canonical-m3-b4-q51-p26-fold4/lens-v1" },
+        .m7_outer_gkr_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "outer-gkr", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m7-outer-gkr-m3-b4-q51-p26-fold4/lens-v1", .outer_gkr = true },
+        .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "blake-gadget", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m7-fused-blake-m3-b4-q51-p26-fold4/lens-v1" },
+    };
+}
+pub fn formatConjecturedBits(version: FormatVersion) u32 {
+    const c = formatSpec(version).pcs;
+    return c.log_blowup * c.queries + c.pow_bits;
+}
+pub fn formatJohnsonBitsTimes2(version: FormatVersion) u32 {
+    const c = formatSpec(version).pcs;
+    return c.queries * c.log_blowup + 2 * c.pow_bits;
+}
+pub const FORMAT_ID_DOMAIN = "rv64-om31-m5-format-version/v1\x00";
+pub fn formatIdentity(version: FormatVersion) [32]u8 {
+    const s = formatSpec(version);
+    var h = std.crypto.hash.sha2.Sha256.init(.{});
+    h.update(FORMAT_ID_DOMAIN);
+    h.update(version.name());
+    h.update(s.domain);
+    h.update(&Channel.profile.identity());
+    for ([_]u64{ @intFromEnum(s.layer), s.pcs.log_blowup, s.pcs.queries, s.pcs.pow_bits, s.pcs.fold_step, s.local_relations, @intFromBool(s.outer_gkr), formatConjecturedBits(version), TARGET_BITS }) |n| {
+        var bytes: [8]u8 = undefined;
+        std.mem.writeInt(u64, &bytes, n, .little);
+        h.update(&bytes);
+    }
+    return h.finalResult();
+}
+
+/// M5 node-summary reference models (rv64-m5-binding.md sec. 10.2). These are the
+/// integer semantics the in-circuit gadgets must implement; they are not circuits.
+pub const NsMassRelation = enum { ram, kio, wire };
+pub const NS_MASS_RELATIONS = @typeInfo(NsMassRelation).@"enum".fields.len;
+/// Fold rule for NS.mass: every child mass is a canonical integer < p, the sum is
+/// an INTEGER (never an M31 sum) and must itself stay < p.
+pub fn m5FoldMass(children: []const [NS_MASS_RELATIONS]u64) ![NS_MASS_RELATIONS]u64 {
+    if (children.len < 2 or children.len > 4) return error.M5FoldArity;
+    const p = core.fields.m31.Modulus;
+    var out: [NS_MASS_RELATIONS]u64 = @splat(0);
+    for (children) |child| for (child, &out) |m, *o| {
+        if (m >= p) return error.M5ChildMassNoncanonical;
+        o.* += m;
+    };
+    for (out) |o| if (o >= p) return error.M5MassCharacteristicWrap;
+    return out;
+}
+/// What an M31 sum of the same children would give (the bug the fold must not have).
+pub fn m5FieldMassForTesting(children: []const [NS_MASS_RELATIONS]u64) [NS_MASS_RELATIONS]u64 {
+    var out: [NS_MASS_RELATIONS]u64 = @splat(0);
+    for (children) |child| for (child, &out) |m, *o| {
+        o.* = (o.* + m) % core.fields.m31.Modulus;
+    };
+    return out;
+}
+/// Leaf segment index check as the circuit evaluates it over M31: `k` is a field
+/// element; a range check proves a value in [0, 2^16). One-sided = only the
+/// upper check MAX_PROOFS - 1 - k; two-sided adds k itself (binding 3.2(5) [R2]).
+pub fn m5LeafIndexAdmits(k: u32, two_sided: bool) bool {
+    const p: u64 = core.fields.m31.Modulus;
+    const upper = (MAX_PROOFS - 1 + p - @as(u64, k)) % p;
+    if (upper >= 1 << 16) return false;
+    return !two_sided or k < 1 << 16;
+}
+/// Fused Blake2s gadget lookup mass per proof (one table, e.g. byte XOR): the
+/// multiplicity of a key is at most the total lookup count, which must stay < p.
+pub fn requireBlakeLookupMass(compressions: u64, lookups_per_compression: u64) !void {
+    const total = std.math.mul(u64, compressions, lookups_per_compression) catch return error.Om31CandidateCharacteristicWrap;
+    if (total >= core.fields.m31.Modulus) return error.Om31CandidateCharacteristicWrap;
 }
 
 pub fn requireBenchmarkControlUnchanged() !void {
