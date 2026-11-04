@@ -1,0 +1,57 @@
+# sched M6 — streaming native->recursion handoff (2026-11-05)
+
+Branch `codex/rv64-m6-sched` (from 95d40063d). Scheduling only: proof bytes unchanged. Every run below is
+byte-identical to the M5 default receipts on both dev blocks (harness `parity_vs_m3.byte_identical`, all 22 / 34 proofs,
+roots `b424203b...` 156 and the 607 root of accepted-v7). Fresh-receiver acceptance (separate CPU-only, cache-disabled
+process): `r2-s1` 26235156 accepted (43.4 s), 24628607 accepted (64.1 s).
+
+All timings are single observations [M] on the shared pod; the 1-min load average (column `load`) was 12-52 during
+every run except `base-m5` (4.1) — other M6 streams were building. They are NOT quiet-host quotable; read them as A/B pairs.
+
+## What is switched on (default in the production prover)
+- `STWO_RV64_RECURSION_STREAM=1` (default; `=0` = M5 handoff): recursion starts at the native stage-one barrier.
+  Each native worker's final stage-two proof opens its leaf for host prep (graph, PP, host plan) while native stage two
+  still runs on both GPUs; device recursion starts right after native produce returns and the terminal check passes
+  (native publication / verification continue on the host, overlapped). Root metadata check starts at native end.
+- Hook: `services/gkr_local/coordinator.zig` `Options.stream` (sealed / cpu_done / truth_done / abort), default null.
+- Leaf prep during native is limited to `STWO_RV64_RECURSION_STREAM_PREP` (default 4) host workers.
+- Device order: `STWO_RV64_RECURSION_SCHED=m5` (default). `critical` (deepest-first) is opt-in: measured slower on 607
+  (19.4 s recursion vs 18.7): deferred folds keep authority slots, the 17-slot admission then starves leaves.
+
+## Results (request s, 26235156 / 24628607)
+| run | config | load | request | native | fold tail after last leaf | recursion overlapped with native | RSS GiB | byte-identical |
+|---|---|---:|---|---|---|---|---:|---|
+| base-m5 | M5 binaries, M5 default | 4.1 | 20.02 / 27.96 | 4.70 / 5.75 | 5.26 / 5.52 | 0 / 0 | 31.8 | yes |
+| r1-m5 | sched build, M5 order, no stream (fresh store) | 15.8 | 22.08 / 28.61 | 4.74 / 6.67 | 6.93 / 5.79 | 0 / 0 | 30.6 | yes |
+| r1-crit | critical order, no stream | 12.9 | 19.71 / 28.67 | 4.48 / 6.44 | 4.24 / 5.02 | 0 / 0 | 31.3 | yes |
+| r1-stream | critical order + stream | 19.1 | 18.06 / 27.20 | 4.89 / 6.70 | 3.48 / 5.18 | 3.24 / 4.26 | 31.3 | yes |
+| r2-m5s | no stream | 15.6 | 20.09 / 27.89 | 4.83 / 6.54 | 4.74 / 4.97 | 0 / 0 | 31.3 | yes |
+| **r2-s1** | **default (stream)** | 12.5 | **18.78 / 25.48** | 5.04 / 6.83 | 4.65 / 4.91 | 3.13 / 4.40 | 31.4 | yes + receiver |
+| r3-m5s | no stream | 52.4 | 23.77 / 28.43 | 5.02 / 6.53 | 7.12 / 5.91 | 0 / 0 | 30.6 | yes |
+| r3-s1 | default (stream) | 31.8 | 22.50 / 28.43 | 5.91 / 6.95 | 5.15 / 5.72 | 3.59 / 4.13 | 31.2 | yes |
+| r3-pa3 | stream, PREP_AHEAD=3 | 39.3 | 20.16 / 28.22 | 5.01 / 6.94 | 4.50 / 5.12 | 3.00 / 4.19 | **26.5** | yes |
+| r3-sp8 | stream, STREAM_PREP=8 | 39.9 | 19.38 / 25.87 | 5.03 / 6.56 | 4.29 / 4.91 | 3.00 / 3.89 | 31.3 | yes |
+| r4-m5s | no stream | 24.6 | 21.79 / 32.92 | 4.93 / 7.01 | 4.86 / 5.59 | 0 / 0 | 31.2 | yes |
+| r4-s1 | default (stream) | 15.7 | 19.26 / 25.91 | 5.20 / 6.63 | 4.50 / 5.36 | 3.16 / 4.04 | 31.3 | yes |
+
+Medians [D]: 24628607 stream 25.91 s (3 runs) vs no-stream 28.16 s (4 runs; M5 binaries 27.96 quiet) -> about -2.1 s (-7.5%).
+26235156 stream 19.26 s vs 21.84 s (M5 binaries 20.02) -> -0.8 to -2.6 s. The gain is the leaf-prep head (1.5 s of idle
+GPUs at recursion start in M5) plus native publication/verify moved off the device path.
+
+## Measured negatives / kills
+- 2 concurrent outer proofs per GPU (`STWO_RV64_RECURSION_LANES_PER_DEVICE=2`, two outer contexts per device, separate
+  helper pools): both blocks FAIL on the first request (`CudaTraceCommitFailed`, then `ImmutableSetupStillBorrowed`,
+  arena overrun 3.49 GB at 23.6 GB live). The per-device trace-commit/immutable-setup state and the 2 GiB immutable budget
+  are single-proof today (enqueue/arena files). Hook stays OFF (default 1); simulator [E]: 607 recursion 15.7 -> 13.0 s at a
+  1.3x per-proof slowdown, if it fit.
+- Critical-path device order: see above (kept opt-in).
+
+## Gate status (honest)
+- byte identity both dev blocks: MET; fresh receiver: MET (r2-s1).
+- request 24628607 <= 12 s: NOT met by sched alone (25.5-25.9 s).
+- recursion GPU busy >= 70%: NOT met; lane device-stage occupancy 0.62-0.73 is an upper bound; kernel busy was 39.8% (M5 nsys).
+  The remaining recursion wall is device-stage bound (half of each device stage is host/sync time: enqueue stream) plus a
+  ~5 s serial fold tail (5 fold latencies of ~1.05 s on the binary carry; topology frozen for byte identity).
+- tail after the last leaf: measured every run (4.3-5.9 s on 607).
+- service RSS <= 20 GiB: NOT met (31.3 GiB); PREP_AHEAD=3 measured 26.5 GiB (-4.8 GiB) with request times equal to or better than r3-s1 in the same load band (20.16 / 28.22 vs 22.50 / 28.43); not yet the default (single loaded observation).
+- device peak <= 28 GB: 31.5 GB (auto arena, unchanged; 22G carve is the M5 opt-in).

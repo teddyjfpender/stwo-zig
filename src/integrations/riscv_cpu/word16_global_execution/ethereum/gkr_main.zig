@@ -705,10 +705,32 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     // This CLI owns capture; both snapshots occur outside worker activity.
     const capture_before_proving = captured.ownership();
     var gkr_tree_policy = @import("../services/gkr_local/child.zig").TreePolicy{};
+    // sched M6 streaming handoff (scheduling only; STWO_RV64_RECURSION_STREAM=0
+    // restores the M5 sequential handoff): recursion leaves prep as soon as
+    // their native proof is final; device recursion waits for nativeDone.
+    const Streaming = if (enable_recursion) @import("../../rv64_recursion/om31_native/execution_wrap.zig").Streaming else void;
+    var early_recursive_dir: ?std.fs.Dir = null;
+    defer if (early_recursive_dir) |*d| d.close();
+    const streaming: if (enable_recursion) ?*Streaming else ?void = if (comptime enable_recursion) (if (combined and ready != null and Streaming.enabled()) blk: {
+        try dir.makeDir("recursion-om31");
+        early_recursive_dir = try dir.openDir("recursion-om31", .{});
+        break :blk try Streaming.create(a, keys.cpus, keys.truths, expected, pcs, if (fixed_set) |*authority| authority else null, early_recursive_dir.?, ready.?);
+    } else null) else null;
+    defer if (comptime enable_recursion) if (streaming) |stream| stream.destroy();
     const prove_start = timer.read();
-    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .epoch = process_start, .admitted_at_ns = &b2i.coordinator_admitted_at_ns, .cpu_replay_stage = stages.cpu_replay, .device_source_stage = stages.source, .device_global_stage = stages.global_interaction, .device_trace_commit_stage = stages.trace_commit, .device_cpu_projection = stages.cpu_projection, .device_pcs_stage = device_pcs_stage, .truth_device_pcs_stage = stages.truth_pcs, .truth_device_composition_stage = stages.truth_composition, .truth_device_source_stage = stages.truth_source, .om31_composition_stage = om31_composition_stage, .resident_composition_stage = resident_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
+    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .stream = if (comptime enable_recursion) (if (streaming) |stream| stream.hook() else null) else null, .epoch = process_start, .admitted_at_ns = &b2i.coordinator_admitted_at_ns, .cpu_replay_stage = stages.cpu_replay, .device_source_stage = stages.source, .device_global_stage = stages.global_interaction, .device_trace_commit_stage = stages.trace_commit, .device_cpu_projection = stages.cpu_projection, .device_pcs_stage = device_pcs_stage, .truth_device_pcs_stage = stages.truth_pcs, .truth_device_composition_stage = stages.truth_composition, .truth_device_source_stage = stages.truth_source, .om31_composition_stage = om31_composition_stage, .resident_composition_stage = resident_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
     defer bundle.deinit(a);
+    // The streaming recursion reads views of this bundle: join it first.
+    defer if (comptime enable_recursion) if (streaming) |stream| stream.stop(error.StreamingRecursionCancelled);
     const prove_ns = timer.read() - prove_start;
+    // Streaming: the terminal endpoint check (which must precede any accepted
+    // root artifact) runs first, then device recursion starts while native
+    // verification and publication proceed on the host.
+    if (comptime enable_recursion) if (streaming) |stream| {
+        const last = bundle.requests[bundle.requests.len - 1].base;
+        _ = try @import("terminal.zig").require(&image, last.cpu, last.memory.terminal);
+        stream.nativeDone();
+    };
     const capture_after_proving = captured.ownership();
     if (request.value.profile_stages) {
         const profiling = @import("../services/profiling.zig").Options{ .recorders = observations.pointers, .directory = dir };
@@ -749,12 +771,14 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         // The terminal endpoint is checked before any accepted root artifact.
         const last = bundle.requests[bundle.requests.len - 1].base;
         _ = try @import("terminal.zig").require(&image, last.cpu, last.memory.terminal);
-        try dir.makeDir("recursion-om31");
+        if (streaming == null) try dir.makeDir("recursion-om31");
         var recursive_dir = try dir.openDir("recursion-om31", .{});
         defer recursive_dir.close();
         const recursion_start_ns = timer.read();
         const Recursive = @import("../../rv64_recursion/om31_native/execution_wrap.zig");
-        var recursion = if (ready) |options|
+        var recursion = if (streaming) |stream| blk: {
+            break :blk try stream.join();
+        } else if (ready) |options|
             try Recursive.runWithFactories(a, keys.cpus, keys.truths, &bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir, false, options)
         else
             try Recursive.run(a, keys.cpus, keys.truths, &bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir, false, recursion_factory);
@@ -790,7 +814,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         // execution_wrap already published its report exclusively. Native timing
         // belongs in this combined report; never republish the existing file.
         const fixed_setup_backend: []const u8 = if (try recursion_execution.usesDeviceFixed()) "device_candidate" else "cpu";
-        const report = .{ .schema = 1, .accepted = true, .completed_ethereum_block = true, .fixed_setup_backend = fixed_setup_backend, .authority_handoff = "live independently derived keys and fixed authority; direct in-memory bundle", .native_bundle_reload = false, .recursion_execution = recursion_operational, .native_authority_session_used = session != null, .native_authority_classes = if (session) |shared| shared.keyCount() else @as(usize, 0), .restored_recursive_proofs = false, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .profile = selected_profile, .capture_ns = capture_ns, .native_setup_ns = setup_ns, .setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = producer_keys_ns, .fixed_authority_ns = producer_fixed_ns }, .native_prove_ns = prove_ns, .native_verify_ns = verify_ns, .native_verify_overlapped_with_recursion = overlap_verify, .native_verify_join_wait_ns = native_verify_join_wait_ns, .native_verify_workers = if (overlap_verify) side_verify.worker_count else pool.workerCount(), .native_publish_ns = native_publish_ns, .recursion_ns = recursion_ns, .combined_ns = timer.read(), .recursive = recursion };
+        const report = .{ .schema = 1, .accepted = true, .completed_ethereum_block = true, .fixed_setup_backend = fixed_setup_backend, .authority_handoff = "live independently derived keys and fixed authority; direct in-memory bundle", .native_bundle_reload = false, .recursion_execution = recursion_operational, .native_authority_session_used = session != null, .native_authority_classes = if (session) |shared| shared.keyCount() else @as(usize, 0), .restored_recursive_proofs = false, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .profile = selected_profile, .capture_ns = capture_ns, .native_setup_ns = setup_ns, .setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = producer_keys_ns, .fixed_authority_ns = producer_fixed_ns }, .native_prove_ns = prove_ns, .native_verify_ns = verify_ns, .native_verify_overlapped_with_recursion = overlap_verify, .native_verify_join_wait_ns = native_verify_join_wait_ns, .native_verify_workers = if (overlap_verify) side_verify.worker_count else pool.workerCount(), .native_publish_ns = native_publish_ns, .recursion_ns = recursion_ns, .recursion_streamed = streaming != null, .recursion_after_native_ns = timer.read() - (prove_start + prove_ns), .combined_ns = timer.read(), .recursive = recursion };
         try Driver.writeJson(a, dir, "combined-report.json", report);
         try std.posix.fsync(dir.fd);
         return emit(a, report);

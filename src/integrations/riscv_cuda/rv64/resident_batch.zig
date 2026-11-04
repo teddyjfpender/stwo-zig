@@ -244,7 +244,7 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
         try Main.runCombinedResidentArgsWithExecution(recycler, &args, pool.stages(), session, .{
             .factory = factory,
             .ready = if (ready) |context| context.options() else null,
-            .physical_devices = config.ids,
+            .physical_devices = if (ready) |context| context.physical else config.ids,
             .producer_manifest_sha256 = manifest_sha256,
         });
     } else try Main.runWithResidentArgs(recycler, &args, pool.stages(), session);

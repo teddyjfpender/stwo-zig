@@ -44,6 +44,8 @@ pub fn policyArity(profile_default: usize) !usize {
 }
 pub const Plan = struct {
     nodes: [max_nodes]Node = undefined,
+    /// Edges between the node and the root (root = 0). Scheduling only.
+    depth: [max_nodes]u8 = @splat(0),
     count: usize = 0,
     root: usize = 0,
     arity: usize = 2,
@@ -87,7 +89,18 @@ pub const Plan = struct {
         }
         self.root = carry.?;
         std.debug.assert(self.nodes[self.root].leaf_count == leaves);
+        // Children precede parents, so a reverse sweep sees every parent first.
+        var id = self.count;
+        while (id > 0) {
+            id -= 1;
+            for (self.nodes[id].kids()) |kid| self.depth[kid] = self.depth[id] + 1;
+        }
         return self;
+    }
+    /// sched M6 device priority (higher first): deeper nodes carry the longer
+    /// remaining fold chain; at equal depth a leaf precedes a fold.
+    pub fn priority(self: *const Plan, id: usize) u32 {
+        return @as(u32, self.depth[id]) * 2 + @intFromBool(self.nodes[id].isLeaf());
     }
     fn append(self: *Plan, node: Node) usize {
         const id = self.count;
@@ -109,26 +122,57 @@ pub const Plan = struct {
     /// Retained done-but-unconsumed children are bounded by (arity-1) per
     /// carry level; this is the admission floor for `Queue`.
     pub fn minimumLimit(self: *const Plan, lanes: usize) usize {
+        return @max(9 + 2 * lanes, self.carryBound() + 2 * lanes + 1);
+    }
+    /// Retained carry entries of an in-order leaf sequence: (arity-1) per level.
+    pub fn carryBound(self: *const Plan) usize {
         var levels: usize = 0;
         var width: usize = 1;
         while (width < max_leaves) : (levels += 1) width *= self.arity;
-        return @max(9 + 2 * lanes, (self.arity - 1) * levels + 2 * lanes + 1);
+        return (self.arity - 1) * levels;
     }
 };
 pub const LaneIdentity = struct { device: u32, factory: usize, pool: usize, workers: usize };
+/// sched M6: concurrent outer proofs per physical device (distinct factory and pool each).
+pub const max_lanes_per_device = 2;
 pub fn validateLanes(lanes: []const LaneIdentity, pool_worker_budget: usize, limit: usize) !void {
     if (lanes.len == 0 or lanes.len > 4 or limit < 9 + 2 * lanes.len) return error.InvalidRecursionAdmission;
     var workers: usize = 0;
     for (lanes, 0..) |lane, i| {
         if (lane.workers == 0) return error.InvalidRecursionPoolBudget;
         workers = try std.math.add(usize, workers, lane.workers);
+        var same_device: usize = 1;
         for (lanes[0..i]) |other| {
-            if (lane.device == other.device or lane.factory == other.factory or lane.pool == other.pool) return error.DuplicateRecursionDeviceLane;
+            if (lane.factory == other.factory or lane.pool == other.pool) return error.DuplicateRecursionDeviceLane;
+            same_device += @intFromBool(lane.device == other.device);
         }
+        if (same_device > lanesPerDeviceLimit()) return error.DuplicateRecursionDeviceLane;
     }
     if (workers > pool_worker_budget) return error.InvalidRecursionPoolBudget;
 }
+fn lanesPerDeviceLimit() usize {
+    const text = std.posix.getenv("STWO_RV64_RECURSION_LANES_PER_DEVICE") orelse return 1;
+    const value = std.fmt.parseUnsigned(usize, text, 10) catch return 1;
+    return @min(@max(value, 1), max_lanes_per_device);
+}
 pub const Status = enum { pending, running, done, retired, failed };
+/// Dispatch order only; plan, node identities and proof bytes never depend on it.
+/// `m5` (default): lowest pending leaf id, device lanes widest parent first.
+/// `critical` (opt-in): pending leaves and device starts by depth below the
+/// root (deeper first, then id).
+pub const Policy = enum {
+    m5,
+    critical,
+    pub fn fromEnv() !Policy {
+        // Default m5: the critical device order measured slower on 24628607
+        // (deferred folds hold authority slots and starve leaf admission).
+        const value = std.posix.getenv("STWO_RV64_RECURSION_SCHED") orelse return .m5;
+        if (std.mem.eql(u8, value, "m5")) return .m5;
+        if (std.mem.eql(u8, value, "critical") or std.mem.eql(u8, value, "m6")) return .critical;
+        return error.InvalidRecursionSchedulePolicy;
+    }
+};
+pub const LeafSet = std.StaticBitSet(max_leaves);
 pub const Queue = struct {
     plan: *const Plan,
     status: [max_nodes]Status = @splat(.pending),
@@ -138,9 +182,46 @@ pub const Queue = struct {
     completed: usize = 0,
     peak: usize = 0,
     failure: ?struct { node: usize, err: anyerror } = null,
+    policy: Policy = .m5,
+    lanes: usize = 1,
+    /// Leaves (by first_leaf ordinal) whose inputs are not yet available
+    /// (streaming native handoff). A closed leaf is never taken.
+    closed: LeafSet = LeafSet.initEmpty(),
     pub fn init(plan: *const Plan, lanes: usize, limit: usize) !Queue {
         if (lanes == 0 or lanes > 4 or limit < plan.minimumLimit(lanes)) return error.InvalidRecursionAdmission;
-        return .{ .plan = plan, .limit = limit };
+        return .{ .plan = plan, .limit = limit, .lanes = lanes };
+    }
+    pub fn initPolicy(plan: *const Plan, lanes: usize, limit: usize, policy: Policy) !Queue {
+        var q = try init(plan, lanes, limit);
+        q.policy = policy;
+        return q;
+    }
+    pub fn closeAllLeaves(self: *Queue) void {
+        self.closed = LeafSet.initEmpty();
+        self.closed.setRangeValue(.{ .start = 0, .end = self.plan.nodes[self.plan.root].leaf_count }, true);
+    }
+    pub fn openLeaf(self: *Queue, ordinal: usize) void {
+        self.closed.unset(ordinal);
+    }
+    fn leafChoice(self: *const Queue) ?usize {
+        var best: ?usize = null;
+        // Near the admission limit keep the M5 carry order (lowest pending
+        // leaf), whose retained-children bound is what minimumLimit proves.
+        // Out-of-order leaves may only use the slots above the carry reserve:
+        // scattered (< limit - reserve) + carry + active stays below limit.
+        const reserve = self.plan.carryBound() + self.lanes + 2;
+        const sequential = self.policy == .m5 or self.live + self.active + reserve >= self.limit;
+        for (self.plan.nodes[0..self.plan.count], 0..) |node, i| {
+            if (self.status[i] != .pending or !node.isLeaf()) continue;
+            if (sequential) {
+                // The carry order is by ordinal; a closed lowest leaf blocks.
+                if (self.closed.isSet(node.first_leaf)) return null;
+                return i;
+            }
+            if (self.closed.isSet(node.first_leaf)) continue;
+            if (best == null or self.plan.depth[i] > self.plan.depth[best.?]) best = i;
+        }
+        return best;
     }
     pub fn take(self: *Queue) !?usize {
         return self.takeFiltered(true);
@@ -161,11 +242,10 @@ pub const Queue = struct {
             }
         }
         if (leaves and self.live + self.active + 1 < self.limit) {
-            for (self.plan.nodes[0..self.plan.count], 0..) |node, i| {
-                if (self.status[i] == .pending and node.isLeaf()) return self.start(i);
-            }
+            if (self.leafChoice()) |i| return self.start(i);
         }
-        if (self.active == 0 and leaves) return error.RecursiveReadyDeadlock;
+        // A leaf still waiting for its native proof is progress, not deadlock.
+        if (self.active == 0 and leaves and self.closed.count() == 0) return error.RecursiveReadyDeadlock;
         return null;
     }
     fn start(self: *Queue, id: usize) usize {
@@ -497,4 +577,71 @@ test "m3 4-ary plan: 17 leaves fold in 6 nodes of depth 3, ordered, covering, bo
         }
     };
     try std.testing.expectError(error.InvalidRecursiveFoldArity, Plan.initArity(5, 5));
+}
+
+test "sched m6: depth/priority of the binary carry and k-ary plans; critical leaves = carry order for r1" {
+    const plan = try Plan.init(17);
+    try std.testing.expectEqual(@as(u8, 0), plan.depth[plan.root]);
+    for (plan.nodes[0..plan.count], 0..) |node, id| {
+        for (node.kids()) |kid| try std.testing.expectEqual(plan.depth[id] + 1, plan.depth[kid]);
+        if (node.isLeaf()) try std.testing.expect(plan.priority(id) % 2 == 1);
+    }
+    // 17 = 16 + 1: leaves 0..15 sit 5 below the root, leaf 16 one below.
+    try std.testing.expectEqual(@as(u8, 5), plan.depth[0]);
+    try std.testing.expectEqual(@as(u8, 1), plan.depth[plan.count - 2]);
+    for (2..5) |arity| for (1..257) |n| {
+        const p = try Plan.initArity(n, arity);
+        var q = try Queue.initPolicy(&p, 2, p.minimumLimit(2) + 8, .critical);
+        var m = try Queue.initPolicy(&p, 2, p.minimumLimit(2) + 8, .m5);
+        // Leaf depth never increases with the ordinal (carry finalization),
+        // so the critical leaf order equals the M5 order for every plan.
+        var last: u8 = 255;
+        for (p.nodes[0..p.count], 0..) |node, id| if (node.isLeaf()) {
+            try std.testing.expect(p.depth[id] <= last);
+            last = p.depth[id];
+        };
+        for (0..@min(n, 4)) |_| try std.testing.expectEqual(try m.takeFiltered(true), try q.takeFiltered(true));
+    };
+}
+
+test "sched m6: gated (streaming) leaves never deadlock and keep admission bounded under adversarial completion" {
+    var prng = std.Random.DefaultPrng.init(0x5eed);
+    const random = prng.random();
+    for ([_]usize{ 2, 4 }) |arity| for (1..5) |lanes| for ([_]usize{ 1, 2, 5, 11, 17, 33, 64, 100, 256 }) |n| for (0..4) |trial| {
+        const plan = try Plan.initArity(n, arity);
+        const limit = plan.minimumLimit(lanes) + trial;
+        var q = try Queue.initPolicy(&plan, lanes, limit, if (trial % 2 == 0) .critical else .m5);
+        q.closeAllLeaves();
+        var opened: usize = 0;
+        var active: std.ArrayList(usize) = .empty;
+        defer active.deinit(std.testing.allocator);
+        var concurrency = lanes + trial;
+        if (concurrency == 0) concurrency = 1;
+        while (q.completed < plan.count) {
+            // Native workers finish in a random order (stage 2 of a lane pool).
+            if (opened < n and (active.items.len == 0 or random.boolean())) {
+                var pick = random.uintLessThan(usize, n);
+                while (!q.closed.isSet(pick)) pick = (pick + 1) % n;
+                q.openLeaf(pick);
+                opened += 1;
+            }
+            while (active.items.len < concurrency) {
+                const next = try q.takeFiltered(true) orelse break;
+                try std.testing.expect(!plan.nodes[next].isLeaf() or opened > 0);
+                try active.append(std.testing.allocator, next);
+            }
+            if (active.items.len == 0) {
+                try std.testing.expect(opened < n);
+                continue;
+            }
+            const id = active.swapRemove(random.uintLessThan(usize, active.items.len));
+            q.complete(id);
+            try std.testing.expect(q.live + q.active <= q.limit);
+        }
+        try std.testing.expectEqual(@as(usize, 1), q.live);
+    };
+}
+
+test "sched m6: policy env parse" {
+    try std.testing.expect((Policy.fromEnv() catch .critical) == .m5 or std.posix.getenv("STWO_RV64_RECURSION_SCHED") != null);
 }
