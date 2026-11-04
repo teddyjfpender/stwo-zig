@@ -1,0 +1,73 @@
+{
+  "schema": "rv64-circuit-pp-disjoint-fill-candidate/v1",
+  "base_commit": "99ab69f18",
+  "status": "CPU-qualified isolated candidate; full production GPU qualification pending",
+  "hardware": {
+    "cpu": "Apple M5 Max",
+    "architecture": "arm64",
+    "physical_memory_bytes": 68719476736
+  },
+  "construction": {
+    "caller_thread": [
+      "validation",
+      "multiplicity allocation and zeroing",
+      "multiplicity scatter",
+      "all column allocations",
+      "permutation CSR lowering",
+      "stable column ordering"
+    ],
+    "parallel": [
+      "disjoint Eq/QM31/TripleXor/M31ToU32/Blake row filling",
+      "disjoint canonical lookup table row filling"
+    ],
+    "pool": "existing currentScopedPool via prover.lookups.row_work; no implicit global pool",
+    "minimum_rows_per_shard": 16384,
+    "maximum_shards": 16,
+    "scratch": "bounded stack job records and one optional error per shard; no per-worker columns, histograms, caches or allocations",
+    "failure_custody": "all callbacks join before error propagation and column cleanup; failed pool lease falls back to serial"
+  },
+  "column_benchmark": {
+    "binary_rows": 1048576,
+    "blake_g_rows": 2097152,
+    "blake_g_log": 21,
+    "fixed_lookup_columns": 16,
+    "columns_compared": 45,
+    "workers": 4,
+    "trials_each": 3,
+    "statistic": "median",
+    "serial_ns": 61482500,
+    "parallel_ns": 21513083,
+    "speedup": 2.857912090052365,
+    "includes": "column allocation, serial validation/multiplicity scatter and all table fills",
+    "excludes": "FIXED commitment, graph building, GPU proving and receiver",
+    "scope": "bounded synthetic Blake-heavy column-only CPU case; no projection to complete-block speedup"
+  },
+  "tests": {
+    "all45_columns_exact": true,
+    "layout_exact": true,
+    "native_om31_fixed_root_exact": true,
+    "native_om31_authority_identity_exact": true,
+    "native_om31_proof_wire_exact": true,
+    "fresh_native_om31_receiver_accepted": true,
+    "last_shard_multiplicity_rejection_joined": true,
+    "valid_retry_after_failure": true,
+    "all_allocation_failure_points_leak_free": true,
+    "fully_leased_pool_serial_fallback_exact": true
+  },
+  "commands": [
+    "zig build --build-file src/frontends/circuit/build.zig test -Doptimize=ReleaseFast -Dtest-filter=preprocessed: -j2",
+    "zig build --build-file src/frontends/circuit/build.zig test -Doptimize=ReleaseFast -Dtest-filter=preprocessed parallel fill: -j2",
+    "zig build --build-file src/integrations/circuit_cpu/build.zig test-circuit-om31-parallel -Doptimize=ReleaseFast -j2"
+  ],
+  "source_sha256": {
+    "src/frontends/circuit/common/preprocessed.zig": "9bff7f44835f091aef0de7f545f5d402c1c85d4a2f7569fa018c3ddb7b9198b4",
+    "src/frontends/circuit/common/preprocessed_test.zig": "70f4cee2a37dafdd7023db9eef6b6a27fb4d18ccd4aaf6be1cce20be8ce71b4c",
+    "src/integrations/circuit_cpu/om31/parallel_qualification.zig": "f296b1b7d425f2fb167c23e9ef9db098197ddbc682c3bc90683fb632d061bf01"
+  },
+  "qualification_limits": [
+    "No GPU jobs or budget used.",
+    "No complete production block requalification or full15 basket timing claimed.",
+    "No main branch changes; candidate lives on codex/rv64-recursion-pp-parallel.",
+    "Existing protocol, transcript, column layout, multiplicity counting and receiver authority remain unchanged."
+  ]
+}
