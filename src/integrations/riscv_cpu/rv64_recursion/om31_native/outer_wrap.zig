@@ -7,6 +7,100 @@ const Wire = @import("stwo_circuit_cpu_integration").om31.wire;
 pub const Device = @import("stwo_circuit_cpu_integration").om31.device_prove;
 const C = @import("common.zig");
 const PP = circuit.common.preprocessed.PreprocessedCircuit;
+const Finalize = circuit.common.finalize;
+/// Outer shape versions (canon-vk M5; binding note §1 `S_out`). The shape is
+/// a function of the outer profile: the M5 canonical profiles
+/// (`Profile.canonical()`) use `uniform_v1`, every other profile `exact`.
+/// `STWO_RV64_OUTER_SHAPE` may only restate that (or force `uniform-v1` on a
+/// non-canonical profile for diagnostics); `exact` under a canonical profile
+/// is refused.
+/// - `exact`: every gate component is padded to the next power of
+///   two of its own row count, as in M4 (bytes unchanged).
+/// - `uniform_v1`: every recursion node (leaf and fold) is padded to the one
+///   shape `S_OUT_V1`. A fold's topology is a function of its children's
+///   shapes (fold v2 `classKey`), so with one shape a fold circuit depends
+///   only on its arity: one fold VK per arity, derivable without any block.
+///   A node whose exact shape exceeds `S_OUT_V1` fails closed
+///   (`ComponentExceedsTarget`). Padding only appends the builder's own
+///   padding gates; the padded sizes enter the preprocessed circuit, hence
+///   the FIXED root and authority identity, so producer and receiver must
+///   select the same shape (a mismatch is an authority mismatch).
+/// - `set_v2` (diagnostic, non-canonical profiles only; binding note §1
+///   fallback generalised): every node is padded to the FIRST shape of
+///   `SHAPE_SET_V2` that dominates its exact shape. A fold's topology is a
+///   function of its children's shapes, so the binary fold classes are the
+///   ordered pairs over 3 shapes (<= 9; 4-ary <= 81): still a constant set per
+///   build. [D] tax +2.1% cells vs +18.7% for uniform-v1 on both dev blocks.
+pub const Shape = enum {
+    exact,
+    uniform_v1,
+    set_v2,
+    pub fn parse(text: []const u8) !Shape {
+        if (std.mem.eql(u8, text, "exact")) return .exact;
+        if (std.mem.eql(u8, text, "uniform-v1")) return .uniform_v1;
+        if (std.mem.eql(u8, text, "set-v2")) return .set_v2;
+        return error.UnknownOm31OuterShape;
+    }
+};
+const LogShape = struct { eq: u32, qm31_ops: u32, triple_xor: u32, m31_to_u32: u32, blake_g_gate: u32 };
+/// Fixed order (ascending estimated cells): small leaf, fold, big leaf = S_OUT_V1.
+/// From the RECURSION_NODE_SHAPE census of both dev blocks (54 nodes).
+pub const SHAPE_SET_V2 = [_]LogShape{
+    .{ .eq = 18, .qm31_ops = 23, .triple_xor = 19, .m31_to_u32 = 20, .blake_g_gate = 22 },
+    .{ .eq = 15, .qm31_ops = 22, .triple_xor = 19, .m31_to_u32 = 20, .blake_g_gate = 23 },
+    .{ .eq = 18, .qm31_ops = 23, .triple_xor = 20, .m31_to_u32 = 21, .blake_g_gate = 23 },
+};
+pub const SHAPE_ENV = "STWO_RV64_OUTER_SHAPE";
+/// Elementwise maximum of the 33 node shapes of 24628607 (diet census
+/// `24628607-cell-census-q108.json`, leaf-dominated): log2 rows of eq,
+/// qm31_ops, triple_xor, m31_to_u32, blake_g_gate. [D] tax +19.5% cells.
+pub const S_OUT_V1 = struct { eq: u32 = 18, qm31_ops: u32 = 23, triple_xor: u32 = 20, m31_to_u32: u32 = 21, blake_g_gate: u32 = 23 }{};
+var shape_selected = std.atomic.Value(u8).init(0xff);
+/// Process-wide; resolved once from `STWO_RV64_OUTER_SHAPE` (default exact).
+/// Unknown or unreadable values fail closed.
+pub fn shape() Shape {
+    const current = shape_selected.load(.acquire);
+    if (current != 0xff) return @enumFromInt(current);
+    // Entry points call checkShapeEnv first (clean exit); this is the backstop.
+    const resolved = checkShapeEnv() catch @panic("invalid STWO_RV64_OUTER_SHAPE for the outer profile");
+    _ = shape_selected.cmpxchgStrong(0xff, @intFromEnum(resolved), .acq_rel, .acquire);
+    return @enumFromInt(shape_selected.load(.acquire));
+}
+/// Fallible resolution of the outer shape from the profile and the env.
+pub fn checkShapeEnv() !Shape {
+    const canonical = @import("stwo_circuit_cpu_integration").om31.protocol.active().canonical();
+    var buffer: [32]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&buffer);
+    const requested: ?Shape = if (std.process.getEnvVarOwned(fba.allocator(), SHAPE_ENV)) |text|
+        try Shape.parse(text)
+    else |err| switch (err) {
+        error.EnvironmentVariableNotFound => null,
+        else => return error.UnreadableOm31OuterShape,
+    };
+    if (canonical) {
+        if (requested != null and requested.? != .uniform_v1) return error.CanonicalOuterProfileRequiresUniformShape;
+        return .uniform_v1;
+    }
+    return requested orelse .exact;
+}
+/// The padding targets of one finalized recursion graph under `shape()`.
+pub fn paddingTargets(ctx: *const C.Context) !Finalize.ComponentSizes {
+    const exact = Finalize.computePaddedSizes(.fromBuilder(&ctx.circuit));
+    return switch (shape()) {
+        .exact => exact,
+        // padToTargets refuses a component above its target.
+        .uniform_v1 => Finalize.ComponentSizes.fromLogSizes(S_OUT_V1),
+        .set_v2 => for (SHAPE_SET_V2) |candidate| {
+            const target = Finalize.ComponentSizes.fromLogSizes(candidate);
+            if (exact.eq <= target.eq and exact.qm31_ops <= target.qm31_ops and exact.triple_xor <= target.triple_xor and exact.m31_to_u32 <= target.m31_to_u32 and exact.blake_g_gate <= target.blake_g_gate) break target;
+        } else error.OuterShapeSetExceeded,
+    };
+}
+/// Log-only census line: raw and padded component rows of one node.
+pub fn reportShape(label: []const u8, id: usize, raw: Finalize.ComponentSizes, ctx: *const C.Context) void {
+    const padded = Finalize.rawComponentSizes(.fromBuilder(&ctx.circuit));
+    std.debug.print("RECURSION_NODE_SHAPE node={d} kind={s} shape={s} raw=[{d},{d},{d},{d},{d}] padded=[{d},{d},{d},{d},{d}]\n", .{ id, label, @tagName(shape()), raw.eq, raw.qm31_ops, raw.triple_xor, raw.m31_to_u32, raw.blake_g_gate, padded.eq, padded.qm31_ops, padded.triple_xor, padded.m31_to_u32, padded.blake_g_gate });
+}
 pub const Timings = struct {
     preprocess_ns: u64,
     prove_ns: u64,
@@ -145,7 +239,7 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
     if (ctx.trace_only and encoded == null and (factory == null or factory.?.prepare_from_circuit == null)) return error.TraceOnlySourceRequired;
     if (!ctx.trace_only and !try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
     var timer = try std.time.Timer.start();
-    try circuit.common.finalize.padToTargets(C.Q, ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&ctx.circuit)));
+    try circuit.common.finalize.padToTargets(C.Q, ctx, try paddingTargets(ctx));
     const finalize_ns = timer.read();
     // Fold v2 producer only: class-keyed immutable PP reuse (device precommit).
     const class: ?[32]u8 = if (ctx.trace_only and encoded == null and factory != null and factory.?.precommit_fixed != null) Device.class_hint else null;
@@ -243,6 +337,8 @@ pub fn restoreWithAuthority(a: std.mem.Allocator, pp: *PP, authority: *Outer.Aut
 /// optional factory-owned assignment plan.
 pub const HostPrep = struct {
     pp: ?*PP,
+    /// `pp` is owned by the producer PPCache (one per fold class); never freed here.
+    pp_borrowed: bool = false,
     authority: ?Outer.Authority.DevicePrepared = null,
     host: ?Device.HostPrepared = null,
     finalize_ns: u64 = 0,
@@ -254,10 +350,10 @@ pub const HostPrep = struct {
         self.host = null;
         if (self.authority) |*authority| authority.deinit();
         self.authority = null;
-        if (self.pp) |pp| {
+        if (self.pp) |pp| if (!self.pp_borrowed) {
             pp.deinit(a);
             a.destroy(pp);
-        }
+        };
         self.pp = null;
     }
 };
@@ -268,7 +364,10 @@ const ColumnsJob = struct {
     ctx: *const C.Context,
     pool: ?*@import("stwo_prover_engine").work_pool.WorkPool,
     device_authority: bool,
+    /// Fold class (fold v2 classKey) when this node may share the class PP.
+    class: ?[32]u8 = null,
     pp: ?*PP = null,
+    pp_borrowed: bool = false,
     authority: ?Outer.Authority.DevicePrepared = null,
     columns_ns: u64 = 0,
     authority_ns: u64 = 0,
@@ -283,10 +382,20 @@ const ColumnsJob = struct {
     }
     fn runImpl(self: *ColumnsJob) !void {
         var timer = try std.time.Timer.start();
-        const pp = try self.a.create(PP);
-        errdefer self.a.destroy(pp);
-        pp.* = try PP.fromBuilderCircuit(self.a, &self.ctx.circuit);
+        const mode = PPCache.mode();
+        const shared: ?*PP = if (self.class) |key| (if (mode == .on) PPCache.find(key) else null) else null;
+        const pp = if (shared) |hit| hit else blk: {
+            const owned = try self.a.create(PP);
+            errdefer self.a.destroy(owned);
+            owned.* = try PP.fromBuilderCircuit(self.a, &self.ctx.circuit);
+            break :blk owned;
+        };
         self.pp = pp;
+        self.pp_borrowed = shared != null;
+        if (self.class) |key| if (mode == .check) if (PPCache.find(key)) |cached| {
+            if (!PPCache.equal(cached, pp)) return error.PPClassMismatch;
+            std.debug.print("GPU_OUTER_PP_CLASS pipelined check_ok class={x}\n", .{key[0..8]});
+        };
         self.columns_ns = timer.lap();
         if (self.device_authority) self.authority = try Outer.Authority.prepareForDeviceProver(self.a, pp);
         self.authority_ns = timer.read();
@@ -299,16 +408,19 @@ pub fn prepareHost(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factor
     if (ctx.circuit.output.items.len != 9) return error.CurrentOm31OutputCount;
     if (!ctx.trace_only or factory.prepare_from_circuit == null) return error.TraceOnlySourceRequired;
     var timer = try std.time.Timer.start();
-    try circuit.common.finalize.padToTargets(C.Q, ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&ctx.circuit)));
+    try circuit.common.finalize.padToTargets(C.Q, ctx, try paddingTargets(ctx));
     var result = HostPrep{ .pp = null, .finalize_ns = timer.lap() };
     errdefer result.deinit(a);
-    var columns = ColumnsJob{ .a = a, .ctx = ctx, .pool = @import("stwo_prover_engine").work_pool.currentScopedPool(), .device_authority = factory.precommit_fixed != null };
+    // Fold v2 classes only (class_hint is threadlocal: read it on this thread).
+    const class: ?[32]u8 = if (factory.precommit_fixed != null) Device.class_hint else null;
+    var columns = ColumnsJob{ .a = a, .ctx = ctx, .pool = @import("stwo_prover_engine").work_pool.currentScopedPool(), .device_authority = factory.precommit_fixed != null, .class = class };
     const side = std.Thread.spawn(.{ .stack_size = 8 << 20 }, ColumnsJob.run, .{&columns}) catch null;
     if (side == null) columns.run();
     const plan: ?(anyerror!Device.HostPrepared) = if (factory.prepare_host) |prepare| prepare(factory.context, a, ctx) else null;
     result.host_plan_ns = timer.read();
     if (side) |thread| thread.join();
     result.pp = columns.pp;
+    result.pp_borrowed = columns.pp_borrowed;
     result.authority = columns.authority;
     result.columns_ns = columns.columns_ns;
     result.authority_ns = columns.authority_ns - columns.columns_ns;
@@ -316,11 +428,15 @@ pub fn prepareHost(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factor
         result.host = value catch |err| return err;
     }
     if (columns.failure) |err| return err;
+    // First fold of a class: the cache clones the PP (bounded by its byte cap).
+    if (class) |key| if (!result.pp_borrowed and PPCache.mode() != .off) PPCache.adopt(key, result.pp.?);
+    if (result.pp_borrowed) std.debug.print("GPU_OUTER_PP_CLASS pipelined hit=true class={x}\n", .{class.?[0..8]});
     return result;
 }
 /// Device stage output: proof material before the independent native verify.
 pub const Proved = struct {
     pp: *PP,
+    pp_borrowed: bool = false,
     authority: *Outer.Authority,
     produced: Outer.Produced,
     timings: Timings,
@@ -328,8 +444,10 @@ pub const Proved = struct {
         self.produced.deinit();
         self.authority.deinit();
         a.destroy(self.authority);
-        self.pp.deinit(a);
-        a.destroy(self.pp);
+        if (!self.pp_borrowed) {
+            self.pp.deinit(a);
+            a.destroy(self.pp);
+        }
         self.* = undefined;
     }
 };
@@ -337,11 +455,13 @@ pub const Proved = struct {
 /// handoff and device proof. Consumes `prep` (PP and staged plan) on every path.
 pub fn proveDevice(a: std.mem.Allocator, ctx: *C.Context, prep: *HostPrep, digest: [32]u8, ordinal: u32, factory: Device.Factory) !Proved {
     const pp = prep.pp orelse return error.MissingHostPrep;
+    const pp_borrowed = prep.pp_borrowed;
     prep.pp = null;
-    errdefer {
+    prep.pp_borrowed = false;
+    errdefer if (!pp_borrowed) {
         pp.deinit(a);
         a.destroy(pp);
-    }
+    };
     if (prep.host) |host| {
         prep.host = null;
         const stage = factory.stage_host orelse {
@@ -370,7 +490,7 @@ pub fn proveDevice(a: std.mem.Allocator, ctx: *C.Context, prep: *HostPrep, diges
     var expected: [8]C.Q = undefined;
     for (&expected, 0..) |*out, i| out.* = circuit.builder.ivalue.packU32(C.Q, std.mem.readInt(u32, digest[4 * i ..][0..4], .little));
     const produced = if (precommitted) |*fixed| try Device.proveFromPrecommittedCircuit(a, authority, ctx, &expected, ordinal, fixed) else try Device.proveFromCircuit(a, authority, ctx, &expected, ordinal, factory);
-    return .{ .pp = pp, .authority = authority, .produced = produced, .timings = .{ .preprocess_ns = prep.finalize_ns + prep.columns_ns + authority_ns, .finalize_ns = prep.finalize_ns, .preprocessed_columns_ns = prep.columns_ns, .authority_ns = authority_ns, .prove_ns = timer.read(), .verify_ns = 0 } };
+    return .{ .pp = pp, .pp_borrowed = pp_borrowed, .authority = authority, .produced = produced, .timings = .{ .preprocess_ns = prep.finalize_ns + prep.columns_ns + authority_ns, .finalize_ns = prep.finalize_ns, .preprocessed_columns_ns = prep.columns_ns, .authority_ns = authority_ns, .prove_ns = timer.read(), .verify_ns = 0 } };
 }
 /// Stage 3 (any thread, no device): canonical digest check and the same fresh
 /// independent native verification/capture the monolithic path performs.
@@ -381,7 +501,7 @@ pub fn finishProved(a: std.mem.Allocator, proved: *Proved, digest: [32]u8) !Wrap
     errdefer capture.deinit(a);
     var timings = proved.timings;
     timings.verify_ns = timer.read();
-    const result = Wrapped{ .allocator = a, .pp = proved.pp, .authority = proved.authority, .produced = proved.produced, .capture = capture, .digest = digest, .restored = false, .timings = timings };
+    const result = Wrapped{ .allocator = a, .pp = proved.pp, .authority = proved.authority, .produced = proved.produced, .capture = capture, .digest = digest, .restored = false, .borrowed_pp = proved.pp_borrowed, .timings = timings };
     proved.* = undefined;
     return result;
 }

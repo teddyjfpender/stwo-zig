@@ -1,0 +1,15 @@
+test-riscv64-om31-m3-fold
++- run test stderr
+M3_FOLD_CENSUS {"profile":"r1_b2_q108_p20_fold4","arity":2,"child_blocks":4,"child_padded_vars":2608,"child_max_log":20,"fold_vars":19127398,"fold_padded_vars":22544384,"fold_max_log":22,"tasks":9374531,"levels":9025,"blake_g_gates":3769440,"qm31_rows":2975510,"graph_ns":179248433,"plan_ns":367361677}
+M3_FOLD_CENSUS {"profile":"r1_b2_q108_p20_fold4","arity":4,"child_blocks":4,"child_padded_vars":2608,"child_max_log":20,"fold_vars":38252931,"fold_padded_vars":45088768,"fold_max_log":23,"tasks":18749526,"levels":9025,"blake_g_gates":7538800,"qm31_rows":5949483,"graph_ns":362125292,"plan_ns":720504128}
+M3_FOLD_CENSUS {"profile":"m3_b4_q51_p26_fold4","arity":2,"child_blocks":4,"child_padded_vars":2608,"child_max_log":20,"fold_vars":9583278,"fold_padded_vars":11272192,"fold_max_log":21,"tasks":4687249,"levels":9025,"blake_g_gates":1880960,"qm31_rows":1522332,"graph_ns":90644505,"plan_ns":186100366}
+M3_FOLD_CENSUS {"profile":"m3_b4_q51_p26_fold4","arity":4,"child_blocks":4,"child_padded_vars":2608,"child_max_log":20,"fold_vars":19164689,"fold_padded_vars":22544384,"fold_max_log":22,"tasks":9374962,"levels":9025,"blake_g_gates":3761840,"qm31_rows":3043125,"graph_ns":189138623,"plan_ns":387093116}
+M3_FOLD_CENSUS {"profile":"m3_b8_q34_p26_fold4","arity":2,"child_blocks":4,"child_padded_vars":2608,"child_max_log":20,"fold_vars":6749742,"fold_padded_vars":11010048,"fold_max_log":21,"tasks":4512109,"levels":9025,"blake_g_gates":1320320,"qm31_rows":1090746,"graph_ns":64212924,"plan_ns":167075016}
+M3_FOLD_CENSUS {"profile":"m3_b8_q34_p26_fold4","arity":4,"child_blocks":4,"child_padded_vars":2608,"child_max_log":20,"fold_vars":13497603,"fold_padded_vars":22020096,"fold_max_log":22,"tasks":9024684,"levels":9025,"blake_g_gates":2640560,"qm31_rows":2179939,"graph_ns":132433649,"plan_ns":322676545}
+M3_FOLD_ROOT {"profile":"m3_b4_q51_p26_fold4","arity":4,"fold_padded_vars":22544384,"fresh_receiver_accepted":true,"output_tamper_rejected":true,"r1_receiver_rejected":true,"pow_tamper_rejected":true,"root_wire_bytes":389980,"prove_ns":401144214131,"receiver_ns":6456282508}
+
+Build Summary: 2/2 steps succeeded
+test-riscv64-om31-m3-fold success
++- run /workspace/zig/zig success 19m MaxRSS:30G
+
+EXIT=0
