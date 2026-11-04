@@ -306,7 +306,9 @@ def main():
         for prefix, token in tokens:
             command += ["--path-token", prefix + "=" + token]
     if args.outer_circuit_dir:
-        command += ["--extra-native-source", "circuit/base_witness.cu", "--extra-native-source", "rv64/circuit_interaction.cu", "--extra-native-source", "rv64/circuit_assignment.cu", "--extra-native-source", "rv64/fused_blake2s.cu"]
+        command += ["--extra-native-source", "circuit/base_witness.cu", "--extra-native-source", "rv64/circuit_interaction.cu", "--extra-native-source", "rv64/circuit_assignment.cu", "--extra-native-source", "rv64/fused_blake2s.cu",
+                    # M6 hint-tape: dependency-chain assignment runs (optional symbol, proof-neutral)
+                    "--extra-native-source", "rv64/circuit_fill_chain.cu"]
     for obj in compiled:
         command += ["--extra-object", str(obj)]
     subprocess.run(command, check=True)
@@ -314,7 +316,7 @@ def main():
     image = ctypes.CDLL(str(library))
     required = ["stwo_rv64_composition_role_on", "stwo_rv64_truth_composition_role_on", "stwo_rv64_curve_witness_on", "stwo_rv64_secp_witness_on"] + [f"stwo_rv64_truth_projection_{i}" for i in range(15)] + [f"launch_{i}" for i in range(47)]
     if args.outer_circuit_dir:
-        required += ["stwo_circuit_base_witness_on", "stwo_circuit_om31_fractions_on", "stwo_circuit_om31_cumulative_on", "stwo_circuit_om31_composition_identity", "stwo_circuit_om31_composition_role_on", "stwo_circuit_assignment_seed_on", "stwo_circuit_assignment_level_on", "stwo_circuit_assignment_capabilities", "stwo_fused_blake2s_v1_shadow_on"]
+        required += ["stwo_circuit_base_witness_on", "stwo_circuit_om31_fractions_on", "stwo_circuit_om31_cumulative_on", "stwo_circuit_om31_composition_identity", "stwo_circuit_om31_composition_role_on", "stwo_circuit_assignment_seed_on", "stwo_circuit_assignment_level_on", "stwo_circuit_assignment_capabilities", "stwo_fused_blake2s_v1_shadow_on", "stwo_circuit_assignment_chain_run_on", "stwo_circuit_assignment_chain_max_width"]
     required += global_symbols
     missing = [name for name in required if not hasattr(image, name)]
     if missing:

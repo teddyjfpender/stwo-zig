@@ -19,6 +19,40 @@ pub const Seed = extern struct { out: u32, value: [4]u32 };
 pub const Job = extern struct { values: [*]u32, records: [*]const u32, indices: ?[*]const u32, status: *u32, value_count: u32, record_count: u32, index_count: u32, first: u32, count: u32, reserved: u32 = 0 };
 pub const Launch = *const fn (*anyopaque, u32, *const Job) callconv(.c) c_int;
 pub const LaunchRun = *const fn (*anyopaque, u32, *const Job, [*]const u32, u32) callconv(.c) c_int;
+/// M6 hint-tape chain runs (circuit_fill_chain.cu): device level ends, first level, level count.
+pub const LaunchChain = *const fn (*anyopaque, u32, *const Job, [*]const u32, u32, u32) callconv(.c) c_int;
+/// Level grouping for the device DAG. Chain runs (default when the image has
+/// them; STWO_RV64_OUTER_ASSIGNMENT_CHAIN=0 off, =1 required) take precedence
+/// over the M5 narrow runs (STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS=1). All
+/// groupings execute the same tasks in the same level order: proof-neutral.
+const Grouping = struct {
+    plan: ?Runs.Plan,
+    narrow: ?LaunchRun,
+    chain: ?LaunchChain,
+    narrow_enabled: bool,
+    chain_enabled: bool,
+    fn init(a: std.mem.Allocator, library: *std.DynLib, level_ends: []const usize, task_count: usize) !Grouping {
+        const option = std.process.getEnvVarOwned(a, "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS") catch |err| switch (err) {
+            error.EnvironmentVariableNotFound => null,
+            else => return err,
+        };
+        defer if (option) |value| a.free(value);
+        const narrow_enabled = try Runs.parseOptIn(option);
+        const narrow = library.lookup(LaunchRun, "stwo_circuit_assignment_narrow_run_on");
+        if (narrow_enabled and narrow == null) return error.MissingCircuitAssignmentNarrowRunKernel;
+        const chain = library.lookup(LaunchChain, "stwo_circuit_assignment_chain_run_on");
+        const width = library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_chain_max_width");
+        const chain_option = std.posix.getenv("STWO_RV64_OUTER_ASSIGNMENT_CHAIN");
+        const chain_enabled = if (chain_option) |value| blk: {
+            if (std.mem.eql(u8, value, "0")) break :blk false;
+            if (std.mem.eql(u8, value, "1")) break :blk true;
+            return error.InvalidAssignmentChainOption;
+        } else chain != null and width != null;
+        if (chain_enabled and (chain == null or width == null)) return error.MissingCircuitAssignmentChainKernel;
+        const plan: ?Runs.Plan = if (chain_enabled) try Runs.Plan.initChain(a, level_ends, task_count, width.?()) else if (narrow_enabled) try Runs.Plan.init(a, level_ends, task_count) else null;
+        return .{ .plan = plan, .narrow = narrow, .chain = chain, .narrow_enabled = narrow_enabled, .chain_enabled = chain_enabled };
+    }
+};
 pub fn requireProductionMask(mask: u32) !void {
     if (mask & 0xffff != 0xffff) return error.UnsupportedCircuitAssignmentHint;
 }
@@ -358,6 +392,7 @@ pub const Prepared = struct {
     timing_api: Events.Api,
     narrow_plan: ?Runs.Plan = null,
     narrow_run: ?LaunchRun = null,
+    chain_run: ?LaunchChain = null,
     /// tasks/indices/plan.level_ends are owned by a ClassCache template.
     borrowed: bool = false,
     pub fn init(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
@@ -481,42 +516,28 @@ pub const Prepared = struct {
     fn fromTemplateSeeds(a: std.mem.Allocator, library: *std.DynLib, t: *const ClassCache.Template, seeds: []Seed, reference: ?[*]const Q) !Prepared {
         const seed = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;
         const level = library.lookup(Launch, "stwo_circuit_assignment_level_on") orelse return error.MissingCircuitAssignmentKernel;
-        const option = std.process.getEnvVarOwned(a, "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS") catch |err| switch (err) {
-            error.EnvironmentVariableNotFound => null,
-            else => return err,
-        };
-        defer if (option) |value| a.free(value);
-        const enabled = try Runs.parseOptIn(option);
-        const narrow_run = library.lookup(LaunchRun, "stwo_circuit_assignment_narrow_run_on");
-        if (enabled and narrow_run == null) return error.MissingCircuitAssignmentNarrowRunKernel;
-        var narrow_plan: ?Runs.Plan = if (enabled) try Runs.Plan.init(a, t.level_ends, t.tasks.len) else null;
-        errdefer if (narrow_plan) |*value| value.deinit();
+        var grouping = try Grouping.init(a, library, t.level_ends, t.tasks.len);
+        errdefer if (grouping.plan) |*value| value.deinit();
         ClassCache.mutex.lock();
         ClassCache.hits += 1;
         ClassCache.mutex.unlock();
-        return .{ .allocator = a, .reference = reference, .count = t.n_vars, .plan = .{ .allocator = a, .tasks = &.{}, .seeds = &.{}, .level_ends = t.level_ends }, .tasks = t.tasks, .indices = t.indices, .seeds = seeds, .identity = t.identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = narrow_plan, .narrow_run = narrow_run, .borrowed = true };
+        return .{ .allocator = a, .reference = reference, .count = t.n_vars, .plan = .{ .allocator = a, .tasks = &.{}, .seeds = &.{}, .level_ends = t.level_ends }, .tasks = t.tasks, .indices = t.indices, .seeds = seeds, .identity = t.identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = grouping.plan, .narrow_run = grouping.narrow, .chain_run = grouping.chain, .borrowed = true };
     }
     fn initFull(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
         const seed = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;
         const level = library.lookup(Launch, "stwo_circuit_assignment_level_on") orelse return error.MissingCircuitAssignmentKernel;
-        const option = std.process.getEnvVarOwned(a, "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS") catch |err| switch (err) {
-            error.EnvironmentVariableNotFound => null,
-            else => return err,
-        };
-        defer if (option) |value| a.free(value);
-        const enabled = try Runs.parseOptIn(option);
-        const narrow_run = library.lookup(LaunchRun, "stwo_circuit_assignment_narrow_run_on");
-        if (enabled and narrow_run == null) return error.MissingCircuitAssignmentNarrowRunKernel;
         var timer = try std.time.Timer.start();
         var metrics: Schedule.BuildMetrics = .{};
         var plan = try Schedule.buildProfiled(a, ctx, &metrics);
         errdefer plan.deinit();
         const plan_ns = timer.lap();
-        var narrow_plan: ?Runs.Plan = if (enabled) try Runs.Plan.init(a, plan.level_ends, plan.tasks.len) else null;
-        errdefer if (narrow_plan) |*value| value.deinit();
+        var grouping = try Grouping.init(a, library, plan.level_ends, plan.tasks.len);
+        errdefer if (grouping.plan) |*value| value.deinit();
+        const narrow_plan = grouping.plan;
+        const enabled = grouping.narrow_enabled or grouping.chain_enabled;
         const level_stats = if (narrow_plan) |value| value.stats else try Runs.inspect(plan.level_ends, plan.tasks.len);
         const run_plan_ns = timer.lap();
-        std.debug.print("GPU_OUTER_ASSIGNMENT_LEVELS enabled={} cta_threads={} max_run_levels={} levels={} nonempty={} empty={} width_1_32={} width_33_64={} width_65_128={} width_129_256={} width_gt256={} max_width={} selected_narrow_runs={} selected_narrow_levels={} run_plan_ns={}\n", .{ enabled, Runs.threads, Runs.max_levels, level_stats.levels, level_stats.nonempty, level_stats.empty, level_stats.width_1_32, level_stats.width_33_64, level_stats.width_65_128, level_stats.width_129_256, level_stats.width_gt256, level_stats.max_width, if (narrow_plan) |value| value.narrow_runs else 0, if (narrow_plan) |value| value.narrow_levels else 0, run_plan_ns });
+        std.debug.print("GPU_OUTER_ASSIGNMENT_LEVELS enabled={} cta_threads={} max_run_levels={} levels={} nonempty={} empty={} width_1_32={} width_33_64={} width_65_128={} width_129_256={} width_gt256={} max_width={} selected_narrow_runs={} selected_narrow_levels={} run_plan_ns={} chain={}\n", .{ enabled, Runs.threads, Runs.max_levels, level_stats.levels, level_stats.nonempty, level_stats.empty, level_stats.width_1_32, level_stats.width_33_64, level_stats.width_65_128, level_stats.width_129_256, level_stats.width_gt256, level_stats.max_width, if (narrow_plan) |value| value.narrow_runs else 0, if (narrow_plan) |value| value.narrow_levels else 0, run_plan_ns, grouping.chain_enabled });
 
         const tasks = try a.alloc(Task, plan.tasks.len);
         errdefer a.free(tasks);
@@ -577,7 +598,7 @@ pub const Prepared = struct {
         const identity = try @import("schedule_identity.zig").digest(a, .{ std.mem.sliceAsBytes(tasks), std.mem.sliceAsBytes(indices.items), std.mem.sliceAsBytes(plan.level_ends) });
         const hash_ns = timer.lap();
         std.debug.print("GPU_OUTER_ASSIGNMENT_PLAN plan_ns={} producer_alloc_zero_ns={} seeds_ns={} tasks_ns={} level_alloc_zero_ns={} dependency_walk_ns={} ready_tasks={} dfs_roots={} ordering_ns={} task_pack_ns={} seed_pack_ns={} hash_ns={} task_bytes={} index_bytes={} levels={} permutation_count={} max_permutation_inputs={} permutation_pair_work={}\n", .{ plan_ns, metrics.producer_init_ns, metrics.seeds_ns, metrics.tasks_ns, metrics.level_init_ns, metrics.walk_ns, metrics.ready_tasks, metrics.dfs_roots, metrics.ordering_ns, task_pack_ns, seed_pack_ns, hash_ns, tasks.len * @sizeOf(Task), indices.items.len * 4, plan.level_ends.len, permutation_count, max_permutation_inputs, permutation_pair_work });
-        return .{ .allocator = a, .reference = if (ctx.trace_only) null else ctx.values().ptr, .count = ctx.circuit.n_vars, .plan = plan, .tasks = tasks, .indices = try indices.toOwnedSlice(a), .seeds = seeds, .identity = identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = narrow_plan, .narrow_run = narrow_run };
+        return .{ .allocator = a, .reference = if (ctx.trace_only) null else ctx.values().ptr, .count = ctx.circuit.n_vars, .plan = plan, .tasks = tasks, .indices = try indices.toOwnedSlice(a), .seeds = seeds, .identity = identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = narrow_plan, .narrow_run = grouping.narrow, .chain_run = grouping.chain };
     }
     /// Re-resolve kernel entry points against the adopting device's library.
     /// Plan/pack/seed/identity bytes are library independent. The same mapped
@@ -589,11 +610,17 @@ pub const Prepared = struct {
         const capabilities = if (library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_capabilities")) |query| query() else 0xfff;
         for (self.tasks) |task| if (capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
         const narrow_run = library.lookup(LaunchRun, "stwo_circuit_assignment_narrow_run_on");
-        if (self.narrow_plan != null and narrow_run == null) return error.MissingCircuitAssignmentNarrowRunKernel;
+        const chain_run = library.lookup(LaunchChain, "stwo_circuit_assignment_chain_run_on");
+        if (self.narrow_plan) |plan| for (plan.runs) |run| switch (run.kind) {
+            .narrow => if (narrow_run == null) return error.MissingCircuitAssignmentNarrowRunKernel,
+            .chain => if (chain_run == null) return error.MissingCircuitAssignmentChainKernel,
+            .ordinary => {},
+        };
         self.timing_api = try Events.Api.load(library);
         self.seed = seed;
         self.level = level;
         self.narrow_run = narrow_run;
+        self.chain_run = chain_run;
     }
     pub fn deinit(self: *Prepared) void {
         if (self.narrow_plan) |*value| value.deinit();
@@ -654,23 +681,39 @@ pub const Prepared = struct {
             job.indices = lease.words.?;
             job.index_count = @intCast(self.indices.len);
         }
+        // Chain runs read the plan's absolute level ends from the device.
+        var chain_ends: ?N.Lease = null;
+        if (self.narrow_plan) |plan| for (plan.runs) |run| if (run.kind == .chain) {
+            chain_ends = try service.immutableWords(ctx.native_context, ctx.scope, self.key(owner.initial_scope.fixed, 2), plan.ends);
+            break;
+        };
         try ctx.join();
         const static_ingress_ns = timer.lap();
         try recorder.mark(.levels, false, lane);
         var launches: usize = 1;
         var ordinary_level_calls: usize = 0;
         var narrow_run_calls: usize = 0;
+        var chain_run_calls: usize = 0;
         if (self.narrow_plan) |plan| {
             for (plan.runs) |run| {
                 job.first = run.first_task;
                 job.count = run.task_count;
-                const status_code = if (run.kind == .narrow) blk: {
-                    const function = self.narrow_run orelse return error.MissingCircuitAssignmentNarrowRunKernel;
-                    narrow_run_calls += 1;
-                    break :blk function(ctx.native_context, 1, &job, plan.ends[run.first_level..].ptr, run.level_count);
-                } else blk: {
-                    ordinary_level_calls += 1;
-                    break :blk self.level(ctx.native_context, 1, &job);
+                const status_code = switch (run.kind) {
+                    .narrow => blk: {
+                        const function = self.narrow_run orelse return error.MissingCircuitAssignmentNarrowRunKernel;
+                        narrow_run_calls += 1;
+                        break :blk function(ctx.native_context, 1, &job, plan.ends[run.first_level..].ptr, run.level_count);
+                    },
+                    .chain => blk: {
+                        const function = self.chain_run orelse return error.MissingCircuitAssignmentChainKernel;
+                        const ends = chain_ends orelse return error.MissingCircuitAssignmentChainKernel;
+                        chain_run_calls += 1;
+                        break :blk function(ctx.native_context, 1, &job, ends.words.?, run.first_level, run.level_count);
+                    },
+                    .ordinary => blk: {
+                        ordinary_level_calls += 1;
+                        break :blk self.level(ctx.native_context, 1, &job);
+                    },
                 };
                 if (status_code != 0) return error.CudaCircuitAssignmentFailed;
                 launches += 1;
@@ -710,7 +753,7 @@ pub const Prepared = struct {
         const reference_readback_ns = timer.lap();
         // Event spans include enqueue starvation; they are not sums of
         // individual kernel durations. Nsight supplies the latter.
-        std.debug.print("GPU_OUTER_ASSIGNMENT_TIMING total_ns={} alloc_ns={} seed_upload_ns={} seed_enqueue_ns={} static_ingress_ns={} levels_enqueue_ns={} levels_join_ns={} status_ns={} reference_readback_ns={} seed_stream_ms={d:.3} levels_stream_ms={d:.3} launches={} native_level_calls={} ordinary_level_calls={} narrow_run_calls={}\n", .{ total_timer.read(), alloc_ns, seed_upload_ns, seed_enqueue_ns, static_ingress_ns, levels_enqueue_ns, levels_join_ns, status_ns, reference_readback_ns, try recorder.milliseconds(.seed), try recorder.milliseconds(.levels), launches, launches - 1, ordinary_level_calls, narrow_run_calls });
+        std.debug.print("GPU_OUTER_ASSIGNMENT_TIMING total_ns={} alloc_ns={} seed_upload_ns={} seed_enqueue_ns={} static_ingress_ns={} levels_enqueue_ns={} levels_join_ns={} status_ns={} reference_readback_ns={} seed_stream_ms={d:.3} levels_stream_ms={d:.3} launches={} native_level_calls={} ordinary_level_calls={} narrow_run_calls={} chain_run_calls={}\n", .{ total_timer.read(), alloc_ns, seed_upload_ns, seed_enqueue_ns, static_ingress_ns, levels_enqueue_ns, levels_join_ns, status_ns, reference_readback_ns, try recorder.milliseconds(.seed), try recorder.milliseconds(.levels), launches, launches - 1, ordinary_level_calls, narrow_run_calls, chain_run_calls });
         std.debug.print("GPU_OUTER_ASSIGNMENT variables={} seed_words={} static_words={} levels={} full_assignment_upload_words=0\n", .{ self.count, self.seeds.len * 5, task_words.len + self.indices.len, self.plan.level_ends.len });
         return values;
     }

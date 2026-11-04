@@ -3,7 +3,9 @@
 const std = @import("std");
 pub const threads: u32 = 256;
 pub const max_levels: u32 = 256;
-pub const Kind = enum { ordinary, narrow };
+/// `chain` (M6 hint-tape): one CTA runs an unbounded sequence of levels of
+/// width <= the kernel's max width, reading level ends from a device array.
+pub const Kind = enum { ordinary, narrow, chain };
 pub const Run = struct { kind: Kind, first_task: u32, task_count: u32, first_level: u32, level_count: u32 };
 pub fn parseOptIn(value: ?[]const u8) !bool {
     const text = value orelse return false;
@@ -84,6 +86,42 @@ pub const Plan = struct {
         }
         return .{ .allocator = a, .runs = try runs.toOwnedSlice(a), .ends = ends, .stats = stats, .narrow_runs = narrow_runs, .narrow_levels = narrow_levels };
     }
+    /// M6 hint-tape chain runs: every maximal sequence of consecutive levels
+    /// of width <= `max_width` (empty levels included) is one `chain` run;
+    /// each wider level is one `ordinary` launch. Same tasks, same level
+    /// order, same barriers between dependent levels: proof-neutral.
+    pub fn initChain(a: std.mem.Allocator, level_ends: []const usize, task_count: usize, max_width: usize) !Plan {
+        if (max_width == 0) return error.InvalidAssignmentChainWidth;
+        const stats = try inspect(level_ends, task_count);
+        const ends = try a.alloc(u32, level_ends.len);
+        errdefer a.free(ends);
+        for (level_ends, ends) |end, *dst| dst.* = @intCast(end);
+        var runs: std.ArrayList(Run) = .empty;
+        errdefer runs.deinit(a);
+        var i: usize = 0;
+        var first: usize = 0;
+        var chain_runs: usize = 0;
+        var chain_levels: usize = 0;
+        while (i < level_ends.len) {
+            const level = i;
+            if (level_ends[i] - first > max_width) {
+                try runs.append(a, .{ .kind = .ordinary, .first_task = @intCast(first), .task_count = @intCast(level_ends[i] - first), .first_level = @intCast(level), .level_count = 1 });
+                first = level_ends[i];
+                i += 1;
+                continue;
+            }
+            var end = first;
+            while (i < level_ends.len and level_ends[i] - end <= max_width) : (i += 1) end = level_ends[i];
+            // A run of only empty levels launches nothing.
+            if (end != first) {
+                try runs.append(a, .{ .kind = .chain, .first_task = @intCast(first), .task_count = @intCast(end - first), .first_level = @intCast(level), .level_count = @intCast(i - level) });
+                chain_runs += 1;
+                chain_levels += i - level;
+            }
+            first = end;
+        }
+        return .{ .allocator = a, .runs = try runs.toOwnedSlice(a), .ends = ends, .stats = stats, .narrow_runs = chain_runs, .narrow_levels = chain_levels };
+    }
     pub fn deinit(self: *Plan) void {
         self.allocator.free(self.runs);
         self.allocator.free(self.ends);
@@ -162,4 +200,30 @@ test "narrow grouping opt-in is explicit and defaults off" {
     try std.testing.expect(!try parseOptIn("0"));
     try std.testing.expect(try parseOptIn("1"));
     for ([_][]const u8{ "", "true", "2" }) |bad| try std.testing.expectError(error.InvalidAssignmentNarrowRunOption, parseOptIn(bad));
+}
+
+test "chain runs cover every task once, keep wide levels ordinary and skip empty-only runs" {
+    const ends = [_]usize{ 0, 1, 3000, 3002, 3002, 3010, 9000 };
+    var p = try Plan.initChain(std.testing.allocator, &ends, 9000, 2048);
+    defer p.deinit();
+    // levels: [0,0) empty, [0,1) 1, [1,3000) wide, [3000,3002) 2, [3002,3002) empty, [3002,3010) 8, [3010,9000) wide
+    try std.testing.expectEqual(@as(usize, 4), p.runs.len);
+    try std.testing.expectEqual(Kind.chain, p.runs[0].kind);
+    try std.testing.expectEqual(@as(u32, 2), p.runs[0].level_count);
+    try std.testing.expectEqual(Kind.ordinary, p.runs[1].kind);
+    try std.testing.expectEqual(Kind.chain, p.runs[2].kind);
+    try std.testing.expectEqual(@as(u32, 3), p.runs[2].level_count);
+    try std.testing.expectEqual(@as(u32, 10), p.runs[2].task_count);
+    try std.testing.expectEqual(Kind.ordinary, p.runs[3].kind);
+    var next: u32 = 0;
+    var level: u32 = 0;
+    for (p.runs) |r| {
+        try std.testing.expectEqual(next, r.first_task);
+        try std.testing.expectEqual(level, r.first_level);
+        next += r.task_count;
+        level += r.level_count;
+    }
+    try std.testing.expectEqual(@as(u32, 9000), next);
+    try std.testing.expectEqual(@as(u32, ends.len), level);
+    try std.testing.expectError(error.InvalidAssignmentChainWidth, Plan.initChain(std.testing.allocator, &ends, 9000, 0));
 }
