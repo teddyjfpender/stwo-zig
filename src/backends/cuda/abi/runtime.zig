@@ -60,6 +60,9 @@ pub extern "c" fn stwo_exec_context_dependencies_reset(handle: *anyopaque) c_int
 pub extern "c" fn stwo_exec_context_create(out_handle: *?*anyopaque) c_int;
 pub extern "c" fn stwo_exec_context_destroy(handle: *anyopaque) c_int;
 pub extern "c" fn stwo_exec_context_sync(handle: *anyopaque) c_int;
+/// Owner-thread/device checked; rejects capture, joins all lanes, then returns
+/// unused async-pool backing. Never revokes live allocations or clears errors.
+pub extern "c" fn stwo_exec_context_pool_trim(handle: *anyopaque) c_int;
 pub extern "c" fn stwo_exec_context_memory_info(
     handle: *anyopaque,
     free_bytes: *usize,
