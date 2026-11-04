@@ -76,3 +76,16 @@ CPU acceptance pass. Last-shard errors, retry, leased-pool fallback and all
 allocation failures are covered. The three GNU entry-point checks also pass.
 The fifteen-block cold report predates this change; no new basket timing is
 claimed. See `pp-disjoint-column-fill-cpu-candidate-v1.json`.
+
+## Isolated follow-ups awaiting physical qualification
+
+These source branches are preserved separately and do not change the accepted
+producer/runtime pins or the current production defaults.
+
+| Slice | Branch and checkpoint | Evidence still needed |
+|---|---|---|
+| Reuse raw FIXED evaluations through MAIN/INTER | `codex/rv64-device-fixed-ingress-reuse`, `c0632a697` | 158 host checks and three GNU semantic targets pass. Physical exact-proof/fresh-receiver parity, worst-shape peak and complete-basket timing remain open. The raw lease stays separate from retained coefficient custody; cleanup failure is terminal and blocks reuse. |
+| Mixed GKR fold/wake grid | `codex/rv64-gkr-mixed-fold-sum`, `7231bbed8` | 18 host checks and production semantic target pass. CUDA compilation, numerical/poison fixtures and a controlled real-block A/B remain open. The qualified earlier fold/next-sum route was slower and stays disabled. |
+| Persistent narrow assignment levels | `codex/rv64-outer-assignment-narrow-runs`, `802ce316b` | Six planner checks and GNU recursion semantic target pass. CUDA compilation, task-width census, exact GPU assignments/proofs and real timing remain open. One CTA handles at most256 consecutive levels of at most128 tasks; broad levels keep the original stream barriers. |
+
+No uncompiled kernel or source-only test is counted as a delivered GPU speedup.
