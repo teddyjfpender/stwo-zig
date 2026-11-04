@@ -72,9 +72,12 @@ errors, same atomicity (an empty reserved block publishes nothing; OOM test unch
   capture now takes all its range helpers regardless of the shared FCFS budget
   (`STWO_RV64_CAPTURE_CRITICAL=0` off). Any helper count yields the same Source (M5 chunked capture).
 
+- **Parallel boundary cells** (`collector.Ledger.boundaries`): first-touch cells sorted in 8 chunks + pairwise merges
+  and terminal states looked up in parallel (unique addresses: same order as pdq). `STWO_RV64_CAPTURE_PARALLEL_BOUNDARIES=0` off.
+
 ## 5. Flags (all scheduling only)
 
 `STWO_RV64_TRACED_ENGINE=0` (M5 reference loop), `STWO_RV64_CAPTURE_ASYNC_START=0`,
-`STWO_RV64_CAPTURE_CRITICAL=0`. Defaults: on.
+`STWO_RV64_CAPTURE_CRITICAL=0`, `STWO_RV64_CAPTURE_PARALLEL_BOUNDARIES=0`. Defaults: on. `STWO_RV64_TAPE_POPULATE=1`: opt-in, measured net loss.
 
 Measurements: `vectors/reports/rv64-m6-20261105/capture/`.
