@@ -89,3 +89,21 @@ producer/runtime pins or the current production defaults.
 | Persistent narrow assignment levels | `codex/rv64-outer-assignment-narrow-runs`, `802ce316b` | Six planner checks and GNU recursion semantic target pass. CUDA compilation, task-width census, exact GPU assignments/proofs and real timing remain open. One CTA handles at most256 consecutive levels of at most128 tasks; broad levels keep the original stream barriers. |
 
 No uncompiled kernel or source-only test is counted as a delivered GPU speedup.
+
+## Qualified task-packing follow-up
+
+Commit `2a96793bd` packs zero-CSR assignment plans directly into the existing
+Task buffer on the scoped pool. It removes the separate capability scan while
+preserving packing-error precedence, hint encodings and the missing-query
+capability mask. CSR graphs retain their original append/census path. No extra
+task array, pool, cache, GPU kernel or transcript change is introduced.
+
+A compact-source packing microbenchmark over 8,388,608 mixed records measured
+28.456ms versus8.106ms with four workers; the integrated repeat measured
+29.218ms versus8.090ms. The source fixture is repeated deliberately, so these
+are packing timings rather than a complete generated-circuit or block result.
+Every record, seed, level and schedule-identity byte matches the original
+encoder. All hint variants, capability rejection, packing-error precedence,
+CSR handling, joined last-shard failure/retry and pool fallback pass. The
+integrated target passed23 tests and the GNU combined-entry check. See
+`task-pack-disjoint-cpu-candidate-v1.json`; final GPU/basket timing remains open.
