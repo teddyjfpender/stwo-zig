@@ -1,0 +1,121 @@
+{
+ "schema": "rv64-m6-fold-v3-rootonly/v1",
+ "stream": "fold-v3",
+ "milestone": "M6",
+ "step": "step1-native-table-old",
+ "block": 24628607,
+ "format": "old",
+ "source_commit": "95d40063d+wip",
+ "receiver_sha256": "1971181af1240600dda67a966edbf851f3b584176650278ac4a23a66ee07cd84",
+ "label": "M (single observations per rep; pod shared, 1-min load recorded per step)",
+ "root_only_verify_wall_s": [
+  2.081,
+  2.044,
+  2.008
+ ],
+ "root_only_verify_internal_s": [
+  1.819,
+  1.836,
+  1.803
+ ],
+ "root_only_verify_wall_median_s": 2.044,
+ "root_only_breakdown_r1": {
+  "self_sha_ns": 52511678,
+  "table_load_ns": 939538,
+  "image_ns": 387633682,
+  "bundle_ns": 121612997,
+  "native_keys_ns": 446708679,
+  "fixed_authority_ns": 66729,
+  "admission_ns": 794580020,
+  "root_ns": 14360525,
+  "root_tree_ns": 70200,
+  "root_authority_ns": 916598,
+  "root_decode_ns": 725459,
+  "root_verify_ns": 11883719
+ },
+ "native_table": {
+  "entries": 25,
+  "written": 25,
+  "hits": 17,
+  "misses": 0,
+  "max_build_ns": 353654641,
+  "max_build_kind": "cpu"
+ },
+ "accepted": true,
+ "table_root_pinned": true,
+ "root_digest": "3434588d18ddda7a274c557471216b0017fdf49744127ec231caa427dda04c06",
+ "root_identity": "ce47ea455c1e44558aec5d8a7cd625ef812d34ca04234f423efb80bc6391c555",
+ "audit": {
+  "accepted": true,
+  "agrees": true,
+  "native_verify_ns": 1597900275,
+  "recursion_ns": 40615692468,
+  "root_digest": "3434588d18ddda7a274c557471216b0017fdf49744127ec231caa427dda04c06",
+  "root_authority": "ce47ea455c1e44558aec5d8a7cd625ef812d34ca04234f423efb80bc6391c555"
+ },
+ "audit_wall_s": 44.813,
+ "derive_wall_s": 57.793,
+ "derive_breakdown": {
+  "self_sha_ns": 41201318,
+  "table_load_ns": 0,
+  "image_ns": 409975523,
+  "bundle_ns": 118736792,
+  "native_keys_ns": 2262477442,
+  "fixed_authority_ns": 4555308592,
+  "admission_ns": 802059676,
+  "native_verify_ns": 1622660482,
+  "recursion_ns": 47308484430
+ },
+ "derive_schedule": null,
+ "derive_native_build": {
+  "components": 17,
+  "max_build_ns": 2156778417,
+  "max_build_kind": "cpu",
+  "threads": 16
+ },
+ "derive_merge_wall_s": 56.413,
+ "steps": {
+  "derive-24628607": {
+   "exit": 0,
+   "wall_s": 57.793,
+   "load_end": 19.1,
+   "maxrss_gib": 8.326,
+   "load_start": 16.85
+  },
+  "derive-both": {
+   "exit": 0,
+   "wall_s": 56.413,
+   "load_end": 17.42,
+   "maxrss_gib": 8.149,
+   "load_start": 19.1
+  },
+  "verify-pinned-24628607-r1": {
+   "exit": 0,
+   "wall_s": 2.081,
+   "load_end": 18.27,
+   "maxrss_gib": 1.68,
+   "load_start": 17.42
+  },
+  "verify-pinned-24628607-r2": {
+   "exit": 0,
+   "wall_s": 2.044,
+   "load_end": 17.53,
+   "maxrss_gib": 1.661,
+   "load_start": 18.27
+  },
+  "verify-pinned-24628607-r3": {
+   "exit": 0,
+   "wall_s": 2.008,
+   "load_end": 17.53,
+   "maxrss_gib": 1.638,
+   "load_start": 17.53
+  },
+  "audit-24628607": {
+   "exit": 0,
+   "wall_s": 44.813,
+   "load_end": 15.18,
+   "maxrss_gib": 6.027,
+   "load_start": 15.4
+  }
+ }
+}

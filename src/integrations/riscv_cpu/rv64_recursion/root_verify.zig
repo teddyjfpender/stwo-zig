@@ -24,6 +24,7 @@ const Om31 = @import("stwo_circuit_cpu_integration").om31;
 const Prove = Om31.prove;
 const Wire = Om31.wire;
 const Bridge = @import("om31_outer.zig");
+const Dag = @import("om31_native/ready_dag.zig");
 const PPMod = circuit.common.preprocessed;
 const List = circuit.common.component_list;
 const Q = core.fields.qm31.QM31;
@@ -31,7 +32,11 @@ const M31 = core.fields.m31.M31;
 const N_COLUMNS = PPMod.N_PREPROCESSED_COLUMNS;
 const N_COMPONENTS = List.N_COMPONENTS;
 
-pub const SCHEMA = "rv64-vk-receiver-table/v0";
+/// v1 (M6 fold-v3): adds the receiver-derived NATIVE VK section (`native`),
+/// bound by the table root (root-v2). v0 tables (M5) are refused: re-derive.
+pub const SCHEMA = "rv64-vk-receiver-table/v1";
+/// Upper bound of one VK-only native setup artifact (header 256 B + VK).
+pub const MAX_NATIVE_ARTIFACT_BYTES: usize = 64 << 10;
 pub const Profile = enum {
     m4_fold_v2_compat,
     m5_canon_v1,
@@ -150,14 +155,19 @@ fn stubOf(n_outputs: u32) PPMod.PreprocessedCircuit {
 
 /// `om31_outer.classKey` over compact keys (children are 8-output digests).
 pub fn foldClassKey(left: *const VerifierKey, right: *const VerifierKey) [32]u8 {
+    return foldClassKeyK(&.{ left, right }) catch unreachable;
+}
+/// k-ary form (M6 fold-v3): hashes `Bridge.versionWord(k)` exactly as
+/// `om31_outer.classKey` does (binary keeps word `version`, so binary keys
+/// are unchanged; k > 2 binds the arity).
+pub fn foldClassKeyK(children: []const *const VerifierKey) ![32]u8 {
     var h = std.crypto.hash.sha2.Sha256.init(.{});
     h.update("rv64-om31-fold-class/v2\x00");
     h.update(Om31.protocol.domainName());
     var bytes: [4]u8 = undefined;
-    std.mem.writeInt(u32, &bytes, Bridge.version, .little);
+    std.mem.writeInt(u32, &bytes, try Bridge.versionWord(children.len), .little);
     h.update(&bytes);
-    left.hashClassPart(&h);
-    right.hashClassPart(&h);
+    for (children) |key| key.hashClassPart(&h);
     return h.finalResult();
 }
 /// Canonical packed outputs of a digest-output circuit (`requireDigest`).
@@ -169,8 +179,13 @@ fn outputCoordinates(digest: [32]u8) [N_DIGEST_OUTPUTS][4]u32 {
     }
     return out;
 }
+pub const FoldChild = struct { key: *const VerifierKey, digest: [32]u8 };
 /// `om31_outer.expectedDigest` over compact keys and child digests.
-pub fn foldDigest(children: [2]struct { key: *const VerifierKey, digest: [32]u8 }) ![32]u8 {
+pub fn foldDigest(children: [2]FoldChild) ![32]u8 {
+    return foldDigestK(&children);
+}
+/// k-ary form: message version word `Bridge.versionWord(k)`.
+pub fn foldDigestK(children: []const FoldChild) ![32]u8 {
     var h = std.crypto.hash.blake2.Blake2s256.init(.{});
     var bytes: [4]u8 = undefined;
     const put = struct {
@@ -180,7 +195,7 @@ pub fn foldDigest(children: [2]struct { key: *const VerifierKey, digest: [32]u8 
         }
     };
     put.word(&h, &bytes, FOLD_DOMAIN);
-    put.word(&h, &bytes, Bridge.version);
+    put.word(&h, &bytes, try Bridge.versionWord(children.len));
     for (children) |child| {
         if (child.key.n_outputs != N_DIGEST_OUTPUTS) return error.InvalidOm31CircuitOutputCount;
         for (0..8) |i| put.word(&h, &bytes, std.mem.readInt(u32, child.key.identity[4 * i ..][0..4], .little));
@@ -265,9 +280,16 @@ pub const KeyJson = struct {
     identity: []const u8,
 };
 pub const EntryJson = struct { kind: []const u8, key: []const u8, label: []const u8 = "", vk: KeyJson };
+/// One receiver-derived native setup component: the VK-only setup artifact
+/// (`setup_cache.zig` header + VK: suite identity, source root and logs,
+/// candidate FIXED identity/root/cells/logs) under its component key (code
+/// identity, suite, geometry/bridges or truth parameters, program identity).
+pub const NativeJson = struct { key: []const u8, artifact: []const u8 };
+pub const NativeEntry = struct { key: [32]u8, artifact: []const u8 };
 pub const TableJson = struct {
     header: Header,
     entries: []const EntryJson,
+    native: []const NativeJson = &.{},
     /// H over the sorted entries; the receiver recomputes it on load.
     table_root: []const u8,
     derive_ns: u64 = 0,
@@ -280,6 +302,7 @@ pub const Table = struct {
     allocator: std.mem.Allocator,
     header: Header,
     entries: std.ArrayList(Entry) = .empty,
+    native: std.ArrayList(NativeEntry) = .empty,
     strings: std.heap.ArenaAllocator,
     derive_ns: u64 = 0,
     derived_from: std.ArrayList([]const u8) = .empty,
@@ -291,6 +314,7 @@ pub const Table = struct {
     }
     pub fn deinit(self: *Table) void {
         self.entries.deinit(self.allocator);
+        self.native.deinit(self.allocator);
         self.derived_from.deinit(self.allocator);
         self.strings.deinit();
         self.* = undefined;
@@ -309,12 +333,31 @@ pub const Table = struct {
         try self.entries.append(self.allocator, .{ .kind = kind, .key = key, .vk = vk, .label = try self.strings.allocator().dupe(u8, label) });
         return true;
     }
+    pub fn findNative(self: *const Table, key: [32]u8) ?[]const u8 {
+        for (self.native.items) |entry| if (std.mem.eql(u8, &entry.key, &key)) return entry.artifact;
+        return null;
+    }
+    /// Adds a receiver-derived native artifact; a repeated key must carry the
+    /// byte-identical artifact (setup is a pure function of its key).
+    pub fn putNative(self: *Table, key: [32]u8, artifact: []const u8) !bool {
+        if (artifact.len == 0 or artifact.len > MAX_NATIVE_ARTIFACT_BYTES) return error.InvalidNativeVkArtifact;
+        if (self.findNative(key)) |existing| {
+            if (!std.mem.eql(u8, existing, artifact)) return error.VkNativeClassMismatch;
+            return false;
+        }
+        try self.native.append(self.allocator, .{ .key = key, .artifact = try self.strings.allocator().dupe(u8, artifact) });
+        return true;
+    }
+    fn nativeLess(_: void, l: NativeEntry, r: NativeEntry) bool {
+        return std.mem.order(u8, &l.key, &r.key) == .lt;
+    }
     fn lessThan(_: void, l: Entry, r: Entry) bool {
         if (l.kind != r.kind) return @intFromEnum(l.kind) < @intFromEnum(r.kind);
         return std.mem.order(u8, &l.key, &r.key) == .lt;
     }
     pub fn sort(self: *Table) void {
         std.sort.pdq(Entry, self.entries.items, {}, lessThan);
+        std.sort.pdq(NativeEntry, self.native.items, {}, nativeLess);
     }
     /// Domain-tagged digest over the canonical (sorted) entry list.
     pub fn root(self: *const Table) [32]u8 {
@@ -325,7 +368,9 @@ pub const Table = struct {
         // The root is still unkeyed: anyone who can write the table can reseal
         // it. Authenticity comes from where the table lives and, when the
         // operator passes it, the `--table-root` pin; never from this digest.
-        h.update("rv64-vk-receiver-table/v0/root-v1\x00");
+        // root-v2 (schema v1): also binds the native VK section, so the
+        // `--table-root` pin authenticates the native setup the receiver restores.
+        h.update("rv64-vk-receiver-table/v1/root-v2\x00");
         for ([_][]const u8{ self.header.schema, self.header.profile, self.header.native_profile, self.header.outer_domain, self.header.source_commit, self.header.receiver_sha256, self.header.image }) |part| {
             var bytes: [8]u8 = undefined;
             std.mem.writeInt(u64, &bytes, part.len, .little);
@@ -342,6 +387,16 @@ pub const Table = struct {
             for ([_]u32{ entry.vk.n_outputs, entry.vk.total_constraints, entry.vk.max_evaluation_log_size }) |v| updateU32(&h, v);
             h.update(&entry.vk.fixed_root);
             h.update(&entry.vk.identity);
+        }
+        h.update("native\x00");
+        var count: [8]u8 = undefined;
+        std.mem.writeInt(u64, &count, self.native.items.len, .little);
+        h.update(&count);
+        for (self.native.items) |entry| {
+            h.update(&entry.key);
+            std.mem.writeInt(u64, &count, entry.artifact.len, .little);
+            h.update(&count);
+            h.update(entry.artifact);
         }
         var out: [32]u8 = undefined;
         h.final(&out);
@@ -362,8 +417,10 @@ pub const Table = struct {
             }
             out.* = .{ .kind = @tagName(entry.kind), .key = try hexAlloc(t, &entry.key), .label = entry.label, .vk = .{ .columns = columns, .log_sizes = &entry.vk.log_size, .logs = &entry.vk.logs, .n_outputs = entry.vk.n_outputs, .total_constraints = entry.vk.total_constraints, .max_evaluation_log_size = entry.vk.max_evaluation_log_size, .fixed_root = try hexAlloc(t, &entry.vk.fixed_root), .identity = try hexAlloc(t, &entry.vk.identity) } };
         }
+        const native = try t.alloc(NativeJson, self.native.items.len);
+        for (native, self.native.items) |*out, entry| out.* = .{ .key = try hexAlloc(t, &entry.key), .artifact = try hexAlloc(t, entry.artifact) };
         const table_root = self.root();
-        return std.json.Stringify.valueAlloc(a, TableJson{ .header = self.header, .entries = entries, .table_root = try hexAlloc(t, &table_root), .derive_ns = self.derive_ns, .derived_from = self.derived_from.items }, .{ .whitespace = .indent_1 });
+        return std.json.Stringify.valueAlloc(a, TableJson{ .header = self.header, .entries = entries, .native = native, .table_root = try hexAlloc(t, &table_root), .derive_ns = self.derive_ns, .derived_from = self.derived_from.items }, .{ .whitespace = .indent_1 });
     }
     pub fn fromJson(a: std.mem.Allocator, bytes: []const u8) !Table {
         const parsed = try std.json.parseFromSlice(TableJson, a, bytes, .{});
@@ -391,6 +448,15 @@ pub const Table = struct {
             var key: [32]u8 = undefined;
             try hex32(&key, e.key);
             if (!try self.put(kind, key, vk, e.label)) return error.DuplicateVkTableEntry;
+        }
+        for (v.native) |e| {
+            var key: [32]u8 = undefined;
+            try hex32(&key, e.key);
+            if (e.artifact.len == 0 or e.artifact.len % 2 != 0 or e.artifact.len / 2 > MAX_NATIVE_ARTIFACT_BYTES) return error.InvalidNativeVkArtifact;
+            const raw = try a.alloc(u8, e.artifact.len / 2);
+            defer a.free(raw);
+            _ = std.fmt.hexToBytes(raw, e.artifact) catch return error.InvalidVkTableHex;
+            if (!try self.putNative(key, raw)) return error.DuplicateVkTableEntry;
         }
         self.sort();
         var want: [32]u8 = undefined;
@@ -504,6 +570,11 @@ pub fn recordFold(children: [2]Bridge.Child, class: [32]u8, digest: [32]u8, auth
         sink.failure = err;
     };
 }
+/// Same record + cross-check, into an explicit sink (parallel derive,
+/// `root_derive.zig`, calls it on the coordinating thread).
+pub fn recordFoldInto(sink: *Sink, children: [2]Bridge.Child, class: [32]u8, digest: [32]u8, authority: *const Prove.Authority) !void {
+    return recordFoldImpl(sink, children, class, digest, authority);
+}
 fn recordFoldImpl(sink: *Sink, children: [2]Bridge.Child, class: [32]u8, digest: [32]u8, authority: *const Prove.Authority) !void {
     const left = try VerifierKey.fromAuthority(children[0].authority);
     const right = try VerifierKey.fromAuthority(children[1].authority);
@@ -548,6 +619,42 @@ fn combine(table: *const Table, left: Pending, right: Pending, folds: *usize) !P
     folds.* += 1;
     return .{ .first = left.first, .count = left.count + right.count, .vk = vk, .digest = try foldDigest(.{ .{ .key = left.vk, .digest = left.digest }, .{ .key = right.vk, .digest = right.digest } }), .kind = .fold };
 }
+/// Expected root (VK, digest) for the ordered leaves under fold arity
+/// `arity`: the receiver's own `ready_dag.Plan.initArity` (streaming k-ary
+/// carry, finalized rightmost-upward; k = 2 is `runImpl`'s binary carry and
+/// `expectedRoot` below, node for node).
+pub fn expectedRootArity(a: std.mem.Allocator, table: *const Table, leaves: []const LeafInput, arity: usize, folds: *usize) !Pending {
+    if (leaves.len == 0 or leaves.len > 256) return error.ServicesRootRoster;
+    const plan = try Dag.Plan.initArity(leaves.len, arity);
+    const nodes = try a.alloc(Pending, plan.count);
+    defer a.free(nodes);
+    for (plan.nodes[0..plan.count], 0..) |node, id| {
+        if (node.isLeaf()) {
+            const leaf = leaves[node.first_leaf];
+            const vk = table.find(.leaf, leaf.key) orelse return error.VkTableMissingLeafClass;
+            if (vk.n_outputs != N_DIGEST_OUTPUTS) return error.InvalidOm31CircuitOutputCount;
+            nodes[id] = .{ .first = node.first_leaf, .count = 1, .vk = vk, .digest = leaf.digest, .kind = .leaf };
+            continue;
+        }
+        var keys: [Dag.max_arity]*const VerifierKey = undefined;
+        var children: [Dag.max_arity]FoldChild = undefined;
+        var next = nodes[node.children[0]].first;
+        for (node.kids(), 0..) |kid, i| {
+            const c = nodes[kid];
+            if (c.first != next) return error.RecursiveLeafAdjacency;
+            next += c.count;
+            keys[i] = c.vk;
+            children[i] = .{ .key = c.vk, .digest = c.digest };
+        }
+        const class = try foldClassKeyK(keys[0..node.arity]);
+        const vk = table.find(.fold, class) orelse return error.VkTableMissingFoldClass;
+        folds.* += 1;
+        nodes[id] = .{ .first = nodes[node.children[0]].first, .count = next - nodes[node.children[0]].first, .vk = vk, .digest = try foldDigestK(children[0..node.arity]), .kind = .fold };
+    }
+    const final = nodes[plan.root];
+    if (final.first != 0 or final.count != leaves.len) return error.RecursiveLeafCoverage;
+    return final;
+}
 /// Expected root (VK, digest) for the ordered leaves: the streaming binary
 /// carry tree of `execution_wrap.runImpl`, finalized rightmost-upward.
 pub fn expectedRoot(table: *const Table, leaves: []const LeafInput, folds: *usize) !Pending {
@@ -580,8 +687,9 @@ pub fn expectedRoot(table: *const Table, leaves: []const LeafInput, folds: *usiz
 pub fn verifyRoot(a: std.mem.Allocator, table: *const Table, leaves: []const LeafInput, root_bytes: []const u8) !RootReport {
     var timer = try std.time.Timer.start();
     var folds: usize = 0;
-    const expected = try expectedRoot(table, leaves, &folds);
-    if (folds != leaves.len - 1) return error.RecursiveLeafCoverage;
+    const arity = try @import("om31_native/execution_wrap.zig").foldArity();
+    const expected = try expectedRootArity(a, table, leaves, arity, &folds);
+    if (folds != (try Dag.Plan.initArity(leaves.len, arity)).count - leaves.len) return error.RecursiveLeafCoverage;
     const tree_ns = timer.lap();
     var stub: PPMod.PreprocessedCircuit = undefined;
     var authority = try expected.vk.authority(a, &stub);
@@ -705,4 +813,74 @@ test "root_verify: tree shape, adjacency and missing classes" {
     leaves[2].key = @splat(8);
     folds = 0;
     try std.testing.expectError(error.VkTableMissingLeafClass, expectedRoot(&table, &leaves, &folds));
+}
+test "root_verify: native VK section is root-bound, deduplicated and refused when altered" {
+    const a = std.testing.allocator;
+    var table = try testTable(a);
+    defer table.deinit();
+    const empty_root = table.root();
+    try std.testing.expect(try table.putNative(@splat(3), "artifact-three"));
+    try std.testing.expect(!try table.putNative(@splat(3), "artifact-three"));
+    try std.testing.expectError(error.VkNativeClassMismatch, table.putNative(@splat(3), "artifact-other"));
+    try std.testing.expectError(error.InvalidNativeVkArtifact, table.putNative(@splat(4), ""));
+    try std.testing.expect(try table.putNative(@splat(1), "artifact-one"));
+    try std.testing.expect(!std.mem.eql(u8, &empty_root, &table.root()));
+    const bytes = try table.toJson(a);
+    defer a.free(bytes);
+    var back = try Table.fromJson(a, bytes);
+    defer back.deinit();
+    try std.testing.expectEqualDeep(table.root(), back.root());
+    try std.testing.expectEqualStrings("artifact-three", back.findNative(@splat(3)).?);
+    try std.testing.expect(back.findNative(@splat(9)) == null);
+    // One flipped artifact byte (hex) breaks the recomputed root.
+    const tampered = try a.dupe(u8, bytes);
+    defer a.free(tampered);
+    const hex_one = "61727469666163742d6f6e65"; // "artifact-one"
+    const at = std.mem.indexOf(u8, tampered, hex_one).?;
+    tampered[at + 1] = '2';
+    try std.testing.expectError(error.VkTableRootMismatch, Table.fromJson(a, tampered));
+    // The v0 schema (M5 tables without the native section) is refused.
+    const old = try std.mem.replaceOwned(u8, a, bytes, SCHEMA, "rv64-vk-receiver-table/v0");
+    defer a.free(old);
+    try std.testing.expectError(error.UnknownVkTableSchema, Table.fromJson(a, old));
+}
+test "root_verify: plan-driven tree equals the binary carry; k-ary keys bind the arity" {
+    const a = std.testing.allocator;
+    var table = try testTable(a);
+    defer table.deinit();
+    const leaf = testKey(7);
+    const fold = testKey(9);
+    _ = try table.put(.leaf, @splat(7), leaf, "");
+    _ = try table.put(.fold, foldClassKey(&leaf, &leaf), fold, "");
+    _ = try table.put(.fold, foldClassKey(&leaf, &fold), fold, "");
+    _ = try table.put(.fold, foldClassKey(&fold, &leaf), fold, "");
+    _ = try table.put(.fold, foldClassKey(&fold, &fold), fold, "");
+    for ([_]usize{ 1, 2, 3, 5, 7, 11, 17 }) |n| {
+        const leaves = try a.alloc(LeafInput, n);
+        defer a.free(leaves);
+        for (leaves, 0..) |*l, i| l.* = .{ .key = @splat(7), .digest = @splat(@intCast(i)) };
+        var f1: usize = 0;
+        var f2: usize = 0;
+        const carry = try expectedRoot(&table, leaves, &f1);
+        const planned = try expectedRootArity(a, &table, leaves, 2, &f2);
+        try std.testing.expectEqualDeep(carry.digest, planned.digest);
+        try std.testing.expectEqual(f1, f2);
+        try std.testing.expectEqual(n - 1, f2);
+    }
+    // k = 2 keeps the historical class key; k = 3 differs (version word).
+    const k2 = try foldClassKeyK(&.{ &leaf, &leaf });
+    try std.testing.expectEqualDeep(foldClassKey(&leaf, &leaf), k2);
+    const k3 = try foldClassKeyK(&.{ &leaf, &leaf, &leaf });
+    try std.testing.expect(!std.mem.eql(u8, &k2, &k3));
+    try std.testing.expectError(error.InvalidRecursiveFoldArity, foldClassKeyK(&.{&leaf}));
+    // 4-ary: 5 leaves -> one 4-fold + a binary finalisation over the carry.
+    _ = try table.put(.fold, try foldClassKeyK(&.{ &leaf, &leaf, &leaf, &leaf }), fold, "");
+    var leaves5: [5]LeafInput = undefined;
+    for (&leaves5, 0..) |*l, i| l.* = .{ .key = @splat(7), .digest = @splat(@intCast(i)) };
+    var f4: usize = 0;
+    const r4 = try expectedRootArity(a, &table, &leaves5, 4, &f4);
+    try std.testing.expectEqual(@as(usize, 2), f4);
+    const d4 = try foldDigestK(&.{ .{ .key = &leaf, .digest = leaves5[0].digest }, .{ .key = &leaf, .digest = leaves5[1].digest }, .{ .key = &leaf, .digest = leaves5[2].digest }, .{ .key = &leaf, .digest = leaves5[3].digest } });
+    const d = try foldDigestK(&.{ .{ .key = &fold, .digest = d4 }, .{ .key = &leaf, .digest = leaves5[4].digest } });
+    try std.testing.expectEqualDeep(d, r4.digest);
 }

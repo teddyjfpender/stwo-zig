@@ -93,6 +93,11 @@ pub const Options = struct {
     identity_only_cpu: bool = true,
     /// Concurrent component builds (independent pure functions); 1 = serial.
     max_build_threads: usize = 8,
+    /// false: `persist` writes the VK-only artifact form (header + VK, flags 0,
+    /// no structure/payload) that `.verifier` mode reads. Receiver-derived
+    /// native VK tables (rv64_recursion/root_verify.zig, stream fold-v3) use it;
+    /// the default keeps the prover's bulk artifacts byte for byte.
+    store_bulk: bool = true,
 };
 
 const Resident = struct {
@@ -110,6 +115,7 @@ pub const Cache = struct {
     directory: ?[]u8,
     identity_only_cpu: bool,
     max_build_threads: usize,
+    store_bulk: bool = true,
     code_identity: [32]u8,
     /// Request-derived program identity; set per block by `bindRequest`.
     program_identity: ?[32]u8 = null,
@@ -128,7 +134,7 @@ pub const Cache = struct {
         if (directory) |d| try std.fs.cwd().makePath(d);
         var fixed = try Fixed.Cache.init(a, options.fixed_setup_bytes);
         errdefer fixed.deinit();
-        return .{ .allocator = a, .mode = options.mode, .directory = directory, .identity_only_cpu = options.identity_only_cpu, .max_build_threads = @max(1, options.max_build_threads), .code_identity = try codeIdentity(a), .candidate = candidate, .fixed = fixed };
+        return .{ .allocator = a, .mode = options.mode, .directory = directory, .identity_only_cpu = options.identity_only_cpu, .max_build_threads = @max(1, options.max_build_threads), .store_bulk = options.store_bulk, .code_identity = try codeIdentity(a), .candidate = candidate, .fixed = fixed };
     }
     pub fn deinit(self: *Cache) void {
         for (self.resident.values()) |r| if (r.ptr) |ptr| r.destroy(self.allocator, ptr);
@@ -293,7 +299,7 @@ pub const Cache = struct {
             if (!r.pending_store) continue;
             var lease = self.fixed.lookupSource(Fixed.SourceTag.of(r.source), self.candidate) orelse continue;
             defer lease.deinit();
-            self.stats.store_bytes += try store(self.allocator, dir_path, key, self.code_identity, r.source, lease.key);
+            self.stats.store_bytes += try store(self.allocator, dir_path, key, self.code_identity, r.source, lease.key, self.store_bulk);
             self.stats.stores += 1;
             r.pending_store = false;
         }
@@ -776,10 +782,9 @@ fn suiteForIdentity(id: [32]u8) ?core.pcs.PcsConfig {
     return null;
 }
 
-fn store(a: std.mem.Allocator, directory: []const u8, key: [32]u8, code: [32]u8, source: *const SourceKey, fixed: *const Fixed.WideFixedKey) !u64 {
+fn store(a: std.mem.Allocator, directory: []const u8, key: [32]u8, code: [32]u8, source: *const SourceKey, fixed: *const Fixed.WideFixedKey, bulk: bool) !u64 {
     if (fixed.root_only) return 0;
     const tree = &fixed.tree;
-    const coefficients = tree.coefficients orelse return error.MissingFixedSetupCoefficients;
     const source_logs = try a.alloc(u32, source.tree.columns.len);
     defer a.free(source_logs);
     for (source_logs, source.tree.columns) |*l, c| l.* = c.log_size;
@@ -789,6 +794,8 @@ fn store(a: std.mem.Allocator, directory: []const u8, key: [32]u8, code: [32]u8,
     const vk = Vk{ .suite_identity = try source.suite.identity(), .source_root = source.root, .source_logs = source_logs, .log_blowup = fixed.descriptor.log_blowup, .identity = fixed.identity, .root = fixed.root, .cells = fixed.cells, .candidate_logs = candidate_logs };
     const vk_bytes = try vk.encode(a);
     defer a.free(vk_bytes);
+    if (!bulk) return storeVkOnly(directory, key, code, vk_bytes);
+    const coefficients = tree.coefficients orelse return error.MissingFixedSetupCoefficients;
     // Per-column native sharing digests, in parallel.
     const digests = try a.alloc([32]u8, coefficients.len);
     defer a.free(digests);
@@ -842,6 +849,30 @@ fn store(a: std.mem.Allocator, directory: []const u8, key: [32]u8, code: [32]u8,
     errdefer std.fs.cwd().deleteFile(tmp) catch {};
     try std.fs.cwd().rename(tmp, path);
     return HEADER_BYTES + vk_bytes.len + payload + structure.items.len;
+}
+
+/// VK-only artifact (flags 0): exactly what `Artifact.read(.., bulk = false)`
+/// admits. Same header seal and atomic rename as the bulk form.
+fn storeVkOnly(directory: []const u8, key: [32]u8, code: [32]u8, vk_bytes: []const u8) !u64 {
+    var vk_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(vk_bytes, &vk_digest, .{});
+    const header = (Header{ .flags = 0, .key = key, .code = code, .vk_len = vk_bytes.len, .structure_len = 0, .payload_len = 0, .vk_digest = vk_digest, .bulk_digest = @splat(0) }).encode();
+    var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
+    const path = try artifactPath(&path_buffer, directory, key);
+    var suffix: [8]u8 = undefined;
+    std.crypto.random.bytes(&suffix);
+    var tmp_buffer: [std.fs.max_path_bytes]u8 = undefined;
+    const tmp = try std.fmt.bufPrint(&tmp_buffer, "{s}.{s}.tmp", .{ path, std.fmt.bytesToHex(suffix, .lower) });
+    {
+        const file = try std.fs.cwd().createFile(tmp, .{ .exclusive = true, .mode = 0o600 });
+        errdefer std.fs.cwd().deleteFile(tmp) catch {};
+        defer file.close();
+        try file.writeAll(&header);
+        try file.writeAll(vk_bytes);
+    }
+    errdefer std.fs.cwd().deleteFile(tmp) catch {};
+    try std.fs.cwd().rename(tmp, path);
+    return HEADER_BYTES + vk_bytes.len;
 }
 
 fn parallelColumnDigests(coefficients: []const Coefficient, out: [][32]u8) void {

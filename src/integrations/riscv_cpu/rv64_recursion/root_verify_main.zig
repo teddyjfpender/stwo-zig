@@ -27,6 +27,7 @@ const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const Om31 = @import("stwo_circuit_cpu_integration").om31;
 const RV = @import("root_verify.zig");
+const Derive = @import("root_derive.zig");
 const Bridge = @import("om31_outer.zig");
 const ExecWrap = @import("om31_native/execution_wrap.zig");
 const Root = @import("om31_native/services_root.zig");
@@ -37,6 +38,7 @@ const Request = @import("../rv64_ethereum_request.zig");
 const Image = @import("../word16_execution/expected_image.zig");
 const Program = @import("../word16_execution/program.zig").Program;
 const Keys = @import("../word16_global_execution/ethereum/keys.zig").Owner;
+const SetupCache = @import("../word16_global_execution/ethereum/setup_cache.zig");
 const Admission = @import("../word16_global_execution/ethereum/receiver.zig");
 const NativeReceiver = @import("../word16_global_execution/ethereum/gkr_receiver.zig");
 const Terminal = @import("../word16_global_execution/ethereum/terminal.zig");
@@ -54,6 +56,7 @@ const Recycler = @import("../rv64_large_block_recycler.zig").LargeBlockRecycler;
 const O = @import("stwo_core").fields.om31.OM31;
 
 const SETUP_CACHE_ENV = "STWO_ZIG_RV64_SETUP_CACHE";
+const PcsConfig = @typeInfo(@TypeOf(Candidate.configFor)).@"fn".return_type.?;
 const DERIVE = "derive-vk-tables";
 const VERIFY = "verify-root-candidate";
 const DEFAULT_RECEIVER_BYTES: usize = 32 << 30;
@@ -181,6 +184,34 @@ pub fn main() !void {
     defer pool_binding.deinit();
 
     var timer = try std.time.Timer.start();
+    // M6: the bundle (metadata + stage-one bytes; no proof body is parsed
+    // here) loads on a helper thread while the image and program authority
+    // are rebuilt; both are pure inputs of the admission below.
+    var dir = try std.fs.cwd().openDir(args[3], .{});
+    defer dir.close();
+    const BundleJob = struct {
+        a: std.mem.Allocator,
+        dir: std.fs.Dir,
+        max_steps: @FieldType(Request.Config, "max_steps"),
+        result: ?W.Loaded = null,
+        err: ?anyerror = null,
+        ns: u64 = 0,
+        fn run(job: *@This()) void {
+            const start = std.time.Instant.now() catch null;
+            job.result = W.read(job.a, job.dir, .{ .max_total_steps = job.max_steps }) catch |err| blk: {
+                job.err = err;
+                break :blk null;
+            };
+            if (start) |s0| job.ns = since(s0);
+        }
+    };
+    var bundle_job = BundleJob{ .a = a, .dir = dir, .max_steps = request.value.max_steps };
+    const bundle_thread = try std.Thread.spawn(.{ .stack_size = 64 << 20 }, BundleJob.run, .{&bundle_job});
+    var bundle_joined = false;
+    defer if (!bundle_joined) {
+        bundle_thread.join();
+        if (bundle_job.result) |*value| value.deinit(a);
+    };
     var image = try Image.Owner.init(a, request.value);
     defer image.deinit();
     var local_native = try NativeCache.Cache.init(a, 256 << 20);
@@ -202,24 +233,49 @@ pub fn main() !void {
     };
     if (loaded_table) |*t| try RV.requireHeader(t, expected_header);
 
-    var dir = try std.fs.cwd().openDir(args[3], .{});
-    defer dir.close();
-    var loaded = try W.read(a, dir, .{ .max_total_steps = request.value.max_steps });
+    bundle_thread.join();
+    bundle_joined = true;
+    if (bundle_job.err) |err| return err;
+    var loaded = bundle_job.result.?;
     defer loaded.deinit(a);
-    const bundle_ns = timer.lap();
+    // bundle_ns: the helper thread's load time (overlapped with image_ns);
+    // bundle_wait_ns: what the main thread still waited for it.
+    const bundle_wait_ns = timer.lap();
+    const bundle_ns = bundle_job.ns;
     const statement = try Admission.expectedFromRequests(&image, program.identity, loaded.bundle.requests, request.value.max_steps, request.value.batch_steps, true);
-    var keys = try Keys.initWithSuiteAndCaches(a, &image, loaded.cpu_declarations, loaded.truth_declarations, true, Suite.experimentalFold4(), caches);
+    // Native VK table (M6 fold-v3). Native keys + FIXED bindings come from a
+    // receiver-owned setup cache in a private directory of this process:
+    // derive builds every component from source (parallel, `.prover` mode,
+    // nothing restored) and records each one's VK-only artifact in the table;
+    // verify-root-candidate writes the table's (root-bound, pinnable)
+    // artifacts there and restores keys in `.verifier` mode, so no native
+    // commitment is recomputed. A component absent from the table is built
+    // from source (counted in native_table.misses), never taken from elsewhere.
+    const native_dir = try privateDir(arena);
+    defer std.fs.cwd().deleteTree(native_dir) catch {};
+    var native_written: usize = 0;
+    if (!derive) if (loaded_table) |*t| {
+        for (t.native.items) |entry| {
+            const name = try std.fmt.allocPrint(arena, "{s}/{s}.rv64-setup", .{ native_dir, std.fmt.bytesToHex(entry.key, .lower) });
+            try std.fs.cwd().writeFile(.{ .sub_path = name, .data = entry.artifact });
+            native_written += 1;
+        }
+    };
+    var setup = try SetupCache.Cache.init(a, .{ .log_blowup = pcs.fri_config.log_blowup_factor }, .{ .mode = if (derive) .prover else .verifier, .directory = native_dir, .fixed_setup_bytes = fixed_setup_bytes, .identity_only_cpu = false, .max_build_threads = NATIVE_BUILD_THREADS, .store_bulk = false });
+    defer setup.deinit();
+    try setup.bindRequest(request.value);
+    var keys = try Keys.initResident(a, &image, loaded.cpu_declarations, loaded.truth_declarations, true, Suite.experimentalFold4(), caches, &setup);
     defer keys.deinit();
     const native_keys_ns = timer.lap();
-    var fixed_cache = try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes);
-    defer fixed_cache.deinit();
-    var fixed_set = try FixedSet.init(a, &fixed_cache, keys.cpus, keys.truths, pcs);
+    var fixed_set = try FixedSet.init(a, &setup.fixed, keys.cpus, keys.truths, pcs);
     defer fixed_set.deinit();
     const fixed_authority_ns = timer.lap();
+    const native_stats = setup.stats;
 
     // Receiver-side admission (today's homes of binding note §9.2) + leaf digests.
     var manifest_digest: [32]u8 = undefined;
-    const leaves = try admitAndDigest(a, arena, &keys, &loaded, statement, pcs, &fixed_set, &manifest_digest);
+    var admission = AdmissionNs{};
+    const leaves = try admitAndDigest(a, arena, &keys, &loaded, statement, pcs, &fixed_set, &manifest_digest, &admission);
     const admission_ns = timer.lap();
     const last = loaded.bundle.requests[loaded.bundle.requests.len - 1].base;
     const output = try Terminal.require(&image, last.cpu, last.memory.terminal);
@@ -234,12 +290,39 @@ pub fn main() !void {
         defer sink.deinit();
         RV.active_sink = &sink;
         defer RV.active_sink = null;
-        const derive_start = timer.read();
-        // Full independent receiver = today's --audit. Every authority is built
-        // from source by this process; every proof is freshly verified.
-        _ = try NativeReceiver.verifyWithAuthority(a, &image, &keys, &loaded.bundle, request.value.max_steps, request.value.batch_steps, true, pcs, &fixed_set);
-        const native_verify_ns = timer.read() - derive_start;
-        const recursion = try ExecWrap.verifyExisting(a, keys.cpus, keys.truths, &loaded.bundle, statement, pcs, &fixed_set, recursive_dir);
+        // Full independent receiver (the checks of --audit). Every authority is
+        // built from source by this process; every proof is freshly verified.
+        // M6: native verification runs on its own thread while the recursion
+        // tree is verified by the parallel schedule (root_derive.zig).
+        const NativeJob = struct {
+            a: std.mem.Allocator,
+            image: *const Image.Owner,
+            keys: *const Keys,
+            bundle: *const @FieldType(W.Loaded, "bundle"),
+            max_steps: @FieldType(Request.Config, "max_steps"),
+            batch_steps: @FieldType(Request.Config, "batch_steps"),
+            pcs: PcsConfig,
+            fixed: *const FixedSet,
+            pool: ?*engine.work_pool.WorkPool,
+            err: ?anyerror = null,
+            ns: u64 = 0,
+            fn run(job: *@This()) void {
+                var binding: ?engine.work_pool.ScopedPoolBinding = if (job.pool) |p| (engine.work_pool.ScopedPoolBinding.initIfNeeded(p) catch null) else null;
+                defer if (binding) |*b| b.deinit();
+                const start = std.time.Instant.now() catch null;
+                _ = NativeReceiver.verifyWithAuthority(job.a, job.image, job.keys, job.bundle, job.max_steps, job.batch_steps, true, job.pcs, job.fixed) catch |err| {
+                    job.err = err;
+                };
+                if (start) |s0| job.ns = since(s0);
+            }
+        };
+        var native_job = NativeJob{ .a = a, .image = &image, .keys = &keys, .bundle = &loaded.bundle, .max_steps = request.value.max_steps, .batch_steps = request.value.batch_steps, .pcs = pcs, .fixed = &fixed_set, .pool = engine.work_pool.currentScopedPool() };
+        const native_thread = try std.Thread.spawn(.{ .stack_size = 256 << 20 }, NativeJob.run, .{&native_job});
+        const tree = Derive.verifyTree(a, keys.cpus, keys.truths, &loaded.bundle, statement, pcs, &fixed_set, recursive_dir, deriveLanes(), &sink);
+        native_thread.join();
+        if (native_job.err) |err| return err;
+        const recursion = try tree;
+        const native_verify_ns = native_job.ns;
         if (sink.failure) |err| return err;
         if (sink.leaves.items.len != leaves.len) return error.VkDeriveLeafCoverage;
         var new_leaves: usize = 0;
@@ -251,6 +334,7 @@ pub fn main() !void {
             new_leaves += @intFromBool(try table.put(.leaf, leaves[leaf.ordinal].input.key, leaf.vk, leaves[leaf.ordinal].label));
         }
         for (sink.folds.items) |fold| new_folds += @intFromBool(try table.put(.fold, fold.class, fold.vk, "fold-v2-class"));
+        const new_native = try recordNative(a, &setup, native_dir, &table);
         const block_label = try std.fmt.allocPrint(arena, "{s}", .{std.fs.path.basename(args[2])});
         try table.derived_from.append(a, try table.strings.allocator().dupe(u8, block_label));
         const derive_ns = since(process_start);
@@ -275,6 +359,8 @@ pub fn main() !void {
             .entries = table.entries.items.len,
             .new_leaf_classes = new_leaves,
             .new_fold_classes = new_folds,
+            .native_entries = table.native.items.len,
+            .new_native_classes = new_native,
             .block_leaves = leaves.len,
             .block_folds = recursion.fold_proofs,
             .fold_reimplementation_cross_checks = sink.cross_checked_folds,
@@ -284,7 +370,9 @@ pub fn main() !void {
             .root_identity = try hex(arena, &report.root_identity),
             .derive_once_ns = derive_ns,
             .table_cumulative_derive_ns = table.derive_ns,
-            .breakdown = .{ .self_sha_ns = self_sha_ns, .table_load_ns = table_load_ns, .image_ns = image_ns, .bundle_ns = bundle_ns, .native_keys_ns = native_keys_ns, .fixed_authority_ns = fixed_authority_ns, .admission_ns = admission_ns, .native_verify_ns = native_verify_ns, .recursion_ns = recursion.total_ns },
+            .breakdown = .{ .self_sha_ns = self_sha_ns, .table_load_ns = table_load_ns, .image_ns = image_ns, .bundle_ns = bundle_ns, .native_keys_ns = native_keys_ns, .fixed_authority_ns = fixed_authority_ns, .admission_ns = admission_ns, .native_verify_ns = native_verify_ns, .recursion_ns = recursion.total_ns, .recursion_leaves_ns = recursion.leaves_ns, .recursion_folds_ns = recursion.folds_ns },
+            .recursion_schedule = .{ .lanes = recursion.lanes, .fold_class_builds = recursion.fold_class_builds, .fold_class_restores = recursion.fold_class_restores, .native_verify_overlapped = true },
+            .native_build = .{ .components = native_stats.misses + native_stats.disk_hits, .max_build_ns = native_stats.max_build_ns, .max_build_kind = native_stats.max_build_kind, .threads = NATIVE_BUILD_THREADS },
             .receiver_sha256 = &self_sha,
             .source_commit = table.header.source_commit,
             .scope = "One-time derivation: today's full independent receiver (native + every recursion proof) with each receiver-built authority recorded as a compact class-keyed verifier key. Never reads producer stores or setup caches.",
@@ -311,7 +399,7 @@ pub fn main() !void {
         if (!agrees) return error.RootOnlyAuditDisagreement;
         audit_report = .{ .accepted = true, .agrees = agrees, .native_verify_ns = native_verify_ns, .recursion_ns = recursion.total_ns, .root_digest = try hex(arena, &recursion.root_digest), .root_authority = try hex(arena, &recursion.root_authority) };
     }
-    return emit(a, .{
+    try emit(a, .{
         .schema = "rv64-rootverify-verify/v0",
         .mode = VERIFY,
         .accepted = true,
@@ -332,25 +420,80 @@ pub fn main() !void {
         // Same keys and encoding as the full-tree receiver, so statements compare across modes.
         .recursive = .{ .root_digest = report.root_digest, .root_authority = report.root_identity, .manifest = manifest_digest, .proofs_verified = 1 },
         .verify_per_block_ns = verify_ns,
-        .breakdown = .{ .self_sha_ns = self_sha_ns, .table_load_ns = table_load_ns, .image_ns = image_ns, .bundle_ns = bundle_ns, .native_keys_ns = native_keys_ns, .fixed_authority_ns = fixed_authority_ns, .admission_ns = admission_ns, .root_ns = root_ns, .root_tree_ns = report.tree_ns, .root_authority_ns = report.authority_ns, .root_decode_ns = report.decode_ns, .root_verify_ns = report.verify_ns },
+        // Native keys/FIXED restored from the table's receiver-derived VK
+        // section (hits) or rebuilt from source (misses: not in the table).
+        .native_table = .{ .entries = table.native.items.len, .written = native_written, .hits = native_stats.disk_hits, .misses = native_stats.misses, .max_build_ns = native_stats.max_build_ns, .max_build_kind = native_stats.max_build_kind },
+        .breakdown = .{ .self_sha_ns = self_sha_ns, .table_load_ns = table_load_ns, .image_ns = image_ns, .bundle_ns = bundle_ns, .native_keys_ns = native_keys_ns, .fixed_authority_ns = fixed_authority_ns, .admission_ns = admission_ns, .root_ns = root_ns, .root_tree_ns = report.tree_ns, .root_authority_ns = report.authority_ns, .root_decode_ns = report.decode_ns, .root_verify_ns = report.verify_ns, .bundle_wait_ns = bundle_wait_ns, .admission = admission },
         .audit = audit_report,
         .receiver_sha256 = &self_sha,
     });
+    // Accepted and reported: exit without tearing down process-lifetime
+    // state (keys, caches, pools); only the private native dir is removed.
+    std.fs.cwd().deleteTree(native_dir) catch {};
+    std.process.exit(0);
+}
+
+const NATIVE_BUILD_THREADS: usize = 16;
+/// Parallel derive lanes (leaf/fold authorities in flight). Each CPU leaf
+/// lane holds one trace-only leaf graph; 8 lanes fit the default budget.
+fn deriveLanes() usize {
+    const text = std.posix.getenv("STWO_RV64_DERIVE_LANES") orelse return 8;
+    const value = std.fmt.parseUnsigned(usize, text, 10) catch return 8;
+    return std.math.clamp(value, 1, 32);
+}
+/// Fresh private directory (this process only) for the native setup artifacts.
+fn privateDir(arena: std.mem.Allocator) ![]const u8 {
+    const base = std.posix.getenv("TMPDIR") orelse "/tmp";
+    var suffix: [12]u8 = undefined;
+    std.crypto.random.bytes(&suffix);
+    const path = try std.fmt.allocPrint(arena, "{s}/rv64-rootverify-native-{s}", .{ base, std.fmt.bytesToHex(suffix, .lower) });
+    try std.fs.cwd().makeDir(path);
+    return path;
+}
+/// derive: persist the VK-only artifact of every native component this
+/// process built from source and record it in the table (byte-identical on a
+/// repeated key, `VkNativeClassMismatch` otherwise). Every component of the
+/// block must be present afterwards (`VkDeriveNativeCoverage`).
+fn recordNative(a: std.mem.Allocator, setup: *SetupCache.Cache, dir_path: []const u8, table: *RV.Table) !usize {
+    try setup.persist();
+    var dir = try std.fs.cwd().openDir(dir_path, .{ .iterate = true });
+    defer dir.close();
+    var added: usize = 0;
+    var seen: usize = 0;
+    var it = dir.iterate();
+    while (try it.next()) |entry| {
+        if (entry.kind != .file) return error.VkDeriveNativeArtifact;
+        const suffix = ".rv64-setup";
+        if (!std.mem.endsWith(u8, entry.name, suffix) or entry.name.len != 64 + suffix.len) return error.VkDeriveNativeArtifact;
+        var key: [32]u8 = undefined;
+        _ = try std.fmt.hexToBytes(&key, entry.name[0..64]);
+        const bytes = try dir.readFileAlloc(a, entry.name, RV.MAX_NATIVE_ARTIFACT_BYTES);
+        defer a.free(bytes);
+        added += @intFromBool(try table.putNative(key, bytes));
+        seen += 1;
+    }
+    if (seen != setup.resident.count()) return error.VkDeriveNativeCoverage;
+    return added;
 }
 
 const LeafRow = struct { input: RV.LeafInput, label: []const u8 };
 /// Today's receiver-side admission (exactly `execution_wrap.runImpl`'s frame
 /// construction + `services_root.check`) and the ordered leaf (key, digest)s.
-fn admitAndDigest(a: std.mem.Allocator, arena: std.mem.Allocator, keys: *const Keys, loaded: *const W.Loaded, statement: anytype, pcs: anytype, fixed: *const FixedSet, manifest_out: *[32]u8) ![]LeafRow {
+const AdmissionNs = struct { inventory_ns: u64 = 0, decode_ns: u64 = 0, seal_ns: u64 = 0, words_ns: u64 = 0, check_ns: u64 = 0, keys_ns: u64 = 0 };
+fn admitAndDigest(a: std.mem.Allocator, arena: std.mem.Allocator, keys: *const Keys, loaded: *const W.Loaded, statement: anytype, pcs: anytype, fixed: *const FixedSet, manifest_out: *[32]u8, ns: *AdmissionNs) ![]LeafRow {
     const bundle = &loaded.bundle;
     const setups = keys.cpus;
     const truths = keys.truths;
+    var clock = try std.time.Timer.start();
     var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, bundle.requests, statement, pcs, fixed);
     defer inventory.deinit();
+    ns.inventory_ns = clock.lap();
     var stages = try MW.decode(a, inventory.execution_identity, inventory.workers, bundle.stage_one_bytes);
     defer stages.deinit();
+    ns.decode_ns = clock.lap();
     var manifest = try stages.verifyAndSeal(a, inventory.execution_identity, inventory.workers);
     defer manifest.deinit(a);
+    ns.seal_ns = clock.lap();
     const n = inventory.workers.len;
     if (n == 0 or n > 256 or bundle.cpus.len != setups.len or bundle.truths.len != truths.len) return error.ServicesRootRoster;
     const words = try arena.alloc([]const u32, n);
@@ -374,8 +517,10 @@ fn admitAndDigest(a: std.mem.Allocator, arena: std.mem.Allocator, keys: *const K
             words[ordinal] = try arena.dupe(u32, &TruthLeaf.statementWords(truth, public, stages.stages[ordinal].main));
         }
     }
+    ns.words_ns = clock.lap();
     const metadata = try Root.check(a, setups, truths, bundle.requests, statement, pcs, fixed, bundle.stage_one_bytes, .{ .cpus = cpus, .truths = words[setups.len..] }, .{});
     manifest_out.* = metadata.manifest.digest;
+    ns.check_ns = clock.lap();
     const config_json = try std.json.Stringify.valueAlloc(arena, pcs, .{});
     const rows = try arena.alloc(LeafRow, n);
     for (rows, 0..) |*row, ordinal| {
@@ -386,6 +531,7 @@ fn admitAndDigest(a: std.mem.Allocator, arena: std.mem.Allocator, keys: *const K
         const native_profile = if (binding.profile) |p| p.name() else "legacy-beta2";
         row.* = .{ .input = .{ .key = RV.leafKey(kind, declaration, binding.source_root, binding.fixed_identity, binding.fixed_root, native_profile, config_json), .digest = RV.leafDigest(words[ordinal]) }, .label = try std.fmt.allocPrint(arena, "{s}-{d}", .{ kind, ordinal }) };
     }
+    ns.keys_ns = clock.lap();
     return rows;
 }
 
