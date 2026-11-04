@@ -41,7 +41,7 @@ every run except `base-m5` (4.1) — other M6 streams were building. They are NO
 | r4-sp8-6 | stream, STREAM_PREP=8 | 33.2 | 22.63 / 29.60 | 5.32 / 7.63 | 6.25 / 5.55 | 3.10 / 4.61 | 31.3 | yes |
 | r5-s1-0 | default (stream), RSS sampled | 30.7 | 21.86 / 26.90 | 5.62 / 7.14 | 5.48 / 4.40 | 3.07 / 4.47 | 31.2 | yes |
 | r5-pa3-1 | stream, PREP_AHEAD=3, RSS sampled | 35.7 | 21.67 / 34.02 | 5.57 / 8.47 | 4.77 / 5.97 | 3.31 / 5.54 | 26.6 | yes |
-| r6-a22 | default (stream) + DEVICE_ARENA=22G | see json | 22.57 / 29.72 | 5.85 / 6.82 | 5.31 / 5.86 | 3.72 / 3.97 | 31.3 | yes + receiver |
+| r6-a22 | default (stream) + DEVICE_ARENA=22G | 36.5 | 22.57 / 29.72 | 5.85 / 6.82 | 5.31 / 5.86 | 3.72 / 3.97 | 31.3 | yes + receiver |
 
 r4 is a strict alternation (s1, m5s, s1, m5s, s1, m5s) on one binary and one store, so it is the cleanest A/B we have
 under the shared load: 24628607 stream median 26.92 s vs no-stream 32.93 s (-6.0 s); 26235156 19.26 vs 22.05 s (-2.8 s) [D from M].
@@ -73,3 +73,18 @@ GPUs at recursion start in M5) plus native publication/verify moved off the devi
   load ~5.5 GiB per M4 measure, native/session caches) must shrink before <= 20 GiB is reachable.
 - device peak <= 28 GB: MET with the M5 opt-in carve: r6-a22 (stream + STWO_RV64_DEVICE_ARENA=22G) 27.81 GB on both GPUs,
   byte-identical, receivers accepted. Default auto arena stays 31.5 GB (arena default is not this stream's call in M6 yet).
+
+## Tests
+- `zig build test-rv64-recursion-ready` (pod, CPU only): 38/38 passed — ready root 10 (incl. the new streaming typing /
+  empty-roster test), ready_dag 12 (incl. depth/priority, gated-leaf admission under random completion for n in
+  {1,2,5,11,17,33,64,100,256}, arity 2/4, lanes 1..4, limits minimumLimit..+3), publication 16.
+- End to end: every daemon run above checks byte identity of all proofs (native bins, bundle, every recursive proof, tree,
+  root) against the M3/M5 accepted receipts; fresh receivers r2-s1 and r6-a22.
+
+## Tools
+- `scripts/rv64_m6_sched_summarize.py RUN OUT` (pod): compact receipt from a daemon run + per-request pipeline.json.
+- `scripts/rv64_m6_sched_rows.py`: progress rows (`vectors/reports/progress/sched.jsonl`).
+- `scripts/rv64_m6_sched_sim.py PIPELINE.json`: replays a measured pipeline.json under other policies (2 lanes, 8 host
+  workers, prep-ahead, optional per-GPU concurrency with a slowdown factor). It reproduced M5 607 within 0.01 s (18.54 vs 18.55);
+  it ignores the 17-slot authority admission, which is why it over-predicted the critical order.
+- `runs.sh` / `rsssample.sh`: the exact pod run loop and the 0.2 s RSS sampler.

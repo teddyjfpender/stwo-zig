@@ -132,3 +132,13 @@ test {
     _ = @import("rv64/serial_fixed_policy.zig");
     _ = @import("rv64/circuit_air_preflight.zig");
 }
+
+test "sched m6 streaming handoff is typed, refuses an empty roster and joins nothing when never sealed" {
+    // Force semantic analysis of the streaming consumer and its coordinator hook.
+    const Streaming = Execution.Streaming;
+    _ = &Streaming.hook;
+    _ = &Streaming.nativeDone;
+    _ = &Streaming.join;
+    _ = &Streaming.destroy;
+    try std.testing.expectError(error.ServicesRootRoster, Streaming.create(std.testing.allocator, &.{}, &.{}, undefined, undefined, null, undefined, .{ .lanes = &.{}, .pool_worker_budget = 0 }));
+}
