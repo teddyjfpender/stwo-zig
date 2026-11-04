@@ -17,16 +17,16 @@
 namespace stwo::cuda::circuit_fill {
 namespace q = stwo::cuda::oods;
 constexpr uint32_t kChainThreads = 512, kChainMaxWidth = 2048, kEndsChunk = 1024;
+// One 16-byte access per QM31 value (the assignment lease is 16-byte aligned:
+// arena allocations are at least 256-byte aligned). Scattered narrow levels are
+// bound by memory transactions per warp instruction; the scalar form issued
+// four per value.
 __device__ __forceinline__ q::QM31 load(const uint32_t* p, uint32_t i) {
-    p += uint64_t(i) * 4;
-    return {{p[0], p[1]}, {p[2], p[3]}};
+    const uint4 v = reinterpret_cast<const uint4*>(p)[i];
+    return {{v.x, v.y}, {v.z, v.w}};
 }
 __device__ __forceinline__ void store(uint32_t* p, uint32_t i, q::QM31 v) {
-    p += uint64_t(i) * 4;
-    p[0] = v.a.a;
-    p[1] = v.a.b;
-    p[2] = v.b.a;
-    p[3] = v.b.b;
+    reinterpret_cast<uint4*>(p)[i] = make_uint4(v.a.a, v.a.b, v.b.a, v.b.b);
 }
 __device__ __forceinline__ bool zero(q::QM31 x) { return !(x.a.a | x.a.b | x.b.a | x.b.b); }
 __device__ __forceinline__ uint32_t word(q::QM31 v) { return v.a.a | (v.a.b << 16); }
@@ -172,6 +172,7 @@ extern "C" int stwo_circuit_assignment_chain_run_on(void* ctx, uint32_t lane, co
     using namespace stwo::cuda::rv64;
     using namespace stwo::cuda::circuit_fill;
     if (!j || j->reserved || !j->value_count || j->value_count >= (1u << 31) || !j->count || uint64_t(j->first) + j->count > j->record_count || !ends || !levels) return int(cudaErrorInvalidValue);
+    if (reinterpret_cast<uintptr_t>(j->values) % 16 || reinterpret_cast<uintptr_t>(j->records) % 16) return int(cudaErrorMisalignedAddress);
     Custody c(ctx, lane);
     if (!c.range(j->values, uint64_t(j->value_count) * 4, true) ||
         !c.range(static_cast<const uint32_t*>(j->records), uint64_t(j->record_count) * 8, false) ||
@@ -182,3 +183,23 @@ extern "C" int stwo_circuit_assignment_chain_run_on(void* ctx, uint32_t lane, co
     return int(cudaPeekAtLastError());
 }
 extern "C" uint32_t stwo_circuit_assignment_chain_max_width() { return stwo::cuda::circuit_fill::kChainMaxWidth; }
+namespace stwo::cuda::circuit_fill {
+__global__ void wide_level(StwoCircuitAssignmentJob j) {
+    const auto i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < j.count) at(j, fetch(static_cast<const StwoCircuitAssignmentTask*>(j.records), j.first + i));
+}
+}  // namespace stwo::cuda::circuit_fill
+// One dependency level as a grid (the vectorised twin of
+// stwo_circuit_assignment_level_on), used for levels wider than a chain CTA.
+extern "C" int stwo_circuit_assignment_wide_level_on(void* ctx, uint32_t lane, const StwoCircuitAssignmentJob* j) {
+    using namespace stwo::cuda::rv64;
+    if (!j || j->reserved || !j->value_count || j->value_count >= (1u << 31) || !j->count || uint64_t(j->first) + j->count > j->record_count) return int(cudaErrorInvalidValue);
+    if (reinterpret_cast<uintptr_t>(j->values) % 16 || reinterpret_cast<uintptr_t>(j->records) % 16) return int(cudaErrorMisalignedAddress);
+    Custody c(ctx, lane);
+    if (!c.range(j->values, uint64_t(j->value_count) * 4, true) ||
+        !c.range(static_cast<const uint32_t*>(j->records), uint64_t(j->record_count) * 8, false) ||
+        !c.range(j->status, 1, true) || (j->index_count && !c.range(j->indices, j->index_count, false)))
+        return c.status;
+    stwo::cuda::circuit_fill::wide_level<<<(j->count + 127) / 128, 128, 0, c.stream>>>(*j);
+    return int(cudaPeekAtLastError());
+}

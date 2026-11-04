@@ -29,6 +29,8 @@ const Grouping = struct {
     plan: ?Runs.Plan,
     narrow: ?LaunchRun,
     chain: ?LaunchChain,
+    /// Vectorised grid level (circuit_fill_chain.cu) for the wide levels of a chain plan.
+    wide: ?Launch,
     narrow_enabled: bool,
     chain_enabled: bool,
     fn init(a: std.mem.Allocator, library: *std.DynLib, level_ends: []const usize, task_count: usize) !Grouping {
@@ -50,7 +52,8 @@ const Grouping = struct {
         } else chain != null and width != null;
         if (chain_enabled and (chain == null or width == null)) return error.MissingCircuitAssignmentChainKernel;
         const plan: ?Runs.Plan = if (chain_enabled) try Runs.Plan.initChain(a, level_ends, task_count, width.?()) else if (narrow_enabled) try Runs.Plan.init(a, level_ends, task_count) else null;
-        return .{ .plan = plan, .narrow = narrow, .chain = chain, .narrow_enabled = narrow_enabled, .chain_enabled = chain_enabled };
+        const wide = if (chain_enabled) library.lookup(Launch, "stwo_circuit_assignment_wide_level_on") else null;
+        return .{ .plan = plan, .narrow = narrow, .chain = chain, .wide = wide, .narrow_enabled = narrow_enabled, .chain_enabled = chain_enabled };
     }
 };
 pub fn requireProductionMask(mask: u32) !void {
@@ -393,6 +396,7 @@ pub const Prepared = struct {
     narrow_plan: ?Runs.Plan = null,
     narrow_run: ?LaunchRun = null,
     chain_run: ?LaunchChain = null,
+    wide_level: ?Launch = null,
     /// tasks/indices/plan.level_ends are owned by a ClassCache template.
     borrowed: bool = false,
     /// Class plans (folds: a template exists or will) keep their static words
@@ -525,7 +529,7 @@ pub const Prepared = struct {
         ClassCache.mutex.lock();
         ClassCache.hits += 1;
         ClassCache.mutex.unlock();
-        return .{ .allocator = a, .reference = reference, .count = t.n_vars, .plan = .{ .allocator = a, .tasks = &.{}, .seeds = &.{}, .level_ends = t.level_ends }, .tasks = t.tasks, .indices = t.indices, .seeds = seeds, .identity = t.identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = grouping.plan, .narrow_run = grouping.narrow, .chain_run = grouping.chain, .borrowed = true };
+        return .{ .allocator = a, .reference = reference, .count = t.n_vars, .plan = .{ .allocator = a, .tasks = &.{}, .seeds = &.{}, .level_ends = t.level_ends }, .tasks = t.tasks, .indices = t.indices, .seeds = seeds, .identity = t.identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = grouping.plan, .narrow_run = grouping.narrow, .chain_run = grouping.chain, .wide_level = grouping.wide, .borrowed = true };
     }
     fn initFull(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
         const seed = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;
@@ -603,7 +607,7 @@ pub const Prepared = struct {
         const identity = try @import("schedule_identity.zig").digest(a, .{ std.mem.sliceAsBytes(tasks), std.mem.sliceAsBytes(indices.items), std.mem.sliceAsBytes(plan.level_ends) });
         const hash_ns = timer.lap();
         std.debug.print("GPU_OUTER_ASSIGNMENT_PLAN plan_ns={} producer_alloc_zero_ns={} seeds_ns={} tasks_ns={} level_alloc_zero_ns={} dependency_walk_ns={} ready_tasks={} dfs_roots={} ordering_ns={} task_pack_ns={} seed_pack_ns={} hash_ns={} task_bytes={} index_bytes={} levels={} permutation_count={} max_permutation_inputs={} permutation_pair_work={}\n", .{ plan_ns, metrics.producer_init_ns, metrics.seeds_ns, metrics.tasks_ns, metrics.level_init_ns, metrics.walk_ns, metrics.ready_tasks, metrics.dfs_roots, metrics.ordering_ns, task_pack_ns, seed_pack_ns, hash_ns, tasks.len * @sizeOf(Task), indices.items.len * 4, plan.level_ends.len, permutation_count, max_permutation_inputs, permutation_pair_work });
-        return .{ .allocator = a, .reference = if (ctx.trace_only) null else ctx.values().ptr, .count = ctx.circuit.n_vars, .plan = plan, .tasks = tasks, .indices = try indices.toOwnedSlice(a), .seeds = seeds, .identity = identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = narrow_plan, .narrow_run = grouping.narrow, .chain_run = grouping.chain, .reusable = reusableClassPlan() };
+        return .{ .allocator = a, .reference = if (ctx.trace_only) null else ctx.values().ptr, .count = ctx.circuit.n_vars, .plan = plan, .tasks = tasks, .indices = try indices.toOwnedSlice(a), .seeds = seeds, .identity = identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = narrow_plan, .narrow_run = grouping.narrow, .chain_run = grouping.chain, .wide_level = grouping.wide, .reusable = reusableClassPlan() };
     }
     /// Re-resolve kernel entry points against the adopting device's library.
     /// Plan/pack/seed/identity bytes are library independent. The same mapped
@@ -669,6 +673,7 @@ pub const Prepared = struct {
         self.level = level;
         self.narrow_run = narrow_run;
         self.chain_run = chain_run;
+        if (self.wide_level != null) self.wide_level = library.lookup(Launch, "stwo_circuit_assignment_wide_level_on") orelse return error.MissingCircuitAssignmentChainKernel;
     }
     pub fn deinit(self: *Prepared) void {
         if (self.narrow_plan) |*value| value.deinit();
@@ -770,7 +775,7 @@ pub const Prepared = struct {
                     },
                     .ordinary => blk: {
                         ordinary_level_calls += 1;
-                        break :blk self.level(ctx.native_context, 1, &job);
+                        break :blk (self.wide_level orelse self.level)(ctx.native_context, 1, &job);
                     },
                 };
                 if (status_code != 0) return error.CudaCircuitAssignmentFailed;
