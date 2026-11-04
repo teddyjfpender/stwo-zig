@@ -1,0 +1,292 @@
+{
+ "schema": "rv64-m3-host-gpu-runs/v1",
+ "label": "MEASURED, single observation per row, 2x RTX 5090 pod; GPU lock held; no concurrent GPU jobs; other streams' CPU builds may have been running",
+ "driver": "/workspace/m3/build/host/driver-0ccf7519 sha256 c6d703078a4bcd98cbb9531016d8a06ef8b2e8818ce1b25e9ef356f37d95e40e (source 0ccf7519c, branch codex/rv64-m3-host)",
+ "library": "/workspace/rv64-gpu-session/assets/library.so sha256 25295868fe3410dc2f54b366497cb57e260ef9c1f9f74e03d4266f253f7cc809",
+ "manifest_base": "accepted two-gpu-ready-fixed 24628607 manifest (ready_candidate, device FIXED, 8 workers, 48 GiB host, 28 GiB/GPU); blocks/execution_order/repeat/warm_order varied",
+ "control_baselines": {
+  "24628607_accepted_2gpu": {
+   "source": "a8f4e643/d5766d83",
+   "request_wall_s": 98.924,
+   "capture_s": 6.166,
+   "setup_s": 13.064,
+   "native_prove_s": 10.326,
+   "native_verify_s": 5.543,
+   "recursion_s": 63.621
+  },
+  "26235156_infra_pristine_fbb6c6c76_2gpu": {
+   "source": "/workspace/m3/runs/infra/26235156-2gpu-srcdriver-acceptedlib/receipt.json",
+   "request_wall_s": 65.366,
+   "capture_s": 3.284,
+   "setup_s": 9.296,
+   "native_prove_s": 6.074,
+   "native_verify_s": 3.621,
+   "recursion_s": 42.925,
+   "system_seconds": 58.97,
+   "minor_faults": 15873206
+  }
+ },
+ "runs": {
+  "r1-small": {
+   "manifest": "m/small.json",
+   "env": {},
+   "what": "26235156; new driver; no setup cache (session key cache path)",
+   "blocks": {
+    "trial-0/26235156": {
+     "native_equal": true,
+     "bundle_equal": true,
+     "recursive_equal": true,
+     "stages_s": {
+      "capture": 2.54782309,
+      "setup": 9.410965318,
+      "native_prove": 4.503850564,
+      "native_verify_cpu": 1.122112726,
+      "native_verify_join_wait": 6.589e-05,
+      "native_publish": 0.140582573,
+      "recursion": 34.300687681,
+      "combined": 50.915314456
+     },
+     "overlapped_verify": true,
+     "setup_cache": null,
+     "setup_breakdown": {
+      "image_ns": 526041912,
+      "program_ns": 114933552,
+      "native_keys_ns": 6025861189,
+      "fixed_authority_ns": 3284486478
+     }
+    }
+   },
+   "markers": [
+    "GPU_RESIDENT_BLOCK block=26235156 trial=0 iteration=0 request_wall_ns=50951119330 cached_host_keys=11 host_key_cache_hits=0 host_key_cache_misses=1 host_key_cache_evictions=0 gpu_contexts=2 setup_cache=false setup_resident_hits=0 setup_disk_hits=0 setup_misses=0 setup_persist_ns=130",
+    "EXIT=0"
+   ]
+  },
+  "r2-cold2": {
+   "manifest": "m/cold2.json",
+   "env": {
+    "STWO_ZIG_RV64_SETUP_CACHE": "/workspace/m3/runs/host/setupcache (empty dir)"
+   },
+   "what": "one process, session SetupCache, empty disk: 26235156 then 24628607 (shares 3 classes)",
+   "blocks": {
+    "trial-0/24628607": {
+     "native_equal": true,
+     "bundle_equal": true,
+     "recursive_equal": true,
+     "stages_s": {
+      "capture": 3.266287447,
+      "setup": 5.878375254,
+      "native_prove": 5.716915696,
+      "native_verify_cpu": 1.663295597,
+      "native_verify_join_wait": 6.72e-05,
+      "native_publish": 0.22392361,
+      "recursion": 54.226033534,
+      "combined": 69.328692066
+     },
+     "overlapped_verify": true,
+     "setup_cache": {
+      "resident_hits": 3,
+      "disk_hits": 0,
+      "misses": 25,
+      "stores": 11,
+      "identity_only_sources": 11,
+      "load_ns": 799230,
+      "load_bytes": 0,
+      "load_digest_ns": 0,
+      "store_ns": 625665035,
+      "store_bytes": 924540256,
+      "build_ns": 10477754634,
+      "max_build_ns": 959385382,
+      "max_build_kind": "keccak"
+     },
+     "setup_breakdown": {
+      "image_ns": 532137116,
+      "program_ns": 78574850,
+      "native_keys_ns": 792395709,
+      "fixed_authority_ns": 4941783411
+     }
+    },
+    "trial-0/26235156": {
+     "native_equal": true,
+     "bundle_equal": true,
+     "recursive_equal": true,
+     "stages_s": {
+      "capture": 2.452796614,
+      "setup": 4.972416919,
+      "native_prove": 4.163668555,
+      "native_verify_cpu": 1.070944744,
+      "native_verify_join_wait": 6.6649e-05,
+      "native_publish": 0.086292409,
+      "recursion": 34.542590754,
+      "combined": 46.230378037
+     },
+     "overlapped_verify": true,
+     "setup_cache": {
+      "resident_hits": 0,
+      "disk_hits": 0,
+      "misses": 11,
+      "stores": 0,
+      "identity_only_sources": 4,
+      "load_ns": 316950,
+      "load_bytes": 0,
+      "load_digest_ns": 0,
+      "store_ns": 0,
+      "store_bytes": 0,
+      "build_ns": 5208009508,
+      "max_build_ns": 959385382,
+      "max_build_kind": "keccak"
+     },
+     "setup_breakdown": {
+      "image_ns": 527943107,
+      "program_ns": 110647363,
+      "native_keys_ns": 960135680,
+      "fixed_authority_ns": 3770471127
+     }
+    }
+   },
+   "markers": [
+    "GPU_RESIDENT_BLOCK block=26235156 trial=0 iteration=0 request_wall_ns=46268556495 cached_host_keys=0 host_key_cache_hits=0 host_key_cache_misses=0 host_key_cache_evictions=0 gpu_contexts=2 setup_cache=true setup_resident_hits=0 setup_disk_hits=0 setup_misses=11 setup_persist_ns=625665495",
+    "GPU_RESIDENT_BLOCK block=24628607 trial=0 iteration=1 request_wall_ns=69370228665 cached_host_keys=0 host_key_cache_hits=0 host_key_cache_misses=0 host_key_cache_evictions=0 gpu_contexts=2 setup_cache=true setup_resident_hits=3 setup_disk_hits=0 setup_misses=25 setup_persist_ns=764600833",
+    "EXIT=0"
+   ]
+  },
+  "r3-seeded": {
+   "manifest": "m/seeded-rep2.json",
+   "env": {
+    "STWO_ZIG_RV64_SETUP_CACHE": "/workspace/m3/runs/host/setupcache (populated by r2)"
+   },
+   "what": "new process seeded from disk: 24628607 trial-0 (disk-seeded cold process), trial-1 (warm, same process)",
+   "blocks": {
+    "trial-0/24628607": {
+     "native_equal": true,
+     "bundle_equal": true,
+     "recursive_equal": true,
+     "stages_s": {
+      "capture": 3.267122674,
+      "setup": 0.69113056,
+      "native_prove": 5.708945708,
+      "native_verify_cpu": 1.632349721,
+      "native_verify_join_wait": 6.333e-05,
+      "native_publish": 0.136179536,
+      "recursion": 53.046532011,
+      "combined": 62.866507794
+     },
+     "overlapped_verify": true,
+     "setup_cache": {
+      "resident_hits": 0,
+      "disk_hits": 17,
+      "misses": 0,
+      "stores": 0,
+      "identity_only_sources": 0,
+      "load_ns": 2277071333,
+      "load_bytes": 1339493080,
+      "load_digest_ns": 173711833,
+      "store_ns": 0,
+      "store_bytes": 0,
+      "build_ns": 2913744571,
+      "max_build_ns": 404000498,
+      "max_build_kind": "cpu"
+     },
+     "setup_breakdown": {
+      "image_ns": 535178177,
+      "program_ns": 107258913,
+      "native_keys_ns": 452690658,
+      "fixed_authority_ns": 12740
+     }
+    },
+    "trial-1/24628607": {
+     "native_equal": true,
+     "bundle_equal": true,
+     "recursive_equal": true,
+     "stages_s": {
+      "capture": 3.33986958,
+      "setup": 0.156010072,
+      "native_prove": 5.730997019,
+      "native_verify_cpu": 1.586094414,
+      "native_verify_join_wait": 7.757e-05,
+      "native_publish": 0.239356949,
+      "recursion": 54.790048964,
+      "combined": 64.319515795
+     },
+     "overlapped_verify": true,
+     "setup_cache": {
+      "resident_hits": 17,
+      "disk_hits": 17,
+      "misses": 0,
+      "stores": 0,
+      "identity_only_sources": 0,
+      "load_ns": 2277071333,
+      "load_bytes": 1339493080,
+      "load_digest_ns": 173711833,
+      "store_ns": 810,
+      "store_bytes": 0,
+      "build_ns": 2913744571,
+      "max_build_ns": 404000498,
+      "max_build_kind": "cpu"
+     },
+     "setup_breakdown": {
+      "image_ns": 544987391,
+      "program_ns": 81328203,
+      "native_keys_ns": 512149,
+      "fixed_authority_ns": 17290
+     }
+    }
+   },
+   "markers": [
+    "GPU_RESIDENT_BLOCK block=24628607 trial=0 iteration=0 request_wall_ns=62913984168 cached_host_keys=0 host_key_cache_hits=0 host_key_cache_misses=0 host_key_cache_evictions=0 gpu_contexts=2 setup_cache=true setup_resident_hits=0 setup_disk_hits=17 setup_misses=0 setup_persist_ns=1150",
+    "GPU_RESIDENT_BLOCK block=24628607 trial=1 iteration=0 request_wall_ns=64369459041 cached_host_keys=0 host_key_cache_hits=0 host_key_cache_misses=0 host_key_cache_evictions=0 gpu_contexts=2 setup_cache=true setup_resident_hits=17 setup_disk_hits=17 setup_misses=0 setup_persist_ns=1060",
+    "EXIT=0"
+   ]
+  },
+  "r4-warmsame": {
+   "manifest": "m/warm-same.json",
+   "env": {
+    "STWO_ZIG_RV64_SETUP_CACHE": "(empty: residency only)"
+   },
+   "what": "warm_order pre-warm of 24628607 (inputs-candidate, setup only, 37.1 s at startup) then timed 24628607; a CPU test build ran concurrently",
+   "blocks": {
+    "trial-0/24628607": {
+     "native_equal": true,
+     "bundle_equal": true,
+     "recursive_equal": true,
+     "stages_s": {
+      "capture": 3.864950075,
+      "setup": 1.091489393,
+      "native_prove": 6.116555245,
+      "native_verify_cpu": 1.602382583,
+      "native_verify_join_wait": 6.221e-05,
+      "native_publish": 0.155167649,
+      "recursion": 56.656951708,
+      "combined": 67.901277046
+     },
+     "overlapped_verify": true,
+     "setup_cache": {
+      "resident_hits": 34,
+      "disk_hits": 0,
+      "misses": 17,
+      "stores": 0,
+      "identity_only_sources": 7,
+      "load_ns": 0,
+      "load_bytes": 0,
+      "load_digest_ns": 0,
+      "store_ns": 0,
+      "store_bytes": 0,
+      "build_ns": 6667285043,
+      "max_build_ns": 845116932,
+      "max_build_kind": "keccak"
+     },
+     "setup_breakdown": {
+      "image_ns": 765897387,
+      "program_ns": 97027045,
+      "native_keys_ns": 480499,
+      "fixed_authority_ns": 863112621
+     }
+    }
+   },
+   "markers": [
+    "GPU_RESIDENT_WARM block=24628607 setup_only_ns=37085088819 persist_ns=650 resident_hits=17 disk_hits=0 misses=17 stores=0",
+    "GPU_RESIDENT_BLOCK block=24628607 trial=0 iteration=0 request_wall_ns=67946963095 cached_host_keys=0 host_key_cache_hits=0 host_key_cache_misses=0 host_key_cache_evictions=0 gpu_contexts=2 setup_cache=true setup_resident_hits=34 setup_disk_hits=0 setup_misses=17 setup_persist_ns=200",
+    "EXIT=0"
+   ]
+  }
+ }
+}
