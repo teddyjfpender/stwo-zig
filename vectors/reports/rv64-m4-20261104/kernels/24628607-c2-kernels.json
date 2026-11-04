@@ -4,7 +4,7 @@
  "milestone": "M4",
  "block": 24628607,
  "gpus": 2,
- "commit": "see git log (c2 code commit)",
+ "commit": "d0d22387f",
  "library_sha256": "13d9e4d0146151a9526feda09f2d180928c0538e2a27d6b8e2c4c4375b3e6cd3",
  "parent_receipt": "24628607-c1-kernels.json",
  "correctness": {
