@@ -80,7 +80,7 @@ pub fn outputs(ctx: *const C.Context(Q), task: Task, buf: *[4]u32) []const u32 {
     };
     return buf[0..1];
 }
-fn append(a: std.mem.Allocator, ctx: *const C.Context(Q), tasks: *std.ArrayList(Task), producer: []u32, task: Task) !void {
+fn append(a: std.mem.Allocator, ctx: *const C.Context(Q), tasks: *std.ArrayList(Task), producer: []u32, task: Task, metrics: ?*BuildMetrics) !void {
     var obuf: [4]u32 = undefined;
     var ibuf: [6]u32 = undefined;
     const out = outputs(ctx, task, &obuf);
@@ -106,7 +106,17 @@ fn append(a: std.mem.Allocator, ctx: *const C.Context(Q), tasks: *std.ArrayList(
         if (producer[v] != missing) return error.DuplicateWitnessDefinition;
         producer[v] = index;
     }
+    const old_len = tasks.items.len;
+    const old_address = @intFromPtr(tasks.items.ptr);
+    var growth_timer: ?std.time.Timer = null;
+    if (metrics != null and tasks.items.len == tasks.capacity) growth_timer = try std.time.Timer.start();
     try tasks.append(a, task);
+    if (growth_timer) |*clock| {
+        const m = metrics.?;
+        m.task_growth_calls += 1;
+        m.task_growth_ns += clock.read();
+        if (@intFromPtr(tasks.items.ptr) != old_address) m.task_growth_copy_bytes += old_len * @sizeOf(Task);
+    }
 }
 pub const BuildMetrics = struct {
     producer_init_ns: u64 = 0,
@@ -117,20 +127,26 @@ pub const BuildMetrics = struct {
     ordering_ns: u64 = 0,
     ready_tasks: usize = 0,
     dfs_roots: usize = 0,
+    task_growth_calls: usize = 0,
+    task_growth_ns: u64 = 0,
+    task_growth_copy_bytes: usize = 0,
+    task_count: usize = 0,
+    task_capacity: usize = 0,
 };
 pub fn build(a: std.mem.Allocator, ctx: *const C.Context(Q)) !Plan {
     return buildProfiled(a, ctx, null);
 }
 pub fn buildProfiled(a: std.mem.Allocator, ctx: *const C.Context(Q), metrics: ?*BuildMetrics) !Plan {
-    return buildImpl(a, ctx, metrics, true);
+    return buildImpl(a, ctx, metrics, true, null);
 }
 /// Test oracle retains the original task-order DFS, including its independent
 /// discovery order. Production always uses the ready-variable fast path.
 pub fn buildDfsReference(a: std.mem.Allocator, ctx: *const C.Context(Q)) !Plan {
     if (!@import("builtin").is_test) @compileError("DFS reference is qualification-only");
-    return buildImpl(a, ctx, null, false);
+    return buildImpl(a, ctx, null, false, null);
 }
-fn buildImpl(a: std.mem.Allocator, ctx: *const C.Context(Q), metrics: ?*BuildMetrics, comptime ready_variables: bool) !Plan {
+fn buildImpl(a: std.mem.Allocator, ctx: *const C.Context(Q), metrics: ?*BuildMetrics, comptime ready_variables: bool, qualification_reserve: ?usize) !Plan {
+    if (!@import("builtin").is_test and qualification_reserve != null) return error.QualificationReserveOnly;
     var timer: std.time.Timer = undefined;
     if (metrics) |m| {
         m.* = .{};
@@ -158,13 +174,18 @@ fn buildImpl(a: std.mem.Allocator, ctx: *const C.Context(Q), metrics: ?*BuildMet
     if (metrics) |m| m.seeds_ns = timer.lap();
     var tasks: std.ArrayList(Task) = .empty;
     defer tasks.deinit(a);
-    for (metadata.origins.items, 0..) |origin, i| if (origin.kind != .seed) try append(a, ctx, &tasks, producer, .{ .kind = .hint, .index = @intCast(i) });
+    if (qualification_reserve) |capacity| try tasks.ensureTotalCapacityPrecise(a, capacity);
+    for (metadata.origins.items, 0..) |origin, i| if (origin.kind != .seed) try append(a, ctx, &tasks, producer, .{ .kind = .hint, .index = @intCast(i) }, metrics);
     const lists = .{ ctx.circuit.add.items, ctx.circuit.sub.items, ctx.circuit.mul.items, ctx.circuit.pointwise_mul.items, ctx.circuit.triple_xor.items, ctx.circuit.m31_to_u32.items, ctx.circuit.blake_g_gate.items };
     const kinds = [_]Kind{ .add, .sub, .mul, .pointwise_mul, .triple_xor, .m31_to_u32, .blake_g };
-    inline for (lists, kinds) |list, kind| for (list, 0..) |_, i| try append(a, ctx, &tasks, producer, .{ .kind = kind, .index = @intCast(i) });
-    for (0..ctx.circuit.permutation.len()) |i| try append(a, ctx, &tasks, producer, .{ .kind = .permutation, .index = @intCast(i) });
+    inline for (lists, kinds) |list, kind| for (list, 0..) |_, i| try append(a, ctx, &tasks, producer, .{ .kind = kind, .index = @intCast(i) }, metrics);
+    for (0..ctx.circuit.permutation.len()) |i| try append(a, ctx, &tasks, producer, .{ .kind = .permutation, .index = @intCast(i) }, metrics);
     for (producer) |p| if (p == missing) return error.WitnessDefinitionMissing;
-    if (metrics) |m| m.tasks_ns = timer.lap();
+    if (metrics) |m| {
+        m.tasks_ns = timer.lap();
+        m.task_count = tasks.items.len;
+        m.task_capacity = tasks.capacity;
+    }
     const levels = try a.alloc(u32, tasks.items.len);
     defer a.free(levels);
     @memset(levels, missing);
@@ -495,4 +516,80 @@ test "witness schedule ready-variable sweep retains DFS forward references and r
     };
     try std.testing.expectError(error.DuplicateWitnessDefinition, build(a, &ctx));
     try std.testing.expectError(error.DuplicateWitnessDefinition, buildDfsReference(a, &ctx));
+}
+
+test "witness task capacity audit: validated Blake arithmetic graphs and oracle reserve" {
+    const Tracker = struct {
+        live: usize = 0,
+        peak: usize = 0,
+        fn allocator(t: *@This()) std.mem.Allocator {
+            return .{ .ptr = t, .vtable = &.{ .alloc = alloc, .resize = resize, .remap = remap, .free = free } };
+        }
+        fn alloc(raw: *anyopaque, len: usize, alignment: std.mem.Alignment, ra: usize) ?[*]u8 {
+            const t: *@This() = @ptrCast(@alignCast(raw));
+            const ptr = std.heap.page_allocator.rawAlloc(len, alignment, ra) orelse return null;
+            t.live += len;
+            t.peak = @max(t.peak, t.live);
+            return ptr;
+        }
+        // Model large recycler growth beyond its existing rounded block:
+        // every growth must move. This is not production allocator telemetry.
+        fn resize(_: *anyopaque, _: []u8, _: std.mem.Alignment, _: usize, _: usize) bool {
+            return false;
+        }
+        fn remap(_: *anyopaque, _: []u8, _: std.mem.Alignment, _: usize, _: usize) ?[*]u8 {
+            return null;
+        }
+        fn free(raw: *anyopaque, memory: []u8, alignment: std.mem.Alignment, ra: usize) void {
+            const t: *@This() = @ptrCast(@alignCast(raw));
+            t.live -= memory.len;
+            std.heap.page_allocator.rawFree(memory, alignment, ra);
+        }
+    };
+    const B = @import("../builder/blake.zig");
+    const wrappers = @import("../builder/wrappers.zig");
+    const iv = @import("../builder/ivalue.zig");
+    for ([_]usize{ 1000, 25000, 250000 }) |rounds| {
+        var ctx = try C.Context(Q).initWithWitnessOrigins(std.heap.page_allocator, 1);
+        defer ctx.deinit();
+        const U = wrappers.U32Wrapper(C.Var);
+        var state: [4]U = undefined;
+        for (&state, 0..) |*value, i| value.* = .newUnsafe(try ctx.guess(iv.packU32(Q, @intCast(i + 17))));
+        const input = U.newUnsafe(try ctx.guess(iv.packU32(Q, 0xdeadbeef)));
+        const constant = U.newUnsafe(try ctx.constant(iv.packU32(Q, 123)));
+        var accumulator = try ctx.guess(Q.fromU32Unchecked(17, 3, 7, 11));
+        for (0..rounds) |i| {
+            state = try B.blakeGGate(Q, &ctx, state[0], state[1], state[2], state[3], input, constant);
+            accumulator = try ctx.add(try ctx.mul(accumulator, input.get()), state[i % 4].get());
+        }
+        try ctx.setOutputs(&.{accumulator});
+        try ctx.finalize(false);
+        try std.testing.expect(try ctx.isCircuitValid());
+        for (0..3) |trial| {
+            var moving = Tracker{};
+            var reserved = Tracker{};
+            var ordinary_metrics = BuildMetrics{};
+            var reserved_metrics = BuildMetrics{};
+            var clock = try std.time.Timer.start();
+            var ordinary = try buildProfiled(moving.allocator(), &ctx, &ordinary_metrics);
+            const ordinary_ns = clock.lap();
+            // Optimistic upper bound only: a previously validated plan supplies
+            // the exact count for free. No such oracle is used in production.
+            var exact = try buildImpl(reserved.allocator(), &ctx, &reserved_metrics, true, ordinary.tasks.len);
+            const reserved_ns = clock.read();
+            try std.testing.expectEqualDeep(ordinary.tasks, exact.tasks);
+            try std.testing.expectEqualDeep(ordinary.seeds, exact.seeds);
+            try std.testing.expectEqualSlices(usize, ordinary.level_ends, exact.level_ends);
+            if (trial == 0) {
+                const replayed = try evaluate(std.heap.page_allocator, &ctx, ordinary);
+                defer std.heap.page_allocator.free(replayed);
+                try std.testing.expectEqualDeep(ctx.values(), replayed);
+            }
+            std.debug.print("TASK_CAPACITY_AUDIT {{\"rounds\":{},\"trial\":{},\"variables\":{},\"tasks\":{},\"capacity\":{},\"growth_calls\":{},\"moved_bytes\":{},\"growth_ns\":{},\"tasks_ns\":{},\"plan_ns\":{},\"plan_allocator_peak_bytes\":{},\"oracle_capacity\":{},\"oracle_tasks_ns\":{},\"oracle_plan_ns\":{},\"oracle_plan_allocator_peak_bytes\":{}}}\n", .{ rounds, trial, ctx.circuit.n_vars, ordinary.tasks.len, ordinary_metrics.task_capacity, ordinary_metrics.task_growth_calls, ordinary_metrics.task_growth_copy_bytes, ordinary_metrics.task_growth_ns, ordinary_metrics.tasks_ns, ordinary_ns, moving.peak, reserved_metrics.task_capacity, reserved_metrics.tasks_ns, reserved_ns, reserved.peak });
+            ordinary.deinit();
+            exact.deinit();
+            try std.testing.expectEqual(@as(usize, 0), moving.live);
+            try std.testing.expectEqual(@as(usize, 0), reserved.live);
+        }
+    }
 }
