@@ -497,7 +497,10 @@ const Job = struct {
         const fixed_columns = try a.alloc(D.Column, self.trace.polys.items[0].len);
         defer a.free(fixed_columns);
         for (self.trace.polys.items[0], fixed_columns) |column, *out| out.* = try sourceColumn(column);
-        const immutable_fixed = try b.service.immutableFixed(raw, self.scope, fixed_columns);
+        // Explicit device FIXED setup already owns scoped coefficients through
+        // PCS. Do not clone its forest into a second immutable allocation.
+        const all_fixed_device = @import("fixed_forest_policy.zig").isDeviceOnly(fixed_columns);
+        const immutable_fixed = if (all_fixed_device) fixed_columns else try b.service.immutableFixed(raw, self.scope, fixed_columns);
         var host_cells: u64 = 0;
         var device_cells: u64 = 0;
         var device_copy_calls: usize = 0;

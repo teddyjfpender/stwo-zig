@@ -49,8 +49,17 @@ pub const Authority = struct {
     fixed: ?P.Scheme.CommittedTree,
     fixed_root: P.H.Hash,
     retired: bool = false,
+    device_fixed: bool = false,
     identity: [32]u8,
     pub fn init(a: std.mem.Allocator, pp: *const Preprocessed) !Authority {
+        return initImpl(a, pp, null);
+    }
+    /// PROVER ONLY: root must come from the caller's live trusted device
+    /// precommit of this exact PP. Independent receivers always use init().
+    pub fn initForDeviceProver(a: std.mem.Allocator, pp: *const Preprocessed, root: P.H.Hash) !Authority {
+        return initImpl(a, pp, root);
+    }
+    fn initImpl(a: std.mem.Allocator, pp: *const Preprocessed, device_root: ?P.H.Hash) !Authority {
         const bytes = try std.fs.cwd().readFileAlloc(a, Air.bundle_path, 64 << 20);
         defer a.free(bytes);
         var template = try parsePinnedAir(a, bytes);
@@ -60,24 +69,26 @@ pub const Authority = struct {
         _ = try validateGatherMass(logs, pp.n_outputs);
         var bound = try Air.bind(a, &template, logs, &layout);
         errdefer bound.deinit();
-        var scheme = try P.Engine.init(a, try P.targetConfig());
-        defer scheme.deinit(a);
-        var channel = P.Channel.init();
-        const columns = try a.alloc(Col, pp.columns.len);
-        defer a.free(columns);
+        var fixed: ?P.Scheme.CommittedTree = null;
+        errdefer if (fixed) |*tree| tree.deinit(a);
         var fixed_logs: [circuit.common.preprocessed.N_PREPROCESSED_COLUMNS]u32 = undefined;
-        for (columns, pp.columns, &fixed_logs) |*out, column, *log| {
-            log.* = column.logSize();
-            out.* = .{ .log_size = log.*, .values = column.values };
-        }
-        try scheme.commit(a, columns, &channel);
-        var fixed = scheme.trees.orderedRemove(0);
-        errdefer fixed.deinit(a);
-        try fixed.share(a);
+        for (pp.columns, &fixed_logs) |column, *log| log.* = column.logSize();
+        const root = if (device_root) |root| root else blk: {
+            var scheme = try P.Engine.init(a, try P.targetConfig());
+            defer scheme.deinit(a);
+            var channel = P.Channel.init();
+            const columns = try a.alloc(Col, pp.columns.len);
+            defer a.free(columns);
+            for (columns, pp.columns, fixed_logs) |*out, column, log| out.* = .{ .log_size = log, .values = column.values };
+            try scheme.commit(a, columns, &channel);
+            fixed = scheme.trees.orderedRemove(0);
+            try fixed.?.share(a);
+            break :blk fixed.?.root();
+        };
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
         hash.update(P.domain);
         hash.update(Air.bundle_sha256);
-        hash.update(&fixed.root());
+        hash.update(&root);
         var word: [4]u8 = undefined;
         for (logs.toArray()) |log| {
             std.mem.writeInt(u32, &word, log, .little);
@@ -85,7 +96,7 @@ pub const Authority = struct {
         }
         std.mem.writeInt(u32, &word, @intCast(pp.n_outputs), .little);
         hash.update(&word);
-        return .{ .allocator = a, .pp = pp, .layout = layout, .logs = logs, .fixed_logs = fixed_logs, .bound = bound, .fixed = fixed, .fixed_root = fixed.root(), .identity = hash.finalResult() };
+        return .{ .allocator = a, .pp = pp, .layout = layout, .logs = logs, .fixed_logs = fixed_logs, .bound = bound, .fixed = fixed, .fixed_root = root, .device_fixed = device_root != null, .identity = hash.finalResult() };
     }
     pub fn deinit(self: *Authority) void {
         if (self.fixed) |*fixed| fixed.deinit(self.allocator);
@@ -96,11 +107,11 @@ pub const Authority = struct {
         return self.fixed_root;
     }
     pub fn requireProverData(self: *const Authority) !void {
-        if (self.retired or self.fixed == null) return error.Om31CircuitProverDataRetired;
+        if (self.retired or (self.fixed == null and !self.device_fixed)) return error.Om31CircuitProverDataRetired;
     }
     pub fn retainFixed(self: *const Authority) !P.Scheme.CommittedTree {
         try self.requireProverData();
-        return self.fixed.?.retainShared();
+        return (self.fixed orelse return error.Om31CircuitDeviceFixedRequiresDeviceProver).retainShared();
     }
     /// Keep the original verifier root, geometry and bound AIR, while releasing
     /// FIXED polynomial buffers no longer needed after a completed proof.
@@ -166,6 +177,7 @@ pub fn bind(a: std.mem.Allocator, key: *const Authority, z: O, alpha: O, claims:
 }
 pub fn prove(a: std.mem.Allocator, key: *const Authority, values: []const Q) !Produced {
     try key.requireProverData();
+    if (key.fixed == null) return error.Om31CircuitDeviceFixedRequiresDeviceProver;
     var base = try circuit.witness.trace.writeTrace(a, values, key.pp);
     defer base.deinit();
     if (!std.meta.eql(base.log_sizes, key.logs)) return error.InvalidOm31CircuitGeometry;

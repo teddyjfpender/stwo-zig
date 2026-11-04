@@ -65,7 +65,14 @@ pub const Context = struct {
     }
     fn commit(raw: *anyopaque, a: std.mem.Allocator, request: D.TraceCommitRequest) !D.Tree {
         const self: *Context = @ptrCast(@alignCast(raw));
-        if (request.tree_index < 1 or request.tree_index > 2 or request.columns.len == 0 or request.columns.len > 65535) return error.InvalidTraceCommitRequest;
+        return self.commitImpl(a, request, false);
+    }
+    /// Explicit fixed-prover setup; ordinary MAIN/INTER admission is unchanged.
+    pub fn commitFixed(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest) !D.Tree {
+        return self.commitImpl(a, request, true);
+    }
+    fn commitImpl(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, fixed: bool) !D.Tree {
+        if ((fixed and request.tree_index != 0) or (!fixed and request.tree_index < 1) or request.tree_index > 2 or request.columns.len == 0 or request.columns.len > 65535) return error.InvalidTraceCommitRequest;
         if (request.expected_main_root) |expected| {
             if (request.tree_index != 1 or std.mem.allEqual(u8, &expected, 0) or (!std.mem.allEqual(u8, &request.scope.main, 0) and !std.mem.eql(u8, &request.scope.main, &expected))) return error.InvalidTraceReplayScope;
         } else if (request.tree_index == 1 and !std.mem.allEqual(u8, &request.scope.main, 0)) return error.InvalidTraceCommitRequest;

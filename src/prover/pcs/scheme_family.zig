@@ -314,7 +314,7 @@ pub fn ForField(comptime Secure: type) type {
                 pub fn adoptDeviceOm31TraceTree(self: *Self, index: u32, tree: prover_api.device_pcs.Tree, channel: anytype) !void {
                     const D = prover_api.device_pcs;
                     if (comptime Secure != D.O or H != D.H or @TypeOf(channel.*) != D.Channel) return error.UnsupportedDevicePcsProtocol;
-                    if (self.revision_config != null or index < 1 or index > 2 or tree.columns.len == 0 or self.device_om31_trace_trees[index] != null) return error.InvalidDeviceTraceTree;
+                    if (self.revision_config != null or index > 2 or tree.columns.len == 0 or self.device_om31_trace_trees[index] != null) return error.InvalidDeviceTraceTree;
                     if (scheme_views.traceTreeCount(self) != index) return error.InvalidDeviceTraceTreeOrder;
                     var token: ?u64 = null;
                     for (tree.columns) |column| {
@@ -474,7 +474,7 @@ pub fn ForField(comptime Secure: type) type {
                             return result;
                         } else return error.UnsupportedDevicePcsProtocol;
                     }
-                    if (scheme.device_om31_composition_tree != null or scheme.device_om31_trace_trees[1] != null or scheme.device_om31_trace_trees[2] != null) return error.DeviceCompositionRequiresDevicePcs;
+                    if (scheme.device_om31_composition_tree != null or scheme.device_om31_trace_trees[0] != null or scheme.device_om31_trace_trees[1] != null or scheme.device_om31_trace_trees[2] != null) return error.DeviceCompositionRequiresDevicePcs;
                     const sampled_values = blk: {
                         var sampled_value_eval_stage = try stage_profile.StageScope.begin(
                             recorder,

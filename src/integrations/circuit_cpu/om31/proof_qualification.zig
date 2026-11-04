@@ -25,6 +25,12 @@ test "om31 outer actual q108 P20 circuit proof fresh receiver and mutations" {
     defer pp.deinit(a);
     var key = try Prove.Authority.init(a, &pp);
     defer key.deinit();
+    var device_key = try Prove.Authority.initForDeviceProver(a, &pp, key.fixedRoot());
+    defer device_key.deinit();
+    try std.testing.expectEqual(key.identity, device_key.identity);
+    try std.testing.expectEqual(key.fixed_logs, device_key.fixed_logs);
+    try std.testing.expect(device_key.fixed == null and device_key.device_fixed);
+    try std.testing.expectError(error.Om31CircuitDeviceFixedRequiresDeviceProver, Prove.prove(a, &device_key, ctx.values()));
     var timer = try std.time.Timer.start();
     var proof = try Prove.prove(a, &key, ctx.values());
     defer proof.deinit();
@@ -32,6 +38,14 @@ test "om31 outer actual q108 P20 circuit proof fresh receiver and mutations" {
     var capture = try Prove.verify(a, &key, proof.outputs, proof.claims, &proof.proof.proof);
     defer capture.deinit(a);
     const verify_ns = timer.lap();
+    var device_capture = try Prove.verify(a, &device_key, proof.outputs, proof.claims, &proof.proof.proof);
+    defer device_capture.deinit(a);
+    var wrong_root = key.fixedRoot();
+    wrong_root[0] ^= 1;
+    var wrong_key = try Prove.Authority.initForDeviceProver(a, &pp, wrong_root);
+    defer wrong_key.deinit();
+    try rejected(a, &wrong_key, &proof);
+
     try std.testing.expectEqual(@as(u32, 108), proof.proof.proof.commitment_scheme_proof.config.fri_config.n_queries);
     try std.testing.expectEqual(@as(u32, 20), proof.proof.proof.commitment_scheme_proof.config.pow_bits);
     proof.claims.eq = proof.claims.eq.add(P.O.basis());
