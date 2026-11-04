@@ -1,0 +1,131 @@
+{
+  "status": "production-parity-PASS-independent-CPU-receiver-pending",
+  "accepted": false,
+  "default_enabled": false,
+  "trials": [
+    {
+      "case": "off",
+      "trial": 0,
+      "prove_ns": 12205234528,
+      "capture_ns": 5684392360,
+      "setup_ns": 25642626011,
+      "gkr_adapter_ns": 920349683,
+      "gkr_kernel_launches": 15190,
+      "batch_fold_sum_calls": 0,
+      "batch_fold_sum_launches": 0,
+      "counter_scope": "one complete native block/trial, summed over seven CPU proofs"
+    },
+    {
+      "case": "off",
+      "trial": 1,
+      "prove_ns": 10335603778,
+      "capture_ns": 5353917071,
+      "setup_ns": 206312158,
+      "gkr_adapter_ns": 845401701,
+      "gkr_kernel_launches": 15190,
+      "batch_fold_sum_calls": 0,
+      "batch_fold_sum_launches": 0,
+      "counter_scope": "one complete native block/trial, summed over seven CPU proofs"
+    },
+    {
+      "case": "on",
+      "trial": 0,
+      "prove_ns": 12598601206,
+      "capture_ns": 5665078577,
+      "setup_ns": 25650913526,
+      "gkr_adapter_ns": 918689599,
+      "gkr_kernel_launches": 15514,
+      "batch_fold_sum_calls": 2076,
+      "batch_fold_sum_launches": 3337,
+      "counter_scope": "one complete native block/trial, summed over seven CPU proofs"
+    },
+    {
+      "case": "on",
+      "trial": 1,
+      "prove_ns": 10519389613,
+      "capture_ns": 5411224978,
+      "setup_ns": 202249781,
+      "gkr_adapter_ns": 852447095,
+      "gkr_kernel_launches": 15514,
+      "batch_fold_sum_calls": 2076,
+      "batch_fold_sum_launches": 3337,
+      "counter_scope": "one complete native block/trial, summed over seven CPU proofs"
+    }
+  ],
+  "producer_seconds": 153.07150544901378,
+  "runtime_sha256": "7ece93dc4ddc17bfab1b10e03fe1980e33cfa9f0d2b8ab38530a0567c486c1fb",
+  "binary_sha256": "4129dda6dfd47eb8e5982b28c8c00bc38c8c43ef361d20c8e34968dec17f94df",
+  "plan_sha256": {
+    "off": "58461a11ceba10c6dd682e24e31aaea52397348e0df6f7d95aff9b0421726dfe",
+    "on": "a73387bbf9a7905f9a121f44ee8f739f1df4bec8e0ef784a250b988277e5ef5a"
+  },
+  "schema": "rv64-gkr-batched-fold-next-sum-real-block-ab/v1",
+  "source_commit": "cda4bd8df",
+  "block": 24628607,
+  "hardware": "1xRTX5090",
+  "profile": "conjectured128_b2_q108_p20_fold4;128-bit target under documented assumptions",
+  "schedule": {
+    "lanes": 1,
+    "workers_per_lane": 8
+  },
+  "device_cap_bytes": 30064771072,
+  "immutable_device_bytes": 2147483648,
+  "immutable_host_key_bytes": 4294967296,
+  "environment": {
+    "CUDA_MODULE_LOADING": "EAGER",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_GPU_DEVICE_TRACE": "1",
+    "STWO_RV64_GPU_DEVICE_BINDING": "1"
+  },
+  "artifact_sha256": {
+    "cells.bin": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1",
+    "cpu-0.bin": "cac9c335bf241d149c9e18cfd586b452772840815c79bfceaa635baeaab701dc",
+    "cpu-1.bin": "6577164eeea71a3d125fef5e541c7f9bb1a7ee28fbf78a10114df4f1180703b0",
+    "cpu-2.bin": "84195a81e9f07ec36178fc661d5a5417a6f23ce07e95f1520cfd48292346051f",
+    "cpu-3.bin": "dab97ee3286b07ff75fbe558234ed395fc4611108a1ad3723433daae1b532fba",
+    "cpu-4.bin": "881469a76adb62af859af8aab845347116b8710585f7f4a6932a9027af95a531",
+    "cpu-5.bin": "11f1f6803999416ac991d9186ec4cdc8d3ee8fb790d3bc1f1442ebcfdd0190d3",
+    "cpu-6.bin": "0b97341fbe90dd30c6e1744f95864f5e4d92efb45d429bdfc5e2eacb58b7ed9a",
+    "stage-one.bin": "7fec3b71d5243d3aae41ae92d80b0b5c6a97eedec3b2a8b04aaf6e5765bd0598",
+    "truth-0.bin": "232cd69be3048f1afd1e01d5c074c38760b4dbda540bfcddc3b3cc0769b09d4b",
+    "truth-1.bin": "b783e801c3611f78bd141dda63fa9e0bd409c529109995d2f1e7dc12453a0410",
+    "truth-2.bin": "60c0640e426c5244ac61ea1aa13cb9fa1f5f170817aefdfbfe27c397ca1d1651",
+    "truth-3.bin": "f85c229528814b1527d8c2c6336f9aa50aa9964e9a3858aa306f56f46fbd43dd",
+    "truth-4.bin": "e6b67f1417c0181bb6f460b293383d6dd9a55734eed62711a38999cc5717bc0f",
+    "truth-5.bin": "e7da39cb6c2cfafd3b5e578e0b1b056cf86184becf955531a17074b7ce56bfe3",
+    "truth-6.bin": "966b549031f9f51b1613b7ae7aab94fcbae6afa3792ecc3c1246fdebb8c7ddb5",
+    "truth-7.bin": "588690cb3be8cd39379fbbf315eb35e747ec6cfa09988741a229afb321216d98",
+    "truth-8.bin": "8b0ec4a14e36b1741350624e5931c62b00b41bf53425ad583d198967ef7d306f",
+    "truth-9.bin": "dc4c4cac1e2cea7d96eb8e501b092cb76635ef19218e475008c170d99b83d839",
+    "bundle.json": "eed289d3d554135c1b01d6bcb4a6e093907f4a4e737a203c1e8f6b9fc0259edf"
+  },
+  "exact_parity_across_all_four_trials": true,
+  "independent_cpu_receiver_pending": true,
+  "remote_cpu_receiver_overlap": false,
+  "instrumented_by_profiler": false,
+  "default_decision": "Keep OFF: this single controlled cold/warm pair shows no improvement",
+  "interpretation": "Warm native proving rose1.78%, GKRadapter0.83%, launchcount324. These are single-run observations, not robust performance bounds. Mixed-height waking oracles still need ordinary sum kernels while active ones prefetch, splitting formerly batched work. No causality claimed for every wall-time difference.",
+  "remaining": [
+    "Independent fresh CPU receiver on current request",
+    "New-kernel sanitizer qualification",
+    "Further selective-fusion engineering and controlled performance before any default change"
+  ],
+  "log_sha256": {
+    "off": {
+      "producer.stderr": "3de3709f218f63509a0d06c8eaae95cea182c1069c6ae535c45774dd0792a371",
+      "producer.stdout": "be9ae92de615c174e4cbdeda26b97aae461e5cfff31a664447836cd98d6cfdc8"
+    },
+    "on": {
+      "producer.stderr": "3cf449676de6a6748cb47940c3ea6e03a118819b48c39082c0092f9aaa6da5c8",
+      "producer.stdout": "4a0dadd1c645b8a4887cf280edc72ede81a5572ca169f7687dc10f8445c36728"
+    }
+  },
+  "sampled_device_memory": {
+    "off_peak_used_bytes": 33665581056,
+    "on_peak_used_bytes": 33665581056,
+    "scope": "200ms sampled whole-device including driver/private-pool idle pages; not exact process/live witness peak",
+    "off_samples": 308,
+    "on_samples": 309
+  }
+}
