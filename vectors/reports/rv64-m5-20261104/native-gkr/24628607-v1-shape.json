@@ -1,0 +1,159 @@
+{
+ "schema": "rv64-native-gkr-shape/v1",
+ "label": "D (exact from the v1 roster)",
+ "proofs": [
+  {
+   "proof": "cpu-0",
+   "instances": 64,
+   "layers": 26,
+   "gkr_facts": 135208864,
+   "binding_pairs": 38,
+   "v1_inter_cells": 140417024,
+   "section_bytes": 180912
+  },
+  {
+   "proof": "cpu-1",
+   "instances": 53,
+   "layers": 26,
+   "gkr_facts": 106132608,
+   "binding_pairs": 34,
+   "v1_inter_cells": 112951808,
+   "section_bytes": 148976
+  },
+  {
+   "proof": "cpu-2",
+   "instances": 61,
+   "layers": 26,
+   "gkr_facts": 107458048,
+   "binding_pairs": 37,
+   "v1_inter_cells": 113795072,
+   "section_bytes": 163184
+  },
+  {
+   "proof": "cpu-3",
+   "instances": 61,
+   "layers": 26,
+   "gkr_facts": 107648896,
+   "binding_pairs": 37,
+   "v1_inter_cells": 115716608,
+   "section_bytes": 163440
+  },
+  {
+   "proof": "cpu-4",
+   "instances": 59,
+   "layers": 26,
+   "gkr_facts": 106676864,
+   "binding_pairs": 36,
+   "v1_inter_cells": 113251328,
+   "section_bytes": 162288
+  },
+  {
+   "proof": "cpu-5",
+   "instances": 56,
+   "layers": 26,
+   "gkr_facts": 115361472,
+   "binding_pairs": 35,
+   "v1_inter_cells": 114391040,
+   "section_bytes": 157744
+  },
+  {
+   "proof": "cpu-6",
+   "instances": 40,
+   "layers": 25,
+   "gkr_facts": 83495264,
+   "binding_pairs": 27,
+   "v1_inter_cells": 82093056,
+   "section_bytes": 128432
+  },
+  {
+   "proof": "truth-0",
+   "instances": 4,
+   "layers": 27,
+   "gkr_facts": 153157632,
+   "binding_pairs": 3,
+   "v1_inter_cells": 38797312,
+   "section_bytes": 56496
+  },
+  {
+   "proof": "truth-1",
+   "instances": 4,
+   "layers": 23,
+   "gkr_facts": 11599872,
+   "binding_pairs": 3,
+   "v1_inter_cells": 34865152,
+   "section_bytes": 42928
+  },
+  {
+   "proof": "truth-2",
+   "instances": 4,
+   "layers": 26,
+   "gkr_facts": 77660160,
+   "binding_pairs": 3,
+   "v1_inter_cells": 36700160,
+   "section_bytes": 52912
+  },
+  {
+   "proof": "truth-3",
+   "instances": 2,
+   "layers": 24,
+   "gkr_facts": 16842752,
+   "binding_pairs": 1,
+   "v1_inter_cells": 131072,
+   "section_bytes": 40624
+  },
+  {
+   "proof": "truth-4",
+   "instances": 2,
+   "layers": 22,
+   "gkr_facts": 4210688,
+   "binding_pairs": 1,
+   "v1_inter_cells": 32768,
+   "section_bytes": 34352
+  },
+  {
+   "proof": "truth-5",
+   "instances": 2,
+   "layers": 19,
+   "gkr_facts": 526336,
+   "binding_pairs": 1,
+   "v1_inter_cells": 4096,
+   "section_bytes": 25904
+  },
+  {
+   "proof": "truth-6",
+   "instances": 2,
+   "layers": 23,
+   "gkr_facts": 8421376,
+   "binding_pairs": 1,
+   "v1_inter_cells": 131072,
+   "section_bytes": 37424
+  },
+  {
+   "proof": "truth-7",
+   "instances": 2,
+   "layers": 21,
+   "gkr_facts": 2105344,
+   "binding_pairs": 1,
+   "v1_inter_cells": 32768,
+   "section_bytes": 31408
+  },
+  {
+   "proof": "truth-8",
+   "instances": 1,
+   "layers": 14,
+   "gkr_facts": 16384,
+   "binding_pairs": 1,
+   "v1_inter_cells": 65536,
+   "section_bytes": 13552
+  },
+  {
+   "proof": "truth-9",
+   "instances": 2,
+   "layers": 17,
+   "gkr_facts": 135168,
+   "binding_pairs": 1,
+   "v1_inter_cells": 8192,
+   "section_bytes": 21296
+  }
+ ]
+}

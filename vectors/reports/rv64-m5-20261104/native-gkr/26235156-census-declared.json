@@ -14,7 +14,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.rom",
@@ -24,7 +26,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.boundary",
@@ -34,7 +38,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.alu",
@@ -44,7 +50,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.binary",
@@ -54,7 +62,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.shift",
@@ -64,7 +74,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.jalr",
@@ -74,7 +86,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.division",
@@ -84,7 +98,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.multiplication",
@@ -94,7 +110,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.shift_table",
@@ -104,7 +122,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.and_table",
@@ -114,7 +134,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.range16",
@@ -124,7 +146,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.range8",
@@ -134,7 +158,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.ls",
@@ -144,7 +170,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "core.initial",
@@ -154,7 +182,9 @@
      "binding_cols": 0,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
     },
     {
      "name": "core.terminal",
@@ -164,7 +194,9 @@
      "binding_cols": 0,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
     },
     {
      "name": "core.selection",
@@ -174,7 +206,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.ls_tail",
@@ -184,7 +218,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "core.alu_tail",
@@ -194,7 +230,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.shift_tail",
@@ -204,7 +242,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "bridge.keccak",
@@ -214,7 +254,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 16,
-     "other_relation": "kio"
+     "other_relation": "kio",
+     "ram_queries": 2,
+     "other_queries": 2
     },
     {
      "name": "bridge.add",
@@ -224,7 +266,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 16,
-     "other_relation": "wire"
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
     },
     {
      "name": "bridge.double",
@@ -234,7 +278,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 16,
-     "other_relation": "wire"
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
     },
     {
      "name": "bridge.sha256",
@@ -244,7 +290,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 16,
-     "other_relation": "wire"
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
     },
     {
      "name": "bulk.desc",
@@ -254,7 +302,9 @@
      "binding_cols": 16,
      "ram_cols": 32,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 6,
+     "other_queries": 0
     },
     {
      "name": "bulk.copy",
@@ -264,7 +314,9 @@
      "binding_cols": 16,
      "ram_cols": 24,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
     },
     {
      "name": "bulk.set",
@@ -274,7 +326,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "bulk.ucopy",
@@ -284,7 +338,9 @@
      "binding_cols": 16,
      "ram_cols": 24,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
     },
     {
      "name": "bulk.cdesc",
@@ -294,7 +350,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 8,
+     "other_queries": 0
     },
     {
      "name": "bulk.cmp",
@@ -304,7 +362,9 @@
      "binding_cols": 16,
      "ram_cols": 24,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
     },
     {
      "name": "bulk.jdesc",
@@ -314,7 +374,9 @@
      "binding_cols": 16,
      "ram_cols": 32,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 6,
+     "other_queries": 0
     },
     {
      "name": "bulk.jscan",
@@ -324,7 +386,9 @@
      "binding_cols": 16,
      "ram_cols": 80,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 18,
+     "other_queries": 0
     },
     {
      "name": "bulk.jtab",
@@ -334,7 +398,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "sponge.call",
@@ -344,7 +410,9 @@
      "binding_cols": 16,
      "ram_cols": 240,
      "other_cols": 208,
-     "other_relation": "kio"
+     "other_relation": "kio",
+     "ram_queries": 58,
+     "other_queries": 50
     },
     {
      "name": "sponge.perm",
@@ -354,7 +422,9 @@
      "binding_cols": 16,
      "ram_cols": 152,
      "other_cols": 208,
-     "other_relation": "kio"
+     "other_relation": "kio",
+     "ram_queries": 36,
+     "other_queries": 50
     },
     {
      "name": "dword.0",
@@ -364,7 +434,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "dword.1",
@@ -374,7 +446,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     }
    ],
    "main_cells": 312780064,
@@ -391,7 +465,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.rom",
@@ -401,7 +477,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.boundary",
@@ -411,7 +489,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.alu",
@@ -421,7 +501,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.binary",
@@ -431,7 +513,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.shift",
@@ -441,7 +525,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.jalr",
@@ -451,7 +537,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.division",
@@ -461,7 +549,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.multiplication",
@@ -471,7 +561,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.shift_table",
@@ -481,7 +573,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.and_table",
@@ -491,7 +585,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.range16",
@@ -501,7 +597,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.range8",
@@ -511,7 +609,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.ls",
@@ -521,7 +621,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "core.initial",
@@ -531,7 +633,9 @@
      "binding_cols": 0,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
     },
     {
      "name": "core.terminal",
@@ -541,7 +645,9 @@
      "binding_cols": 0,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
     },
     {
      "name": "core.selection",
@@ -551,7 +657,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.alu_tail",
@@ -561,7 +669,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.binary_tail",
@@ -571,7 +681,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "bridge.keccak",
@@ -581,7 +693,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 16,
-     "other_relation": "kio"
+     "other_relation": "kio",
+     "ram_queries": 2,
+     "other_queries": 2
     },
     {
      "name": "bridge.add",
@@ -591,7 +705,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 16,
-     "other_relation": "wire"
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
     },
     {
      "name": "bridge.double",
@@ -601,7 +717,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 16,
-     "other_relation": "wire"
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
     },
     {
      "name": "bridge.arith256_mod",
@@ -611,7 +729,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 16,
-     "other_relation": "wire"
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
     },
     {
      "name": "bulk.desc",
@@ -621,7 +741,9 @@
      "binding_cols": 16,
      "ram_cols": 32,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 6,
+     "other_queries": 0
     },
     {
      "name": "bulk.copy",
@@ -631,7 +753,9 @@
      "binding_cols": 16,
      "ram_cols": 24,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
     },
     {
      "name": "bulk.set",
@@ -641,7 +765,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "bulk.ucopy",
@@ -651,7 +777,9 @@
      "binding_cols": 16,
      "ram_cols": 24,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
     },
     {
      "name": "bulk.cdesc",
@@ -661,7 +789,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 8,
+     "other_queries": 0
     },
     {
      "name": "bulk.cmp",
@@ -671,7 +801,9 @@
      "binding_cols": 16,
      "ram_cols": 24,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
     },
     {
      "name": "bulk.jdesc",
@@ -681,7 +813,9 @@
      "binding_cols": 16,
      "ram_cols": 32,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 6,
+     "other_queries": 0
     },
     {
      "name": "bulk.jscan",
@@ -691,7 +825,9 @@
      "binding_cols": 16,
      "ram_cols": 80,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 18,
+     "other_queries": 0
     },
     {
      "name": "bulk.jtab",
@@ -701,7 +837,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "sponge.call",
@@ -711,7 +849,9 @@
      "binding_cols": 16,
      "ram_cols": 240,
      "other_cols": 208,
-     "other_relation": "kio"
+     "other_relation": "kio",
+     "ram_queries": 58,
+     "other_queries": 50
     },
     {
      "name": "sponge.perm",
@@ -721,7 +861,9 @@
      "binding_cols": 16,
      "ram_cols": 152,
      "other_cols": 208,
-     "other_relation": "kio"
+     "other_relation": "kio",
+     "ram_queries": 36,
+     "other_queries": 50
     },
     {
      "name": "dword.0",
@@ -731,7 +873,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "dword.1",
@@ -741,7 +885,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     }
    ],
    "main_cells": 285622272,
@@ -758,7 +904,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.rom",
@@ -768,7 +916,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.boundary",
@@ -778,7 +928,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.alu",
@@ -788,7 +940,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.binary",
@@ -798,7 +952,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.shift",
@@ -808,7 +964,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.jalr",
@@ -818,7 +976,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.division",
@@ -828,7 +988,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.multiplication",
@@ -838,7 +1000,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.shift_table",
@@ -848,7 +1012,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.and_table",
@@ -858,7 +1024,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.range16",
@@ -868,7 +1036,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.range8",
@@ -878,7 +1048,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.ls",
@@ -888,7 +1060,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "core.initial",
@@ -898,7 +1072,9 @@
      "binding_cols": 0,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
     },
     {
      "name": "core.terminal",
@@ -908,7 +1084,9 @@
      "binding_cols": 0,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
     },
     {
      "name": "core.selection",
@@ -918,7 +1096,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.ls_tail",
@@ -928,7 +1108,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "core.alu_tail",
@@ -938,7 +1120,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.binary_tail",
@@ -948,7 +1132,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.shift_tail",
@@ -958,7 +1144,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "bridge.keccak",
@@ -968,7 +1156,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 16,
-     "other_relation": "kio"
+     "other_relation": "kio",
+     "ram_queries": 2,
+     "other_queries": 2
     },
     {
      "name": "bridge.add",
@@ -978,7 +1168,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 16,
-     "other_relation": "wire"
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
     },
     {
      "name": "bridge.double",
@@ -988,7 +1180,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 16,
-     "other_relation": "wire"
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
     },
     {
      "name": "bridge.sha256",
@@ -998,7 +1192,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 16,
-     "other_relation": "wire"
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
     },
     {
      "name": "bridge.arith256_mod",
@@ -1008,7 +1204,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 16,
-     "other_relation": "wire"
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
     },
     {
      "name": "bulk.desc",
@@ -1018,7 +1216,9 @@
      "binding_cols": 16,
      "ram_cols": 32,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 6,
+     "other_queries": 0
     },
     {
      "name": "bulk.copy",
@@ -1028,7 +1228,9 @@
      "binding_cols": 16,
      "ram_cols": 24,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
     },
     {
      "name": "bulk.set",
@@ -1038,7 +1240,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "bulk.ucopy",
@@ -1048,7 +1252,9 @@
      "binding_cols": 16,
      "ram_cols": 24,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
     },
     {
      "name": "bulk.jdesc",
@@ -1058,7 +1264,9 @@
      "binding_cols": 16,
      "ram_cols": 32,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 6,
+     "other_queries": 0
     },
     {
      "name": "bulk.jscan",
@@ -1068,7 +1276,9 @@
      "binding_cols": 16,
      "ram_cols": 80,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 18,
+     "other_queries": 0
     },
     {
      "name": "bulk.jtab",
@@ -1078,7 +1288,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "sponge.call",
@@ -1088,7 +1300,9 @@
      "binding_cols": 16,
      "ram_cols": 240,
      "other_cols": 208,
-     "other_relation": "kio"
+     "other_relation": "kio",
+     "ram_queries": 58,
+     "other_queries": 50
     },
     {
      "name": "sponge.perm",
@@ -1098,7 +1312,9 @@
      "binding_cols": 16,
      "ram_cols": 152,
      "other_cols": 208,
-     "other_relation": "kio"
+     "other_relation": "kio",
+     "ram_queries": 36,
+     "other_queries": 50
     },
     {
      "name": "dword.0",
@@ -1108,7 +1324,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "dword.1",
@@ -1118,7 +1336,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     }
    ],
    "main_cells": 276192928,
@@ -1135,7 +1355,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.rom",
@@ -1145,7 +1367,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.boundary",
@@ -1155,7 +1379,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.alu",
@@ -1165,7 +1391,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.binary",
@@ -1175,7 +1403,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.shift",
@@ -1185,7 +1415,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.jalr",
@@ -1195,7 +1427,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.multiplication",
@@ -1205,7 +1439,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.shift_table",
@@ -1215,7 +1451,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.and_table",
@@ -1225,7 +1463,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.range16",
@@ -1235,7 +1475,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.range8",
@@ -1245,7 +1487,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.ls",
@@ -1255,7 +1499,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "core.initial",
@@ -1265,7 +1511,9 @@
      "binding_cols": 0,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
     },
     {
      "name": "core.terminal",
@@ -1275,7 +1523,9 @@
      "binding_cols": 0,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
     },
     {
      "name": "core.selection",
@@ -1285,7 +1535,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "core.ls_tail",
@@ -1295,7 +1547,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "core.alu_tail",
@@ -1305,7 +1559,9 @@
      "binding_cols": 16,
      "ram_cols": 0,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
     },
     {
      "name": "bridge.keccak",
@@ -1315,7 +1571,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 16,
-     "other_relation": "kio"
+     "other_relation": "kio",
+     "ram_queries": 2,
+     "other_queries": 2
     },
     {
      "name": "bridge.add",
@@ -1325,7 +1583,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 16,
-     "other_relation": "wire"
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
     },
     {
      "name": "bridge.double",
@@ -1335,7 +1595,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 16,
-     "other_relation": "wire"
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
     },
     {
      "name": "bridge.sha256",
@@ -1345,7 +1607,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 16,
-     "other_relation": "wire"
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
     },
     {
      "name": "bulk.desc",
@@ -1355,7 +1619,9 @@
      "binding_cols": 16,
      "ram_cols": 32,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 6,
+     "other_queries": 0
     },
     {
      "name": "bulk.copy",
@@ -1365,7 +1631,9 @@
      "binding_cols": 16,
      "ram_cols": 24,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
     },
     {
      "name": "bulk.set",
@@ -1375,7 +1643,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "bulk.ucopy",
@@ -1385,7 +1655,9 @@
      "binding_cols": 16,
      "ram_cols": 24,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
     },
     {
      "name": "bulk.cdesc",
@@ -1395,7 +1667,9 @@
      "binding_cols": 16,
      "ram_cols": 40,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 8,
+     "other_queries": 0
     },
     {
      "name": "bulk.cmp",
@@ -1405,7 +1679,9 @@
      "binding_cols": 16,
      "ram_cols": 24,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
     },
     {
      "name": "sponge.call",
@@ -1415,7 +1691,9 @@
      "binding_cols": 16,
      "ram_cols": 240,
      "other_cols": 208,
-     "other_relation": "kio"
+     "other_relation": "kio",
+     "ram_queries": 58,
+     "other_queries": 50
     },
     {
      "name": "sponge.perm",
@@ -1425,7 +1703,9 @@
      "binding_cols": 16,
      "ram_cols": 152,
      "other_cols": 208,
-     "other_relation": "kio"
+     "other_relation": "kio",
+     "ram_queries": 36,
+     "other_queries": 50
     },
     {
      "name": "dword.0",
@@ -1435,7 +1715,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     },
     {
      "name": "dword.1",
@@ -1445,7 +1727,9 @@
      "binding_cols": 16,
      "ram_cols": 16,
      "other_cols": 0,
-     "other_relation": "none"
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
     }
    ],
    "main_cells": 306641600,
@@ -1468,7 +1752,10 @@
      "main_cols": 1923,
      "local_cols": 1152,
      "global_cols": 408,
-     "global_relation": "kio"
+     "global_relation": "kio",
+     "local_queries": 427,
+     "global_queries": 50,
+     "queries_exact": true
     },
     {
      "kind": "chi",
@@ -1476,7 +1763,10 @@
      "main_cols": 1,
      "local_cols": 16,
      "global_cols": 0,
-     "global_relation": "none"
+     "global_relation": "none",
+     "local_queries": 1,
+     "global_queries": 0,
+     "queries_exact": true
     },
     {
      "kind": "xor5",
@@ -1484,7 +1774,10 @@
      "main_cols": 1,
      "local_cols": 16,
      "global_cols": 0,
-     "global_relation": "none"
+     "global_relation": "none",
+     "local_queries": 1,
+     "global_queries": 0,
+     "queries_exact": true
     }
    ],
    "main_cells": 506265600,
@@ -1504,7 +1797,10 @@
      "main_cols": 1923,
      "local_cols": 1152,
      "global_cols": 408,
-     "global_relation": "kio"
+     "global_relation": "kio",
+     "local_queries": 427,
+     "global_queries": 50,
+     "queries_exact": true
     },
     {
      "kind": "chi",
@@ -1512,7 +1808,10 @@
      "main_cols": 1,
      "local_cols": 16,
      "global_cols": 0,
-     "global_relation": "none"
+     "global_relation": "none",
+     "local_queries": 1,
+     "global_queries": 0,
+     "queries_exact": true
     },
     {
      "kind": "xor5",
@@ -1520,7 +1819,10 @@
      "main_cols": 1,
      "local_cols": 16,
      "global_cols": 0,
-     "global_relation": "none"
+     "global_relation": "none",
+     "local_queries": 1,
+     "global_queries": 0,
+     "queries_exact": true
     }
    ],
    "main_cells": 17915904,
@@ -1540,7 +1842,10 @@
      "main_cols": 1923,
      "local_cols": 1152,
      "global_cols": 408,
-     "global_relation": "kio"
+     "global_relation": "kio",
+     "local_queries": 427,
+     "global_queries": 50,
+     "queries_exact": true
     },
     {
      "kind": "chi",
@@ -1548,7 +1853,10 @@
      "main_cols": 1,
      "local_cols": 16,
      "global_cols": 0,
-     "global_relation": "none"
+     "global_relation": "none",
+     "local_queries": 1,
+     "global_queries": 0,
+     "queries_exact": true
     },
     {
      "kind": "xor5",
@@ -1556,7 +1864,10 @@
      "main_cols": 1,
      "local_cols": 16,
      "global_cols": 0,
-     "global_relation": "none"
+     "global_relation": "none",
+     "local_queries": 1,
+     "global_queries": 0,
+     "queries_exact": true
     }
    ],
    "main_cells": 33669120,
@@ -1576,7 +1887,10 @@
      "main_cols": 1869,
      "local_cols": 5104,
      "global_cols": 24,
-     "global_relation": "wire"
+     "global_relation": "wire",
+     "local_queries": 1276,
+     "global_queries": 6,
+     "queries_exact": false
     }
    ],
    "main_cells": 30621696,
@@ -1596,7 +1910,10 @@
      "main_cols": 1447,
      "local_cols": 4016,
      "global_cols": 16,
-     "global_relation": "wire"
+     "global_relation": "wire",
+     "local_queries": 1004,
+     "global_queries": 4,
+     "queries_exact": false
     }
    ],
    "main_cells": 23707648,
@@ -1616,7 +1933,10 @@
      "main_cols": 7409,
      "local_cols": 0,
      "global_cols": 16,
-     "global_relation": "wire"
+     "global_relation": "wire",
+     "local_queries": 0,
+     "global_queries": 4,
+     "queries_exact": false
     }
    ],
    "main_cells": 30347264,
@@ -1636,7 +1956,10 @@
      "main_cols": 401,
      "local_cols": 952,
      "global_cols": 24,
-     "global_relation": "wire"
+     "global_relation": "wire",
+     "local_queries": 238,
+     "global_queries": 6,
+     "queries_exact": false
     }
    ],
    "main_cells": 102656,

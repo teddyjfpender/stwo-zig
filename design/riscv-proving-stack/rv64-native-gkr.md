@@ -154,10 +154,28 @@ M5-INTERFACES (section native-gkr).
 ## 6. Prover cost [D]
 - Committed native cells: -951 M (24628607) / -738 M (26235156) INTER own-height cells; at M4.0's native all-in rate
   (≤ 0.341 ns per LDE cell, b2) that is ≤ 0.65 / 0.50 GPU-s of commit + quotient work removed per request.
-- GKR work: CPU proofs +10-30 % facts (85-160 M per proof vs 102-152 M measured); truth proofs gain 2^24-2^27 facts
-  (Keccak log 18: lane log 9). At the measured fold-sum route rate (outer-gkr: 148 ms for 258 M fractions) about
-  +0.4 GPU-s per 24628607 request. Net prover effect is small and positive; the large effects are the leaf (§5) and the
-  stage-one critical path (the local GKR leaves stage one).
+- GKR work, **measured [M]** on the shared CUDA traversal (outer-gkr bench binary, plain route, one 5090, CUDA events,
+  3 reps, pod load 24-34, single observation; `native-gkr/gpu-bench.json`), v1 roster vs today's local-only
+  roster on the same kernels (the local roster of 24628607 cpu-0 has 124,093,760 fractions = the production
+  `GPU_GKR facts` of that proof):
+
+  | proof | today's local roster | v1 roster | delta |
+  |---|---:|---:|---:|
+  | 24628607 cpu-0 (36 -> 64 instances) | 163.2 ms | 216.6 ms | +53.3 ms |
+  | 24628607 cpu-3 (35 -> 61) | 142.6 ms | 177.9 ms | +35.3 ms |
+  | 26235156 cpu-3 (30 -> 54) | 165.8 ms | 211.0 ms | +45.3 ms |
+  | 24628607 truth-0 Keccak log 18 (new, 4 instances, 153 M fractions) | - | 110.0 ms | +110.0 ms |
+  | 24628607 truth-3 secp add log 13 (new, 2 instances) | - | 24.7 ms | +24.7 ms |
+
+  Per 24628607 request [D]: about +0.3 GPU-s on the 7 CPU proofs and about +0.3 GPU-s on the 10 truth proofs, against
+  about -0.65 GPU-s of INTER commit + quotient work removed (951 M cells, b2, M4.0 native rate <= 0.341 ns per LDE
+  cell). **Native prove time is roughly neutral**; the fused fold-sum route (outer-gkr, -19 %) tips it negative. The
+  win is committed cells (INTER x0.49), proof bytes and leaf cells.
+- Section bytes [D, exact from the roster, `rv64-native-gkr-tool shape`]: 1.46 MB per 24628607 request (CPU sections
+  128-181 KB, truth 14-56 KB), 0.93 MB on 26235156. Opened INTER values fall by 37,176 columns x 108 queries x 4 B =
+  16.1 MB on 24628607 (before Merkle path savings), so native proof bytes fall.
+- CPU reference [M]: real-shape rosters of 24628607 truth-9 (arith256, 2 instances), truth-8 (sha256), truth-4 (secp add
+  log 11): prove 0.05 / 0.01 / 1.07 s, fresh-process verify incl. binding 0.05 / 0.02 / 1.30 s (`realshape/`).
 - Composition: the per-component binding constraints read more fraction expressions (global tuples), the classic
   global constraints disappear; constraint count per component falls (one prefix residual instead of
   `ceil(q/2) + 2` per relation).
@@ -173,7 +191,10 @@ Done (this branch, tests `test-riscv64-native-gkr`): roster + header + cost (`ro
 (outer-gkr `StrictChannel`), CPU reference prover with re-salt, verifier with local closure and exposed global claims,
 binding reference (`bindingColumns`, `expectedBoundary`, `requireBinding`), strict codec (`section.zig`); NG corpus
 (`tests.zig`): NG01 every single word of an encoded section, NG02 codec, NG03 relabelled relation, NG04 unclosed local,
-NG05 padded-lane forgery vs MAIN, NG06 rho separation; census tool `rv64-native-gkr-census`.
+NG05 padded-lane forgery vs MAIN, NG06 rho separation; census tool `rv64-native-gkr-census`; tool
+`rv64-native-gkr-tool` (exact real-roster shapes, CPU prove, fresh-process receiver); tier-R corpus
+(`scripts/rv64_native_gkr_corpus.py`): every word of a real-roster section (24628607 truth-9, 5,329/5,329 fresh
+processes rejected/accepted as required) plus sampled words of larger sections (receipts `corpus-*.json`).
 
 Left, in order:
 1. Native AIR: per-component binding residual over all groups (`role.zig`/truth roles), drop `global_cpu.emitFor` and
