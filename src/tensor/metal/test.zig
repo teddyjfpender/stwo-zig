@@ -675,9 +675,13 @@ fn zkBoth(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, st: proto.Stat
     var cfg_gpu = cfg;
     cfg_gpu.accel = &acc;
     const seed = [_]u8{0x5a} ** 32;
-    var digests: [2][32]u8 = undefined;
+    // both fold schedules of the CPU masked sumcheck (fused: a pending CPU fold
+    // must be flushed before the device starts) give the device's proof
+    var digests: [4][32]u8 = undefined;
     const before = g.stats;
-    for ([_]proto.Config{ cfg, cfg_gpu }, 0..) |c, i| {
+    defer t.zk_sumcheck.fuse_fold = null;
+    for ([_]proto.Config{ cfg, cfg_gpu, cfg, cfg_gpu }, 0..) |c, i| {
+        t.zk_sumcheck.fuse_fold = i >= 2;
         zk.setTestSeed(seed);
         defer zk.setTestSeed(null);
         var zw: ?zk.ZkWeights = null;
@@ -689,7 +693,7 @@ fn zkBoth(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, st: proto.Stat
         try zk.verify(a, c, st, if (zw) |*w| w.key() else null, &p);
         digests[i] = zk.proofDigest(&p);
     }
-    try std.testing.expectEqualSlices(u8, &digests[0], &digests[1]);
+    for (digests[1..]) |d| try std.testing.expectEqualSlices(u8, &digests[0], &d);
     // the device path actually ran
     try std.testing.expect(g.stats.sc_rounds > before.sc_rounds);
     if (expect_commit) try std.testing.expect(g.stats.commit_calls > before.commit_calls);
