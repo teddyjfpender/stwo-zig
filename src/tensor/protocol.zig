@@ -21,6 +21,7 @@
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const f = @import("field.zig");
+const canonical = @import("canonical.zig");
 const sc = @import("sumcheck.zig");
 const pcs = @import("pcs.zig");
 const pcs2 = @import("pcs2.zig");
@@ -1590,6 +1591,8 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
 }
 
 pub fn verifyInfo(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, proof: *const Proof, info: ?*VerifyInfo) !void {
+    // every transmitted limb in [0, P) before any arithmetic (KERN-1)
+    try canonical.check(proof);
     try validateStatement(st);
     try xt.validate(st);
     var rel = try deriveRelations(a, st);
@@ -1927,6 +1930,7 @@ pub fn proveWeightProximity(a: std.mem.Allocator, pool: *f.Pool, cfg0: Config, w
 }
 
 pub fn verifyWeightProximity(a: std.mem.Allocator, cfg0: Config, key: WeightKey, proof: Opening) !void {
+    try canonical.check(proof);
     const cfg = try keyConfig(cfg0);
     var tr = Transcript.initDomain("stwo-tensor-weights-v1");
     tr.mixDigest(key.root);

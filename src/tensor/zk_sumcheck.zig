@@ -28,6 +28,7 @@
 //! (`sumForm`, `evalForm`).
 const std = @import("std");
 const f = @import("field.zig");
+const canonical = @import("canonical.zig");
 const sc = @import("sumcheck.zig");
 const Transcript = @import("transcript.zig").Transcript;
 
@@ -393,6 +394,8 @@ pub const VerifyOut = struct {
 
 pub fn verify(a: std.mem.Allocator, tr: *Transcript, claim: QM31, n: usize, deg: u8, n_hats: usize, proof: MaskedProof) !VerifyOut {
     if (proof.rounds.len != n + 1 or proof.deg != deg or proof.hats.len != n_hats or deg > MAX_DEG or deg < 2) return error.SumcheckShape;
+    // canonical limbs (KERN-1): M31.sub wraps on a limb >= P
+    try canonical.check(proof);
     tr.mixFelt(proof.sigma);
     const eps = tr.draw();
     var cur = proof.sigma.add(eps.mul(claim));

@@ -6,6 +6,7 @@
 //! implied by the running claim).
 const std = @import("std");
 const f = @import("field.zig");
+const canonical = @import("canonical.zig");
 const Transcript = @import("transcript.zig").Transcript;
 
 const QM31 = f.QM31;
@@ -441,6 +442,8 @@ pub const VerifyResult = struct {
 /// Verify round consistency; returns the random point and the reduced claim.
 pub fn verify(a: std.mem.Allocator, tr: *Transcript, claim: QM31, n: usize, deg: u8, proof: Proof) !VerifyResult {
     if (proof.rounds.len != n or proof.deg != deg) return error.SumcheckShape;
+    // canonical round evals (KERN-1): M31.sub wraps on a limb >= P
+    try canonical.check(proof);
     const point = try a.alloc(QM31, n);
     var cur = claim;
     for (proof.rounds, 0..) |rp, round| {

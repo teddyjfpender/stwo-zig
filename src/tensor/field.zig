@@ -36,8 +36,19 @@ pub inline fn limbs(x: QM31) [4]u32 {
     return .{ x.c0.a.v, x.c0.b.v, x.c1.a.v, x.c1.b.v };
 }
 
+/// Canonical-input contract (KERN-4): the field kernels (M31.sub's
+/// (a + P) - b, QM31.mul's base-field shortcut mulM31 -> mulVec4, ...) are
+/// only correct for limbs in [0, P). Values built here from trusted limbs use
+/// `fromLimbs`; anything decoded from untrusted bytes must use
+/// `fromLimbsChecked`, and verifiers run canonical.check on whole proofs.
 pub inline fn fromLimbs(l: [4]u32) QM31 {
     return QM31.fromU32Unchecked(l[0], l[1], l[2], l[3]);
+}
+
+/// `fromLimbs` for untrusted input: error.NonCanonical if a limb is >= P.
+pub fn fromLimbsChecked(l: [4]u32) error{NonCanonical}!QM31 {
+    for (l) |v| if (v >= P) return error.NonCanonical;
+    return fromLimbs(l);
 }
 
 /// Reduce a signed 64-bit accumulator (|acc| < 2^62) into M31.

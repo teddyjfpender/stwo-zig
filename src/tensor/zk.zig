@@ -26,6 +26,7 @@
 //!    against the weight commitment together with a fresh per-proof mask table.
 const std = @import("std");
 const f = @import("field.zig");
+const canonical = @import("canonical.zig");
 const pcs = @import("pcs.zig");
 const zkp = @import("zk_pcs.zig");
 const zks = @import("zk_sumcheck.zig");
@@ -712,6 +713,7 @@ pub fn proveWeightProximity(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Conf
 }
 
 pub fn verifyWeightProximity(a: std.mem.Allocator, cfg: proto.Config, key: WeightKey, proof: zkp.Opening) !void {
+    try canonical.check(proof);
     var tr = Transcript.initDomain("stwo-tensor-zk-weights-v1");
     tr.mixDigest(key.root);
     var tw = try pcs.Twiddles.init(a, key.log_cols + wpcs(cfg).log_blowup);
@@ -830,6 +832,7 @@ pub fn proveWeightLink(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, o
 }
 
 pub fn verifyWeightLink(a: std.mem.Allocator, cfg: proto.Config, old: WeightKey, new: WeightKey, link: WeightLink) !void {
+    try canonical.check(link);
     var arena_state = std.heap.ArenaAllocator.init(a);
     defer arena_state.deinit();
     const ar = arena_state.allocator();
@@ -1833,6 +1836,8 @@ fn weightGroup(a: std.mem.Allocator, key: WeightKey, wcl: []const WClaim, max_gr
 // Verifier.
 
 pub fn verifyPublic(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?WeightKey, public: []const PublicTensor, proof: *const Proof) !void {
+    // every transmitted limb in [0, P) before any arithmetic (KERN-1)
+    try canonical.check(proof);
     var arena_state = std.heap.ArenaAllocator.init(a);
     defer arena_state.deinit();
     const ar = arena_state.allocator();
