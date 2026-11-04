@@ -89,5 +89,48 @@ NF4 fixes the section: native-gkr v1 plus every open review item resolved:
 It is **not built**: the native AIR change, GPU lane-major projection, receiver global claims from roots, and the leaf hook
 are open. See the receipts and the stream report for what was measured.
 
-## 5. Measured
-See `vectors/reports/rv64-m6-20261105/native-format/` and `vectors/reports/progress/native-format.jsonl`.
+## 5. Measured (2026-11-05, binaries of 715aa3f9e; pod load 27-43, single observations, not quiet-quotable)
+
+Receipts: `vectors/reports/rv64-m6-20261105/native-format/` and `vectors/reports/progress/native-format.jsonl`.
+
+**Switched on [M].** Both dev blocks prove under v2-strict in the production GPU prover. The harness is a one-shot bench,
+`--env STWO_RV64_NATIVE_VERSION=m6-native-v2-strict` (runs `26235156-2gpu-v2s-r5` and `24628607-2gpu-v2s-r6`). A fresh,
+separate, cache-disabled, GPU-disabled receiver accepts both (receiver 001bf1d9).
+The control is the M5 default flat format on the **same** binaries. Its root sha is b424203b (156) and 2feed86a (607),
+equal to the M5 default, so it is byte-identical.
+
+| 24628607 / 26235156 | flat control | v2-strict | ratio |
+|---|---:|---:|---:|
+| native MAIN words | 2,703.0 M / 1,823.9 M | 3,133.2 M / 2,078.3 M | x1.159 / x1.140 |
+| native INTER words (census reconciles exactly with GPU_TRACE_OWNERSHIP tree=2) | 1,854.1 M / 1,350.1 M | 2,270.7 M / 1,517.4 M | x1.225 / x1.124 |
+| request (one-shot) s | 48.8 / 34.4 | 55.5 / 36.2 | |
+| native prove s | 8.16 / 5.31 | 9.84 / 5.64 | |
+| recursion s | 23.9 / 17.3 | 29.6 / 20.9 | |
+| setup s (one-shot, cold) | 13.6 / 9.1 | 12.9 / 7.0 | |
+| root proof bytes | 706,424 / 748,536 | 715,064 / 750,456 | |
+| device peak (sampled) GB | 31.5 | 31.5 | |
+
+**Where the tax comes from [M], from per-component census diffs of the same runs:**
+- *Strict-roster-specific:* components that were absent and are now committed as padding. 92.8 M cells on 607 and
+  29.3 M on 156, of which dword tail 37 M, LS32 tail 33 M and empty bridges about 20 M.
+- *Canonical rung-log padding:* the same as canon-native v1 presence-preserving mode. 610.6 M on 607 and 363.6 M on 156:
+  terminal +220 M (607), dword tail, bulk copy/set/ucopy, initial, sponge perm.
+
+The strict roster itself therefore costs about 2 % of committed native cells. The rest is the R = 4 canonical table that
+any constant native VK pays. A finer table (T_nat has 18 spare slots at DEPTH 6) is the lever if it matters before v2-gkr.
+
+**Block independence [M].** RV64_NATIVE_CHAIN over both blocks gives 14 distinct (f, r) classes, each with exactly one
+vkhash. The 8 classes that occur in both blocks have identical vkhashes (`class-independence.json`). The native VK table
+can therefore be derived once.
+
+**v2-gkr on the strict classes [D].** The census on the v2-strict bundles predicts native INTER 2,270.7 M -> 1,124.2 M on
+607 (x0.495 vs v2-strict, x0.606 vs the M5 flat 1,854 M), and 1,517.4 M -> 705.8 M on 156 (x0.465 / x0.523). Keccak truth
+INTER is 742.8 M -> 110.4 M on 607 (classic local 575.7 M + KIO 167.1 M become GKR). It is the largest single item and is
+unaffected by the strict roster.
+
+**Negative evidence [M].** NV03 tier R, fresh receivers (`26235156-nv03-cross-version.json`):
+- v2 proof under the flat, v1-chain, v2-gkr and unknown selectors: rejected, exit 1, `InvalidServicesWireRequest`, at
+  wire admission;
+- flat proof under v2: rejected (`NativeChainNotStrict`).
+
+The negative corpus v3 results on both v2 blocks are in `corpus-*.json`.
