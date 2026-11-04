@@ -41,6 +41,12 @@ extern "C" int stwo_lde_n2b_columns_on(const uint32_t *, size_t, const uint32_t 
 extern "C" int stwo_blake2s_mixed_seeded_on(
     uint32_t, uint32_t, const stwo::cuda::blake2s::MixedSegment *, uint32_t,
     uint32_t, const void *, void *, void *, void *);
+// Eager-state variant (kernels stream): the streamed rebuild chain below is
+// self-contained (seeds only from its own previous call), so it may carry
+// states without a deferred full block: half the prefix-bank HBM traffic.
+extern "C" int stwo_blake2s_mixed_seeded_eager_on(
+    uint32_t, uint32_t, const stwo::cuda::blake2s::MixedSegment *, uint32_t,
+    uint32_t, const void *, void *, void *, void *);
 extern "C" int stwo_blake2s_layer_on(const void *, uint32_t, void *, void *);
 // Streaming source rebuild is the default for rolling sources. "0" restores
 // the established max-tree LDE plane; a positive value bounds one chunk.
@@ -697,7 +703,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
         CHECK(stwo_rv64_trace_open_values_on(o.ctx, 1, segments, count, &values));
         const void *seed = c.seed_bank < 0 ? nullptr : banks[c.seed_bank];
         auto *out = banks[c.out_bank];
-        CHECK(stwo_blake2s_mixed_seeded_on(c.size, count, segments, c.absorbed,
+        CHECK(stwo_blake2s_mixed_seeded_eager_on(c.size, count, segments, c.absorbed,
             c.seed_size, seed, c.final ? nullptr : out, c.final ? out : nullptr,
             stream_raw));
         if (c.final) hashes = out;

@@ -1,0 +1,86 @@
+{
+ "schema": "rv64-m4-kernels-receipt/v1",
+ "stream": "kernels",
+ "milestone": "M4",
+ "block": 24628607,
+ "gpus": 2,
+ "commit": "see git log (c2 code commit)",
+ "library_sha256": "13d9e4d0146151a9526feda09f2d180928c0538e2a27d6b8e2c4c4375b3e6cd3",
+ "parent_receipt": "24628607-c1-kernels.json",
+ "correctness": {
+  "byte_identical_to": "rv64-m3-20261104/integrate/scale/24628607 (55/55) and 26235156 (37/37)",
+  "receiver_accepted": true
+ },
+ "label": "M (nsys durations, one observation, load avg 48); bandwidth D",
+ "kernel_gpu_s": {
+  "m3": 29.909,
+  "c1": 25.612,
+  "c2": 24.767
+ },
+ "recursion_kernel_gpu_s": {
+  "m3": 24.962,
+  "c1": 20.94,
+  "c2": 20.119
+ },
+ "recursion_ns_per_lde_cell": {
+  "m3": 0.1977,
+  "c1": 0.1659,
+  "c2": 0.1594
+ },
+ "families_gpu_s": {
+  "n2b": {
+   "m3": 9.153,
+   "c1": 7.253,
+   "c2": 7.263
+  },
+  "mixed_leaf_kernel": {
+   "m3": 5.556,
+   "c1": 5.667,
+   "c2": 5.166
+  },
+  "b2n": {
+   "m3": 1.381,
+   "c1": 1.384,
+   "c2": 1.024
+  },
+  "deep_aggregate_rows": {
+   "m3": null,
+   "c1": 0.249,
+   "c2": 0.25
+  },
+  "deep_aggregate_coordinates": {
+   "m3": 2.808,
+   "c1": null,
+   "c2": null
+  }
+ },
+ "kernels": [
+  {
+   "kernel": "mixed_leaf_kernel 2^24 rows, 8 columns per call (recursion PCS stream chain)",
+   "before": {
+    "variant": "classic progressive state (96 B AoS per row in and out, deferred full block)",
+    "avg_us": 3268.5,
+    "calls": 663,
+    "note": "trace.cu chain, still classic in c2"
+   },
+   "after": {
+    "variant": "eager state (no deferred full block; only hash + live pending words), AoS",
+    "avg_us": 2624.6,
+    "calls": 750
+   },
+   "speedup": 1.245
+  },
+  {
+   "kernel": "b2n_continue<4> (8-stage inverse continuation)",
+   "before": {
+    "stack_bytes": 64,
+    "regs": 48
+   },
+   "after": {
+    "stack_bytes": 0,
+    "regs": 44
+   },
+   "note": "compile-time stage loops; B2N logs 24-26 {6,6,6,6}->{8,8,8} (+{9,8,8},{10,8,8}); b2n family 1.38->1.02 GPU-s"
+  }
+ ]
+}
