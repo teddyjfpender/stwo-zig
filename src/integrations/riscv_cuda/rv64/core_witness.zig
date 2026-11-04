@@ -73,6 +73,14 @@ pub const Ledgers = struct {
     rom: D.DeviceCoefficients,
     status: D.DeviceCoefficients,
 };
+/// M6 native-stream: single-stream core ingress is the default (it was the
+/// M3-M5 headline config via STWO_RV64_CORE_SINGLE_STREAM=1; proof-neutral, see
+/// rv64-resident-source-audit-20261103.md). `STWO_RV64_CORE_SINGLE_STREAM=0`
+/// restores the joined two-lane ingress.
+fn singleStreamDefault() bool {
+    const value = std.posix.getenv("STWO_RV64_CORE_SINGLE_STREAM") orelse return true;
+    return !std.mem.eql(u8, value, "0");
+}
 pub const Context = struct {
     service: *Service.Context,
     single_stream_ingress: bool = false,
@@ -87,7 +95,7 @@ pub const Context = struct {
     memset: Memset,
     pub fn init(service: *Service.Context, cpu: *Projection.Context) !Context {
         cpu.retain_ledgers = true;
-        return .{ .service = service, .single_stream_ingress = std.process.hasEnvVarConstant("STWO_RV64_CORE_SINGLE_STREAM"), .cpu = cpu, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try symbol(Native.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try symbol(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try symbol(Native.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try symbol(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .family = try symbol(FamilyFn, &service.library, "stwo_rv64_family_witness_on"), .memory = try symbol(MemoryFn, &service.library, "stwo_rv64_memory_witness_on"), .arithmetic = try symbol(ArithmeticFn, &service.library, "stwo_rv64_arithmetic_witness_on"), .boundary = try symbol(BoundaryFn, &service.library, "stwo_rv64_boundary_witness_on"), .table = try symbol(TableFn, &service.library, "stwo_rv64_multiplicity_witness_on"), .memset = try symbol(Memset, &service.library, "stwo_exec_context_memset_async") };
+        return .{ .service = service, .single_stream_ingress = singleStreamDefault(), .cpu = cpu, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try symbol(Native.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try symbol(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try symbol(Native.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try symbol(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .family = try symbol(FamilyFn, &service.library, "stwo_rv64_family_witness_on"), .memory = try symbol(MemoryFn, &service.library, "stwo_rv64_memory_witness_on"), .arithmetic = try symbol(ArithmeticFn, &service.library, "stwo_rv64_arithmetic_witness_on"), .boundary = try symbol(BoundaryFn, &service.library, "stwo_rv64_boundary_witness_on"), .table = try symbol(TableFn, &service.library, "stwo_rv64_multiplicity_witness_on"), .memset = try symbol(Memset, &service.library, "stwo_exec_context_memset_async") };
     }
     pub fn buildCore(self: *Context, a: std.mem.Allocator, request: Pipeline.Request) !*CoreProjection {
         const out = try a.create(CoreProjection);

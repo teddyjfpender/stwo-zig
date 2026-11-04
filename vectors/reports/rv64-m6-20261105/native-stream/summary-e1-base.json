@@ -1,0 +1,244 @@
+[
+ {
+  "run": "daemon-26235156-24628607-r2-e1-base",
+  "block": 26235156,
+  "trial": 0,
+  "stages": {
+   "request_wall_s": 20.266,
+   "capture_s": 2.009,
+   "setup_s": 0.13,
+   "native_prove_s": 5.015,
+   "native_verify_s": 1.233,
+   "native_total_before_report_s": 7.312,
+   "recursion_s": 12.939
+  },
+  "byte_identical_to_m3_m5": true,
+  "proof_bytes_root": 748536,
+  "retained_cpu_workers": 0,
+  "replayed_cpu_workers": 4,
+  "cpu_projection_uploads": 8,
+  "staging_h2d_summary_bytes_seen": [
+   0,
+   3190554984,
+   5029974520
+  ],
+  "schedule": null,
+  "env": {
+   "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+   "STWO_RV64_GPU_CPU_REPLAY": "1",
+   "STWO_RV64_CORE_SINGLE_STREAM": "1",
+   "STWO_RV64_DEVICE_ARENA": "1",
+   "STWO_RV64_GPU_DEVICES": "0,1",
+   "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "4",
+   "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+   "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+   "STWO_RV64_GPU_DEVICE_TRACE": "1",
+   "STWO_RV64_GPU_DEVICE_BINDING": "1"
+  },
+  "stage1_span_s": 1.682,
+  "stage1_worker_s_by_device": {
+   "0": 1.636,
+   "1": 1.727
+  },
+  "stage1_lanes": [
+   0,
+   1
+  ],
+  "stage2_span_s": 3.148,
+  "stage2_worker_s_by_device": {
+   "0": 3.784,
+   "1": 2.455
+  },
+  "stage2_lanes": [
+   0,
+   1
+  ]
+ },
+ {
+  "run": "daemon-26235156-24628607-r2-e1-base",
+  "block": 24628607,
+  "trial": 0,
+  "stages": {
+   "request_wall_s": 27.242,
+   "capture_s": 2.649,
+   "setup_s": 0.136,
+   "native_prove_s": 6.053,
+   "native_verify_s": 1.776,
+   "native_total_before_report_s": 9.072,
+   "recursion_s": 18.146
+  },
+  "byte_identical_to_m3_m5": true,
+  "proof_bytes_root": 706424,
+  "retained_cpu_workers": 0,
+  "replayed_cpu_workers": 7,
+  "cpu_projection_uploads": 14,
+  "staging_h2d_summary_bytes_seen": [
+   35632020148,
+   39994039292,
+   43312112124
+  ],
+  "schedule": null,
+  "env": {
+   "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+   "STWO_RV64_GPU_CPU_REPLAY": "1",
+   "STWO_RV64_CORE_SINGLE_STREAM": "1",
+   "STWO_RV64_DEVICE_ARENA": "1",
+   "STWO_RV64_GPU_DEVICES": "0,1",
+   "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "4",
+   "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+   "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+   "STWO_RV64_GPU_DEVICE_TRACE": "1",
+   "STWO_RV64_GPU_DEVICE_BINDING": "1"
+  },
+  "stage1_span_s": 2.104,
+  "stage1_worker_s_by_device": {
+   "0": 2.495,
+   "1": 1.713
+  },
+  "stage1_lanes": [
+   0,
+   1
+  ],
+  "stage2_span_s": 3.678,
+  "stage2_worker_s_by_device": {
+   "0": 3.22,
+   "1": 4.131
+  },
+  "stage2_lanes": [
+   0,
+   1
+  ]
+ },
+ {
+  "run": "daemon-26235156-24628607-r2-e1-base",
+  "block": 26235156,
+  "trial": 1,
+  "stages": {
+   "request_wall_s": 18.148,
+   "capture_s": 2.067,
+   "setup_s": 0.122,
+   "native_prove_s": 4.294,
+   "native_verify_s": 1.195,
+   "native_total_before_report_s": 6.642,
+   "recursion_s": 11.487
+  },
+  "byte_identical_to_m3_m5": true,
+  "proof_bytes_root": 748536,
+  "retained_cpu_workers": 0,
+  "replayed_cpu_workers": 4,
+  "cpu_projection_uploads": 8,
+  "staging_h2d_summary_bytes_seen": [
+   91591060924,
+   95302360516
+  ],
+  "schedule": null,
+  "env": {
+   "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+   "STWO_RV64_GPU_CPU_REPLAY": "1",
+   "STWO_RV64_CORE_SINGLE_STREAM": "1",
+   "STWO_RV64_DEVICE_ARENA": "1",
+   "STWO_RV64_GPU_DEVICES": "0,1",
+   "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "4",
+   "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+   "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+   "STWO_RV64_GPU_DEVICE_TRACE": "1",
+   "STWO_RV64_GPU_DEVICE_BINDING": "1"
+  },
+  "stage1_span_s": 1.532,
+  "stage1_worker_s_by_device": {
+   "0": 1.498,
+   "1": 1.564
+  },
+  "stage1_lanes": [
+   0,
+   1
+  ],
+  "stage2_span_s": 2.585,
+  "stage2_worker_s_by_device": {
+   "0": 3.287,
+   "1": 1.868
+  },
+  "stage2_lanes": [
+   0,
+   1
+  ]
+ },
+ {
+  "run": "daemon-26235156-24628607-r2-e1-base",
+  "block": 24628607,
+  "trial": 1,
+  "stages": {
+   "request_wall_s": 28.277,
+   "capture_s": 2.758,
+   "setup_s": 0.144,
+   "native_prove_s": 6.512,
+   "native_verify_s": 1.795,
+   "native_total_before_report_s": 9.664,
+   "recursion_s": 18.587
+  },
+  "byte_identical_to_m3_m5": true,
+  "proof_bytes_root": 706424,
+  "retained_cpu_workers": 0,
+  "replayed_cpu_workers": 7,
+  "cpu_projection_uploads": 14,
+  "staging_h2d_summary_bytes_seen": [
+   127223081072,
+   131103032796,
+   134158406980,
+   135634246016
+  ],
+  "schedule": null,
+  "env": {
+   "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+   "STWO_RV64_GPU_CPU_REPLAY": "1",
+   "STWO_RV64_CORE_SINGLE_STREAM": "1",
+   "STWO_RV64_DEVICE_ARENA": "1",
+   "STWO_RV64_GPU_DEVICES": "0,1",
+   "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "4",
+   "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+   "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+   "STWO_RV64_GPU_DEVICE_TRACE": "1",
+   "STWO_RV64_GPU_DEVICE_BINDING": "1"
+  },
+  "stage1_span_s": 2.22,
+  "stage1_worker_s_by_device": {
+   "0": 2.693,
+   "1": 1.745
+  },
+  "stage1_lanes": [
+   0,
+   1
+  ],
+  "stage2_span_s": 4.026,
+  "stage2_worker_s_by_device": {
+   "0": 4.026,
+   "1": 4.022
+  },
+  "stage2_lanes": [
+   0,
+   1
+  ]
+ },
+ {
+  "run": "daemon-26235156-24628607-r2-e1-base",
+  "load_avg_before": [
+   9.35302734375,
+   9.76513671875,
+   11.6103515625
+  ],
+  "load_avg_after": [
+   11.3955078125,
+   10.21728515625,
+   11.55517578125
+  ],
+  "service_start_s": 11.727,
+  "producer_peak_rss_gib": 33.35,
+  "assets": {
+   "driver": "37f94901ab5f461416aa4e580b28704bc145aec4bff0c0cf050de87a897202b7",
+   "library": "0caf01442286e63b80c57a4e0811690115ec60103e957a4e5df9d48e01ca37d6",
+   "receiver": "0babaf7eff2d8570ed64a4472e58cc8576cd8b23aa551b0896f9b6b3be9b1808",
+   "recursive_receiver": "0babaf7eff2d8570ed64a4472e58cc8576cd8b23aa551b0896f9b6b3be9b1808"
+  },
+  "source_commit": "95d40063d"
+ }
+]

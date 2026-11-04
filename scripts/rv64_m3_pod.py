@@ -53,6 +53,27 @@ DEFAULT_PRODUCER_ENV = {
 }
 
 
+# M6 native-stream default native coordinator schedule (vectors/reports/rv64-m6-20261105/native-stream/): two
+# device-affine lanes per GPU (lane l serves the router's GPU l % 2), heaviest estimate first. Scheduling only:
+# services/schedule.zig runs every ordinal exactly once with the same inputs, so proof bytes cannot depend on it.
+DEFAULT_NATIVE_SCHEDULE = {"lanes": 4, "workers_per_lane": 2, "lane_workers": [2, 2, 2, 2], "device_affinity": 2,
+                           "heaviest_first": True}
+
+
+def plan_template():
+    """inputs/plan-template.json with the native schedule applied to every job's resources.schedule.
+
+    Unset RV64_NATIVE_SCHEDULE: DEFAULT_NATIVE_SCHEDULE. Otherwise its JSON is merged onto the template's M5
+    schedule instead ('{}' = the M5 template schedule {lanes 2 x 4 workers, shared queue}).
+    """
+    template = B.load(M3 / "inputs/plan-template.json")
+    override = os.environ.get("RV64_NATIVE_SCHEDULE")
+    schedule = DEFAULT_NATIVE_SCHEDULE if override is None else json.loads(override)
+    for job in template["jobs"]:
+        job["resources"]["schedule"] = dict(job["resources"]["schedule"], **schedule)
+    return template
+
+
 def producer_env(args):
     """Default producer env overlaid by the caller's --env K=V overrides (in order)."""
     env = {} if getattr(args, "no_default_env", False) else dict(DEFAULT_PRODUCER_ENV)
@@ -221,7 +242,7 @@ def inputs(args):
 # ----------------------------------------------------------------------------- prove
 
 def make_plan(args, run, paths, root):
-    template = B.load(M3 / "inputs/plan-template.json")
+    template = plan_template()
     job = copy.deepcopy(next(j for j in template["jobs"] if j["block"] == args.block))
     request = B.load(M3 / "inputs/requests" / f"{args.block}.json")
     request["output_directory"] = str(run / "capture")
@@ -236,6 +257,7 @@ def make_plan(args, run, paths, root):
         schedule = job["resources"]["schedule"]
         total = sum(schedule.get("lane_workers") or [schedule["workers_per_lane"]] * schedule["lanes"])
         schedule.update(lanes=1, workers_per_lane=total, lane_workers=[total])
+        schedule.pop("device_affinity", None)  # one lane on one GPU: no per-device queues
     plan = copy.deepcopy(template)
     plan["jobs"] = [job]
     plan["execution_order"] = [args.block]
