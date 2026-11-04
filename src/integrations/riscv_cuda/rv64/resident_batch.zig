@@ -18,6 +18,7 @@ const Manifest = struct {
     combined_immutable_device_bytes: u64 = 2 << 30,
     combined_host_bytes: usize = 48 << 30,
     recursion_mode: ReadyPolicy.Mode = .serial,
+    recursion_device_fixed_candidate: bool = false,
     recursion_worker_budget: usize = 0,
     recursion_max_pending_authorities: usize = 17,
 };
@@ -33,6 +34,7 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     var parsed = try std.json.parseFromSlice(Manifest, a, raw, .{ .ignore_unknown_fields = true });
     defer parsed.deinit();
     const manifest = parsed.value;
+    try @import("serial_fixed_policy.zig").validate(combined, @tagName(manifest.recursion_mode), manifest.recursion_device_fixed_candidate);
     const ready_mode = combined and manifest.recursion_mode == .ready_candidate;
     if (!combined and manifest.recursion_mode != .serial) return error.ReadyRecursionRequiresCombinedBatch;
     const manifest_sha256 = blk: {
@@ -78,8 +80,17 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     defer if (combined) {
         if (ready) |context| context.deinit();
     };
-    const factory = if (combined) (if (outer) |*context| try context.factoryForTraceOnly() else null) else {};
+    const factory = if (combined) (if (outer) |*context| (if (manifest.recursion_device_fixed_candidate) try context.factoryWithDeviceFixed() else try context.factoryForTraceOnly()) else null) else {};
     try std.fs.cwd().makePath(output);
+    if (manifest.recursion_device_fixed_candidate) {
+        var root_dir = try std.fs.cwd().openDir(output, .{ .iterate = true });
+        defer root_dir.close();
+        const original = try root_dir.createFile("resident-device-fixed-manifest.json", .{ .exclusive = true });
+        defer original.close();
+        try original.writeAll(raw);
+        try std.posix.fsync(original.handle);
+        try std.posix.fsync(root_dir.fd);
+    }
     if (ready_mode) {
         // Preserve the exact authored producer manifest, not an operationally
         // rewritten request. External plan pins and emitted hash bind it.
@@ -170,9 +181,9 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
                 defer base.free(combined_path);
                 const combined_bytes = try std.fs.cwd().readFileAlloc(base, combined_path, 8 << 20);
                 defer base.free(combined_bytes);
-                const combined_audit = try std.json.parseFromSlice(struct { recursion_execution: std.json.Value }, base, combined_bytes, .{ .ignore_unknown_fields = true });
+                const combined_audit = try std.json.parseFromSlice(struct { recursion_execution: std.json.Value, fixed_setup_backend: []const u8 }, base, combined_bytes, .{ .ignore_unknown_fields = true });
                 defer combined_audit.deinit();
-                const entry = try std.json.Stringify.valueAlloc(base, .{ .schema = 1, .accepted = true, .request_wall_ns = request_wall_ns, .device_lifecycle_audit = "all request leases released", .device_byte_cap = config.caps[0], .physical_device_ids = config.ids, .device_byte_caps = config.caps, .recursion_mode = @tagName(manifest.recursion_mode), .recursion_execution = combined_audit.value.recursion_execution, .recursion_worker_budget = if (ready_mode) manifest.recursion_worker_budget else null, .producer_manifest_sha256 = manifest_sha256, .hardware_parallel_qualified = false, .immutable_device_bytes = manifest.combined_immutable_device_bytes, .host_byte_cap = manifest.combined_host_bytes, .trial = trial, .block = block, .fresh_production = true }, .{ .whitespace = .indent_2 });
+                const entry = try std.json.Stringify.valueAlloc(base, .{ .schema = 1, .accepted = true, .request_wall_ns = request_wall_ns, .device_lifecycle_audit = "all request leases released", .device_byte_cap = config.caps[0], .physical_device_ids = config.ids, .device_byte_caps = config.caps, .recursion_mode = @tagName(manifest.recursion_mode), .recursion_execution = combined_audit.value.recursion_execution, .fixed_setup_backend = combined_audit.value.fixed_setup_backend, .recursion_worker_budget = if (ready_mode) manifest.recursion_worker_budget else null, .producer_manifest_sha256 = manifest_sha256, .hardware_parallel_qualified = false, .immutable_device_bytes = manifest.combined_immutable_device_bytes, .host_byte_cap = manifest.combined_host_bytes, .trial = trial, .block = block, .fresh_production = true }, .{ .whitespace = .indent_2 });
                 defer base.free(entry);
                 try @import("combined_publication.zig").write(proof, entry);
             }

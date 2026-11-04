@@ -92,7 +92,7 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
     const preprocess_ns = timer.lap();
     const columns_ns = columns_end_ns - finalize_ns;
     const authority_ns = preprocess_ns - columns_end_ns;
-    if (factory != null) std.log.info("CUDA_OUTER_PREPROCESS ordinal={d} finalize_ns={d} columns_ns={d} authority_ns={d} total_ns={d}", .{ ordinal, finalize_ns, columns_ns, authority_ns, preprocess_ns });
+    if (factory != null) std.log.info("CUDA_OUTER_PREPROCESS ordinal={d} finalize_ns={d} columns_ns={d} authority_ns={d} total_ns={d} fixed_setup_backend={s}", .{ ordinal, finalize_ns, columns_ns, authority_ns, preprocess_ns, if (precommitted != null) @as([]const u8, "device_candidate") else "cpu" });
     if (factory != null) std.log.info("CUDA_OUTER_AUTHORITY ordinal={d} vars={d} row_logs={any}", .{ ordinal, ctx.circuit.n_vars, authority.logs.toArray() });
     var produced = if (encoded) |bytes| blk: {
         var decoded = try Wire.decode(a, authority.identity, 8, bytes);

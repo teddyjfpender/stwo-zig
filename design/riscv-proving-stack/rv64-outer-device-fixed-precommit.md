@@ -89,3 +89,16 @@ peak,28GiB fit and full proof/fresh-receiver parity must be measured before
 production enablement. Evicting only unborrowed native-phase setup at a drained
 phase boundary is a separate possible optimization; no unchecked free or cache
 policy change is included in this correctness checkpoint.
+
+A separate serial resident-batch candidate adds authored manifest bool
+recursion_device_fixed_candidate (defaultfalse). It selects the explicit
+factoryWithDeviceFixed only for a combined serial request and preserves the
+existing single-device guard. Native-only and ready-mode combinations refuse.
+Each node's PREPROCESS backend label comes from the actual precommit result;
+the combined report derives fixed_setup_backend from the selected factory,
+and combined-entry copies that result rather than echoing the requested flag.
+The exact original manifest is durably saved as
+batch/resident-device-fixed-manifest.json with its hash in combined-entry.
+CPU receiver and restore admission remain unchanged. This wiring has host
+admission and semantic checks only until a complete real case proves exact
+proof/root/tree parity and passes fresh independent CPU verification.
