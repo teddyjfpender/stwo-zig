@@ -430,3 +430,187 @@ test "PROTO-2: MoE dispatch output validates via the proved one-hot selector, no
     st2.ext.ops = xops;
     try testing.expectError(error.StatementUnboundedOperand, proto.validateStatement(st2));
 }
+
+// ---------------------------------------------------------------------------
+// P1 / P2: I/O binding and a public model definition.
+
+const MlpCfg = model.Mlp{ .log_t = 3, .log_d = 5, .log_f = 6 };
+const MlpPC = proto.Config{ .pcs = .{ .log_blowup = 2, .n_queries = 16, .pow_bits = 2 }, .weight_log_cols = 4, .witness_log_cols_max = 6, .gkr_threads = 1 };
+
+const MlpSetup = struct {
+    pool: f.Pool,
+    wdata: [3][]i8,
+    winfos: [3]TensorInfo,
+    ws: proto.WeightStore,
+
+    fn init(self: *MlpSetup, a: std.mem.Allocator, seed: u64) !void {
+        try self.pool.init(a, 1);
+        self.winfos = model.mlpWeightInfos(MlpCfg); // ws.infos points here
+        for (&self.wdata, 0..) |*w, i| w.* = try model.randomWeights(a, self.winfos[i].size(), seed + i, -8, 7);
+        const wv = [_][]const i8{ self.wdata[0], self.wdata[1], self.wdata[2] };
+        self.ws = try proto.commitWeights(a, &self.pool, MlpPC, &self.winfos, &wv);
+    }
+    fn deinit(self: *MlpSetup, a: std.mem.Allocator) void {
+        self.ws.deinit(a);
+        for (self.wdata) |w| a.free(w);
+        self.pool.deinit();
+    }
+};
+
+fn proveBuilt(a: std.mem.Allocator, s: *MlpSetup, b: *const model.Built) !proto.Proof {
+    const wv = try a.alloc([]const i32, b.witness.len);
+    defer a.free(wv);
+    for (b.witness, 0..) |w, i| wv[i] = w;
+    var tm: proto.Timings = .{};
+    return proto.prove(a, &s.pool, MlpPC, b.statement(), &s.ws, wv, &tm);
+}
+
+// P1 (was "review-parity: MLP proof for input X2 verifies under the statement
+// built from a different input X1", which passed: the statement bound no I/O).
+test "P1: an MLP proof for input X2 is rejected for the statement of X1 (and for a wrong output)" {
+    const a = testing.allocator;
+    var s: MlpSetup = undefined;
+    try s.init(a, 300);
+    defer s.deinit(a);
+    const D = @as(usize, 1) << MlpCfg.log_d;
+    const x1 = try model.randomInput(a, @as(usize, 1) << (MlpCfg.log_t + MlpCfg.log_d), 11);
+    defer a.free(x1);
+    const x2 = try a.dupe(i32, x1); // tokens 0 and 1 swapped: same shifts, different output
+    defer a.free(x2);
+    for (0..D) |d| std.mem.swap(i32, &x2[d], &x2[D + d]);
+    const mc = try model.calibrateMlp(a, &s.pool, &s.ws, MlpCfg, &.{ x1, x2 });
+    var b1 = try model.buildMlpWith(a, &s.pool, &s.ws, mc, x1);
+    defer b1.deinit(a);
+    var b2 = try model.buildMlpWith(a, &s.pool, &s.ws, mc, x2);
+    defer b2.deinit(a);
+    const y1 = b1.witness[b1.witness.len - 1];
+    const y2 = b2.witness[b2.witness.len - 1];
+    try testing.expect(!std.mem.eql(i32, y1, y2));
+    var proof2 = try proveBuilt(a, &s, &b2);
+    defer proof2.deinit(a);
+    const key = proto.weightKey(&s.ws);
+    // the verifier's own statements (no prover-supplied statement)
+    var v2 = try model.mlpStatement(a, mc, x2, y2);
+    defer v2.deinit(a);
+    try proto.verify(a, MlpPC, v2.statement(), key, &proof2);
+    var v1 = try model.mlpStatement(a, mc, x1, y1);
+    defer v1.deinit(a);
+    try testing.expect(std.meta.isError(proto.verify(a, MlpPC, v1.statement(), key, &proof2)));
+    var v12 = try model.mlpStatement(a, mc, x1, y2);
+    defer v12.deinit(a);
+    try testing.expect(std.meta.isError(proto.verify(a, MlpPC, v12.statement(), key, &proof2)));
+    // the prover's statement for X1 rejects it too
+    try testing.expect(std.meta.isError(proto.verify(a, MlpPC, b1.statement(), key, &proof2)));
+    // claimed output off by one
+    const y_bad = try a.dupe(i32, y2);
+    defer a.free(y_bad);
+    y_bad[0] += 1;
+    var vb = try model.mlpStatement(a, mc, x2, y_bad);
+    defer vb.deinit(a);
+    try testing.expect(std.meta.isError(proto.verify(a, MlpPC, vb.statement(), key, &proof2)));
+}
+
+// P2 (was "review-parity: requant shifts (the model's scales) are chosen by the
+// prover from the input", which passed: X1 and X1/16 got different shifts).
+test "P2: shifts come from a fixed MlpConfig; another config's statement rejects the proof" {
+    const a = testing.allocator;
+    var s: MlpSetup = undefined;
+    try s.init(a, 400);
+    defer s.deinit(a);
+    const x1 = try model.randomInput(a, @as(usize, 1) << (MlpCfg.log_t + MlpCfg.log_d), 12);
+    defer a.free(x1);
+    const x2 = try a.dupe(i32, x1);
+    defer a.free(x2);
+    for (x2) |*v| v.* = @divFloor(v.*, 16);
+    const mc = try model.calibrateMlp(a, &s.pool, &s.ws, MlpCfg, &.{x1});
+    var b1 = try model.buildMlpWith(a, &s.pool, &s.ws, mc, x1);
+    defer b1.deinit(a);
+    var b2 = try model.buildMlpWith(a, &s.pool, &s.ws, mc, x2);
+    defer b2.deinit(a);
+    // same model, same scales, for both inputs
+    try testing.expectEqualSlices(proto.Op, b1.ops, b2.ops);
+    try testing.expectEqualSlices(u8, &b1.model_digest.?, &b2.model_digest.?);
+    var proof = try proveBuilt(a, &s, &b2);
+    defer proof.deinit(a);
+    const key = proto.weightKey(&s.ws);
+    const y2 = b2.witness[b2.witness.len - 1];
+    var v = try model.mlpStatement(a, mc, x2, y2);
+    defer v.deinit(a);
+    try proto.verify(a, MlpPC, v.statement(), key, &proof);
+    // a different (e.g. per-input) shift choice is a different model: rejected
+    var mc2 = mc;
+    mc2.shifts[3] += 1;
+    var v2 = try model.mlpStatement(a, mc2, x2, y2);
+    defer v2.deinit(a);
+    try testing.expect(std.meta.isError(proto.verify(a, MlpPC, v2.statement(), key, &proof)));
+    // ops identical but a different model digest: rejected (the digest is bound)
+    var v3 = try model.mlpStatement(a, mc, x2, y2);
+    defer v3.deinit(a);
+    v3.model_digest.?[0] ^= 1;
+    try testing.expect(std.meta.isError(proto.verify(a, MlpPC, v3.statement(), key, &proof)));
+    // an input outside the calibrated model is refused by the prover
+    const x3 = try a.dupe(i32, x1);
+    defer a.free(x3);
+    for (x3) |*q| q.* = if (q.* >= 0) 127 else -128;
+    try testing.expectError(error.RequantOverflow, model.buildMlpWith(a, &s.pool, &s.ws, mc, x3));
+}
+
+fn layerIoCase(cfg: tf.LayerCfg, seed: u64) !void {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const pc = proto.Config{ .pcs = .{ .log_blowup = 2, .n_queries = 12, .pow_bits = 1 }, .weight_log_cols = 3, .witness_log_cols_max = 8, .gkr_threads = 2 };
+    var sw = try tf.setupWeights(a, &pool, cfg, pc, seed);
+    defer {
+        sw.ws.deinit(a);
+        for (sw.wdata) |w| a.free(w);
+        a.free(sw.wdata);
+        a.free(sw.winfos);
+    }
+    const n_in = @as(usize, 1) << @intCast(cfg.log_t + cfg.log_d);
+    const x1 = try model.randomInput(a, n_in, seed + 1);
+    defer a.free(x1);
+    const x2 = try a.dupe(i32, x1);
+    defer a.free(x2);
+    x2[0] = if (x2[0] > 0) x2[0] - 1 else x2[0] + 1;
+    const mc = try tf.calibrate(a, &pool, &sw.ws, cfg, seed + 2, &.{ x1, x2 });
+    defer a.free(mc.shifts);
+    var b = tf.Builder.init(a, &pool);
+    defer b.deinit();
+    const out = try tf.buildWith(&b, mc, &sw.ws, x1);
+    const y1 = b.wit.items[out.out];
+    const wv = try b.witnessView(a);
+    defer a.free(wv);
+    var tm: proto.Timings = .{};
+    var proof = try proto.prove(a, &pool, pc, b.statement(), &sw.ws, wv, &tm);
+    defer proof.deinit(a);
+    const key = proto.weightKey(&sw.ws);
+    // verifier builds the statement from (ModelConfig, x, claimed y), no weights
+    var v1 = try tf.statementFor(a, &pool, mc, x1, y1);
+    defer v1.deinit();
+    try proto.verify(a, pc, v1.statement(), key, &proof);
+    var v2 = try tf.statementFor(a, &pool, mc, x2, y1);
+    defer v2.deinit();
+    try testing.expect(std.meta.isError(proto.verify(a, pc, v2.statement(), key, &proof)));
+    const y_bad = try a.dupe(i32, y1);
+    defer a.free(y_bad);
+    y_bad[y_bad.len - 1] += 1;
+    var v3 = try tf.statementFor(a, &pool, mc, x1, y_bad);
+    defer v3.deinit();
+    try testing.expect(std.meta.isError(proto.verify(a, pc, v3.statement(), key, &proof)));
+    const sh2 = try a.dupe(u5, mc.shifts);
+    defer a.free(sh2);
+    sh2[0] += 1;
+    var mc2 = mc;
+    mc2.shifts = sh2;
+    var v4 = try tf.statementFor(a, &pool, mc2, x1, y1);
+    defer v4.deinit();
+    try testing.expect(std.meta.isError(proto.verify(a, pc, v4.statement(), key, &proof)));
+}
+
+test "P1/P2: decoder layer statements are built by the verifier from (ModelConfig, x, y); other inputs, outputs, configs rejected" {
+    try layerIoCase(.{ .log_t = 2, .log_d = 4, .log_f = 5, .log_heads = 2, .log_kv_heads = 1 }, 70);
+    try layerIoCase(.{ .log_t = 3, .log_d = 4, .log_f = 5, .log_heads = 1, .log_kv_heads = 0, .log_experts = 2, .log_capacity = 3, .router_log_cols = 3 }, 80);
+    try layerIoCase(.{ .log_t = 2, .log_d = 4, .log_f = 5, .log_heads = 1, .log_kv_heads = 0, .n_layers = 2, .fused_qkv = true }, 90);
+}

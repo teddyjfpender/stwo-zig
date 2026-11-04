@@ -92,6 +92,21 @@ pub const Builder = struct {
     ext_accs: std.ArrayList(?[]i64) = .empty,
     /// device hook for the forward matmuls (null: CPU kernel)
     accel: ?*const @import("accel.zig").Accel = null,
+    /// P2: requant shifts are part of the public model definition. Record
+    /// mode (shift_plan == null): every shift the builder chooses is appended
+    /// to shift_log (calibration). Replay mode: shifts come from the plan in
+    /// order, and a requant output outside its range is an error (the input
+    /// is outside the model).
+    shift_plan: ?[]const u5 = null,
+    shift_pos: usize = 0,
+    shift_log: std.ArrayList(u5) = .empty,
+    /// verifier-side statement construction (statementFor): no weights, dummy
+    /// witness values; only the statement is meaningful
+    shape_only: bool = false,
+    /// P1: public ids of the bound model input / output (buildStack)
+    io_in: ?u32 = null,
+    io_out: ?u32 = null,
+    model_digest: ?[32]u8 = null,
 
     pub fn init(a: std.mem.Allocator, pool: *f.Pool) Builder {
         return .{ .a = a, .arena = std.heap.ArenaAllocator.init(a), .pool = pool };
@@ -112,7 +127,28 @@ pub const Builder = struct {
         self.core_accs.deinit(a);
         for (self.ext_accs.items) |x| if (x) |v| a.free(v);
         self.ext_accs.deinit(a);
+        self.shift_log.deinit(a);
         self.arena.deinit();
+    }
+
+    fn replaying(self: *const Builder) bool {
+        return self.shift_plan != null;
+    }
+
+    /// The next requant shift: from the plan (replay) or `chosen` (record).
+    fn nextShift(self: *Builder, chosen: u5) !u5 {
+        if (self.shift_plan) |plan| {
+            if (self.shift_pos >= plan.len) return error.ShiftPlan;
+            self.shift_pos += 1;
+            return plan[self.shift_pos - 1];
+        }
+        try self.shift_log.append(self.a, chosen);
+        return chosen;
+    }
+
+    fn checkInt8(self: *const Builder, y: []const i32) !void {
+        if (self.shape_only or !self.replaying()) return;
+        for (y) |v| if (v < -128 or v > 127) return error.RequantOverflow;
     }
 
     /// Appends a core op; takes ownership of `acc` (kept if keep_accs).
@@ -146,6 +182,7 @@ pub const Builder = struct {
             .tables = self.tables.items,
             .ops = self.ops.items,
             .ext = .{ .ops = self.xops.items, .publics = self.publics.items, .tables = self.xtables.items },
+            .model_digest = self.model_digest,
         };
     }
 
@@ -208,12 +245,12 @@ pub const Builder = struct {
         const acc = try xt.einsumAcc(self.a, self.pool, e, self.vals(a_), self.vals(b_));
         var acc_owned = true;
         defer if (acc_owned) self.a.free(acc);
-        const s = shift orelse try chooseShiftBits(acc, out_bits);
+        const s = shift orelse if (self.replaying()) try self.nextShift(0) else try self.nextShift(try chooseShiftBits(acc, out_bits));
         const y = try self.a.alloc(i32, acc.len);
         const lim = @as(i64, 1) << (out_bits - 1);
         for (acc, y) |v, *o| {
             const q = proto.requant(v, s);
-            if (q < -lim or q >= lim) {
+            if (!self.shape_only and (q < -lim or q >= lim)) {
                 self.a.free(y);
                 return error.RequantOverflow;
             }
@@ -283,7 +320,7 @@ pub const Builder = struct {
         const lo = try self.a.alloc(i32, v.len);
         const hi = try self.a.alloc(i32, v.len);
         for (v, lo, hi) |x, *l, *h| {
-            if (x < 0 or x >= (@as(i64, 1) << @intCast(bits))) {
+            if (!self.shape_only and (x < 0 or x >= (@as(i64, 1) << @intCast(bits)))) {
                 self.a.free(lo);
                 self.a.free(hi);
                 return error.ValueOutOfRange;
@@ -325,13 +362,22 @@ pub const Builder = struct {
 
     pub fn matmul(self: *Builder, ws: *const proto.WeightStore, x: u32, w: u32) !u32 {
         const xi = self.infos.items[x];
-        const acc = try @import("accel.zig").matmulAcc(self.accel, self.a, xi.log_dims[0], self.wit.items[x], ws.matrix(w)) orelse
+        const n_y = @as(usize, 1) << @intCast(xi.log_dims[0] + ws.infos[w].log_dims[1]);
+        const acc = if (self.shape_only) blk: {
+            const z = try self.a.alloc(i64, n_y);
+            @memset(z, 0);
+            break :blk z;
+        } else try @import("accel.zig").matmulAcc(self.accel, self.a, xi.log_dims[0], self.wit.items[x], ws.matrix(w)) orelse
             try proto.matmulAcc(self.a, self.pool, xi, self.wit.items[x], ws.matrix(w));
         var acc_owned = true;
         defer if (acc_owned) self.a.free(acc);
-        const s = model.chooseShift(acc);
+        const s = try self.nextShift(if (self.replaying()) 0 else model.chooseShift(acc));
         const y = try self.a.alloc(i32, acc.len);
         for (acc, y) |v, *o| o.* = proto.requant(v, s);
+        self.checkInt8(y) catch |e| {
+            self.a.free(y);
+            return e;
+        };
         const id = try self.add(TensorInfo.mat(xi.log_dims[0], ws.infos[w].log_dims[1]), y);
         acc_owned = false;
         try self.pushOp(.{ .matmul = .{ .x = x, .w = w, .y = id, .shift = s } }, acc);
@@ -358,9 +404,13 @@ pub const Builder = struct {
         var acc_owned = true;
         defer if (acc_owned) self.a.free(acc);
         for (self.wit.items[x], self.wit.items[y], acc) |p, q, *o| o.* = @as(i64, p) * q;
-        const s = model.chooseShift(acc);
+        const s = try self.nextShift(if (self.replaying()) 0 else model.chooseShift(acc));
         const out = try self.a.alloc(i32, n);
         for (acc, out) |v, *o| o.* = proto.requant(v, s);
+        self.checkInt8(out) catch |e| {
+            self.a.free(out);
+            return e;
+        };
         const info = self.infos.items[x]; // copy: add() may reallocate infos
         const id = try self.add(info, out);
         acc_owned = false;
@@ -589,9 +639,10 @@ pub fn rmsnorm(b: *Builder, c: Ctx, x: u32, gamma: u32, x_int8: bool) !RmsOut {
         try b.rangeSigned(x, 8);
     } else {
         var s0: u5 = 0;
-        for (b.wit.items[x]) |v| {
+        if (!b.replaying()) for (b.wit.items[x]) |v| {
             while (rq(v, s0) < -128 or rq(v, s0) > 127) s0 += 1;
-        }
+        };
+        s0 = try b.nextShift(s0);
         if (s0 == 0) try b.rangeSigned(x, 8) else xs = try b.requantLinear(x, s0);
     }
     const xr = Ref.w(xs);
@@ -861,6 +912,10 @@ pub fn moe(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeOut {
     for (0..T) |t| {
         const x = expert_of[t];
         if (fill[x] >= C) {
+            if (b.shape_only) { // dummy values: any slot (statement unaffected)
+                slot_of[t] = 0;
+                continue;
+            }
             b.a.free(disp);
             return error.CapacityExceeded;
         }
@@ -988,14 +1043,120 @@ pub fn decoderLayer(b: *Builder, c: Ctx, layer: u32, x: u32, x_int8: bool) !Laye
 }
 
 /// Stack of cfg.n_layers decoder layers on int8 input x [T, D].
+/// The model input and the final output are bound to public tensors (P1):
+/// b.io_in / b.io_out, lineqs witness == public.
 pub fn buildStack(b: *Builder, c: Ctx, x_in: []const i32) !LayerOut {
+    const n_in = c.cfg.log_t + c.cfg.log_d;
     var x = try b.add(TensorInfo.mat(c.cfg.log_t, c.cfg.log_d), try b.a.dupe(i32, x_in));
+    b.io_in = try b.public(n_in, x_in);
+    try b.lineq(n_in, try b.expr(&.{ term(1, Ref.w(x), &.{ids(0, n_in)}), term(-1, Ref.p(b.io_in.?), &.{ids(0, n_in)}) }, 0));
     var o: LayerOut = undefined;
     for (0..c.cfg.n_layers) |l| {
         o = try decoderLayer(b, c, @intCast(l), x, l == 0);
         x = o.out;
     }
+    const n_out = b.infos.items[o.out].logSize();
+    b.io_out = try b.public(n_out, b.wit.items[o.out]);
+    try b.lineq(n_out, try b.expr(&.{ term(1, Ref.w(o.out), &.{ids(0, n_out)}), term(-1, Ref.p(b.io_out.?), &.{ids(0, n_out)}) }, 0));
     return o;
+}
+
+/// Public model definition (P2): layer shapes, the RMSNorm gammas (derived
+/// from ctx_seed by initCtx) and every requant shift, in builder order. The
+/// shifts are a model-definition decision, calibrated offline (`calibrate`)
+/// and fixed for every input; tables (exp, silu, RoPE, mask) are functions
+/// of the shapes. Its digest is mixed into the statement, and the verifier
+/// rebuilds the statement from (ModelConfig, public input, claimed output)
+/// with `statementFor`.
+pub const ModelConfig = struct {
+    cfg: LayerCfg,
+    ctx_seed: u64,
+    shifts: []const u5,
+
+    pub fn digest(self: ModelConfig) [32]u8 {
+        var h = std.crypto.hash.blake2.Blake2s256.init(.{});
+        h.update("stwo-tensor-layer-config-v1");
+        const c = self.cfg;
+        const hdr = [_]u64{ c.log_t, c.log_d, c.log_f, c.log_heads, c.log_kv_heads, c.n_layers, c.log_experts, c.log_capacity, c.router_log_cols, @intFromBool(c.fused_qkv), LayerCfg.INV_BITS, self.ctx_seed, self.shifts.len };
+        h.update(std.mem.sliceAsBytes(&hdr));
+        h.update(std.mem.sliceAsBytes(self.shifts));
+        var out: [32]u8 = undefined;
+        h.final(&out);
+        return out;
+    }
+};
+
+/// Calibration: records the builder's shift choices on `samples` (each
+/// sample must replay under the result; shifts only grow). Caller frees
+/// the returned shifts with `a`.
+pub fn calibrate(a: std.mem.Allocator, pool: *f.Pool, ws: *const proto.WeightStore, cfg: LayerCfg, ctx_seed: u64, samples: []const []const i32) !ModelConfig {
+    if (samples.len == 0) return error.CalibrationFailed;
+    var plan: ?[]u5 = null;
+    errdefer if (plan) |p| a.free(p);
+    var round: usize = 0;
+    while (round < 8) : (round += 1) {
+        var all_ok = true;
+        for (samples) |x| {
+            if (plan) |p| {
+                var b = Builder.init(a, pool);
+                defer b.deinit();
+                b.shift_plan = p;
+                const c = try initCtx(&b, cfg, ws, ctx_seed);
+                if (buildStack(&b, c, x)) |_| continue else |e| if (e != error.RequantOverflow) return e;
+            }
+            // record on this sample and widen the plan
+            all_ok = false;
+            var r = Builder.init(a, pool);
+            defer r.deinit();
+            const cr = try initCtx(&r, cfg, ws, ctx_seed);
+            _ = try buildStack(&r, cr, x);
+            const rec = r.shift_log.items;
+            if (plan) |p| {
+                if (p.len != rec.len) return error.ShiftPlan;
+                for (p, rec) |*u, v| u.* = @max(u.*, v);
+            } else plan = try a.dupe(u5, rec);
+        }
+        if (all_ok) return .{ .cfg = cfg, .ctx_seed = ctx_seed, .shifts = plan.? };
+    }
+    return error.CalibrationFailed;
+}
+
+/// Prover: the stack on x under the fixed model definition.
+pub fn buildWith(b: *Builder, mc: ModelConfig, ws: *const proto.WeightStore, x_in: []const i32) !LayerOut {
+    b.shift_plan = mc.shifts;
+    b.shift_pos = 0;
+    b.model_digest = mc.digest();
+    const c = try initCtx(b, mc.cfg, ws, mc.ctx_seed);
+    const o = try buildStack(b, c, x_in);
+    if (b.shift_pos != mc.shifts.len) return error.ShiftPlan;
+    return o;
+}
+
+/// Verifier: the statement of `mc` on public input x with claimed output y,
+/// built without weights (shape-only builder on dummy values; the public
+/// input / output tensors are then set to x and y). The returned builder
+/// owns the statement (b.statement()).
+pub fn statementFor(a: std.mem.Allocator, pool: *f.Pool, mc: ModelConfig, x: []const i32, y: []const i32) !Builder {
+    const winfos = try layerWeightInfos(a, mc.cfg);
+    defer a.free(winfos);
+    // shapes only: matmul reads ws.infos, never the (absent) weights
+    const offsets = [_]usize{};
+    const ws = proto.WeightStore{ .infos = winfos, .offsets = @constCast(&offsets), .table = &.{}, .log_rows = 0, .log_cols = 0, .rows_used = 0, .com = undefined };
+    var b = Builder.init(a, pool);
+    errdefer b.deinit();
+    b.shape_only = true;
+    const n_in = @as(usize, 1) << @intCast(mc.cfg.log_t + mc.cfg.log_d);
+    if (x.len != n_in) return error.StatementShape;
+    const zeros = try a.alloc(i32, n_in);
+    defer a.free(zeros);
+    @memset(zeros, 0);
+    _ = try buildWith(&b, mc, &ws, zeros);
+    const pin = &b.publics.items[b.io_in.?];
+    const pout = &b.publics.items[b.io_out.?];
+    if (y.len != pout.values.len) return error.StatementShape;
+    pin.values = try b.arena.allocator().dupe(i32, x);
+    pout.values = try b.arena.allocator().dupe(i32, y);
+    return b;
 }
 
 // ---------------------------------------------------------------------------
@@ -1572,8 +1733,8 @@ test "fused QKV projection (fixed-bit slices) proves and verifies; RoPE reads th
 // einsum accumulator (score and PV contractions of 2^4 terms), the split-eq
 // einsum sumcheck (sel * sel, sel * D) and the split-eq MLE evaluations.
 
-const GOLDEN_LAYER_FLAT = "dd1f99ba3cc3cf22e95b2885804ef2d697f83d51639f0328bff6059570f58d80";
-const GOLDEN_LAYER_PCS2_MOE = "601be72b51cf5df866a6d62b2d6d50a76b56d4e8bf297e7c65282041acf5ef4b";
+const GOLDEN_LAYER_FLAT = "31eb3ca75ecd868081cc887cfc80be4e521d9c60280c142e7ac7de0a42334c53";
+const GOLDEN_LAYER_PCS2_MOE = "0a44bff6450000e708eb6b6ba3b7caed96104c67b7afb608fd3509e8b2925205";
 
 fn layerDigest(cfg: LayerCfg, pc_in: proto.Config, threads: usize) ![32]u8 {
     return layerDigestOpt(cfg, pc_in, threads, false);

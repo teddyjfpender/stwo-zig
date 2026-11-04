@@ -94,7 +94,7 @@ fn hex(d: [32]u8) [64]u8 {
 /// Golden digests recorded on the pre-optimization prover (cc5ac62c9).
 // r2-sec: weight_values dropped from the proof (transcript unchanged; the
 // digest no longer hashes the duplicated values)
-const GOLDEN_MLP = "eb73e685c5672b3831d6dfb16b942cf46856b902932a95e8181b81c67f00d228";
+const GOLDEN_MLP = "9fe62b2a38ce7fa77210e9e09a9a49332e305690b8a6ceb97f7567a0859b9d75";
 const GOLDEN_PRODUCT = "ef898ebc41f69dc02891d663b412d409f8b0e999d1672af46d7c2ffca1021446";
 
 fn mlpProofDigest(threads: usize) ![32]u8 {
@@ -166,7 +166,7 @@ test "proof digest is pinned (mlp, product) and thread-count independent" {
 
 // Recommended configuration (pcs2 depth 2 + batched matmuls), recorded on the
 // unmodified prover (base 61ba1ce6c with the two bug fixes of 9791c1927).
-const GOLDEN_MLP_RECOMMENDED = "f0f2393ec92c7ddb189c4b800dfaf4f1e403033bee5575ed85de11b13d7600d8";
+const GOLDEN_MLP_RECOMMENDED = "e52475272e20ce6d798b24ea87a6775caa2998654b064c0c544772ca1bbbff6e";
 
 fn mlpDigestRecommended(threads: usize) ![32]u8 {
     const a = std.testing.allocator;

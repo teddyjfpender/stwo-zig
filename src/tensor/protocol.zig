@@ -90,6 +90,10 @@ pub const Statement = struct {
     ops: []const Op,
     /// transformer-coverage ops (einsum / key / lineq), see ext.zig
     ext: xt.Ext = .{},
+    /// digest of the public model definition the statement was built from
+    /// (model.MlpConfig / transformer.ModelConfig: shapes, requant shifts,
+    /// tables, norm parameters); mixed into the transcript when set (P2)
+    model_digest: ?[32]u8 = null,
 };
 
 /// Committed weights (prover side): concatenated int8 table + commitment.
@@ -600,6 +604,10 @@ fn mixStatement(tr: *Transcript, st: Statement, weight_root: [32]u8) void {
         .glu => |g| tr.mixU32s(&.{ 6, g.g, g.u, g.h, g.table, g.shift }),
     };
     xt.mixStatement(tr, st.ext);
+    if (st.model_digest) |d| {
+        tr.mixU32s(&.{0x4d4f444c}); // "MODL"
+        tr.mixDigest(d);
+    }
 }
 
 fn fullPoint(a: std.mem.Allocator, log_total: u32, offset: usize, log_size: u32, local: []const QM31) ![]QM31 {

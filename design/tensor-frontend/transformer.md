@@ -207,11 +207,23 @@ MLE of the slice, and is discharged by the same batch opening.
 ## 3. What is proved
 
 For a public statement (shapes, shifts, gammas, mask, RoPE table, exp/silu
-tables) and the committed weight root, the verifier is convinced that the
-committed witness is *the* output of the integer layer above on the committed
-input: every intermediate is uniquely determined by the constraints (argmax
+tables, **the model input and the claimed output**) and the committed weight
+root, the verifier is convinced that the claimed output is *the* output of
+the integer layer above on the public input: every intermediate is uniquely determined by the constraints (argmax
 ties are irrelevant: m is unique; sel may pick any maximiser but nothing
 downstream depends on which).
+
+Binding (review-A P1 / P2, fixed): `buildStack` registers the input x and the
+final output as ext publics with lineqs `x = X_pub`, `out = Y_pub`; before,
+neither was bound and a proof for prompt X2 verified under the statement of
+X1. The statement also carries `model_digest` = H(ModelConfig), where
+ModelConfig = (LayerCfg, gamma seed, every requant shift in builder order).
+`transformer.statementFor(ModelConfig, x, y)` rebuilds the statement on the
+verifier with a shape-only builder (no weights; dummy values; publics set to
+x and y), so the prover cannot choose shifts per input (the old builder
+picked the smallest fitting shift per input, which let the statement vary
+with the prompt). Calibration (`calibrate`) records the shifts on sample
+inputs; an input outside the calibrated model makes the prover error.
 
 Uniqueness arguments:
 * rowmax: sel in {0,1} (sel^2 = sel), sum sel = 1 over <= T < p terms => exactly one j*;
