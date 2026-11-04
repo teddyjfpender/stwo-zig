@@ -106,3 +106,28 @@ Requests 20.63 / 19.52 s (26235156) and 29.32 / 28.65 s (24628607), byte-identic
 receiver binary, store renamed away). The ProgramAuthority cache cuts the per-request image load from 489-579 ms (v4,
 `daemon-ab-final-warm`) to **306-321 ms** [M]; capture is unchanged (2.19-2.96 s) because the image load overlaps RV64
 execution. The remaining ~0.3 s is ELF + input load and the input-dependent memory policy.
+
+## Final stack on 24628607 under the counter shim (one-shot, same config as M4 `integrate/24628607-g5-counters`)
+
+| per request | M4 g5 | **v5 default** (`24628607-counters-v5counters.json`) | v5 + `STWO_RV64_EXEC_SYNC=device` |
+|---|---:|---:|---:|
+| syncs (stream + ctx + event) | 57,816 | **10,587 (5.5x)** | **5,414 (10.7x)** |
+| `cuStreamSynchronize` | 57,766 | 6,559 | 0 |
+| pageable copies | 19,613 (71.1 GB) | **0** | 0 |
+| H2D bytes | 71.1 GB | **55.1 GB** (all pinned) | 55.5 GB |
+| launches | 222,913 | 223,004 | 223,004 |
+| proofs | = M3 | **identical** | **identical** |
+
+## Gates (stream prompt)
+
+| gate | status |
+|---|---|
+| byte-identical to M4 on both dev blocks | **met** on every run (one-shot and service, both blocks, all hashes) |
+| pageable copies ≈ 0 | **met: 0** on both blocks (was 19,613 / 12,250) |
+| syncs cut ≥ 5x | **met: 5.5x** default (57,816 → 10,587 on 607); 10.7x with the opt-in device joins |
+| request time measured | ABBA in the resident service on a loaded host: 607 31.19 → 29.18 s, 156 21.33 → 20.32 s (n = 4 each) |
+| arena default on, carved at service start | **met** (`GPU_ARENA_INIT` before warm boot; trace.cu bypass closed; admission no longer counts free bytes outside the carve) |
+| GPU0 peak ≤ 28 GB | **one-shot only**: 27.81 GB with a 22 GiB carve (el-2 direct −3.69 GB). In the service the 2nd 607 request needs > 22 GiB (recursion-leaf composition 11.24 GB + 11.9 GB live) |
+| bound the 12,544 B stack kernel (−2 GB) | **not done**: `secp witness<Add>` keeps a 3,136-word row in local memory, but the next worst kernels are AOT catalogue shards (`rv64_truth_domain_0_shard_47` 11,664 B, `..._7_shard_62` 10,576 B) and `curve witness<bn254_g1_add>` 10,576 B, so fixing one kernel frees ~0.2 GB, not 2 GB |
+| cache Image.Owner / ProgramAuthority | **ProgramAuthority done** (image load 0.49-0.58 → 0.31 s); Image.Owner itself depends on the block input, so it is not cached |
+| filter class preload, persist leaf plans | **not done** (preload is service start only; leaf plans wait on canon-vk keys) |
