@@ -194,7 +194,7 @@ pub fn mainWithRecursionFactory(factory: ?@import("stwo_circuit_cpu_integration"
     defer recycler.deinit();
     const all_args = try std.process.argsAlloc(recycler.allocator());
     defer std.process.argsFree(recycler.allocator(), all_args);
-    return runArguments(&recycler, all_args, .{}, null, true, factory);
+    return runArguments(&recycler, all_args, .{}, null, true, .{ .factory = factory });
 }
 /// Explicit linked product: production and recursion share independently derived
 /// live authorities and the in-memory bundle. No receiver handoff is reloaded.
@@ -215,16 +215,34 @@ pub fn mainWithResidentPipelineAndRecursion(stages: ResidentStages, factory: @im
     defer session.deinit();
     return runCombinedResidentArgs(&recycler, all_args, stages, &session, factory);
 }
+/// Operational selection only; never enters AIR, proof profile or transcript.
+pub const CombinedRecursion = struct {
+    factory: ?@import("stwo_circuit_cpu_integration").om31.device_prove.Factory = null,
+    ready: ?@import("../../rv64_recursion/om31_native/execution_wrap.zig").ParallelOptions = null,
+    physical_devices: []const u32 = &.{},
+    producer_manifest_sha256: ?[32]u8 = null,
+    pub fn validate(self: CombinedRecursion) !void {
+        if (self.ready) |ready| {
+            if (self.factory != null or ready.lanes.len != self.physical_devices.len) return error.InvalidCombinedRecursionSelection;
+            try @import("../../rv64_recursion/om31_native/execution_wrap.zig").validateLanes(ready);
+            for (ready.lanes, self.physical_devices) |lane, device| if (lane.physical_device != device) return error.InvalidCombinedRecursionSelection;
+        } else if (self.factory == null or self.physical_devices.len > 1) return error.InvalidCombinedRecursionSelection;
+    }
+};
 /// Persistent combined requests reuse only bounded independently derived setup.
 /// Every call still captures, proves and freshly verifies the complete block.
 pub fn runCombinedResidentArgs(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: *ResidentSession, factory: @import("stwo_circuit_cpu_integration").om31.device_prove.Factory) !void {
+    return runCombinedResidentArgsWithExecution(recycler, all_args, stages, session, .{ .factory = factory });
+}
+pub fn runCombinedResidentArgsWithExecution(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: *ResidentSession, execution: CombinedRecursion) !void {
     try stages.requireFullyResident();
     const selection = try selectProfile(all_args);
     if (selection.args.len < 2 or !isCombinedProducer(selection.args[1])) return error.CombinedProductRequiresCombinedMode;
+    try execution.validate();
     if (session.active) return error.ResidentRequestAlreadyActive;
     session.active = true;
     defer session.active = false;
-    return runArguments(recycler, all_args, stages, session, true, factory);
+    return runArguments(recycler, all_args, stages, session, true, execution);
 }
 fn isCombinedProducer(mode: []const u8) bool {
     return std.mem.eql(u8, mode, "produce-and-recurse-candidate");
@@ -237,7 +255,8 @@ pub fn runWithResidentArgs(recycler: *Recycler, all_args: []const [:0]u8, stages
     defer session.active = false;
     return runArguments(recycler, all_args, stages, session, false, {});
 }
-fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: ?*ResidentSession, comptime enable_recursion: bool, recursion_factory: if (enable_recursion) ?@import("stwo_circuit_cpu_integration").om31.device_prove.Factory else void) !void {
+fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: ?*ResidentSession, comptime enable_recursion: bool, recursion_execution: if (enable_recursion) CombinedRecursion else void) !void {
+    const recursion_factory = if (enable_recursion) recursion_execution.factory else {};
     const base = recycler.allocator();
     const device_pcs_stage = stages.pcs;
     const om31_composition_stage = stages.composition;
@@ -257,7 +276,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         if (args.len != 7) return error.ExpectedModeConfigJobsOutputPrefixAndResources;
         if (try std.fmt.parseUnsigned(u32, args[5], 10) != 0) return error.CombinedRequiresCompleteExecution;
         if (comptime !enable_recursion) return error.RecursionProductRequired;
-        if (recursion_factory == null) return error.CombinedRequiresDeviceRecursion;
+        if (recursion_factory == null and recursion_execution.ready == null) return error.CombinedRequiresDeviceRecursion;
         try stages.requireFullyResident();
     }
     const candidate = combined or recurse or std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
@@ -291,6 +310,17 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const request = try std.json.parseFromSlice(Request.Config, a, raw, .{});
     defer request.deinit();
     try @import("../services/gkr_local/service_scope.zig").profile(request.value.execution_profile);
+    // Candidate lane pools already exist. This native pool stays idle but
+    // alive during recursion, so charge its live helper stacks separately.
+    const ready = if (enable_recursion) recursion_execution.ready else null;
+    const native_workers = try Request.effectiveWorkers(request.value);
+    if (ready) |options| if (options.pool_worker_budget > native_workers) return error.InvalidCombinedRecursionWorkerBudget;
+    var native_stacks = engine.host_budget_allocator.SharedHostBudget.ExternalReservation.empty();
+    defer native_stacks.deinit();
+    if (ready != null) {
+        const owner = try @import("../../rv64_recursion_budget.zig").require(engine.host_budget_allocator.SharedHostBudget, base);
+        native_stacks = try owner.reserveExternal(try std.math.mul(usize, native_workers - 1, ReceiverBudget.WORKER_STACK_BYTES));
+    }
     var pool: engine.work_pool.WorkPool = .{};
     try pool.initInPlaceWithOptions(.{ .worker_count = try Request.effectiveWorkers(request.value), .stack_size = ReceiverBudget.WORKER_STACK_BYTES, .backing_allocator = a });
     defer pool.deinit();
@@ -342,12 +372,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
                 var recursive_dir = try dir.openDir("recursion-om31", .{});
                 defer recursive_dir.close();
                 const recursion = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").verifyExisting(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir);
-                return emit(a, .{ .accepted = true, .completed_ethereum_block = true, .output = output, .native_profile = selected_profile, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.domain,
-                    .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate",
-                    .shared_fresh_native_authority = true, .native_verified_before_recursion = true, .existing_recursive_proofs_only = true, .trace_only_recursive_graphs = true,
-                    .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .native_verify_ns = native_verify_ns, .total_after_setup_ns = timer.read() - setup_ns,
-                    .native = .{ .accepted = true, .completed_ethereum_block = true, .security_profile = security_profile.name(), .profile = selected_profile, .output = output,
-                        .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .verify_ns = native_verify_ns }, .recursive = recursion });
+                return emit(a, .{ .accepted = true, .completed_ethereum_block = true, .output = output, .native_profile = selected_profile, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.domain, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .shared_fresh_native_authority = true, .native_verified_before_recursion = true, .existing_recursive_proofs_only = true, .trace_only_recursive_graphs = true, .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .native_verify_ns = native_verify_ns, .total_after_setup_ns = timer.read() - setup_ns, .native = .{ .accepted = true, .completed_ethereum_block = true, .security_profile = security_profile.name(), .profile = selected_profile, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .verify_ns = native_verify_ns }, .recursive = recursion });
             }
             dir.makeDir("recursion-om31") catch |err| {
                 if (err != error.PathAlreadyExists or !resume_recursion) return err;
@@ -502,12 +527,34 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         var recursive_dir = try dir.openDir("recursion-om31", .{});
         defer recursive_dir.close();
         const recursion_start_ns = timer.read();
-        var recursion = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").run(a, keys.cpus, keys.truths, &bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir, false, recursion_factory);
+        const Recursive = @import("../../rv64_recursion/om31_native/execution_wrap.zig");
+        var recursion = if (ready) |options|
+            try Recursive.runWithFactories(a, keys.cpus, keys.truths, &bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir, false, options)
+        else
+            try Recursive.run(a, keys.cpus, keys.truths, &bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir, false, recursion_factory);
+        var lane_workers: [4]usize = @splat(0);
+        var lane_helper_bytes: usize = 0;
+        if (ready) |options| {
+            for (options.lanes, 0..) |lane, i| {
+                lane_workers[i] = lane.pool.workerCount();
+                lane_helper_bytes += (lane.pool.workerCount() - 1) * lane.pool.stackSize();
+            }
+        } else lane_workers[0] = pool.workerCount();
+        const recursion_operational = .{
+            .mode = if (ready != null) @as([]const u8, "ready_candidate") else "serial",
+            .physical_device_ids = recursion_execution.physical_devices,
+            .lane_workers = lane_workers[0..if (ready) |options| options.lanes.len else 1],
+            .native_helper_stack_reserved_bytes = native_stacks.bytes,
+            .lane_helper_stack_reserved_bytes = lane_helper_bytes,
+            .coordinator_stack_reserved_bytes = if (ready) |options| options.lanes.len * (8 << 20) else @as(usize, 0),
+            .producer_manifest_sha256 = recursion_execution.producer_manifest_sha256,
+            .hardware_parallel_qualified = false,
+        };
         recursion.native_prove_ns = prove_ns;
         const recursion_ns = timer.read() - recursion_start_ns;
         // execution_wrap already published its report exclusively. Native timing
         // belongs in this combined report; never republish the existing file.
-        const report = .{ .schema = 1, .accepted = true, .completed_ethereum_block = true, .authority_handoff = "live independently derived keys and fixed authority; direct in-memory bundle", .native_bundle_reload = false, .native_authority_session_used = session != null, .native_authority_classes = if (session) |shared| shared.keyCount() else @as(usize, 0), .restored_recursive_proofs = false, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .profile = selected_profile, .capture_ns = capture_ns, .native_setup_ns = setup_ns, .setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = producer_keys_ns, .fixed_authority_ns = producer_fixed_ns }, .native_prove_ns = prove_ns, .native_verify_ns = verify_ns, .native_publish_ns = native_publish_ns, .recursion_ns = recursion_ns, .combined_ns = timer.read(), .recursive = recursion };
+        const report = .{ .schema = 1, .accepted = true, .completed_ethereum_block = true, .authority_handoff = "live independently derived keys and fixed authority; direct in-memory bundle", .native_bundle_reload = false, .recursion_execution = recursion_operational, .native_authority_session_used = session != null, .native_authority_classes = if (session) |shared| shared.keyCount() else @as(usize, 0), .restored_recursive_proofs = false, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .profile = selected_profile, .capture_ns = capture_ns, .native_setup_ns = setup_ns, .setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = producer_keys_ns, .fixed_authority_ns = producer_fixed_ns }, .native_prove_ns = prove_ns, .native_verify_ns = verify_ns, .native_publish_ns = native_publish_ns, .recursion_ns = recursion_ns, .combined_ns = timer.read(), .recursive = recursion };
         try Driver.writeJson(a, dir, "combined-report.json", report);
         try std.posix.fsync(dir.fd);
         return emit(a, report);

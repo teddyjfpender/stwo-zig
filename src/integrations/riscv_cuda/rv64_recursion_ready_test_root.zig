@@ -71,3 +71,33 @@ test "ready actual API admits known recycler budget and validates borrowed stack
     stacks.deinit();
     try std.testing.expectEqual(@as(usize, 1 << 20), budget.snapshot().external_live_bytes);
 }
+
+test "combined ready admission binds exact physical lanes and refuses dual selections" {
+    const Main = @import("stwo_riscv_cpu_integration").rv64_ethereum_gkr_main;
+    const Factory = @import("stwo_circuit_cpu_integration").om31.device_prove.Factory;
+    const Fake = struct {
+        fn prepare(_: *anyopaque, _: std.mem.Allocator, _: *const @import("stwo_circuit_cpu_integration").om31.prove.Authority, _: []const @import("stwo_circuit_cpu_integration").om31.protocol.Q, _: @import("stwo_riscv_cpu_integration").rv64_device_pcs.Scope) !@import("stwo_circuit_cpu_integration").om31.device_prove.Source {
+            return error.NotInvoked;
+        }
+        fn graph(_: *anyopaque, _: std.mem.Allocator, _: *const @import("stwo_circuit_cpu_integration").om31.prove.Authority, _: *const @import("stwo_circuit_frontend").builder.Context(@import("stwo_circuit_cpu_integration").om31.protocol.Q), _: @import("stwo_riscv_cpu_integration").rv64_device_pcs.Scope) !@import("stwo_circuit_cpu_integration").om31.device_prove.Source {
+            return error.NotInvoked;
+        }
+    };
+    var storage: u8 = 0;
+    const factory = Factory{ .context = &storage, .prepare = Fake.prepare, .prepare_from_circuit = Fake.graph };
+    var pool: Engine.work_pool.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 1 });
+    defer pool.deinit();
+    const lanes = [_]Execution.Lane{.{ .physical_device = 3, .factory = factory, .pool = &pool }};
+    const ready = Execution.ParallelOptions{ .lanes = &lanes, .pool_worker_budget = 1 };
+    try (Main.CombinedRecursion{ .ready = ready, .physical_devices = &.{3} }).validate();
+    try (Main.CombinedRecursion{ .factory = factory, .physical_devices = &.{3} }).validate();
+    try std.testing.expectError(error.InvalidCombinedRecursionSelection, (Main.CombinedRecursion{ .ready = ready, .physical_devices = &.{0} }).validate());
+    try std.testing.expectError(error.InvalidCombinedRecursionSelection, (Main.CombinedRecursion{ .ready = ready, .factory = factory, .physical_devices = &.{3} }).validate());
+    try std.testing.expectError(error.InvalidCombinedRecursionSelection, (Main.CombinedRecursion{ .factory = factory, .physical_devices = &.{ 0, 1 } }).validate());
+    try std.testing.expectError(error.InvalidCombinedRecursionSelection, (Main.CombinedRecursion{}).validate());
+}
+
+test {
+    _ = @import("rv64/resident_ready_policy.zig");
+}
