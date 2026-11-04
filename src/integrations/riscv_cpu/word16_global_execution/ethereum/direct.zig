@@ -43,6 +43,24 @@ pub const Stats = struct {
     first_batch_ready_ns: u64 = 0,
     first_batch_admit_ns: u64 = 0,
     first_batch_capture_ns: u64 = 0,
+    /// Per-segment readiness timeline (the `Capture.Ready` instants, ns from
+    /// the ordered owner's start) for the first `MAX_READY_TIMES` segments:
+    /// when a streaming native stage 1 (M6) could start on each segment.
+    segments_ready: u32 = 0,
+    segment_ready_ns: [MAX_READY_TIMES]u64 = @splat(0),
+};
+pub const MAX_READY_TIMES = 32;
+/// Records each segment's ready instant into `Stats`, then forwards to the
+/// caller's hook (if any). Runs on the ordered owner's thread; report-only.
+const ReadyTap = struct {
+    stats: *Stats,
+    inner: ?Capture.Ready,
+    fn call(context: *anyopaque, index: usize, native: *const Native, events: []const @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event, at_ns: u64) void {
+        const self: *ReadyTap = @ptrCast(@alignCast(context));
+        if (index < MAX_READY_TIMES) self.stats.segment_ready_ns[index] = at_ns;
+        self.stats.segments_ready = @intCast(index + 1);
+        if (self.inner) |hook| hook.call(hook.context, index, native, events, at_ns);
+    }
 };
 const Job = struct {
     allocator: std.mem.Allocator,
@@ -68,6 +86,7 @@ const Job = struct {
     admit_ns: u64 = 0,
     capture_ns: u64 = 0,
     fn run(self: *Job) void {
+        lowerJobPriority();
         var timer = std.time.Timer.start() catch null;
         const tape = self.tape.?;
         self.tape = null;
@@ -100,6 +119,17 @@ const Job = struct {
         self.allocator.destroy(self);
     }
 };
+/// `STWO_RV64_CAPTURE_JOB_NICE=N` (1..19): run batch admission/capture (and
+/// the range threads it spawns, which inherit it) at nice N, so the serial
+/// ordered ledger and the segment walks win CPU under a quota. Scheduling only.
+fn lowerJobPriority() void {
+    if (@import("builtin").os.tag != .linux) return;
+    const text = std.posix.getenv("STWO_RV64_CAPTURE_JOB_NICE") orelse return;
+    const nice = std.fmt.parseInt(u5, text, 10) catch return;
+    if (nice == 0 or nice > 19) return;
+    // setpriority(PRIO_PROCESS, 0 = calling thread on Linux, nice).
+    _ = std.os.linux.syscall3(.setpriority, 0, 0, nice);
+}
 /// Bounded in-order hand-over between the executing thread and the consumer.
 const Queue = struct {
     mutex: std.Thread.Mutex = .{},
@@ -263,7 +293,8 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
     if (inflight == 0 or inflight > MAX_INFLIGHT) return error.InvalidEthereumCaptureOptions;
     var ordered = Capture.Ordered.init(a, image, config, prefix_packets);
     defer ordered.deinit();
-    ordered.on_ready = ready;
+    var tap = ReadyTap{ .stats = stats, .inner = ready };
+    ordered.on_ready = .{ .context = &tap, .call = ReadyTap.call };
     var queue = Queue{};
     var consumer = Consumer{ .queue = &queue, .ordered = &ordered };
     const concurrent = inflight > 1;

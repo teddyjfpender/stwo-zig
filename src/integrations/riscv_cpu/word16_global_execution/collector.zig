@@ -6,6 +6,56 @@ const R = A.memory.closed_ram;
 const CPU = @import("../word16_execution/cpu_source.zig");
 const Public = @import("../word16_execution/memory/statement.zig");
 pub const StateTable = @import("ledger_table.zig").StateTable;
+const ImageOwner = @import("../word16_execution/expected_image.zig").Owner;
+const PageTable = @FieldType(@FieldType(@FieldType(@FieldType(ImageOwner, "loaded"), "memory"), "backing"), "table");
+const PAGE_SIZE: u64 = @import("stwo_riscv_frontend").rv64.memory.PAGE_SIZE;
+/// First-touch word state `{initialWord, wordRights}` of `Public.fromOwner(owner)`,
+/// computed once per guest page instead of per word (a page-table lookup and
+/// eight first-match region scans each). Exact: it answers only aligned words
+/// in pages whose every byte has the same first-matching policy region (or
+/// none), where `wordRights` is that region's rights; otherwise null and the
+/// caller takes the image path (including all of its errors). Values are read
+/// from the same page bytes `Owner.initialWord` reads. Producer speed only.
+pub const OwnerPages = struct {
+    owner: *const ImageOwner,
+    index: u64 = std.math.maxInt(u64),
+    page: ?@FieldType(PageTable.KV, "value") = null,
+    rights: ?u2 = null,
+    pub fn lookup(self: *OwnerPages, address: u64) ?R.types.State {
+        if (address & 7 != 0 or address > std.math.maxInt(u64) - 7) return null;
+        const index = address / PAGE_SIZE;
+        if (index != self.index) {
+            self.index = index;
+            self.page = self.owner.loaded.memory.backing.table.get(index);
+            self.rights = uniformRights(self.owner.policy.regions, index * PAGE_SIZE, index * PAGE_SIZE + (PAGE_SIZE - 1));
+        }
+        const rights = self.rights orelse return null;
+        const offset: usize = @intCast(address % PAGE_SIZE);
+        const value = if (self.page) |page| std.mem.readInt(u64, page[offset..][0..8], .little) else 0;
+        return .{ .value = value, .rights = rights };
+    }
+};
+/// The rights every address in [lo, hi] gets under first-match region lookup
+/// (`statement.zig` Callbacks.rights), or null when they differ.
+pub fn uniformRights(regions: anytype, lo: u64, hi: u64) ?u2 {
+    for (regions) |region| {
+        if (region.last < lo or region.first > hi) continue;
+        // First region touching the range: it must cover all of it.
+        if (region.first <= lo and hi <= region.last) return @intCast(region.flags & 3);
+        return null;
+    }
+    return 0;
+}
+test "uniform page rights follow first-match region order" {
+    const Region = struct { first: u64, last: u64, flags: u3 };
+    const regions = [_]Region{ .{ .first = 0x1000, .last = 0x1fff, .flags = 1 }, .{ .first = 0x0, .last = 0xffff, .flags = 3 }, .{ .first = 0x20000, .last = 0x20fff, .flags = 2 } };
+    try std.testing.expectEqual(@as(?u2, 1), uniformRights(&regions, 0x1000, 0x1fff));
+    try std.testing.expectEqual(@as(?u2, 3), uniformRights(&regions, 0x2000, 0x2fff));
+    try std.testing.expectEqual(@as(?u2, null), uniformRights(&regions, 0x0800, 0x17ff));
+    try std.testing.expectEqual(@as(?u2, null), uniformRights(&regions, 0xf800, 0x107ff));
+    try std.testing.expectEqual(@as(?u2, 0), uniformRights(&regions, 0x10000, 0x10fff));
+    try std.testing.expectEqual(@as(?u2, 2), uniformRights(&regions, 0x20000, 0x20fff));
+}
 pub const Ledger = struct {
     allocator: std.mem.Allocator,
     image: Public.Image,
@@ -14,6 +64,9 @@ pub const Ledger = struct {
     states: StateTable = .empty,
     initial: std.ArrayList(R.types.Cell) = .empty,
     next_epoch: u32 = 1,
+    /// Optional exact fast path for first-touch reads when `image` is
+    /// `Public.fromOwner(pages.owner)` (set by the Ethereum ordered owner).
+    pages: ?OwnerPages = null,
     pub fn init(a: std.mem.Allocator, image: Public.Image) Ledger {
         return .{ .allocator = a, .image = image };
     }

@@ -31,6 +31,9 @@ pub const Stats = struct {
     walk_ns_total: u64 = 0,
     walk_ns_max: u64 = 0,
     walk_retired: u64 = 0,
+    /// Split of `walk_ns_total`: traced execution and `batch.finish`.
+    walk_traced_ns: u64 = 0,
+    walk_finish_ns: u64 = 0,
 };
 
 const FirstPass = struct {
@@ -59,6 +62,8 @@ const Worker = struct {
     err: ?anyerror = null,
     walk_ns: u64 = 0,
     retired: u64 = 0,
+    traced_ns: u64 = 0,
+    finish_ns: u64 = 0,
     fn run(self: *Worker) void {
         var timer = std.time.Timer.start() catch null;
         self.work() catch |err| {
@@ -85,6 +90,8 @@ const Worker = struct {
         if (!rv.checkpoint.matches(&walk.session, &dirty, next)) return error.EthereumSegmentContinuity;
         self.completed = walk.completed;
         self.retired = taken.tape.len;
+        self.traced_ns = walk.traced_ns;
+        self.finish_ns = walk.finish_ns;
         self.taken = taken;
     }
 };
@@ -307,6 +314,8 @@ pub const Segments = struct {
         self.stats.walk_ns_total += w.walk_ns;
         self.stats.walk_ns_max = @max(self.stats.walk_ns_max, w.walk_ns);
         self.stats.walk_retired += w.retired;
+        self.stats.walk_traced_ns += w.traced_ns;
+        self.stats.walk_finish_ns += w.finish_ns;
         self.main.batches = self.next_index;
         if (w.completed) {
             self.main.completed = true;

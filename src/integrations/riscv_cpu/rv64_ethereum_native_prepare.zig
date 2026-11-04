@@ -58,6 +58,10 @@ pub const Walk = struct {
     curve_calls: [rv.ethereum_services.curves.COUNT]u64 = @splat(0),
     completed: bool = false,
     pending: bool = false,
+    /// Report-only emulator split (M7 baseline): traced execution
+    /// (`captureNext` loop) and `batch.finish`, summed over batches.
+    traced_ns: u64 = 0,
+    finish_ns: u64 = 0,
     pub const Step = struct {
         index: u32,
         batch: Native.Batch,
@@ -108,6 +112,8 @@ pub const Walk = struct {
         self.owns_request = owns_request;
         self.memory = memory;
         self.owns_memory = owns_memory;
+        self.traced_ns = 0;
+        self.finish_ns = 0;
         self.identity = try Packet.identityFor(config, &self.request.authority, &self.request.policy);
         self.session = try rv.ethereum_services.Session.initWithProfile(a, cpu_state, memory, .{ .max_retirements = config.max_steps }, Request.tapeProfile(config));
         errdefer self.session.deinit();
@@ -159,6 +165,7 @@ pub const Walk = struct {
         batch.arith256_first = @intCast(self.arith256_calls + 1);
         for (&batch.curve_first, self.curve_calls) |*first, total| first.* = @intCast(total + 1);
         const memory = self.memory;
+        var timer = std.time.Timer.start() catch null;
         while (self.tape.len < self.tape.storage.len) {
             try Native.captureNext(&self.session, &self.tape, &self.capture, &batch);
             if (c.pc == config.terminal_pc) {
@@ -170,7 +177,9 @@ pub const Walk = struct {
         }
         // A failed finish has not cleared capture. Later errors abort this
         // collection; no in-place execution retry or advice replay is hidden.
+        if (timer) |*t| self.traced_ns += t.lap();
         const finished = try batch.finish(self.allocator, c, memory, &self.request.policy, .chunk512);
+        if (timer) |*t| self.finish_ns += t.read();
         self.pending = true;
         return .{ .index = self.batches, .batch = batch, .finished = finished };
     }
