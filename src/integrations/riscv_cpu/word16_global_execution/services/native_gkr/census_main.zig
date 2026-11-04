@@ -13,7 +13,7 @@ const A = @import("stwo_riscv_frontend").rv64_air;
 const R = @import("../roster.zig");
 const T = @import("../types.zig");
 const Wire = @import("../wire.zig");
-const Scope = @import("../gkr_local/v2_scope.zig");
+const Scope = @import("../gkr_local/service_scope.zig");
 const Plan = @import("../gkr_local/cpu_components.zig").Plan;
 const Global = @import("../gkr_local/global_cpu.zig");
 const Roster = @import("../gkr_local/roster.zig");
@@ -86,7 +86,7 @@ pub fn main() !void {
         setup.materials.program.log_size = rom_log;
         setup.bridges = entry.declaration.bridges;
         try Scope.declaration(entry.declaration);
-        var plan = try Plan.init(a, &setup);
+        const plan = try Plan.init(a, &setup);
         var slots = std.ArrayList(Slot).empty;
         var main_cells: u64 = 0;
         var inter_cells: u64 = 0;
