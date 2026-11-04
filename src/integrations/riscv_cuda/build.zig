@@ -82,6 +82,10 @@ pub fn build(b: *std.Build) void {
     b.step("test-prefix-banks", "Check alternating Merkle prefix workspace geometry without a GPU").dependOn(&run_prefix_tests.step);
     test_step.dependOn(&run_prefix_tests.step);
 
+    const stream_plan_tests = b.addTest(.{ .root_module = b.createModule(.{ .root_source_file = b.path("rv64/trace_stream_plan.zig"), .target = b.graph.host, .optimize = optimize }) });
+    const run_stream_plan_tests = b.addRunArtifact(stream_plan_tests);
+    b.step("test-trace-stream-plan", "Check chunked LDE->Merkle streaming plans and schedule-independent absorption without a GPU").dependOn(&run_stream_plan_tests.step);
+    test_step.dependOn(&run_stream_plan_tests.step);
     const idle_cache_tests = b.addExecutable(.{
         .name = "rv64-pcs-idle-cache-tests",
         .root_module = b.createModule(.{ .target = b.graph.host, .optimize = optimize }),

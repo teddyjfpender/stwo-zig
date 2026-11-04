@@ -49,6 +49,10 @@ struct StwoNativeCudaContext {
     bool capture_active;
     bool closing;
     cudaMemPool_t pool;
+    // Lifetime segregation: immutable setup/domain planes outlive every
+    // request; keeping them out of the per-request pool means a reservation
+    // trim of the scratch pool is never pinned by long-lived pages.
+    cudaMemPool_t long_pool;
     cudaEvent_t timing_events[kTimingMarkerCount];
     uint32_t timing_marker_count;
     uint32_t nvtx_depth;
@@ -326,6 +330,9 @@ extern "C" int stwo_exec_context_create_options(
     uint64_t release_threshold = std::numeric_limits<uint64_t>::max();
     if (status == cudaSuccess) status = cudaMemPoolSetAttribute(
         context->pool, cudaMemPoolAttrReleaseThreshold, &release_threshold);
+    if (status == cudaSuccess) status = cudaMemPoolCreate(&context->long_pool, &properties);
+    if (status == cudaSuccess) status = cudaMemPoolSetAttribute(
+        context->long_pool, cudaMemPoolAttrReleaseThreshold, &release_threshold);
     for (uint32_t lane = 0; status == cudaSuccess && lane < context->lane_count; ++lane) {
         status = cudaStreamCreateWithFlags(&context->lanes[lane], cudaStreamNonBlocking);
     }
@@ -398,6 +405,11 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
         if (status != cudaSuccess) return static_cast<int>(status);
         context->pool = nullptr;
     }
+    if (context->long_pool != nullptr) {
+        status = cudaMemPoolDestroy(context->long_pool);
+        if (status != cudaSuccess) return static_cast<int>(status);
+        context->long_pool = nullptr;
+    }
     delete[] context->allocations;
     delete context;
     return 0;
@@ -416,7 +428,15 @@ extern "C" int stwo_exec_context_pool_trim(void *handle) {
         [&]() { return static_cast<int>(require_context(handle, &context)); },
         [&]() { return context->capture_active; },
         [&]() { return static_cast<int>(join_lanes(context)); },
-        [&]() { return static_cast<int>(cudaMemPoolTrimTo(context->pool, 0)); },
+        [&]() {
+            // Both lifetime pools: freed long-lived pages (retired setup,
+            // evicted domains) must not stay pinned in the long pool's
+            // reservation after an explicit phase trim.
+            cudaError_t trimmed = cudaMemPoolTrimTo(context->pool, 0);
+            if (trimmed == cudaSuccess && context->long_pool != nullptr)
+                trimmed = cudaMemPoolTrimTo(context->long_pool, 0);
+            return static_cast<int>(trimmed);
+        },
         static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE));
 }
 
@@ -456,6 +476,13 @@ extern "C" int stwo_exec_context_pool_current(
             cudaMemPoolAttrReservedMemCurrent,
             &reserved);
     }
+    uint64_t long_used = 0, long_reserved = 0;
+    if (status == cudaSuccess)
+        status = cudaMemPoolGetAttribute(context->long_pool, cudaMemPoolAttrUsedMemCurrent, &long_used);
+    if (status == cudaSuccess)
+        status = cudaMemPoolGetAttribute(context->long_pool, cudaMemPoolAttrReservedMemCurrent, &long_reserved);
+    used += long_used;
+    reserved += long_reserved;
     if (status != cudaSuccess) return static_cast<int>(status);
     if (used > std::numeric_limits<size_t>::max() ||
         reserved > std::numeric_limits<size_t>::max()) {
@@ -818,10 +845,39 @@ extern "C" int stwo_graph_destroy(void *exec_handle) {
         reinterpret_cast<cudaGraphExec_t>(exec_handle)));
 }
 
+static int alloc_u32_from(void *handle, size_t count, uint32_t **out_pointer, bool long_lived);
 extern "C" int stwo_exec_context_alloc_u32(
     void *handle,
     size_t count,
     uint32_t **out_pointer) {
+    return alloc_u32_from(handle, count, out_pointer, false);
+}
+// Long-lived class (immutable setup, cached domains). Same custody ledger and
+// stream-ordered free; only the backing pool differs.
+extern "C" int stwo_exec_context_alloc_u32_long(
+    void *handle,
+    size_t count,
+    uint32_t **out_pointer) {
+    return alloc_u32_from(handle, count, out_pointer, true);
+}
+extern "C" int stwo_exec_context_pool_split(
+    void *handle, size_t used[2], size_t reserved[2]) {
+    if (!used || !reserved) return static_cast<int>(cudaErrorInvalidValue);
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    cudaMemPool_t pools[2] = {context ? context->pool : nullptr,
+                              context ? context->long_pool : nullptr};
+    for (int i = 0; status == cudaSuccess && i < 2; ++i) {
+        uint64_t u = 0, r = 0;
+        status = cudaMemPoolGetAttribute(pools[i], cudaMemPoolAttrUsedMemCurrent, &u);
+        if (status == cudaSuccess)
+            status = cudaMemPoolGetAttribute(pools[i], cudaMemPoolAttrReservedMemCurrent, &r);
+        used[i] = static_cast<size_t>(u);
+        reserved[i] = static_cast<size_t>(r);
+    }
+    return static_cast<int>(status);
+}
+static int alloc_u32_from(void *handle, size_t count, uint32_t **out_pointer, bool long_lived) {
     if (count == 0 || out_pointer == nullptr ||
         count > std::numeric_limits<size_t>::max() / sizeof(uint32_t)) {
         return static_cast<int>(cudaErrorInvalidValue);
@@ -830,11 +886,13 @@ extern "C" int stwo_exec_context_alloc_u32(
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status == cudaSuccess) status = ensure_allocation_capacity(context);
+    cudaMemPool_t pool = context == nullptr ? nullptr
+        : (long_lived ? context->long_pool : context->pool);
     if (status == cudaSuccess) {
         status = cudaMallocFromPoolAsync(
             reinterpret_cast<void **>(out_pointer),
             count * sizeof(uint32_t),
-            context->pool,
+            pool,
             context->stream);
         // Freed async-pool pages can remain physically resident and fragmented
         // despite a small live allocation set. Reclaim only unused backing,
@@ -847,11 +905,12 @@ extern "C" int stwo_exec_context_alloc_u32(
             (void)cudaGetLastError();
             status = join_lanes(context);
             if (status == cudaSuccess) status = cudaMemPoolTrimTo(context->pool, 0);
+            if (status == cudaSuccess) status = cudaMemPoolTrimTo(context->long_pool, 0);
             if (status == cudaSuccess) {
                 status = cudaMallocFromPoolAsync(
                     reinterpret_cast<void **>(out_pointer),
                     count * sizeof(uint32_t),
-                    context->pool,
+                    pool,
                     context->stream);
             }
         }

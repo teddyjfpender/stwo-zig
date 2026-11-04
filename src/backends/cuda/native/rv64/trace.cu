@@ -235,3 +235,51 @@ extern "C" int stwo_rv64_trace_open_on(void *ctx, uint32_t lane,
                c.stream>>>(j);
   return int(cudaPeekAtLastError());
 }
+// Streaming opening halves: values are read from each evaluation chunk while
+// it is live; paths are read from the finished tree. Together they are exactly
+// stwo_rv64_trace_open_on over the complete (never materialised) LDE.
+extern "C" int stwo_rv64_trace_open_values_on(void *ctx, uint32_t lane,
+                                              const b::MixedSegment *segments,
+                                              uint32_t count,
+                                              const StwoRv64TraceOpen *job) {
+  using namespace stwo::cuda::rv64;
+  if (!job || job->reserved || job->lifting_log < 1 || job->lifting_log > 28 ||
+      !job->query_count || job->query_count > 1024)
+    return int(cudaErrorInvalidValue);
+  TraceCustody c(ctx, lane);
+  TraceInputs input{};
+  const auto j = *job;
+  if (!validate(c, segments, count, j.tree_log, &input))
+    return c.status;
+  const uint64_t value_need = uint64_t(input.columns) * j.query_count;
+  if (j.value_words < value_need)
+    return int(cudaErrorInvalidValue);
+  if (!c.range(j.queries, j.query_count, false) ||
+      !c.range(j.values, value_need, true) || !c.range(j.status, 1, true))
+    return c.status;
+  open_values<<<dim3((input.columns + 127) / 128, j.query_count), 128, 0,
+                c.stream>>>(input, j);
+  return int(cudaPeekAtLastError());
+}
+extern "C" int stwo_rv64_trace_open_paths_on(void *ctx, uint32_t lane,
+                                             const StwoRv64TraceOpen *job) {
+  using namespace stwo::cuda::rv64;
+  if (!job || job->reserved || job->lifting_log < 1 || job->lifting_log > 28 ||
+      !job->query_count || job->query_count > 1024 || job->tree_log < 1 ||
+      job->tree_log > 28)
+    return int(cudaErrorInvalidValue);
+  TraceCustody c(ctx, lane);
+  const auto j = *job;
+  const uint64_t tree_need = ((uint64_t(2) << j.tree_log) - 1) * 8;
+  const uint64_t path_need = uint64_t(j.query_count) * j.tree_log * 8;
+  if (j.tree_words < tree_need || j.path_words < path_need ||
+      reinterpret_cast<uintptr_t>(j.tree) % 32)
+    return int(cudaErrorInvalidValue);
+  if (!c.range(j.tree, tree_need, false) ||
+      !c.range(j.queries, j.query_count, false) ||
+      !c.range(j.paths, path_need, true) || !c.range(j.status, 1, true))
+    return c.status;
+  open_paths<<<dim3((j.tree_log * 8 + 127) / 128, j.query_count), 128, 0,
+               c.stream>>>(j);
+  return int(cudaPeekAtLastError());
+}
