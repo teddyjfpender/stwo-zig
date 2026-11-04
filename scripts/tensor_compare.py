@@ -86,7 +86,7 @@ TOY_CONFIGS = {
     # -Dchallenge=om31 build's tensor-bench-om31) + Johnson/OOD PCS at 136 / 90 queries; the
     # preset overrides the query arguments (kept for the pcs2 work shift). >= 128 bits all rounds
     # added without PoW credit on toy, MLP and layer. Round 4 (codex/tensor-sec2): the full-size
-    # MLP (D 4096, F 8192, 1024 tok) fits the 8 GB reservation (peak 9.55 GB < 10.4 GB kill;
+    # MLP (D 4096, F 8192, 1024 tok) runs under memguard --gb 8 (peak 9.1-9.55 GB, above 8 GB, below the 10.4 GB kill;
     # weight-key GKR input regenerated, security.md 10), and every run is checked at run time
     # against the level's 128-bit target (error.SecurityBelowLevel otherwise).
     "sec128": (122, 2, 20, [2, 76, 3, 20, 2, 2]),

@@ -91,3 +91,61 @@ test "gkr regen: invalid regen inputs are refused" {
     const bad0 = [_]Fast.Input{.{ .num = .ones, .den = &.{}, .owned = false, .regen = .{ .ctx = &src, .fill = Src.fill, .log_len = 0 } }};
     try std.testing.expectError(error.InvalidInputShape, Fast.proveBatch(a, &tr.ch, &bad0, .{}, null));
 }
+
+fn runForOom(a: std.mem.Allocator, views: []const []const i8, alphas: []const QM31, use_regen: bool) !void {
+    _ = try run(a, views, alphas, use_regen, 1);
+}
+
+test "gkr regen: no leak or double free on any allocation failure" {
+    const a = std.testing.allocator;
+    var t0: [1 << 5]i8 = undefined;
+    var t1: [1 << 3]i8 = undefined;
+    for (&t0, 0..) |*w, i| w.* = @intCast(@as(i32, @intCast(i * 7 % 256)) - 128);
+    for (&t1, 0..) |*w, i| w.* = @intCast(@as(i32, @intCast(i * 13 % 256)) - 128);
+    const views = [_][]const i8{ &t0, &t1 };
+    const alphas = [_]QM31{ QM31.fromU32Unchecked(11, 22, 33, 44), QM31.fromU32Unchecked(5, 6, 7, 8) };
+    try std.testing.checkAllAllocationFailures(a, runForOom, .{ &views, &alphas, true });
+}
+
+/// The weight key's batch shape: a regen singles instance next to a borrowed
+/// 256-entry instance with base-field multiplicities.
+fn runKeyShape(a: std.mem.Allocator, t: []const i8, alpha: QM31, use_regen: bool, threads: usize) ![32]u8 {
+    var src = Src{ .t = t, .alpha = alpha };
+    var mult: [256]M31 = undefined;
+    var tden: [256]QM31 = undefined;
+    for (0..256) |v| {
+        mult[v] = M31.fromCanonical(@intCast((v * 31 + 7) % 1000));
+        tden[v] = alpha.sub(QM31.fromBase(M31.fromCanonical(@intCast(v))));
+    }
+    var inputs: [2]Fast.Input = undefined;
+    if (use_regen) {
+        inputs[0] = .{ .num = .ones, .den = &.{}, .owned = false, .regen = .{ .ctx = &src, .fill = Src.fill, .log_len = @intCast(std.math.log2_int(usize, t.len)) } };
+    } else {
+        const d = try a.alloc(QM31, t.len);
+        Src.fill(&src, d, 0);
+        inputs[0] = .{ .num = .ones, .den = d, .owned = true };
+    }
+    inputs[1] = .{ .num = .{ .base = &mult }, .den = &tden, .owned = false };
+    var tr = Transcript.initDomain("regen-key-shape");
+    var res = try Fast.proveBatch(a, &tr.ch, &inputs, .{ .threads = threads, .min_parallel = 16 }, null);
+    defer res.proof.deinit(a);
+    defer res.artifact.deinit(a);
+    return digestOf(res, &tr.ch);
+}
+
+test "gkr regen: weight-key batch shape (regen + 256-entry base-multiplicity instance)" {
+    const a = std.testing.allocator;
+    var prng = std.Random.DefaultPrng.init(11);
+    const r = prng.random();
+    const alpha = QM31.fromU32Unchecked(101, 202, 303, 404);
+    for ([_]u5{ 3, 8, 9, 14 }) |l| {
+        const t = try a.alloc(i8, @as(usize, 1) << l);
+        defer a.free(t);
+        for (t) |*w| w.* = r.int(i8);
+        for ([_]usize{ 1, 4 }) |th| {
+            const want = try runKeyShape(a, t, alpha, false, th);
+            const got = try runKeyShape(a, t, alpha, true, th);
+            try std.testing.expectEqualSlices(u8, &want, &got);
+        }
+    }
+}
