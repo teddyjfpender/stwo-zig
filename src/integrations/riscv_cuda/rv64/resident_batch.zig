@@ -69,6 +69,8 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     const base = recycler.allocator();
     var session = try Main.ResidentSession.init(base, manifest.immutable_host_key_bytes);
     defer session.deinit();
+    // Refuse missing deployment assets before any native work or GPU custody.
+    if (combined) try @import("circuit_air_preflight.zig").require(base);
     const pool = try Pool.createWithBinding(if (combined) base else a, library, config, cpuCount(first), true);
     defer pool.deinit();
     try pool.stages().requireFullyResident();
