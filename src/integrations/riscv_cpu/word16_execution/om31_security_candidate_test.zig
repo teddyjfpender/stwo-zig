@@ -334,8 +334,8 @@ test "m7 outer-gkr format version clears the GKR ledger at realistic facts and r
         try C.requireOuterGkrCharacteristic(real, null);
         try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireOuterGkrCharacteristic(C.OuterGkrFacts.caps(), null));
     }
-    // m7_outer_gkr + the four M6 diet entries (r1, m3, and the two fold-v3 composites).
-    try std.testing.expectEqual(@as(usize, 5), seen);
+    // m7_outer_gkr + the four M6 diet entries (r1, m3, two fold-v3 composites) + the staged gkr-setv2-kary entry.
+    try std.testing.expectEqual(@as(usize, 6), seen);
 }
 test "recsize m3_b8 outer candidate: 3*34 + 26 = 128, Johnson x2 = 154" {
     try std.testing.expectEqual(@as(u32, 128), C.candidateConjecturedBits(.m3_outer_b8_q34_p26_fold4));
@@ -414,6 +414,8 @@ test "m6 reserved names pin the published domains and owners" {
         .{ .v = .m6_outer_diet_m3_b4_q51_p26_fold4_v1, .owner = "diet-wire", .domain = "stwo/circuit/native-om31/m6-diet-m3-b4-q51-p26-fold4/lens-v1" },
         .{ .v = .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1, .owner = "integrate", .domain = "stwo/circuit/native-om31/m6-diet-fold-v3-q108-p20-fold4/lens-v1" },
         .{ .v = .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1, .owner = "integrate", .domain = "stwo/circuit/native-om31/m6-diet-fold-v3-m3-b4-q51-p26-fold4/lens-v1" },
+        .{ .v = .m6_outer_setv2_kary_r1_b2_q108_p20_fold4_v1, .owner = "diet-wire", .domain = "stwo/circuit/native-om31/m6-setv2-kary-q108-p20-fold4/lens-v1" },
+        .{ .v = .m6_outer_gkr_setv2_kary_r1_b2_q108_p20_fold4_v1, .owner = "diet-wire", .domain = "stwo/circuit/native-om31/m6-gkr-setv2-kary-q108-p20-fold4/lens-v1" },
     };
     for (rows) |r| {
         const s = C.formatSpec(r.v);
@@ -429,7 +431,8 @@ test "m6 diet entries carry outer GKR + one-instance fused Blake + set-v2 + k-ar
     for ([_]C.FormatVersion{ .m6_outer_diet_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1 }) |v| {
         const s = C.formatSpec(v);
         try std.testing.expect(s.outer_gkr and s.fused_blake);
-        try std.testing.expectEqual(@as(u32, 4), s.max_fold_arity);
+        // DW-1 [M]: 4-ary folds OOM (blake_g_gate 8,680,080 rows > 2^23); 3-ary is the shipped bound.
+        try std.testing.expectEqual(@as(u32, 3), s.max_fold_arity);
         try std.testing.expectEqualStrings(C.OUTER_GKR_COMPONENT, s.component);
         try std.testing.expectEqualStrings(C.FUSED_BLAKE_ONE_INSTANCE_COMPONENT, s.extra_components[0]);
         try std.testing.expectEqualStrings(C.SET_V2_COMPONENT, s.extra_components[1]);
@@ -446,9 +449,20 @@ test "m6 diet entries carry outer GKR + one-instance fused Blake + set-v2 + k-ar
     const f3 = C.formatSpec(.m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1);
     try std.testing.expect(!f3.outer_gkr and !f3.fused_blake);
     try std.testing.expectEqualStrings(C.FOLD_V3_COMPONENT, f3.component);
-    // Native v2: strict-roster chain component, LOCAL_RELATIONS = 10; the GKR variant adds native-gkr/v1.
-    try std.testing.expectEqualStrings(C.M6_NATIVE_V2_COMPONENT, C.formatSpec(.m6_native_v2_b2_q108_p20_fold4).component);
-    try std.testing.expectEqualStrings(C.M5_NATIVE_GKR_COMPONENT, C.formatSpec(.m6_native_v2_gkr_b2_q108_p20_fold4).extra_components[0]);
+    // Native v2 (NF0/NF4): protocol rv64-m6-native/v2, profile v2-strict | v2-gkr (+ native GKR section v2).
+    const nv = C.formatSpec(.m6_native_v2_b2_q108_p20_fold4);
+    const ng = C.formatSpec(.m6_native_v2_gkr_b2_q108_p20_fold4);
+    try std.testing.expectEqualStrings("rv64-m6-native/v2", nv.component);
+    try std.testing.expectEqualStrings("v2-strict", nv.extra_components[0]);
+    try std.testing.expectEqualStrings("rv64-m6-native/v2", ng.component);
+    try std.testing.expectEqualStrings("v2-gkr", ng.extra_components[0]);
+    try std.testing.expectEqualStrings("stwo/rv64/native-gkr/om31-strict-draw/lane-major/v2", ng.extra_components[1]);
+    // Staged diet entries: set-v2 + k-ary first, then + outer GKR.
+    const st = C.formatSpec(.m6_outer_setv2_kary_r1_b2_q108_p20_fold4_v1);
+    try std.testing.expect(!st.outer_gkr and !st.fused_blake);
+    const sg = C.formatSpec(.m6_outer_gkr_setv2_kary_r1_b2_q108_p20_fold4_v1);
+    try std.testing.expect(sg.outer_gkr and !sg.fused_blake);
+    try std.testing.expectEqualStrings(C.OUTER_GKR_COMPONENT, sg.component);
     try std.testing.expect(!std.mem.eql(u8, &C.formatIdentity(.m6_native_v2_b2_q108_p20_fold4), &C.formatIdentity(.m5_native_chi_chain_v1_b2_q108_p20_fold4)));
 }
 test "m6 composite identity: changing any one extra component, its order, or the fold arity changes the identity" {
@@ -458,10 +472,10 @@ test "m6 composite identity: changing any one extra component, its order, or the
     try std.testing.expect(!std.mem.eql(u8, &a, &b));
     // Same components, other PCS: distinct.
     try std.testing.expect(!std.mem.eql(u8, &a, &C.formatIdentity(.m6_outer_diet_m3_b4_q51_p26_fold4_v1)));
-    // Every identity in the registry is distinct (also covered by the M5 loop; restated for the 12 entries).
+    // Every identity in the registry is distinct (also covered by the M5 loop; restated for the 14 entries).
     for (C.FORMAT_VERSIONS, 0..) |v, i| for (C.FORMAT_VERSIONS[i + 1 ..]) |w|
         try std.testing.expect(!std.mem.eql(u8, &C.formatIdentity(v), &C.formatIdentity(w)));
-    try std.testing.expectEqual(@as(usize, 12), C.FORMAT_VERSIONS.len);
+    try std.testing.expectEqual(@as(usize, 14), C.FORMAT_VERSIONS.len);
 }
 test "m6 diet outer GKR clears 128+23 bits at the 24628607 node count; r1 vs m3 equal under the GKR ledger" {
     // [D] M5 integrate: 33 outer nodes on 24628607 (28 leaves + folds + root); 16 batched instances of <= 2^24 rows.
@@ -482,7 +496,7 @@ test "corpus BG08 m6 one-instance fused Blake: XOR8 table mass over ALL consumer
     try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireBlakeTableMass(&.{ core.fields.m31.Modulus - 1, 1 }));
     try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireBlakeTableMass(&.{ std.math.maxInt(u64), 2 }));
 }
-test "m6 k-ary diet folds: integer mass fold at arity 4 refuses a wrap an M31 sum hides" {
+test "m6 k-ary diet folds: integer mass fold at arity 4 (bound) refuses a wrap an M31 sum hides" {
     const p = core.fields.m31.Modulus;
     const q = (p - 1) / 4 + 1;
     const four = [_][C.NS_MASS_RELATIONS]u64{ .{ q, 0, 0 }, .{ q, 0, 0 }, .{ q, 0, 0 }, .{ q, 0, 0 } };
@@ -490,4 +504,16 @@ test "m6 k-ary diet folds: integer mass fold at arity 4 refuses a wrap an M31 su
     try std.testing.expect(C.m5FieldMassForTesting(&four)[0] < p);
     const five = four ++ [_][C.NS_MASS_RELATIONS]u64{.{ 0, 0, 0 }};
     try std.testing.expectError(error.M5FoldArity, C.m5FoldMass(&five));
+}
+test "native v2-gkr GKR section at its declared bounds (NF4): OM31 clears 151 bits, conservative mass wraps p" {
+    // [D] NF4 bounds: <= 128 instances, <= 28 variables, per proof; union over MAX_PROOFS native proofs.
+    // Same five-term model as the outer section (sumcheck, mix, binding, tuple, poles); tuple arity <= MAX_TUPLE_ARITY.
+    const nf4 = C.OuterGkrFacts{ .outer_proofs = C.MAX_PROOFS, .instances = 128, .max_variables = 28, .max_tuple_arity = C.MAX_TUPLE_ARITY };
+    try C.requireOuterGkrBits(nf4, C.TARGET_BITS + 2 + 21);
+    // QM31 draws would fail: the native section must draw OM31 (as NF4 says, strict draws).
+    try std.testing.expectError(error.Om31CandidateAlgebraicBudgetInsufficient, C.requireOuterGkrBitsQm31(nf4, 124));
+    // Characteristic: 128 x 2^28 = 2^35 >= p, so requireNativeGkrSecurity MUST use the per-relation
+    // source-bound mass (NF4 says M4 source bounds); the conservative bound is refused.
+    try std.testing.expectEqual(@as(u64, 1) << 35, try C.outerGkrMassBound(nf4));
+    try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireOuterGkrCharacteristic(nf4, null));
 }

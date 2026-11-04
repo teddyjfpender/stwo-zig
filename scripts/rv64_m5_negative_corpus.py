@@ -555,9 +555,10 @@ CASES = [
     dict(id="RO08-no-store", family="root-only", expect="accept", today="m6", formats=("m5-root", "m6-root"),
          what="control with every producer store/cache absent and an empty ArtifactStore env: must still accept",
          mutate=no_store),
-    dict(id="RO09-other-block-trec", family="root-only", expect="reject", today="m6", formats=("m5-root", "m6-root"),
+    dict(id="RO09-other-block-trec", family="root-only", expect="reject_or_same_statement", today="m6", formats=("m5-root", "m6-root"),
          requires=("donor_table_root",),
-         what="receiver given the T_rec/table pin derived for the OTHER dev block",
+         what="receiver given the table pin derived for the OTHER dev block: per-block tables (M5) must refuse; a block-"
+              "independent image table (native v2 strict roster) may accept, but only with the control's statement",
          mutate=other_table_root),
     dict(id="RO10-v3-without-audit", family="root-only", expect="reject", today="m6", requires=("alt_format_proof",),
          formats=("m6-root",),

@@ -582,6 +582,10 @@ pub const FormatVersion = enum {
     m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1,
     /// integrate: diet + fold v3 composed, m3.
     m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1,
+    /// diet-wire stage 1+2 (DW-1): set-v2 shape set + 3-ary folds, no GKR, no fused Blake.
+    m6_outer_setv2_kary_r1_b2_q108_p20_fold4_v1,
+    /// diet-wire stage 3: + outer GKR (after the eq-column constraint lands), no fused Blake.
+    m6_outer_gkr_setv2_kary_r1_b2_q108_p20_fold4_v1,
     pub fn name(self: FormatVersion) []const u8 {
         return @tagName(self);
     }
@@ -610,11 +614,16 @@ pub const FormatSpec = struct {
     /// Fold arity is a class constant in {2,3,4} (k-ary binding, binding sec. 4).
     max_fold_arity: u32 = 2,
 };
-pub const FORMAT_VERSIONS = [_]FormatVersion{ .m5_native_chi_chain_v1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1, .m7_outer_gkr_m3_b4_q51_p26_fold4_v1, .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1, .m6_native_v2_b2_q108_p20_fold4, .m6_native_v2_gkr_b2_q108_p20_fold4, .m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1 };
+pub const FORMAT_VERSIONS = [_]FormatVersion{ .m5_native_chi_chain_v1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1, .m7_outer_gkr_m3_b4_q51_p26_fold4_v1, .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1, .m6_native_v2_b2_q108_p20_fold4, .m6_native_v2_gkr_b2_q108_p20_fold4, .m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1, .m6_outer_setv2_kary_r1_b2_q108_p20_fold4_v1, .m6_outer_gkr_setv2_kary_r1_b2_q108_p20_fold4_v1 };
 /// M6 component version strings (M6-INTERFACES.md P1). A change of any one is
 /// a new FormatVersion; the owning stream posts the real string, profiles edits.
-pub const M6_NATIVE_V2_COMPONENT = "rv64-m6-native-chi-chain/v2";
-pub const M5_NATIVE_GKR_COMPONENT = "rv64-m5-native-gkr/v1";
+/// native-format NF0: protocol `rv64-m6-native/v2`, profiles v2-strict / v2-gkr
+/// (version = H("rv64-m6-native-version/v2", [2, 10, 3, R, 32, roster, gkr_mode])).
+pub const M6_NATIVE_V2_COMPONENT = "rv64-m6-native/v2";
+pub const M6_NATIVE_V2_STRICT_PROFILE = "v2-strict";
+pub const M6_NATIVE_V2_GKR_PROFILE = "v2-gkr";
+/// native-format NF4: native GKR section identity (v2, MAGIC 0x4b47564e).
+pub const M6_NATIVE_GKR_COMPONENT = "stwo/rv64/native-gkr/om31-strict-draw/lane-major/v2";
 pub const OUTER_GKR_COMPONENT = "stwo/rv64/outer-gkr/om31-strict-draw/lane-major/v1";
 pub const FUSED_BLAKE_ONE_INSTANCE_COMPONENT = "fused_blake2s_v1/one-instance";
 pub const SET_V2_COMPONENT = "set-v2";
@@ -622,6 +631,7 @@ pub const KARY_COMPONENT = "kary-v1";
 pub const FOLD_V3_COMPONENT = "rv64-m6-fold-v3/v1";
 const DIET_EXTRA = [_][]const u8{ FUSED_BLAKE_ONE_INSTANCE_COMPONENT, SET_V2_COMPONENT, KARY_COMPONENT };
 const DIET_FOLD_V3_EXTRA = DIET_EXTRA ++ [_][]const u8{FOLD_V3_COMPONENT};
+const SETV2_KARY_EXTRA = [_][]const u8{ SET_V2_COMPONENT, KARY_COMPONENT };
 /// Local relations of the production raw-fraction roster (fractions.zig gained
 /// byte_pair in 63728c3f8). The M5 native version hashes this, not the stale 9.
 pub const M5_LOCAL_RELATIONS: u64 = 10;
@@ -634,13 +644,15 @@ pub fn formatSpec(version: FormatVersion) FormatSpec {
         .m5_outer_canonical_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "canon-vk", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m5-canonical-m3-b4-q51-p26-fold4/lens-v1" },
         .m7_outer_gkr_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "outer-gkr", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m7-outer-gkr-m3-b4-q51-p26-fold4/lens-v1", .outer_gkr = true, .component = "stwo/rv64/outer-gkr/om31-strict-draw/lane-major/v1" },
         .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "blake-gadget", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m7-fused-blake-m3-b4-q51-p26-fold4/lens-v1", .component = "fused_blake2s_v1", .fused_blake = true },
-        .m6_native_v2_b2_q108_p20_fold4 => .{ .layer = .native, .owner = "native-format", .pcs = R1_OUTER, .domain = "rv64-m6-native-chi-chain/v2/conjectured128_b2_q108_p20_fold4\x00", .local_relations = M5_LOCAL_RELATIONS, .component = M6_NATIVE_V2_COMPONENT },
-        .m6_native_v2_gkr_b2_q108_p20_fold4 => .{ .layer = .native, .owner = "native-format", .pcs = R1_OUTER, .domain = "rv64-m6-native-chi-chain/v2+native-gkr/v1/conjectured128_b2_q108_p20_fold4\x00", .local_relations = M5_LOCAL_RELATIONS, .component = M6_NATIVE_V2_COMPONENT, .extra_components = &.{M5_NATIVE_GKR_COMPONENT} },
-        .m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "fold-v3", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-fold-v3-q108-p20-fold4/lens-v1", .component = FOLD_V3_COMPONENT, .max_fold_arity = 4 },
-        .m6_outer_diet_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "diet-wire", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-q108-p20-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_EXTRA, .fused_blake = true, .max_fold_arity = 4 },
-        .m6_outer_diet_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "diet-wire", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-m3-b4-q51-p26-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_EXTRA, .fused_blake = true, .max_fold_arity = 4 },
-        .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "integrate", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-fold-v3-q108-p20-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_FOLD_V3_EXTRA, .fused_blake = true, .max_fold_arity = 4 },
-        .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "integrate", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-fold-v3-m3-b4-q51-p26-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_FOLD_V3_EXTRA, .fused_blake = true, .max_fold_arity = 4 },
+        .m6_native_v2_b2_q108_p20_fold4 => .{ .layer = .native, .owner = "native-format", .pcs = R1_OUTER, .domain = "rv64-m6-native-chi-chain/v2/conjectured128_b2_q108_p20_fold4\x00", .local_relations = M5_LOCAL_RELATIONS, .component = M6_NATIVE_V2_COMPONENT, .extra_components = &.{M6_NATIVE_V2_STRICT_PROFILE} },
+        .m6_native_v2_gkr_b2_q108_p20_fold4 => .{ .layer = .native, .owner = "native-format", .pcs = R1_OUTER, .domain = "rv64-m6-native-chi-chain/v2+native-gkr/v1/conjectured128_b2_q108_p20_fold4\x00", .local_relations = M5_LOCAL_RELATIONS, .component = M6_NATIVE_V2_COMPONENT, .extra_components = &.{ M6_NATIVE_V2_GKR_PROFILE, M6_NATIVE_GKR_COMPONENT } },
+        .m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "fold-v3", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-fold-v3-q108-p20-fold4/lens-v1", .component = FOLD_V3_COMPONENT, .max_fold_arity = 3 },
+        .m6_outer_diet_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "diet-wire", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-q108-p20-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_EXTRA, .fused_blake = true, .max_fold_arity = 3 },
+        .m6_outer_diet_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "diet-wire", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-m3-b4-q51-p26-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_EXTRA, .fused_blake = true, .max_fold_arity = 3 },
+        .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "integrate", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-fold-v3-q108-p20-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_FOLD_V3_EXTRA, .fused_blake = true, .max_fold_arity = 3 },
+        .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "integrate", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-fold-v3-m3-b4-q51-p26-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_FOLD_V3_EXTRA, .fused_blake = true, .max_fold_arity = 3 },
+        .m6_outer_setv2_kary_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "diet-wire", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-setv2-kary-q108-p20-fold4/lens-v1", .component = SET_V2_COMPONENT, .extra_components = &.{KARY_COMPONENT}, .max_fold_arity = 3 },
+        .m6_outer_gkr_setv2_kary_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "diet-wire", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-gkr-setv2-kary-q108-p20-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &SETV2_KARY_EXTRA, .max_fold_arity = 3 },
     };
 }
 pub fn formatConjecturedBits(version: FormatVersion) u32 {
