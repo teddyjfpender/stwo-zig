@@ -112,3 +112,27 @@ separate graphs. Canonical leaves `R_leaf[f, r]` therefore need two things:
 - canon-native's rung padding.
 
 Only then can a leaf VK be shared.
+
+## Resident service, canonical vs exact (E9n, interleaved arms, same binaries) [M]
+
+The M4 headline configuration needs the ArtifactStore. Its `/root` overlay was **100% full**, from other streams' stores of
+5.5–6.2 GB each, so the warm-boot store run failed with `NoSpaceLeft`. These runs therefore use `--store none`: each block is
+served twice, and round 2 is the in-process warm request (setup 0.14–0.19 s). The load was 16–36. The rounds were run in the
+order canon, exact, canon2, exact2 (`daemon-e9n-*.json`).
+
+| block, round 2 | canonical request | canonical recursion | exact request | exact recursion |
+|---|---:|---:|---:|---:|
+| 24628607 | 32.28 / 33.63 s | 22.25 / 23.39 s | 28.94 / **26.76** s | 19.03 / 18.09 s |
+| 26235156 | 20.25 / 22.37 s | 13.21 / 14.82 s | 19.25 / 17.53 s | 12.27 / 10.69 s |
+
+**In a warm service the canonical shape costs about +4 s recursion on 24628607 (+23%) [M].** The reason:
+- repeated requests of the same block already hit the exact fold classes in-process, which removes the canonical class
+  advantage;
+- the leaf padding tax remains.
+
+The canonical profile is therefore an **enabler** (one fold VK per arity, the receiver −33% with its own class reuse, the
+prerequisite for fold v3 and the root-only receiver), not yet a prover speedup. It stays opt-in, and the default stays exact.
+
+The exact arm includes this stream's scheduling-only class-PP reuse. Its round-2 24628607 requests (28.94 / 26.76 s at load
+21–36) are in the range of the M4 headline (28.46 / 29.21 s, store + warm boot). No speedup is claimed from this comparison,
+because the configurations differ (no store) and the load differs.
