@@ -25,5 +25,5 @@ pub fn evaluate(owner: *S.Owner, a: std.mem.Allocator, randomness: Outer.protoco
         made += 1;
     }
     const beta = (try Outer.protocol.targetConfig()).fri_config.log_blowup_factor;
-    return owner.backend.composition.evaluateRolesAtBlowup(a, roles, randomness, log, split, total, trace, owner.scope, beta);
+    return owner.backend.composition.evaluateOuterRolesAtBlowup(a, roles, randomness, log, split, total, trace, owner.scope, beta);
 }
