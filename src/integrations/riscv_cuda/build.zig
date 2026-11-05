@@ -74,6 +74,11 @@ pub fn build(b: *std.Build) void {
     batch_tests.linkLibC();
     b.step("test-rv64-batch-plan", "Test mixed-height batch enqueue control without CUDA or a full prover build").dependOn(&b.addRunArtifact(batch_tests).step);
     const tests = b.addRunArtifact(b.addTest(.{ .root_module = integration }));
+    const prestage_root = b.createModule(.{ .root_source_file = b.path("rv64_cpu_prestage_test_root.zig"), .target = target, .optimize = optimize, .strip = true });
+    for ([_][]const u8{ "stwo_core", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_prover_api", "stwo_prover_engine" }) |name| prestage_root.addImport(name, integration.import_table.get(name) orelse @panic("missing CPU prestage dependency"));
+    const prestage_tests = b.addTest(.{ .root_module = prestage_root });
+    prestage_tests.linkLibC();
+    b.step("test-rv64-cpu-prestage", "Check private CPU witness staging input and ownership contracts").dependOn(&b.addRunArtifact(prestage_tests).step);
     const test_step = b.step(
         "test",
         "Run host-independent RISC-V CUDA integration contract tests",
