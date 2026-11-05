@@ -65,6 +65,9 @@ pub threadlocal var seed_tape: ?*SeedTape = null;
 pub threadlocal var blake_sample_inputs: ?[]const [26]u32 = null;
 pub const Factory = struct {
     controller: ?Controller = null,
+    /// A whole-proof owner job cannot overlap native writers using this same
+    /// service until host lock ordering and shared metadata caches are audited.
+    requires_native_complete: bool = false,
     context: *anyopaque,
     /// Optional device-free host stage. Thread-safe with respect to this
     /// factory's device work: it never touches device or active-proof state.

@@ -3,6 +3,7 @@
 //! assignment ingress remains explicit. MAIN, lookup histograms, O8 INTER,
 //! composition and PCS stay in one scoped session; no host-wide fallback.
 const std = @import("std");
+const Pools = @import("stwo_prover_engine").work_pool;
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const CPU = @import("stwo_circuit_cpu_integration");
@@ -64,6 +65,7 @@ pub const Context = struct {
     staged_graph: ?*const anyopaque = null,
     mutex: std.Thread.Mutex = .{},
     pub fn init(a: std.mem.Allocator, service: *Service.Context, trace_commit: *TC.Context, composition: *RC.Context) !Context {
+        composition.allow_outer_workspace = true;
         return .{ .allocator = a, .service = service, .trace_commit = trace_commit, .composition = composition, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try sym(Native.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .base = try sym(BaseFn, &service.library, "stwo_circuit_base_witness_on"), .clear = try sym(Memset, &service.library, "stwo_exec_context_memset_async"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .fractions = try sym(FractionFn, &service.library, "stwo_circuit_om31_fractions_on"), .cumulative = try sym(CumulativeFn, &service.library, "stwo_circuit_om31_cumulative_on"), .global_pairs = try sym(*const @TypeOf(Abi.stwo_rv64_global_pairs_on), &service.library, "stwo_rv64_global_pairs_on"), .identity = try sym(IdentityFn, &service.library, "stwo_circuit_om31_composition_identity"), .role = try sym(*const @TypeOf(Abi.stwo_rv64_composition_role_on), &service.library, "stwo_circuit_om31_composition_role_on") };
     }
     pub fn deinit(self: *Context) void {
@@ -75,7 +77,7 @@ pub const Context = struct {
         self.* = undefined;
     }
     pub fn factory(self: *Context) Dev.Factory {
-        return .{ .context = self, .controller = self.controller(), .prepare = prepare, .prepare_from_circuit = prepareFromCircuit, .prepare_host = prepareHost, .tape_ready = tapeReady, .stage_host = stageHost, .unstage_host = unstageHost };
+        return .{ .context = self, .controller = self.controller(), .requires_native_complete = self.controller() != null, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit, .prepare_host = prepareHost, .tape_ready = tapeReady, .stage_host = stageHost, .unstage_host = unstageHost };
     }
     pub fn controller(self: *Context) ?Dev.Controller {
         const enabled = std.posix.getenv("STWO_RV64_OUTER_OWNER_CONTROLLER") orelse return null;
@@ -83,12 +85,13 @@ pub const Context = struct {
         return .{ .context = self, .run = runController };
     }
     const ControllerTls = struct {
+        pool: ?*Pools.WorkPool,
         class_hint: ?[32]u8,
         class_is_leaf: bool,
         seed_tape: ?*Dev.SeedTape,
         blake_sample_inputs: ?[]const [26]u32,
         fn get() @This() {
-            return .{ .class_hint = Dev.class_hint, .class_is_leaf = Dev.class_is_leaf, .seed_tape = Dev.seed_tape, .blake_sample_inputs = Dev.blake_sample_inputs };
+            return .{ .pool = Pools.currentScopedPool(), .class_hint = Dev.class_hint, .class_is_leaf = Dev.class_is_leaf, .seed_tape = Dev.seed_tape, .blake_sample_inputs = Dev.blake_sample_inputs };
         }
         fn install(self: @This()) void {
             Dev.class_hint = self.class_hint;
@@ -99,6 +102,9 @@ pub const Context = struct {
     };
     fn runController(raw: *anyopaque, operation: *const fn (*anyopaque) anyerror!void, data: *anyopaque) !void {
         const self: *Context = @ptrCast(@alignCast(raw));
+        if (comptime @hasField(Service.Context, "admission")) {
+            if (self.service.admission) |endpoint| if (endpoint.enabled()) return error.OwnerControllerRequiresNativeCompletion;
+        }
         const submit = self.service.library.lookup(Native.Submit, "stwo_rv64_gpu_session_controller") orelse return error.MissingOwnerControllerApi;
         const Job = struct {
             operation: *const fn (*anyopaque) anyerror!void,
@@ -107,6 +113,11 @@ pub const Context = struct {
             failure: ?anyerror = null,
             fn run(_: *anyopaque, _: u64, user: ?*anyopaque) callconv(.c) c_int {
                 const job: *@This() = @ptrCast(@alignCast(user orelse return 1));
+                var pool_binding: ?Pools.ScopedPoolBinding = if (job.tls.pool) |pool| (Pools.ScopedPoolBinding.initIfNeeded(pool) catch |err| {
+                    job.failure = err;
+                    return 1;
+                }) else null;
+                defer if (pool_binding) |*binding| binding.deinit();
                 const previous = ControllerTls.get();
                 job.tls.install();
                 defer previous.install();

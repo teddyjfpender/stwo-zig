@@ -22,6 +22,7 @@ const Timing = Events.RecorderFor(Span);
 const O = D.O;
 const M = D.M;
 const Items = CPU.rv64_gkr_cpu_components;
+const WorkspaceCost = @import("composition_cost.zig");
 const Trace = engine.air.component_prover.ForField(O).Trace;
 const Twiddle = engine.poly.twiddles.TwiddleTree([]M);
 const N2b = *const fn ([*]u32, usize, ?*const anyopaque, u32, usize, u32, [*]const u32, u32, u32, *anyopaque, u32, *u32) callconv(.c) c_int;
@@ -133,6 +134,7 @@ const GeometryBorrow = struct {
 };
 const PhasePoolTrim = @import("phase_pool_trim.zig");
 pub const Context = struct {
+    allow_outer_workspace: bool = false,
     pool_trim: PhasePoolTrim.Policy = .{},
     allocator: std.mem.Allocator,
     service: *Service.Context,
@@ -492,6 +494,39 @@ const Job = struct {
         try self.checked("service.lease_validate_range", b.service.lease_validate_range(b.service.session, @ptrFromInt(segment.source), segment.words, segment.context_token, segment.generation, &context.scope));
         try self.checked("copy", b.copy(raw, @ptrCast(arena + segment.target_word), @ptrFromInt(segment.source), try std.math.mul(usize, segment.words, 4)));
     }
+    fn workspacePlan(self: *Job, a: std.mem.Allocator, immutable_fixed: []const D.Column, scope: [8]u32) !WorkspaceCost.Plan {
+        const roles = try a.alloc(WorkspaceCost.Role, self.roles.len);
+        defer a.free(roles);
+        var made: usize = 0;
+        defer for (roles[0..made]) |role| a.free(role.columns);
+        const b = self.backend;
+        const direct_enabled = b.n2b_columns != null and !(if (std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT")) |v| std.mem.eql(u8, v, "0") else false);
+        const direct_el2 = direct_enabled and b.n2b_columns_compact != null and !(if (std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT_EL2")) |v| std.mem.eql(u8, v, "0") else false);
+        for (self.roles, roles) |role, *out| {
+            const columns = try a.alloc(WorkspaceCost.Column, role.widths[0] + role.widths[1] + role.widths[2]);
+            errdefer a.free(columns);
+            var at: usize = 0;
+            for (0..3) |tree| for (0..role.widths[tree]) |column| {
+                const index = if (tree == 0 and role.fixed_indices != null) role.fixed_indices.?[column] else role.offsets[tree] + column;
+                const original = try sourceColumn(self.trace.polys.items[tree][index]);
+                const immutable = if (tree == 0 and original.device == null) immutable_fixed[index].device else null;
+                const device = if (original.device != null) original.device else immutable orelse b.service.retainedColumn(scope, @intCast(tree), index, original);
+                const n = @as(usize, 1) << @intCast(role.eval_log);
+                const direct = (direct_enabled and original.log_size + 1 == role.eval_log and device != null and device.?.count == n / 2) or
+                    (direct_el2 and original.log_size + 2 == role.eval_log and device != null and device.?.count == n / 4);
+                columns[at] = .{ .log = original.log_size, .direct = direct };
+                at += 1;
+            };
+            out.* = .{ .trace_log = role.trace_log, .eval_log = role.eval_log, .columns = columns, .auxiliary = switch (role.auxiliary) {
+                .none => .none,
+                .last => .last,
+                .hc => .hc,
+            }, .masks = role.artifact.program.inputs.len, .parameters = role.parameters.len, .constraints = role.artifact.program.roots.len };
+            made += 1;
+        }
+        const beta = self.log_blowup orelse b.log_blowup;
+        return WorkspaceCost.init(a, .{ .roles = roles, .shared_role_arena = true, .log = self.log, .split = self.split, .beta = beta, .separate_coefficients = beta == 1 and b.n2b_columns != null, .constraints = self.total });
+    }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
         var range = try @import("nvtx_stage.zig").Range.begin(&self.backend.service.library, raw, "rv64/composition");
         defer range.deinit();
@@ -546,6 +581,26 @@ const Job = struct {
         for (powers) |*p| {
             p.* = power;
             power = power.mul(self.alpha);
+        }
+        const reuse_workspace = b.allow_outer_workspace and if (std.posix.getenv("STWO_RV64_RC_ROLE_WORKSPACE")) |value| std.mem.eql(u8, value, "1") else false;
+        var workspace: Native.Lease = .{};
+        defer if (workspace.words != null) {
+            context.join() catch {};
+            context.release(&workspace) catch {};
+        };
+        if (reuse_workspace) {
+            var plan = try self.workspacePlan(a, immutable_fixed, context.scope);
+            defer plan.deinit(a);
+            // Include the maximum arena held alongside ALL accumulated role
+            // metadata/buckets; per-role peaks alone are not a valid bound.
+            const actual = try @import("runtime_memory.zig").query(&b.service.library, raw);
+            const available = try actual.available();
+            if (!available.contains(plan.additional_peak) or actual.largest_virtual_free < plan.workspace_words * 4) {
+                std.debug.print("GPU_RC_WORKSPACE_REFUSED ordinal={} required_large={} required_small={} available_large={} available_small={} workspace_words={}\n", .{ self.scope.ordinal, plan.additional_peak.large, plan.additional_peak.small, available.large, available.small, plan.workspace_words });
+                return error.RoleWorkspaceExceedsPhysicalArena;
+            }
+            workspace = try context.allocate(@intCast(plan.workspace_words), 0);
+            std.debug.print("GPU_RC_WORKSPACE_ADMITTED ordinal={} workspace_words={} phase_peak_large={} phase_peak_small={} snapshot_live_large={} snapshot_live_small={} retained_across_proofs=false\n", .{ self.scope.ordinal, plan.workspace_words, plan.additional_peak.large, plan.additional_peak.small, actual.live_large, actual.live_small });
         }
         var next = self.total;
         for (self.roles, role_events) |*role, *timing| {
@@ -640,7 +695,8 @@ const Job = struct {
             // M5 platform: under device pressure, release unborrowed immutable
             // setup (other nodes' PP/schedules kept by a resident service) and
             // retry once before failing. Scheduling only: misses re-upload.
-            var arena = context.allocate(arena_words, 0) catch |err| blk: {
+            if (reuse_workspace and arena_words > workspace.count) return error.RoleWorkspacePlanMismatch;
+            var arena = if (reuse_workspace) workspace else context.allocate(arena_words, 0) catch |err| blk: {
                 if (err != error.CudaAllocationFailed) return err;
                 const cache = b.service.immutable_setup orelse return err;
                 const freed = try cache.trimUnborrowed();
@@ -650,7 +706,7 @@ const Job = struct {
             };
             defer {
                 if (!enqueue) context.join() catch {};
-                context.release(&arena) catch {};
+                if (!reuse_workspace) context.release(&arena) catch {};
             }
             const arena_ptr = arena.words.?;
             var coefficient_offset: usize = 0;
@@ -795,6 +851,7 @@ const Job = struct {
             domain_cells += column_count * n;
         }
         if (next != 0) return error.UnusedCompositionCoefficients;
+        if (workspace.words != null) try context.release(&workspace);
         const n = @as(usize, 1) << @intCast(self.log);
         const coeff_count = 8 * n;
         const chunk_log = self.log - self.split;
