@@ -16,7 +16,7 @@ provenance={'schema':'rv64-m7-outer-device-fs-check/v1','driver':{'path':driver,
 for block in [26235156,24628607]:
  reference=Path(f'/workspace/m3/runs/m7-fold-v3/daemon-{block}-r2-combined-d2-coalesce-v1');base=json.loads((reference/'receipt.json').read_text());plan=json.loads((reference/'plan.json').read_text());assets=plan['assets'];base_snap=snap(Path(base['requests'][0]['proof']),base['requests'][0]['leaves'])
  for key,digest in expected.items():assert sha(assets[key])==digest
- tag='outer-device-fs-check';run=out/f'daemon-{block}-r2-{tag}'
+ tag='outer-device-fs-check-v2';run=out/f'daemon-{block}-r2-{tag}'
  command=[sys.executable,str(root/'scripts/rv64_m4_resident.py'),'daemon',str(block),'--stream','m7-device-fs-p1','--build-stream','m7-device-fs-p1','--repeat','2','--store','none','--receive','first','--security-profile','d2_native_b4_q54_p20_fold4','--coalesce-truth-families','--tag',tag,'--driver',driver,'--library',assets['library'],'--receiver',assets['receiver'],'--no-default-env']
  env=dict(plan['environment']);env.update(STWO_RV64_PACK_FOLD_CACHE='0',STWO_RV64_OUTER_DEVICE_FS='check',STWO_RV64_OUTER_FS_OPS_LIBRARY=addon)
  for key,value in sorted(env.items()):command+=['--env',key+'='+value]
@@ -30,6 +30,14 @@ for block in [26235156,24628607]:
  stderr=(run/'producer.stderr').read_text();lookup=re.findall(r'GPU_OUTER_DEVICE_FS check_ok ordinal=(\d+) class=([0-9a-f]+) leaf=(\w+) phase=lookup_params ops=(\d+) draw_blocks=(\d+)',stderr);prefix=re.findall(r'GPU_OUTER_DEVICE_FS check_ok ordinal=(\d+) class=([0-9a-f]+) leaf=(\w+) phase=before_pcs ops=(\d+) draw_blocks=(\d+)',stderr);consumers=re.findall(r'GPU_OUTER_DEVICE_FS inter_consumed ordinal=(\d+)',stderr)
  n=sum(len(json.loads((Path(r['proof'])/'recursion-om31/pipeline.json').read_text())['nodes']) for r in actual['requests'])
  assert len(lookup)==len(prefix)==len(consumers)==n,(len(lookup),len(prefix),len(consumers),n)
- report={'schema':'rv64-m7-outer-device-fs-case/v1','block':block,'reference':str(reference/'receipt.json'),'receipt':str(run/'receipt.json'),'all_artifacts_byte_identical':True,'proof_comparisons':comparisons,'receivers':actual['receivers'],'lookup_replay':lookup,'full_prefix_replay':prefix,'actual_inter_consumers':len(consumers),'expected_nodes':n,'assets':actual['assets'],'addon':provenance['addon'],'scope':provenance['scope']}
+ authority_by_ordinal={}
+ for request in actual['requests']:
+  tree=json.loads((Path(request['proof'])/'recursion-om31/tree.json').read_text())
+  mapping={str(i):bytes(node['authority']).hex() for i,node in enumerate(tree['nodes'])}
+  if authority_by_ordinal:assert mapping==authority_by_ordinal
+  authority_by_ordinal=mapping
+ from collections import Counter
+ assert Counter(row[0] for row in lookup)==Counter({k:len(actual['requests']) for k in authority_by_ordinal})
+ report={'authority_by_ordinal':authority_by_ordinal,'class_metadata':'v1TLSclasshintdiagnosticonly;actualclasscoverageboundbytreeauthorityandordinal','schema':'rv64-m7-outer-device-fs-case/v1','block':block,'reference':str(reference/'receipt.json'),'receipt':str(run/'receipt.json'),'all_artifacts_byte_identical':True,'proof_comparisons':comparisons,'receivers':actual['receivers'],'lookup_replay':lookup,'full_prefix_replay':prefix,'actual_inter_consumers':len(consumers),'expected_nodes':n,'assets':actual['assets'],'addon':provenance['addon'],'scope':provenance['scope']}
  (out/f'{block}-gate.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report),flush=True)
 print('OUTER_DEVICE_FS_CONSUMER_GATE_PASS',flush=True)

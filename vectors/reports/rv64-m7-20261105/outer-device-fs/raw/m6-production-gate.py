@@ -31,6 +31,14 @@ for block in [26235156,24628607]:
  stderr=(run/'producer.stderr').read_text();lookup=re.findall(r'GPU_OUTER_DEVICE_FS check_ok ordinal=(\d+) class=([0-9a-f]+) leaf=(\w+) phase=lookup_params ops=(\d+) draw_blocks=(\d+)',stderr);prefix=re.findall(r'GPU_OUTER_DEVICE_FS check_ok ordinal=(\d+) class=([0-9a-f]+) leaf=(\w+) phase=before_pcs ops=(\d+) draw_blocks=(\d+)',stderr);consumers=re.findall(r'GPU_OUTER_DEVICE_FS inter_consumed ordinal=(\d+)',stderr)
  n=sum(len(json.loads((Path(r['proof'])/'recursion-om31/pipeline.json').read_text())['nodes']) for r in actual['requests'])
  assert len(lookup)==len(prefix)==len(consumers)==n,(len(lookup),len(prefix),len(consumers),n)
- report={'schema':'rv64-m7-outer-device-fs-case/v1','block':block,'reference':str(reference/'receipt.json'),'receipt':str(run/'receipt.json'),'all_artifacts_byte_identical':True,'proof_comparisons':comparisons,'receivers':actual['receivers'],'lookup_replay':lookup,'full_prefix_replay':prefix,'actual_inter_consumers':len(consumers),'expected_nodes':n,'assets':actual['assets'],'addon':provenance['addon'],'scope':provenance['scope']}
+ authority_by_ordinal={}
+ for request in actual['requests']:
+  tree=json.loads((Path(request['proof'])/'recursion-om31/tree.json').read_text())
+  mapping={str(i):bytes(node['authority']).hex() for i,node in enumerate(tree['nodes'])}
+  if authority_by_ordinal:assert mapping==authority_by_ordinal
+  authority_by_ordinal=mapping
+ from collections import Counter
+ assert Counter(row[0] for row in lookup)==Counter({k:len(actual['requests']) for k in authority_by_ordinal})
+ report={'authority_by_ordinal':authority_by_ordinal,'class_metadata':'v1TLSclasshintdiagnosticonly;actualclasscoverageboundbytreeauthorityandordinal','schema':'rv64-m7-outer-device-fs-case/v1','block':block,'reference':str(reference/'receipt.json'),'receipt':str(run/'receipt.json'),'all_artifacts_byte_identical':True,'proof_comparisons':comparisons,'receivers':actual['receivers'],'lookup_replay':lookup,'full_prefix_replay':prefix,'actual_inter_consumers':len(consumers),'expected_nodes':n,'assets':actual['assets'],'addon':provenance['addon'],'scope':provenance['scope']}
  (out/f'{block}-m6-gate.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report),flush=True)
 print('OUTER_DEVICE_FS_M6_CONSUMER_GATE_PASS',flush=True)
