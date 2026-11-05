@@ -1,6 +1,6 @@
 # Bounded native Keccak composition checkpoint
 
-Status: numerical GPU prototype qualified; actual prover integration awaits its full build and proof gates. Default OFF (`STWO_RV64_TRUTH_SPARSE_RC=1` and explicit addon path select it). No whole-process memory, global admission, two-lane, or performance claim.
+Status: source23c7b1db8 now has bothdev cold/warm full M6 and D2 proof-byte/fresh-CPU qualification at22GiB; see M7-SPARSE-RC-PRODUCTION.md. Default OFF (`STWO_RV64_TRUTH_SPARSE_RC=1` and explicit addon path select it). No whole-process memory, global admission, two-lane, or performance claim.
 
 The selected native TRUTH role0 is source-log18/evaluation-log20, with 5,650 original roots and 3,514 touched physical columns. Root5596 alone touches3,098 columns. A source-bound signed additive cover splits only addition/subtraction/negation and preserves each term's ORIGINAL root power, input row offsets, and denominator. The54 groups use at most512 columns each; a1,024-column cache performs11,912 LDE fills (modeled3.3899× baseline column transforms).
 

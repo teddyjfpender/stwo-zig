@@ -1,0 +1,35 @@
+{
+ "run": "/workspace/m3/runs/m7-rc-sparse/daemon-26235156-r2-sparse-m6-22g-memory-retry1",
+ "process_wall_s": 42.24,
+ "service_overhead_s": 7.415,
+ "rss_gib": 24.48,
+ "cuda_api": {},
+ "requests": [
+  {
+   "block": 26235156,
+   "trial": 0,
+   "request_s": 23.33,
+   "capture": 1.719,
+   "setup": 4.808,
+   "native": 4.219,
+   "recursion": 12.33,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  },
+  {
+   "block": 26235156,
+   "trial": 1,
+   "request_s": 11.499,
+   "capture": 1.906,
+   "setup": 0.123,
+   "native": 3.258,
+   "recursion": 6.04,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  }
+ ]
+}
+{"service_start_s": 4.779, "service_stop_s": 2.618, "client_latency_s": [23.338, 11.507]}
+{"block": 26235156, "trial": 0, "status": "accepted", "wall_s": 34.9}
