@@ -242,10 +242,11 @@ const Run = struct {
     cpu_tree_policies: []const @import("child.zig").TreePolicy,
     failure_logged: std.atomic.Value(bool) = .init(false),
     fn logFailure(self: *Run, phase: []const u8, index: usize, err: anyerror) void {
-        // Emit the first actual worker error before coordinator destruction or
-        // budget assertions can obscure it. Peers may subsequently fail because
-        // the same physical endpoint was deliberately poisoned on that error.
-        if (!self.failure_logged.swap(true, .monotonic)) std.debug.print("NATIVE_COORDINATOR first_error stage={s} ordinal={} kind={s} error={s} utc_ns={}\n", .{ phase, index, if (index < self.setups.len) "cpu" else "truth", @errorName(err), std.time.nanoTimestamp() });
+        // Preserve the first observed error before coordinator/budget teardown.
+        // A poisoned peer can unwind before the failing owner does, so keep
+        // later non-poison errors too; first-observed is not causal authority.
+        const first = !self.failure_logged.swap(true, .monotonic);
+        if (first or err != error.PhysicalAdmissionPoisoned) std.debug.print("NATIVE_COORDINATOR worker_error first_observed={} stage={s} ordinal={} kind={s} error={s} utc_ns={}\n", .{ first, phase, index, if (index < self.setups.len) "cpu" else "truth", @errorName(err), std.time.nanoTimestamp() });
     }
     fn stageOne(self: *Run, index: usize) !void {
         errdefer |err| self.logFailure("stage_one", index, err);
