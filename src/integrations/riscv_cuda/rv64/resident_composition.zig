@@ -548,10 +548,15 @@ const Job = struct {
                 .last => .last,
                 .hc => .hc,
             }, .masks = role.artifact.program.inputs.len, .parameters = role.parameters.len, .constraints = role.artifact.program.roots.len };
+            if (b.sparse_truth) |*sparse| {
+                var widths = role.widths;
+                if (role.auxiliary == .last) widths[2] += 1;
+                if (role.evaluate == b.truth_role and sparse.matches(role.artifact.program.identity, role.id, role.trace_log, role.eval_log, widths, role.artifact.program.inputs.len, role.artifact.program.roots.len, role.parameters.len)) out.sparse = sparse.selection();
+            }
             made += 1;
         }
         const beta = self.log_blowup orelse b.log_blowup;
-        return WorkspaceCost.init(a, .{ .roles = roles, .shared_role_arena = true, .log = self.log, .split = self.split, .beta = beta, .separate_coefficients = beta == 1 and b.n2b_columns != null, .constraints = self.total });
+        return WorkspaceCost.init(a, .{ .roles = roles, .shared_role_arena = true, .log = self.log, .split = self.split, .beta = beta, .separate_coefficients = (beta == 1 and b.n2b_columns != null) or (beta == 2 and b.n2b_columns_compact != null), .constraints = self.total });
     }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
         var range = try @import("nvtx_stage.zig").Range.begin(&self.backend.service.library, raw, "rv64/composition");
@@ -735,14 +740,14 @@ const Job = struct {
                     defer role_tw_borrow.deinit(b.allocator);
                     // Empty traditional spans; the rows span is explicitly
                     // reported as combined sparse LDE+row work below.
-                    inline for (.{Span.coefficients, Span.auxiliary, Span.domain_fft}) |span| {
+                    inline for (.{ Span.coefficients, Span.auxiliary, Span.domain_fft }) |span| {
                         try timing.mark(span, false, stream0.?);
                         try timing.mark(span, true, stream0.?);
                     }
                     try timing.mark(.rows, false, stream0.?);
                     try sparse.run(a, b, &context, artifact.program.inputs, direct, parameter_words, power_words, words(geometry.denominators), words(tw.twiddles), words(role_tw_borrow.value.itwiddles), &buckets[el], &leases);
                     try timing.mark(.rows, true, stream0.?);
-                    std.debug.print("GPU_RC_SPARSE_ROLE ordinal={} role={} scope=truth combined_LDE_rows_span=true original_power_first={} original_roots={}\n", .{self.scope.ordinal,id,next,artifact.program.roots.len});
+                    std.debug.print("GPU_RC_SPARSE_ROLE ordinal={} role={} scope=truth combined_LDE_rows_span=true original_power_first={} original_roots={}\n", .{ self.scope.ordinal, id, next, artifact.program.roots.len });
                     domain_cells += sparse.cache.fills * n;
                     continue;
                 }
@@ -871,7 +876,7 @@ const Job = struct {
                 part.words = all.words.? + next * 8;
                 part.count = artifact.program.roots.len * 8;
                 _ = try context.borrow(part);
-                std.debug.print("GPU_OUTER_DEVICE_FS rc_consumed ordinal={} role={} first={} count={} host_power_upload_words=0\n", .{self.scope.ordinal, id, next, artifact.program.roots.len});
+                std.debug.print("GPU_OUTER_DEVICE_FS rc_consumed ordinal={} role={} first={} count={} host_power_upload_words=0\n", .{ self.scope.ordinal, id, next, artifact.program.roots.len });
                 break :blk part;
             } else blk: {
                 const power_words = try felts(a, powers[next..][0..artifact.program.roots.len]);
