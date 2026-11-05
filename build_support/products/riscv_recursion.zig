@@ -47,6 +47,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
     const ls_lane_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_ls_circuit_lanes_test_root.zig") });
     context.b.step("test-riscv64-ls-circuit-lanes", "Qualify dynamic LS boundary selection arithmetic wires").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = ls_lane_tests, .minimum = 6 }}));
     for ([_]struct { name: []const u8, source: []const u8 }{
+        .{ .name = "test-riscv64-poseidon-pure-leaf-census", .source = "src/integrations/riscv_cpu/rv64_poseidon_pure_cpu_census_test_root.zig" },
         .{ .name = "test-riscv64-poseidon-full-leaf-census", .source = "src/integrations/riscv_cpu/rv64_poseidon_full_cpu_census_test_root.zig" },
         .{ .name = "test-riscv64-poseidon2-gadgets", .source = "src/integrations/riscv_cpu/rv64_poseidon2_gadgets_test_root.zig" },
         .{ .name = "test-riscv64-poseidon2-circuit", .source = "src/integrations/riscv_cpu/rv64_poseidon2_circuit_test_root.zig" },
@@ -66,7 +67,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
         .{ .name = "test-riscv64-word16-execution-circuit", .source = "src/integrations/riscv_cpu/rv64_word16_execution_circuit_test_root.zig" },
         .{ .name = "test-riscv64-v3-services-recursion", .source = "src/integrations/riscv_cpu/rv64_v3_services_recursion_test_root.zig" },
     }) |spec| {
-        const tests = context.b.addTest(.{ .root_module = createRoot(context, product, spec.source), .filters = if (std.mem.eql(u8, spec.name, "test-riscv64-om31-native-pcs")) &.{ "OM31 native PCS", "OM31 frame", "OM31 V3" } else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-full-leaf-census")) &.{"actual complete CPU P2 mixed recursive leaf"} else &.{} });
+        const tests = context.b.addTest(.{ .root_module = createRoot(context, product, spec.source), .filters = if (std.mem.eql(u8, spec.name, "test-riscv64-om31-native-pcs")) &.{ "OM31 native PCS", "OM31 frame", "OM31 V3" } else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-full-leaf-census")) &.{"actual complete CPU P2 mixed recursive leaf"} else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-pure-leaf-census")) &.{"source-exact complete CPU pure P2 candidate"} else &.{} });
         const run = context.b.addRunArtifact(tests);
         run.setCwd(context.b.path("."));
         context.b.step(spec.name, "Qualify native and circuit-lane execution authorities").dependOn(&run.step);
