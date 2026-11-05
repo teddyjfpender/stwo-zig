@@ -45,6 +45,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
     const ls_lane_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_ls_circuit_lanes_test_root.zig") });
     context.b.step("test-riscv64-ls-circuit-lanes", "Qualify dynamic LS boundary selection arithmetic wires").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = ls_lane_tests, .minimum = 6 }}));
     for ([_]struct { name: []const u8, source: []const u8 }{
+        .{ .name = "test-riscv64-poseidon2-circuit", .source = "src/integrations/riscv_cpu/rv64_poseidon2_circuit_test_root.zig" },
         .{ .name = "test-riscv64-om31-outer", .source = "src/integrations/riscv_cpu/rv64_om31_outer_test_root.zig" },
         .{ .name = "test-riscv64-om31-m3-fold", .source = "src/integrations/riscv_cpu/rv64_om31_m3_fold_test_root.zig" },
         .{ .name = "test-riscv64-m5-vk-table", .source = "src/integrations/riscv_cpu/rv64_m5_vk_table_test_root.zig" },
