@@ -1,0 +1,210 @@
+test-d2-native
++- run test 4/5 passed, 1 failed, 1 leaked
+error: 'word16_global_execution.services.gkr_local.truth_worker_test.test.Keccak family b16 q27 P20 two physical spans real native proofs and fresh authority' failed: /workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu/word16_execution/fixed_setup.zig:27:57: 0x17a59d5 in acquireFromKey__anon_185609 (test)
+        if (self.log_blowup < 1 or self.log_blowup > 2) return error.UnsupportedFixedSetupRate;
+                                                        ^
+/workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu/word16_execution/fixed_setup.zig:259:9: 0x17a59dd in acquireFromKey__anon_185609 (test)
+        try descriptor.validate();
+        ^
+/workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority.zig:23:21: 0x17a89e8 in acquire__anon_185596 (test)
+        var lease = try cache.acquireFromKey(source, .{ .log_blowup = config.fri_config.log_blowup_factor });
+                    ^
+/workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu/word16_execution/fixed_setup.zig:211:27: 0x17b042f in runConfigured__anon_185534 (test)
+        self.state.release();
+                          ^
+/workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig:261:23: 0x17b5dd3 in test.Keccak family b16 q27 P20 two physical spans real native proofs and fresh authority (test)
+    defer setup.deinit();
+                      ^
+[gpa] (err): memory address 0x780f889e2000 leaked: 
+/workspace/m3/src/m7-callback-retire/src/frontends/riscv/rv64/air/delegations/keccak/trace.zig:69:53: 0x1187e6b in initSpanPolicy (test)
+        const fixed = try fixedColumnsForLogGeometry(a, log, geometry);
+                                                    ^
+/workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig:269:69: 0x17b5cb4 in test.Keccak family b16 q27 P20 two physical spans real native proofs and fresh authority (test)
+        const source = R.TruthSource{ .keccak = try T.initSpanPolicy(a, input[i..][0..1], first, 5, .throughput_r27_v1) };
+                                                                    ^
+/workspace/zig/lib/compiler/test_runner.zig:130:29: 0x178bc7d in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/workspace/zig/lib/compiler/test_runner.zig:64:26: 0x178aeae in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/workspace/zig/lib/std/start.zig:618:22: 0x178a17f in posixCallMainAndExit (test)
+            root.main();
+                     ^
+/workspace/zig/lib/std/start.zig:232:5: 0x1789c5d in _start (test)
+    asm volatile (switch (native_arch) {
+    ^
+
+[gpa] (err): memory address 0x780fa2260000 leaked: 
+/workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig:269:69: 0x17b5cb4 in test.Keccak family b16 q27 P20 two physical spans real native proofs and fresh authority (test)
+        const source = R.TruthSource{ .keccak = try T.initSpanPolicy(a, input[i..][0..1], first, 5, .throughput_r27_v1) };
+                                                                    ^
+/workspace/zig/lib/compiler/test_runner.zig:130:29: 0x178bc7d in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/workspace/zig/lib/compiler/test_runner.zig:64:26: 0x178aeae in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/workspace/zig/lib/std/start.zig:618:22: 0x178a17f in posixCallMainAndExit (test)
+            root.main();
+                     ^
+/workspace/zig/lib/std/start.zig:232:5: 0x1789c5d in _start (test)
+    asm volatile (switch (native_arch) {
+    ^
+
+[gpa] (err): memory address 0x780fa333d000 leaked: 
+/workspace/m3/src/m7-callback-retire/src/frontends/riscv/rv64/air/delegations/keccak/tables.zig:45:27: 0x118b21f in initSpanPolicy (test)
+        return buildPolicy(a, .{ .owned = a }, kind, policy, counts);
+                          ^
+/workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig:269:69: 0x17b5cb4 in test.Keccak family b16 q27 P20 two physical spans real native proofs and fresh authority (test)
+        const source = R.TruthSource{ .keccak = try T.initSpanPolicy(a, input[i..][0..1], first, 5, .throughput_r27_v1) };
+                                                                    ^
+/workspace/zig/lib/compiler/test_runner.zig:130:29: 0x178bc7d in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/workspace/zig/lib/compiler/test_runner.zig:64:26: 0x178aeae in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/workspace/zig/lib/std/start.zig:618:22: 0x178a17f in posixCallMainAndExit (test)
+            root.main();
+                     ^
+/workspace/zig/lib/std/start.zig:232:5: 0x1789c5d in _start (test)
+    asm volatile (switch (native_arch) {
+    ^
+
+[gpa] (err): memory address 0x780fa7b3d000 leaked: 
+/workspace/m3/src/m7-callback-retire/src/frontends/riscv/rv64/air/delegations/keccak/tables.zig:45:27: 0x118b320 in initSpanPolicy (test)
+        return buildPolicy(a, .{ .owned = a }, kind, policy, counts);
+                          ^
+/workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig:269:69: 0x17b5cb4 in test.Keccak family b16 q27 P20 two physical spans real native proofs and fresh authority (test)
+        const source = R.TruthSource{ .keccak = try T.initSpanPolicy(a, input[i..][0..1], first, 5, .throughput_r27_v1) };
+                                                                    ^
+/workspace/zig/lib/compiler/test_runner.zig:130:29: 0x178bc7d in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/workspace/zig/lib/compiler/test_runner.zig:64:26: 0x178aeae in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/workspace/zig/lib/std/start.zig:618:22: 0x178a17f in posixCallMainAndExit (test)
+            root.main();
+                     ^
+/workspace/zig/lib/std/start.zig:232:5: 0x1789c5d in _start (test)
+    asm volatile (switch (native_arch) {
+    ^
+
+[gpa] (err): memory address 0x780fa2280000 leaked: 
+/workspace/m3/src/m7-callback-retire/src/frontends/riscv/rv64/air/delegations/keccak/trace.zig:95:41: 0x118ac18 in initSpanPolicy (test)
+        const main = try storage.acquire(L.MAIN * n);
+                                        ^
+/workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig:269:69: 0x17b5cb4 in test.Keccak family b16 q27 P20 two physical spans real native proofs and fresh authority (test)
+        const source = R.TruthSource{ .keccak = try T.initSpanPolicy(a, input[i..][0..1], first, 5, .throughput_r27_v1) };
+                                                                    ^
+/workspace/zig/lib/compiler/test_runner.zig:130:29: 0x178bc7d in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/workspace/zig/lib/compiler/test_runner.zig:64:26: 0x178aeae in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/workspace/zig/lib/std/start.zig:618:22: 0x178a17f in posixCallMainAndExit (test)
+            root.main();
+                     ^
+/workspace/zig/lib/std/start.zig:232:5: 0x1789c5d in _start (test)
+    asm volatile (switch (native_arch) {
+    ^
+
+[gpa] (err): memory address 0x780fa7d3d000 leaked: 
+/workspace/m3/src/m7-callback-retire/src/frontends/riscv/rv64/air/delegations/keccak/tables.zig:74:41: 0x1186636 in buildPolicy (test)
+        const main = try storage.acquire(n);
+                                        ^
+/workspace/m3/src/m7-callback-retire/src/frontends/riscv/rv64/air/delegations/keccak/tables.zig:45:27: 0x118b320 in initSpanPolicy (test)
+        return buildPolicy(a, .{ .owned = a }, kind, policy, counts);
+                          ^
+/workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig:269:69: 0x17b5cb4 in test.Keccak family b16 q27 P20 two physical spans real native proofs and fresh authority (test)
+        const source = R.TruthSource{ .keccak = try T.initSpanPolicy(a, input[i..][0..1], first, 5, .throughput_r27_v1) };
+                                                                    ^
+/workspace/zig/lib/compiler/test_runner.zig:130:29: 0x178bc7d in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/workspace/zig/lib/compiler/test_runner.zig:64:26: 0x178aeae in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/workspace/zig/lib/std/start.zig:618:22: 0x178a17f in posixCallMainAndExit (test)
+            root.main();
+                     ^
+/workspace/zig/lib/std/start.zig:232:5: 0x1789c5d in _start (test)
+    asm volatile (switch (native_arch) {
+    ^
+
+[gpa] (err): memory address 0x780fa7cfd000 leaked: 
+/workspace/m3/src/m7-callback-retire/src/frontends/riscv/rv64/air/delegations/keccak/tables.zig:45:27: 0x118b320 in initSpanPolicy (test)
+        return buildPolicy(a, .{ .owned = a }, kind, policy, counts);
+                          ^
+/workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig:269:69: 0x17b5cb4 in test.Keccak family b16 q27 P20 two physical spans real native proofs and fresh authority (test)
+        const source = R.TruthSource{ .keccak = try T.initSpanPolicy(a, input[i..][0..1], first, 5, .throughput_r27_v1) };
+                                                                    ^
+/workspace/zig/lib/compiler/test_runner.zig:130:29: 0x178bc7d in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/workspace/zig/lib/compiler/test_runner.zig:64:26: 0x178aeae in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/workspace/zig/lib/std/start.zig:618:22: 0x178a17f in posixCallMainAndExit (test)
+            root.main();
+                     ^
+/workspace/zig/lib/std/start.zig:232:5: 0x1789c5d in _start (test)
+    asm volatile (switch (native_arch) {
+    ^
+
+[gpa] (err): memory address 0x780fa6b3d000 leaked: 
+/workspace/m3/src/m7-callback-retire/src/frontends/riscv/rv64/air/delegations/keccak/tables.zig:45:27: 0x118b21f in initSpanPolicy (test)
+        return buildPolicy(a, .{ .owned = a }, kind, policy, counts);
+                          ^
+/workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig:269:69: 0x17b5cb4 in test.Keccak family b16 q27 P20 two physical spans real native proofs and fresh authority (test)
+        const source = R.TruthSource{ .keccak = try T.initSpanPolicy(a, input[i..][0..1], first, 5, .throughput_r27_v1) };
+                                                                    ^
+/workspace/zig/lib/compiler/test_runner.zig:130:29: 0x178bc7d in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/workspace/zig/lib/compiler/test_runner.zig:64:26: 0x178aeae in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/workspace/zig/lib/std/start.zig:618:22: 0x178a17f in posixCallMainAndExit (test)
+            root.main();
+                     ^
+/workspace/zig/lib/std/start.zig:232:5: 0x1789c5d in _start (test)
+    asm volatile (switch (native_arch) {
+    ^
+
+[gpa] (err): memory address 0x780fa733d000 leaked: 
+/workspace/m3/src/m7-callback-retire/src/frontends/riscv/rv64/air/delegations/keccak/tables.zig:74:41: 0x1186636 in buildPolicy (test)
+        const main = try storage.acquire(n);
+                                        ^
+/workspace/m3/src/m7-callback-retire/src/frontends/riscv/rv64/air/delegations/keccak/tables.zig:45:27: 0x118b21f in initSpanPolicy (test)
+        return buildPolicy(a, .{ .owned = a }, kind, policy, counts);
+                          ^
+/workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig:269:69: 0x17b5cb4 in test.Keccak family b16 q27 P20 two physical spans real native proofs and fresh authority (test)
+        const source = R.TruthSource{ .keccak = try T.initSpanPolicy(a, input[i..][0..1], first, 5, .throughput_r27_v1) };
+                                                                    ^
+/workspace/zig/lib/compiler/test_runner.zig:130:29: 0x178bc7d in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/workspace/zig/lib/compiler/test_runner.zig:64:26: 0x178aeae in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/workspace/zig/lib/std/start.zig:618:22: 0x178a17f in posixCallMainAndExit (test)
+            root.main();
+                     ^
+/workspace/zig/lib/std/start.zig:232:5: 0x1789c5d in _start (test)
+    asm volatile (switch (native_arch) {
+    ^
+error: while executing test 'word16_global_execution.services.gkr_local.truth_worker_test.test.Keccak family b16 q27 P20 two physical spans real native proofs and fresh authority', the following test command failed:
+/workspace/m3/build/m7-grind26/cache-native/o/4c36d34a19630f13d49f3d39c08297e1/test --cache-dir=/workspace/m3/build/m7-grind26/cache-native --seed=0x5dda29d4 --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 4/5 tests passed; 1 failed; 1 leaked
+test-d2-native transitive failure
++- run test 4/5 passed, 1 failed, 1 leaked
+   +- compile test ReleaseSafe native success 2m MaxRSS:1G
+
+error: the following build command failed with exit code 1:
+/workspace/m3/build/m7-grind26/cache-native/o/f469556b06d9894e1862eb580b4e3529/build /workspace/zig/zig /workspace/zig/lib /workspace/m3/src/m7-callback-retire/src/integrations/riscv_cpu /workspace/m3/build/m7-grind26/cache-native /workspace/m3/cache/zig-global --seed 0x5dda29d4 -Z1b1346b6f6dfbf70 test-d2-native -Dd2-test-filter=Keccak family -Doptimize=ReleaseSafe --summary all
+EXIT=1

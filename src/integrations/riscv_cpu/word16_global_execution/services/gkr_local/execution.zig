@@ -26,6 +26,7 @@ const FixedSet = @import("fixed_authority_set.zig").Set;
 pub const Inventory = struct {
     allocator: std.mem.Allocator,
     execution_identity: [32]u8,
+    family_policy: @import("keccak_family_profile.zig").Policy = .legacy,
     workers: []Manifest.ExpectedWorker,
     instances: [][]Frame.Instance,
     first_ids: [][@import("../types.zig").FAMILIES]u32,
@@ -44,7 +45,10 @@ pub const Inventory = struct {
         // Reuse the existing independent image, sorted/unique public cells,
         // RAM rights, epoch, call spans, program, register/PC adjacency and
         // exact total/final endpoint authority. It does not verify proofs.
-        if (fixed) |authority| try authority.require(setups, truths, config) else try validateConfig(config);
+        if (fixed) |authority| try authority.require(setups, truths, config) else {
+            if (try @import("keccak_family_profile.zig").current() != .legacy) return error.KeccakFamilyFixedAuthorityRequired;
+            try validateConfig(config);
+        }
         // Admit only service_scope-qualified families and representations; unsupported routes remain closed.
         for (setups) |setup| try Scope.setup(setup);
         for (requests) |request| try Scope.request(request);
@@ -60,6 +64,10 @@ pub const Inventory = struct {
             for (truths, truth_declarations) |truth, *d| d.* = Wire.TruthDeclaration.from(truth);
             var source_bounds = try @import("source_bounds.zig").derive(a, setups[0].materials.program.log_size, declarations, truth_declarations, requests);
             defer source_bounds.deinit();
+            if (fixed.?.family_policy != .legacy) {
+                const Candidate = @import("../../../word16_execution/om31_security_candidate.zig");
+                try (try Candidate.ledgerAtBlowup(Candidate.Facts.caps(), 4)).requireRawModuloBits(151);
+            }
             if (@import("worker_protocol.zig").candidateProfile(config) == .d2_native_b4_q54_p20_fold4) {
                 const Candidate = @import("../../../word16_execution/om31_security_candidate.zig");
                 // Source derivation above enforces the receiver caps and signed
@@ -104,10 +112,11 @@ pub const Inventory = struct {
                 else => return error.GkrV3ServiceUnsupported,
             };
             const binding = if (fixed) |authority| authority.at(setups.len + i) else null;
+            const truth_config = if (fixed) |authority| authority.truthConfig(truth) else config;
             workers[setups.len + i] = .{
                 .kind = kind,
                 .ordinal = @intCast(setups.len + i),
-                .statement = if (extendedTruth(truth)) try V3.truthStatementWithAuthority(truth, config, identity, binding) else try Truth.truthStatementWithAuthority(truth, config, identity, binding),
+                .statement = if (extendedTruth(truth)) try V3.truthStatementWithAuthority(truth, truth_config, identity, binding) else try Truth.truthStatementWithAuthority(truth, truth_config, identity, binding),
                 .fixed = if (binding) |authority| authority.root() else truth.key().root,
                 .local_instances = null,
                 .global_relations = .{ .ram = false, .kio = kind == .keccak, .wire = kind != .keccak },
@@ -116,7 +125,7 @@ pub const Inventory = struct {
         }
         try Manifest.validateRoster(workers);
         if (try @import("chain.zig").enabled()) try @import("chain.zig").assign(setups, truths, requests, first_ids, workers, config, fixed);
-        return .{ .allocator = a, .execution_identity = identity, .workers = workers, .instances = instances, .first_ids = first_ids };
+        return .{ .allocator = a, .execution_identity = identity, .family_policy = if (fixed) |authority| authority.family_policy else .legacy, .workers = workers, .instances = instances, .first_ids = first_ids };
     }
 };
 /// Initial profile supports the two qualified fold schedules and the fixed
@@ -225,7 +234,8 @@ pub fn verifyWithAuthorityAndLimits(a: std.mem.Allocator, setups: []const *const
     }
     for (truths, truth_proofs, 0..) |truth, *proof, i| {
         const ordinal = setups.len + i;
-        verified_claims[ordinal] = if (extendedTruth(truth)) try V3.verifyTruthWithAuthority(a, truth, inventory.workers[ordinal], &pending, ordinal, config, proof, if (fixed) |authority| authority.at(ordinal) else null) else try Truth.verifyTruthWithAuthority(a, truth, inventory.workers[ordinal], &pending, ordinal, config, proof, if (fixed) |authority| authority.at(ordinal) else null);
+        const truth_config = if (fixed) |authority| authority.truthConfig(truth) else config;
+        verified_claims[ordinal] = if (extendedTruth(truth)) try V3.verifyTruthWithAuthority(a, truth, inventory.workers[ordinal], &pending, ordinal, truth_config, proof, if (fixed) |authority| authority.at(ordinal) else null) else try Truth.verifyTruthWithAuthority(a, truth, inventory.workers[ordinal], &pending, ordinal, truth_config, proof, if (fixed) |authority| authority.at(ordinal) else null);
     }
     try pending.checkGlobalClosure(verified_claims);
     return .{ .completed = true, .total_steps = expected.total_steps, .physical_proofs = inventory.workers.len, .execution_identity = inventory.execution_identity, .manifest_identity = pending.digest };

@@ -284,6 +284,11 @@ fn keccakBestSplit(options: KeccakTruthOptions, calls: u32, max_log: u32, depth:
     return best;
 }
 fn appendKeccakSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: [3]u32, max_log: u32, options: KeccakTruthOptions) !void {
+    const family_policy = try @import("../services/gkr_local/keccak_family_profile.zig").current();
+    if (family_policy != .legacy) {
+        try appendKeccakEarlyLate(a, out, total[0], options);
+        return appendSecp(a, out, total, options.v3);
+    }
     if (max_log < 16 or max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
     if (options.v3) return appendKeccakV3(a, out, total, max_log, options);
     // Keep full shard lengths even so partitioning preserves paired slots.
@@ -298,6 +303,22 @@ fn appendKeccakSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration
         next = try std.math.add(u32, next, calls);
     }
     try appendSecp(a, out, total, options.v3);
+}
+/// New physical family batching. Both spans use the existing compact triple-v2 AIR;
+/// source-owned PCS policy, declaration admission and execution framing are
+/// separate from this geometry. No old profile silently changes its roster.
+pub fn appendKeccakEarlyLate(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: u32, options: KeccakTruthOptions) !void {
+    if (!options.v3) return error.KeccakEarlyLateRequiresV3;
+    var first: u32 = 1;
+    for (@import("../services/gkr_local/keccak_family_profile.zig").split(total)) |calls| {
+        if (calls == 0) continue;
+        const log = try A.crypto.keccak.layout.logSizeFor(KeccakPolicy.triple_v2.geometry(), calls);
+        if (log > 21) return error.KeccakEarlyLateSourceCapacity;
+        const declaration = W.TruthDeclaration{ .family = .keccak, .first_id = first, .calls = calls, .logs = .{ log, W.keccakProfileWord(.triple_v2) } };
+        try @import("../services/gkr_local/service_scope.zig").truthDeclaration(declaration);
+        try out.append(a, declaration);
+        first = try std.math.add(u32, first, calls);
+    }
 }
 /// v3 Keccak truths: full shards of the throughput profile's slot geometry,
 /// then the cheapest split of the remainder (`keccakBestSplit`).
@@ -395,6 +416,7 @@ pub fn secpRcbCells(kind: A.crypto.secp256k1.program.Kind, calls_total: u32) !u6
     return cells;
 }
 pub fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
+    if (options.one_per_family and try @import("../services/gkr_local/keccak_family_profile.zig").current() != .legacy) return error.ConflictingTruthFamilyPlans;
     if (options.one_per_family and options.coalesce_families) return error.ConflictingTruthFamilyPlans;
     if (options.one_per_family or options.coalesce_families) {
         const ST = @import("../services/types.zig");
@@ -947,5 +969,23 @@ pub fn canonicalTruths(truths_: []W.TruthDeclaration, table: anytype, classes: [
         } else return error.CanonNoAdmissibleRung;
         t.logs[0] = e.logs[r];
         class.* = .{ .family = family, .rung = @intCast(r) };
+    }
+}
+
+test "Keccak family early late exact complete physical family source declarations" {
+    const a = std.testing.allocator;
+    for ([_]u32{ 0, 1, 2, 20994, 29998, 29999 }) |total| {
+        var out: std.ArrayList(W.TruthDeclaration) = .empty;
+        defer out.deinit(a);
+        try appendKeccakEarlyLate(a, &out, total, .{ .v3 = true });
+        try std.testing.expectEqual(@as(usize, @min(total, 2)), out.items.len);
+        var next: u32 = 1;
+        for (out.items) |d| {
+            try std.testing.expectEqual(next, d.first_id);
+            try std.testing.expect(d.calls > 0);
+            try std.testing.expectEqual(W.keccakProfileWord(.triple_v2), d.logs[1]);
+            next += d.calls;
+        }
+        try std.testing.expectEqual(total + 1, next);
     }
 }

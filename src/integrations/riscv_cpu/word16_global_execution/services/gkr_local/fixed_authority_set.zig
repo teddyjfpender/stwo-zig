@@ -4,6 +4,7 @@ const std = @import("std");
 const W = @import("worker_protocol.zig");
 const F = @import("fixed_authority.zig");
 const R = @import("../roster.zig");
+const FamilyProfile = @import("keccak_family_profile.zig");
 const SourceKey = @import("../../keccak/shared/key.zig").Key;
 /// Only the resident session's OWNED, frozen source keys may enter this cache.
 /// Pointer provenance restricts reuse to that same owner; independently rebuilt
@@ -37,18 +38,24 @@ pub const ValidatedCatalogue = struct {
 pub const Set = struct {
     allocator: std.mem.Allocator,
     config: W.PcsConfig,
+    family_policy: FamilyProfile.Policy = .legacy,
     cpu_count: usize,
     bindings: []F.Binding,
     source_validations: usize,
     source_coefficient_cells: usize,
     pub fn init(a: std.mem.Allocator, cache: *const F.Fixed.Cache, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig) !Set {
-        return initPolicy(a, cache, setups, truths, config, null);
+        return initPolicy(a, cache, setups, truths, config, null, try FamilyProfile.current());
     }
     pub fn initWithValidatedCatalogue(a: std.mem.Allocator, cache: *const F.Fixed.Cache, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig, catalogue: *ValidatedCatalogue) !Set {
-        return initPolicy(a, cache, setups, truths, config, catalogue);
+        return initPolicy(a, cache, setups, truths, config, catalogue, try FamilyProfile.current());
     }
-    fn initPolicy(a: std.mem.Allocator, cache: *const F.Fixed.Cache, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig, catalogue: ?*ValidatedCatalogue) !Set {
+    /// Explicit receiver policy, also used by deterministic no-environment fixtures.
+    pub fn initForFamilyPolicy(a: std.mem.Allocator, cache: *const F.Fixed.Cache, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig, policy: FamilyProfile.Policy) !Set {
+        return initPolicy(a, cache, setups, truths, config, null, policy);
+    }
+    fn initPolicy(a: std.mem.Allocator, cache: *const F.Fixed.Cache, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig, catalogue: ?*ValidatedCatalogue, family_policy: FamilyProfile.Policy) !Set {
         try W.validateCandidateConfig(config);
+        try family_policy.requireTruths(truths);
         const count = try std.math.add(usize, setups.len, truths.len);
         if (setups.len == 0 or count > 256) return error.WideBeta2FixedInventoryMismatch;
         const bindings = try a.alloc(F.Binding, count);
@@ -65,13 +72,14 @@ pub const Set = struct {
             if (acquired.validated) cells = try std.math.add(usize, cells, acquired.binding.source_coefficient_cells);
         }
         for (truths, 0..) |truth, i| {
-            const acquired = if (catalogue) |owner| try owner.acquire(cache, truth.key(), config) else try acquireUnique(bindings[0..initialized], cache, truth.key(), config);
+            const truth_config = family_policy.truthConfig(config, truth == .keccak);
+            const acquired = if (catalogue) |owner| try owner.acquire(cache, truth.key(), truth_config) else try acquireUnique(bindings[0..initialized], cache, truth.key(), truth_config);
             bindings[setups.len + i] = acquired.binding;
             initialized += 1;
             validations += @intFromBool(acquired.validated);
             if (acquired.validated) cells = try std.math.add(usize, cells, acquired.binding.source_coefficient_cells);
         }
-        return .{ .allocator = a, .config = config, .cpu_count = setups.len, .bindings = bindings, .source_validations = validations, .source_coefficient_cells = cells };
+        return .{ .allocator = a, .config = config, .family_policy = family_policy, .cpu_count = setups.len, .bindings = bindings, .source_validations = validations, .source_coefficient_cells = cells };
     }
     pub fn deinit(self: *Set) void {
         for (self.bindings) |*binding| binding.deinit();
@@ -80,9 +88,13 @@ pub const Set = struct {
     }
     pub fn require(self: *const Set, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig) !void {
         try W.validateCandidateConfig(config);
+        try self.family_policy.requireTruths(truths);
         if (!std.meta.eql(self.config, config) or self.cpu_count != setups.len or self.bindings.len != try std.math.add(usize, setups.len, truths.len)) return error.WideBeta2FixedInventoryMismatch;
         for (setups, self.bindings[0..setups.len]) |setup, *binding| try binding.require(&setup.key, config);
-        for (truths, self.bindings[setups.len..]) |truth, *binding| try binding.require(truth.key(), config);
+        for (truths, self.bindings[setups.len..]) |truth, *binding| try binding.require(truth.key(), self.truthConfig(truth));
+    }
+    pub fn truthConfig(self: *const Set, truth: R.Truth) W.PcsConfig {
+        return self.family_policy.truthConfig(self.config, truth == .keccak);
     }
     pub fn at(self: *const Set, index: usize) *const F.Binding {
         return &self.bindings[index];
@@ -91,6 +103,7 @@ pub const Set = struct {
     pub fn executionIdentity(self: *const Set, base: [32]u8) [32]u8 {
         var ch = W.Channel.init();
         W.digest(&ch, base);
+        self.family_policy.mixExecution(&ch);
         var tag: [32]u8 = undefined;
         std.crypto.hash.blake2.Blake2s256.hash(F.PROFILE, &tag, .{});
         W.digest(&ch, tag);
@@ -109,6 +122,7 @@ pub const Set = struct {
     /// T_nat membership and the native segment chain, not a repeated key list.
     /// Old flat/strict callers keep `executionIdentity` and historical bytes.
     pub fn executionIdentityForGkr(self: *const Set, base: [32]u8) ![32]u8 {
+        if (self.family_policy != .legacy) return error.KeccakFamilyGkrExecutionNotSupported;
         return gkrExecutionIdentity(base, self.config);
     }
 };
@@ -131,8 +145,12 @@ pub fn emitGkrExecutionIdentity(base: anytype, config: W.PcsConfig, writer: anyt
 pub fn gkrExecutionIdentity(base: [32]u8, config: W.PcsConfig) ![32]u8 {
     var writer = struct {
         channel: W.Channel,
-        pub fn constantDigest(self: *@This(), value: [32]u8) void { W.digest(&self.channel, value); }
-        pub fn publicDigest(self: *@This(), value: [32]u8) void { W.digest(&self.channel, value); }
+        pub fn constantDigest(self: *@This(), value: [32]u8) void {
+            W.digest(&self.channel, value);
+        }
+        pub fn publicDigest(self: *@This(), value: [32]u8) void {
+            W.digest(&self.channel, value);
+        }
     }{ .channel = W.Channel.init() };
     try emitGkrExecutionIdentity(base, config, &writer);
     return writer.channel.digestBytes();

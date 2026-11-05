@@ -11,9 +11,17 @@ fn run(truth: R.Truth, source: R.TruthSource) !void {
     return runProfile(truth, source, false);
 }
 fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void {
+    const config = P.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, if (beta2) 2 else 1, 12) };
+    return runConfigured(truth, source, beta2, config);
+}
+fn runConfigured(truth: R.Truth, source: R.TruthSource, comptime beta2: bool, config: P.PcsConfig) !void {
+    var source_owned = true;
+    errdefer if (source_owned) {
+        var owned = source;
+        owned.deinit();
+    };
     const budget: usize = if (truth == .keccak and truth.keccak.setup.policy.throughputTables()) 2 << 30 else 64 << 20;
     const Fixed = @import("fixed_authority.zig");
-    const config = P.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, if (beta2) 2 else 1, 12) };
     // Worker admission and retained-memory accounting must accept exactly the
     // same receiver-owned policy, including the R27 throughput tables.
     _ = try @import("truth_retention.zig").forTruth(a, truth, config, budget);
@@ -22,16 +30,21 @@ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void
     var fixed: ?Fixed.Binding = if (cache) |*owner| try Fixed.Binding.acquire(owner, truth.key(), config) else null;
     defer if (fixed) |*binding| binding.deinit();
     const fixed_ptr: ?*const Fixed.Binding = if (fixed) |*binding| binding else null;
-    const expected = Manifest.ExpectedWorker{ .kind = switch (truth) {
-        .keccak => .keccak,
-        .secp => |t| if (t.setup.kind == .add) .secp_add else .secp_double,
-        else => unreachable, // test helper: v2 truths only
-    }, .global_relations = .{ .ram = false, .kio = truth == .keccak, .wire = truth == .secp }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = try W.truthStatementWithAuthority(truth, config, @splat(17), fixed_ptr), .fixed = if (fixed_ptr) |binding| binding.root() else truth.key().root, .local_instances = null };
-    var worker = W.TruthWorker.initWithAuthority(a, truth, source, expected, config, budget, fixed_ptr) catch |err| {
-        var s = source;
-        s.deinit();
-        return err;
+    const expected = Manifest.ExpectedWorker{
+        .kind = switch (truth) {
+            .keccak => .keccak,
+            .secp => |t| if (t.setup.kind == .add) .secp_add else .secp_double,
+            else => unreachable, // test helper: v2 truths only
+        },
+        .global_relations = .{ .ram = false, .kio = truth == .keccak, .wire = truth == .secp },
+        .mass = try W.truthMass(truth),
+        .ordinal = 0,
+        .statement = try W.truthStatementWithAuthority(truth, config, @splat(17), fixed_ptr),
+        .fixed = if (fixed_ptr) |binding| binding.root() else truth.key().root,
+        .local_instances = null,
     };
+    var worker = try W.TruthWorker.initWithAuthority(a, truth, source, expected, config, budget, fixed_ptr);
+    source_owned = false;
     defer worker.deinit(a);
     var native_profile = @import("stwo_prover_api").stage_profile.Recorder.init(a, "rv64", "truth-worker-stage-scope");
     defer native_profile.deinit();
@@ -116,6 +129,13 @@ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void
     } else {
         try std.testing.expect(claims.wire.eql(encoded.claims[3].add(encoded.claims[4])));
         try std.testing.expect(claims.kio.isZero());
+    }
+    if (beta2) {
+        var fresh_cache = try Fixed.Fixed.Cache.init(a, 1 << 30);
+        defer fresh_cache.deinit();
+        var fresh_fixed = try Fixed.Binding.acquire(&fresh_cache, truth.key(), config);
+        defer fresh_fixed.deinit();
+        _ = try W.verifyTruthWithAuthority(a, truth, expected, &pending, 0, config, &encoded, &fresh_fixed);
     }
     const global = encoded.claims[3];
     var coordinates = global.toM31Array();
@@ -221,7 +241,6 @@ test "beta2 K and ADD truth physical proofs separately close local claims and au
     try runProfile(.{ .secp = .{ .setup = &ssetup, .first_id = 5, .calls = 1 } }, source, true);
 }
 
-
 test "V3 KeccakR27 throughput truth physically proves and freshly verifies policy bound local and KIO claims" {
     const Setup = @import("../../keccak/shared/roster.zig").TruthSetup;
     const Key = @import("../../keccak/shared/key.zig").Key;
@@ -234,4 +253,23 @@ test "V3 KeccakR27 throughput truth physically proves and freshly verifies polic
     }
     const source = R.TruthSource{ .keccak = try T.initSpanPolicy(a, &input, 3, 5, .throughput_r27_v1) };
     try runProfile(.{ .keccak = .{ .setup = &setup, .first_id = 3, .calls = 2 } }, source, false);
+}
+
+test "Keccak family b16 q27 P20 two physical spans real native proofs and fresh authority" {
+    const Setup = @import("../../keccak/shared/roster.zig").TruthSetup;
+    const Key = @import("../../keccak/shared/key.zig").Key;
+    const Family = @import("keccak_family_profile.zig");
+    var setup = try Setup.initPolicy(a, 5, Key.Suite.production(), .triple_v2);
+    defer setup.deinit();
+    const T = @FieldType(R.TruthSource, "keccak");
+    var input: [2]A.crypto.keccak.trace.State = undefined;
+    for (&input, 0..) |*state, i| for (state, 0..) |*value, lane| {
+        value.* = @intCast(7919 * i + 31 * lane);
+    };
+    for (0..2) |i| {
+        const first: u32 = @intCast(i + 1);
+        const source = R.TruthSource{ .keccak = try T.initSpanPolicy(a, input[i..][0..1], first, 5, .triple_v2) };
+        try runConfigured(.{ .keccak = .{ .setup = &setup, .first_id = first, .calls = 1 } }, source, true, Family.config());
+    }
+    std.debug.print("KECCAK_FAMILY beta=4 q=27 P=20 physical=2 real_pcs=true independent_fixed_cache=true certified=false\n", .{});
 }

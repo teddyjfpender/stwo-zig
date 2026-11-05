@@ -56,7 +56,7 @@ DEFAULT_PRODUCER_ENV = {
     "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
 }
 # Proof-format selectors a receiver must share with the producer of the run it checks.
-FORMAT_ENV_KEYS = ("STWO_RV64_OUTER_PROFILE", "STWO_RV64_NATIVE_VERSION")
+FORMAT_ENV_KEYS = ("STWO_RV64_OUTER_PROFILE", "STWO_RV64_NATIVE_VERSION", "STWO_RV64_KECCAK_FAMILY_PROFILE")
 
 
 def format_environment(environment, plan):

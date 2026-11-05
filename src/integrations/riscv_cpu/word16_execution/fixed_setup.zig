@@ -24,7 +24,7 @@ const Native = @import("fixed_native_cache.zig");
 pub const CommitmentDescriptor = struct {
     log_blowup: u32,
     pub fn validate(self: CommitmentDescriptor) !void {
-        if (self.log_blowup < 1 or self.log_blowup > 2) return error.UnsupportedFixedSetupRate;
+        if (self.log_blowup < 1 or self.log_blowup > 4) return error.UnsupportedFixedSetupRate;
     }
 };
 fn configuration(descriptor: CommitmentDescriptor) !core.pcs.PcsConfig {
@@ -397,4 +397,9 @@ test "fixed identity bulk encoding matches exact historical scalar LE framing" {
         const reversed = [_]Coefficient{ coefficients[1], coefficients[0] };
         try std.testing.expect(!std.mem.eql(u8, &(try coefficientIdentity(&coefficients, .{ .log_blowup = blowup })), &(try coefficientIdentity(&reversed, .{ .log_blowup = blowup }))));
     }
+}
+
+test "new explicit immutable fixed beta4 descriptor leaves old rates admitted" {
+    for ([_]u32{ 1, 2, 4 }) |beta| try (CommitmentDescriptor{ .log_blowup = beta }).validate();
+    try std.testing.expectError(error.UnsupportedFixedSetupRate, (CommitmentDescriptor{ .log_blowup = 5 }).validate());
 }

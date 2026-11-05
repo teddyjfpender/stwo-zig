@@ -303,16 +303,17 @@ const Run = struct {
             if (self.options.retained_store) |store| _ = try self.workers[index].?.cpu.spillMain(store);
         } else {
             const truth = self.truths[index - self.setups.len];
+            const truth_config = if (self.fixed) |authority| authority.truthConfig(truth) else self.config;
             if (self.options.truth_device_source_stage) |stage| {
-                var owner = try stage.prepare(stage.context, self.a, .{ .truth = truth, .advice = self.advice, .expected = self.inventory.workers[index], .config = self.config, .budget = self.options.global_budget });
+                var owner = try stage.prepare(stage.context, self.a, .{ .truth = truth, .advice = self.advice, .expected = self.inventory.workers[index], .config = truth_config, .budget = self.options.global_budget });
                 var owned = true;
                 errdefer if (owned) owner.deinit();
                 if (timer) |*clock| timing.?.source_ns = clock.lap();
                 if (timing) |t| t.source_ready_ns = sinceEpoch(self.options.epoch);
                 if (Execution.extendedTruth(truth)) {
-                    self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initDeviceWithAuthority(self.a, truth, owner, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                    self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initDeviceWithAuthority(self.a, truth, owner, self.inventory.workers[index], truth_config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
                 } else {
-                    self.workers[index] = .{ .truth = try Truth.TruthWorker.initDeviceWithAuthority(self.a, truth, owner, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                    self.workers[index] = .{ .truth = try Truth.TruthWorker.initDeviceWithAuthority(self.a, truth, owner, self.inventory.workers[index], truth_config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
                 }
                 owned = false;
             } else {
@@ -322,9 +323,9 @@ const Run = struct {
                 var owned = true;
                 errdefer if (owned) source.deinit();
                 if (Execution.extendedTruth(truth)) {
-                    self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                    self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], truth_config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
                 } else {
-                    self.workers[index] = .{ .truth = try Truth.TruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                    self.workers[index] = .{ .truth = try Truth.TruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], truth_config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
                 }
                 owned = false;
             }
@@ -551,9 +552,9 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
             const selected = try @import("tree_selection.zig").forCpuWithDeferredBinding(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget, policy, options.checkpoint_above_gkr_bytes, options.defer_local_binding);
             result.cpu_policies[i] = selected.policy;
             break :blk selected.plan;
-        } else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
+        } else try TruthRetention.forTruth(a, truths[i - setups.len], inventory.family_policy.truthConfig(config, truths[i - setups.len] == .keccak), options.global_budget);
         const tasks = try Retention.taskEstimates(plan, options.global_budget);
-        const truth_retained: ?usize = if (i >= setups.len and options.truth_device_source_stage != null) try options.truth_device_source_stage.?.retainedUpperBound(.{ .truth = truths[i - setups.len], .expected = inventory.workers[i], .config = config }, plan.coefficient_bytes) else null;
+        const truth_retained: ?usize = if (i >= setups.len and options.truth_device_source_stage != null) try options.truth_device_source_stage.?.retainedUpperBound(.{ .truth = truths[i - setups.len], .expected = inventory.workers[i], .config = inventory.family_policy.truthConfig(config, truths[i - setups.len] == .keccak) }, plan.coefficient_bytes) else null;
         stage1.* = tasks.stage1;
         stage2.* = tasks.stage2;
         // The full pending inventory remains charged once below, independently

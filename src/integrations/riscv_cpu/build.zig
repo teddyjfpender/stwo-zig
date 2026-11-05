@@ -80,6 +80,11 @@ pub fn build(b: *std.Build) void {
     const d2_filter = b.option([]const u8, "d2-test-filter", "Run matching D2 runtime profile and actual CPU proof gates");
     const d2_tests = b.addTest(.{ .root_module = d2_root, .filters = if (d2_filter) |filter| &.{filter} else &.{} });
     b.step("test-d2-native", "Check explicit D2 runtime profile and fresh-receiver CPU proof without a GPU").dependOn(&b.addRunArtifact(d2_tests).step);
+    const keccak_family_root = b.createModule(.{ .root_source_file = b.path("rv64_keccak_family_test_root.zig"), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
+    var keccak_family_imports = native_gkr_root.import_table.iterator();
+    while (keccak_family_imports.next()) |entry| keccak_family_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
+    const keccak_family_tests = b.addTest(.{ .root_module = keccak_family_root, .filters = &.{"Keccak family"} });
+    b.step("test-keccak-family", "Check named Keccak early/late family policy and real beta16 physical proofs").dependOn(&b.addRunArtifact(keccak_family_tests).step);
     const truth_plan_root = b.createModule(.{ .root_source_file = b.path("rv64_truth_family_plan_test_root.zig"), .target = target, .optimize = optimize });
     var truth_plan_imports = native_gkr_root.import_table.iterator();
     while (truth_plan_imports.next()) |entry| truth_plan_root.addImport(entry.key_ptr.*, entry.value_ptr.*);

@@ -37,6 +37,7 @@ pub fn validateCandidateConfig(config: PcsConfig) !void {
         if (!profile.conjectured()) return error.UnsupportedWideServicesConfig;
         return validateAtRate(config, 1);
     }
+    if (@import("keccak_family_profile.zig").isConfig(config)) return validateAtRate(config, 4);
     return validateAtRate(config, 2);
 }
 /// Named profile of an admitted candidate config, or null for the legacy
