@@ -1,0 +1,8 @@
+1/7 admission_retention.test.scope future claim survives until final physical owner retirement...OK
+2/7 global_admission.test.native retention cannot consume the GKR successor headroom...OK
+3/7 global_admission.test.physical devices independent; active and stale tickets fail closed...OK
+4/7 global_admission.test.unknown costs, physical rounding, small slab and untracked owners...OK
+5/7 global_admission.test.host frontier charged globally and unavailable costs refused...OK
+6/7 global_admission.test.native usize allocation list uses exact arena bucket charges...OK
+7/7 global_admission.test.terminal pool destruction retires interrupted claims only after actual owner teardown...OK
+All 7 tests passed.

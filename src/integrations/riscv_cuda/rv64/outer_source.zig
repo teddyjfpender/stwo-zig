@@ -287,6 +287,7 @@ pub const Context = struct {
     }
 };
 pub const Owner = struct {
+    admission_retention: @import("admission_retention.zig").Registry = .{},
     allocator: std.mem.Allocator,
     backend: *Context,
     key: *const Outer.prove.Authority,
@@ -310,11 +311,32 @@ pub const Owner = struct {
     composition_stage: @import("stwo_prover_api").device_composition.ResidentOm31Stage,
     failure: ?anyerror = null,
     operation: *const fn (*Owner, *anyopaque, u64) anyerror!void = undefined,
+    pub fn completeAdmission(self: *Owner, permit: *@import("admission_runtime.zig").Permit, scope: D.Scope, successor: @import("global_admission.zig").Footprint) !void {
+        const endpoint = self.backend.service.admission orelse return error.MissingGlobalAdmissionEndpoint;
+        if (permit.endpoint.session != self.backend.service.session or permit.endpoint.planner != endpoint.planner or permit.endpoint.physical != endpoint.physical) return error.ForeignAdmissionOwner;
+        switch (permit.demand.stage) {
+            .witness => if (!std.meta.eql(scope, self.initial_scope) or self.main_evaluations.words == null) return error.MissingPhysicalRetentionOwner,
+            .interaction => if (!std.meta.eql(scope, self.scope) or std.mem.allEqual(u8, &scope.main, 0)) return error.MissingPhysicalRetentionOwner,
+            else => return error.UnsupportedSourceAdmissionStage,
+        }
+        if ((successor.large != 0 or successor.small != 0) and self.leases.items.len == 0) return error.MissingPhysicalRetentionOwner;
+        try self.admission_retention.complete(self.allocator, permit, @import("pcs_scope.zig").identity(scope), successor);
+    }
+    fn retireAdmissionScope(self: *Owner, scope: D.Scope) !void {
+        if (self.backend.service.admission) |endpoint| self.admission_retention.retireAfterDestruction(endpoint.planner, @import("pcs_scope.zig").identity(scope)) catch |err| {
+            endpoint.planner.poisonPhysical(endpoint.physical);
+            return err;
+        };
+    }
     pub fn run(self: *Owner, operation: *const fn (*Owner, *anyopaque, u64) anyerror!void) !void {
         self.operation = operation;
         self.failure = null;
         const status = self.backend.service.submit(self.backend.service.session, callback, self);
-        if (self.failure) |err| return err;
+        if (self.failure) |err| {
+            if (self.backend.service.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
+            return err;
+        }
+        if (status != 0) if (self.backend.service.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
         try checked(status);
     }
     fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
@@ -381,6 +403,7 @@ pub const Owner = struct {
             try checked(self.backend.service.lease_release(self.backend.service.session, lease));
             _ = self.leases.swapRemove(i);
             self.main_evaluations = .{};
+            try self.retireAdmissionScope(self.initial_scope);
             std.log.info("GPU_OUTER released_main_evaluation_bytes={d} before_INTER_commit", .{bytes});
             return;
         }
@@ -390,6 +413,8 @@ pub const Owner = struct {
         for (self.leases.items) |*lease| if (lease.words != null) try checked(self.backend.service.lease_release(self.backend.service.session, lease));
         self.leases.clearRetainingCapacity();
         self.main_evaluations = .{};
+        try self.retireAdmissionScope(self.initial_scope);
+        if (!std.meta.eql(self.scope, self.initial_scope)) try self.retireAdmissionScope(self.scope);
     }
     fn retireAssignment(self: *Owner) void {
         self.backend.mutex.lock();
@@ -409,7 +434,13 @@ pub const Owner = struct {
         const self: *Owner = @ptrCast(@alignCast(raw));
         const b = self.backend;
         const a = self.allocator;
-        _ = b.service.submit(b.service.session, releaseDevice, self);
+        const released = b.service.submit(b.service.session, releaseDevice, self) == 0;
+        if (released) {
+            self.retireAdmissionScope(self.initial_scope) catch {};
+            if (!std.meta.eql(self.scope, self.initial_scope)) self.retireAdmissionScope(self.scope) catch {};
+        } else if (b.service.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
+        if (b.service.admission) |endpoint| self.admission_retention.abandonToPoisonedPool(endpoint.planner) catch @panic("live source admission claims survived cleanup");
+        self.admission_retention.deinit(a);
         b.service.finishProofScope(self.scope);
         if (!std.meta.eql(self.scope, self.initial_scope)) b.service.finishProofScope(self.initial_scope);
         self.leases.deinit(a);

@@ -30,13 +30,14 @@ comptime {
 }
 pub const Api = struct {
     snapshot: *const fn (*anyopaque, *Snapshot) callconv(.c) c_int,
+    identity: *const fn (*anyopaque, *u64) callconv(.c) c_int,
     configure: *const fn (*anyopaque, u64) callconv(.c) c_int,
     begin: *const fn (*anyopaque, u64, u64, u64, u64, u64, [*:0]const u8) callconv(.c) c_int,
     end: *const fn (*anyopaque, u64, *Snapshot) callconv(.c) c_int,
     pub fn load(lib: *std.DynLib) !Api {
         var api: Api = undefined;
         inline for (std.meta.fields(Api)) |field| {
-            const name = comptime "stwo_exec_context_" ++ (if (std.mem.eql(u8, field.name, "snapshot")) "arena_snapshot" else "admission_" ++ field.name) ++ "_v1";
+            const name = comptime if (std.mem.eql(u8, field.name, "identity")) "stwo_exec_context_identity" else "stwo_exec_context_" ++ (if (std.mem.eql(u8, field.name, "snapshot")) "arena_snapshot" else "admission_" ++ field.name) ++ "_v1";
             @field(api, field.name) = lib.lookup(field.type, name) orelse return error.MissingGlobalAdmissionRuntime;
         }
         return api;
@@ -49,15 +50,21 @@ pub const Endpoint = struct {
     session: *anyopaque,
     submit: N.Submit,
     owner_context: ?*anyopaque = null,
+    owner_identity: u64 = 0,
     const Query = struct {
         endpoint: *const Endpoint,
         configure: bool = false,
         result: Snapshot = .{},
         failed: bool = false,
         owner_context: ?*anyopaque = null,
+        owner_identity: u64 = 0,
         fn run(raw: *anyopaque, _: u64, user: ?*anyopaque) callconv(.c) c_int {
             const self: *@This() = @ptrCast(@alignCast(user orelse return 1));
             self.owner_context = raw;
+            if (self.endpoint.api.identity(raw, &self.owner_identity) != 0 or self.owner_identity == 0) {
+                self.failed = true;
+                return 1;
+            }
             if (self.configure and self.endpoint.api.configure(raw, self.endpoint.planner.preset.arenaBytes()) != 0) {
                 self.failed = true;
                 return 1;
@@ -83,6 +90,7 @@ pub const Endpoint = struct {
         try self.planner.observeIdle(self.physical, query.result.footprint());
         try self.planner.markConfigured(self.physical);
         self.owner_context = query.owner_context;
+        self.owner_identity = query.owner_identity;
     }
     pub fn enabled(self: *const Endpoint) bool {
         return self.planner.schedulingEnabled();
@@ -124,6 +132,8 @@ pub const Permit = struct {
         // not merely another context with an equal live-byte baseline.
         if (self.entered or self.closed) return error.AdmissionOwnerAlreadyEntered;
         if (self.endpoint.owner_context == null or raw != self.endpoint.owner_context.?) return error.ForeignAdmissionOwner;
+        var identity: u64 = 0;
+        if (self.endpoint.api.identity(raw, &identity) != 0 or identity != self.endpoint.owner_identity or identity == 0) return error.ForeignAdmissionOwner;
         var preflight: Snapshot = .{};
         if (self.endpoint.api.snapshot(raw, &preflight) != 0) return error.GlobalAdmissionSnapshotFailed;
         try preflight.validate(self.endpoint);
@@ -167,7 +177,7 @@ fn currentRss() !u64 {
     var words = std.mem.tokenizeAny(u8, buf[0..n], " \n\t");
     _ = words.next() orelse return error.InvalidHostRss;
     const pages = try std.fmt.parseInt(u64, words.next() orelse return error.InvalidHostRss, 10);
-    return try std.math.mul(u64, pages, std.heap.page_size_min);
+    return try std.math.mul(u64, pages, std.heap.pageSize());
 }
 
 test "runtime permit observes global retention and refuses untracked growth" {
@@ -175,11 +185,16 @@ test "runtime permit observes global retention and refuses untracked growth" {
         var live: A.Footprint = .{};
         var physical: u32 = 0;
         var begin_calls: usize = 0;
+        var owner_identity: u64 = 41;
         fn state() Snapshot {
             return .{ .version = 1, .device = physical, .capacity = 22 << 30, .chunk = A.chunk_bytes, .small_slab = A.small_slab_bytes, .live_large = live.large, .live_small = live.small, .largest_virtual_free = 64 << 30, .free_device = 8 << 30, .total_device = 32 << 30 };
         }
         fn snapshot(_: *anyopaque, out: *Snapshot) callconv(.c) c_int {
             out.* = state();
+            return 0;
+        }
+        fn identity(_: *anyopaque, out: *u64) callconv(.c) c_int {
+            out.* = owner_identity;
             return 0;
         }
         fn configure(_: *anyopaque, _: u64) callconv(.c) c_int {
@@ -200,10 +215,11 @@ test "runtime permit observes global retention and refuses untracked growth" {
     M.live = .{};
     M.physical = 0;
     M.begin_calls = 0;
+    M.owner_identity = 41;
     var planner = try A.Planner.init(std.testing.allocator, &.{0}, .g22);
     defer planner.deinit();
     const raw: *anyopaque = @ptrFromInt(16);
-    var endpoint = Endpoint{ .planner = &planner, .physical = 0, .api = .{ .snapshot = M.snapshot, .configure = M.configure, .begin = M.begin, .end = M.end }, .session = raw, .submit = M.submit };
+    var endpoint = Endpoint{ .planner = &planner, .physical = 0, .api = .{ .snapshot = M.snapshot, .identity = M.identity, .configure = M.configure, .begin = M.begin, .end = M.end }, .session = raw, .submit = M.submit };
     try endpoint.configure();
     try std.testing.expect(!endpoint.enabled());
     inline for (std.meta.fields(A.Coverage)) |field| try planner.registerCoverage(0, @enumFromInt(field.value));
@@ -215,6 +231,10 @@ test "runtime permit observes global retention and refuses untracked growth" {
     try std.testing.expectError(error.StaticArenaPresetMismatch, permit.enterOwner(raw));
     try std.testing.expectEqual(@as(usize, 0), M.begin_calls);
     M.physical = 0;
+    M.owner_identity = 42;
+    try std.testing.expectError(error.ForeignAdmissionOwner, permit.enterOwner(raw));
+    try std.testing.expectEqual(@as(usize, 0), M.begin_calls);
+    M.owner_identity = 41;
     try permit.enterOwner(raw);
     try std.testing.expectError(error.AdmissionOwnerAlreadyEntered, permit.enterOwner(raw));
     M.live = try A.Footprint.allocation(4 << 20);

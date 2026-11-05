@@ -92,6 +92,11 @@ pub const Pool = struct {
         if (std.posix.getenv("STWO_RV64_GLOBAL_ADMISSION")) |text| {
             if (std.mem.eql(u8, text, "1")) {
                 const A = @import("global_admission.zig");
+                // CPCS idle scratch is a physical allocation owner after reset.
+                // This first planner requires it to retire, rather than charging
+                // an unevictable per-session cache against consumer headroom.
+                const idle = std.posix.getenv("STWO_RV64_PCS_IDLE_CACHE_BYTES") orelse return error.GlobalAdmissionRequiresZeroIdleCache;
+                if ((std.fmt.parseInt(u64, idle, 10) catch return error.GlobalAdmissionRequiresZeroIdleCache) != 0) return error.GlobalAdmissionRequiresZeroIdleCache;
                 const preset = try A.Preset.parse(std.posix.getenv("STWO_RV64_DEVICE_ARENA") orelse return error.StaticArenaPresetRequired);
                 const planner = try a.create(A.Planner);
                 errdefer a.destroy(planner);
@@ -141,6 +146,9 @@ pub const Pool = struct {
         a.free(self.devices);
         a.free(self.endpoints);
         if (self.admission) |planner| {
+            // Every pool-owned session has successfully destroyed/joined above;
+            // Ready contexts are borrowers and must already be retired.
+            planner.poolDestroyed();
             planner.deinit();
             a.destroy(planner);
         }

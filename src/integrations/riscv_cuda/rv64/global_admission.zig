@@ -100,6 +100,22 @@ pub const Planner = struct {
         }
         return .{ .allocator = a, .preset = preset, .devices = devices };
     }
+    /// Terminal teardown only, after the pool has joined and destroyed EVERY
+    /// native context on these physical GPUs. This is not a recovery/retry API.
+    /// An interrupted active permit cannot complete, but its actual allocations
+    /// have now been destroyed by the native context destructors.
+    pub fn poolDestroyed(self: *Planner) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        for (self.devices) |*d| {
+            d.entries.clearRetainingCapacity();
+            d.active = null;
+            d.observed = .{};
+            d.runtime_configured = false;
+            d.poisoned = true;
+        }
+        self.notifyLocked();
+    }
     pub fn deinit(self: *Planner) void {
         for (self.devices) |*d| {
             std.debug.assert(d.entries.count() == 0);
@@ -352,4 +368,17 @@ test "native usize allocation list uses exact arena bucket charges" {
     const fp = try Footprint.allocations(sizes);
     try std.testing.expectEqual(@as(u64, 512), fp.small);
     try std.testing.expectEqual(chunk_bytes, fp.large);
+}
+
+test "terminal pool destruction retires interrupted claims only after actual owner teardown" {
+    var p = try Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer p.deinit();
+    _ = try p.tryBegin(0, .{ .owner = test_owner, .known = true, .host_known = true, .stage = .witness, .temporary = try Footprint.allocation(1 << 30) });
+    p.poisonPhysical(0);
+    try std.testing.expectEqual(@as(usize, 1), (try p.snapshot(0)).owners);
+    // The caller here models successful destruction of all native contexts.
+    p.poolDestroyed();
+    try std.testing.expectEqual(@as(usize, 0), (try p.snapshot(0)).owners);
+    try std.testing.expect(!p.healthy(0));
+    try std.testing.expect(!p.schedulingEnabled());
 }
