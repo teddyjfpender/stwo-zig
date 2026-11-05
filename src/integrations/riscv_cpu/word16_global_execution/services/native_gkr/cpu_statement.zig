@@ -23,7 +23,12 @@ pub const Header = struct {
     fixed_identity: [32]u8,
     fixed_root: [32]u8,
 };
-pub const Metadata = struct { ordinal: u32, execution: [32]u8, mass: Mass.Globals, relations: u32 };
+pub const Metadata = struct {
+    ordinal: u32, execution: [32]u8, mass: Mass.Globals, relations: u32,
+    cpu_ordinal: u32 = 0, steps_in: u64 = 0, ls_count: u32 = 0, ls_dword: u32 = 0,
+    calls: [T.FAMILIES]u32 = @splat(0), first_ids: [T.FAMILIES]u32 = @splat(1),
+    sponge: [3]u32 = @splat(0), bulk: [8]u32 = @splat(0),
+};
 pub const Inputs = struct {
     steps: u32, epoch: u32,
     initial_pc: [4]u32, final_pc: [4]u32,
@@ -42,6 +47,10 @@ pub fn emit(header: anytype, inputs: anytype, metadata: anytype, h: anytype) voi
     inline for (.{ "class_key", "program", "config_identity", "fixed_identity", "fixed_root" }) |name| h.digest(@field(header, name));
     h.word(metadata.ordinal);
     h.digest(metadata.execution);
+    h.word(metadata.cpu_ordinal); h.int64(metadata.steps_in);
+    h.words(&.{metadata.ls_count, metadata.ls_dword});
+    h.words(&metadata.calls); h.words(&metadata.first_ids);
+    h.words(&metadata.sponge); h.words(&metadata.bulk);
     h.words(&.{ inputs.steps, inputs.epoch });
     h.words(&inputs.initial_pc); h.words(&inputs.final_pc);
     for (inputs.initial_registers) |r| h.words(&r);
@@ -142,4 +151,13 @@ test "compact native public visitor binds all AIR public coordinates and signed 
     input.rows = &rows;
     metadata.mass.ram.positive += @as(u64, 1) << 32;
     try std.testing.expect(!std.mem.eql(u8, &original, &try digest(header, input, metadata)));
+}
+
+/// Receiver-derived canonical counters, for the direct compact segment stmt.
+pub fn metadataFor(request: Request, first: [T.FAMILIES]u32, ordinal: u32, steps_in: u64, execution: [32]u8, relations: u32) !Metadata {
+    return .{ .ordinal=ordinal,.execution=execution,.mass=try Mass.cpu(request),.relations=relations,
+        .cpu_ordinal=request.base.epoch,.steps_in=steps_in,.ls_count=std.math.cast(u32,request.base.memory.ls_count) orelse return error.NativeGkrStatementCounterRange,.ls_dword=request.ls_dword,.calls=request.calls,.first_ids=first,
+        .sponge=.{request.sponge.calls,request.sponge.perms,request.sponge.first_id},
+        .bulk=.{request.bulk.calls,request.bulk.copy_words,request.bulk.set_words,request.bulk.ucopy_rows,request.bulk.cmp_calls,request.bulk.cmp_words,request.bulk.jump_calls,request.bulk.jump_rows},
+    };
 }
