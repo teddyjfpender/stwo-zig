@@ -45,7 +45,7 @@ import rv64_resident_basket as R  # noqa: E402
 B = R.B
 M3 = P.M3
 BRANCH = "codex-rv64-m4-resident"
-STORE_ROOT = M3 / "store" / BRANCH
+STORE_ROOT = Path(os.environ["RV64_STORE_ROOT"]) if os.environ.get("RV64_STORE_ROOT") else M3 / "store" / BRANCH
 BASELINE_RUNS = M3 / "runs/integrate"  # M3 integrate scale receipts = the M4 parity baseline
 STORE_FORMAT = "rv64-m4-artifact-store/v1"
 FIELD_HASH = "m31-circle/blake2s-merkle/om31-recursion"
@@ -145,7 +145,7 @@ def markers(log):
 
 
 def plan_for(blocks, args, run, paths, root):
-    template = B.load(M3 / "inputs/plan-template.json")
+    template = P.plan_template()
     jobs = []
     for block in blocks:
         job = next(j for j in template["jobs"] if j["block"] == block)

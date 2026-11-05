@@ -140,6 +140,40 @@ test "Four lanes honour per-lane worker counts and run every index exactly once"
     try std.testing.expectError(error.InvalidServiceSchedule, (Schedule.Policy{ .lanes = 2, .lane_workers = .{ 8, 8, 8, 0 } }).validate());
     try (Schedule.Policy{ .lanes = 2, .workers_per_lane = 8 }).validate();
 }
+test "Device-affine lanes claim only their device queue, heaviest estimate first, every index once" {
+    const estimates = [_]u64{ 5, 3, 9, 1, 7, 2, 8, 4, 6, 10, 0, 11 };
+    var wide = Wide{ .estimates = &estimates };
+    var trace: [12]Schedule.Trace = undefined;
+    const policy = Schedule.Policy{ .lanes = 4, .workers_per_lane = 2, .device_affinity = 2, .heaviest_first = true };
+    try Schedule.runWithOptions(Wide, a, &wide, 12, policy, .{ .estimates = &estimates, .trace = &trace }, Wide.execute);
+    for (&wide.done) |*n| try std.testing.expectEqual(@as(u32, 1), n.load(.acquire));
+    // Lane l serves device l % 2 == ordinal % 2 (the router's placement).
+    for (trace, 0..) |t, i| try std.testing.expectEqual(i % 2, t.lane % 2);
+    // One lane per queue: claims follow descending estimates within each queue.
+    var serial: [12]Schedule.Trace = undefined;
+    var again = Wide{ .estimates = &estimates };
+    try Schedule.runWithOptions(Wide, a, &again, 12, .{ .lanes = 2, .workers_per_lane = 1, .device_affinity = 2, .heaviest_first = true }, .{ .estimates = &estimates, .trace = &serial }, Wide.execute);
+    for (0..12) |x| for (0..12) |y| if (x % 2 == y % 2 and estimates[x] > estimates[y]) try std.testing.expect(serial[x].claimed_ns <= serial[y].claimed_ns);
+    // An explicit order still wins over heaviest_first.
+    const order = [_]usize{ 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+    var ordered: [12]Schedule.Trace = undefined;
+    var third = Wide{};
+    try Schedule.runWithOptions(Wide, a, &third, 12, .{ .lanes = 2, .workers_per_lane = 1, .device_affinity = 2, .heaviest_first = true }, .{ .order = &order, .trace = &ordered }, Wide.execute);
+    for (0..10) |i| try std.testing.expect(ordered[i].claimed_ns >= ordered[i + 2].claimed_ns);
+    try std.testing.expectError(error.InvalidServiceSchedule, (Schedule.Policy{ .lanes = 3, .device_affinity = 2 }).validate());
+    try (Schedule.Policy{ .lanes = 2, .device_affinity = 2 }).validate();
+    // JSON round trip keeps the new fields; M5 reports (fields absent) parse to the defaults.
+    const text = try std.json.Stringify.valueAlloc(a, policy, .{});
+    defer a.free(text);
+    const parsed = try std.json.parseFromSlice(Schedule.Policy, a, text, .{});
+    defer parsed.deinit();
+    try std.testing.expectEqual(@as(u8, 2), parsed.value.device_affinity);
+    try std.testing.expect(parsed.value.heaviest_first);
+    const old = try std.json.parseFromSlice(Schedule.Policy, a, "{\"lanes\":2,\"workers_per_lane\":4,\"lane_workers\":[4,4],\"memory_cap_bytes\":1}", .{});
+    defer old.deinit();
+    try std.testing.expectEqual(@as(u8, 0), old.value.device_affinity);
+    try std.testing.expect(!old.value.heaviest_first);
+}
 test "Memory cap bounds summed in-flight estimates and admits an oversized index alone" {
     const estimates = [_]u64{ 6, 6, 6, 6, 1, 1, 1, 1, 20, 6, 1, 1 };
     var wide = Wide{ .estimates = &estimates };
