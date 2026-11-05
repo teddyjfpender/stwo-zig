@@ -405,6 +405,8 @@ def daemon(args):
                     latency = time.monotonic_ns() - submitted
                     timeline.append({"name": name, "block": block, "client_latency_ns": latency, "service": B.load(done),
                                      "utc_window_ns": [submitted_utc, time.time_ns()]})
+                    # Preserve completed windows even if a later request fails.
+                    B.atomic_json(run / "request-timeline.json", timeline)
                     if args.gap:
                         time.sleep(args.gap)
                 stop_at = time.monotonic_ns()
@@ -435,7 +437,7 @@ def daemon(args):
         block = item["block"]
         proof = spool / "out" / item["name"] / str(block) / "proof"
         entry = {"block": block, "trial": ordinal // len(args.blocks), "ordinal": ordinal, "proof": str(proof),
-                 "client_latency_ns": item["client_latency_ns"], "marker": {"request_wall_ns": item["service"]["request_wall_ns"]},
+                 "client_latency_ns": item["client_latency_ns"], "utc_window_ns": item["utc_window_ns"], "marker": {"request_wall_ns": item["service"]["request_wall_ns"]},
                  "queue_ns": item["service"].get("queue_ns")}
         stages, report, combined = P.stage_breakdown(proof, {0: item["service"]["request_wall_ns"]})
         entry["stages"] = stages
