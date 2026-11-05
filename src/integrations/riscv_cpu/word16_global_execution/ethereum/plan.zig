@@ -196,6 +196,11 @@ pub const KeccakTruthOptions = struct {
     /// default since it proved and fresh-verified the real 4-packet prefix
     /// of block 24,628,607 (Keccak-f truth cells 801,177,600 -> 760,799,232).
     r27: bool = true,
+    /// Shared producer resource mapping: keep every partition preference on
+    /// the actual capture-to-truth path, rather than only in reporting.
+    pub fn fromResources(v3: bool, uniform: bool, resources: anytype) KeccakTruthOptions {
+        return .{ .v3 = v3, .uniform_throughput = uniform, .one_per_family = if (resources) |r| r.one_truth_per_family else false, .coalesce_families = if (resources) |r| r.coalesce_truth_families else false };
+    }
     pub fn throughput(self: KeccakTruthOptions) KeccakPolicy {
         if (self.quartet and self.r27) return .throughput_r27_v1;
         return if (self.quartet) .throughput_quartet_v1 else .throughput_v1;
@@ -504,6 +509,20 @@ pub fn coalesceTruthFamilies(a: std.mem.Allocator, total: [@import("../services/
     defer a.free(rest);
     try out.appendSlice(a, rest);
     return out.toOwnedSlice(a);
+}
+test "one truth per family producer resource mapping preserves the selected partial policy" {
+    const R = struct { one_truth_per_family: bool = false, coalesce_truth_families: bool = false };
+    var parsed = try std.json.parseFromSlice(R, std.testing.allocator, "{\"coalesce_truth_families\":true}", .{});
+    defer parsed.deinit();
+    const selected = KeccakTruthOptions.fromResources(true, true, @as(?R, parsed.value));
+    try std.testing.expect(selected.v3 and selected.uniform_throughput and selected.coalesce_families and !selected.one_per_family);
+    const defaults = KeccakTruthOptions.fromResources(true, true, @as(?R, null));
+    try std.testing.expect(!defaults.coalesce_families and !defaults.one_per_family);
+    var total: [@import("../services/types.zig").FAMILIES]u32 = @splat(0);
+    @memcpy(total[0..5], &[_]u32{ 29998, 10358, 9751, 2901, 319 });
+    const declarations = try coalesceTruthFamilies(std.testing.allocator, total, selected, 18);
+    defer std.testing.allocator.free(declarations);
+    try std.testing.expectEqual(@as(usize, 7), declarations.len);
 }
 test "one truth per family partial coalescing preserves bounded Keccak and admitted secp spans" {
     const ST = @import("../services/types.zig");

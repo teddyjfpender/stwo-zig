@@ -607,7 +607,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     try @import("../services/gkr_local/service_scope.zig").advice(&captured.advice);
     const cpu = try Plan.cpus(a, &captured, cpu_layout);
     defer a.free(cpu);
-    const truths = try Plan.truthsWithOptions(a, &captured, .{ .v3 = request.value.execution_profile == .ethereum_services_v3, .uniform_throughput = uniform_throughput, .one_per_family = one_truth_per_family }, if (resources) |limits| limits.keccak_max_log else 18);
+    const truths = try Plan.truthsWithOptions(a, &captured, Plan.KeccakTruthOptions.fromResources(request.value.execution_profile == .ethereum_services_v3, uniform_throughput, resources), if (resources) |limits| limits.keccak_max_log else 18);
     defer a.free(truths);
     // M5 canon-native (opt-in, producer geometry only): pad every declaration
     // to its canonical class rung. The padded declarations are ordinary
