@@ -17,7 +17,7 @@ pub const Input = struct {
 pub const Plan = struct {
     temporary: A.Footprint,
     output: A.Footprint,
-    /// Output plus every independently cached cold FIXED column surviving join.
+    /// Output, cached forward twiddle, and every cold FIXED column surviving join.
     retained: A.Footprint,
     /// source, parameters, output, numerators, scan/claims/status, twiddle,
     /// then one possible immutable upload per nonresident FIXED column.
@@ -43,7 +43,9 @@ pub fn init(input: Input) !Plan {
     };
     var temporary = try A.Footprint.allocations(sizes);
     const fixed_upload = try A.Footprint.allocation(try mul(rows, 4));
-    var retained = try A.Footprint.allocation(try mul(output, 4));
+    // Job.run obtains this tower through service.immutableWords, not a
+    // temporary lease. It survives even when all FIXED columns are warm.
+    var retained = try (try A.Footprint.allocation(try mul(output, 4))).add(try A.Footprint.allocation(sizes[5]));
     for (0..input.host_fixed_columns) |_| {
         temporary = try temporary.add(fixed_upload);
         retained = try retained.add(fixed_upload);
@@ -61,7 +63,7 @@ test "native interaction separately rounds every possible immutable FIXED miss" 
     try std.testing.expectEqual(@as(usize, 9), cold.allocation_count);
     try std.testing.expectEqual(@as(usize, 6), warm.allocation_count);
     try std.testing.expectEqual(cold.output, warm.output);
-    try std.testing.expectEqual(warm.output, warm.retained);
+    try std.testing.expectEqual(try warm.output.add(try A.Footprint.allocation((@as(u64, 1) << 17) * 4)), warm.retained);
     try std.testing.expectEqual(try warm.retained.add(try each.add(try each.add(each))), cold.retained);
 }
 test "native interaction rejects unsupported geometry and arithmetic overflow" {
@@ -71,4 +73,13 @@ test "native interaction rejects unsupported geometry and arithmetic overflow" {
     input.log = 18;
     input.main_columns = std.math.maxInt(usize);
     try std.testing.expectError(error.Overflow, init(input));
+}
+
+test "CPU log20 global interaction retains cold two-MiB forward twiddle" {
+    const p = try init(.{ .log = 20, .fixed_columns = 3, .main_columns = 37, .host_fixed_columns = 3, .parameters = 7, .pairs = 2, .groups = 1 });
+    // Output and each four-MiB FIXED plane consume large buckets. The cached
+    // rows/2 forward twiddle is the otherwise-missing surviving small lease.
+    try std.testing.expectEqual(@as(u64, 0), p.output.small);
+    try std.testing.expectEqual(@as(u64, 2 << 20), p.retained.small);
+    try std.testing.expect(p.temporary.contains(p.retained));
 }

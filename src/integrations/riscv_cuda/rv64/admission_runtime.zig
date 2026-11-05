@@ -397,7 +397,10 @@ pub const Permit = struct {
         if (self.entered) {
             const ended = self.owner_after orelse return error.AdmissionOwnerNotFinished;
             const retained = ownNew(ended);
-            if (!self.demand.stage_retained_upper.contains(retained)) return error.UnreservedRetention;
+            if (!self.demand.stage_retained_upper.contains(retained)) {
+                std.debug.print("GLOBAL_ADMISSION_RETENTION_REFUSED runtime=v2 physical={} ticket={} domain={s} stage={s} ordinal={} own_new_large={} own_new_small={} retained_upper_large={} retained_upper_small={} temporary_large={} temporary_small={} owner_live_large={} owner_live_small={} baseline_large={} baseline_small={} stable_large={} stable_small={} global_large={} global_small={} active_windows={}\n", .{ self.endpoint.physical, self.token.id, @tagName(self.demand.owner.domain), @tagName(self.demand.stage), self.demand.owner.ordinal, retained.large, retained.small, self.demand.stage_retained_upper.large, self.demand.stage_retained_upper.small, self.demand.temporary.large, self.demand.temporary.small, ended.owner_live_large, ended.owner_live_small, ended.baseline_large, ended.baseline_small, ended.stable_live_large, ended.stable_live_small, ended.global_live_large, ended.global_live_small, ended.active_reservations });
+                return error.UnreservedRetention;
+            }
             if (api.finish(raw, self.endpoint.owner_identity, self.token.id, &snapshot) != 0) return error.GlobalOwnerFinishFailed;
             try validateOwner(snapshot, self.endpoint);
             try self.endpoint.planner.completeOwned(self.token, stable(snapshot), retained, successor);

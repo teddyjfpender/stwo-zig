@@ -460,7 +460,10 @@ pub const Planner = struct {
         const e = d.entries.getPtr(token.id) orelse return error.StaleAdmissionToken;
         if (!e.active or !e.entered) return error.AdmissionNotActive;
         if (e.demand.retained_new.large != 0 or e.demand.retained_new.small != 0) return error.MixedAdmissionAccounting;
-        if (!e.demand.stage_retained_upper.contains(own_new) or !e.demand.successor.contains(successor)) return error.UnreservedRetention;
+        if (!e.demand.stage_retained_upper.contains(own_new) or !e.demand.successor.contains(successor)) {
+            std.debug.print("GLOBAL_ADMISSION_COMPLETION_REFUSED runtime=v2 physical={} ticket={} domain={s} stage={s} ordinal={} own_new_large={} own_new_small={} retained_upper_large={} retained_upper_small={} successor_large={} successor_small={} reserved_successor_large={} reserved_successor_small={}\n", .{ token.physical, token.id, @tagName(e.demand.owner.domain), @tagName(e.demand.stage), e.demand.owner.ordinal, own_new.large, own_new.small, e.demand.stage_retained_upper.large, e.demand.stage_retained_upper.small, successor.large, successor.small, e.demand.successor.large, e.demand.successor.small });
+            return error.UnreservedRetention;
+        }
         if (!(try d.observed.add(own_new)).contains(stable)) return error.UntrackedDeviceAllocation;
         d.observed = stable;
         d.observed_initialized = true;
