@@ -16,8 +16,10 @@ pub fn LocalFor(comptime C: type) type {
         z: [LOCAL_RELATIONS]C,
         alpha: [LOCAL_RELATIONS]C,
         pub fn denominatorFor(self: *const @This(), comptime F: type, relation: anytype, tuple: anytype) E.SecureFor(F) {
-            const index = @intFromEnum(relation);
-            std.debug.assert(index < LOCAL_RELATIONS and tuple.len == relation.arity());
+            const Relation = if (@typeInfo(@TypeOf(relation)) == .enum_literal) (if (@hasField(@import("../gkr_local/fractions.zig").Relation, @tagName(relation))) @import("../gkr_local/fractions.zig").Relation else @import("../gkr_local/truth_fractions.zig").Relation) else @TypeOf(relation);
+            const typed: Relation = relation;
+            const index = @intFromEnum(typed);
+            std.debug.assert(index < LOCAL_RELATIONS and tuple.len == typed.arity());
             var value = E.splatFor(F, self.z[index]);
             var power = C.one();
             for (tuple) |coordinate| {
@@ -59,8 +61,13 @@ pub fn ProjectionFor(comptime F: type) type {
         }
         pub const LocalSink = struct {
             projection: *Self,
-            pub fn emit(self: *@This(), relation: anytype, tuple: anytype, weight: F) void { self.projection.emitLocal(relation, tuple, weight); }
+            pub fn emit(self: *@This(), relation: @import("../gkr_local/fractions.zig").Relation, tuple: anytype, weight: F) void { self.projection.emitLocal(relation, tuple, weight); }
         };
+        pub const TruthSink = struct {
+            projection: *Self,
+            pub fn emit(self: *@This(), relation: @import("../gkr_local/truth_fractions.zig").Relation, tuple: anytype, weight: F) void { self.projection.emitLocal(relation, tuple, weight); }
+        };
+        pub fn truthSink(self: *Self) TruthSink { return .{ .projection = self }; }
         pub const GlobalSink = struct {
             projection: *Self,
             pub fn emit(self: *@This(), relation: Global.Relation, tuple: anytype, weight: F) void { self.projection.emitGlobal(relation, tuple, weight); }

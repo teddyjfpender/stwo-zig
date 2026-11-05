@@ -88,7 +88,7 @@ pub const Inventory = struct {
             for (&next, request.calls) |*id, calls| id.* = try std.math.add(u64, id.*, calls);
         }
         const base_identity = executionIdentity(config, expected);
-        const identity = if (fixed) |authority| authority.executionIdentity(base_identity) else base_identity;
+        const identity = if (fixed) |authority| (if ((try @import("../../../word16_execution/native_policy.zig").current()) == .m6_v2_gkr) try authority.executionIdentityForGkr(base_identity) else authority.executionIdentity(base_identity)) else base_identity;
         for (truths, 0..) |truth, i| {
             const kind: Manifest.Kind = if (extendedTruth(truth)) .delegation else switch (truth.family()) {
                 .keccak => .keccak,
