@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Read-only warm D2 headline owner-gap partition, using actual interval unions."""
+import argparse
 import bisect
 from collections import defaultdict
 import hashlib
 import json
+from pathlib import Path
 import sqlite3
 import sys
 
@@ -43,8 +45,24 @@ def duration(xs):
     return sum(b - a for a, b in xs)
 
 
-path = sys.argv[1]
-start, end = 45713537241, 51639866055
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('sqlite')
+parser.add_argument('--ownership', type=Path, required=True)
+parser.add_argument('--trial', type=int, default=1)
+args = parser.parse_args()
+path = args.sqlite
+ownership = json.loads(args.ownership.read_text())
+assert ownership['phase'] == 'after-native', 'Expected an after-native ownership receipt'
+with open(path, 'rb') as source:
+    sqlite_sha = hashlib.file_digest(source, 'sha256').hexdigest()
+assert sqlite_sha == ownership['sqlite_sha256'], 'Ownership/SQLite identity mismatch'
+requests = [row for row in ownership['requests'] if row['trial'] == args.trial]
+assert len(requests) == 1, 'Trial must select exactly one request'
+request = requests[0]
+assert request['kernel_activity_complete'] is True, 'Incomplete kernel activity'
+assert request['phase_graph_envelope_gpu_seconds'] == 0, 'Graph node activity required'
+start, end = request['request_window_ns']
+assert 0 <= start < end
 db = sqlite3.connect('file:' + path + '?mode=ro', uri=True)
 strings = dict(db.execute('select id,value from StringIds'))
 named = {'rv64/TC/FIXED', 'rv64/TC/MAIN', 'rv64/TC/INTER', 'rv64/composition',
@@ -54,6 +72,7 @@ ranges = [(max(a, start), min(b, end), tid, text or strings.get(textid, ''))
           if a < end and b > start]
 owners = [r for r in ranges if r[3].startswith('rv64/owner/')]
 top = [r for r in owners if not any(p != r and p[2] == r[2] and p[0] <= r[0] and p[1] >= r[1] for p in owners)]
+assert top, 'No owner ranges in selected request window'
 runtime = db.execute('select start,end,globalTid,correlationId,nameId from CUPTI_ACTIVITY_KIND_RUNTIME where end>? and start<?', (start, end)).fetchall()
 correlations = {correlation: tid for a, b, tid, correlation, name in runtime}
 all_api, waits = defaultdict(list), defaultdict(list)
@@ -98,7 +117,9 @@ for a, b, tid, owner in top:
             key = owner + ': after ' + before + ', before ' + after
             for name, value in totals.items():
                 unmarked_detail[key][name] += value - previous_totals.get(name, 0)
-output = {'schema': 'rv64-m7-owner-gap-partition/v1', 'sqlite_sha256': hashlib.file_digest(open(path, 'rb'), 'sha256').hexdigest(),
+output = {'schema': 'rv64-m7-owner-gap-partition/v2', 'sqlite_sha256': sqlite_sha,
+          'ownership_receipt_sha256': hashlib.sha256(args.ownership.read_bytes()).hexdigest(),
+          'block': request['block'], 'trial': args.trial,
           'window_ns': [start, end], 'top_owner_ranges': len(top),
           'scope': 'Mutually exclusive same-physical-device intervals inside top-level owner host ranges. Untraced host includes driver calls, allocations, CPU work and scheduler descheduling; no CPU-only inference.',
           'stages_seconds': {k: {name: ns/1e9 for name, ns in v.items()} for k, v in result.items()},
