@@ -1,0 +1,50 @@
+{
+  "schema": "rv64-m7-outer-projected-gpu/v1",
+  "label": "M",
+  "passed": true,
+  "date": "2026-11-05",
+  "pod_id": "cps13bvat3xhdo",
+  "gpu": "NVIDIA GeForce RTX 5090",
+  "driver": "570.195.03",
+  "gpus": 1,
+  "generic_dependency_commit": "b14d212b7ef4f298c51e514599d9ea4d9f666516",
+  "source_sha256": {
+    "tests/cuda/rv64/outer_gkr_projected_smoke.cu": "6456ed6c754bbeadbb5198dee33979801d98169eca1711b6061c4f8099205ffd",
+    "tests/cuda/rv64/context_owner.cuh": "46948a4b7e405835316d1e09a06b335fdc4c4fb09b39edc0126011cf4db5d7c2",
+    "src/backends/cuda/native/rv64/outer_gkr_projected.cu": "422cda26201f893744f4f0f3cfdbb13c9c15d015f5c1170a54cce886f5acf060",
+    "src/backends/cuda/native/rv64/outer_gkr_projector.cuh": "08c0d019dbf5ddcbd1a01ae1961497901c15637d4366dcbc54afd8dd3b1098e8",
+    "src/backends/cuda/native/rv64/projected_gkr.cuh": "e310c501bcc433a3bf340c3e42439b706bb4109e7b99fbca2928fb63dc5152bf",
+    "src/backends/cuda/native/rv64/om31.cuh": "fe75730531a7638460b8a53e0d33d2daad53b7aff342b69fd196d1bbcdeb8d0b",
+    "src/backends/cuda/native/rv64/custody.cuh": "0db77222de7dd7cabcf90de0eb349144d1ad1ca1a6d542ac03b1ac63cb5a3d5b",
+    "src/backends/cuda/native/circuit/lookup_tuples.cuh": "aec8c2bbe6efc8f442903f1614372f66eb170984910ad895973933b7bf534385"
+  },
+  "binary_sha256": "1021722db33cfc1ff4760ff000f3018f99416c6ada3e4d44d1e7b2d1008b37a1",
+  "runtime_library_sha256": "2f300126b9ccae059c07b5dc1711127658b952439adcaa48a8f7ca9ee59ab6df",
+  "source_groups": 16,
+  "source_fractions": 242608,
+  "row_logs": [
+    4,
+    12
+  ],
+  "component_kinds": [
+    2,
+    3,
+    4,
+    6
+  ],
+  "geometry_alias_mutants": 48,
+  "real_zero_weight_poles": 2,
+  "layer_sum_fold_parity": true,
+  "memcheck_errors": 0,
+  "build_exit": 0,
+  "gpu_exit": 0,
+  "memcheck_exit": 0,
+  "build_command": "flock -w3600 /workspace/m3/locks/build.1.lock /usr/local/cuda/bin/nvcc -O3 -std=c++17 -gencode arch=compute_120,code=sm_120 -Isrc/backends/cuda/native -Itests/cuda/rv64 tests/cuda/rv64/outer_gkr_projected_smoke.cu src/backends/cuda/native/rv64/outer_gkr_projected.cu -L/workspace/m3/build/m7-native-gkr/cuda/native -l:libstwo-rv64-native.so -Xlinker -rpath -Xlinker /workspace/m3/build/m7-native-gkr/cuda/native -o /workspace/m3/build/m7-outer-gkr/projected-smoke",
+  "run_command": "flock -w7200 /workspace/m3/locks/gpu.lock /workspace/m3/build/m7-outer-gkr/projected-smoke",
+  "memcheck_command": "flock -w7200 /workspace/m3/locks/gpu.lock /usr/local/cuda/bin/compute-sanitizer --tool memcheck --error-exitcode99 /workspace/m3/build/m7-outer-gkr/projected-smoke",
+  "production_class_enabled": false,
+  "request_s": null,
+  "proof_bytes": null,
+  "receiver_accepted": null,
+  "notes": "Numerical callback gate only. Product tree one/two levels, sumcheck at 0/2 and half-split fold compare exactly with materialized CUDA controls. Prior source independent tuple authority CPU gate is separate. No speed, physical-memory or full-proof claim; default VMM runtime maps27.8GB though live test peak12MB."
+}
