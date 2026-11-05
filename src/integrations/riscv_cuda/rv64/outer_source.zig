@@ -61,6 +61,7 @@ pub const Context = struct {
     fixed_pending: ?*@import("outer_fixed.zig").Owner = null,
     fixed_nonce: u64 = 0,
     assignment: ?Assignment.Prepared = null,
+    assignment_graphs: @import("assignment_graphs.zig").Cache = .{},
     /// Host-prepared plan for exactly `staged_graph`, built off the device lane
     /// (see prepareHost). Consumed by the next prepareImpl for that graph.
     staged: ?Assignment.Prepared = null,
@@ -73,6 +74,7 @@ pub const Context = struct {
         std.debug.assert(self.active == null and self.fixed_pending == null);
         unstageHost(self);
         if (self.assignment) |*assignment| assignment.deinit();
+        self.assignment_graphs.deinit(self.allocator, self.service);
         if (self.hybrid) |hybrid| hybrid.destroy();
         for (self.entries.items) |*e| e.metadata.deinit();
         self.entries.deinit(self.allocator);

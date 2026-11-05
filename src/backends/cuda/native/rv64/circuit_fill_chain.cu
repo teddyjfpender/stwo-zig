@@ -14,6 +14,9 @@
 #include "circuit_assignment.h"
 #include "custody.cuh"
 #include "../oods/field.cuh"
+#include "assignment_graph.h"
+#include <memory>
+#include <vector>
 namespace stwo::cuda::circuit_fill {
 namespace q = stwo::cuda::oods;
 constexpr uint32_t kChainThreads = 512, kChainMaxWidth = 2048, kEndsChunk = 1024;
@@ -202,4 +205,119 @@ extern "C" int stwo_circuit_assignment_wide_level_on(void* ctx, uint32_t lane, c
         return c.status;
     stwo::cuda::circuit_fill::wide_level<<<(j->count + 127) / 128, 128, 0, c.stream>>>(*j);
     return int(cudaPeekAtLastError());
+}
+
+// A graph owns only host CUDA graph metadata. Every replay supplies and
+// validates fresh live allocations, and replaces ALL pointer-bearing kernel
+// arguments before enqueue. Freed witness addresses can never be replayed.
+extern "C" int stwo_exec_context_identity(void*, uint64_t*);
+namespace stwo::cuda::assignment_graph {
+struct Node { cudaGraphNode_t handle{}; StwoAssignmentGraphStep step{}; };
+struct Graph {
+  void* context{}; uint64_t identity{}; uint32_t lane{}, values{}, records{}, indices{}, ends{};
+  cudaGraph_t graph{}; cudaGraphExec_t exec{}; std::vector<Node> nodes;
+  ~Graph() {
+    if (exec) (void)cudaGraphExecDestroy(exec);
+    if (graph) (void)cudaGraphDestroy(graph);
+  }
+};
+bool validJob(const StwoCircuitAssignmentJob* j) {
+  return j && !j->reserved && j->value_count && j->value_count < (1u << 31) &&
+      j->record_count && j->first == 0 && j->count == j->record_count &&
+      !(reinterpret_cast<uintptr_t>(j->values) % 16) &&
+      !(reinterpret_cast<uintptr_t>(j->records) % 16);
+}
+int validate(rv64::Custody& c, const StwoCircuitAssignmentJob* j,
+             const uint32_t* ends, uint32_t end_count) {
+  if (!validJob(j) || !ends || !end_count) return int(cudaErrorInvalidValue);
+  if (!c.range(j->values, uint64_t(j->value_count) * 4, true) ||
+      !c.range(static_cast<const uint32_t*>(j->records), uint64_t(j->record_count) * 8, false) ||
+      !c.range(j->status, 1, true) ||
+      (j->index_count && !c.range(j->indices, j->index_count, false)) ||
+      !c.range(ends, end_count, false)) return c.status;
+  return 0;
+}
+int setNode(Graph& g, Node& node, const StwoCircuitAssignmentJob& base,
+            const uint32_t* ends, bool creating, cudaGraphNode_t previous) {
+  auto job = base; job.first = node.step.first; job.count = node.step.count;
+  uint32_t first = node.step.first_level, levels = node.step.levels;
+  void* args[] = {&job, &ends, &first, &levels};
+  cudaKernelNodeParams p{};
+  p.func = node.step.kind == 1 ? reinterpret_cast<void*>(circuit_fill::chain_run)
+                              : reinterpret_cast<void*>(circuit_fill::wide_level);
+  p.gridDim = node.step.kind == 1 ? dim3(1) : dim3((job.count + 127) / 128);
+  p.blockDim = node.step.kind == 1 ? dim3(circuit_fill::kChainThreads) : dim3(128);
+  p.kernelParams = args;
+  // CUDA copies the complete argument values during Add/SetParams. The
+  // dependency chain and launch geometry are unchanged across all replays.
+  if (creating) return int(cudaGraphAddKernelNode(&node.handle, g.graph,
+      previous ? &previous : nullptr, previous ? 1 : 0, &p));
+  return int(cudaGraphExecKernelNodeSetParams(g.exec, node.handle, &p));
+}
+} // namespace stwo::cuda::assignment_graph
+extern "C" int stwo_assignment_graph_create_v1(void* ctx, uint32_t lane,
+    const StwoCircuitAssignmentJob* j, const StwoAssignmentGraphStep* steps,
+    uint32_t count, const uint32_t* ends, uint32_t end_count, void** result) {
+  using namespace stwo::cuda;
+  if (!result) return int(cudaErrorInvalidValue);
+  *result = nullptr;
+  if (!steps || !count || count > 65536) return int(cudaErrorInvalidValue);
+  rv64::Custody custody(ctx, lane);
+  if (const int rc = assignment_graph::validate(custody, j, ends, end_count)) return rc;
+  uint64_t identity = 0;
+  if (const int rc = stwo_exec_context_identity(ctx, &identity)) return rc;
+  if (!identity) return int(cudaErrorInvalidResourceHandle);
+  uint32_t task = 0, last_level = 0;
+  for (uint32_t i = 0; i < count; ++i) {
+    const auto& s = steps[i];
+    if (s.kind > 1 || !s.count || s.first != task || s.count > j->record_count - task ||
+        !s.levels || s.first_level < last_level || s.first_level > end_count ||
+        s.levels > end_count - s.first_level || (s.kind == 0 && s.levels != 1))
+      return int(cudaErrorInvalidValue);
+    task += s.count; last_level = s.first_level + s.levels;
+  }
+  if (task != j->record_count) return int(cudaErrorInvalidValue);
+  try {
+    auto g = std::make_unique<assignment_graph::Graph>();
+    g->context = ctx; g->identity = identity; g->lane = lane;
+    g->values = j->value_count; g->records = j->record_count; g->indices = j->index_count; g->ends = end_count;
+    if (const auto rc = cudaGraphCreate(&g->graph, 0)) return int(rc);
+    g->nodes.resize(count);
+    cudaGraphNode_t previous = nullptr;
+    for (uint32_t i = 0; i < count; ++i) {
+      g->nodes[i].step = steps[i];
+      if (const int rc = assignment_graph::setNode(*g, g->nodes[i], *j, ends, true, previous)) return rc;
+      previous = g->nodes[i].handle;
+    }
+    if (const auto rc = cudaGraphInstantiate(&g->exec, g->graph, nullptr, nullptr, 0)) return int(rc);
+    *result = g.release();
+    return 0;
+  } catch (const std::bad_alloc&) { return int(cudaErrorMemoryAllocation); }
+}
+extern "C" int stwo_assignment_graph_launch_v1(void* ctx, uint32_t lane, void* handle,
+    const StwoCircuitAssignmentJob* j, const uint32_t* ends, uint32_t end_count) {
+  using namespace stwo::cuda;
+  if (!handle) return int(cudaErrorInvalidValue);
+  auto& g = *static_cast<assignment_graph::Graph*>(handle);
+  uint64_t identity = 0;
+  if (const int rc = stwo_exec_context_identity(ctx, &identity)) return rc;
+  if (g.context != ctx || g.identity != identity || g.lane != lane)
+    return int(cudaErrorInvalidResourceHandle);
+  rv64::Custody custody(ctx, lane);
+  if (const int rc = assignment_graph::validate(custody, j, ends, end_count)) return rc;
+  if (j->value_count != g.values || j->record_count != g.records ||
+      j->index_count != g.indices || end_count != g.ends) return int(cudaErrorInvalidValue);
+  for (auto& node : g.nodes)
+    if (const int rc = assignment_graph::setNode(g, node, *j, ends, false, nullptr)) return rc;
+  return int(cudaGraphLaunch(g.exec, custody.stream));
+}
+extern "C" int stwo_assignment_graph_destroy_v1(void* ctx, void* handle) {
+  using namespace stwo::cuda;
+  if (!handle) return int(cudaErrorInvalidValue);
+  auto* g = static_cast<assignment_graph::Graph*>(handle);
+  uint64_t identity = 0;
+  if (const int rc = stwo_exec_context_identity(ctx, &identity)) return rc;
+  if (g->context != ctx || g->identity != identity) return int(cudaErrorInvalidResourceHandle);
+  delete g;
+  return 0;
 }
