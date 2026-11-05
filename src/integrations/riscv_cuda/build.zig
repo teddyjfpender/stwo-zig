@@ -362,6 +362,12 @@ pub fn build(b: *std.Build) void {
     const hybrid_fixture = b.addExecutable(.{ .name = "rv64-outer-hybrid-fixtures", .root_module = hybrid_fixture_root });
     hybrid_fixture.linkLibC();
     b.step("build-rv64-outer-hybrid-fixtures", "Build explicit hybrid CUDA fixture and independent CPU receiver").dependOn(&b.addInstallArtifact(hybrid_fixture, .{}).step);
+    const typed_pair_root = b.createModule(.{ .root_source_file = b.path("rv64_hybrid_typed_pair_main.zig"), .target = target, .optimize = optimize });
+    var typed_imports = hybrid_fixture_root.import_table.iterator();
+    while (typed_imports.next()) |entry| typed_pair_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
+    const typed_pair = b.addExecutable(.{ .name = "rv64-outer-hybrid-typed-pair", .root_module = typed_pair_root });
+    typed_pair.linkLibC();
+    b.step("build-rv64-outer-hybrid-typed-pair", "Build scoped hybrid typed-fold proof and pinned root-only receiver fixture").dependOn(&b.addInstallArtifact(typed_pair, .{}).step);
 
     // CPU-only independent receiver shares the exact authority loader without
     // linking or initializing any CUDA context, including on restore.

@@ -308,6 +308,9 @@ test {
 
 pub const rv64_om31_outer = @import("rv64_recursion/om31_outer.zig");
 pub const rv64_om31_outer_wrap = @import("rv64_recursion/om31_native/outer_wrap.zig");
+pub const rv64_om31_typed_fold = @import("rv64_recursion/om31_native/typed_fold.zig");
+pub const rv64_om31_typed_summary = @import("rv64_recursion/om31_native/node_summary_v3.zig");
+pub const rv64_vk_table = @import("rv64_recursion/vk_table.zig");
 
 pub const rv64_om31_execution_wrap = @import("rv64_recursion/om31_native/execution_wrap.zig");
 pub const rv64_root_verify = @import("rv64_recursion/root_verify.zig");
