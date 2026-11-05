@@ -184,6 +184,7 @@ pub const Context = struct {
     }
     fn reserve(self: *Context, request: Request) !?Admission.Permit {
         const endpoint = self.service.admission orelse return null;
+        _ = try self.service.armGlobalAdmission(request.scope);
         var cold_fixed: usize = 0;
         for (request.fixed) |column| if (column.device == null) {
             cold_fixed = try std.math.add(usize, cold_fixed, 1);
@@ -194,7 +195,7 @@ pub const Context = struct {
         // launch; guessing zero here could deadlock on our own retained rows.
         const successor = try self.service.admissionSuccessor(request.scope, .interaction);
         const demand = @import("global_admission.zig").Demand{ .progress_key = @import("global_admission.zig").progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = .native_packet, .ordinal = request.scope.ordinal }, .stage = .interaction, .temporary = plan.temporary, .stage_retained_upper = plan.output, .successor = successor, .known = true, .host_known = false };
-        return try endpoint.reserve(demand);
+        return if (try self.service.takeGlobalAdmissionDrain(request.scope)) try endpoint.reserveDrain(demand) else try endpoint.reserve(demand);
     }
     fn generateRationalLocked(self: *Context, a: std.mem.Allocator, request: Request, permit: ?*Admission.Permit) !DG.Witness {
         const log = request.log_size;

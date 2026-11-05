@@ -173,12 +173,24 @@ pub const Endpoint = struct {
     /// Every retained owner must reserve its downstream progress envelope;
     /// callers cannot wait on capacity that only their own blocked stage frees.
     pub fn reserve(self: *const Endpoint, demand: A.Demand) !Permit {
+        return self.reserveWithPolicy(demand, false);
+    }
+    /// First newly eligible global consumer: do not sleep indefinitely when
+    /// this chosen drain cannot fit the already retained stage-one roster.
+    pub fn reserveDrain(self: *const Endpoint, demand: A.Demand) !Permit {
+        return self.reserveWithPolicy(demand, true);
+    }
+    fn reserveWithPolicy(self: *const Endpoint, demand: A.Demand, bounded_drain: bool) !Permit {
         while (true) {
             const epoch = self.planner.epoch();
             switch (try self.tryReserve(demand)) {
                 .admitted => |permit| return permit,
                 .blocked => |decision| switch (decision.reason) {
-                    .wide_stage_busy, .capacity_pressure => self.planner.waitForChange(epoch),
+                    .wide_stage_busy => self.planner.waitForChange(epoch),
+                    .capacity_pressure => {
+                        if (bounded_drain) return error.NativePostGlobalDrainUnavailable;
+                        self.planner.waitForChange(epoch);
+                    },
                     .unknown_cost => return error.GlobalGpuAllocationCostUnavailable,
                     .host_capacity_pressure => return error.GlobalHostAdmissionCapacity,
                     .request_exceeds_static_arena => return error.GlobalGpuClassExceedsStaticArena,
@@ -324,4 +336,19 @@ test "runtime permit observes global retention and refuses untracked growth" {
     M.live = .{};
     var cancel = (try endpoint.tryReserve(demand)).admitted;
     try cancel.finish(.{});
+    const keep = try A.Footprint.allocation(2 << 30);
+    const future = try A.Footprint.allocation(19 << 30);
+    const truth = (try planner.tryBegin(0, .{ .owner = demand.owner, .stage = .witness, .known = true, .host_known = true, .retained_new = keep, .successor = future })).token.?;
+    try planner.complete(truth, keep, future);
+    M.live = keep;
+    var blocked_drain = demand;
+    blocked_drain.temporary = try A.Footprint.allocation(5 << 30);
+    blocked_drain.stage_retained_upper = blocked_drain.temporary;
+    try std.testing.expectError(error.NativePostGlobalDrainUnavailable, endpoint.reserveDrain(blocked_drain));
+    // A refusal did not enter the owner or steal the physical stage gate.
+    const gate = try planner.stageGate(0);
+    try std.testing.expect(gate.tryLock());
+    gate.unlock();
+    try planner.release(truth);
+    M.live = .{};
 }

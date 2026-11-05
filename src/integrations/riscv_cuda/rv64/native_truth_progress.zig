@@ -152,9 +152,9 @@ pub fn init(allocator: std.mem.Allocator, service: *@import("pcs_native.zig").Co
     const downstream = generation.max(try outputs.add(later));
     const initial = try sourcePlan(truth, compact_words, false, 0);
     const replay_source = try sourcePlan(truth, compact_words, true, fixed_words);
-    // A replay reserves an extra identical replay envelope until INTER advances
-    // the stable key. This conservative bound has no recursive allocation loop.
-    const after_main = if (replay) downstream.max(replay_source.peak).max(try replay_source.retained.add(main_commit.max(try main_owner.add(downstream)))) else downstream;
+    // Post-global replay is admitted at runMain itself. Once that MAIN commit
+    // finishes, it cannot recursively require another copy of its own replay.
+    const after_main = downstream;
     var progress = Progress.Plan{ .identity = undefined, .gpu_costs_known = true, .after = undefined };
     progress.after[@intFromEnum(Progress.Step.source)] = main_commit.max(try main_owner.add(after_main));
     progress.after[@intFromEnum(Progress.Step.main_commit)] = after_main;
@@ -163,11 +163,16 @@ pub fn init(allocator: std.mem.Allocator, service: *@import("pcs_native.zig").Co
     progress.after[@intFromEnum(Progress.Step.inter_commit)] = after_inter;
     progress.after[@intFromEnum(Progress.Step.composition)] = pcs.additional_upper;
     progress.after[@intFromEnum(Progress.Step.pcs)] = .{};
+    // Stage one seals MAIN, then retires raw MAIN and (with replay) cached
+    // coefficients. Its compact owner is still charged as observed live bytes.
+    var pre: Progress.After = @splat(.{});
+    pre[@intFromEnum(Progress.Step.source)] = main_commit.max(main_owner);
+    progress.pre_global_after = pre;
     var h = std.crypto.hash.sha2.Sha256.init(.{});
     h.update("rv64/native-truth-gpu-progress/v1\x00");
     h.update(@embedFile("native_truth_progress.zig"));
     h.update(try std.json.Stringify.valueAlloc(a, roles, .{}));
-    h.update(try std.json.Stringify.valueAlloc(a, .{ config, compact_words, replay, progress.after }, .{}));
+    h.update(try std.json.Stringify.valueAlloc(a, .{ config, compact_words, replay, progress.after, progress.pre_global_after }, .{}));
     progress.identity = h.finalResult();
     try service.registerAdmissionProgress(scope, progress);
     return .{ .initial = initial, .replay = replay_source, .progress = progress };

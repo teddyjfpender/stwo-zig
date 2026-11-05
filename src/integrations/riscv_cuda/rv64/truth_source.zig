@@ -195,6 +195,7 @@ const Owner = struct {
     }
     fn generate(raw: *anyopaque, a: std.mem.Allocator, local: S.Local, shared: S.Shared) !S.Interactions {
         const self: *Owner = @ptrCast(@alignCast(raw));
+        _ = try self.backend.service.armGlobalAdmission(self.scope);
         var main = self.main orelse return error.InvalidDeviceTruthSealPhase;
         if (self.backend.replay_main) {
             try self.runMain(self.fixed);
@@ -265,7 +266,8 @@ const Owner = struct {
             const plan = self.progress orelse return error.MissingNativeTruthClassProgress;
             const source = if (self.compact == null) plan.initial else plan.replay;
             const successor = try self.backend.service.admissionSuccessor(self.scope, .source);
-            permit = try endpoint.reserve(.{ .progress_key = GA.progressKey(self.scope), .owner = .{ .request = std.mem.readInt(u64, self.scope.statement[0..8], .little), .domain = .native_packet, .ordinal = self.scope.ordinal }, .stage = .witness, .temporary = source.peak, .stage_retained_upper = source.retained, .successor = successor, .known = true, .host_known = false });
+            const demand = GA.Demand{ .progress_key = GA.progressKey(self.scope), .owner = .{ .request = std.mem.readInt(u64, self.scope.statement[0..8], .little), .domain = .native_packet, .ordinal = self.scope.ordinal }, .stage = .witness, .temporary = source.peak, .stage_retained_upper = source.retained, .successor = successor, .known = true, .host_known = false };
+            permit = if (try self.backend.service.takeGlobalAdmissionDrain(self.scope)) try endpoint.reserveDrain(demand) else try endpoint.reserve(demand);
         }
         defer if (permit) |*p| if (!p.closed) p.finish(.{}) catch {
             self.poison();

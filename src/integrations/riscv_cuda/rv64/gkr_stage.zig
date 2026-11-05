@@ -257,7 +257,7 @@ pub const Backend = struct {
         for (request.native_main_columns) |column| all_main_resident = all_main_resident and column.device != null;
         const native = request.native_source orelse return error.NativeGkrSourceRequired;
         const plan = try Cost.init(.{ .cells = source.cells, .twiddles = @as(usize, 1) << @intCast(source.max_log - 1), .workspace = traversal.total_words, .relation_count = if (native.core.cpu.u8_pairs) @intCast(std.enums.values(Source.Fractions.Relation).len) else @intFromEnum(Source.Fractions.Relation.byte_pair), .items = items, .publish_coefficients = self.coefficient_sink != null and !all_main_resident, .binding_state_words = if (self.binding_runtime != null) A.gkr_state_words else 0, .cold_fixed_words = fixed_words });
-        const successor = (try service.admissionSuccessor(physicalScope(request.scope), .native_gkr)).max(try service.admissionSuccessor(physicalScope(request.scope), .main_commit));
+        const successor = try service.admissionSuccessor(physicalScope(request.scope), .native_gkr);
         const Global = @import("global_admission.zig");
         return try endpoint.reserve(.{ .progress_key = Global.progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = .gkr_packet, .ordinal = request.scope.ordinal }, .stage = .gkr, .temporary = plan.peak, .stage_retained_upper = plan.retained, .successor = successor, .known = true, .host_known = false });
     }

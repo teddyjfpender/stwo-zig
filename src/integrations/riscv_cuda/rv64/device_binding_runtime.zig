@@ -275,7 +275,9 @@ const Call = struct {
                 max_log = @max(max_log, instance.row_log);
             }
             const cost = try Cost.binding(total, max_log);
-            const successor = try service.admissionSuccessor(physicalScope(self.owner.pending.scope), if (self.kind == .finalize) .interaction else .native_gkr);
+            const scope = physicalScope(self.owner.pending.scope);
+            if (self.kind == .finalize) _ = try service.armGlobalAdmission(scope);
+            const successor = if (self.kind == .park or (self.kind == .project and try service.admissionPreGlobal(scope))) GlobalAdmission.Footprint{} else try service.admissionSuccessor(scope, if (self.kind == .finalize) .interaction else .native_gkr);
             const temporary = switch (self.kind) {
                 .project => if (self.owner.projection_digest != null) try cost.project.add(cost.park) else cost.project,
                 .finalize => cost.finalize,
@@ -287,7 +289,8 @@ const Call = struct {
                 .finalize => cost.coefficient_owner,
                 else => GlobalAdmission.Footprint{},
             };
-            permit = try endpoint.reserve(.{ .progress_key = GlobalAdmission.progressKey(self.owner.pending.scope), .owner = .{ .request = std.mem.readInt(u64, self.owner.pending.scope.statement[0..8], .little), .domain = .gkr_packet, .ordinal = self.owner.pending.scope.ordinal }, .stage = .gkr, .temporary = temporary, .stage_retained_upper = retained, .successor = successor, .known = true, .host_known = false });
+            const demand = GlobalAdmission.Demand{ .progress_key = GlobalAdmission.progressKey(self.owner.pending.scope), .owner = .{ .request = std.mem.readInt(u64, self.owner.pending.scope.statement[0..8], .little), .domain = .gkr_packet, .ordinal = self.owner.pending.scope.ordinal }, .stage = .gkr, .temporary = temporary, .stage_retained_upper = retained, .successor = successor, .known = true, .host_known = false };
+            permit = if (try service.takeGlobalAdmissionDrain(scope)) try endpoint.reserveDrain(demand) else try endpoint.reserve(demand);
         };
         defer if (permit) |*p| if (!p.closed) p.finish(.{}) catch {
             p.endpoint.planner.poisonPhysical(p.endpoint.physical);

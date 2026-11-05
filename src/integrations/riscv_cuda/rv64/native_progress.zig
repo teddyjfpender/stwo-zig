@@ -89,11 +89,20 @@ pub const Context = struct {
         plan.after[@intFromEnum(Progress.Step.composition)] = pcs.additional_upper;
         // The physical proof has no later GPU consumer in this native scope.
         plan.after[@intFromEnum(Progress.Step.pcs)] = .{};
+        // Before the ordered global challenge, only MAIN and local numerical
+        // proof/projection can advance. Post-global INTER/RC/PCS are ineligible.
+        const pre_after_numerical = numerical.binding.project;
+        const pre_after_main = numerical.numerical.peak.max(try numerical.numerical.retained.add(pre_after_numerical));
+        var pre: Progress.After = @splat(.{});
+        pre[@intFromEnum(Progress.Step.source)] = main_tc.max(try main_owner.add(pre_after_main));
+        pre[@intFromEnum(Progress.Step.main_commit)] = pre_after_main;
+        pre[@intFromEnum(Progress.Step.native_gkr)] = pre_after_numerical;
+        plan.pre_global_after = pre;
         var h = std.crypto.hash.sha2.Sha256.init(.{});
         h.update("rv64/native-cpu-gpu-progress/v1\x00");
         h.update(@embedFile("native_progress.zig"));
         h.update(&source.identity);
-        const envelope = try std.json.Stringify.valueAlloc(a, plan.after, .{});
+        const envelope = try std.json.Stringify.valueAlloc(a, .{ plan.after, plan.pre_global_after }, .{});
         h.update(envelope);
         plan.identity = h.finalResult();
         try self.service.registerAdmissionProgress(request.scope, plan);
