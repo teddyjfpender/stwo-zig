@@ -131,6 +131,34 @@ pub const Trace = struct {
     divisions: u32 = 0,
     multiplications: u32 = 0,
 };
+/// CPU-only first-pass advice. PC is remapped through the receiver-owned ROM;
+/// branches record their taken bit as `result`, like native CPU metadata.
+/// No operands, register clocks, field columns or memory/service ledger live
+/// here. A consumer still needs the segment initial state and ordered advice.
+pub const MinimalRecord = extern struct { result: u64, pc: u32, next_pc: u32 };
+pub const MinimalTrace = struct {
+    records: []MinimalRecord,
+    len: usize = 0,
+    fn appendFast(self: *MinimalTrace, pc: u64, next_pc: u64, result: u64) void {
+        std.debug.assert(self.len < self.records.len);
+        self.records[self.len] = .{ .result = result, .pc = @intCast(pc), .next_pc = @intCast(next_pc) };
+        self.len += 1;
+    }
+    /// Slow instructions (including services) are retired by the unchanged
+    /// reference session. Append only after successful retirement, never retry.
+    pub fn appendRetirement(self: *MinimalTrace, row: machine.Retirement) !void {
+        if (self.len == self.records.len) return error.MinimalTraceFull;
+        if (row.pc.toInt() > std.math.maxInt(u32) or row.next_pc.toInt() > std.math.maxInt(u32)) return error.MinimalTracePcRange;
+        const branch = switch (row.opcode) {
+            .BEQ, .BNE, .BLT, .BGE, .BLTU, .BGEU => true,
+            else => false,
+        };
+        self.appendFast(row.pc.toInt(), row.next_pc.toInt(), if (branch) @intFromBool(row.branch_taken) else row.result.toInt());
+    }
+};
+comptime {
+    std.debug.assert(@sizeOf(MinimalRecord) == 16);
+}
 pub const PcCounts = struct { start: u64, end: u64, counts: []u64, outside: *u64 };
 pub const Error = std.mem.Allocator.Error || error{ FastExecutionCodeTooLarge, FastExecutionTableTooLarge, FastExecutionCheckpointOverflow };
 
@@ -484,10 +512,22 @@ pub const Engine = struct {
     /// next instruction must be retired by the reference session (`.slow`).
     pub fn run(self: *Engine, cpu: *machine.Cpu, limit: u64) Exit {
         if (cpu.retired >= limit) return .limit;
-        return if (self.counting) self.runImpl(cpu, limit, true) else self.runImpl(cpu, limit, false);
+        return if (self.counting) self.runImpl(cpu, limit, true, false, null) else self.runImpl(cpu, limit, false, false, null);
     }
 
-    fn runImpl(self: *Engine, cpu: *machine.Cpu, limit: u64, comptime counting: bool) Exit {
+    /// Optional first-pass CPU records, emitted by the existing arithmetic and
+    /// page-table loop. Default `run` specializes this entire path away.
+    /// Capacity is checked before any instruction; .limit refers to the
+    /// requested limit or the end of the supplied record span.
+    pub fn runMinimal(self: *Engine, cpu: *machine.Cpu, limit: u64, trace: *MinimalTrace) !Exit {
+        if (trace.len > trace.records.len) return error.MinimalTraceFull;
+        if (self.code_lo > std.math.maxInt(u32) or self.code_hi > std.math.maxInt(u32)) return error.MinimalTracePcRange;
+        const bounded = @min(limit, cpu.retired +| (trace.records.len - trace.len));
+        if (cpu.retired >= bounded) return .limit;
+        return if (self.counting) self.runImpl(cpu, bounded, true, true, trace) else self.runImpl(cpu, bounded, false, true, trace);
+    }
+
+    fn runImpl(self: *Engine, cpu: *machine.Cpu, limit: u64, comptime counting: bool, comptime minimal: bool, trace: ?*MinimalTrace) Exit {
         var i: usize = self.slotOf(cpu.pc) orelse return .slow;
         var r: [33]u64 = undefined;
         @memcpy(r[0..32], &cpu.regs);
@@ -516,18 +556,22 @@ pub const Engine = struct {
             },
             .slow => break :sw,
             .nop => {
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, 0);
                 i += 1;
                 continue :sw slots[i].op;
             },
             .li => {
                 const s = slots[i];
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, s.imm);
                 r[s.rd] = s.imm;
                 i += 1;
                 continue :sw slots[i].op;
             },
             inline .add, .sub, .sll, .slt, .sltu, .xor, .srl, .sra, .@"or", .@"and", .addi, .slti, .sltiu, .xori, .ori, .andi, .slli, .srli, .srai, .addw, .subw, .sllw, .srlw, .sraw, .addiw, .slliw, .srliw, .sraiw, .mul, .mulh, .mulhsu, .mulhu, .div, .divu, .rem, .remu, .mulw, .divw, .divuw, .remw, .remuw, .andn, .orn, .xnor, .rev8, .sext_b, .sext_h, .zext_h => |op| {
                 const s = slots[i];
-                r[s.rd] = alu(op, r[s.rs1], r[s.rs2], s.imm);
+                const result = alu(op, r[s.rs1], r[s.rs2], s.imm);
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, result);
+                r[s.rd] = result;
                 i += 1;
                 continue :sw slots[i].op;
             },
@@ -545,12 +589,14 @@ pub const Engine = struct {
                 const index = address >> PAGE_SHIFT;
                 const base = (if (index < rd_tab.len) rd_tab[@intCast(index)] else null) orelse self.fill(index, false) orelse break :sw;
                 const raw = std.mem.readInt(T, base[@intCast(address & (mem.PAGE_SIZE - 1))..][0..@sizeOf(T)], .little);
-                r[s.rd] = switch (op) {
+                const result: u64 = switch (op) {
                     .lb => @bitCast(@as(i64, @as(i8, @bitCast(raw)))),
                     .lh => @bitCast(@as(i64, @as(i16, @bitCast(raw)))),
                     .lw => @bitCast(@as(i64, @as(i32, @bitCast(raw)))),
                     else => raw,
                 };
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, result);
+                r[s.rd] = result;
                 i += 1;
                 continue :sw slots[i].op;
             },
@@ -568,6 +614,7 @@ pub const Engine = struct {
                 const index = address >> PAGE_SHIFT;
                 const base = (if (index < wr_tab.len) wr_tab[@intCast(index)] else null) orelse self.fill(index, true) orelse break :sw;
                 std.mem.writeInt(T, base[@intCast(address & (mem.PAGE_SIZE - 1))..][0..@sizeOf(T)], @truncate(r[s.rs2]), .little);
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, 0);
                 i += 1;
                 continue :sw slots[i].op;
             },
@@ -586,11 +633,14 @@ pub const Engine = struct {
                     .bgeu => a >= b,
                     else => unreachable,
                 };
-                i = if (taken) s.target else i + 1;
+                const next = if (taken) s.target else i + 1;
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, next), @intFromBool(taken));
+                i = next;
                 continue :sw .enter;
             },
             .jal => {
                 const s = slots[i];
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, s.target), s.imm);
                 r[s.rd] = s.imm;
                 i = s.target;
                 continue :sw .enter;
@@ -599,7 +649,9 @@ pub const Engine = struct {
                 const s = slots[i];
                 const target = (r[s.rs1] +% s.imm) & ~@as(u64, 1);
                 if (target & 3 != 0 or target < self.code_lo or target >= self.code_hi) break :sw;
-                r[s.rd] = self.code_lo + 4 * @as(u64, i) + 4;
+                const link = self.code_lo + 4 * @as(u64, i) + 4;
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), target, link);
+                r[s.rd] = link;
                 i = @intCast((target - self.code_lo) / 4);
                 continue :sw .enter;
             },
