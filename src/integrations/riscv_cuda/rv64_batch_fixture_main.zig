@@ -147,4 +147,8 @@ pub fn main() !void {
     var mixed_sizes: [64]u32 = undefined;
     for (&mixed_sizes, 0..) |*v, i| v.* = @intCast(i % 7);
     try fixture(dir, &mixed_sizes, 14);
+    var expanded: [128]u32 = undefined;
+    for (&expanded, 0..) |*v, i| v.* = @intCast(i % 7);
+    try fixture(dir, expanded[0..65], 15);
+    try fixture(dir, &expanded, 16);
 }
