@@ -67,3 +67,40 @@ test "om31 outer actual q108 P20 circuit proof fresh receiver and mutations" {
     pcs.config.fri_config.n_queries = 108;
     std.debug.print("OM31_CIRCUIT_PROOF fresh_accepted=true q=108 p=20 full_octic_air=true prove_ns={} verify_ns={} physical_mutants=5\n", .{ prove_ns, verify_ns });
 }
+
+// New profiles use the existing real PCS producer and verifier. This gate is
+// deliberately a small circuit, not an Ethereum or compression timing claim.
+test "om31 grinding26 actual proof fresh authority and cross profile wire rejection" {
+    const a = std.testing.allocator;
+    const saved = P.active();
+    defer P.selectForTesting(saved);
+    P.selectForTesting(.m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1);
+    var ctx = try circuit.builder.Context(P.Q).init(a, 1);
+    defer ctx.deinit();
+    const x = try ctx.guess(P.Q.fromU32Unchecked(3, 1, 2, 4));
+    const out = try ctx.mul(x, x);
+    try ctx.setOutputs(&.{out});
+    try ctx.finalize(true);
+    try circuit.common.finalize.padToTargets(P.Q, &ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&ctx.circuit)));
+    var pp = try circuit.common.preprocessed.PreprocessedCircuit.fromBuilderCircuit(a, &ctx.circuit);
+    defer pp.deinit(a);
+    var key = try Prove.Authority.init(a, &pp);
+    defer key.deinit();
+    var proof = try Prove.prove(a, &key, ctx.values());
+    defer proof.deinit();
+    var receiver = try Prove.Authority.init(a, &pp);
+    defer receiver.deinit();
+    var capture = try Prove.verify(a, &receiver, proof.outputs, proof.claims, &proof.proof.proof);
+    defer capture.deinit(a);
+    const Wire = @import("wire.zig");
+    const encoded = try Wire.encode(a, key.identity, proof.outputs, proof.claims, &proof.proof.proof);
+    defer a.free(encoded);
+    var decoded = try Wire.decode(a, receiver.identity, pp.n_outputs, encoded);
+    defer decoded.deinit();
+    try std.testing.expectEqual(@as(u32, 102), decoded.proof.commitment_scheme_proof.config.fri_config.n_queries);
+    try std.testing.expectEqual(@as(u32, 26), decoded.proof.commitment_scheme_proof.config.pow_bits);
+    P.selectForTesting(.m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1);
+    try std.testing.expectError(error.Om31CircuitWireProfile, Wire.decode(a, receiver.identity, pp.n_outputs, encoded));
+    try std.testing.expectError(error.InvalidOm31CircuitProof, Prove.verify(a, &receiver, proof.outputs, proof.claims, &proof.proof.proof));
+    std.debug.print("OM31_GRIND26 q=102 p=26 real_pcs=true fresh_authority=true old_profile_rejected=true bytes={d}\n", .{encoded.len});
+}

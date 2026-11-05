@@ -92,7 +92,8 @@ pub fn build(b: *std.Build) void {
     om31_proof_root.addImport("stwo_cpu_backend", cpu_backend);
     om31_proof_root.addImport("stwo_circuit_frontend", circuit);
     om31_proof_root.addImport("stwo_cairo_frontend", cairo);
-    const om31_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = om31_proof_root }));
+    om31_proof_root.addImport("stwo_proof_wire", proof_wire);
+    const om31_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = om31_proof_root, .filters = filters }));
     om31_proof_tests.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     b.step("test-circuit-om31-proof", "Prove and freshly verify an actual circuit under native octic q108/P20").dependOn(&om31_proof_tests.step);
 

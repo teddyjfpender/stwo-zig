@@ -11,7 +11,7 @@ pub const MC = struct {
     pub fn mixRoot(ch: *Channel, root: H.Hash) void {
         // Keep the exact Blake(digest || root) bytes visible to channel observers.
         var words: [8]u32 = undefined;
-        for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, root[4 * i..][0..4], .little);
+        for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, root[4 * i ..][0..4], .little);
         ch.mixU32s(&words);
     }
 };
@@ -58,6 +58,11 @@ pub const Profile = enum {
     /// Explicit M7 family: original MAIN/FIXED plus source-bound cyclic-Eq
     /// LogUp-GKR, 128 INTER columns, k4/cap3. Distinct wire and child verifier.
     m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1,
+    /// M7 grinding/query trade: 102 + 26 = 128 conjectured bits.
+    m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1,
+    /// Explicit C1 PCS policies, to be selected by the compression wrapper.
+    m7_compress_c1_b8_q34_p26_fold4_v1,
+    m7_compress_c1_b16_q26_p26_fold4_v1,
 
     pub fn parse(text: []const u8) !Profile {
         inline for (@typeInfo(Profile).@"enum".fields) |field| {
@@ -80,6 +85,9 @@ pub const Profile = enum {
             .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1 => "stwo/circuit/native-om31/m6-diet-k3-q108-p20-fold4/lens-v1",
             .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 => "stwo/circuit/native-om31/m6-diet-k4-cap3-q108-p20-fold4/lens-v1",
             .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 => "stwo/circuit/native-om31/m7-outer-gkr-k4-cap3-q108-p20-fold4/lens-v1",
+            .m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1 => "stwo/circuit/native-om31/m7-diet-k4-cap3-q102-p26-fold4/lens-v1",
+            .m7_compress_c1_b8_q34_p26_fold4_v1 => "stwo/circuit/native-om31/m7-c1-b8-q34-p26-fold4/lens-v1",
+            .m7_compress_c1_b16_q26_p26_fold4_v1 => "stwo/circuit/native-om31/m7-c1-b16-q26-p26-fold4/lens-v1",
         };
     }
     pub fn config(self: Profile) PcsConfig {
@@ -87,6 +95,9 @@ pub const Profile = enum {
             .r1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 => .{ 1, 108, 20 },
             .m3_b4_q51_p26_fold4, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1 => .{ 2, 51, 26 },
             .m3_b8_q34_p26_fold4 => .{ 3, 34, 26 },
+            .m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1 => .{ 1, 102, 26 },
+            .m7_compress_c1_b8_q34_p26_fold4_v1 => .{ 3, 34, 26 },
+            .m7_compress_c1_b16_q26_p26_fold4_v1 => .{ 4, 26, 26 },
         };
         var fri = core.fri.ForField(O).FriConfig.init(0, log_blowup, queries) catch unreachable;
         fri.fold_step = 4;
@@ -104,7 +115,7 @@ pub const Profile = enum {
     pub fn requiredFoldArity(self: Profile) ?usize {
         return switch (self) {
             .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1 => 3,
-            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 => 4,
+            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1 => 4,
             else => null,
         };
     }
@@ -112,7 +123,7 @@ pub const Profile = enum {
     /// (0 = full authentication paths, every pre-M6 profile).
     pub fn foldMerkleCapLog(self: Profile) u32 {
         return switch (self) {
-            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 => 3,
+            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1 => 3,
             else => 0,
         };
     }
@@ -282,4 +293,22 @@ test "om31 m6 diet k4 cap3 outer profile: domain, r1 PCS, arity 4, cap 3 on fold
     try std.testing.expectEqual(@as(u32, 0), Profile.r1_b2_q108_p20_fold4.foldMerkleCapLog());
     try std.testing.expectEqual(@as(usize, 6), @intFromEnum(d));
     try std.testing.expectEqual(d, try Profile.parse(d.name()));
+}
+
+test "M7 grinding26 profiles are distinct exact policies and preserve old indices" {
+    const outer = Profile.m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1;
+    try std.testing.expectEqual(@as(u32, 128), outer.conjecturedBits());
+    try std.testing.expectEqual(@as(u32, 26), outer.config().pow_bits);
+    try std.testing.expectEqual(@as(usize, 102), outer.config().fri_config.n_queries);
+    try std.testing.expectEqual(@as(?usize, 4), outer.requiredFoldArity());
+    try std.testing.expectEqual(@as(u32, 3), outer.foldMerkleCapLog());
+    const c1 = Profile.m7_compress_c1_b8_q34_p26_fold4_v1;
+    try std.testing.expectEqual(@as(u32, 128), c1.conjecturedBits());
+    try std.testing.expectEqual(@as(u32, 130), Profile.m7_compress_c1_b16_q26_p26_fold4_v1.conjecturedBits());
+    try std.testing.expectEqual(@as(usize, 6), @intFromEnum(Profile.m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1));
+    inline for (@typeInfo(Profile).@"enum".fields) |field| {
+        const other: Profile = @enumFromInt(field.value);
+        if (other != outer) try std.testing.expect(!std.mem.eql(u8, outer.domainName(), other.domainName()));
+    }
+    try std.testing.expectEqual(outer, try Profile.parse(outer.name()));
 }

@@ -162,9 +162,10 @@ test "m7 specs are 128 conjectured bits; D2 runtime is explicit and defaults sta
     try std.testing.expectEqual(@as(u32, 148), baseline);
     for (C.CANDIDATE_PROFILES, 0..) |p, k| {
         const s = C.candidateSpec(p);
-        // ethSTARK conjecture: log_blowup * queries + pow == 128 exactly (no over/under-provisioning).
-        try std.testing.expectEqual(@as(u32, 128), C.candidateConjecturedBits(p));
-        try std.testing.expectEqual(@as(u32, 128), s.log_blowup * s.queries + s.pow_bits);
+        // Grinding26 b16 needs26 integral queries, yielding130; every older spec stays128.
+        const bits: u32 = if (p == .c1_b16_q26_p26_fold4) 130 else 128;
+        try std.testing.expectEqual(bits, C.candidateConjecturedBits(p));
+        try std.testing.expectEqual(bits, s.log_blowup * s.queries + s.pow_bits);
         // Weaker (Johnson, sqrt(rho)) regime: no candidate below today's native default.
         try std.testing.expect(C.candidateJohnsonBitsTimes2(p) >= baseline);
         // Config is a valid FRI config with the declared log2 fold arity.
@@ -288,7 +289,7 @@ test "m5 format versions keep 128 conjectured bits of their base PCS, distinct d
     for (C.FORMAT_VERSIONS, 0..) |v, k| {
         const s = C.formatSpec(v);
         // Hand arithmetic: 1*108 + 20 = 2*51 + 26 = 128; Johnson x2: 108 + 40 = 148, 102 + 52 = 154.
-        try std.testing.expectEqual(@as(u32, 128), C.formatConjecturedBits(v));
+        try std.testing.expectEqual(@as(u32, if (v == .m7_compress_c1_b16_q26_p26_fold4_v1) 130 else 128), C.formatConjecturedBits(v));
         try std.testing.expect(C.formatJohnsonBitsTimes2(v) >= baseline);
         try std.testing.expectEqual(@as(u32, if (s.layer == .compress2) 3 else 4), s.pcs.fold_step);
         // Its base PCS is an existing named profile: admitted native default, r1 outer, or the m3 candidate.
@@ -306,7 +307,8 @@ test "m5 format versions keep 128 conjectured bits of their base PCS, distinct d
                 const m3 = C.candidateSpec(.m3_outer_b4_q51_p26_fold4);
                 const is_r1 = s.pcs.log_blowup == 1 and s.pcs.queries == 108 and s.pcs.pow_bits == 20;
                 const is_m3 = s.pcs.log_blowup == m3.log_blowup and s.pcs.queries == m3.queries and s.pcs.pow_bits == m3.pow_bits;
-                try std.testing.expect(is_r1 or is_m3);
+                const is_m7_p26 = s.pcs.log_blowup == 1 and s.pcs.queries == 102 and s.pcs.pow_bits == 26;
+                try std.testing.expect(is_r1 or is_m3 or is_m7_p26);
                 for (ADMITTED_OUTER_DOMAINS) |d| try std.testing.expect(!std.mem.eql(u8, s.domain, d));
             },
             .compress1, .compress2 => {
@@ -492,7 +494,7 @@ test "m6 composite identity: changing any one extra component, its order, or the
     // Every identity in the registry is distinct (also covered by the M5 loop; restated for the 14 entries).
     for (C.FORMAT_VERSIONS, 0..) |v, i| for (C.FORMAT_VERSIONS[i + 1 ..]) |w|
         try std.testing.expect(!std.mem.eql(u8, &C.formatIdentity(v), &C.formatIdentity(w)));
-    try std.testing.expectEqual(@as(usize, 23), C.FORMAT_VERSIONS.len);
+    try std.testing.expectEqual(@as(usize, 26), C.FORMAT_VERSIONS.len);
 }
 test "m6 diet outer GKR clears 128+23 bits at the 24628607 node count; r1 vs m3 equal under the GKR ledger" {
     // [D] M5 integrate: 33 outer nodes on 24628607 (28 leaves + folds + root); 16 batched instances of <= 2^24 rows.
@@ -546,7 +548,6 @@ test "reference DW-R6 m6 diet k4 cap3: 4-ary fold G rows fit 2^23 only with the 
     try std.testing.expect((rows * 1080 / 1000) * 895 / 1000 > 1 << 23);
 }
 
-
 test "m7 reserved format identities pin v2 binding and pure STARK compression parameters" {
     const outer = C.formatSpec(.m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1);
     try std.testing.expectEqualStrings(C.M7_OUTER_GKR_COMPONENT, outer.component);
@@ -598,4 +599,17 @@ test "D2 runtime profile binds source domain real roster and blowup-aware algebr
         inline for (std.meta.fields(C.Reviews)) |field| @field(reviews, field.name) = true;
         break :block C.requireWholeProtocolPromotion(reviews);
     });
+}
+
+test "M7 grinding26 outer and C1 retain conjectured target with explicit distinct domains" {
+    const v = C.FormatVersion.m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1;
+    const s = C.formatSpec(v);
+    try std.testing.expectEqual(@as(u32, 102), s.pcs.queries);
+    try std.testing.expectEqual(@as(u32, 26), s.pcs.pow_bits);
+    try std.testing.expectEqual(@as(u32, 128), C.formatConjecturedBits(v));
+    try std.testing.expectEqual(@as(u32, 154), C.formatJohnsonBitsTimes2(v));
+    try std.testing.expect(!std.mem.eql(u8, &C.formatIdentity(v), &C.formatIdentity(.m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1)));
+    try std.testing.expectEqual(@as(u32, 128), C.formatConjecturedBits(.m7_compress_c1_b8_q34_p26_fold4_v1));
+    try std.testing.expectEqual(@as(u32, 130), C.formatConjecturedBits(.m7_compress_c1_b16_q26_p26_fold4_v1));
+    try std.testing.expectEqual(@as(u32, 108), C.formatSpec(.m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1).pcs.queries);
 }
