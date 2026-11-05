@@ -14,6 +14,47 @@ __device__ uint32_t physical_row(uint32_t logical, uint32_t log) {
   const uint32_t circle = logical & 1 ? n - 1 - logical / 2 : logical / 2;
   return __brev(circle) >> (32 - log);
 }
+// One warp per short chunk; each lane owns one register and its access clock.
+// This breaks the whole-segment register dependency into independent chunks.
+// Slots are visited in CPU order, including aliased rs1/rs2/rd accesses.
+__global__ void cpu_unpack(StwoRv64CpuUnpack j) {
+  const uint32_t chunk = blockIdx.x * (blockDim.x / 32) + threadIdx.x / 32;
+  const uint32_t reg = threadIdx.x & 31;
+  const uint32_t start = chunk * j.chunk_rows;
+  if (start >= j.count) return;
+  const uint32_t *seed = j.seeds + uint64_t(chunk) * 96;
+  uint64_t value = uint64_t(seed[2 * reg]) | (uint64_t(seed[2 * reg + 1]) << 32);
+  uint32_t clock = seed[64 + reg];
+  const uint32_t rom_n = 1u << j.rom_log;
+  for (uint32_t row = start; row < min(start + j.chunk_rows, j.count); ++row) {
+    const uint32_t *r = j.records + uint64_t(row) * 4;
+    uint32_t *m = j.metadata + uint64_t(row) * 14;
+    const uint32_t rr = r[2];
+    if (rr >= rom_n) {
+      if (!reg) atomicOr(j.status, 2u);
+      continue;
+    }
+    const uint32_t rp = physical_row(rr, j.rom_log);
+#pragma unroll
+    for (uint32_t slot = 0; slot < 3; ++slot) {
+      const uint32_t id = j.rom[uint64_t(10 + slot) * rom_n + rp];
+      if (id == reg) {
+        const uint32_t dest = slot == 2 ? 6 : 2 * slot;
+        m[dest] = reg ? uint32_t(value) : 0;
+        m[dest + 1] = reg ? uint32_t(value >> 32) : 0;
+        m[10 + slot] = reg ? clock : 0;
+        if (reg) clock = 4 * row + slot + 1;
+      }
+      if (id >= 32 && !reg) atomicOr(j.status, 2u);
+    }
+    const uint32_t rd = j.rom[uint64_t(12) * rom_n + rp];
+    if (reg && reg == rd) value = uint64_t(r[0]) | (uint64_t(r[1]) << 32);
+    if (!reg) {
+      m[4] = r[0]; m[5] = r[1];
+      m[8] = r[3]; m[9] = 0; m[13] = rr;
+    }
+  }
+}
 __global__ void cpu_witness(StwoRv64CpuWitness j) {
   const uint32_t physical = blockIdx.x * blockDim.x + threadIdx.x;
   const uint32_t n = 1u << j.log;
@@ -89,6 +130,23 @@ __global__ void cpu_witness(StwoRv64CpuWitness j) {
   }
 }
 } // namespace stwo::cuda::rv64
+extern "C" int stwo_rv64_cpu_unpack_on(void *ctx, uint32_t lane,
+                                      const StwoRv64CpuUnpack *job) {
+  using namespace stwo::cuda::rv64;
+  if (!job || !job->chunk_rows || job->chunk_rows > 4096 ||
+      job->rom_log < 5 || job->rom_log > 22 || job->reserved ||
+      job->count >= (1u << 23)) return int(cudaErrorInvalidValue);
+  const auto j = *job;
+  Custody c(ctx, lane);
+  const uint64_t chunks = (uint64_t(j.count) + j.chunk_rows - 1) / j.chunk_rows;
+  if (!c.range(j.records, uint64_t(j.count) * 4, false) ||
+      !c.range(j.seeds, chunks * 96, false) ||
+      !c.range(j.rom, uint64_t(32) << j.rom_log, false) ||
+      !c.range(j.metadata, uint64_t(j.count) * 14, true) ||
+      !c.range(j.status, 1, true)) return c.status;
+  if (chunks) cpu_unpack<<<(chunks + 3) / 4, 128, 0, c.stream>>>(j);
+  return int(cudaPeekAtLastError());
+}
 extern "C" int stwo_rv64_cpu_witness_on(void *ctx, uint32_t lane,
                                        const StwoRv64CpuWitness *job) {
   using namespace stwo::cuda::rv64;

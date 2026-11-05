@@ -14,6 +14,18 @@ pub const CpuWitness = extern struct {
     pair_counts: ?[*]u32 = null,
 };
 pub extern "c" fn stwo_rv64_cpu_witness_on(*anyopaque, u32, *const CpuWitness) c_int;
+pub const CpuUnpack = extern struct {
+    records: [*]const u32,
+    seeds: [*]const u32,
+    rom: [*]const u32,
+    metadata: [*]u32,
+    status: [*]u32,
+    count: u32,
+    rom_log: u32,
+    chunk_rows: u32,
+    reserved: u32 = 0,
+};
+pub extern "c" fn stwo_rv64_cpu_unpack_on(*anyopaque, u32, *const CpuUnpack) c_int;
 comptime {
     if (@sizeOf(CpuWitness) != 80 or @offsetOf(CpuWitness, "count") != 56 or @offsetOf(CpuWitness, "pair_counts") != 72)
         @compileError("RV64 compact CPU witness ABI mismatch");
