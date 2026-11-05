@@ -1,0 +1,85 @@
+{
+  "schema": "rv64-m7-mixed-p2-native-cpu-fixture/v1",
+  "author": "OpenAI Codex",
+  "source_base_commit": "ac1834a6e",
+  "upstream_core_v2_commit": "9f5df2ef0",
+  "date": "2026-11-05",
+  "status": "M complete native RV64 CPU fixture proofs and independent reconstructed same-process receivers; no Ethereum/no recursive proof/no128claim",
+  "suite": "physical PCS/Fiat-Shamir P2M31-W24-R12-C12-D9-OM31-v2; localGKR/manifest/public canonical hashing rawBlake",
+  "profile": "fixture_b4_q54_p0_fold4",
+  "gpus": 0,
+  "config": {
+    "log_blowup": 2,
+    "n_queries": 54,
+    "pow_bits": 0,
+    "fold_step": 4
+  },
+  "fixture": {
+    "rv64_steps": 5,
+    "physical_cpu_proofs": 2,
+    "whole_source_cpu_air": true,
+    "local_gkr_terminal_binding": true,
+    "global_ram_closure": true,
+    "independent_fixed_receiver_rebuilt": true,
+    "same_process_receiver": true,
+    "separate_process_receiver": false,
+    "verified_proof_capture": true,
+    "canonical_root_words": 9,
+    "full36byte_root_scoping": true
+  },
+  "gates": {
+    "fixture_build_and_run_exit": 0,
+    "mutants_rejected": [
+      "rawBlake_wire",
+      "query_count",
+      "ninth_MAIN_root_limb",
+      "P0_nonzero_nonce"
+    ],
+    "ninth_limb_scope_hash_changes": true,
+    "no_default_route_change": true
+  },
+  "artifacts": {
+    "cpu-0.p2v2.binary": {
+      "bytes": 551776,
+      "sha256": "1cfd865dfe1b62c7bfe278024874c69f255d428dad7cff2f4e45bae1f60662e3"
+    },
+    "cpu-1.p2v2.binary": {
+      "bytes": 549208,
+      "sha256": "fd2d5733330892372b7cc93932971d3ce6e047a851190dc1e2709231898661da"
+    },
+    "cpu-mini-v2.log": {
+      "bytes": 284,
+      "sha256": "58ecfd2f5546aafc8753f72ae4200f806db615eb15d6dc2e5a037019c4ad0826"
+    },
+    "cpu-mini.log": {
+      "bytes": 4025,
+      "sha256": "8afffbd4df56cf3a984cea0cb655c83eba8a88bc155b00a70f6a67ecdad49617"
+    },
+    "manifest.raw-blake.binary": {
+      "bytes": 103692,
+      "sha256": "c3e27126329fceb6f0dba6fb39224209a97b19e44b5a65e31f1c1708c5749858"
+    },
+    "source-publics.json": {
+      "bytes": 11973,
+      "sha256": "0c9edb77d00f6c086b8303520c05ceb5aa81d0a9b73dd810237fcdfd5996a825"
+    }
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/cpu_worker.zig": "d25a4be9e1869e8135c128100e5e1ec42da39c94f6e4f3ef262d3466563b5ce2",
+    "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/fixed_key.zig": "67cc94720f2ad91a05109a30da4d2c288382bc62467b2c28814da18aab480fcc",
+    "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/fixture.zig": "8381141535bd3a35db937f06a8b2cd5eab2027213cb8b30294466409428c9cd6",
+    "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/inventory.zig": "7e50c6c4bbd190970169c282e0871c3c399e6a611255f1b09f57adabc60f511f",
+    "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/worker_protocol.zig": "8d94dd73268d94909a7b852b68e7d939295ecadacd63210bde66c4119d46667a",
+    "src/integrations/riscv_cpu/rv64_poseidon2_native_test_root.zig": "266b0fd111686f006f148e508f45d88ea0574d052371a0a145d9710f3e4b59b0",
+    "src/integrations/riscv_cpu/build.zig": "35b88461a1e179c672317dce10658d15fe18415247f8fb6424b7e07c3c77068c"
+  },
+  "notes": [
+    "P0 fixture only: not D2 complete and not128-bit target",
+    "All physical roots remain canonical36bytes;32byte local scopes are explicit new-domain hashes of full roots with suite/profileID, never truncation",
+    "CPU components, original source fraction/local binding/global classic authorities reused; no MAIN-only shortcut",
+    "Public/source coverage/image/register/RAM admission and source bounds run before workers",
+    "Separate-process container/fresh receiver and all-Poseidon local/canonical channels are next gates",
+    "Initial build-only Blake2s finalResult mismatch corrected; negative compile log retained"
+  ],
+  "test_binary_sha256": "f9d6f55dbba4a7d14402ea2646b9cb4f4fa4ccd8017fe6dc20d8d2bb9edf00a2"
+}
