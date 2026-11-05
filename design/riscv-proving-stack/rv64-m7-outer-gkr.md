@@ -133,9 +133,8 @@ incomplete-proof refusal is tested. A positive complete hybrid STARK receipt
 has not yet been produced; this API is separate from the active M6 codec.
 
 The source-bound receipt is in
-`vectors/reports/rv64-m7-20261105/outer-gkr/hybrid-authority/`. The first step
-passes28/28; the combined registry/fraction followups are recorded as pending
-while waiting on the shared build lock. No runtime profile is activated by
+`vectors/reports/rv64-m7-20261105/outer-gkr/hybrid-authority/`. The complete source-bound gate
+passes28/28outerGKR,58/58registry and7/7fraction tests. No runtime profile is activated by
 this commit. Producer/controller, source-owned GPU composition, child proof
 verification/codec and full dev-block/fresh-receiver gates still follow.
 

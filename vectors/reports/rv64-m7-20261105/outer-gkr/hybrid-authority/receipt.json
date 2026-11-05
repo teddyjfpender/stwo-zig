@@ -47,11 +47,49 @@
       "wall_s": 72.67292830790393,
       "loadavg_1m": 12.17822265625,
       "log": "/workspace/m3/runs/m7-outer-gkr/hybrid-gate7/test-riscv64-outer-gkr.log"
+    },
+    {
+      "step": "test-riscv64-security-policy",
+      "argv": [
+        "/workspace/zig/zig",
+        "build",
+        "test-riscv64-security-policy",
+        "-Doptimize=ReleaseSafe",
+        "-Dimplementation-commit=26ca2079314833704137aae900955ece81ae49e9",
+        "-Dimplementation-tree=727ca80f8856be92acfb632bf987a05a5e65f0ae",
+        "-Dimplementation-dirty=true",
+        "-Dimplementation-dirty-content-sha256=3aaa4589084348f86091dace7daf363db0b4cf7675c8832a6e805a6899cfd8a8",
+        "-j8",
+        "--summary",
+        "all"
+      ],
+      "exit_code": 0,
+      "wall_s": 9.630649218102917,
+      "loadavg_1m": 11.51953125,
+      "log": "/workspace/m3/runs/m7-outer-gkr/hybrid-gate7/test-riscv64-security-policy.log"
+    },
+    {
+      "step": "test-circuit-om31-cuda-fractions",
+      "argv": [
+        "/workspace/zig/zig",
+        "build",
+        "--build-file",
+        "src/integrations/circuit_cpu/build.zig",
+        "test-circuit-om31-cuda-fractions",
+        "-Doptimize=ReleaseSafe",
+        "-j8",
+        "--summary",
+        "all"
+      ],
+      "exit_code": 0,
+      "wall_s": 0.30955676198937,
+      "loadavg_1m": 10.97802734375,
+      "log": "/workspace/m3/runs/m7-outer-gkr/hybrid-gate7/test-circuit-om31-cuda-fractions.log"
     }
   ],
   "passed": true,
-  "qualification_scope": "28/28 focused outer-GKR tests including actual hybrid native/circuit OODS component; not a complete hybrid STARK production proof",
+  "qualification_scope": "Combined exact-source authority checkpoint:28/28 outerGKR,58/58registry,7/7fractionauthority tests. No completehybridSTARKproductionproof.",
   "expected_gate_steps": 3,
-  "completed_gate_steps": 1,
-  "combined_gate_complete": false
+  "completed_gate_steps": 3,
+  "combined_gate_complete": true
 }
