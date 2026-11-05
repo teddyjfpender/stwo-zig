@@ -1,0 +1,38 @@
+STEP a-root start 01:41:55 load 9.41
+0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d  /workspace/m3/build/m6-integrate/zig-out/bin/rv64-word16-ethereum-recursion-receiver
+192
+format=a outer profile: <default r1> commit=c271b555c
+== derive-26235156 load=9.41 01:41:55
+exit=0 wall=21.453 load_end=13.80 maxrss_kb=22813676
+== derive-24628607 load=13.80 01:42:16
+exit=0 wall=29.18 load_end=15.91 maxrss_kb=25579344
+== derive-both load=15.91 01:42:45
+exit=0 wall=32.127 load_end=17.82 maxrss_kb=28837220
+pin=5644df287027884bd9101e22768d9d62be1dbe197ad084dd8fc6a70acb62e95a
+== verify-pinned-26235156-r1 load=17.82 01:43:18
+exit=0 wall=1.338 load_end=17.04 maxrss_kb=1297976
+== verify-pinned-24628607-r1 load=17.04 01:43:19
+exit=0 wall=1.503 load_end=17.04 maxrss_kb=1749544
+== verify-pinned-26235156-r2 load=17.04 01:43:21
+exit=0 wall=1.276 load_end=17.04 maxrss_kb=1334800
+== verify-pinned-24628607-r2 load=17.04 01:43:22
+exit=0 wall=1.488 load_end=17.04 maxrss_kb=1777184
+== verify-pinned-26235156-r3 load=17.04 01:43:23
+exit=0 wall=1.297 load_end=16.31 maxrss_kb=1330212
+== verify-pinned-24628607-r3 load=16.31 01:43:25
+exit=0 wall=1.627 load_end=16.31 maxrss_kb=1685012
+== audit-26235156 load=16.31 01:43:26
+exit=0 wall=41.189 load_end=23.82 maxrss_kb=8110396
+== audit-24628607 load=23.82 01:44:08
+exit=0 wall=55.991 load_end=17.58 maxrss_kb=8678304
+== rootverify corpus 26235156 01:45:04 load=17.58
+exit=1 FileNotFoundError: [Errno 2] No such file or directory: '/workspace/m3/src/integrate'
+== profiles corpus v4 m6-root 26235156 01:45:04 load=17.58
+exit=1 FileNotFoundError: [Errno 2] No such file or directory: '/workspace/m3/src/integrate'
+== rootverify corpus 24628607 01:45:04 load=16.73
+exit=1 FileNotFoundError: [Errno 2] No such file or directory: '/workspace/m3/src/integrate'
+== profiles corpus v4 m6-root 24628607 01:45:04 load=16.73
+exit=1 FileNotFoundError: [Errno 2] No such file or directory: '/workspace/m3/src/integrate'
+ROOTONLY_DONE
+STEP a-root done 01:45:04 load 16.73
+GATE_DONE
