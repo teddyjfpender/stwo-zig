@@ -17,6 +17,7 @@ pub const Pool = struct {
     endpoints: []Endpoint,
     extra_devices: []Device = &.{},
     native_lanes: usize = 1,
+    balanced_routing: bool = false,
     phase_gates: []std.Thread.Mutex,
     router: Router,
     pcs: D.Stage,
@@ -97,6 +98,13 @@ pub const Pool = struct {
         errdefer a.destroy(self);
         self.allocator = a;
         self.native_lanes = try nativeLanes(a, config.ids.len);
+        self.balanced_routing = blk: {
+            const text = std.process.getEnvVarOwned(a, "STWO_RV64_NATIVE_ROUTING") catch |err| switch (err) { error.EnvironmentVariableNotFound => break :blk false, else => return err };
+            defer a.free(text);
+            if (std.mem.eql(u8, text, "balanced")) break :blk true;
+            if (std.mem.eql(u8, text, "cyclic")) break :blk false;
+            return error.InvalidNativeRoutingMode;
+        };
         if (self.native_lanes > 1) for (config.caps) |cap| { if (cap != 28 << 30) return error.NativeOwnersRequireQualifiedDeviceCap; };
         self.phase_gates = try a.alloc(std.Thread.Mutex, config.ids.len);
         errdefer a.free(self.phase_gates);
@@ -135,6 +143,8 @@ pub const Pool = struct {
             endpoint.* = .{ .cpu_replay = device.cpu_replay.stage(), .device = id, .byte_cap = cap, .pcs = device.native.stage(), .numerical = device.gkr.stage(), .composition = device.composition.stage(), .trace_commit = device.trace.stage(), .projection = device.projection.stage(), .global_interaction = device.global_interaction.stage(), .source = device.source.stage(), .truth_source = device.truth_source.stage(), .truth_composition = device.truth_composition };
         }
         self.router = try Router.initOwnerEndpoints(self.endpoints, cpu_workers, config.scope_limit);
+        self.router.physical_count = config.ids.len;
+        self.router.owner_count = self.native_lanes;
         self.pcs = self.router.pcsStage();
         self.truth_pcs = self.router.truthPcsStage();
         self.numerical = self.router.numericalStage();
@@ -184,7 +194,7 @@ pub const Pool = struct {
         return lanes;
     }
     pub fn stages(self: *Pool) CPU.rv64_ethereum_gkr_main.ResidentStages {
-        var result = CPU.rv64_ethereum_gkr_main.ResidentStages{ .source = self.source, .truth_source = self.truth_source, .truth_composition = self.truth_composition, .global_interaction = self.global_interaction, .pcs = &self.pcs, .numerical = &self.numerical, .resident_composition = &self.composition, .trace_commit = &self.trace_commit, .cpu_projection = self.projection };
+        var result = CPU.rv64_ethereum_gkr_main.ResidentStages{ .routing = if (self.balanced_routing) self.router.routingStage() else null, .source = self.source, .truth_source = self.truth_source, .truth_composition = self.truth_composition, .global_interaction = self.global_interaction, .pcs = &self.pcs, .numerical = &self.numerical, .resident_composition = &self.composition, .trace_commit = &self.trace_commit, .cpu_projection = self.projection };
         if (comptime @hasField(CPU.rv64_ethereum_gkr_main.ResidentStages, "truth_pcs")) result.truth_pcs = &self.truth_pcs;
         if (std.process.hasEnvVarConstant("STWO_RV64_GPU_CPU_REPLAY")) result.cpu_replay = self.router.cpuReplayStage();
         return result;

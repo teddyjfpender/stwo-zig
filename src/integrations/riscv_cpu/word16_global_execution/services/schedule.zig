@@ -108,6 +108,9 @@ pub const Trace = struct {
     in_flight_bytes_at_start: u64 = 0,
 };
 pub const RunOptions = struct {
+    /// Empty preserves ordinal%affinity; otherwise a frozen physical queue per
+    /// original index, shared with the device router through both phases.
+    affinity_indices: []const u8 = &.{},
     /// Empty, or one estimate per index (required when the cap is enabled).
     estimates: []const u64 = &.{},
     /// Empty means natural order. Otherwise a borrowed complete permutation;
@@ -156,6 +159,8 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
     try validateOrder(options.order, count);
     if (options.estimates.len != 0 and options.estimates.len != count) return error.InvalidServiceSchedule;
     if (options.trace.len != 0 and options.trace.len != count) return error.InvalidServiceSchedule;
+    if (options.affinity_indices.len != 0 and options.affinity_indices.len != count) return error.InvalidServiceAffinity;
+    for (options.affinity_indices) |queue| if (queue >= policy.affinity()) return error.InvalidServiceAffinity;
     if (policy.memory_cap_bytes != 0 and options.estimates.len != count) return error.MissingServiceMemoryEstimates;
     if (count == 0) return;
     // Share only an immutable origin: Timer.read mutates its previous sample
@@ -163,7 +168,7 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
     const origin: ?std.time.Instant = if (options.trace.len != 0) try std.time.Instant.now() else null;
     const current_pool = Pool.currentScopedPool();
     const reuse_pool = if (current_pool) |pool| pool.workerCount() == policy.workers(0) else false;
-    if ((policy.lanes == 1 or count == 1) and reuse_pool) {
+    if ((policy.lanes == 1 or count == 1) and reuse_pool and (options.affinity_indices.len == 0 or policy.affinity() == 1)) {
         var storage: [MAX_TOTAL_WORKERS + 1]std.Thread.Handle = undefined;
         const lane = laneThreads(Pool.currentScopedPool(), &storage);
         const previous = Usage.bindLane(&lane);
@@ -270,7 +275,7 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
         var at: usize = 0;
         for (0..n) |queue| {
             const begin = at;
-            for (dispatch) |index| if (index % n == queue) {
+            for (dispatch) |index| if ((if (options.affinity_indices.len != 0) options.affinity_indices[index] else index % n) == queue) {
                 queue_storage[at] = index;
                 at += 1;
             };
@@ -285,7 +290,7 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
         shared.fail();
         for (threads[0..spawned]) |thread| thread.join();
     }
-    for (0..@min(count, policy.lanes)) |ordinal| {
+    for (0..if (options.affinity_indices.len != 0) policy.lanes else @min(count, policy.lanes)) |ordinal| {
         threads[ordinal] = try std.Thread.spawn(.{}, Shared.lane, .{ &shared, ordinal });
         spawned += 1;
     }
@@ -317,4 +322,27 @@ fn elapsed(origin: ?std.time.Instant) u64 {
     const start = origin orelse return 0;
     const current = std.time.Instant.now() catch unreachable;
     return current.since(start);
+}
+
+test "frozen physical affinity keeps original ordinals and executes sparse queues" {
+    const a = std.testing.allocator;
+    const Context = struct {
+        seen: [6]bool = @splat(false),
+        fn execute(self: *@This(), ordinal: usize) !void { self.seen[ordinal] = true; }
+    };
+    const policy = Policy{ .lanes = 2, .workers_per_lane = 1, .device_affinity = 2 };
+    var context = Context{};
+    var trace: [6]Trace = undefined;
+    const map = [_]u8{ 1, 1, 0, 0, 0, 1 };
+    try runWithOptions(Context, a, &context, 6, policy, .{ .affinity_indices = &map, .trace = &trace }, Context.execute);
+    for (context.seen, trace, map) |seen, event, queue| {
+        try std.testing.expect(seen);
+        try std.testing.expectEqual(queue, event.lane);
+    }
+    context = .{};
+    try runWithOptions(Context, a, &context, 1, policy, .{ .affinity_indices = &.{1}, .trace = trace[0..1] }, Context.execute);
+    try std.testing.expect(context.seen[0]);
+    try std.testing.expectEqual(@as(u8, 1), trace[0].lane);
+    try std.testing.expectError(error.InvalidServiceAffinity, runWithOptions(Context, a, &context, 1, policy, .{ .affinity_indices = &.{2} }, Context.execute));
+    try std.testing.expectError(error.InvalidServiceAffinity, runWithOptions(Context, a, &context, 2, policy, .{ .affinity_indices = &.{0} }, Context.execute));
 }

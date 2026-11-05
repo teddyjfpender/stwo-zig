@@ -53,6 +53,13 @@ pub fn build(b: *std.Build) void {
     const projection_tests = b.addTest(.{ .root_module = device_projection_root, .filters = &.{"device CPU projection"} });
     b.step("test-device-cpu-projection", "Verify narrow CPU capture/device geometry ownership without materializing MAIN").dependOn(&b.addRunArtifact(projection_tests).step);
 
+    const routing_root = b.createModule(.{ .root_source_file = b.path("rv64_native_route_test_root.zig"), .target = target, .optimize = optimize });
+    routing_root.addImport("stwo_core", core);
+    routing_root.addImport("stwo_prover_engine", prover);
+    routing_root.addImport("stwo_prover_api", prover_api);
+    const routing_tests = b.addTest(.{ .root_module = routing_root });
+    b.step("test-native-routing", "Test frozen physical-affinity schedules with original ordinal slots").dependOn(&b.addRunArtifact(routing_tests).step);
+
     const test_filter = b.option([]const u8, "test-filter", "Run only tests whose names contain this text");
     const tests = b.addTest(.{ .root_module = integration, .filters = if (test_filter) |filter| &.{filter} else &.{} });
     b.step("test", "Test the focused RISC-V CPU integration")

@@ -73,8 +73,16 @@ pub const Stream = struct {
     truth_done: *const fn (context: *anyopaque, ordinal: usize, encoded: *const Truth.TruthEncoded) void,
     abort: *const fn (context: *anyopaque) void,
 };
+/// Operational placement only. The callback consumes source-derived admission
+/// estimates before any native worker creates device leases, and returns a
+/// frozen physical queue index per original ordinal for both phase schedules.
+pub const RoutingStage = struct {
+    context: *anyopaque,
+    prepare: *const fn (*anyopaque, []const u64, []const u64, usize) anyerror![]const u8,
+};
 pub const Options = struct {
     stream: ?Stream = null,
+    device_routing: ?RoutingStage = null,
     cpu_replay_stage: ?@import("cpu_replay.zig").Stage = null,
     device_source_stage: ?Pipeline.DeviceSourceStage = null,
     device_global_stage: ?CPU.DeviceGlobal.Stage = null,
@@ -476,6 +484,7 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     defer inventory.deinit();
     const estimates = try admit(a, setups, truths, requests, &inventory, config, options, policy, native, advice);
     defer estimates.deinit(a);
+    const affinity_indices: []const u8 = if (options.device_routing) |stage| try stage.prepare(stage.context, estimates.stage1, estimates.stage2, options.schedule.affinity()) else &.{};
     if (options.admitted_at_ns) |out| out.* = sinceEpoch(options.epoch);
     if (options.worker_timings) |timings| for (estimates.cpu_policies, 0..) |selected, i| {
         timings[i].resolved_tree_policy = selected;
@@ -491,8 +500,8 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     @memset(results, null);
     defer for (results) |*slot| if (slot.*) |*v| v.deinit(a);
     var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .fixed = fixed, .config = config, .options = options, .workers = workers, .stages = stages, .results = results, .cpu_tree_policies = estimates.cpu_policies };
-    const stage1_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage1 else &.{}, .trace = options.stage1_trace };
-    const stage2_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage2 else &.{}, .order = options.stage2_order, .trace = options.stage2_trace };
+    const stage1_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage1 else &.{}, .trace = options.stage1_trace, .affinity_indices = affinity_indices };
+    const stage2_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage2 else &.{}, .order = options.stage2_order, .trace = options.stage2_trace, .affinity_indices = affinity_indices };
     try Schedule.runWithOptions(Run, a, &run, count, options.schedule, stage1_options, Run.stageOne);
     // The complete ordered set of sealed MAINs and local children is joined once.
     var pending = try Manifest.verifyAndSeal(a, inventory.execution_identity, inventory.workers, stages);

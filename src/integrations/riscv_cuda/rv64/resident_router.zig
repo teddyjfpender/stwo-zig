@@ -120,6 +120,9 @@ pub const Router = struct {
     scope_limit: usize = SCOPES_PER_DEVICE,
     records: [MAX_DEVICES][MAX_SCOPES_PER_DEVICE]?Record = @splat(@splat(null)),
     mutex: std.Thread.Mutex = .{},
+    physical_count: usize = 1,
+    owner_count: usize = 1,
+    route_plan: ?@import("native_route_plan.zig").Plan = null,
     pub fn init(endpoints: []const Endpoint, cpu_workers: usize) !Router {
         return initWithCapacity(endpoints, cpu_workers, SCOPES_PER_DEVICE);
     }
@@ -152,15 +155,39 @@ pub const Router = struct {
         defer self.mutex.unlock();
         for (self.records) |records| for (records) |record| if (record != null) return error.ResidentBlockStillActive;
         self.planned_cpu_workers = cpu_workers;
+        self.route_plan = null;
     }
     pub fn deviceFor(self: *const Router, ordinal: u32) u32 {
-        return self.endpoints[ordinal % self.endpoints.len].device;
+        const index = self.endpointIndex(ordinal) catch return std.math.maxInt(u32);
+        return self.endpoints[index].device;
+    }
+    fn endpointIndex(self: *const Router, ordinal: u32) !usize {
+        if (self.route_plan) |*plan| {
+            if (ordinal >= plan.count) return error.UnplannedResidentWorker;
+            return plan.endpoints[ordinal];
+        }
+        return ordinal % self.endpoints.len;
+    }
+    pub fn routingStage(self: *Router) CPU.rv64_ethereum_gkr_main.NativeRoutingStage {
+        return .{ .context = self, .prepare = prepareRouting };
+    }
+    fn prepareRouting(raw: *anyopaque, stage1: []const u64, stage2: []const u64, affinity: usize) ![]const u8 {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (affinity != self.physical_count or self.owner_count * self.physical_count != self.endpoints.len) return error.NativeRoutingAffinityMismatch;
+        if (self.route_plan != null) return error.NativeRouteAlreadyFrozen;
+        for (self.records) |records| for (records) |record| if (record != null) return error.ResidentBlockStillActive;
+        self.route_plan = try @import("native_route_plan.zig").Plan.init(stage1, stage2, self.physical_count, self.owner_count, .{ .cpu_count = self.planned_cpu_workers, .scope_limit = self.scope_limit });
+        const plan = &self.route_plan.?;
+        std.debug.print("GPU_NATIVE_ROUTE mode=source-estimate-balanced count={} endpoints={any} physical={any} estimated_phase_byte_load={any} scope=operational-peak-byte-proxy\n", .{ plan.count, plan.endpoints[0..plan.count], plan.physical[0..plan.count], plan.physical_load[0..self.physical_count] });
+        return plan.physical[0..plan.count];
     }
     fn admit(self: *Router, scope: D.Scope, phase: Phase) !usize {
         if (scope.ordinal >= self.planned_cpu_workers) return error.UnplannedResidentWorker;
         if (zeroRoot(scope.statement) or zeroRoot(scope.fixed)) return error.MissingResidentScope;
         if ((phase == .numerical or phase == .retained) == zeroRoot(scope.main)) return error.InvalidResidentScopePhase;
-        const index = scope.ordinal % self.endpoints.len;
+        const index = try self.endpointIndex(scope.ordinal);
         self.mutex.lock();
         defer self.mutex.unlock();
         var empty: ?usize = null;
@@ -187,7 +214,7 @@ pub const Router = struct {
         if (zeroRoot(root)) return error.MissingResidentMainRoot;
         self.mutex.lock();
         defer self.mutex.unlock();
-        for (&self.records[scope.ordinal % self.endpoints.len]) |*slot| if (slot.*) |record| {
+        for (&self.records[try self.endpointIndex(scope.ordinal)]) |*slot| if (slot.*) |record| {
             if (!sameWorker(record.scope, scope)) continue;
             if (record.main_bound) return error.ResidentMainAlreadyCommitted;
             var full = scope;
@@ -200,7 +227,8 @@ pub const Router = struct {
     fn drop(self: *Router, scope: D.Scope) void {
         self.mutex.lock();
         defer self.mutex.unlock();
-        for (&self.records[scope.ordinal % self.endpoints.len]) |*slot| if (slot.*) |record| {
+        const index = self.endpointIndex(scope.ordinal) catch return;
+        for (&self.records[index]) |*slot| if (slot.*) |record| {
             if (sameWorker(record.scope, scope) and (!record.main_bound or std.mem.eql(u8, &record.scope.main, &scope.main))) {
                 slot.* = null;
                 return;
@@ -236,7 +264,7 @@ pub const Router = struct {
     fn replayEstimate(raw: *anyopaque, request: CPU.rv64_device_source_stage.Request) !usize {
         const self: *Router = @ptrCast(@alignCast(raw));
         if (request.ordinal >= self.planned_cpu_workers) return error.UnplannedResidentWorker;
-        const stage = self.endpoints[request.ordinal % self.endpoints.len].cpu_replay orelse return error.CpuReplayUnavailable;
+        const stage = self.endpoints[try self.endpointIndex(std.math.cast(u32, request.ordinal) orelse return error.UnplannedResidentWorker)].cpu_replay orelse return error.CpuReplayUnavailable;
         return stage.estimate(stage.context, request);
     }
     fn replayPrepare(raw: *anyopaque, a: std.mem.Allocator, request: CPU.rv64_device_source_stage.Request) !CPU.rv64_gkr_cpu_replay.Owner {
@@ -266,7 +294,7 @@ pub const Router = struct {
     fn truthRetained(raw: *anyopaque, request: CPU.rv64_gkr_truth_device_source.RetentionRequest) !CPU.rv64_gkr_truth_device_source.Retained {
         const self: *Router = @ptrCast(@alignCast(raw));
         if (request.expected.ordinal < self.planned_cpu_workers or zeroRoot(request.expected.statement) or zeroRoot(request.expected.fixed)) return error.InvalidTruthResidentScope;
-        const endpoint = self.endpoints[request.expected.ordinal % self.endpoints.len];
+        const endpoint = self.endpoints[try self.endpointIndex(request.expected.ordinal)];
         const stage = endpoint.truth_source orelse return error.ResidentTruthSourceRequired;
         const bound = stage.retained_upper_bound orelse return error.ResidentTruthRetainedContractRequired;
         return bound(stage.context, request);
@@ -274,7 +302,7 @@ pub const Router = struct {
     fn truthPrepare(raw: *anyopaque, a: std.mem.Allocator, request: CPU.rv64_gkr_truth_device_source.Prepare) !CPU.rv64_gkr_truth_device_source.Owner {
         const self: *Router = @ptrCast(@alignCast(raw));
         if (request.expected.ordinal < self.planned_cpu_workers or zeroRoot(request.expected.statement) or zeroRoot(request.expected.fixed)) return error.InvalidTruthResidentScope;
-        const endpoint = self.endpoints[request.expected.ordinal % self.endpoints.len];
+        const endpoint = self.endpoints[try self.endpointIndex(request.expected.ordinal)];
         const stage = endpoint.truth_source orelse return error.ResidentTruthSourceRequired;
         var bounded = request;
         bounded.budget = @min(request.budget, endpoint.byte_cap);
@@ -286,7 +314,7 @@ pub const Router = struct {
     fn truthComposition(raw: *anyopaque, a: std.mem.Allocator, roles: CPU.rv64_gkr_truth_device_composition.Roles, alpha: D.O, log: u32, split: u32, total: usize, trace: *const anyopaque, scope: D.Scope) !D.Tree {
         const self: *Router = @ptrCast(@alignCast(raw));
         if (scope.ordinal < self.planned_cpu_workers or zeroRoot(scope.statement) or zeroRoot(scope.fixed) or zeroRoot(scope.main)) return error.InvalidTruthResidentScope;
-        const endpoint = self.endpoints[scope.ordinal % self.endpoints.len];
+        const endpoint = self.endpoints[try self.endpointIndex(scope.ordinal)];
         const stage = endpoint.truth_composition orelse return error.ResidentTruthCompositionRequired;
         return stage.evaluate_and_commit(stage.context, a, roles, alpha, log, split, total, trace, scope);
     }
@@ -306,7 +334,7 @@ pub const Router = struct {
     fn abort(raw: *anyopaque, scope: GkrScope) void {
         const self: *Router = @ptrCast(@alignCast(raw));
         if (scope.ordinal >= self.planned_cpu_workers) return;
-        const endpoint = self.endpoints[scope.ordinal % self.endpoints.len];
+        const endpoint = self.endpoints[self.endpointIndex(scope.ordinal) catch return];
         if (comptime @hasField(Child.NumericalStage, "abort")) if (endpoint.numerical.abort) |callback| callback(endpoint.numerical.context, scope);
         self.drop(nativeScope(scope));
     }
@@ -373,7 +401,7 @@ pub const Router = struct {
                 if (column.coefficients.len != 0 or device.context_token == 0 or device.generation == 0 or column.log_size < 3 or column.log_size > 28 or device.count != @as(u64, 1) << @intCast(column.log_size)) return error.InvalidResidentTruthColumn;
             } else if (index != 0 or column.coefficients.len != @as(usize, 1) << @intCast(column.log_size)) return error.ResidentTruthHostFallback;
         };
-        const stage = self.endpoints[scope.ordinal % self.endpoints.len].pcs;
+        const stage = self.endpoints[try self.endpointIndex(scope.ordinal)].pcs;
         return stage.prove(stage.context, a, request, channel);
     }
 };
@@ -589,4 +617,31 @@ test "independent ordinal owners share physical devices without sharing scope re
     var duplicate = endpoints;
     duplicate[2] = duplicate[0];
     try std.testing.expectError(error.InvalidResidentOwnerEndpoint, Router.initOwnerEndpoints(&duplicate, 7, 2));
+}
+
+test "balanced route freezes one owner map across MAIN and numerical phases" {
+    var fake = [_]Fake{ .{}, .{}, .{}, .{} };
+    const endpoints = [_]Endpoint{ fake[0].endpoint(0), fake[1].endpoint(1), fake[2].endpoint(0), fake[3].endpoint(1) };
+    var router = try Router.initOwnerEndpoints(&endpoints, 4, 2);
+    router.physical_count = 2;
+    router.owner_count = 2;
+    const stage = router.routingStage();
+    const one = [_]u64{ 9, 1, 8, 1, 7, 1 };
+    const two = [_]u64{ 1, 1, 1, 1, 1, 1 };
+    const physical = try stage.prepare(stage.context, &one, &two, 2);
+    try std.testing.expectEqual(@as(usize, 6), physical.len);
+    try std.testing.expectError(error.NativeRouteAlreadyFrozen, stage.prepare(stage.context, &one, &two, 2));
+    for (0..4) |i| {
+        var scope = testScope(@intCast(i));
+        const owner = try router.admit(scope, .capture);
+        try std.testing.expectEqual(physical[i], @as(u8, @intCast(owner % 2)));
+        try router.promote(scope, @splat(@intCast(i + 1)));
+        scope.main = @splat(@intCast(i + 1));
+        try std.testing.expectEqual(owner, try router.admit(scope, .numerical));
+        router.drop(scope);
+    }
+    try std.testing.expectError(error.UnplannedResidentWorker, router.endpointIndex(6));
+    try router.replan(4);
+    try std.testing.expect(router.route_plan == null);
+    try std.testing.expectError(error.NativeRoutingAffinityMismatch, stage.prepare(stage.context, &one, &two, 1));
 }
