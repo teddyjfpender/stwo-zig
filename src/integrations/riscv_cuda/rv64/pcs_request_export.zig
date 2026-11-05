@@ -83,16 +83,16 @@ pub fn prepareRequestWithCache(a: std.mem.Allocator, request: D.Request, initial
     return prepareRequestWithFraming(a, request, initial, cache, false);
 }
 pub fn prepareRequestWithFraming(a: std.mem.Allocator, request: D.Request, initial: D.Channel, cache: ?*GeometryCache, wide_framing: bool) !Prepared {
-    return prepareMode(a,request,initial,cache,wide_framing,false);
+    return prepareMode(a, request, initial, cache, wide_framing, false);
 }
 /// Source-owned class geometry needs logs and opening-offset recipes only;
 /// coefficients may be empty and transcript/root values have no cost authority.
 /// This path takes no geometry-cache lock and generates no FFT/FRI coordinates.
 pub fn allocationPlan(a: std.mem.Allocator, request: D.Request, wide_framing: bool, options: @import("pcs_allocation_cost.zig").Options) !@import("pcs_allocation_cost.zig").Plan {
-    var prepared=try prepareMode(a,request,D.Channel.init(),null,wide_framing,true);
+    var prepared = try prepareMode(a, request, D.Channel.init(), null, wide_framing, true);
     defer prepared.deinit(a);
-    const descriptor=prepared.geometryDescriptor();
-    return @import("pcs_allocation_cost.zig").initGeometry(a,&descriptor,options);
+    const descriptor = prepared.geometryDescriptor();
+    return @import("pcs_allocation_cost.zig").initGeometry(a, &descriptor, options);
 }
 fn prepareMode(a: std.mem.Allocator, request: D.Request, initial: D.Channel, cache: ?*GeometryCache, wide_framing: bool, geometry_only: bool) !Prepared {
     if (request.trees.len == 0 or request.trees.len > 4 or request.points.items.len != request.trees.len or request.lifting_log_size < request.config.fri_config.log_blowup_factor or request.lifting_log_size > 28) return error.InvalidDevicePcsRequest;
@@ -154,7 +154,7 @@ fn prepareMode(a: std.mem.Allocator, request: D.Request, initial: D.Channel, cac
         for (groups.items) |*g| g.terms.deinit(a);
         groups.deinit(a);
     }
-    const forward_count = @as(usize,1)<<@intCast(maximum_source_log+beta-1);
+    const forward_count = @as(usize, 1) << @intCast(maximum_source_log + beta - 1);
     const geometry = if (cache) |owner| try owner.acquire(maximum_source_log + beta, plan) else null;
     errdefer if (geometry) |borrow| borrow.release();
     var uncached_twiddles: ?engine.poly.twiddles.TwiddleTree([]M) = null;
@@ -242,24 +242,24 @@ fn prepareMode(a: std.mem.Allocator, request: D.Request, initial: D.Channel, cac
     defer fri_desc.deinit(std.heap.page_allocator);
     var fri_tw: std.ArrayList(M) = .empty;
     defer fri_tw.deinit(std.heap.page_allocator);
-    var coordinate_count: usize=0;
+    var coordinate_count: usize = 0;
     if (geometry_only) {
-        for(plan.layers[0..plan.len],0..) |layer,li| {
-            var offsets: [4]u32=@splat(0);
-            var count=layer.count;
-            for(0..layer.fold_step) |step| {
-                offsets[step]=try count32(coordinate_count);
-                const half=count/2;
-                coordinate_count+=if(li==0 and step==0) 2*((half+3)/4) else half;
-                count/=2;
+        for (plan.layers[0..plan.len], 0..) |layer, li| {
+            var offsets: [4]u32 = @splat(0);
+            var count = layer.count;
+            for (0..layer.fold_step) |step| {
+                offsets[step] = try count32(coordinate_count);
+                const half = count / 2;
+                coordinate_count += if (li == 0 and step == 0) 2 * ((half + 3) / 4) else half;
+                count /= 2;
             }
-            try fri_desc.appendSlice(std.heap.page_allocator,&.{layer.count,layer.fold_step,layer.leaf_log,layer.shift});
-            try fri_desc.appendSlice(std.heap.page_allocator,&offsets);
+            try fri_desc.appendSlice(std.heap.page_allocator, &.{ layer.count, layer.fold_step, layer.leaf_log, layer.shift });
+            try fri_desc.appendSlice(std.heap.page_allocator, &offsets);
         }
     } else if (geometry == null) try C.friMetadata(plan, &fri_desc, &fri_tw);
     const fri_descriptions: []const u32 = if (geometry) |borrow| borrow.descriptions() else fri_desc.items;
     const fri_coordinates: []const M = if (geometry) |borrow| borrow.coordinates() else fri_tw.items;
-    var h = [_]u32{ 0x52564d53, 2, 0, degree, request.lifting_log_size, beta, try count32(request.config.fri_config.n_queries), request.config.fri_config.fold_step, try count32(source_count), exponent, try count32(groups.items.len), try count32(source_groups.items.len / 8), try count32(trees.len), try count32(sample_count), try count32(plan.len), 0, 0, 0, 0, try count32(forward_count), try count32(if(geometry_only)coordinate_count else fri_coordinates.len), 1, request.config.pow_bits, 0, 0, 0, 0, 0 };
+    var h = [_]u32{ 0x52564d53, 2, 0, degree, request.lifting_log_size, beta, try count32(request.config.fri_config.n_queries), request.config.fri_config.fold_step, try count32(source_count), exponent, try count32(groups.items.len), try count32(source_groups.items.len / 8), try count32(trees.len), try count32(sample_count), try count32(plan.len), 0, 0, 0, 0, try count32(forward_count), try count32(if (geometry_only) coordinate_count else fri_coordinates.len), 1, request.config.pow_bits, 0, 0, 0, 0, 0 };
     const header_len = try @import("pcs_framing.zig").encode(&h, .{ coefficient_words, evaluation_words, combined_coefficients, combined_evaluations }, wide_framing);
     var section_storage: [17][]const u32 = @splat(&.{});
     var section_owned: [17]bool = @splat(true);
@@ -290,10 +290,10 @@ fn prepareMode(a: std.mem.Allocator, request: D.Request, initial: D.Channel, cac
     errdefer a.free(coefficients);
     var ci: usize = 0;
     for (request.trees, trees) |tree, meta| for (meta.sorted_to_original) |original| {
-        coefficients[ci] = if(geometry_only) .{.kind=0,.coefficient_log=tree.columns[original].log_size,.count=@as(u64,1)<<@intCast(tree.columns[original].log_size),.words=null} else nativeColumn(tree.columns[original]);
+        coefficients[ci] = if (geometry_only) .{ .kind = 0, .coefficient_log = tree.columns[original].log_size, .count = @as(u64, 1) << @intCast(tree.columns[original].log_size), .words = null } else nativeColumn(tree.columns[original]);
         ci += 1;
     };
-    return .{ .geometry_only=geometry_only, .forward_count=forward_count, .coordinate_count=if(geometry_only)coordinate_count else fri_coordinates.len, .metadata = .{ .shape = .{ .config = request.config, .degree_log = degree, .trees = trees }, .sources = try count32(source_count), .terms = exponent, .groups = try count32(groups.items.len), .source_groups = try count32(source_groups.items.len / 8), .sample_count = try count32(sample_count), .degree_log = degree, .eval_log = request.lifting_log_size, .coefficient_cells = coefficient_words }, .section_storage = section_storage, .section_owned = section_owned, .geometry = geometry, .coefficients = coefficients, .scope = requestScope(request) };
+    return .{ .geometry_only = geometry_only, .forward_count = forward_count, .coordinate_count = if (geometry_only) coordinate_count else fri_coordinates.len, .metadata = .{ .shape = .{ .config = request.config, .degree_log = degree, .trees = trees }, .sources = try count32(source_count), .terms = exponent, .groups = try count32(groups.items.len), .source_groups = try count32(source_groups.items.len / 8), .sample_count = try count32(sample_count), .degree_log = degree, .eval_log = request.lifting_log_size, .coefficient_cells = coefficient_words }, .section_storage = section_storage, .section_owned = section_owned, .geometry = geometry, .coefficients = coefficients, .scope = requestScope(request) };
 }
 
 fn columnCount(column: D.Column) u64 {
@@ -321,9 +321,9 @@ fn mWords(values: []const M) []const u32 {
     return @as([*]const u32, @ptrCast(values.ptr))[0..values.len];
 }
 pub const Prepared = struct {
-    geometry_only: bool=false,
-    forward_count: usize=0,
-    coordinate_count: usize=0,
+    geometry_only: bool = false,
+    forward_count: usize = 0,
+    coordinate_count: usize = 0,
     metadata: Metadata,
     section_storage: [17][]const u32,
     section_owned: [17]bool = @splat(true),
@@ -332,15 +332,15 @@ pub const Prepared = struct {
     owns_metadata: bool = true,
     scope: [8]u32 = @splat(0),
     pub fn descriptor(self: *const Prepared) Native.Request {
-        if(self.geometry_only) @panic("geometry-only PCS descriptor cannot be proved");
+        if (self.geometry_only) @panic("geometry-only PCS descriptor cannot be proved");
         return self.geometryDescriptor();
     }
     fn geometryDescriptor(self: *const Prepared) Native.Request {
         var result = Native.Request{ .sections = undefined, .coefficients = self.coefficients.ptr, .coefficient_count = self.coefficients.len, .scope = self.scope };
         for (self.section_storage, &result.sections) |section, *span| span.* = .{ .words = section.ptr, .count = section.len };
-        if(self.geometry_only) {
-            result.sections[12]=.{.words=null,.count=self.forward_count};
-            result.sections[14]=.{.words=null,.count=self.coordinate_count};
+        if (self.geometry_only) {
+            result.sections[12] = .{ .words = null, .count = self.forward_count };
+            result.sections[14] = .{ .words = null, .count = self.coordinate_count };
         }
         return result;
     }
@@ -385,4 +385,43 @@ pub fn exportRequest(a: std.mem.Allocator, request: D.Request, initial: D.Channe
     try words(file, prepared.section_storage[15]);
     try words(file, &@as([17]u32, @splat(0)));
     return prepared.takeMetadata();
+}
+
+test "geometry-only PCS cost matches real framing without coefficients or FFT payloads" {
+    const a = std.testing.allocator;
+    var coeff8 = [_]M{M.zero()} ** 8;
+    var coeff16 = [_]M{M.zero()} ** 16;
+    const point = try core.circle.secureFieldPointFromRandomSeedCheckedFor(D.O, D.O.fromBase(M.fromCanonical(7)));
+    const shift = core.poly.circle.canonic.CanonicCoset.new(4).coset().step;
+    const shifted = point.add(.{ .x = D.O.fromBase(shift.x), .y = D.O.fromBase(shift.y) });
+    var samples0 = [_]Point{};
+    var samples1 = [_]Point{point};
+    var samples2 = [_]Point{ point, shifted };
+    var points = [_][]Point{ &samples0, &samples1, &samples2 };
+    var forest = [_][][]Point{&points};
+    var columns = [_]D.Column{ .{ .log_size = 3, .coefficients = &coeff8 }, .{ .log_size = 4, .coefficients = &coeff16 }, .{ .log_size = 4, .coefficients = &coeff16 } };
+    var trees = [_]D.Tree{.{ .root = @splat(0), .columns = &columns }};
+    for ([_]u32{ 1, 2, 4 }) |beta| {
+        const request = D.Request{ .config = .{ .pow_bits = 0, .fri_config = .{ .log_blowup_factor = beta, .log_last_layer_degree_bound = 0, .n_queries = 2, .fold_step = 2 } }, .lifting_log_size = 4 + beta, .trees = &trees, .points = core.pcs.TreeVec([][]Point).initOwned(&forest) };
+        var actual = try prepareRequestWithFraming(a, request, D.Channel.init(), null, true);
+        defer actual.deinit(a);
+        var geometry = try prepareMode(a, request, D.Channel.init(), null, true, true);
+        defer geometry.deinit(a);
+        const full = actual.descriptor();
+        const bare = geometry.geometryDescriptor();
+        try std.testing.expect(bare.sections[12].words == null and bare.sections[14].words == null);
+        for (geometry.coefficients) |column| try std.testing.expect(column.words == null);
+        try std.testing.expectEqualSlices(u32, actual.section_storage[0], geometry.section_storage[0]);
+        try std.testing.expectEqualSlices(u32, actual.section_storage[13], geometry.section_storage[13]);
+        const Cost = @import("pcs_allocation_cost.zig");
+        const options = Cost.Options{ .rolling_beta2 = true };
+        var x = try Cost.init(a, &full, options);
+        defer x.deinit(a);
+        var y = try Cost.initGeometry(a, &bare, options);
+        defer y.deinit(a);
+        try std.testing.expectEqual(x.additional_upper, y.additional_upper);
+        try std.testing.expectEqual(x.result_words, y.result_words);
+        try std.testing.expectEqualDeep(x.allocations.items, y.allocations.items);
+        try std.testing.expectError(error.InvalidPcsCostSpan, Cost.init(a, &bare, options));
+    }
 }

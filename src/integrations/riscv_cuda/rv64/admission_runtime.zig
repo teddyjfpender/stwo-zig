@@ -18,13 +18,65 @@ pub const Snapshot = extern struct {
     pub fn footprint(self: Snapshot) A.Footprint {
         return .{ .large = self.live_large, .small = self.live_small };
     }
-    fn validate(self: Snapshot, endpoint: Endpoint) !void {
+    pub fn validate(self: Snapshot, endpoint: Endpoint) !void {
         if (self.version != 1 or self.device != endpoint.physical or self.capacity != endpoint.planner.preset.arenaBytes() or self.chunk != A.chunk_bytes or self.small_slab != A.small_slab_bytes) return error.StaticArenaPresetMismatch;
         if (self.free_device > self.total_device) return error.InvalidArenaSnapshot;
-        const used = self.total_device - self.free_device;
+        const device_used = self.total_device - self.free_device;
+        const held = try activeBudgetGuard(self.device, self.total_device);
+        const used = try subtractBudgetGuard(device_used, self.total_device, held);
         if (used > self.capacity and used - self.capacity > A.external_budget) return error.ExternalGpuBudgetExceeded;
     }
 };
+/// External canary allocation belongs to another, supervised process. It
+/// limits physical availability; it never changes this process's arena budget.
+fn subtractBudgetGuard(used: u64, total: u64, held: u64) !u64 {
+    if (held == 0) return used;
+    if (total <= A.physical_limit or held < total - A.physical_limit or held - (total - A.physical_limit) >= A.chunk_bytes or held > used) return error.InvalidBudgetGuardReservation;
+    return used - held;
+}
+fn activeBudgetGuard(device: u32, total: u64) !u64 {
+    var name_buffer: [96]u8 = undefined;
+    const name = try std.fmt.bufPrintZ(&name_buffer, "STWO_RV64_BUDGET_GUARD_BYTES_{}", .{device});
+    const bytes_env = std.posix.getenv(name);
+    const pid_env = std.posix.getenv("STWO_RV64_BUDGET_GUARD_PID");
+    if (bytes_env == null and pid_env == null) return 0;
+    const text = bytes_env orelse return error.MissingBudgetGuardDevice;
+    const held = std.fmt.parseInt(u64, text, 10) catch return error.InvalidBudgetGuardReservation;
+    if (held == 0 or total <= A.physical_limit or held < total - A.physical_limit or held - (total - A.physical_limit) >= A.chunk_bytes) return error.InvalidBudgetGuardReservation;
+    const pid = std.fmt.parseInt(u32, pid_env orelse return error.MissingBudgetGuardPid, 10) catch return error.InvalidBudgetGuardPid;
+    if (pid <= 1) return error.InvalidBudgetGuardPid;
+    if (comptime @import("builtin").os.tag != .linux) return error.BudgetGuardObservationUnavailable;
+    var path_buffer: [96]u8 = undefined;
+    const stat_path = try std.fmt.bufPrint(&path_buffer, "/proc/{}/stat", .{pid});
+    const stat = std.fs.openFileAbsolute(stat_path, .{}) catch return error.BudgetGuardNotAlive;
+    defer stat.close();
+    var stat_buffer: [4096]u8 = undefined;
+    const n = try stat.readAll(&stat_buffer);
+    const close = std.mem.lastIndexOfScalar(u8, stat_buffer[0..n], ')') orelse return error.InvalidBudgetGuardPid;
+    if (close + 2 >= n or stat_buffer[close + 2] == 'Z' or stat_buffer[close + 2] == 'X' or stat_buffer[close + 2] == 'x') return error.BudgetGuardNotAlive;
+    const cmd_path = try std.fmt.bufPrint(&path_buffer, "/proc/{}/cmdline", .{pid});
+    const cmd = std.fs.openFileAbsolute(cmd_path, .{}) catch return error.BudgetGuardNotAlive;
+    defer cmd.close();
+    var cmd_buffer: [4096]u8 = undefined;
+    const cn = try cmd.readAll(&cmd_buffer);
+    const end = std.mem.indexOfScalar(u8, cmd_buffer[0..cn], 0) orelse return error.InvalidBudgetGuardPid;
+    const executable = cmd_buffer[0..end];
+    if (!std.mem.eql(u8, std.fs.path.basename(executable), "gpu-budget-guard")) return error.InvalidBudgetGuardPid;
+    // The harness independently pins the guard binary/readyJSON and watches
+    // its liveness for the entire proof. These envs are measurement controls,
+    // never fields supplied by a proof or a guest request.
+    return held;
+}
+
+test "external physical canary subtraction preserves the complete prover budget" {
+    const total: u64 = 33679736832;
+    const held: u64 = 5681184768;
+    try std.testing.expectEqual(@as(u64, 27998552064), try subtractBudgetGuard(total, total, held));
+    try std.testing.expectEqual(@as(u64, 27000000000), try subtractBudgetGuard(27000000000 + held, total, held));
+    try std.testing.expectError(error.InvalidBudgetGuardReservation, subtractBudgetGuard(held - 1, total, held));
+    try std.testing.expectError(error.InvalidBudgetGuardReservation, subtractBudgetGuard(total, total, held - 2097152));
+    try std.testing.expectEqual(@as(u64, 123), try subtractBudgetGuard(123, total, 0));
+}
 comptime {
     if (@sizeOf(Snapshot) != 72) @compileError("arena snapshot ABI");
 }
@@ -83,7 +135,10 @@ pub const Endpoint = struct {
         if (!self.planner.healthy(self.physical)) return error.PhysicalAdmissionPoisoned;
         const gate = try self.planner.stageGate(self.physical);
         gate.lock();
-        defer gate.unlock();
+        defer {
+            gate.unlock();
+            self.planner.notifyResourceRelease();
+        }
         var query = Query{ .endpoint = self, .configure = true };
         if (self.submit(self.session, Query.run, &query) != 0 or query.failed) return error.GlobalAdmissionConfigureFailed;
         try query.result.validate(self.*);
@@ -183,6 +238,10 @@ pub const Permit = struct {
         try self.endpoint.planner.completeObserved(self.token, after.footprint(), successor);
         self.closed = true;
         (try self.endpoint.planner.stageGate(self.endpoint.physical)).unlock();
+        // Wake only after the physical gate is actually acquirable. Otherwise
+        // a waiter can observe the new epoch, miss the still-held gate, and
+        // sleep forever with no subsequent release notification.
+        self.endpoint.planner.notifyResourceRelease();
         std.debug.print("GLOBAL_ADMISSION_STAGE physical={} ticket={} domain={s} stage={s} ordinal={} owner_queue_ns={} owner_callback_ns={} total_host_ns={} retained_large={} retained_small={} successor_large={} successor_small={}\n", .{ self.endpoint.physical, self.token.id, @tagName(self.demand.owner.domain), @tagName(self.demand.stage), self.demand.owner.ordinal, self.enter_ns, self.leave_ns - self.enter_ns, self.timer.read(), after.live_large, after.live_small, successor.large, successor.small });
     }
 };

@@ -11,11 +11,16 @@ const Admission = @import("global_admission.zig");
 const Stream = @import("trace_stream_plan.zig");
 
 pub const Format = enum { m31_blake32 };
-pub const Kind = enum { coefficient_copy, arena, source_twiddles, trace_roots, metadata, domain_cold, transcript, sample_scratch, deep, trace_tree, trace_values, trace_paths, fri, late_trace };
+pub const Kind = enum { immutable_fixed, coefficient_copy, arena, source_twiddles, trace_roots, metadata, domain_cold, transcript, sample_scratch, deep, trace_tree, trace_values, trace_paths, fri, late_trace };
 pub const Allocation = struct { kind: Kind, words: u64, bytes: u64, rounded: Admission.Footprint };
 pub const Options = struct {
     format: Format = .m31_blake32,
     rolling_beta2: bool = false,
+    /// Monotonic per-session fact: canonical domain stays resident to destroy.
+    domain_cached: bool = false,
+    /// Producer promise: one sorted retained lease/tree. Strict runtime plans
+    /// validate the complete pointer/token/generation roster before borrowing.
+    borrowed_trees: [4]bool = @splat(false),
     /// Freeze this from the host environment before requesting a permit.
     /// Zero means the unstreamed late trace rebuild, matching pcsStreamBudget.
     stream_chunk_words: usize = Stream.default_chunk_words,
@@ -23,6 +28,7 @@ pub const Options = struct {
 pub const Plan = struct {
     allocations: std.ArrayList(Allocation) = .empty,
     additional_upper: Admission.Footprint = .{},
+    retained_after_upper: Admission.Footprint = .{},
     requested_upper_bytes: u64 = 0,
     result_words: u64 = 0,
     rolling_sources: bool,
@@ -33,10 +39,14 @@ pub const Plan = struct {
         self.allocations.deinit(a);
         self.* = undefined;
     }
+    pub fn includeFixedCold(self: *Plan, a: std.mem.Allocator, words: u64) !void {
+        if (words != 0) try self.add(a, .immutable_fixed, words);
+    }
     fn add(self: *Plan, a: std.mem.Allocator, kind: Kind, words: u64) !void {
         const bytes = try mul(words, 4);
         const rounded = try Admission.Footprint.allocation(bytes);
         self.additional_upper = try self.additional_upper.add(rounded);
+        if (kind == .domain_cold or kind == .immutable_fixed) self.retained_after_upper = try self.retained_after_upper.add(rounded);
         self.requested_upper_bytes = try sum(self.requested_upper_bytes, bytes);
         try self.allocations.append(a, .{ .kind = kind, .words = words, .bytes = bytes, .rounded = rounded });
     }
@@ -76,13 +86,13 @@ fn treeWords(log: u32) !u64 {
 }
 
 pub fn init(a: std.mem.Allocator, request: *const Abi.Request, options: Options) !Plan {
-    return initMode(a,request,options,false);
+    return initMode(a, request, options, false);
 }
 /// Geometry-only descriptors deliberately contain no coefficient or FFT data
 /// pointers and cannot be submitted to the native prover. Scalar source framing
 /// and every allocation count are validated identically.
 pub fn initGeometry(a: std.mem.Allocator, request: *const Abi.Request, options: Options) !Plan {
-    return initMode(a,request,options,true);
+    return initMode(a, request, options, true);
 }
 fn initMode(a: std.mem.Allocator, request: *const Abi.Request, options: Options, geometry_only: bool) !Plan {
     _ = options.format; // The only accepted enum value is explicitly Blake32.
@@ -91,7 +101,7 @@ fn initMode(a: std.mem.Allocator, request: *const Abi.Request, options: Options,
     if ((h.len != 24 and h.len != 28) or h[0] != 0x52564d53 or h[2] != 0 or
         !((h[1] == 2 and h.len == 24) or (h[1] == 3 and h.len == 28)) or
         h[21] > 1 or h[22] > 32 or h[23] != 0) return error.UnsupportedPcsCostFormat;
-    if (h[3] > 28 or h[4] > 28 or h[5] == 0 or h[5] > 4 or h[3]+h[5] != h[4] or h[6] == 0 or h[6] > 1024 or
+    if (h[3] > 28 or h[4] > 28 or h[5] == 0 or h[5] > 4 or h[3] + h[5] != h[4] or h[6] == 0 or h[6] > 1024 or
         h[8] == 0 or h[8] > 65536 or h[9] == 0 or h[9] > 65536 or
         h[10] == 0 or h[10] > 1024 or h[11] == 0 or h[11] > 96 or
         h[12] == 0 or h[12] > 4 or h[13] == 0 or h[13] > 65536 or h[14] > 28 or
@@ -110,10 +120,10 @@ fn initMode(a: std.mem.Allocator, request: *const Abi.Request, options: Options,
     const sizes = [_]u64{ h.len, 9, if (h[21] != 0) 16 else 0, sc * 4, tc * 4, gc * 8, sgc * 8, nt * 6, gc * 4, gc * 2, h[13], sc, h[19], @as(u64, h[14]) * 8, h[20], nt * 8, 4 };
     var sections: [17][]const u32 = undefined;
     for (&sections, sizes, 0..) |*s, n, i| {
-        if (geometry_only and (i==12 or i==14) and request.sections[i].words==null) {
-            if(request.sections[i].count!=n)return error.InvalidPcsCostSpan;
-            s.*=&.{};
-        } else s.* = try span(request,i,n);
+        if (geometry_only and (i == 12 or i == 14) and request.sections[i].words == null) {
+            if (request.sections[i].count != n) return error.InvalidPcsCostSpan;
+            s.* = &.{};
+        } else s.* = try span(request, i, n);
     }
     const sources = sections[3];
     const groups = sections[5];
@@ -157,7 +167,21 @@ fn initMode(a: std.mem.Allocator, request: *const Abi.Request, options: Options,
         var count: u64 = 0;
         for (coefficients[d[0]..][0..d[1]]) |c| count = try sum(count, c.count);
         // Always charge a copy, even if C++ can borrow one validated device lease.
-        if (rolling) try out.add(a, .coefficient_copy, count);
+        if (rolling and options.borrowed_trees[t]) {
+            if (!geometry_only) {
+                var next_address: usize = 0;
+                var context: u64 = 0;
+                var generation: u64 = 0;
+                for (coefficients[d[0]..][0..d[1]], 0..) |c, i| {
+                    if (c.kind != 1 or c.words == null or c.context_token == 0 or c.generation == 0) return error.InvalidPcsBorrowPromise;
+                    const address = @intFromPtr(c.words.?);
+                    if (i != 0 and (address != next_address or c.context_token != context or c.generation != generation)) return error.InvalidPcsBorrowPromise;
+                    next_address = try std.math.add(usize, address, try std.math.mul(usize, @intCast(c.count), 4));
+                    context = c.context_token;
+                    generation = c.generation;
+                }
+            }
+        } else if (rolling) try out.add(a, .coefficient_copy, count);
         var rows: std.ArrayList(u32) = .empty;
         defer rows.deinit(a);
         var evaluations: u64 = 0;
@@ -212,7 +236,7 @@ fn initMode(a: std.mem.Allocator, request: *const Abi.Request, options: Options,
     }
     for ([_]u64{ h[13], @as(u64, h[13]) * 8, sc, 9, sc * 4, tc * 4, gc * 8, gc * 4 }) |n| try out.add(a, .metadata, n);
     // Cold domain is an independent immutable reservation. A hit only lowers cost.
-    try out.add(a, .domain_cold, try mul(try pow(h[4]), 2));
+    if (!options.domain_cached) try out.add(a, .domain_cold, try mul(try pow(h[4]), 2));
     try out.add(a, .metadata, h[20]);
     for ([_]u64{ 16, 16, if (h[21] != 0) 16 else 8, (gc + 1) * 16, gc * 28 * 8, gc + 1 }) |n| try out.add(a, .transcript, n);
     for ([_]u64{ scratch, scratch, max_terms }) |n| try out.add(a, .sample_scratch, n);

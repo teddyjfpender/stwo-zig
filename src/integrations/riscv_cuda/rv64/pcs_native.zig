@@ -4,6 +4,9 @@ const core = @import("stwo_core");
 const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
 const Abi = @import("pcs_native_abi.zig");
 const Export = @import("pcs_request_export.zig");
+const Admission = @import("global_admission.zig");
+const AdmissionRuntime = @import("admission_runtime.zig");
+const AllocationCost = @import("pcs_allocation_cost.zig");
 const Decode = @import("hybrid_pcs.zig");
 const CachedColumn = struct { host: usize, tree: u32, column: usize, count: usize, log: u32, device: D.DeviceCoefficients };
 const Cached = struct { scope: [8]u32, lease: Abi.Lease, columns: []CachedColumn, in_use: bool = false, extra: std.ArrayList(Abi.Lease) = .empty };
@@ -22,6 +25,32 @@ fn hostGeometryBytes() usize {
     const bytes = std.fmt.parseInt(usize, text, 10) catch return resident_host_geometry_bytes;
     return if (bytes == 0) Export.GeometryCache.default_bytes else bytes;
 }
+/// Geometry-only source class plan; no transcript, coefficient data, GPU work
+/// or context/cache locks. Roots and channel bytes do not affect allocations.
+pub fn classAllocationPlan(a: std.mem.Allocator, request: D.Request, wide: bool, options: AllocationCost.Options) !AllocationCost.Plan {
+    return Export.allocationPlan(a, request, wide, options);
+}
+/// Pass zero only for an independently resolved/pinned device FIXED forest.
+/// A geometry-only request does not itself prove such a cache hit.
+pub fn classAllocationPlanWithFixed(a: std.mem.Allocator, request: D.Request, wide: bool, options: AllocationCost.Options, fixed_cold_words: u64) !AllocationCost.Plan {
+    var plan = try classAllocationPlan(a, request, wide, options);
+    errdefer plan.deinit(a);
+    try plan.includeFixedCold(a, fixed_cold_words);
+    return plan;
+}
+pub fn allocationOptions() !AllocationCost.Options {
+    var result: AllocationCost.Options = .{};
+    if (std.posix.getenv("STWO_RV64_PCS_ROLLING_BETA2")) |v| result.rolling_beta2 = std.mem.eql(u8, v, "1");
+    if (std.posix.getenv("STWO_RV64_PCS_STREAM")) |v| if (std.mem.eql(u8, v, "0")) {
+        result.stream_chunk_words = 0;
+        return result;
+    };
+    if (std.posix.getenv("STWO_RV64_PCS_STREAM_CHUNK_WORDS")) |v| {
+        const n = std.fmt.parseInt(usize, v, 10) catch return error.InvalidPcsStreamBudget;
+        if (n != 0) result.stream_chunk_words = n;
+    }
+    return result;
+}
 pub const Context = struct {
     early_allocations: @import("native_stage1_allocations.zig").Guard = .{},
     admission_progress: @import("admission_progress.zig").Registry = .{},
@@ -32,6 +61,10 @@ pub const Context = struct {
     siblings: std.atomic.Value(u32) = std.atomic.Value(u32).init(0),
     admission: ?@import("admission_runtime.zig").Endpoint = null,
     admission_retention: @import("admission_retention.zig").Registry = .{},
+    pcs_options: AllocationCost.Options = .{},
+    /// Canonical domains never evict in the frozen C owner; a successful PCS
+    /// publishes this fact and session destruction is the sole invalidation.
+    pcs_domain_logs: std.atomic.Value(u32) = std.atomic.Value(u32).init(0),
     byte_cap: u64,
     wide_pcs_framing: bool = false,
     /// Immutable host FFT/FRI geometry only; request/transcript data never enter.
@@ -54,6 +87,13 @@ pub const Context = struct {
     lease_validate: Abi.LeaseValidate,
     lease_validate_range: Abi.LeaseValidateRange,
     lease_release: Abi.LeaseRelease,
+    pub fn classAllocationOptions(self: *const Context, lifting_log: u32) !AllocationCost.Options {
+        if (lifting_log > 28) return error.InvalidPcsCostGeometry;
+        var result = self.pcs_options;
+        result.domain_cached = (self.pcs_domain_logs.load(.acquire) & (@as(u32, 1) << @intCast(lifting_log))) != 0;
+        if (self.admission != null) result.borrowed_trees = .{ false, true, true, true };
+        return result;
+    }
     pub fn registerAdmissionProgress(self: *Context, scope: D.Scope, plan: @import("admission_progress.zig").Plan) !void {
         return self.admission_progress.put(std.heap.page_allocator, .{ .statement = scope.statement, .fixed = scope.fixed, .ordinal = scope.ordinal }, plan);
     }
@@ -64,6 +104,13 @@ pub const Context = struct {
         var endpoint = try @import("admission_runtime.zig").Endpoint.init(planner, physical, &self.library, self.session, self.submit);
         try endpoint.configure();
         self.admission = endpoint;
+        try planner.registerCoverage(physical, .native_pcs);
+        try planner.registerCoverage(physical, .recursion_pcs);
+        // All GPU immutable misses run inside the same bounded source/TC/RC/
+        // PCS tickets; unpermitted public uploads fail in the C guard. Scope
+        // retirement uses checked joined callbacks and poisons on any failure.
+        try planner.registerCoverage(physical, .immutable);
+        try planner.registerCoverage(physical, .retirement);
     }
     pub fn inheritGlobalAdmission(self: *Context, parent: *const Context) !void {
         if (parent.admission) |endpoint| try self.attachGlobalAdmission(endpoint.planner, endpoint.physical);
@@ -154,23 +201,41 @@ pub const Context = struct {
         return self.immutable_setup.?.fixed(native_context, scope, columns);
     }
     pub fn beginBlock(self: *Context, identity: [32]u8, budget: BlockBudget) !void {
-        if (self.active_block != null or self.cache.items.len != 0) return error.ResidentBlockStillActive;
+        var gate: ?*std.Thread.Mutex = null;
+        if (self.admission) |endpoint| {
+            if (!endpoint.planner.healthy(endpoint.physical)) return error.PhysicalAdmissionPoisoned;
+            gate = try endpoint.planner.stageGate(endpoint.physical);
+            gate.?.lock();
+        }
+        defer if (gate) |locked| {
+            locked.unlock();
+            self.admission.?.planner.notifyResourceRelease();
+        };
+        if (self.active_block != null or self.cache.items.len != 0 or self.admission_retention.claims.items.len != 0) return error.ResidentBlockStillActive;
         if (budget.device_bytes != self.byte_cap) return error.ResidentDeviceBudgetChanged;
         try self.enableImmutableSetup(budget.immutable_bytes);
         try self.configureRetention(budget.max_scopes);
         try self.requireNoRequestLeases();
         if (try phaseCacheTrimEnabled()) {
-            if (self.admission) |endpoint| if (endpoint.enabled()) return error.PhaseCacheTrimWithAdmissionUnavailable;
             var trim = PhaseTrim{ .self = self };
-            if (self.submit(self.session, PhaseTrim.run, &trim) != 0) return trim.failure orelse error.ResidentPhaseTrimFailed;
+            if (self.submit(self.session, PhaseTrim.run, &trim) != 0) {
+                if (self.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
+                return trim.failure orelse error.ResidentPhaseTrimFailed;
+            }
             try self.requireNoRequestLeases();
+            if (self.admission) |endpoint| {
+                const actual = trim.after orelse return error.MissingPhaseTrimSnapshot;
+                try actual.validate(endpoint);
+                try endpoint.planner.observeIdle(endpoint.physical, actual.footprint());
+            }
         }
         self.active_block = identity;
     }
     const PhaseTrim = struct {
         self: *Context,
+        after: ?AdmissionRuntime.Snapshot = null,
         failure: ?anyerror = null,
-        fn run(_: *anyopaque, _: u64, raw: ?*anyopaque) callconv(.c) c_int {
+        fn run(native_context: *anyopaque, _: u64, raw: ?*anyopaque) callconv(.c) c_int {
             const job: *@This() = @ptrCast(@alignCast(raw.?));
             const cache = job.self.immutable_setup orelse return 1;
             if (cache.borrows.items.len != 0) {
@@ -188,6 +253,14 @@ pub const Context = struct {
                 job.failure = error.ResidentPhaseTrimFailed;
                 return 1;
             };
+            if (job.self.admission) |endpoint| {
+                var after: AdmissionRuntime.Snapshot = .{};
+                if (endpoint.api.snapshot(native_context, &after) != 0) {
+                    job.failure = error.GlobalAdmissionSnapshotFailed;
+                    return 1;
+                }
+                job.after = after;
+            }
             std.debug.print("GPU_RESIDENT_PHASE_TRIM immutable_bytes={} pcs_idle_bytes={} pcs_trim_api={} graph_metadata_retained=true\n", .{ immutable, pcs, trim != null });
             return 0;
         }
@@ -433,6 +506,7 @@ pub const Context = struct {
         }
     };
     pub fn init(path: []const u8, device: u32, capacity: u64) !Context {
+        const pcs_options = try allocationOptions();
         var library = try std.DynLib.open(path);
         errdefer library.close();
         const create = library.lookup(Abi.Create, "stwo_rv64_pcs_native_create") orelse return error.MissingGpuPcsSymbol;
@@ -449,13 +523,13 @@ pub const Context = struct {
         if (create(device, capacity, &session) != 0 or session == null) return error.GpuPcsInitializationFailed;
         const Version = *const fn () callconv(.c) u32;
         const wide = if (library.lookup(Version, "stwo_rv64_pcs_request_version")) |version| version() >= 3 else false;
-        return .{ .byte_cap = capacity, .wide_pcs_framing = wide, .host_geometry = Export.GeometryCache.init(std.heap.page_allocator, hostGeometryBytes()), .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
+        return .{ .pcs_options = pcs_options, .byte_cap = capacity, .wide_pcs_framing = wide, .host_geometry = Export.GeometryCache.init(std.heap.page_allocator, hostGeometryBytes()), .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
     }
     pub fn createSibling(self: *Context, a: std.mem.Allocator, device: u32) !Context {
         const create = self.library.lookup(Abi.Create, "stwo_rv64_pcs_native_create") orelse return error.MissingGpuPcsSymbol;
         var session: ?*anyopaque = null;
         if (create(device, self.byte_cap, &session) != 0 or session == null) return error.GpuPcsInitializationFailed;
-        var sibling = Context{ .byte_cap = self.byte_cap, .wide_pcs_framing = self.wide_pcs_framing, .library_owner = false, .parent = self, .host_geometry = Export.GeometryCache.init(a, hostGeometryBytes()), .library = self.library, .session = session.?, .native_prove = self.native_prove, .release = self.release, .destroy = self.destroy, .last_error = self.last_error, .submit = self.submit, .lease_allocate = self.lease_allocate, .lease_validate = self.lease_validate, .lease_validate_range = self.lease_validate_range, .lease_release = self.lease_release };
+        var sibling = Context{ .pcs_options = self.pcs_options, .byte_cap = self.byte_cap, .wide_pcs_framing = self.wide_pcs_framing, .library_owner = false, .parent = self, .host_geometry = Export.GeometryCache.init(a, hostGeometryBytes()), .library = self.library, .session = session.?, .native_prove = self.native_prove, .release = self.release, .destroy = self.destroy, .last_error = self.last_error, .submit = self.submit, .lease_allocate = self.lease_allocate, .lease_validate = self.lease_validate, .lease_validate_range = self.lease_validate_range, .lease_release = self.lease_release };
         _ = self.siblings.fetchAdd(1, .monotonic);
         errdefer sibling.deinit();
         try sibling.inheritGlobalAdmission(self);
@@ -518,11 +592,110 @@ pub const Context = struct {
             return 0;
         }
     };
+    const PcsBoundary = struct {
+        permit: *AdmissionRuntime.Permit,
+        ending: bool = false,
+        context: ?*Context = null,
+        request: ?*const D.Request = null,
+        failure: ?anyerror = null,
+        fn run(raw: *anyopaque, _: u64, user: ?*anyopaque) callconv(.c) c_int {
+            const job: *@This() = @ptrCast(@alignCast(user orelse return 1));
+            (if (job.ending) job.permit.leaveOwner(raw) else job.permit.enterOwner(raw)) catch |err| {
+                job.failure = err;
+                return 1;
+            };
+            if (!job.ending) if (job.request) |request| {
+                const context = job.context orelse return 1;
+                const scope = @import("pcs_scope.zig").identity(request.scope orelse return 1);
+                for (request.trees) |tree| for (tree.columns) |column| if (column.device) |device| {
+                    if (context.lease_validate_range(context.session, device.words, device.count, device.context_token, device.generation, &scope) != 0) {
+                        job.failure = error.InvalidDevicePcsColumn;
+                        return 1;
+                    }
+                };
+            };
+            return 0;
+        }
+    };
+    fn closePcsPermit(self: *Context, permit: *AdmissionRuntime.Permit) !void {
+        if (permit.entered and permit.after == null) {
+            var boundary = PcsBoundary{ .permit = permit, .ending = true };
+            if (self.submit(self.session, PcsBoundary.run, &boundary) != 0) return boundary.failure orelse error.GlobalPcsBoundaryFailed;
+        }
+        try permit.finish(.{});
+    }
+    fn validateSortedTree(a: std.mem.Allocator, tree: D.Tree, context_token: u64) !void {
+        if (tree.columns.len == 0) return error.InvalidPcsBorrowPromise;
+        const order = try a.alloc(usize, tree.columns.len);
+        defer a.free(order);
+        for (order, 0..) |*index, i| index.* = i;
+        std.mem.sort(usize, order, tree.columns, struct {
+            fn less(columns: []const D.Column, x: usize, y: usize) bool {
+                return columns[x].log_size < columns[y].log_size or (columns[x].log_size == columns[y].log_size and x < y);
+            }
+        }.less);
+        var next: usize = 0;
+        var generation: u64 = 0;
+        for (order, 0..) |index, i| {
+            const device = tree.columns[index].device orelse return error.AdmissionRequiresSortedResidentCoefficients;
+            if (device.context_token != context_token or device.generation == 0) return error.InvalidPcsBorrowPromise;
+            const address = @intFromPtr(device.words);
+            if (i != 0 and (address != next or device.generation != generation)) return error.InvalidPcsBorrowPromise;
+            next = try std.math.add(usize, address, try std.math.mul(usize, @intCast(device.count), 4));
+            generation = device.generation;
+        }
+    }
     fn prove(raw: *anyopaque, a: std.mem.Allocator, request: D.Request, channel: *D.Channel) !D.P.ExtendedCommitmentSchemeProof(D.H) {
         const self: *Context = @ptrCast(@alignCast(raw));
         var timer = try std.time.Timer.start();
         const scope = if (request.scope) |value| @import("pcs_scope.zig").identity(value) else [_]u32{0} ** 8;
         defer self.releaseScope(scope);
+        var permit: ?AdmissionRuntime.Permit = null;
+        if (self.admission) |*endpoint| {
+            const own_scope = request.scope orelse return error.MissingResidentScope;
+            // Validate live input shape on the host, independently of the
+            // geometry-only class planner used before the first source stage.
+            for (request.trees) |tree| for (tree.columns) |column| {
+                if (column.log_size > 28) return error.InvalidDevicePcsColumn;
+                const count = @as(u64, 1) << @intCast(column.log_size);
+                if (column.device) |device| {
+                    if (device.count != count or device.context_token == 0 or device.generation == 0) return error.InvalidDevicePcsColumn;
+                } else if (column.coefficients.len != count) return error.InvalidDevicePcsColumn;
+            };
+            if (!std.meta.eql(self.pcs_options, try allocationOptions())) return error.PcsAllocationPolicyChanged;
+            const options = try self.classAllocationOptions(request.lifting_log_size);
+            for (request.trees, 0..) |tree, i| if (options.borrowed_trees[i]) try validateSortedTree(a, tree, endpoint.owner_identity);
+            var fixed_cold_words: u64 = 0;
+            if (self.immutable_setup != null and request.trees.len != 0) {
+                var words: u64 = 0;
+                var host = false;
+                for (request.trees[0].columns) |column| {
+                    words = try std.math.add(u64, words, @as(u64, 1) << @intCast(column.log_size));
+                    host = host or column.device == null;
+                }
+                if (host) fixed_cold_words = words;
+            }
+            var cost = try classAllocationPlanWithFixed(a, request, self.wide_pcs_framing, options, fixed_cold_words);
+            defer cost.deinit(a);
+            const envelope = cost.additional_upper;
+            const retained_upper = cost.retained_after_upper;
+            const successor = try self.admissionSuccessor(own_scope, .pcs);
+            if (successor.large != 0 or successor.small != 0) return error.UnexpectedPcsSuccessor;
+            permit = try endpoint.reserve(.{ .owner = .{ .request = std.mem.readInt(u64, own_scope.statement[0..8], .little), .domain = if (self.parent != null) .recursion_node else .native_packet, .ordinal = own_scope.ordinal }, .progress_key = Admission.progressKey(own_scope), .stage = .pcs, .stage_retained_upper = retained_upper, .temporary = envelope, .successor = successor, .known = true, .host_known = false });
+            // The C admission guard deliberately spans several synchronous
+            // owner jobs, including FIXED misses and the complete native PCS.
+            // Host geometry work takes its locks only AFTER this reservation.
+            var boundary = PcsBoundary{ .permit = &permit.?, .context = self, .request = &request };
+            if (self.submit(self.session, PcsBoundary.run, &boundary) != 0) {
+                permit.?.endpoint.planner.poisonPhysical(permit.?.endpoint.physical);
+                return boundary.failure orelse error.GlobalPcsBoundaryFailed;
+            }
+        }
+        errdefer if (permit) |*claim| if (!claim.closed) {
+            self.closePcsPermit(claim) catch {
+                claim.endpoint.planner.poisonPhysical(claim.endpoint.physical);
+            };
+        };
         const trees = try a.dupe(D.Tree, request.trees);
         defer a.free(trees);
         var reused_columns: usize = 0;
@@ -533,7 +706,7 @@ pub const Context = struct {
             const columns = try a.dupe(D.Column, tree.columns);
             replacement.columns = columns;
             made += 1;
-            if (tree_index == 0 and self.immutable_setup != null) {
+            if (tree_index == 0 and self.immutable_setup != null and !@import("fixed_forest_policy.zig").isDeviceOnly(tree.columns)) {
                 var fixed_job = FixedJob{ .self = self, .scope = request.scope orelse return error.MissingResidentScope, .columns = tree.columns };
                 if (self.submit(self.session, FixedJob.run, &fixed_job) != 0) return fixed_job.failure orelse error.ImmutableSetupUploadFailed;
                 @memcpy(columns, fixed_job.result orelse return error.InvalidImmutableFixedSource);
@@ -552,12 +725,23 @@ pub const Context = struct {
         defer prepared.deinit(a);
         const prepare_ns = timer.read();
         const descriptor = prepared.descriptor();
+        if (permit != null) {
+            var strict = try AllocationCost.init(a, &descriptor, try self.classAllocationOptions(request.lifting_log_size));
+            defer strict.deinit(a);
+        }
         var result: Abi.Result = .{};
         if (self.native_prove(self.session, &descriptor, &result) != 0) {
             std.debug.print("GPU_PCS_NATIVE error={s}\n", .{self.last_error(self.session)});
             return error.GpuPcsFailed;
         }
         defer self.release(&result);
+        _ = self.pcs_domain_logs.fetchOr(@as(u32, 1) << @intCast(request.lifting_log_size), .release);
+        if (permit) |*claim| {
+            // C runProve returned only after joined proof readback/reset. Its
+            // result is host-owned; no GPU coefficient is read by decode.
+            try self.releaseScopeChecked(scope);
+            try self.closePcsPermit(claim);
+        }
         if (result.words == null or result.count > (1 << 28)) return error.InvalidGpuPcsProof;
         var decoded = try Decode.decodeWords(a, prepared.metadata.shape, result.words.?[0..@intCast(result.count)]);
         errdefer decoded.proof.deinit(a);

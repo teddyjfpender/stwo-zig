@@ -149,6 +149,10 @@ pub const ClassRole = struct {
 const PhasePoolTrim = @import("phase_pool_trim.zig");
 pub const Context = struct {
     pool_trim: PhasePoolTrim.Policy = .{},
+    direct_policy: bool = true,
+    compact_policy: bool = true,
+    enqueue_policy: bool = true,
+    workspace_policy: bool = false,
     allocator: std.mem.Allocator,
     service: *Service.Context,
     session_api: SC.Api,
@@ -185,7 +189,7 @@ pub const Context = struct {
     log_blowup: u32 = 1,
     result_columns: std.ArrayList([]D.Column) = .empty,
     pub fn initNumerical(a: std.mem.Allocator, service: *Service.Context) !Context {
-        const result = Context{ .pool_trim = try PhasePoolTrim.Policy.init(try PhasePoolTrim.fromEnv(a), service.library.lookup(PhasePoolTrim.Trim, "stwo_exec_context_pool_trim")), .allocator = a, .service = service, .timing = try Events.Api.load(&service.library), .session_api = .{
+        const result = Context{ .direct_policy = !(if (std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT")) |v| std.mem.eql(u8, v, "0") else false), .compact_policy = !(if (std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT_EL2")) |v| std.mem.eql(u8, v, "0") else false), .enqueue_policy = if (std.posix.getenv("STWO_RV64_COMPOSITION_ENQUEUE")) |v| !std.mem.eql(u8, v, "0") else true, .workspace_policy = if (std.posix.getenv("STWO_RV64_RC_ROLE_WORKSPACE")) |v| std.mem.eql(u8, v, "1") else false, .pool_trim = try PhasePoolTrim.Policy.init(try PhasePoolTrim.fromEnv(a), service.library.lookup(PhasePoolTrim.Trim, "stwo_exec_context_pool_trim")), .allocator = a, .service = service, .timing = try Events.Api.load(&service.library), .session_api = .{
             .allocate = service.lease_allocate,
             .release = service.lease_release,
             .validate_range = service.lease_validate_range,
@@ -193,8 +197,8 @@ pub const Context = struct {
             .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"),
             .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream"),
-        }, .role = service.library.lookup(*const @TypeOf(Abi.stwo_rv64_composition_role_on), "stwo_rv64_composition_role_on"), .finish = try sym(*const @TypeOf(Abi.stwo_rv64_composition_finish_on), &service.library, "stwo_rv64_composition_finish_on"), .auxiliary = try sym(*const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on), &service.library, "stwo_rv64_composition_auxiliary_on"), .tree = try sym(*const @TypeOf(Abi.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(*const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on), "stwo_lde_n2b_columns_on"), .n2b_columns_compact = service.library.lookup(N2bColumnsCompact, "stwo_lde_n2b_columns_compact_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Copy, &service.library, "stwo_exec_context_memcpy_d2d_async"), .clear = try sym(Clear, &service.library, "stwo_exec_context_memset_async"),  .artifacts = undefined };
-        if(service.admission) |endpoint| try endpoint.planner.registerCoverage(endpoint.physical,.recursion_composition);
+        }, .role = service.library.lookup(*const @TypeOf(Abi.stwo_rv64_composition_role_on), "stwo_rv64_composition_role_on"), .finish = try sym(*const @TypeOf(Abi.stwo_rv64_composition_finish_on), &service.library, "stwo_rv64_composition_finish_on"), .auxiliary = try sym(*const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on), &service.library, "stwo_rv64_composition_auxiliary_on"), .tree = try sym(*const @TypeOf(Abi.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(*const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on), "stwo_lde_n2b_columns_on"), .n2b_columns_compact = service.library.lookup(N2bColumnsCompact, "stwo_lde_n2b_columns_compact_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Copy, &service.library, "stwo_exec_context_memcpy_d2d_async"), .clear = try sym(Clear, &service.library, "stwo_exec_context_memset_async"), .artifacts = undefined };
+        if (service.admission) |endpoint| try endpoint.planner.registerCoverage(endpoint.physical, .recursion_composition);
         return result;
     }
     pub fn init(a: std.mem.Allocator, service: *Service.Context) !Context {
@@ -211,7 +215,7 @@ pub const Context = struct {
             result.artifact_count = made;
         }
         if (result.artifact_bytes > result.cache_limit_bytes) return error.CompositionMetadataCacheCapExceeded;
-        if(service.admission) |endpoint| try endpoint.planner.registerCoverage(endpoint.physical,.native_composition);
+        if (service.admission) |endpoint| try endpoint.planner.registerCoverage(endpoint.physical, .native_composition);
         return result;
     }
     pub fn deinit(self: *Context) void {
@@ -226,59 +230,67 @@ pub const Context = struct {
         self.* = undefined;
     }
     fn executeJob(self: *Context, a: std.mem.Allocator, job: *Job) !D.Tree {
-        var permit: ?AdmissionRuntime.Permit=null;
-        if(self.service.admission) |*endpoint| {
-            var plan=try job.preflightPlan(a);
+        var permit: ?AdmissionRuntime.Permit = null;
+        if (self.service.admission) |*endpoint| {
+            var plan = try job.preflightPlan(a);
             defer plan.deinit(a);
-            const successor=try self.service.admissionSuccessor(job.scope,.composition);
-            permit=try endpoint.reserve(.{.owner=.{.request=std.mem.readInt(u64,job.scope.statement[0..8],.little),.domain=if(job.outer_workspace).recursion_node else .native_packet,.ordinal=job.scope.ordinal},.stage=.composition,.temporary=plan.additional_peak,.successor=successor,.known=true,.host_known=false});
-            job.permit=&permit.?;
+            const successor = try self.service.admissionSuccessor(job.scope, .composition);
+            permit = try endpoint.reserve(.{ .owner = .{ .request = std.mem.readInt(u64, job.scope.statement[0..8], .little), .domain = if (job.outer_workspace) .recursion_node else .native_packet, .ordinal = job.scope.ordinal }, .progress_key = Admission.progressKey(job.scope), .stage = .composition, .stage_retained_upper = plan.retained_after, .temporary = plan.additional_peak, .successor = successor, .known = true, .host_known = false });
+            job.permit = &permit.?;
         }
-        errdefer if(permit) |*claim| {
-            if(!claim.closed) claim.finish(.{}) catch {claim.endpoint.planner.poisonPhysical(claim.endpoint.physical);};
+        errdefer if (permit) |*claim| {
+            if (!claim.closed) claim.finish(.{}) catch {
+                claim.endpoint.planner.poisonPhysical(claim.endpoint.physical);
+            };
         };
         // Every blocking reservation precedes this context lock and all owner
         // or immutable-cache locks reached by the callback.
         self.mutex.lock();
         defer self.mutex.unlock();
-        if(self.service.submit(self.service.session,Job.callback,job)!=0)return job.failure orelse error.CudaResidentCompositionFailed;
-        const result=job.result orelse return error.CudaResidentCompositionFailed;
-        if(permit) |*claim| try self.service.completeAdmission(claim,job.scope,try self.service.admissionSuccessor(job.scope,.composition));
-        self.result_columns.append(self.allocator,@constCast(result.columns)) catch |err| {self.allocator.free(@constCast(result.columns));return err;};
+        if (self.service.submit(self.service.session, Job.callback, job) != 0) {
+            if (permit) |*claim| claim.endpoint.planner.poisonPhysical(claim.endpoint.physical);
+            return job.failure orelse error.CudaResidentCompositionFailed;
+        }
+        const result = job.result orelse return error.CudaResidentCompositionFailed;
+        if (permit) |*claim| try self.service.completeAdmission(claim, job.scope, try self.service.admissionSuccessor(job.scope, .composition));
+        self.result_columns.append(self.allocator, @constCast(result.columns)) catch |err| {
+            self.allocator.free(@constCast(result.columns));
+            return err;
+        };
         return result;
     }
     /// Pure source-class geometry; no device pointers, locks or allocations on
     /// a GPU. All producer trees are promised compact resident coefficients.
     pub fn classAllocationPlan(self: *const Context, a: std.mem.Allocator, classes: []const ClassRole, tree_logs: [3][]const u32, log: u32, split: u32, total: usize, beta: u32, fixed_cold_words: u64, shared_arena: bool) !WorkspaceCost.Plan {
-        const roles=try a.alloc(WorkspaceCost.Role,classes.len);
+        const roles = try a.alloc(WorkspaceCost.Role, classes.len);
         defer a.free(roles);
-        var made:usize=0;
-        defer for(roles[0..made]) |role| a.free(role.columns);
-        const direct=self.n2b_columns!=null and !(if(std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT")) |v| std.mem.eql(u8,v,"0") else false);
-        const compact=direct and self.n2b_columns_compact!=null and !(if(std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT_EL2")) |v| std.mem.eql(u8,v,"0") else false);
-        for(classes,roles) |c,*out| {
-            const columns=try a.alloc(WorkspaceCost.Column,c.widths[0]+c.widths[1]+c.widths[2]);
+        var made: usize = 0;
+        defer for (roles[0..made]) |role| a.free(role.columns);
+        const direct = self.n2b_columns != null and self.direct_policy;
+        const compact = direct and self.n2b_columns_compact != null and self.compact_policy;
+        for (classes, roles) |c, *out| {
+            const columns = try a.alloc(WorkspaceCost.Column, c.widths[0] + c.widths[1] + c.widths[2]);
             errdefer a.free(columns);
-            var at:usize=0;
-            for(0..3) |tree| for(0..c.widths[tree]) |column| {
-                const index=if(tree==0 and c.fixed_indices!=null) blk:{
-                    if(c.fixed_indices.?.len!=c.widths[0])return error.InvalidResidentCompositionRoles;
+            var at: usize = 0;
+            for (0..3) |tree| for (0..c.widths[tree]) |column| {
+                const index = if (tree == 0 and c.fixed_indices != null) blk: {
+                    if (c.fixed_indices.?.len != c.widths[0]) return error.InvalidResidentCompositionRoles;
                     break :blk c.fixed_indices.?[column];
-                } else try std.math.add(usize,c.offsets[tree],column);
-                if(index>=tree_logs[tree].len)return error.InvalidResidentCompositionRoles;
-                const degree=tree_logs[tree][index];
-                columns[at]=.{.log=degree,.direct=(direct and degree+1==c.eval_log) or (compact and degree+2==c.eval_log)};
-                at+=1;
+                } else try std.math.add(usize, c.offsets[tree], column);
+                if (index >= tree_logs[tree].len) return error.InvalidResidentCompositionRoles;
+                const degree = tree_logs[tree][index];
+                columns[at] = .{ .log = degree, .direct = (direct and degree + 1 == c.eval_log) or (compact and degree + 2 == c.eval_log) };
+                at += 1;
             };
-            out.*=.{.trace_log=c.trace_log,.eval_log=c.eval_log,.columns=columns,.auxiliary=c.auxiliary,.masks=c.artifact.program.inputs.len,.parameters=c.artifact.parameter_slots.len,.constraints=c.artifact.program.roots.len};
-            if(self.sparse_truth) |*sparse| {
-                var widths=c.widths;
-                if(c.auxiliary==.last)widths[2]+=1;
-                if(c.namespace==.truth and sparse.matches(c.artifact.program.identity,c.id,c.trace_log,c.eval_log,widths,c.artifact.program.inputs.len,c.artifact.program.roots.len,c.artifact.parameter_slots.len)) out.sparse=sparse.selection();
+            out.* = .{ .trace_log = c.trace_log, .eval_log = c.eval_log, .columns = columns, .auxiliary = c.auxiliary, .masks = c.artifact.program.inputs.len, .parameters = c.artifact.parameter_slots.len, .constraints = c.artifact.program.roots.len };
+            if (self.sparse_truth) |*sparse| {
+                var widths = c.widths;
+                if (c.auxiliary == .last) widths[2] += 1;
+                if (c.namespace == .truth and sparse.matches(c.artifact.program.identity, c.id, c.trace_log, c.eval_log, widths, c.artifact.program.inputs.len, c.artifact.program.roots.len, c.artifact.parameter_slots.len)) out.sparse = sparse.selection();
             }
-            made+=1;
+            made += 1;
         }
-        return WorkspaceCost.init(a,.{.roles=roles,.shared_role_arena=shared_arena,.log=log,.split=split,.beta=beta,.separate_coefficients=(beta==1 and self.n2b_columns!=null) or (beta==2 and self.n2b_columns_compact!=null),.constraints=total,.fixed_cold_words=fixed_cold_words});
+        return WorkspaceCost.init(a, .{ .roles = roles, .shared_role_arena = shared_arena, .log = log, .split = split, .beta = beta, .separate_coefficients = (beta == 1 and self.n2b_columns != null) or (beta == 2 and self.n2b_columns_compact != null), .constraints = total, .fixed_cold_words = fixed_cold_words });
     }
     fn retainedBytes(self: *const Context) usize {
         return self.artifact_bytes + self.geometry_bytes + self.twiddle_bytes;
@@ -564,34 +576,53 @@ const Job = struct {
         }
     }
     fn callback(raw: *anyopaque, token: u64, user: ?*anyopaque) callconv(.c) c_int {
-        const self: *Job=@ptrCast(@alignCast(user orelse return 1));
-        if(self.permit) |claim| claim.enterOwner(raw) catch |err| {self.failure=err;return 1;};
-        self.run(raw,token) catch |err| {if(self.failure==null)self.failure=err;};
-        if(self.permit) |claim| claim.leaveOwner(raw) catch |err| {if(self.failure==null)self.failure=err;};
-        return @intFromBool(self.failure!=null);
+        const self: *Job = @ptrCast(@alignCast(user orelse return 1));
+        self.native_context = raw;
+        defer self.native_context = null;
+        if (self.permit) |claim| claim.enterOwner(raw) catch |err| {
+            self.failure = err;
+            return 1;
+        };
+        self.run(raw, token) catch |err| {
+            if (self.failure == null) self.failure = err;
+        };
+        if (self.permit) |claim| claim.leaveOwner(raw) catch |err| {
+            if (self.failure == null) self.failure = err;
+        };
+        return @intFromBool(self.failure != null);
     }
     fn cleanupFailure(self: *Job, err: anyerror) void {
-        if(self.failure==null)self.failure=err;
-        if(self.permit) |claim| claim.endpoint.planner.poisonPhysical(claim.endpoint.physical);
+        if (self.failure == null) self.failure = err;
+        if (self.permit) |claim| claim.endpoint.planner.poisonPhysical(claim.endpoint.physical);
     }
     fn preflightPlan(self: *const Job, a: std.mem.Allocator) !WorkspaceCost.Plan {
-        if(self.trace.polys.items.len!=3)return error.InvalidResidentCompositionRoles;
-        var logs: [3][]u32=undefined;
-        var made:usize=0;
-        defer for(logs[0..made]) |value| a.free(value);
-        var cold_fixed: u64=0;
-        var host_fixed=false;
-        for(0..3) |tree| {
-            logs[tree]=try a.alloc(u32,self.trace.polys.items[tree].len);made+=1;
-            for(self.trace.polys.items[tree],logs[tree]) |poly,*log| {
-                const column=try sourceColumn(poly);log.*=column.log_size;
-                if(tree==0){cold_fixed=try std.math.add(u64,cold_fixed,@as(u64,1)<<@intCast(column.log_size));host_fixed=host_fixed or column.device==null;}
+        if (self.trace.polys.items.len != 3) return error.InvalidResidentCompositionRoles;
+        var logs: [3][]u32 = undefined;
+        var made: usize = 0;
+        defer for (logs[0..made]) |value| a.free(value);
+        var cold_fixed: u64 = 0;
+        var host_fixed = false;
+        for (0..3) |tree| {
+            logs[tree] = try a.alloc(u32, self.trace.polys.items[tree].len);
+            made += 1;
+            for (self.trace.polys.items[tree], logs[tree]) |poly, *log| {
+                const column = try sourceColumn(poly);
+                log.* = column.log_size;
+                if (tree == 0) {
+                    cold_fixed = try std.math.add(u64, cold_fixed, @as(u64, 1) << @intCast(column.log_size));
+                    host_fixed = host_fixed or column.device == null;
+                }
             }
         }
-        const classes=try a.alloc(ClassRole,self.roles.len);defer a.free(classes);
-        for(self.roles,classes) |role,*out| out.*=.{.namespace=if(role.evaluate==self.backend.truth_role).truth else if(self.outer_workspace).outer else .cpu,.id=role.id,.artifact=role.artifact,.trace_log=role.trace_log,.eval_log=role.eval_log,.widths=role.widths,.offsets=role.offsets,.fixed_indices=role.fixed_indices,.auxiliary=switch(role.auxiliary){.none=>.none,.last=>.last,.hc=>.hc}};
-        const shared=self.outer_workspace and if(std.posix.getenv("STWO_RV64_RC_ROLE_WORKSPACE")) |value| std.mem.eql(u8,value,"1") else false;
-        return self.backend.classAllocationPlan(a,classes,.{logs[0],logs[1],logs[2]},self.log,self.split,self.total,self.log_blowup orelse self.backend.log_blowup,if(host_fixed)cold_fixed else 0,shared);
+        const classes = try a.alloc(ClassRole, self.roles.len);
+        defer a.free(classes);
+        for (self.roles, classes) |role, *out| out.* = .{ .namespace = if (role.evaluate == self.backend.truth_role) .truth else if (self.outer_workspace) .outer else .cpu, .id = role.id, .artifact = role.artifact, .trace_log = role.trace_log, .eval_log = role.eval_log, .widths = role.widths, .offsets = role.offsets, .fixed_indices = role.fixed_indices, .auxiliary = switch (role.auxiliary) {
+            .none => .none,
+            .last => .last,
+            .hc => .hc,
+        } };
+        const shared = self.outer_workspace and self.backend.workspace_policy;
+        return self.backend.classAllocationPlan(a, classes, .{ logs[0], logs[1], logs[2] }, self.log, self.split, self.total, self.log_blowup orelse self.backend.log_blowup, if (host_fixed) cold_fixed else 0, shared);
     }
 
     fn copyRun(self: *Job, raw: *anyopaque, context: *SC.Context, arena: [*]u32, segment: CopyRun) !void {
@@ -607,8 +638,8 @@ const Job = struct {
         var made: usize = 0;
         defer for (roles[0..made]) |role| a.free(role.columns);
         const b = self.backend;
-        const direct_enabled = b.n2b_columns != null and !(if (std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT")) |v| std.mem.eql(u8, v, "0") else false);
-        const direct_el2 = direct_enabled and b.n2b_columns_compact != null and !(if (std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT_EL2")) |v| std.mem.eql(u8, v, "0") else false);
+        const direct_enabled = b.n2b_columns != null and b.direct_policy;
+        const direct_el2 = direct_enabled and b.n2b_columns_compact != null and b.compact_policy;
         for (self.roles, roles) |role, *out| {
             const columns = try a.alloc(WorkspaceCost.Column, role.widths[0] + role.widths[1] + role.widths[2]);
             errdefer a.free(columns);
@@ -649,7 +680,7 @@ const Job = struct {
         // One stream orders ingress, role transforms, quotient accumulation and
         // the final commitment. Keep each role's events until the root readback;
         // collecting timing is observational and must not drain the GPU per role.
-        const enqueue = if (std.posix.getenv("STWO_RV64_COMPOSITION_ENQUEUE")) |v| !std.mem.eql(u8, v, "0") else true;
+        const enqueue = b.enqueue_policy;
         const compute_lane: u32 = if (enqueue) 0 else 1;
         var events = try Timing.init(&b.timing);
         defer events.deinit();
@@ -675,11 +706,11 @@ const Job = struct {
         // Explicit device FIXED setup already owns scoped coefficients through
         // PCS. Do not clone its forest into a second immutable allocation.
         const all_fixed_device = @import("fixed_forest_policy.zig").isDeviceOnly(fixed_columns);
-        if(self.permit!=null) {
-            for(1..3) |tree| for(self.trace.polys.items[tree],0..) |poly,index| {
-                const original=try sourceColumn(poly);
-                const device=original.device orelse b.service.retainedColumn(context.scope,@intCast(tree),index,original) orelse return error.AdmissionRequiresResidentSource;
-                try self.checked("admitted_source_validate",context.api.validate_range(context.session,device.words,device.count,device.context_token,device.generation,&context.scope));
+        if (self.permit != null) {
+            for (1..3) |tree| for (self.trace.polys.items[tree], 0..) |poly, index| {
+                const original = try sourceColumn(poly);
+                const device = original.device orelse b.service.retainedColumn(context.scope, @intCast(tree), index, original) orelse return error.AdmissionRequiresResidentSource;
+                try self.checked("admitted_source_validate", context.api.validate_range(context.session, device.words, device.count, device.context_token, device.generation, &context.scope));
             };
         }
         const immutable_fixed = if (all_fixed_device) fixed_columns else try b.service.immutableFixed(raw, self.scope, fixed_columns);
@@ -689,8 +720,12 @@ const Job = struct {
         var domain_cells: u64 = 0;
         var leases: std.ArrayList(Native.Lease) = .empty;
         defer {
-            context.join() catch |err| { self.cleanupFailure(err); };
-            for (leases.items) |*lease| context.release(lease) catch |err| { self.cleanupFailure(err); };
+            context.join() catch |err| {
+                self.cleanupFailure(err);
+            };
+            for (leases.items) |*lease| context.release(lease) catch |err| {
+                self.cleanupFailure(err);
+            };
             leases.deinit(a);
         }
         if (self.device_powers) |all| {
@@ -706,11 +741,15 @@ const Job = struct {
             p.* = power;
             power = power.mul(self.alpha);
         }
-        const reuse_workspace = self.outer_workspace and if (std.posix.getenv("STWO_RV64_RC_ROLE_WORKSPACE")) |value| std.mem.eql(u8, value, "1") else false;
+        const reuse_workspace = self.outer_workspace and b.workspace_policy;
         var workspace: Native.Lease = .{};
         defer if (workspace.words != null) {
-            context.join() catch {};
-            context.release(&workspace) catch {};
+            context.join() catch |err| {
+                self.cleanupFailure(err);
+            };
+            context.release(&workspace) catch |err| {
+                self.cleanupFailure(err);
+            };
         };
         if (reuse_workspace) {
             var plan = try self.workspacePlan(a, immutable_fixed, context.scope);
@@ -779,13 +818,13 @@ const Job = struct {
             // lower-degree and auxiliary columns. Exact field LDE: identical
             // evaluations, identical proof bytes. STWO_RV64_COMPOSITION_DIRECT=0
             // restores the full coefficient copy.
-            const direct_enabled = b.n2b_columns != null and !(if (std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT")) |v| std.mem.eql(u8, v, "0") else false);
+            const direct_enabled = b.n2b_columns != null and b.direct_policy;
             // M5 platform: degree el-2 device columns are extended directly too
             // (compact source, stride n/4). Same kernels, same evaluations;
             // removes their staged-coefficient copy from the arena (3.69 GB on
             // the 18.44 GB rl+2 truth role). STWO_RV64_COMPOSITION_DIRECT_EL2=0
             // keeps them staged.
-            const direct_el2 = direct_enabled and b.n2b_columns_compact != null and !(if (std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT_EL2")) |v| std.mem.eql(u8, v, "0") else false);
+            const direct_el2 = direct_enabled and b.n2b_columns_compact != null and b.compact_policy;
             const direct = try a.alloc(?D.DeviceCoefficients, column_count);
             defer a.free(direct);
             const staging_offsets = try a.alloc(usize, column_count);
@@ -865,8 +904,12 @@ const Job = struct {
                 break :blk try context.allocate(arena_words, 0);
             };
             defer {
-                if (!enqueue) context.join() catch {};
-                if (!reuse_workspace) context.release(&arena) catch {};
+                if (!enqueue) context.join() catch |err| {
+                    self.cleanupFailure(err);
+                };
+                if (!reuse_workspace) context.release(&arena) catch |err| {
+                    self.cleanupFailure(err);
+                };
             }
             const arena_ptr = arena.words.?;
             var coefficient_offset: usize = 0;
@@ -1046,7 +1089,9 @@ const Job = struct {
         const output_desc = std.mem.alignForward(usize, output_tw + tw.twiddles.len, 2);
         const scratch_words = output_desc + if (separate) count else count * 6;
         var output = try context.allocate(if (separate) coeff_count else scratch_words, 2);
-        errdefer context.release(&output) catch {};
+        errdefer context.release(&output) catch |err| {
+            self.cleanupFailure(err);
+        };
         const scratch = if (separate) try allocate(a, &context, &leases, scratch_words, 0) else output;
         const accumulator = try allocate(a, &context, &leases, coeff_count, 0);
         const inv = try upload(a, &context, &leases, words(composition_tw.itwiddles));
