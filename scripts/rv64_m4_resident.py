@@ -269,7 +269,7 @@ def serve(args):
     argv = [plan["assets"]["driver"], "combined-batch", str(target / "manifest.json"), str(target / "batch")]
     if args.nsys:
         (run / "nsys").mkdir()
-        argv = ["nsys", "profile", "--trace=cuda", "--sample=none", "--cpuctxsw=none", "--force-overwrite=true",
+        argv = ["nsys", "profile", "--trace=cuda,nvtx", "--cuda-graph-trace=node", "--sample=none", "--cpuctxsw=none", "--force-overwrite=true",
                 "-o", str(run / "nsys/timeline")] + argv
     load_before = os.getloadavg()
     lock = P.acquire_gpu_lock()
@@ -374,7 +374,7 @@ def daemon(args):
     argv = [plan["assets"]["driver"], "combined-serve", str(run / "manifest.json"), str(spool)]
     if args.nsys:
         (run / "nsys").mkdir()
-        argv = ["nsys", "profile", "--trace=cuda", "--sample=none", "--cpuctxsw=none", "--force-overwrite=true",
+        argv = ["nsys", "profile", "--trace=cuda,nvtx", "--cuda-graph-trace=node", "--sample=none", "--cpuctxsw=none", "--force-overwrite=true",
                 "-o", str(run / "nsys/timeline")] + argv
     load_before = os.getloadavg()
     timeline = []
