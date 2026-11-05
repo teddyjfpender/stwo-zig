@@ -544,6 +544,32 @@ __global__ void sample_inputs_check_kernel(
   if (!ok) atomicOr(status, 1u);
 }
 
+// A single thread computes each compression independently from native INPUTS.
+// Outputs retain their original GG variable addresses and u32/QM31 packing.
+__global__ void sample_prefill_kernel(uint32_t* values, uint32_t value_count,
+    const uint32_t* records, const uint32_t* outputs, uint32_t count, uint32_t* status) {
+  const uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i >= count) return;
+  const uint32_t out = outputs[i];
+  const uint32_t* w = records + uint64_t(i)*TAPE_WORDS;
+  if (uint64_t(out)+320 > value_count || w[25]>1) { atomicOr(status,1u); return; }
+  uint32_t v[16], m[16];
+  for (int j=0;j<8;++j) { v[j]=w[j]; v[8+j]=kIV[j]; }
+  for (int j=0;j<16;++j) m[j]=w[8+j];
+  v[12]^=w[24]; v[14]^=w[25]?0xffffffffu:0;
+  for (int round=0;round<10;++round) for (int gi=0;gi<8;++gi) {
+    uint32_t a=v[kG[gi][0]], b=v[kG[gi][1]], c=v[kG[gi][2]], d=v[kG[gi][3]];
+    a=a+b+m[kSigma[round][2*gi]]; d=rotr(d^a,16); c=c+d; b=rotr(b^c,12);
+    a=a+b+m[kSigma[round][2*gi+1]]; d=rotr(d^a,8); c=c+d; b=rotr(b^c,7);
+    const uint32_t z[4]={a,b,c,d};
+    for (int j=0;j<4;++j) {
+      v[kG[gi][j]]=z[j];
+      uint32_t* dst=values+uint64_t(out+(round*8+gi)*4+j)*4;
+      dst[0]=z[j]&65535u; dst[1]=z[j]>>16; dst[2]=0; dst[3]=0;
+    }
+  }
+}
+
 // Host-side instance plan, identical to `planInstances`.
 inline uint32_t plan_instances(uint64_t n, uint32_t logs[MAX_INSTANCES]) {
   uint32_t used = 0;
@@ -586,6 +612,18 @@ extern "C" int stwo_circuit_blake_sample_inputs_check_on(
   }
   sample_inputs_check_kernel<<<(count+127)/128,128,0,custody.stream>>>(
       values,value_count,pp,records,first_gg,count,status);
+  return int(cudaPeekAtLastError());
+}
+
+extern "C" int stwo_circuit_blake_sample_prefill_on(
+    void* ctx, uint32_t lane, uint32_t* values, uint32_t value_count,
+    const uint32_t* records, const uint32_t* outputs, uint32_t count, uint32_t* status) {
+  if (!value_count || !count) return int(cudaErrorInvalidValue);
+  stwo::cuda::rv64::RangeCustody<4> custody(ctx,lane);
+  if (!custody.range(values,uint64_t(value_count)*4,true) ||
+      !custody.range(records,uint64_t(count)*TAPE_WORDS,false) ||
+      !custody.range(outputs,count,false) || !custody.range(status,1,true)) return custody.status;
+  sample_prefill_kernel<<<(count+127)/128,128,0,custody.stream>>>(values,value_count,records,outputs,count,status);
   return int(cudaPeekAtLastError());
 }
 
