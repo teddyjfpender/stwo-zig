@@ -118,7 +118,14 @@ fn cpuPcsGeometry(a: std.mem.Allocator, request: CPU.rv64_device_source_stage.Re
         for (columns, logs[tree]) |*column, log| column.* = .{ .log_size = log };
         trees[tree] = .{ .root = @splat(0), .columns = columns };
         points[tree] = try a.alloc([]D.Point, columns.len);
-        @memset(points[tree], &.{});
+        if (tree == 0) {
+            // CoreAir.Components.maskPointsImpl(..., include_all_preprocessed
+            // = true) REPLACES the concatenated component FIXED masks with one
+            // probe for EVERY original preprocessed column, including columns
+            // unused by projected arithmetic. FIXED aliases therefore have the
+            // same single-probe recipe and are not duplicate role coverage.
+            for (points[tree]) |*column| column.* = try a.dupe(D.Point, &.{probe});
+        } else @memset(points[tree], &.{});
     }
     for (components.slots) |slot| {
         const mode = slot.origin == .core and (slot.origin.core == .cpu or slot.origin.core == .and_table);
@@ -129,7 +136,11 @@ fn cpuPcsGeometry(a: std.mem.Allocator, request: CPU.rv64_device_source_stage.Re
         const widths = [_]usize{ shape.fixed, shape.main, local_width + global.width() };
         const offsets = [_]usize{ slot.fixed_offset, slot.main_offset, slot.inter_offset };
         for (widths, offsets, 0..) |width, offset, tree| for (0..width) |c| {
-            if (offset + c >= points[tree].len or points[tree][offset + c].len != 0) return error.NativeClassMaskGeometry;
+            if (offset + c >= points[tree].len) return error.NativeClassMaskGeometry;
+            if (tree == 0) continue;
+            // MAIN and INTER retain the exact source component concatenation;
+            // a gap or overlap here is a class-authority mismatch, not padding.
+            if (points[tree][offset + c].len != 0) return error.NativeClassMaskGeometry;
             points[tree][offset + c] = if (tree == 2 and local_width != 0 and c < 8)
                 try a.dupe(D.Point, &.{ probe, next2 })
             else if (tree == 2 and ((local_width != 0 and c < 16) or (c >= local_width and global.previous(c - local_width))))
