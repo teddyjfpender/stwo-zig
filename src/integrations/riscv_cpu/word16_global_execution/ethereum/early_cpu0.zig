@@ -25,5 +25,5 @@ pub const MemoryAdmission = struct {
     /// Borrowed request header/slices are valid for this call only. Derive/copy
     /// the pinned class/cost plan now; do not retain a pointer to this frame.
     /// Reserve BEFORE CPU/JALR clone, MAIN allocation or GPU source launch.
-    reserve: *const fn (*anyopaque, std.mem.Allocator, Pipeline.DeviceSourceStage.Request, W.PcsConfig) anyerror!Ticket,
+    reserve: *const fn (*anyopaque, std.mem.Allocator, Pipeline.DeviceSourceStage.Request, W.PcsConfig, *engine.host_budget_allocator.SharedHostBudget) anyerror!Ticket,
 };
