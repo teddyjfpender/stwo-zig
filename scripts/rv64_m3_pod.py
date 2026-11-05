@@ -384,8 +384,10 @@ def numeric(value):
 def stage_breakdown(proof, markers):
     report = B.load(proof / "report.json")
     combined = B.load(proof / "combined-report.json") if (proof / "combined-report.json").is_file() else {}
+    entry = B.load(proof / "combined-entry.json") if (proof / "combined-entry.json").is_file() else {}
     s = lambda ns: None if ns is None else round(ns / 1e9, 3)
     stages = {"request_wall_s": s(markers.get(0) if isinstance(markers, dict) else None),
+              "phase_transition_s": s(entry.get("phase_transition_ns")),
               "capture_s": s(report.get("capture_ns")), "setup_s": s(report.get("setup_ns")),
               "native_prove_s": s(report.get("prove_ns")), "native_verify_s": s(report.get("same_process_verify_ns")),
               "native_total_before_report_s": s(report.get("total_before_report_ns")),

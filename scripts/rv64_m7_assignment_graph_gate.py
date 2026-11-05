@@ -23,6 +23,10 @@ def main():
     submit=fn(base,'stwo_rv64_gpu_session_submit',[C.c_void_p,CB,C.c_void_p])
     alloc=fn(base,'stwo_rv64_gpu_lease_allocate',[C.c_void_p,C.c_uint64,U,C.POINTER(U),C.POINTER(Lease)])
     free=fn(base,'stwo_rv64_gpu_lease_release',[C.c_void_p,C.POINTER(Lease)])
+    validate=fn(base,'stwo_rv64_gpu_lease_validate',[C.c_void_p,C.POINTER(Lease),C.POINTER(U)])
+    seal=fn(base,'stwo_rv64_gpu_immutable_seal',[C.c_void_p,C.POINTER(Lease),C.POINTER(U)])
+    bind=fn(base,'stwo_rv64_gpu_immutable_bind',[C.c_void_p,C.POINTER(Lease),C.POINTER(U),C.POINTER(U)])
+    unbind=fn(base,'stwo_rv64_gpu_immutable_unbind_scope',[C.c_void_p,C.POINTER(U)])
     upload=fn(base,'stwo_exec_context_memcpy_h2d_async',[C.c_void_p,C.c_void_p,C.c_void_p,C.c_size_t])
     download=fn(base,'stwo_exec_context_memcpy_d2h_async',[C.c_void_p,C.c_void_p,C.c_void_p,C.c_size_t])
     sync=fn(base,'stwo_exec_context_sync',[C.c_void_p])
@@ -30,7 +34,7 @@ def main():
     gc=fn(ext,'stwo_assignment_graph_create_v1',[C.c_void_p,U,C.POINTER(Job),C.POINTER(Step),U,C.POINTER(U),U,C.POINTER(C.c_void_p)])
     gl=fn(ext,'stwo_assignment_graph_launch_v1',[C.c_void_p,U,C.c_void_p,C.POINTER(Job),C.POINTER(U),U])
     gd=fn(ext,'stwo_assignment_graph_destroy_v1',[C.c_void_p,C.c_void_p])
-    scope=(U*8)();sessions=[C.c_void_p(),C.c_void_p()];state={};checks=[];keep=[]
+    scope=(U*8)(*([7]*8));sessions=[C.c_void_p(),C.c_void_p()];state={};checks=[];keep=[]
     def ok(rc):
         if rc:raise AssertionError(f'CUDA status {rc}')
     def check(name,value):
@@ -73,6 +77,22 @@ def main():
             check('overlapping_output_status_refused',gl(raw,1,graph,C.byref(wrong),b[2].words,4)!=0)
             ok(gl(raw,1,graph,C.byref(jb),b[2].words,4));ok(sync(raw))
             check('fresh_pointer_assignment_exact',read(raw,b[0])==expected(7,11,True));check('fresh_status_zero',read(raw,b[3])==[0])
+            # Production fold plans use sealed cache schedules with explicit
+            # read-only aliases into the proof scope. Full descriptor validation
+            # must accept those aliases and reject stale/altered/unbound ones.
+            key=(U*8)(*([9]*8));immutable=[]
+            for host in (tasks(True),(U*4)(1,2,4098,4099)):
+                lease=Lease();ok(alloc(session,C.sizeof(host)//4,4,key,C.byref(lease)));put(raw,lease,host);ok(sync(raw));ok(seal(session,C.byref(lease),key));ok(bind(session,C.byref(lease),key,scope));immutable.append(lease)
+            check('immutable_readonly_aliases_validate',all(validate(session,C.byref(lease),scope)==0 for lease in immutable))
+            bad=Lease.from_buffer_copy(immutable[0]);bad.generation+=1
+            check('immutable_stale_generation_refused',validate(session,C.byref(bad),scope)!=0)
+            bad=Lease.from_buffer_copy(immutable[0]);bad.kind=0
+            check('immutable_altered_descriptor_refused',validate(session,C.byref(bad),scope)!=0)
+            ji=Job.from_buffer_copy(jb);ji.records=C.cast(immutable[0].words,C.c_void_p)
+            ok(gl(raw,1,graph,C.byref(ji),immutable[1].words,4));ok(sync(raw))
+            check('immutable_schedule_graph_assignment_exact',read(raw,b[0])==expected(7,11,True))
+            ok(unbind(session,scope));check('immutable_unbound_scope_refused',all(validate(session,C.byref(lease),scope)!=0 for lease in immutable))
+            for lease in immutable:ok(free(session,C.byref(lease)))
             invalid=tasks(True);invalid[0].out=5000;put(raw,b[1],invalid);ok(sync(raw));ok(gl(raw,1,graph,C.byref(jb),b[2].words,4));ok(sync(raw));check('invalid_task_sets_fresh_status',read(raw,b[3])[0]!=0)
             old_ends=C.cast(C.c_void_p(C.cast(a[2].words,C.c_void_p).value),C.POINTER(U))
             for lease in a:ok(free(session,C.byref(lease)))

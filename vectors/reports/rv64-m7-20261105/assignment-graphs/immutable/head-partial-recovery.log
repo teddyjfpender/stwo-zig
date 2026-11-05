@@ -1,0 +1,2 @@
+24628607 0 True {'request_wall_s': 39.527, 'capture_s': 2.068, 'setup_s': 12.284, 'native_prove_s': 5.434, 'native_verify_s': 1.99, 'native_total_before_report_s': 20.004, 'recursion_s': 19.487}
+{"fresh_receiver": true, "seconds": 53.486339096}

@@ -1,0 +1,44 @@
+{
+  "schema": "rv64-m7-byte-identity/v1",
+  "label": "M",
+  "receipt": "/workspace/m3/runs/m7-assignment-graphs/head-partial-receipt.json",
+  "assets": {
+    "driver": "eba08050ea233a4ead8d6d719127b2c5f84702b0339fe2566fed184c84b91f44",
+    "library": "69f18a25c23c042b7fc00d2477097de64c69ea59fd46d2eee6fc9e154dc665e0",
+    "receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+    "recursive_receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d"
+  },
+  "source_commit": "136e0ba60+leaf-tape-v3-uncommitted",
+  "load_avg_before": null,
+  "load_avg_after": null,
+  "producer_process": {
+    "exit_code": 1,
+    "scope": "daemon failed during next request"
+  },
+  "physical_gpu_memory": null,
+  "receivers": [],
+  "requests": [
+    {
+      "block": 24628607,
+      "trial": 0,
+      "stages": {
+        "request_wall_s": 39.527,
+        "capture_s": 2.068,
+        "setup_s": 12.284,
+        "native_prove_s": 5.434,
+        "native_verify_s": 1.99,
+        "native_total_before_report_s": 20.004,
+        "recursion_s": 19.487
+      },
+      "proof_bytes_root": 708696,
+      "reference": "/workspace/m3/src/m7-admission/vectors/reports/rv64-m6-20261105/integrate/24628607-2gpu-c1-bench.json",
+      "matches": {
+        "native": true,
+        "bundle": true,
+        "recursive": true
+      },
+      "byte_identical": true
+    }
+  ],
+  "all_byte_identical": true
+}

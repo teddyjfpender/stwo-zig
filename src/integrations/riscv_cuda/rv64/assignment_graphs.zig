@@ -7,11 +7,13 @@ const SC = @import("session_context.zig");
 const Runs = @import("assignment_runs.zig");
 pub const Step = extern struct { first: u32, count: u32, first_level: u32, levels: u32, kind: u32 };
 const Api = struct {
+    validate: N.LeaseValidate,
     create: *const fn (*anyopaque, u32, *const anyopaque, [*]const Step, u32, [*]const u32, u32, *?*anyopaque) callconv(.c) c_int,
     launch: *const fn (*anyopaque, u32, *anyopaque, *const anyopaque, [*]const u32, u32) callconv(.c) c_int,
     destroy: *const fn (*anyopaque, *anyopaque) callconv(.c) c_int,
     fn load(lib: *std.DynLib) !Api {
         return .{
+            .validate = lib.lookup(N.LeaseValidate, "stwo_rv64_gpu_lease_validate") orelse return error.MissingAssignmentGraphRuntime,
             .create = lib.lookup(@FieldType(Api, "create"), "stwo_assignment_graph_create_v1") orelse return error.MissingAssignmentGraphRuntime,
             .launch = lib.lookup(@FieldType(Api, "launch"), "stwo_assignment_graph_launch_v1") orelse return error.MissingAssignmentGraphRuntime,
             .destroy = lib.lookup(@FieldType(Api, "destroy"), "stwo_assignment_graph_destroy_v1") orelse return error.MissingAssignmentGraphRuntime,
@@ -54,8 +56,18 @@ pub const Cache = struct {
     pub fn run(self: *Cache, a: std.mem.Allocator, lib: *std.DynLib, ctx: *SC.Context, identity: [32]u8, sequence: []const Step, job: anytype, bindings: Bindings, end_count: usize) !bool {
         if (@sizeOf(@TypeOf(job.*)) != 56 or @sizeOf(Step) != 20) @compileError("assignment graph ABI changed");
         try ctx.prepareKernelEnqueue();
-        for ([_]N.Lease{ bindings.values, bindings.tasks, bindings.status, bindings.ends }) |lease| _ = try ctx.borrow(lease);
-        if (bindings.indices) |lease| _ = try ctx.borrow(lease);
+        if (self.api == null) self.api = try Api.load(lib);
+        const api = self.api.?;
+        // Outputs are request-owned mutable leases. Schedules may instead be
+        // sealed immutable cache leases aliased read-only into this scope;
+        // validate their complete descriptors without granting mutation.
+        for ([_]N.Lease{ bindings.values, bindings.status }) |lease| _ = try ctx.borrow(lease);
+        for ([_]N.Lease{ bindings.tasks, bindings.ends }) |lease| {
+            if (api.validate(ctx.session, &lease, &ctx.scope) != 0) return error.InvalidAssignmentGraphReadOnlyLease;
+        }
+        if (bindings.indices) |lease| {
+            if (api.validate(ctx.session, &lease, &ctx.scope) != 0) return error.InvalidAssignmentGraphReadOnlyLease;
+        }
         const ends = bindings.ends;
         if (@intFromPtr(bindings.values.words.?) != @intFromPtr(job.values) or @intFromPtr(bindings.tasks.words.?) != @intFromPtr(job.records) or @intFromPtr(bindings.status.words.?) != @intFromPtr(job.status) or
             @as(u64, job.value_count) * 4 > bindings.values.count or @as(u64, job.record_count) * 8 > bindings.tasks.count or bindings.status.count != 1)
@@ -64,8 +76,6 @@ pub const Cache = struct {
             if (job.indices != lease.words.? or job.index_count > lease.count) return error.InvalidAssignmentGraphBindings;
         } else if (job.indices != null or job.index_count != 0) return error.InvalidAssignmentGraphBindings;
         if (end_count == 0 or end_count > ends.count) return error.InvalidAssignmentGraphEnds;
-        if (self.api == null) self.api = try Api.load(lib);
-        const api = self.api.?;
         var class_hash = std.crypto.hash.sha2.Sha256.init(.{});
         class_hash.update(&key(identity, sequence));
         var count_word: [4]u8 = undefined;
@@ -117,7 +127,19 @@ pub const Cache = struct {
                 }
             };
             var cleanup = Cleanup{ .cache = self };
-            if (service.submit(service.session, Cleanup.run, &cleanup) != 0) @panic("assignment graph cleanup failed");
+            var status = service.submit(service.session, Cleanup.run, &cleanup);
+            // Terminal cleanup poisons even a healthy owner. Use it only when
+            // ordinary cleanup was refused; later healthy destructors must run.
+            if (status != 0) {
+                if (service.library.lookup(N.Submit, "stwo_rv64_gpu_session_cleanup")) |cleanup_submit|
+                    status = cleanup_submit(service.session, Cleanup.run, &cleanup);
+            }
+            if (status != 0) {
+                // A poisoned service refuses further callbacks. Preserve the
+                // original proof error instead of panicking during unwinding;
+                // this fatal service is destroyed and its process terminates.
+                std.debug.print("GPU_ASSIGNMENT_GRAPH_CLEANUP_REFUSED graphs={} fatal_service=true\n", .{self.entries.items.len});
+            }
         }
         self.entries.deinit(a);
         self.* = .{};

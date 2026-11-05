@@ -146,8 +146,39 @@ pub const Context = struct {
         try self.enableImmutableSetup(budget.immutable_bytes);
         try self.configureRetention(budget.max_scopes);
         try self.requireNoRequestLeases();
+        if (try phaseCacheTrimEnabled()) {
+            if (self.admission) |endpoint| if (endpoint.enabled()) return error.PhaseCacheTrimWithAdmissionUnavailable;
+            var trim = PhaseTrim{ .self = self };
+            if (self.submit(self.session, PhaseTrim.run, &trim) != 0) return trim.failure orelse error.ResidentPhaseTrimFailed;
+            try self.requireNoRequestLeases();
+        }
         self.active_block = identity;
     }
+    const PhaseTrim = struct {
+        self: *Context,
+        failure: ?anyerror = null,
+        fn run(_: *anyopaque, _: u64, raw: ?*anyopaque) callconv(.c) c_int {
+            const job: *@This() = @ptrCast(@alignCast(raw.?));
+            const cache = job.self.immutable_setup orelse return 1;
+            if (cache.borrows.items.len != 0) {
+                job.failure = error.ImmutableSetupStillBorrowed;
+                return 1;
+            }
+            const immutable = cache.trimUnborrowed() catch |err| {
+                job.failure = err;
+                return 1;
+            };
+            const Trim = *const fn (*anyopaque, *u64) callconv(.c) c_int;
+            var pcs: u64 = 0;
+            const trim = job.self.library.lookup(Trim, "stwo_rv64_gpu_session_trim_unused");
+            if (trim) |call| if (call(job.self.session, &pcs) != 0) {
+                job.failure = error.ResidentPhaseTrimFailed;
+                return 1;
+            };
+            std.debug.print("GPU_RESIDENT_PHASE_TRIM immutable_bytes={} pcs_idle_bytes={} pcs_trim_api={} graph_metadata_retained=true\n", .{ immutable, pcs, trim != null });
+            return 0;
+        }
+    };
     pub fn endBlock(self: *Context, identity: [32]u8) !void {
         if (self.admission) |endpoint| if (!endpoint.planner.healthy(endpoint.physical)) return error.PhysicalAdmissionPoisoned;
         if (self.active_block == null or !std.mem.eql(u8, &self.active_block.?, &identity)) return error.ResidentBlockIdentityMismatch;
@@ -506,3 +537,10 @@ pub const Context = struct {
         return .{ .proof = decoded.proof, .aux = .{ .unsorted_query_locations = &.{}, .trace_decommitment = core.pcs.TreeVec(core.vcs_lifted.verifier.MerkleDecommitmentLiftedAux(D.H)).initOwned(&.{}), .fri = .{ .first_layer = .{ .all_values = &.{}, .decommitment = .{ .all_node_values = &.{} } }, .inner_layers = &.{} } } };
     }
 };
+
+fn phaseCacheTrimEnabled() !bool {
+    const value = std.posix.getenv("STWO_RV64_PHASE_CACHE_TRIM") orelse return false;
+    if (std.mem.eql(u8, value, "0")) return false;
+    if (std.mem.eql(u8, value, "1")) return true;
+    return error.InvalidPhaseCacheTrimOption;
+}

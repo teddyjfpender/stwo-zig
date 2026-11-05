@@ -1,0 +1,823 @@
+GPU_ARENA_INIT device=0 status=0 mode=vmm capacity_bytes=27279753216 chunk_bytes=33554432 chunks=813 small_slab_bytes=536870912 va_bytes=109655883776 granularity=2097152 reserve_bytes=2147483648 free_before_bytes=32464109568 free_after_stack_bytes=29456793600 total_bytes=33679736832 stack_before=1024 stack_after=12544 init_ms=72.583 t_ms=0.0
+GPU_ARENA_INIT device=1 status=0 mode=vmm capacity_bytes=27279753216 chunk_bytes=33554432 chunks=813 small_slab_bytes=536870912 va_bytes=109655883776 granularity=2097152 reserve_bytes=2147483648 free_before_bytes=32464109568 free_after_stack_bytes=29456793600 total_bytes=33679736832 stack_before=1024 stack_after=12544 init_ms=92.700 t_ms=2409.9
+GPU_RESIDENT_CLASS_PRELOAD loaded=0 ns=0
+GPU_RESIDENT_SERVICE ready init_ns=8040702240
+GPU_POOL_SUMMARY pool_mallocs=0 pool_trims=0 pool_oom_recoveries=0 arena_enabled=1 staging_enabled=1 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=0 pageable_h2d_bytes=0 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0 staged_parallel=0 staged_parallel_bytes=0 staging_threads=8
+GPU_SYNC_SUMMARY join_calls=2 lane_syncs=0 lane_syncs_skipped=4 free_fences=0 fence_lane_waits=0 device_barriers=0
+GPU_ARENA_SUMMARY device=0 mode=vmm capacity_bytes=27279753216 chunk_bytes=33554432 physical_high_water_bytes=0 live_high_water_bytes=0 live_long_high_water_bytes=0 live_small_high_water_bytes=0 small_slab_bytes=536870912 allocations=0 releases=0 overruns=0 largest_overrun_bytes=0 live_at_overrun_bytes=0 free_chunks_at_overrun=0 small_spills=0 map_calls=813 unmap_calls=0 map_ms=57.733 unmap_ms=0.000 evict_host_syncs=0 fence_records=0 fence_same_stream=0 fence_stream_waits=0 fence_host_syncs=0 fences_now=0 reuse_hits=0 map_misses=0 steals=0 stolen_chunks=0 mapped_free_bytes=26742882304 init_ms=72.583 free_before_bytes=32464109568 free_after_stack_bytes=29456793600 stack_after=12544 t_ms=13360.9
+GPU_ARENA_SUMMARY device=1 mode=vmm capacity_bytes=27279753216 chunk_bytes=33554432 physical_high_water_bytes=0 live_high_water_bytes=0 live_long_high_water_bytes=0 live_small_high_water_bytes=0 small_slab_bytes=536870912 allocations=0 releases=0 overruns=0 largest_overrun_bytes=0 live_at_overrun_bytes=0 free_chunks_at_overrun=0 small_spills=0 map_calls=813 unmap_calls=0 map_ms=76.672 unmap_ms=0.000 evict_host_syncs=0 fence_records=0 fence_same_stream=0 fence_stream_waits=0 fence_host_syncs=0 fences_now=0 reuse_hits=0 map_misses=0 steals=0 stolen_chunks=0 mapped_free_bytes=26742882304 init_ms=92.700 free_before_bytes=32464109568 free_after_stack_bytes=29456793600 stack_after=12544 t_ms=13361.0
+GPU_ARENA_HW device=0 physical_high_water_bytes=27279753216 live_bytes=2050704896 long_bytes=0 t_ms=13401.4
+GPU_ARENA_HW device=1 physical_high_water_bytes=27279753216 live_bytes=33554432 long_bytes=33554432 t_ms=13440.5
+GPU_CPU_PROJECTION rows=4194304 active=4194303 metadata_h2d_bytes=73400304 main_d2h_bytes=0 total_ns=154412466 rom_cache_hit=false compact=true pack_ns=16416046
+GPU_CPU_PROJECTION rows=4194304 active=2722770 metadata_h2d_bytes=47648544 main_d2h_bytes=0 total_ns=157051640 rom_cache_hit=true compact=true pack_ns=47016624
+GPU_CORE_INGRESS ordinal=3 single_stream=true staged_peak_bytes=38369760 skipped_full_joins=22 cap_flushes=0
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=1925 calls=8 coefficient_bytes=2025062400 scratch_bytes=872423168 legacy_scratch_bytes=4398305900 live_lease_bytes=4926431536 live_kinds={ 7, 0, 1, 0, 0 } pool_used_bytes=5037310976 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_CORE_INGRESS ordinal=1 single_stream=true staged_peak_bytes=17123712 skipped_full_joins=22 cap_flushes=0
+GPU_TRACE_STREAM tree=1 columns=1925 leaves=4194304 calls=8 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 12582912, 67108856 } aux_words=4196288 scratch_words=218105792 legacy_scratch_words=1099576475
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=506265600 scratch_words=0 final_coefficient_copy_words=0
+GPU_CPU_PROJECTION rows=4194304 active=4194303 metadata_h2d_bytes=73400304 main_d2h_bytes=0 total_ns=121509095 rom_cache_hit=false compact=true pack_ns=24670704
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=3379 calls=5 coefficient_bytes=1142489088 scratch_bytes=2181051648 legacy_scratch_bytes=3157487988 live_lease_bytes=6153600392 live_kinds={ 74, 64, 1, 0, 1 } pool_used_bytes=7201900032 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_CORE_INGRESS ordinal=2 single_stream=true staged_peak_bytes=20009344 skipped_full_joins=26 cap_flushes=0
+GPU_TRACE_STREAM tree=1 columns=3379 leaves=8388608 calls=5 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 201326592, 201326592 } aux_words=8392000 scratch_words=545262912 legacy_scratch_words=789371997
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=285622272 scratch_words=0 final_coefficient_copy_words=0
+GPU_GKR_RETIRE ordinal=1 projection_temporary_bytes=1275209856 before_workspace_bytes=7580656640
+GPU_GKR_SPANS ordinal=1 ingress_ms=21.112385 base_fft_ms=3.607872 draws_ms=0.102528 projection_ms=27.152704 traversal_ms=98.068030 compact_readback_ms=0.635776 numerical_ready_wall_ns=163724402 readback_wall_ns=647748 native_decode_ns=100800
+GPU_GKR ordinal=1 native_stage_wall_ns=164506470 facts=117983552 coefficient_cells=316705312 workspace_bytes=7580656640 requested_payload_bytes=11828160972 compact_d2h_words=36437 retained_coefficients=false gkr_kernel_launches=2214 batched_oracles=true batched_trees=false batched_masks=true batched_tail=false batched_fold_sum=false batch_fold_sum_calls=0 batch_fold_sum_launches=0 twiddle_setup_ns=20192876 twiddle_cache_hit=false twiddle_cache_bytes=16777216
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=3009 calls=5 coefficient_bytes=1226566400 scratch_bytes=2181050368 legacy_scratch_bytes=3275300604 live_lease_bytes=10479691108 live_kinds={ 107, 31, 2, 0, 2 } pool_used_bytes=11556116992 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_GKR_NATIVE_CHECK ordinal=1 mandatory_partial_verify_ns=2137704
+GPU_TRACE_STREAM tree=1 columns=3009 leaves=8388608 calls=5 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 201326592, 201326592 } aux_words=8391680 scratch_words=545262592 legacy_scratch_words=818825151
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=306641600 scratch_words=0 final_coefficient_copy_words=0
+GPU_CPU_REPLAY_RETAIN ordinal=1 compact_host_bytes=0 main_resident=true
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=3515 calls=5 coefficient_bytes=1104771712 scratch_bytes=2181052160 legacy_scratch_bytes=3031725396 live_lease_bytes=4794858856 live_kinds={ 43, 36, 1, 0, 1 } pool_used_bytes=5400941568 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=1 columns=3515 leaves=8388608 calls=5 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 201326592, 201326592 } aux_words=8392128 scratch_words=545263040 legacy_scratch_words=757931349
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=276192928 scratch_words=0 final_coefficient_copy_words=0
+GPU_GKR_RETIRE ordinal=3 projection_temporary_bytes=1369884800 before_workspace_bytes=9771748864
+GPU_GKR_RETIRE ordinal=2 projection_temporary_bytes=1233110016 before_workspace_bytes=6982153856
+GPU_GKR_SPANS ordinal=3 ingress_ms=2.173664 base_fft_ms=4.035520 draws_ms=0.100192 projection_ms=60.844578 traversal_ms=113.220730 compact_readback_ms=0.524800 numerical_ready_wall_ns=196934332 readback_wall_ns=536169 native_decode_ns=122170
+GPU_GKR ordinal=3 native_stage_wall_ns=197629011 facts=152086336 coefficient_cells=340374048 workspace_bytes=9771748864 requested_payload_bytes=15246944948 compact_d2h_words=34677 retained_coefficients=false gkr_kernel_launches=2161 batched_oracles=true batched_trees=false batched_masks=true batched_tail=false batched_fold_sum=false batch_fold_sum_calls=0 batch_fold_sum_launches=0 twiddle_setup_ns=810 twiddle_cache_hit=true twiddle_cache_bytes=16777216
+GPU_GKR_NATIVE_CHECK ordinal=3 mandatory_partial_verify_ns=1958195
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=legacy columns=1869 calls=0 coefficient_bytes=122486784 scratch_bytes=247254092 legacy_scratch_bytes=247254092 live_lease_bytes=8872653868 live_kinds={ 67, 0, 3, 1, 3 } pool_used_bytes=9481446400 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=30621696 scratch_words=61289243 final_coefficient_copy_words=0
+GPU_GKR_SPANS ordinal=2 ingress_ms=40.172768 base_fft_ms=3.653248 draws_ms=0.098784 projection_ms=15.403040 traversal_ms=94.631520 compact_readback_ms=0.636576 numerical_ready_wall_ns=171174662 readback_wall_ns=648128 native_decode_ns=110200
+GPU_GKR ordinal=2 native_stage_wall_ns=171964830 facts=108668224 coefficient_cells=306180352 workspace_bytes=6982153856 requested_payload_bytes=10894309632 compact_d2h_words=37573 retained_coefficients=false gkr_kernel_launches=2249 batched_oracles=true batched_trees=false batched_masks=true batched_tail=false batched_fold_sum=false batch_fold_sum_calls=0 batch_fold_sum_launches=0 twiddle_setup_ns=39094085 twiddle_cache_hit=false twiddle_cache_bytes=16777216
+GPU_GKR_NATIVE_CHECK ordinal=2 mandatory_partial_verify_ns=5400886
+GPU_CPU_REPLAY_RETAIN ordinal=3 compact_host_bytes=0 main_resident=true
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=legacy columns=7409 calls=0 coefficient_bytes=121389056 scratch_bytes=243542588 legacy_scratch_bytes=243542588 live_lease_bytes=3617694972 live_kinds={ 7, 0, 3, 2, 3 } pool_used_bytes=3795352064 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_CPU_REPLAY_RETAIN ordinal=2 compact_host_bytes=0 main_resident=true
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=30347264 scratch_words=60754583 final_coefficient_copy_words=0
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=1925 calls=1 coefficient_bytes=134676480 scratch_bytes=554573568 legacy_scratch_bytes=570348140 live_lease_bytes=2317189968 live_kinds={ 8, 0, 2, 1, 2 } pool_used_bytes=2420270080 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=1 columns=1925 leaves=4194304 calls=1 chunk_budget_words=134217728 chunk_words=67338240 bank_words={ 67108856, 0 } aux_words=4196288 scratch_words=138643392 legacy_scratch_words=142587035
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=33669120 scratch_words=0 final_coefficient_copy_words=0
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=1925 calls=1 coefficient_bytes=71663616 scratch_bytes=428547840 legacy_scratch_bytes=442749548 live_lease_bytes=3703370512 live_kinds={ 10, 0, 3, 2, 3 } pool_used_bytes=3895874560 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=legacy columns=1447 calls=0 coefficient_bytes=94830592 scratch_bytes=191929892 legacy_scratch_bytes=191929892 live_lease_bytes=1876199668 live_kinds={ 8, 0, 2, 1, 2 } pool_used_bytes=1920134144 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=23707648 scratch_words=47458193 final_coefficient_copy_words=0
+GPU_TRACE_STREAM tree=1 columns=1925 leaves=4194304 calls=1 chunk_budget_words=134217728 chunk_words=35831808 bank_words={ 67108856, 0 } aux_words=4196288 scratch_words=107136960 legacy_scratch_words=110687387
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=17915904 scratch_words=0 final_coefficient_copy_words=0
+GPU_CPU_PROJECTION rows=4194304 active=4194303 metadata_h2d_bytes=73400304 main_d2h_bytes=0 total_ns=42982725 rom_cache_hit=true compact=true pack_ns=29725701
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=legacy columns=401 calls=0 coefficient_bytes=410624 scratch_bytes=867260 legacy_scratch_bytes=867260 live_lease_bytes=2353512952 live_kinds={ 10, 1, 2, 1, 2 } pool_used_bytes=2423046144 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=102656 scratch_words=208631 final_coefficient_copy_words=0
+GPU_CORE_INGRESS ordinal=0 single_stream=true staged_peak_bytes=39892704 skipped_full_joins=24 cap_flushes=0
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=3472 calls=5 coefficient_bytes=1251120256 scratch_bytes=2181052160 legacy_scratch_bytes=3324421280 live_lease_bytes=6588007512 live_kinds={ 47, 36, 2, 1, 2 } pool_used_bytes=7191572992 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=1 columns=3472 leaves=8388608 calls=5 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 201326592, 201326592 } aux_words=8392128 scratch_words=545263040 legacy_scratch_words=831105320
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=312780064 scratch_words=0 final_coefficient_copy_words=0
+GPU_GKR_RETIRE ordinal=0 projection_temporary_bytes=1396532352 before_workspace_bytes=7404406400
+GPU_GKR_SPANS ordinal=0 ingress_ms=2.353568 base_fft_ms=4.170016 draws_ms=0.179616 projection_ms=17.316416 traversal_ms=108.352100 compact_readback_ms=0.654016 numerical_ready_wall_ns=151762504 readback_wall_ns=665179 native_decode_ns=150469
+GPU_GKR ordinal=0 native_stage_wall_ns=152623162 facts=115240256 coefficient_cells=347035936 workspace_bytes=7404406400 requested_payload_bytes=11553154800 compact_d2h_words=37477 retained_coefficients=false gkr_kernel_launches=2246 batched_oracles=true batched_trees=false batched_masks=true batched_tail=false batched_fold_sum=false batch_fold_sum_calls=0 batch_fold_sum_launches=0 twiddle_setup_ns=1050 twiddle_cache_hit=true twiddle_cache_bytes=16777216
+GPU_GKR_NATIVE_CHECK ordinal=0 mandatory_partial_verify_ns=4066649
+GPU_CPU_REPLAY_RETAIN ordinal=0 compact_host_bytes=0 main_resident=true
+info: rv64 OM31 pipelined recursion: nodes=15 lanes=2 host_workers=8 prep_pool_workers=24 prep_ahead=6
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=1925 calls=8 coefficient_bytes=2025062400 scratch_bytes=872423168 legacy_scratch_bytes=4398305900 live_lease_bytes=8140484128 live_kinds={ 12, 0, 3, 2, 4 } pool_used_bytes=8360763904 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=1 columns=1925 leaves=4194304 calls=8 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 12582912, 67108856 } aux_words=4196288 scratch_words=218105792 legacy_scratch_words=1099576475
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=506265600 scratch_words=0 final_coefficient_copy_words=0
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=1744 calls=3 coefficient_bytes=659808256 scratch_bytes=1906826240 legacy_scratch_bytes=2141748896 live_lease_bytes=6169845200 live_kinds={ 26, 0, 4, 1, 85 } pool_used_bytes=6635484672 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=2 columns=1744 leaves=8388608 calls=3 chunk_budget_words=134217728 chunk_words=132771840 bank_words={ 134217720, 201326592 } aux_words=8390400 scratch_words=476706560 legacy_scratch_words=535437224
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=164952064 scratch_words=0 final_coefficient_copy_words=0
+GPU_POOL_SUMMARY pool_mallocs=0 pool_trims=0 pool_oom_recoveries=0 arena_enabled=1 staging_enabled=1 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=0 pageable_h2d_bytes=0 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=1488 staged_h2d_bytes=1851008704 staged_d2h=305 staged_d2h_bytes=586212 slot_waits=0 rings=2 staged_parallel=151 staged_parallel_bytes=1521756600 staging_threads=8
+GPU_SYNC_SUMMARY join_calls=732 lane_syncs=363 lane_syncs_skipped=1101 free_fences=1196 fence_lane_waits=0 device_barriers=0
+GPU_ARENA_SUMMARY device=0 mode=vmm capacity_bytes=27279753216 chunk_bytes=33554432 physical_high_water_bytes=27279753216 live_high_water_bytes=15059409408 live_long_high_water_bytes=543885312 live_small_high_water_bytes=44478976 small_slab_bytes=536870912 allocations=642 releases=599 overruns=0 largest_overrun_bytes=0 live_at_overrun_bytes=0 free_chunks_at_overrun=0 small_spills=0 map_calls=813 unmap_calls=0 map_ms=57.743 unmap_ms=0.000 evict_host_syncs=0 fence_records=599 fence_same_stream=0 fence_stream_waits=0 fence_host_syncs=0 fences_now=0 reuse_hits=194 map_misses=0 steals=0 stolen_chunks=0 mapped_free_bytes=19260243968 init_ms=72.583 free_before_bytes=32464109568 free_after_stack_bytes=29456793600 stack_after=12544 t_ms=15360.0
+GPU_ARENA_SUMMARY device=1 mode=vmm capacity_bytes=27279753216 chunk_bytes=33554432 physical_high_water_bytes=27279753216 live_high_water_bytes=18737625088 live_long_high_water_bytes=549370368 live_small_high_water_bytes=56952832 small_slab_bytes=536870912 allocations=710 releases=597 overruns=0 largest_overrun_bytes=0 live_at_overrun_bytes=0 free_chunks_at_overrun=0 small_spills=0 map_calls=813 unmap_calls=0 map_ms=76.679 unmap_ms=0.000 evict_host_syncs=0 fence_records=597 fence_same_stream=0 fence_stream_waits=0 fence_host_syncs=0 fences_now=3 reuse_hits=190 map_misses=0 steals=0 stolen_chunks=0 mapped_free_bytes=22045261824 init_ms=92.700 free_before_bytes=32464109568 free_after_stack_bytes=29456793600 stack_after=12544 t_ms=15360.1
+GPU_COMPOSITION_ARENA ordinal=3 role=20 arena_words=599785868 legacy_arena_words=834666892 direct_columns=56 columns=66 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=3 role=1 arena_words=33816930 legacy_arena_words=46661986 direct_columns=49 columns=59 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=3 role=2 arena_words=4552 legacy_arena_words=6152 direct_columns=50 columns=60 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=3 role=3 arena_words=41157046 legacy_arena_words=57672118 direct_columns=63 columns=73 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=3 role=4 arena_words=7930186 legacy_arena_words=10879306 direct_columns=45 columns=55 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=5 arena_words=10944980 legacy_arena_words=15401428 direct_columns=68 columns=78 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=6 arena_words=3178754 legacy_arena_words=4260098 direct_columns=33 columns=43 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=3 role=8 arena_words=63701688 legacy_arena_words=91488952 direct_columns=106 columns=116 eval_log=19
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=1592 calls=7 coefficient_bytes=1774190592 scratch_bytes=872421632 legacy_scratch_bytes=3896552960 live_lease_bytes=10255330400 live_kinds={ 32, 0, 5, 1, 107 } pool_used_bytes=11001590272 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_COMPOSITION_ARENA ordinal=3 role=9 arena_words=8585576 legacy_arena_words=11862376 direct_columns=50 columns=60 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=21 arena_words=5046470 legacy_arena_words=6553798 direct_columns=23 columns=33 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=11 arena_words=4653236 legacy_arena_words=5963956 direct_columns=20 columns=30 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=12 arena_words=18356 legacy_arena_words=23476 direct_columns=20 columns=30 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=3 role=13 arena_words=15794866 legacy_arena_words=22676146 direct_columns=105 columns=115 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=47 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_TRACE_STREAM tree=2 columns=1592 leaves=4194304 calls=7 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 67108856, 12582912 } aux_words=4195904 scratch_words=218105408 legacy_scratch_words=974138240
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=443547648 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=3 role=48 arena_words=70254790 legacy_arena_words=104857798 direct_columns=33 columns=33 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=3 role=14 arena_words=5177548 legacy_arena_words=6750412 direct_columns=24 columns=34 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=15 arena_words=7897778 legacy_arena_words=11338418 direct_columns=105 columns=115 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=3 role=16 arena_words=20578742 legacy_arena_words=28836278 direct_columns=63 columns=73 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=3 role=22 arena_words=35468 legacy_arena_words=50828 direct_columns=120 columns=130 eval_log=8
+GPU_COMPOSITION_ARENA ordinal=3 role=23 arena_words=60163392 legacy_arena_words=88212800 direct_columns=214 columns=224 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=3 role=24 arena_words=30082368 legacy_arena_words=44107072 direct_columns=214 columns=224 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=25 arena_words=7521600 legacy_arena_words=11027776 direct_columns=214 columns=224 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=3 role=34 arena_words=938638 legacy_arena_words=1344142 direct_columns=99 columns=109 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=3 role=35 arena_words=1630772 legacy_arena_words=2318900 direct_columns=84 columns=94 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=3 role=36 arena_words=1221022 legacy_arena_words=1704350 direct_columns=59 columns=69 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=3 role=37 arena_words=15008398 legacy_arena_words=21496462 direct_columns=99 columns=109 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=38 arena_words=9452 legacy_arena_words=13292 direct_columns=120 columns=130 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=3 role=39 arena_words=8192 legacy_arena_words=11456 direct_columns=102 columns=112 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=3 role=43 arena_words=2416498 legacy_arena_words=3605362 direct_columns=1161 columns=1171 eval_log=11
+GPU_COMPOSITION_ARENA ordinal=4 role=0 arena_words=3687600744 legacy_arena_words=4609036904 direct_columns=3515 columns=3516 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=3 role=44 arena_words=11210732 legacy_arena_words=16748524 direct_columns=1352 columns=1362 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=3 role=45 arena_words=187695608 legacy_arena_words=265290232 direct_columns=74 columns=84 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=3 role=46 arena_words=11731448 legacy_arena_words=16581112 direct_columns=74 columns=84 eval_log=17
+GPU_COMPOSITION_OWNERSHIP ordinal=3 retained_coefficient_words=67108864 joined_commit_scratch_words=138412048 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=3 coefficient_stream_ms=0.072 auxiliary_ms=1.969 domain_fft_ms=12.336 rows_ms=34.058 finalize_ms=6.143 commit_fft_ms=1.317 commit_hash_ms=1.207 gpu_enqueued_kernel_spans_ms=57.031 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=1149520320 geometry_hits=0 geometry_misses=32 retained_setup_bytes=67952124 retained_geometry_bytes=174240 retained_twiddle_bytes=67108736 retained_artifact_bytes=669148 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_COMPOSITION_RESIDENT roles=32 total_ns=182210153 quotient_d2h_bytes=0 coefficient_d2h_bytes=0 root_d2h_bytes=32
+GPU_PCS_NATIVE prepare_ns=175923539 device_ns=82493667 total_ns=275869932 device_bytes=4806190832 retained_bytes=9337645280 coefficient_cells=572434976 reused_columns=0 reused_cells=0 host_geometry_hits=0 host_geometry_misses=1 host_geometry_bytes=41943336 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=legacy columns=1869 calls=0 coefficient_bytes=122486784 scratch_bytes=247254092 legacy_scratch_bytes=247254092 live_lease_bytes=2209316588 live_kinds={ 8, 0, 2, 1, 86 } pool_used_bytes=7507042816 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=30621696 scratch_words=61289243 final_coefficient_copy_words=0
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=5128 calls=2 coefficient_bytes=336068608 scratch_bytes=542265600 legacy_scratch_bytes=674508992 live_lease_bytes=3055026048 live_kinds={ 8, 0, 3, 1, 86 } pool_used_bytes=8416157184 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=2 columns=5128 leaves=32768 calls=2 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 786432, 524280 } aux_words=37952 scratch_words=135566400 legacy_scratch_words=168627248
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=84017152 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=7 role=5 arena_words=458892310 legacy_arena_words=573596694 direct_columns=7001 columns=7001 eval_log=16
+GPU_COMPOSITION_OWNERSHIP ordinal=7 retained_coefficient_words=524288 joined_commit_scratch_words=1064992 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=7 coefficient_stream_ms=0.024 auxiliary_ms=0.000 domain_fft_ms=4.037 rows_ms=23.929 finalize_ms=0.058 commit_fft_ms=0.023 commit_hash_ms=0.089 gpu_enqueued_kernel_spans_ms=28.135 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=458817536 geometry_hits=0 geometry_misses=33 retained_setup_bytes=68176308 retained_geometry_bytes=398424 retained_twiddle_bytes=67108736 retained_artifact_bytes=669148 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_TRUTH_COMPOSITION_RESIDENT ordinal=7 roles=1 total_ns=30600558 quotient_d2h_bytes=0 coefficient_d2h_bytes=0 root_d2h_bytes=32
+GPU_PCS_NATIVE prepare_ns=7617229 device_ns=18679199 total_ns=57918685 device_bytes=559527472 retained_bytes=6984193424 coefficient_cells=115228672 reused_columns=0 reused_cells=0 host_geometry_hits=0 host_geometry_misses=2 host_geometry_bytes=42107408 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=legacy columns=7409 calls=0 coefficient_bytes=121389056 scratch_bytes=243542588 legacy_scratch_bytes=243542588 live_lease_bytes=2200605596 live_kinds={ 6, 0, 2, 1, 87 } pool_used_bytes=7502927872 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=30347264 scratch_words=60754583 final_coefficient_copy_words=0
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=legacy columns=16 calls=0 coefficient_bytes=262144 scratch_bytes=1081760 legacy_scratch_bytes=1081760 live_lease_bytes=1837411072 live_kinds={ 6, 0, 3, 1, 87 } pool_used_bytes=7101487616 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=65536 scratch_words=139376 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=9 role=3 arena_words=60898840 legacy_arena_words=91323928 direct_columns=7428 columns=7428 eval_log=13
+GPU_COMPOSITION_OWNERSHIP ordinal=9 retained_coefficient_words=65536 joined_commit_scratch_words=135184 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=9 coefficient_stream_ms=0.024 auxiliary_ms=0.000 domain_fft_ms=0.644 rows_ms=1.292 finalize_ms=0.044 commit_fft_ms=0.016 commit_hash_ms=0.074 gpu_enqueued_kernel_spans_ms=2.068 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=60850176 geometry_hits=0 geometry_misses=34 retained_setup_bytes=68414084 retained_geometry_bytes=636200 retained_twiddle_bytes=67108736 retained_artifact_bytes=669148 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_TRUTH_COMPOSITION_RESIDENT ordinal=9 roles=1 total_ns=5136036 quotient_d2h_bytes=0 coefficient_d2h_bytes=0 root_d2h_bytes=32
+GPU_COMPOSITION_ARENA ordinal=4 role=1 arena_words=216006806 legacy_arena_words=266338454 direct_columns=24 columns=25 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=4 role=2 arena_words=6750358 legacy_arena_words=8323222 direct_columns=24 columns=25 eval_log=18
+GPU_PCS_NATIVE prepare_ns=6993901 device_ns=15149056 total_ns=53449457 device_bytes=251598284 retained_bytes=6642716752 coefficient_cells=30490624 reused_columns=0 reused_cells=0 host_geometry_hits=0 host_geometry_misses=3 host_geometry_bytes=42148568 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_COMPOSITION_OWNERSHIP ordinal=4 retained_coefficient_words=67108864 joined_commit_scratch_words=136314912 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=4 coefficient_stream_ms=0.040 auxiliary_ms=0.212 domain_fft_ms=54.485 rows_ms=407.212 finalize_ms=2.530 commit_fft_ms=1.306 commit_hash_ms=0.732 gpu_enqueued_kernel_spans_ms=466.477 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=3903062016 geometry_hits=0 geometry_misses=3 retained_setup_bytes=65034452 retained_geometry_bytes=140024 retained_twiddle_bytes=64225280 retained_artifact_bytes=669148 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_TRUTH_COMPOSITION_RESIDENT ordinal=4 roles=3 total_ns=567368041 quotient_d2h_bytes=0 coefficient_d2h_bytes=0 root_d2h_bytes=32
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=1936 calls=3 coefficient_bytes=726027264 scratch_bytes=1905047296 legacy_scratch_bytes=2274192288 live_lease_bytes=10508228192 live_kinds={ 29, 0, 7, 1, 107 } pool_used_bytes=11202916864 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=1925 calls=1 coefficient_bytes=71663616 scratch_bytes=428547840 legacy_scratch_bytes=442749548 live_lease_bytes=2347460704 live_kinds={ 7, 0, 2, 1, 88 } pool_used_bytes=7670200320 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=2 columns=1936 leaves=8388608 calls=3 chunk_budget_words=134217728 chunk_words=132326912 bank_words={ 134217720, 201326592 } aux_words=8390592 scratch_words=476261824 legacy_scratch_words=568548072
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=181506816 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=0 role=20 arena_words=599785868 legacy_arena_words=834666892 direct_columns=56 columns=66 eval_log=23
+GPU_TRACE_STREAM tree=1 columns=1925 leaves=4194304 calls=1 chunk_budget_words=134217728 chunk_words=35831808 bank_words={ 67108856, 0 } aux_words=4196288 scratch_words=107136960 legacy_scratch_words=110687387
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=17915904 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=0 role=1 arena_words=33816930 legacy_arena_words=46661986 direct_columns=49 columns=59 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=0 role=2 arena_words=4552 legacy_arena_words=6152 direct_columns=50 columns=60 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=0 role=3 arena_words=41157046 legacy_arena_words=57672118 direct_columns=63 columns=73 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=0 role=4 arena_words=15860042 legacy_arena_words=21758282 direct_columns=45 columns=55 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=0 role=5 arena_words=10944980 legacy_arena_words=15401428 direct_columns=68 columns=78 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=6 arena_words=6357250 legacy_arena_words=8519938 direct_columns=33 columns=43 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=7 arena_words=461442 legacy_arena_words=660098 direct_columns=97 columns=107 eval_log=12
+GPU_COMPOSITION_ARENA ordinal=0 role=8 arena_words=15925944 legacy_arena_words=22872760 direct_columns=106 columns=116 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=9 arena_words=8585576 legacy_arena_words=11862376 direct_columns=50 columns=60 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=21 arena_words=5046470 legacy_arena_words=6553798 direct_columns=23 columns=33 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=11 arena_words=4653236 legacy_arena_words=5963956 direct_columns=20 columns=30 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=12 arena_words=18356 legacy_arena_words=23476 direct_columns=20 columns=30 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=0 role=13 arena_words=63177394 legacy_arena_words=90702514 direct_columns=105 columns=115 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=0 role=47 arena_words=70254790 legacy_arena_words=104857798 direct_columns=33 columns=33 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=0 role=48 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=0 role=14 arena_words=5177548 legacy_arena_words=6750412 direct_columns=24 columns=34 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=15 arena_words=7897778 legacy_arena_words=11338418 direct_columns=105 columns=115 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=0 role=16 arena_words=10289590 legacy_arena_words=14418358 direct_columns=63 columns=73 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=18 arena_words=1368532 legacy_arena_words=1925588 direct_columns=68 columns=78 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=0 role=22 arena_words=8880908 legacy_arena_words=12813068 direct_columns=120 columns=130 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=0 role=23 arena_words=1881408 legacy_arena_words=2757952 direct_columns=214 columns=224 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=0 role=24 arena_words=941376 legacy_arena_words=1379648 direct_columns=214 columns=224 eval_log=12
+GPU_COMPOSITION_ARENA ordinal=0 role=25 arena_words=16032 legacy_arena_words=22880 direct_columns=214 columns=224 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=0 role=34 arena_words=938638 legacy_arena_words=1344142 direct_columns=99 columns=109 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=0 role=35 arena_words=13042228 legacy_arena_words=18547252 direct_columns=84 columns=94 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=36 arena_words=39059870 legacy_arena_words=54526366 direct_columns=59 columns=69 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=0 role=37 arena_words=30016142 legacy_arena_words=42992270 direct_columns=99 columns=109 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=0 role=38 arena_words=35468 legacy_arena_words=50828 direct_columns=120 columns=130 eval_log=8
+GPU_COMPOSITION_ARENA ordinal=0 role=39 arena_words=30752 legacy_arena_words=43808 direct_columns=102 columns=112 eval_log=8
+GPU_COMPOSITION_ARENA ordinal=0 role=40 arena_words=7772 legacy_arena_words=10844 direct_columns=96 columns=106 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=0 role=41 arena_words=3291464 legacy_arena_words=4872520 direct_columns=386 columns=396 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=0 role=42 arena_words=1294540 legacy_arena_words=1687756 direct_columns=24 columns=34 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=0 role=43 arena_words=9644914 legacy_arena_words=14400370 direct_columns=1161 columns=1171 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=0 role=44 arena_words=44818412 legacy_arena_words=66969580 direct_columns=1352 columns=1362 eval_log=15
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=1592 calls=1 coefficient_bytes=189530112 scratch_bytes=664279296 legacy_scratch_bytes=678473216 live_lease_bytes=2955338336 live_kinds={ 7, 0, 3, 1, 103 } pool_used_bytes=8510633984 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_COMPOSITION_ARENA ordinal=0 role=45 arena_words=187695608 legacy_arena_words=265290232 direct_columns=74 columns=84 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=0 role=46 arena_words=46924280 legacy_arena_words=66322936 direct_columns=74 columns=84 eval_log=19
+GPU_TRACE_STREAM tree=2 columns=1592 leaves=4194304 calls=1 chunk_budget_words=134217728 chunk_words=94765056 bank_words={ 67108856, 0 } aux_words=4195904 scratch_words=166069824 legacy_scratch_words=169618304
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=47382528 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=5 role=0 arena_words=115257960 legacy_arena_words=144052840 direct_columns=3515 columns=3516 eval_log=15
+GPU_COMPOSITION_OWNERSHIP ordinal=0 retained_coefficient_words=67108864 joined_commit_scratch_words=138412048 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=0 coefficient_stream_ms=0.076 auxiliary_ms=2.322 domain_fft_ms=13.136 rows_ms=28.963 finalize_ms=6.130 commit_fft_ms=1.311 commit_hash_ms=1.224 gpu_enqueued_kernel_spans_ms=53.086 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=1205356480 geometry_hits=0 geometry_misses=40 retained_setup_bytes=68112036 retained_geometry_bytes=338248 retained_twiddle_bytes=67104640 retained_artifact_bytes=669148 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_COMPOSITION_RESIDENT roles=37 total_ns=68453246 quotient_d2h_bytes=0 coefficient_d2h_bytes=0 root_d2h_bytes=32
+GPU_COMPOSITION_ARENA ordinal=5 role=1 arena_words=216006806 legacy_arena_words=266338454 direct_columns=24 columns=25 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=5 role=2 arena_words=6750358 legacy_arena_words=8323222 direct_columns=24 columns=25 eval_log=18
+GPU_COMPOSITION_OWNERSHIP ordinal=5 retained_coefficient_words=67108864 joined_commit_scratch_words=136314912 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=5 coefficient_stream_ms=0.022 auxiliary_ms=0.188 domain_fft_ms=3.086 rows_ms=17.652 finalize_ms=2.497 commit_fft_ms=1.312 commit_hash_ms=0.724 gpu_enqueued_kernel_spans_ms=25.459 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=331481088 geometry_hits=0 geometry_misses=37 retained_setup_bytes=68554108 retained_geometry_bytes=776224 retained_twiddle_bytes=67108736 retained_artifact_bytes=669148 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_TRUTH_COMPOSITION_RESIDENT ordinal=5 roles=3 total_ns=31411666 quotient_d2h_bytes=0 coefficient_d2h_bytes=0 root_d2h_bytes=32
+GPU_PCS_NATIVE prepare_ns=131826608 device_ns=59571166 total_ns=206456838 device_bytes=1574108404 retained_bytes=7210823760 coefficient_cells=147808256 reused_columns=0 reused_cells=0 host_geometry_hits=0 host_geometry_misses=4 host_geometry_bytes=63120384 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_PCS_NATIVE prepare_ns=147677234 device_ns=83747741 total_ns=380761261 device_bytes=1853471988 retained_bytes=10725088372 coefficient_cells=1040449536 reused_columns=0 reused_cells=0 host_geometry_hits=0 host_geometry_misses=2 host_geometry_bytes=62915152 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=1904 calls=3 coefficient_bytes=620804096 scratch_bytes=1904315904 legacy_scratch_bytes=2114076704 live_lease_bytes=4772164080 live_kinds={ 23, 0, 3, 0, 181 } pool_used_bytes=10449658368 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=2 columns=1904 leaves=8388608 calls=3 chunk_budget_words=134217728 chunk_words=132144128 bank_words={ 134217720, 201326592 } aux_words=8390528 scratch_words=476078976 legacy_scratch_words=528519176
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=155201024 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=1 role=20 arena_words=599785868 legacy_arena_words=834666892 direct_columns=56 columns=66 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=1 role=1 arena_words=33816930 legacy_arena_words=46661986 direct_columns=49 columns=59 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=1 role=2 arena_words=4552 legacy_arena_words=6152 direct_columns=50 columns=60 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=1 role=3 arena_words=41157046 legacy_arena_words=57672118 direct_columns=63 columns=73 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=1 role=4 arena_words=7930186 legacy_arena_words=10879306 direct_columns=45 columns=55 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=5 arena_words=10944980 legacy_arena_words=15401428 direct_columns=68 columns=78 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=6 arena_words=6357250 legacy_arena_words=8519938 direct_columns=33 columns=43 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=7 arena_words=231042 legacy_arena_words=330370 direct_columns=97 columns=107 eval_log=11
+GPU_COMPOSITION_ARENA ordinal=1 role=8 arena_words=31851192 legacy_arena_words=45744824 direct_columns=106 columns=116 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=1 role=9 arena_words=8585576 legacy_arena_words=11862376 direct_columns=50 columns=60 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=21 arena_words=5046470 legacy_arena_words=6553798 direct_columns=23 columns=33 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=11 arena_words=4653236 legacy_arena_words=5963956 direct_columns=20 columns=30 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=12 arena_words=18356 legacy_arena_words=23476 direct_columns=20 columns=30 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=1 role=13 arena_words=63177394 legacy_arena_words=90702514 direct_columns=105 columns=115 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=1 role=47 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=1 role=48 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=1 role=14 arena_words=5177548 legacy_arena_words=6750412 direct_columns=24 columns=34 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=16 arena_words=20578742 legacy_arena_words=28836278 direct_columns=63 columns=73 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=1 role=17 arena_words=3965258 legacy_arena_words=5439818 direct_columns=45 columns=55 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=1 role=22 arena_words=4440844 legacy_arena_words=6406924 direct_columns=120 columns=130 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=1 role=23 arena_words=7521600 legacy_arena_words=11027776 direct_columns=214 columns=224 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=1 role=24 arena_words=3761472 legacy_arena_words=5514560 direct_columns=214 columns=224 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=1 role=26 arena_words=30720 legacy_arena_words=44416 direct_columns=214 columns=224 eval_log=7
+GPU_COMPOSITION_ARENA ordinal=1 role=34 arena_words=938638 legacy_arena_words=1344142 direct_columns=99 columns=109 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=1 role=35 arena_words=13042228 legacy_arena_words=18547252 direct_columns=84 columns=94 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=36 arena_words=9765278 legacy_arena_words=13631902 direct_columns=59 columns=69 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=37 arena_words=1876622 legacy_arena_words=2687630 direct_columns=99 columns=109 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=1 role=38 arena_words=18124 legacy_arena_words=25804 direct_columns=120 columns=130 eval_log=7
+GPU_COMPOSITION_ARENA ordinal=1 role=39 arena_words=30752 legacy_arena_words=43808 direct_columns=102 columns=112 eval_log=8
+GPU_COMPOSITION_ARENA ordinal=1 role=40 arena_words=14908 legacy_arena_words=21052 direct_columns=96 columns=106 eval_log=7
+GPU_COMPOSITION_ARENA ordinal=1 role=41 arena_words=6580552 legacy_arena_words=9742664 direct_columns=386 columns=396 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=1 role=42 arena_words=1294540 legacy_arena_words=1687756 direct_columns=24 columns=34 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=1 role=43 arena_words=82322 legacy_arena_words=119474 direct_columns=1161 columns=1171 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=1 role=44 arena_words=183212 legacy_arena_words=269740 direct_columns=1352 columns=1362 eval_log=7
+GPU_COMPOSITION_ARENA ordinal=1 role=45 arena_words=187695608 legacy_arena_words=265290232 direct_columns=74 columns=84 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=1 role=46 arena_words=93848056 legacy_arena_words=132645368 direct_columns=74 columns=84 eval_log=20
+GPU_PCS_NATIVE prepare_ns=300988655 device_ns=87674659 total_ns=440217632 device_bytes=4809198016 retained_bytes=10836167548 coefficient_cells=595651616 reused_columns=0 reused_cells=0 host_geometry_hits=0 host_geometry_misses=2 host_geometry_bytes=62915152 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_COMPOSITION_OWNERSHIP ordinal=1 retained_coefficient_words=67108864 joined_commit_scratch_words=138412048 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=1 coefficient_stream_ms=0.141 auxiliary_ms=2.511 domain_fft_ms=13.206 rows_ms=28.136 finalize_ms=6.873 commit_fft_ms=1.316 commit_hash_ms=1.206 gpu_enqueued_kernel_spans_ms=53.248 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=1091680064 geometry_hits=15 geometry_misses=58 retained_setup_bytes=68717604 retained_geometry_bytes=939720 retained_twiddle_bytes=67108736 retained_artifact_bytes=669148 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_COMPOSITION_RESIDENT roles=36 total_ns=67148100 quotient_d2h_bytes=0 coefficient_d2h_bytes=0 root_d2h_bytes=32
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=1928 calls=3 coefficient_bytes=587712512 scratch_bytes=1905241856 legacy_scratch_bytes=1997562560 live_lease_bytes=5425021072 live_kinds={ 47, 0, 4, 0, 190 } pool_used_bytes=12504456704 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=2 columns=1928 leaves=8388608 calls=3 chunk_budget_words=134217728 chunk_words=132375552 bank_words={ 134217720, 201326592 } aux_words=8390592 scratch_words=476310464 legacy_scratch_words=499390640
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=146928128 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=2 role=20 arena_words=599785868 legacy_arena_words=834666892 direct_columns=56 columns=66 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=2 role=1 arena_words=33816930 legacy_arena_words=46661986 direct_columns=49 columns=59 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=2 role=2 arena_words=4552 legacy_arena_words=6152 direct_columns=50 columns=60 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=2 role=3 arena_words=41157046 legacy_arena_words=57672118 direct_columns=63 columns=73 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=2 role=4 arena_words=15860042 legacy_arena_words=21758282 direct_columns=45 columns=55 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=2 role=5 arena_words=10944980 legacy_arena_words=15401428 direct_columns=68 columns=78 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=6 arena_words=6357250 legacy_arena_words=8519938 direct_columns=33 columns=43 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=7 arena_words=231042 legacy_arena_words=330370 direct_columns=97 columns=107 eval_log=11
+GPU_COMPOSITION_ARENA ordinal=2 role=8 arena_words=15925944 legacy_arena_words=22872760 direct_columns=106 columns=116 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=9 arena_words=8585576 legacy_arena_words=11862376 direct_columns=50 columns=60 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=21 arena_words=5046470 legacy_arena_words=6553798 direct_columns=23 columns=33 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=11 arena_words=4653236 legacy_arena_words=5963956 direct_columns=20 columns=30 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=12 arena_words=18356 legacy_arena_words=23476 direct_columns=20 columns=30 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=2 role=13 arena_words=63177394 legacy_arena_words=90702514 direct_columns=105 columns=115 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=2 role=47 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=2 role=48 arena_words=2342 legacy_arena_words=3398 direct_columns=33 columns=33 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=2 role=14 arena_words=5177548 legacy_arena_words=6750412 direct_columns=24 columns=34 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=15 arena_words=15794866 legacy_arena_words=22676146 direct_columns=105 columns=115 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=16 arena_words=20578742 legacy_arena_words=28836278 direct_columns=63 columns=73 eval_log=18
+GPU_COMPOSITION_ARENA ordinal=2 role=17 arena_words=1982794 legacy_arena_words=2720074 direct_columns=45 columns=55 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=2 role=18 arena_words=5472724 legacy_arena_words=7700948 direct_columns=68 columns=78 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=2 role=22 arena_words=4440844 legacy_arena_words=6406924 direct_columns=120 columns=130 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=2 role=23 arena_words=941376 legacy_arena_words=1379648 direct_columns=214 columns=224 eval_log=12
+GPU_COMPOSITION_ARENA ordinal=2 role=24 arena_words=471360 legacy_arena_words=690496 direct_columns=214 columns=224 eval_log=11
+GPU_COMPOSITION_ARENA ordinal=2 role=25 arena_words=30720 legacy_arena_words=44416 direct_columns=214 columns=224 eval_log=7
+GPU_COMPOSITION_ARENA ordinal=2 role=26 arena_words=60096 legacy_arena_words=87488 direct_columns=214 columns=224 eval_log=8
+GPU_COMPOSITION_ARENA ordinal=2 role=34 arena_words=1876622 legacy_arena_words=2687630 direct_columns=99 columns=109 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=2 role=35 arena_words=13042228 legacy_arena_words=18547252 direct_columns=84 columns=94 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=36 arena_words=4882846 legacy_arena_words=6816158 direct_columns=59 columns=69 eval_log=16
+GPU_COMPOSITION_ARENA ordinal=2 role=37 arena_words=15008398 legacy_arena_words=21496462 direct_columns=99 columns=109 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=40 arena_words=7772 legacy_arena_words=10844 direct_columns=96 columns=106 eval_log=6
+GPU_COMPOSITION_ARENA ordinal=2 role=41 arena_words=3291464 legacy_arena_words=4872520 direct_columns=386 columns=396 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=2 role=42 arena_words=1294540 legacy_arena_words=1687756 direct_columns=24 columns=34 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=2 role=43 arena_words=4825970 legacy_arena_words=7203698 direct_columns=1161 columns=1171 eval_log=12
+GPU_COMPOSITION_ARENA ordinal=2 role=44 arena_words=11210732 legacy_arena_words=16748524 direct_columns=1352 columns=1362 eval_log=13
+GPU_COMPOSITION_ARENA ordinal=2 role=45 arena_words=187695608 legacy_arena_words=265290232 direct_columns=74 columns=84 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=2 role=46 arena_words=23462392 legacy_arena_words=33161720 direct_columns=74 columns=84 eval_log=18
+GPU_COMPOSITION_OWNERSHIP ordinal=2 retained_coefficient_words=67108864 joined_commit_scratch_words=138412048 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=2 coefficient_stream_ms=0.142 auxiliary_ms=2.503 domain_fft_ms=12.707 rows_ms=27.057 finalize_ms=6.859 commit_fft_ms=1.317 commit_hash_ms=1.224 gpu_enqueued_kernel_spans_ms=51.667 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=1047711232 geometry_hits=20 geometry_misses=57 retained_setup_bytes=68261212 retained_geometry_bytes=483328 retained_twiddle_bytes=67108736 retained_artifact_bytes=669148 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_COMPOSITION_RESIDENT roles=37 total_ns=70968600 quotient_d2h_bytes=0 coefficient_d2h_bytes=0 root_d2h_bytes=32
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=1925 calls=1 coefficient_bytes=134676480 scratch_bytes=554573568 legacy_scratch_bytes=570348140 live_lease_bytes=3948756032 live_kinds={ 28, 0, 5, 0, 191 } pool_used_bytes=10922295296 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_PCS_NATIVE prepare_ns=6265113 device_ns=88561538 total_ns=127616728 device_bytes=5047635820 retained_bytes=10190637448 coefficient_cells=539015200 reused_columns=0 reused_cells=0 host_geometry_hits=1 host_geometry_misses=4 host_geometry_bytes=63120384 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_TRACE_STREAM tree=1 columns=1925 leaves=4194304 calls=1 chunk_budget_words=134217728 chunk_words=67338240 bank_words={ 67108856, 0 } aux_words=4196288 scratch_words=138643392 legacy_scratch_words=142587035
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=33669120 scratch_words=0 final_coefficient_copy_words=0
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=1592 calls=1 coefficient_bytes=240648192 scratch_bytes=766515456 legacy_scratch_bytes=782282240 live_lease_bytes=4567873088 live_kinds={ 28, 0, 6, 0, 205 } pool_used_bytes=11762728960 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=2 columns=1592 leaves=4194304 calls=1 chunk_budget_words=134217728 chunk_words=120324096 bank_words={ 67108856, 0 } aux_words=4195904 scratch_words=191628864 legacy_scratch_words=195570560
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=60162048 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=6 role=0 arena_words=230494824 legacy_arena_words=288084584 direct_columns=3515 columns=3516 eval_log=16
+GPU_PCS_NATIVE prepare_ns=33535151 device_ns=90492156 total_ns=162562005 device_bytes=4792680532 retained_bytes=9592949084 coefficient_cells=520217344 reused_columns=0 reused_cells=0 host_geometry_hits=1 host_geometry_misses=2 host_geometry_bytes=62915152 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_COMPOSITION_ARENA ordinal=6 role=1 arena_words=216006806 legacy_arena_words=266338454 direct_columns=24 columns=25 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=6 role=2 arena_words=6750358 legacy_arena_words=8323222 direct_columns=24 columns=25 eval_log=18
+GPU_COMPOSITION_OWNERSHIP ordinal=6 retained_coefficient_words=67108864 joined_commit_scratch_words=136314912 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=6 coefficient_stream_ms=0.011 auxiliary_ms=0.146 domain_fft_ms=4.102 rows_ms=29.256 finalize_ms=2.489 commit_fft_ms=1.301 commit_hash_ms=0.736 gpu_enqueued_kernel_spans_ms=38.029 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=446693376 geometry_hits=22 geometry_misses=58 retained_setup_bytes=68399476 retained_geometry_bytes=621592 retained_twiddle_bytes=67108736 retained_artifact_bytes=669148 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_TRUTH_COMPOSITION_RESIDENT ordinal=6 roles=3 total_ns=42762695 quotient_d2h_bytes=0 coefficient_d2h_bytes=0 root_d2h_bytes=32
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=legacy columns=1447 calls=0 coefficient_bytes=94830592 scratch_bytes=191929892 legacy_scratch_bytes=191929892 live_lease_bytes=1662356660 live_kinds={ 7, 0, 4, 0, 206 } pool_used_bytes=8633553408 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=23707648 scratch_words=47458193 final_coefficient_copy_words=0
+GPU_PCS_NATIVE prepare_ns=7188400 device_ns=61450561 total_ns=99678143 device_bytes=1579875572 retained_bytes=7900464860 coefficient_cells=176603136 reused_columns=0 reused_cells=0 host_geometry_hits=2 host_geometry_misses=2 host_geometry_bytes=62915152 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=legacy columns=4032 calls=0 coefficient_bytes=264241152 scratch_bytes=530823392 legacy_scratch_bytes=530823392 live_lease_bytes=1792189296 live_kinds={ 6, 0, 2, 0, 206 } pool_used_bytes=8700661248 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=66060288 scratch_words=132181568 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=8 role=6 arena_words=359399554 legacy_arena_words=449233026 direct_columns=5483 columns=5483 eval_log=16
+GPU_COMPOSITION_OWNERSHIP ordinal=8 retained_coefficient_words=524288 joined_commit_scratch_words=1064992 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=8 coefficient_stream_ms=0.013 auxiliary_ms=0.000 domain_fft_ms=3.140 rows_ms=17.872 finalize_ms=0.046 commit_fft_ms=0.021 commit_hash_ms=0.078 gpu_enqueued_kernel_spans_ms=21.156 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=359333888 geometry_hits=22 geometry_misses=59 retained_setup_bytes=68575084 retained_geometry_bytes=797200 retained_twiddle_bytes=67108736 retained_artifact_bytes=669148 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_TRUTH_COMPOSITION_RESIDENT ordinal=8 roles=1 total_ns=22658869 quotient_d2h_bytes=0 coefficient_d2h_bytes=0 root_d2h_bytes=32
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=legacy columns=401 calls=0 coefficient_bytes=410624 scratch_bytes=867260 legacy_scratch_bytes=867260 live_lease_bytes=999672956 live_kinds={ 6, 0, 4, 0, 207 } pool_used_bytes=7896854528 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=102656 scratch_words=208631 final_coefficient_copy_words=0
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=legacy columns=976 calls=0 coefficient_bytes=999424 scratch_bytes=2060960 legacy_scratch_bytes=2060960 live_lease_bytes=1002470752 live_kinds={ 5, 0, 5, 0, 208 } pool_used_bytes=7899652608 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=249856 scratch_words=507056 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=10 role=4 arena_words=715614 legacy_arena_words=1069150 direct_columns=1381 columns=1381 eval_log=9
+GPU_COMPOSITION_OWNERSHIP ordinal=10 retained_coefficient_words=4096 joined_commit_scratch_words=8464 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=10 coefficient_stream_ms=0.005 auxiliary_ms=0.000 domain_fft_ms=0.102 rows_ms=0.258 finalize_ms=0.042 commit_fft_ms=0.032 commit_hash_ms=0.050 gpu_enqueued_kernel_spans_ms=0.483 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=707072 geometry_hits=22 geometry_misses=60 retained_setup_bytes=68619420 retained_geometry_bytes=841536 retained_twiddle_bytes=67108736 retained_artifact_bytes=669148 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_TRUTH_COMPOSITION_RESIDENT ordinal=10 roles=1 total_ns=1105577 quotient_d2h_bytes=0 coefficient_d2h_bytes=0 root_d2h_bytes=32
+GPU_PCS_NATIVE prepare_ns=2546533 device_ns=3443039 total_ns=13650713 device_bytes=3415776 retained_bytes=7031654076 coefficient_cells=357632 reused_columns=0 reused_cells=0 host_geometry_hits=2 host_geometry_misses=4 host_geometry_bytes=63081952 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_PCS_NATIVE prepare_ns=7911049 device_ns=14180704 total_ns=50082916 device_bytes=545533976 retained_bytes=7031916220 coefficient_cells=90357760 reused_columns=0 reused_cells=0 host_geometry_hits=2 host_geometry_misses=4 host_geometry_bytes=63081952 host_geometry_cap=536870912 host_geometry_bypasses=0
+BLAKE_SAMPLE_PLAN removed_tasks=401280 old_levels=146140 new_levels=45316 original_air=true
+GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=45316 nonempty=45315 empty=1 width_1_32=12419 width_33_64=2 width_65_128=19806 width_129_256=9967 width_gt256=3121 max_width=2637415 selected_narrow_runs=16 selected_narrow_levels=44736 run_plan_ns=25640162 chain=true
+GPU_OUTER_ASSIGNMENT_PLAN plan_ns=750458231 producer_alloc_zero_ns=52605689 seeds_ns=15493009 tasks_ns=192173285 level_alloc_zero_ns=25951901 dependency_walk_ns=97026360 ready_tasks=13483501 dfs_roots=8 ordering_ns=47872442 task_pack_ns=61106836 seed_pack_ns=6149294 hash_ns=81378372 task_bytes=418650656 index_bytes=0 levels=45316 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0
+BLAKE_SAMPLE_PLAN removed_tasks=401280 old_levels=146140 new_levels=45316 original_air=true
+GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=45316 nonempty=45315 empty=1 width_1_32=12419 width_33_64=2 width_65_128=19806 width_129_256=9967 width_gt256=3121 max_width=2637116 selected_narrow_runs=16 selected_narrow_levels=44736 run_plan_ns=197310 chain=true
+BLAKE_SAMPLE_PLAN removed_tasks=256640 old_levels=111648 new_levels=111648 original_air=true
+GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=111648 nonempty=111647 empty=1 width_1_32=83589 width_33_64=909 width_65_128=12288 width_129_256=9322 width_gt256=5539 max_width=5826935 selected_narrow_runs=31 selected_narrow_levels=110895 run_plan_ns=247999 chain=true
+GPU_OUTER_ASSIGNMENT_PLAN plan_ns=892756660 producer_alloc_zero_ns=50807274 seeds_ns=26017430 tasks_ns=237491854 level_alloc_zero_ns=32599873 dependency_walk_ns=106823244 ready_tasks=13483501 dfs_roots=8 ordering_ns=137575142 task_pack_ns=51054583 seed_pack_ns=5886864 hash_ns=78205971 task_bytes=418650656 index_bytes=0 levels=45316 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0
+GPU_OUTER_PLAN_PACK adopt class=c924ad84e119b8f4 logical_task_bytes=418650656 physical_task_bytes=12855178 held_bytes=15987958 classes=1
+BLAKE_SAMPLE_PLAN removed_tasks=262800 old_levels=116342 new_levels=116342 original_air=true
+GPU_OUTER_PP_PACK adopt class=c924ad84e119b8f4 logical_bytes=493161472 physical_bytes=8334581 held_bytes=8334581 classes=1 ns=123572670
+RECURSION_NODE_SHAPE node=5 kind=leaf shape=exact raw=[13806,6997002,406784,779846,4067840] padded=[16384,8388608,524288,1048576,4194304]
+GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=116342 nonempty=116341 empty=1 width_1_32=87531 width_33_64=905 width_65_128=12939 width_129_256=9344 width_gt256=5622 max_width=5527243 selected_narrow_runs=32 selected_narrow_levels=115590 run_plan_ns=243779 chain=true
+GPU_POOL_SUMMARY pool_mallocs=0 pool_trims=0 pool_oom_recoveries=0 arena_enabled=1 staging_enabled=1 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=0 pageable_h2d_bytes=0 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=4124 staged_h2d_bytes=3139699120 staged_d2h=835 staged_d2h_bytes=39230848 slot_waits=0 rings=2 staged_parallel=278 staged_parallel_bytes=2716257712 staging_threads=8
+GPU_SYNC_SUMMARY join_calls=2827 lane_syncs=1560 lane_syncs_skipped=4094 free_fences=2991 fence_lane_waits=0 device_barriers=0
+GPU_ARENA_SUMMARY device=0 mode=vmm capacity_bytes=27279753216 chunk_bytes=33554432 physical_high_water_bytes=27279753216 live_high_water_bytes=23081961472 live_long_high_water_bytes=1438358016 live_small_high_water_bytes=61050368 small_slab_bytes=536870912 allocations=1871 releases=1578 overruns=0 largest_overrun_bytes=0 live_at_overrun_bytes=0 free_chunks_at_overrun=0 small_spills=0 map_calls=813 unmap_calls=0 map_ms=57.753 unmap_ms=0.000 evict_host_syncs=0 fence_records=1578 fence_same_stream=0 fence_stream_waits=0 fence_host_syncs=0 fences_now=8 reuse_hits=418 map_misses=0 steals=0 stolen_chunks=0 mapped_free_bytes=19260243968 init_ms=72.583 free_before_bytes=32464109568 free_after_stack_bytes=29456793600 stack_after=12544 t_ms=18677.9
+GPU_ARENA_SUMMARY device=1 mode=vmm capacity_bytes=27279753216 chunk_bytes=33554432 physical_high_water_bytes=27279753216 live_high_water_bytes=18737625088 live_long_high_water_bytes=1102738944 live_small_high_water_bytes=58956800 small_slab_bytes=536870912 allocations=1676 releases=1413 overruns=0 largest_overrun_bytes=0 live_at_overrun_bytes=0 free_chunks_at_overrun=0 small_spills=0 map_calls=813 unmap_calls=0 map_ms=76.687 unmap_ms=0.000 evict_host_syncs=0 fence_records=1413 fence_same_stream=0 fence_stream_waits=0 fence_host_syncs=0 fences_now=24 reuse_hits=353 map_misses=0 steals=0 stolen_chunks=0 mapped_free_bytes=18555600896 init_ms=92.700 free_before_bytes=32464109568 free_after_stack_bytes=29456793600 stack_after=12544 t_ms=18677.9
+GPU_OUTER_ASSIGNMENT_PLAN plan_ns=1213915511 producer_alloc_zero_ns=77638242 seeds_ns=19765017 tasks_ns=356799465 level_alloc_zero_ns=33993919 dependency_walk_ns=179002111 ready_tasks=17949608 dfs_roots=8 ordering_ns=60525508 task_pack_ns=113182837 seed_pack_ns=8381178 hash_ns=103217594 task_bytes=600727488 index_bytes=0 levels=111648 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0
+BLAKE_SAMPLE_PLAN removed_tasks=264080 old_levels=117522 new_levels=117522 original_air=true
+GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=117522 nonempty=117521 empty=1 width_1_32=88610 width_33_64=822 width_65_128=13027 width_129_256=9345 width_gt256=5717 max_width=5446297 selected_narrow_runs=36 selected_narrow_levels=116764 run_plan_ns=249240 chain=true
+GPU_OUTER_PLAN_PACK adopt class=7382786423466f44 logical_task_bytes=418650656 physical_task_bytes=12912916 held_bytes=32053718 classes=2
+GPU_OUTER_ASSIGNMENT_PLAN plan_ns=1428966356 producer_alloc_zero_ns=76321466 seeds_ns=20248996 tasks_ns=340651828 level_alloc_zero_ns=42068027 dependency_walk_ns=234230893 ready_tasks=17894911 dfs_roots=8 ordering_ns=178305503 task_pack_ns=81099073 seed_pack_ns=8270558 hash_ns=48544500 task_bytes=600067424 index_bytes=0 levels=116342 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0
+GPU_OUTER_PP_PACK adopt class=7382786423466f44 logical_bytes=493161472 physical_bytes=8370125 held_bytes=16704706 classes=2 ns=100047602
+RECURSION_NODE_SHAPE node=6 kind=leaf shape=exact raw=[13806,6997301,406784,779846,4067840] padded=[16384,8388608,524288,1048576,4194304]
+GPU_DEVICE_PEAK stage=trace_commit tree=0 mode=legacy columns=45 calls=0 coefficient_bytes=493161472 scratch_bytes=3133807820 legacy_scratch_bytes=3133807820 live_lease_bytes=4603871372 live_kinds={ 3, 0, 1, 0, 181 } pool_used_bytes=12384071680 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=0 coefficient_words=123290368 scratch_words=263358267 final_coefficient_copy_words=0
+info: CUDA_OUTER_PREPROCESS ordinal=5 finalize_ns=27927655 columns_ns=166678934 authority_ns=208371943 host_authority_ns=1401936 total_ns=402978532 fixed_setup_backend=device_candidate
+info: CUDA_OUTER_AUTHORITY ordinal=5 vars=26738688 row_logs={ 14, 23, 19, 20, 22, 16, 20, 8, 14, 18, 16 }
+GPU_OUTER fixed_forest_bytes=493161472 immutable_limit_bytes=2147483648 device_limit_bytes=30064771072 assignment_bytes=0 schedule_bytes=418650656 logs={ 14, 23, 19, 20, 22, 16, 20, 8, 14, 18, 16 }
+BLAKE_SAMPLE_PREFILL records=5016 gg_rows=401280 original_air=true
+GPU_OUTER_ASSIGNMENT_GRAPH hit=false nodes=595 launches=1 fresh_pointers=true
+GPU_OUTER_ASSIGNMENT_PLAN plan_ns=1202115522 producer_alloc_zero_ns=20046246 seeds_ns=26470579 tasks_ns=306773189 level_alloc_zero_ns=34259008 dependency_walk_ns=185419394 ready_tasks=17886935 dfs_roots=8 ordering_ns=59938730 task_pack_ns=75657807 seed_pack_ns=9209406 hash_ns=101579308 task_bytes=599888000 index_bytes=0 levels=117522 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0
+GPU_OUTER_ASSIGNMENT_TIMING total_ns=76097246 alloc_ns=11670 seed_upload_ns=997207 seed_enqueue_ns=22280 static_ingress_ns=23442107 levels_enqueue_ns=3163652 levels_join_ns=48410860 status_ns=48650 reference_readback_ns=390 seed_stream_ms=0.029 levels_stream_ms=51.560 launches=2 native_level_calls=1 ordinary_level_calls=0 narrow_run_calls=0 chain_run_calls=0
+GPU_OUTER_ASSIGNMENT variables=26738688 seed_words=3358315 static_words=104662664 levels=45316 full_assignment_upload_words=0
+BLAKE_SAMPLE_INPUTS_CHECK ordinal=5 records=5016 gg_rows=401280 mismatch=0 assignment_unchanged=true
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=114 calls=6 coefficient_bytes=1403061248 scratch_bytes=3825205760 legacy_scratch_bytes=4953609304 live_lease_bytes=8101391808 live_kinds={ 3, 1, 2, 0, 226 } pool_used_bytes=16257842176 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_DEVICE_PEAK stage=trace_commit tree=0 mode=legacy columns=45 calls=0 coefficient_bytes=493161472 scratch_bytes=3133807820 legacy_scratch_bytes=3133807820 live_lease_bytes=4755597708 live_kinds={ 3, 0, 1, 0, 208 } pool_used_bytes=11683636736 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=0 coefficient_words=123290368 scratch_words=263358267 final_coefficient_copy_words=0
+GPU_OUTER_PLAN_PACK adopt class=32d9ec0f2fc9ca3d logical_task_bytes=600727488 physical_task_bytes=23336024 held_bytes=59941014 classes=3
+info: CUDA_OUTER_PREPROCESS ordinal=6 finalize_ns=27429347 columns_ns=227795560 authority_ns=172378358 host_authority_ns=473679 total_ns=427603265 fixed_setup_backend=device_candidate
+info: CUDA_OUTER_AUTHORITY ordinal=6 vars=26738688 row_logs={ 14, 23, 19, 20, 22, 16, 20, 8, 14, 18, 16 }
+GPU_OUTER fixed_forest_bytes=493161472 immutable_limit_bytes=2147483648 device_limit_bytes=30064771072 assignment_bytes=0 schedule_bytes=418650656 logs={ 14, 23, 19, 20, 22, 16, 20, 8, 14, 18, 16 }
+BLAKE_SAMPLE_PREFILL records=5016 gg_rows=401280 original_air=true
+GPU_TRACE_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777344 scratch_words=956301440 legacy_scratch_words=1238402326
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=350765312 scratch_words=0 final_coefficient_copy_words=0
+GPU_OUTER_ASSIGNMENT_GRAPH hit=false nodes=595 launches=1 fresh_pointers=true
+info: GPU_OUTER released_main_evaluation_bytes=1403061248 before_INTER_commit
+info: GPU_OUTER released_INTER_evaluation_bytes=3265282048 after_joined_coefficient_ingress=true before_LDE_scratch=true
+BLAKE_SAMPLE_PLAN removed_tasks=231440 old_levels=103357 new_levels=103357 original_air=true
+GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=103357 nonempty=103356 empty=1 width_1_32=77779 width_33_64=1168 width_65_128=11055 width_129_256=8392 width_gt256=4962 max_width=6283413 selected_narrow_runs=30 selected_narrow_levels=102613 run_plan_ns=229410 chain=true
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=304 calls=11 coefficient_bytes=2765103104 scratch_bytes=3825206528 legacy_scratch_bytes=7677698336 live_lease_bytes=9463434432 live_kinds={ 3, 0, 3, 0, 226 } pool_used_bytes=17633573888 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_OUTER_ASSIGNMENT_TIMING total_ns=73047705 alloc_ns=11130 seed_upload_ns=998947 seed_enqueue_ns=21450 static_ingress_ns=21443453 levels_enqueue_ns=2281574 levels_join_ns=48206111 status_ns=84080 reference_readback_ns=540 seed_stream_ms=0.028 levels_stream_ms=50.466 launches=2 native_level_calls=1 ordinary_level_calls=0 narrow_run_calls=0 chain_run_calls=0
+GPU_OUTER_ASSIGNMENT variables=26738688 seed_words=3358315 static_words=104662664 levels=45316 full_assignment_upload_words=0
+BLAKE_SAMPLE_INPUTS_CHECK ordinal=6 records=5016 gg_rows=401280 mismatch=0 assignment_unchanged=true
+GPU_TRACE_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777536 scratch_words=956301632 legacy_scratch_words=1919424584
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=691275776 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=5 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=114 calls=6 coefficient_bytes=1403061248 scratch_bytes=3825205760 legacy_scratch_bytes=4953609304 live_lease_bytes=8253118144 live_kinds={ 3, 1, 2, 0, 253 } pool_used_bytes=15557407232 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_OUTER_PLAN_PACK adopt class=d61a06a8b62b62ec logical_task_bytes=600067424 physical_task_bytes=23594823 held_bytes=88176401 classes=4
+GPU_TRACE_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777344 scratch_words=956301440 legacy_scratch_words=1238402326
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=350765312 scratch_words=0 final_coefficient_copy_words=0
+info: GPU_OUTER released_main_evaluation_bytes=1403061248 before_INTER_commit
+info: GPU_OUTER released_INTER_evaluation_bytes=3265282048 after_joined_coefficient_ingress=true before_LDE_scratch=true
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=304 calls=11 coefficient_bytes=2765103104 scratch_bytes=3825206528 legacy_scratch_bytes=7677698336 live_lease_bytes=9615160768 live_kinds={ 3, 0, 3, 0, 253 } pool_used_bytes=16933138944 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_OUTER_ASSIGNMENT_PLAN plan_ns=1312854236 producer_alloc_zero_ns=77947251 seeds_ns=19857437 tasks_ns=331363453 level_alloc_zero_ns=60207459 dependency_walk_ns=181230805 ready_tasks=17555361 dfs_roots=8 ordering_ns=53467767 task_pack_ns=90976526 seed_pack_ns=8848157 hash_ns=48013591 task_bytes=586706176 index_bytes=0 levels=103357 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0
+GPU_OUTER_PLAN_PACK adopt class=94a5396f884d5130 logical_task_bytes=599888000 physical_task_bytes=23972093 held_bytes=116816546 classes=5
+GPU_OUTER_PP_PACK adopt class=32d9ec0f2fc9ca3d logical_bytes=702745600 physical_bytes=14515920 held_bytes=31220626 classes=3 ns=225880186
+RECURSION_NODE_SHAPE node=1 kind=leaf shape=exact raw=[178794,7687701,556728,1288640,5567280] padded=[262144,8388608,1048576,2097152,8388608]
+GPU_TRACE_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777536 scratch_words=956301632 legacy_scratch_words=1919424584
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=691275776 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=6 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=5 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=5 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=5 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_OUTER_PP_PACK adopt class=d61a06a8b62b62ec logical_bytes=702745600 physical_bytes=14752466 held_bytes=45973092 classes=4 ns=154129228
+RECURSION_NODE_SHAPE node=0 kind=leaf shape=exact raw=[184223,7886497,565352,1314750,5653520] padded=[262144,8388608,1048576,2097152,8388608]
+GPU_COMPOSITION_ARENA ordinal=5 role=4 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=5 role=5 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=6 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=5 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=5 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=5 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=5 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=6 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=5 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=5 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_OUTER_PP_PACK adopt class=94a5396f884d5130 logical_bytes=702745600 physical_bytes=15050338 held_bytes=61023430 classes=5 ns=164120811
+RECURSION_NODE_SHAPE node=2 kind=leaf shape=exact raw=[185113,7925778,569112,1320226,5691120] padded=[262144,8388608,1048576,2097152,8388608]
+GPU_COMPOSITION_ARENA ordinal=6 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_OWNERSHIP ordinal=5 retained_coefficient_words=134217728 joined_commit_scratch_words=276824080 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=5 coefficient_stream_ms=0.063 auxiliary_ms=0.000 domain_fft_ms=37.270 rows_ms=13.632 finalize_ms=8.922 commit_fft_ms=2.848 commit_hash_ms=2.363 gpu_enqueued_kernel_spans_ms=65.034 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=3731560448 geometry_hits=0 geometry_misses=12 retained_setup_bytes=116020616 retained_geometry_bytes=19848 retained_twiddle_bytes=116000768 retained_artifact_bytes=0 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_COMPOSITION_ARENA ordinal=6 role=4 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=6 role=5 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=6 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=6 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_OUTER_PLAN_PACK adopt class=a0992247265e9f37 logical_task_bytes=586706176 physical_task_bytes=21910718 held_bytes=142956316 classes=6
+GPU_COMPOSITION_ARENA ordinal=6 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=6 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=6 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=6 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_OWNERSHIP ordinal=6 retained_coefficient_words=134217728 joined_commit_scratch_words=276824080 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=6 coefficient_stream_ms=0.047 auxiliary_ms=0.000 domain_fft_ms=37.423 rows_ms=13.746 finalize_ms=8.926 commit_fft_ms=2.895 commit_hash_ms=2.391 gpu_enqueued_kernel_spans_ms=65.381 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=3731560448 geometry_hits=0 geometry_misses=12 retained_setup_bytes=116020616 retained_geometry_bytes=19848 retained_twiddle_bytes=116000768 retained_artifact_bytes=0 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_OUTER_PP_PACK adopt class=a0992247265e9f37 logical_bytes=692259840 physical_bytes=13813000 held_bytes=74836430 classes=6 ns=180644257
+RECURSION_NODE_SHAPE node=3 kind=leaf shape=exact raw=[168618,7102738,521464,1205732,5214640] padded=[262144,8388608,524288,2097152,8388608]
+BLAKE_SAMPLE_PLAN removed_tasks=401280 old_levels=146140 new_levels=45316 original_air=true
+GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=45316 nonempty=45315 empty=1 width_1_32=12419 width_33_64=2 width_65_128=19806 width_129_256=9967 width_gt256=3121 max_width=2637177 selected_narrow_runs=16 selected_narrow_levels=44736 run_plan_ns=246829 chain=true
+GPU_OUTER_ASSIGNMENT_PLAN plan_ns=741031287 producer_alloc_zero_ns=40413492 seeds_ns=14515191 tasks_ns=190491660 level_alloc_zero_ns=6528603 dependency_walk_ns=98542696 ready_tasks=13483501 dfs_roots=8 ordering_ns=49822907 task_pack_ns=55266412 seed_pack_ns=6727362 hash_ns=81377952 task_bytes=418650656 index_bytes=0 levels=45316 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0
+GPU_PCS_NATIVE prepare_ns=593646442 device_ns=103415969 total_ns=708485234 device_bytes=8251642216 retained_bytes=20985665376 coefficient_cells=1299549184 reused_columns=0 reused_cells=0 host_geometry_hits=1 host_geometry_misses=5 host_geometry_bytes=147006760 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_DEVICE_PEAK stage=trace_commit tree=0 mode=legacy columns=45 calls=0 coefficient_bytes=702745600 scratch_bytes=3150322892 legacy_scratch_bytes=3150322892 live_lease_bytes=6025877644 live_kinds={ 3, 0, 1, 0, 227 } pool_used_bytes=21425224704 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=0 coefficient_words=175686400 scratch_words=368150331 final_coefficient_copy_words=0
+info: CUDA_OUTER_PREPROCESS ordinal=0 finalize_ns=67557909 columns_ns=233588645 authority_ns=53376807 host_authority_ns=454869 total_ns=354523361 fixed_setup_backend=device_candidate
+info: CUDA_OUTER_AUTHORITY ordinal=0 vars=45088768 row_logs={ 18, 23, 20, 21, 23, 16, 20, 8, 14, 18, 16 }
+GPU_OUTER fixed_forest_bytes=702745600 immutable_limit_bytes=2147483648 device_limit_bytes=30064771072 assignment_bytes=0 schedule_bytes=600067424 logs={ 18, 23, 20, 21, 23, 16, 20, 8, 14, 18, 16 }
+BLAKE_SAMPLE_PREFILL records=3285 gg_rows=262800 original_air=true
+GPU_OUTER_PLAN_PACK adopt class=3ca6c6cba1f58550 logical_task_bytes=418650656 physical_task_bytes=12874523 held_bytes=158975191 classes=7
+GPU_OUTER_ASSIGNMENT_GRAPH hit=false nodes=783 launches=1 fresh_pointers=true
+GPU_PCS_NATIVE prepare_ns=580658596 device_ns=106749183 total_ns=749907823 device_bytes=8251642216 retained_bytes=20115543780 coefficient_cells=1299549184 reused_columns=0 reused_cells=0 host_geometry_hits=2 host_geometry_misses=5 host_geometry_bytes=146968328 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_DEVICE_PEAK stage=trace_commit tree=0 mode=legacy columns=45 calls=0 coefficient_bytes=702745600 scratch_bytes=3150322892 legacy_scratch_bytes=3150322892 live_lease_bytes=6177603980 live_kinds={ 3, 0, 1, 0, 254 } pool_used_bytes=20724789760 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=0 coefficient_words=175686400 scratch_words=368150331 final_coefficient_copy_words=0
+info: CUDA_OUTER_PREPROCESS ordinal=1 finalize_ns=72499336 columns_ns=314860197 authority_ns=50681094 host_authority_ns=741648 total_ns=438040627 fixed_setup_backend=device_candidate
+info: CUDA_OUTER_AUTHORITY ordinal=1 vars=45088768 row_logs={ 18, 23, 20, 21, 23, 16, 20, 8, 14, 18, 16 }
+GPU_OUTER fixed_forest_bytes=702745600 immutable_limit_bytes=2147483648 device_limit_bytes=30064771072 assignment_bytes=0 schedule_bytes=600727488 logs={ 18, 23, 20, 21, 23, 16, 20, 8, 14, 18, 16 }
+BLAKE_SAMPLE_PREFILL records=3208 gg_rows=256640 original_air=true
+GPU_OUTER_ASSIGNMENT_TIMING total_ns=220742079 alloc_ns=23090 seed_upload_ns=1114817 seed_enqueue_ns=28890 static_ingress_ns=30763627 levels_enqueue_ns=70180563 levels_join_ns=118568962 status_ns=61260 reference_readback_ns=390 seed_stream_ms=0.037 levels_stream_ms=188.731 launches=2 native_level_calls=1 ordinary_level_calls=0 narrow_run_calls=0 chain_run_calls=0
+GPU_OUTER_ASSIGNMENT variables=45088768 seed_words=4540185 static_words=150016856 levels=116342 full_assignment_upload_words=0
+GPU_OUTER_ASSIGNMENT_GRAPH hit=false nodes=783 launches=1 fresh_pointers=true
+BLAKE_SAMPLE_INPUTS_CHECK ordinal=0 records=3285 gg_rows=262800 mismatch=0 assignment_unchanged=true
+GPU_OUTER_ASSIGNMENT_TIMING total_ns=221294407 alloc_ns=29450 seed_upload_ns=992717 seed_enqueue_ns=31760 static_ingress_ns=27873635 levels_enqueue_ns=59512991 levels_join_ns=114216664 status_ns=18636230 reference_readback_ns=380 seed_stream_ms=0.037 levels_stream_ms=173.711 launches=2 native_level_calls=1 ordinary_level_calls=0 narrow_run_calls=0 chain_run_calls=0
+GPU_OUTER_ASSIGNMENT variables=45088768 seed_words=4467850 static_words=150181872 levels=111648 full_assignment_upload_words=0
+GPU_ARENA_OVERRUN device=1 requested_bytes=1610612736 long=0 live_bytes=25389891072 capacity_bytes=27279753216 free_chunk_bytes=0 mapped_free_bytes=1409286144 live=346 t_ms=20566.5
+BLAKE_SAMPLE_PLAN removed_tasks=282080 old_levels=102727 new_levels=31829 original_air=true
+GPU_OWNER_OOM requested_bytes=1610612736 retained_bytes=24036426720 lease_bytes=9719021632 idle_cache_bytes=14082196384 active_cache_bytes=0 physical_free_bytes=2160263168 physical_total_bytes=33679736832 memory_rc=0 pool_used_bytes=25389891072 pool_reserved_bytes=27279753216 pool_rc=0 phase=initial context_token=2 device_index=1 device_rc=0 default_pool_used_bytes=0 default_pool_reserved_bytes=0 default_pool_rc=0
+GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=31829 nonempty=31828 empty=1 width_1_32=6179 width_33_64=0 width_65_128=12359 width_129_256=6182 width_gt256=7108 max_width=7321890 selected_narrow_runs=13 selected_narrow_levels=31418 run_plan_ns=521939 chain=true
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=114 calls=9 coefficient_bytes=2338128896 scratch_bytes=3825205760 legacy_scratch_bytes=6421091416 live_lease_bytes=11329634368 live_kinds={ 3, 1, 2, 0, 256 } pool_used_bytes=12732826624 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+BLAKE_SAMPLE_INPUTS_CHECK ordinal=1 records=3208 gg_rows=256640 mismatch=0 assignment_unchanged=true
+GPU_TRACE_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777344 scratch_words=956301440 legacy_scratch_words=1605272854
+GPU_OUTER_PP_PACK adopt class=3ca6c6cba1f58550 logical_bytes=493161472 physical_bytes=8333586 held_bytes=83170016 classes=7 ns=353588194
+RECURSION_NODE_SHAPE node=7 kind=leaf shape=exact raw=[13806,6997240,406784,779846,4067840] padded=[16384,8388608,524288,1048576,4194304]
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=584532224 scratch_words=0 final_coefficient_copy_words=0
+GPU_POOL_SUMMARY pool_mallocs=0 pool_trims=0 pool_oom_recoveries=0 arena_enabled=1 staging_enabled=1 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=0 pageable_h2d_bytes=0 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=4655 staged_h2d_bytes=8701995384 staged_d2h=928 staged_d2h_bytes=42918624 slot_waits=2 rings=2 staged_parallel=646 staged_parallel_bytes=8245715544 staging_threads=8
+GPU_SYNC_SUMMARY join_calls=3234 lane_syncs=1829 lane_syncs_skipped=4639 free_fences=3514 fence_lane_waits=130 device_barriers=0
+GPU_ARENA_SUMMARY device=0 mode=vmm capacity_bytes=27279753216 chunk_bytes=33554432 physical_high_water_bytes=27279753216 live_high_water_bytes=23081961472 live_long_high_water_bytes=3669926912 live_small_high_water_bytes=61050368 small_slab_bytes=536870912 allocations=2132 releases=1837 overruns=0 largest_overrun_bytes=0 live_at_overrun_bytes=0 free_chunks_at_overrun=0 small_spills=0 map_calls=822 unmap_calls=1 map_ms=58.780 unmap_ms=0.844 evict_host_syncs=0 fence_records=1837 fence_same_stream=0 fence_stream_waits=70 fence_host_syncs=0 fences_now=3 reuse_hits=538 map_misses=1 steals=1 stolen_chunks=9 mapped_free_bytes=7147094016 init_ms=72.583 free_before_bytes=32464109568 free_after_stack_bytes=29456793600 stack_after=12544 t_ms=20708.4
+GPU_ARENA_SUMMARY device=1 mode=vmm capacity_bytes=27279753216 chunk_bytes=33554432 physical_high_water_bytes=27279753216 live_high_water_bytes=25389891072 live_long_high_water_bytes=3471803392 live_small_high_water_bytes=58956800 small_slab_bytes=536870912 allocations=1941 releases=1677 overruns=1 largest_overrun_bytes=1610612736 live_at_overrun_bytes=25389891072 free_chunks_at_overrun=42 small_spills=0 map_calls=813 unmap_calls=0 map_ms=76.692 unmap_ms=0.000 evict_host_syncs=0 fence_records=1677 fence_same_stream=0 fence_stream_waits=60 fence_host_syncs=0 fences_now=3 reuse_hits=478 map_misses=0 steals=0 stolen_chunks=0 mapped_free_bytes=17918066688 init_ms=92.700 free_before_bytes=32464109568 free_after_stack_bytes=29456793600 stack_after=12544 t_ms=20708.4
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=114 calls=9 coefficient_bytes=2338128896 scratch_bytes=3825205760 legacy_scratch_bytes=6421091416 live_lease_bytes=11301837760 live_kinds={ 3, 1, 2, 0, 205 } pool_used_bytes=25849746944 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777344 scratch_words=956301440 legacy_scratch_words=1605272854
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=584532224 scratch_words=0 final_coefficient_copy_words=0
+info: GPU_OUTER released_main_evaluation_bytes=2338128896 before_INTER_commit
+info: GPU_OUTER released_INTER_evaluation_bytes=5411717120 after_joined_coefficient_ingress=true before_LDE_scratch=true
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=304 calls=18 coefficient_bytes=4719124480 scratch_bytes=3825206528 legacy_scratch_bytes=11183087904 live_lease_bytes=13710630720 live_kinds={ 3, 0, 3, 0, 256 } pool_used_bytes=15115191296 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_ARENA_OVERRUN device=0 requested_bytes=3489660928 long=0 live_bytes=23525192192 capacity_bytes=27279753216 free_chunk_bytes=0 mapped_free_bytes=3254779904 live=228 t_ms=20788.1
+GPU_OWNER_OOM requested_bytes=3489660928 retained_bytes=22442569228 lease_bytes=12929227780 idle_cache_bytes=9278194184 active_cache_bytes=0 physical_free_bytes=2160263168 physical_total_bytes=33679736832 memory_rc=0 pool_used_bytes=23525192192 pool_reserved_bytes=27279753216 pool_rc=0 phase=initial context_token=1 device_index=0 device_rc=0 default_pool_used_bytes=0 default_pool_reserved_bytes=0 default_pool_rc=0
+GPU_OUTER_ASSIGNMENT_PLAN plan_ns=1165321141 producer_alloc_zero_ns=66317383 seeds_ns=19592087 tasks_ns=256242455 level_alloc_zero_ns=26545829 dependency_walk_ns=124927395 ready_tasks=17419235 dfs_roots=8 ordering_ns=64246448 task_pack_ns=70171632 seed_pack_ns=68609477 hash_ns=95805613 task_bytes=548400096 index_bytes=0 levels=31829 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0
+info: GPU_OUTER released_main_evaluation_bytes=2338128896 before_INTER_commit
+info: GPU_OUTER released_INTER_evaluation_bytes=5411717120 after_joined_coefficient_ingress=true before_LDE_scratch=true
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=304 calls=18 coefficient_bytes=4719124480 scratch_bytes=3825206528 legacy_scratch_bytes=11183087904 live_lease_bytes=13682834112 live_kinds={ 3, 0, 3, 0, 205 } pool_used_bytes=15000488448 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777536 scratch_words=956301632 legacy_scratch_words=2795771976
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=1179781120 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=0 role=0 arena_words=7602260 legacy_arena_words=11272276 direct_columns=14 columns=14 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=0 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=0 role=2 arena_words=154141110 legacy_arena_words=230687158 direct_columns=73 columns=73 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=0 role=3 arena_words=132120762 legacy_arena_words=197132474 direct_columns=31 columns=31 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=0 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_TRACE_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777536 scratch_words=956301632 legacy_scratch_words=2795771976
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=1179781120 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=1 role=0 arena_words=7602260 legacy_arena_words=11272276 direct_columns=14 columns=14 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=1 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=1 role=2 arena_words=154141110 legacy_arena_words=230687158 direct_columns=73 columns=73 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=1 role=3 arena_words=132120762 legacy_arena_words=197132474 direct_columns=31 columns=31 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=1 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=0 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=1 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=0 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=0 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=0 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=0 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=0 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=0 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_OWNERSHIP ordinal=0 retained_coefficient_words=134217728 joined_commit_scratch_words=276824080 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=0 coefficient_stream_ms=0.036 auxiliary_ms=0.000 domain_fft_ms=70.576 rows_ms=22.455 finalize_ms=8.101 commit_fft_ms=2.904 commit_hash_ms=2.369 gpu_enqueued_kernel_spans_ms=106.405 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=6681794560 geometry_hits=7 geometry_misses=17 retained_setup_bytes=132811480 retained_geometry_bytes=33496 retained_twiddle_bytes=132777984 retained_artifact_bytes=0 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_COMPOSITION_ARENA ordinal=1 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=1 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=1 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=1 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=1 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=1 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_OUTER_PLAN_PACK adopt class=d5e8dd3b33486660 logical_task_bytes=548400096 physical_task_bytes=10596195 held_bytes=173627766 classes=8
+GPU_COMPOSITION_OWNERSHIP ordinal=1 retained_coefficient_words=134217728 joined_commit_scratch_words=276824080 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=1 coefficient_stream_ms=0.035 auxiliary_ms=0.000 domain_fft_ms=70.728 rows_ms=22.685 finalize_ms=8.110 commit_fft_ms=2.926 commit_hash_ms=2.435 gpu_enqueued_kernel_spans_ms=106.884 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=6681794560 geometry_hits=7 geometry_misses=17 retained_setup_bytes=132811480 retained_geometry_bytes=33496 retained_twiddle_bytes=132777984 retained_artifact_bytes=0 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_OUTER_PP_PACK adopt class=d5e8dd3b33486660 logical_bytes=677710848 physical_bytes=9292612 held_bytes=92462628 classes=8 ns=131438728
+RECURSION_NODE_SHAPE node=8 kind=leaf shape=exact raw=[9896,5481269,511288,1002798,5112880] padded=[16384,8388608,524288,1048576,8388608]
+GPU_PCS_NATIVE prepare_ns=2782612 device_ns=154313446 total_ns=176550217 device_bytes=7576093596 retained_bytes=18107488156 coefficient_cells=2074217472 reused_columns=0 reused_cells=0 host_geometry_hits=2 host_geometry_misses=5 host_geometry_bytes=147006760 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_DEVICE_PEAK stage=trace_commit tree=0 mode=legacy columns=45 calls=0 coefficient_bytes=702745600 scratch_bytes=3150322892 legacy_scratch_bytes=3150322892 live_lease_bytes=6689347788 live_kinds={ 3, 0, 1, 0, 54 } pool_used_bytes=14742514176 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=0 coefficient_words=175686400 scratch_words=368150331 final_coefficient_copy_words=0
+info: CUDA_OUTER_PREPROCESS ordinal=2 finalize_ns=96631161 columns_ns=266987186 authority_ns=52977548 host_authority_ns=299579 total_ns=416595895 fixed_setup_backend=device_candidate
+info: CUDA_OUTER_AUTHORITY ordinal=2 vars=45088768 row_logs={ 18, 23, 20, 21, 23, 16, 20, 8, 14, 18, 16 }
+GPU_OUTER fixed_forest_bytes=702745600 immutable_limit_bytes=2147483648 device_limit_bytes=30064771072 assignment_bytes=0 schedule_bytes=599888000 logs={ 18, 23, 20, 21, 23, 16, 20, 8, 14, 18, 16 }
+BLAKE_SAMPLE_PREFILL records=3301 gg_rows=264080 original_air=true
+GPU_PCS_NATIVE prepare_ns=2607323 device_ns=155087554 total_ns=228841168 device_bytes=7576093596 retained_bytes=18107426716 coefficient_cells=2074217472 reused_columns=0 reused_cells=0 host_geometry_hits=3 host_geometry_misses=5 host_geometry_bytes=146968328 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_DEVICE_PEAK stage=trace_commit tree=0 mode=legacy columns=45 calls=0 coefficient_bytes=692259840 scratch_bytes=3129351372 legacy_scratch_bytes=3129351372 live_lease_bytes=6647404748 live_kinds={ 3, 0, 1, 0, 54 } pool_used_bytes=14742452736 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=0 coefficient_words=173064960 scratch_words=362907451 final_coefficient_copy_words=0
+info: CUDA_OUTER_PREPROCESS ordinal=3 finalize_ns=110754223 columns_ns=241856793 authority_ns=87720056 host_authority_ns=29547570 total_ns=440331072 fixed_setup_backend=device_candidate
+info: CUDA_OUTER_AUTHORITY ordinal=3 vars=44564480 row_logs={ 18, 23, 19, 21, 23, 16, 20, 8, 14, 18, 16 }
+GPU_OUTER fixed_forest_bytes=692259840 immutable_limit_bytes=2147483648 device_limit_bytes=30064771072 assignment_bytes=0 schedule_bytes=586706176 logs={ 18, 23, 19, 21, 23, 16, 20, 8, 14, 18, 16 }
+BLAKE_SAMPLE_PREFILL records=2893 gg_rows=231440 original_air=true
+GPU_OUTER_ASSIGNMENT_GRAPH hit=false nodes=773 launches=1 fresh_pointers=true
+GPU_OUTER_ASSIGNMENT_GRAPH hit=false nodes=793 launches=1 fresh_pointers=true
+GPU_OUTER_ASSIGNMENT_TIMING total_ns=200846872 alloc_ns=18980 seed_upload_ns=1082477 seed_enqueue_ns=31510 static_ingress_ns=32622243 levels_enqueue_ns=51915811 levels_join_ns=105733867 status_ns=9441024 reference_readback_ns=390 seed_stream_ms=0.037 levels_stream_ms=157.634 launches=2 native_level_calls=1 ordinary_level_calls=0 narrow_run_calls=0 chain_run_calls=0
+GPU_OUTER_ASSIGNMENT variables=44564480 seed_words=4163240 static_words=146676544 levels=103357 full_assignment_upload_words=0
+GPU_OUTER_ASSIGNMENT_TIMING total_ns=318856197 alloc_ns=11810 seed_upload_ns=1122307 seed_enqueue_ns=24100 static_ingress_ns=37632689 levels_enqueue_ns=160523601 levels_join_ns=119485620 status_ns=55240 reference_readback_ns=390 seed_stream_ms=0.029 levels_stream_ms=279.994 launches=2 native_level_calls=1 ordinary_level_calls=0 narrow_run_calls=0 chain_run_calls=0
+GPU_OUTER_ASSIGNMENT variables=45088768 seed_words=4561820 static_words=149972000 levels=117522 full_assignment_upload_words=0
+BLAKE_SAMPLE_INPUTS_CHECK ordinal=3 records=2893 gg_rows=231440 mismatch=0 assignment_unchanged=true
+BLAKE_SAMPLE_INPUTS_CHECK ordinal=2 records=3301 gg_rows=264080 mismatch=0 assignment_unchanged=true
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=114 calls=9 coefficient_bytes=2296185856 scratch_bytes=3825205760 legacy_scratch_bytes=6337205336 live_lease_bytes=11207588352 live_kinds={ 3, 1, 2, 0, 91 } pool_used_bytes=19490604544 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=114 calls=9 coefficient_bytes=2338128896 scratch_bytes=3825205760 legacy_scratch_bytes=6421091416 live_lease_bytes=11312445952 live_kinds={ 3, 1, 2, 0, 91 } pool_used_bytes=19715061248 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777344 scratch_words=956301440 legacy_scratch_words=1605272854
+GPU_TRACE_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777344 scratch_words=956301440 legacy_scratch_words=1584301334
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=584532224 scratch_words=0 final_coefficient_copy_words=0
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=574046464 scratch_words=0 final_coefficient_copy_words=0
+info: GPU_OUTER released_main_evaluation_bytes=2296185856 before_INTER_commit
+info: GPU_OUTER released_main_evaluation_bytes=2338128896 before_INTER_commit
+info: GPU_OUTER released_INTER_evaluation_bytes=5294276608 after_joined_coefficient_ingress=true before_LDE_scratch=true
+info: GPU_OUTER released_INTER_evaluation_bytes=5411717120 after_joined_coefficient_ingress=true before_LDE_scratch=true
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=304 calls=18 coefficient_bytes=4618461184 scratch_bytes=3825206528 legacy_scratch_bytes=10981761312 live_lease_bytes=13529864448 live_kinds={ 3, 0, 3, 0, 91 } pool_used_bytes=21805860352 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=304 calls=18 coefficient_bytes=4719124480 scratch_bytes=3825206528 legacy_scratch_bytes=11183087904 live_lease_bytes=13693442304 live_kinds={ 3, 0, 3, 0, 91 } pool_used_bytes=22097425920 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777536 scratch_words=956301632 legacy_scratch_words=2795771976
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=1179781120 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=2 role=0 arena_words=7602260 legacy_arena_words=11272276 direct_columns=14 columns=14 eval_log=19
+GPU_TRACE_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777536 scratch_words=956301632 legacy_scratch_words=2745440328
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=1154615296 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=2 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=3 role=0 arena_words=7602260 legacy_arena_words=11272276 direct_columns=14 columns=14 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=3 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=2 role=2 arena_words=154141110 legacy_arena_words=230687158 direct_columns=73 columns=73 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=3 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=3 role=3 arena_words=132120762 legacy_arena_words=197132474 direct_columns=31 columns=31 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=2 role=3 arena_words=132120762 legacy_arena_words=197132474 direct_columns=31 columns=31 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=3 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=2 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_ARENA_OVERRUN device=0 requested_bytes=11240738728 long=0 live_bytes=16034508800 capacity_bytes=27279753216 free_chunk_bytes=0 mapped_free_bytes=10737418240 live=195 t_ms=22065.7
+GPU_ARENA_OVERRUN device=1 requested_bytes=11240738728 long=0 live_bytes=15621320192 capacity_bytes=27279753216 free_chunk_bytes=0 mapped_free_bytes=11140071424 live=170 t_ms=22065.9
+GPU_OWNER_OOM requested_bytes=11240738728 retained_bytes=15453788652 lease_bytes=10426081848 idle_cache_bytes=4792559540 active_cache_bytes=0 physical_free_bytes=2151874560 physical_total_bytes=33679736832 memory_rc=0 pool_used_bytes=16034508800 pool_reserved_bytes=27279753216 pool_rc=0 phase=initial context_token=1 device_index=0 device_rc=0 default_pool_used_bytes=0 default_pool_reserved_bytes=0 default_pool_rc=0
+GPU_OWNER_OOM requested_bytes=11240738728 retained_bytes=14940466832 lease_bytes=10623214136 idle_cache_bytes=4082043992 active_cache_bytes=0 physical_free_bytes=2151874560 physical_total_bytes=33679736832 memory_rc=0 pool_used_bytes=15621320192 pool_reserved_bytes=27279753216 pool_rc=0 phase=initial context_token=2 device_index=1 device_rc=0 default_pool_used_bytes=0 default_pool_reserved_bytes=0 default_pool_rc=0
+GPU_COMPOSITION_ARENA ordinal=2 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=3 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=2 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=2 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=3 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=2 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=2 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=2 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=2 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=3 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=3 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=3 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=3 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_OWNERSHIP ordinal=2 retained_coefficient_words=134217728 joined_commit_scratch_words=276824080 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=2 coefficient_stream_ms=0.038 auxiliary_ms=0.000 domain_fft_ms=70.752 rows_ms=22.585 finalize_ms=8.110 commit_fft_ms=2.889 commit_hash_ms=2.400 gpu_enqueued_kernel_spans_ms=106.736 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=6681794560 geometry_hits=19 geometry_misses=17 retained_setup_bytes=132811480 retained_geometry_bytes=33496 retained_twiddle_bytes=132777984 retained_artifact_bytes=0 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_COMPOSITION_OWNERSHIP ordinal=3 retained_coefficient_words=134217728 joined_commit_scratch_words=276824080 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=3 coefficient_stream_ms=0.046 auxiliary_ms=0.000 domain_fft_ms=70.182 rows_ms=22.239 finalize_ms=8.849 commit_fft_ms=2.920 commit_hash_ms=2.424 gpu_enqueued_kernel_spans_ms=106.614 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=6605248512 geometry_hits=19 geometry_misses=17 retained_setup_bytes=132811480 retained_geometry_bytes=33496 retained_twiddle_bytes=132777984 retained_artifact_bytes=0 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+BLAKE_SAMPLE_PLAN removed_tasks=56640 old_levels=21005 new_levels=6467 original_air=true
+GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=6467 nonempty=6466 empty=1 width_1_32=1240 width_33_64=0 width_65_128=2480 width_129_256=1242 width_gt256=1504 max_width=2120787 selected_narrow_runs=13 selected_narrow_levels=6231 run_plan_ns=30560 chain=true
+GPU_OUTER_ASSIGNMENT_PLAN plan_ns=285476756 producer_alloc_zero_ns=17509773 seeds_ns=5103187 tasks_ns=70972120 level_alloc_zero_ns=7435450 dependency_walk_ns=33353391 ready_tasks=4746191 dfs_roots=8 ordering_ns=17149064 task_pack_ns=18159022 seed_pack_ns=2463323 hash_ns=30363889 task_bytes=150076768 index_bytes=0 levels=6467 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0
+BLAKE_SAMPLE_PLAN removed_tasks=221360 old_levels=80716 new_levels=24998 original_air=true
+GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=24998 nonempty=24997 empty=1 width_1_32=4834 width_33_64=0 width_65_128=9668 width_129_256=4836 width_gt256=5659 max_width=9328263 selected_narrow_runs=13 selected_narrow_levels=24587 run_plan_ns=118590 chain=true
+GPU_PCS_NATIVE prepare_ns=1561886 device_ns=153780990 total_ns=188252307 device_bytes=7576093596 retained_bytes=18115745692 coefficient_cells=2074217472 reused_columns=0 reused_cells=0 host_geometry_hits=3 host_geometry_misses=5 host_geometry_bytes=147006760 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_OUTER_PLAN_PACK adopt class=9d50e70d0cf0dcf4 logical_task_bytes=150076768 physical_task_bytes=2947380 held_bytes=177591582 classes=9
+GPU_DEVICE_PEAK stage=trace_commit tree=0 mode=legacy columns=45 calls=0 coefficient_bytes=493161472 scratch_bytes=3133807820 legacy_scratch_bytes=3133807820 live_lease_bytes=6261921996 live_kinds={ 3, 0, 1, 0, 48 } pool_used_bytes=14339860992 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=0 coefficient_words=123290368 scratch_words=263358267 final_coefficient_copy_words=0
+info: CUDA_OUTER_PREPROCESS ordinal=7 finalize_ns=57561186 columns_ns=159537223 authority_ns=59135052 host_authority_ns=664168 total_ns=276233461 fixed_setup_backend=device_candidate
+info: CUDA_OUTER_AUTHORITY ordinal=7 vars=26738688 row_logs={ 14, 23, 19, 20, 22, 16, 20, 8, 14, 18, 16 }
+GPU_OUTER fixed_forest_bytes=493161472 immutable_limit_bytes=2147483648 device_limit_bytes=30064771072 assignment_bytes=0 schedule_bytes=418650656 logs={ 14, 23, 19, 20, 22, 16, 20, 8, 14, 18, 16 }
+BLAKE_SAMPLE_PREFILL records=5016 gg_rows=401280 original_air=true
+GPU_PCS_NATIVE prepare_ns=2017514 device_ns=164104965 total_ns=250084231 device_bytes=7727092344 retained_bytes=18092619384 coefficient_cells=2035944448 reused_columns=0 reused_cells=0 host_geometry_hits=4 host_geometry_misses=5 host_geometry_bytes=146968328 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_DEVICE_PEAK stage=trace_commit tree=0 mode=legacy columns=45 calls=0 coefficient_bytes=677710848 scratch_bytes=2798263500 legacy_scratch_bytes=2798263500 live_lease_bytes=6274504908 live_kinds={ 3, 0, 1, 0, 48 } pool_used_bytes=14417397248 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_OUTER_ASSIGNMENT_GRAPH hit=false nodes=595 launches=1 fresh_pointers=true
+GPU_TRACE_OWNERSHIP tree=0 coefficient_words=169427712 scratch_words=355632955 final_coefficient_copy_words=0
+info: CUDA_OUTER_PREPROCESS ordinal=8 finalize_ns=106364645 columns_ns=249541592 authority_ns=87029097 host_authority_ns=528289 total_ns=442935334 fixed_setup_backend=device_candidate
+info: CUDA_OUTER_AUTHORITY ordinal=8 vars=43515904 row_logs={ 14, 23, 19, 20, 23, 16, 20, 8, 14, 18, 16 }
+GPU_OUTER fixed_forest_bytes=677710848 immutable_limit_bytes=2147483648 device_limit_bytes=30064771072 assignment_bytes=0 schedule_bytes=548400096 logs={ 14, 23, 19, 20, 23, 16, 20, 8, 14, 18, 16 }
+BLAKE_SAMPLE_PREFILL records=3526 gg_rows=282080 original_air=true
+GPU_OUTER_ASSIGNMENT_PLAN plan_ns=1287546884 producer_alloc_zero_ns=66188273 seeds_ns=16080197 tasks_ns=302720510 level_alloc_zero_ns=35361105 dependency_walk_ns=120031679 ready_tasks=17586993 dfs_roots=8 ordering_ns=198894678 task_pack_ns=92918611 seed_pack_ns=10065803 hash_ns=100633191 task_bytes=555711392 index_bytes=0 levels=24998 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0
+GPU_OUTER_ASSIGNMENT_TIMING total_ns=139190587 alloc_ns=9890 seed_upload_ns=870697 seed_enqueue_ns=22480 static_ingress_ns=26576319 levels_enqueue_ns=63140271 levels_join_ns=48494260 status_ns=75650 reference_readback_ns=500 seed_stream_ms=0.028 levels_stream_ms=111.611 launches=2 native_level_calls=1 ordinary_level_calls=0 narrow_run_calls=0 chain_run_calls=0
+GPU_OUTER_ASSIGNMENT variables=26738688 seed_words=3358315 static_words=104662664 levels=45316 full_assignment_upload_words=0
+BLAKE_SAMPLE_INPUTS_CHECK ordinal=7 records=5016 gg_rows=401280 mismatch=0 assignment_unchanged=true
+BLAKE_SAMPLE_PLAN removed_tasks=298160 old_levels=108528 new_levels=39239 original_air=true
+GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=39239 nonempty=39238 empty=1 width_1_32=11515 width_33_64=0 width_65_128=11772 width_129_256=5888 width_gt256=10063 max_width=6773264 selected_narrow_runs=16 selected_narrow_levels=38906 run_plan_ns=10212153 chain=true
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=114 calls=6 coefficient_bytes=1403061248 scratch_bytes=3825205760 legacy_scratch_bytes=4953609304 live_lease_bytes=9023142400 live_kinds={ 3, 1, 2, 0, 91 } pool_used_bytes=17475433984 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777344 scratch_words=956301440 legacy_scratch_words=1238402326
+GPU_POOL_SUMMARY pool_mallocs=0 pool_trims=0 pool_oom_recoveries=0 arena_enabled=1 staging_enabled=1 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=0 pageable_h2d_bytes=0 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=5472 staged_h2d_bytes=15380387080 staged_d2h=1098 staged_d2h_bytes=50293944 slot_waits=4 rings=2 staged_parallel=1084 staged_parallel_bytes=14883797508 staging_threads=8
+GPU_SYNC_SUMMARY join_calls=3793 lane_syncs=2168 lane_syncs_skipped=5418 free_fences=4808 fence_lane_waits=502 device_barriers=0
+GPU_ARENA_SUMMARY device=0 mode=vmm capacity_bytes=27279753216 chunk_bytes=33554432 physical_high_water_bytes=27279753216 live_high_water_bytes=26755717632 live_long_high_water_bytes=3669926912 live_small_high_water_bytes=61050368 small_slab_bytes=536870912 allocations=2675 releases=2498 overruns=2 largest_overrun_bytes=11240738728 live_at_overrun_bytes=16034508800 free_chunks_at_overrun=320 small_spills=0 map_calls=1145 unmap_calls=19 map_ms=100.374 unmap_ms=23.838 evict_host_syncs=0 fence_records=2498 fence_same_stream=0 fence_stream_waits=254 fence_host_syncs=0 fences_now=0 reuse_hits=717 map_misses=7 steals=7 stolen_chunks=332 mapped_free_bytes=12180258816 init_ms=72.583 free_before_bytes=32464109568 free_after_stack_bytes=29456793600 stack_after=12544 t_ms=22718.4
+GPU_ARENA_SUMMARY device=1 mode=vmm capacity_bytes=27279753216 chunk_bytes=33554432 physical_high_water_bytes=27279753216 live_high_water_bytes=25389891072 live_long_high_water_bytes=3471803392 live_small_high_water_bytes=58956800 small_slab_bytes=536870912 allocations=2485 releases=2309 overruns=2 largest_overrun_bytes=11240738728 live_at_overrun_bytes=15621320192 free_chunks_at_overrun=332 small_spills=0 map_calls=1258 unmap_calls=8 map_ms=122.085 unmap_ms=28.766 evict_host_syncs=1 fence_records=2309 fence_same_stream=0 fence_stream_waits=248 fence_host_syncs=0 fences_now=0 reuse_hits=663 map_misses=4 steals=4 stolen_chunks=445 mapped_free_bytes=9294577664 init_ms=92.700 free_before_bytes=32464109568 free_after_stack_bytes=29456793600 stack_after=12544 t_ms=22718.4
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=350765312 scratch_words=0 final_coefficient_copy_words=0
+GPU_OUTER_PP_PACK adopt class=9d50e70d0cf0dcf4 logical_bytes=187960320 physical_bytes=3313990 held_bytes=95776618 classes=9 ns=325488169
+RECURSION_NODE_SHAPE node=12 kind=leaf shape=exact raw=[7250,1324565,138792,262590,1387920] padded=[8192,2097152,262144,524288,2097152]
+info: GPU_OUTER released_main_evaluation_bytes=1403061248 before_INTER_commit
+info: GPU_OUTER released_INTER_evaluation_bytes=3265282048 after_joined_coefficient_ingress=true before_LDE_scratch=true
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=304 calls=11 coefficient_bytes=2765103104 scratch_bytes=3825206528 legacy_scratch_bytes=7677698336 live_lease_bytes=10385185024 live_kinds={ 3, 0, 3, 0, 91 } pool_used_bytes=18851165696 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_OUTER_PLAN_PACK adopt class=b27147c83dc9fc3e logical_task_bytes=555711392 physical_task_bytes=9310646 held_bytes=190203248 classes=10
+GPU_OUTER_ASSIGNMENT_GRAPH hit=false nodes=423 launches=1 fresh_pointers=true
+GPU_TRACE_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777536 scratch_words=956301632 legacy_scratch_words=1919424584
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=691275776 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=7 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=7 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_OUTER_ASSIGNMENT_PLAN plan_ns=1542642771 producer_alloc_zero_ns=73640613 seeds_ns=107280693 tasks_ns=522247892 level_alloc_zero_ns=37179840 dependency_walk_ns=130005282 ready_tasks=17400547 dfs_roots=8 ordering_ns=58624804 task_pack_ns=74973059 seed_pack_ns=23471017 hash_ns=67733559 task_bytes=547287520 index_bytes=0 levels=39239 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0
+GPU_OUTER_ASSIGNMENT_TIMING total_ns=343843390 alloc_ns=17960 seed_upload_ns=1229437 seed_enqueue_ns=32120 static_ingress_ns=28572683 levels_enqueue_ns=268509672 levels_join_ns=45398598 status_ns=81760 reference_readback_ns=500 seed_stream_ms=0.037 levels_stream_ms=313.895 launches=2 native_level_calls=1 ordinary_level_calls=0 narrow_run_calls=0 chain_run_calls=0
+GPU_OUTER_ASSIGNMENT variables=43515904 seed_words=4652485 static_words=137100024 levels=31829 full_assignment_upload_words=0
+GPU_COMPOSITION_ARENA ordinal=7 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=7 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=7 role=4 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+BLAKE_SAMPLE_INPUTS_CHECK ordinal=8 records=3526 gg_rows=282080 mismatch=0 assignment_unchanged=true
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=114 calls=9 coefficient_bytes=2275476480 scratch_bytes=3825205760 legacy_scratch_bytes=5993796696 live_lease_bytes=11116100096 live_kinds={ 3, 1, 2, 0, 91 } pool_used_bytes=19432018432 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_COMPOSITION_ARENA ordinal=7 role=5 arena_words=1405092842 legacy_arena_words=2105541610 direct_columns=167 columns=167 eval_log=23
+GPU_COMPOSITION_ARENA ordinal=7 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=7 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_TRACE_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777344 scratch_words=956301440 legacy_scratch_words=1498449174
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=568869120 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=7 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=7 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=7 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=7 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_OUTER_PP_PACK adopt class=b27147c83dc9fc3e logical_bytes=677710848 physical_bytes=8230372 held_bytes=104006990 classes=10 ns=231579320
+RECURSION_NODE_SHAPE node=10 kind=leaf shape=exact raw=[9896,4394151,423136,826710,4231360] padded=[16384,8388608,524288,1048576,8388608]
+GPU_COMPOSITION_OWNERSHIP ordinal=7 retained_coefficient_words=134217728 joined_commit_scratch_words=276824080 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=7 coefficient_stream_ms=0.053 auxiliary_ms=0.000 domain_fft_ms=37.663 rows_ms=13.682 finalize_ms=8.916 commit_fft_ms=2.845 commit_hash_ms=2.363 gpu_enqueued_kernel_spans_ms=65.469 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=3731560448 geometry_hits=31 geometry_misses=17 retained_setup_bytes=132811480 retained_geometry_bytes=33496 retained_twiddle_bytes=132777984 retained_artifact_bytes=0 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+info: GPU_OUTER released_main_evaluation_bytes=2275476480 before_INTER_commit
+info: GPU_OUTER released_INTER_evaluation_bytes=5144330240 after_joined_coefficient_ingress=true before_LDE_scratch=true
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=304 calls=17 coefficient_bytes=4509933568 scratch_bytes=3825206528 legacy_scratch_bytes=10462716192 live_lease_bytes=13350557952 live_kinds={ 3, 0, 3, 0, 91 } pool_used_bytes=21680165376 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_OUTER_PLAN_PACK adopt class=47a4b2ab7da08553 logical_task_bytes=547287520 physical_task_bytes=11756319 held_bytes=206145687 classes=11
+GPU_TRACE_STREAM tree=2 columns=304 leaves=16777216 calls=17 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777536 scratch_words=956301632 legacy_scratch_words=2615679048
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=1127483392 scratch_words=0 final_coefficient_copy_words=0
+GPU_PCS_NATIVE prepare_ns=1455866 device_ns=103430175 total_ns=120938676 device_bytes=8251642216 retained_bytes=15000571292 coefficient_cells=1299549184 reused_columns=0 reused_cells=0 host_geometry_hits=4 host_geometry_misses=5 host_geometry_bytes=147006760 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_COMPOSITION_ARENA ordinal=8 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=8 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=8 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=8 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=8 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_ARENA_OVERRUN device=0 requested_bytes=11240738728 long=0 live_bytes=15674981376 capacity_bytes=27279753216 free_chunk_bytes=0 mapped_free_bytes=11106516992 live=196 t_ms=23214.5
+GPU_OWNER_OOM requested_bytes=11240738728 retained_bytes=15225202312 lease_bytes=10163937848 idle_cache_bytes=4826117200 active_cache_bytes=0 physical_free_bytes=2147680256 physical_total_bytes=33679736832 memory_rc=0 pool_used_bytes=15674981376 pool_reserved_bytes=27279753216 pool_rc=0 phase=initial context_token=1 device_index=0 device_rc=0 default_pool_used_bytes=0 default_pool_reserved_bytes=0 default_pool_rc=0
+GPU_DEVICE_PEAK stage=trace_commit tree=0 mode=legacy columns=45 calls=0 coefficient_bytes=677710848 scratch_bytes=2798263500 legacy_scratch_bytes=2798263500 live_lease_bytes=6278961356 live_kinds={ 3, 0, 1, 0, 60 } pool_used_bytes=14449057792 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=0 coefficient_words=169427712 scratch_words=355632955 final_coefficient_copy_words=0
+info: CUDA_OUTER_PREPROCESS ordinal=10 finalize_ns=130080462 columns_ns=383444974 authority_ns=96092513 host_authority_ns=476519 total_ns=609617949 fixed_setup_backend=device_candidate
+info: CUDA_OUTER_AUTHORITY ordinal=10 vars=43515904 row_logs={ 14, 23, 19, 20, 23, 16, 20, 8, 14, 18, 16 }
+GPU_OUTER fixed_forest_bytes=677710848 immutable_limit_bytes=2147483648 device_limit_bytes=30064771072 assignment_bytes=0 schedule_bytes=555711392 logs={ 14, 23, 19, 20, 23, 16, 20, 8, 14, 18, 16 }
+BLAKE_SAMPLE_PREFILL records=2767 gg_rows=221360 original_air=true
+GPU_COMPOSITION_ARENA ordinal=8 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_OUTER_ASSIGNMENT_GRAPH hit=false nodes=423 launches=1 fresh_pointers=true
+GPU_OUTER_PP_PACK adopt class=47a4b2ab7da08553 logical_bytes=677710848 physical_bytes=9670244 held_bytes=113677234 classes=11 ns=215294004
+RECURSION_NODE_SHAPE node=11 kind=leaf shape=exact raw=[8735,5958856,520656,1021018,5206560] padded=[16384,8388608,524288,1048576,8388608]
+GPU_COMPOSITION_ARENA ordinal=8 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=8 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=8 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=8 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=8 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=8 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_OUTER_ASSIGNMENT_TIMING total_ns=78885379 alloc_ns=13430 seed_upload_ns=1263247 seed_enqueue_ns=31980 static_ingress_ns=38329657 levels_enqueue_ns=3298861 levels_join_ns=35897724 status_ns=49660 reference_readback_ns=450 seed_stream_ms=0.031 levels_stream_ms=39.182 launches=2 native_level_calls=1 ordinary_level_calls=0 narrow_run_calls=0 chain_run_calls=0
+GPU_OUTER_ASSIGNMENT variables=43515904 seed_words=3813695 static_words=138927848 levels=24998 full_assignment_upload_words=0
+GPU_COMPOSITION_OWNERSHIP ordinal=8 retained_coefficient_words=134217728 joined_commit_scratch_words=276824080 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=8 coefficient_stream_ms=0.066 auxiliary_ms=0.000 domain_fft_ms=82.064 rows_ms=21.839 finalize_ms=8.033 commit_fft_ms=2.897 commit_hash_ms=2.412 gpu_enqueued_kernel_spans_ms=117.245 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=6533355520 geometry_hits=31 geometry_misses=17 retained_setup_bytes=132811480 retained_geometry_bytes=33496 retained_twiddle_bytes=132777984 retained_artifact_bytes=0 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+BLAKE_SAMPLE_INPUTS_CHECK ordinal=10 records=2767 gg_rows=221360 mismatch=0 assignment_unchanged=true
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=114 calls=9 coefficient_bytes=2275476480 scratch_bytes=3825205760 legacy_scratch_bytes=5993796696 live_lease_bytes=10717903360 live_kinds={ 3, 1, 2, 0, 91 } pool_used_bytes=19061025792 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777344 scratch_words=956301440 legacy_scratch_words=1498449174
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=568869120 scratch_words=0 final_coefficient_copy_words=0
+info: GPU_OUTER released_main_evaluation_bytes=2275476480 before_INTER_commit
+GPU_PCS_NATIVE prepare_ns=2300774 device_ns=211984039 total_ns=233956644 device_bytes=7123108764 retained_bytes=17338820508 coefficient_cells=1999997952 reused_columns=0 reused_cells=0 host_geometry_hits=5 host_geometry_misses=5 host_geometry_bytes=146968328 host_geometry_cap=536870912 host_geometry_bypasses=0
+info: GPU_OUTER released_INTER_evaluation_bytes=5144330240 after_joined_coefficient_ingress=true before_LDE_scratch=true
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=304 calls=17 coefficient_bytes=4509933568 scratch_bytes=3825206528 legacy_scratch_bytes=10462716192 live_lease_bytes=12952361216 live_kinds={ 3, 0, 3, 0, 91 } pool_used_bytes=21309172736 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_DEVICE_PEAK stage=trace_commit tree=0 mode=legacy columns=45 calls=0 coefficient_bytes=677710848 scratch_bytes=2798263500 legacy_scratch_bytes=2798263500 live_lease_bytes=6268475596 live_kinds={ 3, 0, 1, 0, 49 } pool_used_bytes=13845002752 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=0 coefficient_words=169427712 scratch_words=355632955 final_coefficient_copy_words=0
+info: CUDA_OUTER_PREPROCESS ordinal=11 finalize_ns=88224194 columns_ns=439067055 authority_ns=55611711 host_authority_ns=360029 total_ns=582902960 fixed_setup_backend=device_candidate
+info: CUDA_OUTER_AUTHORITY ordinal=11 vars=43515904 row_logs={ 14, 23, 19, 20, 23, 16, 20, 8, 14, 18, 16 }
+GPU_OUTER fixed_forest_bytes=677710848 immutable_limit_bytes=2147483648 device_limit_bytes=30064771072 assignment_bytes=0 schedule_bytes=547287520 logs={ 14, 23, 19, 20, 23, 16, 20, 8, 14, 18, 16 }
+BLAKE_SAMPLE_PREFILL records=3727 gg_rows=298160 original_air=true
+GPU_TRACE_STREAM tree=2 columns=304 leaves=16777216 calls=17 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777536 scratch_words=956301632 legacy_scratch_words=2615679048
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=1127483392 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=10 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=10 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_OUTER_ASSIGNMENT_GRAPH hit=false nodes=348 launches=1 fresh_pointers=true
+GPU_COMPOSITION_ARENA ordinal=10 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=10 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=10 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_OUTER_ASSIGNMENT_TIMING total_ns=128816795 alloc_ns=11380 seed_upload_ns=1023867 seed_enqueue_ns=20960 static_ingress_ns=28425744 levels_enqueue_ns=46182786 levels_join_ns=52949748 status_ns=199920 reference_readback_ns=1260 seed_stream_ms=0.030 levels_stream_ms=99.097 launches=2 native_level_calls=1 ordinary_level_calls=0 narrow_run_calls=0 chain_run_calls=0
+GPU_OUTER_ASSIGNMENT variables=43515904 seed_words=4745925 static_words=136821880 levels=39239 full_assignment_upload_words=0
+BLAKE_SAMPLE_INPUTS_CHECK ordinal=11 records=3727 gg_rows=298160 mismatch=0 assignment_unchanged=true
+GPU_COMPOSITION_ARENA ordinal=10 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_COMPOSITION_ARENA ordinal=10 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=10 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=10 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=10 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=10 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=10 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_OWNERSHIP ordinal=10 retained_coefficient_words=134217728 joined_commit_scratch_words=276824080 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=10 coefficient_stream_ms=0.056 auxiliary_ms=0.000 domain_fft_ms=69.248 rows_ms=21.627 finalize_ms=8.051 commit_fft_ms=2.885 commit_hash_ms=2.388 gpu_enqueued_kernel_spans_ms=104.197 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=6533355520 geometry_hits=43 geometry_misses=17 retained_setup_bytes=132811480 retained_geometry_bytes=33496 retained_twiddle_bytes=132777984 retained_artifact_bytes=0 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=114 calls=9 coefficient_bytes=2275476480 scratch_bytes=3825205760 legacy_scratch_bytes=5993796696 live_lease_bytes=11087002112 live_kinds={ 3, 1, 2, 0, 91 } pool_used_bytes=18826069504 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777344 scratch_words=956301440 legacy_scratch_words=1498449174
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=568869120 scratch_words=0 final_coefficient_copy_words=0
+info: GPU_OUTER released_main_evaluation_bytes=2275476480 before_INTER_commit
+info: GPU_OUTER released_INTER_evaluation_bytes=5144330240 after_joined_coefficient_ingress=true before_LDE_scratch=true
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=304 calls=17 coefficient_bytes=4509933568 scratch_bytes=3825206528 legacy_scratch_bytes=10462716192 live_lease_bytes=13321459968 live_kinds={ 3, 0, 3, 0, 91 } pool_used_bytes=21074216448 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_PCS_NATIVE prepare_ns=30853737 device_ns=148950180 total_ns=202012629 device_bytes=7123108764 retained_bytes=15195124148 coefficient_cells=1999997952 reused_columns=0 reused_cells=0 host_geometry_hits=5 host_geometry_misses=5 host_geometry_bytes=147006760 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_TRACE_STREAM tree=2 columns=304 leaves=16777216 calls=17 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 402653184, 402653184 } aux_words=16777536 scratch_words=956301632 legacy_scratch_words=2615679048
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=1127483392 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=11 role=0 arena_words=475220 legacy_arena_words=704596 direct_columns=14 columns=14 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=11 role=1 arena_words=612368600 legacy_arena_words=914358488 direct_columns=36 columns=36 eval_log=24
+GPU_DEVICE_PEAK stage=trace_commit tree=0 mode=stream columns=45 calls=1 coefficient_bytes=187960320 scratch_bytes=661133568 legacy_scratch_bytes=963124428 live_lease_bytes=3170850016 live_kinds={ 3, 0, 1, 0, 56 } pool_used_bytes=8543477760 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=0 columns=45 leaves=4194304 calls=1 chunk_budget_words=134217728 chunk_words=93980160 bank_words={ 67108856, 0 } aux_words=4194368 scratch_words=165283392 legacy_scratch_words=240781107
+GPU_TRACE_OWNERSHIP tree=0 coefficient_words=46990080 scratch_words=0 final_coefficient_copy_words=0
+info: CUDA_OUTER_PREPROCESS ordinal=12 finalize_ns=38048318 columns_ns=71610039 authority_ns=76447696 host_authority_ns=422958 total_ns=186106053 fixed_setup_backend=device_candidate
+info: CUDA_OUTER_AUTHORITY ordinal=12 vars=11272192 row_logs={ 13, 21, 18, 19, 21, 16, 20, 8, 14, 18, 16 }
+GPU_OUTER fixed_forest_bytes=187960320 immutable_limit_bytes=2147483648 device_limit_bytes=30064771072 assignment_bytes=0 schedule_bytes=150076768 logs={ 13, 21, 18, 19, 21, 16, 20, 8, 14, 18, 16 }
+GPU_COMPOSITION_ARENA ordinal=11 role=2 arena_words=77070774 legacy_arena_words=115343798 direct_columns=73 columns=73 eval_log=20
+BLAKE_SAMPLE_PREFILL records=708 gg_rows=56640 original_air=true
+GPU_COMPOSITION_ARENA ordinal=11 role=3 arena_words=66060474 legacy_arena_words=98566330 direct_columns=31 columns=31 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=11 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_ARENA_OVERRUN device=0 requested_bytes=11240738728 long=0 live_bytes=15673012224 capacity_bytes=27279753216 free_chunk_bytes=0 mapped_free_bytes=11106516992 live=196 t_ms=24151.6
+GPU_OWNER_OOM requested_bytes=11240738728 retained_bytes=15196101100 lease_bytes=10134839864 idle_cache_bytes=4826113972 active_cache_bytes=0 physical_free_bytes=2141388800 physical_total_bytes=33679736832 memory_rc=0 pool_used_bytes=15673012224 pool_reserved_bytes=27279753216 pool_rc=0 phase=initial context_token=1 device_index=0 device_rc=0 default_pool_used_bytes=0 default_pool_reserved_bytes=0 default_pool_rc=0
+GPU_OUTER_ASSIGNMENT_GRAPH hit=false nodes=248 launches=1 fresh_pointers=true
+GPU_OUTER_ASSIGNMENT_TIMING total_ns=21442183 alloc_ns=19740 seed_upload_ns=462079 seed_enqueue_ns=19940 static_ingress_ns=9776744 levels_enqueue_ns=1645685 levels_join_ns=9490715 status_ns=26560 reference_readback_ns=410 seed_stream_ms=0.017 levels_stream_ms=11.127 launches=2 native_level_calls=1 ordinary_level_calls=0 narrow_run_calls=0 chain_run_calls=0
+GPU_OUTER_ASSIGNMENT variables=11272192 seed_words=1170985 static_words=37519192 levels=6467 full_assignment_upload_words=0
+BLAKE_SAMPLE_INPUTS_CHECK ordinal=12 records=708 gg_rows=56640 mismatch=0 assignment_unchanged=true
+GPU_COMPOSITION_ARENA ordinal=11 role=5 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24
+GPU_DEVICE_PEAK stage=trace_commit tree=1 mode=stream columns=114 calls=3 coefficient_bytes=635372544 scratch_bytes=1358955008 legacy_scratch_bytes=1857950808 live_lease_bytes=4954867200 live_kinds={ 3, 1, 2, 0, 95 } pool_used_bytes=10874727424 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_STREAM tree=1 columns=114 leaves=4194304 calls=3 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 100663296, 100663296 } aux_words=4194432 scratch_words=339738752 legacy_scratch_words=464487702
+GPU_TRACE_OWNERSHIP tree=1 coefficient_words=158843136 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=11 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=11 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=11 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=11 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+info: GPU_OUTER released_main_evaluation_bytes=635372544 before_INTER_commit
+info: GPU_OUTER released_INTER_evaluation_bytes=1595424768 after_joined_coefficient_ingress=true before_LDE_scratch=true
+GPU_DEVICE_PEAK stage=trace_commit tree=2 mode=stream columns=304 calls=6 coefficient_bytes=1389109248 scratch_bytes=1358955776 legacy_scratch_bytes=3365429536 live_lease_bytes=5708604672 live_kinds={ 3, 0, 3, 0, 95 } pool_used_bytes=11646479360 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_COMPOSITION_ARENA ordinal=11 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=11 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_TRACE_STREAM tree=2 columns=304 leaves=4194304 calls=6 chunk_budget_words=134217728 chunk_words=134217728 bank_words={ 100663296, 100663296 } aux_words=4194624 scratch_words=339738944 legacy_scratch_words=841357384
+GPU_TRACE_OWNERSHIP tree=2 coefficient_words=347277312 scratch_words=0 final_coefficient_copy_words=0
+GPU_COMPOSITION_ARENA ordinal=12 role=0 arena_words=237652 legacy_arena_words=352340 direct_columns=14 columns=14 eval_log=14
+GPU_COMPOSITION_ARENA ordinal=12 role=1 arena_words=153092312 legacy_arena_words=228589784 direct_columns=36 columns=36 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=12 role=2 arena_words=38535606 legacy_arena_words=57672118 direct_columns=73 columns=73 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=12 role=3 arena_words=33030330 legacy_arena_words=49283258 direct_columns=31 columns=31 eval_log=20
+GPU_COMPOSITION_ARENA ordinal=12 role=4 arena_words=702546922 legacy_arena_words=1052771306 direct_columns=167 columns=167 eval_log=22
+GPU_COMPOSITION_OWNERSHIP ordinal=11 retained_coefficient_words=134217728 joined_commit_scratch_words=276824080 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=11 coefficient_stream_ms=0.049 auxiliary_ms=0.000 domain_fft_ms=69.646 rows_ms=32.669 finalize_ms=8.078 commit_fft_ms=2.888 commit_hash_ms=2.375 gpu_enqueued_kernel_spans_ms=115.656 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=6533355520 geometry_hits=43 geometry_misses=17 retained_setup_bytes=132811480 retained_geometry_bytes=33496 retained_twiddle_bytes=132777984 retained_artifact_bytes=0 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_COMPOSITION_ARENA ordinal=12 role=5 arena_words=702546922 legacy_arena_words=1052771306 direct_columns=167 columns=167 eval_log=22
+GPU_COMPOSITION_ARENA ordinal=12 role=6 arena_words=1769550 legacy_arena_words=2621518 direct_columns=13 columns=13 eval_log=17
+GPU_COMPOSITION_ARENA ordinal=12 role=7 arena_words=175112690 legacy_arena_words=262144498 direct_columns=83 columns=83 eval_log=21
+GPU_COMPOSITION_ARENA ordinal=12 role=8 arena_words=6472 legacy_arena_words=9544 direct_columns=12 columns=12 eval_log=9
+GPU_COMPOSITION_ARENA ordinal=12 role=9 arena_words=409672 legacy_arena_words=606280 direct_columns=12 columns=12 eval_log=15
+GPU_COMPOSITION_ARENA ordinal=12 role=10 arena_words=6553672 legacy_arena_words=9699400 direct_columns=12 columns=12 eval_log=19
+GPU_COMPOSITION_ARENA ordinal=12 role=11 arena_words=1376316 legacy_arena_words=2031676 direct_columns=10 columns=10 eval_log=17
+GPU_COMPOSITION_OWNERSHIP ordinal=12 retained_coefficient_words=33554432 joined_commit_scratch_words=69206032 separate_coefficients=true
+GPU_COMPOSITION_TIMING ordinal=12 coefficient_stream_ms=0.084 auxiliary_ms=0.000 domain_fft_ms=17.981 rows_ms=6.977 finalize_ms=2.214 commit_fft_ms=0.670 commit_hash_ms=0.636 gpu_enqueued_kernel_spans_ms=28.478 host_coefficient_cells=0 device_coefficient_cells=0 device_copy_calls=0 domain_cells=1806669824 geometry_hits=49 geometry_misses=23 retained_setup_bytes=132891888 retained_geometry_bytes=48368 retained_twiddle_bytes=132843520 retained_artifact_bytes=0 setup_cache_cap_bytes=268435456 uncached_geometries=0 uncached_twiddles=0
+GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=9025 nonempty=9024 empty=1 width_1_32=6298 width_33_64=60 width_65_128=39 width_129_256=78 width_gt256=2549 max_width=4019142 selected_narrow_runs=26 selected_narrow_levels=8298 run_plan_ns=76829 chain=true
+GPU_PCS_NATIVE prepare_ns=1292666 device_ns=37602687 total_ns=78484210 device_bytes=2601178104 retained_bytes=9139338676 coefficient_cells=586664960 reused_columns=0 reused_cells=0 host_geometry_hits=6 host_geometry_misses=5 host_geometry_bytes=147006760 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_PCS_NATIVE prepare_ns=2807612 device_ns=175679870 total_ns=206908906 device_bytes=7123108764 retained_bytes=17357825948 coefficient_cells=1999997952 reused_columns=0 reused_cells=0 host_geometry_hits=6 host_geometry_misses=5 host_geometry_bytes=146968328 host_geometry_cap=536870912 host_geometry_bypasses=0
+GPU_OUTER_ASSIGNMENT_PLAN plan_ns=874134491 producer_alloc_zero_ns=97464579 seeds_ns=68965006 tasks_ns=411714888 level_alloc_zero_ns=51910001 dependency_walk_ns=157585258 ready_tasks=18729348 dfs_roots=8 ordering_ns=50141536 task_pack_ns=88809393 seed_pack_ns=24970233 hash_ns=109621317 task_bytes=599391360 index_bytes=0 levels=9025 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0
+GPU_OUTER_PLAN_PACK adopt class=b239faa4ea7f4d4e logical_task_bytes=599391360 physical_task_bytes=15757026 held_bytes=226764909 classes=12
+GPU_OUTER_PP_PACK adopt class=b239faa4ea7f4d4e logical_bytes=701172736 physical_bytes=15879284 held_bytes=129556518 classes=12 ns=159918392
+RECURSION_NODE_SHAPE node=4 kind=fold shape=exact raw=[56714,6996129,776712,1433664,7767120] padded=[65536,8388608,1048576,2097152,8388608]
+GPU_POOL_SUMMARY pool_mallocs=0 pool_trims=0 pool_oom_recoveries=0 arena_enabled=1 staging_enabled=1 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=0 pageable_h2d_bytes=0 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=6387 staged_h2d_bytes=19966361012 staged_d2h=1308 staged_d2h_bytes=59326376 slot_waits=7 rings=2 staged_parallel=1407 staged_parallel_bytes=19436900816 staging_threads=8
+GPU_SYNC_SUMMARY join_calls=4371 lane_syncs=2483 lane_syncs_skipped=6259 free_fences=5881 fence_lane_waits=834 device_barriers=0
+GPU_ARENA_SUMMARY device=0 mode=vmm capacity_bytes=27279753216 chunk_bytes=33554432 physical_high_water_bytes=27279753216 live_high_water_bytes=26755717632 live_long_high_water_bytes=3669926912 live_small_high_water_bytes=61050368 small_slab_bytes=536870912 allocations=3162 releases=3033 overruns=4 largest_overrun_bytes=11240738728 live_at_overrun_bytes=16034508800 free_chunks_at_overrun=320 small_spills=0 map_calls=1465 unmap_calls=28 map_ms=141.071 unmap_ms=46.139 evict_host_syncs=0 fence_records=3033 fence_same_stream=0 fence_stream_waits=393 fence_host_syncs=0 fences_now=4 reuse_hits=856 map_misses=13 steals=13 stolen_chunks=652 mapped_free_bytes=17112760320 init_ms=72.583 free_before_bytes=32464109568 free_after_stack_bytes=29456793600 stack_after=12544 t_ms=25125.3
+GPU_ARENA_SUMMARY device=1 mode=vmm capacity_bytes=27279753216 chunk_bytes=33554432 physical_high_water_bytes=27279753216 live_high_water_bytes=26746057216 live_long_high_water_bytes=3471803392 live_small_high_water_bytes=58956800 small_slab_bytes=536870912 allocations=3019 releases=2848 overruns=2 largest_overrun_bytes=11240738728 live_at_overrun_bytes=15621320192 free_chunks_at_overrun=332 small_spills=0 map_calls=1615 unmap_calls=23 map_ms=255.638 unmap_ms=52.626 evict_host_syncs=1 fence_records=2848 fence_same_stream=0 fence_stream_waits=441 fence_host_syncs=0 fences_now=4 reuse_hits=857 map_misses=8 steals=8 stolen_chunks=802 mapped_free_bytes=19159580672 init_ms=92.700 free_before_bytes=32464109568 free_after_stack_bytes=29456793600 stack_after=12544 t_ms=25125.3
+GPU_DEVICE_PEAK stage=trace_commit tree=0 mode=legacy columns=45 calls=0 coefficient_bytes=701172736 scratch_bytes=3147177164 legacy_scratch_bytes=3147177164 live_lease_bytes=6280864972 live_kinds={ 3, 0, 1, 0, 92 } pool_used_bytes=12183350272 pool_reserved_bytes=27279753216 pool_status=0 lease_status=0
+GPU_TRACE_OWNERSHIP tree=0 coefficient_words=175293184 scratch_words=367363899 final_coefficient_copy_words=0
+info: CUDA_OUTER_PREPROCESS ordinal=4 finalize_ns=39099235 columns_ns=378813616 authority_ns=65816184 host_authority_ns=305599 total_ns=483729035 fixed_setup_backend=device_candidate
+info: CUDA_OUTER_AUTHORITY ordinal=4 vars=45088768 row_logs={ 16, 23, 20, 21, 23, 16, 20, 8, 14, 18, 16 }
+GPU_OUTER fixed_forest_bytes=701172736 immutable_limit_bytes=2147483648 device_limit_bytes=30064771072 assignment_bytes=0 schedule_bytes=599391360 logs={ 16, 23, 20, 21, 23, 16, 20, 8, 14, 18, 16 }
+GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=9025 nonempty=9024 empty=1 width_1_32=6298 width_33_64=60 width_65_128=40 width_129_256=70 width_gt256=2556 max_width=4015063 selected_narrow_runs=26 selected_narrow_levels=8298 run_plan_ns=145010 chain=true
+error: rv64 OM31 pipelined recursion node 4 failed: InvalidDeviceAddress
+GPU_OUTER_ASSIGNMENT_PLAN plan_ns=810008412 producer_alloc_zero_ns=97347359 seeds_ns=79941666 tasks_ns=338332205 level_alloc_zero_ns=30220049 dependency_walk_ns=154400587 ready_tasks=18729349 dfs_roots=8 ordering_ns=60383268 task_pack_ns=104672970 seed_pack_ns=52847368 hash_ns=103446963 task_bytes=599391392 index_bytes=0 levels=9025 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0
+GPU_OUTER_PLAN_PACK adopt class=0c896b1166d884a9 logical_task_bytes=599391392 physical_task_bytes=15899693 held_bytes=247511870 classes=13
+GPU_OUTER_PP_PACK adopt class=0c896b1166d884a9 logical_bytes=701172736 physical_bytes=15905443 held_bytes=145461961 classes=13 ns=159616263
+RECURSION_NODE_SHAPE node=9 kind=fold shape=exact raw=[56934,7000206,776712,1433664,7767120] padded=[65536,8388608,1048576,2097152,8388608]
+GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=9025 nonempty=9024 empty=1 width_1_32=6322 width_33_64=45 width_65_128=73 width_129_256=59 width_gt256=2525 max_width=7253385 selected_narrow_runs=21 selected_narrow_levels=8319 run_plan_ns=68029 chain=true
+GPU_OUTER_ASSIGNMENT_PLAN plan_ns=1030786222 producer_alloc_zero_ns=99963343 seeds_ns=295330069 tasks_ns=383320415 level_alloc_zero_ns=35033646 dependency_walk_ns=136319735 ready_tasks=18006370 dfs_roots=8 ordering_ns=42655456 task_pack_ns=85793651 seed_pack_ns=7603679 hash_ns=107172644 task_bytes=576243776 index_bytes=0 levels=9025 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0
+GPU_OUTER_PLAN_PACK adopt class=101a64148c2228c7 logical_task_bytes=576243776 physical_task_bytes=12782672 held_bytes=263841102 classes=14
+GPU_OUTER_PP_PACK adopt class=101a64148c2228c7 logical_bytes=688589824 physical_bytes=12678931 held_bytes=158140892 classes=14 ns=150394307
+RECURSION_NODE_SHAPE node=13 kind=fold shape=exact raw=[42393,5114120,567792,1044016,5677920] padded=[65536,8388608,1048576,1048576,8388608]
+thread 2220981 panic: assignment graph cleanup failed
+/workspace/m3/src/m7-fold-v3/src/integrations/riscv_cuda/rv64/assignment_graphs.zig:120:78: 0x164048b in deinit (rv64-word16-ethereum-gpu-combined)
+            if (service.submit(service.session, Cleanup.run, &cleanup) != 0) @panic("assignment graph cleanup failed");
+                                                                             ^
+/workspace/m3/src/m7-fold-v3/src/integrations/riscv_cuda/rv64/resident_ready.zig:82:84: 0x1625817 in deinit (rv64-word16-ethereum-gpu-combined)
+        for (self.contexts[0..self.initialized_contexts]) |*context| context.deinit();
+                                                                                   ^
+/workspace/m3/src/m7-fold-v3/src/integrations/riscv_cuda/rv64/resident_batch.zig:96:44: 0x163db9a in runMode__anon_1365002 (rv64-word16-ethereum-gpu-combined)
+        if (ready) |context| context.deinit();
+                                           ^
+/workspace/m3/src/m7-fold-v3/src/integrations/riscv_cuda/rv64/resident_batch.zig:41:19: 0x16461eb in main (rv64-word16-ethereum-gpu-combined)
+    return runMode(a, library, manifest_path, spool, true, spool);
+                  ^
+???:?:?: 0x70c3c55901c9 in ??? (libc.so.6)
+Unwind information for `libc.so.6:0x70c3c55901c9` was not available, trace may be incomplete
+
+???:?:?: 0x70c3c559028a in ??? (libc.so.6)
+/workspace/zig/lib/libc/glibc/sysdeps/x86_64/start-2.33.S:120:0: 0x116f719 in ??? (/workspace/zig/lib/libc/glibc/sysdeps/x86_64/start-2.33.S)
+ call *__libc_start_main@GOTPCREL(%rip)
+

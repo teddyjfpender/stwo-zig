@@ -235,8 +235,10 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
     std.mem.writeInt(u64, transaction[8..16], iteration, .little);
     hash.update(&transaction);
     const identity = hash.finalResult();
-    for (pool.devices, config.caps) |*device, cap| try device.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = if (combined) manifest.combined_immutable_device_bytes else manifest.immutable_device_bytes, .max_scopes = config.scope_limit });
+    // Charge request-boundary audits and any cache retirement to this request.
     var timer = try std.time.Timer.start();
+    for (pool.devices, config.caps) |*device, cap| try device.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = if (combined) manifest.combined_immutable_device_bytes else manifest.immutable_device_bytes, .max_scopes = config.scope_limit });
+    const phase_transition_ns = timer.read();
     if (combined) {
         // Same producer and live authority handoff; every trial is fresh.
         a.free(args[3]);
@@ -280,7 +282,7 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
         defer base.free(combined_bytes);
         const combined_audit = try std.json.parseFromSlice(struct { recursion_execution: std.json.Value, fixed_setup_backend: []const u8 }, base, combined_bytes, .{ .ignore_unknown_fields = true });
         defer combined_audit.deinit();
-        const entry = try std.json.Stringify.valueAlloc(base, .{ .schema = 1, .accepted = true, .request_wall_ns = request_wall_ns, .device_lifecycle_audit = "all request leases released", .device_byte_cap = config.caps[0], .physical_device_ids = config.ids, .device_byte_caps = config.caps, .recursion_mode = @tagName(manifest.recursion_mode), .recursion_execution = combined_audit.value.recursion_execution, .fixed_setup_backend = combined_audit.value.fixed_setup_backend, .recursion_worker_budget = if (ready_mode) manifest.recursion_worker_budget else null, .producer_manifest_sha256 = manifest_sha256, .hardware_parallel_qualified = false, .immutable_device_bytes = manifest.combined_immutable_device_bytes, .host_byte_cap = manifest.combined_host_bytes, .trial = trial, .block = block, .fresh_production = true }, .{ .whitespace = .indent_2 });
+        const entry = try std.json.Stringify.valueAlloc(base, .{ .schema = 1, .accepted = true, .request_wall_ns = request_wall_ns, .phase_transition_ns = phase_transition_ns, .device_lifecycle_audit = "all request leases released", .device_byte_cap = config.caps[0], .physical_device_ids = config.ids, .device_byte_caps = config.caps, .recursion_mode = @tagName(manifest.recursion_mode), .recursion_execution = combined_audit.value.recursion_execution, .fixed_setup_backend = combined_audit.value.fixed_setup_backend, .recursion_worker_budget = if (ready_mode) manifest.recursion_worker_budget else null, .producer_manifest_sha256 = manifest_sha256, .hardware_parallel_qualified = false, .immutable_device_bytes = manifest.combined_immutable_device_bytes, .host_byte_cap = manifest.combined_host_bytes, .trial = trial, .block = block, .fresh_production = true }, .{ .whitespace = .indent_2 });
         defer base.free(entry);
         try @import("combined_publication.zig").write(proof, entry);
     }

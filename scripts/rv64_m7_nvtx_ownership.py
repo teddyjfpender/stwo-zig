@@ -86,7 +86,9 @@ def main():
         if args.phase == "after-native":
             combined = json.loads((Path(request["proof"]) / "combined-report.json").read_text())
             producer_start = end - request["marker"]["request_wall_ns"]
-            start = producer_start + sum(combined[key] for key in ("capture_ns", "native_setup_ns", "native_prove_ns")) + 5_000_000
+            entry_path = Path(request["proof"]) / "combined-entry.json"
+            entry = json.loads(entry_path.read_text()) if entry_path.is_file() else {}
+            start = producer_start + entry.get("phase_transition_ns", 0) + sum(combined[key] for key in ("capture_ns", "native_setup_ns", "native_prove_ns")) + 5_000_000
         selected = [item for item in ranges if item["start"] < end and item["end"] > start]
         # Controller mode encloses PCS and inline callbacks. OFF mode has
         # separate callback/PCS parents. Compare their outermost owner union,
