@@ -61,7 +61,8 @@ pub fn build(b: *std.Build) void {
     native_gkr_root.addImport("stwo_proof_wire", postcard.import_table.get("stwo_proof_wire") orelse @panic("missing wire"));
     native_gkr_root.addImport("stwo_prover_engine", prover);
     native_gkr_root.addImport("stwo_riscv_frontend", frontend);
-    const native_gkr_tests = b.addTest(.{ .root_module = native_gkr_root });
+    const native_gkr_filter = b.option([]const u8, "native-gkr-test-filter", "Run matching native GKR tests only");
+    const native_gkr_tests = b.addTest(.{ .root_module = native_gkr_root, .filters = if (native_gkr_filter) |filter| &.{filter} else &.{} });
     b.step("test-native-gkr", "Test native GKR v1 and v2 bounded roster, codec, transcript and tamper corpus").dependOn(&b.addRunArtifact(native_gkr_tests).step);
 
     const test_filter = b.option([]const u8, "test-filter", "Run only tests whose names contain this text");
