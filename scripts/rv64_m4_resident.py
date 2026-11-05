@@ -606,6 +606,11 @@ def daemon(args):
                     submitted_utc = time.time_ns()
                     (spool / "inbox" / f"{name}.tmp").write_text(f"{block}\n")
                     os.rename(spool / "inbox" / f"{name}.tmp", spool / "inbox" / f"{name}.request")
+                    # Preserve the exact client clock even when proof execution
+                    # fails before a completion/timeline record can be written.
+                    B.atomic_json(run / f"submission-{index:04d}.json", {"name": name, "block": block,
+                                  "submitted_utc_ns": submitted_utc, "submitted_monotonic_ns": submitted,
+                                  "cpu_resource_before": resource_before})
                     done = spool / "done" / f"{name}.json"
                     while not done.is_file():
                         if args.request_timeout and (time.monotonic_ns() - submitted) / 1e9 > args.request_timeout:
