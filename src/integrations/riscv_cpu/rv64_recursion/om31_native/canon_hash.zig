@@ -48,6 +48,11 @@ pub const Expected = struct {
     final_pc: U64,
     final_registers: [32]U64,
 };
+/// Witness assignment only; the typed leaf hashes these handles and the root
+/// independently compares that digest with its receiver-owned expected state.
+pub fn guessExpected(ctx: *C.Context, native: @import("../../word16_global_execution/services/protocol.zig").Expected) !Expected {
+    return mirror(Expected, ctx, native);
+}
 
 const IdentityWriter = struct {
     ctx: *C.Context,
@@ -118,6 +123,11 @@ const Writer = struct {
         const converted = B.wrappers.constU32(C.Q, self.ctx, value) catch |err| { self.failure = err; return; };
         self.word(converted);
     }
+    pub fn constantDigest(self: *Writer, value: [32]u8) void {
+        if (self.failure != null) return;
+        const converted = Public.constantDigest(self.ctx, value) catch |err| { self.failure = err; return; };
+        self.digest(converted);
+    }
     pub fn int64(self: *Writer, value: U64) void { self.words(&value); }
     pub fn digest(self: *Writer, value: Digest) void { self.words(&value); }
     fn final(self: *Writer) !Digest {
@@ -138,6 +148,11 @@ pub fn truthStatement(ctx: *C.Context, value: TruthStatement) !Digest {
 pub fn chainStep(ctx: *C.Context, previous: Digest, segment: Segment) !Digest {
     var writer = Writer.init(ctx, .seg);
     Canon.emitChainStep(previous, segment, &writer);
+    return writer.final();
+}
+pub fn mainOnlyRho(ctx: *C.Context, main: Digest) !Digest {
+    var writer = Writer.init(ctx, .rho);
+    Canon.emitMainOnlyRho(main, &writer);
     return writer.final();
 }
 pub fn chi(ctx: *C.Context, statement: Digest, final_chain: Digest) !Digest {
