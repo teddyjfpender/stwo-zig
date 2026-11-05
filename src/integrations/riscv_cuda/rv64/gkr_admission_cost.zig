@@ -6,7 +6,7 @@ const G = @import("gkr.zig");
 pub const Cost = struct {
     allocation_bytes: [2]u64,
     host_peak_bytes: u64,
-    host_known: bool = true,
+    host_known: bool = false,
     covers_classic_preparation: bool = false,
     covers_binding_and_commit: bool = false,
 };
@@ -17,6 +17,8 @@ pub fn traversal(variables: []const u32, mode: G.Mode) !Cost {
     const plan = try G.Plan.initMode(variables, std.math.maxInt(usize), mode);
     var readback: u64 = try std.math.mul(u64, 16 * variables.len, 4);
     for (plan.layer[0..plan.layers]) |layer| readback = try std.math.add(u64, readback, try std.math.mul(u64, 4, layer.records.words + layer.masks.words));
+    // DIAGNOSTIC ONLY: conservative slack, not an allocation/lifetime audit.
+    // The global planner must reject while host_known=false.
     // Includes a generous fixed bound for nested proof assembly, shape arrays,
     // polynomial views and CPU verifier artifacts, on top of raw D2H slabs.
     const host = try std.math.add(u64, 16 << 20, try std.math.mul(u64, 16, readback));
@@ -26,7 +28,7 @@ test "traversal admission keeps actual allocations separate and never claims nei
     const a = try traversal(&.{ 23, 22, 23, 21, 27, 26, 24, 24 }, .recomputed_frontier);
     try std.testing.expectEqual(@as(u64, 15046661376), a.allocation_bytes[0]);
     try std.testing.expectEqual(@as(u64, 36), a.allocation_bytes[1]);
-    try std.testing.expect(a.host_known and a.host_peak_bytes < 64 << 20);
+    try std.testing.expect(!a.host_known and a.host_peak_bytes < 64 << 20);
     try std.testing.expect(!a.covers_classic_preparation and !a.covers_binding_and_commit);
     const b = try traversal(&([_]u32{28} ** G.max_instances), .retained_tree);
     try std.testing.expect(b.host_peak_bytes < 64 << 20);
