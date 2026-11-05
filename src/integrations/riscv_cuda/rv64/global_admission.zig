@@ -90,11 +90,13 @@ pub const Demand = struct {
     host_known: bool = false,
 };
 pub const Token = struct { physical: u32, id: u64 };
+/// One PP owner awaiting its first registered Source GPU entry. Not a GPU lock.
+pub const PrecommitHandoff = struct { physical: u32, id: u64, owner: u64 };
 pub const Reason = enum { admitted, wide_stage_busy, capacity_pressure, request_exceeds_static_arena, unknown_cost, host_capacity_pressure, runtime_poisoned };
 pub const Decision = struct { reason: Reason, token: ?Token = null, required: Footprint = .{}, capacity: Footprint };
 pub const Snapshot = struct { physical: u32, retained: Footprint, active_temporary: Footprint, active_retained_upper: Footprint = .{}, successor: Footprint, required: Footprint, capacity: Footprint, owners: usize, active: bool };
 const Entry = struct { demand: Demand, active: bool, entered: bool = false, runtime_owner: u64 = 0 };
-const Device = struct { physical: u32, entries: std.AutoHashMapUnmanaged(u64, Entry) = .{}, active: ?u64 = null, observed: Footprint = .{}, observed_initialized: bool = false, concurrent: bool = false, runtime_configured: bool = false, poisoned: bool = false, coverage: u64 = 0, stage_gate: std.Thread.Mutex = .{} };
+const Device = struct { physical: u32, entries: std.AutoHashMapUnmanaged(u64, Entry) = .{}, active: ?u64 = null, observed: Footprint = .{}, observed_initialized: bool = false, concurrent: bool = false, runtime_configured: bool = false, poisoned: bool = false, coverage: u64 = 0, precommit: ?PrecommitHandoff = null, stage_gate: std.Thread.Mutex = .{} };
 pub const Planner = struct {
     allocator: std.mem.Allocator,
     preset: Preset,
@@ -127,6 +129,7 @@ pub const Planner = struct {
         for (self.devices) |*d| {
             d.entries.clearRetainingCapacity();
             d.active = null;
+            d.precommit = null;
             d.observed = .{};
             d.runtime_configured = false;
             d.poisoned = true;
@@ -360,6 +363,59 @@ pub const Planner = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         self.observed_host_rss_bytes = bytes;
+    }
+    /// HOST only, before stage/cache locks. Prevent several zero-future PP
+    /// forests from filling the arena before any Source has registered a real
+    /// consumer. Already admitted GPU stages remain fully concurrent.
+    pub fn acquirePrecommitHandoff(self: *Planner, physical: u32, owner: u64) !PrecommitHandoff {
+        if (owner == 0) return error.MissingRuntimeAdmissionOwner;
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const d = try self.device(physical);
+        while (d.precommit) |prior| {
+            if (d.poisoned) return error.PhysicalAdmissionPoisoned;
+            if (prior.owner == owner) return error.PrecommitOwnerAlreadyPending;
+            self.changed.wait(&self.mutex);
+        }
+        if (d.poisoned) return error.PhysicalAdmissionPoisoned;
+        const token = PrecommitHandoff{ .physical = physical, .id = self.next_id, .owner = owner };
+        self.next_id = try std.math.add(u64, self.next_id, 1);
+        d.precommit = token;
+        return token;
+    }
+    /// Called only once PP destruction/free has joined, before Source entry.
+    pub fn cancelPrecommitHandoff(self: *Planner, token: PrecommitHandoff) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const d = try self.device(token.physical);
+        if (d.precommit == null or !std.meta.eql(d.precommit.?, token)) return error.StalePrecommitHandoff;
+        d.precommit = null;
+        self.notifyLocked();
+    }
+    /// A source-owned class envelope is now physically entered. Future tokens
+    /// and actual PP ownership remain untouched; later PP reservations see it.
+    pub fn completePrecommitHandoff(self: *Planner, token: PrecommitHandoff, consumer: Token) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const d = try self.device(token.physical);
+        if (consumer.physical != token.physical or d.precommit == null or !std.meta.eql(d.precommit.?, token)) return error.StalePrecommitHandoff;
+        const e = d.entries.get(consumer.id) orelse return error.StaleAdmissionToken;
+        if (!e.active or !e.entered or e.demand.stage != .witness or e.demand.progress_key == null or (d.concurrent and e.runtime_owner != token.owner)) return error.MissingEnteredSourceConsumer;
+        d.precommit = null;
+        self.notifyLocked();
+    }
+    pub fn requirePrecommitConsumerFits(self: *Planner, token: PrecommitHandoff, pp_retained: Footprint, demand: Demand) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const d = try self.device(token.physical);
+        if (d.precommit == null or !std.meta.eql(d.precommit.?, token)) return error.StalePrecommitHandoff;
+        const consumer = demand.temporary.max(try demand.stage_retained_upper.add(demand.successor));
+        const required = try pp_retained.add(consumer);
+        const cap = self.capacity();
+        if (!cap.contains(required)) {
+            std.debug.print("PP_SOURCE_ADMISSION_REFUSED physical={} handoff={} runtime_v2={} ordinal={} pp_retained_upper_large={} pp_retained_upper_small={} temp_large={} temp_small={} stage_retained_upper_large={} stage_retained_upper_small={} successor_large={} successor_small={} required_large={} required_small={} cap_large={} cap_small={}\n", .{ token.physical, token.id, d.concurrent, demand.owner.ordinal, pp_retained.large, pp_retained.small, demand.temporary.large, demand.temporary.small, demand.stage_retained_upper.large, demand.stage_retained_upper.small, demand.successor.large, demand.successor.small, required.large, required.small, cap.large, cap.small });
+            return error.PrecommittedSourceClassExceedsStaticArena;
+        }
     }
     pub fn stageGate(self: *Planner, physical: u32) !*std.Thread.Mutex {
         return &(try self.device(physical)).stage_gate;
@@ -683,4 +739,75 @@ test "V2 cancel unentered advance preserves prior future and peer reservation" {
     try p.completeOwned(peer, .{ .large = 6 << 30 }, .{}, .{});
     try p.release(old);
     _ = try p.observeStable(0, .{});
+}
+
+const HandoffWait = struct {
+    planner: *Planner,
+    entered: std.atomic.Value(bool) = .init(false),
+    returned: std.atomic.Value(bool) = .init(false),
+    token: ?PrecommitHandoff = null,
+    failure: ?anyerror = null,
+    fn run(self: *@This()) void {
+        self.entered.store(true, .release);
+        self.token = self.planner.acquirePrecommitHandoff(0, 42) catch |err| blk: {
+            self.failure = err;
+            break :blk null;
+        };
+        self.returned.store(true, .release);
+    }
+};
+test "unregistered PP handoff waits without holding GPU gate then transfers at real Source entry" {
+    var p = try Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer p.deinit();
+    try p.configureConcurrent(0, true);
+    _ = try p.observeStable(0, .{});
+    const h = try p.acquirePrecommitHandoff(0, 41);
+    var waiting = HandoffWait{ .planner = &p };
+    const thread = try std.Thread.spawn(.{}, HandoffWait.run, .{&waiting});
+    defer thread.join();
+    errdefer p.poisonPhysical(0);
+    while (!waiting.entered.load(.acquire)) std.Thread.yield() catch {};
+    try std.testing.expect(!waiting.returned.load(.acquire));
+    const gate = try p.stageGate(0);
+    try std.testing.expect(gate.tryLock());
+    gate.unlock();
+    const key = ProgressKey{ .statement = @splat(1), .fixed = @splat(2), .ordinal = 0 };
+    const consumer = (try p.tryBeginOwned(0, .{ .owner = test_owner, .progress_key = key, .stage = .witness, .known = true, .host_known = true, .temporary = .{ .large = 2 << 30 }, .stage_retained_upper = .{ .large = 1 << 30 }, .successor = .{ .large = 8 << 30 } }, 41)).token.?;
+    try std.testing.expectError(error.MissingEnteredSourceConsumer, p.completePrecommitHandoff(h, consumer));
+    try p.commitEntered(consumer);
+    try p.completePrecommitHandoff(h, consumer);
+    while (!waiting.returned.load(.acquire)) std.Thread.yield() catch {};
+    try std.testing.expect(waiting.failure == null);
+    try std.testing.expect(waiting.token != null);
+    try std.testing.expectEqual(@as(u64, 8 << 30), (try p.snapshot(0)).successor.large);
+    try std.testing.expect((try p.snapshot(0)).active); // GPU work still admitted.
+    try std.testing.expectError(error.StalePrecommitHandoff, p.cancelPrecommitHandoff(h));
+    try p.cancelPrecommitHandoff(waiting.token.?);
+    try p.completeOwned(consumer, .{ .large = 1 << 30 }, .{ .large = 1 << 30 }, .{});
+    _ = try p.observeStable(0, .{});
+}
+test "poison wakes PP handoff waiter and never grants a replacement slot" {
+    var p = try Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer p.deinit();
+    const old = try p.acquirePrecommitHandoff(0, 41);
+    var waiting = HandoffWait{ .planner = &p };
+    const thread = try std.Thread.spawn(.{}, HandoffWait.run, .{&waiting});
+    defer thread.join();
+    errdefer p.poisonPhysical(0);
+    while (!waiting.entered.load(.acquire)) std.Thread.yield() catch {};
+    p.poisonPhysical(0);
+    while (!waiting.returned.load(.acquire)) std.Thread.yield() catch {};
+    try std.testing.expectEqual(error.PhysicalAdmissionPoisoned, waiting.failure.?);
+    try std.testing.expect(waiting.token == null);
+    try p.cancelPrecommitHandoff(old); // Only after hypothetical joined cleanup.
+    try std.testing.expectError(error.PhysicalAdmissionPoisoned, p.acquirePrecommitHandoff(0, 43));
+}
+test "PP consumer bound includes private FIXED retention and refuses impossible lone class" {
+    var p = try Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer p.deinit();
+    const token = try p.acquirePrecommitHandoff(0, 41);
+    defer p.cancelPrecommitHandoff(token) catch unreachable;
+    const demand = Demand{ .owner = test_owner, .stage = .witness, .known = true, .host_known = true, .temporary = .{ .large = 17 << 30 } };
+    try std.testing.expectError(error.PrecommittedSourceClassExceedsStaticArena, p.requirePrecommitConsumerFits(token, .{ .large = 5 << 30 }, demand));
+    try p.requirePrecommitConsumerFits(token, .{ .large = 3 << 30 }, demand);
 }

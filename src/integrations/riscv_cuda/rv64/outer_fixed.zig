@@ -21,6 +21,19 @@ pub const Owner = struct {
     tree: D.Tree = undefined,
     failure: ?anyerror = null,
     permit: ?*Admission.Permit = null,
+    handoff: ?A.PrecommitHandoff = null,
+    retained_upper: A.Footprint = .{},
+    pub fn requireSourceFits(self: *Owner, demand: A.Demand) !void {
+        const token = self.handoff orelse return;
+        const endpoint = self.backend.service.admission orelse return error.MissingGlobalAdmissionEndpoint;
+        try endpoint.planner.requirePrecommitConsumerFits(token, self.retained_upper, demand);
+    }
+    pub fn sourceEntered(self: *Owner, permit: *Admission.Permit) !void {
+        const token = self.handoff orelse return;
+        if (permit.endpoint.owner_identity != token.owner) return error.ForeignAdmissionOwner;
+        try permit.endpoint.planner.completePrecommitHandoff(token, permit.token);
+        self.handoff = null;
+    }
     pub fn promote(self: *Owner, next: D.Scope) !void {
         if (!std.mem.eql(u8, &next.fixed, &self.tree.root) or next.ordinal != self.scope.ordinal or std.mem.allEqual(u8, &next.main, 0)) return error.InvalidFixedScopePromotion;
         var job = Promotion{ .owner = self, .next = next };
@@ -111,6 +124,24 @@ pub const Owner = struct {
         b.service.finishProofScopeChecked(self.scope) catch {
             cleaned = false;
         };
+        // The logical handoff can be canceled only after every PP reader and
+        // physical free has joined, including an upload/commit failure.
+        if (self.handoff) |token| {
+            const Join = struct {
+                sync: Native.Sync,
+                fn run(ctx: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
+                    const job: *@This() = @ptrCast(@alignCast(data.?));
+                    return job.sync(ctx);
+                }
+            };
+            var join = Join{ .sync = b.api.sync };
+            cleaned = (b.service.submit(b.service.session, Join.run, &join) == 0) and cleaned;
+            if (b.service.admission) |endpoint| {
+                if (cleaned) endpoint.planner.cancelPrecommitHandoff(token) catch {
+                    cleaned = false;
+                };
+            } else cleaned = false;
+        }
         if (!cleaned) if (b.service.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
         b.mutex.lock();
         std.debug.assert(b.fixed_pending == self);
@@ -133,6 +164,13 @@ pub fn precommit(raw: *anyopaque, a: std.mem.Allocator, pp: *const PP, ordinal: 
         words = try std.math.add(usize, words, column.values.len);
     }
     const config = try O.protocol.targetConfig();
+    var handoff: ?A.PrecommitHandoff = null;
+    if (b.service.admission) |endpoint| handoff = try endpoint.planner.acquirePrecommitHandoff(endpoint.physical, endpoint.owner_identity);
+    // No Owner/GPU storage exists yet. Once Owner takes this token below,
+    // only its joined destruction or actual Source entry can release it.
+    errdefer if (handoff) |token| b.service.admission.?.planner.cancelPrecommitHandoff(token) catch {
+        b.service.admission.?.planner.poisonPhysical(token.physical);
+    };
     var permit: ?Admission.Permit = null;
     if (b.service.admission) |endpoint| {
         var options = b.trace_commit.allocationOptions(config.fri_config.log_blowup_factor);
@@ -143,7 +181,7 @@ pub fn precommit(raw: *anyopaque, a: std.mem.Allocator, pp: *const PP, ordinal: 
         const adoption = try A.Footprint.allocations(&immutable_sizes);
         const commit_peak = try raw_fixed.add(try tc.footprint());
         const adopt_peak = try (try raw_fixed.add(coefficients)).add(adoption);
-        permit = try endpoint.reserve(.{ .owner = .{ .request = 0, .domain = .recursion_node, .ordinal = ordinal }, .stage = .trace_commit, .temporary = commit_peak.max(adopt_peak), .stage_retained_upper = try coefficients.add(adoption), .known = true, .host_known = false });
+        permit = try endpoint.reserveDrain(.{ .owner = .{ .request = 0, .domain = .recursion_node, .ordinal = ordinal }, .stage = .trace_commit, .temporary = commit_peak.max(adopt_peak), .stage_retained_upper = try coefficients.add(adoption), .known = true, .host_known = false });
     }
     defer if (permit) |*value| if (!value.closed) closeAdmission(b, value) catch {
         value.endpoint.planner.poisonPhysical(value.endpoint.physical);
@@ -160,7 +198,8 @@ pub fn precommit(raw: *anyopaque, a: std.mem.Allocator, pp: *const PP, ordinal: 
     hash.update(&word);
     const scope = D.Scope{ .statement = hash.finalResult(), .fixed = @splat(0), .main = @splat(0), .ordinal = ordinal };
     const self = try a.create(Owner);
-    self.* = .{ .allocator = a, .backend = b, .pp = pp, .scope = scope, .permit = if (permit) |*value| value else null };
+    self.* = .{ .allocator = a, .backend = b, .pp = pp, .scope = scope, .permit = if (permit) |*value| value else null, .handoff = handoff, .retained_upper = if (permit) |value| value.demand.stage_retained_upper else .{} };
+    handoff = null;
     b.fixed_pending = self;
     b.mutex.unlock();
     locked = false;

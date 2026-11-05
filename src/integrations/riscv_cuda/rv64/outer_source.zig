@@ -463,7 +463,13 @@ pub const Owner = struct {
         const endpoint = self.backend.service.admission orelse return error.MissingGlobalAdmissionEndpoint;
         const scope = if (stage == .witness) self.initial_scope else self.scope;
         const successor = try self.backend.service.admissionSuccessor(scope, if (stage == .witness) .source else .interaction);
-        var permit = try endpoint.reserve(.{ .progress_key = @import("global_admission.zig").progressKey(scope), .owner = .{ .request = std.mem.readInt(u64, scope.statement[0..8], .little), .domain = .recursion_node, .ordinal = scope.ordinal }, .stage = stage, .stage_retained_upper = plan.retained_after, .temporary = plan.additional_peak, .successor = successor, .known = true, .host_known = plan.host_cost_known });
+        const demand = @import("global_admission.zig").Demand{ .progress_key = @import("global_admission.zig").progressKey(scope), .owner = .{ .request = std.mem.readInt(u64, scope.statement[0..8], .little), .domain = .recursion_node, .ordinal = scope.ordinal }, .stage = stage, .stage_retained_upper = plan.retained_after, .temporary = plan.additional_peak, .successor = successor, .known = true, .host_known = plan.host_cost_known };
+        var precommitted = false;
+        if (stage == .witness) if (self.backend.fixed_pending) |fixed| if (fixed.handoff != null) {
+            try fixed.requireSourceFits(demand);
+            precommitted = true;
+        };
+        var permit = if (precommitted) try endpoint.reserveDrain(demand) else try endpoint.reserve(demand);
         defer if (!permit.closed) {
             endpoint.planner.poisonPhysical(endpoint.physical);
             permit.finish(.{}) catch {};
@@ -475,10 +481,17 @@ pub const Owner = struct {
     }
     fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *Owner = @ptrCast(@alignCast(data.?));
-        if (self.permit) |permit| permit.enterOwner(raw) catch |err| {
-            self.failure = err;
-            return 1;
-        };
+        if (self.permit) |permit| {
+            permit.enterOwner(raw) catch |err| {
+                self.failure = err;
+                return 1;
+            };
+            if (permit.demand.stage == .witness) if (self.backend.fixed_pending) |fixed| fixed.sourceEntered(permit) catch |err| {
+                self.failure = err;
+                self.backend.service.admission.?.planner.poisonPhysical(permit.endpoint.physical);
+                return 1;
+            };
+        }
         self.operation(self, raw, token) catch |err| {
             self.failure = err;
         };
