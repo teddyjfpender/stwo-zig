@@ -46,7 +46,7 @@ def main():
         if name.startswith("STWO_RV64_GPU"):
             env.pop(name)
     prior_proof = None
-    for mode in ("--prove", "--prove-wrapped", "--verify", "--check-child", "--check-child-mutants"):
+    for mode in ("--prove", "--prove-wrapped", "--prove-frontier", "--verify", "--check-child", "--check-child-mutants"):
         gpu = mode.startswith("--prove")
         argv = [str(args.binary), mode, *([str(args.library)] if gpu else []), str(proof)]
         lock = open(args.gpu_lock, "a") if gpu else None

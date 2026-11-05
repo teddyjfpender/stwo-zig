@@ -11,7 +11,9 @@ const Region = @import("plan.zig").Region;
 pub const max_variables = 28;
 pub const max_instances = A.batch_max_oracles;
 const Pair = struct { n: Region, d: Region, count: u32 };
+pub const Mode = enum { retained_tree, recomputed_frontier };
 const Oracle = struct {
+    frontier: ?Region = null,
     tree: [max_variables]Pair = undefined,
     scratch_a: Region,
     scratch_b: Region,
@@ -19,6 +21,7 @@ const Oracle = struct {
 };
 pub const Layer = struct { active: u32, records: Region, masks: Region };
 pub const Plan = struct {
+    mode: Mode = .retained_tree,
     variables: [max_instances]u32 = @splat(0),
     count: u32,
     layers: u32 = 0,
@@ -38,6 +41,12 @@ pub const Plan = struct {
     pub fn foldingBanks(self: *const Plan, oracle: usize, remaining: u32) ![2]Pair {
         if (oracle >= self.count or remaining == 0 or remaining > self.variables[oracle]) return error.InvalidGeometry;
         const height = self.variables[oracle];
+        if (self.mode == .recomputed_frontier and remaining <= 2) {
+            var cursor = self.oracles[oracle].frontier.?.offset_words;
+            const count = (@as(u32, 1) << @intCast(height)) >> @intCast(remaining - 1);
+            if (remaining != 1) _ = try pair(&cursor, count);
+            return .{ try pair(&cursor, @max(1, count / 2)), try pair(&cursor, @max(1, count / 4)) };
+        }
         return .{ self.oracles[oracle].tree[remaining - 1], self.oracles[oracle].tree[@min(remaining, height - 1)] };
     }
     /// At depth>=2, Eq fits in the next consumed tree pair of a maximum-
@@ -48,6 +57,16 @@ pub const Plan = struct {
     pub fn equalityWorkspace(self: *const Plan, remaining: u32) !Region {
         if (remaining == 0 or remaining > self.layers) return error.InvalidGeometry;
         const depth = self.layers - remaining;
+        if (self.mode == .recomputed_frontier) {
+            if (remaining != 1) return self.eq;
+            for (self.variables[0..self.count], 0..) |height, i| {
+                if (height != self.layers) continue;
+                const banks = try self.foldingBanks(i, remaining);
+                var cursor = banks[1].d.offset_words + banks[1].d.words;
+                return append(&cursor, @as(u64, 8) << @intCast(depth -| 1));
+            }
+            return error.InvalidFrontierEqualityBank;
+        }
         if (depth < 2) return self.eq;
         for (self.variables[0..self.count], 0..) |height, i| {
             if (height != self.layers) continue;
@@ -58,11 +77,31 @@ pub const Plan = struct {
         }
         return error.InvalidConsumedEqualityBank;
     }
+    pub fn frontierSource(self: *const Plan, oracle: usize, remaining: u32) !Pair {
+        if (self.mode != .recomputed_frontier or oracle >= self.count or remaining <= 1 or remaining > self.variables[oracle]) return error.InvalidGeometry;
+        if (remaining >= 3) return self.oracles[oracle].tree[remaining - 2];
+        var cursor = self.oracles[oracle].frontier.?.offset_words;
+        return pair(&cursor, (@as(u32, 1) << @intCast(self.variables[oracle])) >> @intCast(remaining - 1));
+    }
+    pub fn frontierBuildBank(self: *const Plan, oracle: usize, bank: usize, count: u32) !Pair {
+        if (self.mode != .recomputed_frontier or oracle >= self.count or bank > 1) return error.InvalidGeometry;
+        var cursor = self.oracles[oracle].frontier.?.offset_words;
+        if (bank == 1) _ = try pair(&cursor, (@as(u32, 1) << @intCast(self.variables[oracle])) / 2);
+        return pair(&cursor, count);
+    }
     /// Requested workspace payload only: excludes input fractions, MAIN/PCS,
     /// driver allocations and diagnostics. Reject before any device mutation.
     pub fn init(variables: []const u32, byte_cap: usize) !Plan {
+        return initMode(variables, byte_cap, .retained_tree);
+    }
+    /// Recomputed-frontier mode owns only a phase-reused source/folding
+    /// frontier. Only the omitted largest product level is rebuilt from
+    /// immutable fractions, after all smaller product levels have closed.
+    /// Challenges and proof order stay exact.
+    pub fn initMode(variables: []const u32, byte_cap: usize, mode: Mode) !Plan {
         if (variables.len == 0 or variables.len > max_instances) return error.InvalidGeometry;
         var out: Plan = undefined;
+        out.mode = mode;
         out.variables = @splat(0);
         out.count = @intCast(variables.len);
         out.layers = 0;
@@ -77,11 +116,20 @@ pub const Plan = struct {
         out.roots = try append(&cursor, 16 * variables.len);
         out.projected = try append(&cursor, 8 * variables.len);
         // Only the first two tiny layers need independent Eq storage.
-        out.eq = try append(&cursor, 64);
+        out.eq = try append(&cursor, if (mode == .retained_tree) 64 else @max(64, @as(u64, 1) << @intCast(out.layers)));
         for (variables, 0..) |v, i| {
             const n = @as(u32, 1) << @as(u5, @intCast(v));
             var o: Oracle = undefined;
-            for (0..v) |level| o.tree[level] = try pair(&cursor, n >> @as(u5, @intCast(level + 1)));
+            o.frontier = null;
+            if (mode == .retained_tree) {
+                for (0..v) |level| o.tree[level] = try pair(&cursor, n >> @as(u5, @intCast(level + 1)));
+            } else {
+                o.frontier = try append(&cursor, try frontierWords(v));
+                var retained = o.frontier.?.offset_words;
+                if (v == 1) o.tree[0] = try pair(&retained, 1) else for (1..v) |level| {
+                    o.tree[level] = try pair(&retained, n >> @intCast(level + 1));
+                }
+            }
             const groups = @max(1, (n / 4 + 127) / 128);
             o.scratch_a = try append(&cursor, 16 * @as(u64, groups));
             o.scratch_b = try append(&cursor, 16 * @as(u64, groups));
@@ -98,6 +146,37 @@ pub const Plan = struct {
         return out;
     }
 };
+fn frontierWords(height: u32) !u64 {
+    const n = @as(u32, 1) << @intCast(height);
+    var build: u64 = 0;
+    _ = try pair(&build, n / 2);
+    _ = try pair(&build, @max(1, n / 4));
+    var maximum = build;
+    for (1..height + 1) |remaining| {
+        const count = n >> @intCast(remaining - 1);
+        var cursor: u64 = 0;
+        if (remaining != 1) _ = try pair(&cursor, count);
+        _ = try pair(&cursor, @max(1, count / 2));
+        _ = try pair(&cursor, @max(1, count / 4));
+        if (remaining == 1) _ = try append(&cursor, @max(8, @as(u64, 2) * n));
+        maximum = @max(maximum, cursor);
+    }
+    return maximum;
+}
+/// Skip materializing the largest product level by fusing its two levels
+/// at ingress. Smaller levels remain resident until their gate proofs close.
+fn buildFrontierTrees(commands: anytype, plan: *const Plan, inputs: []const R.Fraction, arena: Slice) !void {
+    for (inputs, 0..) |input, i| {
+        const first: usize = if (plan.variables[i] == 1) 0 else 1;
+        var current = try fraction(arena, plan.oracles[i].tree[first]);
+        try commands.layer(input, @intCast(first + 1), current);
+        for (first + 1..plan.variables[i]) |level| {
+            const next = try fraction(arena, plan.oracles[i].tree[level]);
+            try commands.layer(current, 1, next);
+            current = next;
+        }
+    }
+}
 fn append(cursor: *u64, words: u64) !Region {
     const at = (try std.math.add(u64, cursor.*, 63)) & ~@as(u64, 63);
     cursor.* = try std.math.add(u64, at, words);
@@ -176,7 +255,12 @@ comptime {
 /// before this call. A single generation-checked arena owns all tree and scratch
 /// regions; one reservation validates the entire job before its first launch.
 pub fn enqueue(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena: Slice, byte_cap: usize, chain: u64) !Enqueued {
-    return enqueueImpl(commands, inputs, seed, arena, byte_cap, chain, null);
+    return enqueueImpl(commands, inputs, seed, arena, byte_cap, chain, null, .retained_tree);
+}
+/// Caller chooses a source-admitted mode before allocation. This entry point
+/// never raises a workspace cap or changes the proof transcript.
+pub fn enqueueMode(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena: Slice, byte_cap: usize, chain: u64, mode: Mode) !Enqueued {
+    return enqueueImpl(commands, inputs, seed, arena, byte_cap, chain, null, mode);
 }
 pub const ClosureEnqueued = struct {
     traversal: Enqueued,
@@ -191,9 +275,9 @@ pub const ClosureEnqueued = struct {
 /// Production traversal requires zero rational root sum and rejects every
 /// pole, including zero-weight 0/0. The raw enqueue remains a numerical tool.
 pub fn enqueueWithClosure(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena: Slice, byte_cap: usize, chain: u64, verdict: Slice) !ClosureEnqueued {
-    return .{ .traversal = try enqueueImpl(commands, inputs, seed, arena, byte_cap, chain, verdict), .verdict = verdict };
+    return .{ .traversal = try enqueueImpl(commands, inputs, seed, arena, byte_cap, chain, verdict, .retained_tree), .verdict = verdict };
 }
-fn enqueueImpl(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena: Slice, byte_cap: usize, chain: u64, verdict: ?Slice) !Enqueued {
+fn enqueueImpl(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena: Slice, byte_cap: usize, chain: u64, verdict: ?Slice, mode: Mode) !Enqueued {
     if (commands.poisoned) return error.JobPoisoned;
     if (comptime @hasDecl(@TypeOf(commands.*), "requireBatchedOracles")) {
         if (commands.batched_oracles) try commands.requireBatchedOracles();
@@ -207,7 +291,7 @@ fn enqueueImpl(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena
         if (input.count < 2 or input.count > 1 << max_variables or !std.math.isPowerOfTwo(input.count)) return error.InvalidGeometry;
         variables[i] = std.math.log2_int(u32, input.count);
     }
-    const plan = try Plan.init(variables[0..inputs.len], byte_cap);
+    const plan = try Plan.initMode(variables[0..inputs.len], byte_cap, mode);
     var reservations = S.ReservationSet(3 + 18 * max_instances){};
     try reservations.slice(commands.context, arena, plan.total_words, true);
     try reservations.slice(commands.context, seed, 9, false);
@@ -228,8 +312,13 @@ fn enqueueImpl(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena
     const projected = try region(arena, plan.projected);
     const roots = try region(arena, plan.roots);
     var root_sources: [max_instances]R.Fraction = undefined;
-    try buildTrees(commands, &plan, inputs, arena);
-    for (inputs, 0..) |_, i| root_sources[i] = try fraction(arena, plan.oracles[i].tree[variables[i] - 1]);
+    if (mode == .retained_tree) {
+        try buildTrees(commands, &plan, inputs, arena);
+        for (inputs, 0..) |_, i| root_sources[i] = try fraction(arena, plan.oracles[i].tree[variables[i] - 1]);
+    } else {
+        try buildFrontierTrees(commands, &plan, inputs, arena);
+        for (inputs, 0..) |_, i| root_sources[i] = try fraction(arena, plan.oracles[i].tree[variables[i] - 1]);
+    }
     try commands.packRoots(root_sources[0..inputs.len], roots);
     if (verdict) |status| try commands.closeLocalRoots(roots, plan.count, status);
     try commands.initGkr(state, seed, variables[0..inputs.len], plan.layers, chain);
@@ -245,7 +334,8 @@ fn enqueueImpl(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena
         for (inputs, 0..) |input, i| {
             if (variables[i] < remaining) continue;
             const o = plan.oracles[i];
-            sources[active] = if (remaining == 1) input else try fraction(arena, o.tree[remaining - 2]);
+            sources[active] = if (remaining == 1) input else if (mode == .retained_tree) try fraction(arena, o.tree[remaining - 2]) else try fraction(arena, try plan.frontierSource(i, @intCast(remaining)));
+            if (mode == .recomputed_frontier and remaining == 2) try commands.layer(input, 1, sources[active]);
             const banks = try plan.foldingBanks(i, @intCast(remaining));
             const bank0 = try fraction(arena, banks[0]);
             const bank1 = try fraction(arena, banks[1]);
