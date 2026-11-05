@@ -36,7 +36,7 @@ pub const Bound = struct {
     unit_negative_mass: u64 = 0,
     /// Includes every zero-weight/padded denominator, not only semantic mass.
     denominator_slots: u64 = 0,
-    fn validate(self: Bound) !void {
+    pub fn validate(self: Bound) !void {
         if (self.unit_consumer_mass >= MODULUS or self.unit_positive_mass >= MODULUS or self.unit_negative_mass >= MODULUS) return error.CandidateCharacteristicBoundExceeded;
     }
 };
@@ -92,7 +92,7 @@ pub const ConditionalDegrees = struct {
         ledger.degree_weight[@intFromEnum(Policy.AlgebraicTerm.pole_events)] = self.poles;
         try ledger.requireRawModuloBits(bits);
     }
-    fn add(self: *ConditionalDegrees, b: Bound) !void {
+    pub fn add(self: *ConditionalDegrees, b: Bound) !void {
         const n: u128 = b.denominator_slots;
         const pairs = if (n == 0) 0 else try std.math.mul(u128, n, n - 1) / 2;
         self.tuple_collision = try std.math.add(u128, self.tuple_collision, try std.math.mul(u128, pairs, b.arity));
@@ -100,7 +100,7 @@ pub const ConditionalDegrees = struct {
         self.local_rational_identity = try std.math.add(u128, self.local_rational_identity, n);
         self.poles = try std.math.add(u128, self.poles, n);
     }
-    fn addGlobal(self: *ConditionalDegrees, bound: Bound) !void {
+    pub fn addGlobal(self: *ConditionalDegrees, bound: Bound) !void {
         try self.add(bound);
         self.local_rational_identity -= bound.denominator_slots;
         self.global_rational_identity = try std.math.add(u128, self.global_rational_identity, bound.denominator_slots);
@@ -135,7 +135,7 @@ fn rows(log: u32) !u64 {
     if (log < 5 or log > Policy.MAX_PUBLIC_BOUNDARY_LOG) return error.CandidateSourceShapeExceeded;
     return @as(u64, 1) << @intCast(log);
 }
-fn emptyCpu() CpuScope {
+pub fn emptyCpu() CpuScope {
     var out: CpuScope = .{ .relations = undefined };
     for (std.enums.values(F.Relation), &out.relations) |relation, *bound| bound.* = .{ .arity = relation.arity(), .model = switch (relation) {
         .register, .owner => .unit_consistency,
@@ -146,7 +146,7 @@ fn emptyCpu() CpuScope {
 fn addCpuRole(scope: *CpuScope, origin: Frame.Origin, log: u32) !void {
     return addCpuRoleMode(scope, origin, log, false);
 }
-fn addCpuRoleMode(scope: *CpuScope, origin: Frame.Origin, log: u32, pairs: bool) !void {
+pub fn addCpuRoleMode(scope: *CpuScope, origin: Frame.Origin, log: u32, pairs: bool) !void {
     const count = try rows(log);
     const fractions = switch (origin) {
         .bulk => |kind| Q.BULK[@intFromEnum(kind)],
@@ -224,7 +224,7 @@ fn finishProof(shape: *Shape, columns: usize, constraints: usize, instances: usi
 /// the independently loaded image. Ordinary counts come from request/call spans,
 /// never decoded producer Facts or field-valued claims. Full image/coverage
 /// admission remains mandatory in the accepting receiver after this preflight.
-fn globalSlots(slots: *[3]u64, origin: Frame.Origin, log: u32) !void {
+pub fn globalSlots(slots: *[3]u64, origin: Frame.Origin, log: u32) !void {
     const layout = Global.layout(origin);
     const n = try rows(log);
     slots[0] = try plus(slots[0], try times(n, layout.ram_queries));

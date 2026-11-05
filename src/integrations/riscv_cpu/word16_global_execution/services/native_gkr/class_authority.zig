@@ -46,11 +46,13 @@ fn appendSpans(h: *Canon.Hasher, plan: *const @import("native_roster.zig").Plan)
 /// No caller-supplied census: both helpers derive it from immutable setup.
 pub fn cpuStructure(a: std.mem.Allocator, canonical_structure: [32]u8, setup: *const @import("../roster.zig").CpuSetup) ![32]u8 {
     var plan=try @import("native_roster.zig").cpu(a,setup);defer plan.deinit();
-    var h=Canon.Hasher.init(.structure_v2);h.digest(try structure(a,canonical_structure,&plan.roster));appendSpans(&h,&plan);return h.final();
+    var h=Canon.Hasher.init(.structure_v2);h.digest(try structure(a,canonical_structure,&plan.roster));appendSpans(&h,&plan);
+    const caps=try @import("source_admission.zig").cpuClassCaps(a,setup);@import("source_admission.zig").emitClassCaps(&caps,&h);return h.final();
 }
 pub fn truthStructure(a: std.mem.Allocator, canonical_structure: [32]u8, d: @import("../wire.zig").TruthDeclaration) ![32]u8 {
     var plan=try @import("native_roster.zig").truth(a,d);defer plan.deinit();
-    var h=Canon.Hasher.init(.structure_v2);h.digest(try structure(a,canonical_structure,&plan.roster));appendSpans(&h,&plan);return h.final();
+    var h=Canon.Hasher.init(.structure_v2);h.digest(try structure(a,canonical_structure,&plan.roster));appendSpans(&h,&plan);
+    const caps=try @import("source_admission.zig").truthClassCaps(a,d);@import("source_admission.zig").emitClassCaps(&caps,&h);return h.final();
 }
 
 test "native class structure public factories are fully typed" {
