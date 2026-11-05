@@ -1,7 +1,7 @@
 {
   "schema": "rv64-m7-leaf-v3-observations/v1",
   "label": "M",
-  "status": "proof-neutral-qualified; opt-in; constrained-arena gate pending",
+  "status": "proof-neutral-qualified, auto6/6 and22GiB4/4 requests, fresh2/2 each",
   "control": "v3-off-daemon.json",
   "candidate": "v3-on-daemon.json",
   "observations": {
@@ -79,5 +79,21 @@
     "Both arms enable packed fold caches, compact ingress and disable composition enqueue.",
     "Prior M6 control is a separate source/binary measurement; its RSS reduction includes combined changes.",
     "Proof bytes remain M6; no proof size or new format result."
-  ]
+  ],
+  "capacity22": {
+    "requests": 4,
+    "sampled_device_peak_bytes": {
+      "0": 27814526976,
+      "1": 27814526976
+    },
+    "rss_peak_bytes": 25954549760,
+    "warm_request_s": {
+      "26235156": 12.122,
+      "24628607": 18.459
+    },
+    "fresh_acceptances": [
+      24628607,
+      26235156
+    ]
+  }
 }

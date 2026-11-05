@@ -76,7 +76,12 @@ these are shared-pod observations, not isolated causal estimates.
 ON peak RSS is [M] 23.962 GiB (OFF 22.961 GiB). The earlier separate-binary
 M6 control was [M] 33.784 GiB: that reduction includes the combined capture,
 compact ingress and cache changes. Auto-arena device usage remains [M] about
-31.5 GB, above target; the explicit 22 GiB arena is separately gated.
+31.5 GB, above target. The explicit 22 GiB arena completed all four requests
+in its two-repeat gate, every artifact matched M6 and both fresh receivers
+accepted [M]. Sampled whole-device peak was [M] 27.815 GB, RSS 24.172 GiB,
+warm small/headline request 12.122/18.459 s. This establishes those four
+observations; a separate composed graph experiment failed its sixth request,
+so four successes are not a universal memory-admission guarantee.
 
 Over the six-request ON producer, [M] 37 PP templates occupied 427,237,186 B
 versus 22,741,171,200 logical B. Task payloads occupied [M] 586,301,378 B
