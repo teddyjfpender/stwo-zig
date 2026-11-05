@@ -268,3 +268,22 @@ The tests (`om31_security_candidate_test.zig`) pin these properties:
 - `requireBlakeLookupMass`: the fused-Blake lookup mass. With byte-XOR, 1,344 lookups per compression give a maximum of 1,597,830 compressions per proof and table [D]. The recsize census's largest fold, r1 arity 4, needs 94,237, about 17× below that.
 
 **Outer GKR, corpus `M09`.** The arithmetic gate refuses QM31 challenges at both the caps and the realistic facts (≤ 87 bits), and accepts OM31 at 128.
+
+---
+
+## 9. M6 update (stream profiles, 2026-11-05)
+
+- **§2.1 (9-vs-10) is closed.** `LOCAL_RELATIONS` stays 9 as a frozen identity input of the two admitted profiles, so
+  their bytes are unchanged. Golden identities are pinned against `95d40063d`.
+  - `ROSTER_LOCAL_RELATIONS = 10` is tested against `fractions.zig`.
+  - The ledger counts 10.
+  - Every M6 native version hashes 10.
+  - The roster test passes (32/32 [M]).
+- **§3 is superseded** by `rv64-m7-compress-profiles.md`. That model is calibrated to the measured root within 9% and
+  counts the core multiproof that §3 left out. Its findings:
+  - caps are a net loss;
+  - arity-4 Merkle is larger;
+  - C2 `b16 q27` bottoms out near 126 KB;
+  - the new `c2_b64_q18_p20_fold3` reaches 103 KB at 2^18 × 128 columns.
+- **M6 format versions** (14 entries), the second review and corpus v4 are in `rv64-m6-profiles-review.md` and
+  M6-INTERFACES §profiles.
