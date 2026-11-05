@@ -146,6 +146,8 @@ def markers(log):
 
 def plan_for(blocks, args, run, paths, root):
     template = P.plan_template()
+    if args.security_profile is not None:
+        template = dict(template, profile=args.security_profile)
     jobs = []
     for block in blocks:
         job = next(j for j in template["jobs"] if j["block"] == block)
@@ -676,6 +678,7 @@ def main():
     s = sub.add_parser("serve")
     s.add_argument("blocks", type=int, nargs="+")
     s.add_argument("--repeat", type=int, default=2)
+    s.add_argument("--security-profile", choices=("conjectured128_b2_q108_p20_fold4", "d2_native_b4_q54_p20_fold4"), help="explicit opt-in native profile; preserves template default when absent")
     s.add_argument("--stream", default="m4-resident")
     s.add_argument("--build-stream", help="use binaries from /workspace/m3/build/<this> (e.g. integrate = M3 baseline)")
     s.add_argument("--tag", required=True)

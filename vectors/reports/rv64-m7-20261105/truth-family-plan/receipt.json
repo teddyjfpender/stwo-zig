@@ -1,0 +1,23 @@
+{
+  "schema": "rv64-m7-truth-family-source-plan/v1",
+  "status": "source-unit-pass-not-Ethereum",
+  "author": "OpenAI Codex",
+  "tests_passed": 2,
+  "blocks": [
+    26235156,
+    24628607
+  ],
+  "truths_per_block": 5,
+  "cpu_partition_changed": false,
+  "default_changed": false,
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig": "6a087d03e17f55f229ce188ab45ca02cdd786d53796f72e06d7b932064abd7dc",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig": "c5809cc54be8ac2187d855cbd5a240ce00918cf50f0c73176a5598c8e2035bd9",
+    "src/integrations/riscv_cpu/rv64_truth_family_plan_test_root.zig": "57e039b7aefc330c56121d9f44ae12680f30f54c34c21a28b7f2edf925442fe0",
+    "scripts/rv64_m4_resident.py": "8b0f099d6b21681e43daa09a95829f7fe8e61f2a4c368c88fee87fd5bf5e8f70"
+  },
+  "strict_M6_gate": "CanonNoAdmissibleRung for source-valid Keccak log19; frozen rung table unchanged",
+  "classic_keccak_RC_plane_bytes": 29494345728,
+  "gpu_Ethereum_qualified": false,
+  "performance_claim": false
+}
