@@ -55,12 +55,18 @@ test "sample prefill retains non-GG tasks and all surviving barriers" {
 /// Original packed order is topological. Prefilled output variables have level
 /// zero; recompute earliest legal levels for every remaining task, then stable
 /// counting-sort by level. No primitive, variable or seed value changes.
-pub fn relevel(comptime S: type, a: std.mem.Allocator, ctx: anytype, plan: *S.Plan) !void {
+pub const Diagnostic = struct { ctx_address: usize, sample_first: u32, sample_count: u32 };
+pub fn relevel(comptime S: type, a: std.mem.Allocator, ctx: anytype, plan: *S.Plan, diagnostic: ?Diagnostic) !void {
+    const inspect = if (std.posix.getenv("STWO_RV64_ASSIGNMENT_CRITICAL_CENSUS")) |v| std.mem.eql(u8, v, "1") else false;
+    const producers: ?[]u32 = if (inspect) try a.alloc(u32, ctx.circuit.n_vars) else null;
+    defer if (producers) |values| a.free(values);
+    if (producers) |values| @memset(values, std.math.maxInt(u32));
+    var maximum_task: ?u32 = null;
     const variable_levels = try a.alloc(u32, ctx.circuit.n_vars);
     defer a.free(variable_levels);
     @memset(variable_levels, 0);
     var maximum_level: u32 = 0;
-    for (plan.tasks) |*task| {
+    for (plan.tasks, 0..) |*task, ordinal| {
         var input_buf: [6]u32 = undefined;
         var output_buf: [4]u32 = undefined;
         var maximum: u32 = 0;
@@ -69,12 +75,45 @@ pub fn relevel(comptime S: type, a: std.mem.Allocator, ctx: anytype, plan: *S.Pl
             maximum = @max(maximum, variable_levels[variable]);
         }
         task.level = try std.math.add(u32, maximum, 1);
-        maximum_level = @max(maximum_level, task.level);
+        if (task.level > maximum_level) {
+            maximum_level = task.level;
+            maximum_task = @intCast(ordinal);
+        }
         for (S.outputs(ctx, task.*, &output_buf)) |variable| {
             if (variable >= variable_levels.len) return error.InvalidBlakeSamplePlan;
             variable_levels[variable] = task.level;
+            if (producers) |values| values[variable] = @intCast(ordinal);
         }
     }
+    if (producers) |values| if (maximum_task) |last| {
+        var kinds = [_]usize{0} ** 9;
+        var current = last;
+        var gg_first: u32 = std.math.maxInt(u32);
+        var gg_last: u32 = 0;
+        var steps: usize = 0;
+        while (true) {
+            const task = plan.tasks[current];
+            const kind = @intFromEnum(task.kind);
+            if (kind >= kinds.len) return error.InvalidBlakeSamplePlan;
+            kinds[kind] += 1;
+            steps += 1;
+            if (task.kind == .blake_g) {
+                gg_first = @min(gg_first, task.index);
+                gg_last = @max(gg_last, task.index);
+            }
+            var buf: [6]u32 = undefined;
+            var deepest: u32 = 0;
+            var parent: u32 = std.math.maxInt(u32);
+            for (S.inputs(ctx, task, &buf)) |variable| if (variable_levels[variable] > deepest) {
+                deepest = variable_levels[variable];
+                parent = values[variable];
+            };
+            if (deepest == 0) break;
+            if (parent >= current or plan.tasks[parent].level != deepest or deepest >= task.level) return error.InvalidBlakeSamplePlan;
+            current = parent;
+        }
+        if (diagnostic) |d| std.debug.print("ASSIGNMENT_CRITICAL ctx=0x{x} depth={} path_tasks={} kinds={any} gg_first={} gg_last={} terminal_kind={s} terminal_index={} sampled_first={} sampled_count={}\n", .{ d.ctx_address, maximum_level, steps, kinds, gg_first, gg_last, @tagName(plan.tasks[last].kind), plan.tasks[last].index, d.sample_first, d.sample_count });
+    };
     const ends = try a.alloc(usize, @as(usize, maximum_level) + 1);
     errdefer a.free(ends);
     @memset(ends, 0);
@@ -101,7 +140,7 @@ pub fn relevel(comptime S: type, a: std.mem.Allocator, ctx: anytype, plan: *S.Pl
 
 test "sample prefill relevels independent work without crossing dependencies" {
     const S = struct {
-        pub const Task = struct { args: [2]u32, out: u32, level: u32 = 0 };
+        pub const Task = struct { args: [2]u32, out: u32, level: u32 = 0, index: u32 = 0, kind: enum { add, blake_g } = .add };
         pub const Plan = struct { tasks: []Task, level_ends: []usize };
         pub fn inputs(_: anytype, task: Task, buf: *[6]u32) []const u32 {
             buf[0..2].* = task.args;
@@ -116,7 +155,7 @@ test "sample prefill relevels independent work without crossing dependencies" {
     var plan = S.Plan{ .tasks = try a.dupe(S.Task, &.{ .{ .args = .{ 0, 1 }, .out = 2 }, .{ .args = .{ 2, 0 }, .out = 3 }, .{ .args = .{ 0, 0 }, .out = 4 }, .{ .args = .{ 3, 4 }, .out = 5 } }), .level_ends = try a.dupe(usize, &.{ 0, 1, 2, 3, 4 }) };
     defer a.free(plan.tasks);
     defer a.free(plan.level_ends);
-    try relevel(S, a, .{ .circuit = .{ .n_vars = @as(u32, 6) } }, &plan);
+    try relevel(S, a, .{ .circuit = .{ .n_vars = @as(u32, 6) } }, &plan, null);
     try std.testing.expectEqualSlices(usize, &.{ 0, 2, 3, 4 }, plan.level_ends);
     try std.testing.expectEqual(@as(u32, 2), plan.tasks[0].out);
     try std.testing.expectEqual(@as(u32, 4), plan.tasks[1].out);
