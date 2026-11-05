@@ -15,6 +15,14 @@ const H = @import("hybrid_air.zig");
 const HC = @import("hybrid_component.zig");
 const CG = @import("circuit.zig");
 pub const common = C;
+pub const CODE_ID = blk: {
+    @setEvalBranchQuota(10000000);
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("stwo/rv64/hybrid-child-code/v1\x00");
+    hash.update(@embedFile("circuit.zig"));
+    hash.update(@embedFile("child_verifier.zig"));
+    break :blk hash.finalResult();
+};
 /// Isolated complete child graph used by the qualification executable. This
 /// does not provide execution-summary admission or select a production format.
 pub fn checkFixture(a: std.mem.Allocator, key: *const R.Key, outputs: []const Q, claims: Outer.witness.Claims, section: *const @import("section.zig").Section, proof: *const Outer.protocol.Proof, capture: *const Outer.prove.Capture) !void {

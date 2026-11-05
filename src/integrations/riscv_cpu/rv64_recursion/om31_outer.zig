@@ -294,6 +294,7 @@ pub fn classKey(children: []const Child) ![32]u8 {
     var bytes: [4]u8 = undefined;
     std.mem.writeInt(u32, &bytes, try versionWord(children.len), .little);
     h.update(&bytes);
+    if (foldDomain(children) != domain) h.update(&Hybrid.CODE_ID);
     for (children) |child| {
         _ = try child.effectiveIdentity();
         const key = child.authority;

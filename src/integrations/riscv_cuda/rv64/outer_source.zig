@@ -149,6 +149,7 @@ pub const Context = struct {
         return self.hybrid.?.attach(self, self.factory());
     }
     pub fn factoryForTraceOnly(self: *Context) !Dev.Factory {
+        if (@import("stwo_riscv_cpu_integration").rv64_om31_outer_wrap.hybridProfileActive()) return self.factoryForHybrid();
         try Assignment.requireProductionCapabilities(&self.service.library);
         return self.factory();
     }

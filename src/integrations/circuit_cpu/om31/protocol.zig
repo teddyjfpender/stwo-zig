@@ -52,6 +52,9 @@ pub const Profile = enum {
     /// section 5). Leaves are unchanged circuits (full paths) under this
     /// profile's domain.
     m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1,
+    /// Explicit M7 family: original MAIN/FIXED plus source-bound cyclic-Eq
+    /// LogUp-GKR, 128 INTER columns, k4/cap3. Distinct wire and child verifier.
+    m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1,
 
     pub fn parse(text: []const u8) !Profile {
         inline for (@typeInfo(Profile).@"enum".fields) |field| {
@@ -73,11 +76,12 @@ pub const Profile = enum {
             .m5_outer_canonical_m3_b4_q51_p26_fold4_v1 => "stwo/circuit/native-om31/m5-canonical-m3-b4-q51-p26-fold4/lens-v1",
             .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1 => "stwo/circuit/native-om31/m6-diet-k3-q108-p20-fold4/lens-v1",
             .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 => "stwo/circuit/native-om31/m6-diet-k4-cap3-q108-p20-fold4/lens-v1",
+            .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 => "stwo/circuit/native-om31/m7-outer-gkr-k4-cap3-q108-p20-fold4/lens-v1",
         };
     }
     pub fn config(self: Profile) PcsConfig {
         const log_blowup: u32, const queries: usize, const pow: u32 = switch (self) {
-            .r1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 => .{ 1, 108, 20 },
+            .r1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 => .{ 1, 108, 20 },
             .m3_b4_q51_p26_fold4, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1 => .{ 2, 51, 26 },
             .m3_b8_q34_p26_fold4 => .{ 3, 34, 26 },
         };
@@ -89,12 +93,15 @@ pub const Profile = enum {
     pub fn canonical(self: Profile) bool {
         return self == .m5_outer_canonical_r1_b2_q108_p20_fold4_v1 or self == .m5_outer_canonical_m3_b4_q51_p26_fold4_v1;
     }
+    pub fn hybrid(self: Profile) bool {
+        return self == .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1;
+    }
     /// Fold arity fixed by the profile (null: the blowup default, 2 for b2 and
     /// 4 otherwise, which STWO_RV64_FOLD_ARITY may override).
     pub fn requiredFoldArity(self: Profile) ?usize {
         return switch (self) {
             .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1 => 3,
-            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 => 4,
+            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 => 4,
             else => null,
         };
     }
@@ -102,7 +109,7 @@ pub const Profile = enum {
     /// (0 = full authentication paths, every pre-M6 profile).
     pub fn foldMerkleCapLog(self: Profile) u32 {
         return switch (self) {
-            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 => 3,
+            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 => 3,
             else => 0,
         };
     }
@@ -183,6 +190,17 @@ pub fn mixProfile(ch: *Channel) void {
     std.crypto.hash.sha2.Sha256.hash(domainName(), &identity, .{});
     for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, identity[4 * i ..][0..4], .little);
     ch.mixU32s(&words);
+}
+test "M7 outer GKR is a distinct explicit family with fixed k4 cap3 policy" {
+    const p = Profile.m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1;
+    try std.testing.expect(p.hybrid());
+    try std.testing.expect(!DEFAULT_PROFILE.hybrid());
+    try std.testing.expect(!Profile.m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1.hybrid());
+    try std.testing.expectEqual(@as(usize, 4), p.requiredFoldArity().?);
+    try std.testing.expectEqual(@as(u32, 3), p.foldMerkleCapLog());
+    try std.testing.expectEqual(@as(u32, 128), p.conjecturedBits());
+    try std.testing.expectEqual(p, try Profile.parse(p.name()));
+    try std.testing.expect(!std.mem.eql(u8, p.domainName(), Profile.m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1.domainName()));
 }
 test "om31 outer profile is exact and separate from legacy" {
     const config = try targetConfig();

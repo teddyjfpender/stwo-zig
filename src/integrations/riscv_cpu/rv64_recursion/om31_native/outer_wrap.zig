@@ -24,6 +24,13 @@ pub const HybridPayload = struct {
         self.* = undefined;
     }
 };
+pub fn hybridProfileActive() bool {
+    if (comptime @hasDecl(@import("stwo_circuit_cpu_integration").om31.protocol.Profile, "hybrid")) return @import("stwo_circuit_cpu_integration").om31.protocol.active().hybrid();
+    return false;
+}
+pub fn requireHybridProofBudget(total_nodes: usize) !void {
+    if (total_nodes == 0 or total_nodes > 256) return error.OuterGkrProofBudget;
+}
 /// Outer shape versions (canon-vk M5; binding note §1 `S_out`). The shape is
 /// a function of the outer profile: the M5 canonical profiles
 /// (`Profile.canonical()`) use `uniform_v1`, every other profile `exact`.
@@ -163,6 +170,13 @@ pub const Wrapped = struct {
     }
     pub fn effectiveIdentity(self: *const Wrapped) [32]u8 {
         return if (self.hybrid) |extra| extra.key.identity else self.authority.identity;
+    }
+    pub fn verifyFresh(self: *const Wrapped, a: std.mem.Allocator) !Outer.Capture {
+        if (self.hybrid) |*extra| {
+            if (extra.key.source != self.authority) return error.InvalidHybridChildAuthority;
+            return extra.key.verify(a, self.produced.outputs, self.produced.claims, &extra.section, &self.produced.proof.proof);
+        }
+        return Outer.verify(a, self.authority, self.produced.outputs, self.produced.claims, &self.produced.proof.proof);
     }
     pub fn asChild(self: *const Wrapped) @import("../om31_outer.zig").Child {
         return .{ .authority = self.authority, .produced = &self.produced, .capture = &self.capture, .hybrid = if (self.hybrid) |*extra| .{ .key = extra.key, .section = &extra.section } else null };
@@ -345,6 +359,7 @@ pub fn wrapGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, en
 /// Explicit device selection is terminal on refusal; cached bytes still use
 /// independent native reception and never invoke a proving backend.
 pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, encoded: ?[]const u8, ordinal: u32, factory: ?Device.Factory) !Wrapped {
+    if (hybridProfileActive()) return wrapHybridGraphOrLoad(a, ctx, digest, encoded, ordinal, factory);
     if (ctx.circuit.output.items.len != 9) return error.CurrentOm31OutputCount;
     if (ctx.trace_only and encoded == null and (factory == null or factory.?.prepare_from_circuit == null)) return error.TraceOnlySourceRequired;
     if (!ctx.trace_only and !try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
@@ -420,6 +435,10 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
 /// of the same geometry class). No producer byte selects the authority; the
 /// digest check binds the guessed child identity/FIXED root words.
 pub fn restoreWithAuthority(a: std.mem.Allocator, pp: *PP, authority: *Outer.Authority, digest: [32]u8, encoded: []const u8) !Wrapped {
+    if (hybridProfileActive()) {
+        const expected = digestOutputs(digest);
+        return restoreForOutputs(a, pp, authority, &expected, digest, encoded, true);
+    }
     var timer = try std.time.Timer.start();
     // Ownership moves from `decoded` to `produced`; exactly one errdefer may
     // be live (a function-scope `decoded` errdefer double-freed on rejection).
@@ -629,6 +648,10 @@ pub const Proved = struct {
 /// Stage 2 (the device lane): FIXED precommit, authority, staged assignment
 /// handoff and device proof. Consumes `prep` (PP and staged plan) on every path.
 pub fn proveDevice(a: std.mem.Allocator, ctx: *C.Context, prep: *HostPrep, digest: [32]u8, ordinal: u32, factory: Device.Factory) !Proved {
+    if (hybridProfileActive()) {
+        const expected = digestOutputs(digest);
+        return proveDeviceForOutputs(a, ctx, prep, &expected, ordinal, factory, true);
+    }
     const pp = prep.pp orelse return error.MissingHostPrep;
     const pp_borrowed = prep.pp_borrowed;
     prep.pp = null;
@@ -757,6 +780,39 @@ pub fn proveDeviceForOutputs(a: std.mem.Allocator, ctx: *C.Context, prep: *HostP
         break :blk result.base;
     } else if (precommitted) |*fixed| try Device.proveFromPrecommittedCircuit(a, authority, ctx, expected, ordinal, fixed) else try Device.proveFromCircuit(a, authority, ctx, expected, ordinal, factory);
     return .{ .pp = pp, .pp_borrowed = pp_borrowed, .authority = authority, .produced = produced, .hybrid = payload, .timings = .{ .preprocess_ns = prep.finalize_ns + prep.columns_ns + authority_ns, .finalize_ns = prep.finalize_ns, .preprocessed_columns_ns = prep.columns_ns, .authority_ns = authority_ns, .prove_ns = timer.read(), .verify_ns = 0 } };
+}
+fn digestOutputs(digest: [32]u8) [8]C.Q {
+    var expected: [8]C.Q = undefined;
+    for (&expected, 0..) |*out, i| out.* = circuit.builder.ivalue.packU32(C.Q, std.mem.readInt(u32, digest[4 * i ..][0..4], .little));
+    return expected;
+}
+fn wrapHybridGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, encoded: ?[]const u8, ordinal: u32, factory: ?Device.Factory) !Wrapped {
+    if (!ctx.trace_only or ctx.circuit.output.items.len != 9) return error.TraceOnlySourceRequired;
+    const expected = digestOutputs(digest);
+    if (encoded) |bytes| {
+        try Finalize.padToTargets(C.Q, ctx, try paddingTargets(ctx));
+        const pp = try a.create(PP);
+        errdefer a.destroy(pp);
+        pp.* = try PP.fromBuilderCircuit(a, &ctx.circuit);
+        errdefer pp.deinit(a);
+        const authority = try a.create(Outer.Authority);
+        errdefer a.destroy(authority);
+        authority.* = try Outer.Authority.init(a, pp);
+        errdefer authority.deinit();
+        var result = try restoreForOutputs(a, pp, authority, &expected, digest, bytes, true);
+        result.borrowed = false;
+        return result;
+    }
+    const gpu = factory orelse return error.HybridFactoryRequired;
+    _ = try HybridDevice.extension(gpu);
+    var prep = try prepareHost(a, ctx, gpu);
+    defer prep.deinit(a);
+    var produced = try proveDeviceForOutputs(a, ctx, &prep, &expected, ordinal, gpu, true);
+    var owns = true;
+    defer if (owns) produced.deinit(a);
+    const result = try finishProvedForOutputs(a, &produced, &expected, digest);
+    owns = false;
+    return result;
 }
 /// Output values must be canonical encoded raw-u32 words, not arbitrary QM31s
 /// that happen to reduce to the same field value.

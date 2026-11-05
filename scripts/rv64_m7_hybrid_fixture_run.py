@@ -38,6 +38,7 @@ def main():
         raise RuntimeError("Fixture build/source receipt mismatch")
     receipt = dict(schema="rv64-m7-hybrid-fixture/v1", date=datetime.datetime.now(datetime.timezone.utc).isoformat(),
                    ethereum_request=False, production_profile_promoted=False, outputs=180,
+                   outer_profile=env_profile if (env_profile := os.environ.get("STWO_RV64_OUTER_PROFILE")) else "r1_b2_q108_p20_fold4",
                    binary_sha256=sha(args.binary), library_sha256=sha(args.library),
                    build_receipt_sha256=sha(args.build_receipt), source_files_sha256=build["source_files_sha256"], tests=[])
     env = os.environ.copy()

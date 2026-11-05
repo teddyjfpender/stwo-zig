@@ -31,6 +31,11 @@ const Q = core.fields.qm31.QM31;
 const M31 = core.fields.m31.M31;
 const N_COLUMNS = PPMod.N_PREPROCESSED_COLUMNS;
 const N_COMPONENTS = List.N_COMPONENTS;
+const HybridKey = @import("../outer_gkr/hybrid_receiver.zig").Key;
+const HybridWire = @import("../outer_gkr/hybrid_wire.zig");
+fn hybridActive() bool {
+    return @import("om31_native/outer_wrap.zig").hybridProfileActive();
+}
 
 /// v1 (M6 fold-v3): adds the receiver-derived NATIVE VK section (`native`),
 /// bound by the table root (root-v2). v0 tables (M5) are refused: re-derive.
@@ -161,14 +166,41 @@ pub fn foldClassKey(left: *const VerifierKey, right: *const VerifierKey) [32]u8 
 /// `om31_outer.classKey` does (binary keeps word `version`, so binary keys
 /// are unchanged; k > 2 binds the arity).
 pub fn foldClassKeyK(children: []const *const VerifierKey) ![32]u8 {
+    return foldClassKeyKForFamily(children, hybridActive());
+}
+/// Family is receiver policy. Compact entries remain original source VKs;
+/// hybrid identities and AIR programs are always reconstructed from them.
+pub fn foldClassKeyKForFamily(children: []const *const VerifierKey, hybrid: bool) ![32]u8 {
     var h = std.crypto.hash.sha2.Sha256.init(.{});
-    h.update("rv64-om31-fold-class/v2\x00");
+    h.update(if (hybrid) "rv64-om31-hybrid-fold-class/v2\x00" else "rv64-om31-fold-class/v2\x00");
     h.update(Om31.protocol.domainName());
     var bytes: [4]u8 = undefined;
     std.mem.writeInt(u32, &bytes, try Bridge.versionWord(children.len), .little);
     h.update(&bytes);
-    for (children) |key| key.hashClassPart(&h);
+    if (hybrid) h.update(&@import("../outer_gkr/child_verifier.zig").CODE_ID);
+    for (children) |key| {
+        if (hybrid) {
+            const a = std.heap.page_allocator;
+            var stub: PPMod.PreprocessedCircuit = undefined;
+            var source = try key.authority(a, &stub);
+            defer source.deinit();
+            var derived = try HybridKey.init(a, &source, 256);
+            defer derived.deinit();
+            h.update(derived.profile.domainName());
+            for (derived.artifacts) |artifact| h.update(&artifact.program.identity);
+        }
+        key.hashClassPart(&h);
+    }
     return h.finalResult();
+}
+pub fn effectiveIdentityForFamily(a: std.mem.Allocator, key: *const VerifierKey, hybrid: bool) ![32]u8 {
+    if (!hybrid) return key.identity;
+    var stub: PPMod.PreprocessedCircuit = undefined;
+    var source = try key.authority(a, &stub);
+    defer source.deinit();
+    var derived = try HybridKey.init(a, &source, 256);
+    defer derived.deinit();
+    return derived.identity;
 }
 /// Canonical packed outputs of a digest-output circuit (`requireDigest`).
 fn outputCoordinates(digest: [32]u8) [N_DIGEST_OUTPUTS][4]u32 {
@@ -186,6 +218,9 @@ pub fn foldDigest(children: [2]FoldChild) ![32]u8 {
 }
 /// k-ary form: message version word `Bridge.versionWord(k)`.
 pub fn foldDigestK(children: []const FoldChild) ![32]u8 {
+    return foldDigestKForFamily(children, hybridActive());
+}
+pub fn foldDigestKForFamily(children: []const FoldChild, hybrid: bool) ![32]u8 {
     var h = std.crypto.hash.blake2.Blake2s256.init(.{});
     var bytes: [4]u8 = undefined;
     const put = struct {
@@ -194,11 +229,12 @@ pub fn foldDigestK(children: []const FoldChild) ![32]u8 {
             hash.update(buffer);
         }
     };
-    put.word(&h, &bytes, FOLD_DOMAIN);
+    put.word(&h, &bytes, if (hybrid) 0x48464c32 else FOLD_DOMAIN);
     put.word(&h, &bytes, try Bridge.versionWord(children.len));
     for (children) |child| {
         if (child.key.n_outputs != N_DIGEST_OUTPUTS) return error.InvalidOm31CircuitOutputCount;
-        for (0..8) |i| put.word(&h, &bytes, std.mem.readInt(u32, child.key.identity[4 * i ..][0..4], .little));
+        const identity = try effectiveIdentityForFamily(std.heap.page_allocator, child.key, hybrid);
+        for (0..8) |i| put.word(&h, &bytes, std.mem.readInt(u32, identity[4 * i ..][0..4], .little));
         for (0..8) |i| put.word(&h, &bytes, std.mem.readInt(u32, child.key.fixed_root[4 * i ..][0..4], .little));
         put.word(&h, &bytes, N_DIGEST_OUTPUTS);
         for (outputCoordinates(child.digest)) |q| for (q) |c| put.word(&h, &bytes, c);
@@ -641,6 +677,7 @@ fn combine(table: *const Table, left: Pending, right: Pending, folds: *usize) !P
 pub fn expectedRootArity(a: std.mem.Allocator, table: *const Table, leaves: []const LeafInput, arity: usize, folds: *usize) !Pending {
     if (leaves.len == 0 or leaves.len > 256) return error.ServicesRootRoster;
     const plan = try Dag.Plan.initArity(leaves.len, arity);
+    if (hybridActive()) try @import("om31_native/outer_wrap.zig").requireHybridProofBudget(plan.count);
     const nodes = try a.alloc(Pending, plan.count);
     defer a.free(nodes);
     for (plan.nodes[0..plan.count], 0..) |node, id| {
@@ -710,6 +747,17 @@ pub fn verifyRoot(a: std.mem.Allocator, table: *const Table, leaves: []const Lea
     var authority = try expected.vk.authority(a, &stub);
     defer authority.deinit();
     const authority_ns = timer.lap();
+    if (hybridActive()) {
+        var key = try HybridKey.init(a, &authority, 256);
+        defer key.deinit();
+        var decoded = try HybridWire.decode(a, &key, root_bytes);
+        defer decoded.deinit();
+        const decode_ns = timer.lap();
+        if (!std.mem.eql(u8, &(try digestOf(decoded.base.outputs)), &expected.digest)) return error.CurrentOm31OutputDigest;
+        var capture = try key.verify(a, decoded.base.outputs, decoded.base.claims, &decoded.section, &decoded.base.proof);
+        capture.deinit(a);
+        return .{ .leaves = leaves.len, .folds = folds, .root_digest = expected.digest, .root_identity = key.identity, .root_kind = expected.kind, .tree_ns = tree_ns, .authority_ns = authority_ns, .decode_ns = decode_ns, .verify_ns = timer.read() };
+    }
     var decoded = try Wire.decode(a, authority.identity, 8, root_bytes);
     defer decoded.deinit();
     const decode_ns = timer.lap();
