@@ -48,7 +48,7 @@ pub fn emit(header: anytype, inputs: anytype, metadata: anytype, h: anytype) voi
     for (inputs.final_registers) |r| h.words(&r);
     h.words(&inputs.register_clocks);
     h.word(inputs.sponge_first);
-    h.word(@intCast(inputs.rows.len));
+    h.constantWord(@intCast(inputs.rows.len));
     // Interleave each slot's scalars: the Plan fixes this exact component order.
     for (inputs.rows, inputs.calls, inputs.first_ids) |rows, calls, first| h.words(&.{rows, calls, first});
     inline for (.{ "ram", "kio", "wire" }) |name| {
@@ -60,10 +60,18 @@ pub fn emit(header: anytype, inputs: anytype, metadata: anytype, h: anytype) voi
 pub fn digest(header: Header, inputs: Inputs, metadata: Metadata) ![32]u8 {
     if (!std.mem.eql(u8, &header.domain, &domainDigest())) return error.NativeGkrStatementDomain;
     if (inputs.rows.len != inputs.calls.len or inputs.rows.len != inputs.first_ids.len) return error.NativeGkrStatementShape;
-    var h = Canon.Hasher.init(.stmt);
+    var h = NativeWriter{ .inner = Canon.Hasher.init(.stmt) };
     emit(header, inputs, metadata, &h);
-    return h.final();
+    return h.inner.final();
 }
+const NativeWriter = struct {
+    inner: Canon.Hasher,
+    pub fn constantWord(s: *@This(), value: u32) void { s.inner.word(value); }
+    pub fn word(s: *@This(), value: u32) void { s.inner.word(value); }
+    pub fn words(s: *@This(), values: []const u32) void { s.inner.words(values); }
+    pub fn int64(s: *@This(), value: u64) void { s.inner.int64(value); }
+    pub fn digest(s: *@This(), value: [32]u8) void { s.inner.digest(value); }
+};
 pub fn configIdentity(config: Worker.PcsConfig) ![32]u8 {
     try Worker.validateCandidateConfig(config);
     var h = Canon.Hasher.init(.stmt);
@@ -116,6 +124,7 @@ test "compact native public visitor binds all AIR public coordinates and signed 
     const Capture = struct {
         words_out: std.ArrayList(u32) = .empty, allocator: std.mem.Allocator,
         pub fn word(s: *@This(), x: u32) void { s.words_out.append(s.allocator, x) catch @panic("oom"); }
+        pub fn constantWord(s: *@This(), x: u32) void { s.word(x); }
         pub fn words(s: *@This(), xs: []const u32) void { for (xs) |x| s.word(x); }
         pub fn int64(s: *@This(), x: u64) void { s.word(@truncate(x)); s.word(@truncate(x >> 32)); }
         pub fn digest(s: *@This(), x: [32]u8) void { for (0..8) |i| s.word(std.mem.readInt(u32, x[4*i..][0..4], .little)); }
