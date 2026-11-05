@@ -1,0 +1,327 @@
+{
+ "schema": "rv64-native-gkr-census-receipt/v1",
+ "block": 26235156,
+ "gas_used": 5443474,
+ "label": "M (declaration cells reconciled exactly against measured GPU_TRACE_OWNERSHIP tree=2 words) / D (v1 prediction)",
+ "protocol_today": "RV64-SERVICES-CPU-GKR-TRUTH-CLASSIC-OM31-V3",
+ "native_proofs": 11,
+ "reconciled_with_measured_tree2": true,
+ "measured_tree2_words": [
+  189124096,
+  224088832,
+  189124096,
+  443547648,
+  200581632,
+  60162048,
+  60162048,
+  84017152,
+  65536,
+  66060288,
+  499712
+ ],
+ "declared_inter_cells_per_proof": [
+  {
+   "proof": "cpu-0",
+   "inter_cells": 224088832
+  },
+  {
+   "proof": "cpu-1",
+   "inter_cells": 189124096
+  },
+  {
+   "proof": "cpu-2",
+   "inter_cells": 189124096
+  },
+  {
+   "proof": "cpu-3",
+   "inter_cells": 200581632
+  },
+  {
+   "proof": "truth-0",
+   "family": "keccak",
+   "inter_cells": 443547648
+  },
+  {
+   "proof": "truth-1",
+   "family": "keccak",
+   "inter_cells": 60162048
+  },
+  {
+   "proof": "truth-2",
+   "family": "keccak",
+   "inter_cells": 60162048
+  },
+  {
+   "proof": "truth-3",
+   "family": "add",
+   "inter_cells": 84017152
+  },
+  {
+   "proof": "truth-4",
+   "family": "double",
+   "inter_cells": 66060288
+  },
+  {
+   "proof": "truth-5",
+   "family": "sha256",
+   "inter_cells": 65536
+  },
+  {
+   "proof": "truth-6",
+   "family": "arith256_mod",
+   "inter_cells": 499712
+  }
+ ],
+ "families": [
+  {
+   "family": "truth_keccak",
+   "main": 573603840,
+   "binding": 0,
+   "global_ram": 0,
+   "global_kio": 120324096,
+   "global_wire": 0,
+   "classic_local": 443547648,
+   "new_inter": 108527616,
+   "inter": 563871744,
+   "saving": 455344128,
+   "inter_bits_per_gas": 3211.2,
+   "new_inter_bits_per_gas": 618.1
+  },
+  {
+   "family": "cpu_word16_exec",
+   "main": 782106624,
+   "binding": 336070656,
+   "global_ram": 0,
+   "global_kio": 0,
+   "global_wire": 0,
+   "classic_local": 0,
+   "new_inter": 336070656,
+   "inter": 336070656,
+   "saving": 0,
+   "inter_bits_per_gas": 1913.9,
+   "new_inter_bits_per_gas": 1913.9
+  },
+  {
+   "family": "memory_ls",
+   "main": 377162368,
+   "binding": 112721920,
+   "global_ram": 179833856,
+   "global_kio": 0,
+   "global_wire": 0,
+   "classic_local": 0,
+   "new_inter": 179833856,
+   "inter": 292555776,
+   "saving": 112721920,
+   "inter_bits_per_gas": 1666.1,
+   "new_inter_bits_per_gas": 1024.1
+  },
+  {
+   "family": "truth_add",
+   "main": 30621696,
+   "binding": 0,
+   "global_ram": 0,
+   "global_kio": 0,
+   "global_wire": 393216,
+   "classic_local": 83623936,
+   "new_inter": 262144,
+   "inter": 84017152,
+   "saving": 83755008,
+   "inter_bits_per_gas": 478.5,
+   "new_inter_bits_per_gas": 1.5
+  },
+  {
+   "family": "bulk_memory_jumpdest",
+   "main": 81856032,
+   "binding": 33840640,
+   "global_ram": 42578944,
+   "global_kio": 0,
+   "global_wire": 0,
+   "classic_local": 0,
+   "new_inter": 33840640,
+   "inter": 76419584,
+   "saving": 42578944,
+   "inter_bits_per_gas": 435.2,
+   "new_inter_bits_per_gas": 192.7
+  },
+  {
+   "family": "truth_double",
+   "main": 23707648,
+   "binding": 0,
+   "global_ram": 0,
+   "global_kio": 0,
+   "global_wire": 262144,
+   "classic_local": 65798144,
+   "new_inter": 262144,
+   "inter": 66060288,
+   "saving": 65798144,
+   "inter_bits_per_gas": 376.2,
+   "new_inter_bits_per_gas": 1.5
+  },
+  {
+   "family": "deleg_keccak_bridge",
+   "main": 73183232,
+   "binding": 2326528,
+   "global_ram": 14254080,
+   "global_kio": 16875520,
+   "global_wire": 0,
+   "classic_local": 0,
+   "new_inter": 2326528,
+   "inter": 33456128,
+   "saving": 31129600,
+   "inter_bits_per_gas": 190.5,
+   "new_inter_bits_per_gas": 13.2
+  },
+  {
+   "family": "deleg_secp_bridge",
+   "main": 33755136,
+   "binding": 4030464,
+   "global_ram": 10076160,
+   "global_kio": 0,
+   "global_wire": 4030464,
+   "classic_local": 0,
+   "new_inter": 4030464,
+   "inter": 18137088,
+   "saving": 14106624,
+   "inter_bits_per_gas": 103.3,
+   "new_inter_bits_per_gas": 23.0
+  },
+  {
+   "family": "rom",
+   "main": 1048576,
+   "binding": 16777216,
+   "global_ram": 0,
+   "global_kio": 0,
+   "global_wire": 0,
+   "classic_local": 0,
+   "new_inter": 16777216,
+   "inter": 16777216,
+   "saving": 0,
+   "inter_bits_per_gas": 95.5,
+   "new_inter_bits_per_gas": 95.5
+  },
+  {
+   "family": "range_u8_u16_tables",
+   "main": 4981760,
+   "binding": 12599296,
+   "global_ram": 0,
+   "global_kio": 0,
+   "global_wire": 0,
+   "classic_local": 0,
+   "new_inter": 12599296,
+   "inter": 12599296,
+   "saving": 0,
+   "inter_bits_per_gas": 71.8,
+   "new_inter_bits_per_gas": 71.8
+  },
+  {
+   "family": "deleg_mul",
+   "main": 51314688,
+   "binding": 9437184,
+   "global_ram": 0,
+   "global_kio": 0,
+   "global_wire": 0,
+   "classic_local": 0,
+   "new_inter": 9437184,
+   "inter": 9437184,
+   "saving": 0,
+   "inter_bits_per_gas": 53.7,
+   "new_inter_bits_per_gas": 53.7
+  },
+  {
+   "family": "deleg_curve_bridges",
+   "main": 8781824,
+   "binding": 1048576,
+   "global_ram": 2621440,
+   "global_kio": 0,
+   "global_wire": 1048576,
+   "classic_local": 0,
+   "new_inter": 1048576,
+   "inter": 4718592,
+   "saving": 3670016,
+   "inter_bits_per_gas": 26.9,
+   "new_inter_bits_per_gas": 6.0
+  },
+  {
+   "family": "deleg_sha256_bridge",
+   "main": 4463808,
+   "binding": 532992,
+   "global_ram": 1332480,
+   "global_kio": 0,
+   "global_wire": 532992,
+   "classic_local": 0,
+   "new_inter": 532992,
+   "inter": 2398464,
+   "saving": 1865472,
+   "inter_bits_per_gas": 13.7,
+   "new_inter_bits_per_gas": 3.0
+  },
+  {
+   "family": "truth_arith256_mod",
+   "main": 205312,
+   "binding": 0,
+   "global_ram": 0,
+   "global_kio": 0,
+   "global_wire": 12288,
+   "classic_local": 487424,
+   "new_inter": 8192,
+   "inter": 499712,
+   "saving": 491520,
+   "inter_bits_per_gas": 2.8,
+   "new_inter_bits_per_gas": 0.0
+  },
+  {
+   "family": "deleg_arith256_bridge",
+   "main": 343040,
+   "binding": 40960,
+   "global_ram": 102400,
+   "global_kio": 0,
+   "global_wire": 40960,
+   "classic_local": 0,
+   "new_inter": 40960,
+   "inter": 184320,
+   "saving": 143360,
+   "inter_bits_per_gas": 1.0,
+   "new_inter_bits_per_gas": 0.2
+  },
+  {
+   "family": "deleg_div",
+   "main": 801216,
+   "binding": 164352,
+   "global_ram": 0,
+   "global_kio": 0,
+   "global_wire": 0,
+   "classic_local": 0,
+   "new_inter": 164352,
+   "inter": 164352,
+   "saving": 0,
+   "inter_bits_per_gas": 0.9,
+   "new_inter_bits_per_gas": 0.9
+  },
+  {
+   "family": "truth_sha256",
+   "main": 30347264,
+   "binding": 0,
+   "global_ram": 0,
+   "global_kio": 0,
+   "global_wire": 65536,
+   "classic_local": 0,
+   "new_inter": 65536,
+   "inter": 65536,
+   "saving": 0,
+   "inter_bits_per_gas": 0.4,
+   "new_inter_bits_per_gas": 0.4
+  }
+ ],
+ "totals": {
+  "main_cells": 2078284064,
+  "inter_cells": 1517433088,
+  "v1_inter_cells": 705828352,
+  "inter_saving_cells": 811604736,
+  "inter_bits_per_gas_own_height": 8641.6,
+  "inter_bits_per_gas_lde_b2": 17283.2,
+  "v1_inter_bits_per_gas_own_height": 4019.6,
+  "v1_inter_bits_per_gas_lde_b2": 8039.2,
+  "main_plus_inter_cells": 3595717152,
+  "v1_main_plus_inter_cells": 2784112416
+ }
+}

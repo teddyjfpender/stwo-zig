@@ -1,0 +1,68 @@
+#ifndef STWO_CUDA_RV64_BATCH_H
+#define STWO_CUDA_RV64_BATCH_H
+#include "gkr.h"
+#include <stddef.h>
+constexpr uint32_t STWO_RV64_BATCH_MAX_ORACLES = 64;
+constexpr uint32_t STWO_RV64_BATCH_STATE_WORDS = 2173;
+// For a zero-variable oracle, raw is null and raw_stride is zero. Otherwise it
+// names a two-row, eight-coordinate scalar sum; no full matrix is uploaded
+// here.
+struct StwoRv64BatchOracle {
+  const uint32_t *raw;
+  uint64_t raw_stride;
+  uint32_t variables, reserved;
+};
+static_assert(sizeof(StwoRv64BatchOracle) == 24, "batch oracle ABI");
+extern "C" int stwo_rv64_batch_init_on(void *, uint32_t, uint32_t *,
+                                       const uint32_t *, const uint32_t *,
+                                       const uint32_t *,
+                                       const StwoRv64BatchOracle *, uint32_t,
+                                       uint32_t);
+extern "C" int stwo_rv64_batch_round_on(void *, uint32_t, uint32_t *,
+                                        const StwoRv64BatchOracle *, uint32_t,
+                                        uint32_t, uint32_t, const uint32_t *,
+                                        uint32_t *);
+extern "C" int stwo_rv64_batch_mask_on(void *, uint32_t, StwoRv64Plane,
+                                       StwoRv64Plane, uint32_t *);
+// Active oracles have one common remaining height. Each CTA row owns one
+// oracle, so batching adds no mixed-height padding or numerical interaction.
+struct StwoRv64BatchSumJob { StwoRv64Plane n, d, a, b, out; };
+struct StwoRv64BatchFoldJob { StwoRv64Plane n, d, out_n, out_d; };
+struct StwoRv64BatchMaskJob { StwoRv64Plane n, d; uint32_t *output; };
+static_assert(sizeof(StwoRv64BatchMaskJob) == 56, "batched mask job ABI");
+extern "C" int stwo_rv64_batch_masks_on(void *, uint32_t,
+    const StwoRv64BatchMaskJob *, uint32_t jobs);
+static_assert(sizeof(StwoRv64BatchSumJob) == 120 && sizeof(StwoRv64BatchFoldJob) == 96,
+              "batched oracle job ABI");
+extern "C" int stwo_rv64_batch_sum_on(void *, uint32_t,
+    const StwoRv64BatchSumJob *, uint32_t jobs, uint32_t count, StwoRv64Plane eq,
+    const uint32_t *lambda, uint32_t *launches);
+extern "C" int stwo_rv64_batch_fold_on(void *, uint32_t,
+    const StwoRv64BatchFoldJob *, uint32_t jobs, uint32_t count,
+    const uint32_t *challenge, uint32_t *launches);
+// Product-tree wave: all jobs have the same input height. No padding across
+// instances, no transcript changes, and every intermediate level is retained.
+extern "C" int stwo_rv64_batch_layer_on(void *, uint32_t,
+    const StwoRv64BatchFoldJob *, uint32_t jobs, uint32_t count,
+    uint32_t *launches);
+
+// One parallel fold plus the next round's raw sum. Transcript draw is separate.
+struct StwoRv64BatchFoldSumJob { StwoRv64Plane n,d,out_n,out_d,a,b,out; };
+static_assert(sizeof(StwoRv64BatchFoldSumJob)==168,"batched fold-sum ABI");
+extern "C" int stwo_rv64_batch_fold_sum_on(void *,uint32_t,
+    const StwoRv64BatchFoldSumJob *,uint32_t,uint32_t,const uint32_t *,
+    StwoRv64Plane,const uint32_t *,uint32_t *);
+
+// Persistent shared-transcript tail. Inputs are immutable; only the separately
+// owned output banks are folded in place after their first write.
+struct StwoRv64BatchTailOracle {
+  const uint32_t *n, *d;
+  uint32_t *out_n, *out_d, *mask;
+  uint32_t input_stride, output_stride, variables, numerator_coordinates;
+};
+static_assert(sizeof(StwoRv64BatchTailOracle) == 56, "batch tail oracle ABI");
+extern "C" int stwo_rv64_batch_tail_on(void *, uint32_t, uint32_t *,
+    const StwoRv64BatchTailOracle *, uint32_t, uint32_t, uint32_t,
+    const uint32_t *, StwoRv64Plane, const uint32_t *, uint32_t *);
+
+#endif

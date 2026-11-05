@@ -1,0 +1,168 @@
+{
+  "schema": "rv64-production-leaf-schedule-census/v1",
+  "scope": "CPU-only selected-leaf native capture and exact post-outer-padding schedule census; no execution/root acceptance",
+  "diagnostic_completed": true,
+  "execution_accepted": false,
+  "gpu_used": false,
+  "outer_proof_produced": false,
+  "source_commit": "edc22ba74",
+  "binary_sha256": "11116523a1cc103b049717278c8122855f62e997a787e686a3888f211b6a8a22",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "original_request_sha256": "4a3adba8626182212c5268a5bcee4a8af3c19ca0fa74dc633204902a79b70f3c",
+  "io_mapped_workers4_request_sha256": "f986aa044e1757053232c56f9fdf34e702d7154890128ce0a9525caa26fb6eeb",
+  "receiver_requested_live_cap_bytes": 25769803776,
+  "fixed_cache_cap_bytes_inside_live_cap": 12884901888,
+  "recycler_free_cache_cap_bytes_outside_live_cap": 4294967296,
+  "worker_stack_upper_bound_bytes_outside_requested_live_count": 4194304,
+  "budget_scope": "Requested allocations, not RSS. Fixed/native/metadata caches are inside 24 GiB; up to 4 GiB freed recycler blocks and OS stacks are separate. No 44 GiB addition.",
+  "width_bucket_upper_bounds": [1, 4, 16, 32, 64, 128, 256, 1024, 4096, 4294967295],
+  "task_kind_order": ["add", "sub", "mul", "pointwise_mul", "triple_xor", "m31_to_u32", "blake_g", "permutation", "hint"],
+  "hint_kind_order": ["seed", "inverse", "divide", "pointwise_inverse_or_zero", "pointwise_lsb", "byte", "byte_complement", "is_nonzero", "zero"],
+  "rows": [
+    {
+      "ordinal": 0,
+      "kind": "cpu",
+      "variables": 45088768,
+      "tasks": 18990989,
+      "levels_including_empty_seed_level": 120241,
+      "nonempty_level_calls": 120240,
+      "max_width": 5117765,
+      "width_bucket_counts": [1, 16594, 69220, 3941, 764, 15158, 8530, 4872, 710, 450],
+      "width_bucket_task_mass": [1, 33188, 791801, 82970, 34816, 1805523, 1890447, 3087283, 1584653, 9680307],
+      "cta128": {
+        "cta_threads": 128,
+        "max_levels_per_run": 256,
+        "ordinary_calls": 14896,
+        "fused_runs": 7646,
+        "fused_nonempty_levels": 105344,
+        "projected_level_calls": 22542,
+        "fused_tasks": 2727565
+      },
+      "cta256": {
+        "cta_threads": 256,
+        "max_levels_per_run": 256,
+        "ordinary_calls": 6080,
+        "fused_runs": 789,
+        "fused_nonempty_levels": 114160,
+        "projected_level_calls": 6869,
+        "fused_tasks": 4628779
+      },
+      "padding_added_variables": 11815722,
+      "padding_added_tasks": 4064058,
+      "padding_targets": {
+        "eq": 262144,
+        "qm31_ops": 8388608,
+        "m31_to_u32": 2097152,
+        "triple_xor": 1048576,
+        "blake_g_gate": 8388608
+      },
+      "task_kind_counts": [3338679, 898736, 3222630, 237662, 1048576, 1583160, 8388608, 0, 272938],
+      "scheduled_hint_counts": [0, 12572, 0, 2074, 840, 128612, 128612, 76, 152],
+      "skipped_computational_definitions": [59569, 1, 71, 631260, 0, 513992, 0, 0],
+      "estimated_device_assignment_bytes": 721420288,
+      "packed_task_bytes": 607711648,
+      "graph_digest": "ee3672113683144ace725c02979242c47c45ea9a66e3a0134d7db63e181c88b9",
+      "public_words": 678,
+      "process_wall_ns": 14310967833,
+      "peak_rss_bytes": 5619564544,
+      "peak_requested_live_bytes": 3097198851,
+      "selected_native_capture_verified": true,
+      "matches_retained_gpu_geometry": true,
+      "proof_files_unchanged": true,
+      "result_sha256": "9bf1759341a47ab97bd2a4bc9a478841541bdd17666051646964703aa6bad4d9",
+      "stdout_sha256": "aa260c6b008990ae402a96549df9724322965000819b2f7784394aeb48265ee0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "ordinal": 7,
+      "kind": "keccak",
+      "variables": 26738688,
+      "tasks": 13484113,
+      "levels_including_empty_seed_level": 146140,
+      "nonempty_level_calls": 146139,
+      "max_width": 2637407,
+      "width_bucket_counts": [0, 73246, 39978, 21, 0, 19816, 9957, 2330, 472, 319],
+      "width_bucket_task_mass": [0, 292984, 272195, 455, 0, 2318503, 2248228, 1833230, 1157483, 5361035],
+      "cta128": {
+        "cta_threads": 128,
+        "max_levels_per_run": 256,
+        "ordinary_calls": 13101,
+        "fused_runs": 10309,
+        "fused_nonempty_levels": 133038,
+        "projected_level_calls": 23410,
+        "fused_tasks": 2882411
+      },
+      "cta256": {
+        "cta_threads": 256,
+        "max_levels_per_run": 256,
+        "ordinary_calls": 3131,
+        "fused_runs": 581,
+        "fused_nonempty_levels": 143008,
+        "projected_level_calls": 3712,
+        "fused_tasks": 5130621
+      },
+      "padding_added_variables": 2283696,
+      "padding_added_tasks": 1904304,
+      "padding_targets": {
+        "eq": 16384,
+        "qm31_ops": 8388608,
+        "m31_to_u32": 1048576,
+        "triple_xor": 524288,
+        "blake_g_gate": 4194304
+      },
+      "task_kind_counts": [4238362, 558152, 2978865, 178403, 524288, 808182, 4194304, 0, 3557],
+      "scheduled_hint_counts": [0, 773, 0, 1944, 840, 0, 0, 0, 0],
+      "skipped_computational_definitions": [46512, 1, 53, 388260, 0, 240394, 0, 0],
+      "estimated_device_assignment_bytes": 427819008,
+      "packed_task_bytes": 431491616,
+      "graph_digest": "078f503933530566b008d473c2e7b37dce572e8135fb68ae4ae84bfc899a46f9",
+      "public_words": 67,
+      "process_wall_ns": 13318327500,
+      "peak_rss_bytes": 4766990336,
+      "peak_requested_live_bytes": 2703732713,
+      "selected_native_capture_verified": true,
+      "matches_retained_gpu_geometry": true,
+      "proof_files_unchanged": true,
+      "result_sha256": "668eedc2af7b40bece9aa97895ce7c3ab4e8cd39f3f6784b05d34e5cd969434f",
+      "stdout_sha256": "863a7857d6af08c653f6aa02524bb18cce783bd2822b23d67dd84399d5b1e63a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "production_gpu_log_sha256": "fa3563d35eb9ad6522fcdb6e3a4f7c4f208638cc73a6c994d5a6aff7fc2337e2",
+  "unchanged_flat_artifact_count": 43,
+  "unchanged_flat_artifact_set_sha256": "aa60ff56823f14954a3f11ff454bbc00f5b67538e976fe79f2fb9a0475951076",
+  "full_per_file_manifests_durable": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261104/evidence/recursion-schedule-census",
+  "negative_cli_cases": [
+    {
+      "case": "negative-ordinal",
+      "rejected": true,
+      "error": "error: InvalidCharacter"
+    },
+    {
+      "case": "extra-argument",
+      "rejected": true,
+      "error": "error: ExpectedScheduleConfigProofDirectoryAndOptionalOrdinal"
+    },
+    {
+      "case": "outside-roster",
+      "rejected": true,
+      "error": "error: InvalidInspectionOrdinal"
+    },
+    {
+      "case": "tampered-native-proof",
+      "rejected": true,
+      "error": "error: WideBundleFileChanged"
+    }
+  ],
+  "negative_cli_result_sha256": "2c91dc9ab554645e9a71279f1b656621681dd5785fe768d278177ac910dc8a3d",
+  "prepadding_exploratory_evidence": "Preserved under durable/pre-padding; superseded for production assignment geometry. Original raw result hashes unchanged.",
+  "interpretation": "Projected calls concern assignment level kernels only, excluding the seed kernel and every other proving stage. This is not a measured CUDA speedup. Narrow256 runs contain 24.37% CPU0 tasks / 38.05% Keccak tasks; broad heavy work remains parallel.",
+  "kernel_status": "Separate 256-thread candidate remains default OFF / CUDA uncompiled and unexecuted.",
+  "host_platform": {
+    "system": "Darwin",
+    "machine": "arm64",
+    "platform": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+    "zig": "0.15.2",
+    "target": "native ARM ReleaseFast"
+  }
+}

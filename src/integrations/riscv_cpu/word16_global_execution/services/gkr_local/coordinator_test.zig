@@ -143,3 +143,55 @@ test "phase task admission retires only numerical GKR scratch and preserves PCS 
     const needs_more = try R.taskEstimates(.{ .coefficient_bytes = 1, .stage2_task_bytes = 100 }, 1);
     try std.testing.expectEqual(@as(u64, 100), needs_more.stage2);
 }
+
+// Admission only: these typed callback addresses are never invoked. Keeping all
+// required fields explicit makes a newly required resident stage fail the test
+// until its admission coverage is updated.
+fn admissionStage(comptime T: type) T {
+    var result: T = undefined;
+    inline for (std.meta.fields(T)) |field| {
+        switch (@typeInfo(field.type)) {
+            .pointer => @field(result, field.name) = @ptrFromInt(4096),
+            .optional => @field(result, field.name) = null,
+            else => @compileError("admission stub expects callback/context pointers only"),
+        }
+    }
+    return result;
+}
+test "resident coordinator admission requires every physical device stage beyond eight workers" {
+    const D = @import("stwo_prover_api").device_pcs;
+    const Child = @import("child.zig");
+    const Cpu = @import("cpu_worker.zig");
+    const pcs = admissionStage(D.Stage);
+    const trace = admissionStage(D.TraceCommitStage);
+    const comp = admissionStage(Cpu.ResidentCompositionStage);
+    var numerical = Child.NumericalStage{ .context = @ptrFromInt(4096), .prove = @ptrFromInt(4096), .bind = @ptrFromInt(4096) };
+    var options = C.Options{
+        .max_workers = 32,
+        .device_source_stage = admissionStage(@typeInfo(@FieldType(C.Options, "device_source_stage")).optional.child),
+        .device_global_stage = admissionStage(@typeInfo(@FieldType(C.Options, "device_global_stage")).optional.child),
+        .device_cpu_projection = admissionStage(@typeInfo(@FieldType(C.Options, "device_cpu_projection")).optional.child),
+        .device_trace_commit_stage = &trace,
+        .numerical_gkr_stage = &numerical,
+        .device_pcs_stage = &pcs,
+        .truth_device_source_stage = admissionStage(@typeInfo(@FieldType(C.Options, "truth_device_source_stage")).optional.child),
+        .truth_device_composition_stage = admissionStage(@typeInfo(@FieldType(C.Options, "truth_device_composition_stage")).optional.child),
+        .truth_device_pcs_stage = &pcs,
+        .resident_composition_stage = &comp,
+    };
+    try options.validate(18); // Real test block: seven CPU plus eleven truth proofs.
+    try options.validate(32);
+    try std.testing.expectError(error.BoundedWideCoordinatorLimit, options.validate(33));
+    inline for (.{ "device_source_stage", "device_global_stage", "device_cpu_projection", "device_trace_commit_stage", "numerical_gkr_stage", "device_pcs_stage", "truth_device_source_stage", "truth_device_composition_stage", "truth_device_pcs_stage", "resident_composition_stage" }) |field| {
+        var partial = options;
+        @field(partial, field) = null;
+        if (partial.validate(18)) |_| return error.PartialResidentAdmissionAccepted else |_| {}
+    }
+    numerical.bind = null;
+    try std.testing.expectError(error.BoundedWideCoordinatorLimit, options.validate(18));
+    // Host-only and partial routes retain their old operational limit.
+    try std.testing.expectError(error.BoundedWideCoordinatorLimit, (C.Options{ .max_workers = 32 }).validate(18));
+    try (C.Options{}).validate(8);
+    options.max_workers = 0;
+    try std.testing.expectError(error.BoundedWideCoordinatorLimit, options.validate(0));
+}

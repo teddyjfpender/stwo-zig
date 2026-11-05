@@ -1,0 +1,65 @@
+{
+  "schema": "rv64-cuda-om31-compact-deep/v1",
+  "full_block_verified": false,
+  "scope": "Native numerical quotient and compact aggregate/LDE parity; no proof or execution admission",
+  "arch": "120",
+  "compiler": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Fri_Feb_21_20:23:50_PST_2025\nCuda compilation tools, release 12.8, V12.8.93\nBuild cuda_12.8.r12.8/compiler.35583870_0\n",
+  "compile_seconds": 9.177750647999346,
+  "honest_cases": 4,
+  "mutants_rejected": 19,
+  "intermediate_field_transfers": 0,
+  "source_sha256": "39dafba654e3990e0298212ed3ca9752f8649e7184c5178efebc6b6414770063",
+  "driver_sha256": "0d79aad210eb0b615b02aaeb3b0050eac4566955dc084ffd4b83deff1af13f92",
+  "fixture_generator_sha256": "eb4814ccd5cad929d075277c1f13bfc3a1f5a0dceb62fea8027eb986779094b5",
+  "dependency_objects": {
+    "/workspace/rv64-gpu-session/build/context.o": "a083b05689c22b6c4e1e56e99f6f28cd5496044454037df8296d5fe327f63a9e",
+    "/workspace/rv64-gpu-session/build/transform-lde.o": "d4d7bee748eeef3f075bd962ff916d6d1474cb5b2e71b3246e711abd19dba344",
+    "/workspace/rv64-gpu-session/build/transform-n2b.o": "3ca0d5a18d4a1e33a506161f9957629b0cf855a727fae0dccbf6ec63badb86bb"
+  },
+  "fixtures": {
+    "case-0.bin": "5c5e56214931c856354238313e31a9df0939cc23fd41ad822a7d840dc5611f13",
+    "case-1.bin": "38cf8a1684caf47e5ec96bfc83a02eef0728c599c3a3f064bb037a06456c665f",
+    "case-2.bin": "ddf23fd25c9c11666313d61b1d25524f22c6961d6cd28eed1cc887ae519b9a9b",
+    "case-3.bin": "56ab04f781220d41031395d9bd5554136d950f683ce45aeb2408dd4dba6482a4"
+  },
+  "gates": {
+    "normal": {
+      "status": "PASS",
+      "sha256": "44ede8cde9528f1327012a97cf8cfd69901d6d6582b64ec124706b011a75ffbb"
+    },
+    "memcheck": {
+      "status": "PASS",
+      "sha256": "980d38a74b4f7d5fa1659b80cbc15add10c836afe79a8b886ee014b6ee2311bd"
+    },
+    "racecheck": {
+      "status": "PASS",
+      "sha256": "f7ca800b562436946cda4954ce33ad472d9bc2127d84f3b439238648dfd6f507"
+    },
+    "initcheck": {
+      "status": "PASS",
+      "sha256": "980d38a74b4f7d5fa1659b80cbc15add10c836afe79a8b886ee014b6ee2311bd"
+    },
+    "synccheck": {
+      "status": "PASS",
+      "sha256": "980d38a74b4f7d5fa1659b80cbc15add10c836afe79a8b886ee014b6ee2311bd"
+    }
+  },
+  "inputs_sha256": {
+    "/workspace/rv64-gpu-session/build/context.o": "a083b05689c22b6c4e1e56e99f6f28cd5496044454037df8296d5fe327f63a9e",
+    "/workspace/rv64-gpu-session/build/transform-lde.o": "d4d7bee748eeef3f075bd962ff916d6d1474cb5b2e71b3246e711abd19dba344",
+    "/workspace/rv64-gpu-session/build/transform-n2b.o": "3ca0d5a18d4a1e33a506161f9957629b0cf855a727fae0dccbf6ec63badb86bb",
+    "/workspace/rv64-gpu-session/rv64-deep-fixtures/case-0.bin": "5c5e56214931c856354238313e31a9df0939cc23fd41ad822a7d840dc5611f13",
+    "/workspace/rv64-gpu-session/rv64-deep-fixtures/case-1.bin": "38cf8a1684caf47e5ec96bfc83a02eef0728c599c3a3f064bb037a06456c665f",
+    "/workspace/rv64-gpu-session/rv64-deep-fixtures/case-2.bin": "ddf23fd25c9c11666313d61b1d25524f22c6961d6cd28eed1cc887ae519b9a9b",
+    "/workspace/rv64-gpu-session/rv64-deep-fixtures/case-3.bin": "56ab04f781220d41031395d9bd5554136d950f683ce45aeb2408dd4dba6482a4",
+    "/workspace/stwo-zig/src/backends/cuda/native/rv64/deep.cu": "39dafba654e3990e0298212ed3ca9752f8649e7184c5178efebc6b6414770063",
+    "/workspace/stwo-zig/tests/cuda/rv64/deep_smoke.cu": "0d79aad210eb0b615b02aaeb3b0050eac4566955dc084ffd4b83deff1af13f92",
+    "/workspace/stwo-zig/scripts/rv64_cuda_deep_qualify.py": "1300d1767c512a2318f7648234c255c3178fdd7c18cf83c17e384b55a90bf058",
+    "/workspace/stwo-zig/src/backends/cuda/native/rv64/deep.h": "320f309b7d404d01480ee021cb604158ae0175de5a7ee1bfe87b5e11524fadbe",
+    "/workspace/stwo-zig/src/backends/cuda/native/rv64/om31.cuh": "fe75730531a7638460b8a53e0d33d2daad53b7aff342b69fd196d1bbcdeb8d0b",
+    "/workspace/stwo-zig/src/backends/cuda/native/oods/field.cuh": "b9031b721438b6dbc6b944029aa6506abd2671d3123588f616b7fcaa516eeaec",
+    "/workspace/stwo-zig/src/integrations/riscv_cuda/rv64_deep_fixture_main.zig": "eb4814ccd5cad929d075277c1f13bfc3a1f5a0dceb62fea8027eb986779094b5"
+  },
+  "executable_sha256": "b5383afce7e27065625da2b0af163055dcb205d313266d92c9c3235a304b90f8",
+  "object_sha256": "341116dd4e064429da1d85830c6bf6ce5461a0cbad59c0cdedba4177056dbcbb"
+}

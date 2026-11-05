@@ -1,0 +1,5 @@
+Build Summary: 3/3 steps succeeded; 33/33 tests passed
+test-rv64-gkr-plan success
++- run test 33 passed 14s MaxRSS:643M
+   +- compile test Debug native success 832ms MaxRSS:141M
+EXIT=0

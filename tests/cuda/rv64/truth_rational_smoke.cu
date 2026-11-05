@@ -1,0 +1,15 @@
+// Cold numerical lowering parity; policy-fraction authority has native unit tests.
+#include "context_owner.cuh"
+#include "fixture_words.cuh"
+using Projection=int(*)(void*,uint32_t,const uint32_t*,const uint32_t*,const uint32_t*,uint32_t*,uint32_t*,uint32_t*,uint32_t);
+#define DECL(I) extern "C" int stwo_rv64_truth_projection_##I(void*,uint32_t,const uint32_t*,const uint32_t*,const uint32_t*,uint32_t*,uint32_t*,uint32_t*,uint32_t)
+DECL(7);DECL(8);DECL(9);
+#ifdef STWO_RV64_CURVE_TRUTH
+DECL(10);DECL(11);DECL(12);DECL(13);DECL(14);
+#endif
+static void run(const std::string&dir,uint32_t id,Projection launch){FixtureWords f(dir+"/case-"+std::to_string(id)+".bin");auto h=f.take(9);if(h[0]!=0x52565452||h[1]!=1||h[2]!=id||h[3]!=5)throw std::runtime_error("raw truth shape");const uint32_t rows=1u<<h[3],pairs=h[7]+h[8];auto fixed=f.take(h[4]*rows),main=f.take(h[5]*rows),params=f.take(h[6]*8),en=f.take(uint64_t(pairs)*8*rows),ed=f.take(uint64_t(pairs)*8*rows);if(f.position!=f.data.size())throw std::runtime_error("raw truth trailing data");Owner o(0);auto a=o.plane(fixed.size(),1),b=o.plane(main.size(),1),p=o.plane(params.size(),1),n=o.plane(uint64_t(pairs)*8*rows,1),d=o.plane(uint64_t(pairs+1+(h[8]?1:0))*8*rows,1),s=o.plane(1,1);o.upload(a,fixed);o.upload(b,main);o.upload(p,params);o.upload(n,std::vector<uint32_t>(uint64_t(pairs)*8*rows,0xdeadbeef));o.upload(d,std::vector<uint32_t>(uint64_t(pairs+1+(h[8]?1:0))*8*rows,0xdeadbeef));o.upload(s,{0});CHECK(stwo_exec_context_sync(o.ctx));CHECK(launch(o.ctx,1,a.words,b.words,p.words,n.words,d.words,s.words,h[3]));CHECK(stwo_exec_context_sync(o.ctx));fixture_equal("truth raw numerator",o.read(n),en);auto full=o.read(d);std::vector<uint32_t>packed;for(uint32_t i=0;i<pairs;++i){size_t at=uint64_t(i+(i>=h[7]?1:0))*8*rows;packed.insert(packed.end(),full.begin()+at,full.begin()+at+8*rows);}fixture_equal("truth raw denominator",packed,ed);if(o.read(s)[0])throw std::runtime_error("valid raw truth rejected");if(!launch(o.ctx,1,a.words,b.words,p.words,n.words,d.words,s.words,4))throw std::runtime_error("invalid raw geometry accepted");main[0]=0x7fffffff;o.upload(b,main);CHECK(stwo_exec_context_sync(o.ctx));CHECK(launch(o.ctx,1,a.words,b.words,p.words,n.words,d.words,s.words,h[3]));CHECK(stwo_exec_context_sync(o.ctx));if(!o.read(s)[0])throw std::runtime_error("noncanonical raw input accepted");std::printf("PASS raw truth role=%u groups=%u+%u exactNumeratorDenominator=true poisonedInputRejected=true\n",id,h[7],h[8]);o.close();}
+int main(int argc,char**argv){try{if(argc!=2)throw std::runtime_error("fixture directory required");Projection fn[]={stwo_rv64_truth_projection_7,stwo_rv64_truth_projection_8,stwo_rv64_truth_projection_9
+#ifdef STWO_RV64_CURVE_TRUTH
+,stwo_rv64_truth_projection_10,stwo_rv64_truth_projection_11,stwo_rv64_truth_projection_12,stwo_rv64_truth_projection_13,stwo_rv64_truth_projection_14
+#endif
+};for(uint32_t i=0;i<sizeof(fn)/sizeof(fn[0]);++i)run(argv[1],7+i,fn[i]);return 0;}catch(const std::exception&e){std::fprintf(stderr,"FAIL %s\n",e.what());return 1;}}

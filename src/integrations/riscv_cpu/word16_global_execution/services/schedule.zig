@@ -19,6 +19,16 @@ pub const Policy = struct {
     /// Zero disables admission. One index is always admitted when nothing
     /// else is in flight, so an oversized estimate degrades to serial order.
     memory_cap_bytes: u64 = 0,
+    /// Device affinity (operational only, M6 native-stream). 0/1 = off: every
+    /// lane claims the next index of one shared queue. N > 1: index i belongs
+    /// to queue i % N (the resident router places ordinal i on GPU i % N), and
+    /// lane l only claims from queue l % N, so every device keeps lanes/N
+    /// workers in flight instead of whichever lanes happen to collide.
+    device_affinity: u8 = 0,
+    /// Operational only: when no explicit order is given and estimates exist,
+    /// dispatch heaviest estimate first (stable by ordinal) so the long poles
+    /// (keccak truth, first CPU segment) start first. Never changes inputs.
+    heaviest_first: bool = false,
     /// Accept both fixed override arrays and the resolved active-lane arrays
     /// emitted by jsonStringify. Parsing copies into the owned fixed array;
     /// no parsed-slice lifetime escapes the configuration object.
@@ -29,10 +39,12 @@ pub const Policy = struct {
             workers_per_lane: u8 = defaults.workers_per_lane,
             lane_workers: []const u8 = &.{},
             memory_cap_bytes: u64 = defaults.memory_cap_bytes,
+            device_affinity: u8 = defaults.device_affinity,
+            heaviest_first: bool = defaults.heaviest_first,
         };
         const input = try std.json.innerParse(Input, a, source, options);
         if (input.lane_workers.len > MAX_LANES) return error.LengthMismatch;
-        var result = Policy{ .lanes = input.lanes, .workers_per_lane = input.workers_per_lane, .memory_cap_bytes = input.memory_cap_bytes };
+        var result = Policy{ .lanes = input.lanes, .workers_per_lane = input.workers_per_lane, .memory_cap_bytes = input.memory_cap_bytes, .device_affinity = input.device_affinity, .heaviest_first = input.heaviest_first };
         @memcpy(result.lane_workers[0..input.lane_workers.len], input.lane_workers);
         // Semantic admission stays at Policy.validate, as for fixed-array input.
         return result;
@@ -53,6 +65,15 @@ pub const Policy = struct {
         try writer.endArray();
         try writer.objectField("memory_cap_bytes");
         try writer.write(self.memory_cap_bytes);
+        // Default-valued fields stay absent so M5 schedule reports are unchanged.
+        if (self.device_affinity > 1) {
+            try writer.objectField("device_affinity");
+            try writer.write(self.device_affinity);
+        }
+        if (self.heaviest_first) {
+            try writer.objectField("heaviest_first");
+            try writer.write(true);
+        }
         try writer.endObject();
     }
     pub fn validate(self: Policy) !void {
@@ -68,6 +89,10 @@ pub const Policy = struct {
             total += w;
         }
         if (total > MAX_TOTAL_WORKERS) return error.InvalidServiceSchedule;
+        if (self.device_affinity > 1 and (self.device_affinity > MAX_LANES or self.lanes % self.device_affinity != 0)) return error.InvalidServiceSchedule;
+    }
+    pub fn affinity(self: Policy) usize {
+        return if (self.device_affinity > 1) self.device_affinity else 1;
     }
 };
 /// Optional per-index operational trace; never consumed by proof code.
@@ -160,7 +185,9 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
         options: RunOptions,
         allocator: std.mem.Allocator,
         origin: ?std.time.Instant,
-        next: std.atomic.Value(usize) = .init(0),
+        /// Dispatch queues (original indices); one queue unless device_affinity.
+        queues: [MAX_LANES][]const usize = @splat(&.{}),
+        next: [MAX_LANES]std.atomic.Value(usize) = @splat(.init(0)),
         stop: std.atomic.Value(bool) = .init(false),
         errors: []?anyerror,
         lane_errors: [MAX_LANES]?anyerror = @splat(null),
@@ -210,10 +237,11 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
             const threads = laneThreads(&pool, &storage);
             const previous = Usage.bindLane(&threads);
             defer _ = Usage.bindLane(previous);
+            const queue = ordinal % self.policy.affinity();
             while (!self.stop.load(.acquire)) {
-                const position = self.next.fetchAdd(1, .monotonic);
-                if (position >= self.count) return;
-                const index = originalIndex(self.options.order, position);
+                const position = self.next[queue].fetchAdd(1, .monotonic);
+                if (position >= self.queues[queue].len) return;
+                const index = self.queues[queue][position];
                 const claimed = elapsed(self.origin);
                 const estimate = if (self.options.estimates.len != 0) self.options.estimates[index] else 0;
                 const in_flight = self.admit(estimate) orelse return;
@@ -233,6 +261,23 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
     defer a.free(errors);
     @memset(errors, null);
     var shared = Shared{ .context = context, .count = count, .policy = policy, .options = options, .allocator = a, .origin = origin, .errors = errors };
+    const dispatch = try dispatchOrder(a, count, policy, options);
+    defer a.free(dispatch);
+    const queue_storage = try a.alloc(usize, count);
+    defer a.free(queue_storage);
+    {
+        const n = policy.affinity();
+        var at: usize = 0;
+        for (0..n) |queue| {
+            const begin = at;
+            for (dispatch) |index| if (index % n == queue) {
+                queue_storage[at] = index;
+                at += 1;
+            };
+            shared.queues[queue] = queue_storage[begin..at];
+        }
+        std.debug.assert(at == count);
+    }
     var threads: [MAX_LANES]std.Thread = undefined;
     var spawned: usize = 0;
     // Spawn failure also joins every started task before caller cleanup.
@@ -248,6 +293,23 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
     spawned = 0;
     for (shared.lane_errors) |err| if (err) |failure| return failure;
     for (errors) |err| if (err) |failure| return failure;
+}
+
+/// The complete dispatch permutation: the caller's order, else heaviest
+/// estimate first when requested (stable by ordinal), else natural order.
+/// Operational only: each index still executes exactly once.
+fn dispatchOrder(a: std.mem.Allocator, count: usize, policy: Policy, options: RunOptions) ![]usize {
+    const out = try a.alloc(usize, count);
+    for (out, 0..) |*slot, position| slot.* = originalIndex(options.order, position);
+    if (options.order.len == 0 and policy.heaviest_first and options.estimates.len == count) {
+        const Heavier = struct {
+            fn lessThan(estimates: []const u64, x: usize, y: usize) bool {
+                return if (estimates[x] != estimates[y]) estimates[x] > estimates[y] else x < y;
+            }
+        };
+        std.sort.pdq(usize, out, options.estimates, Heavier.lessThan);
+    }
+    return out;
 }
 
 /// Every reader owns its sample; the shared origin is immutable.

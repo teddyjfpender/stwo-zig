@@ -1,0 +1,55 @@
+info: rv64 OM31 recursion leaf 1/11: admitted graph
+info: rv64 OM31 recursion leaf 1/11: freshly verify cached outer (vars=32380679)
+info: rv64 OM31 recursion leaf 1/11 accepted: preprocess_ns=1676606654 prove_ns=0 restore_ns=775379 verify_ns=10748835
+info: rv64 OM31 recursion leaf 2/11: admitted graph
+info: rv64 OM31 recursion leaf 2/11: freshly verify cached outer (vars=31802189)
+info: rv64 OM31 recursion leaf 2/11 accepted: preprocess_ns=1581590060 prove_ns=0 restore_ns=855289 verify_ns=12823771
+info: rv64 OM31 recursion fold: [0,1) + [1,2)
+info: rv64 OM31 recursion fold accepted: preprocess_ns=1843305105 prove_ns=0 restore_ns=799089 verify_ns=11078954
+info: rv64 OM31 recursion fold class adopted: class=340a7bb79afea245 identity=20ff5bd674c84872
+info: rv64 OM31 recursion leaf 3/11: admitted graph
+info: rv64 OM31 recursion leaf 3/11: freshly verify cached outer (vars=32579596)
+info: rv64 OM31 recursion leaf 3/11 accepted: preprocess_ns=1677458412 prove_ns=0 restore_ns=718739 verify_ns=10963894
+info: rv64 OM31 recursion leaf 4/11: admitted graph
+info: rv64 OM31 recursion leaf 4/11: freshly verify cached outer (vars=29688494)
+info: rv64 OM31 recursion leaf 4/11 accepted: preprocess_ns=1644820749 prove_ns=0 restore_ns=974628 verify_ns=11851383
+info: rv64 OM31 recursion fold: [2,3) + [3,4)
+info: rv64 OM31 recursion fold accepted (class cache hit): class=340a7bb79afea245 restore_ns=750939 verify_ns=11283024 total_ns=12565442
+info: rv64 OM31 recursion fold: [0,2) + [2,4)
+info: rv64 OM31 recursion fold accepted (class cache hit): class=340a7bb79afea245 restore_ns=772699 verify_ns=10750335 total_ns=11657513
+info: rv64 OM31 recursion leaf 5/11: admitted graph
+info: rv64 OM31 recursion leaf 5/11: freshly verify cached outer (vars=24454992)
+info: rv64 OM31 recursion leaf 5/11 accepted: preprocess_ns=1665082650 prove_ns=0 restore_ns=721509 verify_ns=10793265
+info: rv64 OM31 recursion leaf 6/11: admitted graph
+info: rv64 OM31 recursion leaf 6/11: freshly verify cached outer (vars=24455291)
+info: rv64 OM31 recursion leaf 6/11 accepted: preprocess_ns=1601901731 prove_ns=0 restore_ns=756018 verify_ns=11041555
+info: rv64 OM31 recursion fold: [4,5) + [5,6)
+info: rv64 OM31 recursion fold accepted (class cache hit): class=340a7bb79afea245 restore_ns=908229 verify_ns=11653723 total_ns=13110081
+info: rv64 OM31 recursion leaf 7/11: admitted graph
+info: rv64 OM31 recursion leaf 7/11: freshly verify cached outer (vars=24455230)
+info: rv64 OM31 recursion leaf 7/11 accepted: preprocess_ns=1600787252 prove_ns=0 restore_ns=680849 verify_ns=11255904
+info: rv64 OM31 recursion leaf 8/11: admitted graph
+info: rv64 OM31 recursion leaf 8/11: freshly verify cached outer (vars=27446875)
+info: rv64 OM31 recursion leaf 8/11 accepted: preprocess_ns=1557696224 prove_ns=0 restore_ns=695059 verify_ns=11288423
+info: rv64 OM31 recursion fold: [6,7) + [7,8)
+info: rv64 OM31 recursion fold accepted (class cache hit): class=340a7bb79afea245 restore_ns=750309 verify_ns=10932694 total_ns=12150573
+info: rv64 OM31 recursion fold: [4,6) + [6,8)
+info: rv64 OM31 recursion fold accepted (class cache hit): class=340a7bb79afea245 restore_ns=618120 verify_ns=10708654 total_ns=11726063
+info: rv64 OM31 recursion fold: [0,4) + [4,8)
+info: rv64 OM31 recursion fold accepted (class cache hit): class=340a7bb79afea245 restore_ns=596009 verify_ns=10921715 total_ns=11888283
+info: rv64 OM31 recursion leaf 9/11: admitted graph
+info: rv64 OM31 recursion leaf 9/11: freshly verify cached outer (vars=22569437)
+info: rv64 OM31 recursion leaf 9/11 accepted: preprocess_ns=1597378167 prove_ns=0 restore_ns=813028 verify_ns=10932535
+info: rv64 OM31 recursion leaf 10/11: admitted graph
+info: rv64 OM31 recursion leaf 10/11: freshly verify cached outer (vars=28326770)
+info: rv64 OM31 recursion leaf 10/11 accepted: preprocess_ns=1567442750 prove_ns=0 restore_ns=756539 verify_ns=11115694
+info: rv64 OM31 recursion fold: [8,9) + [9,10)
+info: rv64 OM31 recursion fold accepted (class cache hit): class=340a7bb79afea245 restore_ns=635129 verify_ns=10730425 total_ns=11808453
+info: rv64 OM31 recursion leaf 11/11: admitted graph
+info: rv64 OM31 recursion leaf 11/11: freshly verify cached outer (vars=7277627)
+info: rv64 OM31 recursion leaf 11/11 accepted: preprocess_ns=1874454051 prove_ns=0 restore_ns=1250218 verify_ns=11863203
+info: rv64 OM31 recursion fold: [8,10) + [10,11)
+info: rv64 OM31 recursion fold accepted (class cache hit): class=340a7bb79afea245 restore_ns=769719 verify_ns=10828955 total_ns=12031463
+info: rv64 OM31 recursion fold: [0,8) + [8,11)
+info: rv64 OM31 recursion fold accepted (class cache hit): class=340a7bb79afea245 restore_ns=618329 verify_ns=10876135 total_ns=11879633
+FOLD_CLASS_CACHE hits=9 misses=1 checked=0 classes=1

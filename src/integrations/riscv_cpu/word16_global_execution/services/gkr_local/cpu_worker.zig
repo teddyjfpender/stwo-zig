@@ -14,6 +14,7 @@ const Frame = @import("frame.zig");
 const Child = @import("child.zig");
 const Components = @import("cpu_components.zig");
 const Classic = @import("classic_witness.zig");
+pub const DeviceGlobal = @import("device_global.zig");
 const Global = @import("global_cpu.zig");
 const Metadata = @import("global_metadata.zig");
 const Commit = @import("../../../word16_execution/main_ownership.zig").Commit;
@@ -69,8 +70,8 @@ pub fn cpuStatement(setup: *const R.CpuSetup, request: P.Request, first: anytype
     // Freeze the original field order rather than hashing an extensible struct.
     inline for (.{ "cpu_log", "alu_log", "alu_tail_log", "binary_log", "binary_tail_log", "shift_log", "shift_tail_log", "jalr_log", "division_log", "omit_empty_division", "multiplication_log", "ls_log", "ls_tail_log", "boundary_log", "initial_log", "terminal_log" }) |name|
         hashValue(&h, @field(setup.materials.geometry, name));
-    // v2 projection only (the route admits nothing else, see v2_scope.zig):
-    // the exact pre-v3 statement encoding, so v2 GKR statements stay byte-identical.
+    // Preserve the exact pre-v3 prefix so unchanged V2 statements stay byte-identical.
+    // Qualified V3 geometry, bridges and calls are domain-separated below.
     hashValue(&h, struct { keccak: ?u32, add: ?u32, double: ?u32 }{ .keccak = setup.bridges.keccak, .add = setup.bridges.add, .double = setup.bridges.double });
     hashValue(&h, struct { base: @TypeOf(request.base), calls: [3]u32 }{ .base = request.base, .calls = request.calls[0..3].* });
     const ids = firstVector(first);
@@ -163,7 +164,40 @@ fn releaseBridgeLocals(source: anytype) void {
 /// Optional caller-owned diagnostics. gkr_ns includes metadata projection and
 /// durable terminal-binding construction; these times never enter a transcript.
 pub const SealTiming = struct { main_commit_ns: u64 = 0, gkr_ns: u64 = 0, inputs_ns: u64 = 0, numerical_ns: u64 = 0, binding_ns: u64 = 0, numerical_requested_peak_bytes: usize = 0, including_binding_requested_peak_bytes: usize = 0, admitted_gkr_peak_bytes: usize = 0, gkr_allocator_limit_bytes: usize = 0 };
+/// Frontend-owned hybrid bridge. Items contain receiver-derived public/local/
+/// shared metadata; the callback never reconstructs it from producer bytes.
+pub const CompositionStage = struct {
+    context: *anyopaque,
+    evaluate: *const fn (*anyopaque, std.mem.Allocator, []const Components.Item, O, u32, usize, *const anyopaque, *anyopaque) anyerror!bool,
+};
+pub const ResidentCompositionStage = struct {
+    context: *anyopaque,
+    evaluate_and_commit: *const fn (*anyopaque, std.mem.Allocator, []const Components.Item, O, u32, u32, usize, *const anyopaque, @import("stwo_prover_api").device_pcs.Scope) anyerror!@import("stwo_prover_api").device_pcs.Tree,
+};
+const ResidentCompositionInvocation = struct {
+    stage: ResidentCompositionStage,
+    items: []const Components.Item,
+    scope: @import("stwo_prover_api").device_pcs.Scope,
+    fn evaluateAndCommit(ctx: *anyopaque, a: std.mem.Allocator, alpha: O, log: u32, split: u32, total: usize, trace: *const anyopaque) anyerror!@import("stwo_prover_api").device_pcs.Tree {
+        const invocation: *const @This() = @ptrCast(@alignCast(ctx));
+        return invocation.stage.evaluate_and_commit(invocation.stage.context, a, invocation.items, alpha, log, split, total, trace, invocation.scope);
+    }
+};
+const CompositionInvocation = struct {
+    stage: CompositionStage,
+    items: []const Components.Item,
+    fn evaluate(ctx: *anyopaque, a: std.mem.Allocator, alpha: O, log: u32, total: usize, trace: *const anyopaque, result: *anyopaque) anyerror!bool {
+        const invocation: *const CompositionInvocation = @ptrCast(@alignCast(ctx));
+        return invocation.stage.evaluate(invocation.stage.context, a, invocation.items, alpha, log, total, trace, result);
+    }
+};
 pub const CpuWorker = struct {
+    replay: ?@import("cpu_replay.zig").Owner = null,
+    device_global_stage: ?DeviceGlobal.Stage = null,
+    om31_composition_stage: ?CompositionStage = null,
+    resident_composition_stage: ?ResidentCompositionStage = null,
+    device_trace_commit_stage: ?@import("stwo_prover_api").device_pcs.TraceCommitStage = null,
+    numerical_gkr_stage: ?Child.NumericalStage = null,
     allocator: std.mem.Allocator,
     setup: *const R.CpuSetup,
     request: P.Request,
@@ -210,6 +244,15 @@ pub const CpuWorker = struct {
         if (!self.sealed or self.consumed) return error.WideCpuPhase;
         if (self.local_metadata_retired) return;
         const source = &self.source.core;
+        if (self.source.device_generated) {
+            // Device sources keep valid empty host owners and compact public
+            // headers. Only capture records become dead after joined GKR.
+            source.cpu.allocator.free(source.cpu.metadata);
+            source.cpu.metadata = &.{};
+            source.cpu.releaseFacts();
+            self.local_metadata_retired = true;
+            return;
+        }
         inline for (.{ "range8", "range16", "shift_table", "and_table", "multiplication", "division", "tails", "jalr", "shift", "binary", "alu", "rom", "cpu" }) |name| @field(source, name).deinit();
         source.allocator.free(source.counts16);
         source.allocator.free(source.counts8);
@@ -244,11 +287,22 @@ pub const CpuWorker = struct {
     /// mapped/parked buffers; its explicit admission remains the caller's duty.
     pub fn spillMain(self: *CpuWorker, store: *@import("../../retained_main_store.zig").Store) !usize {
         if (!self.sealed or self.consumed) return error.WideCpuPhase;
+        if (self.scheme.device_om31_trace_trees[1] != null) return 0;
         return store.spill(self.allocator, &self.scheme.trees.items[1]);
     }
     pub fn restoreMain(self: *CpuWorker, store: *@import("../../retained_main_store.zig").Store) !usize {
         if (!self.sealed or self.consumed) return error.WideCpuPhase;
+        if (self.scheme.device_om31_trace_trees[1] != null) return 0;
         return store.restore(&self.scheme.trees.items[1]);
+    }
+    fn deviceBindingColumns(child: *Child.Unbound) !?[]const @import("stwo_prover_api").device_pcs.Column {
+        if (comptime @hasDecl(Child.Unbound, "deviceBindingColumns")) {
+            if (child.device_binding != null) return try child.deviceBindingColumns();
+        }
+        return null;
+    }
+    fn mainRoot(self: *const CpuWorker) [32]u8 {
+        return if (self.scheme.device_om31_trace_trees[1]) |tree| tree.root else self.scheme.trees.items[1].root();
     }
     pub fn seal(self: *CpuWorker, a: std.mem.Allocator) !Manifest.StageOne {
         if (!@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, self.allocator)) return error.WideCpuAllocatorMismatch;
@@ -258,16 +312,50 @@ pub const CpuWorker = struct {
         // Failure consumes the worker: owned commitment consumes storage on errors too.
         self.consumed = true;
         if (self.fixed_authority) |*binding| try binding.append(a, &self.setup.key, self.expected.fixed, &self.scheme, &self.channel) else try W.appendFixed(a, &self.setup.key, self.expected.fixed, &self.scheme, &self.channel);
-        const main = try self.source.takeMain(self.setup);
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, self.native_recorder, &self.channel);
-        const root = self.scheme.trees.items[1].root();
+        if (self.device_trace_commit_stage) |stage| {
+            if (self.scheme.device_om31_pcs_stage == null or self.numerical_gkr_stage == null or self.resident_composition_stage == null) return error.DeviceTraceRequiresResidentStages;
+            const columns = try self.source.mainTraceColumns(a, self.setup);
+            defer a.free(columns);
+            const committed = try stage.commit(stage.context, a, .{ .scope = .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = @splat(0), .ordinal = @intCast(self.expected.ordinal) }, .tree_index = 1, .config = self.config, .columns = columns });
+            if (committed.columns.len != columns.len) return error.DeviceTraceColumnMismatch;
+            for (committed.columns, columns) |actual, expected| if (actual.log_size != expected.log_size) return error.DeviceTraceColumnMismatch;
+            try self.scheme.adoptDeviceOm31TraceTree(1, committed, &self.channel);
+            try self.source.releaseMain();
+        } else {
+            const main = try self.source.takeMain(self.setup);
+            try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, self.native_recorder, &self.channel);
+        }
+        const root = self.mainRoot();
         if (clock) |*timer| self.seal_timing.?.main_commit_ns = timer.lap();
+        // Borrow the actual committed coefficients. A numerical device stage
+        // reconstructs native physical rows itself; no raw N/D matrices are
+        // allocated or uploaded by this seam. The scheme retains every owner
+        // until the synchronous stage and terminal binding return.
+        var native_columns = Child.NativeColumns{};
+        defer if (self.numerical_gkr_stage != null) {
+            a.free(native_columns.fixed);
+            a.free(native_columns.main);
+        };
+        if (self.numerical_gkr_stage != null) {
+            const D = @import("stwo_prover_api").device_pcs;
+            const fixed_coefficients = self.scheme.trees.items[0].coefficients orelse return error.DeviceGkrCoefficientsRequired;
+            const main_coefficients = if (self.scheme.device_om31_trace_trees[1] == null) self.scheme.trees.items[1].coefficients orelse return error.DeviceGkrCoefficientsRequired else null;
+            const fixed_columns = try a.alloc(D.Column, fixed_coefficients.len);
+            native_columns.fixed = fixed_columns;
+            const main_columns = try a.alloc(D.Column, if (main_coefficients) |values| values.len else self.scheme.device_om31_trace_trees[1].?.columns.len);
+            native_columns.main = main_columns;
+            for (fixed_coefficients, fixed_columns) |coefficient, *column| column.* = .{ .log_size = coefficient.logSize(), .coefficients = coefficient.coefficients() };
+            if (main_coefficients) |values| {
+                for (values, main_columns) |coefficient, *column| column.* = .{ .log_size = coefficient.logSize(), .coefficients = coefficient.coefficients() };
+            } else @memcpy(main_columns, self.scheme.device_om31_trace_trees[1].?.columns);
+        }
         var phase_timing = Child.PhaseTiming{};
         const policy = if (self.tree_policy) |value| value else try Child.readTreePolicy(a);
         // Observation only (lane rusage); never proof authority.
         var gkr_scope = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "local_gkr_prove", "Local GKR inputs, layers and sumchecks");
         defer gkr_scope.end();
-        self.child = try Child.Unbound.proveTimedWithBindingStorage(a, self.gkr_budget, .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = self.expected.ordinal }, self.instances, @import("native_provider.zig").Provider{ .source = &self.source }, policy, self.defer_local_binding, if (self.seal_timing != null) &phase_timing else null);
+        self.scheme.device_om31_scope = .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = @intCast(self.expected.ordinal) };
+        self.child = try Child.Unbound.proveTimedWithNumericalStage(a, self.gkr_budget, .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = self.expected.ordinal }, self.instances, @import("native_provider.zig").Provider{ .source = &self.source }, policy, self.defer_local_binding, if (self.seal_timing != null) &phase_timing else null, self.numerical_gkr_stage, native_columns);
         if (self.seal_timing) |timing| {
             timing.inputs_ns = phase_timing.inputs_ns;
             timing.numerical_ns = phase_timing.numerical_ns;
@@ -285,7 +373,7 @@ pub const CpuWorker = struct {
     pub fn complete(self: *CpuWorker, a: std.mem.Allocator, pending: *const Manifest.PendingManifest, index: usize, global_budget: usize) !CpuEncoded {
         if (!@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, self.allocator)) return error.WideCpuAllocatorMismatch;
         if (!self.sealed or self.consumed) return error.WideCpuPhase;
-        const root = self.scheme.trees.items[1].root();
+        const root = self.mainRoot();
         try checkManifest(self.expected, pending, index);
         try pending.checkPhysicalRoots(index, self.expected.fixed, root);
         if (index != self.expected.ordinal or !std.mem.eql(u8, &pending.entries[index].scope.statement, &self.expected.statement)) return error.WideCpuStatementMismatch;
@@ -297,6 +385,11 @@ pub const CpuWorker = struct {
         }
         var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "CPU global classic interactions");
         defer generation.end();
+        if (self.device_global_stage != null and self.device_trace_commit_stage == null) return error.ResidentGlobalRequiresDeviceTrace;
+        const device_witnesses = try a.alloc(?DeviceGlobal.Witness, self.plan.slots.len);
+        defer a.free(device_witnesses);
+        @memset(device_witnesses, null);
+        defer for (device_witnesses) |*w| if (w.*) |*value| value.deinit();
         const witnesses = try a.alloc(?Classic.Witness, self.plan.slots.len);
         defer a.free(witnesses);
         @memset(witnesses, null);
@@ -304,11 +397,32 @@ pub const CpuWorker = struct {
         const claims = try a.alloc(O, self.plan.claim_count);
         errdefer a.free(claims);
         var remaining = global_budget;
-        for (self.plan.slots, witnesses) |slot, *w| {
+        for (self.plan.slots, witnesses, device_witnesses) |slot, *w, *device_witness| {
             const n = Global.claimCount(slot.origin);
             if (n == 0) continue;
+            if (self.device_global_stage) |stage| {
+                const D = @import("stwo_prover_api").device_pcs;
+                const descriptor = @import("source_authority.zig").Descriptor{ .origin = slot.origin };
+                const shape = try @import("constraint_authority.zig").shape(descriptor);
+                const fixed = try a.alloc(D.Column, shape.fixed);
+                defer a.free(fixed);
+                const fixed_coefficients = self.scheme.trees.items[0].coefficients orelse return error.DeviceGkrCoefficientsRequired;
+                if (slot.fixed_offset + fixed.len > fixed_coefficients.len) return error.InvalidWideGlobalShape;
+                for (fixed_coefficients[slot.fixed_offset..][0..fixed.len], fixed) |coefficient, *column| column.* = .{ .log_size = coefficient.logSize(), .coefficients = coefficient.coefficients() };
+                const main_tree = self.scheme.device_om31_trace_trees[1] orelse return error.ResidentGlobalMainRequired;
+                if (slot.main_offset + shape.main > main_tree.columns.len) return error.InvalidWideGlobalShape;
+                const item = DeviceGlobal.Item{ .descriptor = descriptor, .log_size = slot.log, .fixed = fixed, .fixed_offset = slot.fixed_offset, .main = main_tree.columns[slot.main_offset..][0..shape.main], .sponge_first_id = if (slot.origin == .sponge) (self.source.sponge[@intFromEnum(slot.origin.sponge)] orelse return error.MissingLocalGkrBridge).first_id else 0 };
+                device_witness.* = try stage.generate(stage.context, a, self.scheme.device_om31_scope orelse return error.ResidentCompositionScopeRequired, item, pending.shared, remaining);
+                try device_witness.*.?.validate(item);
+                const rows = @as(usize, 1) << @intCast(slot.log);
+                const bytes = try std.math.mul(usize, try std.math.mul(usize, rows, device_witness.*.?.columns.len), @sizeOf(M));
+                if (bytes > remaining) return error.WideCpuGlobalBudget;
+                remaining -= bytes;
+                @memcpy(claims[slot.claim_offset..][0..n], device_witness.*.?.claims);
+                continue;
+            }
             const provider = Metadata.Provider{ .source = &self.source, .origin = slot.origin, .log_size = slot.log, .shared = pending.shared };
-            w.* = if (slot.origin == .sponge) try Classic.Witness.initTruth(a, slot.log, try Metadata.groups(slot.origin), provider, remaining) else try Classic.Witness.init(a, slot.log, try Metadata.groups(slot.origin), provider, remaining);
+            w.* = if (slot.origin == .core and (slot.origin.core == .initial or slot.origin.core == .terminal)) try Classic.Witness.initPublicBoundary(a, slot.log, try Metadata.groups(slot.origin), provider, remaining) else if (slot.origin == .sponge) try Classic.Witness.initTruth(a, slot.log, try Metadata.groups(slot.origin), provider, remaining) else try Classic.Witness.init(a, slot.log, try Metadata.groups(slot.origin), provider, remaining);
             const bytes = try std.math.mul(usize, w.*.?.data.len, @sizeOf(M));
             if (bytes > remaining) return error.WideCpuGlobalBudget;
             remaining -= bytes;
@@ -320,56 +434,105 @@ pub const CpuWorker = struct {
         defer set.deinit();
         const handles = try set.provers(a);
         defer a.free(handles);
-        const headers = try a.alloc(engine.pcs.ColumnEvaluation, self.plan.inter_columns);
-        var owns_buffers = true;
-        errdefer if (owns_buffers) a.free(headers);
-        const backing_count = self.plan.binding_count + blk: {
-            var n: usize = 0;
-            for (witnesses) |w| {
-                n += @intFromBool(w != null);
+        if (self.device_trace_commit_stage) |stage| {
+            const D = @import("stwo_prover_api").device_pcs;
+            const columns = try a.alloc(D.TraceColumn, self.plan.inter_columns);
+            defer a.free(columns);
+            const resident_binding = try deviceBindingColumns(self.child.?);
+            for (self.plan.slots, witnesses, device_witnesses) |slot, witness, device_witness| {
+                const rows = @as(usize, 1) << @intCast(slot.log);
+                var offset = slot.inter_offset;
+                if (slot.binding_index) |binding_index| {
+                    if (resident_binding) |binding| {
+                        if (binding_index * 16 + 16 > binding.len) return error.WideCpuBindingShape;
+                        for (columns[offset..][0..16], binding[binding_index * 16 ..][0..16]) |*column, input| {
+                            if (input.log_size != slot.log or input.device == null or input.coefficients.len != 0) return error.WideCpuBindingShape;
+                            column.* = .{ .log_size = slot.log, .encoding = .coefficients, .device = input.device };
+                        }
+                    } else {
+                        const data = self.child.?.binding.columns[binding_index];
+                        if (data.len != rows * 16) return error.WideCpuBindingShape;
+                        for (columns[offset..][0..16], 0..) |*column, i| column.* = .{ .log_size = slot.log, .encoding = .evaluations, .host = data[i * rows ..][0..rows] };
+                    }
+                    offset += 16;
+                }
+                if (device_witness) |value| {
+                    @memcpy(columns[offset..][0..value.columns.len], value.columns);
+                } else if (witness) |value| {
+                    for (columns[offset..][0..value.width()], 0..) |*column, i| column.* = .{ .log_size = slot.log, .encoding = .evaluations, .host = value.data[i * rows ..][0..rows] };
+                }
             }
-            break :blk n;
-        };
-        const backings = try a.alloc([]M, backing_count);
-        errdefer if (owns_buffers) a.free(backings);
-        var b: usize = 0;
-        for (self.plan.slots, witnesses) |slot, w| {
-            const rows = @as(usize, 1) << @intCast(slot.log);
-            var offset = slot.inter_offset;
-            if (slot.binding_index) |i| {
-                const data = self.child.?.binding.columns[i];
-                if (data.len != rows * 16) return error.WideCpuBindingShape;
-                backings[b] = data;
-                b += 1;
-                for (headers[offset..][0..16], 0..) |*c, j| c.* = .{ .log_size = slot.log, .values = data[j * rows ..][0..rows] };
-                offset += 16;
+            self.consumed = true;
+            W.mixManifestAndClaims(&self.channel, pending.digest, claims);
+            const committed = try stage.commit(stage.context, a, .{ .scope = self.scheme.device_om31_scope orelse return error.ResidentCompositionScopeRequired, .tree_index = 2, .config = self.config, .columns = columns });
+            if (committed.columns.len != columns.len) return error.DeviceTraceColumnMismatch;
+            for (committed.columns, columns) |actual, expected| if (actual.log_size != expected.log_size) return error.DeviceTraceColumnMismatch;
+            try self.scheme.adoptDeviceOm31TraceTree(2, committed, &self.channel);
+        } else {
+            const headers = try a.alloc(engine.pcs.ColumnEvaluation, self.plan.inter_columns);
+            var owns_buffers = true;
+            errdefer if (owns_buffers) a.free(headers);
+            const backing_count = self.plan.binding_count + blk: {
+                var n: usize = 0;
+                for (witnesses) |w| {
+                    n += @intFromBool(w != null);
+                }
+                break :blk n;
+            };
+            const backings = try a.alloc([]M, backing_count);
+            errdefer if (owns_buffers) a.free(backings);
+            var b: usize = 0;
+            for (self.plan.slots, witnesses) |slot, w| {
+                const rows = @as(usize, 1) << @intCast(slot.log);
+                var offset = slot.inter_offset;
+                if (slot.binding_index) |i| {
+                    const data = self.child.?.binding.columns[i];
+                    if (data.len != rows * 16) return error.WideCpuBindingShape;
+                    backings[b] = data;
+                    b += 1;
+                    for (headers[offset..][0..16], 0..) |*c, j| c.* = .{ .log_size = slot.log, .values = data[j * rows ..][0..rows] };
+                    offset += 16;
+                }
+                if (w) |v| {
+                    backings[b] = v.data;
+                    b += 1;
+                    for (headers[offset..][0..v.width()], 0..) |*c, j| c.* = .{ .log_size = slot.log, .values = v.data[j * rows ..][0..rows] };
+                }
             }
-            if (w) |v| {
-                backings[b] = v.data;
-                b += 1;
-                for (headers[offset..][0..v.width()], 0..) |*c, j| c.* = .{ .log_size = slot.log, .values = v.data[j * rows ..][0..rows] };
-            }
+            // All allocations and validation completed. Transfer backing ownership once.
+            self.consumed = true;
+            const detached = try self.child.?.takeBindingBackings();
+            a.free(detached);
+            for (witnesses) |*w| if (w.*) |*v| {
+                v.data = &.{};
+            };
+            W.mixManifestAndClaims(&self.channel, pending.digest, claims);
+            owns_buffers = false;
+            try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, headers, backings, 64, self.native_recorder, &self.channel);
         }
-        // All allocations and validation completed. Transfer backing ownership once.
-        self.consumed = true;
-        const detached = try self.child.?.takeBindingBackings();
-        a.free(detached);
-        for (witnesses) |*w| if (w.*) |*v| {
-            v.data = &.{};
-        };
-        W.mixManifestAndClaims(&self.channel, pending.digest, claims);
-        owns_buffers = false;
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, headers, backings, 64, self.native_recorder, &self.channel);
-        const scheme = self.scheme;
+        var scheme = self.scheme;
         self.scheme = undefined;
         self.owns_scheme = false;
-        var proof = try W.Prover.prove(a, handles, &self.channel, scheme, .{ .recorder = self.native_recorder });
+        var resident_invocation: ResidentCompositionInvocation = undefined;
+        var resident_stage: @import("stwo_prover_api").device_composition.ResidentOm31Stage = undefined;
+        if (self.resident_composition_stage) |selected| {
+            resident_invocation = .{ .stage = selected, .items = set.items, .scope = scheme.device_om31_scope orelse return error.ResidentCompositionScopeRequired };
+            resident_stage = .{ .context = &resident_invocation, .evaluate_and_commit = ResidentCompositionInvocation.evaluateAndCommit };
+            scheme.device_om31_composition_stage = &resident_stage;
+        }
+        var invocation: CompositionInvocation = undefined;
+        const stage: ?@import("stwo_prover_api").device_composition.Om31Stage = if (self.om31_composition_stage) |selected| blk: {
+            invocation = .{ .stage = selected, .items = set.items };
+            break :blk .{ .context = &invocation, .evaluate = CompositionInvocation.evaluate };
+        } else null;
+        var proof = try W.Prover.prove(a, handles, &self.channel, scheme, .{ .recorder = self.native_recorder, .om31_composition_stage = stage });
         defer proof.deinit(a);
         return .{ .bytes = try W.encodePhysical(a, proof.proof), .claims = claims };
     }
     pub fn deinit(self: *CpuWorker, a: std.mem.Allocator) void {
+        if (self.replay) |*owner| owner.deinit();
         if (self.child) |c| c.deinit();
-        if (self.local_metadata_retired) {
+        if (self.local_metadata_retired and !self.source.device_generated) {
             self.source.core.memory.deinit();
             if (self.source.keccak) |*source| source.deinit();
             if (self.source.add) |*source| source.deinit();
@@ -394,6 +557,25 @@ pub const CpuWorker = struct {
 };
 pub fn verifyCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: anytype, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const CpuEncoded) !Manifest.Claims {
     return verifyCpuWithAuthority(a, setup, request, expected, first, pending, index, config, encoded, null);
+}
+/// Every check `verifyCpuWithAuthority` performs except the core STARK
+/// verification itself, in the same order. A caller that runs the identical
+/// core verifier (same components, transcript and commitment receiver) with
+/// proof capture obtains exactly the acceptance of `verifyCpuWithAuthority`
+/// without verifying the proof twice. Returns the decoded physical proof.
+pub fn admitCpuBeforeCoreVerify(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: anytype, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const CpuEncoded, fixed: ?*const Fixed.Binding) !W.Proof {
+    try validate(a, setup, request, expected, first, config, fixed);
+    var plan = try Components.Plan.init(a, setup);
+    defer plan.deinit();
+    try checkManifest(expected, pending, index);
+    var proof = try W.decodePhysical(a, encoded.bytes);
+    errdefer proof.deinit(a);
+    const roots = proof.commitment_scheme_proof.commitments.items;
+    if (roots.len != 4 or !std.meta.eql(proof.commitment_scheme_proof.config, config) or proof.commitment_scheme_proof.revision_config != null) return error.WideCpuProofShape;
+    try pending.checkPhysicalRoots(index, roots[0], roots[1]);
+    try publicClaims(request, &plan, pending.shared, encoded.claims);
+    if (pending.entries[index].local == null) return error.WideCpuLocalRequired;
+    return proof;
 }
 pub fn verifyCpuWithAuthority(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: anytype, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const CpuEncoded, fixed: ?*const Fixed.Binding) !Manifest.Claims {
     try validate(a, setup, request, expected, first, config, fixed);

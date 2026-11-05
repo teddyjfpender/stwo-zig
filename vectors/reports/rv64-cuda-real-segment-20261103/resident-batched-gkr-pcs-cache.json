@@ -1,0 +1,72 @@
+{
+  "schema": "rv64-resident-full-block-optimization/v1",
+  "date_utc": "2026-11-03",
+  "block": 24628607,
+  "gpu_count": 1,
+  "gpu_model": "RTX5090 sm120",
+  "scope": "One standalone and two sequential resident-batch full-block qualifications; all20 artifacts match fresh reference; recursion excluded",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "security_scope": "128-bit conjectured target under owner-accepted documented assumptions; no whole-protocol certificate",
+  "completed_ethereum_block": true,
+  "instructions": 26894777,
+  "cpu_proofs": 7,
+  "truth_proofs": 10,
+  "all20_artifacts_match_freshly_accepted_reference": true,
+  "fresh_receiver_reference": "fully-resident-complete-block.json",
+  "prove_ns": 14629282060,
+  "capture_ns": 10872523520,
+  "setup_ns": 96291791964,
+  "same_process_verify_ns": 2363969176,
+  "native_library_sha256": "2875eb3f3881266d7e5b47aee79a74ae55b0c4ac5b3ca610db8e74e4b2cf8046",
+  "source_commits": [
+    "6479218af",
+    "98c24d528",
+    "46be14435",
+    "d3a048d84"
+  ],
+  "qualification_source_head": "1070c8a54",
+  "gkr_stage_ns": 1319126008,
+  "gkr_kernel_launches": 18986,
+  "pcs_prepare_ns": 442008079,
+  "pcs_wall_ns": 2456638743,
+  "pcs_device_ns": 1604003696,
+  "pcs_coefficient_copy_calls": 259,
+  "pcs_device_columns": 86787,
+  "pcs_host_geometry_final": {
+    "host_geometry_hits": "10",
+    "host_geometry_misses": "7",
+    "host_geometry_bytes": "63067192",
+    "host_geometry_cap": "134217728",
+    "host_geometry_bypasses": "0"
+  },
+  "retained_host_wide_parking": false,
+  "baseline_prove_ns": 16325026183,
+  "limitations": [
+    "Combined change comparison, not independent per-change attribution; only one warm repeated trial",
+    "Cold setup96.29s in this run remains an end-to-end bottleneck",
+    "No same-hardware CPU comparison or2/4GPU qualification",
+    "No recursion in this bundle"
+  ],
+  "repeated_resident_trials": [
+    {
+      "completed_ethereum_block": true,
+      "total_steps": 26894777,
+      "capture_ns": 12436387459,
+      "setup_ns": 95960128021,
+      "prove_ns": 14629438353,
+      "same_process_verify_ns": 2309957053,
+      "trial": 0,
+      "mismatches": []
+    },
+    {
+      "completed_ethereum_block": true,
+      "total_steps": 26894777,
+      "capture_ns": 11412964030,
+      "setup_ns": 37780719411,
+      "prove_ns": 11583142282,
+      "same_process_verify_ns": 2311358476,
+      "trial": 1,
+      "mismatches": []
+    }
+  ]
+}

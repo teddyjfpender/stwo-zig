@@ -186,6 +186,11 @@ fn emitRamPairRaw(comptime F: type, sink: anytype, address: [4]F, k: []const F, 
     sink.emit(RAM, ramTuple(F, address, after[0], after[1], after[2], after_value, readable, writable), weight.neg());
 }
 pub fn emitRawFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, first_id: u32, sink: anytype) void {
+    emitRawWithFirstFor(F, kind, f, m, if (kind == .perm) q(F, first_id) else F.zero(), sink);
+}
+/// Same tuple authority with an already lifted public first-ID value. This
+/// keeps cold symbolic/device programs independent of request numeric values.
+pub fn emitRawWithFirstFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, first_id: F, sink: anytype) void {
     const one = F.one();
     const after = afterClock(F, m, kind);
     switch (kind) {
@@ -232,7 +237,7 @@ pub fn emitRawFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []co
             const P = L.perm;
             const a = m[P.active];
             const first = m[P.first];
-            const id = permId(F, f, first_id);
+            const id = first_id.add(f[0]);
             sink.emit(OWNER, tokenTuple(F, after, limbs(F, m, P.base), m[P.rb], m[P.wr], m[P.fin], m[P.freshfirst], shiftValue(F, m[P.shift..][0..8]), id), first.neg());
             for (0..T.LANES) |l| {
                 sink.emit(IO, ioTuple(F, id, F.zero(), l, inputBytes(F, m, l)), a.neg());
@@ -284,20 +289,23 @@ fn clockConstraints(comptime F: type, k: []const F, after: [3]F, gate: F, out: *
 }
 /// Active rows are exactly the public prefix `[0, rows)` and the last row is
 /// padding, so the wrapped predecessor of row 0 is inactive.
-fn countConstraints(comptime F: type, f: []const F, active: F, previous: F, rows: u32, out: *E.SinkFor(F)) void {
+fn countConstraints(comptime F: type, f: []const F, active: F, previous: F, rows: T.RowsFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const one = F.one();
     const first = f[1];
-    out.emit(first.mul(active.sub(q(F, @intFromBool(rows != 0)))));
+    const external = comptime E.isExternalLane(F);
+    const nonempty = if (external) rows.nonempty else q(F, @intFromBool(rows != 0));
+    const count = if (external) rows.rows else q(F, rows);
+    out.emit(first.mul(active.sub(nonempty)));
     out.emit(f[2].mul(active));
     out.emit(one.sub(first).mul(active).mul(one.sub(previous)));
-    out.emit(one.sub(first).mul(previous.sub(active)).mul(f[0].sub(q(F, rows))));
+    out.emit(one.sub(first).mul(previous.sub(active)).mul(f[0].sub(count)));
 }
 fn sum(comptime F: type, values: []const F) F {
     var s = F.zero();
     for (values) |v| s = s.add(v);
     return s;
 }
-fn emitCall(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: u32, out: *E.SinkFor(F)) void {
+fn emitCall(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: T.RowsFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const C = L.call;
     const one = F.one();
     const a = m[C.active];
@@ -325,7 +333,7 @@ fn emitCall(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: u
     const span = shiftValue(F, m[C.shift..][0..8]).add(len).add(q(F, 7)).sub(m[C.e]);
     out.emit(a.mul(m[C.words].mul(q(F, 8)).sub(one.sub(m[C.zero]).mul(span))));
 }
-fn emitPerm(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: u32, out: *E.SinkFor(F)) void {
+fn emitPerm(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: T.RowsFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const P = L.perm;
     const one = F.one();
     const a = m[P.active];
@@ -387,7 +395,7 @@ fn emitPerm(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: u
     // A fresh call starts from the zero state.
     for (m[P.pre..][0..200]) |v| out.emit(m[P.freshfirst].mul(v));
 }
-pub fn emitMainFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, pm: []const F, rows: u32, out: *E.SinkFor(F)) void {
+pub fn emitMainFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, pm: []const F, rows: T.RowsFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     switch (kind) {
         .call => emitCall(F, f, m, pm, rows, out),
         .perm => emitPerm(F, f, m, pm, rows, out),

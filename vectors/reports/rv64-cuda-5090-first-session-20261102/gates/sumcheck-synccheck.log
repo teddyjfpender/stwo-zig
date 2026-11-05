@@ -1,0 +1,4 @@
+========= COMPUTE-SANITIZER
+{"schema":"rv64-cuda-resident-sumcheck-v1","device":0,"count":1024,"base_n":true,"combined_median_ms":1.021760,"split_median_ms":1.013024,"fused_eq_combined_ms":0.941760,"fused_eq_split_ms":0.887776,"fold_sum_ms":0.948704,"all_fused_ms":0.825888,"tail64_ms":0.724832,"tail256_ms":0.674720,"allocated_bytes":96852,"hot_h2d_bytes":0,"hot_d2h_bytes":0,"all_rounds_verified":true,"full_block_verified":false}
+{"schema":"rv64-cuda-resident-sumcheck-v1","device":0,"count":1024,"base_n":false,"combined_median_ms":1.023904,"split_median_ms":1.016192,"fused_eq_combined_ms":0.868320,"fused_eq_split_ms":0.886048,"fold_sum_ms":0.972192,"all_fused_ms":0.828832,"tail64_ms":0.725056,"tail256_ms":0.694528,"allocated_bytes":125524,"hot_h2d_bytes":0,"hot_d2h_bytes":0,"all_rounds_verified":true,"full_block_verified":false}
+========= ERROR SUMMARY: 0 errors

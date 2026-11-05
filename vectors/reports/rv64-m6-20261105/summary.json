@@ -1,0 +1,930 @@
+{
+ "schema": "rv64-m6-summary/v1",
+ "date": "2026-11-05",
+ "branch": "codex/rv64-m6-integrate",
+ "label": "measured single observations [M] unless noted; pod 1-min load 5-30 at run start (protocol quiet bar 8): not quiet-host quotable; same-session A/B against M5 binaries (m5-ab) is the comparison",
+ "configs": {
+  "m5_same_session": {
+   "receipt": "integrate/daemon-m5-ab.json",
+   "label": "M5 integrate binaries (37f94901), same harness, --store none, RV64_NATIVE_SCHEDULE='{}'",
+   "driver_sha256": "37f94901ab5f4614",
+   "load_avg_1m_before": 5.2,
+   "blocks": {
+    "26235156": {
+     "warm_requests": 2,
+     "request_s": [
+      18.086,
+      17.671
+     ],
+     "request_s_median": 17.878,
+     "capture_s": 2.093,
+     "setup_s": 0.123,
+     "native_s": 4.155,
+     "recursion_s": 11.334,
+     "tail_after_last_leaf_s": null,
+     "first_request_cold_setup_s": 30.903,
+     "proof_bytes_root": 748536,
+     "byte_identical_to_m5_default": true,
+     "full_tree_receiver": null,
+     "service_rss_peak_gib": 33.8,
+     "device_peak_gb": 31.5
+    },
+    "24628607": {
+     "warm_requests": 2,
+     "request_s": [
+      26.936,
+      28.154
+     ],
+     "request_s_median": 27.545,
+     "capture_s": 2.606,
+     "setup_s": 0.145,
+     "native_s": 6.44,
+     "recursion_s": 18.148,
+     "tail_after_last_leaf_s": null,
+     "first_request_cold_setup_s": 39.56,
+     "proof_bytes_root": 706424,
+     "byte_identical_to_m5_default": true,
+     "full_tree_receiver": null,
+     "service_rss_peak_gib": 33.8,
+     "device_peak_gb": 31.5
+    }
+   }
+  },
+  "a_pipeline_old_format": {
+   "receipt": "integrate/daemon-a1-warm.json",
+   "label": "(a) M6 pipeline, old format (r1 binary folds, flat native): driver a883de47 (30650ee7c)",
+   "driver_sha256": "a883de476041e650",
+   "load_avg_1m_before": 21.3,
+   "blocks": {
+    "26235156": {
+     "warm_requests": 2,
+     "request_s": [
+      15.096,
+      14.21
+     ],
+     "request_s_median": 14.653,
+     "capture_s": 1.779,
+     "setup_s": 0.134,
+     "native_s": 3.175,
+     "recursion_s": 9.386,
+     "tail_after_last_leaf_s": 1.883,
+     "first_request_cold_setup_s": 28.405,
+     "proof_bytes_root": 748536,
+     "byte_identical_to_m5_default": true,
+     "full_tree_receiver": {
+      "status": "accepted",
+      "wall_s": 41.8,
+      "sha256": "2256414bf1459e2d"
+     },
+     "service_rss_peak_gib": 31.95,
+     "device_peak_gb": 31.5
+    },
+    "24628607": {
+     "warm_requests": 2,
+     "request_s": [
+      21.035,
+      20.732
+     ],
+     "request_s_median": 20.883,
+     "capture_s": 2.246,
+     "setup_s": 0.157,
+     "native_s": 4.476,
+     "recursion_s": 13.784,
+     "tail_after_last_leaf_s": 2.726,
+     "first_request_cold_setup_s": 32.868,
+     "proof_bytes_root": 706424,
+     "byte_identical_to_m5_default": true,
+     "full_tree_receiver": {
+      "status": "accepted",
+      "wall_s": 62.6,
+      "sha256": "2256414bf1459e2d"
+     },
+     "service_rss_peak_gib": 31.95,
+     "device_peak_gb": 31.5
+    }
+   }
+  },
+  "a_pipeline_old_format_final_driver": {
+   "receipt": "integrate/daemon-a5-final.json",
+   "label": "(a) on the final driver b7a4615f (1345c6eb9), STWO_RV64_OUTER_PROFILE=r1; run while CPU gates ran",
+   "driver_sha256": "b7a4615f8348fd81",
+   "load_avg_1m_before": 11.0,
+   "blocks": {
+    "26235156": {
+     "warm_requests": 2,
+     "request_s": [
+      15.422,
+      14.866
+     ],
+     "request_s_median": 15.144,
+     "capture_s": 1.888,
+     "setup_s": 0.204,
+     "native_s": 3.29,
+     "recursion_s": 9.604,
+     "tail_after_last_leaf_s": 1.682,
+     "first_request_cold_setup_s": 28.066,
+     "proof_bytes_root": 748536,
+     "byte_identical_to_m5_default": true,
+     "full_tree_receiver": {
+      "status": "accepted",
+      "wall_s": 42.9,
+      "sha256": "0434da7892cd5c03"
+     },
+     "service_rss_peak_gib": 32.13,
+     "device_peak_gb": 31.5
+    },
+    "24628607": {
+     "warm_requests": 2,
+     "request_s": [
+      22.193,
+      21.519
+     ],
+     "request_s_median": 21.856,
+     "capture_s": 2.117,
+     "setup_s": 0.162,
+     "native_s": 4.357,
+     "recursion_s": 14.892,
+     "tail_after_last_leaf_s": 2.822,
+     "first_request_cold_setup_s": 34.881,
+     "proof_bytes_root": 706424,
+     "byte_identical_to_m5_default": true,
+     "full_tree_receiver": {
+      "status": "accepted",
+      "wall_s": 63.5,
+      "sha256": "0434da7892cd5c03"
+     },
+     "service_rss_peak_gib": 32.13,
+     "device_peak_gb": 31.5
+    }
+   }
+  },
+  "a22_arena_carve": {
+   "receipt": "integrate/daemon-a4-warm22.json",
+   "label": "(a) + STWO_RV64_DEVICE_ARENA=22G (device-peak target)",
+   "driver_sha256": "a883de476041e650",
+   "load_avg_1m_before": 13.6,
+   "blocks": {
+    "26235156": {
+     "warm_requests": 2,
+     "request_s": [
+      14.611,
+      15.11
+     ],
+     "request_s_median": 14.861,
+     "capture_s": 1.788,
+     "setup_s": 0.128,
+     "native_s": 3.196,
+     "recursion_s": 9.572,
+     "tail_after_last_leaf_s": 1.576,
+     "first_request_cold_setup_s": 28.437,
+     "proof_bytes_root": 748536,
+     "byte_identical_to_m5_default": true,
+     "full_tree_receiver": null,
+     "service_rss_peak_gib": 31.68,
+     "device_peak_gb": 27.81
+    },
+    "24628607": {
+     "warm_requests": 2,
+     "request_s": [
+      21.937,
+      21.596
+     ],
+     "request_s_median": 21.767,
+     "capture_s": 2.034,
+     "setup_s": 0.152,
+     "native_s": 4.689,
+     "recursion_s": 14.577,
+     "tail_after_last_leaf_s": 2.864,
+     "first_request_cold_setup_s": 33.249,
+     "proof_bytes_root": 706424,
+     "byte_identical_to_m5_default": true,
+     "full_tree_receiver": null,
+     "service_rss_peak_gib": 31.68,
+     "device_peak_gb": 27.81
+    }
+   }
+  },
+  "b_v2strict_k4cap3": {
+   "receipt": "integrate/daemon-b2-warm.json",
+   "label": "(b) native v2-strict + diet k4-cap3 outer profile + fold-v3 root-only receiver",
+   "driver_sha256": "a883de476041e650",
+   "load_avg_1m_before": 23.2,
+   "blocks": {
+    "26235156": {
+     "warm_requests": 2,
+     "request_s": [
+      13.99,
+      14.411
+     ],
+     "request_s_median": 14.2,
+     "capture_s": 1.796,
+     "setup_s": 0.148,
+     "native_s": 3.143,
+     "recursion_s": 8.963,
+     "tail_after_last_leaf_s": 1.436,
+     "first_request_cold_setup_s": 27.173,
+     "proof_bytes_root": 750616,
+     "byte_identical_to_m5_default": false,
+     "full_tree_receiver": {
+      "status": "accepted",
+      "wall_s": 38.8,
+      "sha256": "2256414bf1459e2d"
+     },
+     "service_rss_peak_gib": 37.01,
+     "device_peak_gb": 31.5
+    },
+    "24628607": {
+     "warm_requests": 2,
+     "request_s": [
+      19.71,
+      19.773
+     ],
+     "request_s_median": 19.742,
+     "capture_s": 2.115,
+     "setup_s": 0.19,
+     "native_s": 4.87,
+     "recursion_s": 12.325,
+     "tail_after_last_leaf_s": 2.269,
+     "first_request_cold_setup_s": 30.874,
+     "proof_bytes_root": 707032,
+     "byte_identical_to_m5_default": false,
+     "full_tree_receiver": {
+      "status": "accepted",
+      "wall_s": 53.7,
+      "sha256": "2256414bf1459e2d"
+     },
+     "service_rss_peak_gib": 37.01,
+     "device_peak_gb": 31.5
+    }
+   }
+  },
+  "c_k4cap3_flat_native": {
+   "receipt": "integrate/daemon-c2-warm.json",
+   "label": "(c) diet k4-cap3 outer profile on the flat native format (driver 8ce08af7, 57e95fb0a)",
+   "driver_sha256": "8ce08af772a43cca",
+   "load_avg_1m_before": 11.7,
+   "blocks": {
+    "26235156": {
+     "warm_requests": 2,
+     "request_s": [
+      12.985,
+      13.616
+     ],
+     "request_s_median": 13.3,
+     "capture_s": 1.808,
+     "setup_s": 0.135,
+     "native_s": 3.122,
+     "recursion_s": 8.067,
+     "tail_after_last_leaf_s": 1.355,
+     "first_request_cold_setup_s": 27.132,
+     "proof_bytes_root": 750136,
+     "byte_identical_to_m5_default": false,
+     "full_tree_receiver": {
+      "status": "accepted",
+      "wall_s": 34.5,
+      "sha256": "0434da7892cd5c03"
+     },
+     "service_rss_peak_gib": 33.5,
+     "device_peak_gb": 31.5
+    },
+    "24628607": {
+     "warm_requests": 2,
+     "request_s": [
+      17.797,
+      18.636
+     ],
+     "request_s_median": 18.216,
+     "capture_s": 2.072,
+     "setup_s": 0.154,
+     "native_s": 4.449,
+     "recursion_s": 11.349,
+     "tail_after_last_leaf_s": 2.146,
+     "first_request_cold_setup_s": 34.99,
+     "proof_bytes_root": 708696,
+     "byte_identical_to_m5_default": false,
+     "full_tree_receiver": {
+      "status": "accepted",
+      "wall_s": 49.4,
+      "sha256": "0434da7892cd5c03"
+     },
+     "service_rss_peak_gib": 33.5,
+     "device_peak_gb": 31.5
+    }
+   }
+  },
+  "default_final": {
+   "receipt": "integrate/daemon-d1-default.json",
+   "label": "DEFAULT (= (c)) on the final driver b7a4615f (1345c6eb9), harness DEFAULT_PRODUCER_ENV",
+   "driver_sha256": "b7a4615f8348fd81",
+   "load_avg_1m_before": 25.3,
+   "blocks": {
+    "26235156": {
+     "warm_requests": 2,
+     "request_s": [
+      13.163,
+      13.307
+     ],
+     "request_s_median": 13.235,
+     "capture_s": 1.801,
+     "setup_s": 0.129,
+     "native_s": 3.163,
+     "recursion_s": 7.953,
+     "tail_after_last_leaf_s": 1.368,
+     "first_request_cold_setup_s": 26.762,
+     "proof_bytes_root": 750136,
+     "byte_identical_to_m5_default": false,
+     "full_tree_receiver": {
+      "status": "accepted",
+      "wall_s": 35.3,
+      "sha256": "0434da7892cd5c03"
+     },
+     "service_rss_peak_gib": 33.68,
+     "device_peak_gb": 31.5
+    },
+    "24628607": {
+     "warm_requests": 2,
+     "request_s": [
+      19.39,
+      19.005
+     ],
+     "request_s_median": 19.197,
+     "capture_s": 1.983,
+     "setup_s": 0.15,
+     "native_s": 4.391,
+     "recursion_s": 12.45,
+     "tail_after_last_leaf_s": 2.16,
+     "first_request_cold_setup_s": 34.633,
+     "proof_bytes_root": 708696,
+     "byte_identical_to_m5_default": false,
+     "full_tree_receiver": {
+      "status": "accepted",
+      "wall_s": 50.1,
+      "sha256": "0434da7892cd5c03"
+     },
+     "service_rss_peak_gib": 33.68,
+     "device_peak_gb": 31.5
+    }
+   }
+  }
+ },
+ "root_only": {
+  "b": {
+   "audit-24628607": {
+    "accepted": true,
+    "in_process_s": 6.242,
+    "root_digest": "5ecc8ebff182e529",
+    "native_audit": {
+     "rebuilt": 13,
+     "matched": 13,
+     "absent_from_table": 0
+    }
+   },
+   "audit-26235156": {
+    "accepted": true,
+    "in_process_s": 4.96,
+    "root_digest": "c5109cf3fd583a86",
+    "native_audit": {
+     "rebuilt": 9,
+     "matched": 9,
+     "absent_from_table": 0
+    }
+   },
+   "derive-24628607": {
+    "derive_once_s": 25.68,
+    "table_root": "53fc75fc783265fb470a403944ab74548e8298aabec7518b73eab0a6a905d41d",
+    "audit_accepted": true,
+    "self_check": true,
+    "leaves": 17,
+    "folds": 6
+   },
+   "derive-26235156": {
+    "derive_once_s": 18.71,
+    "table_root": "fec354601b82639e1a017d11f081c0fcab2512dff187fa9f76a7eb04b77d6ee3",
+    "audit_accepted": true,
+    "self_check": true,
+    "leaves": 11,
+    "folds": 4
+   },
+   "derive-both": {
+    "derive_once_s": 28.01,
+    "table_root": "d8916cd0729ed1f44a90073db4659a42afa6470f69548160075530f8d1b09918",
+    "audit_accepted": true,
+    "self_check": true,
+    "leaves": 17,
+    "folds": 6
+   },
+   "pc-corpus-24628607": {
+    "ran": 43,
+    "passed": 43,
+    "unexpected_accepts": [],
+    "crashes": []
+   },
+   "pc-corpus-26235156": {
+    "ran": 43,
+    "passed": 43,
+    "unexpected_accepts": [],
+    "crashes": []
+   },
+   "rv-corpus-24628607": {
+    "ran": 68,
+    "passed": 68,
+    "unexpected_accepts": [],
+    "crashes": []
+   },
+   "rv-corpus-26235156": {
+    "ran": 68,
+    "passed": 68,
+    "unexpected_accepts": [],
+    "crashes": []
+   },
+   "verify-pinned-24628607-r1": {
+    "accepted": true,
+    "in_process_s": 1.2,
+    "root_digest": "5ecc8ebff182e529",
+    "native_audit": null
+   },
+   "verify-pinned-24628607-r2": {
+    "accepted": true,
+    "in_process_s": 1.212,
+    "root_digest": "5ecc8ebff182e529",
+    "native_audit": null
+   },
+   "verify-pinned-24628607-r3": {
+    "accepted": true,
+    "in_process_s": 1.263,
+    "root_digest": "5ecc8ebff182e529",
+    "native_audit": null
+   },
+   "verify-pinned-26235156-r1": {
+    "accepted": true,
+    "in_process_s": 1.001,
+    "root_digest": "c5109cf3fd583a86",
+    "native_audit": null
+   },
+   "verify-pinned-26235156-r2": {
+    "accepted": true,
+    "in_process_s": 1.006,
+    "root_digest": "c5109cf3fd583a86",
+    "native_audit": null
+   },
+   "verify-pinned-26235156-r3": {
+    "accepted": true,
+    "in_process_s": 1.013,
+    "root_digest": "c5109cf3fd583a86",
+    "native_audit": null
+   }
+  },
+  "c": {
+   "audit-24628607": {
+    "accepted": true,
+    "in_process_s": 7.026,
+    "root_digest": "fe9698426e4e6fa2",
+    "native_audit": {
+     "rebuilt": 17,
+     "matched": 17,
+     "absent_from_table": 0
+    }
+   },
+   "audit-26235156": {
+    "accepted": true,
+    "in_process_s": 5.625,
+    "root_digest": "56c4c8459b3324cd",
+    "native_audit": {
+     "rebuilt": 11,
+     "matched": 11,
+     "absent_from_table": 0
+    }
+   },
+   "derive-24628607": {
+    "derive_once_s": 27.71,
+    "table_root": "be3537a3d358d3517d1b8331ef50f0b9c4edb74fd27440de61431c50aa7e66bb",
+    "audit_accepted": true,
+    "self_check": true,
+    "leaves": 17,
+    "folds": 6
+   },
+   "derive-26235156": {
+    "derive_once_s": 18.99,
+    "table_root": "c9a18650735382be84deeadca9ce7c099c3cc4c6040ca415ab133a38a509dfc3",
+    "audit_accepted": true,
+    "self_check": true,
+    "leaves": 11,
+    "folds": 4
+   },
+   "derive-both": {
+    "derive_once_s": 26.44,
+    "table_root": "238a435e0a95a65057aa4cabfa3ffdb66b83e168b8f9370a8652d2f660501944",
+    "audit_accepted": true,
+    "self_check": true,
+    "leaves": 17,
+    "folds": 6
+   },
+   "pc-corpus-24628607": {
+    "ran": 43,
+    "passed": 43,
+    "unexpected_accepts": [],
+    "crashes": []
+   },
+   "pc-corpus-26235156": {
+    "ran": 43,
+    "passed": 43,
+    "unexpected_accepts": [],
+    "crashes": []
+   },
+   "rv-corpus-24628607": {
+    "ran": 68,
+    "passed": 68,
+    "unexpected_accepts": [],
+    "crashes": []
+   },
+   "rv-corpus-26235156": {
+    "ran": 68,
+    "passed": 68,
+    "unexpected_accepts": [],
+    "crashes": []
+   },
+   "verify-pinned-24628607-r1": {
+    "accepted": true,
+    "in_process_s": 1.203,
+    "root_digest": "fe9698426e4e6fa2",
+    "native_audit": null
+   },
+   "verify-pinned-24628607-r2": {
+    "accepted": true,
+    "in_process_s": 1.231,
+    "root_digest": "fe9698426e4e6fa2",
+    "native_audit": null
+   },
+   "verify-pinned-24628607-r3": {
+    "accepted": true,
+    "in_process_s": 1.232,
+    "root_digest": "fe9698426e4e6fa2",
+    "native_audit": null
+   },
+   "verify-pinned-26235156-r1": {
+    "accepted": true,
+    "in_process_s": 1.04,
+    "root_digest": "56c4c8459b3324cd",
+    "native_audit": null
+   },
+   "verify-pinned-26235156-r2": {
+    "accepted": true,
+    "in_process_s": 1.043,
+    "root_digest": "56c4c8459b3324cd",
+    "native_audit": null
+   },
+   "verify-pinned-26235156-r3": {
+    "accepted": true,
+    "in_process_s": 1.064,
+    "root_digest": "56c4c8459b3324cd",
+    "native_audit": null
+   }
+  },
+  "a": {
+   "audit-24628607": {
+    "accepted": true,
+    "in_process_s": 7.112,
+    "root_digest": "3434588d18ddda7a",
+    "native_audit": {
+     "rebuilt": 17,
+     "matched": 17,
+     "absent_from_table": 0
+    }
+   },
+   "audit-26235156": {
+    "accepted": true,
+    "in_process_s": 5.568,
+    "root_digest": "bbfbcf4a96b3554a",
+    "native_audit": {
+     "rebuilt": 11,
+     "matched": 11,
+     "absent_from_table": 0
+    }
+   },
+   "derive-24628607": {
+    "derive_once_s": 28.59,
+    "table_root": "404981af716adba87ce735e25b599215391522448c7f8fde4d422dc5414096ab",
+    "audit_accepted": true,
+    "self_check": true,
+    "leaves": 17,
+    "folds": 16
+   },
+   "derive-26235156": {
+    "derive_once_s": 20.77,
+    "table_root": "7722ec336e13b969a777867bcf06307c7ebf5552b86dd4790ec9e6d30168c79b",
+    "audit_accepted": true,
+    "self_check": true,
+    "leaves": 11,
+    "folds": 10
+   },
+   "derive-both": {
+    "derive_once_s": 31.38,
+    "table_root": "5644df287027884bd9101e22768d9d62be1dbe197ad084dd8fc6a70acb62e95a",
+    "audit_accepted": true,
+    "self_check": true,
+    "leaves": 17,
+    "folds": 16
+   },
+   "verify-pinned-24628607-r1": {
+    "accepted": true,
+    "in_process_s": 1.277,
+    "root_digest": "3434588d18ddda7a",
+    "native_audit": null
+   },
+   "verify-pinned-24628607-r2": {
+    "accepted": true,
+    "in_process_s": 1.247,
+    "root_digest": "3434588d18ddda7a",
+    "native_audit": null
+   },
+   "verify-pinned-24628607-r3": {
+    "accepted": true,
+    "in_process_s": 1.438,
+    "root_digest": "3434588d18ddda7a",
+    "native_audit": null
+   },
+   "verify-pinned-26235156-r1": {
+    "accepted": true,
+    "in_process_s": 1.159,
+    "root_digest": "bbfbcf4a96b3554a",
+    "native_audit": null
+   },
+   "verify-pinned-26235156-r2": {
+    "accepted": true,
+    "in_process_s": 1.113,
+    "root_digest": "bbfbcf4a96b3554a",
+    "native_audit": null
+   },
+   "verify-pinned-26235156-r3": {
+    "accepted": true,
+    "in_process_s": 1.129,
+    "root_digest": "bbfbcf4a96b3554a",
+    "native_audit": null
+   }
+  }
+ },
+ "source_commits": {
+  "merge_head": "1345c6eb9 (+ harness default commit)",
+  "first_measured_driver": "a883de47 (30650ee7c)",
+  "final_driver": "b7a4615f (1345c6eb9)",
+  "receiver": "0434da78 (57e95fb0a and later; receiver code unchanged since)",
+  "cuda_library": "dd33c9d9 (built from this tree: hint-tape circuit_fill_chain.cu)"
+ },
+ "merged_streams": {
+  "capture": "b657b8c5f",
+  "profiles": "f27bce5eb",
+  "native-stream": "e31f19041",
+  "hint-tape": "b99bf5f66",
+  "enqueue": "20e903f58",
+  "sched": "df7ceb5d3 (incl. adversarial fix 117b6f537)",
+  "native-format": "efe0eae6a",
+  "fold-v3": "4c579d9e5 (incl. adversarial A1 fix f33e3c9d2)",
+  "diet-wire": "7f2d09c8d"
+ },
+ "merge_conflicts": [
+  "vectors/reports/progress/PROGRESS.md (generated; kept ours, regenerated)",
+  "no source conflicts; semantic seams fixed below"
+ ],
+ "integration_fixes": [
+  "30650ee7c fold seed tape (hint-tape) follows diet-wire's Merkle cap: record/recordReplay convert with Profile.foldMerkleCapLog() and the emitter writes tree caps after trace paths and each FRI layer cap before its commitment (guess order); cap_log 0 unchanged",
+  "57e95fb0a root-only derive on k-ary trees: derive-vk-tables refused k4-cap3 with VkDeriveKaryFoldNotTabled [M]; root_verify.recordFoldIntoK cross-checks class key + digest over k children (binary = k 2); fold-v3 verifyRoot was already plan-driven",
+  "1345c6eb9 24697070 device OOM: native-stream count-first MAIN retention held 15.37 GB on GPU0 when stage-2 composition asked 14.75 GB (GPU_OWNER_LOGICAL_CAP / GPU_ARENA_OVERRUN -> CudaAllocationFailed) [M]; retention now all-or-nothing per device per request (share > bound -> replay all = M5 path); dev blocks 33/33 retained, 24697070 14/14 replayed and accepted",
+  "harness default format = k4-cap3 (DEFAULT_PRODUCER_ENV); fresh receivers inherit STWO_RV64_OUTER_PROFILE / STWO_RV64_NATIVE_VERSION from the run's plan unless the caller sets them"
+ ],
+ "default_config": {
+  "producer": "config (c): STWO_RV64_OUTER_PROFILE=m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 (4-ary folds + Merkle cap 3 in fold circuits), flat M5 native format, every M6 pipeline change on (capture traced engine, native-stream schedule + retain, hint-tape seed tape + chain runs, enqueue lane-0, sched streaming handoff); arena auto",
+  "where": "scripts/rv64_m3_pod.py DEFAULT_PRODUCER_ENV (+ format_environment for receivers); old format: --env STWO_RV64_OUTER_PROFILE=r1 (byte-identical to M5) or --no-default-env",
+  "why_not_b": "native v2-strict is slower than (c) on both blocks, +3.5 GiB RSS, and not total (no cpu_single rung, cpu_last only cpu_log 20-22: single-segment blocks / short last segments fail closed, native-format review); flag-gated STWO_RV64_NATIVE_VERSION=m6-native-v2-strict",
+  "arena": "auto (31.5 GB); STWO_RV64_DEVICE_ARENA=22G gives 27.81 GB (meets <=28 GB) at +0.9 s/request on 24628607 [M], opt-in",
+  "receiver": "full-tree receiver accepts; root-only verify-root-candidate --table-root <pin> accepts; --audit agrees; acceptance under table profile rv64-m4-fold-v2-compat/v0 still rests on the leaf-class premise (fold v3 in circuit not built), so --audit remains the acceptance path"
+ },
+ "gates": {
+  "a_byte_identity": "met: every native, bundle and recursive proof hash equal to the M5 default (= M3) receipts on all 6+6+6+4 requests of a1-warm, a5-final (final driver), a4-warm22, a2-trace; fresh receiver accepted a1-warm and a5-final round 1 on both blocks",
+  "b_new_format": "(b) v2-strict + k4c: fresh full-tree receiver accepted both blocks (bench and service); root-only pinned accepted; --audit agrees (native audit 9/9, 13/13); rootverify 68/68 x2, profiles m6-root 43/43 x2; full-tree corpus v4: see corpora",
+  "c_default": "(c) k4c: fresh full-tree receiver accepted both blocks (bench, c2-warm, d1-default); root-only pinned accepted; --audit agrees (native audit 17/17 on 607); rootverify 68/68 x2, profiles m6-root 43/43 x2, full-tree corpus v4 44/44 x2, 0 unexpected accepts, 0 crashes",
+  "outer_gkr_fused_blake_setv2_foldv3_q51": "NOT composed: not built/wired by any M6 stream (DW-R1 reopened; fused Blake one-instance not built; set-v2 not built; fold v3 in circuit not started; q51 OOM)"
+ },
+ "m6_targets_24628607": {
+  "request_le_12s": "NOT met: 17.8-19.4 s warm (default); M5 27.5 same session",
+  "native_le_2s": "NOT met: 4.4-4.5 s",
+  "recursion_le_8s": "NOT met: 11.3-12.5 s (harness stage, overlaps native under streaming)",
+  "capture_le_1s": "NOT met: 1.97-2.17 s",
+  "root_only_le_1.5s": "met on this load: 1.41-1.44 s fresh process (c), 1.37-1.44 (b); old-format proofs 1.49-1.63",
+  "derive_le_30s": "met: 28.3 s (607), merged 27.1 s (c)",
+  "gpu_busy_ge_70pct": "NOT met: 41.6% recursion-window kernel busy (nsys, warm 607)",
+  "launches_per_node_le_500": "NOT met: 1,774 (tracer, (a)); per request 82.4k (M5 223k)",
+  "syncs_per_node_le_10": "NOT met: 123.5 blocking calls per node (tracer, (a))",
+  "host_prep_per_node_le_0.1s": "met for class-cached folds (hint-tape: median 0.027 s); NOT for leaves (1.6-2.1 s) or cold fold classes",
+  "h2d_le_80_B_per_instr": "NOT met: 213-223 B/instr native window (native-stream nsys, not re-measured here)",
+  "no_host_replay": "met on dev blocks (33/33 retained); big blocks replay by design (24697070 14/14)",
+  "device_peak_le_28gb": "only with STWO_RV64_DEVICE_ARENA=22G (27.81 GB, +0.9 s); default auto 31.5 GB",
+  "rss_le_20gib": "NOT met: 33.5-33.7 GiB service peak"
+ },
+ "counters_24628607_warm": {
+  "tracer_config_a": {
+   "blocking_per_node": 123.5,
+   "launches_per_node": 1774.1,
+   "m5_blocking_per_node": 172,
+   "m5_launches_per_node": 5167,
+   "receipt": "integrate/a2-trace-windows.json"
+  },
+  "nsys_default": {
+   "recursion_kernel_busy_frac": 0.416,
+   "request_kernel_busy_frac": 0.364,
+   "launches_per_request": 82354,
+   "stream_syncs": 4443,
+   "event_syncs": 2389,
+   "m5_launches": 223004,
+   "m5_syncs": 10696,
+   "m5_gpu_busy": 0.398,
+   "receipt": "integrate/daemon-d2-nsys-per-request.json"
+  },
+  "pageable_copies": 0,
+  "staged_h2d_one_shot_request_gb": 42.1
+ },
+ "scale_probe_24697070": {
+  "config": "default (c), one-shot bench, cold setup, load 25-30",
+  "request_s": 73.479,
+  "capture_s": 3.604,
+  "setup_s": 26.269,
+  "native_s": 13.775,
+  "recursion_s": 29.4,
+  "root_proof_bytes": 713144,
+  "receiver": "accepted, 102.8 s",
+  "m5": 74.8,
+  "m3": 86.37,
+  "first_attempt": "device OOM before 1345c6eb9 (24697070-s1-scale-oom-producer.stderr)",
+  "receipt": "integrate/24697070-2gpu-s2-scale.json"
+ },
+ "not_delivered": [
+  "outer LogUp-GKR wiring (DW-R1 reopened: eq column E unconstrained)",
+  "one-instance fused Blake",
+  "native v2-gkr (specified only; selector refused)",
+  "set-v2 canonical folds",
+  "fold v3 in circuit (T_rec, NS chain, PCD self-VK)",
+  "q51 outer profile (OOM)",
+  "2 outer proofs per GPU (shared per-device state)",
+  "device transcript / CUDA graphs (enqueue)",
+  "GPU witness widening from compact records (native-stream)",
+  "two-phase address-sharded ledger (capture)"
+ ],
+ "root_only_process_wall_s": {
+  "a": {
+   "derive-26235156": {
+    "exit": 0,
+    "process_wall_s": 21.453
+   },
+   "derive-24628607": {
+    "exit": 0,
+    "process_wall_s": 29.18
+   },
+   "derive-both": {
+    "exit": 0,
+    "process_wall_s": 32.127
+   },
+   "verify-pinned-26235156-r1": {
+    "exit": 0,
+    "process_wall_s": 1.338
+   },
+   "verify-pinned-24628607-r1": {
+    "exit": 0,
+    "process_wall_s": 1.503
+   },
+   "verify-pinned-26235156-r2": {
+    "exit": 0,
+    "process_wall_s": 1.276
+   },
+   "verify-pinned-24628607-r2": {
+    "exit": 0,
+    "process_wall_s": 1.488
+   },
+   "verify-pinned-26235156-r3": {
+    "exit": 0,
+    "process_wall_s": 1.297
+   },
+   "verify-pinned-24628607-r3": {
+    "exit": 0,
+    "process_wall_s": 1.627
+   },
+   "audit-26235156": {
+    "exit": 0,
+    "process_wall_s": 41.189
+   },
+   "audit-24628607": {
+    "exit": 0,
+    "process_wall_s": 55.991
+   }
+  },
+  "b": {
+   "derive-26235156": {
+    "exit": 0,
+    "process_wall_s": 19.288
+   },
+   "derive-24628607": {
+    "exit": 0,
+    "process_wall_s": 26.317
+   },
+   "derive-both": {
+    "exit": 0,
+    "process_wall_s": 28.633
+   },
+   "verify-pinned-26235156-r1": {
+    "exit": 0,
+    "process_wall_s": 1.148
+   },
+   "verify-pinned-24628607-r1": {
+    "exit": 0,
+    "process_wall_s": 1.371
+   },
+   "verify-pinned-26235156-r2": {
+    "exit": 0,
+    "process_wall_s": 1.133
+   },
+   "verify-pinned-24628607-r2": {
+    "exit": 0,
+    "process_wall_s": 1.383
+   },
+   "verify-pinned-26235156-r3": {
+    "exit": 0,
+    "process_wall_s": 1.157
+   },
+   "verify-pinned-24628607-r3": {
+    "exit": 0,
+    "process_wall_s": 1.438
+   },
+   "audit-26235156": {
+    "exit": 0,
+    "process_wall_s": 39.32
+   },
+   "audit-24628607": {
+    "exit": 0,
+    "process_wall_s": 57.489
+   }
+  },
+  "c": {
+   "derive-26235156": {
+    "exit": 0,
+    "process_wall_s": 19.501
+   },
+   "derive-24628607": {
+    "exit": 0,
+    "process_wall_s": 28.277
+   },
+   "derive-both": {
+    "exit": 0,
+    "process_wall_s": 27.072
+   },
+   "verify-pinned-26235156-r1": {
+    "exit": 0,
+    "process_wall_s": 1.199
+   },
+   "verify-pinned-24628607-r1": {
+    "exit": 0,
+    "process_wall_s": 1.405
+   },
+   "verify-pinned-26235156-r2": {
+    "exit": 0,
+    "process_wall_s": 1.204
+   },
+   "verify-pinned-24628607-r2": {
+    "exit": 0,
+    "process_wall_s": 1.437
+   },
+   "verify-pinned-26235156-r3": {
+    "exit": 0,
+    "process_wall_s": 1.233
+   },
+   "verify-pinned-24628607-r3": {
+    "exit": 0,
+    "process_wall_s": 1.431
+   },
+   "audit-26235156": {
+    "exit": 0,
+    "process_wall_s": 36.264
+   },
+   "audit-24628607": {
+    "exit": 0,
+    "process_wall_s": 52.94
+   }
+  }
+ },
+ "tests": [
+  "test-riscv64-m5-rootverify exit=0 22s Build Summary: 2/2 steps succeeded",
+  "test-riscv64-m5-canon-native exit=0 12s Build Summary: 2/2 steps succeeded",
+  "test-riscv64-native-gkr exit=0 52s Build Summary: 2/2 steps succeeded",
+  "test-riscv64-execution exit=0 49s Build Summary: 2/2 steps succeeded",
+  "test-riscv64-om31-outer exit=0 857s Build Summary: 2/2 steps succeeded",
+  "security-candidate exit=0 10s All 36 tests passed.",
+  "sync-lint-unittest exit=0 OK",
+  "sync-lint-check exit=0 sync lint OK: 58 allowlisted host-blocking sites on the outer-node prove path",
+  "progress-check exit=0   legacy resident.jsonl:40: load_avg_1m, device_peak_gb{}, loading, service_position, service_trial, store_mode",
+  "TESTS_DONE",
+  "EXIT=0",
+  "test-rv64-recursion-ready exit=0 48s Build Summary: 11/11 steps succeeded; 38/38 tests passed",
+  "test-rv64-gkr-plan exit=0 17s Build Summary: 3/3 steps succeeded; 33/33 tests passed",
+  "DONE",
+  "(the two exit=1 lines in tests.log were the riscv_cuda-scoped steps invoked from the repo root: no such step there; re-run from src/integrations/riscv_cuda above)"
+ ],
+ "tests_note": "pod, CPU only, ReleaseSafe, on the merged tree c271b555c (source identical to the final driver tree for every tested file). cpu_replay.zig's new segmentsOnDevice test is in no test root; its behaviour is measured end to end (dev blocks 33/33 retained, 24697070 14/14 replayed).",
+ "corpora_note": "(a) old-format root-only corpora were not re-run: the corpus harness needs /workspace/m3/src/integrate (the M3 producer cwd), which is pruned. (a) is byte-identical to the M5 default, whose corpora passed at M5 and under fold-v3's receiver; root-only accept + --audit on (a) proofs re-measured here."
+}

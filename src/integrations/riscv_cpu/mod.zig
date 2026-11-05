@@ -1,6 +1,30 @@
 //! CPU/SIMD integration for the backend-neutral Sail RISC-V frontend.
 
+pub const rv64_services_roster = @import("word16_global_execution/services/roster.zig");
+pub const rv64_services_types = @import("word16_global_execution/services/types.zig");
+pub const rv64_services_pipeline = @import("word16_global_execution/services/pipeline.zig");
+pub const rv64_device_core_headers = @import("word16_execution/device_headers.zig");
+pub const rv64_memory_input = @import("word16_execution/memory_input.zig");
+pub const rv64_family_input = @import("word16_execution/family_input.zig");
+pub const rv64_device_main = @import("word16_global_execution/services/device_main.zig");
+pub const rv64_device_source_stage = @import("word16_global_execution/services/pipeline.zig").DeviceSourceStage;
 const std = @import("std");
+pub const rv64_gkr_truth_products = @import("word16_global_execution/services/gkr_local/truth_classic.zig").products;
+pub const rv64_gkr_truth_device_source = @import("word16_global_execution/services/gkr_local/truth_device_source.zig");
+pub const rv64_gkr_truth_device_composition = @import("word16_global_execution/services/gkr_local/truth_device_composition.zig");
+pub const rv64_device_pcs = @import("stwo_prover_api").device_pcs;
+pub const rv64_cpu_source = @import("word16_execution/cpu_source.zig");
+pub const rv64_gkr_child = @import("word16_global_execution/services/gkr_local/child.zig");
+pub const rv64_gkr_cpu_replay = @import("word16_global_execution/services/gkr_local/cpu_replay.zig");
+pub const rv64_gkr_native_provider = @import("word16_global_execution/services/gkr_local/native_provider.zig");
+pub const rv64_ethereum_gkr_main = @import("word16_global_execution/ethereum/gkr_main.zig");
+pub const rv64_gkr_truth_v3_role = @import("word16_global_execution/services/gkr_local/truth_v3_role.zig");
+pub const rv64_gkr_truth_v3_catalog = @import("word16_global_execution/services/gkr_local/truth_v3_catalog.zig");
+pub const rv64_gkr_truth_role = @import("word16_global_execution/services/gkr_local/truth_role.zig");
+pub const rv64_gkr_constraints = @import("word16_global_execution/services/gkr_local/constraint_authority.zig");
+pub const rv64_gkr_source = @import("word16_global_execution/services/gkr_local/source_authority.zig");
+pub const rv64_gkr_cpu_components = @import("word16_global_execution/services/gkr_local/cpu_components.zig");
+pub const rv64_gkr_cpu_worker = @import("word16_global_execution/services/gkr_local/cpu_worker.zig");
 pub const rv64 = @import("rv64.zig");
 pub const rv64_full = @import("rv64_full.zig");
 const frontend = @import("stwo_riscv_frontend");
@@ -267,3 +291,13 @@ test {
     _ = @import("guest_precompile_proof_test.zig");
     _ = @import("split_pcs_prepare_test.zig");
 }
+
+pub const rv64_om31_outer = @import("rv64_recursion/om31_outer.zig");
+
+pub const rv64_om31_execution_wrap = @import("rv64_recursion/om31_native/execution_wrap.zig");
+pub const rv64_root_verify = @import("rv64_recursion/root_verify.zig");
+pub const rv64_root_verify_main = @import("rv64_recursion/root_verify_main.zig");
+
+/// Exact production allocator adapter, also used by ready-lane budget admission.
+pub const rv64_large_block_recycler = @import("rv64_large_block_recycler.zig");
+pub const rv64_recursion_budget = @import("rv64_recursion_budget.zig");

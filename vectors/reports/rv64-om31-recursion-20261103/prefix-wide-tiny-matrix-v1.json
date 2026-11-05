@@ -1,0 +1,62 @@
+{
+  "schema": "rv64-prefix-wide-compatibility-matrix/v1",
+  "accepted": true,
+  "cases": [
+    {
+      "producer_source": "a55d2897e",
+      "fixture_binary_sha256": "693891e3d435fe8a03309f30a478a11010c1270de52322436e16df177d2a02bf",
+      "runtime": "old_runtime",
+      "runtime_sha256": "60968c1308448768d78a3587d0077380e6038e93912c0eaa78122f5df92d02a9",
+      "proof_sha256": "f5c8c4bb0283cf2788f189e1df2c063cdf8ddf8c68921bd50396323b537d7640",
+      "proof_bytes": 626832,
+      "cold_warm_cpu_control_exact": true,
+      "fresh_cpu_receivers": 2,
+      "wrong_public_outputs_rejected": true,
+      "cpu_assignment_words": 0
+    },
+    {
+      "producer_source": "a55d2897e",
+      "fixture_binary_sha256": "693891e3d435fe8a03309f30a478a11010c1270de52322436e16df177d2a02bf",
+      "runtime": "prefix_runtime",
+      "runtime_sha256": "5b62c153ff659ef6bacc31d0c851b10817aec197b6aa2fb341f3c70c7cae69f4",
+      "proof_sha256": "f5c8c4bb0283cf2788f189e1df2c063cdf8ddf8c68921bd50396323b537d7640",
+      "proof_bytes": 626832,
+      "cold_warm_cpu_control_exact": true,
+      "fresh_cpu_receivers": 2,
+      "wrong_public_outputs_rejected": true,
+      "cpu_assignment_words": 0
+    },
+    {
+      "producer_source": "3e0e4325a",
+      "fixture_binary_sha256": "d1e16db439981e320bdc8a268ab8b3dce9c736b682c0cf8047273367eaefd856",
+      "runtime": "old_runtime",
+      "runtime_sha256": "60968c1308448768d78a3587d0077380e6038e93912c0eaa78122f5df92d02a9",
+      "proof_sha256": "f5c8c4bb0283cf2788f189e1df2c063cdf8ddf8c68921bd50396323b537d7640",
+      "proof_bytes": 626832,
+      "cold_warm_cpu_control_exact": true,
+      "fresh_cpu_receivers": 2,
+      "wrong_public_outputs_rejected": true,
+      "cpu_assignment_words": 0
+    },
+    {
+      "producer_source": "3e0e4325a",
+      "fixture_binary_sha256": "d1e16db439981e320bdc8a268ab8b3dce9c736b682c0cf8047273367eaefd856",
+      "runtime": "wide_runtime",
+      "runtime_sha256": "ca537e7a1ad8edad79d0398fbdee8e6056e2edbc8f92512d3d61af2c925cd249",
+      "proof_sha256": "f5c8c4bb0283cf2788f189e1df2c063cdf8ddf8c68921bd50396323b537d7640",
+      "proof_bytes": 626832,
+      "cold_warm_cpu_control_exact": true,
+      "fresh_cpu_receivers": 2,
+      "wrong_public_outputs_rejected": true,
+      "cpu_assignment_words": 0
+    }
+  ],
+  "scope": "Actual tiny native OM31 q108/P20/fold4 proofs. No whole-block speed or largest-shape acceptance claim.",
+  "prefix_workspace_query_export_verified": true,
+  "tail_enabled": false,
+  "transport_framing_exercised": "V2; V3 aggregate lengths remain gated on actual largest production recovery.",
+  "candidate_default_changed": false,
+  "coherent_recovery_binary_sha256": "37ab593169aa53b20199675cd319a549a8492c9223392ac238d380e3f91feb64",
+  "coherent_combined_binary_sha256": "f2243cd1409f2a97b7d9467ab6dbc029ac4c38a0701c46dc5bcc77bfd5f2c950",
+  "coherent_native_only_binary_sha256": "36211c4937776e7b51ac0c07f848426866c83fa82d81c1417a3f649c68ea481a"
+}

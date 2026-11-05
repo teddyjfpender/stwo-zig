@@ -52,8 +52,8 @@ __device__ __forceinline__ OM31 eval_poly(const OM31 coefficients[4], OM31 x) {
 }
 // Exact native GKR correctSumAsPolyInFirstVariable + native single-oracle
 // sumcheck transcript step. No scalar leaves the device for interpolation.
-__device__ __forceinline__ bool advance_round(RoundState* s, uint32_t expected_round, Pair raw,
-                                              OM31 y, RoundRecord* record) {
+__device__ __forceinline__ bool advance_round_with_constant(RoundState* s, uint32_t expected_round, Pair raw,
+                                              OM31 y, RoundRecord* record, OM31 constant) {
     if (s->status != round_ok) return false;
     if (s->next_round != expected_round || expected_round >= s->variables) {
         s->status = round_order;
@@ -83,7 +83,7 @@ __device__ __forceinline__ bool advance_round(RoundState* s, uint32_t expected_r
     const OM31 a = mul(cubic_denominator, reciprocal_product);
     const OM31 inverse_cubic = mul(prefix, reciprocal_product);
     const OM31 r0 = mul(mul(mul(raw.at0, s->correction), ym), a);
-    const OM31 r1 = sub(s->claim, r0);
+    const OM31 r1 = sub(sub(s->claim, scale(constant, 2)), r0);
     const OM31 r2 = mul(mul(mul(raw.at2, s->correction), eq2), a);
     const OM31 delta = sub(r1, r0);
     const OM31 quadratic = scale(add(sub(r2, add(r1, r1)), r0), 1073741824u);
@@ -91,7 +91,7 @@ __device__ __forceinline__ bool advance_round(RoundState* s, uint32_t expected_r
         mul(denominator, add(mul(denominator, add(mul(r0, denominator), mul(delta, ym))),
                              mul(quadratic, mul(ym, y))));
     const OM31 cubic = mul(sub(zero(), scaled_at_b), inverse_cubic);
-    const OM31 coeffs[4] = {r0, add(sub(delta, quadratic), add(cubic, cubic)),
+    const OM31 coeffs[4] = {add(r0, constant), add(sub(delta, quadratic), add(cubic, cubic)),
                             sub(quadratic, scale(cubic, 3)), cubic};
     uint32_t length = 4;
     while (length && is_zero(coeffs[length - 1])) --length;
@@ -111,6 +111,11 @@ __device__ __forceinline__ bool advance_round(RoundState* s, uint32_t expected_r
     s->prefix = prefix;
     ++s->next_round;
     return true;
+}
+// The single-oracle path is exactly the zero-constant specialization.
+__device__ __forceinline__ bool advance_round(RoundState* s, uint32_t expected_round, Pair raw,
+                                              OM31 y, RoundRecord* record) {
+    return advance_round_with_constant(s, expected_round, raw, y, record, zero());
 }
 // Clear first, including when an earlier queued round already poisoned state.
 __device__ __forceinline__ bool prepare_record(RoundState* owner, uint32_t variables,

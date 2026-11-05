@@ -1,0 +1,30 @@
+{
+  "schema": "rv64-public-boundary-v2-host-tests/v1",
+  "command": "zig build test-riscv64-services-gkr-local -Driscv-test-filter='public boundary log23' -Doptimize=ReleaseFast -j2",
+  "guarded_root_passed": true,
+  "named_boundary_tests_executed": [
+    "word16_execution.coverage.test.public boundary log23 capacity is independent of CPU and LS clocks",
+    "word16_execution.coverage.test.public boundary log23 AIR and sidecar reject forged extents",
+    "word16_execution.coverage.test.public boundary log23 scratch admission never widens ordinary globals",
+    "word16_execution.coverage.test.public boundary log23 producer entry preserves original small-domain bytes",
+    "word16_execution.coverage.test.public boundary log23 fixed sizing preserves native small-domain authority",
+    "word16_execution.geometry.test.public boundary log23 declarations preserve CPU and LS admission",
+    "word16_global_execution.services.gkr_local.source_bounds.test.public boundary log23 source summary needs typed boundary provenance",
+    "word16_execution.om31_security_candidate.test.public boundary log23 policy v2 separates general clocks and historical identity"
+  ],
+  "named_boundary_count": 8,
+  "total_test_entries": 37,
+  "anonymous_aggregation_entries": 29,
+  "all_passed": true,
+  "discovery_correction": "Package-level success and anonymous aggregators do not establish named coverage. Explicit imports now discover the integration boundary cases, including the fixed-source cross-package assertion.",
+  "production_proof_framing_changed": false,
+  "raw_log_sha256": "37a3090ab7f6e09af1de1c1313fcc347aa8cfaa459fa2eeaf63a2d74772b107b",
+  "cache_boundary_regression": {
+    "command": "zig build --build-file src/integrations/riscv_cuda/build.zig test-rv64-resident-router -Doptimize=ReleaseFast -j2",
+    "test_name": "rv64.global_twiddle_cache.test.global twiddle cache covers the highest admitted public boundary log",
+    "actually_executed": true,
+    "total_router_entries": 13,
+    "all_passed": true,
+    "raw_log_sha256": "5aae1fde9ddf42f4c9ec1442dc05f024914984be7622158a27c0ead87069d286"
+  }
+}

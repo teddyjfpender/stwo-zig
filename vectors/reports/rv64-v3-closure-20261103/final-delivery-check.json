@@ -1,0 +1,16 @@
+{
+  "schema": "rv64-v3-final-delivery-check/v1",
+  "implementation_commit": "b79d6dcce030cf2d9c6c19ca2fd944840c9bad5d",
+  "services_release_safe": "PASS",
+  "fresh_complete_block_receiver": "PASS",
+  "reproved_block": false,
+  "cpu_proofs": 7,
+  "truth_proofs": 11,
+  "security_profile": "proven_beta2_q256_p0_fold4",
+  "verify_ns": 1256946042,
+  "scope": "Native V3 integration and RAM/KIO/Wire closure; truth-internal classic lookups retained; no optimization, GPU or recursion qualification",
+  "artifacts_sha256": {
+    "final-services-gkr-safe.log": "7d1cae57f83988a35b1df0e6ba4b09bd29d10940cccf5d27cc41dfcab38a878d",
+    "final-fresh-receiver.json": "8ad8864bacfc333fde9022627b77b5041c281ace30e96fcfec3b8cc06fc9b1ac"
+  }
+}

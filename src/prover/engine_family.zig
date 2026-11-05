@@ -179,6 +179,22 @@ pub fn ForField(comptime Secure: type) type {
                     try pcs.flushPendingCommit(MC, scheme, allocator, channel);
                 }
 
+                fn compositionStage(allocator: std.mem.Allocator, scheme: Scheme, options: ProveOptions) !?@import("air/device_composition.zig").StageFor(Secure) {
+                    errdefer {
+                        var owned = scheme;
+                        owned.deinit(allocator);
+                    }
+                    const fields = @import("stwo_core").fields;
+                    if (comptime Secure == fields.qm31.QM31) {
+                        if (options.om31_composition_stage != null) return error.DeviceCompositionFieldMismatch;
+                        return options.composition_stage;
+                    }
+                    if (options.composition_stage != null) return error.DeviceCompositionFieldMismatch;
+                    if (comptime Secure == fields.om31.OM31) return options.om31_composition_stage;
+                    if (options.om31_composition_stage != null) return error.DeviceCompositionFieldMismatch;
+                    return null;
+                }
+
                 pub fn prove(
                     allocator: std.mem.Allocator,
                     components: []const component.ComponentProver,
@@ -196,7 +212,7 @@ pub fn ForField(comptime Secure: type) type {
                         scheme,
                         options.include_all_preprocessed_columns,
                         options.recorder,
-                        options.composition_stage,
+                        try compositionStage(allocator, scheme, options),
                         options.cpu_composition_execution,
                     );
                 }
@@ -222,7 +238,7 @@ pub fn ForField(comptime Secure: type) type {
                         scheme,
                         options.include_all_preprocessed_columns,
                         options.recorder,
-                        options.composition_stage,
+                        try compositionStage(allocator, scheme, options),
                         options.cpu_composition_execution,
                         diagnostic,
                     );
@@ -251,7 +267,7 @@ pub fn ForField(comptime Secure: type) type {
                         scheme,
                         options.include_all_preprocessed_columns,
                         options.recorder,
-                        options.composition_stage,
+                        try compositionStage(allocator, scheme, options),
                         options.cpu_composition_execution,
                         diagnostic,
                         failed,

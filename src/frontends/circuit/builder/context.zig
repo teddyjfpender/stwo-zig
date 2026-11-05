@@ -30,6 +30,7 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const circuit_mod = @import("circuit.zig");
 const ivalue = @import("ivalue.zig");
+pub const witness_origins = @import("../witness_generation/origins.zig");
 const finalize_constants = @import("finalize_constants.zig");
 
 const Allocator = std.mem.Allocator;
@@ -92,6 +93,8 @@ pub const GateCounts = struct {
 pub const Error = Allocator.Error || error{
     /// The circuit would reach 2^31 variables, which no longer fit M31 addresses.
     TooManyVars,
+    InvalidWitnessOrigin,
+    UnsupportedWitnessPermutation,
     /// `assert_eq_on_eval` is on and an `eq` gate joined two different values.
     EqFailedOnEval,
 };
@@ -128,6 +131,8 @@ pub fn Context(comptime V: type) type {
         scratch_arena: std.heap.ArenaAllocator,
         circuit: Circuit = .{},
         record_gates: bool = true,
+        /// Explicit opt-in: topology + true seeds, with no CPU assignment array.
+        trace_only: bool = false,
         gate_counts: GateCounts = .{},
         /// Interned constants, in first-use order (upstream `IndexMap<QM31, Var>`).
         constants: std.AutoArrayHashMapUnmanaged(u128, circuit_mod.Var) = .empty,
@@ -141,6 +146,8 @@ pub fn Context(comptime V: type) type {
         /// Guessed variables, in guess order, until `finalizeGuessedVars`.
         guessed_vars: std.ArrayListUnmanaged(GuessVar) = .empty,
         guesses_finalized: bool = false,
+        /// Opt-in generation provenance; no allocations on the legacy path.
+        witness_metadata: ?witness_origins.Metadata = null,
         /// Reserved variables awaiting `setOutputs`.
         reserved_vars: std.ArrayListUnmanaged(u32) = .empty,
         finalized: bool = false,
@@ -170,7 +177,34 @@ pub fn Context(comptime V: type) type {
             return self;
         }
 
+        /// Record only generation origins; gate order, values and constraints
+        /// remain identical to init(). Named permutations are required.
+        pub fn initWithWitnessOrigins(gpa: Allocator, n_reserved: usize) Error!Self {
+            var self = try init(gpa, n_reserved);
+            self.witness_metadata = .{};
+            return self;
+        }
+
+        pub fn initTraceOnly(gpa: Allocator, n_reserved: usize) Error!Self {
+            comptime if (V != QM31) @compileError("trace-only seed recording requires QM31 input values");
+            var self = try initWithWitnessOrigins(gpa, n_reserved);
+            self.value_table.clearAndFree(gpa);
+            self.trace_only = true;
+            return self;
+        }
+
+        pub fn noteWitnessHint(self: *Self, out: circuit_mod.Var, kind: witness_origins.Kind, a: circuit_mod.Var, b: circuit_mod.Var) Error!void {
+            if (self.witness_metadata) |*metadata| try metadata.hint(out.idx, kind, a.idx, b.idx);
+        }
+
+        /// Generation-only byte hint of an existing packed-u32 wire. The
+        /// original packing/range constraints remain the only proof authority.
+        pub fn noteWitnessByte(self: *Self, out: circuit_mod.Var, source: circuit_mod.Var, index: u2, complement: bool) Error!void {
+            if (self.witness_metadata) |*metadata| try metadata.hint(out.idx, if (complement) .byte_complement else .byte, source.idx, index);
+        }
+
         pub fn deinit(self: *Self) void {
+            if (self.witness_metadata) |*metadata| metadata.deinit(self.gpa);
             self.circuit.deinit(self.gpa);
             self.constants.deinit(self.gpa);
             self.value_table.deinit(self.gpa);
@@ -201,6 +235,7 @@ pub fn Context(comptime V: type) type {
 
         /// The value of every variable (value mode only).
         pub fn values(self: *const Self) []const QM31 {
+            if (self.trace_only) @panic("trace-only context has no CPU assignments");
             comptime if (V != QM31) @compileError("values() exists only in value mode");
             return self.value_table.items;
         }
@@ -221,6 +256,7 @@ pub fn Context(comptime V: type) type {
         /// the context is unchanged. Value mode only.
         pub fn intoValues(self: *Self) Allocator.Error![]QM31 {
             comptime if (V != QM31) @compileError("intoValues() exists only in value mode");
+            if (self.trace_only) @panic("trace-only context has no CPU assignments");
             const table = try self.value_table.toOwnedSlice(self.gpa);
             self.deinit();
             return table;
@@ -235,7 +271,7 @@ pub fn Context(comptime V: type) type {
         pub fn newVar(self: *Self, value: V) Error!circuit_mod.Var {
             const idx = self.circuit.n_vars;
             if (idx >= circuit_mod.max_vars - 1) return error.TooManyVars;
-            if (V == QM31) try self.value_table.append(self.gpa, value);
+            if (V == QM31 and !self.trace_only) try self.value_table.append(self.gpa, value);
             self.circuit.n_vars = idx + 1;
             return .{ .idx = idx };
         }
@@ -256,6 +292,7 @@ pub fn Context(comptime V: type) type {
         /// The value of `v`. Reading a reserved variable before `setOutputs`
         /// is a programmer error and panics, as upstream.
         pub fn get(self: *const Self, v: circuit_mod.Var) V {
+            if (self.trace_only) @panic("unannotated value read from trace-only context");
             for (self.reserved_vars.items) |reserved| {
                 if (reserved == v.idx) @panic("read of reserved variable");
             }
@@ -278,7 +315,7 @@ pub fn Context(comptime V: type) type {
             self.reserved_vars = .empty;
             defer reserved.deinit(self.gpa);
             for (reserved.items, vars) |reserved_idx, v| {
-                if (V == QM31) self.value_table.items[reserved_idx] = self.get(v);
+                if (V == QM31 and !self.trace_only) self.value_table.items[reserved_idx] = self.get(v);
                 self.gate_counts.qm31_ops += 1;
                 if (self.record_gates) try self.circuit.add.append(self.gpa, .{ .in0 = v.idx, .in1 = 0, .out = reserved_idx });
                 try self.output(.{ .idx = reserved_idx });
@@ -356,6 +393,7 @@ pub fn Context(comptime V: type) type {
         /// Adds an equality gate `[a] = [b]`.
         pub fn eq(self: *Self, a: circuit_mod.Var, b: circuit_mod.Var) Error!void {
             self.stats.equals += 1;
+            if (self.trace_only and self.assert_eq_on_eval) @panic("CPU value assertions unavailable in trace-only context");
             if (V == QM31 and self.assert_eq_on_eval and !self.get(a).eql(self.get(b))) return error.EqFailedOnEval;
             self.gate_counts.eq += 1;
             if (self.record_gates) try self.circuit.eq.append(self.gpa, .{ .in0 = a.idx, .in1 = b.idx });
@@ -365,7 +403,7 @@ pub fn Context(comptime V: type) type {
         pub fn add(self: *Self, a: circuit_mod.Var, b: circuit_mod.Var) Error!circuit_mod.Var {
             if (a.idx == 0) return b;
             if (b.idx == 0) return a;
-            const out = try self.newVar(ivalue.add(V, self.get(a), self.get(b)));
+            const out = try self.newVar(if (self.trace_only) ivalue.placeholder(V) else ivalue.add(V, self.get(a), self.get(b)));
             try self.addInto(a, b, out);
             return out;
         }
@@ -379,7 +417,7 @@ pub fn Context(comptime V: type) type {
 
         /// `a - b`; never elided.
         pub fn sub(self: *Self, a: circuit_mod.Var, b: circuit_mod.Var) Error!circuit_mod.Var {
-            const out = try self.newVar(ivalue.sub(V, self.get(a), self.get(b)));
+            const out = try self.newVar(if (self.trace_only) ivalue.placeholder(V) else ivalue.sub(V, self.get(a), self.get(b)));
             try self.subInto(a, b, out);
             return out;
         }
@@ -397,7 +435,7 @@ pub fn Context(comptime V: type) type {
             if (a.idx == 0 or b.idx == 0) return self.zero();
             if (a.idx == 1) return b;
             if (b.idx == 1) return a;
-            const out = try self.newVar(ivalue.mul(V, self.get(a), self.get(b)));
+            const out = try self.newVar(if (self.trace_only) ivalue.placeholder(V) else ivalue.mul(V, self.get(a), self.get(b)));
             try self.mulInto(a, b, out);
             return out;
         }
@@ -411,7 +449,7 @@ pub fn Context(comptime V: type) type {
 
         /// The coordinate-wise product `a .* b`; never elided.
         pub fn pointwiseMul(self: *Self, a: circuit_mod.Var, b: circuit_mod.Var) Error!circuit_mod.Var {
-            const out = try self.newVar(ivalue.pointwiseMul(V, self.get(a), self.get(b)));
+            const out = try self.newVar(if (self.trace_only) ivalue.placeholder(V) else ivalue.pointwiseMul(V, self.get(a), self.get(b)));
             try self.pointwiseMulInto(a, b, out);
             return out;
         }
@@ -434,7 +472,8 @@ pub fn Context(comptime V: type) type {
         /// constrain `b != 0`. Panics in value mode when `b` is zero, as upstream.
         pub fn div(self: *Self, a: circuit_mod.Var, b: circuit_mod.Var) Error!circuit_mod.Var {
             self.stats.div += 1;
-            const out = try self.guess(ivalue.div(V, self.get(a), self.get(b)));
+            const out = try self.guess(if (self.trace_only) ivalue.placeholder(V) else ivalue.div(V, self.get(a), self.get(b)));
+            try self.noteWitnessHint(out, .divide, a, b);
             const product = try self.mul(out, b);
             try self.eq(product, a);
             return out;
@@ -444,7 +483,8 @@ pub fn Context(comptime V: type) type {
         /// proves `b != 0`.
         pub fn inv(self: *Self, b: circuit_mod.Var) Error!circuit_mod.Var {
             self.stats.inv += 1;
-            const b_inv = try self.guess(ivalue.div(V, self.get(self.one()), self.get(b)));
+            const b_inv = try self.guess(if (self.trace_only) ivalue.placeholder(V) else ivalue.div(V, self.get(self.one()), self.get(b)));
+            try self.noteWitnessHint(b_inv, .inverse, b, self.one());
             const product = try self.mul(b, b_inv);
             try self.eq(product, self.one());
             return b_inv;
@@ -470,6 +510,7 @@ pub fn Context(comptime V: type) type {
             self.stats.guess += 1;
             const out = try self.newVar(value);
             try self.guessed_vars.append(self.gpa, @unionInit(GuessVar, @tagName(kind), out));
+            if (self.witness_metadata) |*metadata| try metadata.origins.append(self.gpa, .{ .out = out.idx, .value = if (V == QM31) value else QM31.zero() });
             return out;
         }
 
@@ -480,14 +521,29 @@ pub fn Context(comptime V: type) type {
             inputs: []const circuit_mod.Var,
             comptime permutation: fn (in: []const V, out: []V) void,
         ) Error![]const circuit_mod.Var {
+            if (self.witness_metadata != null) return error.UnsupportedWitnessPermutation;
+            return self.permuteRecorded(inputs, permutation, null);
+        }
+
+        pub fn permuteNamed(self: *Self, inputs: []const circuit_mod.Var, comptime identity: witness_origins.Permutation) Error![]const circuit_mod.Var {
+            return switch (identity) {
+                .sort_by_u_coordinate => self.permuteRecorded(inputs, ivalue.sortByUCoordinate(V), identity),
+            };
+        }
+
+        fn permuteRecorded(self: *Self, inputs: []const circuit_mod.Var, comptime permutation: fn (in: []const V, out: []V) void, identity: ?witness_origins.Permutation) Error![]const circuit_mod.Var {
             self.stats.permutation_inputs += inputs.len;
             const arena = self.scratch();
-            const in_values = try arena.alloc(V, inputs.len);
-            for (in_values, inputs) |*value, v| value.* = self.get(v);
-            const out_values = try arena.alloc(V, inputs.len);
-            permutation(in_values, out_values);
             const outputs = try arena.alloc(circuit_mod.Var, inputs.len);
-            for (outputs, out_values) |*out, value| out.* = try self.newVar(value);
+            if (self.trace_only) {
+                for (outputs) |*out| out.* = try self.newVar(ivalue.placeholder(V));
+            } else {
+                const in_values = try arena.alloc(V, inputs.len);
+                for (in_values, inputs) |*value, v| value.* = self.get(v);
+                const out_values = try arena.alloc(V, inputs.len);
+                permutation(in_values, out_values);
+                for (outputs, out_values) |*out, value| out.* = try self.newVar(value);
+            }
             self.gate_counts.qm31_ops += 2 * inputs.len;
             if (self.record_gates) {
                 const input_idx = try arena.alloc(u32, inputs.len);
@@ -496,6 +552,7 @@ pub fn Context(comptime V: type) type {
                 for (output_idx, outputs) |*idx, v| idx.* = v.idx;
                 try self.circuit.permutation.append(self.gpa, input_idx, output_idx);
             }
+            if (self.witness_metadata) |*metadata| try metadata.permutations.append(self.gpa, identity orelse return error.UnsupportedWitnessPermutation);
             return outputs;
         }
 

@@ -1,0 +1,561 @@
+{
+  "report": {
+    "schema": 2,
+    "accepted": true,
+    "outer_backend": "cuda_from_host_assignment",
+    "leaf_proofs": 17,
+    "restored_leaves": 0,
+    "fold_proofs": 16,
+    "restored_folds": 0,
+    "peak_pending_authorities": 6,
+    "retired_preprocessed_bytes": 18589649920,
+    "gpu_new_leaf_proofs": 17,
+    "gpu_new_fold_proofs": 16,
+    "assignment_source": "cpu_circuit_builder",
+    "root_node": 32,
+    "root_digest": [
+      216,
+      144,
+      50,
+      210,
+      238,
+      151,
+      29,
+      97,
+      140,
+      208,
+      24,
+      10,
+      170,
+      79,
+      175,
+      57,
+      217,
+      38,
+      124,
+      143,
+      71,
+      233,
+      173,
+      123,
+      135,
+      60,
+      9,
+      218,
+      59,
+      66,
+      177,
+      175
+    ],
+    "root_authority": [
+      127,
+      0,
+      48,
+      83,
+      212,
+      2,
+      122,
+      171,
+      238,
+      203,
+      99,
+      165,
+      36,
+      101,
+      252,
+      217,
+      245,
+      246,
+      205,
+      133,
+      222,
+      71,
+      138,
+      122,
+      87,
+      26,
+      174,
+      35,
+      154,
+      160,
+      135,
+      8
+    ],
+    "manifest": [
+      228,
+      171,
+      8,
+      40,
+      5,
+      69,
+      136,
+      158,
+      169,
+      156,
+      150,
+      102,
+      39,
+      22,
+      36,
+      49,
+      95,
+      48,
+      103,
+      221,
+      54,
+      90,
+      245,
+      200,
+      131,
+      168,
+      57,
+      47,
+      34,
+      115,
+      246,
+      164
+    ],
+    "native_prove_ns": null,
+    "graph_ns": 18224726522,
+    "wrap_ns": 55811498230,
+    "fold_ns": 63459199764,
+    "root_verify_ns": 1192872977,
+    "total_ns": 140853228927,
+    "root_proof_bytes": 717048,
+    "portable_root_key_admission": false
+  },
+  "process": {
+    "exit_code": 0,
+    "wall_seconds": 253.62097422988154,
+    "user_seconds": 474.784636,
+    "system_seconds": 34.902911,
+    "max_rss_bytes": 8558903296
+  },
+  "proofs": {
+    "leaf-000000.proof": {
+      "bytes": 747608,
+      "sha256": "34e1e118dfec4a2a76536e0a828172f71da6174889b9b9e941351933c6484c5a"
+    },
+    "leaf-000001.proof": {
+      "bytes": 752824,
+      "sha256": "8d87e7d32f3c176ebf2f3c80f213fbf2558ab48a0d24bb11ce7705065efb6ebe"
+    },
+    "fold-000002.proof": {
+      "bytes": 748760,
+      "sha256": "72a465aabd4562a670bc2a5908cc7f50a0d6349bda6a69cf98670266b6e03baf"
+    },
+    "leaf-000002.proof": {
+      "bytes": 746296,
+      "sha256": "68b25ca55d5d717c5a562830b5ac630e8bba5eadf8ccbe32626bd22b410ca9e6"
+    },
+    "leaf-000003.proof": {
+      "bytes": 751384,
+      "sha256": "c088391ffa4e6f38336ce1d353edd64b5dc855113ad8ba79498d744fd2eb46ca"
+    },
+    "fold-000005.proof": {
+      "bytes": 747800,
+      "sha256": "dafe94c086807c1057306f966640ff93a2ccd357e2a97052fa59c0bb89ba56e8"
+    },
+    "fold-000006.proof": {
+      "bytes": 746776,
+      "sha256": "f02c2013ce6992f860421fda1925236864083486484d0297126c9f9eefe34851"
+    },
+    "leaf-000004.proof": {
+      "bytes": 743448,
+      "sha256": "bd052e517578a5cbf9e21109a5ad72b85f4e3834def47ee77dcce5b3edfac770"
+    },
+    "leaf-000005.proof": {
+      "bytes": 752760,
+      "sha256": "9389d5f7475b1f868b6972c106c4e90ffd6742e875bef813073bfce5311ba4cd"
+    },
+    "fold-000009.proof": {
+      "bytes": 747416,
+      "sha256": "4bc230a5727c96d9f89c1a768a75721f8d7b3f795d90754469cb21f9249e73b4"
+    },
+    "leaf-000006.proof": {
+      "bytes": 750744,
+      "sha256": "ce0ab3f19e6f8ebf4bb0eec007139af711da1e6efdd284c64916e6750b2999c0"
+    },
+    "leaf-000007.proof": {
+      "bytes": 745880,
+      "sha256": "3d536577dac296638559052165007616a2b4f633ec6a11dcf2b500ffa3ea52cc"
+    },
+    "fold-000012.proof": {
+      "bytes": 755704,
+      "sha256": "7a862d8f5970f5eb932dfaabd38d0f577edb432412bcedee1f75c1ed857ed543"
+    },
+    "fold-000013.proof": {
+      "bytes": 745464,
+      "sha256": "c589b2f9ff47828a46e45a9ade68c7af1fef03eb2d5c058b08f4ec76fe8c34ba"
+    },
+    "fold-000014.proof": {
+      "bytes": 742392,
+      "sha256": "41acafcc36aac39131351099590ad1edd9e2defc8a30593113e67fa995c714c2"
+    },
+    "leaf-000008.proof": {
+      "bytes": 755960,
+      "sha256": "e9cca429817ce22af9503cacd16398a8b7c6f2c6270a63ea9167ee6a94c28604"
+    },
+    "leaf-000009.proof": {
+      "bytes": 748088,
+      "sha256": "a4024ab2fa20d7c266c613a0ee9122b06131061048605ff39100df4bead68728"
+    },
+    "fold-000017.proof": {
+      "bytes": 753528,
+      "sha256": "2a740a27950d6ea5933feafabe9a10e8e20893af6d117a96c7a7137b1108a9fc"
+    },
+    "leaf-000010.proof": {
+      "bytes": 751416,
+      "sha256": "d1889b6f9f82212650dfa16c794af8b32ec81e75b2d1b129176ee41a77f18e14"
+    },
+    "leaf-000011.proof": {
+      "bytes": 741784,
+      "sha256": "3146443be137ad3292ad2f80ebe53d1d848f2be3e32d5b89948a854a25aec8c5"
+    },
+    "fold-000020.proof": {
+      "bytes": 747928,
+      "sha256": "559ad28848e574acd8e15c5d14d07ec09008174777a4c3bfb6beb31927479acb"
+    },
+    "fold-000021.proof": {
+      "bytes": 738296,
+      "sha256": "c61c12dda6ae684244303134682bc3083280849468d36aea477c3e3eddf8c3d0"
+    },
+    "leaf-000012.proof": {
+      "bytes": 746680,
+      "sha256": "bb302d0a22afa81c8e183d2eac3b0cfabe7cdfe420cf30f1d2009c2ae748e3e4"
+    },
+    "leaf-000013.proof": {
+      "bytes": 747896,
+      "sha256": "702ec67149ea34902445f2b291396632ff2f88922d3c8d8bfadea1e56ebcca0e"
+    },
+    "fold-000024.proof": {
+      "bytes": 748664,
+      "sha256": "c41ae7d9f5a21a1d5c48b8f8668720e829401c8e275830df9e231bc6219dbb1d"
+    },
+    "leaf-000014.proof": {
+      "bytes": 753496,
+      "sha256": "4b67d33794445dbba55f1ae3ef17991d1c19b1b47c9306dfd6faa51c664133e2"
+    },
+    "leaf-000015.proof": {
+      "bytes": 747448,
+      "sha256": "9e8ebfb51dd7a36e27181e4d3b781612bd2b645c10b33e2a630336418a0b246c"
+    },
+    "fold-000027.proof": {
+      "bytes": 746904,
+      "sha256": "8ed07cb3b15102faed932a4cf26821aae7327f4888f83cd7956e7d0eedfccb05"
+    },
+    "fold-000028.proof": {
+      "bytes": 750680,
+      "sha256": "6a0cb0510bbe2aaf266afe2f0c800b09c76f7bea2614312249bbff1ef79476cc"
+    },
+    "fold-000029.proof": {
+      "bytes": 748760,
+      "sha256": "04fc01cf99194f6d645b6ddba3c6ba705eebd92f80ab44cdf8eaa5a38a581c6b"
+    },
+    "fold-000030.proof": {
+      "bytes": 749688,
+      "sha256": "8e3ac2ee369157f83a70532ac824c119ee75e4f944374a593847e9aa90f9c637"
+    },
+    "leaf-000016.proof": {
+      "bytes": 674296,
+      "sha256": "df9547993b9d3e33cb2aa02c9363ad4f4e1c30f231462fca21b10f2049367e43"
+    },
+    "fold-000032.proof": {
+      "bytes": 717048,
+      "sha256": "b82a740f62829dbf795e711e686c3b8e90be88b877005552786eb8459ddb538f"
+    },
+    "root.proof": {
+      "bytes": 717048,
+      "sha256": "b82a740f62829dbf795e711e686c3b8e90be88b877005552786eb8459ddb538f"
+    }
+  },
+  "pcs_timings": [
+    [
+      422346483,
+      254068801,
+      707454030,
+      14329987772,
+      24436899900
+    ],
+    [
+      956729,
+      252008926,
+      307134490,
+      14329987772,
+      25173199932
+    ],
+    [
+      1314623,
+      228476577,
+      286600896,
+      14117134276,
+      24203274564
+    ],
+    [
+      1276656,
+      252069824,
+      299037047,
+      14329987772,
+      25930540196
+    ],
+    [
+      731282,
+      251078781,
+      293504398,
+      14329987772,
+      25978503872
+    ],
+    [
+      1162045,
+      230915802,
+      280976624,
+      14117134276,
+      24226458976
+    ],
+    [
+      1261009,
+      229314971,
+      252473305,
+      14117134276,
+      24224612104
+    ],
+    [
+      1219201,
+      250532546,
+      302982616,
+      14329987772,
+      25930533480
+    ],
+    [
+      1215643,
+      255200836,
+      316161289,
+      14329987772,
+      25978499552
+    ],
+    [
+      1204335,
+      229639236,
+      287868975,
+      14117134276,
+      24226496128
+    ],
+    [
+      1210287,
+      145800537,
+      174448711,
+      11113222280,
+      22194122752
+    ],
+    [
+      1166936,
+      148653274,
+      172179015,
+      11097493640,
+      24197877656
+    ],
+    [
+      1123634,
+      229759780,
+      263111829,
+      14117134276,
+      24390358496
+    ],
+    [
+      1081392,
+      229343521,
+      286486937,
+      14117134276,
+      24463559136
+    ],
+    [
+      1288641,
+      231085952,
+      285871320,
+      14117134276,
+      24463559136
+    ],
+    [
+      1291036,
+      148737503,
+      171478898,
+      11097493640,
+      24358565240
+    ],
+    [
+      1087216,
+      146225250,
+      168828331,
+      11097493640,
+      21303801208
+    ],
+    [
+      1114039,
+      229666595,
+      276561567,
+      14117134276,
+      24151307588
+    ],
+    [
+      485677,
+      245044479,
+      288237863,
+      13458621116,
+      24804369572
+    ],
+    [
+      895676,
+      247423782,
+      296808686,
+      13458621116,
+      24827298496
+    ],
+    [
+      1253820,
+      232789184,
+      255292771,
+      14117134276,
+      24234978656
+    ],
+    [
+      1094681,
+      229671386,
+      252776995,
+      14117134276,
+      24224612104
+    ],
+    [
+      537409,
+      246931930,
+      290720735,
+      13460459928,
+      24805674152
+    ],
+    [
+      1117639,
+      146411071,
+      167961946,
+      11097493640,
+      26264059328
+    ],
+    [
+      891150,
+      237765350,
+      290475621,
+      14117134276,
+      24407135744
+    ],
+    [
+      1400453,
+      148258117,
+      170317134,
+      11097493640,
+      24358565240
+    ],
+    [
+      1108023,
+      246771652,
+      293574815,
+      13458621116,
+      24261051744
+    ],
+    [
+      1341354,
+      231670303,
+      287881598,
+      14117134276,
+      24473913824
+    ],
+    [
+      1060445,
+      238220642,
+      294950643,
+      14117134276,
+      24463559136
+    ],
+    [
+      744200,
+      235392990,
+      283818771,
+      14117134276,
+      24463559136
+    ],
+    [
+      1014390,
+      229570083,
+      252196107,
+      14117134276,
+      24463559136
+    ],
+    [
+      118791801,
+      64573890,
+      195317251,
+      4303815740,
+      18966798816
+    ],
+    [
+      239681066,
+      119844131,
+      374416838,
+      7500141976,
+      21123457504
+    ]
+  ],
+  "schema": "rv64-gpu-om31-production-root-functional/v1",
+  "proofs_exact_cpu_reference": {
+    "leaf-000000.proof": true,
+    "leaf-000001.proof": true,
+    "fold-000002.proof": true,
+    "leaf-000002.proof": true,
+    "leaf-000003.proof": true,
+    "fold-000005.proof": true,
+    "fold-000006.proof": true,
+    "leaf-000004.proof": true,
+    "leaf-000005.proof": true,
+    "fold-000009.proof": true,
+    "leaf-000006.proof": true,
+    "leaf-000007.proof": true,
+    "fold-000012.proof": true,
+    "fold-000013.proof": true,
+    "fold-000014.proof": true,
+    "leaf-000008.proof": true,
+    "leaf-000009.proof": true,
+    "fold-000017.proof": true,
+    "leaf-000010.proof": true,
+    "leaf-000011.proof": true,
+    "fold-000020.proof": true,
+    "fold-000021.proof": true,
+    "leaf-000012.proof": true,
+    "leaf-000013.proof": true,
+    "fold-000024.proof": true,
+    "leaf-000014.proof": true,
+    "leaf-000015.proof": true,
+    "fold-000027.proof": true,
+    "fold-000028.proof": true,
+    "fold-000029.proof": true,
+    "fold-000030.proof": true,
+    "leaf-000016.proof": true,
+    "fold-000032.proof": true,
+    "root.proof": true
+  },
+  "source_commit": "6a8555d3f",
+  "native_library_sha256": "28721be866b68f5f8011c199970a66c0d051caa2de58bdadb477dcc85c41f8d5",
+  "qualification": {
+    "functional_root": true,
+    "fresh_cpu_verification_each_proof": true,
+    "all_34_proofs_exact_cpu_reference": true,
+    "bounded_device_memory": false,
+    "bounded_device_memory_open_reason": "Library predates owned Merkle prefix scratch; explicit prefix arena capacity merged7ba0f8873 requires new image gate.",
+    "CPU_work": "graph construction, PP/authority and assignment generation; GPU MAIN/INTER/composition/PCS; no CPU proving fallback",
+    "security": "128-bit security target under documented assumptions; no whole-protocol certificate",
+    "timing_note": "Native_prove_ns null. Native input proofs reused; total process includes independent native authority/capture setup and GPU recursion. Not native+recursive whole-block wall."
+  },
+  "aggregate_pcs": {
+    "calls": 33,
+    "prepare_ns": 813468971,
+    "gpu_ns": 7042917702,
+    "wall_ns": 9127908052,
+    "max_retained_bytes": 26264059328
+  }
+}

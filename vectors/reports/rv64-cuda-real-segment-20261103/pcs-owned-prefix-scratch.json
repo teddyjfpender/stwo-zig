@@ -1,0 +1,15 @@
+{
+  "schema": "rv64-pcs-owned-prefix-scratch/v1",
+  "change": "Native PCS trace planes admit two prefix banks through the same NativeOwner/pool; exact tree words remain separate from allocation capacity.",
+  "validation": {
+    "fixture": "existing masked four-tree native PCS fixture",
+    "rows": 2048,
+    "columns": 30,
+    "groups": 13,
+    "queries": 256,
+    "readback": "byte-identical to previously native-verified fixture output",
+    "native_kernel": "same caller-owned trace scratch as six trace native fixtures plus three mutants; memcheck0",
+    "real_q108_full_block": "pending new coherent image"
+  },
+  "limits": "No throughput or full-block acceptance claim for this native-only slice."
+}

@@ -1,0 +1,33 @@
+{
+ "schema": "rv64-m3-pipe-receiver/v1",
+ "block": 24628607,
+ "measured": true,
+ "producer_run": "p4 (40e4860d5)",
+ "receiver": "rv64-word16-ethereum-recursion-receiver built from codex/rv64-m3-pipe e4d8fc9a2 (receiver path unchanged by this stream), fresh separate process on a copy of the proof dir",
+ "environment": "env -i, CUDA_VISIBLE_DEVICES=, STWO_RV64_GPU_PCS_HELPER=/bin/false, no GPU library",
+ "command": "verify-recursion-candidate REQUEST PROOF 12884901888 51539607552",
+ "accepted": true,
+ "native_accepted": true,
+ "completed_ethereum_block": true,
+ "existing_recursive_proofs_only": true,
+ "recursive": {
+  "accepted": true,
+  "outer_backend": "cpu_trace_only_receiver",
+  "assignment_source": "none_receiver_trace_only",
+  "leaf_proofs": 17,
+  "fold_proofs": 16,
+  "restored_leaves": 17,
+  "restored_folds": 16,
+  "gpu_new_leaf_proofs": 0,
+  "gpu_new_fold_proofs": 0,
+  "root_proof_bytes": 708056
+ },
+ "process": {
+  "exit": 0,
+  "wall_s": 61.85825252532959,
+  "user_s": 270.281719,
+  "sys_s": 19.731332,
+  "maxrss_kb": 7213840,
+  "minflt": 9120912
+ }
+}

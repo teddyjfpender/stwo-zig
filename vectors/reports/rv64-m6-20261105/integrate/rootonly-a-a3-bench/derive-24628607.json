@@ -1,0 +1,49 @@
+{
+ "schema": "rv64-rootverify-derive/v0",
+ "mode": "derive-vk-tables",
+ "table": "/workspace/m3/scratch/m6-integrate/a-a3-bench/tables/vk-24628607.json",
+ "table_profile": "rv64-m4-fold-v2-compat/v0",
+ "table_root": "404981af716adba87ce735e25b599215391522448c7f8fde4d422dc5414096ab",
+ "entries": 25,
+ "new_leaf_classes": 17,
+ "new_fold_classes": 8,
+ "native_entries": 17,
+ "new_native_classes": 17,
+ "block_leaves": 17,
+ "block_folds": 16,
+ "fold_reimplementation_cross_checks": 8,
+ "audit_accepted": true,
+ "root_only_self_check": true,
+ "root_digest": "3434588d18ddda7a274c557471216b0017fdf49744127ec231caa427dda04c06",
+ "root_identity": "ce47ea455c1e44558aec5d8a7cd625ef812d34ca04234f423efb80bc6391c555",
+ "derive_once_ns": 28592201488,
+ "table_cumulative_derive_ns": 28592201488,
+ "breakdown": {
+  "self_sha_ns": 50958092,
+  "table_load_ns": 0,
+  "image_ns": 362836298,
+  "bundle_ns": 128405857,
+  "native_keys_ns": 2381385501,
+  "fixed_authority_ns": 4206451402,
+  "admission_ns": 486519946,
+  "native_verify_ns": 1704305764,
+  "recursion_ns": 21152127267,
+  "recursion_leaves_ns": 11217852340,
+  "recursion_folds_ns": 8543573085
+ },
+ "recursion_schedule": {
+  "lanes": 8,
+  "fold_class_builds": 8,
+  "fold_class_restores": 8,
+  "native_verify_overlapped": true
+ },
+ "native_build": {
+  "components": 17,
+  "max_build_ns": 2285954221,
+  "max_build_kind": "cpu",
+  "threads": 16
+ },
+ "receiver_sha256": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+ "source_commit": "c271b555c",
+ "scope": "One-time derivation: today's full independent receiver (native + every recursion proof) with each receiver-built authority recorded as a compact class-keyed verifier key. Never reads producer stores or setup caches."
+}

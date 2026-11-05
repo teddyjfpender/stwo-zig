@@ -104,9 +104,9 @@ pub const Materials = struct {
         errdefer a.free(ls);
         const ls_tail = if (geometry.ls_tail_log) |log| try air.memory.load_store_v2.source.fixed(a, log) else try a.alloc(M, 0);
         errdefer a.free(ls_tail);
-        const memory_boundary = try air.memory.load_store_v2.source.fixed(a, geometry.initialLog());
+        const memory_boundary = try air.memory.load_store_v2.boundary_source.fixed(a, geometry.initialLog());
         errdefer a.free(memory_boundary);
-        const memory_terminal = if (geometry.initialLog() != geometry.terminalLog()) try air.memory.load_store_v2.source.fixed(a, geometry.terminalLog()) else null;
+        const memory_terminal = if (geometry.initialLog() != geometry.terminalLog()) try air.memory.load_store_v2.boundary_source.fixed(a, geometry.terminalLog()) else null;
         errdefer if (memory_terminal) |data| a.free(data);
         const selection = try selectionFixed(a);
         errdefer a.free(selection);

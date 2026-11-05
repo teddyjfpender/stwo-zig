@@ -1,0 +1,11 @@
+ADMIT cpu_compact_decode
+REJECT mul_u8_pairs
+REJECT ls_fused_pairs
+REJECT alu_fused_tail
+REJECT ls_dword_fused_pairs
+REJECT wide_clock_log23
+REJECT no_u8_pairs
+REJECT zbb_bridge
+REJECT conjectured_receiver_label
+REJECT proven_receiver_under_conjectured_profile
+PASS V3 model equality, 1 admitted and 9 rejected mutations

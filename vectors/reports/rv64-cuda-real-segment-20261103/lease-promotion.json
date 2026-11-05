@@ -1,0 +1,24 @@
+{
+  "schema": "rv64-cuda-lease-promotion-v1",
+  "gpu": "RTX5090",
+  "passed": [
+    "wrong_owner_thread",
+    "valid_subrange",
+    "altered_kind_rejected",
+    "altered_count_rejected",
+    "wrong_token_rejected",
+    "wrong_generation_rejected",
+    "wrong_scope_rejected",
+    "overflow_rejected",
+    "altered_rebind_descriptor_rejected",
+    "failed_rebind_preserves_scope",
+    "wrong_rebind_source_rejected",
+    "empty_target_scope_rejected",
+    "valid_scope_promotion",
+    "old_scope_rejected_after_promotion",
+    "retired_lease_rejected",
+    "double_release_rejected"
+  ],
+  "scope": "ownership metadata only; no cryptographic security claim",
+  "source_sha256": "7a1c17c6d102e405a0faece942e75b61385de0c3de4f431a1da50598c3fbbd94"
+}

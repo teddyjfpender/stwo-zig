@@ -1,0 +1,175 @@
+{
+ "schema": "rv64-m4-arena/v1",
+ "label": "607-a5-off",
+ "block": 24628607,
+ "run": "/workspace/m3/runs/m4-arena/24628607-2gpu-607-a5-off",
+ "source_commit": "bcd401ce4",
+ "assets": {
+  "driver": "b28544a1efc336fd23d7fc102d99b725432fb76d7dbe8b6c727b2799d3d551aa",
+  "library": "e7a80247d5c2b3449dae54309e8d14f1678c75c44a847a7a5d92492e2d723ef6",
+  "receiver": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b",
+  "recursive_receiver": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b"
+ },
+ "environment_overrides": {
+  "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+  "STWO_RV64_GPU_CPU_REPLAY": "1",
+  "STWO_RV64_CORE_SINGLE_STREAM": "1"
+ },
+ "stages": {
+  "request_wall_s": 53.867,
+  "capture_s": 3.595,
+  "setup_s": 13.594,
+  "native_prove_s": 7.914,
+  "native_verify_s": 1.871,
+  "native_total_before_report_s": 25.291,
+  "recursion_s": 28.538
+ },
+ "producer_process": {
+  "argv": [
+   "/workspace/m3/build/m4-arena/base/rv64-word16-ethereum-gpu-combined",
+   "combined-batch",
+   "/workspace/m3/runs/m4-arena/24628607-2gpu-607-a5-off/case/manifest.json",
+   "/workspace/m3/runs/m4-arena/24628607-2gpu-607-a5-off/case/batch"
+  ],
+  "exit_code": 0,
+  "wall_ns": 61202221361,
+  "user_seconds": 178.672599,
+  "system_seconds": 75.802436,
+  "peak_rss_bytes": 26428719104,
+  "minor_faults": 21729176,
+  "major_faults": 0
+ },
+ "physical_gpu_memory_peak": {
+  "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+  "samples": 480,
+  "errors": [],
+  "kernel_activity": {
+   "0": {
+    "samples": 240,
+    "mean_percent": 29.745833333333334,
+    "min_percent": 0,
+    "max_percent": 100
+   },
+   "1": {
+    "samples": 240,
+    "mean_percent": 25.875,
+    "min_percent": 0,
+    "max_percent": 100
+   }
+  },
+  "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
+  "peak_used_bytes": {
+   "0": 33648803840,
+   "1": 33313259520
+  }
+ },
+ "load1_at_start": 33.05,
+ "arena": {
+  "arena_init": [],
+  "arena_hw": [],
+  "arena_overrun": [],
+  "arena_summary": [],
+  "pool_summary": {
+   "pool_mallocs": 14619,
+   "pool_trims": 8,
+   "pool_oom_recoveries": 4,
+   "arena_enabled": 0,
+   "staging_enabled": 0
+  },
+  "staging_summary": {
+   "pageable_h2d": 15694,
+   "pageable_h2d_bytes": 71943200072,
+   "pageable_d2h": 3965,
+   "pageable_d2h_bytes": 121449044,
+   "pinned_direct": 0,
+   "staged_h2d": 0,
+   "staged_h2d_bytes": 0,
+   "staged_d2h": 0,
+   "staged_d2h_bytes": 0,
+   "slot_waits": 0,
+   "rings": 0
+  },
+  "device_peak_by_stage_line": {
+   "trace_commit:tree1": {
+    "pool_used_bytes": 24853987996,
+    "live_lease_bytes": 11351629728,
+    "scratch_bytes": 3825205760
+   },
+   "trace_commit:tree2": {
+    "pool_used_bytes": 25366799636,
+    "live_lease_bytes": 13732626080,
+    "scratch_bytes": 3825206528
+   },
+   "trace_commit:tree0": {
+    "pool_used_bytes": 20232774952,
+    "live_lease_bytes": 6697635628,
+    "scratch_bytes": 3234733260
+   }
+  },
+  "composition_arena_bytes_max": {
+   "eval_log23": 5620371368,
+   "eval_log19": 9218116000,
+   "eval_log6": 382768,
+   "eval_log17": 120329472,
+   "eval_log11": 3298592,
+   "eval_log9": 280624,
+   "eval_log13": 286945368,
+   "eval_log14": 89653168,
+   "eval_log10": 36015192,
+   "eval_log7": 732848,
+   "eval_log15": 1147277400,
+   "eval_log21": 750782432,
+   "eval_log18": 127404768,
+   "eval_log12": 3765504,
+   "eval_log16": 1152338336,
+   "eval_log8": 240384,
+   "eval_log20": 18436147616,
+   "eval_log22": 2810187688,
+   "eval_log24": 11240738728
+  },
+  "owner_oom_lines": 0
+ },
+ "receiver": {
+  "status": "not_run",
+  "accepted": null,
+  "process": null
+ },
+ "accepted": null,
+ "parity_vs_accepted_v7": {
+  "native_bins": true,
+  "bundle": true,
+  "recursive_tree": false,
+  "recursive_proofs": false,
+  "recursive_mismatched": [
+   "fold-000002.proof",
+   "fold-000005.proof",
+   "fold-000006.proof",
+   "fold-000009.proof",
+   "fold-000012.proof",
+   "fold-000013.proof",
+   "fold-000014.proof",
+   "fold-000017.proof",
+   "fold-000020.proof",
+   "fold-000021.proof",
+   "fold-000024.proof",
+   "fold-000027.proof",
+   "fold-000028.proof",
+   "fold-000029.proof",
+   "fold-000030.proof",
+   "fold-000032.proof",
+   "root.proof"
+  ],
+  "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+  "control_root_sha256": "07a537d3244bc27dcf1c11634bfa1f4746d93899aeb9abaa1afc9cfd127cdddf",
+  "native_mismatched": [],
+  "byte_identical": false
+ },
+ "parity_vs_m3_baseline": {
+  "artifacts_compared": 55,
+  "mismatched": [],
+  "byte_identical": true,
+  "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+  "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+  "baseline": "/workspace/m3/src/m4-arena/vectors/reports/rv64-m3-20261104/integrate/scale/24628607.json"
+ }
+}

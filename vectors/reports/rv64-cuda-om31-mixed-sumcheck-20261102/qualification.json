@@ -1,0 +1,38 @@
+{
+  "schema": "rv64-cuda-om31-mixed-sumcheck-qualification-v1",
+  "gpu": "RTX 5090",
+  "cuda": "12.8.93",
+  "sm": 120,
+  "native_proof_cases": 15,
+  "poison_cases": 5,
+  "max_oracles": 64,
+  "largest_test_oracle_variables": 16,
+  "base_and_secure_numerators": true,
+  "native_round_and_mask_gate_checks": true,
+  "native_channel_parity": true,
+  "zero_and_unit_mixing_weights": true,
+  "empty_polynomials": true,
+  "sanitizers": {
+    "memcheck": "PASS",
+    "initcheck": "PASS",
+    "racecheck": "PASS",
+    "synccheck": "PASS"
+  },
+  "legacy_single_oracle_regression": {
+    "logs": [
+      12,
+      16
+    ],
+    "strategies": 8,
+    "numerator_modes": 2,
+    "memcheck_log": 8
+  },
+  "integration_tests": {
+    "ReleaseSafe": 42,
+    "ReleaseFast": 42
+  },
+  "composition_fixture_io_hashes_unchanged": true,
+  "full_gkr_child_verified": false,
+  "full_block_verified": false,
+  "production_ready": false
+}

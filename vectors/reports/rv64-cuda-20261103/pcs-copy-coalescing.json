@@ -1,0 +1,26 @@
+{
+  "schema": "rv64-pcs-device-copy-coalescing/v1",
+  "scope": "device copy custody and unchanged idle-cache OOM regression, not a proving speed claim",
+  "positive": {
+    "columns": 3,
+    "actual_device_copies": 1,
+    "output": "exact"
+  },
+  "native_invalid_requests_rejected_before_copy": 6,
+  "authority_boundaries_forcing_separate_transfers": 8,
+  "checks": [
+    "each column geometry and live owned lease validated independently",
+    "actual coefficient lease kind2/4 included in merge key",
+    "same context token,generation,scope,kind required",
+    "source and destination adjacency required",
+    "complete merged source range checked against same live owned lease",
+    "host columns remain separate",
+    "OOM trim preserves active cache/live leases and bounded failure accounting"
+  ],
+  "real_proof_parity": "pending combined prefix and full-block qualification",
+  "sources": {
+    "src/backends/cuda/native/rv64/pcs_native.cu": "d486908d4b752195cae0e07973ba13c8ad059c0b7d892b0944df39270122c8d9",
+    "src/backends/cuda/native/rv64/pcs_pipeline.cuh": "befcad9067d7740a8a8cc1d5971a091afff0a12dee95bf233da15dd2426ab163",
+    "tests/cuda/rv64/pcs_cache_retry_smoke.cu": "584dd1ae9d0f11647b61f42787a700d4575ca4037f645c735693c4afbf6cb8aa"
+  }
+}

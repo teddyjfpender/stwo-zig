@@ -28,6 +28,7 @@ const builder_context = @import("../builder/context.zig");
 
 const M31 = core.fields.m31.M31;
 const tables = core.preprocessed_tables;
+const row_work = prover.lookups.row_work;
 const ChannelProfile = core.vcs_lifted.channel_profile.proving_5a7c5ed.Blake2sM31MerkleChannel;
 
 pub const Blake2sHash = ChannelProfile.MerkleHasher.Hash;
@@ -375,10 +376,17 @@ pub const PreprocessedCircuit = struct {
         // Eq.
         {
             const cols = try builder.block(&EQ_COLUMN_IDS, circuit.eq.len);
-            for (circuit.eq, 0..) |gate, row| {
-                try put(cols[0], row, gate.in0);
-                try put(cols[1], row, gate.in1);
-            }
+            const Fill = struct {
+                cols: @TypeOf(cols),
+                gates: []const EqGate,
+                fn fillRange(self: @This(), begin: usize, end: usize) Error!void {
+                    for (self.gates[begin..end], begin..) |gate, row| {
+                        try put(self.cols[0], row, gate.in0);
+                        try put(self.cols[1], row, gate.in1);
+                    }
+                }
+            };
+            try fillRows(circuit.eq.len, Fill{ .cols = cols, .gates = circuit.eq });
         }
         // QM31 operations: binary ops by kind, then the lowered permutations.
         var first_permutation_row: usize = 0;
@@ -387,14 +395,23 @@ pub const PreprocessedCircuit = struct {
             const cols = try builder.block(&QM31_OPS_COLUMN_IDS, binary_rows + circuit.permutationRows());
             var row: usize = 0;
             inline for (.{ circuit.add, circuit.sub, circuit.mul, circuit.pointwise_mul }, 0..) |gates, op_code| {
-                for (gates) |gate| {
-                    try putFlags(cols, row, op_code);
-                    try put(cols[4], row, gate.in0);
-                    try put(cols[5], row, gate.in1);
-                    try put(cols[6], row, gate.out);
-                    try put(cols[7], row, multiplicities[gate.out]);
-                    row += 1;
-                }
+                const Fill = struct {
+                    cols: @TypeOf(cols),
+                    gates: []const BinaryGate,
+                    mults: []const u32,
+                    offset: usize,
+                    fn fillRange(self: @This(), begin: usize, end: usize) Error!void {
+                        for (self.gates[begin..end], begin + self.offset..) |gate, index| {
+                            try putFlags(self.cols, index, op_code);
+                            try put(self.cols[4], index, gate.in0);
+                            try put(self.cols[5], index, gate.in1);
+                            try put(self.cols[6], index, gate.out);
+                            try put(self.cols[7], index, self.mults[gate.out]);
+                        }
+                    }
+                };
+                try fillRows(gates.len, Fill{ .cols = cols, .gates = gates, .mults = multiplicities, .offset = row });
+                row += gates.len;
             }
             first_permutation_row = row;
             // `fill_permutation_columns`: each pair writes the input to the
@@ -422,35 +439,59 @@ pub const PreprocessedCircuit = struct {
         // TripleXor.
         {
             const cols = try builder.block(&TRIPLE_XOR_COLUMN_IDS, circuit.triple_xor.len);
-            for (circuit.triple_xor, 0..) |gate, row| {
-                try put(cols[0], row, gate.input_a);
-                try put(cols[1], row, gate.input_b);
-                try put(cols[2], row, gate.input_c);
-                try put(cols[3], row, gate.out);
-                try put(cols[4], row, multiplicities[gate.out]);
-            }
+            const Fill = struct {
+                cols: @TypeOf(cols),
+                gates: []const TripleXorGate,
+                mults: []const u32,
+                fn fillRange(self: @This(), begin: usize, end: usize) Error!void {
+                    for (self.gates[begin..end], begin..) |gate, row| {
+                        try put(self.cols[0], row, gate.input_a);
+                        try put(self.cols[1], row, gate.input_b);
+                        try put(self.cols[2], row, gate.input_c);
+                        try put(self.cols[3], row, gate.out);
+                        try put(self.cols[4], row, self.mults[gate.out]);
+                    }
+                }
+            };
+            try fillRows(circuit.triple_xor.len, Fill{ .cols = cols, .gates = circuit.triple_xor, .mults = multiplicities });
         }
         // M31ToU32.
         {
             const cols = try builder.block(&M31_TO_U32_COLUMN_IDS, circuit.m31_to_u32.len);
-            for (circuit.m31_to_u32, 0..) |gate, row| {
-                try put(cols[0], row, gate.input);
-                try put(cols[1], row, gate.out);
-                try put(cols[2], row, multiplicities[gate.out]);
-            }
+            const Fill = struct {
+                cols: @TypeOf(cols),
+                gates: []const M31ToU32Gate,
+                mults: []const u32,
+                fn fillRange(self: @This(), begin: usize, end: usize) Error!void {
+                    for (self.gates[begin..end], begin..) |gate, row| {
+                        try put(self.cols[0], row, gate.input);
+                        try put(self.cols[1], row, gate.out);
+                        try put(self.cols[2], row, self.mults[gate.out]);
+                    }
+                }
+            };
+            try fillRows(circuit.m31_to_u32.len, Fill{ .cols = cols, .gates = circuit.m31_to_u32, .mults = multiplicities });
         }
         // BlakeGGate: the four outputs share one multiplicity column.
         {
             const cols = try builder.block(&BLAKE_G_GATE_COLUMN_IDS, circuit.blake_g_gate.len);
-            for (circuit.blake_g_gate, 0..) |gate, row| {
-                const outputs = gate.outputs();
-                for (gate.inputs() ++ outputs, 0..) |variable, col| try put(cols[col], row, variable);
-                const mult = multiplicities[outputs[0]];
-                for (outputs[1..]) |out| {
-                    if (multiplicities[out] != mult) return error.MultiplicityMismatch;
+            const Fill = struct {
+                cols: @TypeOf(cols),
+                gates: []const BlakeGGate,
+                mults: []const u32,
+                fn fillRange(self: @This(), begin: usize, end: usize) Error!void {
+                    for (self.gates[begin..end], begin..) |gate, row| {
+                        const outputs = gate.outputs();
+                        for (gate.inputs() ++ outputs, 0..) |variable, col| try put(self.cols[col], row, variable);
+                        const mult = self.mults[outputs[0]];
+                        for (outputs[1..]) |out| {
+                            if (self.mults[out] != mult) return error.MultiplicityMismatch;
+                        }
+                        try put(self.cols[10], row, mult);
+                    }
                 }
-                try put(cols[10], row, mult);
-            }
+            };
+            try fillRows(circuit.blake_g_gate.len, Fill{ .cols = cols, .gates = circuit.blake_g_gate, .mults = multiplicities });
         }
         // Fixed lookup tables.
         for (FIXED_COLUMNS) |fixed| {
@@ -459,11 +500,25 @@ pub const PreprocessedCircuit = struct {
             switch (fixed.table) {
                 .seq => |log_size| {
                     const seq = try tables.Seq.init(log_size);
-                    for (values, 0..) |*value, row| value.* = M31.fromCanonical(try seq.value(@intCast(row)));
+                    const Fill = struct {
+                        values: []M31,
+                        table: @TypeOf(seq),
+                        fn fillRange(self: @This(), begin: usize, end: usize) Error!void {
+                            for (self.values[begin..end], begin..) |*value, row| value.* = M31.fromCanonical(try self.table.value(@intCast(row)));
+                        }
+                    };
+                    try fillRows(values.len, Fill{ .values = values, .table = seq });
                 },
                 .bitwise_xor => |xor| {
                     const table = try tables.BitwiseXor.init(xor.n_bits, xor.col_index);
-                    for (values, 0..) |*value, row| value.* = M31.fromCanonical(try table.value(@intCast(row)));
+                    const Fill = struct {
+                        values: []M31,
+                        table: @TypeOf(table),
+                        fn fillRange(self: @This(), begin: usize, end: usize) Error!void {
+                            for (self.values[begin..end], begin..) |*value, row| value.* = M31.fromCanonical(try self.table.value(@intCast(row)));
+                        }
+                    };
+                    try fillRows(values.len, Fill{ .values = values, .table = table });
                 },
             }
         }
@@ -554,6 +609,25 @@ pub const PreprocessedCircuit = struct {
         return tree.root();
     }
 };
+
+/// Allocation and multiplicity scatter stay on the caller. Helpers only fill
+/// disjoint row intervals from immutable gate/multiplicity views, and always
+/// join before errors can release columns. No implicit global pool is created.
+fn fillRows(count: usize, fill: anytype) Error!void {
+    const Fill = @TypeOf(fill);
+    const Context = struct {
+        fill: Fill,
+        errors: [row_work.MAX_SHARDS]?Error = @splat(null),
+        pub fn runRange(self: *@This(), shard: usize, begin: usize, end: usize) void {
+            self.fill.fillRange(begin, end) catch |err| {
+                self.errors[shard] = err;
+            };
+        }
+    };
+    var context = Context{ .fill = fill };
+    const shards = row_work.forEachRange(count, &context, .{ .min_rows_per_shard = 16384 });
+    for (context.errors[0..shards]) |err| if (err) |failure| return failure;
+}
 
 fn lessByLength(_: void, a: Column, b: Column) bool {
     return a.values.len < b.values.len;

@@ -1,0 +1,29 @@
+{
+  "schema": "rv64-gpu-truth-integration/v1",
+  "host_tests_passed": 102,
+  "gpu_truth_qualified": false,
+  "full_block_gpu_qualified": false,
+  "native_authority_fixtures": ["throughput_r27_keccak", "chi", "xor5", "sha256", "arith256_mod", "secp_row_add", "secp_row_double"],
+  "architecture": {
+    "numerical_pipeline": "same scoped owner-thread runtime as CPU composition",
+    "default": "truth device stage disabled",
+    "authority": "original native equations and emitted-order random combination",
+    "public_anchor": "native logical-last physical row 1, independent per role",
+    "quotient_and_coefficients_readback": false,
+    "scope_requirement": "native device PCS and authenticated fixed/statement/MAIN identity",
+    "main_and_interaction_generation": "host pending later resident witness integration"
+  },
+  "cold_build": {
+    "whole_keccak_module": "stopped after more than 20 minutes in NVVM",
+    "solution": "partition independently grouped roots into separate translation units; preserve root indices and field-atomic accumulation",
+    "measured_first_partition_compile_seconds": [10.644, 10.438, 10.606, 10.423, 8.121, 10.803],
+    "qualification": "pending seven-authority exact DOMAIN comparison and real service proofs"
+  },
+  "remaining_gates": [
+    "partitioned native dispatcher DOMAIN parity on all seven authorities",
+    "existing accepted CPU0 proof hash unchanged after monomorphic runtime extraction",
+    "real service proof accepted by independent fresh CPU receiver",
+    "actual Keccak log18 memory fit and stage timing",
+    "all seven CPU segments and cross-shard execution closure"
+  ]
+}

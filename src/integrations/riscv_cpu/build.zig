@@ -37,12 +37,24 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_artifact_store", artifact_store);
     integration.addImport("stwo_core", core);
     integration.addImport("stwo_prover_api", prover_api);
+    integration.addImport("stwo_proof_wire", postcard.import_table.get("stwo_proof_wire") orelse @panic("canonical postcard module is missing proof wire"));
     integration.addImport("stwo_prover_engine", prover);
     integration.addImport("stwo_cpu_backend", cpu_backend);
     integration.addImport("stwo_riscv_frontend", frontend);
     integration.addImport("interop_postcard", postcard);
 
-    const tests = b.addTest(.{ .root_module = integration });
+    const device_projection_root = b.createModule(.{ .root_source_file = b.path("device_cpu_projection_test_root.zig"), .target = target, .optimize = optimize });
+    device_projection_root.addImport("stwo_core", core);
+    device_projection_root.addImport("stwo_prover_api", prover_api);
+    device_projection_root.addImport("stwo_prover_engine", prover);
+    device_projection_root.addImport("stwo_cpu_backend", cpu_backend);
+    device_projection_root.addImport("stwo_riscv_frontend", frontend);
+    device_projection_root.addImport("interop_postcard", postcard);
+    const projection_tests = b.addTest(.{ .root_module = device_projection_root, .filters = &.{"device CPU projection"} });
+    b.step("test-device-cpu-projection", "Verify narrow CPU capture/device geometry ownership without materializing MAIN").dependOn(&b.addRunArtifact(projection_tests).step);
+
+    const test_filter = b.option([]const u8, "test-filter", "Run only tests whose names contain this text");
+    const tests = b.addTest(.{ .root_module = integration, .filters = if (test_filter) |filter| &.{filter} else &.{} });
     b.step("test", "Test the focused RISC-V CPU integration")
         .dependOn(&b.addRunArtifact(tests).step);
 

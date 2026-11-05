@@ -1,0 +1,6 @@
+========= COMPUTE-SANITIZER
+{"schema":"rv64-tail-batch-v1","device":0,"jobs":1,"sequential_ms":50.707455,"batch_ms":50.404350,"all_records_verified":true,"canaries_verified":true,"failure_isolation_verified":true,"full_block_verified":false}
+{"schema":"rv64-tail-batch-v1","device":0,"jobs":2,"sequential_ms":61.462528,"batch_ms":51.567616,"all_records_verified":true,"canaries_verified":true,"failure_isolation_verified":true,"full_block_verified":false}
+{"schema":"rv64-tail-batch-v1","device":0,"jobs":4,"sequential_ms":90.865631,"batch_ms":51.906338,"all_records_verified":true,"canaries_verified":true,"failure_isolation_verified":true,"full_block_verified":false}
+{"schema":"rv64-tail-batch-v1","device":0,"jobs":8,"sequential_ms":232.077316,"batch_ms":51.827713,"all_records_verified":true,"canaries_verified":true,"failure_isolation_verified":true,"full_block_verified":false}
+========= RACECHECK SUMMARY: 0 hazards displayed (0 errors, 0 warnings)

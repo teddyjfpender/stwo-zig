@@ -1,0 +1,65 @@
+{
+ "block": 26235156,
+ "tag": "m5int-probe",
+ "binary": "/workspace/m3/build/m5-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+ "binary_sha256": "37f94901ab5f461416aa4e580b28704bc145aec4bff0c0cf050de87a897202b7",
+ "env": {},
+ "resources": {
+  "gkr_bytes": 34359738368,
+  "global_bytes": 8589934592,
+  "retained_frontend_bytes": 51539607552,
+  "disk_bytes": 0,
+  "park_main": false,
+  "schedule": {
+   "lanes": 2,
+   "workers_per_lane": 4,
+   "memory_cap_bytes": 38654705664,
+   "lane_workers": [
+    4,
+    4
+   ]
+  },
+  "capture_options": {
+   "max_inflight_packets": 4,
+   "packet_heap_bytes": 1073741824,
+   "max_inflight_packet_heap_bytes": 4294967296,
+   "max_inflight_wire_bytes": 4294967296,
+   "execution_workers": 8
+  },
+  "recycler_cache_bytes": 1073741824,
+  "keccak_max_log": 18
+ },
+ "rc": 1,
+ "process_wall_s": 0.0022,
+ "user_s": 0.0,
+ "sys_s": 0.0016829999999999998,
+ "avg_busy_cores": 0.78,
+ "max_rss_gib": 0.013,
+ "minor_faults": 76,
+ "major_faults": 0,
+ "loadavg_before": [
+  11.3955078125,
+  10.21728515625,
+  11.55517578125
+ ],
+ "loadavg_after": [
+  11.3955078125,
+  10.21728515625,
+  11.55517578125
+ ],
+ "nproc": 192,
+ "thp": {
+  "enabled": "always [madvise] never",
+  "defrag": "always defer defer+madvise [madvise] never"
+ },
+ "vmstat_delta": {
+  "compact_stall": 0,
+  "compact_fail": 0,
+  "compact_success": 0,
+  "thp_fault_alloc": 0,
+  "thp_fault_fallback": 0,
+  "pgmajfault": 0
+ },
+ "stdout_tail": "",
+ "stderr_tail": "error: CombinedRequiresNativeLibrary\n"
+}

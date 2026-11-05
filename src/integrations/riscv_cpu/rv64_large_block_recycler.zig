@@ -89,6 +89,13 @@ pub const LargeBlockRecycler = struct {
         return .{ .ptr = self, .vtable = &vtable };
     }
 
+    /// Exact adapter identity only; arbitrary forwarding allocators are not
+    /// inspected. The returned recycler remains borrowed from its caller.
+    pub fn fromAllocator(a: std.mem.Allocator) ?*LargeBlockRecycler {
+        if (a.vtable != &vtable) return null;
+        return @ptrCast(@alignCast(a.ptr));
+    }
+
     fn recyclable(len: usize, alignment: std.mem.Alignment) bool {
         return len >= threshold and alignment.toByteUnits() <= std.heap.page_size_min;
     }

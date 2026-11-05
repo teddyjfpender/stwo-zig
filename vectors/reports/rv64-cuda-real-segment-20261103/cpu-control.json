@@ -1,0 +1,101 @@
+{
+  "schema": "rv64-real-segment-cpu-control/v1",
+  "block": 24628607,
+  "segment": 0,
+  "steps": 4194303,
+  "security_profile": "conjectured128_b2_q108_p20_fold4",
+  "security_label": "128-bit CONJECTURED security (ethSTARK-style FRI conjecture; owner-accepted 2026-11-02)",
+  "cpu_proofs": 1,
+  "truth_proofs": 6,
+  "fresh_prefix_receiver_accepted": true,
+  "completed_ethereum_block": false,
+  "gpu_proof": false,
+  "cpu0_bytes": 3271416,
+  "cpu0_sha256": "9752fd800a763ea0cb528cebea5ec6282b159b8b0ad4697e1925de8e37e6c048",
+  "geometry": {
+    "geometry": {
+      "cpu_log": 22,
+      "alu_log": 18,
+      "alu_tail_log": 17,
+      "binary_log": 17,
+      "binary_tail_log": null,
+      "shift_log": 16,
+      "shift_tail_log": 13,
+      "jalr_log": 16,
+      "division_log": 11,
+      "omit_empty_division": false,
+      "multiplication_log": 16,
+      "ls_log": 18,
+      "ls_tail_log": 14,
+      "boundary_log": 5,
+      "initial_log": 20,
+      "terminal_log": 20,
+      "cpu_fused_tail": true,
+      "cpu_u8_pairs": true,
+      "cpu_compact_decode": true
+    },
+    "bridges": {
+      "keccak": 15,
+      "add": 11,
+      "double": 10,
+      "sha256": 5,
+      "arith256_mod": 9,
+      "bulk": {
+        "desc": 12,
+        "copy": 16,
+        "set": 18,
+        "ucopy": 18,
+        "cdesc": 8,
+        "cmp": 8,
+        "jdesc": 5,
+        "jscan": 12,
+        "jtab": 14
+      },
+      "sponge": {
+        "call": 12,
+        "perm": 15
+      },
+      "ls_dword": 20,
+      "ls_dword_tail": 18
+    }
+  },
+  "schedule": {
+    "lanes": 1,
+    "workers_per_lane": 8,
+    "lane_workers": [
+      8
+    ],
+    "memory_cap_bytes": 38654705664
+  },
+  "timing_scope": "Single concurrent-development control run, not a quiet comparative speedup benchmark",
+  "producer_process_wall_s": 42.1,
+  "producer_peak_rss_bytes": 11743166464,
+  "producer_peak_footprint_bytes": 9703926416,
+  "capture_ns": 828706583,
+  "setup_ns": 2229536875,
+  "prefix_prove_ns": 38483110625,
+  "cpu0_timing": {
+    "source_ns": 1356300125,
+    "main_commit_ns": 1261069417,
+    "gkr_ns": 5548933208,
+    "native_complete_ns": 6884594000,
+    "stage1_ns": 8743387125,
+    "stage2_ns": 7141069875
+  },
+  "fresh_receiver_verify_ns": 449976000,
+  "fresh_receiver_setup_ns": 2222005292,
+  "artifact_paths": {
+    "bundle": "/private/tmp/rv64-real-segment-cpu-control-20261103",
+    "request": "/tmp/rv64-real-segment-control-request.json",
+    "resources": "/tmp/rv64-real-segment-control.json",
+    "receiver": "/tmp/rv64-real-segment-cpu-control-receiver.json"
+  },
+  "hashes": {
+    "driver": "1b40076d090ac4f8b1c43694abb6abaae1c0f860e0c9d666a44bd7d6ed261325",
+    "request": "249826eba36f74e6256fe8558913282eea119889148bca4f25ca7d62f83ca8ce",
+    "resources": "7de295a88ee8fa38eb2939d592e86c145ea434ded3876b335947eb7154e4fc92",
+    "producer_report": "c1202b5404b051a90be162ef202024f929adb2e4e67f98692fc8f71086f07461",
+    "receiver_report": "4489bb3bee5645028e62ba32b3fd413216adfdd979829d84f53bc9a40a214563"
+  },
+  "important_comparison_boundary": "Prefix1 uses compact CPU and log20 INIT/TEARDOWN. Compare against identical request/resources, not the older full-block CPU0 shape."
+}

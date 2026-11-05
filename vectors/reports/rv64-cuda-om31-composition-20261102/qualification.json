@@ -1,0 +1,64 @@
+{
+  "schema": "rv64-cuda-om31-composition-qualification-v1",
+  "gpu": "RTX 5090",
+  "cuda": "12.8.93",
+  "sm": 120,
+  "native_main_only_roles": 8,
+  "device_cases": 18,
+  "native_residual_comparisons": 90112,
+  "global_mask_cases": 12446,
+  "sanitizers": {
+    "memcheck": "PASS",
+    "initcheck": "PASS",
+    "racecheck": "PASS",
+    "synccheck": "PASS"
+  },
+  "integration_tests": {
+    "ReleaseSafe": 38,
+    "ReleaseFast": 38
+  },
+  "registers": {
+    "cpu": {
+      "initial": 138,
+      "root_first": 80
+    },
+    "alu": {
+      "initial": 56,
+      "root_first": 56
+    },
+    "binary": {
+      "initial": 42,
+      "root_first": 42
+    },
+    "shift": {
+      "initial": 54,
+      "root_first": 56
+    },
+    "ls": {
+      "initial": 168,
+      "root_first": 114
+    },
+    "jalr": {
+      "initial": 38,
+      "root_first": 38
+    },
+    "mul": {
+      "initial": 186,
+      "root_first": 128
+    },
+    "div": {
+      "initial": 156,
+      "root_first": 128
+    },
+    "mixed_secure_masks": {
+      "initial": 56,
+      "root_first": 60
+    }
+  },
+  "spill_bytes": 0,
+  "initial_cpu_publics_zero": true,
+  "final_cpu_publics_valid_nonzero": true,
+  "performance_speedup_measured": false,
+  "full_block_verified": false,
+  "production_ready": false
+}

@@ -25,7 +25,14 @@ pub const Numerator = union(enum) {
 /// this same former serial allowance; increasing concurrency cannot borrow
 /// unadmitted memory from the rest of the frontend task.
 pub fn scratchByteUpperBound(log: u32, terms: usize) !usize {
-    if (log < 5 or log > 22 or terms > 640) return error.InvalidClassicWitnessShape;
+    return scratchBound(22, log, terms);
+}
+pub fn publicBoundaryScratchByteUpperBound(log: u32, terms: usize) !usize {
+    if (terms != 1) return error.InvalidClassicWitnessShape;
+    return scratchBound(23, log, terms);
+}
+fn scratchBound(comptime max_log: u32, log: u32, terms: usize) !usize {
+    if (log < 5 or log > max_log or terms > 640) return error.InvalidClassicWitnessShape;
     const rows = @as(usize, 1) << @intCast(log);
     return std.math.mul(usize, try std.math.mul(usize, @min(rows, ROW_CHUNK), terms), 2 * @sizeOf(O) + @sizeOf(Numerator));
 }
@@ -45,14 +52,18 @@ pub const Witness = struct {
         return self.claims[0..self.group_count];
     }
     pub fn init(allocator: std.mem.Allocator, log: u32, groups: []const Group, provider: anytype, budget: usize) !Witness {
-        return initBounded(MAX_TERMS, allocator, log, groups, provider, budget);
+        return initBounded(MAX_TERMS, 22, allocator, log, groups, provider, budget);
     }
     /// Explicit separately admitted wide truth catalog; CPU callers retain32.
     pub fn initTruth(allocator: std.mem.Allocator, log: u32, groups: []const Group, provider: anytype, budget: usize) !Witness {
-        return initBounded(640, allocator, log, groups, provider, budget);
+        return initBounded(640, 22, allocator, log, groups, provider, budget);
     }
-    fn initBounded(comptime max_terms: usize, allocator: std.mem.Allocator, log: u32, groups: []const Group, provider: anytype, budget: usize) !Witness {
-        if (log < 5 or log > 22 or groups.len == 0 or groups.len > MAX_GROUPS) return error.InvalidClassicWitnessShape;
+    pub fn initPublicBoundary(allocator: std.mem.Allocator, log: u32, groups: []const Group, provider: anytype, budget: usize) !Witness {
+        if (groups.len != 1 or groups[0].inverses != 1) return error.InvalidClassicWitnessShape;
+        return initBounded(1, 23, allocator, log, groups, provider, budget);
+    }
+    fn initBounded(comptime max_terms: usize, comptime max_log: u32, allocator: std.mem.Allocator, log: u32, groups: []const Group, provider: anytype, budget: usize) !Witness {
+        if (log < 5 or log > max_log or groups.len == 0 or groups.len > MAX_GROUPS) return error.InvalidClassicWitnessShape;
         var terms: usize = 0;
         var width_: usize = 0;
         for (groups) |g| {
@@ -67,12 +78,12 @@ pub const Witness = struct {
         const output_bytes = try std.math.mul(usize, cells, @sizeOf(M));
         const ProviderType = if (@typeInfo(@TypeOf(provider)) == .pointer) @typeInfo(@TypeOf(provider)).pointer.child else @TypeOf(provider);
         if (comptime @hasDecl(ProviderType, "PARALLEL_SAFE") and ProviderType.PARALLEL_SAFE) {
-            const generated = try @import("classic_witness_parallel.zig").generate(allocator, log, groups, provider, budget);
+            const generated = try @import("classic_witness_parallel.zig").generateWithLogBound(max_log, allocator, log, groups, provider, budget);
             var stored: [MAX_GROUPS]Group = @splat(.{ .inverses = 0 });
             @memcpy(stored[0..groups.len], groups);
             return .{ .allocator = allocator, .log_size = log, .groups = stored, .group_count = groups.len, .data = generated.data, .claims = generated.claims };
         }
-        const scratch_bytes = try scratchByteUpperBound(log, terms);
+        const scratch_bytes = try scratchBound(max_log, log, terms);
         if (try std.math.add(usize, output_bytes, scratch_bytes) > budget) return error.ClassicWitnessBudgetExceeded;
         const data = try allocator.alloc(M, cells);
         errdefer allocator.free(data);

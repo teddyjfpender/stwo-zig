@@ -1,0 +1,39 @@
+Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+17.9,21586262,1,21586262.0,21586262.0,21586262,21586262,0.0,stwo::cuda::rv64::deep_combine(StwoRv64DeepCombine)
+15.6,18755091,1,18755091.0,18755091.0,18755091,18755091,0.0,stwo::cuda::rv64::deep_aggregate(StwoRv64DeepPrepare)
+12.2,14677486,1,14677486.0,14677486.0,14677486,14677486,0.0,stwo::cuda::rv64::deep_lines(StwoRv64DeepPrepare)
+10.3,12415563,54,229917.8,60368.0,2624,1649922,374555.3,"void stwo::cuda::transform::n2b_continue<(unsigned int)3, (unsigned int)3, (bool)0>(stwo::cuda::transform::ColumnSlab<const unsigned int>, const unsigned int *, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, unsigned int, const unsigned int *)"
+9.6,11525388,68,169491.0,9216.0,4032,3154244,464414.8,"stwo::cuda::rv64::sample_first(StwoRv64SampleEvaluation, unsigned int)"
+5.5,6677159,43,155282.8,25056.0,6304,1296578,266559.8,"void stwo::cuda::blake2s::mixed_leaf_kernel<(bool)1>(unsigned int, unsigned int, stwo::cuda::blake2s::MixedInputs, unsigned int, unsigned int, const stwo::cuda::blake2s::ProgressiveState *, stwo::cuda::blake2s::ProgressiveState *, stwo::cuda::blake2s::Hash *)"
+5.5,6606471,111,59517.8,2848.0,1344,1214465,163377.6,"<unnamed>::stage_addressed_lde_columns(unsigned int *, unsigned long, const <unnamed>::AddressedLdeDescriptor *, unsigned int, unsigned long, unsigned int)"
+4.9,5865158,1,5865158.0,5865158.0,5865158,5865158,0.0,stwo::cuda::rv64::deep_validate(StwoRv64DeepPrepare)
+4.9,5863400,23,254930.4,77792.0,6496,1650114,388845.6,"void stwo::cuda::transform::n2b_final_block<(unsigned int)3, (bool)1>(stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *)"
+4.3,5220869,9,580096.6,2816.0,2656,5197605,1731565.7,"stwo::cuda::rv64::channel_mix(unsigned int *, unsigned int, unsigned long, unsigned long, const unsigned int *, unsigned int, unsigned int, unsigned int *)"
+3.3,3995141,32,124848.2,24112.0,9344,1182017,267756.0,"void stwo::cuda::transform::n2b_continue<(unsigned int)4, (unsigned int)4, (bool)0>(stwo::cuda::transform::ColumnSlab<const unsigned int>, const unsigned int *, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, unsigned int, const unsigned int *)"
+1.8,2182787,158,13815.1,2816.0,1504,247937,41904.3,"void stwo::cuda::blake2s::child_layer_kernel<(bool)1>(const stwo::cuda::blake2s::Hash *, unsigned int, stwo::cuda::blake2s::Hash *)"
+1.5,1801826,8,225228.3,58528.0,56256,743361,309401.3,"void stwo::cuda::transform::n2b_final_block<(unsigned int)1, (bool)1>(stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *)"
+0.4,521120,16,32570.0,3504.0,2688,343072,88799.3,"void stwo::cuda::transform::n2b_final_warp<(unsigned int)3, (bool)1>(stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *)"
+0.4,488033,68,7177.0,7072.0,3712,10624,1737.1,stwo::cuda::rv64::sample_validate(StwoRv64SampleEvaluation)
+0.3,390880,384,1017.9,896.0,864,2592,274.8,"<unnamed>::n2b_stage(unsigned int *, unsigned long, unsigned int, unsigned int, const unsigned int *)"
+0.3,373376,1,373376.0,373376.0,373376,373376,0.0,"stwo::cuda::pow::search_kernel(const unsigned int *, const unsigned int *, unsigned int, unsigned long long, unsigned long long *, unsigned int *, unsigned int *)"
+0.3,364928,5,72985.6,16480.0,15200,299136,126427.3,void stwo::cuda::rv64::fri_fold_kernel<(unsigned int)4>(StwoRv64FriFold)
+0.2,254048,56,4536.6,3984.0,1568,15456,2546.8,"stwo::cuda::rv64::sample_reduce(StwoRv64SampleEvaluation, const unsigned int *, unsigned int, unsigned int, unsigned int *, unsigned int)"
+0.2,223360,6,37226.7,2784.0,2304,196544,78250.7,"void stwo::cuda::rv64::fri_leaf_kernel<(bool)1, (unsigned int)2>(StwoRv64Plane, unsigned int, unsigned int *)"
+0.1,150688,8,18836.0,9232.0,6624,68416,21335.9,"void stwo::cuda::transform::n2b_final_block<(unsigned int)2, (bool)1>(stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *)"
+0.1,100288,1,100288.0,100288.0,100288,100288,0.0,"stwo::cuda::rv64::deep_combine_validate(StwoRv64DeepCombine, unsigned int *)"
+0.1,87488,16,5468.0,2544.0,2144,26304,6711.4,"void stwo::cuda::transform::n2b_final_warp<(unsigned int)2, (bool)1>(stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *)"
+0.1,80256,68,1180.2,1072.0,1024,1664,203.3,"stwo::cuda::rv64::sample_store(StwoRv64SampleEvaluation, const unsigned int *)"
+0.0,42112,4,10528.0,9328.0,1568,21888,9262.4,"stwo::cuda::rv64::open_values(stwo::cuda::rv64::TraceInputs, StwoRv64TraceOpen)"
+0.0,26496,1,26496.0,26496.0,26496,26496,0.0,stwo::cuda::rv64::sample_points(StwoRv64SamplePoints)
+0.0,16032,7,2290.3,2304.0,2272,2304,17.1,"stwo::cuda::rv64::channel_draw(unsigned int *, unsigned int, unsigned long, unsigned long, unsigned int, unsigned int *, unsigned int *)"
+0.0,7937,6,1322.8,1312.5,1056,1728,232.2,"stwo::cuda::rv64::fri_open_paths(StwoRv64FriOpen, unsigned int)"
+0.0,6464,6,1077.3,1024.0,992,1376,149.6,stwo::cuda::rv64::fri_open_values(StwoRv64FriOpen)
+0.0,5632,4,1408.0,1392.0,1344,1504,69.1,stwo::cuda::rv64::open_paths(StwoRv64TraceOpen)
+0.0,3040,1,3040.0,3040.0,3040,3040,0.0,void stwo::cuda::rv64::fri_fold_kernel<(unsigned int)2>(StwoRv64FriFold)
+0.0,2368,1,2368.0,2368.0,2368,2368,0.0,"stwo::cuda::rv64::channel_queries(unsigned int *, unsigned int, unsigned long, unsigned long, unsigned int, unsigned int, unsigned int *, unsigned int *)"
+0.0,1984,1,1984.0,1984.0,1984,1984,0.0,stwo::cuda::rv64::sample_base_from_point(StwoRv64SamplePoints)
+0.0,1792,1,1792.0,1792.0,1792,1792,0.0,"stwo::cuda::rv64::channel_init(unsigned int *, const unsigned int *, unsigned long)"
+0.0,1568,1,1568.0,1568.0,1568,1568,0.0,"stwo::cuda::pow::prefix_kernel(const unsigned int *, unsigned int, unsigned int *)"
+0.0,1536,1,1536.0,1536.0,1536,1536,0.0,"stwo::cuda::rv64::sample_order(const unsigned int *, unsigned int, const unsigned int *, unsigned int, unsigned int *, unsigned int *)"
+0.0,1344,1,1344.0,1344.0,1344,1344,0.0,"stwo::cuda::rv64::fri_terminal(StwoRv64Plane, unsigned int, unsigned int *, unsigned int *)"
+0.0,768,1,768.0,768.0,768,768,0.0,"stwo::cuda::pow::initialize_kernel(unsigned long long *, unsigned int *, unsigned int *)"

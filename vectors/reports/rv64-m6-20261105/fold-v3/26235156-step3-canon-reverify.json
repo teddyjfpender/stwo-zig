@@ -1,0 +1,33 @@
+{
+ "schema": "rv64-m6-fold-v3-reverify/v1",
+ "block": 26235156,
+ "format": "canon",
+ "receiver_sha256": "0f2a414661578936d504fa8657811af8e93e688c41bd5d00dc0830ee772aa2b1",
+ "source_commit": "fd2abfd03 (= head receiver code)",
+ "table": "step3-canon/tables/vk-both.json (pinned)",
+ "label": "M",
+ "walls_s": [
+  1.439,
+  1.489,
+  1.525,
+  1.476,
+  1.615
+ ],
+ "wall_median_s": 1.489,
+ "internal_s": [
+  1.302,
+  1.274,
+  1.372,
+  1.287,
+  1.437
+ ],
+ "internal_median_s": 1.302,
+ "load_1m": [
+  28.02,
+  26.65,
+  26.68,
+  26.68,
+  25.59
+ ],
+ "all_accepted": true
+}

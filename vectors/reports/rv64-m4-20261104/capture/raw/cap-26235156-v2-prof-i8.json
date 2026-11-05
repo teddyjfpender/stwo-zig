@@ -1,0 +1,360 @@
+{
+ "block": 26235156,
+ "tag": "v2-prof-i8",
+ "binary": "/workspace/m3/build/m4-capture/v2/bin/rv64-word16-ethereum-gkr",
+ "binary_sha256": "2988400c42cb0aa47cff1befb07554e8b2c82a79b1a87137dacc486d9df3b9b1",
+ "resources": {
+  "gkr_bytes": 34359738368,
+  "global_bytes": 8589934592,
+  "retained_frontend_bytes": 51539607552,
+  "disk_bytes": 0,
+  "park_main": false,
+  "schedule": {
+   "lanes": 2,
+   "workers_per_lane": 4,
+   "memory_cap_bytes": 38654705664,
+   "lane_workers": [
+    4,
+    4
+   ]
+  },
+  "capture_options": {
+   "max_inflight_packets": 8,
+   "packet_heap_bytes": 1073741824,
+   "max_inflight_packet_heap_bytes": 4294967296,
+   "max_inflight_wire_bytes": 4294967296,
+   "execution_workers": 8
+  },
+  "recycler_cache_bytes": 1073741824,
+  "keccak_max_log": 18
+ },
+ "rc": 0,
+ "process_wall_s": 7.3869,
+ "user_s": 8.746154,
+ "sys_s": 2.540787,
+ "avg_busy_cores": 1.53,
+ "max_rss_gib": 3.146,
+ "minor_faults": 1012222,
+ "major_faults": 26,
+ "loadavg_before": [
+  34.693359375,
+  36.67333984375,
+  39.78564453125
+ ],
+ "loadavg_after": [
+  32.7158203125,
+  36.23046875,
+  39.62548828125
+ ],
+ "nproc": 192,
+ "capture": {
+  "scope": "producer capture diagnostic only; no proof or acceptance",
+  "security_qualified": false,
+  "total_steps": 15305679,
+  "final_pc": 525288,
+  "cpu": [
+   {
+    "geometry": {
+     "cpu_log": 22,
+     "alu_log": 18,
+     "alu_tail_log": 16,
+     "binary_log": 17,
+     "binary_tail_log": null,
+     "shift_log": 16,
+     "shift_tail_log": 13,
+     "jalr_log": 16,
+     "division_log": 11,
+     "omit_empty_division": false,
+     "multiplication_log": 16,
+     "ls_log": 18,
+     "ls_tail_log": 15,
+     "boundary_log": 5,
+     "initial_log": 20,
+     "terminal_log": 5,
+     "cpu_fused_tail": true,
+     "cpu_u8_pairs": true,
+     "cpu_compact_decode": true
+    },
+    "bridges": {
+     "keccak": 15,
+     "add": 12,
+     "double": 11,
+     "sha256": 5,
+     "bulk": {
+      "desc": 12,
+      "copy": 16,
+      "set": 18,
+      "ucopy": 17,
+      "cdesc": 7,
+      "cmp": 7,
+      "jdesc": 5,
+      "jscan": 12,
+      "jtab": 14
+     },
+     "sponge": {
+      "call": 12,
+      "perm": 14
+     },
+     "ls_dword": 20,
+     "ls_dword_tail": 18
+    }
+   },
+   {
+    "geometry": {
+     "cpu_log": 22,
+     "alu_log": 18,
+     "alu_tail_log": 17,
+     "binary_log": 16,
+     "binary_tail_log": 15,
+     "shift_log": 16,
+     "shift_tail_log": null,
+     "jalr_log": 16,
+     "division_log": 10,
+     "omit_empty_division": false,
+     "multiplication_log": 17,
+     "ls_log": 18,
+     "ls_tail_log": null,
+     "boundary_log": 5,
+     "initial_log": 5,
+     "terminal_log": 5,
+     "cpu_fused_tail": true,
+     "cpu_u8_pairs": true,
+     "cpu_compact_decode": true
+    },
+    "bridges": {
+     "keccak": 14,
+     "add": 14,
+     "double": 13,
+     "arith256_mod": 6,
+     "bulk": {
+      "desc": 12,
+      "copy": 16,
+      "set": 16,
+      "ucopy": 13,
+      "cdesc": 6,
+      "cmp": 7,
+      "jdesc": 6,
+      "jscan": 13,
+      "jtab": 14
+     },
+     "sponge": {
+      "call": 5,
+      "perm": 6
+     },
+     "ls_dword": 20,
+     "ls_dword_tail": 19
+    }
+   },
+   {
+    "geometry": {
+     "cpu_log": 22,
+     "alu_log": 18,
+     "alu_tail_log": 17,
+     "binary_log": 17,
+     "binary_tail_log": 14,
+     "shift_log": 16,
+     "shift_tail_log": 15,
+     "jalr_log": 16,
+     "division_log": 10,
+     "omit_empty_division": false,
+     "multiplication_log": 16,
+     "ls_log": 18,
+     "ls_tail_log": 16,
+     "boundary_log": 5,
+     "initial_log": 5,
+     "terminal_log": 5,
+     "cpu_fused_tail": true,
+     "cpu_u8_pairs": true,
+     "cpu_compact_decode": true
+    },
+    "bridges": {
+     "keccak": 14,
+     "add": 11,
+     "double": 10,
+     "sha256": 6,
+     "arith256_mod": 7,
+     "bulk": {
+      "desc": 13,
+      "copy": 16,
+      "set": 15,
+      "ucopy": 16,
+      "jdesc": 5,
+      "jscan": 12,
+      "jtab": 14
+     },
+     "sponge": {
+      "call": 11,
+      "perm": 12
+     },
+     "ls_dword": 20,
+     "ls_dword_tail": 17
+    }
+   },
+   {
+    "geometry": {
+     "cpu_log": 22,
+     "alu_log": 18,
+     "alu_tail_log": 17,
+     "binary_log": 16,
+     "binary_tail_log": null,
+     "shift_log": 16,
+     "shift_tail_log": null,
+     "jalr_log": 15,
+     "division_log": 5,
+     "omit_empty_division": true,
+     "multiplication_log": 18,
+     "ls_log": 16,
+     "ls_tail_log": 15,
+     "boundary_log": 5,
+     "initial_log": 5,
+     "terminal_log": 20,
+     "cpu_fused_tail": true,
+     "cpu_u8_pairs": true,
+     "cpu_compact_decode": true
+    },
+    "bridges": {
+     "keccak": 7,
+     "add": 17,
+     "double": 16,
+     "sha256": 14,
+     "bulk": {
+      "desc": 12,
+      "copy": 13,
+      "set": 13,
+      "ucopy": 16,
+      "cdesc": 5,
+      "cmp": 5
+     },
+     "sponge": {
+      "call": 10,
+      "perm": 12
+     },
+     "ls_dword": 20,
+     "ls_dword_tail": 16
+    }
+   }
+  ],
+  "truths": [
+   {
+    "family": "keccak",
+    "first_id": 1,
+    "calls": 19418,
+    "logs": [
+     18,
+     1770517
+    ]
+   },
+   {
+    "family": "keccak",
+    "first_id": 19419,
+    "calls": 606,
+    "logs": [
+     13,
+     1770517
+    ]
+   },
+   {
+    "family": "keccak",
+    "first_id": 20025,
+    "calls": 970,
+    "logs": [
+     14,
+     1770517
+    ]
+   },
+   {
+    "family": "add",
+    "first_id": 1,
+    "calls": 14855,
+    "logs": [
+     14,
+     0
+    ]
+   },
+   {
+    "family": "double",
+    "first_id": 1,
+    "calls": 14001,
+    "logs": [
+     14,
+     0
+    ]
+   },
+   {
+    "family": "sha256",
+    "first_id": 1,
+    "calls": 3157,
+    "logs": [
+     12,
+     0
+    ]
+   },
+   {
+    "family": "arith256_mod",
+    "first_id": 1,
+    "calls": 25,
+    "logs": [
+     8,
+     0
+    ]
+   }
+  ],
+  "memory_words": 687342,
+  "capture_options": {
+   "max_inflight_packets": 8,
+   "packet_heap_bytes": 1073741824,
+   "max_inflight_packet_heap_bytes": 4294967296,
+   "max_inflight_wire_bytes": 4294967296,
+   "execution_workers": 8
+  },
+  "capture_selection": {
+   "max_inflight_packets": 4,
+   "max_worker_shards": 4,
+   "decoded_packet_heap_limit_bytes": null,
+   "max_reserved_decoded_packet_heap_bytes": 0,
+   "max_single_packet_decoded_heap_bytes": 0
+  },
+  "packet_import_ns": 0,
+  "image_and_import_ns": 2701936232,
+  "capture_breakdown": {
+   "image_load_ns": 663295115,
+   "program_ns": 148953476,
+   "pre_import_ns": 124750994,
+   "import_ns": 1764936457
+  },
+  "capture_inputs": {
+   "init_ns": 936999585,
+   "first_inputs_ns": 2049989744,
+   "last_inputs_ns": 2560633297,
+   "all_inputs_ns": 2701936232,
+   "ledger_ns": 498264918,
+   "ledger_finish_ns": 98893014
+  },
+  "captured_values_sha256": "c9f3d40fa8c9e3b724f2153c2fa23168335bff8882f5b71cd31b02d99ec8a932",
+  "capture_source": "in_process_execution",
+  "direct_capture": {
+   "batches": 4,
+   "max_inflight": 4,
+   "execution_ns": 572872422,
+   "join_wait_ns": 902505365,
+   "segments": {
+    "segments": 4,
+    "workers": 8,
+    "first_pass_ns": 164093868,
+    "first_pass_retired": 15305679,
+    "fast_retired": 15234610,
+    "pages_copied": 2907,
+    "peak_live_pages": 2907,
+    "wait_ns": 572553353,
+    "walk_ns_total": 2207872050,
+    "walk_ns_max": 729087198,
+    "walk_retired": 15305679
+   },
+   "first_batch_ready_ns": 156647167,
+   "first_batch_admit_ns": 229432232,
+   "first_batch_capture_ns": 897576741
+  },
+  "diagnostic_digest_ns": 4409634516
+ },
+ "stderr_tail": "CAPTURE_LEDGER_PROFILE shard=0 total_ns=214731309 ls_records=1519009 ls_and_dispatch_ns=125575382 table_words=519825 table_bytes=9568256 keccak=704/412279ns secp=787/361180ns sha256=1/1430ns arith256=0/0ns sponge=2945/36310123ns curves=0/0ns bulk=3599/50850407ns jumpdest=24/1209138ns alloc=1/11370ns\nCAPTURE_LEDGER_PROFILE shard=1 total_ns=112355139 ls_records=1582424 ls_and_dispatch_ns=84520243 table_words=606857 table_bytes=11681792 keccak=366/159520ns secp=4137/2602732ns sha256=0/0ns arith256=12/17250ns sponge=22/96840ns curves=0/0ns bulk=2238/23159605ns jumpdest=38/1791319ns alloc=1/7630ns\nCAPTURE_LEDGER_PROFILE shard=2 total_ns=90988464 ls_records=1428487 ls_and_dispatch_ns=76781208 table_words=686475 table_bytes=14340096 keccak=357/148930ns secp=513/313730ns sha256=11/7250ns arith256=13/5430ns sponge=1072/3611706ns curves=0/0ns bulk=5147/9143561ns jumpdest=18/970509ns alloc=1/6140ns\nCAPTURE_LEDGER_PROFILE shard=3 total_ns=80061896 ls_records=1169322 ls_and_dispatch_ns=59906359 table_words=687342 table_bytes=14348288 keccak=5/2450ns secp=23419/14063455ns sha256=3145/1795778ns arith256=0/0ns sponge=692/2256556ns curves=0/0ns bulk=2151/2030419ns jumpdest=0/0ns alloc=1/6879ns\n"
+}

@@ -1,0 +1,222 @@
+{
+  "schema": "rv64-source-replay-qualification-progress/v1",
+  "driver_sha256": "49f85ed00da6d6c6b752563eaa40a5b642eef13bf94499269321c138e09d3c92",
+  "library_sha256": "6d9a8d6188fb6df68b68d41557c2d905b2e17caa30a100d64cbbc7555c93a0ed",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "reference_hashes": {
+    "bundle.json": {
+      "bytes": 75235,
+      "sha256": "6c9a1f0252e8ea15faf51f577e375f1d80e9ea40240ff3990633e427b7ec2710"
+    },
+    "cells.bin": {
+      "bytes": 47481952,
+      "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1"
+    },
+    "cpu-0.bin": {
+      "bytes": 3265496,
+      "sha256": "d228325b05cb2ac649c99e3456889ea1badc36b0f3ebaab5672bf4693cc3d6b3"
+    },
+    "cpu-1.bin": {
+      "bytes": 2902600,
+      "sha256": "e406822a2ab1ee13c213535366e6c7c38db23add838ab52f435592eea2ebc973"
+    },
+    "cpu-2.bin": {
+      "bytes": 3156640,
+      "sha256": "338c766e60dcd5eab69be5be5a6e374a046c0afc62cd4b14a516fa2fd90c1239"
+    },
+    "cpu-3.bin": {
+      "bytes": 3173288,
+      "sha256": "45a873f4da607a9bc08af6381c77c199095d6616a42860f425f6cce1eb133894"
+    },
+    "cpu-4.bin": {
+      "bytes": 3106824,
+      "sha256": "44b53dbe040eeacba3a9e2681f21cc5741ad9e79744cdadb7431c35963513077"
+    },
+    "cpu-5.bin": {
+      "bytes": 3022048,
+      "sha256": "f78613e39f85db62b6981a2283a00b2f08b72e7b28050da0e6d3977282d22411"
+    },
+    "cpu-6.bin": {
+      "bytes": 1438928,
+      "sha256": "fa5cc32d5a1611a137cf73539b9665860d9b2ab6f53f69359dbe897e999026ba"
+    },
+    "stage-one.bin": {
+      "bytes": 823536,
+      "sha256": "0441f0a8afc985e712e35dcdf4eb652be10955b2d2a1933eee78651a98223df8"
+    },
+    "truth-0.bin": {
+      "bytes": 2352008,
+      "sha256": "d1778c9e8634ad8d606f46183abe88361d6aa0743b84c22acf91ea10b219d5f7"
+    },
+    "truth-1.bin": {
+      "bytes": 2347496,
+      "sha256": "bf5b35b8581bfcd50fa6c7d24667440a002be6e493d111c2926a5d233cfb50c5"
+    },
+    "truth-2.bin": {
+      "bytes": 2344200,
+      "sha256": "e7be56b12ea6f1983db3df5f70f33e0e17b1d797afab6fa7f3331463de6919c4"
+    },
+    "truth-3.bin": {
+      "bytes": 3463652,
+      "sha256": "8f35ad3785fbb38c955a7c25c7f85433c756872ae0617cc0fa52d6bb70bfba2b"
+    },
+    "truth-4.bin": {
+      "bytes": 3348948,
+      "sha256": "7c4fdea4e85ed6c1b0724cae600c30e8be0593f2ac8692907625cdebcfbaae32"
+    },
+    "truth-5.bin": {
+      "bytes": 3130488,
+      "sha256": "d5690e400bcbd61f9a8c090f204282f740b4ec58f8bb5834741cc4cd650708ad"
+    },
+    "truth-6.bin": {
+      "bytes": 2754732,
+      "sha256": "dc8c1fae89b2223a7a59d6ed09416ceeae20cb54443cb62eeb012cdfbf2869a1"
+    },
+    "truth-7.bin": {
+      "bytes": 2626112,
+      "sha256": "b362ab58a21bb664d08f5c07cd6f6d4d6fa003782b16a47b38dc1b9e4da435bf"
+    },
+    "truth-8.bin": {
+      "bytes": 3653640,
+      "sha256": "583690beea58d3632be783674360c422b0eccf92de0acafeea166aa982d3d450"
+    },
+    "truth-9.bin": {
+      "bytes": 687400,
+      "sha256": "b2815081266d41b4309a46b7969ba9d5854c1d3a32cb70556df702755df6413b"
+    }
+  },
+  "hardware": "1x RTX 5090 sm120, 162.43.172.175",
+  "scope": "Source off/on fully qualified on block24628607; replay not qualified pending admitted trace scratch rerun.",
+  "cases": [
+    {
+      "source_single_stream": false,
+      "cpu_replay": false,
+      "producer": {
+        "returncode": 0,
+        "wall_seconds": 57.237147537991405,
+        "user_seconds": 126.879552,
+        "system_seconds": 14.807451,
+        "max_rss_bytes": 9844396032,
+        "minor_faults": 6168319,
+        "major_faults": 0
+      },
+      "cold_and_warm_all20_artifacts_exact": true,
+      "trials": [
+        {
+          "trial": 0,
+          "report": {
+            "completed_ethereum_block": true,
+            "total_steps": 26894777,
+            "cpu_proofs": 7,
+            "truth_proofs": 10,
+            "capture_ns": 5688073711,
+            "setup_ns": 23852057739,
+            "prove_ns": 8618926049,
+            "same_process_verify_ns": 2203634338,
+            "total_before_report_ns": 40751492770
+          }
+        },
+        {
+          "trial": 1,
+          "report": {
+            "completed_ethereum_block": true,
+            "total_steps": 26894777,
+            "cpu_proofs": 7,
+            "truth_proofs": 10,
+            "capture_ns": 5269607223,
+            "setup_ns": 181036769,
+            "prove_ns": 7248217890,
+            "same_process_verify_ns": 2178634467,
+            "total_before_report_ns": 15263764536
+          }
+        }
+      ],
+      "fresh_native_receiver": {
+        "accepted": true,
+        "completed_ethereum_block": true,
+        "command": [
+          "/workspace/rv64-gpu-session/build/rv64-resident-current",
+          "verify-candidate",
+          "/workspace/rv64-gpu-session/basket/blocks/24628607/request.json",
+          "/workspace/rv64-gpu-session/qualification/source-replay-v2/source0-replay0/batch/trial-1/24628607/proof",
+          "12884901888",
+          "34359738368"
+        ],
+        "wall_seconds": 25.364050670992583
+      },
+      "sampled_peak_gpu_mib": 32102
+    },
+    {
+      "source_single_stream": true,
+      "cpu_replay": false,
+      "producer": {
+        "returncode": 0,
+        "wall_seconds": 53.914059282979,
+        "user_seconds": 123.607382,
+        "system_seconds": 14.499687,
+        "max_rss_bytes": 9842200576,
+        "minor_faults": 6335019,
+        "major_faults": 0
+      },
+      "cold_and_warm_all20_artifacts_exact": true,
+      "trials": [
+        {
+          "trial": 0,
+          "report": {
+            "completed_ethereum_block": true,
+            "total_steps": 26894777,
+            "cpu_proofs": 7,
+            "truth_proofs": 10,
+            "capture_ns": 5204773473,
+            "setup_ns": 21635185639,
+            "prove_ns": 8811096922,
+            "same_process_verify_ns": 2200878011,
+            "total_before_report_ns": 38238975916
+          }
+        },
+        {
+          "trial": 1,
+          "report": {
+            "completed_ethereum_block": true,
+            "total_steps": 26894777,
+            "cpu_proofs": 7,
+            "truth_proofs": 10,
+            "capture_ns": 4819346191,
+            "setup_ns": 180756179,
+            "prove_ns": 6948833567,
+            "same_process_verify_ns": 2183683229,
+            "total_before_report_ns": 14524889298
+          }
+        }
+      ],
+      "fresh_native_receiver": {
+        "accepted": true,
+        "completed_ethereum_block": true,
+        "command": [
+          "/workspace/rv64-gpu-session/build/rv64-resident-current",
+          "verify-candidate",
+          "/workspace/rv64-gpu-session/basket/blocks/24628607/request.json",
+          "/workspace/rv64-gpu-session/qualification/source-replay-v2/source1-replay0/batch/trial-1/24628607/proof",
+          "12884901888",
+          "34359738368"
+        ],
+        "wall_seconds": 26.51906001009047
+      },
+      "sampled_peak_gpu_mib": 32102
+    }
+  ],
+  "interpretation": "Warm source opt-in 6.9488s versus control7.2482s is one pair, not a statistical speedup claim; replay retry was contended by six AOT compiler jobs and failed raw trace scratch before completion.",
+  "replay_failures": [
+    {
+      "attempt": "v2",
+      "failure": "CpuReplayRequiresUnmaterializedCapture",
+      "fixed_by": "8a6f66c65"
+    },
+    {
+      "attempt": "v3",
+      "failure": "CudaTraceCommitFailed native_status=2 after restored0..3",
+      "fixed_by": "064bd3bf7",
+      "real_rerun": "pending"
+    }
+  ]
+}

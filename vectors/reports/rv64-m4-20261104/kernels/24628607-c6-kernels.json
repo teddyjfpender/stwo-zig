@@ -1,0 +1,476 @@
+{
+ "schema": "rv64-m4-kernels-receipt/v1",
+ "stream": "kernels",
+ "milestone": "M4",
+ "block": 24628607,
+ "gpus": 2,
+ "commit": "494c3f463",
+ "library_sha256": "224f0668be8587d409f5f46b6ffcbf52efe42043b9fe51f9dd9a094919f476b4",
+ "driver_sha256": "e4e885b7 (c5 tree; c6 changes no Zig)",
+ "receiver_sha256": "f3dcc05d",
+ "parent_receipt": "24628607-c5-kernels.json",
+ "correctness": {
+  "byte_identical_to": "rv64-m3-20261104/integrate/scale/24628607 (55/55)",
+  "receiver_accepted": true,
+  "microbench_identical": true
+ },
+ "label": "M (nsys durations, one observation, load avg 72 - busy pod); microbench M (events, GPU1, best of 5); bandwidth D",
+ "kernel_gpu_s": {
+  "base": 29.909,
+  "c1": 25.612,
+  "c2": 24.767,
+  "c3": 23.542,
+  "c4": 22.459,
+  "c5": 21.346,
+  "c6": 19.995
+ },
+ "recursion_kernel_gpu_s": {
+  "base": 24.962,
+  "c1": 20.94,
+  "c2": 20.119,
+  "c3": 18.904,
+  "c4": 17.82,
+  "c5": 16.72,
+  "c6": 15.378
+ },
+ "recursion_ns_per_lde_cell": {
+  "base": 0.1977,
+  "c1": 0.1659,
+  "c2": 0.1594,
+  "c3": 0.1498,
+  "c4": 0.1412,
+  "c5": 0.1325,
+  "c6": 0.1218
+ },
+ "families_gpu_s": {
+  "n2b": {
+   "base": 9.153,
+   "c1": 7.253,
+   "c2": 7.263,
+   "c3": 6.949,
+   "c4": 6.945,
+   "c5": 6.951,
+   "c6": 5.65
+  },
+  "mixed_leaf_kernel": {
+   "base": 5.556,
+   "c1": 5.667,
+   "c2": 5.166,
+   "c3": 4.272,
+   "c4": 4.256,
+   "c5": 3.076,
+   "c6": 3.077
+  },
+  "generate": {
+   "base": 1.865,
+   "c1": 1.889,
+   "c2": 1.894,
+   "c3": 1.867,
+   "c4": 0.811,
+   "c5": 0.81,
+   "c6": 0.824
+  },
+  "b2n": {
+   "base": 1.381,
+   "c1": 1.384,
+   "c2": 1.024,
+   "c3": 1.024,
+   "c4": 1.024,
+   "c5": 1.024,
+   "c6": 1.024
+  },
+  "sample_first": {
+   "base": 0.795,
+   "c1": 0.797,
+   "c2": 0.797,
+   "c3": 0.797,
+   "c4": 0.796,
+   "c5": 0.862,
+   "c6": 0.797
+  },
+  "n2b_wide_strided": {
+   "base": null,
+   "c1": null,
+   "c2": null,
+   "c3": null,
+   "c4": null,
+   "c5": null,
+   "c6": null
+  },
+  "n2b_wide_contiguous": {
+   "base": null,
+   "c1": null,
+   "c2": null,
+   "c3": null,
+   "c4": null,
+   "c5": null,
+   "c6": null
+  }
+ },
+ "kernels": [
+  {
+   "kernel": "log-24 LDE of 8 columns (production, nsys avg)",
+   "m3": {
+    "passes": 4,
+    "us": 2811.5
+   },
+   "c3": {
+    "passes": 3,
+    "us": 1975.4
+   },
+   "c6": {
+    "passes": 2,
+    "variant": "n2b_wide_strided<true> (11 stages, 8-word rows, 512 thr x 32 values, 67.6 KB smem) + n2b_wide_contiguous (13 stages, 256 thr x 32 values, 34.8 KB smem)",
+    "us": 1463.7,
+    "regs": {
+     "strided": 120,
+     "contiguous": 106
+    },
+    "stack_bytes": 0,
+    "achieved_tbps_D": {
+     "strided": 1.096,
+     "contiguous": 1.472
+    }
+   },
+   "speedup_vs_m3": 1.921
+  },
+  {
+   "kernel": "sample_first",
+   "change": "8-tile CTA reverted (c5 regression)",
+   "gpu_s": {
+    "c5": 0.862,
+    "c6": 0.797
+   }
+  }
+ ],
+ "microbench_strided_grid_order": [
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 8,
+   "mode": "n2b",
+   "identical": true,
+   "reference_ms": 2.1617,
+   "wide_ms": 1.693,
+   "speedup": 1.277,
+   "wide_tbps": 1.268,
+   "variant": "== a_column_fastest=0"
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 8,
+   "mode": "lde",
+   "identical": true,
+   "reference_ms": 1.9742,
+   "wide_ms": 1.4296,
+   "speedup": 1.381,
+   "wide_tbps": 1.314,
+   "variant": "== a_column_fastest=0"
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 104,
+   "mode": "n2b",
+   "identical": true,
+   "reference_ms": 27.7678,
+   "wide_ms": 22.0729,
+   "speedup": 1.258,
+   "wide_tbps": 1.265,
+   "variant": "== a_column_fastest=0"
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 104,
+   "mode": "lde",
+   "identical": true,
+   "reference_ms": 25.5247,
+   "wide_ms": 18.2364,
+   "speedup": 1.4,
+   "wide_tbps": 1.339,
+   "variant": "== a_column_fastest=0"
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 16,
+   "mode": "n2b",
+   "identical": true,
+   "reference_ms": 4.2854,
+   "wide_ms": 3.3251,
+   "speedup": 1.289,
+   "wide_tbps": 1.292,
+   "variant": "== a_column_fastest=0"
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 16,
+   "mode": "lde",
+   "identical": true,
+   "reference_ms": 3.9399,
+   "wide_ms": 2.8201,
+   "speedup": 1.397,
+   "wide_tbps": 1.333,
+   "variant": "== a_column_fastest=0"
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 8,
+   "mode": "n2b",
+   "identical": true,
+   "reference_ms": 2.1576,
+   "wide_ms": 2.0217,
+   "speedup": 1.067,
+   "wide_tbps": 1.062,
+   "variant": "== a_column_fastest=1"
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 8,
+   "mode": "lde",
+   "identical": true,
+   "reference_ms": 1.9758,
+   "wide_ms": 1.6743,
+   "speedup": 1.18,
+   "wide_tbps": 1.122,
+   "variant": "== a_column_fastest=1"
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 104,
+   "mode": "n2b",
+   "identical": true,
+   "reference_ms": 27.6941,
+   "wide_ms": 33.3388,
+   "speedup": 0.831,
+   "wide_tbps": 0.837,
+   "variant": "== a_column_fastest=1"
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 104,
+   "mode": "lde",
+   "identical": true,
+   "reference_ms": 25.5271,
+   "wide_ms": 25.1836,
+   "speedup": 1.014,
+   "wide_tbps": 0.97,
+   "variant": "== a_column_fastest=1"
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 16,
+   "mode": "n2b",
+   "identical": true,
+   "reference_ms": 4.2844,
+   "wide_ms": 4.3645,
+   "speedup": 0.982,
+   "wide_tbps": 0.984,
+   "variant": "== a_column_fastest=1"
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 16,
+   "mode": "lde",
+   "identical": true,
+   "reference_ms": 3.9356,
+   "wide_ms": 3.452,
+   "speedup": 1.14,
+   "wide_tbps": 1.089,
+   "variant": "== a_column_fastest=1"
+  }
+ ],
+ "microbench_logs_21_24_for_next_commit": [
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 8,
+   "mode": "n2b",
+   "identical": true,
+   "reference_ms": 2.1576,
+   "wide_ms": 1.6905,
+   "speedup": 1.276,
+   "wide_tbps": 1.27
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 8,
+   "mode": "lde",
+   "identical": true,
+   "reference_ms": 1.9762,
+   "wide_ms": 1.4311,
+   "speedup": 1.381,
+   "wide_tbps": 1.313
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 64,
+   "mode": "n2b",
+   "identical": true,
+   "reference_ms": 17.0209,
+   "wide_ms": 13.3041,
+   "speedup": 1.279,
+   "wide_tbps": 1.291
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 24,
+   "columns": 64,
+   "mode": "lde",
+   "identical": true,
+   "reference_ms": 15.6896,
+   "wide_ms": 11.2441,
+   "speedup": 1.395,
+   "wide_tbps": 1.337
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 23,
+   "columns": 8,
+   "mode": "n2b",
+   "identical": true,
+   "reference_ms": 1.065,
+   "wide_ms": 0.7428,
+   "speedup": 1.434,
+   "wide_tbps": 1.446
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 23,
+   "columns": 8,
+   "mode": "lde",
+   "identical": true,
+   "reference_ms": 1.0016,
+   "wide_ms": 0.6562,
+   "speedup": 1.526,
+   "wide_tbps": 1.432
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 23,
+   "columns": 64,
+   "mode": "n2b",
+   "identical": true,
+   "reference_ms": 8.4869,
+   "wide_ms": 5.7966,
+   "speedup": 1.464,
+   "wide_tbps": 1.482
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 23,
+   "columns": 64,
+   "mode": "lde",
+   "identical": true,
+   "reference_ms": 7.8755,
+   "wide_ms": 5.1727,
+   "speedup": 1.523,
+   "wide_tbps": 1.453
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 22,
+   "columns": 8,
+   "mode": "n2b",
+   "identical": true,
+   "reference_ms": 0.5304,
+   "wide_ms": 0.361,
+   "speedup": 1.469,
+   "wide_tbps": 1.487
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 22,
+   "columns": 8,
+   "mode": "lde",
+   "identical": true,
+   "reference_ms": 0.4883,
+   "wide_ms": 0.3173,
+   "speedup": 1.539,
+   "wide_tbps": 1.48
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 22,
+   "columns": 64,
+   "mode": "n2b",
+   "identical": true,
+   "reference_ms": 4.2476,
+   "wide_ms": 2.8861,
+   "speedup": 1.472,
+   "wide_tbps": 1.488
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 22,
+   "columns": 64,
+   "mode": "lde",
+   "identical": true,
+   "reference_ms": 3.9335,
+   "wide_ms": 2.5888,
+   "speedup": 1.519,
+   "wide_tbps": 1.452
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 21,
+   "columns": 8,
+   "mode": "n2b",
+   "identical": true,
+   "reference_ms": 0.17,
+   "wide_ms": 0.1675,
+   "speedup": 1.015,
+   "wide_tbps": 1.602
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 21,
+   "columns": 8,
+   "mode": "lde",
+   "identical": true,
+   "reference_ms": 0.1484,
+   "wide_ms": 0.1456,
+   "speedup": 1.019,
+   "wide_tbps": 1.613
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 21,
+   "columns": 64,
+   "mode": "n2b",
+   "identical": true,
+   "reference_ms": 2.1166,
+   "wide_ms": 1.4239,
+   "speedup": 1.486,
+   "wide_tbps": 1.508
+  },
+  {
+   "wide": "W1(11 strided)+W2(13 contiguous)",
+   "log_n": 21,
+   "columns": 64,
+   "mode": "lde",
+   "identical": true,
+   "reference_ms": 1.981,
+   "wide_ms": 1.2704,
+   "speedup": 1.559,
+   "wide_tbps": 1.479
+  }
+ ],
+ "design": {
+  "pass_W1": "strided: tile = 8 contiguous words (one 32 B sector; lane axis never permuted) x 2^11 high points; phases (k bits -> high bits) 10..6, 5..1, 0; tile-fastest grid so the 4 tiles sharing a 128 B L2 line are in flight together",
+  "pass_W2": "contiguous 8192 words; phases 12..8, 7..3, 2..0 (circle stage last); column-fastest grid shares the large final twiddle layers in L2",
+  "smem": "idx = e + e/32 padding: conflict-free in every phase (offline bank simulation)",
+  "identity": "same stage sequence and twiddle indices as n2b_stage: bit-identical output (microbench byte-compare + 55/55 proof hashes)"
+ }
+}

@@ -24,6 +24,13 @@ extern "C" int stwo_exec_context_memcpy_h2d_async(void*, void* dst, const void* 
     pending.push_back({dst, src, bytes});
     return 0;
 }
+// A coordination-stream read may finish before queued producers on another
+// lane. This deliberately exposes the missing join-before-read ordering.
+extern "C" int stwo_exec_context_memcpy_d2h_async(void*, void* dst, const void* src,
+                                                  size_t bytes) {
+    std::memcpy(dst, src, bytes);
+    return 0;
+}
 extern "C" int stwo_exec_context_sync(void*) {
     for (auto p : pending) std::memcpy(p.dst, p.src, p.bytes);
     pending.clear();
@@ -47,6 +54,14 @@ int main() {
         o.upload(p, std::vector<uint32_t>{1, 2, 3, 4});  // temporary dies here
         CHECK(stwo_exec_context_sync(o.ctx));
         assert(p.words[0] == 1 && p.words[3] == 4);
+        o.close();
+    }
+    {
+        Owner o(0);
+        const auto p = o.plane(4, 1);
+        o.upload(p, std::vector<uint32_t>{9, 10, 11, 12});
+        const auto readback = o.read(p);
+        assert((readback == std::vector<uint32_t>{9, 10, 11, 12}));
         o.close();
     }
     const auto before = joins;

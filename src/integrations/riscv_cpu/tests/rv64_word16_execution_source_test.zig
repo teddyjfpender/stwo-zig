@@ -334,3 +334,122 @@ test "CPU capture materializes without Tape and retains retryable advice through
     retired.releaseMain();
     try std.testing.expectError(error.ExecutionMainProjectionClosed, retired.materializeMain());
 }
+/// A loop of ADDI/ADD/BNE (plus the alias/JALR fixture above) whose tape is
+/// built by a reference interpreter here, so every step can be tampered.
+const Loop = struct {
+    program: Program,
+    tape: front.rv64.compact_tape.Tape,
+    public: X.types.Boundary,
+    const BASE: u64 = 4096;
+    // addi x1,x0,N ; L: add x2,x2,x1 ; addi x1,x1,-1 ; add x3,x3,x2 ; bne x1,x0,L
+    fn init(n: u12) !Loop {
+        const words = [_]u32{ (@as(u32, n) << 20) | (1 << 7) | 0x13, 0x00110133, 0xFFF08093, 0x002181b3, 0xFE009AE3 };
+        var program = try Program.init(a, .{ .base = BASE, .words = &words });
+        errdefer program.deinit();
+        const steps: u32 = 1 + 4 * @as(u32, n);
+        var tape = try front.rv64.compact_tape.Tape.init(a, steps, BASE, 0, .ethereum_services_v2);
+        errdefer tape.deinit();
+        var regs: [32]u64 = @splat(0);
+        var clocks: [32]u32 = @splat(0);
+        var pc: u64 = BASE;
+        for (0..steps) |i| {
+            const k = (pc - BASE) / 4;
+            // (rs1, rs2, rd) as Program.ids: unread/unwritten slots are x0.
+            const ids: [3]u5 = switch (k) {
+                0 => .{ 0, 0, 1 },
+                1 => .{ 2, 1, 2 },
+                2 => .{ 1, 0, 1 },
+                3 => .{ 3, 2, 3 },
+                else => .{ 1, 0, 0 },
+            };
+            const lhs = regs[ids[0]];
+            const rhs = regs[ids[1]];
+            const result: u64 = switch (k) {
+                0 => n,
+                1, 3 => lhs +% rhs,
+                2 => lhs -% 1,
+                else => 0,
+            };
+            const taken = k == 4 and lhs != 0;
+            const next: u64 = if (k == 4) (if (taken) BASE + 4 else pc + 4) else pc + 4;
+            tape.storage[i] = .{ .next_pc = next, .lhs = lhs, .rhs = if (k == 0 or k == 2 or k == 4) 0 else rhs, .previous_rd = if (k == 4) 0 else regs[ids[2]], .result = result, .memory_index = front.rv64.compact_tape.NO_MEMORY, .flags = @intFromBool(taken) };
+            for (ids, 0..) |id, slot| if (id != 0) {
+                clocks[id] = @intCast(4 * i + slot + 1);
+            };
+            if (k != 4) regs[ids[2]] = result;
+            pc = next;
+        }
+        tape.len = steps;
+        return .{ .program = program, .tape = tape, .public = .{ .steps = steps, .initial_pc = BASE, .final_pc = pc, .initial_registers = @splat(0), .final_registers = regs, .register_clocks = clocks } };
+    }
+    fn deinit(self: *Loop) void {
+        self.tape.deinit();
+        self.program.deinit();
+    }
+};
+fn expectSameSource(want: *const S, got: *const S) !void {
+    try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(want.metadata), std.mem.sliceAsBytes(got.metadata));
+    try std.testing.expectEqualSlices(u64, want.rom_counts, got.rom_counts);
+    try std.testing.expectEqualSlices(u64, want.counts16, got.counts16);
+    try std.testing.expectEqualSlices(u64, want.counts8, got.counts8);
+    // Field-wise: these record structs have padding bytes with no meaning.
+    try std.testing.expectEqualDeep(want.functions.items, got.functions.items);
+    try std.testing.expectEqualDeep(want.memory.items, got.memory.items);
+    try std.testing.expectEqualDeep(want.services.items, got.services.items);
+}
+fn chunkedResult(program: *const Program, public: X.types.Boundary, log: u32, tape: *const front.rv64.compact_tape.Tape, chunks: usize) anyerror!S {
+    return S.captureChunked(a, program, public, 7, log, tape, chunks);
+}
+/// Every chunk count yields the serial Source on success, and the serial
+/// error on every single-field tamper of every step and of the boundary.
+fn expectChunkParity(program: *const Program, public: X.types.Boundary, log: u32, tape: *front.rv64.compact_tape.Tape) !void {
+    var serial = try chunkedResult(program, public, log, tape, 1);
+    defer serial.deinit();
+    for ([_]usize{ 2, 3, 4, 5, 7, 16 }) |chunks| {
+        var got = try chunkedResult(program, public, log, tape, chunks);
+        defer got.deinit();
+        try expectSameSource(&serial, &got);
+    }
+    for (0..tape.len) |i| for (0..5) |field| {
+        const saved = tape.storage[i];
+        switch (field) {
+            0 => tape.storage[i].lhs +%= 1,
+            1 => tape.storage[i].rhs +%= 1,
+            2 => tape.storage[i].previous_rd +%= 1,
+            3 => tape.storage[i].result +%= 1,
+            else => tape.storage[i].next_pc +%= 4,
+        }
+        defer tape.storage[i] = saved;
+        if (chunkedResult(program, public, log, tape, 1)) |value| {
+            // A tamper the serial scan accepts must be accepted identically.
+            var want = value;
+            defer want.deinit();
+            for ([_]usize{ 2, 3, 5, 16 }) |chunks| {
+                var got = try chunkedResult(program, public, log, tape, chunks);
+                defer got.deinit();
+                try expectSameSource(&want, &got);
+            }
+        } else |err| for ([_]usize{ 2, 3, 5, 16 }) |chunks| try std.testing.expectError(err, chunkedResult(program, public, log, tape, chunks));
+    };
+    for (0..3) |field| {
+        var bad = public;
+        switch (field) {
+            0 => bad.final_pc += 4,
+            1 => bad.final_registers[1] +%= 1,
+            else => bad.register_clocks[1] -%= 1,
+        }
+        const want = chunkedResult(program, bad, log, tape, 1);
+        try std.testing.expectError(error.InvalidExecutionBoundary, want);
+        for ([_]usize{ 2, 3, 16 }) |chunks| try std.testing.expectError(error.InvalidExecutionBoundary, chunkedResult(program, bad, log, tape, chunks));
+    }
+}
+test "chunked CPU capture equals the serial scan and fails at the serial step for every tamper" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    try expectChunkParity(&fixture.program, fixture.public, 5, &fixture.tape);
+    var loop = try Loop.init(40);
+    defer loop.deinit();
+    try expectChunkParity(&loop.program, loop.public, 8, &loop.tape);
+    // The default policy keeps short tapes serial.
+    try std.testing.expectEqual(@as(usize, 1), @import("../word16_execution/cpu_source.zig").captureChunks(loop.tape.len));
+}

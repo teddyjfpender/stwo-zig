@@ -6,6 +6,13 @@ const P = @import("../protocol.zig");
 const Bounds = @import("source_bounds.zig");
 const Relation = @import("fractions.zig").Relation;
 const a = std.testing.allocator;
+
+// Intrinsic accounting regressions must be discoverable even when the caller
+// filters out the derive() tests that otherwise cause this lazy import.
+test {
+    _ = Bounds;
+}
+
 fn lifecycle(allocator: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDeclaration, truth: []const Wire.TruthDeclaration, requests: []const P.Request) !void {
     var report = try Bounds.derive(allocator, program_log, cpu, truth, requests);
     defer report.deinit();

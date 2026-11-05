@@ -213,6 +213,8 @@ pub const Plan = struct {
     perms: [][2][25]u64,
     /// Per permutation row: owning call index.
     row_call: []u32,
+    /// Device-only plans retain narrow admitted calls, never host permutation planes.
+    device_permutations: ?u32 = null,
     pub fn init(a: std.mem.Allocator, calls: []const T.Call, words: []const T.State) !Plan {
         var total_words: usize = 0;
         var total_perms: usize = 0;
@@ -249,9 +251,10 @@ pub const Plan = struct {
         self.* = undefined;
     }
     pub fn rows(self: *const Plan, kind: L.Kind) u32 {
-        return @intCast(if (kind == .call) self.calls.len else self.perms.len);
+        return @intCast(if (kind == .call) self.calls.len else self.device_permutations orelse self.perms.len);
     }
     pub fn row(self: *const Plan, comptime kind: L.Kind, logical: usize, first_id: u32) [L.main(kind)]M {
+        if (self.device_permutations != null) @panic("device-only sponge plan requires authenticated device MAIN");
         switch (kind) {
             .call => {
                 if (logical >= self.calls.len) return callRow(null, 0, undefined);
@@ -290,6 +293,7 @@ pub const Source = struct {
         return create(a, kind, plan, first_id, log, main);
     }
     fn create(a: std.mem.Allocator, kind: L.Kind, plan: *const Plan, first_id: u32, log: u32, buffer: ?[]M) !Source {
+        if (plan.device_permutations != null) return error.DeviceOnlyKeccakSpongePlan;
         const total = plan.rows(kind);
         const n = try T.validateGeometry(kind, total, log);
         if (first_id == 0 or @as(u64, first_id) + plan.perms.len >= core.fields.m31.Modulus) return error.InvalidKeccakSpongeGeometry;

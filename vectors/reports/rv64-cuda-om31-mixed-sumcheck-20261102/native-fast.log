@@ -1,0 +1,9 @@
+
+Build Summary: 6/6 steps succeeded; 42/42 tests passed
+test success
++- run test 28 passed 1s MaxRSS:2M
+|  +- compile test ReleaseFast native success 6s MaxRSS:552M
++- run test 14 passed 543ms MaxRSS:8M
+|  +- compile test ReleaseFast native success 7s MaxRSS:547M
++- compile obj rv64-cuda-binding-check ReleaseFast native success 111ms MaxRSS:88M
+

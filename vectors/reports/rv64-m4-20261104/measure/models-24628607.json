@@ -1,0 +1,222 @@
+{
+ "schema": "rv64-m40-models/v1",
+ "run": "/workspace/m3/runs/m4-measure/24628607-2gpu-m40-nsys",
+ "nsys_run": "/workspace/m3/runs/m4-measure/24628607-2gpu-m40-nsys/receipt-v2.json",
+ "item8_cells": {
+  "label": "M",
+  "scope": "GPU_TRACE_OWNERSHIP coefficient_words = base (pre-LDE) M31 cells committed per tree; composition/quotient and FRI trees not included",
+  "native": {
+   "main": {
+    "commits": 34,
+    "base_cells_g": 5.406
+   },
+   "interaction": {
+    "commits": 17,
+    "base_cells_g": 1.854
+   }
+  },
+  "recursion": {
+   "preprocessed": {
+    "commits": 33,
+    "base_cells_g": 4.647
+   },
+   "main": {
+    "commits": 33,
+    "base_cells_g": 16.127
+   },
+   "interaction": {
+    "commits": 33,
+    "base_cells_g": 32.617
+   }
+  },
+  "native_total_g": 7.26,
+  "recursion_total_g": 53.391,
+  "recursion_main_plus_interaction_g": 48.744,
+  "recursion_interaction_share_of_total": 0.611,
+  "reconciliation": "53.39 G (construction-cost) == preprocessed + main + interaction base cells over the 33 nodes (this run: 53.391 G). The '~37 G main+interaction' census-v2 figure counted the interaction tree at half its committed M31 columns (measured main+interaction = 48.744 G; main + interaction/2 = 32.44 G per this run).",
+  "recursion_kernel_ns_per_lde_cell": 0.235,
+  "native_kernel_ns_per_lde_cell_upper_bound": 0.341
+ },
+ "item7_device_memory": {
+  "label": "D",
+  "measured_inputs": {
+   "cpu_segment_2^22_main_words_max": 337667360,
+   "cpu_segment_2^22_interaction_words_max": 193262336,
+   "composition_arena": {
+    "native_cpu_segments": {
+     "ordinals": 7,
+     "max_sum_of_roles_gb": 5.48,
+     "max_single_role_gb": 2.4,
+     "eval_log_at_max": 23
+    },
+    "native_truth_largest": {
+     "ordinal": 7,
+     "single_role_gb": 18.44,
+     "eval_log": 23,
+     "roles": 3
+    },
+    "native": {
+     "ordinals": 17,
+     "max_sum_of_roles_gb": 19.53,
+     "max_single_role_gb": 18.44,
+     "legacy_max_sum_gb": 19.53,
+     "roles_at_max": 3,
+     "eval_log_at_max": 23
+    },
+    "recursion": {
+     "ordinals": 33,
+     "max_sum_of_roles_gb": 26.85,
+     "max_single_role_gb": 11.24,
+     "legacy_max_sum_gb": 40.21,
+     "roles_at_max": 12,
+     "eval_log_at_max": 24
+    }
+   },
+   "pool_peaks": {
+    "native": {
+     "max_pool_used_gb": 13.93,
+     "max_live_lease_gb": 8.61
+    },
+    "recursion": {
+     "max_pool_used_gb": 25.34,
+     "max_live_lease_gb": 13.73
+    }
+   },
+   "pcs_max_device_gb": 8.32,
+   "pcs_max_retained_gb": 23.97
+  },
+  "assumptions": [
+   "base cells, LDE and composition arena scale linearly with segment rows (all components grow with the segment)",
+   "composition arena is evaluated on 2x the trace domain (eval_log = trace_log + 1, measured) and does not grow with FRI blowup",
+   "streamed commit working set measured 3.8 GB (bank + scratch) at 2^23 LDE leaves; scales with LDE leaves",
+   "3 GB runtime reserve: context, ~1.9 GB kernel stack reservation, setup cache 2.1 GB is extra when resident"
+  ],
+  "model": [
+   {
+    "segment_log": 22,
+    "blowup": "b2",
+    "base_main_plus_interaction_gb": 2.12,
+    "lde_if_materialised_gb": 4.25,
+    "composition_arena_gb": 5.48,
+    "peak_naive_gb": 11.85,
+    "peak_streamed_commit_gb": 11.4,
+    "fits_32gb_with_3gb_runtime": true
+   },
+   {
+    "segment_log": 22,
+    "blowup": "b4",
+    "base_main_plus_interaction_gb": 2.12,
+    "lde_if_materialised_gb": 8.49,
+    "composition_arena_gb": 5.48,
+    "peak_naive_gb": 16.1,
+    "peak_streamed_commit_gb": 15.2,
+    "fits_32gb_with_3gb_runtime": true
+   },
+   {
+    "segment_log": 23,
+    "blowup": "b2",
+    "base_main_plus_interaction_gb": 4.25,
+    "lde_if_materialised_gb": 8.49,
+    "composition_arena_gb": 10.96,
+    "peak_naive_gb": 23.7,
+    "peak_streamed_commit_gb": 22.81,
+    "fits_32gb_with_3gb_runtime": true
+   },
+   {
+    "segment_log": 23,
+    "blowup": "b4",
+    "base_main_plus_interaction_gb": 4.25,
+    "lde_if_materialised_gb": 16.99,
+    "composition_arena_gb": 10.96,
+    "peak_naive_gb": 32.2,
+    "peak_streamed_commit_gb": 30.41,
+    "fits_32gb_with_3gb_runtime": false
+   },
+   {
+    "segment_log": 24,
+    "blowup": "b2",
+    "base_main_plus_interaction_gb": 8.49,
+    "lde_if_materialised_gb": 16.99,
+    "composition_arena_gb": 21.92,
+    "peak_naive_gb": 47.4,
+    "peak_streamed_commit_gb": 45.61,
+    "fits_32gb_with_3gb_runtime": false
+   },
+   {
+    "segment_log": 24,
+    "blowup": "b4",
+    "base_main_plus_interaction_gb": 8.49,
+    "lde_if_materialised_gb": 33.98,
+    "composition_arena_gb": 21.92,
+    "peak_naive_gb": 64.39,
+    "peak_streamed_commit_gb": 60.81,
+    "fits_32gb_with_3gb_runtime": false
+   }
+  ]
+ },
+ "item6_d2": {
+  "label": "D/E",
+  "inputs_measured": {
+   "native_kernel_gpu_s": 4.96,
+   "recursion_kernel_gpu_s": 25.119,
+   "leaf_kernel_gpu_s_17": 13.097,
+   "fold_kernel_gpu_s_16": 12.022
+  },
+  "assumptions": [
+   "native b4 doubles LDE + Merkle + quotient-commit work; those are 50-70% of native kernel time [E]",
+   "leaf cells that scale with the query count are 55-80% of a leaf [E: hashing is ~85% of leaf cells, decommit dominates hashing]",
+   "folds verify outer (q108) proofs, unchanged by D2; only leaves shrink",
+   "D2 also changes the native profile -> new named profile + soundness note (profiles stream)"
+  ],
+  "native_delta_gpu_s": [
+   2.48,
+   3.47
+  ],
+  "leaf_delta_gpu_s": [
+   -5.24,
+   -3.6
+  ],
+  "net_gpu_s": [
+   -2.76,
+   -0.13
+  ],
+  "leaf_base_cells_g_after": [
+   1.16,
+   1.41
+  ],
+  "recommendation": "net saving in GPU-s on 24628607 across the whole assumption band, but SMALL (0.1-2.8 GPU-s of ~30: native kernels are ~5 GPU-s, leaves ~13). Recommend D2 = YES as an M7 candidate, gated on: (a) an in-circuit per-origin Blake count confirming the query-scaled share >= 55%, (b) the device-memory model (b4 doubles native LDE: 2^22 b4 fits, 2^23 b4 only with streamed commit), (c) a named profile + soundness note. Native wall rises; it is not on the M6 critical path if stage-2 overlaps leaves."
+ },
+ "item3_blake": {
+  "label": "D (analytic; not an in-circuit count)",
+  "profile": "q108 b2 fold4, 2^22 CPU segment, LDE depth 23",
+  "columns": {
+   "preprocessed": 45,
+   "main": 3606,
+   "interaction": 2008,
+   "composition": 16
+  },
+  "compressions": {
+   "merkle_leaf_values:preprocessed": 324,
+   "merkle_path:preprocessed": 1962,
+   "merkle_leaf_values:main": 24408,
+   "merkle_path:main": 1962,
+   "merkle_leaf_values:interaction": 13608,
+   "merkle_path:interaction": 1962,
+   "merkle_leaf_values:composition": 108,
+   "merkle_path:composition": 1962,
+   "fri_layer_leaves": 2160,
+   "fri_layer_paths": 3542,
+   "channel_oods_values": 1845,
+   "channel_other": 64
+  },
+  "total_compressions": 53907,
+  "share_by_origin": {
+   "merkle_leaf_values": 0.713,
+   "merkle_path": 0.146,
+   "fri": 0.106,
+   "channel": 0.035
+  },
+  "query_scaled_share": 0.965,
+  "caveat": "stwo mixed-size Merkle hashes column values at their own layer; this model charges ceil(C/16) per query per tree plus deduplicated 2-to-1 path nodes. PP/composition column counts are estimates. The exit gate (origins >= 95% of in-circuit Blake rows) needs a per-origin counter in the leaf graph builder (owned by canon-vk/hint-tape); spec in M40-FINDINGS.md."
+ }
+}

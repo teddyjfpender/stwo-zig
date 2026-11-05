@@ -1,0 +1,66 @@
+{
+  "schema": "rv64-current-residency-source-audit-v1",
+  "source_base": "9ba47d2ac",
+  "baseline_distinction": {
+    "old_one_lane_warm_prove_ns": 9852494824,
+    "latest_two_lane_warm_prove_ns": 7708451335,
+    "latest_capture_ns": 5274135661,
+    "latest_setup_ns": 186797298,
+    "latest_same_process_verify_ns": 2219999738,
+    "warning": "old nonoverlapping one-lane stage proportions cannot be transferred to two-lane wall time"
+  },
+  "measured_old_warm_composition": {
+    "proofs": 17,
+    "host_coefficient_cells": 0,
+    "device_coefficient_cells": 4816048896,
+    "coefficient_stream_event_ms": 324.521,
+    "numerical_gpu_kernel_spans_ms": 967.124,
+    "new_warm_geometry_misses": 0,
+    "cumulative_cold_geometry_misses": 104,
+    "scope": "17 last GPU_COMPOSITION_TIMING records of archived warm parallel-deep producer log; not latest two-lane attribution"
+  },
+  "code_findings": [
+    "strict device source rejects host MAIN and INTER trace columns",
+    "GKR reconstructs MAIN from device coefficients via D2D and device N2B; coefficient_cells is not host ingress",
+    "global LogUp INTER already projects resident MAIN then GPU inversion/prefix, with only compact claims read back",
+    "composition warm MAIN/INTER/FIXED reads device leases; coefficient-stream CUDA events include host enqueue idle gaps",
+    "truth replay defaults true, discards retained MAIN at seal and re-commits regenerated MAIN against expected root at stage two"
+  ],
+  "engineering": [
+    {
+      "commit": "bcd5265ff",
+      "change": "bounded zero-copy compact staging and same-stream core formatter ingress",
+      "default": "off; STWO_RV64_CORE_SINGLE_STREAM=1 required",
+      "payload_cap_bytes": 67108864,
+      "gpu_qualification": "pending"
+    },
+    {
+      "commit": "cf4b0590f",
+      "change": "coalesce adjacent same-allocation composition D2D ranges; validate entire merged range under proof scope",
+      "gpu_qualification": "pending"
+    },
+    {
+      "change": "coalesce global INTER D2D ranges, optional STWO_RV64_GLOBAL_PROFILE=1 ingress timing",
+      "gpu_qualification": "pending"
+    }
+  ],
+  "host_checks": {
+    "cuda_tests": 127,
+    "cuda_tests_passed": 127,
+    "production_fast_semantic": true,
+    "copy_run_unit_tests": 3
+  },
+  "required_measurements": [
+    "same request/profile/source and native library on one host: default versus source-ingress opt-in, exact proof and fresh receiver",
+    "record composition device_copy_calls and GLOBAL_PROFILE ingress counters; require zero host wide cells",
+    "rebuild nonoverlapping latest two-lane accounting; source/MAIN/INTER CUDA event spans still need timeline attribution",
+    "qualify CPU replay and actual large-block peak live leases before the full basket"
+  ],
+  "claims_not_established": [
+    "3x from untimed stages",
+    "0.5\u20130.9 second full proving",
+    "GPU idle during every host stage",
+    "new 104 warm geometry misses",
+    "390M coefficient cells uploaded from host per resident segment"
+  ]
+}

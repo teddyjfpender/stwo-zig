@@ -67,6 +67,35 @@ test "OM manifest verifies actual local children before deriving shared eight-co
     for (f.expected, f.stages, 0..) |expected, stage, i| try first.checkPhysicalRoots(i, expected.fixed, stage.main);
 }
 
+test "authenticated recursive manifest views preserve exact native framing and challenge draws" {
+    var f = try Fixture.init();
+    defer f.deinit();
+    var native = try f.verify();
+    defer native.deinit(a);
+    var views: [3]Manifest.CommitmentView = undefined;
+    for (&views, native.entries) |*view, entry| view.* = .{
+        .kind = entry.kind,
+        .global_relations = entry.global_relations,
+        .mass = entry.mass,
+        .scope = entry.scope,
+        .local = if (entry.local) |local| .{ .digest = local.digest, .claims_to_verify_by_instance = local.artifact.claims_to_verify_by_instance } else null,
+    };
+    const committed = try Manifest.commitViews(@splat(1), &views);
+    try std.testing.expectEqualDeep(native.digest, committed.digest);
+    try std.testing.expectEqualDeep(native.shared, committed.shared);
+    views[0].scope.main[0] ^= 1;
+    try std.testing.expect(!std.mem.eql(u8, &native.digest, &(try Manifest.commitViews(@splat(1), &views)).digest));
+    views[0].scope.main[0] ^= 1;
+    views[0].local.?.digest[0] ^= 1;
+    try std.testing.expect(!std.mem.eql(u8, &native.digest, &(try Manifest.commitViews(@splat(1), &views)).digest));
+    try Manifest.checkClaimsClosure(&views, &@as([3]Manifest.Claims, @splat(.{ .ram = O.zero(), .kio = O.zero(), .wire = O.zero() })));
+    var bad: [3]Manifest.Claims = @splat(.{ .ram = O.zero(), .kio = O.zero(), .wire = O.zero() });
+    bad[0].ram = O.one();
+    bad[0].wire = O.one().neg();
+    try std.testing.expectError(error.UnclosedGlobalGkrRam, Manifest.checkClaimsClosure(&views, &bad));
+    try std.testing.expectError(error.GlobalGkrManifestRoster, Manifest.commitViews(@splat(1), &.{}));
+}
+
 test "OM manifest rejects missing reordered and relabeled worker authority before allocation" {
     var f = try Fixture.init();
     defer f.deinit();

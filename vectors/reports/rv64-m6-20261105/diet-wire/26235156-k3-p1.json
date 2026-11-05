@@ -1,0 +1,443 @@
+{
+ "schema": "rv64-m6-diet-receipt/v1",
+ "stream": "diet-wire",
+ "milestone": "M6",
+ "run": "26235156-2gpu-k3-p1",
+ "block": 26235156,
+ "source_commit": "13e429783",
+ "assets": {
+  "driver": "2650f2739e8ffd9b922cccf77238546852c84a9ffacb5e0b16ec77f9234373d6",
+  "library": "0caf01442286e63b80c57a4e0811690115ec60103e957a4e5df9d48e01ca37d6",
+  "receiver": "8fc782bd582e1d41f8d46bf3a7ba5d28efa98bb441d226c073096f98d4fb29e4",
+  "recursive_receiver": "8fc782bd582e1d41f8d46bf3a7ba5d28efa98bb441d226c073096f98d4fb29e4"
+ },
+ "environment_overrides": {
+  "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+  "STWO_RV64_GPU_CPU_REPLAY": "1",
+  "STWO_RV64_CORE_SINGLE_STREAM": "1",
+  "STWO_RV64_DEVICE_ARENA": "1",
+  "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1"
+ },
+ "loadavg": {
+  "start": {
+   "1m": 8.52,
+   "5m": 13.88,
+   "15m": 16.37,
+   "unix": 1793827684.8018572
+  },
+  "end": {
+   "1m": 13.77,
+   "5m": 14.37,
+   "15m": 16.42,
+   "unix": 1793827724.2092867
+  }
+ },
+ "label": "M (one observation) except committed_cells = D (measured row logs x component_facts widths)",
+ "outer_profile": "m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1",
+ "fold_arity": 3,
+ "outer_shape": "exact",
+ "nodes": 17,
+ "leaves": 11,
+ "folds": 6,
+ "stages_s": {
+  "request_wall_s": 31.433,
+  "capture_s": 2.284,
+  "setup_s": 8.689,
+  "native_prove_s": 4.941,
+  "native_verify_s": 1.132,
+  "native_total_before_report_s": 16.066,
+  "recursion_s": 15.35
+ },
+ "recursion_total_s": 15.345295573,
+ "dag_wall_s": 15.166173283,
+ "lane_device_stage_s": [
+  6.477769901,
+  9.163276874
+ ],
+ "device_stage_gpu_s": 15.641046775,
+ "lane_device_stage_occupancy": 0.5156556793575705,
+ "device_peak_gb": 31.503417344,
+ "arena_overruns": 8,
+ "largest_overrun_gb": 11.240738728,
+ "committed_cells": {
+  "total": 26748213504,
+  "leaves": 16631309056,
+  "folds": 10116904448,
+  "per_node": [
+   {
+    "node": 1,
+    "kind": "leaf",
+    "logs": [
+     18,
+     23,
+     20,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 584532224,
+    "interaction": 1179781120,
+    "pp_gate_columns": 103809024,
+    "total": 1868122368
+   },
+   {
+    "node": 2,
+    "kind": "leaf",
+    "logs": [
+     18,
+     23,
+     20,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 584532224,
+    "interaction": 1179781120,
+    "pp_gate_columns": 103809024,
+    "total": 1868122368
+   },
+   {
+    "node": 0,
+    "kind": "leaf",
+    "logs": [
+     18,
+     23,
+     20,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 584532224,
+    "interaction": 1179781120,
+    "pp_gate_columns": 103809024,
+    "total": 1868122368
+   },
+   {
+    "node": 4,
+    "kind": "leaf",
+    "logs": [
+     18,
+     23,
+     19,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 574046464,
+    "interaction": 1154615296,
+    "pp_gate_columns": 101187584,
+    "total": 1829849344
+   },
+   {
+    "node": 5,
+    "kind": "leaf",
+    "logs": [
+     14,
+     23,
+     19,
+     20,
+     22,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 350765312,
+    "interaction": 691275776,
+    "pp_gate_columns": 51904512,
+    "total": 1093945600
+   },
+   {
+    "node": 6,
+    "kind": "leaf",
+    "logs": [
+     14,
+     23,
+     19,
+     20,
+     22,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 350765312,
+    "interaction": 691275776,
+    "pp_gate_columns": 51904512,
+    "total": 1093945600
+   },
+   {
+    "node": 8,
+    "kind": "leaf",
+    "logs": [
+     14,
+     23,
+     19,
+     20,
+     22,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 350765312,
+    "interaction": 691275776,
+    "pp_gate_columns": 51904512,
+    "total": 1093945600
+   },
+   {
+    "node": 9,
+    "kind": "leaf",
+    "logs": [
+     14,
+     23,
+     19,
+     20,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 568869120,
+    "interaction": 1127483392,
+    "pp_gate_columns": 98041856,
+    "total": 1794394368
+   },
+   {
+    "node": 10,
+    "kind": "leaf",
+    "logs": [
+     14,
+     23,
+     19,
+     20,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 568869120,
+    "interaction": 1127483392,
+    "pp_gate_columns": 98041856,
+    "total": 1794394368
+   },
+   {
+    "node": 13,
+    "kind": "leaf",
+    "logs": [
+     14,
+     23,
+     19,
+     20,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 568869120,
+    "interaction": 1127483392,
+    "pp_gate_columns": 98041856,
+    "total": 1794394368
+   },
+   {
+    "node": 14,
+    "kind": "leaf",
+    "logs": [
+     13,
+     21,
+     18,
+     19,
+     21,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 158843136,
+    "interaction": 347277312,
+    "pp_gate_columns": 25952256,
+    "total": 532072704
+   },
+   {
+    "node": 3,
+    "kind": "fold",
+    "logs": [
+     16,
+     23,
+     20,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 583745792,
+    "interaction": 1178208256,
+    "pp_gate_columns": 103809024,
+    "total": 1865763072
+   },
+   {
+    "node": 7,
+    "kind": "fold",
+    "logs": [
+     16,
+     23,
+     20,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 583745792,
+    "interaction": 1178208256,
+    "pp_gate_columns": 103809024,
+    "total": 1865763072
+   },
+   {
+    "node": 15,
+    "kind": "fold",
+    "logs": [
+     15,
+     22,
+     19,
+     20,
+     22,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 300499200,
+    "interaction": 624297984,
+    "pp_gate_columns": 51904512,
+    "total": 976701696
+   },
+   {
+    "node": 11,
+    "kind": "fold",
+    "logs": [
+     16,
+     23,
+     20,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 583745792,
+    "interaction": 1178208256,
+    "pp_gate_columns": 103809024,
+    "total": 1865763072
+   },
+   {
+    "node": 12,
+    "kind": "fold",
+    "logs": [
+     16,
+     23,
+     20,
+     21,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 583745792,
+    "interaction": 1178208256,
+    "pp_gate_columns": 103809024,
+    "total": 1865763072
+   },
+   {
+    "node": 16,
+    "kind": "fold",
+    "logs": [
+     15,
+     22,
+     19,
+     20,
+     23,
+     16,
+     20,
+     8,
+     14,
+     18,
+     16
+    ],
+    "main": 518603008,
+    "interaction": 1060505600,
+    "pp_gate_columns": 98041856,
+    "total": 1677150464
+   }
+  ]
+ },
+ "proof_bytes": {
+  "root": 743672,
+  "all_node_proofs": 12610424,
+  "tree_json": 368449
+ },
+ "receiver": {
+  "accepted": true,
+  "status": "accepted",
+  "receiver_sha256": "8fc782bd582e1d41f8d46bf3a7ba5d28efa98bb441d226c073096f98d4fb29e4",
+  "gpu_disabled": {
+   "CUDA_VISIBLE_DEVICES": "",
+   "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+   "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+   "STWO_RV64_FOLD_CLASS_CACHE": "0"
+  },
+  "wall_s": 36.506339635
+ }
+}

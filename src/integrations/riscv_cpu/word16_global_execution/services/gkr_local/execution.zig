@@ -45,7 +45,7 @@ pub const Inventory = struct {
         // RAM rights, epoch, call spans, program, register/PC adjacency and
         // exact total/final endpoint authority. It does not verify proofs.
         if (fixed) |authority| try authority.require(setups, truths, config) else try validateConfig(config);
-        // Admit only the qualified v2 families and bulk extension; other v3 routes remain closed.
+        // Admit only service_scope-qualified families and representations; unsupported routes remain closed.
         for (setups) |setup| try Scope.setup(setup);
         for (requests) |request| try Scope.request(request);
         for (truths) |truth| try Scope.truth(truth);
@@ -108,6 +108,7 @@ pub const Inventory = struct {
             };
         }
         try Manifest.validateRoster(workers);
+        if (try @import("chain.zig").enabled()) try @import("chain.zig").assign(setups, truths, requests, first_ids, workers, config, fixed);
         return .{ .allocator = a, .execution_identity = identity, .workers = workers, .instances = instances, .first_ids = first_ids };
     }
 };

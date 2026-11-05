@@ -36,7 +36,7 @@ pub const Report = struct {
     }
 };
 fn part(role: []const u8, dependence: Dependence, log: u32, columns: usize, used: usize) !Part {
-    if (log > 22 or used > columns) return error.InvalidFixedSourceMetadata;
+    if (log > 23 or used > columns) return error.InvalidFixedSourceMetadata;
     const bytes = try std.math.mul(u64, @as(u64, 1) << @intCast(log), 4);
     return .{ .role = role, .dependence = dependence, .log = log, .columns = columns, .used_columns = used, .native_bytes = try std.math.mul(u64, bytes, columns), .unused_native_bytes = try std.math.mul(u64, bytes, columns - used) };
 }

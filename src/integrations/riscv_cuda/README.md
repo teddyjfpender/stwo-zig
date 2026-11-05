@@ -162,3 +162,44 @@ The optional split secure-sum kernel exposes more blocks with a smaller
 register footprint. The combined implementation remains the default until
 real-device timing selects a winner. These APIs do not assert optimal GPU
 utilization from compiler statistics alone.
+
+## RV64 Ethereum resident device groups
+
+The experimental Ethereum executable accepts an explicit pool when
+`STWO_RV64_GPU_DEVICES=0,1` is set (local ordinals after
+`CUDA_VISIBLE_DEVICES`). It also requires `STWO_RV64_GPU_DEVICE_TRACE=1` and
+`STWO_RV64_GPU_PLANNED_CPU_WORKERS`, the number of CPU segments for the request.
+`STWO_RV64_GPU_DEVICE_BINDING=1` keeps the deferred binding witness on the same
+GPU through INTER commitment. Physical worker identity fixes its device across
+both phases of the manifest protocol.
+
+Set comma-separated `STWO_RV64_GPU_DEVICE_CAPS` in bytes and
+`STWO_RV64_GPU_RETAINED_SCOPES` explicitly. Seven CPU segments require retained
+scope capacities of at least 7, 4, or 2 per device on 1, 2, or 4 GPUs. These
+counts are planning bounds; the scoped native allocator independently rejects
+excess live bytes. Increasing the count does not establish that the workload
+fits VRAM. Host resource-file budgets and device allocator caps are separate.
+
+Use `scripts/rv64_ethereum_basket.py` for the complete-block runs and fresh
+receiver. A manifest `gpu_workers` entry can name a device group:
+
+```json
+{"device":"0,1", "capacity_bytes":51539607552,
+ "device_caps_bytes":[25769803776,25769803776],
+ "planned_cpu_workers":7, "retained_scopes":4}
+```
+
+For one GPU use `device: "0"`, one cap and seven scopes; for four GPUs use
+`device: "0,1,2,3"`, four caps and two scopes. The launcher maps these physical
+ordinals to local ordinals, reserves host and aggregate device credits, and
+rejects overlapping concurrent groups. The native allocator enforces each
+individual device cap. Run the same manifest separately for each topology;
+measurements from one GPU do not qualify a multi-GPU result.
+
+Receipts include per-child CPU time, RSS and page faults, backend event spans,
+and sampled whole-device memory usage. Sampling includes driver overhead and
+other processes and is not an exact process peak. GKR launch counts are derived
+from the submitted kernel schedule, not CUPTI. A current real prefix receipt
+is `vectors/reports/rv64-cuda-real-segment-20261103/deferred-binding-real-prefix.json`:
+one CPU segment plus six CPU truth proofs, native byte parity and independent
+CPU acceptance. It does not establish a complete resident Ethereum block.

@@ -275,6 +275,7 @@ pub fn addCircuitStack(context: Context, product_descriptor: graph.Product, root
         .optimize = context.optimize,
     });
     integration.addImport("stwo_core", context.protocol.core);
+    integration.addImport("stwo_proof_wire", root.import_table.get("stwo_proof_wire") orelse graph.addProofWireImport(b, context.protocol, product_descriptor, context.target, context.optimize, root));
     integration.addImport("stwo_prover_api", context.protocol.prover_api);
     integration.addImport("stwo_prover_engine", context.protocol.prover);
     integration.addImport("stwo_cpu_backend", cpu_backend);

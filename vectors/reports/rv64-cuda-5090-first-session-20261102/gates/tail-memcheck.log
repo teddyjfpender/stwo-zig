@@ -1,0 +1,6 @@
+========= COMPUTE-SANITIZER
+{"schema":"rv64-tail-batch-v1","device":0,"jobs":1,"sequential_ms":1.175552,"batch_ms":1.175552,"all_records_verified":true,"canaries_verified":true,"failure_isolation_verified":true,"full_block_verified":false}
+{"schema":"rv64-tail-batch-v1","device":0,"jobs":2,"sequential_ms":1.396736,"batch_ms":1.200128,"all_records_verified":true,"canaries_verified":true,"failure_isolation_verified":true,"full_block_verified":false}
+{"schema":"rv64-tail-batch-v1","device":0,"jobs":4,"sequential_ms":2.288640,"batch_ms":1.206272,"all_records_verified":true,"canaries_verified":true,"failure_isolation_verified":true,"full_block_verified":false}
+{"schema":"rv64-tail-batch-v1","device":0,"jobs":8,"sequential_ms":6.131712,"batch_ms":1.294336,"all_records_verified":true,"canaries_verified":true,"failure_isolation_verified":true,"full_block_verified":false}
+========= ERROR SUMMARY: 0 errors

@@ -1,0 +1,78 @@
+{
+  "scope": "GPU bridge MAIN and additive U16/U8 histograms; not an Ethereum proof or benchmark",
+  "hardware": "RTX 5090 sm_120 CUDA12.8",
+  "cases": [
+    {
+      "id": 0,
+      "family": "Keccak",
+      "calls": 0,
+      "columns": 66,
+      "rows": 32,
+      "native_main_exact": true,
+      "histograms_exact": true
+    },
+    {
+      "id": 1,
+      "family": "Keccak",
+      "calls": 3,
+      "columns": 66,
+      "rows": 128,
+      "native_main_exact": true,
+      "histograms_exact": true
+    },
+    {
+      "id": 2,
+      "family": "secp ADD",
+      "calls": 3,
+      "columns": 134,
+      "rows": 32,
+      "native_main_exact": true,
+      "histograms_exact": true
+    },
+    {
+      "id": 3,
+      "family": "secp DOUBLE",
+      "calls": 9,
+      "columns": 134,
+      "rows": 32,
+      "native_main_exact": true,
+      "histograms_exact": true
+    },
+    {
+      "id": 4,
+      "family": "SHA256",
+      "calls": 2,
+      "columns": 134,
+      "rows": 32,
+      "native_main_exact": true,
+      "histograms_exact": true
+    },
+    {
+      "id": 5,
+      "family": "arith256",
+      "calls": 3,
+      "columns": 134,
+      "rows": 32,
+      "native_main_exact": true,
+      "histograms_exact": true
+    }
+  ],
+  "negative_cases": 51,
+  "checks": [
+    "MAIN guard words intact",
+    "input extent and output alias rejected",
+    "zero tick, invalid rights, predecessor mismatch rejected",
+    "padding and cross-epoch gaps agree with original native source"
+  ],
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/bridge_witness.cu": "cd4418791c0c90c94e1eabfbb6314cc56c24082e45a3575b9dfeb94126142a94",
+    "src/backends/cuda/native/rv64/bridge_witness.h": "a5d1de913a4853a46cccc38e685585b1383771510ff851c330acf5c088a3607d",
+    "src/integrations/riscv_cuda/rv64/bridge_witness_fixture.zig": "7e4d5eaee1a020ff605a103e13c9f955832f0141dcec67f82787e84601ff6165",
+    "tests/cuda/rv64/bridge_witness_smoke.cu": "750fa732851265a53b437fdd12d382928998ddd6b1f9b2368e4d882c96689761"
+  },
+  "sanitizer": {
+    "tool": "compute-sanitizer memcheck",
+    "case": 2,
+    "errors": 0
+  }
+}

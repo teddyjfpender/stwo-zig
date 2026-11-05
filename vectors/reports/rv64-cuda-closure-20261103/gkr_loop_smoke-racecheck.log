@@ -1,0 +1,3 @@
+========= COMPUTE-SANITIZER
+{"schema":"rv64-om31-full-gkr-binding-v3","cases":9,"poison_cases":9,"native_proof_and_artifact_parity":true,"hot_h2d_bytes":0,"hot_d2h_bytes":0,"binding_metadata_cases":178,"binding_witness_cases":178,"binding_poison_cases":11,"physical_binding_verified":false,"full_block_verified":false}
+========= RACECHECK SUMMARY: 0 hazards displayed (0 errors, 0 warnings)

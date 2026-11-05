@@ -1,0 +1,168 @@
+24628607 {'request_wall_s': 28.746, 'capture_s': 2.975, 'setup_s': 0.156, 'native_prove_s': 6.597, 'native_verify_s': 1.836, 'native_total_before_report_s': 9.944, 'recursion_s': 18.761}
+window rel s 38.223581092 native 3.131 9.728 verify_end 11.564 recursion start 9.985452388000002
+gpu0 busy% per 250ms from request start:   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   7   9  60  41  17  58   4  69  18  31  43  36  65  14  28  54  21   4  30  56   0   0   0  47  18   0   0   0   0   0   0   0   0  44  38  17
+ native-window kernel busy s 1.802401071 launches 28666
+      282.2 ms mixed_leaf_kernel
+      133.6 ms witness
+       87.7 ms oracles_fold
+       87.2 ms batch_round
+       85.3 ms oracles_sum
+       74.9 ms deep_combine
+       64.4 ms n2b_wide_contiguous
+       61.5 ms derive_binding
+       54.5 ms n2b_wide_strided_short
+       51.5 ms project_binding
+       46.2 ms rv64_projection_case_20
+       45.3 ms layer
+       45.0 ms rv64_projection_case_8
+       38.3 ms sample_first
+       34.9 ms channel_mix
+       31.7 ms n2b_continue
+       31.6 ms deep_validate
+       30.2 ms rv64_joined_domain_20
+       27.8 ms b2n_continue
+       26.8 ms child_layer_kernel
+       26.0 ms analyze
+       20.8 ms n2b_final_block
+       20.1 ms arithmetic_witness
+       19.0 ms lift_add
+       16.1 ms deep_aggregate_rows
+ memcpy in native window (kind: n, GB, s): {1: (4336, 4.531, 0.194), 2: (952, 0.026, 0.001), 8: (1391, 23.076, 0.029)}
+gpu1 busy% per 250ms from request start:   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0  15  45   0  16  46  34  75  40  30  62   0   0   0  25  30  39  21  63  75  81  98  89  92  47   9   0   0   0   0   0   0   0   3  54  39  23
+ native-window kernel busy s 2.584579432 launches 22834
+      332.3 ms keccak_witness
+      271.6 ms rv64_truth_domain_0_shard_47
+      228.6 ms mixed_leaf_kernel
+       91.6 ms n2b_continue
+       87.9 ms witness
+       80.8 ms rv64_truth_domain_0_shard_48
+       70.4 ms sample_first
+       67.5 ms oracles_fold
+       66.1 ms batch_round
+       65.3 ms oracles_sum
+       64.7 ms deep_combine
+       64.1 ms n2b_final_block
+       59.8 ms rv64_truth_domain_0_shard_49
+       58.8 ms n2b_wide_contiguous
+       49.6 ms n2b_wide_strided_short
+       46.1 ms derive_binding
+       42.9 ms rv64_truth_domain_0_shard_46
+       41.1 ms rv64_truth_domain_0_shard_45
+       41.1 ms rv64_truth_domain_0_shard_44
+       39.6 ms rv64_projection_case_20
+       38.3 ms channel_mix
+       36.8 ms project_binding
+       35.0 ms layer
+       34.8 ms b2n_continue
+       34.5 ms deep_validate
+ memcpy in native window (kind: n, GB, s): {1: (3358, 3.878, 0.169), 2: (802, 0.026, 0.001), 8: (1098, 29.458, 0.038)}
+ api cudaStreamSynchronize_v3020                   n=  2790 3.709 s
+ api cudaEventSynchronize_v3020                    n=  1768 0.335 s
+ api cudaLaunchKernel_v7000                        n= 51500 0.195 s
+ api cuMemSetAccess                                n=     6 0.105 s
+ api cudaMemcpyAsync_v3020                         n= 11937 0.061 s
+ api cudaEventRecord_v3020                         n= 25448 0.054 s
+ api cuMemUnmap                                    n=    26 0.038 s
+ api cudaEventQuery_v3020                          n=  7642 0.007 s
+ api cudaStreamWaitEvent_v3020                     n=  6864 0.004 s
+ api cudaMemsetAsync_v3020                         n=   219 0.004 s
+ api cudaMemGetInfo_v3020                          n=    54 0.004 s
+ api cuMemMap                                      n=   602 0.001 s
+ api cudaEventDestroy_v3020                        n=   392 0.001 s
+ api cudaEventCreateWithFlags_v3020                n=   395 0.000 s
+ api cudaEventCreate_v3020                         n=    28 0.000 s
+ api threads: {44655: (48684, 2.68), 43810: (60987, 1.84)}
+H2D attributed 8.41 GB
+   3079.3 MB n= 184 before cpu_witness
+   1265.8 MB n=  88 before memory_witness
+   1041.9 MB n=1962 before n2b_stage
+    655.4 MB n=  90 before b2n_stage
+    511.8 MB n= 172 before n2b_wide_strided_short
+    339.9 MB n=1018 before channel_init
+    247.5 MB n=1415 before n2b_continue
+    240.1 MB n= 147 before keccak_witness
+    229.1 MB n=  86 before family_witness
+    159.5 MB n=  14 before lift_add
+    132.1 MB n=   8 before boundary_witness
+    114.5 MB n=  34 before b2n_init_block
+     95.1 MB n= 460 before fill_auxiliary
+     72.1 MB n=  28 before analyze
+     63.3 MB n= 210 before witness
+     54.5 MB n=  28 before derive_binding
+     51.2 MB n=  29 before b2n_init_warp
+     31.6 MB n=  36 before outputs
+     19.9 MB n=  24 before arithmetic_witness
+      1.8 MB n= 557 before stage_lde_columns
+      1.3 MB n=  42 before make_domain
+      0.8 MB n= 920 before gather
+      0.1 MB n=   2 before seed_counts
+      0.0 MB n=   7 before stwo_rv64_global_contiguous_3666f7f3a325bed69df2d6
+      0.0 MB n=   7 before stwo_rv64_global_contiguous_68cc05bf8330f85a82fcf7
+THREAD 44655 gap total>1ms 2.89 s
+    1633.6 ms n= 23  after memcpy2                                  before cudaEventQuery_v3020
+     423.1 ms n= 59  after witness                                  before memcpy1
+     211.3 ms n= 13  after memcpy2                                  before cudaEventRecord_v3020
+     155.9 ms n=113  after memcpy1:16MB                             before memcpy1
+     123.6 ms n=  6  after memcpy2                                  before cudaMemsetAsync_v3020
+      87.2 ms n=  2  after witness                                  before cudaEventQuery_v3020
+      69.7 ms n=  5  after memcpy1                                  before memcpy1
+      34.0 ms n=  1  after memcpy2                                  before memcpy2
+      25.7 ms n=  9  after family_witness                           before memcpy1
+      25.6 ms n=  4  after memcpy2                                  before memcpy8
+      18.9 ms n=  6  after witness                                  before witness
+      17.0 ms n=  7  after arithmetic_witness                       before memcpy1
+      14.8 ms n=  1  after memory_witness                           before multiplicities
+      11.0 ms n=  1  after rv64_joined_domain_42                    before cudaEventQuery_v3020
+       7.8 ms n=  3  after memory_witness                           before memcpy1
+       6.3 ms n=  1  after rv64_joined_domain_41_shard_14           before cudaEventQuery_v3020
+       5.4 ms n=  1  after rv64_joined_domain_40                    before cudaEventQuery_v3020
+       3.8 ms n=  1  after family_witness                           before cudaEventQuery_v3020
+       3.1 ms n=  2  after memcpy8:592MB                            before memcpy1
+       2.4 ms n=  2  after memcpy2                                  before cudaMemGetInfo_v3020
+       2.1 ms n=  2  after memcpy8:256MB                            before memcpy1
+       2.0 ms n=  2  after b2n_continue                             before memcpy1
+  sync wait by last-launched op:
+     664.5 ms after rv64_truth_domain_0_shard_49
+     335.8 ms after keccak_witness
+     278.1 ms after child_layer_kernel
+     244.2 ms after deep_combine
+     163.8 ms after open_paths
+     132.2 ms after close_layer
+     100.0 ms after memcpy1
+      80.8 ms after counts
+      65.8 ms after project_binding
+      62.0 ms after scan_claim
+THREAD 43810 gap total>1ms 3.60 s
+    1071.2 ms n= 15  after memcpy2                                  before cudaEventRecord_v3020
+     900.6 ms n= 24  after memcpy2                                  before cudaEventQuery_v3020
+     519.9 ms n= 59  after witness                                  before memcpy1
+     217.0 ms n=  4  after memcpy2                                  before memcpy8
+     173.2 ms n=  6  after witness                                  before cudaEventQuery_v3020
+     139.6 ms n=  7  after memcpy1                                  before memcpy1
+     134.2 ms n=  3  after memcpy2                                  before cudaMemGetInfo_v3020
+     133.7 ms n=102  after memcpy1:16MB                             before memcpy1
+      93.0 ms n=  7  after memcpy2                                  before cudaMemsetAsync_v3020
+      43.0 ms n=  6  after memory_witness                           before memcpy1
+      36.1 ms n= 11  after family_witness                           before memcpy1
+      31.0 ms n=  2  after memcpy8                                  before cudaEventQuery_v3020
+      27.3 ms n=  7  after arithmetic_witness                       before memcpy1
+      26.5 ms n=  6  after witness                                  before witness
+      16.5 ms n=  1  after memcpy2                                  before cudaEventDestroy_v3020
+       9.0 ms n=  3  after boundary_witness                         before cudaEventQuery_v3020
+       7.3 ms n=  2  after outputs                                  before memcpy1
+       3.3 ms n=  3  after memcpy2                                  before memcpy1
+       3.0 ms n=  2  after open_paths                               before cudaEventQuery_v3020
+       2.6 ms n=  2  after memcpy8:48MB                             before memcpy1
+       2.1 ms n=  2  after b2n_continue                             before memcpy1
+       1.7 ms n=  1  after START                                    before memcpy1
+  sync wait by last-launched op:
+     262.7 ms after child_layer_kernel
+     208.5 ms after deep_combine
+     168.5 ms after close_layer
+     166.3 ms after open_paths
+     147.2 ms after rv64_projection_case_46
+     112.6 ms after counts
+      96.7 ms after memcpy1
+      89.6 ms after project_binding
+      50.2 ms after rv64_joined_domain_20
+      41.2 ms after b2n_continue

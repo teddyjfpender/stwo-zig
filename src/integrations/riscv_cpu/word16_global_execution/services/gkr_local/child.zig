@@ -142,6 +142,55 @@ pub const PhaseTiming = struct {
     admitted_gkr_peak_bytes: usize = 0,
     gkr_allocator_limit_bytes: usize = 0,
 };
+/// Per-proof numerical backend seam. Sources are borrowed immutable readers;
+/// a resident backend may instead project the same facts from native_source's
+/// authenticated MAIN ownership. Neither sources nor native_source may escape
+/// this synchronous call. Return a compact proof owned by the supplied bounded
+/// allocator. Native partial verification reconstructs the terminal artifact and
+/// transcript; a device never supplies an authoritative artifact or eta.
+pub const DeviceBinding = @import("device_binding.zig");
+pub const NativeColumns = struct {
+    fixed: []const @import("stwo_prover_api").device_pcs.Column = &.{},
+    main: []const @import("stwo_prover_api").device_pcs.Column = &.{},
+};
+pub const NumericalStage = struct {
+    context: *anyopaque,
+    prove: *const fn (*anyopaque, std.mem.Allocator, Request) anyerror!GV.GkrBatchProof,
+    bind: ?*const fn (*anyopaque, std.mem.Allocator, DeviceBinding.Request) anyerror!DeviceBinding.Owner = null,
+    abort: ?*const fn (*anyopaque, Receipt.Scope) void = null,
+    replay_binding: ?*const fn (*anyopaque, std.mem.Allocator, Request, *DeviceBinding.Owner) anyerror!void = null,
+    pub const Request = struct {
+        scope: Receipt.Scope,
+        instances: []const Frame.Instance,
+        challenges: *const Challenges,
+        sources: []const GP.MultiplicitiesSource,
+        native_source: ?*const @import("../roster.zig").Sources,
+        native_fixed_columns: []const @import("stwo_prover_api").device_pcs.Column = &.{},
+        native_main_columns: []const @import("stwo_prover_api").device_pcs.Column = &.{},
+        /// Before the native relation draws; resident source projection replays
+        /// these draws on device and must reach channel exactly.
+        source_channel: Channel,
+        channel: Channel,
+        byte_cap: usize,
+    };
+};
+fn proveNumericalStage(a: std.mem.Allocator, stage: NumericalStage, request: NumericalStage.Request, channel: *Channel) !GP.ProveBatchResult {
+    var proof = try stage.prove(stage.context, a, request);
+    errdefer proof.deinit(a);
+    const gates = try a.alloc(GV.Gate, request.instances.len);
+    defer a.free(gates);
+    @memset(gates, .LogUp);
+    var verified_channel = request.channel;
+    var verification_timer = try std.time.Timer.start();
+    var artifact = try GV.partiallyVerifyBatch(a, gates, &proof, &verified_channel);
+    errdefer artifact.deinit(a);
+    if (artifact.n_variables_by_instance.len != request.instances.len) return error.LocalGkrPointGeometryMismatch;
+    for (request.instances, artifact.n_variables_by_instance) |instance, variables|
+        _ = try Frame.splitPoint(instance, artifact.ood_point, variables);
+    channel.* = verified_channel;
+    std.debug.print("GPU_GKR_NATIVE_CHECK ordinal={} mandatory_partial_verify_ns={}\n", .{ request.scope.ordinal, verification_timer.read() });
+    return .{ .proof = proof, .artifact = artifact };
+}
 pub const Unbound = struct {
     parent_allocator: std.mem.Allocator,
     budget: Budget,
@@ -150,6 +199,7 @@ pub const Unbound = struct {
     digest: [32]u8,
     peak_gkr_owned_bytes: usize,
     binding: @import("witness.zig").Witness,
+    device_binding: ?DeviceBinding.Owner = null,
     binding_reserved_bytes: usize,
     projection_pending: bool = false,
     projection_eta: O = O.zero(),
@@ -166,6 +216,15 @@ pub const Unbound = struct {
         return proveTimedWithBindingStorage(a, limit, scope, instances, provider, policy, false, timing);
     }
     pub fn proveTimedWithBindingStorage(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, policy: TreePolicy, deferred: bool, timing: ?*PhaseTiming) !*Unbound {
+        return proveTimedWithNumericalStage(a, limit, scope, instances, provider, policy, deferred, timing, null, .{});
+    }
+    pub fn proveTimedWithNumericalStage(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, policy: TreePolicy, deferred: bool, timing: ?*PhaseTiming, stage: ?NumericalStage, native_columns: NativeColumns) !*Unbound {
+        var successful = false;
+        var stage_attempted = false;
+        var stage_disarmed = false;
+        defer if (!successful and stage_attempted and !stage_disarmed) {
+            if (stage) |backend| if (backend.abort) |abort| abort(backend.context, scope);
+        };
         const checkpointed = policy.checkpointed;
         if (policy.stream_bottom and !policy.tight_admission) return error.InvalidGkrStreamBottomPolicy;
         const metrics = try treeMetrics(a);
@@ -177,27 +236,53 @@ pub const Unbound = struct {
         self.* = .{ .parent_allocator = a, .budget = Budget.init(a, if (policy.tight_admission) plan.peak_bytes else limit), .plan = plan, .result = undefined, .digest = undefined, .peak_gkr_owned_bytes = 0, .binding = undefined, .binding_reserved_bytes = 0 };
         const bounded = self.budget.allocator();
         var ch = begin(scope, instances);
+        const source_channel = ch;
         const challenges = Challenges.drawForInstances(&ch, instances);
         var clock: ?std.time.Timer = if (timing != null) try std.time.Timer.start() else null;
         if (timing) |output| output.* = .{};
-        var inputs = if (policy.stream_bottom) Inputs{ .allocator = bounded, .layers = &.{} } else try Inputs.init(bounded, instances, &challenges, provider);
+        var inputs = if (policy.stream_bottom or stage != null) Inputs{ .allocator = bounded, .layers = &.{} } else try Inputs.init(bounded, instances, &challenges, provider);
         defer inputs.deinit();
-        var source_inputs = if (policy.stream_bottom) try @import("source_inputs.zig").Batch(@TypeOf(provider)).init(bounded, instances, &challenges, provider) else null;
+        var source_inputs = if (policy.stream_bottom or stage != null) try @import("source_inputs.zig").Batch(@TypeOf(provider)).init(bounded, instances, &challenges, provider) else null;
         defer if (source_inputs) |*source| source.deinit();
         if (clock) |*timer| timing.?.inputs_ns = timer.lap();
-        var result = if (source_inputs) |source| (if (checkpointed) try GP.proveBatchSourceCheckpointed(bounded, &ch, source.sources) else try GP.proveBatchSource(bounded, &ch, source.sources)) else if (checkpointed) try GP.proveBatchOwnedCheckpointed(bounded, &ch, inputs.takeLayers()) else try GP.proveBatch(bounded, &ch, inputs.layers);
+        var result = if (stage) |backend| blk: {
+            stage_attempted = true;
+            break :blk try proveNumericalStage(bounded, backend, .{
+                .scope = scope,
+                .instances = instances,
+                .challenges = &challenges,
+                .sources = source_inputs.?.sources,
+                .native_source = if (@TypeOf(provider) == @import("native_provider.zig").Provider) provider.source else null,
+                .native_fixed_columns = native_columns.fixed,
+                .native_main_columns = native_columns.main,
+                .source_channel = source_channel,
+                .channel = ch,
+                .byte_cap = limit,
+            }, &ch);
+        } else if (source_inputs) |source| (if (checkpointed) try GP.proveBatchSourceCheckpointed(bounded, &ch, source.sources) else try GP.proveBatchSource(bounded, &ch, source.sources)) else if (checkpointed) try GP.proveBatchOwnedCheckpointed(bounded, &ch, inputs.takeLayers()) else try GP.proveBatch(bounded, &ch, inputs.layers);
         const numerical_peak_bytes = self.budget.peak_live_bytes;
         errdefer result.deinit(bounded);
         try Closure.close(bounded, result.proof.output_claims_by_instance);
         self.digest = try Receipt.digest(scope, instances, &result.proof, result.artifact.claims_to_verify_by_instance);
         const eta = ch.drawSecureFelt();
         if (clock) |*timer| timing.?.numerical_ns = timer.lap();
-        const binding_bytes = try std.math.add(usize, if (deferred) plan.binding_bytes / 2 else plan.binding_bytes, try std.math.mul(usize, instances.len, @sizeOf([]@import("stwo_core").fields.m31.M31)));
+        const device_bind = if (stage) |backend| backend.bind else null;
+        const binding_bytes = if (device_bind != null) @as(usize, 0) else try std.math.add(usize, if (deferred) plan.binding_bytes / 2 else plan.binding_bytes, try std.math.mul(usize, instances.len, @sizeOf([]@import("stwo_core").fields.m31.M31)));
         try Resource.reserveExternal(&self.budget, binding_bytes);
         errdefer Resource.releaseExternal(&self.budget, binding_bytes);
         // Parent-owned planes are explicitly charged while local, then adopted
         // by the existing worker/PCS allocator without a whole-witness copy.
-        self.binding = if (deferred) try @import("witness.zig").Witness.initProjectionFromProvider(a, bounded, instances, &challenges, provider, &result.artifact, eta) else if (checkpointed or policy.stream_bottom) try @import("witness.zig").Witness.initFromProvider(a, bounded, instances, &challenges, provider, &result.artifact, eta) else try @import("witness.zig").Witness.init(a, instances, &inputs, &result.artifact, eta);
+        if (device_bind) |bind| {
+            // bind consumes or cleans up the pending device job on failure;
+            // abort is only for errors between numerical proof and this call.
+            stage_disarmed = true;
+            var owner = try bind(stage.?.context, a, .{ .scope = scope, .receipt_digest = self.digest, .instances = instances, .artifact = &result.artifact, .eta = eta, .deferred = deferred });
+            errdefer owner.deinit(a);
+            if (!std.meta.eql(owner.scope, scope) or !std.mem.eql(u8, &owner.receipt_digest, &self.digest)) return error.DeviceBindingScopeMismatch;
+            if (!deferred) try owner.finalize(a, .{ .scope = scope, .receipt_digest = self.digest, .instances = instances, .artifact = &result.artifact, .eta = eta, .deferred = false });
+            self.device_binding = owner;
+        }
+        self.binding = if (device_bind != null) .{ .allocator = a, .columns = &.{} } else if (deferred) try @import("witness.zig").Witness.initProjectionFromProvider(a, bounded, instances, &challenges, provider, &result.artifact, eta) else if (checkpointed or policy.stream_bottom or stage != null) try @import("witness.zig").Witness.initFromProvider(a, bounded, instances, &challenges, provider, &result.artifact, eta) else try @import("witness.zig").Witness.init(a, instances, &inputs, &result.artifact, eta);
         if (clock) |*timer| timing.?.binding_ns = timer.read();
         self.binding_reserved_bytes = binding_bytes;
         self.projection_pending = deferred;
@@ -211,12 +296,18 @@ pub const Unbound = struct {
             value.gkr_allocator_limit_bytes = self.budget.limit;
         }
         if (metrics) std.debug.print("GKR_TREE_POLICY stride={d} numerical_requested_peak={d} including_binding_peak={d} raw_input_bytes={d} tight_admission={any} admitted_peak_bytes={d} allocator_limit_bytes={d} streamed_bottom={any} planned_input_reserve_bytes={d}\n", .{ @as(u8, if (checkpointed) 2 else 1), numerical_peak_bytes, self.peak_gkr_owned_bytes, @as(usize, if (policy.stream_bottom) 0 else plan.input_bytes), policy.tight_admission, plan.peak_bytes, self.budget.limit, policy.stream_bottom, plan.input_bytes });
+        successful = true;
         return self;
     }
     /// All new allocations/validation precede the old-projection release. A
     /// failed completion leaves the projected owner intact and retryable.
     pub fn completeBinding(self: *Unbound, instances: []const Frame.Instance) !void {
         if (!self.projection_pending) return;
+        if (self.device_binding) |*owner| {
+            try owner.finalize(self.parent_allocator, .{ .scope = owner.scope, .receipt_digest = self.digest, .instances = instances, .artifact = &self.result.artifact, .eta = self.projection_eta, .deferred = false });
+            self.projection_pending = false;
+            return;
+        }
         const final_bytes = try std.math.add(usize, self.plan.binding_bytes, try std.math.mul(usize, instances.len, @sizeOf([]core.fields.m31.M31)));
         try Resource.reserveExternal(&self.budget, final_bytes);
         errdefer Resource.releaseExternal(&self.budget, final_bytes);
@@ -227,6 +318,22 @@ pub const Unbound = struct {
         self.binding_reserved_bytes = final_bytes;
         self.projection_pending = false;
         self.peak_gkr_owned_bytes = self.budget.peak_live_bytes;
+    }
+    pub fn parkDeviceBinding(self: *Unbound) !void {
+        if (!self.projection_pending) return error.DeviceBindingAlreadyFinalized;
+        try (if (self.device_binding) |*owner| owner else return error.DeviceBindingUnavailable).park();
+    }
+    pub fn replayDeviceBinding(self: *Unbound, a: std.mem.Allocator, limit: usize, stage: NumericalStage, instances: []const Frame.Instance, provider: anytype, native_columns: NativeColumns) !void {
+        const owner = if (self.device_binding) |*value| value else return error.DeviceBindingUnavailable;
+        if (!self.projection_pending or !owner.parked) return error.DeviceBindingReplayPhase;
+        const replay = stage.replay_binding orelse return error.DeviceBindingReplayUnavailable;
+        var channel = begin(owner.scope, instances);
+        const source_channel = channel;
+        const challenges = Challenges.drawForInstances(&channel, instances);
+        var inputs = try @import("source_inputs.zig").Batch(@TypeOf(provider)).init(a, instances, &challenges, provider);
+        defer inputs.deinit();
+        try replay(stage.context, a, .{ .scope = owner.scope, .instances = instances, .challenges = &challenges, .sources = inputs.sources, .native_source = if (@TypeOf(provider) == @import("native_provider.zig").Provider) provider.source else null, .native_fixed_columns = native_columns.fixed, .native_main_columns = native_columns.main, .source_channel = source_channel, .channel = channel, .byte_cap = limit }, owner);
+        if (owner.parked) return error.DeviceBindingReplayRequired;
     }
     pub fn takeBindingCommit(self: *Unbound, instances: []const Frame.Instance) !@import("../../../word16_execution/main_ownership.zig").Commit {
         if (self.projection_pending) return error.LocalGkrBindingUnavailable;
@@ -247,8 +354,14 @@ pub const Unbound = struct {
         self.binding_reserved_bytes = 0;
         return out;
     }
+    pub fn deviceBindingColumns(self: *const Unbound) ![]const @import("stwo_prover_api").device_pcs.Column {
+        const owner = self.device_binding orelse return error.DeviceBindingUnavailable;
+        if (!owner.finalized or self.projection_pending) return error.LocalGkrBindingUnavailable;
+        return owner.columns;
+    }
     pub fn deinit(self: *Unbound) void {
         const a = self.parent_allocator;
+        if (self.device_binding) |*owner| owner.deinit(a);
         self.binding.deinit();
         Resource.releaseExternal(&self.budget, self.binding_reserved_bytes);
         self.result.deinit(self.budget.allocator());
@@ -281,4 +394,50 @@ test "tight admission operational flag is explicit and does not select a protoco
     try std.testing.expect(!try parseTightAdmission("0"));
     try std.testing.expect(try parseTightAdmission("1"));
     for ([_][]const u8{ "2", "true", "1 " }) |value| try std.testing.expectError(error.InvalidGkrTightAdmissionPolicy, parseTightAdmission(value));
+}
+
+test "numerical stage proofs retain native transcript and reject changed claims" {
+    const a = std.testing.allocator;
+    const instances = [_]Frame.Instance{.{ .origin = .{ .core = .alu }, .row_log = 5, .terms = 1, .fixed_offset = 0, .main_offset = 0 }};
+    const zeroes: [32]O = @splat(O.zero());
+    const ones: [32]O = @splat(O.one());
+    const Callback = struct {
+        layers: [1]GP.Layer,
+        mutate: bool = false,
+        fn run(ctx: *anyopaque, allocator: std.mem.Allocator, request: NumericalStage.Request) !GV.GkrBatchProof {
+            const self: *@This() = @ptrCast(@alignCast(ctx));
+            var channel = request.channel;
+            var result = try GP.proveBatch(allocator, &channel, &self.layers);
+            result.artifact.deinit(allocator);
+            if (self.mutate) result.proof.output_claims_by_instance[0][0] = O.one();
+            return result.proof;
+        }
+    };
+    var callback = Callback{ .layers = .{.{ .LogUpGeneric = .{
+        .numerators = .{ .evals = @constCast(&zeroes), .owns_evals = false },
+        .denominators = .{ .evals = @constCast(&ones), .owns_evals = false },
+    } }} };
+    const challenges: Challenges = undefined; // Numerical-only callback does not project rows.
+    const initial = Channel.init();
+    const request = NumericalStage.Request{ .scope = .{ .statement = @splat(0), .fixed = @splat(0), .main = @splat(0), .ordinal = 0 }, .instances = &instances, .challenges = &challenges, .sources = &.{}, .native_source = null, .source_channel = initial, .channel = initial, .byte_cap = 1 << 20 };
+    var expected_channel = initial;
+    var expected = try GP.proveBatch(a, &expected_channel, &callback.layers);
+    defer expected.deinit(a);
+    var channel = initial;
+    var result = try proveNumericalStage(a, .{ .context = &callback, .prove = Callback.run }, request, &channel);
+    defer result.deinit(a);
+    try std.testing.expectEqual(expected_channel.inner.n_draws, channel.inner.n_draws);
+    try std.testing.expectEqualSlices(u8, &expected_channel.inner.digest, &channel.inner.digest);
+    try std.testing.expectEqualSlices(O, expected.artifact.ood_point, result.artifact.ood_point);
+    callback.mutate = true;
+    var rejected = false;
+    var bad_channel = initial;
+    if (proveNumericalStage(a, .{ .context = &callback, .prove = Callback.run }, request, &bad_channel)) |returned| {
+        var unexpected = returned;
+        unexpected.deinit(a);
+    } else |_| {
+        rejected = true;
+    }
+    try std.testing.expect(rejected);
+    try std.testing.expectEqualSlices(u8, &initial.inner.digest, &bad_channel.inner.digest);
 }

@@ -1,0 +1,155 @@
+{
+  "schema": "rv64-cuda-triple-policy-cold-qualification/v1",
+  "date": "2026-11-03",
+  "qualification": {
+    "native_policy_witness": "six complete-MAIN/histogram golden cases passed separately in keccak-triple-witness receipt",
+    "raw_projection": {
+      "cases": [
+        7,
+        8,
+        9
+      ],
+      "result": "PASS",
+      "authority": "native CPU symbolic program evaluation; policy-specific fraction authority covered by host tests",
+      "groups": [
+        [
+          640,
+          25
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "checks": [
+        "exact canonical numerator coordinates",
+        "exact denominator coordinates with original group prefix gaps",
+        "invalid log rejected before enqueue",
+        "noncanonical MAIN input sticky verdict rejected"
+      ]
+    },
+    "domain_composition": "NOT QUALIFIED: exactly one large constraint group190 remains uncompiled; ten-case dispatcher not admitted",
+    "complete_resident_proof": "pending parent-controlled uniform-throughput run"
+  },
+  "original_case_source_parity": {
+    "0": {
+      "domain": true,
+      "raw": true
+    },
+    "1": {
+      "domain": true,
+      "raw": true
+    },
+    "2": {
+      "domain": true,
+      "raw": true
+    },
+    "3": {
+      "domain": true,
+      "raw": true
+    },
+    "4": {
+      "domain": true,
+      "raw": true
+    },
+    "5": {
+      "domain": true,
+      "raw": true
+    },
+    "6": {
+      "domain": true,
+      "raw": true
+    }
+  },
+  "compilation": {
+    "mode": "sm_120 PIC AOT",
+    "prefix_cached_groups": 168,
+    "cold_suffix": "one native constraint group per module; oversized group lowered to bounded SSA slices",
+    "reproduce": "python3 scripts/rv64_cuda_partition_grouped.py DOMAIN_DIR OUTPUT_DIR --truth-catalog --truth-tail-first-group 168",
+    "blocking_group": 190,
+    "attempts": [
+      "normal bounded compilation exceeded short development budget",
+      "device debug/O0 did not resolve compiler blowup",
+      "TU-local OM31 multiply outlining reached PTXAS but did not finish",
+      "all-OM31 outlining terminated with exit137; other remaining compilers stopped to protect full-proof memory"
+    ],
+    "pending_native_admission": "triple composition remains fail closed"
+  },
+  "runtime_full_block_control": {
+    "library": "/workspace/rv64-gpu-session/build/pcs-native-resident-candidate/libstwo-rv64-base-1b6ec267524022e0.so",
+    "sha256": "1b6ec267524022e099643515fad9836b52267f5eea7e8003996c69c87b43c8d9",
+    "plan": "explicit uniform-throughput r27; original seven-case dispatcher; fresh proof bytes may differ from compact-tail plan",
+    "raw7_8_9_needed": false
+  },
+  "temporary_extension": {
+    "scope": "r27 composition only; triple composition stays fail closed",
+    "base_sha256": "1b6ec267524022e099643515fad9836b52267f5eea7e8003996c69c87b43c8d9",
+    "base_library": "/workspace/rv64-gpu-session/build/pcs-native-resident-candidate/libstwo-rv64-base-1b6ec267524022e0.so",
+    "required_exports": 145,
+    "library_sha256": "660af7ced1391a6fae3eb92e5e958b38a72e896e20b6ddf4982f0f6c723f3f3a",
+    "objects": {
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_dispatch.o": "abe1f136bd1a510bbc2cbf760edfb16bfa8af75a3948f928986f82ccaeb52faa",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_0.o": "72504ad8c93a9b6e6e9f3012441587dad46a7f3532661ff6969c3c4fd5b5212b",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_1.o": "821972ab8f477166a986dd10fb43340d111b84fe55083be7ee4c1b93a6bcf253",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_10.o": "229f1c18bb69406cd1e07904d296dcca680b38e4d60c04278233b7a052b0ed47",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_11.o": "aa9a71d5759ebecb47c05976fc156ac5ac36a7cb7b50f52fa1036ec086bd34cf",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_12.o": "dbfc9a5bf6e7573308f6ebb928fbe17176ee4281d00ba4c3646d78573652add5",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_13.o": "d180aef2f33ff1e0b35d416476d596d6ee5f72ba32df803bd7f92dd48659e8b3",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_14.o": "ba53cbfc7fa0b050154dc0148adf21aa753733c0902ddc6debb96270eb6a1079",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_15.o": "e712865d642713ee3fb3d8584ae69d5c4ed3c8c157ebcc34b446d24868888362",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_16.o": "f8dae6b798222d290ed546fd2eae7b6de8c4238ea88d277a23cc5c9cdc16f13c",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_17.o": "612572709e4e3e869990f7341e0b0a887a9f3c9ee719637c043fc517571f6e2a",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_18.o": "0b1d0870c22b23ac61d398d36c2cf8d5c42d441e3417a85f242e229c35c004d5",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_19.o": "5bf877afeee9ba26862f0338cf101cdd05c3e07c4795330021ae0d696ea03eb6",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_2.o": "c6b8e1fc8cd0b9e0770970926c857a22d98bb0f1d21fa7191168454238eded2b",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_20.o": "17dd9ac5828402af62d1fcfa5f599c09f878d324ffa215057eaf63995409b1ba",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_21.o": "00834b716959f609a297b9db9a24b3ec36a2436e7f36847c187f01a4b3b8a56f",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_22.o": "12c18bf6c2ea92c5262b1890e0a18f60c7d7c9fc5634d6befbd1fdb1c75ae378",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_23.o": "aa62a1c1bec61d637f65f233537db7483fb7692a60c4e6f2dfd33f0c4c1ca433",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_24.o": "a031a0dcfa1e5f662eae487f514cd25b42614c2cdeb6154f1632a2204f5ac72c",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_25.o": "b54227602426a0296d3183570b35fcd32083db87ea3325b4f2de55865baf56ca",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_26.o": "38cdf9e9a54e5c9b1e4ba99f8ff5593de06b10c6eadbbf9bb0aa739203544451",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_27.o": "ebe4c81b1397d7acf6a59b9c8e27741cb349114745f8dd4801c847ca14f3915f",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_28.o": "d194e1c1f9f4dc9e98fbcf965cdb49743eb03ec01d108ca6fc913a6dcb896dfb",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_29.o": "2cc590622cfd50733ad2f943c16d725ae79d030ae42a1732f4ad3a7ce1a440ef",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_3.o": "b3c149b01fa4a8edc410832df62651dada4efcd5482931b0d45bc66fb28cade6",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_30.o": "e1e20efaaa4bb45639a8f6f7a87fc3d7f54566b8489f70a22b68a41b416eed12",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_31.o": "1582ee009a36304d660bd4a6bb6ca3aac6db58bd805b1bffe372b6a564f312e1",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_32.o": "17d7b3a926472bd66cd0b09bf69075df7b16daad9a4a72b9ee976e9e2d16a0c8",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_33.o": "5de4e5f408b0b73ff762ddfe6cc93644ba0ec9fcf90c34206f0baa586b0b8c5a",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_34.o": "cb2e69745529659b553348f1e1758144c7f134ff46ac4ab91dab83946c910bfa",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_35.o": "ef8c8bc87a3a5ffcc2a343faf06c6154f1128ec8c8736932f8c45f4c21a4175f",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_36.o": "5ecfd8d0d30601c8a6108afff7706be12f5f228a002d56865b16bb39f5546a51",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_37.o": "6714a3b615fdef1db8a4047bc665dcaf96ae08fc19861d3adcad06fdd53fe7b3",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_38.o": "b2d21708a5283a08dbfd15d1335a2a0ae746877f2411f3b63bcca0608b37fc17",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_39.o": "f5c21a736f3d9e58c43a24befec70a86d5e9722c7e4aa01a379739777275413d",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_4.o": "a77113f9e697810f7a4c7ab05ffe4be212c323932b2203aedf7f55261689b03a",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_40.o": "6e30f0a30c89a9af0fe5ce93b0f5251cbcfd8b6795a11cdcc58c59e4500cf32a",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_41.o": "f1477ed37f44d760aaf326fd481da544e586d21978ad71a040b207a5d39ea5fe",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_5.o": "87c164f6ab4fc0e53a1a3ab703d9e9a00ebedf29ad5e143f178ffa2deaedd2f1",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_6.o": "cd191618a080e64f51a940351c4fdba37d79f27ee1d2856f8edff8637f32d60c",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_7.o": "1585df0821a82ca0674c0104aaa7e71c768393502ea434fd7ad7aec9d5bce296",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_8.o": "f212afa86d77b55dea29124c3e5159bd4fc92447eed367e0dabce6e6b8b66917",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_7_part_9.o": "5b188a9d8b72aa08bc6388b60e177961347285604eab946c25f6ba8b4745c19f",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_8.o": "2bf4fccb054db86c5456734a26f989c9efca080b2584a15fe3e375590c82a17a",
+      "/workspace/rv64-gpu-session/build/truth-triple-aot/stwo_rv64_truth_projection_9.o": "5e7a4e0bd9e8364b399dd0faa32fae591f0aecdb32c1d11d43dd39d7cb17ab67",
+      "/workspace/rv64-gpu-session/keccak-triple-witness/keccak_witness.o": "95fcc6b01f10b2148b9ec72775dfaf9f05769dd14e57431d25ce9a8dd2147479"
+    },
+    "assembly": "shared native context through immutable DT_NEEDED base; no process/file PCS boundary"
+  },
+  "limitations": [
+    "Tiny numerical fixtures are not a proving benchmark",
+    "No performance or complete-block acceptance claimed here",
+    "Extension library is not used for parent full-block control; direct single-image assembly remains follow-up"
+  ],
+  "source_sha256": {
+    "scripts/rv64_cuda_partition_grouped.py": "cb810e7b72f3d8720de2e4b869d5a714dba450a5a71b6f877ad62a6919b222d0",
+    "src/integrations/riscv_cuda/rv64/truth_rational_fixtures.zig": "d55bd13b5e6d9bf2a90b3dd32cc4c0f676ed9151faf4f30d16147cf46cf653df",
+    "tests/cuda/rv64/truth_rational_smoke.cu": "0d20cad3df5755a86d60ceecd081e6ec8c944eba7b36c7fef098db2db0657887",
+    "tests/cuda/rv64/truth_composition_native.cu": "f300521230f42b733b4090eec470c0643fdcdcf8b822dc1905dae9448bc4709c"
+  }
+}

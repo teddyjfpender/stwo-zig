@@ -1,0 +1,21 @@
+LOADAVG 33.66 25.94 22.72 45/7972 609855
+0, NVIDIA GeForce RTX 5090, 24 MHz, 3105 MHz, 9.45 W, 43
+1, NVIDIA GeForce RTX 5090, 28 MHz, 3135 MHz, 5.29 W, 35
+GPU_POOL_SUMMARY pool_mallocs=193 pool_trims=0 pool_oom_recoveries=0 arena_enabled=0 staging_enabled=0 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=9 pageable_h2d_bytes=415236132 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+GPU_POOL_SUMMARY pool_mallocs=252 pool_trims=0 pool_oom_recoveries=0 arena_enabled=0 staging_enabled=0 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=11 pageable_h2d_bytes=5247074340 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+GPU_POOL_SUMMARY pool_mallocs=362 pool_trims=0 pool_oom_recoveries=0 arena_enabled=0 staging_enabled=0 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=15 pageable_h2d_bytes=8266973220 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+GPU_POOL_SUMMARY pool_mallocs=472 pool_trims=0 pool_oom_recoveries=0 arena_enabled=0 staging_enabled=0 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=17 pageable_h2d_bytes=8870952996 pageable_d2h=55 pageable_d2h_bytes=91808 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+{"schema":"rv64-outer-gkr-gpu-bench/v1","class_id":32,"instances":8,"layers":27,"fractions":246415360,"reps":3,"tree_ms_median":26.657,"traversal_ms_median":148.205,"total_ms_median":174.862,"tree_ms":[26.657,26.667,26.624],"traversal_ms":[148.350,148.205,147.777],"kernel_calls_per_rep":5337,"device_allocated_bytes":25776982460,"device_total_bytes":33679736832,"device_free_bytes_after":7340228608,"input_gen_upload_s":36.350,"section_words":17325,"trimmed_round":false}
+BENCH_RC=0 salt=0
+LOADAVG 34.64 27.20 23.28 34/7970 610597
+{"accepted":true,"class":"fold-24628607","profile":"outer_gkr_om31_strict_v1","draws":432,"closure_checked":false,"terminal_checked":true,"verify_ns":3150333,"terminal_ns":47572958566,"section_bytes":69300}
+{"cmd": ["/workspace/m3/src/m5-outer-gkr/zig-out/bin/rv64-outer-gkr-tool", "verify"], "rc": 0, "wall_s": 48.766, "maxrss_gib": 12.263}
+VERIFY_RC=0
+{"class":"fold-24628607","layers":27,"instances":8,"rounds":351,"draws":432,"blake_g_gate":193600,"qm31_ops":219570,"m31_to_u32":20168,"triple_xor":19360,"eq":1581,"variables":1033498,"valid":true,"terminal_from_inputs":false,"build_ns":33338588}
+{"cmd": ["/workspace/m3/src/m5-outer-gkr/zig-out/bin/rv64-outer-gkr-tool", "cost"], "rc": 0, "wall_s": 0.037, "maxrss_gib": 0.026}
+COST_RC=0
+EXIT=0

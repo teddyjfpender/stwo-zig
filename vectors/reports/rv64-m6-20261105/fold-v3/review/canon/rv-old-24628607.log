@@ -1,0 +1,3 @@
+{"id": "RV31-native-forged-audit", "expect": "reject", "verdict": "reject", "passed": false, "wall_s": 1.57, "first_error": "error: WideCpuPublicRamMismatch"}
+{"id": "RV32-audit-control", "expect": "accept", "verdict": "accept", "passed": false, "wall_s": 60.39, "first_error": null}
+{"block": 24628607, "ran": 2, "passed": 0, "reject_expected": 1, "rejected_where_reject_expected": 1, "accepted_same_statement": ["RV32-audit-control"], "unexpected_accepts": ["RV32-audit-control"], "crashes": [], "wall_s": 60.6}

@@ -1,0 +1,118 @@
+{
+  "schema": "rv64-full-resident-warm-stage-accounting-v1",
+  "block": 24628607,
+  "trial": 1,
+  "proofs": 17,
+  "prove_seconds": 9.852494824,
+  "capture_seconds": 8.993577211,
+  "setup_seconds": 0.166763912,
+  "same_process_verify_seconds": 2.195735495,
+  "sum_rows_seconds": 9.852494824,
+  "rows": [
+    {
+      "stage": "source_all_workers",
+      "wall_seconds": 1.364583349,
+      "instrumented_gpu_seconds": null
+    },
+    {
+      "stage": "MAIN_commit",
+      "wall_seconds": 0.753680601,
+      "instrumented_gpu_seconds": null
+    },
+    {
+      "stage": "local_GKR",
+      "wall_seconds": 1.169934533,
+      "instrumented_gpu_seconds": 0.84528576
+    },
+    {
+      "stage": "other_stage_one",
+      "wall_seconds": 0.35767635399999986,
+      "instrumented_gpu_seconds": null
+    },
+    {
+      "stage": "binding_finalize",
+      "wall_seconds": 0.324722805,
+      "instrumented_gpu_seconds": null
+    },
+    {
+      "stage": "global_INTER_generation",
+      "wall_seconds": 0.986699968,
+      "instrumented_gpu_seconds": null
+    },
+    {
+      "stage": "composition",
+      "wall_seconds": 1.639598391,
+      "instrumented_gpu_seconds": 0.967124
+    },
+    {
+      "stage": "PCS",
+      "wall_seconds": 1.572616483,
+      "instrumented_gpu_seconds": 1.127477174
+    },
+    {
+      "stage": "native_challenge_OODS_constraint_assembly",
+      "wall_seconds": 0.15542037399999997,
+      "instrumented_gpu_seconds": null
+    },
+    {
+      "stage": "other_stage_two_INTER_commit_encoding_cleanup",
+      "wall_seconds": 1.1655121499999996,
+      "instrumented_gpu_seconds": null
+    },
+    {
+      "stage": "coordinator_other",
+      "wall_seconds": 0.36204981600000075,
+      "instrumented_gpu_seconds": null
+    }
+  ],
+  "gkr_kernel_launches": 18986,
+  "pcs_prepare_seconds": 0.072945909,
+  "composition_coefficient_stream_seconds": 0.324521,
+  "source_process_usage": {
+    "user_seconds": 0.832368,
+    "system_seconds": 0.524865,
+    "minor_faults": 300759
+  },
+  "notes": [
+    "Measured same-process warm trial1, all20 artifacts equal prior accepted trial. OneGPU sequential proof schedule.",
+    "Wall rows nonoverlapping and sum exactly9.852494824s; GPU event spans are nested comparison data, not additional wall rows.",
+    "SourceGPUprojection total.256938s is callback wall, not kernel-only time.",
+    "Otherstage2 includes INTERcommit, encoding andcleanup not independently timed.",
+    "Producer stdout/stderr interleave; extraction matches embedded GPU_PCS_NATIVE tags, preserving all17records.",
+    "Source labels inherited CPU naming even though trace/witness generation is resident.",
+    "producer_before_report_seconds excludes final report publication/destruction and is not total process wall time"
+  ],
+  "records_count": {
+    "PCS": 17,
+    "composition": 17,
+    "GKR": 7
+  },
+  "gkr": {
+    "launches": 18986,
+    "traversal_seconds": 0.600597728,
+    "mandatory_native_partial_verification_seconds": 0.039508358,
+    "twiddle_setup_seconds": 5.558e-06,
+    "twiddle_hits": 7
+  },
+  "cache": {
+    "warm_composition_new_geometry_misses": 0.0,
+    "composition_total_geometry_misses": 104.0,
+    "cpu_ROM_hits": 6,
+    "cpu_ROM_misses": 1,
+    "PCS_idle_cache_OOM_evictions": [
+      {
+        "requested_bytes": 7143989760.0,
+        "idle_cache_bytes": 8796381960.0
+      },
+      {
+        "requested_bytes": 9218116000.0,
+        "idle_cache_bytes": 16028314896.0
+      }
+    ]
+  },
+  "capture_direct_execution_seconds": 1.59536971,
+  "capture_nonexecution_seconds": 7.398207501,
+  "raw_log": "remote:fully-resident-block-24628607-parallel-deep/producer.log",
+  "raw_stages": "remote:fully-resident-block-24628607-parallel-deep/batch/trial-1/24628607/proof/*.stages.json",
+  "producer_before_report_seconds": 21.613902881
+}

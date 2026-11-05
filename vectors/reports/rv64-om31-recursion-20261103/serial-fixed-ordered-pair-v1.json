@@ -1,0 +1,55 @@
+{
+  "schema": "rv64-serial-fixed-ordered-pair/v1",
+  "block": 26235156,
+  "same_binary_sha256": "aa52615f1dadaf1f951e0a0841046ab38300660d0256e50320172c4f095b3184",
+  "same_runtime_sha256": "25295868fe3410dc2f54b366497cb57e260ef9c1f9f74e03d4266f253f7cc809",
+  "source_commit": "856499d89",
+  "order": [
+    "device_candidate",
+    "cpu"
+  ],
+  "device_candidate": {
+    "request_wall_ns": 126221409884,
+    "preprocess_node_count": 21,
+    "preprocess_sums_ns": {
+      "finalize_ns": 2157237687,
+      "columns_ns": 12836361189,
+      "authority_ns": 1971649480,
+      "total_ns": 16965248356
+    },
+    "actual_fixed_setup_backends": [
+      "device_candidate"
+    ],
+    "producer_stderr_sha256": "44d0e678ec5ab74de45ef9d1b509b7b68d2ee415cf48f78539b4da352a6ba215",
+    "produced_sha256": "9dedf5d7cec927b57dea0ab5dafa0fd09d50392ec6a3fdc58f4cda5870a07093",
+    "plan_file_sha256": "016a2160d0db57d501118e314d54c817bd9a9f043e01e38b65266c7794ca212f",
+    "strict_cpu_accepted": true,
+    "strict_cpu_result_sha256": "2315e8b7efc30bad87f690fe9fe01cafc2006b05ca11ecf4eab589338cd8ffd4",
+    "producer_state": "produced_parity_pending_independent_receiver",
+    "proof_byte_parity": true,
+    "root_sha256": "4e4b174e65d9c0b5391608ceb692a0852dca3f6c3440b359847123ef20b59a7f",
+    "tree_sha256": "aab8856cf30fe130b2a114e92c59c97a6c683577e0a2baf9fecf6ed4370e854e"
+  },
+  "cpu": {
+    "request_wall_ns": 164769183198,
+    "preprocess_node_count": 21,
+    "preprocess_sums_ns": {
+      "finalize_ns": 2171060498,
+      "columns_ns": 12872755142,
+      "authority_ns": 34759225956,
+      "total_ns": 49803041596
+    },
+    "actual_fixed_setup_backends": [
+      "cpu"
+    ],
+    "producer_stderr_sha256": "8d937e3d8a5700175243e385e3505fd5248fe3f381934317a9c4c4de4615500d",
+    "produced_sha256": "05bb74ac75e3cbb2d427adb6a0cf7589f8fd31f02c86b13c76d157e85b48d50d",
+    "plan_file_sha256": "2fb20f85ff02db984437c92ac396348ee48cee2c54bf5d48deb0cb07110afdd8",
+    "strict_cpu_accepted": false,
+    "producer_state": "produced_parity_pending_independent_receiver",
+    "proof_byte_parity": true,
+    "root_sha256": "4e4b174e65d9c0b5391608ceb692a0852dca3f6c3440b359847123ef20b59a7f",
+    "tree_sha256": "aab8856cf30fe130b2a114e92c59c97a6c683577e0a2baf9fecf6ed4370e854e"
+  },
+  "scope": "One ordered true-then-false observation; no median, worst-shape fit, or general speed-ratio claim. CPU FALSE fresh independent verification pending."
+}

@@ -1,0 +1,1059 @@
+{
+ "schema": "rv64-m3-timeline/v1",
+ "label": "measured",
+ "run": "/workspace/m3/runs/infra/24628607-2gpu-nsys-srcdriver-acceptedlib",
+ "block": 24628607,
+ "gpus": 2,
+ "stages": {
+  "request_wall_s": 103.437,
+  "capture_s": 4.689,
+  "setup_s": 13.517,
+  "native_prove_s": 10.68,
+  "native_verify_s": 5.788,
+  "native_total_before_report_s": 34.925,
+  "recursion_s": 68.457
+ },
+ "nsys_overhead_present": true,
+ "recursion_lanes": {
+  "recursion_span_s": 66.782,
+  "fold_tail_after_last_leaf_s": 12.689,
+  "t0_unix_ns": 1793776389645383164,
+  "lanes": {
+   "0": {
+    "device": 0,
+    "nodes": 19,
+    "busy_s": 66.782,
+    "idle_between_nodes_s": 0.0,
+    "max_gap_s": 0.0,
+    "tail_idle_s": 0.0,
+    "graph_s": 12.539,
+    "wrap_s": 52.051,
+    "serialize_s": 0.04,
+    "write_s": 0.209
+   },
+   "1": {
+    "device": 1,
+    "nodes": 14,
+    "busy_s": 51.848,
+    "idle_between_nodes_s": 0.0,
+    "max_gap_s": 0.0,
+    "tail_idle_s": 14.934,
+    "graph_s": 10.794,
+    "wrap_s": 39.355,
+    "serialize_s": 0.022,
+    "write_s": 0.141
+   }
+  },
+  "kinds": {
+   "leaf": {
+    "count": 17,
+    "mean_s": 4.296,
+    "max_s": 6.609,
+    "min_s": 1.343,
+    "graph_mean_s": 1.145,
+    "wrap_mean_s": 3.042
+   },
+   "fold": {
+    "count": 16,
+    "mean_s": 2.849,
+    "max_s": 3.225,
+    "min_s": 1.908,
+    "graph_mean_s": 0.242,
+    "wrap_mean_s": 2.48
+   }
+  },
+  "nodes": [
+   {
+    "node": 0,
+    "kind": "leaf",
+    "first_leaf": 0,
+    "leaf_count": 1,
+    "lane": 0,
+    "device": 0,
+    "start_s": 0.0,
+    "end_s": 6.609,
+    "span_s": 6.609,
+    "graph_s": 2.287,
+    "wrap_s": 4.215
+   },
+   {
+    "node": 1,
+    "kind": "leaf",
+    "first_leaf": 1,
+    "leaf_count": 1,
+    "lane": 1,
+    "device": 1,
+    "start_s": 0.0,
+    "end_s": 5.7,
+    "span_s": 5.7,
+    "graph_s": 1.69,
+    "wrap_s": 3.897
+   },
+   {
+    "node": 2,
+    "kind": "fold",
+    "first_leaf": 0,
+    "leaf_count": 2,
+    "lane": 0,
+    "device": 0,
+    "start_s": 6.609,
+    "end_s": 9.444,
+    "span_s": 2.835,
+    "graph_s": 0.253,
+    "wrap_s": 2.467
+   },
+   {
+    "node": 3,
+    "kind": "leaf",
+    "first_leaf": 2,
+    "leaf_count": 1,
+    "lane": 1,
+    "device": 1,
+    "start_s": 5.7,
+    "end_s": 10.806,
+    "span_s": 5.106,
+    "graph_s": 1.581,
+    "wrap_s": 3.421
+   },
+   {
+    "node": 4,
+    "kind": "leaf",
+    "first_leaf": 3,
+    "leaf_count": 1,
+    "lane": 0,
+    "device": 0,
+    "start_s": 9.444,
+    "end_s": 14.75,
+    "span_s": 5.306,
+    "graph_s": 1.626,
+    "wrap_s": 3.555
+   },
+   {
+    "node": 5,
+    "kind": "fold",
+    "first_leaf": 2,
+    "leaf_count": 2,
+    "lane": 0,
+    "device": 0,
+    "start_s": 14.75,
+    "end_s": 17.916,
+    "span_s": 3.166,
+    "graph_s": 0.258,
+    "wrap_s": 2.777
+   },
+   {
+    "node": 6,
+    "kind": "fold",
+    "first_leaf": 0,
+    "leaf_count": 4,
+    "lane": 0,
+    "device": 0,
+    "start_s": 17.916,
+    "end_s": 20.778,
+    "span_s": 2.862,
+    "graph_s": 0.243,
+    "wrap_s": 2.494
+   },
+   {
+    "node": 7,
+    "kind": "leaf",
+    "first_leaf": 4,
+    "leaf_count": 1,
+    "lane": 1,
+    "device": 1,
+    "start_s": 10.806,
+    "end_s": 15.937,
+    "span_s": 5.131,
+    "graph_s": 1.493,
+    "wrap_s": 3.455
+   },
+   {
+    "node": 8,
+    "kind": "leaf",
+    "first_leaf": 5,
+    "leaf_count": 1,
+    "lane": 1,
+    "device": 1,
+    "start_s": 15.937,
+    "end_s": 21.051,
+    "span_s": 5.114,
+    "graph_s": 1.406,
+    "wrap_s": 3.585
+   },
+   {
+    "node": 9,
+    "kind": "fold",
+    "first_leaf": 4,
+    "leaf_count": 2,
+    "lane": 1,
+    "device": 1,
+    "start_s": 21.051,
+    "end_s": 23.973,
+    "span_s": 2.922,
+    "graph_s": 0.238,
+    "wrap_s": 2.552
+   },
+   {
+    "node": 10,
+    "kind": "leaf",
+    "first_leaf": 6,
+    "leaf_count": 1,
+    "lane": 0,
+    "device": 0,
+    "start_s": 20.778,
+    "end_s": 24.53,
+    "span_s": 3.752,
+    "graph_s": 0.939,
+    "wrap_s": 2.678
+   },
+   {
+    "node": 11,
+    "kind": "leaf",
+    "first_leaf": 7,
+    "leaf_count": 1,
+    "lane": 1,
+    "device": 1,
+    "start_s": 23.973,
+    "end_s": 27.772,
+    "span_s": 3.799,
+    "graph_s": 1.222,
+    "wrap_s": 2.459
+   },
+   {
+    "node": 12,
+    "kind": "fold",
+    "first_leaf": 6,
+    "leaf_count": 2,
+    "lane": 1,
+    "device": 1,
+    "start_s": 27.772,
+    "end_s": 30.811,
+    "span_s": 3.039,
+    "graph_s": 0.332,
+    "wrap_s": 2.562
+   },
+   {
+    "node": 13,
+    "kind": "fold",
+    "first_leaf": 4,
+    "leaf_count": 4,
+    "lane": 1,
+    "device": 1,
+    "start_s": 30.811,
+    "end_s": 33.795,
+    "span_s": 2.984,
+    "graph_s": 0.24,
+    "wrap_s": 2.607
+   },
+   {
+    "node": 14,
+    "kind": "fold",
+    "first_leaf": 0,
+    "leaf_count": 8,
+    "lane": 1,
+    "device": 1,
+    "start_s": 33.795,
+    "end_s": 36.802,
+    "span_s": 3.007,
+    "graph_s": 0.243,
+    "wrap_s": 2.644
+   },
+   {
+    "node": 15,
+    "kind": "leaf",
+    "first_leaf": 8,
+    "leaf_count": 1,
+    "lane": 0,
+    "device": 0,
+    "start_s": 24.53,
+    "end_s": 28.092,
+    "span_s": 3.562,
+    "graph_s": 0.845,
+    "wrap_s": 2.623
+   },
+   {
+    "node": 16,
+    "kind": "leaf",
+    "first_leaf": 9,
+    "leaf_count": 1,
+    "lane": 0,
+    "device": 0,
+    "start_s": 28.092,
+    "end_s": 31.356,
+    "span_s": 3.264,
+    "graph_s": 0.663,
+    "wrap_s": 2.518
+   },
+   {
+    "node": 17,
+    "kind": "fold",
+    "first_leaf": 8,
+    "leaf_count": 2,
+    "lane": 0,
+    "device": 0,
+    "start_s": 31.356,
+    "end_s": 34.19,
+    "span_s": 2.834,
+    "graph_s": 0.224,
+    "wrap_s": 2.48
+   },
+   {
+    "node": 18,
+    "kind": "leaf",
+    "first_leaf": 10,
+    "leaf_count": 1,
+    "lane": 0,
+    "device": 0,
+    "start_s": 34.19,
+    "end_s": 38.735,
+    "span_s": 4.545,
+    "graph_s": 0.951,
+    "wrap_s": 3.493
+   },
+   {
+    "node": 19,
+    "kind": "leaf",
+    "first_leaf": 11,
+    "leaf_count": 1,
+    "lane": 1,
+    "device": 1,
+    "start_s": 36.802,
+    "end_s": 41.084,
+    "span_s": 4.282,
+    "graph_s": 0.93,
+    "wrap_s": 3.228
+   },
+   {
+    "node": 20,
+    "kind": "fold",
+    "first_leaf": 10,
+    "leaf_count": 2,
+    "lane": 1,
+    "device": 1,
+    "start_s": 41.084,
+    "end_s": 44.035,
+    "span_s": 2.951,
+    "graph_s": 0.238,
+    "wrap_s": 2.585
+   },
+   {
+    "node": 21,
+    "kind": "fold",
+    "first_leaf": 8,
+    "leaf_count": 4,
+    "lane": 1,
+    "device": 1,
+    "start_s": 44.035,
+    "end_s": 47.112,
+    "span_s": 3.077,
+    "graph_s": 0.267,
+    "wrap_s": 2.668
+   },
+   {
+    "node": 22,
+    "kind": "leaf",
+    "first_leaf": 12,
+    "leaf_count": 1,
+    "lane": 0,
+    "device": 0,
+    "start_s": 38.735,
+    "end_s": 43.036,
+    "span_s": 4.301,
+    "graph_s": 0.901,
+    "wrap_s": 3.295
+   },
+   {
+    "node": 23,
+    "kind": "leaf",
+    "first_leaf": 13,
+    "leaf_count": 1,
+    "lane": 0,
+    "device": 0,
+    "start_s": 43.036,
+    "end_s": 46.482,
+    "span_s": 3.446,
+    "graph_s": 0.717,
+    "wrap_s": 2.637
+   },
+   {
+    "node": 24,
+    "kind": "fold",
+    "first_leaf": 12,
+    "leaf_count": 2,
+    "lane": 0,
+    "device": 0,
+    "start_s": 46.482,
+    "end_s": 49.707,
+    "span_s": 3.225,
+    "graph_s": 0.27,
+    "wrap_s": 2.788
+   },
+   {
+    "node": 25,
+    "kind": "leaf",
+    "first_leaf": 14,
+    "leaf_count": 1,
+    "lane": 1,
+    "device": 1,
+    "start_s": 47.112,
+    "end_s": 50.506,
+    "span_s": 3.394,
+    "graph_s": 0.702,
+    "wrap_s": 2.611
+   },
+   {
+    "node": 26,
+    "kind": "leaf",
+    "first_leaf": 15,
+    "leaf_count": 1,
+    "lane": 0,
+    "device": 0,
+    "start_s": 49.707,
+    "end_s": 54.093,
+    "span_s": 4.386,
+    "graph_s": 1.296,
+    "wrap_s": 2.972
+   },
+   {
+    "node": 27,
+    "kind": "fold",
+    "first_leaf": 14,
+    "leaf_count": 2,
+    "lane": 0,
+    "device": 0,
+    "start_s": 54.093,
+    "end_s": 56.831,
+    "span_s": 2.738,
+    "graph_s": 0.22,
+    "wrap_s": 2.389
+   },
+   {
+    "node": 28,
+    "kind": "fold",
+    "first_leaf": 12,
+    "leaf_count": 4,
+    "lane": 0,
+    "device": 0,
+    "start_s": 56.831,
+    "end_s": 59.484,
+    "span_s": 2.653,
+    "graph_s": 0.219,
+    "wrap_s": 2.322
+   },
+   {
+    "node": 29,
+    "kind": "fold",
+    "first_leaf": 8,
+    "leaf_count": 8,
+    "lane": 0,
+    "device": 0,
+    "start_s": 59.484,
+    "end_s": 62.277,
+    "span_s": 2.793,
+    "graph_s": 0.21,
+    "wrap_s": 2.467
+   },
+   {
+    "node": 30,
+    "kind": "fold",
+    "first_leaf": 0,
+    "leaf_count": 16,
+    "lane": 0,
+    "device": 0,
+    "start_s": 62.277,
+    "end_s": 64.874,
+    "span_s": 2.597,
+    "graph_s": 0.209,
+    "wrap_s": 2.269
+   },
+   {
+    "node": 31,
+    "kind": "leaf",
+    "first_leaf": 16,
+    "leaf_count": 1,
+    "lane": 1,
+    "device": 1,
+    "start_s": 50.506,
+    "end_s": 51.849,
+    "span_s": 1.343,
+    "graph_s": 0.212,
+    "wrap_s": 1.083
+   },
+   {
+    "node": 32,
+    "kind": "fold",
+    "first_leaf": 0,
+    "leaf_count": 17,
+    "lane": 0,
+    "device": 0,
+    "start_s": 64.874,
+    "end_s": 66.782,
+    "span_s": 1.908,
+    "graph_s": 0.209,
+    "wrap_s": 1.614
+   }
+  ]
+ },
+ "phase_sums": {
+  "CUDA_OUTER_PREPROCESS": {
+   "finalize_ns": 2799766023,
+   "columns_ns": 10296195276,
+   "authority_ns": 2842789349,
+   "total_ns": 15938750648,
+   "count": 33
+  },
+  "GPU_OUTER_ASSIGNMENT_PLAN": {
+   "plan_ns": 18291170580,
+   "seeds_ns": 587263096,
+   "tasks_ns": 7301299129,
+   "dependency_walk_ns": 4349104300,
+   "ordering_ns": 1976524332,
+   "task_pack_ns": 4672587225,
+   "seed_pack_ns": 176720410,
+   "hash_ns": 2725935924,
+   "count": 33
+  },
+  "GPU_OUTER_ASSIGNMENT_TIMING": {
+   "total_ns": 10147278632,
+   "static_ingress_ns": 1200761514,
+   "levels_enqueue_ns": 8778763778,
+   "levels_join_ns": 87425486,
+   "launches": 1931428,
+   "count": 33
+  },
+  "GPU_PCS_NATIVE": {
+   "prepare_ns": 2212390760,
+   "device_ns": 8667990918,
+   "total_ns": 16184279431,
+   "count": 50
+  },
+  "GPU_COMPOSITION_TIMING": {
+   "domain_fft_ms": 4873.257999999999,
+   "rows_ms": 1427.842,
+   "finalize_ms": 361.59,
+   "commit_fft_ms": 196.658,
+   "commit_hash_ms": 85.315,
+   "gpu_enqueued_kernel_spans_ms": 6964.566999999998,
+   "count": 50
+  }
+ },
+ "nsys": {
+  "session_epoch_ns": 1793776345978513989,
+  "devices": {
+   "0": {
+    "kernels": 1134658,
+    "kernel_sum_s": 14.995,
+    "kernel_busy_union_s": 14.995,
+    "memcpy_busy_union_s": 3.445,
+    "any_busy_union_s": 18.398,
+    "first_s": null,
+    "windows": {
+     "recursion": {
+      "span_s": 66.782,
+      "gpu_busy_s": 16.663,
+      "gpu_busy_fraction": 0.25
+     }
+    },
+    "first_unix_ns": 1793776372334202965,
+    "last_unix_ns": 1793776456257659437
+   },
+   "1": {
+    "kernels": 870124,
+    "kernel_sum_s": 12.592,
+    "kernel_busy_union_s": 12.592,
+    "memcpy_busy_union_s": 2.634,
+    "any_busy_union_s": 15.191,
+    "first_s": null,
+    "windows": {
+     "recursion": {
+      "span_s": 66.782,
+      "gpu_busy_s": 12.483,
+      "gpu_busy_fraction": 0.187
+     }
+    },
+    "first_unix_ns": 1793776372327638130,
+    "last_unix_ns": 1793776441342534860
+   }
+  },
+  "top_kernels": [
+   {
+    "name": "n2b_continue",
+    "total_s": 6.481,
+    "calls": 5448
+   },
+   {
+    "name": "level",
+    "total_s": 3.652,
+    "calls": 1931395
+   },
+   {
+    "name": "deep_aggregate_coordinates",
+    "total_s": 2.849,
+    "calls": 50
+   },
+   {
+    "name": "n2b_final_warp",
+    "total_s": 2.085,
+    "calls": 1606
+   },
+   {
+    "name": "generate",
+    "total_s": 1.864,
+    "calls": 528
+   },
+   {
+    "name": "mixed_leaf_kernel",
+    "total_s": 1.212,
+    "calls": 2280
+   },
+   {
+    "name": "b2n_continue",
+    "total_s": 1.008,
+    "calls": 1700
+   },
+   {
+    "name": "global_inverse_contribute",
+    "total_s": 0.884,
+    "calls": 552
+   },
+   {
+    "name": "sample_first",
+    "total_s": 0.796,
+    "calls": 1275
+   },
+   {
+    "name": "stage_addressed_lde_columns",
+    "total_s": 0.778,
+    "calls": 656
+   },
+   {
+    "name": "n2b_final_block",
+    "total_s": 0.67,
+    "calls": 1922
+   },
+   {
+    "name": "deep_combine",
+    "total_s": 0.622,
+    "calls": 50
+   },
+   {
+    "name": "keccak_witness",
+    "total_s": 0.342,
+    "calls": 6
+   },
+   {
+    "name": "child_layer_kernel",
+    "total_s": 0.297,
+    "calls": 11769
+   },
+   {
+    "name": "rv64_truth_domain_0_shard_47",
+    "total_s": 0.285,
+    "calls": 3
+   },
+   {
+    "name": "stwo_rv64_composition_0eb218ba3708414be79080f813fb117f68a1ed80051f9a949386bd1e9ec5e52b",
+    "total_s": 0.283,
+    "calls": 33
+   },
+   {
+    "name": "b2n_init_warp",
+    "total_s": 0.269,
+    "calls": 545
+   },
+   {
+    "name": "lift_add",
+    "total_s": 0.239,
+    "calls": 379
+   },
+   {
+    "name": "witness",
+    "total_s": 0.226,
+    "calls": 109
+   },
+   {
+    "name": "cumulative",
+    "total_s": 0.187,
+    "calls": 363
+   },
+   {
+    "name": "stwo_rv64_composition_0924a7e3b186ecb6e4a0f3cb548120b1ce0816cb4fdb436414c97aeedb69c077",
+    "total_s": 0.184,
+    "calls": 33
+   },
+   {
+    "name": "oracles_fold",
+    "total_s": 0.155,
+    "calls": 2250
+   },
+   {
+    "name": "batch_round",
+    "total_s": 0.153,
+    "calls": 2250
+   },
+   {
+    "name": "oracles_sum",
+    "total_s": 0.15,
+    "calls": 2250
+   },
+   {
+    "name": "scan_carries",
+    "total_s": 0.121,
+    "calls": 1279
+   }
+  ],
+  "top_runtime_api": [
+   {
+    "name": "cudaStreamSynchronize_v3020",
+    "total_s": 21.081,
+    "calls": 52698
+   },
+   {
+    "name": "cudaLaunchKernel_v7000",
+    "total_s": 6.172,
+    "calls": 2004782
+   },
+   {
+    "name": "cudaMemcpyAsync_v3020",
+    "total_s": 6.136,
+    "calls": 26180
+   },
+   {
+    "name": "cudaMallocFromPoolAsync_v11020",
+    "total_s": 4.428,
+    "calls": 14349
+   },
+   {
+    "name": "cudaEventSynchronize_v3020",
+    "total_s": 3.125,
+    "calls": 50
+   },
+   {
+    "name": "cuLibraryLoadData",
+    "total_s": 3.04,
+    "calls": 686
+   },
+   {
+    "name": "cuLibraryUnload",
+    "total_s": 1.027,
+    "calls": 686
+   },
+   {
+    "name": "cudaMemPoolTrimTo_v11020",
+    "total_s": 0.869,
+    "calls": 43
+   },
+   {
+    "name": "cudaMemPoolDestroy_v11020",
+    "total_s": 0.358,
+    "calls": 2
+   },
+   {
+    "name": "cudaFreeAsync_v11020",
+    "total_s": 0.023,
+    "calls": 14278
+   },
+   {
+    "name": "cudaEventRecord_v3020",
+    "total_s": 0.021,
+    "calls": 5030
+   },
+   {
+    "name": "cudaMemsetAsync_v3020",
+    "total_s": 0.012,
+    "calls": 972
+   },
+   {
+    "name": "cudaEventCreateWithFlags_v3020",
+    "total_s": 0.001,
+    "calls": 980
+   },
+   {
+    "name": "cudaMemGetInfo_v3020",
+    "total_s": 0.001,
+    "calls": 28
+   },
+   {
+    "name": "cudaEventDestroy_v3020",
+    "total_s": 0.001,
+    "calls": 1080
+   }
+  ],
+  "per_node": [
+   {
+    "node": 1,
+    "kind": "leaf",
+    "device": 1,
+    "span_s": 5.7,
+    "gpu_busy_s": 1.106,
+    "host_only_s": 4.594
+   },
+   {
+    "node": 0,
+    "kind": "leaf",
+    "device": 0,
+    "span_s": 6.609,
+    "gpu_busy_s": 1.126,
+    "host_only_s": 5.483
+   },
+   {
+    "node": 2,
+    "kind": "fold",
+    "device": 0,
+    "span_s": 2.835,
+    "gpu_busy_s": 0.856,
+    "host_only_s": 1.979
+   },
+   {
+    "node": 3,
+    "kind": "leaf",
+    "device": 1,
+    "span_s": 5.106,
+    "gpu_busy_s": 1.172,
+    "host_only_s": 3.934
+   },
+   {
+    "node": 4,
+    "kind": "leaf",
+    "device": 0,
+    "span_s": 5.306,
+    "gpu_busy_s": 1.152,
+    "host_only_s": 4.154
+   },
+   {
+    "node": 7,
+    "kind": "leaf",
+    "device": 1,
+    "span_s": 5.131,
+    "gpu_busy_s": 1.172,
+    "host_only_s": 3.959
+   },
+   {
+    "node": 5,
+    "kind": "fold",
+    "device": 0,
+    "span_s": 3.166,
+    "gpu_busy_s": 0.888,
+    "host_only_s": 2.278
+   },
+   {
+    "node": 6,
+    "kind": "fold",
+    "device": 0,
+    "span_s": 2.862,
+    "gpu_busy_s": 0.854,
+    "host_only_s": 2.009
+   },
+   {
+    "node": 8,
+    "kind": "leaf",
+    "device": 1,
+    "span_s": 5.114,
+    "gpu_busy_s": 1.122,
+    "host_only_s": 3.992
+   },
+   {
+    "node": 9,
+    "kind": "fold",
+    "device": 1,
+    "span_s": 2.922,
+    "gpu_busy_s": 0.828,
+    "host_only_s": 2.094
+   },
+   {
+    "node": 10,
+    "kind": "leaf",
+    "device": 0,
+    "span_s": 3.752,
+    "gpu_busy_s": 0.737,
+    "host_only_s": 3.015
+   },
+   {
+    "node": 11,
+    "kind": "leaf",
+    "device": 1,
+    "span_s": 3.799,
+    "gpu_busy_s": 0.79,
+    "host_only_s": 3.009
+   },
+   {
+    "node": 15,
+    "kind": "leaf",
+    "device": 0,
+    "span_s": 3.562,
+    "gpu_busy_s": 0.814,
+    "host_only_s": 2.748
+   },
+   {
+    "node": 12,
+    "kind": "fold",
+    "device": 1,
+    "span_s": 3.039,
+    "gpu_busy_s": 0.834,
+    "host_only_s": 2.205
+   },
+   {
+    "node": 16,
+    "kind": "leaf",
+    "device": 0,
+    "span_s": 3.264,
+    "gpu_busy_s": 0.799,
+    "host_only_s": 2.464
+   },
+   {
+    "node": 13,
+    "kind": "fold",
+    "device": 1,
+    "span_s": 2.984,
+    "gpu_busy_s": 0.829,
+    "host_only_s": 2.155
+   },
+   {
+    "node": 17,
+    "kind": "fold",
+    "device": 0,
+    "span_s": 2.834,
+    "gpu_busy_s": 0.833,
+    "host_only_s": 2.0
+   },
+   {
+    "node": 14,
+    "kind": "fold",
+    "device": 1,
+    "span_s": 3.007,
+    "gpu_busy_s": 0.882,
+    "host_only_s": 2.125
+   },
+   {
+    "node": 18,
+    "kind": "leaf",
+    "device": 0,
+    "span_s": 4.545,
+    "gpu_busy_s": 1.129,
+    "host_only_s": 3.415
+   },
+   {
+    "node": 19,
+    "kind": "leaf",
+    "device": 1,
+    "span_s": 4.282,
+    "gpu_busy_s": 1.08,
+    "host_only_s": 3.202
+   },
+   {
+    "node": 22,
+    "kind": "leaf",
+    "device": 0,
+    "span_s": 4.301,
+    "gpu_busy_s": 1.086,
+    "host_only_s": 3.216
+   },
+   {
+    "node": 20,
+    "kind": "fold",
+    "device": 1,
+    "span_s": 2.951,
+    "gpu_busy_s": 0.862,
+    "host_only_s": 2.089
+   },
+   {
+    "node": 23,
+    "kind": "leaf",
+    "device": 0,
+    "span_s": 3.446,
+    "gpu_busy_s": 0.695,
+    "host_only_s": 2.752
+   },
+   {
+    "node": 21,
+    "kind": "fold",
+    "device": 1,
+    "span_s": 3.076,
+    "gpu_busy_s": 0.843,
+    "host_only_s": 2.234
+   },
+   {
+    "node": 24,
+    "kind": "fold",
+    "device": 0,
+    "span_s": 3.225,
+    "gpu_busy_s": 0.845,
+    "host_only_s": 2.38
+   },
+   {
+    "node": 25,
+    "kind": "leaf",
+    "device": 1,
+    "span_s": 3.394,
+    "gpu_busy_s": 0.687,
+    "host_only_s": 2.707
+   },
+   {
+    "node": 31,
+    "kind": "leaf",
+    "device": 1,
+    "span_s": 1.342,
+    "gpu_busy_s": 0.275,
+    "host_only_s": 1.067
+   },
+   {
+    "node": 26,
+    "kind": "leaf",
+    "device": 0,
+    "span_s": 4.385,
+    "gpu_busy_s": 1.126,
+    "host_only_s": 3.259
+   },
+   {
+    "node": 27,
+    "kind": "fold",
+    "device": 0,
+    "span_s": 2.738,
+    "gpu_busy_s": 0.836,
+    "host_only_s": 1.902
+   },
+   {
+    "node": 28,
+    "kind": "fold",
+    "device": 0,
+    "span_s": 2.654,
+    "gpu_busy_s": 0.824,
+    "host_only_s": 1.83
+   },
+   {
+    "node": 29,
+    "kind": "fold",
+    "device": 0,
+    "span_s": 2.793,
+    "gpu_busy_s": 0.821,
+    "host_only_s": 1.971
+   },
+   {
+    "node": 30,
+    "kind": "fold",
+    "device": 0,
+    "span_s": 2.597,
+    "gpu_busy_s": 0.814,
+    "host_only_s": 1.783
+   },
+   {
+    "node": 32,
+    "kind": "fold",
+    "device": 0,
+    "span_s": 1.908,
+    "gpu_busy_s": 0.427,
+    "host_only_s": 1.481
+   }
+  ],
+  "leaf_mean": {
+   "span_s": 4.296,
+   "gpu_busy_s": 0.945,
+   "host_only_s": 3.351
+  },
+  "fold_mean": {
+   "span_s": 2.849,
+   "gpu_busy_s": 0.817,
+   "host_only_s": 2.032
+  }
+ }
+}

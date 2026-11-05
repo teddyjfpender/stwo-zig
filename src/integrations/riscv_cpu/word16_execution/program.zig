@@ -82,6 +82,19 @@ pub const Program = struct {
     pub fn metadataView(self: *const Program) Metadata.Data {
         return .{ .entries = self.entries, .word_rows = self.word_rows, .row_to_entry = self.row_to_entry, .row_taken = self.row_taken, .log_size = self.log_size, .opcodes = self.opcodes, .contiguous = self.contiguous };
     }
+    /// A session retaining this program beyond its image must also retain the
+    /// independently authenticated raw views. Use the program's allocator so
+    /// the immutable key owner's hard byte budget includes these copies.
+    /// Publication is failure-atomic; decoded metadata and identity do not move.
+    pub fn retainRawAuthority(self: *Program) !void {
+        if (self.owns_raw) return;
+        const words = try self.allocator.dupe(u32, self.words);
+        errdefer self.allocator.free(words);
+        const addresses = try self.allocator.dupe(u64, self.addresses);
+        self.words = words;
+        self.addresses = addresses;
+        self.owns_raw = true;
+    }
     fn build(a: std.mem.Allocator, words: []const u32, addresses: []const u64, owns_raw: bool, profile: Execution.Profile, cache: ?*const Full.ProgramAuthority) !Program {
         if (words.len == 0 or words.len != addresses.len) return error.InvalidExecutionProgram;
         const entries = try a.alloc(Entry, words.len);

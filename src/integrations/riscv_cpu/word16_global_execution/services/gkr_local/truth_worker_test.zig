@@ -49,7 +49,7 @@ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void
     {
         const Authority = @import("mass_authority.zig");
         var counts = @import("mass_authority_test_support.zig").Counter{};
-        var metadata = try @import("truth_global_metadata.zig").Provider.init(a, &worker.source, 64 << 20);
+        var metadata = try @import("truth_global_metadata.zig").Provider.init(a, &worker.source.?, 64 << 20);
         defer metadata.deinit();
         const shapes = try @import("truth_components.zig").shapesForDeclaration(@import("../wire.zig").TruthDeclaration.from(truth));
         for (shapes) |shape| {

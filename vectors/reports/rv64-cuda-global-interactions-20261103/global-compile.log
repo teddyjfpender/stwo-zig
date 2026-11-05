@@ -1,0 +1,11 @@
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6414global_row_sumE19StwoRv64GlobalPairs' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6414global_row_sumE19StwoRv64GlobalPairs
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers
+ptxas info    : Compile time = 13.392 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6425global_inverse_contributeE19StwoRv64GlobalPairs' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6425global_inverse_contributeE19StwoRv64GlobalPairs
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 72 registers, used 0 barriers
+ptxas info    : Compile time = 378.101 ms

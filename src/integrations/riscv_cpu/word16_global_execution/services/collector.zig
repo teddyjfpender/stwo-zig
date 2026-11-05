@@ -107,12 +107,31 @@ pub const Builder = struct {
         self.ledger.deinit();
     }
     pub fn append(self: *Builder, native: *Native, tape: *const front.rv64.compact_tape.Tape) !void {
+        var none: ?[]LS.native.Event = null;
+        return self.appendWithEvents(native, tape, &none);
+    }
+    /// `append` with an optional caller-prepared LS event array (see
+    /// `prepareEvents`): taken (set to null) once the shard owns it; left for
+    /// the caller to free if the append fails before taking it. Its contents
+    /// are fully overwritten, so outputs are identical to `append`.
+    pub fn appendWithEvents(self: *Builder, native: *Native, tape: *const front.rv64.compact_tape.Tape, events: *?[]LS.native.Event) !void {
         if (self.failed or self.finished) return error.InvalidServiceCollectorPhase;
         errdefer self.failed = true;
         if (self.shards.items.len >= 65535) return error.InvalidCombinedServiceRoster;
         try self.shards.ensureUnusedCapacity(self.allocator, 1);
-        const shard = try one(self.allocator, &self.ledger, native, tape, self.shards.items.len);
+        var profile: Profile = .{};
+        const profiling = profileEnabled();
+        first_touch_profile = profiling;
+        const start = if (profiling) std.time.Instant.now() catch null else null;
+        const shard = try one(self.allocator, &self.ledger, native, tape, self.shards.items.len, if (profiling) &profile else null, events);
         self.shards.appendAssumeCapacity(shard);
+        if (start) |t0| if (std.time.Instant.now()) |t1| profile.report(self.shards.items.len - 1, t1.since(t0), &self.ledger) else |_| {};
+    }
+    /// LS events of the shard appended last (borrowed until `finish`
+    /// transfers them into `Advice`, which keeps the same allocation).
+    pub fn lastEvents(self: *const Builder) []const LS.native.Event {
+        if (self.shards.items.len == 0) return &.{};
+        return self.shards.items[self.shards.items.len - 1].events;
     }
     pub fn finish(self: *Builder) !Advice {
         if (self.failed or self.finished or self.shards.items.len == 0) return error.InvalidServiceCollectorPhase;
@@ -157,6 +176,39 @@ pub fn collect(a: std.mem.Allocator, prepared: []const *Native, tapes: []const *
     for (prepared, tapes) |native, tape| try builder.append(native, tape);
     return builder.finish();
 }
+/// Report-only ledger cost attribution (STWO_RV64_CAPTURE_LEDGER_PROFILE=1):
+/// per service family, calls and wall ns spent inside the serial ledger.
+/// Never enters an output; stderr only.
+const Profile = struct {
+    const names = [_][]const u8{ "keccak", "secp", "sha256", "arith256", "sponge", "curves", "bulk", "jumpdest", "alloc" };
+    calls: [names.len]u64 = @splat(0),
+    ns: [names.len]u64 = @splat(0),
+    ls: u64 = 0,
+    fn add(self: ?*Profile, kind: usize, start: ?std.time.Instant) void {
+        const p = self orelse return;
+        const t0 = start orelse return;
+        const t1 = std.time.Instant.now() catch return;
+        p.calls[kind] += 1;
+        p.ns[kind] += t1.since(t0);
+    }
+    fn report(self: *const Profile, index: usize, total_ns: u64, ledger: *const Old.Ledger) void {
+        var services: u64 = 0;
+        for (self.ns) |n| services += n;
+        std.debug.print("CAPTURE_LEDGER_PROFILE shard={d} total_ns={d} ls_records={d} ls_and_dispatch_ns={d} table_words={d} table_bytes={d} first_touch={d}/{d}ns", .{ index, total_ns, self.ls, total_ns -| services, ledger.states.count(), ledger.states.storageBytes(), first_touch_count, first_touch_ns });
+        first_touch_count = 0;
+        first_touch_ns = 0;
+        for (names, self.calls, self.ns) |name, c, n| std.debug.print(" {s}={d}/{d}ns", .{ name, c, n });
+        std.debug.print("\n", .{});
+    }
+};
+fn profileEnabled() bool {
+    const value = std.posix.getenv("STWO_RV64_CAPTURE_LEDGER_PROFILE") orelse return false;
+    return value.len != 0 and value[0] != '0';
+}
+fn mark(profile: ?*Profile) ?std.time.Instant {
+    if (profile == null) return null;
+    return std.time.Instant.now() catch null;
+}
 const Shard = struct {
     events: []LS.native.Event,
     keccak: []K.types.Call,
@@ -177,7 +229,77 @@ const Shard = struct {
         self.sponge.deinit(a);
     }
 };
-fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const front.rv64.compact_tape.Tape, index: usize) !Shard {
+/// Allocates the LS event array one CPU proof's shard will fill, already
+/// backed by memory: every page is touched (huge pages only where
+/// `hugePageAdvice` allows), so the serial ledger never takes first-touch faults on it. Call it
+/// off the ordered thread (e.g. on the capture job that produced `native`).
+/// Producer scheduling only; the contents are undefined until the ledger
+/// writes every element.
+pub fn prepareEvents(a: std.mem.Allocator, native: *const Native) ![]LS.native.Event {
+    const cpu = native.cpu orelse return error.PreparedExecutionConsumed;
+    const events = try a.alloc(LS.native.Event, cpu.memory.items.len);
+    prefault(std.mem.sliceAsBytes(events));
+    return events;
+}
+/// Whether `prefault` may request transparent huge pages. `MADV_HUGEPAGE`
+/// makes a first-touch fault compact memory synchronously whenever the
+/// kernel's THP defrag mode is `always`, `madvise` or `defer+madvise`; on a
+/// fragmented host that stalled capture (24697070: 5.7 -> 12.1 s, M4). So by
+/// default advise only where it cannot stall: defrag `defer` or `never`.
+/// `STWO_RV64_CAPTURE_THP=1` forces the advice, `=0` disables it.
+/// Producer scheduling only (page backing, never contents).
+pub fn hugePageAdvice() bool {
+    const cached = thp_policy.load(.monotonic);
+    if (cached != 0) return cached == 2;
+    const allowed = thpAllowed();
+    thp_policy.store(if (allowed) 2 else 1, .monotonic);
+    return allowed;
+}
+var thp_policy = std.atomic.Value(u8).init(0);
+fn thpAllowed() bool {
+    if (std.posix.getenv("STWO_RV64_CAPTURE_THP")) |value| {
+        if (value.len != 0 and value[0] == '1') return true;
+        if (value.len != 0 and value[0] == '0') return false;
+    }
+    if (@import("builtin").os.tag != .linux) return false;
+    var buffer: [256]u8 = undefined;
+    const file = std.fs.openFileAbsolute("/sys/kernel/mm/transparent_hugepage/defrag", .{}) catch return false;
+    defer file.close();
+    const n = file.readAll(&buffer) catch return false;
+    return defragAllowsAdvice(buffer[0..n]);
+}
+/// `text` is the sysfs defrag line, e.g. "always defer defer+madvise [madvise] never".
+pub fn defragAllowsAdvice(text: []const u8) bool {
+    const open = std.mem.indexOfScalar(u8, text, '[') orelse return false;
+    const close = std.mem.indexOfScalarPos(u8, text, open, ']') orelse return false;
+    const mode = text[open + 1 .. close];
+    return std.mem.eql(u8, mode, "defer") or std.mem.eql(u8, mode, "never");
+}
+test "THP advice only where the defrag mode never compacts synchronously" {
+    try std.testing.expect(!defragAllowsAdvice("always defer defer+madvise [madvise] never\n"));
+    try std.testing.expect(!defragAllowsAdvice("[always] defer defer+madvise madvise never\n"));
+    try std.testing.expect(!defragAllowsAdvice("always defer [defer+madvise] madvise never\n"));
+    try std.testing.expect(defragAllowsAdvice("always [defer] defer+madvise madvise never\n"));
+    try std.testing.expect(defragAllowsAdvice("always defer defer+madvise madvise [never]\n"));
+    try std.testing.expect(!defragAllowsAdvice(""));
+}
+fn prefault(bytes: []u8) void {
+    const page = 4096;
+    if (bytes.len == 0) return;
+    if (@import("builtin").os.tag == .linux and bytes.len >= 4 << 20) {
+        const start = std.mem.alignForward(usize, @intFromPtr(bytes.ptr), page);
+        const end = std.mem.alignBackward(usize, @intFromPtr(bytes.ptr) + bytes.len, page);
+        if (end > start and hugePageAdvice()) {
+            const ptr: [*]align(page) u8 = @ptrFromInt(start);
+            // Advisory only: failure leaves ordinary 4 KiB pages.
+            std.posix.madvise(ptr, end - start, std.posix.MADV.HUGEPAGE) catch {};
+        }
+    }
+    var i: usize = 0;
+    while (i < bytes.len) : (i += page) @as(*volatile u8, &bytes[i]).* = 0;
+    @as(*volatile u8, &bytes[bytes.len - 1]).* = 0;
+}
+fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const front.rv64.compact_tape.Tape, index: usize, profile: ?*Profile, prepared: *?[]LS.native.Event) !Shard {
     const cpu = native.cpu orelse return error.PreparedExecutionConsumed;
     if (cpu.capture_records_retired) return error.MissingPreparedMemoryRecords;
     // v3 is v2 plus SHA-256 and bulk memory; a v2 tape can never carry a v3 record.
@@ -197,12 +319,20 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
     defer sponge.deinit(a);
     var sizes: [2]usize = @splat(0);
     for (tape.secp_calls.items) |call| sizes[@intFromEnum(call.kind) - 1] += 1;
-    const ee = try a.alloc(LS.native.Event, cpu.memory.items.len);
+    const alloc_start = mark(profile);
+    const ee = take: {
+        if (prepared.*) |events| {
+            prepared.* = null;
+            if (events.len == cpu.memory.items.len) break :take events;
+            a.free(events);
+        }
+        break :take try a.alloc(LS.native.Event, cpu.memory.items.len);
+    };
     errdefer a.free(ee);
-    // Capacity hint only (one growth per shard instead of repeated rehashing):
-    // at most one new cell per LS event; service words still grow on demand.
-    // The ledger's contents and every output order are unaffected.
-    try ledger.states.ensureUnusedCapacity(ledger.allocator, std.math.cast(u32, cpu.memory.items.len) orelse std.math.maxInt(u32));
+    Profile.add(profile, 8, alloc_start);
+    if (profile) |p| p.ls = ee.len;
+    // The ledger's paged state table allocates pages on demand: no capacity
+    // hint (the former hash map grew and rehashed here once per shard).
     const kk = try a.alloc(K.types.Call, tape.service_calls.items.len);
     errdefer a.free(kk);
     const aa = try a.alloc(S.types.Call, sizes[0]);
@@ -257,6 +387,8 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
             mi += 1;
         } else {
             const rec = cpu.services.items[ci];
+            const service_start = mark(profile);
+            defer Profile.add(profile, serviceKind(v3, rec.tag), service_start);
             if (rec.epoch != cpu.epoch or rec.tick % stride != 0) return error.InvalidCombinedServiceOwner;
             if (rec.tag == 0x10001) {
                 if (ki >= kk.len) return error.InvalidCombinedServiceOwner;
@@ -340,6 +472,16 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
     errdefer bulk.deinit(a);
     const sponge_shard = try sponge.finish(a);
     return .{ .sponge = sponge_shard, .events = ee, .keccak = kk, .secp = ss, .sha256 = hh, .arith256_mod = rr, .curves = cc, .bulk = bulk };
+}
+fn serviceKind(v3: bool, tag: u64) usize {
+    if (tag == 0x10001) return 0;
+    if (tag == 0x20011 or tag == 0x20012) return 1;
+    if (v3 and tag == 0x30010) return 2;
+    if (v3 and tag == 0x30021) return 3;
+    if (v3 and tag == Sponge.TAG) return 4;
+    if (v3 and TT.curveOpOfTag(tag) != null) return 5;
+    if (tag == BM.types.JUMPDEST_TAG) return 7;
+    return 6;
 }
 fn isBulkTag(tag: u64) bool {
     return tag == BM.types.MEMCPY_TAG or tag == BM.types.MEMSET_TAG or tag == BM.types.MEMCMP_TAG or tag == BM.types.JUMPDEST_TAG;
@@ -462,10 +604,21 @@ fn withValue(clock: BM.types.State, value: u64, rights: u2) BM.types.State {
 fn owner(pointer: u64, tick: u24, stride: u32, tape: *const front.rv64.compact_tape.Tape, captured_pointer: u64, clock: u64) !void {
     if (pointer != captured_pointer or clock <= tape.initial_clock or clock - tape.initial_clock > tape.len or stride * (clock - tape.initial_clock) != tick) return error.InvalidCombinedServiceOwner;
 }
+/// Report-only first-touch census (`STWO_RV64_CAPTURE_LEDGER_PROFILE`): the
+/// ledger runs on one thread, so plain counters suffice.
+var first_touch_profile: bool = false;
+var first_touch_count: u64 = 0;
+var first_touch_ns: u64 = 0;
 fn slot(ledger: *Old.Ledger, address: u64) !*A.memory.closed_ram.types.State {
     const entry = try ledger.states.getOrPut(ledger.allocator, address);
     if (!entry.found_existing) {
-        entry.value_ptr.* = .{ .value = try ledger.image.initialWord(address), .rights = try ledger.image.wordRights(address) };
+        const t0 = if (first_touch_profile) std.time.Instant.now() catch null else null;
+        defer if (t0) |start| if (std.time.Instant.now()) |t1| {
+            first_touch_count += 1;
+            first_touch_ns += t1.since(start);
+        } else |_| {};
+        const fast = if (ledger.pages) |*pages| pages.lookup(address) else null;
+        entry.value_ptr.* = fast orelse .{ .value = try ledger.image.initialWord(address), .rights = try ledger.image.wordRights(address) };
         try ledger.initial.append(ledger.allocator, .{ .address = address, .state = entry.value_ptr.* });
     }
     return entry.value_ptr;

@@ -262,10 +262,12 @@ __global__ void b2n_continue(
     uint32_t layer_size = 1u << (log_n - min_stage + 1u);
     uint32_t layer_offset =
         (1u << (log_n - 1u)) - layer_size;
-    uint32_t stage = min_stage;
+    // Compile-time trip counts keep values[] register-resident (a runtime
+    // loop bound demotes it to a 64-byte local stack for LogValues == 4).
 #pragma unroll
-    for (; stage < min_stage + LogValues; ++stage) {
-        const uint32_t log_stride = stage - min_stage;
+    for (uint32_t step = 0; step < LogValues; ++step) {
+        const uint32_t stage = min_stage + step;
+        const uint32_t log_stride = step;
 #pragma unroll
         for (uint32_t pair = 0; pair < 1u << (LogValues - 1u); ++pair) {
             const uint32_t group = pair & ((1u << log_stride) - 1u);
@@ -306,9 +308,12 @@ __global__ void b2n_continue(
             lane];
     }
 
+    // max_stage == next_stage + LogValues - 1 for every launch (stages ==
+    // 2 * LogValues in launch_b2n_continue*).
 #pragma unroll
-    for (stage = next_stage; stage <= max_stage; ++stage) {
-        const uint32_t log_stride = stage - next_stage;
+    for (uint32_t step = 0; step < LogValues; ++step) {
+        const uint32_t stage = next_stage + step;
+        const uint32_t log_stride = step;
 #pragma unroll
         for (uint32_t pair = 0; pair < 1u << (LogValues - 1u); ++pair) {
             const uint32_t group = pair & ((1u << log_stride) - 1u);

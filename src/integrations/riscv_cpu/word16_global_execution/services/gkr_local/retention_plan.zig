@@ -124,7 +124,7 @@ fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Reque
         const layout = Global.layout(slot.origin);
         out.global_output_bytes = try add(out.global_output_bytes, try mul(try mul(layout.width(), n), 4));
         const terms = (layout.ram_queries + 1) / 2 + (layout.other_queries + 1) / 2;
-        out.global_scratch_bytes = @max(out.global_scratch_bytes, try Classic.scratchByteUpperBound(slot.log, terms));
+        out.global_scratch_bytes = @max(out.global_scratch_bytes, try (if (slot.origin == .core and (slot.origin.core == .initial or slot.origin.core == .terminal)) Classic.publicBoundaryScratchByteUpperBound(slot.log, terms) else Classic.scratchByteUpperBound(slot.log, terms)));
     }
     if (setup.materials.geometry.cpu_u8_pairs) out.bulk_local_metadata_bytes = try add(out.bulk_local_metadata_bytes, 2 * 65536 * @sizeOf(u32));
     if (setup.bridges.sponge.any()) {

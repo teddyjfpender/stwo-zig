@@ -4,6 +4,7 @@
 #include "blake2s_protocol.cuh"
 #include "progressive_scalar.cuh"
 #include "resident_layout.cuh"
+#include "mixed_layout.h"
 
 #include <cuda_runtime_api.h>
 
@@ -360,32 +361,56 @@ __global__ void contiguous_leaf_kernel(
 
 // A bounded launch descriptor replaces the full-domain progressive state
 // slab. Descriptors travel as kernel arguments; no upload or scratch is used.
-struct MixedSegment {
-    const uint32_t *columns;
-    size_t stride_words;
-    size_t capacity_words;
-    uint32_t source_size;
-    uint32_t reserved;
-};
-static constexpr uint32_t kMaxMixedSegments = 96;
 struct MixedInputs {
     MixedSegment segments[kMaxMixedSegments];
 };
 static_assert(sizeof(MixedSegment) == 32);
 static_assert(sizeof(MixedInputs) + 32 < 4096);
 
-template <bool Prefixed>
+// Eager prefix states (kernels stream, M4). The classic convention keeps a
+// full trailing block pending (pending_words: 1..16) because Blake2s flags
+// the final block; every non-final call therefore round-trips the whole
+// 96-byte state through HBM. A non-final call is by definition followed by
+// more words, so a full trailing block is never final there: Eager compresses
+// it at the end of the call (exactly what the unchunked hash does when the
+// next word arrives) and stores only the hash plus the live pending words
+// (absorbed % 16). Loads read only those words, and eager states are stored
+// word-major (SoA, word k of row r at k * rows + r; same 96-byte-per-row
+// footprint) so the lane->row axis stays contiguous in every state access.
+// The leaf hashes are bit-identical; only the internal state convention
+// differs, so eager states must be consumed by eager calls
+// (stwo_blake2s_mixed_seeded_eager_on) only.
+template <bool Prefixed, bool Eager = false>
 __global__ void mixed_leaf_kernel(uint32_t size, uint32_t count,
                                   MixedInputs inputs, uint32_t absorbed_before, uint32_t seed_size,
                                   const ProgressiveState *seed, ProgressiveState *prefix,
                                   Hash *result) {
     const uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
     if (row >= size) return;
+    uint32_t pending = Eager ? (absorbed_before & 15u) : pending_words(absorbed_before);
     ProgressiveState initial{};
-    if (seed != nullptr) initial = seed[lifted_column_index(row, __ffs(size / seed_size) - 1)];
-    else initialize_leaf_for<Prefixed>(initial.hash);
+    if (seed != nullptr) {
+        if constexpr (Eager) {
+            // Word-major (SoA) eager seed: word k of seed row r lives at
+            // k * seed_size + r, so every warp load is one coalesced run.
+            const uint32_t *words_in = reinterpret_cast<const uint32_t *>(seed);
+            const uint32_t seed_row =
+                lifted_column_index(row, __ffs(size / seed_size) - 1);
+#pragma unroll
+            for (uint32_t k = 0; k < 8; ++k)
+                initial.hash[k] = words_in[size_t(k) * seed_size + seed_row];
+#pragma unroll
+            for (uint32_t k = 0; k < 15; ++k)
+                if (k < pending)
+                    initial.pending[k] =
+                        words_in[size_t(8 + k) * seed_size + seed_row];
+        } else {
+            initial = seed[lifted_column_index(row, __ffs(size / seed_size) - 1)];
+        }
+    } else {
+        initialize_leaf_for<Prefixed>(initial.hash);
+    }
     STWO_LOAD_PROGRESSIVE(initial);
-    uint32_t pending = pending_words(absorbed_before);
     uint64_t compressed_bytes = (Prefixed ? kDomainPrefixBytes : 0) +
         static_cast<uint64_t>(absorbed_before - pending) * 4;
     uint64_t words = absorbed_before;
@@ -454,8 +479,34 @@ __global__ void mixed_leaf_kernel(uint32_t size, uint32_t count,
         words += columns;
     }
     if (prefix != nullptr) {
-        ProgressiveState &state = prefix[row];
-        STWO_STORE_PROGRESSIVE(state);
+        if constexpr (Eager) {
+            if (pending == 16) {
+                compressed_bytes += 64;
+                STWO_COMPRESS_PROGRESSIVE(compressed_bytes, 0);
+                pending = 0;
+            }
+            // Word-major (SoA) eager prefix, stride = size rows (coalesced).
+            uint32_t *words_out = reinterpret_cast<uint32_t *>(prefix);
+#define STWO_EAGER_WORD(k, value) words_out[size_t(k) * size + row] = value
+            STWO_EAGER_WORD(0, h0); STWO_EAGER_WORD(1, h1);
+            STWO_EAGER_WORD(2, h2); STWO_EAGER_WORD(3, h3);
+            STWO_EAGER_WORD(4, h4); STWO_EAGER_WORD(5, h5);
+            STWO_EAGER_WORD(6, h6); STWO_EAGER_WORD(7, h7);
+#define STWO_EAGER_PENDING(k) if (pending > k) STWO_EAGER_WORD(8 + k, p##k)
+            STWO_EAGER_PENDING(0); STWO_EAGER_PENDING(1);
+            STWO_EAGER_PENDING(2); STWO_EAGER_PENDING(3);
+            STWO_EAGER_PENDING(4); STWO_EAGER_PENDING(5);
+            STWO_EAGER_PENDING(6); STWO_EAGER_PENDING(7);
+            STWO_EAGER_PENDING(8); STWO_EAGER_PENDING(9);
+            STWO_EAGER_PENDING(10); STWO_EAGER_PENDING(11);
+            STWO_EAGER_PENDING(12); STWO_EAGER_PENDING(13);
+            STWO_EAGER_PENDING(14);
+#undef STWO_EAGER_PENDING
+#undef STWO_EAGER_WORD
+        } else {
+            ProgressiveState &state = prefix[row];
+            STWO_STORE_PROGRESSIVE(state);
+        }
         return;
     }
     if (pending < 1) p0 = 0;
@@ -756,7 +807,7 @@ extern "C" int stwo_blake2s_contiguous_leaf_plain_on(
     return stwo_blake2s_contiguous_leaf_on_impl<false>(size, columns, column_stride_words, column_capacity_words, result, stream);
 }
 
-template <bool Prefixed>
+template <bool Prefixed, bool Eager = false>
 static int mixed_seeded_on(uint32_t size, uint32_t count,
                          const stwo::cuda::blake2s::MixedSegment *segments,
                          uint32_t absorbed_before, uint32_t seed_size,
@@ -799,7 +850,11 @@ static int mixed_seeded_on(uint32_t size, uint32_t count,
         if (words > UINT32_MAX) return static_cast<int>(cudaErrorInvalidValue);
         inputs.segments[i] = input;
     }
-    mixed_leaf_kernel<Prefixed><<<blocks_for(size), kBlockSize, 0,
+    // An eager seed holds no deferred full block, so the call that consumes
+    // it must absorb at least one word before finalizing.
+    if (Eager && seed != nullptr && words == absorbed_before)
+        return static_cast<int>(cudaErrorInvalidValue);
+    mixed_leaf_kernel<Prefixed, Eager><<<blocks_for(size), kBlockSize, 0,
         reinterpret_cast<cudaStream_t>(stream)>>>(size, count, inputs, absorbed_before, seed_size, seed, prefix, result);
     return static_cast<int>(cudaPeekAtLastError());
 }
@@ -823,6 +878,19 @@ extern "C" int stwo_blake2s_mixed_seeded_on(uint32_t size, uint32_t count,
     stwo::cuda::blake2s::Hash *result, void *stream) {
     return mixed_seeded_on<true>(size, count, segments, absorbed_before,
                                  seed_size, seed, prefix, result, stream);
+}
+// Same contract as stwo_blake2s_mixed_seeded_on, but seeds and prefixes use
+// the eager state convention above: a chain must use this entry for every
+// call (first, intermediate and final), and its prefix states are not
+// interchangeable with progressive_* or classic mixed states.
+extern "C" int stwo_blake2s_mixed_seeded_eager_on(uint32_t size, uint32_t count,
+    const stwo::cuda::blake2s::MixedSegment *segments,
+    uint32_t absorbed_before, uint32_t seed_size,
+    const stwo::cuda::blake2s::ProgressiveState *seed,
+    stwo::cuda::blake2s::ProgressiveState *prefix,
+    stwo::cuda::blake2s::Hash *result, void *stream) {
+    return mixed_seeded_on<true, true>(size, count, segments, absorbed_before,
+                                       seed_size, seed, prefix, result, stream);
 }
 extern "C" int stwo_blake2s_mixed_seeded_plain_on(uint32_t size, uint32_t count,
     const stwo::cuda::blake2s::MixedSegment *segments,

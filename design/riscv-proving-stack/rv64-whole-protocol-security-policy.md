@@ -2,7 +2,17 @@
 
 Current engineering classification: **128-bit security target under documented assumptions**. The [bounded review](rv64-native-128-assumptions-review.md) is complete for the pinned native construction. Certification and recursion remain separate; the historical analysis and fail-closed certificate policy below are preserved.
 
-Status: additive policy foundation, not an implemented128-bit proof suite. Current q70/P26 benchmark proofs, transcript and receivers are unchanged. The new `word16_execution/security_policy.zig` cannot authorize any whole-protocol128 claim: its receiver-owned certificate registry has no such entry. Numeric budgets, wider-field labels, repetition flags and query counts cannot manufacture that authority.
+The current native implementation is the explicit OM31 `conjectured128_b2_q108_p20_fold4` construction covered by that bounded review. The q70/P26 discussion below records the earlier construction and its limitations; it is not the current GPU benchmark profile. `word16_execution/security_policy.zig` still cannot authorize a certified whole-protocol128 claim: its receiver-owned certificate registry has no such entry. Numeric budgets, wider-field labels, repetition flags and query counts cannot manufacture that authority.
+
+## Current recursion boundary (2026-11-03)
+
+The legacy circuit production registry is not an acceptable automatic wrapper for the current native security target. Its QM31 lookup, composition, OODS and DEEP challenges remain separate algebraic obligations; replacing only the inner verifier or repeating only the outer lookup does not widen those challenges.
+
+The new `integrations/circuit_cpu/om31/` family keeps circuit MAIN values over M31 and QM31, but uses OM31 for every outer lookup and native PCS challenge. It uses raw Blake2s transcript state, prefixed 256-bit Blake2s Merkle commitments and the exact q108/P20/fold4 configuration. The original circuit AIR remains the constraint authority: its four-coordinate interaction expressions are interpreted as eight-coordinate values, including both physical halves and both sets of masks. This is a new protocol identity and fixed commitment, not a conversion of legacy circuit proofs or registry roots.
+
+`om31/wire.zig` binds transported outputs, all eleven octic claims and the native proof to the receiver's independently reconstructed authority identity and the new profile. A decoded envelope is not an accepted proof. The receiver must verify it against that authority and authenticate the leaf topology and statement frame, then check complete coverage, manifest binding, public boundaries and separate RAM/KIO/Wire closure at the root. The historical q70 registry must not be used as an implicit fallback.
+
+The engineering label remains **128-bit security target under documented assumptions**, including the conjectured query/PoW work-factor model. OM31 removes the particular small-field bottleneck; it does not by itself supply the composed recursive security bound. The number of leaf and fold proofs, all outer error terms, ROM assumptions and characteristic/mass bounds remain part of the review. A successful small outer proof or circuit graph test does not qualify complete-block recursion, and native GPU timings exclude recursion until the corresponding root run is recorded.
 
 The target needs a precise classical computational/ROM work-factor definition, including allowed adversarial hash queries and applicable conjectures. It is not simply a per-proof probability of2^-128, and it is not a post-quantum target. The dyadic budget helper checks a necessary union-bound bookkeeping condition only; it does not implement a concrete ROM security estimator.
 

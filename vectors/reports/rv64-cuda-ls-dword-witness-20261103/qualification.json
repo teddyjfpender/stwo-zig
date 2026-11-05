@@ -1,0 +1,89 @@
+{
+  "schema": "rv64-cuda-ls-dword-witness/v1",
+  "hardware": "RTX 5090 sm120",
+  "scope": "Compact native event to physical LS-D64 MAIN expansion; not a proof or Ethereum acceptance",
+  "gates": {
+    "normal_native_main_parity": "PASS",
+    "malformed_events_rejected": 14,
+    "foreign_owner_alias_padding_capacity_rejected": true,
+    "host_release_safe": "77/77 PASS",
+    "sanitizers": "not run in this focused iteration"
+  },
+  "timing": {
+    "samples_per_case": 9,
+    "warmup": 1,
+    "measure": "CUDA-event dispatch median",
+    "includes": "kernel dispatch after resident compact ingress",
+    "excludes": [
+      "native event capture",
+      "CPU event packing",
+      "H2D upload",
+      "D2H validation",
+      "proving",
+      "verification"
+    ],
+    "cases": [
+      {
+        "case": 0,
+        "log": 5,
+        "events": 0,
+        "main_cells": 1248,
+        "gpu_ms_median": 0.00368,
+        "ns_per_main_cell": 2.948718014,
+        "native_parity": true
+      },
+      {
+        "case": 1,
+        "log": 5,
+        "events": 31,
+        "main_cells": 1248,
+        "gpu_ms_median": 0.005248,
+        "ns_per_main_cell": 4.205128136,
+        "native_parity": true
+      },
+      {
+        "case": 2,
+        "log": 13,
+        "events": 3077,
+        "main_cells": 319488,
+        "gpu_ms_median": 0.00528,
+        "ns_per_main_cell": 0.016526443,
+        "native_parity": true
+      },
+      {
+        "case": 3,
+        "log": 20,
+        "events": 1048575,
+        "main_cells": 40894464,
+        "gpu_ms_median": 0.224895999,
+        "ns_per_main_cell": 0.005499424,
+        "native_parity": true
+      }
+    ]
+  },
+  "compiler_resources": {
+    "registers": 56,
+    "stack_bytes": 0,
+    "spill_store_bytes": 0,
+    "spill_load_bytes": 0
+  },
+  "executable_sha256": "873e1064c61c3e8d135d3198b1d87bf428031975c453f1df53e07fa457b9c4e6",
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/ls_dword_witness.cu": "672c89a7725e541ccefc7aed967a0af8e694940cbc5b3419414e59120fb1fcec",
+    "src/backends/cuda/native/rv64/ls_dword_witness.h": "e73931f6addfe0ba88a1e3d12f9cee3363004e4255b46c73eb7ce5b954cf5183",
+    "src/backends/cuda/native/rv64/custody.cuh": "0db77222de7dd7cabcf90de0eb349144d1ad1ca1a6d542ac03b1ac63cb5a3d5b",
+    "tests/cuda/rv64/ls_dword_witness_smoke.cu": "22c0e77419df0575c73deb0c87f11a8992d5f3065dfd3cd9dd3b1d8faa720661",
+    "tests/cuda/rv64/context_owner.cuh": "67e4da4cf9f02c6eb605f69b3d79f6aeb89a2adc2067c8b1619b1e33df25cba0",
+    "tests/cuda/rv64/fixture_words.cuh": "0f8ca9a74757d9a7d24d9f6a632cd34ea7fe86a526e947e067c75d43956b67d7",
+    "src/integrations/riscv_cuda/rv64_ls_dword_fixture_main.zig": "e5c2f437778554718803862a1b3be8677c6cd312a4edd15d5cebefc50edb88ee",
+    "src/integrations/riscv_cuda/rv64/dword_witness.zig": "94d7cf2a87aeb0a2cb8c213025c4224161da7bef4cc30cb00a536549b7eb0d66"
+  },
+  "fixtures_sha256": {
+    "case-0.bin": "781133ba32770f6ae37ef553678a6c59648250a810dcb4ecf07fed1d61fcc790",
+    "case-1.bin": "b872e37adca17d444fef3bcc059106d364ad277c8abea0e5f962218d4f5edb1d",
+    "case-2.bin": "65fb7c6f3c475c498a3fd85f9c28d31bd753e9ac516bde55eee027153a66f8dd",
+    "case-3.bin": "e37414e765d1a4b3c04a61c4ea95fb702e30f86fb1ce7a65465d6da42d9e600e"
+  },
+  "full_block_verified": false,
+  "real_ethereum_events_used": false
+}

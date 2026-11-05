@@ -1,0 +1,8 @@
+7c8e05f0c9b796ffef9425cc444760fe7b95acb152a15e44bf617b541c1a4ca6  /workspace/m3/build/m5-integrate/receiver-v2/bin/rv64-word16-ethereum-recursion-receiver
+outer profile: m5_outer_canonical_r1_b2_q108_p20_fold4_v1
+== profiles corpus v3 m3 26235156 19:57:41 load=15.47
+exit=0 {"block": 26235156, "ran": 42, "passed": 42, "unexpected_accepts": [], "crashes": [], "nonsemantic_rejects": {"S01-drop-native-segment": "missing", "S02-drop-leaf": "missing", "P02d-wrong-outer-profile-default-arity": "missing", "P04-wrong-fold-arity": "missing"}, "wall_s": 188.5}
+== profiles corpus v3 m3 24628607 20:00:49 load=17.85
+exit=0 {"block": 24628607, "ran": 42, "passed": 42, "unexpected_accepts": [], "crashes": [], "nonsemantic_rejects": {"S01-drop-native-segment": "missing", "S02-drop-leaf": "missing", "V04-cross-block-root": "resource", "P02d-wrong-outer-profile-default-arity": "missing", "P04-wrong-fold-arity": "missing"}, "wall_s": 271.9}
+FULLCORPUS_DONE
+EXIT=0

@@ -6,7 +6,7 @@ const WIDTH = 23;
 const BLOCK = 2048;
 const MAGIC = "RV64RAM1";
 pub fn write(dir: std.fs.Dir, initial: []const Cell, terminal: []const Cell) !void {
-    if (initial.len > 1 << 22 or terminal.len != initial.len) return error.InvalidMemorySidecarCount;
+    if (initial.len >= 1 << 23 or terminal.len != initial.len) return error.InvalidMemorySidecarCount;
     var file = try dir.createFile("cells.bin", .{ .exclusive = true });
     errdefer dir.deleteFile("cells.bin") catch {};
     defer file.close();
@@ -43,7 +43,7 @@ pub const Owned = struct {
     }
 };
 pub fn read(a: std.mem.Allocator, dir: std.fs.Dir, expected: u32) !Owned {
-    if (expected > 1 << 22) return error.InvalidMemorySidecarCount;
+    if (expected >= 1 << 23) return error.InvalidMemorySidecarCount;
     var file = try dir.openFile("cells.bin", .{});
     defer file.close();
     if (try file.getEndPos() != 16 + 2 * @as(u64, expected) * WIDTH) return error.InvalidMemorySidecarSize;

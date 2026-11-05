@@ -1,0 +1,116 @@
+{
+ "schema": "rv64-m4-kernels-receipt/v1",
+ "stream": "kernels",
+ "milestone": "M4",
+ "block": 24628607,
+ "gpus": 2,
+ "commit": "a326cfe0c",
+ "library_sha256": "b88f18b7c54eeb5c (c5, from this tree)",
+ "driver_sha256": "e4e885b78e2461c0ee6b3e4994507c045383ea1f0a4e54ca0f274ef1c26dfe35",
+ "receiver_sha256": "f3dcc05db66984f0ab292ad103017c897e224e0cf885ed5516ac5f2e1b9d3406",
+ "parent_receipt": "24628607-c4-kernels.json",
+ "correctness": {
+  "byte_identical_to": "rv64-m3-20261104/integrate/scale/24628607 (55/55) and 26235156 (37/37)",
+  "receiver_accepted": true,
+  "receiver_built_from_this_tree": true
+ },
+ "label": "M (nsys durations, one observation, load avg 39); D derived",
+ "kernel_gpu_s": {
+  "base": 29.909,
+  "c1": 25.612,
+  "c2": 24.767,
+  "c3": 23.542,
+  "c4": 22.459,
+  "c5": 21.346
+ },
+ "recursion_kernel_gpu_s": {
+  "base": 24.962,
+  "c1": 20.94,
+  "c2": 20.119,
+  "c3": 18.904,
+  "c4": 17.82,
+  "c5": 16.72
+ },
+ "recursion_ns_per_lde_cell": {
+  "base": 0.1977,
+  "c1": 0.1659,
+  "c2": 0.1594,
+  "c3": 0.1498,
+  "c4": 0.1412,
+  "c5": 0.1325
+ },
+ "families_gpu_s": {
+  "n2b": {
+   "base": 9.153,
+   "c1": 7.253,
+   "c2": 7.263,
+   "c3": 6.949,
+   "c4": 6.945,
+   "c5": 6.951
+  },
+  "mixed_leaf_kernel": {
+   "base": 5.556,
+   "c1": 5.667,
+   "c2": 5.166,
+   "c3": 4.272,
+   "c4": 4.256,
+   "c5": 3.076
+  },
+  "generate": {
+   "base": 1.865,
+   "c1": 1.889,
+   "c2": 1.894,
+   "c3": 1.867,
+   "c4": 0.811,
+   "c5": 0.81
+  },
+  "b2n": {
+   "base": 1.381,
+   "c1": 1.384,
+   "c2": 1.024,
+   "c3": 1.024,
+   "c4": 1.024,
+   "c5": 1.024
+  },
+  "sample_first": {
+   "base": 0.795,
+   "c1": 0.797,
+   "c2": 0.797,
+   "c3": 0.797,
+   "c4": 0.796,
+   "c5": 0.862
+  },
+  "deep_aggregate_coordinates": {
+   "base": 2.808,
+   "c1": null,
+   "c2": null,
+   "c3": null,
+   "c4": null,
+   "c5": null
+  },
+  "deep_aggregate_rows": {
+   "base": null,
+   "c1": 0.249,
+   "c2": 0.25,
+   "c3": 0.249,
+   "c4": 0.25,
+   "c5": 0.251
+  }
+ },
+ "kernels": [
+  {
+   "kernel": "mixed_leaf_kernel 2^24 rows x 8 columns",
+   "calls_eager_soa": 1413,
+   "calls_classic": 0,
+   "avg_us": 1563.7,
+   "m3_avg_us": 3209.4,
+   "change": "Zig trace_commit.zig streamed chain now uses stwo_blake2s_mixed_seeded_eager_on (self-contained: seed = previous prefix bank, seed_size = previous size); falls back to the classic entry on older images"
+  },
+  {
+   "kernel": "sample_first",
+   "before_gpu_s": 0.797,
+   "after_gpu_s": 0.862,
+   "status": "REGRESSION (not the bottleneck: 8 tiles per CTA, 128 regs); reverted in the next commit"
+  }
+ ]
+}

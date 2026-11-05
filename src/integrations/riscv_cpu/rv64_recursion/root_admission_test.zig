@@ -86,19 +86,19 @@ test "root leaf count rejects before allocation and composite traversal has a ha
     const text = try F.encodeWords(a, &.{7});
     defer a.free(text);
     const leaf: Node = .{ .composite = .{ .circuit_hash = @splat(11), .subtasks = &.{.{ .plain = &.{text} }} } };
-    var nodes: [127]Node = undefined;
-    var digests: [127][8]u32 = undefined;
-    for (nodes[0..64], digests[0..64]) |*node, *digest| {
+    var nodes: [A.MAX_NODES]Node = undefined;
+    var digests: [A.MAX_NODES][8]u32 = undefined;
+    for (nodes[0..A.MAX_LEAVES], digests[0..A.MAX_LEAVES]) |*node, *digest| {
         node.* = leaf;
         digest.* = walk.statementDigest(&.{7});
     }
-    var children: [63][2]Node = undefined;
-    var next: usize = 64;
+    var children: [A.MAX_LEAVES - 1][2]Node = undefined;
+    var next: usize = A.MAX_LEAVES;
     var start: usize = 0;
-    var count: usize = 64;
+    var count: usize = A.MAX_LEAVES;
     while (count > 1) {
         for (0..count / 2) |pair| {
-            const slot = next - 64;
+            const slot = next - A.MAX_LEAVES;
             children[slot] = .{ nodes[start + 2 * pair], nodes[start + 2 * pair + 1] };
             digests[next] = F.parentDigest(&.{
                 .{ .circuit_hash = if (start == 0) @splat(11) else fold_hash, .digest = digests[start + 2 * pair] },
@@ -110,11 +110,11 @@ test "root leaf count rejects before allocation and composite traversal has a ha
         start += count;
         count /= 2;
     }
-    const expected: [64]A.Leaf = @splat(.{ .circuit_hash = @splat(11), .statement_digest = walk.statementDigest(&.{7}) });
-    const valid_json = try encode(nodes[126]);
+    const expected: [A.MAX_LEAVES]A.Leaf = @splat(.{ .circuit_hash = @splat(11), .statement_digest = walk.statementDigest(&.{7}) });
+    const valid_json = try encode(nodes[A.MAX_NODES - 1]);
     defer a.free(valid_json);
-    try probe(a, valid_json, &expected, digests[126]);
-    const extra: Node = .{ .composite = .{ .circuit_hash = fold_hash, .subtasks = nodes[126..127] } };
+    try probe(a, valid_json, &expected, digests[A.MAX_NODES - 1]);
+    const extra: Node = .{ .composite = .{ .circuit_hash = fold_hash, .subtasks = nodes[A.MAX_NODES - 1 .. A.MAX_NODES] } };
     const json = try encode(extra);
     defer a.free(json);
     try std.testing.expectError(error.PackedTreeResourceLimit, probe(a, json, &expected, @splat(0)));

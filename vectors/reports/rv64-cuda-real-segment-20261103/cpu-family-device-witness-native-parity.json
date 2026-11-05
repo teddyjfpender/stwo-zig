@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "scope": "GPU compact native-input witness formatting and shared lookup-ledger parity; not an end-to-end resident block qualification",
+  "hardware": "RTX 5090 sm_120",
+  "toolchain": "nvcc -O3 -std=c++17 -lineinfo -Xcompiler=-fPIC -gencode arch=compute_120,code=sm_120",
+  "native_reference": "independent Zig native source constructors; log5 includes active and padded rows",
+  "cases": [
+    {
+      "id": 0,
+      "role": "ALU",
+      "main_columns": 47,
+      "rows": 32
+    },
+    {
+      "id": 1,
+      "role": "BINARY",
+      "main_columns": 29,
+      "rows": 32
+    },
+    {
+      "id": 2,
+      "role": "SHIFT",
+      "main_columns": 52,
+      "rows": 32
+    },
+    {
+      "id": 3,
+      "role": "Zbb BINARY",
+      "main_columns": 32,
+      "rows": 32
+    },
+    {
+      "id": 4,
+      "role": "MUL",
+      "main_columns": 87,
+      "rows": 32
+    },
+    {
+      "id": 5,
+      "role": "DIV",
+      "main_columns": 78,
+      "rows": 32
+    },
+    {
+      "id": 6,
+      "role": "LS32",
+      "main_columns": 70,
+      "rows": 32
+    },
+    {
+      "id": 7,
+      "role": "JALR",
+      "main_columns": 17,
+      "rows": 32
+    },
+    {
+      "id": 8,
+      "role": "LS-D64",
+      "main_columns": 39,
+      "rows": 32
+    },
+    {
+      "id": 9,
+      "role": "public RAM boundary",
+      "main_columns": 14,
+      "rows": 32
+    }
+  ],
+  "checks": [
+    "exact bit-reversed circle physical MAIN",
+    "complete U16, U8, AND, SHIFT and selection multiplicity ledgers where applicable",
+    "MUL, LS32 and LS-D64 fused byte-pair histograms against independent native query authority",
+    "weighted FUNCTION multiplicities do not weight physical range queries",
+    "signed and word arithmetic, zero divisor and padding",
+    "same-epoch and cross-epoch memory events"
+  ],
+  "host_tests": {
+    "cuda_integration": 108,
+    "compact_input_and_headers": 6
+  },
+  "status": "numerical fixture parity PASS; production all-family assembler and complete fresh-verifier proof pending",
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/family_witness.cu": "edc003ba3a8a1d826f1f7550bd986e9d61832ed15b6e4f68b805010be1df77ad",
+    "src/backends/cuda/native/rv64/family_witness.h": "b66e8625bc91ef5df70216363ca6cc0cfcefde6c1b55d517e785ec45545a3269",
+    "src/backends/cuda/native/rv64/memory_witness.cu": "32e03c9539fc6c8f56510a279c87352fb5c735341e1abff58d9f71cc16136366",
+    "src/backends/cuda/native/rv64/memory_witness.h": "b57a062fc49ac875f52930499885df4d426c294af0ea0de1f10a1196acf55dc8",
+    "src/backends/cuda/native/rv64/arithmetic_witness.cu": "d456374f87f2aa55b6c0d41bb4879f5660219621c055049fec42ab0a9cebd97a",
+    "src/backends/cuda/native/rv64/arithmetic_witness.h": "d62e601f14ac797426160fd5b7e4bd6ff13338cbbff0b365c33a6f9b47df32a8"
+  }
+}

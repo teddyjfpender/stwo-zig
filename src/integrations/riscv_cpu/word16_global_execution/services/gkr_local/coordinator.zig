@@ -30,6 +30,11 @@ pub const WorkerTiming = struct {
     local_binding_completed: bool = false,
     resolved_tree_policy: ?@import("child.zig").TreePolicy = null,
     source_ns: u64 = 0,
+    /// Observation only: nanoseconds since `Options.epoch` when this worker's
+    /// witness source build began / its prover inputs were ready. Zero without
+    /// an epoch. Never proof or schedule authority.
+    source_begin_ns: u64 = 0,
+    source_ready_ns: u64 = 0,
     seal_native_and_gkr_ns: u64 = 0,
     main_commit_ns: u64 = 0,
     gkr_ns: u64 = 0,
@@ -53,7 +58,36 @@ pub const WorkerTiming = struct {
     stage2_completed: bool = false,
     completed_worker_retired: bool = false,
 };
+/// Producer scheduling hook (sched M6 streaming handoff; default null = M5).
+/// No proof, manifest or identity byte depends on it. `sealed` runs once on
+/// the produce caller thread after the stage-one barrier; `cpu_done` /
+/// `truth_done` run on the stage-two worker thread right after that
+/// ordinal's encoded result is final (its address is valid only for the call;
+/// the heap it references is moved into the returned Bundle). `abort` runs on
+/// every error return after `sealed`, before requests or results are freed,
+/// and returns only when the consumer no longer reads any of them.
+pub const Stream = struct {
+    context: *anyopaque,
+    sealed: *const fn (context: *anyopaque, requests: []const P.Request, stage_one_bytes: []const u8) void,
+    cpu_done: *const fn (context: *anyopaque, ordinal: usize, encoded: *const CPU.CpuEncoded) void,
+    truth_done: *const fn (context: *anyopaque, ordinal: usize, encoded: *const Truth.TruthEncoded) void,
+    abort: *const fn (context: *anyopaque) void,
+};
 pub const Options = struct {
+    stream: ?Stream = null,
+    cpu_replay_stage: ?@import("cpu_replay.zig").Stage = null,
+    device_source_stage: ?Pipeline.DeviceSourceStage = null,
+    device_global_stage: ?CPU.DeviceGlobal.Stage = null,
+    device_cpu_projection: ?@import("../../../word16_execution/cpu_source.zig").ProjectionStage = null,
+    device_trace_commit_stage: ?*const @import("stwo_prover_api").device_pcs.TraceCommitStage = null,
+    numerical_gkr_stage: ?*const @import("child.zig").NumericalStage = null,
+    device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage = null,
+    /// Explicit opt-in until each truth geometry has real memory qualification.
+    truth_device_source_stage: ?@import("truth_device_source.zig").Stage = null,
+    truth_device_composition_stage: ?@import("truth_device_composition.zig").Stage = null,
+    truth_device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage = null,
+    om31_composition_stage: ?*const CPU.CompositionStage = null,
+    resident_composition_stage: ?*const CPU.ResidentCompositionStage = null,
     /// Caller-owned BASE policy observation; per-CPU resolution is in worker timings.
     observed_tree_policy: ?*@import("child.zig").TreePolicy = null,
     max_workers: usize = 8,
@@ -78,7 +112,18 @@ pub const Options = struct {
     stage1_trace: []Schedule.Trace = &.{},
     stage2_trace: []Schedule.Trace = &.{},
     schedule: Schedule.Policy = .{ .lanes = 1, .workers_per_lane = 2 },
+    /// Observation only (block_to_inputs report): a caller clock origin for
+    /// per-worker source timestamps, and where to record the instant the
+    /// coordinator finished admission (requests, inventory, estimates).
+    epoch: ?std.time.Instant = null,
+    admitted_at_ns: ?*u64 = null,
     pub fn validate(self: Options, count: usize) !void {
+        if (self.cpu_replay_stage != null and (!self.defer_local_binding or self.device_source_stage == null or self.device_trace_commit_stage == null or self.numerical_gkr_stage == null or self.numerical_gkr_stage.?.replay_binding == null or self.retained_store != null)) return error.InvalidCpuReplayAdmission;
+        if (self.truth_device_source_stage != null and (self.truth_device_pcs_stage == null or self.truth_device_composition_stage == null)) return error.DeviceTruthRequiresResidentStages;
+        if (self.device_global_stage != null and self.device_trace_commit_stage == null) return error.ResidentGlobalRequiresDeviceTrace;
+        if (self.device_source_stage != null and self.device_trace_commit_stage == null) return error.DeviceSourceRequiresDeviceTraceCommit;
+        if (self.device_cpu_projection != null and self.device_trace_commit_stage == null) return error.DeviceProjectionRequiresDeviceTraceCommit;
+        if (self.device_trace_commit_stage != null and (self.device_pcs_stage == null or self.numerical_gkr_stage == null or self.resident_composition_stage == null)) return error.DeviceTraceRequiresResidentStages;
         if (self.max_workers == 0 or self.max_workers > Manifest.MAX_WORKERS or count > self.max_workers or self.max_retained_frontend_bytes == 0 or self.gkr_budget == 0 or self.global_budget == 0) return error.BoundedWideCoordinatorLimit;
         if (self.worker_timings) |timings| if (timings.len != count) return error.InvalidWideCoordinatorTimings;
         if (self.native_profiles.len != 0 and self.native_profiles.len != count) return error.InvalidWideNativeProfiles;
@@ -87,7 +132,12 @@ pub const Options = struct {
         if ((self.stage1_trace.len != 0 and self.stage1_trace.len != count) or (self.stage2_trace.len != 0 and self.stage2_trace.len != count)) return error.InvalidWideScheduleTrace;
         if (self.retained_store) |store| {
             if (!store.stats().parking_enabled or self.schedule.memory_cap_bytes == 0) return error.WideCoordinatorRequiresParkingAdmission;
-        } else if (self.max_workers > 8) return error.BoundedWideCoordinatorLimit;
+        } else if (self.max_workers > 8) {
+            // The old bound protected retained host-wide witnesses. A complete
+            // device route uses independently admitted device leases instead;
+            // never lift it for partial offload or a producer-controlled flag.
+            if (self.device_source_stage == null or self.device_global_stage == null or self.device_cpu_projection == null or self.device_trace_commit_stage == null or self.numerical_gkr_stage == null or self.numerical_gkr_stage.?.bind == null or self.device_pcs_stage == null or self.truth_device_source_stage == null or self.truth_device_composition_stage == null or self.truth_device_pcs_stage == null or self.resident_composition_stage == null) return error.BoundedWideCoordinatorLimit;
+        }
     }
 };
 pub const Bundle = struct {
@@ -193,21 +243,36 @@ const Run = struct {
         defer if (total_timer) |*clock| {
             timing.?.stage1_ns = clock.read();
         };
+        if (timing) |t| t.source_begin_ns = sinceEpoch(self.options.epoch);
         if (index < self.setups.len) {
+            var replay: ?@import("cpu_replay.zig").Owner = if (self.options.cpu_replay_stage) |stage| try stage.prepare(stage.context, self.a, .{ .setup = self.setups[index], .request = self.requests[index], .native = self.native[index], .advice = self.advice, .ordinal = index, .first_ids = self.inventory.first_ids[index], .scope = .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(index) } }) else null;
+            errdefer if (replay) |*owner| owner.deinit();
+            self.native[index].device_cpu_projection = self.options.device_cpu_projection;
+            self.native[index].device_cpu_scope = if (self.options.device_cpu_projection != null) .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(self.inventory.workers[index].ordinal) } else null;
             var source = blk: {
                 // Observation only (lane rusage); never proof authority.
                 var scope = try @import("stwo_prover_api").stage_profile.StageScope.begin(if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index], "source_construction", "CPU witness source from native capture");
                 defer scope.end();
+                if (self.options.device_source_stage) |stage| break :blk try stage.invoke(self.a, .{ .setup = self.setups[index], .request = self.requests[index], .native = self.native[index], .advice = self.advice, .ordinal = index, .first_ids = self.inventory.first_ids[index], .scope = .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(index) } });
                 break :blk try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, self.inventory.first_ids[index], false, null);
             };
             if (timer) |*clock| timing.?.source_ns = clock.lap();
+            if (timing) |t| t.source_ready_ns = sinceEpoch(self.options.epoch);
             var owned = true;
             errdefer if (owned) source.deinit();
             const worker = try CPU.CpuWorker.initWithAuthority(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget, if (self.fixed) |authority| authority.at(index) else null);
             owned = false;
             self.workers[index] = .{ .cpu = worker };
+            self.workers[index].?.cpu.replay = replay;
+            replay = null;
+            self.workers[index].?.cpu.device_trace_commit_stage = if (self.options.device_trace_commit_stage) |stage| stage.* else null;
+            self.workers[index].?.cpu.device_global_stage = self.options.device_global_stage;
             self.workers[index].?.cpu.tree_policy = self.cpu_tree_policies[index];
             self.workers[index].?.cpu.defer_local_binding = self.options.defer_local_binding;
+            self.workers[index].?.cpu.scheme.device_om31_pcs_stage = self.options.device_pcs_stage;
+            self.workers[index].?.cpu.numerical_gkr_stage = if (self.options.numerical_gkr_stage) |stage| stage.* else null;
+            self.workers[index].?.cpu.om31_composition_stage = if (self.options.om31_composition_stage) |stage| stage.* else null;
+            self.workers[index].?.cpu.resident_composition_stage = if (self.options.resident_composition_stage) |stage| stage.* else null;
             self.workers[index].?.cpu.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
             var cpu_timing = CPU.SealTiming{};
             self.workers[index].?.cpu.seal_timing = if (timing != null) &cpu_timing else null;
@@ -233,22 +298,40 @@ const Run = struct {
                 timing.?.actual_main_merkle_bytes = try mainNodes(&self.workers[index].?.cpu.scheme);
             }
             try self.workers[index].?.cpu.retireLocalMetadata();
+            if (self.workers[index].?.cpu.replay) |*owner| try owner.park(owner.context, &self.workers[index].?.cpu);
             if (timer) |*clock| timing.?.metadata_retire_ns = clock.lap();
             if (self.options.retained_store) |store| _ = try self.workers[index].?.cpu.spillMain(store);
         } else {
             const truth = self.truths[index - self.setups.len];
-            var source = try R.TruthSource.init(self.a, truth, self.advice);
-            if (timer) |*clock| timing.?.source_ns = clock.lap();
-            var owned = true;
-            errdefer if (owned) source.deinit();
-            if (Execution.extendedTruth(truth)) {
-                self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+            if (self.options.truth_device_source_stage) |stage| {
+                var owner = try stage.prepare(stage.context, self.a, .{ .truth = truth, .advice = self.advice, .expected = self.inventory.workers[index], .config = self.config, .budget = self.options.global_budget });
+                var owned = true;
+                errdefer if (owned) owner.deinit();
+                if (timer) |*clock| timing.?.source_ns = clock.lap();
+                if (timing) |t| t.source_ready_ns = sinceEpoch(self.options.epoch);
+                if (Execution.extendedTruth(truth)) {
+                    self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initDeviceWithAuthority(self.a, truth, owner, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                } else {
+                    self.workers[index] = .{ .truth = try Truth.TruthWorker.initDeviceWithAuthority(self.a, truth, owner, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                }
+                owned = false;
             } else {
-                self.workers[index] = .{ .truth = try Truth.TruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                var source = try R.TruthSource.init(self.a, truth, self.advice);
+                if (timer) |*clock| timing.?.source_ns = clock.lap();
+                if (timing) |t| t.source_ready_ns = sinceEpoch(self.options.epoch);
+                var owned = true;
+                errdefer if (owned) source.deinit();
+                if (Execution.extendedTruth(truth)) {
+                    self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                } else {
+                    self.workers[index] = .{ .truth = try Truth.TruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                }
+                owned = false;
             }
-            owned = false;
             switch (self.workers[index].?) {
                 inline .truth, .delegation => |*worker| {
+                    worker.scheme.device_om31_pcs_stage = self.options.truth_device_pcs_stage;
+                    worker.device_composition_stage = self.options.truth_device_composition_stage;
                     worker.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
                     self.stages[index] = try worker.seal(self.a);
                     if (timer) |*clock| {
@@ -262,7 +345,7 @@ const Run = struct {
             }
         }
         if (timer) |*clock| timing.?.spill_ns = clock.lap();
-        if (index < self.setups.len and self.options.consume_memory_events) {
+        if (index < self.setups.len and self.options.consume_memory_events and self.workers[index].?.cpu.replay == null) {
             const retired = try self.advice.retireEvents(index);
             if (timing) |value| value.retired_memory_event_bytes = retired;
             if (timer) |*clock| timing.?.memory_event_retire_ns = clock.lap();
@@ -289,6 +372,13 @@ const Run = struct {
         if (timer) |*clock| timing.?.restore_ns = clock.lap();
         self.results[index] = switch (worker.*) {
             .cpu => |*v| blk: {
+                if (v.replay) |*owner| {
+                    try owner.restore(owner.context, v);
+                    // Replay has joined every compact input reader; physical
+                    // global obligations now live in regenerated device MAIN.
+                    self.native[index].releaseFacts();
+                    if (self.options.consume_memory_events) _ = try self.advice.retireEvents(index);
+                }
                 const encoded = try v.complete(self.a, pending, index, self.options.global_budget);
                 if (timing) |value| {
                     value.gkr_peak_including_final_binding_bytes = v.child.?.peak_gkr_owned_bytes;
@@ -297,6 +387,10 @@ const Run = struct {
                 break :blk Result{ .cpu = encoded };
             },
             inline .truth, .delegation => |*v| .{ .truth = try v.complete(self.a, pending, index, self.options.global_budget) },
+        };
+        if (self.options.stream) |stream| switch (self.results[index].?) {
+            .cpu => |*v| stream.cpu_done(stream.context, index, v),
+            .truth => |*v| stream.truth_done(stream.context, index, v),
         };
         if (timer) |*clock| timing.?.native_complete_ns = clock.lap();
         // Encoded bytes/claims are detached owners. The joined manifest owns its
@@ -311,10 +405,23 @@ const Run = struct {
     }
 };
 fn mainNodes(scheme: *const W.Scheme) !usize {
+    // Device MAIN occupies a logical trace slot, not a host PCS tree. Its
+    // Merkle backing belongs to the device allocator, outside this host count.
+    if (scheme.device_om31_trace_trees[1] != null) return 0;
+    if (scheme.trees.items.len <= 1) return error.MissingPhysicalMainCommitment;
     var bytes: usize = 0;
     for (scheme.trees.items[1].commitment.layers) |layer| bytes = try std.math.add(usize, bytes, try std.math.mul(usize, layer.len, @sizeOf(W.H.Hash)));
     return bytes;
 }
+test "MAIN host accounting accepts a device slot without a dummy host tree" {
+    var scheme: W.Scheme = undefined;
+    scheme.trees = .empty;
+    scheme.device_om31_trace_trees = @splat(null);
+    try std.testing.expectError(error.MissingPhysicalMainCommitment, mainNodes(&scheme));
+    scheme.device_om31_trace_trees[1] = .{ .root = @splat(0), .columns = &.{} };
+    try std.testing.expectEqual(@as(usize, 0), try mainNodes(&scheme));
+}
+
 /// Consume prepared CPU traces only through successful original source building;
 /// advice and setup remain borrowed. Returned request cell lists are independent.
 pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options) !Bundle {
@@ -322,6 +429,34 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
 }
 /// The authority is independently derived from trusted setup, never parsed from
 /// operational resource JSON or a producer bundle. It stays live through return.
+/// Diagnostic only (block_to_inputs harness): runs exactly the stage-one
+/// source construction of every worker, in ordinal order, with the same
+/// requests/inventory as produce, records source timestamps and drops each
+/// source. No proof, manifest or acceptance is produced.
+pub fn buildInputsOnly(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, epoch: ?std.time.Instant, timings: []WorkerTiming, admitted_at_ns: *u64) !void {
+    const count = try std.math.add(usize, setups.len, truths.len);
+    if (timings.len != count) return error.InvalidWideCoordinatorTimings;
+    if (setups.len == 0 or setups.len != native.len) return error.InvalidCombinedInventory;
+    @memset(timings, .{});
+    const requests = try requestsFrom(a, setups, native, advice);
+    defer freeRequests(a, requests);
+    var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, requests, expected, config, fixed);
+    defer inventory.deinit();
+    admitted_at_ns.* = sinceEpoch(epoch);
+    for (timings, 0..) |*t, index| {
+        t.source_begin_ns = sinceEpoch(epoch);
+        if (index < setups.len) {
+            var source = try Pipeline.buildCpuSource(a, setups[index], requests[index], native[index], advice, index, inventory.first_ids[index], false, null);
+            t.source_ready_ns = sinceEpoch(epoch);
+            source.deinit();
+        } else {
+            var source = try R.TruthSource.init(a, truths[index - setups.len], advice);
+            t.source_ready_ns = sinceEpoch(epoch);
+            source.deinit();
+        }
+        t.source_ns = t.source_ready_ns - t.source_begin_ns;
+    }
+}
 pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options, fixed: ?*const FixedSet) !Bundle {
     const policy = try @import("child.zig").readTreePolicyFor(a, options.checkpoint_above_gkr_bytes != 0);
     return produceFrozen(a, setups, truths, native, advice, expected, config, options, fixed, policy);
@@ -339,8 +474,9 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     errdefer freeRequests(a, requests);
     var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, requests, expected, config, fixed);
     defer inventory.deinit();
-    const estimates = try admit(a, setups, truths, requests, &inventory, config, options, policy);
+    const estimates = try admit(a, setups, truths, requests, &inventory, config, options, policy, native, advice);
     defer estimates.deinit(a);
+    if (options.admitted_at_ns) |out| out.* = sinceEpoch(options.epoch);
     if (options.worker_timings) |timings| for (estimates.cpu_policies, 0..) |selected, i| {
         timings[i].resolved_tree_policy = selected;
     };
@@ -363,6 +499,9 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     defer pending.deinit(a);
     const stage_bytes = try ManifestWire.encode(a, inventory.execution_identity, inventory.workers, stages);
     errdefer a.free(stage_bytes);
+    if (options.stream) |stream| stream.sealed(stream.context, requests, stage_bytes);
+    // Runs before stage_bytes, results and requests are freed (reverse order).
+    errdefer if (options.stream) |stream| stream.abort(stream.context);
     run.pending = &pending;
     try Schedule.runWithOptions(Run, a, &run, count, options.schedule, stage2_options, Run.stageTwo);
     const cpus = try a.alloc(CPU.CpuEncoded, setups.len);
@@ -375,7 +514,14 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     @memset(results, null);
     return .{ .requests = requests, .stage_one_bytes = stage_bytes, .cpus = cpus, .truths = encoded_truths };
 }
+/// Observation clock only; zero when no epoch was supplied or the clock fails.
+fn sinceEpoch(epoch: ?std.time.Instant) u64 {
+    const origin = epoch orelse return 0;
+    const now = std.time.Instant.now() catch return 0;
+    return now.since(origin);
+}
 const Admission = struct {
+    retained_bytes: usize = 0,
     stage1: []u64,
     stage2: []u64,
     cpu_policies: []@import("child.zig").TreePolicy,
@@ -385,7 +531,7 @@ const Admission = struct {
         a.free(self.cpu_policies);
     }
 };
-fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const P.Request, inventory: *const Execution.Inventory, config: W.PcsConfig, options: Options, policy: @import("child.zig").TreePolicy) !Admission {
+fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const P.Request, inventory: *const Execution.Inventory, config: W.PcsConfig, options: Options, policy: @import("child.zig").TreePolicy, native: []const *Native, advice: ?*const Advice) !Admission {
     const estimates = Admission{ .stage1 = try a.alloc(u64, inventory.workers.len), .stage2 = &.{}, .cpu_policies = &.{} };
     errdefer a.free(estimates.stage1);
     var result = estimates;
@@ -406,20 +552,86 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
             break :blk selected.plan;
         } else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
         const tasks = try Retention.taskEstimates(plan, options.global_budget);
+        const truth_retained: ?usize = if (i >= setups.len and options.truth_device_source_stage != null) try options.truth_device_source_stage.?.retainedUpperBound(.{ .truth = truths[i - setups.len], .expected = inventory.workers[i], .config = config }, plan.coefficient_bytes) else null;
         stage1.* = tasks.stage1;
         stage2.* = tasks.stage2;
         // The full pending inventory remains charged once below, independently
         // of each task lease. Stage two has no numerical GKR working planes;
         // its child proof, binding and global advice remain in retained bytes.
-        retained = try std.math.add(usize, retained, if (options.retained_store != null) plan.parked_retained_bytes - (if (full_nodes) plan.main_merkle_node_bytes else 0) else @max(plan.resident_retained_bytes, try std.math.add(usize, try std.math.mul(usize, plan.coefficient_bytes, 2), plan.binding_bytes)));
-        disk = try std.math.add(usize, disk, try @import("stwo_prover_engine").file_backed_allocator.ReservedFile.roundedLength(try std.math.add(usize, plan.coefficient_bytes, if (full_nodes) try std.math.add(usize, plan.main_merkle_node_bytes, Store.MERKLE_HEADER_BYTES) else 0)));
+        const retained_worker = if (i < setups.len and options.cpu_replay_stage != null) replay: {
+            if (native.len != setups.len or advice == null or options.retained_store != null) return error.InvalidCpuReplayAdmission;
+            const stage = options.cpu_replay_stage.?;
+            const compact = try stage.estimate(stage.context, .{ .setup = setups[i], .request = requests[i], .native = native[i], .advice = advice.?, .ordinal = i, .first_ids = inventory.first_ids[i], .scope = .{ .statement = inventory.workers[i].statement, .fixed = inventory.workers[i].fixed, .main = @splat(0), .ordinal = @intCast(i) } });
+            stage2.* = @max(stage2.*, plan.gkr_peak_bytes);
+            // No MAIN/P8 planes survive this barrier. Account compact advice,
+            // native proof/artifact and narrow authenticated binding metadata.
+            break :replay try std.math.add(usize, compact, try std.math.add(usize, plan.local_proof_reserve_bytes + plan.owner_header_bytes + plan.binding_descriptor_bytes, 16 * 1024));
+        } else if (truth_retained) |bytes| bytes else if (options.retained_store != null) plan.parked_retained_bytes - (if (full_nodes) plan.main_merkle_node_bytes else 0) else @max(plan.resident_retained_bytes, try std.math.add(usize, try std.math.mul(usize, plan.coefficient_bytes, 2), plan.binding_bytes));
+        retained = try std.math.add(usize, retained, retained_worker);
+        if (truth_retained == null) disk = try std.math.add(usize, disk, try @import("stwo_prover_engine").file_backed_allocator.ReservedFile.roundedLength(try std.math.add(usize, plan.coefficient_bytes, if (full_nodes) try std.math.add(usize, plan.main_merkle_node_bytes, Store.MERKLE_HEADER_BYTES) else 0)));
     }
-    if (retained > options.max_retained_frontend_bytes) return error.BoundedWideCoordinatorRetainedLimit;
+    if (retained > options.max_retained_frontend_bytes) {
+        std.debug.print("RV64_GKR_RETAINED_ADMISSION requested_bytes={} limit_bytes={} cpu_workers={} truth_workers={} cpu_replay={} truth_device_source={}\n", .{
+            retained,
+            options.max_retained_frontend_bytes,
+            setups.len,
+            truths.len,
+            options.cpu_replay_stage != null,
+            options.truth_device_source_stage != null,
+        });
+        return error.BoundedWideCoordinatorRetainedLimit;
+    }
+    result.retained_bytes = retained;
     if (options.retained_store) |store| {
         const stats = store.stats();
         if (disk > stats.limit_bytes - stats.live_bytes) return error.RetainedMainBudgetExceeded;
     }
     return result;
+}
+test "device truth barrier contract reduces retained admission without reducing transient tasks" {
+    const a = std.testing.allocator;
+    const F = @import("coordinator_fixture.zig");
+    const Original = @import("../fixture.zig");
+    const DS = @import("truth_device_source.zig");
+    var captured = try Original.Captured.init(a);
+    defer captured.deinit();
+    var keys = try F.Keys.init(a);
+    defer keys.deinit();
+    const pointers = [_]*Native{ &captured.native[0], &captured.native[1] };
+    const requests = [_]P.Request{ try requestView(&pointers, &captured.advice, 0), try requestView(&pointers, &captured.advice, 1) };
+    const config = try F.config();
+    const all_truths = keys.truths();
+    var inventory = try Execution.Inventory.initWithAuthority(a, &keys.pointers(), &all_truths, &requests, Original.expectedFor(captured.program.identity), config, null);
+    defer inventory.deinit();
+    // This admission-only view selects the first real Keccak provider; no
+    // incomplete inventory is ever passed to execution or a receiver.
+    var view = inventory;
+    view.workers = inventory.workers[0..3];
+    const truth = all_truths[0..1];
+    const policy = @import("child.zig").TreePolicy{ .stream_bottom = true, .tight_admission = true };
+    var options = Options{ .gkr_budget = 2 << 30, .global_budget = 1 << 30, .max_retained_frontend_bytes = 4 << 30 };
+    var legacy = try admit(a, &keys.pointers(), truth, &requests, &view, config, options, policy, &.{}, null);
+    defer legacy.deinit(a);
+    const Fake = struct {
+        fn unused(_: *anyopaque, _: std.mem.Allocator, _: DS.Prepare) !DS.Owner {
+            return error.UnusedTestPrepare;
+        }
+        fn retained(_: *anyopaque, request: DS.RetentionRequest) !DS.Retained {
+            return .{ .compact_input_bytes = try DS.compactInputBytes(request.truth), .narrow_metadata_bytes = 4096, .kept_device_bytes = 0, .main_replayed = true };
+        }
+    };
+    var marker: u8 = 0;
+    options.truth_device_source_stage = .{ .context = &marker, .prepare = Fake.unused, .retained_upper_bound = Fake.retained };
+    var replay = try admit(a, &keys.pointers(), truth, &requests, &view, config, options, policy, &.{}, null);
+    defer replay.deinit(a);
+    try std.testing.expect(replay.retained_bytes < legacy.retained_bytes);
+    try std.testing.expectEqualSlices(u64, legacy.stage1, replay.stage1);
+    try std.testing.expectEqualSlices(u64, legacy.stage2, replay.stage2);
+    options.max_retained_frontend_bytes = legacy.retained_bytes - 1;
+    var bounded = try admit(a, &keys.pointers(), truth, &requests, &view, config, options, policy, &.{}, null);
+    bounded.deinit(a);
+    options.truth_device_source_stage = null;
+    try std.testing.expectError(error.BoundedWideCoordinatorRetainedLimit, admit(a, &keys.pointers(), truth, &requests, &view, config, options, policy, &.{}, null));
 }
 
 test "hybrid per-CPU policies preserve complete physical proofs fresh verification and admission OOM ownership" {
@@ -456,7 +668,7 @@ test "hybrid per-CPU policies preserve complete physical proofs fresh verificati
         options: Options,
         policy: Child.TreePolicy,
         fn run(allocator: std.mem.Allocator, context: @This()) !void {
-            const value = try admit(allocator, context.setups, context.truths, context.requests, context.inventory, context.config, context.options, context.policy);
+            const value = try admit(allocator, context.setups, context.truths, context.requests, context.inventory, context.config, context.options, context.policy, &.{}, null);
             defer value.deinit(allocator);
         }
     };

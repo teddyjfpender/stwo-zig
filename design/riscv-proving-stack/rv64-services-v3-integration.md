@@ -1,5 +1,15 @@
 # `ethereum_services_v3` integration: SHA-256 + arith256_mod + bulk memory
 
+## Current GKR status
+
+The remaining GKR-admission and native-security gaps listed at the end of this
+original classic-services integration note have since been completed for the
+qualified V3 representations. See the [GKR delivery ledger](rv64-pr308-pr309-integration-plan.md),
+[full-block qualification](../../vectors/reports/rv64-v3-gkr-full-block-20261102/README.md)
+and [V3 bounded security review](rv64-v3-bounded-security-review.md).
+Recursion remains separate. This document's older guest timings and remaining
+gaps describe its original snapshot, not the current GKR execution route.
+
 Branch `codex/rv64-guest-prover-v3-integration` merges the three admitted v3
 prover services into one profile and proves the evmone client end to end.
 Service designs: [SHA-256](rv64-sha256-service.md),
@@ -100,11 +110,21 @@ Measured per-call costs (MAIN + INTERACTION, padded, from this proof; now in
 | memcpy | 154.3 / call + 15.152 / byte | desc 5,734,400 over 37,168 calls; copy 50,462,720 over 3,330,392 bytes | 161.6 + 13.886 |
 | memset | 154.3 / call + 8.457 / byte | desc as memcpy; set 22,413,312 over 2,650,424 bytes | 161.6 + 8.656 |
 
-## Remaining gaps
+## Current delivery and remaining scope
 
-- Recursion circuits and `services/gkr_local` know none of the v3 families'
-  bulk components (and no v3 truths in recursion), so a v3 bundle cannot be
-  wrapped or folded yet.
+The native V3 GKR services integration is complete. `services/gkr_local`
+authenticates the bulk, sponge, LS-D64, U8-pair CPU and throughput Keccak
+roles, with independent OM31 truth proofs and execution-wide RAM/KIO/Wire
+closure. The [closure qualification](../../vectors/reports/rv64-v3-closure-20261103/qualification.json)
+records the complete-block fresh receiver and adversarial cross-shard gates.
+Truth-internal classic lookups have not all been converted to GKR.
+
+Recursion support for this V3 proof roster remains separate from native
+execution acceptance. The bullets below preserve the original guest/client
+checkpoint; they do not describe the current GKR integration status.
+
+## Historical guest/client checkpoint gaps
+
 - v3 remains a receiver policy (`admitProfile` + bridge presence), not part
   of the program identity; native jobs run v3 tapes under the v2-decoded ROM.
 - Unaligned memcpy (the larger share of copies) is not admitted.

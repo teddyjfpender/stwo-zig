@@ -22,8 +22,8 @@ pub const Binding = struct {
         if (!std.mem.eql(u8, &source.root, &source.tree.root())) return error.FixedSetupIdentityMismatch;
         var lease = try cache.acquireFromKey(source, .{ .log_blowup = config.fri_config.log_blowup_factor });
         errdefer lease.deinit();
-        var cells: usize = 0;
-        for (lease.key.tree.coefficients orelse return error.MissingFixedSetupCoefficients) |column| cells = try std.math.add(usize, cells, column.coeffs.len);
+        // Constant key metadata, also for restored root-only verifier keys.
+        const cells = lease.key.cells;
         return .{ .lease = lease, .source_root = source.root, .source_suite = source.suite, .source_columns = source.tree.columns.len, .fixed_identity = lease.key.identity, .fixed_root = lease.key.root, .source_coefficient_cells = cells, .profile = profile };
     }
     pub fn retain(self: *const Binding) Binding {
@@ -74,12 +74,13 @@ pub const Binding = struct {
     }
     pub fn begin(self: *const Binding, config: W.PcsConfig, expected: @import("manifest.zig").ExpectedWorker) W.Channel {
         var ch = W.begin(config, expected);
-        var tag: [32]u8 = undefined;
-        std.crypto.hash.blake2.Blake2s256.hash(PROFILE, &tag, .{});
-        W.digest(&ch, tag);
-        W.digest(&ch, self.fixed_identity);
-        W.digest(&ch, self.fixed_root);
-        if (self.profile) |p| if (p.conjectured()) W.digest(&ch, W.Candidate.profileIdentity(p));
+        var writer = struct {
+            ch: *W.Channel,
+            pub fn constantDigest(s: *@This(), value: [32]u8) void {
+                W.digest(s.ch, value);
+            }
+        }{ .ch = &ch };
+        emitBindingBegin(self.profile, self.fixed_identity, self.fixed_root, &writer);
         return ch;
     }
     pub fn append(self: *const Binding, a: std.mem.Allocator, source: anytype, expected: [32]u8, scheme: *W.Scheme, ch: *W.Channel) !void {
@@ -87,3 +88,13 @@ pub const Binding = struct {
         try self.lease.key.append(a, scheme, ch, .{ .log_blowup = scheme.config.fri_config.log_blowup_factor }, self.fixed_identity, expected, scheme.config);
     }
 };
+
+/// Constant immutable authority framing, shared by native and circuit paths.
+pub fn emitBindingBegin(profile: ?W.Candidate.Profile, identity: [32]u8, root: [32]u8, writer: anytype) void {
+    var tag: [32]u8 = undefined;
+    std.crypto.hash.blake2.Blake2s256.hash(PROFILE, &tag, .{});
+    writer.constantDigest(tag);
+    writer.constantDigest(identity);
+    writer.constantDigest(root);
+    if (profile) |p| if (p.conjectured()) writer.constantDigest(W.Candidate.profileIdentity(p));
+}

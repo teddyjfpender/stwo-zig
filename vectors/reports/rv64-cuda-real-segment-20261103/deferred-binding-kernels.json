@@ -1,0 +1,28 @@
+{
+  "schema": "rv64-deferred-device-binding-kernels/v1",
+  "date_utc": "2026-11-03",
+  "cases": 18,
+  "row_logs": [
+    1,
+    5,
+    12
+  ],
+  "lane_logs": [
+    0,
+    4,
+    8
+  ],
+  "numerator_coordinates": [
+    1,
+    8
+  ],
+  "max_facts": 1048576,
+  "normal_result": "PASS",
+  "checks": [
+    "Unweighted8-column P=N+etaD matches scalar OM31 arithmetic.",
+    "GPU Eq*P-uniform matches scalar arithmetic and the previously qualified nondeferred GPU projection kernel.",
+    "Input/output alias and nonzero reserved fields rejected before enqueue."
+  ],
+  "scope": "Numerical kernel qualification only. Full worker device-binding lifecycle and native proof acceptance are not yet qualified.",
+  "sanitizers": "Not rerun yet; one focused normal run, no claim of four-checker qualification."
+}

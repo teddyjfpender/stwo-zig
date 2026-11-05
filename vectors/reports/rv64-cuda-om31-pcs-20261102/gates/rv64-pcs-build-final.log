@@ -1,0 +1,71 @@
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_leaf_kernelILb0ELj4EEEv13StwoRv64PlanejPj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_leaf_kernelILb0ELj4EEEv13StwoRv64PlanejPj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 64 registers, used 0 barriers
+ptxas info    : Compile time = 331.081 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_leaf_kernelILb0ELj3EEEv13StwoRv64PlanejPj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_leaf_kernelILb0ELj3EEEv13StwoRv64PlanejPj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 64 registers, used 0 barriers
+ptxas info    : Compile time = 151.029 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_leaf_kernelILb0ELj2EEEv13StwoRv64PlanejPj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_leaf_kernelILb0ELj2EEEv13StwoRv64PlanejPj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 55 registers, used 0 barriers
+ptxas info    : Compile time = 73.717 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_leaf_kernelILb0ELj1EEEv13StwoRv64PlanejPj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_leaf_kernelILb0ELj1EEEv13StwoRv64PlanejPj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers
+ptxas info    : Compile time = 35.877 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_leaf_kernelILb0ELj0EEEv13StwoRv64PlanejPj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_leaf_kernelILb0ELj0EEEv13StwoRv64PlanejPj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers
+ptxas info    : Compile time = 33.580 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_leaf_kernelILb1ELj4EEEv13StwoRv64PlanejPj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_leaf_kernelILb1ELj4EEEv13StwoRv64PlanejPj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 64 registers, used 0 barriers
+ptxas info    : Compile time = 322.000 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_leaf_kernelILb1ELj3EEEv13StwoRv64PlanejPj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_leaf_kernelILb1ELj3EEEv13StwoRv64PlanejPj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 64 registers, used 0 barriers
+ptxas info    : Compile time = 152.416 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_leaf_kernelILb1ELj2EEEv13StwoRv64PlanejPj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_leaf_kernelILb1ELj2EEEv13StwoRv64PlanejPj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 56 registers, used 0 barriers
+ptxas info    : Compile time = 74.073 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_leaf_kernelILb1ELj1EEEv13StwoRv64PlanejPj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_leaf_kernelILb1ELj1EEEv13StwoRv64PlanejPj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers
+ptxas info    : Compile time = 36.070 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_leaf_kernelILb1ELj0EEEv13StwoRv64PlanejPj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_leaf_kernelILb1ELj0EEEv13StwoRv64PlanejPj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 39 registers, used 0 barriers
+ptxas info    : Compile time = 33.515 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_fold_kernelILj4EEEv15StwoRv64FriFold' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_fold_kernelILj4EEEv15StwoRv64FriFold
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 128 registers, used 0 barriers
+ptxas info    : Compile time = 1199.395 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_fold_kernelILj3EEEv15StwoRv64FriFold' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_fold_kernelILj3EEEv15StwoRv64FriFold
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 72 registers, used 0 barriers
+ptxas info    : Compile time = 357.407 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_fold_kernelILj2EEEv15StwoRv64FriFold' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_fold_kernelILj2EEEv15StwoRv64FriFold
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 72 registers, used 0 barriers
+ptxas info    : Compile time = 155.287 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_fold_kernelILj1EEEv15StwoRv64FriFold' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_fold_kernelILj1EEEv15StwoRv64FriFold
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 0 barriers
+ptxas info    : Compile time = 79.989 ms

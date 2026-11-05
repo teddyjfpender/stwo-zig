@@ -1,0 +1,1 @@
+{"schema":"rv64-m3-topo-adversarial/v1","measured":true,"case":"24628607 v2 CPU-produced proofs with fold-000002.proof and fold-000005.proof swapped (same class authority, different children)","results":[{"fold_class_cache":"1","exit":1,"error":"error: CurrentOm31OutputDigest"},{"fold_class_cache":"0","exit":1,"error":"error: CurrentOm31OutputDigest"}]}

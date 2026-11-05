@@ -1,0 +1,21 @@
+{
+  "schema": "rv64-cuda-pcs-idle-cache-oom-recovery-v1",
+  "reason": "Private-pool trimming alone cannot reclaim unused PCS blocks that remain allocated in ResidentOwner.blocks",
+  "scope": "Allocation recovery regression; full-block acceptance is a separate gate",
+  "recovery": {
+    "condition": "context allocation returns cudaErrorMemoryAllocation after its bounded pool retry",
+    "steps": ["clear CUDA owner-thread last error", "report requested, retained, live lease, idle and active cache bytes plus physical memory", "join all lanes", "release only blocks with used=false and subtract their exact retained bytes", "join frees", "retry allocation once"],
+    "preserves": ["all live leases", "used PCS blocks", "cached domain allocations", "device byte cap", "GPU residency"],
+    "host_spill": false
+  },
+  "regression": {
+    "source": "tests/cuda/rv64/pcs_cache_retry_smoke.cu",
+    "device": "NVIDIA RTX 5090",
+    "result": "PASS",
+    "idle_cache_bytes": 16777216,
+    "active_cache_bytes": 33554432,
+    "live_lease_bytes_before": 4096,
+    "requested_bytes": 67108864,
+    "checks": ["idle cache evicted after injected context OOM with real CUDA last-error state", "active cache pointer and exact contents preserved", "live lease pointer and exact contents preserved", "retained accounting exact", "successful recovery clears CUDA last error", "terminal failure retries once and publishes no lease"]
+  }
+}

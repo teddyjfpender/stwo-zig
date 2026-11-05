@@ -1,4 +1,5 @@
 //! Immutable V3 truth geometry. One runtime dispatch, original equation authority.
+pub const Family = @import("../types.zig").Family;
 const A = @import("stwo_riscv_frontend").rv64_air;
 const R = @import("../roster.zig");
 pub fn Sha() type {

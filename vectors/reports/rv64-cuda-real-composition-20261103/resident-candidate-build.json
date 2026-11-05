@@ -1,0 +1,21 @@
+{
+  "schema": "rv64-cuda-native-library-build/v1",
+  "seconds": 5.0487642880762,
+  "required_exports": 142,
+  "required_export_manifest_sha256": "3a8867e9bf3fed3aca7607e96970f50ff6f7adb938725f89cef45d7c3f4ef185",
+  "library_sha256": "1b6ec267524022e099643515fad9836b52267f5eea7e8003996c69c87b43c8d9",
+  "builder_sha256": "11a43e35d0ab6b4f4c21bcd373c0471bfdc66d322fd1393b4926785981f9a6e3",
+  "scope": "AOT build only; no proof or residency qualification",
+  "native_objects": 305,
+  "global_aot_exports_verified": 56,
+  "cumulative_native_checks": {
+    "pairs": [
+      1,
+      3,
+      640
+    ],
+    "parity": "exact",
+    "preflight_rejections": 15
+  },
+  "canonical_original_unchanged": true
+}

@@ -18,10 +18,22 @@ pub const Source = struct {
     log_size: u32,
     claim: ?Q = null,
     pub fn init(a: std.mem.Allocator, facts: []const Fact, log: u32) !Source {
+        var source = try capture(a, facts, log);
+        errdefer source.deinit();
+        try source.materializeMain();
+        return source;
+    }
+    /// Capture retains only normalized execution facts. Device factories never
+    /// construct a host MAIN or request-specific fixed matrix here.
+    pub fn capture(a: std.mem.Allocator, facts: []const Fact, log: u32) !Source {
         if (log < 5 or log > 22 or facts.len > @as(usize, 1) << @intCast(log)) return error.InvalidJalrGeometry;
         for (facts) |fact| if (fact.op != 10) return error.InvalidJalrFact;
-        const owned = try a.dupe(Fact, facts);
-        errdefer a.free(owned);
+        return .{ .allocator = a, .facts = try a.dupe(Fact, facts), .fixed = &.{}, .main = &.{}, .rows = @intCast(facts.len), .log_size = log };
+    }
+    pub fn materializeMain(self: *Source) !void {
+        if (self.main.len != 0 or self.fixed.len != 0) return error.JalrMainAlreadyMaterialized;
+        const a = self.allocator;
+        const log = self.log_size;
         const n = @as(usize, 1) << @intCast(log);
         const fixed = try a.alloc(M, 2 * n);
         errdefer a.free(fixed);
@@ -30,13 +42,13 @@ pub const Source = struct {
         fixed[n + X.layout.physical(n - 1, log)] = M.one();
         const main = try a.alloc(M, J.MAIN * n);
         errdefer a.free(main);
-        const source = Source{ .allocator = a, .facts = owned, .fixed = fixed, .main = main, .rows = @intCast(facts.len), .log_size = log };
         for (0..n) |physical| {
             const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(physical, log), log);
-            const row = source.rowValues(logical);
+            const row = self.rowValues(logical);
             for (row, 0..) |value, c| main[c * n + physical] = value;
         }
-        return source;
+        self.fixed = fixed;
+        self.main = main;
     }
     pub fn deinit(self: *Source) void {
         self.allocator.free(self.interaction);

@@ -37,20 +37,27 @@ const SecureColumnByCoords = secure_column.SecureColumnByCoords;
 /// `prove.zig` and the only consumers are frontend-owned stages that already
 /// name that type.
 pub const Stage = api.Stage;
+pub const StageFor = api.StageFor;
 
 /// Everything the stage needs, grouped so the call site stays one statement.
-pub const Inputs = struct {
-    allocator: std.mem.Allocator,
-    random_coeff: QM31,
-    composition_log_degree_bound: u32,
-    total_constraints: usize,
-    trace: *const anyopaque,
-};
+pub const Inputs = InputsFor(QM31);
+pub fn InputsFor(comptime Secure: type) type {
+    return struct {
+        allocator: std.mem.Allocator,
+        random_coeff: Secure,
+        composition_log_degree_bound: u32,
+        total_constraints: usize,
+        trace: *const anyopaque,
+    };
+}
 
 /// Consults `stage` if there is one. `null` in, `null` out.
 pub fn tryStage(stage: ?Stage, inputs: Inputs) anyerror!?SecureColumnByCoords {
+    return tryStageFor(QM31, stage, inputs);
+}
+pub fn tryStageFor(comptime Secure: type, stage: ?StageFor(Secure), inputs: InputsFor(Secure)) anyerror!?secure_column.SecureColumnByCoordsFor(Secure) {
     const ready = stage orelse return null;
-    var result: SecureColumnByCoords = undefined;
+    var result: secure_column.SecureColumnByCoordsFor(Secure) = undefined;
     const evaluated = try ready.evaluate(
         ready.context,
         inputs.allocator,
@@ -96,4 +103,47 @@ test "a stage that declines is representable and returns null" {
         .total_constraints = 1,
         .trace = &context,
     })) == null);
+}
+
+test "OM31 stages preserve all eight coordinates and propagate terminal errors" {
+    const O = @import("stwo_core").fields.om31.OM31;
+    const Column = secure_column.SecureColumnByCoordsFor(O);
+    const Callback = struct {
+        fn evaluate(ctx: *anyopaque, allocator: std.mem.Allocator, alpha: O, _: u32, _: usize, _: *const anyopaque, result: *anyopaque) anyerror!bool {
+            const mode: *u8 = @ptrCast(@alignCast(ctx));
+            if (mode.* == 1) return false;
+            if (mode.* == 2) return error.TestDeviceFailure;
+            const column: *Column = @ptrCast(@alignCast(result));
+            column.* = try Column.zeros(allocator, 1);
+            for (column.columns, alpha.toM31Array()) |coords, value| coords[0] = value;
+            return true;
+        }
+    };
+    var mode: u8 = 0;
+    const stage = StageFor(O){ .context = &mode, .evaluate = Callback.evaluate };
+    const input = InputsFor(O){ .allocator = std.testing.allocator, .random_coeff = O.fromM31Array(.{ @import("stwo_core").fields.m31.M31.fromCanonical(1), @import("stwo_core").fields.m31.M31.fromCanonical(2), @import("stwo_core").fields.m31.M31.fromCanonical(3), @import("stwo_core").fields.m31.M31.fromCanonical(4), @import("stwo_core").fields.m31.M31.fromCanonical(5), @import("stwo_core").fields.m31.M31.fromCanonical(6), @import("stwo_core").fields.m31.M31.fromCanonical(7), @import("stwo_core").fields.m31.M31.fromCanonical(8) }), .composition_log_degree_bound = 4, .total_constraints = 1, .trace = &mode };
+    var result = (try tryStageFor(O, stage, input)).?;
+    defer result.deinit(std.testing.allocator);
+    try std.testing.expect(result.at(0).eql(input.random_coeff));
+    mode = 1;
+    try std.testing.expect((try tryStageFor(O, stage, input)) == null);
+    mode = 2;
+    try std.testing.expectError(error.TestDeviceFailure, tryStageFor(O, stage, input));
+}
+
+test "resident composition validates physical device geometry without host coefficients" {
+    const D = @import("stwo_prover_api").device_pcs;
+    var columns: [16]D.Column = @splat(.{ .log_size = 7, .device = .{ .words = @ptrFromInt(4096), .count = 128, .context_token = 1, .generation = 2 } });
+    var tree = D.Tree{ .root = @splat(0), .columns = &columns };
+    try api.validateResidentTree(tree, 8, 1);
+    tree.columns = columns[0..15];
+    try std.testing.expectError(error.InvalidResidentCompositionTree, api.validateResidentTree(tree, 8, 1));
+    tree.columns = &columns;
+    columns[1].device.?.context_token = 3;
+    try std.testing.expectError(error.InvalidResidentCompositionTree, api.validateResidentTree(tree, 8, 1));
+    columns[1].device.?.context_token = 1;
+    columns[1].device.?.count -= 1;
+    try std.testing.expectError(error.InvalidResidentCompositionTree, api.validateResidentTree(tree, 8, 1));
+    columns[1].device = null;
+    try std.testing.expectError(error.ResidentCompositionHostColumn, api.validateResidentTree(tree, 8, 1));
 }

@@ -1,0 +1,253 @@
+{
+  "schema": "rv64-cuda-combined-batched-prefix/v1",
+  "date_utc": "2026-11-03",
+  "scope": "Combined optimization qualification, not an isolated batched-kernel A/B; one CPU segment plus six truth proofs, not a complete block. Truth witness and composition are CPU; PCS is GPU for all seven physical proofs.",
+  "block": 24628607,
+  "backend": "gpu",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "fresh_receiver_accepted": true,
+  "completed_block": false,
+  "instructions": 4194303,
+  "segments": 1,
+  "truth_proofs": 6,
+  "capture_ns": 5985412884,
+  "setup_ns": 41328937229,
+  "prove_ns": 82097236672,
+  "execution_included": true,
+  "native_reference_byte_parity": true,
+  "physical_gpu_memory": {
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+    "samples": 582,
+    "errors": [],
+    "peak_used_bytes": {
+      "0": 31648120832
+    }
+  },
+  "memory_budgets": {
+    "host_job_bytes": 51539607552,
+    "aggregate_gpu_job_credit_bytes": 30064771072,
+    "per_device_gpu_caps_bytes": [
+      30064771072
+    ]
+  },
+  "gpu": {
+    "kernel_launches": 2881,
+    "device_ms": 1163.2315780000001,
+    "records": [
+      {
+        "stage": "GPU_CPU_PROJECTION",
+        "rows": 4194304,
+        "active": 4194303,
+        "metadata_h2d_bytes": 234880968,
+        "main_d2h_bytes": 0,
+        "total_ns": 220230964
+      },
+      {
+        "stage": "GPU_GKR_SPANS",
+        "ordinal": 0,
+        "ingress_ms": 73.36989,
+        "base_fft_ms": 6.053536,
+        "draws_ms": 0.588576,
+        "projection_ms": 46.975426,
+        "traversal_ms": 104.82137,
+        "compact_readback_ms": 0.557472,
+        "numerical_ready_wall_ns": 252894471,
+        "readback_wall_ns": 566082,
+        "native_decode_ns": 146690
+      },
+      {
+        "stage": "GPU_GKR",
+        "ordinal": 0,
+        "native_stage_wall_ns": 253680765,
+        "facts": 124093760,
+        "coefficient_cells": 390253056,
+        "workspace_bytes": 8510105088,
+        "requested_payload_bytes": 14546978252,
+        "compact_d2h_words": 36917,
+        "gkr_kernel_launches": 2881
+      },
+      {
+        "stage": "GPU_COMPOSITION_TIMING",
+        "ordinal": 0,
+        "coefficient_stream_ms": 34.995,
+        "auxiliary_ms": 2.183,
+        "domain_fft_ms": 25.723,
+        "rows_ms": 274.773,
+        "finalize_ms": 7.099,
+        "commit_fft_ms": 2.663,
+        "commit_hash_ms": 1.138,
+        "gpu_enqueued_kernel_spans_ms": 313.579,
+        "host_coefficient_cells": 36578976,
+        "device_coefficient_cells": 562386016,
+        "domain_cells": 1352479104,
+        "geometry_hits": 0,
+        "geometry_misses": 38,
+        "retained_setup_bytes": 67441744,
+        "retained_geometry_bytes": 205736,
+        "retained_twiddle_bytes": 67108224,
+        "retained_artifact_bytes": 127784,
+        "setup_cache_cap_bytes": 268435456,
+        "uncached_geometries": 0,
+        "uncached_twiddles": 0
+      },
+      {
+        "stage": "GPU_PCS_NATIVE",
+        "prepare_ns": 251123279,
+        "device_ns": 121583328,
+        "total_ns": 436459643,
+        "device_bytes": 12681778464,
+        "retained_bytes": 16281523824,
+        "coefficient_cells": 667400960,
+        "reused_columns": 0,
+        "reused_cells": 0
+      },
+      {
+        "stage": "GPU_PCS_NATIVE",
+        "prepare_ns": 103667043,
+        "device_ns": 229180068,
+        "total_ns": 878596258,
+        "device_bytes": 14462845704,
+        "retained_bytes": 25882652200,
+        "coefficient_cells": 1040449536,
+        "reused_columns": 0,
+        "reused_cells": 0
+      },
+      {
+        "stage": "GPU_PCS_NATIVE",
+        "prepare_ns": 104527706,
+        "device_ns": 78122909,
+        "total_ns": 307089562,
+        "device_bytes": 4605395720,
+        "retained_bytes": 25882652200,
+        "coefficient_cells": 234192896,
+        "reused_columns": 0,
+        "reused_cells": 0
+      },
+      {
+        "stage": "GPU_PCS_NATIVE",
+        "prepare_ns": 3322073,
+        "device_ns": 63325313,
+        "total_ns": 101093003,
+        "device_bytes": 48692876,
+        "retained_bytes": 25882660392,
+        "coefficient_cells": 3600896,
+        "reused_columns": 0,
+        "reused_cells": 0
+      },
+      {
+        "stage": "GPU_PCS_NATIVE",
+        "prepare_ns": 2595320,
+        "device_ns": 48015872,
+        "total_ns": 77748756,
+        "device_bytes": 21152812,
+        "retained_bytes": 25882664488,
+        "coefficient_cells": 1411840,
+        "reused_columns": 0,
+        "reused_cells": 0
+      },
+      {
+        "stage": "GPU_PCS_NATIVE",
+        "prepare_ns": 3389634,
+        "device_ns": 65600738,
+        "total_ns": 98953611,
+        "device_bytes": 7987932,
+        "retained_bytes": 25882665000,
+        "coefficient_cells": 238208,
+        "reused_columns": 0,
+        "reused_cells": 0
+      },
+      {
+        "stage": "GPU_PCS_NATIVE",
+        "prepare_ns": 778935,
+        "device_ns": 11458080,
+        "total_ns": 20849532,
+        "device_bytes": 5800908,
+        "retained_bytes": 25882665000,
+        "coefficient_cells": 357632,
+        "reused_columns": 0,
+        "reused_cells": 0
+      }
+    ],
+    "launch_count_scope": "Source-derived GKR traversal only, not CUPTI; excludes other stages",
+    "device_time_scope": "Summed GKR/composition CUDA-event spans and PCS resident time; includes enqueue gaps; excludes untimed stages and overlaps",
+    "memory_scope": "Native logical counters; physical device peak is sampled separately"
+  },
+  "artifact_sha256": {
+    "cells.bin": "e1be140a9a6a82fcf27305343e2d7ddf3cb88e42f5d6fdc430aa430af16e1b28",
+    "cpu-0.bin": "9752fd800a763ea0cb528cebea5ec6282b159b8b0ad4697e1925de8e37e6c048",
+    "truth-0.bin": "ca52573ce7068fe5ffbc98c8970859bb9f853efddec6877955eb4806520df1b6",
+    "truth-1.bin": "5186f1b19f1645b6572830d77843d67923673422ee7a4e96424351b6ac0d1611",
+    "truth-2.bin": "f3526011ad70aa59f65d0490e7f39fb42b11bee19b31727f1ce50d6f606b93ed",
+    "truth-3.bin": "0120221534f5e869c266281c27b872bdad76832c771d2296c76083f03b6da221",
+    "truth-4.bin": "b9b2c29a04ebf0bcefa576b7277f36fbaf356666cf1980f4737ee839108e26c4",
+    "truth-5.bin": "afba3bb04e0b5492e1f296a19929c9fc23efc6d6903d474ff2f795deb85a2d85",
+    "stage-one.bin": "6a8f579401ad970b6725727eff358688dba74988f873b3b1a2328dfb482719fb"
+  },
+  "bundle_sha256": "5d5883550e6cdd9ea759f27523757988a09c039617e2406ef9bf9ac05e068eb8",
+  "summed_worker_stage_seconds": {
+    "source_construction": 2.688008181,
+    "local_gkr_prove": 0.276741431,
+    "binding_finalize": 0.051992959,
+    "interaction_generation": 6.826766999999999,
+    "draw_random_coeff": 2.2335000000000002e-05,
+    "oods_point_and_mask_points": 0.013788467,
+    "constraint_check_and_assembly": 0.026890736000000002,
+    "streaming_commit_prepare": 8.579377262000012,
+    "merkle_commit": 0.5101746849999999,
+    "composition_trace_extract": 0.00094191,
+    "composition_evaluation": 47.999919909000006,
+    "composition_interpolate_and_split": 1.928906242,
+    "composition_commit": 1.3069559860000002
+  },
+  "producer_process": {
+    "exit_code": 0,
+    "wall_ns": 134124325953,
+    "user_seconds": 498.435706,
+    "system_seconds": 21.480383,
+    "peak_rss_bytes": 12695080960,
+    "minor_faults": 11165252,
+    "major_faults": 0
+  },
+  "receiver_process": {
+    "exit_code": 0,
+    "wall_ns": 46858090460,
+    "user_seconds": 64.413417,
+    "system_seconds": 1.906532,
+    "peak_rss_bytes": 2495688704,
+    "minor_faults": 877873,
+    "major_faults": 0
+  },
+  "changes": [
+    "Consumed-tree GKR workspace alias",
+    "Scoped device MAIN and deferred binding",
+    "Batched active-oracle sum/fold",
+    "Single source warehouse for already-resident MAIN",
+    "Explicit resident device pool",
+    "GPU PCS for six truth proofs through the concrete pool"
+  ],
+  "comparison_to_accepted_unbatched_prefix": {
+    "control": "deferred-binding-real-prefix.json",
+    "control_gkr_wall_ns": 333109146,
+    "combined_gkr_wall_ns": 253680765,
+    "control_traversal_event_ms": 157.38643,
+    "combined_traversal_event_ms": 104.82137,
+    "control_gkr_launches": 15795,
+    "combined_gkr_launches": 2881,
+    "control_requested_payload_bytes": 16107984764,
+    "combined_requested_payload_bytes": 14546978252,
+    "caution": "Single runs; concurrent scheduling, warehouse ingress and allocator behavior also changed. Stage ratios are not isolated causality or full-block speedup."
+  },
+  "limitations": [
+    "Physical memory sampling is whole-device usage including driver and any unrelated work, not exact process-exclusive peak.",
+    "GPU event totals include enqueue gaps and exclude untimed stages; they are not pure kernel-active Nsight time.",
+    "Kernel count is derived from the submitted GKR schedule; not CUPTI.",
+    "Conjectured128 profile is a target under documented assumptions, not certified whole-protocol128 security.",
+    "Complete block and1/2/4GPUbasket qualification remain pending."
+  ],
+  "truth_provider_scope": {
+    "witness": "CPU",
+    "composition": "CPU",
+    "pcs": "GPU, six actual truth shapes, all native proof bytes identical to accepted CPU reference",
+    "gkr": "Current truth protocol uses native interaction argument"
+  }
+}

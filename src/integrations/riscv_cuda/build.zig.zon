@@ -4,6 +4,9 @@
     .version = "0.1.0",
     .paths = .{"."},
     .dependencies = .{
+        .stwo_circuit_cpu_integration = .{ .path = "../circuit_cpu" },
+        .stwo_circuit_frontend = .{ .path = "../../frontends/circuit" },
+        .stwo_riscv_cpu_integration = .{ .path = "../riscv_cpu" },
         .stwo_core = .{ .path = "../../core" },
         .stwo_prover_engine = .{ .path = "../../prover" },
         .stwo_backend_contracts = .{ .path = "../../backend" },

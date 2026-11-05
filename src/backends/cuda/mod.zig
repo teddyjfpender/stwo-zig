@@ -15,6 +15,17 @@ pub const secure_polynomial_codegen_v1 = @import("secure_polynomial_codegen_v1.z
 pub const secure_polynomial_resident_codegen_v1 = @import("secure_polynomial_resident_codegen_v1.zig");
 pub const frontend_contract = @import("frontend_contract.zig");
 pub const runtime = @import("runtime/mod.zig");
+/// Cold AOT exporters authenticate the numerical headers they compile against.
+pub const rv64_numerical_sources = struct {
+    pub const parameters = @embedFile("native/rv64/parameters.cu");
+    pub const parameters_header = @embedFile("native/rv64/parameters.h");
+    pub const oods = @embedFile("native/rv64/oods.cuh");
+    pub const composition = @embedFile("native/rv64/composition.cuh");
+    pub const projection = @embedFile("native/rv64/projection.cuh");
+    pub const om31 = @embedFile("native/rv64/om31.cuh");
+    pub const quartic = @embedFile("native/oods/field.cuh");
+};
+
 pub const upstream_sources = struct {
     const authority_root = "authority/active/";
 
