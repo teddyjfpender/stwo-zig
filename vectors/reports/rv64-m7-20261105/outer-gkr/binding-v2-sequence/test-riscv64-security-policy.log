@@ -1,0 +1,9 @@
+test-riscv64-security-policy
++- riscv test suite guard
+   +- run test stderr
+OM31_SECURITY_CANDIDATE identity=dd85fa95f35d7a3aaaadf301e53570cc8d5fea7cd8eef93a7b68377a30b59b91 conditional_weight=6051784140057819474559976
+
+Build Summary: 2/2 steps succeeded
+test-riscv64-security-policy success
++- run /workspace/zig/zig success 278ms MaxRSS:39M
+

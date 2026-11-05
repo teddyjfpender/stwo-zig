@@ -1,0 +1,9 @@
+test-circuit-om31-cuda-fractions
++- run test stderr
+OM31_CUDA_FRACTIONS components=11 physical_rows=16 native_tuple_parity=true geometry_overlap_mutants=44 zero_denominator_cases=11
+
+Build Summary: 3/3 steps succeeded; 7/7 tests passed
+test-circuit-om31-cuda-fractions success
++- run test 7 passed 122ms MaxRSS:155M
+   +- compile test ReleaseSafe native cached 51ms MaxRSS:37M
+
