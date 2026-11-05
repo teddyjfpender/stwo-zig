@@ -91,6 +91,7 @@ const Job = struct {
     metadata: Header.Metadata,
     cells: usize,
     chunks: usize,
+    seal_native: bool = false,
     // Outputs.
     packet: ?Packet.Packet = null,
     native: ?*Native = null,
@@ -117,6 +118,13 @@ const Job = struct {
         };
         if (timer) |*t| self.admit_ns = t.lap();
         self.native = Capture.Owner.captureOne(self.allocator, self.program, &self.packet.?, self.index) catch |err| {
+            self.err = err;
+            return;
+        };
+        // Seal alongside the parallel capture work. Ordered publication only
+        // reads this cached seal, so hashing cannot serialize every segment's
+        // ledger or add a second scan before early MAIN starts.
+        if (self.seal_native) _ = @import("../../word16_execution/replay_capture.zig").sealCaptured(self.native.?) catch |err| {
             self.err = err;
             return;
         };
@@ -500,7 +508,7 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
             failure = err;
             break;
         };
-        job.* = .{ .allocator = a, .program = program, .image = image, .config = config, .index = step.index, .tape = tape, .public = finished.public, .metadata = metadata, .cells = finished.cells.len, .chunks = if (finished.openings) |o| o.chunks.len else 0 };
+        job.* = .{ .allocator = a, .program = program, .image = image, .config = config, .index = step.index, .tape = tape, .public = finished.public, .metadata = metadata, .cells = finished.cells.len, .chunks = if (finished.openings) |o| o.chunks.len else 0, .seal_native = if (ready) |hook| hook.seal_native else false };
         stats.batches += 1;
         if (!concurrent) {
             job.run();
