@@ -163,7 +163,7 @@ pub const Pool = struct {
         // host_budget stays unavailable until the request owner supplies its
         // actual SharedHostBudget. The early orchestrator refuses a null owner.
         result.early_memory = .{ .context = self, .reserve = reserveEarly };
-        if (self.admission != null) result.early_segments = .{ .context = self, .lanes = self.devices.len, .laneForOrdinal = earlyLaneForOrdinal, .stages = earlyStages, .configure = configureEarly };
+        if (self.admission != null) result.early_segments = .{ .context = self, .lanes = self.devices.len, .laneForOrdinal = earlyLaneForOrdinal, .stages = earlyStages, .configure = configureEarly, .abort = abortEarly };
         if (comptime @hasField(CPU.rv64_ethereum_gkr_main.ResidentStages, "truth_pcs")) result.truth_pcs = &self.truth_pcs;
         if (std.process.hasEnvVarConstant("STWO_RV64_GPU_CPU_REPLAY")) result.cpu_replay = self.router.cpuReplayStage();
         return result;
@@ -173,6 +173,14 @@ pub const Pool = struct {
         const lane = try earlyLaneForOrdinal(self, request.ordinal);
         const stage = self.devices[lane].early_admission.stage();
         return stage.reserve(stage.context, a, request, config, budget);
+    }
+    fn abortEarly(raw: *anyopaque) void {
+        const self: *Pool = @ptrCast(@alignCast(raw));
+        // Active request cancellation is terminal. Wake capacity waiters before
+        // their workers are joined; normal completed teardown never calls this.
+        if (self.admission) |planner| for (self.endpoints) |endpoint| {
+            planner.poisonPhysical(endpoint.device);
+        };
     }
     fn configureEarly(raw: *anyopaque, cpu_workers: usize) !void {
         const self: *Pool = @ptrCast(@alignCast(raw));
