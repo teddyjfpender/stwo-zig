@@ -39,6 +39,7 @@ pub const Pending = struct {
     chain: u64,
 };
 pub const Runtime = struct {
+    service: ?*@import("pcs_native.zig").Context = null,
     allocator: std.mem.Allocator,
     session: *anyopaque,
     session_api: SC.Api,
@@ -67,6 +68,16 @@ pub const Runtime = struct {
         std.debug.assert(self.pending == null);
         self.locked_scope = scope;
     }
+    pub fn tryAcquire(self: *Runtime, scope: @TypeOf(@as(Pending, undefined).scope)) bool {
+        if (!self.mutex.tryLock()) return false;
+        std.debug.assert(self.pending == null);
+        self.locked_scope = scope;
+        return true;
+    }
+    pub fn waitAvailable(self: *Runtime) void {
+        self.mutex.lock();
+        self.mutex.unlock();
+    }
     /// Consumes the pending leases on success. Metadata uses the runtime owner,
     /// never the Child budget address which can disappear on an abort path.
     pub fn install(self: *Runtime, scope: @TypeOf(@as(Pending, undefined).scope), instances: []const Frame.Instance, fractions: []const R.Fraction, leases: []const Native.Lease, state: Slice, words: [A.gkr_state_words]u32, layers: u32, chain: u64) !void {
@@ -83,7 +94,15 @@ pub const Runtime = struct {
         if (!std.meta.eql(locked, scope)) return;
         if (self.pending) |p| {
             var cleanup = Cleanup{ .runtime = self, .pending = p };
-            _ = self.submit(self.session, Cleanup.callback, &cleanup);
+            const status = self.submit(self.session, Cleanup.callback, &cleanup);
+            if (!cleanup.metadata_freed) {
+                self.allocator.free(p.leases);
+                self.allocator.free(p.fractions);
+                self.allocator.free(p.instances);
+            }
+            if (self.service) |service| if (service.admission) |endpoint| {
+                if (status != 0) endpoint.planner.poisonPhysical(endpoint.physical) else endpoint.planner.notifyResourceRelease();
+            };
             self.pending = null;
         }
         self.locked_scope = null;
@@ -103,9 +122,7 @@ pub const Runtime = struct {
         self.pending = null;
         errdefer Owner.release(owner);
         var call = Call{ .owner = owner, .kind = .project };
-        const status = self.submit(self.session, Call.callback, &call);
-        if (call.failure) |err| return err;
-        try check(status);
+        try call.invoke();
         self.pending = null;
         self.locked_scope = null;
         self.mutex.unlock();
@@ -158,17 +175,22 @@ fn validateArtifact(pending: Pending, request: B.Request) !void {
 const Cleanup = struct {
     runtime: *Runtime,
     pending: Pending,
+    metadata_freed: bool = false,
     fn callback(ctx: *anyopaque, token: u64, raw: ?*anyopaque) callconv(.c) c_int {
         const self: *Cleanup = @ptrCast(@alignCast(raw.?));
         var context = makeContext(self.runtime, self.pending.scope, ctx, token);
+        var status: c_int = 0;
         for (self.pending.leases) |lease| {
             var own = lease;
-            context.release(&own) catch {};
+            context.release(&own) catch {
+                status = 1;
+            };
         }
         self.runtime.allocator.free(self.pending.leases);
         self.runtime.allocator.free(self.pending.fractions);
         self.runtime.allocator.free(self.pending.instances);
-        return 0;
+        self.metadata_freed = true;
+        return status;
     }
 };
 fn makeContext(runtime: *Runtime, scope: anytype, ctx: *anyopaque, token: u64) SC.Context {
@@ -193,9 +215,7 @@ const Owner = struct {
     fn park(raw: *anyopaque) !usize {
         const self: *Owner = @ptrCast(@alignCast(raw));
         var call = Call{ .owner = self, .kind = .park };
-        const status = self.runtime.submit(self.runtime.session, Call.callback, &call);
-        if (call.failure) |err| return err;
-        try check(status);
+        try call.invoke();
         return self.retainedBytes();
     }
     fn finalize(raw: *anyopaque, a: std.mem.Allocator, request: B.Request) !B.Completion {
@@ -203,9 +223,7 @@ const Owner = struct {
         if (!std.mem.eql(u8, &self.authority, &(try B.authority(request)))) return error.DeviceBindingAuthorityMismatch;
         if (self.coefficients == null) {
             var call = Call{ .owner = self, .kind = .finalize };
-            const status = self.runtime.submit(self.runtime.session, Call.callback, &call);
-            if (call.failure) |err| return err;
-            try check(status);
+            try call.invoke();
         }
         const lease = self.coefficients.?;
         const columns = try a.alloc(D.Column, self.pending.instances.len * 16);
@@ -223,7 +241,10 @@ const Owner = struct {
     fn release(raw: *anyopaque) void {
         const self: *Owner = @ptrCast(@alignCast(raw));
         var call = Call{ .owner = self, .kind = .release };
-        _ = self.runtime.submit(self.runtime.session, Call.callback, &call);
+        const status = self.runtime.submit(self.runtime.session, Call.callback, &call);
+        if (self.runtime.service) |service| if (service.admission) |endpoint| {
+            if (status != 0) endpoint.planner.poisonPhysical(endpoint.physical) else endpoint.planner.notifyResourceRelease();
+        };
         // A failed replay poisons native execution. The native owner still
         // destroys its device leases; host-only custody metadata must not leak
         // merely because it refuses another callback during teardown.
@@ -239,12 +260,77 @@ const Call = struct {
     owner: *Owner,
     kind: enum { project, finalize, park, release },
     failure: ?anyerror = null,
+    permit: ?*@import("admission_runtime.zig").Permit = null,
+    cleanup_failed: bool = false,
+    fn invoke(self: *Call) !void {
+        const runtime = self.owner.runtime;
+        var permit: ?@import("admission_runtime.zig").Permit = null;
+        if (runtime.service) |service| if (service.admission) |endpoint| {
+            const Cost = @import("native_gkr_cost.zig");
+            const A = @import("global_admission.zig");
+            var total: u64 = 0;
+            var max_log: u32 = 0;
+            for (self.owner.pending.instances) |instance| {
+                total = try std.math.add(u64, total, try instance.rows());
+                max_log = @max(max_log, instance.row_log);
+            }
+            const cost = try Cost.binding(total, max_log);
+            const successor = try service.admissionSuccessor(physicalScope(self.owner.pending.scope), if (self.kind == .finalize) .interaction else .native_gkr);
+            const temporary = switch (self.kind) {
+                .project => if (self.owner.projection_digest != null) try cost.project.add(cost.park) else cost.project,
+                .finalize => cost.finalize,
+                .park => cost.park,
+                .release => return error.InvalidBindingAdmissionKind,
+            };
+            const retained = switch (self.kind) {
+                .project => cost.projection_owner,
+                .finalize => cost.coefficient_owner,
+                else => A.Footprint{},
+            };
+            permit = try endpoint.reserve(.{ .progress_key = A.progressKey(self.owner.pending.scope), .owner = .{ .request = std.mem.readInt(u64, self.owner.pending.scope.statement[0..8], .little), .domain = .gkr_packet, .ordinal = self.owner.pending.scope.ordinal }, .stage = .gkr, .temporary = temporary, .stage_retained_upper = retained, .successor = successor, .known = true, .host_known = false });
+        };
+        defer if (permit) |*p| if (!p.closed) p.finish(.{}) catch {
+            p.endpoint.planner.poisonPhysical(p.endpoint.physical);
+        };
+        self.permit = if (permit) |*p| p else null;
+        defer self.permit = null;
+        const status = runtime.submit(runtime.session, callback, self);
+        if (self.failure) |err| return err;
+        try check(status);
+        if (permit) |*p| try runtime.service.?.completeAdmission(p, physicalScope(self.owner.pending.scope), p.demand.successor);
+    }
     fn callback(ctx: *anyopaque, token: u64, raw: ?*anyopaque) callconv(.c) c_int {
         const self: *Call = @ptrCast(@alignCast(raw.?));
-        self.run(ctx, token) catch |err| {
+        if (self.permit) |p| p.enterOwner(ctx) catch |err| {
             self.failure = err;
             return 1;
         };
+        self.run(ctx, token) catch |err| {
+            self.failure = err;
+            if (self.permit) |p| {
+                p.leaveOwner(ctx) catch {};
+                p.endpoint.planner.poisonPhysical(p.endpoint.physical);
+            }
+            return 1;
+        };
+        if (self.cleanup_failed) {
+            self.failure = error.CudaDeviceBindingCleanupFailed;
+            if (self.permit) |p| {
+                p.leaveOwner(ctx) catch {};
+                p.endpoint.planner.poisonPhysical(p.endpoint.physical);
+            }
+            return 1;
+        }
+        if (self.permit) |p| {
+            if (self.owner.runtime.session_api.sync(ctx) != 0) {
+                self.failure = error.CudaDeviceBindingFailed;
+                return 1;
+            }
+            p.leaveOwner(ctx) catch |err| {
+                self.failure = err;
+                return 1;
+            };
+        }
         return 0;
     }
     fn run(self: *Call, ctx: *anyopaque, token: u64) !void {
@@ -272,22 +358,30 @@ const Call = struct {
         if (self.kind == .release) {
             // Teardown must visit all owners even if one lease is stale or
             // the CUDA context is already poisoned.
+            var failed = false;
             if (owner.projection) |lease| {
                 var v = lease;
-                context.release(&v) catch {};
+                context.release(&v) catch {
+                    failed = true;
+                };
             }
             if (owner.coefficients) |lease| {
                 var v = lease;
-                context.release(&v) catch {};
+                context.release(&v) catch {
+                    failed = true;
+                };
             }
             var cleanup = Cleanup{ .runtime = runtime, .pending = owner.pending };
-            _ = Cleanup.callback(ctx, token, &cleanup);
+            if (Cleanup.callback(ctx, token, &cleanup) != 0) failed = true;
             owner.metadata_released = true;
+            if (failed) return error.CudaDeviceBindingCleanupFailed;
             return;
         }
         var temporary: std.ArrayList(Native.Lease) = .empty;
         defer {
-            for (temporary.items) |*l| context.release(l) catch {};
+            for (temporary.items) |*l| context.release(l) catch {
+                self.cleanup_failed = true;
+            };
             temporary.deinit(a);
         }
         const metadata = try alloc(a, &context, &temporary, 260 * 8, 0);
@@ -414,6 +508,7 @@ test "binding replay failure frees host custody when poisoned native session rej
         }
     };
     var runtime: Runtime = undefined;
+    runtime.service = null;
     runtime.allocator = a;
     runtime.session = @ptrFromInt(1);
     runtime.submit = Fake.reject;
@@ -469,4 +564,8 @@ fn alloc(a: std.mem.Allocator, context: *SC.Context, leases: *std.ArrayList(Nati
 test "device binding runtime callbacks are typed without CUDA linkage" {
     _ = &Runtime.create;
     _ = &Runtime.bind;
+}
+
+fn physicalScope(scope: anytype) D.Scope {
+    return .{ .statement = scope.statement, .fixed = scope.fixed, .main = scope.main, .ordinal = scope.ordinal };
 }

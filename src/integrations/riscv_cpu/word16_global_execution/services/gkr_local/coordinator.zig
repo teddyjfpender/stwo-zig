@@ -266,7 +266,7 @@ const Run = struct {
                     // Observation only (lane rusage); never proof authority.
                     var scope = try @import("stwo_prover_api").stage_profile.StageScope.begin(if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index], "source_construction", "CPU witness source from native capture");
                     defer scope.end();
-                    if (self.options.device_source_stage) |stage| break :blk try stage.invoke(self.a, .{ .pcs_config = self.config, .setup = self.setups[index], .request = self.requests[index], .native = self.native[index], .advice = self.advice, .ordinal = index, .first_ids = self.inventory.first_ids[index], .scope = .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(index) } });
+                    if (self.options.device_source_stage) |stage| break :blk try stage.invoke(self.a, .{ .admission_replay_required = if (replay) |owner| owner.retained_host_bytes != 0 else false, .pcs_config = self.config, .setup = self.setups[index], .request = self.requests[index], .native = self.native[index], .advice = self.advice, .ordinal = index, .first_ids = self.inventory.first_ids[index], .scope = .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(index) } });
                     break :blk try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, self.inventory.first_ids[index], false, null);
                 };
                 if (timer) |*clock| timing.?.source_ns = clock.lap();

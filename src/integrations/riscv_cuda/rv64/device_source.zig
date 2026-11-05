@@ -43,18 +43,52 @@ pub const Contributor = struct {
 pub const Context = struct {
     core: *Core.Context,
     contributors: []const Contributor,
+    progress: ?*@import("native_progress.zig").Context = null,
     pub fn stage(self: *Context) Stage {
         return .{ .context = self, .build = build };
     }
     fn build(raw: *anyopaque, a: std.mem.Allocator, request: Stage.Request) !R.Sources {
         const self: *Context = @ptrCast(@alignCast(raw));
+        const service = self.core.service;
+        if (service.admission) |*endpoint| {
+            const source = try (self.progress orelse return error.MissingNativeClassProgress).registerCpu(a, request);
+            const A = @import("global_admission.zig");
+            var retained: A.Footprint = .{};
+            for (source.list()) |allocation| {
+                if (allocation.release == .projection_join or allocation.owner == .commit_workspace or allocation.owner == .committed_coefficients) continue;
+                retained = try retained.add(try A.Footprint.allocation(try std.math.mul(u64, allocation.words, 4)));
+            }
+            const successor = try service.admissionSuccessor(request.scope, .source);
+            var permit = try endpoint.reserve(.{ .progress_key = A.progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = .native_packet, .ordinal = request.scope.ordinal }, .stage = .witness, .temporary = source.peak, .stage_retained_upper = retained, .successor = successor, .known = true, .host_known = false });
+            var active = false;
+            defer {
+                if (active) SourceControl.invoke(service, &permit, false) catch {
+                    endpoint.planner.poisonPhysical(endpoint.physical);
+                };
+                if (!permit.closed) permit.finish(.{}) catch {
+                    endpoint.planner.poisonPhysical(endpoint.physical);
+                };
+            }
+            try SourceControl.invoke(service, &permit, true);
+            active = true;
+            var result = try self.buildSource(a, request);
+            errdefer result.deinit();
+            try SourceControl.invoke(service, &permit, false);
+            active = false;
+            const owner: *CompleteOwner = @ptrCast(@alignCast(result.device_main.?.context));
+            try owner.admission_retention.complete(a, &permit, @import("pcs_scope.zig").identity(request.scope), successor);
+            return result;
+        }
+        return self.buildSource(a, request);
+    }
+    fn buildSource(self: *Context, a: std.mem.Allocator, request: Stage.Request) !R.Sources {
         const projection = try self.core.buildCore(a, request);
         errdefer projection.deinit();
         const logs = try request.setup.logs(a, 1);
         defer a.free(logs);
         const owner = try a.create(CompleteOwner);
         errdefer a.destroy(owner);
-        owner.* = .{ .allocator = a, .core = projection, .columns = try a.alloc(D.TraceColumn, logs.len) };
+        owner.* = .{ .allocator = a, .core = projection, .scope = request.scope, .columns = try a.alloc(D.TraceColumn, logs.len) };
         errdefer a.free(owner.columns);
         errdefer owner.contributions.deinit(a);
         // A missing contribution is a hard admission failure, never an implicit
@@ -79,6 +113,31 @@ pub const Context = struct {
         var result = R.Sources{ .core = try projection.takeSource(), .device_generated = true, .device_main = device };
         inline for (std.meta.fields(Headers)) |field| @field(result, field.name) = @field(headers, field.name);
         return result;
+    }
+};
+const SourceControl = struct {
+    permit: *@import("admission_runtime.zig").Permit,
+    begin: bool,
+    sync: @import("pcs_native_abi.zig").Sync,
+    failure: ?anyerror = null,
+    fn callback(raw: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
+        const self: *SourceControl = @ptrCast(@alignCast(data.?));
+        if (self.begin) self.permit.enterOwner(raw) catch |err| {
+            self.failure = err;
+            return 1;
+        } else {
+            if (self.sync(raw) != 0) return 1;
+            self.permit.leaveOwner(raw) catch |err| {
+                self.failure = err;
+                return 1;
+            };
+        }
+        return 0;
+    }
+    fn invoke(service: *@import("pcs_native.zig").Context, permit: *@import("admission_runtime.zig").Permit, begin: bool) !void {
+        const sync = service.library.lookup(@import("pcs_native_abi.zig").Sync, "stwo_exec_context_sync") orelse return error.MissingNativeSourceSync;
+        var control = SourceControl{ .permit = permit, .begin = begin, .sync = sync };
+        if (service.submit(service.session, callback, &control) != 0) return control.failure orelse error.NativeSourceAdmissionControlFailed;
     }
 };
 fn validateHeaders(request: Stage.Request, headers: *const Headers) !void {
@@ -123,14 +182,40 @@ fn appendLocalExtensions(a: std.mem.Allocator, request: Stage.Request, projectio
 const CompleteOwner = struct {
     allocator: std.mem.Allocator,
     core: *Core.CoreProjection,
+    scope: D.Scope,
+    admission_retention: @import("admission_retention.zig").Registry = .{},
     columns: []D.TraceColumn,
     contributions: std.ArrayList(Owner) = .empty,
     fn release(raw: *anyopaque) void {
         const self: *CompleteOwner = @ptrCast(@alignCast(raw));
         const a = self.allocator;
+        const service = self.core.backend.service;
         for (self.contributions.items) |c| c.release(c.context);
         self.contributions.deinit(a);
         self.core.deinit();
+        if (service.admission) |endpoint| {
+            const Join = struct {
+                sync: @import("pcs_native_abi.zig").Sync,
+                fn run(ctx: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
+                    const q: *@This() = @ptrCast(@alignCast(data.?));
+                    return q.sync(ctx);
+                }
+            };
+            const sync = service.library.lookup(@import("pcs_native_abi.zig").Sync, "stwo_exec_context_sync");
+            var joined = false;
+            if (sync) |f| {
+                var q = Join{ .sync = f };
+                joined = service.submit(service.session, Join.run, &q) == 0;
+            }
+            if (joined and endpoint.planner.healthy(endpoint.physical)) {
+                self.admission_retention.retireAfterDestruction(endpoint.planner, @import("pcs_scope.zig").identity(self.scope)) catch {
+                    endpoint.planner.poisonPhysical(endpoint.physical);
+                };
+            } else endpoint.planner.poisonPhysical(endpoint.physical);
+            if (!endpoint.planner.healthy(endpoint.physical)) self.admission_retention.abandonToPoisonedPool(endpoint.planner) catch @panic("native Source admission retirement lost custody");
+            endpoint.planner.notifyResourceRelease();
+        }
+        self.admission_retention.deinit(a);
         a.free(self.columns);
         a.destroy(self);
     }

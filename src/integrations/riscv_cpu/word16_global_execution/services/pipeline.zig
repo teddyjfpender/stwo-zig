@@ -32,6 +32,9 @@ pub const DeviceSourceStage = struct {
         /// Missing configuration refuses before the first Source allocation
         /// when admission is enabled; it is never inferred from proof bytes.
         pcs_config: ?@import("gkr_local/worker_protocol.zig").PcsConfig = null,
+        /// Set from the actual replay-owner admission, not the feature flag:
+        /// the qualified default retains the dev inventories without replay.
+        admission_replay_required: bool = false,
     };
     context: *anyopaque,
     build: *const fn (*anyopaque, std.mem.Allocator, Request) anyerror!R.Sources,

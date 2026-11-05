@@ -196,6 +196,7 @@ pub const Backend = struct {
         if (self.configuration_sealed) return error.DeviceBindingConfigurationSealed;
         if (self.binding_runtime != null) return error.DeviceBindingAlreadyEnabled;
         self.binding_runtime = try DeviceBindingRuntime.Runtime.create(self.allocator, library, self.session, self.session_api, self.numerical);
+        self.binding_runtime.?.service = self.service;
     }
     pub fn deinit(self: *Backend) void {
         if (self.binding_runtime) |runtime| runtime.destroy();
@@ -209,12 +210,56 @@ pub const Backend = struct {
     }
     fn prove(raw: *anyopaque, a: std.mem.Allocator, request: Child.NumericalStage.Request) !Proof {
         const self: *Backend = @ptrCast(@alignCast(raw));
-        if (self.binding_runtime) |runtime| runtime.acquire(request.scope);
-        var job = Job{ .backend = self, .allocator = a, .request = request };
+        var permit = try self.reserve(a, request);
+        if (self.binding_runtime) |runtime| {
+            if (permit != null) {
+                // Never hold the physical gate while waiting on a preceding
+                // worker's partial-verification/binding custody lock.
+                while (!runtime.tryAcquire(request.scope)) {
+                    // Admission already replaced this scope's old future. A
+                    // cancelled, unentered attempt must preserve its pending
+                    // numerical work before waiting without the physical gate.
+                    try self.service.?.completeAdmission(&permit.?, physicalScope(request.scope), permit.?.demand.successor);
+                    runtime.waitAvailable();
+                    permit = try self.reserve(a, request);
+                }
+            } else runtime.acquire(request.scope);
+        }
+        defer if (permit) |*p| if (!p.closed) p.finish(.{}) catch {
+            p.endpoint.planner.poisonPhysical(p.endpoint.physical);
+        };
+        var job = Job{ .backend = self, .allocator = a, .request = request, .permit = if (permit) |*p| p else null };
         const status = self.functions.submit(self.session, Job.callback, &job);
         if (job.failure) |err| return err;
         try checked(status);
+        if (permit) |*p| try self.service.?.completeAdmission(p, physicalScope(request.scope), p.demand.successor);
         return job.proof orelse error.CudaGkrStageFailed;
+    }
+    fn reserve(self: *Backend, a: std.mem.Allocator, request: Child.NumericalStage.Request) !?Admission.Permit {
+        const service = self.service orelse return null;
+        const endpoint = service.admission orelse return null;
+        var source = try Sources.Plan.init(a, request, &self.catalogue);
+        defer source.deinit();
+        const items = try a.alloc(Cost.Item, source.items.len);
+        defer a.free(items);
+        const variables = try a.alloc(u32, source.items.len);
+        defer a.free(variables);
+        for (source.items, items, variables) |item, *cost, *variable| {
+            cost.* = .{ .facts = item.facts, .offsets = item.offsets.len, .public = item.public.len, .parameters = self.catalogue.artifacts[item.kernel].source_slots.len };
+            variable.* = item.log + std.math.log2_int(u32, item.lanes);
+        }
+        const traversal = try G.Plan.init(variables, @min(self.byte_cap, request.byte_cap));
+        var fixed_words: u64 = 0;
+        if (self.fixed_provider != null) for (request.native_fixed_columns) |column| {
+            fixed_words = try std.math.add(u64, fixed_words, @as(u64, 1) << @intCast(column.log_size));
+        };
+        var all_main_resident = true;
+        for (request.native_main_columns) |column| all_main_resident = all_main_resident and column.device != null;
+        const native = request.native_source orelse return error.NativeGkrSourceRequired;
+        const plan = try Cost.init(.{ .cells = source.cells, .twiddles = @as(usize, 1) << @intCast(source.max_log - 1), .workspace = traversal.total_words, .relation_count = if (native.core.cpu.u8_pairs) @intCast(std.enums.values(Source.Fractions.Relation).len) else @intFromEnum(Source.Fractions.Relation.byte_pair), .items = items, .publish_coefficients = self.coefficient_sink != null and !all_main_resident, .binding_state_words = if (self.binding_runtime != null) A.gkr_state_words else 0, .cold_fixed_words = fixed_words });
+        const successor = (try service.admissionSuccessor(physicalScope(request.scope), .native_gkr)).max(try service.admissionSuccessor(physicalScope(request.scope), .main_commit));
+        const Global = @import("global_admission.zig");
+        return try endpoint.reserve(.{ .progress_key = Global.progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = .gkr_packet, .ordinal = request.scope.ordinal }, .stage = .gkr, .temporary = plan.peak, .stage_retained_upper = plan.retained, .successor = successor, .known = true, .host_known = false });
     }
     fn bind(raw: *anyopaque, a: std.mem.Allocator, request: Child.DeviceBinding.Request) !Child.DeviceBinding.Owner {
         const self: *Backend = @ptrCast(@alignCast(raw));
@@ -222,6 +267,9 @@ pub const Backend = struct {
     }
     fn replayBinding(raw: *anyopaque, a: std.mem.Allocator, request: Child.NumericalStage.Request, owner: *Child.DeviceBinding.Owner) !void {
         const self: *Backend = @ptrCast(@alignCast(raw));
+        // Replay also invokes the projected binding and replay digest in the
+        // same owner callback. Its joined cost is not this numerical plan.
+        if (self.service) |service| if (service.admission != null) return error.NativeGkrReplayAdmissionUnavailable;
         if (!owner.parked or !std.meta.eql(owner.scope, request.scope)) return error.DeviceBindingReplayPhase;
         const runtime = self.binding_runtime orelse return error.DeviceBindingUnavailable;
         runtime.acquire(request.scope);
@@ -244,12 +292,31 @@ const Job = struct {
     proof: ?Proof = null,
     failure: ?anyerror = null,
     replay_owner: ?*Child.DeviceBinding.Owner = null,
+    permit: ?*Admission.Permit = null,
     fn callback(raw_context: *anyopaque, token: u64, raw: ?*anyopaque) callconv(.c) c_int {
         const self: *Job = @ptrCast(@alignCast(raw orelse return 1));
-        self.execute(raw_context, token) catch |err| {
+        if (self.permit) |p| p.enterOwner(raw_context) catch |err| {
             self.failure = err;
             return 1;
         };
+        self.execute(raw_context, token) catch |err| {
+            self.failure = err;
+            if (self.permit) |p| {
+                p.leaveOwner(raw_context) catch {};
+                p.endpoint.planner.poisonPhysical(p.endpoint.physical);
+            }
+            return 1;
+        };
+        if (self.permit) |p| {
+            if (self.backend.session_api.sync(raw_context) != 0) {
+                self.failure = error.CudaGkrStageFailed;
+                return 1;
+            }
+            p.leaveOwner(raw_context) catch |err| {
+                self.failure = err;
+                return 1;
+            };
+        }
         return 0;
     }
     fn execute(self: *Job, raw_context: *anyopaque, token: u64) !void {
@@ -593,4 +660,8 @@ test "GKR product tree batching is explicit and fails closed on invalid mode or 
 fn findLease(leases: []const Native.Lease, generation: u64) !Native.Lease {
     for (leases) |lease| if (lease.generation == generation) return lease;
     return error.DeviceBindingUnavailable;
+}
+
+fn physicalScope(scope: anytype) @import("stwo_riscv_cpu_integration").rv64_device_pcs.Scope {
+    return .{ .statement = scope.statement, .fixed = scope.fixed, .main = scope.main, .ordinal = scope.ordinal };
 }

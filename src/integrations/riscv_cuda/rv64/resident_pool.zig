@@ -40,6 +40,7 @@ pub const Pool = struct {
         bulk_sponge: @import("bulk_sponge.zig").Context,
         contributors: [2]@import("device_source.zig").Contributor,
         source: @import("device_source.zig").Context,
+        native_progress: @import("native_progress.zig").Context,
         cpu_replay: @import("cpu_replay.zig").Context,
         truth_source: @import("truth_source.zig").Context,
         truth_composition: CPU.rv64_gkr_truth_device_composition.Stage,
@@ -49,6 +50,7 @@ pub const Pool = struct {
             if (admission) |planner| try self.native.attachGlobalAdmission(planner, id);
             self.gkr = try @import("gkr_stage.zig").Backend.init(a, &self.native.library, self.native.session, std.math.cast(usize, cap) orelse return error.InvalidResidentDeviceCaps);
             errdefer self.gkr.deinit();
+            self.gkr.service = &self.native;
             if (device_binding) try self.gkr.enableDeviceBinding(&self.native.library);
             self.gkr.fixed_provider = .{ .context = &self.native, .acquire = @import("pcs_native.zig").Context.provideFixed, .release = @import("pcs_native.zig").Context.releaseProvidedFixed };
             self.gkr.coefficient_sink = .{ .context = &self.native, .publish = @import("pcs_native.zig").Context.publishCoefficients };
@@ -70,9 +72,16 @@ pub const Pool = struct {
             self.bridge = try @import("bridge_witness.zig").Context.init(&self.native);
             self.bulk_sponge = try @import("bulk_sponge.zig").Context.init(&self.native);
             self.contributors = .{ self.bridge.contributor(), self.bulk_sponge.contributor() };
-            self.source = .{ .core = &self.core_source, .contributors = &self.contributors };
+            self.native_progress = .{ .service = &self.native, .projection = &self.projection, .trace = &self.trace, .gkr = &self.gkr, .global = &self.global_interaction, .composition = &self.composition };
+            self.source = .{ .core = &self.core_source, .contributors = &self.contributors, .progress = &self.native_progress };
             self.truth_source = try @import("truth_source.zig").Context.init(a, &self.native, &self.trace, &self.global_interaction);
             errdefer self.truth_source.deinit();
+            self.truth_source.composition = &self.composition;
+            if (self.native.admission) |endpoint| {
+                try endpoint.planner.registerCoverage(id, .native_source);
+                try endpoint.planner.registerCoverage(id, .native_gkr);
+                try endpoint.planner.registerCoverage(id, .native_interaction);
+            }
             self.truth_composition = try self.composition.truthStage();
         }
         fn deinit(self: *Device) void {
