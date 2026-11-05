@@ -1,0 +1,15 @@
+{
+  "source_checkpoint": "b7a6bc49fa9de18ab960bb7e85b2a3e15743e91c",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/rv64_ethereum_request.zig": "894ebf822bbb4e8319af4e9477517b904495d4a994dd72d2fca02d9afadbfc22",
+    "src/integrations/riscv_cpu/word16_execution/expected_image.zig": "c9f4c6b519d484ef35c3b8c639bdf5e25ef183791494868e58a81c1e38da227a",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig": "34ad20049616dfe5ebc3b79703baf88393040cc90050dc14178ea8a0a968e737",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig": "698844e72b1527f165745febdc8d6deebfcfb28ec1be776acc5d5240e8ce7136",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/capture_prefetch_test.zig": "0ef841db3f841a6103a8bd95fec3c456f1276fe4e735e63c228fe2de21daa962",
+    "src/integrations/riscv_cpu/rv64_ethereum_native_prepare.zig": "e3f28b38ef207802528e245d6f2b49ee33ff1b15871406b5d36e99dad9a22815",
+    "src/integrations/riscv_cpu/rv64_prepared_work_packet.zig": "33cfc1ba7ef3e1f95da0546de5f2d1d2d46ce2397b743ca5166ae5f7085d78f4"
+  },
+  "driver_sha256": "fc322e8c7d9bc47b055847c3eee3d8cef5c3276ad779fe7b47b68c973699e3a9",
+  "native_library_sha256": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45",
+  "receiver_sha256": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42"
+}
