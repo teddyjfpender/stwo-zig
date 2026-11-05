@@ -919,5 +919,18 @@
         }
       }
     ]
+  },
+  "latency_qualification": {
+    "status": "diagnostic-only-quiet-load-gate-failed",
+    "threshold": 8,
+    "control_load1_before_after": [
+      6.03515625,
+      9.80908203125
+    ],
+    "candidate_load1_before_after": [
+      10.33251953125,
+      23.884765625
+    ],
+    "acceptance_and_byte_identity_qualification_unchanged": true
   }
 }
