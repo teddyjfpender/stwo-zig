@@ -87,7 +87,7 @@ pub fn configIdentity(config: Worker.PcsConfig) ![32]u8 {
     var tag: [32]u8 = undefined;
     std.crypto.hash.blake2.Blake2s256.hash("rv64/native-gkr/config/v2", &tag, .{});
     h.digest(tag);
-    h.words(&.{ config.pow_bits, config.fri_config.log_blowup_factor, config.fri_config.log_last_layer_degree_bound, config.fri_config.n_queries, config.fri_config.fold_step });
+    h.words(&.{ config.pow_bits, config.fri_config.log_blowup_factor, config.fri_config.log_last_layer_degree_bound, @intCast(config.fri_config.n_queries), config.fri_config.fold_step });
     return h.final();
 }
 fn limbs(value: u64) [4]u32 {
