@@ -1,0 +1,45 @@
+test-riscv64-capture-prefetch
++- riscv test suite guard
+   +- run test failure
+thread 1694425 panic: reached unreachable code
+/workspace/zig/lib/std/mem/Allocator.zig:147:25: 0x1174fe1 in runWithOptions (test)
+    return a.vtable.free(a.ptr, memory, alignment, ret_addr);
+                        ^
+/workspace/m3/src/m6-capture-base/src/integrations/riscv_cpu/rv64_ethereum_native_prepare.zig:291:26: 0x11ac12c in test.fast first pass + parallel segment walks equal the serial walk (native jobs and direct capture) (test)
+    return runWithOptions(a, config, .{});
+                         ^
+/workspace/zig/lib/compiler/test_runner.zig:130:29: 0x107ccef in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/workspace/zig/lib/compiler/test_runner.zig:64:26: 0x107beb5 in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/workspace/zig/lib/std/start.zig:618:22: 0x1079742 in posixCallMainAndExit (test)
+            root.main();
+                     ^
+/workspace/zig/lib/std/start.zig:232:5: 0x107935d in _start (test)
+    asm volatile (switch (native_arch) {
+    ^
+???:?:?: 0x0 in ??? (???)
+error: while executing test 'word16_global_execution.ethereum.capture_prefetch_test.test.fast first pass + parallel segment walks equal the serial walk (native jobs and direct capture)', the following command terminated with signal 6 (expected exited with code 0):
+/workspace/m3/build/m6-capture/testcache-m6-capture-base/products/riscv_cpu/o/94cd1d1b9545ccc929a3cdfadff40277/test --cache-dir=/workspace/m3/build/m6-capture/testcache-m6-capture-base/products/riscv_cpu --seed=0x247c59f8 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 2/2 tests passed
+test-riscv64-capture-prefetch transitive failure
++- riscv test suite guard transitive failure
+   +- run test failure
+
+error: the following build command failed with exit code 1:
+/workspace/m3/build/m6-capture/testcache-m6-capture-base/products/riscv_cpu/o/0a2c06e073cb9fbc3d9a0615ff2feb46/build /workspace/zig/zig /workspace/zig/lib /workspace/m3/src/m6-capture-base/build_support /workspace/m3/build/m6-capture/testcache-m6-capture-base/products/riscv_cpu /workspace/m3/cache/zig-global --seed 0x247c59f8 -Ze828ea45f3f1d4f1 test-riscv64-capture-prefetch -p /workspace/m3/src/m6-capture-base/zig-out -Drepository-root=/workspace/m3/src/m6-capture-base -Dproduct-scope=riscv_cpu -Doptimize=ReleaseSafe -Driscv-test-filter=walks -Dtarget=x86_64-linux.6.8...6.8-gnu.2.39 -Dcpu=x86_64_v4+sha -Dimplementation-commit=95d40063d8b4723338535cf06b7a1b11cdbba0f9 -Dimplementation-dirty=false -Dimplementation-tree=fee6f4d962be2708722df7edbf97df4d424bfe21
+test-riscv64-capture-prefetch
++- run /workspace/zig/zig failure
+error: the following command exited with error code 1:
+/workspace/zig/zig build test-riscv64-capture-prefetch --build-file /workspace/m3/src/m6-capture-base/build_support/internal_build.zig --cache-dir /workspace/m3/build/m6-capture/testcache-m6-capture-base/products/riscv_cpu -p /workspace/m3/src/m6-capture-base/zig-out -Drepository-root=/workspace/m3/src/m6-capture-base -Dproduct-scope=riscv_cpu -Doptimize=ReleaseSafe -Driscv-test-filter=walks -Dtarget=x86_64-linux.6.8...6.8-gnu.2.39 -Dcpu=x86_64_v4+sha -Dimplementation-commit=95d40063d8b4723338535cf06b7a1b11cdbba0f9 -Dimplementation-dirty=false -Dimplementation-tree=fee6f4d962be2708722df7edbf97df4d424bfe21
+
+Build Summary: 0/2 steps succeeded; 1 failed
+test-riscv64-capture-prefetch transitive failure
++- run /workspace/zig/zig failure
+
+error: the following build command failed with exit code 1:
+/workspace/m3/build/m6-capture/testcache-m6-capture-base/o/480735211f9ce3ca80ebf2f4066f6784/build /workspace/zig/zig /workspace/zig/lib /workspace/m3/src/m6-capture-base /workspace/m3/build/m6-capture/testcache-m6-capture-base /workspace/m3/cache/zig-global --seed 0x1942a4d9 -Z245be9cb4c0f1279 test-riscv64-capture-prefetch -Doptimize=ReleaseSafe -Dcpu=x86_64_v4+sha -Dimplementation-commit=95d40063d8b4723338535cf06b7a1b11cdbba0f9 -Dimplementation-tree=fee6f4d962be2708722df7edbf97df4d424bfe21 -Dimplementation-dirty=false -j16 -Driscv-test-filter=walks
+STEP test-riscv64-capture-prefetch walks rc=1 0s

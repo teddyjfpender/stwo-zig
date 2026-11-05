@@ -28,6 +28,46 @@ pub fn captureNext(session: *rv.ethereum_services.Session, tape: *rv.compact_tap
     try batch.observe(record);
 }
 
+/// Traced fast retirement up to clock `limit` (M6 capture): every ordinary
+/// instruction the engine can retire is written to `tape`, `capture` and
+/// `batch` exactly as `captureNext` would (the engine's program must be
+/// restricted with `admitsFast` for `batch.authority`). Stops before the
+/// first instruction it cannot retire (services, traps, absent pages, the
+/// clock limit); the caller then takes one reference `captureNext` step.
+pub fn runFast(engine: *rv.fast_execution.Engine, session: *rv.ethereum_services.Session, tape: *rv.compact_tape.Tape, capture: *rv.boundary_capture.Capture, batch: *Batch, limit: u64) !void {
+    if (batch.tape != tape or batch.capture != capture) return error.InvalidEthereumBatchSeed;
+    const cpu = &session.keccak.base.cpu;
+    // Same budget as Session.step: the reference step reports StepLimit.
+    const end = @min(limit, session.keccak.base.max_retirements, tape.initial_clock + tape.storage.len);
+    if (cpu.retired != tape.initial_clock + tape.len or cpu.retired != capture.initial_clock + capture.steps or batch.steps != tape.len or cpu.pc != batch.next_pc) return error.InvalidEthereumBatchClock;
+    while (cpu.retired < end) {
+        // Bounded reservation per round (a whole batch could need 4M words).
+        const round = @min(end, cpu.retired + FAST_ROUND);
+        tape.memory_before.ensureUnusedCapacity(tape.allocator, @intCast(round - cpu.retired)) catch return;
+        var trace = rv.fast_execution.Trace{ .steps = tape.storage, .len = tape.len, .memory_before = &tape.memory_before, .capture = capture, .clocks = undefined };
+        trace.clocks[0..32].* = batch.register_clocks;
+        trace.clocks[32] = 0;
+        const exit = engine.runTraced(cpu, round, &trace);
+        const retired = trace.len - tape.len;
+        tape.len = trace.len;
+        batch.register_clocks = trace.clocks[0..32].*;
+        batch.steps += @intCast(retired);
+        batch.next_pc = cpu.pc;
+        batch.division_requests += trace.divisions;
+        batch.multiplication_requests += trace.multiplications;
+        if (exit == .slow) return;
+    }
+}
+const FAST_ROUND: u64 = 1 << 16;
+/// Program-engine restriction for `runFast`: a pc is fast only when the
+/// authority admits it with the very opcode the engine decoded from the
+/// image (so `Batch.observe` would accept it); anything else stays on the
+/// reference path and fails or succeeds there.
+pub fn admitsFast(authority: *const Full.ProgramAuthority, pc: u64, raw: u32, inst: rv.decode.Instruction) bool {
+    const decoded = authority.instructionAt(pc) catch return false;
+    return decoded.raw == raw and std.meta.eql(decoded.instruction, inst) and inst.opcode != .ECALL and inst.opcode != .EBREAK;
+}
+
 pub const Batch = struct {
     authority: *const Full.ProgramAuthority,
     tape: *const rv.compact_tape.Tape,

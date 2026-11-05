@@ -7,16 +7,157 @@ const Retirement = @import("machine.zig").Retirement;
 const Event = @import("ethereum_services/session.zig").Event;
 pub const Cell = struct { address: u64, initial: u64, final: u64, terminal_clock: u32, rights: u2 };
 const Transition = struct { address: u64, before: u64, after: u64, writable_required: bool };
+/// A captured word without its address (implied by its page block slot).
+pub const Slot = struct { initial: u64, final: u64, terminal_clock: u32, rights: u2 };
+const WORDS_PER_PAGE = 512;
+const PAGE_SHIFT = 12;
+/// One guest page's captured words, in address order.
+const Block = struct {
+    page: u64,
+    present: [WORDS_PER_PAGE / 64]u64,
+    slots: [WORDS_PER_PAGE]Slot,
+};
+/// The captured words of a batch, by guest page (M6): a page-index map to
+/// dense 512-word blocks plus a last-page cache, so consecutive accesses to
+/// one page cost an array index instead of a scattered hash probe, and the
+/// address-sorted cell list is read out in page order without a sort.
+/// Blocks are kept across `clear` for reuse. Contents equal the former
+/// `AutoHashMap(address, Cell)`; only the representation changed.
+pub const CellMap = struct {
+    allocator: std.mem.Allocator,
+    pages: std.AutoHashMapUnmanaged(u64, *Block) = .empty,
+    /// Blocks owned (in use by `pages`, then spare ones for reuse), carved
+    /// from `slabs` of SLAB blocks each.
+    blocks: std.ArrayListUnmanaged(*Block) = .empty,
+    slabs: std.ArrayListUnmanaged([]Block) = .empty,
+    used: usize = 0,
+    cells: u32 = 0,
+    /// Direct-mapped page -> block cache in front of `pages` (code, stack
+    /// and heap pages alternate; one entry would thrash).
+    cache_pages: [CACHE]u64 = @splat(std.math.maxInt(u64)),
+    cache_blocks: [CACHE]*Block = undefined,
+    const CACHE = 32;
+    const SLAB = 64;
+    fn init(a: std.mem.Allocator) CellMap {
+        return .{ .allocator = a };
+    }
+    fn deinit(self: *CellMap) void {
+        for (self.slabs.items) |slab| self.allocator.free(slab);
+        self.slabs.deinit(self.allocator);
+        self.blocks.deinit(self.allocator);
+        self.pages.deinit(self.allocator);
+        self.* = undefined;
+    }
+    pub fn count(self: *const CellMap) u32 {
+        return self.cells;
+    }
+    inline fn cacheSlot(page: u64) usize {
+        return @intCast(page & (CACHE - 1));
+    }
+    inline fn cached(self: *const CellMap, page: u64) ?*Block {
+        const k = cacheSlot(page);
+        return if (self.cache_pages[k] == page) self.cache_blocks[k] else null;
+    }
+    inline fn blockOf(self: *CellMap, page: u64) ?*Block {
+        if (self.cached(page)) |block| return block;
+        const block = self.pages.get(page) orelse return null;
+        self.cache_pages[cacheSlot(page)] = page;
+        self.cache_blocks[cacheSlot(page)] = block;
+        return block;
+    }
+    fn blockOfConst(self: *const CellMap, page: u64) ?*Block {
+        if (self.cached(page)) |block| return block;
+        return self.pages.get(page);
+    }
+    /// The block of `page`, created (empty) if absent. Creating an empty
+    /// block publishes nothing: `get`, `count` and `sorted` see only cells.
+    fn ensureBlock(self: *CellMap, page: u64) !*Block {
+        if (self.blockOf(page)) |block| return block;
+        try self.pages.ensureUnusedCapacity(self.allocator, 1);
+        if (self.used == self.blocks.items.len) {
+            try self.blocks.ensureUnusedCapacity(self.allocator, SLAB);
+            try self.slabs.ensureUnusedCapacity(self.allocator, 1);
+            const slab = try self.allocator.alloc(Block, SLAB);
+            self.slabs.appendAssumeCapacity(slab);
+            for (slab) |*fresh| self.blocks.appendAssumeCapacity(fresh);
+        }
+        const block = self.blocks.items[self.used];
+        self.used += 1;
+        block.page = page;
+        block.present = @splat(0);
+        self.pages.putAssumeCapacityNoClobber(page, block);
+        self.cache_pages[cacheSlot(page)] = page;
+        self.cache_blocks[cacheSlot(page)] = block;
+        return block;
+    }
+    inline fn slotIndex(address: u64) usize {
+        return @intCast((address >> 3) & (WORDS_PER_PAGE - 1));
+    }
+    inline fn isPresent(block: *const Block, i: usize) bool {
+        return block.present[i / 64] & (@as(u64, 1) << @intCast(i % 64)) != 0;
+    }
+    pub fn get(self: *const CellMap, address: u64) ?Cell {
+        const block = self.blockOfConst(address >> PAGE_SHIFT) orelse return null;
+        const i = slotIndex(address);
+        if (!isPresent(block, i)) return null;
+        const slot = block.slots[i];
+        return .{ .address = address, .initial = slot.initial, .final = slot.final, .terminal_clock = slot.terminal_clock, .rights = slot.rights };
+    }
+    pub fn getPtr(self: *CellMap, address: u64) ?*Slot {
+        const block = self.blockOf(address >> PAGE_SHIFT) orelse return null;
+        const i = slotIndex(address);
+        if (!isPresent(block, i)) return null;
+        return &block.slots[i];
+    }
+    /// Publish a fresh cell in an existing block (see `ensureBlock`).
+    inline fn insert(self: *CellMap, block: *Block, address: u64, slot: Slot) void {
+        const i = slotIndex(address);
+        std.debug.assert(!isPresent(block, i));
+        block.present[i / 64] |= @as(u64, 1) << @intCast(i % 64);
+        block.slots[i] = slot;
+        self.cells += 1;
+    }
+    fn clear(self: *CellMap) void {
+        self.pages.clearRetainingCapacity();
+        self.used = 0;
+        self.cells = 0;
+        self.cache_pages = @splat(std.math.maxInt(u64));
+    }
+    fn sorted(self: *const CellMap, a: std.mem.Allocator) ![]Cell {
+        const order = try a.alloc(*Block, self.used);
+        defer a.free(order);
+        @memcpy(order, self.blocks.items[0..self.used]);
+        std.mem.sort(*Block, order, {}, blockLess);
+        const result = try a.alloc(Cell, self.cells);
+        var at: usize = 0;
+        for (order) |block| {
+            for (block.present, 0..) |word, w| {
+                var bits = word;
+                while (bits != 0) : (bits &= bits - 1) {
+                    const i = 64 * w + @ctz(bits);
+                    const slot = block.slots[i];
+                    result[at] = .{ .address = (block.page << PAGE_SHIFT) | (@as(u64, i) << 3), .initial = slot.initial, .final = slot.final, .terminal_clock = slot.terminal_clock, .rights = slot.rights };
+                    at += 1;
+                }
+            }
+        }
+        std.debug.assert(at == result.len);
+        return result;
+    }
+    fn blockLess(_: void, x: *Block, y: *Block) bool {
+        return x.page < y.page;
+    }
+};
 pub const Capture = struct {
     allocator: std.mem.Allocator,
     initial_clock: u64,
     max_steps: u32,
     max_cells: u32,
     steps: u32 = 0,
-    cells: std.AutoHashMap(u64, Cell),
+    cells: CellMap,
     pub fn init(a: std.mem.Allocator, initial_clock: u64, max_steps: u32, max_cells: u32) !Capture {
         if (max_steps == 0 or max_steps >= 1 << 23 or max_cells == 0 or max_cells > 1 << 24 or initial_clock > std.math.maxInt(u64) - @as(u64, max_steps)) return error.InvalidBoundaryCapture;
-        return .{ .allocator = a, .initial_clock = initial_clock, .max_steps = max_steps, .max_cells = max_cells, .cells = std.AutoHashMap(u64, Cell).init(a) };
+        return .{ .allocator = a, .initial_clock = initial_clock, .max_steps = max_steps, .max_cells = max_cells, .cells = CellMap.init(a) };
     }
     pub fn deinit(self: *Capture) void {
         self.cells.deinit();
@@ -197,35 +338,50 @@ pub const Capture = struct {
         }
         if (@as(u64, self.cells.count()) + fresh > self.max_cells) return error.BoundaryCaptureResourceLimit;
         // Validate the entire atomic service and reserve before publishing any
-        // word. Capacity failure preserves all prior words and the step clock.
-        try self.cells.ensureUnusedCapacity(fresh);
+        // word. Capacity failure preserves all prior words and the step clock
+        // (a reserved empty page block publishes nothing).
+        for (transitions) |transition| _ = try self.cells.ensureBlock(transition.address >> PAGE_SHIFT);
         for (transitions, 0..) |transition, i| {
-            const entry = self.cells.getOrPutAssumeCapacity(transition.address);
-            if (!entry.found_existing) entry.value_ptr.* = .{ .address = transition.address, .initial = transition.before, .final = transition.after, .terminal_clock = tick, .rights = masks[i] } else {
-                entry.value_ptr.final = transition.after;
-                entry.value_ptr.terminal_clock = tick;
-            }
+            if (self.cells.getPtr(transition.address)) |previous| {
+                previous.final = transition.after;
+                previous.terminal_clock = tick;
+            } else self.cells.insert(self.cells.blockOf(transition.address >> PAGE_SHIFT).?, transition.address, .{ .initial = transition.before, .final = transition.after, .terminal_clock = tick, .rights = masks[i] });
         }
         self.steps += 1;
+    }
+    /// One ordinary RAM word access of the traced fast engine
+    /// (`fast_execution.Engine.runTraced`): exactly `publish` for a single
+    /// transition whose permission checks the caller has already resolved
+    /// to `rights`, except that the step counter is advanced by the caller
+    /// and every refusal (discontinuity, cell budget, allocation) returns
+    /// false with the capture unchanged, so the reference retirement of the
+    /// same instruction reports the reference error.
+    pub inline fn fastWord(self: *Capture, address: u64, before: u64, after: u64, rights: u2, tick: u32) bool {
+        const page = address >> PAGE_SHIFT;
+        const block = self.cells.cached(page) orelse (self.cells.ensureBlock(page) catch return false);
+        const i = CellMap.slotIndex(address);
+        if (CellMap.isPresent(block, i)) {
+            const previous = &block.slots[i];
+            if (previous.final != before or previous.rights != rights or previous.terminal_clock >= tick) return false;
+            previous.final = after;
+            previous.terminal_clock = tick;
+            return true;
+        }
+        if (self.cells.cells >= self.max_cells) return false;
+        self.cells.insert(block, address, .{ .initial = before, .final = after, .terminal_clock = tick, .rights = rights });
+        return true;
     }
     /// Freeze before advancing the image into the next batch: the openings
     /// adapter needs current final neighbors to reconstruct before chunks.
     pub fn sorted(self: *const Capture, a: std.mem.Allocator) ![]Cell {
-        const result = try a.alloc(Cell, self.cells.count());
-        var it = self.cells.valueIterator();
-        var at: usize = 0;
-        while (it.next()) |cell| : (at += 1) result[at] = cell.*;
-        std.mem.sort(Cell, result, {}, less);
-        return result;
+        return self.cells.sorted(a);
     }
     pub fn clearRetainingCapacity(self: *Capture) !void {
         const next = self.initial_clock + self.steps;
         if (next > std.math.maxInt(u64) - @as(u64, self.max_steps)) return error.InvalidBoundaryClock;
         self.initial_clock = next;
         self.steps = 0;
-        self.cells.clearRetainingCapacity();
+        self.cells.clear();
     }
 };
-fn less(_: void, a: Cell, b: Cell) bool {
-    return a.address < b.address;
-}
+

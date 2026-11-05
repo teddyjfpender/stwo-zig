@@ -1,0 +1,171 @@
+{
+ "block": 24628607,
+ "tag": "v4-i4-r8",
+ "binary": "/workspace/m3/build/m6-capture/v4/bin/rv64-capture-bench",
+ "binary_sha256": "3d170039db13c733e5a0cc9abb89db247bafb05c5c1c51f49e135851ce128fb8",
+ "env": {},
+ "resources": {
+  "gkr_bytes": 34359738368,
+  "global_bytes": 8589934592,
+  "retained_frontend_bytes": 51539607552,
+  "disk_bytes": 0,
+  "park_main": false,
+  "schedule": {
+   "lanes": 2,
+   "workers_per_lane": 4,
+   "memory_cap_bytes": 38654705664,
+   "lane_workers": [
+    4,
+    4
+   ]
+  },
+  "capture_options": {
+   "max_inflight_packets": 4,
+   "packet_heap_bytes": 1073741824,
+   "max_inflight_packet_heap_bytes": 4294967296,
+   "max_inflight_wire_bytes": 4294967296,
+   "execution_workers": 8
+  },
+  "recycler_cache_bytes": 1073741824,
+  "keccak_max_log": 18
+ },
+ "rc": 0,
+ "process_wall_s": 10.4497,
+ "user_s": 13.097707,
+ "sys_s": 5.600881,
+ "avg_busy_cores": 1.79,
+ "max_rss_gib": 4.894,
+ "minor_faults": 1865361,
+ "major_faults": 0,
+ "loadavg_before": [
+  17.607421875,
+  17.994140625,
+  19.92138671875
+ ],
+ "loadavg_after": [
+  19.42919921875,
+  18.38623046875,
+  20.02880859375
+ ],
+ "nproc": 192,
+ "thp": {
+  "enabled": "always [madvise] never",
+  "defrag": "always defer defer+madvise [madvise] never"
+ },
+ "vmstat_delta": {
+  "compact_stall": 0,
+  "compact_fail": 0,
+  "compact_success": 0,
+  "thp_fault_alloc": 0,
+  "thp_fault_fallback": 0,
+  "pgmajfault": 0
+ },
+ "capture": {
+  "scope": "producer capture diagnostic only; no proof or acceptance (rv64-capture-bench)",
+  "security_qualified": false,
+  "total_steps": 26894777,
+  "final_pc": 525288,
+  "memory_words": 1032216,
+  "capture_options": {
+   "max_inflight_packets": 4,
+   "packet_heap_bytes": 1073741824,
+   "max_inflight_packet_heap_bytes": 4294967296,
+   "max_inflight_wire_bytes": 4294967296,
+   "execution_workers": 8
+  },
+  "capture_selection": {
+   "max_inflight_packets": 4,
+   "max_worker_shards": 4,
+   "decoded_packet_heap_limit_bytes": null,
+   "max_reserved_decoded_packet_heap_bytes": 0,
+   "max_single_packet_decoded_heap_bytes": 0
+  },
+  "packet_import_ns": 0,
+  "image_and_import_ns": 2515897921,
+  "capture_breakdown": {
+   "image_load_ns": 280989900,
+   "program_ns": 117274802,
+   "pre_import_ns": 86832011,
+   "import_ns": 2030801038
+  },
+  "capture_inputs": {
+   "init_ns": 485096713,
+   "first_inputs_ns": 1347203763,
+   "last_inputs_ns": 2357511645,
+   "all_inputs_ns": 2515897921,
+   "ledger_ns": 510028974,
+   "ledger_finish_ns": 118752270
+  },
+  "captured_values_sha256": "e5f5e7606c584ca6f9a68f6e6eefef86908d7011ad2a98ad75e82eb8f5a4bb77",
+  "capture_source": "in_process_execution",
+  "direct_capture": {
+   "batches": 7,
+   "max_inflight": 4,
+   "execution_ns": 301597556,
+   "join_wait_ns": 966859752,
+   "segments": {
+    "segments": 7,
+    "workers": 8,
+    "first_pass_ns": 193297700,
+    "first_pass_retired": 26894777,
+    "fast_retired": 26821846,
+    "pages_copied": 4699,
+    "peak_live_pages": 4699,
+    "wait_ns": 300227859,
+    "walk_ns_total": 1730130649,
+    "walk_ns_max": 326213758,
+    "walk_retired": 26894777,
+    "walk_traced_ns": 1397685532,
+    "walk_finish_ns": 144620388,
+    "traced_engine": true,
+    "traced_program_ns": 7383568,
+    "walk_fast_retired": 26747155,
+    "walk_fast_ns": 1161114952,
+    "walk_reference_ns": 232263592,
+    "walk_reference_steps": 147622
+   },
+   "first_batch_ready_ns": 135043494,
+   "first_batch_admit_ns": 217232763,
+   "first_batch_capture_ns": 660416623,
+   "segments_ready": 7,
+   "segment_ready_ns": [
+    862068100,
+    997244443,
+    1279821691,
+    1361893549,
+    1442168191,
+    1802658904,
+    1872375982,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "start_boot_ns": 293716839,
+   "start_join_ns": 38580
+  },
+  "diagnostic_digest_ns": 7533567540
+ },
+ "stderr_tail": ""
+}
