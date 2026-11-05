@@ -497,6 +497,7 @@ def receive_one(plan, block, proof, out_root, workers):
     B.atomic_json(request_path, request)
     environment = {k: v for k, v in os.environ.items() if k not in ("STWO_ZIG_RV64_SETUP_CACHE", "STWO_RV64_OUTER_PLAN_CLASS_STORE")}
     environment = R.receiver_environment(environment, out / "gpu-disabled")
+    environment = P.format_environment(environment, plan)
     environment["STWO_RV64_FOLD_CLASS_CACHE"] = "0"
     receiver = Path(plan["assets"]["recursive_receiver"])
     before = {str(p.relative_to(proof)): P.sha(p) for p in sorted(proof.rglob("*")) if p.is_file()}

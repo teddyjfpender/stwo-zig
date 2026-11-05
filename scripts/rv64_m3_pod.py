@@ -50,7 +50,23 @@ DEFAULT_PRODUCER_ENV = {
     "STWO_RV64_GPU_CPU_REPLAY": "1",
     "STWO_RV64_CORE_SINGLE_STREAM": "1",
     "STWO_RV64_DEVICE_ARENA": "1",  # = auto: carve (free - reserve) at service start; 22G is the opt-in <=28 GB cap
+    # M6 integrate default format (vectors/reports/rv64-m6-20261105/integrate/): diet-wire 4-ary folds + Merkle cap 3 in
+    # fold circuits, on the flat (M5) native format. Receivers take the same selector from the run's plan
+    # (format_environment). Old format: --env STWO_RV64_OUTER_PROFILE=r1 (byte-identical to the M5 default) or --no-default-env.
+    "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
 }
+# Proof-format selectors a receiver must share with the producer of the run it checks.
+FORMAT_ENV_KEYS = ("STWO_RV64_OUTER_PROFILE", "STWO_RV64_NATIVE_VERSION")
+
+
+def format_environment(environment, plan):
+    """Receiver env: the run's recorded producer format selectors, unless the caller set them (adversarial runs)."""
+    recorded = plan.get("resident_environment") or {}
+    result = dict(environment)
+    for key in FORMAT_ENV_KEYS:
+        if key not in os.environ and key in recorded:
+            result[key] = recorded[key]
+    return result
 
 
 # M6 native-stream default native coordinator schedule (vectors/reports/rv64-m6-20261105/native-stream/): two
@@ -488,6 +504,7 @@ def receive(args, run=None):
     environment = dict(os.environ)
     environment.pop("STWO_ZIG_RV64_SETUP_CACHE", None)  # cache-disabled
     environment = R.receiver_environment(environment, out / "gpu-disabled")
+    environment = format_environment(environment, plan)
     # Acceptance is cache-disabled: the fold v2 receiver class cache defaults on, so force it off.
     environment["STWO_RV64_FOLD_CLASS_CACHE"] = "0"
     command = ["nice", "-n", "10", *B.command(receiver, plan["profile"], "verify-recursion-candidate", request_path, proof,
