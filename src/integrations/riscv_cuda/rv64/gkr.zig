@@ -190,10 +190,17 @@ fn enqueueImpl(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena
         variables[i] = std.math.log2_int(u32, input.count);
     }
     const plan = try Plan.init(variables[0..inputs.len], byte_cap);
-    var reservations = S.ReservationSet(3 + 2 * max_instances){};
+    var reservations = S.ReservationSet(3 + 18 * max_instances){};
     try reservations.slice(commands.context, arena, plan.total_words, true);
     try reservations.slice(commands.context, seed, 9, false);
-    for (inputs) |input| try reservations.fraction(commands.context, input, input.count, false);
+    for (inputs) |input| {
+        if (input.projected != null) {
+            const borrowed = input.projected.?.borrowed;
+            if (borrowed.len == 0 or borrowed.len > 16) return error.InvalidProjectedSource;
+            for (borrowed) |span| try reservations.slice(commands.context, span, span.len, false);
+            if (comptime @hasDecl(@TypeOf(commands.*), "validateProjection")) try commands.validateProjection(input) else return error.ProjectedSourceUnavailable;
+        } else try reservations.fraction(commands.context, input, input.count, false);
+    }
     if (verdict) |status| try reservations.slice(commands.context, status, 1, true);
     const state = try region(arena, plan.state);
     const point = try state.sub(A.gkr_point_word, 8 * plan.layers);

@@ -23,14 +23,33 @@ pub const Plane = struct {
         };
     }
 };
+/// A class-specific, device-resident fraction evaluator. Descriptors contain
+/// only scoped MAIN/FIXED/parameter pointers and public geometry. Every callback
+/// validates all its read/write ranges before enqueue and never synchronizes.
+/// Keeping the source implicit is essential at BOTH the tree ingress and the
+/// last GKR layer (which revisits the original fractions).
+pub const ProjectedSource = struct {
+    descriptor: *const anyopaque,
+    /// Complete borrowed allocations (including the sticky atomic verdict),
+    /// admitted against every writable traversal arena before any mutation.
+    /// Several source descriptors may share these read/atomic-status slabs.
+    borrowed: []const Slice,
+    validate: *const fn (*anyopaque, u32, *const anyopaque, u32) callconv(.c) c_int,
+    layer: *const fn (*anyopaque, u32, *const anyopaque, u32, u32, abi.Plane, abi.Plane) callconv(.c) c_int,
+    sum: *const fn (*anyopaque, u32, *const anyopaque, u32, abi.Plane, [*]const u32, abi.Plane, abi.Plane, abi.Plane) callconv(.c) c_int,
+    fold: *const fn (*anyopaque, u32, *const anyopaque, u32, [*]const u32, abi.Plane, abi.Plane) callconv(.c) c_int,
+    mask: *const fn (*anyopaque, u32, *const anyopaque, [*]u32) callconv(.c) c_int,
+};
 pub const Fraction = struct {
-    n: Plane,
-    d: Plane,
+    n: Plane = undefined,
+    d: Plane = undefined,
     count: u32,
+    projected: ?ProjectedSource = null,
 
     fn validate(self: Fraction) !void {
         if (self.count == 0 or self.count > 1 << 28 or !std.math.isPowerOfTwo(self.count))
             return error.InvalidGeometry;
+        if (self.projected != null) return;
         if (self.n.coordinates != 1 and self.n.coordinates != 8) return error.InvalidPlane;
         try self.n.shape(self.count, self.n.coordinates);
         try self.d.shape(self.count, 8);
@@ -123,6 +142,11 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             };
             self.launches +|= launches;
         }
+        pub fn validateProjection(self: *Self, input: Fraction) !void {
+            try input.validate();
+            const source = input.projected orelse return error.ProjectedSourceRequired;
+            try self.result(source.validate(try self.handle(), self.lane_index, source.descriptor, input.count), 0);
+        }
         pub fn project(self: *Self, tuples: Plane, weights: Plane, active: Plane, arity: u32, challenges: Slice, output: Fraction, verdict: Slice) !void {
             try output.validate();
             if (arity == 0 or arity > 32) return error.InvalidGeometry;
@@ -152,6 +176,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 return error.InvalidGeometry;
             try output.n.shape(output.count, 8);
             const owner = try self.handle();
+            if (input.projected) |source| return self.result(source.layer(owner, self.lane_index, source.descriptor, input.count, levels, try output.n.bind(self.context), try output.d.bind(self.context)), 1);
             try self.result(self.callApi("stwo_rv64_gkr_layer_on", .{
                 owner,
                 self.lane_index,
@@ -169,6 +194,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             if (input.count < 2 or output.count != input.count / 2) return error.InvalidGeometry;
             try output.n.shape(output.count, 8);
             const owner = try self.handle();
+            if (input.projected) |source| return self.result(source.fold(owner, self.lane_index, source.descriptor, input.count, try self.context.deviceSlicePointer(u32, challenge, 8), try output.n.bind(self.context), try output.d.bind(self.context)), 1);
             try self.result(self.callApi("stwo_rv64_gkr_fold_on", .{
                 owner,
                 self.lane_index,
@@ -204,6 +230,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             var waves: u64 = 1;
             while (groups > 1) : (groups = (groups + 127) / 128) waves += 1;
             const owner = try self.handle();
+            if (input.projected) |source| return self.result(source.sum(owner, self.lane_index, source.descriptor, input.count, try eq_values.bind(self.context), try self.context.deviceSlicePointer(u32, lambda, 8), try scratch_a.bind(self.context), try scratch_b.bind(self.context), try output.bind(self.context)), waves);
             const sum_function = (if (self.split_secure_sum) self.apiPointer("stwo_rv64_gkr_sum_split_on") else self.apiPointer("stwo_rv64_gkr_sum_on")) orelse return self.result(400, 0);
             try self.result(sum_function(
                 owner,
@@ -257,6 +284,10 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         }
         pub fn layerBatch(self: *Self, jobs: []const BatchFold) !void {
             if (jobs.len == 0 or jobs.len > abi.batch_max_oracles) return error.InvalidGeometry;
+            for (jobs) |job| if (job.input.projected != null) {
+                for (jobs) |item| try self.layer(item.input, 1, item.output);
+                return;
+            };
             const count = jobs[0].input.count;
             var packets: [abi.batch_max_oracles]abi.BatchFoldJob = undefined;
             for (jobs, packets[0..jobs.len]) |job, *packet| {
@@ -273,6 +304,10 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         }
         pub fn sumBatch(self: *Self, jobs: []const BatchSum, eq_values: Plane, lambda: Slice) !void {
             if (jobs.len == 0 or jobs.len > abi.batch_max_oracles) return error.InvalidGeometry;
+            for (jobs) |job| if (job.input.projected != null) {
+                for (jobs) |item| try self.sum(item.input, eq_values, lambda, item.a, item.b, item.output);
+                return;
+            };
             const count = jobs[0].input.count;
             if (count < 4) return error.InvalidGeometry;
             const groups = (count / 4 + 127) / 128;
@@ -293,6 +328,10 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         }
         pub fn foldBatch(self: *Self, jobs: []const BatchFold, challenge: Slice) !void {
             if (jobs.len == 0 or jobs.len > abi.batch_max_oracles) return error.InvalidGeometry;
+            for (jobs) |job| if (job.input.projected != null) {
+                for (jobs) |item| try self.fold(item.input, challenge, item.output);
+                return;
+            };
             const count = jobs[0].input.count;
             var packets: [abi.batch_max_oracles]abi.BatchFoldJob = undefined;
             for (jobs, packets[0..jobs.len]) |job, *packet| {
@@ -447,12 +486,17 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             try input.validate();
             if (input.count != 2) return error.InvalidGeometry;
             const owner = try self.handle();
+            if (input.projected) |source| return self.result(source.mask(owner, self.lane_index, source.descriptor, try self.context.deviceSlicePointer(u32, output, 32)), 1);
             try self.result(self.callApi("stwo_rv64_batch_mask_on", .{ owner, self.lane_index, try input.n.bind(self.context), try input.d.bind(self.context), try self.context.deviceSlicePointer(u32, output, 32) }), 1);
         }
         /// Every terminal mask is independent. Preserve oracle order and exact
         /// packing, using one launch per layer when the native image supports it.
         pub fn packBatchMasks(self: *Self, inputs: []const Fraction, outputs: []const Slice) !void {
             if (inputs.len == 0 or inputs.len > abi.batch_max_oracles or inputs.len != outputs.len) return error.InvalidGeometry;
+            for (inputs) |input| if (input.projected != null) {
+                for (inputs, outputs) |item, output| try self.packBatchMask(item, output);
+                return;
+            };
             if (comptime @hasField(Api, "stwo_rv64_batch_masks_on") or @hasDecl(Api, "stwo_rv64_batch_masks_on")) {
                 if (self.batched_oracles and self.apiPointer("stwo_rv64_batch_masks_on") != null) {
                     var packets: [abi.batch_max_oracles]abi.BatchMaskJob = undefined;
