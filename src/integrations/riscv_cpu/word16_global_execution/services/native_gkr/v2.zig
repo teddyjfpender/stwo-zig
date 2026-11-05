@@ -88,27 +88,35 @@ pub fn requireSalt(salt: O) !void {
     for (words[1..]) |word| if (!word.isZero()) return error.NativeGkrSaltOutOfRange;
 }
 
-pub fn mixHeader(a: std.mem.Allocator, channel: anytype, roster: *const R.Roster, scope: *const S.Scope, salt: O) !void {
-    try requireSalt(salt);
-    channel.mixU32s(&identityWords());
-    channel.mixU32s(&.{ S.MAGIC, VERSION, scope.ordinal });
-    for ([_][32]u8{ scope.statement, scope.fixed, scope.main, scope.shared }) |b| {
-        var w: [8]u32 = undefined;
-        for (&w, 0..) |*x, i| x.* = std.mem.readInt(u32, b[4 * i ..][0..4], .little);
-        channel.mixU32s(&w);
-    }
-    const header = try roster.header(a);
-    defer a.free(header);
-    channel.mixU32s(header);
-    channel.mixFelts(&.{salt});
+/// One framing visitor for native and circuit channels. Each writer method
+/// preserves a complete original mix call; concatenating/splitting calls is
+/// not transcript-equivalent for the raw Blake channel.
+pub fn emitHeader(scope:anytype,header:[]const u32,salt:anytype,writer:anytype)void{
+    writer.constants(&identityWords());
+    writer.sectionHeader(S.MAGIC,VERSION,scope.ordinal);
+    inline for(.{"statement","fixed","main","shared"}) |name|writer.digest(@field(scope,name));
+    writer.constants(header);writer.salt(salt);
+}
+pub fn mixHeader(a:std.mem.Allocator,channel:anytype,roster:*const R.Roster,scope:*const S.Scope,salt_value:O)!void{
+    try requireSalt(salt_value);
+    const header=try roster.header(a);defer a.free(header);
+    var writer=struct{
+        channel:@TypeOf(channel),
+        pub fn constants(w:*@This(),words:[]const u32)void{w.channel.mixU32s(words);}
+        pub fn sectionHeader(w:*@This(),magic:u32,version:u32,ordinal:u32)void{w.channel.mixU32s(&.{magic,version,ordinal});}
+        pub fn digest(w:*@This(),bytes:[32]u8)void{var words:[8]u32=undefined;for(&words,0..) |*word,i|word.*=std.mem.readInt(u32,bytes[4*i..][0..4],.little);w.channel.mixU32s(&words);}
+        pub fn salt(w:*@This(),value:O)void{w.channel.mixFelts(&.{value});}
+    }{.channel=channel};
+    emitHeader(scope,header,salt_value,&writer);
 }
 
 /// The local relations' lookup elements (z_r, alpha_r), r = 0..LOCAL_RELATIONS-1, in fractions.zig Relation
 /// order. Drawn strictly here and nowhere else (review item 2).
 pub const LocalElementsFor = @import("projection.zig").LocalFor;
 pub const LocalElements = @import("projection.zig").LocalFor(O);
-pub fn drawLocalElements(strict: *S.StrictChannel) LocalElements {
-    var out: LocalElements = undefined;
+pub fn drawLocalElements(strict: *S.StrictChannel) LocalElements { return drawLocalElementsFor(O,strict); }
+pub fn drawLocalElementsFor(comptime F:type,strict:anytype) LocalElementsFor(F) {
+    var out: LocalElementsFor(F) = undefined;
     for (&out.z, &out.alpha) |*z, *alpha| {
         z.* = strict.drawSecureFelt();
         alpha.* = strict.drawSecureFelt();

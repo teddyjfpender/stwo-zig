@@ -55,6 +55,7 @@ pub fn build(b: *std.Build) void {
 
     const native_gkr_root = b.createModule(.{ .root_source_file = b.path("rv64_native_gkr_test_root.zig"), .target = target, .optimize = optimize });
     native_gkr_root.addImport("stwo_core", core);
+    native_gkr_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", dependency_options).module("stwo_circuit_frontend"));
     native_gkr_root.addImport("stwo_cpu_backend", cpu_backend);
     native_gkr_root.addImport("stwo_prover_api", prover_api);
     native_gkr_root.addImport("interop_postcard", postcard);
