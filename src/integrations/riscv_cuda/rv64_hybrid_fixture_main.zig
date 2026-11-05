@@ -49,7 +49,8 @@ pub fn main() !void {
         return @import("rv64/outer_hybrid_aot.zig").write(a, directory);
     }
     const wrapped_mode = args.len == 4 and std.mem.eql(u8, args[1], "--prove-wrapped");
-    const prove = args.len == 4 and (std.mem.eql(u8, args[1], "--prove") or wrapped_mode);
+    const frontier = args.len == 4 and std.mem.eql(u8, args[1], "--prove-frontier");
+    const prove = args.len == 4 and (std.mem.eql(u8, args[1], "--prove") or wrapped_mode or frontier);
     const verify = args.len == 3 and std.mem.eql(u8, args[1], "--verify");
     const child = args.len == 3 and std.mem.eql(u8, args[1], "--check-child");
     const mutants = args.len == 3 and std.mem.eql(u8, args[1], "--check-child-mutants");
@@ -138,6 +139,7 @@ pub fn main() !void {
     defer composition.deinit();
     var source = try Source.Context.init(a, &native, &trace, &composition);
     defer source.deinit();
+    if (frontier) source.gkr_mode = .recomputed_frontier;
     const factory = try source.factoryForHybrid();
     const want = expected();
     var first: ?[]u8 = null;

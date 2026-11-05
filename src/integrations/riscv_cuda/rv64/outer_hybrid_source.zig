@@ -305,8 +305,9 @@ const Owner = struct {
             variables[i] = instance.variables();
             inputs[i] = .{ .count = @as(u32, 1) << @intCast(variables[i]), .projected = .{ .descriptor = &self.descriptors[i], .borrowed = self.borrowed[i][0..self.borrowed_counts[i]], .validate = self.runtime.validate, .layer = self.runtime.layer, .sum = self.runtime.sum, .fold = self.runtime.fold, .mask = self.runtime.mask } };
         }
-        const plan = try G.Plan.init(&variables, @intCast(self.native.backend.service.byte_cap));
-        std.debug.print("GPU_OUTER_GKR_PLAN ordinal={} instances=8 facts={} workspace_bytes={} original_fraction_bytes=0\n", .{ self.base.scope.ordinal, self.key.class.fractions(), plan.total_words * 4 });
+        const mode = self.native.backend.gkr_mode;
+        const plan = try G.Plan.initMode(&variables, @intCast(self.native.backend.service.byte_cap), mode);
+        std.debug.print("GPU_OUTER_GKR_PLAN ordinal={} instances=8 facts={} workspace_bytes={} original_fraction_bytes=0 mode={s}\n", .{ self.base.scope.ordinal, self.key.class.fractions(), plan.total_words * 4, @tagName(mode) });
         var workspace = try ctx.allocate(plan.total_words, 0);
         defer ctx.release(&workspace) catch {};
         var seed = try ctx.allocate(9, 0);
@@ -314,7 +315,7 @@ const Owner = struct {
         try ctx.upload(try ctx.borrow(seed), &self.seed);
         try ctx.join();
         var commands = R.Commands(SC.Context, N.Api){ .context = &ctx, .api = &self.runtime.numerical, .lane_index = 0 };
-        const traversal = try G.enqueue(&commands, &inputs, try ctx.borrow(seed), try ctx.borrow(workspace), @intCast(self.native.backend.service.byte_cap), 0);
+        const traversal = try G.enqueueMode(&commands, &inputs, try ctx.borrow(seed), try ctx.borrow(workspace), @intCast(self.native.backend.service.byte_cap), 0, mode);
         try ctx.join();
         var header_words: [20]u32 = undefined;
         var verdict: [1]u32 = undefined;

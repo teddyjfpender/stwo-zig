@@ -56,6 +56,8 @@ pub const Context = struct {
     metadata_cap_bytes: usize = 4 << 20,
     active: ?*Owner = null,
     hybrid: ?*@import("outer_hybrid_source.zig").Runtime = null,
+    /// Receiver-neutral workspace policy, selected by the global admission planner.
+    gkr_mode: @import("gkr.zig").Mode = .retained_tree,
     fixed_pending: ?*@import("outer_fixed.zig").Owner = null,
     fixed_nonce: u64 = 0,
     assignment: ?Assignment.Prepared = null,

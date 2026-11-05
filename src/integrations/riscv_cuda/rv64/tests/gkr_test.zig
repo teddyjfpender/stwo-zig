@@ -53,8 +53,8 @@ const Commands = struct {
         s.closures += 1;
     }
     pub fn layer(s: *@This(), input: R.Fraction, levels: u32, output: R.Fraction) !void {
-        try std.testing.expectEqual(@as(u32, 1), levels);
-        try std.testing.expectEqual(input.count / 2, output.count);
+        try std.testing.expect(levels == 1 or levels == 2);
+        try std.testing.expectEqual(input.count >> @intCast(levels), output.count);
         s.calls += 1;
         s.projected_layers += @intFromBool(input.projected != null);
         s.recordEdge(input, output);
@@ -362,4 +362,80 @@ test "GKR Eq lifetime is disjoint from every live input and fold bank at mixed h
     try std.testing.expectError(error.InvalidGeometry, plan.equalityWorkspace(plan.layers + 1));
     const real = try G.Plan.init(&.{ 23, 22, 23, 21, 27, 26, 24, 24 }, std.math.maxInt(usize));
     try std.testing.expectEqual(@as(usize, 16573396480), real.total_words * 4);
+}
+
+test "GKR recomputed frontier bounds every source fold bank Eq and rebuild phase through maximum height" {
+    const Region = @import("../plan.zig").Region;
+    const heights = [_]u32{ 1, 2, 3, 4, 7, 10, 12, 28 };
+    const plan = try G.Plan.initMode(&heights, std.math.maxInt(usize), .recomputed_frontier);
+    for (heights, 0..) |height, oracle| {
+        const owned = plan.oracles[oracle].frontier.?;
+        for (0..height) |level| {
+            const count = (@as(u32, 1) << @intCast(height)) >> @intCast(level + 1);
+            for (0..2) |bank| {
+                // Bank one is used only from the second launch, at count<=N/4.
+                if (bank == 1 and level == 0) continue;
+                const target = try plan.frontierBuildBank(oracle, bank, count);
+                for ([_]Region{ target.n, target.d }) |span| {
+                    try std.testing.expect(span.offset_words >= owned.offset_words);
+                    try std.testing.expect(span.offset_words + span.words <= owned.offset_words + owned.words);
+                }
+            }
+        }
+    }
+    var remaining = plan.layers;
+    while (remaining != 0) : (remaining -= 1) {
+        const eq = try plan.equalityWorkspace(remaining);
+        for (heights, 0..) |height, oracle| {
+            if (height < remaining) continue;
+            const owned = plan.oracles[oracle].frontier.?;
+            var live: [6]Region = undefined;
+            var count: usize = 0;
+            if (remaining != 1) {
+                const source = try plan.frontierSource(oracle, remaining);
+                live[count] = source.n;
+                live[count + 1] = source.d;
+                count += 2;
+            }
+            const n = (@as(u32, 1) << @intCast(height)) >> @intCast(remaining - 1);
+            const used: usize = if (n == 2) 0 else if (n == 4) 1 else 2;
+            const banks = try plan.foldingBanks(oracle, remaining);
+            for (banks[0..used]) |bank| {
+                live[count] = bank.n;
+                live[count + 1] = bank.d;
+                count += 2;
+            }
+            for (live[0..count], 0..) |span, i| {
+                try std.testing.expect(span.offset_words >= owned.offset_words);
+                try std.testing.expect(span.offset_words + span.words <= owned.offset_words + owned.words);
+                try std.testing.expect(!regionOverlaps(eq, span));
+                for (live[i + 1 .. count]) |other| try std.testing.expect(!regionOverlaps(span, other));
+            }
+        }
+        try std.testing.expect(eq.offset_words + eq.words <= plan.total_words);
+    }
+    const real_heights = [_]u32{ 23, 22, 23, 21, 27, 26, 24, 24 };
+    const full = try G.Plan.init(&real_heights, std.math.maxInt(usize));
+    const frontier = try G.Plan.initMode(&real_heights, std.math.maxInt(usize), .recomputed_frontier);
+    try std.testing.expect(frontier.total_words < full.total_words);
+    std.debug.print("\nGKR_FRONTIER_PLAN retained_bytes={} frontier_bytes={} saved_bytes={}\n", .{ full.total_words * 4, frontier.total_words * 4, (full.total_words - frontier.total_words) * 4 });
+    try std.testing.expectError(error.GkrWorkspaceBudgetExceeded, G.Plan.initMode(&real_heights, frontier.total_words * 4 - 1, .recomputed_frontier));
+}
+
+test "GKR recomputed frontier traverses all mixed heights and rejects alias before mutation" {
+    const heights = [_]u32{ 1, 2, 3, 4, 7 };
+    var f = Factory{};
+    var inputs: [heights.len]R.Fraction = undefined;
+    for (&inputs, heights) |*input, height| input.* = f.fraction(@as(u32, 1) << @intCast(height));
+    const seed = f.slice(9);
+    const plan = try G.Plan.initMode(&heights, std.math.maxInt(usize), .recomputed_frontier);
+    const arena = f.slice(plan.total_words);
+    var context = Context{};
+    var commands = Commands{ .context = &context };
+    _ = try G.enqueueMode(&commands, &inputs, seed, arena, plan.total_words * 4, 1, .recomputed_frontier);
+    try std.testing.expectEqual(plan.layers, commands.parents);
+    try std.testing.expectEqual(plan.layers, commands.batches);
+    commands = .{ .context = &context };
+    try std.testing.expectError(error.OverlappingWorkspace, G.enqueueMode(&commands, &inputs, try arena.sub(0, 9), arena, plan.total_words * 4, 1, .recomputed_frontier));
+    try std.testing.expectEqual(@as(usize, 0), commands.calls);
 }
