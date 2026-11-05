@@ -215,12 +215,28 @@ test "outer GKR hybrid PCS hook authenticates original MAIN and binding masks wi
             column.* = try a.alloc(Lane.Lane, values.len);
             for (column.*, values) |*wire, value| wire.* = try Lane.Lane.guess(&ctx, value);
         };
-        const wire_params = try a.alloc(Lane.Lane, params.len);
-        defer a.free(wire_params);
-        for (wire_params, params) |*wire, value| wire.* = try Lane.Lane.guess(&ctx, value);
         const wire_point = try a.alloc(Lane.Lane, verified.artifact.ood_point.len);
         defer a.free(wire_point);
         for (wire_point, verified.artifact.ood_point) |*wire, value| wire.* = try Lane.Lane.guess(&ctx, value);
+        const wire_claims = try a.alloc([]const Lane.Lane, verified.artifact.claims_to_verify_by_instance.len);
+        defer {
+            for (wire_claims) |values| a.free(values);
+            a.free(wire_claims);
+        }
+        for (wire_claims, verified.artifact.claims_to_verify_by_instance) |*out, values| {
+            const wires = try a.alloc(Lane.Lane, values.len);
+            for (wires, values) |*wire, value| wire.* = try Lane.Lane.guess(&ctx, value);
+            out.* = wires;
+        }
+        const wire_verified = struct { artifact: struct { ood_point: []const Lane.Lane, claims_to_verify_by_instance: []const []const Lane.Lane } }{ .artifact = .{ .ood_point = wire_point, .claims_to_verify_by_instance = wire_claims } };
+        var wire_ch = struct { rho: [P.MAX_INSTANCES]Lane.Lane, gamma: Lane.Lane }{ .rho = undefined, .gamma = try Lane.Lane.guess(&ctx, ch.gamma) };
+        for (wire_ch.rho[0..class.instances.len], ch.rho[0..class.instances.len]) |*wire, value| wire.* = try Lane.Lane.guess(&ctx, value);
+        const wire_params = try artifact.parametersFor(Lane.Lane, a, source, try Lane.Lane.guess(&ctx, z), try Lane.Lane.guess(&ctx, alpha), &class, &wire_verified, &wire_ch, Lane.Lane.zero());
+        defer a.free(wire_params);
+        for (wire_params, params) |wire, value| {
+            try ctx.eq(wire.c0.v, try ctx.constant(value.c0));
+            try ctx.eq(wire.c1.v, try ctx.constant(value.c1));
+        }
         var wire_mask = core.air.components.ForField(Lane.Lane).MaskValues{ .items = &wire_trees };
         const circuit_values = try comp.valuesAtPointFor(Lane.Lane, a, .{ .x = try Lane.Lane.guess(&ctx, point.x), .y = try Lane.Lane.guess(&ctx, point.y) }, &wire_mask, global_log, wire_point, wire_params);
         defer a.free(circuit_values);
@@ -264,4 +280,25 @@ test "outer GKR source-derived receiver key binds all hybrid IR and refuses inco
     const claims = CPU.om31.witness.Claims.fromArray(@splat(O.zero()));
     var section: S.Section = undefined;
     try std.testing.expectError(error.InvalidHybridProof, key.verify(a, &.{}, claims, &section, &proof));
+}
+test "outer GKR hybrid device extension refuses wrong tags and contexts before casts and requires an explicit GPU backend" {
+    const Device = @import("hybrid_device.zig");
+    const Native = CPU.om31.device_prove;
+    const Never = struct {
+        fn prepare(_: *anyopaque, _: std.mem.Allocator, _: *const CPU.om31.prove.Authority, _: []const CPU.om31.protocol.Q, _: @import("stwo_prover_api").device_pcs.Scope) !Native.Source {
+            return error.UnexpectedHostFallback;
+        }
+    };
+    var context: u8 = 0;
+    var other: u8 = 0;
+    var factory = Native.Factory{ .context = &context, .prepare = Never.prepare };
+    try std.testing.expectError(error.HybridFactoryRequired, Device.extension(factory));
+    var key: @import("hybrid_receiver.zig").Key = undefined;
+    var graph: circuit.builder.Context(CPU.om31.protocol.Q) = undefined;
+    try std.testing.expectError(error.HybridFactoryRequired, Device.proveFromCircuit(a, &key, &graph, &.{}, 0, factory, null));
+    factory.extension = .{ .tag = @splat(1), .base_context = &context, .context = &other, .interface = @ptrFromInt(1) };
+    try std.testing.expectError(error.InvalidHybridFactoryExtension, Device.extension(factory));
+    factory.extension.?.tag = Device.TAG;
+    factory.extension.?.base_context = &other;
+    try std.testing.expectError(error.InvalidHybridFactoryExtension, Device.extension(factory));
 }

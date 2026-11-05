@@ -54,7 +54,15 @@ pub threadlocal var class_is_leaf: bool = false;
 /// it reports the template's variable count in `n_vars`. Never enters a proof.
 pub const SeedTape = struct { values: []const [4]u32, n_vars: u32 = 0, consumed: bool = false };
 pub threadlocal var seed_tape: ?*SeedTape = null;
+pub const FactoryExtension = struct {
+    tag: [32]u8,
+    base_context: *anyopaque,
+    context: *anyopaque,
+    interface: *const anyopaque,
+};
 pub const Factory = struct {
+    /// Typed by a higher integration layer; this module never interprets it.
+    extension: ?FactoryExtension = null,
     context: *anyopaque,
     /// Optional device-free host stage. Thread-safe with respect to this
     /// factory's device work: it never touches device or active-proof state.

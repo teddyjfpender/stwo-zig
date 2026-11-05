@@ -23,7 +23,15 @@ pub const Component = struct {
     class: *const P.Class,
     verified: *const S.Verified,
     parameters: []const O,
-    const Adapter = core.air.derive.ForField(O).ComponentAdapter(@This(), void, void, void);
+    const ProverAir = @import("stwo_prover_engine").air.component_prover.ForField(O);
+    const Domain = @import("stwo_prover_engine").air.accumulation.ForField(O);
+    const Adapter = core.air.derive.ForField(O).ComponentAdapter(@This(), ProverAir.ComponentProver, ProverAir.Trace, Domain.DomainEvaluationAccumulator);
+    pub fn asProverComponent(self: *const @This()) ProverAir.ComponentProver {
+        return Adapter.asProverComponent(self);
+    }
+    pub fn evaluateConstraintQuotientsOnDomain(_: *const @This(), _: *const ProverAir.Trace, _: *Domain.DomainEvaluationAccumulator) !void {
+        return error.HybridResidentCompositionRequired;
+    }
     pub fn asVerifierComponent(self: *const @This()) Air.Component {
         return Adapter.asVerifierComponent(self);
     }
@@ -115,7 +123,7 @@ pub const Component = struct {
     pub fn valuesAtPoint(self: *const @This(), a: std.mem.Allocator, point: Point, mask: *const Air.MaskValues, global_log: u32) ![]O {
         return self.valuesAtPointFor(O, a, point, mask, global_log, self.verified.artifact.ood_point, self.parameters);
     }
-    pub fn valuesAtPointFor(self: *const @This(), comptime Lane: type, a: std.mem.Allocator, point: core.circle.CirclePoint(Lane), mask: *const core.air.components.ForField(Lane).MaskValues, global_log: u32, gkr_point: []const Lane, parameters: []const Lane) ![]Lane {
+    pub fn valuesAtPointFor(self: *const @This(), comptime Lane: type, a: std.mem.Allocator, point: core.circle.CirclePoint(Lane), mask: anytype, global_log: u32, gkr_point: []const Lane, parameters: []const Lane) ![]Lane {
         if (self.class.binding_version != .cyclic_eq_v2 or global_log < self.source.trace_log_size or gkr_point.len != self.class.layers() or self.source.trace_log_size != self.class.row_logs[@intFromEnum(self.artifact.component)]) return error.InvalidHybridMaskGeometry;
         const local = point.repeatedDouble(global_log - self.source.trace_log_size);
         const hybrid = P.gkrBound(self.artifact.component);

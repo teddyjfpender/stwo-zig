@@ -16,6 +16,10 @@ import time
 
 
 SOURCES = [
+    "src/integrations/circuit_cpu/om31/device_prove.zig",
+    "src/integrations/riscv_cpu/mod.zig",
+    "src/integrations/riscv_cpu/outer_gkr/binding.zig",
+    "src/integrations/riscv_cpu/outer_gkr/hybrid_device.zig",
     "src/integrations/riscv_cpu/outer_gkr/hybrid_receiver.zig",
     "src/integrations/riscv_cpu/outer_gkr/hybrid_component.zig",
     "src/integrations/riscv_cpu/outer_gkr/hybrid_air.zig",
