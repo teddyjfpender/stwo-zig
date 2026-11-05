@@ -576,12 +576,27 @@ pub fn recordFoldInto(sink: *Sink, children: [2]Bridge.Child, class: [32]u8, dig
     return recordFoldImpl(sink, children, class, digest, authority);
 }
 fn recordFoldImpl(sink: *Sink, children: [2]Bridge.Child, class: [32]u8, digest: [32]u8, authority: *const Prove.Authority) !void {
-    const left = try VerifierKey.fromAuthority(children[0].authority);
-    const right = try VerifierKey.fromAuthority(children[1].authority);
-    if (!std.mem.eql(u8, &foldClassKey(&left, &right), &class)) return error.VkFoldClassReimplementationDrift;
-    var child_digests: [2][32]u8 = undefined;
-    for (children, &child_digests) |child, *out| out.* = try digestOf(child.produced.outputs);
-    const mine = try foldDigest(.{ .{ .key = &left, .digest = child_digests[0] }, .{ .key = &right, .digest = child_digests[1] } });
+    return recordFoldImplK(sink, &children, class, digest, authority);
+}
+/// k-ary record + cross-check (M6 integrate: diet-wire k-ary folds under the
+/// fold-v3 parallel derive). Binary folds take the same path with k = 2, so
+/// their class keys and digests are the binary forms (`foldClassKeyK` /
+/// `foldDigestK` keep word `version` at k = 2).
+pub fn recordFoldIntoK(sink: *Sink, children: []const Bridge.Child, class: [32]u8, digest: [32]u8, authority: *const Prove.Authority) !void {
+    return recordFoldImplK(sink, children, class, digest, authority);
+}
+fn recordFoldImplK(sink: *Sink, children: []const Bridge.Child, class: [32]u8, digest: [32]u8, authority: *const Prove.Authority) !void {
+    if (children.len < 2 or children.len > Dag.max_arity) return error.VkFoldArityOutOfRange;
+    var vks: [Dag.max_arity]VerifierKey = undefined;
+    var keys: [Dag.max_arity]*const VerifierKey = undefined;
+    var fold_children: [Dag.max_arity]FoldChild = undefined;
+    for (children, 0..) |child, i| {
+        vks[i] = try VerifierKey.fromAuthority(child.authority);
+        keys[i] = &vks[i];
+    }
+    if (!std.mem.eql(u8, &(try foldClassKeyK(keys[0..children.len])), &class)) return error.VkFoldClassReimplementationDrift;
+    for (children, 0..) |child, i| fold_children[i] = .{ .key = keys[i], .digest = try digestOf(child.produced.outputs) };
+    const mine = try foldDigestK(fold_children[0..children.len]);
     if (!std.mem.eql(u8, &mine, &digest)) return error.VkFoldDigestReimplementationDrift;
     try sink.folds.append(sink.allocator, .{ .class = class, .vk = try VerifierKey.fromAuthority(authority) });
     sink.cross_checked_folds += 1;

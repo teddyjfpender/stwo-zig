@@ -333,10 +333,12 @@ pub fn verifyTree(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truth
                 if (job.build) {
                     // derive cross-check of the class/digest re-implementation
                     // and the freshly built class authority, then adopt it.
+                    // k-ary folds (diet-wire profiles) take the same record with
+                    // k children; k = 2 is the binary form byte for byte.
                     const node = plan.nodes[job.id];
-                    if (node.arity == 2) {
-                        RV.recordFoldInto(sink, .{ child(&slots[node.children[0]]), child(&slots[node.children[1]]) }, job.class, job.digest, proof.authority) catch |err| return err;
-                    } else return error.VkDeriveKaryFoldNotTabled;
+                    var kids: [Dag.max_arity]Bridge.Child = undefined;
+                    for (node.kids(), 0..) |kid, i| kids[i] = child(&slots[kid]);
+                    try RV.recordFoldIntoK(sink, kids[0..node.arity], job.class, job.digest, proof.authority);
                     try classes.append(a, .{ .key = job.class, .pp = proof.pp, .authority = proof.authority });
                     proof.borrowed = true;
                     builds += 1;
