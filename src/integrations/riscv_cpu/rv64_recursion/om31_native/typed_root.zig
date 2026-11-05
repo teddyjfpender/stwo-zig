@@ -36,6 +36,8 @@ pub const Authority = struct {
     trec: [32]u8,
     max_total_steps: u64,
     max_public_cells: usize = 1 << 22,
+    /// Source profile policy. Classic C1/C2 contribute zero here.
+    outer_gkr_wrappers: u32 = 0,
     pub fn expected(self: Authority, public: Public) !Protocol.Expected {
         if (self.max_total_steps == 0 or public.total_steps == 0 or public.total_steps >= P or public.total_steps > self.max_total_steps) return error.TypedRootStepBudget;
         if (self.image.max_prefix_steps == 0 or self.image.max_prefix_steps >= 1 << 23) return error.InvalidExecutionBudget;
@@ -67,6 +69,10 @@ fn same(a: [32]u8, b: [32]u8) bool { return std.mem.eql(u8, &a, &b); }
 pub fn checkAuthenticated(authority: Authority, public: Public, summary: Summary.Native) ![43]u8 {
     // Defend callers which constructed Native directly instead of decoding it.
     _ = try Summary.Native.fromWords(&summary.words());
+    // Every fold has arity at least two, so a tree over n distinct contiguous
+    // leaves has at most 2n-1 outer proofs. Charge folds and wrappers too.
+    const outer_count = try std.math.add(u32, 2 * summary.count - 1, authority.outer_gkr_wrappers);
+    if (outer_count > 256) return error.OuterGkrProofBudget;
     if (!same(summary.tnat, authority.tnat) or !same(summary.trec, authority.trec) or !same(summary.image, authority.image.identity)) return error.TypedRootAuthority;
     const expected = try authority.expected(public);
     const base = Execution.executionIdentity(authority.native_config, expected);
@@ -147,7 +153,7 @@ test "typed root semantic gate recomputes public RAM target image scope and term
     try std.testing.expectEqualSlices(u8, &fixture.image.expected_output, &(try checkAuthenticated(authority, public, summary)));
     // This test deliberately supplies an already-authenticated summary: it
     // tests semantic reception, and makes no STARK/production proof claim.
-    for (0..14) |mutation| {
+    for (0..15) |mutation| {
         var changed = summary;
         switch (mutation) {
             0 => changed.tnat[0] ^= 1,
@@ -164,6 +170,7 @@ test "typed root semantic gate recomputes public RAM target image scope and term
             11 => changed.output[0] ^= 1,
             12 => changed.mass[0] = P - 1,
             13 => changed.ctr_in[Counter.sponge_next] = 0,
+            14 => { changed.hi = 128; changed.count = 129; },
             else => unreachable,
         }
         if (checkAuthenticated(authority, public, changed)) |_| return error.TypedRootMutationAccepted else |_| {}

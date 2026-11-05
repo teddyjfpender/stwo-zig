@@ -7,8 +7,8 @@ const Table = @import("../vk_table.zig");
 const Integer = @import("typed_integer.zig");
 const Mass = @import("../../word16_global_execution/services/gkr_local/mass_authority.zig");
 pub const Count = struct { word: Public.Word, value: u32 };
-pub const Signed = struct { positive: Hash.U64, negative: Hash.U64 };
-pub const Globals = struct { ram: Signed, kio: Signed, wire: Signed };
+pub const Signed = Hash.SignedMass;
+pub const Globals = Hash.SignedGlobals;
 const Writer = struct {
     ctx: *C.Context,
     words: [3][2]Public.Word,
@@ -31,7 +31,17 @@ pub fn cpu(ctx: *C.Context, counts: Mass.CpuCountsFor(Count), metadata: Globals)
     const zero = try Table.constWord(ctx, 0);
     var writer = Writer{ .ctx = ctx, .words = @splat(@splat(zero)) };
     Mass.emitCpuTerms(counts, &writer);
+    return finish(ctx, &writer, metadata);
+}
+pub fn truth(ctx: *C.Context, calls: Count, declaration: @import("../../word16_global_execution/services/wire.zig").TruthDeclaration, metadata: Globals) ![3]Public.Word {
+    const zero = try Table.constWord(ctx, 0);
+    var writer = Writer{ .ctx = ctx, .words = @splat(@splat(zero)) };
+    try Mass.emitTruthTerms(declaration, calls, &writer);
+    return finish(ctx, &writer, metadata);
+}
+fn finish(ctx: *C.Context, writer: *Writer, metadata: Globals) ![3]Public.Word {
     if (writer.failure) |err| return err;
+    const zero = try Table.constWord(ctx, 0);
     var absolute: [3]Public.Word = undefined;
     inline for (.{ "ram", "kio", "wire" }, 0..) |name, r| {
         const declared = @field(metadata, name);

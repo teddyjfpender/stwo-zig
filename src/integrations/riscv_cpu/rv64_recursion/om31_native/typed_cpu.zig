@@ -14,6 +14,11 @@ const Expected = @import("../../word16_global_execution/services/protocol.zig").
 const T = @import("../../word16_global_execution/services/types.zig");
 const Table = @import("../vk_table.zig");
 pub const Assignment = struct { metadata: Native.Metadata, inputs: Native.Inputs, expected: Expected };
+pub fn constrain(ctx: *C.Context, plan: *const @import("../../word16_global_execution/services/gkr_local/cpu_components.zig").Plan,
+    node: Summary.Wires, metadata: Hash.CompactCpuMetadata, inputs: Cpu.Statement.ChainInputs, expected: Hash.Expected, assignment: Assignment) ![3]Public.Word {
+    try constrainTransitions(ctx,node,metadata,inputs,expected,assignment);
+    return @import("typed_cpu_projection.zig").constrain(ctx,plan,metadata,inputs,node,assignment);
+}
 fn same(ctx: *C.Context, actual: []const Public.Word, wanted: []const Public.Word) !void {
     if (actual.len != wanted.len) return error.TypedCpuWordCount;
     for (actual, wanted) |a, b| try ctx.eq(a.get(), b.get());
@@ -47,7 +52,12 @@ pub fn constrainTransitions(ctx: *C.Context, node: Summary.Wires, metadata: anyt
     // Sponge permutations follow ALL plain Keccak calls in the global ID
     // space. They have a separate cumulative cursor across CPU shards.
     try ctx.eq(metadata.sponge[2].get(), inputs.sponge_first.get());
-    try ctx.eq(metadata.sponge[2].get(), node.raw[Summary.Index.ctr_in + Counter.sponge_next].get());
+    const active_sponge = try Integer.nonzero(ctx, metadata.sponge[1], assignment.metadata.sponge[1]);
+    try ctx.eq(try Integer.canonical(ctx, metadata.sponge[2]), try ctx.mul(active_sponge,
+        try node.integer(ctx, Summary.Index.ctr_in + Counter.sponge_next)));
+    try Integer.atMost(ctx, metadata.sponge[0], metadata.sponge[1], assignment.metadata.sponge[0], assignment.metadata.sponge[1]);
+    const max_per_call = @import("stwo_riscv_frontend").rv64_air.crypto.keccak_sponge.types.Native.MAX_LEN / 136 + 1;
+    try Integer.atMostScaled(ctx,metadata.sponge[1],metadata.sponge[0],assignment.metadata.sponge[1],assignment.metadata.sponge[0],max_per_call);
     try Integer.addTo(ctx, node.raw[Summary.Index.ctr_in + Counter.sponge_next], metadata.sponge[1],
         node.raw[Summary.Index.ctr_out + Counter.sponge_next], n.ctr_in[Counter.sponge_next], assignment.metadata.sponge[1]);
     for ([_]usize{Counter.boundary_lo, Counter.boundary_hi}) |index|
@@ -79,9 +89,9 @@ test "typed CPU transitions bind integer steps call cursors epoch state and term
     const e = @import("../../word16_global_execution/services/fixture.zig").expectedFor(@splat(31));
     const native_inputs = Native.Inputs{ .steps = 7, .epoch = 1, .initial_pc = .{4096,0,0,0}, .final_pc = .{4124,0,0,0},
         .initial_registers = @splat(@splat(0)), .final_registers = @splat(@splat(0)), .register_clocks = @splat(0),
-        .sponge_first = 3, .rows = &.{}, .calls = &.{}, .first_ids = &.{} };
+        .sponge_first = 0, .rows = &.{}, .calls = &.{}, .first_ids = &.{} };
     var m = Native.Metadata{ .ordinal = 0, .execution = @splat(0), .mass = .{}, .relations = 0, .cpu_ordinal = 1,
-        .steps_in = 0, .sponge = .{0,0,3} };
+        .steps_in = 0, .sponge = .{0,0,0} };
     m.calls[0] = 2;
     var node = Summary.Native{ .tnat = @splat(0), .trec = @splat(0), .image = @splat(0), .statement = @splat(0), .chi = @splat(0),
         .lo = 0, .hi = 0, .count = 1, .m_in = @splat(0), .m_out = @splat(0),
@@ -94,13 +104,20 @@ test "typed CPU transitions bind integer steps call cursors epoch state and term
     node.ctr_out[Counter.sponge_next] = 3;
     const Metadata = struct { ordinal: Public.Word, cpu_ordinal: Public.Word, steps_in: Hash.U64,
         calls: [T.FAMILIES]Public.Word, first_ids: [T.FAMILIES]Public.Word, sponge: [3]Public.Word };
-    for (0..8) |mutation| {
+    for (0..9) |mutation| {
         var ctx = try C.Context.init(std.testing.allocator, 0);
         defer ctx.deinit();
         ctx.assert_eq_on_eval = false;
         C.lane.begin(&ctx);
         defer C.lane.finish() catch {};
         var changed = node;
+        var assigned_metadata = m;
+        var assigned_inputs = native_inputs;
+        if (mutation == 8) {
+            assigned_metadata.sponge = .{1,2,3};
+            assigned_inputs.sponge_first = 3;
+            changed.ctr_out[Counter.sponge_next] = 5;
+        }
         if (mutation == 1) changed.ctr_out[Counter.cpu_calls] += 1;
         if (mutation == 2) changed.steps_out += 1;
         if (mutation == 3) changed.output_seen = false;
@@ -112,11 +129,11 @@ test "typed CPU transitions bind integer steps call cursors epoch state and term
             meta.calls[f] = try Table.guessWord(&ctx, m.calls[f]);
             meta.first_ids[f] = try Table.guessWord(&ctx, m.first_ids[f] + @as(u32,@intFromBool(mutation == 5 and f == 0)));
         }
-        for (&meta.sponge, m.sponge) |*word, value| word.* = try Table.guessWord(&ctx, value);
+        for (&meta.sponge, assigned_metadata.sponge) |*word, value| word.* = try Table.guessWord(&ctx, value);
         var inputs: Cpu.Statement.ChainInputs = .{ .steps = try Table.guessWord(&ctx, 7),
             .epoch = try Table.guessWord(&ctx, if (mutation == 7) 2 else 1), .initial_pc = undefined, .final_pc = undefined,
             .initial_registers = undefined, .final_registers = undefined, .register_clocks = undefined,
-            .sponge_first = try Table.guessWord(&ctx, if (mutation == 6) 4 else 3), .rows = &.{}, .calls = &.{}, .first_ids = &.{} };
+            .sponge_first = try Table.guessWord(&ctx, if (mutation == 6) 4 else assigned_inputs.sponge_first), .rows = &.{}, .calls = &.{}, .first_ids = &.{} };
         for (&inputs.initial_pc, native_inputs.initial_pc) |*word, value| word.* = try Table.guessWord(&ctx, value);
         for (&inputs.final_pc, native_inputs.final_pc) |*word, value| word.* = try Table.guessWord(&ctx, value);
         for (0..32) |r| for (0..4) |i| {
@@ -124,11 +141,11 @@ test "typed CPU transitions bind integer steps call cursors epoch state and term
             inputs.final_registers[r][i] = try Table.guessWord(&ctx, 0);
         };
         for (&inputs.register_clocks) |*word| word.* = try Table.guessWord(&ctx, 0);
-        const result = constrainTransitions(&ctx, wires, meta, inputs, try Hash.guessExpected(&ctx, e), .{ .metadata = m, .inputs = native_inputs, .expected = e });
+        const result = constrainTransitions(&ctx, wires, meta, inputs, try Hash.guessExpected(&ctx, e), .{ .metadata = assigned_metadata, .inputs = assigned_inputs, .expected = e });
         const valid = if (result) |_| try ctx.isCircuitValid() else |err| blk: {
             if (mutation != 2) return err;
             break :blk false;
         };
-        try std.testing.expectEqual(mutation == 0, valid);
+        try std.testing.expectEqual(mutation == 0 or mutation == 8, valid);
     }
 }

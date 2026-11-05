@@ -11,6 +11,7 @@ test {
     _ = @import("rv64_recursion/om31_native/typed_integer.zig");
     _ = @import("rv64_recursion/om31_native/typed_mass.zig");
     _ = @import("rv64_recursion/om31_native/typed_cpu.zig");
+    _ = @import("rv64_recursion/om31_native/typed_cpu_projection.zig");
     _ = @import("rv64_recursion/om31_native/typed_truth.zig");
     _ = @import("rv64_recursion/om31_native/typed_fold.zig");
 }
