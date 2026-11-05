@@ -264,6 +264,21 @@ pub const Planner = struct {
         defer self.mutex.unlock();
         while (self.generation == previous) self.changed.wait(&self.mutex);
     }
+    /// Capacity wait with a no-progress bound. Spurious condition wakeups do
+    /// not renew the deadline; an actual ledger generation change does.
+    pub fn waitForChangeWithin(self: *Planner, previous: u64, timeout_ns: u64) !bool {
+        var timer = try std.time.Timer.start();
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        while (self.generation == previous) {
+            const remaining = timeout_ns -| timer.read();
+            if (remaining == 0) return false;
+            self.changed.timedWait(&self.mutex, remaining) catch |err| switch (err) {
+                error.Timeout => return self.generation != previous,
+            };
+        }
+        return true;
+    }
     pub fn notifyResourceRelease(self: *Planner) void {
         self.mutex.lock();
         defer self.mutex.unlock();
@@ -471,4 +486,17 @@ test "observed stage reserves retained growth plus downstream progress before al
     const result = try p.tryBegin(0, .{ .owner = test_owner, .stage = .witness, .known = true, .host_known = true, .temporary = try Footprint.allocation(5 << 30), .stage_retained_upper = try Footprint.allocation(5 << 30), .successor = try Footprint.allocation(18 << 30) });
     try std.testing.expectEqual(Reason.request_exceeds_static_arena, result.reason);
     try std.testing.expectEqual(@as(usize, 0), (try p.snapshot(0)).owners);
+}
+
+test "bounded progress wait distinguishes a stalled ledger from a real generation change" {
+    var planner = try Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer planner.deinit();
+    const before = planner.epoch();
+    try std.testing.expect(!try planner.waitForChangeWithin(before, 0));
+    planner.notifyResourceRelease();
+    try std.testing.expect(try planner.waitForChangeWithin(before, 0));
+    const current = planner.epoch();
+    // Exercise the actual timed condition path without mutating or dropping
+    // any future claim merely because the selected worker is waiting.
+    try std.testing.expect(!try planner.waitForChangeWithin(current, 1));
 }

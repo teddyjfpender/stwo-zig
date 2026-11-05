@@ -173,14 +173,17 @@ pub const Endpoint = struct {
     /// Every retained owner must reserve its downstream progress envelope;
     /// callers cannot wait on capacity that only their own blocked stage frees.
     pub fn reserve(self: *const Endpoint, demand: A.Demand) !Permit {
-        return self.reserveWithPolicy(demand, false);
+        return self.reserveWithPolicy(demand, null);
     }
-    /// First newly eligible global consumer: do not sleep indefinitely when
-    /// this chosen drain cannot fit the already retained stage-one roster.
+    /// Peers may be host-transcripting between eligible GPU stages. Allow
+    /// their progress; refuse only after 30 seconds with no ledger change.
     pub fn reserveDrain(self: *const Endpoint, demand: A.Demand) !Permit {
-        return self.reserveWithPolicy(demand, true);
+        return self.reserveDrainWithin(demand, 30 * std.time.ns_per_s);
     }
-    fn reserveWithPolicy(self: *const Endpoint, demand: A.Demand, bounded_drain: bool) !Permit {
+    fn reserveDrainWithin(self: *const Endpoint, demand: A.Demand, timeout_ns: u64) !Permit {
+        return self.reserveWithPolicy(demand, timeout_ns);
+    }
+    fn reserveWithPolicy(self: *const Endpoint, demand: A.Demand, drain_timeout_ns: ?u64) !Permit {
         while (true) {
             const epoch = self.planner.epoch();
             switch (try self.tryReserve(demand)) {
@@ -188,8 +191,9 @@ pub const Endpoint = struct {
                 .blocked => |decision| switch (decision.reason) {
                     .wide_stage_busy => self.planner.waitForChange(epoch),
                     .capacity_pressure => {
-                        if (bounded_drain) return error.NativePostGlobalDrainUnavailable;
-                        self.planner.waitForChange(epoch);
+                        if (drain_timeout_ns) |timeout| {
+                            if (!try self.planner.waitForChangeWithin(epoch, timeout)) return error.NativePostGlobalDrainUnavailable;
+                        } else self.planner.waitForChange(epoch);
                     },
                     .unknown_cost => return error.GlobalGpuAllocationCostUnavailable,
                     .host_capacity_pressure => return error.GlobalHostAdmissionCapacity,
@@ -344,7 +348,7 @@ test "runtime permit observes global retention and refuses untracked growth" {
     var blocked_drain = demand;
     blocked_drain.temporary = try A.Footprint.allocation(5 << 30);
     blocked_drain.stage_retained_upper = blocked_drain.temporary;
-    try std.testing.expectError(error.NativePostGlobalDrainUnavailable, endpoint.reserveDrain(blocked_drain));
+    try std.testing.expectError(error.NativePostGlobalDrainUnavailable, endpoint.reserveDrainWithin(blocked_drain, 0));
     // A refusal did not enter the owner or steal the physical stage gate.
     const gate = try planner.stageGate(0);
     try std.testing.expect(gate.tryLock());
