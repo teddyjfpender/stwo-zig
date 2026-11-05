@@ -10,6 +10,7 @@ const Driver = @import("../../word16_execution/driver.zig");
 const Capture = @import("capture.zig").Owner;
 const CaptureOptions = @import("capture_options.zig").Options;
 const DirectCapture = @import("direct.zig");
+pub const EarlyCPU = @import("early_cpu0.zig");
 const CpuPrestage = struct {
     stage: @import("../../word16_execution/cpu_source.zig").ProjectionStage,
     image_identity: [32]u8 = undefined,
@@ -273,6 +274,7 @@ pub fn mainWithResidentStages(device_pcs_stage: ?*const @import("stwo_prover_api
     return mainWithResidentPipeline(.{ .pcs = device_pcs_stage, .composition = om31_composition_stage, .numerical = numerical_gkr_stage, .resident_composition = resident_composition_stage });
 }
 pub const ResidentStages = struct {
+    early_memory: ?EarlyCPU.MemoryAdmission = null,
     cpu_replay: ?@import("../services/gkr_local/cpu_replay.zig").Stage = null,
     source: ?@import("../services/pipeline.zig").DeviceSourceStage = null,
     truth_source: ?@import("../services/gkr_local/truth_device_source.zig").Stage = null,
