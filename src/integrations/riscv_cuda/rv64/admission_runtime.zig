@@ -348,8 +348,8 @@ test "runtime permit observes global retention and refuses untracked growth" {
     try cancel.finish(.{});
     const keep = try A.Footprint.allocation(2 << 30);
     const future = try A.Footprint.allocation(19 << 30);
-    const truth = (try planner.tryBegin(0, .{ .owner = demand.owner, .stage = .witness, .known = true, .host_known = true, .retained_new = keep, .successor = future })).token.?;
-    try planner.complete(truth, keep, future);
+    const truth = (try planner.tryBegin(0, .{ .owner = demand.owner, .stage = .witness, .known = true, .host_known = true, .temporary = keep, .stage_retained_upper = keep, .successor = future })).token.?;
+    try planner.completeObserved(truth, keep, future);
     M.live = keep;
     var blocked_drain = demand;
     blocked_drain.temporary = try A.Footprint.allocation(5 << 30);
