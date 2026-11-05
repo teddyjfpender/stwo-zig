@@ -59,7 +59,7 @@ pub fn record(a: std.mem.Allocator, children: []const Bridge.Child) ![][4]u32 {
     for (children) |child| {
         try Outer.protocol.validateConfig(child.produced.proof.proof.commitment_scheme_proof.config);
         const geometry = try Bridge.shape(scratch, child.authority);
-        const captured = try V.proof.fromNative(scratch, &child.produced.proof.proof, child.capture, &geometry);
+        const captured = try V.proof.fromNativeCapped(scratch, &child.produced.proof.proof, child.capture, &geometry, Outer.protocol.active().foldMerkleCapLog());
         try e.proof(&captured);
         for (0..8) |i| try e.word(std.mem.readInt(u32, child.authority.identity[4 * i ..][0..4], .little));
         for (child.produced.outputs) |value| try e.q(value);
@@ -105,8 +105,11 @@ const Emit = struct {
             }
             try self.paths(tree_paths);
         }
+        // M6 integrate: diet-wire's Merkle cap (empty when the profile's cap log is 0).
+        for (source.caps) |cap| for (cap) |node| try self.hash(node);
         for (source.layers) |layer| {
             for (layer.cosets) |coset| for (coset) |value| try self.om(value);
+            for (layer.cap) |node| try self.hash(node);
             try self.hash(layer.commitment);
             try self.paths(layer.auth_paths);
         }
@@ -127,7 +130,7 @@ pub fn recordReplay(a: std.mem.Allocator, children: []const Bridge.Child) ![][4]
     for (children) |child| {
         try Outer.protocol.validateConfig(child.produced.proof.proof.commitment_scheme_proof.config);
         const geometry = try Bridge.shape(ctx.scratch(), child.authority);
-        const captured = try V.proof.fromNative(ctx.scratch(), &child.produced.proof.proof, child.capture, &geometry);
+        const captured = try V.proof.fromNativeCapped(ctx.scratch(), &child.produced.proof.proof, child.capture, &geometry, Outer.protocol.active().foldMerkleCapLog());
         _ = try V.proof.guess(&ctx, &captured, &geometry);
         for (0..8) |i| _ = try B.wrappers.guessU32(Q, &ctx, B.wrappers.u32Value(Q, std.mem.readInt(u32, child.authority.identity[4 * i ..][0..4], .little)));
         const outputs = try ctx.scratch().alloc(C.Var, child.produced.outputs.len);
