@@ -11,6 +11,7 @@ const Native = @import("pcs_native_abi.zig");
 const Service = @import("pcs_native.zig");
 const SC = @import("session_context.zig");
 const StreamPlan = @import("trace_stream_plan.zig");
+pub const AdmissionPlan = @import("trace_commit_cost.zig");
 const M = D.M;
 const N2b = *const fn ([*]u32, usize, ?*const anyopaque, u32, usize, u32, [*]const u32, u32, u32, *anyopaque, u32, *u32) callconv(.c) c_int;
 const N2bColumns = *const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on);
@@ -92,6 +93,15 @@ pub const Context = struct {
     pub fn commitFixed(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest) !D.Tree {
         return self.commitImpl(a, request, true);
     }
+    /// Host-only allocation plan. An admitted execution freezes this stream
+    /// schedule; owner-thread per-session pressure cannot silently change it.
+    pub fn allocationPlan(self: *const Context, a: std.mem.Allocator, request: D.TraceCommitRequest) !AdmissionPlan.Plan {
+        const logs = try a.alloc(u32, request.columns.len);
+        defer a.free(logs);
+        for (request.columns, logs) |column, *log| log.* = column.log_size;
+        const separate = request.config.fri_config.log_blowup_factor == 1 and self.n2b_columns != null;
+        return AdmissionPlan.init(a, .{ .logs = logs, .beta = request.config.fri_config.log_blowup_factor, .separate_coefficients = separate, .stream_budget = if (separate and self.mixed_seeded != null and self.layer != null) streamBudget() else null, .exact_prefix_banks = self.prefix_workspace != null });
+    }
     fn commitImpl(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, fixed: bool) !D.Tree {
         if ((fixed and request.tree_index != 0) or (!fixed and request.tree_index < 1) or request.tree_index > 2 or request.columns.len == 0 or request.columns.len > 65535) return error.InvalidTraceCommitRequest;
         if (request.expected_main_root) |expected| {
@@ -110,7 +120,7 @@ pub const Context = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         try self.returned.ensureUnusedCapacity(std.heap.page_allocator, 1);
-        var job = Job{ .backend = self, .a = a, .request = request };
+        var job = Job{ .backend = self, .a = a, .request = request, .admission_plan = if (self.service.admission != null) try self.allocationPlan(a, request) else null };
         const status = self.service.submit(self.service.session, Job.callback, &job);
         if (job.failure) |err| return err;
         try check(status);
@@ -125,22 +135,34 @@ const Job = struct {
     request: D.TraceCommitRequest,
     result: ?D.Tree = null,
     failure: ?anyerror = null,
+    admission_plan: ?AdmissionPlan.Plan = null,
+    allocation_index: usize = 0,
     fn callback(raw: *anyopaque, token: u64, user: ?*anyopaque) callconv(.c) c_int {
         const self: *Job = @ptrCast(@alignCast(user orelse return 1));
         self.run(raw, token) catch |err| {
             self.failure = err;
             return 1;
         };
+        if (self.admission_plan) |plan| if (self.allocation_index != plan.allocation_count) {
+            self.failure = error.TraceAllocationPlanMismatch;
+            return 1;
+        };
         return 0;
     }
     fn allocate(self: *Job, ctx: *SC.Context, words: usize, kind: u32, phase: []const u8) !Native.Lease {
-        return ctx.allocate(words, kind) catch |err| {
+        if (self.admission_plan) |*plan| {
+            const bytes = try std.math.mul(u64, words, 4);
+            if (self.allocation_index >= plan.allocation_count or plan.allocations[self.allocation_index] != bytes) return error.TraceAllocationPlanMismatch;
+        }
+        const lease = ctx.allocate(words, kind) catch |err| {
             // Capture the live peak before run's deferred lease cleanup. A
             // callback-level snapshot would describe the unwound allocation set.
             std.debug.print("GPU_TRACE_ALLOCATION_FAILURE tree={} columns={} phase={s} requested_words={} kind={} error={s}\n", .{ self.request.tree_index, self.request.columns.len, phase, words, kind, @errorName(err) });
             self.backend.service.logMemoryFailure(ctx.native_context, "trace_commit");
             return err;
         };
+        self.allocation_index += 1;
+        return lease;
     }
     fn copyInputs(self: *Job, ctx: *SC.Context, destination: @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32), coefficient_ptr: [*]u32, order: []const usize, offsets: []const usize) !void {
         const b = self.backend;
@@ -225,7 +247,7 @@ const Job = struct {
         var chunk_budget = budget;
         var p = try StreamPlan.plan(a, rows, chunk_budget);
         defer p.deinit(a);
-        while (admissible) |limit| {
+        while (if (self.admission_plan == null) admissible else null) |limit| {
             if (aux_words + p.scratchWords() <= limit or chunk_budget <= rows[0]) break;
             chunk_budget /= 2;
             const smaller = try StreamPlan.plan(a, rows, chunk_budget);
@@ -388,7 +410,7 @@ const Job = struct {
         const stream_budget: ?usize = if (separate_coefficients and b.mixed_seeded != null and b.layer != null) streamBudget() else null;
         // Predicted-peak selection: a narrow tree's two state banks can exceed
         // its whole LDE. Both paths commit identical words; take the smaller.
-        const streamed_budget: ?usize = if (stream_budget) |budget| (if (try self.streamPays(order, beta, tw, budget)) budget else null) else null;
+        const streamed_budget: ?usize = if (self.admission_plan) |plan| plan.selected_stream_budget else if (stream_budget) |budget| (if (try self.streamPays(order, beta, tw, budget)) budget else null) else null;
         if (streamed_budget) |budget| {
             if (r.retire_input == null) try self.copyInputs(&ctx, try ctx.borrow(coefficients), coefficients.words.?, order, offsets);
             const root = try self.streamRoot(&ctx, raw, order, offsets, coefficients.words.?, beta, tw, budget);

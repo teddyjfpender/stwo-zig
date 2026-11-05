@@ -24,6 +24,7 @@ fn hostGeometryBytes() usize {
 }
 pub const Context = struct {
     admission: ?@import("admission_runtime.zig").Endpoint = null,
+    admission_retention: @import("admission_retention.zig").Registry = .{},
     byte_cap: u64,
     wide_pcs_framing: bool = false,
     /// Immutable host FFT/FRI geometry only; request/transcript data never enter.
@@ -53,6 +54,34 @@ pub const Context = struct {
     }
     pub fn inheritGlobalAdmission(self: *Context, parent: *const Context) !void {
         if (parent.admission) |endpoint| try self.attachGlobalAdmission(endpoint.planner, endpoint.physical);
+    }
+
+    /// Host caller completes an admitted stage and transfers future headroom
+    /// to the final allocation scope (after any MAIN-root rebind).
+    pub fn completeAdmission(self: *Context, permit: *@import("admission_runtime.zig").Permit, scope: D.Scope, successor: @import("global_admission.zig").Footprint) !void {
+        const endpoint = self.admission orelse return error.MissingGlobalAdmissionEndpoint;
+        if (permit.endpoint.session != self.session or permit.endpoint.planner != endpoint.planner or permit.endpoint.physical != endpoint.physical) return error.ForeignAdmissionOwner;
+        const identity = @import("pcs_scope.zig").identity(scope);
+        self.cache_mutex.lock();
+        defer self.cache_mutex.unlock();
+        if (successor.large != 0 or successor.small != 0) {
+            var found = false;
+            for (self.cache.items) |entry| if (std.mem.eql(u32, &entry.scope, &identity) and entry.lease.words != null) {
+                found = true;
+                break;
+            };
+            if (!found) {
+                endpoint.planner.poisonPhysical(endpoint.physical);
+                return error.MissingPhysicalRetentionOwner;
+            }
+        }
+        try self.admission_retention.complete(std.heap.page_allocator, permit, identity, successor);
+    }
+    fn retireAdmissionScope(self: *Context, scope: [8]u32) !void {
+        if (self.admission) |endpoint| self.admission_retention.retireAfterDestruction(endpoint.planner, scope) catch |err| {
+            endpoint.planner.poisonPhysical(endpoint.physical);
+            return err;
+        };
     }
 
     /// Failure-only owner-thread diagnostics. Optional runtime exports keep
@@ -122,7 +151,7 @@ pub const Context = struct {
     pub fn endBlock(self: *Context, identity: [32]u8) !void {
         if (self.admission) |endpoint| if (!endpoint.planner.healthy(endpoint.physical)) return error.PhysicalAdmissionPoisoned;
         if (self.active_block == null or !std.mem.eql(u8, &self.active_block.?, &identity)) return error.ResidentBlockIdentityMismatch;
-        if (self.cache.items.len != 0) return error.ResidentBlockStillActive;
+        if (self.cache.items.len != 0 or self.admission_retention.claims.items.len != 0) return error.ResidentBlockStillActive;
         try self.requireNoRequestLeases();
         self.active_block = null;
         if (self.immutable_setup) |cache| std.debug.print("GPU_RESIDENT_SETUP device_bytes={} limit_bytes={} entries={} hits={} uploads={} evictions={} outstanding_aliases={}\n", .{ cache.bytes, cache.limit, cache.entries.items.len, cache.hits, cache.uploads, cache.evictions, cache.borrows.items.len });
@@ -196,6 +225,7 @@ pub const Context = struct {
             for (retired.extra.items) |*extra| if (self.lease_release(self.session, extra) != 0) return error.InvalidRetainedCoefficientLease;
             retired.extra.deinit(a);
             a.free(retired.columns);
+            try self.retireAdmissionScope(retired.scope);
         }
         try self.cache.append(a, .{ .scope = scope, .lease = lease, .columns = mapped });
     }
@@ -239,6 +269,7 @@ pub const Context = struct {
         var removed = self.cache.swapRemove(from);
         removed.extra.deinit(std.heap.page_allocator);
         std.heap.page_allocator.free(removed.columns);
+        self.admission_retention.promoted(old, next);
     }
     /// Stable original tree/column identity survives retained MAIN remapping.
     pub fn retainedColumn(self: *Context, scope: [8]u32, tree: u32, index: usize, column: D.Column) ?D.DeviceCoefficients {
@@ -291,6 +322,7 @@ pub const Context = struct {
             if (self.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
             return error.DeviceMainReplayReleaseFailed;
         }
+        try self.retireAdmissionScope(identity);
         if (self.admission) |endpoint| endpoint.planner.notifyResourceRelease();
     }
 
@@ -330,6 +362,7 @@ pub const Context = struct {
                 if (self.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
                 return error.DeviceScopeReleaseFailed;
             }
+            try self.retireAdmissionScope(scope);
         } else if (self.immutable_setup != null) {
             var release_job = ReleaseJob{ .self = self, .scope = scope, .lease = null, .extra = &.{} };
             if (self.submit(self.session, ReleaseJob.run, &release_job) != 0) {
@@ -384,6 +417,8 @@ pub const Context = struct {
             std.heap.page_allocator.destroy(cache);
         }
         if (self.destroy(self.session) != 0) @panic("GPU context failed to join before library close");
+        self.admission_retention.contextDestroyed(if (self.admission) |endpoint| endpoint.planner else null) catch @panic("GPU retention claims failed to retire after context destruction");
+        self.admission_retention.deinit(std.heap.page_allocator);
         self.library.close();
         self.* = undefined;
     }
