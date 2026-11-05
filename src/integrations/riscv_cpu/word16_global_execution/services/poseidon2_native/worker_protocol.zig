@@ -22,6 +22,7 @@ pub const Profile = enum {
 pub const Suite = core.vcs_lifted.poseidon2_profile.Om31V2;
 pub const W = ForSuite(Suite);
 pub fn ForSuite(comptime MC_: type) type {
+    if (MC_ != Suite) @compileError("define a distinct receiver-owned profile before selecting another native crypto suite");
     return struct {
         pub const O = core.fields.om31.OM31;
         pub const H = MC_.MerkleHasher;

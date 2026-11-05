@@ -1,0 +1,115 @@
+{
+  "schema": "rv64-mixed-p2-native-container-fresh/v1",
+  "author": "OpenAI Codex",
+  "date": "2026-11-05",
+  "source_base": "a20fc410e",
+  "status": "M complete5step2CPU P0 fixture nativeacceptance;1independentprocessaccept+8independentreject;noEthereum/recursive/128claim",
+  "new_container": "P2CPUV02,source-selectedprofileID,ordinal<256,claims<=256,proof<=64MiB,canonicalM31claims,exacttrailing/truncation",
+  "gates": {
+    "producer_tests": "2/2passed;standaloneexeinitialmodule-rootpathfixed",
+    "fresh_receiver_build_exit": 0,
+    "independent_accept_processes": 1,
+    "independent_reject_processes": 8,
+    "raw_native_proof_sha256_unchanged": [
+      "1cfd865dfe1b62c7bfe278024874c69f255d428dad7cff2f4e45bae1f60662e3",
+      "fd2d5733330892372b7cc93932971d3ce6e047a851190dc1e2709231898661da"
+    ],
+    "reconstructed_same_authority": true,
+    "all_poseidon": false,
+    "pow_bits": 0,
+    "wrong_ForSuite_crypto_refused_at_compiletime": true
+  },
+  "fresh_receipt": "fresh/receipt.json",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/worker_protocol.zig": "6619bd382fb3fddcb64ca82d7725da99d1a9e5275babbf798cbd97b151ef45ea",
+    "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/fixed_key.zig": "67cc94720f2ad91a05109a30da4d2c288382bc62467b2c28814da18aab480fcc",
+    "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/inventory.zig": "7e50c6c4bbd190970169c282e0871c3c399e6a611255f1b09f57adabc60f511f",
+    "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/cpu_worker.zig": "d25a4be9e1869e8135c128100e5e1ec42da39c94f6e4f3ef262d3466563b5ce2",
+    "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/fixture.zig": "54381dbdde3cbdab4f53dd5a606859375e405943932775aefac3240033b3b433",
+    "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/wire.zig": "d53b32053d550070b743a19d87e4b8af89451dbece372fa615dddb2d4dbf7d54",
+    "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/main.zig": "955eea5ff42610e85688f557d59cdcf390f037c025a2ac8e3301787a33779ef8",
+    "src/integrations/riscv_cpu/rv64_poseidon2_native_fixture_main.zig": "bd5a3d4a6ba28fea1b5619c804ce00797cfbeadcc8dd124bfb5cc5acf3380d0a",
+    "src/integrations/riscv_cpu/build.zig": "9e9f422c4b83c8dad514b050f8ecfc54938f4701947db1d7ad2f85e357d83707",
+    "scripts/rv64_m7_p2_native_fresh.py": "3b1422538d13973b7a9e3654ea0a9371d0b943a35d793fa3f04790e472555189"
+  },
+  "artifacts": {
+    "build.log": {
+      "bytes": 11953,
+      "sha256": "72df672ca4c08a9b6718800e8f1a8fae6d9c55bacebd56c52ac0380d4eef0b7d"
+    },
+    "cpu-0.worker.binary": {
+      "bytes": 551992,
+      "sha256": "76aac560edcf360dbdc13c8dd2696db442524f159f1502f16d26a878d9d88f28"
+    },
+    "cpu-1.worker.binary": {
+      "bytes": 549424,
+      "sha256": "3d024bcced3c4fd16d81648d77973b35e5bc83af5cd37c9c7a7ea3fffba4a302"
+    },
+    "fresh/accept/receiver.log": {
+      "bytes": 163,
+      "sha256": "d761fcecc16c9609acd46aaec5856e98b75047c5c638409998fd7e7db22ef21c"
+    },
+    "fresh/canonical_claim/receiver.log": {
+      "bytes": 895,
+      "sha256": "beb6704393cc306effcf4fae6e9052134eea16c63f773858de3a8154cbb7f0f3"
+    },
+    "fresh/inner_version/receiver.log": {
+      "bytes": 1515,
+      "sha256": "b9dc56adfd20363b81de8267c4bead75d9cd65de9d76141e8614fda835830d4b"
+    },
+    "fresh/magic/receiver.log": {
+      "bytes": 932,
+      "sha256": "fa84bf74907a7880677176d292b5de8fbb9118de462a3870dec246a7ef7889bd"
+    },
+    "fresh/ninth_main_root_limb/receiver.log": {
+      "bytes": 1460,
+      "sha256": "7c2b4345afbb5f2a534f3b68d1ebbb221080daf258fb882117d1439cec4f6812"
+    },
+    "fresh/ordinal/receiver.log": {
+      "bytes": 932,
+      "sha256": "fa84bf74907a7880677176d292b5de8fbb9118de462a3870dec246a7ef7889bd"
+    },
+    "fresh/profile/receiver.log": {
+      "bytes": 932,
+      "sha256": "fa84bf74907a7880677176d292b5de8fbb9118de462a3870dec246a7ef7889bd"
+    },
+    "fresh/receipt.json": {
+      "bytes": 2200,
+      "sha256": "2feec7151d5097dc5f1b001057ae297d63f7188055e5117be6cffd0706c4ccf3"
+    },
+    "fresh/trailing/receiver.log": {
+      "bytes": 931,
+      "sha256": "0bde321953d4692cade4be3205668115b3b6421258cf7950f550fbb392741933"
+    },
+    "fresh/truncated/receiver.log": {
+      "bytes": 931,
+      "sha256": "0bde321953d4692cade4be3205668115b3b6421258cf7950f550fbb392741933"
+    },
+    "fresh-driver.log": {
+      "bytes": 1296,
+      "sha256": "0f1dc1eabba570537538b7ec7444961cb500aa26ff08ee50a6c72edf35db6129"
+    },
+    "fresh-receiver.log": {
+      "bytes": 170,
+      "sha256": "351e4cb25962068b9729685739c1776290081ea45e60a9a9db0a3405fc302588"
+    },
+    "manifest.raw-blake.binary": {
+      "bytes": 103692,
+      "sha256": "c3e27126329fceb6f0dba6fb39224209a97b19e44b5a65e31f1c1708c5749858"
+    },
+    "receiver-build.log": {
+      "bytes": 7,
+      "sha256": "418a5c17f33c70e99b0cc0a07fce69191489cfedc94164bfa903785777c5bd4b"
+    },
+    "source-publics.json": {
+      "bytes": 11973,
+      "sha256": "0c9edb77d00f6c086b8303520c05ceb5aa81d0a9b73dd810237fcdfd5996a825"
+    }
+  },
+  "limitations": [
+    "fixtureP0 mixedP2physicalPCSFS+rawBlake localGKR/manifest/canonicalpublics",
+    "completeNativeCPU proof, not completeP2recursiveleaf",
+    "noGPU/performance/128bit/Ethereum claim",
+    "runtime memoryadapter phases remainseparatelygated"
+  ]
+}

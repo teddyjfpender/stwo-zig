@@ -1,0 +1,9 @@
+# Independent receiver for complete mixed P2 CPU proofs
+
+Status: native P0 fixture gates PASS. The producer exited. A separate executable reconstructed the trusted five-step program/image/publics, both P2 FIXED keys and full source inventory, then accepted both CPU physical proofs and their global RAM closure. Eight more receiver processes rejected container magic, profile ID, ordinal, noncanonical claim, inner W01 version, changed ninth MAIN-root limb, truncation and trailing data.
+
+`P2CPUV02` contains a receiver-selected profile identity, ordinal, canonical claims and the bounded W02 physical proof. It does not infer a suite from PCS parameters. The complete producer test passes container roundtrip and mutation controls. A compile-time `ForSuite` guard requires a distinct source profile before another crypto suite can be instantiated.
+
+Both native physical proofs remain byte-identical to the accepted551,776/549,208-byte files in `../p2-native/`. Saved worker containers and raw manifest reproduce the fresh gate with `scripts/rv64_m7_p2_native_fresh.py --receiver .../rv64-p2-native-fixture --input THIS_DIR --out NEW_DIR`. The executable is built by the direct CPU package target `poseidon2-native-fixture`; it only verifies and never generates a physical proof. Each process starts from trusted source, not producer JSON declarations. Full hashes and logs are retained; mutant bytes are deterministic patches in the script, avoiding duplicate proof copies.
+
+The profile remains P0 and explicitly mixed: P2v2 physical PCS/Fiat–Shamir, raw-Blake local GKR/manifest/canonical publics. This is not an all-Poseidon recursive leaf, D2-complete, a128-bit certificate or an Ethereum/GPU performance result. The failed initial CLI build was a Zig module-root boundary issue, corrected by the CPU-root wrapper. No proof equation was relaxed.
