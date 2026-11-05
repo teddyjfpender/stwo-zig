@@ -29,6 +29,7 @@ pub const Context = struct {
     usage: ?Usage = null,
     finalized: bool = false,
     poisoned: bool = false,
+    mixed_census_only: bool = false,
     pub fn init(a: std.mem.Allocator, n_outputs: usize) !Context {
         return initMode(a, n_outputs, false);
     }
@@ -74,22 +75,31 @@ pub const Context = struct {
         if (self.poisoned or self.finalized) return error.PoseidonContextClosed;
         try self.base.setOutputs(outputs);
     }
-    fn requireRoster(self: *const Context) !void {
+    fn requireRoster(self: *const Context, mixed: bool) !void {
         const c = &self.base.circuit;
-        if (!self.base.record_gates or c.blake_g_gate.items.len != 0 or c.triple_xor.items.len != 0 or c.permutation.len() != 0) return error.UnsupportedPoseidonRosterOperation;
+        if (!self.base.record_gates or (!mixed and (c.blake_g_gate.items.len != 0 or c.triple_xor.items.len != 0 or c.permutation.len() != 0))) return error.UnsupportedPoseidonRosterOperation;
         if (c.n_vars >= Core.fields.m31.Modulus) return error.InvalidPoseidonSourceUsage;
         // Bound before legacy u32 counters increment, so they cannot wrap.
         const binary = try std.math.add(u64, c.add.items.len + c.sub.items.len, c.mul.items.len + c.pointwise_mul.items.len);
         var total = try std.math.add(u64, try std.math.mul(u64, 2, binary + c.eq.items.len), c.m31_to_u32.items.len + c.output.items.len);
         total = try std.math.add(u64, total, try std.math.mul(u64, L.WIDTH, self.calls.items.len));
+        if (mixed) total = try std.math.add(u64, total, 6 * c.blake_g_gate.items.len + 3 * c.triple_xor.items.len + c.permutation.nTerms());
         if (total >= Core.fields.m31.Modulus) return error.InvalidPoseidonSourceUsage;
     }
     pub fn finalize(self: *Context) !void {
+        return self.finalizeMode(false);
+    }
+    /// Diagnostic twelve-roster graph only. Explicitly refused by the five-
+    /// roster Authority and census; this does not create a mixed AIR prover.
+    pub fn finalizeForMixedCensus(self: *Context) !void {
+        return self.finalizeMode(true);
+    }
+    fn finalizeMode(self: *Context, mixed: bool) !void {
         if (self.poisoned or self.finalized) return error.PoseidonContextClosed;
         errdefer self.poisoned = true;
-        try self.requireRoster();
+        try self.requireRoster(mixed);
         try self.base.finalize(false);
-        try self.requireRoster();
+        try self.requireRoster(mixed);
         var counts = try self.base.circuit.computeMultiplicities(self.allocator);
         defer counts.deinit(self.allocator);
         for (self.calls.items) |gate| {
@@ -114,6 +124,7 @@ pub const Context = struct {
         if (total >= Core.fields.m31.Modulus) return error.InvalidPoseidonSourceUsage;
         self.usage = .{ .allocator = self.allocator, .counts = owned, .total = total, .max_per_wire = maximum };
         self.finalized = true;
+        self.mixed_census_only = mixed;
     }
     pub fn fixedRows(self: *const Context, a: std.mem.Allocator) ![]L.Fixed {
         if (!self.finalized or self.poisoned or self.usage == null) return error.PoseidonContextNotFinalized;
@@ -125,6 +136,7 @@ pub const Context = struct {
     }
     pub fn rawCounts(self: *const Context) ![L.COMPONENTS]u64 {
         if (!self.finalized or self.poisoned) return error.PoseidonContextNotFinalized;
+        if (self.mixed_census_only) return error.MixedPoseidonCensusRequiresFullRoster;
         const g = self.base.gate_counts;
         return .{ g.eq, g.qm31_ops, g.m31_to_u32, self.calls.items.len, 1 << 16 };
     }
