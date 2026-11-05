@@ -852,6 +852,18 @@ const Pipe = struct {
         }
     };
     const Stamps = struct { taken: u64 = 0, prep_start: u64 = 0, prep_end: u64 = 0, device_start: u64 = 0, device_end: u64 = 0, finish_start: u64 = 0, finish_end: u64 = 0 };
+    // Absolute means the input Timer's clock, NOT UTC or Nsight time. Zero
+    // remains the legacy missing-stage sentinel; nullable copies prevent a
+    // restored node from acquiring a fictitious event at the pipeline origin.
+    const AbsoluteStamps = struct { taken: ?u64 = null, prep_start: ?u64 = null, prep_end: ?u64 = null, device_start: ?u64 = null, device_end: ?u64 = null, finish_start: ?u64 = null, finish_end: ?u64 = null };
+    fn absoluteStamps(stamps: Stamps, origin_ns: u64) !AbsoluteStamps {
+        var result: AbsoluteStamps = .{};
+        inline for (std.meta.fields(Stamps)) |field| {
+            const value = @field(stamps, field.name);
+            if (value != 0) @field(result, field.name) = try std.math.add(u64, origin_ns, value);
+        }
+        return result;
+    }
     pub const Record = struct {
         id: usize = 0,
         kind: []const u8 = "",
@@ -1483,7 +1495,11 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
     const scheduler = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .candidate = true, .pipelined = true, .lanes = options.lanes.len, .pool_worker_budget = options.pool_worker_budget, .max_pending_authorities = options.max_pending_authorities, .peak_authority_slots = shared.queue.peak, .host_budget = budget.snapshot() }, .{ .whitespace = .indent_2 });
     defer a.free(scheduler);
     try @import("publication.zig").write(input.dir, "scheduler.json", scheduler);
-    const timeline = try std.json.Stringify.valueAlloc(a, .{ .schema = "rv64-om31-pipelined-recursion-timeline/v1", .measured = true, .scope = "ns since pipeline start; device stage = precommit+authority+device proof on that lane; occupancy is lane device-stage wall / (lanes * DAG wall), an upper bound on GPU kernel busy", .options = pipe, .lanes = options.lanes.len, .dag_wall_ns = recursion_wall_ns, .concurrent_root_metadata_check_ns = root_check.ns, .root_publication_ns = input.timer.read() - verify_start, .lane_device_stage_ns = lane_busy[0..options.lanes.len], .lane_device_stage_occupancy = occupancy, .peak_leaves_ahead = shared.peak_leaves_ahead, .peak_ready = shared.peak_ready, .policy = @tagName(shared.queue.policy), .stream = stream_report, .device_wait_for_native_ns = stream_wait_ns, .last_leaf_finish_ns = last_leaf_end, .tail_after_last_leaf_ns = recursion_wall_ns -| last_leaf_end, .nodes = records }, .{ .whitespace = .indent_1 });
+    const AbsoluteNode = struct { id: usize, stamps: Pipe.AbsoluteStamps };
+    const absolute_nodes = try a.alloc(AbsoluteNode, records.len);
+    defer a.free(absolute_nodes);
+    for (records, absolute_nodes) |record, *absolute| absolute.* = .{ .id = record.id, .stamps = try Pipe.absoluteStamps(record.stamps, shared.origin_ns) };
+    const timeline = try std.json.Stringify.valueAlloc(a, .{ .schema = "rv64-om31-pipelined-recursion-timeline/v1", .measured = true, .scope = "nodes.stamps are ns since pipeline origin; nodes_absolute and stream ready/done use input Timer ns (not UTC/Nsight); device stage = precommit+authority+device proof; occupancy is an upper bound on GPU kernel busy", .origin_ns = shared.origin_ns, .clock = .{ .relative = "pipeline_origin", .absolute = @as([]const u8, if (input.stream != null) "Streaming.timer" else "input.timer"), .legacy_missing_stamp = 0, .absolute_missing_stamp = "null", .native_wait_is_wakeup_observation = true }, .nodes_absolute = absolute_nodes, .options = pipe, .lanes = options.lanes.len, .dag_wall_ns = recursion_wall_ns, .concurrent_root_metadata_check_ns = root_check.ns, .root_publication_ns = input.timer.read() - verify_start, .lane_device_stage_ns = lane_busy[0..options.lanes.len], .lane_device_stage_occupancy = occupancy, .peak_leaves_ahead = shared.peak_leaves_ahead, .peak_ready = shared.peak_ready, .policy = @tagName(shared.queue.policy), .stream = stream_report, .device_wait_for_native_ns = stream_wait_ns, .last_leaf_finish_ns = last_leaf_end, .tail_after_last_leaf_ns = recursion_wall_ns -| last_leaf_end, .nodes = records }, .{ .whitespace = .indent_1 });
     defer a.free(timeline);
     try @import("publication.zig").write(input.dir, "pipeline.json", timeline);
     std.log.info("rv64 OM31 pipelined recursion done: dag_wall_ns={d} lane_device_stage_occupancy={d:.3}", .{ recursion_wall_ns, occupancy });
