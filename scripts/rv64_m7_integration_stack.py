@@ -68,7 +68,7 @@ def prepare(args):
                 'native_hooks_commit': args.native_hooks_commit, 'device_hooks_commit': args.device_hooks_commit,
                 'process_budget_guard': assets['process_budget_guard'],
                 'ready': bool(args.native_hooks_commit and args.device_hooks_commit and args.process_budget_guard),
-                'scope': 'GPU-only global admission; host/RSS observed, not bounded. Baseline auto arena; full22GiB. No proof format changes.',
+                'scope': 'GPU-only global admission; host/RSS observed, not bounded. Baseline original auto arena without canary; full22GiB under enforced28e9physicalceiling. No proof format changes.',
                 'created_utc_ns': time.time_ns()}
     write(args.out, manifest)
     print(json.dumps({'manifest': str(args.out), 'ready': manifest['ready'], 'asset_sha256': manifest['asset_sha256']}))
@@ -94,10 +94,12 @@ def command(manifest, arm, round_index, run_root, profile, label="one-stack"):
             '--stream', run_root, '--build-stream', run_root, '--repeat', '2', '--store', 'none',
             '--receive', 'none', '--security-profile', preset['security_profile'], '--coalesce-truth-families',
             '--driver', assets['driver'], '--library', assets['library'], '--receiver', assets['receiver'],
-            '--tag', tag, '--no-default-env', '--process-budget-guard', assets['process_budget_guard'], '--quiet-load-max', str(preset['measurement']['quiet_load_max']),
+            '--tag', tag, '--no-default-env', '--quiet-load-max', str(preset['measurement']['quiet_load_max']),
             '--quiet-steal-max', str(preset['measurement']['quiet_steal_max']),
             '--quiet-timeout', str(preset['measurement']['quiet_timeout_s']),
             '--quiet-stable-samples', str(preset['measurement']['quiet_stable_samples'])]
+    if arm == 'fullstack':
+        argv += ['--process-budget-guard', assets['process_budget_guard']]
     if profile:
         argv.append('--nsys')
     for key, value in sorted(arm_environment(preset, arm, assets).items()):
@@ -118,8 +120,12 @@ def fingerprints(row):
             'recursive': recursive['proof_sha256'], 'captured_values_sha256': captured}
 
 
-def guard_verdict(receipt):
+def guard_verdict(receipt, arm):
     guard = receipt.get('physical_budget_guard') or {}
+    if arm == 'baseline':
+        if guard:
+            raise RuntimeError('baseline auto arena must not be altered by a physical canary')
+        return {'status': 'ORIGINAL_BASELINE_AUTO_UNGUARDED', 'ceiling_bytes': None, 'observed_exact_process_peak_bytes': None}
     if guard.get('status') != 'RELEASED' or guard.get('exit_code') != 0 or guard.get('failure'):
         raise RuntimeError('physical guard lifecycle did not close successfully')
     devices = guard['ready']['devices']
@@ -159,7 +165,7 @@ def run(args):
     for index, arm in enumerate(result['order']):
         validate_manifest(manifest)
         profile = not args.smoke and index >= 6
-        argv, tag = command(manifest, arm, index, stream, profile, 'one-stack-smoke' if args.smoke else 'one-stack')
+        argv, tag = command(manifest, arm, index, stream, profile, 'one-stack-v2-smoke' if args.smoke else 'one-stack-v2')
         seed = None
         if args.smoke and arm == 'fullstack':
             seed = (17, 29)[index - 1]
@@ -179,7 +185,7 @@ def run(args):
             raise RuntimeError('quiet gate missing or failed')
         if len(receipt.get('quiet_before_requests', [])) != 2:
             raise RuntimeError('both requests require explicit quiet receipts')
-        entry['physical_budget'] = guard_verdict(receipt)
+        entry['physical_budget'] = guard_verdict(receipt, arm)
         if seed is not None:
             logged = f'RECURSION_ADMISSION_ORDER policy=seeded_scramble seed={seed}'
             if logged not in (service / 'producer.stderr').read_text(errors='replace'):

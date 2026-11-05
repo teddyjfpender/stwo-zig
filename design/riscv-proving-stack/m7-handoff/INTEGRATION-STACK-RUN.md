@@ -23,11 +23,12 @@ Before each request, the runner requires five consecutive samples with load1m<8,
 CPU steal<=1%, and no active compiler/receiver process. A busy pod fails after300s;
 it is never relabelled quiet. Fresh receivers cannot contaminate primary timings.
 
-Both arms hold the physical CUDA budget guard under the same GPU lease, from
+Only the fullstack arm holds the physical CUDA budget guard under the same GPU lease, from
 before prover startup through prover exit. Guard ready records, binary SHA256,
 PID, terminal status and exact per-device held bytes are preserved. A watchdog
 kills the prover process group if the guard exits early. On the current5090s,
 held5,681,184,768B enforces prover physical availability<=27,998,552,064B per GPU.
+The baseline keeps its original auto arena without a canary; it has no28GBclaim. Applying a canary to baseline would alter the control arena and was stopped before the first request.
 This is an enforced upper bound, NOT an exact observed peak. Device-wide NVML
 samples include the canary and are labelled accordingly. Host/RSS is observed;
 the GPU-only admission policy does not certify a host/RSS bound.

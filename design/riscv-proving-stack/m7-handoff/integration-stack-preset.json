@@ -67,6 +67,10 @@
     "quiet_timeout_s": 300,
     "fresh_receivers_after_all_timing_services": true,
     "gpu_seconds": "CUPTI interval union; node-level graph tracing required; profiled walls include profiler overhead",
-    "memory_claim": "Both arms hold physical canary throughout service, enforcing <=28e9 physical bytes per GPU. This is an enforced upper bound, not a sampled or exact observed peak."
+    "memory_claim": "Onlyfullstack holds physical canary throughout service, enforcing <=28e9physicalbytes perGPU. Baselineoriginalautounguarded. Enforcedupperbound, notobservedexactpeak.",
+    "physical_guard_arms": [
+      "fullstack"
+    ],
+    "baseline_memory_scope": "Original auto arena without physical canary; no28GBclaim forbaseline."
   }
 }
