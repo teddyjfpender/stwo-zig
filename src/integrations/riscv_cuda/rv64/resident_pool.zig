@@ -163,15 +163,39 @@ pub const Pool = struct {
         // host_budget stays unavailable until the request owner supplies its
         // actual SharedHostBudget. The early orchestrator refuses a null owner.
         result.early_memory = .{ .context = self, .reserve = reserveEarly };
+        if (self.admission != null) result.early_segments = .{ .context = self, .lanes = self.devices.len, .laneForOrdinal = earlyLaneForOrdinal, .stages = earlyStages, .configure = configureEarly };
         if (comptime @hasField(CPU.rv64_ethereum_gkr_main.ResidentStages, "truth_pcs")) result.truth_pcs = &self.truth_pcs;
         if (std.process.hasEnvVarConstant("STWO_RV64_GPU_CPU_REPLAY")) result.cpu_replay = self.router.cpuReplayStage();
         return result;
     }
     fn reserveEarly(raw: *anyopaque, a: std.mem.Allocator, request: CPU.rv64_device_source_stage.Request, config: @import("stwo_core").pcs.ForField(D.O).PcsConfig, budget: *@import("stwo_prover_engine").host_budget_allocator.SharedHostBudget) !CPU.rv64_ethereum_gkr_main.EarlyCPU.Ticket {
         const self: *Pool = @ptrCast(@alignCast(raw));
-        if (request.ordinal != 0 or self.devices.len == 0) return error.EarlyStageAdmissionUnavailable;
-        const stage = self.devices[0].early_admission.stage();
+        const lane = try earlyLaneForOrdinal(self, request.ordinal);
+        const stage = self.devices[lane].early_admission.stage();
         return stage.reserve(stage.context, a, request, config, budget);
+    }
+    fn configureEarly(raw: *anyopaque, cpu_workers: usize) !void {
+        const self: *Pool = @ptrCast(@alignCast(raw));
+        if (self.admission == null) return error.EarlySegmentsRequireGlobalAdmission;
+        // Replan deliberately refuses live scopes. Call before any early
+        // worker starts, and retain this exact routing through later adoption.
+        try self.router.replan(cpu_workers);
+    }
+    fn earlyLaneForOrdinal(raw: *anyopaque, ordinal: usize) !usize {
+        const self: *Pool = @ptrCast(@alignCast(raw));
+        const ord = std.math.cast(u32, ordinal) orelse return error.UnplannedResidentWorker;
+        if (self.devices.len == 0 or ordinal >= self.router.planned_cpu_workers) return error.UnplannedResidentWorker;
+        const physical = self.router.deviceFor(ord);
+        for (self.endpoints, 0..) |endpoint, i| if (endpoint.device == physical) return i;
+        return error.InvalidResidentPlan;
+    }
+    fn earlyStages(raw: *anyopaque, ordinal: usize) !CPU.rv64_ethereum_gkr_main.EarlySegments.SegmentStages {
+        const self: *Pool = @ptrCast(@alignCast(raw));
+        if (self.admission == null) return error.EarlySegmentsRequireGlobalAdmission;
+        _ = try earlyLaneForOrdinal(raw, ordinal);
+        // Keep routing wrappers: they bind and advance the exact ordinary
+        // worker scope. Direct device stages would bypass Router custody.
+        return .{ .source = self.source, .projection = self.projection, .trace_commit = &self.trace_commit, .pcs = &self.pcs, .numerical = &self.numerical, .composition = &self.composition };
     }
     pub fn deinit(self: *Pool) void {
         const a = self.allocator;
