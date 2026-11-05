@@ -1,0 +1,7 @@
+{
+  "schema": "rv64-m7-native-slot-policy/v1",
+  "author": "OpenAI Codex",
+  "gate": "zig build test-native-gkr -Dnative-gkr-test-filter=public projection",
+  "exit_code": 0,
+  "status": "source SlotPolicy API; no Ethereum request; no production new-format activation"
+}
