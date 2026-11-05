@@ -712,6 +712,7 @@ test "concurrent resident walk and expected image share only pinned immutable au
     try std.testing.expect(started.walk.?.request.shared_authority);
     try std.testing.expectEqual(@as(u64, 1), cache.misses);
     try std.testing.expect(cache.hits >= 1);
+    try std.testing.expectEqual(@as(usize, 1), cache.provider_leases);
     var altered = config;
     altered.input_sha256 = "ff" ** 32;
     try std.testing.expectError(error.EthereumInputIdentityMismatch, Request.Request.initWithOptions(a, altered, .{ .poseidon_initial_cache = false, .authority_provider = cache.provider() }));
@@ -722,4 +723,12 @@ test "concurrent resident walk and expected image share only pinned immutable au
     defer fresh.deinit();
     try std.testing.expectEqualDeep([_]u8{0xff} ** 43, fresh.expected_output);
     try std.testing.expectEqual(@as(u64, 1), cache.misses);
+    altered.control_policy = .limbs24_v2;
+    try std.testing.expectError(error.ResidentAuthorityProviderKeyChanged, Request.Request.initWithOptions(a, altered, .{ .poseidon_initial_cache = false, .authority_provider = cache.provider() }));
+    try std.testing.expectError(error.ResidentAuthorityProviderKeyChanged, Image.Owner.initShared(a, altered, &cache));
+    try std.testing.expectEqual(@as(usize, 2), cache.provider_leases);
+    altered = config;
+    altered.terminal_pc = 4096;
+    try std.testing.expectError(error.InvalidEthereumTerminalPc, Request.Request.initWithOptions(a, altered, .{ .poseidon_initial_cache = false, .authority_provider = cache.provider() }));
+    try std.testing.expectEqual(@as(usize, 2), cache.provider_leases);
 }
