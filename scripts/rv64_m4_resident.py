@@ -608,6 +608,8 @@ def daemon(args):
                     os.rename(spool / "inbox" / f"{name}.tmp", spool / "inbox" / f"{name}.request")
                     done = spool / "done" / f"{name}.json"
                     while not done.is_file():
+                        if args.request_timeout and (time.monotonic_ns() - submitted) / 1e9 > args.request_timeout:
+                            raise TimeoutError(f"request {name} exceeded bounded {args.request_timeout}s; terminate producer group and drain guard")
                         if guard:
                             guard.check()
                         if process.poll() is not None:
@@ -931,6 +933,7 @@ def main():
         if action.dest in ("help",):
             continue
         d._add_action(action)
+    d.add_argument("--request-timeout", type=float, help="bounded correctness diagnostic only; kill producer group and close guard on timeout")
     d.add_argument("--process-budget-guard", help="physical CUDA reservation executable; held under same GPU lease through driver exit")
     d.add_argument("--gap", type=float, default=0.0, help="idle seconds between requests")
     d.add_argument("--quiet-resource", choices=("host-load", "cgroup"), default="host-load", help="cgroup mode requires zero PSI/throttle deltas for the pod; host load is informational")

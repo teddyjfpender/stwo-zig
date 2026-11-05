@@ -150,7 +150,7 @@ def run(args):
     environment = clean_environment(os.environ)
     result = {'schema': 'rv64-m7-one-stack-experiment/v1', 'manifest_sha256': sha(args.manifest),
               'profiled': False, 'timing_scope': 'UNQUALIFIED_CORRECTNESS_WALLS' if args.smoke else 'six primary services unprofiled; optional ownership pair instrumented separately',
-              'order': (['fullstack', 'fullstack'] if args.reference_run else ['baseline', 'fullstack', 'fullstack']) if args.smoke else manifest['preset']['measurement']['order'] + (['baseline', 'fullstack'] if args.ownership_profile_pair else []), 'services': [], 'receivers_deferred': True, 'instrumentation': manifest['preset']['measurement'].get('instrumentation'),
+              'order': ((['fullstack'] * len(args.smoke_seeds)) if args.reference_run else ['baseline'] + ['fullstack'] * len(args.smoke_seeds)) if args.smoke else manifest['preset']['measurement']['order'] + (['baseline', 'fullstack'] if args.ownership_profile_pair else []), 'services': [], 'receivers_deferred': True, 'instrumentation': manifest['preset']['measurement'].get('instrumentation'),
               'smoke_only': args.smoke,
               'gpu_seconds_status': 'pending separate ownership pair' if args.ownership_profile_pair else 'unavailable without CUPTI; no surrogate claim',
               'exact_process_peak_gate': 'Root-owned guard required; observer/NVML samples alone are insufficient'}
@@ -168,9 +168,9 @@ def run(args):
         argv, tag = command(manifest, arm, index, stream, profile, 'one-stack-v3-smoke' if args.smoke else 'one-stack-v2')
         seed = None
         if args.smoke:
-            argv += ['--quiet-mode', 'diagnostic', '--env', 'STWO_RV64_CAPTURE_DIGEST=1']
+            argv += ['--quiet-mode', 'diagnostic', '--request-timeout', str(args.smoke_request_timeout), '--env', 'STWO_RV64_CAPTURE_DIGEST=1']
         if args.smoke and arm == 'fullstack':
-            seed = (17, 29)[index if args.reference_run else index - 1]
+            seed = args.smoke_seeds[index if args.reference_run else index - 1]
             argv += ['--env', f'STWO_RV64_RECURSION_SCRAMBLE_SEED={seed}']
         service = Path('/workspace/m3/runs') / stream / f'daemon-{manifest["block"]}-r2-{tag}'
         entry = {'arm': arm, 'order_index': index, 'run': str(service), 'argv': argv, 'profiled': profile, 'measurement_role': 'smoke' if args.smoke else ('ownership_profile' if profile else 'headline')}
@@ -262,6 +262,8 @@ def main():
     p.add_argument('--receiver-workers', type=int, default=16)
     p.add_argument('--ownership-profile-pair', action='store_true', help='after six unprofiled services, one baseline/fullstack CUPTI pair; never included in headline medians')
     p.add_argument('--smoke', action='store_true', help='small-block lane1 control then lane2 seeds17/29 cold/warm correctness services before headline experiment')
+    p.add_argument('--smoke-seeds', nargs='+', type=int, choices=(17,29), default=[17,29], help='explicit seeded admission correctness cases; first activation may select17 only')
+    p.add_argument('--smoke-request-timeout', type=float, default=120, help='terminate blocked correctness request with all producer/guard resources drained')
     p.add_argument('--reference-run', type=Path, help='proof-neutral accepted reference payload comparison, including capture SHA256')
     args = parser.parse_args()
     (prepare if args.mode == 'prepare' else run)(args)
