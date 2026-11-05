@@ -165,6 +165,11 @@ def plan_for(blocks, args, run, paths, root):
                       "receiver": str(paths["receiver"]), "recursive_receiver": str(paths["receiver"])}
     plan["asset_sha256"] = {k: P.sha(v) if Path(v).is_file() else None for k, v in plan["assets"].items()}
     plan["producer_source_commit"] = P.source_commit(root)
+    pending = getattr(args, "recursion_pending", None)
+    if pending is not None:
+        if not 1 <= pending <= 256:
+            raise SystemExit("recursion pending-authority limit must be in [1, 256]")
+        plan["recursion_max_pending_authorities"] = pending
     plan["resident_environment"] = P.producer_env(args)
     return plan
 
@@ -691,6 +696,7 @@ def main():
     s.add_argument("--receive", choices=("all", "first", "none"), default="first")
     s.add_argument("--receiver-workers", type=int, default=16)
     s.add_argument("--no-class-store", action="store_true", help="do not persist fold-class templates in the store")
+    s.add_argument("--recursion-pending", type=int, help="explicit authority-slot budget (k4 with 4 lanes requires at least 21); receiver/proof unchanged")
     d = sub.add_parser("daemon")
     for action in s._actions:
         if action.dest in ("help",):

@@ -1,0 +1,32 @@
+{
+  "schema": "rv64-m3-build/v1",
+  "stream": "m7-device-graphs",
+  "source_root": "/workspace/m3/src/m7-device-graphs",
+  "source_commit": "e1c526216b9c74f0c7023fae42c63e19f1f8faec",
+  "host": "f675b38ce80e",
+  "zig_seconds": {
+    "build-rv64-ethereum-gpu-combined": 334.19,
+    "build-rv64-ethereum-recursion-receiver": 279.65
+  },
+  "driver_sha256": "cdbed4b589d7ee2e89646c5518fd1b159d7e17cabb051c178d936d51dd19f60c",
+  "receiver_sha256": "57e980a4a2c8fe76e0f890166dab560ef3c095d8230f4f4334eb9b97a392ad13",
+  "producer_rebuild": {
+    "status": "EXIT=0",
+    "elapsed_s_from_guarded_test_finish": 330.8471474647522
+  },
+  "source_sha256": {
+    "src/backends/cuda/native/runtime/context.cu": "f45697b2b1a380c69c8e87f5a3255d0edf704260360a2b1ff0080fe9121324dc",
+    "src/integrations/riscv_cuda/rv64/assignment_graph.zig": "45320d2ff221fe74ca7e89f6fea979449afff050f9dba4299d0a617a59cb4ed3",
+    "src/integrations/riscv_cuda/rv64/outer_assignment.zig": "efef000ad9ff4e0810ac6cbe82fe66d857d14cd3962b18f42d8dd5f400ae0d60",
+    "src/integrations/riscv_cuda/build.zig": "86817645340b4c9789bf01242e7699f87518625a0eb464e9c71dfe4106609a78",
+    "src/integrations/riscv_cuda/rv64_recursion_ready_test_root.zig": "e40dea16f3631676e6feedd2004543f7bdf3908529dae0a67732c0d90eb4c517",
+    "src/integrations/riscv_cuda/rv64/pcs_native.zig": "2bdd94bc2e3935f0e4e0da74fdacc7e4215cc8debf50f0d077436728f3262eff",
+    "src/integrations/riscv_cuda/rv64/outer_source.zig": "f2149e55f34cfce3e6729630cdb7f34934c3febf1846ff690872c6ab983ad6fc",
+    "src/integrations/riscv_cuda/rv64/resident_batch.zig": "24340f4baf9ffb0f3487bcca4bb86396603ad2b0f9387bacb32859c9e61f2538",
+    "src/integrations/riscv_cuda/rv64/resident_composition.zig": "64ebda65031ae2542ecafdbb96e13ad1f3d90a258e540ab521c1063b2ead1b02",
+    "src/integrations/riscv_cuda/rv64/resident_ready.zig": "ce18a8ca2d3381b80904d92f5a3a22612a90afd2c0dd2316b79f45390e5d4643",
+    "src/integrations/riscv_cuda/rv64/resident_ready_policy.zig": "85a314f2dedfdf05de90b28cb22a910b9825f5838cdf41cda616fcbaeca2300c",
+    "scripts/rv64_m4_resident.py": "ef66545af64ed939018eabd13a4a0598cfd1b2a214b98f583a80f2e6718bd807"
+  },
+  "source_note": "Dirty graph candidate with default-off independent-lane draft; A/B lane_sessions=0. Final graph guard/unit source compiled after immutable kind4 read-only validation fix. No lane2 success implied."
+}

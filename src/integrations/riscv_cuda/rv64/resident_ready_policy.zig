@@ -11,6 +11,17 @@ pub fn lanesPerDevice() !usize {
     if (value == 0 or value > 2) return error.InvalidResidentReadyAdmission;
     return value;
 }
+/// Independent native owner per recursion lane. Operational opt-in until
+/// the paired memory/throughput gate passes with the physical arena cap.
+pub fn parseLaneSessions(text: ?[]const u8) !bool {
+    const value = text orelse return false;
+    if (std.mem.eql(u8, value, "0")) return false;
+    if (std.mem.eql(u8, value, "1")) return true;
+    return error.InvalidRecursionLaneSessions;
+}
+pub fn laneSessions() !bool {
+    return parseLaneSessions(std.posix.getenv("STWO_RV64_RECURSION_LANE_SESSIONS"));
+}
 pub fn workers(mode: Mode, ids: []const u32, total: usize, pending: usize) ![4]usize {
     if (mode == .serial) {
         if (ids.len != 1) return error.MultiGpuCombinedRecursionNotImplemented;
@@ -33,4 +44,12 @@ test "resident ready mode is explicit and distributes a bounded total worker bud
     try std.testing.expectError(error.InvalidResidentReadyAdmission, workers(.ready_candidate, &.{0}, 33, 17));
     try std.testing.expectError(error.InvalidResidentReadyAdmission, workers(.ready_candidate, &.{ 0, 1, 2, 3 }, 8, 16));
     try std.testing.expectError(error.InvalidResidentReadyAdmission, workers(.ready_candidate, &.{}, 8, 17));
+}
+
+
+test "recursion lane sessions are a strict independent opt-in" {
+    try std.testing.expect(!try parseLaneSessions(null));
+    try std.testing.expect(!try parseLaneSessions("0"));
+    try std.testing.expect(try parseLaneSessions("1"));
+    for ([_][]const u8{ "", "true", "2", "01", " 1" }) |value| try std.testing.expectError(error.InvalidRecursionLaneSessions, parseLaneSessions(value));
 }

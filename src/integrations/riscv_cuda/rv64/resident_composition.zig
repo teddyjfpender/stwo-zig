@@ -155,6 +155,9 @@ pub const Context = struct {
     truth_role: ?*const @TypeOf(Abi.stwo_rv64_composition_role_on) = null,
     twiddles: [29]?Twiddle = @splat(null),
     mutex: std.Thread.Mutex = .{},
+    /// Independent recursion sessions share the physical device's wide-phase
+    /// gate while retaining their own mutable geometry and timing metadata.
+    phase_mutex: ?*std.Thread.Mutex = null,
     geometries: std.ArrayList(Geometry) = .empty,
     /// Per-owner retained setup cap. Oversized entries remain request-local.
     cache_limit_bytes: usize = 256 << 20,
@@ -386,6 +389,8 @@ pub const Context = struct {
             }
         }
         if (constraints != total) return error.WrongResidentConstraintCount;
+        if (self.phase_mutex) |phase| phase.lock();
+        defer if (self.phase_mutex) |phase| phase.unlock();
         self.mutex.lock();
         defer self.mutex.unlock();
         var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = trace, .scope = scope, .log_blowup = log_blowup };

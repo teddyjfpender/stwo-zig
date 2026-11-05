@@ -236,6 +236,7 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
     hash.update(&transaction);
     const identity = hash.finalResult();
     for (pool.devices, config.caps) |*device, cap| try device.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = if (combined) manifest.combined_immutable_device_bytes else manifest.immutable_device_bytes, .max_scopes = config.scope_limit });
+    if (combined) if (ready) |context| try context.beginBlock(identity, manifest.combined_immutable_device_bytes, config.scope_limit);
     var timer = try std.time.Timer.start();
     if (combined) {
         // Same producer and live authority handoff; every trial is fresh.
@@ -248,6 +249,7 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
             .producer_manifest_sha256 = manifest_sha256,
         });
     } else try Main.runWithResidentArgs(recycler, &args, pool.stages(), session);
+    if (combined) if (ready) |context| try context.endBlock(identity);
     for (pool.devices) |*device| try device.native.endBlock(identity);
     const request_wall_ns = timer.read();
     // New setup artifacts are written between requests, off the wall.
