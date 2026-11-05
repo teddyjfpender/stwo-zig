@@ -280,3 +280,46 @@ test "corpus OG05 outer GKR source mass covers classic consumers and refuses cha
     try std.testing.expectEqual(good.conservativeMass(), bad.conservativeMass());
     try std.testing.expectError(error.Om31CandidateCharacteristicWrap, P.requireSecurityWithSource(bad, 40, 8));
 }
+
+const RowGuardCost = struct { qm31: u64, valid: bool };
+fn rowGuardCost(class: *const @import("profile.zig").Class, legacy: bool, bad_index: ?usize, bad_one: bool) !RowGuardCost {
+    const CG = @import("circuit.zig");
+    var ctx = try Lane.Context.init(a, 0);
+    defer ctx.deinit();
+    Lane.begin(&ctx);
+    var open = true;
+    defer if (open) Lane.finish() catch {};
+    var point: [MP.MAX_VARIABLES]Lane.Lane = undefined;
+    for (point[0..class.layers()], 0..) |*wire, i| {
+        const value = if (bad_index != null and bad_index.? == i) (if (bad_one) O.one() else O.zero()) else O.fromBase(M.fromCanonical(@intCast(i + 2)));
+        wire.* = try Lane.Lane.guess(&ctx, value);
+    }
+    if (legacy) {
+        for (class.instances) |instance| _ = try MP.MleEvalPointFor(Lane.Lane).init(point[class.layers() - instance.row_log .. class.layers()]);
+    } else try CG.requireRowPoint(&ctx, class, point[0..class.layers()]);
+    open = false;
+    try Lane.finish();
+    try ctx.finalize(false);
+    return .{ .qm31 = ctx.gate_counts.qm31_ops, .valid = try ctx.isCircuitValid() };
+}
+
+test "outer GKR direct row guard excludes every nested suffix degeneracy and preserves lane-only coordinates" {
+    const P = @import("profile.zig");
+    const class = P.LEAF_CPU_24628607.withBindingV2();
+    var longest: usize = 0;
+    for (class.instances) |instance| longest = @max(longest, instance.row_log);
+    const first = class.layers() - longest;
+    // The smaller instance starts inside the longest suffix. Check its own
+    // beginning as well as first/middle/last of the maximal row suffix.
+    const smaller = class.layers() - class.instances[0].row_log;
+    for ([_]usize{ first, first + longest / 2, class.layers() - 1, smaller }) |index| {
+        for ([_]bool{ false, true }) |one| try std.testing.expect(!(try rowGuardCost(&class, false, index, one)).valid);
+    }
+    for ([_]bool{ false, true }) |one| try std.testing.expect((try rowGuardCost(&class, false, 0, one)).valid);
+    const old = try rowGuardCost(&class, true, null, false);
+    const direct = try rowGuardCost(&class, false, null, false);
+    try std.testing.expect(old.valid and direct.valid);
+    try std.testing.expect(direct.qm31 < old.qm31);
+    std.debug.print("\nOUTER_ROW_GUARD_COST old_qm31={d} direct_qm31={d} saved_per_child={d} saved_four={d}\n", .{ old.qm31, direct.qm31, old.qm31 - direct.qm31, 4 * (old.qm31 - direct.qm31) });
+    try std.testing.expectError(error.OuterGkrShapeMismatch, @import("circuit.zig").requireRowPoint(undefined, &class, &.{}));
+}

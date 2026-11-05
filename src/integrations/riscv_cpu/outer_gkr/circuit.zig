@@ -45,7 +45,7 @@ fn inadmissibleFactor(ctx: *Context, word: Word) Error!Var {
 pub fn requireAdmissible(ctx: *Context, words: *const [8]Word) Error!void {
     var product = try inadmissibleFactor(ctx, words[0]);
     for (words[1..]) |w| product = try ctx.mul(product, try inadmissibleFactor(ctx, w));
-    const value = ctx.get(product);
+    const value = if (ctx.trace_only) Q.zero() else ctx.get(product);
     // Witness: the inverse when it exists; zero otherwise (the constraint then fails, never panics).
     const witness = if (value.isZero()) Q.zero() else Q.one().div(value) catch Q.zero();
     const inverse = try ctx.guess(witness);
@@ -136,6 +136,21 @@ pub const Result = struct {
         self.artifact.deinit(a);
     }
 };
+/// Every lane-major instance uses a suffix of the same batch point. Checking
+/// the longest row suffix excludes exactly the union of row degeneracies;
+/// constructing discarded carry/anchor vectors adds no further condition.
+pub fn requireRowPoint(_: *Context, class: *const P.Class, point: []const F) !void {
+    try class.validate();
+    if (point.len != class.layers()) return error.OuterGkrShapeMismatch;
+    if (class.binding_version != .cyclic_eq_v2) return;
+    var longest: usize = 0;
+    for (class.instances) |instance| longest = @max(longest, instance.row_log);
+    for (point[point.len - longest ..]) |coordinate| {
+        _ = coordinate.inv();
+        _ = F.one().sub(coordinate).inv();
+    }
+    try lane.check();
+}
 /// In-circuit verify: header constants + salt, batched GKR, root poles excluded (inverse
 /// constraints), root sum returned for the caller's closure equation. The caller binds the terminal
 /// claims to its authenticated input evaluations with `requireTerminal`.
@@ -154,12 +169,7 @@ pub fn verify(context: *Context, channel: *Channel, class: *const P.Class, wired
     errdefer artifact.deinit(context.gpa);
     try channel.finish();
     for (artifact.n_variables_by_instance, class.instances) |n, inst| if (n != inst.variables()) return error.OuterGkrShapeMismatch;
-    if (class.binding_version == .cyclic_eq_v2) {
-        const MP = @import("../logup_gkr/mle_point.zig");
-        for (class.instances) |inst| {
-            _ = try MP.MleEvalPointFor(F).init(artifact.ood_point[artifact.ood_point.len - inst.row_log ..]);
-        }
-    }
+    try requireRowPoint(context, class, artifact.ood_point);
     // Leading coefficients nonzero (constant mixing length is only unambiguous with deg = 3).
     for (wired.proof.sumcheck_proofs) |sc| for (sc.round_polys) |poly| {
         _ = poly.coefficients[P.COEFFICIENTS_PER_ROUND - 1].inv();

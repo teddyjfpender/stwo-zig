@@ -64,7 +64,11 @@ const Pending = struct {
     }
 };
 fn child(p: Pending) Bridge.Child {
-    return .{ .authority = p.proof.authority, .produced = &p.proof.produced, .capture = &p.proof.capture };
+    return p.proof.asChild();
+}
+fn hybridChildren(kids: []const Bridge.Child) bool {
+    for (kids) |kid| if (kid.hybrid != null) return true;
+    return false;
 }
 fn freeMarginals(a: std.mem.Allocator, values: []const []const O) void {
     for (values) |pair| a.free(pair);
@@ -156,7 +160,7 @@ fn combine(a: std.mem.Allocator, left: Pending, right: Pending, nodes: *std.Arra
         classes.?.hits += 1;
         std.log.info("rv64 OM31 recursion fold accepted (class cache hit): class={x} restore_ns={d} verify_ns={d} total_ns={d}", .{ class_key[0..8], proof.timings.restore_ns, proof.timings.verify_ns, timer.read() });
         const node = nodes.items.len;
-        nodes.appendAssumeCapacity(.{ .first_leaf = l.first_leaf, .leaf_count = l.leaf_count + r.leaf_count, .left = left.node, .right = right.node, .authority = proof.authority.identity, .digest = digest });
+        nodes.appendAssumeCapacity(.{ .first_leaf = l.first_leaf, .leaf_count = l.leaf_count + r.leaf_count, .left = left.node, .right = right.node, .authority = proof.effectiveIdentity(), .digest = digest });
         return .{ .pending = .{ .proof = proof, .node = node }, .restored = true, .retired_preprocessed_bytes = 0 };
     };
     const build_fold = if (existing_only or (factory != null and factory.?.prepare_from_circuit != null)) &Bridge.buildFoldTraceOnly else &Bridge.buildFold;
@@ -189,7 +193,7 @@ fn combine(a: std.mem.Allocator, left: Pending, right: Pending, nodes: *std.Arra
         std.log.info("rv64 OM31 recursion fold class adopted: class={x} identity={x}", .{ class_key[0..8], proof.authority.identity[0..8] });
     };
     const node = nodes.items.len;
-    nodes.appendAssumeCapacity(.{ .first_leaf = l.first_leaf, .leaf_count = l.leaf_count + r.leaf_count, .left = left.node, .right = right.node, .authority = proof.authority.identity, .digest = digest });
+    nodes.appendAssumeCapacity(.{ .first_leaf = l.first_leaf, .leaf_count = l.leaf_count + r.leaf_count, .left = left.node, .right = right.node, .authority = proof.effectiveIdentity(), .digest = digest });
     return .{ .pending = .{ .proof = proof, .node = node }, .restored = encoded != null, .retired_preprocessed_bytes = retired_bytes };
 }
 /// Streaming binary carry is the same ordered pair-fold tree as breadth-first
@@ -374,6 +378,7 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     defer manifest.deinit(a);
     const n = inventory.workers.len;
     if (n == 0 or n > 256 or bundle.cpus.len != setups.len or bundle.truths.len != truths.len) return error.ServicesRootRoster;
+    if (Outer.hybridProfileActive()) try Outer.requireHybridProofBudget((try Dag.Plan.initArity(n, try foldArity())).count);
     const words = try a.alloc([]const u32, n);
     @memset(words, &.{});
     defer {
@@ -465,7 +470,7 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
             if (!existing_only) try save(a, dir, name, proof);
             retired_bytes += proof.retireProverData();
             const node = nodes.items.len;
-            nodes.appendAssumeCapacity(.{ .first_leaf = ordinal, .leaf_count = 1, .left = null, .right = null, .authority = proof.authority.identity, .digest = proof.digest });
+            nodes.appendAssumeCapacity(.{ .first_leaf = ordinal, .leaf_count = 1, .left = null, .right = null, .authority = proof.effectiveIdentity(), .digest = proof.digest });
             break :blk .{ .proof = proof, .node = node };
         };
         defer if (current) |p| p.deinit(a);
@@ -521,7 +526,7 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     if (existing_only and (restored_leaves != n or restored_folds != n - 1)) return error.RecursiveReceiverMustRestoreAll;
     const verify_start = timer.read();
     try Outer.requireDigest(final.proof.produced.outputs, info.digest);
-    var fresh = try Prove.verify(a, final.proof.authority, final.proof.produced.outputs, final.proof.produced.claims, &final.proof.produced.proof.proof);
+    var fresh = try final.proof.verifyFresh(a);
     defer fresh.deinit(a);
     _ = try Root.check(a, setups, truths, bundle.requests, expected, config, fixed, bundle.stage_one_bytes, frames, .{});
     const verify_ns = timer.read() - verify_start;
@@ -631,7 +636,7 @@ const ParallelExecution = struct {
             const outcome = publication.outcome;
             self.proofs[id] = outcome.pending;
             const spec = self.plan.nodes[id];
-            self.nodes[id] = .{ .first_leaf = spec.first_leaf, .leaf_count = spec.leaf_count, .left = spec.left(), .right = spec.right(), .authority = outcome.pending.proof.authority.identity, .digest = outcome.pending.proof.digest };
+            self.nodes[id] = .{ .first_leaf = spec.first_leaf, .leaf_count = spec.leaf_count, .left = spec.left(), .right = spec.right(), .authority = outcome.pending.proof.effectiveIdentity(), .digest = outcome.pending.proof.digest };
             self.retired_bytes += outcome.retired_bytes;
             if (!spec.isLeaf()) {
                 for (spec.kids()) |kid| {
@@ -779,7 +784,7 @@ fn finishPlanned(shared: *ParallelExecution, plan: *const Dag.Plan, backend: []c
     const info = nodes[plan.root];
     const verify_start = input.timer.read();
     try Outer.requireDigest(final.proof.produced.outputs, info.digest);
-    var fresh = try Prove.verify(a, final.proof.authority, final.proof.produced.outputs, final.proof.produced.claims, &final.proof.produced.proof.proof);
+    var fresh = try final.proof.verifyFresh(a);
     defer fresh.deinit(a);
     const metadata = try Root.check(a, input.setups, input.truths, input.bundle.requests, input.expected, input.config, input.fixed, input.bundle.stage_one_bytes, input.frames, .{});
     const verify_ns = input.timer.read() - verify_start;
@@ -1059,7 +1064,7 @@ const Pipelined = struct {
             };
             job.fold = fold;
             if (!std.mem.eql(u8, &job.digest, &fold.output_digest)) return error.RecursiveFoldDigest;
-            if (FoldTape.mode() == .check) {
+            if (FoldTape.mode() == .check and !hybridChildren(kids)) {
                 const tape = try FoldTape.record(a, kids);
                 defer a.free(tape);
                 try FoldTape.compare(a, tape, &fold.ctx);
@@ -1108,7 +1113,7 @@ const Pipelined = struct {
     /// (nothing changed; the caller builds the graph) on any miss, on durable
     /// bytes (the restore path needs the real graph) and when the tape is off.
     fn prepFoldTape(self: *Pipelined, job: *Pipe.Job, kids: []const Bridge.Child, timer: *std.time.Timer) !bool {
-        if (FoldTape.mode() != .on) return false;
+        if (FoldTape.mode() != .on or hybridChildren(kids)) return false;
         const in = self.input;
         const a = in.allocator;
         if (in.allow_resume) {
@@ -1261,7 +1266,7 @@ const Pipelined = struct {
         job.wrapped = null;
         self.proofs[id] = .{ .proof = proof, .node = id };
         const spec = self.plan.nodes[id];
-        self.nodes[id] = .{ .first_leaf = spec.first_leaf, .leaf_count = spec.leaf_count, .left = spec.left(), .right = spec.right(), .authority = proof.authority.identity, .digest = proof.digest };
+        self.nodes[id] = .{ .first_leaf = spec.first_leaf, .leaf_count = spec.leaf_count, .left = spec.left(), .right = spec.right(), .authority = proof.effectiveIdentity(), .digest = proof.digest };
         self.retired_bytes += retired;
         const r = job.record;
         const host_ns = (r.stamps.prep_end - r.stamps.prep_start) + (r.stamps.finish_end - r.stamps.finish_start);
@@ -1392,7 +1397,7 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
     const info = nodes[plan.root];
     const verify_start = input.timer.read();
     try Outer.requireDigest(final.proof.produced.outputs, info.digest);
-    var fresh = try Prove.verify(a, final.proof.authority, final.proof.produced.outputs, final.proof.produced.claims, &final.proof.produced.proof.proof);
+    var fresh = try final.proof.verifyFresh(a);
     defer fresh.deinit(a);
     const metadata = root_check.metadata orelse return error.RecursiveRootMetadataMissing;
     const verify_ns = input.timer.read() - verify_start;

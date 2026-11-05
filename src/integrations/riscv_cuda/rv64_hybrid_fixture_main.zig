@@ -73,6 +73,13 @@ pub fn main() !void {
         if (child) {
             var restored = try CPU.rv64_om31_outer_wrap.restoreForOutputs(a, &pp, &authority, &expected(), @splat(0), bytes, true);
             defer restored.deinit();
+            const RV = CPU.rv64_root_verify;
+            const compact = try RV.VerifierKey.fromAuthority(&authority);
+            if (!std.mem.eql(u8, &(try RV.effectiveIdentityForFamily(a, &compact, true)), &restored.effectiveIdentity())) return error.HybridCompactIdentity;
+            const kids = [_]CPU.rv64_om31_outer.Child{ restored.asChild(), restored.asChild() };
+            const compact_keys = [_]*const RV.VerifierKey{ &compact, &compact };
+            if (!std.mem.eql(u8, &(try RV.foldClassKeyKForFamily(&compact_keys, true)), &(try CPU.rv64_om31_outer.classKey(&kids)))) return error.HybridCompactClass;
+            if (RV.foldDigestKForFamily(&.{ .{ .key = &compact, .digest = @splat(0) }, .{ .key = &compact, .digest = @splat(0) } }, true)) |_| return error.LegacyCompactAcceptedNonDigestOutputs else |err| if (err != error.InvalidOm31CircuitOutputCount) return err;
             const C = CPU.rv64_outer_hybrid_child.common;
             var child_ctx = try C.Context.init(a, 0);
             defer child_ctx.deinit();
