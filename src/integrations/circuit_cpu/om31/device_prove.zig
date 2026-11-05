@@ -73,6 +73,9 @@ pub const Factory = struct {
     /// Typed by a higher integration layer; this module never interprets it.
     extension: ?FactoryExtension = null,
     controller: ?Controller = null,
+    /// A whole-proof owner job cannot overlap native writers using this same
+    /// service until host lock ordering and shared metadata caches are audited.
+    requires_native_complete: bool = false,
     context: *anyopaque,
     /// Optional device-free host stage. Thread-safe with respect to this
     /// factory's device work: it never touches device or active-proof state.
