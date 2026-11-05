@@ -865,3 +865,55 @@ test "sealed capture shares immutable CPU metadata with independent retirement" 
     retained.retireMetadata();
     try std.testing.expectEqual(@as(usize, 0), retained.metadata.len);
 }
+
+const SealedReady = struct {
+    const Cell = @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell;
+    count: usize = 0,
+    terminal: []const Cell = &.{},
+    initial: ?[]Cell = null,
+    initial_allocator: ?std.mem.Allocator = null,
+    fn ready(raw: *anyopaque, _: usize, native: *const @import("../../word16_execution/prepared.zig").Prepared, _: []const @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event, _: u64) void {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        std.debug.assert(native.cpu.?.capture_seal != null);
+        self.count += 1;
+    }
+    fn take(raw: *anyopaque, allocator: std.mem.Allocator, cells: []Cell, _: Capture.GlobalRamInfo) bool {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        std.debug.assert(self.initial == null);
+        self.initial = cells;
+        self.initial_allocator = allocator;
+        return true;
+    }
+    fn terminalReady(raw: *anyopaque, cells: []const Cell) void {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        self.terminal = cells;
+    }
+    fn deinit(self: *@This()) void {
+        if (self.initial) |cells| self.initial_allocator.?.free(cells);
+    }
+};
+test "direct readiness transfers fast INITIAL and publishes sealed captures and terminal" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    const config = fixture.config();
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    var program = try Program.initWithAuthority(a, &image_owner.authority);
+    defer program.deinit();
+    var stats = Direct.Stats{};
+    const started = try Direct.Started.start(a, config, 0, 1);
+    defer started.deinit(&stats);
+    var ready = SealedReady{};
+    defer ready.deinit();
+    started.ready = .{ .context = &ready, .call = SealedReady.ready, .seal_native = true, .take_global_ram = SealedReady.take, .terminal_ready = SealedReady.terminalReady };
+    var captured = try started.capture(&image_owner, &program, 2, &stats);
+    defer captured.deinit();
+    try std.testing.expectEqual(captured.native.items.len, ready.count);
+    try std.testing.expectEqual(captured.advice.terminal.ptr, ready.terminal.ptr);
+    if (@import("../../rv64_ethereum_segments.zig").ramFirstPassEnabled()) {
+        try std.testing.expect(ready.initial != null);
+        try std.testing.expectEqualDeep(captured.advice.initial, ready.initial.?);
+        // RamJob joined and relinquished this allocation; only the receiver's
+        // deinit frees it, while terminal remains owned by captured advice.
+    }
+}
