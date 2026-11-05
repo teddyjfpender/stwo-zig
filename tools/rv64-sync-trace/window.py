@@ -36,7 +36,12 @@ def main():
         rec = request["stages"]["recursion_s"]
         start = end - int(rec * 1e9)
         req_start = end - int(request["stages"]["request_wall_s"] * 1e9)
-        nodes = 2 * request["leaves"] - 1
+        # M6 switched the default to k4 folds. Count the actual authenticated
+        # tree topology; 2*leaves-1 silently understates per-node rates for k4.
+        tree = json.loads((Path(request["proof"]) / "recursion-om31/tree.json").read_text())
+        nodes = len(tree["nodes"])
+        if nodes == 0:
+            raise ValueError("empty recursive tree in trace window")
         windows = {"recursion": (start, end), "pre_recursion": (req_start, start)}
         row = {"block": request["block"], "nodes": nodes, "recursion_s": rec}
         for wname, (lo, hi) in windows.items():
