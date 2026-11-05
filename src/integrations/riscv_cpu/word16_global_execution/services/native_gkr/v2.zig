@@ -29,9 +29,15 @@ pub const VERSION: u32 = 2;
 pub const MAX_INSTANCES: usize = 128;
 /// Production local relations (gkr_local/fractions.zig, byte_pair included) = canon-native LOCAL_RELATIONS.
 pub const LOCAL_RELATIONS: usize = @import("projection.zig").LOCAL_RELATIONS;
+/// Truth arithmetic polynomial compression uses an otherwise unused local
+/// namespace, independently of chi/xor5/byte tuple offsets.
+pub const TRUTH_POLYNOMIAL_RELATION: usize = 9;
 pub const Binding = @import("binding.zig");
 /// Bits target (= outer-gkr profile.REQUIRED_BITS, rv64-m7-profiles.md 4.3).
 pub const REQUIRED_BITS: u16 = 151;
+/// The receiver permits exactly 64 scalar salts. Charge all six bits even
+/// when an honest prover retries only on strict draws, degenerate points or poles.
+pub const SALT_GRINDING_BITS: u16 = 6;
 /// Largest per-query tuple a native fraction compresses (sponge.call RAM queries: 58; an overbound, see
 /// rv64-native-gkr.md section 9 ledger wording).
 pub const MAX_TUPLE_ARITY: u64 = 58;
@@ -71,12 +77,19 @@ pub fn requireNativeGkrSecurity(roster: *const R.Roster, native_proofs: u64, mas
     try validate(roster);
     if (native_proofs == 0 or native_proofs > Cand.MAX_PROOFS) return error.NativeGkrSourceProofCount;
     const facts = Cand.OuterGkrFacts{ .outer_proofs = native_proofs, .instances = roster.instances.len, .max_variables = roster.layers(), .max_tuple_arity = MAX_TUPLE_ARITY };
-    try Cand.requireOuterGkrBits(facts, REQUIRED_BITS);
+    try Cand.requireOuterGkrBits(facts, REQUIRED_BITS + SALT_GRINDING_BITS);
     for (masses.local) |m| try Cand.requireOuterGkrCharacteristic(facts, m);
     for ([_]u64{ masses.ram, masses.kio, masses.wire }) |m| try Cand.requireOuterGkrCharacteristic(facts, m);
 }
 
+pub fn requireSalt(salt: O) !void {
+    const words = salt.toM31Array();
+    if (words[0].v >= S.MAX_SALT_ATTEMPTS) return error.NativeGkrSaltOutOfRange;
+    for (words[1..]) |word| if (!word.isZero()) return error.NativeGkrSaltOutOfRange;
+}
+
 pub fn mixHeader(a: std.mem.Allocator, channel: anytype, roster: *const R.Roster, scope: *const S.Scope, salt: O) !void {
+    try requireSalt(salt);
     channel.mixU32s(&identityWords());
     channel.mixU32s(&.{ S.MAGIC, VERSION, scope.ordinal });
     for ([_][32]u8{ scope.statement, scope.fixed, scope.main, scope.shared }) |b| {
@@ -92,6 +105,7 @@ pub fn mixHeader(a: std.mem.Allocator, channel: anytype, roster: *const R.Roster
 
 /// The local relations' lookup elements (z_r, alpha_r), r = 0..LOCAL_RELATIONS-1, in fractions.zig Relation
 /// order. Drawn strictly here and nowhere else (review item 2).
+pub const LocalElementsFor = @import("projection.zig").LocalFor;
 pub const LocalElements = @import("projection.zig").LocalFor(O);
 pub fn drawLocalElements(strict: *S.StrictChannel) LocalElements {
     var out: LocalElements = undefined;
@@ -118,6 +132,7 @@ pub const Verified = struct {
     artifact: G.GkrArtifact,
     global: S.GlobalClaims,
     elements: LocalElements,
+    global_split: GlobalSplitFor(O),
     draws: u32,
     pub fn deinit(self: *Verified, a: std.mem.Allocator) void {
         self.artifact.deinit(a);
@@ -146,22 +161,15 @@ pub fn verify(a: std.mem.Allocator, channel: *S.RawChannel, roster: *const R.Ros
             if (coordinate.isZero() or coordinate.eql(O.one())) return error.NativeGkrBindingPointRejected;
         }
     };
-    var ln = O.zero();
-    var ld = O.one();
-    var global = S.GlobalClaims{};
-    for (roster.instances, section.proof.output_claims_by_instance) |inst, root| {
-        if (root[1].isZero()) return error.NativeGkrRootPole;
-        if (inst.kind == .local) {
-            ln = ln.mul(root[1]).add(root[0].mul(ld));
-            ld = ld.mul(root[1]);
-        } else {
-            const slot = global.at(inst.kind);
-            slot.* = slot.add(root[0].mul(try root[1].inv()));
-        }
+    var inverses: [MAX_INSTANCES]O = undefined;
+    for(section.proof.output_claims_by_instance,inverses[0..roster.instances.len]) |pair,*inverse| {
+        if(pair[1].isZero())return error.NativeGkrRootPole;
+        inverse.*=try pair[1].inv();
     }
-    if (!ln.isZero()) return error.NativeGkrLocalUnclosed;
+    const split=try closeAndSplitFor(O,roster,section.proof.output_claims_by_instance,inverses[0..roster.instances.len],NativeRootChecks{});
+    const global=S.GlobalClaims{.ram=split.ram_internal.add(split.ram_initial).add(split.ram_terminal),.kio=split.kio,.wire=split.wire};
     channel.* = strict.inner;
-    return .{ .artifact = artifact, .global = global, .elements = elements, .draws = strict.draws };
+    return .{ .artifact = artifact, .global = global, .global_split = split, .elements = elements, .draws = strict.draws };
 }
 
 /// CPU reference prover. `builder.build(a, roster, elements) !S.Inputs` projects the fractions AFTER the
@@ -336,10 +344,59 @@ test "native GKR v2 codec rejects v1 header, truncation, trailing words and nonc
 }
 test "native GKR v2 bits ledger at the NF4 caps (256 proofs, 128 instances, 28 variables, arity 58) clears 151 bits; the conservative mass does not clear p" {
     const caps = Cand.OuterGkrFacts{ .outer_proofs = 256, .instances = MAX_INSTANCES, .max_variables = R.MAX_VARIABLES, .max_tuple_arity = MAX_TUPLE_ARITY };
-    try Cand.requireOuterGkrBits(caps, REQUIRED_BITS);
+    try Cand.requireOuterGkrBits(caps, REQUIRED_BITS + SALT_GRINDING_BITS);
     // [D] total ~ 2^48.9 terms x 3^8 / 2^256 ~ 2^-194: 194 bits; 195 would still pass, 200 does not.
     try Cand.requireOuterGkrBits(caps, 190);
     try testing.expectError(error.Om31CandidateAlgebraicBudgetInsufficient, Cand.requireOuterGkrBits(caps, 200));
     // profiles NV-R3: the conservative mass 128 x 2^28 = 2^35 >= p, so the gate must take source-bound masses.
     try testing.expectError(error.Om31CandidateCharacteristicWrap, Cand.requireOuterGkrCharacteristic(caps, null));
+}
+
+test "native v2 scalar salt retry budget is receiver enforced" {
+    try requireSalt(O.zero());
+    try requireSalt(O.fromBase(M31.fromCanonical(S.MAX_SALT_ATTEMPTS-1)));
+    try testing.expectError(error.NativeGkrSaltOutOfRange, requireSalt(O.fromBase(M31.fromCanonical(S.MAX_SALT_ATTEMPTS))));
+    var coordinates = [_]M31{M31.zero()} ** 8; coordinates[1] = M31.one();
+    try testing.expectError(error.NativeGkrSaltOutOfRange, requireSalt(O.fromM31Array(coordinates)));
+}
+
+/// Every boundary remains its own authenticated component instance. Typed roots
+/// use only internal RAM and independently recompute public INITIAL/TERMINAL.
+pub fn GlobalSplitFor(comptime F:type)type{return struct{ram_internal:F=F.zero(),ram_initial:F=F.zero(),ram_terminal:F=F.zero(),kio:F=F.zero(),wire:F=F.zero()};}
+pub const RootCheck=enum{pole,local_sum};
+pub fn closeAndSplitFor(comptime F:type,roster:*const R.Roster,roots:[]const []const F,inverses:[]const F,checks:anytype)!GlobalSplitFor(F){
+    try validate(roster);
+    if(roots.len!=roster.instances.len or inverses.len!=roots.len)return error.NativeGkrShapeMismatch;
+    var split=GlobalSplitFor(F){};var local=F.zero();
+    const Role=@import("../../../word16_execution/geometry.zig").Role;
+    for(roster.instances,roots,inverses) |instance,pair,inverse|{
+        if(pair.len!=2)return error.NativeGkrShapeMismatch;
+        try checks.requireEq(pair[1].mul(inverse),F.one(),RootCheck.pole);
+        const value=pair[0].mul(inverse);
+        switch(instance.kind){
+            .local=>local=local.add(value),
+            .kio=>split.kio=split.kio.add(value),
+            .wire=>split.wire=split.wire.add(value),
+            .ram=>{const origin=roster.components[instance.component].origin;
+                if(origin[0]==0 and origin[1]==@intFromEnum(Role.initial))split.ram_initial=split.ram_initial.add(value)
+                else if(origin[0]==0 and origin[1]==@intFromEnum(Role.terminal))split.ram_terminal=split.ram_terminal.add(value)
+                else split.ram_internal=split.ram_internal.add(value);
+            },
+        }
+    }
+    try checks.requireEq(local,F.zero(),RootCheck.local_sum);return split;
+}
+const NativeRootChecks=struct{pub fn requireEq(_: @This(),lhs:O,rhs:O,kind:RootCheck)!void{if(!lhs.eql(rhs))return if(kind==.pole)error.NativeGkrRootPole else error.NativeGkrLocalUnclosed;}};
+test "native GKR boundary targets remain individually authenticated before global aggregation"{
+    const a=testing.allocator;const Role=@import("../../../word16_execution/geometry.zig").Role;
+    const specs=[_]R.ComponentSpec{
+        .{.origin=.{0,@intFromEnum(Role.initial)},.row_log=5,.terms=.{0,1,0,0}},
+        .{.origin=.{0,@intFromEnum(Role.ls)},.row_log=5,.terms=.{0,2,0,0}},
+        .{.origin=.{0,@intFromEnum(Role.terminal)},.row_log=5,.terms=.{0,1,0,0}},
+    };
+    var roster=try derive(a,&specs);defer roster.deinit();
+    const one=O.one();const p0=[_]O{O.fromBase(M31.fromCanonical(3)),one};const p1=[_]O{O.fromBase(M31.fromCanonical(7)),one};const p2=[_]O{O.fromBase(M31.fromCanonical(11)),one};
+    const roots=[_][]const O{&p0,&p1,&p2};const inverse=[_]O{one,one,one};
+    const split=try closeAndSplitFor(O,&roster,&roots,&inverse,NativeRootChecks{});
+    try testing.expect(split.ram_initial.eql(p0[0]));try testing.expect(split.ram_internal.eql(p1[0]));try testing.expect(split.ram_terminal.eql(p2[0]));
 }
