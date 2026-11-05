@@ -477,6 +477,7 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     const estimates = try admit(a, setups, truths, requests, &inventory, config, options, policy, native, advice);
     defer estimates.deinit(a);
     if (options.admitted_at_ns) |out| out.* = sinceEpoch(options.epoch);
+    if (std.posix.getenv("STWO_RV64_CPU0_PRESTAGE")) |flag| if (std.mem.eql(u8, flag, "1")) std.debug.print("GPU_CPU_PRESTAGE event=inventory_ready utc_ns={} process_at_ns={}\n", .{ std.time.nanoTimestamp(), sinceEpoch(options.epoch) });
     if (options.worker_timings) |timings| for (estimates.cpu_policies, 0..) |selected, i| {
         timings[i].resolved_tree_policy = selected;
     };
