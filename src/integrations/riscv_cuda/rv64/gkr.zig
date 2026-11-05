@@ -40,6 +40,24 @@ pub const Plan = struct {
         const height = self.variables[oracle];
         return .{ self.oracles[oracle].tree[remaining - 1], self.oracles[oracle].tree[@min(remaining, height - 1)] };
     }
+    /// At depth>=2, Eq fits in the next consumed tree pair of a maximum-
+    /// height oracle. The current input and two fold banks occupy r-2,r-1,r;
+    /// r+1 has already closed and its roots/masks have independent custody.
+    /// The N/D alignment gap is also dead owned arena storage. It is safe to
+    /// use it provided the contiguous Eq view ends within that complete pair.
+    pub fn equalityWorkspace(self: *const Plan, remaining: u32) !Region {
+        if (remaining == 0 or remaining > self.layers) return error.InvalidGeometry;
+        const depth = self.layers - remaining;
+        if (depth < 2) return self.eq;
+        for (self.variables[0..self.count], 0..) |height, i| {
+            if (height != self.layers) continue;
+            const consumed = self.oracles[i].tree[remaining + 1];
+            const words = @as(u64, 8) << @intCast(depth - 1);
+            if (consumed.n.offset_words + words > consumed.d.offset_words + consumed.d.words) return error.InvalidConsumedEqualityBank;
+            return .{ .offset_words = consumed.n.offset_words, .words = words };
+        }
+        return error.InvalidConsumedEqualityBank;
+    }
     /// Requested workspace payload only: excludes input fractions, MAIN/PCS,
     /// driver allocations and diagnostics. Reject before any device mutation.
     pub fn init(variables: []const u32, byte_cap: usize) !Plan {
@@ -58,8 +76,8 @@ pub const Plan = struct {
         out.batch_state = try append(&cursor, A.batch_state_words);
         out.roots = try append(&cursor, 16 * variables.len);
         out.projected = try append(&cursor, 8 * variables.len);
-        const eq_count = @as(u32, 1) << @as(u5, @intCast(out.layers -| 2));
-        out.eq = try append(&cursor, 8 * @as(u64, eq_count));
+        // Only the first two tiny layers need independent Eq storage.
+        out.eq = try append(&cursor, 64);
         for (variables, 0..) |v, i| {
             const n = @as(u32, 1) << @as(u5, @intCast(v));
             var o: Oracle = undefined;
@@ -236,7 +254,8 @@ fn enqueueImpl(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena
             active += 1;
         }
         try commands.beginGkr(state, @intCast(depth), plan.count, l.active, roots, projected);
-        _ = try B.enqueue(commands, .{ .oracles = sources[0..active], .point = point, .lambda = lambda, .alpha = alpha, .claims = projected, .seed = layer_seed }, .{ .oracles = work[0..active], .eq = try plane(arena, plan.eq, @intCast(plan.eq.words / 8)), .state = try region(arena, plan.batch_state), .records = records });
+        const equality = try plan.equalityWorkspace(@intCast(remaining));
+        _ = try B.enqueue(commands, .{ .oracles = sources[0..active], .point = point, .lambda = lambda, .alpha = alpha, .claims = projected, .seed = layer_seed }, .{ .oracles = work[0..active], .eq = try plane(arena, equality, @intCast(equality.words / 8)), .state = try region(arena, plan.batch_state), .records = records });
         try commands.closeGkr(state, try region(arena, plan.batch_state), records, masks, @intCast(depth), plan.count, l.active);
         result.proof[depth] = .{ .records = records, .masks = masks, .active = l.active };
     }

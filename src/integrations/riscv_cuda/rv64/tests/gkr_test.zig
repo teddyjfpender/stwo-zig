@@ -312,7 +312,7 @@ test "GKR consumed-bank arena removes independent maximum fold allocations" {
     try std.testing.expect(plan.total_words * 4 > removed_bytes);
 }
 
-test "accepted CPU0 GKR geometry uses8.51GB after consumed-level bank reuse" {
+test "accepted CPU0 GKR geometry reuses consumed tree for Eq as well as fold banks" {
     // Native accepted CPU0 authority, gkr-capacity.json. No Ethereum execution
     // or GPU timing is inferred from this exact allocation model.
     const variables = [_]u32{ 26, 18, 6, 22, 21, 20, 18, 16, 23, 20, 17, 16, 8, 22, 17, 18, 21, 17, 21, 18, 17, 12, 16, 17, 19, 20, 23, 13, 12, 10, 19, 14, 19, 23, 23, 21 };
@@ -322,10 +322,44 @@ test "accepted CPU0 GKR geometry uses8.51GB after consumed-level bank reuse" {
     try std.testing.expectEqual(@as(u64, 124093760), facts);
     // The 128-oracle state adds 13,056 B over the frozen 64-oracle receipt.
     const state_delta = 4 * (A.gkr_state_words - 1428 + A.batch_state_words - 2173);
-    const expected = 8510105088 + state_delta;
+    const removed_eq = (@as(usize, 8) << 24) * 4 - 256;
+    const expected = 8510105088 + state_delta - removed_eq;
     try std.testing.expectEqual(@as(usize, expected), plan.total_words * 4);
     try std.testing.expectEqual(@as(u64, 5956500480), 48 * facts);
-    try std.testing.expectEqual(@as(u64, 14466605568 + state_delta), plan.total_words * 4 + 48 * facts);
+    try std.testing.expectEqual(@as(u64, 14466605568 + state_delta - removed_eq), plan.total_words * 4 + 48 * facts);
     _ = try G.Plan.init(&variables, expected);
     try std.testing.expectError(error.GkrWorkspaceBudgetExceeded, G.Plan.init(&variables, expected - 1));
+}
+test "GKR Eq lifetime is disjoint from every live input and fold bank at mixed heights" {
+    const Region = @import("../plan.zig").Region;
+    const heights = [_]u32{ 1, 2, 3, 4, 7, 10, 12, 28 };
+    const plan = try G.Plan.init(&heights, std.math.maxInt(usize));
+    var remaining = plan.layers;
+    while (remaining != 0) : (remaining -= 1) {
+        const eq = try plan.equalityWorkspace(remaining);
+        const depth = plan.layers - remaining;
+        try std.testing.expectEqual(if (depth < 2) @as(u64, 64) else @as(u64, 8) << @intCast(depth - 1), eq.words);
+        try std.testing.expect(eq.offset_words + eq.words <= plan.total_words);
+        for (heights, 0..) |height, oracle| {
+            if (height < remaining) continue;
+            for (plan.oracles[oracle].tree[0 .. remaining - 1]) |live| {
+                try std.testing.expect(!regionOverlaps(eq, live.n));
+                try std.testing.expect(!regionOverlaps(eq, live.d));
+            }
+            for (try plan.foldingBanks(oracle, remaining)) |bank| {
+                try std.testing.expect(!regionOverlaps(eq, bank.n));
+                try std.testing.expect(!regionOverlaps(eq, bank.d));
+            }
+            for ([_]Region{ plan.oracles[oracle].scratch_a, plan.oracles[oracle].scratch_b, plan.oracles[oracle].sums }) |scratch| try std.testing.expect(!regionOverlaps(eq, scratch));
+        }
+        for ([_]Region{ plan.state, plan.batch_state, plan.roots, plan.projected }) |authority| try std.testing.expect(!regionOverlaps(eq, authority));
+        for (plan.layer[0..plan.layers]) |layer| {
+            try std.testing.expect(!regionOverlaps(eq, layer.records));
+            try std.testing.expect(!regionOverlaps(eq, layer.masks));
+        }
+    }
+    try std.testing.expectError(error.InvalidGeometry, plan.equalityWorkspace(0));
+    try std.testing.expectError(error.InvalidGeometry, plan.equalityWorkspace(plan.layers + 1));
+    const real = try G.Plan.init(&.{ 23, 22, 23, 21, 27, 26, 24, 24 }, std.math.maxInt(usize));
+    try std.testing.expectEqual(@as(usize, 16573396480), real.total_words * 4);
 }
