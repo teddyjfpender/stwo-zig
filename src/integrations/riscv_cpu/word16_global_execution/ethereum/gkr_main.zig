@@ -66,7 +66,7 @@ fn setupCacheOptions(a: std.mem.Allocator, mode: SetupCache.Mode, fixed_setup_by
         break :blk std.fmt.parseUnsigned(usize, v, 10) catch return error.InvalidSetupBuildThreads;
     };
     const directory: ?[]const u8 = if (dir) |d| (if (d.len == 0) null else d) else null;
-    return .{ .options = .{ .mode = mode, .directory = directory, .fixed_setup_bytes = fixed_setup_bytes, .identity_only_cpu = identity_only, .max_build_threads = threads }, .owned = dir };
+    return .{ .options = .{ .mode = mode, .directory = directory, .fixed_setup_bytes = fixed_setup_bytes, .identity_only_cpu = identity_only, .max_build_threads = threads, .eager_fixed = if (std.posix.getenv("STWO_ZIG_RV64_SETUP_PIPELINE_FIXED")) |v| std.mem.eql(u8, v, "1") else false, .unique_classes_first = if (std.posix.getenv("STWO_ZIG_RV64_SETUP_CLASS_FIRST")) |v| std.mem.eql(u8, v, "1") else false }, .owned = dir };
 }
 /// block_to_inputs phase report (observation only; never proof authority).
 /// Every *_at_ns is nanoseconds since gkr_main entry on the monotonic clock.

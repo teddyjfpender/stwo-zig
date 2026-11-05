@@ -20,6 +20,9 @@ const ReceiverBudget = @import("receiver_budget.zig");
 const Resources = struct {
     recycler_cache_bytes: usize = ReceiverBudget.RECYCLER_CACHE_BYTES,
     capture_options: CaptureOptions = .{},
+    fixed_setup_bytes: usize = 12 << 30,
+    keccak_uniform_throughput: bool = false,
+    keccak_max_log: u32 = 18,
 };
 const CaptureInputs = struct {
     init_ns: u64,
@@ -42,7 +45,9 @@ pub fn main() !void {
     const a = recycler.allocator();
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
-    if (args.len != 5) return error.ExpectedCaptureConfigJobsPrefixAndResources;
+    if (args.len != 5 and args.len != 6) return error.ExpectedCaptureConfigJobsPrefixAndResources;
+    const setup_mode = if (args.len == 6) args[5] else "";
+    if (args.len == 6 and !std.mem.eql(u8, setup_mode, "setup-serial") and !std.mem.eql(u8, setup_mode, "setup-eager") and !std.mem.eql(u8, setup_mode, "setup-classes")) return error.InvalidSetupDiagnosticMode;
     const raw = try std.fs.cwd().readFileAlloc(a, args[1], 16384);
     defer a.free(raw);
     const request = try std.json.parseFromSlice(Request.Config, a, raw, .{});
@@ -92,10 +97,47 @@ pub fn main() !void {
     const packet_import_ns = timer.read() - import_start;
     const capture_ns = timer.read();
     const capture_inputs = CaptureInputs.of(&timer, import_start, capture_ns, &captured);
+    if (args.len == 6) {
+        // Explicit CPU-only setup diagnostic. Capture timing above stays exact;
+        // no proof, native assignment, receiver or request speed claim follows.
+        const Keys = @import("keys.zig").Owner;
+        const Setup = @import("setup_cache.zig");
+        const FixedSet = @import("../services/gkr_local/fixed_authority_set.zig").Set;
+        const Suite = @import("../../word16_execution/pcs_suite.zig").Suite;
+        const cpu = try Plan.cpus(a, &captured, cpu_layout);
+        defer a.free(cpu);
+        const truths = try Plan.truthsWithOptions(a, &captured, .{ .v3 = request.value.execution_profile == .ethereum_services_v3, .uniform_throughput = resources.value.keccak_uniform_throughput }, resources.value.keccak_max_log);
+        defer a.free(truths);
+        const config = coreConfig();
+        var setup_cache = try Setup.Cache.init(a, .{ .log_blowup = config.fri_config.log_blowup_factor }, .{ .mode = .prover, .fixed_setup_bytes = resources.value.fixed_setup_bytes, .eager_fixed = std.mem.eql(u8, setup_mode, "setup-eager"), .unique_classes_first = !std.mem.eql(u8, setup_mode, "setup-serial") });
+        defer setup_cache.deinit();
+        try setup_cache.bindRequest(request.value);
+        var clock = try std.time.Timer.start();
+        var keys = try Keys.initResident(a, &image, cpu, truths, true, Suite.experimentalFold4(), .{ .program = &local_metadata }, &setup_cache);
+        defer keys.deinit();
+        const native_keys_ns = clock.read();
+        var authority = try FixedSet.init(a, &setup_cache.fixed, keys.cpus, keys.truths, config);
+        defer authority.deinit();
+        const total_setup_ns = clock.read();
+        try authority.require(keys.cpus, keys.truths, config);
+        const Entry = struct { source: [32]u8, identity: [32]u8, root: [32]u8 };
+        const entries = try a.alloc(Entry, authority.bindings.len);
+        defer a.free(entries);
+        for (authority.bindings, entries) |binding, *entry| entry.* = .{ .source = binding.source_root, .identity = binding.fixed_identity, .root = binding.fixed_root };
+        const bytes = try std.json.Stringify.valueAlloc(a, .{ .scope = "CPU-only source class key + candidate fixed setup diagnostic; no proof or acceptance", .mode = setup_mode, .profile = "conjectured128_b2_q108_p20_fold4", .cpu = cpu, .truths = truths, .capture_ns = capture_ns, .native_keys_ns = native_keys_ns, .remaining_fixed_ns = total_setup_ns - native_keys_ns, .total_setup_ns = total_setup_ns, .setup_stats = setup_cache.stats, .fixed = setup_cache.fixed.snapshot(), .authorities = entries }, .{ .whitespace = .indent_2 });
+        defer a.free(bytes);
+        try std.fs.File.stdout().writeAll(bytes);
+        try std.fs.File.stdout().writeAll("\n");
+        return;
+    }
     const digest_start = timer.read();
     const digest = @import("capture_digest.zig").digest(image.identity, &captured);
-    const json = try std.json.Stringify.valueAlloc(a, .{ .scope = "producer capture diagnostic only; no proof or acceptance (rv64-capture-bench)", .security_qualified = false, .total_steps = captured.total_steps, .final_pc = captured.final_pc, .memory_words = captured.advice.initial.len, .capture_options = capture_options, .capture_selection = captured.capture_schedule, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .image_and_import_ns = capture_ns, .capture_breakdown = .{ .image_load_ns = image_load_ns, .program_ns = program_ns, .pre_import_ns = import_start - image_load_ns - program_ns, .import_ns = packet_import_ns }, .capture_inputs = capture_inputs, .captured_values_sha256 = std.fmt.bytesToHex(digest, .lower), .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .diagnostic_digest_ns = timer.read() - digest_start }, .{ .whitespace = .indent_2 });
+    const json = try std.json.Stringify.valueAlloc(a, .{ .scope = "producer capture diagnostic only; no proof or acceptance (rv64-capture-bench)", .security_qualified = false, .total_steps = captured.total_steps, .final_pc = captured.final_pc, .memory_words = captured.advice.initial.len, .capture_options = capture_options, .capture_selection = captured.capture_schedule, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .image_and_import_ns = capture_ns, .capture_breakdown = .{ .image_load_ns = image_load_ns, .program_ns = program_ns, .pre_import_ns = import_start - image_load_ns - program_ns, .import_ns = packet_import_ns }, .capture_inputs = capture_inputs, .captured_values_sha256 = std.fmt.bytesToHex(digest, .lower), .captured_values_v2_sha256 = std.fmt.bytesToHex(@import("capture_digest.zig").completeV2(digest, &captured), .lower), .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .diagnostic_digest_ns = timer.read() - digest_start }, .{ .whitespace = .indent_2 });
     defer a.free(json);
     try std.fs.File.stdout().writeAll(json);
     try std.fs.File.stdout().writeAll("\n");
+}
+
+fn coreConfig() @import("stwo_core").pcs.PcsConfig {
+    return .{ .pow_bits = 20, .fri_config = .{ .log_last_layer_degree_bound = 0, .log_blowup_factor = 1, .n_queries = 108, .fold_step = 4 } };
 }

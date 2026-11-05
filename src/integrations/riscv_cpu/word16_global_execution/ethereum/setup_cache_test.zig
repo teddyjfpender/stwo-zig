@@ -238,3 +238,30 @@ test "setup seam admits exactly one seal per component" {
     defer plain.deinit();
     try std.testing.expect(!plain.root_only);
 }
+
+test "eager candidate seal is identical and published before component return" {
+    const a = std.testing.allocator;
+    var fixture = Fixture.init(71);
+    const columns = fixture.columns();
+    var serial = try SetupCache.Cache.init(a, BETA, .{ .mode = .prover, .fixed_setup_bytes = 1 << 24 });
+    defer serial.deinit();
+    var eager = try SetupCache.Cache.init(a, BETA, .{ .mode = .prover, .fixed_setup_bytes = 1 << 24, .eager_fixed = true });
+    defer eager.deinit();
+    const x = try serial.obtain(Component, "eager-control", .{}, false, Builder{ .a = a, .columns = &columns });
+    const y = try eager.obtain(Component, "eager-control", .{}, false, Builder{ .a = a, .columns = &columns });
+    try std.testing.expectEqual(@as(u64, 0), serial.fixed.snapshot().seals);
+    try std.testing.expectEqual(@as(u64, 1), eager.fixed.snapshot().seals);
+    var sx = try serial.fixed.acquireFromKey(&x.key, BETA);
+    defer sx.deinit();
+    var sy = try eager.fixed.acquireFromKey(&y.key, BETA);
+    defer sy.deinit();
+    try std.testing.expectEqualDeep(sx.key.identity, sy.key.identity);
+    try std.testing.expectEqualDeep(sx.key.root, sy.key.root);
+    try std.testing.expectEqualDeep(try appendDigest(a, sx.key), try appendDigest(a, sy.key));
+    try std.testing.expectEqual(@as(u64, 1), eager.fixed.snapshot().seals);
+    try std.testing.expectError(error.EagerFixedRequiresProver, SetupCache.Cache.init(a, BETA, .{ .mode = .verifier, .fixed_setup_bytes = 1 << 24, .eager_fixed = true }));
+}
+
+test {
+    _ = @import("keys.zig");
+}

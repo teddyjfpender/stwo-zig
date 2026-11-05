@@ -73,3 +73,20 @@ pub fn digest(image_identity: [32]u8, owner: *const Capture.Owner) [32]u8 {
     h.value(.{ owner.advice.events, owner.advice.keccak, owner.advice.secp, owner.advice.initial, owner.advice.terminal });
     return h.final();
 }
+
+/// Complete v3 producer diagnostic. Keep v1 stable for historical receipts;
+/// extend it with every v3 service advice family and Zbb provider facts.
+/// `legacy` must be digest(image_identity, owner), computed by the same caller.
+/// This is a comparison checksum, never receiver authority or a proof claim.
+pub fn completeV2(legacy: [32]u8, owner: *const Capture.Owner) [32]u8 {
+    var h = Digest{};
+    h.write("stwo/rv64/ethereum/captured-values/v2\x00");
+    h.write(&legacy);
+    h.integer(owner.native.items.len);
+    for (owner.native.items, 0..) |n, i| {
+        h.integer(i);
+        h.value(.{ n.zbb.facts, n.zbb.weights });
+    }
+    h.value(.{ owner.advice.sha256, owner.advice.arith256_mod, owner.advice.curves, owner.advice.bulk, owner.advice.sponge });
+    return h.final();
+}

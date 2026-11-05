@@ -53,6 +53,16 @@ const Grouping = struct {
         self.zbb = Zbb.collect(self.a, self.zf);
     }
     fn runWords(self: *Grouping) void {
+        if (std.posix.getenv("STWO_RV64_CAPTURE_WORD_BITMAP")) |value| if (std.mem.eql(u8, value, "1")) {
+            var words = @import("memory_word_set.zig").Set{};
+            defer words.deinit(self.a);
+            for (self.memory) |record| words.insert(self.a, record.effect.address.toInt() & ~@as(u64, 7)) catch |err| {
+                self.words = err;
+                return;
+            };
+            self.words = @intCast(words.count());
+            return;
+        };
         var words: std.AutoHashMapUnmanaged(u64, void) = .empty;
         defer words.deinit(self.a);
         for (self.memory) |record| words.put(self.a, record.effect.address.toInt() & ~@as(u64, 7), {}) catch |err| {

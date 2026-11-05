@@ -154,7 +154,9 @@ pub const Owner = struct {
             caches: ImmutableCaches,
             retire: bool,
             cache: *SetupCache.Cache,
-            fn run(j: *const @This(), index: usize) anyerror!void {
+            order: []const usize,
+            fn run(j: *const @This(), slot: usize) anyerror!void {
+                const index = j.order[slot];
                 const al = j.a;
                 const st = j.suite;
                 const sid = j.suite_id;
@@ -200,7 +202,9 @@ pub const Owner = struct {
                 }
             }
         };
-        const jobs = Jobs{ .a = a, .image = image, .cpu = cpu, .truth = truth, .cpus = cpus, .truths = truths, .suite = suite, .suite_id = try suite.identity(), .caches = caches, .retire = retire, .cache = cache };
+        const order = try classBuildOrder(a, cpu, truth, cache.unique_classes_first);
+        defer a.free(order);
+        const jobs = Jobs{ .order = order, .a = a, .image = image, .cpu = cpu, .truth = truth, .cpus = cpus, .truths = truths, .suite = suite, .suite_id = try suite.identity(), .caches = caches, .retire = retire, .cache = cache };
         // Independent pure components; the cache serializes equal keys.
         try SetupCache.Cache.parallel(cpu.len + truth.len, cache.max_build_threads, &jobs, Jobs.run);
         return self;
@@ -404,3 +408,59 @@ pub const Owner = struct {
         self.* = undefined;
     }
 };
+
+/// Source-owned scheduling only: distinct cache keys precede duplicate callers,
+/// so waiting for an equal class cannot occupy a worker before another unique
+/// class is dispatched. Writes still target the original roster ordinal.
+fn classBuildOrder(a: std.mem.Allocator, cpu: []const W.CpuDeclaration, truths: []const W.TruthDeclaration, unique_first: bool) ![]usize {
+    const n = try std.math.add(usize, cpu.len, truths.len);
+    const order = try a.alloc(usize, n);
+    if (!unique_first) {
+        for (order, 0..) |*out, i| out.* = i;
+        return order;
+    }
+    const duplicate = a.alloc(bool, n) catch |err| {
+        a.free(order);
+        return err;
+    };
+    defer a.free(duplicate);
+    @memset(duplicate, false);
+    for (0..n) |i| {
+        for (0..i) |j| {
+            const equal = if (i < cpu.len and j < cpu.len)
+                std.meta.eql(cpu[i].geometry, cpu[j].geometry) and std.meta.eql(cpu[i].bridges, cpu[j].bridges)
+            else if (i >= cpu.len and j >= cpu.len)
+                truths[i - cpu.len].family == truths[j - cpu.len].family and std.meta.eql(truths[i - cpu.len].logs, truths[j - cpu.len].logs)
+            else
+                false;
+            if (equal) {
+                duplicate[i] = true;
+                break;
+            }
+        }
+    }
+    var at: usize = 0;
+    for ([_]bool{ false, true }) |want_duplicate| for (duplicate, 0..) |d, i| if (d == want_duplicate) {
+        order[at] = i;
+        at += 1;
+    };
+    return order;
+}
+
+test "class-first setup dispatch preserves ordinals and distinguishes authoritative parameters" {
+    const a = std.testing.allocator;
+    var cpu = [_]W.CpuDeclaration{.{ .geometry = .{ .cpu_log = 5 }, .bridges = .{} }} ** 5;
+    cpu[3].bridges.ls_dword = 6;
+    const truths = [_]W.TruthDeclaration{
+        .{ .family = .keccak, .logs = .{ 6, 0 }, .first_id = 1, .calls = 2 },
+        .{ .family = .keccak, .logs = .{ 6, 0 }, .first_id = 3, .calls = 4 },
+        .{ .family = .keccak, .logs = .{ 6, 1 }, .first_id = 7, .calls = 5 },
+        .{ .family = .sha256, .logs = .{ 6, 0 }, .first_id = 1, .calls = 1 },
+    };
+    const order = try classBuildOrder(a, &cpu, &truths, true);
+    defer a.free(order);
+    try std.testing.expectEqualSlices(usize, &.{ 0, 3, 5, 7, 8, 1, 2, 4, 6 }, order);
+    const serial = try classBuildOrder(a, &cpu, &truths, false);
+    defer a.free(serial);
+    try std.testing.expectEqualSlices(usize, &.{ 0, 1, 2, 3, 4, 5, 6, 7, 8 }, serial);
+}

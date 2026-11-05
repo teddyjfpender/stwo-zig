@@ -93,6 +93,11 @@ pub const Options = struct {
     identity_only_cpu: bool = true,
     /// Concurrent component builds (independent pure functions); 1 = serial.
     max_build_threads: usize = 8,
+    /// Producer-only scheduling: seal this component's candidate fixed tree
+    /// before publishing it, overlapping other independent component builds.
+    /// Fixed.Cache retains its single sealing lock and unchanged hard budget.
+    eager_fixed: bool = false,
+    unique_classes_first: bool = false,
     /// false: `persist` writes the VK-only artifact form (header + VK, flags 0,
     /// no structure/payload) that `.verifier` mode reads. Receiver-derived
     /// native VK tables (rv64_recursion/root_verify.zig, stream fold-v3) use it;
@@ -115,6 +120,8 @@ pub const Cache = struct {
     directory: ?[]u8,
     identity_only_cpu: bool,
     max_build_threads: usize,
+    eager_fixed: bool = false,
+    unique_classes_first: bool = false,
     store_bulk: bool = true,
     code_identity: [32]u8,
     /// Request-derived program identity; set per block by `bindRequest`.
@@ -129,12 +136,13 @@ pub const Cache = struct {
 
     pub fn init(a: std.mem.Allocator, candidate: Fixed.CommitmentDescriptor, options: Options) !Cache {
         try candidate.validate();
+        if (options.eager_fixed and options.mode != .prover) return error.EagerFixedRequiresProver;
         const directory: ?[]u8 = if (options.directory) |d| try a.dupe(u8, d) else null;
         errdefer if (directory) |d| a.free(d);
         if (directory) |d| try std.fs.cwd().makePath(d);
         var fixed = try Fixed.Cache.init(a, options.fixed_setup_bytes);
         errdefer fixed.deinit();
-        return .{ .allocator = a, .mode = options.mode, .directory = directory, .identity_only_cpu = options.identity_only_cpu, .max_build_threads = @max(1, options.max_build_threads), .store_bulk = options.store_bulk, .code_identity = try codeIdentity(a), .candidate = candidate, .fixed = fixed };
+        return .{ .allocator = a, .mode = options.mode, .directory = directory, .identity_only_cpu = options.identity_only_cpu, .max_build_threads = @max(1, options.max_build_threads), .eager_fixed = options.eager_fixed, .unique_classes_first = options.unique_classes_first, .store_bulk = options.store_bulk, .code_identity = try codeIdentity(a), .candidate = candidate, .fixed = fixed };
     }
     pub fn deinit(self: *Cache) void {
         for (self.resident.values()) |r| if (r.ptr) |ptr| r.destroy(self.allocator, ptr);
@@ -220,6 +228,14 @@ pub const Cache = struct {
             var tree_restored = try source.takeRestored(self.fixed.budgetAllocator());
             var lease = try self.fixed.adopt(&tree_restored);
             lease.deinit();
+        }
+        // Source authority is complete and immutable here, before publication.
+        // Move the existing candidate seal earlier; FixedSet still performs
+        // its normal source revalidation later. No key/profile/root changes.
+        // Restored artifacts already adopted their candidate key above.
+        if (self.eager_fixed and restored == null) {
+            var candidate_lease = try self.fixed.acquireFromKey(&ptr.key, self.candidate);
+            candidate_lease.deinit();
         }
         if (restored != null) local.disk_hits += 1 else local.misses += 1;
         if (seam.mode == .identity_only) local.identity_only_sources += 1;
