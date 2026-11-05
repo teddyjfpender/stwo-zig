@@ -249,9 +249,14 @@ test "first-pass CPU records remap to byte-identical compact capture without hos
     try std.testing.expectEqualSlices(CompactRecord, expected.records, actual.records);
     try std.testing.expectEqualSlices(CompactSeed, expected.seeds, actual.seeds);
     try actual.validateCapture(&source);
-    source.metadata[300].values[0] ^= @as(u64, 1) << 63;
-    try std.testing.expectError(error.InvalidCompactCpuMetadata, actual.validateCapture(&source));
-    source.metadata[300].values[0] ^= @as(u64, 1) << 63;
+    // Captured metadata is immutable. Mutate a test-owned copy through a
+    // borrowed Source view; never alter the sealed capture's backing owner.
+    const tampered_metadata = try allocator.dupe(@TypeOf(source.metadata[0]), source.metadata);
+    defer allocator.free(tampered_metadata);
+    var tampered_source = source;
+    tampered_source.metadata = tampered_metadata;
+    tampered_metadata[300].values[0] ^= @as(u64, 1) << 63;
+    try std.testing.expectError(error.InvalidCompactCpuMetadata, actual.validateCapture(&tampered_source));
     seeds[1].values[1] ^= @as(u64, 1) << 63;
     try std.testing.expectError(error.InvalidMinimalCpuSeed, Compact.fromFirstPass(allocator, &program, public, 10, &trace));
     seeds[1].values[1] ^= @as(u64, 1) << 63;

@@ -1,0 +1,13 @@
+test-rv64-gkr-plan
++- run test stderr
+GKR_CHUNK_CONTRACT {"device_workspace_bytes":219275556,"pinned_ring_bytes":201326592,"host_store_bytes":16508780032,"product_combinations":257949688,"host_device_transfer_bytes_upper_bound":132070244352,"chunk_facts":262144,"pipeline_slots":2,"numerical_implementation_available":false}
+
+GKR_FRONTIER_PLAN retained_bytes=16573396480 frontier_bytes=15046661376 saved_bytes=1526735104
+GPU_COMPOSITION_POOL_TRIM native_status=13 arena_bytes=12884901888
+OUTER_TASK_PACK_PARITY tasks=8388608 bytes=268435456 workers=4 serial_median_ns=85694631 parallel_median_ns=66915153 all_records_exact=true csr=false
+
+Build Summary: 3/3 steps succeeded; 39/39 tests passed
+test-rv64-gkr-plan success
++- run test 39 passed 2s MaxRSS:639M
+   +- compile test ReleaseSafe native success 14s MaxRSS:315M
+

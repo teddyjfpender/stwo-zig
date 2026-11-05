@@ -67,7 +67,10 @@ test "production GKR rounds planes separately and retires decoded columns before
     const workspace = try (try words(input.workspace)).add(try words(input.binding_state_words));
     try std.testing.expectEqual(p.projection.large - decoded.large + workspace.large, p.traversal.large);
     try std.testing.expectEqual(p.projection.small - decoded.small + workspace.small, p.traversal.small);
-    try std.testing.expectEqual(p.traversal, p.peak);
+    // Arena classes have independent peaks: decoded twiddles raise the small
+    // peak during projection while the traversal workspace raises large.
+    try std.testing.expectEqual(p.traversal.large, p.peak.large);
+    try std.testing.expectEqual(p.projection.small, p.peak.small);
     var replay = input;
     replay.workspace = 0;
     replay.binding_state_words = 0; // Existing saved state is in endpoint snapshot.

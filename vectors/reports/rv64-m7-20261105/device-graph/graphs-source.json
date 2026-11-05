@@ -1,0 +1,12 @@
+{
+  "schema": "rv64-m7-graph-source/v1",
+  "base_commit": "e1c526216b9c74f0c7023fae42c63e19f1f8faec",
+  "source_sha256": {
+    "src/backends/cuda/native/runtime/context.cu": "f45697b2b1a380c69c8e87f5a3255d0edf704260360a2b1ff0080fe9121324dc",
+    "src/integrations/riscv_cuda/rv64/assignment_graph.zig": "45320d2ff221fe74ca7e89f6fea979449afff050f9dba4299d0a617a59cb4ed3",
+    "src/integrations/riscv_cuda/rv64/outer_assignment.zig": "efef000ad9ff4e0810ac6cbe82fe66d857d14cd3962b18f42d8dd5f400ae0d60",
+    "src/integrations/riscv_cuda/build.zig": "86817645340b4c9789bf01242e7699f87518625a0eb464e9c71dfe4106609a78",
+    "src/integrations/riscv_cuda/rv64_recursion_ready_test_root.zig": "e40dea16f3631676e6feedd2004543f7bdf3908529dae0a67732c0d90eb4c517"
+  },
+  "notes": "Qualification binary additionally contains the default-off independent-lane draft6615fb2de; full actual candidate diff retained separately. Graph A/B explicitly sets lane_sessions=0. No independent-lane success implied."
+}

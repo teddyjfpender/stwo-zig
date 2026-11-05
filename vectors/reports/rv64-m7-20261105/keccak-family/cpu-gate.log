@@ -1,0 +1,10 @@
+test-d2-native
++- run test stderr
+KECCAK_FAMILY beta=4 q=27 P=20 physical=2 real_pcs=true independent_fixed_cache=true certified=false
+
+Build Summary: 3/3 steps succeeded; 6/6 tests passed
+test-d2-native success
++- run test 6 passed 20s MaxRSS:71M
+   +- compile test ReleaseSafe native success 2m MaxRSS:1G
+
+EXIT=0

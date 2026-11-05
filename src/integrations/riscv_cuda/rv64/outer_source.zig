@@ -671,14 +671,19 @@ test "outer GPU factory is explicit and rejects empty assignment before touching
 // Only deinitialization fields are initialized: these tests exercise ownership
 // without constructing a native session or invoking a device callback.
 fn testAssignment(a: std.mem.Allocator, tag: u8) !Assignment.Prepared {
-    var result: Assignment.Prepared = undefined;
-    result.allocator = a;
-    result.plan = .{ .allocator = a, .tasks = &.{}, .seeds = &.{}, .level_ends = &.{} };
-    result.tasks = &.{};
-    result.indices = try a.alloc(u32, 1);
-    result.seeds = &.{};
-    result.identity = @splat(tag);
-    return result;
+    return .{
+        .allocator = a,
+        .reference = null,
+        .count = 0,
+        .plan = .{ .allocator = a, .tasks = &.{}, .seeds = &.{}, .level_ends = &.{} },
+        .tasks = &.{},
+        .indices = try a.alloc(u32, 1),
+        .seeds = &.{},
+        .identity = @splat(tag),
+        .seed = undefined,
+        .level = undefined,
+        .timing_api = undefined,
+    };
 }
 
 test "atomic circuit plan retires after MAIN while restoring persistent legacy plan" {
@@ -713,6 +718,7 @@ test "failed atomic owner releases bounded plan before allowing another proof" {
     service.cache_mutex = .{};
     service.cache = .empty;
     service.immutable_setup = null;
+    service.admission = null;
     var backend: Context = undefined;
     backend.service = &service;
     backend.mutex = .{};
@@ -720,6 +726,7 @@ test "failed atomic owner releases bounded plan before allowing another proof" {
     const owner = try a.create(Owner);
     owner.* = undefined;
     owner.allocator = a;
+    owner.admission_retention = .{};
     owner.backend = &backend;
     owner.owns_assignment = true;
     owner.previous_assignment = null;
@@ -751,12 +758,14 @@ test "outer INTER retirement preserves headers and failure cleanup retains remai
     var service: Service.Context = undefined;
     service.session = &fake;
     service.lease_release = Fake.release;
+    service.admission = null;
     var backend: Context = undefined;
     backend.service = &service;
     var owner: Owner = undefined;
     owner.backend = &backend;
     owner.inter_ready = false;
     owner.scope = .{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 4 };
+    owner.initial_scope = owner.scope;
     owner.main_evaluations = .{};
     owner.leases = .empty;
     defer owner.leases.deinit(a);

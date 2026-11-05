@@ -1,0 +1,916 @@
+commit 5ac430fb81bb18bf0d6356f3aec3be9d2235ac68
+Author:     Theodore Pender <teddyjfpender@gmail.com>
+AuthorDate: Thu Nov 5 17:42:16 2026 +0400
+Commit:     Theodore Pender <teddyjfpender@gmail.com>
+CommitDate: Thu Nov 5 17:42:16 2026 +0400
+
+    rv64 m7 grinding26: activate named q102 outer policy; real PCS gate [D]
+
+diff --git a/src/integrations/circuit_cpu/build.zig b/src/integrations/circuit_cpu/build.zig
+index 052e59dc2..678858f57 100644
+--- a/src/integrations/circuit_cpu/build.zig
++++ b/src/integrations/circuit_cpu/build.zig
+@@ -92,7 +92,8 @@ pub fn build(b: *std.Build) void {
+     om31_proof_root.addImport("stwo_cpu_backend", cpu_backend);
+     om31_proof_root.addImport("stwo_circuit_frontend", circuit);
+     om31_proof_root.addImport("stwo_cairo_frontend", cairo);
+-    const om31_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = om31_proof_root }));
++    om31_proof_root.addImport("stwo_proof_wire", proof_wire);
++    const om31_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = om31_proof_root, .filters = filters }));
+     om31_proof_tests.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
+     b.step("test-circuit-om31-proof", "Prove and freshly verify an actual circuit under native octic q108/P20").dependOn(&om31_proof_tests.step);
+ 
+diff --git a/src/integrations/circuit_cpu/om31/proof_qualification.zig b/src/integrations/circuit_cpu/om31/proof_qualification.zig
+index 21c74640d..3e00cfc36 100644
+--- a/src/integrations/circuit_cpu/om31/proof_qualification.zig
++++ b/src/integrations/circuit_cpu/om31/proof_qualification.zig
+@@ -67,3 +67,40 @@ test "om31 outer actual q108 P20 circuit proof fresh receiver and mutations" {
+     pcs.config.fri_config.n_queries = 108;
+     std.debug.print("OM31_CIRCUIT_PROOF fresh_accepted=true q=108 p=20 full_octic_air=true prove_ns={} verify_ns={} physical_mutants=5\n", .{ prove_ns, verify_ns });
+ }
++
++// New profiles use the existing real PCS producer and verifier. This gate is
++// deliberately a small circuit, not an Ethereum or compression timing claim.
++test "om31 grinding26 actual proof fresh authority and cross profile wire rejection" {
++    const a = std.testing.allocator;
++    const saved = P.active();
++    defer P.selectForTesting(saved);
++    P.selectForTesting(.m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1);
++    var ctx = try circuit.builder.Context(P.Q).init(a, 1);
++    defer ctx.deinit();
++    const x = try ctx.guess(P.Q.fromU32Unchecked(3, 1, 2, 4));
++    const out = try ctx.mul(x, x);
++    try ctx.setOutputs(&.{out});
++    try ctx.finalize(true);
++    try circuit.common.finalize.padToTargets(P.Q, &ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&ctx.circuit)));
++    var pp = try circuit.common.preprocessed.PreprocessedCircuit.fromBuilderCircuit(a, &ctx.circuit);
++    defer pp.deinit(a);
++    var key = try Prove.Authority.init(a, &pp);
++    defer key.deinit();
++    var proof = try Prove.prove(a, &key, ctx.values());
++    defer proof.deinit();
++    var receiver = try Prove.Authority.init(a, &pp);
++    defer receiver.deinit();
++    var capture = try Prove.verify(a, &receiver, proof.outputs, proof.claims, &proof.proof.proof);
++    defer capture.deinit(a);
++    const Wire = @import("wire.zig");
++    const encoded = try Wire.encode(a, key.identity, proof.outputs, proof.claims, &proof.proof.proof);
++    defer a.free(encoded);
++    var decoded = try Wire.decode(a, receiver.identity, pp.n_outputs, encoded);
++    defer decoded.deinit();
++    try std.testing.expectEqual(@as(u32, 102), decoded.proof.commitment_scheme_proof.config.fri_config.n_queries);
++    try std.testing.expectEqual(@as(u32, 26), decoded.proof.commitment_scheme_proof.config.pow_bits);
++    P.selectForTesting(.m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1);
++    try std.testing.expectError(error.Om31CircuitWireProfile, Wire.decode(a, receiver.identity, pp.n_outputs, encoded));
++    try std.testing.expectError(error.InvalidOm31CircuitProof, Prove.verify(a, &receiver, proof.outputs, proof.claims, &proof.proof.proof));
++    std.debug.print("OM31_GRIND26 q=102 p=26 real_pcs=true fresh_authority=true old_profile_rejected=true bytes={d}\n", .{encoded.len});
++}
+diff --git a/src/integrations/circuit_cpu/om31/protocol.zig b/src/integrations/circuit_cpu/om31/protocol.zig
+index af50e89c5..0012299ad 100644
+--- a/src/integrations/circuit_cpu/om31/protocol.zig
++++ b/src/integrations/circuit_cpu/om31/protocol.zig
+@@ -11,7 +11,7 @@ pub const MC = struct {
+     pub fn mixRoot(ch: *Channel, root: H.Hash) void {
+         // Keep the exact Blake(digest || root) bytes visible to channel observers.
+         var words: [8]u32 = undefined;
+-        for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, root[4 * i..][0..4], .little);
++        for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, root[4 * i ..][0..4], .little);
+         ch.mixU32s(&words);
+     }
+ };
+@@ -58,6 +58,11 @@ pub const Profile = enum {
+     /// Explicit M7 family: original MAIN/FIXED plus source-bound cyclic-Eq
+     /// LogUp-GKR, 128 INTER columns, k4/cap3. Distinct wire and child verifier.
+     m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1,
++    /// M7 grinding/query trade: 102 + 26 = 128 conjectured bits.
++    m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1,
++    /// Explicit C1 PCS policies, to be selected by the compression wrapper.
++    m7_compress_c1_b8_q34_p26_fold4_v1,
++    m7_compress_c1_b16_q26_p26_fold4_v1,
+ 
+     pub fn parse(text: []const u8) !Profile {
+         inline for (@typeInfo(Profile).@"enum".fields) |field| {
+@@ -80,6 +85,9 @@ pub const Profile = enum {
+             .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1 => "stwo/circuit/native-om31/m6-diet-k3-q108-p20-fold4/lens-v1",
+             .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 => "stwo/circuit/native-om31/m6-diet-k4-cap3-q108-p20-fold4/lens-v1",
+             .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 => "stwo/circuit/native-om31/m7-outer-gkr-k4-cap3-q108-p20-fold4/lens-v1",
++            .m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1 => "stwo/circuit/native-om31/m7-diet-k4-cap3-q102-p26-fold4/lens-v1",
++            .m7_compress_c1_b8_q34_p26_fold4_v1 => "stwo/circuit/native-om31/m7-c1-b8-q34-p26-fold4/lens-v1",
++            .m7_compress_c1_b16_q26_p26_fold4_v1 => "stwo/circuit/native-om31/m7-c1-b16-q26-p26-fold4/lens-v1",
+         };
+     }
+     pub fn config(self: Profile) PcsConfig {
+@@ -87,6 +95,9 @@ pub const Profile = enum {
+             .r1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 => .{ 1, 108, 20 },
+             .m3_b4_q51_p26_fold4, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1 => .{ 2, 51, 26 },
+             .m3_b8_q34_p26_fold4 => .{ 3, 34, 26 },
++            .m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1 => .{ 1, 102, 26 },
++            .m7_compress_c1_b8_q34_p26_fold4_v1 => .{ 3, 34, 26 },
++            .m7_compress_c1_b16_q26_p26_fold4_v1 => .{ 4, 26, 26 },
+         };
+         var fri = core.fri.ForField(O).FriConfig.init(0, log_blowup, queries) catch unreachable;
+         fri.fold_step = 4;
+@@ -104,7 +115,7 @@ pub const Profile = enum {
+     pub fn requiredFoldArity(self: Profile) ?usize {
+         return switch (self) {
+             .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1 => 3,
+-            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 => 4,
++            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1 => 4,
+             else => null,
+         };
+     }
+@@ -112,7 +123,7 @@ pub const Profile = enum {
+     /// (0 = full authentication paths, every pre-M6 profile).
+     pub fn foldMerkleCapLog(self: Profile) u32 {
+         return switch (self) {
+-            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 => 3,
++            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1 => 3,
+             else => 0,
+         };
+     }
+@@ -283,3 +294,21 @@ test "om31 m6 diet k4 cap3 outer profile: domain, r1 PCS, arity 4, cap 3 on fold
+     try std.testing.expectEqual(@as(usize, 6), @intFromEnum(d));
+     try std.testing.expectEqual(d, try Profile.parse(d.name()));
+ }
++
++test "M7 grinding26 profiles are distinct exact policies and preserve old indices" {
++    const outer = Profile.m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1;
++    try std.testing.expectEqual(@as(u32, 128), outer.conjecturedBits());
++    try std.testing.expectEqual(@as(u32, 26), outer.config().pow_bits);
++    try std.testing.expectEqual(@as(usize, 102), outer.config().fri_config.n_queries);
++    try std.testing.expectEqual(@as(?usize, 4), outer.requiredFoldArity());
++    try std.testing.expectEqual(@as(u32, 3), outer.foldMerkleCapLog());
++    const c1 = Profile.m7_compress_c1_b8_q34_p26_fold4_v1;
++    try std.testing.expectEqual(@as(u32, 128), c1.conjecturedBits());
++    try std.testing.expectEqual(@as(u32, 130), Profile.m7_compress_c1_b16_q26_p26_fold4_v1.conjecturedBits());
++    try std.testing.expectEqual(@as(usize, 6), @intFromEnum(Profile.m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1));
++    inline for (@typeInfo(Profile).@"enum".fields) |field| {
++        const other: Profile = @enumFromInt(field.value);
++        if (other != outer) try std.testing.expect(!std.mem.eql(u8, outer.domainName(), other.domainName()));
++    }
++    try std.testing.expectEqual(outer, try Profile.parse(outer.name()));
++}
+diff --git a/src/integrations/riscv_cpu/word16_execution/om31_security_candidate.zig b/src/integrations/riscv_cpu/word16_execution/om31_security_candidate.zig
+index 2f41b5d10..d13fd59e9 100644
+--- a/src/integrations/riscv_cpu/word16_execution/om31_security_candidate.zig
++++ b/src/integrations/riscv_cpu/word16_execution/om31_security_candidate.zig
+@@ -400,6 +400,9 @@ pub const CandidateProfile = enum {
+     /// C2 recommended by the M6 size model (rv64-m7-compress-profiles.md): blowup 64,
+     /// 18 queries, FRI arity 8, last layer 2^3. 6*18 + 20 = 128.
+     c2_b64_q18_p20_fold3,
++    m7_outer_b2_q102_p26_fold4,
++    c1_b8_q34_p26_fold4,
++    c1_b16_q26_p26_fold4,
+ 
+     pub fn name(self: CandidateProfile) []const u8 {
+         return @tagName(self);
+@@ -432,7 +435,7 @@ pub const CandidateSpec = struct {
+     // the last layer as 2^log_last_layer coefficients): stopping FRI 3 layers
+     // early drops those layers' sibling openings from every query.
+ };
+-pub const CANDIDATE_PROFILES = [_]CandidateProfile{ .d2_native_b4_q54_p20_fold4, .m3_outer_b4_q51_p26_fold4, .m3_outer_b8_q34_p26_fold4, .c1_b8_q36_p20_fold4, .c2_b16_q27_p20_fold3, .c2_b16_q27_p20_fold4, .c1_b16_q27_p20_fold4, .c2_b64_q18_p20_fold3 };
++pub const CANDIDATE_PROFILES = [_]CandidateProfile{ .d2_native_b4_q54_p20_fold4, .m3_outer_b4_q51_p26_fold4, .m3_outer_b8_q34_p26_fold4, .c1_b8_q36_p20_fold4, .c2_b16_q27_p20_fold3, .c2_b16_q27_p20_fold4, .c1_b16_q27_p20_fold4, .c2_b64_q18_p20_fold3, .m7_outer_b2_q102_p26_fold4, .c1_b8_q34_p26_fold4, .c1_b16_q26_p26_fold4 };
+ pub fn candidateSpec(profile: CandidateProfile) CandidateSpec {
+     return switch (profile) {
+         .d2_native_b4_q54_p20_fold4 => .{ .layer = .native, .log_blowup = 2, .queries = 54, .pow_bits = 20, .fold_step = 4, .domain = "rv64-om31-native-d2-b4-q54-p20-fold4/CANDIDATE-v1" },
+@@ -445,6 +448,9 @@ pub fn candidateSpec(profile: CandidateProfile) CandidateSpec {
+         .c2_b16_q27_p20_fold4 => .{ .layer = .compress2, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 4, .log_last_layer = 3, .domain = "stwo/circuit/native-om31/c2-b16-q27-p20-fold4/lens-v1" },
+         .c1_b16_q27_p20_fold4 => .{ .layer = .compress1, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 4, .domain = "stwo/circuit/native-om31/c1-b16-q27-p20-fold4/lens-v1" },
+         .c2_b64_q18_p20_fold3 => .{ .layer = .compress2, .log_blowup = 6, .queries = 18, .pow_bits = 20, .fold_step = 3, .log_last_layer = 3, .domain = "stwo/circuit/native-om31/c2-b64-q18-p20-fold3/lens-v1" },
++        .m7_outer_b2_q102_p26_fold4 => .{ .layer = .outer, .log_blowup = 1, .queries = 102, .pow_bits = 26, .fold_step = 4, .domain = "stwo/circuit/native-om31/m7-diet-k4-cap3-q102-p26-fold4/CANDIDATE-v1" },
++        .c1_b8_q34_p26_fold4 => .{ .layer = .compress1, .log_blowup = 3, .queries = 34, .pow_bits = 26, .fold_step = 4, .domain = "stwo/circuit/native-om31/c1-b8-q34-p26-fold4/CANDIDATE-v1" },
++        .c1_b16_q26_p26_fold4 => .{ .layer = .compress1, .log_blowup = 4, .queries = 26, .pow_bits = 26, .fold_step = 4, .domain = "stwo/circuit/native-om31/c1-b16-q26-p26-fold4/CANDIDATE-v1" },
+     };
+ }
+ pub fn candidateConfig(profile: CandidateProfile) core.pcs.PcsConfig {
+@@ -641,6 +647,9 @@ pub const FormatVersion = enum {
+     m7_compress_c2_b64_q18_p20_fold3_v1,
+     m7_compress_c2_b16_q27_p20_fold3_v1,
+     m7_outer_gkr_fold_v3_k4_cap3_r1_b2_q108_p20_fold4_v1,
++    m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1,
++    m7_compress_c1_b8_q34_p26_fold4_v1,
++    m7_compress_c1_b16_q26_p26_fold4_v1,
+     pub fn name(self: FormatVersion) []const u8 {
+         return @tagName(self);
+     }
+@@ -669,7 +678,7 @@ pub const FormatSpec = struct {
+     /// Fold arity is a class constant in {2,3,4} (k-ary binding, binding sec. 4).
+     max_fold_arity: u32 = 2,
+ };
+-pub const FORMAT_VERSIONS = [_]FormatVersion{ .m5_native_chi_chain_v1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1, .m7_outer_gkr_m3_b4_q51_p26_fold4_v1, .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1, .m6_native_v2_b2_q108_p20_fold4, .m6_native_v2_gkr_b2_q108_p20_fold4, .m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_fblake_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_native_v2_gkr_b2_q108_p20_fold4, .m7_outer_fold_v3_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_compress_c1_b16_q27_p20_fold4_v1, .m7_compress_c1_b8_q36_p20_fold4_v1, .m7_compress_c2_b64_q18_p20_fold3_v1, .m7_compress_c2_b16_q27_p20_fold3_v1, .m7_outer_gkr_fold_v3_k4_cap3_r1_b2_q108_p20_fold4_v1 };
++pub const FORMAT_VERSIONS = [_]FormatVersion{ .m5_native_chi_chain_v1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1, .m7_outer_gkr_m3_b4_q51_p26_fold4_v1, .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1, .m6_native_v2_b2_q108_p20_fold4, .m6_native_v2_gkr_b2_q108_p20_fold4, .m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_fblake_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_native_v2_gkr_b2_q108_p20_fold4, .m7_outer_fold_v3_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_compress_c1_b16_q27_p20_fold4_v1, .m7_compress_c1_b8_q36_p20_fold4_v1, .m7_compress_c2_b64_q18_p20_fold3_v1, .m7_compress_c2_b16_q27_p20_fold3_v1, .m7_outer_gkr_fold_v3_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1, .m7_compress_c1_b8_q34_p26_fold4_v1, .m7_compress_c1_b16_q26_p26_fold4_v1 };
+ /// M6 component version strings (M6-INTERFACES.md P1). A change of any one is
+ /// a new FormatVersion; the owning stream posts the real string, profiles edits.
+ /// native-format (rv64-m6-native-v2.md sec. 1 @ aa291ac35): protocol name
+@@ -703,6 +712,9 @@ const R1_OUTER: PcsParams = .{ .log_blowup = 1, .queries = 108, .pow_bits = 20,
+ const M3_OUTER: PcsParams = .{ .log_blowup = 2, .queries = 51, .pow_bits = 26, .fold_step = 4 };
+ pub fn formatSpec(version: FormatVersion) FormatSpec {
+     return switch (version) {
++        .m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1 => .{ .layer = .outer, .owner = "grinding", .pcs = .{ .log_blowup = 1, .queries = 102, .pow_bits = 26, .fold_step = 4 }, .domain = "stwo/circuit/native-om31/m7-diet-k4-cap3-q102-p26-fold4/lens-v1", .component = KARY_K4_COMPONENT, .extra_components = &.{FOLD_MERKLE_CAP3_COMPONENT}, .max_fold_arity = 4 },
++        .m7_compress_c1_b8_q34_p26_fold4_v1 => .{ .layer = .compress1, .owner = "compress", .pcs = .{ .log_blowup = 3, .queries = 34, .pow_bits = 26, .fold_step = 4 }, .domain = "stwo/circuit/native-om31/m7-c1-b8-q34-p26-fold4/lens-v1", .component = M7_COMPRESS_C1_COMPONENT },
++        .m7_compress_c1_b16_q26_p26_fold4_v1 => .{ .layer = .compress1, .owner = "compress", .pcs = .{ .log_blowup = 4, .queries = 26, .pow_bits = 26, .fold_step = 4 }, .domain = "stwo/circuit/native-om31/m7-c1-b16-q26-p26-fold4/lens-v1", .component = M7_COMPRESS_C1_COMPONENT },
+         .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "outer-gkr", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m7-outer-gkr-k4-cap3-q108-p20-fold4/lens-v1", .outer_gkr = true, .component = M7_OUTER_GKR_COMPONENT, .extra_components = &.{ KARY_K4_COMPONENT, FOLD_MERKLE_CAP3_COMPONENT }, .max_fold_arity = 4 },
+         .m7_outer_gkr_fblake_k4_cap3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "outer-gkr", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m7-outer-gkr-fblake-k4-cap3-q108-p20-fold4/lens-v1", .outer_gkr = true, .component = M7_OUTER_GKR_COMPONENT, .extra_components = &.{ FUSED_BLAKE_ONE_INSTANCE_COMPONENT, KARY_K4_COMPONENT, FOLD_MERKLE_CAP3_COMPONENT }, .max_fold_arity = 4, .fused_blake = true },
+         .m7_native_v2_gkr_b2_q108_p20_fold4 => .{ .layer = .native, .owner = "native-gkr", .pcs = R1_OUTER, .domain = "rv64-m7-native-chi-chain/v2+native-gkr/v2/conjectured128_b2_q108_p20_fold4\x00", .local_relations = M5_LOCAL_RELATIONS, .component = M6_NATIVE_V2_COMPONENT, .extra_components = &.{ M6_NATIVE_V2_GKR_PROFILE, M6_NATIVE_GKR_COMPONENT } },
+diff --git a/src/integrations/riscv_cpu/word16_execution/om31_security_candidate_test.zig b/src/integrations/riscv_cpu/word16_execution/om31_security_candidate_test.zig
+index 5644231e8..680df17ee 100644
+--- a/src/integrations/riscv_cpu/word16_execution/om31_security_candidate_test.zig
++++ b/src/integrations/riscv_cpu/word16_execution/om31_security_candidate_test.zig
+@@ -162,9 +162,10 @@ test "m7 specs are 128 conjectured bits; D2 runtime is explicit and defaults sta
+     try std.testing.expectEqual(@as(u32, 148), baseline);
+     for (C.CANDIDATE_PROFILES, 0..) |p, k| {
+         const s = C.candidateSpec(p);
+-        // ethSTARK conjecture: log_blowup * queries + pow == 128 exactly (no over/under-provisioning).
+-        try std.testing.expectEqual(@as(u32, 128), C.candidateConjecturedBits(p));
+-        try std.testing.expectEqual(@as(u32, 128), s.log_blowup * s.queries + s.pow_bits);
++        // Grinding26 b16 needs26 integral queries, yielding130; every older spec stays128.
++        const bits: u32 = if (p == .c1_b16_q26_p26_fold4) 130 else 128;
++        try std.testing.expectEqual(bits, C.candidateConjecturedBits(p));
++        try std.testing.expectEqual(bits, s.log_blowup * s.queries + s.pow_bits);
+         // Weaker (Johnson, sqrt(rho)) regime: no candidate below today's native default.
+         try std.testing.expect(C.candidateJohnsonBitsTimes2(p) >= baseline);
+         // Config is a valid FRI config with the declared log2 fold arity.
+@@ -288,7 +289,7 @@ test "m5 format versions keep 128 conjectured bits of their base PCS, distinct d
+     for (C.FORMAT_VERSIONS, 0..) |v, k| {
+         const s = C.formatSpec(v);
+         // Hand arithmetic: 1*108 + 20 = 2*51 + 26 = 128; Johnson x2: 108 + 40 = 148, 102 + 52 = 154.
+-        try std.testing.expectEqual(@as(u32, 128), C.formatConjecturedBits(v));
++        try std.testing.expectEqual(@as(u32, if (v == .m7_compress_c1_b16_q26_p26_fold4_v1) 130 else 128), C.formatConjecturedBits(v));
+         try std.testing.expect(C.formatJohnsonBitsTimes2(v) >= baseline);
+         try std.testing.expectEqual(@as(u32, if (s.layer == .compress2) 3 else 4), s.pcs.fold_step);
+         // Its base PCS is an existing named profile: admitted native default, r1 outer, or the m3 candidate.
+@@ -306,7 +307,8 @@ test "m5 format versions keep 128 conjectured bits of their base PCS, distinct d
+                 const m3 = C.candidateSpec(.m3_outer_b4_q51_p26_fold4);
+                 const is_r1 = s.pcs.log_blowup == 1 and s.pcs.queries == 108 and s.pcs.pow_bits == 20;
+                 const is_m3 = s.pcs.log_blowup == m3.log_blowup and s.pcs.queries == m3.queries and s.pcs.pow_bits == m3.pow_bits;
+-                try std.testing.expect(is_r1 or is_m3);
++                const is_m7_p26 = s.pcs.log_blowup == 1 and s.pcs.queries == 102 and s.pcs.pow_bits == 26;
++                try std.testing.expect(is_r1 or is_m3 or is_m7_p26);
+                 for (ADMITTED_OUTER_DOMAINS) |d| try std.testing.expect(!std.mem.eql(u8, s.domain, d));
+             },
+             .compress1, .compress2 => {
+@@ -492,7 +494,7 @@ test "m6 composite identity: changing any one extra component, its order, or the
+     // Every identity in the registry is distinct (also covered by the M5 loop; restated for the 14 entries).
+     for (C.FORMAT_VERSIONS, 0..) |v, i| for (C.FORMAT_VERSIONS[i + 1 ..]) |w|
+         try std.testing.expect(!std.mem.eql(u8, &C.formatIdentity(v), &C.formatIdentity(w)));
+-    try std.testing.expectEqual(@as(usize, 23), C.FORMAT_VERSIONS.len);
++    try std.testing.expectEqual(@as(usize, 26), C.FORMAT_VERSIONS.len);
+ }
+ test "m6 diet outer GKR clears 128+23 bits at the 24628607 node count; r1 vs m3 equal under the GKR ledger" {
+     // [D] M5 integrate: 33 outer nodes on 24628607 (28 leaves + folds + root); 16 batched instances of <= 2^24 rows.
+@@ -546,7 +548,6 @@ test "reference DW-R6 m6 diet k4 cap3: 4-ary fold G rows fit 2^23 only with the
+     try std.testing.expect((rows * 1080 / 1000) * 895 / 1000 > 1 << 23);
+ }
+ 
+-
+ test "m7 reserved format identities pin v2 binding and pure STARK compression parameters" {
+     const outer = C.formatSpec(.m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1);
+     try std.testing.expectEqualStrings(C.M7_OUTER_GKR_COMPONENT, outer.component);
+@@ -599,3 +600,16 @@ test "D2 runtime profile binds source domain real roster and blowup-aware algebr
+         break :block C.requireWholeProtocolPromotion(reviews);
+     });
+ }
++
++test "M7 grinding26 outer and C1 retain conjectured target with explicit distinct domains" {
++    const v = C.FormatVersion.m7_outer_diet_k4_cap3_r1_b2_q102_p26_fold4_v1;
++    const s = C.formatSpec(v);
++    try std.testing.expectEqual(@as(u32, 102), s.pcs.queries);
++    try std.testing.expectEqual(@as(u32, 26), s.pcs.pow_bits);
++    try std.testing.expectEqual(@as(u32, 128), C.formatConjecturedBits(v));
++    try std.testing.expectEqual(@as(u32, 154), C.formatJohnsonBitsTimes2(v));
++    try std.testing.expect(!std.mem.eql(u8, &C.formatIdentity(v), &C.formatIdentity(.m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1)));
++    try std.testing.expectEqual(@as(u32, 128), C.formatConjecturedBits(.m7_compress_c1_b8_q34_p26_fold4_v1));
++    try std.testing.expectEqual(@as(u32, 130), C.formatConjecturedBits(.m7_compress_c1_b16_q26_p26_fold4_v1));
++    try std.testing.expectEqual(@as(u32, 108), C.formatSpec(.m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1).pcs.queries);
++}
+commit a4e4a6fe75cae3a73e9fc55a2319494f97723dd1
+Author:     Theodore Pender <teddyjfpender@gmail.com>
+AuthorDate: Thu Nov 5 18:03:57 2026 +0400
+Commit:     Theodore Pender <teddyjfpender@gmail.com>
+CommitDate: Thu Nov 5 18:03:57 2026 +0400
+
+    rv64 m7 Keccak: route named early/late beta16 family policy [CPU gate]
+
+diff --git a/scripts/rv64_m3_pod.py b/scripts/rv64_m3_pod.py
+index a33faa78a..7dee2b247 100644
+--- a/scripts/rv64_m3_pod.py
++++ b/scripts/rv64_m3_pod.py
+@@ -56,7 +56,7 @@ DEFAULT_PRODUCER_ENV = {
+     "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
+ }
+ # Proof-format selectors a receiver must share with the producer of the run it checks.
+-FORMAT_ENV_KEYS = ("STWO_RV64_OUTER_PROFILE", "STWO_RV64_NATIVE_VERSION")
++FORMAT_ENV_KEYS = ("STWO_RV64_OUTER_PROFILE", "STWO_RV64_NATIVE_VERSION", "STWO_RV64_KECCAK_FAMILY_PROFILE")
+ 
+ 
+ def format_environment(environment, plan):
+diff --git a/src/integrations/riscv_cpu/build.zig b/src/integrations/riscv_cpu/build.zig
+index b6e79ea87..bfd7ff0d3 100644
+--- a/src/integrations/riscv_cpu/build.zig
++++ b/src/integrations/riscv_cpu/build.zig
+@@ -80,6 +80,11 @@ pub fn build(b: *std.Build) void {
+     const d2_filter = b.option([]const u8, "d2-test-filter", "Run matching D2 runtime profile and actual CPU proof gates");
+     const d2_tests = b.addTest(.{ .root_module = d2_root, .filters = if (d2_filter) |filter| &.{filter} else &.{} });
+     b.step("test-d2-native", "Check explicit D2 runtime profile and fresh-receiver CPU proof without a GPU").dependOn(&b.addRunArtifact(d2_tests).step);
++    const keccak_family_root = b.createModule(.{ .root_source_file = b.path("rv64_keccak_family_test_root.zig"), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
++    var keccak_family_imports = native_gkr_root.import_table.iterator();
++    while (keccak_family_imports.next()) |entry| keccak_family_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
++    const keccak_family_tests = b.addTest(.{ .root_module = keccak_family_root, .filters = &.{"Keccak family"} });
++    b.step("test-keccak-family", "Check named Keccak early/late family policy and real beta16 physical proofs").dependOn(&b.addRunArtifact(keccak_family_tests).step);
+     const truth_plan_root = b.createModule(.{ .root_source_file = b.path("rv64_truth_family_plan_test_root.zig"), .target = target, .optimize = optimize });
+     var truth_plan_imports = native_gkr_root.import_table.iterator();
+     while (truth_plan_imports.next()) |entry| truth_plan_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
+diff --git a/src/integrations/riscv_cpu/rv64_keccak_family_test_root.zig b/src/integrations/riscv_cpu/rv64_keccak_family_test_root.zig
+new file mode 100644
+index 000000000..e97e47510
+--- /dev/null
++++ b/src/integrations/riscv_cpu/rv64_keccak_family_test_root.zig
+@@ -0,0 +1,9 @@
++const std = @import("std");
++test {
++    _ = @import("word16_global_execution/services/gkr_local/keccak_family_profile.zig");
++    _ = @import("word16_global_execution/services/gkr_local/truth_worker_test.zig");
++    _ = @import("word16_global_execution/ethereum/plan.zig");
++}
++test "Keccak family coordinator typed body" {
++    std.mem.doNotOptimizeAway(&@import("word16_global_execution/services/gkr_local/coordinator.zig").produceWithAuthority);
++}
+diff --git a/src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig b/src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig
+index 30d7073f6..5b8eed7bd 100644
+--- a/src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig
++++ b/src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig
+@@ -226,7 +226,7 @@ pub fn inspectLeafSchedule(a: std.mem.Allocator, setups: []const *const R.CpuSet
+     defer manifest.deinit(a);
+     const admission_ns = timer.lap();
+     const worker = inventory.workers[ordinal];
+-    var graph = if (ordinal < setups.len) try Graph.cpuTraceOnly(a, .{ .setup = setups[ordinal], .request = bundle.requests[ordinal], .expected = worker, .first = inventory.first_ids[ordinal], .manifest = &manifest, .index = ordinal, .stage = &stages.stages[ordinal], .config = config, .encoded = &bundle.cpus[ordinal], .fixed = if (fixed) |authority| authority.at(ordinal) else null }) else try Graph.truthTraceOnly(a, .{ .truth = truths[ordinal - setups.len], .expected = worker, .manifest = &manifest, .config = config, .encoded = &bundle.truths[ordinal - setups.len], .fixed = if (fixed) |authority| authority.at(ordinal) else null });
++    var graph = if (ordinal < setups.len) try Graph.cpuTraceOnly(a, .{ .setup = setups[ordinal], .request = bundle.requests[ordinal], .expected = worker, .first = inventory.first_ids[ordinal], .manifest = &manifest, .index = ordinal, .stage = &stages.stages[ordinal], .config = config, .encoded = &bundle.cpus[ordinal], .fixed = if (fixed) |authority| authority.at(ordinal) else null }) else try Graph.truthTraceOnly(a, .{ .truth = truths[ordinal - setups.len], .expected = worker, .manifest = &manifest, .config = if (fixed) |authority| authority.truthConfig(truths[ordinal - setups.len]) else config, .encoded = &bundle.truths[ordinal - setups.len], .fixed = if (fixed) |authority| authority.at(ordinal) else null });
+     defer graph.deinit();
+     if (!graph.ctx.trace_only) return error.InspectionRequiresTraceOnlyGraph;
+     const native_capture_and_graph_ns = timer.lap();
+@@ -446,7 +446,7 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
+         const trace_only = existing_only or (factory != null and factory.?.prepare_from_circuit != null);
+         const build_cpu = if (trace_only) &Graph.cpuTraceOnly else &Graph.cpu;
+         const build_truth = if (trace_only) &Graph.truthTraceOnly else &Graph.truth;
+-        var graph = if (ordinal < setups.len) try build_cpu(a, .{ .setup = setups[ordinal], .request = bundle.requests[ordinal], .expected = worker, .first = inventory.first_ids[ordinal], .manifest = &manifest, .index = ordinal, .stage = &stages.stages[ordinal], .config = config, .encoded = &bundle.cpus[ordinal], .fixed = if (fixed) |authority| authority.at(ordinal) else null }) else try build_truth(a, .{ .truth = truths[ordinal - setups.len], .expected = worker, .manifest = &manifest, .config = config, .encoded = &bundle.truths[ordinal - setups.len], .fixed = if (fixed) |authority| authority.at(ordinal) else null });
++        var graph = if (ordinal < setups.len) try build_cpu(a, .{ .setup = setups[ordinal], .request = bundle.requests[ordinal], .expected = worker, .first = inventory.first_ids[ordinal], .manifest = &manifest, .index = ordinal, .stage = &stages.stages[ordinal], .config = config, .encoded = &bundle.cpus[ordinal], .fixed = if (fixed) |authority| authority.at(ordinal) else null }) else try build_truth(a, .{ .truth = truths[ordinal - setups.len], .expected = worker, .manifest = &manifest, .config = if (fixed) |authority| authority.truthConfig(truths[ordinal - setups.len]) else config, .encoded = &bundle.truths[ordinal - setups.len], .fixed = if (fixed) |authority| authority.at(ordinal) else null });
+         var graph_live = true;
+         defer if (graph_live) graph.deinit();
+         if (existing_only) try requireReceiverTrace(graph.ctx);
+@@ -682,7 +682,7 @@ const ParallelExecution = struct {
+         var timer = try std.time.Timer.start();
+         const build_cpu = if (trace_only) &Graph.cpuTraceOnly else &Graph.cpu;
+         const build_truth = if (trace_only) &Graph.truthTraceOnly else &Graph.truth;
+-        var graph = if (ordinal < in.setups.len) try build_cpu(a, .{ .setup = in.setups[ordinal], .request = in.bundle.requests[ordinal], .expected = worker, .first = in.inventory.first_ids[ordinal], .manifest = in.manifest, .index = ordinal, .stage = &in.stages.stages[ordinal], .config = in.config, .encoded = &in.bundle.cpus[ordinal], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null }) else try build_truth(a, .{ .truth = in.truths[ordinal - in.setups.len], .expected = worker, .manifest = in.manifest, .config = in.config, .encoded = &in.bundle.truths[ordinal - in.setups.len], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null });
++        var graph = if (ordinal < in.setups.len) try build_cpu(a, .{ .setup = in.setups[ordinal], .request = in.bundle.requests[ordinal], .expected = worker, .first = in.inventory.first_ids[ordinal], .manifest = in.manifest, .index = ordinal, .stage = &in.stages.stages[ordinal], .config = in.config, .encoded = &in.bundle.cpus[ordinal], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null }) else try build_truth(a, .{ .truth = in.truths[ordinal - in.setups.len], .expected = worker, .manifest = in.manifest, .config = if (in.fixed) |authority| authority.truthConfig(in.truths[ordinal - in.setups.len]) else in.config, .encoded = &in.bundle.truths[ordinal - in.setups.len], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null });
+         defer graph.deinit();
+         if (in.existing_only) try requireReceiverTrace(graph.ctx);
+         if (!std.mem.eql(u32, graph.words, in.words[ordinal])) return error.RecursiveLeafFrame;
+@@ -1136,7 +1136,7 @@ const Pipelined = struct {
+         const a = in.allocator;
+         const worker = in.inventory.workers[ordinal];
+         const factory: ?Outer.Device.Factory = if (allow_tape and !in.allow_resume) self.options.lanes[0].factory else null;
+-        return if (ordinal < in.setups.len) try Graph.cpuTraceWithTape(a, .{ .setup = in.setups[ordinal], .request = in.bundle.requests[ordinal], .expected = worker, .first = in.inventory.first_ids[ordinal], .manifest = in.manifest, .index = ordinal, .stage = &in.stages.stages[ordinal], .config = in.config, .encoded = &in.bundle.cpus[ordinal], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null }, factory) else try Graph.truthTraceWithTape(a, .{ .truth = in.truths[ordinal - in.setups.len], .expected = worker, .manifest = in.manifest, .config = in.config, .encoded = &in.bundle.truths[ordinal - in.setups.len], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null }, factory);
++        return if (ordinal < in.setups.len) try Graph.cpuTraceWithTape(a, .{ .setup = in.setups[ordinal], .request = in.bundle.requests[ordinal], .expected = worker, .first = in.inventory.first_ids[ordinal], .manifest = in.manifest, .index = ordinal, .stage = &in.stages.stages[ordinal], .config = in.config, .encoded = &in.bundle.cpus[ordinal], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null }, factory) else try Graph.truthTraceWithTape(a, .{ .truth = in.truths[ordinal - in.setups.len], .expected = worker, .manifest = in.manifest, .config = if (in.fixed) |authority| authority.truthConfig(in.truths[ordinal - in.setups.len]) else in.config, .encoded = &in.bundle.truths[ordinal - in.setups.len], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null }, factory);
+     }
+     fn prepLeafTape(self: *Pipelined, job: *Pipe.Job, timer: *std.time.Timer) !bool {
+         const in = self.input;
+diff --git a/src/integrations/riscv_cpu/word16_execution/fixed_setup.zig b/src/integrations/riscv_cpu/word16_execution/fixed_setup.zig
+index 6fe180030..98a3e2a02 100644
+--- a/src/integrations/riscv_cpu/word16_execution/fixed_setup.zig
++++ b/src/integrations/riscv_cpu/word16_execution/fixed_setup.zig
+@@ -24,7 +24,7 @@ const Native = @import("fixed_native_cache.zig");
+ pub const CommitmentDescriptor = struct {
+     log_blowup: u32,
+     pub fn validate(self: CommitmentDescriptor) !void {
+-        if (self.log_blowup < 1 or self.log_blowup > 2) return error.UnsupportedFixedSetupRate;
++        if (self.log_blowup < 1 or self.log_blowup > 4) return error.UnsupportedFixedSetupRate;
+     }
+ };
+ fn configuration(descriptor: CommitmentDescriptor) !core.pcs.PcsConfig {
+@@ -398,3 +398,8 @@ test "fixed identity bulk encoding matches exact historical scalar LE framing" {
+         try std.testing.expect(!std.mem.eql(u8, &(try coefficientIdentity(&coefficients, .{ .log_blowup = blowup })), &(try coefficientIdentity(&reversed, .{ .log_blowup = blowup }))));
+     }
+ }
++
++test "new explicit immutable fixed beta4 descriptor leaves old rates admitted" {
++    for ([_]u32{ 1, 2, 4 }) |beta| try (CommitmentDescriptor{ .log_blowup = beta }).validate();
++    try std.testing.expectError(error.UnsupportedFixedSetupRate, (CommitmentDescriptor{ .log_blowup = 5 }).validate());
++}
+diff --git a/src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig b/src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig
+index 15462f0a0..66cd33fba 100644
+--- a/src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig
++++ b/src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig
+@@ -284,6 +284,11 @@ fn keccakBestSplit(options: KeccakTruthOptions, calls: u32, max_log: u32, depth:
+     return best;
+ }
+ fn appendKeccakSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: [3]u32, max_log: u32, options: KeccakTruthOptions) !void {
++    const family_policy = try @import("../services/gkr_local/keccak_family_profile.zig").current();
++    if (family_policy != .legacy) {
++        try appendKeccakEarlyLate(a, out, total[0], options);
++        return appendSecp(a, out, total, options.v3);
++    }
+     if (max_log < 16 or max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
+     if (options.v3) return appendKeccakV3(a, out, total, max_log, options);
+     // Keep full shard lengths even so partitioning preserves paired slots.
+@@ -299,6 +304,22 @@ fn appendKeccakSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration
+     }
+     try appendSecp(a, out, total, options.v3);
+ }
++/// New physical family batching. Both spans use the existing compact triple-v2 AIR;
++/// source-owned PCS policy, declaration admission and execution framing are
++/// separate from this geometry. No old profile silently changes its roster.
++pub fn appendKeccakEarlyLate(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: u32, options: KeccakTruthOptions) !void {
++    if (!options.v3) return error.KeccakEarlyLateRequiresV3;
++    var first: u32 = 1;
++    for (@import("../services/gkr_local/keccak_family_profile.zig").split(total)) |calls| {
++        if (calls == 0) continue;
++        const log = try A.crypto.keccak.layout.logSizeFor(KeccakPolicy.triple_v2.geometry(), calls);
++        if (log > 21) return error.KeccakEarlyLateSourceCapacity;
++        const declaration = W.TruthDeclaration{ .family = .keccak, .first_id = first, .calls = calls, .logs = .{ log, W.keccakProfileWord(.triple_v2) } };
++        try @import("../services/gkr_local/service_scope.zig").truthDeclaration(declaration);
++        try out.append(a, declaration);
++        first = try std.math.add(u32, first, calls);
++    }
++}
+ /// v3 Keccak truths: full shards of the throughput profile's slot geometry,
+ /// then the cheapest split of the remainder (`keccakBestSplit`).
+ fn appendKeccakV3(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: [3]u32, max_log: u32, options: KeccakTruthOptions) !void {
+@@ -395,6 +416,7 @@ pub fn secpRcbCells(kind: A.crypto.secp256k1.program.Kind, calls_total: u32) !u6
+     return cells;
+ }
+ pub fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
++    if (options.one_per_family and try @import("../services/gkr_local/keccak_family_profile.zig").current() != .legacy) return error.ConflictingTruthFamilyPlans;
+     if (options.one_per_family and options.coalesce_families) return error.ConflictingTruthFamilyPlans;
+     if (options.one_per_family or options.coalesce_families) {
+         const ST = @import("../services/types.zig");
+@@ -949,3 +971,21 @@ pub fn canonicalTruths(truths_: []W.TruthDeclaration, table: anytype, classes: [
+         class.* = .{ .family = family, .rung = @intCast(r) };
+     }
+ }
++
++test "Keccak family early late exact complete physical family source declarations" {
++    const a = std.testing.allocator;
++    for ([_]u32{ 0, 1, 2, 20994, 29998, 29999 }) |total| {
++        var out: std.ArrayList(W.TruthDeclaration) = .empty;
++        defer out.deinit(a);
++        try appendKeccakEarlyLate(a, &out, total, .{ .v3 = true });
++        try std.testing.expectEqual(@as(usize, @min(total, 2)), out.items.len);
++        var next: u32 = 1;
++        for (out.items) |d| {
++            try std.testing.expectEqual(next, d.first_id);
++            try std.testing.expect(d.calls > 0);
++            try std.testing.expectEqual(W.keccakProfileWord(.triple_v2), d.logs[1]);
++            next += d.calls;
++        }
++        try std.testing.expectEqual(total + 1, next);
++    }
++}
+diff --git a/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig b/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig
+index e5a89c157..efc61d6bd 100644
+--- a/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig
++++ b/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig
+@@ -303,16 +303,17 @@ const Run = struct {
+             if (self.options.retained_store) |store| _ = try self.workers[index].?.cpu.spillMain(store);
+         } else {
+             const truth = self.truths[index - self.setups.len];
++            const truth_config = if (self.fixed) |authority| authority.truthConfig(truth) else self.config;
+             if (self.options.truth_device_source_stage) |stage| {
+-                var owner = try stage.prepare(stage.context, self.a, .{ .truth = truth, .advice = self.advice, .expected = self.inventory.workers[index], .config = self.config, .budget = self.options.global_budget });
++                var owner = try stage.prepare(stage.context, self.a, .{ .truth = truth, .advice = self.advice, .expected = self.inventory.workers[index], .config = truth_config, .budget = self.options.global_budget });
+                 var owned = true;
+                 errdefer if (owned) owner.deinit();
+                 if (timer) |*clock| timing.?.source_ns = clock.lap();
+                 if (timing) |t| t.source_ready_ns = sinceEpoch(self.options.epoch);
+                 if (Execution.extendedTruth(truth)) {
+-                    self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initDeviceWithAuthority(self.a, truth, owner, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
++                    self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initDeviceWithAuthority(self.a, truth, owner, self.inventory.workers[index], truth_config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                 } else {
+-                    self.workers[index] = .{ .truth = try Truth.TruthWorker.initDeviceWithAuthority(self.a, truth, owner, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
++                    self.workers[index] = .{ .truth = try Truth.TruthWorker.initDeviceWithAuthority(self.a, truth, owner, self.inventory.workers[index], truth_config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                 }
+                 owned = false;
+             } else {
+@@ -322,9 +323,9 @@ const Run = struct {
+                 var owned = true;
+                 errdefer if (owned) source.deinit();
+                 if (Execution.extendedTruth(truth)) {
+-                    self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
++                    self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], truth_config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                 } else {
+-                    self.workers[index] = .{ .truth = try Truth.TruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
++                    self.workers[index] = .{ .truth = try Truth.TruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], truth_config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                 }
+                 owned = false;
+             }
+@@ -551,9 +552,9 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
+             const selected = try @import("tree_selection.zig").forCpuWithDeferredBinding(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget, policy, options.checkpoint_above_gkr_bytes, options.defer_local_binding);
+             result.cpu_policies[i] = selected.policy;
+             break :blk selected.plan;
+-        } else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
++        } else try TruthRetention.forTruth(a, truths[i - setups.len], inventory.family_policy.truthConfig(config, truths[i - setups.len] == .keccak), options.global_budget);
+         const tasks = try Retention.taskEstimates(plan, options.global_budget);
+-        const truth_retained: ?usize = if (i >= setups.len and options.truth_device_source_stage != null) try options.truth_device_source_stage.?.retainedUpperBound(.{ .truth = truths[i - setups.len], .expected = inventory.workers[i], .config = config }, plan.coefficient_bytes) else null;
++        const truth_retained: ?usize = if (i >= setups.len and options.truth_device_source_stage != null) try options.truth_device_source_stage.?.retainedUpperBound(.{ .truth = truths[i - setups.len], .expected = inventory.workers[i], .config = inventory.family_policy.truthConfig(config, truths[i - setups.len] == .keccak) }, plan.coefficient_bytes) else null;
+         stage1.* = tasks.stage1;
+         stage2.* = tasks.stage2;
+         // The full pending inventory remains charged once below, independently
+diff --git a/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/execution.zig b/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/execution.zig
+index ec58da651..62e075032 100644
+--- a/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/execution.zig
++++ b/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/execution.zig
+@@ -26,6 +26,7 @@ const FixedSet = @import("fixed_authority_set.zig").Set;
+ pub const Inventory = struct {
+     allocator: std.mem.Allocator,
+     execution_identity: [32]u8,
++    family_policy: @import("keccak_family_profile.zig").Policy = .legacy,
+     workers: []Manifest.ExpectedWorker,
+     instances: [][]Frame.Instance,
+     first_ids: [][@import("../types.zig").FAMILIES]u32,
+@@ -44,7 +45,10 @@ pub const Inventory = struct {
+         // Reuse the existing independent image, sorted/unique public cells,
+         // RAM rights, epoch, call spans, program, register/PC adjacency and
+         // exact total/final endpoint authority. It does not verify proofs.
+-        if (fixed) |authority| try authority.require(setups, truths, config) else try validateConfig(config);
++        if (fixed) |authority| try authority.require(setups, truths, config) else {
++            if (try @import("keccak_family_profile.zig").current() != .legacy) return error.KeccakFamilyFixedAuthorityRequired;
++            try validateConfig(config);
++        }
+         // Admit only service_scope-qualified families and representations; unsupported routes remain closed.
+         for (setups) |setup| try Scope.setup(setup);
+         for (requests) |request| try Scope.request(request);
+@@ -60,6 +64,10 @@ pub const Inventory = struct {
+             for (truths, truth_declarations) |truth, *d| d.* = Wire.TruthDeclaration.from(truth);
+             var source_bounds = try @import("source_bounds.zig").derive(a, setups[0].materials.program.log_size, declarations, truth_declarations, requests);
+             defer source_bounds.deinit();
++            if (fixed.?.family_policy != .legacy) {
++                const Candidate = @import("../../../word16_execution/om31_security_candidate.zig");
++                try (try Candidate.ledgerAtBlowup(Candidate.Facts.caps(), 4)).requireRawModuloBits(151);
++            }
+             if (@import("worker_protocol.zig").candidateProfile(config) == .d2_native_b4_q54_p20_fold4) {
+                 const Candidate = @import("../../../word16_execution/om31_security_candidate.zig");
+                 // Source derivation above enforces the receiver caps and signed
+@@ -104,10 +112,11 @@ pub const Inventory = struct {
+                 else => return error.GkrV3ServiceUnsupported,
+             };
+             const binding = if (fixed) |authority| authority.at(setups.len + i) else null;
++            const truth_config = if (fixed) |authority| authority.truthConfig(truth) else config;
+             workers[setups.len + i] = .{
+                 .kind = kind,
+                 .ordinal = @intCast(setups.len + i),
+-                .statement = if (extendedTruth(truth)) try V3.truthStatementWithAuthority(truth, config, identity, binding) else try Truth.truthStatementWithAuthority(truth, config, identity, binding),
++                .statement = if (extendedTruth(truth)) try V3.truthStatementWithAuthority(truth, truth_config, identity, binding) else try Truth.truthStatementWithAuthority(truth, truth_config, identity, binding),
+                 .fixed = if (binding) |authority| authority.root() else truth.key().root,
+                 .local_instances = null,
+                 .global_relations = .{ .ram = false, .kio = kind == .keccak, .wire = kind != .keccak },
+@@ -116,7 +125,7 @@ pub const Inventory = struct {
+         }
+         try Manifest.validateRoster(workers);
+         if (try @import("chain.zig").enabled()) try @import("chain.zig").assign(setups, truths, requests, first_ids, workers, config, fixed);
+-        return .{ .allocator = a, .execution_identity = identity, .workers = workers, .instances = instances, .first_ids = first_ids };
++        return .{ .allocator = a, .execution_identity = identity, .family_policy = if (fixed) |authority| authority.family_policy else .legacy, .workers = workers, .instances = instances, .first_ids = first_ids };
+     }
+ };
+ /// Initial profile supports the two qualified fold schedules and the fixed
+@@ -225,7 +234,8 @@ pub fn verifyWithAuthorityAndLimits(a: std.mem.Allocator, setups: []const *const
+     }
+     for (truths, truth_proofs, 0..) |truth, *proof, i| {
+         const ordinal = setups.len + i;
+-        verified_claims[ordinal] = if (extendedTruth(truth)) try V3.verifyTruthWithAuthority(a, truth, inventory.workers[ordinal], &pending, ordinal, config, proof, if (fixed) |authority| authority.at(ordinal) else null) else try Truth.verifyTruthWithAuthority(a, truth, inventory.workers[ordinal], &pending, ordinal, config, proof, if (fixed) |authority| authority.at(ordinal) else null);
++        const truth_config = if (fixed) |authority| authority.truthConfig(truth) else config;
++        verified_claims[ordinal] = if (extendedTruth(truth)) try V3.verifyTruthWithAuthority(a, truth, inventory.workers[ordinal], &pending, ordinal, truth_config, proof, if (fixed) |authority| authority.at(ordinal) else null) else try Truth.verifyTruthWithAuthority(a, truth, inventory.workers[ordinal], &pending, ordinal, truth_config, proof, if (fixed) |authority| authority.at(ordinal) else null);
+     }
+     try pending.checkGlobalClosure(verified_claims);
+     return .{ .completed = true, .total_steps = expected.total_steps, .physical_proofs = inventory.workers.len, .execution_identity = inventory.execution_identity, .manifest_identity = pending.digest };
+diff --git a/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig b/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig
+index e2b301697..21d6f1192 100644
+--- a/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig
++++ b/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig
+@@ -4,6 +4,7 @@ const std = @import("std");
+ const W = @import("worker_protocol.zig");
+ const F = @import("fixed_authority.zig");
+ const R = @import("../roster.zig");
++const FamilyProfile = @import("keccak_family_profile.zig");
+ const SourceKey = @import("../../keccak/shared/key.zig").Key;
+ /// Only the resident session's OWNED, frozen source keys may enter this cache.
+ /// Pointer provenance restricts reuse to that same owner; independently rebuilt
+@@ -37,18 +38,24 @@ pub const ValidatedCatalogue = struct {
+ pub const Set = struct {
+     allocator: std.mem.Allocator,
+     config: W.PcsConfig,
++    family_policy: FamilyProfile.Policy = .legacy,
+     cpu_count: usize,
+     bindings: []F.Binding,
+     source_validations: usize,
+     source_coefficient_cells: usize,
+     pub fn init(a: std.mem.Allocator, cache: *const F.Fixed.Cache, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig) !Set {
+-        return initPolicy(a, cache, setups, truths, config, null);
++        return initPolicy(a, cache, setups, truths, config, null, try FamilyProfile.current());
+     }
+     pub fn initWithValidatedCatalogue(a: std.mem.Allocator, cache: *const F.Fixed.Cache, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig, catalogue: *ValidatedCatalogue) !Set {
+-        return initPolicy(a, cache, setups, truths, config, catalogue);
++        return initPolicy(a, cache, setups, truths, config, catalogue, try FamilyProfile.current());
+     }
+-    fn initPolicy(a: std.mem.Allocator, cache: *const F.Fixed.Cache, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig, catalogue: ?*ValidatedCatalogue) !Set {
++    /// Explicit receiver policy, also used by deterministic no-environment fixtures.
++    pub fn initForFamilyPolicy(a: std.mem.Allocator, cache: *const F.Fixed.Cache, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig, policy: FamilyProfile.Policy) !Set {
++        return initPolicy(a, cache, setups, truths, config, null, policy);
++    }
++    fn initPolicy(a: std.mem.Allocator, cache: *const F.Fixed.Cache, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig, catalogue: ?*ValidatedCatalogue, family_policy: FamilyProfile.Policy) !Set {
+         try W.validateCandidateConfig(config);
++        try family_policy.requireTruths(truths);
+         const count = try std.math.add(usize, setups.len, truths.len);
+         if (setups.len == 0 or count > 256) return error.WideBeta2FixedInventoryMismatch;
+         const bindings = try a.alloc(F.Binding, count);
+@@ -65,13 +72,14 @@ pub const Set = struct {
+             if (acquired.validated) cells = try std.math.add(usize, cells, acquired.binding.source_coefficient_cells);
+         }
+         for (truths, 0..) |truth, i| {
+-            const acquired = if (catalogue) |owner| try owner.acquire(cache, truth.key(), config) else try acquireUnique(bindings[0..initialized], cache, truth.key(), config);
++            const truth_config = family_policy.truthConfig(config, truth == .keccak);
++            const acquired = if (catalogue) |owner| try owner.acquire(cache, truth.key(), truth_config) else try acquireUnique(bindings[0..initialized], cache, truth.key(), truth_config);
+             bindings[setups.len + i] = acquired.binding;
+             initialized += 1;
+             validations += @intFromBool(acquired.validated);
+             if (acquired.validated) cells = try std.math.add(usize, cells, acquired.binding.source_coefficient_cells);
+         }
+-        return .{ .allocator = a, .config = config, .cpu_count = setups.len, .bindings = bindings, .source_validations = validations, .source_coefficient_cells = cells };
++        return .{ .allocator = a, .config = config, .family_policy = family_policy, .cpu_count = setups.len, .bindings = bindings, .source_validations = validations, .source_coefficient_cells = cells };
+     }
+     pub fn deinit(self: *Set) void {
+         for (self.bindings) |*binding| binding.deinit();
+@@ -80,9 +88,13 @@ pub const Set = struct {
+     }
+     pub fn require(self: *const Set, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig) !void {
+         try W.validateCandidateConfig(config);
++        try self.family_policy.requireTruths(truths);
+         if (!std.meta.eql(self.config, config) or self.cpu_count != setups.len or self.bindings.len != try std.math.add(usize, setups.len, truths.len)) return error.WideBeta2FixedInventoryMismatch;
+         for (setups, self.bindings[0..setups.len]) |setup, *binding| try binding.require(&setup.key, config);
+-        for (truths, self.bindings[setups.len..]) |truth, *binding| try binding.require(truth.key(), config);
++        for (truths, self.bindings[setups.len..]) |truth, *binding| try binding.require(truth.key(), self.truthConfig(truth));
++    }
++    pub fn truthConfig(self: *const Set, truth: R.Truth) W.PcsConfig {
++        return self.family_policy.truthConfig(self.config, truth == .keccak);
+     }
+     pub fn at(self: *const Set, index: usize) *const F.Binding {
+         return &self.bindings[index];
+@@ -91,6 +103,7 @@ pub const Set = struct {
+     pub fn executionIdentity(self: *const Set, base: [32]u8) [32]u8 {
+         var ch = W.Channel.init();
+         W.digest(&ch, base);
++        self.family_policy.mixExecution(&ch);
+         var tag: [32]u8 = undefined;
+         std.crypto.hash.blake2.Blake2s256.hash(F.PROFILE, &tag, .{});
+         W.digest(&ch, tag);
+@@ -109,6 +122,7 @@ pub const Set = struct {
+     /// T_nat membership and the native segment chain, not a repeated key list.
+     /// Old flat/strict callers keep `executionIdentity` and historical bytes.
+     pub fn executionIdentityForGkr(self: *const Set, base: [32]u8) ![32]u8 {
++        if (self.family_policy != .legacy) return error.KeccakFamilyGkrExecutionNotSupported;
+         return gkrExecutionIdentity(base, self.config);
+     }
+ };
+@@ -131,8 +145,12 @@ pub fn emitGkrExecutionIdentity(base: anytype, config: W.PcsConfig, writer: anyt
+ pub fn gkrExecutionIdentity(base: [32]u8, config: W.PcsConfig) ![32]u8 {
+     var writer = struct {
+         channel: W.Channel,
+-        pub fn constantDigest(self: *@This(), value: [32]u8) void { W.digest(&self.channel, value); }
+-        pub fn publicDigest(self: *@This(), value: [32]u8) void { W.digest(&self.channel, value); }
++        pub fn constantDigest(self: *@This(), value: [32]u8) void {
++            W.digest(&self.channel, value);
++        }
++        pub fn publicDigest(self: *@This(), value: [32]u8) void {
++            W.digest(&self.channel, value);
++        }
+     }{ .channel = W.Channel.init() };
+     try emitGkrExecutionIdentity(base, config, &writer);
+     return writer.channel.digestBytes();
+diff --git a/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/keccak_family_profile.zig b/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/keccak_family_profile.zig
+new file mode 100644
+index 000000000..e070b4be8
+--- /dev/null
++++ b/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/keccak_family_profile.zig
+@@ -0,0 +1,112 @@
++//! Receiver-owned per-family PCS policy. No proof bytes select this policy.
++//! The new policy is bound into the execution identity; the legacy policy
++//! emits no extra framing and preserves every old worker byte.
++const std = @import("std");
++const core = @import("stwo_core");
++pub const Config = core.pcs.PcsConfig;
++pub const ENV = "STWO_RV64_KECCAK_FAMILY_PROFILE";
++pub const DOMAIN = "rv64-m7/keccak-early-late/b16-q27-p20-fold4/v1";
++pub const Policy = enum {
++    legacy,
++    m7_keccak_early_late_b16_q27_p20_fold4_v1,
++    pub fn parse(text: []const u8) !Policy {
++        if (text.len == 0 or std.mem.eql(u8, text, "legacy")) return .legacy;
++        if (std.mem.eql(u8, text, @tagName(Policy.m7_keccak_early_late_b16_q27_p20_fold4_v1))) return .m7_keccak_early_late_b16_q27_p20_fold4_v1;
++        return error.UnknownKeccakFamilyProfile;
++    }
++    pub fn truthConfig(self: Policy, base: Config, keccak: bool) Config {
++        return if (self != .legacy and keccak) config() else base;
++    }
++    pub fn requireTruths(self: Policy, truths: anytype) !void {
++        if (self == .legacy) return;
++        var count: usize = 0;
++        var total: u32 = 0;
++        for (truths) |truth| if (truth == .keccak) {
++            if (truth.first() != total + 1 or truth.count() == 0) return error.KeccakFamilyPartition;
++            total = try std.math.add(u32, total, truth.count());
++            count += 1;
++        };
++        const spans = split(total);
++        if (count != @as(usize, @intFromBool(spans[0] != 0)) + @as(usize, @intFromBool(spans[1] != 0))) return error.KeccakFamilyPartition;
++        var index: usize = 0;
++        for (truths) |truth| if (truth == .keccak) {
++            if (truth.count() != spans[index] or truth.keccak.setup.policy != .triple_v2) return error.KeccakFamilyPartition;
++            const K = @import("stwo_riscv_frontend").rv64_air.crypto.keccak.layout;
++            if (truth.keccak.setup.log != try K.logSizeFor(truth.keccak.setup.policy.geometry(), truth.count())) return error.KeccakFamilyPartition;
++            index += 1;
++        };
++    }
++    pub fn mixExecution(self: Policy, channel: anytype) void {
++        if (self == .legacy) return;
++        var digest: [32]u8 = undefined;
++        std.crypto.hash.blake2.Blake2s256.hash(DOMAIN, &digest, .{});
++        var words: [8]u32 = undefined;
++        for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, digest[4 * i ..][0..4], .little);
++        channel.mixU32s(&words);
++        config().mixInto(channel);
++    }
++};
++pub fn current() !Policy {
++    var buffer: [96]u8 = undefined;
++    const text = std.posix.getenv(ENV) orelse return .legacy;
++    if (text.len > buffer.len) return error.UnknownKeccakFamilyProfile;
++    @memcpy(buffer[0..text.len], text);
++    return Policy.parse(buffer[0..text.len]);
++}
++/// Stable source-owned split: the first ceil(total/2) calls, then the rest.
++/// No zero-call physical proof is emitted for an absent/single-call family.
++pub fn split(total: u32) [2]u32 {
++    const early = total / 2 + total % 2;
++    return .{ early, total - early };
++}
++pub fn config() Config {
++    var fri = core.fri.FriConfig.init(0, 4, 27) catch unreachable;
++    fri.fold_step = 4;
++    return .{ .pow_bits = 20, .fri_config = fri };
++}
++pub fn isConfig(value: Config) bool {
++    return std.meta.eql(value, config());
++}
++test "Keccak family profile pins exact config and preserves non Keccak" {
++    const policy = try Policy.parse("m7_keccak_early_late_b16_q27_p20_fold4_v1");
++    const Candidate = @import("../../../word16_execution/om31_security_candidate.zig");
++    const base = Candidate.configFor(.d2_native_b4_q54_p20_fold4);
++    try (try Candidate.ledgerAtBlowup(Candidate.Facts.caps(), 4)).requireRawModuloBits(151);
++    try std.testing.expectEqual(base, policy.truthConfig(base, false));
++    const selected = policy.truthConfig(base, true);
++    try std.testing.expectEqual(@as(u32, 128), 4 * @as(u32, @intCast(selected.fri_config.n_queries)) + selected.pow_bits);
++    try std.testing.expectEqual(@as(u32, 4), selected.fri_config.fold_step);
++    try std.testing.expectEqual(base, Policy.legacy.truthConfig(base, true));
++    var changed = selected;
++    changed.fri_config.n_queries -= 1;
++    try std.testing.expect(!isConfig(changed));
++    try std.testing.expectError(error.UnknownKeccakFamilyProfile, Policy.parse("b16"));
++    const Ch = core.channel.raw_mod_m31.Om31Channel;
++    var old = Ch.init();
++    const before = old.digestBytes();
++    Policy.legacy.mixExecution(&old);
++    try std.testing.expectEqual(before, old.digestBytes());
++    policy.mixExecution(&old);
++    try std.testing.expect(!std.mem.eql(u8, &before, &old.digestBytes()));
++}
++
++test "Keccak family source admission rejects repartition holes and wrong policy" {
++    // Use the actual source setup type for the geometry/policy authority.
++    const Real = @import("../../keccak/shared/roster.zig").TruthSetup;
++    const R = @import("../roster.zig");
++    const a = std.testing.allocator;
++    var setup = try Real.initPolicy(a, 5, @import("../../keccak/shared/key.zig").Key.Suite.production(), .triple_v2);
++    defer setup.deinit();
++    var truths = [_]R.Truth{
++        .{ .keccak = .{ .setup = &setup, .first_id = 1, .calls = 1 } },
++        .{ .keccak = .{ .setup = &setup, .first_id = 2, .calls = 1 } },
++    };
++    const policy = Policy.m7_keccak_early_late_b16_q27_p20_fold4_v1;
++    try policy.requireTruths(&truths);
++    truths[1].keccak.first_id = 3;
++    try std.testing.expectError(error.KeccakFamilyPartition, policy.requireTruths(&truths));
++    truths[1].keccak.first_id = 2;
++    truths[0].keccak.calls = 2;
++    truths[1].keccak.calls = 0;
++    try std.testing.expectError(error.KeccakFamilyPartition, policy.requireTruths(&truths));
++}
+diff --git a/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig b/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig
+index d10179cd1..461eda885 100644
+--- a/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig
++++ b/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig
+@@ -11,9 +11,17 @@ fn run(truth: R.Truth, source: R.TruthSource) !void {
+     return runProfile(truth, source, false);
+ }
+ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void {
++    const config = P.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, if (beta2) 2 else 1, 12) };
++    return runConfigured(truth, source, beta2, config);
++}
++fn runConfigured(truth: R.Truth, source: R.TruthSource, comptime beta2: bool, config: P.PcsConfig) !void {
++    var source_owned = true;
++    errdefer if (source_owned) {
++        var owned = source;
++        owned.deinit();
++    };
+     const budget: usize = if (truth == .keccak and truth.keccak.setup.policy.throughputTables()) 2 << 30 else 64 << 20;
+     const Fixed = @import("fixed_authority.zig");
+-    const config = P.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, if (beta2) 2 else 1, 12) };
+     // Worker admission and retained-memory accounting must accept exactly the
+     // same receiver-owned policy, including the R27 throughput tables.
+     _ = try @import("truth_retention.zig").forTruth(a, truth, config, budget);
+@@ -22,16 +30,21 @@ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void
+     var fixed: ?Fixed.Binding = if (cache) |*owner| try Fixed.Binding.acquire(owner, truth.key(), config) else null;
+     defer if (fixed) |*binding| binding.deinit();
+     const fixed_ptr: ?*const Fixed.Binding = if (fixed) |*binding| binding else null;
+-    const expected = Manifest.ExpectedWorker{ .kind = switch (truth) {
+-        .keccak => .keccak,
+-        .secp => |t| if (t.setup.kind == .add) .secp_add else .secp_double,
+-        else => unreachable, // test helper: v2 truths only
+-    }, .global_relations = .{ .ram = false, .kio = truth == .keccak, .wire = truth == .secp }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = try W.truthStatementWithAuthority(truth, config, @splat(17), fixed_ptr), .fixed = if (fixed_ptr) |binding| binding.root() else truth.key().root, .local_instances = null };
+-    var worker = W.TruthWorker.initWithAuthority(a, truth, source, expected, config, budget, fixed_ptr) catch |err| {
+-        var s = source;
+-        s.deinit();
+-        return err;
++    const expected = Manifest.ExpectedWorker{
++        .kind = switch (truth) {
++            .keccak => .keccak,
++            .secp => |t| if (t.setup.kind == .add) .secp_add else .secp_double,
++            else => unreachable, // test helper: v2 truths only
++        },
++        .global_relations = .{ .ram = false, .kio = truth == .keccak, .wire = truth == .secp },
++        .mass = try W.truthMass(truth),
++        .ordinal = 0,
++        .statement = try W.truthStatementWithAuthority(truth, config, @splat(17), fixed_ptr),
++        .fixed = if (fixed_ptr) |binding| binding.root() else truth.key().root,
++        .local_instances = null,
+     };
++    var worker = try W.TruthWorker.initWithAuthority(a, truth, source, expected, config, budget, fixed_ptr);
++    source_owned = false;
+     defer worker.deinit(a);
+     var native_profile = @import("stwo_prover_api").stage_profile.Recorder.init(a, "rv64", "truth-worker-stage-scope");
+     defer native_profile.deinit();
+@@ -117,6 +130,13 @@ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void
+         try std.testing.expect(claims.wire.eql(encoded.claims[3].add(encoded.claims[4])));
+         try std.testing.expect(claims.kio.isZero());
+     }
++    if (beta2) {
++        var fresh_cache = try Fixed.Fixed.Cache.init(a, 1 << 30);
++        defer fresh_cache.deinit();
++        var fresh_fixed = try Fixed.Binding.acquire(&fresh_cache, truth.key(), config);
++        defer fresh_fixed.deinit();
++        _ = try W.verifyTruthWithAuthority(a, truth, expected, &pending, 0, config, &encoded, &fresh_fixed);
++    }
+     const global = encoded.claims[3];
+     var coordinates = global.toM31Array();
+     coordinates[7] = coordinates[7].add(core.fields.m31.M31.one());
+@@ -221,7 +241,6 @@ test "beta2 K and ADD truth physical proofs separately close local claims and au
+     try runProfile(.{ .secp = .{ .setup = &ssetup, .first_id = 5, .calls = 1 } }, source, true);
+ }
+ 
+-
+ test "V3 KeccakR27 throughput truth physically proves and freshly verifies policy bound local and KIO claims" {
+     const Setup = @import("../../keccak/shared/roster.zig").TruthSetup;
+     const Key = @import("../../keccak/shared/key.zig").Key;
+@@ -235,3 +254,22 @@ test "V3 KeccakR27 throughput truth physically proves and freshly verifies polic
+     const source = R.TruthSource{ .keccak = try T.initSpanPolicy(a, &input, 3, 5, .throughput_r27_v1) };
+     try runProfile(.{ .keccak = .{ .setup = &setup, .first_id = 3, .calls = 2 } }, source, false);
+ }
++
++test "Keccak family b16 q27 P20 two physical spans real native proofs and fresh authority" {
++    const Setup = @import("../../keccak/shared/roster.zig").TruthSetup;
++    const Key = @import("../../keccak/shared/key.zig").Key;
++    const Family = @import("keccak_family_profile.zig");
++    var setup = try Setup.initPolicy(a, 5, Key.Suite.production(), .triple_v2);
++    defer setup.deinit();
++    const T = @FieldType(R.TruthSource, "keccak");
++    var input: [2]A.crypto.keccak.trace.State = undefined;
++    for (&input, 0..) |*state, i| for (state, 0..) |*value, lane| {
++        value.* = @intCast(7919 * i + 31 * lane);
++    };
++    for (0..2) |i| {
++        const first: u32 = @intCast(i + 1);
++        const source = R.TruthSource{ .keccak = try T.initSpanPolicy(a, input[i..][0..1], first, 5, .triple_v2) };
++        try runConfigured(.{ .keccak = .{ .setup = &setup, .first_id = first, .calls = 1 } }, source, true, Family.config());
++    }
++    std.debug.print("KECCAK_FAMILY beta=4 q=27 P=20 physical=2 real_pcs=true independent_fixed_cache=true certified=false\n", .{});
++}
+diff --git a/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig b/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig
+index ddca20dd0..ceb703a85 100644
+--- a/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig
++++ b/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig
+@@ -37,6 +37,7 @@ pub fn validateCandidateConfig(config: PcsConfig) !void {
+         if (!profile.conjectured()) return error.UnsupportedWideServicesConfig;
+         return validateAtRate(config, 1);
+     }
++    if (@import("keccak_family_profile.zig").isConfig(config)) return validateAtRate(config, 4);
+     return validateAtRate(config, 2);
+ }
+ /// Named profile of an admitted candidate config, or null for the legacy

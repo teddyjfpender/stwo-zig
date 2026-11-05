@@ -1,0 +1,43 @@
+test-rv64-pcs-geometry
++- run test stderr
+PP_SOURCE_ADMISSION_REFUSED physical=0 handoff=1 runtime_v2=false ordinal=0 pp_retained_upper_large=5368709120 pp_retained_upper_small=0 temp_large=18253611008 temp_small=0 stage_retained_upper_large=0 stage_retained_upper_small=0 successor_large=0 successor_small=0 required_large=23622320128 required_small=0 cap_large=23085449216 cap_small=536870912
+test-rv64-gkr-plan
++- run test stderr
+GKR_CHUNK_CONTRACT {"device_workspace_bytes":219275556,"pinned_ring_bytes":201326592,"host_store_bytes":16508780032,"product_combinations":257949688,"host_device_transfer_bytes_upper_bound":132070244352,"chunk_facts":262144,"pipeline_slots":2,"numerical_implementation_available":false}
+
+GKR_FRONTIER_PLAN retained_bytes=16573396480 frontier_bytes=15046661376 saved_bytes=1526735104
+GPU_COMPOSITION_POOL_TRIM native_status=13 arena_bytes=12884901888
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=112 kind=0
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=111 kind=1
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=333 kind=1
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=111 kind=0
+GPU_EARLY_MAIN_ALLOCATION_MISSING phase=projection owner=cpu_evaluations words=222 kind=1
+GPU_EARLY_MAIN_ALLOCATION_MISSING phase=commit owner=committed_coefficients words=555 kind=2
+PP_SOURCE_ADMISSION_REFUSED physical=0 handoff=1 runtime_v2=false ordinal=0 pp_retained_upper_large=5368709120 pp_retained_upper_small=0 temp_large=18253611008 temp_small=0 stage_retained_upper_large=0 stage_retained_upper_small=0 successor_large=0 successor_small=0 required_large=23622320128 required_small=0 cap_large=23085449216 cap_small=536870912
+OUTER_TASK_PACK_PARITY tasks=8388608 bytes=268435456 workers=4 serial_median_ns=87812506 parallel_median_ns=62517457 all_records_exact=true csr=false
+test
++- run test stderr
+GKR_FRONTIER_PLAN retained_bytes=16573396480 frontier_bytes=15046661376 saved_bytes=1526735104
+GPU_OUTER native_status=1
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=112 kind=0
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=111 kind=1
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=333 kind=1
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=111 kind=0
+GPU_EARLY_MAIN_ALLOCATION_MISSING phase=projection owner=cpu_evaluations words=222 kind=1
+GPU_EARLY_MAIN_ALLOCATION_MISSING phase=commit owner=committed_coefficients words=555 kind=2
+GLOBAL_ADMISSION_STAGE physical=0 ticket=1 domain=native_packet stage=witness ordinal=0 owner_queue_ns=33280 owner_callback_ns=220 total_host_ns=34460 retained_large=33554432 retained_small=0 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_STAGE physical=0 ticket=2 domain=native_packet stage=witness ordinal=0 owner_queue_ns=0 owner_callback_ns=0 total_host_ns=620 retained_large=0 retained_small=0 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_WAIT runtime=v1 physical=0 epoch=6 reason=capacity_pressure domain=native_packet stage=witness ordinal=0 required_large=27917287424 required_small=0 cap_large=23085449216 cap_small=536870912 temp_large=5368709120 temp_small=0 retained_upper_large=5368709120 retained_upper_small=0 successor_large=0 successor_small=0 stable_large=2147483648 stable_small=0 active_temp_large=0 active_temp_small=0 active_retained_upper_large=0 active_retained_upper_small=0 max_future_large=20401094656 max_future_small=0
+GLOBAL_ADMISSION_STAGE runtime=v2 physical=0 ticket=1 domain=native_packet stage=witness ordinal=0 owner_queue_ns=31600 owner_callback_ns=7570 total_host_ns=39720 stable_large=2147483648 stable_small=0 global_live_large=10737418240 global_live_small=0 active_windows=1 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_STAGE runtime=v2 physical=0 ticket=2 domain=native_packet stage=witness ordinal=1 owner_queue_ns=540 owner_callback_ns=6740 total_host_ns=7430 stable_large=5368709120 stable_small=0 global_live_large=5368709120 global_live_small=0 active_windows=0 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_STAGE runtime=v2 physical=0 ticket=1 domain=gkr_packet stage=witness ordinal=0 owner_queue_ns=31280 owner_callback_ns=80 total_host_ns=31530 stable_large=6442450944 stable_small=0 global_live_large=6442450944 global_live_small=0 active_windows=0 successor_large=15032385536 successor_small=0
+GLOBAL_ADMISSION_STAGE runtime=v2 physical=0 ticket=2 domain=gkr_packet stage=gkr ordinal=0 owner_queue_ns=0 owner_callback_ns=0 total_host_ns=8470 stable_large=6442450944 stable_small=0 global_live_large=6442450944 global_live_small=0 active_windows=1 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_STAGE runtime=v2 physical=0 ticket=3 domain=gkr_packet stage=gkr ordinal=1 owner_queue_ns=6570 owner_callback_ns=90 total_host_ns=6830 stable_large=6442450944 stable_small=0 global_live_large=6442450944 global_live_small=0 active_windows=0 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_RETENTION_REFUSED runtime=v2 physical=0 ticket=1 domain=native_packet stage=witness ordinal=0 own_new_large=3221225472 own_new_small=0 retained_upper_large=2147483648 retained_upper_small=0 temporary_large=4294967296 temporary_small=0 owner_live_large=3221225472 owner_live_small=0 baseline_large=0 baseline_small=0 stable_large=0 stable_small=0 global_large=3221225472 global_small=0 active_windows=1
+GLOBAL_ADMISSION_STAGE runtime=v2 physical=0 ticket=1 domain=native_packet stage=witness ordinal=0 owner_queue_ns=30980 owner_callback_ns=100 total_host_ns=31300 stable_large=4294967296 stable_small=0 global_live_large=4294967296 global_live_small=0 active_windows=0 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_WAIT runtime=v2 physical=0 epoch=4 reason=capacity_pressure domain=recursion_node stage=witness ordinal=1 required_large=25769803776 required_small=0 cap_large=23085449216 cap_small=536870912 temp_large=21474836480 temp_small=0 retained_upper_large=0 retained_upper_small=0 successor_large=0 successor_small=0 stable_large=4294967296 stable_small=0 active_temp_large=0 active_temp_small=0 active_retained_upper_large=0 active_retained_upper_small=0 max_future_large=0 max_future_small=0
+GLOBAL_ADMISSION_STAGE runtime=v2 physical=0 ticket=2 domain=recursion_node stage=witness ordinal=1 owner_queue_ns=0 owner_callback_ns=0 total_host_ns=630 stable_large=0 stable_small=0 global_live_large=0 global_live_small=0 active_windows=0 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_STAGE physical=0 ticket=2 domain=gkr_packet stage=gkr ordinal=0 owner_queue_ns=0 owner_callback_ns=0 total_host_ns=690 retained_large=6442450944 retained_small=0 successor_large=0 successor_small=0
+PP_SOURCE_ADMISSION_REFUSED physical=0 handoff=1 runtime_v2=false ordinal=0 pp_retained_upper_large=5368709120 pp_retained_upper_small=0 temp_large=18253611008 temp_small=0 stage_retained_upper_large=0 stage_retained_upper_small=0 successor_large=0 successor_small=0 required_large=23622320128 required_small=0 cap_large=23085449216 cap_small=536870912
+GPU_COMPOSITION_POOL_TRIM native_status=13 arena_bytes=12884901888
+OUTER_TASK_PACK_PARITY tasks=8388608 bytes=268435456 workers=4 serial_median_ns=84184205 parallel_median_ns=61255109 all_records_exact=true csr=false

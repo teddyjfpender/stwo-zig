@@ -372,7 +372,7 @@ test "local and execution closure preserve typed owners and reject malformed cou
     var context = Context{};
     var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1 };
     try std.testing.expectError(error.InvalidGeometry, commands.closeLocalRoots(slice(), 0, slice()));
-    try std.testing.expectError(error.InvalidGeometry, commands.closeLocalRoots(slice(), 65, slice()));
+    try std.testing.expectError(error.InvalidGeometry, commands.closeLocalRoots(slice(), Abi.batch_max_oracles + 1, slice()));
     try std.testing.expectError(error.InvalidGeometry, commands.closeGlobalClaims(slice(), slice(), 65536, slice()));
     var stale = slice();
     stale.generation = 1;

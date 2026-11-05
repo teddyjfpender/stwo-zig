@@ -7,7 +7,7 @@ const M = core.fields.m31.M31;
 const a = std.testing.allocator;
 test "native source projection IR preserves every role tuple weight and semantic draw slot at aliased values" {
     var rng = std.Random.DefaultPrng.init(0x87323);
-    for (Fixtures.descriptors()) |descriptor| {
+    for (Fixtures.descriptors(), 0..) |descriptor, descriptor_index| {
         var artifact = try G.record(a, descriptor);
         defer artifact.deinit();
         const identity = try artifact.identity();
@@ -46,10 +46,15 @@ test "native source projection IR preserves every role tuple weight and semantic
             var sink = G.Source.RowSink{ .challenges = &ch, .numerator = ns, .denominator = ds };
             var base_sink = G.Source.BaseSink{ .row = &sink };
             try descriptor.emit(M, fixed, main, previous, &public, &base_sink);
-            try std.testing.expect(!sink.invalid and sink.count == artifact.terms);
+            if (sink.invalid or sink.count != artifact.terms) {
+                std.debug.print("projection sink mismatch descriptor={} mode={} count={} terms={} invalid={}\n", .{ descriptor_index, mode, sink.count, artifact.terms, sink.invalid });
+                return error.TestUnexpectedResult;
+            }
             const roots = try artifact.program.evaluate(a, inputs);
             defer a.free(roots);
             for (ns, ds, 0..) |n, d, i| {
+                if (!roots[2 * i].eql(O.fromBase(n)) or !roots[2 * i + 1].eql(d))
+                    std.debug.print("projection value mismatch descriptor={} mode={} term={} numerator={} denominator={}\n", .{ descriptor_index, mode, i, roots[2 * i].eql(O.fromBase(n)), roots[2 * i + 1].eql(d) });
                 try std.testing.expect(roots[2 * i].eql(O.fromBase(n)));
                 try std.testing.expect(roots[2 * i + 1].eql(d));
             }
@@ -81,4 +86,20 @@ test "projection shape and source labels cannot change behind an admitted execut
     artifact.lanes = lanes;
     artifact.descriptor.origin = .{ .core = .alu_tail };
     try std.testing.expectError(error.InvalidSourceArtifact, artifact.identity());
+}
+
+test "load store native opcode projection agrees with integer modular reference" {
+    const LS = @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2;
+    const Opcode = @import("stwo_riscv_frontend").rv64.decode.Opcode;
+    const opcodes = [_]Opcode{ .LB, .LBU, .LH, .LHU, .LW, .LWU, .LD, .SB, .SH, .SW, .SD };
+    const flags = [_]u32{ 2047410331, 1079474999, 1044960359, 1338273001, 1640647698, 311033753, 1649266398, 362622634, 2101754357, 2079242676, 1714112313 };
+    var main: [LS.layout.projection.MAIN]M = @splat(M.zero());
+    var expected: u64 = 0;
+    for (flags, opcodes, 0..) |flag, opcode, i| {
+        main[LS.layout.projection.column(49 + i)] = M.fromCanonical(flag);
+        expected = (expected + @as(u64, flag) * @intFromEnum(opcode)) % core.fields.m31.Modulus;
+    }
+    try std.testing.expectEqual(@as(u64, 876440816), expected);
+    const tuple = LS.equations.ownerTuple(M, &main);
+    try std.testing.expectEqual(@as(u32, @intCast(expected)), tuple[0].v);
 }

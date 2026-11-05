@@ -234,7 +234,7 @@ test "truth roster uses policy-specific source IDs and full OM31 interaction geo
     const Setup = @typeInfo(@FieldType(@FieldType(Truth, "keccak"), "setup")).pointer.child;
     var setup: Setup = undefined;
     setup.log = 18;
-    inline for ([_]@FieldType(Setup, "policy"){ .throughput_r27, .triple_v2 }) |policy| {
+    inline for ([_]@FieldType(Setup, "policy"){ .throughput_r27_v1, .triple_v2 }) |policy| {
         setup.policy = policy;
         const truth = Truth{ .keccak = .{ .setup = &setup, .first_id = 1, .calls = 1 } };
         const roles = try rolesFor(a, truth);

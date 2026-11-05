@@ -1263,6 +1263,7 @@ test {
 }
 test "frontend-neutral composition entry rejects absent authority roles before device submission" {
     var backend: Context = undefined;
+    backend.log_blowup = 1;
     const trace = Trace{ .polys = .initOwned(&.{}) };
     const scope = D.Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
     try std.testing.expectError(error.InvalidResidentCompositionRoles, backend.evaluateRoles(std.testing.allocator, &.{}, O.one(), 5, 1, 0, &trace, scope));

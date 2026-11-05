@@ -740,6 +740,16 @@ def sha(path):
 def proof_dir(run):
     plan = json.loads((run / "plan.json").read_text())
     job = plan["jobs"][0]
+    # Resident services publish proof paths in their receipt, not case/batch.
+    receipt_path = run / "receipt.json"
+    if receipt_path.is_file():
+        requests = json.loads(receipt_path.read_text()).get("requests", [])
+        matches = [r for r in requests if r.get("block") == job["block"] and r.get("trial") == 0]
+        if len(matches) == 1:
+            proof = Path(matches[0]["proof"])
+            if not (proof / "bundle.json").is_file():
+                raise SystemExit(f"resident proof directory is missing: {proof}")
+            return plan, job, proof
     hits = sorted((Path(job["target"]) / "batch").glob(f"trial-0/{job['block']}/proof"))
     if not hits:
         raise SystemExit(f"no proof dir under {run}")

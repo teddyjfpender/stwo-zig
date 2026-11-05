@@ -1,0 +1,40 @@
+{
+  "schema": "rv64-p0-unit-repairs/v1",
+  "status": "PASS_PREFLIGHT_FULL_GATE_PENDING",
+  "source_base": "f0bab29b37e0d6bf8e4a2fc57495e79f227e184f",
+  "passing_log": "p0-unit-fix-07.log",
+  "exit_code": 0,
+  "targets": [
+    "test",
+    "test-rv64-recursion-ready",
+    "test-rv64-batch-plan",
+    "test-rv64-gkr-plan",
+    "test-rv64-pcs-geometry"
+  ],
+  "configuration": "pod; ReleaseSafe; x86_64-linux-gnu; x86_64_v4+sha; -j2",
+  "fixture_repairs": [
+    "copy const CPU metadata into test-owned storage before tampering",
+    "use current throughput_r27_v1 enum tag",
+    "initialize resident composition blowup",
+    "derive invalid oracle count from ABI limit",
+    "initialize optional ownership/admission fields before teardown",
+    "assert separate large/small arena class peaks"
+  ],
+  "runtime_repair": {
+    "file": "src/frontends/riscv/rv64/air/memory/load_store_v2/projection.zig",
+    "change": "runtime loop instead of inline loop for load/store opcode reconstruction",
+    "counterexample": "p0-unit-fix-06.log",
+    "old_native_scalar_opcode": 876440756,
+    "integer_modulo_reference": 876440816,
+    "recorded_projection_opcode": 876440816,
+    "scope": "arbitrary canonical field flags; canonical execution-row proof parity still pending",
+    "root_cause": "unrolled native scalar evaluation discrepancy observed; compiler mechanism not established"
+  },
+  "qualification": "unit evidence only; no GPU or performance claim",
+  "cache_relocation": {
+    "from": "/workspace/m3/src/m7-integrate/.zig-cache",
+    "to": "/tmp/rv64-m7-integrate-zig-cache-20261105",
+    "method": "move plus symlink while holding build lock; rebuildable cache only",
+    "reason": "preserve workspace headroom for proofs and corpus"
+  }
+}

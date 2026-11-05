@@ -1,0 +1,155 @@
+{
+  "status": "READ_ONLY_PRE_CLEANUP",
+  "worktrees": [
+    {
+      "branch": "codex/rv64-m7-admission",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-admission",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-blake-inputs",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-blake-inputs",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-callback-retire",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-callback-retire",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-capture",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-capture",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-critical-chain",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-critical-chain",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-device-fs",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-device-fs",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-device-fs-p1",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-device-fs-p1",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-device-fs-p2",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-device-fs-p2",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-device-graph",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-device-graph",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-early-recursion",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-early-recursion",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-fold-circuit",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-fold-circuit",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-fold-expanded",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-fold-expanded",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-keccak-batches",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-keccak-batches",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-keccak-stream",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-keccak-stream",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-memory-census",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-memory-census",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-cpu-prestage",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-native-capture",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-native-gkr",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-native-gkr",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-native-inter-retire",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-native-inter-retire",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-native-witness",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-native-witness",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-outer-gkr",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-outer-gkr",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-owner-cleanup",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-owner-cleanup",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-projection-cost",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-projection-cost",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-rc-sparse",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-rc-sparse",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-rc-workspace",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-rc-workspace",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-stage1-cost",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-stage1-cost",
+      "clean": true,
+      "status": ""
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schema": "rv64-m7-prune/v1",
+  "time": 1793873276.0043364,
+  "path": "/workspace/m3/build/m7-controller-graphs/cuda/native/libstwo-rv64-native.so",
+  "bytes": 1974867376,
+  "sha256": "69f18a25c23c042b7fc00d2477097de64c69ea59fd46d2eee6fc9e154dc665e0",
+  "manifest": "/workspace/m3/build/m7-controller-graphs/cuda/native/build.json",
+  "manifest_sha256": "4f31c2b345ecb067e27c3d8bb9e9afb7691f4d9a31840aa2651a595d3795fbd8",
+  "reason": "Parentconfirmsall69fgates/profiles/receiverscomplete. Exact949objectlinkcommand+allobjects retained; a25standalone+148canonicalpreserved. Reconstructible image only; no proof/rawtrace/sqlite/receipt removed.",
+  "maps_fd_guard": "no references"
+}

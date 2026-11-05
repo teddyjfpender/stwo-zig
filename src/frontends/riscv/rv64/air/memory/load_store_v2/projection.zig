@@ -44,7 +44,9 @@ pub fn expandFor(comptime F: type, physical: []const F) [LOGICAL_MAIN]F {
     for (STORED, physical) |c, v| logical[c] = v;
     var write = F.zero();
     var opcode = F.zero();
-    inline for (Specs.load_specs ++ Specs.store_specs, 0..) |spec, index| {
+    // Keep this a runtime loop: the native M31 regression includes large
+    // canonical flags for which the unrolled scalar path lost reduction bits.
+    for (Specs.load_specs ++ Specs.store_specs, 0..) |spec, index| {
         const flag = logical[49 + index];
         if (index >= Specs.load_specs.len) write = write.add(flag);
         opcode = opcode.add(flag.mul(q(F, @intFromEnum(spec.opcode))));

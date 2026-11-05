@@ -4,6 +4,16 @@ Status: 2026-11-05. Baseline: `codex/rv64-cuda-ethereum` @ M6 (26ca20793) plus t
 It builds on `codex/rv64-4gpu-realtime-design` (`design/riscv-proving-stack/rv64-4gpu-realtime.md`, "the 4-GPU doc"), which holds the lever map, the budget model and the frontier research.
 Labels: **[M]** measured, **[D]** derived from measured numbers, **[E]** estimate.
 
+Current owner status (2026-11-06): **P0 gate PASS**. All 29 development
+streams are reviewed/closed; 25 clean historical worktrees and 29 local branch
+refs are removed, with pinned remote history retained. The full pod gate
+builds and tests, matches both small-block proofs against 32 frozen artifacts,
+gets two fresh CPU accepts, and passes all 19 required corpus cases. See
+`m7-handoff/P0-CONSOLIDATION.md` and
+`vectors/reports/rv64-m8-20261105/p0/summary.json`. No performance improvement
+or exact memory pass is claimed. Default D2/coalescing, automatic arena,
+one lane and security parameters remain unchanged. P1 is next.
+
 ---
 
 ## 0. The rule that matters most: one working tree
