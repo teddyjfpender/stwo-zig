@@ -15,6 +15,7 @@ const Child = @import("child.zig");
 const Components = @import("cpu_components.zig");
 const Classic = @import("classic_witness.zig");
 pub const DeviceGlobal = @import("device_global.zig");
+const InterRetirement = @import("inter_retirement.zig");
 const Global = @import("global_cpu.zig");
 const Metadata = @import("global_metadata.zig");
 const Commit = @import("../../../word16_execution/main_ownership.zig").Commit;
@@ -377,6 +378,7 @@ pub const CpuWorker = struct {
     pub fn complete(self: *CpuWorker, a: std.mem.Allocator, pending: *const Manifest.PendingManifest, index: usize, global_budget: usize) !CpuEncoded {
         if (!@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, self.allocator)) return error.WideCpuAllocatorMismatch;
         if (!self.sealed or self.consumed) return error.WideCpuPhase;
+        const retire_old_globals = try InterRetirement.optionEnabled();
         const root = self.mainRoot();
         try checkManifest(self.expected, pending, index);
         try pending.checkPhysicalRoots(index, self.expected.fixed, root);
@@ -472,6 +474,10 @@ pub const CpuWorker = struct {
             if (committed.columns.len != columns.len) return error.DeviceTraceColumnMismatch;
             for (committed.columns, columns) |actual, expected| if (actual.log_size != expected.log_size) return error.DeviceTraceColumnMismatch;
             try self.scheme.adoptDeviceOm31TraceTree(2, committed, &self.channel);
+            if (retire_old_globals) {
+                const retired = try InterRetirement.afterJoinedCommit(DeviceGlobal.Witness, device_witnesses, committed);
+                std.debug.print("GPU_NATIVE_INTER_RETIRE ordinal={} witness_owners={} columns={} published_input_bytes={} joined=true independent_coefficients=true\n", .{ self.expected.ordinal, retired.owners, retired.columns, retired.published_input_bytes });
+            }
         } else {
             const headers = try a.alloc(engine.pcs.ColumnEvaluation, self.plan.inter_columns);
             var owns_buffers = true;
