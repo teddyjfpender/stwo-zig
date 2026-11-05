@@ -56,6 +56,16 @@ struct StwoNativeCudaContext {
     uint64_t identity;
     std::thread::id owner_thread;
     bool capture_active;
+    bool proof_capture;
+    uint32_t capture_lane;
+    struct ProofGraph {
+        uint8_t key[32];
+        cudaGraphExec_t exec;
+        uint64_t age;
+        uint32_t lane;
+    } proof_graphs[32];
+    uint64_t proof_graph_clock;
+    uint64_t h2d_enqueued_bytes;
     bool closing;
     cudaMemPool_t pool;
     // Lifetime segregation: immutable setup/domain planes outlive every
@@ -470,6 +480,12 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
     status = join_lanes(context);
     if (status != cudaSuccess) return static_cast<int>(status);
     context->closing = true;
+    for (auto &graph : context->proof_graphs) {
+        if (graph.exec == nullptr) continue;
+        status = cudaGraphExecDestroy(graph.exec);
+        if (status != cudaSuccess) return static_cast<int>(status);
+        graph.exec = nullptr;
+    }
     if (context->nvtx_depth != 0) { nvtxRangePop(); context->nvtx_depth = 0; }
     // A failed destroy retains the control owner with remaining handles for
     // retry; ordinary operations reject a partially closed context.
@@ -672,7 +688,8 @@ extern "C" int stwo_exec_context_lane_stream(void *handle, uint32_t lane, void *
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
-    if (lane >= context->lane_count || context->capture_active)
+    if (lane >= context->lane_count ||
+        (context->capture_active && (!context->proof_capture || lane != context->capture_lane)))
         return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
     *out_stream = context->lanes[lane];
     return 0;
@@ -861,7 +878,11 @@ extern "C" int stwo_graph_capture_begin(void *handle) {
     // Cross-lane graph/event routing is deliberately not admitted yet.
     if (context->lane_count != 1) return static_cast<int>(STWO_CUDA_ERROR_INVALID_CONFIGURATION);
     status = cudaStreamBeginCapture(context->stream, cudaStreamCaptureModeThreadLocal);
-    if (status == cudaSuccess) context->capture_active = true;
+    if (status == cudaSuccess) {
+        context->capture_active = true;
+        context->proof_capture = false;
+        context->capture_lane = 0;
+    }
     return static_cast<int>(status);
 }
 
@@ -880,7 +901,7 @@ extern "C" int stwo_graph_capture_end(
 
     if (!context->capture_active) return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
     cudaGraph_t graph = nullptr;
-    status = cudaStreamEndCapture(context->stream, &graph);
+    status = cudaStreamEndCapture(context->lanes[context->capture_lane], &graph);
     context->capture_active = false;
     if (status != cudaSuccess) {
         if (graph != nullptr) cudaGraphDestroy(graph);
@@ -941,7 +962,7 @@ extern "C" int stwo_graph_capture_abort(void *handle) {
     if (status != cudaSuccess) return static_cast<int>(status);
     if (!context->capture_active) return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
     cudaGraph_t graph = nullptr;
-    status = cudaStreamEndCapture(context->stream, &graph);
+    status = cudaStreamEndCapture(context->lanes[context->capture_lane], &graph);
     context->capture_active = false;
     if (graph != nullptr) {
         const cudaError_t destroy_status = cudaGraphDestroy(graph);
@@ -970,6 +991,93 @@ extern "C" int stwo_graph_destroy(void *exec_handle) {
     if (exec_handle == nullptr) return 0;
     return static_cast<int>(cudaGraphExecDestroy(
         reinterpret_cast<cudaGraphExec_t>(exec_handle)));
+}
+
+// M7 numerical-only graphs. Callers validate every CURRENT scoped lease before
+// lookup/replay; this cache owns executable metadata, never device allocations.
+// Capture is restricted to one lane and owner thread, with no dependency slots.
+extern "C" int stwo_rv64_graph_cache_lookup_on(
+    void *handle, uint32_t lane, const uint8_t *key, void **out_exec) {
+    if (!key || !out_exec) return int(cudaErrorInvalidValue);
+    *out_exec = nullptr;
+    StwoNativeCudaContext *context = nullptr;
+    auto status = require_context(handle, &context);
+    if (status != cudaSuccess) return int(status);
+    if (context->capture_active || lane >= context->lane_count)
+        return int(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
+    for (auto &graph : context->proof_graphs) {
+        if (graph.exec && graph.lane == lane && !std::memcmp(graph.key, key, 32)) {
+            graph.age = ++context->proof_graph_clock;
+            *out_exec = reinterpret_cast<void *>(graph.exec);
+            break;
+        }
+    }
+    return 0;
+}
+
+extern "C" int stwo_rv64_graph_capture_begin_on(void *handle, uint32_t lane) {
+    StwoNativeCudaContext *context = nullptr;
+    auto status = require_context(handle, &context);
+    if (status != cudaSuccess) return int(status);
+    if (context->capture_active || lane >= context->lane_count)
+        return int(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
+    for (uint32_t slot = 0; slot < context->dependency_capacity; ++slot)
+        if (context->dependencies[slot].active)
+            return int(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
+    status = cudaStreamBeginCapture(context->lanes[lane], cudaStreamCaptureModeThreadLocal);
+    if (status == cudaSuccess) {
+        context->capture_active = true;
+        context->proof_capture = true;
+        context->capture_lane = lane;
+    }
+    return int(status);
+}
+
+extern "C" int stwo_rv64_graph_capture_store_on(
+    void *handle, uint32_t lane, const uint8_t *key,
+    uint64_t expected_kernels, void **out_exec) {
+    if (!key || !out_exec || !expected_kernels) return int(cudaErrorInvalidValue);
+    *out_exec = nullptr;
+    StwoNativeCudaContext *context = nullptr;
+    auto status = require_context(handle, &context);
+    if (status != cudaSuccess) return int(status);
+    if (!context->capture_active || context->capture_lane != lane)
+        return int(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
+    void *exec = nullptr;
+    uint64_t kernels = 0;
+    int rc = stwo_graph_capture_end(handle, &exec, &kernels);
+    if (rc) return rc;
+    if (kernels != expected_kernels || kernels > 2048) {
+        stwo_graph_destroy(exec);
+        return int(STWO_CUDA_ERROR_INVALID_CONFIGURATION);
+    }
+    auto *slot = &context->proof_graphs[0];
+    for (auto &graph : context->proof_graphs) {
+        if (!graph.exec) { slot = &graph; break; }
+        if (graph.age < slot->age) slot = &graph;
+    }
+    if (slot->exec) {
+        status = cudaGraphExecDestroy(slot->exec);
+        if (status != cudaSuccess) { stwo_graph_destroy(exec); return int(status); }
+    }
+    std::memcpy(slot->key, key, 32);
+    slot->exec = reinterpret_cast<cudaGraphExec_t>(exec);
+    slot->lane = lane;
+    slot->age = ++context->proof_graph_clock;
+    *out_exec = exec;
+    return 0;
+}
+
+extern "C" int stwo_rv64_graph_launch_on(void *handle, uint32_t lane, void *exec) {
+    StwoNativeCudaContext *context = nullptr;
+    auto status = require_context(handle, &context);
+    if (status != cudaSuccess) return int(status);
+    if (!exec || context->capture_active || lane >= context->lane_count)
+        return int(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
+    for (const auto &graph : context->proof_graphs)
+        if (graph.exec == reinterpret_cast<cudaGraphExec_t>(exec) && graph.lane == lane)
+            return int(cudaGraphLaunch(graph.exec, context->lanes[lane]));
+    return int(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
 }
 
 static int alloc_u32_from(void *handle, size_t count, uint32_t **out_pointer, bool long_lived);
@@ -1277,7 +1385,19 @@ extern "C" int stwo_exec_context_memcpy_h2d_async(
             context->stream);
 #endif
     }
+    if (status == cudaSuccess) context->h2d_enqueued_bytes += bytes;
     return static_cast<int>(status);
+}
+
+// Owner-thread snapshot; counts successful H2D enqueues, including setup and
+// native PCS. Captured copies count their capture call, not future replays.
+extern "C" int stwo_exec_context_h2d_enqueued_bytes(void *handle, uint64_t *out_bytes) {
+    if (!out_bytes) return int(cudaErrorInvalidValue);
+    StwoNativeCudaContext *context = nullptr;
+    auto status = require_context(handle, &context);
+    if (status != cudaSuccess) return int(status);
+    *out_bytes = context->h2d_enqueued_bytes;
+    return 0;
 }
 
 extern "C" int stwo_exec_context_memcpy_d2h_async(
