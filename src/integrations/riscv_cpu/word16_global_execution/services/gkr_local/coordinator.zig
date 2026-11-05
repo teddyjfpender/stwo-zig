@@ -232,6 +232,7 @@ const Run = struct {
     advice: *const Advice,
     requests: []const P.Request,
     inventory: *const Execution.Inventory,
+    inventory_admitted_utc_ns: u64,
     fixed: ?*const FixedSet,
     config: W.PcsConfig,
     options: Options,
@@ -264,7 +265,7 @@ const Run = struct {
                 if (timing) |value| {
                     value.source_ns = slot.source_end_utc_ns - slot.source_begin_utc_ns;
                     value.early_source_and_main_ns = self.workers[index].?.cpu.main_commit_end_utc_ns - slot.source_begin_utc_ns;
-                    value.early_main_commit_before_inventory = true;
+                    value.early_main_commit_before_inventory = self.workers[index].?.cpu.main_commit_end_utc_ns <= self.inventory_admitted_utc_ns;
                 }
                 if (timer) |*clock| _ = clock.lap();
             } else if (index == 0 and self.options.early_cpu0 != null) {
@@ -511,6 +512,8 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     const estimates = try admit(a, setups, truths, requests, &inventory, config, options, policy, native, advice);
     defer estimates.deinit(a);
     if (options.admitted_at_ns) |out| out.* = sinceEpoch(options.epoch);
+    const inventory_admitted_utc_ns: u64 = @intCast(std.time.nanoTimestamp());
+    if (options.early_segments != null) std.debug.print("EARLY_NATIVE_SEGMENT event=inventory_ready utc_ns={}\n", .{inventory_admitted_utc_ns});
     if (std.posix.getenv("STWO_RV64_CPU0_PRESTAGE")) |flag| if (std.mem.eql(u8, flag, "1")) std.debug.print("GPU_CPU_PRESTAGE event=inventory_ready utc_ns={} process_at_ns={}\n", .{ std.time.nanoTimestamp(), sinceEpoch(options.epoch) });
     if (options.worker_timings) |timings| for (estimates.cpu_policies, 0..) |selected, i| {
         timings[i].resolved_tree_policy = selected;
@@ -525,7 +528,7 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     defer a.free(results);
     @memset(results, null);
     defer for (results) |*slot| if (slot.*) |*v| v.deinit(a);
-    var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .fixed = fixed, .config = config, .options = options, .workers = workers, .stages = stages, .results = results, .cpu_tree_policies = estimates.cpu_policies };
+    var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .inventory_admitted_utc_ns = inventory_admitted_utc_ns, .fixed = fixed, .config = config, .options = options, .workers = workers, .stages = stages, .results = results, .cpu_tree_policies = estimates.cpu_policies };
     const stage1_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage1 else &.{}, .trace = options.stage1_trace };
     const stage2_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage2 else &.{}, .order = options.stage2_order, .trace = options.stage2_trace };
     try Schedule.runWithOptions(Run, a, &run, count, options.schedule, stage1_options, Run.stageOne);
