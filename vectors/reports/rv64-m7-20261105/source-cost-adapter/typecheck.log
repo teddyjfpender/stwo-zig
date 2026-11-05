@@ -1,0 +1,22 @@
+
+Build Summary: 7/7 steps succeeded
+test-rv64-source-cost-adapter success
++- run exe source-cost-adapter-typecheck success 660us MaxRSS:5M
+   +- compile exe source-cost-adapter-typecheck ReleaseSafe native success 4s MaxRSS:332M
+      +- run exe circuit-composition-cpu-codegen (circuit-composition-cpu-aot) cached
+      |  +- compile exe circuit-composition-cpu-codegen ReleaseFast native cached 24ms MaxRSS:37M
+      +- WriteFile cached
+      +- compile lib circuit-composition-cpu-kernels ReleaseSafe native cached 28ms MaxRSS:36M
+      |  +- run exe circuit-composition-cpu-codegen (circuit-composition-cpu-aot) (+1 more reused dependencies)
+      |  +- run exe circuit-composition-cpu-codegen (circuit-composition-cpu-aot) (+1 more reused dependencies)
+      |  +- run exe circuit-composition-cpu-codegen (circuit-composition-cpu-aot) (+1 more reused dependencies)
+      |  +- run exe circuit-composition-cpu-codegen (circuit-composition-cpu-aot) (+1 more reused dependencies)
+      |  +- run exe circuit-composition-cpu-codegen (circuit-composition-cpu-aot) (+1 more reused dependencies)
+      |  +- run exe circuit-composition-cpu-codegen (circuit-composition-cpu-aot) (+1 more reused dependencies)
+      |  +- run exe circuit-composition-cpu-codegen (circuit-composition-cpu-aot) (+1 more reused dependencies)
+      |  +- run exe circuit-composition-cpu-codegen (circuit-composition-cpu-aot) (+1 more reused dependencies)
+      |  +- run exe circuit-composition-cpu-codegen (circuit-composition-cpu-aot) (+1 more reused dependencies)
+      |  +- run exe circuit-composition-cpu-codegen (circuit-composition-cpu-aot) (+1 more reused dependencies)
+      |  +- run exe circuit-composition-cpu-codegen (circuit-composition-cpu-aot) (+1 more reused dependencies)
+      +- compile lib circuit-composition-cpu-kernels ReleaseSafe native (+11 more reused dependencies)
+
