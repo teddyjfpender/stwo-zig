@@ -345,6 +345,7 @@ pub const Context = struct {
         owner.main_columns = try a.alloc(D.TraceColumn, 114);
         owner.inter_columns = try a.alloc(D.TraceColumn, 304);
         if (self.service.admission != null) {
+            try @import("outer_progress.zig").register(owner);
             var plan = try owner.mainAllocationPlan();
             defer plan.deinit(a);
             try owner.runAdmitted(@import("outer_source_main.zig").generate, &plan, .witness);
@@ -415,7 +416,7 @@ pub const Owner = struct {
         if (status != 0) if (self.backend.service.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
         try checked(status);
     }
-    fn mainAllocationPlan(self: *Owner) !Cost.Plan {
+    pub fn mainAllocationPlan(self: *Owner) !Cost.Plan {
         const a = self.allocator;
         var words: u64 = 0;
         for (self.key.logs.toArray(), circuit.witness.trace.traceWidths()) |log, width| words = try std.math.add(u64, words, try std.math.mul(u64, @as(u64, 1) << @intCast(log), width));
@@ -444,7 +445,7 @@ pub const Owner = struct {
         // allocation, and no unpinned warm-cache prediction opens this gate.
         return Cost.main(a, .{ .main_words = words, .value_count = self.value_count, .assignment = assignment, .fixed_miss_words = fixed, .sample_check_records = sample_count, .fused_shadow = shadow });
     }
-    fn interactionAllocationPlan(self: *Owner) !Cost.Plan {
+    pub fn interactionAllocationPlan(self: *Owner) !Cost.Plan {
         var components: [11]Cost.Component = undefined;
         const kinds = std.enums.values(circuit.common.component_list.ComponentList);
         for (&components, self.key.logs.toArray(), kinds, 0..) |*component, log, kind, index| {
@@ -458,7 +459,7 @@ pub const Owner = struct {
         const endpoint = self.backend.service.admission orelse return error.MissingGlobalAdmissionEndpoint;
         const scope = if (stage == .witness) self.initial_scope else self.scope;
         const successor = try self.backend.service.admissionSuccessor(scope, if (stage == .witness) .source else .interaction);
-        var permit = try endpoint.reserve(.{ .owner = .{ .request = std.mem.readInt(u64, scope.statement[0..8], .little), .domain = .recursion_node, .ordinal = scope.ordinal }, .stage = stage, .temporary = plan.additional_peak, .successor = successor, .known = true, .host_known = plan.host_cost_known });
+        var permit = try endpoint.reserve(.{ .progress_key = @import("global_admission.zig").progressKey(scope), .owner = .{ .request = std.mem.readInt(u64, scope.statement[0..8], .little), .domain = .recursion_node, .ordinal = scope.ordinal }, .stage = stage, .stage_retained_upper = plan.retained_after, .temporary = plan.additional_peak, .successor = successor, .known = true, .host_known = plan.host_cost_known });
         defer if (!permit.closed) {
             endpoint.planner.poisonPhysical(endpoint.physical);
             permit.finish(.{}) catch {};

@@ -5,7 +5,7 @@
 const std = @import("std");
 const A = @import("global_admission.zig");
 pub const Step = enum { source, main_commit, native_gkr, interaction, inter_commit, composition, pcs };
-pub const Key = struct { statement: [32]u8, fixed: [32]u8, ordinal: u32 };
+pub const Key = A.ProgressKey;
 pub const Plan = struct {
     identity: [32]u8,
     gpu_costs_known: bool,

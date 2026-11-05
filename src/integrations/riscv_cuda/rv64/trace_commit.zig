@@ -142,7 +142,7 @@ pub const Context = struct {
             if (request.tree_index == 0) return error.GlobalFixedTracePlanUnavailable;
             successor = try self.service.admissionSuccessor(request.scope, if (request.tree_index == 1) .main_commit else .inter_commit);
             const plan = &allocation_plan.?;
-            permit = try endpoint.reserve(.{ .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = self.admission_domain, .ordinal = request.scope.ordinal }, .stage = .trace_commit, .temporary = try plan.footprint(), .successor = successor, .known = true, .host_known = plan.host_cost_known, .host_peak_bytes = plan.host_peak_bytes });
+            permit = try endpoint.reserve(.{ .progress_key = Global.progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = self.admission_domain, .ordinal = request.scope.ordinal }, .stage = .trace_commit, .stage_retained_upper = try Global.Footprint.allocation(try std.math.mul(u64, plan.coefficient_words, 4)), .temporary = try plan.footprint(), .successor = successor, .known = true, .host_known = plan.host_cost_known, .host_peak_bytes = plan.host_peak_bytes });
         }
         defer if (permit) |*active| if (!active.closed) {
             active.endpoint.planner.poisonPhysical(active.endpoint.physical);

@@ -60,12 +60,24 @@ pub const HostPolicy = enum { require_bounds, observe_only };
 pub const Domain = enum { immutable_setup, native_packet, recursion_node, gkr_packet };
 pub const Stage = enum { setup, witness, trace_commit, interaction, composition, pcs, gkr, retire };
 pub const Owner = struct { request: u64, domain: Domain, ordinal: u32 };
+pub const ProgressKey = struct { statement: [32]u8, fixed: [32]u8, ordinal: u32 };
+pub fn progressKey(scope: anytype) ProgressKey {
+    return .{ .statement = scope.statement, .fixed = scope.fixed, .ordinal = scope.ordinal };
+}
 pub const Demand = struct {
     owner: Owner,
+    /// Stable logical proof identity; MAIN-root rebind does not change it.
+    /// Advancing its source-owned class plan replaces older FUTURE promises,
+    /// while observed physical retention and retirement tokens remain intact.
+    progress_key: ?ProgressKey = null,
     stage: Stage,
     /// New allocations that remain after this stage. Existing live owners are
     /// already charged by their tokens; do not count them here a second time.
     retained_new: Footprint = .{},
+    /// Observed-runtime mode keeps retained_new=0. This bound reserves the
+    /// stage's NEW retained allocations beside its downstream envelope before
+    /// launch; actual retention is still counted only by the joined snapshot.
+    stage_retained_upper: Footprint = .{},
     /// Additional simultaneous temporary allocations, INCLUDING decoded input,
     /// metadata, twiddles and all workspace, separately rounded per allocation.
     temporary: Footprint = .{},
@@ -137,13 +149,17 @@ pub const Planner = struct {
         return .{ .large = self.preset.arenaBytes() - small_slab_bytes, .small = small_slab_bytes };
     }
     fn collect(self: *const Planner, d: *const Device) !Snapshot {
+        return self.collectForProgress(d, null);
+    }
+    fn collectForProgress(self: *const Planner, d: *const Device, advancing: ?ProgressKey) !Snapshot {
         var retained: Footprint = d.observed;
         var temporary: Footprint = .{};
         var successor: Footprint = .{};
         var it = d.entries.valueIterator();
         while (it.next()) |entry| {
             retained = try retained.add(entry.demand.retained_new);
-            successor = successor.max(entry.demand.successor);
+            const replaced = if (advancing) |key| if (entry.demand.progress_key) |old| std.meta.eql(key, old) else false else false;
+            if (!replaced) successor = successor.max(entry.demand.successor);
             if (entry.active) temporary = try temporary.add(entry.demand.temporary);
         }
         return .{ .physical = d.physical, .retained = retained, .active_temporary = temporary, .successor = successor, .required = try retained.add(temporary.max(successor)), .capacity = self.capacity(), .owners = d.entries.count(), .active = d.active != null };
@@ -170,15 +186,28 @@ pub const Planner = struct {
             };
         }
         if (self.host_policy == .require_bounds and host_required > self.host_capacity_bytes) return .{ .reason = .host_capacity_pressure, .capacity = cap };
-        const alone = try demand.retained_new.add(demand.temporary.max(demand.successor));
+        const additional = demand.temporary.max(try demand.stage_retained_upper.add(demand.successor));
+        const alone = try demand.retained_new.add(additional);
         if (!cap.contains(alone)) return .{ .reason = .request_exceeds_static_arena, .required = alone, .capacity = cap };
-        const live = try self.collect(d);
-        const required = try (try live.retained.add(demand.retained_new)).add(live.successor.max(demand.temporary).max(demand.successor));
+        const live = try self.collectForProgress(d, demand.progress_key);
+        const next_and_other_progress = try demand.stage_retained_upper.add(live.successor.max(demand.successor));
+        const required = try (try live.retained.add(demand.retained_new)).add(demand.temporary.max(next_and_other_progress));
         if (d.active != null) return .{ .reason = .wide_stage_busy, .required = required, .capacity = cap };
         if (!cap.contains(required)) return .{ .reason = .capacity_pressure, .required = required, .capacity = cap };
         const id = self.next_id;
         self.next_id = try std.math.add(u64, self.next_id, 1);
         try d.entries.putNoClobber(self.allocator, id, .{ .demand = demand, .active = true });
+        // Commit the replacement only AFTER admission succeeds. Old physical
+        // owners keep their tokens until checked destruction; only their now
+        // superseded future envelopes are cleared. No observed byte is freed.
+        if (demand.progress_key) |key| {
+            var older = d.entries.valueIterator();
+            while (older.next()) |entry| if (!entry.active) {
+                if (entry.demand.progress_key) |old| {
+                    if (std.meta.eql(key, old)) entry.demand.successor = .{};
+                }
+            };
+        }
         d.active = id;
         return .{ .reason = .admitted, .token = .{ .physical = physical, .id = id }, .required = required, .capacity = cap };
     }
@@ -410,4 +439,36 @@ test "GPU-only admission preserves unknown host status and all GPU refusal gates
     try std.testing.expect(p.schedulingEnabled());
     p.required_coverage = coverage_all;
     try std.testing.expect(!p.schedulingEnabled());
+}
+
+test "phase advance replaces only its future promise and keeps physical owners charged" {
+    var p = try Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer p.deinit();
+    const key = ProgressKey{ .statement = @splat(1), .fixed = @splat(2), .ordinal = 3 };
+    const first = (try p.tryBegin(0, .{ .owner = test_owner, .progress_key = key, .stage = .witness, .known = true, .host_known = true, .temporary = try Footprint.allocation(6 << 30), .stage_retained_upper = try Footprint.allocation(6 << 30), .successor = try Footprint.allocation(14 << 30) })).token.?;
+    try p.completeObserved(first, try Footprint.allocation(6 << 30), try Footprint.allocation(14 << 30));
+    var other_key = key;
+    other_key.ordinal += 1;
+    const other = try p.tryBegin(0, .{ .owner = test_owner, .progress_key = other_key, .stage = .witness, .known = true, .host_known = true, .temporary = try Footprint.allocation(2 << 30), .stage_retained_upper = try Footprint.allocation(2 << 30) });
+    try std.testing.expectEqual(Reason.capacity_pressure, other.reason);
+    try std.testing.expectEqual(try Footprint.allocation(14 << 30), p.devices[0].entries.get(first.id).?.demand.successor);
+    // Later immutable/coeff owners grow, while this proof's remaining work is
+    // now smaller. Its old14GiB promise must not block a valid8GiB next phase.
+    const next = (try p.tryBegin(0, .{ .owner = test_owner, .progress_key = key, .stage = .trace_commit, .known = true, .host_known = true, .temporary = try Footprint.allocation(8 << 30), .stage_retained_upper = try Footprint.allocation(2 << 30), .successor = try Footprint.allocation(4 << 30) })).token.?;
+    try std.testing.expectEqual(Footprint{}, p.devices[0].entries.get(first.id).?.demand.successor);
+    try p.completeObserved(next, try Footprint.allocation(8 << 30), try Footprint.allocation(4 << 30));
+    const snapshot = try p.snapshot(0);
+    try std.testing.expectEqual(try Footprint.allocation(8 << 30), snapshot.retained);
+    try std.testing.expectEqual(try Footprint.allocation(4 << 30), snapshot.successor);
+    // Old tokens stay valid until their physical owner's checked destruction.
+    try p.release(first);
+    try p.release(next);
+}
+
+test "observed stage reserves retained growth plus downstream progress before allocation" {
+    var p = try Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer p.deinit();
+    const result = try p.tryBegin(0, .{ .owner = test_owner, .stage = .witness, .known = true, .host_known = true, .temporary = try Footprint.allocation(5 << 30), .stage_retained_upper = try Footprint.allocation(5 << 30), .successor = try Footprint.allocation(18 << 30) });
+    try std.testing.expectEqual(Reason.request_exceeds_static_arena, result.reason);
+    try std.testing.expectEqual(@as(usize, 0), (try p.snapshot(0)).owners);
 }
