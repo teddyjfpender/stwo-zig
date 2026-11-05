@@ -514,6 +514,8 @@ struct Service {
       if (job == Job::quit)
         break;
       status = 0;
+      rv64_pcs_pipeline::PcsNvtxPhase owner_profiling(
+          job == Job::callback ? "rv64/owner/callback" : "rv64/owner/pcs");
       try {
         if (poisoned || !owner)
           throw std::runtime_error("GPU session is poisoned");

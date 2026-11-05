@@ -1,0 +1,7 @@
+# M7 owner controller and device transcript
+
+The initial checkpoint adds opt-in `STWO_RV64_NVTX=1` owner and PCS phase ranges. It changes no numerical operation or ordering. The matched128 image builds and preserves the qualified fused-Blake object. Full producer artifact parity and profiler attribution are pending; this is observational instrumentation, not a latency improvement or completed stream.
+
+Image: `/workspace/m3/build/m7-device-fs/cuda/native/libstwo-rv64-native.so`, SHA256 `05eedd9d4fc14f108ae14c7d57dcbb88faec3cba101503aebfcf48e9eda0b08a`. Its build manifest records the baseline, all object hashes, source hashes and exact commands. Raw owner ranges include the unconditional post-callback join. Nested PCS ranges cover metadata/allocation, source LDE and trees, sample evaluation, DEEP, retirement, FRI, proof of work, openings, and final readback/encoding.
+
+The existing C PCS path already performs sampled-values, DEEP, FRI, PoW and query transcript feedback on GPU. The remaining outer controller performs MAIN-root challenge generation, INTER claims/root binding, composition challenges, and OODS setup across host-visible stage boundaries. The next controller checkpoint retains the complete proof's graph, authority, preparation, source and buffer owners in one native owner job; it must preserve TLS hints, error custody and all final readbacks before any enqueue-only path can be qualified.
