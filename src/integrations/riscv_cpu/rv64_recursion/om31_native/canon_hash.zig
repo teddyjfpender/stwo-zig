@@ -40,6 +40,34 @@ pub const TruthStatement = struct {
     legacy: Digest,
 };
 pub const Segment = struct { k: Word, family: Word, rung: Word, vkhash: Digest, stmt: Digest, s_in: Digest, s_out: Digest, rho: Digest };
+pub const CompactHeader = struct { domain: Digest, class_key: Digest, program: Digest, config_identity: Digest, fixed_identity: Digest, fixed_root: Digest };
+pub const SignedMass = struct { positive: U64, negative: U64 };
+pub const SignedGlobals = struct { ram: SignedMass, kio: SignedMass, wire: SignedMass };
+pub const CompactCpuMetadata = struct {
+    ordinal: Word, execution: Digest, mass: SignedGlobals, relations: Word,
+    cpu_ordinal: Word, steps_in: U64, ls_count: Word, ls_dword: Word,
+    calls: [Types.FAMILIES]Word, first_ids: [Types.FAMILIES]Word, sponge: [3]Word, bulk: [8]Word,
+};
+pub const CompactTruthMetadata = struct { ordinal: Word, execution: Digest, mass: SignedGlobals, relations: Word,
+    family: Word, first_id: Word, calls: Word, logs: [2]Word };
+/// Witness assignment only. compactCpu/Truth and all admission constraints must
+/// consume these SAME handles; these constructors do not authenticate a proof.
+pub fn guessCompactCpuMetadata(ctx: *C.Context, native: @import("../../word16_global_execution/services/native_gkr/cpu_statement.zig").Metadata) !CompactCpuMetadata {
+    return mirror(CompactCpuMetadata, ctx, native);
+}
+pub fn guessCompactTruthMetadata(ctx: *C.Context, native: @import("../../word16_global_execution/services/native_gkr/truth_statement.zig").Metadata) !CompactTruthMetadata {
+    return mirror(CompactTruthMetadata, ctx, native);
+}
+pub fn guessCompactCpuInputs(ctx: *C.Context, native: @import("../../word16_global_execution/services/native_gkr/cpu_statement.zig").Inputs) !@import("cpu_leaf.zig").Statement.ChainInputs {
+    return mirror(@import("cpu_leaf.zig").Statement.ChainInputs, ctx, native);
+}
+/// Immutable class header from the RECEIVER'S source key. Never call with an
+/// unchecked producer header; this embeds its fields in the circuit topology.
+pub fn constantCompactHeader(ctx: *C.Context, source: @import("../../word16_global_execution/services/native_gkr/cpu_statement.zig").Header) !CompactHeader {
+    var out: CompactHeader = undefined;
+    inline for (std.meta.fields(CompactHeader)) |field| @field(out, field.name) = try Public.constantDigest(ctx, @field(source, field.name));
+    return out;
+}
 pub const Expected = struct {
     program_identity: Digest,
     admission: struct { image_identity: Digest, max_prefix_steps: U64, initial_pc: U64, initial_registers: [32]U64 },
@@ -145,6 +173,20 @@ pub fn truthStatement(ctx: *C.Context, value: TruthStatement) !Digest {
     Canon.emitTruthStatement(try B.wrappers.constU32(C.Q, ctx, @intFromEnum(Canon.Kind.truth)), value, &writer);
     return writer.final();
 }
+pub fn compactCpu(ctx: *C.Context, header: anytype, inputs: anytype, metadata: anytype) !Digest {
+    const Native = @import("../../word16_global_execution/services/native_gkr/cpu_statement.zig");
+    try require(ctx, header.domain, Native.domainDigest());
+    var writer = Writer.init(ctx, .stmt);
+    Native.emit(header, inputs, metadata, &writer);
+    return writer.final();
+}
+pub fn compactTruth(ctx: *C.Context, header: anytype, metadata: anytype) !Digest {
+    const Native = @import("../../word16_global_execution/services/native_gkr/truth_statement.zig");
+    try require(ctx, header.domain, Native.domainDigest());
+    var writer = Writer.init(ctx, .stmt);
+    Native.emit(header, metadata, &writer);
+    return writer.final();
+}
 pub fn chainStep(ctx: *C.Context, previous: Digest, segment: Segment) !Digest {
     var writer = Writer.init(ctx, .seg);
     Canon.emitChainStep(previous, segment, &writer);
@@ -232,10 +274,49 @@ fn mirror(comptime Wire: type, ctx: *C.Context, native: anytype) !Wire {
     var out: Wire = undefined;
     switch (@typeInfo(Wire)) {
         .array => |array| for (0..array.len) |i| { out[i] = try mirror(array.child, ctx, native[i]); },
+        .pointer => |pointer| {
+            if (pointer.size != .slice) @compileError("canonical witness supports slices only");
+            const values = try ctx.scratch().alloc(pointer.child, native.len);
+            for (values, native) |*value, item| value.* = try mirror(pointer.child, ctx, item);
+            out = values;
+        },
         .@"struct" => |structure| inline for (structure.fields) |field| { @field(out, field.name) = try mirror(field.type, ctx, @field(native, field.name)); },
         else => @compileError("unsupported canonical hash witness"),
     }
     return out;
+}
+test "compact native-GKR CPU and truth circuit hashes share the source visitor" {
+    const CPU = @import("../../word16_global_execution/services/native_gkr/cpu_statement.zig");
+    const Truth = @import("../../word16_global_execution/services/native_gkr/truth_statement.zig");
+    const Inputs = @import("cpu_leaf.zig").Statement.ChainInputs;
+    const header = CPU.Header{ .domain = CPU.domainDigest(), .class_key = @splat(1), .program = @splat(2),
+        .config_identity = @splat(3), .fixed_identity = @splat(4), .fixed_root = @splat(5) };
+    var rows = [_]u32{0,3}; var calls = [_]u32{0,5}; var first = [_]u32{1,9};
+    const input = CPU.Inputs{ .steps = 9, .epoch = 2, .initial_pc = @splat(0), .final_pc = @splat(1),
+        .initial_registers = @splat(@splat(0)), .final_registers = @splat(@splat(1)), .register_clocks = @splat(3),
+        .sponge_first = 1, .rows = &rows, .calls = &calls, .first_ids = &first };
+    const metadata = CPU.Metadata{ .ordinal = 7, .execution = @splat(8), .mass = .{.ram=.{.positive=13,.negative=11}}, .relations=1,
+        .cpu_ordinal=2,.steps_in=111,.ls_count=3,.ls_dword=5,.calls=@splat(2),.first_ids=@splat(1),.sponge=.{1,3,5},.bulk=@splat(7) };
+    var truth_header = header; truth_header.domain = Truth.domainDigest();
+    const truth = Truth.Metadata{ .ordinal=8,.execution=@splat(8),.mass=.{.wire=.{.positive=12,.negative=4}},.relations=4,
+        .family=19,.first_id=1,.calls=3,.logs=.{10,0} };
+    for (0..3) |mutation| {
+        var ctx = try C.Context.init(std.testing.allocator, 0);
+        defer ctx.deinit();
+        ctx.assert_eq_on_eval = false;
+        C.lane.begin(&ctx);
+        defer C.lane.finish() catch {};
+        var wired_cpu = try mirror(CompactCpuMetadata, &ctx, metadata);
+        var wired_truth = try mirror(CompactTruthMetadata, &ctx, truth);
+        if (mutation == 1) wired_cpu.calls[0] = try guessWord(&ctx, 3);
+        if (mutation == 2) wired_truth.mass.wire.negative[1] = try guessWord(&ctx, 1);
+        const cpu_digest = try compactCpu(&ctx, try mirror(CompactHeader, &ctx, header), try mirror(Inputs, &ctx, input), wired_cpu);
+        const truth_digest = try compactTruth(&ctx, try mirror(CompactHeader, &ctx, truth_header), wired_truth);
+        try require(&ctx, cpu_digest, try CPU.digest(header, input, metadata));
+        try require(&ctx, truth_digest, try Truth.digest(truth_header, truth));
+        try C.lane.check();
+        try std.testing.expectEqual(mutation == 0, try ctx.isCircuitValid());
+    }
 }
 test "fold-v3 circuit CPU truth segment and chi hashes reproduce native authority" {
     const native = Canon.CpuStatement{

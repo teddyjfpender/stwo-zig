@@ -184,3 +184,16 @@ pub fn truth(d: Declaration) !Globals {
     }
     return out;
 }
+/// Readonly program-use coefficients come from the same original truth
+/// authority. Count/first ID are witnesses; family/logs are source class policy.
+pub fn emitTruthTerms(declaration: Declaration, calls: anytype, writer: anytype) !void {
+    var unit = declaration;
+    unit.calls = 1;
+    unit.first_id = 1;
+    const coefficients = try truth(unit);
+    inline for (.{ "ram", "kio", "wire" }) |name| {
+        const relation = @field(Relation, name);
+        writer.term(relation, true, calls, @intCast(@field(coefficients, name).positive));
+        writer.term(relation, false, calls, @intCast(@field(coefficients, name).negative));
+    }
+}

@@ -127,3 +127,25 @@ not a complete typed leaf. Connecting exact numerical/compact verifier wires
 and the source Plan's count/absence/cap projection remains mandatory. Truth
 source bounds, conservative per-class security envelopes, real typed proofs,
 producer/root wire, fresh reception and independent audit remain open.
+
+
+The source Plan count projection is now implemented in
+`typed_cpu_projection.zig`. It ties the exact AIR count handles to compact
+metadata, clamps LS/DWORD heads with tail saturation, bounds every source
+role, rejects counts for absent roles, pins relation masks, and derives signed
+masses through the source visitor. Truth admission likewise pins capacity,
+family/logs, first ID, relation mask and readonly program-use coefficients.
+CPU sponge first ID is zero when inactive; active shards use the global
+sponge cursor. A 48-bit limb inequality enforces the source maximum
+permutations per call without reducing a potentially large product modulo p.
+Compact native/circuit CPU/truth digest differential tests passed on the pod.
+
+The typed root conservatively charges every outer leaf/fold by `2*n-1`, plus
+source-known hybrid wrappers, under the 256-proof GKR union budget. Classic
+C1/C2 wrappers contribute zero GKR proofs. This currently limits typed native
+leaf count to128 with no hybrid wrappers; both dev workloads fit. Actual DAG
+installers can use the exact node count, but cannot charge only native leaves.
+
+These close helper-level public-count/mass substitution paths. The remaining
+blocking integration is the actual numerical verifier consuming those same
+compact input handles, followed by complete typed proofs and fresh reception.

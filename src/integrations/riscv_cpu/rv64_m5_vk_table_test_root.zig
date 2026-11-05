@@ -10,6 +10,7 @@ test {
     _ = @import("rv64_recursion/om31_native/typed_integer.zig");
     _ = @import("rv64_recursion/om31_native/typed_mass.zig");
     _ = @import("rv64_recursion/om31_native/typed_cpu.zig");
+    _ = @import("rv64_recursion/om31_native/typed_cpu_projection.zig");
     _ = @import("rv64_recursion/om31_native/typed_truth.zig");
 }
 const P = @import("stwo_circuit_cpu_integration").om31.protocol;
