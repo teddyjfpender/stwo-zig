@@ -16,6 +16,7 @@ const SC = @import("session_context.zig");
 const RC = @import("resident_composition.zig");
 const TC = @import("trace_commit.zig");
 const Assignment = @import("outer_assignment.zig");
+const Retirement = @import("assignment_retirement.zig");
 const Aot = @import("outer_aot.zig");
 const Code = @import("composition_codegen.zig");
 const Abi = @import("abi.zig");
@@ -62,6 +63,9 @@ pub const Context = struct {
     fixed_pending: ?*@import("outer_fixed.zig").Owner = null,
     fixed_nonce: u64 = 0,
     assignment: ?Assignment.Prepared = null,
+    /// A ready-lane admission removes this dedicated worker from its normal
+    /// pool budget. Other factories cannot silently create an extra worker.
+    retirement_worker_permit: ?*Retirement.WorkerPermit = null,
     assignment_graphs: @import("assignment_graphs.zig").Cache = .{},
     /// Host-prepared plan for exactly `staged_graph`, built off the device lane
     /// (see prepareHost). Consumed by the next prepareImpl for that graph.
@@ -335,12 +339,17 @@ pub const Context = struct {
         self.mutex.unlock();
         locked = false;
         errdefer Owner.release(owner);
+        // The optional CPU retirement worker is bounded and its stack charged
+        // before any MAIN device work. Disabled mode keeps the legacy route.
+        owner.retirement = try Retirement.Context(Assignment.Prepared).initWithPermit(a, self.retirement_worker_permit);
         owner.main_columns = try a.alloc(D.TraceColumn, 114);
         owner.inter_columns = try a.alloc(D.TraceColumn, 304);
         try owner.run(@import("outer_source_main.zig").generate);
         // MAIN generation joined every metadata upload and witness kernel.
-        // INTER/PCS retain device columns only; no CPU plan escapes its budget.
-        owner.retireAssignment();
+        // INTER/PCS retain device columns only. The optional worker owns the
+        // complete CPU plan; its allocation charges survive until actual free,
+        // and release joins it before the owner/request allocator can retire.
+        try owner.retireAssignment();
         owner.input = &.{};
         const commit = self.trace_commit.stage();
         owner.main = try commit.commit(commit.context, a, .{ .scope = scope, .config = try Outer.protocol.targetConfig(), .tree_index = 1, .columns = owner.main_columns });
@@ -358,6 +367,7 @@ pub const Owner = struct {
     value_count: usize,
     owns_assignment: bool = false,
     previous_assignment: ?Assignment.Prepared = null,
+    retirement: Retirement.Context(Assignment.Prepared) = .{},
     initial_scope: D.Scope,
     scope: D.Scope,
     raw_fixed: [45]Native.Lease = undefined,
@@ -479,24 +489,45 @@ pub const Owner = struct {
         try self.retireAdmissionScope(self.initial_scope);
         if (!std.meta.eql(self.scope, self.initial_scope)) try self.retireAdmissionScope(self.scope);
     }
-    fn retireAssignment(self: *Owner) void {
+    fn retireAssignment(self: *Owner) !void {
         self.backend.mutex.lock();
-        defer self.backend.mutex.unlock();
-        self.retireAssignmentLocked();
+        var locked = true;
+        defer if (locked) self.backend.mutex.unlock();
+        if (self.owns_assignment and self.retirement.enabled) {
+            const plan = self.backend.assignment orelse return error.MissingOuterAssignmentRetirement;
+            try Retirement.requireAllocator(plan.allocator);
+            try Retirement.requireAllocator(plan.plan.allocator);
+            if (plan.narrow_plan) |narrow| try Retirement.requireAllocator(narrow.allocator);
+        }
+        var assignment = self.takeAssignmentLocked();
+        self.backend.mutex.unlock();
+        locked = false;
+        if (assignment) |*retired| {
+            if (self.retirement.enabled) {
+                // start consumes ownership even when spawning fails. release
+                // then cleans that payload while preserving the first error.
+                try self.retirement.start(retired.*);
+            } else retired.deinit();
+        }
     }
-    fn retireAssignmentLocked(self: *Owner) void {
-        if (!self.owns_assignment) return;
+    fn takeAssignmentLocked(self: *Owner) ?Assignment.Prepared {
+        if (!self.owns_assignment) return null;
         std.debug.assert(self.backend.active == self);
-        var assignment = self.backend.assignment orelse @panic("missing owned atomic circuit plan");
+        const assignment = self.backend.assignment orelse @panic("missing owned atomic circuit plan");
         self.backend.assignment = self.previous_assignment;
         self.previous_assignment = null;
         self.owns_assignment = false;
-        assignment.deinit();
+        return assignment;
     }
     fn release(raw: *anyopaque) void {
         const self: *Owner = @ptrCast(@alignCast(raw));
         const b = self.backend;
         const a = self.allocator;
+        // No mutex is held across a join. The CPU job owns no GPU resource or
+        // backend reference, and must finish before any request storage dies.
+        self.retirement.join();
+        if (self.retirement.enabled) std.debug.print("GPU_OUTER_ASSIGNMENT_RETIRE ordinal={} dispatch_ns={} worker_ns={} join_wait_ns={} async=true\n", .{ self.initial_scope.ordinal, self.retirement.dispatch_ns, self.retirement.worker_ns, self.retirement.join_wait_ns });
+        self.retirement.deinit();
         const released = b.service.submit(b.service.session, releaseDevice, self) == 0;
         if (released) {
             self.retireAdmissionScope(self.initial_scope) catch {};
@@ -511,7 +542,11 @@ pub const Owner = struct {
         a.free(self.inter_columns);
         b.mutex.lock();
         std.debug.assert(b.active == self);
-        self.retireAssignmentLocked();
+        var remaining = self.takeAssignmentLocked();
+        b.mutex.unlock();
+        if (remaining) |*assignment| assignment.deinit();
+        b.mutex.lock();
+        std.debug.assert(b.active == self);
         b.active = null;
         b.mutex.unlock();
         a.destroy(self);
@@ -556,6 +591,11 @@ fn testAssignment(a: std.mem.Allocator, tag: u8) !Assignment.Prepared {
     result.indices = try a.alloc(u32, 1);
     result.seeds = &.{};
     result.identity = @splat(tag);
+    result.blake_sample_inputs = null;
+    result.blake_sample_outputs = null;
+    result.narrow_plan = null;
+    result.borrowed = false;
+    result.decoded_tasks = false;
     return result;
 }
 
@@ -568,13 +608,14 @@ test "atomic circuit plan retires after MAIN while restoring persistent legacy p
     owner.backend = &backend;
     owner.owns_assignment = true;
     owner.previous_assignment = try testAssignment(a, 1);
+    owner.retirement = .{};
     backend.active = &owner;
-    owner.retireAssignment();
+    try owner.retireAssignment();
     try std.testing.expect(backend.active == &owner);
     try std.testing.expect(!owner.owns_assignment);
     try std.testing.expect(owner.previous_assignment == null);
     try std.testing.expectEqual(@as(u8, 1), backend.assignment.?.identity[0]);
-    owner.retireAssignment();
+    try owner.retireAssignment();
     backend.assignment.?.deinit();
 }
 
@@ -601,6 +642,7 @@ test "failed atomic owner releases bounded plan before allowing another proof" {
     owner.backend = &backend;
     owner.owns_assignment = true;
     owner.previous_assignment = null;
+    owner.retirement = .{};
     owner.scope = .{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
     owner.initial_scope = owner.scope;
     owner.leases = .empty;

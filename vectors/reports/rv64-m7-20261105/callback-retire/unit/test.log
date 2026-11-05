@@ -1,0 +1,9 @@
+1/8 assignment_retirement.test.retirement transfers payload once and joins idempotently...OK
+2/8 assignment_retirement.test.early worker completion retains stack charge through join and deinit...OK
+3/8 assignment_retirement.test.spawn failure and later source error retain and clean payload exactly once...OK
+4/8 assignment_retirement.test.disabled and duplicate retirement preserve ownership on every path...OK
+5/8 assignment_retirement.test.retirement rejects unsupported ancestry, unbudgeted stacks and two lanes...OK
+6/8 assignment_retirement.test.retirement admits exact recycler ancestry and refuses stack-budget exhaustion...OK
+7/8 assignment_retirement.test.retirement option is strict and cyclic allocator ancestry is bounded...OK
+8/8 assignment_retirement.test.worker permit is exclusive and initialization failures release its claim...OK
+All 8 tests passed.

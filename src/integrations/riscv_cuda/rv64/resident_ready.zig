@@ -8,6 +8,7 @@ const Outer = @import("outer_source.zig").Context;
 const Policy = @import("resident_ready_policy.zig");
 const TraceCommit = @import("trace_commit.zig");
 const Composition = @import("resident_composition.zig");
+const Retirement = @import("assignment_retirement.zig");
 pub const Context = struct {
     allocator: std.mem.Allocator,
     contexts: []Outer = &.{},
@@ -23,6 +24,7 @@ pub const Context = struct {
     initialized_contexts: usize = 0,
     initialized_pools: usize = 0,
     helpers: Engine.host_budget_allocator.SharedHostBudget.ExternalReservation = .{},
+    retirement_permits: []Retirement.WorkerPermit = &.{},
     total_workers: usize,
     pending: usize,
     /// Physical device of every lane, in lane order (sched M6: up to 2 lanes,
@@ -37,14 +39,24 @@ pub const Context = struct {
         const per_device = try Policy.lanesPerDevice();
         const lane_count = ids.len * per_device;
         if (lane_count > 4 or total < lane_count) return error.InvalidResidentReadyAdmission;
+        const async_retire = try Retirement.optionEnabled();
+        if (async_retire and (per_device != 1 or total < 2 * lane_count)) return error.InvalidAssignmentRetirementWorkerAdmission;
+        // Keep the ORIGINAL total worker cap: one dedicated CPU retirer takes
+        // the place of one pool helper per lane, rather than adding a thread.
+        const pool_total = total - if (async_retire) lane_count else 0;
         var counts: [4]usize = @splat(0);
-        for (0..lane_count) |i| counts[i] = total / lane_count + @intFromBool(i < total % lane_count);
+        for (0..lane_count) |i| counts[i] = pool_total / lane_count + @intFromBool(i < pool_total % lane_count);
         const owner = try CPU.rv64_recursion_budget.require(Engine.host_budget_allocator.SharedHostBudget, a);
         const self = try a.create(Context);
         self.* = .{ .allocator = a, .total_workers = total, .pending = pending };
         errdefer self.deinit();
         // These pools remain alive across native production as well as roots.
-        self.helpers = try owner.reserveExternal(try std.math.mul(usize, total - lane_count, Policy.helper_stack_bytes));
+        self.helpers = try owner.reserveExternal(try std.math.mul(usize, pool_total - lane_count, Policy.helper_stack_bytes));
+        if (async_retire) {
+            self.retirement_permits = try a.alloc(Retirement.WorkerPermit, lane_count);
+            for (self.retirement_permits) |*permit| permit.* = Retirement.WorkerPermit.initAdmitted();
+            std.debug.print("GPU_OUTER_RETIRE_WORKERS total={} pool={} dedicated={} lanes_per_device={}\n", .{ total, pool_total, lane_count, per_device });
+        }
         self.contexts = try a.alloc(Outer, lane_count);
         self.traces = try a.alloc(TraceCommit.Context, lane_count);
         self.compositions = try a.alloc(Composition.Context, lane_count);
@@ -65,6 +77,7 @@ pub const Context = struct {
             self.compositions[i] = try Composition.Context.initNumerical(a, &device.native);
             self.initialized_compositions += 1;
             self.contexts[i] = try Outer.init(a, &device.native, &self.traces[i], &self.compositions[i]);
+            if (async_retire) self.contexts[i].retirement_worker_permit = &self.retirement_permits[i];
             self.initialized_contexts += 1;
             self.lanes[i] = .{ .physical_device = id, .factory = if (device_fixed) try self.contexts[i].factoryWithDeviceFixed() else try self.contexts[i].factoryForTraceOnly(), .pool = &self.pools[i] };
         }
@@ -82,6 +95,8 @@ pub const Context = struct {
         for (self.contexts[0..self.initialized_contexts]) |*context| context.deinit();
         for (self.traces[0..self.initialized_traces]) |*trace| trace.deinit();
         for (self.compositions[0..self.initialized_compositions]) |*composition| composition.deinit();
+        for (self.retirement_permits) |*permit| std.debug.assert(!permit.isClaimed());
+        a.free(self.retirement_permits);
         self.helpers.deinit();
         a.free(self.traces);
         a.free(self.compositions);
