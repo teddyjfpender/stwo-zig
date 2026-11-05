@@ -386,7 +386,8 @@ const RamJob = struct {
         const cells = try a.alloc(Cell, keys.len);
         self.cells = cells;
         var pages = @import("../collector.zig").OwnerPages{ .owner = self.image };
-        for (keys, cells) |key, *cell| cell.* = .{ .address = key, .state = pages.lookup(key) orelse .{ .value = try self.image.initialWord(key), .rights = try self.image.wordRights(key) } };
+        const pinned = @import("../../word16_execution/memory/statement.zig").fromOwner(self.image);
+        for (keys, cells) |key, *cell| cell.* = .{ .address = key, .state = pages.lookup(key) orelse .{ .value = try self.image.initialWord(key), .rights = try pinned.wordRights(key) } };
         self.stats.fast_ram_words = cells.len;
         self.stats.fast_ram_derive_ns = timer.read();
         self.stats.fast_ram_ready_utc_ns = @intCast(std.time.nanoTimestamp());
