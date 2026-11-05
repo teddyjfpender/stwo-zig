@@ -374,14 +374,17 @@ pub const Context = struct {
     /// Per-call commitment blowup: a shared context serves native (beta 1) and
     /// outer recursion profiles (m3: beta 2/3) without mutating shared state.
     pub fn evaluateRolesAtBlowup(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, log_blowup: u32) !D.Tree {
-        return self.evaluateRolesImpl(a, roles, alpha, log, split, total, trace_raw, scope, log_blowup, false);
+        return self.evaluateRolesImpl(a, roles, alpha, log, split, total, trace_raw, scope, log_blowup, false, null);
     }
     /// Only the outer authority explicitly opts this job into the role arena.
     /// The Context is shared with native stages and must never carry this flag.
     pub fn evaluateOuterRolesAtBlowup(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, log_blowup: u32) !D.Tree {
-        return self.evaluateRolesImpl(a, roles, alpha, log, split, total, trace_raw, scope, log_blowup, true);
+        return self.evaluateRolesImpl(a, roles, alpha, log, split, total, trace_raw, scope, log_blowup, true, null);
     }
-    fn evaluateRolesImpl(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, log_blowup: u32, outer_workspace: bool) !D.Tree {
+    pub fn evaluateOuterDevicePowersAtBlowup(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, log_blowup: u32, device_powers: ?Native.Lease) !D.Tree {
+        return self.evaluateRolesImpl(a, roles, alpha, log, split, total, trace_raw, scope, log_blowup, true, device_powers);
+    }
+    fn evaluateRolesImpl(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, log_blowup: u32, outer_workspace: bool, device_powers: ?Native.Lease) !D.Tree {
         if (log_blowup < 1 or log_blowup > 4) return error.UnsupportedResidentCompositionBlowup;
         const trace: *const Trace = @ptrCast(@alignCast(trace_raw));
         if (trace.polys.items.len != 3 or roles.len == 0 or log < 5 or log > 28 or split < 1 or split > 2) return error.InvalidResidentCompositionRoles;
@@ -402,7 +405,7 @@ pub const Context = struct {
         if (constraints != total) return error.WrongResidentConstraintCount;
         self.mutex.lock();
         defer self.mutex.unlock();
-        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = trace, .scope = scope, .log_blowup = log_blowup, .outer_workspace = outer_workspace };
+        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = trace, .scope = scope, .log_blowup = log_blowup, .outer_workspace = outer_workspace, .device_powers = device_powers };
         if (self.service.submit(self.service.session, Job.callback, &job) != 0) return job.failure orelse error.CudaResidentCompositionFailed;
         const result = job.result orelse return error.CudaResidentCompositionFailed;
         try self.result_columns.append(self.allocator, @constCast(result.columns));
@@ -473,6 +476,7 @@ pub const RuntimeRole = struct {
     auxiliary: union(enum) { none, hc: [2 * 27 * 8]u32, last } = .none,
 };
 const Job = struct {
+    device_powers: ?Native.Lease = null,
     outer_workspace: bool = false,
     backend: *Context,
     allocator: std.mem.Allocator,
@@ -591,6 +595,11 @@ const Job = struct {
             context.join() catch {};
             for (leases.items) |*lease| context.release(lease) catch {};
             leases.deinit(a);
+        }
+        if (self.device_powers) |all| {
+            const expected_words = try std.math.mul(usize, self.total, 8);
+            if (all.count != expected_words) return error.InvalidOuterDeviceFsPowerCount;
+            _ = try context.borrow(all);
         }
         var buckets: [29]?Native.Lease = @splat(null);
         const powers = try a.alloc(O, self.total);
@@ -828,9 +837,18 @@ const Job = struct {
             const params = try upload(a, &context, &leases, parameter_words);
             if (artifact.program.roots.len > next) return error.NotEnoughCoefficients;
             next -= artifact.program.roots.len;
-            const power_words = try felts(a, powers[next..][0..artifact.program.roots.len]);
-            defer a.free(power_words);
-            const pw = try upload(a, &context, &leases, power_words);
+            const pw = if (self.device_powers) |all| blk: {
+                var part = all;
+                part.words = all.words.? + next * 8;
+                part.count = artifact.program.roots.len * 8;
+                _ = try context.borrow(part);
+                std.debug.print("GPU_OUTER_DEVICE_FS rc_consumed ordinal={} role={} first={} count={} host_power_upload_words=0\n", .{self.scope.ordinal, id, next, artifact.program.roots.len});
+                break :blk part;
+            } else blk: {
+                const power_words = try felts(a, powers[next..][0..artifact.program.roots.len]);
+                defer a.free(power_words);
+                break :blk try upload(a, &context, &leases, power_words);
+            };
             const mask_offsets = geometry.masks;
             const masks = try upload(a, &context, &leases, @as([*]const u32, @ptrCast(mask_offsets.ptr))[0 .. mask_offsets.len * 2]);
             const denom = try upload(a, &context, &leases, words(geometry.denominators));

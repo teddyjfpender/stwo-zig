@@ -25,5 +25,6 @@ pub fn evaluate(owner: *S.Owner, a: std.mem.Allocator, randomness: Outer.protoco
         made += 1;
     }
     const beta = (try Outer.protocol.targetConfig()).fri_config.log_blowup_factor;
-    return owner.backend.composition.evaluateOuterRolesAtBlowup(a, roles, randomness, log, split, total, trace, owner.scope, beta);
+    const device_powers = try @import("device_fs_check.zig").compositionPowers(owner.backend.service, owner.scope, total);
+    return owner.backend.composition.evaluateOuterDevicePowersAtBlowup(a, roles, randomness, log, split, total, trace, owner.scope, beta, device_powers);
 }
