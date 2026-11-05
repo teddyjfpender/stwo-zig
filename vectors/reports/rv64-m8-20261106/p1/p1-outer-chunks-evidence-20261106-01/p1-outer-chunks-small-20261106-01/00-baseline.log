@@ -1,0 +1,34 @@
+{
+ "run": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-outer-chunks-small-20261106-01-one-stack-v5-smoke-00-baseline",
+ "process_wall_s": 51.85,
+ "service_overhead_s": 8.53,
+ "rss_gib": 19.35,
+ "cuda_api": {},
+ "requests": [
+  {
+   "block": 26235156,
+   "trial": 0,
+   "request_s": 28.448,
+   "capture": 1.668,
+   "setup": 11.811,
+   "native": 4.519,
+   "recursion": 10.303,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  },
+  {
+   "block": 26235156,
+   "trial": 1,
+   "request_s": 14.869,
+   "capture": 1.71,
+   "setup": 4.694,
+   "native": 3.326,
+   "recursion": 4.878,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  }
+ ]
+}
+{"service_start_s": 4.707, "service_stop_s": 1.716, "client_latency_s": [28.46, 14.88]}

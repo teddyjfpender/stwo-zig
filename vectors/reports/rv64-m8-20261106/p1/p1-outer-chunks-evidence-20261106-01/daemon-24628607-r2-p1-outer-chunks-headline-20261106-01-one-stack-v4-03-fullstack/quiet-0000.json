@@ -1,0 +1,389 @@
+{
+  "request_index": 0,
+  "quiet_scope": "bounded pod cgroup PSI during each one-second idle interval; no throttling during idle or inventory; exclusive GPU; observer PSI recorded separately; host load informational",
+  "resource_gate": "cgroup",
+  "load_max": 8.0,
+  "steal_max": 0.01,
+  "idle_pressure_max": 0.005,
+  "required_stable_samples": 5,
+  "samples": [
+    {
+      "elapsed_s": 1.036,
+      "loadavg": [
+        17.48974609375,
+        22.341796875,
+        24.640625
+      ],
+      "cpu_steal_fraction": 0.0,
+      "blocking_processes": [],
+      "gpu_processes": [
+        {
+          "pid": 2498799,
+          "name": "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        },
+        {
+          "pid": 2498799,
+          "name": "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        }
+      ],
+      "cgroup": {
+        "known": true,
+        "monotonic_ns": 1254765908510639,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 166836029
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 162995727
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 677108299212,
+          "user_usec": 570010518186,
+          "system_usec": 107097781025,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1192995,
+          "nr_throttled": 11308,
+          "throttled_usec": 10804712662,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          17.48974609375,
+          22.341796875,
+          24.640625
+        ]
+      },
+      "cgroup_delta": {
+        "psi_some_total_us": 1923,
+        "psi_full_total_us": 1923,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "idle_pressure_fraction": 0.0019203195756892222,
+      "observer_cgroup_delta": {
+        "psi_some_total_us": 115,
+        "psi_full_total_us": 115,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "qualifies": true
+    },
+    {
+      "elapsed_s": 2.079,
+      "loadavg": [
+        16.6494140625,
+        22.0869140625,
+        24.54541015625
+      ],
+      "cpu_steal_fraction": 0.0,
+      "blocking_processes": [],
+      "gpu_processes": [
+        {
+          "pid": 2498799,
+          "name": "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        },
+        {
+          "pid": 2498799,
+          "name": "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        }
+      ],
+      "cgroup": {
+        "known": true,
+        "monotonic_ns": 1254766943655828,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 166836975
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 162996673
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 677108332748,
+          "user_usec": 570010527973,
+          "system_usec": 107097804775,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1193003,
+          "nr_throttled": 11308,
+          "throttled_usec": 10804712662,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          16.6494140625,
+          22.0869140625,
+          24.54541015625
+        ]
+      },
+      "cgroup_delta": {
+        "psi_some_total_us": 831,
+        "psi_full_total_us": 831,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "idle_pressure_fraction": 0.000829867279296063,
+      "observer_cgroup_delta": {
+        "psi_some_total_us": 80,
+        "psi_full_total_us": 81,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "qualifies": true
+    },
+    {
+      "elapsed_s": 3.123,
+      "loadavg": [
+        16.6494140625,
+        22.0869140625,
+        24.54541015625
+      ],
+      "cpu_steal_fraction": 0.0,
+      "blocking_processes": [],
+      "gpu_processes": [
+        {
+          "pid": 2498799,
+          "name": "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        },
+        {
+          "pid": 2498799,
+          "name": "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        }
+      ],
+      "cgroup": {
+        "known": true,
+        "monotonic_ns": 1254767987916720,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 166838154
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 162997852
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 677108380747,
+          "user_usec": 570010536284,
+          "system_usec": 107097844462,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1193013,
+          "nr_throttled": 11308,
+          "throttled_usec": 10804712662,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          16.6494140625,
+          22.0869140625,
+          24.54541015625
+        ]
+      },
+      "cgroup_delta": {
+        "psi_some_total_us": 1099,
+        "psi_full_total_us": 1098,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "idle_pressure_fraction": 0.0010974234513466065,
+      "observer_cgroup_delta": {
+        "psi_some_total_us": 62,
+        "psi_full_total_us": 63,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "qualifies": true
+    },
+    {
+      "elapsed_s": 4.167,
+      "loadavg": [
+        16.6494140625,
+        22.0869140625,
+        24.54541015625
+      ],
+      "cpu_steal_fraction": 0.0,
+      "blocking_processes": [],
+      "gpu_processes": [
+        {
+          "pid": 2498799,
+          "name": "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        },
+        {
+          "pid": 2498799,
+          "name": "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        }
+      ],
+      "cgroup": {
+        "known": true,
+        "monotonic_ns": 1254769032093973,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 166840004
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 162999703
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 677108429852,
+          "user_usec": 570010551220,
+          "system_usec": 107097878631,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1193024,
+          "nr_throttled": 11308,
+          "throttled_usec": 10804712662,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          16.6494140625,
+          22.0869140625,
+          24.54541015625
+        ]
+      },
+      "cgroup_delta": {
+        "psi_some_total_us": 1788,
+        "psi_full_total_us": 1788,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "idle_pressure_fraction": 0.001785521210897505,
+      "observer_cgroup_delta": {
+        "psi_some_total_us": 65,
+        "psi_full_total_us": 64,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "qualifies": true
+    },
+    {
+      "elapsed_s": 5.212,
+      "loadavg": [
+        16.6494140625,
+        22.0869140625,
+        24.54541015625
+      ],
+      "cpu_steal_fraction": 0.0,
+      "blocking_processes": [],
+      "gpu_processes": [
+        {
+          "pid": 2498799,
+          "name": "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        },
+        {
+          "pid": 2498799,
+          "name": "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        }
+      ],
+      "cgroup": {
+        "known": true,
+        "monotonic_ns": 1254770076218905,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 166841789
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 163001487
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 677108477423,
+          "user_usec": 570010568555,
+          "system_usec": 107097908868,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1193034,
+          "nr_throttled": 11308,
+          "throttled_usec": 10804712662,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          16.6494140625,
+          22.0869140625,
+          24.54541015625
+        ]
+      },
+      "cgroup_delta": {
+        "psi_some_total_us": 1720,
+        "psi_full_total_us": 1720,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "idle_pressure_fraction": 0.0017178821244837692,
+      "observer_cgroup_delta": {
+        "psi_some_total_us": 74,
+        "psi_full_total_us": 75,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "qualifies": true
+    }
+  ],
+  "accepted": true,
+  "mode": "enforce",
+  "timing_qualified": true
+}

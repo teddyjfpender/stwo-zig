@@ -186,6 +186,12 @@ pub fn main() !void {
         defer directory.close();
         return @import("rv64/outer_hybrid_aot.zig").write(a, directory);
     }
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--outer-chunks")) {
+        try std.fs.cwd().makePath(args[2]);
+        var directory = try std.fs.cwd().openDir(args[2], .{});
+        defer directory.close();
+        return @import("rv64/outer_chunks_aot.zig").write(a, directory);
+    }
     if (args.len == 3 and std.mem.eql(u8, args[1], "--outer-native-om31")) {
         try std.fs.cwd().makePath(args[2]);
         var directory = try std.fs.cwd().openDir(args[2], .{});

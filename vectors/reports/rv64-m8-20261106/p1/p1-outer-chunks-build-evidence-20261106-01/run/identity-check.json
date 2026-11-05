@@ -1,0 +1,23 @@
+{
+  "status": "HOST_EXPORTED_IDENTITIES_MATCH_SOURCE_AND_CACHE_PLANS",
+  "checks": [
+    {
+      "role": 4,
+      "identity_match": true,
+      "groups": 8,
+      "columns": 116,
+      "fills": 126,
+      "roots": 16
+    },
+    {
+      "role": 5,
+      "identity_match": true,
+      "groups": 5,
+      "columns": 79,
+      "fills": 79,
+      "roots": 5
+    }
+  ],
+  "invalid_role_and_null_output_rejected": true,
+  "gpu_numerical_qualification": false
+}

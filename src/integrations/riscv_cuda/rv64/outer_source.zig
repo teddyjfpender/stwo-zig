@@ -272,9 +272,15 @@ pub const Context = struct {
             const bytes = artifact.program.inputs.len * @sizeOf(@import("stwo_prover_engine").air.secure_polynomial_program_v2.Input) + artifact.program.roots.len * 4 + artifact.parameter_slots.len * 4;
             if (bytes > self.metadata_cap_bytes - @min(self.metadata_cap_bytes, self.metadata_bytes)) return error.OuterMetadataBudgetExceeded;
             try self.entries.ensureUnusedCapacity(self.allocator, 1);
-            const metadata = try RC.KernelMetadata.fromProgram(self.allocator, &artifact.program, &artifact.parameter_slots);
+            const metadata = blk: {
+                var chunks = try @import("outer_chunks_runtime.zig").Runtime.init(self.allocator, @intCast(id), &artifact.program);
+                errdefer if (chunks) |*value| value.deinit();
+                var result = try RC.KernelMetadata.fromProgram(self.allocator, &artifact.program, &artifact.parameter_slots);
+                result.chunks = chunks;
+                break :blk result;
+            };
             self.entries.appendAssumeCapacity(.{ .group = group, .metadata = metadata });
-            self.metadata_bytes += bytes;
+            self.metadata_bytes += metadata.bytes();
         }
         self.body_identity = identity;
     }

@@ -63,6 +63,7 @@ fn sourceColumn(source: engine.air.component_prover.ForField(O).Poly) !D.Column 
 }
 // Retain only authenticated executable metadata, not the cold symbolic DAG.
 pub const KernelMetadata = struct {
+    chunks: ?@import("outer_chunks_runtime.zig").Runtime = null,
     allocator: std.mem.Allocator,
     program: struct { identity: [32]u8, inputs: []engine.air.secure_polynomial_program_v2.Input, roots: []u32 },
     parameter_slots: []u32,
@@ -85,9 +86,10 @@ pub const KernelMetadata = struct {
         return out;
     }
     pub fn bytes(self: *const KernelMetadata) usize {
-        return self.program.inputs.len * @sizeOf(engine.air.secure_polynomial_program_v2.Input) + self.program.roots.len * 4 + self.parameter_slots.len * 4;
+        return self.program.inputs.len * @sizeOf(engine.air.secure_polynomial_program_v2.Input) + self.program.roots.len * 4 + self.parameter_slots.len * 4 + (if (self.chunks) |*chunks| chunks.bytes() else 0);
     }
     pub fn deinit(self: *KernelMetadata) void {
+        if (self.chunks) |*chunks| chunks.deinit();
         self.allocator.free(self.program.inputs);
         self.allocator.free(self.program.roots);
         self.allocator.free(self.parameter_slots);
@@ -300,6 +302,7 @@ pub const Context = struct {
             role.auxiliary != .none or !Columns.supportsGeometry(role.trace_log, role.eval_log) or
             artifact.program.inputs.len == 0) return null;
         for (role.columns) |column| if (!column.direct) return null;
+        if (artifact.chunks != null) return 32;
         var selected = try Columns.Selection.init(a, widths, artifact.program.inputs);
         defer selected.deinit(a);
         if (selected.source_indices.len >= role.columns.len) return null;
@@ -690,7 +693,8 @@ const Job = struct {
         const b = self.backend;
         const el = role.eval_log;
         const n = @as(usize, 1) << @intCast(el);
-        const count = selected.source_indices.len;
+        const chunks = if (role.artifact.chunks) |*value| value else null;
+        const count = if (chunks != null) 32 else selected.source_indices.len;
         const eval_words = try std.math.mul(usize, count, n);
         const arena_words = try Columns.arenaWords(count, el);
         if (twiddles.len < n / 2 or denominators.len != (@as(usize, 1) << @intCast(el - role.trace_log))) return error.InvalidCompositionGeometry;
@@ -706,11 +710,12 @@ const Job = struct {
         const base = arena.words.?;
         const logs = try a.alloc(u32, count);
         defer a.free(logs);
-        for (selected.source_indices, logs) |index, *log| {
+        @memset(logs, el - 1);
+        if (chunks == null) for (selected.source_indices, logs) |index, *log| {
             const source = direct[index] orelse return error.MissingSelectedResidentSource;
             if (source.count != n / 2 and source.count != n / 4) return error.InvalidSelectedResidentSource;
             log.* = if (source.count == n / 2) el - 1 else el - 2;
-        }
+        };
         const log_lease = try upload(a, context, leases, logs);
         const parameter_words = try felts(a, role.parameters);
         defer a.free(parameter_words);
@@ -732,7 +737,10 @@ const Job = struct {
         };
         const masks_host = try a.alloc(u64, selected.mask_slots.len);
         defer a.free(masks_host);
-        for (masks_host, selected.mask_slots) |*mask, slot| mask.* = @as(u64, slot) * n;
+        @memset(masks_host, 0);
+        if (chunks == null) for (masks_host, selected.mask_slots) |*mask, slot| {
+            mask.* = @as(u64, slot) * n;
+        };
         const masks = try upload(a, context, leases, @as([*]const u32, @ptrCast(masks_host.ptr))[0 .. masks_host.len * 2]);
         const denom = try upload(a, context, leases, denominators);
         if (bucket.* == null) {
@@ -746,6 +754,51 @@ const Job = struct {
         }
         if (try b.pool_trim.beforeTransform(raw, try std.math.mul(u64, arena.count, 4))) {
             std.debug.print("GPU_COMPOSITION_POOL_TRIM ordinal={} arena_bytes={} joined=true\n", .{ self.scope.ordinal, arena.count * 4 });
+        }
+        if (chunks) |chunk| {
+            if (chunk.role != role.id or chunk.plan.input_columns.len != masks_host.len) return error.InvalidOuterChunksInvocation;
+            // Verify every referenced source before any destructive refill.
+            const bases = [_]usize{ 0, role.widths[0], role.widths[0] + role.widths[1] };
+            for (chunk.plan.columns) |column| {
+                if (column.tree >= 3 or column.column >= role.widths[column.tree]) return error.InvalidOuterChunksColumn;
+                const source = direct[bases[column.tree] + column.column] orelse return error.MissingSelectedResidentSource;
+                if (source.count != n / 2 and source.count != n / 4) return error.InvalidSelectedResidentSource;
+                try self.checked("chunk_source_validate", context.api.validate_range(context.session, source.words, source.count, source.context_token, source.generation, &context.scope));
+            }
+            // Domain and row work interleave; report their combined span once.
+            try timing.mark(.domain_fft, false, stream);
+            for (chunk.plan.groups, chunk.cache.steps, 0..) |group, step, group_index| {
+                for (step.loads) |load| {
+                    const column = chunk.plan.columns[load.column];
+                    const source = direct[bases[column.tree] + column.column].?;
+                    const stride: usize = @intCast(source.count);
+                    const log: u32 = if (stride == n / 2) el - 1 else el - 2;
+                    try self.checked("chunk_log", context.api.upload(raw, @ptrCast(log_lease.words.? + load.slot), &log, 4));
+                    var launches: u32 = 0;
+                    if (stride == n / 2) {
+                        try self.checked("chunk_n2b", b.n2b_columns.?(source.words, stride, log_lease.words.? + load.slot, base + @as(usize, load.slot) * n, n, el, 1, base + eval_words, @intCast(n / 2), @intCast(n / 2), stream, &launches));
+                    } else {
+                        try self.checked("chunk_n2b_compact", b.n2b_columns_compact.?(source.words, stride, log_lease.words.? + load.slot, base + @as(usize, load.slot) * n, n, el, 1, base + eval_words, @intCast(n / 2), @intCast(n / 2), stride, stream, &launches));
+                    }
+                }
+                @memset(masks_host, 0);
+                for (chunk.plan.input_columns, masks_host) |column, *offset| {
+                    if (std.mem.indexOfScalar(u32, group.columns, column) != null) {
+                        const slot = step.column_slots[column];
+                        if (slot >= 32) return error.InvalidOuterChunksSlot;
+                        offset.* = @as(u64, slot) * n;
+                    }
+                }
+                try self.checked("chunk_masks", context.api.upload(raw, @ptrCast(masks.words.?), masks_host.ptr, masks_host.len * 8));
+                const packet = Abi.CompositionRole{ .role = role.id, .trace_log = role.trace_log, .eval_log = el, .first_row = 0, .row_count = @intCast(n), .trees = .{ base, base, base }, .tree_words = .{ eval_words, eval_words, eval_words }, .column_offsets = @ptrCast(@alignCast(masks.words.?)), .mask_count = masks_host.len, .parameters = parameters.words.?, .parameter_count = role.parameters.len, .powers = pw.words.?, .constraint_count = roots, .denominator_inverses = denom.words.?, .output = bucket.*.?.words.? };
+                var launches: u32 = 0;
+                try self.checked("chunk_group", chunk.group(raw, 0, @intCast(group_index), &packet, &launches));
+            }
+            try timing.mark(.domain_fft, true, stream);
+            try timing.mark(.rows, false, stream);
+            try timing.mark(.rows, true, stream);
+            std.debug.print("GPU_OUTER_CHUNKS ordinal={} role={} groups={} fills={} slots=32 arena_words={} combined_LDE_rows_span=true\n", .{ self.scope.ordinal, role.id, chunk.plan.groups.len, chunk.cache.fills, arena_words });
+            return chunk.cache.fills * n;
         }
         try timing.mark(.domain_fft, false, stream);
         var column: usize = 0;

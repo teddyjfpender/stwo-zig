@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/workspace/m3/runs/m7-integrate/p1-outer-chunks-profile-20261106-01/worker.py", line 16, in <module>
+    if any(s.get('exit_code',0) not in (None,0) for s in p.get('services',[])):raise RuntimeError('primary service failed')
+                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: primary service failed

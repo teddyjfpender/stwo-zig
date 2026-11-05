@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/workspace/m3/runs/m7-integrate/p1-outer-chunks-gate-controller-20261106-01/worker.py", line 7, in <module>
+    if any(s.get('exit_code',0) not in (None,0) for s in services):raise RuntimeError('timed service failed; no gate launched')
+                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: timed service failed; no gate launched

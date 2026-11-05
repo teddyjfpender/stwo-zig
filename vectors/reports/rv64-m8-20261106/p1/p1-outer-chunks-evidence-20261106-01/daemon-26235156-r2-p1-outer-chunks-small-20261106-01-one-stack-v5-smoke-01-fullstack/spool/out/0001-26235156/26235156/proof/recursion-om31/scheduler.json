@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "candidate": true,
+  "pipelined": true,
+  "lanes": 4,
+  "pool_worker_budget": 8,
+  "max_pending_authorities": 21,
+  "peak_authority_slots": 14,
+  "host_budget": {
+    "live_bytes": 4115137801,
+    "peak_live_bytes": 14260010041,
+    "host_live_bytes": 3879208201,
+    "external_live_bytes": 235929600,
+    "peak_host_bytes": 14024080441,
+    "peak_external_bytes": 235929600,
+    "limit": 51539607552,
+    "exceeded": false
+  }
+}

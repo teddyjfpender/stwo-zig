@@ -1,0 +1,38 @@
+{
+  "schema": "rv64-p1-compact-eager-state-hypothesis/v1",
+  "status": "SOURCE_SCREEN_NOT_IMPLEMENTED",
+  "before": "outer-chunks-hypothesis.json",
+  "source_screen": "stream-compact-state-census.json",
+  "measured_seconds_to_attack": "Largest logged node9 INTER trace-commit callback110892354ns; complete headline requests around13.35s in two candidate observations, no complete3+3 median. Direct speed gain is unknown; objective is lower physical residency and future envelope.",
+  "hypothesis": "Keep the existing disjoint streaming call schedule and identical eager Blake2s arithmetic. Allocate each state bank for max(rows*(8+absorbed_after%16)) live SoA words, plus any final tree. Introduce a strict compact-state numerical entry whose range validation checks exactly the live seed/prefix words. Keep the established full-state entry unchanged. Apply matching plans to Zig MAIN/INTER commits and C++ PCS late source rebuild.",
+  "expected_effect": {
+    "label": "D",
+    "old_scratch_bytes": 3825206528,
+    "modeled_new_scratch_bytes": 2952791264,
+    "derived_bytes_removed": 872415264,
+    "old_bank_words": [
+      402653184,
+      402653184
+    ],
+    "compact_bank_words": [
+      318767104,
+      268435448
+    ],
+    "exact_node_peak": null
+  },
+  "timing_estimate": {
+    "label": "E",
+    "request_seconds_removed": [
+      0.0,
+      0.3
+    ],
+    "caveat": "No arithmetic or traffic reduction is assumed; physical headroom can improve overlap but must be tested. Other INTER and PCS lifetime issues remain."
+  },
+  "constraints": [
+    "Default-off flag and explicit compact-kernel capability; a compact plan may never call the legacy24-word validator.",
+    "Every kernel seed reads8 hash words and pending=absorbed_before%16 words; output prefix writes8+absorbed_after%16 words. Final hashes/tree remain disjoint.",
+    "No source/output or seed/output overlap; aliasing adds no saving for the logged case.",
+    "Validate every pending alignment, nontrivial lifting, finalization, short capacities, unsupported formats and all old ABI rejection cases.",
+    "GPU numerical tests and composed proof identity/fresh receivers before canonical3+3. No PCS reservation discount until its implemented physical allocation/lifetime contract is proved."
+  ]
+}

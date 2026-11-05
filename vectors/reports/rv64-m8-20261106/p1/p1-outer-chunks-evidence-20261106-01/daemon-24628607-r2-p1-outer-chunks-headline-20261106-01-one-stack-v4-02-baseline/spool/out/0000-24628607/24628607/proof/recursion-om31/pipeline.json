@@ -1,0 +1,800 @@
+{
+ "schema": "rv64-om31-pipelined-recursion-timeline/v1",
+ "measured": true,
+ "scope": "nodes.stamps are ns since pipeline origin; nodes_absolute and stream ready/done use input Timer ns (not UTC/Nsight); device stage = precommit+authority+device proof; occupancy is an upper bound on GPU kernel busy",
+ "origin_ns": 283411406,
+ "clock": {
+  "relative": "pipeline_origin",
+  "absolute": "Streaming.timer",
+  "legacy_missing_stamp": 0,
+  "absolute_missing_stamp": "null",
+  "native_wait_is_wakeup_observation": true
+ },
+ "nodes_absolute": [
+  {
+   "id": 0,
+   "stamps": {
+    "taken": 1573295525,
+    "prep_start": 1573302275,
+    "prep_end": 3658059527,
+    "device_start": 3658128337,
+    "device_end": 5225517214,
+    "finish_start": 5225534544,
+    "finish_end": 5373132841
+   }
+  },
+  {
+   "id": 1,
+   "stamps": {
+    "taken": 2849624540,
+    "prep_start": 2849627540,
+    "prep_end": 4680344540,
+    "device_start": 4680387930,
+    "device_end": 6261772501,
+    "finish_start": 6261800581,
+    "finish_end": 6396823142
+   }
+  },
+  {
+   "id": 2,
+   "stamps": {
+    "taken": 2849626860,
+    "prep_start": 2849630250,
+    "prep_end": 4759658504,
+    "device_start": 5225532324,
+    "device_end": 5790520351,
+    "finish_start": 5790529301,
+    "finish_end": 5898861511
+   }
+  },
+  {
+   "id": 3,
+   "stamps": {
+    "taken": 2849629560,
+    "prep_start": 2849631260,
+    "prep_end": 4897696169,
+    "device_start": 5790528001,
+    "device_end": 6415204168,
+    "finish_start": 6415217588,
+    "finish_end": 6534632317
+   }
+  },
+  {
+   "id": 4,
+   "stamps": {
+    "taken": 6534639247,
+    "prep_start": 6534639667,
+    "prep_end": 8945183808,
+    "device_start": 8979502614,
+    "device_end": 9943553645,
+    "finish_start": 9943588685,
+    "finish_end": 10126242988
+   }
+  },
+  {
+   "id": 5,
+   "stamps": {
+    "taken": 3586200920,
+    "prep_start": 3586206070,
+    "prep_end": 5786396659,
+    "device_start": 6261786631,
+    "device_end": 6887578756,
+    "finish_start": 6887598876,
+    "finish_end": 7063026152
+   }
+  },
+  {
+   "id": 6,
+   "stamps": {
+    "taken": 3586203600,
+    "prep_start": 3586210030,
+    "prep_end": 5750108556,
+    "device_start": 6415213858,
+    "device_end": 7143185274,
+    "finish_start": 7143223704,
+    "finish_end": 7333571383
+   }
+  },
+  {
+   "id": 7,
+   "stamps": {
+    "taken": 3658126897,
+    "prep_start": 3658128337,
+    "prep_end": 5218257807,
+    "device_start": 6887586166,
+    "device_end": 7775984406,
+    "finish_start": 7776010746,
+    "finish_end": 7939964423
+   }
+  },
+  {
+   "id": 8,
+   "stamps": {
+    "taken": 4680385210,
+    "prep_start": 4680387930,
+    "prep_end": 5986329570,
+    "device_start": 7143194874,
+    "device_end": 7984798471,
+    "finish_start": 7984818091,
+    "finish_end": 8139839724
+   }
+  },
+  {
+   "id": 9,
+   "stamps": {
+    "taken": 8167506183,
+    "prep_start": 8167506693,
+    "prep_end": 10567435553,
+    "device_start": 10567471243,
+    "device_end": 11348658841,
+    "finish_start": 11348680771,
+    "finish_end": 11593428349
+   }
+  },
+  {
+   "id": 10,
+   "stamps": {
+    "taken": 5225543934,
+    "prep_start": 5225547454,
+    "prep_end": 6677325304,
+    "device_start": 7775997106,
+    "device_end": 8304438751,
+    "finish_start": 8304465161,
+    "finish_end": 8476568433
+   }
+  },
+  {
+   "id": 11,
+   "stamps": {
+    "taken": 5790541531,
+    "prep_start": 5790545191,
+    "prep_end": 7310484945,
+    "device_start": 7984807991,
+    "device_end": 8490790157,
+    "finish_start": 8490806967,
+    "finish_end": 8674569637
+   }
+  },
+  {
+   "id": 12,
+   "stamps": {
+    "taken": 6261803931,
+    "prep_start": 6261807051,
+    "prep_end": 8259020204,
+    "device_start": 8304448521,
+    "device_end": 8979490624,
+    "finish_start": 8979505964,
+    "finish_end": 9159780382
+   }
+  },
+  {
+   "id": 13,
+   "stamps": {
+    "taken": 6415218668,
+    "prep_start": 6415220068,
+    "prep_end": 8085998624,
+    "device_start": 8490799327,
+    "device_end": 9029931231,
+    "finish_start": 9029947061,
+    "finish_end": 9153008574
+   }
+  },
+  {
+   "id": 14,
+   "stamps": {
+    "taken": 9159846022,
+    "prep_start": 9159846512,
+    "prep_end": 11664892197,
+    "device_start": 11664953137,
+    "device_end": 12612145929,
+    "finish_start": 12612166569,
+    "finish_end": 12777580624
+   }
+  },
+  {
+   "id": 15,
+   "stamps": {
+    "taken": 6887610126,
+    "prep_start": 6887611486,
+    "prep_end": 8813836580,
+    "device_start": 9029944981,
+    "device_end": 9526434635,
+    "finish_start": 9526461065,
+    "finish_end": 9629004786
+   }
+  },
+  {
+   "id": 16,
+   "stamps": {
+    "taken": 7143240514,
+    "prep_start": 7143246834,
+    "prep_end": 7883233598,
+    "device_start": 9526449565,
+    "device_end": 9736242048,
+    "finish_start": 9736273628,
+    "finish_end": 9764232226
+   }
+  },
+  {
+   "id": 17,
+   "stamps": {
+    "taken": 10127757895,
+    "prep_start": 10127758345,
+    "prep_end": 11265404905,
+    "device_start": 11265475355,
+    "device_end": 11742972043,
+    "finish_start": 11742997233,
+    "finish_end": 11998423262
+   }
+  },
+  {
+   "id": 18,
+   "stamps": {
+    "taken": 12778862991,
+    "prep_start": 12778863311,
+    "prep_end": 14564994564,
+    "device_start": 14565037684,
+    "device_end": 15337374209,
+    "finish_start": 15337395628,
+    "finish_end": 15493376861
+   }
+  }
+ ],
+ "options": {
+  "host_workers": 8,
+  "prep_pool_workers": 24,
+  "prep_ahead": 6
+ },
+ "lanes": 2,
+ "dag_wall_ns": 15213103319,
+ "concurrent_root_metadata_check_ns": 633789090,
+ "root_publication_ns": 39425627,
+ "lane_device_stage_ns": [
+  6991490105,
+  7327857504
+ ],
+ "lane_device_stage_occupancy": 0.47062546374467307,
+ "peak_leaves_ahead": 6,
+ "peak_ready": 4,
+ "policy": "m5",
+ "stream": {
+  "enabled": true,
+  "prep_during_native": 4,
+  "native_done_ns": 3586183070,
+  "admitted_device_overlap": false,
+  "leaf_ready_ns": [
+   1573266376,
+   2849592710,
+   1501730108,
+   2415959810,
+   1913043518,
+   3146249172,
+   2356061821,
+   1467955260,
+   2364760285,
+   3569295161,
+   2529426851,
+   3582558727,
+   2562903449,
+   3585028022
+  ]
+ },
+ "device_wait_for_native_ns": 3302807254,
+ "last_leaf_finish_ns": 9480820820,
+ "tail_after_last_leaf_ns": 5732282499,
+ "nodes": [
+  {
+   "id": 0,
+   "kind": "leaf",
+   "first_leaf": 0,
+   "leaf_count": 1,
+   "lane": 1,
+   "restored": false,
+   "variables": 26738688,
+   "stamps": {
+    "taken": 1289884119,
+    "prep_start": 1289890869,
+    "prep_end": 3374648121,
+    "device_start": 3374716931,
+    "device_end": 4942105808,
+    "finish_start": 4942123138,
+    "finish_end": 5089721435
+   },
+   "graph_ns": 610577153,
+   "finalize_ns": 57272915,
+   "columns_ns": 162236221,
+   "host_plan_ns": 1293757952,
+   "host_authority_ns": 538608,
+   "authority_ns": 186652926,
+   "device_prove_ns": 1380652711,
+   "verify_ns": 16207580,
+   "publish_ns": 71699047
+  },
+  {
+   "id": 1,
+   "kind": "leaf",
+   "first_leaf": 1,
+   "leaf_count": 1,
+   "lane": 0,
+   "restored": false,
+   "variables": 26738688,
+   "stamps": {
+    "taken": 2566213134,
+    "prep_start": 2566216134,
+    "prep_end": 4396933134,
+    "device_start": 4396976524,
+    "device_end": 5978361095,
+    "finish_start": 5978389175,
+    "finish_end": 6113411736
+   },
+   "graph_ns": 314865328,
+   "finalize_ns": 72444097,
+   "columns_ns": 181981454,
+   "host_plan_ns": 1314746463,
+   "host_authority_ns": 1421888,
+   "authority_ns": 197239306,
+   "device_prove_ns": 1384054195,
+   "verify_ns": 20459592,
+   "publish_ns": 71600478
+  },
+  {
+   "id": 2,
+   "kind": "leaf",
+   "first_leaf": 2,
+   "leaf_count": 1,
+   "lane": 1,
+   "restored": false,
+   "variables": 26738688,
+   "stamps": {
+    "taken": 2566215454,
+    "prep_start": 2566218844,
+    "prep_end": 4476247098,
+    "device_start": 4942120918,
+    "device_end": 5507108945,
+    "finish_start": 5507117895,
+    "finish_end": 5615450105
+   },
+   "graph_ns": 377526833,
+   "finalize_ns": 63529552,
+   "columns_ns": 197369836,
+   "host_plan_ns": 1322246240,
+   "host_authority_ns": 1009858,
+   "authority_ns": 58916861,
+   "device_prove_ns": 506023886,
+   "verify_ns": 13954314,
+   "publish_ns": 54960499
+  },
+  {
+   "id": 3,
+   "kind": "leaf",
+   "first_leaf": 3,
+   "leaf_count": 1,
+   "lane": 1,
+   "restored": false,
+   "variables": 26738688,
+   "stamps": {
+    "taken": 2566218154,
+    "prep_start": 2566219854,
+    "prep_end": 4614284763,
+    "device_start": 5507116595,
+    "device_end": 6131792762,
+    "finish_start": 6131806182,
+    "finish_end": 6251220911
+   },
+   "graph_ns": 367536101,
+   "finalize_ns": 81731109,
+   "columns_ns": 243227441,
+   "host_plan_ns": 1418730601,
+   "host_authority_ns": 518539,
+   "authority_ns": 42790391,
+   "device_prove_ns": 581827066,
+   "verify_ns": 15267072,
+   "publish_ns": 59859709
+  },
+  {
+   "id": 4,
+   "kind": "fold",
+   "first_leaf": 0,
+   "leaf_count": 4,
+   "lane": 0,
+   "restored": false,
+   "variables": 45088768,
+   "stamps": {
+    "taken": 6251227841,
+    "prep_start": 6251228261,
+    "prep_end": 8661772402,
+    "device_start": 8696091208,
+    "device_end": 9660142239,
+    "finish_start": 9660177279,
+    "finish_end": 9842831582
+   },
+   "graph_ns": 821148185,
+   "finalize_ns": 40395555,
+   "columns_ns": 462155337,
+   "host_plan_ns": 1395070755,
+   "host_authority_ns": 2098476,
+   "authority_ns": 82707378,
+   "device_prove_ns": 881281013,
+   "verify_ns": 21505960,
+   "publish_ns": 83554576
+  },
+  {
+   "id": 5,
+   "kind": "leaf",
+   "first_leaf": 4,
+   "leaf_count": 1,
+   "lane": 0,
+   "restored": false,
+   "variables": 26738688,
+   "stamps": {
+    "taken": 3302789514,
+    "prep_start": 3302794664,
+    "prep_end": 5502985253,
+    "device_start": 5978375225,
+    "device_end": 6604167350,
+    "finish_start": 6604187470,
+    "finish_end": 6779614746
+   },
+   "graph_ns": 570821006,
+   "finalize_ns": 81204220,
+   "columns_ns": 271571669,
+   "host_plan_ns": 1431492608,
+   "host_authority_ns": 1278498,
+   "authority_ns": 43206450,
+   "device_prove_ns": 582534215,
+   "verify_ns": 33677048,
+   "publish_ns": 81560309
+  },
+  {
+   "id": 6,
+   "kind": "leaf",
+   "first_leaf": 5,
+   "leaf_count": 1,
+   "lane": 1,
+   "restored": false,
+   "variables": 26738688,
+   "stamps": {
+    "taken": 3302792194,
+    "prep_start": 3302798624,
+    "prep_end": 5466697150,
+    "device_start": 6131802452,
+    "device_end": 6859773868,
+    "finish_start": 6859812298,
+    "finish_end": 7050159977
+   },
+   "graph_ns": 579896060,
+   "finalize_ns": 96414703,
+   "columns_ns": 194941780,
+   "host_plan_ns": 1358892031,
+   "host_authority_ns": 2683075,
+   "authority_ns": 47926101,
+   "device_prove_ns": 679983295,
+   "verify_ns": 24075675,
+   "publish_ns": 97387871
+  },
+  {
+   "id": 7,
+   "kind": "leaf",
+   "first_leaf": 6,
+   "leaf_count": 1,
+   "lane": 0,
+   "restored": false,
+   "variables": 13893632,
+   "stamps": {
+    "taken": 3374715491,
+    "prep_start": 3374716931,
+    "prep_end": 4934846401,
+    "device_start": 6604174760,
+    "device_end": 7492573000,
+    "finish_start": 7492599340,
+    "finish_end": 7656553017
+   },
+   "graph_ns": 660264141,
+   "finalize_ns": 24290236,
+   "columns_ns": 169768706,
+   "host_plan_ns": 772703463,
+   "host_authority_ns": 388789,
+   "authority_ns": 89554105,
+   "device_prove_ns": 798779715,
+   "verify_ns": 67534725,
+   "publish_ns": 57149614
+  },
+  {
+   "id": 8,
+   "kind": "leaf",
+   "first_leaf": 7,
+   "leaf_count": 1,
+   "lane": 1,
+   "restored": false,
+   "variables": 21757952,
+   "stamps": {
+    "taken": 4396973804,
+    "prep_start": 4396976524,
+    "prep_end": 5702918164,
+    "device_start": 6859783468,
+    "device_end": 7701387065,
+    "finish_start": 7701406685,
+    "finish_end": 7856428318
+   },
+   "graph_ns": 250481718,
+   "finalize_ns": 35861414,
+   "columns_ns": 185770687,
+   "host_plan_ns": 934115775,
+   "host_authority_ns": 869509,
+   "authority_ns": 167680440,
+   "device_prove_ns": 673857667,
+   "verify_ns": 27010731,
+   "publish_ns": 97068760
+  },
+  {
+   "id": 9,
+   "kind": "fold",
+   "first_leaf": 4,
+   "leaf_count": 4,
+   "lane": 0,
+   "restored": false,
+   "variables": 45088768,
+   "stamps": {
+    "taken": 7884094777,
+    "prep_start": 7884095287,
+    "prep_end": 10284024147,
+    "device_start": 10284059837,
+    "device_end": 11065247435,
+    "finish_start": 11065269365,
+    "finish_end": 11310016943
+   },
+   "graph_ns": 739783345,
+   "finalize_ns": 46261374,
+   "columns_ns": 421617992,
+   "host_plan_ns": 1451138912,
+   "host_authority_ns": 816678,
+   "authority_ns": 52685303,
+   "device_prove_ns": 728432425,
+   "verify_ns": 26392901,
+   "publish_ns": 83974755
+  },
+  {
+   "id": 10,
+   "kind": "leaf",
+   "first_leaf": 8,
+   "leaf_count": 1,
+   "lane": 0,
+   "restored": false,
+   "variables": 21757952,
+   "stamps": {
+    "taken": 4942132528,
+    "prep_start": 4942136048,
+    "prep_end": 6393913898,
+    "device_start": 7492585700,
+    "device_end": 8021027345,
+    "finish_start": 8021053755,
+    "finish_end": 8193157027
+   },
+   "graph_ns": 458766493,
+   "finalize_ns": 37787290,
+   "columns_ns": 191866286,
+   "host_plan_ns": 883437710,
+   "host_authority_ns": 1319517,
+   "authority_ns": 38956528,
+   "device_prove_ns": 489415817,
+   "verify_ns": 28865777,
+   "publish_ns": 101296093
+  },
+  {
+   "id": 11,
+   "kind": "leaf",
+   "first_leaf": 9,
+   "leaf_count": 1,
+   "lane": 1,
+   "restored": false,
+   "variables": 21757952,
+   "stamps": {
+    "taken": 5507130125,
+    "prep_start": 5507133785,
+    "prep_end": 7027073539,
+    "device_start": 7701396585,
+    "device_end": 8207378751,
+    "finish_start": 8207395561,
+    "finish_end": 8391158231
+   },
+   "graph_ns": 358316549,
+   "finalize_ns": 36339902,
+   "columns_ns": 227060201,
+   "host_plan_ns": 910805789,
+   "host_authority_ns": 948698,
+   "authority_ns": 35696614,
+   "device_prove_ns": 470223312,
+   "verify_ns": 26297022,
+   "publish_ns": 109645157
+  },
+  {
+   "id": 12,
+   "kind": "leaf",
+   "first_leaf": 10,
+   "leaf_count": 1,
+   "lane": 0,
+   "restored": false,
+   "variables": 22544384,
+   "stamps": {
+    "taken": 5978392525,
+    "prep_start": 5978395645,
+    "prep_end": 7975608798,
+    "device_start": 8021037115,
+    "device_end": 8696079218,
+    "finish_start": 8696094558,
+    "finish_end": 8876368976
+   },
+   "graph_ns": 588930743,
+   "finalize_ns": 55360688,
+   "columns_ns": 229517337,
+   "host_plan_ns": 1075011985,
+   "host_authority_ns": 728379,
+   "authority_ns": 42477181,
+   "device_prove_ns": 632497753,
+   "verify_ns": 46758893,
+   "publish_ns": 91284132
+  },
+  {
+   "id": 13,
+   "kind": "leaf",
+   "first_leaf": 11,
+   "leaf_count": 1,
+   "lane": 1,
+   "restored": false,
+   "variables": 21757952,
+   "stamps": {
+    "taken": 6131807262,
+    "prep_start": 6131808662,
+    "prep_end": 7802587218,
+    "device_start": 8207387921,
+    "device_end": 8746519825,
+    "finish_start": 8746535655,
+    "finish_end": 8869597168
+   },
+   "graph_ns": 406690969,
+   "finalize_ns": 80363542,
+   "columns_ns": 219222806,
+   "host_plan_ns": 956881974,
+   "host_authority_ns": 1843276,
+   "authority_ns": 47051723,
+   "device_prove_ns": 492024351,
+   "verify_ns": 17059089,
+   "publish_ns": 74952371
+  },
+  {
+   "id": 14,
+   "kind": "fold",
+   "first_leaf": 8,
+   "leaf_count": 4,
+   "lane": 0,
+   "restored": false,
+   "variables": 45088768,
+   "stamps": {
+    "taken": 8876434616,
+    "prep_start": 8876435106,
+    "prep_end": 11381480791,
+    "device_start": 11381541731,
+    "device_end": 12328734523,
+    "finish_start": 12328755163,
+    "finish_end": 12494169218
+   },
+   "graph_ns": 701426845,
+   "finalize_ns": 89822064,
+   "columns_ns": 330390830,
+   "host_plan_ns": 1370747890,
+   "host_authority_ns": 324349,
+   "authority_ns": 57726244,
+   "device_prove_ns": 889399028,
+   "verify_ns": 20690332,
+   "publish_ns": 73300025
+  },
+  {
+   "id": 15,
+   "kind": "leaf",
+   "first_leaf": 12,
+   "leaf_count": 1,
+   "lane": 1,
+   "restored": false,
+   "variables": 22544384,
+   "stamps": {
+    "taken": 6604198720,
+    "prep_start": 6604200080,
+    "prep_end": 8530425174,
+    "device_start": 8746533575,
+    "device_end": 9243023229,
+    "finish_start": 9243049659,
+    "finish_end": 9345593380
+   },
+   "graph_ns": 734764704,
+   "finalize_ns": 57690903,
+   "columns_ns": 300323886,
+   "host_plan_ns": 1062889748,
+   "host_authority_ns": 883218,
+   "authority_ns": 32075681,
+   "device_prove_ns": 464366443,
+   "verify_ns": 13597535,
+   "publish_ns": 61976446
+  },
+  {
+   "id": 16,
+   "kind": "leaf",
+   "first_leaf": 13,
+   "leaf_count": 1,
+   "lane": 1,
+   "restored": false,
+   "variables": 5636096,
+   "stamps": {
+    "taken": 6859829108,
+    "prep_start": 6859835428,
+    "prep_end": 7599822192,
+    "device_start": 9243038159,
+    "device_end": 9452830642,
+    "finish_start": 9452862222,
+    "finish_end": 9480820820
+   },
+   "graph_ns": 330724080,
+   "finalize_ns": 22778257,
+   "columns_ns": 52732033,
+   "host_plan_ns": 318823632,
+   "host_authority_ns": 380169,
+   "authority_ns": 42008422,
+   "device_prove_ns": 167725201,
+   "verify_ns": 9451443,
+   "publish_ns": 12332827
+  },
+  {
+   "id": 17,
+   "kind": "fold",
+   "first_leaf": 12,
+   "leaf_count": 2,
+   "lane": 1,
+   "restored": false,
+   "variables": 22544384,
+   "stamps": {
+    "taken": 9844346489,
+    "prep_start": 9844346939,
+    "prep_end": 10981993499,
+    "device_start": 10982063949,
+    "device_end": 11459560637,
+    "finish_start": 11459585827,
+    "finish_end": 11715011856
+   },
+   "graph_ns": 209882682,
+   "finalize_ns": 29983195,
+   "columns_ns": 144740773,
+   "host_plan_ns": 807665099,
+   "host_authority_ns": 989848,
+   "authority_ns": 39893126,
+   "device_prove_ns": 437479443,
+   "verify_ns": 25725033,
+   "publish_ns": 190036169
+  },
+  {
+   "id": 18,
+   "kind": "fold",
+   "first_leaf": 0,
+   "leaf_count": 14,
+   "lane": 1,
+   "restored": false,
+   "variables": 45088768,
+   "stamps": {
+    "taken": 12495451585,
+    "prep_start": 12495451905,
+    "prep_end": 14281583158,
+    "device_start": 14281626278,
+    "device_end": 15053962803,
+    "finish_start": 15053984222,
+    "finish_end": 15209965455
+   },
+   "graph_ns": 428432689,
+   "finalize_ns": 41671283,
+   "columns_ns": 267412557,
+   "host_plan_ns": 1166171068,
+   "host_authority_ns": 768968,
+   "authority_ns": 58873581,
+   "device_prove_ns": 713406304,
+   "verify_ns": 22197869,
+   "publish_ns": 68100385
+  }
+ ]
+}

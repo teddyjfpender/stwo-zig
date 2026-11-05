@@ -1,0 +1,5 @@
+{
+  "status": "ABORTED_BEFORE_GATE_OR_PROFILE_DUE_TO_PRIMARY_FAILURE",
+  "reason": "Required canonical3+3 service failed",
+  "worker_log": "/workspace/m3/runs/m7-integrate/p1-outer-chunks-gate-controller-20261106-01/worker.log"
+}

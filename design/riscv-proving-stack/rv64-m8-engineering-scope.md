@@ -65,9 +65,23 @@ gain or P1 exit is claimed. See
 `vectors/reports/rv64-m8-20261106/p1/inter-reuse-v2-result.json`.
 The full P1 checkpoint commit gate passes build, unit tests, both frozen
 small-block proofs, both fresh CPU receivers, and all 19 corpus cases [M].
-See `vectors/reports/rv64-m8-20261106/p1/CHECKPOINT.md`. The next static
-candidate is a 32-column composition cache over unchanged root groups;
-its modeled 2.181 GB arena [D] is not a measured node peak.
+See `vectors/reports/rv64-m8-20261106/p1/CHECKPOINT.md`. The next candidate is a 32-column composition cache over unchanged root
+groups. Its companion generator and CUDA module build on the pod, and both
+exported parent/plan/code identities match [M, host identity checks only].
+Role 4 uses eight groups and 126 fills for 116 columns [D]; role 5 uses five
+groups and 79 fills for 79 columns [D]. The runtime passes all five unit targets and the production build [M].
+Both small-block cold/warm requests match the paired baseline payloads and
+capture SHA256; all four fresh CPU receivers accept [M]. Logs record 60
+chunked role invocations and a 2.181 GB requested arena per affected role [M,
+allocation size, not node peak]. The canonical headline attempt completed five services, then the final
+candidate cold request failed with `NativePostGlobalDrainUnavailable` at
+node 14 witness. Its admission demand is 28.622 GB against 23.085 GB
+capacity [D, model]. There is no complete 3+3 median. All ten completed proofs passed fresh CPU verification [M]; the original
+gate/profile controllers stopped before work. The independent preservation
+gate passes build, unit tests, frozen-default proof parity, fresh CPU
+receivers and all 19 corpus cases [M]; it does not qualify the failed
+headline experiment. See `OUTER-CHUNKS-CHECKPOINT.md` in the P1 reports. No request-time gain, exact node-peak qualification or P1 exit
+is claimed. See `outer-chunks-hypothesis.json` in the P1 reports.
 
 The timing preset
 explicitly allows at most 0.5% cgroup CPU pressure in five idle intervals, with

@@ -1,0 +1,4161 @@
+{
+  "physical_gpu_memory": {
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+    "samples": 512,
+    "errors": [],
+    "kernel_activity": {
+      "0": {
+        "samples": 256,
+        "mean_percent": 6.203125,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 256,
+        "mean_percent": 10.91796875,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    },
+    "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
+    "peak_used_bytes": {
+      "0": 33587986432,
+      "1": 33621540864
+    },
+    "includes_external_guard_reservation": true,
+    "guard_held_bytes": {
+      "0": 5681184768,
+      "1": 5681184768
+    }
+  },
+  "raw_device_samples": [
+    {
+      "utc_ns": 1793922012775645992,
+      "monotonic_ns": 1254894462674491,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 5685379072,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922012775656842,
+      "monotonic_ns": 1254894462684621,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 5685379072,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922013031556136,
+      "monotonic_ns": 1254894718584745,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6211764224,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922013031565146,
+      "monotonic_ns": 1254894718592715,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6211764224,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922013282908588,
+      "monotonic_ns": 1254894969936947,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6259998720,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922013282917568,
+      "monotonic_ns": 1254894969945177,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6259998720,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922013533875952,
+      "monotonic_ns": 1254895220904531,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6285164544,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922013533884422,
+      "monotonic_ns": 1254895220911971,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6285164544,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922013788738418,
+      "monotonic_ns": 1254895475766987,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6285164544,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922013788746718,
+      "monotonic_ns": 1254895475774277,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6285164544,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922014027888723,
+      "monotonic_ns": 1254895714916812,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6285164544,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922014027892943,
+      "monotonic_ns": 1254895714920412,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6285164544,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922014279363935,
+      "monotonic_ns": 1254895966392314,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6383730688,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922014279371465,
+      "monotonic_ns": 1254895966399014,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6383730688,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922014532628604,
+      "monotonic_ns": 1254896219656803,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6434062336,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922014532633094,
+      "monotonic_ns": 1254896219660563,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6434062336,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922014774655484,
+      "monotonic_ns": 1254896461683853,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6482296832,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922014774663514,
+      "monotonic_ns": 1254896461691073,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6482296832,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922015017154843,
+      "monotonic_ns": 1254896704183242,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6524239872,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922015017162193,
+      "monotonic_ns": 1254896704189802,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6524239872,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922015256026759,
+      "monotonic_ns": 1254896943055048,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6574571520,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922015256033399,
+      "monotonic_ns": 1254896943060908,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6574571520,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922015500098335,
+      "monotonic_ns": 1254897187126814,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6622806016,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922015500105565,
+      "monotonic_ns": 1254897187133174,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6622806016,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922015748102243,
+      "monotonic_ns": 1254897435131132,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6673137664,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922015748113563,
+      "monotonic_ns": 1254897435141192,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6673137664,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922015986420220,
+      "monotonic_ns": 1254897673448719,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6721372160,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922015986427680,
+      "monotonic_ns": 1254897673455279,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6721372160,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922016231229675,
+      "monotonic_ns": 1254897918258204,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6767509504,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922016231237535,
+      "monotonic_ns": 1254897918265134,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6767509504,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922016484213454,
+      "monotonic_ns": 1254898171242103,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6817841152,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922016484222004,
+      "monotonic_ns": 1254898171249623,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6817841152,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922016733628290,
+      "monotonic_ns": 1254898420656649,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 6857687040,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922016733636600,
+      "monotonic_ns": 1254898420664149,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6861881344,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922016985568232,
+      "monotonic_ns": 1254898672596561,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33495711744,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922016985575472,
+      "monotonic_ns": 1254898672603071,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 6863978496,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922017239111840,
+      "monotonic_ns": 1254898926140339,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33495711744,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922017239120240,
+      "monotonic_ns": 1254898926147849,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33495711744,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922022698816925,
+      "monotonic_ns": 1254904385845284,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922022698824265,
+      "monotonic_ns": 1254904385851874,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922022945468096,
+      "monotonic_ns": 1254904632496205,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922022945472196,
+      "monotonic_ns": 1254904632499635,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922023212177210,
+      "monotonic_ns": 1254904899205329,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922023212183440,
+      "monotonic_ns": 1254904899210999,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922023481720769,
+      "monotonic_ns": 1254905168748947,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922023481725198,
+      "monotonic_ns": 1254905168752647,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922023730279456,
+      "monotonic_ns": 1254905417307825,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922023730286986,
+      "monotonic_ns": 1254905417314595,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922023983602805,
+      "monotonic_ns": 1254905670631214,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922023983610125,
+      "monotonic_ns": 1254905670637684,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922024237541283,
+      "monotonic_ns": 1254905924569632,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922024237549133,
+      "monotonic_ns": 1254905924576732,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922024506588282,
+      "monotonic_ns": 1254906193616461,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922024506597432,
+      "monotonic_ns": 1254906193625091,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922024777070779,
+      "monotonic_ns": 1254906464099248,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922024777079159,
+      "monotonic_ns": 1254906464106728,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922025032427874,
+      "monotonic_ns": 1254906719456263,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922025032435984,
+      "monotonic_ns": 1254906719463583,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922025283803097,
+      "monotonic_ns": 1254906970831536,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922025283810637,
+      "monotonic_ns": 1254906970838186,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922025535756538,
+      "monotonic_ns": 1254907222785127,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922025535765168,
+      "monotonic_ns": 1254907222792757,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922025779542095,
+      "monotonic_ns": 1254907466570534,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922025779549655,
+      "monotonic_ns": 1254907466577244,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922026022406693,
+      "monotonic_ns": 1254907709434672,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922026022412103,
+      "monotonic_ns": 1254907709439562,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922026260917910,
+      "monotonic_ns": 1254907947946019,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922026260921860,
+      "monotonic_ns": 1254907947949309,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922026508472789,
+      "monotonic_ns": 1254908195500918,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922026508477439,
+      "monotonic_ns": 1254908195504888,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922026754101222,
+      "monotonic_ns": 1254908441129481,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922026754108722,
+      "monotonic_ns": 1254908441136321,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922027018476791,
+      "monotonic_ns": 1254908705506030,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922027018486211,
+      "monotonic_ns": 1254908705513780,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922027272060869,
+      "monotonic_ns": 1254908959089358,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922027272069459,
+      "monotonic_ns": 1254908959097068,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922027523574771,
+      "monotonic_ns": 1254909210603270,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922027523583471,
+      "monotonic_ns": 1254909210611030,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922027774419525,
+      "monotonic_ns": 1254909461447894,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922027774427025,
+      "monotonic_ns": 1254909461454594,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922028024783059,
+      "monotonic_ns": 1254909711811518,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922028024791019,
+      "monotonic_ns": 1254909711818558,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922028276084632,
+      "monotonic_ns": 1254909963113011,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922028276092252,
+      "monotonic_ns": 1254909963119841,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922028527018355,
+      "monotonic_ns": 1254910214046714,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922028527025955,
+      "monotonic_ns": 1254910214053534,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922028779701335,
+      "monotonic_ns": 1254910466729774,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922028779709015,
+      "monotonic_ns": 1254910466736594,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922029018283001,
+      "monotonic_ns": 1254910705311350,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922029018290561,
+      "monotonic_ns": 1254910705318140,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922029268553516,
+      "monotonic_ns": 1254910955581845,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922029268561096,
+      "monotonic_ns": 1254910955588695,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922029520353238,
+      "monotonic_ns": 1254911207382657,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922029520364868,
+      "monotonic_ns": 1254911207392487,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922029760024402,
+      "monotonic_ns": 1254911447052751,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922029760032082,
+      "monotonic_ns": 1254911447059641,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922029998357649,
+      "monotonic_ns": 1254911685385908,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922029998365509,
+      "monotonic_ns": 1254911685393118,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922030245949928,
+      "monotonic_ns": 1254911932978657,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922030245958278,
+      "monotonic_ns": 1254911932985867,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922030497844940,
+      "monotonic_ns": 1254912184873199,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922030497851180,
+      "monotonic_ns": 1254912184878719,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922030749436302,
+      "monotonic_ns": 1254912436464671,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922030749443942,
+      "monotonic_ns": 1254912436471491,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922031002596591,
+      "monotonic_ns": 1254912689624840,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922031002603091,
+      "monotonic_ns": 1254912689630620,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922031252436946,
+      "monotonic_ns": 1254912939465385,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922031252443306,
+      "monotonic_ns": 1254912939470845,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922031491067922,
+      "monotonic_ns": 1254913178096311,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922031491076202,
+      "monotonic_ns": 1254913178103761,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922031764805233,
+      "monotonic_ns": 1254913451833932,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922031764814483,
+      "monotonic_ns": 1254913451842072,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922032018212762,
+      "monotonic_ns": 1254913705241101,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922032018220522,
+      "monotonic_ns": 1254913705248111,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922032269156945,
+      "monotonic_ns": 1254913956185464,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922032269164675,
+      "monotonic_ns": 1254913956192284,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922032520093568,
+      "monotonic_ns": 1254914207121967,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922032520100978,
+      "monotonic_ns": 1254914207128567,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922032774008206,
+      "monotonic_ns": 1254914461036475,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922032774013916,
+      "monotonic_ns": 1254914461041385,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922033024943340,
+      "monotonic_ns": 1254914711971459,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922033024947410,
+      "monotonic_ns": 1254914711974859,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922033274675915,
+      "monotonic_ns": 1254914961703984,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922033274680775,
+      "monotonic_ns": 1254914961708244,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922033561170112,
+      "monotonic_ns": 1254915248198461,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922033561177842,
+      "monotonic_ns": 1254915248205431,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922033856122924,
+      "monotonic_ns": 1254915543151343,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922033856130144,
+      "monotonic_ns": 1254915543157743,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922034112293837,
+      "monotonic_ns": 1254915799322086,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922034112298547,
+      "monotonic_ns": 1254915799325986,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922034373734771,
+      "monotonic_ns": 1254916060763220,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922034373743081,
+      "monotonic_ns": 1254916060770670,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922034639677216,
+      "monotonic_ns": 1254916326705565,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922034639685336,
+      "monotonic_ns": 1254916326712945,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922034901426130,
+      "monotonic_ns": 1254916588454489,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922034901433790,
+      "monotonic_ns": 1254916588461349,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922035149033309,
+      "monotonic_ns": 1254916836061568,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922035149040559,
+      "monotonic_ns": 1254916836068128,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922035401769389,
+      "monotonic_ns": 1254917088797848,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922035401777709,
+      "monotonic_ns": 1254917088805298,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 70
+    },
+    {
+      "utc_ns": 1793922035646377794,
+      "monotonic_ns": 1254917333406153,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 15
+    },
+    {
+      "utc_ns": 1793922035646385534,
+      "monotonic_ns": 1254917333413133,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 56
+    },
+    {
+      "utc_ns": 1793922035900576611,
+      "monotonic_ns": 1254917587605310,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 11
+    },
+    {
+      "utc_ns": 1793922035900587391,
+      "monotonic_ns": 1254917587615070,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 11
+    },
+    {
+      "utc_ns": 1793922036159445180,
+      "monotonic_ns": 1254917846473559,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 5
+    },
+    {
+      "utc_ns": 1793922036159453180,
+      "monotonic_ns": 1254917846480749,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 40
+    },
+    {
+      "utc_ns": 1793922036411940470,
+      "monotonic_ns": 1254918098968649,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 72
+    },
+    {
+      "utc_ns": 1793922036411945010,
+      "monotonic_ns": 1254918098972479,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 15
+    },
+    {
+      "utc_ns": 1793922036669195732,
+      "monotonic_ns": 1254918356224251,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 81
+    },
+    {
+      "utc_ns": 1793922036669204692,
+      "monotonic_ns": 1254918356232271,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 95
+    },
+    {
+      "utc_ns": 1793922036910377493,
+      "monotonic_ns": 1254918597405902,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 5
+    },
+    {
+      "utc_ns": 1793922036910385373,
+      "monotonic_ns": 1254918597412962,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 81
+    },
+    {
+      "utc_ns": 1793922037173446124,
+      "monotonic_ns": 1254918860474263,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 10
+    },
+    {
+      "utc_ns": 1793922037173450154,
+      "monotonic_ns": 1254918860477593,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 2
+    },
+    {
+      "utc_ns": 1793922037426877753,
+      "monotonic_ns": 1254919113906192,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 27
+    },
+    {
+      "utc_ns": 1793922037426885313,
+      "monotonic_ns": 1254919113912882,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 90
+    },
+    {
+      "utc_ns": 1793922037679310873,
+      "monotonic_ns": 1254919366339432,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 91
+    },
+    {
+      "utc_ns": 1793922037679320513,
+      "monotonic_ns": 1254919366348122,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922037941060056,
+      "monotonic_ns": 1254919628088475,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922037941067826,
+      "monotonic_ns": 1254919628095405,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922038200755983,
+      "monotonic_ns": 1254919887784532,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 44
+    },
+    {
+      "utc_ns": 1793922038200764623,
+      "monotonic_ns": 1254919887792232,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33497808896,
+      "kernel_active_percent": 93
+    },
+    {
+      "utc_ns": 1793922038441320816,
+      "monotonic_ns": 1254920128349215,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33537654784,
+      "kernel_active_percent": 36
+    },
+    {
+      "utc_ns": 1793922038441328746,
+      "monotonic_ns": 1254920128356335,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33539751936,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922038698610597,
+      "monotonic_ns": 1254920385639066,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922038698619007,
+      "monotonic_ns": 1254920385646616,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 100
+    },
+    {
+      "utc_ns": 1793922038959887741,
+      "monotonic_ns": 1254920646916150,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 79
+    },
+    {
+      "utc_ns": 1793922038959896001,
+      "monotonic_ns": 1254920646923550,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 100
+    },
+    {
+      "utc_ns": 1793922039213600760,
+      "monotonic_ns": 1254920900629259,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 99
+    },
+    {
+      "utc_ns": 1793922039213609050,
+      "monotonic_ns": 1254920900636679,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 12
+    },
+    {
+      "utc_ns": 1793922039470795161,
+      "monotonic_ns": 1254921157823420,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 52
+    },
+    {
+      "utc_ns": 1793922039470803031,
+      "monotonic_ns": 1254921157830610,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 57
+    },
+    {
+      "utc_ns": 1793922039729078691,
+      "monotonic_ns": 1254921416107180,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 24
+    },
+    {
+      "utc_ns": 1793922039729088321,
+      "monotonic_ns": 1254921416115910,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 18
+    },
+    {
+      "utc_ns": 1793922039980617013,
+      "monotonic_ns": 1254921667645352,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922039980625033,
+      "monotonic_ns": 1254921667652622,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 13
+    },
+    {
+      "utc_ns": 1793922040235475499,
+      "monotonic_ns": 1254921922503908,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 81
+    },
+    {
+      "utc_ns": 1793922040235483619,
+      "monotonic_ns": 1254921922511228,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922040490559585,
+      "monotonic_ns": 1254922177587944,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 47
+    },
+    {
+      "utc_ns": 1793922040490567065,
+      "monotonic_ns": 1254922177594674,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 98
+    },
+    {
+      "utc_ns": 1793922040736147408,
+      "monotonic_ns": 1254922423175877,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922040736155228,
+      "monotonic_ns": 1254922423182797,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 73
+    },
+    {
+      "utc_ns": 1793922040993429379,
+      "monotonic_ns": 1254922680457928,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922040993438339,
+      "monotonic_ns": 1254922680465888,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 87
+    },
+    {
+      "utc_ns": 1793922041246414889,
+      "monotonic_ns": 1254922933443378,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922041246423139,
+      "monotonic_ns": 1254922933450708,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 98
+    },
+    {
+      "utc_ns": 1793922041500275057,
+      "monotonic_ns": 1254923187303546,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922041500283607,
+      "monotonic_ns": 1254923187311216,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 100
+    },
+    {
+      "utc_ns": 1793922041758091547,
+      "monotonic_ns": 1254923445119926,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922041758099497,
+      "monotonic_ns": 1254923445127066,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33564917760,
+      "kernel_active_percent": 95
+    },
+    {
+      "utc_ns": 1793922042010489048,
+      "monotonic_ns": 1254923697517497,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922042010496758,
+      "monotonic_ns": 1254923697524317,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33564917760,
+      "kernel_active_percent": 58
+    },
+    {
+      "utc_ns": 1793922042267660389,
+      "monotonic_ns": 1254923954688788,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922042267668409,
+      "monotonic_ns": 1254923954695968,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33564917760,
+      "kernel_active_percent": 47
+    },
+    {
+      "utc_ns": 1793922042526897087,
+      "monotonic_ns": 1254924213925246,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922042526902897,
+      "monotonic_ns": 1254924213930356,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33564917760,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922042768813417,
+      "monotonic_ns": 1254924455841846,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922042768821087,
+      "monotonic_ns": 1254924455848686,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33564917760,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922043020695719,
+      "monotonic_ns": 1254924707724058,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922043020704539,
+      "monotonic_ns": 1254924707732138,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33564917760,
+      "kernel_active_percent": 51
+    },
+    {
+      "utc_ns": 1793922043273233369,
+      "monotonic_ns": 1254924960261808,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922043273240909,
+      "monotonic_ns": 1254924960268448,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33564917760,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922043523821913,
+      "monotonic_ns": 1254925210850432,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33558626304,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922043523830073,
+      "monotonic_ns": 1254925210857612,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33564917760,
+      "kernel_active_percent": 6
+    },
+    {
+      "utc_ns": 1793922043783147961,
+      "monotonic_ns": 1254925470176320,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33564917760,
+      "kernel_active_percent": 81
+    },
+    {
+      "utc_ns": 1793922043783156341,
+      "monotonic_ns": 1254925470183910,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33571209216,
+      "kernel_active_percent": 47
+    },
+    {
+      "utc_ns": 1793922044034893423,
+      "monotonic_ns": 1254925721921542,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33564917760,
+      "kernel_active_percent": 9
+    },
+    {
+      "utc_ns": 1793922044034897903,
+      "monotonic_ns": 1254925721925362,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33571209216,
+      "kernel_active_percent": 42
+    },
+    {
+      "utc_ns": 1793922044276881643,
+      "monotonic_ns": 1254925963910042,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33564917760,
+      "kernel_active_percent": 42
+    },
+    {
+      "utc_ns": 1793922044276889483,
+      "monotonic_ns": 1254925963917042,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33571209216,
+      "kernel_active_percent": 24
+    },
+    {
+      "utc_ns": 1793922044515790228,
+      "monotonic_ns": 1254926202818407,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33564917760,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922044515796888,
+      "monotonic_ns": 1254926202824387,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33577500672,
+      "kernel_active_percent": 95
+    },
+    {
+      "utc_ns": 1793922044778395530,
+      "monotonic_ns": 1254926465423889,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33564917760,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922044778402250,
+      "monotonic_ns": 1254926465429769,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33577500672,
+      "kernel_active_percent": 16
+    },
+    {
+      "utc_ns": 1793922045019468781,
+      "monotonic_ns": 1254926706497180,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33573306368,
+      "kernel_active_percent": 68
+    },
+    {
+      "utc_ns": 1793922045019477011,
+      "monotonic_ns": 1254926706504620,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33577500672,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922045283436181,
+      "monotonic_ns": 1254926970464370,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33573306368,
+      "kernel_active_percent": 96
+    },
+    {
+      "utc_ns": 1793922045283440331,
+      "monotonic_ns": 1254926970467790,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33577500672,
+      "kernel_active_percent": 27
+    },
+    {
+      "utc_ns": 1793922045544852204,
+      "monotonic_ns": 1254927231880503,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33579597824,
+      "kernel_active_percent": 46
+    },
+    {
+      "utc_ns": 1793922045544856694,
+      "monotonic_ns": 1254927231884153,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33585889280,
+      "kernel_active_percent": 42
+    },
+    {
+      "utc_ns": 1793922045804029482,
+      "monotonic_ns": 1254927491057831,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33581694976,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922045804037362,
+      "monotonic_ns": 1254927491064931,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33585889280,
+      "kernel_active_percent": 43
+    },
+    {
+      "utc_ns": 1793922046070549317,
+      "monotonic_ns": 1254927757577916,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33581694976,
+      "kernel_active_percent": 91
+    },
+    {
+      "utc_ns": 1793922046070559337,
+      "monotonic_ns": 1254927757586936,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33585889280,
+      "kernel_active_percent": 54
+    },
+    {
+      "utc_ns": 1793922046444616751,
+      "monotonic_ns": 1254928131645330,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33581694976,
+      "kernel_active_percent": 23
+    },
+    {
+      "utc_ns": 1793922046444625041,
+      "monotonic_ns": 1254928131652640,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33590083584,
+      "kernel_active_percent": 12
+    },
+    {
+      "utc_ns": 1793922046703228800,
+      "monotonic_ns": 1254928390257189,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33585889280,
+      "kernel_active_percent": 62
+    },
+    {
+      "utc_ns": 1793922046703236740,
+      "monotonic_ns": 1254928390264329,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33590083584,
+      "kernel_active_percent": 76
+    },
+    {
+      "utc_ns": 1793922046963307296,
+      "monotonic_ns": 1254928650335625,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33585889280,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922046963314136,
+      "monotonic_ns": 1254928650341655,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33596375040,
+      "kernel_active_percent": 53
+    },
+    {
+      "utc_ns": 1793922047215171338,
+      "monotonic_ns": 1254928902199857,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33585889280,
+      "kernel_active_percent": 45
+    },
+    {
+      "utc_ns": 1793922047215179398,
+      "monotonic_ns": 1254928902206977,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33596375040,
+      "kernel_active_percent": 70
+    },
+    {
+      "utc_ns": 1793922047475053624,
+      "monotonic_ns": 1254929162082733,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33585889280,
+      "kernel_active_percent": 80
+    },
+    {
+      "utc_ns": 1793922047475066664,
+      "monotonic_ns": 1254929162094293,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33596375040,
+      "kernel_active_percent": 78
+    },
+    {
+      "utc_ns": 1793922047738087965,
+      "monotonic_ns": 1254929425116584,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922047738096125,
+      "monotonic_ns": 1254929425123744,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33598472192,
+      "kernel_active_percent": 6
+    },
+    {
+      "utc_ns": 1793922048065531576,
+      "monotonic_ns": 1254929752560005,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 52
+    },
+    {
+      "utc_ns": 1793922048065539486,
+      "monotonic_ns": 1254929752567055,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33598472192,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922048317216898,
+      "monotonic_ns": 1254930004245367,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922048317229788,
+      "monotonic_ns": 1254930004257387,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33598472192,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922048565252977,
+      "monotonic_ns": 1254930252281326,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922048565260277,
+      "monotonic_ns": 1254930252287846,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33598472192,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922048829529085,
+      "monotonic_ns": 1254930516557674,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922048829536375,
+      "monotonic_ns": 1254930516563904,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33604763648,
+      "kernel_active_percent": 55
+    },
+    {
+      "utc_ns": 1793922049077264985,
+      "monotonic_ns": 1254930764295564,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922049077285925,
+      "monotonic_ns": 1254930764313524,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33606860800,
+      "kernel_active_percent": 88
+    },
+    {
+      "utc_ns": 1793922049340256895,
+      "monotonic_ns": 1254931027285394,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922049340265645,
+      "monotonic_ns": 1254931027293224,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33606860800,
+      "kernel_active_percent": 81
+    },
+    {
+      "utc_ns": 1793922049579944150,
+      "monotonic_ns": 1254931266972459,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922049579951670,
+      "monotonic_ns": 1254931266979269,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33615249408,
+      "kernel_active_percent": 21
+    },
+    {
+      "utc_ns": 1793922049837671940,
+      "monotonic_ns": 1254931524700459,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922049837680640,
+      "monotonic_ns": 1254931524708199,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33615249408,
+      "kernel_active_percent": 48
+    },
+    {
+      "utc_ns": 1793922050093260535,
+      "monotonic_ns": 1254931780289034,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922050093269205,
+      "monotonic_ns": 1254931780296814,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 82
+    },
+    {
+      "utc_ns": 1793922050335498634,
+      "monotonic_ns": 1254932022527123,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922050335506694,
+      "monotonic_ns": 1254932022534273,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 92
+    },
+    {
+      "utc_ns": 1793922050588310864,
+      "monotonic_ns": 1254932275339353,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922050588319404,
+      "monotonic_ns": 1254932275347023,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922050832211551,
+      "monotonic_ns": 1254932519239980,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922050832219771,
+      "monotonic_ns": 1254932519247340,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922051085236600,
+      "monotonic_ns": 1254932772265119,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922051085245400,
+      "monotonic_ns": 1254932772273009,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922051338570629,
+      "monotonic_ns": 1254933025598828,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922051338577119,
+      "monotonic_ns": 1254933025604648,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922051581164518,
+      "monotonic_ns": 1254933268192937,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922051581172438,
+      "monotonic_ns": 1254933268200027,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922051834512556,
+      "monotonic_ns": 1254933521541065,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922051834521276,
+      "monotonic_ns": 1254933521548885,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922052088453864,
+      "monotonic_ns": 1254933775482443,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922052088463774,
+      "monotonic_ns": 1254933775491373,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922052329578176,
+      "monotonic_ns": 1254934016606525,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922052329585836,
+      "monotonic_ns": 1254934016613425,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922052580577659,
+      "monotonic_ns": 1254934267606118,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922052580586229,
+      "monotonic_ns": 1254934267613818,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922052826395752,
+      "monotonic_ns": 1254934513424181,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922052826403832,
+      "monotonic_ns": 1254934513431411,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922053066335155,
+      "monotonic_ns": 1254934753363584,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922053066343295,
+      "monotonic_ns": 1254934753370944,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922053318859436,
+      "monotonic_ns": 1254935005887965,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922053318867886,
+      "monotonic_ns": 1254935005895505,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922053568818031,
+      "monotonic_ns": 1254935255846540,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922053568825771,
+      "monotonic_ns": 1254935255853370,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922053820608803,
+      "monotonic_ns": 1254935507637302,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922053820617283,
+      "monotonic_ns": 1254935507644882,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922054070572728,
+      "monotonic_ns": 1254935757601097,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922054070580598,
+      "monotonic_ns": 1254935757608167,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922054315502762,
+      "monotonic_ns": 1254936002531161,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922054315510622,
+      "monotonic_ns": 1254936002538211,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922054554073868,
+      "monotonic_ns": 1254936241102397,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922054554081848,
+      "monotonic_ns": 1254936241109407,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922054805200411,
+      "monotonic_ns": 1254936492228930,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922054805208311,
+      "monotonic_ns": 1254936492235850,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922055057063433,
+      "monotonic_ns": 1254936744092202,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922055057072273,
+      "monotonic_ns": 1254936744099832,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922055308164316,
+      "monotonic_ns": 1254936995192675,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922055308171966,
+      "monotonic_ns": 1254936995199535,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922055559897938,
+      "monotonic_ns": 1254937246926387,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922055559906268,
+      "monotonic_ns": 1254937246933867,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922055810893911,
+      "monotonic_ns": 1254937497922220,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922055810901741,
+      "monotonic_ns": 1254937497929320,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922056063934940,
+      "monotonic_ns": 1254937750963679,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922056063944830,
+      "monotonic_ns": 1254937750972429,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922056315937132,
+      "monotonic_ns": 1254938002965501,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922056315945062,
+      "monotonic_ns": 1254938002972631,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922056566869485,
+      "monotonic_ns": 1254938253897554,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922056566873375,
+      "monotonic_ns": 1254938253900814,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922056806738379,
+      "monotonic_ns": 1254938493766878,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922056806746379,
+      "monotonic_ns": 1254938493773968,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922057049307558,
+      "monotonic_ns": 1254938736335657,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922057049312488,
+      "monotonic_ns": 1254938736339927,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922057287179145,
+      "monotonic_ns": 1254938974207474,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922057287186625,
+      "monotonic_ns": 1254938974214194,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922057539372656,
+      "monotonic_ns": 1254939226401155,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922057539381076,
+      "monotonic_ns": 1254939226408645,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922057791700567,
+      "monotonic_ns": 1254939478729046,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922057791709227,
+      "monotonic_ns": 1254939478736826,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922058042951850,
+      "monotonic_ns": 1254939729980249,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922058042959410,
+      "monotonic_ns": 1254939729986949,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922058295246210,
+      "monotonic_ns": 1254939982274849,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922058295255170,
+      "monotonic_ns": 1254939982282749,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922058548066850,
+      "monotonic_ns": 1254940235095299,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922058548074730,
+      "monotonic_ns": 1254940235102329,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922058803097416,
+      "monotonic_ns": 1254940490125915,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922058803105876,
+      "monotonic_ns": 1254940490133495,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922059043908138,
+      "monotonic_ns": 1254940730936627,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922059043916298,
+      "monotonic_ns": 1254940730943897,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922059302675187,
+      "monotonic_ns": 1254940989703916,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922059302683917,
+      "monotonic_ns": 1254940989711496,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922059567376425,
+      "monotonic_ns": 1254941254404904,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922059567384924,
+      "monotonic_ns": 1254941254412533,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922059818495377,
+      "monotonic_ns": 1254941505523866,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922059818504017,
+      "monotonic_ns": 1254941505531636,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922060071677117,
+      "monotonic_ns": 1254941758705586,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922060071685507,
+      "monotonic_ns": 1254941758713126,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922060324632136,
+      "monotonic_ns": 1254942011660715,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922060324640666,
+      "monotonic_ns": 1254942011668245,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922060577838985,
+      "monotonic_ns": 1254942264867484,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922060577847475,
+      "monotonic_ns": 1254942264875014,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922060832079262,
+      "monotonic_ns": 1254942519107711,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922060832087752,
+      "monotonic_ns": 1254942519115341,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922061083071425,
+      "monotonic_ns": 1254942770099824,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922061083079215,
+      "monotonic_ns": 1254942770106814,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922061338121681,
+      "monotonic_ns": 1254943025150280,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922061338129931,
+      "monotonic_ns": 1254943025157510,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922061592567598,
+      "monotonic_ns": 1254943279596067,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922061592576318,
+      "monotonic_ns": 1254943279603907,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922061848683012,
+      "monotonic_ns": 1254943535711101,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922061848687282,
+      "monotonic_ns": 1254943535714731,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922062098024378,
+      "monotonic_ns": 1254943785052907,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922062098032408,
+      "monotonic_ns": 1254943785059997,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922062355359869,
+      "monotonic_ns": 1254944042388318,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922062355368559,
+      "monotonic_ns": 1254944042396148,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922062605580224,
+      "monotonic_ns": 1254944292608713,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922062605589244,
+      "monotonic_ns": 1254944292616803,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922062860191120,
+      "monotonic_ns": 1254944547219489,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922062860198980,
+      "monotonic_ns": 1254944547226539,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922063107676860,
+      "monotonic_ns": 1254944794705209,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922063107684520,
+      "monotonic_ns": 1254944794712079,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922063353562733,
+      "monotonic_ns": 1254945040591322,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922063353571023,
+      "monotonic_ns": 1254945040598642,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922063595522873,
+      "monotonic_ns": 1254945282551262,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922063595530593,
+      "monotonic_ns": 1254945282558152,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922063852832144,
+      "monotonic_ns": 1254945539860593,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922063852838844,
+      "monotonic_ns": 1254945539866373,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922064157619697,
+      "monotonic_ns": 1254945844648206,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922064157627597,
+      "monotonic_ns": 1254945844655226,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922064464019717,
+      "monotonic_ns": 1254946151048126,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922064464027567,
+      "monotonic_ns": 1254946151055146,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922064751673633,
+      "monotonic_ns": 1254946438702102,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922064751681942,
+      "monotonic_ns": 1254946438709551,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922065018606056,
+      "monotonic_ns": 1254946705634545,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922065018614086,
+      "monotonic_ns": 1254946705641665,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922065280811278,
+      "monotonic_ns": 1254946967839857,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922065280819848,
+      "monotonic_ns": 1254946967847457,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922065542970641,
+      "monotonic_ns": 1254947229999000,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922065543011651,
+      "monotonic_ns": 1254947230039290,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922065807776728,
+      "monotonic_ns": 1254947494804937,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922065807784398,
+      "monotonic_ns": 1254947494811967,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922066067309816,
+      "monotonic_ns": 1254947754338445,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922066067318086,
+      "monotonic_ns": 1254947754345665,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922066333783090,
+      "monotonic_ns": 1254948020811599,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922066333791620,
+      "monotonic_ns": 1254948020819209,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922066593155648,
+      "monotonic_ns": 1254948280184887,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922066593165298,
+      "monotonic_ns": 1254948280192837,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922066920698888,
+      "monotonic_ns": 1254948607727367,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922066920706988,
+      "monotonic_ns": 1254948607734577,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922067180383865,
+      "monotonic_ns": 1254948867412284,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922067180393575,
+      "monotonic_ns": 1254948867421214,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922067447613198,
+      "monotonic_ns": 1254949134641727,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922067447621488,
+      "monotonic_ns": 1254949134649097,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922067703478083,
+      "monotonic_ns": 1254949390506562,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922067703485953,
+      "monotonic_ns": 1254949390513542,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922067969519018,
+      "monotonic_ns": 1254949656547467,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922067969526748,
+      "monotonic_ns": 1254949656554347,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922068235205124,
+      "monotonic_ns": 1254949922233563,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922068235213494,
+      "monotonic_ns": 1254949922241083,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922068504520163,
+      "monotonic_ns": 1254950191548512,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922068504528653,
+      "monotonic_ns": 1254950191556242,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922068768118682,
+      "monotonic_ns": 1254950455147031,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922068768126352,
+      "monotonic_ns": 1254950455153931,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922069019817124,
+      "monotonic_ns": 1254950706845603,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922069019826944,
+      "monotonic_ns": 1254950706854513,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922069284784952,
+      "monotonic_ns": 1254950971813421,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922069284792662,
+      "monotonic_ns": 1254950971820241,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922069560292759,
+      "monotonic_ns": 1254951247321148,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922069560302099,
+      "monotonic_ns": 1254951247329738,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922069833097382,
+      "monotonic_ns": 1254951520125881,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922069833105182,
+      "monotonic_ns": 1254951520132791,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922070088864186,
+      "monotonic_ns": 1254951775892505,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922070088871516,
+      "monotonic_ns": 1254951775899105,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922070359154933,
+      "monotonic_ns": 1254952046183572,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922070359163913,
+      "monotonic_ns": 1254952046191512,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922070624549330,
+      "monotonic_ns": 1254952311577759,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922070624557290,
+      "monotonic_ns": 1254952311584829,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922070878273668,
+      "monotonic_ns": 1254952565302027,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922070878281588,
+      "monotonic_ns": 1254952565309187,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922071137175106,
+      "monotonic_ns": 1254952824203365,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922071137179596,
+      "monotonic_ns": 1254952824207035,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922071399617038,
+      "monotonic_ns": 1254953086645297,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922071399623968,
+      "monotonic_ns": 1254953086651487,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922071664457556,
+      "monotonic_ns": 1254953351485815,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922071664465166,
+      "monotonic_ns": 1254953351492765,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922071919377272,
+      "monotonic_ns": 1254953606405791,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922071919385832,
+      "monotonic_ns": 1254953606413421,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922072172683670,
+      "monotonic_ns": 1254953859712049,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922072172691670,
+      "monotonic_ns": 1254953859719219,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922072435903281,
+      "monotonic_ns": 1254954122931810,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922072435911661,
+      "monotonic_ns": 1254954122939260,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922072693046783,
+      "monotonic_ns": 1254954380075152,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922072693054513,
+      "monotonic_ns": 1254954380082112,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922072947932539,
+      "monotonic_ns": 1254954634960938,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922072947940479,
+      "monotonic_ns": 1254954634968028,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922073212301317,
+      "monotonic_ns": 1254954899330276,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922073212314297,
+      "monotonic_ns": 1254954899342066,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922073479463090,
+      "monotonic_ns": 1254955166491459,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922073479470710,
+      "monotonic_ns": 1254955166498289,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922073744656427,
+      "monotonic_ns": 1254955431684986,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922073744664877,
+      "monotonic_ns": 1254955431692496,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922074006186230,
+      "monotonic_ns": 1254955693214729,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922074006194780,
+      "monotonic_ns": 1254955693222379,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922074269914580,
+      "monotonic_ns": 1254955956943029,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922074269922790,
+      "monotonic_ns": 1254955956950369,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922074520944483,
+      "monotonic_ns": 1254956207973052,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922074520954613,
+      "monotonic_ns": 1254956207982272,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922074784414323,
+      "monotonic_ns": 1254956471442772,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922074784422373,
+      "monotonic_ns": 1254956471449942,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922075038130811,
+      "monotonic_ns": 1254956725159400,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922075038139141,
+      "monotonic_ns": 1254956725166690,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922075288528155,
+      "monotonic_ns": 1254956975556524,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922075288536355,
+      "monotonic_ns": 1254956975563954,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922075552583444,
+      "monotonic_ns": 1254957239611933,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922075552592124,
+      "monotonic_ns": 1254957239619743,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922075815493685,
+      "monotonic_ns": 1254957502522254,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922075815502455,
+      "monotonic_ns": 1254957502529994,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922076066948168,
+      "monotonic_ns": 1254957753976627,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922076066956048,
+      "monotonic_ns": 1254957753983627,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922076328709061,
+      "monotonic_ns": 1254958015737480,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922076328718481,
+      "monotonic_ns": 1254958015746060,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922076593412699,
+      "monotonic_ns": 1254958280441188,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922076593421319,
+      "monotonic_ns": 1254958280448938,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922076860471262,
+      "monotonic_ns": 1254958547499711,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922076860479852,
+      "monotonic_ns": 1254958547507411,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922077125247969,
+      "monotonic_ns": 1254958812276538,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922077125256639,
+      "monotonic_ns": 1254958812284228,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922077386757073,
+      "monotonic_ns": 1254959073785482,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922077386765583,
+      "monotonic_ns": 1254959073793192,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922077639441693,
+      "monotonic_ns": 1254959326470072,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922077639449593,
+      "monotonic_ns": 1254959326477162,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922077892702342,
+      "monotonic_ns": 1254959579730321,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922077892707182,
+      "monotonic_ns": 1254959579734651,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922078141783989,
+      "monotonic_ns": 1254959828812428,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922078141791769,
+      "monotonic_ns": 1254959828819358,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922078390473796,
+      "monotonic_ns": 1254960077502165,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922078390481406,
+      "monotonic_ns": 1254960077508995,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922078638583785,
+      "monotonic_ns": 1254960325612264,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922078638591585,
+      "monotonic_ns": 1254960325619174,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922078901609796,
+      "monotonic_ns": 1254960588638265,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922078901617406,
+      "monotonic_ns": 1254960588644965,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922079165409365,
+      "monotonic_ns": 1254960852437794,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922079165417535,
+      "monotonic_ns": 1254960852445134,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922079425398001,
+      "monotonic_ns": 1254961112426380,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922079425405751,
+      "monotonic_ns": 1254961112433330,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922079687460934,
+      "monotonic_ns": 1254961374489463,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922079687469904,
+      "monotonic_ns": 1254961374497463,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922079950148816,
+      "monotonic_ns": 1254961637177295,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922079950157666,
+      "monotonic_ns": 1254961637185245,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922080209944372,
+      "monotonic_ns": 1254961896972781,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922080209952122,
+      "monotonic_ns": 1254961896979711,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922080466576625,
+      "monotonic_ns": 1254962153604974,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922080466584315,
+      "monotonic_ns": 1254962153611884,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922080734841206,
+      "monotonic_ns": 1254962421869685,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922080734849346,
+      "monotonic_ns": 1254962421876925,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 64
+    },
+    {
+      "utc_ns": 1793922080990312931,
+      "monotonic_ns": 1254962677341260,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922080990320541,
+      "monotonic_ns": 1254962677348140,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922081243080901,
+      "monotonic_ns": 1254962930109390,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33587986432,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922081243088421,
+      "monotonic_ns": 1254962930116000,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33621540864,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922081519844826,
+      "monotonic_ns": 1254963206873315,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33564917760,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922081519853666,
+      "monotonic_ns": 1254963206881215,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33598472192,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922081787540288,
+      "monotonic_ns": 1254963474568747,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33399242752,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922081787547458,
+      "monotonic_ns": 1254963474574977,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33432797184,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922082064312604,
+      "monotonic_ns": 1254963751340963,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33277607936,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922082064320324,
+      "monotonic_ns": 1254963751347893,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33311162368,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922082322641123,
+      "monotonic_ns": 1254964009669522,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 33111932928,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922082322649293,
+      "monotonic_ns": 1254964009676882,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 33145487360,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922082598463770,
+      "monotonic_ns": 1254964285492199,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 32908509184,
+      "kernel_active_percent": 1
+    },
+    {
+      "utc_ns": 1793922082598472010,
+      "monotonic_ns": 1254964285499609,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 32942063616,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922082895537348,
+      "monotonic_ns": 1254964582565637,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 29307699200,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922082895544218,
+      "monotonic_ns": 1254964582571747,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 32826720256,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922083140782381,
+      "monotonic_ns": 1254964827810820,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 29307699200,
+      "kernel_active_percent": 0
+    },
+    {
+      "utc_ns": 1793922083140789291,
+      "monotonic_ns": 1254964827816820,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 29307699200,
+      "kernel_active_percent": 2
+    },
+    {
+      "utc_ns": 1793922083728796098,
+      "monotonic_ns": 1254965415824627,
+      "device": 0,
+      "uuid": "GPU-534c9128-9f16-f387-33d4-03c3c296d9ef",
+      "memory_used_bytes": 4194304,
+      "kernel_active_percent": 100
+    },
+    {
+      "utc_ns": 1793922083728802938,
+      "monotonic_ns": 1254965415830487,
+      "device": 1,
+      "uuid": "GPU-6f69a857-3fbc-00d7-920d-39abafb41288",
+      "memory_used_bytes": 4194304,
+      "kernel_active_percent": 0
+    }
+  ],
+  "physical_budget_guard": {
+    "binary": "/workspace/m3/build/m7-rc-sparse/gpu-budget-guard",
+    "sha256": "773d5f04240e4692c07c26b1c72a43a8090f3df4969c1493c2c7e9923e0d1139",
+    "requested_limit_bytes": 28000000000,
+    "pid": 2500822,
+    "ready": {
+      "schema": "rv64-physical-budget-guard/v1",
+      "ready": true,
+      "requested_limit_bytes": 28000000000,
+      "devices": [
+        {
+          "device": 0,
+          "total_bytes": 33679736832,
+          "held_physical_bytes": 5681184768,
+          "granularity_bytes": 2097152,
+          "prover_physical_ceiling_bytes": 27998552064
+        },
+        {
+          "device": 1,
+          "total_bytes": 33679736832,
+          "held_physical_bytes": 5681184768,
+          "granularity_bytes": 2097152,
+          "prover_physical_ceiling_bytes": 27998552064
+        }
+      ]
+    },
+    "status": "RELEASED",
+    "claim": "enforced physical ceiling, not a measured peak",
+    "exit_code": 0,
+    "failure": []
+  },
+  "scope": "Sampled device activity, not process-exclusive GPU time or exact peak; preserved on success/failure"
+}

@@ -1,0 +1,411 @@
+{
+  "status": "FULL_PRESERVATION_GATE_PASS",
+  "files": [
+    {
+      "path": "p1-outer-chunks-gate-20261106-02.log",
+      "bytes": 185,
+      "sha256": "94ed003389352437844451e54063be36ba439a7be48d87f3cba6c816363d531f"
+    },
+    {
+      "path": "p1-outer-chunks-gate-20261106-02.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "p1-outer-chunks-gate-20261106-02/gate.json",
+      "bytes": 1136141,
+      "sha256": "b9b5b318d9cc25c205ab8d88a3ccbfd0d7d2bc250d54320345fea448354efe9e"
+    },
+    {
+      "path": "p1-outer-chunks-gate-20261106-02/build.log",
+      "bytes": 2635,
+      "sha256": "bc7a991419cbbc79285008342a9349903d7e72e1a4bd0f92f50a02b918c6673d"
+    },
+    {
+      "path": "p1-outer-chunks-gate-20261106-02/unit-zig.log",
+      "bytes": 7188,
+      "sha256": "b26f16cb4c122df28dfbc6dbb0b06edf57c11ae10ed60d33402d435e5c6a1060"
+    },
+    {
+      "path": "p1-outer-chunks-gate-20261106-02/unit-python.log",
+      "bytes": 111,
+      "sha256": "dc98327a572f1dc125a0b9791a8d3e1077772ea58b6fb517add93b254c5182a9"
+    },
+    {
+      "path": "p1-outer-chunks-gate-20261106-02/small-block-proof.log",
+      "bytes": 767,
+      "sha256": "d9d409e167c92e11718300a6c8718f3791bbe29e9d66102ccad4bfb58e471f1c"
+    },
+    {
+      "path": "p1-outer-chunks-gate-20261106-02/fresh-cpu-receiver.log",
+      "bytes": 140,
+      "sha256": "787575c2c48b707e0cae295d8265c42fb42d87d09a105e6bde43ef4f8066c7b4"
+    },
+    {
+      "path": "p1-outer-chunks-gate-20261106-02/negative-corpus.log",
+      "bytes": 3009,
+      "sha256": "0d94e6ffd80fa9ed9474de5be1fc11a0fd1404fe0fc8dde6d33fcfae1f5b7a2c"
+    },
+    {
+      "path": "p1-outer-chunks-gate-20261106-02/corpus.json",
+      "bytes": 41540,
+      "sha256": "0b32e966383cfdda07474c6c93f580d68e148fc58748cf6b9ba8636324b8883d"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/request-26235156.json",
+      "bytes": 1209,
+      "sha256": "39261342bd1b0a0a5eede340a3cafc039208ec50591e5c9c684a69e0293eaa35"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/manifest.json",
+      "bytes": 1552,
+      "sha256": "4d7c631186003730143998725c50fa98b8125452a3b5f84fc17b3512e5e3bafb"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/plan.json",
+      "bytes": 10069,
+      "sha256": "6a5fe477b8221a1b8850ff65fcc3c7c11f6169020aa5d0714671c571618994ef"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/producer.stdout",
+      "bytes": 57669,
+      "sha256": "439b888e478354f47a2762a9191973dcd52c199ee165dc8b622bf763717bd540"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/producer.stderr",
+      "bytes": 331753,
+      "sha256": "8bba885ca44873a73fc9f30c8de77e022f804065b4e7bf86447bc8448f85f326"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/loaded-native-runtime.json",
+      "bytes": 322,
+      "sha256": "e369f2376be2580a5cb612d6b2bb5fa71a451dd826d56b0baee8649fe581dd8b"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/quiet-0000.json",
+      "bytes": 2578,
+      "sha256": "ed6acf874b63a51e52045233d428335c6510789528c8f6674eca1a93627e5f59"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/submission-0000.json",
+      "bytes": 921,
+      "sha256": "e0ccd19c27e4551507891ee3c98e43720b36d5fd8bd2bed5b23108ad72cf3e6b"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/request-timeline.json",
+      "bytes": 4091,
+      "sha256": "fa99a8068fdacd1edffedb7dcde1f3cca1d17491938d731da3622b238a728689"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/quiet-0001.json",
+      "bytes": 2587,
+      "sha256": "74b562968cf67cbfbfe651fc540568c1e148907a798d3e46b1b2aa04f91620d6"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/submission-0001.json",
+      "bytes": 926,
+      "sha256": "214466c0c2f7ee2a201ec04fcd085c8739c09bd9abc9b09874e76e85e490f9b8"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/resource-final.json",
+      "bytes": 80175,
+      "sha256": "d214e7611ea0dd53116c563a509e0228065c5fa6ce89eaf6eb6816db0a1011ba"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/receipt.json",
+      "bytes": 24043,
+      "sha256": "90c938924f2cb6726bf18e49566ff3511abb50abc55d016699b9f2f675cb1796"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/resident-device-fixed-manifest.json",
+      "bytes": 1552,
+      "sha256": "4d7c631186003730143998725c50fa98b8125452a3b5f84fc17b3512e5e3bafb"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/resident-ready-manifest.json",
+      "bytes": 1552,
+      "sha256": "4d7c631186003730143998725c50fa98b8125452a3b5f84fc17b3512e5e3bafb"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/READY",
+      "bytes": 73,
+      "sha256": "300c872e97e3b5a921c103877d5683f045053a9a3a5412030839114289b2d87a"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/receiver-26235156-0000-26235156-20261105T234925/receiver-request.json",
+      "bytes": 1248,
+      "sha256": "edd2e6900115b06f3a9312531a61bedcdad92f5b0b6909b286a1ad569f7b1766"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/receiver-26235156-0000-26235156-20261105T234925/strict-receiver.stdout",
+      "bytes": 3760,
+      "sha256": "37e6a293c770f775fffc3f86701ac4923d12f569675d02826aae795ee88b0f3d"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/receiver-26235156-0000-26235156-20261105T234925/strict-receiver.stderr",
+      "bytes": 861,
+      "sha256": "5c1ba79bcee7a3f01fa43feaa4497a8c30b4ca67c47dee3e7c28444eb0f832bb"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/receiver-26235156-0001-26235156-20261105T234956/receiver-request.json",
+      "bytes": 1248,
+      "sha256": "b0e8452dcbad52fabc0fa6df82d1b15ad9f6bf63d2fba20c94da015588c85a19"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/receiver-26235156-0001-26235156-20261105T234956/strict-receiver.stdout",
+      "bytes": 3760,
+      "sha256": "d85976d04a7075b7302a34da588191606928b1bf8a3df2b45d33a9e8ea7fd251"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/receiver-26235156-0001-26235156-20261105T234956/strict-receiver.stderr",
+      "bytes": 861,
+      "sha256": "e21568619018e168d2253b05a04443f6c6a14c2af5635d2603372583299ce84f"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/inbox/STOP",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/done/0000-26235156.json",
+      "bytes": 94,
+      "sha256": "ea5d6d9b18fab6f35fc985997a123652125b7c1e15bdbf34728ea8386f7e8ae7"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/done/0001-26235156.json",
+      "bytes": 94,
+      "sha256": "bc7be40ca548bdace894a1f8f6c28aec34806fc70e8bd95f30b174860dc927ec"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/resources.json",
+      "bytes": 620,
+      "sha256": "93aa5d502d299770f5d79118809b970cf4f90dc9c4142d4ae97d3b197064754e"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0000.stages.json",
+      "bytes": 5604,
+      "sha256": "646f70e02593148a5edb2a623d17b98d27e9af3a4429c41af866fb4492331f44"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0001.stages.json",
+      "bytes": 5584,
+      "sha256": "943037427e0bf4fa2183483c1ff0718cf78c36342c3e9c6f77528ec92a809ecf"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0002.stages.json",
+      "bytes": 5604,
+      "sha256": "a518a1b02d15e3e427d8ada59ff969752dcff1444b513a878abd2a6bbde73f60"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0003.stages.json",
+      "bytes": 5597,
+      "sha256": "fba6c525f7a2e523449e5c6fe669c7da48ac40ff32b84f3f33a85cb0b1694ef3"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0004.stages.json",
+      "bytes": 3244,
+      "sha256": "9fff87ccdae9a5faba366e5e70bd31c4889fa7925039f83a1811ef842eeed416"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0005.stages.json",
+      "bytes": 3236,
+      "sha256": "d2016664cc6bbab81a5045878b781320c550fdd2a856d9c55bd9745c5011947d"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0006.stages.json",
+      "bytes": 3251,
+      "sha256": "2feafbc95b9d564361997048ad2a3f80d227ded2acd222447156adaaff207db5"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0007.stages.json",
+      "bytes": 3263,
+      "sha256": "65376a1ba2c875acad6acaf50b80b2455583a563f4039d783d16f4aa73743831"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0008.stages.json",
+      "bytes": 3267,
+      "sha256": "fce51a71e85f5b4f060d9ed1649d1b11dce801efa5dc2d26fc8c9ddcc339682a"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0009.stages.json",
+      "bytes": 3246,
+      "sha256": "e65d0c47b82e1d83ed613bb869b6706b960483e41d087edd87dee81dd52b7613"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0010.stages.json",
+      "bytes": 3254,
+      "sha256": "671710a078ae53ae3c895a4d3a9604904c6365c178b000fcf281337c35961245"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/schedule.json",
+      "bytes": 5204,
+      "sha256": "0ba257bb0b53cf94e9d4e6a1785c09f252c9f819916cc136bd3eb7a51ba31eaa"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/bundle.json",
+      "bytes": 46859,
+      "sha256": "d963f186710b88e816feec2e805d0974664db4dd8b6b05a55d2509ae5dbce61b"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/candidate-fixed-setup.json",
+      "bytes": 956,
+      "sha256": "2aa52ea85d21fc149cf5ead2a8f2bb5e6c83f33961b41dd5fa4239057ae7c76b"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/candidate-source-bounds.json",
+      "bytes": 22793,
+      "sha256": "9c37068aba32150f34f7a733817e1616fa0f497e0633a0da7d2a8609598983e8"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/report.json",
+      "bytes": 22520,
+      "sha256": "9af903cdd89fef3a01e3e1d539fa9a0332a27c8e67539d9b02e10f0d09577626"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/combined-report.json",
+      "bytes": 3695,
+      "sha256": "41f4bda30b4955b25575b4e751d6d9c4673d66e6717628fe7388bf7b5d6ae443"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/combined-entry.json",
+      "bytes": 1631,
+      "sha256": "23c9bd800cb503c281351479934d7f6213957c6ac4ac68f8b2d623f2be3c88d4"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/recursion-om31/tree.json",
+      "bytes": 366603,
+      "sha256": "fb6a02012f06b5845663c3d600b4893d9afdf5dd79c558057bfc2c9cffd14a8d"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/recursion-om31/report.json",
+      "bytes": 1548,
+      "sha256": "625c96f5b539743807321f72b5d52d32aa0f2ad15876fc567ab2e263a13baaf8"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/recursion-om31/scheduler.json",
+      "bytes": 448,
+      "sha256": "9680d014698e4f9591f6959827e9a15e7dd9e316e6d32e0285cb9d057115ed54"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0000-26235156/26235156/proof/recursion-om31/pipeline.json",
+      "bytes": 14550,
+      "sha256": "e1615d452e819e11b0443040a9df4fda940d8821626e77f384955712821e2d89"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/resources.json",
+      "bytes": 620,
+      "sha256": "93aa5d502d299770f5d79118809b970cf4f90dc9c4142d4ae97d3b197064754e"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0000.stages.json",
+      "bytes": 5598,
+      "sha256": "0560cbf5ea0e3418e2d3e6f24b0963d71db904806c626a93a0c2f44ecf028b95"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0001.stages.json",
+      "bytes": 5588,
+      "sha256": "1b01c405275b7ab490e0116b4eeaf781c5a4b032c1dc5824676256c5917e6540"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0002.stages.json",
+      "bytes": 5603,
+      "sha256": "c35a93ffb4e1a7e7861d1fb9a71c5f3cc6e45de7fa6a85e64976c7e9336cd561"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0003.stages.json",
+      "bytes": 5585,
+      "sha256": "eafbf1079672f74e0d64566ab25287dabe1535af32d8f416eb7e044107a1c0fd"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0004.stages.json",
+      "bytes": 3249,
+      "sha256": "695f2023ee3b5cab89818d5ed96a6a6be9fd077fd8fa67fd5e15d70b60da7bea"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0005.stages.json",
+      "bytes": 3237,
+      "sha256": "f82734ba6643a4d6a7cb80cb80636284491c4f9193f87226d586a224ed50f476"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0006.stages.json",
+      "bytes": 3251,
+      "sha256": "660f93424225db4b0a7cfd5775c0e857f63ea6a8aa25d3183f8e9e4400e9c743"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0007.stages.json",
+      "bytes": 3247,
+      "sha256": "a46cff92f05dcaf0fcffee3dc3ed817c3c44220ac8b637582b487fb87121a02e"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0008.stages.json",
+      "bytes": 3268,
+      "sha256": "02beb0bc86f8a79dacb4ba604db99843041929e50d0853d5f1147e0b882e2ea2"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0009.stages.json",
+      "bytes": 3253,
+      "sha256": "b745ac826fb15b7e120dfbae11a351153f77d5759e132d9aaf894ec9b34f4aa6"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0010.stages.json",
+      "bytes": 3267,
+      "sha256": "091825ec6943fb88405460bfee6ab8d59a262f50cf7a1b08a413d9a7a3075a6c"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/schedule.json",
+      "bytes": 5180,
+      "sha256": "6ac42f64c02d49ae3d64e9b0c96ab7deb22c7677631b092cc0a938ea39cb71ed"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/bundle.json",
+      "bytes": 46859,
+      "sha256": "d963f186710b88e816feec2e805d0974664db4dd8b6b05a55d2509ae5dbce61b"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/candidate-fixed-setup.json",
+      "bytes": 947,
+      "sha256": "8a1e7fb7b63f3ab9a3cc489a8855c59e46a3920baa8fd7bbca67529168b40d04"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/candidate-source-bounds.json",
+      "bytes": 22793,
+      "sha256": "9c37068aba32150f34f7a733817e1616fa0f497e0633a0da7d2a8609598983e8"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/report.json",
+      "bytes": 22451,
+      "sha256": "9a61669dd3ec426776692e26481f7fcc777a97f11248ef90d98f09380e25765e"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/combined-report.json",
+      "bytes": 3678,
+      "sha256": "d1b3b19e71f81b67cbed0fdbdf762951886ebf8b5e333198892ee264ec2f830a"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/combined-entry.json",
+      "bytes": 1632,
+      "sha256": "3f82d6cc35d525ef9b17b524a39b699fe138cb15d8449c3983f2790d276b3ce6"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/recursion-om31/tree.json",
+      "bytes": 366603,
+      "sha256": "fb6a02012f06b5845663c3d600b4893d9afdf5dd79c558057bfc2c9cffd14a8d"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/recursion-om31/report.json",
+      "bytes": 1545,
+      "sha256": "baac0876298a112deaf0ba80bd0d907546e3e443a94510f6911b838661fb0409"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/recursion-om31/scheduler.json",
+      "bytes": 448,
+      "sha256": "95ea09e9e2b1246408405811b48c6c913f27bee5afd6fa6094b0ffc888a0a8f8"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-outer-chunks-gate-20261106-02-00-baseline/spool/out/0001-26235156/26235156/proof/recursion-om31/pipeline.json",
+      "bytes": 14255,
+      "sha256": "44a57f337ead80e7d0f1d7446b6f4c313252e4536cf101a20935e7a25f67bfac"
+    }
+  ],
+  "scope": "Correctness only; failed headline remains failed."
+}

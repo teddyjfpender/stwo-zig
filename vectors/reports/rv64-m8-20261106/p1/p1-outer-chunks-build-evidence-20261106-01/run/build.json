@@ -1,0 +1,323 @@
+{
+  "status": "COMPANION_BUILD_PASS_NOT_GPU_QUALIFIED",
+  "steps": [
+    {
+      "name": "tool",
+      "argv": [
+        "/workspace/zig/zig",
+        "build",
+        "build-rv64-joined-tool",
+        "-j2",
+        "-Dtarget=x86_64-linux-gnu",
+        "-Dcpu=x86_64_v4+sha",
+        "-Doptimize=ReleaseFast",
+        "--cache-dir",
+        "/workspace/m3/src/m7-integrate/.zig-cache",
+        "--prefix",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/tools"
+      ],
+      "exit_code": 0,
+      "seconds": 116.388449808117
+    },
+    {
+      "name": "generate",
+      "argv": [
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/tools/bin/rv64-joined-fixtures",
+        "--outer-chunks",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated"
+      ],
+      "exit_code": 0,
+      "seconds": 0.013925393112003803
+    },
+    {
+      "name": "dispatch",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-fPIC,-pthread",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-c",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated/dispatch.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/dispatch.o"
+      ],
+      "exit_code": 0,
+      "seconds": 0.9314605060499161
+    },
+    {
+      "name": "role-4-group-0",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-fPIC,-pthread",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-c",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated/role-4-group-0.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-0.o"
+      ],
+      "exit_code": 0,
+      "seconds": 1.0152932128403336
+    },
+    {
+      "name": "role-4-group-1",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-fPIC,-pthread",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-c",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated/role-4-group-1.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-1.o"
+      ],
+      "exit_code": 0,
+      "seconds": 1.8590162501204759
+    },
+    {
+      "name": "role-4-group-2",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-fPIC,-pthread",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-c",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated/role-4-group-2.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-2.o"
+      ],
+      "exit_code": 0,
+      "seconds": 1.4255554238334298
+    },
+    {
+      "name": "role-4-group-3",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-fPIC,-pthread",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-c",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated/role-4-group-3.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-3.o"
+      ],
+      "exit_code": 0,
+      "seconds": 1.4631602310109884
+    },
+    {
+      "name": "role-4-group-4",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-fPIC,-pthread",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-c",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated/role-4-group-4.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-4.o"
+      ],
+      "exit_code": 0,
+      "seconds": 1.413157537812367
+    },
+    {
+      "name": "role-4-group-5",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-fPIC,-pthread",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-c",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated/role-4-group-5.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-5.o"
+      ],
+      "exit_code": 0,
+      "seconds": 1.4184801569208503
+    },
+    {
+      "name": "role-4-group-6",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-fPIC,-pthread",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-c",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated/role-4-group-6.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-6.o"
+      ],
+      "exit_code": 0,
+      "seconds": 1.4517944231629372
+    },
+    {
+      "name": "role-4-group-7",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-fPIC,-pthread",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-c",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated/role-4-group-7.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-7.o"
+      ],
+      "exit_code": 0,
+      "seconds": 1.405222553992644
+    },
+    {
+      "name": "role-5-group-0",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-fPIC,-pthread",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-c",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated/role-5-group-0.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-5-group-0.o"
+      ],
+      "exit_code": 0,
+      "seconds": 1.3784163750242442
+    },
+    {
+      "name": "role-5-group-1",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-fPIC,-pthread",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-c",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated/role-5-group-1.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-5-group-1.o"
+      ],
+      "exit_code": 0,
+      "seconds": 1.3975602081045508
+    },
+    {
+      "name": "role-5-group-2",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-fPIC,-pthread",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-c",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated/role-5-group-2.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-5-group-2.o"
+      ],
+      "exit_code": 0,
+      "seconds": 1.4145016861148179
+    },
+    {
+      "name": "role-5-group-3",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-fPIC,-pthread",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-c",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated/role-5-group-3.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-5-group-3.o"
+      ],
+      "exit_code": 0,
+      "seconds": 1.426979691023007
+    },
+    {
+      "name": "role-5-group-4",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-fPIC,-pthread",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-c",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/generated/role-5-group-4.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-5-group-4.o"
+      ],
+      "exit_code": 0,
+      "seconds": 1.655413505854085
+    },
+    {
+      "name": "link",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-shared",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xcompiler=-pthread",
+        "-Xlinker=-Bsymbolic",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/dispatch.o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-0.o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-1.o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-2.o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-3.o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-4.o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-5.o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-6.o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-4-group-7.o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-5-group-0.o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-5-group-1.o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-5-group-2.o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-5-group-3.o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/role-5-group-4.o",
+        "/workspace/m3/build/m7-owner-v2/libstwo-rv64-native.so",
+        "-Xlinker=-rpath,/workspace/m3/build/m7-owner-v2",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/libstwo-outer-chunks.so"
+      ],
+      "exit_code": 0,
+      "seconds": 0.09022798482328653
+    }
+  ],
+  "source_commit": "1a01682f8+outer-chunks-v1",
+  "source_sha256": {
+    "src/integrations/riscv_cuda/rv64/outer_chunks_aot.zig": "0e06c7e6c6124be43a012b39d29eab5cdbb023b2a64c662f4bef932f6694c5e1",
+    "src/integrations/riscv_cuda/rv64_joined_fixture_main.zig": "fe7e6f8d63228a536b470202688bf23c4bd6e7f2fdb330ef8c0b65c4ac8bb915"
+  },
+  "library": "/workspace/m3/build/m7-integrate/p1-outer-chunks-v1/libstwo-outer-chunks.so",
+  "library_sha256": "129959c18fff008a80c5db0459731ca3266b63afff16eb983d94a6d4ef5debab"
+}

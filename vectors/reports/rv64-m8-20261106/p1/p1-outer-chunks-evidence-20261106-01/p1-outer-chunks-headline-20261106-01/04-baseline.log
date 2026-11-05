@@ -1,0 +1,34 @@
+{
+ "run": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-outer-chunks-headline-20261106-01-one-stack-v4-04-baseline",
+ "process_wall_s": 61.32,
+ "service_overhead_s": 17.745,
+ "rss_gib": 19.34,
+ "cuda_api": {},
+ "requests": [
+  {
+   "block": 24628607,
+   "trial": 0,
+   "request_s": 30.595,
+   "capture": 2.11,
+   "setup": 10.823,
+   "native": 6.158,
+   "recursion": 11.334,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  },
+  {
+   "block": 24628607,
+   "trial": 1,
+   "request_s": 12.976,
+   "capture": 2.143,
+   "setup": 0.146,
+   "native": 4.773,
+   "recursion": 5.739,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  }
+ ]
+}
+{"service_start_s": 4.884, "service_stop_s": 2.207, "client_latency_s": [30.605, 12.985]}
