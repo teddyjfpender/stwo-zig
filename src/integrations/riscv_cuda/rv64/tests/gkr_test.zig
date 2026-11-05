@@ -40,6 +40,14 @@ const Commands = struct {
     masks: u32 = 0,
     parents: u32 = 0,
     closures: u32 = 0,
+    projected_validations: usize = 0,
+    projected_layers: usize = 0,
+    projected_sums: usize = 0,
+    projected_folds: usize = 0,
+    projected_masks: usize = 0,
+    pub fn validateProjection(s: *@This(), _: R.Fraction) !void {
+        s.projected_validations += 1;
+    }
     pub fn closeLocalRoots(s: *@This(), _: Slice, _: u32, _: Slice) !void {
         s.calls += 1;
         s.closures += 1;
@@ -48,6 +56,7 @@ const Commands = struct {
         try std.testing.expectEqual(@as(u32, 1), levels);
         try std.testing.expectEqual(input.count / 2, output.count);
         s.calls += 1;
+        s.projected_layers += @intFromBool(input.projected != null);
         s.recordEdge(input, output);
     }
     fn recordEdge(s: *@This(), input: R.Fraction, output: R.Fraction) void {
@@ -88,21 +97,48 @@ const Commands = struct {
     pub fn eq(s: *@This(), _: Slice, _: u32, _: R.Plane) !void {
         s.calls += 1;
     }
-    pub fn sum(s: *@This(), _: R.Fraction, _: R.Plane, _: Slice, _: R.Plane, _: R.Plane, _: R.Plane) !void {
+    pub fn sum(s: *@This(), input: R.Fraction, _: R.Plane, _: Slice, _: R.Plane, _: R.Plane, _: R.Plane) !void {
         s.calls += 1;
+        s.projected_sums += @intFromBool(input.projected != null);
     }
     pub fn batchRound(s: *@This(), _: Slice, _: []const R.BatchOracle, _: u32, _: u32, _: Slice, _: Slice) !void {
         s.calls += 1;
     }
-    pub fn fold(s: *@This(), _: R.Fraction, _: Slice, _: R.Fraction) !void {
+    pub fn fold(s: *@This(), input: R.Fraction, _: Slice, _: R.Fraction) !void {
         s.calls += 1;
+        s.projected_folds += @intFromBool(input.projected != null);
     }
     pub fn packBatchMask(s: *@This(), input: R.Fraction, _: Slice) !void {
         try std.testing.expectEqual(@as(u32, 2), input.count);
         s.masks += 1;
+        s.projected_masks += @intFromBool(input.projected != null);
         s.calls += 1;
     }
 };
+test "projected GKR sources are revisited at the final layer and all borrowed slabs reject arena aliasing" {
+    var f = Factory{};
+    var context = Context{};
+    var commands = Commands{ .context = &context };
+    var inputs = [_]R.Fraction{ f.fraction(2), f.fraction(8), f.fraction(4) };
+    var borrowed: [3][2]Slice = undefined;
+    for (&inputs, &borrowed) |*input, *spans| {
+        spans.* = .{ input.n.data, input.d.data };
+        input.projected = .{ .descriptor = @ptrFromInt(1), .borrowed = spans, .validate = undefined, .layer = undefined, .sum = undefined, .fold = undefined, .mask = undefined };
+    }
+    const seed = f.slice(9);
+    const plan = try G.Plan.init(&.{ 1, 3, 2 }, std.math.maxInt(usize));
+    const arena = f.slice(plan.total_words);
+    _ = try G.enqueue(&commands, &inputs, seed, arena, plan.total_words * 4, 1);
+    try std.testing.expectEqual(@as(usize, 6), commands.projected_validations);
+    try std.testing.expectEqual(@as(usize, 3), commands.projected_layers);
+    try std.testing.expectEqual(@as(usize, 2), commands.projected_sums);
+    try std.testing.expectEqual(@as(usize, 2), commands.projected_folds);
+    try std.testing.expectEqual(@as(usize, 1), commands.projected_masks);
+    commands = .{ .context = &context };
+    borrowed[2][1] = try arena.sub(0, 32);
+    try std.testing.expectError(error.OverlappingWorkspace, G.enqueue(&commands, &inputs, seed, arena, plan.total_words * 4, 1));
+    try std.testing.expectEqual(@as(usize, 0), commands.calls);
+}
 const Factory = struct {
     at: usize = 4096,
     fn slice(s: *@This(), words: usize) Slice {
@@ -284,9 +320,12 @@ test "accepted CPU0 GKR geometry uses8.51GB after consumed-level bank reuse" {
     var facts: u64 = 0;
     for (variables) |v| facts += @as(u64, 1) << @intCast(v);
     try std.testing.expectEqual(@as(u64, 124093760), facts);
-    try std.testing.expectEqual(@as(usize, 8510105088), plan.total_words * 4);
+    // The 128-oracle state adds 13,056 B over the frozen 64-oracle receipt.
+    const state_delta = 4 * (A.gkr_state_words - 1428 + A.batch_state_words - 2173);
+    const expected = 8510105088 + state_delta;
+    try std.testing.expectEqual(@as(usize, expected), plan.total_words * 4);
     try std.testing.expectEqual(@as(u64, 5956500480), 48 * facts);
-    try std.testing.expectEqual(@as(u64, 14466605568), plan.total_words * 4 + 48 * facts);
-    _ = try G.Plan.init(&variables, 8510105088);
-    try std.testing.expectError(error.GkrWorkspaceBudgetExceeded, G.Plan.init(&variables, 8510105087));
+    try std.testing.expectEqual(@as(u64, 14466605568 + state_delta), plan.total_words * 4 + 48 * facts);
+    _ = try G.Plan.init(&variables, expected);
+    try std.testing.expectError(error.GkrWorkspaceBudgetExceeded, G.Plan.init(&variables, expected - 1));
 }
