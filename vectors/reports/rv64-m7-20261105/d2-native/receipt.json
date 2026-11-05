@@ -1,0 +1,79 @@
+{
+  "schema": "rv64-m7-d2-runtime-native-cpu/v1",
+  "author": "OpenAI Codex",
+  "source_base_commit": "124f7d37d6279e867a2d16a1a55a6d2b59b94222",
+  "date": "2026-11-05",
+  "label": "M scoped native CPU mini proof and exact constructed recursion graph",
+  "status": "explicit experimental raw-Blake D2; defaults unchanged; no Ethereum request or outer proof; security remains conjectured and uncertified",
+  "pod": "cps13bvat3xhdo",
+  "gpu_used": false,
+  "profile": {
+    "name": "d2_native_b4_q54_p20_fold4",
+    "log_blowup": 2,
+    "blowup": 4,
+    "queries": 54,
+    "pow": 20,
+    "fold_step": 4,
+    "source_local_relations": 10,
+    "fri_conjectured_bits": 128,
+    "runtime_domain": "rv64-om31-rawblake-native-localgkr-d2-b4-q54-p20-fold4/EXPERIMENTAL-v1"
+  },
+  "fixture": {
+    "program": "jumpdest_fixture.zig",
+    "total_rv64_steps": 5,
+    "physical_cpu_proofs": 2,
+    "cpu_row_log": 5,
+    "truth_proofs": 0,
+    "semantic_note": "two jumpdest service calls and cross-epoch RAM; first CPU graph used for census"
+  },
+  "gates": {
+    "complete_native_mini_exit": 0,
+    "independent_receiver_authority_accepted": true,
+    "durable_bundle_write_reload_accepted": true,
+    "wrong_default_profile_rejected": true,
+    "query_mutant_rejected": true,
+    "pow_mutant_rejected": true,
+    "full_d2_native_target_exit": 0,
+    "old_profile_identity_goldens_unchanged": true,
+    "actual_recursive_graph_census_exit": 0,
+    "outer_proof": false,
+    "ethereum_requests": 0
+  },
+  "geometry": "census.json",
+  "negative": "fixture-negative-opath.log: initial fixture used O_PATH test directory; fsync rejected after proof/fresh/tamper checks. Changed test directory to iterate=true; kept durable fsync unchanged; final reload PASS.",
+  "commands": [
+    "zig build test-d2-native -Doptimize=ReleaseFast -Dd2-test-filter=\"D2 native CPU mini\"",
+    "zig build test-d2-native -Doptimize=ReleaseFast",
+    "zig build test-d2-circuit-census -Doptimize=ReleaseFast"
+  ],
+  "source_sha256": {
+    "src/integrations/riscv_cpu/build.zig": "90ec8fc7b4b110e14578a2d69433eebe8405e032d8a9753ab32f52aed2bd1a20",
+    "src/integrations/riscv_cpu/rv64_recursion/root_verify_main.zig": "cf125f424a034b43cd63da0ac84ab7c6a0112b0a5518a384d5ec511a87515787",
+    "src/integrations/riscv_cpu/word16_execution/om31_security_candidate.zig": "a598fc6ac9d983b6a5cd2d2ddd04c4b5bcde96238464bc11c5e1f3ef34e809c1",
+    "src/integrations/riscv_cpu/word16_execution/om31_security_candidate_test.zig": "d9c7179ff6808c85b2eefee1aa0460923cef33ed5144766a7437cf9bb1393625",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig": "007d85cd9ab5a3542f4ccfece38a40d39fd3050aba59e74347dd3f7c66a7ddd1",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/execution.zig": "381f159f9b9610b9743333a5a6b5eac4ddaf7496f1a1b3abd00ca83f55bbcac7",
+    "src/integrations/riscv_cpu/rv64_d2_circuit_test_root.zig": "d4e7c6d1b695befbf652e71d67ee3103f32421b02f7a951a95a5710290414cfb",
+    "src/integrations/riscv_cpu/rv64_d2_profile_test_root.zig": "2f1d26ddfdb833e0f191bb5cd56a002145beef7e4c6fb7620332be26162de762",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/d2_census_test.zig": "ac6f98b6b6bcbe6a6655571976b526f65b7fb434ac8fa74c34bf49660b523fb8",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/geometry_census.zig": "c319e539d657194d9b25483ee1bc8e6084abe7a003b6727b54fb8dc2eedaabf1",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/d2_profile_test.zig": "2777eaad413eaf283d164f49cafb7b6be6ace365be7a3db8297c3da8fa076563"
+  },
+  "qualified_test_binaries": {
+    "mini": "95f492462d29d72d88b3e38b9a460a305323e3b4f8eb05306d3db62e23014514",
+    "recursive_census": "3afc6e0c254da3eb1911d305b961d58802e22d053ddfb3171fc16bd9c7472532",
+    "full_profile_target": "a17c95f3fabe373d9f3d138c9d38f5b342df071f9ceb2db8231005c5c29c508a"
+  },
+  "limitations": [
+    "Classic outer component geometry only; no fused/diet/outer-GKR/Poseidon cells",
+    "No full Ethereum production driver build or new dev-block proof",
+    "D2 doubles same-layout LDE work; global memory planner still gates large GPU trials",
+    "Conditional algebraic ledger includes D2 LDE domain factor; FRI query assumption not a theorem; no whole-protocol128 certificate"
+  ],
+  "log_sha256": {
+    "d2-native-mini-final.log": "88b74aedaeb64fbdd1c41de2c8ed508e3c6a3b6acd42141b09f79e8d431560e2",
+    "fixture-negative-opath.log": "cfcf79f385789f03ebad1ed534f9288ec1c70cf4ff4c4e759a28d2fdf792907a",
+    "d2-profiles-full.log": "4f0f1c0bac88aeb3846c30bb6e6f497becaaaf265259564fee58f52d8cd95cdf",
+    "d2-recursive-census.log": "191b9b7c310f46d6798967744c1153cd8d961fb1edb87dd0c7e7c97587409f8a"
+  }
+}

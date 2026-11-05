@@ -1,0 +1,4 @@
+test-d2-native
++- run test stderr
+NATIVE_CPU_MINI profile=d2_native_b4_q54_p20_fold4 beta=2 q=54 pow=20 fold=4 physical=2 fresh_authority=true wire_reload=true tamper=3 accepted=true certified=false
+EXIT=0

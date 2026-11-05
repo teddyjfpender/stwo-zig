@@ -1,0 +1,23 @@
+test-d2-native
++- run test 1/2 passed, 1 failed
+error: 'word16_global_execution.services.gkr_local.d2_profile_test.test.D2 native CPU mini proves fresh verifies and rejects profile query and PoW tampering' failed: /workspace/zig/lib/std/posix.zig:7346:5: 0x11aa903 in fsync (test)
+    return error.Unexpected;
+    ^
+/workspace/zig/lib/std/posix.zig:6889:13: 0x11aa91c in fsync (test)
+    switch (errno(rc)) {
+            ^
+/workspace/zig/lib/std/heap/arena_allocator.zig:55:16: 0x11b4a58 in test.D2 native CPU mini proves fresh verifies and rejects profile query and PoW tampering (test)
+        while (it) |node| {
+               ^
+/workspace/m3/src/m7-native-gkr/src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/d2_profile_test.zig:15:22: 0x11af57a in test.D2 native CPU mini proves fresh verifies and rejects profile query and PoW tampering (test)
+    defer pool.deinit();
+                     ^
+error: while executing test 'word16_global_execution.services.gkr_local.d2_profile_test.test.D2 native CPU mini proves fresh verifies and rejects profile query and PoW tampering', the following test command failed:
+./.zig-cache/o/d7e8c85a35f671364592104fcc98952c/test --cache-dir=./.zig-cache --seed=0x65dd65e5 --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 1/2 tests passed; 1 failed
+test-d2-native transitive failure
++- run test 1/2 passed, 1 failed
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/152be7e48a39010c9206c8fded25ae67/build /workspace/zig/zig /workspace/zig/lib /workspace/m3/src/m7-native-gkr/src/integrations/riscv_cpu .zig-cache /workspace/m3/cache/zig-global --seed 0x65dd65e5 -Z06146e92b58669b6 test-d2-native -Doptimize=ReleaseFast -Dd2-test-filter=D2 native CPU mini
