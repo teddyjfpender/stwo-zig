@@ -5,7 +5,8 @@
   "common": {
     "CUDA_VISIBLE_DEVICES": "0,1",
     "CUDA_MODULE_LOADING": "EAGER",
-    "LD_PRELOAD": "{observer}:{sparse}",
+    "LD_PRELOAD": "{library}:{observer}:{sparse}",
+    "LD_LIBRARY_PATH": "{library_dir}:/usr/local/cuda/lib64",
     "STWO_RV64_TRUTH_SPARSE_LIBRARY": "{sparse}",
     "STWO_RV64_PROCESS_MEMORY_LIBRARY": "{observer}",
     "STWO_RV64_PROCESS_MEMORY_OBSERVE": "1",

@@ -39,7 +39,8 @@ def clean_environment(environment):
 
 def arm_environment(preset, arm, assets):
     result = dict(preset['common'], **preset['arms'][arm])
-    return {key: value.format(**assets) for key, value in result.items()}
+    substitutions = dict(assets, library_dir=str(Path(assets['library']).parent))
+    return {key: value.format(**substitutions) for key, value in result.items()}
 
 
 def source_hashes(root):

@@ -526,6 +526,21 @@ def quiet_checkpoint(process, args, run, index, guard=None):
             raise RuntimeError("quiet admission timed out; sustained load/steal/compiler activity remains; see quiet receipt")
 
 
+def loaded_native_runtime(pid, expected):
+    """Reject addon DT_NEEDED accidentally mapping a second/old native image."""
+    expected = str(Path(expected).resolve())
+    lines = (Path('/proc') / str(pid) / 'maps').read_text().splitlines()
+    native = set()
+    for line in lines:
+        columns = line.split(None, 5)
+        if len(columns) == 6 and Path(columns[5]).name == 'libstwo-rv64-native.so':
+            native.add(str(Path(columns[5]).resolve()))
+    if native != {expected}:
+        raise RuntimeError(f'loaded native runtime mismatch: expected={expected} mapped={sorted(native)}')
+    return {'pid': pid, 'expected': expected, 'mapped_native_libraries': sorted(native),
+            'exactly_one_selected_native_runtime': True, 'checked_utc_ns': time.time_ns()}
+
+
 def daemon(args):
     """True resident service: start `combined-serve`, wait READY, submit requests one at a time
     through the spool, then STOP.  Service start (process + CUDA contexts + 686-library load +
@@ -565,7 +580,7 @@ def daemon(args):
         environment["STWO_ZIG_RV64_SETUP_CACHE"] = str(store_dir / "setup")
         if not args.no_class_store:
             environment["STWO_RV64_OUTER_PLAN_CLASS_STORE"] = str(store_dir / "classes")
-    plan["environment"] = {k: v for k, v in environment.items() if k.startswith(("STWO_", "CUDA_"))}
+    plan["environment"] = {k: v for k, v in environment.items() if k.startswith(("STWO_", "CUDA_")) or k in ("LD_PRELOAD", "LD_LIBRARY_PATH")}
     plan["store"] = {"mode": args.store, "directory": str(store_dir) if store_dir else None, "key": key, "components": components}
     B.atomic_json(run / "plan.json", plan)
     argv = [plan["assets"]["driver"], "combined-serve", str(run / "manifest.json"), str(spool)]
@@ -600,6 +615,9 @@ def daemon(args):
                         raise SystemExit(f"service exited before READY ({process.returncode})")
                     time.sleep(0.01)
                 ready_ns = time.monotonic_ns() - started
+                ready = json.loads((spool / 'READY').read_text())
+                B.atomic_json(run / 'loaded-native-runtime.json',
+                              loaded_native_runtime(ready['pid'], plan['assets']['library']))
                 for index, block in enumerate(order):
                     quiet_records.append(quiet_checkpoint(process, args, run, index, guard))
                     name = f"{index:04d}-{block}"
