@@ -1,0 +1,31 @@
+test-native-cpu-poseidon2
++- run test stderr
+P2_REAL_STARK version=1 degree=4 fold=1 binary=false bytes=7923 accepted
+P2_REAL_STARK version=1 degree=4 fold=1 binary=true bytes=2460 accepted
+P2_REAL_STARK version=1 degree=4 fold=4 binary=false bytes=5386 accepted
+P2_REAL_STARK version=1 degree=4 fold=4 binary=true bytes=1784 accepted
+P2_REAL_REJECT root=false RootMismatch
+P2_REAL_REJECT root=true OodsNotMatching
+P2_REAL_STARK version=1 degree=8 fold=1 binary=false bytes=9552 accepted
+P2_REAL_STARK version=1 degree=8 fold=1 binary=true bytes=3312 accepted
+P2_REAL_STARK version=1 degree=8 fold=4 binary=false bytes=9213 accepted
+P2_REAL_STARK version=1 degree=8 fold=4 binary=true bytes=3320 accepted
+P2_REAL_REJECT root=false RootMismatch
+P2_REAL_REJECT root=true OodsNotMatching
+P2_REAL_STARK version=2 degree=4 fold=1 binary=false bytes=6975 accepted
+P2_REAL_STARK version=2 degree=4 fold=1 binary=true bytes=2160 accepted
+P2_REAL_STARK version=2 degree=4 fold=4 binary=false bytes=7163 accepted
+P2_REAL_STARK version=2 degree=4 fold=4 binary=true bytes=2296 accepted
+P2_REAL_REJECT root=false RootMismatch
+P2_REAL_REJECT root=true OodsNotMatching
+P2_REAL_STARK version=2 degree=8 fold=1 binary=false bytes=9936 accepted
+P2_REAL_STARK version=2 degree=8 fold=1 binary=true bytes=3384 accepted
+P2_REAL_STARK version=2 degree=8 fold=4 binary=false bytes=9255 accepted
+P2_REAL_STARK version=2 degree=8 fold=4 binary=true bytes=3320 accepted
+P2_REAL_REJECT root=false RootMismatch
+P2_REAL_REJECT root=true OodsNotMatching
+
+Build Summary: 2/2 steps succeeded
+test-native-cpu-poseidon2 success
++- run /workspace/zig/zig success 1m MaxRSS:959M
+

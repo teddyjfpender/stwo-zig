@@ -1,0 +1,352 @@
+{
+  "status": "PASS",
+  "scope": "synthetic boolean AIR; separate-process receivers; no Ethereum profile activation",
+  "positive_proof_files": 8,
+  "rejections": 6,
+  "profile_version": 1,
+  "binary_sha256": "aa46d57b565f69a2cbafa29a9d0daa84bdab01caaf10fc9c6b594664c5190592",
+  "files": {
+    "d4-f1.binary": {
+      "bytes": 2460,
+      "sha256": "2d2b8231c7c0b4c5113befe22e97e7446cd5f233f54e7f6f9dcfcd831814140a"
+    },
+    "d4-f1.json": {
+      "bytes": 7923,
+      "sha256": "084b6fc14168b61df5b478c0d2304140da9ad996e79c18302384bc719d250b15"
+    },
+    "d4-f4.binary": {
+      "bytes": 1784,
+      "sha256": "3f574b1995194565ecc02cee1d115e24a19a01a9362d36a8ece2d9506b232add"
+    },
+    "d4-f4.json": {
+      "bytes": 5386,
+      "sha256": "9d45f52edc2753f3f1d80b253b44c1e0c095be7cb682705e3f116f7620ec234a"
+    },
+    "d8-f1.binary": {
+      "bytes": 3312,
+      "sha256": "6ea63acd12fbbc5786f94bf39cd32d0456aa0315a8ed123ecda2b0e9354c01ec"
+    },
+    "d8-f1.json": {
+      "bytes": 9552,
+      "sha256": "aa4525e99d886be27e4865bff0a89b18413eaab632c4e902d6ccde6b815aecad"
+    },
+    "d8-f4.binary": {
+      "bytes": 3320,
+      "sha256": "aecf1e202716271c542f7c3229adfbf1dea873e66413f1766b88e094a41367d1"
+    },
+    "d8-f4.json": {
+      "bytes": 9213,
+      "sha256": "fa0960e299cefaebc6d74d338de47629d871f2dcf4e6bd1564f6a37b7a4faa5e"
+    }
+  },
+  "processes": [
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "produce",
+        "4",
+        "1",
+        "binary",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d4-f1.binary",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE produced profile=M7-P2M31-W24-R12-C12-D9-QM31-v1 bytes=2460\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "produce",
+        "4",
+        "1",
+        "json",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d4-f1.json",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE produced profile=M7-P2M31-W24-R12-C12-D9-QM31-v1 bytes=7923\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "produce",
+        "4",
+        "4",
+        "binary",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d4-f4.binary",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE produced profile=M7-P2M31-W24-R12-C12-D9-QM31-v1 bytes=1784\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "produce",
+        "4",
+        "4",
+        "json",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d4-f4.json",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE produced profile=M7-P2M31-W24-R12-C12-D9-QM31-v1 bytes=5386\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "produce",
+        "8",
+        "1",
+        "binary",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d8-f1.binary",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE produced profile=M7-P2M31-W24-R12-C12-D9-OM31-v1 bytes=3312\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "produce",
+        "8",
+        "1",
+        "json",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d8-f1.json",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE produced profile=M7-P2M31-W24-R12-C12-D9-OM31-v1 bytes=9552\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "produce",
+        "8",
+        "4",
+        "binary",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d8-f4.binary",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE produced profile=M7-P2M31-W24-R12-C12-D9-OM31-v1 bytes=3320\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "produce",
+        "8",
+        "4",
+        "json",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d8-f4.json",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE produced profile=M7-P2M31-W24-R12-C12-D9-OM31-v1 bytes=9213\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "verify",
+        "4",
+        "1",
+        "binary",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d4-f1.binary",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE receiver=accepted profile=M7-P2M31-W24-R12-C12-D9-QM31-v1 bytes=2460\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "verify",
+        "4",
+        "1",
+        "json",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d4-f1.json",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE receiver=accepted profile=M7-P2M31-W24-R12-C12-D9-QM31-v1 bytes=7923\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "verify",
+        "4",
+        "4",
+        "binary",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d4-f4.binary",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE receiver=accepted profile=M7-P2M31-W24-R12-C12-D9-QM31-v1 bytes=1784\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "verify",
+        "4",
+        "4",
+        "json",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d4-f4.json",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE receiver=accepted profile=M7-P2M31-W24-R12-C12-D9-QM31-v1 bytes=5386\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "verify",
+        "8",
+        "1",
+        "binary",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d8-f1.binary",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE receiver=accepted profile=M7-P2M31-W24-R12-C12-D9-OM31-v1 bytes=3312\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "verify",
+        "8",
+        "1",
+        "json",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d8-f1.json",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE receiver=accepted profile=M7-P2M31-W24-R12-C12-D9-OM31-v1 bytes=9552\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "verify",
+        "8",
+        "4",
+        "binary",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d8-f4.binary",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE receiver=accepted profile=M7-P2M31-W24-R12-C12-D9-OM31-v1 bytes=3320\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "verify",
+        "8",
+        "4",
+        "json",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d8-f4.json",
+        "1"
+      ],
+      "exit_code": 0,
+      "expected_accept": true,
+      "stderr": "P2_FIXTURE receiver=accepted profile=M7-P2M31-W24-R12-C12-D9-OM31-v1 bytes=9213\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "verify",
+        "8",
+        "1",
+        "binary",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/reject-root.binary",
+        "1"
+      ],
+      "exit_code": 1,
+      "expected_accept": false,
+      "stderr": "error: OodsNotMatching\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "verify",
+        "8",
+        "1",
+        "binary",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/reject-noncanonical.binary",
+        "1"
+      ],
+      "exit_code": 1,
+      "expected_accept": false,
+      "stderr": "error: NonCanonicalPoseidonDigest\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "verify",
+        "8",
+        "1",
+        "binary",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/reject-truncated.binary",
+        "1"
+      ],
+      "exit_code": 1,
+      "expected_accept": false,
+      "stderr": "error: InvalidBinaryProof\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "verify",
+        "8",
+        "1",
+        "binary",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/reject-trailing.binary",
+        "1"
+      ],
+      "exit_code": 1,
+      "expected_accept": false,
+      "stderr": "error: InvalidBinaryProof\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "verify",
+        "8",
+        "1",
+        "binary",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/reject-legacy_magic.binary",
+        "1"
+      ],
+      "exit_code": 1,
+      "expected_accept": false,
+      "stderr": "error: UnsupportedBinaryVersion\n"
+    },
+    {
+      "command": [
+        "/workspace/m3/build/m7-integrate/poseidon2-stark-fixture-v2",
+        "verify",
+        "4",
+        "1",
+        "binary",
+        "/workspace/m3/runs/m7-fold-v3/poseidon2-v1-replay/d8-f1.binary",
+        "1"
+      ],
+      "exit_code": 1,
+      "expected_accept": false,
+      "stderr": "error: UnsupportedBinaryVersion\n"
+    }
+  ]
+}
