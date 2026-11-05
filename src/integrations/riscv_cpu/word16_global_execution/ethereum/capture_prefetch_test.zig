@@ -687,3 +687,40 @@ test "pipelined native collection writes byte-identical packets and descriptors"
         try std.testing.expectEqualSlices(u8, l, r);
     }
 }
+
+test "concurrent resident walk and expected image share only pinned immutable authority" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    const config = fixture.config();
+    var cache = Image.AuthorityCache.init(a);
+    defer cache.deinit();
+    const Direct = @import("direct.zig");
+    var stats = Direct.Stats{};
+    const started = try Direct.Started.startWithAuthority(a, config, 0, 2, cache.provider());
+    defer started.deinit(&stats);
+    var image_owner = try Image.Owner.initShared(a, config, &cache);
+    defer image_owner.deinit();
+    var program = try Program.initWithAuthority(a, &image_owner.authority);
+    defer program.deinit();
+    var shared = try started.capture(&image_owner, &program, 2, &stats);
+    defer shared.deinit();
+    var control_stats = Direct.Stats{};
+    var control = try Direct.captureWithSegments(a, &image_owner, &program, config, 0, 2, 2, &control_stats);
+    defer control.deinit();
+    try same(&control, &shared);
+    const D = @import("capture_digest.zig");
+    try std.testing.expectEqualDeep(D.digest(image_owner.identity, &control), D.digest(image_owner.identity, &shared));
+    try std.testing.expect(started.walk.?.request.shared_authority);
+    try std.testing.expectEqual(@as(u64, 1), cache.misses);
+    try std.testing.expect(cache.hits >= 1);
+    var altered = config;
+    altered.input_sha256 = "ff" ** 32;
+    try std.testing.expectError(error.EthereumInputIdentityMismatch, Request.Request.initWithOptions(a, altered, .{ .poseidon_initial_cache = false, .authority_provider = cache.provider() }));
+    // Request-specific output remains fresh despite sharing the program.
+    altered = config;
+    altered.expected_output = "ff" ** 43;
+    var fresh = try Request.Request.initWithOptions(a, altered, .{ .poseidon_initial_cache = false, .authority_provider = cache.provider() });
+    defer fresh.deinit();
+    try std.testing.expectEqualDeep([_]u8{0xff} ** 43, fresh.expected_output);
+    try std.testing.expectEqual(@as(u64, 1), cache.misses);
+}

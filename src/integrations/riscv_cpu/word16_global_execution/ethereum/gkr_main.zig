@@ -504,7 +504,9 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     // image/program init below; admission still happens batch by batch in
     // `capture` against that independently loaded image.
     var direct_stats: DirectCapture.Stats = .{};
-    var direct_started: ?*DirectCapture.Started = if (direct_capture) try DirectCapture.Started.start(a, request.value, count, capture_options.execution_workers) else null;
+    const shared_walk_authority = if (std.posix.getenv("STWO_RV64_CAPTURE_SHARED_AUTHORITY")) |flag| std.mem.eql(u8, flag, "1") else false;
+    const walk_authority: ?Request.AuthorityProvider = if (shared_walk_authority and session != null) session.?.authorities.provider() else null;
+    var direct_started: ?*DirectCapture.Started = if (direct_capture) try DirectCapture.Started.startWithAuthority(a, request.value, count, capture_options.execution_workers, walk_authority) else null;
     defer if (direct_started) |value| value.deinit(&direct_stats);
     // M5 platform: a resident session reuses the receiver-derived
     // ProgramAuthority of the same guest (keyed by its executable words).
