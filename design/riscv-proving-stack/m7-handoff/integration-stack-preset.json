@@ -79,7 +79,7 @@
     "quiet_resource": "cgroup",
     "quiet_scope": "Five samples with zero pod cgroup PSI some/full total and cpu.stat throttling deltas, steal<=1%, noforeignGPU/ownedcompiler. Host load recorded only; it covers othercgroups on shared192corehost.",
     "instrumentation": {
-      "headline": "unprofiled; independent full capture diagnostic SHA256 OFF botharms; native R1privateCaptureSeal stillincluded",
+      "headline": "unprofiled; independentfullcapture diagnosticSHA256OFFbotharms; R1flagsOFFbotharms (noR1privateCaptureSeal pathselected)",
       "smoke": "independentfullcaptured-valueSHA256 ON botharms andrequiredforparity; allwallsunqualified",
       "ownership_profile_pair": "Nsight node trace; independentfullcaptureSHA OFF botharms; excludedheadline medians"
     },
