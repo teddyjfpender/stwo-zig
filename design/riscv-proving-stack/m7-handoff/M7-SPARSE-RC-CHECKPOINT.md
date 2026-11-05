@@ -1,0 +1,11 @@
+# Bounded native Keccak composition checkpoint
+
+Status: numerical GPU prototype qualified; actual prover integration awaits its full build and proof gates. Default OFF (`STWO_RV64_TRUTH_SPARSE_RC=1` and explicit addon path select it). No whole-process memory, global admission, two-lane, or performance claim.
+
+The selected native TRUTH role0 is source-log18/evaluation-log20, with 5,650 original roots and 3,514 touched physical columns. Root5596 alone touches3,098 columns. A source-bound signed additive cover splits only addition/subtraction/negation and preserves each term's ORIGINAL root power, input row offsets, and denominator. The54 groups use at most512 columns each; a1,024-column cache performs11,912 LDE fills (modeled3.3899× baseline column transforms).
+
+The original14,750,402,976-byte role arena is replaced by a4,294,967,296-byte evaluation cache plus3,913,880-byte packed scratch; a33,554,432-byte output bucket remains under the original caller ownership. Original committed source coefficients, other role buckets, later role workspaces and final commitment remain additional live resources. Source plans include all graph nodes and source/code-generator hashes; runtime addon identity must match exactly.
+
+Qualified checks: eight CPU trials reproduce every original root; six plan/cache mutants refuse. Indexed LDE matches the original three-pass6/6/8 transform on both GPUs (56/56 plus memcheck0). Full signed composition matches the original TRUTH0 kernel on both GPUs (70/70,2,048 row/coordinate comparisons per device, all four denominator quarters, offset-sensitive inputs); memcheck reports0 errors. Fixture retirement is balanced8/8 per device. Receipts are under `receipts/device-service/sparse-rc/`.
+
+The actual `resident_composition` hook validates the full scoped source roster, checks rounded cache/scratch/bucket capacity against the physical all-context arena snapshot, runs all groups in one serialized lane0 owner callback, and retires request cache/scratch before later roles or final commitment. It is not a global resource reservation. Other class geometries use the existing implementation; no source19 or higher profile qualification is implied.

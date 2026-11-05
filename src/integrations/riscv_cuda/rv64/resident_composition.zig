@@ -22,6 +22,7 @@ const Timing = Events.RecorderFor(Span);
 const O = D.O;
 const M = D.M;
 const Items = CPU.rv64_gkr_cpu_components;
+const Sparse = @import("composition_sparse_runtime.zig");
 const WorkspaceCost = @import("composition_cost.zig");
 const Trace = engine.air.component_prover.ForField(O).Trace;
 const Twiddle = engine.poly.twiddles.TwiddleTree([]M);
@@ -153,6 +154,7 @@ pub const Context = struct {
     clear: Clear,
     artifacts: [49]KernelMetadata,
     truth_artifacts: [15]?KernelMetadata = @splat(null),
+    sparse_truth: ?Sparse.Runtime = null,
     truth_role: ?*const @TypeOf(Abi.stwo_rv64_composition_role_on) = null,
     twiddles: [29]?Twiddle = @splat(null),
     mutex: std.Thread.Mutex = .{},
@@ -197,6 +199,7 @@ pub const Context = struct {
         return result;
     }
     pub fn deinit(self: *Context) void {
+        if (self.sparse_truth) |*sparse| sparse.deinit();
         for (self.artifacts[0..self.artifact_count]) |*artifact| artifact.deinit();
         for (&self.truth_artifacts) |*artifact| if (artifact.*) |*value| value.deinit();
         for (&self.twiddles) |*cached| if (cached.*) |*value| engine.poly.twiddles.deinitM31(self.allocator, value);
@@ -300,6 +303,7 @@ pub const Context = struct {
             for (&self.truth_artifacts, 0..) |*entry, id| if (entry.* == null) {
                 var cold = try @import("truth_domain_fixtures.zig").record(self.allocator, @intCast(id));
                 defer cold.artifact.deinit();
+                if (id == 0) self.sparse_truth = try Sparse.Runtime.init(self.allocator, &cold.artifact.program);
                 const bytes = cold.artifact.program.inputs.len * @sizeOf(engine.air.secure_polynomial_program_v2.Input) + cold.artifact.program.roots.len * 4 + cold.artifact.parameter_slots.len * 4;
                 if (!self.admitCache(bytes, true)) return error.CompositionMetadataCacheCapExceeded;
                 entry.* = KernelMetadata.take(&cold.artifact);
@@ -717,6 +721,31 @@ const Job = struct {
                     }
                     staging_words += @as(usize, 1) << @intCast(original.log_size);
                 } else staging_words += @as(usize, 1) << @intCast(rl);
+            }
+            if (b.sparse_truth) |*sparse| {
+                if (role.evaluate == b.truth_role and id == 0 and rl == 18 and el == 20) {
+                    if (!enqueue or !sparse.matches(artifact.program.identity, id, rl, el, widths, artifact.program.inputs.len, artifact.program.roots.len, role.parameters.len) or role.auxiliary != .last or self.device_powers != null) return error.UnsupportedSparseCompositionInvocation;
+                    if (artifact.program.roots.len > next) return error.NotEnoughCoefficients;
+                    next -= artifact.program.roots.len;
+                    const parameter_words = try felts(a, role.parameters);
+                    defer a.free(parameter_words);
+                    const power_words = try felts(a, powers[next..][0..artifact.program.roots.len]);
+                    defer a.free(power_words);
+                    var role_tw_borrow = try b.tw(rl);
+                    defer role_tw_borrow.deinit(b.allocator);
+                    // Empty traditional spans; the rows span is explicitly
+                    // reported as combined sparse LDE+row work below.
+                    inline for (.{Span.coefficients, Span.auxiliary, Span.domain_fft}) |span| {
+                        try timing.mark(span, false, stream0.?);
+                        try timing.mark(span, true, stream0.?);
+                    }
+                    try timing.mark(.rows, false, stream0.?);
+                    try sparse.run(a, b, &context, artifact.program.inputs, direct, parameter_words, power_words, words(geometry.denominators), words(tw.twiddles), words(role_tw_borrow.value.itwiddles), &buckets[el], &leases);
+                    try timing.mark(.rows, true, stream0.?);
+                    std.debug.print("GPU_RC_SPARSE_ROLE ordinal={} role={} scope=truth combined_LDE_rows_span=true original_power_first={} original_roots={}\n", .{self.scope.ordinal,id,next,artifact.program.roots.len});
+                    domain_cells += sparse.cache.fills * n;
+                    continue;
+                }
             }
             const eval_base = staging_words;
             const tw_base = try std.math.add(usize, eval_base, try std.math.mul(usize, column_count, n));
