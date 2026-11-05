@@ -7,6 +7,17 @@ The final composed driver proves D2 on both development blocks with fresh CPU ac
 
 The small 11-leaf result isolates D2: 14.33% less kernel work. Headline D2 alone uses 15.17% less; adding coalescing saves another 11.21%, for 24.68% less than M6. These are measured observations from one matched cold/warm pair per configuration, not confidence intervals or latency guarantees. Copies included: small 10.855099352→9.229006624 GPU-s; headline 16.078346509→13.556959323→11.984213030 GPU-s. All request windows have node-level graph tracing, zero graph-envelope records, complete kernel accounting, and artifact equality to the freshly accepted cold reference. Cold kernel work closely agrees; raw rows are preserved.
 
+Receipt-derived padded recursive cells (D: actual per-proof row logs × source-pinned component widths) are:
+
+| MAIN + INTER + gate-preprocessed cells | M6 | D2, original roster | D2 + coalescing |
+|---|---:|---:|---:|
+|26235156|24,061,855,488|17,844,864,768|same|
+|24628607|35,790,524,160|26,346,770,176|21,658,004,224|
+
+These exclude native STARK cells, LDE replication and the root wrapper. Headline cell reduction is 26.39% with D2 and 39.49% combined; the 4 billion target remains open. The original M6 headline exactly reproduces the known 35,790,524,160-cell census. MAIN/INTER/PP subtotals and each node's geometry are retained in `derived-recursive-cells.json`. All ten cold/warm request scopes have exactly one row-log shape per actual node. Warm cached graphs reuse the cold source topology; the full 11-component geometry multisets are checked equal. The script pins canonical component-facts/width source hashes, checks node uniqueness, request block/trial boundaries and tree geometry, and rejects four duplicate/scope/schema mutants.
+
+Reproduce with `python3 scripts/rv64_m7_composed_cells.py vectors/reports/rv64-m7-20261105/d2-composed/combined-d2-package --out /tmp/cells.json`; run its real-corpus and negative tests with `python3 -m unittest scripts.tests.test_rv64_m7_composed_cells -v`.
+
 D2 increases native-side work while reducing recursion. Using the same recorded native-stage boundary plus the Root analyzer's 5ms uncertainty band:
 
 | Warm boundary partition, kernel GPU-s | M6 | D2 | D2 + coalescing |
