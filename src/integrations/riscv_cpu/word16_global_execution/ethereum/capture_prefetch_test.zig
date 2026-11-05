@@ -694,7 +694,6 @@ test "concurrent resident walk and expected image share only pinned immutable au
     const config = fixture.config();
     var cache = Image.AuthorityCache.init(a);
     defer cache.deinit();
-    const Direct = @import("direct.zig");
     var stats = Direct.Stats{};
     const started = try Direct.Started.startWithAuthority(a, config, 0, 2, cache.provider());
     defer started.deinit(&stats);
