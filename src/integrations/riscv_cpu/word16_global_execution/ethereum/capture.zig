@@ -47,6 +47,9 @@ pub const Ready = struct {
     /// Runs before source.next waits for traced CPU0. Borrowed for this call
     /// only, not until Owner.deinit; asynchronous readers must own a copy.
     first_pass: ?*const fn (*anyopaque, *const @import("../../word16_execution/cpu_source.zig").FirstPass) void = null,
+    /// Whole first-pass GLOBAL INITIAL, derived from the pinned initial image.
+    /// Called on a bounded one-request helper; data borrowed for this call only.
+    global_ram: ?*const fn (*anyopaque, []const @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell, @import("stwo_riscv_frontend").rv64.checkpoint.Counters) void = null,
 };
 pub const Owner = struct {
     capture_schedule: ScheduleStats = .{},

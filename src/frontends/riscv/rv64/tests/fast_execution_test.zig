@@ -750,3 +750,69 @@ test "minimal fast first-pass refuses high PC and bounds record capacity before 
     trace.len = 3;
     try std.testing.expectError(error.MinimalTraceFull, engine.runMinimal(&cpu, 4, &trace));
 }
+
+test "RAM-key fast first pass equals reference on 1000 random programs without instruction fetches" {
+    const Words = @import("../ram_word_set.zig").Set;
+    var prng = std.Random.DefaultPrng.init(0x9a77_6c31);
+    const r = prng.random();
+    var total_fast: u64 = 0;
+    var all_words: usize = 0;
+    for (0..1000) |program| {
+        var instructions: [SLOTS]u32 = undefined;
+        for (&instructions, 0..) |*w, i| w.* = randomWord(r, i, true);
+        const seed = r.int(u64);
+        const start = initialCpu(r);
+        const limit = 1 + r.uintLessThan(u64, 20000);
+        const set: isa.Isa = if (program % 2 == 0) .rv64im else .rv64im_zbb_binary;
+        var ref = try Image.init(&instructions, seed);
+        defer ref.deinit();
+        var subject = try Image.init(&instructions, seed);
+        defer subject.deinit();
+        var expected = try Words.init(a, 1 << 20);
+        defer expected.deinit();
+        var actual = try Words.init(a, 1 << 20);
+        defer actual.deinit();
+        var expected_cpu: machine.Cpu = undefined;
+        var expected_stop: ?anyerror = null;
+        {
+            var session = try Base.Session.init(a, start, &ref.memory, .{ .max_retirements = limit, .isa = set });
+            defer session.deinit();
+            while (session.cpu.retired < limit) {
+                const row = session.step() catch |err| {
+                    expected_stop = err;
+                    break;
+                };
+                try expected.observeRetirement(row);
+            }
+            expected_cpu = session.cpu;
+        }
+        var engine = try fast.Engine.init(a, &subject.memory, .{ .isa = set, .watch = if (program % 3 == 0) &.{.{ DATA + 0x100, 8 }} else &.{} });
+        defer engine.deinit();
+        var actual_stop: ?anyerror = null;
+        {
+            var session = try Base.Session.init(a, start, &subject.memory, .{ .max_retirements = limit, .isa = set });
+            defer session.deinit();
+            while (session.cpu.retired < limit) {
+                const budget = @min(limit, session.cpu.retired + 1 + r.uintLessThan(u64, 3000));
+                if (try engine.runRam(&session.cpu, budget, &actual) == .limit) continue;
+                const row = session.step() catch |err| {
+                    actual_stop = err;
+                    break;
+                };
+                try actual.observeRetirement(row);
+            }
+            try std.testing.expectEqualDeep(expected_cpu, session.cpu);
+        }
+        try std.testing.expectEqual(expected_stop, actual_stop);
+        const want = try expected.sorted(a);
+        defer a.free(want);
+        const got = try actual.sorted(a);
+        defer a.free(got);
+        try std.testing.expectEqualSlices(u64, want, got);
+        try expectSameMemory(&ref.memory, &subject.memory);
+        total_fast += engine.fast_retired;
+        all_words += got.len;
+    }
+    try std.testing.expect(total_fast > 10000);
+    try std.testing.expect(all_words > 1000);
+}

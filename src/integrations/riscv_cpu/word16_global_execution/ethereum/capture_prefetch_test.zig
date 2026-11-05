@@ -801,3 +801,22 @@ test "capture failure joins readiness reader before destroying captured metadata
     try std.testing.expectEqual(@as(usize, 1), borrowed.cancellations);
     try std.testing.expect(borrowed.checked);
 }
+
+test "whole fast-pass RAM INITIAL equals final collector including zero-valued words" {
+    if (!@import("../../rv64_ethereum_segments.zig").ramFirstPassEnabled()) return;
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    const config = fixture.config();
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    var program = try Program.initWithAuthority(a, &image_owner.authority);
+    defer program.deinit();
+    for ([_]u8{ 1, 3 }) |workers| {
+        var stats: Direct.Stats = .{};
+        var direct = try Direct.captureWithSegments(a, &image_owner, &program, config, 0, 2, workers, &stats);
+        defer direct.deinit();
+        try std.testing.expect(stats.fast_ram_compared);
+        try std.testing.expectEqual(@as(u64, direct.advice.initial.len), stats.fast_ram_words);
+        try std.testing.expect(stats.fast_ram_ready_utc_ns > 0);
+    }
+}

@@ -385,3 +385,42 @@ pub const Capture = struct {
     }
 };
 
+/// Source-owned address projection of exactly appendEvent's RAM obligations.
+/// No generic memory observer: host checks/fetches are absent, and direct
+/// backing-page service reads, unaligned covering words and zero writes are
+/// all included. Differential tests compare this with complete Capture cells.
+pub fn visitEventWordAddresses(event: Event, writer: anytype) !void {
+    switch (event) {
+        .bulk => |e| {
+            const BM = @import("ethereum_services/bulk_memory.zig");
+            const kind = BM.kindOf(e.call.tag) orelse return error.InvalidBoundaryService;
+            for (0..3) |k| try writer.word(e.call.pointer + 8 * k);
+            switch (kind) {
+                .memcmp => {
+                    try writer.word(e.call.pointer + 24);
+                    for (0..@intCast(e.packet.examined)) |j| for ([_]u64{ e.packet.dst, e.packet.word1 }) |base| try writer.word(base + 8 * j);
+                },
+                .memcpy, .memset => {
+                    for (0..@intCast(e.packet.len / 8)) |j| try writer.word(e.packet.dst + 8 * j);
+                    if (kind == .memcpy) {
+                        const source = BM.sourceWords(e.packet.word1, e.packet.len);
+                        for (0..@intCast(source.count)) |j| try writer.word(source.base + 8 * j);
+                    }
+                },
+                .jumpdest => {
+                    for (0..@intCast(e.packet.len / 8)) |j| try writer.word(e.packet.dst + 8 * j);
+                    for (0..@intCast(BM.bitmapWords(e.packet.len))) |j| try writer.word(e.packet.word1 + 8 * j);
+                },
+            }
+        },
+        .sponge => |e| {
+            for (0..4) |k| try writer.word(e.call.pointer + 8 * k);
+            for (0..25) |k| try writer.word(e.packet.state + 8 * k);
+            for (0..@intCast(e.packet.words())) |j| try writer.word(e.packet.base() + 8 * j);
+        },
+        inline .keccak, .secp, .sha256, .arith256_mod, .curve => |call| {
+            const count: usize = if (@hasDecl(@TypeOf(call), "wordCount")) call.wordCount() else call.before.len;
+            for (0..count) |k| try writer.word(call.pointer + 8 * k);
+        },
+    }
+}

@@ -34,6 +34,11 @@ pub fn minimalFirstPassEnabled() bool {
     return std.mem.eql(u8, text, "1");
 }
 
+pub fn ramFirstPassEnabled() bool {
+    const text = std.posix.getenv("STWO_RV64_FIRST_PASS_RAM") orelse return false;
+    return std.mem.eql(u8, text, "1");
+}
+
 pub const Stats = struct {
     segments: u32 = 0,
     workers: u8 = 0,
@@ -43,6 +48,8 @@ pub const Stats = struct {
     minimal_cpu0_bytes: u64 = 0,
     minimal_cpu0_ready_utc_ns: u64 = 0,
     minimal_cpu0_checked: bool = false,
+    first_pass_ram_words: u64 = 0,
+    first_pass_ram_ready_utc_ns: u64 = 0,
     fast_retired: u64 = 0,
     pages_copied: u64 = 0,
     peak_live_pages: u64 = 0,
@@ -164,6 +171,7 @@ pub const Segments = struct {
     /// Owned by the Segments lifetime. Written only by firstPass for batch0,
     /// sealed before checkpoint1 publication, borrowed read-only by worker0.
     minimal_cpu0: ?rv.fast_execution.MinimalTrace = null,
+    ram_words: ?rv.ram_word_set.Set = null,
     pass_thread: ?std.Thread = null,
     ring: [MAX_WORKERS]?*Worker = @splat(null),
     next_index: u32 = 0,
@@ -183,6 +191,8 @@ pub const Segments = struct {
         errdefer if (self.minimal_cpu0) |trace| a.free(trace.records);
         if (self.minimal_cpu0) |*trace| trace.seeds = try a.alloc(rv.fast_execution.MinimalSeed, std.math.divCeil(usize, trace.records.len, rv.fast_execution.MINIMAL_CHUNK_ROWS) catch unreachable);
         errdefer if (self.minimal_cpu0) |trace| a.free(trace.seeds);
+        if (ramFirstPassEnabled()) self.ram_words = try rv.ram_word_set.Set.init(a, 1 << 24);
+        errdefer if (self.ram_words) |*words| words.deinit();
         self.engine = try rv.fast_execution.Engine.init(a, main.memory, .{ .stop_pcs = &.{main.config.terminal_pc}, .isa = main.session.keccak.base.decoder.isa });
         errdefer self.engine.deinit();
         self.engine.attach();
@@ -225,6 +235,7 @@ pub const Segments = struct {
             p.deinit();
         }
         self.engine.deinit();
+        if (self.ram_words) |*words| words.deinit();
         if (self.minimal_cpu0) |trace| {
             a.free(trace.records);
             a.free(trace.seeds);
@@ -263,6 +274,10 @@ pub const Segments = struct {
         if (timer) |*t| self.stats.first_pass_ns = t.read();
         self.stats.first_pass_retired = self.main.cpuState().retired;
         self.stats.fast_retired = self.engine.fast_retired;
+        if (self.ram_words) |words| {
+            self.stats.first_pass_ram_words = words.count;
+            self.stats.first_pass_ram_ready_utc_ns = @intCast(std.time.nanoTimestamp());
+        }
         self.engine.detach();
         self.pass.mutex.lock();
         self.pass.done = true;
@@ -292,13 +307,20 @@ pub const Segments = struct {
             var event: rv.ethereum_services.Event = undefined;
             while (true) {
                 if (index == 0 and self.minimal_cpu0 != null) {
-                    _ = try self.engine.runMinimal(cpu, @min(limit, config.max_steps), &self.minimal_cpu0.?);
+                    if (self.ram_words) |*words| {
+                        _ = try self.engine.runMinimalRam(cpu, @min(limit, config.max_steps), &self.minimal_cpu0.?, words);
+                    } else _ = try self.engine.runMinimal(cpu, @min(limit, config.max_steps), &self.minimal_cpu0.?);
+                } else if (self.ram_words) |*words| {
+                    _ = try self.engine.runRam(cpu, @min(limit, config.max_steps), words);
                 } else _ = self.engine.run(cpu, @min(limit, config.max_steps));
                 if (cpu.pc == config.terminal_pc) break;
                 if (cpu.retired == limit) break;
                 if (index == 0) if (self.minimal_cpu0) |*trace| trace.prepareReference(&cpu.regs);
                 const row = session.step(&event) catch return self.end(index + 1);
                 if (index == 0) if (self.minimal_cpu0) |*trace| try trace.appendRetirement(row orelse event.retirement());
+                if (self.ram_words) |*words| {
+                    if (row) |retirement| try words.observeRetirement(retirement) else try words.observeEvent(event);
+                }
                 if (cpu.pc == config.terminal_pc or cpu.retired == limit) break;
             }
             if (index == 0) if (self.minimal_cpu0) |trace| {
@@ -344,6 +366,20 @@ pub const Segments = struct {
                 break :blk null;
             };
         }
+    }
+
+    pub const GlobalRam = struct { words: *const rv.ram_word_set.Set, counters: rv.checkpoint.Counters };
+    /// Waits for the WHOLE fast pass, not the parallel traced capture. It never
+    /// returns a partial key set on a recording/resource failure.
+    pub fn globalRam(self: *Segments) !GlobalRam {
+        self.pass.mutex.lock();
+        defer self.pass.mutex.unlock();
+        while (!self.pass.done) self.pass.changed.wait(&self.pass.mutex);
+        if (self.pass.err) |err| return err;
+        if (self.main.cpuState().pc != self.main.config.terminal_pc) return error.FirstPassRamIncomplete;
+        const words = if (self.ram_words) |*value| value else return error.FirstPassRamUnavailable;
+        if (words.failure) |err| return err;
+        return .{ .words = words, .counters = rv.checkpoint.Counters.of(&self.main.session) };
     }
 
     pub const MinimalCpu = struct {
@@ -452,6 +488,12 @@ pub const Source = struct {
     pub fn deinit(self: *Source) void {
         if (self.segments) |s| s.destroy();
         self.* = undefined;
+    }
+    pub fn cancelFirstPass(self: *Source) void {
+        if (self.segments) |segments| segments.joinPass();
+    }
+    pub fn globalRam(self: *Source) !Segments.GlobalRam {
+        return (self.segments orelse return error.FirstPassRamRequiresSegments).globalRam();
     }
     pub fn firstMinimalCpu(self: *Source) !Segments.MinimalCpu {
         return (self.segments orelse return error.MinimalCpuRequiresSegments).firstMinimalCpu();

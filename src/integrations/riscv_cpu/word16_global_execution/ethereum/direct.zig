@@ -52,6 +52,11 @@ pub const Stats = struct {
     /// thread), and how long `capture` then waited for it.
     start_boot_ns: u64 = 0,
     start_join_ns: u64 = 0,
+    fast_ram_words: u64 = 0,
+    fast_ram_derive_ns: u64 = 0,
+    fast_ram_ready_utc_ns: u64 = 0,
+    fast_ram_compared: bool = false,
+    fast_ram_keccak_calls: u64 = 0,
 };
 pub const MAX_READY_TIMES = 32;
 /// Records each segment's ready instant into `Stats`, then forwards to the
@@ -256,6 +261,7 @@ pub fn capture(a: std.mem.Allocator, image: *const Image.Owner, program: *const 
 pub fn captureWithSegments(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, prefix_packets: u32, inflight: u8, segment_workers: u8, stats: *Stats) !Capture.Owner {
     if (prefix_packets > 256) return error.TooManyEthereumPackets;
     if (inflight == 0 or inflight > MAX_INFLIGHT) return error.InvalidEthereumCaptureOptions;
+    if (Segments.ramFirstPassEnabled() and (prefix_packets != 0 or source.segments == null)) return error.FirstPassRamRequiresWholeSegmentedBlock;
     var started = try Started.start(a, config, prefix_packets, segment_workers);
     defer started.deinit(stats);
     return started.capture(image, program, inflight, stats);
@@ -352,6 +358,44 @@ pub const Started = struct {
         return run(self.allocator, image, program, self.config, self.prefix_packets, inflight, self.walk.?, &self.source.?, self.ready, stats);
     }
 };
+const RamJob = struct {
+    allocator: std.mem.Allocator,
+    image: *const Image.Owner,
+    source: *Segments.Source,
+    stats: *Stats,
+    hook: ?Capture.Ready,
+    cells: ?[]@import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell = null,
+    failure: ?anyerror = null,
+    thread: ?std.Thread = null,
+    fn run(self: *RamJob) void {
+        self.work() catch |err| {
+            self.failure = err;
+        };
+    }
+    fn join(self: *RamJob) void {
+        if (self.thread) |thread| thread.join();
+        self.thread = null;
+    }
+    fn work(self: *RamJob) !void {
+        const ram = try self.source.globalRam();
+        var timer = try std.time.Timer.start();
+        const a = self.allocator;
+        const keys = try ram.words.sorted(a);
+        defer a.free(keys);
+        const Cell = @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell;
+        const cells = try a.alloc(Cell, keys.len);
+        self.cells = cells;
+        var pages = @import("../collector.zig").OwnerPages{ .owner = self.image };
+        for (keys, cells) |key, *cell| cell.* = .{ .address = key, .state = pages.lookup(key) orelse .{ .value = try self.image.initialWord(key), .rights = try self.image.wordRights(key) } };
+        self.stats.fast_ram_words = cells.len;
+        self.stats.fast_ram_derive_ns = timer.read();
+        self.stats.fast_ram_ready_utc_ns = @intCast(std.time.nanoTimestamp());
+        self.stats.fast_ram_keccak_calls = ram.counters.keccak;
+        std.debug.print("GPU_FAST_RAM event=initial_ready utc_ns={} words={} derive_ns={} keccak_calls={}\n", .{ self.stats.fast_ram_ready_utc_ns, cells.len, self.stats.fast_ram_derive_ns, ram.counters.keccak });
+        if (self.hook) |hook| if (hook.global_ram) |call| call(hook.context, cells, ram.counters);
+    }
+};
+
 fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, prefix_packets: u32, inflight: u8, walk: *Walk, source: *Segments.Source, ready: ?Capture.Ready, stats: *Stats) !Capture.Owner {
     if (inflight == 0 or inflight > MAX_INFLIGHT) return error.InvalidEthereumCaptureOptions;
     var ordered = Capture.Ordered.init(a, image, config, prefix_packets);
@@ -373,6 +417,16 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
         consumer.run(); // frees any job left after an early exit
     }
     var timer = try std.time.Timer.start();
+    var ram_job = RamJob{ .allocator = a, .image = image, .source = source, .stats = stats, .hook = ready };
+    if (Segments.ramFirstPassEnabled()) ram_job.thread = try std.Thread.spawn(.{}, RamJob.run, .{&ram_job});
+    // A failed capture can leave the first pass under bounded checkpoint
+    // backpressure. Cancel it before joining this waiter, while all Source
+    // owners still live, so no path waits for a consumer that has stopped.
+    defer {
+        if (ram_job.thread != null) source.cancelFirstPass();
+        ram_job.join();
+        if (ram_job.cells) |cells| a.free(cells);
+    }
     if (ready) |hook| if (hook.first_pass) |early| {
         const minimal = try source.firstMinimalCpu();
         const public = @import("stwo_riscv_frontend").rv64_air.word16_execution.types.Boundary{
@@ -445,5 +499,17 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
     if (failure) |err| return err;
     if (consumer.err) |err| return err;
     stats.max_inflight = @max(1, stats.max_inflight);
-    return ordered.finish(.{ .max_inflight_packets = stats.max_inflight, .max_worker_shards = stats.max_inflight });
+    var result = try ordered.finish(.{ .max_inflight_packets = stats.max_inflight, .max_worker_shards = stats.max_inflight });
+    errdefer result.deinit();
+    ram_job.join();
+    if (ram_job.failure) |err| return err;
+    if (ram_job.cells) |cells| {
+        if (cells.len != result.advice.initial.len) {
+            std.debug.print("GPU_FAST_RAM mismatch first_pass={} collector={}\n", .{ cells.len, result.advice.initial.len });
+            return error.FirstPassRamMismatch;
+        }
+        for (cells, result.advice.initial) |early, final| if (!std.meta.eql(early, final)) return error.FirstPassRamMismatch;
+        stats.fast_ram_compared = true;
+    }
+    return result;
 }

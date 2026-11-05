@@ -539,7 +539,7 @@ pub const Engine = struct {
     /// next instruction must be retired by the reference session (`.slow`).
     pub fn run(self: *Engine, cpu: *machine.Cpu, limit: u64) Exit {
         if (cpu.retired >= limit) return .limit;
-        return if (self.counting) self.runImpl(cpu, limit, true, false, null) else self.runImpl(cpu, limit, false, false, null);
+        return if (self.counting) self.runImpl(cpu, limit, true, false, false, null, null) else self.runImpl(cpu, limit, false, false, false, null, null);
     }
 
     /// Optional first-pass CPU records, emitted by the existing arithmetic and
@@ -552,10 +552,32 @@ pub const Engine = struct {
         if (self.code_lo > std.math.maxInt(u32) or self.code_hi > std.math.maxInt(u32)) return error.MinimalTracePcRange;
         const bounded = @min(limit, cpu.retired +| (trace.records.len - trace.len));
         if (cpu.retired >= bounded) return .limit;
-        return if (self.counting) self.runImpl(cpu, bounded, true, true, trace) else self.runImpl(cpu, bounded, false, true, trace);
+        return if (self.counting) self.runImpl(cpu, bounded, true, true, false, trace, null) else self.runImpl(cpu, bounded, false, true, false, trace, null);
     }
 
-    fn runImpl(self: *Engine, cpu: *machine.Cpu, limit: u64, comptime counting: bool, comptime minimal: bool, trace: ?*MinimalTrace) Exit {
+    pub fn runMinimalRam(self: *Engine, cpu: *machine.Cpu, limit: u64, trace: *MinimalTrace, words: *@import("ram_word_set.zig").Set) !Exit {
+        if (words.failure) |err| return err;
+        if (trace.len > trace.records.len) return error.MinimalTraceFull;
+        if (trace.seeds.len != 0 and trace.seeds.len < std.math.divCeil(usize, trace.records.len, MINIMAL_CHUNK_ROWS) catch unreachable) return error.MinimalSeedCapacity;
+        if (self.code_lo > std.math.maxInt(u32) or self.code_hi > std.math.maxInt(u32)) return error.MinimalTracePcRange;
+        const bounded = @min(limit, cpu.retired +| (trace.records.len - trace.len));
+        if (cpu.retired >= bounded) return .limit;
+        const result = if (self.counting) self.runImpl(cpu, bounded, true, true, true, trace, words) else self.runImpl(cpu, bounded, false, true, true, trace, words);
+        if (words.failure) |err| return err;
+        return result;
+    }
+
+    /// Same first pass with an explicit RAM-key sidecar. Normal run specializes
+    /// all marks away; fetches and failed accesses never publish RAM keys.
+    pub fn runRam(self: *Engine, cpu: *machine.Cpu, limit: u64, words: *@import("ram_word_set.zig").Set) !Exit {
+        if (words.failure) |err| return err;
+        if (cpu.retired >= limit) return .limit;
+        const result = if (self.counting) self.runImpl(cpu, limit, true, false, true, null, words) else self.runImpl(cpu, limit, false, false, true, null, words);
+        if (words.failure) |err| return err;
+        return result;
+    }
+
+    fn runImpl(self: *Engine, cpu: *machine.Cpu, limit: u64, comptime counting: bool, comptime minimal: bool, comptime ram: bool, trace: ?*MinimalTrace, words: ?*@import("ram_word_set.zig").Set) Exit {
         var i: usize = self.slotOf(cpu.pc) orelse return .slow;
         var r: [33]u64 = undefined;
         @memcpy(r[0..32], &cpu.regs);
@@ -616,6 +638,10 @@ pub const Engine = struct {
                 if (address & (@sizeOf(T) - 1) != 0) break :sw;
                 const index = address >> PAGE_SHIFT;
                 const base = (if (index < rd_tab.len) rd_tab[@intCast(index)] else null) orelse self.fill(index, false) orelse break :sw;
+                if (ram) words.?.mark(address & ~@as(u64, 7)) catch |err| {
+                    words.?.failure = err;
+                    break :sw;
+                };
                 const raw = std.mem.readInt(T, base[@intCast(address & (mem.PAGE_SIZE - 1))..][0..@sizeOf(T)], .little);
                 const result: u64 = switch (op) {
                     .lb => @bitCast(@as(i64, @as(i8, @bitCast(raw)))),
@@ -641,6 +667,10 @@ pub const Engine = struct {
                 if (address & (@sizeOf(T) - 1) != 0) break :sw;
                 const index = address >> PAGE_SHIFT;
                 const base = (if (index < wr_tab.len) wr_tab[@intCast(index)] else null) orelse self.fill(index, true) orelse break :sw;
+                if (ram) words.?.mark(address & ~@as(u64, 7)) catch |err| {
+                    words.?.failure = err;
+                    break :sw;
+                };
                 std.mem.writeInt(T, base[@intCast(address & (mem.PAGE_SIZE - 1))..][0..@sizeOf(T)], @truncate(r[s.rs2]), .little);
                 if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, 0, r[0..32], .{ s.rs1, s.rs2, 0 });
                 i += 1;
