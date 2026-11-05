@@ -66,7 +66,7 @@ const ReadyTap = struct {
     inner: ?Capture.Ready,
     fn nativeSegment(raw: *anyopaque, index: usize, native: *const Native, shard: @import("../services/collector.zig").Shard, at_ns: u64) void {
         const self: *ReadyTap = @ptrCast(@alignCast(raw));
-        if (self.inner) |hook| if (hook.native_segment) |call| call(hook.context, index, native, shard, at_ns);
+        if (self.inner) |hook| if (hook.native_segment) |invoke| invoke(hook.context, index, native, shard, at_ns);
     }
     fn call(context: *anyopaque, index: usize, native: *const Native, events: []const @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event, at_ns: u64) void {
         const self: *ReadyTap = @ptrCast(@alignCast(context));
