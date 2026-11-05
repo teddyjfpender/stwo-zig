@@ -16,6 +16,7 @@ pub const Source = struct {
     scope: D.Scope,
     main: D.Tree,
     fixed: ?D.Tree = null,
+    channel_observer: ?core.channel.raw_mod_m31.Om31Observer = null,
     pcs: *const D.Stage,
     composition: *const api.device_composition.ResidentOm31Stage,
     /// Must generate/commit exact native cumulative INTER under these fresh
@@ -193,11 +194,22 @@ fn proveOwnedDirect(a: std.mem.Allocator, key: *const Native.Authority, outputs:
     if (key.device_fixed != (precommitted != null)) return error.InvalidOm31DeviceFixedRoot;
     const source = if (precommitted) |fixed| try fixed.prepare_from_circuit(fixed.context, a, key, graph.?, requested) else if (graph) |ctx| try factory.prepare_from_circuit.?(factory.context, a, key, ctx, requested) else try factory.prepare(factory.context, a, key, values, requested);
     defer source.release(source.context);
+    var observer = source.channel_observer;
+    defer if (observer) |value| value.destroy(value.context);
     if (!std.mem.eql(u8, &source.scope.statement, &requested.statement) or !std.mem.eql(u8, &source.scope.fixed, &requested.fixed) or source.scope.ordinal != ordinal or !std.mem.eql(u8, &source.scope.main, &source.main.root)) return error.InvalidOm31CircuitDeviceScope;
     const main_logs = try key.treeLogs(a, 1);
     defer a.free(main_logs);
     try validateTree(main_logs, source.main);
     var channel = try Native.begin(a, key, outputs);
+    const Raw = core.channel.raw_mod_m31;
+    const previous_observer = Raw.om31_observer;
+    defer Raw.om31_observer = previous_observer;
+    if (observer) |*value| {
+        value.target = &channel;
+        value.start(value.context, Raw.om31Checkpoint(&channel));
+        Raw.om31_observer = value;
+    }
+
     var scheme = try P.Engine.init(a, try P.targetConfig());
     var owns = true;
     defer if (owns) scheme.deinit(a);
@@ -234,6 +246,8 @@ fn proveOwnedDirect(a: std.mem.Allocator, key: *const Native.Authority, outputs:
     for (components, bound) |*out, *component| out.* = component.asProverComponent();
     owns = false;
     const proof = try P.Engine.prove(a, components, &channel, scheme, .{});
+    errdefer { var owned = proof; owned.deinit(a); }
+    if (observer) |value| try value.finish(value.context);
     return .{ .allocator = a, .outputs = outputs, .claims = interaction.claims, .proof = proof };
 }
 test "native OM31 device controller rejects host geometry and mixed custody" {

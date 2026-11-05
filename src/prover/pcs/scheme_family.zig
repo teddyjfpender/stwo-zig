@@ -458,6 +458,8 @@ pub fn ForField(comptime Secure: type) type {
                                 for (coefficients, columns) |coefficient, *column| column.* = .{ .log_size = coefficient.logSize(), .coefficients = coefficient.coefficients() };
                             }
                             if (scheme.device_om31_composition_tree) |composition| trees[scheme_views.traceTreeCount(scheme)] = composition;
+                            // Observe the authoritative object before the transactional PCS copy.
+                            try @import("stwo_core").channel.raw_mod_m31.beforeDeviceOm31Pcs(channel);
                             var after = channel.*;
                             var result = try stage.prove(stage.context, allocator, .{ .scope = scheme.device_om31_scope, .config = scheme.config, .lifting_log_size = lifting_log_size, .trees = trees, .points = sampled_points_owned }, &after);
                             errdefer result.deinit(allocator);
