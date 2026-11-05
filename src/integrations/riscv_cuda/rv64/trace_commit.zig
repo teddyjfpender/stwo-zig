@@ -340,6 +340,12 @@ const Job = struct {
         self.result = .{ .root = root, .columns = columns };
     }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
+        var range = try @import("nvtx_stage.zig").Range.begin(&self.backend.service.library, raw, switch (self.request.tree_index) {
+            0 => "rv64/TC/FIXED",
+            1 => "rv64/TC/MAIN",
+            else => "rv64/TC/INTER",
+        });
+        defer range.deinit();
         const b = self.backend;
         const a = self.a;
         const r = self.request;

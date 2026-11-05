@@ -1,0 +1,24 @@
+{
+  "schema": "rv64-m7-controller-frozen-pair/v1",
+  "label": "M",
+  "base_commit": "b053aefe2",
+  "nvtx_checkpoint": "7a0bf4213",
+  "root_nvtx_hooks_from": "7508aca49 (only helper+4stage entryhooks)",
+  "driver_sha256": "e93af1894f9a8fcc720328f4ccd9d56b89895d58a63632550cf50653b1edb198",
+  "library_sha256": "116a3658ed4aecb1dff18d56e4a3be62d651411dc845da018a8362830a7590aa",
+  "receiver_sha256": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/pcs_native.cu": "78e57073ae574f4914874973cf90551902d6ae1b1dfa114bf66faa9607300ee4",
+    "src/backends/cuda/native/rv64/pcs_native.h": "407612e04c9208ebd4e6447cdb2edc1b424e3c6ea51a15e289aaa5be6c8bd034",
+    "src/backends/cuda/native/rv64/pcs_pipeline.cuh": "4572300f466eff866701049149e63a814a1ba6a084a4478b46f30c8e70a15e83",
+    "src/integrations/circuit_cpu/om31/device_prove.zig": "71f2bdcfccbfa7736b783147032763914c09a6df29e388a6f1ab54f974179d1c",
+    "src/integrations/riscv_cuda/rv64/outer_source.zig": "809b94c357d56750372ec638fa0c71e3648f5e085e524b7e0d73b478126afd58",
+    "src/integrations/riscv_cuda/rv64/outer_fixed.zig": "4535706f4ab479f7c93a50b46c794b426a08b5706fd2dd36dd342d7134f71043",
+    "src/integrations/riscv_cuda/rv64/trace_commit.zig": "416c7040e84f8448c0eb8aed81dcc6e79621b2aac340a3844c4a93dfab5dc4ea",
+    "src/integrations/riscv_cuda/rv64/resident_composition.zig": "91e5e9ef9dcb577173d32789c99ed15d50ad3918666afdff515c56bdada8b27e",
+    "src/integrations/riscv_cuda/rv64/outer_source_main.zig": "c27130f2ce16e2e91555bbd7de4b4d32c562fa23c05834f49324a87af4c85707",
+    "src/integrations/riscv_cuda/rv64/outer_source_interaction.zig": "d56b70a4bc5b6732ca115d79a18fb471002200f418ec088762513194f0311f9d",
+    "src/integrations/riscv_cuda/rv64/nvtx_stage.zig": "1255929c7a4bd38385de1a47299466ca3c7f42df94701a842b414a1bc46c062e"
+  },
+  "scope": "Samebinary/image and fullv3preset; controller is only configuration delta. Historical87c inherited-cache binary rejected before any fullrequest. Hardnative_done barrier retained. Planner/GKRdisabled."
+}
