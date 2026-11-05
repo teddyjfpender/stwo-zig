@@ -68,7 +68,7 @@ pub fn register(owner: *@import("outer_source.zig").Owner) !void {
     try service.registerAdmissionProgress(owner.initial_scope, plan);
 }
 
-fn pcsGeometry(a: std.mem.Allocator, owner: *@import("outer_source.zig").Owner, config: core.pcs.PcsConfig, logs: [3][]const u32, max_log: u32) !D.Request {
+fn pcsGeometry(a: std.mem.Allocator, owner: *@import("outer_source.zig").Owner, config: core.pcs.ForField(O).PcsConfig, logs: [3][]const u32, max_log: u32) !D.Request {
     const Air = core.air.components.ForField(O);
     const components = try a.alloc(Outer.component.Component, owner.key.bound.components.len);
     const erased = try a.alloc(Air.Component, components.len);
