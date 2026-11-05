@@ -182,9 +182,14 @@ fn closeAdmission(b: *S.Context, permit: *Admission.Permit) !void {
     if (permit.entered and permit.after == null) {
         const End = struct {
             permit: *Admission.Permit,
+            sync: Native.Sync,
             failure: ?anyerror = null,
             fn run(raw: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
                 const self: *@This() = @ptrCast(@alignCast(data.?));
+                S.checked(self.sync(raw)) catch |err| {
+                    self.failure = err;
+                    return 1;
+                };
                 self.permit.leaveOwner(raw) catch |err| {
                     self.failure = err;
                     return 1;
@@ -192,7 +197,7 @@ fn closeAdmission(b: *S.Context, permit: *Admission.Permit) !void {
                 return 0;
             }
         };
-        var end = End{ .permit = permit };
+        var end = End{ .permit = permit, .sync = b.api.sync };
         const status = b.service.submit(b.service.session, End.run, &end);
         if (end.failure) |err| return err;
         try S.checked(status);
