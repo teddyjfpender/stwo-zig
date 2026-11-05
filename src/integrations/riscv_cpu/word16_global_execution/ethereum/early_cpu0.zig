@@ -174,7 +174,11 @@ pub const Owner = struct {
         self.admit_utc_ns = now();
         // All unpublished source owners must be destroyed before the ticket's
         // joined finish runs on an error. Root's ticket poisons failed custody.
-        errdefer {
+        errdefer |cause| {
+            // Preserve the stage failure before cleanup can report a secondary
+            // snapshot/custody error. The private result is never published.
+            self.fail(cause);
+            std.debug.print("EARLY_NATIVE_MAIN event=failed ordinal=0 error={s}\n", .{@errorName(cause)});
             if (self.worker) |*worker| {
                 worker.deinit(a);
                 self.worker = null;

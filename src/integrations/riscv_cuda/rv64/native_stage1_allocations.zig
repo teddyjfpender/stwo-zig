@@ -40,6 +40,7 @@ pub const Guard = struct {
                 return;
             }
         }
+        std.debug.print("GPU_EARLY_MAIN_ALLOCATION_REFUSED phase={s} words={} kind={}\n", .{ @tagName(self.current), words, kind });
         return error.UnplannedEarlyStageAllocation;
     }
     fn completePhase(self: *Guard, p: Phase) !void {
@@ -47,7 +48,10 @@ pub const Guard = struct {
         for (plan.list(), 0..) |allocation, i| {
             // Conservative cold ROM is the only optional allocation. A real
             // cache hit pins its existing immutable owner instead of growing.
-            if (phase(allocation.owner) == p and allocation.owner != .immutable_rom and !self.consumed[i]) return error.MissingEarlyStageAllocation;
+            if (phase(allocation.owner) == p and allocation.owner != .immutable_rom and !self.consumed[i]) {
+                std.debug.print("GPU_EARLY_MAIN_ALLOCATION_MISSING phase={s} owner={s} words={} kind={}\n", .{ @tagName(p), @tagName(allocation.owner), allocation.words, allocation.kind });
+                return error.MissingEarlyStageAllocation;
+            }
         }
     }
     pub fn advance(self: *Guard, scope: [8]u32, next: Phase) !void {
