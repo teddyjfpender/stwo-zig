@@ -185,6 +185,7 @@ pub const Context = struct {
     /// retained-ledger path owns GPU-unpacked metadata; it never reads an empty
     /// host slice as if it contained values or compares absent host histograms.
     fn projectPacked(self: *Context, source: *const CPU.Source, scope: D.Scope, compact_capture: ?*const Ingress.Compact, pack_ns: u64) !CPU.DeviceProjection {
+        const host = self.host_allocator;
         if (source.metadata.len != source.public.steps and (!self.retain_ledgers or compact_capture == null)) return error.MissingCpuProjectionMetadata;
         if (compact_capture) |p| if (p.records.len != source.public.steps) return error.InvalidCompactCpuMetadata;
         var timer = try std.time.Timer.start();
