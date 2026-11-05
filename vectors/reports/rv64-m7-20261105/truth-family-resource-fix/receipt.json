@@ -1,0 +1,19 @@
+{
+  "schema": "rv64-m7-truth-family-resource-handoff/v1",
+  "author": "OpenAI Codex",
+  "status": "source-unit-pass-production-gate-pending",
+  "tests_passed": 4,
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig": "44b468f07ab508845968ee9a770dfdcfbffd7d021ed25228b08c806acd7be621",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig": "4886cfb02ceee2ebff043cd4f68dca0e6b2e547a6f77ca2ba74b271dc152ebcf"
+  },
+  "initial_production_negative": {
+    "flag_in_resources_and_report": true,
+    "actual_small_native_leaves": 11,
+    "actual_headline_native_leaves": 17,
+    "cause": "gkr_main manual Plan options omitted coalesce_families",
+    "performance_claim": false
+  },
+  "fix": "gkr_main now uses shared KeccakTruthOptions.fromResources; parsed JSON test feeds exact selector to seven-declaration coalescing plan",
+  "actual_fewer_leaves_qualified": false
+}
