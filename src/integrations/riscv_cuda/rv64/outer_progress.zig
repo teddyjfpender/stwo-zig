@@ -39,12 +39,19 @@ pub fn register(owner: *@import("outer_source.zig").Owner) !void {
     }
     var fixed_words: u64 = 0;
     for (logs[0]) |log| fixed_words = try std.math.add(u64, fixed_words, @as(u64, 1) << @intCast(log));
+    // The precommitted FIXED coefficient forest is already a physical owner
+    // in the arena snapshot. prepare_from_circuit checked that this exact PP
+    // and root belong to its live precommit. RC and PCS consume those device
+    // columns directly, just as their execution preflights do; neither makes
+    // another cold coefficient-cache copy. Raw FIXED evaluation misses in
+    // Source remain charged, because their immutable entries are not pinned.
+    const fixed_cold_words = if (key.device_fixed) 0 else fixed_words;
     const log = key.bound.max_evaluation_log_size;
     const shared = if (std.posix.getenv("STWO_RV64_RC_ROLE_WORKSPACE")) |v| std.mem.eql(u8, v, "1") else false;
-    var rc = try owner.backend.composition.classAllocationPlan(a, classes, logs, log, 1, key.bound.total_constraints, beta, fixed_words, shared);
+    var rc = try owner.backend.composition.classAllocationPlan(a, classes, logs, log, 1, key.bound.total_constraints, beta, fixed_cold_words, shared);
     defer rc.deinit(a);
     const request = try pcsGeometry(a, owner, config, logs, log - 1);
-    var pcs = try @import("pcs_native.zig").classAllocationPlanWithFixed(a, request, service.wide_pcs_framing, try service.classAllocationOptions(request.lifting_log_size), fixed_words);
+    var pcs = try @import("pcs_native.zig").classAllocationPlanWithFixed(a, request, service.wide_pcs_framing, try service.classAllocationOptions(request.lifting_log_size), fixed_cold_words);
     defer pcs.deinit(a);
     const main_owner = try A.Footprint.allocation(try std.math.mul(u64, main_tc.coefficient_words, 4));
     const inter_owner = try A.Footprint.allocation(try std.math.mul(u64, inter_tc.coefficient_words, 4));
