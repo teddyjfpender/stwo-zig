@@ -54,7 +54,7 @@ Labels: **[M]** measured, **[D]** derived from measured numbers, **[E]** estimat
 
 Each item lists the goal, the work, the gate, and the expected effect [E] on 24628607 at 2 GPUs.
 
-### P0. Consolidate onto one tree (first, one to two days)
+### P0. Consolidate onto one tree (first, before any new feature work)
 
 - Merge or close every branch in §7 into `codex/rv64-m7-integrate`. Branches that are only receipts are merged for the receipts, and branches that are superseded are closed with a note.
 - Keep the current default preset: D2 + coalescing, automatic arena, one lane.
@@ -168,7 +168,7 @@ Standard practice, applied consistently:
 3. **Small, reviewable commits** with the measured result in the message (headline numbers plus the receipt path).
 4. **Feature flags default off, and composed.** A flag is either promoted to default within a few days or deleted. Test the flags that matter together, in one tree.
 5. **Measure the critical path first, then design for it.** Before building, write down which measured seconds the change removes; after building, show it.
-6. **Timebox:** one day from design to the first matched timing. If it isn't positive, write down why before adding more gates or machinery.
+6. **First matched timing before more machinery:** each change reaches a matched timing in the composed default before any further gates or infrastructure are built for it. If it isn't positive, write down why before continuing.
 7. **Keep correctness gates proportional:**
    - byte identity + fresh receiver for scheduling changes;
    - a named profile + soundness note + tamper corpus for proof-format changes;
@@ -183,15 +183,18 @@ Standard practice, applied consistently:
 
 ---
 
-## 6. This week
+## 6. Execution order
 
-| day | work | exit |
+Run the items as one sequence on one tree. Each step's exit is the entry condition for the next. Steps that don't touch the same code (for example, a Poseidon2 kernel benchmark on the pod) may run as *measurements* in parallel, but code changes land one at a time.
+
+| step | work | exit |
 |---|---|---|
-| 1–2 | P0 consolidation + gate script | one tree; default byte-identical; gate green |
-| 2–4 | P1 footprint: INTER/MAIN streaming commit, bounded composition/GKR workspace, immediate retirement | node peak ≤ 11 GB; composed stack (2 lanes) warm 3+3 run on 24628607 |
-| 3–5 | P3 early stage 1 redone (compute early, mix in order, no copy, one seal, all segments) | stage-1 start ≤ 1.4 s; matched timing |
-| 4–5 | P2 Poseidon2 kernel session + native profile S2 | GPU-s per block measured; go/no-go on net GPU-s |
-| 5 | P4 Keccak batches GPU qualification | leaves 14 → ~11 |
+| 1 | P0 consolidation + gate script | one tree; default byte-identical; gate green |
+| 2 | P1 footprint: INTER/MAIN streaming commit, bounded composition/GKR workspace, immediate retirement | node peak ≤ 11 GB; composed stack (2 lanes) warm 3+3 run on 24628607 |
+| 3 | P3 early stage 1 redone (compute early, mix in order, no copy, one seal, all segments) | stage-1 start ≤ 1.4 s; matched timing in the composed default |
+| 4 | P2 Poseidon2 kernel pass + native profile S2 | GPU-s per block measured; go/no-go on net GPU-s |
+| 5 | P4 Keccak batches GPU qualification, then CPU23 rungs | leaves 14 → ~11, then fewer |
+| 6 | P5 parallel capture + 4-GPU placement + scale probe | 26235159 measured on 4 GPUs |
 
 ---
 
