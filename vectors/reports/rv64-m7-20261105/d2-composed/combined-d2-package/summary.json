@@ -69,11 +69,11 @@
           "after_native_kernel_gpu_seconds": 6.740208733,
           "pre_boundary_kernel_remainder_gpu_seconds": 2.771403391999999,
           "partition_note": "Root NVTX analyzer after-native cut uses recorded native-stage end plus5ms uncertainty. Remainder includes capture/setup/native and boundary band; not isolated LDE or kernel-name inference.",
-          "tree_nodes_excluding_root_wrapper": 15,
           "fold_nodes": 4,
           "fold_depth": 2,
           "tail_after_last_leaf_ns_diagnostic": 5553494335,
-          "native_overlap_admitted": false
+          "native_overlap_admitted": false,
+          "tree_nodes": 15
         },
         {
           "trial": 1,
@@ -95,11 +95,11 @@
           "after_native_kernel_gpu_seconds": 6.7469808790000005,
           "pre_boundary_kernel_remainder_gpu_seconds": 2.774812656,
           "partition_note": "Root NVTX analyzer after-native cut uses recorded native-stage end plus5ms uncertainty. Remainder includes capture/setup/native and boundary band; not isolated LDE or kernel-name inference.",
-          "tree_nodes_excluding_root_wrapper": 15,
           "fold_nodes": 4,
           "fold_depth": 2,
           "tail_after_last_leaf_ns_diagnostic": 2218079064,
-          "native_overlap_admitted": false
+          "native_overlap_admitted": false,
+          "tree_nodes": 15
         }
       ]
     },
@@ -169,11 +169,11 @@
           "after_native_kernel_gpu_seconds": 10.046822882,
           "pre_boundary_kernel_remainder_gpu_seconds": 3.9893534389999985,
           "partition_note": "Root NVTX analyzer after-native cut uses recorded native-stage end plus5ms uncertainty. Remainder includes capture/setup/native and boundary band; not isolated LDE or kernel-name inference.",
-          "tree_nodes_excluding_root_wrapper": 23,
           "fold_nodes": 6,
           "fold_depth": 3,
           "tail_after_last_leaf_ns_diagnostic": 6989517752,
-          "native_overlap_admitted": false
+          "native_overlap_admitted": false,
+          "tree_nodes": 23
         },
         {
           "trial": 1,
@@ -195,11 +195,11 @@
           "after_native_kernel_gpu_seconds": 10.061059252,
           "pre_boundary_kernel_remainder_gpu_seconds": 3.992033795000001,
           "partition_note": "Root NVTX analyzer after-native cut uses recorded native-stage end plus5ms uncertainty. Remainder includes capture/setup/native and boundary band; not isolated LDE or kernel-name inference.",
-          "tree_nodes_excluding_root_wrapper": 23,
           "fold_nodes": 6,
           "fold_depth": 3,
           "tail_after_last_leaf_ns_diagnostic": 2735760088,
-          "native_overlap_admitted": false
+          "native_overlap_admitted": false,
+          "tree_nodes": 23
         }
       ]
     },
@@ -268,11 +268,11 @@
           "after_native_kernel_gpu_seconds": 4.991695152,
           "pre_boundary_kernel_remainder_gpu_seconds": 3.155325502,
           "partition_note": "Root NVTX analyzer after-native cut uses recorded native-stage end plus5ms uncertainty. Remainder includes capture/setup/native and boundary band; not isolated LDE or kernel-name inference.",
-          "tree_nodes_excluding_root_wrapper": 15,
           "fold_nodes": 4,
           "fold_depth": 2,
           "tail_after_last_leaf_ns_diagnostic": 5207811961,
-          "native_overlap_admitted": false
+          "native_overlap_admitted": false,
+          "tree_nodes": 15
         },
         {
           "trial": 1,
@@ -293,11 +293,11 @@
           "after_native_kernel_gpu_seconds": 5.0001753319999995,
           "pre_boundary_kernel_remainder_gpu_seconds": 3.157370760000001,
           "partition_note": "Root NVTX analyzer after-native cut uses recorded native-stage end plus5ms uncertainty. Remainder includes capture/setup/native and boundary band; not isolated LDE or kernel-name inference.",
-          "tree_nodes_excluding_root_wrapper": 15,
           "fold_nodes": 4,
           "fold_depth": 2,
           "tail_after_last_leaf_ns_diagnostic": 2007999340,
-          "native_overlap_admitted": false
+          "native_overlap_admitted": false,
+          "tree_nodes": 15
         }
       ]
     },
@@ -366,11 +366,11 @@
           "after_native_kernel_gpu_seconds": 6.197872744,
           "pre_boundary_kernel_remainder_gpu_seconds": 4.376370842,
           "partition_note": "Root NVTX analyzer after-native cut uses recorded native-stage end plus5ms uncertainty. Remainder includes capture/setup/native and boundary band; not isolated LDE or kernel-name inference.",
-          "tree_nodes_excluding_root_wrapper": 19,
           "fold_nodes": 5,
           "fold_depth": 2,
           "tail_after_last_leaf_ns_diagnostic": 5469109083,
-          "native_overlap_admitted": false
+          "native_overlap_admitted": false,
+          "tree_nodes": 19
         },
         {
           "trial": 1,
@@ -391,11 +391,11 @@
           "after_native_kernel_gpu_seconds": 6.204127488,
           "pre_boundary_kernel_remainder_gpu_seconds": 4.380567846999999,
           "partition_note": "Root NVTX analyzer after-native cut uses recorded native-stage end plus5ms uncertainty. Remainder includes capture/setup/native and boundary band; not isolated LDE or kernel-name inference.",
-          "tree_nodes_excluding_root_wrapper": 19,
           "fold_nodes": 5,
           "fold_depth": 2,
           "tail_after_last_leaf_ns_diagnostic": 1717496071,
-          "native_overlap_admitted": false
+          "native_overlap_admitted": false,
+          "tree_nodes": 19
         }
       ]
     },
@@ -464,11 +464,11 @@
           "after_native_kernel_gpu_seconds": 7.381724757000001,
           "pre_boundary_kernel_remainder_gpu_seconds": 4.527513789,
           "partition_note": "Root NVTX analyzer after-native cut uses recorded native-stage end plus5ms uncertainty. Remainder includes capture/setup/native and boundary band; not isolated LDE or kernel-name inference.",
-          "tree_nodes_excluding_root_wrapper": 23,
           "fold_nodes": 6,
           "fold_depth": 3,
           "tail_after_last_leaf_ns_diagnostic": 6681363077,
-          "native_overlap_admitted": false
+          "native_overlap_admitted": false,
+          "tree_nodes": 23
         },
         {
           "trial": 1,
@@ -489,11 +489,11 @@
           "after_native_kernel_gpu_seconds": 7.389484488,
           "pre_boundary_kernel_remainder_gpu_seconds": 4.531548356999999,
           "partition_note": "Root NVTX analyzer after-native cut uses recorded native-stage end plus5ms uncertainty. Remainder includes capture/setup/native and boundary band; not isolated LDE or kernel-name inference.",
-          "tree_nodes_excluding_root_wrapper": 23,
           "fold_nodes": 6,
           "fold_depth": 3,
           "tail_after_last_leaf_ns_diagnostic": 2415726625,
-          "native_overlap_admitted": false
+          "native_overlap_admitted": false,
+          "tree_nodes": 23
         }
       ]
     }
@@ -501,5 +501,6 @@
   "gpu_accounting_scripts": {
     "/workspace/m3/src/m7-native-gkr/scripts/rv64_m7_gpu_seconds.py": "b90bb38ea05da30ed5ddcc39222791d72d21ad44bf02bd8348bd4dbd24f3d9cc",
     "/workspace/m3/src/m7-fold-v3/scripts/rv64_m7_nvtx_ownership.py": "4e01fd728141b481d50b416ed54711bdb42af3c59c0376e599e10c5b1ebc0eae"
-  }
+  },
+  "root_export_note": "root.proof is a byte-identical duplicate export of the top fold. Tree node counts and cell totals count that proof once; no additional root STARK is omitted."
 }
