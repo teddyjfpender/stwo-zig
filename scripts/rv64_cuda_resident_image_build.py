@@ -97,6 +97,22 @@ def outer_sources(directory):
     return sources + [(directory / "outer-dispatch.cu").resolve(strict=True)]
 
 
+def outer_hybrid_sources(directory):
+    manifest=json.loads((directory / "hybrid-outer-manifest.json").read_text())
+    groups=manifest.get("groups", [])
+    expected=[1,11,3,5,11,1,3,1,1,1,1]
+    if manifest.get("profile")!="hybrid-native-om31-circuit-v2" or manifest.get("geometry_independent") is not True or len(groups)!=len(expected):
+        raise ValueError("complete receiver-derived hybrid catalogue required")
+    sources=[]
+    for i,(group,count) in enumerate(zip(groups,expected)):
+        if group.get("id")!=i or group.get("component")!=i or group.get("part")!=0 or group.get("first")!=0 or group.get("count")!=count or group.get("filename")!=f"hybrid-outer-group-{i}.cu":
+            raise ValueError("hybrid group coverage/constraint order mismatch")
+        for key in ("program_identity","source_identity"):
+            if not re.fullmatch(r"[0-9a-f]{64}",group.get(key,"")):raise ValueError("hybrid authority identity missing")
+        sources.append((directory/group["filename"]).resolve(strict=True))
+    return sources+[(directory/"hybrid-outer-dispatch.cu").resolve(strict=True)]
+
+
 def split_core(directory, build, roles, max_module_bytes=128 << 10):
     """Keep global RLC indices while bounding individual optimizer units."""
     original, _ = core_catalog(directory)
@@ -210,6 +226,7 @@ def main():
     for name in ("source-root", "core-domain", "core-projection", "global-projection", "truth-domain", "truth-partitions", "truth-rational", "build"):
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--outer-circuit-dir", type=Path, help="Include the exact twelve-group OM31 outer circuit catalogue")
+    parser.add_argument("--outer-hybrid-circuit-dir",type=Path,help="Include receiver-derived cyclic-Eq hybrid outer AIR")
     parser.add_argument("--nvcc", default="/usr/local/cuda/bin/nvcc")
     parser.add_argument("--jobs", type=int, default=6)
     parser.add_argument("--compile-timeout", type=float, default=180)
@@ -248,6 +265,9 @@ def main():
     sources.extend(global_kernels)
     if args.outer_circuit_dir:
         sources.extend(outer_sources(args.outer_circuit_dir.resolve()))
+    if args.outer_hybrid_circuit_dir:
+        if not args.outer_circuit_dir: raise ValueError("hybrid outer requires original MAIN circuit catalogue")
+        sources.extend(outer_hybrid_sources(args.outer_hybrid_circuit_dir.resolve()))
     for role in range(15):
         source = args.truth_rational / f"stwo_rv64_truth_projection_{role}.cu"
         result = Rational.partition(source.resolve(), build / "rational" / str(role), 16)
@@ -319,6 +339,8 @@ def main():
     required = ["stwo_rv64_composition_role_on", "stwo_rv64_truth_composition_role_on", "stwo_rv64_curve_witness_on", "stwo_rv64_secp_witness_on"] + [f"stwo_rv64_truth_projection_{i}" for i in range(15)] + [f"launch_{i}" for i in range(47)]
     if args.outer_circuit_dir:
         required += ["stwo_circuit_base_witness_on", "stwo_circuit_om31_fractions_on", "stwo_circuit_om31_cumulative_on", "stwo_circuit_om31_composition_identity", "stwo_circuit_om31_composition_role_on", "stwo_circuit_assignment_seed_on", "stwo_circuit_assignment_level_on", "stwo_circuit_assignment_capabilities", "stwo_fused_blake2s_v1_shadow_on", "stwo_circuit_assignment_chain_run_on", "stwo_circuit_assignment_chain_max_width", "stwo_circuit_outer_gkr_validate_on", "stwo_circuit_outer_gkr_layer_on", "stwo_circuit_outer_gkr_sum_on", "stwo_circuit_outer_gkr_fold_on", "stwo_circuit_outer_gkr_mask_on", "stwo_circuit_outer_gkr_binding_on"]
+    if args.outer_hybrid_circuit_dir:
+        required += ["stwo_circuit_hybrid_om31_composition_identity","stwo_circuit_hybrid_om31_composition_role_on"]
     required += global_symbols
     missing = [name for name in required if not hasattr(image, name)]
     if missing:
@@ -327,7 +349,7 @@ def main():
         image.stwo_circuit_assignment_capabilities.restype = ctypes.c_uint32
         if image.stwo_circuit_assignment_capabilities() & 0xffff != 0xffff:
             raise RuntimeError("native outer assignment executor lacks sixteen required kinds")
-    receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "core_split_roles": args.split_core_role, "core_module_max_bytes": args.core_module_max_bytes, "truth_roles": 15, "global_projection_symbols": global_symbols, "bounded_aot_sources": lowering, "separable_device_sources": device_link, "outer_manifest_sha256": N.sha(args.outer_circuit_dir / "outer-manifest.json") if args.outer_circuit_dir else None, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
+    receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "core_split_roles": args.split_core_role, "core_module_max_bytes": args.core_module_max_bytes, "truth_roles": 15, "global_projection_symbols": global_symbols, "bounded_aot_sources": lowering, "separable_device_sources": device_link, "outer_hybrid_manifest_sha256": N.sha(args.outer_hybrid_circuit_dir / "hybrid-outer-manifest.json") if args.outer_hybrid_circuit_dir else None, "outer_manifest_sha256": N.sha(args.outer_circuit_dir / "outer-manifest.json") if args.outer_circuit_dir else None, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
     (build / "image-build.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(library)
 

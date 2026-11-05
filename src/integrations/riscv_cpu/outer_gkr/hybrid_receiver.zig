@@ -22,6 +22,10 @@ pub const Key = struct {
     /// Source is rebuilt by the receiver's ordinary pinned Authority path, never
     /// decoded from proof material. The source and its PP outlive this key.
     pub fn init(a: std.mem.Allocator, source: *const Outer.prove.Authority, outer_proofs: u64) !Key {
+        if (source.bound.components.len != P.N_COMPONENTS) return error.InvalidHybridGeometry;
+        for (source.bound.components, source.logs.toArray(), 0..) |component, log, i| {
+            if (component.trace_log_size != log or component.evaluation_log_size != log + 1 or !std.mem.eql(u8, component.label, @tagName(@as(P.Component, @enumFromInt(i))))) return error.InvalidHybridGeometry;
+        }
         var logs: [P.N_COMPONENTS]u8 = undefined;
         for (&logs, source.logs.toArray()) |*v, log| v.* = std.math.cast(u8, log) orelse return error.InvalidHybridGeometry;
         const instances = try a.alloc(P.Instance, 8);

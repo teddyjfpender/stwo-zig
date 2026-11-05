@@ -180,6 +180,12 @@ pub fn main() !void {
     if (args.len == 3 and std.mem.eql(u8, args[1], "--outer-control")) return @import("rv64/outer_proof_fixture.zig").run(a, .control, "", args[2]);
     if (args.len == 4 and std.mem.eql(u8, args[1], "--outer-proof")) return @import("rv64/outer_proof_fixture.zig").run(a, .gpu, args[2], args[3]);
     if (args.len == 4 and std.mem.eql(u8, args[1], "--outer-check")) return @import("rv64/outer_proof_fixture.zig").run(a, .verify, args[2], args[3]);
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--outer-hybrid-om31")) {
+        try std.fs.cwd().makePath(args[2]);
+        var directory = try std.fs.cwd().openDir(args[2], .{});
+        defer directory.close();
+        return @import("rv64/outer_hybrid_aot.zig").write(a, directory);
+    }
     if (args.len == 3 and std.mem.eql(u8, args[1], "--outer-native-om31")) {
         try std.fs.cwd().makePath(args[2]);
         var directory = try std.fs.cwd().openDir(args[2], .{});

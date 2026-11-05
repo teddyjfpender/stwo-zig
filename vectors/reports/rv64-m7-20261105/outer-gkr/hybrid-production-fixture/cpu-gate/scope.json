@@ -1,0 +1,7 @@
+{
+  "outer_gkr_tests": 30,
+  "security_policy_tests": 58,
+  "fraction_tests": 7,
+  "production_profile_promoted": false,
+  "source_snapshot_sha256": "de85d0152755e880180a5fedbb30d3c0d3f6bb5c9ef1c1662a12e8e3391e364e"
+}
