@@ -235,7 +235,7 @@ def main():
     p.add_argument('--source-root', required=True, type=Path)
     p.add_argument('--source-commit', required=True)
     for name in ('driver', 'receiver', 'library', 'sparse', 'observer', 'process_budget_guard'):
-        p.add_argument('--' + name, required=True, type=Path)
+        p.add_argument('--' + name.replace('_', '-'), required=True, type=Path)
     p.add_argument('--preset', type=Path, default=DEFAULT_PRESET)
     p.add_argument('--block', type=int, default=24628607)
     p.add_argument('--native-hooks-commit')
