@@ -25,6 +25,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-services-gkr-local", .description = "Qualify services whole-local GKR row authority and bounded framing", .scope = .riscv_cpu },
     .{ .name = "test-stwo-prover-gkr-resource", .description = "Qualify GKR memory bounds for every field and layer kind", .scope = .prover },
     .{ .name = "test-stwo-core-om31", .description = "Qualify additive degree8 arithmetic and irreducibility", .scope = .core },
+    .{ .name = "rv64-poseidon-row-fixture", .description = "Scoped dedicated Poseidon row STARK and fresh receiver", .scope = .riscv_cpu },
     .{ .name = "rv64-om31-cost", .description = "Measure additive wider-field primitives and actual circuit graph", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-security-policy", .description = "Fail closed on unqualified whole-protocol security claims", .scope = .riscv_cpu },
     .{ .name = "rv64-gkr-circuit-cost", .description = "Build actual-wire GKR numerical circuit cost oracle", .scope = .riscv_cpu },
