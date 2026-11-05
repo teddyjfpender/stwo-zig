@@ -77,6 +77,7 @@ pub const Stream = struct {
 };
 pub const Options = struct {
     early_cpu0: ?*@import("../../ethereum/early_cpu0.zig").Owner = null,
+    early_segments: ?*@import("../../ethereum/early_segments.zig").Owner = null,
     stream: ?Stream = null,
     cpu_replay_stage: ?@import("cpu_replay.zig").Stage = null,
     device_source_stage: ?Pipeline.DeviceSourceStage = null,
@@ -248,7 +249,16 @@ const Run = struct {
         };
         if (timing) |t| t.source_begin_ns = sinceEpoch(self.options.epoch);
         if (index < self.setups.len) {
-            if (index == 0 and self.options.early_cpu0 != null) {
+            if (self.options.early_segments) |early| {
+                self.workers[index] = .{ .cpu = try early.take(index, self.setups[index], self.requests[index], self.inventory.workers[index], self.config, self.inventory.first_ids[index]) };
+                const slot = &early.slots[index];
+                if (timing) |value| {
+                    value.source_ns = slot.source_end_utc_ns - slot.source_begin_utc_ns;
+                    value.early_source_and_main_ns = self.workers[index].?.cpu.main_commit_end_utc_ns - slot.source_begin_utc_ns;
+                    value.early_main_commit_before_inventory = true;
+                }
+                if (timer) |*clock| _ = clock.lap();
+            } else if (index == 0 and self.options.early_cpu0 != null) {
                 const early = self.options.early_cpu0.?;
                 self.workers[index] = .{ .cpu = try early.take(self.setups[index], self.requests[index], self.inventory.workers[index], self.config, self.inventory.first_ids[index]) };
                 if (timing) |value| {

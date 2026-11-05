@@ -66,7 +66,18 @@ pub const CpuLayout = struct {
 /// local class admission share this exact geometry/census authority. The RAM
 /// INITIAL count must be the complete first-pass/collector set, never a guess.
 pub fn cpuForSegment(n: *const @import("../../word16_execution/prepared.zig").Prepared, advice: *const @import("../services/collector.zig").Advice, ordinal: usize, total_segments: usize, initial_count: usize, layout: CpuLayout) !W.CpuDeclaration {
-    if (total_segments == 0 or ordinal >= total_segments or ordinal >= advice.events.len) return error.CanonRosterMismatch;
+    return cpuForSegmentAt(n, advice, ordinal, ordinal, total_segments, initial_count, layout);
+}
+/// The same source class from one already ordered ledger shard, before the
+/// complete Advice inventory exists. Only the global boundary ordinal differs.
+pub fn cpuForShard(n: *const @import("../../word16_execution/prepared.zig").Prepared, shard: @import("../services/collector.zig").Shard, ordinal: usize, total_segments: usize, initial_count: usize, layout: CpuLayout) !W.CpuDeclaration {
+    const Collector = @import("../services/collector.zig");
+    var view = Collector.OneShardView.init(shard);
+    var advice = view.advice(n.allocator, &.{}, &.{});
+    return cpuForSegmentAt(n, &advice, 0, ordinal, total_segments, initial_count, layout);
+}
+fn cpuForSegmentAt(n: *const @import("../../word16_execution/prepared.zig").Prepared, advice: *const @import("../services/collector.zig").Advice, advice_index: usize, ordinal: usize, total_segments: usize, initial_count: usize, layout: CpuLayout) !W.CpuDeclaration {
+    if (total_segments == 0 or ordinal >= total_segments or advice_index >= advice.events.len) return error.CanonRosterMismatch;
     const boundary = try Coverage.minimalBoundaryLog(@intCast(initial_count));
     var result: W.CpuDeclaration = undefined;
     const d = &result;
@@ -74,7 +85,7 @@ pub fn cpuForSegment(n: *const @import("../../word16_execution/prepared.zig").Pr
         std.debug.print("RV64_PLAN_CAPACITY cpu_ordinal={d} memory={d} unique_words={d} alu={d} binary={d} shift={d} mul={d} div={d}\n", .{ ordinal, n.raw_counts.memory, n.unique_memory_words, n.alu.facts.len, n.binary.facts.len, n.shift.len, n.multiplication.len, n.division.len });
         return err;
     };
-    const events = advice.events[ordinal];
+    const events = advice.events[advice_index];
     const dword: usize = if (layout.ls_dword) @import("../services/pipeline.zig").dwordCount(events) else 0;
     const ls = try ladder(events.len - dword, 1);
     g.ls_log = ls.head;
@@ -116,24 +127,24 @@ pub fn cpuForSegment(n: *const @import("../../word16_execution/prepared.zig").Pr
         d.bridges.ls_dword = dl.head;
         d.bridges.ls_dword_tail = dl.tail;
     }
-    const k = advice.keccak[ordinal].len;
-    const add = advice.secp[ordinal][0].len;
-    const double = advice.secp[ordinal][1].len;
+    const k = advice.keccak[advice_index].len;
+    const add = advice.secp[advice_index][0].len;
+    const double = advice.secp[advice_index][1].len;
     if (k != 0) d.bridges.keccak = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, 25, k)));
     if (add != 0) d.bridges.add = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.add), add)));
     if (double != 0) d.bridges.double = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.double), double)));
-    const sha256 = advice.sha256[ordinal].len;
+    const sha256 = advice.sha256[advice_index].len;
     if (sha256 != 0) d.bridges.sha256 = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.sha256), sha256)));
-    const arith = advice.arith256_mod[ordinal].len;
+    const arith = advice.arith256_mod[advice_index].len;
     if (arith != 0) d.bridges.arith256_mod = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.arith256_mod), arith)));
     // v3 curve/field families: coordinates rows per call each.
     const ST = @import("../services/types.zig");
-    for (advice.curves[ordinal], ST.FIRST_CURVE..) |calls, f| if (calls.len != 0) {
+    for (advice.curves[advice_index], ST.FIRST_CURVE..) |calls, f| if (calls.len != 0) {
         const family: ST.Family = @enumFromInt(f);
         d.bridges.set(family, try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(ST.bridgeKind(family)), calls.len))));
     };
     // v3 bulk memory: one descriptor row per call, one body row per word.
-    const bulk = advice.bulk[ordinal].counts();
+    const bulk = advice.bulk[advice_index].counts();
     if (bulk.calls != 0) d.bridges.bulk.desc = try Coverage.minimalPrefixLog(bulk.calls);
     if (bulk.copy_words != 0) d.bridges.bulk.copy = try Coverage.minimalPrefixLog(bulk.copy_words);
     if (bulk.set_words != 0) d.bridges.bulk.set = try Coverage.minimalPrefixLog(bulk.set_words);
@@ -147,7 +158,7 @@ pub fn cpuForSegment(n: *const @import("../../word16_execution/prepared.zig").Pr
     if (bulk.cmp_calls != 0) d.bridges.bulk.cdesc = try Coverage.minimalPrefixLog(bulk.cmp_calls);
     if (bulk.cmp_words != 0) d.bridges.bulk.cmp = try Coverage.minimalPrefixLog(bulk.cmp_words);
     // v3 Keccak sponge: one call row per ECALL, one row per permutation.
-    const sponge = advice.sponge[ordinal].counts();
+    const sponge = advice.sponge[advice_index].counts();
     if (sponge.calls != 0) d.bridges.sponge.call = @max(5, try Coverage.minimalPrefixLog(sponge.calls));
     if (sponge.perms != 0) d.bridges.sponge.perm = @max(5, try Coverage.minimalPrefixLog(sponge.perms));
     // v3_zbb: one Zbb BINARY row per distinct Zbb FUNCTION fact (pure

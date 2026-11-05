@@ -11,6 +11,7 @@ const Capture = @import("capture.zig").Owner;
 const CaptureOptions = @import("capture_options.zig").Options;
 const DirectCapture = @import("direct.zig");
 pub const EarlyCPU = @import("early_cpu0.zig");
+pub const EarlySegments = @import("early_segments.zig");
 const CpuPrestage = struct {
     stage: @import("../../word16_execution/cpu_source.zig").ProjectionStage,
     image_identity: [32]u8 = undefined,
@@ -280,6 +281,7 @@ pub fn mainWithResidentStages(device_pcs_stage: ?*const @import("stwo_prover_api
 }
 pub const ResidentStages = struct {
     early_memory: ?EarlyCPU.MemoryAdmission = null,
+    early_segments: ?EarlySegments.StageProvider = null,
     cpu_replay: ?@import("../services/gkr_local/cpu_replay.zig").Stage = null,
     source: ?@import("../services/pipeline.zig").DeviceSourceStage = null,
     truth_source: ?@import("../services/gkr_local/truth_device_source.zig").Stage = null,
@@ -528,11 +530,14 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const shared_walk_authority = if (std.posix.getenv("STWO_RV64_CAPTURE_SHARED_AUTHORITY")) |flag| std.mem.eql(u8, flag, "1") else false;
     const early_cpu = if (std.posix.getenv("STWO_RV64_CPU0_PRESTAGE")) |flag| std.mem.eql(u8, flag, "1") else false;
     const early_main = if (std.posix.getenv(EarlyCPU.FLAG)) |flag| std.mem.eql(u8, flag, "1") else false;
+    const early_segments = if (std.posix.getenv(EarlySegments.FLAG)) |flag| std.mem.eql(u8, flag, "1") else false;
     // Refuse mixed speculative owners before starting boot/capture/callbacks.
     const old_first = if (std.posix.getenv("STWO_RV64_CPU0_FIRST_PASS_PRESTAGE")) |flag| std.mem.eql(u8, flag, "1") else false;
     if (early_main and (early_cpu or old_first)) return error.ConflictingEarlyCpuModes;
+    if (early_segments and (early_cpu or old_first or early_main)) return error.ConflictingEarlyCpuModes;
     if (early_main and (!combined or !candidate or !direct_capture or count != 0 or session == null or stages.early_memory == null or capture_options.execution_workers == 0 or !@import("../../rv64_ethereum_segments.zig").ramFirstPassEnabled())) return error.EarlyMainRequiresAdmittedResidentFirstPass;
-    const early_host_budget = if (early_main) try @import("../../rv64_recursion_budget.zig").require(engine.host_budget_allocator.SharedHostBudget, base) else null;
+    if (early_segments and (!combined or !candidate or !direct_capture or count != 0 or session == null or stages.early_memory == null or stages.early_segments == null or capture_options.execution_workers == 0 or !@import("../../rv64_ethereum_segments.zig").ramFirstPassEnabled())) return error.EarlySegmentsRequireAdmittedResidentFirstPass;
+    const early_host_budget = if (early_main or early_segments) try @import("../../rv64_recursion_budget.zig").require(engine.host_budget_allocator.SharedHostBudget, base) else null;
 
     if (early_cpu and (!direct_capture or !combined or stages.cpu_projection == null)) return error.CpuPrestageRequiresDirectResidentCombined;
     const early_first = if (std.posix.getenv("STWO_RV64_CPU0_FIRST_PASS_PRESTAGE")) |v| std.mem.eql(u8, v, "1") else false;
@@ -625,7 +630,9 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     if (cpu_layout.compact_decode) try program.makeCompact();
     var early_owner: ?*EarlyCPU.Owner = null;
     defer if (early_owner) |owner| owner.deinit();
-    if (early_main) {
+    var early_segment_owner: ?*EarlySegments.Owner = null;
+    defer if (early_segment_owner) |owner| owner.deinit();
+    if (early_main or early_segments) {
         const shared = session.?;
         // Setup class lookup is receiver/image/suite owned and independent of
         // the final ordered roster. Cache lifetime remains the resident session.
@@ -639,27 +646,48 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         var memory = stages.early_memory.?;
         if (memory.host_budget) |owner| if (owner != early_host_budget.?) return error.ForeignEarlyMainHostBudget;
         memory.host_budget = early_host_budget;
-        early_owner = try EarlyCPU.Owner.create(.{
-            .allocator = a,
-            .image = &image,
-            .config = request.value,
-            .pcs = pcs,
-            .layout = cpu_layout,
-            .strict_roster = (try @import("../../word16_execution/native_policy.zig").current()).strictRoster(),
-            .canonical_rungs = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false,
-            .caches = caches,
-            .setup_cache = &shared.setup.?,
-            .fixed_cache = &shared.setup.?.fixed,
-            .memory = memory,
-            .source = stages.source.?,
-            .projection = stages.cpu_projection.?,
-            .trace_commit = stages.trace_commit.?,
-            .pcs_stage = stages.pcs.?,
-            .numerical = stages.numerical.?,
-            .composition = stages.resident_composition.?,
-            .gkr_budget = resources.?.gkr_bytes,
-        });
-        direct_started.?.ready = early_owner.?.hook();
+        if (early_segments) {
+            var provider = stages.early_segments.?;
+            provider.host_budget = early_host_budget;
+            early_segment_owner = try EarlySegments.Owner.create(.{
+                .allocator = a,
+                .image = &image,
+                .config = request.value,
+                .pcs = pcs,
+                .layout = cpu_layout,
+                .strict_roster = (try @import("../../word16_execution/native_policy.zig").current()).strictRoster(),
+                .canonical_rungs = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false,
+                .caches = caches,
+                .setup_cache = &shared.setup.?,
+                .fixed_cache = &shared.setup.?.fixed,
+                .memory = memory,
+                .provider = provider,
+                .gkr_budget = resources.?.gkr_bytes,
+            });
+            direct_started.?.ready = early_segment_owner.?.hook();
+        } else {
+            early_owner = try EarlyCPU.Owner.create(.{
+                .allocator = a,
+                .image = &image,
+                .config = request.value,
+                .pcs = pcs,
+                .layout = cpu_layout,
+                .strict_roster = (try @import("../../word16_execution/native_policy.zig").current()).strictRoster(),
+                .canonical_rungs = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false,
+                .caches = caches,
+                .setup_cache = &shared.setup.?,
+                .fixed_cache = &shared.setup.?.fixed,
+                .memory = memory,
+                .source = stages.source.?,
+                .projection = stages.cpu_projection.?,
+                .trace_commit = stages.trace_commit.?,
+                .pcs_stage = stages.pcs.?,
+                .numerical = stages.numerical.?,
+                .composition = stages.resident_composition.?,
+                .gkr_budget = resources.?.gkr_bytes,
+            });
+            direct_started.?.ready = early_owner.?.hook();
+        }
     }
     const import_start = timer.read();
     var captured = if (direct_started) |started| direct: {
@@ -674,6 +702,12 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         break :capture try Capture.initWithOptions(a, &image, &program, request.value, jobs, count, capture_options.forPool(&pool));
     };
     defer captured.deinit();
+    // Capture callbacks may still have unpublished device work in flight.
+    // Join and retire every speculative owner before its borrowed capture.
+    defer if (early_segment_owner) |owner| {
+        owner.deinit();
+        early_segment_owner = null;
+    };
     // Private early source overlays borrow this capture's normalized facts.
     // Destroy or finish transferred workers before that owner on every return.
     defer if (early_owner) |owner| {
@@ -693,7 +727,9 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const digest_capture = if (std.posix.getenv("STWO_RV64_CAPTURE_DIGEST")) |flag| std.mem.eql(u8, flag, "1") else false;
     const captured_values_sha256: ?[64]u8 = if (digest_capture) std.fmt.bytesToHex(@import("capture_digest.zig").digest(image.identity, &captured), .lower) else null;
     b2i.capture = capture_inputs;
-    if (!program.fixed_retired) try program.releaseFixedWitness();
+    // Early Source callbacks may still borrow immutable ROM columns. Keep this
+    // owner until the early producer joins; Program.deinit follows that join.
+    if (!early_segments and !program.fixed_retired) try program.releaseFixedWitness();
     const capture_cache_released = recycler.releaseCached();
     // Explicit authenticated service scope; classic-only encodings stay closed.
     try @import("../services/gkr_local/service_scope.zig").advice(&captured.advice);
@@ -759,7 +795,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
                 shared.setup_fixed_bytes = fixed_setup_bytes;
             } else if (shared.setup_fixed_bytes != fixed_setup_bytes) return error.ResidentFixedBudgetChanged;
             session_setup = &shared.setup.?;
-            try session_setup.?.bindRequest(request.value);
+            if (!early_main and !early_segments) try session_setup.?.bindRequest(request.value);
         } else {
             const selected = try setupCacheOptions(a, .prover, fixed_setup_bytes);
             setup_dir = selected.owned;
@@ -845,7 +881,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     } else null) else null;
     defer if (comptime enable_recursion) if (streaming) |stream| stream.destroy();
     const prove_start = timer.read();
-    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .early_cpu0 = early_owner, .stream = if (comptime enable_recursion) (if (streaming) |stream| stream.hook() else null) else null, .epoch = process_start, .admitted_at_ns = &b2i.coordinator_admitted_at_ns, .cpu_replay_stage = stages.cpu_replay, .device_source_stage = stages.source, .device_global_stage = stages.global_interaction, .device_trace_commit_stage = stages.trace_commit, .device_cpu_projection = stages.cpu_projection, .device_pcs_stage = device_pcs_stage, .truth_device_pcs_stage = stages.truth_pcs, .truth_device_composition_stage = stages.truth_composition, .truth_device_source_stage = stages.truth_source, .om31_composition_stage = om31_composition_stage, .resident_composition_stage = resident_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
+    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .early_segments = early_segment_owner, .early_cpu0 = early_owner, .stream = if (comptime enable_recursion) (if (streaming) |stream| stream.hook() else null) else null, .epoch = process_start, .admitted_at_ns = &b2i.coordinator_admitted_at_ns, .cpu_replay_stage = stages.cpu_replay, .device_source_stage = stages.source, .device_global_stage = stages.global_interaction, .device_trace_commit_stage = stages.trace_commit, .device_cpu_projection = stages.cpu_projection, .device_pcs_stage = device_pcs_stage, .truth_device_pcs_stage = stages.truth_pcs, .truth_device_composition_stage = stages.truth_composition, .truth_device_source_stage = stages.truth_source, .om31_composition_stage = om31_composition_stage, .resident_composition_stage = resident_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
     defer bundle.deinit(a);
     // The streaming recursion reads views of this bundle: join it first.
     defer if (comptime enable_recursion) if (streaming) |stream| stream.stop(error.StreamingRecursionCancelled);
