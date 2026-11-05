@@ -261,7 +261,7 @@ pub fn capture(a: std.mem.Allocator, image: *const Image.Owner, program: *const 
 pub fn captureWithSegments(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, prefix_packets: u32, inflight: u8, segment_workers: u8, stats: *Stats) !Capture.Owner {
     if (prefix_packets > 256) return error.TooManyEthereumPackets;
     if (inflight == 0 or inflight > MAX_INFLIGHT) return error.InvalidEthereumCaptureOptions;
-    if (Segments.ramFirstPassEnabled() and (prefix_packets != 0 or source.segments == null)) return error.FirstPassRamRequiresWholeSegmentedBlock;
+    if (Segments.ramFirstPassEnabled() and (prefix_packets != 0 or segment_workers == 0)) return error.FirstPassRamRequiresWholeSegmentedBlock;
     var started = try Started.start(a, config, prefix_packets, segment_workers);
     defer started.deinit(stats);
     return started.capture(image, program, inflight, stats);
@@ -398,6 +398,7 @@ const RamJob = struct {
 
 fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, prefix_packets: u32, inflight: u8, walk: *Walk, source: *Segments.Source, ready: ?Capture.Ready, stats: *Stats) !Capture.Owner {
     if (inflight == 0 or inflight > MAX_INFLIGHT) return error.InvalidEthereumCaptureOptions;
+    if (Segments.ramFirstPassEnabled() and (prefix_packets != 0 or source.segments == null)) return error.FirstPassRamRequiresWholeSegmentedBlock;
     var ordered = Capture.Ordered.init(a, image, config, prefix_packets);
     defer ordered.deinit();
     // Queue cleanup below joins all readiness publishers first. Then cancel
