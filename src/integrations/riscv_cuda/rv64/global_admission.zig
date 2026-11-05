@@ -36,7 +36,7 @@ pub const Footprint = struct {
         const aligned = (try std.math.add(u64, bytes, unit - 1)) & ~(unit - 1);
         return if (bytes < small_threshold) .{ .small = aligned } else .{ .large = aligned };
     }
-    pub fn allocations(sizes: []const u64) !Footprint {
+    pub fn allocations(sizes: anytype) !Footprint {
         var out: Footprint = .{};
         for (sizes) |bytes| out = try out.add(try allocation(bytes));
         return out;
@@ -51,6 +51,8 @@ pub const Footprint = struct {
         return a.large >= b.large and a.small >= b.small;
     }
 };
+pub const Coverage = enum { native_source, native_trace, native_interaction, native_composition, native_pcs, native_gkr, recursion_source, recursion_trace, recursion_interaction, recursion_composition, recursion_pcs, outer_gkr, immutable, retirement, host_preparation };
+pub const coverage_all: u64 = (1 << std.meta.fields(Coverage).len) - 1;
 pub const Domain = enum { immutable_setup, native_packet, recursion_node, gkr_packet };
 pub const Stage = enum { setup, witness, trace_commit, interaction, composition, pcs, gkr, retire };
 pub const Owner = struct { request: u64, domain: Domain, ordinal: u32 };
@@ -63,23 +65,31 @@ pub const Demand = struct {
     /// Additional simultaneous temporary allocations, INCLUDING decoded input,
     /// metadata, twiddles and all workspace, separately rounded per allocation.
     temporary: Footprint = .{},
-    /// Largest successor scratch envelope while this new retained owner lives.
+    /// Whole successor envelope while this owner lives: consumer retained_new
+    /// PLUS its maximum subsequent scratch; not scratch alone.
     /// This is max-combined, because wide stages serialize on this physical GPU.
     successor: Footprint = .{},
     known: bool = false,
+    host_peak_bytes: u64 = 0,
+    host_known: bool = false,
 };
 pub const Token = struct { physical: u32, id: u64 };
-pub const Reason = enum { admitted, wide_stage_busy, capacity_pressure, request_exceeds_static_arena, unknown_cost };
+pub const Reason = enum { admitted, wide_stage_busy, capacity_pressure, request_exceeds_static_arena, unknown_cost, host_capacity_pressure, runtime_poisoned };
 pub const Decision = struct { reason: Reason, token: ?Token = null, required: Footprint = .{}, capacity: Footprint };
 pub const Snapshot = struct { physical: u32, retained: Footprint, active_temporary: Footprint, successor: Footprint, required: Footprint, capacity: Footprint, owners: usize, active: bool };
 const Entry = struct { demand: Demand, active: bool };
-const Device = struct { physical: u32, entries: std.AutoHashMapUnmanaged(u64, Entry) = .{}, active: ?u64 = null };
+const Device = struct { physical: u32, entries: std.AutoHashMapUnmanaged(u64, Entry) = .{}, active: ?u64 = null, observed: Footprint = .{}, observed_initialized: bool = false, runtime_configured: bool = false, poisoned: bool = false, coverage: u64 = 0, stage_gate: std.Thread.Mutex = .{} };
 pub const Planner = struct {
     allocator: std.mem.Allocator,
     preset: Preset,
     devices: []Device,
     mutex: std.Thread.Mutex = .{},
     next_id: u64 = 1,
+    generation: u64 = 0,
+    changed: std.Thread.Condition = .{},
+    required_coverage: u64 = coverage_all,
+    host_capacity_bytes: u64 = 20 << 30,
+    observed_host_rss_bytes: u64 = 0,
     pub fn init(a: std.mem.Allocator, ids: []const u32, preset: Preset) !Planner {
         if (ids.len == 0 or preset.arenaBytes() + external_budget > physical_limit) return error.InvalidStaticArena;
         const devices = try a.alloc(Device, ids.len);
@@ -106,7 +116,7 @@ pub const Planner = struct {
         return .{ .large = self.preset.arenaBytes() - small_slab_bytes, .small = small_slab_bytes };
     }
     fn collect(self: *const Planner, d: *const Device) !Snapshot {
-        var retained: Footprint = .{};
+        var retained: Footprint = d.observed;
         var temporary: Footprint = .{};
         var successor: Footprint = .{};
         var it = d.entries.valueIterator();
@@ -129,7 +139,16 @@ pub const Planner = struct {
         defer self.mutex.unlock();
         const d = try self.device(physical);
         const cap = self.capacity();
-        if (!demand.known) return .{ .reason = .unknown_cost, .capacity = cap };
+        if (d.poisoned) return .{ .reason = .runtime_poisoned, .capacity = cap };
+        if (!demand.known or !demand.host_known) return .{ .reason = .unknown_cost, .capacity = cap };
+        var host_required = try std.math.add(u64, self.observed_host_rss_bytes, demand.host_peak_bytes);
+        for (self.devices) |*other| {
+            var iterator = other.entries.valueIterator();
+            while (iterator.next()) |entry| if (entry.active) {
+                host_required = try std.math.add(u64, host_required, entry.demand.host_peak_bytes);
+            };
+        }
+        if (host_required > self.host_capacity_bytes) return .{ .reason = .host_capacity_pressure, .capacity = cap };
         const alone = try demand.retained_new.add(demand.temporary.max(demand.successor));
         if (!cap.contains(alone)) return .{ .reason = .request_exceeds_static_arena, .required = alone, .capacity = cap };
         const live = try self.collect(d);
@@ -152,6 +171,7 @@ pub const Planner = struct {
         if (d.active != token.id or !entry.active) return error.AdmissionNotActive;
         if (!entry.demand.retained_new.contains(retained) or !entry.demand.successor.contains(successor)) return error.UnreservedRetention;
         d.active = null;
+        self.notifyLocked();
         if (retained.large == 0 and retained.small == 0 and successor.large == 0 and successor.small == 0) {
             _ = d.entries.remove(token.id);
             return;
@@ -170,6 +190,7 @@ pub const Planner = struct {
         const entry = d.entries.get(token.id) orelse return error.StaleAdmissionToken;
         if (entry.active) return error.AdmissionStillActive;
         _ = d.entries.remove(token.id);
+        self.notifyLocked();
     }
     /// A physical arena snapshot must include ALL contexts and retired owners.
     /// This rejects incomplete accounting; it does not silently adopt zero cost.
@@ -178,6 +199,106 @@ pub const Planner = struct {
         const allocated = try s.retained.add(s.active_temporary);
         if (!allocated.contains(actual)) return error.UntrackedDeviceAllocation;
     }
+    fn notifyLocked(self: *Planner) void {
+        self.generation +%= 1;
+        self.changed.broadcast();
+    }
+    pub fn epoch(self: *Planner) u64 {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.generation;
+    }
+    /// Host scheduler only: caller holds NO owner/phase/cache lock.
+    pub fn waitForChange(self: *Planner, previous: u64) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        while (self.generation == previous) self.changed.wait(&self.mutex);
+    }
+    pub fn notifyResourceRelease(self: *Planner) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.notifyLocked();
+    }
+    pub fn poisonPhysical(self: *Planner, physical: u32) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const d = self.device(physical) catch return;
+        d.poisoned = true;
+        self.notifyLocked();
+    }
+    pub fn healthy(self: *Planner, physical: u32) bool {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const d = self.device(physical) catch return false;
+        return !d.poisoned;
+    }
+    pub fn registerCoverage(self: *Planner, physical: u32, actor: Coverage) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        (try self.device(physical)).coverage |= @as(u64, 1) << @intFromEnum(actor);
+    }
+    pub fn schedulingEnabled(self: *Planner) bool {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        for (self.devices) |d| if (!d.runtime_configured or d.poisoned or d.coverage & self.required_coverage != self.required_coverage) return false;
+        return true;
+    }
+    pub fn observeHostRss(self: *Planner, bytes: u64) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.observed_host_rss_bytes = bytes;
+    }
+    pub fn stageGate(self: *Planner, physical: u32) !*std.Thread.Mutex {
+        return &(try self.device(physical)).stage_gate;
+    }
+    pub fn allConfigured(self: *Planner) bool {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        for (self.devices) |d| if (!d.runtime_configured or d.poisoned) return false;
+        return true;
+    }
+    pub fn markConfigured(self: *Planner, physical: u32) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        (try self.device(physical)).runtime_configured = true;
+    }
+    /// Called under the external physical stage gate. Actual global retained
+    /// bytes are observed once, not separately charged per session/alias.
+    pub fn observeIdle(self: *Planner, physical: u32, actual: Footprint) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const d = try self.device(physical);
+        if (d.active != null) return error.AdmissionStillActive;
+        var it = d.entries.valueIterator();
+        while (it.next()) |e| if (e.demand.retained_new.large != 0 or e.demand.retained_new.small != 0) return error.MixedAdmissionAccounting;
+        if (!d.observed_initialized) {
+            if (actual.large != 0 or actual.small != 0) return error.UntrackedDeviceAllocation;
+            d.observed_initialized = true;
+        } else if (!d.observed.contains(actual)) return error.UntrackedDeviceAllocation;
+        d.observed = actual;
+    }
+    pub fn completeObserved(self: *Planner, token: Token, actual: Footprint, successor: Footprint) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const d = try self.device(token.physical);
+        const e = d.entries.getPtr(token.id) orelse return error.StaleAdmissionToken;
+        if (d.active != token.id or !e.active) return error.AdmissionNotActive;
+        if (e.demand.retained_new.large != 0 or e.demand.retained_new.small != 0) return error.MixedAdmissionAccounting;
+        const envelope = try d.observed.add(e.demand.temporary);
+        if (!envelope.contains(actual)) return error.UnreservedRetention;
+        if (!e.demand.successor.contains(successor)) return error.UnreservedRetention;
+        d.observed = actual;
+        d.observed_initialized = true;
+        d.active = null;
+        self.notifyLocked();
+        if (successor.large == 0 and successor.small == 0) {
+            _ = d.entries.remove(token.id);
+            return;
+        }
+        e.demand.temporary = .{};
+        e.demand.successor = successor;
+        e.active = false;
+    }
 };
 const test_owner = Owner{ .request = 1, .domain = .native_packet, .ordinal = 0 };
 test "native retention cannot consume the GKR successor headroom" {
@@ -185,12 +306,12 @@ test "native retention cannot consume the GKR successor headroom" {
     defer p.deinit();
     const keep = try Footprint.allocation(6 << 30);
     const future = try Footprint.allocation(15 << 30);
-    const first = try p.tryBegin(0, .{ .owner = test_owner, .known = true, .stage = .witness, .retained_new = keep, .successor = future });
+    const first = try p.tryBegin(0, .{ .owner = test_owner, .known = true, .host_known = true, .stage = .witness, .retained_new = keep, .successor = future });
     try std.testing.expectEqual(Reason.admitted, first.reason);
     try p.complete(first.token.?, keep, future);
-    const second = try p.tryBegin(0, .{ .owner = test_owner, .known = true, .stage = .witness, .retained_new = try Footprint.allocation(1 << 30), .successor = future });
+    const second = try p.tryBegin(0, .{ .owner = test_owner, .known = true, .host_known = true, .stage = .witness, .retained_new = try Footprint.allocation(1 << 30), .successor = future });
     try std.testing.expectEqual(Reason.capacity_pressure, second.reason);
-    const consumer = try p.tryBegin(0, .{ .owner = test_owner, .known = true, .stage = .gkr, .temporary = future });
+    const consumer = try p.tryBegin(0, .{ .owner = test_owner, .known = true, .host_known = true, .stage = .gkr, .temporary = future });
     try std.testing.expectEqual(Reason.admitted, consumer.reason);
     try p.complete(consumer.token.?, .{}, .{});
     try p.release(first.token.?);
@@ -198,9 +319,9 @@ test "native retention cannot consume the GKR successor headroom" {
 test "physical devices independent; active and stale tickets fail closed" {
     var p = try Planner.init(std.testing.allocator, &.{ 0, 1 }, .g22);
     defer p.deinit();
-    const a = try p.tryBegin(0, .{ .owner = test_owner, .known = true, .stage = .pcs, .temporary = try Footprint.allocation(1 << 30) });
-    try std.testing.expectEqual(Reason.wide_stage_busy, (try p.tryBegin(0, .{ .owner = test_owner, .known = true, .stage = .gkr })).reason);
-    const b = try p.tryBegin(1, .{ .owner = test_owner, .known = true, .stage = .gkr });
+    const a = try p.tryBegin(0, .{ .owner = test_owner, .known = true, .host_known = true, .stage = .pcs, .temporary = try Footprint.allocation(1 << 30) });
+    try std.testing.expectEqual(Reason.wide_stage_busy, (try p.tryBegin(0, .{ .owner = test_owner, .known = true, .host_known = true, .stage = .gkr })).reason);
+    const b = try p.tryBegin(1, .{ .owner = test_owner, .known = true, .host_known = true, .stage = .gkr });
     try p.complete(b.token.?, .{}, .{});
     try std.testing.expectError(error.AdmissionStillActive, p.release(a.token.?));
     try p.complete(a.token.?, .{}, .{});
@@ -213,6 +334,22 @@ test "unknown costs, physical rounding, small slab and untracked owners" {
     try std.testing.expectEqual(@as(u64, chunk_bytes), (try Footprint.allocation(small_threshold)).large);
     try std.testing.expectEqual(@as(u64, 512), (try Footprint.allocation(1)).small);
     try std.testing.expectError(error.UntrackedDeviceAllocation, p.assertCoversActual(0, .{ .large = chunk_bytes }));
-    try std.testing.expectEqual(Reason.request_exceeds_static_arena, (try p.tryBegin(0, .{ .owner = test_owner, .known = true, .stage = .gkr, .temporary = .{ .small = small_slab_bytes + 512 } })).reason);
+    try std.testing.expectEqual(Reason.request_exceeds_static_arena, (try p.tryBegin(0, .{ .owner = test_owner, .known = true, .host_known = true, .stage = .gkr, .temporary = .{ .small = small_slab_bytes + 512 } })).reason);
     try std.testing.expectError(error.StaticArenaPresetRequired, Preset.parse("1"));
+}
+
+test "host frontier charged globally and unavailable costs refused" {
+    var p = try Planner.init(std.testing.allocator, &.{ 0, 1 }, .g22);
+    defer p.deinit();
+    p.observeHostRss(8 << 30);
+    const d = try p.tryBegin(0, .{ .owner = test_owner, .stage = .gkr, .known = true, .host_known = true, .host_peak_bytes = 16 << 30 });
+    try std.testing.expectEqual(Reason.host_capacity_pressure, d.reason);
+    try std.testing.expectEqual(Reason.unknown_cost, (try p.tryBegin(0, .{ .owner = test_owner, .stage = .gkr, .known = true })).reason);
+}
+
+test "native usize allocation list uses exact arena bucket charges" {
+    const sizes: []const usize = &.{ 1, 4 << 20 };
+    const fp = try Footprint.allocations(sizes);
+    try std.testing.expectEqual(@as(u64, 512), fp.small);
+    try std.testing.expectEqual(chunk_bytes, fp.large);
 }

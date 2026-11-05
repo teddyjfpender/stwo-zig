@@ -251,6 +251,11 @@ struct Device {
   uint64_t free_chunks_at_overrun = 0, small_spills = 0;
   uint64_t map_calls = 0, unmap_calls = 0, pending_host_syncs = 0;
   double map_ms = 0, unmap_ms = 0;
+  // M7: one physical envelope across every execution context. No allocation
+  // may bypass the active owner's declared peak after enforcement is enabled.
+  bool admission_required = false;
+  uint64_t admission_ticket = 0, admission_owner = 0;
+  uint64_t admission_large_ceiling = 0, admission_small_ceiling = 0;
   uint64_t capacity() const { return uint64_t(handles.size()) * chunk; }
   uint64_t chunks_in_use() const { return handles.size() - free_chunks.size(); }
   CUdeviceptr slot_va(uint32_t slot) const {
@@ -546,8 +551,29 @@ inline cudaError_t allocate_small(Device *d, cudaStream_t stream, const cudaStre
   return cudaSuccess;
 }
 
+inline bool admission_allows(Device *d, uint64_t owner, uint64_t large, uint64_t small) {
+  if (!d->admission_required) return true;
+  const uint64_t live_large = d->live - d->live_small;
+  const bool ok = d->admission_ticket && d->admission_owner == owner &&
+      large <= d->admission_large_ceiling && live_large <= d->admission_large_ceiling - large &&
+      small <= d->admission_small_ceiling && d->live_small <= d->admission_small_ceiling - small;
+  if (!ok) fprintf(stderr, "GPU_ADMISSION_REFUSAL device=%d owner=%llu ticket=%llu large_add=%llu small_add=%llu live_large=%llu live_small=%llu large_ceiling=%llu small_ceiling=%llu\n",
+      d->ordinal, (unsigned long long)owner, (unsigned long long)d->admission_ticket,
+      (unsigned long long)large, (unsigned long long)small, (unsigned long long)live_large,
+      (unsigned long long)d->live_small, (unsigned long long)d->admission_large_ceiling,
+      (unsigned long long)d->admission_small_ceiling);
+  return ok;
+}
+
+inline bool admission_enforced(int ordinal) {
+  Device *d=nullptr;
+  { std::lock_guard<std::mutex> lock(registry_mutex()); if(ordinal>=0 && ordinal<kMaxDevices) d=registry()[ordinal]; }
+  if(!d) return false;
+  std::lock_guard<std::mutex> lock(d->mutex); return d->admission_required;
+}
+
 inline cudaError_t allocate_impl(int ordinal, cudaStream_t stream, const cudaStream_t *lanes,
-                                 uint32_t lane_count, size_t bytes, bool long_lived, void **out) {
+                                 uint32_t lane_count, size_t bytes, bool long_lived, void **out, uint64_t owner = 0) {
   *out = nullptr;
   maybe_print();
   if (!config().valid) return cudaErrorInvalidValue;
@@ -558,12 +584,14 @@ inline cudaError_t allocate_impl(int ordinal, cudaStream_t stream, const cudaStr
   s = purge(d);
   if (s != cudaSuccess) return s;
   if (bytes < OffsetArena::kSmallBytes && bytes <= d->small_bytes / 8) {
+    if (!admission_allows(d, owner, 0, OffsetArena::aligned(bytes))) return cudaErrorInvalidValue;
     bool done = false;
     s = allocate_small(d, stream, lanes, lane_count, bytes, long_lived, out, &done);
     if (s != cudaSuccess || done) return s;
   }
   if (bytes > UINT64_MAX - d->chunk) return cudaErrorMemoryAllocation;
   const uint64_t n = (uint64_t(bytes) + d->chunk - 1) / d->chunk;
+  if (!admission_allows(d, owner, n * d->chunk, 0)) return cudaErrorInvalidValue;
   // Virtual placement first (coalescing best fit; freed ranges stay mapped,
   // so a fitting freed hole needs no driver call). Then back any unmapped
   // slot of the range with a free chunk, stealing mapped free slots from
@@ -669,8 +697,8 @@ inline cudaError_t allocate_impl(int ordinal, cudaStream_t stream, const cudaStr
 }
 
 inline cudaError_t allocate(int ordinal, cudaStream_t stream, const cudaStream_t *lanes,
-                            uint32_t lane_count, size_t bytes, bool long_lived, void **out) {
-  cudaError_t s = allocate_impl(ordinal, stream, lanes, lane_count, bytes, long_lived, out);
+                            uint32_t lane_count, size_t bytes, bool long_lived, void **out, uint64_t owner = 0) {
+  cudaError_t s = allocate_impl(ordinal, stream, lanes, lane_count, bytes, long_lived, out, owner);
   const int poison = config().poison;
   if (s == cudaSuccess && poison >= 0 && bytes) {
     // Synchronous so every lane of the owner sees the fill before first use.

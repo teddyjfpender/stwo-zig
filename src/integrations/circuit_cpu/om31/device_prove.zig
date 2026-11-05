@@ -69,6 +69,7 @@ pub const Factory = struct {
     /// Optional device-free host stage. Thread-safe with respect to this
     /// factory's device work: it never touches device or active-proof state.
     prepare_host: ?*const fn (*anyopaque, std.mem.Allocator, *const circuit.builder.Context(P.Q)) anyerror!HostPrepared = null,
+    memory_admission_enabled: ?*const fn (*anyopaque) bool = null,
     tape_ready: ?*const fn (*anyopaque, [32]u8) bool = null,
     /// Moves a HostPrepared into this factory's next trace-only source. Takes
     /// ownership on every path; a refused value is destroyed before returning.

@@ -1,0 +1,9 @@
+1/6 admission_runtime.test.runtime permit observes global retention and refuses untracked growth...GLOBAL_ADMISSION_STAGE physical=0 ticket=1 domain=native_packet stage=witness ordinal=0 owner_queue_ns=51680 owner_callback_ns=130 total_host_ns=52250 retained_large=33554432 retained_small=0 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_STAGE physical=0 ticket=2 domain=native_packet stage=witness ordinal=0 owner_queue_ns=0 owner_callback_ns=0 total_host_ns=450 retained_large=0 retained_small=0 successor_large=0 successor_small=0
+OK
+2/6 global_admission.test.native retention cannot consume the GKR successor headroom...OK
+3/6 global_admission.test.physical devices independent; active and stale tickets fail closed...OK
+4/6 global_admission.test.unknown costs, physical rounding, small slab and untracked owners...OK
+5/6 global_admission.test.host frontier charged globally and unavailable costs refused...OK
+6/6 global_admission.test.native usize allocation list uses exact arena bucket charges...OK
+All 6 tests passed.
