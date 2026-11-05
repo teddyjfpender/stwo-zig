@@ -1,0 +1,39 @@
+{
+  "schema": "rv64-m7-admission-runtime-qualification/v1",
+  "label": "M",
+  "status": "isolated_runtime_guard_passed",
+  "source_commit_before_changes": "7bac1bbad",
+  "source_sha256": {
+    "src/backends/cuda/native/runtime/context.cu": "a42061e7d5c482a26dcc0495fac29471fc519962e84b4c3cbdb6e751d703ae2d",
+    "src/backends/cuda/native/runtime/device_arena_runtime.cuh": "8ebf02a969e9dd3254a36b0e12df43ae966d4ce874eaacb050c097431ba05ccf",
+    "src/integrations/riscv_cuda/rv64/admission_runtime.zig": "71613f128a907930af1ffb8b856d54e86a2a6543ec05e12d1730e48effdccdb2",
+    "src/integrations/riscv_cuda/rv64/global_admission.zig": "781665dc383d274b7a50d702a515fd86957895459c9521af2f3ba32ef15c2546",
+    "src/integrations/riscv_cuda/rv64/resident_pool.zig": "0fbff02ee268bed9150180ad5456206ae1f03e79a4c7374fec3cc6f55a1cc59a",
+    "src/integrations/riscv_cuda/rv64/pcs_native.zig": "38d801a4833acf9e9e47afd245f276bc43dfd1e02ca0153e78cb08dbec5df2de",
+    "src/integrations/riscv_cuda/rv64/outer_source.zig": "a0cc33b3ddce5f9f8cc4c43388dd87525dec96bd0bdcaf1c1a6296985fedbf85",
+    "src/integrations/circuit_cpu/om31/device_prove.zig": "b79735a5e55d782c46adfa9bd9b6cdfa1ba320d42b4d9767bd7404628a41b0e7"
+  },
+  "driver_build": {
+    "exit": 0,
+    "sha256": "9d1de861fb339226fb55de227a3861c9c9cf2171e706180b39d91e52393e3294",
+    "path": "/workspace/m3/build/m7-admission/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+    "command": "zig build build-rv64-ethereum-gpu-combined --build-file src/integrations/riscv_cuda/build.zig -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4+sha -Doptimize=ReleaseFast --cache-dir .zig-cache --prefix /workspace/m3/build/m7-admission/zig-out",
+    "lock": "/workspace/m3/locks/build.3.lock"
+  },
+  "unit_tests": {
+    "passed": 6,
+    "failed": 0,
+    "log": "runtime-unit.log"
+  },
+  "actual_gpu_guard": {
+    "passed": 14,
+    "failed": 0,
+    "arena_bytes": 23622320128,
+    "poison": 165,
+    "log": "gpu-guard.log",
+    "scope": "small actual allocations from two native contexts on one physical GPU"
+  },
+  "nvtx_ranges": "guard-nvtx.json",
+  "runtime_build": "runtime-build.json",
+  "scope": "No full request, full stage coverage, early scheduling, native GKR or outer GKR promotion. Option disabled by default; enabled option refuses unwrapped allocations before mutation."
+}

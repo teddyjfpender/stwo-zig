@@ -23,6 +23,7 @@ fn hostGeometryBytes() usize {
     return if (bytes == 0) Export.GeometryCache.default_bytes else bytes;
 }
 pub const Context = struct {
+    admission: ?@import("admission_runtime.zig").Endpoint = null,
     byte_cap: u64,
     wide_pcs_framing: bool = false,
     /// Immutable host FFT/FRI geometry only; request/transcript data never enter.
@@ -45,6 +46,15 @@ pub const Context = struct {
     lease_validate: Abi.LeaseValidate,
     lease_validate_range: Abi.LeaseValidateRange,
     lease_release: Abi.LeaseRelease,
+    pub fn attachGlobalAdmission(self: *Context, planner: *@import("global_admission.zig").Planner, physical: u32) !void {
+        var endpoint = try @import("admission_runtime.zig").Endpoint.init(planner, physical, &self.library, self.session, self.submit);
+        try endpoint.configure();
+        self.admission = endpoint;
+    }
+    pub fn inheritGlobalAdmission(self: *Context, parent: *const Context) !void {
+        if (parent.admission) |endpoint| try self.attachGlobalAdmission(endpoint.planner, endpoint.physical);
+    }
+
     /// Failure-only owner-thread diagnostics. Optional runtime exports keep
     /// older images usable; query failures must never replace the stage error.
     pub fn logMemoryFailure(self: *Context, native_context: *anyopaque, operation_label: []const u8) void {
@@ -110,6 +120,7 @@ pub const Context = struct {
         self.active_block = identity;
     }
     pub fn endBlock(self: *Context, identity: [32]u8) !void {
+        if (self.admission) |endpoint| if (!endpoint.planner.healthy(endpoint.physical)) return error.PhysicalAdmissionPoisoned;
         if (self.active_block == null or !std.mem.eql(u8, &self.active_block.?, &identity)) return error.ResidentBlockIdentityMismatch;
         if (self.cache.items.len != 0) return error.ResidentBlockStillActive;
         try self.requireNoRequestLeases();
@@ -276,7 +287,11 @@ pub const Context = struct {
         var extra = cached.extra;
         extra.deinit(std.heap.page_allocator);
         std.heap.page_allocator.free(cached.columns);
-        if (status != 0) return error.DeviceMainReplayReleaseFailed;
+        if (status != 0) {
+            if (self.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
+            return error.DeviceMainReplayReleaseFailed;
+        }
+        if (self.admission) |endpoint| endpoint.planner.notifyResourceRelease();
     }
 
     /// Terminal local proof cleanup, including failure before PCS submission.
@@ -285,7 +300,16 @@ pub const Context = struct {
     pub fn finishProofScope(self: *Context, scope: D.Scope) void {
         self.releaseScope(@import("pcs_scope.zig").identity(scope));
     }
+    pub fn finishProofScopeChecked(self: *Context, scope: D.Scope) !void {
+        return self.releaseScopeChecked(@import("pcs_scope.zig").identity(scope));
+    }
     fn releaseScope(self: *Context, scope: [8]u32) void {
+        self.releaseScopeChecked(scope) catch {
+            if (self.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
+        };
+    }
+    fn releaseScopeChecked(self: *Context, scope: [8]u32) !void {
+        defer if (self.admission) |endpoint| endpoint.planner.notifyResourceRelease();
         self.cache_mutex.lock();
         var index: ?usize = null;
         for (self.cache.items, 0..) |entry, i| if (std.mem.eql(u32, &entry.scope, &scope)) {
@@ -296,15 +320,22 @@ pub const Context = struct {
         self.cache_mutex.unlock();
         if (entry) |cached| {
             var release_job = ReleaseJob{ .self = self, .scope = scope, .lease = cached.lease, .extra = cached.extra.items };
-            _ = self.submit(self.session, ReleaseJob.run, &release_job);
+            const release_status = self.submit(self.session, ReleaseJob.run, &release_job);
             // A poisoned context is terminal; destroy still owns any lease
             // that could not be released by the owner-thread callback.
             var extra = cached.extra;
             extra.deinit(std.heap.page_allocator);
             std.heap.page_allocator.free(cached.columns);
+            if (release_status != 0) {
+                if (self.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
+                return error.DeviceScopeReleaseFailed;
+            }
         } else if (self.immutable_setup != null) {
             var release_job = ReleaseJob{ .self = self, .scope = scope, .lease = null, .extra = &.{} };
-            _ = self.submit(self.session, ReleaseJob.run, &release_job);
+            if (self.submit(self.session, ReleaseJob.run, &release_job) != 0) {
+                if (self.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
+                return error.DeviceScopeReleaseFailed;
+            }
         }
     }
     const ReleaseJob = struct {

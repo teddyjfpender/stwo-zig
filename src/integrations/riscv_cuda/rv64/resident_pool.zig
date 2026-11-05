@@ -12,6 +12,7 @@ const Endpoint = R.Endpoint;
 /// Owns the actual native CUDA sessions and the concrete RV64 backends. Creation
 /// performs capacity planning before opening any device; no GPU is rented here.
 pub const Pool = struct {
+    admission: ?*@import("global_admission.zig").Planner = null,
     allocator: std.mem.Allocator,
     devices: []Device,
     endpoints: []Endpoint,
@@ -41,9 +42,10 @@ pub const Pool = struct {
         cpu_replay: @import("cpu_replay.zig").Context,
         truth_source: @import("truth_source.zig").Context,
         truth_composition: CPU.rv64_gkr_truth_device_composition.Stage,
-        fn init(self: *Device, a: std.mem.Allocator, library: []const u8, id: u32, cap: u64, device_binding: bool) !void {
+        fn init(self: *Device, a: std.mem.Allocator, library: []const u8, id: u32, cap: u64, device_binding: bool, admission: ?*@import("global_admission.zig").Planner) !void {
             self.native = try @import("pcs_native.zig").Context.init(library, id, cap);
             errdefer self.native.deinit();
+            if (admission) |planner| try self.native.attachGlobalAdmission(planner, id);
             self.gkr = try @import("gkr_stage.zig").Backend.init(a, &self.native.library, self.native.session, std.math.cast(usize, cap) orelse return error.InvalidResidentDeviceCaps);
             errdefer self.gkr.deinit();
             if (device_binding) try self.gkr.enableDeviceBinding(&self.native.library);
@@ -86,12 +88,27 @@ pub const Pool = struct {
         const self = try a.create(Pool);
         errdefer a.destroy(self);
         self.allocator = a;
+        self.admission = null;
+        if (std.posix.getenv("STWO_RV64_GLOBAL_ADMISSION")) |text| {
+            if (std.mem.eql(u8, text, "1")) {
+                const A = @import("global_admission.zig");
+                const preset = try A.Preset.parse(std.posix.getenv("STWO_RV64_DEVICE_ARENA") orelse return error.StaticArenaPresetRequired);
+                const planner = try a.create(A.Planner);
+                errdefer a.destroy(planner);
+                planner.* = try A.Planner.init(a, config.ids, preset);
+                self.admission = planner;
+            } else if (!std.mem.eql(u8, text, "0")) return error.InvalidGlobalAdmissionOption;
+        }
+        errdefer if (self.admission) |planner| {
+            planner.deinit();
+            a.destroy(planner);
+        };
         self.devices = try a.alloc(Device, config.ids.len);
         errdefer a.free(self.devices);
         var initialized: usize = 0;
         errdefer for (self.devices[0..initialized]) |*device| device.deinit();
         for (self.devices, config.ids, config.caps) |*device, id, cap| {
-            try device.init(a, library, id, cap, device_binding);
+            try device.init(a, library, id, cap, device_binding, self.admission);
             initialized += 1;
             device.cpu_replay = .{ .service = &device.native, .source = &device.source, .trace = &device.trace };
             try device.native.configureRetention(config.scope_limit);
@@ -123,6 +140,10 @@ pub const Pool = struct {
         for (self.devices) |*device| device.deinit();
         a.free(self.devices);
         a.free(self.endpoints);
+        if (self.admission) |planner| {
+            planner.deinit();
+            a.destroy(planner);
+        }
         a.destroy(self);
     }
 };

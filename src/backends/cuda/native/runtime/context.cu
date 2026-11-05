@@ -1025,11 +1025,13 @@ static int alloc_u32_from(void *handle, size_t count, uint32_t **out_pointer, bo
     // capture keeps the pool path so captured graphs own their memory nodes.
     const bool use_arena = status == cudaSuccess &&
         stwo::cuda::runtime::arena::config().enabled && !context->capture_active;
+    if (!use_arena && status == cudaSuccess && context->capture_active &&
+        stwo::cuda::runtime::arena::admission_enforced(context->device)) return int(cudaErrorNotSupported);
     if (use_arena) {
         status = stwo::cuda::runtime::arena::allocate(
             context->device, context->stream, context->lanes, context->lane_count,
             count * sizeof(uint32_t), long_lived,
-            reinterpret_cast<void **>(out_pointer));
+            reinterpret_cast<void **>(out_pointer), context->identity);
     } else if (status == cudaSuccess) {
         stwo::cuda::runtime::arena::counters().pool_mallocs.fetch_add(1, std::memory_order_relaxed);
 #else
@@ -1352,5 +1354,89 @@ extern "C" int stwo_exec_arena_enabled(void) {
     return stwo::cuda::runtime::arena::config().enabled && stwo::cuda::runtime::arena::config().valid ? 1 : 0;
 #else
     return 0;
+#endif
+}
+
+struct alignas(8) StwoCudaArenaSnapshotV1 {
+    uint32_t version, device;
+    uint64_t capacity, chunk, small_slab, live_large, live_small, largest_virtual_free;
+    uint64_t free_device, total_device;
+};
+static_assert(sizeof(StwoCudaArenaSnapshotV1) == 72, "arena snapshot ABI");
+#if STWO_DEVICE_ARENA_HOOK
+namespace {
+void arena_snapshot_locked(stwo::cuda::runtime::arena::Device *d, int device, StwoCudaArenaSnapshotV1 *out) {
+    *out = {}; out->version=1; out->device=uint32_t(device);
+    out->capacity=d->capacity(); out->chunk=d->chunk; out->small_slab=d->small_bytes;
+    out->live_large=d->live-d->live_small; out->live_small=d->live_small;
+    d->arena->for_each_free([&](uint64_t, uint64_t bytes){ out->largest_virtual_free=std::max(out->largest_virtual_free,bytes); });
+}
+}
+#endif
+extern "C" int stwo_exec_context_arena_snapshot_v1(void *raw, StwoCudaArenaSnapshotV1 *out) {
+#if STWO_DEVICE_ARENA_HOOK
+    if (!out) return int(cudaErrorInvalidValue);
+    StwoNativeCudaContext *context=nullptr;
+    cudaError_t status=require_context(raw,&context); if(status!=cudaSuccess) return int(status);
+    auto *d=stwo::cuda::runtime::arena::device(context->device,&status);
+    if(!d) return int(status);
+    { std::lock_guard<std::mutex> lock(d->mutex); arena_snapshot_locked(d,context->device,out); }
+    size_t free=0,total=0; status=cudaSetDevice(context->device);
+    if(status==cudaSuccess) status=cudaMemGetInfo(&free,&total);
+    out->free_device=free; out->total_device=total; return int(status);
+#else
+    return int(cudaErrorNotSupported);
+#endif
+}
+extern "C" int stwo_exec_context_admission_configure_v1(void *raw, uint64_t capacity) {
+#if STWO_DEVICE_ARENA_HOOK
+    StwoNativeCudaContext *context=nullptr;
+    cudaError_t status=require_context(raw,&context); if(status!=cudaSuccess) return int(status);
+    const auto &c=stwo::cuda::runtime::arena::config();
+    if(!c.valid || !c.enabled || !capacity || c.bytes!=capacity || c.chunk!=(32ull<<20) || c.small_chunks!=16)
+        return int(cudaErrorInvalidValue);
+    auto *d=stwo::cuda::runtime::arena::device(context->device,&status); if(!d) return int(status);
+    std::lock_guard<std::mutex> lock(d->mutex);
+    if(d->capacity()!=capacity || d->admission_ticket || (!d->admission_required && d->live)) return int(cudaErrorInvalidValue);
+    d->admission_required=true; return 0;
+#else
+    return int(cudaErrorNotSupported);
+#endif
+}
+extern "C" int stwo_exec_context_admission_begin_v1(void *raw, uint64_t ticket,
+    uint64_t expected_large, uint64_t expected_small, uint64_t add_large, uint64_t add_small, const char *label) {
+#if STWO_DEVICE_ARENA_HOOK
+    StwoNativeCudaContext *context=nullptr;
+    cudaError_t status=require_context(raw,&context); if(status!=cudaSuccess) return int(status);
+    if(!ticket || !label || context->capture_active || context->nvtx_depth) return int(cudaErrorInvalidValue);
+    auto *d=stwo::cuda::runtime::arena::device(context->device,&status); if(!d) return int(status);
+    std::lock_guard<std::mutex> lock(d->mutex);
+    const uint64_t large=d->live-d->live_small, small=d->live_small;
+    if(!d->admission_required || d->admission_ticket || large>expected_large || small>expected_small ||
+       add_large>d->capacity()-d->small_bytes || large>d->capacity()-d->small_bytes-add_large ||
+       add_small>d->small_bytes || small>d->small_bytes-add_small) return int(cudaErrorInvalidValue);
+    d->admission_ticket=ticket; d->admission_owner=context->identity;
+    d->admission_large_ceiling=large+add_large; d->admission_small_ceiling=small+add_small;
+    nvtxRangePushA(label); context->nvtx_depth=1; return 0;
+#else
+    return int(cudaErrorNotSupported);
+#endif
+}
+extern "C" int stwo_exec_context_admission_end_v1(void *raw, uint64_t ticket, StwoCudaArenaSnapshotV1 *out) {
+#if STWO_DEVICE_ARENA_HOOK
+    if(!out) return int(cudaErrorInvalidValue);
+    StwoNativeCudaContext *context=nullptr;
+    cudaError_t status=require_context(raw,&context); if(status!=cudaSuccess) return int(status);
+    auto *d=stwo::cuda::runtime::arena::device(context->device,&status); if(!d) return int(status);
+    { std::lock_guard<std::mutex> lock(d->mutex);
+      if(!ticket || d->admission_ticket!=ticket || d->admission_owner!=context->identity || context->nvtx_depth!=1) return int(cudaErrorInvalidValue);
+      d->admission_ticket=0; d->admission_owner=0;
+      arena_snapshot_locked(d,context->device,out);
+    }
+    nvtxRangePop(); context->nvtx_depth=0;
+    size_t free=0,total=0; status=cudaMemGetInfo(&free,&total);
+    out->free_device=free;out->total_device=total; return int(status);
+#else
+    return int(cudaErrorNotSupported);
 #endif
 }

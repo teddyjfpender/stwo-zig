@@ -79,7 +79,11 @@ pub const Context = struct {
         self.* = undefined;
     }
     pub fn factory(self: *Context) Dev.Factory {
-        return .{ .context = self, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit, .prepare_host = prepareHost, .tape_ready = tapeReady, .stage_host = stageHost, .unstage_host = unstageHost };
+        return .{ .context = self, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit, .prepare_host = prepareHost, .tape_ready = tapeReady, .memory_admission_enabled = globalAdmissionEnabled, .stage_host = stageHost, .unstage_host = unstageHost };
+    }
+    fn globalAdmissionEnabled(raw: *anyopaque) bool {
+        const self: *Context = @ptrCast(@alignCast(raw));
+        return if (self.service.admission) |endpoint| endpoint.enabled() else false;
     }
     fn tapeReady(_: *anyopaque, class: [32]u8) bool {
         return Assignment.ClassCache.tapeReady(class);
