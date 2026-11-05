@@ -43,9 +43,12 @@ def main():
         assets = plan['assets']
         assert sha(assets['library']) == 'a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45'
         tag = f'assignment-retire-{args.async_retire}-{args.profile}' + ('-nsys' if args.nsys else '')
-        run = args.out / f'daemon-{block}-r{args.repeat}-{tag}'
+        # The harness stream names its synced source as well as its run root;
+        # receipt output may be placed in a separate profiling directory.
+        stream = root.name
+        run = Path('/workspace/m3/runs') / stream / f'daemon-{block}-r{args.repeat}-{tag}'
         command = [sys.executable, str(root / 'scripts/rv64_m4_resident.py'), 'daemon', str(block),
-                   '--stream', args.out.name, '--build-stream', 'm7-callback-retire',
+                   '--stream', stream, '--build-stream', 'm7-callback-retire',
                    '--repeat', str(args.repeat), '--store', 'none', '--receive', 'first', '--tag', tag,
                    '--driver', args.driver, '--library', assets['library'], '--receiver', assets['receiver'],
                    '--no-default-env']
