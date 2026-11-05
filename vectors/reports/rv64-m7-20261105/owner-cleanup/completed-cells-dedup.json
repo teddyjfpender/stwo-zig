@@ -1,0 +1,129 @@
+{
+  "schema": "rv64-m7-artifact-dedup/v1",
+  "time": 1793872436.75182,
+  "scope": "Owncompleted immutable cells.bin output witnesses ONLY; no source/build/compiler/cache hardlinks. Paths+bytes preserved, activeFD/maps excluded, runningheadenqueue1 excluded.",
+  "bytes_deduplicated": 759268592,
+  "events": [
+    {
+      "path": "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off/spool/out/0001-24628607/24628607/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off/spool/out/0000-24628607/24628607/proof/cells.bin",
+      "bytes": 47481952,
+      "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-on/spool/out/0000-24628607/24628607/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off/spool/out/0000-24628607/24628607/proof/cells.bin",
+      "bytes": 47481952,
+      "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-on/spool/out/0001-24628607/24628607/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off/spool/out/0000-24628607/24628607/proof/cells.bin",
+      "bytes": 47481952,
+      "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-off/spool/out/0001-24628607/24628607/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off/spool/out/0000-24628607/24628607/proof/cells.bin",
+      "bytes": 47481952,
+      "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-off/spool/out/0002-26235156/26235156/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-off/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "bytes": 31617748,
+      "sha256": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-on/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-off/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "bytes": 31617748,
+      "sha256": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-device-fs/daemon-26235156-r2-owner-isolated-off/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-off/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "bytes": 31617748,
+      "sha256": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-device-fs/daemon-26235156-r2-owner-isolated-off/spool/out/0001-26235156/26235156/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-off/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "bytes": 31617748,
+      "sha256": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-device-fs/daemon-26235156-r2-owner-isolated-on/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-off/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "bytes": 31617748,
+      "sha256": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-device-fs/daemon-26235156-r2-owner-isolated-on/spool/out/0001-26235156/26235156/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-off/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "bytes": 31617748,
+      "sha256": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-rc-workspace/daemon-24628607-r2-rc-idle0-role-0-enqueue-0/spool/out/0000-24628607/24628607/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off/spool/out/0000-24628607/24628607/proof/cells.bin",
+      "bytes": 47481952,
+      "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-rc-workspace/daemon-24628607-r2-rc-idle0-role-0-enqueue-0/spool/out/0001-24628607/24628607/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off/spool/out/0000-24628607/24628607/proof/cells.bin",
+      "bytes": 47481952,
+      "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-rc-workspace/daemon-24628607-r2-rc-idle0-role-1-enqueue-0/spool/out/0000-24628607/24628607/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off/spool/out/0000-24628607/24628607/proof/cells.bin",
+      "bytes": 47481952,
+      "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-rc-workspace/daemon-24628607-r2-rc-idle0-role-1-enqueue-0/spool/out/0001-24628607/24628607/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off/spool/out/0000-24628607/24628607/proof/cells.bin",
+      "bytes": 47481952,
+      "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-rc-workspace/daemon-26235156-r1-rc-idle0-falsifier-role-1-enqueue-0/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-off/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "bytes": 31617748,
+      "sha256": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-rc-workspace/daemon-26235156-r2-rc-idle0-role-1-enqueue-0/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-off/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "bytes": 31617748,
+      "sha256": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-rc-workspace/daemon-26235156-r2-rc-idle0-role-1-enqueue-0/spool/out/0001-26235156/26235156/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-off/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "bytes": 31617748,
+      "sha256": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-rc-workspace/daemon-26235156-r2-rc-idle0-role-1-enqueue-1/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-off/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "bytes": 31617748,
+      "sha256": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-rc-workspace/daemon-26235156-r2-rc-idle0-role-1-enqueue-1/spool/out/0001-26235156/26235156/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-off/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "bytes": 31617748,
+      "sha256": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e"
+    },
+    {
+      "path": "/workspace/m3/runs/m7-rc-workspace/daemon-26235156-r2-rc-role-1-enqueue-0/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "canonical": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-off/spool/out/0000-26235156/26235156/proof/cells.bin",
+      "bytes": 31617748,
+      "sha256": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e"
+    }
+  ],
+  "skipped_active": []
+}
