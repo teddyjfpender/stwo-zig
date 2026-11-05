@@ -5,7 +5,9 @@ const std = @import("std");
 const A = @import("global_admission.zig");
 pub const Auxiliary = enum { none, last, hc };
 pub const Column = struct { log: u32, direct: bool };
+pub const Sparse = @import("composition_sparse_contract.zig");
 pub const Role = struct {
+    sparse: ?Sparse.Selection = null,
     trace_log: u32,
     eval_log: u32,
     columns: []const Column,
@@ -28,7 +30,7 @@ pub const Input = struct {
     /// audited cache hit/device-only forest. Cache aliases cost no new bytes.
     fixed_cold_words: u64 = 0,
 };
-pub const Kind = enum { fixed_forest, role_arena, auxiliary_inverse, hc, direct_logs, parameters, powers, masks, denominators, bucket, output, commit_scratch, accumulator, composition_inverse, tree };
+pub const Kind = enum { fixed_forest, role_arena, auxiliary_inverse, hc, direct_logs, parameters, powers, masks, denominators, bucket, output, commit_scratch, accumulator, composition_inverse, tree, sparse_cache, sparse_scratch };
 pub const Allocation = struct { kind: Kind, role: ?u32, bytes: u64, rounded: A.Footprint, live_until_end: bool };
 pub const Plan = struct {
     format: Format = .legacy_blake32_m31,
@@ -85,7 +87,7 @@ pub fn arenaWords(role: Role) !u64 {
 }
 pub fn init(a: std.mem.Allocator, input: Input) !Plan {
     if (input.format != .legacy_blake32_m31) return error.AllocationCostFormatUnavailable;
-    if (input.roles.len == 0 or input.log < 5 or input.log > 28 or input.split < 1 or input.split > 2 or input.beta < 1 or input.beta > 4 or (input.separate_coefficients and input.beta != 1)) return error.InvalidCompositionGeometry;
+    if (input.roles.len == 0 or input.log < 5 or input.log > 28 or input.split < 1 or input.split > 2 or input.beta < 1 or input.beta > 4 or (input.separate_coefficients and input.beta != 1 and input.beta != 2)) return error.InvalidCompositionGeometry;
     var p: Plan = .{};
     errdefer p.deinit(a);
     if (input.fixed_cold_words != 0) p.retained_after = try p.allocate(a, .fixed_forest, null, input.fixed_cold_words, true);
@@ -109,6 +111,23 @@ pub fn init(a: std.mem.Allocator, input: Input) !Plan {
             .hc => 10,
         };
         const columns = try add(role.columns.len, aux);
+        if (role.sparse) |selection| {
+            try selection.validate();
+            if (input.shared_role_arena or rl != 18 or el != 20 or role.columns.len != 3515 or role.auxiliary != .last or role.masks != 6733 or role.parameters != 31 or role.constraints != 5650) return error.UnqualifiedSparseCompositionCost;
+            for (role.columns) |column| if (!column.direct or column.log != 18) return error.UnqualifiedSparseCompositionCost;
+            const cache = try p.allocate(a, .sparse_cache, id, Sparse.cache_words, false);
+            const scratch = try p.allocate(a, .sparse_scratch, id, Sparse.scratch_words, false);
+            if (!buckets[el]) {
+                _ = try p.allocate(a, .bucket, id, try mul(n, 8), true);
+                buckets[el] = true;
+            }
+            // Invocation masks/parameters/powers/denominator/auxiliary and
+            // twiddles all live INSIDE the packed scratch, not in extra leases.
+            // Only the original quotient bucket survives this joined role.
+            p.live.large -= cache.large + scratch.large;
+            p.live.small -= cache.small + scratch.small;
+            continue;
+        }
         const arena = if (input.shared_role_arena) A.Footprint{} else try p.allocate(a, .role_arena, id, try arenaWords(role), false);
         if (aux != 0) {
             _ = try p.allocate(a, .auxiliary_inverse, id, (try rows(rl)) / 2, true);
@@ -203,4 +222,23 @@ test "max-role workspace includes later accumulated buckets before release" {
     try std.testing.expectEqual(old.additional_peak.large + A.chunk_bytes, shared_plan.additional_peak.large);
     try std.testing.expectEqual(old.retained_after, shared_plan.retained_after);
     try std.testing.expect(!shared_plan.host_cost_known);
+}
+
+test "source-bound sparse role charges cache scratch and bucket then retires only temporaries" {
+    const cols = [_]Column{.{ .log = 18, .direct = true }} ** 3515;
+    const selected = Role{ .sparse = .{ .source = Sparse.source, .plan = Sparse.plan }, .trace_log = 18, .eval_log = 20, .columns = &cols, .auxiliary = .last, .masks = 6733, .parameters = 31, .constraints = 5650 };
+    var p = try init(std.testing.allocator, .{ .roles = &.{selected}, .log = 20, .split = 2, .beta = 2, .separate_coefficients = true, .constraints = 5650 });
+    defer p.deinit(std.testing.allocator);
+    try std.testing.expect(!p.host_cost_known);
+    try std.testing.expectEqual(Kind.sparse_cache, p.events.items[0].kind);
+    try std.testing.expectEqual(@as(u64, Sparse.cache_words * 4), p.events.items[0].bytes);
+    try std.testing.expectEqual(@as(u64, Sparse.scratch_words * 4), p.events.items[1].bytes);
+    try std.testing.expectEqual(Kind.bucket, p.events.items[2].kind);
+    for (p.events.items) |event| if (event.role == 0) try std.testing.expect(event.kind == .sparse_cache or event.kind == .sparse_scratch or event.kind == .bucket);
+    var bad = selected;
+    bad.sparse.?.plan[0] ^= 1;
+    try std.testing.expectError(error.UnqualifiedSparseCompositionCost, init(std.testing.allocator, .{ .roles = &.{bad}, .log = 20, .split = 2, .beta = 2, .separate_coefficients = true, .constraints = 5650 }));
+    bad = selected;
+    bad.trace_log = 19;
+    try std.testing.expectError(error.UnqualifiedSparseCompositionCost, init(std.testing.allocator, .{ .roles = &.{bad}, .log = 20, .split = 2, .beta = 2, .separate_coefficients = true, .constraints = 5650 }));
 }
