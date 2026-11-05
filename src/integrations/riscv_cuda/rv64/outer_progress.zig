@@ -55,23 +55,61 @@ pub fn register(owner: *@import("outer_source.zig").Owner) !void {
     defer pcs.deinit(a);
     const main_owner = try A.Footprint.allocation(try std.math.mul(u64, main_tc.coefficient_words, 4));
     const inter_owner = try A.Footprint.allocation(try std.math.mul(u64, inter_tc.coefficient_words, 4));
-    const after_inter_commit = rc.additional_peak.max(try rc.retained_after.add(pcs.additional_upper));
-    const after_interaction = (try A.Footprint.allocations(inter_tc.bytes())).max(try inter_owner.add(after_inter_commit));
-    const after_main = interaction.additional_peak.max(try interaction.retained_after.add(after_interaction));
     var plan = Progress.Plan{ .identity = undefined, .gpu_costs_known = true, .after = undefined };
-    plan.after[@intFromEnum(Progress.Step.source)] = (try A.Footprint.allocations(main_tc.bytes())).max(try main_owner.add(after_main));
-    plan.after[@intFromEnum(Progress.Step.main_commit)] = after_main;
-    plan.after[@intFromEnum(Progress.Step.native_gkr)] = after_main;
-    plan.after[@intFromEnum(Progress.Step.interaction)] = after_interaction;
-    plan.after[@intFromEnum(Progress.Step.inter_commit)] = after_inter_commit;
+    const main_peak = try A.Footprint.allocations(main_tc.bytes());
+    const inter_peak = try A.Footprint.allocations(inter_tc.bytes());
+    var main_evaluations: A.Footprint = .{};
+    for (source.events.items) |event| if (event.kind == .main) {
+        main_evaluations = try main_evaluations.add(try A.Footprint.allocation(event.bytes));
+    };
+    var inter_evaluations: A.Footprint = .{};
+    for (interaction.events.items) |event| if (event.kind == .inter) {
+        inter_evaluations = try inter_evaluations.add(try A.Footprint.allocation(event.bytes));
+    };
+    if (beta == 1) {
+        // Both discounts are backed by checked, joined input destruction.
+        // Source and TC MUST raise the authorized future before releasing the
+        // corresponding old owner; the registry rejects missing publications.
+        const future = try @import("outer_progress_cost.zig").init(.{
+            .main_evaluations = main_evaluations,
+            .inter_evaluations = inter_evaluations,
+            .main_commit_peak = main_peak,
+            .main_coefficients = main_owner,
+            .interaction_peak = interaction.additional_peak,
+            .inter_commit_peak = inter_peak,
+            .inter_coefficients = inter_owner,
+            .composition_peak = rc.additional_peak,
+            .composition_retained = rc.retained_after,
+            .pcs_peak = pcs.additional_upper,
+        });
+        plan.after[@intFromEnum(Progress.Step.source)] = future.after_source;
+        plan.after[@intFromEnum(Progress.Step.main_commit)] = future.after_main;
+        plan.after[@intFromEnum(Progress.Step.native_gkr)] = future.after_main;
+        plan.after[@intFromEnum(Progress.Step.interaction)] = future.after_interaction;
+        plan.after[@intFromEnum(Progress.Step.inter_commit)] = future.after_inter_commit;
+        plan.retirement_after[@intFromEnum(Progress.Step.interaction)] = future.interaction_after_release;
+        plan.retirement_after[@intFromEnum(Progress.Step.inter_commit)] = future.inter_commit_after_release;
+    } else {
+        // No retirement discount for a TC mode without its input-release hook.
+        const tail = rc.additional_peak.max(try rc.retained_after.add(pcs.additional_upper));
+        const after_interaction = inter_peak.max(try inter_owner.add(tail));
+        const after_main = interaction.additional_peak.max(try interaction.retained_after.add(after_interaction));
+        plan.after[@intFromEnum(Progress.Step.source)] = main_peak.max(try main_owner.add(after_main));
+        plan.after[@intFromEnum(Progress.Step.main_commit)] = after_main;
+        plan.after[@intFromEnum(Progress.Step.native_gkr)] = after_main;
+        plan.after[@intFromEnum(Progress.Step.interaction)] = after_interaction;
+        plan.after[@intFromEnum(Progress.Step.inter_commit)] = tail;
+    }
     plan.after[@intFromEnum(Progress.Step.composition)] = pcs.additional_upper;
     plan.after[@intFromEnum(Progress.Step.pcs)] = .{};
     var h = std.crypto.hash.sha2.Sha256.init(.{});
-    h.update("rv64/outer-gpu-progress/v1\x00");
+    h.update("rv64/outer-gpu-progress/v2-retirement\x00");
     h.update(@embedFile("outer_progress.zig"));
     h.update(&key.identity);
     h.update(try std.json.Stringify.valueAlloc(a, plan.after, .{}));
+    h.update(try std.json.Stringify.valueAlloc(a, plan.retirement_after, .{}));
     plan.identity = h.finalResult();
+    std.debug.print("OUTER_CLASS_PROGRESS ordinal={} beta={} main_eval_large={} inter_eval_large={} main_coeff_large={} inter_coeff_large={} main_tc_large={} interaction_large={} inter_tc_large={} rc_large={} rc_retained_large={} pcs_large={} source_future_large={} interaction_future_large={} inter_tc_future_large={}\n", .{ owner.initial_scope.ordinal, beta, main_evaluations.large, inter_evaluations.large, main_owner.large, inter_owner.large, main_peak.large, interaction.additional_peak.large, inter_peak.large, rc.additional_peak.large, rc.retained_after.large, pcs.additional_upper.large, plan.after[@intFromEnum(Progress.Step.source)].large, plan.after[@intFromEnum(Progress.Step.interaction)].large, plan.after[@intFromEnum(Progress.Step.inter_commit)].large });
     try service.registerAdmissionProgress(owner.initial_scope, plan);
 }
 
