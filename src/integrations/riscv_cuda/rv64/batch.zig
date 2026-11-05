@@ -60,13 +60,18 @@ pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
     if (input.oracles.len == 0 or input.oracles.len > abi.batch_max_oracles or work.oracles.len != input.oracles.len) return error.InvalidGeometry;
     var variables: [abi.batch_max_oracles]u32 = undefined;
     var largest: u32 = 0;
-    var reservations = S.ReservationSet(8 + 10 * abi.batch_max_oracles){};
+    var reservations = S.ReservationSet(8 + 28 * abi.batch_max_oracles){};
     for (input.oracles, 0..) |input_oracle, j| {
         const n = input_oracle.count;
         if (n < 2 or n > 1 << 28 or !std.math.isPowerOfTwo(n)) return error.InvalidGeometry;
         variables[j] = std.math.log2_int(u32, n) - 1;
         largest = @max(largest, variables[j]);
-        try reservations.fraction(commands.context, input_oracle, n, false);
+        if (input_oracle.projected != null) {
+            const borrowed = input_oracle.projected.?.borrowed;
+            if (borrowed.len == 0 or borrowed.len > 16) return error.InvalidProjectedSource;
+            for (borrowed) |span| try reservations.slice(commands.context, span, span.len, false);
+            if (comptime @hasDecl(@TypeOf(commands.*), "validateProjection")) try commands.validateProjection(input_oracle) else return error.ProjectedSourceUnavailable;
+        } else try reservations.fraction(commands.context, input_oracle, n, false);
         const o = work.oracles[j];
         try reservations.slice(commands.context, o.terminal_mask, 32, true);
         if (variables[j] != 0) {
@@ -106,7 +111,9 @@ pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
                 var jobs: [abi.batch_max_oracles]R.BatchTailOracle = undefined;
                 var compatible = true;
                 for (work.oracles, 0..) |oracle, j| {
-                    if (current[j].n.stride != current[j].d.stride or current[j].n.stride > std.math.maxInt(u32)) compatible = false;
+                    if (current[j].projected != null) {
+                        compatible = false;
+                    } else if (current[j].n.stride != current[j].d.stride or current[j].n.stride > std.math.maxInt(u32)) compatible = false;
                     var output: ?R.Fraction = null;
                     if (variables[j] != 0) {
                         var next = oracle.banks[folds[j] % 2];
@@ -144,7 +151,9 @@ pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
         try commands.batchRound(work.state, active, largest, @intCast(round), input.point, record);
         const challenge = try record.sub(32, 8);
         prefetched = @splat(false);
-        const fuse_next = if (comptime @hasDecl(@TypeOf(commands.*), "supportsBatchFoldSum") and @hasDecl(@TypeOf(commands.*), "foldSumBatch")) remaining > 1 and commands.supportsBatchFoldSum() else false;
+        var materialized = true;
+        for (current[0..input.oracles.len]) |source| materialized = materialized and source.projected == null;
+        const fuse_next = if (comptime @hasDecl(@TypeOf(commands.*), "supportsBatchFoldSum") and @hasDecl(@TypeOf(commands.*), "foldSumBatch")) materialized and remaining > 1 and commands.supportsBatchFoldSum() else false;
         var fused_jobs: [abi.batch_max_oracles]R.BatchFoldSum = undefined;
         var fused_indices: [abi.batch_max_oracles]usize = undefined;
         var fold_jobs: [abi.batch_max_oracles]R.BatchFold = undefined;
