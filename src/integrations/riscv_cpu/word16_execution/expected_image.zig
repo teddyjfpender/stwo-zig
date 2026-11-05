@@ -19,7 +19,13 @@ pub const AuthorityCache = struct {
     entries: std.ArrayList(Entry) = .empty,
     hits: u64 = 0,
     misses: u64 = 0,
-    const Entry = struct { key: [32]u8, authority: *Full.ProgramAuthority };
+    const Entry = struct {
+        key: [32]u8,
+        // Assigned only after Owner has rehashed this request's ELF and loaded
+        // its independently checked immutable executable mappings.
+        pinned_image: ?[32]u8 = null,
+        authority: *Full.ProgramAuthority,
+    };
     const MAX_ENTRIES = 4;
     pub fn init(a: std.mem.Allocator) AuthorityCache {
         return .{ .allocator = a };
@@ -47,6 +53,40 @@ pub const AuthorityCache = struct {
         std.mem.writeInt(u64, &word, @intFromEnum(control), .little);
         hash.update(&word);
         return hash.finalResult();
+    }
+    fn imageKey(config: Request.Config) [32]u8 {
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update("stwo/rv64/resident/pinned-program-authority/v1\x00");
+        hash.update(config.elf_sha256);
+        var word: [8]u8 = undefined;
+        for ([_]u64{ @intFromEnum(Request.authorityProfile(config)), @intFromEnum(Request.romProfile(config)), @intFromEnum(config.control_policy) }) |value| {
+            std.mem.writeInt(u64, &word, value, .little);
+            hash.update(&word);
+        }
+        return hash.finalResult();
+    }
+    /// Private: Owner.initWith has already validated both file hashes and
+    /// loaded this request's memory. Executable words are determined by the
+    /// pinned ELF; ABI input/output mappings are non-executable and immutable
+    /// executable admission rejects an overlap. Input, policy, terminal and
+    /// request identity are still freshly checked below on EVERY request.
+    fn getPinned(self: *AuthorityCache, loaded: *rv.elf.LoadedImage, config: Request.Config) !*const Full.ProgramAuthority {
+        const enabled = if (std.posix.getenv("STWO_RV64_IMAGE_PROGRAM_CACHE")) |v| !std.mem.eql(u8, v, "0") else true;
+        const id = imageKey(config);
+        if (enabled) for (self.entries.items) |entry| if (entry.pinned_image) |pin| {
+            if (std.mem.eql(u8, &pin, &id)) {
+                self.hits += 1;
+                return entry.authority;
+            }
+        };
+        var program = try Request.Program.init(self.allocator, &loaded.memory);
+        defer program.deinit(self.allocator);
+        const authority = try self.get(program, config);
+        if (enabled) for (self.entries.items) |*entry| if (entry.authority == authority) {
+            entry.pinned_image = id;
+            break;
+        };
+        return authority;
     }
     fn get(self: *AuthorityCache, program: Request.Program, config: Request.Config) !*const Full.ProgramAuthority {
         const profile = Request.authorityProfile(config);
@@ -110,10 +150,12 @@ pub const Owner = struct {
         _ = try std.fmt.hexToBytes(&output, config.expected_output);
         var loaded = try rv.ethereum_contract.load(a, config.symbols, elf, input);
         errdefer loaded.deinit();
-        var program = try Request.Program.init(a, &loaded.memory);
-        defer program.deinit(a);
         const shared = cache != null;
-        var authority = if (cache) |c| (try c.get(program, config)).* else try Full.ProgramAuthority.initWithRom(a, program.value(), Request.authorityProfile(config), Request.romProfile(config), config.control_policy);
+        var authority = if (cache) |c| (try c.getPinned(&loaded, config)).* else blk: {
+            var program = try Request.Program.init(a, &loaded.memory);
+            defer program.deinit(a);
+            break :blk try Full.ProgramAuthority.initWithRom(a, program.value(), Request.authorityProfile(config), Request.romProfile(config), config.control_policy);
+        };
         errdefer if (!shared) authority.deinit();
         if (config.terminal_pc & 3 != 0 or try loaded.memory.fetch(config.terminal_pc) != 0x0000006f) return error.InvalidEthereumTerminalPc;
         _ = try authority.program.lookup(config.terminal_pc);

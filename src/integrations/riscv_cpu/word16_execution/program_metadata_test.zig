@@ -353,3 +353,39 @@ test "Program metadata hit fixed allocation failure drains lease and permits ret
     defer retry.deinit();
     try same(&first, &retry);
 }
+
+
+test "capture program view preserves all ROM tuples without dense fixed columns" {
+    var expected = try authority(a);
+    defer expected.deinit();
+    var cache = try Cache.init(a, 1024 * 1024);
+    defer cache.deinit();
+    var normal = try Program.initWithAuthority(a, &expected);
+    defer normal.deinit();
+    var cold = try Program.initCaptureWithAuthorityAndMetadataCache(a, &expected, &cache);
+    defer cold.deinit();
+    var warm = try Program.initCaptureWithAuthorityAndMetadataCache(a, &expected, &cache);
+    defer warm.deinit();
+    for ([_]*Program{ &cold, &warm }) |view| {
+        try std.testing.expect(view.fixed_retired);
+        try std.testing.expectEqual(@as(usize, 0), view.fixed.len);
+        try std.testing.expectError(error.ExecutionFixedWitnessRetired, view.validateFixedWitness());
+        try std.testing.expectEqual(normal.identity, view.identity);
+        try std.testing.expectEqualDeep(normal.metadataView(), view.metadataView());
+        for (0..normal.size()) |row| try std.testing.expectEqualDeep(try normal.tupleAt(row), try view.tupleAt(row));
+    }
+    try normal.makeCompact();
+    try cold.makeCompact();
+    try warm.makeCompact();
+    for (0..normal.size()) |row| {
+        try std.testing.expectEqualDeep(try normal.tupleAt(row), try cold.tupleAt(row));
+        try std.testing.expectEqualDeep(try normal.tupleAt(row), try warm.tupleAt(row));
+    }
+    // Key construction retains its original dense fixed-witness path, even if
+    // the first metadata owner in the cache was a capture-only view.
+    var key_program = try Program.initWithAuthorityAndMetadataCache(a, &expected, &cache);
+    defer key_program.deinit();
+    try key_program.validateFixedWitness();
+    try key_program.makeCompact();
+    try same(&normal, &key_program);
+}

@@ -46,26 +46,35 @@ pub const Program = struct {
         const addresses = try a.alloc(u64, words.len);
         errdefer a.free(addresses);
         for (addresses, 0..) |*address, i| address.* = expected.pc(i);
-        return build(a, words, addresses, true, profile, null);
+        return build(a, words, addresses, true, profile, null, true);
     }
     /// The independently derived authority must outlive this borrowed view.
     /// Only the new feature cache/ROM is owned here; raw arrays are not copied.
     pub fn initWithAuthority(a: std.mem.Allocator, expected: *const Full.ProgramAuthority) !Program {
-        return build(a, expected.words, expected.program.addresses, false, expected.rom_profile, expected);
+        return build(a, expected.words, expected.program.addresses, false, expected.rom_profile, expected, true);
     }
     /// Reuse only owned decoded metadata. Raw views ALWAYS come from this
     /// independently derived authority and retain the existing image lifetime.
     pub fn initWithAuthorityAndMetadataCache(a: std.mem.Allocator, expected: *const Full.ProgramAuthority, metadata_cache: *const Metadata.Cache) !Program {
+        return initCached(a, expected, metadata_cache, true);
+    }
+    /// Capture consumes decoded tuples, never the dense ROM fixed matrix.
+    /// Native key builders keep initWithAuthorityAndMetadataCache and therefore
+    /// retain exactly the established fixed-witness ownership contract.
+    pub fn initCaptureWithAuthorityAndMetadataCache(a: std.mem.Allocator, expected: *const Full.ProgramAuthority, metadata_cache: *const Metadata.Cache) !Program {
+        return initCached(a, expected, metadata_cache, false);
+    }
+    fn initCached(a: std.mem.Allocator, expected: *const Full.ProgramAuthority, metadata_cache: *const Metadata.Cache, materialize_fixed: bool) !Program {
         if (expected.words.len == 0 or expected.words.len != expected.program.addresses.len) return error.InvalidExecutionProgram;
         const input = Metadata.Input{ .words = expected.words, .addresses = expected.program.addresses, .profile = expected.rom_profile };
         if (try metadata_cache.lookup(input)) |found| {
             var lease = found;
             errdefer lease.deinit();
             const data = lease.view();
-            const fixed = try fixedFromEntries(a, data.entries, data.word_rows, data.log_size, null, false);
-            return .{ .allocator = a, .words = expected.words, .addresses = expected.program.addresses, .entries = data.entries, .word_rows = data.word_rows, .row_to_entry = data.row_to_entry, .row_taken = data.row_taken, .metadata_lease = lease, .fixed = fixed, .log_size = data.log_size, .identity = lease.identity(), .opcodes = data.opcodes, .profile = expected.rom_profile, .contiguous = data.contiguous, .owns_raw = false };
+            const fixed: []M = if (materialize_fixed) try fixedFromEntries(a, data.entries, data.word_rows, data.log_size, null, false) else &.{};
+            return .{ .fixed_retired = !materialize_fixed, .allocator = a, .words = expected.words, .addresses = expected.program.addresses, .entries = data.entries, .word_rows = data.word_rows, .row_to_entry = data.row_to_entry, .row_taken = data.row_taken, .metadata_lease = lease, .fixed = fixed, .log_size = data.log_size, .identity = lease.identity(), .opcodes = data.opcodes, .profile = expected.rom_profile, .contiguous = data.contiguous, .owns_raw = false };
         }
-        var program = try initWithAuthority(a, expected);
+        var program = try build(a, expected.words, expected.program.addresses, false, expected.rom_profile, expected, materialize_fixed);
         errdefer program.deinit();
         var owned_input = input;
         owned_input.identity = program.identity;
@@ -95,7 +104,7 @@ pub const Program = struct {
         self.addresses = addresses;
         self.owns_raw = true;
     }
-    fn build(a: std.mem.Allocator, words: []const u32, addresses: []const u64, owns_raw: bool, profile: Execution.Profile, cache: ?*const Full.ProgramAuthority) !Program {
+    fn build(a: std.mem.Allocator, words: []const u32, addresses: []const u64, owns_raw: bool, profile: Execution.Profile, cache: ?*const Full.ProgramAuthority, materialize_fixed: bool) !Program {
         if (words.len == 0 or words.len != addresses.len) return error.InvalidExecutionProgram;
         const entries = try a.alloc(Entry, words.len);
         errdefer a.free(entries);
@@ -145,8 +154,17 @@ pub const Program = struct {
         const row_taken = try a.alloc(bool, count);
         errdefer a.free(row_taken);
         const log_size: u32 = @intCast(@max(X.layout.MIN_LOG, std.math.log2_int_ceil(usize, count)));
-        const fixed = try fixedFromEntries(a, entries, word_rows, log_size, .{ .row_to_entry = row_to_entry, .row_taken = row_taken }, false);
-        return .{ .allocator = a, .words = words, .addresses = addresses, .entries = entries, .word_rows = word_rows, .row_to_entry = row_to_entry, .row_taken = row_taken, .fixed = fixed, .log_size = log_size, .identity = hash.finalResult(), .opcodes = opcodes, .profile = profile, .contiguous = front.rv64_air.word16_cpu.rom.contiguousAddresses(addresses), .owns_raw = owns_raw };
+        const fixed: []M = if (materialize_fixed) try fixedFromEntries(a, entries, word_rows, log_size, .{ .row_to_entry = row_to_entry, .row_taken = row_taken }, false) else blk: {
+            for (entries, word_rows, 0..) |entry, first, i| {
+                const rows: usize = if (entry.hasTakenEdge()) 2 else 1;
+                for (0..rows) |edge| {
+                    row_to_entry[first + edge] = @intCast(i);
+                    row_taken[first + edge] = edge != 0;
+                }
+            }
+            break :blk &.{};
+        };
+        return .{ .fixed_retired = !materialize_fixed, .allocator = a, .words = words, .addresses = addresses, .entries = entries, .word_rows = word_rows, .row_to_entry = row_to_entry, .row_taken = row_taken, .fixed = fixed, .log_size = log_size, .identity = hash.finalResult(), .opcodes = opcodes, .profile = profile, .contiguous = front.rv64_air.word16_cpu.rom.contiguousAddresses(addresses), .owns_raw = owns_raw };
     }
     const MutableMaps = struct { row_to_entry: []u32, row_taken: []bool };
     /// Switches this owner to the compact decode ROM. Rebuilds the fixed
