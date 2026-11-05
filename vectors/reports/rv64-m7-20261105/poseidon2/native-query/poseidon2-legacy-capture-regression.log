@@ -1,0 +1,9 @@
+test-riscv64-om31-native-pcs
++- run test stderr
+CPU_OM31_LEAF vars=3541906 frame_words=434 gates=.{ .eq = 65906, .qm31_ops = 939970, .m31_to_u32 = 190152, .triple_xor = 58824, .blake_g_gate = 588240 }
+OM31_ACTUAL_CPU_WRAP vars=5570560 preprocess_ns=647451863 prove_ns=28786236777 verify_ns=403553694
+
+Build Summary: 2/2 steps succeeded
+test-riscv64-om31-native-pcs success
++- run /workspace/zig/zig success 6m MaxRSS:5G
+
