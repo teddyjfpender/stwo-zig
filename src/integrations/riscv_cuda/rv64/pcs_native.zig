@@ -23,6 +23,7 @@ fn hostGeometryBytes() usize {
     return if (bytes == 0) Export.GeometryCache.default_bytes else bytes;
 }
 pub const Context = struct {
+    early_allocations: @import("native_stage1_allocations.zig").Guard = .{},
     admission: ?@import("admission_runtime.zig").Endpoint = null,
     admission_retention: @import("admission_retention.zig").Registry = .{},
     byte_cap: u64,

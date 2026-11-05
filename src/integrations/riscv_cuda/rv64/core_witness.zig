@@ -95,7 +95,7 @@ pub const Context = struct {
     memset: Memset,
     pub fn init(service: *Service.Context, cpu: *Projection.Context) !Context {
         cpu.retain_ledgers = true;
-        return .{ .service = service, .single_stream_ingress = singleStreamDefault(), .cpu = cpu, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try symbol(Native.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try symbol(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try symbol(Native.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try symbol(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .family = try symbol(FamilyFn, &service.library, "stwo_rv64_family_witness_on"), .memory = try symbol(MemoryFn, &service.library, "stwo_rv64_memory_witness_on"), .arithmetic = try symbol(ArithmeticFn, &service.library, "stwo_rv64_arithmetic_witness_on"), .boundary = try symbol(BoundaryFn, &service.library, "stwo_rv64_boundary_witness_on"), .table = try symbol(TableFn, &service.library, "stwo_rv64_multiplicity_witness_on"), .memset = try symbol(Memset, &service.library, "stwo_exec_context_memset_async") };
+        return .{ .service = service, .single_stream_ingress = singleStreamDefault(), .cpu = cpu, .api = .{ .allocation_guard = &service.early_allocations, .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try symbol(Native.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try symbol(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try symbol(Native.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try symbol(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .family = try symbol(FamilyFn, &service.library, "stwo_rv64_family_witness_on"), .memory = try symbol(MemoryFn, &service.library, "stwo_rv64_memory_witness_on"), .arithmetic = try symbol(ArithmeticFn, &service.library, "stwo_rv64_arithmetic_witness_on"), .boundary = try symbol(BoundaryFn, &service.library, "stwo_rv64_boundary_witness_on"), .table = try symbol(TableFn, &service.library, "stwo_rv64_multiplicity_witness_on"), .memset = try symbol(Memset, &service.library, "stwo_exec_context_memset_async") };
     }
     pub fn buildCore(self: *Context, a: std.mem.Allocator, request: Pipeline.Request) !*CoreProjection {
         const out = try a.create(CoreProjection);
@@ -104,6 +104,7 @@ pub const Context = struct {
         errdefer out.destroy();
         out.source = try Headers.take(a, &request.setup.materials, request.native, request.request.base.memory);
         try out.source.?.cpu.projectDevice(self.cpu.stage(), request.scope);
+        try self.service.early_allocations.advance(@import("pcs_scope.zig").identity(request.scope), .source);
         const events = request.advice.events[request.ordinal];
         out.general_events = try Memory.routedEvents(a, events, request.setup.bridges.ls_dword != null, false);
         defer {

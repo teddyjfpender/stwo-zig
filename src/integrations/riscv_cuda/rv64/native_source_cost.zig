@@ -1,0 +1,279 @@
+//! Local stage-1 GPU allocation envelope. It includes the Source while MAIN
+//! commit allocates its arena, tree and independent retained coefficients.
+//! Geometry/ABI sizes must come from native_source_cost_adapter, never receipts.
+//! Host coverage is deliberately separate: this plan cannot enable whole-process
+//! admission while Source/worker stacks and host owners are still unaudited.
+const std = @import("std");
+const C = @import("native_cpu_projection_cost.zig");
+const T = @import("trace_commit_cost.zig");
+const A = @import("global_admission.zig");
+pub const Role = enum { cpu, fact, memory, boundary, multiplication, division, table };
+pub const Shape = struct { role: Role, log: u32, width: u32, count: u64 = 0 };
+pub const ExtraKind = enum { bridge, bulk, sponge, zbb, dword };
+pub const Extra = struct { kind: ExtraKind, log: u32, width: u32, count: u64, input_words_per_record: u32 };
+pub const Layout = struct {
+    fact_words: u32,
+    memory_event_words: u32,
+    boundary_cell_words: u32,
+    bulk_call_words: u32,
+    bulk_word_words: u32,
+    sponge_call_words: u32,
+    sponge_state_words: u32,
+    service_row_words: u32,
+};
+pub const Bulk = struct { calls: u64, words: u64, scans: u64 };
+pub const Sponge = struct { calls: u64, words: u64, permutations: u64 };
+pub const Commit = struct { beta: u32, separate_coefficients: bool, stream_budget: ?usize = null, exact_prefix_banks: bool = false };
+pub const Input = struct {
+    /// Full immutable class+request binding, independently checked at adoption.
+    binding: [32]u8,
+    cpu: C.Plan,
+    layout: Layout,
+    rom_rows: u64,
+    multiplication_count: u64,
+    raw_multiplication_count: u64,
+    division_count: u64,
+    shapes: []const Shape,
+    extras: []const Extra = &.{},
+    bulk: ?Bulk = null,
+    sponge: ?Sponge = null,
+    commit: Commit,
+};
+pub const Owner = enum { immutable_rom, cpu_scratch, cpu_evaluations, compact_ingress, core_ledger, core_input, core_output, bridge_input, bridge_output, bulk_input, bulk_output, sponge_input, sponge_output, extension_input, extension_output, commit_workspace, committed_coefficients };
+pub const Release = enum { projection_join, main_adopt_join, worker_destroy, immutable_release };
+pub const Allocation = struct { owner: Owner, words: u64, kind: u32, release: Release };
+pub const Plan = struct {
+    binding: [32]u8,
+    identity: [32]u8 = undefined,
+    allocations: [256]Allocation = undefined,
+    count: usize = 0,
+    trace: T.Plan = undefined,
+    projection_peak: A.Footprint = .{},
+    source_commit_peak: A.Footprint = .{},
+    after_main: A.Footprint = .{},
+    immutable_new: A.Footprint = .{},
+    /// Per-allocation rounding, then componentwise maximum across phase peaks.
+    /// This bounds shared small-slab/large-chunk demand; it isn't driver HWM.
+    peak: A.Footprint = .{},
+    host_cost_known: bool = false,
+    extra_pack_threads: u32 = 0,
+    /// Ownership inventory, not kernel launch order. DIV runs ahead of the
+    /// canonical role roster, and bulk/sponge common inputs interleave with
+    /// their outputs. All these owners coexist through MAIN adoption, so the
+    /// lifetime peak is independent of their within-phase enumeration order.
+    pub fn list(self: *const Plan) []const Allocation {
+        return self.allocations[0..self.count];
+    }
+    fn add(self: *Plan, owner: Owner, words: u64, kind: u32, release: Release) !void {
+        if (self.count == self.allocations.len or kind > 4) return error.InvalidSourceAllocationPlan;
+        const allocation = Allocation{ .owner = owner, .words = @max(1, words), .kind = kind, .release = release };
+        _ = try std.math.mul(u64, allocation.words, 4);
+        self.allocations[self.count] = allocation;
+        self.count += 1;
+    }
+    fn output(self: *Plan, owner: Owner, log: u32, width: u32) !void {
+        if (log < 1 or log > 26 or width == 0 or width > 65535) return error.InvalidSourceGeometry;
+        try self.add(owner, try mul(@as(u64, 1) << @intCast(log), width), 1, .main_adopt_join);
+    }
+};
+fn mul(a: u64, b: u64) !u64 {
+    return std.math.mul(u64, a, b);
+}
+fn add(a: u64, b: u64) !u64 {
+    return std.math.add(u64, a, b);
+}
+fn validateLayout(l: Layout) !void {
+    inline for (std.meta.fields(Layout)) |field| if (@field(l, field.name) == 0 or @field(l, field.name) > 65536) return error.UnsupportedSourceLayout;
+}
+pub fn init(a: std.mem.Allocator, input: Input) !Plan {
+    try validateLayout(input.layout);
+    if (std.mem.allEqual(u8, &input.binding, 0) or input.shapes.len == 0 or input.shapes.len + input.extras.len > 96 or input.rom_rows == 0 or !std.math.isPowerOfTwo(input.rom_rows)) return error.InvalidSourceGeometry;
+    if (input.multiplication_count != try add(input.raw_multiplication_count, try mul(input.division_count, 2))) return error.InvalidMultiplicationSupportCount;
+    var p = Plan{ .binding = input.binding, .extra_pack_threads = input.cpu.host.extra_pack_threads };
+    // The projection has already validated the supported compact/ledger mode.
+    var cpu_words: u64 = 0;
+    for (input.cpu.allocationList()) |allocation| {
+        const owner: Owner = switch (allocation.owner) {
+            .immutable_rom => .immutable_rom,
+            .projection_scratch => .cpu_scratch,
+            .projection_evaluations => .cpu_evaluations,
+            .compact_ingress => .compact_ingress,
+        };
+        const release: Release = switch (allocation.release) {
+            .joined_projection => .projection_join,
+            .source_release => .main_adopt_join,
+            .immutable_release => .immutable_release,
+        };
+        try p.add(owner, allocation.words, allocation.kind, release);
+        if (owner == .cpu_evaluations) cpu_words = allocation.words;
+        p.projection_peak = try p.projection_peak.add(try A.Footprint.allocation(try mul(allocation.words, 4)));
+    }
+    if (cpu_words == 0) return error.InvalidCpuProjectionPlan;
+    // One packed ledger, then two separately rounded arithmetic inputs, even
+    // when arithmetic is empty or the optional DIV component is omitted.
+    try p.add(.core_ledger, try add(1376513, input.rom_rows), 0, .main_adopt_join);
+    try p.add(.core_input, try mul(input.multiplication_count, input.layout.fact_words), 0, .main_adopt_join);
+    try p.add(.core_input, try mul(input.division_count, input.layout.fact_words), 0, .main_adopt_join);
+    var logs: std.ArrayList(u32) = .empty;
+    defer logs.deinit(a);
+    var cpu_shapes: usize = 0;
+    for (input.shapes) |shape| {
+        if (shape.width == 0) continue;
+        if (shape.log < 1 or shape.log > 26 or shape.width > 65535) return error.InvalidSourceGeometry;
+        const rows = @as(u64, 1) << @intCast(shape.log);
+        if (shape.count > rows) return error.InvalidSourceGeometry;
+        if (shape.role == .cpu) {
+            cpu_shapes += 1;
+            if (cpu_words != try mul(rows, shape.width)) return error.InvalidCpuProjectionPlan;
+        } else {
+            const stride: u32 = switch (shape.role) {
+                .fact => input.layout.fact_words,
+                .memory => input.layout.memory_event_words,
+                .boundary => input.layout.boundary_cell_words,
+                else => 0,
+            };
+            if (stride != 0) try p.add(.core_input, try mul(shape.count, stride), 0, .main_adopt_join);
+            try p.output(.core_output, shape.log, shape.width);
+        }
+        try logs.appendNTimes(a, shape.log, shape.width);
+    }
+    if (cpu_shapes != 1) return error.InvalidCpuProjectionPlan;
+    if (input.bulk) |bulk| {
+        try p.add(.bulk_input, try mul(bulk.calls, input.layout.bulk_call_words), 0, .main_adopt_join);
+        try p.add(.bulk_input, try mul(bulk.words, input.layout.bulk_word_words), 0, .main_adopt_join);
+        try p.add(.bulk_input, bulk.scans, 0, .main_adopt_join);
+        try p.add(.bulk_input, 8448, 0, .main_adopt_join);
+    }
+    if (input.sponge) |sponge| {
+        try p.add(.sponge_input, try mul(sponge.calls, input.layout.sponge_call_words), 0, .main_adopt_join);
+        try p.add(.sponge_input, try mul(sponge.words, input.layout.sponge_state_words), 0, .main_adopt_join);
+        try p.add(.sponge_input, try mul(sponge.permutations, 50), 0, .main_adopt_join);
+        try p.add(.sponge_input, try mul(sponge.permutations, 50), 0, .main_adopt_join);
+    }
+    for (input.extras) |extra| {
+        if (extra.log < 1 or extra.log > 26 or extra.count > @as(u64, 1) << @intCast(extra.log)) return error.InvalidSourceGeometry;
+        const owners: [2]Owner = switch (extra.kind) {
+            .bridge => .{ .bridge_input, .bridge_output },
+            .bulk => .{ .bulk_input, .bulk_output },
+            .sponge => .{ .sponge_input, .sponge_output },
+            .zbb, .dword => .{ .extension_input, .extension_output },
+        };
+        const stride = switch (extra.kind) {
+            .bulk, .sponge => input.layout.service_row_words,
+            .zbb => input.layout.fact_words,
+            .dword => input.layout.memory_event_words,
+            .bridge => extra.input_words_per_record,
+        };
+        if (stride == 0 or (extra.kind == .bulk and input.bulk == null) or (extra.kind == .sponge and input.sponge == null)) return error.InvalidSourceGeometry;
+        try p.add(owners[0], try mul(extra.count, stride), 0, .main_adopt_join);
+        try p.output(owners[1], extra.log, extra.width);
+        try logs.appendNTimes(a, extra.log, extra.width);
+    }
+    // Derive commit geometry from the SAME complete Source columns. Callers
+    // cannot accidentally cost a cheaper, independent trace-column inventory.
+    p.trace = try T.init(a, .{ .logs = logs.items, .beta = input.commit.beta, .separate_coefficients = input.commit.separate_coefficients, .stream_budget = input.commit.stream_budget, .exact_prefix_banks = input.commit.exact_prefix_banks });
+    for (p.trace.bytes(), 0..) |bytes, index| {
+        const coefficient = if (input.commit.separate_coefficients) index == 0 else index + 1 == p.trace.allocation_count;
+        try p.add(if (coefficient) .committed_coefficients else .commit_workspace, bytes / 4, if (coefficient) 2 else 0, if (coefficient) .worker_destroy else .main_adopt_join);
+    }
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("rv64/source-main-cost/v1\x00");
+    hash.update(@embedFile("native_source_cost.zig"));
+    hash.update(@embedFile("trace_commit_cost.zig"));
+    hash.update(&input.binding);
+    hash.update(&input.cpu.identity);
+    hash.update(&.{ @intCast(input.commit.beta), @intFromBool(input.commit.separate_coefficients), @intFromBool(input.commit.exact_prefix_banks), @intFromBool(p.trace.selected_stream_budget != null) });
+    var selected: [8]u8 = undefined;
+    std.mem.writeInt(u64, &selected, p.trace.selected_stream_budget orelse 0, .little);
+    hash.update(&selected);
+    for (p.list()) |allocation| {
+        var words: [8]u8 = undefined;
+        std.mem.writeInt(u64, &words, allocation.words, .little);
+        hash.update(&words);
+        hash.update(&.{ @intFromEnum(allocation.owner), @intCast(allocation.kind), @intFromEnum(allocation.release) });
+        const footprint = try A.Footprint.allocation(try mul(allocation.words, 4));
+        if (allocation.release != .projection_join) p.source_commit_peak = try p.source_commit_peak.add(footprint);
+        if (allocation.release == .worker_destroy or allocation.release == .immutable_release) p.after_main = try p.after_main.add(footprint);
+        if (allocation.release == .immutable_release) p.immutable_new = try p.immutable_new.add(footprint);
+    }
+    p.identity = hash.finalResult();
+    p.peak = p.projection_peak.max(p.source_commit_peak);
+    return p;
+}
+
+fn fixture() !Input {
+    return .{ .binding = @splat(9), .cpu = try C.init(.{ .layout = .{ .metadata_words = 14, .main_columns = 47, .rom_columns = 32, .compact_record_words = 4, .compact_seed_words = 96, .compact_chunk_rows = 256, .trace_column_header_bytes = 64 }, .program_identity = @splat(7), .program_profile = 0, .log = 5, .rom_log = 5, .active = 17, .public_steps = 17, .source_compact = true, .program_compact = true, .program_fixed_retired = false, .compact_ingress = true, .retain_ledgers = true, .cold_rom = true }), .layout = .{ .fact_words = 8, .memory_event_words = 16, .boundary_cell_words = 8, .bulk_call_words = 32, .bulk_word_words = 8, .sponge_call_words = 122, .sponge_state_words = 4, .service_row_words = 4 }, .rom_rows = 32, .multiplication_count = 2, .raw_multiplication_count = 0, .division_count = 1, .shapes = &.{ .{ .role = .cpu, .log = 5, .width = 47 }, .{ .role = .division, .log = 5, .width = 12, .count = 1 }, .{ .role = .fact, .log = 5, .width = 8, .count = 3 }, .{ .role = .boundary, .log = 5, .width = 4, .count = 0 } }, .commit = .{ .beta = 2, .separate_coefficients = false, .exact_prefix_banks = true } };
+}
+test "source owns every retained input through MAIN coefficient adoption" {
+    const input = try fixture();
+    const p = try init(std.testing.allocator, input);
+    try std.testing.expectEqual(@as(u64, 71 * 32), p.trace.coefficient_words);
+    try std.testing.expectEqual(@as(u64, 1376513 + 32), p.allocations[4].words);
+    try std.testing.expectEqual(@as(u64, 16), p.allocations[5].words);
+    try std.testing.expectEqual(@as(u64, 8), p.allocations[6].words);
+    var coeffs: usize = 0;
+    for (p.list()) |allocation| {
+        if (allocation.owner == .compact_ingress) try std.testing.expectEqual(Release.projection_join, allocation.release);
+        if (allocation.owner == .core_input) try std.testing.expectEqual(Release.main_adopt_join, allocation.release);
+        if (allocation.owner == .committed_coefficients) {
+            coeffs += 1;
+            try std.testing.expectEqual(Release.worker_destroy, allocation.release);
+        }
+    }
+    try std.testing.expectEqual(@as(usize, 1), coeffs);
+    try std.testing.expect(p.peak.contains(p.source_commit_peak));
+    try std.testing.expect(!p.host_cost_known);
+}
+test "source rounds allocations independently and does not add disjoint compact lifetime" {
+    const p = try init(std.testing.allocator, try fixture());
+    var recomputed: A.Footprint = .{};
+    var compact: A.Footprint = .{};
+    for (p.list()) |allocation| {
+        const f = try A.Footprint.allocation(allocation.words * 4);
+        if (allocation.release == .projection_join) compact = try compact.add(f) else recomputed = try recomputed.add(f);
+    }
+    try std.testing.expectEqual(recomputed, p.source_commit_peak);
+    try std.testing.expect(compact.small != 0);
+    try std.testing.expectEqual(p.source_commit_peak, p.peak);
+}
+test "bulk and sponge common allocations survive alongside every component input" {
+    var input = try fixture();
+    input.bulk = .{ .calls = 2, .words = 17, .scans = 9 };
+    input.sponge = .{ .calls = 1, .words = 8, .permutations = 3 };
+    input.extras = &.{ .{ .kind = .bulk, .log = 5, .width = 19, .count = 23, .input_words_per_record = 0 }, .{ .kind = .sponge, .log = 5, .width = 27, .count = 3, .input_words_per_record = 0 } };
+    const p = try init(std.testing.allocator, input);
+    var bulk_inputs: usize = 0;
+    var sponge_inputs: usize = 0;
+    for (p.list()) |allocation| {
+        if (allocation.owner == .bulk_input) bulk_inputs += 1;
+        if (allocation.owner == .sponge_input) sponge_inputs += 1;
+    }
+    try std.testing.expectEqual(@as(usize, 5), bulk_inputs);
+    try std.testing.expectEqual(@as(usize, 5), sponge_inputs);
+    try std.testing.expectEqual(@as(u64, (71 + 19 + 27) * 32), p.trace.coefficient_words);
+}
+test "source rejects mismatched projection arithmetic and missing service owner" {
+    var input = try fixture();
+    input.rom_rows = 0;
+    try std.testing.expectError(error.InvalidSourceGeometry, init(std.testing.allocator, input));
+    input = try fixture();
+    input.multiplication_count = 3;
+    try std.testing.expectError(error.InvalidMultiplicationSupportCount, init(std.testing.allocator, input));
+    input = try fixture();
+    input.shapes = &.{.{ .role = .cpu, .log = 6, .width = 47 }};
+    try std.testing.expectError(error.InvalidCpuProjectionPlan, init(std.testing.allocator, input));
+    input = try fixture();
+    input.extras = &.{.{ .kind = .sponge, .log = 5, .width = 27, .count = 3, .input_words_per_record = 0 }};
+    try std.testing.expectError(error.InvalidSourceGeometry, init(std.testing.allocator, input));
+}
+test "identity binds class request and separately rounded geometry" {
+    var input = try fixture();
+    const p = try init(std.testing.allocator, input);
+    input.binding[0] ^= 1;
+    const q = try init(std.testing.allocator, input);
+    try std.testing.expect(!std.mem.eql(u8, &p.identity, &q.identity));
+    input.commit.beta = 1;
+    input.commit.separate_coefficients = true;
+    const r = try init(std.testing.allocator, input);
+    try std.testing.expect(!std.mem.eql(u8, &q.identity, &r.identity));
+}

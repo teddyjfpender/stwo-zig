@@ -20,6 +20,7 @@ fn checked(status: c_int) !void {
     if (status != 0) return error.CudaCpuProjectionFailed;
 }
 pub const Context = struct {
+    host_allocator: std.mem.Allocator = a,
     retain_ledgers: bool = false,
     service: *Service.Context,
     api: SC.Api,
@@ -32,6 +33,7 @@ pub const Context = struct {
     prestage_serial: u64 = 0,
     pub fn init(service: *Service.Context) !Context {
         return .{ .service = service, .api = .{
+            .allocation_guard = &service.early_allocations,
             .allocate = service.lease_allocate,
             .release = service.lease_release,
             .validate_range = service.lease_validate_range,
@@ -173,7 +175,8 @@ pub const Context = struct {
         // GPU fed while this request prepares its compact input.
         const compact_enabled = if (std.posix.getenv("STWO_RV64_CPU_COMPACT_INGRESS")) |v| !std.mem.eql(u8, v, "0") else false;
         if (compact_enabled and self.unpack == null) return error.MissingCpuUnpackKernel;
-        var compact_capture: ?Ingress.Compact = if (compact_enabled) try Ingress.Compact.fromCapture(a, source) else null;
+        const host = self.host_allocator;
+        var compact_capture: ?Ingress.Compact = if (compact_enabled) try Ingress.Compact.fromCapture(host, source) else null;
         defer if (compact_capture) |*p| p.deinit();
         const pack_ns = timer.lap();
         return self.projectPacked(source, scope, if (compact_capture) |*p| p else null, pack_ns);
@@ -187,17 +190,17 @@ pub const Context = struct {
         var timer = try std.time.Timer.start();
         self.mutex.lock();
         defer self.mutex.unlock();
-        const owner = try a.create(Owner);
-        errdefer a.destroy(owner);
-        owner.* = .{ .service = self.service, .columns = try a.alloc(D.TraceColumn, X.layout.mainCount(true)), .counts16 = &.{}, .counts8 = &.{}, .pairs = &.{} };
-        errdefer a.free(owner.columns);
-        errdefer a.free(owner.counts16);
-        errdefer a.free(owner.counts8);
-        errdefer a.free(owner.pairs);
+        const owner = try host.create(Owner);
+        errdefer host.destroy(owner);
+        owner.* = .{ .allocator = host, .service = self.service, .columns = try host.alloc(D.TraceColumn, X.layout.mainCount(true)), .counts16 = &.{}, .counts8 = &.{}, .pairs = &.{} };
+        errdefer host.free(owner.columns);
+        errdefer host.free(owner.counts16);
+        errdefer host.free(owner.counts8);
+        errdefer host.free(owner.pairs);
         if (!self.retain_ledgers) {
-            owner.counts16 = try a.alloc(u64, 65536);
-            owner.counts8 = try a.alloc(u64, 256);
-            owner.pairs = try a.alloc(u64, 65536);
+            owner.counts16 = try host.alloc(u64, 65536);
+            owner.counts8 = try host.alloc(u64, 256);
+            owner.pairs = try host.alloc(u64, 65536);
         }
         var job = Job{ .backend = self, .source = source, .scope = scope, .owner = owner, .compact = compact_capture };
         const status = self.service.submit(self.service.session, Job.callback, &job);
@@ -356,6 +359,7 @@ const Promote = struct {
     }
 };
 const Owner = struct {
+    allocator: std.mem.Allocator = a,
     service: *Service.Context,
     eval: Native.Lease = .{},
     ledger_lease: Native.Lease = .{},
@@ -367,11 +371,12 @@ const Owner = struct {
     fn release(raw: *anyopaque) void {
         const self: *Owner = @ptrCast(@alignCast(raw));
         _ = self.service.submit(self.service.session, releaseDevice, self);
-        a.free(self.columns);
-        a.free(self.counts16);
-        a.free(self.counts8);
-        a.free(self.pairs);
-        a.destroy(self);
+        const host = self.allocator;
+        host.free(self.columns);
+        host.free(self.counts16);
+        host.free(self.counts8);
+        host.free(self.pairs);
+        host.destroy(self);
     }
     fn releaseDevice(_: *anyopaque, _: u64, raw: ?*anyopaque) callconv(.c) c_int {
         const self: *Owner = @ptrCast(@alignCast(raw.?));
@@ -421,10 +426,11 @@ const Job = struct {
             self.rom_cache_hit = true;
             return lease;
         }
-        const rebuilt = if (p.fixed_retired) try reconstructRom(a, p) else null;
-        defer if (rebuilt) |words| a.free(words);
+        const rebuilt = if (p.fixed_retired) try reconstructRom(b.host_allocator, p) else null;
+        defer if (rebuilt) |words| b.host_allocator.free(words);
         const words: []const u32 = if (rebuilt) |data| data else std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(p.fixed));
         if (words.len != count) return error.InvalidCpuRomGeometry;
+        if (b.api.allocation_guard) |guard| try guard.allocate(scope, count, 4);
         return b.service.immutableWords(raw, scope, identity, words);
     }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
@@ -496,8 +502,8 @@ const Job = struct {
             };
             ledger_adopted = true;
         } else {
-            const readback = try a.alloc(u32, pair_base + 65536 - count_base);
-            defer a.free(readback);
+            const readback = try b.host_allocator.alloc(u32, pair_base + 65536 - count_base);
+            defer b.host_allocator.free(readback);
             try ctx.download(try (try ctx.borrow(scratch)).sub(count_base, readback.len), readback);
             try ctx.join();
             if (readback[status_base - count_base] != 0) return error.InvalidGpuCpuMetadata;
