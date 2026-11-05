@@ -41,8 +41,10 @@ test "Poseidon Merkle hasher satisfies both VCS interfaces" {
     leaf.updateLeaf(&.{M31.zero()});
     try std.testing.expectEqualSlices(u8, &leaf.finalize(), &H.hashNode(null, &.{ M31.one(), M31.zero() }));
     const pair = H.Children{ .left = leaf.finalize(), .right = leaf.finalize() };
-    try std.testing.expectEqualSlices(u8, &H.hashChildren(pair), &H.hashNode(pair, &.{}));
+    try std.testing.expectEqualSlices(u8, &H.hashChildren(pair), &H.hashNode(.{ .left = pair.left, .right = pair.right }, &.{}));
     try std.testing.expect(!std.mem.eql(u8, &H.hashChildren(pair), &leaf.finalize()));
+    const generic = @import("merkle_hasher.zig").hashNode(H, .{ .left = pair.left, .right = pair.right }, &.{});
+    try std.testing.expectEqualSlices(u8, &H.hashChildren(pair), &generic);
 }
 
 test "Poseidon leaf and node match independent dense matrix sponge" {
