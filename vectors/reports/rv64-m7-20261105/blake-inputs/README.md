@@ -25,3 +25,18 @@ Both configurations completed 4 requests each and all 8 complete artifact sets m
 | 24628607 | 17.302 | 19.060 |
 
 Median assignment callback across 76 callbacks/config improved 138.86 to 90.34 ms; numerical level time 100.663 to 58.522 ms. Median launches stayed 721. Full-request timing regressed. Diagnosis: prefill readiness incorrectly rejected fold templates, disabling 10 existing fold seed-tape preparations (39 total OFF vs29 ON; leaf tape uses29 both). This remains disabled by default. The next candidate must restore fold tape reuse and reschedule remaining dependencies from the now-ready GG outputs, rather than only deleting empty old levels. CUDA6/6 poison cases and plan-filter unit passed. Peak RSS OFF23.34 / ON23.71 GiB; auto arena, device about31.5GB. All timings are single loaded observations; no wall-time gain claimed.
+
+## Prefill v3: byte-identical production gate passed [M]
+
+V3 restores fold seed-tape reuse and recomputes earliest legal levels for remaining tasks with prefilled GG outputs ready at level zero. Stable counting sort preserves dependencies. All circuit gates and all proof formats remain unchanged. The largest truth class drops 146,140 to45,316 dependency levels; several CPU classes remain103k–117k, so another branch remains critical there.
+
+Both dev blocks completed cold plus2warm requests/config:12/12 whole artifact sets match M6. A fresh M6 CPU receiver pair accepted ON's first requests,2/2 (34.3/49.9s); all remaining proof sets contain identical accepted bytes. All84 leaf input checks matched283,833 compression records. Unit tests2/2; current148c CUDA image passes input-check9/9 and prefill6/6 poison165 cases. V1/v2 failures remain preserved above.
+
+| Block | OFF warm requests s | ON warm requests s | OFF median s | ON median s |
+|---|---|---|---:|---:|
+| 26235156 |13.049 /12.443|12.615 /12.465|12.746|12.540|
+| 24628607 |18.161 /17.934|16.793 /17.811|18.048|17.302|
+
+The observed headline median is4.13% lower, from only2warm observations/config in loaded ON-then-OFF order. Small-block pairs are mixed; no broad speed guarantee is established. Across114assignment callbacks/config, median total137.189→77.255ms; numerical levels100.547→47.568ms. Median assignment launches remain721. Both configurations use77seed-tape preps including57leaf preps, confirming fold reuse is restored. RSS23.407→23.560GiB; auto-arena sampled device31.508GB both. Memory, launch, native, capture and8s request targets remain unmet. Prefill remains opt-in/default-off pending final integration.
+
+Driver197b693025c1287435e9fbb50a9251fa4e135eeee2de2dfa648373bb9ae3ea02; image148c4a1760678521d7d793a119a17b03c60ae807dd6006011429610fc50126aa. Source a365d1eb3 plus two overrides in prefill-source-v3.json, bound by prefill-build-v3.json. Disk dedup/prune receipts preserve paths/bytes or reconstruction inputs for superseded assets; current148c, root matched128 and M6 assets were retained.

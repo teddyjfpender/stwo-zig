@@ -156,7 +156,7 @@ pub const ClassCache = struct {
         mutex.lock();
         defer mutex.unlock();
         if (SamplePlan.enabled() catch return false) {
-            if (t.blake_sample_span == null or t.blake_sample_outputs == null or !t.blake_sample_prefill) return false;
+            if (t.blake_sample_prefill and (t.blake_sample_span == null or t.blake_sample_outputs == null)) return false;
         } else if (std.posix.getenv("STWO_RV64_BLAKE_SAMPLE_CHECK")) |value| if (std.mem.eql(u8, value, "1") and t.blake_sample_span == null) return false;
         return !t.rejected and t.constants_stable and t.constants.len == t.n_constants;
     }
@@ -675,6 +675,7 @@ pub const Prepared = struct {
             const before_tasks = plan.tasks.len;
             const before_levels = plan.level_ends.len;
             try SamplePlan.filter(Schedule.Task, a, &plan.tasks, &plan.level_ends, span.first_gg, span.gg_count);
+            try SamplePlan.relevel(Schedule, a, ctx, &plan);
             std.debug.print("BLAKE_SAMPLE_PLAN removed_tasks={} old_levels={} new_levels={} original_air=true\n", .{ before_tasks - plan.tasks.len, before_levels, plan.level_ends.len });
         };
         const plan_ns = timer.lap();

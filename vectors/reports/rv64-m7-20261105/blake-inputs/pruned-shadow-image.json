@@ -1,0 +1,7 @@
+{
+  "path": "/workspace/m3/build/m7-blake-inputs/cuda/native/libstwo-rv64-native.so",
+  "sha256": "e76c0652f0edb1209b07de7573d1925f65362be6acdefde6d6e49983099f5d11",
+  "bytes": 1975214624,
+  "reason": "Superseded observer-only image; current148c image retains checker, passed9/9 poison and8/8 M6 production artifact sets. Original e76 object and build manifest retained; no mapped process. Current image148c and rootmatched128/M6 untouched.",
+  "active_mappings": []
+}
