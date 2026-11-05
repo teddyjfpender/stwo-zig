@@ -203,6 +203,9 @@ pub const Hasher = struct {
     pub fn words(self: *Hasher, ws: []const u32) void {
         for (ws) |w| self.word(w);
     }
+    pub fn constantWord(self: *Hasher, value: u32) void {
+        self.word(value);
+    }
     pub fn int64(self: *Hasher, v: u64) void {
         self.word(@truncate(v));
         self.word(@truncate(v >> 32));
@@ -394,10 +397,15 @@ pub fn tableHeader(image: Digest, profile_identity: Digest, rung_table_id: Diges
 // ------------------------------------------------------------------ chain
 pub fn stateDigest(pc: u64, regs: [32]u64, halted: bool) Digest {
     var h = Hasher.init(.state);
+    emitState(pc, regs, @as(u32, @intFromBool(halted)), &h);
+    return h.final();
+}
+/// Shared native/circuit encoding. The writer decides how a u64 is represented
+/// (native integer or two constrained u32 words); field order is one authority.
+pub fn emitState(pc: anytype, regs: anytype, halted: anytype, h: anytype) void {
     h.int64(pc);
     for (regs) |r| h.int64(r);
-    h.word(@intFromBool(halted));
-    return h.final();
+    h.word(halted);
 }
 pub const Mass = struct { ram: u64, kio: u64, wire: u64 };
 pub const CpuStatement = struct {
@@ -416,20 +424,23 @@ pub const CpuStatement = struct {
     legacy: Digest,
     pub fn digest(s: CpuStatement) Digest {
         var h = Hasher.init(.stmt);
-        h.words(&.{ @intFromEnum(Kind.cpu), s.ordinal, s.cpu_ordinal });
-        h.int64(s.steps_in);
-        h.words(&.{ s.steps, s.ls_count, s.ls_dword });
-        h.words(&s.calls);
-        h.words(&s.first_ids);
-        h.words(&s.sponge);
-        h.words(&s.bulk);
-        massWords(&h, s.mass);
-        h.word(s.relations);
-        h.digest(s.legacy);
+        emitCpuStatement(@as(u32, @intFromEnum(Kind.cpu)), s, &h);
         return h.final();
     }
 };
-fn massWords(h: *Hasher, m: Mass) void {
+pub fn emitCpuStatement(kind: anytype, s: anytype, h: anytype) void {
+    h.words(&.{ kind, s.ordinal, s.cpu_ordinal });
+    h.int64(s.steps_in);
+    h.words(&.{ s.steps, s.ls_count, s.ls_dword });
+    h.words(&s.calls);
+    h.words(&s.first_ids);
+    h.words(&s.sponge);
+    h.words(&s.bulk);
+    massWords(h, s.mass);
+    h.word(s.relations);
+    h.digest(s.legacy);
+}
+fn massWords(h: anytype, m: anytype) void {
     h.int64(m.ram);
     h.int64(m.kio);
     h.int64(m.wire);
@@ -445,13 +456,16 @@ pub const TruthStatement = struct {
     legacy: Digest,
     pub fn digest(s: TruthStatement) Digest {
         var h = Hasher.init(.stmt);
-        h.words(&.{ @intFromEnum(Kind.truth), s.ordinal, s.family, s.first_id, s.calls, s.logs[0], s.logs[1] });
-        massWords(&h, s.mass);
-        h.word(s.relations);
-        h.digest(s.legacy);
+        emitTruthStatement(@as(u32, @intFromEnum(Kind.truth)), s, &h);
         return h.final();
     }
 };
+pub fn emitTruthStatement(kind: anytype, s: anytype, h: anytype) void {
+    h.words(&.{ kind, s.ordinal, s.family, s.first_id, s.calls, s.logs[0], s.logs[1] });
+    massWords(h, s.mass);
+    h.word(s.relations);
+    h.digest(s.legacy);
+}
 pub const MbStatement = struct {
     ordinal: u32,
     chunk: u32,
@@ -502,10 +516,13 @@ pub fn chainIv(version: Digest) Digest {
 pub const Segment = struct { k: u32, family: u32, rung: u32, vkhash: Digest, stmt: Digest, s_in: Digest, s_out: Digest, rho: Digest };
 pub fn chainStep(m: Digest, s: Segment) Digest {
     var h = Hasher.init(.seg);
+    emitChainStep(m, s, &h);
+    return h.final();
+}
+pub fn emitChainStep(m: anytype, s: anytype, h: anytype) void {
     h.digest(m);
     h.words(&.{ s.k, s.family, s.rung });
     inline for (.{ "vkhash", "stmt", "s_in", "s_out", "rho" }) |f| h.digest(@field(s, f));
-    return h.final();
 }
 /// m_kappa over segments in index order (segment k must carry index k).
 pub fn chainFinal(version: Digest, segments: []const Segment) !Digest {
