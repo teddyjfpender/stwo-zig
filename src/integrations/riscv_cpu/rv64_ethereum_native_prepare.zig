@@ -390,21 +390,21 @@ pub fn runWithOptions(a: std.mem.Allocator, config: Request.Config, options: Run
     std.fs.cwd().makeDir(config.output_directory) catch |err| {
         if (err != error.PathAlreadyExists) return err;
     };
-    var directory = try std.fs.cwd().openDir(config.output_directory, .{});
+    var directory = try std.fs.cwd().openDir(config.output_directory, .{ .iterate = true });
     defer directory.close();
     const json = try std.json.Stringify.valueAlloc(a, config, .{ .whitespace = .indent_2 });
     defer a.free(json);
     // Existing collection is deliberately not restarted/replayed implicitly.
     try Receipt.writeExclusive(directory, "request.json", json);
     try directory.makeDir("jobs");
-    var jobs = try directory.openDir("jobs", .{});
+    var jobs = try directory.openDir("jobs", .{ .iterate = true });
     defer jobs.close();
     var descriptor = try directory.createFile("jobs.jsonl", .{ .exclusive = true });
     defer descriptor.close();
     // Sync newly created directory entries as well as packet file contents.
     // A packet in jobs/ is not crash-durable if jobs itself can disappear.
     try std.posix.fsync(directory.fd);
-    var output_parent = try directory.openDir("..", .{});
+    var output_parent = try directory.openDir("..", .{ .iterate = true });
     defer output_parent.close();
     try std.posix.fsync(output_parent.fd);
     const request = walk.request;
