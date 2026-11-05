@@ -105,7 +105,38 @@ pub const Set = struct {
         }
         return ch.digestBytes();
     }
+    /// New native-GKR family only. Ordered concrete keys are authenticated by
+    /// T_nat membership and the native segment chain, not a repeated key list.
+    /// Old flat/strict callers keep `executionIdentity` and historical bytes.
+    pub fn executionIdentityForGkr(self: *const Set, base: [32]u8) ![32]u8 {
+        return gkrExecutionIdentity(base, self.config);
+    }
 };
+
+pub const GKR_EXECUTION_DOMAIN = "rv64-m7/native-gkr-v2/execution-scope/v1";
+pub fn emitGkrExecutionIdentity(base: anytype, config: W.PcsConfig, writer: anytype) !void {
+    try W.validateCandidateConfig(config);
+    const profile = W.candidateProfile(config) orelse return error.WideCandidateProfileMismatch;
+    var tag: [32]u8 = undefined;
+    std.crypto.hash.blake2.Blake2s256.hash(GKR_EXECUTION_DOMAIN, &tag, .{});
+    writer.constantDigest(tag);
+    writer.publicDigest(base);
+    std.crypto.hash.blake2.Blake2s256.hash(F.PROFILE, &tag, .{});
+    writer.constantDigest(tag);
+    writer.constantDigest(W.Candidate.profileIdentity(profile));
+    const Canon = @import("../../ethereum/canon_native.zig");
+    writer.constantDigest(Canon.versionIdentityV2(Canon.RUNGS, .native_gkr));
+}
+/// Available to root reception before allocating any native setup/key list.
+pub fn gkrExecutionIdentity(base: [32]u8, config: W.PcsConfig) ![32]u8 {
+    var writer = struct {
+        channel: W.Channel,
+        pub fn constantDigest(self: *@This(), value: [32]u8) void { W.digest(&self.channel, value); }
+        pub fn publicDigest(self: *@This(), value: [32]u8) void { W.digest(&self.channel, value); }
+    }{ .channel = W.Channel.init() };
+    try emitGkrExecutionIdentity(base, config, &writer);
+    return writer.channel.digestBytes();
+}
 
 const Acquired = struct { binding: F.Binding, validated: bool };
 fn acquireUnique(existing: []const F.Binding, cache: *const F.Fixed.Cache, source: anytype, config: W.PcsConfig) !Acquired {
