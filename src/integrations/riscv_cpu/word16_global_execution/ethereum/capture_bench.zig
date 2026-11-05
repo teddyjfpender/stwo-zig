@@ -71,7 +71,8 @@ pub fn main() !void {
     const image_load_ns = timer.read();
     var local_metadata = try MetadataCache.Cache.init(a, 64 << 20);
     defer local_metadata.deinit();
-    var program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, &local_metadata);
+    const compact_capture_program = if (std.posix.getenv("STWO_RV64_CAPTURE_PROGRAM_VIEW")) |v| !std.mem.eql(u8, v, "0") else true;
+    var program = if (compact_capture_program) try Program.initCaptureWithAuthorityAndMetadataCache(a, &image.authority, &local_metadata) else try Program.initWithAuthorityAndMetadataCache(a, &image.authority, &local_metadata);
     defer program.deinit();
     const program_ns = timer.read() - image_load_ns;
     const cpu_layout = Plan.CpuLayout.forGkrProfile(request.value.execution_profile);

@@ -1,0 +1,13 @@
+{
+  "schema": "rv64-m3-build/v1",
+  "stream": "m7-capture",
+  "source_root": "/workspace/m3/src/m7-capture",
+  "source_commit": "26ca2079314833704137aae900955ece81ae49e9",
+  "host": "f675b38ce80e",
+  "zig_seconds": {
+    "build-rv64-ethereum-gpu-combined": 343.97,
+    "build-rv64-ethereum-recursion-receiver": 283.97
+  },
+  "driver_sha256": "86a9888002802b9cbaec58cefc4ff4c57cb61faca82a6c3550b78dbce34ccfa2",
+  "receiver_sha256": "dd14108822eb4f5c26ce5d3c018bc3af2483416b3e50392c869bb7f34a295599"
+}

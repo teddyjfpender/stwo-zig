@@ -497,7 +497,8 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     var local_metadata: ?MetadataCache.Cache = if (session == null) try MetadataCache.Cache.init(a, 64 << 20) else null;
     defer if (local_metadata) |*cache| cache.deinit();
     const caches = if (session) |shared| shared.caches() else @import("../../word16_execution/setup.zig").ImmutableCaches{ .native = &local_native.?, .program = &local_metadata.? };
-    var program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, caches.program.?);
+    const compact_capture_program = if (std.posix.getenv("STWO_RV64_CAPTURE_PROGRAM_VIEW")) |v| !std.mem.eql(u8, v, "0") else true;
+    var program = if (compact_capture_program) try Program.initCaptureWithAuthorityAndMetadataCache(a, &image.authority, caches.program.?) else try Program.initWithAuthorityAndMetadataCache(a, &image.authority, caches.program.?);
     defer program.deinit();
     const program_ns = timer.read() - image_load_ns;
     if (verify or prefix) {
@@ -582,7 +583,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     b2i.capture_done_at_ns = since(process_start);
     const capture_inputs = CaptureInputs.of(&timer, import_start, capture_ns, &captured);
     b2i.capture = capture_inputs;
-    try program.releaseFixedWitness();
+    if (!program.fixed_retired) try program.releaseFixedWitness();
     const capture_cache_released = recycler.releaseCached();
     // Explicit authenticated service scope; classic-only encodings stay closed.
     try @import("../services/gkr_local/service_scope.zig").advice(&captured.advice);
