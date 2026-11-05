@@ -18,6 +18,8 @@ pub fn immutableKey(scope: D.Scope, column: usize) [8]u32 {
     return key;
 }
 pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
+    var range = try @import("nvtx_stage.zig").Range.begin(&owner.backend.service.library, raw, "rv64/recursion/MAIN-assignment");
+    defer range.deinit();
     var ctx = owner.context(raw, token, owner.initial_scope);
     defer ctx.active = false;
     const b = owner.backend;

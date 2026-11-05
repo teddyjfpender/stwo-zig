@@ -493,6 +493,8 @@ const Job = struct {
         try self.checked("copy", b.copy(raw, @ptrCast(arena + segment.target_word), @ptrFromInt(segment.source), try std.math.mul(usize, segment.words, 4)));
     }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
+        var range = try @import("nvtx_stage.zig").Range.begin(&self.backend.service.library, raw, "rv64/composition");
+        defer range.deinit();
         const a = self.allocator;
         const b = self.backend;
         var context = SC.Context{ .session = b.service.session, .native_context = raw, .token = token, .scope = @import("pcs_scope.zig").identity(self.scope), .api = &b.session_api };
