@@ -577,6 +577,9 @@ const PreparedExecution = struct {
     existing_only: bool = false,
     /// Sequential planned path only; parallel lanes carry their own factory.
     factory: ?Outer.Device.Factory = null,
+    /// sched M6 streaming handoff: leaves open as native workers finish and
+    /// device lanes start only after native production (scheduling only).
+    stream: ?*Streaming = null,
 };
 const Outcome = struct { pending: Pending, restored: bool, retired_bytes: usize, graph_ns: u64 = 0, proof_ns: u64 = 0, wrap_only_ns: u64 = 0, serialize_ns: u64 = 0, write_ns: u64 = 0 };
 const ParallelExecution = struct {
@@ -906,6 +909,12 @@ const Pipelined = struct {
     ready: std.ArrayList(*Pipe.Job) = .empty,
     finishing: std.ArrayList(*Pipe.Job) = .empty,
     leaves_ahead: usize = 0,
+    /// Leaves inside prep right now (streaming throttle while native runs).
+    prepping_leaves: usize = 0,
+    /// Per lane: kind of the node in its device stage (sched M6 size-class
+    /// admission when several lanes share one physical device).
+    lane_leaf: [4]bool = @splat(false),
+    leaves_per_device: usize = 1,
     peak_leaves_ahead: usize = 0,
     peak_ready: usize = 0,
     origin_ns: u64,
@@ -919,7 +928,17 @@ const Pipelined = struct {
         return self.input.timer.read() - self.origin_ns;
     }
     fn running(self: *const Pipelined) bool {
+        if (self.input.stream) |stream| if (stream.stopped.load(.acquire)) return false;
         return self.fatal == null and self.queue.failure == null and self.queue.completed < self.plan.count;
+    }
+    /// Caller holds the mutex. Streaming: open the leaves whose native proof
+    /// is final; hold leaf prep to the configured share while native runs.
+    fn admitLeaves(self: *Pipelined) bool {
+        const stream = self.input.stream orelse return true;
+        if (self.queue.closed.count() != 0) for (0..self.input.words.len) |ordinal| {
+            if (self.queue.closed.isSet(ordinal) and stream.ready[ordinal].load(.acquire)) self.queue.openLeaf(ordinal);
+        };
+        return stream.deviceOpen() or self.prepping_leaves < stream.prep_during_native;
     }
     fn stop(self: *Pipelined, err: anyerror) void {
         self.mutex.lock();
@@ -954,7 +973,7 @@ const Pipelined = struct {
                 }
                 continue;
             }
-            const leaves = self.leaves_ahead < self.pipe.prep_ahead;
+            const leaves = self.admitLeaves() and self.leaves_ahead < self.pipe.prep_ahead;
             const next = self.queue.takeFiltered(leaves) catch |err| {
                 if (self.fatal == null) self.fatal = err;
                 self.changed.broadcast();
@@ -970,6 +989,7 @@ const Pipelined = struct {
                     children = kid_buffer[0..spec.arity];
                 } else {
                     self.leaves_ahead += 1;
+                    self.prepping_leaves += 1;
                     self.peak_leaves_ahead = @max(self.peak_leaves_ahead, self.leaves_ahead);
                 }
                 const taken = self.now();
@@ -977,6 +997,7 @@ const Pipelined = struct {
                 const job = a.create(Pipe.Job) catch |err| {
                     self.mutex.lock();
                     if (spec.isLeaf()) self.leaves_ahead -= 1;
+                    if (spec.isLeaf()) self.prepping_leaves -= 1;
                     self.queue.fail(id, err);
                     self.changed.broadcast();
                     continue;
@@ -984,6 +1005,7 @@ const Pipelined = struct {
                 job.* = .{ .id = id, .record = .{ .id = id, .kind = if (spec.isLeaf()) "leaf" else "fold", .first_leaf = spec.first_leaf, .leaf_count = spec.leaf_count, .stamps = .{ .taken = taken } } };
                 const prepared = self.prep(job, children);
                 self.mutex.lock();
+                if (spec.isLeaf()) self.prepping_leaves -= 1;
                 if (prepared) |needs_device| {
                     if (needs_device) {
                         self.ready.appendAssumeCapacity(job);
@@ -1133,23 +1155,47 @@ const Pipelined = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         while (self.running()) {
-            if (self.ready.items.len == 0) {
+            const open = if (self.input.stream) |stream| stream.deviceOpen() else true;
+            // Size-class admission: a leaf (the large composition class) may
+            // start only while fewer than leaves_per_device leaves run on
+            // this lane's physical device; folds always may.
+            var device_leaves: usize = 0;
+            for (self.options.lanes, 0..) |other, i| {
+                if (i != lane and other.physical_device == self.options.lanes[lane].physical_device and self.lane_leaf[i]) device_leaves += 1;
+            }
+            const leaf_ok = device_leaves < self.leaves_per_device;
+            var eligible = false;
+            for (self.ready.items) |job| eligible = eligible or leaf_ok or job.leaf == null;
+            if (!eligible or !open) {
                 self.changed.wait(&self.mutex);
                 continue;
             }
-            // Critical path first: the widest (highest) parent, then the
-            // lowest leaf id, matching the lane path's parent preference.
-            var best: usize = 0;
+            // m5: the widest (highest) parent, then the lowest leaf id.
+            // critical (sched M6): the deepest node below the root first (a
+            // leaf before a fold at equal depth), then the lowest id.
+            var best: ?usize = null;
             for (self.ready.items, 0..) |job, i| {
-                const b = self.ready.items[best];
-                if (job.record.leaf_count > b.record.leaf_count or (job.record.leaf_count == b.record.leaf_count and job.id < b.id)) best = i;
+                if (job.leaf != null and !leaf_ok) continue;
+                if (best == null) {
+                    best = i;
+                    continue;
+                }
+                const b = self.ready.items[best.?];
+                const better = switch (self.queue.policy) {
+                    .m5 => job.record.leaf_count > b.record.leaf_count or (job.record.leaf_count == b.record.leaf_count and job.id < b.id),
+                    .critical => self.plan.priority(job.id) > self.plan.priority(b.id) or (self.plan.priority(job.id) == self.plan.priority(b.id) and job.id < b.id),
+                };
+                if (better) best = i;
             }
-            const job = self.ready.orderedRemove(best);
+            const job = self.ready.orderedRemove(best.?);
             if (job.leaf != null) self.leaves_ahead -= 1;
+            self.lane_leaf[lane] = job.leaf != null;
             self.changed.broadcast();
             self.mutex.unlock();
             const proved = self.device(job, lane);
             self.mutex.lock();
+            self.lane_leaf[lane] = false;
+            self.changed.broadcast();
             if (proved) |_| {
                 self.finishing.appendAssumeCapacity(job);
                 self.changed.broadcast();
@@ -1249,7 +1295,12 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
     const records = try a.alloc(Pipe.Record, plan.count);
     defer a.free(records);
     @memset(records, .{});
-    var shared = Pipelined{ .input = input, .options = options, .pipe = pipe, .plan = plan, .queue = try Dag.Queue.init(plan, options.lanes.len, options.max_pending_authorities), .nodes = nodes, .records = records, .prep_pool = prep_pool, .origin_ns = input.timer.read() };
+    var shared = Pipelined{ .input = input, .options = options, .pipe = pipe, .plan = plan, .queue = try Dag.Queue.initPolicy(plan, options.lanes.len, options.max_pending_authorities, try Dag.Policy.fromEnv()), .nodes = nodes, .records = records, .prep_pool = prep_pool, .origin_ns = input.timer.read() };
+    if (input.stream != null) shared.queue.closeAllLeaves();
+    if (std.posix.getenv("STWO_RV64_RECURSION_LEAVES_PER_DEVICE")) |text| {
+        shared.leaves_per_device = std.fmt.parseUnsigned(usize, text, 10) catch return error.InvalidRecursionPipelineOption;
+        if (shared.leaves_per_device == 0) return error.InvalidRecursionPipelineOption;
+    }
     try shared.ready.ensureTotalCapacity(a, plan.count);
     defer shared.ready.deinit(a);
     try shared.finishing.ensureTotalCapacity(a, plan.count);
@@ -1275,10 +1326,24 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
         }
     };
     var root_check = RootCheck{ .input = &input };
-    const root_thread = std.Thread.spawn(.{ .stack_size = coordinator_stack }, RootCheck.run, .{&root_check}) catch null;
+    var root_thread: ?std.Thread = null;
     var root_joined = false;
     defer if (!root_joined) if (root_thread) |thread| thread.join();
-    if (root_thread == null) root_check.run();
+    // Streaming: Root.check reads the whole bundle, so it starts once native
+    // production is done (below); the M5 path starts it here.
+    if (input.stream == null) {
+        root_thread = std.Thread.spawn(.{ .stack_size = coordinator_stack }, RootCheck.run, .{&root_check}) catch null;
+        if (root_thread == null) root_check.run();
+    } else {
+        input.stream.?.mutex.lock();
+        input.stream.?.attached = &shared;
+        input.stream.?.mutex.unlock();
+    }
+    defer if (input.stream) |stream| {
+        stream.mutex.lock();
+        stream.attached = null;
+        stream.mutex.unlock();
+    };
     std.log.info("rv64 OM31 pipelined recursion: nodes={d} lanes={d} host_workers={d} prep_pool_workers={d} prep_ahead={d}", .{ plan.count, options.lanes.len, pipe.host_workers, pipe.prep_pool_workers, pipe.prep_ahead });
     var threads: [36]std.Thread = undefined;
     var launched: usize = 0;
@@ -1296,10 +1361,22 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
         };
         launched += 1;
     };
+    var stream_wait_ns: u64 = 0;
+    if (input.stream) |stream| {
+        shared.mutex.lock();
+        while (!stream.deviceOpen() and shared.running()) shared.changed.wait(&shared.mutex);
+        shared.mutex.unlock();
+        stream_wait_ns = shared.now();
+        if (stream.deviceOpen()) {
+            root_thread = std.Thread.spawn(.{ .stack_size = coordinator_stack }, RootCheck.run, .{&root_check}) catch null;
+            if (root_thread == null) root_check.run();
+        }
+    }
     for (threads[0..launched]) |thread| thread.join();
     const recursion_wall_ns = shared.now();
     if (root_thread) |thread| thread.join();
     root_joined = true;
+    if (input.stream) |stream| if (stream.stopped.load(.acquire)) return stream.fatal orelse error.StreamingRecursionCancelled;
     if (root_check.failure) |err| return err;
     if (shared.fatal) |err| return err;
     if (shared.queue.failure) |failure| return failure.err;
@@ -1333,13 +1410,264 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
     };
     var busy_total: u64 = 0;
     for (lane_busy[0..options.lanes.len]) |b| busy_total += b;
+    var last_leaf_end: u64 = 0;
+    for (records, 0..) |r, id| if (plan.nodes[id].isLeaf()) {
+        last_leaf_end = @max(last_leaf_end, r.stamps.finish_end);
+    };
+    const stream_report = if (input.stream) |stream| .{ .enabled = true, .prep_during_native = stream.prep_during_native, .native_done_ns = stream.native_done_ns, .leaf_ready_ns = stream.ready_ns[0..input.words.len] } else null;
     const occupancy = @as(f64, @floatFromInt(busy_total)) / @as(f64, @floatFromInt(@max(1, recursion_wall_ns * options.lanes.len)));
     const scheduler = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .candidate = true, .pipelined = true, .lanes = options.lanes.len, .pool_worker_budget = options.pool_worker_budget, .max_pending_authorities = options.max_pending_authorities, .peak_authority_slots = shared.queue.peak, .host_budget = budget.snapshot() }, .{ .whitespace = .indent_2 });
     defer a.free(scheduler);
     try @import("publication.zig").write(input.dir, "scheduler.json", scheduler);
-    const timeline = try std.json.Stringify.valueAlloc(a, .{ .schema = "rv64-om31-pipelined-recursion-timeline/v1", .measured = true, .scope = "ns since pipeline start; device stage = precommit+authority+device proof on that lane; occupancy is lane device-stage wall / (lanes * DAG wall), an upper bound on GPU kernel busy", .options = pipe, .lanes = options.lanes.len, .dag_wall_ns = recursion_wall_ns, .concurrent_root_metadata_check_ns = root_check.ns, .root_publication_ns = input.timer.read() - verify_start, .lane_device_stage_ns = lane_busy[0..options.lanes.len], .lane_device_stage_occupancy = occupancy, .peak_leaves_ahead = shared.peak_leaves_ahead, .peak_ready = shared.peak_ready, .nodes = records }, .{ .whitespace = .indent_1 });
+    const timeline = try std.json.Stringify.valueAlloc(a, .{ .schema = "rv64-om31-pipelined-recursion-timeline/v1", .measured = true, .scope = "ns since pipeline start; device stage = precommit+authority+device proof on that lane; occupancy is lane device-stage wall / (lanes * DAG wall), an upper bound on GPU kernel busy", .options = pipe, .lanes = options.lanes.len, .dag_wall_ns = recursion_wall_ns, .concurrent_root_metadata_check_ns = root_check.ns, .root_publication_ns = input.timer.read() - verify_start, .lane_device_stage_ns = lane_busy[0..options.lanes.len], .lane_device_stage_occupancy = occupancy, .peak_leaves_ahead = shared.peak_leaves_ahead, .peak_ready = shared.peak_ready, .policy = @tagName(shared.queue.policy), .stream = stream_report, .device_wait_for_native_ns = stream_wait_ns, .last_leaf_finish_ns = last_leaf_end, .tail_after_last_leaf_ns = recursion_wall_ns -| last_leaf_end, .nodes = records }, .{ .whitespace = .indent_1 });
     defer a.free(timeline);
     try @import("publication.zig").write(input.dir, "pipeline.json", timeline);
     std.log.info("rv64 OM31 pipelined recursion done: dag_wall_ns={d} lane_device_stage_occupancy={d:.3}", .{ recursion_wall_ns, occupancy });
     return report;
 }
+
+// ===========================================================================
+// sched M6: streaming native -> recursion handoff (STWO_RV64_RECURSION_STREAM,
+// default 1; 0 = the M5 sequential handoff). Scheduling only: every leaf graph,
+// fold graph and proof is built from exactly the inputs of the M5 path (the
+// same requests, stage-one bytes, encoded native proofs, keys and FIXED
+// authority), so proof bytes are unchanged. Native coordinator hook:
+// gkr_local/coordinator.zig `Stream`.
+//   sealed   (produce thread, after the stage-one barrier): inventory, stage
+//            views and the manifest are rebuilt here from the sealed bytes,
+//            then the recursion coordinator thread starts;
+//   done(i)  (stage-two worker thread): leaf i's frame words are derived and
+//            the leaf opens for host prep (CPU only, overlapping stage two);
+//   nativeDone (after produce, the terminal check and native publication):
+//            device lanes and the root metadata check may start.
+// ===========================================================================
+pub const Streaming = struct {
+    const Cpu = std.meta.Child(@FieldType(Coordinator.Bundle, "cpus"));
+    const TruthEnc = std.meta.Child(@FieldType(Coordinator.Bundle, "truths"));
+    allocator: std.mem.Allocator,
+    setups: []const *const R.CpuSetup,
+    truths: []const R.Truth,
+    expected: P.Expected,
+    config: W.PcsConfig,
+    fixed: ?*const FixedSet,
+    dir: std.fs.Dir,
+    options: ParallelOptions,
+    /// View only: requests/stage bytes alias the producer's; cpus/truths are
+    /// shallow copies of results the returned Bundle owns. Never deinit.
+    bundle: Coordinator.Bundle = undefined,
+    cpus: []Cpu,
+    truth_slots: []TruthEnc,
+    inventory: ?Execution.Inventory = null,
+    stages: ?MW.Owned = null,
+    manifest: ?@import("../../word16_global_execution/services/gkr_local/manifest.zig").PendingManifest = null,
+    words: [][]const u32,
+    cpu_frames: []Root.CpuFrame,
+    timer: std.time.Timer,
+    ready: [Dag.max_leaves]std.atomic.Value(bool) = @splat(.init(false)),
+    ready_ns: [Dag.max_leaves]u64 = @splat(0),
+    native_done: std.atomic.Value(bool) = .init(false),
+    native_done_ns: u64 = 0,
+    stopped: std.atomic.Value(bool) = .init(false),
+    /// Guards fatal, attached and thread; never taken while holding the
+    /// pipeline mutex (lock order: stream -> pipeline).
+    mutex: std.Thread.Mutex = .{},
+    fatal: ?anyerror = null,
+    attached: ?*Pipelined = null,
+    thread: ?std.Thread = null,
+    result: ?(anyerror!Report) = null,
+    /// Host workers allowed to prep leaves while native still owns the GPUs.
+    prep_during_native: usize,
+
+    pub fn enabled() bool {
+        // Streaming exists only on the pipelined executor. With
+        // STWO_RV64_RECURSION_PIPELINE=0 (the M5 lane path) keep the M5
+        // handoff instead of failing the request after native production
+        // (runInner would return StreamingRequiresPipelinedRecursion). A
+        // malformed value keeps streaming on, so runInner rejects it exactly
+        // as Pipe.Options.fromEnv does on the M5 path.
+        if (std.posix.getenv("STWO_RV64_RECURSION_PIPELINE")) |text| {
+            if ((std.fmt.parseUnsigned(usize, text, 10) catch 1) == 0) return false;
+        }
+        const value = std.posix.getenv("STWO_RV64_RECURSION_STREAM") orelse return true;
+        return !std.mem.eql(u8, value, "0");
+    }
+    pub fn create(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir, options: ParallelOptions) !*Streaming {
+        const n = setups.len + truths.len;
+        if (n == 0 or n > Dag.max_leaves) return error.ServicesRootRoster;
+        try validateLanes(options);
+        const prep_text = std.posix.getenv("STWO_RV64_RECURSION_STREAM_PREP") orelse "4";
+        const prep = std.fmt.parseUnsigned(usize, prep_text, 10) catch return error.InvalidRecursionPipelineOption;
+        if (prep == 0) return error.InvalidRecursionPipelineOption;
+        const self = try a.create(Streaming);
+        errdefer a.destroy(self);
+        const cpus = try a.alloc(Cpu, setups.len);
+        errdefer a.free(cpus);
+        const truth_slots = try a.alloc(TruthEnc, truths.len);
+        errdefer a.free(truth_slots);
+        const words = try a.alloc([]const u32, n);
+        errdefer a.free(words);
+        @memset(words, &.{});
+        const frames = try a.alloc(Root.CpuFrame, setups.len);
+        @memset(frames, .{ .words = &.{}, .physical_claims = &.{}, .terminal_marginals = &.{} });
+        self.* = .{ .allocator = a, .setups = setups, .truths = truths, .expected = expected, .config = config, .fixed = fixed, .dir = dir, .options = options, .cpus = cpus, .truth_slots = truth_slots, .words = words, .cpu_frames = frames, .timer = try std.time.Timer.start(), .prep_during_native = prep };
+        return self;
+    }
+    pub fn hook(self: *Streaming) Coordinator.Stream {
+        return .{ .context = self, .sealed = sealedHook, .cpu_done = cpuHook, .truth_done = truthHook, .abort = abortHook };
+    }
+    fn of(raw: *anyopaque) *Streaming {
+        return @ptrCast(@alignCast(raw));
+    }
+    fn fail(self: *Streaming, err: anyerror) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.fatal == null) self.fatal = err;
+        self.stopped.store(true, .release);
+        self.notifyLocked();
+    }
+    /// Caller holds self.mutex. Wakes the pipeline's waiters.
+    fn notifyLocked(self: *Streaming) void {
+        if (self.attached) |pipeline| {
+            pipeline.mutex.lock();
+            pipeline.changed.broadcast();
+            pipeline.mutex.unlock();
+        }
+    }
+    fn notify(self: *Streaming) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.notifyLocked();
+    }
+    fn sealedHook(raw: *anyopaque, requests: []const P.Request, stage_one_bytes: []const u8) void {
+        const self = of(raw);
+        self.sealed(requests, stage_one_bytes) catch |err| self.fail(err);
+    }
+    fn sealed(self: *Streaming, requests: []const P.Request, stage_one_bytes: []const u8) !void {
+        const a = self.allocator;
+        self.timer.reset();
+        self.bundle = .{ .requests = @constCast(requests), .stage_one_bytes = @constCast(stage_one_bytes), .cpus = self.cpus, .truths = self.truth_slots };
+        self.inventory = try Execution.Inventory.initWithAuthority(a, self.setups, self.truths, requests, self.expected, self.config, self.fixed);
+        const inventory = &self.inventory.?;
+        if (inventory.workers.len != self.words.len) return error.ServicesRootRoster;
+        self.stages = try MW.decode(a, inventory.execution_identity, inventory.workers, stage_one_bytes);
+        self.manifest = try self.stages.?.verifyAndSeal(a, inventory.execution_identity, inventory.workers);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.fatal != null) return;
+        self.thread = try std.Thread.spawn(.{ .stack_size = 8 << 20 }, threadMain, .{self});
+    }
+    fn cpuHook(raw: *anyopaque, ordinal: usize, encoded: *const Cpu) void {
+        const self = of(raw);
+        self.cpuDone(ordinal, encoded) catch |err| self.fail(err);
+    }
+    /// Exactly the frame derivation of runImpl for one CPU ordinal.
+    fn cpuDone(self: *Streaming, i: usize, encoded: *const Cpu) !void {
+        const a = self.allocator;
+        if (self.manifest == null or i >= self.setups.len) return error.StreamingHandoffOrder;
+        self.cpus[i] = encoded.*;
+        const manifest = &self.manifest.?;
+        const inventory = &self.inventory.?;
+        const local = manifest.entries[i].local orelse return error.WideCpuLocalRequired;
+        self.words[i] = try CpuLeaf.expectedWords(a, self.setups[i], self.bundle.requests[i], inventory.first_ids[i], inventory.workers[i], manifest.digest, self.stages.?.stages[i].main, local.digest, self.cpus[i].claims);
+        self.cpu_frames[i] = .{ .words = self.words[i], .physical_claims = self.cpus[i].claims, .terminal_marginals = try copyMarginals(a, local.artifact.claims_to_verify_by_instance) };
+        self.open(i);
+    }
+    fn truthHook(raw: *anyopaque, ordinal: usize, encoded: *const TruthEnc) void {
+        const self = of(raw);
+        self.truthDone(ordinal, encoded) catch |err| self.fail(err);
+    }
+    /// Exactly the truth frame derivation of runImpl for one ordinal.
+    fn truthDone(self: *Streaming, ordinal: usize, encoded: *const TruthEnc) !void {
+        const a = self.allocator;
+        if (self.manifest == null or ordinal < self.setups.len or ordinal >= self.words.len) return error.StreamingHandoffOrder;
+        const i = ordinal - self.setups.len;
+        self.truth_slots[i] = encoded.*;
+        const truth = self.truths[i];
+        const worker = self.inventory.?.workers[ordinal];
+        const claims = self.truth_slots[i].claims;
+        const digest = self.manifest.?.digest;
+        const main = self.stages.?.stages[ordinal].main;
+        if (truth == .keccak) {
+            if (claims.len != 5) return error.InvalidWideTruthClaims;
+            const public = KeccakLeaf.Public{ .ordinal = worker.ordinal, .statement = worker.statement, .manifest = digest, .claims = claims[0..5].* };
+            self.words[ordinal] = try a.dupe(u32, &KeccakLeaf.statementWords(truth, public, main));
+        } else {
+            if (claims.len != 1) return error.InvalidWideTruthClaims;
+            const public = TruthLeaf.Public{ .ordinal = worker.ordinal, .statement = worker.statement, .manifest = digest, .claim = claims[0] };
+            self.words[ordinal] = try a.dupe(u32, &TruthLeaf.statementWords(truth, public, main));
+        }
+        self.open(ordinal);
+    }
+    fn open(self: *Streaming, ordinal: usize) void {
+        self.ready_ns[ordinal] = self.timer.read();
+        self.ready[ordinal].store(true, .release);
+        self.notify();
+    }
+    fn abortHook(raw: *anyopaque) void {
+        of(raw).stop(error.NativeProductionFailed);
+    }
+    /// Native production, the terminal check and native publication are done.
+    pub fn nativeDone(self: *Streaming) void {
+        self.native_done_ns = self.timer.read();
+        self.native_done.store(true, .release);
+        self.notify();
+    }
+    fn deviceOpen(self: *const Streaming) bool {
+        return self.native_done.load(.acquire);
+    }
+    /// Stops dispatch (if still running) and joins the recursion thread.
+    /// After return nothing reads producer-owned native data any more.
+    pub fn stop(self: *Streaming, err: anyerror) void {
+        self.mutex.lock();
+        if (self.result == null and self.fatal == null and self.thread != null) self.fatal = err;
+        if (self.fatal != null) self.stopped.store(true, .release);
+        self.notifyLocked();
+        const thread = self.thread;
+        self.thread = null;
+        self.mutex.unlock();
+        if (thread) |t| t.join();
+    }
+    pub fn join(self: *Streaming) !Report {
+        self.mutex.lock();
+        const thread = self.thread;
+        self.thread = null;
+        self.mutex.unlock();
+        if (thread) |t| t.join();
+        if (self.fatal) |err| return err;
+        return self.result orelse error.StreamingRecursionNotStarted;
+    }
+    pub fn destroy(self: *Streaming) void {
+        self.stop(error.StreamingRecursionCancelled);
+        const a = self.allocator;
+        for (self.cpu_frames) |frame| freeMarginals(a, frame.terminal_marginals);
+        a.free(self.cpu_frames);
+        for (self.words) |value| a.free(value);
+        a.free(self.words);
+        if (self.manifest) |*m| m.deinit(a);
+        if (self.stages) |*st| st.deinit();
+        if (self.inventory) |*inv| inv.deinit();
+        a.free(self.truth_slots);
+        a.free(self.cpus);
+        a.destroy(self);
+    }
+    fn threadMain(self: *Streaming) void {
+        const outcome = self.runInner();
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.result = outcome;
+        if (outcome) |_| {} else |err| if (self.fatal == null) {
+            self.fatal = err;
+        }
+    }
+    fn runInner(self: *Streaming) !Report {
+        const a = self.allocator;
+        const budget = try @import("../../rv64_recursion_budget.zig").require(SharedBudget, a);
+        _ = budget.retain();
+        defer budget.destroy();
+        var stacks = try StackReservations.init(a, self.options);
+        defer stacks.deinit();
+        const pipe = (try Pipe.Options.fromEnv(a, self.options)) orelse return error.StreamingRequiresPipelinedRecursion;
+        const frames = Root.Frames{ .cpus = self.cpu_frames, .truths = self.words[self.setups.len..] };
+        return runPreparedParallel(.{ .allocator = a, .setups = self.setups, .truths = self.truths, .bundle = &self.bundle, .expected = self.expected, .config = self.config, .fixed = self.fixed, .dir = self.dir, .allow_resume = false, .inventory = &self.inventory.?, .stages = &self.stages.?, .manifest = &self.manifest.?, .words = self.words, .frames = frames, .timer = &self.timer, .stream = self }, self.options, pipe, try foldArity());
+    }
+};

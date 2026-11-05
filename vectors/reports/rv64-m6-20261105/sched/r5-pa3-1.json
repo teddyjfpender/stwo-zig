@@ -1,0 +1,162 @@
+{
+ "schema": "rv64-m6-sched-run/v1",
+ "label": "M",
+ "run": "daemon-26235156-24628607-r1-r5-pa3-1",
+ "source_commit": "95d40063d",
+ "assets": {
+  "driver": "15f3bc3029985e11ea910e22f611677755cda5c6c5e4805654b89104bbc2ddf4",
+  "library": "0caf01442286e63b80c57a4e0811690115ec60103e957a4e5df9d48e01ca37d6",
+  "receiver": "39cfb1dc87a50b0f748281132bd4797cd2d802f56bfe29595c90761ebf1ec06a",
+  "recursive_receiver": "39cfb1dc87a50b0f748281132bd4797cd2d802f56bfe29595c90761ebf1ec06a"
+ },
+ "environment": {
+  "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+  "STWO_RV64_GPU_CPU_REPLAY": "1",
+  "STWO_RV64_CORE_SINGLE_STREAM": "1",
+  "STWO_RV64_DEVICE_ARENA": "1",
+  "STWO_RV64_RECURSION_PREP_AHEAD": "3",
+  "CUDA_VISIBLE_DEVICES": "0,1",
+  "STWO_RV64_GPU_DEVICES": "0,1",
+  "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "4",
+  "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+  "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+  "STWO_RV64_GPU_DEVICE_TRACE": "1",
+  "STWO_RV64_GPU_DEVICE_BINDING": "1",
+  "STWO_RV64_GPU_LIBRARY": "/workspace/m3/build/m6-sched/cuda/native/libstwo-rv64-native.so",
+  "CUDA_MODULE_LOADING": "EAGER",
+  "STWO_ZIG_RV64_SETUP_CACHE": "/workspace/m3/store/codex-rv64-m4-resident/1489f2d7b3630b082d7996e3/setup",
+  "STWO_RV64_OUTER_PLAN_CLASS_STORE": "/workspace/m3/store/codex-rv64-m4-resident/1489f2d7b3630b082d7996e3/classes"
+ },
+ "store_mode": "reuse",
+ "load_avg_before": [
+  35.73583984375,
+  35.587890625,
+  31.94775390625
+ ],
+ "load_avg_after": [
+  27.87646484375,
+  32.68115234375,
+  31.45947265625
+ ],
+ "service_start_s": 12.831,
+ "service_rss_peak_gib": 26.6,
+ "device_peak_gb": {
+  "0": 31.5,
+  "1": 31.5
+ },
+ "gpu_kernel_activity_mean_percent": {
+  "0": 26.5,
+  "1": 24.8
+ },
+ "requests": [
+  {
+   "block": 26235156,
+   "stages": {
+    "request_wall_s": 21.666,
+    "capture_s": 2.167,
+    "setup_s": 0.14,
+    "native_prove_s": 5.57,
+    "native_verify_s": 1.506,
+    "native_total_before_report_s": 8.034,
+    "recursion_s": 13.611
+   },
+   "byte_identical_to_m3": true,
+   "root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+   "proof_count": 22,
+   "proof_bytes_root": 748536,
+   "recursion": {
+    "policy": "m5",
+    "lanes": 2,
+    "options": {
+     "host_workers": 8,
+     "prep_pool_workers": 24,
+     "prep_ahead": 3
+    },
+    "dag_wall_s": 17.033,
+    "streaming": true,
+    "native_overlap_s": 3.307,
+    "first_device_start_s": 3.307,
+    "last_leaf_finish_s": 12.266,
+    "tail_after_last_leaf_s": 4.767,
+    "lane_device_stage_occupancy": 0.566,
+    "device_stage_sum_s": 19.281,
+    "device_stage_busy_per_gpu_after_native": 0.7024,
+    "leaf_ready_s": [
+     1.587,
+     1.159,
+     1.937,
+     2.357,
+     3.12,
+     2.675,
+     3.129,
+     3.307,
+     3.295,
+     3.456,
+     3.333
+    ],
+    "native_done_s": 3.457,
+    "combined_recursion_ns": 13610562715,
+    "recursion_after_native_ns": 13770994327,
+    "native_verify_join_wait_ns": 383409
+   }
+  },
+  {
+   "block": 24628607,
+   "stages": {
+    "request_wall_s": 34.019,
+    "capture_s": 2.912,
+    "setup_s": 0.165,
+    "native_prove_s": 8.468,
+    "native_verify_s": 3.312,
+    "native_total_before_report_s": 11.706,
+    "recursion_s": 22.29
+   },
+   "byte_identical_to_m3": true,
+   "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+   "proof_count": 34,
+   "proof_bytes_root": 706424,
+   "recursion": {
+    "policy": "m5",
+    "lanes": 2,
+    "options": {
+     "host_workers": 8,
+     "prep_pool_workers": 24,
+     "prep_ahead": 3
+    },
+    "dag_wall_s": 27.966,
+    "streaming": true,
+    "native_overlap_s": 5.542,
+    "first_device_start_s": 5.542,
+    "last_leaf_finish_s": 21.999,
+    "tail_after_last_leaf_s": 5.967,
+    "lane_device_stage_occupancy": 0.6126,
+    "device_stage_sum_s": 34.264,
+    "device_stage_busy_per_gpu_after_native": 0.764,
+    "leaf_ready_s": [
+     1.827,
+     1.651,
+     2.524,
+     2.634,
+     3.221,
+     3.348,
+     4.585,
+     5.024,
+     5.056,
+     5.535,
+     5.217,
+     5.563,
+     5.656,
+     5.662,
+     5.746,
+     5.748,
+     5.765
+    ],
+    "native_done_s": 5.766,
+    "combined_recursion_ns": 22290402948,
+    "recursion_after_native_ns": 22454264548,
+    "native_verify_join_wait_ns": 252220
+   }
+  }
+ ],
+ "receivers": []
+}

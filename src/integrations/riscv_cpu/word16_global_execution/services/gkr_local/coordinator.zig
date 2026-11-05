@@ -58,7 +58,23 @@ pub const WorkerTiming = struct {
     stage2_completed: bool = false,
     completed_worker_retired: bool = false,
 };
+/// Producer scheduling hook (sched M6 streaming handoff; default null = M5).
+/// No proof, manifest or identity byte depends on it. `sealed` runs once on
+/// the produce caller thread after the stage-one barrier; `cpu_done` /
+/// `truth_done` run on the stage-two worker thread right after that
+/// ordinal's encoded result is final (its address is valid only for the call;
+/// the heap it references is moved into the returned Bundle). `abort` runs on
+/// every error return after `sealed`, before requests or results are freed,
+/// and returns only when the consumer no longer reads any of them.
+pub const Stream = struct {
+    context: *anyopaque,
+    sealed: *const fn (context: *anyopaque, requests: []const P.Request, stage_one_bytes: []const u8) void,
+    cpu_done: *const fn (context: *anyopaque, ordinal: usize, encoded: *const CPU.CpuEncoded) void,
+    truth_done: *const fn (context: *anyopaque, ordinal: usize, encoded: *const Truth.TruthEncoded) void,
+    abort: *const fn (context: *anyopaque) void,
+};
 pub const Options = struct {
+    stream: ?Stream = null,
     cpu_replay_stage: ?@import("cpu_replay.zig").Stage = null,
     device_source_stage: ?Pipeline.DeviceSourceStage = null,
     device_global_stage: ?CPU.DeviceGlobal.Stage = null,
@@ -372,6 +388,10 @@ const Run = struct {
             },
             inline .truth, .delegation => |*v| .{ .truth = try v.complete(self.a, pending, index, self.options.global_budget) },
         };
+        if (self.options.stream) |stream| switch (self.results[index].?) {
+            .cpu => |*v| stream.cpu_done(stream.context, index, v),
+            .truth => |*v| stream.truth_done(stream.context, index, v),
+        };
         if (timer) |*clock| timing.?.native_complete_ns = clock.lap();
         // Encoded bytes/claims are detached owners. The joined manifest owns its
         // reconstructed local artifacts, and StageOne bytes were encoded before
@@ -479,6 +499,9 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     defer pending.deinit(a);
     const stage_bytes = try ManifestWire.encode(a, inventory.execution_identity, inventory.workers, stages);
     errdefer a.free(stage_bytes);
+    if (options.stream) |stream| stream.sealed(stream.context, requests, stage_bytes);
+    // Runs before stage_bytes, results and requests are freed (reverse order).
+    errdefer if (options.stream) |stream| stream.abort(stream.context);
     run.pending = &pending;
     try Schedule.runWithOptions(Run, a, &run, count, options.schedule, stage2_options, Run.stageTwo);
     const cpus = try a.alloc(CPU.CpuEncoded, setups.len);

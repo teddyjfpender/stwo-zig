@@ -1,0 +1,100 @@
+{
+ "schema": "rv64-m6-sched-adv/v1",
+ "label": "measured",
+ "run": "/workspace/m3/runs/m6-sched-adv/daemon-26235156-24628607-r2-adv-m5s-3",
+ "source_commit": "117b6f537",
+ "driver_sha256": {
+  "driver": "e901888950d8d36e97935f35fafe1da5861a80aef6a105d24abf882de53a1a13",
+  "library": "0caf01442286e63b80c57a4e0811690115ec60103e957a4e5df9d48e01ca37d6",
+  "receiver": "7ea3d900b29beeb7ca0e0b2a257a71dce3611dd7fc81e789c5a684e5380cc130",
+  "recursive_receiver": "7ea3d900b29beeb7ca0e0b2a257a71dce3611dd7fc81e789c5a684e5380cc130"
+ },
+ "environment_recursion": {
+  "STWO_RV64_RECURSION_STREAM": "0"
+ },
+ "cfg": "m5s",
+ "load_avg_before": [
+  17.35595703125,
+  19.38525390625,
+  20.14599609375
+ ],
+ "load_avg_after": [
+  18.22998046875,
+  19.314453125,
+  20.00927734375
+ ],
+ "service_start_s": 12.152,
+ "peak_rss_gib": 32.74,
+ "device_peak_gb": 31.503417344,
+ "gpu_kernel_activity_mean_percent": {
+  "0": 34.63532110091743,
+  "1": 32.32339449541284
+ },
+ "receivers": [],
+ "requests": [
+  {
+   "block": 26235156,
+   "trial": 0,
+   "byte_identical_to_m3": true,
+   "proof_count": 22,
+   "root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+   "stages": {
+    "request_wall_s": 20.687,
+    "capture_s": 2.122,
+    "setup_s": 0.144,
+    "native_prove_s": 4.955,
+    "native_verify_s": 1.299,
+    "native_total_before_report_s": 7.348,
+    "recursion_s": 13.321
+   }
+  },
+  {
+   "block": 24628607,
+   "trial": 0,
+   "byte_identical_to_m3": true,
+   "proof_count": 34,
+   "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+   "stages": {
+    "request_wall_s": 28.678,
+    "capture_s": 2.775,
+    "setup_s": 0.154,
+    "native_prove_s": 6.75,
+    "native_verify_s": 2.029,
+    "native_total_before_report_s": 9.835,
+    "recursion_s": 18.818
+   }
+  },
+  {
+   "block": 26235156,
+   "trial": 1,
+   "byte_identical_to_m3": true,
+   "proof_count": 22,
+   "root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+   "stages": {
+    "request_wall_s": 18.458,
+    "capture_s": 2.177,
+    "setup_s": 0.15,
+    "native_prove_s": 4.368,
+    "native_verify_s": 1.334,
+    "native_total_before_report_s": 6.814,
+    "recursion_s": 11.625
+   }
+  },
+  {
+   "block": 24628607,
+   "trial": 1,
+   "byte_identical_to_m3": true,
+   "proof_count": 34,
+   "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+   "stages": {
+    "request_wall_s": 27.392,
+    "capture_s": 2.614,
+    "setup_s": 0.155,
+    "native_prove_s": 6.233,
+    "native_verify_s": 1.982,
+    "native_total_before_report_s": 9.153,
+    "recursion_s": 18.211
+   }
+  }
+ ]
+}
