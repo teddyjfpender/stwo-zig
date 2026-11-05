@@ -1067,8 +1067,15 @@ const Pipelined = struct {
             break :blk try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{job.id});
         } else blk: {
             const ordinal = self.plan.nodes[job.id].first_leaf;
-            const worker = in.inventory.workers[ordinal];
-            job.leaf = if (ordinal < in.setups.len) try Graph.cpuTraceOnly(a, .{ .setup = in.setups[ordinal], .request = in.bundle.requests[ordinal], .expected = worker, .first = in.inventory.first_ids[ordinal], .manifest = in.manifest, .index = ordinal, .stage = &in.stages.stages[ordinal], .config = in.config, .encoded = &in.bundle.cpus[ordinal], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null }) else try Graph.truthTraceOnly(a, .{ .truth = in.truths[ordinal - in.setups.len], .expected = worker, .manifest = in.manifest, .config = in.config, .encoded = &in.bundle.truths[ordinal - in.setups.len], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null });
+            job.leaf = try self.leafGraph(ordinal, true);
+            if (job.leaf.?.seed_tape != null) {
+                if (try self.prepLeafTape(job, &timer)) return true;
+                // A PP hit can outlive a bounded assignment-template miss. Rebuild
+                // the full graph after a refusal; never prove the stub directly.
+                job.leaf.?.deinit();
+                job.leaf = null;
+                job.leaf = try self.leafGraph(ordinal, false);
+            }
             if (!std.mem.eql(u32, job.leaf.?.words, in.words[ordinal])) return error.RecursiveLeafFrame;
             job.digest = job.leaf.?.digest;
             break :blk try std.fmt.bufPrint(&name_buffer, "leaf-{d:0>6}.proof", .{ordinal});
@@ -1089,7 +1096,7 @@ const Pipelined = struct {
         // Fold v2: the topology-only producer plan cache keys by geometry class.
         // class_hint is threadlocal and Prepared.init (via prepare_host) runs on
         // this prep thread, so set it here as the lane path does in prove().
-        if (children != null) Outer.Device.class_hint = try Bridge.classKey(kids);
+        if (children != null) Outer.Device.class_hint = try Bridge.classKey(kids) else Outer.Device.class_hint = job.leaf.?.class;
         defer Outer.Device.class_hint = null;
         // Any lane's factory: host prep reads only immutable library symbols.
         const raw_shape = @import("stwo_circuit_frontend").common.finalize.rawComponentSizes(.fromBuilder(&job.ctx().circuit));
@@ -1101,6 +1108,43 @@ const Pipelined = struct {
         job.record.host_plan_ns = job.host.?.host_plan_ns;
         job.record.host_authority_ns = job.host.?.authority_ns;
         job.record.stamps.prep_end = self.now();
+        return true;
+    }
+    fn leafGraph(self: *Pipelined, ordinal: usize, allow_tape: bool) !Graph.Graph {
+        const in = self.input;
+        const a = in.allocator;
+        const worker = in.inventory.workers[ordinal];
+        const factory: ?Outer.Device.Factory = if (allow_tape and !in.allow_resume) self.options.lanes[0].factory else null;
+        return if (ordinal < in.setups.len) try Graph.cpuTraceWithTape(a, .{ .setup = in.setups[ordinal], .request = in.bundle.requests[ordinal], .expected = worker, .first = in.inventory.first_ids[ordinal], .manifest = in.manifest, .index = ordinal, .stage = &in.stages.stages[ordinal], .config = in.config, .encoded = &in.bundle.cpus[ordinal], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null }, factory) else try Graph.truthTraceWithTape(a, .{ .truth = in.truths[ordinal - in.setups.len], .expected = worker, .manifest = in.manifest, .config = in.config, .encoded = &in.bundle.truths[ordinal - in.setups.len], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null }, factory);
+    }
+    fn prepLeafTape(self: *Pipelined, job: *Pipe.Job, timer: *std.time.Timer) !bool {
+        const in = self.input;
+        const a = in.allocator;
+        const graph = &job.leaf.?;
+        const values = graph.seed_tape orelse return false;
+        if (!std.mem.eql(u32, graph.words, in.words[self.plan.nodes[job.id].first_leaf])) return error.RecursiveLeafFrame;
+        const class = graph.class orelse return error.MissingLeafSeedClass;
+        var tape = Outer.Device.SeedTape{ .values = values };
+        Outer.Device.seed_tape = &tape;
+        defer Outer.Device.seed_tape = null;
+        Outer.Device.class_hint = class;
+        defer Outer.Device.class_hint = null;
+        const graph_ns = timer.lap();
+        const host = (try Outer.prepareHostTape(a, graph.ctx, self.options.lanes[0].factory, class)) orelse return false;
+        if (!tape.consumed) {
+            var unused = host;
+            unused.deinit(a);
+            return false;
+        }
+        graph.ctx.circuit.n_vars = tape.n_vars;
+        job.digest = graph.digest;
+        job.host = host;
+        job.record.graph_ns = graph_ns;
+        job.record.variables = tape.n_vars;
+        job.record.host_plan_ns = host.host_plan_ns;
+        job.record.host_authority_ns = host.authority_ns;
+        job.record.stamps.prep_end = self.now();
+        std.debug.print("LEAF_SEED_TAPE used node={} class={x} seeds={} record_ns={} authority_ns={} prep_ns={}\n", .{ job.id, class[0..8], values.len, graph_ns, host.authority_ns, job.record.stamps.prep_end - job.record.stamps.prep_start });
         return true;
     }
     /// M6 hint-tape (HT1): a fold whose class PP and class plan are cached is

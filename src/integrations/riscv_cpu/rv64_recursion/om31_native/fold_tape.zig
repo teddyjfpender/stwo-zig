@@ -69,34 +69,34 @@ pub fn record(a: std.mem.Allocator, children: []const Bridge.Child) ![][4]u32 {
     return out.toOwnedSlice(a);
 }
 
-const Emit = struct {
+pub const Emit = struct {
     a: std.mem.Allocator,
     out: *std.ArrayListUnmanaged([4]u32),
     fn put(self: *Emit, value: [4]u32) !void {
         try self.out.append(self.a, value);
     }
-    fn q(self: *Emit, value: Q) !void {
+    pub fn q(self: *Emit, value: Q) !void {
         try self.put(B.ivalue.limbs(value));
     }
-    fn om(self: *Emit, value: C.O) !void {
+    pub fn om(self: *Emit, value: C.O) !void {
         try self.q(value.c0);
         try self.q(value.c1);
     }
     fn m31(self: *Emit, value: M) !void {
         try self.q(Q.fromBase(value));
     }
-    fn word(self: *Emit, value: u32) !void {
+    pub fn word(self: *Emit, value: u32) !void {
         try self.put(.{ value & 0xFFFF, 0, 0, 0 });
         try self.put(.{ value >> 16, 0, 0, 0 });
     }
-    fn hash(self: *Emit, digest: [32]u8) !void {
+    pub fn hash(self: *Emit, digest: [32]u8) !void {
         for (core.vcs.blake2_hash.digestToU32s(digest)) |w| try self.word(w);
     }
     fn paths(self: *Emit, source: []const []const [32]u8) !void {
         for (source) |path| for (path) |node| try self.hash(node);
     }
     /// Same order as om31_native/proof.zig `guess`.
-    fn proof(self: *Emit, source: *const V.Captured) !void {
+    pub fn proof(self: *Emit, source: *const V.Captured) !void {
         for (source.commitments) |root| try self.hash(root);
         for (source.sampled_values, source.queried_values, source.auth_paths) |tree_samples, tree_queried, tree_paths| {
             for (tree_samples, tree_queried) |samples, bases| {
