@@ -58,19 +58,27 @@ fn fp(n: u64) F {
 test "all MAIN INTER ingress RC and PCS branches remain covered" {
     // Exhaustive small geometries include saturation at both retirement
     // boundaries, with each of the five branches independently dominant.
-    for (1..6) |m| for (1..6) |inter| for (1..8) |dominant| {
-        const i = Input{
+    for (1..16) |m| for (1..16) |inter| for (0..5) |dominant| {
+        var i = Input{
             .main_evaluations = fp(m),
             .inter_evaluations = fp(inter),
-            .main_commit_peak = fp(dominant * 3),
+            .main_commit_peak = fp(1),
             .main_coefficients = fp(2),
-            .interaction_peak = fp(dominant * 4),
-            .inter_commit_peak = fp(dominant * 5),
+            .interaction_peak = fp(1),
+            .inter_commit_peak = fp(1),
             .inter_coefficients = fp(3),
-            .composition_peak = fp(dominant * 6),
+            .composition_peak = fp(1),
             .composition_retained = fp(4),
-            .pcs_peak = fp(dominant * 7),
+            .pcs_peak = fp(1),
         };
+        switch (dominant) {
+            0 => i.main_commit_peak = fp(100),
+            1 => i.interaction_peak = fp(100),
+            2 => i.inter_commit_peak = fp(100),
+            3 => i.composition_peak = fp(100),
+            4 => i.pcs_peak = fp(100),
+            else => unreachable,
+        }
         const p = try init(i);
         const first = try i.main_evaluations.add(p.after_source);
         const cm = i.main_coefficients;
