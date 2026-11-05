@@ -23,6 +23,12 @@ fn hostGeometryBytes() usize {
     return if (bytes == 0) Export.GeometryCache.default_bytes else bytes;
 }
 pub const Context = struct {
+    admission_progress: @import("admission_progress.zig").Registry = .{},
+    /// Sibling lane sessions share the loaded module and physical arena, but
+    /// own their service lock, streams, scope registry and retained cache.
+    library_owner: bool = true,
+    parent: ?*Context = null,
+    siblings: std.atomic.Value(u32) = std.atomic.Value(u32).init(0),
     admission: ?@import("admission_runtime.zig").Endpoint = null,
     admission_retention: @import("admission_retention.zig").Registry = .{},
     byte_cap: u64,
@@ -47,6 +53,12 @@ pub const Context = struct {
     lease_validate: Abi.LeaseValidate,
     lease_validate_range: Abi.LeaseValidateRange,
     lease_release: Abi.LeaseRelease,
+    pub fn registerAdmissionProgress(self: *Context, scope: D.Scope, plan: @import("admission_progress.zig").Plan) !void {
+        return self.admission_progress.put(std.heap.page_allocator, .{ .statement = scope.statement, .fixed = scope.fixed, .ordinal = scope.ordinal }, plan);
+    }
+    pub fn admissionSuccessor(self: *Context, scope: D.Scope, step: @import("admission_progress.zig").Step) !@import("global_admission.zig").Footprint {
+        return self.admission_progress.get(.{ .statement = scope.statement, .fixed = scope.fixed, .ordinal = scope.ordinal }, step);
+    }
     pub fn attachGlobalAdmission(self: *Context, planner: *@import("global_admission.zig").Planner, physical: u32) !void {
         var endpoint = try @import("admission_runtime.zig").Endpoint.init(planner, physical, &self.library, self.session, self.submit);
         try endpoint.configure();
@@ -185,6 +197,7 @@ pub const Context = struct {
         if (self.cache.items.len != 0 or self.admission_retention.claims.items.len != 0) return error.ResidentBlockStillActive;
         try self.requireNoRequestLeases();
         self.active_block = null;
+        self.admission_progress.clear();
         if (self.immutable_setup) |cache| std.debug.print("GPU_RESIDENT_SETUP device_bytes={} limit_bytes={} entries={} hits={} uploads={} evictions={} outstanding_aliases={}\n", .{ cache.bytes, cache.limit, cache.entries.items.len, cache.hits, cache.uploads, cache.evictions, cache.borrows.items.len });
     }
     const Audit = struct {
@@ -437,8 +450,20 @@ pub const Context = struct {
         const wide = if (library.lookup(Version, "stwo_rv64_pcs_request_version")) |version| version() >= 3 else false;
         return .{ .byte_cap = capacity, .wide_pcs_framing = wide, .host_geometry = Export.GeometryCache.init(std.heap.page_allocator, hostGeometryBytes()), .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
     }
+    pub fn createSibling(self: *Context, a: std.mem.Allocator, device: u32) !Context {
+        const create = self.library.lookup(Abi.Create, "stwo_rv64_pcs_native_create") orelse return error.MissingGpuPcsSymbol;
+        var session: ?*anyopaque = null;
+        if (create(device, self.byte_cap, &session) != 0 or session == null) return error.GpuPcsInitializationFailed;
+        var sibling = Context{ .byte_cap = self.byte_cap, .wide_pcs_framing = self.wide_pcs_framing, .library_owner = false, .parent = self, .host_geometry = Export.GeometryCache.init(a, hostGeometryBytes()), .library = self.library, .session = session.?, .native_prove = self.native_prove, .release = self.release, .destroy = self.destroy, .last_error = self.last_error, .submit = self.submit, .lease_allocate = self.lease_allocate, .lease_validate = self.lease_validate, .lease_validate_range = self.lease_validate_range, .lease_release = self.lease_release };
+        _ = self.siblings.fetchAdd(1, .monotonic);
+        errdefer sibling.deinit();
+        try sibling.inheritGlobalAdmission(self);
+        return sibling;
+    }
     pub fn deinit(self: *Context) void {
+        std.debug.assert(self.siblings.load(.acquire) == 0);
         self.host_geometry.deinit();
+        self.admission_progress.deinit(std.heap.page_allocator);
         while (self.cache.items.len != 0) self.releaseScope(self.cache.items[self.cache.items.len - 1].scope);
         self.cache.deinit(std.heap.page_allocator);
         if (self.immutable_setup) |cache| {
@@ -450,7 +475,11 @@ pub const Context = struct {
         if (self.destroy(self.session) != 0) @panic("GPU context failed to join before library close");
         self.admission_retention.contextDestroyed(if (self.admission) |endpoint| endpoint.planner else null) catch @panic("GPU retention claims failed to retire after context destruction");
         self.admission_retention.deinit(std.heap.page_allocator);
-        self.library.close();
+        if (self.library_owner) self.library.close();
+        if (self.parent) |parent| {
+            const previous = parent.siblings.fetchSub(1, .release);
+            std.debug.assert(previous != 0);
+        }
         self.* = undefined;
     }
     const SetupCleanup = struct {
