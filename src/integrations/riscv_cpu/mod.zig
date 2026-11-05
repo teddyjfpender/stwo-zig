@@ -1,4 +1,5 @@
 //! CPU/SIMD integration for the backend-neutral Sail RISC-V frontend.
+pub const rv64_poseidon2_outer = @import("poseidon2_outer/mod.zig");
 
 pub const rv64_services_roster = @import("word16_global_execution/services/roster.zig");
 pub const rv64_services_types = @import("word16_global_execution/services/types.zig");
