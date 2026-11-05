@@ -534,7 +534,12 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
     if (consumer.err) |err| return err;
     stats.max_inflight = @max(1, stats.max_inflight);
     var result = try ordered.finish(.{ .max_inflight_packets = stats.max_inflight, .max_worker_shards = stats.max_inflight });
-    errdefer result.deinit();
+    errdefer {
+        // terminal_ready may already have started an asynchronous last-segment
+        // reader. Join it before freeing advice on post-finish RAM mismatch.
+        if (ready) |hook| if (hook.cancel) |cancel| cancel(hook.context);
+        result.deinit();
+    }
     ram_job.join();
     if (ram_job.failure) |err| return err;
     if (ram_job.comparison_cells) |cells| {
