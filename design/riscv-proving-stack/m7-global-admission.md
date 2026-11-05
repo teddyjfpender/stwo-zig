@@ -1,0 +1,13 @@
+# M7 global memory admission API
+
+Status: pure ledger3/3unit tests pass on the pod; runtime hooks and global coverage audit are pending. No native/outerGKR promotion is authorized by these tests.
+
+One `global_admission.Planner` belongs to the physical GPU pool and is shared by every native session, recursion lane and GKR stage. `Preset` accepts only16G/18G/20G/22G; auto arenas are not a planner configuration. It reserves a4GiB external allowance and512MiB small slab; each actual large allocation rounds independently to32MiB and small allocations to512bytes, matching current runtime constants. Runtime capacity/chunk/slab settings and external usage must be checked before accepting a preset; virtual placement remains the CUDA arena's final guard.
+
+Call `Footprint.allocation(bytes)` for EACH allocation, then add, not one rounded aggregate cell count. Native GKR has workspace, one decoded source slab, twiddles, status, seed and one parameter slab/component. Existing retained MAIN/FIXED/coefficients and immutable caches are additional owners. Aliases are charged only at their allocation owner. Retired native owners stay charged until physical destruction.
+
+`tryBegin(physical,Demand)` is nonblocking. Demand declares new retained allocations, simultaneous temporary allocations (including every decoded/metadata/twiddle plane), successor scratch headroom, owner and stage. Unknown cost defaults to refusal. Only one wide stage is admitted per physical GPU initially. Total retained bytes plus the maximum future scratch claim must fit both the large arena and small slab. This prevents native retention from consuming all headroom needed by the recursion/GKR consumer that will retire it.
+
+An admitted token must precede GPU mutation. Scheduler retries blocked work after release; never wait inside the GPU owner callback. `complete(token,retained,successor)` follows actual transient free AND join. It cannot enlarge its reservation. `release(token)` follows last-owner physical destruction, not logical scope end. Double release/foreign/stale tokens fail closed. `assertCoversActual` must compare all physical arena allocations (all contexts, including retired owners) with the ledger before mutation; untracked allocations are errors, not implicit zero costs.
+
+Integration still required: one endpoint per physical GPU on Service.Context, stage cost adapters and reservation scopes for native source/MAIN/INTER/TC/RC/PCS, recursion values/MAIN/INTER/TC/RC/PCS, immutable caches, full/frontier GKR; actual arena snapshot with separate small/large live bytes; reservation and retirement lifecycle events. Do not treat independent per-session caps or a mutex as this planner.
