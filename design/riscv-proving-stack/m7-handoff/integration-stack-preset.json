@@ -82,6 +82,15 @@
       "headline": "unprofiled; independent full capture diagnostic SHA256 OFF botharms; native R1privateCaptureSeal stillincluded",
       "smoke": "independentfullcaptured-valueSHA256 ON botharms andrequiredforparity; allwallsunqualified",
       "ownership_profile_pair": "Nsight node trace; independentfullcaptureSHA OFF botharms; excludedheadline medians"
+    },
+    "pending_authority_floor": "SourcePlan max_leaves256 arity4 carryBound12; minimumLimit=max(9+2lanes,12+2lanes+1):17 for2logical lanes,21 for4logical lanes."
+  },
+  "operational": {
+    "baseline": {
+      "recursion_max_pending_authorities": 17
+    },
+    "fullstack": {
+      "recursion_max_pending_authorities": 21
     }
   }
 }

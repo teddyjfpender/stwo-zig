@@ -151,6 +151,8 @@ def plan_for(blocks, args, run, paths, root):
     template = P.plan_template()
     if getattr(args, "security_profile", None) is not None:
         template = dict(template, profile=args.security_profile)
+    if getattr(args, "recursion_max_pending_authorities", None) is not None:
+        template = dict(template, recursion_max_pending_authorities=args.recursion_max_pending_authorities)
     jobs = []
     for block in blocks:
         job = next(j for j in template["jobs"] if j["block"] == block)
@@ -916,6 +918,7 @@ def main():
     s.add_argument("blocks", type=int, nargs="+")
     s.add_argument("--repeat", type=int, default=2)
     s.add_argument("--allow-scale-probe", action="store_true", help="permit one 24697070 request only, with --repeat 1")
+    s.add_argument("--recursion-max-pending-authorities", type=int, help="source queue admission floor; 4logical lanes atarity4 require21 (2lanes require17)")
     s.add_argument("--coalesce-truth-families", action="store_true", help="opt-in non-Keccak family coalescing; preserves bounded Keccak shards")
     s.add_argument("--security-profile", choices=("conjectured128_b2_q108_p20_fold4", "d2_native_b4_q54_p20_fold4"), help="explicit opt-in native profile; preserves template default when absent")
     s.add_argument("--stream", default="m4-resident")

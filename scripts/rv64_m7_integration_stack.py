@@ -94,7 +94,7 @@ def command(manifest, arm, round_index, run_root, profile, label="one-stack"):
             '--stream', run_root, '--build-stream', run_root, '--repeat', '2', '--store', 'none',
             '--receive', 'none', '--security-profile', preset['security_profile'], '--coalesce-truth-families',
             '--driver', assets['driver'], '--library', assets['library'], '--receiver', assets['receiver'],
-            '--tag', tag, '--no-default-env', '--quiet-load-max', str(preset['measurement']['quiet_load_max']),
+            '--tag', tag, '--no-default-env', '--recursion-max-pending-authorities', str(preset['operational'][arm]['recursion_max_pending_authorities']), '--quiet-load-max', str(preset['measurement']['quiet_load_max']),
             '--quiet-steal-max', str(preset['measurement']['quiet_steal_max']), '--quiet-resource', preset['measurement'].get('quiet_resource', 'host-load'),
             '--quiet-timeout', str(preset['measurement']['quiet_timeout_s']),
             '--quiet-stable-samples', str(preset['measurement']['quiet_stable_samples'])]
@@ -165,7 +165,7 @@ def run(args):
     for index, arm in enumerate(result['order']):
         validate_manifest(manifest)
         profile = not args.smoke and index >= 6
-        argv, tag = command(manifest, arm, index, stream, profile, 'one-stack-v3-smoke' if args.smoke else 'one-stack-v2')
+        argv, tag = command(manifest, arm, index, stream, profile, 'one-stack-v4-smoke' if args.smoke else 'one-stack-v3')
         seed = None
         if args.smoke:
             argv += ['--quiet-mode', 'diagnostic', '--request-timeout', str(args.smoke_request_timeout), '--env', 'STWO_RV64_CAPTURE_DIGEST=1']
