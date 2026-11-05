@@ -59,7 +59,7 @@ fn snapshot(ctx: *const C.PoseidonContext) struct { eq: usize, qm31_ops: usize, 
 }
 fn census(ctx: *const C.PoseidonContext, configuration: Core.pcs.PcsConfig, placeholder: bool) !void {
     const cells = try ctx.census(false);
-    const candidate_profile = if (configuration.fri_config.log_blowup_factor == 1) "AST-only/full-P2v2-PCS-GKR-shared-receipt-frame9/b2-q108-P20-f4/native-UNQUALIFIED/v1" else "AST-only/full-P2v2-PCS-GKR-shared-receipt-frame9/b4-q54-P0-f4/native-UNQUALIFIED/v1";
+    const candidate_profile = if (configuration.fri_config.log_blowup_factor == 1) "AST-only/full-P2v2-PCS-GKR-shared-receipt-frame9/b2-q108-P20-f4/native-UNQUALIFIED/v1" else if (configuration.pow_bits == 20) "AST-only/full-P2v2-PCS-GKR-shared-receipt-frame9/b4-q54-P20-f4/native-UNQUALIFIED/v1" else "AST-only/full-P2v2-PCS-GKR-shared-receipt-frame9/b4-q54-P0-f4/native-UNQUALIFIED/v1";
     const json = try std.json.Stringify.valueAlloc(ctx.allocator, .{ .status = "DERIVED_source_exact_full_CPU_candidate_AST;no_native_pureP2_protocol_or_recursiveproof", .candidate_profile = candidate_profile, .configuration = configuration, .assignment_is_source_shape_placeholder = placeholder, .raw = snapshot(ctx), .cells = cells, .variables = ctx.base.circuit.n_vars, .source_use_mass = ctx.usage.?.total, .internal_hash_limbs = 9, .residual_dynamic_blake_gates = ctx.base.circuit.blake_g_gate.items.len, .residual_dynamic_xor_gates = ctx.base.circuit.triple_xor.items.len, .native_assignment_compatible = false, .native_shared_challenges_compatible = false, .newGKR_receipt_framing = "domain+length+bytes->P2digest9", .frame = "domain+length+boundedraw32words->P2digest9", .external_identifiers = "source fixture's existing32byte statement/manifest identities; native pureP2 regeneration not implemented" }, .{});
     defer ctx.allocator.free(json);
     std.debug.print("P2_PURE_CPU_LEAF_CANDIDATE_CENSUS {s}\n", .{json});
@@ -73,7 +73,9 @@ pub const Hook = struct {
         alternate.pow_bits = 20;
         alternate.fri_config.log_blowup_factor = 1;
         alternate.fri_config.n_queries = 108;
-        for ([_]Core.pcs.PcsConfig{ key.profile.config(), alternate }, 0..) |configuration, variant| {
+        var matched_b4 = key.profile.config();
+        matched_b4.pow_bits = 20;
+        for ([_]Core.pcs.PcsConfig{ key.profile.config(), matched_b4, alternate }, 0..) |configuration, variant| {
             const shape = try @import("../rv64_recursion/om31_native/cpu_capture.zig").geometry(arena.allocator(), setups[0], configuration);
             const values = if (variant == 0) try V.proof.fromNative(arena.allocator(), native, capture, &shape) else try @import("ast_shape_values.zig").fromSourceShape(arena.allocator(), &shape);
             const trace_only = true;
