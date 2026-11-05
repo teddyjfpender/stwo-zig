@@ -97,7 +97,7 @@ pub const Endpoint = struct {
     }
     pub const Attempt = union(enum) { admitted: Permit, blocked: A.Decision };
     pub fn tryReserve(self: *const Endpoint, demand: A.Demand) !Attempt {
-        if (!demand.known or !demand.host_known) return .{ .blocked = .{ .reason = .unknown_cost, .capacity = self.planner.capacity() } };
+        if (!demand.known or (self.planner.host_policy == .require_bounds and !demand.host_known)) return .{ .blocked = .{ .reason = .unknown_cost, .capacity = self.planner.capacity() } };
         if (!self.planner.healthy(self.physical)) return error.PhysicalAdmissionPoisoned;
         if (demand.retained_new.large != 0 or demand.retained_new.small != 0) return error.RuntimeUsesObservedRetention;
         const gate = try self.planner.stageGate(self.physical);
@@ -113,6 +113,25 @@ pub const Endpoint = struct {
         if (decision.token) |token| return .{ .admitted = .{ .endpoint = self.*, .token = token, .demand = demand, .before = query.result, .timer = timer } };
         gate.unlock();
         return .{ .blocked = decision };
+    }
+    /// Host coordinator only, BEFORE taking any stage, owner or cache mutex.
+    /// Every retained owner must reserve its downstream progress envelope;
+    /// callers cannot wait on capacity that only their own blocked stage frees.
+    pub fn reserve(self: *const Endpoint, demand: A.Demand) !Permit {
+        while (true) {
+            const epoch = self.planner.epoch();
+            switch (try self.tryReserve(demand)) {
+                .admitted => |permit| return permit,
+                .blocked => |decision| switch (decision.reason) {
+                    .wide_stage_busy, .capacity_pressure => self.planner.waitForChange(epoch),
+                    .unknown_cost => return error.GlobalGpuAllocationCostUnavailable,
+                    .host_capacity_pressure => return error.GlobalHostAdmissionCapacity,
+                    .request_exceeds_static_arena => return error.GlobalGpuClassExceedsStaticArena,
+                    .runtime_poisoned => return error.PhysicalAdmissionPoisoned,
+                    .admitted => unreachable,
+                },
+            }
+        }
     }
 };
 pub const Permit = struct {
