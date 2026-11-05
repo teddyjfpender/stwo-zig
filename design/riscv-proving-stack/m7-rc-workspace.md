@@ -17,3 +17,6 @@ With that explicit policy, both development blocks pass cold/warm workspace-ON e
 
 
 The complete functional batch now passes **10/10 full M6 artifact comparisons**, including both blocks in both enqueue modes, with two fresh CPU receiver acceptances on the enqueue-zero proofs. Enqueue-one warm total/recursion observations are 11.763/6.383 s (small) and 16.194/9.513 s (headline); native time varies too, so these observations do not establish a latency gain. All tests use the explicit idle-cache-zero policy and automatic arena. The subsequent integrated 22 GiB shared-workspace preflight refuses correctly (12.080 GB required versus 11.878–11.979 GB available); the shared-workspace option remains unqualified at that cap and stays disabled in the next candidate combined preset.
+
+
+The matched enqueue-zero NVTX attribution also gives no promotion evidence: OFF post-native phase is 9.774647 s / 10.051238 GPU-s; ON is 9.995430 s / 10.054500 GPU-s. Composition kernel work stays near 2.05 GPU-s. In this paired capture, composition `cuMemSetAccess` calls increase 18 → 20 (0.255 → 0.346 host-s), and `cuMemUnmap` calls increase 36 → 44 (0.205 → 0.299 host-s). Inclusive host ranges overlap and cannot be added to GPU seconds. These are one-pair observations; keep the shared arena experimental and disabled rather than claiming a VMM or latency improvement.
