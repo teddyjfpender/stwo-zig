@@ -10,9 +10,9 @@ Labels: **[M]** measured, **[D]** derived from measured numbers, **[E]** estimat
 
 **All feature work is composed on one integration branch and one working tree: `codex/rv64-m7-integrate`, renamed to `codex/rv64-main` once consolidated.**
 
-- A new feature lands there behind a flag, default off, and is measured **in the composed stack**, against the current default, the same day.
+- A new feature lands there behind a flag, default off, and is measured **in the composed stack**, against the current default, before the next change lands.
 - The work behind today's gains was spread across **29 remote branches with commits that never reached integrate**; see §7.
-- Each was A/B-tested alone against a moving baseline, so nothing composed. Every measurement read "no win", and features that only pay off together (memory admission + footprint + 2 lanes + early recursion) were never run together until the end of the day.
+- Each was A/B-tested alone against a moving baseline, so nothing composed. Every measurement read "no win", and features that only pay off together (memory admission + footprint + 2 lanes + early recursion) were only run together at the very end.
 
 **Single-owner, single-tree practice:**
 - **One engineer or agent at a time owns the tree.** No parallel agents on the same codebase.
@@ -163,10 +163,10 @@ Every request second that isn't proving should be removed:
 
 Standard practice, applied consistently:
 
-1. **One tree, one owner at a time.** One integration branch; topic branches only if they merge the same day. No parallel agents editing the codebase; parallel work is runs and measurements.
+1. **One tree, one owner at a time.** One integration branch; topic branches only if they merge back before the next change starts. No parallel agents editing the codebase; parallel work is runs and measurements.
 2. **Every commit builds and passes the gate script.** Never commit code that depends on uncommitted files. Push at the end of each working block.
 3. **Small, reviewable commits** with the measured result in the message (headline numbers plus the receipt path).
-4. **Feature flags default off, and composed.** A flag is either promoted to default within a few days or deleted. Test the flags that matter together, in one tree.
+4. **Feature flags default off, and composed.** A flag is either promoted to default once its matched timing is positive, or deleted. Test the flags that matter together, in one tree.
 5. **Measure the critical path first, then design for it.** Before building, write down which measured seconds the change removes; after building, show it.
 6. **First matched timing before more machinery:** each change reaches a matched timing in the composed default before any further gates or infrastructure are built for it. If it isn't positive, write down why before continuing.
 7. **Keep correctness gates proportional:**
