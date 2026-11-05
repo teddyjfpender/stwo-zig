@@ -28,6 +28,23 @@ def main():
     accepted = json.loads((args.accepted_run / 'receipt.json').read_text())
     if receipt['assets'] != accepted['assets']:
         raise RuntimeError('profiled and accepted assets differ')
+    fresh = {}
+    for block in {row['block'] for row in receipt['requests']}:
+        for verifier in accepted.get('receivers', []):
+            isolation = verifier.get('isolation', {})
+            if (verifier.get('block') == block and verifier.get('accepted') is True
+                    and verifier.get('status') == 'accepted'
+                    and verifier.get('receiver_sha256') == accepted['assets']['receiver']
+                    and verifier.get('process', {}).get('exit_code') == 0
+                    and isolation.get('CUDA_VISIBLE_DEVICES') == ''
+                    and isolation.get('STWO_RV64_GPU_PCS_HELPER') == '/bin/false'
+                    and verifier.get('store_present_during_receive') is False):
+                matches = [row for row in accepted['requests'] if row['block'] == block and row['proof'] == verifier.get('proof')]
+                if matches:
+                    fresh[block] = matches[0]
+                    break
+        if block not in fresh:
+            raise RuntimeError('reference lacks fresh isolated CPU acceptance for block ' + str(block))
     database = args.run / 'nsys/timeline.sqlite'
     db = sqlite3.connect(str(database))
     epoch = db.execute('SELECT utcEpochNs FROM TARGET_INFO_SESSION_START_TIME').fetchone()[0]
@@ -53,12 +70,12 @@ def main():
             for _, _, size, kind in copies:
                 kinds[str(kind)] = kinds.get(str(kind), 0) + size
             measured[str(device)] = {'kernel_count': len(ks), 'kernel_duration_sum_s': sum(e - s for s, e in ks) / 1e9, 'kernel_busy_union_s': T.union(ks) / 1e9, 'memcpy_busy_union_s': T.union(cs) / 1e9, 'any_busy_union_s': T.union(ks + cs) / 1e9, 'copy_bytes_by_CUPTI_kind': kinds}
-        reference = next(row for row in accepted['requests'] if row['block'] == request['block'])
+        reference = fresh[request['block']]
         identical = fingerprints(request) == fingerprints(reference)
         if not identical:
             raise RuntimeError('profiled artifacts differ from fresh-accepted reference')
         rows.append({'block': request['block'], 'trial': request['trial'], 'utc_window_ns': [lo, hi], 'profiled_request_wall_s': request['stages']['request_wall_s'], 'byte_identical_to_fresh_accepted_reference': identical, 'devices': measured, 'kernel_busy_gpu_seconds': sum(v['kernel_busy_union_s'] for v in measured.values()), 'any_busy_gpu_seconds': sum(v['any_busy_union_s'] for v in measured.values())})
-    result = {'schema': 'rv64-m7-request-gpu-seconds/v1', 'author': 'OpenAI Codex', 'scope': 'Exact per-device union of CUPTI kernels/copies clipped to complete UTC request windows; summed across devices. Profiled walls include profiler overhead and are not latency claims. Whole-request accounting, not native-only attribution.', 'cuda_graph_envelopes_in_measured_windows': 0, 'kernel_accounting_complete': True, 'assets': receipt['assets'], 'accepted_run': str(args.accepted_run), 'accepted_receipt_sha256': sha(args.accepted_run / 'receipt.json'), 'profile_receipt_sha256': sha(args.run / 'receipt.json'), 'sqlite_sha256': sha(database), 'nsys_report_sha256': sha(args.run / 'nsys/timeline.nsys-rep'), 'session_start_utc_ns': epoch, 'requests': rows}
+    result = {'schema': 'rv64-m7-request-gpu-seconds/v1', 'author': 'OpenAI Codex', 'scope': 'Exact per-device union of CUPTI kernels/copies clipped to complete UTC request windows; summed across devices. Profiled walls include profiler overhead and are not latency claims. Whole-request accounting, not native-only attribution.', 'cuda_graph_envelopes_in_measured_windows': 0, 'kernel_accounting_complete': True, 'assets': receipt['assets'], 'accepted_run': str(args.accepted_run), 'fresh_accepted_reference_blocks': sorted(fresh), 'accepted_receipt_sha256': sha(args.accepted_run / 'receipt.json'), 'profile_receipt_sha256': sha(args.run / 'receipt.json'), 'sqlite_sha256': sha(database), 'nsys_report_sha256': sha(args.run / 'nsys/timeline.nsys-rep'), 'session_start_utc_ns': epoch, 'requests': rows}
     db.close()
     (args.run / 'gpu-seconds.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps([{k: v for k, v in row.items() if k not in ('devices', 'utc_window_ns')} for row in rows], indent=1))
