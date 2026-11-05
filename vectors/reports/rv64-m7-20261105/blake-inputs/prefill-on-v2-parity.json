@@ -1,0 +1,149 @@
+{
+  "schema": "rv64-m7-byte-identity/v1",
+  "label": "M",
+  "receipt": "/workspace/m3/runs/m7-blake-inputs/daemon-26235156-24628607-r2-prefill-on-v2-auto/receipt.json",
+  "assets": {
+    "driver": "c6e871d4f6f0143669be5bb414c269311c10c718f0576325a02ff61d33b328fd",
+    "library": "148c4a1760678521d7d793a119a17b03c60ae807dd6006011429610fc50126aa",
+    "receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+    "recursive_receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d"
+  },
+  "source_commit": "e0c16b74764d08d7f45b1b00922cdefd8879b8ea+prefill-v2-uncommitted",
+  "load_avg_before": [
+    13.40673828125,
+    11.5244140625,
+    10.9814453125
+  ],
+  "load_avg_after": [
+    16.388671875,
+    12.677734375,
+    11.42578125
+  ],
+  "producer_process": {
+    "argv": [
+      "/workspace/m3/build/m7-blake-prefill/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+      "combined-serve",
+      "/workspace/m3/runs/m7-blake-inputs/daemon-26235156-24628607-r2-prefill-on-v2-auto/manifest.json",
+      "/workspace/m3/runs/m7-blake-inputs/daemon-26235156-24628607-r2-prefill-on-v2-auto/spool"
+    ],
+    "exit_code": 0,
+    "wall_ns": 101540365872,
+    "user_seconds": 366.150619,
+    "system_seconds": 153.182652,
+    "peak_rss_bytes": 25456095232,
+    "minor_faults": 44101716,
+    "major_faults": 0
+  },
+  "physical_gpu_memory": {
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+    "samples": 800,
+    "errors": [],
+    "kernel_activity": {
+      "0": {
+        "samples": 400,
+        "mean_percent": 27.7825,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 400,
+        "mean_percent": 25.28,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    },
+    "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
+    "peak_used_bytes": {
+      "0": 31505514496,
+      "1": 31505514496
+    }
+  },
+  "receivers": [],
+  "requests": [
+    {
+      "block": 26235156,
+      "trial": 0,
+      "stages": {
+        "request_wall_s": 27.564,
+        "capture_s": 1.713,
+        "setup_s": 8.875,
+        "native_prove_s": 3.751,
+        "native_verify_s": 1.336,
+        "native_total_before_report_s": 14.427,
+        "recursion_s": 13.107
+      },
+      "proof_bytes_root": 750136,
+      "reference": "/workspace/m3/src/m7-device-graphs/vectors/reports/rv64-m6-20261105/integrate/26235156-2gpu-c1-bench.json",
+      "matches": {
+        "native": true,
+        "bundle": true,
+        "recursive": true
+      },
+      "byte_identical": true
+    },
+    {
+      "block": 24628607,
+      "trial": 0,
+      "stages": {
+        "request_wall_s": 35.583,
+        "capture_s": 2.092,
+        "setup_s": 10.387,
+        "native_prove_s": 4.937,
+        "native_verify_s": 2.267,
+        "native_total_before_report_s": 17.603,
+        "recursion_s": 17.936
+      },
+      "proof_bytes_root": 708696,
+      "reference": "/workspace/m3/src/m7-device-graphs/vectors/reports/rv64-m6-20261105/integrate/24628607-2gpu-c1-bench.json",
+      "matches": {
+        "native": true,
+        "bundle": true,
+        "recursive": true
+      },
+      "byte_identical": true
+    },
+    {
+      "block": 26235156,
+      "trial": 1,
+      "stages": {
+        "request_wall_s": 13.155,
+        "capture_s": 1.793,
+        "setup_s": 0.138,
+        "native_prove_s": 3.106,
+        "native_verify_s": 1.386,
+        "native_total_before_report_s": 5.253,
+        "recursion_s": 7.869
+      },
+      "proof_bytes_root": 750136,
+      "reference": "/workspace/m3/src/m7-device-graphs/vectors/reports/rv64-m6-20261105/integrate/26235156-2gpu-c1-bench.json",
+      "matches": {
+        "native": true,
+        "bundle": true,
+        "recursive": true
+      },
+      "byte_identical": true
+    },
+    {
+      "block": 24628607,
+      "trial": 1,
+      "stages": {
+        "request_wall_s": 19.06,
+        "capture_s": 2.162,
+        "setup_s": 0.162,
+        "native_prove_s": 4.695,
+        "native_verify_s": 2.014,
+        "native_total_before_report_s": 7.25,
+        "recursion_s": 11.767
+      },
+      "proof_bytes_root": 708696,
+      "reference": "/workspace/m3/src/m7-device-graphs/vectors/reports/rv64-m6-20261105/integrate/24628607-2gpu-c1-bench.json",
+      "matches": {
+        "native": true,
+        "bundle": true,
+        "recursive": true
+      },
+      "byte_identical": true
+    }
+  ],
+  "all_byte_identical": true
+}

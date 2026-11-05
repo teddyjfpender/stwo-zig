@@ -13,6 +13,7 @@ const Span = enum { seed, levels };
 const Recorder = Events.RecorderFor(Span);
 const Pack = @import("outer_assignment_pack.zig");
 const Runs = @import("assignment_runs.zig");
+const SamplePlan = @import("blake_sample_plan.zig");
 const Dev = @import("stwo_circuit_cpu_integration").om31.device_prove;
 const CachePack = @import("stwo_circuit_cpu_integration").om31.cache_pack;
 const CacheUnpack = @import("stwo_circuit_cpu_integration").om31.cache_unpack;
@@ -106,6 +107,8 @@ pub const ClassCache = struct {
         rejected: bool = false,
         constants_stable: bool = true,
         blake_sample_span: ?Circuit.builder.context.BlakeSampleSpan = null,
+        blake_sample_outputs: ?[]u32 = null,
+        blake_sample_prefill: bool = false,
         fn taskCount(t: *const Template) usize {
             return if (t.packed_tasks) |encoded| encoded.words / 8 else t.tasks.len;
         }
@@ -152,7 +155,9 @@ pub const ClassCache = struct {
         const t = find(key) orelse return false;
         mutex.lock();
         defer mutex.unlock();
-        if (std.posix.getenv("STWO_RV64_BLAKE_SAMPLE_CHECK")) |value| if (std.mem.eql(u8, value, "1") and t.blake_sample_span == null) return false;
+        if (SamplePlan.enabled() catch return false) {
+            if (t.blake_sample_span == null or t.blake_sample_outputs == null or !t.blake_sample_prefill) return false;
+        } else if (std.posix.getenv("STWO_RV64_BLAKE_SAMPLE_CHECK")) |value| if (std.mem.eql(u8, value, "1") and t.blake_sample_span == null) return false;
         return !t.rejected and t.constants_stable and t.constants.len == t.n_constants;
     }
     /// A disk-loaded template that fails a use-time check (library capability,
@@ -181,6 +186,8 @@ pub const ClassCache = struct {
         var code: ?[32]u8 = null;
         var code_mutex: std.Thread.Mutex = .{};
         fn directory() ?[]const u8 {
+            // Numerical prefill metadata is intentionally in-process only.
+            if (SamplePlan.enabled() catch return null) return null;
             const value = std.posix.getenv("STWO_RV64_OUTER_PLAN_CLASS_STORE") orelse return null;
             return if (value.len == 0) null else value;
         }
@@ -235,6 +242,7 @@ pub const ClassCache = struct {
             return t;
         }
         fn destroy(t: *Template) void {
+            if (t.blake_sample_outputs) |outputs| gpa.free(outputs);
             gpa.free(t.seed_vars);
             gpa.free(t.constants);
             gpa.free(t.tasks);
@@ -435,7 +443,7 @@ pub const ClassCache = struct {
         errdefer gpa.free(indices);
         const level_ends = try gpa.dupe(usize, p.plan.level_ends);
         errdefer gpa.free(level_ends);
-        t.* = .{ .key = key, .n_vars = ctx.circuit.n_vars, .n_constants = n_constants, .n_origins = originCount(ctx), .seed_vars = seed_vars, .constants = constants, .tasks = tasks, .packed_tasks = encoded, .indices = indices, .level_ends = level_ends, .identity = p.identity, .bytes = bytes, .blake_sample_span = ctx.blake_sample_span };
+        t.* = .{ .key = key, .n_vars = ctx.circuit.n_vars, .n_constants = n_constants, .n_origins = originCount(ctx), .seed_vars = seed_vars, .constants = constants, .tasks = tasks, .packed_tasks = encoded, .indices = indices, .level_ends = level_ends, .identity = p.identity, .bytes = bytes, .blake_sample_span = ctx.blake_sample_span, .blake_sample_prefill = (try SamplePlan.enabled()) and Dev.class_is_leaf and ctx.blake_sample_span != null };
         try entries.append(gpa, t);
         held_bytes += bytes;
         std.debug.print("GPU_OUTER_PLAN_PACK adopt class={x} logical_task_bytes={} physical_task_bytes={} held_bytes={} classes={}\n", .{ key[0..8], p.tasks.len * @sizeOf(Task), task_bytes, held_bytes, entries.items.len });
@@ -452,6 +460,7 @@ pub const Prepared = struct {
     identity: [32]u8,
     blake_sample_span: ?Circuit.builder.context.BlakeSampleSpan = null,
     blake_sample_inputs: ?[][26]u32 = null,
+    blake_sample_outputs: ?[]u32 = null,
     check_reference: bool = false,
     seed: Launch,
     level: Launch,
@@ -471,6 +480,21 @@ pub const Prepared = struct {
         var result = try initImpl(a, ctx, library);
         errdefer result.deinit();
         result.blake_sample_span = ctx.blake_sample_span;
+        const prefill = try SamplePlan.enabled();
+        if (prefill and Dev.class_is_leaf) if (ctx.blake_sample_span) |span| {
+            if (span.gg_count == 0 or span.gg_count % 80 != 0) return error.InvalidBlakeSampleSpan;
+            const gates = ctx.circuit.blake_g_gate.items;
+            if (@as(u64, span.first_gg) + span.gg_count > gates.len) return error.InvalidBlakeSampleSpan;
+            const outputs = try a.alloc(u32, span.gg_count / 80);
+            result.blake_sample_outputs = outputs;
+            for (outputs, 0..) |*out, i| {
+                const first = @as(usize, span.first_gg) + i * 80;
+                out.* = gates[first].out_base;
+                if (@as(u64, out.*) + 320 > ctx.circuit.n_vars) return error.InvalidBlakeSampleOutputMap;
+                for (gates[first..][0..80], 0..) |gate, j| if (gate.out_base != out.* + j * 4) return error.InvalidBlakeSampleOutputMap;
+                if (i > 0 and outputs[i - 1] + 320 > out.*) return error.InvalidBlakeSampleOutputMap;
+            }
+        };
         if (ClassCache.mode() != .off) if (Dev.class_hint) |class_key| if (ClassCache.find(class_key)) |t| {
             ClassCache.mutex.lock();
             defer ClassCache.mutex.unlock();
@@ -479,11 +503,26 @@ pub const Prepared = struct {
                 t.blake_sample_span = span;
             }
             result.blake_sample_span = t.blake_sample_span;
+            if (prefill and Dev.class_is_leaf and result.blake_sample_span != null) {
+                if (!t.blake_sample_prefill) return error.BlakeSamplePlanModeMismatch;
+                if (result.blake_sample_outputs) |outputs| {
+                    if (t.blake_sample_outputs) |old| {
+                        if (!std.mem.eql(u32, old, outputs)) return error.BlakeSampleOutputClassMismatch;
+                    } else if (ClassCache.held_bytes + outputs.len * 4 <= ClassCache.limit()) {
+                        t.blake_sample_outputs = try ClassCache.gpa.dupe(u32, outputs);
+                        t.bytes += outputs.len * 4;
+                        ClassCache.held_bytes += outputs.len * 4;
+                    }
+                } else if (t.blake_sample_outputs) |outputs| {
+                    result.blake_sample_outputs = try a.dupe(u32, outputs);
+                } else return error.MissingBlakeSampleOutputMap;
+            }
         };
         if (Dev.blake_sample_inputs) |inputs| {
             const span = result.blake_sample_span orelse return error.MissingBlakeSampleClassSpan;
             if (inputs.len == 0 or span.gg_count % 80 != 0 or inputs.len != span.gg_count / 80) return error.BlakeSampleInputCountMismatch;
             result.blake_sample_inputs = try a.dupe([26]u32, inputs);
+            if (prefill and (result.blake_sample_outputs orelse return error.MissingBlakeSampleOutputMap).len != inputs.len) return error.BlakeSampleInputCountMismatch;
         }
         return result;
     }
@@ -632,6 +671,12 @@ pub const Prepared = struct {
         var metrics: Schedule.BuildMetrics = .{};
         var plan = try Schedule.buildProfiled(a, ctx, &metrics);
         errdefer plan.deinit();
+        if ((try SamplePlan.enabled()) and Dev.class_is_leaf) if (ctx.blake_sample_span) |span| {
+            const before_tasks = plan.tasks.len;
+            const before_levels = plan.level_ends.len;
+            try SamplePlan.filter(Schedule.Task, a, &plan.tasks, &plan.level_ends, span.first_gg, span.gg_count);
+            std.debug.print("BLAKE_SAMPLE_PLAN removed_tasks={} old_levels={} new_levels={} original_air=true\n", .{ before_tasks - plan.tasks.len, before_levels, plan.level_ends.len });
+        };
         const plan_ns = timer.lap();
         var grouping = try Grouping.init(a, library, plan.level_ends, plan.tasks.len);
         errdefer if (grouping.plan) |*value| value.deinit();
@@ -770,6 +815,7 @@ pub const Prepared = struct {
         if (self.wide_level != null) self.wide_level = library.lookup(Launch, "stwo_circuit_assignment_wide_level_on") orelse return error.MissingCircuitAssignmentChainKernel;
     }
     pub fn deinit(self: *Prepared) void {
+        if (self.blake_sample_outputs) |outputs| self.allocator.free(outputs);
         if (self.blake_sample_inputs) |inputs| self.allocator.free(inputs);
         if (self.narrow_plan) |*value| value.deinit();
         if (self.borrowed) {
@@ -796,6 +842,25 @@ pub const Prepared = struct {
         for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, digest[4 * i ..][0..4], .little);
         return words;
     }
+    fn prefillSample(self: *const Prepared, owner: anytype, ctx: *SC.Context, values: N.Lease, status: N.Lease) !void {
+        const outputs = self.blake_sample_outputs orelse return;
+        const inputs = self.blake_sample_inputs orelse return error.MissingBlakeSampleInputs;
+        if (outputs.len != inputs.len or outputs.len == 0) return error.BlakeSampleInputCountMismatch;
+        const Fn = *const fn (*anyopaque, u32, [*]u32, u32, [*]const u32, [*]const u32, u32, [*]u32) callconv(.c) c_int;
+        const kernel = owner.backend.service.library.lookup(Fn, "stwo_circuit_blake_sample_prefill_on") orelse return error.MissingBlakeSamplePrefillKernel;
+        var tape = try ctx.allocate(inputs.len * 26, 0);
+        defer ctx.release(&tape) catch {};
+        var map = try ctx.allocate(outputs.len, 0);
+        defer ctx.release(&map) catch {};
+        try ctx.upload(try ctx.borrow(tape), @as([*]const u32, @ptrCast(inputs.ptr))[0 .. inputs.len * 26]);
+        try ctx.upload(try ctx.borrow(map), outputs);
+        // Seed kernel is lane1; uploads are lane0. Join before cross-lane use.
+        try ctx.join();
+        if (kernel(ctx.native_context, 1, values.words.?, @intCast(self.count), tape.words.?, map.words.?, @intCast(inputs.len), status.words.?) != 0) return error.CudaBlakeSamplePrefillFailed;
+        // Keep both request leases live until this numerical kernel completes.
+        try ctx.join();
+        std.debug.print("BLAKE_SAMPLE_PREFILL records={} gg_rows={} original_air=true\n", .{ inputs.len, inputs.len * 80 });
+    }
     pub fn generate(self: *const Prepared, owner: anytype, ctx: *SC.Context) !N.Lease {
         const service = owner.backend.service;
         var total_timer = try std.time.Timer.start();
@@ -821,6 +886,7 @@ pub const Prepared = struct {
         if (self.seed(ctx.native_context, 1, &job) != 0) return error.CudaCircuitAssignmentFailed;
         try recorder.mark(.seed, true, lane);
         const seed_enqueue_ns = timer.lap();
+        try self.prefillSample(owner, ctx, values, status);
         const task_words = @as([*]const u32, @ptrCast(self.tasks.ptr))[0 .. self.tasks.len * 8];
         var one_shot: [3]?N.Lease = .{ null, null, null };
         defer for (&one_shot) |*lease| if (lease.*) |*l| ctx.release(l) catch {};

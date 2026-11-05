@@ -2,7 +2,14 @@
 const std = @import("std");
 const Observer = @import("stwo_core").crypto.blake2s_observer;
 pub const Record = [26]u32;
+pub fn prefillEnabled() !bool {
+    const value = std.posix.getenv("STWO_RV64_BLAKE_SAMPLE_PREFILL") orelse return false;
+    if (std.mem.eql(u8, value, "0")) return false;
+    if (std.mem.eql(u8, value, "1")) return true;
+    return error.InvalidBlakeSamplePrefillOption;
+}
 pub fn enabled() !bool {
+    if (try prefillEnabled()) return true;
     const value = std.posix.getenv("STWO_RV64_BLAKE_SAMPLE_CHECK") orelse return false;
     if (std.mem.eql(u8, value, "0")) return false;
     if (std.mem.eql(u8, value, "1")) return true;
