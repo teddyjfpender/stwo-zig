@@ -646,6 +646,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
             .pcs = pcs,
             .layout = cpu_layout,
             .strict_roster = (try @import("../../word16_execution/native_policy.zig").current()).strictRoster(),
+            .canonical_rungs = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false,
             .caches = caches,
             .setup_cache = &shared.setup.?,
             .fixed_cache = &shared.setup.?.fixed,

@@ -51,6 +51,7 @@ pub const Options = struct {
     pcs: W.PcsConfig,
     layout: Plan.CpuLayout,
     strict_roster: bool,
+    canonical_rungs: bool,
     caches: @import("../../word16_execution/setup.zig").ImmutableCaches,
     setup_cache: *SetupCache.Cache,
     fixed_cache: *const Fixed.Fixed.Cache,
@@ -156,7 +157,7 @@ pub const Owner = struct {
         self.view = Collector.OneShardView.init(self.shard.?);
         self.advice = self.view.advice(a, @constCast(cells), &.{});
         var declaration = try Plan.cpuForSegment(&local_native, &self.advice, 0, @intCast(segments), cells.len, o.layout);
-        _ = try Plan.canonicalCpuForSegment(&local_native, self.advice.events[0], o.layout, &declaration, 0, @intCast(segments), @import("canon_native_rungs.zig"), o.strict_roster);
+        if (o.strict_roster or o.canonical_rungs) _ = try Plan.canonicalCpuForSegment(&local_native, self.advice.events[0], o.layout, &declaration, 0, @intCast(segments), @import("canon_native_rungs.zig"), o.strict_roster);
         self.declaration = declaration;
         self.keys = try Keys.initResident(a, o.image, &.{declaration}, &.{}, true, @import("../../word16_execution/pcs_suite.zig").Suite.experimentalFold4(), o.caches, o.setup_cache);
         const setup = self.keys.?.cpus[0];
