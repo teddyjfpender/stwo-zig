@@ -15,6 +15,7 @@ pub const Kind = enum { coefficient_copy, arena, source_twiddles, trace_roots, m
 pub const Allocation = struct { kind: Kind, words: u64, bytes: u64, rounded: Admission.Footprint };
 pub const Options = struct {
     format: Format = .m31_blake32,
+    rolling_beta2: bool = false,
     /// Freeze this from the host environment before requesting a permit.
     /// Zero means the unstreamed late trace rebuild, matching pcsStreamBudget.
     stream_chunk_words: usize = Stream.default_chunk_words,
@@ -75,13 +76,22 @@ fn treeWords(log: u32) !u64 {
 }
 
 pub fn init(a: std.mem.Allocator, request: *const Abi.Request, options: Options) !Plan {
+    return initMode(a,request,options,false);
+}
+/// Geometry-only descriptors deliberately contain no coefficient or FFT data
+/// pointers and cannot be submitted to the native prover. Scalar source framing
+/// and every allocation count are validated identically.
+pub fn initGeometry(a: std.mem.Allocator, request: *const Abi.Request, options: Options) !Plan {
+    return initMode(a,request,options,true);
+}
+fn initMode(a: std.mem.Allocator, request: *const Abi.Request, options: Options, geometry_only: bool) !Plan {
     _ = options.format; // The only accepted enum value is explicitly Blake32.
     if (request.version != 1 or request.section_count != 17) return error.UnsupportedPcsCostFormat;
     const h = try span(request, 0, request.sections[0].count);
     if ((h.len != 24 and h.len != 28) or h[0] != 0x52564d53 or h[2] != 0 or
         !((h[1] == 2 and h.len == 24) or (h[1] == 3 and h.len == 28)) or
         h[21] > 1 or h[22] > 32 or h[23] != 0) return error.UnsupportedPcsCostFormat;
-    if (h[3] != 8 or h[4] > 28 or h[5] > 28 or h[6] == 0 or h[6] > 1024 or
+    if (h[3] > 28 or h[4] > 28 or h[5] == 0 or h[5] > 4 or h[3]+h[5] != h[4] or h[6] == 0 or h[6] > 1024 or
         h[8] == 0 or h[8] > 65536 or h[9] == 0 or h[9] > 65536 or
         h[10] == 0 or h[10] > 1024 or h[11] == 0 or h[11] > 96 or
         h[12] == 0 or h[12] > 4 or h[13] == 0 or h[13] > 65536 or h[14] > 28 or
@@ -99,20 +109,25 @@ pub fn init(a: std.mem.Allocator, request: *const Abi.Request, options: Options)
     const queries: u64 = h[6];
     const sizes = [_]u64{ h.len, 9, if (h[21] != 0) 16 else 0, sc * 4, tc * 4, gc * 8, sgc * 8, nt * 6, gc * 4, gc * 2, h[13], sc, h[19], @as(u64, h[14]) * 8, h[20], nt * 8, 4 };
     var sections: [17][]const u32 = undefined;
-    for (&sections, sizes, 0..) |*s, n, i| s.* = try span(request, i, n);
+    for (&sections, sizes, 0..) |*s, n, i| {
+        if (geometry_only and (i==12 or i==14) and request.sections[i].words==null) {
+            if(request.sections[i].count!=n)return error.InvalidPcsCostSpan;
+            s.*=&.{};
+        } else s.* = try span(request,i,n);
+    }
     const sources = sections[3];
     const groups = sections[5];
     const source_groups = sections[6];
     const trees = sections[7];
     const fri = sections[13];
-    const rolling = h[21] != 0 and h[5] == 1;
+    const rolling = h[21] != 0 and (h[5] == 1 or (h[5] == 2 and options.rolling_beta2));
     var out: Plan = .{ .rolling_sources = rolling, .selected_stream_budget = if (rolling) options.stream_chunk_words else 0 };
     errdefer out.deinit(a);
     const coefficients = request.coefficients[0..@intCast(sc)];
     for (coefficients, 0..) |c, i| {
         const n = try pow(sources[4 * i + 3]);
         const offset = pair(sources[4 * i], sources[4 * i + 1]);
-        if (c.kind > 1 or c.words == null or c.count != n or c.coefficient_log != sources[4 * i + 3] or
+        if (c.kind > 1 or (!geometry_only and c.words == null) or c.count != n or c.coefficient_log != sources[4 * i + 3] or
             offset > aggregate[0] or n > aggregate[0] - offset) return error.InvalidPcsCostGeometry;
     }
     // C++ constructs coefficient_logs by concatenating source-group widths.
@@ -185,7 +200,7 @@ pub fn init(a: std.mem.Allocator, request: *const Abi.Request, options: Options)
         const g = groups[i * 8 ..][0..8];
         const n = try pow(g[2]);
         const m = try pow(g[3]);
-        if (g[0] >= g[1] or g[1] > tc or (rolling and g[3] != g[2] + 1)) return error.InvalidPcsCostGeometry;
+        if (g[0] >= g[1] or g[1] > tc or (rolling and g[3] != g[2] + h[5])) return error.InvalidPcsCostGeometry;
         if (rolling) {
             const co = pair(g[4], g[5]);
             const ev = pair(g[6], g[7]);
@@ -248,7 +263,7 @@ const Fixture = struct {
     fri: [8]u32 = .{ 32, 1, 1, 0, 0, 0, 0, 0 },
     columns: [1]Abi.Column = undefined,
     fn request(self: *Fixture, beta: u32, imported: bool, wide: bool) Abi.Request {
-        self.header = .{ 0x52564d53, if (wide) 3 else 2, 0, 8, 4 + beta, beta, 2, 0, 1, 1, 1, 1, 1, 1, 1, 16, (@as(u32, 16) << @intCast(beta)), 128, (@as(u32, 128) << @intCast(beta)), 0, 0, @intFromBool(imported), 0, 0, 0, 0, 0, 0 };
+        self.header = .{ 0x52564d53, if (wide) 3 else 2, 0, 4, 4 + beta, beta, 2, 0, 1, 1, 1, 1, 1, 1, 1, 16, (@as(u32, 16) << @intCast(beta)), 128, (@as(u32, 128) << @intCast(beta)), 0, 0, @intFromBool(imported), 0, 0, 0, 0, 0, 0 };
         self.groups[3] = 4 + beta;
         self.source_groups[3] = 4 + beta;
         self.tree[4] = 4 + beta;

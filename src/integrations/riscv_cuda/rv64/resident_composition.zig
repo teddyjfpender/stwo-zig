@@ -23,6 +23,8 @@ const O = D.O;
 const M = D.M;
 const Items = CPU.rv64_gkr_cpu_components;
 const Sparse = @import("composition_sparse_runtime.zig");
+const AdmissionRuntime = @import("admission_runtime.zig");
+const Admission = @import("global_admission.zig");
 const WorkspaceCost = @import("composition_cost.zig");
 const Trace = engine.air.component_prover.ForField(O).Trace;
 const Twiddle = engine.poly.twiddles.TwiddleTree([]M);
@@ -183,7 +185,7 @@ pub const Context = struct {
     log_blowup: u32 = 1,
     result_columns: std.ArrayList([]D.Column) = .empty,
     pub fn initNumerical(a: std.mem.Allocator, service: *Service.Context) !Context {
-        return Context{ .pool_trim = try PhasePoolTrim.Policy.init(try PhasePoolTrim.fromEnv(a), service.library.lookup(PhasePoolTrim.Trim, "stwo_exec_context_pool_trim")), .allocator = a, .service = service, .timing = try Events.Api.load(&service.library), .session_api = .{
+        const result = Context{ .pool_trim = try PhasePoolTrim.Policy.init(try PhasePoolTrim.fromEnv(a), service.library.lookup(PhasePoolTrim.Trim, "stwo_exec_context_pool_trim")), .allocator = a, .service = service, .timing = try Events.Api.load(&service.library), .session_api = .{
             .allocate = service.lease_allocate,
             .release = service.lease_release,
             .validate_range = service.lease_validate_range,
@@ -191,7 +193,9 @@ pub const Context = struct {
             .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"),
             .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream"),
-        }, .role = service.library.lookup(*const @TypeOf(Abi.stwo_rv64_composition_role_on), "stwo_rv64_composition_role_on"), .finish = try sym(*const @TypeOf(Abi.stwo_rv64_composition_finish_on), &service.library, "stwo_rv64_composition_finish_on"), .auxiliary = try sym(*const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on), &service.library, "stwo_rv64_composition_auxiliary_on"), .tree = try sym(*const @TypeOf(Abi.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(*const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on), "stwo_lde_n2b_columns_on"), .n2b_columns_compact = service.library.lookup(N2bColumnsCompact, "stwo_lde_n2b_columns_compact_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Copy, &service.library, "stwo_exec_context_memcpy_d2d_async"), .clear = try sym(Clear, &service.library, "stwo_exec_context_memset_async"), .artifacts = undefined };
+        }, .role = service.library.lookup(*const @TypeOf(Abi.stwo_rv64_composition_role_on), "stwo_rv64_composition_role_on"), .finish = try sym(*const @TypeOf(Abi.stwo_rv64_composition_finish_on), &service.library, "stwo_rv64_composition_finish_on"), .auxiliary = try sym(*const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on), &service.library, "stwo_rv64_composition_auxiliary_on"), .tree = try sym(*const @TypeOf(Abi.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(*const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on), "stwo_lde_n2b_columns_on"), .n2b_columns_compact = service.library.lookup(N2bColumnsCompact, "stwo_lde_n2b_columns_compact_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Copy, &service.library, "stwo_exec_context_memcpy_d2d_async"), .clear = try sym(Clear, &service.library, "stwo_exec_context_memset_async"),  .artifacts = undefined };
+        if(service.admission) |endpoint| try endpoint.planner.registerCoverage(endpoint.physical,.recursion_composition);
+        return result;
     }
     pub fn init(a: std.mem.Allocator, service: *Service.Context) !Context {
         var result = try initNumerical(a, service);
@@ -207,6 +211,7 @@ pub const Context = struct {
             result.artifact_count = made;
         }
         if (result.artifact_bytes > result.cache_limit_bytes) return error.CompositionMetadataCacheCapExceeded;
+        if(service.admission) |endpoint| try endpoint.planner.registerCoverage(endpoint.physical,.native_composition);
         return result;
     }
     pub fn deinit(self: *Context) void {
@@ -219,6 +224,28 @@ pub const Context = struct {
         for (self.result_columns.items) |columns| self.allocator.free(columns);
         self.result_columns.deinit(self.allocator);
         self.* = undefined;
+    }
+    fn executeJob(self: *Context, a: std.mem.Allocator, job: *Job) !D.Tree {
+        var permit: ?AdmissionRuntime.Permit=null;
+        if(self.service.admission) |*endpoint| {
+            var plan=try job.preflightPlan(a);
+            defer plan.deinit(a);
+            const successor=try self.service.admissionSuccessor(job.scope,.composition);
+            permit=try endpoint.reserve(.{.owner=.{.request=std.mem.readInt(u64,job.scope.statement[0..8],.little),.domain=if(job.outer_workspace).recursion_node else .native_packet,.ordinal=job.scope.ordinal},.stage=.composition,.temporary=plan.additional_peak,.successor=successor,.known=true,.host_known=false});
+            job.permit=&permit.?;
+        }
+        errdefer if(permit) |*claim| {
+            if(!claim.closed) claim.finish(.{}) catch {claim.endpoint.planner.poisonPhysical(claim.endpoint.physical);};
+        };
+        // Every blocking reservation precedes this context lock and all owner
+        // or immutable-cache locks reached by the callback.
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if(self.service.submit(self.service.session,Job.callback,job)!=0)return job.failure orelse error.CudaResidentCompositionFailed;
+        const result=job.result orelse return error.CudaResidentCompositionFailed;
+        if(permit) |*claim| try self.service.completeAdmission(claim,job.scope,try self.service.admissionSuccessor(job.scope,.composition));
+        self.result_columns.append(self.allocator,@constCast(result.columns)) catch |err| {self.allocator.free(@constCast(result.columns));return err;};
+        return result;
     }
     /// Pure source-class geometry; no device pointers, locks or allocations on
     /// a GPU. All producer trees are promised compact resident coefficients.
@@ -364,8 +391,6 @@ pub const Context = struct {
     fn evaluateTruthAtBlowup(raw: *anyopaque, a: std.mem.Allocator, bound: CPU.rv64_gkr_truth_device_composition.Roles, alpha: O, log: u32, split: u32, total: usize, trace: *const anyopaque, scope: D.Scope, beta: u32) !D.Tree {
         if (beta < 1 or beta > 4) return error.UnsupportedResidentCompositionBlowup;
         const self: *Context = @ptrCast(@alignCast(raw));
-        self.mutex.lock();
-        defer self.mutex.unlock();
         const count: usize = switch (bound) {
             .classic => |v| v.len,
             .delegated => 1,
@@ -400,9 +425,7 @@ pub const Context = struct {
         }
         var timer = try std.time.Timer.start();
         var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = @ptrCast(@alignCast(trace)), .scope = scope, .log_blowup = beta };
-        if (self.service.submit(self.service.session, Job.callback, &job) != 0) return job.failure orelse error.CudaResidentCompositionFailed;
-        const result = job.result orelse return error.CudaResidentCompositionFailed;
-        try self.result_columns.append(self.allocator, @constCast(result.columns));
+        const result = try self.executeJob(a, &job);
         std.debug.print("GPU_TRUTH_COMPOSITION_RESIDENT ordinal={} roles={} total_ns={} quotient_d2h_bytes=0 coefficient_d2h_bytes=0 root_d2h_bytes=32\n", .{ scope.ordinal, count, timer.read() });
         return result;
     }
@@ -451,12 +474,8 @@ pub const Context = struct {
             }
         }
         if (constraints != total) return error.WrongResidentConstraintCount;
-        self.mutex.lock();
-        defer self.mutex.unlock();
         var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = trace, .scope = scope, .log_blowup = log_blowup, .outer_workspace = outer_workspace, .device_powers = device_powers };
-        if (self.service.submit(self.service.session, Job.callback, &job) != 0) return job.failure orelse error.CudaResidentCompositionFailed;
-        const result = job.result orelse return error.CudaResidentCompositionFailed;
-        try self.result_columns.append(self.allocator, @constCast(result.columns));
+        const result = try self.executeJob(a, &job);
         return result;
     }
     pub fn stage(self: *Context) CPU.rv64_gkr_cpu_worker.ResidentCompositionStage {
@@ -470,8 +489,6 @@ pub const Context = struct {
         if (beta < 1 or beta > 4) return error.UnsupportedResidentCompositionBlowup;
         const self: *Context = @ptrCast(@alignCast(raw));
         if (self.artifact_count != Oracle.count) return error.CpuCompositionNotInitialized;
-        self.mutex.lock();
-        defer self.mutex.unlock();
         var timer = try std.time.Timer.start();
         const roles = try a.alloc(RuntimeRole, items.len);
         defer a.free(roles);
@@ -501,9 +518,7 @@ pub const Context = struct {
             },
         };
         var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = @ptrCast(@alignCast(trace_raw)), .scope = scope, .log_blowup = beta };
-        if (self.service.submit(self.service.session, Job.callback, &job) != 0) return job.failure orelse error.CudaResidentCompositionFailed;
-        const result = job.result orelse return error.CudaResidentCompositionFailed;
-        try self.result_columns.append(self.allocator, @constCast(result.columns));
+        const result = try self.executeJob(a, &job);
         std.debug.print("GPU_COMPOSITION_RESIDENT roles={} total_ns={} quotient_d2h_bytes=0 coefficient_d2h_bytes=0 root_d2h_bytes=32\n", .{ items.len, timer.read() });
         return result;
     }
@@ -524,6 +539,7 @@ pub const RuntimeRole = struct {
     auxiliary: union(enum) { none, hc: [2 * 27 * 8]u32, last } = .none,
 };
 const Job = struct {
+    permit: ?*AdmissionRuntime.Permit = null,
     device_powers: ?Native.Lease = null,
     outer_workspace: bool = false,
     backend: *Context,
@@ -547,16 +563,37 @@ const Job = struct {
             return error.CudaResidentCompositionFailed;
         }
     }
-    fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
-        const self: *Job = @ptrCast(@alignCast(data.?));
-        self.native_context = raw;
-        defer self.native_context = null;
-        self.run(raw, token) catch |err| {
-            self.failure = err;
-            return 1;
-        };
-        return 0;
+    fn callback(raw: *anyopaque, token: u64, user: ?*anyopaque) callconv(.c) c_int {
+        const self: *Job=@ptrCast(@alignCast(user orelse return 1));
+        if(self.permit) |claim| claim.enterOwner(raw) catch |err| {self.failure=err;return 1;};
+        self.run(raw,token) catch |err| {if(self.failure==null)self.failure=err;};
+        if(self.permit) |claim| claim.leaveOwner(raw) catch |err| {if(self.failure==null)self.failure=err;};
+        return @intFromBool(self.failure!=null);
     }
+    fn cleanupFailure(self: *Job, err: anyerror) void {
+        if(self.failure==null)self.failure=err;
+        if(self.permit) |claim| claim.endpoint.planner.poisonPhysical(claim.endpoint.physical);
+    }
+    fn preflightPlan(self: *const Job, a: std.mem.Allocator) !WorkspaceCost.Plan {
+        if(self.trace.polys.items.len!=3)return error.InvalidResidentCompositionRoles;
+        var logs: [3][]u32=undefined;
+        var made:usize=0;
+        defer for(logs[0..made]) |value| a.free(value);
+        var cold_fixed: u64=0;
+        var host_fixed=false;
+        for(0..3) |tree| {
+            logs[tree]=try a.alloc(u32,self.trace.polys.items[tree].len);made+=1;
+            for(self.trace.polys.items[tree],logs[tree]) |poly,*log| {
+                const column=try sourceColumn(poly);log.*=column.log_size;
+                if(tree==0){cold_fixed=try std.math.add(u64,cold_fixed,@as(u64,1)<<@intCast(column.log_size));host_fixed=host_fixed or column.device==null;}
+            }
+        }
+        const classes=try a.alloc(ClassRole,self.roles.len);defer a.free(classes);
+        for(self.roles,classes) |role,*out| out.*=.{.namespace=if(role.evaluate==self.backend.truth_role).truth else if(self.outer_workspace).outer else .cpu,.id=role.id,.artifact=role.artifact,.trace_log=role.trace_log,.eval_log=role.eval_log,.widths=role.widths,.offsets=role.offsets,.fixed_indices=role.fixed_indices,.auxiliary=switch(role.auxiliary){.none=>.none,.last=>.last,.hc=>.hc}};
+        const shared=self.outer_workspace and if(std.posix.getenv("STWO_RV64_RC_ROLE_WORKSPACE")) |value| std.mem.eql(u8,value,"1") else false;
+        return self.backend.classAllocationPlan(a,classes,.{logs[0],logs[1],logs[2]},self.log,self.split,self.total,self.log_blowup orelse self.backend.log_blowup,if(host_fixed)cold_fixed else 0,shared);
+    }
+
     fn copyRun(self: *Job, raw: *anyopaque, context: *SC.Context, arena: [*]u32, segment: CopyRun) !void {
         const b = self.backend;
         // Check the WHOLE merged range in this proof's namespace. Adjacency
@@ -638,6 +675,13 @@ const Job = struct {
         // Explicit device FIXED setup already owns scoped coefficients through
         // PCS. Do not clone its forest into a second immutable allocation.
         const all_fixed_device = @import("fixed_forest_policy.zig").isDeviceOnly(fixed_columns);
+        if(self.permit!=null) {
+            for(1..3) |tree| for(self.trace.polys.items[tree],0..) |poly,index| {
+                const original=try sourceColumn(poly);
+                const device=original.device orelse b.service.retainedColumn(context.scope,@intCast(tree),index,original) orelse return error.AdmissionRequiresResidentSource;
+                try self.checked("admitted_source_validate",context.api.validate_range(context.session,device.words,device.count,device.context_token,device.generation,&context.scope));
+            };
+        }
         const immutable_fixed = if (all_fixed_device) fixed_columns else try b.service.immutableFixed(raw, self.scope, fixed_columns);
         var host_cells: u64 = 0;
         var device_cells: u64 = 0;
@@ -645,8 +689,8 @@ const Job = struct {
         var domain_cells: u64 = 0;
         var leases: std.ArrayList(Native.Lease) = .empty;
         defer {
-            context.join() catch {};
-            for (leases.items) |*lease| context.release(lease) catch {};
+            context.join() catch |err| { self.cleanupFailure(err); };
+            for (leases.items) |*lease| context.release(lease) catch |err| { self.cleanupFailure(err); };
             leases.deinit(a);
         }
         if (self.device_powers) |all| {
