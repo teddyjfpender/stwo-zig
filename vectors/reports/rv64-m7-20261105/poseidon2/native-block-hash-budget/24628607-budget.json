@@ -1,0 +1,3588 @@
+{
+  "status": "D exact source-height operation counts; E uncalibrated mixed-bank timing scenario",
+  "source_census_sha256": "4e5cfcde2070def1208a6e2802524411cea1ce645742e9a8936fb7290818e521",
+  "benchmark_sha256": "e982c00fdc79b6aa2ce8a39f6167b995c9307e48905dfa90df38c468760b3eb0",
+  "log_blowup": 1,
+  "proof_count": 17,
+  "cold_all_trees": {
+    "own_lde_cells": 10908640768,
+    "lde_cell_log_work_index": 221802230784,
+    "lifted_cells": 330175645184,
+    "p2_prefix_permutations": 1668692472,
+    "blake_prefix_compressions": 1094146492,
+    "p2_flat_permutations": 28204770168,
+    "blake_flat_compressions": 20975205820,
+    "p2_prefix_gpu_s_scenario_low": 0.9975967247271638,
+    "p2_prefix_gpu_s_scenario_high": 2.6996819246923613,
+    "blake_prefix_gpu_s_scenario_low": 0.04594022180727761,
+    "blake_prefix_gpu_s_scenario_high": 0.13990729673776503
+  },
+  "warm_omit_FIXED_commits": {
+    "own_lde_cells": 10390717632,
+    "lde_cell_log_work_index": 211063380608,
+    "lifted_cells": 319328980480,
+    "p2_prefix_permutations": 1430743834,
+    "blake_prefix_compressions": 942812557,
+    "p2_flat_permutations": 27130876314,
+    "blake_flat_compressions": 20207546829,
+    "p2_prefix_gpu_s_scenario_low": 0.8553435619034692,
+    "p2_prefix_gpu_s_scenario_high": 2.314718459109132,
+    "blake_prefix_gpu_s_scenario_low": 0.039586123346330264,
+    "blake_prefix_gpu_s_scenario_high": 0.1205563945456492
+  },
+  "proofs": [
+    {
+      "kind": "cpu",
+      "ordinal": 0,
+      "trees": [
+        {
+          "columns": 203,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 66866688,
+          "lde_cell_log_work_index": 1382205952,
+          "lifted_cells": 1702887424,
+          "p2_prefix_permutations": 27761918,
+          "blake_prefix_compressions": 18715839,
+          "p2_flat_permutations": 159383550,
+          "blake_flat_compressions": 117440511,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 48,
+              "cumulative_columns": 48,
+              "p2_absorb_permutations": 256,
+              "blake_absorb_compressions": 192
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 9,
+              "cumulative_columns": 57,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 10,
+              "columns": 8,
+              "cumulative_columns": 65,
+              "p2_absorb_permutations": 1024,
+              "blake_absorb_compressions": 1024
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 8,
+              "cumulative_columns": 73,
+              "p2_absorb_permutations": 2048,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 11,
+              "cumulative_columns": 84,
+              "p2_absorb_permutations": 4096,
+              "blake_absorb_compressions": 4096
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 9,
+              "cumulative_columns": 93,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 10,
+              "cumulative_columns": 103,
+              "p2_absorb_permutations": 32768,
+              "blake_absorb_compressions": 32768
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 9,
+              "cumulative_columns": 112,
+              "p2_absorb_permutations": 65536,
+              "blake_absorb_compressions": 65536
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 38,
+              "cumulative_columns": 150,
+              "p2_absorb_permutations": 393216,
+              "blake_absorb_compressions": 262144
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 44,
+              "cumulative_columns": 194,
+              "p2_absorb_permutations": 2097152,
+              "blake_absorb_compressions": 1572864
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 6,
+              "cumulative_columns": 200,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 3,
+              "cumulative_columns": 203,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 3606,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 675334720,
+          "lde_cell_log_work_index": 13939393408,
+          "lifted_cells": 30249320448,
+          "p2_prefix_permutations": 80124926,
+          "blake_prefix_compressions": 57754879,
+          "p2_flat_permutations": 2541748222,
+          "blake_flat_compressions": 1904214015,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 193,
+              "cumulative_columns": 193,
+              "p2_absorb_permutations": 1024,
+              "blake_absorb_compressions": 768
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 121,
+              "cumulative_columns": 314,
+              "p2_absorb_permutations": 5120,
+              "blake_absorb_compressions": 3584
+            },
+            {
+              "log_lde_rows": 10,
+              "columns": 134,
+              "cumulative_columns": 448,
+              "p2_absorb_permutations": 11264,
+              "blake_absorb_compressions": 9216
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 134,
+              "cumulative_columns": 582,
+              "p2_absorb_permutations": 22528,
+              "blake_absorb_compressions": 16384
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 212,
+              "cumulative_columns": 794,
+              "p2_absorb_permutations": 73728,
+              "blake_absorb_compressions": 53248
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 1029,
+              "cumulative_columns": 1823,
+              "p2_absorb_permutations": 696320,
+              "blake_absorb_compressions": 524288
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 52,
+              "cumulative_columns": 1875,
+              "p2_absorb_permutations": 81920,
+              "blake_absorb_compressions": 65536
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 71,
+              "cumulative_columns": 1946,
+              "p2_absorb_permutations": 196608,
+              "blake_absorb_compressions": 131072
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 1039,
+              "cumulative_columns": 2985,
+              "p2_absorb_permutations": 5636096,
+              "blake_absorb_compressions": 4259840
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 218,
+              "cumulative_columns": 3203,
+              "p2_absorb_permutations": 2359296,
+              "blake_absorb_compressions": 1835008
+            },
+            {
+              "log_lde_rows": 18,
+              "columns": 76,
+              "cumulative_columns": 3279,
+              "p2_absorb_permutations": 1835008,
+              "blake_absorb_compressions": 1048576
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 237,
+              "cumulative_columns": 3516,
+              "p2_absorb_permutations": 10485760,
+              "blake_absorb_compressions": 7864320
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 53,
+              "cumulative_columns": 3569,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 8388608
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 37,
+              "cumulative_columns": 3606,
+              "p2_absorb_permutations": 25165824,
+              "blake_absorb_compressions": 16777216
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 2008,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 386524672,
+          "lde_cell_log_work_index": 7908017152,
+          "lifted_cells": 16844324864,
+          "p2_prefix_permutations": 54685438,
+          "blake_prefix_compressions": 40707135,
+          "p2_flat_permutations": 1426063358,
+          "blake_flat_compressions": 1065353215,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 152,
+              "cumulative_columns": 152,
+              "p2_absorb_permutations": 768,
+              "blake_absorb_compressions": 576
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 112,
+              "cumulative_columns": 264,
+              "p2_absorb_permutations": 5120,
+              "blake_absorb_compressions": 3584
+            },
+            {
+              "log_lde_rows": 10,
+              "columns": 72,
+              "cumulative_columns": 336,
+              "p2_absorb_permutations": 6144,
+              "blake_absorb_compressions": 5120
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 72,
+              "cumulative_columns": 408,
+              "p2_absorb_permutations": 12288,
+              "blake_absorb_compressions": 8192
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 88,
+              "cumulative_columns": 496,
+              "p2_absorb_permutations": 28672,
+              "blake_absorb_compressions": 24576
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 608,
+              "cumulative_columns": 1104,
+              "p2_absorb_permutations": 417792,
+              "blake_absorb_compressions": 311296
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 16,
+              "cumulative_columns": 1120,
+              "p2_absorb_permutations": 16384,
+              "blake_absorb_compressions": 16384
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 48,
+              "cumulative_columns": 1168,
+              "p2_absorb_permutations": 131072,
+              "blake_absorb_compressions": 98304
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 424,
+              "cumulative_columns": 1592,
+              "p2_absorb_permutations": 2293760,
+              "blake_absorb_compressions": 1703936
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 152,
+              "cumulative_columns": 1744,
+              "p2_absorb_permutations": 1703936,
+              "blake_absorb_compressions": 1310720
+            },
+            {
+              "log_lde_rows": 18,
+              "columns": 32,
+              "cumulative_columns": 1776,
+              "p2_absorb_permutations": 786432,
+              "blake_absorb_compressions": 524288
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 168,
+              "cumulative_columns": 1944,
+              "p2_absorb_permutations": 7340032,
+              "blake_absorb_compressions": 5242880
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 48,
+              "cumulative_columns": 1992,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 6291456
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 16,
+              "cumulative_columns": 2008,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 8388608
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 16,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 134217728,
+          "lde_cell_log_work_index": 3087007744,
+          "lifted_cells": 134217728,
+          "p2_prefix_permutations": 33554430,
+          "blake_prefix_compressions": 16777215,
+          "p2_flat_permutations": 33554430,
+          "blake_flat_compressions": 16777215,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 23,
+              "columns": 16,
+              "cumulative_columns": 16,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 1,
+      "composition_coefficient_log": 22
+    },
+    {
+      "kind": "cpu",
+      "ordinal": 1,
+      "trees": [
+        {
+          "columns": 176,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 57199744,
+          "lde_cell_log_work_index": 1187157632,
+          "lifted_cells": 1476395008,
+          "p2_prefix_permutations": 27288830,
+          "blake_prefix_compressions": 18236607,
+          "p2_flat_permutations": 142606334,
+          "blake_flat_compressions": 100663295,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 52,
+              "cumulative_columns": 52,
+              "p2_absorb_permutations": 256,
+              "blake_absorb_compressions": 192
+            },
+            {
+              "log_lde_rows": 7,
+              "columns": 3,
+              "cumulative_columns": 55,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 3,
+              "cumulative_columns": 58,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 10,
+              "columns": 8,
+              "cumulative_columns": 66,
+              "p2_absorb_permutations": 1024,
+              "blake_absorb_compressions": 1024
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 3,
+              "cumulative_columns": 69,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 6,
+              "cumulative_columns": 75,
+              "p2_absorb_permutations": 8192,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 9,
+              "cumulative_columns": 84,
+              "p2_absorb_permutations": 16384,
+              "blake_absorb_compressions": 16384
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 7,
+              "cumulative_columns": 91,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 41,
+              "cumulative_columns": 132,
+              "p2_absorb_permutations": 524288,
+              "blake_absorb_compressions": 393216
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 38,
+              "cumulative_columns": 170,
+              "p2_absorb_permutations": 1572864,
+              "blake_absorb_compressions": 1048576
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 3,
+              "cumulative_columns": 173,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 3,
+              "cumulative_columns": 176,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 3111,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 523487680,
+          "lde_cell_log_work_index": 11228302848,
+          "lifted_cells": 26096959488,
+          "p2_prefix_permutations": 69559294,
+          "blake_prefix_compressions": 48063999,
+          "p2_flat_permutations": 2197815294,
+          "blake_flat_compressions": 1644167167,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 1801,
+              "cumulative_columns": 1801,
+              "p2_absorb_permutations": 9600,
+              "blake_absorb_compressions": 7168
+            },
+            {
+              "log_lde_rows": 7,
+              "columns": 59,
+              "cumulative_columns": 1860,
+              "p2_absorb_permutations": 640,
+              "blake_absorb_compressions": 512
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 1,
+              "cumulative_columns": 1861,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 10,
+              "columns": 134,
+              "cumulative_columns": 1995,
+              "p2_absorb_permutations": 11264,
+              "blake_absorb_compressions": 8192
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 78,
+              "cumulative_columns": 2073,
+              "p2_absorb_permutations": 12288,
+              "blake_absorb_compressions": 10240
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 133,
+              "cumulative_columns": 2206,
+              "p2_absorb_permutations": 90112,
+              "blake_absorb_compressions": 65536
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 353,
+              "cumulative_columns": 2559,
+              "p2_absorb_permutations": 491520,
+              "blake_absorb_compressions": 360448
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 1,
+              "cumulative_columns": 2560,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 32768
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 318,
+              "cumulative_columns": 2878,
+              "p2_absorb_permutations": 3407872,
+              "blake_absorb_compressions": 2490368
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 157,
+              "cumulative_columns": 3035,
+              "p2_absorb_permutations": 6815744,
+              "blake_absorb_compressions": 5242880
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 39,
+              "cumulative_columns": 3074,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 6291456
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 37,
+              "cumulative_columns": 3111,
+              "p2_absorb_permutations": 25165824,
+              "blake_absorb_compressions": 16777216
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 1760,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 283888640,
+          "lde_cell_log_work_index": 5987449856,
+          "lifted_cells": 14763950080,
+          "p2_prefix_permutations": 46717054,
+          "blake_prefix_compressions": 26193535,
+          "p2_flat_permutations": 1249902590,
+          "blake_flat_compressions": 931135487,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 992,
+              "cumulative_columns": 992,
+              "p2_absorb_permutations": 5248,
+              "blake_absorb_compressions": 3968
+            },
+            {
+              "log_lde_rows": 7,
+              "columns": 40,
+              "cumulative_columns": 1032,
+              "p2_absorb_permutations": 512,
+              "blake_absorb_compressions": 256
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 16,
+              "cumulative_columns": 1048,
+              "p2_absorb_permutations": 512,
+              "blake_absorb_compressions": 512
+            },
+            {
+              "log_lde_rows": 10,
+              "columns": 72,
+              "cumulative_columns": 1120,
+              "p2_absorb_permutations": 6144,
+              "blake_absorb_compressions": 5120
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 16,
+              "cumulative_columns": 1136,
+              "p2_absorb_permutations": 2048,
+              "blake_absorb_compressions": 2048
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 104,
+              "cumulative_columns": 1240,
+              "p2_absorb_permutations": 73728,
+              "blake_absorb_compressions": 49152
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 144,
+              "cumulative_columns": 1384,
+              "p2_absorb_permutations": 196608,
+              "blake_absorb_compressions": 147456
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 16,
+              "cumulative_columns": 1400,
+              "p2_absorb_permutations": 32768,
+              "blake_absorb_compressions": 32768
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 216,
+              "cumulative_columns": 1616,
+              "p2_absorb_permutations": 2359296,
+              "blake_absorb_compressions": 1835008
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 96,
+              "cumulative_columns": 1712,
+              "p2_absorb_permutations": 4194304,
+              "blake_absorb_compressions": 3145728
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 32,
+              "cumulative_columns": 1744,
+              "p2_absorb_permutations": 6291456,
+              "blake_absorb_compressions": 4194304
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 16,
+              "cumulative_columns": 1760,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 16,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 134217728,
+          "lde_cell_log_work_index": 3087007744,
+          "lifted_cells": 134217728,
+          "p2_prefix_permutations": 33554430,
+          "blake_prefix_compressions": 16777215,
+          "p2_flat_permutations": 33554430,
+          "blake_flat_compressions": 16777215,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 23,
+              "columns": 16,
+              "cumulative_columns": 16,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 1,
+      "composition_coefficient_log": 22
+    },
+    {
+      "kind": "cpu",
+      "ordinal": 2,
+      "trees": [
+        {
+          "columns": 195,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 57064384,
+          "lde_cell_log_work_index": 1184395392,
+          "lifted_cells": 1635778560,
+          "p2_prefix_permutations": 29282558,
+          "blake_prefix_compressions": 20270271,
+          "p2_flat_permutations": 159383550,
+          "blake_flat_compressions": 117440511,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 55,
+              "cumulative_columns": 55,
+              "p2_absorb_permutations": 256,
+              "blake_absorb_compressions": 192
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 3,
+              "cumulative_columns": 58,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 10,
+              "columns": 16,
+              "cumulative_columns": 74,
+              "p2_absorb_permutations": 2048,
+              "blake_absorb_compressions": 1024
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 11,
+              "cumulative_columns": 85,
+              "p2_absorb_permutations": 2048,
+              "blake_absorb_compressions": 2048
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 3,
+              "cumulative_columns": 88,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 3,
+              "cumulative_columns": 91,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 12,
+              "cumulative_columns": 103,
+              "p2_absorb_permutations": 16384,
+              "blake_absorb_compressions": 16384
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 7,
+              "cumulative_columns": 110,
+              "p2_absorb_permutations": 32768,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 3,
+              "cumulative_columns": 113,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 65536
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 38,
+              "cumulative_columns": 151,
+              "p2_absorb_permutations": 393216,
+              "blake_absorb_compressions": 262144
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 38,
+              "cumulative_columns": 189,
+              "p2_absorb_permutations": 1572864,
+              "blake_absorb_compressions": 1048576
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 3,
+              "cumulative_columns": 192,
+              "p2_absorb_permutations": 2097152,
+              "blake_absorb_compressions": 2097152
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 3,
+              "cumulative_columns": 195,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 3449,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 530146048,
+          "lde_cell_log_work_index": 11345868800,
+          "lifted_cells": 28932308992,
+          "p2_prefix_permutations": 68144830,
+          "blake_prefix_compressions": 48109823,
+          "p2_flat_permutations": 2432696318,
+          "blake_flat_compressions": 1820327935,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 1860,
+              "cumulative_columns": 1860,
+              "p2_absorb_permutations": 9920,
+              "blake_absorb_compressions": 7424
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 1,
+              "cumulative_columns": 1861,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 10,
+              "columns": 268,
+              "cumulative_columns": 2129,
+              "p2_absorb_permutations": 22528,
+              "blake_absorb_compressions": 17408
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 212,
+              "cumulative_columns": 2341,
+              "p2_absorb_permutations": 36864,
+              "blake_absorb_compressions": 26624
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 48,
+              "cumulative_columns": 2389,
+              "p2_absorb_permutations": 16384,
+              "blake_absorb_compressions": 12288
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 56,
+              "cumulative_columns": 2445,
+              "p2_absorb_permutations": 32768,
+              "blake_absorb_compressions": 24576
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 423,
+              "cumulative_columns": 2868,
+              "p2_absorb_permutations": 589824,
+              "blake_absorb_compressions": 442368
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 30,
+              "cumulative_columns": 2898,
+              "p2_absorb_permutations": 65536,
+              "blake_absorb_compressions": 65536
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 24,
+              "cumulative_columns": 2922,
+              "p2_absorb_permutations": 131072,
+              "blake_absorb_compressions": 65536
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 247,
+              "cumulative_columns": 3169,
+              "p2_absorb_permutations": 2752512,
+              "blake_absorb_compressions": 2097152
+            },
+            {
+              "log_lde_rows": 18,
+              "columns": 47,
+              "cumulative_columns": 3216,
+              "p2_absorb_permutations": 1048576,
+              "blake_absorb_compressions": 786432
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 157,
+              "cumulative_columns": 3373,
+              "p2_absorb_permutations": 6815744,
+              "blake_absorb_compressions": 4718592
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 39,
+              "cumulative_columns": 3412,
+              "p2_absorb_permutations": 6291456,
+              "blake_absorb_compressions": 6291456
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 37,
+              "cumulative_columns": 3449,
+              "p2_absorb_permutations": 25165824,
+              "blake_absorb_compressions": 16777216
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 1936,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 284828160,
+          "lde_cell_log_work_index": 6002633728,
+          "lifted_cells": 16240345088,
+          "p2_prefix_permutations": 46743422,
+          "blake_prefix_compressions": 26252799,
+          "p2_flat_permutations": 1375731710,
+          "blake_flat_compressions": 1023410175,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 1032,
+              "cumulative_columns": 1032,
+              "p2_absorb_permutations": 5504,
+              "blake_absorb_compressions": 4096
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 16,
+              "cumulative_columns": 1048,
+              "p2_absorb_permutations": 512,
+              "blake_absorb_compressions": 512
+            },
+            {
+              "log_lde_rows": 10,
+              "columns": 144,
+              "cumulative_columns": 1192,
+              "p2_absorb_permutations": 12288,
+              "blake_absorb_compressions": 9216
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 88,
+              "cumulative_columns": 1280,
+              "p2_absorb_permutations": 14336,
+              "blake_absorb_compressions": 12288
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 48,
+              "cumulative_columns": 1328,
+              "p2_absorb_permutations": 16384,
+              "blake_absorb_compressions": 12288
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 40,
+              "cumulative_columns": 1368,
+              "p2_absorb_permutations": 32768,
+              "blake_absorb_compressions": 16384
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 176,
+              "cumulative_columns": 1544,
+              "p2_absorb_permutations": 229376,
+              "blake_absorb_compressions": 180224
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 32,
+              "cumulative_columns": 1576,
+              "p2_absorb_permutations": 98304,
+              "blake_absorb_compressions": 65536
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 32,
+              "cumulative_columns": 1608,
+              "p2_absorb_permutations": 196608,
+              "blake_absorb_compressions": 131072
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 168,
+              "cumulative_columns": 1776,
+              "p2_absorb_permutations": 1835008,
+              "blake_absorb_compressions": 1441792
+            },
+            {
+              "log_lde_rows": 18,
+              "columns": 16,
+              "cumulative_columns": 1792,
+              "p2_absorb_permutations": 262144,
+              "blake_absorb_compressions": 262144
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 96,
+              "cumulative_columns": 1888,
+              "p2_absorb_permutations": 4194304,
+              "blake_absorb_compressions": 3145728
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 32,
+              "cumulative_columns": 1920,
+              "p2_absorb_permutations": 6291456,
+              "blake_absorb_compressions": 4194304
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 16,
+              "cumulative_columns": 1936,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 16,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 134217728,
+          "lde_cell_log_work_index": 3087007744,
+          "lifted_cells": 134217728,
+          "p2_prefix_permutations": 33554430,
+          "blake_prefix_compressions": 16777215,
+          "p2_flat_permutations": 33554430,
+          "blake_flat_compressions": 16777215,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 23,
+              "columns": 16,
+              "cumulative_columns": 16,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 1,
+      "composition_coefficient_log": 22
+    },
+    {
+      "kind": "cpu",
+      "ordinal": 3,
+      "trees": [
+        {
+          "columns": 195,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 58392448,
+          "lde_cell_log_work_index": 1213085696,
+          "lifted_cells": 1635778560,
+          "p2_prefix_permutations": 29280830,
+          "blake_prefix_compressions": 20263679,
+          "p2_flat_permutations": 159383550,
+          "blake_flat_compressions": 117440511,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 46,
+              "cumulative_columns": 46,
+              "p2_absorb_permutations": 192,
+              "blake_absorb_compressions": 128
+            },
+            {
+              "log_lde_rows": 7,
+              "columns": 6,
+              "cumulative_columns": 52,
+              "p2_absorb_permutations": 128,
+              "blake_absorb_compressions": 128
+            },
+            {
+              "log_lde_rows": 8,
+              "columns": 11,
+              "cumulative_columns": 63,
+              "p2_absorb_permutations": 256,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 3,
+              "cumulative_columns": 66,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 512
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 6,
+              "cumulative_columns": 72,
+              "p2_absorb_permutations": 2048,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 11,
+              "cumulative_columns": 83,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 4096
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 20,
+              "cumulative_columns": 103,
+              "p2_absorb_permutations": 16384,
+              "blake_absorb_compressions": 8192
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 7,
+              "cumulative_columns": 110,
+              "p2_absorb_permutations": 32768,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 6,
+              "cumulative_columns": 116,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 65536
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 35,
+              "cumulative_columns": 151,
+              "p2_absorb_permutations": 393216,
+              "blake_absorb_compressions": 262144
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 35,
+              "cumulative_columns": 186,
+              "p2_absorb_permutations": 1572864,
+              "blake_absorb_compressions": 1048576
+            },
+            {
+              "log_lde_rows": 20,
+              "columns": 3,
+              "cumulative_columns": 189,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 3,
+              "cumulative_columns": 192,
+              "p2_absorb_permutations": 2097152,
+              "blake_absorb_compressions": 2097152
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 3,
+              "cumulative_columns": 195,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 3472,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 536405952,
+          "lde_cell_log_work_index": 11517950848,
+          "lifted_cells": 29125246976,
+          "p2_prefix_permutations": 69425982,
+          "blake_prefix_compressions": 47185983,
+          "p2_flat_permutations": 2449473534,
+          "blake_flat_compressions": 1828716543,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 767,
+              "cumulative_columns": 767,
+              "p2_absorb_permutations": 4032,
+              "blake_absorb_compressions": 3008
+            },
+            {
+              "log_lde_rows": 7,
+              "columns": 1034,
+              "cumulative_columns": 1801,
+              "p2_absorb_permutations": 11136,
+              "blake_absorb_compressions": 8320
+            },
+            {
+              "log_lde_rows": 8,
+              "columns": 193,
+              "cumulative_columns": 1994,
+              "p2_absorb_permutations": 4096,
+              "blake_absorb_compressions": 3072
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 1,
+              "cumulative_columns": 1995,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 148,
+              "cumulative_columns": 2143,
+              "p2_absorb_permutations": 24576,
+              "blake_absorb_compressions": 18432
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 182,
+              "cumulative_columns": 2325,
+              "p2_absorb_permutations": 61440,
+              "blake_absorb_compressions": 49152
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 543,
+              "cumulative_columns": 2868,
+              "p2_absorb_permutations": 376832,
+              "blake_absorb_compressions": 278528
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 53,
+              "cumulative_columns": 2921,
+              "p2_absorb_permutations": 131072,
+              "blake_absorb_compressions": 98304
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 117,
+              "cumulative_columns": 3038,
+              "p2_absorb_permutations": 655360,
+              "blake_absorb_compressions": 458752
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 201,
+              "cumulative_columns": 3239,
+              "p2_absorb_permutations": 2097152,
+              "blake_absorb_compressions": 1703936
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 118,
+              "cumulative_columns": 3357,
+              "p2_absorb_permutations": 5242880,
+              "blake_absorb_compressions": 3670016
+            },
+            {
+              "log_lde_rows": 20,
+              "columns": 39,
+              "cumulative_columns": 3396,
+              "p2_absorb_permutations": 4194304,
+              "blake_absorb_compressions": 3145728
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 39,
+              "cumulative_columns": 3435,
+              "p2_absorb_permutations": 6291456,
+              "blake_absorb_compressions": 4194304
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 37,
+              "cumulative_columns": 3472,
+              "p2_absorb_permutations": 25165824,
+              "blake_absorb_compressions": 16777216
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 1936,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 294843392,
+          "lde_cell_log_work_index": 6233280512,
+          "lifted_cells": 16240345088,
+          "p2_prefix_permutations": 47843710,
+          "blake_prefix_compressions": 26847039,
+          "p2_flat_permutations": 1375731710,
+          "blake_flat_compressions": 1023410175,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 560,
+              "cumulative_columns": 560,
+              "p2_absorb_permutations": 2944,
+              "blake_absorb_compressions": 2240
+            },
+            {
+              "log_lde_rows": 7,
+              "columns": 432,
+              "cumulative_columns": 992,
+              "p2_absorb_permutations": 4608,
+              "blake_absorb_compressions": 3456
+            },
+            {
+              "log_lde_rows": 8,
+              "columns": 112,
+              "cumulative_columns": 1104,
+              "p2_absorb_permutations": 2560,
+              "blake_absorb_compressions": 1792
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 16,
+              "cumulative_columns": 1120,
+              "p2_absorb_permutations": 512,
+              "blake_absorb_compressions": 512
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 48,
+              "cumulative_columns": 1168,
+              "p2_absorb_permutations": 8192,
+              "blake_absorb_compressions": 6144
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 120,
+              "cumulative_columns": 1288,
+              "p2_absorb_permutations": 40960,
+              "blake_absorb_compressions": 28672
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 256,
+              "cumulative_columns": 1544,
+              "p2_absorb_permutations": 172032,
+              "blake_absorb_compressions": 131072
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 32,
+              "cumulative_columns": 1576,
+              "p2_absorb_permutations": 98304,
+              "blake_absorb_compressions": 65536
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 88,
+              "cumulative_columns": 1664,
+              "p2_absorb_permutations": 458752,
+              "blake_absorb_compressions": 393216
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 128,
+              "cumulative_columns": 1792,
+              "p2_absorb_permutations": 1441792,
+              "blake_absorb_compressions": 1048576
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 64,
+              "cumulative_columns": 1856,
+              "p2_absorb_permutations": 2621440,
+              "blake_absorb_compressions": 2097152
+            },
+            {
+              "log_lde_rows": 20,
+              "columns": 32,
+              "cumulative_columns": 1888,
+              "p2_absorb_permutations": 3145728,
+              "blake_absorb_compressions": 2097152
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 32,
+              "cumulative_columns": 1920,
+              "p2_absorb_permutations": 6291456,
+              "blake_absorb_compressions": 4194304
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 16,
+              "cumulative_columns": 1936,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 16,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 134217728,
+          "lde_cell_log_work_index": 3087007744,
+          "lifted_cells": 134217728,
+          "p2_prefix_permutations": 33554430,
+          "blake_prefix_compressions": 16777215,
+          "p2_flat_permutations": 33554430,
+          "blake_flat_compressions": 16777215,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 23,
+              "columns": 16,
+              "cumulative_columns": 16,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 1,
+      "composition_coefficient_log": 22
+    },
+    {
+      "kind": "cpu",
+      "ordinal": 4,
+      "trees": [
+        {
+          "columns": 192,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 57299776,
+          "lde_cell_log_work_index": 1188418944,
+          "lifted_cells": 1610612736,
+          "p2_prefix_permutations": 35681534,
+          "blake_prefix_compressions": 18244799,
+          "p2_flat_permutations": 159383550,
+          "blake_flat_compressions": 109051903,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 49,
+              "cumulative_columns": 49,
+              "p2_absorb_permutations": 256,
+              "blake_absorb_compressions": 192
+            },
+            {
+              "log_lde_rows": 8,
+              "columns": 3,
+              "cumulative_columns": 52,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 6,
+              "cumulative_columns": 58,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 10,
+              "columns": 8,
+              "cumulative_columns": 66,
+              "p2_absorb_permutations": 1024,
+              "blake_absorb_compressions": 1024
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 3,
+              "cumulative_columns": 69,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 8,
+              "cumulative_columns": 77,
+              "p2_absorb_permutations": 4096,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 14,
+              "cumulative_columns": 91,
+              "p2_absorb_permutations": 8192,
+              "blake_absorb_compressions": 8192
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 9,
+              "cumulative_columns": 100,
+              "p2_absorb_permutations": 16384,
+              "blake_absorb_compressions": 16384
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 7,
+              "cumulative_columns": 107,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 41,
+              "cumulative_columns": 148,
+              "p2_absorb_permutations": 524288,
+              "blake_absorb_compressions": 393216
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 38,
+              "cumulative_columns": 186,
+              "p2_absorb_permutations": 1572864,
+              "blake_absorb_compressions": 1048576
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 3,
+              "cumulative_columns": 189,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 3,
+              "cumulative_columns": 192,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 3379,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 523988992,
+          "lde_cell_log_work_index": 11232260608,
+          "lifted_cells": 28345106432,
+          "p2_prefix_permutations": 67616574,
+          "blake_prefix_compressions": 54488831,
+          "p2_flat_permutations": 2382364670,
+          "blake_flat_compressions": 1786773503,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 1740,
+              "cumulative_columns": 1740,
+              "p2_absorb_permutations": 9280,
+              "blake_absorb_compressions": 6912
+            },
+            {
+              "log_lde_rows": 8,
+              "columns": 61,
+              "cumulative_columns": 1801,
+              "p2_absorb_permutations": 1280,
+              "blake_absorb_compressions": 1024
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 60,
+              "cumulative_columns": 1861,
+              "p2_absorb_permutations": 2560,
+              "blake_absorb_compressions": 2048
+            },
+            {
+              "log_lde_rows": 10,
+              "columns": 134,
+              "cumulative_columns": 1995,
+              "p2_absorb_permutations": 11264,
+              "blake_absorb_compressions": 8192
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 78,
+              "cumulative_columns": 2073,
+              "p2_absorb_permutations": 12288,
+              "blake_absorb_compressions": 10240
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 134,
+              "cumulative_columns": 2207,
+              "p2_absorb_permutations": 45056,
+              "blake_absorb_compressions": 32768
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 469,
+              "cumulative_columns": 2676,
+              "p2_absorb_permutations": 327680,
+              "blake_absorb_compressions": 245760
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 122,
+              "cumulative_columns": 2798,
+              "p2_absorb_permutations": 163840,
+              "blake_absorb_compressions": 114688
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 30,
+              "cumulative_columns": 2828,
+              "p2_absorb_permutations": 65536,
+              "blake_absorb_compressions": 65536
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 318,
+              "cumulative_columns": 3146,
+              "p2_absorb_permutations": 3538944,
+              "blake_absorb_compressions": 2621440
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 157,
+              "cumulative_columns": 3303,
+              "p2_absorb_permutations": 6815744,
+              "blake_absorb_compressions": 5242880
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 39,
+              "cumulative_columns": 3342,
+              "p2_absorb_permutations": 6291456,
+              "blake_absorb_compressions": 4194304
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 37,
+              "cumulative_columns": 3379,
+              "p2_absorb_permutations": 25165824,
+              "blake_absorb_compressions": 25165824
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 1904,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 284733952,
+          "lde_cell_log_work_index": 5998177280,
+          "lifted_cells": 15971909632,
+          "p2_prefix_permutations": 46784894,
+          "blake_prefix_compressions": 26244223,
+          "p2_flat_permutations": 1350565886,
+          "blake_flat_compressions": 1006632959,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 936,
+              "cumulative_columns": 936,
+              "p2_absorb_permutations": 4992,
+              "blake_absorb_compressions": 3712
+            },
+            {
+              "log_lde_rows": 8,
+              "columns": 56,
+              "cumulative_columns": 992,
+              "p2_absorb_permutations": 1024,
+              "blake_absorb_compressions": 1024
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 56,
+              "cumulative_columns": 1048,
+              "p2_absorb_permutations": 2560,
+              "blake_absorb_compressions": 1536
+            },
+            {
+              "log_lde_rows": 10,
+              "columns": 72,
+              "cumulative_columns": 1120,
+              "p2_absorb_permutations": 6144,
+              "blake_absorb_compressions": 5120
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 16,
+              "cumulative_columns": 1136,
+              "p2_absorb_permutations": 2048,
+              "blake_absorb_compressions": 2048
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 72,
+              "cumulative_columns": 1208,
+              "p2_absorb_permutations": 24576,
+              "blake_absorb_compressions": 16384
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 216,
+              "cumulative_columns": 1424,
+              "p2_absorb_permutations": 147456,
+              "blake_absorb_compressions": 114688
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 88,
+              "cumulative_columns": 1512,
+              "p2_absorb_permutations": 131072,
+              "blake_absorb_compressions": 81920
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 32,
+              "cumulative_columns": 1544,
+              "p2_absorb_permutations": 65536,
+              "blake_absorb_compressions": 65536
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 216,
+              "cumulative_columns": 1760,
+              "p2_absorb_permutations": 2359296,
+              "blake_absorb_compressions": 1835008
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 96,
+              "cumulative_columns": 1856,
+              "p2_absorb_permutations": 4194304,
+              "blake_absorb_compressions": 3145728
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 32,
+              "cumulative_columns": 1888,
+              "p2_absorb_permutations": 6291456,
+              "blake_absorb_compressions": 4194304
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 16,
+              "cumulative_columns": 1904,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 16,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 134217728,
+          "lde_cell_log_work_index": 3087007744,
+          "lifted_cells": 134217728,
+          "p2_prefix_permutations": 33554430,
+          "blake_prefix_compressions": 16777215,
+          "p2_flat_permutations": 33554430,
+          "blake_flat_compressions": 16777215,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 23,
+              "columns": 16,
+              "cumulative_columns": 16,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 1,
+      "composition_coefficient_log": 22
+    },
+    {
+      "kind": "cpu",
+      "ordinal": 5,
+      "trees": [
+        {
+          "columns": 184,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 56187648,
+          "lde_cell_log_work_index": 1166929792,
+          "lifted_cells": 1543503872,
+          "p2_prefix_permutations": 29280766,
+          "blake_prefix_compressions": 18661823,
+          "p2_flat_permutations": 150994942,
+          "blake_flat_compressions": 109051903,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 54,
+              "cumulative_columns": 54,
+              "p2_absorb_permutations": 256,
+              "blake_absorb_compressions": 192
+            },
+            {
+              "log_lde_rows": 7,
+              "columns": 3,
+              "cumulative_columns": 57,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 8,
+              "columns": 8,
+              "cumulative_columns": 65,
+              "p2_absorb_permutations": 256,
+              "blake_absorb_compressions": 256
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 6,
+              "cumulative_columns": 71,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 3,
+              "cumulative_columns": 74,
+              "p2_absorb_permutations": 2048,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 3,
+              "cumulative_columns": 77,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 9,
+              "cumulative_columns": 86,
+              "p2_absorb_permutations": 16384,
+              "blake_absorb_compressions": 16384
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 13,
+              "cumulative_columns": 99,
+              "p2_absorb_permutations": 32768,
+              "blake_absorb_compressions": 32768
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 6,
+              "cumulative_columns": 105,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 35,
+              "cumulative_columns": 140,
+              "p2_absorb_permutations": 393216,
+              "blake_absorb_compressions": 262144
+            },
+            {
+              "log_lde_rows": 18,
+              "columns": 3,
+              "cumulative_columns": 143,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 35,
+              "cumulative_columns": 178,
+              "p2_absorb_permutations": 1572864,
+              "blake_absorb_compressions": 1572864
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 3,
+              "cumulative_columns": 181,
+              "p2_absorb_permutations": 2097152,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 3,
+              "cumulative_columns": 184,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 3276,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 554007680,
+          "lde_cell_log_work_index": 11689232000,
+          "lifted_cells": 27481079808,
+          "p2_prefix_permutations": 78502142,
+          "blake_prefix_compressions": 48097279,
+          "p2_flat_permutations": 2315255806,
+          "blake_flat_compressions": 1728053247,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 268,
+              "cumulative_columns": 268,
+              "p2_absorb_permutations": 1408,
+              "blake_absorb_compressions": 1024
+            },
+            {
+              "log_lde_rows": 7,
+              "columns": 59,
+              "cumulative_columns": 327,
+              "p2_absorb_permutations": 640,
+              "blake_absorb_compressions": 512
+            },
+            {
+              "log_lde_rows": 8,
+              "columns": 134,
+              "cumulative_columns": 461,
+              "p2_absorb_permutations": 2816,
+              "blake_absorb_compressions": 2048
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 79,
+              "cumulative_columns": 540,
+              "p2_absorb_permutations": 3584,
+              "blake_absorb_compressions": 2560
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 287,
+              "cumulative_columns": 827,
+              "p2_absorb_permutations": 47104,
+              "blake_absorb_compressions": 36864
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 694,
+              "cumulative_columns": 1521,
+              "p2_absorb_permutations": 475136,
+              "blake_absorb_compressions": 360448
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 1039,
+              "cumulative_columns": 2560,
+              "p2_absorb_permutations": 1425408,
+              "blake_absorb_compressions": 1064960
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 119,
+              "cumulative_columns": 2679,
+              "p2_absorb_permutations": 327680,
+              "blake_absorb_compressions": 229376
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 65,
+              "cumulative_columns": 2744,
+              "p2_absorb_permutations": 327680,
+              "blake_absorb_compressions": 262144
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 154,
+              "cumulative_columns": 2898,
+              "p2_absorb_permutations": 1703936,
+              "blake_absorb_compressions": 1310720
+            },
+            {
+              "log_lde_rows": 18,
+              "columns": 184,
+              "cumulative_columns": 3082,
+              "p2_absorb_permutations": 3932160,
+              "blake_absorb_compressions": 2883584
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 118,
+              "cumulative_columns": 3200,
+              "p2_absorb_permutations": 5242880,
+              "blake_absorb_compressions": 4194304
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 39,
+              "cumulative_columns": 3239,
+              "p2_absorb_permutations": 6291456,
+              "blake_absorb_compressions": 4194304
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 37,
+              "cumulative_columns": 3276,
+              "p2_absorb_permutations": 33554432,
+              "blake_absorb_compressions": 16777216
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 1832,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 291492864,
+          "lde_cell_log_work_index": 6070557696,
+          "lifted_cells": 15367929856,
+          "p2_prefix_permutations": 47181950,
+          "blake_prefix_compressions": 34889087,
+          "p2_flat_permutations": 1300234238,
+          "blake_flat_compressions": 973078527,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 224,
+              "cumulative_columns": 224,
+              "p2_absorb_permutations": 1152,
+              "blake_absorb_compressions": 896
+            },
+            {
+              "log_lde_rows": 7,
+              "columns": 40,
+              "cumulative_columns": 264,
+              "p2_absorb_permutations": 512,
+              "blake_absorb_compressions": 256
+            },
+            {
+              "log_lde_rows": 8,
+              "columns": 72,
+              "cumulative_columns": 336,
+              "p2_absorb_permutations": 1536,
+              "blake_absorb_compressions": 1280
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 32,
+              "cumulative_columns": 368,
+              "p2_absorb_permutations": 1024,
+              "blake_absorb_compressions": 1024
+            },
+            {
+              "log_lde_rows": 11,
+              "columns": 96,
+              "cumulative_columns": 464,
+              "p2_absorb_permutations": 16384,
+              "blake_absorb_compressions": 12288
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 464,
+              "cumulative_columns": 928,
+              "p2_absorb_permutations": 319488,
+              "blake_absorb_compressions": 237568
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 424,
+              "cumulative_columns": 1352,
+              "p2_absorb_permutations": 573440,
+              "blake_absorb_compressions": 425984
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 96,
+              "cumulative_columns": 1448,
+              "p2_absorb_permutations": 262144,
+              "blake_absorb_compressions": 196608
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 72,
+              "cumulative_columns": 1520,
+              "p2_absorb_permutations": 393216,
+              "blake_absorb_compressions": 327680
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 112,
+              "cumulative_columns": 1632,
+              "p2_absorb_permutations": 1310720,
+              "blake_absorb_compressions": 917504
+            },
+            {
+              "log_lde_rows": 18,
+              "columns": 88,
+              "cumulative_columns": 1720,
+              "p2_absorb_permutations": 1835008,
+              "blake_absorb_compressions": 1310720
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 64,
+              "cumulative_columns": 1784,
+              "p2_absorb_permutations": 2621440,
+              "blake_absorb_compressions": 2097152
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 32,
+              "cumulative_columns": 1816,
+              "p2_absorb_permutations": 6291456,
+              "blake_absorb_compressions": 4194304
+            },
+            {
+              "log_lde_rows": 23,
+              "columns": 16,
+              "cumulative_columns": 1832,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 8388608
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 16,
+          "max_log_lde_rows": 23,
+          "own_lde_cells": 134217728,
+          "lde_cell_log_work_index": 3087007744,
+          "lifted_cells": 134217728,
+          "p2_prefix_permutations": 33554430,
+          "blake_prefix_compressions": 16777215,
+          "p2_flat_permutations": 33554430,
+          "blake_flat_compressions": 16777215,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 23,
+              "columns": 16,
+              "cumulative_columns": 16,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 1,
+      "composition_coefficient_log": 22
+    },
+    {
+      "kind": "cpu",
+      "ordinal": 6,
+      "trees": [
+        {
+          "columns": 158,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 47670592,
+          "lde_cell_log_work_index": 943997824,
+          "lifted_cells": 662700032,
+          "p2_prefix_permutations": 18915518,
+          "blake_prefix_compressions": 10035327,
+          "p2_flat_permutations": 67108862,
+          "blake_flat_compressions": 46137343,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 37,
+              "cumulative_columns": 37,
+              "p2_absorb_permutations": 192,
+              "blake_absorb_compressions": 128
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 6,
+              "cumulative_columns": 43,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 3,
+              "cumulative_columns": 46,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 3,
+              "cumulative_columns": 49,
+              "p2_absorb_permutations": 8192,
+              "blake_absorb_compressions": 8192
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 3,
+              "cumulative_columns": 52,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 8,
+              "cumulative_columns": 60,
+              "p2_absorb_permutations": 32768,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 8,
+              "cumulative_columns": 68,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 65536
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 43,
+              "cumulative_columns": 111,
+              "p2_absorb_permutations": 524288,
+              "blake_absorb_compressions": 262144
+            },
+            {
+              "log_lde_rows": 18,
+              "columns": 3,
+              "cumulative_columns": 114,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 262144
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 35,
+              "cumulative_columns": 149,
+              "p2_absorb_permutations": 1572864,
+              "blake_absorb_compressions": 1048576
+            },
+            {
+              "log_lde_rows": 20,
+              "columns": 3,
+              "cumulative_columns": 152,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 3,
+              "cumulative_columns": 155,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 22,
+              "columns": 3,
+              "cumulative_columns": 158,
+              "p2_absorb_permutations": 4194304,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 1120,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 344429952,
+          "lde_cell_log_work_index": 6953002752,
+          "lifted_cells": 4697620480,
+          "p2_prefix_permutations": 41195582,
+          "blake_prefix_compressions": 28595711,
+          "p2_flat_permutations": 402653182,
+          "blake_flat_compressions": 297795583,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 14,
+              "cumulative_columns": 14,
+              "p2_absorb_permutations": 64,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 49,
+              "cumulative_columns": 63,
+              "p2_absorb_permutations": 2048,
+              "blake_absorb_compressions": 1536
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 41,
+              "cumulative_columns": 104,
+              "p2_absorb_permutations": 12288,
+              "blake_absorb_compressions": 12288
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 85,
+              "cumulative_columns": 189,
+              "p2_absorb_permutations": 57344,
+              "blake_absorb_compressions": 40960
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 24,
+              "cumulative_columns": 213,
+              "p2_absorb_permutations": 32768,
+              "blake_absorb_compressions": 32768
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 232,
+              "cumulative_columns": 445,
+              "p2_absorb_permutations": 655360,
+              "blake_absorb_compressions": 458752
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 186,
+              "cumulative_columns": 631,
+              "p2_absorb_permutations": 983040,
+              "blake_absorb_compressions": 786432
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 225,
+              "cumulative_columns": 856,
+              "p2_absorb_permutations": 2490368,
+              "blake_absorb_compressions": 1835008
+            },
+            {
+              "log_lde_rows": 18,
+              "columns": 87,
+              "cumulative_columns": 943,
+              "p2_absorb_permutations": 1835008,
+              "blake_absorb_compressions": 1310720
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 87,
+              "cumulative_columns": 1030,
+              "p2_absorb_permutations": 3670016,
+              "blake_absorb_compressions": 3145728
+            },
+            {
+              "log_lde_rows": 20,
+              "columns": 39,
+              "cumulative_columns": 1069,
+              "p2_absorb_permutations": 4194304,
+              "blake_absorb_compressions": 2097152
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 14,
+              "cumulative_columns": 1083,
+              "p2_absorb_permutations": 2097152,
+              "blake_absorb_compressions": 2097152
+            },
+            {
+              "log_lde_rows": 22,
+              "columns": 37,
+              "cumulative_columns": 1120,
+              "p2_absorb_permutations": 12582912,
+              "blake_absorb_compressions": 8388608
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 744,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 204867584,
+          "lde_cell_log_work_index": 4106334208,
+          "lifted_cells": 3120562176,
+          "p2_prefix_permutations": 31874174,
+          "blake_prefix_compressions": 21145727,
+          "p2_flat_permutations": 272629758,
+          "blake_flat_compressions": 201326591,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 6,
+              "columns": 32,
+              "cumulative_columns": 32,
+              "p2_absorb_permutations": 128,
+              "blake_absorb_compressions": 128
+            },
+            {
+              "log_lde_rows": 9,
+              "columns": 64,
+              "cumulative_columns": 96,
+              "p2_absorb_permutations": 3072,
+              "blake_absorb_compressions": 2048
+            },
+            {
+              "log_lde_rows": 12,
+              "columns": 40,
+              "cumulative_columns": 136,
+              "p2_absorb_permutations": 12288,
+              "blake_absorb_compressions": 8192
+            },
+            {
+              "log_lde_rows": 13,
+              "columns": 56,
+              "cumulative_columns": 192,
+              "p2_absorb_permutations": 40960,
+              "blake_absorb_compressions": 32768
+            },
+            {
+              "log_lde_rows": 14,
+              "columns": 32,
+              "cumulative_columns": 224,
+              "p2_absorb_permutations": 32768,
+              "blake_absorb_compressions": 32768
+            },
+            {
+              "log_lde_rows": 15,
+              "columns": 120,
+              "cumulative_columns": 344,
+              "p2_absorb_permutations": 327680,
+              "blake_absorb_compressions": 229376
+            },
+            {
+              "log_lde_rows": 16,
+              "columns": 88,
+              "cumulative_columns": 432,
+              "p2_absorb_permutations": 524288,
+              "blake_absorb_compressions": 393216
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 168,
+              "cumulative_columns": 600,
+              "p2_absorb_permutations": 1835008,
+              "blake_absorb_compressions": 1310720
+            },
+            {
+              "log_lde_rows": 18,
+              "columns": 16,
+              "cumulative_columns": 616,
+              "p2_absorb_permutations": 262144,
+              "blake_absorb_compressions": 262144
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 64,
+              "cumulative_columns": 680,
+              "p2_absorb_permutations": 2621440,
+              "blake_absorb_compressions": 2097152
+            },
+            {
+              "log_lde_rows": 20,
+              "columns": 32,
+              "cumulative_columns": 712,
+              "p2_absorb_permutations": 3145728,
+              "blake_absorb_compressions": 2097152
+            },
+            {
+              "log_lde_rows": 21,
+              "columns": 16,
+              "cumulative_columns": 728,
+              "p2_absorb_permutations": 2097152,
+              "blake_absorb_compressions": 2097152
+            },
+            {
+              "log_lde_rows": 22,
+              "columns": 16,
+              "cumulative_columns": 744,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 4194304
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 16,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 67108864,
+          "lde_cell_log_work_index": 1476395008,
+          "lifted_cells": 67108864,
+          "p2_prefix_permutations": 16777214,
+          "blake_prefix_compressions": 8388607,
+          "p2_flat_permutations": 16777214,
+          "blake_flat_compressions": 8388607,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 22,
+              "columns": 16,
+              "cumulative_columns": 16,
+              "p2_absorb_permutations": 4194304,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 1,
+      "composition_coefficient_log": 21
+    },
+    {
+      "kind": "keccak",
+      "ordinal": 7,
+      "trees": [
+        {
+          "columns": 46,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 47054848,
+          "lde_cell_log_work_index": 980287488,
+          "lifted_cells": 192937984,
+          "p2_prefix_permutations": 14155774,
+          "blake_prefix_compressions": 9437183,
+          "p2_flat_permutations": 25165822,
+          "blake_flat_compressions": 16777215,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 17,
+              "columns": 7,
+              "cumulative_columns": 7,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 32,
+              "cumulative_columns": 39,
+              "p2_absorb_permutations": 1572864,
+              "blake_absorb_compressions": 1048576
+            },
+            {
+              "log_lde_rows": 22,
+              "columns": 7,
+              "cumulative_columns": 46,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 1925,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 1012531200,
+          "lde_cell_log_work_index": 19250413568,
+          "lifted_cells": 8074035200,
+          "p2_prefix_permutations": 96468990,
+          "blake_prefix_compressions": 71303167,
+          "p2_flat_permutations": 683671550,
+          "blake_flat_compressions": 511705087,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 17,
+              "columns": 1,
+              "cumulative_columns": 1,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 1923,
+              "cumulative_columns": 1924,
+              "p2_absorb_permutations": 83886080,
+              "blake_absorb_compressions": 62914560
+            },
+            {
+              "log_lde_rows": 22,
+              "columns": 1,
+              "cumulative_columns": 1925,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 1592,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 887095296,
+          "lde_cell_log_work_index": 17051942912,
+          "lifted_cells": 6677331968,
+          "p2_prefix_permutations": 85065726,
+          "blake_prefix_compressions": 63569919,
+          "p2_flat_permutations": 566231038,
+          "blake_flat_compressions": 423624703,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 17,
+              "columns": 16,
+              "cumulative_columns": 16,
+              "p2_absorb_permutations": 131072,
+              "blake_absorb_compressions": 131072
+            },
+            {
+              "log_lde_rows": 19,
+              "columns": 1560,
+              "cumulative_columns": 1576,
+              "p2_absorb_permutations": 68157440,
+              "blake_absorb_compressions": 50855936
+            },
+            {
+              "log_lde_rows": 22,
+              "columns": 16,
+              "cumulative_columns": 1592,
+              "p2_absorb_permutations": 4194304,
+              "blake_absorb_compressions": 4194304
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 32,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 134217728,
+          "lde_cell_log_work_index": 2952790016,
+          "lifted_cells": 134217728,
+          "p2_prefix_permutations": 20971518,
+          "blake_prefix_compressions": 12582911,
+          "p2_flat_permutations": 20971518,
+          "blake_flat_compressions": 12582911,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 22,
+              "columns": 32,
+              "cumulative_columns": 32,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 4194304
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 2,
+      "composition_coefficient_log": 21
+    },
+    {
+      "kind": "keccak",
+      "ordinal": 8,
+      "trees": [
+        {
+          "columns": 46,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 31326208,
+          "lde_cell_log_work_index": 677249024,
+          "lifted_cells": 192937984,
+          "p2_prefix_permutations": 12779518,
+          "blake_prefix_compressions": 8454143,
+          "p2_flat_permutations": 25165822,
+          "blake_flat_compressions": 16777215,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 15,
+              "columns": 32,
+              "cumulative_columns": 32,
+              "p2_absorb_permutations": 65536,
+              "blake_absorb_compressions": 65536
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 7,
+              "cumulative_columns": 39,
+              "p2_absorb_permutations": 131072,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 22,
+              "columns": 7,
+              "cumulative_columns": 46,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 1925,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 67338240,
+          "lde_cell_log_work_index": 1039695872,
+          "lifted_cells": 8074035200,
+          "p2_prefix_permutations": 17825790,
+          "blake_prefix_compressions": 12320767,
+          "p2_flat_permutations": 683671550,
+          "blake_flat_compressions": 511705087,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 15,
+              "columns": 1923,
+              "cumulative_columns": 1923,
+              "p2_absorb_permutations": 5242880,
+              "blake_absorb_compressions": 3932160
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 1,
+              "cumulative_columns": 1924,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 22,
+              "columns": 1,
+              "cumulative_columns": 1925,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 1592,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 120324096,
+          "lde_cell_log_work_index": 2278817792,
+          "lifted_cells": 6677331968,
+          "p2_prefix_permutations": 21168126,
+          "blake_prefix_compressions": 15892479,
+          "p2_flat_permutations": 566231038,
+          "blake_flat_compressions": 423624703,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 15,
+              "columns": 1560,
+              "cumulative_columns": 1560,
+              "p2_absorb_permutations": 4259840,
+              "blake_absorb_compressions": 3178496
+            },
+            {
+              "log_lde_rows": 17,
+              "columns": 16,
+              "cumulative_columns": 1576,
+              "p2_absorb_permutations": 131072,
+              "blake_absorb_compressions": 131072
+            },
+            {
+              "log_lde_rows": 22,
+              "columns": 16,
+              "cumulative_columns": 1592,
+              "p2_absorb_permutations": 4194304,
+              "blake_absorb_compressions": 4194304
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 32,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 134217728,
+          "lde_cell_log_work_index": 2952790016,
+          "lifted_cells": 134217728,
+          "p2_prefix_permutations": 20971518,
+          "blake_prefix_compressions": 12582911,
+          "p2_flat_permutations": 20971518,
+          "blake_flat_compressions": 12582911,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 22,
+              "columns": 32,
+              "cumulative_columns": 32,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 4194304
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 2,
+      "composition_coefficient_log": 21
+    },
+    {
+      "kind": "keccak",
+      "ordinal": 9,
+      "trees": [
+        {
+          "columns": 46,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 38666240,
+          "lde_cell_log_work_index": 812515328,
+          "lifted_cells": 192937984,
+          "p2_prefix_permutations": 13369342,
+          "blake_prefix_compressions": 8912895,
+          "p2_flat_permutations": 25165822,
+          "blake_flat_compressions": 16777215,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 17,
+              "columns": 7,
+              "cumulative_columns": 7,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 18,
+              "columns": 32,
+              "cumulative_columns": 39,
+              "p2_absorb_permutations": 786432,
+              "blake_absorb_compressions": 524288
+            },
+            {
+              "log_lde_rows": 22,
+              "columns": 7,
+              "cumulative_columns": 46,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 1925,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 508428288,
+          "lde_cell_log_work_index": 9168355328,
+          "lifted_cells": 8074035200,
+          "p2_prefix_permutations": 54525950,
+          "blake_prefix_compressions": 39845887,
+          "p2_flat_permutations": 683671550,
+          "blake_flat_compressions": 511705087,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 17,
+              "columns": 1,
+              "cumulative_columns": 1,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            },
+            {
+              "log_lde_rows": 18,
+              "columns": 1923,
+              "cumulative_columns": 1924,
+              "p2_absorb_permutations": 41943040,
+              "blake_absorb_compressions": 31457280
+            },
+            {
+              "log_lde_rows": 22,
+              "columns": 1,
+              "cumulative_columns": 1925,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 1592,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 478150656,
+          "lde_cell_log_work_index": 8873050112,
+          "lifted_cells": 6677331968,
+          "p2_prefix_permutations": 50987006,
+          "blake_prefix_compressions": 38141951,
+          "p2_flat_permutations": 566231038,
+          "blake_flat_compressions": 423624703,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 17,
+              "columns": 16,
+              "cumulative_columns": 16,
+              "p2_absorb_permutations": 131072,
+              "blake_absorb_compressions": 131072
+            },
+            {
+              "log_lde_rows": 18,
+              "columns": 1560,
+              "cumulative_columns": 1576,
+              "p2_absorb_permutations": 34078720,
+              "blake_absorb_compressions": 25427968
+            },
+            {
+              "log_lde_rows": 22,
+              "columns": 16,
+              "cumulative_columns": 1592,
+              "p2_absorb_permutations": 4194304,
+              "blake_absorb_compressions": 4194304
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 32,
+          "max_log_lde_rows": 22,
+          "own_lde_cells": 134217728,
+          "lde_cell_log_work_index": 2952790016,
+          "lifted_cells": 134217728,
+          "p2_prefix_permutations": 20971518,
+          "blake_prefix_compressions": 12582911,
+          "p2_flat_permutations": 20971518,
+          "blake_flat_compressions": 12582911,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 22,
+              "columns": 32,
+              "cumulative_columns": 32,
+              "p2_absorb_permutations": 8388608,
+              "blake_absorb_compressions": 4194304
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 2,
+      "composition_coefficient_log": 21
+    },
+    {
+      "kind": "add",
+      "ordinal": 10,
+      "trees": [
+        {
+          "columns": 4,
+          "max_log_lde_rows": 14,
+          "own_lde_cells": 65536,
+          "lde_cell_log_work_index": 917504,
+          "lifted_cells": 65536,
+          "p2_prefix_permutations": 49150,
+          "blake_prefix_compressions": 32767,
+          "p2_flat_permutations": 49150,
+          "blake_flat_compressions": 32767,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 14,
+              "columns": 4,
+              "cumulative_columns": 4,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 1869,
+          "max_log_lde_rows": 14,
+          "own_lde_cells": 30621696,
+          "lde_cell_log_work_index": 428703744,
+          "lifted_cells": 30621696,
+          "p2_prefix_permutations": 2588670,
+          "blake_prefix_compressions": 1933311,
+          "p2_flat_permutations": 2588670,
+          "blake_flat_compressions": 1933311,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 14,
+              "columns": 1869,
+              "cumulative_columns": 1869,
+              "p2_absorb_permutations": 2539520,
+              "blake_absorb_compressions": 1900544
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 5128,
+          "max_log_lde_rows": 14,
+          "own_lde_cells": 84017152,
+          "lde_cell_log_work_index": 1176240128,
+          "lifted_cells": 84017152,
+          "p2_prefix_permutations": 7045118,
+          "blake_prefix_compressions": 5275647,
+          "p2_flat_permutations": 7045118,
+          "blake_flat_compressions": 5275647,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 14,
+              "columns": 5128,
+              "cumulative_columns": 5128,
+              "p2_absorb_permutations": 6995968,
+              "blake_absorb_compressions": 5242880
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 32,
+          "max_log_lde_rows": 14,
+          "own_lde_cells": 524288,
+          "lde_cell_log_work_index": 7340032,
+          "lifted_cells": 524288,
+          "p2_prefix_permutations": 81918,
+          "blake_prefix_compressions": 49151,
+          "p2_flat_permutations": 81918,
+          "blake_flat_compressions": 49151,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 14,
+              "columns": 32,
+              "cumulative_columns": 32,
+              "p2_absorb_permutations": 32768,
+              "blake_absorb_compressions": 16384
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 2,
+      "composition_coefficient_log": 13
+    },
+    {
+      "kind": "add",
+      "ordinal": 11,
+      "trees": [
+        {
+          "columns": 4,
+          "max_log_lde_rows": 12,
+          "own_lde_cells": 16384,
+          "lde_cell_log_work_index": 196608,
+          "lifted_cells": 16384,
+          "p2_prefix_permutations": 12286,
+          "blake_prefix_compressions": 8191,
+          "p2_flat_permutations": 12286,
+          "blake_flat_compressions": 8191,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 12,
+              "columns": 4,
+              "cumulative_columns": 4,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 1869,
+          "max_log_lde_rows": 12,
+          "own_lde_cells": 7655424,
+          "lde_cell_log_work_index": 91865088,
+          "lifted_cells": 7655424,
+          "p2_prefix_permutations": 647166,
+          "blake_prefix_compressions": 483327,
+          "p2_flat_permutations": 647166,
+          "blake_flat_compressions": 483327,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 12,
+              "columns": 1869,
+              "cumulative_columns": 1869,
+              "p2_absorb_permutations": 634880,
+              "blake_absorb_compressions": 475136
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 5128,
+          "max_log_lde_rows": 12,
+          "own_lde_cells": 21004288,
+          "lde_cell_log_work_index": 252051456,
+          "lifted_cells": 21004288,
+          "p2_prefix_permutations": 1761278,
+          "blake_prefix_compressions": 1318911,
+          "p2_flat_permutations": 1761278,
+          "blake_flat_compressions": 1318911,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 12,
+              "columns": 5128,
+              "cumulative_columns": 5128,
+              "p2_absorb_permutations": 1748992,
+              "blake_absorb_compressions": 1310720
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 32,
+          "max_log_lde_rows": 12,
+          "own_lde_cells": 131072,
+          "lde_cell_log_work_index": 1572864,
+          "lifted_cells": 131072,
+          "p2_prefix_permutations": 20478,
+          "blake_prefix_compressions": 12287,
+          "p2_flat_permutations": 20478,
+          "blake_flat_compressions": 12287,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 12,
+              "columns": 32,
+              "cumulative_columns": 32,
+              "p2_absorb_permutations": 8192,
+              "blake_absorb_compressions": 4096
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 2,
+      "composition_coefficient_log": 11
+    },
+    {
+      "kind": "add",
+      "ordinal": 12,
+      "trees": [
+        {
+          "columns": 4,
+          "max_log_lde_rows": 9,
+          "own_lde_cells": 2048,
+          "lde_cell_log_work_index": 18432,
+          "lifted_cells": 2048,
+          "p2_prefix_permutations": 1534,
+          "blake_prefix_compressions": 1023,
+          "p2_flat_permutations": 1534,
+          "blake_flat_compressions": 1023,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 9,
+              "columns": 4,
+              "cumulative_columns": 4,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 1869,
+          "max_log_lde_rows": 9,
+          "own_lde_cells": 956928,
+          "lde_cell_log_work_index": 8612352,
+          "lifted_cells": 956928,
+          "p2_prefix_permutations": 80894,
+          "blake_prefix_compressions": 60415,
+          "p2_flat_permutations": 80894,
+          "blake_flat_compressions": 60415,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 9,
+              "columns": 1869,
+              "cumulative_columns": 1869,
+              "p2_absorb_permutations": 79360,
+              "blake_absorb_compressions": 59392
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 5128,
+          "max_log_lde_rows": 9,
+          "own_lde_cells": 2625536,
+          "lde_cell_log_work_index": 23629824,
+          "lifted_cells": 2625536,
+          "p2_prefix_permutations": 220158,
+          "blake_prefix_compressions": 164863,
+          "p2_flat_permutations": 220158,
+          "blake_flat_compressions": 164863,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 9,
+              "columns": 5128,
+              "cumulative_columns": 5128,
+              "p2_absorb_permutations": 218624,
+              "blake_absorb_compressions": 163840
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 32,
+          "max_log_lde_rows": 9,
+          "own_lde_cells": 16384,
+          "lde_cell_log_work_index": 147456,
+          "lifted_cells": 16384,
+          "p2_prefix_permutations": 2558,
+          "blake_prefix_compressions": 1535,
+          "p2_flat_permutations": 2558,
+          "blake_flat_compressions": 1535,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 9,
+              "columns": 32,
+              "cumulative_columns": 32,
+              "p2_absorb_permutations": 1024,
+              "blake_absorb_compressions": 512
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 2,
+      "composition_coefficient_log": 8
+    },
+    {
+      "kind": "double",
+      "ordinal": 13,
+      "trees": [
+        {
+          "columns": 4,
+          "max_log_lde_rows": 14,
+          "own_lde_cells": 65536,
+          "lde_cell_log_work_index": 917504,
+          "lifted_cells": 65536,
+          "p2_prefix_permutations": 49150,
+          "blake_prefix_compressions": 32767,
+          "p2_flat_permutations": 49150,
+          "blake_flat_compressions": 32767,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 14,
+              "columns": 4,
+              "cumulative_columns": 4,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 1447,
+          "max_log_lde_rows": 14,
+          "own_lde_cells": 23707648,
+          "lde_cell_log_work_index": 331907072,
+          "lifted_cells": 23707648,
+          "p2_prefix_permutations": 2015230,
+          "blake_prefix_compressions": 1507327,
+          "p2_flat_permutations": 2015230,
+          "blake_flat_compressions": 1507327,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 14,
+              "columns": 1447,
+              "cumulative_columns": 1447,
+              "p2_absorb_permutations": 1966080,
+              "blake_absorb_compressions": 1474560
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 4032,
+          "max_log_lde_rows": 14,
+          "own_lde_cells": 66060288,
+          "lde_cell_log_work_index": 924844032,
+          "lifted_cells": 66060288,
+          "p2_prefix_permutations": 5554174,
+          "blake_prefix_compressions": 4145151,
+          "p2_flat_permutations": 5554174,
+          "blake_flat_compressions": 4145151,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 14,
+              "columns": 4032,
+              "cumulative_columns": 4032,
+              "p2_absorb_permutations": 5505024,
+              "blake_absorb_compressions": 4112384
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 32,
+          "max_log_lde_rows": 14,
+          "own_lde_cells": 524288,
+          "lde_cell_log_work_index": 7340032,
+          "lifted_cells": 524288,
+          "p2_prefix_permutations": 81918,
+          "blake_prefix_compressions": 49151,
+          "p2_flat_permutations": 81918,
+          "blake_flat_compressions": 49151,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 14,
+              "columns": 32,
+              "cumulative_columns": 32,
+              "p2_absorb_permutations": 32768,
+              "blake_absorb_compressions": 16384
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 2,
+      "composition_coefficient_log": 13
+    },
+    {
+      "kind": "double",
+      "ordinal": 14,
+      "trees": [
+        {
+          "columns": 4,
+          "max_log_lde_rows": 12,
+          "own_lde_cells": 16384,
+          "lde_cell_log_work_index": 196608,
+          "lifted_cells": 16384,
+          "p2_prefix_permutations": 12286,
+          "blake_prefix_compressions": 8191,
+          "p2_flat_permutations": 12286,
+          "blake_flat_compressions": 8191,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 12,
+              "columns": 4,
+              "cumulative_columns": 4,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 1447,
+          "max_log_lde_rows": 12,
+          "own_lde_cells": 5926912,
+          "lde_cell_log_work_index": 71122944,
+          "lifted_cells": 5926912,
+          "p2_prefix_permutations": 503806,
+          "blake_prefix_compressions": 376831,
+          "p2_flat_permutations": 503806,
+          "blake_flat_compressions": 376831,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 12,
+              "columns": 1447,
+              "cumulative_columns": 1447,
+              "p2_absorb_permutations": 491520,
+              "blake_absorb_compressions": 368640
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 4032,
+          "max_log_lde_rows": 12,
+          "own_lde_cells": 16515072,
+          "lde_cell_log_work_index": 198180864,
+          "lifted_cells": 16515072,
+          "p2_prefix_permutations": 1388542,
+          "blake_prefix_compressions": 1036287,
+          "p2_flat_permutations": 1388542,
+          "blake_flat_compressions": 1036287,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 12,
+              "columns": 4032,
+              "cumulative_columns": 4032,
+              "p2_absorb_permutations": 1376256,
+              "blake_absorb_compressions": 1028096
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 32,
+          "max_log_lde_rows": 12,
+          "own_lde_cells": 131072,
+          "lde_cell_log_work_index": 1572864,
+          "lifted_cells": 131072,
+          "p2_prefix_permutations": 20478,
+          "blake_prefix_compressions": 12287,
+          "p2_flat_permutations": 20478,
+          "blake_flat_compressions": 12287,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 12,
+              "columns": 32,
+              "cumulative_columns": 32,
+              "p2_absorb_permutations": 8192,
+              "blake_absorb_compressions": 4096
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 2,
+      "composition_coefficient_log": 11
+    },
+    {
+      "kind": "sha256",
+      "ordinal": 15,
+      "trees": [
+        {
+          "columns": 3,
+          "max_log_lde_rows": 13,
+          "own_lde_cells": 24576,
+          "lde_cell_log_work_index": 319488,
+          "lifted_cells": 24576,
+          "p2_prefix_permutations": 24574,
+          "blake_prefix_compressions": 16383,
+          "p2_flat_permutations": 24574,
+          "blake_flat_compressions": 16383,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 13,
+              "columns": 3,
+              "cumulative_columns": 3,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 7409,
+          "max_log_lde_rows": 13,
+          "own_lde_cells": 60694528,
+          "lde_cell_log_work_index": 789028864,
+          "lifted_cells": 60694528,
+          "p2_prefix_permutations": 5079038,
+          "blake_prefix_compressions": 3809279,
+          "p2_flat_permutations": 5079038,
+          "blake_flat_compressions": 3809279,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 13,
+              "columns": 7409,
+              "cumulative_columns": 7409,
+              "p2_absorb_permutations": 5054464,
+              "blake_absorb_compressions": 3792896
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 16,
+          "max_log_lde_rows": 13,
+          "own_lde_cells": 131072,
+          "lde_cell_log_work_index": 1703936,
+          "lifted_cells": 131072,
+          "p2_prefix_permutations": 32766,
+          "blake_prefix_compressions": 16383,
+          "p2_flat_permutations": 32766,
+          "blake_flat_compressions": 16383,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 13,
+              "columns": 16,
+              "cumulative_columns": 16,
+              "p2_absorb_permutations": 8192,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 16,
+          "max_log_lde_rows": 13,
+          "own_lde_cells": 131072,
+          "lde_cell_log_work_index": 1703936,
+          "lifted_cells": 131072,
+          "p2_prefix_permutations": 32766,
+          "blake_prefix_compressions": 16383,
+          "p2_flat_permutations": 32766,
+          "blake_flat_compressions": 16383,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 13,
+              "columns": 16,
+              "cumulative_columns": 16,
+              "p2_absorb_permutations": 8192,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 1,
+      "composition_coefficient_log": 12
+    },
+    {
+      "kind": "arith256_mod",
+      "ordinal": 16,
+      "trees": [
+        {
+          "columns": 4,
+          "max_log_lde_rows": 10,
+          "own_lde_cells": 4096,
+          "lde_cell_log_work_index": 40960,
+          "lifted_cells": 4096,
+          "p2_prefix_permutations": 3070,
+          "blake_prefix_compressions": 2047,
+          "p2_flat_permutations": 3070,
+          "blake_flat_compressions": 2047,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 10,
+              "columns": 4,
+              "cumulative_columns": 4,
+              "p2_absorb_permutations": 0,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "fixed"
+        },
+        {
+          "columns": 401,
+          "max_log_lde_rows": 10,
+          "own_lde_cells": 410624,
+          "lde_cell_log_work_index": 4106240,
+          "lifted_cells": 410624,
+          "p2_prefix_permutations": 36862,
+          "blake_prefix_compressions": 27647,
+          "p2_flat_permutations": 36862,
+          "blake_flat_compressions": 27647,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 10,
+              "columns": 401,
+              "cumulative_columns": 401,
+              "p2_absorb_permutations": 33792,
+              "blake_absorb_compressions": 25600
+            }
+          ],
+          "tree": "main"
+        },
+        {
+          "columns": 976,
+          "max_log_lde_rows": 10,
+          "own_lde_cells": 999424,
+          "lde_cell_log_work_index": 9994240,
+          "lifted_cells": 999424,
+          "p2_prefix_permutations": 86014,
+          "blake_prefix_compressions": 63487,
+          "p2_flat_permutations": 86014,
+          "blake_flat_compressions": 63487,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 10,
+              "columns": 976,
+              "cumulative_columns": 976,
+              "p2_absorb_permutations": 82944,
+              "blake_absorb_compressions": 61440
+            }
+          ],
+          "tree": "inter"
+        },
+        {
+          "columns": 16,
+          "max_log_lde_rows": 10,
+          "own_lde_cells": 16384,
+          "lde_cell_log_work_index": 163840,
+          "lifted_cells": 16384,
+          "p2_prefix_permutations": 4094,
+          "blake_prefix_compressions": 2047,
+          "p2_flat_permutations": 4094,
+          "blake_flat_compressions": 2047,
+          "source_height_groups": [
+            {
+              "log_lde_rows": 10,
+              "columns": 16,
+              "cumulative_columns": 16,
+              "p2_absorb_permutations": 1024,
+              "blake_absorb_compressions": 0
+            }
+          ],
+          "tree": "composition"
+        }
+      ],
+      "composition_split": 1,
+      "composition_coefficient_log": 9
+    }
+  ],
+  "calibration_rectangles": [
+    {
+      "columns": 47,
+      "log_rows": 17,
+      "p2_permutations_s": 618107065.405549,
+      "blake_compressions_s": 7820510563.15391
+    },
+    {
+      "columns": 128,
+      "log_rows": 17,
+      "p2_permutations_s": 893346843.6655239,
+      "blake_compressions_s": 12345602730.43544
+    },
+    {
+      "columns": 304,
+      "log_rows": 17,
+      "p2_permutations_s": 1111414115.8321064,
+      "blake_compressions_s": 15427489679.157658
+    },
+    {
+      "columns": 479,
+      "log_rows": 17,
+      "p2_permutations_s": 1199104634.652455,
+      "blake_compressions_s": 17177485095.183012
+    },
+    {
+      "columns": 128,
+      "log_rows": 20,
+      "p2_permutations_s": 1566935411.9319143,
+      "blake_compressions_s": 21490342497.49664
+    },
+    {
+      "columns": 479,
+      "log_rows": 20,
+      "p2_permutations_s": 1672712460.4948723,
+      "blake_compressions_s": 23816743780.428833
+    }
+  ],
+  "p2_prefix_runtime_implemented": false,
+  "outer_commit_budget_available": false,
+  "not_measured_block_timing": true,
+  "excluded": [
+    "FFT/LDE execution; own_lde_cells is work volume only",
+    "FS/PoW",
+    "openings",
+    "memory copy, bank read/write, allocation and launch overhead",
+    "outer node commits; candidate shapes not known",
+    "host graph/witness, setup/cache, transfer, verification, request latency"
+  ],
+  "assumptions": [
+    "Blake operation count follows existing native_height_leaves eager-prefix full-block convention",
+    "P2 incremental source-height prefix bank carries24M31 state and source-owned absorb position; numerical header alone is not this runtime",
+    "Composition geometry uses source split bound and8*2^split columns",
+    "Warm scenario skips onlyFIXED initialization; allMAIN/INTER/composition charged",
+    "Rectangular throughput extrema are scenario calibration, not actual mixed-prefix measurement, confidence interval or bound",
+    "Current accepted M6 source geometry; this does not assert P2 native profile validity or compute new full pure-P2 block proof cost"
+  ]
+}
