@@ -2,6 +2,7 @@
 //! canonical outer profile / shape policy.
 const std = @import("std");
 test {
+    _ = @import("rv64_recursion/om31_native/native_gkr_child_test.zig");
     _ = @import("rv64_recursion/vk_table.zig");
     _ = @import("rv64_recursion/node_summary.zig");
     _ = @import("rv64_recursion/om31_native/canon_hash.zig");

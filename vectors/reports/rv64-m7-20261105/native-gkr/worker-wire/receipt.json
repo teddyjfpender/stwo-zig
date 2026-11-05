@@ -1,0 +1,51 @@
+{
+  "schema": "rv64-m7-native-worker-wire/v1",
+  "label": "M",
+  "source_marker": "1bbc3b7fd+worker-wire-policy-uncommitted",
+  "status": "pure native container and recursion CPU-policy tests PASS; no new physical PCS/request",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/rv64_m5_vk_table_test_root.zig": "2f5f0671bea3c5527a00d5e38dfc791a050bef80af7b2417c1d7167a91d9347c",
+    "src/integrations/riscv_cpu/rv64_native_gkr_test_root.zig": "4cac253ff930ee2d423827487f2c11167bb52142886f2008aa37e24f06d0bd1d",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/typed_cpu.zig": "1bde6f83f57dedebb92a4b97370b45bedcc5a74465fb7f1b3c12916a1226f3f9",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/typed_cpu_projection.zig": "cd3e4bb4ad40e12da5c142c8e9651365bda4eb8751c9dbb286f64e3b6872e270",
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/worker_wire.zig": "98d7dbbd7ee4e9d9d212c16e7c42cdffcfa9ca52e70511dfca88a8bd9376cc01"
+  },
+  "suites": {
+    "test-riscv64-native-gkr": "PASS;2/2buildsteps,60s715MB incl3468/3468NG01sectionwordmutants",
+    "test-riscv64-m5-vk-table": "PASS;2/2buildsteps,49s864MB inclnumerical/circuitGKRandtraceonly"
+  },
+  "wire": {
+    "magic": "RVN2",
+    "version": 2,
+    "header_words": 8,
+    "kind": "cpu1/truth2",
+    "ordinal": "<256",
+    "numerical_words": "exactreceiverRosterwordCount",
+    "pcs_bytes": "1..64MiB, borroweddecodeview",
+    "reserved": "twozeroheaderwords",
+    "globals": "derivedfromV2roots,notserializedfreeclaims"
+  },
+  "negative_cases": [
+    "headerfields0..7",
+    "truncation4lengths",
+    "trailingbyte",
+    "v1section",
+    "noncanonicalM31salt",
+    "salt64",
+    "otherclasslength",
+    "ordinal256",
+    "allallocationfailurepoints"
+  ],
+  "cpu_policy": [
+    "sourcecpuLogstepcap",
+    "PCu16limbsand4bytealignment",
+    "compactPCupperlimbszero,high16<32768,nonzeroinjectiveM31value",
+    "x0endpointsandclockzero",
+    "everyregisterclock<=4*steps",
+    "sourcefirst/middle/last/singlefamily andCPUinitialchaininterval"
+  ],
+  "limitations": [
+    "OpaquePCSframingfixturedoesnotverifyphysicalPCS.",
+    "Actualworker/nativeCPUproof,typedgraph,andnewformatreceiverintegrationremainopen."
+  ]
+}

@@ -1,4 +1,6 @@
 test {
+    _ = @import("word16_global_execution/services/native_gkr/worker_wire.zig");
+
     _ = @import("word16_global_execution/services/native_gkr/public_projection.zig");
     _ = @import("word16_global_execution/services/native_gkr/truth_statement.zig");
     _ = @import("word16_global_execution/services/native_gkr/canonical_rungs.zig");

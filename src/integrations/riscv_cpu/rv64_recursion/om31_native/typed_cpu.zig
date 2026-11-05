@@ -13,10 +13,19 @@ const Native = @import("../../word16_global_execution/services/native_gkr/cpu_st
 const Expected = @import("../../word16_global_execution/services/protocol.zig").Expected;
 const T = @import("../../word16_global_execution/services/types.zig");
 const Table = @import("../vk_table.zig");
+const Bounds = @import("../node_summary.zig");
+pub const Policy = struct {
+    cpu_log: u32,
+    compact_pc: bool,
+    family: @import("../../word16_global_execution/ethereum/canon_native.zig").Family = .cpu_single,
+    pub fn fromSetup(source: *const @import("../../word16_global_execution/services/roster.zig").CpuSetup, family: @import("../../word16_global_execution/ethereum/canon_native.zig").Family) Policy {
+        return .{.cpu_log=source.materials.geometry.cpu_log,.compact_pc=source.materials.geometry.cpu_compact_decode,.family=family};
+    }
+};
 pub const Assignment = struct { metadata: Native.Metadata, inputs: Native.Inputs, expected: Expected };
-pub fn constrain(ctx: *C.Context, plan: *const @import("../../word16_global_execution/services/gkr_local/cpu_components.zig").Plan,
+pub fn constrain(ctx: *C.Context, policy: Policy, plan: *const @import("../../word16_global_execution/services/gkr_local/cpu_components.zig").Plan,
     node: Summary.Wires, metadata: Hash.CompactCpuMetadata, inputs: Cpu.Statement.ChainInputs, expected: Hash.Expected, assignment: Assignment) ![3]Public.Word {
-    try constrainTransitions(ctx,node,metadata,inputs,expected,assignment);
+    try constrainTransitions(ctx,policy,node,metadata,inputs,expected,assignment);
     return @import("typed_cpu_projection.zig").constrain(ctx,plan,metadata,inputs,node,assignment);
 }
 fn same(ctx: *C.Context, actual: []const Public.Word, wanted: []const Public.Word) !void {
@@ -25,11 +34,14 @@ fn same(ctx: *C.Context, actual: []const Public.Word, wanted: []const Public.Wor
 }
 /// metadata uses the compact visitor's wire-shaped fields. Assignment only
 /// supplies range/carry witnesses and never grants authority to those fields.
-pub fn constrainTransitions(ctx: *C.Context, node: Summary.Wires, metadata: anytype, inputs: Cpu.Statement.ChainInputs, expected: Hash.Expected, assignment: Assignment) !void {
+pub fn constrainTransitions(ctx: *C.Context, policy: Policy, node: Summary.Wires, metadata: anytype, inputs: Cpu.Statement.ChainInputs, expected: Hash.Expected, assignment: Assignment) !void {
+    if(policy.cpu_log<5 or policy.cpu_log>22)return error.TypedCpuSourcePolicy;
     const zero = try Table.constWord(ctx, 0);
     const one = try Table.constWord(ctx, 1);
     const n = node.assignment;
     try ctx.eq(metadata.ordinal.get(), node.raw[Summary.Index.lo].get());
+    // CPU segments occupy the initial contiguous part of the native chain.
+    try ctx.eq(metadata.ordinal.get(),node.raw[Summary.Index.ctr_in+Counter.cpu_next].get());
     try ctx.eq(metadata.steps_in[1].get(), zero.get());
     try ctx.eq(metadata.steps_in[0].get(), node.raw[Summary.Index.steps_in].get());
     try ctx.eq(inputs.epoch.get(), metadata.cpu_ordinal.get());
@@ -37,6 +49,15 @@ pub fn constrainTransitions(ctx: *C.Context, node: Summary.Wires, metadata: anyt
     try Integer.addTo(ctx, node.raw[Summary.Index.ctr_in + Counter.cpu_next], one,
         node.raw[Summary.Index.ctr_out + Counter.cpu_next], n.ctr_in[Counter.cpu_next], 1);
     try Integer.atMost(ctx, one, inputs.steps, 1, assignment.inputs.steps);
+    const step_cap=(@as(u32,1)<<@intCast(policy.cpu_log))-1;
+    try Integer.atMost(ctx,inputs.steps,try Table.constWord(ctx,step_cap),assignment.inputs.steps,step_cap);
+    const clock_bound=try Integer.scale(ctx,inputs.steps,assignment.inputs.steps,4);
+    for(inputs.register_clocks,assignment.inputs.register_clocks) |clock,value|
+        try Integer.atMost(ctx,clock,clock_bound,value,4*assignment.inputs.steps);
+    try ctx.eq(inputs.register_clocks[0].get(),zero.get());
+    for(inputs.initial_registers[0]++inputs.final_registers[0]) |limb|try ctx.eq(limb.get(),zero.get());
+    try admitPc(ctx,policy,inputs.initial_pc,assignment.inputs.initial_pc);
+    try admitPc(ctx,policy,inputs.final_pc,assignment.inputs.final_pc);
     try ctx.eq(expected.admission.max_prefix_steps[1].get(), zero.get());
     try Integer.atMost(ctx, inputs.steps, expected.admission.max_prefix_steps[0], assignment.inputs.steps, @intCast(assignment.expected.admission.max_prefix_steps));
     try Integer.addTo(ctx, node.raw[Summary.Index.steps_in], inputs.steps, node.raw[Summary.Index.steps_out], n.steps_in, assignment.inputs.steps);
@@ -74,6 +95,12 @@ pub fn constrainTransitions(ctx: *C.Context, node: Summary.Wires, metadata: anyt
     try ctx.noteWitnessHint(inverse, .pointwise_inverse_or_zero, difference, ctx.zero());
     try ctx.eq(try ctx.mul(difference, final), ctx.zero());
     try ctx.eq(try ctx.mul(difference, inverse), try ctx.sub(ctx.one(), final));
+    switch(policy.family){
+        .cpu_first,.cpu_single=>try ctx.eq(node.raw[Summary.Index.ctr_in+Counter.cpu_next].get(),zero.get()),
+        .cpu_middle,.cpu_last=>try Integer.atMost(ctx,one,node.raw[Summary.Index.ctr_in+Counter.cpu_next],1,n.ctr_in[Counter.cpu_next]),
+        else=>return error.TypedCpuSourcePolicy,
+    }
+    try ctx.eq(final,if(policy.family==.cpu_last or policy.family==.cpu_single)ctx.one() else ctx.zero());
     const initial = try Hash.state(ctx, inputs.initial_pc, inputs.initial_registers, zero);
     const terminal = try Hash.state(ctx, inputs.final_pc, inputs.final_registers, final_word);
     try same(ctx, node.raw[Summary.Index.s_in..][0..8], &initial);
@@ -82,6 +109,19 @@ pub fn constrainTransitions(ctx: *C.Context, node: Summary.Wires, metadata: anyt
     // pinned image and public terminal RAM, whose claim closes internal RAM.
     // Summary.validate forces zero output on every nonterminal CPU shard.
     try C.lane.check();
+}
+fn admitPc(ctx:*C.Context,policy:Policy,words:[4]Public.Word,values:[4]u32)!void{
+    const quarter=try ctx.guess(C.Q.fromU32Unchecked(values[0]>>2,0,0,0));
+    try Bounds.rangeBits(ctx,quarter,14,Bounds.bitsOf(values[0]>>2,14));
+    try ctx.eq(try Integer.canonical(ctx,words[0]),try ctx.mul(quarter,try ctx.constant(C.Q.fromU32Unchecked(4,0,0,0))));
+    if(policy.compact_pc){
+        try ctx.eq(words[2].get(),ctx.zero());try ctx.eq(words[3].get(),ctx.zero());
+        try Integer.atMost(ctx,words[1],try Table.constWord(ctx,32767),values[1],32767);
+        const imaginary=try ctx.constant(C.Q.fromU32Unchecked(0,1,0,0));
+        const raw:Public.Word=.newUnsafe(try ctx.add(words[0].get(),try ctx.mul(words[1].get(),imaginary)));
+        const value=try std.math.add(u32,values[0],try std.math.mul(u32,values[1],65536));
+        try ctx.eq(try Integer.nonzero(ctx,raw,value),ctx.one());
+    }
 }
 
 test "typed CPU transitions bind integer steps call cursors epoch state and terminal presence" {
@@ -104,7 +144,7 @@ test "typed CPU transitions bind integer steps call cursors epoch state and term
     node.ctr_out[Counter.sponge_next] = 3;
     const Metadata = struct { ordinal: Public.Word, cpu_ordinal: Public.Word, steps_in: Hash.U64,
         calls: [T.FAMILIES]Public.Word, first_ids: [T.FAMILIES]Public.Word, sponge: [3]Public.Word };
-    for (0..9) |mutation| {
+    for (0..15) |mutation| {
         var ctx = try C.Context.init(std.testing.allocator, 0);
         defer ctx.deinit();
         ctx.assert_eq_on_eval = false;
@@ -117,6 +157,11 @@ test "typed CPU transitions bind integer steps call cursors epoch state and term
             assigned_metadata.sponge = .{1,2,3};
             assigned_inputs.sponge_first = 3;
             changed.ctr_out[Counter.sponge_next] = 5;
+        }
+        if (mutation == 12) {
+            var registers: [32]u64=@splat(0);registers[0]=1;
+            changed.s_in=Canon.stateDigest(4096,registers,false);
+            assigned_inputs.initial_registers[0][0]=1;
         }
         if (mutation == 1) changed.ctr_out[Counter.cpu_calls] += 1;
         if (mutation == 2) changed.steps_out += 1;
@@ -141,11 +186,14 @@ test "typed CPU transitions bind integer steps call cursors epoch state and term
             inputs.final_registers[r][i] = try Table.guessWord(&ctx, 0);
         };
         for (&inputs.register_clocks) |*word| word.* = try Table.guessWord(&ctx, 0);
-        const result = constrainTransitions(&ctx, wires, meta, inputs, try Hash.guessExpected(&ctx, e), .{ .metadata = assigned_metadata, .inputs = assigned_inputs, .expected = e });
+        if(mutation==10){inputs.register_clocks[0]=try Table.guessWord(&ctx,1);assigned_inputs.register_clocks[0]=1;}
+        if(mutation==11){inputs.register_clocks[1]=try Table.guessWord(&ctx,29);assigned_inputs.register_clocks[1]=29;}
+        if(mutation==12)inputs.initial_registers[0][0]=try Table.guessWord(&ctx,1);
+        const result = constrainTransitions(&ctx,.{.cpu_log=5,.compact_pc=mutation==9,.family=if(mutation==13).cpu_first else if(mutation==14).cpu_last else .cpu_single}, wires, meta, inputs, try Hash.guessExpected(&ctx, e), .{ .metadata = assigned_metadata, .inputs = assigned_inputs, .expected = e });
         const valid = if (result) |_| try ctx.isCircuitValid() else |err| blk: {
-            if (mutation != 2) return err;
+            if (mutation != 2 and mutation != 11 and mutation != 14) return err;
             break :blk false;
         };
-        try std.testing.expectEqual(mutation == 0 or mutation == 8, valid);
+        try std.testing.expectEqual(mutation == 0 or mutation == 8 or mutation == 9, valid);
     }
 }

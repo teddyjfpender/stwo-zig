@@ -150,7 +150,7 @@ test "source CPU projection binds count roles capacities splits absence and sign
         var changed=raw;if(mutation==6)changed[Summary.Index.output_seen]=0;
         const node=try Summary.Wires.guess(&ctx,try Summary.Native.fromWords(&changed));
         _=try constrain(&ctx,&plan,wired_metadata,inputs,node,.{.metadata=assigned_metadata,.inputs=native_inputs,.expected=expected});
-        if(mutation==0)_=try @import("typed_cpu.zig").constrain(&ctx,&plan,node,wired_metadata,inputs,try Hash.guessExpected(&ctx,expected),
+        if(mutation==0)_=try @import("typed_cpu.zig").constrain(&ctx,.{.cpu_log=5,.compact_pc=false},&plan,node,wired_metadata,inputs,try Hash.guessExpected(&ctx,expected),
             .{.metadata=assigned_metadata,.inputs=native_inputs,.expected=expected});
         try std.testing.expectEqual(mutation==0,try ctx.isCircuitValid());
     }
