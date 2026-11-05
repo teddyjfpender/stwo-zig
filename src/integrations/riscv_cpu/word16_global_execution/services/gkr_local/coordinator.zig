@@ -240,7 +240,15 @@ const Run = struct {
     results: []?Result,
     pending: ?*const Manifest.PendingManifest = null,
     cpu_tree_policies: []const @import("child.zig").TreePolicy,
+    failure_logged: std.atomic.Value(bool) = .init(false),
+    fn logFailure(self: *Run, phase: []const u8, index: usize, err: anyerror) void {
+        // Emit the first actual worker error before coordinator destruction or
+        // budget assertions can obscure it. Peers may subsequently fail because
+        // the same physical endpoint was deliberately poisoned on that error.
+        if (!self.failure_logged.swap(true, .monotonic)) std.debug.print("NATIVE_COORDINATOR first_error stage={s} ordinal={} kind={s} error={s} utc_ns={}\n", .{ phase, index, if (index < self.setups.len) "cpu" else "truth", @errorName(err), std.time.nanoTimestamp() });
+    }
     fn stageOne(self: *Run, index: usize) !void {
+        errdefer |err| self.logFailure("stage_one", index, err);
         const timing = if (self.options.worker_timings) |values| &values[index] else null;
         var timer: ?std.time.Timer = if (timing != null) try std.time.Timer.start() else null;
         var total_timer = timer;
@@ -377,6 +385,7 @@ const Run = struct {
         if (timing) |value| value.stage1_completed = true;
     }
     fn stageTwo(self: *Run, index: usize) !void {
+        errdefer |err| self.logFailure("stage_two", index, err);
         const timing = if (self.options.worker_timings) |values| &values[index] else null;
         var timer: ?std.time.Timer = if (timing != null) try std.time.Timer.start() else null;
         var total_timer = timer;
