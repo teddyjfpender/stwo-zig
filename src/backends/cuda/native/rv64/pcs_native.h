@@ -59,6 +59,11 @@ int stwo_rv64_gpu_session_submit(void *, StwoRv64GpuCallback, void *user);
 // Explicit synchronous proof-controller custody: nested same-owner submit and
 // native prove run inline; all borrowed spans live until terminal return.
 int stwo_rv64_gpu_session_controller(void *, StwoRv64GpuCallback, void *user);
+// Trusted joined terminal destruction, including a logically poisoned service.
+// Permanently refuses future proves/submissions; no allocation capability.
+int stwo_rv64_gpu_session_cleanup(void *, StwoRv64GpuCallback, void *user);
+// Owner-only joined eviction of unused upper PCS blocks; live owners stay.
+int stwo_rv64_gpu_session_trim_unused(void *, uint64_t *released_bytes);
 int stwo_rv64_gpu_lease_allocate(void *, uint64_t words, uint32_t kind,
                                  const uint32_t scope[8], StwoRv64GpuLease *);
 int stwo_rv64_gpu_lease_validate(void *, const StwoRv64GpuLease *,

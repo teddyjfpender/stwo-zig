@@ -611,8 +611,19 @@ const Job = struct {
             defer plan.deinit(a);
             // Include the maximum arena held alongside ALL accumulated role
             // metadata/buckets; per-role peaks alone are not a valid bound.
-            const actual = try @import("runtime_memory.zig").query(&b.service.library, raw);
-            const available = try actual.available();
+            const Memory = @import("runtime_memory.zig");
+            var actual = try Memory.query(&b.service.library, raw);
+            var available = try actual.available();
+            if (!available.contains(plan.additional_peak) or actual.largest_virtual_free < plan.workspace_words * 4) {
+                // Match the established allocator's pressure recovery before
+                // refusing. Only unused upper PCS blocks may be evicted; the
+                // fresh all-context snapshot must still cover the FULL peak.
+                if (try Memory.trimUnused(&b.service.library, b.service.session)) |released| {
+                    actual = try Memory.query(&b.service.library, raw);
+                    available = try actual.available();
+                    std.debug.print("GPU_RC_WORKSPACE_PRESSURE_TRIM ordinal={} released_bytes={} available_large={} available_small={}\n", .{ self.scope.ordinal, released, available.large, available.small });
+                }
+            }
             if (!available.contains(plan.additional_peak) or actual.largest_virtual_free < plan.workspace_words * 4) {
                 std.debug.print("GPU_RC_WORKSPACE_REFUSED ordinal={} required_large={} required_small={} available_large={} available_small={} workspace_words={}\n", .{ self.scope.ordinal, plan.additional_peak.large, plan.additional_peak.small, available.large, available.small, plan.workspace_words });
                 return error.RoleWorkspaceExceedsPhysicalArena;

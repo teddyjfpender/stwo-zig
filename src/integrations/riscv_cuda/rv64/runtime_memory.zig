@@ -29,6 +29,16 @@ pub fn query(lib: *std.DynLib, raw: *anyopaque) !Snapshot {
     return result;
 }
 
+/// Optional owner-only pressure relief. A missing additive API provides no
+/// reclaimed headroom; the caller must retain its original fail-closed guard.
+pub fn trimUnused(lib: *std.DynLib, session: *anyopaque) !?u64 {
+    const Trim = *const fn (*anyopaque, *u64) callconv(.c) c_int;
+    const call = lib.lookup(Trim, "stwo_rv64_gpu_session_trim_unused") orelse return null;
+    var released: u64 = 0;
+    if (call(session, &released) != 0) return error.WorkspaceCacheTrimFailed;
+    return released;
+}
+
 test "workspace observation accounts physical large and small retention" {
     const actual = Snapshot{ .capacity = 22 << 30, .chunk = A.chunk_bytes, .small_slab = A.small_slab_bytes, .live_large = 5 << 30, .live_small = 16 << 20 };
     const free = try actual.available();

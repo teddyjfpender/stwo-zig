@@ -132,6 +132,17 @@ struct ResidentOwner {
           static_cast<unsigned long long>(result.after), result.released);
   }
 
+  uint64_t trimUnused() {
+    // Only retired upper PCS blocks qualify. Domains, request leases and all
+    // active pipeline planes retain their owners and allocation identities.
+    sync();
+    const auto result = rv64_pcs_idle_cache::trim(
+        {true, 0}, blocks, retained, [&](uint32_t *ptr) {
+          CHECK(stwo_exec_context_free_u32(ctx, ptr));
+        });
+    if (result.released) sync();
+    return result.before - result.after;
+  }
   void ensure(uint64_t bytes) {
     if (bytes > cap)
       throw std::runtime_error("device allocation exceeds admitted capacity");
@@ -470,7 +481,7 @@ struct ResidentOwner {
   }
 };
 struct Service {
-  enum class Job { none, prove, callback, controller, quit };
+  enum class Job { none, prove, callback, controller, quit, cleanup };
   uint32_t device;
   uint64_t cap;
   std::thread thread;
@@ -549,12 +560,23 @@ struct Service {
       if (job == Job::quit)
         break;
       status = 0;
+      const bool terminal_cleanup = job == Job::cleanup;
+      const bool already_poisoned = poisoned;
+      const std::string original_error = error;
       rv64_pcs_pipeline::PcsNvtxPhase owner_profiling(
-          job == Job::controller ? "rv64/owner/controller" : job == Job::callback ? "rv64/owner/callback" : "rv64/owner/pcs");
+          terminal_cleanup ? "rv64/owner/cleanup" : job == Job::controller ? "rv64/owner/controller" : job == Job::callback ? "rv64/owner/callback" : "rv64/owner/pcs");
       try {
-        if (poisoned || !owner)
+        if (!owner || (poisoned && !terminal_cleanup))
           throw std::runtime_error("GPU session is poisoned");
-        if (job == Job::callback || job == Job::controller) {
+        if (terminal_cleanup) {
+          // Trusted destruction-only callback. Join before destroying CUDA
+          // metadata; no controller/reentrant prove capability is installed.
+          poisoned = true;
+          owner->sync();
+          const int code = callback(owner->ctx, owner->token, user);
+          owner->sync();
+          if (code) throw std::runtime_error("GPU terminal cleanup failed: " + std::to_string(code));
+        } else if (job == Job::callback || job == Job::controller) {
           struct ControllerScope {
             uint32_t &depth;
             uint32_t previous;
@@ -574,7 +596,7 @@ struct Service {
           runProve(request, result);
         }
       } catch (const std::exception &e) {
-        error = e.what();
+        if (!already_poisoned || error.empty()) error = e.what();
         status = int(cudaErrorUnknown);
         poisoned = true;
         if (job == Job::prove && result && result->owner) {
@@ -583,6 +605,12 @@ struct Service {
         }
         if (owner && stwo_exec_context_sync(owner->ctx))
           std::abort();
+      }
+      if (terminal_cleanup) {
+        poisoned = true;
+        // Cleanup failure must not replace the original proof failure.
+        if (!original_error.empty()) error = original_error;
+        else if (error.empty()) error = "GPU session terminal cleanup";
       }
       {
         std::lock_guard<std::mutex> lock(mutex);
@@ -712,6 +740,39 @@ extern "C" int stwo_rv64_gpu_session_controller(void *raw,
   s.changed.wait(lock, [&] { return s.done; });
   return s.status;
 }
+// Additive terminal destruction entry. Only callbacks already owned by this
+// service may release resources or destroy CUDA metadata. It grants no prove,
+// submission, controller or managed-lease allocation capability and never clears poison.
+extern "C" int stwo_rv64_gpu_session_cleanup(void *raw,
+    StwoRv64GpuCallback callback, void *user) {
+  if (!raw || !callback) return int(cudaErrorInvalidValue);
+  auto &s = *static_cast<Service *>(raw);
+  if (s.isOwner()) return int(cudaErrorInvalidResourceHandle);
+  std::lock_guard<std::mutex> caller(s.calls);
+  std::unique_lock<std::mutex> lock(s.mutex);
+  s.changed.wait(lock, [&] { return s.job == Service::Job::none; });
+  s.callback = callback; s.user = user;
+  s.invoke(Service::Job::cleanup);
+  s.changed.wait(lock, [&] { return s.done; });
+  return s.status;
+}
+// Owner-only pressure relief before a fresh physical snapshot. This does not
+// change the configured cache policy or evict any live plane, lease or domain.
+extern "C" int stwo_rv64_gpu_session_trim_unused(void *raw, uint64_t *released_bytes) {
+  if (!raw || !released_bytes) return int(cudaErrorInvalidValue);
+  *released_bytes = 0;
+  auto &s = *static_cast<Service *>(raw);
+  if (!s.isOwner() || s.poisoned || s.job == Service::Job::cleanup)
+    return int(cudaErrorInvalidResourceHandle);
+  try {
+    rv64_pcs_pipeline::PcsNvtxPhase profiling("m7/pcs/trim_unused");
+    *released_bytes = s.owner->trimUnused();
+    return 0;
+  } catch (const std::exception &e) {
+    s.error = e.what();
+    return int(cudaErrorUnknown);
+  }
+}
 extern "C" int stwo_rv64_gpu_lease_allocate(void *raw, uint64_t words,
                                             uint32_t kind,
                                             const uint32_t scope[8],
@@ -719,7 +780,7 @@ extern "C" int stwo_rv64_gpu_lease_allocate(void *raw, uint64_t words,
   if (!raw || !out)
     return int(cudaErrorInvalidValue);
   auto &s = *static_cast<Service *>(raw);
-  if (!s.isOwner())
+  if (!s.isOwner() || s.job == Service::Job::cleanup)
     return int(cudaErrorInvalidResourceHandle);
   try {
     *out = s.owner->lease(words, kind, scope_of(scope));
