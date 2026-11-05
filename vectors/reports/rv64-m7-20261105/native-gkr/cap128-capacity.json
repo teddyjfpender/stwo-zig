@@ -1,0 +1,26 @@
+{
+  "schema": "rv64-m7-native-capacity/v1",
+  "label": "M",
+  "library_source_commit": "3d5ace6d7f25c5f2dc7ee4a433a89bb743ac6959",
+  "library_sha256": "2f300126b9ccae059c07b5dc1711127658b952439adcaa48a8f7ca9ee59ab6df",
+  "gpu": "RTX 5090",
+  "instance_counts_added": [
+    65,
+    128
+  ],
+  "fixture_reference": "native OM31 mixed-height sumcheck prover, fresh verification and oracle masks checked",
+  "result": {
+    "schema": "rv64-om31-mixed-sumcheck-v1",
+    "cases": 17,
+    "poison_cases": 5,
+    "native_proof_parity": true,
+    "full_block_verified": false
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cuda/rv64_batch_fixture_main.zig": "6753819f82e9539dc386b85d43f49e1d794d4b142d2fb5e158378f2abd282044",
+    "tests/cuda/rv64/batch_smoke.cu": "09eef1ae43fd54b99fcf155c9ad1e75981d13e16892db12ab36a96d6384122ed",
+    "src/backends/cuda/native/rv64/batch.h": "478592eef800a44fdcdb7377550aa58efb052143d19b53709416662d397e2aab"
+  },
+  "log_sha256": "2b3318ea93b11b2c6328345c5c2f9bfeea83187027b99bd64d34d81d0fb1fe30",
+  "scope": "numerical mixed-height sumcheck and capacity; production compatibility established separately in cap128-m6-parity.json; v2-gkr not enabled"
+}

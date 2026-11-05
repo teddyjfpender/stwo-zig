@@ -205,11 +205,11 @@ int main(int argc, char **argv) {
   try {
     if (argc != 2)
       throw std::runtime_error("expected native fixture directory");
-    for (uint32_t id = 0; id < 15; ++id)
+    for (uint32_t id = 0; id < 17; ++id)
       exercise(argv[1], id);
     for (uint32_t attack = 1; attack <= 5; ++attack)
       exercise(argv[1], 3, attack);
-    std::printf("{\"schema\":\"rv64-om31-mixed-sumcheck-v1\",\"cases\":15,"
+    std::printf("{\"schema\":\"rv64-om31-mixed-sumcheck-v1\",\"cases\":17,"
                 "\"poison_cases\":5,\"native_"
                 "proof_parity\":true,\"full_block_verified\":false}\n");
     return 0;
