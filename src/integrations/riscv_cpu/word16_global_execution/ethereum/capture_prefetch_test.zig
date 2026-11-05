@@ -111,9 +111,9 @@ test "two packet capture equals serial, held lease and budget fallback" {
     try std.testing.expectEqual(@as(u8, 2), parallel.capture_schedule.max_worker_shards);
     try std.testing.expect(parallel.capture_schedule.max_single_packet_decoded_heap_bytes > 0);
     try std.testing.expect(parallel.capture_schedule.max_single_packet_decoded_heap_bytes <= 512 << 20);
-    parallel.native.items[0].cpu.?.metadata[0].values[0] ^= 1;
+    @constCast(parallel.native.items[0].cpu.?.metadata)[0].values[0] ^= 1;
     try std.testing.expect(!std.mem.eql(u8, &before, &D.digest(image_owner.identity, &parallel)));
-    parallel.native.items[0].cpu.?.metadata[0].values[0] ^= 1;
+    @constCast(parallel.native.items[0].cpu.?.metadata)[0].values[0] ^= 1;
     var altered_identity = image_owner.identity;
     altered_identity[0] ^= 1;
     try std.testing.expect(!std.mem.eql(u8, &before, &D.digest(altered_identity, &parallel)));
@@ -819,4 +819,49 @@ test "whole fast-pass RAM INITIAL equals final collector including zero-valued w
         try std.testing.expectEqual(@as(u64, direct.advice.initial.len), stats.fast_ram_words);
         try std.testing.expect(stats.fast_ram_ready_utc_ns > 0);
     }
+}
+
+test "sealed capture shares immutable CPU metadata with independent retirement" {
+    const Replay = @import("../../word16_execution/replay_capture.zig");
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    const config = fixture.config();
+    _ = try Collect.run(a, config);
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    var program = try Program.initWithAuthority(a, &image_owner.authority);
+    defer program.deinit();
+    var jobs = try fixture.temp.dir.openDir("artifacts/jobs", .{});
+    defer jobs.close();
+    const file = try jobs.openFile("job-000000.work", .{});
+    defer file.close();
+    var packet = try PacketCodec.read(a, file, &image_owner, config);
+    defer packet.deinit();
+    const native = try Capture.Owner.captureOne(a, &program, &packet, 0);
+    defer a.destroy(native);
+    var native_live = true;
+    defer if (native_live) native.deinit();
+    const seal = try Replay.sealCaptured(native);
+    try std.testing.expectEqualDeep(seal, try Replay.sealCaptured(native));
+    var wrong = seal;
+    wrong.digest[0] ^= 1;
+    try std.testing.expectError(error.CaptureSealMismatch, Replay.Capture.borrowSealed(a, native, wrong));
+    try std.testing.expectError(error.SealedCaptureIsReadOnly, native.cpu.?.materializeMain());
+    {
+        var view = try Replay.Capture.borrowSealed(a, native, seal);
+        defer view.deinit();
+        try std.testing.expectEqual(native.cpu.?.metadata.ptr, view.value.cpu.?.metadata.ptr);
+        try std.testing.expect(native.cpu.?.counts16.ptr != view.value.cpu.?.counts16.ptr);
+        try std.testing.expectEqualDeep(native.cpu.?.metadata, view.value.cpu.?.metadata);
+    }
+    // Actual CPU metadata retirement must release only its own reference.
+    const CPU = @import("../../word16_execution/cpu_source.zig");
+    const sample = native.cpu.?.metadata[0];
+    var retained = try native.cpu.?.borrowSealed(a, seal);
+    defer retained.deinit();
+    native.deinit();
+    native_live = false;
+    try std.testing.expectEqualDeep(@as(CPU.Metadata, sample), retained.metadata[0]);
+    retained.retireMetadata();
+    try std.testing.expectEqual(@as(usize, 0), retained.metadata.len);
 }

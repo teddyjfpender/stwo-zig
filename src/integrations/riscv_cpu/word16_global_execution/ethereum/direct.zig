@@ -64,6 +64,10 @@ pub const MAX_READY_TIMES = 32;
 const ReadyTap = struct {
     stats: *Stats,
     inner: ?Capture.Ready,
+    fn terminalReady(raw: *anyopaque, cells: []const @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell) void {
+        const self: *ReadyTap = @ptrCast(@alignCast(raw));
+        if (self.inner) |hook| if (hook.terminal_ready) |invoke| invoke(hook.context, cells);
+    }
     fn nativeSegment(raw: *anyopaque, index: usize, native: *const Native, shard: @import("../services/collector.zig").Shard, at_ns: u64) void {
         const self: *ReadyTap = @ptrCast(@alignCast(raw));
         if (self.inner) |hook| if (hook.native_segment) |invoke| invoke(hook.context, index, native, shard, at_ns);
@@ -397,7 +401,14 @@ const RamJob = struct {
         self.stats.fast_ram_ready_utc_ns = @intCast(std.time.nanoTimestamp());
         self.stats.fast_ram_keccak_calls = ram.counters.keccak;
         std.debug.print("GPU_FAST_RAM event=initial_ready utc_ns={} words={} derive_ns={} keccak_calls={}\n", .{ self.stats.fast_ram_ready_utc_ns, cells.len, self.stats.fast_ram_derive_ns, ram.counters.keccak });
-        if (self.hook) |hook| if (hook.global_ram) |call| call(hook.context, cells, .{ .counters = ram.counters, .total_steps = ram.total_steps, .final_pc = ram.final_pc });
+        const info = Capture.GlobalRamInfo{ .counters = ram.counters, .total_steps = ram.total_steps, .final_pc = ram.final_pc };
+        if (self.hook) |hook| {
+            // Old synchronous borrower finishes before ownership can transfer.
+            if (hook.global_ram) |call| call(hook.context, cells, info);
+            if (hook.take_global_ram) |take| if (take(hook.context, a, cells, info)) {
+                self.cells = null;
+            };
+        }
     }
 };
 
@@ -410,7 +421,7 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
     // their asynchronous readers BEFORE ordered.deinit frees captured values.
     errdefer if (ready) |hook| if (hook.cancel) |cancel| cancel(hook.context);
     var tap = ReadyTap{ .stats = stats, .inner = ready };
-    ordered.on_ready = .{ .context = &tap, .call = ReadyTap.call, .native_segment = ReadyTap.nativeSegment };
+    ordered.on_ready = .{ .context = &tap, .call = ReadyTap.call, .native_segment = ReadyTap.nativeSegment, .terminal_ready = ReadyTap.terminalReady, .seal_native = if (ready) |hook| hook.seal_native else false };
     var queue = Queue{};
     var consumer = Consumer{ .queue = &queue, .ordered = &ordered };
     const concurrent = inflight > 1;

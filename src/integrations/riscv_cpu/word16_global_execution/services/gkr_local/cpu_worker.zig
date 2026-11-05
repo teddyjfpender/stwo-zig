@@ -255,8 +255,7 @@ pub const CpuWorker = struct {
         if (self.source.device_generated) {
             // Device sources keep valid empty host owners and compact public
             // headers. Only capture records become dead after joined GKR.
-            source.cpu.allocator.free(source.cpu.metadata);
-            source.cpu.metadata = &.{};
+            source.cpu.retireMetadata();
             source.cpu.releaseFacts();
             self.local_metadata_retired = true;
             return;

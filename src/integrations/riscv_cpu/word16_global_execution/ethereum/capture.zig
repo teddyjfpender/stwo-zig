@@ -51,6 +51,13 @@ pub const Ready = struct {
     /// Whole first-pass GLOBAL INITIAL, derived from the pinned initial image.
     /// Called on a bounded one-request helper; data borrowed for this call only.
     global_ram: ?*const fn (*anyopaque, []const @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell, GlobalRamInfo) void = null,
+    /// Transfers the helper allocation when true; receiver must free with the
+    /// supplied allocator after all asynchronous readers join, including cancel.
+    take_global_ram: ?*const fn (*anyopaque, std.mem.Allocator, []@import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell, GlobalRamInfo) bool = null,
+    /// Immutable until Owner.deinit; callback never waits for GPU completion.
+    terminal_ready: ?*const fn (*anyopaque, []const @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell) void = null,
+    /// Seal once before publishing; default capture retains its old behavior.
+    seal_native: bool = false,
     native_segment: ?*const fn (*anyopaque, usize, *const Native, Collector.Shard, u64) void = null,
     ram_stack_budget: ?*@import("stwo_prover_engine").host_budget_allocator.SharedHostBudget = null,
     require_ram_stack_budget: bool = false,
@@ -198,6 +205,7 @@ pub const Ordered = struct {
         // MAIN/INTER generation retains its separate CPU metadata.
         n.cpu.?.releaseCaptureRecords();
         if (self.on_ready) |ready| {
+            if (ready.seal_native) _ = try @import("../../word16_execution/replay_capture.zig").sealCaptured(n);
             ready.call(ready.context, self.next_index, n, self.collector.lastEvents(), ledger_end);
             if (ready.native_segment) |call| call(ready.context, self.next_index, n, try self.collector.lastShard(), ledger_end);
         }
@@ -214,6 +222,7 @@ pub const Ordered = struct {
         const finish_start = self.elapsed();
         var advice = try self.collector.finish();
         errdefer advice.deinit();
+        if (self.on_ready) |ready| if (ready.terminal_ready) |call| call(ready.context, advice.terminal);
         self.timing.finish_ns = self.elapsed() - finish_start;
         const native = self.native;
         self.native = .{};

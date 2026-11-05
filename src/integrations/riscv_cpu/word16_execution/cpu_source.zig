@@ -27,6 +27,27 @@ pub const ServiceRecord = struct { pointer: u64, tag: u64, epoch: u16, tick: u24
 /// Stable narrow ingress layout shared with resident witness formatters. This
 /// remains advice: ROM authentication and the CPU/family AIR prove its meaning.
 pub const Metadata = extern struct { values: [5]u64, clocks: [3]u32, rom_row: u32 };
+/// Producer scheduling identity, never a verifier/public proof claim.
+pub const CaptureSeal = struct { digest: [32]u8 };
+const MetadataOwner = struct {
+    allocator: std.mem.Allocator,
+    refs: std.atomic.Value(usize) = .init(1),
+    values: []const Metadata,
+    public: X.types.Boundary,
+    program_identity: [32]u8,
+    epoch: u16,
+    log_size: u32,
+    compact: bool,
+    fused_tail: bool,
+    u8_pairs: bool,
+    fn release(self: *MetadataOwner) void {
+        if (self.refs.fetchSub(1, .acq_rel) == 1) {
+            const a = self.allocator;
+            a.free(self.values);
+            a.destroy(self);
+        }
+    }
+};
 comptime {
     std.debug.assert(@sizeOf(Metadata) == 56);
     std.debug.assert(@offsetOf(Metadata, "clocks") == 40);
@@ -277,7 +298,10 @@ pub const Source = struct {
     public: X.types.Boundary,
     epoch: u16,
     log_size: u32,
-    metadata: []Metadata,
+    metadata: []const Metadata,
+    metadata_owner: ?*MetadataOwner = null,
+    capture_seal: ?CaptureSeal = null,
+    sealed_view: bool = false,
     main: []M = &.{},
     device_main: []const Device.TraceColumn = &.{},
     device_ledgers: ?DeviceLedgers = null,
@@ -318,6 +342,39 @@ pub const Source = struct {
         // normalized obligations stay owned by Prepared/Advice, even when
         // Ethereum already retired the transport records before proving.
         return .{ .allocator = a, .program = self.program, .public = self.public, .epoch = self.epoch, .log_size = self.log_size, .metadata = metadata, .rom_counts = rom, .counts16 = r16, .counts8 = r8, .fused_tail = self.fused_tail, .u8_pairs = self.u8_pairs, .compact = self.compact, .capture_records_retired = true };
+    }
+    /// Called once by the ordered capture publisher after all metadata writes
+    /// join. Thereafter only retained views may project; the capture owner is
+    /// immutable until its final reference is released.
+    pub fn sealCapture(self: *Source, digest: [32]u8) !CaptureSeal {
+        if (self.capture_seal) |seal| {
+            if (!std.mem.eql(u8, &seal.digest, &digest)) return error.CaptureSealMismatch;
+            return seal;
+        }
+        if (self.main_projection_closed or self.main.len != 0 or self.interaction.len != 0 or self.device_main.len != 0 or self.device_projection_owner != null) return error.CpuReplayRequiresUnmaterializedCapture;
+        const owner = try self.allocator.create(MetadataOwner);
+        owner.* = .{ .allocator = self.allocator, .values = self.metadata, .public = self.public, .program_identity = self.program.identity, .epoch = self.epoch, .log_size = self.log_size, .compact = self.compact, .fused_tail = self.fused_tail, .u8_pairs = self.u8_pairs };
+        self.metadata_owner = owner;
+        self.capture_seal = .{ .digest = digest };
+        return self.capture_seal.?;
+    }
+    pub fn borrowSealed(self: *const Source, a: std.mem.Allocator, seal: CaptureSeal) !Source {
+        const stored = self.capture_seal orelse return error.CaptureNotSealed;
+        const owner = self.metadata_owner orelse return error.CaptureNotSealed;
+        if (!std.mem.eql(u8, &stored.digest, &seal.digest) or self.metadata.ptr != owner.values.ptr or self.metadata.len != owner.values.len or !std.meta.eql(self.public, owner.public) or self.epoch != owner.epoch or self.log_size != owner.log_size or self.compact != owner.compact or self.fused_tail != owner.fused_tail or self.u8_pairs != owner.u8_pairs or !std.mem.eql(u8, &self.program.identity, &owner.program_identity)) return error.CaptureSealMismatch;
+        if (self.main_projection_closed or self.main.len != 0 or self.interaction.len != 0 or self.device_main.len != 0 or self.device_projection_owner != null) return error.CpuReplayRequiresUnmaterializedCapture;
+        const rom = try a.dupe(u64, self.rom_counts);
+        errdefer a.free(rom);
+        const r16 = try a.dupe(u64, self.counts16);
+        errdefer a.free(r16);
+        const r8 = try a.dupe(u64, self.counts8);
+        _ = owner.refs.fetchAdd(1, .monotonic);
+        return .{ .allocator = a, .program = self.program, .public = self.public, .epoch = self.epoch, .log_size = self.log_size, .metadata = self.metadata, .metadata_owner = owner, .capture_seal = seal, .sealed_view = true, .rom_counts = rom, .counts16 = r16, .counts8 = r8, .fused_tail = self.fused_tail, .u8_pairs = self.u8_pairs, .compact = self.compact, .capture_records_retired = true };
+    }
+    pub fn retireMetadata(self: *Source) void {
+        if (self.metadata_owner) |owner| owner.release() else self.allocator.free(self.metadata);
+        self.metadata_owner = null;
+        self.metadata = &.{};
     }
     /// Compatibility wrapper: one capture followed by one wide projection.
     pub fn init(a: std.mem.Allocator, program: *const Program, public: X.types.Boundary, epoch: u16, log_size: u32, tape: *const Tape) !Source {
@@ -442,6 +499,7 @@ pub const Source = struct {
         return .{ .allocator = a, .program = program, .compact = program.compact, .public = public, .epoch = epoch, .log_size = log_size, .metadata = metadata, .rom_counts = rom_counts, .counts16 = counts16, .counts8 = counts8, .functions = functions, .memory = memory, .services = services };
     }
     pub fn projectDevice(self: *Source, stage: ProjectionStage, scope: Device.Scope) !void {
+        if (self.capture_seal != null and !self.sealed_view) return error.SealedCaptureIsReadOnly;
         if (self.main_projection_closed or self.main.len != 0 or self.device_main.len != 0) return error.ExecutionMainProjectionClosed;
         const projected = try stage.project(stage.context, self, scope);
         var adopted = false;
@@ -481,6 +539,7 @@ pub const Source = struct {
     /// empty, range histograms stay zero, metadata/facts/ROM counts stay owned.
     /// No Tape access or instruction replay occurs here.
     pub fn materializeMain(self: *Source) !void {
+        if (self.capture_seal != null and !self.sealed_view) return error.SealedCaptureIsReadOnly;
         if (self.main_projection_closed or self.main.len != 0) return error.ExecutionMainProjectionClosed;
         _ = try X.types.inputs(self.public, self.epoch, self.log_size);
         if (self.metadata.len != self.public.steps) return error.InvalidExecutionSourcePhase;
@@ -572,7 +631,7 @@ pub const Source = struct {
         self.releaseMain();
         self.releaseFacts();
         self.allocator.free(self.interaction);
-        self.allocator.free(self.metadata);
+        self.retireMetadata();
         self.allocator.free(self.rom_counts);
         self.allocator.free(self.counts16);
         self.allocator.free(self.counts8);
