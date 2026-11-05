@@ -20,4 +20,3 @@ test-riscv64-m5-canon-native success
 +- run /workspace/zig/zig success 12s MaxRSS:363M
 test-riscv64-om31-native-pcs success
 +- run /workspace/zig/zig success 6m MaxRSS:5G
-
