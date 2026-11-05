@@ -136,28 +136,55 @@ pub const Trace = struct {
 /// No operands, register clocks, field columns or memory/service ledger live
 /// here. A consumer still needs the segment initial state and ordered advice.
 pub const MinimalRecord = extern struct { result: u64, pc: u32, next_pc: u32 };
+pub const MINIMAL_CHUNK_ROWS: usize = 256;
+/// Architectural state preceding each chunk, captured inside the original
+/// fast pass. Unused registers may be zeroed by a later transport adapter;
+/// retaining them here permits an independent prefix consistency check.
+pub const MinimalSeed = extern struct { values: [32]u64, clocks: [32]u32 };
 pub const MinimalTrace = struct {
     records: []MinimalRecord,
     len: usize = 0,
-    fn appendFast(self: *MinimalTrace, pc: u64, next_pc: u64, result: u64) void {
+    seeds: []MinimalSeed = &.{},
+    clocks: [32]u32 = @splat(0),
+    seed_prepared: bool = false,
+    /// Reference fallback calls this BEFORE retirement; a trap publishes no
+    /// record and the same seed may be overwritten on retry.
+    pub fn prepareReference(self: *MinimalTrace, registers: *const [32]u64) void {
+        if (self.seeds.len == 0 or self.len % MINIMAL_CHUNK_ROWS != 0) return;
+        std.debug.assert(self.len / MINIMAL_CHUNK_ROWS < self.seeds.len);
+        self.seeds[self.len / MINIMAL_CHUNK_ROWS] = .{ .values = registers.*, .clocks = self.clocks };
+        self.seeds[self.len / MINIMAL_CHUNK_ROWS].values[0] = 0;
+        self.seed_prepared = true;
+    }
+    fn appendRecord(self: *MinimalTrace, pc: u64, next_pc: u64, result: u64, ids: [3]u8) void {
         std.debug.assert(self.len < self.records.len);
+        std.debug.assert(self.seeds.len == 0 or self.len % MINIMAL_CHUNK_ROWS != 0 or self.seed_prepared);
         self.records[self.len] = .{ .result = result, .pc = @intCast(pc), .next_pc = @intCast(next_pc) };
+        if (self.seeds.len != 0) for (ids, 0..) |id, slot| {
+            if (id != 0 and id != SINK) self.clocks[id] = @intCast(4 * self.len + slot + 1);
+        };
         self.len += 1;
+        self.seed_prepared = false;
+    }
+    fn appendFast(self: *MinimalTrace, pc: u64, next_pc: u64, result: u64, registers: *const [32]u64, ids: [3]u8) void {
+        self.prepareReference(registers);
+        self.appendRecord(pc, next_pc, result, ids);
     }
     /// Slow instructions (including services) are retired by the unchanged
     /// reference session. Append only after successful retirement, never retry.
     pub fn appendRetirement(self: *MinimalTrace, row: machine.Retirement) !void {
         if (self.len == self.records.len) return error.MinimalTraceFull;
+        if (self.seeds.len != 0 and self.len % MINIMAL_CHUNK_ROWS == 0 and !self.seed_prepared) return error.MinimalSeedMissing;
         if (row.pc.toInt() > std.math.maxInt(u32) or row.next_pc.toInt() > std.math.maxInt(u32)) return error.MinimalTracePcRange;
         const branch = switch (row.opcode) {
             .BEQ, .BNE, .BLT, .BGE, .BLTU, .BGEU => true,
             else => false,
         };
-        self.appendFast(row.pc.toInt(), row.next_pc.toInt(), if (branch) @intFromBool(row.branch_taken) else row.result.toInt());
+        self.appendRecord(row.pc.toInt(), row.next_pc.toInt(), if (branch) @intFromBool(row.branch_taken) else row.result.toInt(), .{ row.rs1, row.rs2, row.rd });
     }
 };
 comptime {
-    std.debug.assert(@sizeOf(MinimalRecord) == 16);
+    std.debug.assert(@sizeOf(MinimalRecord) == 16 and @sizeOf(MinimalSeed) == 384);
 }
 pub const PcCounts = struct { start: u64, end: u64, counts: []u64, outside: *u64 };
 pub const Error = std.mem.Allocator.Error || error{ FastExecutionCodeTooLarge, FastExecutionTableTooLarge, FastExecutionCheckpointOverflow };
@@ -521,6 +548,7 @@ pub const Engine = struct {
     /// requested limit or the end of the supplied record span.
     pub fn runMinimal(self: *Engine, cpu: *machine.Cpu, limit: u64, trace: *MinimalTrace) !Exit {
         if (trace.len > trace.records.len) return error.MinimalTraceFull;
+        if (trace.seeds.len != 0 and trace.seeds.len < std.math.divCeil(usize, trace.records.len, MINIMAL_CHUNK_ROWS) catch unreachable) return error.MinimalSeedCapacity;
         if (self.code_lo > std.math.maxInt(u32) or self.code_hi > std.math.maxInt(u32)) return error.MinimalTracePcRange;
         const bounded = @min(limit, cpu.retired +| (trace.records.len - trace.len));
         if (cpu.retired >= bounded) return .limit;
@@ -556,13 +584,13 @@ pub const Engine = struct {
             },
             .slow => break :sw,
             .nop => {
-                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, 0);
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, 0, r[0..32], .{ 0, 0, 0 });
                 i += 1;
                 continue :sw slots[i].op;
             },
             .li => {
                 const s = slots[i];
-                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, s.imm);
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, s.imm, r[0..32], .{ 0, 0, s.rd });
                 r[s.rd] = s.imm;
                 i += 1;
                 continue :sw slots[i].op;
@@ -570,7 +598,7 @@ pub const Engine = struct {
             inline .add, .sub, .sll, .slt, .sltu, .xor, .srl, .sra, .@"or", .@"and", .addi, .slti, .sltiu, .xori, .ori, .andi, .slli, .srli, .srai, .addw, .subw, .sllw, .srlw, .sraw, .addiw, .slliw, .srliw, .sraiw, .mul, .mulh, .mulhsu, .mulhu, .div, .divu, .rem, .remu, .mulw, .divw, .divuw, .remw, .remuw, .andn, .orn, .xnor, .rev8, .sext_b, .sext_h, .zext_h => |op| {
                 const s = slots[i];
                 const result = alu(op, r[s.rs1], r[s.rs2], s.imm);
-                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, result);
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, result, r[0..32], .{ s.rs1, s.rs2, s.rd });
                 r[s.rd] = result;
                 i += 1;
                 continue :sw slots[i].op;
@@ -595,7 +623,7 @@ pub const Engine = struct {
                     .lw => @bitCast(@as(i64, @as(i32, @bitCast(raw)))),
                     else => raw,
                 };
-                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, result);
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, result, r[0..32], .{ s.rs1, 0, s.rd });
                 r[s.rd] = result;
                 i += 1;
                 continue :sw slots[i].op;
@@ -614,7 +642,7 @@ pub const Engine = struct {
                 const index = address >> PAGE_SHIFT;
                 const base = (if (index < wr_tab.len) wr_tab[@intCast(index)] else null) orelse self.fill(index, true) orelse break :sw;
                 std.mem.writeInt(T, base[@intCast(address & (mem.PAGE_SIZE - 1))..][0..@sizeOf(T)], @truncate(r[s.rs2]), .little);
-                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, 0);
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, 0, r[0..32], .{ s.rs1, s.rs2, 0 });
                 i += 1;
                 continue :sw slots[i].op;
             },
@@ -634,13 +662,13 @@ pub const Engine = struct {
                     else => unreachable,
                 };
                 const next = if (taken) s.target else i + 1;
-                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, next), @intFromBool(taken));
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, next), @intFromBool(taken), r[0..32], .{ s.rs1, s.rs2, 0 });
                 i = next;
                 continue :sw .enter;
             },
             .jal => {
                 const s = slots[i];
-                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, s.target), s.imm);
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, s.target), s.imm, r[0..32], .{ 0, 0, s.rd });
                 r[s.rd] = s.imm;
                 i = s.target;
                 continue :sw .enter;
@@ -650,7 +678,7 @@ pub const Engine = struct {
                 const target = (r[s.rs1] +% s.imm) & ~@as(u64, 1);
                 if (target & 3 != 0 or target < self.code_lo or target >= self.code_hi) break :sw;
                 const link = self.code_lo + 4 * @as(u64, i) + 4;
-                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), target, link);
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), target, link, r[0..32], .{ s.rs1, 0, s.rd });
                 r[s.rd] = link;
                 i = @intCast((target - self.code_lo) / 4);
                 continue :sw .enter;

@@ -463,8 +463,8 @@ test "fast first pass + parallel segment walks equal the serial walk (native job
                 try std.testing.expectEqual(@as(u32, @intCast(serial.native.items.len)), stats.segments.?.segments);
                 if (@import("../../rv64_ethereum_segments.zig").minimalFirstPassEnabled()) {
                     try std.testing.expect(stats.segments.?.minimal_cpu0_checked);
-                    try std.testing.expectEqual(@as(u64, batch_steps), stats.segments.?.minimal_cpu0_records);
-                    try std.testing.expectEqual(@as(u64, batch_steps) * 16, stats.segments.?.minimal_cpu0_bytes);
+                    try std.testing.expectEqual(@as(u64, @min(batch_steps, serial.total_steps)), stats.segments.?.minimal_cpu0_records);
+                    try std.testing.expectEqual(@as(u64, @min(batch_steps, serial.total_steps)) * 16 + 384, stats.segments.?.minimal_cpu0_bytes);
                     try std.testing.expect(stats.segments.?.minimal_cpu0_ready_utc_ns > 0);
                 }
             };

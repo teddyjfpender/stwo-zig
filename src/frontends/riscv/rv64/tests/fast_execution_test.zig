@@ -662,13 +662,19 @@ test "minimal fast first-pass records equal reference PC result and branch polar
         defer subject.deinit();
         const ref_records = try a.alloc(fast.MinimalRecord, @intCast(limit));
         defer a.free(ref_records);
-        var expected = fast.MinimalTrace{ .records = ref_records };
+        const seed_count = std.math.divCeil(usize, @intCast(limit), fast.MINIMAL_CHUNK_ROWS) catch unreachable;
+        const ref_seeds = try a.alloc(fast.MinimalSeed, seed_count);
+        defer a.free(ref_seeds);
+        const actual_seeds = try a.alloc(fast.MinimalSeed, seed_count);
+        defer a.free(actual_seeds);
+        var expected = fast.MinimalTrace{ .records = ref_records, .seeds = if (program % 2 == 0) ref_seeds else &.{} };
         var ref_stop: ?anyerror = null;
         var expected_cpu: machine.Cpu = undefined;
         {
             var session = try Base.Session.init(a, start, &ref.memory, .{ .max_retirements = limit, .isa = set });
             defer session.deinit();
             while (session.cpu.retired < limit) {
+                expected.prepareReference(&session.cpu.regs);
                 const row = session.step() catch |err| {
                     ref_stop = err;
                     break;
@@ -682,7 +688,7 @@ test "minimal fast first-pass records equal reference PC result and branch polar
         }
         const actual_records = try a.alloc(fast.MinimalRecord, @intCast(limit));
         defer a.free(actual_records);
-        var actual = fast.MinimalTrace{ .records = actual_records };
+        var actual = fast.MinimalTrace{ .records = actual_records, .seeds = if (program % 2 == 0) actual_seeds else &.{} };
         var engine = try fast.Engine.init(a, &subject.memory, .{ .counting = program % 2 == 0, .isa = set, .watch = if (program % 3 == 0) &.{.{ DATA + 0x100, 8 }} else &.{} });
         defer engine.deinit();
         var actual_stop: ?anyerror = null;
@@ -692,6 +698,7 @@ test "minimal fast first-pass records equal reference PC result and branch polar
             while (session.cpu.retired < limit) {
                 const budget = @min(limit, session.cpu.retired + 1 + r.uintLessThan(u64, 3000));
                 if (try engine.runMinimal(&session.cpu, budget, &actual) == .limit) continue;
+                actual.prepareReference(&session.cpu.regs);
                 const row = session.step() catch |err| {
                     actual_stop = err;
                     break;
@@ -705,6 +712,11 @@ test "minimal fast first-pass records equal reference PC result and branch polar
         }
         try std.testing.expectEqual(ref_stop, actual_stop);
         try std.testing.expectEqualSlices(fast.MinimalRecord, expected.records[0..expected.len], actual.records[0..actual.len]);
+        if (program % 2 == 0) {
+            const used = std.math.divCeil(usize, actual.len, fast.MINIMAL_CHUNK_ROWS) catch unreachable;
+            try std.testing.expectEqualSlices(fast.MinimalSeed, ref_seeds[0..used], actual_seeds[0..used]);
+            try std.testing.expectEqualSlices(u32, &expected.clocks, &actual.clocks);
+        }
         try expectSameMemory(&ref.memory, &subject.memory);
         fast_steps += engine.fast_retired;
         total += actual.len;

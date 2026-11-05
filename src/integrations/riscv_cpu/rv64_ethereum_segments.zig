@@ -181,6 +181,8 @@ pub const Segments = struct {
         self.* = .{ .allocator = a, .main = main, .workers = workers, .engine = undefined, .recorder = undefined };
         if (minimalFirstPassEnabled()) self.minimal_cpu0 = .{ .records = try a.alloc(rv.fast_execution.MinimalRecord, main.config.batch_steps) };
         errdefer if (self.minimal_cpu0) |trace| a.free(trace.records);
+        if (self.minimal_cpu0) |*trace| trace.seeds = try a.alloc(rv.fast_execution.MinimalSeed, std.math.divCeil(usize, trace.records.len, rv.fast_execution.MINIMAL_CHUNK_ROWS) catch unreachable);
+        errdefer if (self.minimal_cpu0) |trace| a.free(trace.seeds);
         self.engine = try rv.fast_execution.Engine.init(a, main.memory, .{ .stop_pcs = &.{main.config.terminal_pc}, .isa = main.session.keccak.base.decoder.isa });
         errdefer self.engine.deinit();
         self.engine.attach();
@@ -223,7 +225,10 @@ pub const Segments = struct {
             p.deinit();
         }
         self.engine.deinit();
-        if (self.minimal_cpu0) |trace| a.free(trace.records);
+        if (self.minimal_cpu0) |trace| {
+            a.free(trace.records);
+            a.free(trace.seeds);
+        }
         a.destroy(self);
     }
 
@@ -291,13 +296,14 @@ pub const Segments = struct {
                 } else _ = self.engine.run(cpu, @min(limit, config.max_steps));
                 if (cpu.pc == config.terminal_pc) break;
                 if (cpu.retired == limit) break;
+                if (index == 0) if (self.minimal_cpu0) |*trace| trace.prepareReference(&cpu.regs);
                 const row = session.step(&event) catch return self.end(index + 1);
                 if (index == 0) if (self.minimal_cpu0) |*trace| try trace.appendRetirement(row orelse event.retirement());
                 if (cpu.pc == config.terminal_pc or cpu.retired == limit) break;
             }
             if (index == 0) if (self.minimal_cpu0) |trace| {
                 self.stats.minimal_cpu0_records = trace.len;
-                self.stats.minimal_cpu0_bytes = trace.len * @sizeOf(rv.fast_execution.MinimalRecord);
+                self.stats.minimal_cpu0_bytes = trace.len * @sizeOf(rv.fast_execution.MinimalRecord) + (std.math.divCeil(usize, trace.len, rv.fast_execution.MINIMAL_CHUNK_ROWS) catch unreachable) * @sizeOf(rv.fast_execution.MinimalSeed);
                 self.stats.minimal_cpu0_ready_utc_ns = @intCast(std.time.nanoTimestamp());
                 std.debug.print("GPU_CPU_MINIMAL event=first_pass_ready ordinal=0 records={} bytes={} utc_ns={}\n", .{ trace.len, self.stats.minimal_cpu0_bytes, self.stats.minimal_cpu0_ready_utc_ns });
             };
