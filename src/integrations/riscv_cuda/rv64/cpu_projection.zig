@@ -167,6 +167,7 @@ const Job = struct {
         const metadata = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(source.metadata));
         const scope = @import("pcs_scope.zig").identity(self.scope);
         var ctx = SC.Context{ .session = b.service.session, .native_context = raw, .token = token, .scope = scope, .api = &b.api };
+        defer std.debug.print("GPU_NATIVE_H2D role=cpu ordinal={} bytes={} scope=scoped-uploads-only\n", .{ self.scope.ordinal, ctx.uploaded_bytes });
         const rom_rows = source.program.size();
         const count_base = @max(@as(usize, 1), metadata.len);
         const c8_base = count_base + 65536;

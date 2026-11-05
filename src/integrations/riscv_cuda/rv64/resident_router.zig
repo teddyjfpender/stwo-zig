@@ -124,12 +124,23 @@ pub const Router = struct {
         return initWithCapacity(endpoints, cpu_workers, SCOPES_PER_DEVICE);
     }
     pub fn initWithCapacity(endpoints: []const Endpoint, cpu_workers: usize, scope_limit: usize) !Router {
+        return initEndpoints(endpoints, cpu_workers, scope_limit, false);
+    }
+    /// Pool-owned independent sessions may share a physical CUDA device. This
+    /// constructor does not relax Config's unique physical-device admission.
+    pub fn initOwnerEndpoints(endpoints: []const Endpoint, cpu_workers: usize, scope_limit: usize) !Router {
+        return initEndpoints(endpoints, cpu_workers, scope_limit, true);
+    }
+    fn initEndpoints(endpoints: []const Endpoint, cpu_workers: usize, scope_limit: usize, owner_lanes: bool) !Router {
         if (scope_limit == 0 or scope_limit > MAX_SCOPES_PER_DEVICE) return error.InvalidResidentScopeLimit;
         if (endpoints.len == 0 or endpoints.len > MAX_DEVICES or cpu_workers == 0) return error.InvalidResidentPlan;
         if (cpu_workers > scope_limit * endpoints.len) return error.InsufficientResidentCapacity;
         for (endpoints, 0..) |endpoint, i| {
             if (endpoint.byte_cap == 0) return error.InvalidResidentDeviceCaps;
-            for (endpoints[0..i]) |prior| if (prior.device == endpoint.device) return error.DuplicateResidentDevice;
+            for (endpoints[0..i]) |prior| if (prior.device == endpoint.device) {
+                if (!owner_lanes) return error.DuplicateResidentDevice;
+                if (prior.byte_cap != endpoint.byte_cap or prior.pcs.context == endpoint.pcs.context) return error.InvalidResidentOwnerEndpoint;
+            };
         }
         return .{ .endpoints = endpoints, .planned_cpu_workers = cpu_workers, .scope_limit = scope_limit };
     }
@@ -560,4 +571,22 @@ test "resident full-family source dispatch stays scoped and fails closed without
     try std.testing.expectError(error.ProbeReached, stage.build(stage.context, std.testing.allocator, request));
     try std.testing.expectEqual(@as(usize, 0), fake[0].calls[5]);
     try std.testing.expectEqual(@as(usize, 1), fake[1].calls[5]);
+}
+
+test "independent ordinal owners share physical devices without sharing scope records" {
+    var fake = [_]Fake{ .{}, .{}, .{}, .{} };
+    const endpoints = [_]Endpoint{ fake[0].endpoint(0), fake[1].endpoint(1), fake[2].endpoint(0), fake[3].endpoint(1) };
+    try std.testing.expectError(error.DuplicateResidentDevice, Router.initWithCapacity(&endpoints, 7, 2));
+    var router = try Router.initOwnerEndpoints(&endpoints, 7, 2);
+    for (0..7) |i| {
+        const ordinal: u32 = @intCast(i);
+        const scope = testScope(ordinal);
+        try std.testing.expectEqual(@as(u32, @intCast(i % 2)), router.deviceFor(ordinal));
+        try std.testing.expectEqual(i % 4, try router.admit(scope, .capture));
+    }
+    for (0..7) |i| router.drop(testScope(@intCast(i)));
+    try router.replan(7);
+    var duplicate = endpoints;
+    duplicate[2] = duplicate[0];
+    try std.testing.expectError(error.InvalidResidentOwnerEndpoint, Router.initOwnerEndpoints(&duplicate, 7, 2));
 }

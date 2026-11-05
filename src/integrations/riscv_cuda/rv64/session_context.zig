@@ -20,6 +20,7 @@ pub const Context = struct {
     scope: [8]u32,
     api: *const Api,
     active: bool = true,
+    uploaded_bytes: usize = 0,
     pub const Lane = struct { owner: usize, index: u32 };
     pub fn prepareKernelEnqueue(self: *Context) !void {
         if (!self.active or self.token == 0) return error.StageNotActive;
@@ -63,7 +64,10 @@ pub const Context = struct {
     }
     pub fn upload(self: *Context, destination: Runtime.column.DeviceSlice(u32), values: []const u32) !void {
         const out = try self.deviceSlicePointer(u32, destination, values.len);
-        if (self.api.upload(self.native_context, @ptrCast(out), values.ptr, try std.math.mul(usize, values.len, 4)) != 0) return error.CudaUploadFailed;
+        const bytes = try std.math.mul(usize, values.len, 4);
+        const total = try std.math.add(usize, self.uploaded_bytes, bytes);
+        if (self.api.upload(self.native_context, @ptrCast(out), values.ptr, bytes) != 0) return error.CudaUploadFailed;
+        self.uploaded_bytes = total;
     }
     /// Join once after metadata ingress before kernels on another lane. There
     /// are no synchronizations inside the numerical traversal itself.

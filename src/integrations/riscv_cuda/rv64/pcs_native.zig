@@ -35,6 +35,7 @@ pub const Context = struct {
     max_retained_scopes: usize = 2,
     cache: std.ArrayList(Cached) = .empty,
     library: std.DynLib,
+    phase_mutex: ?*std.Thread.Mutex = null,
     session: *anyopaque,
     native_prove: Abi.Prove,
     release: Abi.Release,
@@ -395,7 +396,11 @@ pub const Context = struct {
         const self: *Context = @ptrCast(@alignCast(raw));
         var timer = try std.time.Timer.start();
         const scope = if (request.scope) |value| @import("pcs_scope.zig").identity(value) else [_]u32{0} ** 8;
-        defer self.releaseScope(scope);
+        var phase_locked = false;
+        defer {
+            self.releaseScope(scope);
+            if (phase_locked) self.phase_mutex.?.unlock();
+        }
         const trees = try a.dupe(D.Tree, request.trees);
         defer a.free(trees);
         var reused_columns: usize = 0;
@@ -426,6 +431,7 @@ pub const Context = struct {
         const prepare_ns = timer.read();
         const descriptor = prepared.descriptor();
         var result: Abi.Result = .{};
+        if (self.phase_mutex) |phase| { phase.lock(); phase_locked = true; }
         if (self.native_prove(self.session, &descriptor, &result) != 0) {
             std.debug.print("GPU_PCS_NATIVE error={s}\n", .{self.last_error(self.session)});
             return error.GpuPcsFailed;

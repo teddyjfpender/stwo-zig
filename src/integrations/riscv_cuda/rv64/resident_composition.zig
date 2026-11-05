@@ -155,6 +155,7 @@ pub const Context = struct {
     truth_role: ?*const @TypeOf(Abi.stwo_rv64_composition_role_on) = null,
     twiddles: [29]?Twiddle = @splat(null),
     mutex: std.Thread.Mutex = .{},
+    phase_mutex: ?*std.Thread.Mutex = null,
     geometries: std.ArrayList(Geometry) = .empty,
     /// Per-owner retained setup cap. Oversized entries remain request-local.
     cache_limit_bytes: usize = 256 << 20,
@@ -310,6 +311,8 @@ pub const Context = struct {
     }
     fn evaluateTruth(raw: *anyopaque, a: std.mem.Allocator, bound: CPU.rv64_gkr_truth_device_composition.Roles, alpha: O, log: u32, split: u32, total: usize, trace: *const anyopaque, scope: D.Scope) !D.Tree {
         const self: *Context = @ptrCast(@alignCast(raw));
+        if (self.phase_mutex) |phase| phase.lock();
+        defer if (self.phase_mutex) |phase| phase.unlock();
         self.mutex.lock();
         defer self.mutex.unlock();
         const count: usize = switch (bound) {
@@ -386,6 +389,8 @@ pub const Context = struct {
             }
         }
         if (constraints != total) return error.WrongResidentConstraintCount;
+        if (self.phase_mutex) |phase| phase.lock();
+        defer if (self.phase_mutex) |phase| phase.unlock();
         self.mutex.lock();
         defer self.mutex.unlock();
         var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = trace, .scope = scope, .log_blowup = log_blowup };
@@ -400,6 +405,8 @@ pub const Context = struct {
     fn evaluate(raw: *anyopaque, a: std.mem.Allocator, items: []const Items.Item, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope) !D.Tree {
         const self: *Context = @ptrCast(@alignCast(raw));
         if (self.artifact_count != Oracle.count) return error.CpuCompositionNotInitialized;
+        if (self.phase_mutex) |phase| phase.lock();
+        defer if (self.phase_mutex) |phase| phase.unlock();
         self.mutex.lock();
         defer self.mutex.unlock();
         var timer = try std.time.Timer.start();

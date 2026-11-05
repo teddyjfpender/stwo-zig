@@ -235,7 +235,7 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
     std.mem.writeInt(u64, transaction[8..16], iteration, .little);
     hash.update(&transaction);
     const identity = hash.finalResult();
-    for (pool.devices, config.caps) |*device, cap| try device.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = if (combined) manifest.combined_immutable_device_bytes else manifest.immutable_device_bytes, .max_scopes = config.scope_limit });
+    try pool.beginBlocks(identity, config.*, if (combined) manifest.combined_immutable_device_bytes else manifest.immutable_device_bytes);
     var timer = try std.time.Timer.start();
     if (combined) {
         // Same producer and live authority handoff; every trial is fresh.
@@ -248,7 +248,7 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
             .producer_manifest_sha256 = manifest_sha256,
         });
     } else try Main.runWithResidentArgs(recycler, &args, pool.stages(), session);
-    for (pool.devices) |*device| try device.native.endBlock(identity);
+    try pool.endBlocks(identity);
     const request_wall_ns = timer.read();
     // New setup artifacts are written between requests, off the wall.
     var persist_timer = try std.time.Timer.start();
@@ -284,7 +284,7 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
         defer base.free(entry);
         try @import("combined_publication.zig").write(proof, entry);
     }
-    std.debug.print("GPU_RESIDENT_BLOCK block={} trial={} iteration={} request_wall_ns={} cached_host_keys={} host_key_cache_hits={} host_key_cache_misses={} host_key_cache_evictions={} gpu_contexts={} setup_cache={} setup_resident_hits={} setup_disk_hits={} setup_misses={} setup_persist_ns={}\n", .{ block, trial, iteration, request_wall_ns, session.keyCount(), session.hits, session.misses, session.evictions, pool.devices.len, setup_stats != null, if (setup_stats) |v| v.resident_hits else 0, if (setup_stats) |v| v.disk_hits else 0, if (setup_stats) |v| v.misses else 0, persist_ns });
+    std.debug.print("GPU_RESIDENT_BLOCK block={} trial={} iteration={} request_wall_ns={} cached_host_keys={} host_key_cache_hits={} host_key_cache_misses={} host_key_cache_evictions={} gpu_contexts={} native_owners={} setup_cache={} setup_resident_hits={} setup_disk_hits={} setup_misses={} setup_persist_ns={}\n", .{ block, trial, iteration, request_wall_ns, session.keyCount(), session.hits, session.misses, session.evictions, pool.devices.len, pool.devices.len + pool.extra_devices.len, setup_stats != null, if (setup_stats) |v| v.resident_hits else 0, if (setup_stats) |v| v.disk_hits else 0, if (setup_stats) |v| v.misses else 0, persist_ns });
     return request_wall_ns;
 }
 

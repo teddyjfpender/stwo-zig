@@ -109,6 +109,7 @@ const Owner = struct {
     fn callback(raw: *anyopaque, token: u64, arg: ?*anyopaque) callconv(.c) c_int {
         const self: *Owner = @ptrCast(@alignCast(arg.?));
         var ctx = SC.Context{ .session = self.backend.service.session, .native_context = raw, .token = token, .scope = @import("pcs_scope.zig").identity(self.request.scope), .api = &self.core.backend.api };
+        defer std.debug.print("GPU_NATIVE_H2D role=bulk-sponge ordinal={} bytes={} scope=scoped-uploads-only\n", .{ self.request.ordinal, ctx.uploaded_bytes });
         self.run(&ctx) catch |err| {
             self.failure = err;
             ctx.join() catch {};

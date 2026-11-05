@@ -96,6 +96,7 @@ pub const Backend = struct {
     batched_tail: bool = false,
     batched_fold_sum: bool = false,
     byte_cap: usize,
+    phase_mutex: ?*std.Thread.Mutex = null,
     pub fn init(a: std.mem.Allocator, library: *std.DynLib, session: *anyopaque, byte_cap: usize) !Backend {
         var catalogue = try Sources.Catalogue.init(a);
         errdefer catalogue.deinit();
@@ -164,6 +165,8 @@ pub const Backend = struct {
     }
     fn prove(raw: *anyopaque, a: std.mem.Allocator, request: Child.NumericalStage.Request) !Proof {
         const self: *Backend = @ptrCast(@alignCast(raw));
+        if (self.phase_mutex) |phase| phase.lock();
+        defer if (self.phase_mutex) |phase| phase.unlock();
         if (self.binding_runtime) |runtime| runtime.acquire(request.scope);
         var job = Job{ .backend = self, .allocator = a, .request = request };
         const status = self.functions.submit(self.session, Job.callback, &job);
@@ -177,6 +180,8 @@ pub const Backend = struct {
     }
     fn replayBinding(raw: *anyopaque, a: std.mem.Allocator, request: Child.NumericalStage.Request, owner: *Child.DeviceBinding.Owner) !void {
         const self: *Backend = @ptrCast(@alignCast(raw));
+        if (self.phase_mutex) |phase| phase.lock();
+        defer if (self.phase_mutex) |phase| phase.unlock();
         if (!owner.parked or !std.meta.eql(owner.scope, request.scope)) return error.DeviceBindingReplayPhase;
         const runtime = self.binding_runtime orelse return error.DeviceBindingUnavailable;
         runtime.acquire(request.scope);
@@ -217,6 +222,7 @@ const Job = struct {
         try checked(b.session_api.lane_stream(raw_context, 0, &ingress_stream));
         const upload_stream = ingress_stream orelse return error.InvalidLane;
         var context = SC.Context{ .session = b.session, .native_context = raw_context, .token = token, .scope = @import("pcs_scope.zig").identity(self.request.scope), .api = &b.session_api };
+        defer std.debug.print("GPU_NATIVE_H2D role=local-gkr ordinal={} bytes={} scope=scoped-uploads-only\n", .{ self.request.scope.ordinal, context.uploaded_bytes });
         defer context.active = false;
         const original_fixed_columns = self.request.native_fixed_columns;
         defer self.request.native_fixed_columns = original_fixed_columns;

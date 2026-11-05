@@ -15,6 +15,9 @@ pub const Pool = struct {
     allocator: std.mem.Allocator,
     devices: []Device,
     endpoints: []Endpoint,
+    extra_devices: []Device = &.{},
+    native_lanes: usize = 1,
+    phase_gates: []std.Thread.Mutex,
     router: Router,
     pcs: D.Stage,
     truth_pcs: D.Stage,
@@ -43,6 +46,13 @@ pub const Pool = struct {
         truth_composition: CPU.rv64_gkr_truth_device_composition.Stage,
         fn init(self: *Device, a: std.mem.Allocator, library: []const u8, id: u32, cap: u64, device_binding: bool) !void {
             self.native = try @import("pcs_native.zig").Context.init(library, id, cap);
+            try self.initBackends(a, cap, device_binding);
+        }
+        fn initWorker(self: *Device, a: std.mem.Allocator, library: []const u8, id: u32, cap: u64, device_binding: bool) !void {
+            self.native = try @import("pcs_native.zig").Context.init(library, id, cap);
+            try self.initBackends(a, cap, device_binding);
+        }
+        fn initBackends(self: *Device, a: std.mem.Allocator, cap: u64, device_binding: bool) !void {
             errdefer self.native.deinit();
             self.gkr = try @import("gkr_stage.zig").Backend.init(a, &self.native.library, self.native.session, std.math.cast(usize, cap) orelse return error.InvalidResidentDeviceCaps);
             errdefer self.gkr.deinit();
@@ -86,6 +96,11 @@ pub const Pool = struct {
         const self = try a.create(Pool);
         errdefer a.destroy(self);
         self.allocator = a;
+        self.native_lanes = try nativeLanes(a, config.ids.len);
+        if (self.native_lanes > 1) for (config.caps) |cap| { if (cap != 28 << 30) return error.NativeOwnersRequireQualifiedDeviceCap; };
+        self.phase_gates = try a.alloc(std.Thread.Mutex, config.ids.len);
+        errdefer a.free(self.phase_gates);
+        for (self.phase_gates) |*gate| gate.* = .{};
         self.devices = try a.alloc(Device, config.ids.len);
         errdefer a.free(self.devices);
         var initialized: usize = 0;
@@ -96,10 +111,30 @@ pub const Pool = struct {
             device.cpu_replay = .{ .service = &device.native, .source = &device.source, .trace = &device.trace };
             try device.native.configureRetention(config.scope_limit);
         }
-        self.endpoints = try a.alloc(Endpoint, config.ids.len);
+        self.extra_devices = try a.alloc(Device, config.ids.len * (self.native_lanes - 1));
+        errdefer a.free(self.extra_devices);
+        var extra_initialized: usize = 0;
+        errdefer for (self.extra_devices[0..extra_initialized]) |*device| device.deinit();
+        for (self.extra_devices, 0..) |*device, i| {
+            const physical = i % config.ids.len;
+            try device.initWorker(a, library, config.ids[physical], config.caps[physical], device_binding);
+            extra_initialized += 1;
+            device.cpu_replay = .{ .service = &device.native, .source = &device.source, .trace = &device.trace };
+            try device.native.configureRetention(config.scope_limit);
+        }
+        if (self.native_lanes > 1) {
+            for (self.devices, 0..) |*device, i| self.guardWideStages(device, i);
+            for (self.extra_devices, 0..) |*device, i| self.guardWideStages(device, i % self.devices.len);
+        }
+        self.endpoints = try a.alloc(Endpoint, config.ids.len * self.native_lanes);
         errdefer a.free(self.endpoints);
-        for (self.endpoints, self.devices, config.ids, config.caps) |*endpoint, *device, id, cap| endpoint.* = .{ .cpu_replay = device.cpu_replay.stage(), .device = id, .byte_cap = cap, .pcs = device.native.stage(), .numerical = device.gkr.stage(), .composition = device.composition.stage(), .trace_commit = device.trace.stage(), .projection = device.projection.stage(), .global_interaction = device.global_interaction.stage(), .source = device.source.stage(), .truth_source = device.truth_source.stage(), .truth_composition = device.truth_composition };
-        self.router = try Router.initWithCapacity(self.endpoints, cpu_workers, config.scope_limit);
+        for (self.endpoints, 0..) |*endpoint, i| {
+            const device = if (i < self.devices.len) &self.devices[i] else &self.extra_devices[i - self.devices.len];
+            const physical = i % config.ids.len;
+            const id = config.ids[physical]; const cap = config.caps[physical];
+            endpoint.* = .{ .cpu_replay = device.cpu_replay.stage(), .device = id, .byte_cap = cap, .pcs = device.native.stage(), .numerical = device.gkr.stage(), .composition = device.composition.stage(), .trace_commit = device.trace.stage(), .projection = device.projection.stage(), .global_interaction = device.global_interaction.stage(), .source = device.source.stage(), .truth_source = device.truth_source.stage(), .truth_composition = device.truth_composition };
+        }
+        self.router = try Router.initOwnerEndpoints(self.endpoints, cpu_workers, config.scope_limit);
         self.pcs = self.router.pcsStage();
         self.truth_pcs = self.router.truthPcsStage();
         self.numerical = self.router.numericalStage();
@@ -112,6 +147,42 @@ pub const Pool = struct {
         self.global_interaction = self.router.globalStage();
         return self;
     }
+    fn guardWideStages(self: *Pool, device: *Device, physical: usize) void {
+        device.native.phase_mutex = &self.phase_gates[physical];
+        device.composition.phase_mutex = &self.phase_gates[physical];
+        device.gkr.phase_mutex = &self.phase_gates[physical];
+    }
+    /// All ordinal-selected sessions participate in the exact request audit.
+    /// The global VMM carve supplies aggregate physical admission; per-owner
+    /// caps and lease token/geometry checks continue to apply independently.
+    pub fn beginBlocks(self: *Pool, identity: [32]u8, config: Config, immutable_bytes: u64) !void {
+        // The physical owner also serves recursion's fixed forest. Preserve
+        // the aggregate immutable cap while reserving 5/8 for that owner.
+        const primary_bytes = if (self.native_lanes == 1) immutable_bytes else immutable_bytes / 8 * 5;
+        const worker_bytes = immutable_bytes - primary_bytes;
+        for (self.devices, config.caps) |*device, cap| try device.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = primary_bytes, .max_scopes = config.scope_limit });
+        for (self.extra_devices, 0..) |*device, i| try device.native.beginBlock(identity, .{ .device_bytes = config.caps[i % config.caps.len], .immutable_bytes = worker_bytes, .max_scopes = config.scope_limit });
+    }
+    pub fn endBlocks(self: *Pool, identity: [32]u8) !void {
+        for (self.extra_devices) |*device| try device.native.endBlock(identity);
+        for (self.devices) |*device| try device.native.endBlock(identity);
+    }
+    fn nativeLanes(a: std.mem.Allocator, physical: usize) !usize {
+        const text = std.process.getEnvVarOwned(a, "STWO_RV64_NATIVE_OWNERS_PER_GPU") catch |err| switch (err) { error.EnvironmentVariableNotFound => return 1, else => return err };
+        defer a.free(text);
+        const lanes = std.fmt.parseUnsigned(usize, text, 10) catch return error.InvalidNativeOwnerCount;
+        if (lanes == 1) return 1;
+        if (lanes != 2 or physical * lanes > R.MAX_DEVICES) return error.InvalidNativeOwnerCount;
+        // One loaded runtime owns a globally shared, bounded per-device carve.
+        // Never multiply a physical memory budget by creating extra owners.
+        const arena = std.process.getEnvVarOwned(a, "STWO_RV64_DEVICE_ARENA") catch return error.NativeOwnersRequireBoundedArena;
+        defer a.free(arena);
+        const idle = std.process.getEnvVarOwned(a, "STWO_RV64_PCS_IDLE_CACHE_BYTES") catch return error.NativeOwnersRequireIdleCacheDisabled;
+        defer a.free(idle);
+        if (!std.mem.eql(u8, arena, "22G")) return error.NativeOwnersRequireBoundedArena;
+        if (!std.mem.eql(u8, idle, "0")) return error.NativeOwnersRequireIdleCacheDisabled;
+        return lanes;
+    }
     pub fn stages(self: *Pool) CPU.rv64_ethereum_gkr_main.ResidentStages {
         var result = CPU.rv64_ethereum_gkr_main.ResidentStages{ .source = self.source, .truth_source = self.truth_source, .truth_composition = self.truth_composition, .global_interaction = self.global_interaction, .pcs = &self.pcs, .numerical = &self.numerical, .resident_composition = &self.composition, .trace_commit = &self.trace_commit, .cpu_projection = self.projection };
         if (comptime @hasField(CPU.rv64_ethereum_gkr_main.ResidentStages, "truth_pcs")) result.truth_pcs = &self.truth_pcs;
@@ -120,8 +191,12 @@ pub const Pool = struct {
     }
     pub fn deinit(self: *Pool) void {
         const a = self.allocator;
+        // Join worker owners before physical device backends.
+        for (self.extra_devices) |*device| device.deinit();
+        a.free(self.extra_devices);
         for (self.devices) |*device| device.deinit();
         a.free(self.devices);
+        a.free(self.phase_gates);
         a.free(self.endpoints);
         a.destroy(self);
     }

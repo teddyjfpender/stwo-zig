@@ -306,6 +306,7 @@ const MainJob = struct {
         const width = try mainWidth(o.truth);
         if (try std.math.mul(usize, try std.math.mul(usize, width, n), 4) > o.budget) return error.DeviceTruthBudgetExceeded;
         var context = SC.Context{ .session = b.service.session, .native_context = raw, .token = token, .scope = @import("pcs_scope.zig").identity(o.scope), .api = &b.api };
+        defer std.debug.print("GPU_NATIVE_H2D role=truth ordinal={} bytes={} scope=scoped-uploads-only\n", .{ o.scope.ordinal, context.uploaded_bytes });
         defer context.active = false;
         if (comptime @hasDecl(Native.Context, "immutableFixed")) {
             // Witness generation uses no FIXED columns; avoid provisional MAIN aliases.
@@ -313,13 +314,13 @@ const MainJob = struct {
         }
         if (o.compact == null) {
             o.compact = try context.allocate(o.compact_words, 0);
-            try checked(b.api.upload(raw, @ptrCast(o.compact.?.words.?), o.inputs.ptr, o.inputs.len * 4));
+            try context.upload(try (try context.borrow(o.compact.?)).sub(0, o.inputs.len), o.inputs);
         }
         const input = o.compact.?;
         var status = try context.allocate(1, 0);
         defer context.release(&status) catch {};
         const zero_status: u32 = 0;
-        try checked(b.api.upload(raw, @ptrCast(status.words.?), &zero_status, 4));
+        try context.upload(try context.borrow(status), &.{zero_status});
         o.raw_leases[0] = try context.allocate(width * n, 0);
         if (o.truth == .keccak) {
             o.raw_leases[1] = try context.allocate(@as(usize, 1) << @intCast(o.truth.keccak.setup.policy.tableLog(.chi)), 0);

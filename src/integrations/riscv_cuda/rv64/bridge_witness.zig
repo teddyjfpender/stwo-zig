@@ -197,6 +197,7 @@ const Operation = struct {
     }
     fn run(self: *Operation, raw: *anyopaque, token: u64) !void {
         var ctx = SC.Context{ .session = self.backend.service.session, .native_context = raw, .token = token, .scope = @import("pcs_scope.zig").identity(self.core.scope), .api = &self.core.backend.api };
+        defer std.debug.print("GPU_NATIVE_H2D role=bridge ordinal={} bytes={} scope=scoped-uploads-only\n", .{ self.core.scope.ordinal, ctx.uploaded_bytes });
         defer ctx.join() catch {};
         const input = try self.allocate(&ctx, self.words.len, 0);
         const rows = @as(usize, 1) << @intCast(self.log);

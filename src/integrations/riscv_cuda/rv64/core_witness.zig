@@ -256,6 +256,7 @@ const ExtraFamily = struct {
     fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *ExtraFamily = @ptrCast(@alignCast(data.?));
         var ctx = context(self.owner, raw, token);
+        defer std.debug.print("GPU_NATIVE_H2D role=core ordinal={} bytes={} scope=scoped-uploads-only\n", .{ self.owner.request.ordinal, ctx.uploaded_bytes });
         self.output = self.owner.familyOutput(&ctx, self.batch, 32) catch |err| {
             self.failure = err;
             ctx.join() catch {};
@@ -277,6 +278,7 @@ const ExtraMemory = struct {
     fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *ExtraMemory = @ptrCast(@alignCast(data.?));
         var ctx = context(self.owner, raw, token);
+        defer std.debug.print("GPU_NATIVE_H2D role=core ordinal={} bytes={} scope=scoped-uploads-only\n", .{ self.owner.request.ordinal, ctx.uploaded_bytes });
         self.output = self.owner.memoryOutput(&ctx, self.events, self.log, true) catch |err| {
             self.failure = err;
             ctx.join() catch {};
@@ -303,6 +305,7 @@ const Finish = struct {
     fn run(self: *Finish, raw: *anyopaque, token: u64) !void {
         const o = self.owner;
         var ctx = context(o, raw, token);
+        defer std.debug.print("GPU_NATIVE_H2D role=core ordinal={} bytes={} scope=scoped-uploads-only\n", .{ o.request.ordinal, ctx.uploaded_bytes });
         defer ctx.join() catch {};
         for (o.table_outputs.items) |table| {
             const input = switch (table.kind) {
@@ -337,6 +340,7 @@ const BuildJob = struct {
     fn run(self: *BuildJob, raw: *anyopaque, token: u64) !void {
         const o = self.owner;
         var ctx = context(o, raw, token);
+        defer std.debug.print("GPU_NATIVE_H2D role=core ordinal={} bytes={} scope=scoped-uploads-only\n", .{ o.request.ordinal, ctx.uploaded_bytes });
         var joined = false;
         var staging = Staging.Owner{ .allocator = o.allocator, .byte_cap = o.backend.staging_byte_cap };
         defer {

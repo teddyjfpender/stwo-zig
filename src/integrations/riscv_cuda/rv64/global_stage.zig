@@ -230,6 +230,7 @@ const Job = struct {
         const a = self.owner.allocator;
         const rows = @as(usize, 1) << @intCast(self.request.log_size);
         var ctx = SC.Context{ .session = b.service.session, .native_context = raw, .token = token, .scope = @import("pcs_scope.zig").identity(self.scope), .api = &b.api };
+        defer std.debug.print("GPU_NATIVE_H2D role=global ordinal={} bytes={} scope=scoped-uploads-only\n", .{ self.scope.ordinal, ctx.uploaded_bytes });
         var temporary: std.ArrayList(Native.Lease) = .empty;
         defer {
             ctx.join() catch {};
