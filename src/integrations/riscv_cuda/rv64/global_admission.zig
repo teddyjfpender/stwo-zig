@@ -85,6 +85,8 @@ pub const Demand = struct {
     /// PLUS its maximum subsequent scratch; not scratch alone.
     /// Futures max-combine; active stage envelopes sum in RuntimeV2 mode.
     successor: Footprint = .{},
+    /// Only a source-owned checked retirement may raise the successor to this ceiling.
+    retirement_successor: ?Footprint = null,
     known: bool = false,
     host_peak_bytes: u64 = 0,
     host_known: bool = false,
@@ -245,6 +247,22 @@ pub const Planner = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         try commitEnteredLocked(try self.device(token.physical), token);
+    }
+    /// Publish BEFORE a checked joined free. This only increases future
+    /// protection; it grants no allocations and may temporarily block peers.
+    /// A failed subsequent retirement must poison this physical endpoint.
+    pub fn raiseBeforeRetirement(self: *Planner, token: Token) !Footprint {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const d = try self.device(token.physical);
+        if (d.poisoned) return error.PhysicalAdmissionPoisoned;
+        const entry = d.entries.getPtr(token.id) orelse return error.StaleAdmissionToken;
+        if (!entry.active or !entry.entered) return error.AdmissionNotActive;
+        const next = entry.demand.retirement_successor orelse return error.UnregisteredInputRetirement;
+        if (!next.contains(entry.demand.successor)) return error.InvalidRetirementSuccessor;
+        entry.demand.successor = next;
+        entry.demand.retirement_successor = null;
+        return next;
     }
     /// No owner mutation happened. Remove this attempt alone: old promises and
     /// observed physical retention are exactly unchanged, including busy retry.
@@ -813,4 +831,55 @@ test "PP consumer bound includes private FIXED retention and refuses impossible 
     const demand = Demand{ .owner = test_owner, .stage = .witness, .known = true, .host_known = true, .temporary = .{ .large = 17 << 30 } };
     try std.testing.expectError(error.PrecommittedSourceClassExceedsStaticArena, p.requirePrecommitConsumerFits(token, .{ .large = 5 << 30 }, demand));
     try p.requirePrecommitConsumerFits(token, .{ .large = 3 << 30 }, demand);
+}
+
+test "retirement raises protection before free without granting physical bytes" {
+    const a = std.testing.allocator;
+    var p = try Planner.init(a, &.{0}, .g22);
+    defer p.deinit();
+    defer p.poolDestroyed();
+    try p.configureConcurrent(0, true);
+    // Old evals are part of the physical stable baseline. The registered
+    // future discounts exactly those evals until checked retirement begins.
+    const old = Footprint{ .large = 6 << 30 };
+    _ = try p.observeStable(0, .{});
+    const initial = (try p.tryBeginOwned(0, .{ .owner = test_owner, .stage = .witness, .known = true, .host_known = true, .temporary = old, .stage_retained_upper = old }, 3)).token.?;
+    try p.commitEntered(initial);
+    try p.completeOwned(initial, old, old, .{});
+    const owner = Owner{ .request = 77, .domain = .recursion_node, .ordinal = 9 };
+    const full = Footprint{ .large = 14 << 30 };
+    const token = (try p.tryBeginOwned(0, .{ .owner = owner, .stage = .trace_commit, .known = true, .host_known = true, .temporary = .{ .large = 8 << 30 }, .stage_retained_upper = .{ .large = 2 << 30 }, .successor = .{ .large = 8 << 30 }, .retirement_successor = full }, 1)).token.?;
+    try std.testing.expectError(error.AdmissionNotActive, p.raiseBeforeRetirement(token));
+    try p.commitEntered(token);
+    const baseline = (try p.snapshot(0)).retained;
+    try std.testing.expectEqual(full, try p.raiseBeforeRetirement(token));
+    // Raising a promise cannot erase baseline bytes or the active scratch.
+    var protected = try p.snapshot(0);
+    try std.testing.expectEqual(baseline, protected.retained);
+    try std.testing.expectEqual(@as(u64, 8 << 30), protected.active_temporary.large);
+    try std.testing.expectEqual(full, protected.successor);
+    try std.testing.expectError(error.UnregisteredInputRetirement, p.raiseBeforeRetirement(token));
+    // A peer sees the raised protection BEFORE the old evals are freed.
+    const peer = Demand{ .owner = .{ .request = 88, .domain = .recursion_node, .ordinal = 10 }, .stage = .witness, .known = true, .host_known = true, .temporary = .{ .large = 2 << 30 }, .stage_retained_upper = .{ .large = 2 << 30 } };
+    try std.testing.expectEqual(Reason.capacity_pressure, (try p.tryBeginOwned(0, peer, 2)).reason);
+    // Checked C.finish supplies the joined lower stable base and actual NEW
+    // retention. Full future publication is atomic with that reconciliation.
+    try p.completeOwned(token, .{ .large = 2 << 30 }, .{ .large = 2 << 30 }, full);
+    protected = try p.snapshot(0);
+    try std.testing.expectEqual(full, protected.successor);
+    try std.testing.expectEqual(@as(u64, 2 << 30), protected.retained.large);
+    try std.testing.expectEqual(Reason.admitted, (try p.tryBeginOwned(0, peer, 2)).reason);
+}
+
+test "unregistered and decreasing retirement ceilings cannot authorize a raise" {
+    var p = try Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer p.deinit();
+    defer p.poolDestroyed();
+    try p.configureConcurrent(0, true);
+    const token = (try p.tryBeginOwned(0, .{ .owner = test_owner, .stage = .interaction, .known = true, .host_known = true, .successor = .{ .large = 2 << 30 }, .retirement_successor = .{ .large = 1 << 30 } }, 1)).token.?;
+    try p.commitEntered(token);
+    try std.testing.expectError(error.InvalidRetirementSuccessor, p.raiseBeforeRetirement(token));
+    try std.testing.expectEqual(@as(u64, 2 << 30), (try p.snapshot(0)).successor.large);
+    p.poisonPhysical(0);
+    try std.testing.expectError(error.PhysicalAdmissionPoisoned, p.raiseBeforeRetirement(token));
 }

@@ -320,6 +320,13 @@ pub const Permit = struct {
     timer: std.time.Timer,
     enter_ns: u64 = 0,
     leave_ns: u64 = 0,
+    /// Must be followed immediately by the registered input's checked join/free.
+    /// The caller's error path poisons the endpoint if that retirement fails.
+    pub fn raiseBeforeRetirement(self: *Permit) !void {
+        if (!self.entered or self.closed or self.owner_after != null or self.after != null) return error.AdmissionNotActive;
+        self.demand.successor = try self.endpoint.planner.raiseBeforeRetirement(self.token);
+        self.demand.retirement_successor = null;
+    }
     /// Owner-thread entry, immediately before any allocation/kernel mutation.
     pub fn enterOwner(self: *Permit, raw: *anyopaque) !void {
         // A permit belongs to the exact session owner discovered at configure,

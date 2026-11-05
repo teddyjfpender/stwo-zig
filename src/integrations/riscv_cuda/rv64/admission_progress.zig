@@ -17,6 +17,9 @@ pub const Plan = struct {
     /// Native stage one cannot consume globally challenged phases until the
     /// complete ordered manifest exists. Outer classes default to full mode.
     pre_global_after: ?After = null,
+    /// Preauthorized full future published BEFORE an exact joined input free.
+    /// The initial future discounts that still-live input; raising grants no GPU allocations.
+    retirement_after: [std.meta.fields(Step).len]?A.Footprint = @splat(null),
 };
 pub const Registry = struct {
     const Entry = struct { plan: Plan, phase: Phase, drain_pending: bool = false };
@@ -44,6 +47,13 @@ pub const Registry = struct {
             return entry.plan.pre_global_after.?[@intFromEnum(step)];
         }
         return entry.plan.after[@intFromEnum(step)];
+    }
+    pub fn retirement(self: *Registry, key: Key, step: Step) !?A.Footprint {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const entry = self.entries.get(key) orelse return error.GpuClassProgressUnavailable;
+        if (entry.phase != .post_global) return null;
+        return entry.plan.retirement_after[@intFromEnum(step)];
     }
     pub fn phase(self: *Registry, key: Key) !Phase {
         self.mutex.lock();

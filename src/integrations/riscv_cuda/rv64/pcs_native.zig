@@ -100,6 +100,9 @@ pub const Context = struct {
     pub fn admissionSuccessor(self: *Context, scope: D.Scope, step: @import("admission_progress.zig").Step) !@import("global_admission.zig").Footprint {
         return self.admission_progress.get(.{ .statement = scope.statement, .fixed = scope.fixed, .ordinal = scope.ordinal }, step);
     }
+    pub fn admissionRetirementSuccessor(self: *Context, scope: D.Scope, step: @import("admission_progress.zig").Step) !?@import("global_admission.zig").Footprint {
+        return self.admission_progress.retirement(@import("global_admission.zig").progressKey(scope), step);
+    }
     pub fn armGlobalAdmission(self: *Context, scope: D.Scope) !bool {
         if (self.admission == null) return false;
         return self.admission_progress.armGlobal(@import("global_admission.zig").progressKey(scope));

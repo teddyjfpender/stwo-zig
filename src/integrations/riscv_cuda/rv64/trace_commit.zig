@@ -150,7 +150,7 @@ pub const Context = struct {
             if (request.tree_index == 0) return error.GlobalFixedTracePlanUnavailable;
             successor = try self.service.admissionSuccessor(request.scope, if (request.tree_index == 1) .main_commit else .inter_commit);
             const plan = &allocation_plan.?;
-            permit = try endpoint.reserve(.{ .progress_key = Global.progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = self.admission_domain, .ordinal = request.scope.ordinal }, .stage = .trace_commit, .stage_retained_upper = try Global.Footprint.allocation(try std.math.mul(u64, plan.coefficient_words, 4)), .temporary = try plan.footprint(), .successor = successor, .known = true, .host_known = plan.host_cost_known, .host_peak_bytes = plan.host_peak_bytes });
+            permit = try endpoint.reserve(.{ .progress_key = Global.progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = self.admission_domain, .ordinal = request.scope.ordinal }, .stage = .trace_commit, .stage_retained_upper = try Global.Footprint.allocation(try std.math.mul(u64, plan.coefficient_words, 4)), .temporary = try plan.footprint(), .successor = successor, .retirement_successor = if (request.retire_input != null) try self.service.admissionRetirementSuccessor(request.scope, .inter_commit) else null, .known = true, .host_known = plan.host_cost_known, .host_peak_bytes = plan.host_peak_bytes });
         }
         defer if (permit) |*active| if (!active.closed) {
             active.endpoint.planner.poisonPhysical(active.endpoint.physical);
@@ -168,7 +168,7 @@ pub const Context = struct {
         if (permit) |*active| {
             var final_scope = request.scope;
             if (request.tree_index == 1) final_scope.main = result.root;
-            self.service.completeAdmission(active, final_scope, successor) catch |err| {
+            self.service.completeAdmission(active, final_scope, active.demand.successor) catch |err| {
                 self.service.finishProofScope(final_scope);
                 return err;
             };
@@ -466,6 +466,9 @@ const Job = struct {
         // ingress. Retire them before the much larger LDE/tree scratch exists.
         if (r.retire_input) |retirement| {
             try self.copyInputs(&ctx, try ctx.borrow(coefficients), coefficients.words.?, order, offsets);
+            // This raise grants no allocation. It closes the future-protection
+            // gap BEFORE the registered input lease leaves the stable base.
+            if (self.permit) |permit| if (permit.demand.retirement_successor != null) try permit.raiseBeforeRetirement();
             try retireJoinedInput(&ctx, retirement, r.scope);
         }
         const stream_budget: ?usize = if (separate_coefficients and b.mixed_seeded != null and b.layer != null) streamBudget() else null;

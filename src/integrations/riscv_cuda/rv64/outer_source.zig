@@ -463,7 +463,7 @@ pub const Owner = struct {
         const endpoint = self.backend.service.admission orelse return error.MissingGlobalAdmissionEndpoint;
         const scope = if (stage == .witness) self.initial_scope else self.scope;
         const successor = try self.backend.service.admissionSuccessor(scope, if (stage == .witness) .source else .interaction);
-        const demand = @import("global_admission.zig").Demand{ .progress_key = @import("global_admission.zig").progressKey(scope), .owner = .{ .request = std.mem.readInt(u64, scope.statement[0..8], .little), .domain = .recursion_node, .ordinal = scope.ordinal }, .stage = stage, .stage_retained_upper = plan.retained_after, .temporary = plan.additional_peak, .successor = successor, .known = true, .host_known = plan.host_cost_known };
+        const demand = @import("global_admission.zig").Demand{ .progress_key = @import("global_admission.zig").progressKey(scope), .owner = .{ .request = std.mem.readInt(u64, scope.statement[0..8], .little), .domain = .recursion_node, .ordinal = scope.ordinal }, .stage = stage, .stage_retained_upper = plan.retained_after, .temporary = plan.additional_peak, .successor = successor, .retirement_successor = try self.backend.service.admissionRetirementSuccessor(scope, if (stage == .witness) .source else .interaction), .known = true, .host_known = plan.host_cost_known };
         var precommitted = false;
         if (stage == .witness) if (self.backend.fixed_pending) |fixed| if (fixed.handoff != null) {
             try fixed.requireSourceFits(demand);
@@ -483,7 +483,7 @@ pub const Owner = struct {
         self.permit = &permit;
         defer self.permit = null;
         try self.run(operation);
-        try self.completeAdmission(&permit, scope, successor);
+        try self.completeAdmission(&permit, scope, permit.demand.successor);
     }
     fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *Owner = @ptrCast(@alignCast(data.?));
@@ -502,6 +502,19 @@ pub const Owner = struct {
             self.failure = err;
         };
         if (self.permit) |permit| {
+            // Publish the full post-retirement future BEFORE freeing MAIN.
+            // A peer sees either the old live lease plus larger protection or
+            // the joined smaller base plus that protection, never a gap.
+            if (self.failure == null and permit.demand.retirement_successor != null) {
+                if (permit.demand.stage != .interaction) self.failure = error.InvalidOuterRetirementStage else {
+                    permit.raiseBeforeRetirement() catch |err| {
+                        self.failure = err;
+                    };
+                    if (self.failure == null) self.dropMainEvaluations(raw, token) catch |err| {
+                        self.failure = err;
+                    };
+                }
+            }
             if (self.backend.api.sync(raw) != 0 and self.failure == null) self.failure = error.CudaOuterStageJoinFailed;
             permit.leaveOwner(raw) catch |err| {
                 if (self.failure == null) self.failure = err;
