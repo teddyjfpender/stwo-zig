@@ -134,7 +134,6 @@ const GeometryBorrow = struct {
 };
 const PhasePoolTrim = @import("phase_pool_trim.zig");
 pub const Context = struct {
-    allow_outer_workspace: bool = false,
     pool_trim: PhasePoolTrim.Policy = .{},
     allocator: std.mem.Allocator,
     service: *Service.Context,
@@ -375,6 +374,14 @@ pub const Context = struct {
     /// Per-call commitment blowup: a shared context serves native (beta 1) and
     /// outer recursion profiles (m3: beta 2/3) without mutating shared state.
     pub fn evaluateRolesAtBlowup(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, log_blowup: u32) !D.Tree {
+        return self.evaluateRolesImpl(a, roles, alpha, log, split, total, trace_raw, scope, log_blowup, false);
+    }
+    /// Only the outer authority explicitly opts this job into the role arena.
+    /// The Context is shared with native stages and must never carry this flag.
+    pub fn evaluateOuterRolesAtBlowup(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, log_blowup: u32) !D.Tree {
+        return self.evaluateRolesImpl(a, roles, alpha, log, split, total, trace_raw, scope, log_blowup, true);
+    }
+    fn evaluateRolesImpl(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, log_blowup: u32, outer_workspace: bool) !D.Tree {
         if (log_blowup < 1 or log_blowup > 4) return error.UnsupportedResidentCompositionBlowup;
         const trace: *const Trace = @ptrCast(@alignCast(trace_raw));
         if (trace.polys.items.len != 3 or roles.len == 0 or log < 5 or log > 28 or split < 1 or split > 2) return error.InvalidResidentCompositionRoles;
@@ -395,7 +402,7 @@ pub const Context = struct {
         if (constraints != total) return error.WrongResidentConstraintCount;
         self.mutex.lock();
         defer self.mutex.unlock();
-        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = trace, .scope = scope, .log_blowup = log_blowup };
+        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = trace, .scope = scope, .log_blowup = log_blowup, .outer_workspace = outer_workspace };
         if (self.service.submit(self.service.session, Job.callback, &job) != 0) return job.failure orelse error.CudaResidentCompositionFailed;
         const result = job.result orelse return error.CudaResidentCompositionFailed;
         try self.result_columns.append(self.allocator, @constCast(result.columns));
@@ -466,6 +473,7 @@ pub const RuntimeRole = struct {
     auxiliary: union(enum) { none, hc: [2 * 27 * 8]u32, last } = .none,
 };
 const Job = struct {
+    outer_workspace: bool = false,
     backend: *Context,
     allocator: std.mem.Allocator,
     roles: []const RuntimeRole,
@@ -592,7 +600,7 @@ const Job = struct {
             p.* = power;
             power = power.mul(self.alpha);
         }
-        const reuse_workspace = b.allow_outer_workspace and if (std.posix.getenv("STWO_RV64_RC_ROLE_WORKSPACE")) |value| std.mem.eql(u8, value, "1") else false;
+        const reuse_workspace = self.outer_workspace and if (std.posix.getenv("STWO_RV64_RC_ROLE_WORKSPACE")) |value| std.mem.eql(u8, value, "1") else false;
         var workspace: Native.Lease = .{};
         defer if (workspace.words != null) {
             context.join() catch {};
