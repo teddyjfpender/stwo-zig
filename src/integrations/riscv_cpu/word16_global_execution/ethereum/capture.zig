@@ -53,6 +53,8 @@ pub const Ready = struct {
     global_ram: ?*const fn (*anyopaque, []const @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell, GlobalRamInfo) void = null,
     /// Transfers the helper allocation when true; receiver must free with the
     /// supplied allocator after all asynchronous readers join, including cancel.
+    /// Keep cells alive until capture returns: the helper still borrows them
+    /// for mandatory final Collector equivalence (also on receiver failure).
     take_global_ram: ?*const fn (*anyopaque, std.mem.Allocator, []@import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell, GlobalRamInfo) bool = null,
     /// Immutable until Owner.deinit; callback never waits for GPU completion.
     terminal_ready: ?*const fn (*anyopaque, []const @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell) void = null,

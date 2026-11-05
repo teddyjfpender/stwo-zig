@@ -373,6 +373,9 @@ const RamJob = struct {
     stats: *Stats,
     hook: ?Capture.Ready,
     cells: ?[]@import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell = null,
+    // Borrow retained through capture return even when ownership transfers,
+    // so final Collector equivalence remains mandatory before publication.
+    comparison_cells: ?[]const @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell = null,
     failure: ?anyerror = null,
     thread: ?std.Thread = null,
     fn run(self: *RamJob) void {
@@ -393,6 +396,7 @@ const RamJob = struct {
         const Cell = @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell;
         const cells = try a.alloc(Cell, keys.len);
         self.cells = cells;
+        self.comparison_cells = cells;
         var pages = @import("../collector.zig").OwnerPages{ .owner = self.image };
         const pinned = @import("../../word16_execution/memory/statement.zig").fromOwner(self.image);
         for (keys, cells) |key, *cell| cell.* = .{ .address = key, .state = pages.lookup(key) orelse .{ .value = try self.image.initialWord(key), .rights = try pinned.wordRights(key) } };
@@ -533,7 +537,7 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
     errdefer result.deinit();
     ram_job.join();
     if (ram_job.failure) |err| return err;
-    if (ram_job.cells) |cells| {
+    if (ram_job.comparison_cells) |cells| {
         if (cells.len != result.advice.initial.len) {
             std.debug.print("GPU_FAST_RAM mismatch first_pass={} collector={}\n", .{ cells.len, result.advice.initial.len });
             return error.FirstPassRamMismatch;
