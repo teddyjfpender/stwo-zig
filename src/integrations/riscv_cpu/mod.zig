@@ -33,6 +33,7 @@ pub const rv64_gkr_truth_role = @import("word16_global_execution/services/gkr_lo
 pub const rv64_native_gkr_truth = @import("word16_global_execution/services/native_gkr/truth_authority.zig");
 pub const rv64_native_gkr_roster = @import("word16_global_execution/services/native_gkr/native_roster.zig");
 pub const rv64_native_gkr_cpu = @import("word16_global_execution/services/native_gkr/cpu_component.zig");
+pub const rv64_native_gkr_section = @import("word16_global_execution/services/native_gkr/section.zig");
 pub const rv64_native_gkr_v2 = @import("word16_global_execution/services/native_gkr/v2.zig");
 pub const rv64_gkr_constraints = @import("word16_global_execution/services/gkr_local/constraint_authority.zig");
 pub const rv64_gkr_source = @import("word16_global_execution/services/gkr_local/source_authority.zig");
