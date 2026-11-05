@@ -35,7 +35,8 @@ struct Roots {
   StwoRv64Root entries[max_oracles];
   uint32_t count;
 };
-static_assert(sizeof(Roots) < 4096, "bounded root metadata");
+// Passed by value: CUDA 12.1+ admits kernel parameters up to 32,764 bytes on sm_70+ (128 roots = 4 KiB).
+static_assert(sizeof(Roots) < 32764, "bounded root metadata");
 __device__ bool same(OM31 a, OM31 b) { return is_zero(sub(a, b)); }
 __global__ void pack_roots(Roots roots, uint32_t *out) {
   const uint32_t i = blockIdx.x, c = threadIdx.x;

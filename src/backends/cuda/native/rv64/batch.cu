@@ -166,7 +166,9 @@ struct BatchTailPacket {
   const uint32_t *lambda;
   uint32_t *records;
 };
-static_assert(sizeof(BatchTailPacket) <= 4096, "portable bounded tail launch");
+// 128 oracles: above the legacy 4 KiB parameter limit; CUDA 12.1+ on sm_70+ admits 32,764 bytes (batch_oracles.cu
+// SumPacket already relies on it at 64 oracles).
+static_assert(sizeof(BatchTailPacket) <= 32764, "bounded tail launch");
 struct TailCursor { StwoRv64Plane n, d, out_n, out_d; uint32_t count; };
 __global__ void batch_tail(const __grid_constant__ BatchTailPacket packet) {
   __shared__ BatchState owner;
