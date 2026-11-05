@@ -1,13 +1,17 @@
 //! Opt-in host ranges on the exact persistent GPU owner thread. No CUDA
 //! events, transfers or synchronization are introduced. These standalone
-//! ranges use the existing runtime ABI; global admission must be disabled
-//! until that ABI supports nested annotations.
+//! ranges use a single-range runtime ABI. An admitted stage already owns its
+//! named m7 range and must not push a second annotation onto that context.
 const std = @import("std");
 const Push = *const fn (*anyopaque, [*:0]const u8) callconv(.c) c_int;
 const Pop = *const fn (*anyopaque) callconv(.c) c_int;
 pub const Range = struct {
     raw: *anyopaque,
     pop: ?Pop = null,
+    pub fn beginUnlessAdmitted(library: *std.DynLib, raw: *anyopaque, label: [:0]const u8, admitted: bool) !Range {
+        if (admitted) return .{ .raw = raw };
+        return begin(library, raw, label);
+    }
     pub fn begin(library: *std.DynLib, raw: *anyopaque, label: [:0]const u8) !Range {
         const enabled = if (std.posix.getenv("STWO_RV64_NVTX")) |value| std.mem.eql(u8, value, "1") else false;
         if (!enabled) return .{ .raw = raw };

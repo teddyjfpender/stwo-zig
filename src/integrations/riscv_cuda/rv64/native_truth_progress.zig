@@ -92,7 +92,13 @@ pub fn sourcePlan(truth: Truth, compact_words: usize, compact_present: bool, fix
     if (fixed_words != 0) retained = try retained.add(try allocation(fixed_words));
     return .{ .retained = retained, .peak = try retained.add(try allocation(1)) };
 }
-pub fn init(a: std.mem.Allocator, service: *@import("pcs_native.zig").Context, trace: *@import("trace_commit.zig").Context, composition: *RC.Context, truth: Truth, scope: D.Scope, config: core.pcs.PcsConfig, compact_words: usize, replay: bool) !Plan {
+pub fn init(allocator: std.mem.Allocator, service: *@import("pcs_native.zig").Context, trace: *@import("trace_commit.zig").Context, composition: *RC.Context, truth: Truth, scope: D.Scope, config: core.pcs.PcsConfig, compact_words: usize, replay: bool) !Plan {
+    // Only value-sized bounds/identity escape this calculation. Its mask,
+    // column and diagnostic JSON geometry must not escape into the request
+    // budget as leaked temporary allocations, on success or on refusal.
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
     try CPU.rv64_gkr_worker_protocol.validateCandidateConfig(config);
     if (try CPU.rv64_gkr_truth_device_source.compactInputBytes(truth) != try std.math.mul(usize, compact_words, 4)) return error.NativeTruthCompactGeometryMismatch;
     const roles = try rolesFor(a, truth);

@@ -671,7 +671,7 @@ const Job = struct {
         return WorkspaceCost.init(a, .{ .roles = roles, .shared_role_arena = true, .log = self.log, .split = self.split, .beta = beta, .separate_coefficients = (beta == 1 and b.n2b_columns != null) or (beta == 2 and b.n2b_columns_compact != null), .constraints = self.total });
     }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
-        var range = try @import("nvtx_stage.zig").Range.begin(&self.backend.service.library, raw, "rv64/composition");
+        var range = try @import("nvtx_stage.zig").Range.beginUnlessAdmitted(&self.backend.service.library, raw, "rv64/composition", self.permit != null);
         defer range.deinit();
         const a = self.allocator;
         const b = self.backend;

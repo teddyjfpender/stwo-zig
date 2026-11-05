@@ -142,7 +142,7 @@ pub const Owner = struct {
         self.changed.broadcast();
     }
     fn bindHeads(self: *Owner, advice: *Collector.Advice, ordinal: usize, shard: Collector.Shard) void {
-        var view = Collector.OneShardView.init(shard);
+        const view = Collector.OneShardView.init(shard);
         inline for (heads) |name| @field(advice, name)[ordinal] = @field(view, name)[0];
         self.natives[ordinal] = @constCast(self.slots[ordinal].native.?);
     }
