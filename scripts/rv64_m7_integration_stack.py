@@ -46,7 +46,7 @@ def source_hashes(root):
     result = {}
     for relative in ('src', 'build_support', 'scripts', 'design/typed-air/artifacts'):
         for path in sorted((root / relative).rglob('*')):
-            if path.is_file() and not path.is_symlink() and '__pycache__' not in path.parts:
+            if path.is_file() and not path.is_symlink() and not set(path.parts).intersection({'.zig-cache', 'zig-cache', 'zig-out', '__pycache__', '.git'}):
                 result[str(path.relative_to(root))] = sha(path)
     for name in ('build.zig', 'build.zig.zon'):
         result[name] = sha(root / name)

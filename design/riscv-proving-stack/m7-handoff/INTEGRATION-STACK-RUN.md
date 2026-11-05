@@ -46,8 +46,7 @@ python3 SOURCE/scripts/rv64_m7_integration_stack.py run \
   --manifest SMALL-MANIFEST.json --out SMALL-SMOKE --smoke
 ```
 
-Prepare another manifest with `--block24628607` (with a space between the flag
-and value), then run `run --manifest HEAD-MANIFEST.json --out HEAD-EXPERIMENT
+Prepare another manifest with `--block 24628607`, then run `run --manifest HEAD-MANIFEST.json --out HEAD-EXPERIMENT
 --ownership-profile-pair`. Do not execute until Root approves the combined
 source/build and first-class coverage. The runner stops on the first missing
 class, byte mismatch, receiver rejection, guard failure or quiet-gate failure.
