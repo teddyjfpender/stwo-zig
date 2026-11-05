@@ -24,7 +24,11 @@ pub const Snapshot = extern struct {
         const device_used = self.total_device - self.free_device;
         const held = try activeBudgetGuard(self.device, self.total_device);
         const used = try subtractBudgetGuard(device_used, self.total_device, held);
-        if (used > self.capacity and used - self.capacity > A.external_budget) return error.ExternalGpuBudgetExceeded;
+        // The enforced requirement is whole-process device use <= physical_limit
+        // (the 28 GB gate the external canary also enforces physically).
+        // external_budget is the planning split checked at Planner.init; it must
+        // not refuse a request whose whole-process use is inside the gate.
+        if (used > A.physical_limit) return error.ExternalGpuBudgetExceeded;
     }
 };
 /// External canary allocation belongs to another, supervised process. It
