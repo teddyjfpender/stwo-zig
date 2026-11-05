@@ -8,6 +8,20 @@ pub const Device = @import("stwo_circuit_cpu_integration").om31.device_prove;
 const C = @import("common.zig");
 const PP = circuit.common.preprocessed.PreprocessedCircuit;
 const Finalize = circuit.common.finalize;
+const HybridKey = @import("../../outer_gkr/hybrid_receiver.zig").Key;
+const HybridSection = @import("../../outer_gkr/section.zig").Section;
+const HybridDevice = @import("../../outer_gkr/hybrid_device.zig");
+const HybridWire = @import("../../outer_gkr/hybrid_wire.zig");
+pub const HybridPayload = struct {
+    key: *HybridKey,
+    section: HybridSection,
+    pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
+        self.section.deinit(a);
+        self.key.deinit();
+        a.destroy(self.key);
+        self.* = undefined;
+    }
+};
 /// Outer shape versions (canon-vk M5; binding note §1 `S_out`). The shape is
 /// a function of the outer profile: the M5 canonical profiles
 /// (`Profile.canonical()`) use `uniform_v1`, every other profile `exact`.
@@ -119,6 +133,7 @@ pub const Wrapped = struct {
     capture: Outer.Capture,
     digest: [32]u8,
     timings: Timings,
+    hybrid: ?HybridPayload = null,
     restored: bool = false,
     /// PP/Authority owned by a class cache (fold v2); never freed here.
     borrowed: bool = false,
@@ -126,6 +141,7 @@ pub const Wrapped = struct {
     borrowed_pp: bool = false,
     pub fn deinit(self: *Wrapped) void {
         self.capture.deinit(self.allocator);
+        if (self.hybrid) |*extra| extra.deinit(self.allocator);
         self.produced.deinit();
         if (self.borrowed) {
             self.* = undefined;
@@ -140,7 +156,14 @@ pub const Wrapped = struct {
         self.* = undefined;
     }
     pub fn serialize(self: *const Wrapped, a: std.mem.Allocator) ![]u8 {
+        if (self.hybrid) |*extra| return HybridWire.encode(a, extra.key, self.produced.outputs, self.produced.claims, &extra.section, &self.produced.proof.proof);
         return Wire.encode(a, self.authority.identity, self.produced.outputs, self.produced.claims, &self.produced.proof.proof);
+    }
+    pub fn effectiveIdentity(self: *const Wrapped) [32]u8 {
+        return if (self.hybrid) |extra| extra.key.identity else self.authority.identity;
+    }
+    pub fn asChild(self: *const Wrapped) @import("../om31_outer.zig").Child {
+        return .{ .authority = self.authority, .produced = &self.produced, .capture = &self.capture, .hybrid = if (self.hybrid) |*extra| .{ .key = extra.key, .section = &extra.section } else null };
     }
     /// Call after fresh verification and durable serialization. A parent needs
     /// the child's original verifier metadata and proof, not its wide proving
@@ -324,6 +347,30 @@ pub fn restoreWithAuthority(a: std.mem.Allocator, pp: *PP, authority: *Outer.Aut
     errdefer capture.deinit(a);
     return .{ .allocator = a, .pp = pp, .authority = authority, .produced = produced, .capture = capture, .digest = digest, .restored = true, .borrowed = true, .timings = .{ .preprocess_ns = 0, .prove_ns = 0, .restore_ns = restore_ns, .verify_ns = timer.lap() } };
 }
+/// Fresh receiver path with source-pinned public output count and an explicit
+/// proof family. No byte in the envelope selects its authority or family.
+pub fn restoreForOutputs(a: std.mem.Allocator, pp: *PP, authority: *Outer.Authority, expected: []const C.Q, digest: [32]u8, encoded: []const u8, hybrid: bool) !Wrapped {
+    if (expected.len != pp.n_outputs or authority.pp != pp) return error.CurrentOm31OutputCount;
+    var timer = try std.time.Timer.start();
+    var payload: ?HybridPayload = null;
+    errdefer if (payload) |*extra| extra.deinit(a);
+    const decoded = if (hybrid) blk: {
+        const key = try a.create(HybridKey);
+        errdefer a.destroy(key);
+        key.* = try HybridKey.init(a, authority, 256);
+        errdefer key.deinit();
+        const result = try HybridWire.decode(a, key, encoded);
+        payload = .{ .key = key, .section = result.section };
+        break :blk result.base;
+    } else try Wire.decode(a, authority.identity, expected.len, encoded);
+    var produced = Outer.Produced{ .allocator = a, .outputs = decoded.outputs, .claims = decoded.claims, .proof = .{ .proof = decoded.proof, .aux = .{ .unsorted_query_locations = &.{}, .trace_decommitment = .{ .items = &.{} }, .fri = .{ .first_layer = .{ .all_values = &.{}, .decommitment = .{ .all_node_values = &.{} } }, .inner_layers = &.{} } } } };
+    errdefer produced.deinit();
+    const restore_ns = timer.lap();
+    try requireOutputs(produced.outputs, expected);
+    var capture = if (payload) |*extra| try extra.key.verify(a, produced.outputs, produced.claims, &extra.section, &produced.proof.proof) else try Outer.verify(a, authority, produced.outputs, produced.claims, &produced.proof.proof);
+    errdefer capture.deinit(a);
+    return .{ .allocator = a, .pp = pp, .authority = authority, .produced = produced, .capture = capture, .hybrid = payload, .digest = digest, .restored = true, .borrowed = true, .timings = .{ .preprocess_ns = 0, .prove_ns = 0, .restore_ns = restore_ns, .verify_ns = timer.lap() } };
+}
 // ---------------------------------------------------------------------------
 // Staged form of wrapGraphOrLoadWithFactory for NEW trace-only device proofs.
 // The three stages execute exactly the same operations in exactly the same
@@ -405,7 +452,10 @@ const ColumnsJob = struct {
 /// build PP columns (+ device authority prep) and the factory's assignment plan
 /// from the padded graph, concurrently. Both are pure functions of the graph.
 pub fn prepareHost(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factory) !HostPrep {
-    if (ctx.circuit.output.items.len != 9) return error.CurrentOm31OutputCount;
+    return prepareHostForOutputs(a, ctx, factory, 8);
+}
+pub fn prepareHostForOutputs(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factory, n_outputs: usize) !HostPrep {
+    if (n_outputs > Wire.MAX_OUTPUTS or ctx.circuit.output.items.len != n_outputs + 1) return error.CurrentOm31OutputCount;
     if (!ctx.trace_only or factory.prepare_from_circuit == null) return error.TraceOnlySourceRequired;
     var timer = try std.time.Timer.start();
     try circuit.common.finalize.padToTargets(C.Q, ctx, try paddingTargets(ctx));
@@ -423,7 +473,7 @@ pub fn prepareHost(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factor
     result.pp_borrowed = columns.pp_borrowed;
     result.authority = columns.authority;
     result.columns_ns = columns.columns_ns;
-    result.authority_ns = columns.authority_ns - columns.columns_ns;
+    result.authority_ns = columns.authority_ns;
     if (plan) |value| {
         result.host = value catch |err| return err;
     }
@@ -470,7 +520,9 @@ pub const Proved = struct {
     authority: *Outer.Authority,
     produced: Outer.Produced,
     timings: Timings,
+    hybrid: ?HybridPayload = null,
     pub fn deinit(self: *Proved, a: std.mem.Allocator) void {
+        if (self.hybrid) |*extra| extra.deinit(a);
         self.produced.deinit();
         self.authority.deinit();
         a.destroy(self.authority);
@@ -525,6 +577,11 @@ pub fn proveDevice(a: std.mem.Allocator, ctx: *C.Context, prep: *HostPrep, diges
 /// Stage 3 (any thread, no device): canonical digest check and the same fresh
 /// independent native verification/capture the monolithic path performs.
 pub fn finishProved(a: std.mem.Allocator, proved: *Proved, digest: [32]u8) !Wrapped {
+    if (proved.hybrid != null) {
+        var expected: [8]C.Q = undefined;
+        for (&expected, 0..) |*out, i| out.* = circuit.builder.ivalue.packU32(C.Q, std.mem.readInt(u32, digest[4 * i ..][0..4], .little));
+        return finishProvedForOutputs(a, proved, &expected, digest);
+    }
     var timer = try std.time.Timer.start();
     try requireDigest(proved.produced.outputs, digest);
     var capture = try Outer.verify(a, proved.authority, proved.produced.outputs, proved.produced.claims, &proved.produced.proof.proof);
@@ -534,6 +591,79 @@ pub fn finishProved(a: std.mem.Allocator, proved: *Proved, digest: [32]u8) !Wrap
     const result = Wrapped{ .allocator = a, .pp = proved.pp, .authority = proved.authority, .produced = proved.produced, .capture = capture, .digest = digest, .restored = false, .borrowed_pp = proved.pp_borrowed, .timings = timings };
     proved.* = undefined;
     return result;
+}
+/// New typed-output path. Public output length is fixed by the independently
+/// built PP and every expected coordinate is compared before publication.
+pub fn requireOutputs(outputs: []const C.Q, expected: []const C.Q) !void {
+    if (outputs.len != expected.len) return error.CurrentOm31OutputCount;
+    const modulus = @import("stwo_core").fields.m31.Modulus;
+    for (outputs, expected) |value, want| {
+        for (value.toM31Array(), want.toM31Array()) |actual, authorized| {
+            if (actual.v >= modulus or authorized.v >= modulus) return error.NoncanonicalOm31CircuitOutput;
+            if (actual.v != authorized.v) return error.CurrentOm31OutputMismatch;
+        }
+    }
+}
+pub fn finishProvedForOutputs(a: std.mem.Allocator, proved: *Proved, expected: []const C.Q, digest: [32]u8) !Wrapped {
+    var timer = try std.time.Timer.start();
+    if (expected.len != proved.authority.pp.n_outputs) return error.CurrentOm31OutputCount;
+    try requireOutputs(proved.produced.outputs, expected);
+    var capture = if (proved.hybrid) |*extra| blk: {
+        if (extra.key.source != proved.authority) return error.InvalidHybridChildAuthority;
+        break :blk try extra.key.verify(a, proved.produced.outputs, proved.produced.claims, &extra.section, &proved.produced.proof.proof);
+    } else try Outer.verify(a, proved.authority, proved.produced.outputs, proved.produced.claims, &proved.produced.proof.proof);
+    errdefer capture.deinit(a);
+    var timings = proved.timings;
+    timings.verify_ns = timer.read();
+    const result = Wrapped{ .allocator = a, .pp = proved.pp, .authority = proved.authority, .produced = proved.produced, .capture = capture, .digest = digest, .restored = false, .borrowed_pp = proved.pp_borrowed, .timings = timings, .hybrid = proved.hybrid };
+    proved.* = undefined;
+    return result;
+}
+/// Explicit classic/hybrid dispatch for typed application outputs. This
+/// consumes HostPrep on every path, just like the original digest-only API.
+pub fn proveDeviceForOutputs(a: std.mem.Allocator, ctx: *C.Context, prep: *HostPrep, expected: []const C.Q, ordinal: u32, factory: Device.Factory, hybrid: bool) !Proved {
+    const pp = prep.pp orelse return error.MissingHostPrep;
+    const pp_borrowed = prep.pp_borrowed;
+    prep.pp = null;
+    prep.pp_borrowed = false;
+    errdefer if (!pp_borrowed) {
+        pp.deinit(a);
+        a.destroy(pp);
+    };
+    if (expected.len != pp.n_outputs) return error.CurrentOm31OutputCount;
+    if (prep.host) |host| {
+        prep.host = null;
+        const stage = factory.stage_host orelse {
+            host.destroy(host.context);
+            return error.HostPrepStagingUnsupported;
+        };
+        try stage(factory.context, host);
+    }
+    defer if (factory.unstage_host) |unstage| unstage(factory.context);
+    var timer = try std.time.Timer.start();
+    const authority = try a.create(Outer.Authority);
+    errdefer a.destroy(authority);
+    var precommitted: ?Device.PrecommittedFixed = if (factory.precommit_fixed) |precommit| try precommit(factory.context, a, pp, ordinal) else null;
+    defer if (precommitted) |fixed| fixed.release(fixed.context);
+    authority.* = if (precommitted) |fixed| blk: {
+        if (prep.authority) |*prepared| break :blk try prepared.finish(pp, fixed.tree.root);
+        break :blk try Outer.Authority.initForDeviceProver(a, pp, fixed.tree.root);
+    } else try Outer.Authority.init(a, pp);
+    errdefer authority.deinit();
+    const authority_ns = timer.lap();
+    var payload: ?HybridPayload = null;
+    errdefer if (payload) |*extra| extra.deinit(a);
+    const produced = if (hybrid) blk: {
+        const key = try a.create(HybridKey);
+        errdefer a.destroy(key);
+        // The profile's request-level limit includes every leaf/fold/wrapper.
+        key.* = try HybridKey.init(a, authority, 256);
+        errdefer key.deinit();
+        const result = try HybridDevice.proveFromCircuit(a, key, ctx, expected, ordinal, factory, if (precommitted) |*fixed| fixed else null);
+        payload = .{ .key = key, .section = result.section };
+        break :blk result.base;
+    } else if (precommitted) |*fixed| try Device.proveFromPrecommittedCircuit(a, authority, ctx, expected, ordinal, fixed) else try Device.proveFromCircuit(a, authority, ctx, expected, ordinal, factory);
+    return .{ .pp = pp, .pp_borrowed = pp_borrowed, .authority = authority, .produced = produced, .hybrid = payload, .timings = .{ .preprocess_ns = prep.finalize_ns + prep.columns_ns + authority_ns, .finalize_ns = prep.finalize_ns, .preprocessed_columns_ns = prep.columns_ns, .authority_ns = authority_ns, .prove_ns = timer.read(), .verify_ns = 0 } };
 }
 /// Output values must be canonical packed raw-u32 words, not arbitrary QM31s
 /// that happen to reduce to the same field value.

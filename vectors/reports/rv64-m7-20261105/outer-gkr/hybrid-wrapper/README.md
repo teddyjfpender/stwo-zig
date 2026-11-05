@@ -1,0 +1,7 @@
+Measured fixture qualification: generic wrapped production and restoration passed with 180 public outputs and the conservative 256-proof request security budget. Direct and wrapped producer APIs each generated two byte-identical 601,596-byte proofs; the bytes also match across APIs. A fresh CPU-only receiver accepted.
+
+The new `Bridge.verifyChild` returns the exact identity, FIXED-root and output wires consumed by the complete child verifier. The qualification binds these handles to independently reconstructed authority/output values and checks the full circuit. Four composite circuit mutants are rejected: changed GKR salt, root numerator, committed Eq OODS sample, and a nonzero classic claim slot reserved for a GKR component.
+
+Old digest-only entry points and classic fold emission retain their existing branch. New wrappers carry a real STARK Produced plus typed owned hybrid metadata; generic expected-output APIs use the source PP output count. Profile information is retained by the hybrid authority and used consistently by its native and circuit transcripts. The earlier root-owned `authority_ns` subtraction fix is mirrored here to qualify the generic host-preparation path.
+
+This is a synthetic circuit qualification. No Ethereum request, production-profile activation or C1/C2 compression claim is made. Raw commands, sampled host loads, source/build hashes and proof hash are in the receipts.

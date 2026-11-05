@@ -44,20 +44,23 @@ def main():
     for name in tuple(env):
         if name.startswith("STWO_RV64_GPU"):
             env.pop(name)
-    for mode in ("--prove", "--verify", "--check-child"):
-        argv = [str(args.binary), mode, *([str(args.library)] if mode == "--prove" else []), str(proof)]
-        lock = open(args.gpu_lock, "a") if mode == "--prove" else None
+    prior_proof = None
+    for mode in ("--prove", "--prove-wrapped", "--verify", "--check-child", "--check-child-mutants"):
+        gpu = mode.startswith("--prove")
+        argv = [str(args.binary), mode, *([str(args.library)] if gpu else []), str(proof)]
+        lock = open(args.gpu_lock, "a") if gpu else None
         try:
             if lock:
                 fcntl.flock(lock, fcntl.LOCK_EX)
             started = time.monotonic()
+            load = os.getloadavg()[0]
             with open(args.out / (mode[2:] + ".log"), "w") as log:
                 run_env = env.copy()
                 if not lock:
                     run_env["CUDA_VISIBLE_DEVICES"] = ""
                 result = subprocess.run(argv, cwd=root, env=run_env, stdout=log, stderr=subprocess.STDOUT)
             receipt["tests"].append(dict(mode=mode, argv=argv, exit_code=result.returncode, wall_s=time.monotonic() - started,
-                                         gpu_access=lock is not None))
+                                         gpu_access=lock is not None, loadavg_1m=load))
         finally:
             if lock:
                 fcntl.flock(lock, fcntl.LOCK_UN)
@@ -65,6 +68,10 @@ def main():
         receipt["passed"] = all(test["exit_code"] == 0 for test in receipt["tests"])
         if proof.exists():
             receipt.update(fixture_proof_sha256=sha(proof), fixture_proof_bytes=proof.stat().st_size)
+            if gpu and result.returncode == 0:
+                if prior_proof is not None and prior_proof != sha(proof):
+                    raise RuntimeError("Direct and wrapped fixture proofs differ")
+                prior_proof = sha(proof)
         (args.out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
         print(json.dumps(receipt["tests"][-1]), flush=True)
         if result.returncode:

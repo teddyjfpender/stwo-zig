@@ -18,6 +18,7 @@ pub const Key = struct {
     instances: []P.Instance,
     artifacts: []H.Artifact,
     identity: [32]u8,
+    profile: Outer.protocol.Profile,
     config: Outer.protocol.PcsConfig,
     /// Source is rebuilt by the receiver's ordinary pinned Authority path, never
     /// decoded from proof material. The source and its PP outlive this key.
@@ -53,7 +54,8 @@ pub const Key = struct {
             made += 1;
             hash.update(&artifact.program.identity);
         }
-        return .{ .allocator = a, .source = source, .class = class, .instances = instances, .artifacts = artifacts, .identity = hash.finalResult(), .config = Outer.protocol.active().config() };
+        const profile = Outer.protocol.active();
+        return .{ .allocator = a, .source = source, .class = class, .instances = instances, .artifacts = artifacts, .identity = hash.finalResult(), .profile = profile, .config = profile.config() };
     }
     pub fn deinit(self: *@This()) void {
         for (self.artifacts) |*artifact| artifact.deinit();
@@ -65,7 +67,12 @@ pub const Key = struct {
         if (outputs.len != self.source.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
         var channel = Outer.protocol.Channel.init();
         self.config.mixInto(&channel);
-        Outer.protocol.mixProfile(&channel);
+        channel.mixU32s(&.{ 0x434f4d38, 1, 8 });
+        var profile_digest: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(self.profile.domainName(), &profile_digest, .{});
+        var profile_words: [8]u32 = undefined;
+        for (&profile_words, 0..) |*out, i| out.* = std.mem.readInt(u32, profile_digest[4 * i ..][0..4], .little);
+        channel.mixU32s(&profile_words);
         const words = try a.alloc(u32, 9 + 4 * outputs.len);
         defer a.free(words);
         for (0..8) |i| words[i] = std.mem.readInt(u32, self.identity[4 * i ..][0..4], .little);
