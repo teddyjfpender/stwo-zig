@@ -8,7 +8,11 @@
 #include <stdexcept>
 #include <vector>
 #include <cstring>
+#ifdef STWO_P2_FAST_REDUCTION
+#include "poseidon2_m31_fast.cuh"
+#else
 #include "poseidon2_m31.cuh"
+#endif
 #include "blake2s_core.cuh"
 namespace P=stwo::cuda::p2m31;
 using Hash=stwo::cuda::blake2s::Hash;

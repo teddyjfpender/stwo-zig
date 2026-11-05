@@ -19,10 +19,12 @@ def reference(cols,rows,kind):
         all_nodes+=layer;leaves=layer
     return [x for node in all_nodes for x in node]
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--out',type=Path,required=True);p.add_argument('--binary',type=Path,required=True);p.add_argument('--gpu',default='0');p.add_argument('--lock',default='/workspace/m3/locks/gpu.lock');p.add_argument('--quick',action='store_true');args=p.parse_args();args.out.mkdir(parents=True,exist_ok=True)
-    sources=['tests/cuda/rv64/poseidon_commit_bench.cu','src/backends/cuda/native/rv64/poseidon2_m31.cuh','src/backends/cuda/native/commitment/blake2s_core.cuh','src/backends/cuda/native/commitment/blake2s_protocol.cuh','scripts/rv64_m7_poseidon2_ref.py','scripts/rv64_m7_poseidon_commit_gate.py']
-    receipt=dict(schema='rv64-m7-native-merkle-commitment-hash-throughput/v1',status='RUNNING',ethereum=False,fft_included=False,transfer_included=False,production_p2_backend_selected=False,binary_sha256=sha(args.binary),source_sha256={s:sha(ROOT/s) for s in sources},independent_reference=R.check(),parity=[],benchmarks=[])
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--out',type=Path,required=True);p.add_argument('--binary',type=Path,required=True);p.add_argument('--gpu',default='0');p.add_argument('--lock',default='/workspace/m3/locks/gpu.lock');p.add_argument('--quick',action='store_true');p.add_argument('--variant',default='prototype');p.add_argument('--generated-header',type=Path);p.add_argument('--baseline-receipt',type=Path);args=p.parse_args();args.out.mkdir(parents=True,exist_ok=True)
+    sources=['scripts/rv64_m7_poseidon_fast_reduction.py','tests/cuda/rv64/poseidon_commit_bench.cu','src/backends/cuda/native/rv64/poseidon2_m31.cuh','src/backends/cuda/native/commitment/blake2s_core.cuh','src/backends/cuda/native/commitment/blake2s_protocol.cuh','scripts/rv64_m7_poseidon2_ref.py','scripts/rv64_m7_poseidon_commit_gate.py']
+    receipt=dict(schema='rv64-m7-native-merkle-commitment-hash-throughput/v1',status='RUNNING',variant=args.variant,ethereum=False,fft_included=False,transfer_included=False,production_p2_backend_selected=False,binary_sha256=sha(args.binary),source_sha256={s:sha(ROOT/s) for s in sources},independent_reference=R.check(),parity=[],benchmarks=[])
     lib=Path('/workspace/m3/build/m7-outer-gkr/cuda/native/libstwo-rv64-native.so');receipt['blake_library_sha256']=sha(lib)
+    if args.generated_header:receipt['generated_header_sha256']=sha(args.generated_header)
+    if args.baseline_receipt:receipt['baseline_receipt_sha256']=sha(args.baseline_receipt)
     env=os.environ.copy();env['CUDA_VISIBLE_DEVICES']=args.gpu
     def run(cols,log,reps,dump=False):
         argv=[str(args.binary),str(cols),str(log),str(reps)]+(['dump'] if dump else [])
@@ -47,6 +49,10 @@ def main():
                 data,_=run(cols,log,5)
                 b=statistics.median(data['blake_ms'])/1000;p2=statistics.median(data['p2_ms'])/1000
                 data.update(blake_median_gpu_s=b,p2_median_gpu_s=p2,p2_over_blake=p2/b,blake_input_GiB_s=data['input_bytes']/2**30/b,p2_input_GiB_s=data['input_bytes']/2**30/p2,blake_row_commitments_s=data['rows']/b,p2_row_commitments_s=data['rows']/p2)
+                if args.baseline_receipt:
+                    baseline=json.loads(args.baseline_receipt.read_text());old=next(b for b in baseline['benchmarks'] if b['columns']==cols and b['log_rows']==log)
+                    if data['p2_root']!=old['p2_root'] or data['blake_root']!=old['blake_root']:raise RuntimeError('large-tree GPU baseline root parity')
+                    data['large_tree_gpu_baseline_root_parity']=True
                 receipt['benchmarks'].append(data);print(json.dumps(data),flush=True)
                 (args.out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
         receipt['sources_unchanged']=receipt['source_sha256']=={s:sha(ROOT/s) for s in sources};receipt['status']='PASS' if receipt['sources_unchanged'] else 'SOURCE_CHANGED'
