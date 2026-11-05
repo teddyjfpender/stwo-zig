@@ -88,6 +88,16 @@ def main():
             producer_start = end - request["marker"]["request_wall_ns"]
             start = producer_start + sum(combined[key] for key in ("capture_ns", "native_setup_ns", "native_prove_ns")) + 5_000_000
         selected = [item for item in ranges if item["start"] < end and item["end"] > start]
+        # Controller mode encloses PCS and inline callbacks. OFF mode has
+        # separate callback/PCS parents. Compare their outermost owner union,
+        # rather than adding inclusive child rows to the controller parent.
+        owners = [item for item in selected if item["label"].startswith("rv64/owner/")]
+        top_owners = [item for item in owners if not any(
+            parent is not item and parent["tid"] == item["tid"]
+            and parent["start"] <= item["start"] and parent["end"] >= item["end"]
+            and (parent["start"] < item["start"] or parent["end"] > item["end"])
+            for parent in owners)]
+        selected += [dict(item, label="rv64/owner/top_level_union") for item in top_owners]
         groups = {}
         for marker in selected:
             group = groups.setdefault(marker["label"], {"ranges": 0, "host_range_ns": 0, "host_api": collections.defaultdict(lambda: [0, 0]), "gpu": collections.defaultdict(list), "copies_bytes": collections.Counter(), "outside_owner_kernel_ns": 0})
@@ -123,7 +133,16 @@ def main():
                 gpu[kind] = {"gpu_seconds": sum(per.values()), "by_device_seconds": per}
             api = {name: {"calls": count, "host_seconds": ns / 1e9} for name, (count, ns) in sorted(group["host_api"].items(), key=lambda pair: -pair[1][1])}
             out[label] = {"ranges": group["ranges"], "inclusive_host_range_seconds": group["host_range_ns"] / 1e9, "correlated_gpu_activity": gpu, "cuda_host_api": api, "copy_bytes_by_cupti_kind": dict(group["copies_bytes"]), "kernel_duration_outside_enqueue_range_seconds": group["outside_owner_kernel_ns"] / 1e9}
-        reports.append({"block": request["block"], "trial": request["trial"], "ordinal": request["ordinal"], "request_wall_seconds": request["marker"]["request_wall_ns"] / 1e9, "request_window_ns": [start, end], "ranges": out})
+        phase_kernels = collections.defaultdict(list)
+        for values in activity.values():
+            for item in values:
+                if item["kind"] != "kernel":
+                    continue
+                lo, hi = max(start, item["start"]), min(end, item["end"])
+                if hi > lo:
+                    phase_kernels[str(item["device"])].append((lo, hi))
+        per_device = {device: union_ns(values) / 1e9 for device, values in phase_kernels.items()}
+        reports.append({"block": request["block"], "trial": request["trial"], "ordinal": request["ordinal"], "request_wall_seconds": request["marker"]["request_wall_ns"] / 1e9, "request_window_ns": [start, end], "phase_wall_seconds": (end-start)/1e9, "phase_kernel_gpu_seconds": sum(per_device.values()), "phase_kernel_by_device_seconds": per_device, "ranges": out})
     result = {"schema": "rv64-nvtx-owner-attribution/v1", "label": "M", "phase": args.phase, "scope": "Inclusive host ranges and correlation-owned GPU work. Nested labels overlap; do not add rows. API waits, copies and kernels overlap. Unmatched activities remain unassigned; no attribution is inferred from kernel names. After-native uses the recorded exclusive native-stage end plus a 5ms uncertainty band; UTC request windows derive from spool acknowledgement mtime.", "assets": receipt["assets"], "sqlite_sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "total_marker_ranges": len(ranges), "activities_without_unique_runtime_correlation": dict(unmatched), "requests": reports}
     args.output.write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps({"markers": len(ranges), "requests": [{"block": item["block"], "trial": item["trial"], "stages": {name: {"host_s": value["inclusive_host_range_seconds"], "kernel_gpu_s": value["correlated_gpu_activity"]["kernel"]["gpu_seconds"]} for name, value in item["ranges"].items()}} for item in reports]}, indent=2))

@@ -1,0 +1,308 @@
+{
+  "schema": "rv64-m4-resident-daemon/v1",
+  "label": "measured",
+  "stream": "m7-device-fs",
+  "run": "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off",
+  "blocks": [
+    24628607
+  ],
+  "repeat": 2,
+  "loading": "eager",
+  "nsys": true,
+  "source_commit": null,
+  "assets": {
+    "driver": "76b2a5ca7deea679c3df498c50637c985aeed046ca9135e4f7d0cc86bd1cb2f4",
+    "library": "116a3658ed4aecb1dff18d56e4a3be62d651411dc845da018a8362830a7590aa",
+    "receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+    "recursive_receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d"
+  },
+  "environment": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1",
+    "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
+    "STWO_RV64_LEAF_SEED_TAPE": "1",
+    "STWO_RV64_PACK_FOLD_CACHE": "1",
+    "STWO_RV64_CPU_COMPACT_INGRESS": "1",
+    "STWO_RV64_COMPOSITION_ENQUEUE": "0",
+    "STWO_RV64_BLAKE_SAMPLE_PREFILL": "1",
+    "STWO_RV64_NVTX": "1",
+    "STWO_RV64_OUTER_OWNER_CONTROLLER": "0",
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "STWO_RV64_GPU_DEVICES": "0,1",
+    "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "7",
+    "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+    "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+    "STWO_RV64_GPU_DEVICE_TRACE": "1",
+    "STWO_RV64_GPU_DEVICE_BINDING": "1",
+    "STWO_RV64_GPU_LIBRARY": "/workspace/m3/build/m7-device-controller/cuda/native/libstwo-rv64-native.so",
+    "CUDA_MODULE_LOADING": "EAGER"
+  },
+  "store": {
+    "mode": "none",
+    "directory": null,
+    "key": null,
+    "components": {
+      "store_format": "rv64-m4-artifact-store/v1",
+      "driver_sha256": "76b2a5ca7deea679c3df498c50637c985aeed046ca9135e4f7d0cc86bd1cb2f4",
+      "library_sha256": "116a3658ed4aecb1dff18d56e4a3be62d651411dc845da018a8362830a7590aa",
+      "catalogue_sha256": "e1f83a61127c72eac753a8d0a6abb1c5287c05a924eeda8549aea71986dd805f",
+      "catalogue_dir": "/workspace/m3/catalogues-v3",
+      "build_catalogues": null,
+      "elf_sha256": "718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903",
+      "profile": "conjectured128_b2_q108_p20_fold4",
+      "field_hash": "m31-circle/blake2s-merkle/om31-recursion"
+    },
+    "before": null,
+    "after": null
+  },
+  "load_avg_before": [
+    15.8916015625,
+    18.4150390625,
+    16.8798828125
+  ],
+  "load_avg_after": [
+    29.30517578125,
+    21.57080078125,
+    18.08251953125
+  ],
+  "service_start_s": 9.594,
+  "service_stop_s": 7.926,
+  "service_ready_record": {
+    "schema": "rv64-resident-service/v1",
+    "pid": 2207206,
+    "init_ns": 8059687146
+  },
+  "producer_process": {
+    "argv": [
+      "nsys",
+      "profile",
+      "--trace=cuda,nvtx",
+      "--sample=none",
+      "--cpuctxsw=none",
+      "--force-overwrite=true",
+      "-o",
+      "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off/nsys/timeline",
+      "/workspace/m3/build/m7-device-controller/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+      "combined-serve",
+      "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off/manifest.json",
+      "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off/spool"
+    ],
+    "exit_code": 0,
+    "wall_ns": 74283849199,
+    "user_seconds": 0.028997,
+    "system_seconds": 0.829378,
+    "peak_rss_bytes": 45686784,
+    "minor_faults": 8294,
+    "major_faults": 1
+  },
+  "physical_gpu_memory": {
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+    "samples": 572,
+    "errors": [],
+    "kernel_activity": {
+      "0": {
+        "samples": 286,
+        "mean_percent": 20.75874125874126,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 286,
+        "mean_percent": 22.356643356643357,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    },
+    "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
+    "peak_used_bytes": {
+      "0": 31503417344,
+      "1": 31503417344
+    }
+  },
+  "cuda_api": {
+    "cuLibraryLoadData": {
+      "count": 686,
+      "seconds": 2.7874,
+      "first_ns": 384281429,
+      "last_ns": 3172212433
+    },
+    "cudaLaunchKernel_v7000": {
+      "count": 164933,
+      "seconds": 0.7393,
+      "first_ns": 22594459600,
+      "last_ns": 64675701608
+    },
+    "cudaMemcpyAsync_v3020": {
+      "count": 42224,
+      "seconds": 0.2934,
+      "first_ns": 22594208380,
+      "last_ns": 64718152395
+    },
+    "cudaStreamSynchronize_v3020": {
+      "count": 8600,
+      "seconds": 14.9816,
+      "first_ns": 22594370330,
+      "last_ns": 64674988050
+    },
+    "per_request": {
+      "session_start_utc_ns": 1793869475660317203,
+      "requests": [
+        {
+          "cuLibraryLoadData": 0,
+          "cuLibraryUnload": 0,
+          "cudaMallocFromPoolAsync": 0,
+          "cudaStreamSynchronize": 4328,
+          "cudaLaunchKernel": 82473
+        },
+        {
+          "cuLibraryLoadData": 0,
+          "cuLibraryUnload": 0,
+          "cudaMallocFromPoolAsync": 0,
+          "cudaStreamSynchronize": 4272,
+          "cudaLaunchKernel": 82460
+        }
+      ],
+      "cuLibraryLoadData_before_first_request": 686
+    }
+  },
+  "service_overhead_s": 17.536,
+  "requests": [
+    {
+      "block": 24628607,
+      "trial": 0,
+      "ordinal": 0,
+      "proof": "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off/spool/out/0000-24628607/24628607/proof",
+      "client_latency_ns": 38976291800,
+      "marker": {
+        "request_wall_ns": 38966755426
+      },
+      "queue_ns": 10135713,
+      "stages": {
+        "request_wall_s": 38.967,
+        "capture_s": 1.892,
+        "setup_s": 12.232,
+        "native_prove_s": 5.221,
+        "native_verify_s": 1.87,
+        "native_total_before_report_s": 19.497,
+        "recursion_s": 19.446
+      },
+      "setup_breakdown": {
+        "image_ns": 281280689,
+        "program_ns": 23843656,
+        "native_keys_ns": 7379938911,
+        "fixed_authority_ns": 4734152257
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 708696,
+      "leaves": 17,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": false,
+        "recursive_proofs": false,
+        "recursive_mismatched": [
+          "fold-000004.proof",
+          "fold-000009.proof",
+          "fold-000014.proof",
+          "fold-000019.proof",
+          "fold-000020.proof",
+          "fold-000022.proof",
+          "leaf-000000.proof",
+          "leaf-000001.proof",
+          "leaf-000002.proof",
+          "leaf-000003.proof",
+          "leaf-000004.proof",
+          "leaf-000005.proof",
+          "leaf-000006.proof",
+          "leaf-000007.proof",
+          "leaf-000008.proof",
+          "leaf-000009.proof",
+          "leaf-000010.proof",
+          "leaf-000011.proof",
+          "leaf-000012.proof",
+          "leaf-000013.proof",
+          "leaf-000014.proof",
+          "leaf-000015.proof",
+          "leaf-000016.proof",
+          "root.proof"
+        ],
+        "root_sha256": "b3eb90e35187f0157b96be1407e2ca2c1c15fb71c40fb2a933ec404acafd2507",
+        "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "proof_count": 24,
+        "native_mismatched": [],
+        "byte_identical": false
+      }
+    },
+    {
+      "block": 24628607,
+      "trial": 1,
+      "ordinal": 1,
+      "proof": "/workspace/m3/runs/m7-device-fs/daemon-24628607-r2-owner-isolated-off/spool/out/0001-24628607/24628607/proof",
+      "client_latency_ns": 17787179237,
+      "marker": {
+        "request_wall_ns": 17780849194
+      },
+      "queue_ns": 5104837,
+      "stages": {
+        "request_wall_s": 17.781,
+        "capture_s": 2.068,
+        "setup_s": 0.136,
+        "native_prove_s": 4.628,
+        "native_verify_s": 2.464,
+        "native_total_before_report_s": 7.174,
+        "recursion_s": 10.491
+      },
+      "setup_breakdown": {
+        "image_ns": 39114105,
+        "program_ns": 481229,
+        "native_keys_ns": 13920,
+        "fixed_authority_ns": 11520
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 708696,
+      "leaves": 17,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": false,
+        "recursive_proofs": false,
+        "recursive_mismatched": [
+          "fold-000004.proof",
+          "fold-000009.proof",
+          "fold-000014.proof",
+          "fold-000019.proof",
+          "fold-000020.proof",
+          "fold-000022.proof",
+          "leaf-000000.proof",
+          "leaf-000001.proof",
+          "leaf-000002.proof",
+          "leaf-000003.proof",
+          "leaf-000004.proof",
+          "leaf-000005.proof",
+          "leaf-000006.proof",
+          "leaf-000007.proof",
+          "leaf-000008.proof",
+          "leaf-000009.proof",
+          "leaf-000010.proof",
+          "leaf-000011.proof",
+          "leaf-000012.proof",
+          "leaf-000013.proof",
+          "leaf-000014.proof",
+          "leaf-000015.proof",
+          "leaf-000016.proof",
+          "root.proof"
+        ],
+        "root_sha256": "b3eb90e35187f0157b96be1407e2ca2c1c15fb71c40fb2a933ec404acafd2507",
+        "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "proof_count": 24,
+        "native_mismatched": [],
+        "byte_identical": false
+      }
+    }
+  ],
+  "receivers": []
+}

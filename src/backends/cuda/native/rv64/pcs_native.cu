@@ -470,7 +470,7 @@ struct ResidentOwner {
   }
 };
 struct Service {
-  enum class Job { none, prove, callback, quit };
+  enum class Job { none, prove, callback, controller, quit };
   uint32_t device;
   uint64_t cap;
   std::thread thread;
@@ -480,6 +480,7 @@ struct Service {
   bool ready = false, done = false, poisoned = false;
   Job job = Job::none;
   int status = 0;
+  uint32_t controller_depth = 0;
   std::string error;
   const StwoRv64PcsNativeRequest *request = nullptr;
   StwoRv64PcsNativeResult *result = nullptr;
@@ -490,6 +491,40 @@ struct Service {
     thread = std::thread([this] { loop(); });
     std::unique_lock<std::mutex> lock(mutex);
     changed.wait(lock, [this] { return ready; });
+  }
+  // Called only by the persistent owner, either from its normal prove job
+  // or explicitly inside one synchronous proof-controller job.
+  void runProve(const StwoRv64PcsNativeRequest *request,
+                StwoRv64PcsNativeResult *result) {
+    if (!request || request->version != 1 || request->section_count != 17)
+      throw std::runtime_error("native PCS ABI mismatch");
+    rv64_pcs_pipeline::Input input;
+    for (size_t i = 0; i < 17; ++i) {
+      const auto s = request->sections[i];
+      if (s.count > SIZE_MAX || (s.count && !s.words))
+        throw std::runtime_error("invalid native metadata span");
+      input.sections[i] = {s.words, size_t(s.count)};
+    }
+    if (request->coefficient_count > 65536 || !request->coefficients)
+      throw std::runtime_error("native coefficient count");
+    std::copy(request->scope, request->scope + 8, input.scope.begin());
+    for (uint64_t i = 0; i < request->coefficient_count; ++i) {
+      const auto c = request->coefficients[i];
+      if (c.coefficient_log > 28 ||
+          c.count != (uint64_t(1) << c.coefficient_log) || !c.words ||
+          c.kind > 1)
+        throw std::runtime_error("native coefficient shape");
+      input.coefficients.push_back({{c.words, size_t(c.count)},
+                                    c.kind,
+                                    c.context_token,
+                                    c.generation});
+    }
+    owner->reset();
+    auto proof = rv64_pcs_pipeline::run(*owner, input);
+    auto *words = new std::vector<uint32_t>(std::move(proof.words));
+    *result = {words->data(),         words->size(),   proof.device_ns,
+               proof.requested_bytes, owner->retained, words};
+    owner->reset();
   }
   void loop() {
     std::unique_ptr<ResidentOwner> storage;
@@ -515,46 +550,28 @@ struct Service {
         break;
       status = 0;
       rv64_pcs_pipeline::PcsNvtxPhase owner_profiling(
-          job == Job::callback ? "rv64/owner/callback" : "rv64/owner/pcs");
+          job == Job::controller ? "rv64/owner/controller" : job == Job::callback ? "rv64/owner/callback" : "rv64/owner/pcs");
       try {
         if (poisoned || !owner)
           throw std::runtime_error("GPU session is poisoned");
-        if (job == Job::callback) {
+        if (job == Job::callback || job == Job::controller) {
+          struct ControllerScope {
+            uint32_t &depth;
+            uint32_t previous;
+            ControllerScope(uint32_t &d, bool enabled) : depth(d), previous(d) {
+              if (enabled) depth = 1;
+            }
+            ~ControllerScope() { depth = previous; }
+          } controller(controller_depth, job == Job::controller);
           const int code = callback(owner->ctx, owner->token, user);
+          // The complete controller owns its borrowed inputs and all deferred
+          // releases until this one terminal host-visible handoff.
           owner->sync();
           if (code)
             throw std::runtime_error("GPU callback failed: " +
                                      std::to_string(code));
         } else {
-          if (!request || request->version != 1 || request->section_count != 17)
-            throw std::runtime_error("native PCS ABI mismatch");
-          rv64_pcs_pipeline::Input input;
-          for (size_t i = 0; i < 17; ++i) {
-            const auto s = request->sections[i];
-            if (s.count > SIZE_MAX || (s.count && !s.words))
-              throw std::runtime_error("invalid native metadata span");
-            input.sections[i] = {s.words, size_t(s.count)};
-          }
-          if (request->coefficient_count > 65536 || !request->coefficients)
-            throw std::runtime_error("native coefficient count");
-          std::copy(request->scope, request->scope + 8, input.scope.begin());
-          for (uint64_t i = 0; i < request->coefficient_count; ++i) {
-            const auto c = request->coefficients[i];
-            if (c.coefficient_log > 28 ||
-                c.count != (uint64_t(1) << c.coefficient_log) || !c.words ||
-                c.kind > 1)
-              throw std::runtime_error("native coefficient shape");
-            input.coefficients.push_back({{c.words, size_t(c.count)},
-                                          c.kind,
-                                          c.context_token,
-                                          c.generation});
-          }
-          owner->reset();
-          auto proof = rv64_pcs_pipeline::run(*owner, input);
-          auto *words = new std::vector<uint32_t>(std::move(proof.words));
-          *result = {words->data(),         words->size(),   proof.device_ns,
-                     proof.requested_bytes, owner->retained, words};
-          owner->reset();
+          runProve(request, result);
         }
       } catch (const std::exception &e) {
         error = e.what();
@@ -617,8 +634,23 @@ stwo_rv64_pcs_native_prove(void *raw, const StwoRv64PcsNativeRequest *request,
     return int(cudaErrorInvalidValue);
   *result = {};
   auto &s = *static_cast<Service *>(raw);
-  if (s.isOwner())
-    return int(cudaErrorInvalidResourceHandle);
+  if (s.isOwner()) {
+    if (!s.controller_depth || s.controller_depth >= 8 || s.poisoned)
+      return int(cudaErrorInvalidResourceHandle);
+    struct Depth { uint32_t &d; explicit Depth(uint32_t &v):d(v){++d;} ~Depth(){--d;} } depth(s.controller_depth);
+    try {
+      rv64_pcs_pipeline::PcsNvtxPhase profiling("rv64/owner/pcs");
+      s.runProve(request, result);
+      return 0;
+    } catch (const std::exception &e) {
+      // runProve can fail during final joined reset after producing the host
+      // vector. The direct path has no outer Job::prove cleanup branch.
+      if (result->owner) delete static_cast<std::vector<uint32_t> *>(result->owner);
+      *result = {};
+      s.error = e.what(); s.poisoned = true;
+      return int(cudaErrorUnknown);
+    }
+  }
   std::lock_guard<std::mutex> caller(s.calls);
   std::unique_lock<std::mutex> lock(s.mutex);
   s.changed.wait(lock, [&] { return s.job == Service::Job::none; });
@@ -648,14 +680,35 @@ extern "C" int stwo_rv64_gpu_session_submit(void *raw,
   if (!raw || !callback)
     return int(cudaErrorInvalidValue);
   auto &s = *static_cast<Service *>(raw);
-  if (s.isOwner())
-    return int(cudaErrorInvalidResourceHandle);
+  if (s.isOwner()) {
+    if (!s.controller_depth || s.controller_depth >= 8 || s.poisoned)
+      return int(cudaErrorInvalidResourceHandle);
+    struct Depth { uint32_t &d; explicit Depth(uint32_t &v):d(v){++d;} ~Depth(){--d;} } depth(s.controller_depth);
+    const int code = callback(s.owner->ctx, s.owner->token, user);
+    if (code) s.poisoned = true;
+    return code;
+  }
   std::lock_guard<std::mutex> caller(s.calls);
   std::unique_lock<std::mutex> lock(s.mutex);
   s.changed.wait(lock, [&] { return s.job == Service::Job::none; });
   s.callback = callback;
   s.user = user;
   s.invoke(Service::Job::callback);
+  s.changed.wait(lock, [&] { return s.done; });
+  return s.status;
+}
+// Additive synchronous controller entry. Ordinary submit still rejects
+// owner-thread reentrancy unless this explicit job owns the complete proof.
+extern "C" int stwo_rv64_gpu_session_controller(void *raw,
+    StwoRv64GpuCallback callback, void *user) {
+  if (!raw || !callback) return int(cudaErrorInvalidValue);
+  auto &s = *static_cast<Service *>(raw);
+  if (s.isOwner()) return int(cudaErrorInvalidResourceHandle);
+  std::lock_guard<std::mutex> caller(s.calls);
+  std::unique_lock<std::mutex> lock(s.mutex);
+  s.changed.wait(lock, [&] { return s.job == Service::Job::none; });
+  s.callback = callback; s.user = user;
+  s.invoke(Service::Job::controller);
   s.changed.wait(lock, [&] { return s.done; });
   return s.status;
 }

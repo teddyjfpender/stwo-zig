@@ -863,6 +863,7 @@ pub const Prepared = struct {
         std.debug.print("BLAKE_SAMPLE_PREFILL records={} gg_rows={} original_air=true\n", .{ inputs.len, inputs.len * 80 });
     }
     pub fn generate(self: *const Prepared, owner: anytype, ctx: *SC.Context) !N.Lease {
+        const graph_enabled = try @import("assignment_graphs.zig").enabled();
         const service = owner.backend.service;
         var total_timer = try std.time.Timer.start();
         var timer = try std.time.Timer.start();
@@ -909,10 +910,11 @@ pub const Prepared = struct {
         }
         // Chain runs read the plan's absolute level ends from the device.
         var chain_ends: ?N.Lease = null;
-        if (self.narrow_plan) |plan| for (plan.runs) |run| if (run.kind == .chain) {
-            chain_ends = try Static.words(self, ctx, service, &one_shot[2], owner.initial_scope.fixed, 2, plan.ends);
-            break;
-        };
+        if (self.narrow_plan) |plan| {
+            var need_ends = graph_enabled;
+            for (plan.runs) |run| if (run.kind == .chain) { need_ends = true; break; };
+            if (need_ends) chain_ends = try Static.words(self, ctx, service, &one_shot[2], owner.initial_scope.fixed, 2, plan.ends);
+        }
         try ctx.join();
         const static_ingress_ns = timer.lap();
         try recorder.mark(.levels, false, lane);
@@ -920,7 +922,18 @@ pub const Prepared = struct {
         var ordinary_level_calls: usize = 0;
         var narrow_run_calls: usize = 0;
         var chain_run_calls: usize = 0;
-        if (self.narrow_plan) |plan| {
+        if (graph_enabled) {
+            const plan = self.narrow_plan orelse return error.AssignmentGraphRequiresChainPlan;
+            if (self.wide_level == null or self.chain_run == null) return error.AssignmentGraphRequiresChainPlan;
+            const Graphs = @import("assignment_graphs.zig");
+            const sequence = try Graphs.steps(self.allocator, &plan);
+            defer self.allocator.free(sequence);
+            job.first = 0;
+            job.count = job.record_count;
+            const hit = try owner.backend.assignment_graphs.run(owner.backend.allocator, &service.library, ctx, self.identity, sequence, &job, .{.values=values,.tasks=tasks,.indices=indices,.status=status,.ends=chain_ends.?}, plan.ends.len);
+            std.debug.print("GPU_OUTER_ASSIGNMENT_GRAPH hit={} nodes={} launches=1 fresh_pointers=true\n", .{hit,sequence.len});
+            launches += 1;
+        } else if (self.narrow_plan) |plan| {
             for (plan.runs) |run| {
                 job.first = run.first_task;
                 job.count = run.task_count;

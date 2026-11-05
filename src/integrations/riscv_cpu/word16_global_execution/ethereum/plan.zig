@@ -181,6 +181,11 @@ pub const KeccakTruthOptions = struct {
     /// Reuse the qualified throughput family for every span on resident GPUs.
     /// The default preserves the cost-minimized mixed-policy native roster.
     uniform_throughput: bool = false,
+    /// One physical truth per active family, bounded by existing source caps.
+    /// May require a new canonical truth rung and more backend memory.
+    one_per_family: bool = false,
+    /// Coalesce non-Keccak families while keeping the bounded Keccak partition.
+    coalesce_families: bool = false,
     /// Throughput tables cleared four per degree-five batch
     /// (`throughput_quartet_v1`, 456 instead of 608 interaction columns).
     /// v3 default since it proved and fresh-verified a real 4-packet prefix
@@ -385,6 +390,21 @@ pub fn secpRcbCells(kind: A.crypto.secp256k1.program.Kind, calls_total: u32) !u6
     return cells;
 }
 pub fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
+    if (options.one_per_family and options.coalesce_families) return error.ConflictingTruthFamilyPlans;
+    if (options.one_per_family or options.coalesce_families) {
+        const ST = @import("../services/types.zig");
+        var total: [ST.FAMILIES]u32 = @splat(0);
+        for (captured.advice.keccak, captured.advice.secp, captured.advice.sha256, captured.advice.arith256_mod, captured.advice.curves, captured.advice.sponge) |keccak, secp, sha256, arith, curves, sponge| {
+            total[0] = try std.math.add(u32, total[0], try std.math.add(u32, @intCast(keccak.len), @intCast(sponge.inputs.len)));
+            total[1] = try std.math.add(u32, total[1], @intCast(secp[0].len));
+            total[2] = try std.math.add(u32, total[2], @intCast(secp[1].len));
+            total[3] = try std.math.add(u32, total[3], @intCast(sha256.len));
+            total[4] = try std.math.add(u32, total[4], @intCast(arith.len));
+            for (curves, 0..) |calls, index| total[ST.FIRST_CURVE + index] = try std.math.add(u32, total[ST.FIRST_CURVE + index], @intCast(calls.len));
+        }
+        return if (options.one_per_family) oneTruthPerFamily(a, total, options) else coalesceTruthFamilies(a, total, options, max_log);
+    }
+
     var total: [3]u32 = @splat(0);
     for (captured.advice.keccak, captured.advice.secp) |k, s| {
         total[0] = try std.math.add(u32, total[0], @intCast(k.len));
@@ -435,6 +455,106 @@ pub fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options
         }
     }
     return out.toOwnedSlice(a);
+}
+/// Producer geometry only: complete family spans start at1. Existing source
+/// receiver admission is applied before returning; capacity failure never
+/// silently restores a split roster. CPU geometry/authority is unchanged.
+pub fn oneTruthPerFamily(a: std.mem.Allocator, total: [@import("../services/types.zig").FAMILIES]u32, options: KeccakTruthOptions) ![]W.TruthDeclaration {
+    if (!options.v3) return error.OneTruthPerFamilyRequiresV3;
+    const ST = @import("../services/types.zig");
+    var out: std.ArrayList(W.TruthDeclaration) = .empty;
+    errdefer out.deinit(a);
+    for (std.enums.values(ST.Family), total) |family, calls| {
+        if (calls == 0) continue;
+        const logs: [2]u32 = switch (family) {
+            .keccak => block: {
+                if (calls > keccakCapacity(options.throughput().geometry(), 22)) return error.OneTruthPerFamilySourceCapacity;
+                const piece = keccakSingle(options, calls, 22) orelse return error.OneTruthPerFamilySourceCapacity;
+                break :block .{ piece.log, W.keccakProfileWord(piece.policy) };
+            },
+            .add, .double => .{ try SecpRow.logSize(if (family == .add) .add else .double, calls), SecpRow.PROFILE_WORD },
+            .sha256 => block: {
+                const log = try A.crypto.sha256.layout.logSize(calls);
+                if (log > @import("../sha256/roster.zig").MAX_LOG) return error.OneTruthPerFamilySourceCapacity;
+                break :block .{ log, 0 };
+            },
+            .arith256_mod => block: {
+                const log = try A.crypto.arith256.layout.logSize(calls);
+                if (log > @import("../arith256/roster.zig").MAX_LOG) return error.OneTruthPerFamilySourceCapacity;
+                break :block .{ log, 0 };
+            },
+            else => .{ try @import("../curves/roster.zig").logSize(ST.curveOp(family).?, calls), 0 },
+        };
+        const declaration = W.TruthDeclaration{ .family = family, .first_id = 1, .calls = calls, .logs = logs };
+        try @import("../services/gkr_local/service_scope.zig").truthDeclaration(declaration);
+        try out.append(a, declaration);
+    }
+    return out.toOwnedSlice(a);
+}
+/// Preserve Keccak's admitted bounded shards; combine each other family into
+/// one physical proof. This explicit partial plan does not claim one Keccak proof.
+pub fn coalesceTruthFamilies(a: std.mem.Allocator, total: [@import("../services/types.zig").FAMILIES]u32, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
+    if (!options.v3) return error.OneTruthPerFamilyRequiresV3;
+    var out: std.ArrayList(W.TruthDeclaration) = .empty;
+    errdefer out.deinit(a);
+    try appendKeccakSecp(a, &out, .{ total[0], 0, 0 }, max_log, options);
+    var remainder = total;
+    remainder[0] = 0;
+    const rest = try oneTruthPerFamily(a, remainder, options);
+    defer a.free(rest);
+    try out.appendSlice(a, rest);
+    return out.toOwnedSlice(a);
+}
+test "one truth per family partial coalescing preserves bounded Keccak and admitted secp spans" {
+    const ST = @import("../services/types.zig");
+    for ([_][5]u32{ .{ 20994, 14855, 14001, 3157, 25 }, .{ 29998, 10358, 9751, 2901, 319 } }) |counts| {
+        var total: [ST.FAMILIES]u32 = @splat(0);
+        @memcpy(total[0..5], &counts);
+        const truth = try coalesceTruthFamilies(std.testing.allocator, total, .{ .v3 = true, .uniform_throughput = true, .coalesce_families = true }, 18);
+        defer std.testing.allocator.free(truth);
+        try std.testing.expectEqual(@as(usize, 7), truth.len);
+        var got: [ST.FAMILIES]u32 = @splat(0);
+        for (truth) |declaration| {
+            const index = @intFromEnum(declaration.family);
+            try std.testing.expectEqual(got[index] + 1, declaration.first_id);
+            got[index] += declaration.calls;
+            if (declaration.family == .keccak) try std.testing.expect(declaration.logs[0] <= 18);
+        }
+        try std.testing.expectEqualSlices(u32, &total, &got);
+        // The coalesced secp spans fit the existing source-owned M6 rung table.
+        var classes: [4]CanonClass = undefined;
+        try canonicalTruths(truth[3..], @import("canon_native_rungs.zig"), &classes);
+        try std.testing.expectEqual(@as(u32, 14), truth[3].logs[0]);
+        try std.testing.expectEqual(@as(u32, 14), truth[4].logs[0]);
+    }
+}
+test "one truth per family preserves exact dev call spans within existing source authority" {
+    const ST = @import("../services/types.zig");
+    for ([_][5]u32{ .{ 20994, 14855, 14001, 3157, 25 }, .{ 29998, 10358, 9751, 2901, 319 } }) |counts| {
+        var total: [ST.FAMILIES]u32 = @splat(0);
+        @memcpy(total[0..5], &counts);
+        const truth = try oneTruthPerFamily(std.testing.allocator, total, .{ .v3 = true, .uniform_throughput = true, .one_per_family = true });
+        defer std.testing.allocator.free(truth);
+        try std.testing.expectEqual(@as(usize, 5), truth.len);
+        for (truth, counts) |declaration, calls| {
+            try std.testing.expectEqual(calls, declaration.calls);
+            try std.testing.expectEqual(@as(u32, 1), declaration.first_id);
+        }
+        try std.testing.expectEqual(@as(u32, 19), truth[0].logs[0]);
+        try std.testing.expectEqual(@as(u32, 14), truth[1].logs[0]);
+        try std.testing.expectEqual(@as(u32, 14), truth[2].logs[0]);
+        // Existing strict M6 authority deliberately has no Keccak log19 rung.
+        // Source-valid geometry must not silently widen that receiver authority.
+        var classes: [5]CanonClass = undefined;
+        try std.testing.expectError(error.CanonNoAdmissibleRung, canonicalTruths(truth, @import("canon_native_rungs.zig"), &classes));
+    }
+    var total: [ST.FAMILIES]u32 = @splat(0);
+    total[3] = 8192;
+    try std.testing.expectError(error.OneTruthPerFamilySourceCapacity, oneTruthPerFamily(std.testing.allocator, total, .{ .v3 = true }));
+    total = @splat(0);
+    total[0] = std.math.maxInt(u32);
+    try std.testing.expectError(error.OneTruthPerFamilySourceCapacity, oneTruthPerFamily(std.testing.allocator, total, .{ .v3 = true }));
+    try std.testing.expectError(error.OneTruthPerFamilyRequiresV3, oneTruthPerFamily(std.testing.allocator, @splat(0), .{}));
 }
 test "keccak truth plan sizes prefixes below the log18 bound without u15 wrap" {
     const calls: u32 = 3934;

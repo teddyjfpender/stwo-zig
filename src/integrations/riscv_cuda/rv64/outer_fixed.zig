@@ -137,5 +137,5 @@ pub fn precommit(raw: *anyopaque, a: std.mem.Allocator, pp: *const PP, ordinal: 
     var logs: [45]u32 = undefined;
     for (pp.columns, &logs) |column, *log| log.* = column.logSize();
     try Dev.validateTree(&logs, self.tree);
-    return .{ .context = self, .tree = self.tree, .scope = scope, .prepare_from_circuit = Owner.prepare, .release = Owner.release };
+    return .{ .context = self, .controller = b.controller(), .tree = self.tree, .scope = scope, .prepare_from_circuit = Owner.prepare, .release = Owner.release };
 }

@@ -23,7 +23,14 @@ pub const Source = struct {
     generate: *const fn (*anyopaque, std.mem.Allocator, *const Native.Authority, D.Scope, P.O, P.O) anyerror!Interaction,
     release: *const fn (*anyopaque) void,
 };
+pub const Controller = struct {
+    context: *anyopaque,
+    /// Synchronous terminal custody. All borrowed proof inputs remain live until
+    /// return; the backend may execute the complete proof on its native owner.
+    run: *const fn (*anyopaque, *const fn (*anyopaque) anyerror!void, *anyopaque) anyerror!void,
+};
 pub const PrecommittedFixed = struct {
+    controller: ?Controller = null,
     context: *anyopaque,
     tree: D.Tree,
     scope: D.Scope,
@@ -65,6 +72,10 @@ pub threadlocal var blake_sample_inputs: ?[]const [26]u32 = null;
 pub const Factory = struct {
     /// Typed by a higher integration layer; this module never interprets it.
     extension: ?FactoryExtension = null,
+    controller: ?Controller = null,
+    /// A whole-proof owner job cannot overlap native writers using this same
+    /// service until host lock ordering and shared metadata caches are audited.
+    requires_native_complete: bool = false,
     context: *anyopaque,
     /// Optional device-free host stage. Thread-safe with respect to this
     /// factory's device work: it never touches device or active-proof state.
@@ -142,6 +153,40 @@ pub fn proveFromPrecommittedCircuit(a: std.mem.Allocator, key: *const Native.Aut
     return proveOwned(a, key, outputs, &.{}, ordinal, undefined, graph, fixed);
 }
 fn proveOwned(a: std.mem.Allocator, key: *const Native.Authority, outputs: []P.Q, values: []const P.Q, ordinal: u32, factory: Factory, graph: ?*const circuit.builder.Context(P.Q), precommitted: ?*const PrecommittedFixed) !Native.Produced {
+    const controller = if (precommitted) |fixed| fixed.controller else factory.controller;
+    if (controller) |owner| {
+        const Job = struct {
+            a: std.mem.Allocator,
+            key: *const Native.Authority,
+            outputs: []P.Q,
+            values: []const P.Q,
+            ordinal: u32,
+            factory: Factory,
+            graph: ?*const circuit.builder.Context(P.Q),
+            precommitted: ?*const PrecommittedFixed,
+            called: bool = false,
+            result: ?Native.Produced = null,
+            fn run(raw: *anyopaque) !void {
+                const self: *@This() = @ptrCast(@alignCast(raw));
+                if (self.called) return error.DuplicateProofControllerEntry;
+                self.called = true;
+                self.result = try proveOwnedDirect(self.a, self.key, self.outputs, self.values, self.ordinal, self.factory, self.graph, self.precommitted);
+            }
+        };
+        var job = Job{ .a = a, .key = key, .outputs = outputs, .values = values, .ordinal = ordinal, .factory = factory, .graph = graph, .precommitted = precommitted };
+        owner.run(owner.context, Job.run, &job) catch |err| {
+            if (!job.called) a.free(outputs) else if (job.result) |*result| result.deinit();
+            return err;
+        };
+        if (!job.called) {
+            a.free(outputs);
+            return error.ProofControllerDidNotRun;
+        }
+        return job.result orelse return error.MissingProofControllerResult;
+    }
+    return proveOwnedDirect(a, key, outputs, values, ordinal, factory, graph, precommitted);
+}
+fn proveOwnedDirect(a: std.mem.Allocator, key: *const Native.Authority, outputs: []P.Q, values: []const P.Q, ordinal: u32, factory: Factory, graph: ?*const circuit.builder.Context(P.Q), precommitted: ?*const PrecommittedFixed) !Native.Produced {
     errdefer a.free(outputs);
     try key.requireProverData();
     const requested = D.Scope{ .statement = statement(key, outputs), .fixed = key.fixedRoot(), .main = @splat(0), .ordinal = ordinal };

@@ -80,6 +80,11 @@ pub fn build(b: *std.Build) void {
     const d2_filter = b.option([]const u8, "d2-test-filter", "Run matching D2 runtime profile and actual CPU proof gates");
     const d2_tests = b.addTest(.{ .root_module = d2_root, .filters = if (d2_filter) |filter| &.{filter} else &.{} });
     b.step("test-d2-native", "Check explicit D2 runtime profile and fresh-receiver CPU proof without a GPU").dependOn(&b.addRunArtifact(d2_tests).step);
+    const truth_plan_root = b.createModule(.{ .root_source_file = b.path("rv64_truth_family_plan_test_root.zig"), .target = target, .optimize = optimize });
+    var truth_plan_imports = native_gkr_root.import_table.iterator();
+    while (truth_plan_imports.next()) |entry| truth_plan_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
+    const truth_plan_tests = b.addTest(.{ .root_module = truth_plan_root, .filters = &.{"one truth per family"} });
+    b.step("test-truth-family-plan", "Check opt-in one-truth-per-family source geometry and fail-closed capacity").dependOn(&b.addRunArtifact(truth_plan_tests).step);
     const d2_circuit_root = b.createModule(.{ .root_source_file = b.path("rv64_d2_circuit_test_root.zig"), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
     var d2_circuit_imports = native_gkr_root.import_table.iterator();
     while (d2_circuit_imports.next()) |entry| d2_circuit_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
