@@ -132,6 +132,17 @@ const GeometryBorrow = struct {
         if (!self.retained) self.value.deinit(a);
     }
 };
+pub const ClassRole = struct {
+    namespace: enum { cpu, truth, outer },
+    id: u32,
+    artifact: *const KernelMetadata,
+    trace_log: u32,
+    eval_log: u32,
+    widths: [3]usize,
+    offsets: [3]usize,
+    fixed_indices: ?[]const u32 = null,
+    auxiliary: WorkspaceCost.Auxiliary = .none,
+};
 const PhasePoolTrim = @import("phase_pool_trim.zig");
 pub const Context = struct {
     pool_trim: PhasePoolTrim.Policy = .{},
@@ -205,6 +216,39 @@ pub const Context = struct {
         for (self.result_columns.items) |columns| self.allocator.free(columns);
         self.result_columns.deinit(self.allocator);
         self.* = undefined;
+    }
+    /// Pure source-class geometry; no device pointers, locks or allocations on
+    /// a GPU. All producer trees are promised compact resident coefficients.
+    pub fn classAllocationPlan(self: *const Context, a: std.mem.Allocator, classes: []const ClassRole, tree_logs: [3][]const u32, log: u32, split: u32, total: usize, beta: u32, fixed_cold_words: u64, shared_arena: bool) !WorkspaceCost.Plan {
+        const roles=try a.alloc(WorkspaceCost.Role,classes.len);
+        defer a.free(roles);
+        var made:usize=0;
+        defer for(roles[0..made]) |role| a.free(role.columns);
+        const direct=self.n2b_columns!=null and !(if(std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT")) |v| std.mem.eql(u8,v,"0") else false);
+        const compact=direct and self.n2b_columns_compact!=null and !(if(std.posix.getenv("STWO_RV64_COMPOSITION_DIRECT_EL2")) |v| std.mem.eql(u8,v,"0") else false);
+        for(classes,roles) |c,*out| {
+            const columns=try a.alloc(WorkspaceCost.Column,c.widths[0]+c.widths[1]+c.widths[2]);
+            errdefer a.free(columns);
+            var at:usize=0;
+            for(0..3) |tree| for(0..c.widths[tree]) |column| {
+                const index=if(tree==0 and c.fixed_indices!=null) blk:{
+                    if(c.fixed_indices.?.len!=c.widths[0])return error.InvalidResidentCompositionRoles;
+                    break :blk c.fixed_indices.?[column];
+                } else try std.math.add(usize,c.offsets[tree],column);
+                if(index>=tree_logs[tree].len)return error.InvalidResidentCompositionRoles;
+                const degree=tree_logs[tree][index];
+                columns[at]=.{.log=degree,.direct=(direct and degree+1==c.eval_log) or (compact and degree+2==c.eval_log)};
+                at+=1;
+            };
+            out.*=.{.trace_log=c.trace_log,.eval_log=c.eval_log,.columns=columns,.auxiliary=c.auxiliary,.masks=c.artifact.program.inputs.len,.parameters=c.artifact.parameter_slots.len,.constraints=c.artifact.program.roots.len};
+            if(self.sparse_truth) |*sparse| {
+                var widths=c.widths;
+                if(c.auxiliary==.last)widths[2]+=1;
+                if(c.namespace==.truth and sparse.matches(c.artifact.program.identity,c.id,c.trace_log,c.eval_log,widths,c.artifact.program.inputs.len,c.artifact.program.roots.len,c.artifact.parameter_slots.len)) out.sparse=sparse.selection();
+            }
+            made+=1;
+        }
+        return WorkspaceCost.init(a,.{.roles=roles,.shared_role_arena=shared_arena,.log=log,.split=split,.beta=beta,.separate_coefficients=(beta==1 and self.n2b_columns!=null) or (beta==2 and self.n2b_columns_compact!=null),.constraints=total,.fixed_cold_words=fixed_cold_words});
     }
     fn retainedBytes(self: *const Context) usize {
         return self.artifact_bytes + self.geometry_bytes + self.twiddle_bytes;
