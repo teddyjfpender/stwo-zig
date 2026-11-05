@@ -306,9 +306,14 @@ pub const Context = struct {
             };
             self.truth_role = dispatch;
         }
-        return .{ .context = self, .evaluate_and_commit = evaluateTruth };
+        return .{ .context = self, .evaluate_and_commit = evaluateTruth, .evaluate_and_commit_at_blowup = evaluateTruthAtBlowup };
     }
     fn evaluateTruth(raw: *anyopaque, a: std.mem.Allocator, bound: CPU.rv64_gkr_truth_device_composition.Roles, alpha: O, log: u32, split: u32, total: usize, trace: *const anyopaque, scope: D.Scope) !D.Tree {
+        const self: *Context = @ptrCast(@alignCast(raw));
+        return evaluateTruthAtBlowup(raw, a, bound, alpha, log, split, total, trace, scope, self.log_blowup);
+    }
+    fn evaluateTruthAtBlowup(raw: *anyopaque, a: std.mem.Allocator, bound: CPU.rv64_gkr_truth_device_composition.Roles, alpha: O, log: u32, split: u32, total: usize, trace: *const anyopaque, scope: D.Scope, beta: u32) !D.Tree {
+        if (beta < 1 or beta > 4) return error.UnsupportedResidentCompositionBlowup;
         const self: *Context = @ptrCast(@alignCast(raw));
         self.mutex.lock();
         defer self.mutex.unlock();
@@ -345,7 +350,7 @@ pub const Context = struct {
             },
         }
         var timer = try std.time.Timer.start();
-        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = @ptrCast(@alignCast(trace)), .scope = scope };
+        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = @ptrCast(@alignCast(trace)), .scope = scope, .log_blowup = beta };
         if (self.service.submit(self.service.session, Job.callback, &job) != 0) return job.failure orelse error.CudaResidentCompositionFailed;
         const result = job.result orelse return error.CudaResidentCompositionFailed;
         try self.result_columns.append(self.allocator, @constCast(result.columns));
@@ -395,9 +400,14 @@ pub const Context = struct {
         return result;
     }
     pub fn stage(self: *Context) CPU.rv64_gkr_cpu_worker.ResidentCompositionStage {
-        return .{ .context = self, .evaluate_and_commit = evaluate };
+        return .{ .context = self, .evaluate_and_commit = evaluate, .evaluate_and_commit_at_blowup = evaluateAtBlowup };
     }
     fn evaluate(raw: *anyopaque, a: std.mem.Allocator, items: []const Items.Item, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope) !D.Tree {
+        const self: *Context = @ptrCast(@alignCast(raw));
+        return evaluateAtBlowup(raw, a, items, alpha, log, split, total, trace_raw, scope, self.log_blowup);
+    }
+    fn evaluateAtBlowup(raw: *anyopaque, a: std.mem.Allocator, items: []const Items.Item, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope, beta: u32) !D.Tree {
+        if (beta < 1 or beta > 4) return error.UnsupportedResidentCompositionBlowup;
         const self: *Context = @ptrCast(@alignCast(raw));
         if (self.artifact_count != Oracle.count) return error.CpuCompositionNotInitialized;
         self.mutex.lock();
@@ -430,7 +440,7 @@ pub const Context = struct {
                 made += 1;
             },
         };
-        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = @ptrCast(@alignCast(trace_raw)), .scope = scope };
+        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = @ptrCast(@alignCast(trace_raw)), .scope = scope, .log_blowup = beta };
         if (self.service.submit(self.service.session, Job.callback, &job) != 0) return job.failure orelse error.CudaResidentCompositionFailed;
         const result = job.result orelse return error.CudaResidentCompositionFailed;
         try self.result_columns.append(self.allocator, @constCast(result.columns));
@@ -814,7 +824,7 @@ const Job = struct {
         // PCS retains compact coefficients only. Commitment LDE/twiddles are
         // scratch and retire with this joined job, rather than sharing the
         // retained coefficient lease for the entire opening phase.
-        const separate = beta == 1 and b.n2b_columns != null;
+        const separate = (beta == 1 and b.n2b_columns != null) or (beta == 2 and b.n2b_columns_compact != null);
         const eval_base: usize = if (separate) 0 else coeff_count;
         const output_tw = eval_base + eval_words;
         const output_desc = std.mem.alignForward(usize, output_tw + tw.twiddles.len, 2);
@@ -850,7 +860,10 @@ const Job = struct {
         try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, compute_lane, &stream));
         try events.mark(.commit_fft, false, stream.?);
         if (separate) {
-            try self.checked("n2b_columns", b.n2b_columns.?(output.words.?, @as(usize, 1) << @intCast(chunk_log), scratch.words.? + output_desc, scratch.words.?, commit_rows, commit_log, @intCast(count), scratch.words.? + output_tw, @intCast(tw.twiddles.len), @intCast(commit_rows / 2), stream.?, &launches));
+            if (beta == 2) {
+                const source_words = @as(usize, 1) << @intCast(chunk_log);
+                try self.checked("n2b_columns_compact", b.n2b_columns_compact.?(output.words.?, source_words, scratch.words.? + output_desc, scratch.words.?, commit_rows, commit_log, @intCast(count), scratch.words.? + output_tw, @intCast(tw.twiddles.len), @intCast(commit_rows / 2), source_words, stream.?, &launches));
+            } else try self.checked("n2b_columns", b.n2b_columns.?(output.words.?, @as(usize, 1) << @intCast(chunk_log), scratch.words.? + output_desc, scratch.words.?, commit_rows, commit_log, @intCast(count), scratch.words.? + output_tw, @intCast(tw.twiddles.len), @intCast(commit_rows / 2), stream.?, &launches));
         } else try self.checked("n2b", b.n2b(output.words.?, output.count, output.words.? + output_desc, @intCast(count), eval_base, commit_log, output.words.? + output_tw, @intCast(tw.twiddles.len), @intCast(commit_rows / 2), stream.?, 1, &launches));
         try events.mark(.commit_fft, true, stream.?);
         const tree_words = (2 * commit_rows - 1) * 8;
@@ -878,7 +891,7 @@ const Job = struct {
         errdefer b.allocator.free(columns);
         for (columns, 0..) |*column, i| column.* = .{ .log_size = chunk_log, .device = .{ .words = output.words.? + i * (@as(usize, 1) << @intCast(chunk_log)), .count = @as(u64, 1) << @intCast(chunk_log), .context_token = output.context_token, .generation = output.generation } };
         try b.service.retainDeviceLease(context.scope, output);
-        std.debug.print("GPU_COMPOSITION_OWNERSHIP ordinal={} retained_coefficient_words={} joined_commit_scratch_words={} separate_coefficients={}\n", .{ self.scope.ordinal, output.count, if (separate) scratch.count else 0, separate });
+        std.debug.print("GPU_COMPOSITION_OWNERSHIP ordinal={} retained_coefficient_words={} joined_commit_scratch_words={} separate_coefficients={} log_blowup={}\n", .{ self.scope.ordinal, output.count, if (separate) scratch.count else 0, separate, beta });
         self.result = .{ .root = root, .columns = columns };
         var kernel_ms: f64 = 0;
         for (spans[1..]) |value| kernel_ms += value;
