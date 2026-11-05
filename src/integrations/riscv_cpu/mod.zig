@@ -302,6 +302,7 @@ test {
 }
 
 pub const rv64_om31_outer = @import("rv64_recursion/om31_outer.zig");
+pub const rv64_om31_outer_wrap = @import("rv64_recursion/om31_native/outer_wrap.zig");
 
 pub const rv64_om31_execution_wrap = @import("rv64_recursion/om31_native/execution_wrap.zig");
 pub const rv64_root_verify = @import("rv64_recursion/root_verify.zig");

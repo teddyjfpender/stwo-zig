@@ -29,6 +29,10 @@ const Eval = Outer.program.ForLane(F);
 const List = circuit.common.component_list;
 const A = @import("stwo_riscv_frontend").rv64_air;
 const domain: u32 = 0x4f464c31;
+const hybrid_domain: u32 = 0x48464c32;
+const Hybrid = @import("../outer_gkr/child_verifier.zig");
+const HybridKey = @import("../outer_gkr/hybrid_receiver.zig").Key;
+const HybridSection = @import("../outer_gkr/section.zig").Section;
 /// Fold message version. 1 = constant child keys (proof-dependent topology);
 /// 2 = digest-bound guessed child identity + FIXED root (class topology).
 pub const version: u32 = 2;
@@ -36,7 +40,51 @@ pub const Child = struct {
     authority: *const Outer.prove.Authority,
     produced: *const Outer.prove.Produced,
     capture: *const Outer.prove.Capture,
+    hybrid: ?struct { key: *const HybridKey, section: *const HybridSection } = null,
+    pub fn effectiveIdentity(self: @This()) ![32]u8 {
+        if (self.hybrid) |extra| {
+            if (extra.key.source != self.authority) return error.InvalidHybridChildAuthority;
+            return extra.key.identity;
+        }
+        return self.authority.identity;
+    }
 };
+/// These are the exact wires consumed by the child transcript and PCS verifier.
+/// Applications bind summary outputs and VK-table admission to these handles.
+pub const Authenticated = struct {
+    identity: [8]Word,
+    fixed_root: C.Hash,
+    outputs: []const C.Var,
+    output_words: []const Word,
+};
+pub fn verifyChild(ctx: *C.Context, child: Child) !Authenticated {
+    const effective = try child.effectiveIdentity();
+    if (child.produced.outputs.len != child.authority.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
+    const config = child.produced.proof.proof.commitment_scheme_proof.config;
+    const profile = if (child.hybrid) |extra| extra.key.profile else Outer.protocol.active();
+    if (!std.meta.eql(config, profile.config())) return error.UnsupportedOm31CircuitProfile;
+    const geometry = if (child.hybrid) |extra| try Hybrid.shape(ctx.scratch(), extra.key) else try shape(ctx.scratch(), child.authority);
+    const captured = try V.proof.fromNativeCapped(ctx.scratch(), &child.produced.proof.proof, child.capture, &geometry, profile.foldMerkleCapLog());
+    const guessed = try V.proof.guess(ctx, &captured, &geometry);
+    if (guessed.cap_log != profile.foldMerkleCapLog()) return error.Om31FoldMerkleCapProfileMismatch;
+    var identity: [8]Word = undefined;
+    for (&identity, 0..) |*out, i| out.* = try B.wrappers.guessU32(Q, ctx, B.wrappers.u32Value(Q, std.mem.readInt(u32, effective[4 * i ..][0..4], .little)));
+    const outputs = try ctx.scratch().alloc(C.Var, child.produced.outputs.len);
+    for (outputs, child.produced.outputs) |*out, value| out.* = try ctx.guess(value);
+    const output_words = try B.blake.unpackQm31sToU32Words(Q, ctx, outputs);
+    var claims: [List.N_COMPONENTS]F = undefined;
+    for (&claims, child.produced.claims.toArray()) |*out, value| out.* = try F.guess(ctx, value);
+    if (child.hybrid) |extra| {
+        const own_section = HybridSection{ .class = &extra.key.class, .salt = extra.section.salt, .proof = extra.section.proof };
+        const wired = try @import("../outer_gkr/circuit.zig").wireSection(ctx, &own_section);
+        var state: Hybrid.State = undefined;
+        _ = try V.verify(ctx, &geometry, &guessed, Hybrid.Statement{ .key = extra.key, .identity = identity, .outputs = outputs, .output_words = output_words, .claims = claims, .section = wired, .state = &state });
+    } else {
+        var challenges: Statement.Challenges = undefined;
+        _ = try V.verify(ctx, &geometry, &guessed, Statement{ .key = child.authority, .identity = identity, .outputs = outputs, .output_words = output_words, .claims = claims, .challenges = &challenges });
+    }
+    return .{ .identity = identity, .fixed_root = guessed.commitments[0], .outputs = outputs, .output_words = output_words };
+}
 pub const Graph = struct {
     ctx: C.Context,
     output_digest: [32]u8,
@@ -190,12 +238,13 @@ fn messageWords(a: std.mem.Allocator, children: []const Child) ![]u32 {
     for (children) |child| count += 17 + 4 * child.produced.outputs.len;
     const words = try a.alloc(u32, count);
     errdefer a.free(words);
-    words[0] = domain;
+    words[0] = foldDomain(children);
     words[1] = try versionWord(children.len);
     var at: usize = 2;
     for (children) |child| {
         if (child.produced.outputs.len != child.authority.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
-        for (0..8) |i| words[at + i] = std.mem.readInt(u32, child.authority.identity[4 * i ..][0..4], .little);
+        const identity = try child.effectiveIdentity();
+        for (0..8) |i| words[at + i] = std.mem.readInt(u32, identity[4 * i ..][0..4], .little);
         at += 8;
         const root = child.authority.fixedRoot();
         for (0..8) |i| words[at + i] = std.mem.readInt(u32, root[4 * i ..][0..4], .little);
@@ -208,6 +257,10 @@ fn messageWords(a: std.mem.Allocator, children: []const Child) ![]u32 {
         };
     }
     return words;
+}
+fn foldDomain(children: []const Child) u32 {
+    for (children) |child| if (child.hybrid != null) return hybrid_domain;
+    return domain;
 }
 pub fn expectedDigest(children: []const Child) ![32]u8 {
     const a = std.heap.page_allocator;
@@ -236,13 +289,18 @@ pub fn expectedDigest(children: []const Child) ![32]u8 {
 /// child position has the same geometry class.
 pub fn classKey(children: []const Child) ![32]u8 {
     var h = std.crypto.hash.sha2.Sha256.init(.{});
-    h.update("rv64-om31-fold-class/v2\x00");
+    h.update(if (foldDomain(children) == domain) "rv64-om31-fold-class/v2\x00" else "rv64-om31-hybrid-fold-class/v2\x00");
     h.update(Outer.protocol.domainName());
     var bytes: [4]u8 = undefined;
     std.mem.writeInt(u32, &bytes, try versionWord(children.len), .little);
     h.update(&bytes);
     for (children) |child| {
+        _ = try child.effectiveIdentity();
         const key = child.authority;
+        if (child.hybrid) |extra| {
+            h.update(extra.key.profile.domainName());
+            for (extra.key.artifacts) |artifact| h.update(&artifact.program.identity);
+        }
         if (child.produced.outputs.len != key.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
         for (key.logs.toArray()) |log| {
             std.mem.writeInt(u32, &bytes, log, .little);
@@ -287,8 +345,16 @@ fn buildFoldMode(a: std.mem.Allocator, children: []const Child, trace_only: bool
     defer C.lane.finish() catch {};
     var message: std.ArrayList(Word) = .empty;
     defer message.deinit(a);
-    try message.appendSlice(a, &.{ try word(&ctx, domain), try word(&ctx, version_word) });
+    try message.appendSlice(a, &.{ try word(&ctx, foldDomain(children)), try word(&ctx, version_word) });
     for (children) |child| {
+        if (child.hybrid != null) {
+            const authenticated = try verifyChild(&ctx, child);
+            try message.appendSlice(a, &authenticated.identity);
+            try message.appendSlice(a, &authenticated.fixed_root.words);
+            try message.append(a, try word(&ctx, @intCast(authenticated.outputs.len)));
+            try message.appendSlice(a, authenticated.output_words);
+            continue;
+        }
         try Outer.protocol.validateConfig(child.produced.proof.proof.commitment_scheme_proof.config);
         const geometry = try shape(ctx.scratch(), child.authority);
         // M6 diet-wire: the fold's child verifier may stop at a Merkle cap (profile constant; 0 = full paths).

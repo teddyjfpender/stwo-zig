@@ -14,6 +14,7 @@ const R = @import("hybrid_receiver.zig");
 const H = @import("hybrid_air.zig");
 const HC = @import("hybrid_component.zig");
 const CG = @import("circuit.zig");
+pub const common = C;
 /// Isolated complete child graph used by the qualification executable. This
 /// does not provide execution-summary admission or select a production format.
 pub fn checkFixture(a: std.mem.Allocator, key: *const R.Key, outputs: []const Q, claims: Outer.witness.Claims, section: *const @import("section.zig").Section, proof: *const Outer.protocol.Proof, capture: *const Outer.prove.Capture) !void {
@@ -23,7 +24,7 @@ pub fn checkFixture(a: std.mem.Allocator, key: *const R.Key, outputs: []const Q,
     var active = true;
     defer if (active) C.lane.finish() catch {};
     const geometry = try shape(ctx.scratch(), key);
-    const captured = try V.proof.fromNativeCapped(ctx.scratch(), proof, capture, &geometry, Outer.protocol.active().foldMerkleCapLog());
+    const captured = try V.proof.fromNativeCapped(ctx.scratch(), proof, capture, &geometry, key.profile.foldMerkleCapLog());
     const guessed = try V.proof.guess(&ctx, &captured, &geometry);
     var identity: [8]Word = undefined;
     for (&identity, 0..) |*out, i| out.* = try circuit.builder.wrappers.guessU32(Q, &ctx, circuit.builder.wrappers.u32Value(Q, std.mem.readInt(u32, key.identity[4 * i ..][0..4], .little)));
@@ -95,7 +96,7 @@ pub const Statement = struct {
         try channel.mixConfig(ctx, self.key.config);
         try channel.mixConstU32s(ctx, &.{ 0x434f4d38, 1, 8 });
         var profile: [32]u8 = undefined;
-        std.crypto.hash.sha2.Sha256.hash(Outer.protocol.domainName(), &profile, .{});
+        std.crypto.hash.sha2.Sha256.hash(self.key.profile.domainName(), &profile, .{});
         const profile_words = try circuit.builder.blake.constantHash(Q, ctx, circuit.builder.blake.hashValueFromDigest(Q, profile));
         try channel.mixU32s(ctx, &profile_words.words);
         const public = try ctx.scratch().alloc(Word, 9 + self.output_words.len);
