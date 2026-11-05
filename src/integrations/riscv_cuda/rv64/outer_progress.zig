@@ -79,7 +79,8 @@ fn pcsGeometry(a: std.mem.Allocator, owner: *@import("outer_source.zig").Owner, 
     const air = Air.Components{ .components = erased, .n_preprocessed_columns = logs[0].len };
     const seed = O.fromM31Array(.{ D.M.fromCanonical(7), D.M.fromCanonical(11), D.M.fromCanonical(13), D.M.fromCanonical(17), D.M.fromCanonical(19), D.M.fromCanonical(23), D.M.fromCanonical(29), D.M.fromCanonical(31) });
     const probe = try core.circle.secureFieldPointFromRandomSeedCheckedFor(O, seed);
-    const masks = try air.maskPoints(a, probe, max_log, true);
+    // P.Engine.prove uses the default include_all_preprocessed_columns=false.
+    const masks = try air.maskPoints(a, probe, max_log, false);
     if (masks.items.len != 3) return error.InvalidOuterClassMaskTrees;
     const trees = try a.alloc(D.Tree, 4);
     const points = try a.alloc([][]D.Point, 4);
