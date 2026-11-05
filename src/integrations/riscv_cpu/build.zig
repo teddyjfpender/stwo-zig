@@ -64,6 +64,18 @@ pub fn build(b: *std.Build) void {
     const native_gkr_filter = b.option([]const u8, "native-gkr-test-filter", "Run matching native GKR tests only");
     const native_gkr_tests = b.addTest(.{ .root_module = native_gkr_root, .filters = if (native_gkr_filter) |filter| &.{filter} else &.{} });
     b.step("test-native-gkr", "Test native GKR v1 and v2 bounded roster, codec, transcript and tamper corpus").dependOn(&b.addRunArtifact(native_gkr_tests).step);
+    const d2_root = b.createModule(.{ .root_source_file = b.path("rv64_d2_profile_test_root.zig"), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
+    var d2_imports = native_gkr_root.import_table.iterator();
+    while (d2_imports.next()) |entry| d2_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
+    const d2_filter = b.option([]const u8, "d2-test-filter", "Run matching D2 runtime profile and actual CPU proof gates");
+    const d2_tests = b.addTest(.{ .root_module = d2_root, .filters = if (d2_filter) |filter| &.{filter} else &.{} });
+    b.step("test-d2-native", "Check explicit D2 runtime profile and fresh-receiver CPU proof without a GPU").dependOn(&b.addRunArtifact(d2_tests).step);
+    const d2_circuit_root = b.createModule(.{ .root_source_file = b.path("rv64_d2_circuit_test_root.zig"), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
+    var d2_circuit_imports = native_gkr_root.import_table.iterator();
+    while (d2_circuit_imports.next()) |entry| d2_circuit_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
+    d2_circuit_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", dependency_options).module("stwo_circuit_frontend"));
+    const d2_circuit_tests = b.addTest(.{ .root_module = d2_circuit_root, .filters = &.{"D2 actual native CPU recursive"} });
+    b.step("test-d2-circuit-census", "Construct and census actual native default/D2 CPU recursive verifier graphs").dependOn(&b.addRunArtifact(d2_circuit_tests).step);
     const census_root = b.createModule(.{ .root_source_file = b.path("rv64_native_gkr_census_main.zig"), .target = target, .optimize = optimize });
     var census_imports = native_gkr_root.import_table.iterator();
     while (census_imports.next()) |entry| census_root.addImport(entry.key_ptr.*, entry.value_ptr.*);

@@ -60,6 +60,13 @@ pub const Inventory = struct {
             for (truths, truth_declarations) |truth, *d| d.* = Wire.TruthDeclaration.from(truth);
             var source_bounds = try @import("source_bounds.zig").derive(a, setups[0].materials.program.log_size, declarations, truth_declarations, requests);
             defer source_bounds.deinit();
+            if (@import("worker_protocol.zig").candidateProfile(config) == .d2_native_b4_q54_p20_fold4) {
+                const Candidate = @import("../../../word16_execution/om31_security_candidate.zig");
+                // Source derivation above enforces the receiver caps and signed
+                // characteristic bounds. The conservative whole-cap D2 ledger
+                // also charges its actual LDE domain factor before any worker.
+                try Candidate.requireProfileAlgebraicRomBudget(.d2_native_b4_q54_p20_fold4, Candidate.Facts.caps(), Candidate.MAX_AUDITED_LOG_WORK);
+            }
         }
         const count = try std.math.add(usize, setups.len, truths.len);
         const workers = try a.alloc(Manifest.ExpectedWorker, count);
@@ -151,11 +158,21 @@ pub fn executionIdentity(config: Config, expected: P.Expected) [32]u8 {
 }
 const ExecutionIdentityWriter = struct {
     channel: core.channel.raw_mod_m31.Om31Channel,
-    pub fn header(self: *@This(), words: []const u32) void { self.channel.mixU32s(words); }
-    pub fn configuration(self: *@This(), config: Config) void { config.mixInto(&self.channel); }
-    pub fn constantDigest(self: *@This(), value: [32]u8) void { digest(&self.channel, value); }
-    pub fn publicDigest(self: *@This(), value: [32]u8) void { digest(&self.channel, value); }
-    pub fn int64(self: *@This(), value: u64) void { self.channel.mixU64(value); }
+    pub fn header(self: *@This(), words: []const u32) void {
+        self.channel.mixU32s(words);
+    }
+    pub fn configuration(self: *@This(), config: Config) void {
+        config.mixInto(&self.channel);
+    }
+    pub fn constantDigest(self: *@This(), value: [32]u8) void {
+        digest(&self.channel, value);
+    }
+    pub fn publicDigest(self: *@This(), value: [32]u8) void {
+        digest(&self.channel, value);
+    }
+    pub fn int64(self: *@This(), value: u64) void {
+        self.channel.mixU64(value);
+    }
 };
 /// Single native/circuit authority for this frozen transcript order. The
 /// circuit writer uses raw u32 pairs for u64 values and propagates its errors.

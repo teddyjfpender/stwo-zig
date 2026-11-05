@@ -157,7 +157,7 @@ test "candidate raw modulo exact integer entropy and union threshold reject unif
 }
 
 // ---- M7 candidate profiles (stream profiles, off by default) ----
-test "m7 candidate profiles are 128 conjectured bits, never weaker under Johnson, off by default" {
+test "m7 specs are 128 conjectured bits; D2 runtime is explicit and defaults stay fixed" {
     const baseline = C.baselineJohnsonBitsTimes2();
     try std.testing.expectEqual(@as(u32, 148), baseline);
     for (C.CANDIDATE_PROFILES, 0..) |p, k| {
@@ -173,11 +173,16 @@ test "m7 candidate profiles are 128 conjectured bits, never weaker under Johnson
         try std.testing.expectEqual(@as(usize, s.queries), c.fri_config.n_queries);
         try std.testing.expectEqual(s.fold_step, c.fri_config.fold_step);
         try std.testing.expect(s.fold_step >= 3 and s.fold_step <= 4);
-        // OFF BY DEFAULT: not an admitted native profile, not parseable, not the default.
-        try C.requireCandidateNotAdmitted(p);
-        try std.testing.expectError(error.UnknownOm31CandidateProfile, C.Profile.parse(p.name()));
+        // D2 has an explicit experimental runtime registration; other specs remain unregistered.
+        if (p == .d2_native_b4_q54_p20_fold4) {
+            try std.testing.expectEqual(C.Profile.d2_native_b4_q54_p20_fold4, try C.Profile.parse(p.name()));
+            try std.testing.expectError(error.Om31CandidateProfileAlreadyAdmitted, C.requireCandidateNotAdmitted(p));
+        } else {
+            try C.requireCandidateNotAdmitted(p);
+            try std.testing.expectError(error.UnknownOm31CandidateProfile, C.Profile.parse(p.name()));
+        }
         for (C.PROFILES) |admitted| {
-            try std.testing.expect(!std.meta.eql(C.configFor(admitted), c));
+            if (p == .d2_native_b4_q54_p20_fold4 and admitted == .d2_native_b4_q54_p20_fold4) try std.testing.expect(std.meta.eql(C.configFor(admitted), c)) else try std.testing.expect(!std.meta.eql(C.configFor(admitted), c));
             try std.testing.expect(!std.mem.eql(u8, &C.profileIdentity(admitted), &C.candidateIdentity(p)));
         }
         // Distinct identities and domains across candidates.
@@ -187,7 +192,7 @@ test "m7 candidate profiles are 128 conjectured bits, never weaker under Johnson
         }
     }
     try std.testing.expectEqual(C.Profile.conjectured128_b2_q108_p20_fold4, C.DEFAULT_PROFILE);
-    try std.testing.expectEqual(@as(usize, 2), C.PROFILES.len);
+    try std.testing.expectEqual(@as(usize, 3), C.PROFILES.len);
 }
 test "m7 candidate layers pin plan parameters (D2, recsize outer, C1, C2 fold 8/16)" {
     const d2 = C.candidateSpec(.d2_native_b4_q54_p20_fold4);
@@ -321,8 +326,8 @@ test "m5 format versions keep 128 conjectured bits of their base PCS, distinct d
         // Off by default: not parseable as an admitted native profile.
         try std.testing.expectError(error.UnknownOm31CandidateProfile, C.Profile.parse(v.name()));
     }
-    // Admitted registry untouched.
-    try std.testing.expectEqual(@as(usize, 2), C.PROFILES.len);
+    // Historical identities/default remain untouched; D2 is the third explicit entry.
+    try std.testing.expectEqual(@as(usize, 3), C.PROFILES.len);
     try std.testing.expectEqual(C.Profile.conjectured128_b2_q108_p20_fold4, C.DEFAULT_PROFILE);
 }
 test "m5 native format version hashes the production local relation count (fixes the 9-vs-10 drift)" {
@@ -563,4 +568,34 @@ test "m7 reserved format identities pin v2 binding and pure STARK compression pa
     try std.testing.expectEqualStrings(C.M7_COMPRESS_C1_COMPONENT, c1.component);
     try std.testing.expectEqualStrings(C.M7_COMPRESS_C2_COMPONENT, c2.component);
     try std.testing.expect(!std.mem.eql(u8, C.OUTER_GKR_COMPONENT, C.M7_OUTER_GKR_COMPONENT));
+}
+
+test "D2 runtime profile binds source domain real roster and blowup-aware algebraic ledger" {
+    const d2 = C.Profile.d2_native_b4_q54_p20_fold4;
+    const config = C.configFor(d2);
+    try std.testing.expectEqual(@as(u32, 2), config.fri_config.log_blowup_factor);
+    try std.testing.expectEqual(@as(usize, 54), config.fri_config.n_queries);
+    try std.testing.expectEqual(@as(u32, 20), config.pow_bits);
+    try std.testing.expectEqual(@as(u32, 4), config.fri_config.fold_step);
+    try std.testing.expectEqual(@as(u32, 128), C.conjecturedBits(d2));
+    try std.testing.expectEqual(d2, try C.profileFor(config));
+    try std.testing.expect(!std.mem.eql(u8, &C.profileIdentity(d2), &C.profileIdentity(C.DEFAULT_PROFILE)));
+    try std.testing.expect(!std.mem.eql(u8, &C.profileIdentity(d2), &C.candidateIdentity(.d2_native_b4_q54_p20_fold4)));
+    try std.testing.expectEqualStrings("d2_native_b4_q54_p20_fold4", C.assumptionTarget(d2).conjectured.profile);
+    const facts = C.Facts.caps();
+    const old = try C.ledger(facts);
+    const larger = try C.ledgerForProfile(d2, facts);
+    inline for (std.meta.fields(C.AlgebraicTerm)) |field| {
+        const index = @intFromEnum(@field(C.AlgebraicTerm, field.name));
+        const factor: u512 = if (std.mem.eql(u8, field.name, "deep_batching") or std.mem.eql(u8, field.name, "fri_folding")) 2 else 1;
+        try std.testing.expectEqual(old.degree_weight[index] * factor, larger.degree_weight[index]);
+    }
+    try C.requireProfileAlgebraicRomBudget(d2, facts, 120);
+    try std.testing.expectError(error.Om31CandidateUnreviewedWorkRange, C.requireProfileAlgebraicRomBudget(d2, facts, 128));
+    try std.testing.expectError(error.Om31CandidateBlowupScope, C.ledgerAtBlowup(facts, 0));
+    try std.testing.expectError(error.NoReviewedWholeProtocol128Certificate, block: {
+        var reviews = C.Reviews{};
+        inline for (std.meta.fields(C.Reviews)) |field| @field(reviews, field.name) = true;
+        break :block C.requireWholeProtocolPromotion(reviews);
+    });
 }

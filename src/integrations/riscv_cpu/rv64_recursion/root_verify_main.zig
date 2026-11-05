@@ -79,6 +79,7 @@ fn nativeLabel(profile: Candidate.Profile) []const u8 {
     return switch (profile) {
         .proven_beta2_q256_p0_fold4 => "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
         .conjectured128_b2_q108_p20_fold4 => "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+        .d2_native_b4_q54_p20_fold4 => "experimental-om31-local-gkr-d2-b4-q54-p20-fold4-engineering",
     };
 }
 fn since(start: std.time.Instant) u64 {

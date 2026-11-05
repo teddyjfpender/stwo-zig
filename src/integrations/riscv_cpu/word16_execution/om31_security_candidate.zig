@@ -63,6 +63,8 @@ pub const Profile = enum {
     /// Conjectured FRI bits = 1*108 + 20 = 128. Not a proven bound; see
     /// design/riscv-proving-stack/rv64-gkr-conjectured128-profile.md.
     conjectured128_b2_q108_p20_fold4,
+    /// Explicit experimental D2 runtime profile. Defaults are unchanged.
+    d2_native_b4_q54_p20_fold4,
 
     pub fn name(self: Profile) []const u8 {
         return @tagName(self);
@@ -74,16 +76,17 @@ pub const Profile = enum {
         return error.UnknownOm31CandidateProfile;
     }
     pub fn conjectured(self: Profile) bool {
-        return self == .conjectured128_b2_q108_p20_fold4;
+        return self == .conjectured128_b2_q108_p20_fold4 or self == .d2_native_b4_q54_p20_fold4;
     }
 };
 /// Default profile of the v3 GKR candidate route.
 pub const DEFAULT_PROFILE: Profile = .conjectured128_b2_q108_p20_fold4;
-pub const PROFILES = [_]Profile{ .proven_beta2_q256_p0_fold4, .conjectured128_b2_q108_p20_fold4 };
+pub const PROFILES = [_]Profile{ .proven_beta2_q256_p0_fold4, .conjectured128_b2_q108_p20_fold4, .d2_native_b4_q54_p20_fold4 };
 pub fn configFor(profile: Profile) core.pcs.PcsConfig {
     const log_blowup: u32, const queries: usize, const pow: u32 = switch (profile) {
         .proven_beta2_q256_p0_fold4 => .{ 2, 256, 0 },
         .conjectured128_b2_q108_p20_fold4 => .{ 1, 108, 20 },
+        .d2_native_b4_q54_p20_fold4 => .{ 2, 54, 20 },
     };
     var fri = core.fri.FriConfig.init(0, log_blowup, queries) catch unreachable;
     fri.fold_step = 4;
@@ -111,6 +114,7 @@ pub fn requireParameters(actual: core.pcs.PcsConfig) !void {
 pub fn requireProfileParameters(profile: Profile, actual: core.pcs.PcsConfig) !void {
     if (!std.meta.eql(actual, configFor(profile))) return error.UnrecognizedOm31CandidateParameters;
 }
+pub const D2_ID_DOMAIN = "rv64-om31-rawblake-native-localgkr-d2-b4-q54-p20-fold4/EXPERIMENTAL-v1\x00";
 pub const CONJECTURED_ID_DOMAIN = "rv64-om31-rawblake-native-localgkr-128-CONJECTURED-ethstark/v2\x00";
 /// Profile identity. The proven profile keeps `identity()`; the conjectured
 /// profile hashes a distinct domain, its label, every PCS parameter and the
@@ -119,10 +123,14 @@ pub fn profileIdentity(profile: Profile) [32]u8 {
     if (profile == .proven_beta2_q256_p0_fold4) return identity();
     const c = configFor(profile);
     var h = std.crypto.hash.sha2.Sha256.init(.{});
-    h.update(CONJECTURED_ID_DOMAIN);
+    const d2 = profile == .d2_native_b4_q54_p20_fold4;
+    h.update(if (d2) D2_ID_DOMAIN else CONJECTURED_ID_DOMAIN);
     h.update(profile.name());
+    // Pin the separately source-owned D2 spec and its framing as well as the
+    // real ten-relation roster. The old profile byte sequence stays frozen.
+    if (d2) h.update(&candidateIdentity(.d2_native_b4_q54_p20_fold4));
     h.update(&Channel.profile.identity());
-    for ([_]u64{ 8, c.fri_config.n_queries, c.fri_config.log_blowup_factor, c.fri_config.fold_step, c.pow_bits, c.fri_config.log_last_layer_degree_bound, conjecturedBits(profile), MAX_PROOFS, MAX_TRACE_LOG, MAX_PUBLIC_BOUNDARY_LOG, MAX_COLUMNS, MAX_CONSTRAINTS, MAX_SAMPLES_PER_COLUMN, MAX_AIR_DEGREE, MAX_LOCAL_INSTANCES, MAX_TUPLE_ARITY, LOCAL_RELATIONS, GLOBAL_RELATIONS, MAX_GKR_VARIABLES, MAX_ROUND_COUNT, TARGET_BITS }) |n| {
+    for ([_]u64{ 8, c.fri_config.n_queries, c.fri_config.log_blowup_factor, c.fri_config.fold_step, c.pow_bits, c.fri_config.log_last_layer_degree_bound, conjecturedBits(profile), MAX_PROOFS, MAX_TRACE_LOG, MAX_PUBLIC_BOUNDARY_LOG, MAX_COLUMNS, MAX_CONSTRAINTS, MAX_SAMPLES_PER_COLUMN, MAX_AIR_DEGREE, MAX_LOCAL_INSTANCES, MAX_TUPLE_ARITY, if (d2) ROSTER_LOCAL_RELATIONS else LOCAL_RELATIONS, GLOBAL_RELATIONS, MAX_GKR_VARIABLES, MAX_ROUND_COUNT, TARGET_BITS }) |n| {
         var bytes: [8]u8 = undefined;
         std.mem.writeInt(u64, &bytes, n, .little);
         h.update(&bytes);
@@ -155,6 +163,11 @@ pub fn assumptionTarget(profile: Profile) Target {
     return switch (profile) {
         .proven_beta2_q256_p0_fold4 => .{ .proven = ASSUMPTION_TARGET },
         .conjectured128_b2_q108_p20_fold4 => .{ .conjectured = .{} },
+        .d2_native_b4_q54_p20_fold4 => .{ .conjectured = .{
+            .label = "128-bit CONJECTURED security (experimental D2; ethSTARK-style FRI assumption)",
+            .profile = "d2_native_b4_q54_p20_fold4",
+            .assumption_set = "rv64-native-om31-d2-b4-q54-p20-fold4-experimental-20261105-relations10",
+        } },
     };
 }
 /// Receiver hook for an explicitly selected candidate route. This admits only
@@ -251,7 +264,15 @@ pub const Ledger = struct {
     }
 };
 pub fn ledger(facts: Facts) !Ledger {
+    return ledgerAtBlowup(facts, 1);
+}
+/// Additional domain factor relative to the frozen beta1 accountant. OODS
+/// depends on the trace degree; DEEP/FRI envelopes also scale with LDE size.
+/// These conditional engineering terms do not instantiate a FRI theorem.
+pub fn ledgerAtBlowup(facts: Facts, log_blowup: u32) !Ledger {
+    if (log_blowup < 1 or log_blowup > 6) return error.Om31CandidateBlowupScope;
     try facts.validate();
+    const domain_factor: u512 = @as(u512, 1) << @intCast(log_blowup - 1);
     const p: u512 = facts.native_proofs;
     const n: u512 = @as(u512, 1) << @intCast(@max(facts.max_trace_log, facts.max_public_boundary_log));
     const c: u512 = facts.max_columns;
@@ -279,12 +300,23 @@ pub fn ledger(facts: Facts) !Ledger {
     // 32N per sample. This term is CONDITIONAL on the applicable PCS reduction;
     // it is not a proof of list/line decoding or this quotient implementation.
     out.degree_weight[@intFromEnum(AlgebraicTerm.oods)] = p * c * facts.max_samples_per_column * 32 * n;
-    out.degree_weight[@intFromEnum(AlgebraicTerm.deep_batching)] = p * c * facts.max_samples_per_column * 32 * n;
+    out.degree_weight[@intFromEnum(AlgebraicTerm.deep_batching)] = p * c * facts.max_samples_per_column * 32 * n * domain_factor;
     // UNREVIEWED engineering envelope for list ≤16, fold ≤4, domain/circle
     // factors, columns and all V+1 rounds. The 65536 factor is an assumed
     // envelope, NOT an instantiated FRI theorem. Promotion requires review.
-    out.degree_weight[@intFromEnum(AlgebraicTerm.fri_folding)] = p * (c + 1) * 65536 * n * (v + 1);
+    out.degree_weight[@intFromEnum(AlgebraicTerm.fri_folding)] = p * (c + 1) * 65536 * n * (v + 1) * domain_factor;
     return out;
+}
+pub fn ledgerForProfile(profile: Profile, facts: Facts) !Ledger {
+    return ledgerAtBlowup(facts, configFor(profile).fri_config.log_blowup_factor);
+}
+/// Necessary algebraic/raw-hash RO-work check only. The selected profile's
+/// conjectured query analysis is separate; do not label the historical 256
+/// query Johnson test below as a D2 query proof.
+pub fn requireProfileAlgebraicRomBudget(profile: Profile, facts: Facts, log_work: u8) !void {
+    if (log_work > MAX_AUDITED_LOG_WORK) return error.Om31CandidateUnreviewedWorkRange;
+    try (try ledgerForProfile(profile, facts)).requireRawModuloBits(TARGET_BITS + 2 + 21);
+    if ((@as(u512, 6) << @intCast(@as(u16, log_work) + TARGET_BITS + 2)) > (@as(u512, 1) << 256)) return error.Om31CandidateHashBudgetInsufficient;
 }
 /// Exact rational calculation: candidate Johnson agreementα=5/8, queries256,
 /// union over the whole native-proof roster. This models QUERY error only.
@@ -334,7 +366,8 @@ pub fn requireWholeProtocolPromotion(reviews: Reviews) !void {
 // ---------------------------------------------------------------------------
 // M7 candidate profiles (stream profiles, 2026-11-04). OFF BY DEFAULT.
 //
-// These are NOT members of `Profile`, `PROFILES`, `Profile.parse` or the outer
+// D2 now has an explicit experimental native runtime entry; all other entries
+// are NOT members of `Profile`, `PROFILES`, `Profile.parse` or the outer
 // `protocol.Profile`: no CLI flag, environment variable, proof byte or
 // receiver policy can select one. They exist so the M7 arithmetic is pinned
 // and tested before any circuit or prover depends on it. Promotion of an entry
