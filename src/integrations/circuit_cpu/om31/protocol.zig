@@ -9,7 +9,10 @@ pub const H = core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleHasher;
 pub const Channel = core.channel.raw_mod_m31.Om31Channel;
 pub const MC = struct {
     pub fn mixRoot(ch: *Channel, root: H.Hash) void {
-        core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleChannel.mixRoot(&ch.inner, root);
+        // Keep the exact Blake(digest || root) bytes visible to channel observers.
+        var words: [8]u32 = undefined;
+        for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, root[4 * i..][0..4], .little);
+        ch.mixU32s(&words);
     }
 };
 pub const Engine = prover.engine.ForField(O).ProverEngine(@import("stwo_cpu_backend").CpuBackend, H, MC, Channel);

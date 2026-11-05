@@ -346,7 +346,7 @@ pub const Context = struct {
         owner.main = try commit.commit(commit.context, a, .{ .scope = scope, .config = try Outer.protocol.targetConfig(), .tree_index = 1, .columns = owner.main_columns });
         owner.scope.main = owner.main.?.root;
         if (fixed) |setup| try setup.promote(owner.scope);
-        return .{ .context = owner, .scope = owner.scope, .main = owner.main.?, .channel_observer = try @import("device_fs_check.zig").create(a, self.service, owner.scope, Dev.class_hint, Dev.class_is_leaf), .fixed = if (fixed) |setup| setup.tree else null, .pcs = &owner.pcs, .composition = &owner.composition_stage, .generate = Owner.interact, .release = Owner.release };
+        return .{ .context = owner, .scope = owner.scope, .main = owner.main.?, .channel_observer = try @import("device_fs_check.zig").create(a, self.service, owner.scope, key.identity, Dev.class_is_leaf), .fixed = if (fixed) |setup| setup.tree else null, .pcs = &owner.pcs, .composition = &owner.composition_stage, .generate = Owner.interact, .release = Owner.release };
     }
 };
 pub const Owner = struct {
