@@ -29,7 +29,7 @@ def main():
             raise RuntimeError('component-width authority changed: ' + file)
     out = {'schema': 'rv64-m7-composed-recursive-cells/v1', 'label': 'D',
            'author': 'OpenAI Codex',
-           'scope': 'Derived actual padded recursion MAIN+INTER+gate-preprocessed cells, using measured per-proof row logs and pinned classic circuit component widths. Excludes native STARKs, LDE replication and root wrapper. Not a performance measurement.',
+           'scope': 'Derived actual padded recursion MAIN+INTER+gate-preprocessed cells, using measured per-proof row logs and pinned classic circuit component widths. Excludes native STARKs and LDE replication; counts the top fold once without double-counting its duplicate root export. Not a performance measurement.',
            'source_sha256': pinned, 'runs': []}
     for directory in sorted(args.package.iterdir()):
         log = directory / 'producer.stderr'

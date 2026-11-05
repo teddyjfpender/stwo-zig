@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/workspace/m3/src/m7-native-gkr/scripts/rv64_m7_coalesced_tamper.py", line 109, in <module>
+    main()
+  File "/workspace/m3/src/m7-native-gkr/scripts/rv64_m7_coalesced_tamper.py", line 88, in main
+    verdict = R.receive_one(plan, request['block'], proof, directory, 16)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/m3/src/m7-native-gkr/scripts/rv64_m4_resident.py", line 512, in receive_one
+    usage = B.measure(command, out, "strict-receiver", environment, cwd=plan["producer_cwd"])
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/m3/src/m7-native-gkr/scripts/rv64_ethereum_basket.py", line 67, in measure
+    raise error
+RuntimeError: strict-receiver failed (1); see /workspace/m3/runs/m7-native-gkr/coalesced-head-tamper/truth_first_id/receiver-24628607-coalesced-head-tamper-20261105T103838/strict-receiver.stderr

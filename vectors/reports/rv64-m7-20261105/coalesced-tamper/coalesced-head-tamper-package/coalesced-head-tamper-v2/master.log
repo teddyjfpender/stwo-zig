@@ -1,0 +1,6 @@
+{"case": "truth_first_id", "passed": true, "errors": ["InvalidCombinedTruthSpan"], "wall_s": 0.313549906}
+{"case": "truth_calls_coverage", "passed": true, "errors": ["InvalidCombinedTruthSpan"], "wall_s": 0.297733562}
+{"case": "omitted_truth", "passed": true, "errors": ["InvalidCombinedTruthSpan"], "wall_s": 0.291621506}
+{"case": "wrong_native_profile", "passed": true, "errors": ["GlobalGkrManifestExecution"], "wall_s": 12.850213092}
+{"case": "coherent_native_truth_corruption", "passed": true, "errors": ["RootMismatch"], "wall_s": 16.758447993}
+{"case": "recursive_root_corruption", "passed": true, "errors": ["RecursiveReceiverArtifactMismatch"], "wall_s": 40.269892232}

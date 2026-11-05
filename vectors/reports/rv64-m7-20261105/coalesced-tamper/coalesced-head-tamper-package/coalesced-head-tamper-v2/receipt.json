@@ -1,0 +1,378 @@
+{
+  "schema": "rv64-m7-coalesced-head-tamper/v1",
+  "author": "OpenAI Codex",
+  "run": "/workspace/m3/runs/m7-fold-v3/daemon-24628607-r2-combined-d2-coalesce-v1",
+  "proof": "/workspace/m3/runs/m7-fold-v3/daemon-24628607-r2-combined-d2-coalesce-v1/spool/out/0000-24628607/24628607/proof",
+  "original_fingerprints": {
+    "bundle.json": "28e62f48acd7e6c1df6e3a06735632fee1d310f0e965cf641ac4e7dbc8f74706",
+    "candidate-fixed-setup.json": "d5f4848a9def460793944122ecf63c64cf2bfe6fc4f51a0f5c89c1b80102e0a7",
+    "candidate-source-bounds.json": "2505a11ef0a7ef5c86295e591cc8d80e1dbb704e59206f59c926292894d5c687",
+    "cells.bin": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1",
+    "combined-entry.json": "9aa141349e492a116d6e582f14715dbbd1fdbf44d1f3e2bbdb6f2d1c33ba9779",
+    "combined-report.json": "24d1e215cd433f297659c80684eb56cd96c0233c0f473bd62b6b82dc3770cbc9",
+    "cpu-0.bin": "dfa59a9d0f5e3c787c72f6fd878aa2ae77ff169a8715e3fc902ea029b8bc2a78",
+    "cpu-1.bin": "6f0c7d7712dbea520f8f024d0139e4d803f5fe28c0d253f2b0869f5ae6cb360b",
+    "cpu-2.bin": "86f4ea875e59d69e9721f4f8575f9a964f9f219524a92c70c75701b33d306886",
+    "cpu-3.bin": "b5b67f734708f3de10786be8d05ac2d0d4375fc723c0a618edad62b510aa5c58",
+    "cpu-4.bin": "37a4a39df8b120ad44af3a85c8c142a0642290be5d4fc032a44dfc4d32194c6d",
+    "cpu-5.bin": "c235d1bbcd9b3b8b318efd3d8ac7907b3ef45380bf99e12e94729506459cd0d4",
+    "cpu-6.bin": "1ae1ce1a026331db99052f3a4ae317454f19fe89c646cdd88d73f1622f078345",
+    "physical-0000.stages.json": "059c3288925e8ee851517371476b84fded4e67db6267552747873b42dd1b8be0",
+    "physical-0001.stages.json": "ae069f229beff0cb1bd77096d8e973e1d60f2123974006545b1bb4d85f07fdc0",
+    "physical-0002.stages.json": "94356b24f14f8019f2456720a75c615956e529c872b625b7e0a38977c615e5b4",
+    "physical-0003.stages.json": "8c8a6c0068544569cdccf6403fb81182990f765bd12ce740d235709aca3037c0",
+    "physical-0004.stages.json": "ebf00159c3c5c1b62c385a44f39600a9c28910f216776fc43c4961481f6e96e3",
+    "physical-0005.stages.json": "57d930ef31dc0ed91d7a563d1ab20f377d1863f82f56fae21bc8370df159f442",
+    "physical-0006.stages.json": "6a2393f868db9d302b1a31dca467de13bb8f787a8805030b551c6a7c8a32f6d2",
+    "physical-0007.stages.json": "6613a3f1da76308fa09a3ae59b95c51a3b95f96bf71b755d3b29cba5b81b3aca",
+    "physical-0008.stages.json": "ad2cf723c98db8c96d6a6c10d8d17a9d2d07a55f7a8d6e825e5b1c9961d65757",
+    "physical-0009.stages.json": "787f01b826dc5b1c230df474990fe0af0bbb89ea13f4b921c589b28987f4e54a",
+    "physical-0010.stages.json": "9bf3aa67e39fc7345dcd50ae43bf2fa1c9f8d63858136ff96bc4bf1608f38d21",
+    "physical-0011.stages.json": "8c99aecf168141f6674dc8c02525bcd5d2f0897ac004efbe2eb5122ad87b65f5",
+    "physical-0012.stages.json": "8eded31fbce3e38d42963df5aadfa1359ab18e793e539f3627df92744c40d30a",
+    "physical-0013.stages.json": "b7f90e3da71e1124f88ae7ea201c5aaa8cd9593405893f2e921a1e6a6cbe8924",
+    "recursion-om31/fold-000004.proof": "c61686bf789a16413f57b14b1f93ac25f2737b083c68d242fde49c20844b7efe",
+    "recursion-om31/fold-000009.proof": "22e56b7476610e6368019c010248d565a1f77a9e07b03bc5e56ca28e3e79d099",
+    "recursion-om31/fold-000014.proof": "a3876341be06ad8ef3f75779e5bb442f1dea5db31421d2162ddc5f54b678920a",
+    "recursion-om31/fold-000017.proof": "b8a9cfbe9d0100c905c9d065e61ffc11accd4dc898b065da96aeaad10ecbdf29",
+    "recursion-om31/fold-000018.proof": "7ff7230162510c0df6bcde3d616cc5e2d4bbe0441beba025ff04e51d85b8ced9",
+    "recursion-om31/leaf-000000.proof": "b35623b95d296fd5fb396225a67f30455163185845db11ca90a9f0b97ed18bb3",
+    "recursion-om31/leaf-000001.proof": "3deed10bab751244e371650186b783f77aaa02a62dc805e3f7a8f8853356660c",
+    "recursion-om31/leaf-000002.proof": "b8654117aec1e71e7cae0ede6aed57d3dbbf4ee9569f0082b820964e1d1ca7c2",
+    "recursion-om31/leaf-000003.proof": "9d4dae04df04c6cfb869b1d87afe873f66560c5000f13947f216c0d42e67f140",
+    "recursion-om31/leaf-000004.proof": "6633b1762315690f4034e44f59f615422843d94ef4278f46a4d8f95764e7254c",
+    "recursion-om31/leaf-000005.proof": "6ec8056f0a86087ff057c803d46d012c56c0621ade5e4a2449567cec674e928d",
+    "recursion-om31/leaf-000006.proof": "5454a29fb1c54f830bb60b2a01f05602917147ec0477a0b08a45df7956ee52ae",
+    "recursion-om31/leaf-000007.proof": "ff5905d069c25d43134488201b34c6ece3f1e55afa9e2672b3a6ceac57d135f8",
+    "recursion-om31/leaf-000008.proof": "8e57aea9d582db692c9e972edd2a28c3eaeeea0ab63885c1dc0460d8a481ffeb",
+    "recursion-om31/leaf-000009.proof": "c0133fe3ebbc7b351db1eedd3eb7eb2c01f433c48626804ab29d7007a6cc343e",
+    "recursion-om31/leaf-000010.proof": "b9a4123132cf3c83045c256383747b11430ce47bb5b7c29bb3c55a8f60fed183",
+    "recursion-om31/leaf-000011.proof": "dcb09b790f07a489f9371cba9bc2765fe76378b40b8e94a880bd88f162c23b9b",
+    "recursion-om31/leaf-000012.proof": "4b79cfc8da728b631f893429cb9b8d879d210634f3b61c489468ee789921b14e",
+    "recursion-om31/leaf-000013.proof": "f05b756cdb2fa6430bcc1bd88a9332a7443649e0a8e1ad27185f667b47cac38b",
+    "recursion-om31/pipeline.json": "2830b626173f0681c81baa8416e478cae41d36040cf5c03f081f48d2b5ce09fd",
+    "recursion-om31/report.json": "e78934b988b89941ddd525acaecec401619549277a89ee256dc93fd3c63a4fb8",
+    "recursion-om31/root.proof": "7ff7230162510c0df6bcde3d616cc5e2d4bbe0441beba025ff04e51d85b8ced9",
+    "recursion-om31/scheduler.json": "b2bebfb96ed5c80de7069a60da551c1eaac1e9b6918886318926c25f5550881d",
+    "recursion-om31/tree.json": "b4bf2a794ea95048c96ef12fa1b025cee339aa496186bb4be461a73cc6f1ece5",
+    "report.json": "e7b39a417bf8c66a393f561a6fa6b170287ef0cb81a7c5885d5fc10050a27562",
+    "schedule.json": "2d517e7ec883fb8f48ec8f639b070946482ed34ac454473b45dd8fe65db83f76",
+    "stage-one.bin": "89a2785bee297b0c65e5ad8739bb60e3994aeb7580b7f10d30ff4c1bfe73afd8",
+    "truth-0.bin": "6268914ea2a0cc45eb45720b75e43f5071df29c1966b03c228d109843a546a89",
+    "truth-1.bin": "aff5b9ce6667da4a65b12bcdb4a2a7e18d41e2942834091f1ba49095b78cde9a",
+    "truth-2.bin": "d92766e8676a2c0a8e2284f659d83817edb031ad2422f5c269f44cfd33f674e9",
+    "truth-3.bin": "d9de6d7899287054cea196a0f6acf8dbbf57beeffbccc3dedda327ebe300b76c",
+    "truth-4.bin": "c7988c2d91aecb55af1097406288078dd230dbb4c5d2462c4200833313ad6936",
+    "truth-5.bin": "5ef5d31a2a93807073d27cc625fca0dbc79b583c7334c77f59944b9f91f781f4",
+    "truth-6.bin": "0cc174815acdb15ae09f0f45aa9e4c8efcb7787940405b985b67539d2c0caed5"
+  },
+  "scope": "Six fresh cache-disabled/GPU-disabled full receiver processes. Hard-linked fixtures; mutated files atomically replaced. No performance claim.",
+  "cases": [
+    {
+      "id": "truth_first_id",
+      "passed": true,
+      "mutation": {},
+      "explicit_errors": [
+        "InvalidCombinedTruthSpan"
+      ],
+      "verdict": {
+        "accepted": false,
+        "status": "rejected",
+        "block": 24628607,
+        "process": {
+          "argv": [
+            "nice",
+            "-n",
+            "10",
+            "/workspace/m3/build/m7-combined-d2-receiver/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+            "--security-profile",
+            "d2_native_b4_q54_p20_fold4",
+            "verify-recursion-candidate",
+            "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/truth_first_id/receiver-24628607-coalesced-head-tamper-v2-20261105T103935/receiver-request.json",
+            "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/truth_first_id/proof",
+            "12884901888",
+            "34359738368"
+          ],
+          "exit_code": 1,
+          "wall_ns": 313549906,
+          "user_seconds": 0.197599,
+          "system_seconds": 0.123499,
+          "peak_rss_bytes": 229748736,
+          "minor_faults": 55578,
+          "major_faults": 0
+        },
+        "directory": "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/truth_first_id/receiver-24628607-coalesced-head-tamper-v2-20261105T103935",
+        "receiver_sha256": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42",
+        "isolation": {
+          "CUDA_VISIBLE_DEVICES": "",
+          "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+          "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+          "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+          "STWO_RV64_FOLD_CLASS_CACHE": "0"
+        },
+        "store_present_during_receive": false
+      },
+      "mutated_files": {
+        "bundle.json": "b31f8c6fa9c690b5d9b8ee5e33fbc09de2cfc1d1f6e20455f49d8f1f39270d95"
+      },
+      "omitted_files": []
+    },
+    {
+      "id": "truth_calls_coverage",
+      "passed": true,
+      "mutation": {},
+      "explicit_errors": [
+        "InvalidCombinedTruthSpan"
+      ],
+      "verdict": {
+        "accepted": false,
+        "status": "rejected",
+        "block": 24628607,
+        "process": {
+          "argv": [
+            "nice",
+            "-n",
+            "10",
+            "/workspace/m3/build/m7-combined-d2-receiver/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+            "--security-profile",
+            "d2_native_b4_q54_p20_fold4",
+            "verify-recursion-candidate",
+            "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/truth_calls_coverage/receiver-24628607-coalesced-head-tamper-v2-20261105T103936/receiver-request.json",
+            "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/truth_calls_coverage/proof",
+            "12884901888",
+            "34359738368"
+          ],
+          "exit_code": 1,
+          "wall_ns": 297733562,
+          "user_seconds": 0.186723,
+          "system_seconds": 0.116578,
+          "peak_rss_bytes": 229756928,
+          "minor_faults": 55579,
+          "major_faults": 0
+        },
+        "directory": "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/truth_calls_coverage/receiver-24628607-coalesced-head-tamper-v2-20261105T103936",
+        "receiver_sha256": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42",
+        "isolation": {
+          "CUDA_VISIBLE_DEVICES": "",
+          "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+          "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+          "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+          "STWO_RV64_FOLD_CLASS_CACHE": "0"
+        },
+        "store_present_during_receive": false
+      },
+      "mutated_files": {
+        "bundle.json": "2242a4fbd9b3cebd324541f4e3ccde40689f615223e0ed30af7f5a43e359e3b9"
+      },
+      "omitted_files": []
+    },
+    {
+      "id": "omitted_truth",
+      "passed": true,
+      "mutation": {},
+      "explicit_errors": [
+        "InvalidCombinedTruthSpan"
+      ],
+      "verdict": {
+        "accepted": false,
+        "status": "rejected",
+        "block": 24628607,
+        "process": {
+          "argv": [
+            "nice",
+            "-n",
+            "10",
+            "/workspace/m3/build/m7-combined-d2-receiver/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+            "--security-profile",
+            "d2_native_b4_q54_p20_fold4",
+            "verify-recursion-candidate",
+            "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/omitted_truth/receiver-24628607-coalesced-head-tamper-v2-20261105T103937/receiver-request.json",
+            "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/omitted_truth/proof",
+            "12884901888",
+            "34359738368"
+          ],
+          "exit_code": 1,
+          "wall_ns": 291621506,
+          "user_seconds": 0.17588399999999998,
+          "system_seconds": 0.122141,
+          "peak_rss_bytes": 229748736,
+          "minor_faults": 55580,
+          "major_faults": 0
+        },
+        "directory": "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/omitted_truth/receiver-24628607-coalesced-head-tamper-v2-20261105T103937",
+        "receiver_sha256": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42",
+        "isolation": {
+          "CUDA_VISIBLE_DEVICES": "",
+          "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+          "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+          "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+          "STWO_RV64_FOLD_CLASS_CACHE": "0"
+        },
+        "store_present_during_receive": false
+      },
+      "mutated_files": {
+        "bundle.json": "c9a110e6c0261354be5b216e9de32cb2112b1785a962bbc84bd9efea27f74c8b"
+      },
+      "omitted_files": [
+        "truth-6.bin"
+      ]
+    },
+    {
+      "id": "wrong_native_profile",
+      "passed": true,
+      "mutation": {},
+      "explicit_errors": [
+        "GlobalGkrManifestExecution"
+      ],
+      "verdict": {
+        "accepted": false,
+        "status": "rejected",
+        "block": 24628607,
+        "process": {
+          "argv": [
+            "nice",
+            "-n",
+            "10",
+            "/workspace/m3/build/m7-combined-d2-receiver/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "verify-recursion-candidate",
+            "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/wrong_native_profile/receiver-24628607-coalesced-head-tamper-v2-20261105T103937/receiver-request.json",
+            "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/wrong_native_profile/proof",
+            "12884901888",
+            "34359738368"
+          ],
+          "exit_code": 1,
+          "wall_ns": 12850213092,
+          "user_seconds": 62.422663,
+          "system_seconds": 2.221639,
+          "peak_rss_bytes": 2969202688,
+          "minor_faults": 767057,
+          "major_faults": 0
+        },
+        "directory": "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/wrong_native_profile/receiver-24628607-coalesced-head-tamper-v2-20261105T103937",
+        "receiver_sha256": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42",
+        "isolation": {
+          "CUDA_VISIBLE_DEVICES": "",
+          "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+          "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+          "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+          "STWO_RV64_FOLD_CLASS_CACHE": "0"
+        },
+        "store_present_during_receive": false
+      },
+      "mutated_files": {
+        "bundle.json": "55b6c84bcb7394970fd622690cfd581e647f581d07d7cdd5474ec52ba9bee3f6"
+      },
+      "omitted_files": []
+    },
+    {
+      "id": "coherent_native_truth_corruption",
+      "passed": true,
+      "mutation": {
+        "offset": 966888,
+        "coherent_bundle_hash": true,
+        "native_truth": 3
+      },
+      "explicit_errors": [
+        "RootMismatch"
+      ],
+      "verdict": {
+        "accepted": false,
+        "status": "rejected",
+        "block": 24628607,
+        "process": {
+          "argv": [
+            "nice",
+            "-n",
+            "10",
+            "/workspace/m3/build/m7-combined-d2-receiver/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+            "--security-profile",
+            "d2_native_b4_q54_p20_fold4",
+            "verify-recursion-candidate",
+            "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/coherent_native_truth_corruption/receiver-24628607-coalesced-head-tamper-v2-20261105T103950/receiver-request.json",
+            "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/coherent_native_truth_corruption/proof",
+            "12884901888",
+            "34359738368"
+          ],
+          "exit_code": 1,
+          "wall_ns": 16758447993,
+          "user_seconds": 93.335133,
+          "system_seconds": 2.992861,
+          "peak_rss_bytes": 4139679744,
+          "minor_faults": 1049049,
+          "major_faults": 0
+        },
+        "directory": "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/coherent_native_truth_corruption/receiver-24628607-coalesced-head-tamper-v2-20261105T103950",
+        "receiver_sha256": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42",
+        "isolation": {
+          "CUDA_VISIBLE_DEVICES": "",
+          "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+          "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+          "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+          "STWO_RV64_FOLD_CLASS_CACHE": "0"
+        },
+        "store_present_during_receive": false
+      },
+      "mutated_files": {
+        "bundle.json": "35ee630a349f13bf27c39e98a5b65c1f8955622ee37591956884e575525d3566",
+        "truth-3.bin": "4d26138cc393285da0a6971a32e6323075a40bd854206b26ec0155cb4403359f"
+      },
+      "omitted_files": []
+    },
+    {
+      "id": "recursive_root_corruption",
+      "passed": true,
+      "mutation": {
+        "offset": 374844
+      },
+      "explicit_errors": [
+        "RecursiveReceiverArtifactMismatch"
+      ],
+      "verdict": {
+        "accepted": false,
+        "status": "rejected",
+        "block": 24628607,
+        "process": {
+          "argv": [
+            "nice",
+            "-n",
+            "10",
+            "/workspace/m3/build/m7-combined-d2-receiver/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+            "--security-profile",
+            "d2_native_b4_q54_p20_fold4",
+            "verify-recursion-candidate",
+            "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/recursive_root_corruption/receiver-24628607-coalesced-head-tamper-v2-20261105T104007/receiver-request.json",
+            "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/recursive_root_corruption/proof",
+            "12884901888",
+            "34359738368"
+          ],
+          "exit_code": 1,
+          "wall_ns": 40269892232,
+          "user_seconds": 193.549176,
+          "system_seconds": 11.268801,
+          "peak_rss_bytes": 7569444864,
+          "minor_faults": 4913399,
+          "major_faults": 0
+        },
+        "directory": "/workspace/m3/runs/m7-native-gkr/coalesced-head-tamper-v2/recursive_root_corruption/receiver-24628607-coalesced-head-tamper-v2-20261105T104007",
+        "receiver_sha256": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42",
+        "isolation": {
+          "CUDA_VISIBLE_DEVICES": "",
+          "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+          "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+          "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+          "STWO_RV64_FOLD_CLASS_CACHE": "0"
+        },
+        "store_present_during_receive": false
+      },
+      "mutated_files": {
+        "bundle.json": "55b6c84bcb7394970fd622690cfd581e647f581d07d7cdd5474ec52ba9bee3f6",
+        "recursion-om31/root.proof": "2cc70e171e1587a99a63ed2f1144586c3c53ad835a510db54aa5979ffce81914"
+      },
+      "omitted_files": []
+    }
+  ],
+  "original_byte_identical": true,
+  "passed": true
+}
