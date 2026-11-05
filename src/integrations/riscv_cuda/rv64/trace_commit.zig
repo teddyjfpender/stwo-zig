@@ -100,11 +100,19 @@ pub const Context = struct {
     }
     fn commit(raw: *anyopaque, a: std.mem.Allocator, request: D.TraceCommitRequest) !D.Tree {
         const self: *Context = @ptrCast(@alignCast(raw));
-        return self.commitImpl(a, request, false);
+        return self.commitImpl(a, request, false, null);
     }
     /// Explicit fixed-prover setup; ordinary MAIN/INTER admission is unchanged.
     pub fn commitFixed(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest) !D.Tree {
-        return self.commitImpl(a, request, true);
+        return self.commitImpl(a, request, true, null);
+    }
+    /// FIXED-only composition inside the explicit PP upload/commit ticket.
+    /// The enclosing owner already entered the C allocation guard; this call
+    /// must not reserve or begin another ticket on the same physical GPU.
+    pub fn commitFixedAdmitted(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, enclosing: *Admission.Permit) !D.Tree {
+        const endpoint = self.service.admission orelse return error.MissingGlobalAdmissionEndpoint;
+        if (!enclosing.entered or enclosing.closed or enclosing.after != null or enclosing.endpoint.session != self.service.session or enclosing.endpoint.planner != endpoint.planner or enclosing.endpoint.physical != endpoint.physical or enclosing.demand.stage != .trace_commit or enclosing.demand.owner.ordinal != request.scope.ordinal or enclosing.demand.owner.domain != .recursion_node) return error.ForeignAdmissionOwner;
+        return self.commitImpl(a, request, true, enclosing);
     }
     /// Host-only allocation plan. An admitted execution freezes this stream
     /// schedule; owner-thread per-session pressure cannot silently change it.
@@ -120,7 +128,7 @@ pub const Context = struct {
         input.logs = logs;
         return AdmissionPlan.init(a, input);
     }
-    fn commitImpl(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, fixed: bool) !D.Tree {
+    fn commitImpl(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, fixed: bool, enclosing: ?*Admission.Permit) !D.Tree {
         if ((fixed and request.tree_index != 0) or (!fixed and request.tree_index < 1) or request.tree_index > 2 or request.columns.len == 0 or request.columns.len > 65535) return error.InvalidTraceCommitRequest;
         if (request.expected_main_root) |expected| {
             if (request.tree_index != 1 or std.mem.allEqual(u8, &expected, 0) or (!std.mem.allEqual(u8, &request.scope.main, 0) and !std.mem.eql(u8, &request.scope.main, &expected))) return error.InvalidTraceReplayScope;
@@ -138,7 +146,7 @@ pub const Context = struct {
         const allocation_plan = if (self.freeze_allocation_plan or self.service.admission != null) try self.allocationPlan(a, request) else null;
         var permit: ?Admission.Permit = null;
         var successor: Global.Footprint = .{};
-        if (self.service.admission) |endpoint| {
+        if (if (enclosing == null) self.service.admission else null) |endpoint| {
             if (request.tree_index == 0) return error.GlobalFixedTracePlanUnavailable;
             successor = try self.service.admissionSuccessor(request.scope, if (request.tree_index == 1) .main_commit else .inter_commit);
             const plan = &allocation_plan.?;
@@ -152,7 +160,7 @@ pub const Context = struct {
         defer self.mutex.unlock();
         if (request.tree_index == 1) try self.service.early_allocations.advance(@import("pcs_scope.zig").identity(request.scope), .commit);
         try self.returned.ensureUnusedCapacity(self.host_allocator, 1);
-        var job = Job{ .backend = self, .a = a, .request = request, .admission_plan = allocation_plan, .permit = if (permit) |*active| active else null };
+        var job = Job{ .backend = self, .a = a, .request = request, .admission_plan = allocation_plan, .permit = if (permit) |*active| active else null, .externally_admitted = enclosing != null };
         const status = self.service.submit(self.service.session, Job.callback, &job);
         if (job.failure) |err| return err;
         try check(status);
@@ -178,6 +186,7 @@ const Job = struct {
     admission_plan: ?AdmissionPlan.Plan = null,
     allocation_index: usize = 0,
     permit: ?*Admission.Permit = null,
+    externally_admitted: bool = false,
     fn callback(raw: *anyopaque, token: u64, user: ?*anyopaque) callconv(.c) c_int {
         const self: *Job = @ptrCast(@alignCast(user orelse return 1));
         if (self.permit) |permit| permit.enterOwner(raw) catch |err| {
@@ -412,7 +421,7 @@ const Job = struct {
             0 => "rv64/TC/FIXED",
             1 => "rv64/TC/MAIN",
             else => "rv64/TC/INTER",
-        }, self.permit != null);
+        }, self.permit != null or self.externally_admitted);
         defer range.deinit();
         const b = self.backend;
         const a = self.a;
