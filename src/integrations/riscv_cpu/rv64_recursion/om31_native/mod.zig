@@ -87,7 +87,9 @@ pub fn verify(ctx: *common.Context, geometry: *const Shape, witness: *const Proo
         @memcpy(sampled[at..][0..column.len], column);
         at += column.len;
     };
+    const sampled_first_gg = ctx.circuit.blake_g_gate.items.len;
     try channel.mixFelts(ctx, sampled);
+    if (ctx.record_gates) ctx.blake_sample_span = .{ .first_gg = @intCast(sampled_first_gg), .gg_count = @intCast(ctx.circuit.blake_g_gate.items.len - sampled_first_gg) };
     const alpha = try channel.draw(ctx);
     const alphas = try fri.commit(ctx, &channel, witness);
     try channel.raw.inner.pow(Q, ctx, geometry.pcs.pow_bits, witness.pow_nonce);

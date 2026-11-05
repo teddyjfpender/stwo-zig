@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cuda_runtime.h>
+#include "custody.cuh"
 
 namespace fused_blake2s_v1 {
 
@@ -512,6 +513,37 @@ __global__ void random_tape_kernel(uint64_t seed, uint64_t first, uint64_t count
   random_record(seed, first + i, tape + i * TAPE_WORDS);
 }
 
+// Compare native CPU compression INPUTS with the already authoritative GG
+// assignment. No value or trace cell is written. GG rows remain in their
+// original order; t0/last are recovered from the round-0 IV XORs.
+__global__ void sample_inputs_check_kernel(
+    const uint32_t* values, uint32_t value_count, GatherPp pp,
+    const uint32_t* records, uint32_t first_gg, uint32_t count, uint32_t* status) {
+  const uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i >= count) return;
+  const uint64_t g0 = uint64_t(first_gg) + uint64_t(i) * 80;
+  const uint32_t* expected = records + uint64_t(i) * TAPE_WORDS;
+  uint32_t h[8]{}, m[16]{}, c[4]{}, d[4]{};
+  bool ok = true;
+  for (int j = 0; j < 4; ++j) {
+    ok &= load_word(values, value_count, pp.col[0][g0+j], h[j]);
+    ok &= load_word(values, value_count, pp.col[1][g0+j], h[4+j]);
+    ok &= load_word(values, value_count, pp.col[2][g0+j], c[j]);
+    ok &= load_word(values, value_count, pp.col[3][g0+j], d[j]);
+  }
+  for (int j = 0; j < 8; ++j) {
+    ok &= load_word(values, value_count, pp.col[4][g0+j], m[2*j]);
+    ok &= load_word(values, value_count, pp.col[5][g0+j], m[2*j+1]);
+  }
+  for (int j = 0; j < 8; ++j) ok &= h[j] == expected[j];
+  for (int j = 0; j < 16; ++j) ok &= m[j] == expected[8+j];
+  for (int j = 0; j < 4; ++j) ok &= c[j] == kIV[j];
+  ok &= d[0] == (kIV[4] ^ expected[24]);
+  ok &= d[1] == kIV[5] && d[3] == kIV[7];
+  ok &= expected[25] <= 1 && d[2] == (kIV[6] ^ (expected[25] ? 0xffffffffu : 0));
+  if (!ok) atomicOr(status, 1u);
+}
+
 // Host-side instance plan, identical to `planInstances`.
 inline uint32_t plan_instances(uint64_t n, uint32_t logs[MAX_INSTANCES]) {
   uint32_t used = 0;
@@ -536,6 +568,26 @@ constexpr int kThreads = 128;
 }  // namespace fused_blake2s_v1
 
 using namespace fused_blake2s_v1;
+
+extern "C" int stwo_circuit_blake_sample_inputs_check_on(
+    void* ctx, uint32_t lane, const uint32_t* values, uint32_t value_count,
+    const uint32_t* const* gpp, uint32_t g_rows, uint32_t first_gg,
+    const uint32_t* records, uint32_t count, uint32_t* status) {
+  if (!gpp || !value_count || !count || uint64_t(first_gg) + uint64_t(count)*80 > g_rows)
+    return int(cudaErrorInvalidValue);
+  stwo::cuda::rv64::RangeCustody<16> custody(ctx, lane);
+  if (!custody.range(values, uint64_t(value_count)*4, false) ||
+      !custody.range(records, uint64_t(count)*TAPE_WORDS, false) ||
+      !custody.range(status, 1, true)) return custody.status;
+  GatherPp pp{};
+  for (int j = 0; j < 10; ++j) {
+    if (!custody.range(gpp[j], g_rows, false)) return custody.status;
+    pp.col[j] = gpp[j];
+  }
+  sample_inputs_check_kernel<<<(count+127)/128,128,0,custody.stream>>>(
+      values,value_count,pp,records,first_gg,count,status);
+  return int(cudaPeekAtLastError());
+}
 
 extern "C" int stwo_fused_blake2s_v1_fill_on(const uint32_t* tape, uint64_t n_records, uint64_t first, uint64_t count,
                                              uint32_t* cols, uint64_t stride, uint32_t* xor_counts, void* stream) {

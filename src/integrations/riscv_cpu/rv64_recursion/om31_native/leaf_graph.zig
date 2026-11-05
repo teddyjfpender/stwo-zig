@@ -18,6 +18,7 @@ const CpuWorker = @import("../../word16_global_execution/services/gkr_local/cpu_
 const TruthWorker = @import("../../word16_global_execution/services/gkr_local/truth_worker.zig");
 const Tape = @import("leaf_tape.zig");
 const Outer = @import("outer_wrap.zig");
+const BlakeSamples = @import("blake_sample_capture.zig");
 pub const Graph = struct {
     allocator: std.mem.Allocator,
     ctx: *C.Context,
@@ -25,11 +26,13 @@ pub const Graph = struct {
     digest: [32]u8,
     class: ?[32]u8 = null,
     seed_tape: ?[][4]u32 = null,
+    blake_sample_inputs: ?[]BlakeSamples.Record = null,
     pub fn deinit(self: *Graph) void {
         self.ctx.deinit();
         self.allocator.destroy(self.ctx);
         self.allocator.free(self.words);
         if (self.seed_tape) |values| self.allocator.free(values);
+        if (self.blake_sample_inputs) |values| self.allocator.free(values);
         self.* = undefined;
     }
 };
@@ -113,7 +116,15 @@ pub fn cpuTraceOnly(a: std.mem.Allocator, input: CpuInput) !Graph {
     return cpuMode(a, input, true, null);
 }
 pub fn cpuTraceWithTape(a: std.mem.Allocator, input: CpuInput, factory: ?Outer.Device.Factory) !Graph {
-    return cpuMode(a, input, true, factory);
+    if (!try BlakeSamples.enabled()) return cpuMode(a, input, true, factory);
+    var recorder = BlakeSamples.Recorder{ .allocator = a };
+    defer recorder.deinit();
+    const saved = recorder.install();
+    defer BlakeSamples.Recorder.restore(saved);
+    var result = try cpuMode(a, input, true, factory);
+    errdefer result.deinit();
+    result.blake_sample_inputs = try recorder.take();
+    return result;
 }
 fn cpuMode(a: std.mem.Allocator, input: CpuInput, trace_only: bool, factory: ?Outer.Device.Factory) !Graph {
     var admitted = try Capture.verify(a, input.setup, input.request, input.expected, input.first, input.manifest, input.index, input.config, input.encoded, input.fixed);
@@ -162,7 +173,15 @@ pub fn truthTraceOnly(a: std.mem.Allocator, input: TruthInput) !Graph {
     return truthMode(a, input, true, null);
 }
 pub fn truthTraceWithTape(a: std.mem.Allocator, input: TruthInput, factory: ?Outer.Device.Factory) !Graph {
-    return truthMode(a, input, true, factory);
+    if (!try BlakeSamples.enabled()) return truthMode(a, input, true, factory);
+    var recorder = BlakeSamples.Recorder{ .allocator = a };
+    defer recorder.deinit();
+    const saved = recorder.install();
+    defer BlakeSamples.Recorder.restore(saved);
+    var result = try truthMode(a, input, true, factory);
+    errdefer result.deinit();
+    result.blake_sample_inputs = try recorder.take();
+    return result;
 }
 fn truthMode(a: std.mem.Allocator, input: TruthInput, trace_only: bool, factory: ?Outer.Device.Factory) !Graph {
     var capture: V.proof.NativeCapture = undefined;

@@ -1100,6 +1100,8 @@ const Pipelined = struct {
         defer Outer.Device.class_hint = null;
         Outer.Device.class_is_leaf = children == null;
         defer Outer.Device.class_is_leaf = false;
+        Outer.Device.blake_sample_inputs = if (children == null) job.leaf.?.blake_sample_inputs else null;
+        defer Outer.Device.blake_sample_inputs = null;
         // Any lane's factory: host prep reads only immutable library symbols.
         const raw_shape = @import("stwo_circuit_frontend").common.finalize.rawComponentSizes(.fromBuilder(&job.ctx().circuit));
         job.host = try Outer.prepareHost(a, job.ctx(), self.options.lanes[0].factory);
@@ -1133,6 +1135,8 @@ const Pipelined = struct {
         defer Outer.Device.class_hint = null;
         Outer.Device.class_is_leaf = true;
         defer Outer.Device.class_is_leaf = false;
+        Outer.Device.blake_sample_inputs = graph.blake_sample_inputs;
+        defer Outer.Device.blake_sample_inputs = null;
         const graph_ns = timer.lap();
         const host = (try Outer.prepareHostTape(a, graph.ctx, self.options.lanes[0].factory, class)) orelse return false;
         if (!tape.consumed) {

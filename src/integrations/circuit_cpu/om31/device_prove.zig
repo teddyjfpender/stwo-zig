@@ -60,6 +60,8 @@ pub const FactoryExtension = struct {
     context: *anyopaque,
     interface: *const anyopaque,
 };
+/// Producer-only shadow inputs. The original assignment remains authoritative.
+pub threadlocal var blake_sample_inputs: ?[]const [26]u32 = null;
 pub const Factory = struct {
     /// Typed by a higher integration layer; this module never interprets it.
     extension: ?FactoryExtension = null,

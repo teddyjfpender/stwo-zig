@@ -37,6 +37,8 @@ const Allocator = std.mem.Allocator;
 const QM31 = stwo_core.fields.qm31.QM31;
 
 pub const Var = circuit_mod.Var;
+/// Producer-only address span; never enters circuit rows or proof bytes.
+pub const BlakeSampleSpan = struct { first_gg: u32, gg_count: u32 };
 pub const Circuit = circuit_mod.Circuit;
 pub const NoValue = ivalue.NoValue;
 
@@ -134,6 +136,7 @@ pub fn Context(comptime V: type) type {
         /// Explicit opt-in: topology + true seeds, with no CPU assignment array.
         trace_only: bool = false,
         gate_counts: GateCounts = .{},
+        blake_sample_span: ?BlakeSampleSpan = null,
         /// Interned constants, in first-use order (upstream `IndexMap<QM31, Var>`).
         constants: std.AutoArrayHashMapUnmanaged(u128, circuit_mod.Var) = .empty,
         /// One value per variable in value mode; empty in topology mode.
