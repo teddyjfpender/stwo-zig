@@ -158,6 +158,17 @@ pub fn cost(request: Request) !Cost {
     if (total_bytes > request.byte_cap) return error.NativeGkrWorkspaceBudget;
     return .{ .workspace_bytes = plan.total_words * 4, .decoded_source_bytes = values_words * 4, .twiddle_bytes = twiddle_words * 4, .metadata_bytes = metadata_words * 4, .transient_bytes = total_bytes };
 }
+/// Exact logical allocation schedule for Footprint.allocations in the shared
+/// static-arena planner. The planner owns slab/chunk rounding and all external
+/// retained inputs. The caller frees this small host list.
+pub fn allocationBytes(a: std.mem.Allocator, request: Request) ![]usize {
+    const estimate = try cost(request);
+    const sizes = try a.alloc(usize, 5 + request.items.len);
+    sizes[0..4].* = .{ estimate.decoded_source_bytes, estimate.twiddle_bytes, 4, 36 };
+    for (request.items, sizes[4..][0..request.items.len]) |item, *size| size.* = try std.math.mul(usize, 32, item.artifact.parameter_slots.len);
+    sizes[sizes.len - 1] = estimate.workspace_bytes;
+    return sizes;
+}
 const Job = struct {
     backend: *Context,
     a: std.mem.Allocator,
@@ -332,4 +343,35 @@ test "native GKR owner callback remains fully typed" {
         var section = try context.prove(std.testing.allocator, &channel, undefined);
         section.deinit(std.testing.allocator);
     }
+}
+
+test "native GKR exact allocation census matches the qualified six-lease fixture" {
+    const a = std.testing.allocator;
+    var artifact = try Code.record(a, .{ .origin = .{ .bridge = .keccak } }, .fractions);
+    defer artifact.deinit();
+    const Spec = std.meta.Child(@FieldType(Roster, "components"));
+    var roster = try V.derive(a, &[_]Spec{.{ .origin = Code.Source.Frame.originWords(artifact.descriptor.origin), .row_log = 5, .terms = artifact.terms }});
+    defer roster.deinit();
+    const shape = try Code.Authority.shape(artifact.descriptor);
+    const coefficients: [32]core.fields.m31.M31 = @splat(core.fields.m31.M31.zero());
+    const fixed = try a.alloc(D.Column, shape.fixed);
+    defer a.free(fixed);
+    const main = try a.alloc(D.Column, shape.main);
+    defer a.free(main);
+    for (fixed) |*column| column.* = .{ .log_size = 5, .coefficients = &coefficients };
+    for (main) |*column| column.* = .{ .log_size = 5, .coefficients = &coefficients };
+    const parameters: [P.count]O = @splat(O.zero());
+    const request = Request{ .scope = .{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .shared = @splat(4), .ordinal = 0 }, .roster = &roster, .byte_cap = 512 << 20, .items = &.{.{ .artifact = &artifact, .callbacks = undefined, .fixed = fixed, .main = main, .parameters = &parameters }} };
+    const sizes = try allocationBytes(a, request);
+    defer a.free(sizes);
+    try std.testing.expectEqual(@as(usize, 6), sizes.len);
+    try std.testing.expectEqual(@as(usize, 9216), sizes[0]);
+    try std.testing.expectEqual(@as(usize, 64), sizes[1]);
+    try std.testing.expectEqual(@as(usize, 188288), sizes[sizes.len - 1]);
+    var total: usize = 0;
+    for (sizes) |size| total += size;
+    try std.testing.expectEqual((try cost(request)).transient_bytes, total);
+    var bounded = request;
+    bounded.byte_cap = total - 1;
+    try std.testing.expectError(error.NativeGkrWorkspaceBudget, cost(bounded));
 }

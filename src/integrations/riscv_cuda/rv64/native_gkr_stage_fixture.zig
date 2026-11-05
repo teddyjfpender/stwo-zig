@@ -111,6 +111,12 @@ pub fn run(a: std.mem.Allocator, path: []const u8) !void {
     const callbacks = try Stage.Callbacks.load(&service.library, "native_cpu_keccak");
     const scope = S.Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .shared = @splat(4), .ordinal = 0 };
     const request = Stage.Request{ .scope = scope, .roster = &roster, .byte_cap = 512 << 20, .items = &.{.{ .artifact = &artifact, .callbacks = callbacks, .fixed = columns[0], .main = columns[1], .parameters = &semantic }} };
+    const allocation_bytes = try Stage.allocationBytes(a, request);
+    defer a.free(allocation_bytes);
+    var allocation_total: usize = 0;
+    for (allocation_bytes) |bytes_| allocation_total += bytes_;
+    try std.testing.expectEqual((try Stage.cost(request)).transient_bytes, allocation_total);
+    try std.testing.expectEqual(request.items.len + 5, allocation_bytes.len);
     var proof = try stage.numericalProof(a, request, elements, seed);
     defer proof.deinit(a);
     const gpu_section = S.Section{ .salt = O.zero(), .proof = proof };
