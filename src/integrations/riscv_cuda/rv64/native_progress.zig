@@ -118,14 +118,7 @@ fn cpuPcsGeometry(a: std.mem.Allocator, request: CPU.rv64_device_source_stage.Re
         for (columns, logs[tree]) |*column, log| column.* = .{ .log_size = log };
         trees[tree] = .{ .root = @splat(0), .columns = columns };
         points[tree] = try a.alloc([]D.Point, columns.len);
-        if (tree == 0) {
-            // CoreAir.Components.maskPointsImpl(..., include_all_preprocessed
-            // = true) REPLACES the concatenated component FIXED masks with one
-            // probe for EVERY original preprocessed column, including columns
-            // unused by projected arithmetic. FIXED aliases therefore have the
-            // same single-probe recipe and are not duplicate role coverage.
-            for (points[tree]) |*column| column.* = try a.dupe(D.Point, &.{probe});
-        } else @memset(points[tree], &.{});
+        @memset(points[tree], &.{});
     }
     for (components.slots) |slot| {
         const mode = slot.origin == .core and (slot.origin.core == .cpu or slot.origin.core == .and_table);
@@ -137,7 +130,15 @@ fn cpuPcsGeometry(a: std.mem.Allocator, request: CPU.rv64_device_source_stage.Re
         const offsets = [_]usize{ slot.fixed_offset, slot.main_offset, slot.inter_offset };
         for (widths, offsets, 0..) |width, offset, tree| for (0..width) |c| {
             if (offset + c >= points[tree].len) return error.NativeClassMaskGeometry;
-            if (tree == 0) continue;
+            if (tree == 0) {
+                // CpuWorker.prove uses ProveOptions' default include_all_
+                // preprocessed_columns=false. CoreAir.Components discards
+                // concatenated FIXED masks, then marks exactly the union of
+                // preprocessedColumnIndices (RoleGeometry.indices). Unused
+                // original columns stay empty; aliases get one probe once.
+                if (points[tree][offset + c].len == 0) points[tree][offset + c] = try a.dupe(D.Point, &.{probe});
+                continue;
+            }
             // MAIN and INTER retain the exact source component concatenation;
             // a gap or overlap here is a class-authority mismatch, not padding.
             if (points[tree][offset + c].len != 0) return error.NativeClassMaskGeometry;
@@ -151,7 +152,7 @@ fn cpuPcsGeometry(a: std.mem.Allocator, request: CPU.rv64_device_source_stage.Re
                 try a.dupe(D.Point, &.{probe});
         };
     }
-    for (points[0..3]) |tree| for (tree) |column| if (column.len == 0) return error.NativeClassMaskGeometry;
+    for (points[1..3]) |tree| for (tree) |column| if (column.len == 0) return error.NativeClassMaskGeometry;
     const count = core.verifier_types.compositionColumnCount(1, 8) orelse return error.NativeClassMaskGeometry;
     const columns = try a.alloc(D.Column, count);
     for (columns) |*column| column.* = .{ .log_size = max_log };
