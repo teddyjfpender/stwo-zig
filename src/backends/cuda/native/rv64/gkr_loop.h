@@ -1,12 +1,14 @@
 #ifndef STWO_CUDA_RV64_GKR_LOOP_H
 #define STWO_CUDA_RV64_GKR_LOOP_H
 #include "gkr.h"
-constexpr uint32_t STWO_RV64_GKR_STATE_WORDS = 1428;
-constexpr uint32_t STWO_RV64_GKR_ALPHA_WORD = 152;
-constexpr uint32_t STWO_RV64_GKR_LAMBDA_WORD = 160;
-constexpr uint32_t STWO_RV64_GKR_SEED_WORD = 168;
-constexpr uint32_t STWO_RV64_GKR_CLAIMS_WORD = 180;
-constexpr uint32_t STWO_RV64_GKR_POINT_WORD = 1204;
+// GkrState layout for 128 oracles (batch.h): channel 16, 4 words, variables + active ids 2 * 128,
+// 4 words, alpha + lambda 16, seed + pad 12, claims 8 * 2 * 128, point 8 * 28 (was 1428/152/160/168/180/1204 at 64).
+constexpr uint32_t STWO_RV64_GKR_STATE_WORDS = 2580;
+constexpr uint32_t STWO_RV64_GKR_ALPHA_WORD = 280;
+constexpr uint32_t STWO_RV64_GKR_LAMBDA_WORD = 288;
+constexpr uint32_t STWO_RV64_GKR_SEED_WORD = 296;
+constexpr uint32_t STWO_RV64_GKR_CLAIMS_WORD = 308;
+constexpr uint32_t STWO_RV64_GKR_POINT_WORD = 2356;
 struct StwoRv64Root {
   StwoRv64Plane n, d;
 };

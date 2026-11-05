@@ -5,7 +5,8 @@ struct BatchJobs {
   StwoRv64BatchOracle oracles[max_oracles];
   uint32_t count, variables;
 };
-static_assert(sizeof(BatchJobs) < 2048, "bounded launch metadata");
+// 128 oracles (batch.h): 3,080 bytes.
+static_assert(sizeof(BatchJobs) < 4096, "bounded launch metadata");
 // One authority for legacy and persistent mixed-oracle transcript transitions.
 __device__ __forceinline__ void advance_batch_round(BatchState *s, const BatchJobs &jobs,
     uint32_t expected, const uint32_t *point, RoundRecord *record) {
