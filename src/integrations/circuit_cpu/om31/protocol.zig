@@ -38,6 +38,20 @@ pub const Profile = enum {
     /// M5 canonical recursion under the m3 PCS (registry
     /// `m5_outer_canonical_m3_b4_q51_p26_fold4_v1`).
     m5_outer_canonical_m3_b4_q51_p26_fold4_v1,
+    /// M6 recursion cell diet, stage 1 (diet-wire; component `kary-v1`, k = 3):
+    /// r1 PCS, exact node shapes, every fold has arity 3 (the last fold of a
+    /// level takes the 2-child remainder, ready_dag streaming carry). A 3-ary
+    /// fold keeps the leaf's padded shape (blake_g_gate 2^23), so it fits the
+    /// device where a 4-ary fold (8.68 M G rows -> 2^24) does not. Arity is a
+    /// profile constant: STWO_RV64_FOLD_ARITY may only restate 3.
+    m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1,
+    /// M6 recursion cell diet, stage 2 (diet-wire; components `kary-v1` k = 4
+    /// and `merkle-cap-v1` c = 3): r1 PCS, exact shapes, 4-ary folds whose
+    /// in-circuit child verifier stops every Merkle path 3 levels below the
+    /// root at a guessed, root-checked 8-node cap (rv64-m6-diet-wire.md
+    /// section 5). Leaves are unchanged circuits (full paths) under this
+    /// profile's domain.
+    m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1,
 
     pub fn parse(text: []const u8) !Profile {
         inline for (@typeInfo(Profile).@"enum".fields) |field| {
@@ -57,11 +71,13 @@ pub const Profile = enum {
             .m3_b8_q34_p26_fold4 => "stwo/circuit/native-om31/m3-b8-q34-p26-fold4/lens-v1",
             .m5_outer_canonical_r1_b2_q108_p20_fold4_v1 => "stwo/circuit/native-om31/m5-canonical-q108-p20-fold4/lens-v1",
             .m5_outer_canonical_m3_b4_q51_p26_fold4_v1 => "stwo/circuit/native-om31/m5-canonical-m3-b4-q51-p26-fold4/lens-v1",
+            .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1 => "stwo/circuit/native-om31/m6-diet-k3-q108-p20-fold4/lens-v1",
+            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 => "stwo/circuit/native-om31/m6-diet-k4-cap3-q108-p20-fold4/lens-v1",
         };
     }
     pub fn config(self: Profile) PcsConfig {
         const log_blowup: u32, const queries: usize, const pow: u32 = switch (self) {
-            .r1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1 => .{ 1, 108, 20 },
+            .r1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 => .{ 1, 108, 20 },
             .m3_b4_q51_p26_fold4, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1 => .{ 2, 51, 26 },
             .m3_b8_q34_p26_fold4 => .{ 3, 34, 26 },
         };
@@ -72,6 +88,23 @@ pub const Profile = enum {
     /// M5 canonical recursion profiles pad every node to one outer shape.
     pub fn canonical(self: Profile) bool {
         return self == .m5_outer_canonical_r1_b2_q108_p20_fold4_v1 or self == .m5_outer_canonical_m3_b4_q51_p26_fold4_v1;
+    }
+    /// Fold arity fixed by the profile (null: the blowup default, 2 for b2 and
+    /// 4 otherwise, which STWO_RV64_FOLD_ARITY may override).
+    pub fn requiredFoldArity(self: Profile) ?usize {
+        return switch (self) {
+            .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1 => 3,
+            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 => 4,
+            else => null,
+        };
+    }
+    /// Merkle cap log of the in-circuit child verifier of FOLD circuits
+    /// (0 = full authentication paths, every pre-M6 profile).
+    pub fn foldMerkleCapLog(self: Profile) u32 {
+        return switch (self) {
+            .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 => 3,
+            else => 0,
+        };
     }
     /// ethSTARK-style conjectured FRI bits: log_blowup * queries + PoW.
     pub fn conjecturedBits(self: Profile) u32 {
@@ -200,4 +233,32 @@ test "om31 m5 canonical outer profiles: registry domains, base PCS configs, fail
     try std.testing.expectEqual(@as(u32, 128), m.conjecturedBits());
     try std.testing.expectEqual(r, try Profile.parse(r.name()));
     try std.testing.expectError(error.UnknownOm31OuterProfile, Profile.parse("m5_outer_canonical_r1"));
+}
+test "om31 m6 diet k3 outer profile: registry domain, r1 PCS, arity constant, fail-closed parse" {
+    const d = Profile.m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1;
+    try std.testing.expect(std.meta.eql(d.config(), Profile.r1_b2_q108_p20_fold4.config()));
+    try std.testing.expectEqualStrings("stwo/circuit/native-om31/m6-diet-k3-q108-p20-fold4/lens-v1", d.domainName());
+    try std.testing.expectEqual(@as(u32, 128), d.conjecturedBits());
+    try std.testing.expect(!d.canonical());
+    try std.testing.expectEqual(@as(?usize, 3), d.requiredFoldArity());
+    try std.testing.expectEqual(@as(?usize, null), Profile.r1_b2_q108_p20_fold4.requiredFoldArity());
+    try std.testing.expectEqual(d, try Profile.parse(d.name()));
+    // T_rec outer_profile ids (= enum + 1) of the existing profiles are unchanged by the append.
+    try std.testing.expectEqual(@as(usize, 4), @intFromEnum(Profile.m5_outer_canonical_m3_b4_q51_p26_fold4_v1));
+    try std.testing.expectEqual(@as(usize, 5), @intFromEnum(d));
+    inline for (@typeInfo(Profile).@"enum".fields) |field| {
+        const other: Profile = @enumFromInt(field.value);
+        if (other != d) try std.testing.expect(!std.mem.eql(u8, other.domainName(), d.domainName()));
+    }
+}
+test "om31 m6 diet k4 cap3 outer profile: domain, r1 PCS, arity 4, cap 3 on folds only" {
+    const d = Profile.m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1;
+    try std.testing.expect(std.meta.eql(d.config(), Profile.r1_b2_q108_p20_fold4.config()));
+    try std.testing.expectEqualStrings("stwo/circuit/native-om31/m6-diet-k4-cap3-q108-p20-fold4/lens-v1", d.domainName());
+    try std.testing.expectEqual(@as(?usize, 4), d.requiredFoldArity());
+    try std.testing.expectEqual(@as(u32, 3), d.foldMerkleCapLog());
+    try std.testing.expectEqual(@as(u32, 0), Profile.m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1.foldMerkleCapLog());
+    try std.testing.expectEqual(@as(u32, 0), Profile.r1_b2_q108_p20_fold4.foldMerkleCapLog());
+    try std.testing.expectEqual(@as(usize, 6), @intFromEnum(d));
+    try std.testing.expectEqual(d, try Profile.parse(d.name()));
 }

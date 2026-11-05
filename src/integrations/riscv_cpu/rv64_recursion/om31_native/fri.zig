@@ -84,8 +84,10 @@ pub fn decommit(ctx: *C.Context, proof: *const P.Proof, lifting_log: u32, config
         for (alpha_powers[1..step], 0..) |*power, i| power.* = alpha_powers[i].square();
         const next = try a.alloc(F, queries.n_queries);
         const per_fold = try a.alloc([]C.Var, step);
+        const cap_log: usize = if (layer.cap.len == 0) 0 else std.math.log2_int(usize, layer.cap.len);
+        if (cap_log != 0) try native.merkle.verifyCap(Q, ctx, layer.cap, layer.commitment);
         for (layer.cosets, layer.auth_paths, values, next, 0..) |coset, path, value, *out, q| {
-            if (coset.len != size or path.len != bits.len) return error.ShapeMismatch;
+            if (coset.len != size or path.len + cap_log != bits.len) return error.ShapeMismatch;
             for (position, query_bits[0..step]) |column, *bit| bit.* = column[q];
             try C.eq(ctx, value, try select(ctx, coset, query_bits[0..step]));
             for (leaves, 0..) |*leaf, i| leaf.* = try hashLeaf(ctx, coset[i * width ..][0..width]);
@@ -93,7 +95,11 @@ pub fn decommit(ctx: *C.Context, proof: *const P.Proof, lifting_log: u32, config
                 leaves[i] = try native.merkle.hashNode(Q, ctx, leaves[2 * i], leaves[2 * i + 1]);
             };
             for (bits, query_bits[0..bits.len]) |column, *bit| bit.* = column[q];
-            try native.merkle.verifyPath(Q, ctx, leaves[0], query_bits[0..bits.len], path, layer.commitment);
+            if (cap_log == 0) {
+                try native.merkle.verifyPath(Q, ctx, leaves[0], query_bits[0..bits.len], path, layer.commitment);
+            } else {
+                try native.merkle.verifyPathToCap(Q, ctx, leaves[0], query_bits[0..bits.len], path, layer.cap);
+            }
             for (per_fold, twiddles) |*dst, src| {
                 dst.* = try a.alloc(C.Var, src.len);
                 for (dst.*, src) |*t, packed_t| t.* = try simd.unpackIdx(Q, ctx, packed_t, q);

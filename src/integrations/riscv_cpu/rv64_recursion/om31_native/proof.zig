@@ -15,7 +15,9 @@ const Word = B.wrappers.U32Wrapper(C.Var);
 const Base = B.wrappers.M31Wrapper(C.Var);
 pub const NativeProof = core.proof.ForField(O).StarkProof(H);
 pub const NativeCapture = core.pcs.ForField(O).verifier.VerifiedProofCapture(H);
-pub const CapturedLayer = struct { commitment: H.Hash, cosets: []const []const O, auth_paths: []const []const H.Hash };
+/// `cap` (empty = uncapped): the layer tree's Merkle cap, `auth_paths` then
+/// hold only the siblings below it (M6 diet-wire, `fromNativeCapped`).
+pub const CapturedLayer = struct { commitment: H.Hash, cosets: []const []const O, auth_paths: []const []const H.Hash, cap: []const H.Hash = &.{} };
 pub const Captured = struct {
     commitments: []const H.Hash,
     sampled_values: []const []const []const O,
@@ -24,8 +26,13 @@ pub const Captured = struct {
     pow_nonce: u64,
     layers: []const CapturedLayer,
     last_layer_coefs: []const O,
+    /// Merkle cap log of the verifier circuit (0 = full paths, the M5 form).
+    /// With cap_log c > 0 every tree taller than c carries `caps[t]` (2^c
+    /// nodes) and auth paths of `height - c` siblings.
+    cap_log: u32 = 0,
+    caps: []const []const H.Hash = &.{},
 };
-pub const Layer = struct { commitment: C.Hash, cosets: []const []const F, auth_paths: []const []const C.Hash };
+pub const Layer = struct { commitment: C.Hash, cosets: []const []const F, auth_paths: []const []const C.Hash, cap: []const C.Hash = &.{} };
 pub const Proof = struct {
     commitments: []const C.Hash,
     sampled_values: []const []const []const F,
@@ -34,12 +41,22 @@ pub const Proof = struct {
     pow_nonce: [2]Word,
     layers: []const Layer,
     last_layer_coefs: []const F,
+    cap_log: u32 = 0,
+    caps: []const []const C.Hash = &.{},
     pub fn validate(self: *const Proof, shape: *const Shape) !void {
         try validateProof(self.*, shape);
     }
 };
+fn capLen(height: u32, cap_log: u32) usize {
+    const cl = circuit.native_verifier.merkle.capLogFor(height, cap_log);
+    return if (cl == 0) 0 else @as(usize, 1) << @intCast(cl);
+}
 fn validateProof(proof: anytype, shape: *const Shape) !void {
     try shape.validate();
+    const cap_log: u32 = proof.cap_log;
+    if (cap_log > 5) return error.ShapeMismatch;
+    if (cap_log != 0 and proof.caps.len != shape.nTrees()) return error.ShapeMismatch;
+    if (cap_log == 0 and proof.caps.len != 0) return error.ShapeMismatch;
     if (proof.commitments.len != shape.nTrees() or proof.sampled_values.len != shape.nTrees() or
         proof.queried_values.len != shape.nTrees() or proof.auth_paths.len != shape.nTrees()) return error.ShapeMismatch;
     for (0..shape.nTrees()) |t| {
@@ -51,8 +68,10 @@ fn validateProof(proof: anytype, shape: *const Shape) !void {
             if (proof.auth_paths[t].len != 0) return error.ShapeMismatch;
         } else {
             if (proof.auth_paths[t].len != shape.nQueries()) return error.ShapeMismatch;
-            for (proof.auth_paths[t]) |path| if (path.len != shape.treeHeight(t)) return error.ShapeMismatch;
+            const cl = circuit.native_verifier.merkle.capLogFor(shape.treeHeight(t), cap_log);
+            for (proof.auth_paths[t]) |path| if (path.len != shape.treeHeight(t) - cl) return error.ShapeMismatch;
         }
+        if (cap_log != 0 and proof.caps[t].len != (if (shape.nColumns(t) == 0) 0 else capLen(shape.treeHeight(t), cap_log))) return error.ShapeMismatch;
     }
     var buffer: [64]u32 = undefined;
     const steps = shape.foldSteps(&buffer);
@@ -61,8 +80,10 @@ fn validateProof(proof: anytype, shape: *const Shape) !void {
     for (proof.layers, steps) |layer, step| {
         if (layer.cosets.len != shape.nQueries() or layer.auth_paths.len != shape.nQueries()) return error.ShapeMismatch;
         log -= step;
+        const cl = circuit.native_verifier.merkle.capLogFor(log, cap_log);
+        if (layer.cap.len != capLen(log, cap_log)) return error.ShapeMismatch;
         for (layer.cosets, layer.auth_paths) |coset, path| {
-            if (coset.len != @as(usize, 1) << @intCast(step) or path.len != log) return error.ShapeMismatch;
+            if (coset.len != @as(usize, 1) << @intCast(step) or path.len != log - cl) return error.ShapeMismatch;
         }
     }
 }
@@ -116,6 +137,103 @@ pub fn fromNative(a: std.mem.Allocator, native: *const NativeProof, capture: *co
     try validateProof(result, shape);
     return result;
 }
+
+/// The FRI layer leaf of one query, as `fri.zig decommit` hashes it in
+/// circuit: packed leaves of `width` OM31 values (c0 limbs then c1 limbs,
+/// one LE word per M31), then the in-coset node levels.
+fn friGroupRoot(a: std.mem.Allocator, coset: []const O, layer_log: usize, step: usize) !H.Hash {
+    const pack = layer_log >= core.fri.LOG_PACKED_LEAF_SIZE and step > 1;
+    const width: usize = if (pack) @as(usize, 1) << core.fri.LOG_PACKED_LEAF_SIZE else 1;
+    const nfolds = step - if (pack) @as(usize, core.fri.LOG_PACKED_LEAF_SIZE) else 0;
+    const leaves = try a.alloc(H.Hash, coset.len / width);
+    defer a.free(leaves);
+    const words = try a.alloc(M, 8 * width);
+    defer a.free(words);
+    for (leaves, 0..) |*leaf, i| {
+        for (coset[i * width ..][0..width], 0..) |value, j| {
+            const limbs = value.toM31Array();
+            @memcpy(words[8 * j ..][0..8], &limbs);
+        }
+        var hasher = H.defaultWithInitialState();
+        hasher.updateLeaf(words);
+        leaf.* = hasher.finalize();
+    }
+    for (0..nfolds) |f| for (0..@as(usize, 1) << @intCast(nfolds - f - 1)) |i| {
+        leaves[i] = H.hashChildren(.{ .left = leaves[2 * i], .right = leaves[2 * i + 1] });
+    };
+    return leaves[0];
+}
+fn truncatePaths(a: std.mem.Allocator, source: []const []const H.Hash, keep: usize) ![]const []const H.Hash {
+    const out = try a.alloc([]const H.Hash, source.len);
+    for (out, source) |*dst, src| dst.* = src[0..keep];
+    return out;
+}
+/// `fromNative` for a verifier circuit with a Merkle cap of log `cap_log`
+/// (rv64-m6-diet-wire.md section 5): every tree taller than the cap gets its
+/// 2^cap_log cap nodes, derived on the host from the captured query paths
+/// (`merkle.hostCap`, which also re-hashes the cap to the committed root),
+/// and its auth paths are cut to the siblings below the cap.
+pub fn fromNativeCapped(a: std.mem.Allocator, native: *const NativeProof, capture: *const NativeCapture, shape: *const Shape, cap_log: u32) !Captured {
+    var result = try fromNative(a, native, capture, shape);
+    if (cap_log == 0) return result;
+    if (cap_log > 5) return error.ShapeMismatch;
+    const merkle = circuit.native_verifier.merkle;
+    const nq = shape.nQueries();
+    const caps = try a.alloc([]const H.Hash, shape.nTrees());
+    const auth = try a.alloc([]const []const H.Hash, shape.nTrees());
+    for (0..shape.nTrees()) |t| {
+        const height = shape.treeHeight(t);
+        const cl = merkle.capLogFor(height, cap_log);
+        if (shape.nColumns(t) == 0 or cl == 0) {
+            caps[t] = &.{};
+            auth[t] = result.auth_paths[t];
+            continue;
+        }
+        const logs = try shape.extendedLogSizes(a, t);
+        const order = try merkle.columnPermutation(a, logs);
+        const row = try a.alloc(M, order.len);
+        const leaves = try a.alloc(H.Hash, nq);
+        for (leaves, 0..) |*leaf, q| {
+            for (row, order) |*value, column| value.* = result.queried_values[t][column][q];
+            var hasher = H.defaultWithInitialState();
+            hasher.updateLeaf(row);
+            leaf.* = hasher.finalize();
+        }
+        const cap = try a.alloc(H.Hash, @as(usize, 1) << @intCast(cl));
+        try merkle.hostCap(H, cap, capture.trace_paths[t].positions, leaves, result.auth_paths[t], height, result.commitments[t]);
+        caps[t] = cap;
+        auth[t] = try truncatePaths(a, result.auth_paths[t], height - cl);
+    }
+    var buffer: [64]u32 = undefined;
+    const steps = shape.foldSteps(&buffer);
+    const layers = try a.alloc(CapturedLayer, result.layers.len);
+    var log: usize = shape.liftingLogSize();
+    for (layers, result.layers, steps, capture.fri.layers) |*out, in, step_u32, raw| {
+        const step: usize = step_u32;
+        const layer_log = log;
+        log -= step;
+        const cl: usize = merkle.capLogFor(@intCast(log), cap_log);
+        out.* = in;
+        if (cl == 0) continue;
+        if (raw.positions.len != nq) return error.ShapeMismatch;
+        const leaves = try a.alloc(H.Hash, nq);
+        const positions = try a.alloc(usize, nq);
+        for (leaves, positions, in.cosets, raw.positions) |*leaf, *position, coset, raw_position| {
+            leaf.* = try friGroupRoot(a, coset, layer_log, step);
+            position.* = raw_position >> @intCast(step);
+        }
+        const cap = try a.alloc(H.Hash, @as(usize, 1) << @intCast(cl));
+        try merkle.hostCap(H, cap, positions, leaves, in.auth_paths, @intCast(log), in.commitment);
+        out.cap = cap;
+        out.auth_paths = try truncatePaths(a, in.auth_paths, log - cl);
+    }
+    result.auth_paths = auth;
+    result.layers = layers;
+    result.caps = caps;
+    result.cap_log = cap_log;
+    try validateProof(result, shape);
+    return result;
+}
 fn guessHash(ctx: *C.Context, value: H.Hash) !C.Hash {
     return B.blake.guessHash(Q, ctx, B.blake.hashValueFromDigest(Q, value));
 }
@@ -154,11 +272,19 @@ pub fn guess(ctx: *C.Context, source: *const Captured, shape: *const Shape) !Pro
         queried[t] = base_columns;
         auth[t] = try guessPaths(ctx, source.auth_paths[t]);
     }
+    const caps = try a.alloc([]const C.Hash, source.caps.len);
+    for (caps, source.caps) |*out, in| {
+        const nodes = try a.alloc(C.Hash, in.len);
+        for (nodes, in) |*node, value| node.* = try guessHash(ctx, value);
+        out.* = nodes;
+    }
     const layers = try a.alloc(Layer, source.layers.len);
     for (layers, source.layers) |*out, in| {
         const cosets = try a.alloc([]const F, in.cosets.len);
         for (cosets, in.cosets) |*c, values| c.* = try guessValues(ctx, values);
-        out.* = .{ .commitment = try guessHash(ctx, in.commitment), .cosets = cosets, .auth_paths = try guessPaths(ctx, in.auth_paths) };
+        const cap = try a.alloc(C.Hash, in.cap.len);
+        for (cap, in.cap) |*node, value| node.* = try guessHash(ctx, value);
+        out.* = .{ .commitment = try guessHash(ctx, in.commitment), .cosets = cosets, .auth_paths = try guessPaths(ctx, in.auth_paths), .cap = cap };
     }
-    return .{ .commitments = roots, .sampled_values = sampled, .queried_values = queried, .auth_paths = auth, .pow_nonce = .{ try B.wrappers.guessU32(Q, ctx, B.wrappers.u32Value(Q, @truncate(source.pow_nonce))), try B.wrappers.guessU32(Q, ctx, B.wrappers.u32Value(Q, @truncate(source.pow_nonce >> 32))) }, .layers = layers, .last_layer_coefs = try guessValues(ctx, source.last_layer_coefs) };
+    return .{ .cap_log = source.cap_log, .caps = caps, .commitments = roots, .sampled_values = sampled, .queried_values = queried, .auth_paths = auth, .pow_nonce = .{ try B.wrappers.guessU32(Q, ctx, B.wrappers.u32Value(Q, @truncate(source.pow_nonce))), try B.wrappers.guessU32(Q, ctx, B.wrappers.u32Value(Q, @truncate(source.pow_nonce >> 32))) }, .layers = layers, .last_layer_coefs = try guessValues(ctx, source.last_layer_coefs) };
 }
