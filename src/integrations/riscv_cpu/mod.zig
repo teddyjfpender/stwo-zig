@@ -4,6 +4,7 @@ pub const rv64_poseidon2_outer = @import("poseidon2_outer/mod.zig");
 pub const rv64_services_roster = @import("word16_global_execution/services/roster.zig");
 pub const rv64_services_types = @import("word16_global_execution/services/types.zig");
 pub const rv64_services_pipeline = @import("word16_global_execution/services/pipeline.zig");
+pub const rv64_native_provider_tails = @import("word16_execution/provider_tails.zig");
 pub const rv64_device_core_headers = @import("word16_execution/device_headers.zig");
 pub const rv64_memory_input = @import("word16_execution/memory_input.zig");
 pub const rv64_family_input = @import("word16_execution/family_input.zig");

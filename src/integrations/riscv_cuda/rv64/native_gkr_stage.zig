@@ -169,6 +169,53 @@ pub fn allocationBytes(a: std.mem.Allocator, request: Request) ![]usize {
     sizes[sizes.len - 1] = estimate.workspace_bytes;
     return sizes;
 }
+/// DIAGNOSTIC ONLY: incomplete host allocation/lifetime sketch. The slack
+/// allowance is not a proven bound. Never set runtime host_known from this
+/// estimate until the exact allocator/phase audit is completed.
+pub const HostCost = struct {
+    known: bool = false,
+    twiddle_new_bytes: usize,
+    readback_bytes: usize,
+    proof_bytes_upper: usize,
+    metadata_bytes: usize,
+    stack_allocator_verifier_slack_bytes: usize,
+    additional_peak_bytes: usize,
+};
+pub fn hostCost(request: Request) !HostCost {
+    const device = try cost(request);
+    const n = request.roster.instances.len;
+    const items = request.items.len;
+    const layers: usize = request.roster.layers();
+    var variable_sum: usize = 0;
+    var max_parameters: usize = 0;
+    var readback_words: usize = try std.math.mul(usize, 16, n);
+    for (request.roster.instances) |instance| variable_sum = try std.math.add(usize, variable_sum, instance.variables());
+    for (request.items) |item| max_parameters = @max(max_parameters, item.artifact.parameter_slots.len);
+    const rounds = try std.math.mul(usize, layers, layers - 1) / 2;
+    readback_words = try std.math.add(usize, readback_words, try std.math.mul(usize, 44, rounds));
+    readback_words = try std.math.add(usize, readback_words, try std.math.mul(usize, 32, variable_sum));
+    const readback = try std.math.mul(usize, 4, readback_words);
+    // The canonical wire already contains the full four-coefficient bound and
+    // all mask/root values. 2x additionally covers their native slice headers.
+    const proof = try std.math.mul(usize, 8, S.wordCount(request.roster));
+    var metadata = try std.math.mul(usize, n, 4 + @sizeOf(Descriptor) + @sizeOf(R.Fraction) + @sizeOf([5]Slice));
+    metadata = try std.math.add(usize, metadata, try std.math.mul(usize, items, 3 * @sizeOf(Slice)));
+    metadata = try std.math.add(usize, metadata, try std.math.mul(usize, layers, @sizeOf(Results.Layer)));
+    metadata = try std.math.add(usize, metadata, try std.math.mul(usize, max_parameters, @sizeOf(O)));
+    const lease_capacity = try std.math.add(usize, try std.math.mul(usize, 3, 5 + items), 8);
+    metadata = try std.math.add(usize, metadata, try std.math.mul(usize, lease_capacity, @sizeOf(Native.Lease)));
+    // One KiB per possible proof/replay allocation is deliberately above the
+    // logical payload; source-bounded verifier vectors add no row-sized data.
+    const allocation_count = try std.math.add(usize, 128 + try std.math.mul(usize, 4, items), try std.math.mul(usize, 2, try std.math.add(usize, variable_sum, rounds)));
+    var slack = try std.math.mul(usize, allocation_count, 1024);
+    slack = try std.math.add(usize, slack, 8 * @sizeOf(G.Plan) + 4 * P.count * @sizeOf(O) + (2 << 20));
+    const twiddles = try std.math.mul(usize, 2, device.twiddle_bytes);
+    var total = try std.math.add(usize, twiddles, readback);
+    total = try std.math.add(usize, total, proof);
+    total = try std.math.add(usize, total, metadata);
+    total = try std.math.add(usize, total, slack);
+    return .{ .twiddle_new_bytes = twiddles, .readback_bytes = readback, .proof_bytes_upper = proof, .metadata_bytes = metadata, .stack_allocator_verifier_slack_bytes = slack, .additional_peak_bytes = total };
+}
 const Job = struct {
     backend: *Context,
     a: std.mem.Allocator,
@@ -371,6 +418,10 @@ test "native GKR exact allocation census matches the qualified six-lease fixture
     var total: usize = 0;
     for (sizes) |size| total += size;
     try std.testing.expectEqual((try cost(request)).transient_bytes, total);
+    const host = try hostCost(request);
+    try std.testing.expectEqual((try cost(request)).twiddle_bytes * 2, host.twiddle_new_bytes);
+    try std.testing.expect(host.additional_peak_bytes >= host.twiddle_new_bytes + host.readback_bytes + host.proof_bytes_upper + host.metadata_bytes);
+    try std.testing.expect(host.additional_peak_bytes < 16 << 20);
     var bounded = request;
     bounded.byte_cap = total - 1;
     try std.testing.expectError(error.NativeGkrWorkspaceBudget, cost(bounded));
