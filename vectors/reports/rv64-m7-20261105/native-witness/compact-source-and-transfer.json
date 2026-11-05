@@ -1,0 +1,131 @@
+{
+  "base_commit": "26ca20793",
+  "source_marker_caveat": "dirty marker was generated before the keyword correction; exact built production source files are pinned by these SHA256 values, not that marker",
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/cpu_witness.cu": "c0d65e2f67be8cfe26a4f9ea23b1634cfa2383a890265d4dafddec2dbf85b761",
+    "src/backends/cuda/native/rv64/cpu_witness.h": "a546a4940132dafd5bc1e6c71134445bfdc6ba9de053c4bec8a0b02902ce28ea",
+    "src/integrations/riscv_cuda/rv64/abi.zig": "7401e0e125ce326ad43395224e0d62be3c623dc2b4acfc37eb8668a394cd98ad",
+    "src/integrations/riscv_cuda/rv64/cpu_projection.zig": "675191f7cb21f3e4172b6840df31c06134daeffaed44eaa354b5a501243e590b",
+    "src/integrations/riscv_cuda/rv64/cpu_witness.zig": "8baf942d17b4ce31622c449452c5d4166467e871b4752549635855a60599bdb8"
+  },
+  "metadata_transfer": {
+    "compact-off": {
+      "requests": [
+        {
+          "block": 26235156,
+          "trial": 0,
+          "projections": 4,
+          "active_rows": 15305679,
+          "metadata_h2d_bytes": 857118024,
+          "pack_ns_sum": 5550,
+          "projection_ns_sum": 505085071
+        },
+        {
+          "block": 24628607,
+          "trial": 1,
+          "projections": 7,
+          "active_rows": 26894777,
+          "metadata_h2d_bytes": 1506107512,
+          "pack_ns_sum": 8710,
+          "projection_ns_sum": 491073005
+        },
+        {
+          "block": 26235156,
+          "trial": 2,
+          "projections": 4,
+          "active_rows": 15305679,
+          "metadata_h2d_bytes": 857118024,
+          "pack_ns_sum": 5670,
+          "projection_ns_sum": 587020688
+        },
+        {
+          "block": 24628607,
+          "trial": 3,
+          "projections": 7,
+          "active_rows": 26894777,
+          "metadata_h2d_bytes": 1506107512,
+          "pack_ns_sum": 7740,
+          "projection_ns_sum": 375376138
+        },
+        {
+          "block": 26235156,
+          "trial": 4,
+          "projections": 4,
+          "active_rows": 15305679,
+          "metadata_h2d_bytes": 857118024,
+          "pack_ns_sum": 5440,
+          "projection_ns_sum": 375024699
+        },
+        {
+          "block": 24628607,
+          "trial": 5,
+          "projections": 7,
+          "active_rows": 26894777,
+          "metadata_h2d_bytes": 1506107512,
+          "pack_ns_sum": 8060,
+          "projection_ns_sum": 664393527
+        }
+      ],
+      "unattributed": []
+    },
+    "compact-on": {
+      "requests": [
+        {
+          "block": 26235156,
+          "trial": 0,
+          "projections": 4,
+          "active_rows": 15305679,
+          "metadata_h2d_bytes": 267849456,
+          "pack_ns_sum": 309215455,
+          "projection_ns_sum": 790082914
+        },
+        {
+          "block": 24628607,
+          "trial": 1,
+          "projections": 7,
+          "active_rows": 26894777,
+          "metadata_h2d_bytes": 470658704,
+          "pack_ns_sum": 537148613,
+          "projection_ns_sum": 1092514296
+        },
+        {
+          "block": 26235156,
+          "trial": 2,
+          "projections": 4,
+          "active_rows": 15305679,
+          "metadata_h2d_bytes": 267849456,
+          "pack_ns_sum": 309950744,
+          "projection_ns_sum": 656344974
+        },
+        {
+          "block": 24628607,
+          "trial": 3,
+          "projections": 7,
+          "active_rows": 26894777,
+          "metadata_h2d_bytes": 470658704,
+          "pack_ns_sum": 497242044,
+          "projection_ns_sum": 949453693
+        },
+        {
+          "block": 26235156,
+          "trial": 4,
+          "projections": 4,
+          "active_rows": 15305679,
+          "metadata_h2d_bytes": 267849456,
+          "pack_ns_sum": 295584564,
+          "projection_ns_sum": 678155658
+        },
+        {
+          "block": 24628607,
+          "trial": 5,
+          "projections": 7,
+          "active_rows": 26894777,
+          "metadata_h2d_bytes": 470658704,
+          "pack_ns_sum": 540209073,
+          "projection_ns_sum": 904931255
+        }
+      ],
+      "unattributed": []
+    }
+  }
+}

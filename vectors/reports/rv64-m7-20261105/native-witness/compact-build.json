@@ -1,0 +1,75 @@
+{
+  "schema": "rv64-m3-build/v1",
+  "stream": "m7-native-witness",
+  "source_root": "/workspace/m3/src/m7-native-witness",
+  "source_commit": "26ca20793-dirty-3ee1cf865513",
+  "host": "f675b38ce80e",
+  "zig_seconds": {
+    "build-rv64-ethereum-gpu-combined": 328.96,
+    "build-rv64-ethereum-recursion-receiver": 278.86
+  },
+  "driver_sha256": "4b6e184cecc850953e577357e547dc5a10bebd26295d4e72cb629252da2582c6",
+  "receiver_sha256": "84a4302f2f3392426ed0a165836b0feda7d7d6a534c2be66ffa220c768b19237",
+  "catalogue_gate": {
+    "status": "pass",
+    "statuses": {
+      "core": "equal",
+      "truth": "equal",
+      "rational": "equal",
+      "outer": "equal",
+      "global": "equal",
+      "projection": "equal",
+      "truth-parts": "not_regenerated"
+    },
+    "receipt": "/workspace/m3/build/m7-native-witness/logs/catalogue-gate.json",
+    "seconds": 131.3
+  },
+  "cuda_seconds": 136.43,
+  "cuda_objects": {
+    "compiled": 5,
+    "cached": 694
+  },
+  "library_sha256": "1d0eafef235060d0ca46027051a005afd73d5c67b60ab951b4df1c2f8b217de0",
+  "stack_admission": {
+    "functions": 2797,
+    "limit_bytes": 12544,
+    "top": [
+      {
+        "stack_bytes": 12544,
+        "function": "_ZN4stwo4cuda4rv644secp7witnessINS2_3AddEEEv19StwoRv64SecpWitness"
+      },
+      {
+        "stack_bytes": 11664,
+        "function": "rv64_truth_domain_0_shard_47"
+      },
+      {
+        "stack_bytes": 10576,
+        "function": "rv64_truth_domain_7_shard_62"
+      },
+      {
+        "stack_bytes": 10576,
+        "function": "_ZN4stwo4cuda4rv645curve7witnessINS2_12bn254_g1_addEEEv20StwoRv64CurveWitness"
+      },
+      {
+        "stack_bytes": 9040,
+        "function": "rv64_joined_domain_44_shard_26"
+      },
+      {
+        "stack_bytes": 8944,
+        "function": "_ZN4stwo4cuda4rv644secp7witnessINS2_6DoubleEEEv19StwoRv64SecpWitness"
+      },
+      {
+        "stack_bytes": 8816,
+        "function": "_ZN4stwo4cuda4rv645curve7witnessINS2_17bls12_381_fp2_mulEEEv20StwoRv64CurveWitness"
+      },
+      {
+        "stack_bytes": 7936,
+        "function": "_ZN4stwo4cuda4rv645curve7witnessINS2_15bn254_g1_doubleEEEv20StwoRv64CurveWitness"
+      }
+    ],
+    "reservation_estimate_bytes_5090": 3275489280,
+    "admitted": true
+  },
+  "catalogues": "/workspace/m3/catalogues-v3",
+  "catalogue_note": "catalogues-v2 = frozen rebuild-package catalogue (48/49 core roles byte-equal to rv64-joined-fixtures --domain at fbb6c6c76; 8/41 equal --grouped-domain) with core roles 43/44 replaced by --grouped-domain output, split per group. Native .cu sources come from this stream's tree. Regenerate if a stream changes AIR/outer kernels."
+}
