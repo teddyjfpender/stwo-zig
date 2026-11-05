@@ -7,6 +7,7 @@
 
 #include "common/provider_compat.cuh"
 #include "context_options.h"
+#include "admission_v2.h"
 #include "pool_trim_policy.h"
 #if !defined(STWO_CUMETAL)
 #include "device_arena_runtime.cuh"
@@ -69,6 +70,10 @@ struct StwoNativeCudaContext {
     size_t allocation_count;
     size_t allocation_capacity;
 };
+
+#if STWO_DEVICE_ARENA_HOOK
+cudaError_t admission_v2_context_closing(StwoNativeCudaContext *context);
+#endif
 
 struct alignas(8) StwoCudaPlatformSnapshot {
     uint8_t uuid[16];
@@ -470,6 +475,10 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
     status = join_lanes(context);
     if (status != cudaSuccess) return static_cast<int>(status);
     context->closing = true;
+#if STWO_DEVICE_ARENA_HOOK
+    status = admission_v2_context_closing(context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+#endif
     if (context->nvtx_depth != 0) { nvtxRangePop(); context->nvtx_depth = 0; }
     // A failed destroy retains the control owner with remaining handles for
     // retry; ordinary operations reject a partially closed context.
@@ -1397,8 +1406,8 @@ extern "C" int stwo_exec_context_admission_configure_v1(void *raw, uint64_t capa
         return int(cudaErrorInvalidValue);
     auto *d=stwo::cuda::runtime::arena::device(context->device,&status); if(!d) return int(status);
     std::lock_guard<std::mutex> lock(d->mutex);
-    if(d->capacity()!=capacity || d->admission_ticket || (!d->admission_required && d->live)) return int(cudaErrorInvalidValue);
-    d->admission_required=true; return 0;
+    if(d->admission_version==2 || d->capacity()!=capacity || d->admission_ticket || (!d->admission_required && d->live)) return int(cudaErrorInvalidValue);
+    d->admission_required=true; d->admission_version=1; return 0;
 #else
     return int(cudaErrorNotSupported);
 #endif
@@ -1412,7 +1421,7 @@ extern "C" int stwo_exec_context_admission_begin_v1(void *raw, uint64_t ticket,
     auto *d=stwo::cuda::runtime::arena::device(context->device,&status); if(!d) return int(status);
     std::lock_guard<std::mutex> lock(d->mutex);
     const uint64_t large=d->live-d->live_small, small=d->live_small;
-    if(!d->admission_required || d->admission_ticket || large>expected_large || small>expected_small ||
+    if(!d->admission_required || d->admission_version!=1 || d->admission_ticket || large>expected_large || small>expected_small ||
        add_large>d->capacity()-d->small_bytes || large>d->capacity()-d->small_bytes-add_large ||
        add_small>d->small_bytes || small>d->small_bytes-add_small) return int(cudaErrorInvalidValue);
     d->admission_ticket=ticket; d->admission_owner=context->identity;
@@ -1439,4 +1448,195 @@ extern "C" int stwo_exec_context_admission_end_v1(void *raw, uint64_t ticket, St
 #else
     return int(cudaErrorNotSupported);
 #endif
+}
+
+#if STWO_DEVICE_ARENA_HOOK
+namespace {
+namespace Arena = stwo::cuda::runtime::arena;
+struct AdmissionHostContext { uint64_t identity; int device; };
+std::mutex admission_host_mutex;
+std::unordered_map<void *, AdmissionHostContext> admission_host_contexts;
+
+bool add_checked(uint64_t a, uint64_t b, uint64_t *out) {
+    if (a > UINT64_MAX - b) return false;
+    *out = a + b; return true;
+}
+bool unused_locked(Arena::Device *d, uint64_t *large, uint64_t *small) {
+    *large = 0; *small = 0;
+    for (const auto &entry : d->owner_windows) {
+        const auto live = d->owner_live.find(entry.first);
+        const uint64_t budget_large = entry.second.ceiling_large - entry.second.baseline_large;
+        const uint64_t budget_small = entry.second.ceiling_small - entry.second.baseline_small;
+        if (live == d->owner_live.end() || entry.second.new_large > budget_large || entry.second.new_small > budget_small) return false;
+        if (!add_checked(*large, budget_large - entry.second.new_large, large) ||
+            !add_checked(*small, budget_small - entry.second.new_small, small)) return false;
+    }
+    return true;
+}
+// Caller holds admission_host_mutex. Lookup does not dereference a stale raw
+// pointer or query CUDA; teardown removes the identity before deleting it.
+Arena::Device *host_device_locked(void *raw, uint64_t identity) {
+    const auto registered = admission_host_contexts.find(raw);
+    if (!identity || registered == admission_host_contexts.end() || registered->second.identity != identity) return nullptr;
+    std::lock_guard<std::mutex> lock(Arena::registry_mutex());
+    const int device = registered->second.device;
+    return device >= 0 && device < Arena::kMaxDevices ? Arena::registry()[device] : nullptr;
+}
+bool owner_snapshot_locked(Arena::Device *d, uint64_t identity, StwoCudaOwnerSnapshotV2 *out) {
+    const auto live = d->owner_live.find(identity);
+    if (!out || d->admission_version != 2 || live == d->owner_live.end()) return false;
+    *out = {}; out->version = 2; out->device = uint32_t(d->ordinal);
+    out->context_identity = identity; out->capacity = d->capacity();
+    out->chunk = d->chunk; out->small_slab = d->small_bytes;
+    out->global_live_large = d->live - d->live_small; out->global_live_small = d->live_small;
+    if (!unused_locked(d, &out->reserved_unused_large, &out->reserved_unused_small)) return false;
+    out->owner_live_large = live->second.large; out->owner_live_small = live->second.small;
+    out->stable_live_large = out->global_live_large; out->stable_live_small = out->global_live_small;
+    out->active_reservations = d->owner_windows.size();
+    for (const auto &entry : d->owner_windows) {
+        if (entry.second.new_large > out->stable_live_large || entry.second.new_small > out->stable_live_small) return false;
+        out->stable_live_large -= entry.second.new_large; out->stable_live_small -= entry.second.new_small;
+    }
+    const auto window = d->owner_windows.find(identity);
+    if (window != d->owner_windows.end()) {
+        out->ticket = window->second.ticket;
+        out->baseline_large = window->second.baseline_large; out->baseline_small = window->second.baseline_small;
+        out->ceiling_large = window->second.ceiling_large; out->ceiling_small = window->second.ceiling_small;
+        out->owner_new_live_large = window->second.new_large; out->owner_new_live_small = window->second.new_small;
+        out->entered = window->second.entered; out->ended = window->second.ended;
+    }
+    return true;
+}
+cudaError_t admission_v2_context_closing(StwoNativeCudaContext *context) {
+    std::lock_guard<std::mutex> host(admission_host_mutex);
+    const auto registered = admission_host_contexts.find(context);
+    if (registered == admission_host_contexts.end()) return cudaSuccess;
+    auto *d = host_device_locked(context, context->identity);
+    if (!d) return cudaErrorInvalidValue;
+    std::lock_guard<std::mutex> lock(d->mutex);
+    const auto live = d->owner_live.find(context->identity);
+    if (live == d->owner_live.end() || live->second.large || live->second.small) return cudaErrorInvalidValue;
+    // The destructor has already joined every lane and verified zero live
+    // context allocations. Only its own terminal reservation may be canceled.
+    d->owner_windows.erase(context->identity);
+    d->owner_live.erase(live);
+    admission_host_contexts.erase(registered);
+    return cudaSuccess;
+}
+}
+#endif
+
+extern "C" int stwo_exec_context_admission_configure_v2(void *raw, uint64_t capacity) {
+#if STWO_DEVICE_ARENA_HOOK
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(raw, &context); if (status != cudaSuccess) return int(status);
+    const auto &c = Arena::config();
+    if (!c.valid || !c.enabled || !capacity || c.bytes != capacity || c.chunk != (32ull << 20) || c.small_chunks != 16) return int(cudaErrorInvalidValue);
+    auto *d = Arena::device(context->device, &status); if (!d) return int(status);
+    std::lock_guard<std::mutex> host(admission_host_mutex);
+    std::lock_guard<std::mutex> lock(d->mutex);
+    if (d->capacity() != capacity || d->admission_version == 1 || d->admission_ticket || (!d->admission_required && d->live)) return int(cudaErrorInvalidValue);
+    bool inserted = false;
+    try {
+        const auto registered = admission_host_contexts.find(raw);
+        if (registered != admission_host_contexts.end() && registered->second.identity != context->identity) return int(cudaErrorInvalidValue);
+        inserted = d->owner_live.emplace(context->identity, Arena::OwnerLive{}).second;
+        admission_host_contexts[raw] = {context->identity, context->device};
+    } catch (const std::bad_alloc &) {
+        if (inserted) d->owner_live.erase(context->identity);
+        return int(cudaErrorMemoryAllocation);
+    }
+    d->admission_required = true; d->admission_version = 2; return 0;
+#else
+    return int(cudaErrorNotSupported);
+#endif
+}
+extern "C" int stwo_exec_context_admission_snapshot_v2(void *raw, uint64_t identity, StwoCudaOwnerSnapshotV2 *out) {
+#if STWO_DEVICE_ARENA_HOOK
+    if (!out) return int(cudaErrorInvalidValue);
+    std::lock_guard<std::mutex> host(admission_host_mutex);
+    auto *d = host_device_locked(raw, identity); if (!d) return int(cudaErrorInvalidValue);
+    std::lock_guard<std::mutex> lock(d->mutex);
+    return owner_snapshot_locked(d, identity, out) ? 0 : int(cudaErrorInvalidValue);
+#else
+    return int(cudaErrorNotSupported);
+#endif
+}
+extern "C" int stwo_exec_context_admission_reserve_v2(void *raw, uint64_t identity, uint64_t ticket,
+    uint64_t add_large, uint64_t add_small, StwoCudaOwnerSnapshotV2 *out) {
+#if STWO_DEVICE_ARENA_HOOK
+    if (!out || !ticket) return int(cudaErrorInvalidValue);
+    std::lock_guard<std::mutex> host(admission_host_mutex);
+    auto *d = host_device_locked(raw, identity); if (!d) return int(cudaErrorInvalidValue);
+    std::lock_guard<std::mutex> lock(d->mutex);
+    if (d->admission_version != 2 || d->owner_windows.count(identity) || add_large % d->chunk || add_small % 512) return int(cudaErrorInvalidValue);
+    for (const auto &w : d->owner_windows) if (w.second.ticket == ticket) return int(cudaErrorInvalidValue);
+    const auto creator = d->owner_live.find(identity); if (creator == d->owner_live.end()) return int(cudaErrorInvalidValue);
+    uint64_t unused_large = 0, unused_small = 0, total_large = 0, total_small = 0;
+    if (!unused_locked(d, &unused_large, &unused_small) ||
+        !add_checked(d->live - d->live_small, unused_large, &total_large) || !add_checked(total_large, add_large, &total_large) ||
+        !add_checked(d->live_small, unused_small, &total_small) || !add_checked(total_small, add_small, &total_small) ||
+        total_large > d->capacity() - d->small_bytes || total_small > d->small_bytes) return int(cudaErrorMemoryAllocation);
+    Arena::OwnerWindow window;
+    window.ticket = ticket; window.baseline_large = creator->second.large; window.baseline_small = creator->second.small;
+    if (!add_checked(window.baseline_large, add_large, &window.ceiling_large) || !add_checked(window.baseline_small, add_small, &window.ceiling_small)) return int(cudaErrorInvalidValue);
+    try { d->owner_windows.emplace(identity, window); } catch (const std::bad_alloc &) { return int(cudaErrorMemoryAllocation); }
+    if (!owner_snapshot_locked(d, identity, out)) { d->owner_windows.erase(identity); return int(cudaErrorInvalidValue); }
+    return 0;
+#else
+    return int(cudaErrorNotSupported);
+#endif
+}
+extern "C" int stwo_exec_context_admission_enter_v2(void *raw, uint64_t ticket, const char *label) {
+#if STWO_DEVICE_ARENA_HOOK
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(raw, &context); if (status != cudaSuccess) return int(status);
+    if (!ticket || !label || context->capture_active || context->nvtx_depth) return int(cudaErrorInvalidValue);
+    auto *d = Arena::device(context->device, &status); if (!d) return int(status);
+    std::lock_guard<std::mutex> lock(d->mutex);
+    const auto window = d->owner_windows.find(context->identity);
+    if (d->admission_version != 2 || window == d->owner_windows.end() || window->second.ticket != ticket || window->second.entered || window->second.ended) return int(cudaErrorInvalidValue);
+    window->second.entered = true; nvtxRangePushA(label); context->nvtx_depth = 1; return 0;
+#else
+    return int(cudaErrorNotSupported);
+#endif
+}
+extern "C" int stwo_exec_context_admission_end_v2(void *raw, uint64_t ticket, StwoCudaOwnerSnapshotV2 *out) {
+#if STWO_DEVICE_ARENA_HOOK
+    if (!out) return int(cudaErrorInvalidValue);
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(raw, &context); if (status != cudaSuccess) return int(status);
+    auto *d = Arena::device(context->device, &status); if (!d) return int(status);
+    std::lock_guard<std::mutex> lock(d->mutex);
+    const auto window = d->owner_windows.find(context->identity);
+    if (d->admission_version != 2 || window == d->owner_windows.end() || window->second.ticket != ticket || !window->second.entered || window->second.ended || context->nvtx_depth != 1) return int(cudaErrorInvalidValue);
+    // The owner has joined its lanes. Keep the reservation until host finish;
+    // new allocations from this ended window are forbidden immediately.
+    window->second.ended = true; nvtxRangePop(); context->nvtx_depth = 0;
+    return owner_snapshot_locked(d, context->identity, out) ? 0 : int(cudaErrorInvalidValue);
+#else
+    return int(cudaErrorNotSupported);
+#endif
+}
+namespace {
+int admission_close_v2(void *raw, uint64_t identity, uint64_t ticket, StwoCudaOwnerSnapshotV2 *out, bool entered) {
+#if STWO_DEVICE_ARENA_HOOK
+    if (!out || !ticket) return int(cudaErrorInvalidValue);
+    std::lock_guard<std::mutex> host(admission_host_mutex);
+    auto *d = host_device_locked(raw, identity); if (!d) return int(cudaErrorInvalidValue);
+    std::lock_guard<std::mutex> lock(d->mutex);
+    const auto window = d->owner_windows.find(identity);
+    if (window == d->owner_windows.end() || window->second.ticket != ticket || window->second.entered != entered || (entered && !window->second.ended) || (!entered && (window->second.new_large || window->second.new_small))) return int(cudaErrorInvalidValue);
+    d->owner_windows.erase(window);
+    return owner_snapshot_locked(d, identity, out) ? 0 : int(cudaErrorInvalidValue);
+#else
+    return int(cudaErrorNotSupported);
+#endif
+}
+}
+extern "C" int stwo_exec_context_admission_cancel_v2(void *raw, uint64_t identity, uint64_t ticket, StwoCudaOwnerSnapshotV2 *out) {
+    return admission_close_v2(raw, identity, ticket, out, false);
+}
+extern "C" int stwo_exec_context_admission_finish_v2(void *raw, uint64_t identity, uint64_t ticket, StwoCudaOwnerSnapshotV2 *out) {
+    return admission_close_v2(raw, identity, ticket, out, true);
 }

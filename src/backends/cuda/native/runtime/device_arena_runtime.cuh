@@ -217,6 +217,15 @@ inline Driver &driver() {
 
 inline cudaError_t cu(CUresult r) { return r == CUDA_SUCCESS ? cudaSuccess : cudaErrorMemoryAllocation; }
 
+struct LiveAllocation { uint64_t tagged_bytes, creator, ticket; };
+struct OwnerLive { uint64_t large = 0, small = 0; };
+struct OwnerWindow {
+  uint64_t ticket = 0, baseline_large = 0, baseline_small = 0;
+  uint64_t ceiling_large = 0, ceiling_small = 0;
+  uint64_t new_large = 0, new_small = 0;
+  bool entered = false, ended = false;
+};
+
 struct Device {
   std::mutex mutex;
   int ordinal = -1;
@@ -233,7 +242,7 @@ struct Device {
   // the OffsetArena's coalescing best fit reuses them with no driver call.
   std::vector<int32_t> slot_chunk;
   std::set<uint32_t> mapped_free;  // mapped slots outside every live allocation
-  std::unordered_map<uint64_t, uint64_t> live_bytes_by_offset;  // offset -> bytes | long bit
+  std::unordered_map<uint64_t, LiveAllocation> live_bytes_by_offset;
   uint64_t reuse_hits = 0, map_misses = 0, steals = 0, stolen_chunks = 0;
   CUmemAccessDesc access{};
   cudaError_t init_status = cudaSuccess;
@@ -254,6 +263,9 @@ struct Device {
   // M7: one physical envelope across every execution context. No allocation
   // may bypass the active owner's declared peak after enforcement is enabled.
   bool admission_required = false;
+  uint32_t admission_version = 0;  // V1 singleton and V2 owner ledger never mix.
+  std::unordered_map<uint64_t, OwnerLive> owner_live;
+  std::unordered_map<uint64_t, OwnerWindow> owner_windows;
   uint64_t admission_ticket = 0, admission_owner = 0;
   uint64_t admission_large_ceiling = 0, admission_small_ceiling = 0;
   uint64_t capacity() const { return uint64_t(handles.size()) * chunk; }
@@ -515,8 +527,17 @@ inline cudaError_t order_range(Device *d, uint64_t offset, uint64_t bytes, cudaS
   return cudaSuccess;
 }
 
-inline void account_alloc(Device *d, uint64_t offset, uint64_t bytes, bool long_lived, bool small) {
-  d->live_bytes_by_offset[offset] = bytes | (long_lived ? 1u : 0u);  // bytes are 512-aligned
+inline void account_alloc(Device *d, uint64_t offset, uint64_t bytes, bool long_lived, bool small, uint64_t owner) {
+  auto window = d->owner_windows.find(owner);
+  const uint64_t ticket = window == d->owner_windows.end() ? 0 : window->second.ticket;
+  d->live_bytes_by_offset[offset] = {bytes | (long_lived ? 1u : 0u), owner, ticket};
+  auto creator = d->owner_live.find(owner);
+  if (creator != d->owner_live.end()) {
+    if (small) creator->second.small += bytes; else creator->second.large += bytes;
+  }
+  if (window != d->owner_windows.end()) {
+    if (small) window->second.new_small += bytes; else window->second.new_large += bytes;
+  }
   d->live += bytes;
   if (d->live > d->live_hw) d->live_hw = d->live;
   if (long_lived) {
@@ -533,7 +554,7 @@ inline void account_alloc(Device *d, uint64_t offset, uint64_t bytes, bool long_
 
 inline cudaError_t allocate_small(Device *d, cudaStream_t stream, const cudaStream_t *lanes,
                                   uint32_t lane_count, size_t bytes, bool long_lived, void **out,
-                                  bool *done) {
+                                  bool *done, uint64_t owner) {
   *done = false;
   uint64_t offset = 0, aligned = 0;
   if (!d->small->allocate(bytes, long_lived, &offset, &aligned)) {
@@ -545,7 +566,7 @@ inline cudaError_t allocate_small(Device *d, cudaStream_t stream, const cudaStre
     d->small->release(offset);
     return ordered;
   }
-  account_alloc(d, offset, aligned, long_lived, true);
+  account_alloc(d, offset, aligned, long_lived, true, owner);
   *out = d->base + offset;
   *done = true;
   return cudaSuccess;
@@ -554,6 +575,20 @@ inline cudaError_t allocate_small(Device *d, cudaStream_t stream, const cudaStre
 inline bool admission_allows(Device *d, uint64_t owner, uint64_t large, uint64_t small) {
   if (!d->admission_required) return true;
   const uint64_t live_large = d->live - d->live_small;
+  if (d->admission_version == 2) {
+    auto window = d->owner_windows.find(owner);
+    auto creator = d->owner_live.find(owner);
+    const bool ok = window != d->owner_windows.end() && creator != d->owner_live.end() &&
+        window->second.entered && !window->second.ended &&
+        large <= window->second.ceiling_large - window->second.baseline_large &&
+        window->second.new_large <= window->second.ceiling_large - window->second.baseline_large - large &&
+        small <= window->second.ceiling_small - window->second.baseline_small &&
+        window->second.new_small <= window->second.ceiling_small - window->second.baseline_small - small;
+    if (!ok) fprintf(stderr, "GPU_ADMISSION_V2_REFUSAL device=%d owner=%llu ticket=%llu large_add=%llu small_add=%llu\n", d->ordinal,
+        (unsigned long long)owner, (unsigned long long)(window == d->owner_windows.end() ? 0 : window->second.ticket),
+        (unsigned long long)large, (unsigned long long)small);
+    return ok;
+  }
   const bool ok = d->admission_ticket && d->admission_owner == owner &&
       large <= d->admission_large_ceiling && live_large <= d->admission_large_ceiling - large &&
       small <= d->admission_small_ceiling && d->live_small <= d->admission_small_ceiling - small;
@@ -586,7 +621,7 @@ inline cudaError_t allocate_impl(int ordinal, cudaStream_t stream, const cudaStr
   if (bytes < OffsetArena::kSmallBytes && bytes <= d->small_bytes / 8) {
     if (!admission_allows(d, owner, 0, OffsetArena::aligned(bytes))) return cudaErrorInvalidValue;
     bool done = false;
-    s = allocate_small(d, stream, lanes, lane_count, bytes, long_lived, out, &done);
+    s = allocate_small(d, stream, lanes, lane_count, bytes, long_lived, out, &done, owner);
     if (s != cudaSuccess || done) return s;
   }
   if (bytes > UINT64_MAX - d->chunk) return cudaErrorMemoryAllocation;
@@ -685,7 +720,7 @@ inline cudaError_t allocate_impl(int ordinal, cudaStream_t stream, const cudaStr
   const uint64_t offset = voff + d->small_bytes;
   if (s == cudaSuccess) s = order_range(d, offset, n * d->chunk, stream, lanes, lane_count);
   if (s != cudaSuccess) return s;
-  account_alloc(d, offset, n * d->chunk, long_lived, false);
+  account_alloc(d, offset, n * d->chunk, long_lived, false, owner);
   if (d->phys_chunks_hw * d->chunk >= d->hw_printed + (uint64_t(1) << 30)) {
     d->hw_printed = d->phys_chunks_hw * d->chunk;
     fprintf(stderr, "GPU_ARENA_HW device=%d physical_high_water_bytes=%llu live_bytes=%llu long_bytes=%llu t_ms=%.1f\n",
@@ -724,8 +759,8 @@ inline cudaError_t release(int ordinal, cudaStream_t stream, void *pointer, bool
   const uint64_t offset = p - b;
   auto live = d->live_bytes_by_offset.find(offset);
   if (live == d->live_bytes_by_offset.end()) return cudaErrorInvalidDevicePointer;
-  const uint64_t bytes = live->second & ~uint64_t(1);
-  const bool long_lived = (live->second & 1) != 0;
+  const uint64_t bytes = live->second.tagged_bytes & ~uint64_t(1);
+  const bool long_lived = (live->second.tagged_bytes & 1) != 0;
   if (config().poison >= 0) {
     // Ordered after the freeing stream's last use; a joined free has no
     // fence, so it must complete before the range becomes reusable.
@@ -760,6 +795,16 @@ inline cudaError_t release(int ordinal, cudaStream_t stream, void *pointer, bool
     const uint32_t first = uint32_t((offset - d->small_bytes) / d->chunk);
     for (uint32_t slot = first; slot < first + bytes / d->chunk; ++slot) d->mapped_free.insert(slot);
     d->arena->release(offset - d->small_bytes);
+  }
+  // Attribution follows the allocation's creator, not the context performing
+  // the free. Active-window new bytes stay excluded from stable retention.
+  auto creator = d->owner_live.find(live->second.creator);
+  if (creator != d->owner_live.end()) {
+    if (small) creator->second.small -= bytes; else creator->second.large -= bytes;
+  }
+  auto window = d->owner_windows.find(live->second.creator);
+  if (window != d->owner_windows.end() && window->second.ticket == live->second.ticket) {
+    if (small) window->second.new_small -= bytes; else window->second.new_large -= bytes;
   }
   d->live_bytes_by_offset.erase(live);
   d->live -= bytes;
