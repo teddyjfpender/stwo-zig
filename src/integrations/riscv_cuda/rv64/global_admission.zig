@@ -53,6 +53,10 @@ pub const Footprint = struct {
 };
 pub const Coverage = enum { native_source, native_trace, native_interaction, native_composition, native_pcs, native_gkr, recursion_source, recursion_trace, recursion_interaction, recursion_composition, recursion_pcs, outer_gkr, immutable, retirement, host_preparation };
 pub const coverage_all: u64 = (1 << std.meta.fields(Coverage).len) - 1;
+pub const coverage_gpu: u64 = coverage_all & ~(@as(u64, 1) << @intFromEnum(Coverage.host_preparation));
+/// GPU overlap needs complete GPU envelopes. Host/RSS qualification is a
+/// separate capability; observe_only never relabels an unknown host estimate.
+pub const HostPolicy = enum { require_bounds, observe_only };
 pub const Domain = enum { immutable_setup, native_packet, recursion_node, gkr_packet };
 pub const Stage = enum { setup, witness, trace_commit, interaction, composition, pcs, gkr, retire };
 pub const Owner = struct { request: u64, domain: Domain, ordinal: u32 };
@@ -89,6 +93,7 @@ pub const Planner = struct {
     changed: std.Thread.Condition = .{},
     required_coverage: u64 = coverage_all,
     host_capacity_bytes: u64 = 20 << 30,
+    host_policy: HostPolicy = .require_bounds,
     observed_host_rss_bytes: u64 = 0,
     pub fn init(a: std.mem.Allocator, ids: []const u32, preset: Preset) !Planner {
         if (ids.len == 0 or preset.arenaBytes() + external_budget > physical_limit) return error.InvalidStaticArena;
@@ -156,7 +161,7 @@ pub const Planner = struct {
         const d = try self.device(physical);
         const cap = self.capacity();
         if (d.poisoned) return .{ .reason = .runtime_poisoned, .capacity = cap };
-        if (!demand.known or !demand.host_known) return .{ .reason = .unknown_cost, .capacity = cap };
+        if (!demand.known or (self.host_policy == .require_bounds and !demand.host_known)) return .{ .reason = .unknown_cost, .capacity = cap };
         var host_required = try std.math.add(u64, self.observed_host_rss_bytes, demand.host_peak_bytes);
         for (self.devices) |*other| {
             var iterator = other.entries.valueIterator();
@@ -164,7 +169,7 @@ pub const Planner = struct {
                 host_required = try std.math.add(u64, host_required, entry.demand.host_peak_bytes);
             };
         }
-        if (host_required > self.host_capacity_bytes) return .{ .reason = .host_capacity_pressure, .capacity = cap };
+        if (self.host_policy == .require_bounds and host_required > self.host_capacity_bytes) return .{ .reason = .host_capacity_pressure, .capacity = cap };
         const alone = try demand.retained_new.add(demand.temporary.max(demand.successor));
         if (!cap.contains(alone)) return .{ .reason = .request_exceeds_static_arena, .required = alone, .capacity = cap };
         const live = try self.collect(d);
@@ -380,5 +385,29 @@ test "terminal pool destruction retires interrupted claims only after actual own
     p.poolDestroyed();
     try std.testing.expectEqual(@as(usize, 0), (try p.snapshot(0)).owners);
     try std.testing.expect(!p.healthy(0));
+    try std.testing.expect(!p.schedulingEnabled());
+}
+
+test "GPU-only admission preserves unknown host status and all GPU refusal gates" {
+    var p = try Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer p.deinit();
+    p.host_policy = .observe_only;
+    p.required_coverage = coverage_gpu;
+    p.observeHostRss(p.host_capacity_bytes + 1);
+    try std.testing.expectEqual(Reason.unknown_cost, (try p.tryBegin(0, .{ .owner = test_owner, .stage = .trace_commit })).reason);
+    const demand = Demand{ .owner = test_owner, .stage = .trace_commit, .known = true, .host_known = false, .temporary = try Footprint.allocation(4 << 20) };
+    const decision = try p.tryBegin(0, demand);
+    try std.testing.expectEqual(Reason.admitted, decision.reason);
+    try std.testing.expect(!p.devices[0].entries.get(decision.token.?.id).?.demand.host_known);
+    try p.complete(decision.token.?, .{}, .{});
+    var oversized = demand;
+    oversized.temporary.large = p.capacity().large + chunk_bytes;
+    try std.testing.expectEqual(Reason.request_exceeds_static_arena, (try p.tryBegin(0, oversized)).reason);
+    try p.markConfigured(0);
+    inline for (std.meta.fields(Coverage)) |field| {
+        if (field.value != @intFromEnum(Coverage.host_preparation)) try p.registerCoverage(0, @enumFromInt(field.value));
+    }
+    try std.testing.expect(p.schedulingEnabled());
+    p.required_coverage = coverage_all;
     try std.testing.expect(!p.schedulingEnabled());
 }
