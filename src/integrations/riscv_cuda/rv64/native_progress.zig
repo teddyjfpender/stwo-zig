@@ -106,8 +106,8 @@ pub const Context = struct {
 /// Export.allocationPlan omits payloads so this request cannot be submitted.
 fn cpuPcsGeometry(a: std.mem.Allocator, request: CPU.rv64_device_source_stage.Request, components: *const CPU.rv64_gkr_cpu_components.Plan, logs: [3][]const u32, max_log: u32) !D.Request {
     const config = request.pcs_config orelse return error.MissingNativeClassPcsConfiguration;
-    const seed = O.fromPartialEvals(.{ D.M.fromCanonical(7), D.M.fromCanonical(11), D.M.fromCanonical(13), D.M.fromCanonical(17), D.M.fromCanonical(19), D.M.fromCanonical(23), D.M.fromCanonical(29), D.M.fromCanonical(31) });
-    const probe = core.circle.secureFieldPointFromRandomSeed(seed);
+    const seed = O.fromM31Array(.{ D.M.fromCanonical(7), D.M.fromCanonical(11), D.M.fromCanonical(13), D.M.fromCanonical(17), D.M.fromCanonical(19), D.M.fromCanonical(23), D.M.fromCanonical(29), D.M.fromCanonical(31) });
+    const probe = try core.circle.secureFieldPointFromRandomSeedCheckedFor(O, seed);
     const step = core.poly.circle.canonic.CanonicCoset.new(max_log).coset().step.double();
     const next2 = probe.add(.{ .x = O.fromBase(step.x), .y = O.fromBase(step.y) });
     const prior = @import("stwo_riscv_frontend").rv64_air.geometry.previousPointFor(O, probe, max_log);

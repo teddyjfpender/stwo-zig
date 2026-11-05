@@ -267,7 +267,7 @@ const Call = struct {
         var permit: ?@import("admission_runtime.zig").Permit = null;
         if (runtime.service) |service| if (service.admission) |endpoint| {
             const Cost = @import("native_gkr_cost.zig");
-            const A = @import("global_admission.zig");
+            const GlobalAdmission = @import("global_admission.zig");
             var total: u64 = 0;
             var max_log: u32 = 0;
             for (self.owner.pending.instances) |instance| {
@@ -285,9 +285,9 @@ const Call = struct {
             const retained = switch (self.kind) {
                 .project => cost.projection_owner,
                 .finalize => cost.coefficient_owner,
-                else => A.Footprint{},
+                else => GlobalAdmission.Footprint{},
             };
-            permit = try endpoint.reserve(.{ .progress_key = A.progressKey(self.owner.pending.scope), .owner = .{ .request = std.mem.readInt(u64, self.owner.pending.scope.statement[0..8], .little), .domain = .gkr_packet, .ordinal = self.owner.pending.scope.ordinal }, .stage = .gkr, .temporary = temporary, .stage_retained_upper = retained, .successor = successor, .known = true, .host_known = false });
+            permit = try endpoint.reserve(.{ .progress_key = GlobalAdmission.progressKey(self.owner.pending.scope), .owner = .{ .request = std.mem.readInt(u64, self.owner.pending.scope.statement[0..8], .little), .domain = .gkr_packet, .ordinal = self.owner.pending.scope.ordinal }, .stage = .gkr, .temporary = temporary, .stage_retained_upper = retained, .successor = successor, .known = true, .host_known = false });
         };
         defer if (permit) |*p| if (!p.closed) p.finish(.{}) catch {
             p.endpoint.planner.poisonPhysical(p.endpoint.physical);

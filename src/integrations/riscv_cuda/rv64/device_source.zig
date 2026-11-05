@@ -52,14 +52,14 @@ pub const Context = struct {
         const service = self.core.service;
         if (service.admission) |*endpoint| {
             const source = try (self.progress orelse return error.MissingNativeClassProgress).registerCpu(a, request);
-            const A = @import("global_admission.zig");
-            var retained: A.Footprint = .{};
+            const GlobalAdmission = @import("global_admission.zig");
+            var retained: GlobalAdmission.Footprint = .{};
             for (source.list()) |allocation| {
                 if (allocation.release == .projection_join or allocation.owner == .commit_workspace or allocation.owner == .committed_coefficients) continue;
-                retained = try retained.add(try A.Footprint.allocation(try std.math.mul(u64, allocation.words, 4)));
+                retained = try retained.add(try GlobalAdmission.Footprint.allocation(try std.math.mul(u64, allocation.words, 4)));
             }
             const successor = try service.admissionSuccessor(request.scope, .source);
-            var permit = try endpoint.reserve(.{ .progress_key = A.progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = .native_packet, .ordinal = request.scope.ordinal }, .stage = .witness, .temporary = source.peak, .stage_retained_upper = retained, .successor = successor, .known = true, .host_known = false });
+            var permit = try endpoint.reserve(.{ .progress_key = GlobalAdmission.progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = .native_packet, .ordinal = request.scope.ordinal }, .stage = .witness, .temporary = source.peak, .stage_retained_upper = retained, .successor = successor, .known = true, .host_known = false });
             var active = false;
             defer {
                 if (active) SourceControl.invoke(service, &permit, false) catch {
