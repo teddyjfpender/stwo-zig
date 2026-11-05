@@ -157,6 +157,8 @@ def plan_for(blocks, args, run, paths, root):
         B.atomic_json(request_path, request)
         job = dict(job, devices=[0, 1], device_count=2, request=str(request_path), request_sha256=P.sha(request_path),
                    target=str(run / "case"))
+        if getattr(args, "coalesce_truth_families", False):
+            job["resources"] = dict(job["resources"], coalesce_truth_families=True)
         jobs.append(job)
     resources = jobs[0]["resources"]
     if any(j["resources"] != resources for j in jobs):
@@ -678,6 +680,7 @@ def main():
     s = sub.add_parser("serve")
     s.add_argument("blocks", type=int, nargs="+")
     s.add_argument("--repeat", type=int, default=2)
+    s.add_argument("--coalesce-truth-families", action="store_true", help="opt-in non-Keccak family coalescing; preserves bounded Keccak shards")
     s.add_argument("--security-profile", choices=("conjectured128_b2_q108_p20_fold4", "d2_native_b4_q54_p20_fold4"), help="explicit opt-in native profile; preserves template default when absent")
     s.add_argument("--stream", default="m4-resident")
     s.add_argument("--build-stream", help="use binaries from /workspace/m3/build/<this> (e.g. integrate = M3 baseline)")
