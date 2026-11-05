@@ -346,6 +346,23 @@ pub const Segments = struct {
         }
     }
 
+    pub const MinimalCpu = struct {
+        trace: *const rv.fast_execution.MinimalTrace,
+        initial: rv.machine.Cpu,
+        final: rv.machine.Cpu,
+    };
+    /// CPU0 only, before consuming any traced batch. Publication of checkpoint1
+    /// seals records/seeds; ownership remains Segments until destroy. A stage
+    /// must finish/copy its borrow before returning to the capture caller.
+    pub fn firstMinimalCpu(self: *Segments) !MinimalCpu {
+        if (self.next_index != 0) return error.MinimalCpuAlreadyConsumed;
+        const first = self.checkpointAt(0) orelse return error.MinimalCpuUnavailable;
+        const following = self.checkpointAt(1) orelse return error.MinimalCpuUnavailable;
+        const trace = if (self.minimal_cpu0) |*value| value else return error.MinimalCpuUnavailable;
+        if (trace.len == 0 or following.cpu.retired - first.cpu.retired != trace.len) return error.MinimalCpuUnavailable;
+        return .{ .trace = trace, .initial = first.cpu, .final = following.cpu };
+    }
+
     /// The next batch in index order (caller owns it), or null when the
     /// serial walk would have stopped. Mirrors `Walk.nextTaking`.
     pub fn next(self: *Segments) !?Walk.Taken {
@@ -435,6 +452,9 @@ pub const Source = struct {
     pub fn deinit(self: *Source) void {
         if (self.segments) |s| s.destroy();
         self.* = undefined;
+    }
+    pub fn firstMinimalCpu(self: *Source) !Segments.MinimalCpu {
+        return (self.segments orelse return error.MinimalCpuRequiresSegments).firstMinimalCpu();
     }
     pub fn next(self: *Source) !?Walk.Taken {
         return if (self.segments) |s| s.next() else self.walk.nextTaking();

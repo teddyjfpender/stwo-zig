@@ -44,6 +44,9 @@ pub const Ready = struct {
     context: *anyopaque,
     call: *const fn (context: *anyopaque, index: usize, native: *const Native, events: []const LS.native.Event, at_ns: u64) void,
     cancel: ?*const fn (*anyopaque) void = null,
+    /// Runs before source.next waits for traced CPU0. Borrowed for this call
+    /// only, not until Owner.deinit; asynchronous readers must own a copy.
+    first_pass: ?*const fn (*anyopaque, *const @import("../../word16_execution/cpu_source.zig").FirstPass) void = null,
 };
 pub const Owner = struct {
     capture_schedule: ScheduleStats = .{},

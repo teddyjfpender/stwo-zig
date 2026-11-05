@@ -54,6 +54,16 @@ pub const DeviceProjection = struct {
     counts8: []const u64,
     pair_counts: []const u64,
 };
+/// CPU-only first-pass advice, before traced truth/RAM capture. All slices are
+/// borrowed for the callback only; an asynchronous stage must copy or finish
+/// them before returning. No global binding or MAIN commitment is authorized.
+pub const FirstPass = struct {
+    program: *const Program,
+    public: X.types.Boundary,
+    epoch: u16,
+    log_size: u32,
+    trace: *const front.rv64.fast_execution.MinimalTrace,
+};
 pub const ProjectionStage = struct {
     context: *anyopaque,
     /// Synchronous narrow ingress. The stage owns returned device evaluations
@@ -62,6 +72,7 @@ pub const ProjectionStage = struct {
     /// Optional producer-only CPU0 work before global RAM/roster binding.
     /// Scheduling must return immediately; join/cancel must finish all source
     /// borrows before capture or program owners can be destroyed.
+    prestage_first_pass: ?*const fn (*anyopaque, *const FirstPass, [32]u8) void = null,
     prestage: ?*const fn (*anyopaque, *const Source, [32]u8) void = null,
     join_prestage: ?*const fn (*anyopaque) anyerror!void = null,
     cancel_prestage: ?*const fn (*anyopaque) void = null,

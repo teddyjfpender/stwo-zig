@@ -48,6 +48,29 @@ pub const Compact = struct {
         for (jobs[0..workers]) |job| if (job.failure) |err| return err;
         return .{ .allocator = allocator, .records = records, .seeds = seeds };
     }
+    /// Check every one of the original 56 metadata bytes against the compact
+    /// transport's unique register/clock expansion. This closes the final
+    /// promotion guard even for values after a register's first chunk access;
+    /// merely hashing compact first-touch seeds would not detect those edits.
+    pub fn validateCapture(self: *const Compact, source: *const Source) !void {
+        if (self.records.len != source.metadata.len or self.seeds.len != std.math.divCeil(usize, self.records.len, compact_chunk_rows) catch unreachable) return error.InvalidCompactCpuMetadata;
+        for (self.seeds, 0..) |seed, chunk| {
+            var registers = seed.values;
+            var clocks = seed.clocks;
+            const start = chunk * compact_chunk_rows;
+            const end = @min(start + compact_chunk_rows, self.records.len);
+            for (self.records[start..end], source.metadata[start..end], start..) |record, meta, row| {
+                if (record.rom_row >= source.program.row_to_entry.len or record.result != meta.values[2] or record.next_pc != meta.values[4] or record.rom_row != meta.rom_row) return error.InvalidCompactCpuMetadata;
+                const entry = source.program.entries[source.program.row_to_entry[record.rom_row]];
+                for (entry.ids, 0..) |id, slot| {
+                    const value_slot = if (slot == 2) 3 else slot;
+                    if (meta.values[value_slot] != (if (id == 0) 0 else registers[id]) or meta.clocks[slot] != (if (id == 0) 0 else clocks[id])) return error.InvalidCompactCpuMetadata;
+                    if (id != 0) clocks[id] = @intCast(4 * row + slot + 1);
+                }
+                if (entry.ids[2] != 0) registers[entry.ids[2]] = record.result;
+            }
+        }
+    }
     /// Remap the CPU first pass to the EXISTING compact device ABI, without
     /// restoring a 48-byte tape or constructing 56-byte host metadata. The
     /// source-owned ROM supplies ids/branch rows. Full chunk seeds are checked
@@ -189,7 +212,7 @@ test "first-pass CPU records remap to byte-identical compact capture without hos
     }
     const n = 600;
     const initial = front.machine.Cpu.init(4096, 0);
-    var session = try front.session.Session.init(allocator, initial, &memory, .{ .max_retirements = n });
+    var session = try front.Session.init(allocator, initial, &memory, .{ .max_retirements = n });
     defer session.deinit();
     var tape = try front.compact_tape.Tape.init(allocator, n, 4096, 0, .rv64im);
     defer tape.deinit();
@@ -209,17 +232,25 @@ test "first-pass CPU records remap to byte-identical compact capture without hos
     defer expected.deinit();
     var engine = try front.fast_execution.Engine.init(allocator, &memory, .{});
     defer engine.deinit();
-    var cpu = initial;
+    var fast_session = try front.Session.init(allocator, initial, &memory, .{ .max_retirements = n });
+    defer fast_session.deinit();
     var records: [n]front.fast_execution.MinimalRecord = undefined;
     var seeds: [3]front.fast_execution.MinimalSeed = undefined;
     var trace = front.fast_execution.MinimalTrace{ .records = &records, .seeds = &seeds };
-    while (cpu.retired < n) {
-        if (try engine.runMinimal(&cpu, n, &trace) != .limit) return error.TestExpectedFastRetirement;
+    while (fast_session.cpu.retired < n) {
+        if (try engine.runMinimal(&fast_session.cpu, n, &trace) == .limit) continue;
+        trace.prepareReference(&fast_session.cpu.regs);
+        try trace.appendRetirement(try fast_session.step());
     }
+    try std.testing.expect(engine.fast_retired > n - 5);
     var actual = try Compact.fromFirstPass(allocator, &program, public, 10, &trace);
     defer actual.deinit();
     try std.testing.expectEqualSlices(CompactRecord, expected.records, actual.records);
     try std.testing.expectEqualSlices(CompactSeed, expected.seeds, actual.seeds);
+    try actual.validateCapture(&source);
+    source.metadata[300].values[0] ^= @as(u64, 1) << 63;
+    try std.testing.expectError(error.InvalidCompactCpuMetadata, actual.validateCapture(&source));
+    source.metadata[300].values[0] ^= @as(u64, 1) << 63;
     seeds[1].values[1] ^= @as(u64, 1) << 63;
     try std.testing.expectError(error.InvalidMinimalCpuSeed, Compact.fromFirstPass(allocator, &program, public, 10, &trace));
     seeds[1].values[1] ^= @as(u64, 1) << 63;

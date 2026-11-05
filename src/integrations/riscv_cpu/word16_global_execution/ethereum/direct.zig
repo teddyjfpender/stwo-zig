@@ -373,6 +373,26 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
         consumer.run(); // frees any job left after an early exit
     }
     var timer = try std.time.Timer.start();
+    if (ready) |hook| if (hook.first_pass) |early| {
+        const minimal = try source.firstMinimalCpu();
+        const public = @import("stwo_riscv_frontend").rv64_air.word16_execution.types.Boundary{
+            .steps = @intCast(minimal.trace.len),
+            .initial_pc = minimal.initial.pc,
+            .final_pc = minimal.final.pc,
+            .initial_registers = minimal.initial.regs,
+            .final_registers = minimal.final.regs,
+            .register_clocks = minimal.trace.clocks,
+        };
+        const first = @import("../../word16_execution/cpu_source.zig").FirstPass{
+            .program = program,
+            .public = public,
+            .epoch = 1,
+            .log_size = try @import("../../word16_execution/coverage.zig").minimalCpuLog(public.steps),
+            .trace = minimal.trace,
+        };
+        std.debug.print("GPU_CPU_MINIMAL event=before_traced_capture utc_ns={} records={}\n", .{ std.time.nanoTimestamp(), minimal.trace.len });
+        early(hook.context, &first);
+    };
     var failure: ?anyerror = null;
     while (!queue.isStopped()) {
         const started = timer.read();

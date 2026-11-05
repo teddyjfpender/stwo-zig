@@ -46,7 +46,7 @@ pub const Context = struct {
         return self.stage();
     }
     pub fn stage(self: *Context) CPU.ProjectionStage {
-        return .{ .context = self, .project = project, .prestage = prestage, .join_prestage = joinPrestage, .cancel_prestage = cancelPrestage };
+        return .{ .context = self, .project = project, .prestage = prestage, .prestage_first_pass = prestageFirstPass, .join_prestage = joinPrestage, .cancel_prestage = cancelPrestage };
     }
     pub fn deinit(self: *Context) void {
         cancelPrestage(self);
@@ -109,6 +109,37 @@ pub const Context = struct {
         };
         std.debug.print("GPU_CPU_PRESTAGE event=enqueued ordinal=0 utc_ns={} serial={}\n", .{ utcNs(), self.prestage_serial });
     }
+    fn prestageFirstPass(raw: *anyopaque, first: *const CPU.FirstPass, input_policy: [32]u8) void {
+        const self: *Context = @ptrCast(@alignCast(raw));
+        self.startFirstPass(first, input_policy) catch |err| {
+            self.prestage_error = err;
+        };
+    }
+    fn startFirstPass(self: *Context, first: *const CPU.FirstPass, input_policy: [32]u8) !void {
+        if (self.pending != null or self.prestage_error != null) return error.DuplicateCpuPrestage;
+        if (!self.retain_ledgers or first.epoch != 1 or self.unpack == null) return error.CpuPrestageRequiresFirstResidentCpu;
+        if (self.service.active_block == null or self.service.admission != null) return error.CpuPrestageAdmissionUnavailable;
+        self.prestage_serial = try std.math.add(u64, self.prestage_serial, 1);
+        // Own compact advice before returning: Segments may destroy its records
+        // as soon as direct capture finishes. No asynchronous borrow survives.
+        const begin = utcNs();
+        var compact = try Ingress.Compact.fromFirstPass(a, first.program, first.public, first.log_size, first.trace);
+        errdefer compact.deinit();
+        const pending = try a.create(Pending);
+        errdefer a.destroy(pending);
+        pending.* = .{
+            .backend = self,
+            .source = .{ .allocator = a, .program = first.program, .public = first.public, .epoch = first.epoch, .log_size = first.log_size, .metadata = &.{}, .rom_counts = &.{}, .counts16 = &.{}, .counts8 = &.{}, .compact = true },
+            .input_policy = input_policy,
+            .block = self.service.active_block.?,
+            .serial = self.prestage_serial,
+            .compact = compact,
+            .compact_identity = true,
+        };
+        pending.thread = try std.Thread.spawn(.{}, Pending.run, .{pending});
+        self.pending = pending;
+        std.debug.print("GPU_CPU_MINIMAL event=prestage_enqueued ordinal=0 begin_utc_ns={} utc_ns={} compact_bytes={}\n", .{ begin, utcNs(), compact.bytes() });
+    }
     fn joinPrestage(raw: *anyopaque) !void {
         const self: *Context = @ptrCast(@alignCast(raw));
         if (self.prestage_error) |err| return err;
@@ -123,6 +154,7 @@ pub const Context = struct {
         if (self.pending) |pending| {
             if (pending.thread) |thread| thread.join();
             if (pending.result) |result| if (result.owner) |owner| owner.release(owner.context);
+            if (pending.compact) |*compact| compact.deinit();
             a.destroy(pending);
         }
         self.pending = null;
@@ -144,6 +176,15 @@ pub const Context = struct {
         var compact_capture: ?Ingress.Compact = if (compact_enabled) try Ingress.Compact.fromCapture(a, source) else null;
         defer if (compact_capture) |*p| p.deinit();
         const pack_ns = timer.lap();
+        return self.projectPacked(source, scope, if (compact_capture) |*p| p else null, pack_ns);
+    }
+    /// Also accepts the first-pass descriptor with no host metadata. The
+    /// retained-ledger path owns GPU-unpacked metadata; it never reads an empty
+    /// host slice as if it contained values or compares absent host histograms.
+    fn projectPacked(self: *Context, source: *const CPU.Source, scope: D.Scope, compact_capture: ?*const Ingress.Compact, pack_ns: u64) !CPU.DeviceProjection {
+        if (source.metadata.len != source.public.steps and (!self.retain_ledgers or compact_capture == null)) return error.MissingCpuProjectionMetadata;
+        if (compact_capture) |p| if (p.records.len != source.public.steps) return error.InvalidCompactCpuMetadata;
+        var timer = try std.time.Timer.start();
         self.mutex.lock();
         defer self.mutex.unlock();
         const owner = try a.create(Owner);
@@ -158,11 +199,11 @@ pub const Context = struct {
             owner.counts8 = try a.alloc(u64, 256);
             owner.pairs = try a.alloc(u64, 65536);
         }
-        var job = Job{ .backend = self, .source = source, .scope = scope, .owner = owner, .compact = if (compact_capture) |*p| p else null };
+        var job = Job{ .backend = self, .source = source, .scope = scope, .owner = owner, .compact = compact_capture };
         const status = self.service.submit(self.service.session, Job.callback, &job);
         if (job.failure) |err| return err;
         try checked(status);
-        std.debug.print("GPU_CPU_PROJECTION rows={} active={} metadata_h2d_bytes={} main_d2h_bytes=0 total_ns={} rom_cache_hit={} compact={} pack_ns={}\n", .{ source.size(), source.metadata.len, if (compact_capture) |p| p.bytes() else source.metadata.len * @sizeOf(CPU.Metadata), timer.read() + pack_ns, job.rom_cache_hit, compact_enabled, pack_ns });
+        std.debug.print("GPU_CPU_PROJECTION rows={} active={} metadata_h2d_bytes={} main_d2h_bytes=0 total_ns={} rom_cache_hit={} compact={} pack_ns={}\n", .{ source.size(), source.public.steps, if (compact_capture) |p| p.bytes() else source.metadata.len * @sizeOf(CPU.Metadata), timer.read() + pack_ns, job.rom_cache_hit, compact_capture != null, pack_ns });
         return .{ .owner = .{ .context = owner, .release = Owner.release }, .columns = owner.columns, .ledgers = owner.ledgers, .counts16 = owner.counts16, .counts8 = owner.counts8, .pair_counts = owner.pairs };
     }
 };
@@ -192,6 +233,22 @@ fn captureIdentity(source: *const CPU.Source, input_policy: [32]u8) ![32]u8 {
     h.update(std.mem.sliceAsBytes(source.metadata));
     return h.finalResult();
 }
+fn compactIdentity(source: *const CPU.Source, input_policy: [32]u8, compact: *const Ingress.Compact) ![32]u8 {
+    if (compact.records.len != source.public.steps or source.log_size < 5 or source.log_size > 22 or !source.compact or !source.program.compact) return error.CpuPrestageShapeChanged;
+    const public = try std.json.Stringify.valueAlloc(a, source.public, .{});
+    defer a.free(public);
+    var h = std.crypto.hash.sha2.Sha256.init(.{});
+    h.update("stwo/rv64/cpu0-private-prestage/compact-input/v1\x00");
+    h.update(&input_policy);
+    h.update(&source.program.identity);
+    var words: [40]u8 = undefined;
+    for ([_]u64{ source.epoch, source.log_size, source.public.steps, source.program.log_size, @intFromEnum(source.program.profile) }, 0..) |word, i| std.mem.writeInt(u64, words[8 * i ..][0..8], word, .little);
+    h.update(&words);
+    h.update(public);
+    h.update(std.mem.sliceAsBytes(compact.records));
+    h.update(std.mem.sliceAsBytes(compact.seeds));
+    return h.finalResult();
+}
 const Pending = struct {
     backend: *Context,
     // Borrowed until join, not an owner. No metadata/public/capture field is
@@ -206,9 +263,16 @@ const Pending = struct {
     thread: ?std.Thread = null,
     failure: ?anyerror = null,
     promoted: bool = false,
+    compact: ?Ingress.Compact = null,
+    compact_identity: bool = false,
     fn requireCapture(self: *const Pending, source: *const CPU.Source) ![32]u8 {
-        if (source.log_size != self.source.log_size or source.compact != self.source.compact or source.metadata.len != self.source.metadata.len) return error.CpuPrestageShapeChanged;
-        const identity = try captureIdentity(source, self.input_policy);
+        if (source.log_size != self.source.log_size or source.compact != self.source.compact or source.metadata.len != self.source.public.steps) return error.CpuPrestageShapeChanged;
+        const identity = if (self.compact_identity) compact: {
+            var compact_data = try Ingress.Compact.fromCapture(a, source);
+            defer compact_data.deinit();
+            try compact_data.validateCapture(source);
+            break :compact try compactIdentity(source, self.input_policy, &compact_data);
+        } else try captureIdentity(source, self.input_policy);
         if (!std.mem.eql(u8, &identity, &self.identity)) return error.CpuPrestageCaptureChanged;
         return identity;
     }
@@ -218,7 +282,11 @@ const Pending = struct {
         };
     }
     fn work(self: *Pending) !void {
-        self.identity = try captureIdentity(&self.source, self.input_policy);
+        defer if (self.compact) |*compact_data| {
+            compact_data.deinit();
+            self.compact = null;
+        };
+        self.identity = if (self.compact) |*compact_data| try compactIdentity(&self.source, self.input_policy, compact_data) else try captureIdentity(&self.source, self.input_policy);
         var h = std.crypto.hash.sha2.Sha256.init(.{});
         h.update("stwo/rv64/cpu0-private-prestage/custody/v1\x00");
         h.update(&self.identity);
@@ -227,8 +295,8 @@ const Pending = struct {
         std.mem.writeInt(u64, &serial, self.serial, .little);
         h.update(&serial);
         self.scope = .{ .statement = h.finalResult(), .fixed = self.source.program.identity, .main = @splat(0), .ordinal = 0 };
-        self.result = try Context.projectFresh(self.backend, &self.source, self.scope);
-        std.debug.print("GPU_CPU_PRESTAGE event=ready ordinal=0 utc_ns={} metadata_sha256={x}\n", .{ utcNs(), self.identity });
+        self.result = if (self.compact) |*compact_data| try self.backend.projectPacked(&self.source, self.scope, compact_data, 0) else try Context.projectFresh(self.backend, &self.source, self.scope);
+        std.debug.print("GPU_CPU_PRESTAGE event=ready ordinal=0 utc_ns={} input_sha256={x} compact_identity={}\n", .{ utcNs(), self.identity, self.compact_identity });
     }
 };
 const Promote = struct {
@@ -370,7 +438,8 @@ const Job = struct {
         const scope = @import("pcs_scope.zig").identity(self.scope);
         var ctx = SC.Context{ .session = b.service.session, .native_context = raw, .token = token, .scope = scope, .api = &b.api };
         const rom_rows = source.program.size();
-        const count_base = @max(@as(usize, 1), metadata.len);
+        const metadata_words: usize = if (self.compact) |p| p.records.len * 14 else metadata.len;
+        const count_base = @max(@as(usize, 1), metadata_words);
         const c8_base = count_base + 65536;
         const rom_base = c8_base + 256;
         const status_base = rom_base + rom_rows;
@@ -406,7 +475,7 @@ const Job = struct {
             const unpack = A.CpuUnpack{ .records = compact_input.words.?, .seeds = compact_input.words.? + p.records.len * 4, .rom = rom_lease.words.?, .metadata = scratch.words.?, .status = scratch.words.? + status_base, .count = @intCast(p.records.len), .rom_log = source.program.log_size, .chunk_rows = Ingress.compact_chunk_rows };
             try checked(b.unpack.?(raw, 1, &unpack));
         }
-        const job = A.CpuWitness{ .metadata = if (metadata.len != 0) scratch.words.? else null, .rom = rom_lease.words.?, .main = eval.words.?, .counts16 = scratch.words.? + count_base, .counts8 = scratch.words.? + c8_base, .rom_counts = scratch.words.? + rom_base, .status = scratch.words.? + status_base, .count = @intCast(source.metadata.len), .log = source.log_size, .rom_log = source.program.log_size, .final_pc = @intCast(source.public.final_pc), .pair_counts = scratch.words.? + pair_base };
+        const job = A.CpuWitness{ .metadata = if (metadata_words != 0) scratch.words.? else null, .rom = rom_lease.words.?, .main = eval.words.?, .counts16 = scratch.words.? + count_base, .counts8 = scratch.words.? + c8_base, .rom_counts = scratch.words.? + rom_base, .status = scratch.words.? + status_base, .count = @intCast(source.public.steps), .log = source.log_size, .rom_log = source.program.log_size, .final_pc = @intCast(source.public.final_pc), .pair_counts = scratch.words.? + pair_base };
         try checked(b.kernel(raw, 1, &job));
         // Downloads use the coordination stream, while the formatter writes
         // on lane1. A join after the download cannot establish that ordering.
@@ -419,7 +488,7 @@ const Job = struct {
             if (verdict[0] != 0) return error.InvalidGpuCpuMetadata;
             self.owner.ledger_lease = scratch;
             self.owner.ledgers = .{
-                .metadata = if (metadata.len == 0) null else ledger(scratch, 0, metadata.len),
+                .metadata = if (metadata_words == 0) null else ledger(scratch, 0, metadata_words),
                 .range16 = ledger(scratch, count_base, 65536),
                 .range8 = ledger(scratch, c8_base, 256),
                 .pairs = ledger(scratch, pair_base, 65536),
@@ -509,4 +578,47 @@ test "CPU prestage identity binds complete metadata publics shape and input poli
     program.identity[0] ^= 1;
     pending.input_policy[0] ^= 1;
     try std.testing.expectError(error.CpuPrestageCaptureChanged, pending.requireCapture(&source));
+}
+
+test "first-pass promotion seal checks every expanded metadata value and captured public" {
+    const allocator = std.testing.allocator;
+    const Program = std.meta.Child(@TypeOf(@as(CPU.Source, undefined).program));
+    var program = try Program.init(allocator, .{ .base = 4096, .words = &.{ 0x00000013, 0x0000006f } });
+    defer program.deinit();
+    try program.makeCompact();
+    var metadata = [_]CPU.Metadata{.{ .values = .{ 0, 0, 0, 0, 4100 }, .clocks = @splat(0), .rom_row = 0 }};
+    var source = CPU.Source{ .allocator = allocator, .program = &program, .public = std.mem.zeroes(@FieldType(CPU.Source, "public")), .epoch = 1, .log_size = 5, .metadata = &metadata, .rom_counts = &.{}, .counts16 = &.{}, .counts8 = &.{}, .compact = true };
+    source.public.steps = 1;
+    source.public.initial_pc = 4096;
+    source.public.final_pc = 4100;
+    var compact = try Ingress.Compact.fromCapture(allocator, &source);
+    defer compact.deinit();
+    const input_policy: [32]u8 = @splat(7);
+    var provisional = source;
+    provisional.metadata = &.{};
+    var pending = Pending{ .backend = undefined, .source = provisional, .input_policy = input_policy, .block = @splat(9), .serial = 1, .identity = try compactIdentity(&source, input_policy, &compact), .compact_identity = true };
+    _ = try pending.requireCapture(&source);
+    // A compact hash alone ignores these unused/after-first-touch slots.
+    metadata[0].values[0] = @as(u64, 1) << 63;
+    try std.testing.expectError(error.InvalidCompactCpuMetadata, pending.requireCapture(&source));
+    metadata[0].values[0] = 0;
+    metadata[0].clocks[1] = 1;
+    try std.testing.expectError(error.InvalidCompactCpuMetadata, pending.requireCapture(&source));
+    metadata[0].clocks[1] = 0;
+    source.public.initial_pc = 4100;
+    try std.testing.expectError(error.CpuPrestageCaptureChanged, pending.requireCapture(&source));
+    source.public.initial_pc = 4096;
+    source.epoch = 2;
+    try std.testing.expectError(error.CpuPrestageCaptureChanged, pending.requireCapture(&source));
+    source.epoch = 1;
+    pending.input_policy[0] ^= 1;
+    try std.testing.expectError(error.CpuPrestageCaptureChanged, pending.requireCapture(&source));
+}
+
+test "first-pass projection callbacks instantiate the actual producer path" {
+    var context: Context = undefined;
+    const stage = context.stage();
+    try std.testing.expect(stage.prestage_first_pass != null);
+    try std.testing.expect(stage.prestage != null);
+    try std.testing.expect(stage.cancel_prestage != null);
 }

@@ -13,9 +13,14 @@ const DirectCapture = @import("direct.zig");
 const CpuPrestage = struct {
     stage: @import("../../word16_execution/cpu_source.zig").ProjectionStage,
     image_identity: [32]u8 = undefined,
+    first_pass: bool = false,
+    fn firstPass(raw: *anyopaque, source: *const @import("../../word16_execution/cpu_source.zig").FirstPass) void {
+        const self: *CpuPrestage = @ptrCast(@alignCast(raw));
+        self.stage.prestage_first_pass.?(self.stage.context, source, self.image_identity);
+    }
     fn ready(raw: *anyopaque, index: usize, native: *const @import("../../word16_execution/prepared.zig").Prepared, _: []const @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event, at_ns: u64) void {
         const self: *CpuPrestage = @ptrCast(@alignCast(raw));
-        if (index != 0) return;
+        if (index != 0 or self.first_pass) return;
         std.debug.print("GPU_CPU_PRESTAGE event=capture_ready ordinal=0 utc_ns={} ordered_ready_ns={}\n", .{ std.time.nanoTimestamp(), at_ns });
         if (native.cpu) |*source| self.stage.prestage.?(self.stage.context, source, self.image_identity);
     }
@@ -521,12 +526,15 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const shared_walk_authority = if (std.posix.getenv("STWO_RV64_CAPTURE_SHARED_AUTHORITY")) |flag| std.mem.eql(u8, flag, "1") else false;
     const early_cpu = if (std.posix.getenv("STWO_RV64_CPU0_PRESTAGE")) |flag| std.mem.eql(u8, flag, "1") else false;
     if (early_cpu and (!direct_capture or !combined or stages.cpu_projection == null)) return error.CpuPrestageRequiresDirectResidentCombined;
-    var prestage: ?CpuPrestage = if (early_cpu) .{ .stage = stages.cpu_projection.? } else null;
+    const early_first = if (std.posix.getenv("STWO_RV64_CPU0_FIRST_PASS_PRESTAGE")) |v| std.mem.eql(u8, v, "1") else false;
+    if (early_first and (!early_cpu or !@import("../../rv64_ethereum_segments.zig").minimalFirstPassEnabled())) return error.FirstPassCpuPrestageRequiresRecords;
+    var prestage: ?CpuPrestage = if (early_cpu) .{ .stage = stages.cpu_projection.?, .first_pass = early_first } else null;
+    if (early_first and prestage.?.stage.prestage_first_pass == null) return error.FirstPassCpuPrestageUnavailable;
     if (prestage) |*p| if (p.stage.prestage == null or p.stage.join_prestage == null or p.stage.cancel_prestage == null) return error.CpuPrestageStageUnavailable;
     defer if (prestage) |*p| CpuPrestage.cancel(p);
     const walk_authority: ?Request.AuthorityProvider = if (shared_walk_authority and session != null) session.?.authorities.provider() else null;
     var direct_started: ?*DirectCapture.Started = if (direct_capture) try DirectCapture.Started.startWithAuthority(a, request.value, count, capture_options.execution_workers, walk_authority) else null;
-    if (prestage) |*p| direct_started.?.ready = .{ .context = p, .call = CpuPrestage.ready, .cancel = CpuPrestage.cancel };
+    if (prestage) |*p| direct_started.?.ready = .{ .context = p, .call = CpuPrestage.ready, .cancel = CpuPrestage.cancel, .first_pass = if (early_first) CpuPrestage.firstPass else null };
     defer if (direct_started) |value| value.deinit(&direct_stats);
     // M5 platform: a resident session reuses the receiver-derived
     // ProgramAuthority of the same guest (keyed by its executable words).
