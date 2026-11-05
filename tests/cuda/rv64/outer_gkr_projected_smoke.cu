@@ -2,6 +2,13 @@
 #include "rv64/outer_gkr_projector.cuh"
 #include <algorithm>
 using namespace stwo::cuda::rv64;
+#include "rv64/binding.h"
+#include "rv64/composition_finalize.h"
+struct StwoCircuitOuterBinding { StwoCircuitOuterGkrSource source; const uint32_t *metadata; StwoRv64Plane eq,prefix; };
+extern "C" int stwo_circuit_outer_gkr_binding_on(void*,uint32_t,const StwoCircuitOuterBinding*);
+static uint32_t physical(uint32_t k,uint32_t log){uint32_t c=(k&1)?(1u<<log)-(k+1)/2:k/2,p=0;for(uint32_t i=0;i<log;++i){p=(p<<1)|(c&1);c>>=1;}return p;}
+static OM31 eq_at(const std::vector<uint32_t>& point,uint32_t row,uint32_t log){OM31 q=one();for(uint32_t i=0;i<log;++i){const auto z=from_words(point.data()+8*i);q=mul(q,(row>>(log-1-i))&1?z:sub(one(),z));}return q;}
+using namespace stwo::cuda::rv64;
 extern "C" int stwo_circuit_outer_gkr_validate_on(void*, uint32_t, const void*, uint32_t);
 extern "C" int stwo_circuit_outer_gkr_layer_on(void*, uint32_t, const void*, uint32_t, uint32_t, StwoRv64Plane, StwoRv64Plane);
 extern "C" int stwo_circuit_outer_gkr_sum_on(void*, uint32_t, const void*, uint32_t, StwoRv64Plane, const uint32_t*, StwoRv64Plane, StwoRv64Plane, StwoRv64Plane);
@@ -21,7 +28,7 @@ static void same(Owner &owner, StwoRv64Plane a, StwoRv64Plane b) {
 }
 int main() {
   try {
-    uint32_t cases = 0, fractions = 0, mutants = 0, poles = 0;
+    uint32_t cases = 0, fractions = 0, mutants = 0, poles = 0,bindings=0,eq23=0,aux23=0;
     for (uint32_t row_log : {4u, 12u}) for (uint32_t kind : {2u, 3u, 4u, 6u}) {
       const uint32_t lookups = kind == 2 ? 12 : kind == 3 ? 5 : kind == 4 ? 26 : 16;
       for (uint32_t first = 0; first < lookups;) {
@@ -91,6 +98,27 @@ int main() {
         auto alias = on; alias.words = const_cast<uint32_t*>(source.main);
         if (!stwo_circuit_outer_gkr_layer_on(owner.ctx,0,&source,count,1,alias,od)) throw std::runtime_error("MAIN-output alias admitted");
         ++mutants;
+        if(first==0){
+          auto binding_eq=owner.plane(rows,8), prefix=owner.plane(rows,8), claim=owner.plane(8,1);
+          auto point_plane=owner.plane(8*row_log,1),metadata_plane=owner.plane(28*8,1);
+          std::vector<uint32_t> point(8*row_log),metadata(28*8),eq_values(8*rows),delta(8*rows),prefix_values(8*rows);
+          for(uint32_t i=0;i<point.size();++i)point[i]=3+31*i;
+          for(uint32_t i=0;i<27*8;++i)metadata[i]=7+37*i;
+          const auto gamma=from_words(metadata.data()+26*8);OM31 target=zero();
+          std::vector<OM31> projected(rows);
+          for(uint32_t row=0;row<rows;++row){
+            OM31 projection=zero();for(uint32_t term=0;term<lookups;++term){auto h=host;h.lane_first=term;h.lane_log=0;auto f=host_fraction(h,row);projection=add(projection,mul(from_words(metadata.data()+8*term),add(f.n,mul(gamma,f.d))));}
+            auto e=eq_at(point,row,row_log);store(eq_values.data(),rows,row,e);projected[row]=mul(e,projection);target=add(target,projected[row]);
+          }
+          const auto uniform=scale(target,q::inverse(rows));store(metadata.data()+27*8,1,0,uniform);
+          OM31 sum=zero();for(uint32_t k=0;k<rows;++k){auto row=physical(k,row_log);auto value=sub(projected[row],uniform);store(delta.data(),rows,row,value);sum=add(sum,value);store(prefix_values.data(),rows,row,sum);}if(!is_zero(sum))throw std::runtime_error("CPU cyclic debt");
+          owner.upload(point_plane,point);owner.upload(metadata_plane,metadata);CHECK(stwo_exec_context_sync(owner.ctx));
+          CHECK(stwo_rv64_binding_eq_on(owner.ctx,0,point_plane.words,row_log,binding_eq,verdict.words));if(owner.read(binding_eq)!=eq_values)throw std::runtime_error("full Eq mismatch");
+          StwoCircuitOuterBinding binding{source,metadata_plane.words,binding_eq,prefix};CHECK(stwo_circuit_outer_gkr_binding_on(owner.ctx,0,&binding));if(owner.read(prefix)!=delta)throw std::runtime_error("raw binding delta mismatch");
+          uint64_t scratch_words=0;for(uint32_t n=rows;n>1;){n=(n+127)/128;scratch_words+=uint64_t(n)*8;}
+          auto scratch=owner.plane(scratch_words,1);StwoRv64PrefixScan scan{prefix,scratch.words,scratch_words,claim.words,verdict.words,row_log,0,{0,0}};CHECK(stwo_rv64_prefix_scan_on(owner.ctx,0,&scan));
+          if(owner.read(prefix)!=prefix_values||owner.read(verdict)[0])throw std::runtime_error("cyclic prefix mismatch");++bindings;
+        }
         if (kind == 6) {
           // Real zero-weight0/0 table fractions must stay poles, rather than
           // becoming neutral padding (0,1). The sticky verdict also rejects.
@@ -109,7 +137,10 @@ int main() {
         ++cases; fractions += count; first += lanes;
       }
     }
-    std::printf("{\"passed\":true,\"source_groups\":%u,\"source_fractions\":%u,\"geometry_alias_mutants\":%u,\"real_zero_weight_poles\":%u,\"layer_sum_fold_parity\":true}\n", cases, fractions, mutants, poles);
+    {Owner owner(0);const uint32_t log=23,rows=1u<<log;auto eq=owner.plane(rows,8),p=owner.plane(8*log,1),status=owner.plane(1,1);std::vector<uint32_t> point(8*log);for(uint32_t i=0;i<point.size();++i)point[i]=11+43*i;owner.upload(p,point);owner.upload(status,{0});CHECK(stwo_exec_context_sync(owner.ctx));CHECK(stwo_rv64_binding_eq_on(owner.ctx,0,p.words,log,eq,status.words));auto actual=owner.read(eq);for(uint32_t row: {0u,1u,2u,3u,127u,128u,1023u,1024u,1048575u,4194304u,rows-2,rows-1}){if(!is_zero(sub(load(actual.data(),rows,row),eq_at(point,row,log))))throw std::runtime_error("Eq23 sample mismatch");++eq23;}if(owner.read(status)[0])throw std::runtime_error("Eq23 status");
+      auto auxiliary=owner.plane(uint64_t(10)*rows,1),hc=owner.plane(16*log,1);std::vector<uint32_t> carry(16*log);for(uint32_t i=0;i<carry.size();++i)carry[i]=17+41*i;owner.upload(hc,carry);CHECK(stwo_exec_context_sync(owner.ctx));uint32_t launches=0;CHECK(stwo_rv64_composition_auxiliary_on(owner.ctx,0,hc.words,auxiliary.words,log,&launches));if(launches!=1)throw std::runtime_error("auxiliary launch count");auto av=owner.read(auxiliary);
+      for(uint32_t row:{0u,1u,2u,3u,127u,128u,1023u,1024u,1048575u,4194304u,rows-2,rows-1}){const auto half=row&1u,bits=half?row:(rows-1)^row,ci=uint32_t(__builtin_clz(bits))-(32-log);if(av[row]!=(row==0)||av[uint64_t(rows)+row]!=(row+1==rows))throw std::runtime_error("auxiliary anchor mismatch");for(uint32_t c=0;c<8;++c)if(av[uint64_t(c+2)*rows+row]!=carry[(half*log+ci)*8+c])throw std::runtime_error("auxiliary carry mismatch");++aux23;}owner.close();}
+    std::printf("{\"passed\":true,\"source_groups\":%u,\"source_fractions\":%u,\"geometry_alias_mutants\":%u,\"real_zero_weight_poles\":%u,\"layer_sum_fold_parity\":true,\"cyclic_binding_cases\":%u,\"eq23_samples\":%u,\"aux23_samples\":%u}\n", cases, fractions, mutants, poles, bindings, eq23, aux23);
     return 0;
   } catch (const std::exception &e) {
     std::fprintf(stderr,"ERROR %s\n",e.what()); return 1;

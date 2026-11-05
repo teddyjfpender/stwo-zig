@@ -138,3 +138,24 @@ passes28/28; the combined registry/fraction followups are recorded as pending
 while waiting on the shared build lock. No runtime profile is activated by
 this commit. Producer/controller, source-owned GPU composition, child proof
 verification/codec and full dev-block/fresh-receiver gates still follow.
+
+## Late binding CUDA stage
+
+`outer_gkr_binding.cu` projects each original lookup directly from MAIN/FIXED
+with the verified late lane weights and gamma. It writes
+`Eq*projection-target/rows` without original N/D planes, then the existing
+native logical-coset prefix scan emits the cyclic prefix. All four wide
+components pass at row logs4and12 (eight cases) versus CPU arithmetic.
+
+The native Eq generator and ten public auxiliary planes also run at row log23
+(8388608rows), with twelve physical-row samples checked for each. Memcheck
+reports zero errors. The additive CUDA capacity guards are27; this gate
+qualifies23, and does not claim exhaustive arithmetic coverage at23 or any
+coverage at24–27. The receipt is in
+`vectors/reports/rv64-m7-20261105/outer-gkr/binding-gpu/`.
+
+The resident image builder includes the new binding callback and the host
+composition auxiliary metadata has room for27row bits. Their complete image
+and Zig host integration build remains a production integration gate. The
+existing projected-gpu receipt command metadata also corrects the spelling
+of `--error-exitcode 99`; its preserved zero-error log is unchanged.

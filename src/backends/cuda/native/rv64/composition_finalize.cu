@@ -110,7 +110,7 @@ extern "C" int stwo_rv64_composition_auxiliary_on(
     uint32_t log, uint32_t *launches) {
   using namespace stwo::cuda::rv64;
   if (launches) *launches = 0;
-  if (!launches || log < 3 || log > 22) return int(cudaErrorInvalidValue);
+  if (!launches || log < 3 || log > 27) return int(cudaErrorInvalidValue);
   Custody c(ctx, lane);
   if (!c.range(hc, 16 * log, false) || !c.range(output, uint64_t(10) << log, true)) return c.status;
   fill_auxiliary<<<((1u << log) + 127) / 128, 128, 0, c.stream>>>(hc, output, log);

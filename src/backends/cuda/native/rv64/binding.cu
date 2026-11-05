@@ -173,7 +173,7 @@ using namespace stwo::cuda::rv64;
 extern "C" int stwo_rv64_binding_eq_on(void *ctx, uint32_t lane,
                                        const uint32_t *point, uint32_t log,
                                        StwoRv64Plane output, uint32_t *status) {
-  if (!log || log > 22)
+  if (!log || log > 27)
     return int(cudaErrorInvalidValue);
   Custody c(ctx, lane);
   if (!c.range(point, log * 8, false) || !c.plane(output, 1u << log, 8, true) ||
@@ -252,7 +252,7 @@ extern "C" int stwo_rv64_binding_finalize_on(
     void *ctx, uint32_t lane, const StwoRv64BindingFinalize *input) {
   using namespace stwo::cuda::rv64;
   if (!input || input->reserved[0] || input->reserved[1] || input->reserved[2] ||
-      !input->row_log || input->row_log > 22) return int(cudaErrorInvalidValue);
+      !input->row_log || input->row_log > 27) return int(cudaErrorInvalidValue);
   const auto job = *input;
   const uint32_t rows = 1u << job.row_log;
   Custody c(ctx, lane);

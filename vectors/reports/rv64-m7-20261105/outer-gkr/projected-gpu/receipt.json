@@ -41,7 +41,7 @@
   "memcheck_exit": 0,
   "build_command": "flock -w3600 /workspace/m3/locks/build.1.lock /usr/local/cuda/bin/nvcc -O3 -std=c++17 -gencode arch=compute_120,code=sm_120 -Isrc/backends/cuda/native -Itests/cuda/rv64 tests/cuda/rv64/outer_gkr_projected_smoke.cu src/backends/cuda/native/rv64/outer_gkr_projected.cu -L/workspace/m3/build/m7-native-gkr/cuda/native -l:libstwo-rv64-native.so -Xlinker -rpath -Xlinker /workspace/m3/build/m7-native-gkr/cuda/native -o /workspace/m3/build/m7-outer-gkr/projected-smoke",
   "run_command": "flock -w7200 /workspace/m3/locks/gpu.lock /workspace/m3/build/m7-outer-gkr/projected-smoke",
-  "memcheck_command": "flock -w7200 /workspace/m3/locks/gpu.lock /usr/local/cuda/bin/compute-sanitizer --tool memcheck --error-exitcode99 /workspace/m3/build/m7-outer-gkr/projected-smoke",
+  "memcheck_command": "flock -w7200 /workspace/m3/locks/gpu.lock /usr/local/cuda/bin/compute-sanitizer --tool memcheck --error-exitcode 99 /workspace/m3/build/m7-outer-gkr/projected-smoke",
   "production_class_enabled": false,
   "request_s": null,
   "proof_bytes": null,
