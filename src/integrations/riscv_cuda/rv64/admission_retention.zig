@@ -12,7 +12,9 @@ pub const Registry = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         errdefer permit.endpoint.planner.poisonPhysical(permit.endpoint.physical);
-        const retained = successor.large != 0 or successor.small != 0;
+        // An unentered attempt is cancellation, even if its caller supplied
+        // a future envelope. Its token is removed and must never be retained.
+        const retained = permit.entered and (successor.large != 0 or successor.small != 0);
         // Admit host metadata before completing the permit. Allocation failure
         // cannot leave an unregistered inactive claim after the stage succeeds.
         if (retained) try self.claims.ensureUnusedCapacity(a, 1);
@@ -109,4 +111,33 @@ test "failed source cleanup keeps planner claim until poisoned pool destruction"
     try std.testing.expectEqual(@as(usize, 1), (try p.snapshot(0)).owners);
     p.poolDestroyed();
     try std.testing.expectEqual(@as(usize, 0), (try p.snapshot(0)).owners);
+}
+
+test "unentered completion preserves old future and never stores a canceled token" {
+    const a = std.testing.allocator;
+    var p = try A.Planner.init(a, &.{0}, .g22);
+    defer p.deinit();
+    var registry = Registry{};
+    defer registry.deinit(a);
+    const key = A.ProgressKey{ .statement = @splat(1), .fixed = @splat(2), .ordinal = 0 };
+    const owner = A.Owner{ .request = 1, .domain = .gkr_packet, .ordinal = 0 };
+    const keep = try A.Footprint.allocation(6 << 30);
+    const numerical = try A.Footprint.allocation(14 << 30);
+    const project = try A.Footprint.allocation(4 << 30);
+    const old = (try p.tryBegin(0, .{ .owner = owner, .progress_key = key, .stage = .trace_commit, .known = true, .host_known = true, .temporary = keep, .successor = numerical })).token.?;
+    try p.completeObserved(old, keep, numerical);
+    const demand = A.Demand{ .owner = owner, .progress_key = key, .stage = .gkr, .known = true, .host_known = true, .temporary = try A.Footprint.allocation(8 << 30), .successor = project };
+    const gate = try p.stageGate(0);
+    gate.lock();
+    const token = (try p.tryBegin(0, demand)).token.?;
+    var permit = R.Permit{ .endpoint = .{ .planner = &p, .physical = 0, .api = undefined, .session = @ptrFromInt(16), .submit = undefined }, .token = token, .demand = demand, .before = .{ .version = 1, .device = 0, .capacity = 22 << 30, .chunk = A.chunk_bytes, .small_slab = A.small_slab_bytes, .live_large = keep.large, .live_small = keep.small, .total_device = 32 << 30, .free_device = 32 << 30 }, .timer = try std.time.Timer.start() };
+    try registry.complete(a, &permit, @splat(3), project);
+    try std.testing.expect(permit.closed and !permit.entered);
+    try std.testing.expectEqual(@as(usize, 0), registry.claims.items.len);
+    try std.testing.expectEqual(keep, (try p.snapshot(0)).retained);
+    try std.testing.expectEqual(numerical, (try p.snapshot(0)).successor);
+    try std.testing.expectError(error.StaleAdmissionToken, p.release(token));
+    try std.testing.expect(gate.tryLock());
+    gate.unlock();
+    try p.release(old);
 }

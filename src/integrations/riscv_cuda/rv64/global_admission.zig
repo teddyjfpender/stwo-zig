@@ -93,7 +93,7 @@ pub const Token = struct { physical: u32, id: u64 };
 pub const Reason = enum { admitted, wide_stage_busy, capacity_pressure, request_exceeds_static_arena, unknown_cost, host_capacity_pressure, runtime_poisoned };
 pub const Decision = struct { reason: Reason, token: ?Token = null, required: Footprint = .{}, capacity: Footprint };
 pub const Snapshot = struct { physical: u32, retained: Footprint, active_temporary: Footprint, successor: Footprint, required: Footprint, capacity: Footprint, owners: usize, active: bool };
-const Entry = struct { demand: Demand, active: bool };
+const Entry = struct { demand: Demand, active: bool, entered: bool = false };
 const Device = struct { physical: u32, entries: std.AutoHashMapUnmanaged(u64, Entry) = .{}, active: ?u64 = null, observed: Footprint = .{}, observed_initialized: bool = false, runtime_configured: bool = false, poisoned: bool = false, coverage: u64 = 0, stage_gate: std.Thread.Mutex = .{} };
 pub const Planner = struct {
     allocator: std.mem.Allocator,
@@ -197,19 +197,44 @@ pub const Planner = struct {
         const id = self.next_id;
         self.next_id = try std.math.add(u64, self.next_id, 1);
         try d.entries.putNoClobber(self.allocator, id, .{ .demand = demand, .active = true });
-        // Commit the replacement only AFTER admission succeeds. Old physical
-        // owners keep their tokens until checked destruction; only their now
-        // superseded future envelopes are cleared. No observed byte is freed.
-        if (demand.progress_key) |key| {
+        // Reserve the advancing phase without discarding the previous
+        // promise. An attempt may yield before ever entering its GPU owner.
+        d.active = id;
+        return .{ .reason = .admitted, .token = .{ .physical = physical, .id = id }, .required = required, .capacity = cap };
+    }
+    fn commitEnteredLocked(d: *Device, token: Token) !void {
+        const entry = d.entries.getPtr(token.id) orelse return error.StaleAdmissionToken;
+        if (d.active != token.id or !entry.active) return error.AdmissionNotActive;
+        if (entry.entered) return;
+        entry.entered = true;
+        if (entry.demand.progress_key) |key| {
             var older = d.entries.valueIterator();
-            while (older.next()) |entry| if (!entry.active) {
-                if (entry.demand.progress_key) |old| {
-                    if (std.meta.eql(key, old)) entry.demand.successor = .{};
+            while (older.next()) |old| if (!old.active) {
+                if (old.demand.progress_key) |previous| {
+                    if (std.meta.eql(key, previous)) old.demand.successor = .{};
                 }
             };
         }
-        d.active = id;
-        return .{ .reason = .admitted, .token = .{ .physical = physical, .id = id }, .required = required, .capacity = cap };
+    }
+    /// Commit phase replacement only after successful physical owner entry.
+    /// No allocation occurs here and old physical owners retain their tokens.
+    pub fn commitEntered(self: *Planner, token: Token) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        try commitEnteredLocked(try self.device(token.physical), token);
+    }
+    /// No owner mutation happened. Remove this attempt alone: old promises and
+    /// observed physical retention are exactly unchanged, including busy retry.
+    pub fn cancelUnentered(self: *Planner, token: Token) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const d = try self.device(token.physical);
+        const entry = d.entries.get(token.id) orelse return error.StaleAdmissionToken;
+        if (d.active != token.id or !entry.active) return error.AdmissionNotActive;
+        if (entry.entered) return error.AdmissionOwnerAlreadyEntered;
+        _ = d.entries.remove(token.id);
+        d.active = null;
+        self.notifyLocked();
     }
     /// Call only after temporary allocations are actually freed AND joined.
     /// Committed retention includes retired coefficient owners and cache owners.
@@ -220,6 +245,9 @@ pub const Planner = struct {
         const entry = d.entries.getPtr(token.id) orelse return error.StaleAdmissionToken;
         if (d.active != token.id or !entry.active) return error.AdmissionNotActive;
         if (!entry.demand.retained_new.contains(retained) or !entry.demand.successor.contains(successor)) return error.UnreservedRetention;
+        // Direct model callers attest completed work here. Runtime unentered
+        // attempts use cancelUnentered instead, preserving the old promise.
+        try commitEnteredLocked(d, token);
         d.active = null;
         self.notifyLocked();
         if (retained.large == 0 and retained.small == 0 and successor.large == 0 and successor.small == 0) {
@@ -352,6 +380,7 @@ pub const Planner = struct {
         const envelope = try d.observed.add(e.demand.temporary);
         if (!envelope.contains(actual)) return error.UnreservedRetention;
         if (!e.demand.successor.contains(successor)) return error.UnreservedRetention;
+        try commitEnteredLocked(d, token);
         d.observed = actual;
         d.observed_initialized = true;
         d.active = null;
@@ -470,6 +499,8 @@ test "phase advance replaces only its future promise and keeps physical owners c
     // Later immutable/coeff owners grow, while this proof's remaining work is
     // now smaller. Its old14GiB promise must not block a valid8GiB next phase.
     const next = (try p.tryBegin(0, .{ .owner = test_owner, .progress_key = key, .stage = .trace_commit, .known = true, .host_known = true, .temporary = try Footprint.allocation(8 << 30), .stage_retained_upper = try Footprint.allocation(2 << 30), .successor = try Footprint.allocation(4 << 30) })).token.?;
+    try std.testing.expectEqual(try Footprint.allocation(14 << 30), p.devices[0].entries.get(first.id).?.demand.successor);
+    try p.commitEntered(next);
     try std.testing.expectEqual(Footprint{}, p.devices[0].entries.get(first.id).?.demand.successor);
     try p.completeObserved(next, try Footprint.allocation(8 << 30), try Footprint.allocation(4 << 30));
     const snapshot = try p.snapshot(0);
@@ -499,4 +530,34 @@ test "bounded progress wait distinguishes a stalled ledger from a real generatio
     // Exercise the actual timed condition path without mutating or dropping
     // any future claim merely because the selected worker is waiting.
     try std.testing.expect(!try planner.waitForChangeWithin(current, 1));
+}
+
+test "busy unentered GKR retry preserves numerical headroom until actual owner entry" {
+    var p = try Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer p.deinit();
+    const key = ProgressKey{ .statement = @splat(1), .fixed = @splat(2), .ordinal = 0 };
+    const keep = try Footprint.allocation(6 << 30);
+    const numerical = try Footprint.allocation(14 << 30);
+    const project = try Footprint.allocation(4 << 30);
+    const original = (try p.tryBegin(0, .{ .owner = test_owner, .progress_key = key, .stage = .trace_commit, .known = true, .host_known = true, .temporary = keep, .successor = numerical })).token.?;
+    try p.completeObserved(original, keep, numerical);
+    const next = Demand{ .owner = test_owner, .progress_key = key, .stage = .gkr, .known = true, .host_known = true, .temporary = try Footprint.allocation(8 << 30), .stage_retained_upper = try Footprint.allocation(2 << 30), .successor = project };
+    const yielded = (try p.tryBegin(0, next)).token.?;
+    try std.testing.expectEqual(numerical, p.devices[0].entries.get(original.id).?.demand.successor);
+    try p.cancelUnentered(yielded);
+    try std.testing.expectEqual(keep, (try p.snapshot(0)).retained);
+    try std.testing.expectEqual(numerical, (try p.snapshot(0)).successor);
+    var foreign_key = key;
+    foreign_key.ordinal = 1;
+    const blocked = try p.tryBegin(0, .{ .owner = test_owner, .progress_key = foreign_key, .stage = .witness, .known = true, .host_known = true, .temporary = try Footprint.allocation(3 << 30), .stage_retained_upper = try Footprint.allocation(3 << 30) });
+    try std.testing.expectEqual(Reason.capacity_pressure, blocked.reason);
+    const retry = (try p.tryBegin(0, next)).token.?;
+    try p.commitEntered(retry);
+    try std.testing.expectEqual(Footprint{}, p.devices[0].entries.get(original.id).?.demand.successor);
+    try std.testing.expectError(error.AdmissionOwnerAlreadyEntered, p.cancelUnentered(retry));
+    try p.completeObserved(retry, keep, project);
+    try std.testing.expectEqual(keep, (try p.snapshot(0)).retained);
+    try std.testing.expectEqual(project, (try p.snapshot(0)).successor);
+    try p.release(original);
+    try p.release(retry);
 }

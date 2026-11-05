@@ -231,6 +231,10 @@ pub const Permit = struct {
         const label = try std.fmt.bufPrintZ(&label_buf, "m7/{s}/{s}/r{}/o{}/t{}", .{ @tagName(self.demand.owner.domain), @tagName(self.demand.stage), self.demand.owner.request, self.demand.owner.ordinal, self.token.id });
         if (self.endpoint.api.begin(raw, self.token.id, self.before.live_large, self.before.live_small, self.demand.temporary.large, self.demand.temporary.small, label) != 0) return error.GlobalAdmissionOwnerBeginFailed;
         self.entered = true;
+        self.endpoint.planner.commitEntered(self.token) catch |err| {
+            self.endpoint.planner.poisonPhysical(self.endpoint.physical);
+            return err;
+        };
         self.enter_ns = self.timer.read();
     }
     /// Every transient release and lane join must precede this call.
@@ -251,14 +255,16 @@ pub const Permit = struct {
         errdefer self.endpoint.planner.poisonPhysical(self.endpoint.physical);
         const after = if (self.entered) self.after orelse return error.AdmissionOwnerNotFinished else self.before;
         try after.validate(self.endpoint);
-        try self.endpoint.planner.completeObserved(self.token, after.footprint(), successor);
+        if (self.entered) {
+            try self.endpoint.planner.completeObserved(self.token, after.footprint(), successor);
+        } else try self.endpoint.planner.cancelUnentered(self.token);
         self.closed = true;
         (try self.endpoint.planner.stageGate(self.endpoint.physical)).unlock();
         // Wake only after the physical gate is actually acquirable. Otherwise
         // a waiter can observe the new epoch, miss the still-held gate, and
         // sleep forever with no subsequent release notification.
         self.endpoint.planner.notifyResourceRelease();
-        std.debug.print("GLOBAL_ADMISSION_STAGE physical={} ticket={} domain={s} stage={s} ordinal={} owner_queue_ns={} owner_callback_ns={} total_host_ns={} retained_large={} retained_small={} successor_large={} successor_small={}\n", .{ self.endpoint.physical, self.token.id, @tagName(self.demand.owner.domain), @tagName(self.demand.stage), self.demand.owner.ordinal, self.enter_ns, self.leave_ns - self.enter_ns, self.timer.read(), after.live_large, after.live_small, successor.large, successor.small });
+        std.debug.print("GLOBAL_ADMISSION_STAGE physical={} ticket={} domain={s} stage={s} ordinal={} owner_queue_ns={} owner_callback_ns={} total_host_ns={} retained_large={} retained_small={} successor_large={} successor_small={}\n", .{ self.endpoint.physical, self.token.id, @tagName(self.demand.owner.domain), @tagName(self.demand.stage), self.demand.owner.ordinal, self.enter_ns, self.leave_ns - self.enter_ns, self.timer.read(), after.live_large, after.live_small, if (self.entered) successor.large else 0, if (self.entered) successor.small else 0 });
     }
 };
 
