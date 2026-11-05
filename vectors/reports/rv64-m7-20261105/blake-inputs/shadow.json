@@ -1,0 +1,348 @@
+{
+  "schema": "rv64-m7-blake-input-shadow/v1",
+  "label": "M",
+  "assignment_unchanged": true,
+  "completed_requests": 4,
+  "checked_leaf_spans": 56,
+  "all_match": true,
+  "rows": [
+    {
+      "ordinal": 5,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 0,
+      "records": 3285,
+      "gg_rows": 262800,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 1,
+      "records": 3208,
+      "gg_rows": 256640,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 2,
+      "records": 3301,
+      "gg_rows": 264080,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 3,
+      "records": 2893,
+      "gg_rows": 231440,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 6,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 7,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 8,
+      "records": 3526,
+      "gg_rows": 282080,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 10,
+      "records": 2767,
+      "gg_rows": 221360,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 11,
+      "records": 3727,
+      "gg_rows": 298160,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 12,
+      "records": 708,
+      "gg_rows": 56640,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 0,
+      "records": 3413,
+      "gg_rows": 273040,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 1,
+      "records": 2952,
+      "gg_rows": 236160,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 2,
+      "records": 3273,
+      "gg_rows": 261840,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 3,
+      "records": 3285,
+      "gg_rows": 262800,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 5,
+      "records": 3208,
+      "gg_rows": 256640,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 6,
+      "records": 3096,
+      "gg_rows": 247680,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 7,
+      "records": 1326,
+      "gg_rows": 106080,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 8,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 10,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 11,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 12,
+      "records": 3526,
+      "gg_rows": 282080,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 13,
+      "records": 3526,
+      "gg_rows": 282080,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 15,
+      "records": 3526,
+      "gg_rows": 282080,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 16,
+      "records": 2767,
+      "gg_rows": 221360,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 17,
+      "records": 2767,
+      "gg_rows": 221360,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 21,
+      "records": 708,
+      "gg_rows": 56640,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 18,
+      "records": 3727,
+      "gg_rows": 298160,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 1,
+      "records": 3208,
+      "gg_rows": 256640,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 0,
+      "records": 3285,
+      "gg_rows": 262800,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 2,
+      "records": 3301,
+      "gg_rows": 264080,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 3,
+      "records": 2893,
+      "gg_rows": 231440,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 5,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 6,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 7,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 8,
+      "records": 3526,
+      "gg_rows": 282080,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 10,
+      "records": 2767,
+      "gg_rows": 221360,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 11,
+      "records": 3727,
+      "gg_rows": 298160,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 12,
+      "records": 708,
+      "gg_rows": 56640,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 0,
+      "records": 3413,
+      "gg_rows": 273040,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 3,
+      "records": 3285,
+      "gg_rows": 262800,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 2,
+      "records": 3273,
+      "gg_rows": 261840,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 1,
+      "records": 2952,
+      "gg_rows": 236160,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 5,
+      "records": 3208,
+      "gg_rows": 256640,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 6,
+      "records": 3096,
+      "gg_rows": 247680,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 7,
+      "records": 1326,
+      "gg_rows": 106080,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 8,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 10,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 11,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 12,
+      "records": 3526,
+      "gg_rows": 282080,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 13,
+      "records": 3526,
+      "gg_rows": 282080,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 15,
+      "records": 3526,
+      "gg_rows": 282080,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 16,
+      "records": 2767,
+      "gg_rows": 221360,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 17,
+      "records": 2767,
+      "gg_rows": 221360,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 21,
+      "records": 708,
+      "gg_rows": 56640,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 18,
+      "records": 3727,
+      "gg_rows": 298160,
+      "mismatch": 0
+    }
+  ],
+  "total_records": 189222,
+  "total_gg_rows": 15137760
+}

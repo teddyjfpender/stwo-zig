@@ -89,11 +89,23 @@ pub const ClassCache = struct {
         }
     };
     const Template = struct {
-        key: [32]u8, n_vars: u32, n_constants: usize, n_origins: usize,
-        seed_vars: []u32, constants: [][4]u32, tasks: []Task,
+        key: [32]u8,
+        n_vars: u32,
+        n_constants: usize,
+        n_origins: usize,
+        seed_vars: []u32,
+        constants: [][4]u32,
+        tasks: []Task,
         packed_tasks: ?CachePack.Packed = null,
-        indices: []u32, level_ends: []usize, identity: [32]u8, bytes: usize,
-        persisted: bool = false, capability_checked: bool = true, rejected: bool = false, constants_stable: bool = true,
+        indices: []u32,
+        level_ends: []usize,
+        identity: [32]u8,
+        bytes: usize,
+        persisted: bool = false,
+        capability_checked: bool = true,
+        rejected: bool = false,
+        constants_stable: bool = true,
+        blake_sample_span: ?Circuit.builder.context.BlakeSampleSpan = null,
         fn taskCount(t: *const Template) usize {
             return if (t.packed_tasks) |encoded| encoded.words / 8 else t.tasks.len;
         }
@@ -140,6 +152,7 @@ pub const ClassCache = struct {
         const t = find(key) orelse return false;
         mutex.lock();
         defer mutex.unlock();
+        if (std.posix.getenv("STWO_RV64_BLAKE_SAMPLE_CHECK")) |value| if (std.mem.eql(u8, value, "1") and t.blake_sample_span == null) return false;
         return !t.rejected and t.constants_stable and t.constants.len == t.n_constants;
     }
     /// A disk-loaded template that fails a use-time check (library capability,
@@ -422,7 +435,7 @@ pub const ClassCache = struct {
         errdefer gpa.free(indices);
         const level_ends = try gpa.dupe(usize, p.plan.level_ends);
         errdefer gpa.free(level_ends);
-        t.* = .{ .key = key, .n_vars = ctx.circuit.n_vars, .n_constants = n_constants, .n_origins = originCount(ctx), .seed_vars = seed_vars, .constants = constants, .tasks = tasks, .packed_tasks = encoded, .indices = indices, .level_ends = level_ends, .identity = p.identity, .bytes = bytes };
+        t.* = .{ .key = key, .n_vars = ctx.circuit.n_vars, .n_constants = n_constants, .n_origins = originCount(ctx), .seed_vars = seed_vars, .constants = constants, .tasks = tasks, .packed_tasks = encoded, .indices = indices, .level_ends = level_ends, .identity = p.identity, .bytes = bytes, .blake_sample_span = ctx.blake_sample_span };
         try entries.append(gpa, t);
         held_bytes += bytes;
         std.debug.print("GPU_OUTER_PLAN_PACK adopt class={x} logical_task_bytes={} physical_task_bytes={} held_bytes={} classes={}\n", .{ key[0..8], p.tasks.len * @sizeOf(Task), task_bytes, held_bytes, entries.items.len });
@@ -437,6 +450,8 @@ pub const Prepared = struct {
     indices: []u32,
     seeds: []Seed,
     identity: [32]u8,
+    blake_sample_span: ?Circuit.builder.context.BlakeSampleSpan = null,
+    blake_sample_inputs: ?[][26]u32 = null,
     check_reference: bool = false,
     seed: Launch,
     level: Launch,
@@ -453,6 +468,26 @@ pub const Prepared = struct {
     /// uploads them into request leases so it never evicts class entries.
     reusable: bool = true,
     pub fn init(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
+        var result = try initImpl(a, ctx, library);
+        errdefer result.deinit();
+        result.blake_sample_span = ctx.blake_sample_span;
+        if (ClassCache.mode() != .off) if (Dev.class_hint) |class_key| if (ClassCache.find(class_key)) |t| {
+            ClassCache.mutex.lock();
+            defer ClassCache.mutex.unlock();
+            if (ctx.blake_sample_span) |span| {
+                if (t.blake_sample_span) |old| if (!std.meta.eql(old, span)) return error.BlakeSampleClassSpanMismatch;
+                t.blake_sample_span = span;
+            }
+            result.blake_sample_span = t.blake_sample_span;
+        };
+        if (Dev.blake_sample_inputs) |inputs| {
+            const span = result.blake_sample_span orelse return error.MissingBlakeSampleClassSpan;
+            if (inputs.len == 0 or span.gg_count % 80 != 0 or inputs.len != span.gg_count / 80) return error.BlakeSampleInputCountMismatch;
+            result.blake_sample_inputs = try a.dupe([26]u32, inputs);
+        }
+        return result;
+    }
+    fn initImpl(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
         // M6 hint-tape (HT1): a seed tape replaces the graph for this class.
         if (Dev.seed_tape) |tape| return initFromTape(a, library, tape);
         const cache_mode = ClassCache.mode();
@@ -735,6 +770,7 @@ pub const Prepared = struct {
         if (self.wide_level != null) self.wide_level = library.lookup(Launch, "stwo_circuit_assignment_wide_level_on") orelse return error.MissingCircuitAssignmentChainKernel;
     }
     pub fn deinit(self: *Prepared) void {
+        if (self.blake_sample_inputs) |inputs| self.allocator.free(inputs);
         if (self.narrow_plan) |*value| value.deinit();
         if (self.borrowed) {
             if (self.decoded_tasks) self.allocator.free(self.tasks);

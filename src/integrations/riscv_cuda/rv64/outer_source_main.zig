@@ -78,11 +78,35 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
         try S.checked(b.base(@intCast(component), values.words.?, @intCast(owner.value_count), @as(u32, 1) << @intCast(logs[component]), @intCast(owner.key.pp.first_permutation_row), &pp, @intCast(pp_widths[component]), &outputs, @intCast(widths[component]), &counts, 22, status.words.?, stream.?));
         main_at += widths[component];
     }
+    const checked_blake_records = try checkBlakeSampleInputs(owner, &ctx, values.words.?, logs[4], status.words.?);
     if (fusedBlakeFlags()) |flags| fusedBlakeShadow(owner, &ctx, values.words.?, logs, stream.?, flags);
     var flag: [1]u32 = undefined;
     try ctx.download(try ctx.borrow(status), &flag);
     try ctx.join();
+    if (checked_blake_records != 0) std.debug.print("BLAKE_SAMPLE_INPUTS_CHECK ordinal={} records={} gg_rows={} mismatch={} assignment_unchanged=true\n", .{ owner.initial_scope.ordinal, checked_blake_records, checked_blake_records * 80, flag[0] });
     if (flag[0] != 0) return error.InvalidCircuitDeviceWitness;
+}
+
+const BlakeSampleCheckFn = *const fn (*anyopaque, u32, [*]const u32, u32, [*]const [*]const u32, u32, u32, [*]const u32, u32, [*]u32) callconv(.c) c_int;
+fn checkBlakeSampleInputs(owner: *S.Owner, ctx: anytype, values: [*]u32, gg_log: u32, status: [*]u32) !usize {
+    const assignment = if (owner.backend.assignment) |*value| value else return 0;
+    const inputs = assignment.blake_sample_inputs orelse return 0;
+    const span = assignment.blake_sample_span orelse return error.MissingBlakeSampleClassSpan;
+    if (inputs.len == 0 or span.gg_count % 80 != 0 or inputs.len != span.gg_count / 80) return error.BlakeSampleInputCountMismatch;
+    const kernel = owner.backend.service.library.lookup(BlakeSampleCheckFn, "stwo_circuit_blake_sample_inputs_check_on") orelse return error.MissingBlakeSampleCheckKernel;
+    const indices = try S.lookupIndices(owner.allocator, owner.key, 4);
+    defer owner.allocator.free(indices);
+    var pp: [10][*]const u32 = undefined;
+    for (&pp, indices[0..10]) |*out, index| {
+        const lease = owner.raw_fixed[index];
+        try S.checked(owner.backend.service.lease_validate_range(owner.backend.service.session, lease.words.?, lease.count, lease.context_token, lease.generation, &ctx.scope));
+        out.* = lease.words.?;
+    }
+    var tape = try ctx.allocate(try std.math.mul(usize, inputs.len, 26), 0);
+    defer ctx.release(&tape) catch {};
+    try ctx.upload(try ctx.borrow(tape), @as([*]const u32, @ptrCast(inputs.ptr))[0 .. inputs.len * 26]);
+    try S.checked(kernel(ctx.native_context, 0, values, @intCast(owner.value_count), &pp, @as(u32, 1) << @intCast(gg_log), span.first_gg, tape.words.?, @intCast(inputs.len), status));
+    return inputs.len;
 }
 
 // ---------------------------------------------------------------------------
@@ -125,8 +149,8 @@ fn fusedBlakeShadow(owner: *S.Owner, ctx: anytype, values: [*]u32, logs: anytype
     const status = shadow(values, @intCast(owner.value_count), &pp, g_rows, flags, stream, &stats, if (workspace) |w| w.words.? else null, if (workspace != null) workspace_words else 0);
     const wall: u64 = @intCast(std.time.nanoTimestamp() - start);
     std.debug.print("FUSED_BLAKE2S_V1_SHADOW status={d} ordinal={d} g_rows={d} chunks={d} shape={d} valid={d} fused_rows={d} instances={d} inst_logs=0x{x} gather_ns={d} fill_ns={d} check_ns={d} check_violations={d} xor_lookups={d} scratch_rows={d} fill_bytes={d} mem={d} wall_ns={d} flags={d} logs={any}\n", .{
-        status,    owner.initial_scope.ordinal, stats[0], stats[1],  stats[2],  stats[3], stats[4], stats[5],
-        stats[14], stats[6],                    stats[7], stats[8],  stats[9],  stats[10], stats[11], stats[12],
+        status,    owner.initial_scope.ordinal, stats[0], stats[1], stats[2], stats[3],  stats[4],  stats[5],
+        stats[14], stats[6],                    stats[7], stats[8], stats[9], stats[10], stats[11], stats[12],
         stats[15], wall,                        flags,    logs,
     });
 }

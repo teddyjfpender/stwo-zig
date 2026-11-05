@@ -54,6 +54,8 @@ pub threadlocal var class_is_leaf: bool = false;
 /// it reports the template's variable count in `n_vars`. Never enters a proof.
 pub const SeedTape = struct { values: []const [4]u32, n_vars: u32 = 0, consumed: bool = false };
 pub threadlocal var seed_tape: ?*SeedTape = null;
+/// Producer-only shadow inputs. The original assignment remains authoritative.
+pub threadlocal var blake_sample_inputs: ?[]const [26]u32 = null;
 pub const Factory = struct {
     context: *anyopaque,
     /// Optional device-free host stage. Thread-safe with respect to this
