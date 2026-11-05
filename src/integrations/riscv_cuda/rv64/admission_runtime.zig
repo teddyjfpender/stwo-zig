@@ -48,13 +48,16 @@ pub const Endpoint = struct {
     api: Api,
     session: *anyopaque,
     submit: N.Submit,
+    owner_context: ?*anyopaque = null,
     const Query = struct {
         endpoint: *const Endpoint,
         configure: bool = false,
         result: Snapshot = .{},
         failed: bool = false,
+        owner_context: ?*anyopaque = null,
         fn run(raw: *anyopaque, _: u64, user: ?*anyopaque) callconv(.c) c_int {
             const self: *@This() = @ptrCast(@alignCast(user orelse return 1));
+            self.owner_context = raw;
             if (self.configure and self.endpoint.api.configure(raw, self.endpoint.planner.preset.arenaBytes()) != 0) {
                 self.failed = true;
                 return 1;
@@ -69,7 +72,8 @@ pub const Endpoint = struct {
     pub fn init(planner: *A.Planner, physical: u32, lib: *std.DynLib, session: *anyopaque, submit: N.Submit) !Endpoint {
         return .{ .planner = planner, .physical = physical, .api = try Api.load(lib), .session = session, .submit = submit };
     }
-    pub fn configure(self: *const Endpoint) !void {
+    pub fn configure(self: *Endpoint) !void {
+        if (!self.planner.healthy(self.physical)) return error.PhysicalAdmissionPoisoned;
         const gate = try self.planner.stageGate(self.physical);
         gate.lock();
         defer gate.unlock();
@@ -78,6 +82,7 @@ pub const Endpoint = struct {
         try query.result.validate(self.*);
         try self.planner.observeIdle(self.physical, query.result.footprint());
         try self.planner.markConfigured(self.physical);
+        self.owner_context = query.owner_context;
     }
     pub fn enabled(self: *const Endpoint) bool {
         return self.planner.schedulingEnabled();
@@ -115,6 +120,13 @@ pub const Permit = struct {
     leave_ns: u64 = 0,
     /// Owner-thread entry, immediately before any allocation/kernel mutation.
     pub fn enterOwner(self: *Permit, raw: *anyopaque) !void {
+        // A permit belongs to the exact session owner discovered at configure,
+        // not merely another context with an equal live-byte baseline.
+        if (self.entered or self.closed) return error.AdmissionOwnerAlreadyEntered;
+        if (self.endpoint.owner_context == null or raw != self.endpoint.owner_context.?) return error.ForeignAdmissionOwner;
+        var preflight: Snapshot = .{};
+        if (self.endpoint.api.snapshot(raw, &preflight) != 0) return error.GlobalAdmissionSnapshotFailed;
+        try preflight.validate(self.endpoint);
         var label_buf: [192]u8 = undefined;
         const label = try std.fmt.bufPrintZ(&label_buf, "m7/{s}/{s}/r{}/o{}/t{}", .{ @tagName(self.demand.owner.domain), @tagName(self.demand.stage), self.demand.owner.request, self.demand.owner.ordinal, self.token.id });
         if (self.endpoint.api.begin(raw, self.token.id, self.before.live_large, self.before.live_small, self.demand.temporary.large, self.demand.temporary.small, label) != 0) return error.GlobalAdmissionOwnerBeginFailed;
@@ -136,6 +148,7 @@ pub const Permit = struct {
     /// failure: that physical planner stays blocked/terminal until teardown.
     pub fn finish(self: *Permit, successor: A.Footprint) !void {
         if (self.closed) return error.StaleAdmissionToken;
+        errdefer self.endpoint.planner.poisonPhysical(self.endpoint.physical);
         const after = if (self.entered) self.after orelse return error.AdmissionOwnerNotFinished else self.before;
         try after.validate(self.endpoint);
         try self.endpoint.planner.completeObserved(self.token, after.footprint(), successor);
@@ -160,8 +173,10 @@ fn currentRss() !u64 {
 test "runtime permit observes global retention and refuses untracked growth" {
     const M = struct {
         var live: A.Footprint = .{};
+        var physical: u32 = 0;
+        var begin_calls: usize = 0;
         fn state() Snapshot {
-            return .{ .version = 1, .device = 0, .capacity = 22 << 30, .chunk = A.chunk_bytes, .small_slab = A.small_slab_bytes, .live_large = live.large, .live_small = live.small, .largest_virtual_free = 64 << 30, .free_device = 8 << 30, .total_device = 32 << 30 };
+            return .{ .version = 1, .device = physical, .capacity = 22 << 30, .chunk = A.chunk_bytes, .small_slab = A.small_slab_bytes, .live_large = live.large, .live_small = live.small, .largest_virtual_free = 64 << 30, .free_device = 8 << 30, .total_device = 32 << 30 };
         }
         fn snapshot(_: *anyopaque, out: *Snapshot) callconv(.c) c_int {
             out.* = state();
@@ -171,6 +186,7 @@ test "runtime permit observes global retention and refuses untracked growth" {
             return 0;
         }
         fn begin(_: *anyopaque, _: u64, _: u64, _: u64, _: u64, _: u64, _: [*:0]const u8) callconv(.c) c_int {
+            begin_calls += 1;
             return 0;
         }
         fn end(_: *anyopaque, _: u64, out: *Snapshot) callconv(.c) c_int {
@@ -182,17 +198,25 @@ test "runtime permit observes global retention and refuses untracked growth" {
         }
     };
     M.live = .{};
+    M.physical = 0;
+    M.begin_calls = 0;
     var planner = try A.Planner.init(std.testing.allocator, &.{0}, .g22);
     defer planner.deinit();
     const raw: *anyopaque = @ptrFromInt(16);
-    const endpoint = Endpoint{ .planner = &planner, .physical = 0, .api = .{ .snapshot = M.snapshot, .configure = M.configure, .begin = M.begin, .end = M.end }, .session = raw, .submit = M.submit };
+    var endpoint = Endpoint{ .planner = &planner, .physical = 0, .api = .{ .snapshot = M.snapshot, .configure = M.configure, .begin = M.begin, .end = M.end }, .session = raw, .submit = M.submit };
     try endpoint.configure();
     try std.testing.expect(!endpoint.enabled());
     inline for (std.meta.fields(A.Coverage)) |field| try planner.registerCoverage(0, @enumFromInt(field.value));
     try std.testing.expect(endpoint.enabled());
     const demand = A.Demand{ .owner = .{ .request = 1, .domain = .native_packet, .ordinal = 0 }, .stage = .witness, .known = true, .host_known = true, .temporary = try A.Footprint.allocation(4 << 20) };
     var permit = (try endpoint.tryReserve(demand)).admitted;
+    try std.testing.expectError(error.ForeignAdmissionOwner, permit.enterOwner(@ptrFromInt(32)));
+    M.physical = 1;
+    try std.testing.expectError(error.StaticArenaPresetMismatch, permit.enterOwner(raw));
+    try std.testing.expectEqual(@as(usize, 0), M.begin_calls);
+    M.physical = 0;
     try permit.enterOwner(raw);
+    try std.testing.expectError(error.AdmissionOwnerAlreadyEntered, permit.enterOwner(raw));
     M.live = try A.Footprint.allocation(4 << 20);
     try permit.leaveOwner(raw);
     try permit.finish(.{});
