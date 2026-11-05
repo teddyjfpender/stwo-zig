@@ -109,6 +109,13 @@ pub const Pool = struct {
                 const planner = try a.create(A.Planner);
                 errdefer a.destroy(planner);
                 planner.* = try A.Planner.init(a, config.ids, preset);
+                errdefer planner.deinit();
+                if (std.posix.getenv("STWO_RV64_GLOBAL_ADMISSION_HOST_POLICY")) |policy| {
+                    if (std.mem.eql(u8, policy, "observe_only")) {
+                        planner.host_policy = .observe_only;
+                        planner.required_coverage = A.coverage_gpu;
+                    } else if (!std.mem.eql(u8, policy, "require_bounds")) return error.InvalidAdmissionHostPolicy;
+                }
                 self.admission = planner;
             } else if (!std.mem.eql(u8, text, "0")) return error.InvalidGlobalAdmissionOption;
         }
