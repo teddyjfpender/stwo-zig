@@ -71,6 +71,8 @@
     "physical_guard_arms": [
       "fullstack"
     ],
-    "baseline_memory_scope": "Original auto arena without physical canary; no28GBclaim forbaseline."
+    "baseline_memory_scope": "Original auto arena without physical canary; no28GBclaim forbaseline.",
+    "quiet_resource": "cgroup",
+    "quiet_scope": "Five samples with zero pod cgroup PSI some/full total and cpu.stat throttling deltas, steal<=1%, noforeignGPU/ownedcompiler. Host load recorded only; it covers othercgroups on shared192corehost."
   }
 }

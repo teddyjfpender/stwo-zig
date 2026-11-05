@@ -20,8 +20,7 @@ Nsight pair follows all six primary services; its walls are excluded from
 headline medians. CUPTI GPU-seconds are computed separately after fresh receivers.
 
 Correctness smoke records load/steal/GPU inventory once and explicitly labels its walls UNQUALIFIED. It does not wait for benchmark quiet conditions.
-Before each headline request, the runner requires five consecutive samples with load1m<8,
-CPU steal<=1%, and no active compiler/receiver process. A busy pod fails after300s;
+Before each headline request, the runner requires five consecutive samples with zero pod cgroup CPU PSI some/full-total deltas, zero nr_throttled/throttled_usec deltas, CPU steal<=1%, and no active compiler/receiver or foreign GPU process. Host load is recorded but does not gate; it spans other cgroups on the shared192core host. The current pod quota is40.8cores. Pressure/throttling snapshots are also recorded immediately before and after each request. A busy pod fails after300s;
 it is never relabelled quiet. Fresh receivers cannot contaminate primary timings.
 
 Only the fullstack arm holds the physical CUDA budget guard under the same GPU lease, from

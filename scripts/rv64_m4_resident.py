@@ -419,6 +419,38 @@ class PhysicalBudgetGuard:
         self.stderr.close()
 
 
+def cgroup_cpu_snapshot():
+    """CPU controls visible to this pod; global load is recorded separately."""
+    root = Path("/sys/fs/cgroup")
+    try:
+        pressure = {}
+        for line in (root / "cpu.pressure").read_text().splitlines():
+            name, *parts = line.split()
+            pressure[name] = {key: (int(value) if key == 'total' else float(value))
+                              for key, value in (part.split('=', 1) for part in parts)}
+        stat = {key: int(value) for key, value in
+                (line.split() for line in (root / "cpu.stat").read_text().splitlines())}
+        return {'known': True, 'monotonic_ns': time.monotonic_ns(), 'cpu_max': (root / 'cpu.max').read_text().strip(),
+                'cpu_pressure': pressure, 'cpu_stat': stat, 'host_loadavg': os.getloadavg()}
+    except (OSError, ValueError) as error:
+        return {'known': False, 'monotonic_ns': time.monotonic_ns(), 'error': repr(error), 'host_loadavg': os.getloadavg()}
+
+
+def cgroup_cpu_delta(before, after):
+    if not before.get('known') or not after.get('known'):
+        return {'known': False, 'quiet': False}
+    try:
+        values = {'psi_some_total_us': after['cpu_pressure']['some']['total'] - before['cpu_pressure']['some']['total'],
+                  'psi_full_total_us': after['cpu_pressure']['full']['total'] - before['cpu_pressure']['full']['total'],
+                  'nr_throttled': after['cpu_stat']['nr_throttled'] - before['cpu_stat']['nr_throttled'],
+                  'throttled_us': after['cpu_stat']['throttled_usec'] - before['cpu_stat']['throttled_usec']}
+        if min(values.values()) < 0 or before['cpu_max'] != after['cpu_max']:
+            return {'known': False, 'quiet': False, 'reason': 'counter reset or CPU quota changed'}
+        return dict(values, known=True, quiet=all(value == 0 for value in values.values()))
+    except KeyError:
+        return {'known': False, 'quiet': False, 'reason': 'required pressure/throttling counter absent'}
+
+
 def quiet_checkpoint(process, args, run, index, guard=None):
     """Read-only admission before a request; never relabel a busy pod as quiet."""
     limit = getattr(args, "quiet_load_max", None)
@@ -433,6 +465,7 @@ def quiet_checkpoint(process, args, run, index, guard=None):
         values = list(map(int, parts))
         return sum(values[:8]), values[7]
     previous = cpu()
+    previous_resource = cgroup_cpu_snapshot()
     while True:
         if guard:
             guard.check()
@@ -476,10 +509,14 @@ def quiet_checkpoint(process, args, run, index, guard=None):
         except (subprocess.SubprocessError, ValueError, OSError) as error:
             blockers.append({"reason": "GPU process inventory unavailable", "error": repr(error)})
         load = os.getloadavg()
-        okay = load[0] < limit and steal is not None and steal <= args.quiet_steal_max and not blockers
+        resource = cgroup_cpu_snapshot()
+        resource_delta = cgroup_cpu_delta(previous_resource, resource)
+        previous_resource = resource
+        load_or_resource = resource_delta['quiet'] if args.quiet_resource == 'cgroup' else load[0] < limit
+        okay = load_or_resource and steal is not None and steal <= args.quiet_steal_max and not blockers
         consecutive = consecutive + 1 if okay else 0
-        rows.append({"elapsed_s": round(time.monotonic() - start, 3), "loadavg": load, "cpu_steal_fraction": steal, "blocking_processes": blockers, "gpu_processes": gpu_processes, "qualifies": okay})
-        record = {"request_index": index, "load_max": limit, "steal_max": args.quiet_steal_max, "required_stable_samples": args.quiet_stable_samples, "samples": rows, "accepted": consecutive >= args.quiet_stable_samples, "mode": args.quiet_mode, "timing_qualified": False if args.quiet_mode == "diagnostic" else consecutive >= args.quiet_stable_samples}
+        rows.append({"elapsed_s": round(time.monotonic() - start, 3), "loadavg": load, "cpu_steal_fraction": steal, "blocking_processes": blockers, "gpu_processes": gpu_processes, "cgroup": resource, "cgroup_delta": resource_delta, "qualifies": okay})
+        record = {"request_index": index, "quiet_scope": "pod cgroup pressure/throttling and exclusive GPU, host load informational" if args.quiet_resource == "cgroup" else "host load", "resource_gate": args.quiet_resource, "load_max": limit, "steal_max": args.quiet_steal_max, "required_stable_samples": args.quiet_stable_samples, "samples": rows, "accepted": consecutive >= args.quiet_stable_samples, "mode": args.quiet_mode, "timing_qualified": False if args.quiet_mode == "diagnostic" else consecutive >= args.quiet_stable_samples}
         B.atomic_json(run / f"quiet-{index:04d}.json", record)
         if record["accepted"] or args.quiet_mode == "diagnostic":
             return record
@@ -564,6 +601,7 @@ def daemon(args):
                 for index, block in enumerate(order):
                     quiet_records.append(quiet_checkpoint(process, args, run, index, guard))
                     name = f"{index:04d}-{block}"
+                    resource_before = cgroup_cpu_snapshot()
                     submitted = time.monotonic_ns()
                     submitted_utc = time.time_ns()
                     (spool / "inbox" / f"{name}.tmp").write_text(f"{block}\n")
@@ -577,7 +615,7 @@ def daemon(args):
                         time.sleep(0.005)
                     latency = time.monotonic_ns() - submitted
                     timeline.append({"name": name, "block": block, "client_latency_ns": latency, "service": B.load(done),
-                                     "utc_window_ns": [submitted_utc, time.time_ns()]})
+                                     "utc_window_ns": [submitted_utc, time.time_ns()], "cpu_resource_before": resource_before, "cpu_resource_after": cgroup_cpu_snapshot()})
                     # Preserve completed windows even if a later request fails.
                     B.atomic_json(run / "request-timeline.json", timeline)
                     if args.gap:
@@ -622,7 +660,9 @@ def daemon(args):
         proof = spool / "out" / item["name"] / str(block) / "proof"
         entry = {"block": block, "trial": ordinal // len(args.blocks), "ordinal": ordinal, "proof": str(proof),
                  "client_latency_ns": item["client_latency_ns"], "utc_window_ns": item["utc_window_ns"], "marker": {"request_wall_ns": item["service"]["request_wall_ns"]},
-                 "queue_ns": item["service"].get("queue_ns")}
+                 "queue_ns": item["service"].get("queue_ns"),
+                 "cpu_resource_before": item.get("cpu_resource_before"), "cpu_resource_after": item.get("cpu_resource_after"),
+                 "cpu_resource_delta": cgroup_cpu_delta(item["cpu_resource_before"], item["cpu_resource_after"]) if item.get("cpu_resource_before") else None}
         stages, report, combined = P.stage_breakdown(proof, {0: item["service"]["request_wall_ns"]})
         entry["stages"] = stages
         entry["setup_breakdown"] = combined.get("setup_breakdown")
@@ -893,6 +933,7 @@ def main():
         d._add_action(action)
     d.add_argument("--process-budget-guard", help="physical CUDA reservation executable; held under same GPU lease through driver exit")
     d.add_argument("--gap", type=float, default=0.0, help="idle seconds between requests")
+    d.add_argument("--quiet-resource", choices=("host-load", "cgroup"), default="host-load", help="cgroup mode requires zero PSI/throttle deltas for the pod; host load is informational")
     d.add_argument("--quiet-mode", choices=("enforce", "diagnostic"), default="enforce", help="diagnostic records one load/steal/GPU sample without qualifying latency; correctness smoke only")
     d.add_argument("--quiet-load-max", type=float, help="require load1m below this before every request; no timings start while busy")
     d.add_argument("--quiet-steal-max", type=float, default=0.01, help="maximum CPU steal fraction before a request")

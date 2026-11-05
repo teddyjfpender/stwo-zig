@@ -95,7 +95,7 @@ def command(manifest, arm, round_index, run_root, profile, label="one-stack"):
             '--receive', 'none', '--security-profile', preset['security_profile'], '--coalesce-truth-families',
             '--driver', assets['driver'], '--library', assets['library'], '--receiver', assets['receiver'],
             '--tag', tag, '--no-default-env', '--quiet-load-max', str(preset['measurement']['quiet_load_max']),
-            '--quiet-steal-max', str(preset['measurement']['quiet_steal_max']),
+            '--quiet-steal-max', str(preset['measurement']['quiet_steal_max']), '--quiet-resource', preset['measurement'].get('quiet_resource', 'host-load'),
             '--quiet-timeout', str(preset['measurement']['quiet_timeout_s']),
             '--quiet-stable-samples', str(preset['measurement']['quiet_stable_samples'])]
     if arm == 'fullstack':
