@@ -169,7 +169,7 @@ pub const Owner = struct {
         const expected = try Execution.localCpuExpected(a, setup, request, 0, first_ids, o.pcs, &self.binding.?);
         defer a.free(expected.local_instances.?);
         const scope = D.Scope{ .statement = expected.statement, .fixed = expected.fixed, .main = @splat(0), .ordinal = 0 };
-        var source_request = Pipeline.DeviceSourceStage.Request{ .setup = setup, .request = request, .native = &local_native, .advice = &self.advice, .ordinal = 0, .first_ids = first_ids, .scope = scope };
+        var source_request = Pipeline.DeviceSourceStage.Request{ .setup = setup, .request = request, .native = &local_native, .advice = &self.advice, .ordinal = 0, .first_ids = first_ids, .scope = scope, .pcs_config = o.pcs };
         self.ticket = try o.memory.reserve(o.memory.context, a, source_request, o.pcs, o.memory.host_budget.?);
         self.admit_utc_ns = now();
         // All unpublished source owners must be destroyed before the ticket's

@@ -22,6 +22,9 @@ const DeviceBindingRuntime = @import("device_binding_runtime.zig");
 const TwiddleCache = @import("gkr_twiddles.zig");
 const Slice = @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32);
 const O = core.fields.om31.OM31;
+const Cost = @import("native_gkr_cost.zig");
+const Admission = @import("admission_runtime.zig");
+const Service = @import("pcs_native.zig");
 const Proof = engine.lookups.gkr_verifier.ForField(O).GkrBatchProof;
 const Projection = extern struct {
     fixed: [*]const u32,
@@ -79,6 +82,7 @@ pub const FixedProvider = struct {
     release: *const fn (*anyopaque, @import("stwo_riscv_cpu_integration").rv64_device_pcs.Scope) anyerror!void,
 };
 pub const Backend = struct {
+    service: ?*Service.Context = null,
     fixed_provider: ?FixedProvider = null,
     coefficient_sink: ?CoefficientSink = null,
     binding_runtime: ?*DeviceBindingRuntime.Runtime = null,
@@ -96,6 +100,47 @@ pub const Backend = struct {
     batched_tail: bool = false,
     batched_fold_sum: bool = false,
     byte_cap: usize,
+    pub const ClassAllocations = struct { numerical: Cost.Plan, binding: Cost.Binding };
+    /// Receiver-owned class geometry. No synthetic device pointers,
+    /// challenges, fraction arrays or public RAM values are constructed.
+    pub fn classAllocationPlan(self: *const Backend, a: std.mem.Allocator, setup: *const @import("stwo_riscv_cpu_integration").rv64_services_roster.CpuSetup) !ClassAllocations {
+        const CPU = @import("stwo_riscv_cpu_integration");
+        var components = try CPU.rv64_gkr_cpu_components.Plan.init(a, setup);
+        defer components.deinit();
+        if (components.binding_count == 0 or components.binding_count > A.batch_max_oracles) return error.InvalidGeometry;
+        const items = try a.alloc(Cost.Item, components.binding_count);
+        defer a.free(items);
+        const variables = try a.alloc(u32, components.binding_count);
+        defer a.free(variables);
+        var cells: usize = 0;
+        var fixed_words: usize = 0;
+        var max_log: u32 = 0;
+        for (0..2) |tree| {
+            const logs = try setup.logs(a, tree);
+            defer a.free(logs);
+            for (logs) |log| {
+                if (log < 3 or log > 28) return error.InvalidGkrSourceColumn;
+                const n = @as(usize, 1) << @intCast(log);
+                cells = try std.math.add(usize, cells, n);
+                if (tree == 0) fixed_words = try std.math.add(usize, fixed_words, n);
+                max_log = @max(max_log, log);
+            }
+        }
+        var binding_rows: u64 = 0;
+        var binding_log: u32 = 0;
+        for (components.slots) |slot| if (slot.binding_index) |i| {
+            const mode_role = slot.origin == .core and (slot.origin.core == .cpu or slot.origin.core == .and_table);
+            const descriptor = Source.Descriptor{ .origin = slot.origin, .cpu_u8_pairs = mode_role and setup.materials.geometry.cpu_u8_pairs, .cpu_compact_decode = slot.origin == .core and slot.origin.core == .cpu and setup.materials.geometry.cpu_compact_decode };
+            const artifact = &self.catalogue.artifacts[try self.catalogue.find(descriptor)];
+            variables[i] = try std.math.add(u32, slot.log, std.math.log2_int(u32, artifact.lanes));
+            if (variables[i] > 28) return error.InvalidGeometry;
+            items[i] = .{ .facts = @as(u64, 1) << @intCast(variables[i]), .offsets = artifact.program.inputs.len, .public = Source.Public.count, .parameters = artifact.source_slots.len };
+            binding_rows = try std.math.add(u64, binding_rows, @as(u64, 1) << @intCast(slot.log));
+            binding_log = @max(binding_log, slot.log);
+        };
+        const workspace = try G.Plan.init(variables, self.byte_cap);
+        return .{ .numerical = try Cost.init(.{ .cells = cells, .twiddles = @as(usize, 1) << @intCast(max_log - 1), .workspace = workspace.total_words, .relation_count = if (setup.materials.geometry.cpu_u8_pairs) @intCast(std.enums.values(Source.Fractions.Relation).len) else @intFromEnum(Source.Fractions.Relation.byte_pair), .items = items, .publish_coefficients = false, .binding_state_words = if (self.binding_runtime != null) A.gkr_state_words else 0, .cold_fixed_words = if (self.fixed_provider != null) fixed_words else 0 }), .binding = try Cost.binding(binding_rows, binding_log) };
+    }
     pub fn init(a: std.mem.Allocator, library: *std.DynLib, session: *anyopaque, byte_cap: usize) !Backend {
         var catalogue = try Sources.Catalogue.init(a);
         errdefer catalogue.deinit();
