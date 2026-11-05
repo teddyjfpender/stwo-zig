@@ -342,12 +342,22 @@ fn take(words: []const u32, at: *usize) !O {
     }
     return O.fromM31Array(c);
 }
+pub const CodecVersion = enum(u32) {
+    v1 = 1,
+    v2 = 2,
+    fn capacity(self: CodecVersion) usize { return if (self == .v1) 64 else 128; }
+};
 pub fn encode(a: std.mem.Allocator, roster: *const R.Roster, section: *const Section) ![]u32 {
+    return encodeVersion(a, roster, section, .v1);
+}
+/// Version is receiver class authority, never a value selected from incoming words.
+pub fn encodeVersion(a: std.mem.Allocator, roster: *const R.Roster, section: *const Section, version: CodecVersion) ![]u32 {
+    try roster.validateBounded(version.capacity());
     try checkShape(roster, &section.proof);
     const l = roster.layers();
     const out = try a.alloc(u32, wordCount(roster));
     errdefer a.free(out);
-    out[0..4].* = .{ MAGIC, VERSION, @intCast(roster.instances.len), l };
+    out[0..4].* = .{ MAGIC, @intFromEnum(version), @intCast(roster.instances.len), l };
     var at: usize = 4;
     put(out, &at, section.salt);
     for (section.proof.output_claims_by_instance) |root| for (root) |v| put(out, &at, v);
@@ -365,9 +375,12 @@ pub fn encode(a: std.mem.Allocator, roster: *const R.Roster, section: *const Sec
 }
 /// The roster is the one the RECEIVER derives from the proof's verified class (never from the wire).
 pub fn decode(a: std.mem.Allocator, roster: *const R.Roster, words: []const u32) !Section {
-    try roster.validate();
+    return decodeVersion(a, roster, words, .v1);
+}
+pub fn decodeVersion(a: std.mem.Allocator, roster: *const R.Roster, words: []const u32, version: CodecVersion) !Section {
+    try roster.validateBounded(version.capacity());
     const l = roster.layers();
-    if (words.len < 4 or words[0] != MAGIC or words[1] != VERSION) return error.MalformedNativeGkrSection;
+    if (words.len < 4 or words[0] != MAGIC or words[1] != @intFromEnum(version)) return error.MalformedNativeGkrSection;
     if (words[2] != roster.instances.len or words[3] != l or words.len != wordCount(roster)) return error.MalformedNativeGkrSection;
     var at: usize = 4;
     const salt = try take(words, &at);

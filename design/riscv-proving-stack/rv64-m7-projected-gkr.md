@@ -39,3 +39,13 @@ final-layer source revisit and preflight source/arena alias rejection.
 Receipts: `vectors/reports/rv64-m7-20261105/native-gkr/projected-gkr.json` and the
 associated logs. These are numerical/control results, not a full-block timing,
 production memory peak, or proof acceptance result.
+
+The v2 CPU reference now has a public 128-instance bounded roster derivation
+and version-2 wire codec. Receiver class authority selects version/capacity;
+wire words cannot choose their own decoder. The focused native-GKR CPU gate
+proves and round-trips exactly 128 instances, rejects 129, cross-version headers,
+truncation, trailing words and noncanonical scalars. Frozen v1 retains its
+64-instance limit and header bytes; its NG01 corpus still rejects all 3468
+single-word mutations. This closes reference framing gaps only. Native AIR,
+receiver source-mass admission, CUDA source adapters and recursive verification
+remain required before production v2-GKR can be enabled.
