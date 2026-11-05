@@ -1,0 +1,7 @@
+# Graph tracing completeness [M: profiler schema/trace gate]
+
+The installed Nsight profiler defaults to whole-graph tracing on this CUDA driver. It stores graph envelopes in CUPTI_ACTIVITY_KIND_GRAPH_TRACE and omits individual graph-node kernels from CUPTI_ACTIVITY_KIND_KERNEL. Thus the initial graph-ON small trace's5.9413 kernel GPU-s is incomplete and must never be compared to OFF6.7317 as a work reduction. The ON trace contains0.7965GPU-s of graph envelopes; envelopes include gaps and are not kernel time. The analyzer now returns null for complete phase kernel work in that case and preserves known kernels/envelopes separately. Raw numerical trace evidence remains retained.
+
+The resident harness now explicitly requests `--cuda-graph-trace=node`. The final composed M6/D2 profiles have no graph-envelope records in any request window and pass the fresh-receiver-bound exact UTC kernel interval accounting gate. Complete node-level traces confirm that proof-neutral graph/controller changes do not reduce arithmetic kernel work. Their host enqueue behavior and whole-request latency remain separate measurements. Node tracing introduces profiler overhead; no wall-speed guarantee follows.
+
+The M6/D2 comparison uses complete kernel unions per physical GPU summed across the two GPUs; nested ranges never add to their parent. Copies are reported separately or in kernel+copy interval unions, never simply added to overlapping kernel time.
