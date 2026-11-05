@@ -18,6 +18,7 @@ pub const Format = enum { legacy_blake32_m31, poseidon2_w24_v1 };
 pub const Input = struct {
     format: Format = .legacy_blake32_m31,
     roles: []const Role,
+    shared_role_arena: bool = false,
     log: u32,
     split: u32,
     beta: u32,
@@ -33,6 +34,7 @@ pub const Plan = struct {
     format: Format = .legacy_blake32_m31,
     events: std.ArrayList(Allocation) = .empty,
     additional_peak: A.Footprint = .{},
+    workspace_words: u64 = 0,
     retained_after: A.Footprint = .{},
     live: A.Footprint = .{},
     host_cost_known: bool = false,
@@ -59,6 +61,28 @@ fn mul(a: u64, b: u64) !u64 {
 fn add(a: u64, b: u64) !u64 {
     return std.math.add(u64, a, b);
 }
+pub fn arenaWords(role: Role) !u64 {
+    const rl = role.trace_log;
+    const el = role.eval_log;
+    if (rl < 4 or rl > 27 or el < rl + 1 or el > rl + 2 or el > 28) return error.InvalidCompositionGeometry;
+    const n = try rows(el);
+    const aux: u64 = switch (role.auxiliary) {
+        .none => 0,
+        .last => 1,
+        .hc => 10,
+    };
+    const columns = try add(role.columns.len, aux);
+    var staging = try mul(aux, try rows(rl));
+    for (role.columns) |column| {
+        if (column.log >= el) return error.InvalidCompositionGeometry;
+        if (column.direct) {
+            if (column.log + 1 != el and column.log + 2 != el) return error.InvalidCompositionDirectSource;
+        } else staging = try add(staging, try rows(column.log));
+    }
+    const tw_base = try add(staging, try mul(columns, n));
+    const desc_base = std.mem.alignForward(u64, try add(tw_base, n / 2), 2);
+    return try add(desc_base, try mul(columns, 6));
+}
 pub fn init(a: std.mem.Allocator, input: Input) !Plan {
     if (input.format != .legacy_blake32_m31) return error.AllocationCostFormatUnavailable;
     if (input.roles.len == 0 or input.log < 5 or input.log > 28 or input.split < 1 or input.split > 2 or input.beta < 1 or input.beta > 4 or (input.separate_coefficients and input.beta != 1)) return error.InvalidCompositionGeometry;
@@ -67,6 +91,11 @@ pub fn init(a: std.mem.Allocator, input: Input) !Plan {
     if (input.fixed_cold_words != 0) p.retained_after = try p.allocate(a, .fixed_forest, null, input.fixed_cold_words, true);
     var buckets: [29]bool = @splat(false);
     var constraints: u64 = 0;
+    var shared: A.Footprint = .{};
+    if (input.shared_role_arena) {
+        for (input.roles) |role| p.workspace_words = @max(p.workspace_words, try arenaWords(role));
+        shared = try p.allocate(a, .role_arena, null, p.workspace_words, false);
+    }
     for (input.roles, 0..) |role, ordinal| {
         const rl = role.trace_log;
         const el = role.eval_log;
@@ -80,16 +109,7 @@ pub fn init(a: std.mem.Allocator, input: Input) !Plan {
             .hc => 10,
         };
         const columns = try add(role.columns.len, aux);
-        var staging = try mul(aux, try rows(rl));
-        for (role.columns) |column| {
-            if (column.log >= el) return error.InvalidCompositionGeometry;
-            if (column.direct) {
-                if (column.log + 1 != el and column.log + 2 != el) return error.InvalidCompositionDirectSource;
-            } else staging = try add(staging, try rows(column.log));
-        }
-        const tw_base = try add(staging, try mul(columns, n));
-        const desc_base = std.mem.alignForward(u64, try add(tw_base, n / 2), 2);
-        const arena = try p.allocate(a, .role_arena, id, try add(desc_base, try mul(columns, 6)), false);
+        const arena = if (input.shared_role_arena) A.Footprint{} else try p.allocate(a, .role_arena, id, try arenaWords(role), false);
         if (aux != 0) {
             _ = try p.allocate(a, .auxiliary_inverse, id, (try rows(rl)) / 2, true);
             if (role.auxiliary == .hc) _ = try p.allocate(a, .hc, id, 16 * @as(u64, rl), true);
@@ -109,6 +129,8 @@ pub fn init(a: std.mem.Allocator, input: Input) !Plan {
         p.live.small -= arena.small;
     }
     if (constraints != input.constraints) return error.WrongCompositionConstraintCount;
+    p.live.large -= shared.large;
+    p.live.small -= shared.small;
     const n = try rows(input.log);
     const coefficient_words = try mul(n, 8);
     const chunk_log = input.log - input.split;
@@ -161,4 +183,24 @@ test "classic Keccak role exposes its actual arena multiplier before mutation" {
 
 test "new hash ABI cannot reuse legacy composition allocation costs" {
     try std.testing.expectError(error.AllocationCostFormatUnavailable, init(std.testing.allocator, .{ .format = .poseidon2_w24_v1, .roles = &.{}, .log = 5, .split = 1, .beta = 1, .separate_coefficients = true, .constraints = 0 }));
+}
+
+test "max-role workspace includes later accumulated buckets before release" {
+    const tall = [_]Column{.{ .log = 19, .direct = true }} ** 64;
+    const short = [_]Column{.{ .log = 18, .direct = true }};
+    const roles = [_]Role{
+        .{ .trace_log = 19, .eval_log = 20, .columns = &tall, .masks = 1, .parameters = 1, .constraints = 1 },
+        .{ .trace_log = 18, .eval_log = 19, .columns = &short, .masks = 1, .parameters = 1, .constraints = 1 },
+    };
+    const input = Input{ .roles = &roles, .log = 20, .split = 1, .beta = 1, .separate_coefficients = true, .constraints = 2 };
+    var old = try init(std.testing.allocator, input);
+    defer old.deinit(std.testing.allocator);
+    var reuse_input = input;
+    reuse_input.shared_role_arena = true;
+    var shared_plan = try init(std.testing.allocator, reuse_input);
+    defer shared_plan.deinit(std.testing.allocator);
+    try std.testing.expectEqual(try arenaWords(roles[0]), shared_plan.workspace_words);
+    try std.testing.expectEqual(old.additional_peak.large + A.chunk_bytes, shared_plan.additional_peak.large);
+    try std.testing.expectEqual(old.retained_after, shared_plan.retained_after);
+    try std.testing.expect(!shared_plan.host_cost_known);
 }
