@@ -136,9 +136,17 @@ fn validateInventory(inventory: Inventory, requests: []const Old.Request, expect
     if (initial.len != terminal.len) return error.GlobalTouchedSetMismatch;
     mass = try std.math.add(u64, mass, try std.math.add(u64, initial.len, terminal.len));
     if (mass >= core.fields.m31.Modulus) return error.GlobalRamCharacteristicBound;
+    try validatePublicBoundary(expected.admission, initial, terminal, requests.len);
+}
+/// Source-owned public-boundary policy, shared with typed root reception.
+/// This admits values/rights/touched-set shape; a proof's authenticated RAM
+/// relation is still required to connect this boundary to an execution.
+pub fn validatePublicBoundary(admission: Admission, initial: []const A.memory.closed_ram.types.Cell, terminal: []const A.memory.closed_ram.types.Cell, cpu_count: usize) !void {
+    if (cpu_count == 0 or cpu_count > 65535) return error.InvalidGlobalExecutionRoster;
+    if (initial.len != terminal.len) return error.GlobalTouchedSetMismatch;
     for (initial, terminal, 0..) |b, e, i| {
         if (b.address & 7 != 0 or (i != 0 and initial[i - 1].address >= b.address) or e.address != b.address) return error.GlobalTouchedSetMismatch;
-        if (b.state.epoch != 0 or b.state.tick != 0 or b.state.value != try expected.admission.image.initialWord(b.address) or b.state.rights != try expected.admission.image.wordRights(b.address)) return error.UntrustedGlobalMemoryInitialization;
-        if (e.state.rights != b.state.rights or e.state.epoch > requests.len) return error.InvalidGlobalMemoryTerminal;
+        if (b.state.epoch != 0 or b.state.tick != 0 or b.state.value != try admission.image.initialWord(b.address) or b.state.rights != try admission.image.wordRights(b.address)) return error.UntrustedGlobalMemoryInitialization;
+        if (e.state.rights != b.state.rights or e.state.epoch > cpu_count) return error.InvalidGlobalMemoryTerminal;
     }
 }

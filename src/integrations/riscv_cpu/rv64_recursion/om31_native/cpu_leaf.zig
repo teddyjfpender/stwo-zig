@@ -39,6 +39,21 @@ fn exposeRoot(frame: *Public.Frame, hash: C.Hash) !Public.Digest {
     return hash.words;
 }
 pub const Statement = struct {
+    /// The original public witnesses, retained for typed-summary constraints.
+    /// Saving these handles adds no guesses or equations to legacy leaves.
+    pub const ChainInputs = struct {
+        steps: Public.Word,
+        epoch: Public.Word,
+        initial_pc: [4]Public.Word,
+        final_pc: [4]Public.Word,
+        initial_registers: [32][4]Public.Word,
+        final_registers: [32][4]Public.Word,
+        register_clocks: [32]Public.Word,
+        sponge_first: Public.Word,
+        rows: []const Public.Word,
+        calls: []const Public.Word,
+        first_ids: []const Public.Word,
+    };
     setup: *const R.CpuSetup,
     plan: Components.Plan,
     config: W.PcsConfig,
@@ -49,6 +64,7 @@ pub const Statement = struct {
     claims: []const F,
     pending: Child.Pending,
     publics: []const Oods.PublicFor(F),
+    chain_inputs: ChainInputs,
 
     /// Native input is witness assignment only. Every request scalar consumed
     /// by an equation is a guessed public word in `frame`; none becomes a
@@ -81,13 +97,22 @@ pub const Statement = struct {
         for (claims, native_claims) |*wire, value| wire.* = try frame.guessOm(value);
         const shared = try Public.drawShared(ctx, manifest_words);
         const cpu = request.base.cpu;
-        const steps = (try frame.guessU32(cpu.steps)).base;
-        const epoch = (try frame.guessU32(request.base.epoch)).base;
+        const steps_word = try frame.guessU32(cpu.steps);
+        const epoch_word = try frame.guessU32(request.base.epoch);
+        const steps = steps_word.base;
+        const epoch = epoch_word.base;
+        var chain_inputs: ChainInputs = undefined;
+        chain_inputs.steps = steps_word.word;
+        chain_inputs.epoch = epoch_word.word;
         var initial_pc: [4]F = undefined;
         var final_pc: [4]F = undefined;
         for (0..4) |i| {
-            initial_pc[i] = (try frame.guessU32(@as(u16, @truncate(cpu.initial_pc >> @as(u6, @intCast(16 * i)))))).base;
-            final_pc[i] = (try frame.guessU32(@as(u16, @truncate(cpu.final_pc >> @as(u6, @intCast(16 * i)))))).base;
+            const initial = try frame.guessU32(@as(u16, @truncate(cpu.initial_pc >> @as(u6, @intCast(16 * i)))));
+            const final = try frame.guessU32(@as(u16, @truncate(cpu.final_pc >> @as(u6, @intCast(16 * i)))));
+            initial_pc[i] = initial.base;
+            final_pc[i] = final.base;
+            chain_inputs.initial_pc[i] = initial.word;
+            chain_inputs.final_pc[i] = final.word;
         }
         var source_public = [_]F{F.zero()} ** Oods.Authority.Source.Public.count;
         const SP = Oods.Authority.Source.Public;
@@ -95,10 +120,16 @@ pub const Statement = struct {
         source_public[SP.initial_pc] = initial_pc[0].add(initial_pc[1].mul(F.fromBase(core.fields.m31.M31.fromCanonical(65536))));
         for (0..32) |r| {
             for (0..4) |i| {
-                source_public[SP.initial_registers + 4 * r + i] = (try frame.guessU32(@as(u16, @truncate(cpu.initial_registers[r] >> @as(u6, @intCast(16 * i)))))).base;
-                source_public[SP.final_registers + 4 * r + i] = (try frame.guessU32(@as(u16, @truncate(cpu.final_registers[r] >> @as(u6, @intCast(16 * i)))))).base;
+                const initial = try frame.guessU32(@as(u16, @truncate(cpu.initial_registers[r] >> @as(u6, @intCast(16 * i)))));
+                const final = try frame.guessU32(@as(u16, @truncate(cpu.final_registers[r] >> @as(u6, @intCast(16 * i)))));
+                source_public[SP.initial_registers + 4 * r + i] = initial.base;
+                source_public[SP.final_registers + 4 * r + i] = final.base;
+                chain_inputs.initial_registers[r][i] = initial.word;
+                chain_inputs.final_registers[r][i] = final.word;
             }
-            source_public[SP.register_clocks + r] = (try frame.guessU32(cpu.register_clocks[r])).base;
+            const clock = try frame.guessU32(cpu.register_clocks[r]);
+            source_public[SP.register_clocks + r] = clock.base;
+            chain_inputs.register_clocks[r] = clock.word;
         }
         const inputs = A.word16_execution.types.InputsFor(F){ .steps = steps, .initial_pc = initial_pc, .final_pc = final_pc, .epoch = epoch, .wide_clock = A.word16_execution.layout.wideClock(setup.materials.geometry.cpu_log) };
         const plan = try Components.Plan.init(a, setup);
@@ -108,8 +139,16 @@ pub const Statement = struct {
         const publics = try a.alloc(Oods.PublicFor(F), plan.slots.len);
         const ls_counts = try setup.materials.geometry.lsCounts(request.base.memory.ls_count);
         const dword_counts = try T.dwordCounts(setup.bridges, request.ls_dword);
-        const sponge_first = (try frame.guessU32(request.sponge.first_id)).base;
-        for (publics, plan.slots) |*public, slot| {
+        const sponge_first_word = try frame.guessU32(request.sponge.first_id);
+        const sponge_first = sponge_first_word.base;
+        chain_inputs.sponge_first = sponge_first_word.word;
+        const row_words = try a.alloc(Public.Word, plan.slots.len);
+        const call_words = try a.alloc(Public.Word, plan.slots.len);
+        const first_words = try a.alloc(Public.Word, plan.slots.len);
+        chain_inputs.rows = row_words;
+        chain_inputs.calls = call_words;
+        chain_inputs.first_ids = first_words;
+        for (publics, plan.slots, 0..) |*public, slot, slot_index| {
             var rows_native: u32 = 0;
             var calls_native: u32 = 0;
             var first_native: u32 = 1;
@@ -131,9 +170,15 @@ pub const Statement = struct {
                 .sponge => |kind| rows_native = request.sponge.rows(kind),
                 .dword => |index| rows_native = dword_counts[index],
             }
-            const rows = (try frame.guessU32(rows_native)).base;
-            const calls = (try frame.guessU32(calls_native)).base;
-            const first_id = (try frame.guessU32(first_native)).base;
+            const row_word = try frame.guessU32(rows_native);
+            const call_word = try frame.guessU32(calls_native);
+            const first_word = try frame.guessU32(first_native);
+            const rows = row_word.base;
+            const calls = call_word.base;
+            const first_id = first_word.base;
+            row_words[slot_index] = row_word.word;
+            call_words[slot_index] = call_word.word;
+            first_words[slot_index] = first_word.word;
             var sp = source_public;
             sp[SP.sponge_first_id] = sponge_first;
             const nclaims = Oods.Authority.Global.claimCount(slot.origin);
@@ -145,7 +190,7 @@ pub const Statement = struct {
                 .local = if (slot.binding_index) |index| try Oods.localFromArtifact(F, a, instances[index], index, pending.artifact, pending.challenges, pending.eta) else null,
             };
         }
-        return .{ .setup = setup, .plan = plan, .config = config, .binding = binding, .ordinal = ordinal.word, .statement = statement, .manifest = manifest_words, .claims = claims, .pending = pending, .publics = publics };
+        return .{ .setup = setup, .plan = plan, .config = config, .binding = binding, .ordinal = ordinal.word, .statement = statement, .manifest = manifest_words, .claims = claims, .pending = pending, .publics = publics, .chain_inputs = chain_inputs };
     }
     pub fn deinit(self: *Statement, ctx: *C.Context) void {
         self.pending.artifact.deinit(ctx.gpa);
