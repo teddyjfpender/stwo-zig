@@ -59,6 +59,12 @@ pub const ProjectionStage = struct {
     /// Synchronous narrow ingress. The stage owns returned device evaluations
     /// through MAIN commitment and transfers their custody to its proof scope.
     project: *const fn (*anyopaque, *const Source, Device.Scope) anyerror!DeviceProjection,
+    /// Optional producer-only CPU0 work before global RAM/roster binding.
+    /// Scheduling must return immediately; join/cancel must finish all source
+    /// borrows before capture or program owners can be destroyed.
+    prestage: ?*const fn (*anyopaque, *const Source, [32]u8) void = null,
+    join_prestage: ?*const fn (*anyopaque) anyerror!void = null,
+    cancel_prestage: ?*const fn (*anyopaque) void = null,
 };
 /// Upper bound on parallel capture ranges per tape.
 pub const MAX_CAPTURE_CHUNKS = 16;

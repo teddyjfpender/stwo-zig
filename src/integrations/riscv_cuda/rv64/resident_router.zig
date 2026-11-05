@@ -295,7 +295,22 @@ pub const Router = struct {
         return stage.invoke(a, request);
     }
     pub fn projectionStage(self: *Router) Source.ProjectionStage {
-        return .{ .context = self, .project = projection };
+        return .{ .context = self, .project = projection, .prestage = prestage, .join_prestage = joinPrestage, .cancel_prestage = cancelPrestage };
+    }
+    fn prestage(raw: *anyopaque, source: *const Source.Source, identity: [32]u8) void {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        // CPU0 keeps the existing ordinal affinity and owner session. Its
+        // provisional buffers never enter the final router scope catalogue.
+        const stage = self.endpoints[0].projection;
+        if (stage.prestage) |run| run(stage.context, source, identity);
+    }
+    fn joinPrestage(raw: *anyopaque) !void {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        for (self.endpoints) |endpoint| if (endpoint.projection.join_prestage) |join| try join(endpoint.projection.context);
+    }
+    fn cancelPrestage(raw: *anyopaque) void {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        for (self.endpoints) |endpoint| if (endpoint.projection.cancel_prestage) |cancel| cancel(endpoint.projection.context);
     }
     fn abort(raw: *anyopaque, scope: GkrScope) void {
         const self: *Router = @ptrCast(@alignCast(raw));
