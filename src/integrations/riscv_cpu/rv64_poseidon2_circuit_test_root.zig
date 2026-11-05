@@ -1,4 +1,5 @@
 test {
+    _ = @import("poseidon2_outer/proof.zig");
     _ = @import("poseidon2_outer/stark_fixture.zig");
     _ = @import("poseidon2_outer/context.zig");
     _ = @import("poseidon2_outer/layout.zig");
