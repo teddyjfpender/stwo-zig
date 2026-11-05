@@ -59,8 +59,8 @@ def u32(v):
 
 def table_root(t):
     h = hashlib.blake2s(digest_size=32)
-    # root-v1: every header field is bound (adversarial review A1).
-    h.update(b"rv64-vk-receiver-table/v0/root-v1\x00")
+    # root-v2 (schema v1, M6 fold-v3): every header field (review A1) and the native VK section.
+    h.update(b"rv64-vk-receiver-table/v1/root-v2\x00")
     hd = t["header"]
     for part in (hd["schema"], hd["profile"], hd["native_profile"], hd["outer_domain"], hd["source_commit"], hd["receiver_sha256"], hd["image"]):
         b = part.encode()
@@ -77,7 +77,55 @@ def table_root(t):
             h.update(u32(v))
         h.update(bytes.fromhex(vk["fixed_root"]))
         h.update(bytes.fromhex(vk["identity"]))
+    h.update(b"native\x00")
+    native = sorted(t.get("native", []), key=lambda e: bytes.fromhex(e["key"]))
+    h.update(len(native).to_bytes(8, "little"))
+    for e in native:
+        art = bytes.fromhex(e["artifact"])
+        h.update(bytes.fromhex(e["key"]))
+        h.update(len(art).to_bytes(8, "little"))
+        h.update(art)
     return h.hexdigest()
+
+
+def reseal_artifact(art):
+    """Recompute the VK digest and header seal of a VK-only setup artifact
+    (setup_cache.zig layout): the forgery is coherent up to the table pin."""
+    vk = art[256:]
+    art[104:136] = hashlib.sha256(vk).digest()
+    art[224:256] = hashlib.sha256(bytes(art[0:224])).digest()
+    return art
+
+
+def forge_native(field):
+    """Flip one VK field of EVERY native artifact, re-seal artifact + table."""
+    def fn(t):
+        for e in t["native"]:
+            art = bytearray(bytes.fromhex(e["artifact"]))
+            if field == "source_root":
+                at = 256 + 32
+            else:  # candidate FIXED root: suite(32) src_root(32) n(4) logs(4n) blowup(4) identity(32)
+                n = int.from_bytes(art[256 + 64:256 + 68], "little")
+                at = 256 + 68 + 4 * n + 4 + 32
+            art[at] ^= 1
+            e["artifact"] = reseal_artifact(art).hex()
+    return fn
+
+
+def flip_artifact_byte(t):
+    """One VK byte flipped in EVERY native artifact (a merged table holds
+    components the block under test never uses; flipping only one of those
+    is a not-consumed mutation, measured: RV25 v0 on 26235156)."""
+    for e in t["native"]:
+        art = bytearray(bytes.fromhex(e["artifact"]))
+        art[300] ^= 1
+        e["artifact"] = art.hex()
+
+
+def swap_native(t):
+    arts = [e["artifact"] for e in t["native"]]
+    for e, art in zip(t["native"], arts[1:] + arts[:1]):
+        e["artifact"] = art
 
 
 def coherent(fn):
@@ -85,6 +133,7 @@ def coherent(fn):
     def apply(t):
         fn(t)
         t["entries"].sort(key=lambda e: ({"leaf": 0, "fold": 1}[e["kind"]], bytes.fromhex(e["key"])))
+        t.setdefault("native", []).sort(key=lambda e: bytes.fromhex(e["key"]))
         t["table_root"] = table_root(t)
     return apply
 
@@ -159,6 +208,30 @@ RV_CASES = [
          special="beside_proof_dir"),
     dict(id="RV23-producer-tree-tamper-pinned", family="table-policy", what="producer-tree table with rotated leaf VKs, re-sealed, receiver pins the derived root",
          table=coherent(lambda t: rotate_leaf_vks(t)), special="beside_proof_dir", pin="control"),
+    # M6 fold-v3: the receiver-derived native VK section (schema v1, root-v2).
+    dict(id="RV24-native-artifact-flip-unsealed", family="native-table", what="one VK byte flipped in every native artifact WITHOUT re-sealing the table root",
+         table=flip_artifact_byte),
+    dict(id="RV25-native-artifact-flip-resealed", family="native-table", what="one VK byte flipped in every native artifact (artifact VK seal now wrong), table re-sealed",
+         table=coherent(flip_artifact_byte)),
+    dict(id="RV26-native-section-dropped", family="native-table", expect="reject_or_same_statement",
+         what="native section removed, table re-sealed, NOT pinned: every component is rebuilt from source (slow path), statement must equal the control",
+         table=coherent(lambda t: t.__setitem__("native", []))),
+    dict(id="RV27-native-artifacts-rotated", family="native-table", what="native artifacts rotated across component keys (header key mismatch), table re-sealed",
+         table=coherent(swap_native)),
+    dict(id="RV28-native-fixed-root-forged", family="native-table", what="candidate FIXED root flipped in EVERY native artifact, artifact VK digest + header seal + table root all re-sealed (coherent up to the pin)",
+         table=coherent(forge_native("fixed_root"))),
+    dict(id="RV29-native-source-root-forged", family="native-table", what="source root flipped in EVERY native artifact, fully re-sealed (coherent up to the pin)",
+         table=coherent(forge_native("source_root"))),
+    dict(id="RV30-native-forged-pinned", family="native-table", what="RV28 forgery with the receiver pinning its derived root",
+         table=coherent(forge_native("fixed_root")), pin="control"),
+    # fold-v3 adversarial review: --audit must not take native keys from the
+    # table it audits. It rebuilds every component from source and requires
+    # the table's native entry under each key to be byte-identical.
+    dict(id="RV31-native-forged-audit", family="native-table", audit=True, want_error="VkNativeAuditMismatch",
+         what="RV29 source-root forgery (fully re-sealed, unpinned) under --audit: the audit's own native rebuild refuses the section",
+         table=coherent(forge_native("source_root"))),
+    dict(id="RV32-audit-control", family="native-table", audit=True, expect="accept",
+         what="unmodified table under --audit: native rebuilt from source, every used native entry byte-identical, full tree agrees"),
 ]
 
 
@@ -216,6 +289,8 @@ def run_case(case, ctx, mode):
     if mode == "rv" and case.get("pin") == "control":
         command += ["--table-root", ctx["control_table_root"]]
         result["table_root_pin"] = ctx["control_table_root"]
+    if case.get("audit"):
+        command += ["--audit"]
     started = time.monotonic()
     timed_out = False
     with open(work / "stdout", "wb") as out, open(work / "stderr", "wb") as err:
@@ -233,14 +308,20 @@ def run_case(case, ctx, mode):
         if accepted:
             same = statement(stdout) == ctx["control_statement"]
             result["verify_per_block_s"] = round(stdout["verify_per_block_ns"] / 1e9, 3)
+            if case.get("audit"):
+                result["native_audit"] = stdout.get("native_audit")
+                result["audit_agrees"] = (stdout.get("audit") or {}).get("agrees")
     except Exception:
         pass
     crashed = timed_out or returncode is None or returncode < 0 or any(m in line for line in stderr for m in N.CRASH_MARKERS)
     verdict = "accept" if accepted else ("crash" if crashed else "reject")
     if expect == "accept":
         passed = accepted and same is True
+        if case.get("audit"):
+            na = result.get("native_audit") or {}
+            passed = passed and result.get("audit_agrees") is True and na.get("matched", 0) > 0 and na.get("matched") == na.get("rebuilt")
     elif expect == "reject":
-        passed = verdict == "reject"
+        passed = verdict == "reject" and (not case.get("want_error") or case["want_error"] in "\n".join(stderr))
     else:
         passed = verdict == "reject" or (accepted and same is True)
     result.update(status="timeout" if timed_out else "ran", verdict=verdict, exit_code=returncode, wall_s=round(wall, 2),

@@ -1,0 +1,47 @@
+{"id": "S03-dup-native-segment", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.52, "first_error": "error: WideBundleFileChanged"}
+{"id": "S01-drop-native-segment", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.57, "first_error": "error: FileNotFound"}
+{"id": "S05-permute-native-segments", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.57, "first_error": "error: WideBundleFileChanged"}
+{"id": "C00-control", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.57, "first_error": null}
+{"id": "S02-drop-leaf", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.57, "first_error": null}
+{"id": "S08-coherent-permute-native", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.52, "first_error": "error: InvalidServicesWireRequest"}
+{"id": "S07-permute-truth", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.67, "first_error": "error: WideBundleFileChanged"}
+{"id": "S04-dup-leaf", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.82, "first_error": null}
+{"id": "S09-coherent-drop-native", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.57, "first_error": "error: InvalidServicesWireBoundary"}
+{"id": "S10-coherent-dup-native", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.52, "first_error": "error: InvalidServicesWireRequest"}
+{"id": "S06-permute-leaves", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.72, "first_error": null}
+{"id": "S11-coherent-permute-truth", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.52, "first_error": "error: InvalidCombinedTruthSpan"}
+{"id": "K02-report-cpu-proofs", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.98, "first_error": null}
+{"id": "K03-tree-drop-node", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.97, "first_error": null}
+{"id": "V01-cross-class-fold", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.97, "first_error": null}
+{"id": "K01-tree-leaf-count", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 2.12, "first_error": null}
+{"id": "V05-cross-block-native", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.67, "first_error": "error: WideBundleFileChanged"}
+{"id": "R01-native-head-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.67, "first_error": "error: WideBundleFileChanged"}
+{"id": "V04-cross-block-root", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 1.82, "first_error": "error: Om31CircuitWireAuthority"}
+{"id": "V03-cross-block-leaf", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.92, "first_error": null}
+{"id": "V02-cross-block-fold", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.94, "first_error": null}
+{"id": "R02-native-mid-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.57, "first_error": "error: WideBundleFileChanged"}
+{"id": "R03-truth-mid-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.52, "first_error": "error: WideBundleFileChanged"}
+{"id": "R04-root-proof-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 1.77, "first_error": "error: RootMismatch"}
+{"id": "R05-root-proof-truncate", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 1.77, "first_error": "error: InvalidOm31CircuitWire"}
+{"id": "R07-coherent-native-flip", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.82, "first_error": null}
+{"id": "R06-leaf-proof-flip", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 2.17, "first_error": null}
+{"id": "X01-stage-one-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.76, "first_error": "error: WideBundleFileChanged"}
+{"id": "X02-cells-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.57, "first_error": "error: WideBundleCellsChanged"}
+{"id": "R08-coherent-native-head-flip", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.63, "first_error": null}
+{"id": "R09-coherent-truth-flip", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.68, "first_error": null}
+{"id": "X04-coherent-cells-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 1.43, "first_error": "error: UntrustedGlobalMemoryInitialization"}
+{"id": "X03-coherent-stage-one-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 1.57, "first_error": "error: CircuitCheckFailure"}
+{"id": "T01-wrong-output", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 1.67, "first_error": "error: GlobalGkrManifestExecution"}
+{"id": "P01-wrong-native-profile", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.62, "first_error": "error: VkTableNativeProfileMismatch"}
+{"id": "X06-coherent-terminal-value", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 1.72, "first_error": "error: InvalidSumcheck"}
+{"id": "P02-wrong-outer-profile", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.97, "first_error": "error: VkTableOuterProfileMismatch"}
+{"id": "P03-unknown-outer-profile", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.0, "first_error": "error: UnknownOm31OuterProfile"}
+{"id": "P02b-wrong-outer-profile-b8", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.77, "first_error": "error: VkTableOuterProfileMismatch"}
+{"id": "P02d-wrong-outer-profile-default-arity", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.82, "first_error": "error: VkTableOuterProfileMismatch"}
+{"id": "P04-wrong-fold-arity", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 1.52, "first_error": "error: VkTableMissingFoldClass"}
+{"id": "C01-control-explicit-r1", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.72, "first_error": null}
+{"id": "RR01-root-flip-fast", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 1.87, "first_error": "error: RootMismatch"}
+{"id": "RR02-root-truncate-extend", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 1.82, "first_error": "error: InvalidOm31CircuitWire"}
+{"id": "RR03-store-supplied-vk", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.87, "first_error": null}
+{"id": "RR05-sidecar-ns", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 1.57, "first_error": null}
+{"block": 26235156, "ran": 46, "passed": 46, "unexpected_accepts": [], "crashes": [], "nonsemantic_rejects": {"S01-drop-native-segment": "missing"}, "wall_s": 16.5}
