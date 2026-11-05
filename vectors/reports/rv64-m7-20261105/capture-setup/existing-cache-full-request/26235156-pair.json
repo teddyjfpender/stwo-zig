@@ -1,0 +1,269 @@
+{
+  "schema": "rv64-m7-resident-pair/v1",
+  "label": "M",
+  "control": "/workspace/m3/runs/m7-fold-v3/daemon-26235156-r2-existing-setup-existing-setup-full1-off/receipt.json",
+  "control_sha256": "bbd713dd8082ccc43c574402b94caae0c13327652a2312e1ad344c5d83548c93",
+  "candidate": "/workspace/m3/runs/m7-fold-v3/daemon-26235156-r2-existing-setup-existing-setup-full1-on/receipt.json",
+  "candidate_sha256": "1663fdb684e2fc0850967e0522075bceb7201f9203d626a90f80ec0ae2eaf2ca",
+  "candidate_source": "136e0ba60+leaf-tape-v3-uncommitted",
+  "candidate_assets": {
+    "driver": "eba08050ea233a4ead8d6d719127b2c5f84702b0339fe2566fed184c84b91f44",
+    "library": "69f18a25c23c042b7fc00d2477097de64c69ea59fd46d2eee6fc9e154dc665e0",
+    "receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+    "recursive_receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d"
+  },
+  "candidate_environment": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1",
+    "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
+    "STWO_RV64_LEAF_SEED_TAPE": "1",
+    "STWO_RV64_PACK_FOLD_CACHE": "1",
+    "STWO_RV64_CPU_COMPACT_INGRESS": "1",
+    "STWO_RV64_COMPOSITION_ENQUEUE": "0",
+    "STWO_RV64_BLAKE_SAMPLE_PREFILL": "1",
+    "STWO_RV64_NVTX": "1",
+    "STWO_RV64_OUTER_ASSIGNMENT_GRAPH": "0",
+    "STWO_RV64_OUTER_OWNER_CONTROLLER": "0",
+    "STWO_RV64_RC_ROLE_WORKSPACE": "0",
+    "STWO_ZIG_RV64_SETUP_CACHE": "",
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "STWO_RV64_GPU_DEVICES": "0,1",
+    "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "4",
+    "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+    "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+    "STWO_RV64_GPU_DEVICE_TRACE": "1",
+    "STWO_RV64_GPU_DEVICE_BINDING": "1",
+    "STWO_RV64_GPU_LIBRARY": "/workspace/m3/build/m7-controller-graphs/cuda/native/libstwo-rv64-native.so",
+    "CUDA_MODULE_LOADING": "EAGER"
+  },
+  "control_assets": {
+    "driver": "eba08050ea233a4ead8d6d719127b2c5f84702b0339fe2566fed184c84b91f44",
+    "library": "69f18a25c23c042b7fc00d2477097de64c69ea59fd46d2eee6fc9e154dc665e0",
+    "receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+    "recursive_receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d"
+  },
+  "control_environment": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1",
+    "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
+    "STWO_RV64_LEAF_SEED_TAPE": "1",
+    "STWO_RV64_PACK_FOLD_CACHE": "1",
+    "STWO_RV64_CPU_COMPACT_INGRESS": "1",
+    "STWO_RV64_COMPOSITION_ENQUEUE": "0",
+    "STWO_RV64_BLAKE_SAMPLE_PREFILL": "1",
+    "STWO_RV64_NVTX": "1",
+    "STWO_RV64_OUTER_ASSIGNMENT_GRAPH": "0",
+    "STWO_RV64_OUTER_OWNER_CONTROLLER": "0",
+    "STWO_RV64_RC_ROLE_WORKSPACE": "0",
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "STWO_RV64_GPU_DEVICES": "0,1",
+    "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "4",
+    "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+    "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+    "STWO_RV64_GPU_DEVICE_TRACE": "1",
+    "STWO_RV64_GPU_DEVICE_BINDING": "1",
+    "STWO_RV64_GPU_LIBRARY": "/workspace/m3/build/m7-controller-graphs/cuda/native/libstwo-rv64-native.so",
+    "CUDA_MODULE_LOADING": "EAGER"
+  },
+  "control_loadavg": [
+    17.84912109375,
+    20.419921875,
+    17.95361328125
+  ],
+  "candidate_loadavg": [
+    18.6396484375,
+    20.70361328125,
+    18.37109375
+  ],
+  "producer_process": {
+    "argv": [
+      "/workspace/m3/build/m7-assignment-graphs/immutable/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+      "combined-serve",
+      "/workspace/m3/runs/m7-fold-v3/daemon-26235156-r2-existing-setup-existing-setup-full1-on/manifest.json",
+      "/workspace/m3/runs/m7-fold-v3/daemon-26235156-r2-existing-setup-existing-setup-full1-on/spool"
+    ],
+    "exit_code": 0,
+    "wall_ns": 42231115865,
+    "user_seconds": 141.309201,
+    "system_seconds": 66.632816,
+    "peak_rss_bytes": 24298008576,
+    "minor_faults": 20212085,
+    "major_faults": 0
+  },
+  "physical_gpu_memory": {
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+    "samples": 332,
+    "errors": [],
+    "kernel_activity": {
+      "0": {
+        "samples": 166,
+        "mean_percent": 27.259036144578314,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 166,
+        "mean_percent": 25.518072289156628,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    },
+    "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
+    "peak_used_bytes": {
+      "0": 31505514496,
+      "1": 31505514496
+    }
+  },
+  "receivers": [
+    {
+      "block": 26235156,
+      "proof": "/workspace/m3/runs/m7-fold-v3/daemon-26235156-r2-existing-setup-existing-setup-full1-on/spool/out/0000-26235156/26235156/proof",
+      "status": "accepted",
+      "accepted": true,
+      "receiver_sha256": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+      "process": {
+        "argv": [
+          "nice",
+          "-n",
+          "10",
+          "/workspace/m3/build/m6-integrate/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+          "--security-profile",
+          "conjectured128_b2_q108_p20_fold4",
+          "verify-recursion-candidate",
+          "/workspace/m3/runs/m7-fold-v3/daemon-26235156-r2-existing-setup-existing-setup-full1-on/receiver-26235156-0000-26235156-20261105T095218/receiver-request.json",
+          "/workspace/m3/runs/m7-fold-v3/daemon-26235156-r2-existing-setup-existing-setup-full1-on/spool/out/0000-26235156/26235156/proof",
+          "12884901888",
+          "34359738368"
+        ],
+        "exit_code": 0,
+        "wall_ns": 35482773722,
+        "user_seconds": 146.522305,
+        "system_seconds": 12.127369,
+        "peak_rss_bytes": 7303938048,
+        "minor_faults": 5173875,
+        "major_faults": 0
+      },
+      "directory": "/workspace/m3/runs/m7-fold-v3/daemon-26235156-r2-existing-setup-existing-setup-full1-on/receiver-26235156-0000-26235156-20261105T095218",
+      "isolation": {
+        "CUDA_VISIBLE_DEVICES": "",
+        "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+        "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+        "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+        "STWO_RV64_FOLD_CLASS_CACHE": "0"
+      },
+      "trial": 0,
+      "store_present_during_receive": false
+    }
+  ],
+  "requests": [
+    {
+      "block": 26235156,
+      "trial": 0,
+      "ordinal": 0,
+      "compared_artifacts": 31,
+      "byte_identical": true,
+      "mismatches": [],
+      "fingerprint": {
+        "native/cells.bin": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e",
+        "native/cpu-0.bin": "510f111a57d1e53d77d859588e999f3362204850090bf71a35857a4b7cd1c618",
+        "native/cpu-1.bin": "373053a942395c839a98df5ab0bd7f622953d4c2b19e53a7c3f2fe51e483a541",
+        "native/cpu-2.bin": "5503063e34d01682c43ce18259c4248f466dd6d47f032ffc0dc2c55a593a53a5",
+        "native/cpu-3.bin": "63304115804829b44c63c980cb3042b776d0ccb862017a6c55e44a9c379d5fae",
+        "native/stage-one.bin": "6cc9389b6a6cf9e1af312f0975e8b2c90025c00c1fcfe177285142a48e540cf3",
+        "native/truth-0.bin": "b8a71bab37ab9013d2b546456853db71aa60fdf7daaba4cb4afc94ab25367e26",
+        "native/truth-1.bin": "a4214ac2e2e50c38f47be9afd9e31aafb08ac8927a6a40944632ede5b2df24b5",
+        "native/truth-2.bin": "9364d4df4d9af76668cd9ec3c1b7839daf2b6fa2e618731ea2d5291a263d1cc2",
+        "native/truth-3.bin": "ccf388db18ed95ea8030a370bc9dce690d9bbbb73a96bf7d37b1e70b6d8d1007",
+        "native/truth-4.bin": "9f1a08893281c7ef00a20a04fc602425671e98fc6bccf8f2f322731a8e2fe2c0",
+        "native/truth-5.bin": "400a67e5395285e6909b9da26d551b04957b59fdc2360ac547fbf4c074504d38",
+        "native/truth-6.bin": "4aa1b4f358973e90511f4266e9ad5de81d58dab60d5e29861c4c4f5a30c45719",
+        "bundle.json": "8a391ea6e155f4eed8026682bf4a0de4106252582b39900a09d63b993a8ecbd9",
+        "recursive/fold-000004.proof": "6ea613099ff8420daf306733c6b5a9987fc8536a46fc90b3123ff69acae501fb",
+        "recursive/fold-000009.proof": "4c20e6a016a49964cbf3c6ef7a8f4d22d30d9725bb5d677e0c5d7445198afaa5",
+        "recursive/fold-000013.proof": "ba3120c77e8cdb414ec94c774401f1fde8cd49a37eec612279a9b4b9b7e138a5",
+        "recursive/fold-000014.proof": "747196e699d75cd54a0e33104cbce56e030b22800c321dbaf20200b0e0e3abbe",
+        "recursive/leaf-000000.proof": "99cfc8592441c9a101d771a7141a3e791d64c1112d716d44db501ff0d926dc01",
+        "recursive/leaf-000001.proof": "a462756fc3493bd5fdb66d8c6cdfb534d324db30fa58c3b854f765dff89c4f2e",
+        "recursive/leaf-000002.proof": "29477d6f350b3027cfc4805cf812c943be954726143cdc14fc2acf9554a2ce15",
+        "recursive/leaf-000003.proof": "994e8be0a2b492cf74ace37c9d2992e01853c7cd5a42bf745c83f8a28747e775",
+        "recursive/leaf-000004.proof": "a3b3f9d4da594f92b5fd3b4758f1e3e82ab9026fab136f14aafda8c47a5a9bec",
+        "recursive/leaf-000005.proof": "441af24a4e89e4e5eb5500dfed950265f3effbc94b2cbbed2560dd81ff6ff3db",
+        "recursive/leaf-000006.proof": "6948446e465f93f2f53739c61586ccc651adac99f13a7aa5f4eb5266018e0f43",
+        "recursive/leaf-000007.proof": "6ade8022e7727d36a3e1fa1c877aaae402adfbe9ef7ac579f5108f1e805f4241",
+        "recursive/leaf-000008.proof": "5117115424f93b5d88952df90d0d754fc251583b27a2e7991e040dc7aee231e2",
+        "recursive/leaf-000009.proof": "f273efd924ccc34ea1e5694e0e274550b65c49d73b7772ca4eb007d47f6d8e97",
+        "recursive/leaf-000010.proof": "ba31b48f1f76da2d43528130416013af5cd4bfc2cd9ccae5563a7dc408610978",
+        "recursive/root.proof": "747196e699d75cd54a0e33104cbce56e030b22800c321dbaf20200b0e0e3abbe",
+        "recursive/tree.json": "f9e5899eb20361cb2651ed6262681bc0e683390c1b5393f6bac7794f1b1ef0de"
+      },
+      "output_matches_pin": true,
+      "stages": {
+        "request_wall_s": 24.335,
+        "capture_s": 1.711,
+        "setup_s": 4.857,
+        "native_prove_s": 4.187,
+        "native_verify_s": 1.443,
+        "native_total_before_report_s": 10.96,
+        "recursion_s": 13.354
+      },
+      "proof_bytes_root": 750136
+    },
+    {
+      "block": 26235156,
+      "trial": 1,
+      "ordinal": 1,
+      "compared_artifacts": 31,
+      "byte_identical": true,
+      "mismatches": [],
+      "fingerprint": {
+        "native/cells.bin": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e",
+        "native/cpu-0.bin": "510f111a57d1e53d77d859588e999f3362204850090bf71a35857a4b7cd1c618",
+        "native/cpu-1.bin": "373053a942395c839a98df5ab0bd7f622953d4c2b19e53a7c3f2fe51e483a541",
+        "native/cpu-2.bin": "5503063e34d01682c43ce18259c4248f466dd6d47f032ffc0dc2c55a593a53a5",
+        "native/cpu-3.bin": "63304115804829b44c63c980cb3042b776d0ccb862017a6c55e44a9c379d5fae",
+        "native/stage-one.bin": "6cc9389b6a6cf9e1af312f0975e8b2c90025c00c1fcfe177285142a48e540cf3",
+        "native/truth-0.bin": "b8a71bab37ab9013d2b546456853db71aa60fdf7daaba4cb4afc94ab25367e26",
+        "native/truth-1.bin": "a4214ac2e2e50c38f47be9afd9e31aafb08ac8927a6a40944632ede5b2df24b5",
+        "native/truth-2.bin": "9364d4df4d9af76668cd9ec3c1b7839daf2b6fa2e618731ea2d5291a263d1cc2",
+        "native/truth-3.bin": "ccf388db18ed95ea8030a370bc9dce690d9bbbb73a96bf7d37b1e70b6d8d1007",
+        "native/truth-4.bin": "9f1a08893281c7ef00a20a04fc602425671e98fc6bccf8f2f322731a8e2fe2c0",
+        "native/truth-5.bin": "400a67e5395285e6909b9da26d551b04957b59fdc2360ac547fbf4c074504d38",
+        "native/truth-6.bin": "4aa1b4f358973e90511f4266e9ad5de81d58dab60d5e29861c4c4f5a30c45719",
+        "bundle.json": "8a391ea6e155f4eed8026682bf4a0de4106252582b39900a09d63b993a8ecbd9",
+        "recursive/fold-000004.proof": "6ea613099ff8420daf306733c6b5a9987fc8536a46fc90b3123ff69acae501fb",
+        "recursive/fold-000009.proof": "4c20e6a016a49964cbf3c6ef7a8f4d22d30d9725bb5d677e0c5d7445198afaa5",
+        "recursive/fold-000013.proof": "ba3120c77e8cdb414ec94c774401f1fde8cd49a37eec612279a9b4b9b7e138a5",
+        "recursive/fold-000014.proof": "747196e699d75cd54a0e33104cbce56e030b22800c321dbaf20200b0e0e3abbe",
+        "recursive/leaf-000000.proof": "99cfc8592441c9a101d771a7141a3e791d64c1112d716d44db501ff0d926dc01",
+        "recursive/leaf-000001.proof": "a462756fc3493bd5fdb66d8c6cdfb534d324db30fa58c3b854f765dff89c4f2e",
+        "recursive/leaf-000002.proof": "29477d6f350b3027cfc4805cf812c943be954726143cdc14fc2acf9554a2ce15",
+        "recursive/leaf-000003.proof": "994e8be0a2b492cf74ace37c9d2992e01853c7cd5a42bf745c83f8a28747e775",
+        "recursive/leaf-000004.proof": "a3b3f9d4da594f92b5fd3b4758f1e3e82ab9026fab136f14aafda8c47a5a9bec",
+        "recursive/leaf-000005.proof": "441af24a4e89e4e5eb5500dfed950265f3effbc94b2cbbed2560dd81ff6ff3db",
+        "recursive/leaf-000006.proof": "6948446e465f93f2f53739c61586ccc651adac99f13a7aa5f4eb5266018e0f43",
+        "recursive/leaf-000007.proof": "6ade8022e7727d36a3e1fa1c877aaae402adfbe9ef7ac579f5108f1e805f4241",
+        "recursive/leaf-000008.proof": "5117115424f93b5d88952df90d0d754fc251583b27a2e7991e040dc7aee231e2",
+        "recursive/leaf-000009.proof": "f273efd924ccc34ea1e5694e0e274550b65c49d73b7772ca4eb007d47f6d8e97",
+        "recursive/leaf-000010.proof": "ba31b48f1f76da2d43528130416013af5cd4bfc2cd9ccae5563a7dc408610978",
+        "recursive/root.proof": "747196e699d75cd54a0e33104cbce56e030b22800c321dbaf20200b0e0e3abbe",
+        "recursive/tree.json": "f9e5899eb20361cb2651ed6262681bc0e683390c1b5393f6bac7794f1b1ef0de"
+      },
+      "output_matches_pin": true,
+      "stages": {
+        "request_wall_s": 11.836,
+        "capture_s": 1.806,
+        "setup_s": 0.125,
+        "native_prove_s": 3.145,
+        "native_verify_s": 1.469,
+        "native_total_before_report_s": 5.231,
+        "recursion_s": 6.583
+      },
+      "proof_bytes_root": 750136
+    }
+  ],
+  "byte_identical": true
+}

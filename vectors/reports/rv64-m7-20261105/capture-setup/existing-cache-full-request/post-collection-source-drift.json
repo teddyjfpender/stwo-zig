@@ -1,0 +1,168 @@
+{
+  "run_completed_utc": "2026-11-05T09:52:54.251958+00:00",
+  "source_drift": [
+    {
+      "path": "src/backends/cuda/native/rv64/pcs_native.cu",
+      "current_sha256": "962bf8c5a7390e778bc92975c34e589119f2af1f7b61d3fe45d45edf0a032f44",
+      "mtime_utc": "2026-11-05T09:46:08+00:00"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/pcs_native.h",
+      "current_sha256": "a2694a8aaa79a97d7b3ee3980d6dce2a3c31a59171ccf4032bb9658761e53f42",
+      "mtime_utc": "2026-11-05T09:46:08+00:00"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
+      "current_sha256": "b6bafd714bf148dcef8e63ad6c2494c9b066fce771cd5bbcfd9757f59daaf0e0",
+      "mtime_utc": "2026-11-05T09:26:42+00:00"
+    },
+    {
+      "path": "src/core/m7_capture_test_root.zig",
+      "current_sha256": null
+    },
+    {
+      "path": "src/core/m7_poseidon2_test_root.zig",
+      "current_sha256": null
+    },
+    {
+      "path": "src/integrations/circuit_cpu/om31/device_prove.zig",
+      "current_sha256": "1971ef69dddad1703aa0739150420176fdb63a24e69bc9342a511e05ca07910b",
+      "mtime_utc": "2026-11-05T09:23:38+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/build.zig",
+      "current_sha256": "6fde3cb562bf60042d41f2f587c2d6ddbb048a9d0e4269a893d31d81903e7381",
+      "mtime_utc": "2026-11-05T09:26:15+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/poseidon2_outer/authority.zig",
+      "current_sha256": "a131abe1bb1008177ab1e96401d765c6d1a1935f1f53ad4d0760e80d5251e7b5",
+      "mtime_utc": "2026-11-05T08:24:58+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/poseidon2_outer/context.zig",
+      "current_sha256": "0f1e112c14e5a5521c61ac1e785290d7ff30d2827f6ae484539497836a80013d",
+      "mtime_utc": "2026-11-05T08:24:58+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/rv64_d2_profile_test_root.zig",
+      "current_sha256": "85dacb4ef91b1f01074290350e1b244d7b6598707f12efb372e7aaaa325c7e23",
+      "mtime_utc": "2026-11-05T09:26:42+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig",
+      "current_sha256": "ecddac6d45d502cce785ffbef82d24e91226cccbd72b4ed31290af0a8b8f8662",
+      "mtime_utc": "2026-11-05T09:25:25+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
+      "current_sha256": "8fadd42e83a78e5e0f4c65e7bb0bac51f7905148a71dd328c70c90c20b39d20a",
+      "mtime_utc": "2026-11-05T09:40:33+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig",
+      "current_sha256": "44b468f07ab508845968ee9a770dfdcfbffd7d021ed25228b08c806acd7be621",
+      "mtime_utc": "2026-11-05T09:40:33+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig",
+      "current_sha256": "92274d4c934f47d42600f54128e29e1ca57ef2f05c8d016fea08702f0c64df98",
+      "mtime_utc": "2026-11-05T09:26:42+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_device_composition.zig",
+      "current_sha256": "5b24c9694b950e8544f20c6d737da7154898ffc57702fe2c06c59ab0659285cf",
+      "mtime_utc": "2026-11-05T09:26:42+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_v3_worker.zig",
+      "current_sha256": "79b0af22249e05cc95022a32828bd5d567bea5ce84985db547e4f7b54dd66130",
+      "mtime_utc": "2026-11-05T09:26:42+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker.zig",
+      "current_sha256": "669194a0f883726ce479473d35cbdc61a7226f081479c204c51bab22c97bb98b",
+      "mtime_utc": "2026-11-05T09:26:42+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/fixture.zig",
+      "current_sha256": "0bfbd2c4f30a794f256ae1ae332953a05c2bc061f957e4be57100467bd61b923",
+      "mtime_utc": "2026-11-05T08:25:43+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/worker_protocol.zig",
+      "current_sha256": "6619bd382fb3fddcb64ca82d7725da99d1a9e5275babbf798cbd97b151ef45ea",
+      "mtime_utc": "2026-11-05T08:11:22+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/assignment_graphs.zig",
+      "current_sha256": "e7715fb23fb1b736766557b8fee5991c23d02831804522603e97c35208669076",
+      "mtime_utc": "2026-11-05T09:54:46+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/composition_cost.zig",
+      "current_sha256": "9d46d902ee07c6796c198d21fcd58c25af27e0ba273d6f6aec71fbbdcd117f84",
+      "mtime_utc": "2026-11-05T09:27:49+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/outer_assignment.zig",
+      "current_sha256": "ffcc46be61bfbe705b687b223895d34ce2645204e084dca682a501d309aed7e7",
+      "mtime_utc": "2026-11-05T09:06:08+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/outer_fixed.zig",
+      "current_sha256": "4535706f4ab479f7c93a50b46c794b426a08b5706fd2dd36dd342d7134f71043",
+      "mtime_utc": "2026-11-05T09:23:07+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/outer_source.zig",
+      "current_sha256": "304187e3f47ec5fe2a469e11ef25ac5d1125f437d68eb4b831cb16ab72dab2c2",
+      "mtime_utc": "2026-11-05T09:33:14+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/outer_source_composition.zig",
+      "current_sha256": "70e416da54263a566fced9cfde30349f0350ab9f638fb17ed9ccef26cbb8a0f1",
+      "mtime_utc": "2026-11-05T09:33:14+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/pcs_native.zig",
+      "current_sha256": "f3e6bc62adce6e7f8ee98ea7ff035ca28fac965ed8986ad176e9a06251cde56d",
+      "mtime_utc": "2026-11-05T09:48:21+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/resident_batch.zig",
+      "current_sha256": "ab25ebaa1e99287bce8416942c7a428c4cb549ccf32e429c0fb27c4b562c3a8f",
+      "mtime_utc": "2026-11-05T09:48:35+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/resident_composition.zig",
+      "current_sha256": "42579b99e804f601547fc58826a3a99bd81249f4f9867e4e0567262e66ff001d",
+      "mtime_utc": "2026-11-05T09:46:08+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/resident_router.zig",
+      "current_sha256": "6162602ee71a77a86725c6b860883b0a8f2d2cc06caf08011a3998e9c70082ec",
+      "mtime_utc": "2026-11-05T09:26:42+00:00"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64_pcs_masks_fixture_main.zig",
+      "current_sha256": "6331b403068173a8a9baf61d48dac9cd3ae52acddeda04d8c31f5ad96794e743",
+      "mtime_utc": "2026-11-05T09:26:32+00:00"
+    }
+  ],
+  "assets": {
+    "driver": {
+      "current": "eba08050ea233a4ead8d6d719127b2c5f84702b0339fe2566fed184c84b91f44",
+      "expected": "eba08050ea233a4ead8d6d719127b2c5f84702b0339fe2566fed184c84b91f44"
+    },
+    "library": {
+      "current": "69f18a25c23c042b7fc00d2477097de64c69ea59fd46d2eee6fc9e154dc665e0",
+      "expected": "69f18a25c23c042b7fc00d2477097de64c69ea59fd46d2eee6fc9e154dc665e0"
+    },
+    "receiver": {
+      "current": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+      "expected": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d"
+    }
+  },
+  "note": "Root confirms later9531c5c16 source sync at~09:57UTC for next build; selected eba080 driver and69f runtime remained immutable. All pre-service source checks passed. Current checkout is not asserted to be the compiled source."
+}

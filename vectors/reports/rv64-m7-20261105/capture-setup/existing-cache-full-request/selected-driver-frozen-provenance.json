@@ -1,0 +1,14 @@
+{
+  "schema": "rv64-m7-assignment-production-gate/v1",
+  "source_checkpoint": "df39f1a87 plus graph6c5a9039d immutable lease alias fix",
+  "driver_sha256": "eba08050ea233a4ead8d6d719127b2c5f84702b0339fe2566fed184c84b91f44",
+  "library_sha256": "69f18a25c23c042b7fc00d2477097de64c69ea59fd46d2eee6fc9e154dc665e0",
+  "source_sha256": {
+    "src/integrations/riscv_cuda/rv64/assignment_graphs.zig": "4747160805dc06fcb0704435e43ca0092b7925d02215427e51e9e71c1ba5ca37",
+    "src/integrations/riscv_cuda/rv64/outer_assignment.zig": "3bc37d2febc29a1c0437d8c02ac047f32597a53ec1cfd844120f0a678da1b934",
+    "src/integrations/riscv_cuda/rv64/outer_source.zig": "c09c96817d4c39328b3f6d3bc919df0902e2e3cb01e5fd55938c19d6e59620e7",
+    "src/backends/cuda/native/rv64/circuit_fill_chain.cu": "569c4ff453683408f7fcd647f6c5e481bf856627aeb3573aeea2e2d14f105fd2",
+    "src/backends/cuda/native/rv64/assignment_graph.h": "a85ff1c1f80cfa7f3f11c9161a922e6224e17aef5dc6b2b97a86914f089cf82b"
+  },
+  "scope": "Graph ON/OFF in isolated services; same binary and selected runtime, full v3 M6 preset; controller and shared RC workspace OFF."
+}
