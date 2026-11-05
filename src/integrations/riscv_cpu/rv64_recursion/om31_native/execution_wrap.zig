@@ -950,7 +950,7 @@ const Pipelined = struct {
         if (self.queue.closed.count() != 0) for (0..self.input.words.len) |ordinal| {
             if (self.queue.closed.isSet(ordinal) and stream.ready[ordinal].load(.acquire)) self.queue.openLeaf(ordinal);
         };
-        return stream.deviceOpen() or self.prepping_leaves < stream.prep_during_native;
+        return stream.nativeComplete() or self.prepping_leaves < stream.prep_during_native;
     }
     fn stop(self: *Pipelined, err: anyerror) void {
         self.mutex.lock();
@@ -1428,10 +1428,10 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
     var stream_wait_ns: u64 = 0;
     if (input.stream) |stream| {
         shared.mutex.lock();
-        while (!stream.deviceOpen() and shared.running()) shared.changed.wait(&shared.mutex);
+        while (!stream.nativeComplete() and shared.running()) shared.changed.wait(&shared.mutex);
         shared.mutex.unlock();
         stream_wait_ns = shared.now();
-        if (stream.deviceOpen()) {
+        if (stream.nativeComplete()) {
             root_thread = std.Thread.spawn(.{ .stack_size = coordinator_stack }, RootCheck.run, .{&root_check}) catch null;
             if (root_thread == null) root_check.run();
         }
@@ -1478,7 +1478,7 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
     for (records, 0..) |r, id| if (plan.nodes[id].isLeaf()) {
         last_leaf_end = @max(last_leaf_end, r.stamps.finish_end);
     };
-    const stream_report = if (input.stream) |stream| .{ .enabled = true, .prep_during_native = stream.prep_during_native, .native_done_ns = stream.native_done_ns, .leaf_ready_ns = stream.ready_ns[0..input.words.len] } else null;
+    const stream_report = if (input.stream) |stream| .{ .enabled = true, .prep_during_native = stream.prep_during_native, .native_done_ns = stream.native_done_ns, .admitted_device_overlap = stream.admissionActive(), .leaf_ready_ns = stream.ready_ns[0..input.words.len] } else null;
     const occupancy = @as(f64, @floatFromInt(busy_total)) / @as(f64, @floatFromInt(@max(1, recursion_wall_ns * options.lanes.len)));
     const scheduler = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .candidate = true, .pipelined = true, .lanes = options.lanes.len, .pool_worker_budget = options.pool_worker_budget, .max_pending_authorities = options.max_pending_authorities, .peak_authority_slots = shared.queue.peak, .host_budget = budget.snapshot() }, .{ .whitespace = .indent_2 });
     defer a.free(scheduler);
@@ -1676,8 +1676,27 @@ pub const Streaming = struct {
         self.native_done.store(true, .release);
         self.notify();
     }
-    fn deviceOpen(self: *const Streaming) bool {
+    /// Final verifier reads the complete native bundle. Its barrier stays
+    /// separate from per-leaf GPU dispatch when bounded admission is active.
+    fn nativeComplete(self: *const Streaming) bool {
         return self.native_done.load(.acquire);
+    }
+    fn admissionActive(self: *const Streaming) bool {
+        // Optional capability is supplied only by a runtime enforcing GLOBAL
+        // physical-GPU allocation envelopes. An environment flag cannot open it.
+        if (comptime @hasField(Outer.Device.Factory, "memory_admission_enabled")) {
+            for (self.options.lanes) |lane| {
+                const enabled = lane.factory.memory_admission_enabled orelse return false;
+                if (!enabled(lane.factory.context)) return false;
+            }
+            return self.options.lanes.len != 0;
+        } else return false;
+    }
+    fn deviceOpen(self: *const Streaming) bool {
+        // The prepared queue contains only acquire-published native-ready
+        // leaves and folds whose children have completed. Consumers can make
+        // progress before native producers exhaust the static retention arena.
+        return self.nativeComplete() or self.admissionActive();
     }
     /// Stops dispatch (if still running) and joins the recursion thread.
     /// After return nothing reads producer-owned native data any more.
