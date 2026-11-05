@@ -82,13 +82,13 @@ pub const Context = struct {
         self.* = undefined;
     }
     pub fn factory(self: *Context) Dev.Factory {
-        return .{ .context = self, .controller = self.controller(), .requires_native_complete = self.controller() != null, .memory_admission_enabled = globalAdmissionEnabled, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit, .prepare_host = prepareHost, .tape_ready = tapeReady, .stage_host = stageHost, .unstage_host = unstageHost };
+        return .{ .context = self, .controller = self.controller(), .requires_native_complete = self.controller() != null and self.service.parent == null, .memory_admission_enabled = globalAdmissionEnabled, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit, .prepare_host = prepareHost, .tape_ready = tapeReady, .stage_host = stageHost, .unstage_host = unstageHost };
     }
     fn globalAdmissionEnabled(raw: *anyopaque) bool {
         const self: *Context = @ptrCast(@alignCast(raw));
         // Controller holds the service call lock across the proof. Native
         // workers must finish before it can acquire TC/RC host mutexes.
-        if (self.controller() != null) return false;
+        if (self.controller() != null and self.service.parent == null) return false;
         return if (self.service.admission) |endpoint| endpoint.enabled() else false;
     }
     pub fn controller(self: *Context) ?Dev.Controller {
@@ -115,7 +115,7 @@ pub const Context = struct {
     fn runController(raw: *anyopaque, operation: *const fn (*anyopaque) anyerror!void, data: *anyopaque) !void {
         const self: *Context = @ptrCast(@alignCast(raw));
         if (comptime @hasField(Service.Context, "admission")) {
-            if (self.service.admission) |endpoint| if (endpoint.enabled()) return error.OwnerControllerRequiresNativeCompletion;
+            if (self.service.admission) |endpoint| if (endpoint.enabled() and self.service.parent == null) return error.OwnerControllerRequiresNativeCompletion;
         }
         const submit = self.service.library.lookup(Native.Submit, "stwo_rv64_gpu_session_controller") orelse return error.MissingOwnerControllerApi;
         const Job = struct {

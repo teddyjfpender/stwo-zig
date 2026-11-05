@@ -12,6 +12,8 @@ const Service = @import("pcs_native.zig");
 const SC = @import("session_context.zig");
 const StreamPlan = @import("trace_stream_plan.zig");
 pub const AdmissionPlan = @import("trace_commit_cost.zig");
+const Global = @import("global_admission.zig");
+const Admission = @import("admission_runtime.zig");
 const M = D.M;
 const N2b = *const fn ([*]u32, usize, ?*const anyopaque, u32, usize, u32, [*]const u32, u32, u32, *anyopaque, u32, *u32) callconv(.c) c_int;
 const N2bColumns = *const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on);
@@ -42,6 +44,7 @@ fn check(status: c_int) !void {
     }
 }
 pub const Context = struct {
+    admission_domain: Global.Domain = .native_packet,
     // Production MAIN/INTER must be produced on device. A qualification-only
     // mixed-encoding oracle may explicitly opt out; production never does.
     require_device_input: bool = true,
@@ -62,6 +65,7 @@ pub const Context = struct {
     twiddles: [29]?engine.poly.twiddles.TwiddleTree([]M) = @splat(null),
     mutex: std.Thread.Mutex = .{},
     pub fn init(service: *Service.Context) !Context {
+        if (service.admission) |endpoint| try endpoint.planner.registerCoverage(endpoint.physical, .native_trace);
         return .{ .service = service, .api = .{
             .allocate = service.lease_allocate,
             .release = service.lease_release,
@@ -84,6 +88,9 @@ pub const Context = struct {
     }
     pub fn stage(self: *Context) D.TraceCommitStage {
         return .{ .context = self, .commit = commit };
+    }
+    pub fn registerAdmissionCoverage(self: *Context) !void {
+        if (self.service.admission) |endpoint| try endpoint.planner.registerCoverage(endpoint.physical, if (self.admission_domain == .recursion_node) .recursion_trace else .native_trace);
     }
     fn commit(raw: *anyopaque, a: std.mem.Allocator, request: D.TraceCommitRequest) !D.Tree {
         const self: *Context = @ptrCast(@alignCast(raw));
@@ -117,14 +124,35 @@ pub const Context = struct {
             if (self.require_device_input and column.device == null) return error.HostWitnessDisallowedInResidentProof;
             if (column.log_size + beta > 28) return error.InvalidTraceCommitRequest;
         }
+        const allocation_plan = if (self.service.admission != null) try self.allocationPlan(a, request) else null;
+        var permit: ?Admission.Permit = null;
+        var successor: Global.Footprint = .{};
+        if (self.service.admission) |endpoint| {
+            if (request.tree_index == 0) return error.GlobalFixedTracePlanUnavailable;
+            successor = try self.service.admissionSuccessor(request.scope, if (request.tree_index == 1) .main_commit else .inter_commit);
+            const plan = &allocation_plan.?;
+            permit = try endpoint.reserve(.{ .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = self.admission_domain, .ordinal = request.scope.ordinal }, .stage = .trace_commit, .temporary = try plan.footprint(), .successor = successor, .known = true, .host_known = plan.host_cost_known, .host_peak_bytes = plan.host_peak_bytes });
+        }
+        defer if (permit) |*active| if (!active.closed) {
+            active.endpoint.planner.poisonPhysical(active.endpoint.physical);
+            active.finish(.{}) catch {};
+        };
         self.mutex.lock();
         defer self.mutex.unlock();
         try self.returned.ensureUnusedCapacity(std.heap.page_allocator, 1);
-        var job = Job{ .backend = self, .a = a, .request = request, .admission_plan = if (self.service.admission != null) try self.allocationPlan(a, request) else null };
+        var job = Job{ .backend = self, .a = a, .request = request, .admission_plan = allocation_plan, .permit = if (permit) |*active| active else null };
         const status = self.service.submit(self.service.session, Job.callback, &job);
         if (job.failure) |err| return err;
         try check(status);
         const result = job.result orelse return error.CudaTraceCommitFailed;
+        if (permit) |*active| {
+            var final_scope = request.scope;
+            if (request.tree_index == 1) final_scope.main = result.root;
+            self.service.completeAdmission(active, final_scope, successor) catch |err| {
+                self.service.finishProofScope(final_scope);
+                return err;
+            };
+        }
         self.returned.appendAssumeCapacity(@constCast(result.columns));
         return result;
     }
@@ -137,17 +165,23 @@ const Job = struct {
     failure: ?anyerror = null,
     admission_plan: ?AdmissionPlan.Plan = null,
     allocation_index: usize = 0,
+    permit: ?*Admission.Permit = null,
     fn callback(raw: *anyopaque, token: u64, user: ?*anyopaque) callconv(.c) c_int {
         const self: *Job = @ptrCast(@alignCast(user orelse return 1));
-        self.run(raw, token) catch |err| {
+        if (self.permit) |permit| permit.enterOwner(raw) catch |err| {
             self.failure = err;
             return 1;
         };
-        if (self.admission_plan) |plan| if (self.allocation_index != plan.allocation_count) {
-            self.failure = error.TraceAllocationPlanMismatch;
-            return 1;
+        self.run(raw, token) catch |err| {
+            self.failure = err;
         };
-        return 0;
+        if (self.admission_plan) |plan| if (self.allocation_index != plan.allocation_count) {
+            if (self.failure == null) self.failure = error.TraceAllocationPlanMismatch;
+        };
+        if (self.permit) |permit| permit.leaveOwner(raw) catch |err| {
+            if (self.failure == null) self.failure = err;
+        };
+        return if (self.failure == null) 0 else 1;
     }
     fn allocate(self: *Job, ctx: *SC.Context, words: usize, kind: u32, phase: []const u8) !Native.Lease {
         if (self.admission_plan) |*plan| {
