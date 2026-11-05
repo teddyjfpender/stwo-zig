@@ -22,3 +22,12 @@ struct StwoRv64CpuWitness {
 };
 extern "C" int stwo_rv64_cpu_witness_on(void *, uint32_t,
                                        const StwoRv64CpuWitness *);
+// 16 B records {u64 result, u32 ROM row, u32 next-PC}; one 384 B seed
+// {u64 values[32], u32 clocks[32]} per chunk. Output is the original 56 B ABI.
+struct StwoRv64CpuUnpack {
+  const uint32_t *records, *seeds, *rom;
+  uint32_t *metadata, *status;
+  uint32_t count, rom_log, chunk_rows, reserved;
+};
+extern "C" int stwo_rv64_cpu_unpack_on(void *, uint32_t,
+                                      const StwoRv64CpuUnpack *);

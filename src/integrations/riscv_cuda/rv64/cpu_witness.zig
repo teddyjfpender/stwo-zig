@@ -5,6 +5,54 @@
 const std = @import("std");
 const Source = @import("stwo_riscv_cpu_integration").rv64_cpu_source.Source;
 const X = @import("stwo_riscv_frontend").rv64_air.word16_execution;
+/// M7 ingress: result/ROM/next-PC only. Register values and access clocks are
+/// reconstructed on the GPU, independently per chunk, from first-touch seeds.
+pub const compact_chunk_rows: usize = 256;
+pub const CompactRecord = extern struct { result: u64, rom_row: u32, next_pc: u32 };
+pub const CompactSeed = extern struct { values: [32]u64, clocks: [32]u32 };
+pub const Compact = struct {
+    allocator: std.mem.Allocator,
+    records: []CompactRecord,
+    seeds: []CompactSeed,
+    pub fn deinit(self: *Compact) void {
+        self.allocator.free(self.records);
+        self.allocator.free(self.seeds);
+    }
+    pub fn bytes(self: Compact) usize {
+        return self.records.len * @sizeOf(CompactRecord) + self.seeds.len * @sizeOf(CompactSeed);
+    }
+    /// Source.capture already checked each read/write against its register
+    /// state. A chunk needs only the value and clock preceding its first use
+    /// of each register; later values/clocks follow from these compact writes.
+    pub fn fromCapture(allocator: std.mem.Allocator, source: *const Source) !Compact {
+        const records = try allocator.alloc(CompactRecord, source.metadata.len);
+        errdefer allocator.free(records);
+        const seeds = try allocator.alloc(CompactSeed, std.math.divCeil(usize, records.len, compact_chunk_rows) catch unreachable);
+        errdefer allocator.free(seeds);
+        for (seeds, 0..) |*seed, chunk| {
+            seed.* = .{ .values = @splat(0), .clocks = @splat(0) };
+            var touched: u32 = 1;
+            const start = chunk * compact_chunk_rows;
+            const end = @min(start + compact_chunk_rows, records.len);
+            for (source.metadata[start..end], records[start..end]) |meta, *record| {
+                if (meta.values[4] > std.math.maxInt(u32) or meta.rom_row >= source.program.row_to_entry.len) return error.InvalidCompactCpuMetadata;
+                record.* = .{ .result = meta.values[2], .rom_row = meta.rom_row, .next_pc = @intCast(meta.values[4]) };
+                const entry = source.program.entries[source.program.row_to_entry[meta.rom_row]];
+                for (entry.ids, 0..) |id, slot| {
+                    const bit = @as(u32, 1) << id;
+                    if (touched & bit != 0) continue;
+                    touched |= bit;
+                    seed.values[id] = meta.values[if (slot == 2) 3 else slot];
+                    seed.clocks[id] = meta.clocks[slot];
+                }
+            }
+        }
+        return .{ .allocator = allocator, .records = records, .seeds = seeds };
+    }
+};
+comptime {
+    std.debug.assert(@sizeOf(CompactRecord) == 16 and @sizeOf(CompactSeed) == 384);
+}
 pub const Input = struct {
     program_identity: [32]u8,
     log: u32,

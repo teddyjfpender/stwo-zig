@@ -23,6 +23,7 @@ pub const Context = struct {
     service: *Service.Context,
     api: SC.Api,
     kernel: *const @TypeOf(A.stwo_rv64_cpu_witness_on),
+    unpack: ?*const @TypeOf(A.stwo_rv64_cpu_unpack_on),
     memset: Memset,
     mutex: std.Thread.Mutex = .{},
     pub fn init(service: *Service.Context) !Context {
@@ -34,7 +35,7 @@ pub const Context = struct {
             .download = try symbol(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try symbol(Native.Sync, &service.library, "stwo_exec_context_sync"),
             .lane_stream = try symbol(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream"),
-        }, .kernel = try symbol(*const @TypeOf(A.stwo_rv64_cpu_witness_on), &service.library, "stwo_rv64_cpu_witness_on"), .memset = try symbol(Memset, &service.library, "stwo_exec_context_memset_async") };
+        }, .kernel = try symbol(*const @TypeOf(A.stwo_rv64_cpu_witness_on), &service.library, "stwo_rv64_cpu_witness_on"), .unpack = service.library.lookup(*const @TypeOf(A.stwo_rv64_cpu_unpack_on), "stwo_rv64_cpu_unpack_on"), .memset = try symbol(Memset, &service.library, "stwo_exec_context_memset_async") };
     }
     pub fn residentStage(self: *Context) CPU.ProjectionStage {
         self.retain_ledgers = true;
@@ -54,9 +55,16 @@ pub const Context = struct {
         if (!source.compact or !source.program.compact or source.main.len != 0 or source.main_projection_closed or source.metadata.len != source.public.steps or source.public.steps >= source.size() or source.log_size < 5 or source.log_size > 22 or source.public.final_pc & 3 != 0 or !X.features.compactPcAdmitted(source.public.final_pc)) return error.CpuDeviceIngressUnavailable;
         if (!source.program.fixed_retired) _ = try Ingress.Input.fromCapture(source);
         if (source.rom_counts.len != source.program.size()) return error.InvalidCpuRomGeometry;
+        var timer = try std.time.Timer.start();
+        // Pack off the service owner thread so another worker may keep the
+        // GPU fed while this request prepares its compact input.
+        const compact_enabled = if (std.posix.getenv("STWO_RV64_CPU_COMPACT_INGRESS")) |v| !std.mem.eql(u8, v, "0") else false;
+        if (compact_enabled and self.unpack == null) return error.MissingCpuUnpackKernel;
+        var compact_capture: ?Ingress.Compact = if (compact_enabled) try Ingress.Compact.fromCapture(a, source) else null;
+        defer if (compact_capture) |*p| p.deinit();
+        const pack_ns = timer.lap();
         self.mutex.lock();
         defer self.mutex.unlock();
-        var timer = try std.time.Timer.start();
         const owner = try a.create(Owner);
         errdefer a.destroy(owner);
         owner.* = .{ .service = self.service, .columns = try a.alloc(D.TraceColumn, X.layout.mainCount(true)), .counts16 = &.{}, .counts8 = &.{}, .pairs = &.{} };
@@ -69,11 +77,11 @@ pub const Context = struct {
             owner.counts8 = try a.alloc(u64, 256);
             owner.pairs = try a.alloc(u64, 65536);
         }
-        var job = Job{ .backend = self, .source = source, .scope = scope, .owner = owner };
+        var job = Job{ .backend = self, .source = source, .scope = scope, .owner = owner, .compact = if (compact_capture) |*p| p else null };
         const status = self.service.submit(self.service.session, Job.callback, &job);
         if (job.failure) |err| return err;
         try checked(status);
-        std.debug.print("GPU_CPU_PROJECTION rows={} active={} metadata_h2d_bytes={} main_d2h_bytes=0 total_ns={} rom_cache_hit={}\n", .{ source.size(), source.metadata.len, source.metadata.len * @sizeOf(CPU.Metadata), timer.read(), job.rom_cache_hit });
+        std.debug.print("GPU_CPU_PROJECTION rows={} active={} metadata_h2d_bytes={} main_d2h_bytes=0 total_ns={} rom_cache_hit={} compact={} pack_ns={}\n", .{ source.size(), source.metadata.len, if (compact_capture) |p| p.bytes() else source.metadata.len * @sizeOf(CPU.Metadata), timer.read() + pack_ns, job.rom_cache_hit, compact_enabled, pack_ns });
         return .{ .owner = .{ .context = owner, .release = Owner.release }, .columns = owner.columns, .ledgers = owner.ledgers, .counts16 = owner.counts16, .counts8 = owner.counts8, .pair_counts = owner.pairs };
     }
 };
@@ -110,6 +118,7 @@ const Job = struct {
     owner: *Owner,
     failure: ?anyerror = null,
     rom_cache_hit: bool = false,
+    compact: ?*const Ingress.Compact = null,
     fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *Job = @ptrCast(@alignCast(data.?));
         self.run(raw, token) catch |err| {
@@ -177,9 +186,24 @@ const Job = struct {
             ctx.join() catch {};
             ctx.release(&cleanup) catch {};
         };
-        if (metadata.len != 0) try ctx.upload(try (try ctx.borrow(scratch)).sub(0, metadata.len), metadata);
+        var compact_input: Native.Lease = .{};
+        defer if (compact_input.generation != 0) {
+            ctx.join() catch {};
+            ctx.release(&compact_input) catch {};
+        };
+        if (self.compact) |p| {
+            const records = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(p.records));
+            const seeds = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(p.seeds));
+            compact_input = try ctx.allocate(@max(1, records.len + seeds.len), 0);
+            if (records.len != 0) try ctx.upload(try (try ctx.borrow(compact_input)).sub(0, records.len), records);
+            if (seeds.len != 0) try ctx.upload(try (try ctx.borrow(compact_input)).sub(records.len, seeds.len), seeds);
+        } else if (metadata.len != 0) try ctx.upload(try (try ctx.borrow(scratch)).sub(0, metadata.len), metadata);
         try checked(b.memset(raw, scratch.words.? + count_base, 0, (pair_base + 65536 - count_base) * 4));
         try ctx.join();
+        if (self.compact) |p| {
+            const unpack = A.CpuUnpack{ .records = compact_input.words.?, .seeds = compact_input.words.? + p.records.len * 4, .rom = rom_lease.words.?, .metadata = scratch.words.?, .status = scratch.words.? + status_base, .count = @intCast(p.records.len), .rom_log = source.program.log_size, .chunk_rows = Ingress.compact_chunk_rows };
+            try checked(b.unpack.?(raw, 1, &unpack));
+        }
         const job = A.CpuWitness{ .metadata = if (metadata.len != 0) scratch.words.? else null, .rom = rom_lease.words.?, .main = eval.words.?, .counts16 = scratch.words.? + count_base, .counts8 = scratch.words.? + c8_base, .rom_counts = scratch.words.? + rom_base, .status = scratch.words.? + status_base, .count = @intCast(source.metadata.len), .log = source.log_size, .rom_log = source.program.log_size, .final_pc = @intCast(source.public.final_pc), .pair_counts = scratch.words.? + pair_base };
         try checked(b.kernel(raw, 1, &job));
         // Downloads use the coordination stream, while the formatter writes
