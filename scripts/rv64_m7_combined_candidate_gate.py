@@ -20,6 +20,7 @@ def main():
     p.add_argument('--receiver', required=True, type=Path)
     p.add_argument('--mode', required=True, choices=['d2', 'coalesce', 'd2-coalesce'])
     p.add_argument('--tag', required=True)
+    p.add_argument('--blocks', type=int, nargs='+', choices=[26235156, 24628607], default=[26235156, 24628607])
     p.add_argument('--out', required=True, type=Path)
     args = p.parse_args()
     source = Path(__file__).resolve().parent.parent
@@ -38,7 +39,7 @@ def main():
     args.out.mkdir(parents=True, exist_ok=True)
     result = {'schema': 'rv64-m7-combined-candidate-gate/v1', 'mode': args.mode, 'profile': profile, 'm6_provenance_sha256': sha(args.provenance), 'assets': expected, 'preset': preset, 'runs': []}
     env = {k: v for k, v in os.environ.items() if not k.startswith(('STWO_RV64_', 'STWO_ZIG_RV64_SETUP'))}
-    for block in [26235156, 24628607]:
+    for block in args.blocks:
         if sha(driver) != expected['driver'] or sha(library) != expected['library'] or sha(args.receiver) != expected['receiver']:
             raise RuntimeError('frozen asset mutated')
         run = Path('/workspace/m3/runs/m7-fold-v3') / f'daemon-{block}-r2-{args.tag}'
