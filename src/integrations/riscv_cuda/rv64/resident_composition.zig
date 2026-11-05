@@ -497,13 +497,26 @@ const Job = struct {
         const b = self.backend;
         var context = SC.Context{ .session = b.service.session, .native_context = raw, .token = token, .scope = @import("pcs_scope.zig").identity(self.scope), .api = &b.session_api };
         defer context.active = false;
+        // One stream orders ingress, role transforms, quotient accumulation and
+        // the final commitment. Keep each role's events until the root readback;
+        // collecting timing is observational and must not drain the GPU per role.
+        const enqueue = if (std.posix.getenv("STWO_RV64_COMPOSITION_ENQUEUE")) |v| !std.mem.eql(u8, v, "0") else true;
+        const compute_lane: u32 = if (enqueue) 0 else 1;
         var events = try Timing.init(&b.timing);
         defer events.deinit();
+        const role_events = try a.alloc(Timing, self.roles.len);
+        defer a.free(role_events);
+        var made_events: usize = 0;
+        defer for (role_events[0..made_events]) |*timing| timing.deinit();
+        for (role_events) |*timing| {
+            timing.* = try Timing.init(&b.timing);
+            made_events += 1;
+        }
         var spans: [std.meta.fields(Span).len]f64 = @splat(0);
         var stream0: ?*anyopaque = null;
         var stream1: ?*anyopaque = null;
         try self.checked("lane0", b.session_api.lane_stream(raw, 0, &stream0));
-        try self.checked("lane1", b.session_api.lane_stream(raw, 1, &stream1));
+        try self.checked("lane1", b.session_api.lane_stream(raw, compute_lane, &stream1));
         // A whole FIXED forest is acquired once under its independently derived
         // root and ordered logs. Its read-only aliases live through native PCS.
         if (self.trace.polys.items.len == 0) return error.MissingResidentFixedTree;
@@ -533,7 +546,7 @@ const Job = struct {
             power = power.mul(self.alpha);
         }
         var next = self.total;
-        for (self.roles) |*role| {
+        for (self.roles, role_events) |*role, *timing| {
             const id = role.id;
             self.active_role = id;
             const artifact = role.artifact;
@@ -634,13 +647,13 @@ const Job = struct {
                 break :blk try context.allocate(arena_words, 0);
             };
             defer {
-                context.join() catch {};
+                if (!enqueue) context.join() catch {};
                 context.release(&arena) catch {};
             }
             const arena_ptr = arena.words.?;
             var coefficient_offset: usize = 0;
             var copy_run: ?CopyRun = null;
-            try events.mark(.coefficients, false, stream0.?);
+            try timing.mark(.coefficients, false, stream0.?);
             for (source_metadata, 0..) |original, i| {
                 if (direct[i] != null) continue;
                 coefficient_offset = staging_offsets[i];
@@ -680,37 +693,37 @@ const Job = struct {
                 device_copy_calls += 1;
             }
             coefficient_offset = if (source_metadata.len < column_count) staging_offsets[source_metadata.len] else staging_words;
-            try events.mark(.coefficients, true, stream0.?);
+            try timing.mark(.coefficients, true, stream0.?);
             if (aux != 0) {
                 var role_tw_borrow = try b.tw(rl);
                 defer role_tw_borrow.deinit(b.allocator);
                 const role_tw = &role_tw_borrow.value;
                 const it = try upload(a, &context, &leases, words(role_tw.itwiddles));
-                try context.join();
+                if (!enqueue) try context.join();
                 var stream: ?*anyopaque = null;
-                try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, 1, &stream));
+                try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, compute_lane, &stream));
                 var launches: u32 = 0;
-                try events.mark(.auxiliary, false, stream.?);
+                try timing.mark(.auxiliary, false, stream.?);
                 switch (role.auxiliary) {
                     .hc => |hc| {
                         const h = try upload(a, &context, &leases, hc[0 .. 16 * rl]);
-                        try context.join();
-                        try self.checked("auxiliary", b.auxiliary(raw, 1, h.words.?, arena_ptr + coefficient_offset, rl, &launches));
+                        if (!enqueue) try context.join();
+                        try self.checked("auxiliary", b.auxiliary(raw, compute_lane, h.words.?, arena_ptr + coefficient_offset, rl, &launches));
                     },
                     .last => {
                         const size = @as(usize, 1) << @intCast(rl);
                         try self.checked("last_anchor_clear", b.clear(raw, @ptrCast(arena_ptr + coefficient_offset), 0, size * 4));
                         // Native truth last-anchor is logical last, physical row 1.
-                        // Upload and clear use lane0; join before lane1 interpolation.
+                        // Legacy lane 1 needs a join; enqueue mode interpolates on lane 0.
                         const one: u32 = 1;
                         try self.checked("last_anchor_set", b.session_api.upload(raw, @ptrCast(arena_ptr + coefficient_offset + 1), &one, 4));
-                        try context.join();
+                        if (!enqueue) try context.join();
                     },
                     .none => unreachable,
                 }
                 const rows = @as(usize, 1) << @intCast(rl);
                 try self.checked("b2n", b.b2n(arena_ptr + coefficient_offset, rows, arena_ptr + coefficient_offset, rows, rl, @intCast(aux), it.words.?, @intCast(role_tw.itwiddles.len), @intCast(rows / 2), stream.?, &launches));
-                try events.mark(.auxiliary, true, stream.?);
+                try timing.mark(.auxiliary, true, stream.?);
             }
             try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(arena_ptr + tw_base), tw.twiddles.ptr, tw.twiddles.len * 4));
             try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(arena_ptr + desc_base), descriptors.ptr, descriptors.len * 4));
@@ -738,14 +751,14 @@ const Job = struct {
                 buckets[el] = try allocate(a, &context, &leases, 8 * n, 0);
                 try self.checked("clear", b.clear(raw, @ptrCast(buckets[el].?.words.?), 0, 8 * n * 4));
             }
-            try context.join();
+            if (!enqueue) try context.join();
             if (try b.pool_trim.beforeTransform(raw, try std.math.mul(u64, arena.count, 4))) {
                 std.debug.print("GPU_COMPOSITION_POOL_TRIM ordinal={} arena_bytes={} joined=true\n", .{ self.scope.ordinal, arena.count * 4 });
             }
             var stream: ?*anyopaque = null;
-            try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, 1, &stream));
+            try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, compute_lane, &stream));
             var launches: u32 = 0;
-            try events.mark(.domain_fft, false, stream.?);
+            try timing.mark(.domain_fft, false, stream.?);
             var column: usize = 0;
             while (column < column_count) {
                 var end = column + 1;
@@ -771,16 +784,12 @@ const Job = struct {
                 }
                 column = end;
             }
-            try events.mark(.domain_fft, true, stream.?);
+            try timing.mark(.domain_fft, true, stream.?);
             const packet = Abi.CompositionRole{ .role = id, .trace_log = rl, .eval_log = el, .first_row = 0, .row_count = @intCast(n), .trees = .{ arena_ptr + eval_base, arena_ptr + eval_base + widths[0] * n, arena_ptr + eval_base + (widths[0] + widths[1]) * n }, .tree_words = .{ @max(@as(usize, 1), widths[0] * n), @max(@as(usize, 1), widths[1] * n), @max(@as(usize, 1), widths[2] * n) }, .column_offsets = @ptrCast(@alignCast(masks.words.?)), .mask_count = mask_offsets.len, .parameters = params.words.?, .parameter_count = role.parameters.len, .powers = pw.words.?, .constraint_count = artifact.program.roots.len, .denominator_inverses = denom.words.?, .output = buckets[el].?.words.? };
-            try events.mark(.rows, false, stream.?);
-            try self.checked("role", role.evaluate(raw, 1, &packet, &launches));
-            try events.mark(.rows, true, stream.?);
-            try context.join();
-            spans[@intFromEnum(Span.coefficients)] += try events.milliseconds(.coefficients);
-            spans[@intFromEnum(Span.domain_fft)] += try events.milliseconds(.domain_fft);
-            spans[@intFromEnum(Span.rows)] += try events.milliseconds(.rows);
-            if (aux != 0) spans[@intFromEnum(Span.auxiliary)] += try events.milliseconds(.auxiliary);
+            try timing.mark(.rows, false, stream.?);
+            try self.checked("role", role.evaluate(raw, compute_lane, &packet, &launches));
+            try timing.mark(.rows, true, stream.?);
+            if (!enqueue) try context.join();
             domain_cells += column_count * n;
         }
         if (next != 0) return error.UnusedCompositionCoefficients;
@@ -816,10 +825,10 @@ const Job = struct {
         var list: std.ArrayList(Abi.CompositionBucket) = .empty;
         defer list.deinit(a);
         for (buckets, 0..) |bucket, log| if (bucket) |value| try list.append(a, .{ .words = value.words.?, .log = @intCast(log) });
-        try context.join();
+        if (!enqueue) try context.join();
         var launches: u32 = 0;
         try events.mark(.finalize, false, stream1.?);
-        try self.checked("finish", b.finish(raw, 1, list.items.ptr, @intCast(list.items.len), accumulator.words.?, output.words.?, self.log, self.split, inv.words.?, @intCast(composition_tw.itwiddles.len), &launches));
+        try self.checked("finish", b.finish(raw, compute_lane, list.items.ptr, @intCast(list.items.len), accumulator.words.?, output.words.?, self.log, self.split, inv.words.?, @intCast(composition_tw.itwiddles.len), &launches));
         try events.mark(.finalize, true, stream1.?);
         var descriptors: std.ArrayList(u32) = .empty;
         defer descriptors.deinit(a);
@@ -834,9 +843,9 @@ const Job = struct {
         }
         try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(scratch.words.? + output_tw), tw.twiddles.ptr, tw.twiddles.len * 4));
         try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(scratch.words.? + output_desc), descriptors.items.ptr, descriptors.items.len * 4));
-        try context.join();
+        if (!enqueue) try context.join();
         var stream: ?*anyopaque = null;
-        try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, 1, &stream));
+        try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, compute_lane, &stream));
         try events.mark(.commit_fft, false, stream.?);
         if (separate) {
             try self.checked("n2b_columns", b.n2b_columns.?(output.words.?, @as(usize, 1) << @intCast(chunk_log), scratch.words.? + output_desc, scratch.words.?, commit_rows, commit_log, @intCast(count), scratch.words.? + output_tw, @intCast(tw.twiddles.len), @intCast(commit_rows / 2), stream.?, &launches));
@@ -846,15 +855,21 @@ const Job = struct {
         const tree = try allocate(a, &context, &leases, tree_words, 0);
         const segment = Abi.MixedSegment{ .columns = scratch.words.? + eval_base, .stride_words = commit_rows, .capacity_words = eval_words, .source_size = @intCast(commit_rows), .reserved = 0 };
         try events.mark(.commit_hash, false, stream1.?);
-        try self.checked("tree", b.tree(raw, 1, @ptrCast(&segment), 1, commit_log, tree.words.?, tree_words));
+        try self.checked("tree", b.tree(raw, compute_lane, @ptrCast(&segment), 1, commit_log, tree.words.?, tree_words));
         try events.mark(.commit_hash, true, stream1.?);
-        try context.join();
-        spans[@intFromEnum(Span.finalize)] = try events.milliseconds(.finalize);
-        spans[@intFromEnum(Span.commit_fft)] = try events.milliseconds(.commit_fft);
-        spans[@intFromEnum(Span.commit_hash)] = try events.milliseconds(.commit_hash);
+        if (!enqueue) try context.join();
         var root_words: [8]u32 = undefined;
         try self.checked("session_api.download", b.session_api.download(raw, &root_words, @ptrCast(tree.words.? + tree_words - 8), 32));
         try context.join();
+        for (role_events, self.roles) |*timing, role| {
+            spans[@intFromEnum(Span.coefficients)] += try timing.milliseconds(.coefficients);
+            spans[@intFromEnum(Span.domain_fft)] += try timing.milliseconds(.domain_fft);
+            spans[@intFromEnum(Span.rows)] += try timing.milliseconds(.rows);
+            if (role.auxiliary != .none) spans[@intFromEnum(Span.auxiliary)] += try timing.milliseconds(.auxiliary);
+        }
+        spans[@intFromEnum(Span.finalize)] = try events.milliseconds(.finalize);
+        spans[@intFromEnum(Span.commit_fft)] = try events.milliseconds(.commit_fft);
+        spans[@intFromEnum(Span.commit_hash)] = try events.milliseconds(.commit_hash);
         var root: [32]u8 = undefined;
         for (root_words, 0..) |v, i| std.mem.writeInt(u32, root[i * 4 ..][0..4], v, .little);
         const columns = try b.allocator.alloc(D.Column, count);
