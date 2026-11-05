@@ -732,3 +732,66 @@ test "concurrent resident walk and expected image share only pinned immutable au
     try std.testing.expectError(error.InvalidEthereumTerminalPc, Request.Request.initWithOptions(a, altered, .{ .poseidon_initial_cache = false, .authority_provider = cache.provider() }));
     try std.testing.expectEqual(@as(usize, 2), cache.provider_leases);
 }
+
+const ReadinessBorrow = struct {
+    mutex: std.Thread.Mutex = .{},
+    changed: std.Thread.Condition = .{},
+    thread: ?std.Thread = null,
+    metadata: []const @import("../../word16_execution/cpu_source.zig").Metadata = &.{},
+    expected_row: u32 = 0,
+    released: bool = false,
+    may_read: bool = false,
+    checked: bool = false,
+    cancellations: usize = 0,
+    fn ready(raw: *anyopaque, index: usize, native: *const @import("../../word16_execution/prepared.zig").Prepared, _: []const @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event, _: u64) void {
+        const self: *ReadinessBorrow = @ptrCast(@alignCast(raw));
+        if (index != 0) return;
+        self.metadata = native.cpu.?.metadata;
+        self.expected_row = self.metadata[0].rom_row;
+        self.thread = std.Thread.spawn(.{}, reader, .{self}) catch unreachable;
+    }
+    fn reader(self: *ReadinessBorrow) void {
+        self.mutex.lock();
+        while (!self.released) self.changed.wait(&self.mutex);
+        const may_read = self.may_read;
+        self.mutex.unlock();
+        if (may_read) self.checked = self.metadata[0].rom_row == self.expected_row;
+    }
+    fn cancel(raw: *anyopaque) void {
+        const self: *ReadinessBorrow = @ptrCast(@alignCast(raw));
+        self.finish(true);
+    }
+    fn finish(self: *ReadinessBorrow, may_read: bool) void {
+        if (self.thread) |thread| {
+            self.mutex.lock();
+            self.released = true;
+            self.may_read = may_read;
+            self.changed.signal();
+            self.mutex.unlock();
+            thread.join();
+            self.thread = null;
+            self.cancellations += 1;
+        }
+    }
+};
+test "capture failure joins readiness reader before destroying captured metadata" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var config = fixture.config();
+    config.max_batches = 1; // Valid first segment, then missing terminal segment.
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    var program = try Program.initWithAuthority(a, &image_owner.authority);
+    defer program.deinit();
+    var stats = Direct.Stats{};
+    const started = try Direct.Started.start(a, config, 0, 0);
+    defer started.deinit(&stats);
+    var borrowed = ReadinessBorrow{};
+    // If the production callback is missing, test cleanup still joins the
+    // helper WITHOUT dereferencing metadata after the failed capture freed it.
+    defer borrowed.finish(false);
+    started.ready = .{ .context = &borrowed, .call = ReadinessBorrow.ready, .cancel = ReadinessBorrow.cancel };
+    try std.testing.expectError(error.MissingEthereumTerminalPacket, started.capture(&image_owner, &program, 2, &stats));
+    try std.testing.expectEqual(@as(usize, 1), borrowed.cancellations);
+    try std.testing.expect(borrowed.checked);
+}
