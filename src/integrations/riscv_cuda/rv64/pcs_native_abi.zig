@@ -41,3 +41,40 @@ comptime {
     if (@sizeOf(Words) != 16 or @sizeOf(Result) != 48 or @sizeOf(Request) != 328 or @sizeOf(Lease) != 40 or @sizeOf(Column) != 40)
         @compileError("native PCS ABI changed");
 }
+
+/// Additive per-owner admission runtime. Layout matches runtime/admission_v2.h.
+pub const OwnerSnapshotV2 = extern struct {
+    version: u32 = 2,
+    device: u32 = 0,
+    context_identity: u64 = 0,
+    ticket: u64 = 0,
+    capacity: u64 = 0,
+    chunk: u64 = 0,
+    small_slab: u64 = 0,
+    global_live_large: u64 = 0,
+    global_live_small: u64 = 0,
+    reserved_unused_large: u64 = 0,
+    reserved_unused_small: u64 = 0,
+    owner_live_large: u64 = 0,
+    owner_live_small: u64 = 0,
+    baseline_large: u64 = 0,
+    baseline_small: u64 = 0,
+    ceiling_large: u64 = 0,
+    ceiling_small: u64 = 0,
+    active_reservations: u64 = 0,
+    stable_live_large: u64 = 0,
+    stable_live_small: u64 = 0,
+    owner_new_live_large: u64 = 0,
+    owner_new_live_small: u64 = 0,
+    entered: u32 = 0,
+    ended: u32 = 0,
+};
+pub const AdmissionConfigureV2 = *const fn (*anyopaque, u64) callconv(.c) c_int;
+pub const AdmissionReserveV2 = *const fn (*anyopaque, u64, u64, u64, u64, *OwnerSnapshotV2) callconv(.c) c_int;
+pub const AdmissionEnterV2 = *const fn (*anyopaque, u64, [*:0]const u8) callconv(.c) c_int;
+pub const AdmissionEndV2 = *const fn (*anyopaque, u64, *OwnerSnapshotV2) callconv(.c) c_int;
+pub const AdmissionHostV2 = *const fn (*anyopaque, u64, u64, *OwnerSnapshotV2) callconv(.c) c_int;
+pub const AdmissionSnapshotV2 = *const fn (*anyopaque, u64, *OwnerSnapshotV2) callconv(.c) c_int;
+comptime {
+    if (@sizeOf(OwnerSnapshotV2) != 176 or @offsetOf(OwnerSnapshotV2, "stable_live_large") != 136 or @offsetOf(OwnerSnapshotV2, "entered") != 168) @compileError("owner admission V2 ABI changed");
+}

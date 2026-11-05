@@ -83,7 +83,7 @@ pub const Demand = struct {
     temporary: Footprint = .{},
     /// Whole successor envelope while this owner lives: consumer retained_new
     /// PLUS its maximum subsequent scratch; not scratch alone.
-    /// This is max-combined, because wide stages serialize on this physical GPU.
+    /// Futures max-combine; active stage envelopes sum in RuntimeV2 mode.
     successor: Footprint = .{},
     known: bool = false,
     host_peak_bytes: u64 = 0,
@@ -92,9 +92,9 @@ pub const Demand = struct {
 pub const Token = struct { physical: u32, id: u64 };
 pub const Reason = enum { admitted, wide_stage_busy, capacity_pressure, request_exceeds_static_arena, unknown_cost, host_capacity_pressure, runtime_poisoned };
 pub const Decision = struct { reason: Reason, token: ?Token = null, required: Footprint = .{}, capacity: Footprint };
-pub const Snapshot = struct { physical: u32, retained: Footprint, active_temporary: Footprint, successor: Footprint, required: Footprint, capacity: Footprint, owners: usize, active: bool };
-const Entry = struct { demand: Demand, active: bool, entered: bool = false };
-const Device = struct { physical: u32, entries: std.AutoHashMapUnmanaged(u64, Entry) = .{}, active: ?u64 = null, observed: Footprint = .{}, observed_initialized: bool = false, runtime_configured: bool = false, poisoned: bool = false, coverage: u64 = 0, stage_gate: std.Thread.Mutex = .{} };
+pub const Snapshot = struct { physical: u32, retained: Footprint, active_temporary: Footprint, active_retained_upper: Footprint = .{}, successor: Footprint, required: Footprint, capacity: Footprint, owners: usize, active: bool };
+const Entry = struct { demand: Demand, active: bool, entered: bool = false, runtime_owner: u64 = 0 };
+const Device = struct { physical: u32, entries: std.AutoHashMapUnmanaged(u64, Entry) = .{}, active: ?u64 = null, observed: Footprint = .{}, observed_initialized: bool = false, concurrent: bool = false, runtime_configured: bool = false, poisoned: bool = false, coverage: u64 = 0, stage_gate: std.Thread.Mutex = .{} };
 pub const Planner = struct {
     allocator: std.mem.Allocator,
     preset: Preset,
@@ -155,14 +155,20 @@ pub const Planner = struct {
         var retained: Footprint = d.observed;
         var temporary: Footprint = .{};
         var successor: Footprint = .{};
+        var active_retained: Footprint = .{};
+        var any_active = false;
         var it = d.entries.valueIterator();
         while (it.next()) |entry| {
             retained = try retained.add(entry.demand.retained_new);
             const replaced = if (advancing) |key| if (entry.demand.progress_key) |old| std.meta.eql(key, old) else false else false;
             if (!replaced) successor = successor.max(entry.demand.successor);
-            if (entry.active) temporary = try temporary.add(entry.demand.temporary);
+            if (entry.active) {
+                temporary = try temporary.add(entry.demand.temporary);
+                active_retained = try active_retained.add(entry.demand.stage_retained_upper);
+                any_active = true;
+            }
         }
-        return .{ .physical = d.physical, .retained = retained, .active_temporary = temporary, .successor = successor, .required = try retained.add(temporary.max(successor)), .capacity = self.capacity(), .owners = d.entries.count(), .active = d.active != null };
+        return .{ .physical = d.physical, .retained = retained, .active_temporary = temporary, .active_retained_upper = active_retained, .successor = successor, .required = try retained.add(temporary.max(if (d.concurrent) try active_retained.add(successor) else successor)), .capacity = self.capacity(), .owners = d.entries.count(), .active = any_active };
     }
     pub fn snapshot(self: *Planner, physical: u32) !Snapshot {
         self.mutex.lock();
@@ -172,6 +178,10 @@ pub const Planner = struct {
     /// Nonblocking. The scheduler retries after a retirement; NEVER wait inside
     /// a GPU owner callback. No reservation means no device mutation is allowed.
     pub fn tryBegin(self: *Planner, physical: u32, demand: Demand) !Decision {
+        return self.tryBeginOwned(physical, demand, 0);
+    }
+    /// RuntimeV2 owns one independently bounded window per native context.
+    pub fn tryBeginOwned(self: *Planner, physical: u32, demand: Demand, runtime_owner: u64) !Decision {
         self.mutex.lock();
         defer self.mutex.unlock();
         const d = try self.device(physical);
@@ -190,21 +200,31 @@ pub const Planner = struct {
         const alone = try demand.retained_new.add(additional);
         if (!cap.contains(alone)) return .{ .reason = .request_exceeds_static_arena, .required = alone, .capacity = cap };
         const live = try self.collectForProgress(d, demand.progress_key);
-        const next_and_other_progress = try demand.stage_retained_upper.add(live.successor.max(demand.successor));
-        const required = try (try live.retained.add(demand.retained_new)).add(demand.temporary.max(next_and_other_progress));
-        if (d.active != null) return .{ .reason = .wide_stage_busy, .required = required, .capacity = cap };
+        const active_temporary = if (d.concurrent) try live.active_temporary.add(demand.temporary) else demand.temporary;
+        const active_retained = if (d.concurrent) try live.active_retained_upper.add(demand.stage_retained_upper) else demand.stage_retained_upper;
+        const next_and_other_progress = try active_retained.add(live.successor.max(demand.successor));
+        const required = try (try live.retained.add(demand.retained_new)).add(active_temporary.max(next_and_other_progress));
+        if (!d.concurrent and d.active != null) return .{ .reason = .wide_stage_busy, .required = required, .capacity = cap };
+        if (d.concurrent) {
+            if (runtime_owner == 0) return error.MissingRuntimeAdmissionOwner;
+            var active = d.entries.valueIterator();
+            while (active.next()) |entry| if (entry.active) {
+                if (entry.runtime_owner == runtime_owner) return .{ .reason = .wide_stage_busy, .required = required, .capacity = cap };
+                if (demand.progress_key) |key| if (entry.demand.progress_key) |prior| if (std.meta.eql(key, prior)) return .{ .reason = .wide_stage_busy, .required = required, .capacity = cap };
+            };
+        }
         if (!cap.contains(required)) return .{ .reason = .capacity_pressure, .required = required, .capacity = cap };
         const id = self.next_id;
         self.next_id = try std.math.add(u64, self.next_id, 1);
-        try d.entries.putNoClobber(self.allocator, id, .{ .demand = demand, .active = true });
+        try d.entries.putNoClobber(self.allocator, id, .{ .demand = demand, .active = true, .runtime_owner = runtime_owner });
         // Reserve the advancing phase without discarding the previous
         // promise. An attempt may yield before ever entering its GPU owner.
-        d.active = id;
+        if (!d.concurrent) d.active = id;
         return .{ .reason = .admitted, .token = .{ .physical = physical, .id = id }, .required = required, .capacity = cap };
     }
     fn commitEnteredLocked(d: *Device, token: Token) !void {
         const entry = d.entries.getPtr(token.id) orelse return error.StaleAdmissionToken;
-        if (d.active != token.id or !entry.active) return error.AdmissionNotActive;
+        if ((!d.concurrent and d.active != token.id) or !entry.active) return error.AdmissionNotActive;
         if (entry.entered) return;
         entry.entered = true;
         if (entry.demand.progress_key) |key| {
@@ -230,11 +250,11 @@ pub const Planner = struct {
         defer self.mutex.unlock();
         const d = try self.device(token.physical);
         const entry = d.entries.get(token.id) orelse return error.StaleAdmissionToken;
-        if (d.active != token.id or !entry.active) return error.AdmissionNotActive;
+        if ((!d.concurrent and d.active != token.id) or !entry.active) return error.AdmissionNotActive;
         if (entry.entered) return error.AdmissionOwnerAlreadyEntered;
         _ = d.entries.remove(token.id);
-        d.active = null;
-        self.notifyLocked();
+        if (!d.concurrent) d.active = null;
+        if (!d.concurrent) self.notifyLocked();
     }
     /// Call only after temporary allocations are actually freed AND joined.
     /// Committed retention includes retired coefficient owners and cache owners.
@@ -243,12 +263,12 @@ pub const Planner = struct {
         defer self.mutex.unlock();
         const d = try self.device(token.physical);
         const entry = d.entries.getPtr(token.id) orelse return error.StaleAdmissionToken;
-        if (d.active != token.id or !entry.active) return error.AdmissionNotActive;
+        if ((!d.concurrent and d.active != token.id) or !entry.active) return error.AdmissionNotActive;
         if (!entry.demand.retained_new.contains(retained) or !entry.demand.successor.contains(successor)) return error.UnreservedRetention;
         // Direct model callers attest completed work here. Runtime unentered
         // attempts use cancelUnentered instead, preserving the old promise.
         try commitEnteredLocked(d, token);
-        d.active = null;
+        if (!d.concurrent) d.active = null;
         self.notifyLocked();
         if (retained.large == 0 and retained.small == 0 and successor.large == 0 and successor.small == 0) {
             _ = d.entries.remove(token.id);
@@ -350,6 +370,49 @@ pub const Planner = struct {
         for (self.devices) |d| if (!d.runtime_configured or d.poisoned) return false;
         return true;
     }
+    pub fn configureConcurrent(self: *Planner, physical: u32, enabled: bool) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const d = try self.device(physical);
+        if (d.runtime_configured and d.concurrent != enabled) return error.MixedAdmissionRuntimeVersions;
+        d.concurrent = enabled;
+    }
+    /// RuntimeV2 reports stable bytes excluding NEW allocations from every
+    /// reserved/entered/ended ticket. Existing-owner frees are visible here.
+    /// Caller holds the physical transaction gate; this operation never waits.
+    pub fn observeStable(self: *Planner, physical: u32, actual: Footprint) !bool {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const d = try self.device(physical);
+        if (!d.concurrent) return error.ConcurrentAdmissionRequired;
+        if (!d.observed_initialized) {
+            if (actual.large != 0 or actual.small != 0) return error.UntrackedDeviceAllocation;
+            d.observed_initialized = true;
+        } else if (!d.observed.contains(actual)) return error.UntrackedDeviceAllocation;
+        const changed = !std.meta.eql(d.observed, actual);
+        d.observed = actual;
+        return changed;
+    }
+    /// HOST finish transaction after the joined C window is finalized. Only
+    /// this ticket's surviving NEW allocations may increase the stable base;
+    /// active peers' temporary allocations are deliberately absent.
+    pub fn completeOwned(self: *Planner, token: Token, stable: Footprint, own_new: Footprint, successor: Footprint) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const d = try self.device(token.physical);
+        if (!d.concurrent) return error.ConcurrentAdmissionRequired;
+        const e = d.entries.getPtr(token.id) orelse return error.StaleAdmissionToken;
+        if (!e.active or !e.entered) return error.AdmissionNotActive;
+        if (e.demand.retained_new.large != 0 or e.demand.retained_new.small != 0) return error.MixedAdmissionAccounting;
+        if (!e.demand.stage_retained_upper.contains(own_new) or !e.demand.successor.contains(successor)) return error.UnreservedRetention;
+        if (!(try d.observed.add(own_new)).contains(stable)) return error.UntrackedDeviceAllocation;
+        d.observed = stable;
+        d.observed_initialized = true;
+        e.demand.temporary = .{};
+        e.demand.successor = successor;
+        e.active = false;
+        if (successor.large == 0 and successor.small == 0) _ = d.entries.remove(token.id);
+    }
     pub fn markConfigured(self: *Planner, physical: u32) !void {
         self.mutex.lock();
         defer self.mutex.unlock();
@@ -361,7 +424,7 @@ pub const Planner = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         const d = try self.device(physical);
-        if (d.active != null) return error.AdmissionStillActive;
+        if ((try self.collect(d)).active) return error.AdmissionStillActive;
         var it = d.entries.valueIterator();
         while (it.next()) |e| if (e.demand.retained_new.large != 0 or e.demand.retained_new.small != 0) return error.MixedAdmissionAccounting;
         if (!d.observed_initialized) {
@@ -374,8 +437,9 @@ pub const Planner = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         const d = try self.device(token.physical);
+        if (d.concurrent) return error.OwnerSnapshotRequired;
         const e = d.entries.getPtr(token.id) orelse return error.StaleAdmissionToken;
-        if (d.active != token.id or !e.active) return error.AdmissionNotActive;
+        if ((!d.concurrent and d.active != token.id) or !e.active) return error.AdmissionNotActive;
         if (e.demand.retained_new.large != 0 or e.demand.retained_new.small != 0) return error.MixedAdmissionAccounting;
         const envelope = try d.observed.add(e.demand.temporary);
         if (!envelope.contains(actual)) return error.UnreservedRetention;
@@ -383,7 +447,7 @@ pub const Planner = struct {
         try commitEnteredLocked(d, token);
         d.observed = actual;
         d.observed_initialized = true;
-        d.active = null;
+        if (!d.concurrent) d.active = null;
         self.notifyLocked();
         if (successor.large == 0 and successor.small == 0) {
             _ = d.entries.remove(token.id);
@@ -560,4 +624,63 @@ test "busy unentered GKR retry preserves numerical headroom until actual owner e
     try std.testing.expectEqual(project, (try p.snapshot(0)).successor);
     try p.release(original);
     try p.release(retry);
+}
+
+test "V2 two owners overlap and finishing one excludes peer temporary bytes" {
+    var p = try Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer p.deinit();
+    try p.configureConcurrent(0, true);
+    _ = try p.observeStable(0, .{});
+    const a = (try p.tryBeginOwned(0, .{ .owner = test_owner, .stage = .witness, .known = true, .host_known = true, .temporary = .{ .large = 6 << 30 }, .stage_retained_upper = .{ .large = 2 << 30 }, .successor = .{ .large = 4 << 30 } }, 41)).token.?;
+    const b = (try p.tryBeginOwned(0, .{ .owner = test_owner, .stage = .witness, .known = true, .host_known = true, .temporary = .{ .large = 8 << 30 }, .stage_retained_upper = .{ .large = 3 << 30 } }, 42)).token.?;
+    try std.testing.expectEqual(@as(u64, 14 << 30), (try p.snapshot(0)).active_temporary.large);
+    try std.testing.expectEqual(Reason.wide_stage_busy, (try p.tryBeginOwned(0, .{ .owner = test_owner, .stage = .pcs, .known = true, .host_known = true }, 41)).reason);
+    try std.testing.expectEqual(Reason.capacity_pressure, (try p.tryBeginOwned(0, .{ .owner = test_owner, .stage = .pcs, .known = true, .host_known = true, .temporary = .{ .large = 12 << 30 } }, 43)).reason);
+    try p.commitEntered(a);
+    try p.commitEntered(b);
+    // C stable excludes B's live eight-GiB temporary allocation. Only A's
+    // surviving NEW two GiB becomes stable in this completion transaction.
+    try p.completeOwned(a, .{ .large = 2 << 30 }, .{ .large = 2 << 30 }, .{ .large = 4 << 30 });
+    const mid = try p.snapshot(0);
+    try std.testing.expectEqual(@as(u64, 2 << 30), mid.retained.large);
+    try std.testing.expectEqual(@as(u64, 8 << 30), mid.active_temporary.large);
+    try std.testing.expectEqual(@as(u64, 10 << 30), mid.required.large);
+    try p.completeOwned(b, .{ .large = 5 << 30 }, .{ .large = 3 << 30 }, .{});
+    try std.testing.expectEqual(@as(u64, 5 << 30), (try p.snapshot(0)).retained.large);
+    try p.release(a);
+    _ = try p.observeStable(0, .{});
+}
+
+test "V2 aggregate retained upper plus maximum future refuses overcommit" {
+    var p = try Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer p.deinit();
+    try p.configureConcurrent(0, true);
+    _ = try p.observeStable(0, .{});
+    const demand = Demand{ .owner = test_owner, .stage = .witness, .known = true, .host_known = true, .temporary = .{ .large = 4 << 30 }, .stage_retained_upper = .{ .large = 4 << 30 }, .successor = .{ .large = 16 << 30 } };
+    const a = (try p.tryBeginOwned(0, demand, 41)).token.?;
+    const rejected = try p.tryBeginOwned(0, demand, 42);
+    try std.testing.expectEqual(Reason.capacity_pressure, rejected.reason);
+    try std.testing.expectEqual(@as(u64, 24 << 30), rejected.required.large);
+    try p.cancelUnentered(a);
+}
+
+test "V2 cancel unentered advance preserves prior future and peer reservation" {
+    var p = try Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer p.deinit();
+    try p.configureConcurrent(0, true);
+    _ = try p.observeStable(0, .{});
+    const key = ProgressKey{ .statement = @splat(3), .fixed = @splat(4), .ordinal = 0 };
+    const old = (try p.tryBeginOwned(0, .{ .owner = test_owner, .progress_key = key, .stage = .witness, .known = true, .host_known = true, .temporary = .{ .large = 6 << 30 }, .stage_retained_upper = .{ .large = 6 << 30 }, .successor = .{ .large = 14 << 30 } }, 41)).token.?;
+    try p.commitEntered(old);
+    try p.completeOwned(old, .{ .large = 6 << 30 }, .{ .large = 6 << 30 }, .{ .large = 14 << 30 });
+    const retry = (try p.tryBeginOwned(0, .{ .owner = test_owner, .progress_key = key, .stage = .gkr, .known = true, .host_known = true, .temporary = .{ .large = 2 << 30 }, .successor = .{ .large = 1 << 30 } }, 41)).token.?;
+    const peer = (try p.tryBeginOwned(0, .{ .owner = test_owner, .stage = .pcs, .known = true, .host_known = true, .temporary = .{ .large = 1 << 30 } }, 42)).token.?;
+    try p.cancelUnentered(retry);
+    const snap = try p.snapshot(0);
+    try std.testing.expectEqual(@as(u64, 14 << 30), snap.successor.large);
+    try std.testing.expectEqual(@as(u64, 1 << 30), snap.active_temporary.large);
+    try p.commitEntered(peer);
+    try p.completeOwned(peer, .{ .large = 6 << 30 }, .{}, .{});
+    try p.release(old);
+    _ = try p.observeStable(0, .{});
 }
