@@ -17,6 +17,8 @@ pub const MAX_INPUT_BYTES = rv.ethereum_contract.INPUT_CAPACITY_MAX - 4;
 pub const AuthorityCache = struct {
     allocator: std.mem.Allocator,
     mutex: std.Thread.Mutex = .{},
+    provider_key: ?[32]u8 = null,
+    provider_leases: usize = 0,
     entries: std.ArrayList(Entry) = .empty,
     hits: u64 = 0,
     misses: u64 = 0,
@@ -33,15 +35,32 @@ pub const AuthorityCache = struct {
     }
     /// Same cache and key as the expected-image owner. The direct execution
     /// boot may acquire concurrently; immutable returned authorities remain
-    /// valid until this sequential service finishes its current request.
+    /// valid until its borrowing Requests release them. While any provider
+    /// lease is live, a different ELF/ROM/control key is rejected before any
+    /// cache lookup/build/eviction. This is same-image concurrent admission,
+    /// not a general cache for concurrent requests with different images.
     pub fn provider(self: *AuthorityCache) Request.AuthorityProvider {
-        return .{ .context = self, .acquire = acquirePinned };
+        return .{ .context = self, .acquire = acquirePinned, .release = releasePinned };
     }
     fn acquirePinned(raw: *anyopaque, loaded: *rv.elf.LoadedImage, config: Request.Config) !*const Full.ProgramAuthority {
         const self: *AuthorityCache = @ptrCast(@alignCast(raw));
-        return self.getPinned(loaded, config);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const authority = try self.getPinnedLocked(loaded, config);
+        self.provider_key = imageKey(config);
+        self.provider_leases += 1;
+        return authority;
+    }
+    fn releasePinned(raw: *anyopaque) void {
+        const self: *AuthorityCache = @ptrCast(@alignCast(raw));
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        std.debug.assert(self.provider_leases != 0);
+        self.provider_leases -= 1;
+        if (self.provider_leases == 0) self.provider_key = null;
     }
     pub fn deinit(self: *AuthorityCache) void {
+        std.debug.assert(self.provider_leases == 0);
         for (self.entries.items) |entry| {
             entry.authority.deinit();
             self.allocator.destroy(entry.authority);
@@ -84,8 +103,12 @@ pub const AuthorityCache = struct {
     fn getPinned(self: *AuthorityCache, loaded: *rv.elf.LoadedImage, config: Request.Config) !*const Full.ProgramAuthority {
         self.mutex.lock();
         defer self.mutex.unlock();
+        return self.getPinnedLocked(loaded, config);
+    }
+    fn getPinnedLocked(self: *AuthorityCache, loaded: *rv.elf.LoadedImage, config: Request.Config) !*const Full.ProgramAuthority {
         const enabled = if (std.posix.getenv("STWO_RV64_IMAGE_PROGRAM_CACHE")) |v| !std.mem.eql(u8, v, "0") else true;
         const id = imageKey(config);
+        if (self.provider_key) |active| if (!std.mem.eql(u8, &active, &id)) return error.ResidentAuthorityProviderKeyChanged;
         if (enabled) for (self.entries.items) |entry| if (entry.pinned_image) |pin| {
             if (std.mem.eql(u8, &pin, &id)) {
                 self.hits += 1;

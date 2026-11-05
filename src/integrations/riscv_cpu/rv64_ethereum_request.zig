@@ -54,6 +54,7 @@ pub fn tapeProfile(config: Config) rv.execution_profile.Profile {
 pub const AuthorityProvider = struct {
     context: *anyopaque,
     acquire: *const fn (*anyopaque, *rv.elf.LoadedImage, Config) anyerror!*const Full.ProgramAuthority,
+    release: *const fn (*anyopaque) void,
 };
 pub const Options = struct {
     authority_provider: ?AuthorityProvider = null,
@@ -74,6 +75,7 @@ pub const Request = struct {
     /// False only under `Options.poseidon_initial_cache = false`.
     has_initial_cache: bool = true,
     shared_authority: bool = false,
+    authority_provider: ?AuthorityProvider = null,
     pub fn init(a: std.mem.Allocator, config: Config) !Request {
         return initWithOptions(a, config, .{});
     }
@@ -95,7 +97,7 @@ pub const Request = struct {
             defer program.deinit(a);
             break :blk try Full.ProgramAuthority.initWithRom(a, program.value(), authorityProfile(config), romProfile(config), config.control_policy);
         };
-        errdefer if (options.authority_provider == null) authority.deinit();
+        errdefer if (options.authority_provider) |provider| provider.release(provider.context) else authority.deinit();
         if (config.terminal_pc & 3 != 0 or try loaded.memory.fetch(config.terminal_pc) != 0x0000006f) return error.InvalidEthereumTerminalPc;
         _ = try authority.program.lookup(config.terminal_pc);
         var policy = try R.policy.Policy.fromMemory(a, &loaded.memory);
@@ -106,12 +108,12 @@ pub const Request = struct {
         _ = try policy.find(.chunk512, terminal.base(), 3);
         var initial_cache = if (options.poseidon_initial_cache) try R.values.Cache.fromMemory(a, .chunk512, &loaded.memory) else try R.values.Cache.empty(a, .chunk512);
         errdefer initial_cache.deinit();
-        return .{ .loaded = loaded, .authority = authority, .policy = policy, .initial_cache = initial_cache, .expected_output = expected, .has_initial_cache = options.poseidon_initial_cache, .shared_authority = options.authority_provider != null };
+        return .{ .loaded = loaded, .authority = authority, .policy = policy, .initial_cache = initial_cache, .expected_output = expected, .has_initial_cache = options.poseidon_initial_cache, .shared_authority = options.authority_provider != null, .authority_provider = options.authority_provider };
     }
     pub fn deinit(self: *Request) void {
         self.initial_cache.deinit();
         self.policy.deinit();
-        if (!self.shared_authority) self.authority.deinit();
+        if (self.authority_provider) |provider| provider.release(provider.context) else self.authority.deinit();
         self.loaded.deinit();
         self.* = undefined;
     }
