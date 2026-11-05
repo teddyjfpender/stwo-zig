@@ -167,8 +167,8 @@ pub fn init(a: std.mem.Allocator, service: *@import("pcs_native.zig").Context, t
     return .{ .initial = initial, .replay = replay_source, .progress = progress };
 }
 fn pcsGeometry(a: std.mem.Allocator, roles: []const Role, logs: [3][]const u32, scope: D.Scope, config: core.pcs.PcsConfig, max_log: u32, split: u32) !D.Request {
-    const seed = O.fromPartialEvals(.{ D.M.fromCanonical(7), D.M.fromCanonical(11), D.M.fromCanonical(13), D.M.fromCanonical(17), D.M.fromCanonical(19), D.M.fromCanonical(23), D.M.fromCanonical(29), D.M.fromCanonical(31) });
-    const probe = core.circle.secureFieldPointFromRandomSeed(seed);
+    const seed = O.fromM31Array(.{ D.M.fromCanonical(7), D.M.fromCanonical(11), D.M.fromCanonical(13), D.M.fromCanonical(17), D.M.fromCanonical(19), D.M.fromCanonical(23), D.M.fromCanonical(29), D.M.fromCanonical(31) });
+    const probe = try core.circle.secureFieldPointFromRandomSeedCheckedFor(O, seed);
     const step = core.poly.circle.canonic.CanonicCoset.new(max_log).coset().step;
     const lift = D.Point{ .x = O.fromBase(step.x), .y = O.fromBase(step.y) };
     const prior = @import("stwo_riscv_frontend").rv64_air.geometry.previousPointFor(O, probe, max_log);
