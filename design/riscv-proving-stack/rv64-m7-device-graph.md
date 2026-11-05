@@ -46,7 +46,12 @@ The first two-lane run on k4 failed cleanly with `InvalidRecursionAdmission`
 before recursion. The harness supplied 17 pending-authority slots, while the
 existing k4 queue requires 21 for four lanes (12 carry slots + 8 lane slots +
 1). This is an admission/configuration failure, not a new proof result and not
-an OOM result. A correct 21-slot run is still owed.
+an OOM result. The corrected 21-slot run produced the small-block artifact, then failed
+closed on the headline block: two overlapping recursion lanes exhausted the
+22 GiB physical arena (`ImmutableSetupUploadFailed`; allocation attempts
+11.24 GB and 14.75 GB). No complete accepted pair or performance claim follows.
+An opt-in independent-owner candidate with a shared gate for large phases is
+being qualified separately.
 
 ## Remaining M7 work
 
@@ -55,3 +60,32 @@ per-class CUDA graph, independent lane native owners, two-proof physical-memory
 gate, <=10 blocking calls/node, <=500 launches/node and >=70% recursion-window
 kernel-busy gates remain open. The trace-window tool now counts the actual
 recursive tree's nodes instead of applying a binary-tree formula to k4 proofs.
+
+## Reversed trace and service measurements
+
+The reversed enqueue-on/off trace runs preserve M6 artifact parity for all eight
+requests. Cold recursion windows contain 103.4/104.5 blocking calls per actual
+node with enqueue, versus 128.1/128.0 without [M], for small/headline blocks.
+Kernel launches are unchanged at 1736.7/1718.4 per node [M]. Warm windows show
+104.9/105.0 versus 128.5/126.3 blocking calls/node [M]. The window tool infers
+boundaries from completion-file timestamps and reported recursion time; the
+last off window omits some launches at a boundary, so its lower 1680.6 count
+is not a kernel reduction. Raw traces remain on the pod; symbolized window and
+complete proof-parity receipts are retained here. Neither <=10 blocking
+calls/node nor <=500 launches/node is met.
+
+A separate matched 22 GiB arena experiment compares EAGER and LAZY module
+loading, with the same v1 binary, both blocks, three requests each. All 12
+artifact sets match M6 and fresh CPU receivers accept both blocks per mode.
+EAGER peak producer RSS is 33.110 GiB; LAZY is 31.407 GiB [M], a 1.703 GiB
+reduction in this observation. Sampled whole-device peaks are 27.812/27.519 GB
+[M]. LAZY first-small-block native proof time is 5.398 s versus EAGER 3.931 s
+[M]; headline cold native is 5.024 versus 4.827 s [M]. Warm request timings do
+not establish an improvement under differing shared CPU load. LAZY remains an
+optional configuration; these measurements do not justify a default change or
+meet the <=20 GiB RSS target. NVML whole-daemon activity samples are not the
+recursion-window kernel-busy gate.
+
+After complete artifact hashing and window extraction, duplicate warm proof
+copies were pruned to reclaim 1.506 GB [M]. Cold pairs, daemon receipts, M6
+parity digests and window counts remain; `pruned-extra.json` records paths.
