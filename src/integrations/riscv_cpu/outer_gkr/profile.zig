@@ -22,6 +22,11 @@ const candidate = @import("../word16_execution/om31_security_candidate.zig");
 pub const PROFILE_NAME = "outer_gkr_om31_strict_v1";
 pub const IDENTITY_DOMAIN = "stwo/rv64/outer-gkr/om31-strict-draw/lane-major/v1";
 pub const VERSION: u32 = 1;
+/// V2 is the anchored Eq + cyclic prefix construction. Existing v1 section
+/// fixtures retain their exact identity and bytes, and are never re-labelled.
+pub const BindingVersion = enum(u32) { legacy_v1 = 1, cyclic_eq_v2 = 2 };
+pub const PROFILE_NAME_V2 = "outer_gkr_om31_strict_v2";
+pub const IDENTITY_DOMAIN_V2 = "stwo/rv64/outer-gkr/om31-strict-draw/lane-major/v2";
 pub const MAGIC: u32 = 0x524b474f; // "OGKR"
 pub const COEFFICIENTS_PER_ROUND: usize = 4;
 pub const MAX_INSTANCES: usize = 64; // = CUDA batch_max_oracles
@@ -91,6 +96,15 @@ pub const Class = struct {
     name: []const u8,
     row_logs: [N_COMPONENTS]u8,
     instances: []const Instance,
+    binding_version: BindingVersion = .legacy_v1,
+    pub fn withBindingV2(self: Class) Class {
+        var out = self;
+        out.binding_version = .cyclic_eq_v2;
+        return out;
+    }
+    pub fn version(self: Class) u32 {
+        return @intFromEnum(self.binding_version);
+    }
     pub fn layers(self: Class) u32 {
         var out: u32 = 0;
         for (self.instances) |i| out = @max(out, i.variables());
@@ -136,12 +150,12 @@ pub const Class = struct {
     /// Header words mixed into the outer transcript before the GKR section (binding obligation 3
     /// of the profiles note: each instance's (component, group) tag sits inside the mixed list).
     pub fn header(self: Class, out: []u32) ![]u32 {
-        const id = identity();
+        const id = identityFor(self.binding_version);
         const need = 8 + 4 + self.instances.len;
         if (out.len < need) return error.NoSpaceLeft;
         for (0..8) |i| out[i] = std.mem.readInt(u32, id[4 * i ..][0..4], .little);
         out[8] = MAGIC;
-        out[9] = VERSION;
+        out[9] = self.version();
         out[10] = self.id;
         out[11] = @intCast(self.instances.len);
         for (self.instances, 0..) |inst, i| out[12 + i] = inst.word();
@@ -167,10 +181,13 @@ pub const MAX_ROW_MULTIPLICITY: u64 = 1;
 pub const MAX_TUPLE_ARITY: u64 = 32;
 
 pub fn identity() [32]u8 {
+    return identityFor(.legacy_v1);
+}
+pub fn identityFor(version: BindingVersion) [32]u8 {
     var h = std.crypto.hash.sha2.Sha256.init(.{});
-    h.update(IDENTITY_DOMAIN);
+    h.update(if (version == .legacy_v1) IDENTITY_DOMAIN else IDENTITY_DOMAIN_V2);
     h.update(&[_]u8{0});
-    h.update(PROFILE_NAME);
+    h.update(if (version == .legacy_v1) PROFILE_NAME else PROFILE_NAME_V2);
     return h.finalResult();
 }
 
@@ -230,7 +247,30 @@ pub fn classById(id: u32) !*const Class {
 pub const REQUIRED_BITS: u16 = 151;
 pub fn requireSecurity(class: Class, outer_proofs: u64) !void {
     try class.validate();
+    if (class.binding_version == .cyclic_eq_v2) return error.OuterGkrSourceMassRequired;
     const f = class.facts(outer_proofs);
     try candidate.requireOuterGkrBits(f, REQUIRED_BITS);
     try candidate.requireOuterGkrCharacteristic(f, class.conservativeMass());
+}
+
+/// Conservative per-relation positive-use mass from independently derived
+/// source topology, including classic components sharing GKR relations. ALL
+/// uses carry +1 in the original tuple authority; multiplicity yields are
+/// negative. Counting all positive uses together bounds every relation.
+/// Never take a mass declared by the producer or count only GKR instances.
+pub fn sourceUseMass(class: Class, source_outputs: usize) !u64 {
+    try class.validate();
+    const uses = [_]u32{ 2, 2, 11, 4, 22 };
+    var mass = try std.math.add(u64, @intCast(source_outputs), 1);
+    for (uses, class.row_logs[0..uses.len]) |count, log| {
+        if (log >= 31) return error.OuterGkrSourceMassShape;
+        mass = try std.math.add(u64, mass, @as(u64, count) << @intCast(log));
+    }
+    return mass;
+}
+pub fn requireSecurityWithSource(class: Class, outer_proofs: u64, source_outputs: usize) !void {
+    try class.validate();
+    const facts = class.facts(outer_proofs);
+    try candidate.requireOuterGkrBits(facts, REQUIRED_BITS);
+    try candidate.requireOuterGkrCharacteristic(facts, try sourceUseMass(class, source_outputs));
 }

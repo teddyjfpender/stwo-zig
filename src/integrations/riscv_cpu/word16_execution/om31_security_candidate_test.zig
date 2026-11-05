@@ -285,7 +285,7 @@ test "m5 format versions keep 128 conjectured bits of their base PCS, distinct d
         // Hand arithmetic: 1*108 + 20 = 2*51 + 26 = 128; Johnson x2: 108 + 40 = 148, 102 + 52 = 154.
         try std.testing.expectEqual(@as(u32, 128), C.formatConjecturedBits(v));
         try std.testing.expect(C.formatJohnsonBitsTimes2(v) >= baseline);
-        try std.testing.expectEqual(@as(u32, 4), s.pcs.fold_step);
+        try std.testing.expectEqual(@as(u32, if (s.layer == .compress2) 3 else 4), s.pcs.fold_step);
         // Its base PCS is an existing named profile: admitted native default, r1 outer, or the m3 candidate.
         switch (s.layer) {
             .native => {
@@ -304,7 +304,10 @@ test "m5 format versions keep 128 conjectured bits of their base PCS, distinct d
                 try std.testing.expect(is_r1 or is_m3);
                 for (ADMITTED_OUTER_DOMAINS) |d| try std.testing.expect(!std.mem.eql(u8, s.domain, d));
             },
-            else => return error.TestUnexpectedResult,
+            .compress1, .compress2 => {
+                try std.testing.expectEqual(@as(u32, if (s.layer == .compress2) 3 else 0), s.pcs.log_last_layer);
+                try std.testing.expectEqualStrings("compress", s.owner);
+            },
         }
         for (C.PROFILES) |admitted| try std.testing.expect(!std.mem.eql(u8, &C.profileIdentity(admitted), &C.formatIdentity(v)));
         for (C.CANDIDATE_PROFILES) |c| {
@@ -337,8 +340,8 @@ test "m7 outer-gkr format version clears the GKR ledger at realistic facts and r
         try C.requireOuterGkrCharacteristic(real, null);
         try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireOuterGkrCharacteristic(C.OuterGkrFacts.caps(), null));
     }
-    // m7_outer_gkr + the four reserved all-component M6 diet entries (r1, m3, two fold-v3 composites).
-    try std.testing.expectEqual(@as(usize, 5), seen);
+    // Five legacy GKR formats plus the three M7 v2 formats (plain, fused, fold-v3).
+    try std.testing.expectEqual(@as(usize, 8), seen);
 }
 test "recsize m3_b8 outer candidate: 3*34 + 26 = 128, Johnson x2 = 154" {
     try std.testing.expectEqual(@as(u32, 128), C.candidateConjecturedBits(.m3_outer_b8_q34_p26_fold4));
@@ -484,7 +487,7 @@ test "m6 composite identity: changing any one extra component, its order, or the
     // Every identity in the registry is distinct (also covered by the M5 loop; restated for the 14 entries).
     for (C.FORMAT_VERSIONS, 0..) |v, i| for (C.FORMAT_VERSIONS[i + 1 ..]) |w|
         try std.testing.expect(!std.mem.eql(u8, &C.formatIdentity(v), &C.formatIdentity(w)));
-    try std.testing.expectEqual(@as(usize, 14), C.FORMAT_VERSIONS.len);
+    try std.testing.expectEqual(@as(usize, 23), C.FORMAT_VERSIONS.len);
 }
 test "m6 diet outer GKR clears 128+23 bits at the 24628607 node count; r1 vs m3 equal under the GKR ledger" {
     // [D] M5 integrate: 33 outer nodes on 24628607 (28 leaves + folds + root); 16 batched instances of <= 2^24 rows.
@@ -536,4 +539,28 @@ test "reference DW-R6 m6 diet k4 cap3: 4-ary fold G rows fit 2^23 only with the 
     // Margin is ~7%: a 4-ary fold with > 3.4% more G rows than measured re-crosses 2^23 even capped.
     try std.testing.expect((rows * 1034 / 1000) * 895 / 1000 < 1 << 23);
     try std.testing.expect((rows * 1080 / 1000) * 895 / 1000 > 1 << 23);
+}
+
+
+test "m7 reserved format identities pin v2 binding and pure STARK compression parameters" {
+    const outer = C.formatSpec(.m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1);
+    try std.testing.expectEqualStrings(C.M7_OUTER_GKR_COMPONENT, outer.component);
+    try std.testing.expect(outer.outer_gkr and !outer.fused_blake);
+    try std.testing.expectEqual(@as(u32, 4), outer.max_fold_arity);
+    try std.testing.expectEqualStrings(C.KARY_K4_COMPONENT, outer.extra_components[0]);
+    try std.testing.expectEqualStrings(C.FOLD_MERKLE_CAP3_COMPONENT, outer.extra_components[1]);
+    try std.testing.expect(C.formatSpec(.m7_outer_gkr_fblake_k4_cap3_r1_b2_q108_p20_fold4_v1).fused_blake);
+    const c1 = C.formatSpec(.m7_compress_c1_b16_q27_p20_fold4_v1);
+    const c2 = C.formatSpec(.m7_compress_c2_b64_q18_p20_fold3_v1);
+    try std.testing.expectEqual(C.Layer.compress1, c1.layer);
+    try std.testing.expectEqual(C.Layer.compress2, c2.layer);
+    try std.testing.expectEqual(@as(u32, 4), c1.pcs.log_blowup);
+    try std.testing.expectEqual(@as(u32, 27), c1.pcs.queries);
+    try std.testing.expectEqual(@as(u32, 6), c2.pcs.log_blowup);
+    try std.testing.expectEqual(@as(u32, 18), c2.pcs.queries);
+    try std.testing.expectEqual(@as(u32, 3), c2.pcs.fold_step);
+    try std.testing.expectEqual(@as(u32, 3), c2.pcs.log_last_layer);
+    try std.testing.expectEqualStrings(C.M7_COMPRESS_C1_COMPONENT, c1.component);
+    try std.testing.expectEqualStrings(C.M7_COMPRESS_C2_COMPONENT, c2.component);
+    try std.testing.expect(!std.mem.eql(u8, C.OUTER_GKR_COMPONENT, C.M7_OUTER_GKR_COMPONENT));
 }
