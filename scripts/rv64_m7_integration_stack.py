@@ -151,7 +151,7 @@ def run(args):
     result = {'schema': 'rv64-m7-one-stack-experiment/v1', 'manifest_sha256': sha(args.manifest),
               'profiled': False, 'timing_scope': 'UNQUALIFIED_CORRECTNESS_WALLS' if args.smoke else 'six primary services unprofiled; optional ownership pair instrumented separately',
               'order': ((['fullstack'] * len(args.smoke_seeds)) if args.reference_run else ['baseline'] + ['fullstack'] * len(args.smoke_seeds)) if args.smoke else manifest['preset']['measurement']['order'] + (['baseline', 'fullstack'] if args.ownership_profile_pair else []), 'services': [], 'receivers_deferred': True, 'instrumentation': manifest['preset']['measurement'].get('instrumentation'),
-              'smoke_only': args.smoke,
+              'smoke_only': args.smoke, 'global_admission_off_diagnostic': args.global_admission_off_diagnostic,
               'gpu_seconds_status': 'pending separate ownership pair' if args.ownership_profile_pair else 'unavailable without CUPTI; no surrogate claim',
               'exact_process_peak_gate': 'Root-owned guard required; observer/NVML samples alone are insufficient'}
     write(output / 'experiment.json', result)
@@ -165,10 +165,14 @@ def run(args):
     for index, arm in enumerate(result['order']):
         validate_manifest(manifest)
         profile = not args.smoke and index >= 6
-        argv, tag = command(manifest, arm, index, stream, profile, 'one-stack-v4-smoke' if args.smoke else 'one-stack-v3')
+        argv, tag = command(manifest, arm, index, stream, profile, (('one-stack-v5-global0-smoke' if args.global_admission_off_diagnostic else 'one-stack-v5-smoke') if args.smoke else 'one-stack-v4'))
         seed = None
         if args.smoke:
             argv += ['--quiet-mode', 'diagnostic', '--request-timeout', str(args.smoke_request_timeout), '--env', 'STWO_RV64_CAPTURE_DIGEST=1']
+        if args.global_admission_off_diagnostic:
+            if not args.smoke or arm != 'fullstack':
+                raise RuntimeError('GLOBAL0fallback is a fullstack correctness diagnostic only')
+            argv += ['--env', 'STWO_RV64_GLOBAL_ADMISSION=0']
         if args.smoke and arm == 'fullstack':
             seed = args.smoke_seeds[index if args.reference_run else index - 1]
             argv += ['--env', f'STWO_RV64_RECURSION_SCRAMBLE_SEED={seed}']
@@ -262,6 +266,7 @@ def main():
     p.add_argument('--receiver-workers', type=int, default=16)
     p.add_argument('--ownership-profile-pair', action='store_true', help='after six unprofiled services, one baseline/fullstack CUPTI pair; never included in headline medians')
     p.add_argument('--smoke', action='store_true', help='small-block lane1 control then lane2 seeds17/29 cold/warm correctness services before headline experiment')
+    p.add_argument('--global-admission-off-diagnostic', action='store_true', help='required same-day fallback diagnosis; allotherfullstackflags/guard unchanged, no performance qualification')
     p.add_argument('--smoke-seeds', nargs='+', type=int, choices=(17,29), default=[17,29], help='explicit seeded admission correctness cases; first activation may select17 only')
     p.add_argument('--smoke-request-timeout', type=float, default=120, help='terminate blocked correctness request with all producer/guard resources drained')
     p.add_argument('--reference-run', type=Path, help='proof-neutral accepted reference payload comparison, including capture SHA256')
