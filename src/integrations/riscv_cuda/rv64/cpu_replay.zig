@@ -11,6 +11,8 @@
 //! the same either way. The bound caps retained device inventory at what the
 //! dev blocks hold (24628607: 4 CPU segments on GPU0), independent of block size.
 //! `STWO_RV64_GPU_REPLAY_RETAIN_PER_DEVICE=N` (default 4; 0 = M5 replay-all).
+//! M6 integrate: a device whose request share exceeds N replays every one of
+//! its segments (all-or-nothing; see `prepare`).
 const std = @import("std");
 const CPU = @import("stwo_riscv_cpu_integration");
 const Interface = CPU.rv64_gkr_cpu_replay;
@@ -31,6 +33,22 @@ pub const Context = struct {
     replayed_total: usize = 0,
     mutex: std.Thread.Mutex = .{},
     pub const default_retain: usize = 4;
+    /// Router placement is ordinal % devices (resident_router.zig): the CPU
+    /// segments that share this ordinal's device.
+    pub fn segmentsOnDevice(segments: usize, ordinal: usize, devices: usize) usize {
+        if (devices <= 1) return segments;
+        const lane = ordinal % devices;
+        if (lane >= segments) return 0;
+        return (segments - lane + devices - 1) / devices;
+    }
+    /// Devices of this service (`STWO_RV64_GPU_DEVICES`, comma list); 1 if unset.
+    fn deviceCount() usize {
+        const text = std.posix.getenv("STWO_RV64_GPU_DEVICES") orelse return 1;
+        var n: usize = 0;
+        var it = std.mem.tokenizeScalar(u8, text, ',');
+        while (it.next()) |_| n += 1;
+        return @max(n, 1);
+    }
     pub fn retainLimitFromEnv() !usize {
         const text = std.posix.getenv("STWO_RV64_GPU_REPLAY_RETAIN_PER_DEVICE") orelse return default_retain;
         const value = std.fmt.parseInt(usize, text, 10) catch return error.InvalidReplayRetainLimit;
@@ -58,7 +76,16 @@ pub const Context = struct {
                 self.retain_per_device = value;
                 break :blk value;
             };
-            if (self.retained_live < limit) {
+            // M6 integrate: all-or-nothing per device. Retain only when every
+            // CPU segment this device serves in the request fits under the
+            // bound; otherwise the whole device replays (the M5 path). Count-
+            // first retention kept the 4 earliest (heaviest-first: largest)
+            // MAINs resident through stage two and overran the device on
+            // 24697070 (14 CPU segments; 15.4 GB retained + 14.75 GB
+            // composition arena > 28 GiB cap) [M]. Dev blocks are unchanged
+            // (24628607: 4 + 3 segments, 26235156: fewer).
+            const on_device = segmentsOnDevice(request.advice.events.len, request.ordinal, deviceCount());
+            if (on_device <= limit and self.retained_live < limit) {
                 self.retained_live += 1;
                 self.retained_total += 1;
                 const owner = a.create(Retained) catch |err| {
@@ -189,3 +216,11 @@ const Owner = struct {
         self.allocator.destroy(self);
     }
 };
+
+test "cpu replay: segments per device follow ordinal % devices" {
+    try std.testing.expectEqual(@as(usize, 4), Context.segmentsOnDevice(7, 0, 2));
+    try std.testing.expectEqual(@as(usize, 3), Context.segmentsOnDevice(7, 5, 2));
+    try std.testing.expectEqual(@as(usize, 7), Context.segmentsOnDevice(14, 13, 2));
+    try std.testing.expectEqual(@as(usize, 5), Context.segmentsOnDevice(5, 3, 1));
+    try std.testing.expectEqual(@as(usize, 0), Context.segmentsOnDevice(1, 1, 2));
+}
