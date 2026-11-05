@@ -69,6 +69,11 @@ pub fn build(b: *std.Build) void {
     while (p2_native_imports.next()) |entry| p2_native_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
     const p2_native_tests = b.addTest(.{ .root_module = p2_native_root, .filters = &.{"P2 native complete CPU fixture"} });
     b.step("test-poseidon2-native-cpu", "Prove and fresh-verify full RV64 CPU with explicit mixed P2 PCS/local-Blake GKR fixture profile").dependOn(&b.addRunArtifact(p2_native_tests).step);
+    const p2_receiver_root = b.createModule(.{ .root_source_file = b.path("rv64_poseidon2_native_fixture_main.zig"), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
+    var p2_receiver_imports = native_gkr_root.import_table.iterator();
+    while (p2_receiver_imports.next()) |entry| p2_receiver_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
+    const p2_receiver = b.addExecutable(.{ .name = "rv64-p2-native-fixture", .root_module = p2_receiver_root });
+    b.step("poseidon2-native-fixture", "Build independent full RV64 P2 native fixture receiver").dependOn(&b.addInstallArtifact(p2_receiver, .{}).step);
     const d2_root = b.createModule(.{ .root_source_file = b.path("rv64_d2_profile_test_root.zig"), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
     var d2_imports = native_gkr_root.import_table.iterator();
     while (d2_imports.next()) |entry| d2_root.addImport(entry.key_ptr.*, entry.value_ptr.*);

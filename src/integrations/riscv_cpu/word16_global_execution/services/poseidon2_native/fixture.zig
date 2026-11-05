@@ -14,7 +14,9 @@ const M = @import("../gkr_local/manifest.zig");
 const MW = @import("../gkr_local/manifest_wire.zig");
 const Coordinator = @import("../gkr_local/coordinator.zig");
 pub fn exercise(comptime Hook: type) !void {
-    const a = std.testing.allocator;
+    return exerciseWithAllocator(std.testing.allocator, Hook);
+}
+pub fn exerciseWithAllocator(a: std.mem.Allocator, comptime Hook: type) !void {
     var pool: engine.work_pool.WorkPool = .{};
     try pool.initInPlaceWithOptions(.{ .worker_count = 8 });
     defer pool.deinit();
@@ -123,6 +125,22 @@ pub fn exercise(comptime Hook: type) !void {
         encoded.bytes = bytes;
         if (Worker.verify(a, receiver_ptrs[0], requests[0], receiver_inventory.workers[0], receiver_inventory.first_ids[0], &receiver, 0, &receiver_keys[0], &encoded, null)) |_| return error.PoseidonNativeAcceptedMutation else |_| {}
     }
+    const Container = @import("wire.zig");
+    const container_bytes = try Container.encode(a, profile, 0, &proofs[0]);
+    defer a.free(container_bytes);
+    var reloaded = try Container.decode(a, profile, 0, container_bytes);
+    defer reloaded.deinit(a);
+    _ = try Worker.verify(a, receiver_ptrs[0], requests[0], receiver_inventory.workers[0], receiver_inventory.first_ids[0], &receiver, 0, &receiver_keys[0], &reloaded, null);
+    for ([_]usize{ 0, 8, 40, 44, container_bytes.len - 1 }) |at| {
+        const bad = try a.dupe(u8, container_bytes);
+        defer a.free(bad);
+        bad[at] ^= 1;
+        if (Container.decode(a, profile, 0, bad)) |value| {
+            var owned = value;
+            defer owned.deinit(a);
+            if (Worker.verify(a, receiver_ptrs[0], requests[0], receiver_inventory.workers[0], receiver_inventory.first_ids[0], &receiver, 0, &receiver_keys[0], &owned, null)) |_| return error.PoseidonNativeContainerMutationAccepted else |_| {}
+        } else |_| {}
+    }
     try Hook.run(a, &receiver_ptrs, &requests, &receiver_keys, &receiver_inventory, &receiver, &proofs, &native, &capture);
     if (std.posix.getenv("STWO_RV64_P2_NATIVE_OUT_DIR")) |path| {
         var dir = try std.fs.cwd().makeOpenPath(path, .{ .iterate = true });
@@ -132,6 +150,10 @@ pub fn exercise(comptime Hook: type) !void {
             var name_buf: [64]u8 = undefined;
             const name = try std.fmt.bufPrint(&name_buf, "cpu-{}.p2v2.binary", .{i});
             try dir.writeFile(.{ .sub_path = name, .data = proof.bytes });
+            const container = try Container.encode(a, profile, @intCast(i), &proof);
+            defer a.free(container);
+            const container_name = try std.fmt.bufPrint(&name_buf, "cpu-{}.worker.binary", .{i});
+            try dir.writeFile(.{ .sub_path = container_name, .data = container });
         }
         const metadata = try std.json.Stringify.valueAlloc(a, .{ .status = "fixtureP0;mixedPCS-P2v2/localGKR-manifest-rawBlake;no128claim", .profile = profile, .identity = profile.identity(), .execution = inventory.execution_identity, .requests = requests, .expected = .{ .total_steps = expected.total_steps, .max_total_steps = expected.max_total_steps, .final_pc = expected.final_pc, .final_registers = expected.final_registers, .program_identity = expected.program_identity, .image_identity = expected.admission.image_identity }, .fixed_roots = .{ keys[0].root, keys[1].root }, .fixed_ids = .{ keys[0].identity, keys[1].identity }, .workers = inventory.workers, .claims = .{ proofs[0].claims, proofs[1].claims } }, .{});
         defer a.free(metadata);
