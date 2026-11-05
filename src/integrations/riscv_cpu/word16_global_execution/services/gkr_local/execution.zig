@@ -145,20 +145,33 @@ fn digest(channel: anytype, bytes: [32]u8) void {
 /// Raw256-bit transcript identity, with the implemented eight-coordinate
 /// sampler identity. This is request binding, not a security certificate.
 pub fn executionIdentity(config: Config, expected: P.Expected) [32]u8 {
-    var channel = core.channel.raw_mod_m31.Om31Channel.init();
-    channel.mixU32s(&.{ 0x45584731, 1, 8 });
-    config.mixInto(&channel);
-    digest(&channel, core.channel.raw_mod_m31.om31_profile.identity());
-    digest(&channel, expected.program_identity);
-    digest(&channel, expected.admission.image_identity);
-    channel.mixU64(expected.total_steps);
-    channel.mixU64(expected.max_total_steps);
-    channel.mixU64(expected.admission.max_prefix_steps);
-    channel.mixU64(expected.admission.initial_pc);
-    for (expected.admission.initial_registers) |value| channel.mixU64(value);
-    channel.mixU64(expected.final_pc);
-    for (expected.final_registers) |value| channel.mixU64(value);
-    return channel.digestBytes();
+    var writer = ExecutionIdentityWriter{ .channel = core.channel.raw_mod_m31.Om31Channel.init() };
+    emitExecutionIdentity(config, expected, &writer);
+    return writer.channel.digestBytes();
+}
+const ExecutionIdentityWriter = struct {
+    channel: core.channel.raw_mod_m31.Om31Channel,
+    pub fn header(self: *@This(), words: []const u32) void { self.channel.mixU32s(words); }
+    pub fn configuration(self: *@This(), config: Config) void { config.mixInto(&self.channel); }
+    pub fn constantDigest(self: *@This(), value: [32]u8) void { digest(&self.channel, value); }
+    pub fn publicDigest(self: *@This(), value: [32]u8) void { digest(&self.channel, value); }
+    pub fn int64(self: *@This(), value: u64) void { self.channel.mixU64(value); }
+};
+/// Single native/circuit authority for this frozen transcript order. The
+/// circuit writer uses raw u32 pairs for u64 values and propagates its errors.
+pub fn emitExecutionIdentity(config: Config, expected: anytype, writer: anytype) void {
+    writer.header(&.{ 0x45584731, 1, 8 });
+    writer.configuration(config);
+    writer.constantDigest(core.channel.raw_mod_m31.om31_profile.identity());
+    writer.publicDigest(expected.program_identity);
+    writer.publicDigest(expected.admission.image_identity);
+    writer.int64(expected.total_steps);
+    writer.int64(expected.max_total_steps);
+    writer.int64(expected.admission.max_prefix_steps);
+    writer.int64(expected.admission.initial_pc);
+    for (expected.admission.initial_registers) |value| writer.int64(value);
+    writer.int64(expected.final_pc);
+    for (expected.final_registers) |value| writer.int64(value);
 }
 pub const Verified = struct {
     completed: bool,
