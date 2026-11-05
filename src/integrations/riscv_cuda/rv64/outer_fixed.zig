@@ -164,6 +164,9 @@ pub fn precommit(raw: *anyopaque, a: std.mem.Allocator, pp: *const PP, ordinal: 
         words = try std.math.add(usize, words, column.values.len);
     }
     const config = try O.protocol.targetConfig();
+    // Idle siblings must shed their previous proof's unborrowed cache BEFORE
+    // sleeping on this physical handoff. No peer-controller submission needed.
+    if (b.service.admission != null) _ = try b.service.trimUnborrowedJoined("before_pp_handoff");
     var handoff: ?A.PrecommitHandoff = null;
     if (b.service.admission) |endpoint| handoff = try endpoint.planner.acquirePrecommitHandoff(endpoint.physical, endpoint.owner_identity);
     // No Owner/GPU storage exists yet. Once Owner takes this token below,

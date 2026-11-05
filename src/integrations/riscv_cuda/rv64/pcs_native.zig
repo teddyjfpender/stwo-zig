@@ -212,6 +212,76 @@ pub const Context = struct {
         if (self.immutable_setup == null) try self.enableImmutableSetup(@min(self.byte_cap, 512 << 20));
         return self.immutable_setup.?.fixed(native_context, scope, columns);
     }
+    /// Free-only owner callback. Call outside physical transaction/stage/cache
+    /// locks. Borrowed immutable entries remain pinned; no allocation or fake
+    /// ledger credit is issued. The next V2 HOST snapshot observes stable frees.
+    pub fn trimUnborrowedJoined(self: *Context, reason: []const u8) !u64 {
+        const endpoint = self.admission orelse return 0;
+        if (!endpoint.planner.healthy(endpoint.physical)) return error.PhysicalAdmissionPoisoned;
+        const sync = self.library.lookup(Abi.Sync, "stwo_exec_context_sync") orelse return error.MissingGlobalAdmissionRuntime;
+        const Job = struct {
+            service: *Context,
+            sync: Abi.Sync,
+            reason: []const u8,
+            freed: u64 = 0,
+            failure: ?anyerror = null,
+            fn run(raw: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
+                const job: *@This() = @ptrCast(@alignCast(data.?));
+                if (job.sync(raw) != 0) {
+                    job.failure = error.ImmutablePressureTrimJoinFailed;
+                    return 1;
+                }
+                var before: u64 = 0;
+                var after: u64 = 0;
+                var before_entries: usize = 0;
+                var after_entries: usize = 0;
+                var before_users: u64 = 0;
+                var after_users: u64 = 0;
+                var borrowed_bytes: u64 = 0;
+                if (job.service.immutable_setup) |cache| {
+                    before = cache.bytes;
+                    before_entries = cache.entries.items.len;
+                    for (cache.entries.items) |entry| before_users += entry.users;
+                    job.freed = cache.trimUnborrowed() catch |err| {
+                        job.failure = err;
+                        return 1;
+                    };
+                    after = cache.bytes;
+                    after_entries = cache.entries.items.len;
+                    for (cache.entries.items) |entry| {
+                        after_users += entry.users;
+                        if (entry.users != 0) borrowed_bytes += entry.lease.count * 4;
+                    }
+                }
+                if (job.sync(raw) != 0) {
+                    job.failure = error.ImmutablePressureTrimJoinFailed;
+                    return 1;
+                }
+                if (before_users != after_users or before < after or before - after != job.freed) {
+                    job.failure = error.ImmutablePressureTrimAccounting;
+                    return 1;
+                }
+                std.debug.print("GPU_ADMISSION_CACHE_RECLAIM reason={s} owner={} logical_released_bytes={} before_bytes={} after_bytes={} before_entries={} after_entries={} before_users={} after_users={} remaining_borrowed_bytes={} joined=true\n", .{ job.reason, job.service.admission.?.owner_identity, job.freed, before, after, before_entries, after_entries, before_users, after_users, borrowed_bytes });
+                return 0;
+            }
+        };
+        var job = Job{ .service = self, .sync = sync, .reason = reason };
+        if (self.submit(self.session, Job.run, &job) != 0) {
+            endpoint.planner.poisonPhysical(endpoint.physical);
+            return job.failure orelse error.ImmutablePressureTrimFailed;
+        }
+        if (job.freed != 0) endpoint.planner.notifyResourceRelease();
+        return job.freed;
+    }
+    /// Current sibling executes inline under its controller. The native parent
+    /// has no recursion controller waiting on this child's handoff condition.
+    /// Do not synchronously submit to other sibling controllers: they can be
+    /// asleep on admission/handoff and unable to run a queued trim callback.
+    pub fn trimSourcePressure(self: *Context) !u64 {
+        var freed = try self.trimUnborrowedJoined("source_pressure_self");
+        if (self.parent) |parent| freed = try std.math.add(u64, freed, try parent.trimUnborrowedJoined("source_pressure_native_parent"));
+        return freed;
+    }
     pub fn beginBlock(self: *Context, identity: [32]u8, budget: BlockBudget) !void {
         var gate: ?*std.Thread.Mutex = null;
         if (self.admission) |endpoint| {

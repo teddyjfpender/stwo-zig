@@ -253,7 +253,7 @@ pub const Endpoint = struct {
     /// Every retained owner must reserve its downstream progress envelope;
     /// callers cannot wait on capacity that only their own blocked stage frees.
     pub fn reserve(self: *const Endpoint, demand: A.Demand) !Permit {
-        return self.reserveWithPolicy(demand, null);
+        return self.reserveWithPolicy(demand, null, null);
     }
     /// Peers may be host-transcripting between eligible GPU stages. Allow
     /// their progress; refuse only after 30 seconds with no ledger change.
@@ -261,10 +261,17 @@ pub const Endpoint = struct {
         return self.reserveDrainWithin(demand, 30 * std.time.ns_per_s);
     }
     fn reserveDrainWithin(self: *const Endpoint, demand: A.Demand, timeout_ns: u64) !Permit {
-        return self.reserveWithPolicy(demand, timeout_ns);
+        return self.reserveWithPolicy(demand, timeout_ns, null);
     }
-    fn reserveWithPolicy(self: *const Endpoint, demand: A.Demand, drain_timeout_ns: ?u64) !Permit {
+    pub const Reclaimer = struct { context: *anyopaque, run: *const fn (*anyopaque) anyerror!u64 };
+    /// Callback runs only after a capacity refusal released its transaction
+    /// gate. It may free and join, but cannot allocate or fabricate credit.
+    pub fn reserveDrainWithReclaim(self: *const Endpoint, demand: A.Demand, reclaim: Reclaimer) !Permit {
+        return self.reserveWithPolicy(demand, 30 * std.time.ns_per_s, reclaim);
+    }
+    fn reserveWithPolicy(self: *const Endpoint, demand: A.Demand, drain_timeout_ns: ?u64, reclaimer: ?Reclaimer) !Permit {
         var logged_epoch: ?u64 = null;
+        var reclaimed_epoch: ?u64 = null;
         while (true) {
             const epoch = self.planner.epoch();
             switch (try self.tryReserve(demand)) {
@@ -276,6 +283,12 @@ pub const Endpoint = struct {
                             std.debug.print("GLOBAL_ADMISSION_WAIT runtime={s} physical={} epoch={} reason={s} domain={s} stage={s} ordinal={} required_large={} required_small={} cap_large={} cap_small={} temp_large={} temp_small={} retained_upper_large={} retained_upper_small={} successor_large={} successor_small={} stable_large={} stable_small={} active_temp_large={} active_temp_small={} active_retained_upper_large={} active_retained_upper_small={} max_future_large={} max_future_small={}\n", .{ if (self.api.v2 != null) "v2" else "v1", self.physical, epoch, @tagName(decision.reason), @tagName(demand.owner.domain), @tagName(demand.stage), demand.owner.ordinal, decision.required.large, decision.required.small, decision.capacity.large, decision.capacity.small, demand.temporary.large, demand.temporary.small, demand.stage_retained_upper.large, demand.stage_retained_upper.small, demand.successor.large, demand.successor.small, snapshot.retained.large, snapshot.retained.small, snapshot.active_temporary.large, snapshot.active_temporary.small, snapshot.active_retained_upper.large, snapshot.active_retained_upper.small, snapshot.successor.large, snapshot.successor.small });
                             logged_epoch = epoch;
                         }
+                        if (decision.reason == .capacity_pressure) if (reclaimer) |reclaim| {
+                            if (reclaimed_epoch == null or reclaimed_epoch.? != epoch) {
+                                reclaimed_epoch = epoch;
+                                if (try reclaim.run(reclaim.context) != 0) continue;
+                            }
+                        };
                         if (drain_timeout_ns) |timeout| {
                             if (decision.reason == .wide_stage_busy) {
                                 self.planner.waitForChange(epoch);
@@ -705,4 +718,38 @@ test "V2 excess surviving NEW retention poisons without releasing its physical w
     // Only joined terminal destruction may discard a failed owner's claim.
     FakeV2.reset();
     p.poolDestroyed();
+}
+
+test "Source pressure reclaim runs outside transaction and admits only after real stable snapshot decreases" {
+    FakeV2.reset();
+    var p = try A.Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer p.deinit();
+    var endpoint = FakeV2.endpoint(&p, @ptrFromInt(16));
+    try endpoint.configure();
+    var cold = (try endpoint.tryReserve(.{ .owner = .{ .request = 1, .domain = .native_packet, .ordinal = 0 }, .stage = .witness, .known = true, .host_known = true, .temporary = .{ .large = 4 << 30 }, .stage_retained_upper = .{ .large = 4 << 30 } })).admitted;
+    try cold.enterOwner(@ptrFromInt(16));
+    FakeV2.windows[0].fresh = 4 << 30;
+    try cold.leaveOwner(@ptrFromInt(16));
+    try cold.finish(.{});
+    const Reclaim = struct {
+        planner: *A.Planner,
+        calls: usize = 0,
+        fn run(raw: *anyopaque) !u64 {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            const gate = try self.planner.stageGate(0);
+            try std.testing.expect(gate.tryLock());
+            gate.unlock();
+            self.calls += 1;
+            const actual = FakeV2.retained[0];
+            FakeV2.retained[0] = 0; // Actual free, not a Planner credit.
+            if (actual != 0) self.planner.notifyResourceRelease();
+            return actual;
+        }
+    };
+    var reclaim = Reclaim{ .planner = &p };
+    const demand = A.Demand{ .owner = .{ .request = 1, .domain = .recursion_node, .ordinal = 1 }, .stage = .witness, .known = true, .host_known = true, .temporary = .{ .large = 20 << 30 } };
+    var permit = try endpoint.reserveDrainWithReclaim(demand, .{ .context = &reclaim, .run = Reclaim.run });
+    try std.testing.expectEqual(@as(usize, 1), reclaim.calls);
+    try std.testing.expectEqual(@as(u64, 0), (try p.snapshot(0)).retained.large);
+    try permit.finish(.{});
 }

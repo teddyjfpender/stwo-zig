@@ -469,7 +469,13 @@ pub const Owner = struct {
             try fixed.requireSourceFits(demand);
             precommitted = true;
         };
-        var permit = if (precommitted) try endpoint.reserveDrain(demand) else try endpoint.reserve(demand);
+        const Reclaim = struct {
+            fn run(raw: *anyopaque) !u64 {
+                const service: *Service.Context = @ptrCast(@alignCast(raw));
+                return service.trimSourcePressure();
+            }
+        };
+        var permit = if (precommitted) try endpoint.reserveDrainWithReclaim(demand, .{ .context = self.backend.service, .run = Reclaim.run }) else try endpoint.reserve(demand);
         defer if (!permit.closed) {
             endpoint.planner.poisonPhysical(endpoint.physical);
             permit.finish(.{}) catch {};
@@ -604,6 +610,11 @@ pub const Owner = struct {
         self.admission_retention.deinit(a);
         b.service.finishProofScope(self.scope);
         if (!std.meta.eql(self.scope, self.initial_scope)) b.service.finishProofScope(self.initial_scope);
+        if (released and b.service.admission != null) {
+            // A lane with no next ready node must not strand an idle old PP
+            // forest while another sibling needs room for its cold Source.
+            _ = b.service.trimUnborrowedJoined("source_release") catch 0;
+        }
         self.leases.deinit(a);
         a.free(self.main_columns);
         a.free(self.inter_columns);
