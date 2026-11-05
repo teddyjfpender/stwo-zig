@@ -10,7 +10,16 @@ const A = @import("global_admission.zig");
 pub const Role = enum { cpu, fact, memory, boundary, multiplication, division, table };
 pub const Shape = struct { role: Role, log: u32, width: u32, count: u64 = 0 };
 pub const ExtraKind = enum { bridge, bulk, sponge, zbb, dword };
-pub const Extra = struct { kind: ExtraKind, log: u32, width: u32, count: u64, input_words_per_record: u32 };
+pub const Extra = struct {
+    kind: ExtraKind,
+    log: u32,
+    width: u32,
+    count: u64,
+    /// jtab's table rows come from the shared jump histogram, so it has no
+    /// row-index records even when its source/public row count is nonzero.
+    input_count: ?u64 = null,
+    input_words_per_record: u32,
+};
 pub const Layout = struct {
     fact_words: u32,
     memory_event_words: u32,
@@ -165,7 +174,9 @@ pub fn init(a: std.mem.Allocator, input: Input) !Plan {
             .bridge => extra.input_words_per_record,
         };
         if (stride == 0 or (extra.kind == .bulk and input.bulk == null) or (extra.kind == .sponge and input.sponge == null)) return error.InvalidSourceGeometry;
-        try p.add(owners[0], try mul(extra.count, stride), 0, .main_adopt_join);
+        const input_count = extra.input_count orelse extra.count;
+        if (input_count > extra.count) return error.InvalidSourceGeometry;
+        try p.add(owners[0], try mul(input_count, stride), 0, .main_adopt_join);
         try p.output(owners[1], extra.log, extra.width);
         try logs.appendNTimes(a, extra.log, extra.width);
     }
@@ -265,6 +276,20 @@ test "source rejects mismatched projection arithmetic and missing service owner"
     input = try fixture();
     input.extras = &.{.{ .kind = .sponge, .log = 5, .width = 27, .count = 3, .input_words_per_record = 0 }};
     try std.testing.expectError(error.InvalidSourceGeometry, init(std.testing.allocator, input));
+}
+test "jump table has source rows but an empty row-index input allocation" {
+    var input = try fixture();
+    input.bulk = .{ .calls = 1, .words = 8, .scans = 1 };
+    input.extras = &.{.{ .kind = .bulk, .log = 14, .width = 2, .count = 8448, .input_count = 0, .input_words_per_record = 0 }};
+    const p = try init(std.testing.allocator, input);
+    var last_input: ?Allocation = null;
+    var output_words: u64 = 0;
+    for (p.list()) |allocation| {
+        if (allocation.owner == .bulk_input) last_input = allocation;
+        if (allocation.owner == .bulk_output) output_words = allocation.words;
+    }
+    try std.testing.expectEqual(@as(u64, 1), last_input.?.words);
+    try std.testing.expectEqual(@as(u64, 2 << 14), output_words);
 }
 test "identity binds class request and separately rounded geometry" {
     var input = try fixture();

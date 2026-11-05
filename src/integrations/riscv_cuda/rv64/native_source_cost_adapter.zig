@@ -185,7 +185,7 @@ pub fn init(a: std.mem.Allocator, request: Stage.Request, options: Options) !Cos
         for (T.bulk_kinds) |kind| if (request.setup.bridges.bulk.at(kind)) |log| {
             const count = B.source.Source.rowsFor(kind, advice.calls);
             _ = try B.types.validateGeometry(kind, count, log);
-            try extras.append(a, .{ .kind = .bulk, .log = log, .width = try u32size(B.layout.main(kind)), .count = count, .input_words_per_record = 0 });
+            try extras.append(a, .{ .kind = .bulk, .log = log, .width = try u32size(B.layout.main(kind)), .count = count, .input_count = if (kind == .jtab) 0 else count, .input_words_per_record = 0 });
         };
     }
     var sponge: ?Cost.Sponge = null;
