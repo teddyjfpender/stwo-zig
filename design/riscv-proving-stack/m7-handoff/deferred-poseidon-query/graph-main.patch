@@ -1,0 +1,40 @@
+diff --git a/src/integrations/riscv_cpu/rv64_poseidon_graph_fixture_main.zig b/src/integrations/riscv_cpu/rv64_poseidon_graph_fixture_main.zig
+index a181f5fe4..d5ae71ae0 100644
+--- a/src/integrations/riscv_cpu/rv64_poseidon_graph_fixture_main.zig
++++ b/src/integrations/riscv_cpu/rv64_poseidon_graph_fixture_main.zig
+@@ -20,6 +20,35 @@ fn expected() A.Q {
+ pub fn main() !void {
+     const args = try std.process.argsAlloc(a);
+     defer std.process.argsFree(a, args);
++    if ((args.len == 4 and (std.mem.eql(u8, args[1], "--produce-query") or std.mem.eql(u8, args[1], "--verify-query"))) or (args.len == 3 and std.mem.eql(u8, args[1], "--census-query"))) {
++        const fold = try std.fmt.parseInt(u32, args[2], 10);
++        if (fold != 1 and fold != 4) return error.InvalidQueryFold;
++        const verify = std.mem.eql(u8, args[1], "--verify-query");
++        var graph = try @import("poseidon2_outer/query_fixture.zig").build(a, fold, verify);
++        defer graph.context.deinit();
++        const census = try graph.context.census(false);
++        const json = try std.json.Stringify.valueAlloc(a, .{ .scope = "ALU-only-native-query-recursive-STARK", .fold = fold, .trace_only = verify, .variables = graph.context.base.circuit.n_vars, .permutations = graph.context.calls.items.len, .census = census }, .{});
++        defer a.free(json);
++        std.debug.print("P2_QUERY_GRAPH {s}\n", .{json});
++        if (std.mem.eql(u8, args[1], "--census-query")) return;
++        var key = try P.Authority.init(a, &graph.context);
++        defer key.deinit();
++        if (verify) {
++            const bytes = try std.fs.cwd().readFileAlloc(a, args[3], 64 << 20);
++            defer a.free(bytes);
++            P.verify(a, &key, &.{graph.output}, bytes) catch |err| {
++                std.debug.print("P2_QUERY_RECEIVER_REJECT {s}\n", .{@errorName(err)});
++                return err;
++            };
++            std.debug.print("P2_QUERY_FRESH_OK bytes={} fold={} source_rederived=true\n", .{ bytes.len, fold });
++        } else {
++            const bytes = try P.prove(a, &graph.context, &key, &.{graph.output});
++            defer a.free(bytes);
++            try std.fs.cwd().writeFile(.{ .sub_path = args[3], .data = bytes });
++            std.debug.print("P2_QUERY_PRODUCED bytes={} mass={} fold={} production=false\n", .{ bytes.len, key.gather_mass, fold });
++        }
++        return;
++    }
+     if (args.len == 4 and std.mem.eql(u8, args[1], "--produce")) {
+         const mutation = std.meta.stringToEnum(P.Mutation, args[2]) orelse return error.UnknownMutation;
+         var ctx = try P.fixture(a, false);
