@@ -44,6 +44,34 @@ def permute(state):
     return state
 
 
+def sponge(domain, values):
+    state = [0] * 24
+    state[22], state[23] = 1, domain
+    at = 0
+    for value in values:
+        assert 0 <= value < P
+        state[at] = (state[at] + value) % P
+        at += 1
+        if at == 12:
+            state, at = permute(state), 0
+    state[at] = (state[at] + 1) % P
+    return permute(state)[:9]
+
+
+def raw32(word):
+    return [word & 65535, word >> 16]
+
+
+def framing_vectors():
+    leaf = sponge(1, list(range(479)))
+    node = sponge(2, leaf + leaf)
+    initial = sponge(3, raw32(8))
+    mixed = sponge(3, initial + raw32(0xffffffff) + raw32(P))
+    draw = sponge(6, mixed + [0, 0, 0, 0])
+    return {"leaf_479": leaf, "node": node, "om31_initial": initial,
+            "mixed_max_and_p": mixed, "draw_zero": draw[:8]}
+
+
 def check():
     start = SOURCE.index("fn test_default_mersenne31_poseidon2_width_24")
     start = SOURCE.index("let expected:", start)
@@ -58,7 +86,7 @@ def check():
     assert numeric == [n for state in inputs for n in state + permute(state)]
     domain = b"stwo/poseidon2/m31/p3-w24-rf8-rp22-x5-mds4-diag/v1"
     identity = hashlib.sha256(domain + b"".join(struct.pack("<I", n) for n in [24, 8, 22, 5] + DIAGONAL + INITIAL + FINAL + INTERNAL)).hexdigest()
-    return {"official_kat": "PASS", "dense_vectors": len(inputs), "parameter_identity": identity}
+    return {"official_kat": "PASS", "dense_vectors": len(inputs), "parameter_identity": identity, "framing_vectors": framing_vectors()}
 
 
 if __name__ == "__main__":

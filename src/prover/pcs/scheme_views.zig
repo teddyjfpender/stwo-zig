@@ -18,9 +18,11 @@ pub fn traceTreeCount(scheme: anytype) usize {
 
 pub fn roots(comptime H: type, scheme: anytype, allocator: std.mem.Allocator) !TreeVec(H.Hash) {
     const out = try allocator.alloc(H.Hash, traceTreeCount(scheme));
+    errdefer allocator.free(out);
     var host: usize = 0;
     for (out, 0..) |*root, index| {
         if (index < 3) if (scheme.device_om31_trace_trees[index]) |tree| {
+            if (comptime H.Hash != @TypeOf(tree.root)) return error.UnsupportedDevicePcsProtocol;
             root.* = tree.root;
             continue;
         };

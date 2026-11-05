@@ -7,3 +7,5 @@ pub const merkle_hasher = @import("merkle_hasher.zig");
 pub const test_utils = @import("test_utils.zig");
 pub const utils = @import("utils.zig");
 pub const verifier = @import("verifier.zig");
+
+pub const poseidon2_m31_merkle = @import("poseidon2_m31_merkle.zig");

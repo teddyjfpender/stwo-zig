@@ -55,3 +55,5 @@ test {
     _ = @import("bounded_count_test.zig");
     _ = @import("wide_test.zig");
 }
+
+pub const ForHasher = @import("family.zig").ForHasher;
