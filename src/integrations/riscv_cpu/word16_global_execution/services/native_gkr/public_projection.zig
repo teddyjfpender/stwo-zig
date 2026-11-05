@@ -22,8 +22,8 @@ pub fn forSlot(slot:Legacy.Slot)!Policy{
         .core=>|role|switch(role){
             .initial=>out.rows=.initial_boundary,.terminal=>out.rows=.terminal_boundary,
             .ls=>out.rows=.ls_head,.ls_tail=>out.rows=.ls_tail,
-            .multiplication=>{out.rows=.multiplication;out.max_rows=count;out.steps_multiplier=2;},
-            .division=>{out.rows=.division;out.max_rows=count;out.steps_multiplier=1;},
+            .multiplication=>{out.rows=.multiplication;out.max_rows=count-1;out.steps_multiplier=2;},
+            .division=>{out.rows=.division;out.max_rows=count-1;out.steps_multiplier=1;},
             else=>{out.max_rows=0;},
         },
         .bridge=>|family|{
@@ -52,6 +52,26 @@ test "native public projection pins span families, row capacities and inactive t
     slot.origin=.{.bridge=.keccak};const bridge=try forSlot(slot);
     try std.testing.expectEqual(@as(?u8,0),bridge.family);try std.testing.expectEqual(@as(u32,((1<<18)-1)/25),bridge.max_calls);try std.testing.expectEqual(@as(u32,0),bridge.max_rows);
     slot.origin=.{.bulk=.jtab};const table=try forSlot(slot);try std.testing.expectEqual(Rows.jump_table,table.rows);try std.testing.expectEqual(@as(u8,6),table.index);
-    slot.origin=.{.core=.multiplication};const mul=try forSlot(slot);try std.testing.expectEqual(@as(u32,1<<18),mul.max_rows);try std.testing.expectEqual(@as(u8,2),mul.steps_multiplier);
+    slot.origin=.{.core=.multiplication};const mul=try forSlot(slot);try std.testing.expectEqual(@as(u32,(1<<18)-1),mul.max_rows);try std.testing.expectEqual(@as(u8,2),mul.steps_multiplier);
     slot.origin=.{.dword=1};try std.testing.expectEqual(Rows.dword_tail,(try forSlot(slot)).rows);
+}
+
+pub const TruthPolicy=struct{max_calls:u32,max_first_id:u32,max_end_id:u32,rows_per_pair:u32=0};
+pub fn forTruth(d:@import("../wire.zig").TruthDeclaration)!TruthPolicy{
+    const modulus=@import("stwo_core").fields.m31.Modulus;
+    if(d.logs[0]<5 or d.logs[0]>23)return error.NativeGkrPublicProjectionShape;
+    const rows=@as(u32,1)<<@intCast(d.logs[0]);
+    if(d.family==.keccak){
+        const policy=try @import("../gkr_local/truth_profile.zig").fromDeclaration(d);
+        if(policy!=.throughput_r27_v1 and policy!=.triple_v2)return error.NativeGkrTruthPolicy;
+        const pair_rows:u32=@intCast(policy.geometry().rowsPerPair());
+        return .{.max_calls=2*(rows/pair_rows),.max_first_id=modulus-1,.max_end_id=modulus,.rows_per_pair=pair_rows};
+    }
+    _=try @import("../gkr_local/truth_v3_catalog.zig").descriptorForDeclaration(d);
+    return .{.max_calls=rows-1,.max_first_id=modulus-1,.max_end_id=modulus};
+}
+test "native truth public capacity uses original paired Keccak and one-row V3 geometry"{
+    const r27=try forTruth(.{.family=.keccak,.first_id=1,.calls=1,.logs=.{18,1770517}});
+    try std.testing.expectEqual(@as(u32,19418),r27.max_calls);try std.testing.expectEqual(@as(u32,27),r27.rows_per_pair);
+    const sha=try forTruth(.{.family=.sha256,.first_id=1,.calls=1,.logs=.{8,0}});try std.testing.expectEqual(@as(u32,255),sha.max_calls);
 }
