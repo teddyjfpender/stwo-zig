@@ -51,10 +51,18 @@ pub fn identityWords() [8]u32 {
 }
 
 /// v2 roster admission: the v1 rules with the v2 instance bound.
-pub fn validate(roster: *const R.Roster) !void { return roster.validateBounded(MAX_INSTANCES); }
-pub fn derive(a: std.mem.Allocator, specs: []const R.ComponentSpec) !R.Roster { return R.deriveBounded(a, specs, MAX_INSTANCES); }
-pub fn encode(a: std.mem.Allocator, roster: *const R.Roster, section: *const S.Section) ![]u32 { return S.encodeVersion(a, roster, section, .v2); }
-pub fn decode(a: std.mem.Allocator, roster: *const R.Roster, words: []const u32) !S.Section { return S.decodeVersion(a, roster, words, .v2); }
+pub fn validate(roster: *const R.Roster) !void {
+    return roster.validateBounded(MAX_INSTANCES);
+}
+pub fn derive(a: std.mem.Allocator, specs: []const R.ComponentSpec) !R.Roster {
+    return R.deriveBounded(a, specs, MAX_INSTANCES);
+}
+pub fn encode(a: std.mem.Allocator, roster: *const R.Roster, section: *const S.Section) ![]u32 {
+    return S.encodeVersion(a, roster, section, .v2);
+}
+pub fn decode(a: std.mem.Allocator, roster: *const R.Roster, words: []const u32) !S.Section {
+    return S.decodeVersion(a, roster, words, .v2);
+}
 
 /// Roster authority (review item 3): the receiver derives the roster from the emitters; every component's
 /// four term counts must equal the emitter census exactly (fractions.zig / global_cpu.queriesFor / truth
@@ -91,31 +99,45 @@ pub fn requireSalt(salt: O) !void {
 /// One framing visitor for native and circuit channels. Each writer method
 /// preserves a complete original mix call; concatenating/splitting calls is
 /// not transcript-equivalent for the raw Blake channel.
-pub fn emitHeader(scope:anytype,header:[]const u32,salt:anytype,writer:anytype)void{
+pub fn emitHeader(scope: anytype, header: []const u32, salt: anytype, writer: anytype) void {
     writer.constants(&identityWords());
-    writer.sectionHeader(S.MAGIC,VERSION,scope.ordinal);
-    inline for(.{"statement","fixed","main","shared"}) |name|writer.digest(@field(scope,name));
-    writer.constants(header);writer.salt(salt);
+    writer.sectionHeader(S.MAGIC, VERSION, scope.ordinal);
+    inline for (.{ "statement", "fixed", "main", "shared" }) |name| writer.digest(@field(scope, name));
+    writer.constants(header);
+    writer.salt(salt);
 }
-pub fn mixHeader(a:std.mem.Allocator,channel:anytype,roster:*const R.Roster,scope:*const S.Scope,salt_value:O)!void{
+pub fn mixHeader(a: std.mem.Allocator, channel: anytype, roster: *const R.Roster, scope: *const S.Scope, salt_value: O) !void {
     try requireSalt(salt_value);
-    const header=try roster.header(a);defer a.free(header);
-    var writer=struct{
-        channel:@TypeOf(channel),
-        pub fn constants(w:*@This(),words:[]const u32)void{w.channel.mixU32s(words);}
-        pub fn sectionHeader(w:*@This(),magic:u32,version:u32,ordinal:u32)void{w.channel.mixU32s(&.{magic,version,ordinal});}
-        pub fn digest(w:*@This(),bytes:[32]u8)void{var words:[8]u32=undefined;for(&words,0..) |*word,i|word.*=std.mem.readInt(u32,bytes[4*i..][0..4],.little);w.channel.mixU32s(&words);}
-        pub fn salt(w:*@This(),value:O)void{w.channel.mixFelts(&.{value});}
-    }{.channel=channel};
-    emitHeader(scope,header,salt_value,&writer);
+    const header = try roster.header(a);
+    defer a.free(header);
+    var writer = struct {
+        channel: @TypeOf(channel),
+        pub fn constants(w: *@This(), words: []const u32) void {
+            w.channel.mixU32s(words);
+        }
+        pub fn sectionHeader(w: *@This(), magic: u32, version: u32, ordinal: u32) void {
+            w.channel.mixU32s(&.{ magic, version, ordinal });
+        }
+        pub fn digest(w: *@This(), bytes: [32]u8) void {
+            var words: [8]u32 = undefined;
+            for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, bytes[4 * i ..][0..4], .little);
+            w.channel.mixU32s(&words);
+        }
+        pub fn salt(w: *@This(), value: O) void {
+            w.channel.mixFelts(&.{value});
+        }
+    }{ .channel = channel };
+    emitHeader(scope, header, salt_value, &writer);
 }
 
 /// The local relations' lookup elements (z_r, alpha_r), r = 0..LOCAL_RELATIONS-1, in fractions.zig Relation
 /// order. Drawn strictly here and nowhere else (review item 2).
 pub const LocalElementsFor = @import("projection.zig").LocalFor;
 pub const LocalElements = @import("projection.zig").LocalFor(O);
-pub fn drawLocalElements(strict: *S.StrictChannel) LocalElements { return drawLocalElementsFor(O,strict); }
-pub fn drawLocalElementsFor(comptime F:type,strict:anytype) LocalElementsFor(F) {
+pub fn drawLocalElements(strict: *S.StrictChannel) LocalElements {
+    return drawLocalElementsFor(O, strict);
+}
+pub fn drawLocalElementsFor(comptime F: type, strict: anytype) LocalElementsFor(F) {
     var out: LocalElementsFor(F) = undefined;
     for (&out.z, &out.alpha) |*z, *alpha| {
         z.* = strict.drawSecureFelt();
@@ -170,12 +192,12 @@ pub fn verify(a: std.mem.Allocator, channel: *S.RawChannel, roster: *const R.Ros
         }
     };
     var inverses: [MAX_INSTANCES]O = undefined;
-    for(section.proof.output_claims_by_instance,inverses[0..roster.instances.len]) |pair,*inverse| {
-        if(pair[1].isZero())return error.NativeGkrRootPole;
-        inverse.*=try pair[1].inv();
+    for (section.proof.output_claims_by_instance, inverses[0..roster.instances.len]) |pair, *inverse| {
+        if (pair[1].isZero()) return error.NativeGkrRootPole;
+        inverse.* = try pair[1].inv();
     }
-    const split=try closeAndSplitFor(O,roster,section.proof.output_claims_by_instance,inverses[0..roster.instances.len],NativeRootChecks{});
-    const global=S.GlobalClaims{.ram=split.ram_internal.add(split.ram_initial).add(split.ram_terminal),.kio=split.kio,.wire=split.wire};
+    const split = try closeAndSplitFor(O, roster, section.proof.output_claims_by_instance, inverses[0..roster.instances.len], NativeRootChecks{});
+    const global = S.GlobalClaims{ .ram = split.ram_internal.add(split.ram_initial).add(split.ram_terminal), .kio = split.kio, .wire = split.wire };
     channel.* = strict.inner;
     return .{ .artifact = artifact, .global = global, .global_split = split, .elements = elements, .draws = strict.draws };
 }
@@ -183,6 +205,33 @@ pub fn verify(a: std.mem.Allocator, channel: *S.RawChannel, roster: *const R.Ros
 /// CPU reference prover. `builder.build(a, roster, elements) !S.Inputs` projects the fractions AFTER the
 /// local elements are drawn (a re-salt redraws them and re-projects: the leaves depend on the elements).
 pub fn proveCpu(a: std.mem.Allocator, channel: *const S.RawChannel, roster: *const R.Roster, scope: *const S.Scope, builder: anytype) !S.Section {
+    const Adapter = struct {
+        builder: @TypeOf(builder),
+        fn prove(self: @This(), allocator: std.mem.Allocator, source_roster: *const R.Roster, elements: LocalElements, seed: S.RawChannel) !G.GkrBatchProof {
+            var inputs = try self.builder.build(allocator, source_roster, elements);
+            defer inputs.deinit(allocator);
+            if (inputs.numerators.len != source_roster.instances.len or inputs.denominators.len != source_roster.instances.len) return error.NativeGkrInputShape;
+            const layers = try allocator.alloc(GP.Layer, source_roster.instances.len);
+            defer allocator.free(layers);
+            for (layers, inputs.numerators, inputs.denominators, source_roster.instances) |*layer, n, d, inst| {
+                if (n.len != inst.facts() or d.len != inst.facts()) return error.NativeGkrInputShape;
+                layer.* = .{ .LogUpMultiplicities = .{ .numerators = try MleBase.initBorrowed(n), .denominators = try MleSecure.initBorrowed(d) } };
+            }
+            var prover_channel = seed;
+            var result = try GP.proveBatch(allocator, &prover_channel, layers);
+            result.artifact.deinit(allocator);
+            return result.proof;
+        }
+    };
+    return proveWith(a, channel, roster, scope, Adapter{ .builder = builder });
+}
+
+/// Production numerical adapter. The receiver-owned salt budget, strict draws,
+/// complete roster, local closure and terminal checks are shared with the CPU
+/// reference; the adapter returns only numerical proof records, never claims or
+/// an accepted transcript. It must project from the committed MAIN after seeing
+/// these local elements and use exactly `seed` for the GKR traversal.
+pub fn proveWith(a: std.mem.Allocator, channel: *const S.RawChannel, roster: *const R.Roster, scope: *const S.Scope, numerical: anytype) !S.Section {
     try validate(roster);
     var salt_value: u32 = 0;
     while (salt_value < S.MAX_SALT_ATTEMPTS) : (salt_value += 1) {
@@ -191,22 +240,11 @@ pub fn proveCpu(a: std.mem.Allocator, channel: *const S.RawChannel, roster: *con
         try mixHeader(a, &strict, roster, scope, salt);
         const elements = drawLocalElements(&strict);
         if (strict.rejected) continue;
-        var inputs = try builder.build(a, roster, elements);
-        defer inputs.deinit(a);
-        if (inputs.numerators.len != roster.instances.len) return error.NativeGkrInputShape;
-        const layers = try a.alloc(GP.Layer, roster.instances.len);
-        defer a.free(layers);
-        for (layers, inputs.numerators, inputs.denominators, roster.instances) |*l, n, d, inst| {
-            if (n.len != inst.facts() or d.len != inst.facts()) return error.NativeGkrInputShape;
-            l.* = .{ .LogUpMultiplicities = .{ .numerators = try MleBase.initBorrowed(n), .denominators = try MleSecure.initBorrowed(d) } };
-        }
-        var prover_channel = strict.inner;
-        var result = GP.proveBatch(a, &prover_channel, layers) catch |err| switch (err) {
-            error.DivisionByZero => continue,
+        const proof = numerical.prove(a, roster, elements, strict.inner) catch |err| switch (@as(anyerror, err)) {
+            error.DivisionByZero, error.NativeGkrSourcePole => continue,
             else => return err,
         };
-        result.artifact.deinit(a);
-        var section = S.Section{ .salt = salt, .proof = result.proof };
+        var section = S.Section{ .salt = salt, .proof = proof };
         var replay = channel.*;
         if (verify(a, &replay, roster, scope, &section)) |v| {
             var owned = v;
@@ -333,19 +371,24 @@ test "native GKR v2 roster and codec admit exactly 128 instances and refuse 129"
 }
 test "native GKR v2 codec rejects v1 header, truncation, trailing words and noncanonical scalars" {
     const a = testing.allocator;
-    var roster = try derive(a, &toySpecs()); defer roster.deinit();
+    var roster = try derive(a, &toySpecs());
+    defer roster.deinit();
     var seen: ?LocalElements = null;
-    const scope = toyScope(); const channel = S.RawChannel.init();
+    const scope = toyScope();
+    const channel = S.RawChannel.init();
     var section = try proveCpu(a, &channel, &roster, &scope, ElementBuilder{ .seed = 23, .seen = &seen });
     defer section.deinit(a);
-    const words = try encode(a, &roster, &section); defer a.free(words);
+    const words = try encode(a, &roster, &section);
+    defer a.free(words);
     try testing.expectError(error.MalformedNativeGkrSection, S.decode(a, &roster, words));
     words[1] = 1;
     try testing.expectError(error.MalformedNativeGkrSection, decode(a, &roster, words));
     words[1] = 2;
-    try testing.expectError(error.MalformedNativeGkrSection, decode(a, &roster, words[0 .. words.len-1]));
-    const extra = try a.alloc(u32, words.len+1); defer a.free(extra);
-    @memcpy(extra[0..words.len], words); extra[words.len] = 0;
+    try testing.expectError(error.MalformedNativeGkrSection, decode(a, &roster, words[0 .. words.len - 1]));
+    const extra = try a.alloc(u32, words.len + 1);
+    defer a.free(extra);
+    @memcpy(extra[0..words.len], words);
+    extra[words.len] = 0;
     try testing.expectError(error.MalformedNativeGkrSection, decode(a, &roster, extra));
     words[4] = core.fields.m31.Modulus;
     try testing.expectError(error.NonCanonicalNativeGkrWord, decode(a, &roster, words));
@@ -362,49 +405,65 @@ test "native GKR v2 bits ledger at the NF4 caps (256 proofs, 128 instances, 28 v
 
 test "native v2 scalar salt retry budget is receiver enforced" {
     try requireSalt(O.zero());
-    try requireSalt(O.fromBase(M31.fromCanonical(S.MAX_SALT_ATTEMPTS-1)));
+    try requireSalt(O.fromBase(M31.fromCanonical(S.MAX_SALT_ATTEMPTS - 1)));
     try testing.expectError(error.NativeGkrSaltOutOfRange, requireSalt(O.fromBase(M31.fromCanonical(S.MAX_SALT_ATTEMPTS))));
-    var coordinates = [_]M31{M31.zero()} ** 8; coordinates[1] = M31.one();
+    var coordinates = [_]M31{M31.zero()} ** 8;
+    coordinates[1] = M31.one();
     try testing.expectError(error.NativeGkrSaltOutOfRange, requireSalt(O.fromM31Array(coordinates)));
 }
 
 /// Every boundary remains its own authenticated component instance. Typed roots
 /// use only internal RAM and independently recompute public INITIAL/TERMINAL.
-pub fn GlobalSplitFor(comptime F:type)type{return struct{ram_internal:F=F.zero(),ram_initial:F=F.zero(),ram_terminal:F=F.zero(),kio:F=F.zero(),wire:F=F.zero()};}
-pub const RootCheck=enum{pole,local_sum};
-pub fn closeAndSplitFor(comptime F:type,roster:*const R.Roster,roots:[]const []const F,inverses:[]const F,checks:anytype)!GlobalSplitFor(F){
+pub fn GlobalSplitFor(comptime F: type) type {
+    return struct { ram_internal: F = F.zero(), ram_initial: F = F.zero(), ram_terminal: F = F.zero(), kio: F = F.zero(), wire: F = F.zero() };
+}
+pub const RootCheck = enum { pole, local_sum };
+pub fn closeAndSplitFor(comptime F: type, roster: *const R.Roster, roots: []const []const F, inverses: []const F, checks: anytype) !GlobalSplitFor(F) {
     try validate(roster);
-    if(roots.len!=roster.instances.len or inverses.len!=roots.len)return error.NativeGkrShapeMismatch;
-    var split=GlobalSplitFor(F){};var local=F.zero();
-    const Role=@import("../../../word16_execution/geometry.zig").Role;
-    for(roster.instances,roots,inverses) |instance,pair,inverse|{
-        if(pair.len!=2)return error.NativeGkrShapeMismatch;
-        try checks.requireEq(pair[1].mul(inverse),F.one(),RootCheck.pole);
-        const value=pair[0].mul(inverse);
-        switch(instance.kind){
-            .local=>local=local.add(value),
-            .kio=>split.kio=split.kio.add(value),
-            .wire=>split.wire=split.wire.add(value),
-            .ram=>{const origin=roster.components[instance.component].origin;
-                if(origin[0]==0 and origin[1]==@intFromEnum(Role.initial))split.ram_initial=split.ram_initial.add(value)
-                else if(origin[0]==0 and origin[1]==@intFromEnum(Role.terminal))split.ram_terminal=split.ram_terminal.add(value)
-                else split.ram_internal=split.ram_internal.add(value);
+    if (roots.len != roster.instances.len or inverses.len != roots.len) return error.NativeGkrShapeMismatch;
+    var split = GlobalSplitFor(F){};
+    var local = F.zero();
+    const Role = @import("../../../word16_execution/geometry.zig").Role;
+    for (roster.instances, roots, inverses) |instance, pair, inverse| {
+        if (pair.len != 2) return error.NativeGkrShapeMismatch;
+        try checks.requireEq(pair[1].mul(inverse), F.one(), RootCheck.pole);
+        const value = pair[0].mul(inverse);
+        switch (instance.kind) {
+            .local => local = local.add(value),
+            .kio => split.kio = split.kio.add(value),
+            .wire => split.wire = split.wire.add(value),
+            .ram => {
+                const origin = roster.components[instance.component].origin;
+                if (origin[0] == 0 and origin[1] == @intFromEnum(Role.initial)) split.ram_initial = split.ram_initial.add(value) else if (origin[0] == 0 and origin[1] == @intFromEnum(Role.terminal)) split.ram_terminal = split.ram_terminal.add(value) else split.ram_internal = split.ram_internal.add(value);
             },
         }
     }
-    try checks.requireEq(local,F.zero(),RootCheck.local_sum);return split;
+    try checks.requireEq(local, F.zero(), RootCheck.local_sum);
+    return split;
 }
-const NativeRootChecks=struct{pub fn requireEq(_: @This(),lhs:O,rhs:O,kind:RootCheck)!void{if(!lhs.eql(rhs))return if(kind==.pole)error.NativeGkrRootPole else error.NativeGkrLocalUnclosed;}};
-test "native GKR boundary targets remain individually authenticated before global aggregation"{
-    const a=testing.allocator;const Role=@import("../../../word16_execution/geometry.zig").Role;
-    const specs=[_]R.ComponentSpec{
-        .{.origin=.{0,@intFromEnum(Role.initial)},.row_log=5,.terms=.{0,1,0,0}},
-        .{.origin=.{0,@intFromEnum(Role.ls)},.row_log=5,.terms=.{0,2,0,0}},
-        .{.origin=.{0,@intFromEnum(Role.terminal)},.row_log=5,.terms=.{0,1,0,0}},
+const NativeRootChecks = struct {
+    pub fn requireEq(_: @This(), lhs: O, rhs: O, kind: RootCheck) !void {
+        if (!lhs.eql(rhs)) return if (kind == .pole) error.NativeGkrRootPole else error.NativeGkrLocalUnclosed;
+    }
+};
+test "native GKR boundary targets remain individually authenticated before global aggregation" {
+    const a = testing.allocator;
+    const Role = @import("../../../word16_execution/geometry.zig").Role;
+    const specs = [_]R.ComponentSpec{
+        .{ .origin = .{ 0, @intFromEnum(Role.initial) }, .row_log = 5, .terms = .{ 0, 1, 0, 0 } },
+        .{ .origin = .{ 0, @intFromEnum(Role.ls) }, .row_log = 5, .terms = .{ 0, 2, 0, 0 } },
+        .{ .origin = .{ 0, @intFromEnum(Role.terminal) }, .row_log = 5, .terms = .{ 0, 1, 0, 0 } },
     };
-    var roster=try derive(a,&specs);defer roster.deinit();
-    const one=O.one();const p0=[_]O{O.fromBase(M31.fromCanonical(3)),one};const p1=[_]O{O.fromBase(M31.fromCanonical(7)),one};const p2=[_]O{O.fromBase(M31.fromCanonical(11)),one};
-    const roots=[_][]const O{&p0,&p1,&p2};const inverse=[_]O{one,one,one};
-    const split=try closeAndSplitFor(O,&roster,&roots,&inverse,NativeRootChecks{});
-    try testing.expect(split.ram_initial.eql(p0[0]));try testing.expect(split.ram_internal.eql(p1[0]));try testing.expect(split.ram_terminal.eql(p2[0]));
+    var roster = try derive(a, &specs);
+    defer roster.deinit();
+    const one = O.one();
+    const p0 = [_]O{ O.fromBase(M31.fromCanonical(3)), one };
+    const p1 = [_]O{ O.fromBase(M31.fromCanonical(7)), one };
+    const p2 = [_]O{ O.fromBase(M31.fromCanonical(11)), one };
+    const roots = [_][]const O{ &p0, &p1, &p2 };
+    const inverse = [_]O{ one, one, one };
+    const split = try closeAndSplitFor(O, &roster, &roots, &inverse, NativeRootChecks{});
+    try testing.expect(split.ram_initial.eql(p0[0]));
+    try testing.expect(split.ram_internal.eql(p1[0]));
+    try testing.expect(split.ram_terminal.eql(p2[0]));
 }

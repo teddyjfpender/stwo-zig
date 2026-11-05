@@ -46,16 +46,24 @@ const Collector = struct {
 };
 /// id0=throughput-r27 permutation, id1=chi multiplicities, id2=xor5.
 pub fn record(a: std.mem.Allocator, id: u32) !Artifact {
+    return recordMode(a, id, false);
+}
+/// Native-v2 consumes every original numerator/denominator, never the classic
+/// product-of-three rational. Padding belongs to the receiver-owned GKR roster.
+pub fn recordNative(a: std.mem.Allocator, id: u32) !Artifact {
+    return recordMode(a, id, true);
+}
+fn recordMode(a: std.mem.Allocator, id: u32, raw: bool) !Artifact {
     if ((id >= 3 and id < 7) or (id >= 10 and id < 15)) return switch (id) {
-        3 => recordV3(a, T.V3Catalog.Sha(), id),
-        4 => recordV3(a, T.V3Catalog.Arith(), id),
-        5 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add), id),
-        6 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double), id),
-        10 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_add), id),
-        11 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_double), id),
-        12 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_fp2_mul), id),
-        13 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bls12_381_fp2_mul), id),
-        14 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.arith384_mont), id),
+        3 => recordV3(a, raw, T.V3Catalog.Sha(), id),
+        4 => recordV3(a, raw, T.V3Catalog.Arith(), id),
+        5 => recordV3(a, raw, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add), id),
+        6 => recordV3(a, raw, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double), id),
+        10 => recordV3(a, raw, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_add), id),
+        11 => recordV3(a, raw, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_double), id),
+        12 => recordV3(a, raw, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_fp2_mul), id),
+        13 => recordV3(a, raw, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bls12_381_fp2_mul), id),
+        14 => recordV3(a, raw, T.V3Catalog.Curve(A.crypto.curves.spec.Op.arith384_mont), id),
         else => error.UnsupportedTruthInteractionRole,
     };
     if (id >= 10) return error.UnsupportedTruthInteractionRole;
@@ -65,8 +73,8 @@ pub fn record(a: std.mem.Allocator, id: u32) !Artifact {
     defer recording.deinit();
     recording.begin();
     defer recording.end();
-    const params = T.symbolicParameters();
-    var collector = Collector{ .a = a, .parameters = params, .packing = if (local_id == 0) 3 else 1 };
+    const params = if (raw) nativeParameters() else T.symbolicParameters();
+    var collector = Collector{ .a = a, .parameters = params, .packing = if (raw) 1 else if (local_id == 0) 3 else 1 };
     defer collector.roots.deinit(a);
     if (local_id == 0) {
         var fixed: [K.layout.FIXED]F = undefined;
@@ -95,20 +103,20 @@ pub fn record(a: std.mem.Allocator, id: u32) !Artifact {
             const n = if (policy == .throughput_r27_v1) K.equations.ioActiveR27For(F, row, entry) else K.equations.ioActiveFor(F, row);
             try collector.roots.appendSlice(a, &.{ n.id, d.id });
         }
-        return finish(a, &recording, collector.roots.items, id, .{ local, if (policy == .throughput_r27_v1) 50 else 25 });
+        return finish(a, &recording, collector.roots.items, id, .{ local, if (policy == .throughput_r27_v1) 50 else 25 }, raw);
     }
     var tuple: [6]F = undefined;
     for (&tuple, 0..) |*v, i| v.* = F.input(0, i, 0);
     try collector.append(params.local.denominatorFor(F, if (local_id == 1) .chi else .xor5, tuple), F.input(1, 0, 0));
-    return finish(a, &recording, collector.roots.items, id, .{ 1, 0 });
+    return finish(a, &recording, collector.roots.items, id, .{ 1, 0 }, raw);
 }
-fn recordV3(a: std.mem.Allocator, comptime Type: type, id: u32) !Artifact {
+fn recordV3(a: std.mem.Allocator, raw: bool, comptime Type: type, id: u32) !Artifact {
     var recording = X.Recording.init(a);
     defer recording.deinit();
     recording.begin();
     defer recording.end();
-    const params = T.symbolicParameters();
-    var collector = Collector{ .a = a, .parameters = params, .packing = Type.batch };
+    const params = if (raw) nativeParameters() else T.symbolicParameters();
+    var collector = Collector{ .a = a, .parameters = params, .packing = if (raw) 1 else Type.batch };
     defer collector.roots.deinit(a);
     const View = struct {
         pub fn fixed(_: *const @This(), c: usize) F {
@@ -123,14 +131,14 @@ fn recordV3(a: std.mem.Allocator, comptime Type: type, id: u32) !Artifact {
     };
     const view = View{};
     if (comptime Type.bytes != 0) {
-        for (0..Type.byte_batches * Type.batch) |i| {
+        for (0..if (raw) Type.bytes + 1 else Type.byte_batches * Type.batch) |i| {
             const n = if (i < Type.bytes) F.one() else if (i == Type.bytes) view.main(Type.L.MULT).neg() else F.zero();
-            const d = if (i < Type.bytes) params.local.polynomial.sub(Type.Eq.byteQuery(F, &view, i)) else if (i == Type.bytes) params.local.polynomial.sub(view.fixed(A.crypto.curves.layout.BYTE)) else F.one();
+            const d = if (i < Type.bytes) (if (raw) params.local.offsets[2] else params.local.polynomial).sub(Type.Eq.byteQuery(F, &view, i)) else if (i == Type.bytes) (if (raw) params.local.offsets[2] else params.local.polynomial).sub(view.fixed(A.crypto.curves.layout.BYTE)) else F.one();
             try collector.append(d, n);
         }
     }
     const byte_batches: u32 = @intCast(collector.roots.items.len / 2);
-    for (0..Type.wire_batches * Type.batch) |i| {
+    for (0..if (raw) Type.wires else Type.wire_batches * Type.batch) |i| {
         if (i >= Type.wires) {
             try collector.append(F.one(), F.zero());
             continue;
@@ -142,12 +150,12 @@ fn recordV3(a: std.mem.Allocator, comptime Type: type, id: u32) !Artifact {
         try collector.append(d, if (positive) active else active.neg());
     }
     if (collector.fill != 0) return error.UnfinishedTruthRationalBatch;
-    const groups: [2]u32 = if (byte_batches == 0) .{ @intCast(Type.wire_batches), 0 } else .{ byte_batches, @intCast(Type.wire_batches) };
-    return finish(a, &recording, collector.roots.items, id, groups);
+    const groups: [2]u32 = if (raw) .{ byte_batches, @intCast(Type.wires) } else if (byte_batches == 0) .{ @intCast(Type.wire_batches), 0 } else .{ byte_batches, @intCast(Type.wire_batches) };
+    return finish(a, &recording, collector.roots.items, id, groups, raw);
 }
-fn finish(a: std.mem.Allocator, recording: *X.Recording, roots: []const u32, id: u32, groups: [2]u32) !Artifact {
+fn finish(a: std.mem.Allocator, recording: *X.Recording, roots: []const u32, id: u32, groups: [2]u32, raw: bool) !Artifact {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("rv64/cuda/native-truth-rational-groups/v1");
+    hash.update(if (raw) "rv64/cuda/native-gkr/raw-truth-fractions/v2" else "rv64/cuda/native-truth-rational-groups/v1");
     var word: [4]u8 = undefined;
     std.mem.writeInt(u32, &word, id, .little);
     hash.update(&word);
@@ -234,4 +242,65 @@ pub fn writeAot(a: std.mem.Allocator, dir: std.fs.Dir) !void {
         defer a.free(filename);
         try dir.writeFile(.{ .sub_path = filename, .data = text.items });
     }
+}
+
+test "native GKR truth raw groups preserve original query census without classic padding" {
+    const a = std.testing.allocator;
+    for ([_]u32{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 }) |id| {
+        var raw = try recordNative(a, id);
+        defer raw.deinit();
+        var classic = try record(a, id);
+        defer classic.deinit();
+        try raw.program.validate();
+        try std.testing.expectEqual(@as(usize, 2) * (raw.groups[0] + raw.groups[1]), raw.program.roots.len);
+        if (id == 0 or id == 7) {
+            const policy: K.equations.BatchPolicy = if (id == 0) .throughput_r27_v1 else .triple_v2;
+            try std.testing.expectEqual(@as(u32, @intCast(policy.lookups())), raw.groups[0]);
+            try std.testing.expectEqual(classic.groups[1], raw.groups[1]);
+            try std.testing.expect(classic.groups[0] * 3 >= raw.groups[0]);
+            try std.testing.expect(classic.groups[0] * 3 - raw.groups[0] < 3);
+        } else if (id == 1 or id == 2 or id == 8 or id == 9) {
+            try std.testing.expectEqual([2]u32{ 1, 0 }, raw.groups);
+        } else {
+            // Wire-only V3 keeps its absent local group instead of reclassifying
+            // wires as classic group zero. Check exact source counts below.
+            const expected = switch (id) {
+                3 => rawV3Groups(T.V3Catalog.Sha()),
+                4 => rawV3Groups(T.V3Catalog.Arith()),
+                5 => rawV3Groups(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add)),
+                6 => rawV3Groups(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double)),
+                10 => rawV3Groups(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_add)),
+                11 => rawV3Groups(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_double)),
+                12 => rawV3Groups(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_fp2_mul)),
+                13 => rawV3Groups(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bls12_381_fp2_mul)),
+                14 => rawV3Groups(T.V3Catalog.Curve(A.crypto.curves.spec.Op.arith384_mont)),
+                else => unreachable,
+            };
+            try std.testing.expectEqual(expected, raw.groups);
+        }
+        try std.testing.expect(!std.mem.eql(u8, &raw.program.identity, &classic.program.identity));
+        const sorts = try raw.program.sorts(a);
+        defer a.free(sorts);
+        for (0..raw.groups[0] + raw.groups[1]) |query| try std.testing.expectEqual(C.ir.Sort.base, sorts[raw.program.roots[2 * query]]);
+    }
+}
+
+fn rawV3Groups(comptime Type: type) [2]u32 {
+    return .{ if (Type.bytes == 0) 0 else Type.bytes + 1, Type.wires };
+}
+
+/// New native section draws (z,alpha) in truth Relation order chi/xor5/byte.
+/// Reuse the frozen transport slots, but derive every coefficient here from
+/// its one alpha. Classic callers keep their independent-coefficient layout.
+fn nativeParameters() T.Role.Component.ParametersFor(F) {
+    var p = T.symbolicParameters();
+    for (&p.local.coefficients, 0..) |*row, relation| {
+        const alpha = F.parameter(T.slots.coefficients + @as(u32, @intCast(6 * relation)));
+        var power = F.one();
+        for (row) |*coefficient| {
+            coefficient.* = power;
+            power = power.mul(alpha);
+        }
+    }
+    return p;
 }

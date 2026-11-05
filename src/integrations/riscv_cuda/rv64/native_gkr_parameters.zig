@@ -1,0 +1,24 @@
+//! Native-GKR-only semantic slots. No legacy ABI or parameter address changes.
+const CPU = @import("stwo_riscv_cpu_integration").rv64_native_gkr_cpu;
+const S = CPU.Authority.Source;
+pub const cpu_steps: u32 = 0;
+pub const initial_pc: u32 = 1;
+pub const final_pc: u32 = 5;
+pub const epoch: u32 = 9;
+pub const rows: u32 = 10;
+pub const nonempty: u32 = 11;
+pub const calls: u32 = 12;
+pub const first_id: u32 = 13;
+pub const calls_nonempty: u32 = 14;
+pub const source_public: u32 = 15;
+pub const local: u32 = source_public + S.Public.count;
+pub const ram: u32 = local + 20;
+pub const kio: u32 = ram + 15;
+pub const wire: u32 = kio + 12;
+pub const weights: u32 = wire + 36;
+pub const max_weights: u32 = 256;
+pub const gamma: u32 = weights + 4 * max_weights;
+pub const target: u32 = gamma + 1;
+pub const eq0: u32 = gamma + 2;
+pub const eq1: u32 = gamma + 3;
+pub const count: u32 = gamma + 4;

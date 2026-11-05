@@ -40,6 +40,12 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_prover_api", cpu_integration.import_table.get("stwo_prover_api") orelse @panic("native CPU module is missing prover API"));
     integration.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", options).module("stwo_circuit_frontend"));
     integration.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    const native_gkr_root = b.createModule(.{ .root_source_file = b.path("rv64_native_gkr_codegen_test_root.zig"), .target = target, .optimize = optimize, .strip = true });
+    for ([_][]const u8{ "stwo_core", "stwo_prover_engine", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_circuit_frontend" }) |name| native_gkr_root.addImport(name, integration.import_table.get(name) orelse @panic("missing native GKR codegen dependency"));
+    const native_gkr_tests = b.addTest(.{ .root_module = native_gkr_root });
+    native_gkr_tests.linkLibC();
+    b.step("test-native-gkr-codegen", "Check native raw source and reduced AIR against source authority").dependOn(&b.addRunArtifact(native_gkr_tests).step);
+
     const router_root = b.createModule(.{ .root_source_file = b.path("rv64_router_test_root.zig"), .target = target, .optimize = optimize });
     router_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     router_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
