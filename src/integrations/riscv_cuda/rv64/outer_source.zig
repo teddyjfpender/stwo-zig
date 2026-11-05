@@ -346,7 +346,7 @@ pub const Context = struct {
         owner.main = try commit.commit(commit.context, a, .{ .scope = scope, .config = try Outer.protocol.targetConfig(), .tree_index = 1, .columns = owner.main_columns });
         owner.scope.main = owner.main.?.root;
         if (fixed) |setup| try setup.promote(owner.scope);
-        return .{ .context = owner, .scope = owner.scope, .main = owner.main.?, .fixed = if (fixed) |setup| setup.tree else null, .pcs = &owner.pcs, .composition = &owner.composition_stage, .generate = Owner.interact, .release = Owner.release };
+        return .{ .context = owner, .scope = owner.scope, .main = owner.main.?, .channel_observer = try @import("device_fs_check.zig").create(a, self.service, owner.scope, Dev.class_hint, Dev.class_is_leaf), .fixed = if (fixed) |setup| setup.tree else null, .pcs = &owner.pcs, .composition = &owner.composition_stage, .generate = Owner.interact, .release = Owner.release };
     }
 };
 pub const Owner = struct {
@@ -370,6 +370,7 @@ pub const Owner = struct {
     z: Outer.protocol.O = undefined,
     alpha: Outer.protocol.O = undefined,
     inter_ready: bool = false,
+    device_fs_parameters: ?Native.Lease = null,
     pcs: D.Stage,
     composition_stage: @import("stwo_prover_api").device_composition.ResidentOm31Stage,
     failure: ?anyerror = null,
@@ -424,6 +425,7 @@ pub const Owner = struct {
         if (self.inter_ready or key != self.key or !std.meta.eql(scope, self.scope)) return error.InvalidOuterInteractionScope;
         self.z = z;
         self.alpha = alpha;
+        self.device_fs_parameters = try @import("device_fs_check.zig").interactionParameters(self.backend.service, scope);
         try self.run(@import("outer_source_interaction.zig").generate);
         // INTER generation has joined all readers. Its commitment consumes only
         // INTER evaluations; MAIN coefficients already have independent custody.

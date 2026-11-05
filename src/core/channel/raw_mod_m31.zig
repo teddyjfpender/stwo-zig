@@ -88,6 +88,34 @@ pub const Qm31Channel = struct {
         return out;
     }
 };
+/// Opt-in producer observation, scoped to one exact channel object/thread.
+/// The observer never supplies transcript values or alters channel authority.
+pub const Om31Checkpoint = struct { digest: [32]u8, draws: u32 };
+pub const Om31Event = union(enum) {
+    mix_words: []const u32,
+    mix_felts: []const O,
+    draw_raw: [8]u32,
+    draw_om31: [8]u32,
+};
+pub const Om31Observer = struct {
+    context: *anyopaque,
+    target: ?*const anyopaque = null,
+    start: *const fn (*anyopaque, Om31Checkpoint) void,
+    record: *const fn (*anyopaque, Om31Event, Om31Checkpoint) void,
+    before_pcs: *const fn (*anyopaque, Om31Checkpoint) anyerror!void,
+    finish: *const fn (*anyopaque) anyerror!void,
+    destroy: *const fn (*anyopaque) void,
+};
+pub threadlocal var om31_observer: ?*Om31Observer = null;
+pub fn om31Checkpoint(channel: *const Om31Channel) Om31Checkpoint {
+    return .{ .digest = channel.inner.digest, .draws = channel.inner.n_draws };
+}
+pub fn beforeDeviceOm31Pcs(channel: *const Om31Channel) !void {
+    if (om31_observer) |observer| if (observer.target == @as(*const anyopaque, @ptrCast(channel))) {
+        try observer.before_pcs(observer.context, om31Checkpoint(channel));
+        observer.target = null; // CPCS owns the already-resident suffix.
+    };
+}
 pub const Om31Channel = struct {
     pub const SecureField = O;
     inner: B.Blake2sChannel,
@@ -109,21 +137,34 @@ pub const Om31Channel = struct {
     }
     pub fn mixU32s(self: *Om31Channel, values: []const u32) void {
         self.inner.mixU32s(values);
+        self.observe(.{ .mix_words = values });
     }
     pub fn mixU64(self: *Om31Channel, value: u64) void {
         self.inner.mixU64(value);
+        const words = [_]u32{ @truncate(value), @truncate(value >> 32) };
+        self.observe(.{ .mix_words = &words });
     }
     pub fn mixFelts(self: *Om31Channel, values: []const O) void {
         var hash = @import("../vcs/blake2_hash.zig").Blake2sHasher.init();
         hash.update(&self.inner.digest);
         for (values) |value| hash.update(&value.toBytesLe());
         self.inner.updateDigest(hash.finalize());
+        self.observe(.{ .mix_felts = values });
     }
     pub fn drawU32s(self: *Om31Channel) [8]u32 {
-        return self.inner.drawU32s();
+        const words = self.inner.drawU32s();
+        self.observe(.{ .draw_raw = words });
+        return words;
     }
     pub fn drawSecureFelt(self: *Om31Channel) O {
-        return O.fromM31Array(reduceWords(self.drawU32s()));
+        const value = O.fromM31Array(reduceWords(self.inner.drawU32s()));
+        var words: [8]u32 = undefined;
+        for (&words, value.toM31Array()) |*word, field| word.* = field.v;
+        self.observe(.{ .draw_om31 = words });
+        return value;
+    }
+    fn observe(self: *const Om31Channel, event: Om31Event) void {
+        if (om31_observer) |observer| if (observer.target == @as(*const anyopaque, @ptrCast(self))) observer.record(observer.context, event, om31Checkpoint(self));
     }
     pub fn drawSecureFelts(self: *Om31Channel, a: std.mem.Allocator, count: usize) ![]O {
         const out = try a.alloc(O, count);
@@ -133,4 +174,40 @@ pub const Om31Channel = struct {
 };
 test {
     _ = @import("raw_mod_m31_test.zig");
+}
+
+test "OM31 observer is object-scoped and secure draws are not double recorded" {
+    const Sink = struct {
+        count: usize = 0,
+        secure: usize = 0,
+        fn start(_: *anyopaque, _: Om31Checkpoint) void {}
+        fn record(raw: *anyopaque, event: Om31Event, _: Om31Checkpoint) void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            self.count += 1;
+            if (event == .draw_om31) self.secure += 1;
+        }
+        fn before(_: *anyopaque, _: Om31Checkpoint) !void {}
+        fn finish(_: *anyopaque) !void {}
+        fn destroy(_: *anyopaque) void {}
+    };
+    var channel = Om31Channel.init();
+    var reference = channel;
+    var other = channel;
+    var sink: Sink = .{};
+    var observer = Om31Observer{ .context = &sink, .target = &channel, .start = Sink.start, .record = Sink.record, .before_pcs = Sink.before, .finish = Sink.finish, .destroy = Sink.destroy };
+    const previous = om31_observer;
+    om31_observer = &observer;
+    defer om31_observer = previous;
+    _ = other.drawSecureFelt();
+    try std.testing.expectEqual(@as(usize, 0), sink.count);
+    try std.testing.expectEqual(reference.drawSecureFelt(), channel.drawSecureFelt());
+    channel.mixU32s(&.{ 0xffffffff, M.Modulus, 7 });
+    reference.mixU32s(&.{ 0xffffffff, M.Modulus, 7 });
+    const values = try channel.drawSecureFelts(std.testing.allocator, 2);
+    defer std.testing.allocator.free(values);
+    for (values) |value| try std.testing.expectEqual(reference.drawSecureFelt(), value);
+    try std.testing.expectEqual(@as(usize, 4), sink.count);
+    try std.testing.expectEqual(@as(usize, 3), sink.secure);
+    try std.testing.expectEqualSlices(u8, &reference.inner.digest, &channel.inner.digest);
+    try std.testing.expectEqual(reference.inner.n_draws, channel.inner.n_draws);
 }
