@@ -93,8 +93,9 @@ pub extern "c" fn stwo_rv64_channel_init_on(*anyopaque, u32, [*]u32, [*]const u3
 pub extern "c" fn stwo_rv64_channel_mix_on(*anyopaque, u32, [*]u32, u32, u64, u64, ?[*]const u32, u32, u32, [*]u32) c_int;
 pub extern "c" fn stwo_rv64_channel_draw_on(*anyopaque, u32, [*]u32, u32, u64, u64, u32, [*]u32, [*]u32) c_int;
 
-pub const batch_max_oracles = 64;
-pub const batch_state_words = 2173;
+/// 128 (was 64): native LogUp-GKR v2 needs up to 68 instances on strict-roster CPU classes (native-format).
+pub const batch_max_oracles = 128;
+pub const batch_state_words = 61 + 33 * batch_max_oracles;
 pub const BatchOracle = extern struct {
     raw: ?[*]const u32,
     raw_stride: u64,
@@ -124,12 +125,12 @@ comptime {
 }
 pub extern "c" fn stwo_rv64_batch_tail_on(*anyopaque, u32, [*]u32, [*]const BatchTailOracle, u32, u32, u32, [*]const u32, Plane, [*]const u32, [*]u32) c_int;
 
-pub const gkr_state_words = 1428;
-pub const gkr_alpha_word = 152;
-pub const gkr_lambda_word = 160;
-pub const gkr_seed_word = 168;
-pub const gkr_claims_word = 180;
-pub const gkr_point_word = 1204;
+pub const gkr_state_words = 2580;
+pub const gkr_alpha_word = 280;
+pub const gkr_lambda_word = 288;
+pub const gkr_seed_word = 296;
+pub const gkr_claims_word = 308;
+pub const gkr_point_word = 2356;
 pub const GkrRoot = extern struct { n: Plane, d: Plane };
 pub extern "c" fn stwo_rv64_gkr_pack_roots_on(*anyopaque, u32, [*]const GkrRoot, u32, [*]u32) c_int;
 pub extern "c" fn stwo_rv64_gkr_init_on(*anyopaque, u32, [*]u32, [*]const u32, [*]const u32, u32, u32, u64) c_int;

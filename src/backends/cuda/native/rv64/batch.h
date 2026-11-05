@@ -2,8 +2,12 @@
 #define STWO_CUDA_RV64_BATCH_H
 #include "gkr.h"
 #include <stddef.h>
-constexpr uint32_t STWO_RV64_BATCH_MAX_ORACLES = 64;
-constexpr uint32_t STWO_RV64_BATCH_STATE_WORDS = 2173;
+// 128 (was 64): native LogUp-GKR v2 (rv64-m6-native/v2, profile v2-gkr) needs up to 68 instances on the
+// strict-roster CPU classes of the dev blocks (native-format census). Capacity only: no transcript word
+// depends on the cap, so every proof is byte-identical.
+constexpr uint32_t STWO_RV64_BATCH_MAX_ORACLES = 128;
+// RoundState 40 + count/reserved 4 + 3 * 8 * max + max + seed 9 + alpha 8 + 8 * max.
+constexpr uint32_t STWO_RV64_BATCH_STATE_WORDS = 61 + 33 * STWO_RV64_BATCH_MAX_ORACLES;
 // For a zero-variable oracle, raw is null and raw_stride is zero. Otherwise it
 // names a two-row, eight-coordinate scalar sum; no full matrix is uploaded
 // here.
