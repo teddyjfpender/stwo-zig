@@ -1,0 +1,166 @@
+{
+  "schema": "rv64-m7-owner-gap-partition/v1",
+  "sqlite_sha256": "fe1d54c746c85a16283fde79ac5fcc940bf06c39e0f4ef1d08ed632f2f052635",
+  "window_ns": [
+    45713537241,
+    51639866055
+  ],
+  "top_owner_ranges": 133,
+  "scope": "Mutually exclusive same-physical-device intervals inside top-level owner host ranges. Untraced host includes driver calls, allocations, CPU work and scheduler descheduling; no CPU-only inference.",
+  "stages_seconds": {
+    "unmarked-owner": {
+      "owner_ns": 1.712762008,
+      "kernel_ns": 0,
+      "copy_or_set_only_ns": 0.372968222,
+      "blocking_api_no_gpu_ns": 0.002528232,
+      "other_runtime_no_gpu_ns": 0.02009095,
+      "untraced_host_no_gpu_ns": 1.317174604
+    },
+    "rv64/TC/FIXED": {
+      "owner_ns": 0.286890043,
+      "kernel_ns": 0.122178034,
+      "copy_or_set_only_ns": 0.048227677,
+      "blocking_api_no_gpu_ns": 0.003073444,
+      "other_runtime_no_gpu_ns": 0.006142969,
+      "untraced_host_no_gpu_ns": 0.107267919
+    },
+    "rv64/recursion/MAIN-assignment": {
+      "owner_ns": 1.95891705,
+      "kernel_ns": 1.21532984,
+      "copy_or_set_only_ns": 0.308889892,
+      "blocking_api_no_gpu_ns": 0.005304234,
+      "other_runtime_no_gpu_ns": 0.277560811,
+      "untraced_host_no_gpu_ns": 0.151832273
+    },
+    "rv64/TC/MAIN": {
+      "owner_ns": 0.548434842,
+      "kernel_ns": 0.411545637,
+      "copy_or_set_only_ns": 0.072233532,
+      "blocking_api_no_gpu_ns": 0.003681517,
+      "other_runtime_no_gpu_ns": 0.012637998,
+      "untraced_host_no_gpu_ns": 0.048336158
+    },
+    "rv64/recursion/INTER-witness": {
+      "owner_ns": 0.722715503,
+      "kernel_ns": 0.692159328,
+      "copy_or_set_only_ns": 0.009952625,
+      "blocking_api_no_gpu_ns": 0.005410776,
+      "other_runtime_no_gpu_ns": 0.013614483,
+      "untraced_host_no_gpu_ns": 0.001578291
+    },
+    "rv64/TC/INTER": {
+      "owner_ns": 0.963980793,
+      "kernel_ns": 0.76701111,
+      "copy_or_set_only_ns": 0.115260007,
+      "blocking_api_no_gpu_ns": 0.004424686,
+      "other_runtime_no_gpu_ns": 0.042028434,
+      "untraced_host_no_gpu_ns": 0.035256556
+    },
+    "rv64/composition": {
+      "owner_ns": 1.636604065,
+      "kernel_ns": 1.22126995,
+      "copy_or_set_only_ns": 0.105432562,
+      "blocking_api_no_gpu_ns": 0.008041538,
+      "other_runtime_no_gpu_ns": 0.215963273,
+      "untraced_host_no_gpu_ns": 0.085896742
+    },
+    "rv64/owner/pcs": {
+      "owner_ns": 2.013060727,
+      "kernel_ns": 1.774633589,
+      "copy_or_set_only_ns": 0.061665649,
+      "blocking_api_no_gpu_ns": 0.019828248,
+      "other_runtime_no_gpu_ns": 0.032697587,
+      "untraced_host_no_gpu_ns": 0.124235654
+    }
+  },
+  "unmarked_detail_seconds": {
+    "rv64/owner/callback: after start, before end": {
+      "owner_ns": 0.624748506,
+      "kernel_ns": 0,
+      "copy_or_set_only_ns": 0.362784106,
+      "blocking_api_no_gpu_ns": 0.00187574,
+      "other_runtime_no_gpu_ns": 0.014917619,
+      "untraced_host_no_gpu_ns": 0.245171041
+    },
+    "rv64/owner/callback: after start, before rv64/TC/FIXED": {
+      "owner_ns": 0.00018104,
+      "kernel_ns": 0,
+      "copy_or_set_only_ns": 0,
+      "blocking_api_no_gpu_ns": 0,
+      "other_runtime_no_gpu_ns": 0,
+      "untraced_host_no_gpu_ns": 0.00018104
+    },
+    "rv64/owner/callback: after rv64/TC/FIXED, before end": {
+      "owner_ns": 0.00019895,
+      "kernel_ns": 0,
+      "copy_or_set_only_ns": 0,
+      "blocking_api_no_gpu_ns": 0,
+      "other_runtime_no_gpu_ns": 0,
+      "untraced_host_no_gpu_ns": 0.00019895
+    },
+    "rv64/owner/controller: after start, before rv64/recursion/MAIN-assignment": {
+      "owner_ns": 0.002414748,
+      "kernel_ns": 0,
+      "copy_or_set_only_ns": 0,
+      "blocking_api_no_gpu_ns": 0,
+      "other_runtime_no_gpu_ns": 0,
+      "untraced_host_no_gpu_ns": 0.002414748
+    },
+    "rv64/owner/controller: after rv64/recursion/MAIN-assignment, before rv64/TC/MAIN": {
+      "owner_ns": 0.657228146,
+      "kernel_ns": 0,
+      "copy_or_set_only_ns": 0,
+      "blocking_api_no_gpu_ns": 0,
+      "other_runtime_no_gpu_ns": 0,
+      "untraced_host_no_gpu_ns": 0.657228146
+    },
+    "rv64/owner/controller: after rv64/TC/MAIN, before rv64/recursion/INTER-witness": {
+      "owner_ns": 0.011403482,
+      "kernel_ns": 0,
+      "copy_or_set_only_ns": 0,
+      "blocking_api_no_gpu_ns": 0,
+      "other_runtime_no_gpu_ns": 0,
+      "untraced_host_no_gpu_ns": 0.011403482
+    },
+    "rv64/owner/controller: after rv64/recursion/INTER-witness, before rv64/TC/INTER": {
+      "owner_ns": 0.035793721,
+      "kernel_ns": 0,
+      "copy_or_set_only_ns": 0,
+      "blocking_api_no_gpu_ns": 0,
+      "other_runtime_no_gpu_ns": 0.00007273,
+      "untraced_host_no_gpu_ns": 0.035720991
+    },
+    "rv64/owner/controller: after rv64/TC/INTER, before rv64/composition": {
+      "owner_ns": 0.002164639,
+      "kernel_ns": 0,
+      "copy_or_set_only_ns": 0,
+      "blocking_api_no_gpu_ns": 0,
+      "other_runtime_no_gpu_ns": 0,
+      "untraced_host_no_gpu_ns": 0.002164639
+    },
+    "rv64/owner/controller: after rv64/composition, before rv64/owner/pcs": {
+      "owner_ns": 0.166924308,
+      "kernel_ns": 0,
+      "copy_or_set_only_ns": 0.010184116,
+      "blocking_api_no_gpu_ns": 0.000652492,
+      "other_runtime_no_gpu_ns": 0.004602321,
+      "untraced_host_no_gpu_ns": 0.151485379
+    },
+    "rv64/owner/controller: after rv64/owner/pcs, before end": {
+      "owner_ns": 0.211704468,
+      "kernel_ns": 0,
+      "copy_or_set_only_ns": 0,
+      "blocking_api_no_gpu_ns": 0,
+      "other_runtime_no_gpu_ns": 0.00049828,
+      "untraced_host_no_gpu_ns": 0.211206188
+    }
+  },
+  "totals_seconds": {
+    "owner_ns": 9.843365031000001,
+    "kernel_ns": 6.204127488000001,
+    "copy_or_set_only_ns": 1.0946301660000002,
+    "blocking_api_no_gpu_ns": 0.052292675000000004,
+    "other_runtime_no_gpu_ns": 0.6207365050000001,
+    "untraced_host_no_gpu_ns": 1.871578197
+  }
+}
