@@ -146,7 +146,7 @@ def markers(log):
 
 def plan_for(blocks, args, run, paths, root):
     template = P.plan_template()
-    if args.security_profile is not None:
+    if getattr(args, "security_profile", None) is not None:
         template = dict(template, profile=args.security_profile)
     jobs = []
     for block in blocks:
