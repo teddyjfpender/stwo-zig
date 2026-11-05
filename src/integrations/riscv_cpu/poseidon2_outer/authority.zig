@@ -80,7 +80,7 @@ pub const Authority = struct {
     identity: [32]u8,
     gather_mass: u64,
     pub fn init(a: std.mem.Allocator, ctx: *const C.Context) !Authority {
-        if (!ctx.finalized or ctx.poisoned or ctx.usage == null) return error.PoseidonContextNotFinalized;
+        if (!ctx.finalized or ctx.poisoned or ctx.usage == null or ctx.mixed_census_only) return error.PoseidonContextNotFinalized;
         // Recompute topology counts rather than trusting the Context's cached
         // Usage payload. This includes every P2 sidecar consumer and producer.
         var counts = try ctx.base.circuit.computeMultiplicities(a);
@@ -97,6 +97,7 @@ pub const Authority = struct {
         }
         for (counts.n_yields) |yields| if (yields != 1) return error.PoseidonMissingProducer;
         if (!std.mem.eql(u32, counts.n_uses, ctx.usage.?.counts)) return error.PoseidonSourceUsageMismatch;
+        if (ctx.base.circuit.blake_g_gate.items.len != 0 or ctx.base.circuit.triple_xor.items.len != 0 or ctx.base.circuit.permutation.len() != 0) return error.UnsupportedPoseidonRosterOperation;
         const raw64 = try ctx.rawCounts();
         const census = try ctx.census(false);
         var rows: [5]usize = undefined;

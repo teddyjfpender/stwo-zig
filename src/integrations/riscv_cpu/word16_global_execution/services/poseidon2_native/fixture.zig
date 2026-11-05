@@ -84,11 +84,11 @@ pub fn exerciseWithAllocator(a: std.mem.Allocator, comptime Hook: type) !void {
     }
     const manifest_bytes = try MW.encode(a, inventory.execution_identity, inventory.workers, &stages);
     defer a.free(manifest_bytes);
-    var sender = try M.verifyAndSealFor(.flat, a, inventory.execution_identity, inventory.workers, &stages);
+    var sender = if (comptime @hasDecl(M, "verifyAndSealFor")) try M.verifyAndSealFor(.flat, a, inventory.execution_identity, inventory.workers, &stages) else try M.verifyAndSeal(a, inventory.execution_identity, inventory.workers, &stages);
     defer sender.deinit(a);
     var decoded = try MW.decode(a, receiver_inventory.execution_identity, receiver_inventory.workers, manifest_bytes);
     defer decoded.deinit();
-    var receiver = try M.verifyAndSealFor(.flat, a, receiver_inventory.execution_identity, receiver_inventory.workers, decoded.stages);
+    var receiver = if (comptime @hasDecl(M, "verifyAndSealFor")) try M.verifyAndSealFor(.flat, a, receiver_inventory.execution_identity, receiver_inventory.workers, decoded.stages) else try M.verifyAndSeal(a, receiver_inventory.execution_identity, receiver_inventory.workers, decoded.stages);
     defer receiver.deinit(a);
     var proofs: [2]Worker.Encoded = undefined;
     var proof_count: usize = 0;
@@ -141,7 +141,7 @@ pub fn exerciseWithAllocator(a: std.mem.Allocator, comptime Hook: type) !void {
             if (Worker.verify(a, receiver_ptrs[0], requests[0], receiver_inventory.workers[0], receiver_inventory.first_ids[0], &receiver, 0, &receiver_keys[0], &owned, null)) |_| return error.PoseidonNativeContainerMutationAccepted else |_| {}
         } else |_| {}
     }
-    try Hook.run(a, &receiver_ptrs, &requests, &receiver_keys, &receiver_inventory, &receiver, &proofs, &native, &capture);
+    if (comptime @hasDecl(Hook, "runWithStages")) try Hook.runWithStages(a, &receiver_ptrs, &requests, &receiver_keys, &receiver_inventory, &receiver, &proofs, &native, &capture, decoded.stages) else try Hook.run(a, &receiver_ptrs, &requests, &receiver_keys, &receiver_inventory, &receiver, &proofs, &native, &capture);
     if (std.posix.getenv("STWO_RV64_P2_NATIVE_OUT_DIR")) |path| {
         var dir = try std.fs.cwd().makeOpenPath(path, .{ .iterate = true });
         defer dir.close();
