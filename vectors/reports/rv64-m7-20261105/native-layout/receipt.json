@@ -1,0 +1,32 @@
+{
+  "schema": "rv64-m7-layout-census-qualification/v1",
+  "author": "OpenAI Codex",
+  "status": "D/E only; no proposed physical or recursive proof, no wall-time forecast",
+  "source_receipt": "../native-gkr/cap128-daemon.json; cold accepted proof pairs and M6 byte parity pinned by sibling receipts",
+  "blocks": [
+    26235156,
+    24628607
+  ],
+  "executed": [
+    "pure native-layout-census build on pod under build.2 lock",
+    "source census on both M6 saved bundles, exit0",
+    "source census on both synthetic one-truth-per-family declarations, exit0",
+    "Python model source census MAIN/INTER reconciliation assertions",
+    "Python complete full-tree GKR layout matches qualified188288B source-batch fixture",
+    "Python bytecode compile"
+  ],
+  "negative": "legacy product-family toy remains refused by the existing V3-only declaration census; it is not modelled as a supported native-GKR class",
+  "open_gates": [
+    "CPU23 GKR/compact clock source authority and exact classes",
+    "CPU24 gap scale/query/geometry/class authority",
+    "global native+recursion+GKR memory planner",
+    "streamed GKR to fit merged Keccak and CPU24",
+    "actual D2/D3 proof configuration/circuit cells",
+    "Poseidon2 hashing/Fiat-Shamir source and circuit costs"
+  ],
+  "source_sha256": {
+    "src/integrations/riscv_cpu/build.zig": "11186afd4a1b8f302d383a0bfad52abcbd1d6f699d0c3d75c8e4c51823890755",
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/census_main.zig": "9c995d80ec613d4e5407ac04d4e15d59e0640848d25f9d01c1af067bb45180b0",
+    "scripts/rv64_m7_layout_model.py": "7d1fee851620a867a814d46d07000e890170277826e68b1fa39463cbfee68bd3"
+  }
+}

@@ -26,7 +26,9 @@ const Slot = struct {
     name: []const u8,
     log: u32,
     local_terms: u32,
+    fixed_cols: usize,
     main_cols: usize,
+    native_terms: [4]u32 = @splat(0),
     binding_cols: usize,
     ram_cols: usize,
     other_cols: usize,
@@ -35,8 +37,8 @@ const Slot = struct {
     other_queries: usize = 0,
 };
 const Cpu = struct { slots: []Slot, main_cells: u64, inter_cells: u64, inter_cols: usize };
-const TruthPart = struct { kind: []const u8, log: u32, main_cols: usize, local_cols: usize, global_cols: usize, global_relation: []const u8, local_queries: usize = 0, global_queries: usize = 0, queries_exact: bool = false };
-const Truth = struct { family: []const u8, calls: u32, logs: [2]u32, parts: []TruthPart, main_cells: u64, inter_cells: u64 };
+const TruthPart = struct { kind: []const u8, log: u32, fixed_cols: usize, native_terms: [4]u32, composition_split: u8, main_cols: usize, local_cols: usize, global_cols: usize, global_relation: []const u8, local_queries: usize = 0, global_queries: usize = 0, queries_exact: bool = false };
+const Truth = struct { native_supported: bool, family: []const u8, calls: u32, logs: [2]u32, parts: []TruthPart, main_cells: u64, inter_cells: u64 };
 
 fn originName(a: std.mem.Allocator, origin: anytype) ![]const u8 {
     return switch (origin) {
@@ -95,7 +97,11 @@ pub fn main() !void {
         for (plan.slots) |slot| {
             const l = Global.layout(slot.origin);
             const rows = @as(u64, 1) << @intCast(slot.log);
+            const descriptor = @import("cpu_component.zig").Authority.Source.Descriptor{ .origin = slot.origin, .cpu_u8_pairs = setup.materials.geometry.cpu_u8_pairs, .cpu_compact_decode = setup.materials.geometry.cpu_compact_decode };
+            const source_shape = try @import("cpu_component.zig").Authority.shape(descriptor);
             const s = Slot{
+                .fixed_cols = source_shape.fixed,
+                .native_terms = try @import("cpu_component.zig").terms(descriptor),
                 .name = try originName(a, slot.origin),
                 .log = slot.log,
                 .local_terms = localTerms(&setup, slot.origin),
@@ -121,7 +127,7 @@ pub fn main() !void {
             };
             if (!seen) {
                 main_cells += (@as(u64, 1) << @intCast(shape.log)) * shape.widths[1];
-                try slots.append(a, .{ .name = try std.fmt.allocPrint(a, "core.{s}", .{@tagName(shape.role)}), .log = shape.log, .local_terms = 0, .main_cols = shape.widths[1], .binding_cols = 0, .ram_cols = 0, .other_cols = 0, .other_relation = "none" });
+                try slots.append(a, .{ .name = try std.fmt.allocPrint(a, "core.{s}", .{@tagName(shape.role)}), .log = shape.log, .local_terms = 0, .fixed_cols = shape.widths[0], .main_cols = shape.widths[1], .binding_cols = 0, .ram_cols = 0, .other_cols = 0, .other_relation = "none" });
             }
         }
         out.* = .{ .slots = try slots.toOwnedSlice(a), .main_cells = main_cells, .inter_cells = inter_cells, .inter_cols = plan.inter_columns };
@@ -131,16 +137,21 @@ pub fn main() !void {
     for (input.truths, truths) |entry, *out| {
         const d = entry.declaration;
         var parts = std.ArrayList(TruthPart).empty;
+        var native_plan: ?@import("native_roster.zig").Plan = @import("native_roster.zig").truth(a, d) catch |err| switch (err) {
+            error.NativeGkrLegacyTruthUnsupported => null,
+            else => return err,
+        };
+        defer if (native_plan) |*plan_| plan_.deinit();
         if (d.family == .keccak) {
-            for (try TruthShapes.shapesForDeclaration(d)) |shape| {
+            for (try TruthShapes.shapesForDeclaration(d), 0..) |shape, part| {
                 const w = shape.widths();
                 const local = shape.localWidth();
-                try parts.append(a, .{ .kind = @tagName(shape.kind), .log = shape.log_size, .main_cols = w[1], .local_cols = local, .global_cols = w[2] - local, .global_relation = if (w[2] > local) "kio" else "none", .local_queries = shape.instance().queries, .global_queries = if (shape.kind == .keccak) shape.keccak_policy.ioLookups() else 0, .queries_exact = true });
+                try parts.append(a, .{ .kind = @tagName(shape.kind), .log = shape.log_size, .fixed_cols = w[0], .native_terms = if (native_plan) |plan_| plan_.roster.components[part].terms else @splat(0), .composition_split = if (native_plan) |plan_| plan_.spans[part].split else 1, .main_cols = w[1], .local_cols = local, .global_cols = w[2] - local, .global_relation = if (w[2] > local) "kio" else "none", .local_queries = shape.instance().queries, .global_queries = if (shape.kind == .keccak) shape.keccak_policy.ioLookups() else 0, .queries_exact = true });
             }
         } else {
             const desc = try V3.descriptorForDeclaration(d);
             // v3 batches pack two fractions per inverse column: queries ~ 2 x batches (estimate).
-            try parts.append(a, .{ .kind = @tagName(d.family), .log = desc.log_size, .main_cols = desc.shape.main, .local_cols = desc.shape.byte_batches * 8, .global_cols = desc.shape.wire_batches * 8, .global_relation = "wire", .local_queries = 2 * desc.shape.byte_batches, .global_queries = 2 * desc.shape.wire_batches });
+            try parts.append(a, .{ .kind = @tagName(d.family), .log = desc.log_size, .fixed_cols = desc.shape.fixed, .native_terms = if (native_plan) |plan_| plan_.roster.components[0].terms else @splat(0), .composition_split = if (native_plan) |plan_| plan_.spans[0].split else 1, .main_cols = desc.shape.main, .local_cols = desc.shape.byte_batches * 8, .global_cols = desc.shape.wire_batches * 8, .global_relation = "wire", .local_queries = 2 * desc.shape.byte_batches, .global_queries = 2 * desc.shape.wire_batches });
         }
         var main_cells: u64 = 0;
         var inter_cells: u64 = 0;
@@ -149,7 +160,7 @@ pub fn main() !void {
             main_cells += rows * p.main_cols;
             inter_cells += rows * (p.local_cols + p.global_cols);
         }
-        out.* = .{ .family = @tagName(d.family), .calls = d.calls, .logs = d.logs, .parts = try parts.toOwnedSlice(a), .main_cells = main_cells, .inter_cells = inter_cells };
+        out.* = .{ .native_supported = native_plan != null, .family = @tagName(d.family), .calls = d.calls, .logs = d.logs, .parts = try parts.toOwnedSlice(a), .main_cells = main_cells, .inter_cells = inter_cells };
     }
     const json = try std.json.Stringify.valueAlloc(a, .{
         .schema = "rv64-native-gkr-census/v1",

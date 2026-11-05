@@ -64,6 +64,11 @@ pub fn build(b: *std.Build) void {
     const native_gkr_filter = b.option([]const u8, "native-gkr-test-filter", "Run matching native GKR tests only");
     const native_gkr_tests = b.addTest(.{ .root_module = native_gkr_root, .filters = if (native_gkr_filter) |filter| &.{filter} else &.{} });
     b.step("test-native-gkr", "Test native GKR v1 and v2 bounded roster, codec, transcript and tamper corpus").dependOn(&b.addRunArtifact(native_gkr_tests).step);
+    const census_root = b.createModule(.{ .root_source_file = b.path("rv64_native_gkr_census_main.zig"), .target = target, .optimize = optimize });
+    var census_imports = native_gkr_root.import_table.iterator();
+    while (census_imports.next()) |entry| census_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
+    const census = b.addExecutable(.{ .name = "rv64-native-gkr-census", .root_module = census_root });
+    b.step("native-layout-census", "Build pure declaration/native-layout census without a production prover build").dependOn(&b.addInstallArtifact(census, .{}).step);
     const native_gkr_circuit_root = b.createModule(.{ .root_source_file = b.path("rv64_native_gkr_circuit_test_root.zig"), .target = target, .optimize = optimize });
     var native_gkr_imports = native_gkr_root.import_table.iterator();
     while (native_gkr_imports.next()) |entry| native_gkr_circuit_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
