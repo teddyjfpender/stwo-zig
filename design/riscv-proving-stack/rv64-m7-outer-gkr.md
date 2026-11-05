@@ -102,3 +102,39 @@ generation, child-verifier proof framing,
 both dev-block production proofs, fresh receiver/audit acceptance, and the
 production tamper corpus. These tests do not establish M7 request time,
 cell reduction, proof compression or an end-to-end outer-GKR result.
+
+## Hybrid AIR and fresh receiver API (not yet production selected)
+
+`hybrid_air.zig` specializes only the receiver's pinned original AIR. It
+retains every root independent of original INTER in order and replaces the
+wide components' lookup roots with the same three binding equations. The
+source count is39roots and128committed INTER columns versus57and304. Original
+MAIN selector arithmetic can be cubic; only the added binding roots are
+required to have polynomial degree at most two. The source degree bound
+`row_log+1` is preserved.
+
+The affine original tuple authority now runs at OODS too. XOR12 consumes the
+three original FIXED low-ten-bit operands/result and constant high bits; it
+does not infer arbitrary row bits from proof metadata. Tests compare every
+term with the original native tuple emitter on arbitrary MAIN rows.
+
+`hybrid_component.zig` resolves masks exclusively from source-owned FIXED,
+MAIN and hybrid INTER spans. It excludes ten Eq auxiliaries from committed
+mask/degree rosters and derives them from the verified GKR point and its own
+folded OODS point. The actual mask reader and polynomial IR run on OM31 and
+the circuit lane in the differential gate, including all eight coordinates
+of each Eq/Pre value. Missing Eq fails before residual evaluation.
+
+`hybrid_receiver.zig` derives its class, identity and roster from the source
+authority, verifies GKR and strict late draws, requires classic GKR-component
+claims to be zero, checks shared lookup closure, and invokes the complete
+STARK verifier with the hybrid components. Its body is compiled and the
+incomplete-proof refusal is tested. A positive complete hybrid STARK receipt
+has not yet been produced; this API is separate from the active M6 codec.
+
+The source-bound receipt is in
+`vectors/reports/rv64-m7-20261105/outer-gkr/hybrid-authority/`. The first step
+passes28/28; the combined registry/fraction followups are recorded as pending
+while waiting on the shared build lock. No runtime profile is activated by
+this commit. Producer/controller, source-owned GPU composition, child proof
+verification/codec and full dev-block/fresh-receiver gates still follow.
