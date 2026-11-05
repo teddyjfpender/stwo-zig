@@ -42,6 +42,11 @@ fn check(status: c_int) !void {
     }
 }
 pub const Context = struct {
+    host_allocator: std.mem.Allocator = std.heap.page_allocator,
+    /// Early MAIN preflights the complete Source+TC envelope before capture
+    /// completes. Preserve that selected allocation schedule even while the
+    /// whole-request admission endpoint is disabled. Immutable after init.
+    freeze_allocation_plan: bool = false,
     // Production MAIN/INTER must be produced on device. A qualification-only
     // mixed-encoding oracle may explicitly opt out; production never does.
     require_device_input: bool = true,
@@ -62,7 +67,8 @@ pub const Context = struct {
     twiddles: [29]?engine.poly.twiddles.TwiddleTree([]M) = @splat(null),
     mutex: std.Thread.Mutex = .{},
     pub fn init(service: *Service.Context) !Context {
-        return .{ .service = service, .api = .{
+        return .{ .freeze_allocation_plan = if (std.posix.getenv("STWO_RV64_EARLY_NATIVE_MAIN")) |value| std.mem.eql(u8, value, "1") else false, .service = service, .api = .{
+            .allocation_guard = &service.early_allocations,
             .allocate = service.lease_allocate,
             .release = service.lease_release,
             .validate_range = service.lease_validate_range,
@@ -73,13 +79,13 @@ pub const Context = struct {
         }, .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(N2bColumns, "stwo_lde_n2b_columns_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .tree = try sym(*const @TypeOf(A.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .prefix_workspace = service.library.lookup(*const fn ([*]const A.MixedSegment, u32, *u64) callconv(.c) c_int, "stwo_rv64_trace_prefix_workspace_words"), .rebind = try sym(Native.LeaseRebind, &service.library, "stwo_rv64_gpu_lease_rebind"), .mixed_seeded = service.library.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_eager_on") orelse service.library.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_on"), .layer = service.library.lookup(Layer, "stwo_blake2s_layer_on"), .pool_current = service.library.lookup(PoolCurrent, "stwo_exec_context_pool_current"), .live_leases = service.library.lookup(LiveLeases, "stwo_rv64_gpu_session_live_leases") };
     }
     pub fn deinit(self: *Context) void {
-        for (self.returned.items) |columns| std.heap.page_allocator.free(columns);
-        self.returned.deinit(std.heap.page_allocator);
-        for (&self.twiddles) |*cached| if (cached.*) |*value| engine.poly.twiddles.deinitM31(std.heap.page_allocator, value);
+        for (self.returned.items) |columns| self.host_allocator.free(columns);
+        self.returned.deinit(self.host_allocator);
+        for (&self.twiddles) |*cached| if (cached.*) |*value| engine.poly.twiddles.deinitM31(self.host_allocator, value);
         self.* = undefined;
     }
     fn tw(self: *Context, log: u32) !*const engine.poly.twiddles.TwiddleTree([]M) {
-        if (self.twiddles[log] == null) self.twiddles[log] = try engine.poly.twiddles.precomputeM31(std.heap.page_allocator, core.poly.circle.canonic.CanonicCoset.new(log).circleDomain().half_coset);
+        if (self.twiddles[log] == null) self.twiddles[log] = try engine.poly.twiddles.precomputeM31(self.host_allocator, core.poly.circle.canonic.CanonicCoset.new(log).circleDomain().half_coset);
         return &self.twiddles[log].?;
     }
     pub fn stage(self: *Context) D.TraceCommitStage {
@@ -95,12 +101,17 @@ pub const Context = struct {
     }
     /// Host-only allocation plan. An admitted execution freezes this stream
     /// schedule; owner-thread per-session pressure cannot silently change it.
+    pub fn allocationOptions(self: *const Context, beta: u32) AdmissionPlan.Input {
+        const separate = beta == 1 and self.n2b_columns != null;
+        return .{ .logs = &.{}, .beta = beta, .separate_coefficients = separate, .stream_budget = if (separate and self.mixed_seeded != null and self.layer != null) streamBudget() else null, .exact_prefix_banks = self.prefix_workspace != null };
+    }
     pub fn allocationPlan(self: *const Context, a: std.mem.Allocator, request: D.TraceCommitRequest) !AdmissionPlan.Plan {
         const logs = try a.alloc(u32, request.columns.len);
         defer a.free(logs);
         for (request.columns, logs) |column, *log| log.* = column.log_size;
-        const separate = request.config.fri_config.log_blowup_factor == 1 and self.n2b_columns != null;
-        return AdmissionPlan.init(a, .{ .logs = logs, .beta = request.config.fri_config.log_blowup_factor, .separate_coefficients = separate, .stream_budget = if (separate and self.mixed_seeded != null and self.layer != null) streamBudget() else null, .exact_prefix_banks = self.prefix_workspace != null });
+        var input = self.allocationOptions(request.config.fri_config.log_blowup_factor);
+        input.logs = logs;
+        return AdmissionPlan.init(a, input);
     }
     fn commitImpl(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, fixed: bool) !D.Tree {
         if ((fixed and request.tree_index != 0) or (!fixed and request.tree_index < 1) or request.tree_index > 2 or request.columns.len == 0 or request.columns.len > 65535) return error.InvalidTraceCommitRequest;
@@ -119,8 +130,9 @@ pub const Context = struct {
         }
         self.mutex.lock();
         defer self.mutex.unlock();
-        try self.returned.ensureUnusedCapacity(std.heap.page_allocator, 1);
-        var job = Job{ .backend = self, .a = a, .request = request, .admission_plan = if (self.service.admission != null) try self.allocationPlan(a, request) else null };
+        if (request.tree_index == 1) try self.service.early_allocations.advance(@import("pcs_scope.zig").identity(request.scope), .commit);
+        try self.returned.ensureUnusedCapacity(self.host_allocator, 1);
+        var job = Job{ .backend = self, .a = a, .request = request, .admission_plan = if (self.freeze_allocation_plan or self.service.admission != null) try self.allocationPlan(a, request) else null };
         const status = self.service.submit(self.service.session, Job.callback, &job);
         if (job.failure) |err| return err;
         try check(status);
@@ -352,8 +364,8 @@ const Job = struct {
         if (r.tree_index == 1) final_scope.main = root;
         const promoted = @import("pcs_scope.zig").identity(final_scope);
         std.debug.print("GPU_TRACE_OWNERSHIP tree={} coefficient_words={} scratch_words={} final_coefficient_copy_words={}\n", .{ r.tree_index, coefficient_cells, 0, @as(usize, 0) });
-        const columns = try std.heap.page_allocator.alloc(D.Column, r.columns.len);
-        errdefer std.heap.page_allocator.free(columns);
+        const columns = try b.host_allocator.alloc(D.Column, r.columns.len);
+        errdefer b.host_allocator.free(columns);
         for (columns, r.columns, 0..) |*column, input, i| column.* = .{ .log_size = input.log_size, .device = .{ .words = coefficients.words.? + offsets[i], .count = @as(u64, 1) << @intCast(input.log_size), .context_token = coefficients.context_token, .generation = coefficients.generation } };
         try check(b.rebind(b.service.session, coefficients, &scope, &promoted));
         try b.service.retainDeviceLease(promoted, coefficients.*);
@@ -531,8 +543,8 @@ const Job = struct {
             try ctx.join();
         }
         std.debug.print("GPU_TRACE_OWNERSHIP tree={} coefficient_words={} scratch_words={} final_coefficient_copy_words={}\n", .{ r.tree_index, coefficient_cells, arena_cells, if (separate_coefficients) @as(usize, 0) else coefficient_cells });
-        const columns = try std.heap.page_allocator.alloc(D.Column, r.columns.len);
-        errdefer std.heap.page_allocator.free(columns);
+        const columns = try b.host_allocator.alloc(D.Column, r.columns.len);
+        errdefer b.host_allocator.free(columns);
         for (columns, r.columns, 0..) |*column, input, i| column.* = .{ .log_size = input.log_size, .device = .{ .words = coefficients.words.? + offsets[i], .count = @as(u64, 1) << @intCast(input.log_size), .context_token = coefficients.context_token, .generation = coefficients.generation } };
         try check(b.rebind(b.service.session, &coefficients, &scope, &promoted));
         try b.service.retainDeviceLease(promoted, coefficients);

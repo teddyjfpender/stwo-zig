@@ -8,6 +8,7 @@ const X = @import("stwo_riscv_frontend").rv64_air.word16_execution;
 /// M7 ingress: result/ROM/next-PC only. Register values and access clocks are
 /// reconstructed on the GPU, independently per chunk, from first-touch seeds.
 pub const compact_chunk_rows: usize = 256;
+pub const pack_stack_bytes: usize = 1 << 20;
 pub const CompactRecord = extern struct { result: u64, rom_row: u32, next_pc: u32 };
 pub const CompactSeed = extern struct { values: [32]u64, clocks: [32]u32 };
 pub const Compact = struct {
@@ -37,10 +38,9 @@ pub const Compact = struct {
         var launched: usize = 0;
         errdefer for (threads[0..launched]) |thread| thread.join();
         for (0..workers) |i| {
-            jobs[i] = .{ .source = source, .records = records, .seeds = seeds,
-                .first = seeds.len * i / workers, .end = seeds.len * (i + 1) / workers };
+            jobs[i] = .{ .source = source, .records = records, .seeds = seeds, .first = seeds.len * i / workers, .end = seeds.len * (i + 1) / workers };
             if (i + 1 < workers) {
-                threads[launched] = try std.Thread.spawn(.{}, PackJob.run, .{&jobs[i]});
+                threads[launched] = try std.Thread.spawn(.{ .stack_size = pack_stack_bytes }, PackJob.run, .{&jobs[i]});
                 launched += 1;
             } else jobs[i].run();
         }
@@ -57,7 +57,9 @@ pub const Compact = struct {
         end: usize,
         failure: ?error{InvalidCompactCpuMetadata} = null,
         fn run(self: *PackJob) void {
-            self.pack() catch |err| { self.failure = err; };
+            self.pack() catch |err| {
+                self.failure = err;
+            };
         }
         fn pack(self: *PackJob) error{InvalidCompactCpuMetadata}!void {
             for (self.seeds[self.first..self.end], self.first..) |*seed, chunk| {

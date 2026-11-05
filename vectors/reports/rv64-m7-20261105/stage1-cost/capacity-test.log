@@ -1,0 +1,31 @@
+1/28 native_stage1_capacity.test.local stage1 sums existing native retention with separately rounded class peak...OK
+2/28 native_stage1_capacity.test.local stage1 rejects device geometry capacity and fragmented virtual address space before work...OK
+3/28 admission_runtime.test.runtime permit observes global retention and refuses untracked growth...GLOBAL_ADMISSION_STAGE physical=0 ticket=1 domain=native_packet stage=witness ordinal=0 owner_queue_ns=54270 owner_callback_ns=180 total_host_ns=55240 retained_large=33554432 retained_small=0 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_STAGE physical=0 ticket=2 domain=native_packet stage=witness ordinal=0 owner_queue_ns=0 owner_callback_ns=0 total_host_ns=460 retained_large=0 retained_small=0 successor_large=0 successor_small=0
+OK
+4/28 global_admission.test.native retention cannot consume the GKR successor headroom...OK
+5/28 global_admission.test.physical devices independent; active and stale tickets fail closed...OK
+6/28 global_admission.test.unknown costs, physical rounding, small slab and untracked owners...OK
+7/28 global_admission.test.host frontier charged globally and unavailable costs refused...OK
+8/28 global_admission.test.native usize allocation list uses exact arena bucket charges...OK
+9/28 global_admission.test.terminal pool destruction retires interrupted claims only after actual owner teardown...OK
+10/28 native_source_cost.test.source owns every retained input through MAIN coefficient adoption...OK
+11/28 native_source_cost.test.source rounds allocations independently and does not add disjoint compact lifetime...OK
+12/28 native_source_cost.test.bulk and sponge common allocations survive alongside every component input...OK
+13/28 native_source_cost.test.source rejects mismatched projection arithmetic and missing service owner...OK
+14/28 native_source_cost.test.identity binds class request and separately rounded geometry...OK
+15/28 trace_commit_cost.test.legacy commit charges separately retained coefficients and exact prefix banks...OK
+16/28 trace_commit_cost.test.stream commit allocation list matches the frozen numerical plan...OK
+17/28 trace_commit_cost.test.new hash ABI cannot reuse legacy trace allocation costs...OK
+18/28 trace_commit_cost.test.D2 trace uses legacy LDE arena then independently retained final coefficients...OK
+19/28 native_cpu_projection_cost.test.CPU projection orders allocations and retires compact input before source owners...OK
+20/28 native_cpu_projection_cost.test.warm raw metadata input omits only new immutable ROM and compact input...OK
+21/28 native_cpu_projection_cost.test.empty compact capture still charges one word and boundary chunk seeds are exact...OK
+22/28 native_cpu_projection_cost.test.geometry mutation changes plan identity and invalid modes fail before work...OK
+23/28 native_cpu_projection_cost.test.layout adapter uses the supplied formatter types instead of fixture widths...OK
+24/28 native_cpu_projection_cost.test.cold retired ROM host reconstruction has its own early lifetime...OK
+25/28 trace_stream_plan.test.plan covers every column once, chains seeds and fits the tree...OK
+26/28 trace_stream_plan.test.streaming peak is bounded independently of total evaluation width...OK
+27/28 trace_stream_plan.test.invalid geometry is rejected...OK
+28/28 trace_stream_plan.test.chunked progressive Blake2s equals one-shot absorption for every schedule...OK
+All 28 tests passed.
