@@ -13,4 +13,13 @@ extern "C" int stwo_rv64_outer_fs_lookup_params_on(void* context, uint32_t lane,
                                                   const uint32_t* z_alpha,
                                                   uint32_t* params,
                                                   uint32_t* status);
+
+// Derive count contiguous OM31 powers alpha^(first+i), without a host upload
+// of the power table. count must be 1..2^20 and first+count-1 must fit u64.
+// The range/canonical/status contract is the same as lookup_params_on.
+// In particular alpha^0 = 1, including when alpha is zero.
+extern "C" int stwo_rv64_outer_fs_powers_on(void* context, uint32_t lane,
+                                           const uint32_t* alpha,
+                                           uint64_t first, uint32_t count,
+                                           uint32_t* powers, uint32_t* status);
 #endif

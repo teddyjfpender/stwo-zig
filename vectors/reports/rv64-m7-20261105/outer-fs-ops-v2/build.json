@@ -1,0 +1,82 @@
+{
+  "schema": "rv64-m7-outer-fs-addon-build/v2",
+  "scope": "Additive lookup parameters and challenge powers only; not full device Fiat-Shamir",
+  "inventory_status": "post-build dependency inventory",
+  "nvcc_version": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Fri_Feb_21_20:23:50_PST_2025\nCuda compilation tools, release 12.8, V12.8.93\nBuild cuda_12.8.r12.8/compiler.35583870_0\n",
+  "compile_argv": [
+    "nvcc",
+    "-O3",
+    "-std=c++17",
+    "-lineinfo",
+    "-gencode",
+    "arch=compute_120,code=sm_120",
+    "-Xcompiler=-fPIC,-pthread",
+    "-I/workspace/m3/src/m7-fold-v3/src/backends/cuda/native",
+    "-c",
+    "/workspace/m3/src/m7-fold-v3/src/backends/cuda/native/rv64/outer_fs_ops.cu",
+    "-o",
+    "/workspace/m3/build/m7-outer-fs-ops-v2/outer_fs_ops.o"
+  ],
+  "link_argv": [
+    "nvcc",
+    "-shared",
+    "-Xcompiler=-fPIC,-pthread",
+    "/workspace/m3/build/m7-outer-fs-ops-v2/outer_fs_ops.o",
+    "-L/workspace/m3/build/m7-combined-residency/cuda/native",
+    "-Xlinker=--no-as-needed",
+    "-l:libstwo-rv64-native.so",
+    "-Xlinker=-rpath,/workspace/m3/build/m7-combined-residency/cuda/native",
+    "-o",
+    "/workspace/m3/build/m7-outer-fs-ops-v2/libstwo-rv64-outer-fs-ops.so"
+  ],
+  "source_sha256": {
+    "scripts/rv64_m7_outer_fs_ops_fixture.py": "2bed4a4e22fad4249db54fa07f5fb623870134b9ebb51a3fa12b811522ac68d0",
+    "src/backends/cuda/native/oods/field.cuh": "b9031b721438b6dbc6b944029aa6506abd2671d3123588f616b7fcaa516eeaec",
+    "src/backends/cuda/native/rv64/custody.cuh": "0db77222de7dd7cabcf90de0eb349144d1ad1ca1a6d542ac03b1ac63cb5a3d5b",
+    "src/backends/cuda/native/rv64/gkr.h": "1047ecb9a178be05c2528922b01169d40b0a0e9c30d563fc3309ebf1dab535c0",
+    "src/backends/cuda/native/rv64/om31.cuh": "fe75730531a7638460b8a53e0d33d2daad53b7aff342b69fd196d1bbcdeb8d0b",
+    "src/backends/cuda/native/rv64/outer_fs_ops.cu": "ec0a33af82d542c3d311b5976d165af921d68cc92f21467c28a39b4932b00ab3",
+    "src/backends/cuda/native/rv64/outer_fs_ops.h": "fffdc6832a4ad85fb62adbf577ba054d8a298904eefa774f94f3b80308b9a2b5",
+    "src/core/fields/cm31.zig": "4b7a14c91fba7c467f92e924ce90c7230a22d08329591e3d5b8874d862b31288",
+    "src/core/fields/m31.zig": "a5d47cc1a8c57a858b943c25e63eb1561b9f994fdff36ea38517bc166ea66d73",
+    "src/core/fields/om31.zig": "86881f6709df022a5282cc34b83d3f57d0cbbf34ace730b093372be3a666445a",
+    "src/core/fields/qm31.zig": "916275ccc46e2b9d13c1d591a405dfa071018634ef652b053ee8e5414ba3c71e",
+    "src/integrations/circuit_cpu/om31/witness.zig": "dea15f32b5be11d612a1478f9fec2148cedc48d2910f2329270718081c28a7e5",
+    "src/tests/native/prover/rv64_outer_fs_lookup_reference.zig": "b2391d1c2b916f8d586c7c82841b76f16ec4cc525a4f3df33861ed2370a7b763",
+    "src/tests/native/prover/rv64_outer_fs_powers_reference.zig": "328409c8a192f7e859f71a5bb597926c9bf6db6e5be39d2693b3e85fcca7596e"
+  },
+  "artifacts": {
+    "/workspace/m3/build/m7-outer-fs-ops-v2/outer_fs_ops.o": {
+      "bytes": 183168,
+      "sha256": "dc7dbd53bcf3494aa87d036be518be03954d18188e5a15b8cc130fcbc36aeaec"
+    },
+    "/workspace/m3/build/m7-outer-fs-ops-v2/libstwo-rv64-outer-fs-ops.so": {
+      "bytes": 1175496,
+      "sha256": "1324a16ca1d1830fd0abb89b4f82a63734771fd6da2a1a946817ef2d1f37ea7c"
+    },
+    "/workspace/m3/build/m7-outer-fs-ops-v2/core-powers-reference": {
+      "bytes": 2365080,
+      "sha256": "0d8904d7cab17886a15b44e7a375e8e7521533891d30f402394bbeec1e166f46"
+    },
+    "/workspace/m3/build/m7-outer-fs-ops-v2/core-powers-reference.bin": {
+      "bytes": 1489824,
+      "sha256": "38fa143e6fbe9c7e96d74519aef92abd2c84b6c7086af0a6afebbc1298ef6b70"
+    },
+    "/workspace/m3/build/m7-combined-residency/cuda/native/libstwo-rv64-native.so": {
+      "bytes": 1974871808,
+      "sha256": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45"
+    }
+  },
+  "reference_argv": [
+    "/workspace/zig/zig",
+    "build-exe",
+    "-OReleaseSafe",
+    "--dep",
+    "stwo_core",
+    "-Mroot=src/tests/native/prover/rv64_outer_fs_powers_reference.zig",
+    "-OReleaseSafe",
+    "-Mstwo_core=src/core/mod.zig",
+    "-femit-bin=/workspace/m3/build/m7-outer-fs-ops-v2/core-powers-reference"
+  ],
+  "reference_stdin": "/workspace/m3/build/m7-outer-fs-ops/core-reference.bin"
+}
