@@ -16,6 +16,7 @@ pub const MAX_INPUT_BYTES = rv.ethereum_contract.INPUT_CAPACITY_MAX - 4;
 /// never free them. Request input, memory policy and identity stay per request.
 pub const AuthorityCache = struct {
     allocator: std.mem.Allocator,
+    mutex: std.Thread.Mutex = .{},
     entries: std.ArrayList(Entry) = .empty,
     hits: u64 = 0,
     misses: u64 = 0,
@@ -29,6 +30,16 @@ pub const AuthorityCache = struct {
     const MAX_ENTRIES = 4;
     pub fn init(a: std.mem.Allocator) AuthorityCache {
         return .{ .allocator = a };
+    }
+    /// Same cache and key as the expected-image owner. The direct execution
+    /// boot may acquire concurrently; immutable returned authorities remain
+    /// valid until this sequential service finishes its current request.
+    pub fn provider(self: *AuthorityCache) Request.AuthorityProvider {
+        return .{ .context = self, .acquire = acquirePinned };
+    }
+    fn acquirePinned(raw: *anyopaque, loaded: *rv.elf.LoadedImage, config: Request.Config) !*const Full.ProgramAuthority {
+        const self: *AuthorityCache = @ptrCast(@alignCast(raw));
+        return self.getPinned(loaded, config);
     }
     pub fn deinit(self: *AuthorityCache) void {
         for (self.entries.items) |entry| {
@@ -71,6 +82,8 @@ pub const AuthorityCache = struct {
     /// executable admission rejects an overlap. Input, policy, terminal and
     /// request identity are still freshly checked below on EVERY request.
     fn getPinned(self: *AuthorityCache, loaded: *rv.elf.LoadedImage, config: Request.Config) !*const Full.ProgramAuthority {
+        self.mutex.lock();
+        defer self.mutex.unlock();
         const enabled = if (std.posix.getenv("STWO_RV64_IMAGE_PROGRAM_CACHE")) |v| !std.mem.eql(u8, v, "0") else true;
         const id = imageKey(config);
         if (enabled) for (self.entries.items) |entry| if (entry.pinned_image) |pin| {

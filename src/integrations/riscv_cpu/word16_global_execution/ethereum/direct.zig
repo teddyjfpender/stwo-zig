@@ -273,6 +273,7 @@ pub const Started = struct {
     walk_config: Request.Config,
     prefix_packets: u32,
     segment_workers: u8,
+    authority_provider: ?Request.AuthorityProvider = null,
     /// Set by `boot` (null until joined, or after a boot failure).
     walk: ?*Walk = null,
     source: ?Segments.Source = null,
@@ -287,13 +288,16 @@ pub const Started = struct {
     /// Optional per-segment readiness hook (M6), set before `capture`.
     ready: ?Capture.Ready = null,
     pub fn start(a: std.mem.Allocator, config: Request.Config, prefix_packets: u32, segment_workers: u8) !*Started {
+        return startWithAuthority(a, config, prefix_packets, segment_workers, null);
+    }
+    pub fn startWithAuthority(a: std.mem.Allocator, config: Request.Config, prefix_packets: u32, segment_workers: u8, provider: ?Request.AuthorityProvider) !*Started {
         if (prefix_packets > 256) return error.TooManyEthereumPackets;
         var walk_config = config;
         // Never collect batches the requested prefix will not consume.
         if (prefix_packets != 0 and (walk_config.max_batches == 0 or walk_config.max_batches > prefix_packets)) walk_config.max_batches = prefix_packets;
         const self = try a.create(Started);
         errdefer a.destroy(self);
-        self.* = .{ .allocator = a, .config = config, .walk_config = walk_config, .prefix_packets = prefix_packets, .segment_workers = segment_workers, .ready = null };
+        self.* = .{ .allocator = a, .config = config, .walk_config = walk_config, .prefix_packets = prefix_packets, .segment_workers = segment_workers, .ready = null, .authority_provider = provider };
         const async_start = if (std.posix.getenv("STWO_RV64_CAPTURE_ASYNC_START")) |v| !std.mem.eql(u8, v, "0") else true;
         if (async_start) {
             if (std.Thread.spawn(.{}, bootThread, .{self})) |t| {
@@ -315,7 +319,7 @@ pub const Started = struct {
             self.boot_ns = t.read();
         };
         const a = self.allocator;
-        const walk = try Walk.createWithOptions(a, self.walk_config, .{ .poseidon_initial_cache = false });
+        const walk = try Walk.createWithOptions(a, self.walk_config, .{ .poseidon_initial_cache = false, .authority_provider = self.authority_provider });
         errdefer walk.destroy();
         var source = try Segments.Source.init(a, walk, self.segment_workers);
         errdefer source.deinit();
