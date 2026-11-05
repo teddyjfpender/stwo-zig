@@ -39,6 +39,14 @@ pub fn admitDword(setup: *const R.CpuSetup, r: Request) !struct { range16: u64, 
     };
     return out;
 }
+/// Presence rule of an optional CPU-proof component. Default: present iff it
+/// has rows. rv64-m6-native/v2 strict roster: presence is a class constant
+/// (the receiver checks declaration == rung vector in chain.assign), so a
+/// present component may be all padding; an absent one still has no rows.
+pub fn presenceAdmitted(present: bool, nonempty: bool) bool {
+    if (@import("../../word16_execution/native_policy.zig").strictRoster()) return present or !nonempty;
+    return present == nonempty;
+}
 const BM = A.crypto.bulk_memory;
 /// Admitted bulk-memory geometry and masses of one CPU proof. RAM14 gains
 /// `T.BulkCounts.ram` (6 per memcpy/memset call, 4 per aligned copy row, 2 per
@@ -52,7 +60,7 @@ pub fn admitBulk(setup: *const R.CpuSetup, r: Request) !struct { ram: u64, range
     for (T.bulk_kinds) |kind| {
         const rows = r.bulk.rows(kind);
         const log = logs.at(kind);
-        if ((log != null) != (rows != 0)) return error.InvalidCombinedBridgePresence;
+        if (!presenceAdmitted(log != null, rows != 0)) return error.InvalidCombinedBridgePresence;
         if (log) |l| {
             _ = try BM.types.validateGeometry(kind, rows, l);
             range16 = try std.math.add(u64, range16, @as(u64, BM.layout.range16Count(kind)) << @intCast(l));
@@ -89,7 +97,7 @@ pub fn admitSponge(setup: *const R.CpuSetup, r: Request) !struct { ram: u64, ran
     for (T.sponge_kinds) |kind| {
         const rows = r.sponge.rows(kind);
         const log = logs.at(kind);
-        if ((log != null) != (rows != 0)) return error.InvalidCombinedBridgePresence;
+        if (!presenceAdmitted(log != null, rows != 0)) return error.InvalidCombinedBridgePresence;
         if (log) |l| {
             _ = try KS.types.validateGeometry(kind, rows, l);
             range16 = try std.math.add(u64, range16, @as(u64, KS.layout.range16Count(kind)) << @intCast(l));
@@ -182,7 +190,7 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
             const family: T.Family = @enumFromInt(k);
             const log = setup.bridges.at(family);
             if (totals[k] >= core.fields.m31.Modulus - 1) return error.CombinedLookupMassExceeded;
-            if ((log != null) != (req.calls[k] != 0)) return error.InvalidCombinedBridgePresence;
+            if (!presenceAdmitted(log != null, req.calls[k] != 0)) return error.InvalidCombinedBridgePresence;
             if (log) |l| {
                 if (k == 0) {
                     _ = try K.word16_bridge.types.validateGeometry(req.calls[k], @intCast(1 + totals[k]), l);

@@ -1,0 +1,15 @@
+{
+ "schema": "rv64-native-gkr-corpus/v1",
+ "tier": "R (fresh process per case)",
+ "proof": "truth-5",
+ "section_words": 3388,
+ "cases": 3393,
+ "passed": 3393,
+ "reasons": [
+  "CircuitCheckFailure",
+  "InvalidSumcheck",
+  "MalformedNativeGkrSection",
+  "NonCanonicalNativeGkrWord"
+ ],
+ "failures": []
+}

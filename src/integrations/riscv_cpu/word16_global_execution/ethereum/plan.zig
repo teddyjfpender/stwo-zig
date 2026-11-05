@@ -658,3 +658,155 @@ test "uniform resident Keccak covers the real block without changing the default
     }
     try std.testing.expectEqual(@as(u32, 29_999), next);
 }
+
+// ---------------------------------------------------------------- M5 canonical rungs (stream canon-native)
+const Canon = @import("canon_native.zig");
+/// Head/tail ladder fitted to a canonical rung: the head takes the rung head;
+/// a tail is present only when the count overflows the head (today's
+/// admission: a present tail has rows). Null when the rung cannot hold `count`.
+fn canonLadder(count: usize, reserve: u32, head: u32, tail: u32) ?Ladder {
+    if (head == 0) return null;
+    const cap = (@as(usize, 1) << @intCast(head)) - reserve;
+    if (count <= cap) return .{ .head = head };
+    if (tail == 0) return null;
+    const rest = count - cap;
+    if (rest + reserve > (@as(usize, 1) << @intCast(tail))) return null;
+    return .{ .head = head, .tail = tail };
+}
+pub const CanonClass = struct { family: Canon.Family, rung: u32 };
+pub const UNCLASSED: u32 = 0xFFFFFFFF;
+/// Pads every CPU declaration to the smallest admissible class rung of its
+/// family (presence-preserving v1 mode). Layout flags, bridges' presence and
+/// every request count are unchanged; the declaration stays an ordinary
+/// admitted geometry (validated here), so statement authority is untouched.
+pub fn canonicalCpus(captured: *const Capture, layout: CpuLayout, decls: []W.CpuDeclaration, table: anytype, classes: []CanonClass) !void {
+    return canonicalCpusMode(captured, layout, decls, table, classes, false);
+}
+/// `strict` (rv64-m6-native/v2): the padded declaration EQUALS the rung vector
+/// (absent rung components become all-padding instances, division is never
+/// omitted); a segment no rung holds is an error, never unclassed.
+pub fn canonicalCpusMode(captured: *const Capture, layout: CpuLayout, decls: []W.CpuDeclaration, table: anytype, classes: []CanonClass, strict: bool) !void {
+    if (decls.len != captured.native.items.len or classes.len != decls.len) return error.CanonRosterMismatch;
+    for (captured.native.items, decls, classes, 0..) |n, *d, *class, i| {
+        const family = Canon.Family.cpu(i, decls.len);
+        const rungs = for (table.CPU) |e| {
+            if (e.family == family) break e.rungs;
+        } else return error.CanonFamilyMissing;
+        const events = captured.advice.events[i];
+        const dword: usize = if (layout.ls_dword) @import("../services/pipeline.zig").dwordCount(events) else 0;
+        const actual = Canon.cpuVector(d.*);
+        var chosen: ?W.CpuDeclaration = null;
+        for (rungs, 0..) |rung, r| {
+            const counts = [5]usize{ n.alu.facts.len, n.binary.facts.len, n.shift.len, events.len - dword, dword };
+            if (if (strict) canonFitStrict(d.*, actual, rung, counts, layout.ls_dword) else canonFit(d.*, actual, rung, counts)) |padded| {
+                chosen = padded;
+                class.* = .{ .family = family, .rung = @intCast(r) };
+                break;
+            }
+        }
+        // No admissible rung (e.g. a short last segment whose cpu_log no rung
+        // carries): keep the planned declaration, reported as unclassed.
+        d.* = chosen orelse {
+            if (strict) {
+                std.debug.print("RV64_CANON_STRICT_NOFIT ordinal={d} family={s} vector={any}\n", .{ i, @tagName(family), actual });
+                return error.NativeChainNotStrict;
+            }
+            class.* = .{ .family = family, .rung = UNCLASSED };
+            continue;
+        };
+        try d.geometry.validate();
+        // The JALR source is the only capture-time sized component (facts only,
+        // MAIN not yet materialized): rebind its log to the padded class.
+        if (n.jalr) |*j| {
+            if (j.main.len != 0 or j.fixed.len != 0 or j.facts.len > (@as(usize, 1) << @intCast(d.geometry.jalr_log))) return error.CanonJalrRebind;
+            j.log_size = d.geometry.jalr_log;
+        } else return error.CanonJalrRebind;
+    }
+}
+const PAIRS = [_]struct { head: usize, tail: usize, reserve: u32 }{
+    .{ .head = 1, .tail = 2, .reserve = 0 }, // alu
+    .{ .head = 3, .tail = 4, .reserve = 0 }, // binary
+    .{ .head = 5, .tail = 6, .reserve = 0 }, // shift
+    .{ .head = 10, .tail = 11, .reserve = 1 }, // ls (core LS32 events)
+    .{ .head = 38, .tail = 39, .reserve = 1 }, // ls_dword
+};
+fn canonFit(d: W.CpuDeclaration, actual: Canon.CpuVector, rung: Canon.CpuVector, counts: [5]usize) ?W.CpuDeclaration {
+    var v = actual;
+    for (actual, rung, 0..) |a, r, c| {
+        if (a == 0) continue;
+        var paired = false;
+        for (PAIRS) |p| if (c == p.head or c == p.tail) {
+            paired = true;
+        };
+        if (paired) continue;
+        // Constants of the roster: omitted division, boundary, JUMPDEST table.
+        if (c == 8 and d.geometry.omit_empty_division) continue;
+        // cpu_log is fixed by the capture-time CPU source (takeCpu checks it).
+        if (c == 0 or c == 12 or c == 35) {
+            if (r != a) return null;
+            continue;
+        }
+        if (r == 0 or r < a) return null;
+        v[c] = r;
+    }
+    for (PAIRS, counts) |p, count| {
+        if (actual[p.head] == 0) continue; // absent pair (ls_dword off) stays absent
+        const l = canonLadder(count, p.reserve, rung[p.head], rung[p.tail]) orelse return null;
+        v[p.head] = l.head;
+        v[p.tail] = l.tail orelse 0;
+    }
+    return Canon.applyCpuVector(d, v);
+}
+/// Strict-roster fit (v2): v = rung exactly. Capture-bound constants (cpu_log,
+/// boundary) must already equal the rung; the JUMPDEST table (35) may be added
+/// (FIXED-only table); every head/tail pair takes the rung's head and tail and
+/// must hold its count (a tail may be empty). LS-D64 presence routes every
+/// LD/SD, so a rung with LS-D64 needs the ls_dword layout.
+fn canonFitStrict(d: W.CpuDeclaration, actual: Canon.CpuVector, rung: Canon.CpuVector, counts: [5]usize, dword_layout: bool) ?W.CpuDeclaration {
+    for (actual, rung, 0..) |a, r, c| {
+        var paired = false;
+        for (PAIRS) |p| if (c == p.head or c == p.tail) {
+            paired = true;
+        };
+        if (paired) continue;
+        if (c == 0 or c == 12) {
+            if (r != a) return null;
+            continue;
+        }
+        if (c == 8 and d.geometry.omit_empty_division) {
+            if (r == 0) return null;
+            continue; // division committed (all padding) at the rung log
+        }
+        if (a != 0 and (r == 0 or r < a)) return null;
+    }
+    for (PAIRS, counts) |p, count| {
+        if (rung[p.head] == 0) {
+            if (actual[p.head] != 0 or count != 0) return null;
+            continue;
+        }
+        if (p.head == 38 and !dword_layout) return null;
+        const cap_head = (@as(usize, 1) << @intCast(rung[p.head])) - p.reserve;
+        const rest = count -| cap_head;
+        if (rest != 0 and rung[p.tail] == 0) return null;
+        if (rung[p.tail] != 0 and rest + p.reserve > (@as(usize, 1) << @intCast(rung[p.tail]))) return null;
+    }
+    var out = Canon.applyCpuVector(d, rung);
+    out.geometry.omit_empty_division = false;
+    return out;
+}
+/// Raises each truth log to the smallest rung of its (family, profile word)
+/// that holds it. Call spans, first ids and the profile word are unchanged.
+pub fn canonicalTruths(truths_: []W.TruthDeclaration, table: anytype, classes: []CanonClass) !void {
+    if (classes.len != truths_.len) return error.CanonRosterMismatch;
+    for (truths_, classes) |*t, *class| {
+        const family = Canon.Family.truth(t.family);
+        const e = for (table.TRUTH) |e| {
+            if (e.family == family and e.aux == t.logs[1]) break e;
+        } else return error.CanonFamilyMissing;
+        const r = for (e.logs, 0..) |l, r| {
+            if (l >= t.logs[0]) break r;
+        } else return error.CanonNoAdmissibleRung;
+        t.logs[0] = e.logs[r];
+        class.* = .{ .family = family, .rung = @intCast(r) };
+    }
+}

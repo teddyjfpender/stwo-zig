@@ -1,0 +1,26 @@
+{
+  "schema": "rv64-m5-canon-native-adversarial/v1",
+  "date": "2026-11-04",
+  "branch": "codex/rv64-m5-canon-native",
+  "reviewed_head": "7c289553a2c4ec2a5afc1c516dc46bf71fe1fc92",
+  "label": "M",
+  "host": "pod 2x5090, CPU-only receivers (CUDA_VISIBLE_DEVICES='', GPU PCS helper /bin/false, fold class cache 0)",
+  "cases": [
+    {"id": "ADV-V01-unknown-native-version", "receiver_sha256": "45333cf0f491047e49ce546d92d12499d2595fecc3c4af4949a86604af967de1",
+     "env": {"STWO_RV64_NATIVE_VERSION": "m5-chi-chain-v2"}, "proof": "26235156-2gpu-cn4-chain (chain v1)",
+     "exit_code": 134, "verdict": "reject by ABORT", "first_error": "thread panic: unknown STWO_RV64_NATIVE_VERSION (expected m5-chi-chain-v1 or v1-flat)",
+     "corpus_rule": "P03: an abort on an unknown profile/env value counts as a FAIL"},
+    {"id": "ADV-V01-unknown-native-version (fixed)", "receiver_sha256": "f6fbf647b08b51182f5642f2f68d445eeb3ef631bbb973da2896d8de1525104c",
+     "env": {"STWO_RV64_NATIVE_VERSION": "m5-chi-chain-v2"}, "exit_code": 1, "verdict": "clean reject", "first_error": "error: UnknownNativeVersion"},
+    {"id": "ADV-V02-case-variant-native-version (fixed)", "receiver_sha256": "f6fbf647b08b51182f5642f2f68d445eeb3ef631bbb973da2896d8de1525104c",
+     "env": {"STWO_RV64_NATIVE_VERSION": "M5-CHI-CHAIN-V1"}, "exit_code": 1, "verdict": "clean reject", "first_error": "error: UnknownNativeVersion"},
+    {"id": "ADV-C00-control (fixed receiver)", "receiver_sha256": "f6fbf647b08b51182f5642f2f68d445eeb3ef631bbb973da2896d8de1525104c",
+     "env": {"STWO_RV64_NATIVE_VERSION": "m5-chi-chain-v1"},
+     "proof": "/workspace/m3/runs/m5-canon-native/daemon-26235156-24628607-r1-cn3-chain-seed/spool/out/0000-26235156/26235156/proof",
+     "block": 26235156, "exit_code": 0, "accepted": true, "completed_ethereum_block": true, "wall_s": 43.81, "load_avg_1m": 12.98,
+     "note": "single observation on a loaded pod; the continuity assert in chain.assign ran on the accepting path"}
+  ],
+  "unit_tests": {"step": "test-riscv64-m5-canon-native (ReleaseFast, pod)", "result": "pass (guard minimum 10)",
+    "new": "every chain field (family, rung, vkhash, stmt, s_in, s_out) and every rho input (MAIN root, local presence, local digest, marginal value, marginal count), the chi statement and a second segment's MAIN root move chi to 14 pairwise-distinct values; relabelled ordinal -> NativeChainOrder; version selector null/''/v1-flat -> flat, both chain names -> chain, anything else -> UnknownNativeVersion"},
+  "artifact_note": "the 26235156-2gpu-cn4-chain proof dir can no longer be re-received from a non-harness cwd (FileNotFound at leaf 1 with BOTH the original and the fixed receiver); the receiver resolves files relative to the producer source cwd (/workspace/m3/src/m5-canon-native). Pre-existing harness property, not a soundness issue."
+}

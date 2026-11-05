@@ -62,7 +62,8 @@ pub fn commitment(a: std.mem.Allocator, inventory: *const Execution.Inventory, s
             if (!std.mem.eql(u8, &digest, &child.receipt_digest)) return error.ServicesRootReceiptMismatch;
             local = .{ .digest = digest, .claims_to_verify_by_instance = marginals };
         }
-        entry.* = .{ .kind = worker.kind, .global_relations = worker.global_relations, .mass = worker.mass, .scope = scope, .local = local };
+        // m5 chi-chain fields (canon-native hook): receiver-derived, carried unchanged.
+        entry.* = .{ .kind = worker.kind, .global_relations = worker.global_relations, .mass = worker.mass, .scope = scope, .local = local, .chain = worker.chain };
     }
     return M.commitViews(inventory.execution_identity, entries);
 }
