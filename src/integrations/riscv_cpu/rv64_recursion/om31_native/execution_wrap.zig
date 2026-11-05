@@ -923,6 +923,8 @@ const Pipelined = struct {
     pipe: Pipe.Options,
     plan: *const Dag.Plan,
     queue: Dag.Queue,
+    scramble_seed: ?u64 = null,
+    scramble_dispatch: u64 = 0,
     nodes: []Node,
     records: []Pipe.Record,
     prep_pool: *Pools.WorkPool,
@@ -1257,13 +1259,16 @@ const Pipelined = struct {
                     continue;
                 }
                 const b = self.ready.items[best.?];
-                const better = switch (self.queue.policy) {
+                const better = if (self.scramble_seed) |seed|
+                    Dag.scrambleRank(seed, self.scramble_dispatch, job.id) < Dag.scrambleRank(seed, self.scramble_dispatch, b.id)
+                else switch (self.queue.policy) {
                     .m5 => job.record.leaf_count > b.record.leaf_count or (job.record.leaf_count == b.record.leaf_count and job.id < b.id),
                     .critical => self.plan.priority(job.id) > self.plan.priority(b.id) or (self.plan.priority(job.id) == self.plan.priority(b.id) and job.id < b.id),
                 };
                 if (better) best = i;
             }
             const job = self.ready.orderedRemove(best.?);
+            self.scramble_dispatch +%= 1;
             if (job.leaf != null) self.leaves_ahead -= 1;
             self.lane_leaf[lane] = job.leaf != null;
             self.changed.broadcast();
@@ -1371,7 +1376,8 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
     const records = try a.alloc(Pipe.Record, plan.count);
     defer a.free(records);
     @memset(records, .{});
-    var shared = Pipelined{ .input = input, .options = options, .pipe = pipe, .plan = plan, .queue = try Dag.Queue.initPolicy(plan, options.lanes.len, options.max_pending_authorities, try Dag.Policy.fromEnv()), .nodes = nodes, .records = records, .prep_pool = prep_pool, .origin_ns = input.timer.read() };
+    var shared = Pipelined{ .input = input, .options = options, .pipe = pipe, .plan = plan, .queue = try Dag.Queue.initPolicy(plan, options.lanes.len, options.max_pending_authorities, try Dag.Policy.fromEnv()), .nodes = nodes, .records = records, .prep_pool = prep_pool, .origin_ns = input.timer.read(), .scramble_seed = try Dag.scrambleSeedFromEnv() };
+    if (shared.scramble_seed) |seed| std.debug.print("RECURSION_ADMISSION_ORDER policy=seeded_scramble seed={}\n", .{seed});
     if (input.stream != null) shared.queue.closeAllLeaves();
     if (std.posix.getenv("STWO_RV64_RECURSION_LEAVES_PER_DEVICE")) |text| {
         shared.leaves_per_device = std.fmt.parseUnsigned(usize, text, 10) catch return error.InvalidRecursionPipelineOption;

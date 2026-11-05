@@ -156,6 +156,27 @@ fn lanesPerDeviceLimit() usize {
     return @min(@max(value, 1), max_lanes_per_device);
 }
 pub const Status = enum { pending, running, done, retired, failed };
+/// Operational scramble test: only ready device work is reordered. The carry
+/// plan, ordered children, transcript and bounded host admission stay intact.
+pub fn scrambleSeedFromEnv() !?u64 {
+    const text = std.posix.getenv("STWO_RV64_RECURSION_SCRAMBLE_SEED") orelse return null;
+    return std.fmt.parseUnsigned(u64, text, 10) catch error.InvalidRecursionScrambleSeed;
+}
+pub fn scrambleRank(seed: u64, dispatch: u64, node: usize) u64 {
+    var x = seed ^ (dispatch *% 0x9e3779b97f4a7c15) ^ @as(u64, @intCast(node));
+    x +%= 0x9e3779b97f4a7c15;
+    x = (x ^ (x >> 30)) *% 0xbf58476d1ce4e5b9;
+    x = (x ^ (x >> 27)) *% 0x94d049bb133111eb;
+    return x ^ (x >> 31);
+}
+test "seeded device order is repeatable and changes without changing the DAG" {
+    var changed = false;
+    for (0..19) |i| {
+        try std.testing.expectEqual(scrambleRank(17, 0, i), scrambleRank(17, 0, i));
+        changed = changed or scrambleRank(17, 0, i) != scrambleRank(29, 0, i);
+    }
+    try std.testing.expect(changed);
+}
 /// Dispatch order only; plan, node identities and proof bytes never depend on it.
 /// `m5` (default): lowest pending leaf id, device lanes widest parent first.
 /// `critical` (opt-in): pending leaves and device starts by depth below the
