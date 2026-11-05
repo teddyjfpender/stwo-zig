@@ -209,7 +209,9 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   // one quarter of the LDE, so every compact extension must bound its reads.
   const char *beta2_flag = std::getenv("STWO_RV64_PCS_ROLLING_BETA2");
   const bool rolling_beta2 = beta2_flag && std::strcmp(beta2_flag, "1") == 0;
-  const bool rolling_sources = h[21] && (h[5] == 1 || (h[5] == 2 && rolling_beta2));
+  const char *beta4_flag = std::getenv("STWO_RV64_PCS_ROLLING_BETA4");
+  const bool rolling_beta4 = beta4_flag && std::strcmp(beta4_flag, "1") == 0;
+  const bool rolling_sources = h[21] && (h[5] == 1 || (h[5] == 2 && rolling_beta2) || (h[5] == 4 && rolling_beta4));
   std::array<StwoRv64Plane,4> coefficient_trees{};
   std::vector<uint32_t> source_words(sources.begin(), sources.end());
   uint64_t max_tree_evaluations=0, max_tree_nodes=0;
@@ -478,7 +480,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
       const uint32_t *logs, uint32_t *evaluations, size_t output_stride,
       uint32_t log_n, uint32_t count, const uint32_t *twiddles,
       uint32_t twiddle_words, uint32_t domain, void *stream, uint32_t *launches) {
-    if (h[5] == 2)
+    if (h[5] == 2 || (h[5] == 4 && rolling_beta4))
       return stwo_lde_n2b_columns_compact_on(coefficients, stride, logs,
           evaluations, output_stride, log_n, count, twiddles, twiddle_words,
           domain, stride, stream, launches);

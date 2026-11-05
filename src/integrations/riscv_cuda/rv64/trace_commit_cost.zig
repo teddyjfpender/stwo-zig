@@ -9,6 +9,8 @@ pub const Input = struct {
     logs: []const u32,
     beta: u32,
     separate_coefficients: bool,
+    /// Explicit compact-source export bounds each source stride at beta4.
+    compact_source_abi: bool = false,
     stream_budget: ?usize = null,
     exact_prefix_banks: bool = false,
 };
@@ -38,7 +40,7 @@ pub const Plan = struct {
 pub fn init(a: std.mem.Allocator, input: Input) !Plan {
     if (input.format != .legacy_blake32_m31) return error.AllocationCostFormatUnavailable;
     if (input.logs.len == 0 or input.logs.len > 65535 or input.beta < 1 or input.beta > 4) return error.InvalidTraceCommitGeometry;
-    if (input.separate_coefficients and input.beta != 1) return error.InvalidTraceCommitGeometry;
+    if (input.separate_coefficients and input.beta != 1 and !(input.beta == 4 and input.compact_source_abi)) return error.InvalidTraceCommitGeometry;
     const rows = try a.alloc(u32, input.logs.len);
     defer a.free(rows);
     var coefficient_words: u64 = 0;
@@ -140,4 +142,19 @@ test "D2 trace uses legacy LDE arena then independently retained final coefficie
     try std.testing.expectEqual(4 * coeff, p.allocations[2]);
     try std.testing.expect(!p.host_cost_known);
     try std.testing.expectError(error.InvalidTraceCommitGeometry, init(std.testing.allocator, .{ .logs = &logs, .beta = 2, .separate_coefficients = true, .stream_budget = 1 << 20 }));
+}
+
+test "beta4 compact ABI streams bounded allocation envelope and rejects implicit promotion" {
+    const a = std.testing.allocator;
+    const logs = [_]u32{18} ** 1923;
+    try std.testing.expectError(error.InvalidTraceCommitGeometry, init(a, .{ .logs = &logs, .beta = 4, .separate_coefficients = true, .stream_budget = 1 << 22 }));
+    const legacy = try init(a, .{ .logs = &logs, .beta = 4, .separate_coefficients = false });
+    const bounded = try init(a, .{ .logs = &logs, .beta = 4, .separate_coefficients = true, .compact_source_abi = true, .stream_budget = 1 << 22, .exact_prefix_banks = true });
+    try std.testing.expect(bounded.selected_stream_budget != null);
+    var legacy_bytes: u64 = 0;
+    for (legacy.bytes()) |n| legacy_bytes += n;
+    var bounded_bytes: u64 = 0;
+    for (bounded.bytes()) |n| bounded_bytes += n;
+    try std.testing.expect(bounded_bytes < legacy_bytes);
+    try std.testing.expectEqual(@as(u64, 1923) * (1 << 18) * 4, bounded.allocations[0]);
 }

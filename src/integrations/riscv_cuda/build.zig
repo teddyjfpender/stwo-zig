@@ -266,6 +266,11 @@ pub fn build(b: *std.Build) void {
     pcs_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     pcs_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
     pcs_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    const beta4_root = b.createModule(.{ .root_source_file = b.path("rv64_pcs_beta4_fixture_main.zig"), .target = target, .optimize = optimize });
+    var beta4_imports = pcs_root.import_table.iterator();
+    while (beta4_imports.next()) |entry| beta4_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
+    const beta4_fixture = b.addExecutable(.{ .name = "rv64-pcs-beta4-fixture", .root_module = beta4_root });
+    b.step("build-rv64-pcs-beta4-fixture", "Build explicit beta16/q27/P20 four-tree CPU PCS oracle and independent receiver").dependOn(&b.addInstallArtifact(beta4_fixture, .{}).step);
     const pcs_fixture = b.addExecutable(.{ .name = "rv64-pcs-fixtures", .root_module = pcs_root });
     const run_pcs = b.addRunArtifact(pcs_fixture);
     if (b.args) |args| run_pcs.addArgs(args);

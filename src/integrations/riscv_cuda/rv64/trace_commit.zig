@@ -15,6 +15,7 @@ pub const AdmissionPlan = @import("trace_commit_cost.zig");
 const M = D.M;
 const N2b = *const fn ([*]u32, usize, ?*const anyopaque, u32, usize, u32, [*]const u32, u32, u32, *anyopaque, u32, *u32) callconv(.c) c_int;
 const N2bColumns = *const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on);
+const N2bColumnsCompact = *const fn ([*]const u32, usize, [*]const u32, [*]u32, usize, u32, u32, [*]const u32, u32, u32, usize, *anyopaque, *u32) callconv(.c) c_int;
 const MixedSeeded = *const fn (u32, u32, [*]const A.MixedSegment, u32, u32, ?*const anyopaque, ?*anyopaque, ?*anyopaque, *anyopaque) callconv(.c) c_int;
 const Layer = *const fn (*const anyopaque, u32, *anyopaque, *anyopaque) callconv(.c) c_int;
 const PoolCurrent = *const fn (*anyopaque, *usize, *usize) callconv(.c) c_int;
@@ -54,6 +55,8 @@ pub const Context = struct {
     api: SC.Api,
     n2b: N2b,
     n2b_columns: ?N2bColumns,
+    n2b_columns_compact: ?N2bColumnsCompact = null,
+    compact_lde_beta4: bool = false,
     b2n: B2n,
     copy: Native.CopyDevice,
     tree: *const @TypeOf(A.stwo_rv64_trace_tree_on),
@@ -76,7 +79,7 @@ pub const Context = struct {
             .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"),
             .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream"),
-        }, .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(N2bColumns, "stwo_lde_n2b_columns_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .tree = try sym(*const @TypeOf(A.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .prefix_workspace = service.library.lookup(*const fn ([*]const A.MixedSegment, u32, *u64) callconv(.c) c_int, "stwo_rv64_trace_prefix_workspace_words"), .rebind = try sym(Native.LeaseRebind, &service.library, "stwo_rv64_gpu_lease_rebind"), .mixed_seeded = service.library.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_eager_on") orelse service.library.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_on"), .layer = service.library.lookup(Layer, "stwo_blake2s_layer_on"), .pool_current = service.library.lookup(PoolCurrent, "stwo_exec_context_pool_current"), .live_leases = service.library.lookup(LiveLeases, "stwo_rv64_gpu_session_live_leases") };
+        }, .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(N2bColumns, "stwo_lde_n2b_columns_on"), .n2b_columns_compact = service.library.lookup(N2bColumnsCompact, "stwo_lde_n2b_columns_compact_on"), .compact_lde_beta4 = if (std.posix.getenv("STWO_RV64_TRACE_COMPACT_LDE_BETA4")) |value| std.mem.eql(u8, value, "1") else false, .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .tree = try sym(*const @TypeOf(A.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .prefix_workspace = service.library.lookup(*const fn ([*]const A.MixedSegment, u32, *u64) callconv(.c) c_int, "stwo_rv64_trace_prefix_workspace_words"), .rebind = try sym(Native.LeaseRebind, &service.library, "stwo_rv64_gpu_lease_rebind"), .mixed_seeded = service.library.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_eager_on") orelse service.library.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_on"), .layer = service.library.lookup(Layer, "stwo_blake2s_layer_on"), .pool_current = service.library.lookup(PoolCurrent, "stwo_exec_context_pool_current"), .live_leases = service.library.lookup(LiveLeases, "stwo_rv64_gpu_session_live_leases") };
     }
     pub fn deinit(self: *Context) void {
         for (self.returned.items) |columns| self.host_allocator.free(columns);
@@ -102,8 +105,20 @@ pub const Context = struct {
     /// Host-only allocation plan. An admitted execution freezes this stream
     /// schedule; owner-thread per-session pressure cannot silently change it.
     pub fn allocationOptions(self: *const Context, beta: u32) AdmissionPlan.Input {
-        const separate = beta == 1 and self.n2b_columns != null;
-        return .{ .logs = &.{}, .beta = beta, .separate_coefficients = separate, .stream_budget = if (separate and self.mixed_seeded != null and self.layer != null) streamBudget() else null, .exact_prefix_banks = self.prefix_workspace != null };
+        const separate = self.separateCoefficients(beta);
+        return .{ .logs = &.{}, .beta = beta, .separate_coefficients = separate, .compact_source_abi = beta == 4 and separate, .stream_budget = if (separate and self.mixed_seeded != null and self.layer != null) streamBudget() else null, .exact_prefix_banks = self.prefix_workspace != null };
+    }
+    fn separateCoefficients(self: *const Context, beta: u32) bool {
+        return (beta == 1 and self.n2b_columns != null) or (beta == 4 and self.compact_lde_beta4 and self.n2b_columns_compact != null);
+    }
+    fn extendColumns(self: *const Context, beta: u32, coefficients: [*]const u32, stride: usize, logs: [*]const u32, evaluations: [*]u32, output_stride: usize, log_n: u32, count: u32, twiddles: [*]const u32, twiddle_words: u32, domain: u32, lane: *anyopaque, launches: *u32) !void {
+        if (beta == 4 and self.separateCoefficients(beta)) {
+            // The legacy ABI bounds reads by half the LDE domain. At beta4
+            // retained coefficients are only 1/16 of that full domain.
+            // Explicitly bound readable words to their actual source stride.
+            return check(self.n2b_columns_compact.?(coefficients, stride, logs, evaluations, output_stride, log_n, count, twiddles, twiddle_words, domain, stride, lane, launches));
+        }
+        return check(self.n2b_columns.?(coefficients, stride, logs, evaluations, output_stride, log_n, count, twiddles, twiddle_words, domain, lane, launches));
     }
     pub fn allocationPlan(self: *const Context, a: std.mem.Allocator, request: D.TraceCommitRequest) !AdmissionPlan.Plan {
         const logs = try a.alloc(u32, request.columns.len);
@@ -325,7 +340,7 @@ const Job = struct {
                 const lde_rows: usize = rows[i];
                 const n = lde_rows >> @intCast(beta);
                 const destination = chunk + cursor;
-                try check(b.n2b_columns.?(coefficient_ptr + offsets[order[i]], n, base + logs_base + i, destination, lde_rows, logs[i] + beta, @intCast(j - i), base + tw.twiddles.len - lde_rows / 2, @intCast(lde_rows / 2), @intCast(lde_rows / 2), lane, &launches));
+                try b.extendColumns(beta, coefficient_ptr + offsets[order[i]], n, base + logs_base + i, destination, lde_rows, logs[i] + beta, @intCast(j - i), base + tw.twiddles.len - lde_rows / 2, @intCast(lde_rows / 2), @intCast(lde_rows / 2), lane, &launches);
                 segments[count] = .{ .columns = destination, .stride_words = lde_rows, .capacity_words = lde_rows * (j - i), .source_size = @intCast(lde_rows) };
                 count += 1;
                 cursor += lde_rows * (j - i);
@@ -411,7 +426,7 @@ const Job = struct {
         // The established column LDE ABI accepts a compact coefficient stride
         // when beta=1. Keep these coefficients in their final owned lease:
         // committing must not allocate and copy a second full coefficient slab.
-        const separate_coefficients = beta == 1 and b.n2b_columns != null;
+        const separate_coefficients = b.separateCoefficients(beta);
         var coefficients = Native.Lease{};
         var transferred = false;
         defer if (!transferred and coefficients.words != null) {
@@ -499,7 +514,7 @@ const Job = struct {
             const destination = @as(u64, descriptors[6 * first + 2]) | (@as(u64, descriptors[6 * first + 3]) << 32);
             if (separate_coefficients) {
                 const count = @as(usize, 1) << @intCast(r.columns[order[first]].log_size);
-                try check(b.n2b_columns.?(coefficient_ptr + offsets[order[first]], count, ptr + desc_base + 6 * order.len + first, ptr + @as(usize, @intCast(destination)), rows, log, @intCast(end - first), ptr + tw_base + tw.twiddles.len - rows / 2, @intCast(rows / 2), @intCast(rows / 2), lane, &launches));
+                try b.extendColumns(beta, coefficient_ptr + offsets[order[first]], count, ptr + desc_base + 6 * order.len + first, ptr + @as(usize, @intCast(destination)), rows, log, @intCast(end - first), ptr + tw_base + tw.twiddles.len - rows / 2, @intCast(rows / 2), @intCast(rows / 2), lane, &launches);
             } else try check(b.n2b(ptr, arena.count, ptr + desc_base + 6 * first, @intCast(end - first), @intCast(destination), log, ptr + tw_base + tw.twiddles.len - rows / 2, @intCast(rows / 2), @intCast(rows / 2), lane, 1, &launches));
             first = end;
         }
@@ -606,4 +621,39 @@ test "trace INTER input retirement waits for ingress join and propagates failure
 
 test "resident trace commitment instantiates the typed mixed-encoding callback" {
     std.testing.refAllDecls(Context);
+}
+
+test "typed source beta4 compact extension bounds the actual readable source stride" {
+    const Fake = struct {
+        var compact_reads: usize = 0;
+        fn old(_: [*]const u32, stride: usize, _: [*]const u32, _: [*]u32, _: usize, _: u32, _: u32, _: [*]const u32, _: u32, domain: u32, _: *anyopaque, _: *u32) callconv(.c) c_int {
+            // Emulate the old export's conservative half-domain range bound.
+            return if (stride < domain) 1 else 0;
+        }
+        fn compact(_: [*]const u32, stride: usize, _: [*]const u32, _: [*]u32, _: usize, _: u32, _: u32, _: [*]const u32, _: u32, domain: u32, readable: usize, _: *anyopaque, _: *u32) callconv(.c) c_int {
+            compact_reads = readable;
+            return if (readable != stride or readable > domain) 1 else 0;
+        }
+    };
+    var backend: Context = undefined;
+    backend.n2b_columns = Fake.old;
+    backend.n2b_columns_compact = Fake.compact;
+    backend.compact_lde_beta4 = false;
+    try std.testing.expect(backend.separateCoefficients(1));
+    try std.testing.expect(!backend.separateCoefficients(2));
+    try std.testing.expect(!backend.separateCoefficients(4));
+    var source: [16]u32 = undefined;
+    var output: [256]u32 = undefined;
+    var logs = [_]u32{4};
+    var twiddles: [128]u32 = undefined;
+    var dummy: u32 = 0;
+    var launches: u32 = 0;
+    try backend.extendColumns(1, &source, 16, &logs, &output, 32, 5, 1, &twiddles, 16, 16, &dummy, &launches);
+    try std.testing.expectError(error.CudaTraceCommitFailed, backend.extendColumns(4, &source, 16, &logs, &output, 256, 8, 1, &twiddles, 128, 128, &dummy, &launches));
+    backend.compact_lde_beta4 = true;
+    try std.testing.expect(backend.separateCoefficients(4));
+    try backend.extendColumns(4, &source, 16, &logs, &output, 256, 8, 1, &twiddles, 128, 128, &dummy, &launches);
+    try std.testing.expectEqual(@as(usize, 16), Fake.compact_reads);
+    backend.n2b_columns_compact = null;
+    try std.testing.expect(!backend.separateCoefficients(4));
 }

@@ -18,6 +18,8 @@ pub const Options = struct {
     /// Freeze this from the host environment before requesting a permit.
     /// Zero means the unstreamed late trace rebuild, matching pcsStreamBudget.
     stream_chunk_words: usize = Stream.default_chunk_words,
+    rolling_beta2: bool = false,
+    rolling_beta4: bool = false,
 };
 pub const Plan = struct {
     allocations: std.ArrayList(Allocation) = .empty,
@@ -105,7 +107,7 @@ pub fn init(a: std.mem.Allocator, request: *const Abi.Request, options: Options)
     const source_groups = sections[6];
     const trees = sections[7];
     const fri = sections[13];
-    const rolling = h[21] != 0 and h[5] == 1;
+    const rolling = h[21] != 0 and (h[5] == 1 or (h[5] == 2 and options.rolling_beta2) or (h[5] == 4 and options.rolling_beta4));
     var out: Plan = .{ .rolling_sources = rolling, .selected_stream_budget = if (rolling) options.stream_chunk_words else 0 };
     errdefer out.deinit(a);
     const coefficients = request.coefficients[0..@intCast(sc)];
@@ -185,7 +187,7 @@ pub fn init(a: std.mem.Allocator, request: *const Abi.Request, options: Options)
         const g = groups[i * 8 ..][0..8];
         const n = try pow(g[2]);
         const m = try pow(g[3]);
-        if (g[0] >= g[1] or g[1] > tc or (rolling and g[3] != g[2] + 1)) return error.InvalidPcsCostGeometry;
+        if (g[0] >= g[1] or g[1] > tc or (rolling and g[3] != g[2] + h[5])) return error.InvalidPcsCostGeometry;
         if (rolling) {
             const co = pair(g[4], g[5]);
             const ev = pair(g[6], g[7]);
@@ -310,4 +312,23 @@ test "PCS envelope rejects malformed framed spans before any allocation admissio
     r = f.request(1, true, false);
     f.source_groups[3] = 6;
     try std.testing.expectError(error.InvalidPcsCostGeometry, init(a, &r, .{}));
+}
+
+test "PCS beta4 rolling is explicit and enforces its actual extension factor" {
+    const a = std.testing.allocator;
+    var f: Fixture = .{};
+    var request = f.request(4, true, true);
+    var baseline = try init(a, &request, .{});
+    defer baseline.deinit(a);
+    try std.testing.expect(!baseline.rolling_sources);
+    var wrong_flag = try init(a, &request, .{ .rolling_beta2 = true });
+    defer wrong_flag.deinit(a);
+    try std.testing.expect(!wrong_flag.rolling_sources);
+    var bounded = try init(a, &request, .{ .rolling_beta4 = true });
+    defer bounded.deinit(a);
+    try std.testing.expect(bounded.rolling_sources);
+    try std.testing.expectEqual(@as(usize, 1), countKind(bounded, .coefficient_copy));
+    try std.testing.expect(!bounded.host_cost_known);
+    f.groups[3] -= 1;
+    try std.testing.expectError(error.InvalidPcsCostGeometry, init(a, &request, .{ .rolling_beta4 = true }));
 }
