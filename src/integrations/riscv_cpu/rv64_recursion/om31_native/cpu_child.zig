@@ -150,6 +150,8 @@ const Writer = struct {
 };
 pub fn verify(ctx: *C.Context, scope: Scope, instances: []const Frame.Instance, proof: *const G.Proof) !Pending {
     if (instances.len == 0 or instances.len > Receipt.MAX_INSTANCES) return error.LocalGkrReceiptShape;
+    const census = if (std.posix.getenv("STWO_RV64_ASSIGNMENT_CRITICAL_CENSUS")) |v| std.mem.eql(u8, v, "1") else false;
+    const first_gg = ctx.circuit.blake_g_gate.items.len;
     var channel = try begin(ctx, scope, instances);
     const challenges = Challenges.For(C.F).drawForInstances(&channel, instances);
     const gates = try ctx.scratch().alloc(engine.lookups.gkr_verifier.ForField(C.O).Gate, instances.len);
@@ -165,10 +167,13 @@ pub fn verify(ctx: *C.Context, scope: Scope, instances: []const Frame.Instance, 
         inv.* = pair[1].inv();
     }
     try Closure.closeFor(C.F, proof.output_claims_by_instance, inverses, Checks{ .ctx = ctx });
+    const transcript_end = ctx.circuit.blake_g_gate.items.len;
     var writer = Writer{ .ctx = ctx };
     try Receipt.emitCanonical(scope, instances, proof, artifact.claims_to_verify_by_instance, &writer);
     const receipt = try writer.finish();
+    const receipt_end = ctx.circuit.blake_g_gate.items.len;
     const eta = channel.drawSecureFelt();
     try channel.finish();
+    if (census) std.debug.print("BLAKE_CHILD_CENSUS ctx=0x{x} first_gg={} transcript_end={} receipt_end={} eta_end={}\n", .{ @intFromPtr(ctx), first_gg, transcript_end, receipt_end, ctx.circuit.blake_g_gate.items.len });
     return .{ .artifact = artifact, .challenges = challenges, .eta = eta, .receipt = receipt };
 }

@@ -675,7 +675,7 @@ pub const Prepared = struct {
             const before_tasks = plan.tasks.len;
             const before_levels = plan.level_ends.len;
             try SamplePlan.filter(Schedule.Task, a, &plan.tasks, &plan.level_ends, span.first_gg, span.gg_count);
-            try SamplePlan.relevel(Schedule, a, ctx, &plan);
+            try SamplePlan.relevel(Schedule, a, ctx, &plan, .{ .ctx_address = @intFromPtr(ctx), .sample_first = span.first_gg, .sample_count = span.gg_count });
             std.debug.print("BLAKE_SAMPLE_PLAN removed_tasks={} old_levels={} new_levels={} original_air=true\n", .{ before_tasks - plan.tasks.len, before_levels, plan.level_ends.len });
         };
         const plan_ns = timer.lap();

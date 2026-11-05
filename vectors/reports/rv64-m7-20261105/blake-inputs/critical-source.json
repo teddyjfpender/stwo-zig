@@ -1,0 +1,9 @@
+{
+  "base_commit": "aef6c33975ce37bed4209f390dc07000aa34db27",
+  "status": "readonly-critical-path-census",
+  "sources": {
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig": "f1d55270e9b20152ff14d1ad22ee8e4555daa1cd2188bdfc4848b91f5d101410",
+    "src/integrations/riscv_cuda/rv64/blake_sample_plan.zig": "606e78dd348a17ea364623625fe1ed33bc612d3c51ab8989ee731e98150d4201",
+    "src/integrations/riscv_cuda/rv64/outer_assignment.zig": "dc9b0a6affef9a8ebfa8f9c8464be454d9f67d11ec02a9f2edaec243b4fa546b"
+  }
+}
