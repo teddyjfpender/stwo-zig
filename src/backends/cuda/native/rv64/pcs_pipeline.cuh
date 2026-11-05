@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cuda_runtime.h>
+#include <nvtx3/nvToolsExt.h>
 #include <stdexcept>
 #include <vector>
 extern "C" int stwo_exec_context_lane_stream(void *, uint32_t, void **);
@@ -67,6 +68,22 @@ extern "C" int stwo_blake2s_pow_persistent_on(const uint32_t *, uint32_t,
                                               uint32_t *, void *);
 namespace rv64_pcs_pipeline {
 namespace b = stwo::cuda::blake2s;
+// Observational owner-thread ranges only. No timing event, GPU join or
+// numerical operation is added; nested inside the native PCS callback range.
+struct PcsNvtxPhase {
+  bool enabled = false, active = false;
+  explicit PcsNvtxPhase(const char *label) {
+    const char *value = std::getenv("STWO_RV64_NVTX");
+    enabled = value && std::strcmp(value, "1") == 0;
+    next(label);
+  }
+  void next(const char *label) {
+    if (!enabled) return;
+    if (active) nvtxRangePop();
+    nvtxRangePushA(label); active = true;
+  }
+  ~PcsNvtxPhase() { if (active) nvtxRangePop(); }
+};
 struct Words {
   const uint32_t *pointer = nullptr;
   size_t count = 0;
@@ -131,6 +148,7 @@ struct FriStorage {
   uint64_t tree_words, value_words, path_words;
 };
 template <class OwnerT> Result run(OwnerT &o, const Input &input) {
+  PcsNvtxPhase profiling("m7/pcs/metadata_allocations");
   const auto h = input.sections[0];
   stwo::cuda::rv64::PcsAggregateCounts aggregate{};
   if (!stwo::cuda::rv64::decodePcsCounts(h.data(), h.size(), &aggregate))
@@ -438,13 +456,16 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     for (size_t i = 1; i < 7; ++i) phase_events[i] = o.event();
     phase_host[0] = std::chrono::steady_clock::now();
   }
+  const char *nvtx_phases[] = {"m7/pcs/source_lde", "m7/pcs/source_trees", "m7/pcs/samples", "m7/pcs/deep", "m7/pcs/fri", "m7/pcs/pow", "m7/pcs/openings"};
   auto phase_mark = [&](size_t i) {
+    if (i < 7) profiling.next(nvtx_phases[i]);
     if (phase_timing) {
       CHECK(cudaEventRecord(phase_events[i], stream));
       phase_host[i] = std::chrono::steady_clock::now();
     }
   };
   CHECK(cudaEventRecord(begin, stream));
+  profiling.next(nvtx_phases[0]);
   auto extend_source = [&](uint32_t g) {
     const auto *d = source_groups.data() + g * 8;
     uint32_t launches = 0;
@@ -580,6 +601,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   CHECK(stwo_rv64_deep_combine_on(o.ctx, 1, &combine));
   phase_mark(4);
   if (rolling_sources) {
+    profiling.next("m7/pcs/retire_deep");
     // Source opening uses only original coefficients, compact logs and fresh
     // immutable forward twiddles. None of the combined DEEP arena survives.
     o.retirePlanes({arena, sample_scratch_a, sample_scratch_b, sample_valid,
@@ -587,6 +609,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
                     point_arena, parameter, alpha, src, term, grp, recipe,
                     permutation, seed});
   }
+  profiling.next("m7/pcs/fri");
   for (uint32_t i = 0; i < layers; ++i) {
     auto &s = storage[i];
     CHECK(stwo_rv64_fri_tree_on(o.ctx, 1, s.column, s.count, s.leaf,
@@ -611,6 +634,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
                                   status.words));
   mix(terminal.words, 8, 1);
   if (rolling_sources) {
+    profiling.next("m7/pcs/retire_fri");
     std::vector<StwoRv64Plane> finished{fri_tw,last};
     for (const auto &s : storage) finished.push_back(s.alpha);
     o.retirePlanes(finished);
@@ -754,6 +778,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   CHECK(cudaEventRecord(end, stream));
   if (phase_timing) phase_host[7] = std::chrono::steady_clock::now();
   CHECK(cudaEventSynchronize(end));
+  profiling.next("m7/pcs/final_readback_encode");
   // All compute is joined above. Queue every compact D2H slice into one
   // stable result allocation and join once; no value feeds a prover kernel.
   std::vector<StwoRv64Plane> readbacks{status, state};
