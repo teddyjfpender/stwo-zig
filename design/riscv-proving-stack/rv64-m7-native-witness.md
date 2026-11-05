@@ -60,4 +60,26 @@ qualified by this narrower counter. Serial host packing costs roughly 0.30 and
 are 3.021/3.241 seconds (small) and 4.5605/4.549 seconds (headline); warm request
 medians are 13.480/13.5885 and 18.662/18.4905 seconds respectively. Loaded-pod
 measurements show no consistent native latency win, so this version is opt-in.
-The next optimization parallelizes independent chunk packing.
+The follow-up below parallelizes independent chunk packing.
+
+Measured [M] parallel-packing follow-up: chunks pack in four bounded host
+workers for segments of at least 2^20 rows, one worker below that threshold.
+Workers own disjoint record/seed slices, join on every error path, and preserve
+all first-touch semantics. No global worker pool or owner-thread wait is added.
+
+The new same-binary, reverse-order ON/OFF experiment again uses both dev blocks,
+three requests each, no store, and fresh CPU-only receivers for ON. All six ON
+proofs are M6 byte-identical and both receivers accept. Host packing across
+warm requests falls to 77.7–95.5 ms (small) and 186.6–193.6 ms (headline), summed
+across segments; individual projection pack median is 26.85 ms across 33
+projections. The CPU metadata transfer counts are unchanged.
+
+Warm native medians OFF/ON are 3.220/3.0085 s (small, 6.57% lower) and
+4.468/4.4535 s (headline, 0.32% lower, within observed variation). Warm request
+medians are 13.832/12.779 and 18.8505/18.715 s, but recursion also varies, so
+request differences are not attributed entirely to this change. Loaded-pod
+results are two warm observations per block, not a statistical latency claim.
+The implementation remains opt-in for integration A/B qualification.
+`parallel-source-and-transfer.json` pins the exact production overlay on
+`b78b6d67d`; the inherited source marker in the raw harness receipts predates
+parallel packing and must not be read as the complete implementation identity.

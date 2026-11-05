@@ -29,26 +29,57 @@ pub const Compact = struct {
         errdefer allocator.free(records);
         const seeds = try allocator.alloc(CompactSeed, std.math.divCeil(usize, records.len, compact_chunk_rows) catch unreachable);
         errdefer allocator.free(seeds);
-        for (seeds, 0..) |*seed, chunk| {
-            seed.* = .{ .values = @splat(0), .clocks = @splat(0) };
-            var touched: u32 = 1;
-            const start = chunk * compact_chunk_rows;
-            const end = @min(start + compact_chunk_rows, records.len);
-            for (source.metadata[start..end], records[start..end]) |meta, *record| {
-                if (meta.values[4] > std.math.maxInt(u32) or meta.rom_row >= source.program.row_to_entry.len) return error.InvalidCompactCpuMetadata;
-                record.* = .{ .result = meta.values[2], .rom_row = meta.rom_row, .next_pc = @intCast(meta.values[4]) };
-                const entry = source.program.entries[source.program.row_to_entry[meta.rom_row]];
-                for (entry.ids, 0..) |id, slot| {
-                    const bit = @as(u32, 1) << id;
-                    if (touched & bit != 0) continue;
-                    touched |= bit;
-                    seed.values[id] = meta.values[if (slot == 2) 3 else slot];
-                    seed.clocks[id] = meta.clocks[slot];
+        // Chunk seeds are independent. Bound the temporary worker count because
+        // several native partitions can pack concurrently in the service.
+        const workers: usize = if (records.len >= 1 << 20) @min(4, seeds.len) else 1;
+        var jobs: [4]PackJob = undefined;
+        var threads: [3]std.Thread = undefined;
+        var launched: usize = 0;
+        errdefer for (threads[0..launched]) |thread| thread.join();
+        for (0..workers) |i| {
+            jobs[i] = .{ .source = source, .records = records, .seeds = seeds,
+                .first = seeds.len * i / workers, .end = seeds.len * (i + 1) / workers };
+            if (i + 1 < workers) {
+                threads[launched] = try std.Thread.spawn(.{}, PackJob.run, .{&jobs[i]});
+                launched += 1;
+            } else jobs[i].run();
+        }
+        for (threads[0..launched]) |thread| thread.join();
+        launched = 0;
+        for (jobs[0..workers]) |job| if (job.failure) |err| return err;
+        return .{ .allocator = allocator, .records = records, .seeds = seeds };
+    }
+    const PackJob = struct {
+        source: *const Source,
+        records: []CompactRecord,
+        seeds: []CompactSeed,
+        first: usize,
+        end: usize,
+        failure: ?error{InvalidCompactCpuMetadata} = null,
+        fn run(self: *PackJob) void {
+            self.pack() catch |err| { self.failure = err; };
+        }
+        fn pack(self: *PackJob) error{InvalidCompactCpuMetadata}!void {
+            for (self.seeds[self.first..self.end], self.first..) |*seed, chunk| {
+                seed.* = .{ .values = @splat(0), .clocks = @splat(0) };
+                var touched: u32 = 1;
+                const start = chunk * compact_chunk_rows;
+                const end = @min(start + compact_chunk_rows, self.records.len);
+                for (self.source.metadata[start..end], self.records[start..end]) |meta, *record| {
+                    if (meta.values[4] > std.math.maxInt(u32) or meta.rom_row >= self.source.program.row_to_entry.len) return error.InvalidCompactCpuMetadata;
+                    record.* = .{ .result = meta.values[2], .rom_row = meta.rom_row, .next_pc = @intCast(meta.values[4]) };
+                    const entry = self.source.program.entries[self.source.program.row_to_entry[meta.rom_row]];
+                    for (entry.ids, 0..) |id, slot| {
+                        const bit = @as(u32, 1) << id;
+                        if (touched & bit != 0) continue;
+                        touched |= bit;
+                        seed.values[id] = meta.values[if (slot == 2) 3 else slot];
+                        seed.clocks[id] = meta.clocks[slot];
+                    }
                 }
             }
         }
-        return .{ .allocator = allocator, .records = records, .seeds = seeds };
-    }
+    };
 };
 comptime {
     std.debug.assert(@sizeOf(CompactRecord) == 16 and @sizeOf(CompactSeed) == 384);
