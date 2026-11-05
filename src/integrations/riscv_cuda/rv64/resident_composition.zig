@@ -421,7 +421,7 @@ pub const Context = struct {
                 const offsets = c.columnOffsets();
                 role.* = .{ .id = id, .artifact = artifact, .evaluate = self.role orelse return error.CpuCompositionNotInitialized, .trace_log = G.Authority.RoleGeometry.logSize(c), .eval_log = c.maxConstraintLogDegreeBound(), .widths = .{ shape.fixed, shape.main, G.Authority.RoleGeometry.interWidth(c) }, .offsets = .{ offsets[0], offsets[1], c.inter_offset }, .parameters = parameters };
                 if (comptime @hasField(T, "data")) {
-                    var hc: [2 * 27 * 8]u32 = undefined;
+                    var hc: [2 * 22 * 8]u32 = undefined;
                     for (0..2) |half| for (0..role.trace_log) |i| for ((if (half == 0) c.data.point.hc0[i] else c.data.point.hc1[i]).toM31Array(), 0..) |word, j| {
                         hc[(half * role.trace_log + i) * 8 + j] = word.v;
                     };
@@ -451,7 +451,7 @@ pub const RuntimeRole = struct {
     /// Original AIR-local FIXED reads may gather non-contiguous sorted columns.
     fixed_indices: ?[]const u32 = null,
     parameters: []O,
-    auxiliary: union(enum) { none, hc: [2 * 27 * 8]u32, last } = .none,
+    auxiliary: union(enum) { none, hc: [2 * 22 * 8]u32, last } = .none,
 };
 const Job = struct {
     backend: *Context,

@@ -1,0 +1,129 @@
+{
+  "schema": "rv64-m7-byte-identity/v1",
+  "label": "M",
+  "receipt": "/workspace/m3/runs/m7-device-graphs-composed/daemon-26235156-24628607-r3-shape-1-tape22/receipt.json",
+  "assets": {
+    "driver": "6bf0e71dd828203fa0a961c73cfbfc86d42e02461c0aae14c270e955510b5e6e",
+    "library": "f6a71f93458cab6bc65abcbd61724a71a19c5a9491777472f108f374d2e61ee5",
+    "receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+    "recursive_receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d"
+  },
+  "source_commit": "136e0ba60+leaf-tape-v3-uncommitted",
+  "load_avg_before": null,
+  "load_avg_after": null,
+  "producer_process": {
+    "scope": "not retained by harness on early failure"
+  },
+  "physical_gpu_memory": {
+    "scope": "not retained by harness on early failure"
+  },
+  "receivers": [],
+  "requests": [
+    {
+      "block": 26235156,
+      "trial": 0,
+      "stages": {
+        "request_wall_s": 27.18,
+        "capture_s": 1.758,
+        "setup_s": 8.434,
+        "native_prove_s": 3.804,
+        "native_verify_s": 1.353,
+        "native_total_before_report_s": 14.173,
+        "recursion_s": 12.983
+      },
+      "proof_bytes_root": 750136,
+      "reference": "/workspace/m3/src/m7-device-graphs/vectors/reports/rv64-m6-20261105/integrate/26235156-2gpu-c1-bench.json",
+      "matches": {
+        "native": true,
+        "bundle": true,
+        "recursive": true
+      },
+      "byte_identical": true
+    },
+    {
+      "block": 24628607,
+      "trial": 0,
+      "stages": {
+        "request_wall_s": 36.116,
+        "capture_s": 2.112,
+        "setup_s": 10.925,
+        "native_prove_s": 4.613,
+        "native_verify_s": 2.302,
+        "native_total_before_report_s": 17.959,
+        "recursion_s": 18.119
+      },
+      "proof_bytes_root": 708696,
+      "reference": "/workspace/m3/src/m7-device-graphs/vectors/reports/rv64-m6-20261105/integrate/24628607-2gpu-c1-bench.json",
+      "matches": {
+        "native": true,
+        "bundle": true,
+        "recursive": true
+      },
+      "byte_identical": true
+    },
+    {
+      "block": 26235156,
+      "trial": 1,
+      "stages": {
+        "request_wall_s": 12.516,
+        "capture_s": 1.694,
+        "setup_s": 0.119,
+        "native_prove_s": 3.061,
+        "native_verify_s": 1.771,
+        "native_total_before_report_s": 5.054,
+        "recursion_s": 7.443
+      },
+      "proof_bytes_root": 750136,
+      "reference": "/workspace/m3/src/m7-device-graphs/vectors/reports/rv64-m6-20261105/integrate/26235156-2gpu-c1-bench.json",
+      "matches": {
+        "native": true,
+        "bundle": true,
+        "recursive": true
+      },
+      "byte_identical": true
+    },
+    {
+      "block": 24628607,
+      "trial": 1,
+      "stages": {
+        "request_wall_s": 17.988,
+        "capture_s": 2.063,
+        "setup_s": 0.153,
+        "native_prove_s": 4.612,
+        "native_verify_s": 2.251,
+        "native_total_before_report_s": 7.087,
+        "recursion_s": 10.859
+      },
+      "proof_bytes_root": 708696,
+      "reference": "/workspace/m3/src/m7-device-graphs/vectors/reports/rv64-m6-20261105/integrate/24628607-2gpu-c1-bench.json",
+      "matches": {
+        "native": true,
+        "bundle": true,
+        "recursive": true
+      },
+      "byte_identical": true
+    },
+    {
+      "block": 26235156,
+      "trial": 2,
+      "stages": {
+        "request_wall_s": 12.869,
+        "capture_s": 1.757,
+        "setup_s": 0.131,
+        "native_prove_s": 3.314,
+        "native_verify_s": 1.536,
+        "native_total_before_report_s": 5.323,
+        "recursion_s": 7.529
+      },
+      "proof_bytes_root": 750136,
+      "reference": "/workspace/m3/src/m7-device-graphs/vectors/reports/rv64-m6-20261105/integrate/26235156-2gpu-c1-bench.json",
+      "matches": {
+        "native": true,
+        "bundle": true,
+        "recursive": true
+      },
+      "byte_identical": true
+    }
+  ],
+  "all_byte_identical": true
+}

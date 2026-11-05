@@ -813,47 +813,11 @@ pub const Prepared = struct {
         try ctx.join();
         const static_ingress_ns = timer.lap();
         try recorder.mark(.levels, false, lane);
-        var launches: usize = 1;
-        var ordinary_level_calls: usize = 0;
-        var narrow_run_calls: usize = 0;
-        var chain_run_calls: usize = 0;
-        if (self.narrow_plan) |plan| {
-            for (plan.runs) |run| {
-                job.first = run.first_task;
-                job.count = run.task_count;
-                const status_code = switch (run.kind) {
-                    .narrow => blk: {
-                        const function = self.narrow_run orelse return error.MissingCircuitAssignmentNarrowRunKernel;
-                        narrow_run_calls += 1;
-                        break :blk function(ctx.native_context, 1, &job, plan.ends[run.first_level..].ptr, run.level_count);
-                    },
-                    .chain => blk: {
-                        const function = self.chain_run orelse return error.MissingCircuitAssignmentChainKernel;
-                        const ends = chain_ends orelse return error.MissingCircuitAssignmentChainKernel;
-                        chain_run_calls += 1;
-                        break :blk function(ctx.native_context, 1, &job, ends.words.?, run.first_level, run.level_count);
-                    },
-                    .ordinary => blk: {
-                        ordinary_level_calls += 1;
-                        break :blk (self.wide_level orelse self.level)(ctx.native_context, 1, &job);
-                    },
-                };
-                if (status_code != 0) return error.CudaCircuitAssignmentFailed;
-                launches += 1;
-            }
-        } else {
-            var begin: usize = 0;
-            for (self.plan.level_ends) |end| {
-                if (end != begin) {
-                    job.first = @intCast(begin);
-                    job.count = @intCast(end - begin);
-                    if (self.level(ctx.native_context, 1, &job) != 0) return error.CudaCircuitAssignmentFailed;
-                    launches += 1;
-                    ordinary_level_calls += 1;
-                }
-                begin = end;
-            }
-        }
+        const dispatch = try @import("assignment_graph.zig").execute(self, ctx, &service.library, job, values, tasks, indices, status, chain_ends);
+        const launches = 1 + dispatch.launches;
+        const ordinary_level_calls = dispatch.ordinary;
+        const narrow_run_calls = dispatch.narrow;
+        const chain_run_calls = dispatch.chain;
         try recorder.mark(.levels, true, lane);
         const levels_enqueue_ns = timer.lap();
         // Numeric kernels use lane1 while the copy API uses stream0. A join
