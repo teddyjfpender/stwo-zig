@@ -19,3 +19,18 @@ Rows are inclusive: callback children must not be added to their parent, and hos
 The only24697070 request is a cold scale probe:69.871s request,3.262s capture,23.239s setup,13.557s native,29.419s harness recursion stage; a fresh CPU receiver accepted in91.5s. Its cold class construction and setup must not be treated as warm steady-state latency. No larger block was run.
 
 Driveraf386 was built from integratione4ef plus the hashed overrides, including the fail-closed early-recursion capability gate. It is not the historic197b binary. Runtime05e preserves the qualified fused-Blake numerical objects and adds parent/nested ranges; its full build receipt is in the device-fs report. Raw receipts retain the stale source marker unchanged; driver-source-hashes.json is the explicit source attestation. The build's initial local-name shadowing failure is retained and fixed by renaming the capability callback before the successful executable build.
+
+## Isolated same-image owner-controller comparison [M: one warm observation per mode]
+
+All8 completed M6 artifact sets match the takeover control; controller ON has a fresh separate CPU acceptance per development block. These isolated services avoid the retained mixed-block native-capacity failure preserved separately. They use the same driver76b2a5ca and image116a3658 with the full v3 preset; only controller mode differs. No robust wall-time gain is established by one warm observation on this loaded pod.
+
+| Warm block/mode | Request s | After-native window s | Kernel GPU-s | Two-GPU busy fraction |
+|---|---:|---:|---:|---:|
+|26235156 OFF|12.673|7.775|6.743|43.4%|
+|26235156 ON|11.819|6.732|6.729|50.0%|
+|24628607 OFF|17.781|10.944|10.053|45.9%|
+|24628607 ON|17.302|10.168|10.048|49.4%|
+
+The after-native window includes the recorded native completion plus5ms uncertainty to acknowledgement, so it differs slightly from the harness recursion-stage field. Busy fraction divides the per-device kernel interval union by two physical GPUs and that window; copies are reported separately. Kernel work is essentially unchanged. Whole-owner execution alone leaves roughly half the available GPU time idle. It does not close the callback gap.
+
+`rv64_m7_nvtx_ownership.py` now computes `rv64/owner/top_level_union`: ON controller ranges contain inline callbacks and PCS, whereas OFF has separate parents. Child ranges are excluded from this comparison to avoid double counting. Every activity still has a unique runtime correlation; raw nested tables remain inclusive. Four source-SQLite hashes and exact binary assets are preserved in the JSON reports. The result supports moving on to graph replay and proof-scoped arena reuse, not a claim that the5–6s target has been achieved.
