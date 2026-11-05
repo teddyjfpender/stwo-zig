@@ -435,7 +435,7 @@ pub const Owner = struct {
             var ends: usize = 0;
             if (prepared.narrow_plan) |narrow| {
                 var needed = try @import("assignment_graphs.zig").enabled();
-                for (narrow.runs) |run| if (run.kind == .chain) {
+                for (narrow.runs) |narrow_run| if (narrow_run.kind == .chain) {
                     needed = true;
                     break;
                 };
