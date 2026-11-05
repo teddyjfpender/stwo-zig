@@ -37,6 +37,7 @@ extern "C" int stwo_lde_n2b_addressed_on(uint32_t *, size_t, const void *,
                                          const uint32_t *, uint32_t, uint32_t,
                                          void *, uint32_t, uint32_t *);
 extern "C" int stwo_lde_n2b_columns_on(const uint32_t *, size_t, const uint32_t *, uint32_t *, size_t, uint32_t, uint32_t, const uint32_t *, uint32_t, uint32_t, void *, uint32_t *);
+extern "C" int stwo_lde_n2b_columns_compact_on(const uint32_t *, size_t, const uint32_t *, uint32_t *, size_t, uint32_t, uint32_t, const uint32_t *, uint32_t, uint32_t, size_t, void *, uint32_t *);
 // Opaque state/hash pointers: this TU does not include the Blake2s core.
 // States are 24-word ProgressiveState rows; hashes are 32-byte aligned.
 extern "C" int stwo_blake2s_mixed_seeded_on(
@@ -204,7 +205,11 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   };
   // Imported OODS already authenticates all trace roots in the transcript.
   // Keep only one source tree's LDE live, and borrow admitted device coefficients.
-  const bool rolling_sources = h[21] && h[5] == 1;
+  // Beta2 is an explicit allocation-policy experiment. Its source stride is
+  // one quarter of the LDE, so every compact extension must bound its reads.
+  const char *beta2_flag = std::getenv("STWO_RV64_PCS_ROLLING_BETA2");
+  const bool rolling_beta2 = beta2_flag && std::strcmp(beta2_flag, "1") == 0;
+  const bool rolling_sources = h[21] && (h[5] == 1 || (h[5] == 2 && rolling_beta2));
   std::array<StwoRv64Plane,4> coefficient_trees{};
   std::vector<uint32_t> source_words(sources.begin(), sources.end());
   uint64_t max_tree_evaluations=0, max_tree_nodes=0;
@@ -327,7 +332,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   if (rolling_sources && group_logs.size()!=sc) throw std::runtime_error("rolling source group coverage");
   for (uint32_t g = 0; g < gc; ++g) {
     const auto *d = groups.data() + g * 8;
-    if(d[2]>28||d[3]>28||(rolling_sources&&d[3]!=d[2]+1))
+    if(d[2]>28||d[3]>28||(rolling_sources&&d[3]!=d[2]+h[5]))
       throw std::runtime_error("combined extension geometry");
     const uint32_t n = 1u << d[2], m = 1u << d[3], count = d[1] - d[0];
     const uint64_t coefficient_offset=uint64_t(d[4])|(uint64_t(d[5])<<32);
@@ -342,7 +347,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     if (rolling_sources) {
       // Compact columns N2B accepts the separate forward-twiddle plane.
       // Keep the existing arena reservation; only the first eight log words
-      // are consumed on this beta1 path.
+      // are consumed on this rolling path.
       packets.assign(8,d[2]);
       packets.resize(8*6,0);
     } else for (uint32_t c = 0; c < 8; ++c)
@@ -466,6 +471,20 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   };
   CHECK(cudaEventRecord(begin, stream));
   profiling.next(nvtx_phases[0]);
+  // Preserve the qualified beta1 call verbatim. Beta2 coefficients have
+  // stride=2^degree < half-domain, requiring the bounded compact ABI even
+  // though the arithmetic kernels and zero extension are the same.
+  auto extend_columns = [&](const uint32_t *coefficients, size_t stride,
+      const uint32_t *logs, uint32_t *evaluations, size_t output_stride,
+      uint32_t log_n, uint32_t count, const uint32_t *twiddles,
+      uint32_t twiddle_words, uint32_t domain, void *stream, uint32_t *launches) {
+    if (h[5] == 2)
+      return stwo_lde_n2b_columns_compact_on(coefficients, stride, logs,
+          evaluations, output_stride, log_n, count, twiddles, twiddle_words,
+          domain, stride, stream, launches);
+    return stwo_lde_n2b_columns_on(coefficients, stride, logs, evaluations,
+        output_stride, log_n, count, twiddles, twiddle_words, domain, stream, launches);
+  };
   auto extend_source = [&](uint32_t g) {
     const auto *d = source_groups.data() + g * 8;
     uint32_t launches = 0;
@@ -473,7 +492,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
       const uint32_t t=group_trees[g];
       const auto *source=source_words.data()+4*d[4];
       const uint64_t offset=uint64_t(source[0])|(uint64_t(source[1])<<32);
-      CHECK(stwo_lde_n2b_columns_on(coefficient_trees[t].words+offset, uint64_t(1)<<d[2],
+      CHECK(extend_columns(coefficient_trees[t].words+offset, uint64_t(1)<<d[2],
         coefficient_logs.words+d[4], const_cast<uint32_t*>(trace_segments[g].columns), uint64_t(1)<<d[3], d[3], d[5],
         source_tw.words+d[6],d[7],1u<<(d[3]-1),stream_raw,&launches));
       return;
@@ -488,7 +507,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     const auto *d = groups.data() + g * 8;
     uint32_t launches = 0;
     if (rolling_sources) {
-      CHECK(stwo_lde_n2b_columns_on(
+      CHECK(extend_columns(
           arena.words+combined_coeff_base+(uint64_t(d[4])|(uint64_t(d[5])<<32)),uint64_t(1)<<d[2],combined_logs[g].words,
           arena.words+combined_eval_base+(uint64_t(d[6])|(uint64_t(d[7])<<32)),uint64_t(1)<<d[3],d[3],8,
           source_tw.words+deep_tw[g*2],deep_tw[g*2+1],1u<<(d[3]-1),stream_raw,&launches));
@@ -712,7 +731,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
           if (count == stwo::cuda::rv64::stream::kMaxSegments)
             throw std::runtime_error("streamed segment overflow");
           uint32_t launches = 0;
-          CHECK(stwo_lde_n2b_columns_on(coefficient_trees[ti].words + offset, n,
+          CHECK(extend_columns(coefficient_trees[ti].words + offset, n,
             coefficient_logs.words + d[4] + j, chunk + cursor, m, d[3], run,
             source_tw.words + d[6], d[7], uint32_t(m / 2), stream_raw, &launches));
           segments[count++] = {chunk + cursor, m, m * run, uint32_t(m), 0};

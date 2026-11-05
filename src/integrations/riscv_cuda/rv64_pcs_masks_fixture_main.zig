@@ -86,7 +86,7 @@ fn add(groups: *std.ArrayList(Group), shift: core.circle.CirclePointM31, degree:
     try groups.append(a, .{ .shift = shift, .degree = degree });
     try groups.items[groups.items.len - 1].terms.append(a, term);
 }
-fn exportFixture(dir: std.fs.Dir) !void {
+fn exportFixture(dir: std.fs.Dir, imported: bool) !void {
     var scheme = try C.Scheme.init(a, C.config());
     var scheme_owned = true;
     defer if (scheme_owned) scheme.deinit(a);
@@ -171,6 +171,8 @@ fn exportFixture(dir: std.fs.Dir) !void {
         try expected_roots.append(a, scheme.trees.items[tree].commitment.root());
     }
     const points = try pointsFor(&channel);
+    const imported_channel = channel;
+    const imported_point = points.items[0][1][0]; // receiver mask0 for this fixed fixture column
     scheme_owned = false;
     var extended = try scheme.proveValues(a, points, &channel);
     var owns_extended = true;
@@ -228,8 +230,12 @@ fn exportFixture(dir: std.fs.Dir) !void {
     var bytes: std.ArrayList(u8) = .empty;
     defer bytes.deinit(a);
     const w = bytes.writer(a);
-    try IO.words(w, &.{ 0x52564d53, 2, 0, 9, output_log, 2, 256, 4, source_index, exponent, @intCast(groups.items.len), @intCast(source_groups.items.len / 8), 4, sample_index, @intCast(plan.len), @intCast(coefficients.items.len), source_eval_words, combined_coeff, combined_eval, @intCast(twiddles.items.len), @intCast(fri_tw.items.len), 0, 0, 0 });
-    try C.checkpoint(w, initial());
+    try IO.words(w, &.{ 0x52564d53, 2, 0, 9, output_log, 2, 256, 4, source_index, exponent, @intCast(groups.items.len), @intCast(source_groups.items.len / 8), 4, sample_index, @intCast(plan.len), @intCast(coefficients.items.len), source_eval_words, combined_coeff, combined_eval, @intCast(twiddles.items.len), @intCast(fri_tw.items.len), @intFromBool(imported), 0, 0 });
+    try C.checkpoint(w, if (imported) imported_channel else initial());
+    if (imported) {
+        try C.bases(w, &imported_point.x.toM31Array());
+        try C.bases(w, &imported_point.y.toM31Array());
+    }
     try IO.words(w, sources.items);
     try IO.words(w, terms.items);
     try IO.words(w, deep_groups.items);
@@ -304,16 +310,17 @@ fn verifyFixture(fixture_path: []const u8, readback_path: []const u8) !void {
     var r = try C.Reader.init(readback_path);
     defer r.deinit();
     const h = try f.take(24);
-    if (!std.mem.eql(u32, h[0..15], &.{ 0x52564d53, 2, 0, 9, 11, 2, 256, 4, 30, 41, 13, 8, 4, 35, 3 }) or !std.mem.allEqual(u32, h[21..], 0)) return error.InvalidPcsFixture;
-    _ = try f.take(9 + h[8] * 4 + h[9] * 4 + h[10] * 8 + h[11] * 8 + h[12] * 6 + h[10] * 4 + h[10] * 2 + h[13] + h[8] + h[15] + h[19] + h[14] * 8 + h[20] + 2 * (@as(usize, 1) << output_log));
+    if (!std.mem.eql(u32, h[0..15], &.{ 0x52564d53, 2, 0, 9, 11, 2, 256, 4, 30, 41, 13, 8, 4, 35, 3 }) or h[21] > 1 or !std.mem.allEqual(u32, h[22..], 0)) return error.InvalidPcsFixture;
+    _ = try f.take(9 + 16 * h[21] + h[8] * 4 + h[9] * 4 + h[10] * 8 + h[11] * 8 + h[12] * 6 + h[10] * 4 + h[10] * 2 + h[13] + h[8] + h[15] + h[19] + h[14] * 8 + h[20] + 2 * (@as(usize, 1) << output_log));
+    const expected_steps = 16 - 5 * h[21];
     const expected_roots = try f.take(32);
     const expected_hash = C.digest(try f.take(8));
     const expected_channel = try f.take(9);
     if (f.pos != f.words.len) return error.InvalidPcsFixture;
-    if (!std.mem.eql(u32, try r.take(14), &.{ 0x52564d4f, 2, 0, 30, 41, 13, 8, 4, 35, 3, 11, 256, 9, 16 })) return error.InvalidPcsReadback;
+    if (!std.mem.eql(u32, try r.take(14), &.{ 0x52564d4f, 2, 0, 30, 41, 13, 8, 4, 35, 3, 11, 256, 9, expected_steps })) return error.InvalidPcsReadback;
     const status = (try r.take(1))[0];
     const channel = try r.take(16);
-    if (status != 0 or !std.mem.eql(u32, channel[0..9], expected_channel) or channel[9] != 16 or channel[10] != 0 or channel[11] != 0 or channel[12] != 33 or !std.mem.allEqual(u32, channel[13..], 0)) return error.NativePcsChannelMismatch;
+    if (status != 0 or !std.mem.eql(u32, channel[0..9], expected_channel) or channel[9] != expected_steps or channel[10] != 0 or channel[11] != 0 or channel[12] != 17 + expected_steps or !std.mem.allEqual(u32, channel[13..], 0)) return error.NativePcsChannelMismatch;
     const roots = try r.take(32);
     if (!std.mem.eql(u32, roots, expected_roots)) return error.NativePcsRootMismatch;
     const samples = try r.take(35 * 8);
@@ -346,9 +353,9 @@ pub fn main() !void {
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
     if (args.len == 4 and std.mem.eql(u8, args[1], "verify")) return verifyFixture(args[2], args[3]);
-    if (args.len != 3 or !std.mem.eql(u8, args[1], "export")) return error.ExpectedExportDirectory;
+    if (args.len != 3 or (!std.mem.eql(u8, args[1], "export") and !std.mem.eql(u8, args[1], "export-imported"))) return error.ExpectedExportDirectory;
     try std.fs.cwd().makePath(args[2]);
     var dir = try std.fs.cwd().openDir(args[2], .{});
     defer dir.close();
-    try exportFixture(dir);
+    try exportFixture(dir, std.mem.eql(u8, args[1], "export-imported"));
 }
