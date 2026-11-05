@@ -651,6 +651,12 @@ def daemon(args):
         if guard and memory:
             memory["includes_external_guard_reservation"] = True
             memory["guard_held_bytes"] = {str(d["device"]):d["held_physical_bytes"] for d in guard.record["ready"]["devices"]}
+        # Completion receipts do not exist after fatal producer errors or a
+        # watchdog. Preserve sampled GPU activity and the guard lifecycle anyway.
+        B.atomic_json(run / "resource-final.json", {"physical_gpu_memory": memory,
+                      "raw_device_samples": monitor.samples if monitor else [],
+                      "physical_budget_guard": guard.record if guard else None,
+                      "scope": "Sampled device activity, not process-exclusive GPU time or exact peak; preserved on success/failure"})
         fcntl.flock(lock, fcntl.LOCK_UN)
         lock.close()
     process_usage = {"argv": argv, "exit_code": code, "wall_ns": wall_ns, "user_seconds": usage.ru_utime,

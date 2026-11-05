@@ -221,7 +221,7 @@ class DeviceMonitor:
                             active = None
                         if active is not None and not 0 <= active <= 100:
                             active = None
-                        self.samples.append({"device": int(index), "uuid": uuid, "memory_used_bytes": int(memory) * 1024 * 1024,
+                        self.samples.append({"utc_ns": time.time_ns(), "monotonic_ns": time.monotonic_ns(), "device": int(index), "uuid": uuid, "memory_used_bytes": int(memory) * 1024 * 1024,
                                              "kernel_active_percent": active})
             except (OSError, ValueError, subprocess.SubprocessError) as error:
                 if not self.errors:
