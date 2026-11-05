@@ -45,7 +45,7 @@ fn inadmissibleFactor(ctx: *Context, word: Word) Error!Var {
 pub fn requireAdmissible(ctx: *Context, words: *const [8]Word) Error!void {
     var product = try inadmissibleFactor(ctx, words[0]);
     for (words[1..]) |w| product = try ctx.mul(product, try inadmissibleFactor(ctx, w));
-    const value = ctx.get(product);
+    const value = if (ctx.trace_only) Q.zero() else ctx.get(product);
     // Witness: the inverse when it exists; zero otherwise (the constraint then fails, never panics).
     const witness = if (value.isZero()) Q.zero() else Q.one().div(value) catch Q.zero();
     const inverse = try ctx.guess(witness);
