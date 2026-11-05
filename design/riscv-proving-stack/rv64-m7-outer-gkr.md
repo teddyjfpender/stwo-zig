@@ -89,8 +89,16 @@ poles remain poles and poison sticky status. Its intended consumer is the
 shared projected-source GKR traversal, at both product-tree ingress and the
 final layer that revisits original fractions.
 
-Still required before promotion: production hybrid AIR/PCS wiring, lazy GPU
-projection/traversal and Eq/Pre generation, child-verifier proof framing,
+The concrete lazy GPU callbacks now pass a real RTX 5090 numerical gate:
+16 source groups, 242608 original fractions, both ingress layer variants,
+sumcheck at 0/2, half-split fold, 48 geometry/alias mutants, and two real
+zero-weight pole cases. Memcheck reports zero errors. Exact source and
+binary identities are in `vectors/reports/rv64-m7-20261105/outer-gkr/projected-gpu/receipt.json`.
+The resident image builder includes and checks the five callback symbols;
+complete-image build/production class selection is still a later gate.
+
+Still required before promotion: production hybrid AIR/PCS wiring, Eq/Pre
+generation, child-verifier proof framing,
 both dev-block production proofs, fresh receiver/audit acceptance, and the
 production tamper corpus. These tests do not establish M7 request time,
 cell reduction, proof compression or an end-to-end outer-GKR result.
