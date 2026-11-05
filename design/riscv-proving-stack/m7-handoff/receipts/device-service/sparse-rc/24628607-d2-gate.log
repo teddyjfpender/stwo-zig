@@ -1,0 +1,35 @@
+{
+ "run": "/workspace/m3/runs/m7-rc-sparse/daemon-24628607-r2-sparse-d2-22g",
+ "process_wall_s": 49.13,
+ "service_overhead_s": 6.508,
+ "rss_gib": 24.36,
+ "cuda_api": {},
+ "requests": [
+  {
+   "block": 24628607,
+   "trial": 0,
+   "request_s": 30.332,
+   "capture": 1.918,
+   "setup": 10.252,
+   "native": 6.369,
+   "recursion": 11.64,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  },
+  {
+   "block": 24628607,
+   "trial": 1,
+   "request_s": 12.29,
+   "capture": 2.088,
+   "setup": 0.142,
+   "native": 4.658,
+   "recursion": 5.251,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  }
+ ]
+}
+{"service_start_s": 4.6, "service_stop_s": 1.892, "client_latency_s": [30.34, 12.297]}
+{"block": 24628607, "trial": 0, "status": "accepted", "wall_s": 40.6}
