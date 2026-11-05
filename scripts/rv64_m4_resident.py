@@ -281,15 +281,21 @@ def serve(args):
     argv = [plan["assets"]["driver"], "combined-batch", str(target / "manifest.json"), str(target / "batch")]
     if args.nsys:
         (run / "nsys").mkdir()
+        # The eager GPU observer belongs in the prover, not in Nsight's
+        # launcher/probe helpers. Nsight injects this environment into the app.
+        preload = ["--env-var", "LD_PRELOAD=" + environment["LD_PRELOAD"]] if environment.get("LD_PRELOAD") else []
         argv = ["nsys", "profile", "--trace=cuda,nvtx", "--cuda-graph-trace=node", "--sample=none", "--cpuctxsw=none", "--force-overwrite=true",
-                "-o", str(run / "nsys/timeline")] + argv
+                "-o", str(run / "nsys/timeline")] + preload + argv
     load_before = os.getloadavg()
     lock = P.acquire_gpu_lock()
     try:
         monitor = B.DeviceMonitor("0,1")
         monitor.thread.start()
         try:
-            usage = B.measure(argv, target, "producer", environment, cwd=plan["producer_cwd"])
+            launch_environment = dict(environment)
+            if args.nsys:
+                launch_environment.pop("LD_PRELOAD", None)
+            usage = B.measure(argv, target, "producer", launch_environment, cwd=plan["producer_cwd"])
         finally:
             memory = monitor.finish()
     finally:
@@ -453,7 +459,7 @@ def cgroup_cpu_delta(before, after):
         return {'known': False, 'quiet': False, 'reason': 'required pressure/throttling counter absent'}
 
 
-def quiet_checkpoint(process, args, run, index, guard=None):
+def quiet_checkpoint(process, args, run, index, guard=None, producer_pid=None):
     """Read-only admission before a request; never relabel a busy pod as quiet."""
     limit = getattr(args, "quiet_load_max", None)
     if limit is None:
@@ -466,18 +472,22 @@ def quiet_checkpoint(process, args, run, index, guard=None):
         parts = Path("/proc/stat").read_text().splitlines()[0].split()[1:]
         values = list(map(int, parts))
         return sum(values[:8]), values[7]
-    previous = cpu()
-    previous_resource = cgroup_cpu_snapshot()
     while True:
         if guard:
             guard.check()
         if process.poll() is not None:
             raise RuntimeError("service exited during quiet admission")
+        # Bracket the idle interval itself. Forking nvidia-smi below causes
+        # measurable cgroup PSI even on an otherwise idle pod; including our
+        # own inventory probe makes the zero-pressure gate self-defeating.
+        previous = cpu()
+        previous_resource = cgroup_cpu_snapshot()
         time.sleep(1)
         current = cpu()
+        resource = cgroup_cpu_snapshot()
+        resource_delta = cgroup_cpu_delta(previous_resource, resource)
         total = current[0] - previous[0]
         steal = (current[1] - previous[1]) / total if total > 0 else None
-        previous = current
         blockers = []
         for directory in Path("/proc").iterdir():
             if not directory.name.isdigit():
@@ -499,7 +509,9 @@ def quiet_checkpoint(process, args, run, index, guard=None):
                     continue
                 pid_text, name = line.split(",", 1)
                 pid = int(pid_text.strip())
-                allowed = guard is not None and pid == guard.process.pid
+                # Nsight may place its application in a separate process
+                # group. This exact READY PID has passed native-image checks.
+                allowed = pid == producer_pid or (guard is not None and pid == guard.process.pid)
                 try:
                     allowed = allowed or os.getpgid(pid) == producer_group
                 except ProcessLookupError:
@@ -511,14 +523,27 @@ def quiet_checkpoint(process, args, run, index, guard=None):
         except (subprocess.SubprocessError, ValueError, OSError) as error:
             blockers.append({"reason": "GPU process inventory unavailable", "error": repr(error)})
         load = os.getloadavg()
-        resource = cgroup_cpu_snapshot()
-        resource_delta = cgroup_cpu_delta(previous_resource, resource)
-        previous_resource = resource
-        load_or_resource = resource_delta['quiet'] if args.quiet_resource == 'cgroup' else load[0] < limit
+        observer_resource = cgroup_cpu_snapshot()
+        observer_delta = cgroup_cpu_delta(resource, observer_resource)
+        # Still reject quota throttling during inventory and unknown/reset
+        # counters. Only the observer's own PSI is excluded from idle PSI.
+        observer_unthrottled = (observer_delta['known'] and
+                                observer_delta.get('nr_throttled') == 0 and
+                                observer_delta.get('throttled_us') == 0)
+        pressure_limit = getattr(args, 'quiet_pressure_max', 0.0)
+        pressure_fraction = None
+        if resource_delta['known']:
+            interval_us = (resource.get('monotonic_ns', 0) - previous_resource.get('monotonic_ns', 0)) / 1000
+            if interval_us > 0:
+                pressure_fraction = max(resource_delta['psi_some_total_us'], resource_delta['psi_full_total_us']) / interval_us
+        idle_quiet = resource_delta['quiet'] or (pressure_limit > 0 and pressure_fraction is not None and
+                     0 <= pressure_fraction <= pressure_limit and resource_delta['nr_throttled'] == 0 and
+                     resource_delta['throttled_us'] == 0)
+        load_or_resource = (idle_quiet and observer_unthrottled) if args.quiet_resource == 'cgroup' else load[0] < limit
         okay = load_or_resource and steal is not None and steal <= args.quiet_steal_max and not blockers
         consecutive = consecutive + 1 if okay else 0
-        rows.append({"elapsed_s": round(time.monotonic() - start, 3), "loadavg": load, "cpu_steal_fraction": steal, "blocking_processes": blockers, "gpu_processes": gpu_processes, "cgroup": resource, "cgroup_delta": resource_delta, "qualifies": okay})
-        record = {"request_index": index, "quiet_scope": "pod cgroup pressure/throttling and exclusive GPU, host load informational" if args.quiet_resource == "cgroup" else "host load", "resource_gate": args.quiet_resource, "load_max": limit, "steal_max": args.quiet_steal_max, "required_stable_samples": args.quiet_stable_samples, "samples": rows, "accepted": consecutive >= args.quiet_stable_samples, "mode": args.quiet_mode, "timing_qualified": False if args.quiet_mode == "diagnostic" else consecutive >= args.quiet_stable_samples}
+        rows.append({"elapsed_s": round(time.monotonic() - start, 3), "loadavg": load, "cpu_steal_fraction": steal, "blocking_processes": blockers, "gpu_processes": gpu_processes, "cgroup": resource, "cgroup_delta": resource_delta, "idle_pressure_fraction": pressure_fraction, "observer_cgroup_delta": observer_delta, "qualifies": okay})
+        record = {"request_index": index, "quiet_scope": "bounded pod cgroup PSI during each one-second idle interval; no throttling during idle or inventory; exclusive GPU; observer PSI recorded separately; host load informational" if args.quiet_resource == "cgroup" else "host load", "resource_gate": args.quiet_resource, "load_max": limit, "steal_max": args.quiet_steal_max, "idle_pressure_max": pressure_limit, "required_stable_samples": args.quiet_stable_samples, "samples": rows, "accepted": consecutive >= args.quiet_stable_samples, "mode": args.quiet_mode, "timing_qualified": False if args.quiet_mode == "diagnostic" else consecutive >= args.quiet_stable_samples}
         B.atomic_json(run / f"quiet-{index:04d}.json", record)
         if record["accepted"] or args.quiet_mode == "diagnostic":
             return record
@@ -586,14 +611,19 @@ def daemon(args):
     argv = [plan["assets"]["driver"], "combined-serve", str(run / "manifest.json"), str(spool)]
     if args.nsys:
         (run / "nsys").mkdir()
+        # The eager GPU observer belongs in the prover, not in Nsight's
+        # launcher/probe helpers. Nsight injects this environment into the app.
+        preload = ["--env-var", "LD_PRELOAD=" + environment["LD_PRELOAD"]] if environment.get("LD_PRELOAD") else []
         argv = ["nsys", "profile", "--trace=cuda,nvtx", "--cuda-graph-trace=node", "--sample=none", "--cpuctxsw=none", "--force-overwrite=true",
-                "-o", str(run / "nsys/timeline")] + argv
+                "-o", str(run / "nsys/timeline")] + preload + argv
     load_before = os.getloadavg()
     timeline = []
     quiet_records = []
     lock = P.acquire_gpu_lock()
     guard = None
     monitor = None
+    producer_pid = None
+    producer_start_ticks = None
     try:
         if args.process_budget_guard:
             guard = PhysicalBudgetGuard(args.process_budget_guard, run, environment)
@@ -604,7 +634,10 @@ def daemon(args):
         monitor.thread.start()
         started = time.monotonic_ns()
         with (run / "producer.stdout").open("wb") as out, (run / "producer.stderr").open("wb") as err:
-            process = subprocess.Popen(argv, stdout=out, stderr=err, env=environment, cwd=plan["producer_cwd"], start_new_session=True)
+            launch_environment = dict(environment)
+            if args.nsys:
+                launch_environment.pop("LD_PRELOAD", None)
+            process = subprocess.Popen(argv, stdout=out, stderr=err, env=launch_environment, cwd=plan["producer_cwd"], start_new_session=True)
             if guard:
                 guard.supervise(process)
             try:
@@ -618,8 +651,14 @@ def daemon(args):
                 ready = json.loads((spool / 'READY').read_text())
                 B.atomic_json(run / 'loaded-native-runtime.json',
                               loaded_native_runtime(ready['pid'], plan['assets']['library']))
+                producer_pid = int(ready['pid'])
+                producer_start_ticks = (Path('/proc') / str(producer_pid) / 'stat').read_text().rpartition(')')[2].split()[19]
                 for index, block in enumerate(order):
-                    quiet_records.append(quiet_checkpoint(process, args, run, index, guard))
+                    # The background memory sampler also forks nvidia-smi.
+                    # Pause only sampling during admission; it resumes before
+                    # submitting the request and remains active while proving.
+                    with monitor.sample_lock:
+                        quiet_records.append(quiet_checkpoint(process, args, run, index, guard, producer_pid))
                     name = f"{index:04d}-{block}"
                     resource_before = cgroup_cpu_snapshot()
                     submitted = time.monotonic_ns()
@@ -655,6 +694,15 @@ def daemon(args):
                 if guard:
                     guard.check()
             except BaseException:
+                # A profiled application can live outside the launcher group.
+                # Drain the exact verified READY process before the launcher.
+                if producer_pid is not None and producer_pid != process.pid:
+                    try:
+                        current_start = (Path('/proc') / str(producer_pid) / 'stat').read_text().rpartition(')')[2].split()[19]
+                        if current_start == producer_start_ticks:
+                            os.kill(producer_pid, signal.SIGKILL)
+                    except (FileNotFoundError, ProcessLookupError):
+                        pass
                 try:
                     os.killpg(process.pid, signal.SIGKILL)
                 except ProcessLookupError:
@@ -968,7 +1016,8 @@ def main():
     d.add_argument("--request-timeout", type=float, help="bounded correctness diagnostic only; kill producer group and close guard on timeout")
     d.add_argument("--process-budget-guard", help="physical CUDA reservation executable; held under same GPU lease through driver exit")
     d.add_argument("--gap", type=float, default=0.0, help="idle seconds between requests")
-    d.add_argument("--quiet-resource", choices=("host-load", "cgroup"), default="host-load", help="cgroup mode requires zero PSI/throttle deltas for the pod; host load is informational")
+    d.add_argument("--quiet-resource", choices=("host-load", "cgroup"), default="host-load", help="cgroup mode bounds idle PSI and rejects all throttling; host load is informational")
+    d.add_argument("--quiet-pressure-max", type=float, default=0.0, help="maximum cgroup idle PSI fraction; zero preserves the strict rule; throttling is always rejected")
     d.add_argument("--quiet-mode", choices=("enforce", "diagnostic"), default="enforce", help="diagnostic records one load/steal/GPU sample without qualifying latency; correctness smoke only")
     d.add_argument("--quiet-load-max", type=float, help="require load1m below this before every request; no timings start while busy")
     d.add_argument("--quiet-steal-max", type=float, default=0.01, help="maximum CPU steal fraction before a request")

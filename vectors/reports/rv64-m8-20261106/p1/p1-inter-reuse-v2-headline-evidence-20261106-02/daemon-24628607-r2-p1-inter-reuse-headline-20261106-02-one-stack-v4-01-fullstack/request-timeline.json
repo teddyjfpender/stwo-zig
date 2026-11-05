@@ -1,0 +1,174 @@
+[
+  {
+    "name": "0000-24628607",
+    "block": 24628607,
+    "client_latency_ns": 29205105168,
+    "service": {
+      "ok": true,
+      "block": 24628607,
+      "sequence": 0,
+      "request_wall_ns": 29199558409,
+      "queue_ns": 5186743898
+    },
+    "utc_window_ns": [
+      1793917175596513274,
+      1793917204801911922
+    ],
+    "cpu_resource_before": {
+      "known": true,
+      "monotonic_ns": 1250057283491913,
+      "cpu_max": "4080000 100000",
+      "cpu_pressure": {
+        "some": {
+          "avg10": 0.0,
+          "avg60": 0.0,
+          "avg300": 0.0,
+          "total": 165062487
+        },
+        "full": {
+          "avg10": 0.0,
+          "avg60": 0.0,
+          "avg300": 0.0,
+          "total": 161363740
+        }
+      },
+      "cpu_stat": {
+        "usage_usec": 667892715541,
+        "user_usec": 562161069410,
+        "system_usec": 105731646131,
+        "core_sched.force_idle_usec": 0,
+        "nr_periods": 1162343,
+        "nr_throttled": 11308,
+        "throttled_usec": 10804712662,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      },
+      "host_loadavg": [
+        44.15771484375,
+        43.50634765625,
+        35.6201171875
+      ]
+    },
+    "cpu_resource_after": {
+      "known": true,
+      "monotonic_ns": 1250086489331990,
+      "cpu_max": "4080000 100000",
+      "cpu_pressure": {
+        "some": {
+          "avg10": 0.0,
+          "avg60": 0.0,
+          "avg300": 0.0,
+          "total": 165094245
+        },
+        "full": {
+          "avg10": 0.0,
+          "avg60": 0.0,
+          "avg300": 0.0,
+          "total": 161390894
+        }
+      },
+      "cpu_stat": {
+        "usage_usec": 668069631631,
+        "user_usec": 562298245805,
+        "system_usec": 105771385826,
+        "core_sched.force_idle_usec": 0,
+        "nr_periods": 1162635,
+        "nr_throttled": 11308,
+        "throttled_usec": 10804712662,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      },
+      "host_loadavg": [
+        31.14501953125,
+        40.4765625,
+        34.86572265625
+      ]
+    }
+  },
+  {
+    "name": "0001-24628607",
+    "block": 24628607,
+    "client_latency_ns": 12171957062,
+    "service": {
+      "ok": true,
+      "block": 24628607,
+      "sequence": 1,
+      "request_wall_ns": 12165950294,
+      "queue_ns": 11388122091
+    },
+    "utc_window_ns": [
+      1793917216185478272,
+      1793917228357581544
+    ],
+    "cpu_resource_before": {
+      "known": true,
+      "monotonic_ns": 1250097872472441,
+      "cpu_max": "4080000 100000",
+      "cpu_pressure": {
+        "some": {
+          "avg10": 0.12,
+          "avg60": 0.02,
+          "avg300": 0.0,
+          "total": 165163100
+        },
+        "full": {
+          "avg10": 0.12,
+          "avg60": 0.02,
+          "avg300": 0.0,
+          "total": 161454736
+        }
+      },
+      "cpu_stat": {
+        "usage_usec": 668069972924,
+        "user_usec": 562298343448,
+        "system_usec": 105771629475,
+        "core_sched.force_idle_usec": 0,
+        "nr_periods": 1162727,
+        "nr_throttled": 11308,
+        "throttled_usec": 10804712662,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      },
+      "host_loadavg": [
+        34.05029296875,
+        40.8427734375,
+        35.0478515625
+      ]
+    },
+    "cpu_resource_after": {
+      "known": true,
+      "monotonic_ns": 1250110044862852,
+      "cpu_max": "4080000 100000",
+      "cpu_pressure": {
+        "some": {
+          "avg10": 0.03,
+          "avg60": 0.02,
+          "avg300": 0.0,
+          "total": 165187115
+        },
+        "full": {
+          "avg10": 0.03,
+          "avg60": 0.02,
+          "avg300": 0.0,
+          "total": 161474807
+        }
+      },
+      "cpu_stat": {
+        "usage_usec": 668129254862,
+        "user_usec": 562337411980,
+        "system_usec": 105791842882,
+        "core_sched.force_idle_usec": 0,
+        "nr_periods": 1162849,
+        "nr_throttled": 11308,
+        "throttled_usec": 10804712662,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      },
+      "host_loadavg": [
+        31.44091796875,
+        40.0576171875,
+        34.85400390625
+      ]
+    }
+  }
+]

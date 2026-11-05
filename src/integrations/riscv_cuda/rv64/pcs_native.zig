@@ -447,6 +447,36 @@ pub const Context = struct {
         if (self.cache.items.len >= self.max_retained_scopes) return error.RetainedCoefficientAdmissionExceeded;
         try self.cache.append(std.heap.page_allocator, .{ .scope = scope, .lease = lease, .columns = &.{}, .in_use = true });
     }
+    /// Adopt a complete set of already-owned INTER leases. Reserve all host
+    /// metadata before moving claims or leases; failure preserves source custody.
+    pub fn adoptInterLeases(self: *Context, scope: [8]u32, leases: []const Abi.Lease, claims: *@import("admission_retention.zig").Registry) !void {
+        if (leases.len == 0) return error.InvalidRetainedCoefficientLease;
+        for (leases, 0..) |lease, i| {
+            if (lease.kind != 2 or self.lease_validate(self.session, &lease, &scope) != 0) return error.InvalidRetainedCoefficientLease;
+            for (leases[0..i]) |previous| if (previous.generation == lease.generation) return error.DuplicateRetainedCoefficientLease;
+        }
+        const a = std.heap.page_allocator;
+        self.cache_mutex.lock();
+        defer self.cache_mutex.unlock();
+        for (self.cache.items) |*entry| if (std.mem.eql(u32, &entry.scope, &scope)) {
+            for (leases) |lease| {
+                if (entry.lease.generation == lease.generation) return error.DuplicateRetainedCoefficientLease;
+                for (entry.extra.items) |previous| if (previous.generation == lease.generation) return error.DuplicateRetainedCoefficientLease;
+            }
+            try entry.extra.ensureUnusedCapacity(a, leases.len);
+            try claims.transferScopeTo(a, &self.admission_retention, scope);
+            for (leases) |lease| entry.extra.appendAssumeCapacity(lease);
+            entry.in_use = true;
+            return;
+        };
+        if (self.cache.items.len >= self.max_retained_scopes) return error.RetainedCoefficientAdmissionExceeded;
+        var extra: std.ArrayList(Abi.Lease) = .empty;
+        errdefer extra.deinit(a);
+        try extra.appendSlice(a, leases[1..]);
+        try self.cache.ensureUnusedCapacity(a, 1);
+        try claims.transferScopeTo(a, &self.admission_retention, scope);
+        self.cache.appendAssumeCapacity(.{ .scope = scope, .lease = leases[0], .extra = extra, .columns = &.{}, .in_use = true });
+    }
     /// Owner-thread only. Move one exact fixed coefficient lease into an
     /// already admitted MAIN scope, preserving its allocation/generation.
     /// All metadata capacity is admitted before native authority changes.

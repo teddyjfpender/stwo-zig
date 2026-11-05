@@ -1,0 +1,19 @@
+{
+  "schema": "rv64-static-coset-screen/v1",
+  "status": "NAIVE_2X_HALF_LOCAL_MASK_EXTENSION_REJECTED",
+  "label": "D",
+  "source": "src/backends/cuda/native/rv64/composition.cuh",
+  "source_sha256": "14e14b158f1376e99dc8ad9fd4929769ef74932eca4eed03960d6b7d09eed79f",
+  "example": {
+    "trace_log": 4,
+    "eval_log": 5,
+    "global_row": 0,
+    "offset": 1,
+    "full_domain_shifted_row": 16,
+    "half_local_shifted_row": 15
+  },
+  "finding": "Odd trace-row offsets cross bit-reversed halves at 2x. Reducing eval_log and reusing local masks changes the authenticated evaluation. An in-place full-coefficient NTT does not repair this.",
+  "exception": "Zero-offset-only role4 avoids this mask counterexample, but that alone does not bound role5 or qualify a whole-node footprint.",
+  "gpu_run": false,
+  "next": "Prefer bounded root groups with full-domain columns, or explicitly gather both required cosets for every offset; keep original powers and global geometry."
+}

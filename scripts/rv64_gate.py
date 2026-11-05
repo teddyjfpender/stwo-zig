@@ -114,7 +114,8 @@ def main():
                                '-Dcpu=x86_64_v4+sha', '--cache-dir', str(ROOT / '.zig-cache')],
             ROOT / 'src/integrations/riscv_cuda')
         run('unit-python', [sys.executable, '-m', 'unittest',
-                            'scripts.tests.test_rv64_gate', 'scripts.tests.test_rv64_m7_composed_cells'])
+                            'scripts.tests.test_rv64_gate', 'scripts.tests.test_rv64_m7_composed_cells',
+                            'scripts.tests.test_rv64_quiet_checkpoint'])
         bins = Path('/workspace/m3/build') / args.stream / 'zig-out/bin'
         assets.update(driver=str(bins / 'rv64-word16-ethereum-gpu-combined'),
                       receiver=str(bins / 'rv64-word16-ethereum-recursion-receiver'))

@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/workspace/m3/src/m7-integrate/scripts/rv64_m4_resident.py", line 1051, in <module>
+    main()
+  File "/workspace/m3/src/m7-integrate/scripts/rv64_m4_resident.py", line 1037, in main
+    daemon(args)
+  File "/workspace/m3/src/m7-integrate/scripts/rv64_m4_resident.py", line 655, in daemon
+    quiet_records.append(quiet_checkpoint(process, args, run, index, guard))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/m3/src/m7-integrate/scripts/rv64_m4_resident.py", line 479, in quiet_checkpoint
+    raise RuntimeError("service exited during quiet admission")
+RuntimeError: service exited during quiet admission

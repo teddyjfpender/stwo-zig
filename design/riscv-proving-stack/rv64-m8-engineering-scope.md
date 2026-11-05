@@ -12,7 +12,69 @@ gets two fresh CPU accepts, and passes all 19 required corpus cases. See
 `m7-handoff/P0-CONSOLIDATION.md` and
 `vectors/reports/rv64-m8-20261105/p0/summary.json`. No performance improvement
 or exact memory pass is claimed. Default D2/coalescing, automatic arena,
-one lane and security parameters remain unchanged. P1 is next.
+one lane and security parameters remain unchanged.
+
+**P1 in progress (2026-11-06):** the refreshed small-block composed stack
+passes cold and warm with the pinned V2 runtime; both arms are byte-identical
+and all four fresh CPU receivers accept. The headline interleaved run then
+reproduced `NativePostGlobalDrainUnavailable` on the second fullstack service's
+warm request. Its first completed pair was 12.690 s default versus 13.630 s
+fullstack [M, single pair, not a final median]. All six proofs from completed
+services have fresh CPU acceptance. The run stopped before 3+3 completion or
+profiling. See `vectors/reports/rv64-m8-20261106/p1/refresh-summary.json`.
+
+The first coset prototype passed units/build but was statically rejected: it
+required a 4x domain, while the measured largest Blake roles use 2x. Its patch
+and receipt are retained in `vectors/reports/rv64-m8-20261106/p1/rejected-coset-v1/`.
+The next default-off full-domain column-packing candidate passed units/build,
+and its completed cold proof was byte-identical and freshly CPU-accepted.
+Its warm small-block request stalled until the 120 s watchdog [M]; headline
+measurement was skipped. Actual requested arenas were 7.82 GB and 5.34 GB [M]
+for 116 and 79 selected columns [M], versus 167 original columns [M]. These are
+role allocations, not whole-node peaks. The remaining INTER commit admission
+requested 25.30 GB against 23.09 GB capacity [D, model]; all completed proofs
+were freshly accepted, while the failed warm request has no root. See
+`vectors/reports/rv64-m8-20261106/p1/columns-v1-result.json`. No usable end-to-end
+gain or exact per-node memory qualification is claimed. A second default-off
+candidate reused owned INTER evaluations in place, passed units/build, then
+failed its cold small-block request with `InvalidPcsBorrowPromise`: multiple
+component leases violated PCS's contiguous sorted borrow contract. No candidate
+root was produced; both baseline proofs were freshly CPU-accepted. See
+`vectors/reports/rv64-m8-20261106/p1/inter-reuse-v1-result.json`. The corrective
+revision generates one sorted INTER slab with a bounded scratch tail and keeps
+the existing PCS checks. It passes units/build, completes both small-block
+requests byte-identically, and has all four fresh CPU accepts [M]. Warm smoke
+is 14.435 s baseline versus 14.897 s fullstack [M, unqualified correctness
+walls with capture hashing]. The quiet headline 3+3 primary services completed:
+median 12.332 s baseline versus 12.401 s fullstack [M, 0.56% slower]. Median
+recursion fell from 5.538 s to 4.652 s [M], while native proving rose from
+4.434 s to 5.116 s [M]. All 12 timed payload sets match and all 12 fresh CPU receivers accept [M]. The separate profiler first failed before READY with an Nsight
+process-probe timeout. After correcting profiler preload/child ownership,
+the baseline profile completed both requests, while the candidate completed
+cold then stalled warm at INTER generation. Its required 23.153 GB exceeds
+23.085 GB capacity [D, admission model]; it was stopped after 161.3 s [M].
+All three completed profiled proofs are byte-identical and freshly CPU-accepted [M].
+The baseline warm profile reports 10.584 kernel GPU-seconds [M] and 52.36%
+after-native kernel busy [D, two GPUs; exclusive native end plus a 5 ms
+uncertainty band]. The candidate warm request has no root. Its CUPTI records
+also stop 12.856 s before the completed cold request ends [M], so its raw
+helper GPU-seconds and completeness flags are invalidated by the retained
+metrics audit. No complete candidate GPU-seconds/busy result is available.
+Exact per-node peak also remains open. No matched request-time
+gain or P1 exit is claimed. See
+`vectors/reports/rv64-m8-20261106/p1/inter-reuse-v2-result.json`.
+The full P1 checkpoint commit gate passes build, unit tests, both frozen
+small-block proofs, both fresh CPU receivers, and all 19 corpus cases [M].
+See `vectors/reports/rv64-m8-20261106/p1/CHECKPOINT.md`. The next static
+candidate is a 32-column composition cache over unchanged root groups;
+its modeled 2.181 GB arena [D] is not a measured node peak.
+
+The timing preset
+explicitly allows at most 0.5% cgroup CPU pressure in five idle intervals, with
+zero throttling. Absolute-zero and 0.1% admission attempts are retained; they
+refused idle services, and GPU inventory probes themselves caused pressure.
+Probe pressure is recorded separately; background sampling pauses only during
+admission. No prover feature has changed default.
 
 ---
 

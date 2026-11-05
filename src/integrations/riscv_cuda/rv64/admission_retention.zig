@@ -29,6 +29,32 @@ pub const Registry = struct {
             claim.scope = next;
         };
     }
+    /// Move custody without releasing a physical allocation or its future
+    /// claim. The caller has already validated the destination's lease owner.
+    pub fn transferScopeTo(self: *Registry, a: std.mem.Allocator, target: *Registry, scope: Scope) !void {
+        if (self == target) return error.InvalidRetentionTransfer;
+        const first = if (@intFromPtr(self) < @intFromPtr(target)) self else target;
+        const second = if (first == self) target else self;
+        first.mutex.lock();
+        defer first.mutex.unlock();
+        second.mutex.lock();
+        defer second.mutex.unlock();
+        var count: usize = 0;
+        for (self.claims.items) |claim| if (std.mem.eql(u32, &claim.scope, &scope)) {
+            count += 1;
+        };
+        try target.claims.ensureUnusedCapacity(a, count);
+        var i: usize = 0;
+        while (i < self.claims.items.len) {
+            const claim = self.claims.items[i];
+            if (!std.mem.eql(u32, &claim.scope, &scope)) {
+                i += 1;
+                continue;
+            }
+            target.claims.appendAssumeCapacity(claim);
+            _ = self.claims.swapRemove(i);
+        }
+    }
     /// Call only after ALL allocations owned by this scope have been freed and
     /// joined successfully. A failed owner submission must never reach here.
     pub fn retireAfterDestruction(self: *Registry, planner: *A.Planner, scope: Scope) !void {
@@ -140,4 +166,26 @@ test "unentered completion preserves old future and never stores a canceled toke
     try std.testing.expect(gate.tryLock());
     gate.unlock();
     try p.release(old);
+}
+
+test "lease custody transfer preserves future claim until destination destruction" {
+    var p = try A.Planner.init(std.testing.allocator, &.{0}, .g22);
+    defer p.deinit();
+    var source: Registry = .{};
+    defer source.deinit(std.testing.allocator);
+    var target: Registry = .{};
+    defer target.deinit(std.testing.allocator);
+    const retained = try A.Footprint.allocation(2 << 30);
+    const future = try A.Footprint.allocation(8 << 30);
+    const demand = A.Demand{ .owner = .{ .request = 1, .domain = .recursion_node, .ordinal = 7 }, .stage = .interaction, .known = true, .host_known = true, .temporary = retained, .successor = future };
+    const token = (try p.tryBegin(0, demand)).token.?;
+    try p.completeObserved(token, retained, future);
+    try source.claims.append(std.testing.allocator, .{ .scope = @splat(9), .token = token });
+    try source.transferScopeTo(std.testing.allocator, &target, @splat(9));
+    try source.retireAfterDestruction(&p, @splat(9));
+    try std.testing.expectEqual(@as(usize, 1), (try p.snapshot(0)).owners);
+    try std.testing.expectEqual(future, (try p.snapshot(0)).successor);
+    try target.retireAfterDestruction(&p, @splat(9));
+    try std.testing.expectEqual(@as(usize, 0), (try p.snapshot(0)).owners);
+    try std.testing.expectEqual(retained, (try p.snapshot(0)).retained);
 }

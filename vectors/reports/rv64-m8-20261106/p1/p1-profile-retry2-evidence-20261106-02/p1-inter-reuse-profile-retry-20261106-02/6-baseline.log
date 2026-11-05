@@ -1,0 +1,40 @@
+{
+ "run": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline",
+ "process_wall_s": 70.27,
+ "service_overhead_s": 28.64,
+ "rss_gib": 0.04,
+ "cuda_api": {
+  "cuLibraryLoadData": 686,
+  "cuLibraryUnload": 686,
+  "cudaLaunchKernel_v7000": 125294,
+  "cudaMemcpyAsync_v3020": 35429,
+  "cudaStreamSynchronize_v3020": 5167
+ },
+ "requests": [
+  {
+   "block": 24628607,
+   "trial": 0,
+   "request_s": 28.786,
+   "capture": 1.934,
+   "setup": 10.036,
+   "native": 6.046,
+   "recursion": 10.508,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  },
+  {
+   "block": 24628607,
+   "trial": 1,
+   "request_s": 12.84,
+   "capture": 2.081,
+   "setup": 0.127,
+   "native": 4.699,
+   "recursion": 5.737,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  }
+ ]
+}
+{"service_start_s": 9.57, "service_stop_s": 8.615, "client_latency_s": [28.794, 12.851]}

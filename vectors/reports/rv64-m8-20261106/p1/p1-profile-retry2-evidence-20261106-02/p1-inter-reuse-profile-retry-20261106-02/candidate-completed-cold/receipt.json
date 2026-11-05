@@ -1,0 +1,82 @@
+{
+  "schema": "rv64-completed-request-reconstruction/v1",
+  "status": "PARTIAL_COLD_ONLY_AFTER_ABORTED_WARM",
+  "whole_service_pass": false,
+  "source_run": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack",
+  "source_timeline_sha256": "77bbbd2c87685d44433cfcd746b9641f63d1500b0af0b4e6067b2e1a4856343c",
+  "assets": {
+    "driver": "5682c2f63ba7f78282f6eea1098e3bb51ffdb1b232bb2b680218f9739ac3af4a",
+    "library": "4273d53688fc489035a43af159e617757c6d977afbd4fd66caa75148e8542992",
+    "receiver": "69bc6baa0fb089555fd88d61346811fe894d9030f9c7edfc55148d72f0c5e8e8",
+    "recursive_receiver": "69bc6baa0fb089555fd88d61346811fe894d9030f9c7edfc55148d72f0c5e8e8"
+  },
+  "requests": [
+    {
+      "block": 24628607,
+      "trial": 0,
+      "ordinal": 0,
+      "proof": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof",
+      "leaves": 14,
+      "stages": {
+        "request_wall_s": 31.117,
+        "phase_transition_s": 0.002,
+        "capture_s": 1.924,
+        "setup_s": 10.122,
+        "native_prove_s": 7.045,
+        "native_verify_s": 1.871,
+        "native_total_before_report_s": 19.287,
+        "recursion_s": 11.792
+      },
+      "marker": {
+        "request_wall_ns": 31117064971
+      },
+      "utc_window_ns": [
+        1793918765890150837,
+        1793918797018259741
+      ],
+      "client_latency_ns": 31127870074,
+      "proof_bytes_root": 749688
+    }
+  ],
+  "receivers": [
+    {
+      "block": 24628607,
+      "proof": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof",
+      "status": "accepted",
+      "accepted": true,
+      "receiver_sha256": "69bc6baa0fb089555fd88d61346811fe894d9030f9c7edfc55148d72f0c5e8e8",
+      "process": {
+        "argv": [
+          "nice",
+          "-n",
+          "10",
+          "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-recursion-candidate",
+          "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/receiver-24628607-0000-24628607-20261105T225301/receiver-request.json",
+          "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof",
+          "12884901888",
+          "34359738368"
+        ],
+        "exit_code": 0,
+        "wall_ns": 40629355781,
+        "user_seconds": 192.178142,
+        "system_seconds": 11.888969,
+        "peak_rss_bytes": 7546728448,
+        "minor_faults": 4900820,
+        "major_faults": 0
+      },
+      "directory": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/receiver-24628607-0000-24628607-20261105T225301",
+      "isolation": {
+        "CUDA_VISIBLE_DEVICES": "",
+        "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+        "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+        "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+        "STWO_RV64_FOLD_CLASS_CACHE": "0"
+      },
+      "trial": 0,
+      "store_present_during_receive": false
+    }
+  ]
+}

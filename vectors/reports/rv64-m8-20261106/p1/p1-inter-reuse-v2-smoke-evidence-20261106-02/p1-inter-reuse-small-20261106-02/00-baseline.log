@@ -1,0 +1,34 @@
+{
+ "run": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-02-one-stack-v5-smoke-00-baseline",
+ "process_wall_s": 50.89,
+ "service_overhead_s": 8.673,
+ "rss_gib": 19.41,
+ "cuda_api": {},
+ "requests": [
+  {
+   "block": 26235156,
+   "trial": 0,
+   "request_s": 27.784,
+   "capture": 1.681,
+   "setup": 11.871,
+   "native": 4.237,
+   "recursion": 9.878,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  },
+  {
+   "block": 26235156,
+   "trial": 1,
+   "request_s": 14.435,
+   "capture": 1.753,
+   "setup": 4.823,
+   "native": 3.142,
+   "recursion": 4.572,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  }
+ ]
+}
+{"service_start_s": 4.774, "service_stop_s": 1.818, "client_latency_s": [27.791, 14.443]}

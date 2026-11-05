@@ -1,0 +1,306 @@
+{
+  "created_ns": 1793916252445015368,
+  "scope": "Raw run, service, preflight and receiver records; proof spools retained at original paths",
+  "files": [
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-small-20261106-01/artifact.json",
+      "relative": "p1-inter-reuse-small-20261106-01/artifact.json",
+      "bytes": 1114474,
+      "sha256": "1561fef86eabef79d114190fd7329ff94e89dcd48a1c991dcdaf190abe005acb"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-small-20261106-01/experiment.json",
+      "relative": "p1-inter-reuse-small-20261106-01/experiment.json",
+      "bytes": 21343,
+      "sha256": "771b2c6b14ae59ebf8f7ae34034d16ea2e4cf7bd0ef4940f5590d0c346daebd9"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-small-20261106-01/00-baseline.log",
+      "relative": "p1-inter-reuse-small-20261106-01/00-baseline.log",
+      "bytes": 784,
+      "sha256": "9dcd130c5c46f49caee0278fcaa31cf10d14a4c2932d90d7544d5e43eaaefe8b"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-small-20261106-01/01-fullstack.log",
+      "relative": "p1-inter-reuse-small-20261106-01/01-fullstack.log",
+      "bytes": 40,
+      "sha256": "df73faf6061fb1249a12131a8679f999a1767fc8a211da7fef2387a0b903b0d6"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-small-20261106-01/post-abort-worker.py",
+      "relative": "p1-inter-reuse-small-20261106-01/post-abort-worker.py",
+      "bytes": 1595,
+      "sha256": "3d2474adb0c979fe71040593947180d589d19806c4a350f24180ed5fab9f8d4e"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-small-20261106-01/post-abort.log",
+      "relative": "p1-inter-reuse-small-20261106-01/post-abort.log",
+      "bytes": 140,
+      "sha256": "862dfc896422cf26fbb575016992dd2c2e7290102eff0743972c5bdb3a556679"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-small-20261106-01/post-abort-validation.json",
+      "relative": "p1-inter-reuse-small-20261106-01/post-abort-validation.json",
+      "bytes": 5967,
+      "sha256": "508f74e0fe5841d51663463dae3c0a928bb562dec9895a8a57008c0131318b04"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-small-20261106-01/post-abort-validation.exit",
+      "relative": "p1-inter-reuse-small-20261106-01/post-abort-validation.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-preflight-20261106-01/worker.py",
+      "relative": "p1-inter-reuse-preflight-20261106-01/worker.py",
+      "bytes": 1794,
+      "sha256": "4c3d15f8cee0c0c0db7c220f14569c1a4995cd9363a94a99678db7a7411e87fa"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-preflight-20261106-01/worker.log",
+      "relative": "p1-inter-reuse-preflight-20261106-01/worker.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-preflight-20261106-01/preflight.json",
+      "relative": "p1-inter-reuse-preflight-20261106-01/preflight.json",
+      "bytes": 1108676,
+      "sha256": "954ca9a6e7a82cd207d04e61d3a8471ee569484a98a31d1d0da8d6e134fea35b"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-preflight-20261106-01/unit.log",
+      "relative": "p1-inter-reuse-preflight-20261106-01/unit.log",
+      "bytes": 7188,
+      "sha256": "c0e3c77c67fa2415648526266d680528497793afd1f3a951e8e9e9238e4fae80"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-preflight-20261106-01/smoke-worker.py",
+      "relative": "p1-inter-reuse-preflight-20261106-01/smoke-worker.py",
+      "bytes": 1451,
+      "sha256": "a20a8f485118d394207023721596e044e90d3337513fe14baf856406f7bd42a4"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-preflight-20261106-01/smoke.log",
+      "relative": "p1-inter-reuse-preflight-20261106-01/smoke.log",
+      "bytes": 1282,
+      "sha256": "fd2a33add657b03eaccc5948eb0a0dfb02201f2ca24eab892afea573e9357015"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-preflight-20261106-01/headline-worker.py",
+      "relative": "p1-inter-reuse-preflight-20261106-01/headline-worker.py",
+      "bytes": 1716,
+      "sha256": "1cc18bf3219dfba3527ec97a032f1fa6d559a11ab137e56184c773641d234c94"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-preflight-20261106-01/headline.log",
+      "relative": "p1-inter-reuse-preflight-20261106-01/headline.log",
+      "bytes": 33,
+      "sha256": "24bfeb48a22e39ea8e8e45ed89ddb5a0496c187edbb08c6fe5d00806a2fcc385"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-preflight-20261106-01/build.log",
+      "relative": "p1-inter-reuse-preflight-20261106-01/build.log",
+      "bytes": 2639,
+      "sha256": "6be2cc2c49efe29de34483be1b3d7fce43376ef7fd7ab8c796f189a5af57d9ef"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-preflight-20261106-01/exit",
+      "relative": "p1-inter-reuse-preflight-20261106-01/exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-preflight-20261106-01/smoke-artifact.json",
+      "relative": "p1-inter-reuse-preflight-20261106-01/smoke-artifact.json",
+      "bytes": 1114474,
+      "sha256": "1561fef86eabef79d114190fd7329ff94e89dcd48a1c991dcdaf190abe005acb"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-preflight-20261106-01/smoke.exit",
+      "relative": "p1-inter-reuse-preflight-20261106-01/smoke.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/request-26235156.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/request-26235156.json",
+      "bytes": 1223,
+      "sha256": "8bf454ca1f6f5353ca54cef76f94fab6b971d31c37b340d98f2a3007c1bc02bf"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/manifest.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/manifest.json",
+      "bytes": 1566,
+      "sha256": "fba193b0ffad9afae2e34db38fa127c08fedcc8c1c870b3aa9724511f1b60948"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/plan.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/plan.json",
+      "bytes": 9967,
+      "sha256": "c5c486295f39f3ea0d7b7fe2c59e98b2f77d67a5cc6554879dc17e1e4ca95324"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/producer.stdout",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/producer.stdout",
+      "bytes": 57685,
+      "sha256": "8648efd7e58d2f6571e25a823826fa4533bf84b24080d3bd6a5723641cfe28af"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/producer.stderr",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/producer.stderr",
+      "bytes": 327537,
+      "sha256": "c7d9a61bdf95a19ac89bf18022c3c178a00211e69453f731572b5ccd2cc2e05d"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/loaded-native-runtime.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/loaded-native-runtime.json",
+      "bytes": 278,
+      "sha256": "1b2ec951c40f4ec59c37d961a22b942f4ca7536bc9958eccb0292eaaf0569841"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/quiet-0000.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/quiet-0000.json",
+      "bytes": 2463,
+      "sha256": "a51556754cc43b58b33f27c627b02fbd9619a545aa05e21299a94fee5a354586"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/submission-0000.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/submission-0000.json",
+      "bytes": 922,
+      "sha256": "494ac17c3fbc18a40272847c6f6aca06a80eeb83fe341f9ae4068010ed67fa81"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/request-timeline.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/request-timeline.json",
+      "bytes": 4086,
+      "sha256": "b52d83f649ba168c945049316b254a412e0c5b578a51f359d399f04ae700f332"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/quiet-0001.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/quiet-0001.json",
+      "bytes": 2462,
+      "sha256": "b09c1858c3dd5129b4f4f8c04bc764ee4890f4cf02204b77d2a01ceed87e4686"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/submission-0001.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/submission-0001.json",
+      "bytes": 924,
+      "sha256": "8c92c6f0b5777ca47531351d78d2cbf38b68b20a9f7757a22d2270672735fe44"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/resource-final.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/resource-final.json",
+      "bytes": 98424,
+      "sha256": "470344a7a9471ef03cfebbe6ac2e39057dd7c36aa6e022eb36803f3b61557dd7"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/receipt.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/receipt.json",
+      "bytes": 23872,
+      "sha256": "315a4dfc5d334bc1d2647ded17800ce5162cbafa8334f603ce8d5d8dd6cd7518"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/receiver-26235156-0000-26235156-20261105T215641/receiver-request.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/receiver-26235156-0000-26235156-20261105T215641/receiver-request.json",
+      "bytes": 1262,
+      "sha256": "169723409447dc0fafb467e281b49c87803755ed36b56c3870970228ce0375f3"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/receiver-26235156-0000-26235156-20261105T215641/strict-receiver.stdout",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/receiver-26235156-0000-26235156-20261105T215641/strict-receiver.stdout",
+      "bytes": 3759,
+      "sha256": "732e300fc7a424e4d3671f91b1a35cf5b8bb99777d3fd05863deb73a84491712"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/receiver-26235156-0000-26235156-20261105T215641/strict-receiver.stderr",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/receiver-26235156-0000-26235156-20261105T215641/strict-receiver.stderr",
+      "bytes": 861,
+      "sha256": "d1fb7d3123c8c4e3297e320bcb27f6ba711c851f258a80096f6af315728fa80f"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/receiver-26235156-0001-26235156-20261105T215711/receiver-request.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/receiver-26235156-0001-26235156-20261105T215711/receiver-request.json",
+      "bytes": 1262,
+      "sha256": "870b23c615adb28e9026dd63503df3688eaf0d0d810b62f3ee5edf4d07a3db6e"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/receiver-26235156-0001-26235156-20261105T215711/strict-receiver.stdout",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/receiver-26235156-0001-26235156-20261105T215711/strict-receiver.stdout",
+      "bytes": 3759,
+      "sha256": "45365a85aca010edb95b4bbf76e1ce3734a135d14c28d23bb166511047cacbaf"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/receiver-26235156-0001-26235156-20261105T215711/strict-receiver.stderr",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-00-baseline/receiver-26235156-0001-26235156-20261105T215711/strict-receiver.stderr",
+      "bytes": 861,
+      "sha256": "a34f9f8a3f533720a7aebd4e3da16a439d58d6c36d860b128c8ecdde9b4f76a2"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/request-26235156.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/request-26235156.json",
+      "bytes": 1224,
+      "sha256": "fbe17e43d2d64a1c049dfe1733e2bee78e27703f14b678dd01ae87db4b9e700d"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/manifest.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/manifest.json",
+      "bytes": 1567,
+      "sha256": "72c21e7278997aaf06e76ff1f4094f0a3a8837e99ddf9d637ca53d08bdae6552"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/plan.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/plan.json",
+      "bytes": 11358,
+      "sha256": "72d32fe9b47eefd1a956704a46967a7f205bf57bfe99d59a5bb156a89ac856dc"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/budget-guard.stderr",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/budget-guard.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/budget-guard.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/budget-guard.json",
+      "bytes": 890,
+      "sha256": "c33264508f5628b23690567aeb836bd841c147ab529e7fb3097bf1f737ed8408"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/producer.stdout",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/producer.stdout",
+      "bytes": 14250,
+      "sha256": "8dc09627b1191bd504c198aecde4afb7d9719cdb9b3f9814c85ab8d9e67c5e72"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/producer.stderr",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/producer.stderr",
+      "bytes": 351059,
+      "sha256": "87bf37fc0dccc0b3437a28c7e4b60ea1eff5209e8e323b6502225b1ea2c77afe"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/loaded-native-runtime.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/loaded-native-runtime.json",
+      "bytes": 278,
+      "sha256": "587324d16def1b1824a594e9dbfc79196a8c935d2a307157d0817cc6c00b0d98"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/quiet-0000.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/quiet-0000.json",
+      "bytes": 2459,
+      "sha256": "22b2182e5bbd174c4cc81344219b9708d92770ae49f90c00284f3944c6e0d1cd"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/submission-0000.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/submission-0000.json",
+      "bytes": 923,
+      "sha256": "1cb69bfa0eb9be2d7535bc907ae4f495ad5b1fc79f728316a00970aa19cda33a"
+    },
+    {
+      "source": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/resource-final.json",
+      "relative": "daemon-26235156-r2-p1-inter-reuse-small-20261106-01-one-stack-v5-smoke-01-fullstack/resource-final.json",
+      "bytes": 58165,
+      "sha256": "62eeb298b5ed556323e9b31bf2d9f20c27353257218cf91599cd982cac1542d3"
+    }
+  ]
+}

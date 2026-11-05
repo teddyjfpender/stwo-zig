@@ -1,0 +1,1334 @@
+{
+  "schema": "rv64-m4-resident-daemon/v1",
+  "label": "measured",
+  "stream": "m7-integrate",
+  "run": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-headline-before-20261106-05-one-stack-v4-02-baseline",
+  "blocks": [
+    24628607
+  ],
+  "repeat": 2,
+  "loading": "eager",
+  "nsys": false,
+  "source_commit": "df01fd929673e09c3871e61fb6aa0a0623bc123c+unique-tags+quiet-idle-window",
+  "assets": {
+    "driver": "56f7f6bd3347ed57b83191622f983e39b89900ffb0725ca9272afadc333ffbe3",
+    "library": "4273d53688fc489035a43af159e617757c6d977afbd4fd66caa75148e8542992",
+    "receiver": "69bc6baa0fb089555fd88d61346811fe894d9030f9c7edfc55148d72f0c5e8e8",
+    "recursive_receiver": "69bc6baa0fb089555fd88d61346811fe894d9030f9c7edfc55148d72f0c5e8e8"
+  },
+  "environment": {
+    "CUDA_MODULE_LOADING": "EAGER",
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "LD_LIBRARY_PATH": "/workspace/m3/build/m7-owner-v2:/usr/local/cuda/lib64",
+    "LD_PRELOAD": "/workspace/m3/build/m7-owner-v2/libstwo-rv64-native.so:/workspace/m3/build/m7-rc-sparse/libstwo-process-memory-v3.so:/workspace/m3/build/m7-rc-sparse/libstwo-rc-sparse.so",
+    "STWO_RV64_BLAKE_SAMPLE_PREFILL": "1",
+    "STWO_RV64_CAPTURE_DIGEST": "0",
+    "STWO_RV64_COMPOSITION_ENQUEUE": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_CPU0_PRESTAGE": "0",
+    "STWO_RV64_CPU_COMPACT_INGRESS": "1",
+    "STWO_RV64_DEVICE_ARENA": "auto",
+    "STWO_RV64_EARLY_NATIVE_MAIN": "0",
+    "STWO_RV64_EARLY_NATIVE_SEGMENTS": "0",
+    "STWO_RV64_FIRST_PASS_RAM": "0",
+    "STWO_RV64_GLOBAL_ADMISSION": "0",
+    "STWO_RV64_GLOBAL_ADMISSION_RUNTIME": "v2",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_LEAF_SEED_TAPE": "1",
+    "STWO_RV64_NATIVE_VERSION": "v1-flat",
+    "STWO_RV64_NVTX": "1",
+    "STWO_RV64_OUTER_ASSIGNMENT_GRAPH": "1",
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_OUTER_DEVICE_FS": "0",
+    "STWO_RV64_OUTER_OWNER_CONTROLLER": "1",
+    "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
+    "STWO_RV64_PACK_FOLD_CACHE": "1",
+    "STWO_RV64_PCS_ROLLING_BETA2": "1",
+    "STWO_RV64_PHASE_CACHE_TRIM": "1",
+    "STWO_RV64_PROCESS_MEMORY_LIBRARY": "/workspace/m3/build/m7-rc-sparse/libstwo-process-memory-v3.so",
+    "STWO_RV64_PROCESS_MEMORY_OBSERVE": "1",
+    "STWO_RV64_RC_ROLE_WORKSPACE": "0",
+    "STWO_RV64_RECURSION_LANES_PER_DEVICE": "1",
+    "STWO_RV64_RECURSION_SESSIONS": "0",
+    "STWO_RV64_TRUTH_SPARSE_LIBRARY": "/workspace/m3/build/m7-rc-sparse/libstwo-rc-sparse.so",
+    "STWO_RV64_TRUTH_SPARSE_RC": "0",
+    "STWO_ZIG_RV64_SETUP_CACHE": "",
+    "STWO_RV64_GPU_DEVICES": "0,1",
+    "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "7",
+    "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+    "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+    "STWO_RV64_GPU_DEVICE_TRACE": "1",
+    "STWO_RV64_GPU_DEVICE_BINDING": "1",
+    "STWO_RV64_GPU_LIBRARY": "/workspace/m3/build/m7-owner-v2/libstwo-rv64-native.so"
+  },
+  "store": {
+    "mode": "none",
+    "directory": null,
+    "key": null,
+    "components": {
+      "store_format": "rv64-m4-artifact-store/v1",
+      "driver_sha256": "56f7f6bd3347ed57b83191622f983e39b89900ffb0725ca9272afadc333ffbe3",
+      "library_sha256": "4273d53688fc489035a43af159e617757c6d977afbd4fd66caa75148e8542992",
+      "catalogue_sha256": "e1f83a61127c72eac753a8d0a6abb1c5287c05a924eeda8549aea71986dd805f",
+      "catalogue_dir": "/workspace/m3/catalogues-v3",
+      "build_catalogues": "/workspace/m3/catalogues-v3",
+      "elf_sha256": "718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903",
+      "profile": "d2_native_b4_q54_p20_fold4",
+      "field_hash": "m31-circle/blake2s-merkle/om31-recursion"
+    },
+    "before": null,
+    "after": null
+  },
+  "load_avg_before": [
+    10.62353515625,
+    10.5546875,
+    12.1142578125
+  ],
+  "load_avg_after": [
+    9.8076171875,
+    10.35595703125,
+    11.9482421875
+  ],
+  "service_start_s": 5.053,
+  "service_stop_s": 2.175,
+  "service_ready_record": {
+    "schema": "rv64-resident-service/v1",
+    "pid": 2436615,
+    "init_ns": 4326036981
+  },
+  "producer_process": {
+    "argv": [
+      "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+      "combined-serve",
+      "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-headline-before-20261106-05-one-stack-v4-02-baseline/manifest.json",
+      "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-headline-before-20261106-05-one-stack-v4-02-baseline/spool"
+    ],
+    "exit_code": 0,
+    "wall_ns": 60443854810,
+    "user_seconds": 189.169099,
+    "system_seconds": 72.795824,
+    "peak_rss_bytes": 21174513664,
+    "minor_faults": 23185320,
+    "major_faults": 0
+  },
+  "physical_gpu_memory": {
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+    "samples": 400,
+    "errors": [],
+    "kernel_activity": {
+      "0": {
+        "samples": 200,
+        "mean_percent": 22.65,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 200,
+        "mean_percent": 25.425,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    },
+    "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
+    "peak_used_bytes": {
+      "0": 31597789184,
+      "1": 31587303424
+    }
+  },
+  "cuda_api": null,
+  "quiet_before_requests": [
+    {
+      "request_index": 0,
+      "quiet_scope": "bounded pod cgroup PSI during each one-second idle interval; no throttling during idle or inventory; exclusive GPU; observer PSI recorded separately; host load informational",
+      "resource_gate": "cgroup",
+      "load_max": 8.0,
+      "steal_max": 0.01,
+      "idle_pressure_max": 0.005,
+      "required_stable_samples": 5,
+      "samples": [
+        {
+          "elapsed_s": 1.044,
+          "loadavg": [
+            10.5732421875,
+            10.54541015625,
+            12.1025390625
+          ],
+          "cpu_steal_fraction": 0.0,
+          "blocking_processes": [],
+          "gpu_processes": [
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            },
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            }
+          ],
+          "cgroup": {
+            "known": true,
+            "monotonic_ns": 1244217657703188,
+            "cpu_max": "4080000 100000",
+            "cpu_pressure": {
+              "some": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 163218855
+              },
+              "full": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 159613142
+              }
+            },
+            "cpu_stat": {
+              "usage_usec": 661386147026,
+              "user_usec": 556528853705,
+              "system_usec": 104857293321,
+              "core_sched.force_idle_usec": 0,
+              "nr_periods": 1129878,
+              "nr_throttled": 11308,
+              "throttled_usec": 10804712662,
+              "nr_bursts": 0,
+              "burst_usec": 0
+            },
+            "host_loadavg": [
+              10.5732421875,
+              10.54541015625,
+              12.1025390625
+            ]
+          },
+          "cgroup_delta": {
+            "psi_some_total_us": 2428,
+            "psi_full_total_us": 2429,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "idle_pressure_fraction": 0.0024255288717167345,
+          "observer_cgroup_delta": {
+            "psi_some_total_us": 65,
+            "psi_full_total_us": 65,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "qualifies": true
+        },
+        {
+          "elapsed_s": 2.087,
+          "loadavg": [
+            10.5732421875,
+            10.54541015625,
+            12.1025390625
+          ],
+          "cpu_steal_fraction": 0.0,
+          "blocking_processes": [],
+          "gpu_processes": [
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            },
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            }
+          ],
+          "cgroup": {
+            "known": true,
+            "monotonic_ns": 1244218701932040,
+            "cpu_max": "4080000 100000",
+            "cpu_pressure": {
+              "some": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 163221273
+              },
+              "full": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 159615559
+              }
+            },
+            "cpu_stat": {
+              "usage_usec": 661386189819,
+              "user_usec": 556528863008,
+              "system_usec": 104857326810,
+              "core_sched.force_idle_usec": 0,
+              "nr_periods": 1129888,
+              "nr_throttled": 11308,
+              "throttled_usec": 10804712662,
+              "nr_bursts": 0,
+              "burst_usec": 0
+            },
+            "host_loadavg": [
+              10.5732421875,
+              10.54541015625,
+              12.1025390625
+            ]
+          },
+          "cgroup_delta": {
+            "psi_some_total_us": 2353,
+            "psi_full_total_us": 2352,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "idle_pressure_fraction": 0.0023496502211622,
+          "observer_cgroup_delta": {
+            "psi_some_total_us": 78,
+            "psi_full_total_us": 78,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "qualifies": true
+        },
+        {
+          "elapsed_s": 3.132,
+          "loadavg": [
+            10.12646484375,
+            10.453125,
+            12.06396484375
+          ],
+          "cpu_steal_fraction": 0.0,
+          "blocking_processes": [],
+          "gpu_processes": [
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            },
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            }
+          ],
+          "cgroup": {
+            "known": true,
+            "monotonic_ns": 1244219745972553,
+            "cpu_max": "4080000 100000",
+            "cpu_pressure": {
+              "some": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 163223689
+              },
+              "full": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 159617976
+              }
+            },
+            "cpu_stat": {
+              "usage_usec": 661386232538,
+              "user_usec": 556528869721,
+              "system_usec": 104857362817,
+              "core_sched.force_idle_usec": 0,
+              "nr_periods": 1129899,
+              "nr_throttled": 11308,
+              "throttled_usec": 10804712662,
+              "nr_bursts": 0,
+              "burst_usec": 0
+            },
+            "host_loadavg": [
+              10.12646484375,
+              10.453125,
+              12.06396484375
+            ]
+          },
+          "cgroup_delta": {
+            "psi_some_total_us": 2338,
+            "psi_full_total_us": 2339,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "idle_pressure_fraction": 0.0023354558523258615,
+          "observer_cgroup_delta": {
+            "psi_some_total_us": 106,
+            "psi_full_total_us": 106,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "qualifies": true
+        },
+        {
+          "elapsed_s": 4.179,
+          "loadavg": [
+            10.12646484375,
+            10.453125,
+            12.06396484375
+          ],
+          "cpu_steal_fraction": 0.0,
+          "blocking_processes": [],
+          "gpu_processes": [
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            },
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            }
+          ],
+          "cgroup": {
+            "known": true,
+            "monotonic_ns": 1244220790818684,
+            "cpu_max": "4080000 100000",
+            "cpu_pressure": {
+              "some": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 163225162
+              },
+              "full": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 159619448
+              }
+            },
+            "cpu_stat": {
+              "usage_usec": 661386275751,
+              "user_usec": 556528876006,
+              "system_usec": 104857399744,
+              "core_sched.force_idle_usec": 0,
+              "nr_periods": 1129909,
+              "nr_throttled": 11308,
+              "throttled_usec": 10804712662,
+              "nr_bursts": 0,
+              "burst_usec": 0
+            },
+            "host_loadavg": [
+              10.12646484375,
+              10.453125,
+              12.06396484375
+            ]
+          },
+          "cgroup_delta": {
+            "psi_some_total_us": 1367,
+            "psi_full_total_us": 1366,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "idle_pressure_fraction": 0.001365024931775964,
+          "observer_cgroup_delta": {
+            "psi_some_total_us": 137,
+            "psi_full_total_us": 138,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "qualifies": true
+        },
+        {
+          "elapsed_s": 5.225,
+          "loadavg": [
+            10.12646484375,
+            10.453125,
+            12.06396484375
+          ],
+          "cpu_steal_fraction": 0.0,
+          "blocking_processes": [],
+          "gpu_processes": [
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            },
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            }
+          ],
+          "cgroup": {
+            "known": true,
+            "monotonic_ns": 1244221838182760,
+            "cpu_max": "4080000 100000",
+            "cpu_pressure": {
+              "some": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 163227759
+              },
+              "full": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 159622046
+              }
+            },
+            "cpu_stat": {
+              "usage_usec": 661386321968,
+              "user_usec": 556528888350,
+              "system_usec": 104857433618,
+              "core_sched.force_idle_usec": 0,
+              "nr_periods": 1129920,
+              "nr_throttled": 11308,
+              "throttled_usec": 10804712662,
+              "nr_bursts": 0,
+              "burst_usec": 0
+            },
+            "host_loadavg": [
+              10.12646484375,
+              10.453125,
+              12.06396484375
+            ]
+          },
+          "cgroup_delta": {
+            "psi_some_total_us": 2460,
+            "psi_full_total_us": 2460,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "idle_pressure_fraction": 0.002456436472174182,
+          "observer_cgroup_delta": {
+            "psi_some_total_us": 204,
+            "psi_full_total_us": 204,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "qualifies": true
+        }
+      ],
+      "accepted": true,
+      "mode": "enforce",
+      "timing_qualified": true
+    },
+    {
+      "request_index": 1,
+      "quiet_scope": "bounded pod cgroup PSI during each one-second idle interval; no throttling during idle or inventory; exclusive GPU; observer PSI recorded separately; host load informational",
+      "resource_gate": "cgroup",
+      "load_max": 8.0,
+      "steal_max": 0.01,
+      "idle_pressure_max": 0.005,
+      "required_stable_samples": 5,
+      "samples": [
+        {
+          "elapsed_s": 1.044,
+          "loadavg": [
+            10.19580078125,
+            10.46630859375,
+            12.01806640625
+          ],
+          "cpu_steal_fraction": 0.0,
+          "blocking_processes": [],
+          "gpu_processes": [
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            },
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            }
+          ],
+          "cgroup": {
+            "known": true,
+            "monotonic_ns": 1244252685070664,
+            "cpu_max": "4080000 100000",
+            "cpu_pressure": {
+              "some": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 163237623
+              },
+              "full": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 159631343
+              }
+            },
+            "cpu_stat": {
+              "usage_usec": 661580219515,
+              "user_usec": 556674496195,
+              "system_usec": 104905723320,
+              "core_sched.force_idle_usec": 0,
+              "nr_periods": 1130228,
+              "nr_throttled": 11308,
+              "throttled_usec": 10804712662,
+              "nr_bursts": 0,
+              "burst_usec": 0
+            },
+            "host_loadavg": [
+              10.19580078125,
+              10.46630859375,
+              12.01806640625
+            ]
+          },
+          "cgroup_delta": {
+            "psi_some_total_us": 2213,
+            "psi_full_total_us": 2213,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "idle_pressure_fraction": 0.0022097243245488077,
+          "observer_cgroup_delta": {
+            "psi_some_total_us": 67,
+            "psi_full_total_us": 66,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "qualifies": true
+        },
+        {
+          "elapsed_s": 2.088,
+          "loadavg": [
+            10.19580078125,
+            10.46630859375,
+            12.01806640625
+          ],
+          "cpu_steal_fraction": 0.0,
+          "blocking_processes": [],
+          "gpu_processes": [
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            },
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            }
+          ],
+          "cgroup": {
+            "known": true,
+            "monotonic_ns": 1244253729484026,
+            "cpu_max": "4080000 100000",
+            "cpu_pressure": {
+              "some": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 163238615
+              },
+              "full": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 159632335
+              }
+            },
+            "cpu_stat": {
+              "usage_usec": 661580259156,
+              "user_usec": 556674498155,
+              "system_usec": 104905761001,
+              "core_sched.force_idle_usec": 0,
+              "nr_periods": 1130236,
+              "nr_throttled": 11308,
+              "throttled_usec": 10804712662,
+              "nr_bursts": 0,
+              "burst_usec": 0
+            },
+            "host_loadavg": [
+              10.19580078125,
+              10.46630859375,
+              12.01806640625
+            ]
+          },
+          "cgroup_delta": {
+            "psi_some_total_us": 925,
+            "psi_full_total_us": 926,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "idle_pressure_fraction": 0.0009245830662805113,
+          "observer_cgroup_delta": {
+            "psi_some_total_us": 84,
+            "psi_full_total_us": 83,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "qualifies": true
+        },
+        {
+          "elapsed_s": 3.133,
+          "loadavg": [
+            9.779296875,
+            10.37548828125,
+            11.97998046875
+          ],
+          "cpu_steal_fraction": 0.0,
+          "blocking_processes": [],
+          "gpu_processes": [
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            },
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            }
+          ],
+          "cgroup": {
+            "known": true,
+            "monotonic_ns": 1244254774083738,
+            "cpu_max": "4080000 100000",
+            "cpu_pressure": {
+              "some": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 163239403
+              },
+              "full": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 159633122
+              }
+            },
+            "cpu_stat": {
+              "usage_usec": 661580298290,
+              "user_usec": 556674504379,
+              "system_usec": 104905793910,
+              "core_sched.force_idle_usec": 0,
+              "nr_periods": 1130243,
+              "nr_throttled": 11308,
+              "throttled_usec": 10804712662,
+              "nr_bursts": 0,
+              "burst_usec": 0
+            },
+            "host_loadavg": [
+              9.779296875,
+              10.37548828125,
+              11.97998046875
+            ]
+          },
+          "cgroup_delta": {
+            "psi_some_total_us": 704,
+            "psi_full_total_us": 704,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "idle_pressure_fraction": 0.0007029721626089124,
+          "observer_cgroup_delta": {
+            "psi_some_total_us": 78,
+            "psi_full_total_us": 79,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "qualifies": true
+        },
+        {
+          "elapsed_s": 4.176,
+          "loadavg": [
+            9.779296875,
+            10.37548828125,
+            11.97998046875
+          ],
+          "cpu_steal_fraction": 0.0,
+          "blocking_processes": [],
+          "gpu_processes": [
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            },
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            }
+          ],
+          "cgroup": {
+            "known": true,
+            "monotonic_ns": 1244255818221910,
+            "cpu_max": "4080000 100000",
+            "cpu_pressure": {
+              "some": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 163241749
+              },
+              "full": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 159635468
+              }
+            },
+            "cpu_stat": {
+              "usage_usec": 661580336806,
+              "user_usec": 556674511612,
+              "system_usec": 104905825194,
+              "core_sched.force_idle_usec": 0,
+              "nr_periods": 1130250,
+              "nr_throttled": 11308,
+              "throttled_usec": 10804712662,
+              "nr_bursts": 0,
+              "burst_usec": 0
+            },
+            "host_loadavg": [
+              9.779296875,
+              10.37548828125,
+              11.97998046875
+            ]
+          },
+          "cgroup_delta": {
+            "psi_some_total_us": 2268,
+            "psi_full_total_us": 2267,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "idle_pressure_fraction": 0.0022660945045817433,
+          "observer_cgroup_delta": {
+            "psi_some_total_us": 60,
+            "psi_full_total_us": 61,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "qualifies": true
+        },
+        {
+          "elapsed_s": 5.219,
+          "loadavg": [
+            9.779296875,
+            10.37548828125,
+            11.97998046875
+          ],
+          "cpu_steal_fraction": 0.0,
+          "blocking_processes": [],
+          "gpu_processes": [
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            },
+            {
+              "pid": 2436615,
+              "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+              "belongs_to_service_or_guard": true
+            }
+          ],
+          "cgroup": {
+            "known": true,
+            "monotonic_ns": 1244256861566025,
+            "cpu_max": "4080000 100000",
+            "cpu_pressure": {
+              "some": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 163243814
+              },
+              "full": {
+                "avg10": 0.0,
+                "avg60": 0.0,
+                "avg300": 0.0,
+                "total": 159637533
+              }
+            },
+            "cpu_stat": {
+              "usage_usec": 661580367102,
+              "user_usec": 556674521039,
+              "system_usec": 104905846062,
+              "core_sched.force_idle_usec": 0,
+              "nr_periods": 1130260,
+              "nr_throttled": 11308,
+              "throttled_usec": 10804712662,
+              "nr_bursts": 0,
+              "burst_usec": 0
+            },
+            "host_loadavg": [
+              9.779296875,
+              10.37548828125,
+              11.97998046875
+            ]
+          },
+          "cgroup_delta": {
+            "psi_some_total_us": 2005,
+            "psi_full_total_us": 2004,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "idle_pressure_fraction": 0.002002169530931952,
+          "observer_cgroup_delta": {
+            "psi_some_total_us": 60,
+            "psi_full_total_us": 61,
+            "nr_throttled": 0,
+            "throttled_us": 0,
+            "known": true,
+            "quiet": false
+          },
+          "qualifies": true
+        }
+      ],
+      "accepted": true,
+      "mode": "enforce",
+      "timing_qualified": true
+    }
+  ],
+  "physical_budget_guard": null,
+  "service_overhead_s": 17.69,
+  "requests": [
+    {
+      "block": 24628607,
+      "trial": 0,
+      "ordinal": 0,
+      "proof": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-headline-before-20261106-05-one-stack-v4-02-baseline/spool/out/0000-24628607/24628607/proof",
+      "client_latency_ns": 29799503988,
+      "utc_window_ns": [
+        1793911340194769391,
+        1793911369994509809
+      ],
+      "marker": {
+        "request_wall_ns": 29795139967
+      },
+      "queue_ns": 5236780589,
+      "cpu_resource_before": {
+        "known": true,
+        "monotonic_ns": 1244221881709790,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 163227997
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 159622284
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 661386355627,
+          "user_usec": 556528890175,
+          "system_usec": 104857465451,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1129920,
+          "nr_throttled": 11308,
+          "throttled_usec": 10804712662,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          10.12646484375,
+          10.453125,
+          12.06396484375
+        ]
+      },
+      "cpu_resource_after": {
+        "known": true,
+        "monotonic_ns": 1244251681923457,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 163235410
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 159629130
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 661580208934,
+          "user_usec": 556674489820,
+          "system_usec": 104905719113,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1130218,
+          "nr_throttled": 11308,
+          "throttled_usec": 10804712662,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          10.19580078125,
+          10.46630859375,
+          12.01806640625
+        ]
+      },
+      "cpu_resource_delta": {
+        "psi_some_total_us": 7413,
+        "psi_full_total_us": 6846,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "stages": {
+        "request_wall_s": 29.795,
+        "phase_transition_s": 0.001,
+        "capture_s": 2.109,
+        "setup_s": 10.447,
+        "native_prove_s": 5.92,
+        "native_verify_s": 1.318,
+        "native_total_before_report_s": 18.597,
+        "recursion_s": 11.143
+      },
+      "setup_breakdown": {
+        "image_ns": 330142478,
+        "program_ns": 23364601,
+        "native_keys_ns": 1443689777,
+        "fixed_authority_ns": 8738106665
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 749688,
+      "leaves": 14,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "native_bins": false,
+        "bundle": false,
+        "recursive_tree": false,
+        "recursive_proofs": false,
+        "recursive_mismatched": [
+          "fold-000004.proof",
+          "fold-000009.proof",
+          "fold-000014.proof",
+          "fold-000017.proof",
+          "fold-000018.proof",
+          "leaf-000000.proof",
+          "leaf-000001.proof",
+          "leaf-000002.proof",
+          "leaf-000003.proof",
+          "leaf-000004.proof",
+          "leaf-000005.proof",
+          "leaf-000006.proof",
+          "leaf-000007.proof",
+          "leaf-000008.proof",
+          "leaf-000009.proof",
+          "leaf-000010.proof",
+          "leaf-000011.proof",
+          "leaf-000012.proof",
+          "leaf-000013.proof",
+          "root.proof"
+        ],
+        "root_sha256": "7ff7230162510c0df6bcde3d616cc5e2d4bbe0441beba025ff04e51d85b8ced9",
+        "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "proof_count": 20,
+        "native_mismatched": [
+          "cpu-0.bin",
+          "cpu-1.bin",
+          "cpu-2.bin",
+          "cpu-3.bin",
+          "cpu-4.bin",
+          "cpu-5.bin",
+          "cpu-6.bin",
+          "stage-one.bin",
+          "truth-0.bin",
+          "truth-1.bin",
+          "truth-2.bin",
+          "truth-3.bin",
+          "truth-4.bin",
+          "truth-5.bin",
+          "truth-6.bin",
+          "truth-7.bin",
+          "truth-8.bin",
+          "truth-9.bin"
+        ],
+        "byte_identical": false
+      }
+    },
+    {
+      "block": 24628607,
+      "trial": 1,
+      "ordinal": 1,
+      "proof": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-headline-before-20261106-05-one-stack-v4-02-baseline/spool/out/0001-24628607/24628607/proof",
+      "client_latency_ns": 12963072885,
+      "utc_window_ns": [
+        1793911375216647469,
+        1793911388179916944
+      ],
+      "marker": {
+        "request_wall_ns": 12958953514
+      },
+      "queue_ns": 5224957204,
+      "cpu_resource_before": {
+        "known": true,
+        "monotonic_ns": 1244256903523628,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 163243897
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 159637616
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 661580400115,
+          "user_usec": 556674526853,
+          "system_usec": 104905873261,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1130260,
+          "nr_throttled": 11308,
+          "throttled_usec": 10804712662,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          9.779296875,
+          10.37548828125,
+          11.97998046875
+        ]
+      },
+      "cpu_resource_after": {
+        "known": true,
+        "monotonic_ns": 1244269867264652,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 163249015
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 159642717
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 661649218637,
+          "user_usec": 556717473923,
+          "system_usec": 104931744713,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1130390,
+          "nr_throttled": 11308,
+          "throttled_usec": 10804712662,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          9.8076171875,
+          10.35595703125,
+          11.9482421875
+        ]
+      },
+      "cpu_resource_delta": {
+        "psi_some_total_us": 5118,
+        "psi_full_total_us": 5101,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "stages": {
+        "request_wall_s": 12.959,
+        "phase_transition_s": 0.002,
+        "capture_s": 2.136,
+        "setup_s": 0.141,
+        "native_prove_s": 4.813,
+        "native_verify_s": 1.514,
+        "native_total_before_report_s": 7.218,
+        "recursion_s": 5.715
+      },
+      "setup_breakdown": {
+        "image_ns": 85932842,
+        "program_ns": 517059,
+        "native_keys_ns": 3373003,
+        "fixed_authority_ns": 12320
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 749688,
+      "leaves": 14,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "native_bins": false,
+        "bundle": false,
+        "recursive_tree": false,
+        "recursive_proofs": false,
+        "recursive_mismatched": [
+          "fold-000004.proof",
+          "fold-000009.proof",
+          "fold-000014.proof",
+          "fold-000017.proof",
+          "fold-000018.proof",
+          "leaf-000000.proof",
+          "leaf-000001.proof",
+          "leaf-000002.proof",
+          "leaf-000003.proof",
+          "leaf-000004.proof",
+          "leaf-000005.proof",
+          "leaf-000006.proof",
+          "leaf-000007.proof",
+          "leaf-000008.proof",
+          "leaf-000009.proof",
+          "leaf-000010.proof",
+          "leaf-000011.proof",
+          "leaf-000012.proof",
+          "leaf-000013.proof",
+          "root.proof"
+        ],
+        "root_sha256": "7ff7230162510c0df6bcde3d616cc5e2d4bbe0441beba025ff04e51d85b8ced9",
+        "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "proof_count": 20,
+        "native_mismatched": [
+          "cpu-0.bin",
+          "cpu-1.bin",
+          "cpu-2.bin",
+          "cpu-3.bin",
+          "cpu-4.bin",
+          "cpu-5.bin",
+          "cpu-6.bin",
+          "stage-one.bin",
+          "truth-0.bin",
+          "truth-1.bin",
+          "truth-2.bin",
+          "truth-3.bin",
+          "truth-4.bin",
+          "truth-5.bin",
+          "truth-6.bin",
+          "truth-7.bin",
+          "truth-8.bin",
+          "truth-9.bin"
+        ],
+        "byte_identical": false
+      }
+    }
+  ],
+  "receivers": [
+    {
+      "block": 24628607,
+      "proof": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-headline-before-20261106-05-one-stack-v4-02-baseline/spool/out/0000-24628607/24628607/proof",
+      "status": "accepted",
+      "accepted": true,
+      "receiver_sha256": "69bc6baa0fb089555fd88d61346811fe894d9030f9c7edfc55148d72f0c5e8e8",
+      "process": {
+        "argv": [
+          "nice",
+          "-n",
+          "10",
+          "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-recursion-candidate",
+          "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-headline-before-20261106-05-one-stack-v4-02-baseline/receiver-24628607-0000-24628607-20261105T205020/receiver-request.json",
+          "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-headline-before-20261106-05-one-stack-v4-02-baseline/spool/out/0000-24628607/24628607/proof",
+          "12884901888",
+          "34359738368"
+        ],
+        "exit_code": 0,
+        "wall_ns": 39977802869,
+        "user_seconds": 190.784404,
+        "system_seconds": 11.769339,
+        "peak_rss_bytes": 7562010624,
+        "minor_faults": 4914195,
+        "major_faults": 0
+      },
+      "directory": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-headline-before-20261106-05-one-stack-v4-02-baseline/receiver-24628607-0000-24628607-20261105T205020",
+      "isolation": {
+        "CUDA_VISIBLE_DEVICES": "",
+        "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+        "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+        "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+        "STWO_RV64_FOLD_CLASS_CACHE": "0"
+      },
+      "trial": 0,
+      "store_present_during_receive": false
+    },
+    {
+      "block": 24628607,
+      "proof": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-headline-before-20261106-05-one-stack-v4-02-baseline/spool/out/0001-24628607/24628607/proof",
+      "status": "accepted",
+      "accepted": true,
+      "receiver_sha256": "69bc6baa0fb089555fd88d61346811fe894d9030f9c7edfc55148d72f0c5e8e8",
+      "process": {
+        "argv": [
+          "nice",
+          "-n",
+          "10",
+          "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-recursion-candidate",
+          "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-headline-before-20261106-05-one-stack-v4-02-baseline/receiver-24628607-0001-24628607-20261105T205100/receiver-request.json",
+          "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-headline-before-20261106-05-one-stack-v4-02-baseline/spool/out/0001-24628607/24628607/proof",
+          "12884901888",
+          "34359738368"
+        ],
+        "exit_code": 0,
+        "wall_ns": 39677600995,
+        "user_seconds": 186.776958,
+        "system_seconds": 11.167187,
+        "peak_rss_bytes": 7563575296,
+        "minor_faults": 4903435,
+        "major_faults": 0
+      },
+      "directory": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-headline-before-20261106-05-one-stack-v4-02-baseline/receiver-24628607-0001-24628607-20261105T205100",
+      "isolation": {
+        "CUDA_VISIBLE_DEVICES": "",
+        "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+        "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+        "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+        "STWO_RV64_FOLD_CLASS_CACHE": "0"
+      },
+      "trial": 1,
+      "store_present_during_receive": false
+    }
+  ],
+  "all_received": true
+}

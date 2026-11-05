@@ -53,6 +53,9 @@ test {
     _ = session_context;
     _ = real_composition;
     _ = resident_composition;
+    _ = @import("composition_columns.zig");
+    _ = @import("trace_input_reuse.zig");
+    _ = @import("composition_cost.zig");
     _ = dword_witness;
     _ = samples;
     _ = fri;

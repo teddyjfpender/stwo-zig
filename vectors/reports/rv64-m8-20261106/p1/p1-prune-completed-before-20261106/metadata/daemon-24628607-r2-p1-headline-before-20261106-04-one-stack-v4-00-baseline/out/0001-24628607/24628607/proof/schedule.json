@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "indexing": "array index is original worker ordinal",
+  "time_basis": "nanoseconds from each phase schedule start; stage1/stage2 origins distinct",
+  "stage1": [
+    {
+      "lane": 0,
+      "workers": 2,
+      "estimate_bytes": 11291273472,
+      "claimed_ns": 1863906,
+      "started_ns": 1864626,
+      "finished_ns": 1005062858,
+      "in_flight_bytes_at_start": 11291273472
+    },
+    {
+      "lane": 1,
+      "workers": 2,
+      "estimate_bytes": 10683885312,
+      "claimed_ns": 700565500,
+      "started_ns": 700565850,
+      "finished_ns": 1185565720,
+      "in_flight_bytes_at_start": 32661049344
+    },
+    {
+      "lane": 2,
+      "workers": 2,
+      "estimate_bytes": 10710518784,
+      "claimed_ns": 4350231,
+      "started_ns": 4351071,
+      "finished_ns": 587533981,
+      "in_flight_bytes_at_start": 34641851648
+    },
+    {
+      "lane": 1,
+      "workers": 2,
+      "estimate_bytes": 10735558400,
+      "claimed_ns": 194316033,
+      "started_ns": 194316353,
+      "finished_ns": 700565090,
+      "in_flight_bytes_at_start": 32737350656
+    },
+    {
+      "lane": 2,
+      "workers": 2,
+      "estimate_bytes": 10685890560,
+      "claimed_ns": 587534471,
+      "started_ns": 587534741,
+      "finished_ns": 1250856707,
+      "in_flight_bytes_at_start": 32712722432
+    },
+    {
+      "lane": 3,
+      "workers": 2,
+      "estimate_bytes": 10805965312,
+      "claimed_ns": 4777890,
+      "started_ns": 1275867656,
+      "finished_ns": 1743839421,
+      "in_flight_bytes_at_start": 38388123648
+    },
+    {
+      "lane": 0,
+      "workers": 2,
+      "estimate_bytes": 9967654400,
+      "claimed_ns": 1005063368,
+      "started_ns": 1005063648,
+      "finished_ns": 1674584552,
+      "in_flight_bytes_at_start": 31337430272
+    },
+    {
+      "lane": 1,
+      "workers": 2,
+      "estimate_bytes": 12640059392,
+      "claimed_ns": 3028993,
+      "started_ns": 3029823,
+      "finished_ns": 194315333,
+      "in_flight_bytes_at_start": 23931332864
+    },
+    {
+      "lane": 2,
+      "workers": 2,
+      "estimate_bytes": 8859287552,
+      "claimed_ns": 1250857427,
+      "started_ns": 1250857807,
+      "finished_ns": 1274848078,
+      "in_flight_bytes_at_start": 29450589696
+    },
+    {
+      "lane": 1,
+      "workers": 2,
+      "estimate_bytes": 10623647744,
+      "claimed_ns": 1185566190,
+      "started_ns": 1185566530,
+      "finished_ns": 1275856106,
+      "in_flight_bytes_at_start": 31277192704
+    },
+    {
+      "lane": 2,
+      "workers": 2,
+      "estimate_bytes": 8834908160,
+      "claimed_ns": 1274848838,
+      "started_ns": 1274849208,
+      "finished_ns": 1312461911,
+      "in_flight_bytes_at_start": 29426210304
+    },
+    {
+      "lane": 1,
+      "workers": 2,
+      "estimate_bytes": 8779595776,
+      "claimed_ns": 1275856606,
+      "started_ns": 1275856966,
+      "finished_ns": 1301476114,
+      "in_flight_bytes_at_start": 27582158336
+    },
+    {
+      "lane": 2,
+      "workers": 2,
+      "estimate_bytes": 8832712704,
+      "claimed_ns": 1312462431,
+      "started_ns": 1312463041,
+      "finished_ns": 1328738578,
+      "in_flight_bytes_at_start": 29606332416
+    },
+    {
+      "lane": 1,
+      "workers": 2,
+      "estimate_bytes": 8591577088,
+      "claimed_ns": 1301476814,
+      "started_ns": 1301477074,
+      "finished_ns": 1302580491,
+      "in_flight_bytes_at_start": 38200104960
+    }
+  ],
+  "stage2": [
+    {
+      "lane": 0,
+      "workers": 2,
+      "estimate_bytes": 11292655872,
+      "claimed_ns": 549848,
+      "started_ns": 550558,
+      "finished_ns": 601997551,
+      "in_flight_bytes_at_start": 11292655872
+    },
+    {
+      "lane": 3,
+      "workers": 2,
+      "estimate_bytes": 10684115712,
+      "claimed_ns": 1321221333,
+      "started_ns": 1321221593,
+      "finished_ns": 2200631539,
+      "in_flight_bytes_at_start": 31387731712
+    },
+    {
+      "lane": 2,
+      "workers": 2,
+      "estimate_bytes": 10710749184,
+      "claimed_ns": 20387858,
+      "started_ns": 1786966383,
+      "finished_ns": 2172654536,
+      "in_flight_bytes_at_start": 32022173440
+    },
+    {
+      "lane": 1,
+      "workers": 2,
+      "estimate_bytes": 10735833600,
+      "claimed_ns": 1226611436,
+      "started_ns": 1226611786,
+      "finished_ns": 1679156043,
+      "in_flight_bytes_at_start": 31510963712
+    },
+    {
+      "lane": 0,
+      "workers": 2,
+      "estimate_bytes": 10686120960,
+      "claimed_ns": 601997921,
+      "started_ns": 601998251,
+      "finished_ns": 955991229,
+      "in_flight_bytes_at_start": 34137188864
+    },
+    {
+      "lane": 3,
+      "workers": 2,
+      "estimate_bytes": 10807347712,
+      "claimed_ns": 19669329,
+      "started_ns": 19669839,
+      "finished_ns": 1321220783,
+      "in_flight_bytes_at_start": 34743723776
+    },
+    {
+      "lane": 0,
+      "workers": 2,
+      "estimate_bytes": 9967782400,
+      "claimed_ns": 955991659,
+      "started_ns": 955991969,
+      "finished_ns": 1382769458,
+      "in_flight_bytes_at_start": 33418850304
+    },
+    {
+      "lane": 1,
+      "workers": 2,
+      "estimate_bytes": 12643720192,
+      "claimed_ns": 2199745,
+      "started_ns": 2200575,
+      "finished_ns": 1226610776,
+      "in_flight_bytes_at_start": 23936376064
+    },
+    {
+      "lane": 0,
+      "workers": 2,
+      "estimate_bytes": 8862948352,
+      "claimed_ns": 1382770008,
+      "started_ns": 1382770198,
+      "finished_ns": 1568837318,
+      "in_flight_bytes_at_start": 30282897664
+    },
+    {
+      "lane": 1,
+      "workers": 2,
+      "estimate_bytes": 10627308544,
+      "claimed_ns": 1679156463,
+      "started_ns": 1679156693,
+      "finished_ns": 2340971512,
+      "in_flight_bytes_at_start": 30146553252
+    },
+    {
+      "lane": 0,
+      "workers": 2,
+      "estimate_bytes": 8835128996,
+      "claimed_ns": 1568837778,
+      "started_ns": 1568838138,
+      "finished_ns": 1706677397,
+      "in_flight_bytes_at_start": 30255078308
+    },
+    {
+      "lane": 3,
+      "workers": 2,
+      "estimate_bytes": 8779771084,
+      "claimed_ns": 2200632299,
+      "started_ns": 2200632529,
+      "finished_ns": 2388645315,
+      "in_flight_bytes_at_start": 19407079628
+    },
+    {
+      "lane": 0,
+      "workers": 2,
+      "estimate_bytes": 8832728993,
+      "claimed_ns": 1706678087,
+      "started_ns": 1706678377,
+      "finished_ns": 1786912613,
+      "in_flight_bytes_at_start": 30144153249
+    },
+    {
+      "lane": 1,
+      "workers": 2,
+      "estimate_bytes": 8591625972,
+      "claimed_ns": 2340972142,
+      "started_ns": 2340972382,
+      "finished_ns": 2369408534,
+      "in_flight_bytes_at_start": 17371397056
+    }
+  ]
+}

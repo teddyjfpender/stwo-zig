@@ -1,0 +1,95 @@
+{
+  "files": [
+    {
+      "relative": "p1-inter-reuse-profile-retry-20261106-01/artifact.json",
+      "bytes": 1114630,
+      "sha256": "d3159c8c4125bbaa1da440bd3abf5ef030657998129a1e9ccdf7bfa9e0751d07"
+    },
+    {
+      "relative": "p1-inter-reuse-profile-retry-20261106-01/experiment.json",
+      "bytes": 4439,
+      "sha256": "6dd6747426c9b120d2fc7ef8e00178ade97793f0d3ca9663f3659ac5905562cb"
+    },
+    {
+      "relative": "p1-inter-reuse-profile-retry-20261106-01/6-baseline.log",
+      "bytes": 700,
+      "sha256": "9a512ff8ef64517e08b3cf25a85058e07dcdd695ac13247292bea5f10ba854d3"
+    },
+    {
+      "relative": "p1-inter-reuse-profile-retry-20261106-01/operator-stop.json",
+      "bytes": 257,
+      "sha256": "4c03211978000382c44ffe48a56a9d5c006023f0d039a3c7ec5b2570068d93e1"
+    },
+    {
+      "relative": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-01-06-baseline/request-24628607.json",
+      "bytes": 1212,
+      "sha256": "4e229f1f0e2b84de4b9cb75f3f3fe9d0a2b5482700d29b7be06fa4eec6ffd0a3"
+    },
+    {
+      "relative": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-01-06-baseline/manifest.json",
+      "bytes": 1555,
+      "sha256": "dad7836ececaca6df419f2973a76c334887c8dc2a605a8cd879812bd88e7a23f"
+    },
+    {
+      "relative": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-01-06-baseline/plan.json",
+      "bytes": 9945,
+      "sha256": "5a10a39dbcfab3f9215f88407451de505dc37727476c145d0fef0424504fe37c"
+    },
+    {
+      "relative": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-01-06-baseline/producer.stdout",
+      "bytes": 974,
+      "sha256": "9643e230fd60028bf60b5afac3ff9c1a8035df13213d8b37188ae21662939657"
+    },
+    {
+      "relative": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-01-06-baseline/producer.stderr",
+      "bytes": 7863,
+      "sha256": "6d71e702db9b22538c8bbd5fb29ed41a415c1d8741966a33dba1a593ce9dd277"
+    },
+    {
+      "relative": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-01-06-baseline/loaded-native-runtime.json",
+      "bytes": 278,
+      "sha256": "d470ac24870632ad71fd69307fbd01c246ed64b28c36d641041ff2ea39db3f57"
+    },
+    {
+      "relative": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-01-06-baseline/quiet-0000.json",
+      "bytes": 522922,
+      "sha256": "c3b325fbaafe369b88fd9c627b9415aa8cf096c0a930a8e9d0c7f5234a0a9d1a"
+    },
+    {
+      "relative": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-01-06-baseline/resource-final.json",
+      "bytes": 18529,
+      "sha256": "a8634c269c3478f567a7213ea9ace6687b7445cdecdc9b6e04b5bb5d0ef783c6"
+    },
+    {
+      "relative": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-01-06-baseline/spool/resident-device-fixed-manifest.json",
+      "bytes": 1555,
+      "sha256": "dad7836ececaca6df419f2973a76c334887c8dc2a605a8cd879812bd88e7a23f"
+    },
+    {
+      "relative": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-01-06-baseline/spool/resident-ready-manifest.json",
+      "bytes": 1555,
+      "sha256": "dad7836ececaca6df419f2973a76c334887c8dc2a605a8cd879812bd88e7a23f"
+    },
+    {
+      "relative": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-01-06-baseline/spool/READY",
+      "bytes": 73,
+      "sha256": "faf61ed9bf4a658e43b542c1009dbf0232fb0abe1968c8aaa924fba70ca6c537"
+    },
+    {
+      "relative": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-01-06-baseline/nsys/timeline.nsys-rep",
+      "bytes": 167002,
+      "sha256": "61255077018b63ee050c7f6e9c16969098977efaa1ef52ee88896abfe5d75dbd"
+    },
+    {
+      "relative": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-01-06-baseline/spool/inbox/STOP",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative": "rv64_m4_resident.py",
+      "bytes": 63078,
+      "sha256": "076f0a3b7de9dcf92bdd06a299b71871b209cdf3e25f28ac6e2f5c4aa50b2ee7"
+    }
+  ],
+  "scope": "No requests submitted; Nsight launched but quiet gate rejected own child process group; gracefully stopped via spool"
+}

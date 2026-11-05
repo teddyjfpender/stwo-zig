@@ -1,0 +1,17 @@
+{
+  "base_commit": "df01fd929673e09c3871e61fb6aa0a0623bc123c",
+  "source_commit": "df01fd929673e09c3871e61fb6aa0a0623bc123c+p1-columns-v1",
+  "files": {
+    "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json": "aeb1777557ea15efa10a03454240e656079cef799cfdbe1ec84e5cef481895b2",
+    "design/riscv-proving-stack/rv64-m8-engineering-scope.md": "a36ed8867f576afdf05bed563f7cec9b913efd9422e5e722b26d6525fbef15e7",
+    "scripts/rv64_ethereum_basket.py": "c6f15d15140bfae6625cf8f4d915d8d1efb41964e3bebe5201be7b72055503a2",
+    "scripts/rv64_gate.py": "ce2c18b48e0fdc877b62d35fbab12325995e5d66eb5db50250cb4d71c05c9628",
+    "scripts/rv64_m4_resident.py": "a413232cd99555cc48a0af0a4b2af9312f360d2c2193f5f461d3f0dd6e7951ff",
+    "scripts/rv64_m7_integration_stack.py": "166e8873d1d6d5b2845ebe0a132e9bb750107ba9ee54b1a033f7fb156a41e3ee",
+    "scripts/tests/test_rv64_quiet_checkpoint.py": "35e575d53672e44072dbf84632cef4930f4b36e7cebe47c3d7882eea60b8cfa2",
+    "src/integrations/riscv_cuda/rv64/composition_columns.zig": "af226642c9aa5b2b21c39b529d4b67f2f88c23048e588928179276adb92f93cd",
+    "src/integrations/riscv_cuda/rv64/composition_cost.zig": "1ff2f4181bf9d35d96193741e87e9f68f2458434ecdaaea131040180e3790fe5",
+    "src/integrations/riscv_cuda/rv64/mod.zig": "188930c1359d9be3ff79984214843b5ea6223215eb85e6974e7f1d82179e559f",
+    "src/integrations/riscv_cuda/rv64/resident_composition.zig": "a1ad2fe1040d6b35e95dfecf3b9ae66981fdbde3115b4a11e5257ecc71ef5288"
+  }
+}

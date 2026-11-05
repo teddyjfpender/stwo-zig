@@ -97,6 +97,7 @@ def command(manifest, arm, round_index, run_root, profile, label="one-stack"):
             '--driver', assets['driver'], '--library', assets['library'], '--receiver', assets['receiver'],
             '--tag', tag, '--no-default-env', '--recursion-max-pending-authorities', str(preset['operational'][arm]['recursion_max_pending_authorities']), '--quiet-load-max', str(preset['measurement']['quiet_load_max']),
             '--quiet-steal-max', str(preset['measurement']['quiet_steal_max']), '--quiet-resource', preset['measurement'].get('quiet_resource', 'host-load'),
+            '--quiet-pressure-max', str(preset['measurement'].get('quiet_pressure_max', 0.0)),
             '--quiet-timeout', str(preset['measurement']['quiet_timeout_s']),
             '--quiet-stable-samples', str(preset['measurement']['quiet_stable_samples'])]
     if arm == 'fullstack':
@@ -166,7 +167,7 @@ def run(args):
     for index, arm in enumerate(result['order']):
         validate_manifest(manifest)
         profile = not args.smoke and index >= 6
-        argv, tag = command(manifest, arm, index, stream, profile, (('one-stack-v5-global0-smoke' if args.global_admission_off_diagnostic else 'one-stack-v5-smoke') if args.smoke else 'one-stack-v4'))
+        argv, tag = command(manifest, arm, index, stream, profile, output.name + '-' + (('one-stack-v5-global0-smoke' if args.global_admission_off_diagnostic else 'one-stack-v5-smoke') if args.smoke else 'one-stack-v4'))
         seed = None
         if args.smoke:
             argv += ['--quiet-mode', 'diagnostic', '--request-timeout', str(args.smoke_request_timeout), '--env', 'STWO_RV64_CAPTURE_DIGEST=1']

@@ -1,0 +1,66 @@
+{
+  "schema": "rv64-m8-p1-memory-hypothesis/v1",
+  "before_first_pair": {
+    "baseline": {
+      "request_s": 12.69009934,
+      "recursion_s": 5.663,
+      "native_s": 4.586,
+      "capture_s": 2.081,
+      "setup_s": 0.132
+    },
+    "fullstack": {
+      "request_s": 13.630300007,
+      "recursion_s": 6.123,
+      "native_s": 5.096,
+      "capture_s": 2.059,
+      "setup_s": 0.151
+    },
+    "root_proof_bytes": 749688,
+    "payload_byte_parity": true,
+    "status": "MEASURED_SINGLE_PAIR_NOT_FINAL_MEDIAN"
+  },
+  "before_failure": {
+    "status": "MEASURED_HEADLINE_WARM_CAPACITY_REFUSAL",
+    "service_order_index": 3,
+    "error": "NativePostGlobalDrainUnavailable",
+    "quiet_admitted": true,
+    "ordinal": 17,
+    "stage": "trace_commit",
+    "required_large_bytes": 23219666944,
+    "capacity_large_bytes": 23085449216,
+    "max_future_large_bytes": 12046041088,
+    "footprint_status": "ADMISSION_MODEL_NOT_OBSERVED_NODE_PEAK",
+    "full_3_plus_3_completed": false,
+    "note": "First fullstack service completed cold+warm; second failed warm. Completed-service CPU receivers were launched separately after timing stopped."
+  },
+  "created_ns": 1793913385747023000,
+  "status": "LOCAL_IMPLEMENTATION_UNBUILT_UNQUALIFIED",
+  "before_source": "p1-headline-before-20261106-05; incomplete 3+3; all six completed cold/warm proofs freshly accepted",
+  "rejected_predecessor": "rejected-coset-v1/result.json",
+  "hypothesis": {
+    "work": "Pack only referenced outer-role columns on the original full evaluation domain. Keep kernels, row masks, denominators, powers and global bucket unchanged.",
+    "time_removed": "Estimate 0.3-1.5 seconds from the measured 6.123-second fullstack recursion window, predominantly by reducing capacity waits and enabling sibling overlap. FFT traffic alone is unlikely to remove even 0.3 seconds. Failure to improve is plausible because whole-node live state still exceeds the role arena.",
+    "success_bar": "Positive matched whole-request change versus default; first fullstack pair was 0.9402 seconds slower. No benefit claimed before timing. Exact per-node peak <=11e9 bytes remains separate.",
+    "arena_estimate": {
+      "status": "DERIVED_ROLE_WORKSPACE_NOT_NODE_PEAK",
+      "trace_log": 23,
+      "eval_log": 24,
+      "original_columns": 167,
+      "active_columns": 116,
+      "before_bytes": 11240738728,
+      "after_bytes": 7818182656
+    }
+  },
+  "candidate_boundary": {
+    "flag": "STWO_RV64_RC_COMPOSITION_COLUMNS=1; default off",
+    "eligible": "outer only; eval_log>=20; no auxiliaries; all columns direct resident; enqueue; no shared role arena; fewer referenced columns than original",
+    "mapping": "Authenticated (tree,column) deduplication, shared packed slab tree bases, per-mask packed slot offsets; row shifts and full domain unchanged. Scope/token/generation validation before each merged source run.",
+    "cost": "Source-class and runtime agree on selected count, full-domain slab, twiddles, selected logs, full global bucket and retained metadata.",
+    "timing": "Original separate FFT and row event spans; profile pair excluded from request medians."
+  },
+  "validation": {
+    "preflight": "Selection alias/tree tests, exact allocation/lifetime model test on measured trace23/eval24 geometry, existing five Zig unit targets and production build on pod.",
+    "gpu": "Small canonical smoke with full capture digest, exact artifact parity, fresh CPU receivers; then canonical headline interleaved3+3 and separate ownership pair. No next memory feature before measurement.",
+    "commit": "Full rv64_gate.sh and ledger/scope update before commit and push."
+  }
+}

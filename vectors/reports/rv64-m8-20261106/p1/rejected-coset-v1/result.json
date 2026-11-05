@@ -1,0 +1,11 @@
+{
+  "status": "STATIC_FALSIFICATION_NOT_GPU_MEASURED",
+  "reason": "Largest measured outer Blake roles use trace_log23/eval_log24, not the trace_log22/eval_log24 assumed by the prototype. The new path requires rl+2, so it cannot shrink the 11.240738728GB bottleneck. Unit/model pass and production build are not applicability or performance evidence.",
+  "evidence": [
+    "CUDA_OUTER_AUTHORITY ordinal=9 row_logs={16,23,20,21,23,16,20,8,14,18,16}",
+    "GPU_COMPOSITION_ARENA ordinal=9 role=4 arena_words=2810184682 legacy_arena_words=4211082218 direct_columns=167 columns=167 eval_log=24"
+  ],
+  "source": "p1-premeasurement-evidence-20261106/daemon-26235156-r2-p1-small-20261106-01-one-stack-v5-smoke-01-fullstack/producer.stderr",
+  "preflight": "/workspace/m3/runs/m7-integrate/p1-coset-preflight-20261106-01",
+  "next": "Remove unused columns on the actual full domain first, default off; keep all row masks and numerical kernels unchanged. Per-node11GB target remains open."
+}

@@ -7,6 +7,7 @@ const std = @import("std");
 const F = @import("global_admission.zig").Footprint;
 
 pub const Input = struct {
+    reuse_inter_inputs: bool = false,
     main_evaluations: F,
     inter_evaluations: F,
     main_commit_peak: F,
@@ -36,8 +37,10 @@ pub fn subtract(a: F, b: F) F {
 }
 pub fn init(i: Input) !Plan {
     const tail = i.composition_peak.max(try i.composition_retained.add(i.pcs_peak));
-    const tc_future = subtract(tail, i.inter_evaluations);
-    const inter_next = i.inter_commit_peak.max(try i.inter_coefficients.add(tc_future));
+    // Reused evaluations remain live as coefficients, including padding.
+    // They earn no retirement discount and allocate no replacement owner.
+    const tc_future = if (i.reuse_inter_inputs) tail else subtract(tail, i.inter_evaluations);
+    const inter_next = i.inter_commit_peak.max(if (i.reuse_inter_inputs) tc_future else try i.inter_coefficients.add(tc_future));
     const interaction_future = subtract(inter_next, i.main_evaluations);
     const main_future = i.interaction_peak.max(try i.inter_evaluations.add(interaction_future));
     return .{
@@ -106,4 +109,14 @@ test "retirement never discounts coefficients or permanent owners" {
     try std.testing.expectEqual(fp(15), p.after_interaction);
     try std.testing.expectEqual(fp(24), p.after_main);
     try std.testing.expectEqual(fp(28), p.after_source);
+}
+
+test "reused INTER inputs stay charged through composition and PCS" {
+    const i = Input{ .reuse_inter_inputs = true, .main_evaluations = fp(4), .inter_evaluations = fp(9), .main_commit_peak = fp(7), .main_coefficients = fp(4), .interaction_peak = fp(11), .inter_commit_peak = fp(3), .inter_coefficients = fp(8), .composition_peak = fp(20), .composition_retained = fp(2), .pcs_peak = fp(16) };
+    const p = try init(i);
+    try std.testing.expectEqual(fp(20), p.after_inter_commit);
+    try std.testing.expectEqual(fp(20), p.inter_commit_after_release);
+    try std.testing.expectEqual(fp(20), p.interaction_after_release);
+    // MAIN coeff4 + INTER allocation9 (including padding) + composition20.
+    try std.testing.expectEqual(fp(33), try i.main_evaluations.add(p.after_source));
 }

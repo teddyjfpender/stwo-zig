@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/workspace/m3/src/m7-integrate/scripts/rv64_m4_resident.py", line 1025, in <module>
+    main()
+  File "/workspace/m3/src/m7-integrate/scripts/rv64_m4_resident.py", line 1011, in main
+    daemon(args)
+  File "/workspace/m3/src/m7-integrate/scripts/rv64_m4_resident.py", line 630, in daemon
+    quiet_records.append(quiet_checkpoint(process, args, run, index, guard))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/m3/src/m7-integrate/scripts/rv64_m4_resident.py", line 479, in quiet_checkpoint
+    time.sleep(1)
+KeyboardInterrupt

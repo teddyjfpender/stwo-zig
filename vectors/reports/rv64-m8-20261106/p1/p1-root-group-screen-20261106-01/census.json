@@ -1,0 +1,763 @@
+{
+  "schema": "rv64-static-root-column-census/v1",
+  "status": "STATIC_ONLY_NO_NEW_KERNEL_OR_GPU_RUN",
+  "scope": "SSA input-mask dependencies in pinned generated role kernels; mask counts may overcount shifted aliases; no semantic or byte proof claim.",
+  "roles": [
+    {
+      "role": 4,
+      "file": "/workspace/m3/catalogues-v3/outer/outer-group-4.cu",
+      "sha256": "f6635e7465b99dfc487efc5dff03a7fddb8ce41795d3aaabba9e946b0d00280e",
+      "root_count": 16,
+      "union_masks": 116,
+      "root_mask_counts": [
+        4,
+        8,
+        4,
+        8,
+        5,
+        10,
+        3,
+        6,
+        14,
+        22,
+        22,
+        22,
+        25,
+        25,
+        25,
+        25
+      ],
+      "roots": [
+        {
+          "power_word_offset": 120,
+          "node": 66,
+          "input_masks": [
+            0,
+            2,
+            8,
+            20
+          ]
+        },
+        {
+          "power_word_offset": 112,
+          "node": 75,
+          "input_masks": [
+            0,
+            1,
+            2,
+            3,
+            8,
+            9,
+            20,
+            21
+          ]
+        },
+        {
+          "power_word_offset": 104,
+          "node": 95,
+          "input_masks": [
+            4,
+            28,
+            29,
+            30
+          ]
+        },
+        {
+          "power_word_offset": 96,
+          "node": 103,
+          "input_masks": [
+            4,
+            5,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31
+          ]
+        },
+        {
+          "power_word_offset": 88,
+          "node": 125,
+          "input_masks": [
+            10,
+            12,
+            20,
+            37,
+            38
+          ]
+        },
+        {
+          "power_word_offset": 80,
+          "node": 134,
+          "input_masks": [
+            10,
+            11,
+            12,
+            13,
+            20,
+            21,
+            36,
+            37,
+            38,
+            39
+          ]
+        },
+        {
+          "power_word_offset": 72,
+          "node": 153,
+          "input_masks": [
+            16,
+            18,
+            30
+          ]
+        },
+        {
+          "power_word_offset": 64,
+          "node": 161,
+          "input_masks": [
+            16,
+            17,
+            18,
+            19,
+            30,
+            31
+          ]
+        },
+        {
+          "power_word_offset": 56,
+          "node": 449,
+          "input_masks": [
+            6,
+            20,
+            22,
+            24,
+            26,
+            27,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        {
+          "power_word_offset": 48,
+          "node": 458,
+          "input_masks": [
+            7,
+            21,
+            23,
+            25,
+            28,
+            29,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67
+          ]
+        },
+        {
+          "power_word_offset": 40,
+          "node": 467,
+          "input_masks": [
+            2,
+            30,
+            32,
+            34,
+            36,
+            37,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75
+          ]
+        },
+        {
+          "power_word_offset": 32,
+          "node": 476,
+          "input_masks": [
+            3,
+            31,
+            33,
+            35,
+            38,
+            39,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83
+          ]
+        },
+        {
+          "power_word_offset": 24,
+          "node": 485,
+          "input_masks": [
+            13,
+            18,
+            26,
+            27,
+            40,
+            41,
+            42,
+            43,
+            44,
+            76,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89,
+            90,
+            91
+          ]
+        },
+        {
+          "power_word_offset": 16,
+          "node": 494,
+          "input_masks": [
+            12,
+            19,
+            28,
+            29,
+            40,
+            41,
+            42,
+            43,
+            45,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89,
+            90,
+            91,
+            92,
+            93,
+            94,
+            95,
+            96,
+            97,
+            98,
+            99
+          ]
+        },
+        {
+          "power_word_offset": 8,
+          "node": 503,
+          "input_masks": [
+            14,
+            17,
+            36,
+            39,
+            46,
+            47,
+            48,
+            49,
+            50,
+            92,
+            93,
+            94,
+            95,
+            96,
+            97,
+            98,
+            99,
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107
+          ]
+        },
+        {
+          "power_word_offset": 0,
+          "node": 512,
+          "input_masks": [
+            15,
+            16,
+            37,
+            38,
+            46,
+            47,
+            48,
+            49,
+            51,
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113,
+            114,
+            115
+          ]
+        }
+      ],
+      "largest_single_root_masks": 25,
+      "grouping_screens": [
+        {
+          "slot_cap": 32,
+          "groups": 8,
+          "max_group_masks": 28,
+          "column_loads_mask_upper_bound": 126,
+          "groups_roots": [
+            [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            [
+              8,
+              9
+            ],
+            [
+              10
+            ],
+            [
+              11
+            ],
+            [
+              12
+            ],
+            [
+              13
+            ],
+            [
+              14
+            ],
+            [
+              15
+            ]
+          ],
+          "arena_bytes_at_eval24": 2181038080,
+          "load_ratio_vs_union_masks": 1.0862068965517242
+        },
+        {
+          "slot_cap": 40,
+          "groups": 5,
+          "max_group_masks": 39,
+          "column_loads_mask_upper_bound": 127,
+          "groups_roots": [
+            [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            [
+              9,
+              10
+            ],
+            [
+              11,
+              12
+            ],
+            [
+              13
+            ],
+            [
+              14,
+              15
+            ]
+          ],
+          "arena_bytes_at_eval24": 2717908992,
+          "load_ratio_vs_union_masks": 1.0948275862068966
+        },
+        {
+          "slot_cap": 48,
+          "groups": 5,
+          "max_group_masks": 42,
+          "column_loads_mask_upper_bound": 116,
+          "groups_roots": [
+            [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            [
+              9,
+              10
+            ],
+            [
+              11,
+              12
+            ],
+            [
+              13,
+              14
+            ],
+            [
+              15
+            ]
+          ],
+          "arena_bytes_at_eval24": 3254779904,
+          "load_ratio_vs_union_masks": 1.0
+        },
+        {
+          "slot_cap": 64,
+          "groups": 3,
+          "max_group_masks": 60,
+          "column_loads_mask_upper_bound": 116,
+          "groups_roots": [
+            [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            [
+              11,
+              12,
+              13
+            ],
+            [
+              14,
+              15
+            ]
+          ],
+          "arena_bytes_at_eval24": 4328521728,
+          "load_ratio_vs_union_masks": 1.0
+        }
+      ]
+    },
+    {
+      "role": 5,
+      "file": "/workspace/m3/catalogues-v3/outer/outer-group-5.cu",
+      "sha256": "50b2284cb431bf5074039e75736c939db8bb269796fe42b9ef29a6d84ee58c25",
+      "root_count": 5,
+      "union_masks": 87,
+      "root_mask_counts": [
+        22,
+        22,
+        22,
+        23,
+        31
+      ],
+      "roots": [
+        {
+          "power_word_offset": 32,
+          "node": 252,
+          "input_masks": [
+            0,
+            1,
+            11,
+            12,
+            13,
+            14,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46
+          ]
+        },
+        {
+          "power_word_offset": 24,
+          "node": 261,
+          "input_masks": [
+            2,
+            3,
+            15,
+            16,
+            17,
+            18,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54
+          ]
+        },
+        {
+          "power_word_offset": 16,
+          "node": 270,
+          "input_masks": [
+            4,
+            5,
+            19,
+            20,
+            21,
+            22,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62
+          ]
+        },
+        {
+          "power_word_offset": 8,
+          "node": 279,
+          "input_masks": [
+            6,
+            7,
+            8,
+            23,
+            24,
+            25,
+            26,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70
+          ]
+        },
+        {
+          "power_word_offset": 0,
+          "node": 296,
+          "input_masks": [
+            7,
+            9,
+            10,
+            27,
+            28,
+            29,
+            30,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            85,
+            86
+          ]
+        }
+      ],
+      "largest_single_root_masks": 31,
+      "grouping_screens": [
+        {
+          "slot_cap": 32,
+          "groups": 5,
+          "max_group_masks": 31,
+          "column_loads_mask_upper_bound": 87,
+          "groups_roots": [
+            [
+              0
+            ],
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              3
+            ],
+            [
+              4
+            ]
+          ],
+          "arena_bytes_at_eval24": 2181038080,
+          "load_ratio_vs_union_masks": 1.0
+        },
+        {
+          "slot_cap": 40,
+          "groups": 3,
+          "max_group_masks": 37,
+          "column_loads_mask_upper_bound": 87,
+          "groups_roots": [
+            [
+              0,
+              1
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              4
+            ]
+          ],
+          "arena_bytes_at_eval24": 2717908992,
+          "load_ratio_vs_union_masks": 1.0
+        },
+        {
+          "slot_cap": 48,
+          "groups": 3,
+          "max_group_masks": 37,
+          "column_loads_mask_upper_bound": 87,
+          "groups_roots": [
+            [
+              0,
+              1
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              4
+            ]
+          ],
+          "arena_bytes_at_eval24": 3254779904,
+          "load_ratio_vs_union_masks": 1.0
+        },
+        {
+          "slot_cap": 64,
+          "groups": 2,
+          "max_group_masks": 50,
+          "column_loads_mask_upper_bound": 87,
+          "groups_roots": [
+            [
+              0,
+              1,
+              2
+            ],
+            [
+              3,
+              4
+            ]
+          ],
+          "arena_bytes_at_eval24": 4328521728,
+          "load_ratio_vs_union_masks": 1.0
+        }
+      ]
+    }
+  ],
+  "conclusion": "Every original root needs at most31 input masks. A32-slot full-domain cache is statically possible without changing masks or splitting residuals. Counts are dependency/caching models, not implemented or measured kernels; runtime must deduplicate aliases by authenticated tree/column."
+}

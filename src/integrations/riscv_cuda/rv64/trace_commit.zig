@@ -11,6 +11,8 @@ const Native = @import("pcs_native_abi.zig");
 const Service = @import("pcs_native.zig");
 const SC = @import("session_context.zig");
 const StreamPlan = @import("trace_stream_plan.zig");
+const InputReuse = @import("trace_input_reuse.zig");
+const OwnedInputs = struct { leases: *std.ArrayList(Native.Lease), claims: *@import("admission_retention.zig").Registry };
 pub const AdmissionPlan = @import("trace_commit_cost.zig");
 const Global = @import("global_admission.zig");
 const Admission = @import("admission_runtime.zig");
@@ -100,11 +102,11 @@ pub const Context = struct {
     }
     fn commit(raw: *anyopaque, a: std.mem.Allocator, request: D.TraceCommitRequest) !D.Tree {
         const self: *Context = @ptrCast(@alignCast(raw));
-        return self.commitImpl(a, request, false, null);
+        return self.commitImpl(a, request, false, null, null);
     }
     /// Explicit fixed-prover setup; ordinary MAIN/INTER admission is unchanged.
     pub fn commitFixed(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest) !D.Tree {
-        return self.commitImpl(a, request, true, null);
+        return self.commitImpl(a, request, true, null, null);
     }
     /// FIXED-only composition inside the explicit PP upload/commit ticket.
     /// The enclosing owner already entered the C allocation guard; this call
@@ -112,7 +114,16 @@ pub const Context = struct {
     pub fn commitFixedAdmitted(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, enclosing: *Admission.Permit) !D.Tree {
         const endpoint = self.service.admission orelse return error.MissingGlobalAdmissionEndpoint;
         if (!enclosing.entered or enclosing.closed or enclosing.after != null or enclosing.endpoint.session != self.service.session or enclosing.endpoint.planner != endpoint.planner or enclosing.endpoint.physical != endpoint.physical or enclosing.demand.stage != .trace_commit or enclosing.demand.owner.ordinal != request.scope.ordinal or enclosing.demand.owner.domain != .recursion_node) return error.ForeignAdmissionOwner;
-        return self.commitImpl(a, request, true, enclosing);
+        return self.commitImpl(a, request, true, enclosing, null);
+    }
+    pub fn reusesInterInputs(self: *const Context, beta: u32) bool {
+        return InputReuse.enabled() and beta == 1 and self.n2b_columns != null and
+            self.mixed_seeded != null and self.layer != null and streamBudget() != null;
+    }
+    pub fn commitOwnedInter(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, leases: *std.ArrayList(Native.Lease), claims: *@import("admission_retention.zig").Registry) !D.Tree {
+        if (request.tree_index != 2 or request.retire_input != null or !self.reusesInterInputs(request.config.fri_config.log_blowup_factor)) return error.InvalidOwnedInterInputs;
+        try InputReuse.validate(a, leases.items, request.columns);
+        return self.commitImpl(a, request, false, null, .{ .leases = leases, .claims = claims });
     }
     /// Host-only allocation plan. An admitted execution freezes this stream
     /// schedule; owner-thread per-session pressure cannot silently change it.
@@ -121,14 +132,18 @@ pub const Context = struct {
         return .{ .logs = &.{}, .beta = beta, .separate_coefficients = separate, .stream_budget = if (separate and self.mixed_seeded != null and self.layer != null) streamBudget() else null, .exact_prefix_banks = self.prefix_workspace != null };
     }
     pub fn allocationPlan(self: *const Context, a: std.mem.Allocator, request: D.TraceCommitRequest) !AdmissionPlan.Plan {
+        return self.allocationPlanImpl(a, request, false);
+    }
+    fn allocationPlanImpl(self: *const Context, a: std.mem.Allocator, request: D.TraceCommitRequest, reuse: bool) !AdmissionPlan.Plan {
         const logs = try a.alloc(u32, request.columns.len);
         defer a.free(logs);
         for (request.columns, logs) |column, *log| log.* = column.log_size;
         var input = self.allocationOptions(request.config.fri_config.log_blowup_factor);
         input.logs = logs;
+        input.reuse_owned_inputs = reuse;
         return AdmissionPlan.init(a, input);
     }
-    fn commitImpl(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, fixed: bool, enclosing: ?*Admission.Permit) !D.Tree {
+    fn commitImpl(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, fixed: bool, enclosing: ?*Admission.Permit, owned_inputs: ?OwnedInputs) !D.Tree {
         if ((fixed and request.tree_index != 0) or (!fixed and request.tree_index < 1) or request.tree_index > 2 or request.columns.len == 0 or request.columns.len > 65535) return error.InvalidTraceCommitRequest;
         if (request.expected_main_root) |expected| {
             if (request.tree_index != 1 or std.mem.allEqual(u8, &expected, 0) or (!std.mem.allEqual(u8, &request.scope.main, 0) and !std.mem.eql(u8, &request.scope.main, &expected))) return error.InvalidTraceReplayScope;
@@ -143,14 +158,14 @@ pub const Context = struct {
             if (self.require_device_input and column.device == null) return error.HostWitnessDisallowedInResidentProof;
             if (column.log_size + beta > 28) return error.InvalidTraceCommitRequest;
         }
-        const allocation_plan = if (self.freeze_allocation_plan or self.service.admission != null) try self.allocationPlan(a, request) else null;
+        const allocation_plan = if (owned_inputs != null or self.freeze_allocation_plan or self.service.admission != null) try self.allocationPlanImpl(a, request, owned_inputs != null) else null;
         var permit: ?Admission.Permit = null;
         var successor: Global.Footprint = .{};
         if (if (enclosing == null) self.service.admission else null) |endpoint| {
             if (request.tree_index == 0) return error.GlobalFixedTracePlanUnavailable;
             successor = try self.service.admissionSuccessor(request.scope, if (request.tree_index == 1) .main_commit else .inter_commit);
             const plan = &allocation_plan.?;
-            permit = try endpoint.reserve(.{ .progress_key = Global.progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = self.admission_domain, .ordinal = request.scope.ordinal }, .stage = .trace_commit, .stage_retained_upper = try Global.Footprint.allocation(try std.math.mul(u64, plan.coefficient_words, 4)), .temporary = try plan.footprint(), .successor = successor, .retirement_successor = if (request.retire_input != null) try self.service.admissionRetirementSuccessor(request.scope, .inter_commit) else null, .known = true, .host_known = plan.host_cost_known, .host_peak_bytes = plan.host_peak_bytes });
+            permit = try endpoint.reserve(.{ .progress_key = Global.progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = self.admission_domain, .ordinal = request.scope.ordinal }, .stage = .trace_commit, .stage_retained_upper = if (owned_inputs != null) .{} else try Global.Footprint.allocation(try std.math.mul(u64, plan.coefficient_words, 4)), .temporary = try plan.footprint(), .successor = successor, .retirement_successor = if (request.retire_input != null) try self.service.admissionRetirementSuccessor(request.scope, .inter_commit) else null, .known = true, .host_known = plan.host_cost_known, .host_peak_bytes = plan.host_peak_bytes });
         }
         defer if (permit) |*active| if (!active.closed) {
             active.endpoint.planner.poisonPhysical(active.endpoint.physical);
@@ -160,7 +175,7 @@ pub const Context = struct {
         defer self.mutex.unlock();
         if (request.tree_index == 1) try self.service.early_allocations.advance(@import("pcs_scope.zig").identity(request.scope), .commit);
         try self.returned.ensureUnusedCapacity(self.host_allocator, 1);
-        var job = Job{ .backend = self, .a = a, .request = request, .admission_plan = allocation_plan, .permit = if (permit) |*active| active else null, .externally_admitted = enclosing != null };
+        var job = Job{ .owned_inputs = owned_inputs, .backend = self, .a = a, .request = request, .admission_plan = allocation_plan, .permit = if (permit) |*active| active else null, .externally_admitted = enclosing != null };
         const status = self.service.submit(self.service.session, Job.callback, &job);
         if (job.failure) |err| return err;
         try check(status);
@@ -178,6 +193,7 @@ pub const Context = struct {
     }
 };
 const Job = struct {
+    owned_inputs: ?OwnedInputs = null,
     backend: *Context,
     a: std.mem.Allocator,
     request: D.TraceCommitRequest,
@@ -269,10 +285,16 @@ const Job = struct {
         var bytes: u64 = 0;
         return if (query(self.backend.service.session, &kinds, &bytes) == 0) bytes else null;
     }
+    fn coefficientPointer(self: *const Job, original: usize, base: ?[*]u32, offsets: []const usize) [*]u32 {
+        return if (self.owned_inputs != null) @constCast(self.request.columns[original].device.?.words) else base.? + offsets[original];
+    }
+    fn adjacentSource(self: *const Job, left: usize, right: usize) bool {
+        return self.owned_inputs == null or InputReuse.adjacent(self.request.columns[left], self.request.columns[right]);
+    }
     /// Chunked LDE -> Merkle commit. Only the compact coefficient lease, one
     /// bounded evaluation chunk and two progressive-state banks are ever live;
     /// the tree is built in the bank that is dead after the final absorption.
-    fn streamRoot(self: *Job, ctx: *SC.Context, raw: *anyopaque, order: []const usize, offsets: []const usize, coefficient_ptr: [*]u32, beta: u32, tw: *const engine.poly.twiddles.TwiddleTree([]M), budget: usize) ![32]u8 {
+    fn streamRoot(self: *Job, ctx: *SC.Context, raw: *anyopaque, order: []const usize, offsets: []const usize, coefficient_ptr: ?[*]u32, beta: u32, tw: *const engine.poly.twiddles.TwiddleTree([]M), budget: usize) ![32]u8 {
         const b = self.backend;
         const a = self.a;
         const r = self.request;
@@ -348,11 +370,12 @@ const Job = struct {
             var interpolation_end = interpolation_first + 1;
             while (interpolation_end < order.len and
                 r.columns[order[interpolation_end]].log_size == column.log_size and
-                r.columns[order[interpolation_end]].encoding == .evaluations) : (interpolation_end += 1)
+                r.columns[order[interpolation_end]].encoding == .evaluations and
+                self.adjacentSource(order[interpolation_end - 1], order[interpolation_end])) : (interpolation_end += 1)
             {}
             const n = @as(usize, 1) << @intCast(column.log_size);
             const inverse_offset = inverse_base + tw.itwiddles.len - n / 2;
-            const at = coefficient_ptr + offsets[order[interpolation_first]];
+            const at = self.coefficientPointer(order[interpolation_first], coefficient_ptr, offsets);
             try check(b.b2n(at, n, at, n, column.log_size, @intCast(interpolation_end - interpolation_first), base + inverse_offset, @intCast(n / 2), @intCast(n / 2), lane, &launches));
             interpolation_first = interpolation_end;
         }
@@ -364,11 +387,12 @@ const Job = struct {
             var i: usize = c.first;
             while (i < c.end) {
                 var j = i + 1;
-                while (j < c.end and rows[j] == rows[i]) : (j += 1) {}
+                while (j < c.end and rows[j] == rows[i] and self.adjacentSource(order[j - 1], order[j])) : (j += 1) {}
                 const lde_rows: usize = rows[i];
                 const n = lde_rows >> @intCast(beta);
                 const destination = chunk + cursor;
-                try check(b.n2b_columns.?(coefficient_ptr + offsets[order[i]], n, base + logs_base + i, destination, lde_rows, logs[i] + beta, @intCast(j - i), base + tw.twiddles.len - lde_rows / 2, @intCast(lde_rows / 2), @intCast(lde_rows / 2), lane, &launches));
+                try check(b.n2b_columns.?(self.coefficientPointer(order[i], coefficient_ptr, offsets), n, base + logs_base + i, destination, lde_rows, logs[i] + beta, @intCast(j - i), base + tw.twiddles.len - lde_rows / 2, @intCast(lde_rows / 2), @intCast(lde_rows / 2), lane, &launches));
+                if (count == segments.len) return error.InvalidOwnedInterInputs;
                 segments[count] = .{ .columns = destination, .stride_words = lde_rows, .capacity_words = lde_rows * (j - i), .source_size = @intCast(lde_rows) };
                 count += 1;
                 cursor += lde_rows * (j - i);
@@ -390,7 +414,7 @@ const Job = struct {
             next_offset += nodes / 2;
         }
         const legacy = StreamPlan.legacyScratchWords(rows, tw.twiddles.len + tw.itwiddles.len + 7 * order.len);
-        self.samplePeak(ctx, "stream", total * 4, legacy * 4, coefficient_cells * 4, p.calls.len);
+        self.samplePeak(ctx, if (self.owned_inputs != null) "stream_owned_input" else "stream", total * 4, legacy * 4, coefficient_cells * 4, p.calls.len);
         var root_words: [8]u32 = undefined;
         try check(b.api.download(raw, &root_words, hashes + p.tree_words - 8, 32));
         try ctx.join();
@@ -451,6 +475,29 @@ const Job = struct {
         const eval_cells = try std.math.mul(usize, coefficient_cells, @as(usize, 1) << @intCast(beta));
         const eval_log = max_log + beta;
         const tw = try b.tw(eval_log);
+        if (self.owned_inputs) |owned| {
+            // The source still owns every lease while interpolation and hashing
+            // run. A failure leaves cleanup with that original owner.
+            try InputReuse.validate(a, owned.leases.items, r.columns);
+            var retained_bytes: u64 = 0;
+            for (owned.leases.items) |lease| {
+                _ = try ctx.borrow(lease);
+                retained_bytes = try std.math.add(u64, retained_bytes, try std.math.mul(u64, lease.count, 4));
+            }
+            const budget = self.admission_plan.?.selected_stream_budget orelse return error.InvalidOwnedInterInputs;
+            const root = try self.streamRoot(&ctx, raw, order, offsets, null, beta, tw, budget);
+            const columns = try b.host_allocator.alloc(D.Column, r.columns.len);
+            errdefer b.host_allocator.free(columns);
+            for (columns, r.columns) |*column, source| column.* = .{ .log_size = source.log_size, .device = source.device.? };
+            const lease_count = owned.leases.items.len;
+            // Batch adoption reserves metadata first, then moves the future
+            // claims and all leases without a fallible step in between.
+            try b.service.adoptInterLeases(scope, owned.leases.items, owned.claims);
+            owned.leases.clearRetainingCapacity();
+            self.result = .{ .root = root, .columns = columns };
+            std.debug.print("GPU_TRACE_INTER_REUSE ordinal={} leases={} coefficient_words={} retained_input_bytes={} padding_bytes={} coefficient_copy_words=0 new_coefficient_bytes=0\n", .{ r.scope.ordinal, lease_count, coefficient_cells, retained_bytes, retained_bytes - coefficient_cells * 4 });
+            return;
+        }
         // The established column LDE ABI accepts a compact coefficient stride
         // when beta=1. Keep these coefficients in their final owned lease:
         // committing must not allocate and copy a second full coefficient slab.

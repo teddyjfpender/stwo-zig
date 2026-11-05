@@ -1,0 +1,91 @@
+{
+  "markers": 1895,
+  "requests": [
+    {
+      "block": 24628607,
+      "trial": 0,
+      "stages": {
+        "m7/pcs/deep": {
+          "host_s": 0.010054794,
+          "kernel_gpu_s": 0.135075757,
+          "graph_envelope_gpu_s": 0
+        },
+        "m7/pcs/final_readback_encode": {
+          "host_s": 0.059916156,
+          "kernel_gpu_s": 0,
+          "graph_envelope_gpu_s": 0
+        },
+        "m7/pcs/fri": {
+          "host_s": 0.005460434,
+          "kernel_gpu_s": 0.003726292,
+          "graph_envelope_gpu_s": 0
+        },
+        "m7/pcs/metadata_allocations": {
+          "host_s": 0.056355254,
+          "kernel_gpu_s": 0.000760062,
+          "graph_envelope_gpu_s": 0
+        },
+        "m7/pcs/openings": {
+          "host_s": 0.584605566,
+          "kernel_gpu_s": 0.198500046,
+          "graph_envelope_gpu_s": 0
+        },
+        "m7/pcs/pow": {
+          "host_s": 0.00023306,
+          "kernel_gpu_s": 0.002562072,
+          "graph_envelope_gpu_s": 0
+        },
+        "m7/pcs/retire_deep": {
+          "host_s": 0.608787111,
+          "kernel_gpu_s": 0,
+          "graph_envelope_gpu_s": 0
+        },
+        "m7/pcs/retire_fri": {
+          "host_s": 0.010491104,
+          "kernel_gpu_s": 0,
+          "graph_envelope_gpu_s": 0
+        },
+        "m7/pcs/samples": {
+          "host_s": 0.012096577,
+          "kernel_gpu_s": 0.06439389,
+          "graph_envelope_gpu_s": 0
+        },
+        "m7/pcs/source_lde": {
+          "host_s": 7.82e-06,
+          "kernel_gpu_s": 0,
+          "graph_envelope_gpu_s": 0
+        },
+        "m7/pcs/source_trees": {
+          "host_s": 5.3e-06,
+          "kernel_gpu_s": 0,
+          "graph_envelope_gpu_s": 0
+        },
+        "m7/pcs/trim_unused": {
+          "host_s": 4.709e-05,
+          "kernel_gpu_s": 0,
+          "graph_envelope_gpu_s": 0
+        },
+        "rv64/owner/callback": {
+          "host_s": 11.957062989,
+          "kernel_gpu_s": 2.119501972,
+          "graph_envelope_gpu_s": 0
+        },
+        "rv64/owner/controller": {
+          "host_s": 0.380262003,
+          "kernel_gpu_s": 0,
+          "graph_envelope_gpu_s": 0
+        },
+        "rv64/owner/pcs": {
+          "host_s": 1.353190309,
+          "kernel_gpu_s": 0.405018119,
+          "graph_envelope_gpu_s": 0
+        },
+        "rv64/owner/top_level_union": {
+          "host_s": 11.239526792,
+          "kernel_gpu_s": 2.119501972,
+          "graph_envelope_gpu_s": 0
+        }
+      }
+    }
+  ]
+}

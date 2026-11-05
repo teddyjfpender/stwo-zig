@@ -1,0 +1,20 @@
+{
+  "base_commit": "df01fd929673e09c3871e61fb6aa0a0623bc123c",
+  "source_commit": "df01fd929673e09c3871e61fb6aa0a0623bc123c+p1-inter-reuse-v1",
+  "files": {
+    "src/integrations/riscv_cuda/rv64/admission_retention.zig": "8047fb85e4f209714800628d415b82da8714e9b0cf3602f0fc60643550205178",
+    "src/integrations/riscv_cuda/rv64/composition_columns.zig": "af226642c9aa5b2b21c39b529d4b67f2f88c23048e588928179276adb92f93cd",
+    "src/integrations/riscv_cuda/rv64/composition_cost.zig": "1ff2f4181bf9d35d96193741e87e9f68f2458434ecdaaea131040180e3790fe5",
+    "src/integrations/riscv_cuda/rv64/mod.zig": "dd159157608533d69017797cb2da20c182a8538cbe4a7c967062c264a36dda97",
+    "src/integrations/riscv_cuda/rv64/outer_hybrid_source.zig": "db4b9fcb53cbd29fedc888dc058b9247ea08c85507a3a048fc0e7a41f9acb78f",
+    "src/integrations/riscv_cuda/rv64/outer_progress.zig": "553bef4c211b6465d6dd9fdeb66a3dd4a952b717532c6fc6984de56f5e385f0f",
+    "src/integrations/riscv_cuda/rv64/outer_progress_cost.zig": "f2ee198c0d81a1e4df096c3fc503ff17adfa60cff1753e21ceb1c4e99c3fe2a9",
+    "src/integrations/riscv_cuda/rv64/outer_source.zig": "c3ced0ec78a6ba060db340b330a2e8ad409f456eabee0516b8f44167784c07f5",
+    "src/integrations/riscv_cuda/rv64/outer_source_interaction.zig": "1bf63151f13cc41940460c2a500c171acb1f4a0a9825aaa7a0a53d78e434f7ca",
+    "src/integrations/riscv_cuda/rv64/pcs_native.zig": "7d0c18c31063497a916472c9cec6b83ec8ca460f36938d1cd68fa54852cbc85a",
+    "src/integrations/riscv_cuda/rv64/resident_composition.zig": "a1ad2fe1040d6b35e95dfecf3b9ae66981fdbde3115b4a11e5257ecc71ef5288",
+    "src/integrations/riscv_cuda/rv64/trace_commit.zig": "af6931d7635cc5733d0f0af0f26dbf95b73c960565bbbfb325c27633b35f4a9f",
+    "src/integrations/riscv_cuda/rv64/trace_commit_cost.zig": "b348eb220bca108dbe7f068c1da4fab8956b7e92d3430a06dd4e5f1760aeec25",
+    "src/integrations/riscv_cuda/rv64/trace_input_reuse.zig": "26370e843cdc09bd52650a9ca5ae53d47a06bb6c59031bfb2b0f7270e9ad6c09"
+  }
+}

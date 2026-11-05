@@ -11,6 +11,7 @@ pub const Input = struct {
     separate_coefficients: bool,
     stream_budget: ?usize = null,
     exact_prefix_banks: bool = false,
+    reuse_owned_inputs: bool = false,
 };
 pub const Plan = struct {
     format: Format = .legacy_blake32_m31,
@@ -39,6 +40,7 @@ pub fn init(a: std.mem.Allocator, input: Input) !Plan {
     if (input.format != .legacy_blake32_m31) return error.AllocationCostFormatUnavailable;
     if (input.logs.len == 0 or input.logs.len > 65535 or input.beta < 1 or input.beta > 4) return error.InvalidTraceCommitGeometry;
     if (input.separate_coefficients and input.beta != 1) return error.InvalidTraceCommitGeometry;
+    if (input.reuse_owned_inputs and (!input.separate_coefficients or input.stream_budget == null)) return error.InvalidTraceCommitGeometry;
     const rows = try a.alloc(u32, input.logs.len);
     defer a.free(rows);
     var coefficient_words: u64 = 0;
@@ -59,12 +61,12 @@ pub fn init(a: std.mem.Allocator, input: Input) !Plan {
     const per_column = 16 + 8 + 28 + 64 + 4 * @sizeOf(S.Call) + 128;
     const host_metadata = try std.math.add(u64, try std.math.mul(u64, input.logs.len, per_column), 256 << 10);
     var out = Plan{ .coefficient_words = coefficient_words, .host_peak_bytes = try std.math.add(u64, try std.math.mul(u64, tw_words, 8), host_metadata) };
-    if (input.separate_coefficients) try out.addWords(coefficient_words);
+    if (input.separate_coefficients and !input.reuse_owned_inputs) try out.addWords(coefficient_words);
     if (input.separate_coefficients) if (input.stream_budget) |budget| {
         var stream = try S.plan(a, rows, budget);
         defer stream.deinit(a);
         const selection_aux = try std.math.add(u64, 2 * tw_words, 7 * input.logs.len);
-        if (S.alignUp(@intCast(selection_aux)) + stream.scratchWords() < S.legacyScratchWords(rows, @intCast(selection_aux))) {
+        if (input.reuse_owned_inputs or S.alignUp(@intCast(selection_aux)) + stream.scratchWords() < S.legacyScratchWords(rows, @intCast(selection_aux))) {
             const aux = S.alignUp(@intCast(try std.math.add(u64, 2 * tw_words, input.logs.len)));
             try out.addWords(try std.math.add(u64, aux, @max(stream.chunk_words, 1)));
             for (stream.bank_words) |words| try out.addWords(words);
@@ -140,4 +142,19 @@ test "D2 trace uses legacy LDE arena then independently retained final coefficie
     try std.testing.expectEqual(4 * coeff, p.allocations[2]);
     try std.testing.expect(!p.host_cost_known);
     try std.testing.expectError(error.InvalidTraceCommitGeometry, init(std.testing.allocator, .{ .logs = &logs, .beta = 2, .separate_coefficients = true, .stream_budget = 1 << 20 }));
+}
+
+test "owned INTER commit charges scratch only and preserves stream schedule" {
+    const logs = [_]u32{23} ** 136;
+    const input = Input{ .logs = &logs, .beta = 1, .separate_coefficients = true, .stream_budget = 1 << 27, .exact_prefix_banks = true };
+    const before = try init(std.testing.allocator, input);
+    var reuse = input;
+    reuse.reuse_owned_inputs = true;
+    const after = try init(std.testing.allocator, reuse);
+    try std.testing.expectEqual(before.coefficient_words, after.coefficient_words);
+    try std.testing.expectEqual(before.selected_stream_budget, after.selected_stream_budget);
+    try std.testing.expectEqualSlices(u64, before.bytes()[1..], after.bytes());
+    try std.testing.expectEqual((try before.footprint()).large - (try A.Footprint.allocation(before.coefficient_words * 4)).large, (try after.footprint()).large);
+    reuse.stream_budget = null;
+    try std.testing.expectError(error.InvalidTraceCommitGeometry, init(std.testing.allocator, reuse));
 }

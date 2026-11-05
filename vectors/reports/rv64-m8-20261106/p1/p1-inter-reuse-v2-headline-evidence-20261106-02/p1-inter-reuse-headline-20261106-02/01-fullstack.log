@@ -1,0 +1,34 @@
+{
+ "run": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-inter-reuse-headline-20261106-02-one-stack-v4-01-fullstack",
+ "process_wall_s": 64.9,
+ "service_overhead_s": 23.534,
+ "rss_gib": 23.98,
+ "cuda_api": {},
+ "requests": [
+  {
+   "block": 24628607,
+   "trial": 0,
+   "request_s": 29.2,
+   "capture": 2.13,
+   "setup": 10.37,
+   "native": 6.108,
+   "recursion": 10.339,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  },
+  {
+   "block": 24628607,
+   "trial": 1,
+   "request_s": 12.166,
+   "capture": 2.148,
+   "setup": 0.148,
+   "native": 5.059,
+   "recursion": 4.652,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  }
+ ]
+}
+{"service_start_s": 4.803, "service_stop_s": 2.155, "client_latency_s": [29.205, 12.172]}

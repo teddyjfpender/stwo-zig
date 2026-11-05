@@ -98,7 +98,7 @@ pub fn main(a: std.mem.Allocator, input: Main) !Plan {
     return p;
 }
 pub const Component = struct { log: u32, pairs: u64, fixed_columns: u64 };
-pub const Interaction = struct { format: Format = .legacy_blake32_m31, components: []const Component };
+pub const Interaction = struct { format: Format = .legacy_blake32_m31, components: []const Component, packed_inter: bool = false };
 pub fn interaction(a: std.mem.Allocator, input: Interaction) !Plan {
     if (input.format != .legacy_blake32_m31) return error.AllocationCostFormatUnavailable;
     if (input.components.len != 11) return error.InvalidOuterSourceGeometry;
@@ -106,13 +106,17 @@ pub fn interaction(a: std.mem.Allocator, input: Interaction) !Plan {
     errdefer p.deinit(a);
     const parameters = try p.allocate(a, .parameters, null, 56, false);
     const results = try p.allocate(a, .results, null, 89, false);
-    for (input.components, 0..) |component, ordinal| {
+    const layout = if (input.packed_inter) try @import("trace_input_reuse.zig").Layout.init(input.components) else null;
+    if (layout) |layout_value| _ = try p.allocate(a, .inter, null, try layout_value.words(), true);
+    for (0..input.components.len) |position| {
+        const ordinal = if (layout) |layout_value| layout_value.order[position] else position;
+        const component = input.components[ordinal];
         const prefix = try Prefix.Plan.init(component.log);
         if (component.pairs == 0) return error.InvalidOuterSourceGeometry;
         const rows = @as(u64, 1) << @intCast(component.log);
         const id: u32 = @intCast(ordinal);
         const fixed = try p.allocate(a, .gather_fixed, id, @max(@as(u64, 1), try mul(component.fixed_columns, rows)), false);
-        _ = try p.allocate(a, .inter, id, try mul(try mul(8, try std.math.add(u64, component.pairs, 1)), rows), true);
+        if (layout == null) _ = try p.allocate(a, .inter, id, try mul(try mul(8, try std.math.add(u64, component.pairs, 1)), rows), true);
         const numerators = try p.allocate(a, .numerators, id, try mul(try mul(8, component.pairs), rows), false);
         const scratch = try p.allocate(a, .prefix, id, prefix.scratch_words, false);
         p.free(scratch);
@@ -149,4 +153,20 @@ test "INTER plan accumulates actual output owners including final cumulative col
     try std.testing.expectEqual(@as(usize, 46), p.events.items.len);
     try std.testing.expectError(error.UnmodeledFusedDiagnostic, main(std.testing.allocator, .{ .main_words = 1, .value_count = 1, .fused_shadow = true }));
     try std.testing.expectError(error.AllocationCostFormatUnavailable, interaction(std.testing.allocator, .{ .format = .poseidon2_w24_v1, .components = &components }));
+}
+
+test "packed INTER model retains one slab including its maximum-height tail" {
+    var components = [_]Component{.{ .log = 4, .pairs = 1, .fixed_columns = 1 }} ** 11;
+    components[0].log = 6;
+    var p = try interaction(std.testing.allocator, .{ .components = &components, .packed_inter = true });
+    defer p.deinit(std.testing.allocator);
+    const layout = try @import("trace_input_reuse.zig").Layout.init(&components);
+    try std.testing.expectEqual(try A.Footprint.allocation((try layout.words()) * 4), p.retained_after);
+    try std.testing.expectEqual(p.retained_after, p.live);
+    var count: usize = 0;
+    for (p.events.items) |event| if (event.kind == .inter) {
+        count += 1;
+        try std.testing.expect(event.retained and event.component == null);
+    };
+    try std.testing.expectEqual(@as(usize, 1), count);
 }

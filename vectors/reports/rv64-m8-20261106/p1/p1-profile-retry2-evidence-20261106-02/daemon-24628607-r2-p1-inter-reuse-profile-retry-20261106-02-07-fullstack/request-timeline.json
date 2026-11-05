@@ -1,0 +1,88 @@
+[
+  {
+    "name": "0000-24628607",
+    "block": 24628607,
+    "client_latency_ns": 31127870074,
+    "service": {
+      "ok": true,
+      "block": 24628607,
+      "sequence": 0,
+      "request_wall_ns": 31117064971,
+      "queue_ns": 5241593272
+    },
+    "utc_window_ns": [
+      1793918765890150837,
+      1793918797018259741
+    ],
+    "cpu_resource_before": {
+      "known": true,
+      "monotonic_ns": 1251647577094016,
+      "cpu_max": "4080000 100000",
+      "cpu_pressure": {
+        "some": {
+          "avg10": 0.0,
+          "avg60": 0.0,
+          "avg300": 0.0,
+          "total": 166153201
+        },
+        "full": {
+          "avg10": 0.0,
+          "avg60": 0.0,
+          "avg300": 0.0,
+          "total": 162356589
+        }
+      },
+      "cpu_stat": {
+        "usage_usec": 671787508024,
+        "user_usec": 565457870238,
+        "system_usec": 106329637786,
+        "core_sched.force_idle_usec": 0,
+        "nr_periods": 1174085,
+        "nr_throttled": 11308,
+        "throttled_usec": 10804712662,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      },
+      "host_loadavg": [
+        18.3193359375,
+        16.82666015625,
+        21.57421875
+      ]
+    },
+    "cpu_resource_after": {
+      "known": true,
+      "monotonic_ns": 1251678705670239,
+      "cpu_max": "4080000 100000",
+      "cpu_pressure": {
+        "some": {
+          "avg10": 0.0,
+          "avg60": 0.0,
+          "avg300": 0.0,
+          "total": 166165649
+        },
+        "full": {
+          "avg10": 0.0,
+          "avg60": 0.0,
+          "avg300": 0.0,
+          "total": 162368854
+        }
+      },
+      "cpu_stat": {
+        "usage_usec": 671983542033,
+        "user_usec": 565604893926,
+        "system_usec": 106378648106,
+        "core_sched.force_idle_usec": 0,
+        "nr_periods": 1174397,
+        "nr_throttled": 11308,
+        "throttled_usec": 10804712662,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      },
+      "host_loadavg": [
+        16.8037109375,
+        16.564453125,
+        21.3330078125
+      ]
+    }
+  }
+]

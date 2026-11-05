@@ -457,7 +457,7 @@ pub const Owner = struct {
             defer self.allocator.free(indices);
             component.* = .{ .log = log, .pairs = (circuit.witness.trace.RawLookupRows.count(kind) + 1) / 2, .fixed_columns = indices.len };
         }
-        return Cost.interaction(self.allocator, .{ .components = &components });
+        return Cost.interaction(self.allocator, .{ .components = &components, .packed_inter = self.backend.trace_commit.reusesInterInputs((try Outer.protocol.targetConfig()).fri_config.log_blowup_factor) });
     }
     fn runAdmitted(self: *Owner, operation: *const fn (*Owner, *anyopaque, u64) anyerror!void, plan: *const Cost.Plan, stage: @import("global_admission.zig").Stage) !void {
         const endpoint = self.backend.service.admission orelse return error.MissingGlobalAdmissionEndpoint;
@@ -526,7 +526,10 @@ pub const Owner = struct {
         return .{ .session = self.backend.service.session, .native_context = raw, .token = token, .scope = @import("pcs_scope.zig").identity(scope), .api = &self.backend.api };
     }
     pub fn owned(self: *Owner, ctx: *SC.Context, words: usize) !Native.Lease {
-        var lease = try ctx.allocate(words, 1);
+        return self.ownedKind(ctx, words, 1);
+    }
+    pub fn ownedKind(self: *Owner, ctx: *SC.Context, words: usize, kind: u32) !Native.Lease {
+        var lease = try ctx.allocate(words, kind);
         errdefer ctx.release(&lease) catch {};
         try self.leases.append(self.allocator, lease);
         return lease;
@@ -550,8 +553,9 @@ pub const Owner = struct {
         // (blowup 4/8) commit without it (canon-vk hook, M5). r1 is unchanged.
         const config = try Outer.protocol.targetConfig();
         var request: D.TraceCommitRequest = .{ .scope = scope, .config = config, .tree_index = 2, .columns = self.inter_columns };
-        if (config.fri_config.log_blowup_factor == 1) request.retire_input = .{ .context = self, .scope = scope, .retire = retireInteractionInputs };
-        const tree = try commit.commit(commit.context, a, request);
+        const reuse_inter = self.backend.trace_commit.reusesInterInputs(config.fri_config.log_blowup_factor);
+        if (!reuse_inter and config.fri_config.log_blowup_factor == 1) request.retire_input = .{ .context = self, .scope = scope, .retire = retireInteractionInputs };
+        const tree = if (reuse_inter) try self.backend.trace_commit.commitOwnedInter(a, request, &self.leases, &self.admission_retention) else try commit.commit(commit.context, a, request);
         self.inter_ready = true;
         try self.run(dropEvaluations);
         self.backend.service.finishProofScope(self.initial_scope);

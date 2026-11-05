@@ -1,0 +1,389 @@
+{
+  "request_index": 0,
+  "quiet_scope": "bounded pod cgroup PSI during each one-second idle interval; no throttling during idle or inventory; exclusive GPU; observer PSI recorded separately; host load informational",
+  "resource_gate": "cgroup",
+  "load_max": 8.0,
+  "steal_max": 0.01,
+  "idle_pressure_max": 0.005,
+  "required_stable_samples": 5,
+  "samples": [
+    {
+      "elapsed_s": 1.044,
+      "loadavg": [
+        10.5732421875,
+        10.54541015625,
+        12.1025390625
+      ],
+      "cpu_steal_fraction": 0.0,
+      "blocking_processes": [],
+      "gpu_processes": [
+        {
+          "pid": 2436615,
+          "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        },
+        {
+          "pid": 2436615,
+          "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        }
+      ],
+      "cgroup": {
+        "known": true,
+        "monotonic_ns": 1244217657703188,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 163218855
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 159613142
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 661386147026,
+          "user_usec": 556528853705,
+          "system_usec": 104857293321,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1129878,
+          "nr_throttled": 11308,
+          "throttled_usec": 10804712662,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          10.5732421875,
+          10.54541015625,
+          12.1025390625
+        ]
+      },
+      "cgroup_delta": {
+        "psi_some_total_us": 2428,
+        "psi_full_total_us": 2429,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "idle_pressure_fraction": 0.0024255288717167345,
+      "observer_cgroup_delta": {
+        "psi_some_total_us": 65,
+        "psi_full_total_us": 65,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "qualifies": true
+    },
+    {
+      "elapsed_s": 2.087,
+      "loadavg": [
+        10.5732421875,
+        10.54541015625,
+        12.1025390625
+      ],
+      "cpu_steal_fraction": 0.0,
+      "blocking_processes": [],
+      "gpu_processes": [
+        {
+          "pid": 2436615,
+          "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        },
+        {
+          "pid": 2436615,
+          "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        }
+      ],
+      "cgroup": {
+        "known": true,
+        "monotonic_ns": 1244218701932040,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 163221273
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 159615559
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 661386189819,
+          "user_usec": 556528863008,
+          "system_usec": 104857326810,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1129888,
+          "nr_throttled": 11308,
+          "throttled_usec": 10804712662,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          10.5732421875,
+          10.54541015625,
+          12.1025390625
+        ]
+      },
+      "cgroup_delta": {
+        "psi_some_total_us": 2353,
+        "psi_full_total_us": 2352,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "idle_pressure_fraction": 0.0023496502211622,
+      "observer_cgroup_delta": {
+        "psi_some_total_us": 78,
+        "psi_full_total_us": 78,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "qualifies": true
+    },
+    {
+      "elapsed_s": 3.132,
+      "loadavg": [
+        10.12646484375,
+        10.453125,
+        12.06396484375
+      ],
+      "cpu_steal_fraction": 0.0,
+      "blocking_processes": [],
+      "gpu_processes": [
+        {
+          "pid": 2436615,
+          "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        },
+        {
+          "pid": 2436615,
+          "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        }
+      ],
+      "cgroup": {
+        "known": true,
+        "monotonic_ns": 1244219745972553,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 163223689
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 159617976
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 661386232538,
+          "user_usec": 556528869721,
+          "system_usec": 104857362817,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1129899,
+          "nr_throttled": 11308,
+          "throttled_usec": 10804712662,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          10.12646484375,
+          10.453125,
+          12.06396484375
+        ]
+      },
+      "cgroup_delta": {
+        "psi_some_total_us": 2338,
+        "psi_full_total_us": 2339,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "idle_pressure_fraction": 0.0023354558523258615,
+      "observer_cgroup_delta": {
+        "psi_some_total_us": 106,
+        "psi_full_total_us": 106,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "qualifies": true
+    },
+    {
+      "elapsed_s": 4.179,
+      "loadavg": [
+        10.12646484375,
+        10.453125,
+        12.06396484375
+      ],
+      "cpu_steal_fraction": 0.0,
+      "blocking_processes": [],
+      "gpu_processes": [
+        {
+          "pid": 2436615,
+          "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        },
+        {
+          "pid": 2436615,
+          "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        }
+      ],
+      "cgroup": {
+        "known": true,
+        "monotonic_ns": 1244220790818684,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 163225162
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 159619448
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 661386275751,
+          "user_usec": 556528876006,
+          "system_usec": 104857399744,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1129909,
+          "nr_throttled": 11308,
+          "throttled_usec": 10804712662,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          10.12646484375,
+          10.453125,
+          12.06396484375
+        ]
+      },
+      "cgroup_delta": {
+        "psi_some_total_us": 1367,
+        "psi_full_total_us": 1366,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "idle_pressure_fraction": 0.001365024931775964,
+      "observer_cgroup_delta": {
+        "psi_some_total_us": 137,
+        "psi_full_total_us": 138,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "qualifies": true
+    },
+    {
+      "elapsed_s": 5.225,
+      "loadavg": [
+        10.12646484375,
+        10.453125,
+        12.06396484375
+      ],
+      "cpu_steal_fraction": 0.0,
+      "blocking_processes": [],
+      "gpu_processes": [
+        {
+          "pid": 2436615,
+          "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        },
+        {
+          "pid": 2436615,
+          "name": "/workspace/m3/build/m7-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        }
+      ],
+      "cgroup": {
+        "known": true,
+        "monotonic_ns": 1244221838182760,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 163227759
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 159622046
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 661386321968,
+          "user_usec": 556528888350,
+          "system_usec": 104857433618,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1129920,
+          "nr_throttled": 11308,
+          "throttled_usec": 10804712662,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          10.12646484375,
+          10.453125,
+          12.06396484375
+        ]
+      },
+      "cgroup_delta": {
+        "psi_some_total_us": 2460,
+        "psi_full_total_us": 2460,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "idle_pressure_fraction": 0.002456436472174182,
+      "observer_cgroup_delta": {
+        "psi_some_total_us": 204,
+        "psi_full_total_us": 204,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "qualifies": true
+    }
+  ],
+  "accepted": true,
+  "mode": "enforce",
+  "timing_qualified": true
+}

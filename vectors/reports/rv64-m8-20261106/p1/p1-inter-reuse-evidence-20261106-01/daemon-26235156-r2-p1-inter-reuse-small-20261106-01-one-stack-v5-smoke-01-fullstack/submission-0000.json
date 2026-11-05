@@ -1,0 +1,41 @@
+{
+  "name": "0000-26235156",
+  "block": 26235156,
+  "submitted_utc_ns": 1793915608802055034,
+  "submitted_monotonic_ns": 1248490489080753,
+  "cpu_resource_before": {
+    "known": true,
+    "monotonic_ns": 1248490489021153,
+    "cpu_max": "4080000 100000",
+    "cpu_pressure": {
+      "some": {
+        "avg10": 0.0,
+        "avg60": 0.0,
+        "avg300": 0.0,
+        "total": 164372785
+      },
+      "full": {
+        "avg10": 0.0,
+        "avg60": 0.0,
+        "avg300": 0.0,
+        "total": 160730409
+      }
+    },
+    "cpu_stat": {
+      "usage_usec": 665790542247,
+      "user_usec": 560352791746,
+      "system_usec": 105437750501,
+      "core_sched.force_idle_usec": 0,
+      "nr_periods": 1152872,
+      "nr_throttled": 11308,
+      "throttled_usec": 10804712662,
+      "nr_bursts": 0,
+      "burst_usec": 0
+    },
+    "host_loadavg": [
+      86.07080078125,
+      48.193359375,
+      34.2431640625
+    ]
+  }
+}

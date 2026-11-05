@@ -29,6 +29,8 @@ pub fn register(owner: *@import("outer_source.zig").Owner) !void {
     tc_options.logs = logs[1];
     const main_tc = try @import("trace_commit_cost.zig").init(a, tc_options);
     tc_options.logs = logs[2];
+    const reuse_inter = owner.backend.trace_commit.reusesInterInputs(beta);
+    tc_options.reuse_owned_inputs = reuse_inter;
     const inter_tc = try @import("trace_commit_cost.zig").init(a, tc_options);
     const classes = try a.alloc(RC.ClassRole, owner.backend.entries.items.len);
     for (owner.backend.entries.items, classes) |*entry, *out| {
@@ -71,6 +73,7 @@ pub fn register(owner: *@import("outer_source.zig").Owner) !void {
         // Source and TC MUST raise the authorized future before releasing the
         // corresponding old owner; the registry rejects missing publications.
         const future = try @import("outer_progress_cost.zig").init(.{
+            .reuse_inter_inputs = reuse_inter,
             .main_evaluations = main_evaluations,
             .inter_evaluations = inter_evaluations,
             .main_commit_peak = main_peak,
@@ -88,7 +91,7 @@ pub fn register(owner: *@import("outer_source.zig").Owner) !void {
         plan.after[@intFromEnum(Progress.Step.interaction)] = future.after_interaction;
         plan.after[@intFromEnum(Progress.Step.inter_commit)] = future.after_inter_commit;
         plan.retirement_after[@intFromEnum(Progress.Step.interaction)] = future.interaction_after_release;
-        plan.retirement_after[@intFromEnum(Progress.Step.inter_commit)] = future.inter_commit_after_release;
+        if (!reuse_inter) plan.retirement_after[@intFromEnum(Progress.Step.inter_commit)] = future.inter_commit_after_release;
     } else {
         // No retirement discount for a TC mode without its input-release hook.
         const tail = rc.additional_peak.max(try rc.retained_after.add(pcs.additional_upper));

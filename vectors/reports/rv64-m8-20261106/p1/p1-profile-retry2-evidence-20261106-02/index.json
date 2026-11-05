@@ -1,0 +1,808 @@
+{
+  "schema": "rv64-evidence-export/v1",
+  "scope": "All retry2 receipts and metadata; gzip lossless raw Nsight captures; binary proof payloads excluded after fresh acceptance. Original failed service remains failed.",
+  "files": [
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/artifact.json",
+      "bytes": 1114640,
+      "sha256": "f1850ae67e00694a2ea6ff42a251bb42b213d1fcb28a0ee55254c633aebf713a"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/experiment.json",
+      "bytes": 8977,
+      "sha256": "1422b9d6f747dff026f92ee8c4d34922c84d8b4687b409d0f0ceb5df82b15a0b"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/6-baseline.log",
+      "bytes": 935,
+      "sha256": "f97c3baa72080a1277f86927e7f5923e39d121fbef59b71bab6b61da5eb46f5f"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/7-fullstack.log",
+      "bytes": 42,
+      "sha256": "f79ea0e8ff66f871f8cccb327204c99b90d4f1d937cb8ff9f3a532b021d00f83"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/warm-abort.json",
+      "bytes": 324,
+      "sha256": "f7bf3183d89c46e6f311bc9ba420fc925f77f2bc91ac805e0938161bdb9aa4b1"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/post-abort-analysis.py",
+      "bytes": 4565,
+      "sha256": "ca3df097950a6cb10d3ce4d11a6311d6a9c0c6e891e11e6509e50956f82daddf"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/post-abort-analysis.log",
+      "bytes": 140,
+      "sha256": "9cfe689a23c26b19e19212126976a84677ea37d10dc89b2534bc63b0d8e7cf17"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/post-abort-analysis.json",
+      "bytes": 8648,
+      "sha256": "2300118a87c80c5cf57cfab9cc86fc55104a030ec07b09fa05fb84569179ef28"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/candidate-nsys-export.log",
+      "bytes": 8101,
+      "sha256": "fad07400d08c1bf22f80466a0e658f1dcf7a95a16afe49b1f7a3afb9f539d05a"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/baseline-gpu-seconds.log",
+      "bytes": 450,
+      "sha256": "90eea5325ae79c2ef07b1c66d0bda47a9f8068d229a7d0d0a3522444a88d48fe"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/baseline-after-native.log",
+      "bytes": 6454,
+      "sha256": "12fc4bce97e66251a5f8d7b5e6a245558858311cc3be91a411fd29cd4711ca75"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/baseline-capture-native.log",
+      "bytes": 5334,
+      "sha256": "67dfa6be5cba35de68ab25b2ed9851c33ff79eb5056e59a4be9068d96b7de095"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/candidate_cold_only-gpu-seconds.log",
+      "bytes": 216,
+      "sha256": "5cdf285035d676e37d2199f7436e265c69c9dcb6e8135d3ffb3c3064b67c57a0"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/candidate_cold_only-after-native.log",
+      "bytes": 2227,
+      "sha256": "9fbb6a9202f16fda41c9c81c9f72ca7aae4ecd53d6031a5add76edb5b471f20c"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/candidate_cold_only-capture-native.log",
+      "bytes": 2456,
+      "sha256": "ab693b0b420c825882c4cd27acd125466892429748d997fbec3ba6d78f6db2a7"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/post-abort-analysis.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/metrics-audit.json",
+      "bytes": 4056,
+      "sha256": "bcb1c14ec22acab3515c407f0f29023d577c2b846212e8e3f8b8268c38732ec2"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/request-24628607.json",
+      "bytes": 1212,
+      "sha256": "755833f6c44896d4a96851a60401a1c22a3be6c82d99545b6a4ec2c579ec2cb2"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/manifest.json",
+      "bytes": 1555,
+      "sha256": "e17931ebd234b770073363cc1e8c6c7db2e807e4514425c79a25e2b9fe577654"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/plan.json",
+      "bytes": 9945,
+      "sha256": "248cfdca25cea49f56bb6599a4a46a555cbf2e43f4dc99d351976d92db2f9475"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/producer.stdout",
+      "bytes": 75518,
+      "sha256": "926f59d1ff13017ce4082c06765a5e50d21552d80c906b68beaacd107a74d16e"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/producer.stderr",
+      "bytes": 433494,
+      "sha256": "805114025a271063a4b684f8073a881c47f33d9c9c51c12fe993a9777f489cdc"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/loaded-native-runtime.json",
+      "bytes": 278,
+      "sha256": "6e894b765f8b36dafd8f7f222053d749d70f938505605f34f8e65a6a07799d29"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/quiet-0000.json",
+      "bytes": 10547,
+      "sha256": "a2be47c5c5b58969035bfa6573f918144088c4f54f2c1911c341aa14a778dbbb"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/submission-0000.json",
+      "bytes": 925,
+      "sha256": "fb129a67d13c46d5395280902ec2a9b4fee15ce7bd8369f231e8ac38f691f637"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/request-timeline.json",
+      "bytes": 4082,
+      "sha256": "4764a51d03a0b3f0da4479361bdcaf587314822a0ddd223b84c49965dc1c9199"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/quiet-0001.json",
+      "bytes": 10513,
+      "sha256": "f7e9f0b06f6c874b318658affc51eb6ff807ea48ae201c2e7e3b8b922469494c"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/submission-0001.json",
+      "bytes": 925,
+      "sha256": "d9ef1b9dff8d1e79ba29a0beeef1264266ce55d8bde618de4dd97a672a99396c"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/resource-final.json",
+      "bytes": 115475,
+      "sha256": "21d361d5863680f0b372b01dd78f448c1b3b61cc6c926493ef4eff46b9221ea9"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/receipt.json",
+      "bytes": 44615,
+      "sha256": "b74a073ebb75b1da976a9cfb216d5501975608ea7f14bb0babe1c5f2f38e9027"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/gpu-seconds.json",
+      "bytes": 3656,
+      "sha256": "52095da29181a0a84845c158dc3c25f49d2217fc7cc37af1aa656ebb0b203c22"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/after-native-ownership.json",
+      "bytes": 84032,
+      "sha256": "3a8f80116a45cd2bdda1115884ad63c61072930ea6a40e52d890140230f143b2"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/capture-native-ownership.json",
+      "bytes": 60634,
+      "sha256": "522b67a35edc2635c80b5b7b0a4e5e3abaebd24b128bbaeaa894850114cbf48b"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/request-24628607.json",
+      "bytes": 1213,
+      "sha256": "1a098c6bec700421fbb3cab8262f0ae6bf7f0d2fcd953fff2a8890c8a270dd18"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/manifest.json",
+      "bytes": 1556,
+      "sha256": "803d44393ffba959071202a507fb26ef1ae1ff4380fb38b16f9b322db73f51a0"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/plan.json",
+      "bytes": 11242,
+      "sha256": "e9e81b4775fcae547a45ade523662a79c84a4229bb41f5d1942ecee96992a60e"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/budget-guard.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/budget-guard.json",
+      "bytes": 890,
+      "sha256": "4e5dc41e7ad22166b4cad5036cedddc8a617ff3d78b9e865ca40160daaa35225"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/producer.stdout",
+      "bytes": 58001,
+      "sha256": "00cf011109f21d2b70ceb9fdb591341ad272dbae4cc65760b46577b778bdb9d7"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/producer.stderr",
+      "bytes": 789402,
+      "sha256": "d0632ebb6b46e61ddcf788a78e90aeabd2701e8308490f9934b07bb24fb01e4d"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/loaded-native-runtime.json",
+      "bytes": 278,
+      "sha256": "1435e1b8db3dda4fb6133118296bfd9a2dd5cc1bb9faddabaef35f2e98c2bc9f"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/quiet-0000.json",
+      "bytes": 10487,
+      "sha256": "ffb94627abc21193e3a4217cd60e6a416ac1a57c86e31b35dab51df582462afe"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/submission-0000.json",
+      "bytes": 922,
+      "sha256": "5d6227c4b901f91c53db646f067f121e2ad7358007e06c9bc27cd14fc4f21424"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/request-timeline.json",
+      "bytes": 2042,
+      "sha256": "77bbbd2c87685d44433cfcd746b9641f63d1500b0af0b4e6067b2e1a4856343c"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/quiet-0001.json",
+      "bytes": 10524,
+      "sha256": "1349747112cc7902fe5b45c2e503936419044d176afd73622f25b9abee9942ef"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/submission-0001.json",
+      "bytes": 923,
+      "sha256": "1ecfdb8aeb018a99bd565e110545c00e249ebd74d9ddf2142d3963036cdf6601"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/resource-final.json",
+      "bytes": 386996,
+      "sha256": "edc537a1ce635a0e63c3bc30c8a52467fc6db8c29993c37ca2b227a6d656e38b"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/candidate-completed-cold/receipt.json",
+      "bytes": 3326,
+      "sha256": "0e34fa2fb792368769f259fa1cd5e865b51b2137c94abe8e3064495ea0393992"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/candidate-completed-cold/gpu-seconds.json",
+      "bytes": 2128,
+      "sha256": "d54ef2cb27927b7a8af33df55f180af86a48e1aed4eb965f13940625530cd821"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/candidate-completed-cold/after-native-ownership.json",
+      "bytes": 13408,
+      "sha256": "32d09ca82b4545189bb8b8419e4ad69181f894d0a5a4cc7a6c4a8a9c123757c5"
+    },
+    {
+      "path": "p1-inter-reuse-profile-retry-20261106-02/candidate-completed-cold/capture-native-ownership.json",
+      "bytes": 26127,
+      "sha256": "8e3db9087048d049412b099c47bf8e726305716c047a191b0017010469fd20ff"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/resident-device-fixed-manifest.json",
+      "bytes": 1555,
+      "sha256": "e17931ebd234b770073363cc1e8c6c7db2e807e4514425c79a25e2b9fe577654"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/resident-ready-manifest.json",
+      "bytes": 1555,
+      "sha256": "e17931ebd234b770073363cc1e8c6c7db2e807e4514425c79a25e2b9fe577654"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/READY",
+      "bytes": 73,
+      "sha256": "8506c150873ee28f0053194cc9bfe6ae0cd54755859c42f181ac8be4372e59bd"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/nsys/timeline.nsys-rep.gz",
+      "bytes": 10644406,
+      "sha256": "d2364fbb51e5bb6b8e66994de82b76f87bc56bdd8b74381c0e96349a4027e724"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/nsys/timeline.sqlite.gz",
+      "bytes": 15135469,
+      "sha256": "78be79392ada85a2bda7bf036d4951e56679ee629e36cf62db4c4c619df03e43"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/receiver-24628607-0000-24628607-20261105T225139/receiver-request.json",
+      "bytes": 1251,
+      "sha256": "e9541934c838a48c85dbd9030aeb9758deedd7dfa9ccbbabcfbaef5b6d5e21f2"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/receiver-24628607-0000-24628607-20261105T225139/strict-receiver.stdout",
+      "bytes": 3735,
+      "sha256": "d9dfc4309ad411fb25f7df6d5971887f0dc88172fed72508465fbd2c2c0fda8d"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/receiver-24628607-0000-24628607-20261105T225139/strict-receiver.stderr",
+      "bytes": 1057,
+      "sha256": "4ea1dade3161c84c5a308b6c3dec3e52a5bcf51cf413cde935469ad6b9475136"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/receiver-24628607-0001-24628607-20261105T225220/receiver-request.json",
+      "bytes": 1251,
+      "sha256": "b3625f0f683b164d91d387b951ab9e5cd399fe3abd7d73ba0a9a4a81768d89d1"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/receiver-24628607-0001-24628607-20261105T225220/strict-receiver.stdout",
+      "bytes": 3735,
+      "sha256": "686bc2ea03106871edf773b187e8240c4509435093c3a030b708876c4ddfc43f"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/receiver-24628607-0001-24628607-20261105T225220/strict-receiver.stderr",
+      "bytes": 1057,
+      "sha256": "fd0f9c0220e3576ddd59a96a23c82e2643801ff1800e6272d1083625e8866d10"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/inbox/STOP",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/done/0000-24628607.json",
+      "bytes": 94,
+      "sha256": "064239015ef7ca79c857152138eaf71f2f8e146484ebdf511b64fd89f794f9a0"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/done/0001-24628607.json",
+      "bytes": 94,
+      "sha256": "12d6983617bb12228d9cd4f6c6e40d7c2c5a334454657f8bbd9c56873e419d33"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/resources.json",
+      "bytes": 620,
+      "sha256": "93aa5d502d299770f5d79118809b970cf4f90dc9c4142d4ae97d3b197064754e"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/physical-0000.stages.json",
+      "bytes": 5605,
+      "sha256": "973bab01ea5e3aebd342f09d6b5cfc409ff04826d34bb8838d70875bba5243ba"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/physical-0001.stages.json",
+      "bytes": 5606,
+      "sha256": "29ee36ff1a03d0666b6c4f9eb98acc1978087879e05fc0192fd9f919884ac1a9"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/physical-0002.stages.json",
+      "bytes": 5606,
+      "sha256": "390ff085e46e529ad8b5b7e59a9125f276084f12569d8e0cd21bae7088e19218"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/physical-0003.stages.json",
+      "bytes": 5596,
+      "sha256": "34a1a56642e803b89eb7480ca46b04ce14919d19fabf8b889d549d34d1bcd91c"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/physical-0004.stages.json",
+      "bytes": 5601,
+      "sha256": "cedaa8019f28b762bc69fb8fdd79061b20a49301a1eb7f58be40e49226fb5c33"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/physical-0005.stages.json",
+      "bytes": 5605,
+      "sha256": "1d51e746b612be078ed931988135382da98018f48a2072c6d5c5349293df93c4"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/physical-0006.stages.json",
+      "bytes": 5606,
+      "sha256": "ab840386abae86a0b8df653d2ca0491981cf091a62b859ce7502857beecedaf7"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/physical-0007.stages.json",
+      "bytes": 3249,
+      "sha256": "b322f038e1378dc36aae8e32b80ce6bba17cec86a5ba55950ae15194c6f7346c"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/physical-0008.stages.json",
+      "bytes": 3249,
+      "sha256": "ee7b92c1e3ab0179df0b0a530f0fb5f3ff3eac69e6d64b642b3dc9d1eba46e49"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/physical-0009.stages.json",
+      "bytes": 3251,
+      "sha256": "bb373ec0e0119bc2cbcbfded761a4ed8d1ac5ef50856186cb628cc19caa76ecb"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/physical-0010.stages.json",
+      "bytes": 3263,
+      "sha256": "c844630666da0c0ac816e27d74be950459619d3de7db696db6c09f8f33b67140"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/physical-0011.stages.json",
+      "bytes": 3269,
+      "sha256": "dba12348381bc720fa443f01cd18a90c43d2e194ef2e92f1976adfea65052c3f"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/physical-0012.stages.json",
+      "bytes": 3262,
+      "sha256": "be448742bacbe16171c1ff0bdc4085b5cc270f2e86e3b38ebe32fd36c5d7da05"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/physical-0013.stages.json",
+      "bytes": 3265,
+      "sha256": "fa00f59404ae7ed33c8ff1e813d782b948f11bf0eb0bd5f0bc2d21b8b71b5da6"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/schedule.json",
+      "bytes": 6592,
+      "sha256": "b4b92be6ae981026952f07f8114481a5b4823422f241a6ca99c9fa3d56ba5024"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/bundle.json",
+      "bytes": 72474,
+      "sha256": "28e62f48acd7e6c1df6e3a06735632fee1d310f0e965cf641ac4e7dbc8f74706"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/candidate-fixed-setup.json",
+      "bytes": 959,
+      "sha256": "d5f4848a9def460793944122ecf63c64cf2bfe6fc4f51a0f5c89c1b80102e0a7"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/candidate-source-bounds.json",
+      "bytes": 33718,
+      "sha256": "2505a11ef0a7ef5c86295e591cc8d80e1dbb704e59206f59c926292894d5c687"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/report.json",
+      "bytes": 27332,
+      "sha256": "d5053bdcfd49a95aacc15e3bf165c9588f036d9ba69ee7a0ae5a478e5490ba71"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/combined-report.json",
+      "bytes": 3691,
+      "sha256": "6fc0ae5c44195eb9759d46cc2d621acec13be657d34a568f07170e98b57204d2"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/combined-entry.json",
+      "bytes": 1635,
+      "sha256": "d5465aecca902db384442ce30a481ef13ccb2de8cac5295464a043359e5bc5d2"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/recursion-om31/tree.json",
+      "bytes": 610476,
+      "sha256": "b4bf2a794ea95048c96ef12fa1b025cee339aa496186bb4be461a73cc6f1ece5"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/recursion-om31/report.json",
+      "bytes": 1540,
+      "sha256": "b7ce50fa469abd9124ba10f21781ab2351f078f9bad6af8ae3aefa8f5b52a42c"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/recursion-om31/scheduler.json",
+      "bytes": 448,
+      "sha256": "63f2f767c052097a2209fe86bd963415274ed025aa550d1889b4262881faa92c"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0000-24628607/24628607/proof/recursion-om31/pipeline.json",
+      "bytes": 18118,
+      "sha256": "7414b86e78b8048b3537ff8eeefe19b6f0c7244c8bbf895e7ceca6adc1ff0be6"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/resources.json",
+      "bytes": 620,
+      "sha256": "93aa5d502d299770f5d79118809b970cf4f90dc9c4142d4ae97d3b197064754e"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/physical-0000.stages.json",
+      "bytes": 5601,
+      "sha256": "e3bade79638ea7d4b1958119363fcb6e49b71c8c8e2ffc61d680e6ce879c9d19"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/physical-0001.stages.json",
+      "bytes": 5587,
+      "sha256": "3eb692fb169784993f130f55173e11f93bd28645cc041599f84f739ee5de1c87"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/physical-0002.stages.json",
+      "bytes": 5603,
+      "sha256": "da983d7da040572f71f8b706c08336492415ef72562ffbb8147fead1b3132c49"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/physical-0003.stages.json",
+      "bytes": 5600,
+      "sha256": "b4dcac648064a208f05bf86dea27493e46ca1aa40b80e777e14cd0661a9cbe84"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/physical-0004.stages.json",
+      "bytes": 5594,
+      "sha256": "a4aaf1f97d9107bf7008b23c734d68bf3600392f45612189a1ac68504bf4b760"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/physical-0005.stages.json",
+      "bytes": 5602,
+      "sha256": "e93c0a026bca5554caa90157e304d573de8f38693f6ee041db76681a259e34db"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/physical-0006.stages.json",
+      "bytes": 5602,
+      "sha256": "a6e22a5bd3d617659c582256b0ee65130f1994bfcf6db8b808755c4e9bac245e"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/physical-0007.stages.json",
+      "bytes": 3242,
+      "sha256": "f7ae8b43730a06451194e0ece2a3647cf5042fcb75f6335b24a02a6362c50671"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/physical-0008.stages.json",
+      "bytes": 3252,
+      "sha256": "92c8a98ceaec3903c3b4351b7c6eaee05a27bf4dd40ee0452ce90eda9917dce2"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/physical-0009.stages.json",
+      "bytes": 3253,
+      "sha256": "0882e3503c95b65af0853cd7ec6e1e027ec6c21ed6ab3ed3a0c03e10f285ef4f"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/physical-0010.stages.json",
+      "bytes": 3251,
+      "sha256": "7bc448a4d1fdf6b04bb7c5b5c5f727d62fc8d0ddcb808d404dddb3f0e92eb1cd"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/physical-0011.stages.json",
+      "bytes": 3268,
+      "sha256": "dc35eedd113f2ceca7b8440d3a0e65e1dbd0b99dfdff668059719d89bdda8218"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/physical-0012.stages.json",
+      "bytes": 3247,
+      "sha256": "333977ec739c2dff409e47e6c7731dd345046341118fa72ce8912955870a60f6"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/physical-0013.stages.json",
+      "bytes": 3253,
+      "sha256": "4e3a21aae15dfef609e4aacd3efff0eed8e994ca749fadb68857d80d516fb5c9"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/schedule.json",
+      "bytes": 6576,
+      "sha256": "1451b3dee9356d252f9935f3de0070114577041af4d3da2ac08603a0f7a1d27d"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/bundle.json",
+      "bytes": 72474,
+      "sha256": "28e62f48acd7e6c1df6e3a06735632fee1d310f0e965cf641ac4e7dbc8f74706"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/candidate-fixed-setup.json",
+      "bytes": 950,
+      "sha256": "3e62c53c312632b8b61e18c34c147f2b64ed2cfa6bf1c395a12e84957d48ab24"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/candidate-source-bounds.json",
+      "bytes": 33718,
+      "sha256": "2505a11ef0a7ef5c86295e591cc8d80e1dbb704e59206f59c926292894d5c687"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/report.json",
+      "bytes": 27218,
+      "sha256": "4ae1988ea9e4fb75f6dd15d904ee28e43bdb28921a039fc644a47102a858795c"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/combined-report.json",
+      "bytes": 3674,
+      "sha256": "f05d26315a641d99eb3b1511f5b834ff4b3d57bcb2e9dd4b07e6d9c81c86273e"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/combined-entry.json",
+      "bytes": 1636,
+      "sha256": "0db000dea977fe98d694d8bd923a7ec9986e704970fe6b883cf98c55c4dac150"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/recursion-om31/tree.json",
+      "bytes": 610476,
+      "sha256": "b4bf2a794ea95048c96ef12fa1b025cee339aa496186bb4be461a73cc6f1ece5"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/recursion-om31/report.json",
+      "bytes": 1538,
+      "sha256": "b11c0fab99667c6760193aae362befdd9a711c4a7167eebcbfda026a5d039ad9"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/recursion-om31/scheduler.json",
+      "bytes": 448,
+      "sha256": "4d24eb19fefd5524a1eb19e9cc6d41e9ccb0dce6283330f7d14682e61eeb1f04"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/spool/out/0001-24628607/24628607/proof/recursion-om31/pipeline.json",
+      "bytes": 17742,
+      "sha256": "fb8adb06c516ee8ebbb87f198827e8a1048e0843262c29810ef5ece0d766d23c"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/resident-device-fixed-manifest.json",
+      "bytes": 1556,
+      "sha256": "803d44393ffba959071202a507fb26ef1ae1ff4380fb38b16f9b322db73f51a0"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/resident-ready-manifest.json",
+      "bytes": 1556,
+      "sha256": "803d44393ffba959071202a507fb26ef1ae1ff4380fb38b16f9b322db73f51a0"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/READY",
+      "bytes": 73,
+      "sha256": "44a8e8ec24ab850ea2e36a0132321ca7e61bbd9e1aed3e66edc20b9bfd455ee7"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/nsys/timeline.nsys-rep.gz",
+      "bytes": 1506770,
+      "sha256": "e6c35b977d226e5a63376ad6b7f735a5f071161906ffbf9cfe975b99ad58e192"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/nsys/timeline.sqlite.gz",
+      "bytes": 2144252,
+      "sha256": "4371c056b2a26e604df0f4629abeb01b7f80985f60019af52d446c750b0a33ee"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/receiver-24628607-0000-24628607-20261105T225301/receiver-request.json",
+      "bytes": 1252,
+      "sha256": "60cc8d777ab7ffa44aed88304edf88b1830716692e0c1be21238da9a023227dc"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/receiver-24628607-0000-24628607-20261105T225301/strict-receiver.stdout",
+      "bytes": 3735,
+      "sha256": "b2f7faad5ae9080567beff3fb2de783e87a6d6085eec4aa820caf83f6f791aad"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/receiver-24628607-0000-24628607-20261105T225301/strict-receiver.stderr",
+      "bytes": 1057,
+      "sha256": "4626eadc26b115f4d329f45710cddf3fc0ea29a4bebf1bd481b46314135c4df6"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/inbox/0001-24628607.request",
+      "bytes": 9,
+      "sha256": "3d4e07e099c2287202ddd0c0ffbcda22c530961784de2c2eadad683e2bb2af2d"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/done/0000-24628607.json",
+      "bytes": 94,
+      "sha256": "dd4f024e719718c885fa2551659e0a36d14091eda106e5ac45815b4b4d4a0166"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/resources.json",
+      "bytes": 620,
+      "sha256": "93aa5d502d299770f5d79118809b970cf4f90dc9c4142d4ae97d3b197064754e"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/physical-0000.stages.json",
+      "bytes": 5608,
+      "sha256": "8ff19e8878d68ebf7dbadced383c0c0202bc3afb5a3e18203feccc498960b5bf"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/physical-0001.stages.json",
+      "bytes": 5607,
+      "sha256": "b7772a596471f6407c455dc0db88c4ae14069176c2ae6bc2212a709f53616759"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/physical-0002.stages.json",
+      "bytes": 5610,
+      "sha256": "2098bb0367520cb91938814e7670a57e92855aa98fa98ea9735cb2fac83691f6"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/physical-0003.stages.json",
+      "bytes": 5607,
+      "sha256": "a526570fbffb8db05192c7dd3ebe1ada36f5c60b99ca7318c1543d1eeb1dd6af"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/physical-0004.stages.json",
+      "bytes": 5604,
+      "sha256": "7c3e305adba44a9e558de4ee0a18b89428a9884eeefd289eb6f4ccce64b10a6e"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/physical-0005.stages.json",
+      "bytes": 5602,
+      "sha256": "f6c1614f85e70377524a2146081040c19097fda141898537160e205e03ff1b93"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/physical-0006.stages.json",
+      "bytes": 5602,
+      "sha256": "88f29de3347ad92afe56ae3d2de50ca9488f8241c2f2c30d550807dbebf0fa73"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/physical-0007.stages.json",
+      "bytes": 3249,
+      "sha256": "e4d4208c6282cb6a6634de86b773d92eab31e07997a7c8deb07a6f529f0545eb"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/physical-0008.stages.json",
+      "bytes": 3245,
+      "sha256": "5c20014485f7676a67b413d16c85c7cf3030a09d5367494ff006991cf7bce673"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/physical-0009.stages.json",
+      "bytes": 3251,
+      "sha256": "a7b3b17d2ac44d28481cc9d02f6e87fe42cf688defae83dbf99a2c7be68c65d7"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/physical-0010.stages.json",
+      "bytes": 3259,
+      "sha256": "ca52c06440da0b387b63469ef10bfabfb99bd3341c30d0c57b482eb625b12e68"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/physical-0011.stages.json",
+      "bytes": 3261,
+      "sha256": "58e7e4b0c46a4845d0bfb6a98f54bc695fcb0cb13700f476495b5be9f60ddcde"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/physical-0012.stages.json",
+      "bytes": 3264,
+      "sha256": "1906702025dc69ebf43b3b795bf54fdb05d09c65496e77b833d05a9ca04b7bef"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/physical-0013.stages.json",
+      "bytes": 3266,
+      "sha256": "665c77b23b02a2426ac99b8b769e65c07003da187cb8ecd41fb811aaaea8cb2b"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/schedule.json",
+      "bytes": 6595,
+      "sha256": "1f066c916a85e915a2fe2791c9a7e765b8bcce5ca2da328543eba31ec9048685"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/bundle.json",
+      "bytes": 72474,
+      "sha256": "28e62f48acd7e6c1df6e3a06735632fee1d310f0e965cf641ac4e7dbc8f74706"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/candidate-fixed-setup.json",
+      "bytes": 959,
+      "sha256": "d5f4848a9def460793944122ecf63c64cf2bfe6fc4f51a0f5c89c1b80102e0a7"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/candidate-source-bounds.json",
+      "bytes": 33718,
+      "sha256": "2505a11ef0a7ef5c86295e591cc8d80e1dbb704e59206f59c926292894d5c687"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/report.json",
+      "bytes": 27342,
+      "sha256": "2a6c1a6ec9ad491ab8c71fa82a9a3de3607189caa1f8f11b0e1533b30157fce8"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/combined-report.json",
+      "bytes": 3722,
+      "sha256": "1451215d7fc5dad38ab2917270a3df0c4a638a09e9e300c9246f5b3fde8214c4"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/combined-entry.json",
+      "bytes": 1662,
+      "sha256": "8420a13f4b833f09c636c2eee82fa0e182a5b2b8c21d45a91ddd6283d7ec81de"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/recursion-om31/tree.json",
+      "bytes": 610476,
+      "sha256": "b4bf2a794ea95048c96ef12fa1b025cee339aa496186bb4be461a73cc6f1ece5"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/recursion-om31/report.json",
+      "bytes": 1540,
+      "sha256": "fe74bdc59672e56e09d4b7736b785a7cb53a7b0bbc49436b7437ebc70cd24185"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/recursion-om31/scheduler.json",
+      "bytes": 448,
+      "sha256": "3610b56b3d38974cd8e9fa75a992eba40ed076068d78c76923f29c80deade555"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0000-24628607/24628607/proof/recursion-om31/pipeline.json",
+      "bytes": 18169,
+      "sha256": "5711ded9217463c88576fb8185af7b6f6b8a7341bc3ec27340040bcf73786a8e"
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/spool/out/0001-24628607/24628607/resources.json",
+      "bytes": 620,
+      "sha256": "93aa5d502d299770f5d79118809b970cf4f90dc9c4142d4ae97d3b197064754e"
+    },
+    {
+      "path": "source/scripts/rv64_m4_resident.py",
+      "bytes": 64134,
+      "sha256": "e3965caec861038a66843dea19e32a09f628ee64153eb9ddab73af27aa956935"
+    },
+    {
+      "path": "source/scripts/tests/test_rv64_quiet_checkpoint.py",
+      "bytes": 5038,
+      "sha256": "36344b4b3a542b372578d416377b2871c4c8dbb13c5dda49b385a2e87a452efc"
+    }
+  ],
+  "raw_profiles": [
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/nsys/timeline.nsys-rep.gz",
+      "original_sha256": "27627064bba4ba97a1e607d0ec6e05d41e204ded4d4a1ac8f29a4f466fc4f6a8",
+      "original_bytes": 17427323
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-06-baseline/nsys/timeline.sqlite.gz",
+      "original_sha256": "62bf0d0df8d56fff5ab01369b4d417f5d7f8aaa2b28cc1c325c0ce8ac47e78e9",
+      "original_bytes": 45453312
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/nsys/timeline.nsys-rep.gz",
+      "original_sha256": "27a36c76e562dee914271da9beb96f03407637290815b82d7e24798d66992ce6",
+      "original_bytes": 2702829
+    },
+    {
+      "path": "daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-02-07-fullstack/nsys/timeline.sqlite.gz",
+      "original_sha256": "ec9d7d6d0c410b9347cef5f41af1c443ad151747149734a539ddb22cc10e0c26",
+      "original_bytes": 7626752
+    }
+  ]
+}

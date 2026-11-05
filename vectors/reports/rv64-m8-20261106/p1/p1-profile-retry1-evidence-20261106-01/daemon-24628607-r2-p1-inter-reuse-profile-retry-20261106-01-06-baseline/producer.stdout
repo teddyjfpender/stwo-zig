@@ -1,0 +1,5 @@
+Collecting data...
+Generating '/tmp/nsys-report-027f.qdstrm'
+[1/1] [0%                          ] timeline.nsys-rep[1/1] [0%                          ] timeline.nsys-rep[1/1] [5%                          ] timeline.nsys-rep[1/1] [6%                          ] timeline.nsys-rep[1/1] [7%                          ] timeline.nsys-rep[1/1] [8%                          ] timeline.nsys-rep[1/1] [9%                          ] timeline.nsys-rep[1/1] [10%                         ] timeline.nsys-rep[1/1] [11%                         ] timeline.nsys-rep[1/1] [12%                         ] timeline.nsys-rep[1/1] [13%                         ] timeline.nsys-rep[1/1] [======================90%   ] timeline.nsys-rep[1/1] [========================100%] timeline.nsys-rep[1/1] [========================100%] timeline.nsys-rep
+Generated:
+    /workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-inter-reuse-profile-retry-20261106-01-06-baseline/nsys/timeline.nsys-rep

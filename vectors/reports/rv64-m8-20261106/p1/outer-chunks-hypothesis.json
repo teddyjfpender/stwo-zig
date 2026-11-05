@@ -1,0 +1,40 @@
+{
+  "schema": "rv64-m8-p1-outer-chunks-hypothesis/v1",
+  "status": "STATIC_CANDIDATE_NOT_IMPLEMENTED",
+  "before": "inter-reuse-v2-result.json",
+  "measured_seconds_to_attack": {
+    "label": "M",
+    "request_median_s": 12.401007834,
+    "recursion_median_s": 4.652,
+    "native_median_s": 5.116
+  },
+  "hypothesis": "Evaluate unchanged role roots in bounded groups using a32-column full-domain LDE cache. Generate only the dependency closure for each group; retain original reverse RLC powers, global row masks and denominator indexing. Retire/refill cached columns on the same ordered owner lane. Remove the largest composition workspace before any admission changes.",
+  "estimated_effect": {
+    "label": "E",
+    "recursion_seconds_removed_range": [
+      0.3,
+      1.0
+    ],
+    "request_gain": "unknown until composed3+3; avoid the profiled warm capacity stall and release space for concurrent progress; no <=8s prediction",
+    "risk": "More dependent group launches and possible lost cross-root CSE can offset overlap. Static caching estimates126 mask-column loads versus116 for role4,87 versus87 for role5; runtime tree-column alias deduplication still required."
+  },
+  "allocation_screen": {
+    "label": "D",
+    "source": "p1-root-group-screen-20261106-01/census.json",
+    "slot_cap": 32,
+    "eval_log": 24,
+    "role_arena_bytes": 2181038080,
+    "prior_observed_role4_arena_bytes": 7818182656,
+    "prior_observed_role5_arena_bytes": 5335154688,
+    "whole_node_peak": null,
+    "remaining_issues": "INTER numerator scratch and MAIN evaluations plus retained coefficients remain live; long-lived immutable caches also require accounting. No <=11GB qualification."
+  },
+  "implementation_constraints": [
+    "New default-off flag, composed with existing two P1 flags; default remains unchanged.",
+    "Do not alter composition_codegen.zig identity or regenerate unrelated frozen AOT families. Bind a small companion module to exact parent program and group-cover identities.",
+    "Every authenticated root exactly once, unchanged powers and full-domain mask geometry; no cross-half mask reinterpretation.",
+    "No relaxed custody/admission checks, no profile retries without a memory change.",
+    "Pod-only build under build lock, small seeded parity/fresh receivers then canonicalquiet3+3 and separate profile; full gate before commit."
+  ],
+  "decision": "Proceed with a minimal source-bound group implementation after the current checkpoint gate and push; keep final P1 exit open."
+}

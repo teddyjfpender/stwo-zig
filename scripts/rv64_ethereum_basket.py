@@ -206,27 +206,34 @@ class DeviceMonitor:
         self.stop = threading.Event()
         self.samples = []
         self.errors = []
+        self.sample_lock = threading.Lock()
         self.thread = threading.Thread(target=self.run, daemon=True)
 
     def run(self):
         while not self.stop.is_set():
-            try:
-                result = subprocess.run(["nvidia-smi", "--query-gpu=index,uuid,memory.used,utilization.gpu", "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=3, check=True)
-                for line in result.stdout.splitlines():
-                    index, uuid, memory, utilization = [part.strip() for part in line.split(",")]
-                    if int(index) in self.devices:
-                        try:
-                            active = int(utilization)
-                        except ValueError:
-                            active = None
-                        if active is not None and not 0 <= active <= 100:
-                            active = None
-                        self.samples.append({"utc_ns": time.time_ns(), "monotonic_ns": time.monotonic_ns(), "device": int(index), "uuid": uuid, "memory_used_bytes": int(memory) * 1024 * 1024,
-                                             "kernel_active_percent": active})
-            except (OSError, ValueError, subprocess.SubprocessError) as error:
-                if not self.errors:
-                    self.errors.append(str(error))
+            with self.sample_lock:
+                if self.stop.is_set():
+                    break
+                self.sample()
             self.stop.wait(.2)
+
+    def sample(self):
+        try:
+            result = subprocess.run(["nvidia-smi", "--query-gpu=index,uuid,memory.used,utilization.gpu", "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=3, check=True)
+            for line in result.stdout.splitlines():
+                index, uuid, memory, utilization = [part.strip() for part in line.split(",")]
+                if int(index) in self.devices:
+                    try:
+                        active = int(utilization)
+                    except ValueError:
+                        active = None
+                    if active is not None and not 0 <= active <= 100:
+                        active = None
+                    self.samples.append({"utc_ns": time.time_ns(), "monotonic_ns": time.monotonic_ns(), "device": int(index), "uuid": uuid, "memory_used_bytes": int(memory) * 1024 * 1024,
+                                         "kernel_active_percent": active})
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            if not self.errors:
+                self.errors.append(str(error))
 
     def finish(self):
         self.stop.set()

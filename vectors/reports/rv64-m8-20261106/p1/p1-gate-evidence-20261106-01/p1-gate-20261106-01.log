@@ -1,0 +1,7 @@
+GATE build
+GATE unit-zig
+GATE unit-python
+GATE small-block-proof
+GATE fresh-cpu-receiver
+GATE negative-corpus
+GATE PASS /workspace/m3/runs/m7-integrate/p1-gate-20261106-01

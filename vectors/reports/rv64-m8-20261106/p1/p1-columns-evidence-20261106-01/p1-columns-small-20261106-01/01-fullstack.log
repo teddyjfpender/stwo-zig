@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/workspace/m3/src/m7-integrate/scripts/rv64_m4_resident.py", line 1039, in <module>
+    main()
+  File "/workspace/m3/src/m7-integrate/scripts/rv64_m4_resident.py", line 1025, in main
+    daemon(args)
+  File "/workspace/m3/src/m7-integrate/scripts/rv64_m4_resident.py", line 658, in daemon
+    raise TimeoutError(f"request {name} exceeded bounded {args.request_timeout}s; terminate producer group and drain guard")
+TimeoutError: request 0001-26235156 exceeded bounded 120.0s; terminate producer group and drain guard

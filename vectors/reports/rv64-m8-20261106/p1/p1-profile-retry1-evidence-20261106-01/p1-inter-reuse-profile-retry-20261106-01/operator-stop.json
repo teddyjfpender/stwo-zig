@@ -1,0 +1,6 @@
+{
+  "utc_ns": 1793918540515928741,
+  "reason": "Quiet gate treats Nsight child in separate process group as foreign; no requests submitted",
+  "verified_ready_pid": 2474083,
+  "action": "Write STOP to this unique service spool for graceful owner cleanup"
+}

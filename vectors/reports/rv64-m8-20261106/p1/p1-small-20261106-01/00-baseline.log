@@ -1,0 +1,34 @@
+{
+ "run": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-small-20261106-01-one-stack-v5-smoke-00-baseline",
+ "process_wall_s": 51.39,
+ "service_overhead_s": 8.366,
+ "rss_gib": 19.4,
+ "cuda_api": {},
+ "requests": [
+  {
+   "block": 26235156,
+   "trial": 0,
+   "request_s": 27.96,
+   "capture": 1.673,
+   "setup": 11.441,
+   "native": 4.464,
+   "recursion": 10.175,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  },
+  {
+   "block": 26235156,
+   "trial": 1,
+   "request_s": 15.068,
+   "capture": 1.727,
+   "setup": 4.634,
+   "native": 3.394,
+   "recursion": 5.117,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  }
+ ]
+}
+{"service_start_s": 4.53, "service_stop_s": 1.726, "client_latency_s": [27.968, 15.073]}

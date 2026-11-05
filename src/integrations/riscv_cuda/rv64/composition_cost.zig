@@ -7,6 +7,7 @@ pub const Auxiliary = enum { none, last, hc };
 pub const Column = struct { log: u32, direct: bool };
 pub const Sparse = @import("composition_sparse_contract.zig");
 pub const Role = struct {
+    selected_columns: ?usize = null,
     sparse: ?Sparse.Selection = null,
     trace_log: u32,
     eval_log: u32,
@@ -68,6 +69,12 @@ pub fn arenaWords(role: Role) !u64 {
     const el = role.eval_log;
     if (rl < 4 or rl > 27 or el < rl + 1 or el > rl + 2 or el > 28) return error.InvalidCompositionGeometry;
     const n = try rows(el);
+    if (role.selected_columns) |count| {
+        if (role.sparse != null or role.auxiliary != .none or count == 0 or count >= role.columns.len or
+            !@import("composition_columns.zig").supportsGeometry(rl, el)) return error.InvalidSelectedCompositionCost;
+        for (role.columns) |column| if (!column.direct or (column.log + 1 != el and column.log + 2 != el)) return error.InvalidSelectedCompositionCost;
+        return @import("composition_columns.zig").arenaWords(count, el);
+    }
     const aux: u64 = switch (role.auxiliary) {
         .none => 0,
         .last => 1,
@@ -133,7 +140,7 @@ pub fn init(a: std.mem.Allocator, input: Input) !Plan {
             _ = try p.allocate(a, .auxiliary_inverse, id, (try rows(rl)) / 2, true);
             if (role.auxiliary == .hc) _ = try p.allocate(a, .hc, id, 16 * @as(u64, rl), true);
         }
-        _ = try p.allocate(a, .direct_logs, id, columns, true);
+        _ = try p.allocate(a, .direct_logs, id, role.selected_columns orelse columns, true);
         _ = try p.allocate(a, .parameters, id, try mul(role.parameters, 8), true);
         _ = try p.allocate(a, .powers, id, try mul(role.constraints, 8), true);
         _ = try p.allocate(a, .masks, id, try mul(role.masks, 2), true);
@@ -241,4 +248,33 @@ test "source-bound sparse role charges cache scratch and bucket then retires onl
     bad = selected;
     bad.trace_log = 19;
     try std.testing.expectError(error.UnqualifiedSparseCompositionCost, init(std.testing.allocator, .{ .roles = &.{bad}, .log = 20, .split = 2, .beta = 2, .separate_coefficients = true, .constraints = 5650 }));
+}
+
+test "selected full-domain Blake columns reduce arena without changing retained output" {
+    const cols = [_]Column{.{ .log = 23, .direct = true }} ** 167;
+    const original = Role{ .trace_log = 23, .eval_log = 24, .columns = &cols, .masks = 116, .parameters = 1, .constraints = 16 };
+    var selected = original;
+    selected.selected_columns = 116;
+    const input = Input{ .roles = &.{original}, .log = 24, .split = 1, .beta = 1, .separate_coefficients = true, .constraints = 16 };
+    var before = try init(std.testing.allocator, input);
+    defer before.deinit(std.testing.allocator);
+    var candidate = input;
+    candidate.roles = &.{selected};
+    var after = try init(std.testing.allocator, candidate);
+    defer after.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(u64, 11_240_738_728), before.events.items[0].bytes);
+    try std.testing.expectEqual(@as(u64, 7_818_182_656), after.events.items[0].bytes);
+    try std.testing.expect(after.additional_peak.large < before.additional_peak.large);
+    try std.testing.expectEqual(before.retained_after, after.retained_after);
+    var bucket_bytes: u64 = 0;
+    for (after.events.items) |event| {
+        if (event.kind == .bucket) bucket_bytes += event.bytes;
+        if (event.kind == .direct_logs) try std.testing.expectEqual(@as(u64, 116 * 4), event.bytes);
+    }
+    try std.testing.expectEqual(@as(u64, 8 * (1 << 24) * 4), bucket_bytes);
+    selected.auxiliary = .last;
+    try std.testing.expectError(error.InvalidSelectedCompositionCost, arenaWords(selected));
+    selected.auxiliary = .none;
+    selected.selected_columns = 168;
+    try std.testing.expectError(error.InvalidSelectedCompositionCost, arenaWords(selected));
 }

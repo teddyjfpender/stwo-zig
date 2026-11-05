@@ -1,0 +1,31 @@
+{
+  "binary": "/workspace/m3/build/m7-rc-sparse/gpu-budget-guard",
+  "sha256": "773d5f04240e4692c07c26b1c72a43a8090f3df4969c1493c2c7e9923e0d1139",
+  "requested_limit_bytes": 28000000000,
+  "pid": 2433951,
+  "ready": {
+    "schema": "rv64-physical-budget-guard/v1",
+    "ready": true,
+    "requested_limit_bytes": 28000000000,
+    "devices": [
+      {
+        "device": 0,
+        "total_bytes": 33679736832,
+        "held_physical_bytes": 5681184768,
+        "granularity_bytes": 2097152,
+        "prover_physical_ceiling_bytes": 27998552064
+      },
+      {
+        "device": 1,
+        "total_bytes": 33679736832,
+        "held_physical_bytes": 5681184768,
+        "granularity_bytes": 2097152,
+        "prover_physical_ceiling_bytes": 27998552064
+      }
+    ]
+  },
+  "status": "RELEASED",
+  "claim": "enforced physical ceiling, not a measured peak",
+  "exit_code": 0,
+  "failure": []
+}

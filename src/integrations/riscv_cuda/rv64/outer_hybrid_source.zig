@@ -79,6 +79,7 @@ pub const Runtime = struct {
         a.destroy(self);
     }
     pub fn attach(self: *Runtime, context: *Base.Context, base: Outer.device_prove.Factory) !Outer.device_prove.Factory {
+        if (@import("trace_input_reuse.zig").enabled()) return error.UnqualifiedHybridInterReuse;
         if (base.context != @as(*anyopaque, context) or (self.base_context != null and self.base_context.? != context)) return error.InvalidHybridFactoryExtension;
         self.base_context = context;
         return HD.attach(base, self, &interface);

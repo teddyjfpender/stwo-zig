@@ -1,0 +1,410 @@
+{
+  "files": [
+    {
+      "path": "p1-gate-20261106-01.log",
+      "bytes": 172,
+      "sha256": "aab32603fc09728edabaa7dc9e7e8a907163f48e9c476cab09e6ce8f35f21d54"
+    },
+    {
+      "path": "p1-gate-20261106-01.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "p1-gate-20261106-01/gate.json",
+      "bytes": 1135714,
+      "sha256": "02dcaf3c55b7306ea6de250525a6ccb3ad18c7cf294dedd31c9b121fabf5f8b1"
+    },
+    {
+      "path": "p1-gate-20261106-01/build.log",
+      "bytes": 2653,
+      "sha256": "00cb3cc38e9f0d2e0662fb40c2f6fc6fd76b596db189bac48c29c13b0cee7796"
+    },
+    {
+      "path": "p1-gate-20261106-01/unit-zig.log",
+      "bytes": 7188,
+      "sha256": "2faf3663025cb4d33357163444e30ea86616b6020c194d647d28c209902add8d"
+    },
+    {
+      "path": "p1-gate-20261106-01/unit-python.log",
+      "bytes": 111,
+      "sha256": "933a00de18feb22107f3f195b8735b61054dfd665091e645ebe1fb9b3f5ca8eb"
+    },
+    {
+      "path": "p1-gate-20261106-01/small-block-proof.log",
+      "bytes": 758,
+      "sha256": "a76608d4d4410ebbc7985eb9a1378d09d7b5c51477362be593080654ca9fde1a"
+    },
+    {
+      "path": "p1-gate-20261106-01/fresh-cpu-receiver.log",
+      "bytes": 140,
+      "sha256": "57a2bd22510733d23072796b892470e5432e89dbc5947f7682cab53dc36f8f2d"
+    },
+    {
+      "path": "p1-gate-20261106-01/negative-corpus.log",
+      "bytes": 3009,
+      "sha256": "cd91eda30de985bdca1e684a66bd8dec2c1836cdbc8049266e74fa7692ab1fb6"
+    },
+    {
+      "path": "p1-gate-20261106-01/corpus.json",
+      "bytes": 41515,
+      "sha256": "58e7479c506e243491c3638a4a3b1be8f32b8a05e45af248a024c593c7172773"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/request-26235156.json",
+      "bytes": 1196,
+      "sha256": "4f5fbf529d65a2df1286c7e888e8f245bd60f6450ee656152cd5b6716afef506"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/manifest.json",
+      "bytes": 1539,
+      "sha256": "fcd961eccc5b6dbede433c19bb7bcd529a6ce75a5f7c221b1834fc3eb7b9d426"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/plan.json",
+      "bytes": 10061,
+      "sha256": "64b953e7ab6417c6e250523975d7722ccc7ab72e260db6a1f6ffe68188346e3d"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/producer.stdout",
+      "bytes": 57677,
+      "sha256": "58632bd5eea5bd69f7e4c5131bdf059b04320702e0db75ec1e9651d76fede70d"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/producer.stderr",
+      "bytes": 335262,
+      "sha256": "b98aec6f8d78ea4ff8abb7fc41649b23f1edc5268520ea5bb19bd3d465d92157"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/loaded-native-runtime.json",
+      "bytes": 322,
+      "sha256": "894f763bb2358260ef0235f21df38858d88103949f0e5eb34a8f008cf6705731"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/quiet-0000.json",
+      "bytes": 2462,
+      "sha256": "c6561f8f0cdc5156fd63b2e703b2f845271804553f0eee6444561cfb9710882a"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/submission-0000.json",
+      "bytes": 922,
+      "sha256": "db500a8a863cd19e98fd6b4e0536ec4fc1427dbcf48e837b7b3e87e61143a3d9"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/request-timeline.json",
+      "bytes": 4087,
+      "sha256": "6b894729a2f1c6e690419498c0afcd42b649e5c51b07a585f3dba2c52bcc4b68"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/quiet-0001.json",
+      "bytes": 2462,
+      "sha256": "03bebbd38450f0e0e423fc5e28762240dd6d07bb14ef6e9584ed38c2dd66022c"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/submission-0001.json",
+      "bytes": 923,
+      "sha256": "a58bb7a5762355b9906f84bf9267348d927f8b25871c2ce6b82ae416f2cc8278"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/resource-final.json",
+      "bytes": 79194,
+      "sha256": "4fd83c121133ae9b294a26bde05995d1fda8c3950c2ebd1d8488173fde9e08ba"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/receipt.json",
+      "bytes": 23606,
+      "sha256": "7d8dd9d99059e31e6a2593abb3c2ccb6421d4ca69306ff1f817419c3b485f910"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/resident-device-fixed-manifest.json",
+      "bytes": 1539,
+      "sha256": "fcd961eccc5b6dbede433c19bb7bcd529a6ce75a5f7c221b1834fc3eb7b9d426"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/resident-ready-manifest.json",
+      "bytes": 1539,
+      "sha256": "fcd961eccc5b6dbede433c19bb7bcd529a6ce75a5f7c221b1834fc3eb7b9d426"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/READY",
+      "bytes": 73,
+      "sha256": "83aba4d9cd7a211f170d8ea2490aae219839f563699a4a4273150d455dcd008c"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/receiver-26235156-0000-26235156-20261105T230438/receiver-request.json",
+      "bytes": 1235,
+      "sha256": "0314b49bab5a3d5dc604966e7adf26c72ddfaf23e83947e1c87208282c47f1ec"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/receiver-26235156-0000-26235156-20261105T230438/strict-receiver.stdout",
+      "bytes": 3760,
+      "sha256": "b544a140363cd6cc57ba83660cee707186a5890b2b449892d7f601b23ae33773"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/receiver-26235156-0000-26235156-20261105T230438/strict-receiver.stderr",
+      "bytes": 861,
+      "sha256": "e60902136544d8c1e7c65749bc5905ac508700898380491a08be4bf05bdbbb93"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/receiver-26235156-0001-26235156-20261105T230510/receiver-request.json",
+      "bytes": 1235,
+      "sha256": "d997f285fc08e305bdb57b97c5b63a2a9161e3f922cc6a82a41dfa58c3ca1ec6"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/receiver-26235156-0001-26235156-20261105T230510/strict-receiver.stdout",
+      "bytes": 3760,
+      "sha256": "649f3702e3960eadf65f8dfb7713f7f89c171947a57192563c71c98c86f26642"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/receiver-26235156-0001-26235156-20261105T230510/strict-receiver.stderr",
+      "bytes": 861,
+      "sha256": "33601e1a134322120e1392adf77472eb78e1b5c6f6b3aba05fa904213c7c0d21"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/inbox/STOP",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/done/0000-26235156.json",
+      "bytes": 94,
+      "sha256": "9b0647f70ef26a341607903da8656f76645d46cfb0c8af934bc562b68e80609d"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/done/0001-26235156.json",
+      "bytes": 94,
+      "sha256": "af9a599d0d8fee25ecc3c2031d01296dd85ba9b5d1d01949f0ae4f1daadb0abb"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/resources.json",
+      "bytes": 620,
+      "sha256": "93aa5d502d299770f5d79118809b970cf4f90dc9c4142d4ae97d3b197064754e"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0000.stages.json",
+      "bytes": 5612,
+      "sha256": "02ef1cca8bbf0e4459e9614e69f9642d4368db068c9d26f48669655143de3838"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0001.stages.json",
+      "bytes": 5601,
+      "sha256": "a8689b014cb210a62b4188bdd32eccbc15f825ccce61b6af36628a7e6b787e34"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0002.stages.json",
+      "bytes": 5588,
+      "sha256": "193c45d15a94fa439e9c9ba671c9bd25e528ba5fd675bd2f2651828b9701b258"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0003.stages.json",
+      "bytes": 5600,
+      "sha256": "9e147fc0fc3a6d6c35365fbd7c1141cf6754148659837ac773063d30b32226cf"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0004.stages.json",
+      "bytes": 3245,
+      "sha256": "8c01cb9936f55559465b13a7e6bd060ea241dbbfc14f1b9e39d1637aed49ed76"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0005.stages.json",
+      "bytes": 3249,
+      "sha256": "5eced4321f620eb7de3d6c46800bd6e5868b6fb76b6256d4bf839a161ece371c"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0006.stages.json",
+      "bytes": 3248,
+      "sha256": "24ad3d9c684effe9b1548d15450eab54c376c30d61c223ab3355f9a838b11625"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0007.stages.json",
+      "bytes": 3264,
+      "sha256": "7721145c1fa8cb58b45a857c0c6abdcd040eaa85b4e147b0d0640422d86ebc52"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0008.stages.json",
+      "bytes": 3264,
+      "sha256": "f4db22bd6687dcd3c97c35f1541f967017ca617726e8be37cd84d26160e41611"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0009.stages.json",
+      "bytes": 3247,
+      "sha256": "993e196f713c6481fc8bf4dd9ee7892f90c5cc4b0fe830b5c4d30a36df892994"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/physical-0010.stages.json",
+      "bytes": 3264,
+      "sha256": "8d8e50cb7e3ce9bc613e455052385ba9a6099f7dc79292d784bde3f6ca32893d"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/schedule.json",
+      "bytes": 5204,
+      "sha256": "82ae5a8158bfa89c786ce1df64db78f3e5d915fa3f9d4ed8c2107c44ac0feb3f"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/bundle.json",
+      "bytes": 46859,
+      "sha256": "d963f186710b88e816feec2e805d0974664db4dd8b6b05a55d2509ae5dbce61b"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/candidate-fixed-setup.json",
+      "bytes": 956,
+      "sha256": "2aa52ea85d21fc149cf5ead2a8f2bb5e6c83f33961b41dd5fa4239057ae7c76b"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/candidate-source-bounds.json",
+      "bytes": 22793,
+      "sha256": "9c37068aba32150f34f7a733817e1616fa0f497e0633a0da7d2a8609598983e8"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/report.json",
+      "bytes": 22529,
+      "sha256": "7c4f8d9a4b385625596871992223122c51851ea4c034405994ed3afb7247b253"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/combined-report.json",
+      "bytes": 3699,
+      "sha256": "c80f99e5fdb14dbfd0f5ea91771f9e3c4a18f8fb7da207012df21c9db1781d8b"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/combined-entry.json",
+      "bytes": 1637,
+      "sha256": "8cd1ae3984a22b837eedbbf4aa3a3015f482ad93ff6aad1f4e8135708027175a"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/recursion-om31/tree.json",
+      "bytes": 366603,
+      "sha256": "fb6a02012f06b5845663c3d600b4893d9afdf5dd79c558057bfc2c9cffd14a8d"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/recursion-om31/report.json",
+      "bytes": 1548,
+      "sha256": "1524b71aeb46b833465589ffb0f6fb3cd74e402f2bb8018c9ddd747ad4c93be4"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/recursion-om31/scheduler.json",
+      "bytes": 448,
+      "sha256": "ab4bce6b88a304aa0bd06963c4beb0258649c7ffab67170aaf10c543299395ea"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0000-26235156/26235156/proof/recursion-om31/pipeline.json",
+      "bytes": 14551,
+      "sha256": "34c83a224e4eb5161d96698382da8d0fd33df7acfd576bb68b0b7deffa33b24e"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/resources.json",
+      "bytes": 620,
+      "sha256": "93aa5d502d299770f5d79118809b970cf4f90dc9c4142d4ae97d3b197064754e"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0000.stages.json",
+      "bytes": 5597,
+      "sha256": "1fb6dd2c59aee63c9d32b97dec044e33199d3215a323f274f5ac3accd11959f0"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0001.stages.json",
+      "bytes": 5566,
+      "sha256": "faebb4e25d77207ba9c05220df40dfca554c7422e3328cab56a49dd84af0a655"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0002.stages.json",
+      "bytes": 5599,
+      "sha256": "3d76b585b5a1e5ba92c614647e0a41a606b0a775b4a9f4396ff8ef143ad2dc86"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0003.stages.json",
+      "bytes": 5592,
+      "sha256": "a99e406c2b2bd7ff110637173980ddedd6fe925b8a7b1f4813c4508665b45974"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0004.stages.json",
+      "bytes": 3243,
+      "sha256": "d8cb3bbca4f2a6aa37e09794bda72fa5613eb240152efc9e6305a189363898f4"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0005.stages.json",
+      "bytes": 3235,
+      "sha256": "5184a43405d967db2e45aea146059942444c13ce2ee4a85c3037db3aef5b76a2"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0006.stages.json",
+      "bytes": 3250,
+      "sha256": "ebd3e17939219dfa8299146c8eb755abc03302d178f775e0b836be3273d0f090"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0007.stages.json",
+      "bytes": 3247,
+      "sha256": "73c4943edfc82030cbd96edbfa4e375d5cf87919cca436d6f11fbc357b379408"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0008.stages.json",
+      "bytes": 3269,
+      "sha256": "b9a6e6b76c6b0585a661300927163698a18b30515931ff62944f6bcb737e9088"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0009.stages.json",
+      "bytes": 3259,
+      "sha256": "4bc36f4b92d7701ba5c758af495db4bcddd9a602182b92c16335e04c9fc528fa"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/physical-0010.stages.json",
+      "bytes": 3264,
+      "sha256": "e89bf95818267b2b5bcebbf5d0b79333268558999c3d41d02c92bdb4bdf64a77"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/schedule.json",
+      "bytes": 5187,
+      "sha256": "0b73d1b90fb59b9a01fa637f52cd436c51acc4f679f62b496d3f8d17ea3a6725"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/bundle.json",
+      "bytes": 46859,
+      "sha256": "d963f186710b88e816feec2e805d0974664db4dd8b6b05a55d2509ae5dbce61b"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/candidate-fixed-setup.json",
+      "bytes": 947,
+      "sha256": "8a1e7fb7b63f3ab9a3cc489a8855c59e46a3920baa8fd7bbca67529168b40d04"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/candidate-source-bounds.json",
+      "bytes": 22793,
+      "sha256": "9c37068aba32150f34f7a733817e1616fa0f497e0633a0da7d2a8609598983e8"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/report.json",
+      "bytes": 22456,
+      "sha256": "cef9a72931c4da9947c877e102faef7cfbda798cbf64aca7d15b4ca62617bfc9"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/combined-report.json",
+      "bytes": 3682,
+      "sha256": "551c3ad889d0ecff8aedc41b68fe83d447d632772c5ebecc1f09568b73f2a623"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/combined-entry.json",
+      "bytes": 1638,
+      "sha256": "1c5f7c25f4fe4aef535165f8a9cae7c0426af2b4252484898db1ff7c38e22bb0"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/recursion-om31/tree.json",
+      "bytes": 366603,
+      "sha256": "fb6a02012f06b5845663c3d600b4893d9afdf5dd79c558057bfc2c9cffd14a8d"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/recursion-om31/report.json",
+      "bytes": 1545,
+      "sha256": "6caa239c2edbec579f11f60afd6d5a59a2f073f932193d10d93e8cd6c4d33764"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/recursion-om31/scheduler.json",
+      "bytes": 448,
+      "sha256": "911c91d39bd8b44601e81049f15fb5282f5a895995450eedf72b1892bb5ab6b6"
+    },
+    {
+      "path": "daemon-26235156-r2-gate-p1-gate-20261106-01-00-baseline/spool/out/0001-26235156/26235156/proof/recursion-om31/pipeline.json",
+      "bytes": 14253,
+      "sha256": "bebac384c5785de36a9191bdde4347cb07e003184390a5f49f48dc7dc681d99c"
+    }
+  ],
+  "scope": "Full commit-gate receipts and proof metadata; binary payloads remain on pod."
+}
