@@ -9,9 +9,8 @@ Labels:
 - **[src]** stated by an external source (linked).
 
 Models used for the numbers below:
-- `fit.py`: per-stage scaling fits.
-- `levers.py`: lever composition.
-Both were written during the research for this document. They should be committed under `scripts/` before anyone quotes these numbers.
+- `scripts/rv64_4gpu/fit.py`: per-stage scaling fits (`python3 -I scripts/rv64_4gpu/fit.py vectors/reports/rv64-m3-20261104/summary.json <gas json>`).
+- `scripts/rv64_4gpu/levers.py`: lever composition (`python3 -I scripts/rv64_4gpu/levers.py`).
 
 ---
 
