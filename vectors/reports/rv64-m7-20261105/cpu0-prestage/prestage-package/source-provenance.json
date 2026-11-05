@@ -1,0 +1,21 @@
+{
+  "source_checkpoint": "9600d71bd",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_execution/cpu_source.zig": "2148428327b02e55979ec671d7db99744d8dbbaa622f16cf341d788b8a966cb4",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/capture.zig": "ee71d7bfa4acfb3b505cbc1f49d862bad3afa10373e09d6c7c1ef5d72bb74f84",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig": "e19dc87b3e30f169a921b64b89dc2355a26790e4d3d263ccae183cb47a880a07",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig": "411c4dac97345a74479bb524dc12516477ff119289d333d75eba41b7efbf6ff8",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig": "ab88f8eda2beed6f1e817f3bbfcce7c9ae9ee582c3c62607650e4c3f36f0f8c4",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig": "968a86073b9c7ef8b620e7a0a15f9e49069a75986b9fda58bfe64d892fce2f4f",
+    "src/integrations/riscv_cuda/rv64/cpu_projection.zig": "34b4599cb98ada545bdd412bd353792fbe6353dd51c0f3289f38852af172d037",
+    "src/integrations/riscv_cuda/rv64/resident_router.zig": "22aa88e3916f6dbe5a337bf1531a714e8cf34a4540cd6df9a02dadece2121781"
+  },
+  "driver_sha256": "8e53f80f93c4343df17fa44c8135c08fd1321927baf88332d5ec934327cb8b7a",
+  "assets": {
+    "driver": "8e53f80f93c4343df17fa44c8135c08fd1321927baf88332d5ec934327cb8b7a",
+    "library": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45",
+    "receiver": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42",
+    "recursive_receiver": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42"
+  },
+  "notes": "ActualCLI9600; laterdc589error-canceltest notpartofthisCLI. DefaultOFF,mechanism/parity/freshonly,no latencyclaim."
+}
