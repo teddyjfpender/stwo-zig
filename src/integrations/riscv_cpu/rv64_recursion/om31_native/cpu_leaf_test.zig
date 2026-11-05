@@ -62,6 +62,29 @@ fn qualify(case: *const Fixture.Case, comptime mutation: Mutation) !bool {
         const expected_words = try Leaf.expectedWords(arena.allocator(), case.keys.cpus[0], request, inventory.first_ids[0], inventory.workers[0], manifest.digest, stages.stages[0].main, manifest.entries[0].local.?.digest, case.bundle.cpus[0].claims);
         try std.testing.expectEqual(expected_words.len, frame.free_words.items.len);
         for (expected_words, frame.free_words.items) |expected_word, actual| try std.testing.expectEqual(expected_word, @import("stwo_circuit_frontend").builder.ivalue.unpackU32(C.Q, ctx.get(actual.get())));
+        const Read = struct {
+            fn word(context: *C.Context, wire: Public.Word) u32 {
+                return @import("stwo_circuit_frontend").builder.ivalue.unpackU32(C.Q, context.get(wire.get()));
+            }
+        };
+        const handles = statement.chain_inputs;
+        try std.testing.expectEqual(request.base.cpu.steps, Read.word(&ctx, handles.steps));
+        try std.testing.expectEqual(@as(u32, request.base.epoch), Read.word(&ctx, handles.epoch));
+        for (0..4) |i| {
+            const shift: u6 = @intCast(16 * i);
+            try std.testing.expectEqual(@as(u32, @as(u16, @truncate(request.base.cpu.initial_pc >> shift))), Read.word(&ctx, handles.initial_pc[i]));
+            try std.testing.expectEqual(@as(u32, @as(u16, @truncate(request.base.cpu.final_pc >> shift))), Read.word(&ctx, handles.final_pc[i]));
+            for (0..32) |reg| {
+                try std.testing.expectEqual(@as(u32, @as(u16, @truncate(request.base.cpu.initial_registers[reg] >> shift))), Read.word(&ctx, handles.initial_registers[reg][i]));
+                try std.testing.expectEqual(@as(u32, @as(u16, @truncate(request.base.cpu.final_registers[reg] >> shift))), Read.word(&ctx, handles.final_registers[reg][i]));
+            }
+        }
+        for (handles.register_clocks, request.base.cpu.register_clocks) |wire, value| try std.testing.expectEqual(value, Read.word(&ctx, wire));
+        for (statement.publics, handles.rows, handles.calls, handles.first_ids) |public, rows, calls, first| {
+            try std.testing.expect(public.main.rows.value().eql(C.O.fromBase(core.fields.m31.M31.fromCanonical(Read.word(&ctx, rows)))));
+            try std.testing.expect(public.main.span.calls.value().eql(C.O.fromBase(core.fields.m31.M31.fromCanonical(Read.word(&ctx, calls)))));
+            try std.testing.expect(public.main.span.first_id.value().eql(C.O.fromBase(core.fields.m31.M31.fromCanonical(Read.word(&ctx, first)))));
+        }
     }
     _ = try frame.finish();
     try C.lane.finish();
@@ -74,6 +97,11 @@ test "CPU complete OM31 service leaf authenticates GKR terminal binding original
     var fixture = try Fixture.Case.init(a);
     defer fixture.deinit();
     _ = try fixture.verify(a);
+    try std.testing.expect(try qualify(&fixture, .none));
+}
+test "OM31 native PCS fold-v3 public handles preserve the legacy frame" {
+    var fixture = try Fixture.Case.init(a);
+    defer fixture.deinit();
     try std.testing.expect(try qualify(&fixture, .none));
 }
 test "CPU complete OM31 service leaf rejects public endpoint and physical high-coordinate mutation" {
