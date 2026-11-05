@@ -1,8 +1,11 @@
 //! CPU/SIMD integration for the backend-neutral Sail RISC-V frontend.
 
+pub const rv64_outer_mle_point = @import("logup_gkr/mle_point.zig");
 pub const rv64_outer_hybrid_device = @import("outer_gkr/hybrid_device.zig");
 pub const rv64_outer_hybrid_air = @import("outer_gkr/hybrid_air.zig");
 pub const rv64_outer_hybrid_receiver = @import("outer_gkr/hybrid_receiver.zig");
+pub const rv64_outer_hybrid_wire = @import("outer_gkr/hybrid_wire.zig");
+pub const rv64_outer_hybrid_child = @import("outer_gkr/child_verifier.zig");
 pub const rv64_outer_gkr_profile = @import("outer_gkr/profile.zig");
 pub const rv64_outer_gkr_section = @import("outer_gkr/section.zig");
 pub const rv64_outer_gkr_binding = @import("outer_gkr/binding.zig");

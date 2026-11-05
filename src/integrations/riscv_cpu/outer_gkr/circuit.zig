@@ -49,6 +49,7 @@ pub fn requireAdmissible(ctx: *Context, words: *const [8]Word) Error!void {
     // Witness: the inverse when it exists; zero otherwise (the constraint then fails, never panics).
     const witness = if (value.isZero()) Q.zero() else Q.one().div(value) catch Q.zero();
     const inverse = try ctx.guess(witness);
+    try ctx.noteWitnessHint(inverse, .inverse, product, ctx.one());
     try ctx.eq(try ctx.mul(product, inverse), ctx.one());
 }
 

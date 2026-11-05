@@ -55,6 +55,7 @@ pub const Context = struct {
     metadata_bytes: usize = 0,
     metadata_cap_bytes: usize = 4 << 20,
     active: ?*Owner = null,
+    hybrid: ?*@import("outer_hybrid_source.zig").Runtime = null,
     fixed_pending: ?*@import("outer_fixed.zig").Owner = null,
     fixed_nonce: u64 = 0,
     assignment: ?Assignment.Prepared = null,
@@ -70,6 +71,7 @@ pub const Context = struct {
         std.debug.assert(self.active == null and self.fixed_pending == null);
         unstageHost(self);
         if (self.assignment) |*assignment| assignment.deinit();
+        if (self.hybrid) |hybrid| hybrid.destroy();
         for (self.entries.items) |*e| e.metadata.deinit();
         self.entries.deinit(self.allocator);
         self.* = undefined;
@@ -134,6 +136,15 @@ pub const Context = struct {
     }
     /// Fail before constructing a production verifier graph when the image
     /// lacks deterministic generation kernels. Legacy ingress stays explicit.
+    /// Explicit new-family extension; the classic factory remains unchanged.
+    pub fn factoryForHybrid(self: *Context) !Dev.Factory {
+        try Assignment.requireProductionCapabilities(&self.service.library);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.active != null or self.fixed_pending != null) return error.OuterProofAlreadyActive;
+        if (self.hybrid == null) self.hybrid = try @import("outer_hybrid_source.zig").Runtime.create(self.allocator, &self.service.library);
+        return self.hybrid.?.attach(self, self.factory());
+    }
     pub fn factoryForTraceOnly(self: *Context) !Dev.Factory {
         try Assignment.requireProductionCapabilities(&self.service.library);
         return self.factory();
@@ -342,7 +353,7 @@ pub const Owner = struct {
         if (!self.inter_ready) return error.OuterInteractionsNotReady;
         return @import("outer_source_composition.zig").evaluate(self, a, randomness, log, split, total, trace);
     }
-    fn retireInteractionInputs(raw: *anyopaque, native_context: *anyopaque, token: u64, scope: D.Scope) !void {
+    pub fn retireInteractionInputs(raw: *anyopaque, native_context: *anyopaque, token: u64, scope: D.Scope) !void {
         const self: *Owner = @ptrCast(@alignCast(raw));
         if (self.inter_ready or !std.meta.eql(self.scope, scope) or self.main_evaluations.words != null) return error.InvalidOuterInteractionScope;
         var bytes: u64 = 0;
@@ -352,7 +363,7 @@ pub const Owner = struct {
         try self.dropEvaluations(native_context, token);
         std.log.info("GPU_OUTER released_INTER_evaluation_bytes={d} after_joined_coefficient_ingress=true before_LDE_scratch=true", .{bytes});
     }
-    fn dropMainEvaluations(self: *Owner, _: *anyopaque, _: u64) !void {
+    pub fn dropMainEvaluations(self: *Owner, _: *anyopaque, _: u64) !void {
         const main = self.main_evaluations;
         if (main.words == null) return;
         for (self.leases.items, 0..) |*lease, i| {
@@ -368,7 +379,7 @@ pub const Owner = struct {
         }
         return error.OuterMainEvaluationLeaseNotOwned;
     }
-    fn dropEvaluations(self: *Owner, _: *anyopaque, _: u64) !void {
+    pub fn dropEvaluations(self: *Owner, _: *anyopaque, _: u64) !void {
         for (self.leases.items) |*lease| if (lease.words != null) try checked(self.backend.service.lease_release(self.backend.service.session, lease));
         self.leases.clearRetainingCapacity();
         self.main_evaluations = .{};
