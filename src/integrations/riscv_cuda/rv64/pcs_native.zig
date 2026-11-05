@@ -35,6 +35,10 @@ pub const Context = struct {
     max_retained_scopes: usize = 2,
     cache: std.ArrayList(Cached) = .empty,
     library: std.DynLib,
+    owns_library: bool = true,
+    /// Shared physical-device admission for the large interaction/composition/
+    /// PCS phases of independent lane sessions; no allocation-cap relaxation.
+    phase_mutex: ?*std.Thread.Mutex = null,
     session: *anyopaque,
     native_prove: Abi.Prove,
     release: Abi.Release,
@@ -326,6 +330,16 @@ pub const Context = struct {
     pub fn init(path: []const u8, device: u32, capacity: u64) !Context {
         var library = try std.DynLib.open(path);
         errdefer library.close();
+        return initLoaded(library, device, capacity, true);
+    }
+    /// Independent owner thread, streams, lease token/registry and PCS caches.
+    /// Only the immutable loaded code handle is borrowed. Parent must outlive
+    /// this session; no coefficient or immutable-lease custody crosses tokens.
+    pub fn initBorrowedLibrary(loaded: *std.DynLib, device: u32, capacity: u64) !Context {
+        return initLoaded(loaded.*, device, capacity, false);
+    }
+    fn initLoaded(loaded: std.DynLib, device: u32, capacity: u64, owns_library: bool) !Context {
+        var library = loaded;
         const create = library.lookup(Abi.Create, "stwo_rv64_pcs_native_create") orelse return error.MissingGpuPcsSymbol;
         const native_prove = library.lookup(Abi.Prove, "stwo_rv64_pcs_native_prove") orelse return error.MissingGpuPcsSymbol;
         const release = library.lookup(Abi.Release, "stwo_rv64_pcs_native_release") orelse return error.MissingGpuPcsSymbol;
@@ -340,7 +354,7 @@ pub const Context = struct {
         if (create(device, capacity, &session) != 0 or session == null) return error.GpuPcsInitializationFailed;
         const Version = *const fn () callconv(.c) u32;
         const wide = if (library.lookup(Version, "stwo_rv64_pcs_request_version")) |version| version() >= 3 else false;
-        return .{ .byte_cap = capacity, .wide_pcs_framing = wide, .host_geometry = Export.GeometryCache.init(std.heap.page_allocator, hostGeometryBytes()), .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
+        return .{ .byte_cap = capacity, .wide_pcs_framing = wide, .host_geometry = Export.GeometryCache.init(std.heap.page_allocator, hostGeometryBytes()), .library = library, .owns_library = owns_library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
     }
     pub fn deinit(self: *Context) void {
         self.host_geometry.deinit();
@@ -353,7 +367,7 @@ pub const Context = struct {
             std.heap.page_allocator.destroy(cache);
         }
         if (self.destroy(self.session) != 0) @panic("GPU context failed to join before library close");
-        self.library.close();
+        if (self.owns_library) self.library.close();
         self.* = undefined;
     }
     const SetupCleanup = struct {
@@ -395,7 +409,11 @@ pub const Context = struct {
         const self: *Context = @ptrCast(@alignCast(raw));
         var timer = try std.time.Timer.start();
         const scope = if (request.scope) |value| @import("pcs_scope.zig").identity(value) else [_]u32{0} ** 8;
-        defer self.releaseScope(scope);
+        var phase_locked = false;
+        defer {
+            self.releaseScope(scope);
+            if (phase_locked) self.phase_mutex.?.unlock();
+        }
         const trees = try a.dupe(D.Tree, request.trees);
         defer a.free(trees);
         var reused_columns: usize = 0;
@@ -426,6 +444,10 @@ pub const Context = struct {
         const prepare_ns = timer.read();
         const descriptor = prepared.descriptor();
         var result: Abi.Result = .{};
+        if (self.phase_mutex) |phase| {
+            phase.lock();
+            phase_locked = true;
+        }
         if (self.native_prove(self.session, &descriptor, &result) != 0) {
             std.debug.print("GPU_PCS_NATIVE error={s}\n", .{self.last_error(self.session)});
             return error.GpuPcsFailed;

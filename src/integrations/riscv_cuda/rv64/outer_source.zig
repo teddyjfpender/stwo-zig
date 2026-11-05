@@ -41,6 +41,7 @@ pub const Context = struct {
     service: *Service.Context,
     trace_commit: *TC.Context,
     composition: *RC.Context,
+    phase_mutex: ?*std.Thread.Mutex = null,
     api: SC.Api,
     base: BaseFn,
     clear: Memset,
@@ -238,7 +239,7 @@ pub const Context = struct {
         for (key.pp.columns) |column| fixed_bytes = try std.math.add(u64, fixed_bytes, try std.math.mul(u64, column.values.len, @sizeOf(u32)));
         if (self.service.immutable_setup == null) try self.service.enableImmutableSetup(@min(self.service.byte_cap, 2 << 30));
         const immutable_limit = self.service.immutable_setup.?.limit;
-        const schedule_bytes: u64 = if (self.assignment) |assignment| try std.math.mul(u64, try std.math.add(u64, assignment.tasks.len * 8, assignment.indices.len), 4) else 0;
+        const schedule_bytes: u64 = if (self.assignment) |assignment| (if (assignment.reusable) try std.math.mul(u64, try std.math.add(u64, assignment.tasks.len * 8, assignment.indices.len), 4) else 0) else 0;
         const required_immutable = try std.math.add(u64, fixed_bytes, schedule_bytes);
         if (required_immutable > immutable_limit) {
             std.debug.print("GPU_OUTER fixed_forest_bytes={} schedule_bytes={} required_immutable_bytes={} immutable_limit_bytes={} device_limit_bytes={} logs={any}\n", .{ fixed_bytes, schedule_bytes, required_immutable, immutable_limit, self.service.byte_cap, key.logs.toArray() });
@@ -319,6 +320,8 @@ pub const Owner = struct {
     fn interact(raw: *anyopaque, a: std.mem.Allocator, key: *const Outer.prove.Authority, scope: D.Scope, z: Outer.protocol.O, alpha: Outer.protocol.O) !Dev.Interaction {
         const self: *Owner = @ptrCast(@alignCast(raw));
         if (self.inter_ready or key != self.key or !std.meta.eql(scope, self.scope)) return error.InvalidOuterInteractionScope;
+        if (self.backend.phase_mutex) |phase| phase.lock();
+        defer if (self.backend.phase_mutex) |phase| phase.unlock();
         self.z = z;
         self.alpha = alpha;
         try self.run(@import("outer_source_interaction.zig").generate);
