@@ -53,6 +53,17 @@ pub fn build(b: *std.Build) void {
     const projection_tests = b.addTest(.{ .root_module = device_projection_root, .filters = &.{"device CPU projection"} });
     b.step("test-device-cpu-projection", "Verify narrow CPU capture/device geometry ownership without materializing MAIN").dependOn(&b.addRunArtifact(projection_tests).step);
 
+    const native_gkr_root = b.createModule(.{ .root_source_file = b.path("rv64_native_gkr_test_root.zig"), .target = target, .optimize = optimize });
+    native_gkr_root.addImport("stwo_core", core);
+    native_gkr_root.addImport("stwo_cpu_backend", cpu_backend);
+    native_gkr_root.addImport("stwo_prover_api", prover_api);
+    native_gkr_root.addImport("interop_postcard", postcard);
+    native_gkr_root.addImport("stwo_proof_wire", postcard.import_table.get("stwo_proof_wire") orelse @panic("missing wire"));
+    native_gkr_root.addImport("stwo_prover_engine", prover);
+    native_gkr_root.addImport("stwo_riscv_frontend", frontend);
+    const native_gkr_tests = b.addTest(.{ .root_module = native_gkr_root });
+    b.step("test-native-gkr", "Test native GKR v1 and v2 bounded roster, codec, transcript and tamper corpus").dependOn(&b.addRunArtifact(native_gkr_tests).step);
+
     const test_filter = b.option([]const u8, "test-filter", "Run only tests whose names contain this text");
     const tests = b.addTest(.{ .root_module = integration, .filters = if (test_filter) |filter| &.{filter} else &.{} });
     b.step("test", "Test the focused RISC-V CPU integration")
