@@ -122,3 +122,22 @@ test "stream commit allocation list matches the frozen numerical plan" {
 test "new hash ABI cannot reuse legacy trace allocation costs" {
     try std.testing.expectError(error.AllocationCostFormatUnavailable, init(std.testing.allocator, .{ .format = .poseidon2_w24_v1, .logs = &.{4}, .beta = 1, .separate_coefficients = true }));
 }
+
+test "D2 trace uses legacy LDE arena then independently retained final coefficients" {
+    const logs = [_]u32{ 5, 7, 6, 7 };
+    // A stream budget alone cannot enable the beta1-only separate-coefficients
+    // ABI. D2 retains source + LDE arena + tree while final coeffs are copied.
+    const p = try init(std.testing.allocator, .{ .logs = &logs, .beta = 2, .separate_coefficients = false, .stream_budget = 1 << 20, .exact_prefix_banks = true });
+    const no_stream = try init(std.testing.allocator, .{ .logs = &logs, .beta = 2, .separate_coefficients = false, .exact_prefix_banks = true });
+    try std.testing.expect(p.selected_stream_budget == null);
+    try std.testing.expectEqualSlices(u64, no_stream.bytes(), p.bytes());
+    try std.testing.expectEqual(@as(usize, 3), p.allocation_count);
+    const coeff: u64 = 32 + 128 + 64 + 128;
+    try std.testing.expectEqual(coeff, p.coefficient_words);
+    try std.testing.expectEqual(@as(u64, 4 * (coeff * 5 + 2 * 256 + 7 * logs.len)), p.allocations[0]);
+    // Coefficient copy is a distinct allocation AFTER the tree; no aliasing of
+    // the old evaluations/arena is admitted by this numerical allocation plan.
+    try std.testing.expectEqual(4 * coeff, p.allocations[2]);
+    try std.testing.expect(!p.host_cost_known);
+    try std.testing.expectError(error.InvalidTraceCommitGeometry, init(std.testing.allocator, .{ .logs = &logs, .beta = 2, .separate_coefficients = true, .stream_budget = 1 << 20 }));
+}
