@@ -83,6 +83,18 @@ pub fn prepareRequestWithCache(a: std.mem.Allocator, request: D.Request, initial
     return prepareRequestWithFraming(a, request, initial, cache, false);
 }
 pub fn prepareRequestWithFraming(a: std.mem.Allocator, request: D.Request, initial: D.Channel, cache: ?*GeometryCache, wide_framing: bool) !Prepared {
+    return prepareMode(a,request,initial,cache,wide_framing,false);
+}
+/// Source-owned class geometry needs logs and opening-offset recipes only;
+/// coefficients may be empty and transcript/root values have no cost authority.
+/// This path takes no geometry-cache lock and generates no FFT/FRI coordinates.
+pub fn allocationPlan(a: std.mem.Allocator, request: D.Request, wide_framing: bool, options: @import("pcs_allocation_cost.zig").Options) !@import("pcs_allocation_cost.zig").Plan {
+    var prepared=try prepareMode(a,request,D.Channel.init(),null,wide_framing,true);
+    defer prepared.deinit(a);
+    const descriptor=prepared.geometryDescriptor();
+    return @import("pcs_allocation_cost.zig").initGeometry(a,&descriptor,options);
+}
+fn prepareMode(a: std.mem.Allocator, request: D.Request, initial: D.Channel, cache: ?*GeometryCache, wide_framing: bool, geometry_only: bool) !Prepared {
     if (request.trees.len == 0 or request.trees.len > 4 or request.points.items.len != request.trees.len or request.lifting_log_size < request.config.fri_config.log_blowup_factor or request.lifting_log_size > 28) return error.InvalidDevicePcsRequest;
     const beta = request.config.fri_config.log_blowup_factor;
     const degree = request.lifting_log_size - beta;
@@ -110,7 +122,7 @@ pub fn prepareRequestWithFraming(a: std.mem.Allocator, request: D.Request, initi
         const counts = try a.alloc(u32, tree.columns.len);
         errdefer a.free(counts);
         for (tree.columns, points, logs, order, counts, 0..) |column, ps, *log, *index, *count, i| {
-            if (column.log_size == 0 or column.log_size > 28 - beta or columnCount(column) != @as(usize, 1) << @intCast(column.log_size) or ps.len > 5 or (ps.len != 0 and column.log_size > degree)) return error.InvalidDevicePcsColumn;
+            if (column.log_size == 0 or column.log_size > 28 - beta or (!geometry_only and columnCount(column) != @as(usize, 1) << @intCast(column.log_size)) or ps.len > 5 or (ps.len != 0 and column.log_size > degree)) return error.InvalidDevicePcsColumn;
             log.* = column.log_size;
             index.* = @intCast(i);
             count.* = @intCast(ps.len);
@@ -142,11 +154,12 @@ pub fn prepareRequestWithFraming(a: std.mem.Allocator, request: D.Request, initi
         for (groups.items) |*g| g.terms.deinit(a);
         groups.deinit(a);
     }
+    const forward_count = @as(usize,1)<<@intCast(maximum_source_log+beta-1);
     const geometry = if (cache) |owner| try owner.acquire(maximum_source_log + beta, plan) else null;
     errdefer if (geometry) |borrow| borrow.release();
     var uncached_twiddles: ?engine.poly.twiddles.TwiddleTree([]M) = null;
     defer if (uncached_twiddles) |*tw| engine.poly.twiddles.deinitM31(a, tw);
-    const forward: []const M = if (geometry) |borrow| borrow.forward() else blk: {
+    const forward: []const M = if (geometry_only) &.{} else if (geometry) |borrow| borrow.forward() else blk: {
         uncached_twiddles = try engine.poly.twiddles.precomputeM31(a, core.poly.circle.canonic.CanonicCoset.new(maximum_source_log + beta).circleDomain().half_coset);
         break :blk uncached_twiddles.?.twiddles;
     };
@@ -174,7 +187,7 @@ pub fn prepareRequestWithFraming(a: std.mem.Allocator, request: D.Request, initi
             }
             const ev = pair(eval_start);
             const twiddle_count: u32 = @as(u32, 1) << @intCast(log + beta - 1);
-            try source_groups.appendSlice(a, &.{ ev[0], ev[1], log, log + beta, source_base + try count32(first_sorted), try count32(sorted - first_sorted), try count32(forward.len - twiddle_count), twiddle_count });
+            try source_groups.appendSlice(a, &.{ ev[0], ev[1], log, log + beta, source_base + try count32(first_sorted), try count32(sorted - first_sorted), try count32(forward_count - twiddle_count), twiddle_count });
         }
         try tree_info.appendSlice(a, &.{ source_base, try count32(tree.columns.len), first_group, try count32(source_groups.items.len / 8) - first_group, std.mem.max(u32, meta.coefficient_logs) + beta, 0 });
         // Powers follow ORIGINAL tree/column/sample order, not height sorting.
@@ -218,7 +231,7 @@ pub fn prepareRequestWithFraming(a: std.mem.Allocator, request: D.Request, initi
         try deep_groups.appendSlice(a, &.{ first, try count32(terms.items.len / 4), g.log, g.log + beta, coeff[0], coeff[1], eval[0], eval[1] });
         try recipes.appendSlice(a, &.{ g.shift.x.v, g.shift.y.v, request.lifting_log_size - (g.log + beta), g.log });
         const count: u32 = @as(u32, 1) << @intCast(g.log + beta - 1);
-        try deep_tw.appendSlice(a, &.{ try count32(forward.len - count), count });
+        try deep_tw.appendSlice(a, &.{ try count32(forward_count - count), count });
         combined_coefficients += @as(u64, 8) << @intCast(g.log);
         combined_evaluations += @as(u64, 8) << @intCast(g.log + beta);
     }
@@ -229,10 +242,24 @@ pub fn prepareRequestWithFraming(a: std.mem.Allocator, request: D.Request, initi
     defer fri_desc.deinit(std.heap.page_allocator);
     var fri_tw: std.ArrayList(M) = .empty;
     defer fri_tw.deinit(std.heap.page_allocator);
-    if (geometry == null) try C.friMetadata(plan, &fri_desc, &fri_tw);
+    var coordinate_count: usize=0;
+    if (geometry_only) {
+        for(plan.layers[0..plan.len],0..) |layer,li| {
+            var offsets: [4]u32=@splat(0);
+            var count=layer.count;
+            for(0..layer.fold_step) |step| {
+                offsets[step]=try count32(coordinate_count);
+                const half=count/2;
+                coordinate_count+=if(li==0 and step==0) 2*((half+3)/4) else half;
+                count/=2;
+            }
+            try fri_desc.appendSlice(std.heap.page_allocator,&.{layer.count,layer.fold_step,layer.leaf_log,layer.shift});
+            try fri_desc.appendSlice(std.heap.page_allocator,&offsets);
+        }
+    } else if (geometry == null) try C.friMetadata(plan, &fri_desc, &fri_tw);
     const fri_descriptions: []const u32 = if (geometry) |borrow| borrow.descriptions() else fri_desc.items;
     const fri_coordinates: []const M = if (geometry) |borrow| borrow.coordinates() else fri_tw.items;
-    var h = [_]u32{ 0x52564d53, 2, 0, degree, request.lifting_log_size, beta, try count32(request.config.fri_config.n_queries), request.config.fri_config.fold_step, try count32(source_count), exponent, try count32(groups.items.len), try count32(source_groups.items.len / 8), try count32(trees.len), try count32(sample_count), try count32(plan.len), 0, 0, 0, 0, try count32(forward.len), try count32(fri_coordinates.len), 1, request.config.pow_bits, 0, 0, 0, 0, 0 };
+    var h = [_]u32{ 0x52564d53, 2, 0, degree, request.lifting_log_size, beta, try count32(request.config.fri_config.n_queries), request.config.fri_config.fold_step, try count32(source_count), exponent, try count32(groups.items.len), try count32(source_groups.items.len / 8), try count32(trees.len), try count32(sample_count), try count32(plan.len), 0, 0, 0, 0, try count32(forward_count), try count32(if(geometry_only)coordinate_count else fri_coordinates.len), 1, request.config.pow_bits, 0, 0, 0, 0, 0 };
     const header_len = try @import("pcs_framing.zig").encode(&h, .{ coefficient_words, evaluation_words, combined_coefficients, combined_evaluations }, wide_framing);
     var section_storage: [17][]const u32 = @splat(&.{});
     var section_owned: [17]bool = @splat(true);
@@ -263,10 +290,10 @@ pub fn prepareRequestWithFraming(a: std.mem.Allocator, request: D.Request, initi
     errdefer a.free(coefficients);
     var ci: usize = 0;
     for (request.trees, trees) |tree, meta| for (meta.sorted_to_original) |original| {
-        coefficients[ci] = nativeColumn(tree.columns[original]);
+        coefficients[ci] = if(geometry_only) .{.kind=0,.coefficient_log=tree.columns[original].log_size,.count=@as(u64,1)<<@intCast(tree.columns[original].log_size),.words=null} else nativeColumn(tree.columns[original]);
         ci += 1;
     };
-    return .{ .metadata = .{ .shape = .{ .config = request.config, .degree_log = degree, .trees = trees }, .sources = try count32(source_count), .terms = exponent, .groups = try count32(groups.items.len), .source_groups = try count32(source_groups.items.len / 8), .sample_count = try count32(sample_count), .degree_log = degree, .eval_log = request.lifting_log_size, .coefficient_cells = coefficient_words }, .section_storage = section_storage, .section_owned = section_owned, .geometry = geometry, .coefficients = coefficients, .scope = requestScope(request) };
+    return .{ .geometry_only=geometry_only, .forward_count=forward_count, .coordinate_count=if(geometry_only)coordinate_count else fri_coordinates.len, .metadata = .{ .shape = .{ .config = request.config, .degree_log = degree, .trees = trees }, .sources = try count32(source_count), .terms = exponent, .groups = try count32(groups.items.len), .source_groups = try count32(source_groups.items.len / 8), .sample_count = try count32(sample_count), .degree_log = degree, .eval_log = request.lifting_log_size, .coefficient_cells = coefficient_words }, .section_storage = section_storage, .section_owned = section_owned, .geometry = geometry, .coefficients = coefficients, .scope = requestScope(request) };
 }
 
 fn columnCount(column: D.Column) u64 {
@@ -294,6 +321,9 @@ fn mWords(values: []const M) []const u32 {
     return @as([*]const u32, @ptrCast(values.ptr))[0..values.len];
 }
 pub const Prepared = struct {
+    geometry_only: bool=false,
+    forward_count: usize=0,
+    coordinate_count: usize=0,
     metadata: Metadata,
     section_storage: [17][]const u32,
     section_owned: [17]bool = @splat(true),
@@ -302,8 +332,16 @@ pub const Prepared = struct {
     owns_metadata: bool = true,
     scope: [8]u32 = @splat(0),
     pub fn descriptor(self: *const Prepared) Native.Request {
+        if(self.geometry_only) @panic("geometry-only PCS descriptor cannot be proved");
+        return self.geometryDescriptor();
+    }
+    fn geometryDescriptor(self: *const Prepared) Native.Request {
         var result = Native.Request{ .sections = undefined, .coefficients = self.coefficients.ptr, .coefficient_count = self.coefficients.len, .scope = self.scope };
         for (self.section_storage, &result.sections) |section, *span| span.* = .{ .words = section.ptr, .count = section.len };
+        if(self.geometry_only) {
+            result.sections[12]=.{.words=null,.count=self.forward_count};
+            result.sections[14]=.{.words=null,.count=self.coordinate_count};
+        }
         return result;
     }
     pub fn takeMetadata(self: *Prepared) Metadata {
