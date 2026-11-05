@@ -10,6 +10,20 @@ const Driver = @import("../../word16_execution/driver.zig");
 const Capture = @import("capture.zig").Owner;
 const CaptureOptions = @import("capture_options.zig").Options;
 const DirectCapture = @import("direct.zig");
+const CpuPrestage = struct {
+    stage: @import("../../word16_execution/cpu_source.zig").ProjectionStage,
+    image_identity: [32]u8 = undefined,
+    fn ready(raw: *anyopaque, index: usize, native: *const @import("../../word16_execution/prepared.zig").Prepared, _: []const @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event, at_ns: u64) void {
+        const self: *CpuPrestage = @ptrCast(@alignCast(raw));
+        if (index != 0) return;
+        std.debug.print("GPU_CPU_PRESTAGE event=capture_ready ordinal=0 utc_ns={} ordered_ready_ns={}\n", .{ std.time.nanoTimestamp(), at_ns });
+        if (native.cpu) |*source| self.stage.prestage.?(self.stage.context, source, self.image_identity);
+    }
+    fn cancel(raw: *anyopaque) void {
+        const self: *CpuPrestage = @ptrCast(@alignCast(raw));
+        self.stage.cancel_prestage.?(self.stage.context);
+    }
+};
 const Plan = @import("plan.zig");
 const Keys = @import("keys.zig").Owner;
 const Admission = @import("receiver.zig");
@@ -505,14 +519,21 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     // `capture` against that independently loaded image.
     var direct_stats: DirectCapture.Stats = .{};
     const shared_walk_authority = if (std.posix.getenv("STWO_RV64_CAPTURE_SHARED_AUTHORITY")) |flag| std.mem.eql(u8, flag, "1") else false;
+    const early_cpu = if (std.posix.getenv("STWO_RV64_CPU0_PRESTAGE")) |flag| std.mem.eql(u8, flag, "1") else false;
+    if (early_cpu and (!direct_capture or !combined or stages.cpu_projection == null)) return error.CpuPrestageRequiresDirectResidentCombined;
+    var prestage: ?CpuPrestage = if (early_cpu) .{ .stage = stages.cpu_projection.? } else null;
+    if (prestage) |*p| if (p.stage.prestage == null or p.stage.join_prestage == null or p.stage.cancel_prestage == null) return error.CpuPrestageStageUnavailable;
+    defer if (prestage) |*p| CpuPrestage.cancel(p);
     const walk_authority: ?Request.AuthorityProvider = if (shared_walk_authority and session != null) session.?.authorities.provider() else null;
     var direct_started: ?*DirectCapture.Started = if (direct_capture) try DirectCapture.Started.startWithAuthority(a, request.value, count, capture_options.execution_workers, walk_authority) else null;
+    if (prestage) |*p| direct_started.?.ready = .{ .context = p, .call = CpuPrestage.ready, .cancel = CpuPrestage.cancel };
     defer if (direct_started) |value| value.deinit(&direct_stats);
     // M5 platform: a resident session reuses the receiver-derived
     // ProgramAuthority of the same guest (keyed by its executable words).
     var image = if (session) |shared| try Image.Owner.initShared(a, request.value, &shared.authorities) else try Image.Owner.init(a, request.value);
     defer image.deinit();
     const image_load_ns = timer.read();
+    if (prestage) |*p| p.image_identity = image.identity;
     var local_native: ?NativeCache.Cache = if (session == null) try NativeCache.Cache.init(a, 256 << 20) else null;
     defer if (local_native) |*cache| cache.deinit();
     var local_metadata: ?MetadataCache.Cache = if (session == null) try MetadataCache.Cache.init(a, 64 << 20) else null;
@@ -598,6 +619,10 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         break :capture try Capture.initWithOptions(a, &image, &program, request.value, jobs, count, capture_options.forPool(&pool));
     };
     defer captured.deinit();
+    // This later defer runs before captured.deinit on every downstream error.
+    // Direct.run separately cancels before Ordered.deinit on capture failure.
+    defer if (prestage) |*p| CpuPrestage.cancel(p);
+    if (prestage) |*p| try p.stage.join_prestage.?(p.stage.context);
     const packet_import_ns = timer.read() - import_start;
     const capture_ns = timer.read();
     const capture_breakdown = .{ .image_load_ns = image_load_ns, .program_ns = program_ns, .pre_import_ns = import_start - image_load_ns - program_ns, .import_ns = packet_import_ns };
@@ -656,6 +681,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         source_bounds = try SourceBounds.derive(a, program.log_size, cpu, truths, requests);
     }
     b2i.plan_done_at_ns = since(process_start);
+    if (prestage != null) std.debug.print("GPU_CPU_PRESTAGE event=inventory_plan_ready utc_ns={} process_at_ns={}\n", .{ std.time.nanoTimestamp(), b2i.plan_done_at_ns });
     var setup_cache: ?SetupCache.Cache = null;
     var setup_dir: ?[]u8 = null;
     defer if (setup_dir) |d| a.free(d);

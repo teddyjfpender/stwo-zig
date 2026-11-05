@@ -356,6 +356,9 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
     if (inflight == 0 or inflight > MAX_INFLIGHT) return error.InvalidEthereumCaptureOptions;
     var ordered = Capture.Ordered.init(a, image, config, prefix_packets);
     defer ordered.deinit();
+    // Queue cleanup below joins all readiness publishers first. Then cancel
+    // their asynchronous readers BEFORE ordered.deinit frees captured values.
+    errdefer if (ready) |hook| if (hook.cancel) |cancel| cancel(hook.context);
     var tap = ReadyTap{ .stats = stats, .inner = ready };
     ordered.on_ready = .{ .context = &tap, .call = ReadyTap.call };
     var queue = Queue{};

@@ -43,6 +43,7 @@ pub const Timing = struct {
 pub const Ready = struct {
     context: *anyopaque,
     call: *const fn (context: *anyopaque, index: usize, native: *const Native, events: []const LS.native.Event, at_ns: u64) void,
+    cancel: ?*const fn (*anyopaque) void = null,
 };
 pub const Owner = struct {
     capture_schedule: ScheduleStats = .{},
