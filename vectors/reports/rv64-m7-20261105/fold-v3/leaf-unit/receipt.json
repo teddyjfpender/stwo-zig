@@ -1,0 +1,38 @@
+{
+  "schema": "rv64-m7-typed-leaf-unit/v1",
+  "label": "M",
+  "source_marker": "59a802062+typed-leaf-uncommitted",
+  "status": "pod circuit/native unit PASS; no new native/recursive/Ethereum proof",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/rv64_m5_vk_table_test_root.zig": "1a177a65ec15d13241ee90a2723c5d19c512b0e43fe32c9fdd61b3b7fa5952ba",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/canon_hash.zig": "5ff0ed6e5e37151e7a71f172775523fc21009a218f890266ba850b52c134d4cf",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/typed_leaf.zig": "efd7e72829d12cc01b6503c0062ec39b2407b0c9c176ec72ab5989b9aed23703",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/typed_integer.zig": "3b59505d4b943ca7712b3dc8ba8514d7e885cd9e1341d54f04817d1f75e318ce",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/typed_cpu.zig": "ad4e991d80cf9f16a04eab8db3ef494a4e6c44e7af5e361b658768c3f62edc71",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/typed_truth.zig": "6a7866b3d88359a0d28715eb6d71d08cdee33d060bf04dbece687e48064a4eaf",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/typed_mass.zig": "d513b422cd5c76c9dfaefb17c7a0c1219ceb8121ebbdd0665f1422ca5601e9ac",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/canon_native.zig": "98822bf21715704d1d89678624bccbb053e7c2002a0fef6bd6cfff7ca80dfa44",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/mass_authority.zig": "a536eb951bc4fac56be598740bcc541cda3943c13520ea19967200ecb9fc5355"
+  },
+  "gate": "zig build test-riscv64-m5-vk-table test-riscv64-m5-canon-native -Doptimize=ReleaseSafe -j16 --summary all",
+  "build_steps": "4/4 success",
+  "vk_table_s": 32,
+  "vk_table_max_rss_mb": 645,
+  "native_canon_s": 12,
+  "native_canon_max_rss_mb": 356,
+  "tested": [
+    "native/circuit MAIN-only rho equals Canon.rho(MAIN,null,empty)",
+    "Tnat exact source class membership and authenticated MAIN/scope/global projection",
+    "integer counter sum below p; output substitution and wrap refusal",
+    "CPU steps/epoch/call cursors/sponge span/state/terminal presence",
+    "truth family/span and CPU state/counter stutter",
+    "source signed CPU mass visitor agrees with existing native authority across four count vectors",
+    "circuit signed masses equal source terms; changed high/low halves or count wire rejected"
+  ],
+  "limitations": [
+    "Native numerical verifier and compact hash must supply these exact handles.",
+    "CPU source Plan count/absence/cap mapping remains to be connected.",
+    "Truth mass/cap mapping, source-static soundness envelope and full typed leaf proof remain open.",
+    "No new production profile activated."
+  ]
+}

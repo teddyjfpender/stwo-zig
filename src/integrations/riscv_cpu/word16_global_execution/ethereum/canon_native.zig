@@ -508,6 +508,26 @@ pub fn rho(main: Digest, local: ?Digest, marginals: []const []const [8]u32) !Dig
     }
     return h.final();
 }
+/// Native-GKR v2 seals MAIN before chi and proves the numerical section only
+/// afterwards. Including that later section in rho would make chi circular.
+/// This is byte-identical to rho(main, null, &.{}); the new chain version
+/// supplies the format separation. Existing receipt-bearing rho is unchanged.
+pub fn emitMainOnlyRho(main: anytype, h: anytype) void {
+    h.digest(main);
+    h.constantWord(0);
+    h.constantDigest(@splat(0));
+    h.constantWord(0);
+}
+pub fn mainOnlyRho(main: Digest) Digest {
+    var writer = struct {
+        h: Hasher,
+        pub fn digest(s: *@This(), d: Digest) void { s.h.digest(d); }
+        pub fn constantDigest(s: *@This(), d: Digest) void { s.h.digest(d); }
+        pub fn constantWord(s: *@This(), w: u32) void { s.h.word(w); }
+    }{ .h = Hasher.init(.rho) };
+    emitMainOnlyRho(main, &writer);
+    return writer.h.final();
+}
 pub fn chainIv(version: Digest) Digest {
     var h = Hasher.init(.iv);
     h.digest(version);

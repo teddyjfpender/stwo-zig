@@ -101,3 +101,29 @@ The new `Cpu.Statement.chain_inputs` retains the original raw public handles
 for this visitor; storing handles adds no guesses to legacy circuits. The
 native stream owns the native compact projection. No v3 profile may activate
 using a freely guessed legacy digest.
+
+
+## Current helper implementation gates
+
+The direct compact CPU/truth visitors now exist in `services/native_gkr/`.
+CPU metadata includes epoch, cumulative steps, LS/DWORD counts, every family
+call/first ID, sponge and bulk counters, and both signed mass halves. The
+new chain uses that direct statement digest. Its stage-one receipt is exactly
+`Canon.rho(MAIN, null, empty)`: numerical GKR is proved after chi and cannot
+enter the preceding chain without circularity. Native/circuit framing agrees.
+
+`typed_leaf.zig` constrains source T_nat membership/header, exact native
+ordinal/execution/MAIN/statement/chi handles and separate globals.
+`typed_cpu.zig` and `typed_truth.zig` constrain state and cursor transitions.
+`typed_integer.zig` prevents counter addition wrapping modulo p. The additive
+`mass_authority.emitCpuTerms` visitor preserves every positive and negative
+source event; `typed_mass.zig` derives signed totals and absolute bounds from
+those count handles, including exact zero high halves. Existing native
+mass calculation remains unchanged and agrees in differential tests.
+
+These helpers passed pod unit gates, including substitutions of authority,
+MAIN, scope, counters, states, terminal presence and signed masses. They are
+not a complete typed leaf. Connecting exact numerical/compact verifier wires
+and the source Plan's count/absence/cap projection remains mandatory. Truth
+source bounds, conservative per-class security envelopes, real typed proofs,
+producer/root wire, fresh reception and independent audit remain open.

@@ -6,6 +6,11 @@ test {
     _ = @import("rv64_recursion/node_summary.zig");
     _ = @import("rv64_recursion/om31_native/canon_hash.zig");
     _ = @import("rv64_recursion/om31_native/node_summary_v3.zig");
+    _ = @import("rv64_recursion/om31_native/typed_leaf.zig");
+    _ = @import("rv64_recursion/om31_native/typed_integer.zig");
+    _ = @import("rv64_recursion/om31_native/typed_mass.zig");
+    _ = @import("rv64_recursion/om31_native/typed_cpu.zig");
+    _ = @import("rv64_recursion/om31_native/typed_truth.zig");
 }
 const P = @import("stwo_circuit_cpu_integration").om31.protocol;
 test "canon-vk canonical outer profiles: registry domains, base PCS configs, fail-closed parse" {
