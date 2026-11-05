@@ -49,7 +49,7 @@ import subprocess
 import sys
 import time
 
-SCHEMA = "rv64-m5-negative-corpus/v4"
+SCHEMA = "rv64-m5-negative-corpus/v5"
 DEV_BLOCKS = {26235156, 24628607}
 HOST_BYTES = 34359738368
 
@@ -147,14 +147,19 @@ def coherent_flip(proof, name, setter):
     return offset
 
 
-OUTER_GKR_MAGIC = (0x524B474F).to_bytes(4, "little")  # outer_gkr_om31_strict_v1 wire header word 0 (OG1)
+OUTER_GKR_MAGIC = (0x524B474F).to_bytes(4, "little")  # OGKR section header, legacy v1 or anchored-Eq v2
+OUTER_GKR_VERSIONS = (1, 2)
+
+def gkr_offset(data):
+    offsets = [data.find(OUTER_GKR_MAGIC + v.to_bytes(4, "little")) for v in OUTER_GKR_VERSIONS]
+    return min((offset for offset in offsets if offset >= 0), default=-1)
 
 
 def gkr_section(path):
     data = path.read_bytes()
-    at = data.find(OUTER_GKR_MAGIC + (1).to_bytes(4, "little"))
+    at = gkr_offset(data)
     if at < 0:
-        raise RuntimeError(f"no outer GKR section (magic OGKR v1) in {path.name}: format not wired")
+        raise RuntimeError(f"no outer GKR section (magic OGKR v1/v2) in {path.name}: format not wired")
     return bytearray(data), at
 
 
@@ -595,6 +600,29 @@ CASES = [
          what="pruned last FRI layer with a coefficient at or above 2^log_last_layer"),
     dict(id="CP04-fold-step", family="compress", expect="reject", today="m7",
          what="C2 proven at fold_step 3 verified at fold_step 4 (M03 variant)"),
+    # ---- Corpus v5 (M7-INTERFACES PR2). Missing mutators stay explicitly pending. ----
+    dict(id="OG01-succinct-aux-differential", family="outer-gkr-v2", expect="reject", today="m7", what="succinct first/second/carry at a random OM31 circle point differ from public_aux interpolation or the circuit lane"),
+    dict(id="OG02-degenerate-row-coordinate", family="outer-gkr-v2", expect="reject", today="m7", what="GKR row coordinate zero or one admitted by native or circuit verifier"),
+    dict(id="OG03-same-class-section-splice", family="outer-gkr-v2", expect="reject", today="m7", what="outer GKR section from another node of the same class spliced into a production proof"),
+    dict(id="OG04-instance-tag-relabel", family="outer-gkr-v2", expect="reject", today="m7", what="instance relation/component tag relabelled while keeping its claims"),
+    dict(id="OG05-relation-mass", family="outer-gkr-v2", expect="reject", today="m7", what="per-relation source-bound mass at least p admitted"),
+    dict(id="OG06-cross-outer-gkr-format", family="outer-gkr-v2", expect="reject", today="m7", requires=("alt_format_proof",), what="GKR v2 and M6 no-GKR proof policies crossed in either direction", mutate=cross_format),
+    dict(id="OG07-legacy-binding-version", family="outer-gkr-v2", expect="reject", today="m7", what="unbound-Eq v1 section accepted by the anchored-Eq v2 receiver, including a rewritten version word"),
+    dict(id="NG01-native-section-flip", family="native-gkr-v2", expect="reject", today="m7", what="one byte of the native GKR section flipped in a production v2-gkr proof"),
+    dict(id="NG02-producer-claimed-mass", family="native-gkr-v2", expect="reject", today="m7", what="mass gate trusts producer-claimed mass instead of independently source-bound mass"),
+    dict(id="NG03-rung-row-mismatch", family="native-gkr-v2", expect="reject", today="m7", what="segment rows differ from its strict rung, including cpu_single and terminal"),
+    dict(id="NG04-cross-native-gkr-format", family="native-gkr-v2", expect="reject", today="m7", requires=("alt_format_proof",), what="v2-gkr and strict/default native proof policies crossed in either direction", mutate=cross_format),
+    dict(id="NG05-other-roster", family="native-gkr-v2", expect="reject", today="m7", what="native GKR rung roster identity replaced by another roster"),
+    dict(id="F309-v3-cap-slot", family="fold-v3", expect="reject", today="m7", what="v3 k4-cap3 path uses a guessed cap slot rather than query position"),
+    dict(id="F310-null-chain-slot", family="fold-v3", expect="reject", today="m7", what="null child counted as a segment in the node-summary chain"),
+    dict(id="F311-v3-root-no-audit", family="fold-v3", expect="accept", today="m7", what="v3 root accepted by fresh root-only receiver with stores deleted and without --audit"),
+    dict(id="F312-cross-v3-compat", family="fold-v3", expect="reject", today="m7", requires=("alt_format_proof",), what="v3 and M6 compat proof policies crossed in either direction", mutate=cross_format),
+    dict(id="CP05-compress-vk-in-trec", family="compress", expect="reject", today="m7", what="fold admits a C1 proof as a child or a C1 VK as a T_rec member"),
+    dict(id="CP06-summary-passthrough", family="compress", expect="reject", today="m7", what="C1 output node summary differs from the child in any field"),
+    dict(id="CP07-nonroot-child", family="compress", expect="reject", today="m7", what="C1 child has a consistent summary but does not cover every native segment"),
+    dict(id="CP08-cross-compress-stage", family="compress", expect="reject", today="m7", what="C2 proof verified under C1 parameters"),
+    dict(id="CP09-uncompressed-as-c2", family="compress", expect="reject", today="m7", what="uncompressed root bytes presented as the C2 artifact"),
+    dict(id="CP10-compress-other-block", family="compress", expect="reject", today="m7", what="C2 proof of the other dev block under this block's statement"),
 ]
 
 # Tier: R = fresh receiver process on a mutated proof directory / receiver policy (this harness runs it);
@@ -620,12 +648,18 @@ CASE_META = {
     "M09": ("U", "profiles"), "M10": ("U", "outer-gkr"), "BG01": ("W", "blake-gadget"), "BG02": ("W", "blake-gadget"),
     "BG03": ("W", "blake-gadget"), "BG04": ("W", "blake-gadget"), "BG05": ("W", "blake-gadget"),
     "BG06": ("W", "blake-gadget"), "BG07": ("W", "blake-gadget"), "BG08": ("U", "blake-gadget"),
+    # corpus v5 (M7)
+    "OG01": ("U", "outer-gkr"), "OG02": ("U", "outer-gkr"), "OG03": ("R", "outer-gkr"), "OG04": ("W", "outer-gkr"),
+    "OG05": ("U", "outer-gkr"), "OG06": ("R", "outer-gkr"), "OG07": ("U", "outer-gkr"),
+    "NG01": ("R", "native-gkr"), "NG02": ("U", "native-gkr"), "NG03": ("W", "native-gkr"), "NG04": ("R", "native-gkr"), "NG05": ("U", "native-gkr"),
+    "F309": ("W", "fold-circuit"), "F310": ("W", "fold-circuit"), "F311": ("R", "fold-circuit"), "F312": ("R", "fold-circuit"),
+    "CP05": ("W", "compress"), "CP06": ("W", "compress"), "CP07": ("W", "compress"), "CP08": ("R", "compress"), "CP09": ("R", "compress"), "CP10": ("R", "compress"),
     # corpus v4 (M6)
     "NV01": ("U", "native-format"), "NV02": ("U", "native-format"), "NV03": ("R", "native-format"), "NV04": ("U", "native-format"),
     "NV05": ("U", "native-format"), "NV06": ("W", "native-format"), "NV07": ("W", "native-format"), "NV08": ("W", "native-format"),
     "DW01": ("R", "diet-wire"), "DW02": ("R", "diet-wire"), "DW03": ("W", "diet-wire"), "DW04": ("W", "diet-wire"),
     "DW05": ("W", "diet-wire"), "DW06": ("W", "diet-wire"), "DW07": ("R", "diet-wire"), "DW08": ("W", "diet-wire"),
-    "DW09": ("R", "diet-wire"), "DW10": ("W", "diet-wire"), "DW11": ("W", "diet-wire"),
+    "DW09": ("R", "diet-wire"), "DW10": ("W", "outer-gkr"), "DW11": ("W", "outer-gkr"),
     "DW12": ("W", "diet-wire"), "DW13": ("W", "diet-wire"),
     "F301": ("W", "fold-v3"), "F302": ("W", "fold-v3"), "F303": ("W", "fold-v3"), "F304": ("W", "fold-v3"),
     "F305": ("W", "fold-v3"), "F306": ("U", "fold-v3"), "F307": ("W", "fold-v3"), "F308": ("W", "fold-v3"),
@@ -758,7 +792,7 @@ def capabilities(receiver, proof, root_donor, root_path, alt_proof=None, donor_t
             "alt_format_proof": bool(alt_proof) and Path(alt_proof).is_dir(), "donor_table_root": bool(donor_table_root),
             "gkr_section": False}
     try:
-        caps["gkr_section"] = OUTER_GKR_MAGIC + (1).to_bytes(4, "little") in (proof / root_path).read_bytes()
+        caps["gkr_section"] = gkr_offset((proof / root_path).read_bytes()) >= 0
     except OSError:
         pass
     try:

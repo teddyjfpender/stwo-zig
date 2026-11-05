@@ -153,6 +153,12 @@ pub fn verify(context: *Context, channel: *Channel, class: *const P.Class, wired
     errdefer artifact.deinit(context.gpa);
     try channel.finish();
     for (artifact.n_variables_by_instance, class.instances) |n, inst| if (n != inst.variables()) return error.OuterGkrShapeMismatch;
+    if (class.binding_version == .cyclic_eq_v2) {
+        const MP = @import("../logup_gkr/mle_point.zig");
+        for (class.instances) |inst| {
+            _ = try MP.MleEvalPointFor(F).init(artifact.ood_point[artifact.ood_point.len - inst.row_log ..]);
+        }
+    }
     // Leading coefficients nonzero (constant mixing length is only unambiguous with deg = 3).
     for (wired.proof.sumcheck_proofs) |sc| for (sc.round_polys) |poly| {
         _ = poly.coefficients[P.COEFFICIENTS_PER_ROUND - 1].inv();

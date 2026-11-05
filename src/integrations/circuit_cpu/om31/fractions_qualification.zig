@@ -22,6 +22,19 @@ const Job = extern struct {
     reserved: [2]u32 = .{ 0, 0 },
 };
 extern "c" fn stwo_circuit_om31_fractions_emulate(*const Job) c_int;
+const Projected = extern struct {
+    fixed: ?[*]const u32,
+    main: [*]const u32,
+    parameters: [*]const u32,
+    status: *u32,
+    fixed_words: u64,
+    main_words: u64,
+    component: u32,
+    row_log: u32,
+    lane_first: u32,
+    lane_log: u32,
+};
+extern "c" fn stwo_circuit_outer_gkr_project_emulate(*const Projected, u32, *[16]u32) c_int;
 const L = engine.air.logup_columns.ForField(P.O);
 const Provider = struct {
     values: *const [16][13]L.Fraction,
@@ -105,6 +118,35 @@ test "native octic circuit CUDA fractions share tuple authority all components" 
                     if (m.v != denominators[(8 * i + j) * 16 + r]) std.debug.print("DEN row={} pair={} coord={}\n", .{ r, i, j });
                     try std.testing.expectEqual(m.v, denominators[(8 * i + j) * 16 + r]);
                 }
+            }
+        }
+        // M7 lazy GKR source: every ORIGINAL fraction in every binary lane
+        // group equals the native RawLookupRows authority, in lane-major
+        // order. This is independent of the paired classic LogUp fractions.
+        if (ci == 2 or ci == 3 or ci == 4 or ci == 6) {
+            const lookups = circuit.witness.trace.RawLookupRows.count(kind);
+            var first: usize = 0;
+            while (first < lookups) {
+                const lane_log = std.math.log2_int(usize, lookups - first);
+                const lanes = @as(usize, 1) << @intCast(lane_log);
+                var projected = Projected{ .fixed = fixed.ptr, .main = main.ptr, .parameters = &parameters, .status = &status, .fixed_words = fixed.len, .main_words = main.len, .component = @intCast(ci), .row_log = 4, .lane_first = @intCast(first), .lane_log = @intCast(lane_log) };
+                try std.testing.expectEqual(@as(usize, 64), @sizeOf(Projected));
+                for (0..lanes) |lane| for (0..16) |row| {
+                    var storage: [circuit.witness.trace.RawLookupRows.MAX_LOOKUPS]circuit.witness.components.Lookup = undefined;
+                    const lookup = (try raw.fill(kind, row, &storage))[first + lane];
+                    const wanted = [_]P.O{ P.O.fromBase(lookup.numerator), elements.combine(lookup.values()) };
+                    var actual: [16]u32 = undefined;
+                    try std.testing.expectEqual(@as(c_int, 0), stwo_circuit_outer_gkr_project_emulate(&projected, @intCast(lane * 16 + row), &actual));
+                    for (wanted, 0..) |value, v| for (value.toM31Array(), 0..) |m, c| {
+                        try std.testing.expectEqual(m.v, actual[8 * v + c]);
+                    };
+                };
+                try std.testing.expectEqual(@as(u32, 0), status);
+                var actual: [16]u32 = undefined;
+                try std.testing.expectEqual(@as(c_int, 1), stwo_circuit_outer_gkr_project_emulate(&projected, @intCast(lanes * 16), &actual));
+                projected.main_words -= 1;
+                try std.testing.expectEqual(@as(c_int, 1), stwo_circuit_outer_gkr_project_emulate(&projected, 0, &actual));
+                first += lanes;
             }
         }
         if (std.process.getEnvVarOwned(a, "STWO_OM31_FRACTIONS_FIXTURES")) |directory| {

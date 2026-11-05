@@ -122,6 +122,14 @@ pub fn verify(a: std.mem.Allocator, channel: *RawChannel, section: *const Sectio
     errdefer artifact.deinit(a);
     if (strict.rejected) return error.OuterGkrDrawRejected;
     for (artifact.n_variables_by_instance, section.class.instances) |n, inst| if (n != inst.variables()) return error.OuterGkrShapeMismatch;
+    // V2 carry quotients require every row coordinate outside {0,1}. The
+    // guard is receiver-derived from the actual transcript's final point.
+    if (section.class.binding_version == .cyclic_eq_v2) {
+        const MP = @import("../logup_gkr/mle_point.zig");
+        for (section.class.instances) |inst| {
+            _ = try MP.MleEvalPointFor(O).init(artifact.ood_point[artifact.ood_point.len - inst.row_log ..]);
+        }
+    }
     var root_sum = O.zero();
     for (section.proof.output_claims_by_instance) |root| {
         if (root[1].isZero()) return error.OuterGkrRootPole;
@@ -253,7 +261,7 @@ pub fn proveCpu(a: std.mem.Allocator, channel: *const RawChannel, class: *const 
             owned.deinit(a);
             return section;
         } else |err| switch (err) {
-            error.OuterGkrDrawRejected, error.OuterGkrShapeMismatch => section.deinit(a),
+            error.OuterGkrDrawRejected, error.OuterGkrShapeMismatch, error.DegenerateEvalPoint => section.deinit(a),
             else => {
                 section.deinit(a);
                 return err;
@@ -301,7 +309,7 @@ pub fn encode(a: std.mem.Allocator, section: *const Section) ![]u32 {
     const l = class.layers();
     const out = try a.alloc(u32, wordCount(class));
     errdefer a.free(out);
-    out[0..5].* = .{ P.MAGIC, P.VERSION, class.id, @intCast(class.instances.len), l };
+    out[0..5].* = .{ P.MAGIC, class.version(), class.id, @intCast(class.instances.len), l };
     var at: usize = 5;
     put(out, &at, section.salt);
     for (section.proof.output_claims_by_instance) |root| for (root) |v| put(out, &at, v);
@@ -321,7 +329,7 @@ pub fn encode(a: std.mem.Allocator, section: *const Section) ![]u32 {
 /// proof): the wire's class id must equal it, so an honest section of another class (e.g. the scaled
 /// test class) is refused instead of being verified against its own, prover-chosen constants.
 pub fn decode(a: std.mem.Allocator, expected: *const P.Class, words: []const u32) !Section {
-    if (words.len < 5 or words[0] != P.MAGIC or words[1] != P.VERSION) return error.MalformedOuterGkrSection;
+    if (words.len < 5 or words[0] != P.MAGIC or words[1] != expected.version()) return error.MalformedOuterGkrSection;
     if (words[2] != expected.id) return error.OuterGkrClassMismatch;
     const class = expected;
     try class.validate();

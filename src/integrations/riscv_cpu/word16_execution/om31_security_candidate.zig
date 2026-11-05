@@ -560,7 +560,7 @@ pub fn requireOuterGkrCharacteristic(facts: OuterGkrFacts, relation_mass: ?u64) 
 // fresh-receiver acceptance and the reviewed notes rv64-m5-binding.md (sec. 10)
 // and rv64-m7-profiles.md.
 // ---------------------------------------------------------------------------
-pub const PcsParams = struct { log_blowup: u32, queries: u32, pow_bits: u32, fold_step: u32 };
+pub const PcsParams = struct { log_blowup: u32, queries: u32, pow_bits: u32, fold_step: u32, log_last_layer: u32 = 0 };
 pub const FormatVersion = enum {
     /// canon-native: native proof with the M5 chi chain (binding 3.3, lambda_k of
     /// F13), the mb family and LOCAL_RELATIONS = 10 (fixes the 9-vs-10 drift).
@@ -598,6 +598,16 @@ pub const FormatVersion = enum {
     /// verifier stops every Merkle path at an 8-node cap (c = 3) guessed and hashed
     /// to the child root once (fold circuits only; child proof bytes unchanged).
     m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1,
+    // M7 reserved formats. Registration does not enable a runtime producer.
+    m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1,
+    m7_outer_gkr_fblake_k4_cap3_r1_b2_q108_p20_fold4_v1,
+    m7_native_v2_gkr_b2_q108_p20_fold4,
+    m7_outer_fold_v3_k4_cap3_r1_b2_q108_p20_fold4_v1,
+    m7_compress_c1_b16_q27_p20_fold4_v1,
+    m7_compress_c1_b8_q36_p20_fold4_v1,
+    m7_compress_c2_b64_q18_p20_fold3_v1,
+    m7_compress_c2_b16_q27_p20_fold3_v1,
+    m7_outer_gkr_fold_v3_k4_cap3_r1_b2_q108_p20_fold4_v1,
     pub fn name(self: FormatVersion) []const u8 {
         return @tagName(self);
     }
@@ -626,7 +636,7 @@ pub const FormatSpec = struct {
     /// Fold arity is a class constant in {2,3,4} (k-ary binding, binding sec. 4).
     max_fold_arity: u32 = 2,
 };
-pub const FORMAT_VERSIONS = [_]FormatVersion{ .m5_native_chi_chain_v1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1, .m7_outer_gkr_m3_b4_q51_p26_fold4_v1, .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1, .m6_native_v2_b2_q108_p20_fold4, .m6_native_v2_gkr_b2_q108_p20_fold4, .m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 };
+pub const FORMAT_VERSIONS = [_]FormatVersion{ .m5_native_chi_chain_v1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1, .m7_outer_gkr_m3_b4_q51_p26_fold4_v1, .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1, .m6_native_v2_b2_q108_p20_fold4, .m6_native_v2_gkr_b2_q108_p20_fold4, .m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_outer_gkr_fblake_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_native_v2_gkr_b2_q108_p20_fold4, .m7_outer_fold_v3_k4_cap3_r1_b2_q108_p20_fold4_v1, .m7_compress_c1_b16_q27_p20_fold4_v1, .m7_compress_c1_b8_q36_p20_fold4_v1, .m7_compress_c2_b64_q18_p20_fold3_v1, .m7_compress_c2_b16_q27_p20_fold3_v1, .m7_outer_gkr_fold_v3_k4_cap3_r1_b2_q108_p20_fold4_v1 };
 /// M6 component version strings (M6-INTERFACES.md P1). A change of any one is
 /// a new FormatVersion; the owning stream posts the real string, profiles edits.
 /// native-format (rv64-m6-native-v2.md sec. 1 @ aa291ac35): protocol name
@@ -638,6 +648,10 @@ pub const M6_NATIVE_V2_STRICT_PROFILE = "v2-strict";
 pub const M6_NATIVE_V2_GKR_PROFILE = "v2-gkr";
 /// native-format NF4: native GKR section identity (v2, MAGIC 0x4b47564e).
 pub const M6_NATIVE_GKR_COMPONENT = "stwo/rv64/native-gkr/om31-strict-draw/lane-major/v2";
+pub const M7_OUTER_GKR_COMPONENT = "stwo/rv64/outer-gkr/om31-strict-draw/lane-major/v2";
+pub const M7_FOLD_V3_COMPONENT = "rv64-m7-fold-v3/v1";
+pub const M7_COMPRESS_C1_COMPONENT = "rv64-m7-compress/c1/v1";
+pub const M7_COMPRESS_C2_COMPONENT = "rv64-m7-compress/c2/v1";
 pub const OUTER_GKR_COMPONENT = "stwo/rv64/outer-gkr/om31-strict-draw/lane-major/v1";
 pub const FUSED_BLAKE_ONE_INSTANCE_COMPONENT = "fused_blake2s_v1/one-instance";
 pub const SET_V2_COMPONENT = "set-v2";
@@ -656,6 +670,16 @@ const R1_OUTER: PcsParams = .{ .log_blowup = 1, .queries = 108, .pow_bits = 20, 
 const M3_OUTER: PcsParams = .{ .log_blowup = 2, .queries = 51, .pow_bits = 26, .fold_step = 4 };
 pub fn formatSpec(version: FormatVersion) FormatSpec {
     return switch (version) {
+        .m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "outer-gkr", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m7-outer-gkr-k4-cap3-q108-p20-fold4/lens-v1", .outer_gkr = true, .component = M7_OUTER_GKR_COMPONENT, .extra_components = &.{ KARY_K4_COMPONENT, FOLD_MERKLE_CAP3_COMPONENT }, .max_fold_arity = 4 },
+        .m7_outer_gkr_fblake_k4_cap3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "outer-gkr", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m7-outer-gkr-fblake-k4-cap3-q108-p20-fold4/lens-v1", .outer_gkr = true, .component = M7_OUTER_GKR_COMPONENT, .extra_components = &.{ FUSED_BLAKE_ONE_INSTANCE_COMPONENT, KARY_K4_COMPONENT, FOLD_MERKLE_CAP3_COMPONENT }, .max_fold_arity = 4, .fused_blake = true },
+        .m7_native_v2_gkr_b2_q108_p20_fold4 => .{ .layer = .native, .owner = "native-gkr", .pcs = R1_OUTER, .domain = "rv64-m7-native-chi-chain/v2+native-gkr/v2/conjectured128_b2_q108_p20_fold4\x00", .local_relations = M5_LOCAL_RELATIONS, .component = M6_NATIVE_V2_COMPONENT, .extra_components = &.{ M6_NATIVE_V2_GKR_PROFILE, M6_NATIVE_GKR_COMPONENT } },
+        .m7_outer_fold_v3_k4_cap3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "fold-circuit", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m7-fold-v3-k4-cap3-q108-p20-fold4/lens-v1", .component = M7_FOLD_V3_COMPONENT, .extra_components = &.{ KARY_K4_COMPONENT, FOLD_MERKLE_CAP3_COMPONENT }, .max_fold_arity = 4 },
+        .m7_compress_c1_b16_q27_p20_fold4_v1 => .{ .layer = .compress1, .owner = "compress", .pcs = .{ .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 4 }, .domain = "stwo/circuit/native-om31/m7-c1-b16-q27-p20-fold4/lens-v1", .component = M7_COMPRESS_C1_COMPONENT },
+        .m7_compress_c1_b8_q36_p20_fold4_v1 => .{ .layer = .compress1, .owner = "compress", .pcs = .{ .log_blowup = 3, .queries = 36, .pow_bits = 20, .fold_step = 4 }, .domain = "stwo/circuit/native-om31/m7-c1-b8-q36-p20-fold4/lens-v1", .component = M7_COMPRESS_C1_COMPONENT },
+        .m7_compress_c2_b64_q18_p20_fold3_v1 => .{ .layer = .compress2, .owner = "compress", .pcs = .{ .log_blowup = 6, .queries = 18, .pow_bits = 20, .fold_step = 3, .log_last_layer = 3 }, .domain = "stwo/circuit/native-om31/m7-c2-b64-q18-p20-fold3/lens-v1", .component = M7_COMPRESS_C2_COMPONENT },
+        .m7_compress_c2_b16_q27_p20_fold3_v1 => .{ .layer = .compress2, .owner = "compress", .pcs = .{ .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 3, .log_last_layer = 3 }, .domain = "stwo/circuit/native-om31/m7-c2-b16-q27-p20-fold3/lens-v1", .component = M7_COMPRESS_C2_COMPONENT },
+        .m7_outer_gkr_fold_v3_k4_cap3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "integrate", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m7-outer-gkr-fold-v3-k4-cap3-q108-p20-fold4/lens-v1", .component = M7_OUTER_GKR_COMPONENT, .outer_gkr = true, .extra_components = &.{ M7_FOLD_V3_COMPONENT, KARY_K4_COMPONENT, FOLD_MERKLE_CAP3_COMPONENT }, .max_fold_arity = 4 },
+
         .m5_native_chi_chain_v1_b2_q108_p20_fold4 => .{ .layer = .native, .owner = "canon-native", .pcs = .{ .log_blowup = 1, .queries = 108, .pow_bits = 20, .fold_step = 4 }, .domain = "rv64-m5-native-chi-chain/v1/conjectured128_b2_q108_p20_fold4\x00", .local_relations = M5_LOCAL_RELATIONS, .component = "rv64-m5-native-chi-chain/v1" },
         .m5_outer_canonical_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "canon-vk", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m5-canonical-q108-p20-fold4/lens-v1" },
         .m5_outer_canonical_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "canon-vk", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m5-canonical-m3-b4-q51-p26-fold4/lens-v1" },
@@ -710,6 +734,12 @@ pub fn formatIdentity(version: FormatVersion) [32]u8 {
             h.update(&len_bytes);
             h.update(c);
         }
+    }
+    // Nonzero last-layer degree is new in M7; zero keeps every old identity.
+    if (s.pcs.log_last_layer != 0) {
+        h.update("rv64-om31-m7-last-layer/v1\x00");
+        std.mem.writeInt(u64, &len_bytes, s.pcs.log_last_layer, .little);
+        h.update(&len_bytes);
     }
     return h.finalResult();
 }

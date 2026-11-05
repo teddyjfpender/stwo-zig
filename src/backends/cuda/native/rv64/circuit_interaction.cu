@@ -3,6 +3,7 @@
 #endif
 #include "circuit_interaction.h"
 #include "om31.cuh"
+#include "outer_gkr_projector.cuh"
 #include "../circuit/lookup_tuples.cuh"
 #ifndef STWO_CIRCUIT_OM31_HOST_EMULATION
 #include "custody.cuh"
@@ -114,6 +115,23 @@ extern "C" int stwo_circuit_om31_fractions_on(void *raw,uint32_t lane,const Stwo
   return int(cudaPeekAtLastError());
 }
 #else
+extern "C" int stwo_circuit_outer_gkr_project_emulate(const StwoCircuitOuterGkrSource *source,
+                                                      uint32_t index, uint32_t *out) {
+  using namespace stwo::cuda::rv64;
+  if (!source || !out || !outer_gkr::valid_source(*source) ||
+      index >= (1u << (source->row_log + source->lane_log))) return 1;
+  Fraction fraction;
+  switch (source->component) {
+    case 2: fraction = outer_gkr::Source<2>{*source}(index); break;
+    case 3: fraction = outer_gkr::Source<3>{*source}(index); break;
+    case 4: fraction = outer_gkr::Source<4>{*source}(index); break;
+    case 6: fraction = outer_gkr::Source<6>{*source}(index); break;
+    default: return 1;
+  }
+  store(out, 1, 0, fraction.n);
+  store(out + 8, 1, 0, fraction.d);
+  return 0;
+}
 extern "C" int stwo_circuit_om31_fractions_emulate(const StwoCircuitOm31Fractions *j) {
   using namespace stwo::cuda::rv64;
   if(!j || circuit_outer::validate(*j)) return 1;
