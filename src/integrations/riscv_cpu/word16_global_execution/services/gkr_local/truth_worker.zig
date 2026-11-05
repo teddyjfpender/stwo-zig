@@ -223,7 +223,7 @@ pub const TruthWorker = struct {
         var resident_stage: @import("stwo_prover_api").device_composition.ResidentOm31Stage = undefined;
         if (self.device_composition_stage) |selected| {
             if (self.scheme.device_om31_pcs_stage == null) return error.TruthResidentPcsRequired;
-            invocation = .{ .stage = selected, .roles = .{ .classic = &components.items }, .scope = self.scheme.device_om31_scope orelse return error.TruthResidentScopeRequired };
+            invocation = .{ .stage = selected, .log_blowup = self.scheme.config.fri_config.log_blowup_factor, .roles = .{ .classic = &components.items }, .scope = self.scheme.device_om31_scope orelse return error.TruthResidentScopeRequired };
             resident_stage = invocation.adapter();
             self.scheme.device_om31_composition_stage = &resident_stage;
         }

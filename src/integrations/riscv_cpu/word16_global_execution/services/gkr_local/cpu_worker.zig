@@ -173,13 +173,17 @@ pub const CompositionStage = struct {
 pub const ResidentCompositionStage = struct {
     context: *anyopaque,
     evaluate_and_commit: *const fn (*anyopaque, std.mem.Allocator, []const Components.Item, O, u32, u32, usize, *const anyopaque, @import("stwo_prover_api").device_pcs.Scope) anyerror!@import("stwo_prover_api").device_pcs.Tree,
+    evaluate_and_commit_at_blowup: ?*const fn (*anyopaque, std.mem.Allocator, []const Components.Item, O, u32, u32, usize, *const anyopaque, @import("stwo_prover_api").device_pcs.Scope, u32) anyerror!@import("stwo_prover_api").device_pcs.Tree = null,
 };
 const ResidentCompositionInvocation = struct {
     stage: ResidentCompositionStage,
+    log_blowup: u32 = 1,
     items: []const Components.Item,
     scope: @import("stwo_prover_api").device_pcs.Scope,
     fn evaluateAndCommit(ctx: *anyopaque, a: std.mem.Allocator, alpha: O, log: u32, split: u32, total: usize, trace: *const anyopaque) anyerror!@import("stwo_prover_api").device_pcs.Tree {
         const invocation: *const @This() = @ptrCast(@alignCast(ctx));
+        if (invocation.stage.evaluate_and_commit_at_blowup) |evaluate| return evaluate(invocation.stage.context, a, invocation.items, alpha, log, split, total, trace, invocation.scope, invocation.log_blowup);
+        if (invocation.log_blowup != 1) return error.ResidentCompositionBlowupNotSupported;
         return invocation.stage.evaluate_and_commit(invocation.stage.context, a, invocation.items, alpha, log, split, total, trace, invocation.scope);
     }
 };
@@ -516,7 +520,7 @@ pub const CpuWorker = struct {
         var resident_invocation: ResidentCompositionInvocation = undefined;
         var resident_stage: @import("stwo_prover_api").device_composition.ResidentOm31Stage = undefined;
         if (self.resident_composition_stage) |selected| {
-            resident_invocation = .{ .stage = selected, .items = set.items, .scope = scheme.device_om31_scope orelse return error.ResidentCompositionScopeRequired };
+            resident_invocation = .{ .stage = selected, .log_blowup = self.config.fri_config.log_blowup_factor, .items = set.items, .scope = scheme.device_om31_scope orelse return error.ResidentCompositionScopeRequired };
             resident_stage = .{ .context = &resident_invocation, .evaluate_and_commit = ResidentCompositionInvocation.evaluateAndCommit };
             scheme.device_om31_composition_stage = &resident_stage;
         }
@@ -610,4 +614,24 @@ pub fn verifyCpuWithAuthority(a: std.mem.Allocator, setup: *const R.CpuSetup, re
     owns = false;
     try core.verifier.ForField(O).verify(W.H, W.MC, a, handles, &ch, &receiver, proof);
     return Components.Set.aggregate(&plan, encoded.claims);
+}
+
+test "D2 CPU composition binds per-proof blowup and rejects legacy adapters" {
+    const D = @import("stwo_prover_api").device_pcs;
+    const Mock = struct {
+        fn legacy(_: *anyopaque, _: std.mem.Allocator, _: []const Components.Item, _: O, _: u32, _: u32, _: usize, _: *const anyopaque, _: D.Scope) !D.Tree {
+            return error.LegacyMustNotRun;
+        }
+        fn selected(raw: *anyopaque, _: std.mem.Allocator, _: []const Components.Item, _: O, _: u32, _: u32, _: usize, _: *const anyopaque, _: D.Scope, beta: u32) !D.Tree {
+            const out: *u32 = @ptrCast(@alignCast(raw));
+            out.* = beta;
+            return .{ .root = @splat(0), .columns = &.{} };
+        }
+    };
+    var seen: u32 = 0;
+    var invocation = ResidentCompositionInvocation{ .stage = .{ .context = &seen, .evaluate_and_commit = Mock.legacy }, .log_blowup = 2, .items = &.{}, .scope = .{ .statement = @splat(0), .fixed = @splat(0), .main = @splat(0), .ordinal = 0 } };
+    try std.testing.expectError(error.ResidentCompositionBlowupNotSupported, ResidentCompositionInvocation.evaluateAndCommit(&invocation, std.testing.allocator, O.one(), 5, 0, 0, &seen));
+    invocation.stage.evaluate_and_commit_at_blowup = Mock.selected;
+    _ = try ResidentCompositionInvocation.evaluateAndCommit(&invocation, std.testing.allocator, O.one(), 5, 0, 0, &seen);
+    try std.testing.expectEqual(@as(u32, 2), seen);
 }
