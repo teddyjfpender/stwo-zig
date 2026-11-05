@@ -1,0 +1,29 @@
+{
+  "schema": "rv64-native-gkr-allocation-planner-adapter/v1",
+  "author": "OpenAI Codex",
+  "label": "M host control only",
+  "base_numerical_checkpoint": "2aebf8188",
+  "status": "pure allocation schedule qualified; no new GPU/performance run pending global planner",
+  "tests": {
+    "passed": 17,
+    "skipped_gpu_fixture": 1,
+    "failed": 0
+  },
+  "allocation_order": [
+    "decodedMAIN_FIXED",
+    "twiddle",
+    "status4B",
+    "seed36B",
+    "onecompactparameterSlabPerComponent",
+    "GKRworkspace"
+  ],
+  "fixture_allocations": 6,
+  "fixture_decoded_bytes": 9216,
+  "fixture_twiddle_bytes": 64,
+  "fixture_workspace_bytes": 188288,
+  "sizing": "raw allocation sizes; global Footprint owns512B/32MiB slab rounding and512MiB static slab; retained owner/cache costs separate",
+  "source_sha256": {
+    "src/integrations/riscv_cuda/rv64/native_gkr_stage.zig": "e8d3896bb33f375568e60eecc8c145ca4b035e1f39c2021146a99ad0e2417514",
+    "src/integrations/riscv_cuda/rv64/native_gkr_stage_fixture.zig": "23c3ed912394af312c71c2591a2b64836e00ee5e15b9cd919d5016f5ed4f49b3"
+  }
+}
