@@ -29,6 +29,7 @@ pub const steps = [_]Step{
     .{ .name = "rv64-gkr-circuit-cost", .description = "Build actual-wire GKR numerical circuit cost oracle", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-gkr-circuit", .description = "Qualify shared GKR numerical verifier with real circuit gates", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-outer-gkr-diet", .description = "Measure the outer LogUp-GKR in-circuit verifier cost (M7 diet prototype)", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-poseidon2-circuit", .description = "Measure exact pinned Poseidon2 circuit arithmetic before profile activation", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-outer-gkr", .description = "Qualify the outer LogUp-GKR section: CPU reference, tamper corpus, in-circuit gadget", .scope = .riscv_cpu },
     .{ .name = "rv64-outer-gkr-tool", .description = "Outer LogUp-GKR producer/receiver/cost tool (fresh-process receiver for the tamper corpus)", .scope = .riscv_cpu },
     .{ .name = "rv64-logup-gkr-prototype", .description = "Build isolated experimental LS-range LogUp-GKR prover and receiver", .scope = .riscv_cpu },

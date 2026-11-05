@@ -7,7 +7,7 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const M31 = m31.M31;
-const constants = @import("poseidon2_constants.zig");
+pub const constants = @import("poseidon2_constants.zig");
 
 pub const WIDTH: usize = 16;
 pub const State = [WIDTH]M31;
