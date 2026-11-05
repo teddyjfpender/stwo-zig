@@ -176,3 +176,49 @@ test "om31 fold v2 topology is proof-independent and digest binds child keys" {
     const swapped = Bridge.Child{ .authority = &second.authority, .produced = &first.produced, .capture = &first.capture };
     try std.testing.expectError(error.EqFailedOnEval, Bridge.buildFold(a, &.{ swapped, c1 }));
 }
+
+// M6 hint-tape (HT1): the fold seed tape, recorded without the verifier body,
+// equals the full trace-only graph's seed origins value-for-value, and the
+// constant VALUES of a v2 fold class do not depend on the child keys.
+test "om31 fold seed tape equals graph seeds and class constants are key independent" {
+    const a = std.testing.allocator;
+    const Tape = @import("rv64_recursion/om31_native/fold_tape.zig");
+    var first: Child = undefined;
+    try first.init(a, 1000);
+    defer first.deinit(a);
+    var second: Child = undefined;
+    try second.init(a, 2000);
+    defer second.deinit(a);
+    const c1 = first.child();
+    const c2 = second.child();
+    const pairs = [_][2]Bridge.Child{ .{ c1, c1 }, .{ c1, c2 }, .{ c2, c1 }, .{ c2, c2 } };
+    var reference_constants: ?[]const u128 = null;
+    var graphs: [pairs.len]Bridge.Graph = undefined;
+    var built: usize = 0;
+    defer for (graphs[0..built]) |*g| g.deinit();
+    for (pairs, 0..) |pair, i| {
+        graphs[i] = try Bridge.buildFoldTraceOnly(a, &pair);
+        built += 1;
+        const tape = try Tape.record(a, &pair);
+        defer a.free(tape);
+        try std.testing.expect(tape.len > 0);
+        try Tape.compare(a, tape, &graphs[i].ctx);
+        // The builder-call replay (reference) agrees too.
+        const replay = try Tape.recordReplay(a, &pair);
+        defer a.free(replay);
+        try Tape.compare(a, replay, &graphs[i].ctx);
+        // Constants (keys ARE the values) and their variables are class data.
+        if (reference_constants) |keys| {
+            try std.testing.expectEqualSlices(u128, keys, graphs[i].ctx.constants.keys());
+            for (graphs[0].ctx.constants.values(), graphs[i].ctx.constants.values()) |x, y| try std.testing.expectEqual(x.idx, y.idx);
+        } else reference_constants = graphs[i].ctx.constants.keys();
+    }
+    // A tape of other children differs (the values are per node).
+    const t11 = try Tape.record(a, &pairs[0]);
+    defer a.free(t11);
+    const t22 = try Tape.record(a, &pairs[3]);
+    defer a.free(t22);
+    try std.testing.expectEqual(t11.len, t22.len);
+    try std.testing.expect(!std.mem.eql(u8, std.mem.sliceAsBytes(t11), std.mem.sliceAsBytes(t22)));
+    try std.testing.expectError(error.FoldSeedTapeMismatch, Tape.compare(a, t22, &graphs[0].ctx));
+}

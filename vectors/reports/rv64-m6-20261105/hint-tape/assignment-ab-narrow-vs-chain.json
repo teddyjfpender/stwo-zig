@@ -1,0 +1,91 @@
+{
+ "schema": "rv64-m6-hint-tape-assignment-ab/v2",
+ "label": "M",
+ "note": "GPU_OUTER_ASSIGNMENT_TIMING per node, resident daemon, 4 requests per run (both dev blocks x 2 trials); leaf = stream>40ms or launches>800; pod load 12-31 (not quiet); single runs",
+ "runs": {
+  "m5_narrow_runs": {
+   "run": "daemon-26235156-24628607-r2-tape2-on",
+   "leaf": {
+    "nodes": 52,
+    "levels_stream_ms_median": 136.106,
+    "launches_median": 6303.0,
+    "levels_enqueue_ms_median": 50.718,
+    "static_ingress_ms_median": 30.777,
+    "total_ms_median": 170.577,
+    "levels_stream_ms_sum": 6770.5
+   },
+   "fold": {
+    "nodes": 56,
+    "levels_stream_ms_median": 15.983,
+    "launches_median": 2107.5,
+    "levels_enqueue_ms_median": 10.838,
+    "static_ingress_ms_median": 21.082,
+    "total_ms_median": 37.987,
+    "levels_stream_ms_sum": 924.4
+   }
+  },
+  "ht2_chain_v1": {
+   "run": "daemon-26235156-24628607-r2-chain1-on",
+   "leaf": {
+    "nodes": 52,
+    "levels_stream_ms_median": 133.257,
+    "launches_median": 596.0,
+    "levels_enqueue_ms_median": 1.522,
+    "static_ingress_ms_median": 39.027,
+    "total_ms_median": 180.372,
+    "levels_stream_ms_sum": 6792.7
+   },
+   "fold": {
+    "nodes": 56,
+    "levels_stream_ms_median": 14.534,
+    "launches_median": 689.0,
+    "levels_enqueue_ms_median": 2.453,
+    "static_ingress_ms_median": 27.19,
+    "total_ms_median": 42.942,
+    "levels_stream_ms_sum": 857.6
+   }
+  },
+  "ht2_chain_v2_prefetch": {
+   "run": "daemon-26235156-24628607-r2-chain2-on",
+   "leaf": {
+    "nodes": 52,
+    "levels_stream_ms_median": 133.183,
+    "launches_median": 596.0,
+    "levels_enqueue_ms_median": 1.497,
+    "static_ingress_ms_median": 29.584,
+    "total_ms_median": 168.189,
+    "levels_stream_ms_sum": 6760.6
+   },
+   "fold": {
+    "nodes": 56,
+    "levels_stream_ms_median": 14.646,
+    "launches_median": 689.0,
+    "levels_enqueue_ms_median": 1.786,
+    "static_ingress_ms_median": 20.124,
+    "total_ms_median": 35.699,
+    "levels_stream_ms_sum": 863.9
+   }
+  },
+  "ht2_chain_v3_vector": {
+   "run": "daemon-26235156-24628607-r2-chain4-on",
+   "leaf": {
+    "nodes": 52,
+    "levels_stream_ms_median": 112.959,
+    "launches_median": 596.0,
+    "levels_enqueue_ms_median": 1.784,
+    "static_ingress_ms_median": 33.344,
+    "total_ms_median": 153.634,
+    "levels_stream_ms_sum": 5814.8
+   },
+   "fold": {
+    "nodes": 56,
+    "levels_stream_ms_median": 11.739,
+    "launches_median": 689.0,
+    "levels_enqueue_ms_median": 2.149,
+    "static_ingress_ms_median": 23.051,
+    "total_ms_median": 35.908,
+    "levels_stream_ms_sum": 694.0
+   }
+  }
+ }
+}

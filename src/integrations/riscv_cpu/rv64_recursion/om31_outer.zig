@@ -51,7 +51,7 @@ fn word(ctx: *C.Context, value: u32) !Word {
 fn digestWords(ctx: *C.Context, digest: [32]u8) ![8]Word {
     return (try B.blake.constantHash(Q, ctx, B.blake.hashValueFromDigest(Q, digest))).words;
 }
-fn shape(a: std.mem.Allocator, key: *const Outer.prove.Authority) !V.Shape {
+pub fn shape(a: std.mem.Allocator, key: *const Outer.prove.Authority) !V.Shape {
     const logs = try a.alloc([]const u32, 4);
     const masks = try a.alloc([]const []const i32, 4);
     for (0..3) |t| logs[t] = try key.treeLogs(a, t);

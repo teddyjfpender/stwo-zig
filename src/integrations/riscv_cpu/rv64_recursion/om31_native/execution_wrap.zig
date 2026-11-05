@@ -18,6 +18,7 @@ const KeccakLeaf = @import("keccak_leaf.zig");
 const Graph = @import("leaf_graph.zig");
 const Outer = @import("outer_wrap.zig");
 const Bridge = @import("../om31_outer.zig");
+const FoldTape = @import("fold_tape.zig");
 const Prove = @import("stwo_circuit_cpu_integration").om31.prove;
 const Wire = @import("stwo_circuit_cpu_integration").om31.wire;
 pub const Node = struct { first_leaf: usize, leaf_count: usize, left: ?usize, right: ?usize, authority: [32]u8, digest: [32]u8 };
@@ -1020,6 +1021,8 @@ const Pipelined = struct {
         } else &.{};
         const name = if (children != null) blk: {
             job.digest = try Bridge.expectedDigest(kids);
+            // M6 hint-tape (HT1) minimal hook: a class-cached fold skips the graph.
+            if (try self.prepFoldTape(job, kids, &timer)) return true;
             const fold = try a.create(Bridge.Graph);
             fold.* = Bridge.buildFoldTraceOnly(a, kids) catch |err| {
                 a.destroy(fold);
@@ -1027,6 +1030,11 @@ const Pipelined = struct {
             };
             job.fold = fold;
             if (!std.mem.eql(u8, &job.digest, &fold.output_digest)) return error.RecursiveFoldDigest;
+            if (FoldTape.mode() == .check) {
+                const tape = try FoldTape.record(a, kids);
+                defer a.free(tape);
+                try FoldTape.compare(a, tape, &fold.ctx);
+            }
             break :blk try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{job.id});
         } else blk: {
             const ordinal = self.plan.nodes[job.id].first_leaf;
@@ -1064,6 +1072,58 @@ const Pipelined = struct {
         job.record.host_plan_ns = job.host.?.host_plan_ns;
         job.record.host_authority_ns = job.host.?.authority_ns;
         job.record.stamps.prep_end = self.now();
+        return true;
+    }
+    /// M6 hint-tape (HT1): a fold whose class PP and class plan are cached is
+    /// prepared from its seed tape and a flags-only stub graph. Returns false
+    /// (nothing changed; the caller builds the graph) on any miss, on durable
+    /// bytes (the restore path needs the real graph) and when the tape is off.
+    fn prepFoldTape(self: *Pipelined, job: *Pipe.Job, kids: []const Bridge.Child, timer: *std.time.Timer) !bool {
+        if (FoldTape.mode() != .on) return false;
+        const in = self.input;
+        const a = in.allocator;
+        if (in.allow_resume) {
+            var name_buffer: [64]u8 = undefined;
+            const name = try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{job.id});
+            if (in.dir.statFile(name)) |_| return false else |err| if (err != error.FileNotFound) return err;
+        }
+        const class = try Bridge.classKey(kids);
+        if (!Outer.tapeReady(self.options.lanes[0].factory, class)) return false;
+        const values = try FoldTape.record(a, kids);
+        defer a.free(values);
+        const record_ns = timer.lap();
+        var tape = Outer.Device.SeedTape{ .values = values };
+        Outer.Device.seed_tape = &tape;
+        defer Outer.Device.seed_tape = null;
+        Outer.Device.class_hint = class;
+        defer Outer.Device.class_hint = null;
+        const fold = try a.create(Bridge.Graph);
+        fold.* = FoldTape.stub(a, job.digest) catch |err| {
+            a.destroy(fold);
+            return err;
+        };
+        const host = Outer.prepareHostTape(a, &fold.ctx, self.options.lanes[0].factory, class) catch |err| {
+            fold.deinit();
+            a.destroy(fold);
+            return err;
+        };
+        if (host == null or !tape.consumed) {
+            var unused = host;
+            if (unused) |*h| h.deinit(a);
+            fold.deinit();
+            a.destroy(fold);
+            std.debug.print("FOLD_SEED_TAPE fallback node={} class={x} record_ns={}\n", .{ job.id, class[0..8], record_ns });
+            return false;
+        }
+        fold.ctx.circuit.n_vars = tape.n_vars;
+        job.fold = fold;
+        job.host = host;
+        job.record.graph_ns = record_ns;
+        job.record.variables = tape.n_vars;
+        job.record.host_plan_ns = host.?.host_plan_ns;
+        job.record.host_authority_ns = host.?.authority_ns;
+        job.record.stamps.prep_end = self.now();
+        std.debug.print("FOLD_SEED_TAPE used node={} class={x} seeds={} record_ns={} authority_ns={} plan_ns={} prep_ns={}\n", .{ job.id, class[0..8], values.len, record_ns, host.?.authority_ns, host.?.host_plan_ns - host.?.authority_ns, job.record.stamps.prep_end - job.record.stamps.prep_start });
         return true;
     }
     fn deviceLane(self: *Pipelined, lane: usize) void {
