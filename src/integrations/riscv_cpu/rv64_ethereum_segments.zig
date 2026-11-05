@@ -368,7 +368,7 @@ pub const Segments = struct {
         }
     }
 
-    pub const GlobalRam = struct { words: *const rv.ram_word_set.Set, counters: rv.checkpoint.Counters };
+    pub const GlobalRam = struct { words: *const rv.ram_word_set.Set, counters: rv.checkpoint.Counters, total_steps: u64, final_pc: u64 };
     /// Waits for the WHOLE fast pass, not the parallel traced capture. It never
     /// returns a partial key set on a recording/resource failure.
     pub fn globalRam(self: *Segments) !GlobalRam {
@@ -379,7 +379,7 @@ pub const Segments = struct {
         if (self.main.cpuState().pc != self.main.config.terminal_pc) return error.FirstPassRamIncomplete;
         const words = if (self.ram_words) |*value| value else return error.FirstPassRamUnavailable;
         if (words.failure) |err| return err;
-        return .{ .words = words, .counters = rv.checkpoint.Counters.of(&self.main.session) };
+        return .{ .words = words, .counters = rv.checkpoint.Counters.of(&self.main.session), .total_steps = self.main.cpuState().retired, .final_pc = self.main.cpuState().pc };
     }
 
     pub const MinimalCpu = struct {

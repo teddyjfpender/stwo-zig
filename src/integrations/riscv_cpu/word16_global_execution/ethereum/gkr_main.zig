@@ -527,6 +527,13 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     var direct_stats: DirectCapture.Stats = .{};
     const shared_walk_authority = if (std.posix.getenv("STWO_RV64_CAPTURE_SHARED_AUTHORITY")) |flag| std.mem.eql(u8, flag, "1") else false;
     const early_cpu = if (std.posix.getenv("STWO_RV64_CPU0_PRESTAGE")) |flag| std.mem.eql(u8, flag, "1") else false;
+    const early_main = if (std.posix.getenv(EarlyCPU.FLAG)) |flag| std.mem.eql(u8, flag, "1") else false;
+    // Refuse mixed speculative owners before starting boot/capture/callbacks.
+    const old_first = if (std.posix.getenv("STWO_RV64_CPU0_FIRST_PASS_PRESTAGE")) |flag| std.mem.eql(u8, flag, "1") else false;
+    if (early_main and (early_cpu or old_first)) return error.ConflictingEarlyCpuModes;
+    if (early_main and (!combined or !candidate or !direct_capture or count != 0 or session == null or stages.early_memory == null or capture_options.execution_workers == 0 or !@import("../../rv64_ethereum_segments.zig").ramFirstPassEnabled())) return error.EarlyMainRequiresAdmittedResidentFirstPass;
+    const early_host_budget = if (early_main) try @import("../../rv64_recursion_budget.zig").require(engine.host_budget_allocator.SharedHostBudget, base) else null;
+
     if (early_cpu and (!direct_capture or !combined or stages.cpu_projection == null)) return error.CpuPrestageRequiresDirectResidentCombined;
     const early_first = if (std.posix.getenv("STWO_RV64_CPU0_FIRST_PASS_PRESTAGE")) |v| std.mem.eql(u8, v, "1") else false;
     if (early_first and (!early_cpu or !@import("../../rv64_ethereum_segments.zig").minimalFirstPassEnabled())) return error.FirstPassCpuPrestageRequiresRecords;
@@ -616,6 +623,43 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const cpu_layout = Plan.CpuLayout.forGkrProfile(request.value.execution_profile);
     // The capture's AUIPC/JAL FUNCTION facts depend on the decode layout.
     if (cpu_layout.compact_decode) try program.makeCompact();
+    var early_owner: ?*EarlyCPU.Owner = null;
+    defer if (early_owner) |owner| owner.deinit();
+    if (early_main) {
+        const shared = session.?;
+        // Setup class lookup is receiver/image/suite owned and independent of
+        // the final ordered roster. Cache lifetime remains the resident session.
+        if (shared.setup == null) {
+            const selected = try setupCacheOptions(shared.allocator, .prover, fixed_setup_bytes);
+            defer if (selected.owned) |directory| shared.allocator.free(directory);
+            shared.setup = try SetupCache.Cache.init(shared.allocator, .{ .log_blowup = pcs.fri_config.log_blowup_factor }, selected.options);
+            shared.setup_fixed_bytes = fixed_setup_bytes;
+        } else if (shared.setup_fixed_bytes != fixed_setup_bytes) return error.ResidentFixedBudgetChanged;
+        try shared.setup.?.bindRequest(request.value);
+        var memory = stages.early_memory.?;
+        if (memory.host_budget) |owner| if (owner != early_host_budget.?) return error.ForeignEarlyMainHostBudget;
+        memory.host_budget = early_host_budget;
+        early_owner = try EarlyCPU.Owner.create(.{
+            .allocator = a,
+            .image = &image,
+            .config = request.value,
+            .pcs = pcs,
+            .layout = cpu_layout,
+            .strict_roster = (try @import("../../word16_execution/native_policy.zig").current()).strictRoster(),
+            .caches = caches,
+            .setup_cache = &shared.setup.?,
+            .fixed_cache = &shared.setup.?.fixed,
+            .memory = memory,
+            .source = stages.source.?,
+            .projection = stages.cpu_projection.?,
+            .trace_commit = stages.trace_commit.?,
+            .pcs_stage = stages.pcs.?,
+            .numerical = stages.numerical.?,
+            .composition = stages.resident_composition.?,
+            .gkr_budget = resources.?.gkr_bytes,
+        });
+        direct_started.?.ready = early_owner.?.hook();
+    }
     const import_start = timer.read();
     var captured = if (direct_started) |started| direct: {
         defer {
@@ -629,6 +673,13 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         break :capture try Capture.initWithOptions(a, &image, &program, request.value, jobs, count, capture_options.forPool(&pool));
     };
     defer captured.deinit();
+    // Private early source overlays borrow this capture's normalized facts.
+    // Destroy or finish transferred workers before that owner on every return.
+    defer if (early_owner) |owner| {
+        owner.deinit();
+        early_owner = null;
+    };
+    if (early_owner) |owner| try owner.requireReady();
     // This later defer runs before captured.deinit on every downstream error.
     // Direct.run separately cancels before Ordered.deinit on capture failure.
     defer if (prestage) |*p| CpuPrestage.cancel(p);
@@ -793,7 +844,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     } else null) else null;
     defer if (comptime enable_recursion) if (streaming) |stream| stream.destroy();
     const prove_start = timer.read();
-    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .stream = if (comptime enable_recursion) (if (streaming) |stream| stream.hook() else null) else null, .epoch = process_start, .admitted_at_ns = &b2i.coordinator_admitted_at_ns, .cpu_replay_stage = stages.cpu_replay, .device_source_stage = stages.source, .device_global_stage = stages.global_interaction, .device_trace_commit_stage = stages.trace_commit, .device_cpu_projection = stages.cpu_projection, .device_pcs_stage = device_pcs_stage, .truth_device_pcs_stage = stages.truth_pcs, .truth_device_composition_stage = stages.truth_composition, .truth_device_source_stage = stages.truth_source, .om31_composition_stage = om31_composition_stage, .resident_composition_stage = resident_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
+    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .early_cpu0 = early_owner, .stream = if (comptime enable_recursion) (if (streaming) |stream| stream.hook() else null) else null, .epoch = process_start, .admitted_at_ns = &b2i.coordinator_admitted_at_ns, .cpu_replay_stage = stages.cpu_replay, .device_source_stage = stages.source, .device_global_stage = stages.global_interaction, .device_trace_commit_stage = stages.trace_commit, .device_cpu_projection = stages.cpu_projection, .device_pcs_stage = device_pcs_stage, .truth_device_pcs_stage = stages.truth_pcs, .truth_device_composition_stage = stages.truth_composition, .truth_device_source_stage = stages.truth_source, .om31_composition_stage = om31_composition_stage, .resident_composition_stage = resident_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
     defer bundle.deinit(a);
     // The streaming recursion reads views of this bundle: join it first.
     defer if (comptime enable_recursion) if (streaming) |stream| stream.stop(error.StreamingRecursionCancelled);
