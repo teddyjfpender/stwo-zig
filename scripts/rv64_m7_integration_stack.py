@@ -149,8 +149,8 @@ def run(args):
     stream = root.name
     environment = clean_environment(os.environ)
     result = {'schema': 'rv64-m7-one-stack-experiment/v1', 'manifest_sha256': sha(args.manifest),
-              'profiled': False, 'timing_scope': 'six primary services unprofiled; optional ownership pair instrumented separately',
-              'order': ['baseline', 'fullstack', 'fullstack'] if args.smoke else manifest['preset']['measurement']['order'] + (['baseline', 'fullstack'] if args.ownership_profile_pair else []), 'services': [], 'receivers_deferred': True,
+              'profiled': False, 'timing_scope': 'UNQUALIFIED_CORRECTNESS_WALLS' if args.smoke else 'six primary services unprofiled; optional ownership pair instrumented separately',
+              'order': (['fullstack', 'fullstack'] if args.reference_run else ['baseline', 'fullstack', 'fullstack']) if args.smoke else manifest['preset']['measurement']['order'] + (['baseline', 'fullstack'] if args.ownership_profile_pair else []), 'services': [], 'receivers_deferred': True,
               'smoke_only': args.smoke,
               'gpu_seconds_status': 'pending separate ownership pair' if args.ownership_profile_pair else 'unavailable without CUPTI; no surrogate claim',
               'exact_process_peak_gate': 'Root-owned guard required; observer/NVML samples alone are insufficient'}
@@ -165,10 +165,12 @@ def run(args):
     for index, arm in enumerate(result['order']):
         validate_manifest(manifest)
         profile = not args.smoke and index >= 6
-        argv, tag = command(manifest, arm, index, stream, profile, 'one-stack-v2-smoke' if args.smoke else 'one-stack-v2')
+        argv, tag = command(manifest, arm, index, stream, profile, 'one-stack-v3-smoke' if args.smoke else 'one-stack-v2')
         seed = None
+        if args.smoke:
+            argv += ['--quiet-mode', 'diagnostic']
         if args.smoke and arm == 'fullstack':
-            seed = (17, 29)[index - 1]
+            seed = (17, 29)[index if args.reference_run else index - 1]
             argv += ['--env', f'STWO_RV64_RECURSION_SCRAMBLE_SEED={seed}']
         service = Path('/workspace/m3/runs') / stream / f'daemon-{manifest["block"]}-r2-{tag}'
         entry = {'arm': arm, 'order_index': index, 'run': str(service), 'argv': argv, 'profiled': profile, 'measurement_role': 'smoke' if args.smoke else ('ownership_profile' if profile else 'headline')}
@@ -181,8 +183,9 @@ def run(args):
         if code:
             raise RuntimeError(f'integration service failed; stop, preserve logs: {service}')
         receipt = json.loads((service / 'receipt.json').read_text())
-        if len(receipt['requests']) != 2 or any(not q or not q['accepted'] for q in receipt.get('quiet_before_requests', [])):
-            raise RuntimeError('quiet gate missing or failed')
+        quiet = receipt.get('quiet_before_requests', [])
+        if len(receipt['requests']) != 2 or any(not q or (q.get('mode') != 'diagnostic' if args.smoke else not q['accepted']) for q in quiet):
+            raise RuntimeError('quiet admission/diagnostic receipt missing or failed')
         if len(receipt.get('quiet_before_requests', [])) != 2:
             raise RuntimeError('both requests require explicit quiet receipts')
         entry['physical_budget'] = guard_verdict(receipt, arm)
@@ -207,15 +210,20 @@ def run(args):
         entry['quiet'] = receipt['quiet_before_requests'][1]
         write(output / 'experiment.json', result)
     # Do not contaminate interleaved timings/quiet state with CPU receivers.
-    for entry in result['services']:
+    verification = list(result['services'])
+    if args.reference_run:
+        verification.append({'order_index':'reference','arm':'reference','run':str(args.reference_run)})
+    for entry in verification:
         argv = [sys.executable, str(root / 'scripts/rv64_m4_resident.py'), 'receive', '--run', entry['run'],
                 '--which', 'all', '--receiver-workers', str(args.receiver_workers)]
-        with (output / f'{entry["order_index"]:02d}-{entry["arm"]}-receiver.log').open('w') as log:
+        with (output / f'{entry["order_index"]}-{entry["arm"]}-receiver.log').open('w') as log:
             code = subprocess.run(argv, cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT).returncode
         receipt = json.loads((Path(entry['run']) / 'receipt.json').read_text())
         if code or not receipt['receivers'] or not all(v.get('accepted') for v in receipt['receivers']):
             raise RuntimeError('fresh isolated receiver rejected: ' + entry['run'])
         entry['fresh_receivers'] = receipt['receivers']
+        if entry['arm'] == 'reference':
+            result['reference_fresh_receivers'] = receipt['receivers']
         write(output / 'experiment.json', result)
     if args.ownership_profile_pair and not args.smoke:
         for entry in result['services']:

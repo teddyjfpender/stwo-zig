@@ -479,9 +479,9 @@ def quiet_checkpoint(process, args, run, index, guard=None):
         okay = load[0] < limit and steal is not None and steal <= args.quiet_steal_max and not blockers
         consecutive = consecutive + 1 if okay else 0
         rows.append({"elapsed_s": round(time.monotonic() - start, 3), "loadavg": load, "cpu_steal_fraction": steal, "blocking_processes": blockers, "gpu_processes": gpu_processes, "qualifies": okay})
-        record = {"request_index": index, "load_max": limit, "steal_max": args.quiet_steal_max, "required_stable_samples": args.quiet_stable_samples, "samples": rows, "accepted": consecutive >= args.quiet_stable_samples}
+        record = {"request_index": index, "load_max": limit, "steal_max": args.quiet_steal_max, "required_stable_samples": args.quiet_stable_samples, "samples": rows, "accepted": consecutive >= args.quiet_stable_samples, "mode": args.quiet_mode, "timing_qualified": False if args.quiet_mode == "diagnostic" else consecutive >= args.quiet_stable_samples}
         B.atomic_json(run / f"quiet-{index:04d}.json", record)
-        if record["accepted"]:
+        if record["accepted"] or args.quiet_mode == "diagnostic":
             return record
         if time.monotonic() >= deadline:
             raise RuntimeError("quiet admission timed out; sustained load/steal/compiler activity remains; see quiet receipt")
@@ -893,6 +893,7 @@ def main():
         d._add_action(action)
     d.add_argument("--process-budget-guard", help="physical CUDA reservation executable; held under same GPU lease through driver exit")
     d.add_argument("--gap", type=float, default=0.0, help="idle seconds between requests")
+    d.add_argument("--quiet-mode", choices=("enforce", "diagnostic"), default="enforce", help="diagnostic records one load/steal/GPU sample without qualifying latency; correctness smoke only")
     d.add_argument("--quiet-load-max", type=float, help="require load1m below this before every request; no timings start while busy")
     d.add_argument("--quiet-steal-max", type=float, default=0.01, help="maximum CPU steal fraction before a request")
     d.add_argument("--quiet-timeout", type=float, default=300, help="seconds before refusing a busy pod")

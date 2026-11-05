@@ -19,7 +19,8 @@ warm requests per arm. With `--ownership-profile-pair`, one baseline/fullstack
 Nsight pair follows all six primary services; its walls are excluded from
 headline medians. CUPTI GPU-seconds are computed separately after fresh receivers.
 
-Before each request, the runner requires five consecutive samples with load1m<8,
+Correctness smoke records load/steal/GPU inventory once and explicitly labels its walls UNQUALIFIED. It does not wait for benchmark quiet conditions.
+Before each headline request, the runner requires five consecutive samples with load1m<8,
 CPU steal<=1%, and no active compiler/receiver process. A busy pod fails after300s;
 it is never relabelled quiet. Fresh receivers cannot contaminate primary timings.
 
