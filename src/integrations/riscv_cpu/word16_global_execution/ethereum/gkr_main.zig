@@ -151,6 +151,7 @@ const Resources = struct {
     recycler_cache_bytes: usize = ReceiverBudget.RECYCLER_CACHE_BYTES,
     /// Producer geometry experiment. The default preserves the admitted roster.
     keccak_max_log: u32 = 18,
+    one_truth_per_family: bool = false,
     checkpoint_above_gkr_bytes: usize = 0,
     defer_local_binding: bool = false,
     capture_options: CaptureOptions = .{},
@@ -183,6 +184,10 @@ const Resources = struct {
             try writer.objectField("recycler_cache_bytes");
             try writer.write(self.recycler_cache_bytes);
         }
+        if (self.one_truth_per_family) {
+            try writer.objectField("one_truth_per_family");
+            try writer.write(true);
+        }
         if (self.keccak_max_log != 18) {
             try writer.objectField("keccak_max_log");
             try writer.write(self.keccak_max_log);
@@ -213,13 +218,14 @@ const CandidateResources = struct {
     recycler_cache_bytes: usize = ReceiverBudget.RECYCLER_CACHE_BYTES,
     /// Producer geometry experiment. The default preserves the admitted roster.
     keccak_max_log: u32 = 18,
+    one_truth_per_family: bool = false,
     checkpoint_above_gkr_bytes: usize = 0,
     defer_local_binding: bool = false,
     capture_options: CaptureOptions = .{},
     stage2_order: []const usize = &.{},
     schedule: Schedule.Policy,
     fn operational(self: CandidateResources) Resources {
-        return .{ .gkr_bytes = self.gkr_bytes, .global_bytes = self.global_bytes, .retained_frontend_bytes = self.retained_frontend_bytes, .disk_bytes = self.disk_bytes, .park_main = self.park_main, .recycler_cache_bytes = self.recycler_cache_bytes, .keccak_max_log = self.keccak_max_log, .checkpoint_above_gkr_bytes = self.checkpoint_above_gkr_bytes, .defer_local_binding = self.defer_local_binding, .capture_options = self.capture_options, .stage2_order = self.stage2_order, .schedule = self.schedule };
+        return .{ .gkr_bytes = self.gkr_bytes, .global_bytes = self.global_bytes, .retained_frontend_bytes = self.retained_frontend_bytes, .disk_bytes = self.disk_bytes, .park_main = self.park_main, .recycler_cache_bytes = self.recycler_cache_bytes, .keccak_max_log = self.keccak_max_log, .one_truth_per_family = self.one_truth_per_family, .checkpoint_above_gkr_bytes = self.checkpoint_above_gkr_bytes, .defer_local_binding = self.defer_local_binding, .capture_options = self.capture_options, .stage2_order = self.stage2_order, .schedule = self.schedule };
     }
     fn validate(self: CandidateResources) !void {
         if (self.fixed_setup_bytes == 0) return error.MissingCandidateFixedSetupAdmission;
@@ -476,6 +482,9 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     if (combined and resources.?.park_main) return error.CombinedRequiresResidentMain;
     const uniform_throughput = if (candidate_resource_owner) |owner| owner.value.keccak_uniform_throughput else false;
     if (uniform_throughput and request.value.execution_profile != .ethereum_services_v3) return error.UniformThroughputRequiresServicesV3;
+    const one_truth_per_family = if (resources) |r| r.one_truth_per_family else false;
+    if (one_truth_per_family and (!candidate or request.value.execution_profile != .ethereum_services_v3)) return error.OneTruthPerFamilyRequiresV3Candidate;
+
     if (resources) |limits| _ = recycler.setCap(limits.recycler_cache_bytes);
     const count: u32 = if (verify or prefix) 0 else try std.fmt.parseUnsigned(u32, args[if (plan or capture_only or inputs_only) 4 else 5], 10);
     const direct_capture = !(verify or prefix) and std.mem.eql(u8, args[3], "-");
@@ -590,7 +599,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     try @import("../services/gkr_local/service_scope.zig").advice(&captured.advice);
     const cpu = try Plan.cpus(a, &captured, cpu_layout);
     defer a.free(cpu);
-    const truths = try Plan.truthsWithOptions(a, &captured, .{ .v3 = request.value.execution_profile == .ethereum_services_v3, .uniform_throughput = uniform_throughput }, if (resources) |limits| limits.keccak_max_log else 18);
+    const truths = try Plan.truthsWithOptions(a, &captured, .{ .v3 = request.value.execution_profile == .ethereum_services_v3, .uniform_throughput = uniform_throughput, .one_per_family = one_truth_per_family }, if (resources) |limits| limits.keccak_max_log else 18);
     defer a.free(truths);
     // M5 canon-native (opt-in, producer geometry only): pad every declaration
     // to its canonical class rung. The padded declarations are ordinary
@@ -776,7 +785,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     try b2i.finish(a, worker_timings, keys.cpus.len);
     defer a.free(b2i.segments);
     const native_publish_ns = timer.read() - publish_start_ns;
-    const native_report = .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = &output, .keccak_uniform_throughput = uniform_throughput, .resources = operational, .capture_ns = capture_ns, .capture_breakdown = capture_breakdown, .block_to_inputs = b2i, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = &verify_ns, .native_verify_overlapped_with_recursion = overlap_verify, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null };
+    const native_report = .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = &output, .keccak_uniform_throughput = uniform_throughput, .one_truth_per_family = one_truth_per_family, .resources = operational, .capture_ns = capture_ns, .capture_breakdown = capture_breakdown, .block_to_inputs = b2i, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = &verify_ns, .native_verify_overlapped_with_recursion = overlap_verify, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null };
     if (!overlap_verify) try Driver.writeJson(a, dir, "report.json", native_report);
     if (fixed_cache) |owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
     // A session persists new artifacts between requests, off the request wall.
