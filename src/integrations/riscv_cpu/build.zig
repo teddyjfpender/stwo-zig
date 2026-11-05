@@ -63,6 +63,11 @@ pub fn build(b: *std.Build) void {
     native_gkr_root.addImport("stwo_riscv_frontend", frontend);
     const native_gkr_tests = b.addTest(.{ .root_module = native_gkr_root });
     b.step("test-native-gkr", "Test native GKR v1 and v2 bounded roster, codec, transcript and tamper corpus").dependOn(&b.addRunArtifact(native_gkr_tests).step);
+    const p2_native_root = b.createModule(.{ .root_source_file = b.path("rv64_poseidon2_native_test_root.zig"), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
+    var p2_native_imports = native_gkr_root.import_table.iterator();
+    while (p2_native_imports.next()) |entry| p2_native_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
+    const p2_native_tests = b.addTest(.{ .root_module = p2_native_root, .filters = &.{"P2 native complete CPU fixture"} });
+    b.step("test-poseidon2-native-cpu", "Prove and fresh-verify full RV64 CPU with explicit mixed P2 PCS/local-Blake GKR fixture profile").dependOn(&b.addRunArtifact(p2_native_tests).step);
 
     const test_filter = b.option([]const u8, "test-filter", "Run only tests whose names contain this text");
     const tests = b.addTest(.{ .root_module = integration, .filters = if (test_filter) |filter| &.{filter} else &.{} });
