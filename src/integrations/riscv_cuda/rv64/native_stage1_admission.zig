@@ -52,7 +52,7 @@ pub const Context = struct {
         defer self.mutex.unlock();
         if (self.poisoned or self.claim != null) return error.EarlyStageAdmissionBusy;
         const global = self.service.admission != null;
-        if ((!global and (request.ordinal != 0 or request.scope.ordinal != 0)) or request.ordinal != request.scope.ordinal or !self.trace.freeze_allocation_plan or self.trace.service != self.service or self.projection.service != self.service or self.projection.pending != null or self.projection.prestage_error != null) return error.EarlyStageAdmissionUnavailable;
+        if ((!global and (request.ordinal != 0 or request.scope.ordinal != 0 or !self.trace.freeze_allocation_plan)) or request.ordinal != request.scope.ordinal or self.trace.service != self.service or self.projection.service != self.service or self.projection.pending != null or self.projection.prestage_error != null) return error.EarlyStageAdmissionUnavailable;
         const compact = if (std.posix.getenv("STWO_RV64_CPU_COMPACT_INGRESS")) |v| !std.mem.eql(u8, v, "0") else false;
         if (compact and self.projection.unpack == null) return error.MissingCpuUnpackKernel;
         const tc = self.trace.allocationOptions(config.fri_config.log_blowup_factor);
