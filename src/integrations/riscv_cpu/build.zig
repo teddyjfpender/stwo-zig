@@ -55,6 +55,10 @@ pub fn build(b: *std.Build) void {
 
     const native_gkr_root = b.createModule(.{ .root_source_file = b.path("rv64_native_gkr_test_root.zig"), .target = target, .optimize = optimize });
     native_gkr_root.addImport("stwo_core", core);
+    native_gkr_root.addImport("stwo_cpu_backend", cpu_backend);
+    native_gkr_root.addImport("stwo_prover_api", prover_api);
+    native_gkr_root.addImport("interop_postcard", postcard);
+    native_gkr_root.addImport("stwo_proof_wire", postcard.import_table.get("stwo_proof_wire") orelse @panic("missing wire"));
     native_gkr_root.addImport("stwo_prover_engine", prover);
     native_gkr_root.addImport("stwo_riscv_frontend", frontend);
     const native_gkr_tests = b.addTest(.{ .root_module = native_gkr_root });

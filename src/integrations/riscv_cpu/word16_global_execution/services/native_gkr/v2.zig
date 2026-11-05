@@ -28,7 +28,8 @@ pub const IDENTITY_DOMAIN = "stwo/rv64/native-gkr/om31-strict-draw/lane-major/v2
 pub const VERSION: u32 = 2;
 pub const MAX_INSTANCES: usize = 128;
 /// Production local relations (gkr_local/fractions.zig, byte_pair included) = canon-native LOCAL_RELATIONS.
-pub const LOCAL_RELATIONS: usize = 10;
+pub const LOCAL_RELATIONS: usize = @import("projection.zig").LOCAL_RELATIONS;
+pub const Binding = @import("binding.zig");
 /// Bits target (= outer-gkr profile.REQUIRED_BITS, rv64-m7-profiles.md 4.3).
 pub const REQUIRED_BITS: u16 = 151;
 /// Largest per-query tuple a native fraction compresses (sponge.call RAM queries: 58; an overbound, see
@@ -53,6 +54,7 @@ pub fn decode(a: std.mem.Allocator, roster: *const R.Roster, words: []const u32)
 /// four term counts must equal the emitter census exactly (fractions.zig / global_cpu.queriesFor / truth
 /// catalogues), in receiver component order.
 pub fn requireEmitterCounts(roster: *const R.Roster, emitter: []const [R.KINDS]u32) !void {
+    try validate(roster);
     if (emitter.len != roster.components.len) return error.NativeGkrEmitterRoster;
     for (roster.components, emitter) |c, e| if (!std.mem.eql(u32, &c.terms, &e)) return error.NativeGkrEmitterTermCount;
 }
@@ -67,6 +69,7 @@ pub const RelationMasses = struct { local: [LOCAL_RELATIONS]u64, ram: u64, kio: 
 ///   characteristic: every relation's multiplicity mass < p (a LogUp sum over M31 cannot tell m from m + p).
 pub fn requireNativeGkrSecurity(roster: *const R.Roster, native_proofs: u64, masses: RelationMasses) !void {
     try validate(roster);
+    if (native_proofs == 0 or native_proofs > Cand.MAX_PROOFS) return error.NativeGkrSourceProofCount;
     const facts = Cand.OuterGkrFacts{ .outer_proofs = native_proofs, .instances = roster.instances.len, .max_variables = roster.layers(), .max_tuple_arity = MAX_TUPLE_ARITY };
     try Cand.requireOuterGkrBits(facts, REQUIRED_BITS);
     for (masses.local) |m| try Cand.requireOuterGkrCharacteristic(facts, m);
@@ -89,13 +92,25 @@ pub fn mixHeader(a: std.mem.Allocator, channel: anytype, roster: *const R.Roster
 
 /// The local relations' lookup elements (z_r, alpha_r), r = 0..LOCAL_RELATIONS-1, in fractions.zig Relation
 /// order. Drawn strictly here and nowhere else (review item 2).
-pub const LocalElements = struct { z: [LOCAL_RELATIONS]O, alpha: [LOCAL_RELATIONS]O };
+pub const LocalElements = @import("projection.zig").LocalFor(O);
 pub fn drawLocalElements(strict: *S.StrictChannel) LocalElements {
     var out: LocalElements = undefined;
     for (&out.z, &out.alpha) |*z, *alpha| {
         z.* = strict.drawSecureFelt();
         alpha.* = strict.drawSecureFelt();
     }
+    return out;
+}
+
+/// Late gamma/rho draws are class-sized, including the v2 65..128 range.
+/// The channel advances only when every raw draw is strict-admissible.
+pub fn drawBinding(channel: *S.RawChannel, roster: *const R.Roster) !Binding.Challenges {
+    try validate(roster);
+    var strict = S.StrictChannel{ .inner = channel.* };
+    var out = Binding.Challenges{ .gamma = strict.drawSecureFelt(), .rho = @splat(O.zero()) };
+    for (out.rho[0..roster.instances.len]) |*rho| rho.* = strict.drawSecureFelt();
+    if (strict.rejected) return error.NativeGkrDrawRejected;
+    channel.* = strict.inner;
     return out;
 }
 
@@ -122,6 +137,15 @@ pub fn verify(a: std.mem.Allocator, channel: *S.RawChannel, roster: *const R.Ros
     errdefer artifact.deinit(a);
     if (strict.rejected) return error.NativeGkrDrawRejected;
     for (artifact.n_variables_by_instance, roster.instances) |n, inst| if (n != inst.variables()) return error.NativeGkrShapeMismatch;
+    // Succinct Eq carry quotients require every component's shared row
+    // suffix to avoid zero and one. Reject/re-salt rather than constructing
+    // an undefined AIR constant after accepting the numerical section.
+    for (roster.components) |component| if (component.present()) {
+        if (artifact.ood_point.len < component.row_log) return error.NativeGkrShapeMismatch;
+        for (artifact.ood_point[artifact.ood_point.len - component.row_log ..]) |coordinate| {
+            if (coordinate.isZero() or coordinate.eql(O.one())) return error.NativeGkrBindingPointRejected;
+        }
+    };
     var ln = O.zero();
     var ld = O.one();
     var global = S.GlobalClaims{};
@@ -161,16 +185,24 @@ pub fn proveCpu(a: std.mem.Allocator, channel: *const S.RawChannel, roster: *con
             l.* = .{ .LogUpMultiplicities = .{ .numerators = try MleBase.initBorrowed(n), .denominators = try MleSecure.initBorrowed(d) } };
         }
         var prover_channel = strict.inner;
-        var result = try GP.proveBatch(a, &prover_channel, layers);
+        var result = GP.proveBatch(a, &prover_channel, layers) catch |err| switch (err) {
+            error.DivisionByZero => continue,
+            else => return err,
+        };
         result.artifact.deinit(a);
         var section = S.Section{ .salt = salt, .proof = result.proof };
         var replay = channel.*;
         if (verify(a, &replay, roster, scope, &section)) |v| {
             var owned = v;
             owned.deinit(a);
+            _ = drawBinding(&replay, roster) catch |err| {
+                section.deinit(a);
+                if (err == error.NativeGkrDrawRejected) continue;
+                return err;
+            };
             return section;
         } else |err| switch (err) {
-            error.NativeGkrDrawRejected, error.NativeGkrShapeMismatch => section.deinit(a),
+            error.NativeGkrDrawRejected, error.NativeGkrShapeMismatch, error.NativeGkrBindingPointRejected, error.NativeGkrRootPole => section.deinit(a),
             else => {
                 section.deinit(a);
                 return err;
