@@ -253,10 +253,11 @@ const Job = struct {
         try check(b.api.upload(raw, base, tw.twiddles.ptr, tw.twiddles.len * 4));
         try check(b.api.upload(raw, base + inverse_base, tw.itwiddles.ptr, tw.itwiddles.len * 4));
         try check(b.api.upload(raw, base + logs_base, logs.ptr, logs.len * 4));
-        try ctx.join();
-        var stream: ?*anyopaque = null;
-        try check(b.api.lane_stream(raw, 1, &stream));
-        const lane = stream orelse return error.InvalidLane;
+        // M6 enqueue: LDE/hash kernels run on lane 0 (the context stream) right
+        // behind the staged uploads and the coefficient copies, so neither the
+        // ingress join nor the pre-readback join is needed; the root readback
+        // is ordered after the last layer on the same lane. Same words.
+        const lane = try computeLane(b, raw);
         var launches: u32 = 0;
         // Interpolate evaluation-encoded inputs in place, exactly as the
         // established path does (same batching over adjacent equal heights).
@@ -313,7 +314,6 @@ const Job = struct {
         }
         const legacy = StreamPlan.legacyScratchWords(rows, tw.twiddles.len + tw.itwiddles.len + 7 * order.len);
         self.samplePeak(ctx, "stream", total * 4, legacy * 4, coefficient_cells * 4, p.calls.len);
-        try ctx.join();
         var root_words: [8]u32 = undefined;
         try check(b.api.download(raw, &root_words, hashes + p.tree_words - 8, 32));
         try ctx.join();
@@ -426,10 +426,8 @@ const Job = struct {
         try check(b.api.upload(raw, ptr + tw_base, tw.twiddles.ptr, tw.twiddles.len * 4));
         try check(b.api.upload(raw, ptr + inverse_base, tw.itwiddles.ptr, tw.itwiddles.len * 4));
         try check(b.api.upload(raw, ptr + desc_base, descriptors.ptr, descriptors.len * 4));
-        try ctx.join();
-        var stream: ?*anyopaque = null;
-        try check(b.api.lane_stream(raw, 1, &stream));
-        const lane = stream orelse return error.InvalidLane;
+        // M6 enqueue: same lane-0 ordering as streamRoot (no ingress join).
+        const lane = try computeLane(b, raw);
         var launches: u32 = 0;
         var interpolation_first: usize = 0;
         while (interpolation_first < order.len) {
@@ -489,8 +487,7 @@ const Job = struct {
             _ = b.api.release(b.service.session, &tree);
         }
         self.samplePeak(&ctx, "legacy", (arena_cells + tree_capacity) * 4, (arena_cells + tree_capacity) * 4, coefficient_cells * 4, 0);
-        try check(b.tree(raw, 1, @ptrCast(segments.items.ptr), @intCast(segments.items.len), eval_log, tree.words.?, tree_capacity));
-        try ctx.join();
+        try check(b.tree(raw, compute_lane_index, @ptrCast(segments.items.ptr), @intCast(segments.items.len), eval_log, tree.words.?, tree_capacity));
         var root_words: [8]u32 = undefined;
         try check(b.api.download(raw, &root_words, tree.words.? + tree_words - 8, 32));
         try ctx.join();
@@ -515,6 +512,14 @@ const Job = struct {
         self.result = .{ .root = root, .columns = columns };
     }
 };
+/// M6 enqueue: commitment kernels share lane 0 with the context's staged
+/// copies, so stage ordering is a stream property instead of a host join.
+const compute_lane_index: u32 = 0;
+fn computeLane(b: *Context, raw: *anyopaque) !*anyopaque {
+    var stream: ?*anyopaque = null;
+    try check(b.api.lane_stream(raw, compute_lane_index, &stream));
+    return stream orelse error.InvalidLane;
+}
 fn retireJoinedInput(ctx: *SC.Context, retirement: D.TraceInputRetirement, scope: D.Scope) !void {
     try ctx.join();
     try retirement.invoke(ctx.native_context, ctx.token, scope);

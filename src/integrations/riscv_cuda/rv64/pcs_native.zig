@@ -10,6 +10,18 @@ const Cached = struct { scope: [8]u32, lease: Abi.Lease, columns: []CachedColumn
 pub const BlockBudget = struct { device_bytes: u64, immutable_bytes: u64, max_scopes: usize };
 const Setup = @import("immutable_setup.zig");
 const LiveLeases = *const fn (*anyopaque, *[5]u64, *u64) callconv(.c) c_int;
+/// M6 enqueue: a miss rebuilds 42-63 MB of host FFT/FRI geometry in ~0.48 s
+/// on the device owner thread, i.e. on the GPU's critical path. The M5
+/// default (128 MiB) held two shapes per GPU, so a resident service that
+/// alternates blocks missed at the first leaf of every request [M]. 512 MiB
+/// holds every M5 class shape (the cache keeps at most 8 entries). Immutable
+/// geometry only; STWO_RV64_PCS_HOST_GEOMETRY_BYTES overrides (0 = M5 cap).
+pub const resident_host_geometry_bytes: usize = 512 << 20;
+fn hostGeometryBytes() usize {
+    const text = std.posix.getenv("STWO_RV64_PCS_HOST_GEOMETRY_BYTES") orelse return resident_host_geometry_bytes;
+    const bytes = std.fmt.parseInt(usize, text, 10) catch return resident_host_geometry_bytes;
+    return if (bytes == 0) Export.GeometryCache.default_bytes else bytes;
+}
 pub const Context = struct {
     byte_cap: u64,
     wide_pcs_framing: bool = false,
@@ -328,7 +340,7 @@ pub const Context = struct {
         if (create(device, capacity, &session) != 0 or session == null) return error.GpuPcsInitializationFailed;
         const Version = *const fn () callconv(.c) u32;
         const wide = if (library.lookup(Version, "stwo_rv64_pcs_request_version")) |version| version() >= 3 else false;
-        return .{ .byte_cap = capacity, .wide_pcs_framing = wide, .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
+        return .{ .byte_cap = capacity, .wide_pcs_framing = wide, .host_geometry = Export.GeometryCache.init(std.heap.page_allocator, hostGeometryBytes()), .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
     }
     pub fn deinit(self: *Context) void {
         self.host_geometry.deinit();
