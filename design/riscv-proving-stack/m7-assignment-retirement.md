@@ -1,6 +1,6 @@
 # Off-owner CPU assignment retirement
 
-Status: **prototype, default OFF; eight focused CPU ownership tests and the full producer semantic check pass.** The LLVM driver build is pending. No production proof, request-time saving or GPU-busy improvement is qualified.
+Status: **default OFF; eight focused CPU ownership tests, the full producer semantic check and the LLVM driver build pass.** D2 cold/warm requests on both development blocks pass all artifact-byte comparisons and two fresh receivers. M6 compatibility and performance qualification remain pending. No request-time saving or GPU-busy improvement is claimed.
 
 The accepted D2 headline ownership trace contains 0.657228 aggregate host-thread seconds between joined MAIN assignment and MAIN commitment, with no observed GPU or CUDA API work in that interval. The existing source retires the CPU assignment there. This is a retirement/commit-entry envelope, not a measured function duration or a predicted wall-time saving. See the integration branch's `owner-gap-audit` report for the mutually exclusive interval analysis.
 

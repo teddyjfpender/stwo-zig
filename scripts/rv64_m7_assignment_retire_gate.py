@@ -10,7 +10,8 @@ import sys
 
 
 def sha(path):
-    return hashlib.file_digest(open(path, 'rb'), 'sha256').hexdigest()
+    with open(path, 'rb') as source:
+        return hashlib.file_digest(source, 'sha256').hexdigest()
 
 
 def main():
@@ -62,6 +63,15 @@ def main():
         assert result.returncode == 0, (block, result.returncode, run)
         receipt = json.loads((run / 'receipt.json').read_text())
         assert len(receipt['requests']) == args.repeat
+        assert len(receipt['receivers']) == 1
+        fresh = receipt['receivers'][0]
+        assert fresh['accepted'] is True and fresh['status'] == 'accepted'
+        assert fresh['process']['exit_code'] == 0 and fresh['block'] == block and fresh['trial'] == 0
+        assert fresh['receiver_sha256'] == sha(assets['receiver'])
+        assert fresh['store_present_during_receive'] is False
+        assert fresh['isolation']['CUDA_VISIBLE_DEVICES'] == ''
+        assert fresh['isolation']['STWO_RV64_GPU_PCS_HELPER'] == '/bin/false'
+        assert fresh['isolation']['STWO_ZIG_RV64_SETUP_CACHE'] == 'unset'
         for request in receipt['requests']:
             actual = snapshot(Path(request['proof']), request['leaves'])
             assert actual == expected, (block, request['trial'], actual.keys())
@@ -70,7 +80,8 @@ def main():
         nodes = sum(len(json.loads((Path(r['proof']) / 'recursion-om31/pipeline.json').read_text())['nodes']) for r in receipt['requests'])
         if args.async_retire == '1':
             assert len(spans) == nodes and all(int(row[2]) > 0 for row in spans), (len(spans), nodes)
-            assert 'GPU_OUTER_RETIRE_WORKERS' in text
+            admissions = re.findall(r'GPU_OUTER_RETIRE_WORKERS total=(\d+) pool=(\d+) dedicated=(\d+) lanes_per_device=(\d+)', text)
+            assert admissions and all(int(pool) + int(dedicated) == int(total) and int(dedicated) == 2 and int(lanes) == 1 for total, pool, dedicated, lanes in admissions)
         else:
             assert not spans
         row = dict(block=block, all_artifacts_byte_identical=True, reference=str(reference),
