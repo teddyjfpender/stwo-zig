@@ -1686,8 +1686,8 @@ pub const Streaming = struct {
         // physical-GPU allocation envelopes. An environment flag cannot open it.
         if (comptime @hasField(Outer.Device.Factory, "memory_admission_enabled")) {
             for (self.options.lanes) |lane| {
-                const enabled = lane.factory.memory_admission_enabled orelse return false;
-                if (!enabled(lane.factory.context)) return false;
+                const admission_enabled = lane.factory.memory_admission_enabled orelse return false;
+                if (!admission_enabled(lane.factory.context)) return false;
             }
             return self.options.lanes.len != 0;
         } else return false;

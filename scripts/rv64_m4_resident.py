@@ -226,10 +226,17 @@ def nsys_window_counts(sqlite, windows):
         db.close()
 
 
+def require_measurement_blocks(args):
+    """One explicitly requested M7 scale probe; never open a basket loop."""
+    large = [block for block in args.blocks if block not in P.DEV_BLOCKS]
+    if not large:
+        return
+    if not getattr(args, "allow_scale_probe", False) or large != [24697070] or args.repeat != 1:
+        raise SystemExit("owner rule: scale probe requires --allow-scale-probe, block 24697070 once, --repeat 1")
+
+
 def serve(args):
-    for block in args.blocks:
-        if block not in P.DEV_BLOCKS:
-            raise SystemExit("owner rule: develop/measure only on 26235156 and 24628607")
+    require_measurement_blocks(args)
     root = P.src_root(args.stream)
     paths = P.build_paths(args.build_stream or args.stream)
     for key in ("driver", "library", "receiver"):
@@ -327,9 +334,7 @@ def daemon(args):
     """True resident service: start `combined-serve`, wait READY, submit requests one at a time
     through the spool, then STOP.  Service start (process + CUDA contexts + 686-library load +
     pool + session) is reported separately from every request, never hidden."""
-    for block in args.blocks:
-        if block not in P.DEV_BLOCKS:
-            raise SystemExit("owner rule: develop/measure only on 26235156 and 24628607")
+    require_measurement_blocks(args)
     root = P.src_root(args.stream)
     paths = P.build_paths(args.build_stream or args.stream)
     for key in ("driver", "library", "receiver"):
@@ -676,6 +681,7 @@ def main():
     s = sub.add_parser("serve")
     s.add_argument("blocks", type=int, nargs="+")
     s.add_argument("--repeat", type=int, default=2)
+    s.add_argument("--allow-scale-probe", action="store_true", help="permit one 24697070 request only, with --repeat 1")
     s.add_argument("--stream", default="m4-resident")
     s.add_argument("--build-stream", help="use binaries from /workspace/m3/build/<this> (e.g. integrate = M3 baseline)")
     s.add_argument("--tag", required=True)

@@ -329,7 +329,7 @@ def produce(plan, job, run, nsys=None, counters=False, smaps=False, wrap=None):
         environment.update(M.shim_environment(run / "counters"))
     argv = [plan["assets"]["driver"], "combined-batch", str(target / "manifest.json"), str(target / "batch")]
     if nsys:
-        argv = ["nsys", "profile", "--trace=cuda", "--sample=none", "--cpuctxsw=none",
+        argv = ["nsys", "profile", "--trace=cuda,nvtx", "--sample=none", "--cpuctxsw=none",
                 "--force-overwrite=true", "-o", str(run / "nsys" / "timeline")] + argv
         (run / "nsys").mkdir(exist_ok=True)
     if wrap:
