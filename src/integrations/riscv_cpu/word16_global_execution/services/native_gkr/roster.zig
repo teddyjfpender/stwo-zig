@@ -73,7 +73,12 @@ pub const Roster = struct {
         return l;
     }
     pub fn validate(self: *const Roster) !void {
-        if (self.instances.len == 0 or self.instances.len > MAX_INSTANCES) return error.NativeGkrRosterShape;
+        return self.validateBounded(MAX_INSTANCES);
+    }
+    /// Receiver-selected protocol bound; the wire cannot choose this capacity.
+    pub fn validateBounded(self: *const Roster, max_instances: usize) !void {
+        if (max_instances == 0 or max_instances > 128) return error.NativeGkrRosterShape;
+        if (self.instances.len == 0 or self.instances.len > max_instances) return error.NativeGkrRosterShape;
         var previous: ?Instance = null;
         for (self.instances) |inst| {
             if (inst.component >= self.components.len) return error.NativeGkrRosterShape;
@@ -134,6 +139,9 @@ pub const Roster = struct {
 /// Canonical roster: components in receiver order, absent components dropped from instances but kept
 /// in the component list (their header entry pins the class shape), groups in Kind order.
 pub fn derive(a: std.mem.Allocator, specs: []const ComponentSpec) !Roster {
+    return deriveBounded(a, specs, MAX_INSTANCES);
+}
+pub fn deriveBounded(a: std.mem.Allocator, specs: []const ComponentSpec, max_instances: usize) !Roster {
     const components = try a.dupe(ComponentSpec, specs);
     errdefer a.free(components);
     var list = std.ArrayList(Instance).empty;
@@ -146,7 +154,7 @@ pub fn derive(a: std.mem.Allocator, specs: []const ComponentSpec) !Roster {
     }
     const instances = try list.toOwnedSlice(a);
     var roster = Roster{ .allocator = a, .components = components, .instances = instances };
-    roster.validate() catch |err| {
+    roster.validateBounded(max_instances) catch |err| {
         a.free(instances);
         return err; // components freed by the errdefer above
     };

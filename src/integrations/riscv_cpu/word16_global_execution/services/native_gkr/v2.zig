@@ -44,28 +44,10 @@ pub fn identityWords() [8]u32 {
 }
 
 /// v2 roster admission: the v1 rules with the v2 instance bound.
-pub fn validate(roster: *const R.Roster) !void {
-    if (roster.instances.len == 0 or roster.instances.len > MAX_INSTANCES) return error.NativeGkrRosterShape;
-    if (roster.instances.len <= R.MAX_INSTANCES) return roster.validate();
-    // > 64 instances: v1 validate refuses on size alone; re-run its per-instance rules here.
-    var previous: ?R.Instance = null;
-    for (roster.instances) |inst| {
-        if (inst.component >= roster.components.len) return error.NativeGkrRosterShape;
-        const c = roster.components[inst.component];
-        if (inst.row_log != c.row_log or inst.terms == 0 or inst.terms != c.terms[@intFromEnum(inst.kind)]) return error.NativeGkrRosterShape;
-        if (inst.lane_log != R.laneLog(inst.terms) or inst.lane_log > R.MAX_LANE_LOG) return error.NativeGkrRosterShape;
-        if (inst.row_log < 1 or inst.variables() > R.MAX_VARIABLES) return error.NativeGkrRosterShape;
-        if (previous) |p| if (p.component > inst.component or (p.component == inst.component and @intFromEnum(p.kind) >= @intFromEnum(inst.kind))) return error.NativeGkrRosterOrder;
-        previous = inst;
-    }
-    for (roster.components, 0..) |c, ci| {
-        var want: usize = 0;
-        for (c.terms) |t| want += @intFromBool(t != 0);
-        var got: usize = 0;
-        for (roster.instances) |inst| got += @intFromBool(inst.component == ci);
-        if (got != want) return error.NativeGkrRosterShape;
-    }
-}
+pub fn validate(roster: *const R.Roster) !void { return roster.validateBounded(MAX_INSTANCES); }
+pub fn derive(a: std.mem.Allocator, specs: []const R.ComponentSpec) !R.Roster { return R.deriveBounded(a, specs, MAX_INSTANCES); }
+pub fn encode(a: std.mem.Allocator, roster: *const R.Roster, section: *const S.Section) ![]u32 { return S.encodeVersion(a, roster, section, .v2); }
+pub fn decode(a: std.mem.Allocator, roster: *const R.Roster, words: []const u32) !S.Section { return S.decodeVersion(a, roster, words, .v2); }
 
 /// Roster authority (review item 3): the receiver derives the roster from the emitters; every component's
 /// four term counts must equal the emitter census exactly (fractions.zig / global_cpu.queriesFor / truth
@@ -276,29 +258,49 @@ test "corpus NV10 native GKR v2: security gate (bits >= 151, every relation mass
     masses.ram += 1;
     try testing.expectError(error.Om31CandidateCharacteristicWrap, requireNativeGkrSecurity(&roster, 28, masses));
 }
-test "native GKR v2 roster admits 128 instances (CPU-0 of 24628607 reaches 64 under v1) and refuses 129" {
+test "native GKR v2 roster and codec admit exactly 128 instances and refuse 129" {
     const a = testing.allocator;
     var specs: [43]R.ComponentSpec = undefined;
-    for (&specs, 0..) |*s, i| s.* = .{ .origin = .{ 0, @intCast(i) }, .row_log = 4, .terms = .{ 3, 2, 1, 0 } };
-    var roster = try deriveV2(a, &specs);
+    for (&specs, 0..) |*c, i| c.* = .{ .origin = .{ 0, @intCast(i) }, .row_log = 1, .terms = .{ 1, 1, 1, 0 } };
+    try testing.expectError(error.NativeGkrRosterShape, derive(a, &specs));
+    specs[42].terms = .{ 1, 1, 0, 0 };
+    var roster = try derive(a, &specs);
     defer roster.deinit();
-    try testing.expectEqual(@as(usize, 129), roster.instances.len);
-    try testing.expectError(error.NativeGkrRosterShape, validate(&roster));
-    var roster128 = try deriveV2(a, specs[0..42]);
-    defer roster128.deinit();
-    try testing.expectEqual(@as(usize, 126), roster128.instances.len);
-    try validate(&roster128);
+    try testing.expectEqual(@as(usize, 128), roster.instances.len);
+    try testing.expectError(error.NativeGkrRosterShape, roster.validate());
+    var seen: ?LocalElements = null;
+    const scope = toyScope();
+    const channel = S.RawChannel.init();
+    var section = try proveCpu(a, &channel, &roster, &scope, ElementBuilder{ .seed = 19, .seen = &seen });
+    defer section.deinit(a);
+    const words = try encode(a, &roster, &section);
+    defer a.free(words);
+    var decoded = try decode(a, &roster, words);
+    defer decoded.deinit(a);
+    var replay = channel;
+    var verified = try verify(a, &replay, &roster, &scope, &decoded);
+    defer verified.deinit(a);
+    try testing.expectError(error.NativeGkrRosterShape, S.decode(a, &roster, words));
+    try testing.expectError(error.NativeGkrRosterShape, S.encode(a, &roster, &section));
 }
-/// v1 `derive` without its 64-instance validate (tests of the v2 bound).
-fn deriveV2(a: std.mem.Allocator, specs: []const R.ComponentSpec) !R.Roster {
-    const components = try a.dupe(R.ComponentSpec, specs);
-    errdefer a.free(components);
-    var list = std.ArrayList(R.Instance).empty;
-    errdefer list.deinit(a);
-    for (components, 0..) |c, i| for (c.terms, 0..) |t, k| if (t != 0) {
-        try list.append(a, .{ .component = @intCast(i), .kind = @enumFromInt(k), .row_log = c.row_log, .lane_log = R.laneLog(t), .terms = t });
-    };
-    return .{ .allocator = a, .components = components, .instances = try list.toOwnedSlice(a) };
+test "native GKR v2 codec rejects v1 header, truncation, trailing words and noncanonical scalars" {
+    const a = testing.allocator;
+    var roster = try derive(a, &toySpecs()); defer roster.deinit();
+    var seen: ?LocalElements = null;
+    const scope = toyScope(); const channel = S.RawChannel.init();
+    var section = try proveCpu(a, &channel, &roster, &scope, ElementBuilder{ .seed = 23, .seen = &seen });
+    defer section.deinit(a);
+    const words = try encode(a, &roster, &section); defer a.free(words);
+    try testing.expectError(error.MalformedNativeGkrSection, S.decode(a, &roster, words));
+    words[1] = 1;
+    try testing.expectError(error.MalformedNativeGkrSection, decode(a, &roster, words));
+    words[1] = 2;
+    try testing.expectError(error.MalformedNativeGkrSection, decode(a, &roster, words[0 .. words.len-1]));
+    const extra = try a.alloc(u32, words.len+1); defer a.free(extra);
+    @memcpy(extra[0..words.len], words); extra[words.len] = 0;
+    try testing.expectError(error.MalformedNativeGkrSection, decode(a, &roster, extra));
+    words[4] = core.fields.m31.Modulus;
+    try testing.expectError(error.NonCanonicalNativeGkrWord, decode(a, &roster, words));
 }
 test "native GKR v2 bits ledger at the NF4 caps (256 proofs, 128 instances, 28 variables, arity 58) clears 151 bits; the conservative mass does not clear p" {
     const caps = Cand.OuterGkrFacts{ .outer_proofs = 256, .instances = MAX_INSTANCES, .max_variables = R.MAX_VARIABLES, .max_tuple_arity = MAX_TUPLE_ARITY };
