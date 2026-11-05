@@ -71,6 +71,8 @@ pub const Context = struct {
             try self.pools[i].initInPlaceWithOptions(.{ .worker_count = counts[i], .stack_size = Policy.helper_stack_bytes, .backing_allocator = a });
             self.initialized_pools += 1;
             self.traces[i] = try TraceCommit.Context.init(service);
+            self.traces[i].admission_domain = .recursion_node;
+            try self.traces[i].registerAdmissionCoverage();
             self.initialized_traces += 1;
             self.compositions[i] = try Composition.Context.initNumerical(a, service);
             self.initialized_compositions += 1;
