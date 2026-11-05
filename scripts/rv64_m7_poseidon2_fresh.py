@@ -11,13 +11,14 @@ import subprocess
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--binary", required=True)
+    p.add_argument("--version", type=int, choices=[1,2], default=1)
     p.add_argument("--out", required=True)
     args = p.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     results = []
     def invoke(mode, degree, fold, codec, path, accepted):
-        command = [args.binary, mode, str(degree), str(fold), codec, str(path)]
+        command = [args.binary, mode, str(degree), str(fold), codec, str(path), str(args.version)]
         run = subprocess.run(command, capture_output=True, text=True)
         if (run.returncode == 0) != accepted:
             raise RuntimeError(f"unexpected result: {command}: {run.returncode}: {run.stderr}")
@@ -51,6 +52,7 @@ def main():
     invoke("verify", 4, 1, "binary", out / "d8-f1.binary", False)
     receipt = {"status": "PASS", "scope": "synthetic boolean AIR; separate-process receivers; no Ethereum profile activation",
                "positive_proof_files": len(files), "rejections": len(mutants) + 1,
+               "profile_version": args.version,
                "binary_sha256": hashlib.sha256(Path(args.binary).read_bytes()).hexdigest(),
                "files": {path.name: {"bytes": path.stat().st_size, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
                          for _, _, _, path in files}, "processes": results}

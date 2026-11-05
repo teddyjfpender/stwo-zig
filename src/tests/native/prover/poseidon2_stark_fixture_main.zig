@@ -6,15 +6,21 @@ const a = std.heap.page_allocator;
 pub fn main() !void {
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
-    if (args.len != 6) return error.ExpectedModeDegreeFoldBinaryPath;
+    if (args.len != 6 and args.len != 7) return error.ExpectedModeDegreeFoldBinaryPath;
     const degree = try std.fmt.parseInt(u32, args[2], 10);
     if (degree == 4) return run(core.fields.qm31.QM31, args);
     if (degree == 8) return run(core.fields.om31.OM31, args);
     return error.UnsupportedSecureField;
 }
 fn run(comptime S: type, args: []const [:0]u8) !void {
-    const F = Fixture.ForField(S);
-    const Profile = core.vcs_lifted.poseidon2_profile.ForField(S);
+    const version = if (args.len == 7) try std.fmt.parseInt(u8, args[6], 10) else 1;
+    if (version == 1) return runVersion(S, args, 1);
+    if (version == 2) return runVersion(S, args, 2);
+    return error.UnsupportedPoseidonVersion;
+}
+fn runVersion(comptime S: type, args: []const [:0]u8, comptime version: u8) !void {
+    const F = Fixture.ForFieldVersion(S, version);
+    const Profile = if (version == 1) core.vcs_lifted.poseidon2_profile.ForField(S) else core.vcs_lifted.poseidon2_profile.ForFieldV2(S);
     const Wire = @import("stwo_proof_wire").ForHasher(S, Profile.MerkleHasher);
     const fold = try std.fmt.parseInt(u32, args[3], 10);
     if (fold != 1 and fold != 4) return error.UnsupportedFold;

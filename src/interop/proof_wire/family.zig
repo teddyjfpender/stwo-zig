@@ -13,7 +13,8 @@ pub fn ForField(comptime Secure: type) type {
 
 /// Explicit new hash family; historical ForField bytes remain unchanged.
 pub fn ForHasher(comptime Secure: type, comptime HashFamily: type) type {
-    const is_poseidon = HashFamily == core.vcs.poseidon2_m31_merkle.Poseidon2M31MerkleHasher;
+    const is_poseidon_v2 = HashFamily == core.vcs.poseidon2_m31_merkle.Poseidon2M31MerkleHasherV2;
+    const is_poseidon = is_poseidon_v2 or HashFamily == core.vcs.poseidon2_m31_merkle.Poseidon2M31MerkleHasher;
     if (!is_poseidon and @sizeOf(HashFamily.Hash) != 32) @compileError("unqualified hash wire family");
     const legacy_json = !is_poseidon and Secure == core.fields.qm31.QM31;
     const DEGREE = @typeInfo(@TypeOf(Secure.zero().toM31Array())).array.len;
@@ -79,8 +80,8 @@ pub fn ForHasher(comptime Secure: type, comptime HashFamily: type) type {
             NonCanonicalPoseidonDigest,
         };
 
-        const BINARY_WIRE_MAGIC = if (is_poseidon) (if (DEGREE == 4) "STP2QW01" else "STP2OW01") else (if (DEGREE == 4) "STWOPRW1" else "STWOPRW8");
-        const JSON_PROTOCOL = if (is_poseidon) (if (DEGREE == 4) "stwo-p2m31-w24-d9-qm31-proof-v1" else "stwo-p2m31-w24-d9-om31-proof-v1") else "stwo-om31-proof-v1";
+        const BINARY_WIRE_MAGIC = if (is_poseidon_v2) (if (DEGREE == 4) "STP2QW02" else "STP2OW02") else if (is_poseidon) (if (DEGREE == 4) "STP2QW01" else "STP2OW01") else (if (DEGREE == 4) "STWOPRW1" else "STWOPRW8");
+        const JSON_PROTOCOL = if (is_poseidon_v2) (if (DEGREE == 4) "stwo-p2m31-w24-d9-qm31-proof-v2" else "stwo-p2m31-w24-d9-om31-proof-v2") else if (is_poseidon) (if (DEGREE == 4) "stwo-p2m31-w24-d9-qm31-proof-v1" else "stwo-p2m31-w24-d9-om31-proof-v1") else "stwo-om31-proof-v1";
         const Envelope = struct { protocol: []const u8, proof: ProofWire };
 
         /// Encodes a Stark proof into wire bytes for cross-language interchange.

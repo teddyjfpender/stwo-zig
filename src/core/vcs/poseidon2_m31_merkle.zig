@@ -1,36 +1,42 @@
 //! Named experimental Poseidon2 commitment family, canonical 36-byte roots.
 const S = @import("../crypto/poseidon2_m31_sponge.zig");
 const M31 = S.M31;
-pub const Poseidon2M31MerkleHasher = struct {
-    pub const Hash = S.Digest;
-    pub const Children = struct { left: Hash, right: Hash };
-    inner: S.Sponge,
-    const Self = @This();
-    pub fn defaultWithInitialState() Self {
-        return .{ .inner = S.Sponge.init(.leaf) };
-    }
-    pub fn updateLeaf(self: *Self, values: []const M31) void {
-        self.inner.absorbFelts(values);
-    }
-    pub fn finalize(self: Self) Hash {
-        return self.inner.digest();
-    }
-    pub fn hashChildren(children: Children) Hash {
-        var sponge = S.Sponge.init(.node);
-        sponge.absorbDigest(children.left);
-        sponge.absorbDigest(children.right);
-        return sponge.digest();
-    }
-    pub fn hashNode(children: ?Children, values: []const M31) Hash {
-        var sponge = S.Sponge.init(if (children != null) .node else .leaf);
-        if (children) |pair| {
-            sponge.absorbDigest(pair.left);
-            sponge.absorbDigest(pair.right);
+pub const Poseidon2M31MerkleHasher = ForVersion(1);
+/// Same commitment arithmetic, distinct suite type for the v2 transcript/wire.
+pub const Poseidon2M31MerkleHasherV2 = ForVersion(2);
+fn ForVersion(comptime version: u8) type {
+    return struct {
+        pub const protocol_version = version;
+        pub const Hash = S.Digest;
+        pub const Children = struct { left: Hash, right: Hash };
+        inner: S.Sponge,
+        const Self = @This();
+        pub fn defaultWithInitialState() Self {
+            return .{ .inner = S.Sponge.init(.leaf) };
         }
-        sponge.absorbFelts(values);
-        return sponge.digest();
-    }
-};
+        pub fn updateLeaf(self: *Self, values: []const M31) void {
+            self.inner.absorbFelts(values);
+        }
+        pub fn finalize(self: Self) Hash {
+            return self.inner.digest();
+        }
+        pub fn hashChildren(children: Children) Hash {
+            var sponge = S.Sponge.init(.node);
+            sponge.absorbDigest(children.left);
+            sponge.absorbDigest(children.right);
+            return sponge.digest();
+        }
+        pub fn hashNode(children: ?Children, values: []const M31) Hash {
+            var sponge = S.Sponge.init(if (children != null) .node else .leaf);
+            if (children) |pair| {
+                sponge.absorbDigest(pair.left);
+                sponge.absorbDigest(pair.right);
+            }
+            sponge.absorbFelts(values);
+            return sponge.digest();
+        }
+    };
+}
 test "Poseidon Merkle hasher satisfies both VCS interfaces" {
     const std = @import("std");
     const H = Poseidon2M31MerkleHasher;
