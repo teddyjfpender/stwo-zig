@@ -6,3 +6,5 @@ pub const lookup_transcript = @import("lookup_transcript.zig");
 pub const transcript_receipt = @import("transcript_receipt.zig");
 
 pub const raw_mod_m31 = @import("raw_mod_m31.zig");
+
+pub const poseidon2_m31 = @import("poseidon2_m31.zig");

@@ -150,6 +150,17 @@ pub fn addProduct(context: Context) void {
     const wide_run = context.b.addRunArtifact(wide_tests);
     context.b.step("test-native-cpu-om31", "Prove and freshly verify wide STARKs, mixed heights, wire files and allocation failures").dependOn(&wide_run.step);
     test_step.dependOn(&wide_run.step);
+    const poseidon_root = graph.create(context.b, .{
+        .product = product(.@"test"),
+        .root_source_file = "src/tests/native/prover/poseidon2_stark_test_root.zig",
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(poseidon_root);
+    _ = graph.addCpuBackendImport(context.b, context.protocol, product(.@"test"), context.target, context.optimize, poseidon_root);
+    _ = graph.addProofWireImport(context.b, context.protocol, product(.@"test"), context.target, context.optimize, poseidon_root);
+    const poseidon_tests = context.b.addTest(.{ .root_module = poseidon_root });
+    context.b.step("test-native-cpu-poseidon2", "Qualify named Poseidon2 PCS and FS with fresh proof files").dependOn(&context.b.addRunArtifact(poseidon_tests).step);
     const sampling_root = graph.create(context.b, .{
         .product = product(.@"test"),
         .root_source_file = "src/prover/wide_sampling_test_root.zig",
