@@ -454,10 +454,31 @@ def quiet_checkpoint(process, args, run, index, guard=None):
                     blockers.append({"pid": int(directory.name), "executable": executable})
             except (FileNotFoundError, ProcessLookupError, PermissionError):
                 pass
+        gpu_processes = []
+        try:
+            query = subprocess.run(["nvidia-smi", "--query-compute-apps=pid,process_name", "--format=csv,noheader,nounits"],
+                                   capture_output=True, text=True, timeout=5, check=True)
+            producer_group = os.getpgid(process.pid)
+            for line in query.stdout.splitlines():
+                if not line.strip():
+                    continue
+                pid_text, name = line.split(",", 1)
+                pid = int(pid_text.strip())
+                allowed = guard is not None and pid == guard.process.pid
+                try:
+                    allowed = allowed or os.getpgid(pid) == producer_group
+                except ProcessLookupError:
+                    # Exited after NVML's sample; do not infer active overlap.
+                    continue
+                gpu_processes.append({"pid": pid, "name": name.strip(), "belongs_to_service_or_guard": allowed})
+                if not allowed:
+                    blockers.append({"pid": pid, "executable": name.strip(), "reason": "foreign GPU compute process"})
+        except (subprocess.SubprocessError, ValueError, OSError) as error:
+            blockers.append({"reason": "GPU process inventory unavailable", "error": repr(error)})
         load = os.getloadavg()
         okay = load[0] < limit and steal is not None and steal <= args.quiet_steal_max and not blockers
         consecutive = consecutive + 1 if okay else 0
-        rows.append({"elapsed_s": round(time.monotonic() - start, 3), "loadavg": load, "cpu_steal_fraction": steal, "blocking_processes": blockers, "qualifies": okay})
+        rows.append({"elapsed_s": round(time.monotonic() - start, 3), "loadavg": load, "cpu_steal_fraction": steal, "blocking_processes": blockers, "gpu_processes": gpu_processes, "qualifies": okay})
         record = {"request_index": index, "load_max": limit, "steal_max": args.quiet_steal_max, "required_stable_samples": args.quiet_stable_samples, "samples": rows, "accepted": consecutive >= args.quiet_stable_samples}
         B.atomic_json(run / f"quiet-{index:04d}.json", record)
         if record["accepted"]:
