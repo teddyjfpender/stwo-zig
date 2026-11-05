@@ -31,11 +31,16 @@ def main():
     database = args.run / 'nsys/timeline.sqlite'
     db = sqlite3.connect(str(database))
     epoch = db.execute('SELECT utcEpochNs FROM TARGET_INFO_SESSION_START_TIME').fetchone()[0]
+    tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     devices = [r[0] for r in db.execute('SELECT DISTINCT deviceId FROM CUPTI_ACTIVITY_KIND_KERNEL ORDER BY deviceId')]
     rows = []
     for request in receipt['requests']:
         lo, hi = request['utc_window_ns']
         lower, upper = lo - epoch, hi - epoch
+        if 'CUPTI_ACTIVITY_KIND_GRAPH_TRACE' in tables:
+            graph_count = db.execute('SELECT COUNT(*) FROM CUPTI_ACTIVITY_KIND_GRAPH_TRACE WHERE end>? AND start<?', (lower, upper)).fetchone()[0]
+            if graph_count:
+                raise RuntimeError('GPU accounting incomplete: CUDA graph envelopes present in request window; node-kernel completeness is not established (' + str(graph_count) + ' graph records)')
         measured = {}
         for device in devices:
             kernels = db.execute('SELECT start,end FROM CUPTI_ACTIVITY_KIND_KERNEL WHERE deviceId=? AND end>? AND start<?', (device, lower, upper)).fetchall()
@@ -53,7 +58,7 @@ def main():
         if not identical:
             raise RuntimeError('profiled artifacts differ from fresh-accepted reference')
         rows.append({'block': request['block'], 'trial': request['trial'], 'utc_window_ns': [lo, hi], 'profiled_request_wall_s': request['stages']['request_wall_s'], 'byte_identical_to_fresh_accepted_reference': identical, 'devices': measured, 'kernel_busy_gpu_seconds': sum(v['kernel_busy_union_s'] for v in measured.values()), 'any_busy_gpu_seconds': sum(v['any_busy_union_s'] for v in measured.values())})
-    result = {'schema': 'rv64-m7-request-gpu-seconds/v1', 'author': 'OpenAI Codex', 'scope': 'Exact per-device union of CUPTI kernels/copies clipped to complete UTC request windows; summed across devices. Profiled walls include profiler overhead and are not latency claims. Whole-request accounting, not native-only attribution.', 'assets': receipt['assets'], 'accepted_run': str(args.accepted_run), 'accepted_receipt_sha256': sha(args.accepted_run / 'receipt.json'), 'profile_receipt_sha256': sha(args.run / 'receipt.json'), 'sqlite_sha256': sha(database), 'nsys_report_sha256': sha(args.run / 'nsys/timeline.nsys-rep'), 'session_start_utc_ns': epoch, 'requests': rows}
+    result = {'schema': 'rv64-m7-request-gpu-seconds/v1', 'author': 'OpenAI Codex', 'scope': 'Exact per-device union of CUPTI kernels/copies clipped to complete UTC request windows; summed across devices. Profiled walls include profiler overhead and are not latency claims. Whole-request accounting, not native-only attribution.', 'cuda_graph_envelopes_in_measured_windows': 0, 'kernel_accounting_complete': True, 'assets': receipt['assets'], 'accepted_run': str(args.accepted_run), 'accepted_receipt_sha256': sha(args.accepted_run / 'receipt.json'), 'profile_receipt_sha256': sha(args.run / 'receipt.json'), 'sqlite_sha256': sha(database), 'nsys_report_sha256': sha(args.run / 'nsys/timeline.nsys-rep'), 'session_start_utc_ns': epoch, 'requests': rows}
     db.close()
     (args.run / 'gpu-seconds.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps([{k: v for k, v in row.items() if k not in ('devices', 'utc_window_ns')} for row in rows], indent=1))
