@@ -7,6 +7,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
+#include <fstream>
+#include <set>
+#include <string>
+#include <sstream>
+#include <vector>
 
 static unsigned checks = 0;
 static void check(bool ok, const char *label) {
@@ -28,6 +33,25 @@ int main(int argc, char **argv) {
     check(argc == 2, "selected runtime library argument");
     void *library = dlopen(argv[1], RTLD_NOW | RTLD_LOCAL);
     check(library != nullptr, "dlopen selected runtime");
+    std::vector<void *> addons;
+    if (const char *names = getenv("STWO_V2_FIXTURE_ADDONS")) {
+        std::stringstream paths(names);
+        for (std::string name; std::getline(paths, name, ':'); ) {
+            void *addon = dlopen(name.c_str(), RTLD_NOW | RTLD_LOCAL);
+            if (!addon) fprintf(stderr, "addon %s: %s\n", name.c_str(), dlerror());
+            check(addon != nullptr, "load frozen addon against selected runtime");
+            addons.push_back(addon);
+        }
+    }
+    std::ifstream maps("/proc/self/maps");
+    std::set<std::string> runtimes;
+    for (std::string line; std::getline(maps, line); ) {
+        if (line.find("libstwo-rv64-native.so") == std::string::npos) continue;
+        auto path = line.find('/');
+        if (path != std::string::npos) runtimes.insert(line.substr(path));
+    }
+    for (const auto &path : runtimes) printf("ADMISSION_V2_RUNTIME_MAP %s\n", path.c_str());
+    check(runtimes.size() == 1 && *runtimes.begin() == argv[1], "exactly one selected arena runtime mapped");
     auto create = load<int(*)(const StwoCudaContextOptions *, void **)>(library, "stwo_exec_context_create_options");
     auto destroy = load<int(*)(void *)>(library, "stwo_exec_context_destroy");
     auto identity = load<int(*)(void *, uint64_t *)>(library, "stwo_exec_context_identity");
@@ -98,5 +122,6 @@ int main(int argc, char **argv) {
         check(destroy(b) == 0, "destroy owner B");
     }
     printf("ADMISSION_V2_FIXTURE checks=%u devices=2 PASS\n", checks);
+    for (auto addon : addons) dlclose(addon);
     dlclose(library);
 }
