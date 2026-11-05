@@ -4,18 +4,33 @@ const std = @import("std");
 const S = @import("../crypto/poseidon2_m31_sponge.zig");
 pub const Qm31Channel = ForField(@import("../fields/qm31.zig").QM31);
 pub const Om31Channel = ForField(@import("../fields/om31.zig").OM31);
+pub const Qm31ChannelV2 = ForFieldV2(@import("../fields/qm31.zig").QM31);
+pub const Om31ChannelV2 = ForFieldV2(@import("../fields/om31.zig").OM31);
 pub const MAX_POW_BITS = 30;
 pub fn ForField(comptime Secure: type) type {
+    return ForVersion(Secure, 1);
+}
+/// Named v2 uses a checked u32 draw counter. Digest9 + counter2 + padding
+/// fits one rate12 block, rather than v1's two permutations per draw.
+pub fn ForFieldV2(comptime Secure: type) type {
+    return ForVersion(Secure, 2);
+}
+fn ForVersion(comptime Secure: type, comptime version: u8) type {
+    if (Secure != @import("../fields/qm31.zig").QM31 and Secure != @import("../fields/om31.zig").OM31)
+        @compileError("Poseidon channel supports only source-qualified QM31 and OM31 suites");
     return struct {
         pub const SecureField = Secure;
+        pub const protocol_version = version;
+        pub const Counter = if (version == 1) u64 else u32;
         const Self = @This();
         const DEGREE = @typeInfo(@TypeOf(Secure.zero().toM31Array())).array.len;
         digest: S.Digest = initialDigest(),
-        n_draws: u64 = 0,
+        n_draws: Counter = 0,
         fn initialDigest() S.Digest {
             @setEvalBranchQuota(100000);
             var initial = S.Sponge.init(.mix_words);
             initial.absorbU32(DEGREE);
+            if (version == 2) initial.absorbU32(2);
             return initial.digest();
         }
         pub fn init() Self {
@@ -55,8 +70,8 @@ pub fn ForField(comptime Secure: type) type {
         /// Draw counter is checked, never wraps into an earlier challenge.
         pub fn drawU32s(self: *Self) [8]u32 {
             var s = self.start(.draw);
-            s.absorbU64(self.n_draws);
-            self.n_draws = std.math.add(u64, self.n_draws, 1) catch @panic("Poseidon draw counter exhausted");
+            if (version == 1) s.absorbU64(self.n_draws) else s.absorbU32(self.n_draws);
+            self.n_draws = std.math.add(Counter, self.n_draws, 1) catch @panic("Poseidon draw counter exhausted");
             const values = s.finish();
             var out: [8]u32 = undefined;
             for (&out, values[0..8]) |*word, value| word.* = value.v;
@@ -95,7 +110,7 @@ pub fn ForField(comptime Secure: type) type {
     };
 }
 test "Poseidon transcripts separate domains, replay draws and grind canonically" {
-    inline for (.{ Qm31Channel, Om31Channel }) |Channel| {
+    inline for (.{ Qm31Channel, Om31Channel, Qm31ChannelV2, Om31ChannelV2 }) |Channel| {
         var a = Channel.init();
         var b = a;
         a.mixU32s(&.{ 1, 2 });
@@ -128,4 +143,15 @@ test "Poseidon OM31 transcript matches independent Python framing" {
     for (mixed_max_and_p_values, mixed_max_and_p) |actual, expected| try std.testing.expectEqual(expected, actual.v);
     const draw: [8]u32 = .{ 637042778, 932126381, 313942954, 1285771035, 1162516394, 1897078136, 2128892566, 1090472593 };
     try std.testing.expectEqualSlices(u32, &draw, &c.drawU32s());
+}
+
+test "Poseidon v2 compact draw counter independent vectors and v1 separation" {
+    var channel = Om31ChannelV2.init();
+    const initial: [9]u32 = .{ 57382800, 1207574701, 1265253890, 1760172830, 479392263, 1320142026, 255816341, 347152043, 1067040074 };
+    const fields = try S.decode(channel.digestBytes());
+    for (fields, initial) |field, word| try std.testing.expectEqual(word, field.v);
+    const draw: [8]u32 = .{ 1546644933, 1865351654, 1390622127, 1503218337, 1107593605, 2041726037, 1892978394, 915540967 };
+    try std.testing.expectEqualSlices(u32, &draw, &channel.drawU32s());
+    try std.testing.expect(!std.mem.eql(u8, &channel.digestBytes(), &Om31Channel.init().digestBytes()));
+    try std.testing.expectEqual(@as(usize, 32), @bitSizeOf(Om31ChannelV2.Counter));
 }

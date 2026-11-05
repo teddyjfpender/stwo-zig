@@ -69,7 +69,9 @@ def framing_vectors():
     mixed = sponge(3, initial + raw32(0xffffffff) + raw32(P))
     draw = sponge(6, mixed + [0, 0, 0, 0])
     return {"leaf_479": leaf, "node": node, "om31_initial": initial,
-            "mixed_max_and_p": mixed, "draw_zero": draw[:8]}
+            "mixed_max_and_p": mixed, "draw_zero": draw[:8],
+            "v2_om31_initial": sponge(3, raw32(8)+raw32(2)),
+            "v2_draw_zero": sponge(6, sponge(3, raw32(8)+raw32(2))+raw32(0))[:8]}
 
 
 def check():

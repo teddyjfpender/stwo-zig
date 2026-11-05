@@ -3,6 +3,9 @@ const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 pub fn ForField(comptime Secure: type) type {
+    return ForFieldVersion(Secure, 1);
+}
+pub fn ForFieldVersion(comptime Secure: type, comptime version: u8) type {
     return struct {
         const S = Secure;
         const M = core.fields.m31.M31;
@@ -15,7 +18,7 @@ pub fn ForField(comptime Secure: type) type {
         const PCS = engine.pcs.ForField(S);
         const CP = core.pcs.ForField(S);
         const CPU = @import("stwo_cpu_backend").CpuBackend;
-        const MC = core.vcs_lifted.poseidon2_profile.ForField(S);
+        const MC = if (version == 1) core.vcs_lifted.poseidon2_profile.ForField(S) else core.vcs_lifted.poseidon2_profile.ForFieldV2(S);
         const H = MC.MerkleHasher;
         const C = MC.Channel;
         const E = engine.engine.ForField(S).ProverEngine(CPU, H, MC, C);
@@ -141,11 +144,13 @@ pub fn ForField(comptime Secure: type) type {
                     defer A.free(bytes);
                     const decoded = if (binary) try Wire.decodeProofBytesBinary(A, bytes) else try Wire.decodeProofBytes(A, bytes);
                     try verifyFold(A, decoded, fold);
-                    std.debug.print("P2_REAL_STARK degree={d} fold={d} binary={} bytes={d} accepted\n", .{ @typeInfo(@TypeOf(S.zero().toM31Array())).array.len, fold, binary, bytes.len });
+                    std.debug.print("P2_REAL_STARK version={d} degree={d} fold={d} binary={} bytes={d} accepted\n", .{ version, @typeInfo(@TypeOf(S.zero().toM31Array())).array.len, fold, binary, bytes.len });
                 }
                 const encoded = try Wire.encodeProofBytesBinary(A, p.proof);
                 defer A.free(encoded);
                 try std.testing.expectError(error.UnsupportedBinaryVersion, @import("stwo_proof_wire").ForField(S).decodeProofBytesBinary(A, encoded));
+                const Other = if (version == 1) core.vcs_lifted.poseidon2_profile.ForFieldV2(S) else core.vcs_lifted.poseidon2_profile.ForField(S);
+                try std.testing.expectError(error.UnsupportedBinaryVersion, @import("stwo_proof_wire").ForHasher(S, Other.MerkleHasher).decodeProofBytesBinary(A, encoded));
                 var arena = std.heap.ArenaAllocator.init(A);
                 defer arena.deinit();
                 var wire = try Wire.proofToWire(arena.allocator(), p.proof);
@@ -175,4 +180,6 @@ pub fn ForField(comptime Secure: type) type {
 test {
     _ = ForField(core.fields.qm31.QM31);
     _ = ForField(core.fields.om31.OM31);
+    _ = ForFieldVersion(core.fields.qm31.QM31, 2);
+    _ = ForFieldVersion(core.fields.om31.OM31, 2);
 }
