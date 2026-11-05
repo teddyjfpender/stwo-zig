@@ -164,35 +164,42 @@ pub const Artifact = struct {
     /// terminal target. Supplying arbitrary caller-chosen parameters is not proof
     /// admission: use after the section verifier and source/class checks below.
     pub fn parameters(self: *const @This(), a: std.mem.Allocator, source: *const Captured, z: O, alpha: O, class: *const P.Class, verified: *const @import("section.zig").Verified, ch: *const Legacy.Challenges, claim: O) ![]O {
+        return self.parametersFor(O, a, source, z, alpha, class, verified, ch, claim);
+    }
+    pub fn parametersFor(self: *const @This(), comptime Lane: type, a: std.mem.Allocator, source: *const Captured, z: Lane, alpha: Lane, class: *const P.Class, verified: anytype, ch: anytype, claim: Lane) ![]Lane {
         try class.validate();
         if (class.binding_version != .cyclic_eq_v2 or source.trace_log_size != class.row_logs[@intFromEnum(self.component)] or source.ext_sources.len != self.source_parameter_count) return error.OuterGkrBindingShape;
-        const original = try Outer.program.parameters(a, source, z, alpha, claim);
+        const original = try Outer.program.ForLane(Lane).extensionParameters(a, source, z, alpha, claim);
         defer a.free(original);
-        var named: [256]O = undefined;
+        var named: [256]Lane = undefined;
         if (self.source_parameter_count + 30 > named.len) return error.OuterGkrBindingShape;
         @memcpy(named[0..original.len], original);
         if (P.gkrBound(self.component)) {
             const point = verified.artifact.ood_point;
             const log: u32 = class.row_logs[@intFromEnum(self.component)];
             if (point.len != class.layers()) return error.OuterGkrBindingShape;
-            @memset(named[original.len..][0..26], O.zero());
+            @memset(named[original.len..][0..26], Lane.zero());
             var first: usize = 0;
             for (class.instances, 0..) |inst, g| {
                 if (inst.component != self.component) continue;
-                const weights = try Legacy.eqTable(a, point[point.len - inst.variables() .. point.len - log]);
+                const weights = try Legacy.eqTableFor(Lane, a, point[point.len - inst.variables() .. point.len - log]);
                 defer a.free(weights);
                 for (weights, 0..) |weight, lane| named[original.len + first + lane] = ch.rho[g].mul(weight);
                 first += inst.lanes_used;
             }
             if (first != P.FACTS[@intFromEnum(self.component)].lookups) return error.OuterGkrBindingShape;
             named[original.len + 26] = ch.gamma;
-            const target = Legacy.expectedBoundary(class, self.component, verified.artifact.claims_to_verify_by_instance, ch);
-            named[original.len + 27] = target.mulM31(try M.fromU64(@as(u64, 1) << @intCast(log)).inv());
-            const mle = try @import("../logup_gkr/mle_point.zig").MleEvalPointFor(O).init(point[point.len - log ..]);
+            var target = Lane.zero();
+            for (class.instances, 0..) |inst, g| if (inst.component == self.component) {
+                const pair = verified.artifact.claims_to_verify_by_instance[g];
+                target = target.add(ch.rho[g].mul(pair[0].add(ch.gamma.mul(pair[1]))));
+            };
+            named[original.len + 27] = target.mul(Lane.fromBase(try M.fromU64(@as(u64, 1) << @intCast(log)).inv()));
+            const mle = try @import("../logup_gkr/mle_point.zig").MleEvalPointFor(Lane).init(point[point.len - log ..]);
             named[original.len + 28] = mle.eq0;
             named[original.len + 29] = mle.eq1;
         }
-        const out = try a.alloc(O, self.parameter_slots.len);
+        const out = try a.alloc(Lane, self.parameter_slots.len);
         errdefer a.free(out);
         for (out, self.parameter_slots) |*v, slot| {
             if (slot >= original.len + (if (P.gkrBound(self.component)) @as(usize, 30) else 0)) return error.InvalidHybridParameterSlot;

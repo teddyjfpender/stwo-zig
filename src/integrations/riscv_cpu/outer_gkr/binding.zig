@@ -28,8 +28,11 @@ fn eqAt(point: []const O, index: usize) O {
 }
 /// All 2^n eq values (MSB-first indexing).
 pub fn eqTable(a: std.mem.Allocator, point: []const O) ![]O {
-    const out = try a.alloc(O, @as(usize, 1) << @intCast(point.len));
-    out[0] = O.one();
+    return eqTableFor(O, a, point);
+}
+pub fn eqTableFor(comptime F: type, a: std.mem.Allocator, point: []const F) ![]F {
+    const out = try a.alloc(F, @as(usize, 1) << @intCast(point.len));
+    out[0] = F.one();
     var size: usize = 1;
     for (point) |z| {
         // Extend MSB-first: new index = old * 2 + bit.

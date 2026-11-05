@@ -58,12 +58,21 @@ pub const Key = struct {
         self.* = undefined;
     }
     pub fn begin(self: *const @This(), a: std.mem.Allocator, outputs: []const Outer.protocol.Q) !Outer.protocol.Channel {
-        var channel = try Outer.prove.begin(a, self.source, outputs);
-        var words: [8]u32 = undefined;
-        for (&words, 0..) |*v, i| v.* = std.mem.readInt(u32, self.identity[4 * i ..][0..4], .little);
-        channel.mixU32s(&words);
+        if (outputs.len != self.source.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
+        var channel = Outer.protocol.Channel.init();
+        self.config.mixInto(&channel);
+        Outer.protocol.mixProfile(&channel);
+        const words = try a.alloc(u32, 9 + 4 * outputs.len);
+        defer a.free(words);
+        for (0..8) |i| words[i] = std.mem.readInt(u32, self.identity[4 * i ..][0..4], .little);
+        words[8] = @intCast(outputs.len);
+        for (outputs, 0..) |output, i| for (output.toM31Array(), 0..) |coordinate, j| {
+            words[9 + 4 * i + j] = coordinate.v;
+        };
+        channel.mixU32s(words);
         return channel;
     }
+
     pub fn interLogs(self: *const @This(), a: std.mem.Allocator) ![]u32 {
         const logs = try a.alloc(u32, H.interactionColumns());
         for (0..P.N_COMPONENTS) |i| {

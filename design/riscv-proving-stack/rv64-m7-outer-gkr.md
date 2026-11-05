@@ -158,3 +158,29 @@ composition auxiliary metadata has room for27row bits. Their complete image
 and Zig host integration build remains a production integration gate. The
 existing projected-gpu receipt command metadata also corrects the spelling
 of `--error-exitcode 99`; its preserved zero-error log is unchanged.
+
+## Resident controller handshake
+
+`hybrid_device.zig` is a concrete resident-only controller. An explicitly
+attached higher-layer extension must present the fixed tag and matching base
+factory context before its typed interface is read. The circuit CPU factory
+has a default-null opaque extension and never interprets this payload.
+
+The original MAIN/FIXED factory supplies its scoped resident trees. The new
+stage returns classic claims and a GKR section; the controller independently
+verifies GKR, derives strict late draws and checks shared lookup closure
+before calling the stage that creates/commits the128INTER columns. It then
+runs the ordinary prover engine with the hybrid components and source-owned
+resident composition. CPU composition fallback is an explicit error.
+
+Effective hybrid identity now occupies the single transcript public-identity
+slot; there is no unbound second base-identity guess for child circuits.
+Lane weights, targets and Eq anchors are derived by the same field-generic
+parameter authority on native OM31 and circuit wires. The actual OODS reader
+and those derived parameters are compared in the circuit gate.
+
+The exact-source controller gate passes29/29outerGKR,58/58registry,7/7fraction
+tests. It compiles the complete typed controller and exercises backend/tag/
+context refusal; it has not yet generated a full hybrid STARK. Concrete CUDA
+Source/AOT, wire, child verifier and dev-block proof gates are next. All APIs
+accept variable output slices and pin counts to the receiver's source key.
