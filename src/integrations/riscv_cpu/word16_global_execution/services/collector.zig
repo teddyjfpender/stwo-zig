@@ -133,6 +133,13 @@ pub const Builder = struct {
         if (self.shards.items.len == 0) return &.{};
         return self.shards.items[self.shards.items.len - 1].events;
     }
+    /// Borrowed slice owners are stable through finish/Advice destruction;
+    /// the Shard header itself is returned by value, never a pointer into the
+    /// builder's resizable array.
+    pub fn lastShard(self: *const Builder) !Shard {
+        if (self.shards.items.len == 0) return error.InvalidServiceCollectorPhase;
+        return self.shards.items[self.shards.items.len - 1];
+    }
     pub fn finish(self: *Builder) !Advice {
         if (self.failed or self.finished or self.shards.items.len == 0) return error.InvalidServiceCollectorPhase;
         const a = self.allocator;
@@ -209,7 +216,7 @@ fn mark(profile: ?*Profile) ?std.time.Instant {
     if (profile == null) return null;
     return std.time.Instant.now() catch null;
 }
-const Shard = struct {
+pub const Shard = struct {
     events: []LS.native.Event,
     keccak: []K.types.Call,
     secp: [2][]S.types.Call,
@@ -227,6 +234,25 @@ const Shard = struct {
         for (self.curves) |c| a.free(c);
         self.bulk.deinit(a);
         self.sponge.deinit(a);
+    }
+};
+/// Non-owning one-segment source view for local class/MAIN construction.
+/// Keep this header in a stable owner through all consumers; never deinit the
+/// returned Advice (the original ordered collector owns its payload slices).
+pub const OneShardView = struct {
+    events: [1][]LS.native.Event,
+    keccak: [1][]K.types.Call,
+    secp: [1][2][]S.types.Call,
+    sha256: [1][]S.types.Call,
+    arith256_mod: [1][]S.types.Call,
+    curves: [1]CurveCalls,
+    bulk: [1]BulkShard,
+    sponge: [1]SpongeShard,
+    pub fn init(shard: Shard) OneShardView {
+        return .{ .events = .{shard.events}, .keccak = .{shard.keccak}, .secp = .{shard.secp}, .sha256 = .{shard.sha256}, .arith256_mod = .{shard.arith256_mod}, .curves = .{shard.curves}, .bulk = .{shard.bulk}, .sponge = .{shard.sponge} };
+    }
+    pub fn advice(self: *OneShardView, a: std.mem.Allocator, initial: []Cell, terminal: []Cell) Advice {
+        return .{ .allocator = a, .events = &self.events, .keccak = &self.keccak, .secp = &self.secp, .sha256 = &self.sha256, .arith256_mod = &self.arith256_mod, .curves = &self.curves, .bulk = &self.bulk, .sponge = &self.sponge, .initial = initial, .terminal = terminal };
     }
 };
 /// Allocates the LS event array one CPU proof's shard will fill, already

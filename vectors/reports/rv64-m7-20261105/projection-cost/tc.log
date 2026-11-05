@@ -1,0 +1,15 @@
+1/14 trace_commit_cost.test.legacy commit charges separately retained coefficients and exact prefix banks...OK
+2/14 trace_commit_cost.test.stream commit allocation list matches the frozen numerical plan...OK
+3/14 trace_commit_cost.test.new hash ABI cannot reuse legacy trace allocation costs...OK
+4/14 trace_commit_cost.test.D2 trace uses legacy LDE arena then independently retained final coefficients...OK
+5/14 trace_stream_plan.test.plan covers every column once, chains seeds and fits the tree...OK
+6/14 trace_stream_plan.test.streaming peak is bounded independently of total evaluation width...OK
+7/14 trace_stream_plan.test.invalid geometry is rejected...OK
+8/14 trace_stream_plan.test.chunked progressive Blake2s equals one-shot absorption for every schedule...OK
+9/14 global_admission.test.native retention cannot consume the GKR successor headroom...OK
+10/14 global_admission.test.physical devices independent; active and stale tickets fail closed...OK
+11/14 global_admission.test.unknown costs, physical rounding, small slab and untracked owners...OK
+12/14 global_admission.test.host frontier charged globally and unavailable costs refused...OK
+13/14 global_admission.test.native usize allocation list uses exact arena bucket charges...OK
+14/14 global_admission.test.terminal pool destruction retires interrupted claims only after actual owner teardown...OK
+All 14 tests passed.

@@ -6,7 +6,7 @@ const R = @import("../roster.zig");
 const P = @import("../protocol.zig");
 const Worker = @import("cpu_worker.zig");
 const Manifest = @import("manifest.zig");
-pub const Mode = enum { normal, unretired, early_seal, parked_abort, later_worker_oom };
+pub const Mode = enum { normal, prepared_main, unretired, early_seal, parked_abort, later_worker_oom };
 pub const Storage = enum { resident, coefficients, fully_parked };
 pub fn exercise(comptime shard: usize, comptime mode: Mode, comptime storage: Storage) ![32]u8 {
     return exerciseProfile(shard, mode, storage, false);
@@ -106,7 +106,15 @@ pub fn exerciseWithBinding(comptime shard: usize, comptime mode: Mode, comptime 
     }
     var timing = Worker.SealTiming{};
     if (mode == .normal) worker.seal_timing = &timing;
+    var prepared_root: ?[32]u8 = null;
+    if (mode == .prepared_main) {
+        prepared_root = try worker.prepareMain(a);
+        try std.testing.expect(worker.main_committed and !worker.sealed and !worker.consumed);
+        try std.testing.expectError(error.WideCpuPhase, worker.prepareMain(a));
+        try std.testing.expectEqualSlices(u8, &prepared_root.?, &(try worker.preparedMainRoot()));
+    }
     const stage = try worker.seal(a);
+    if (prepared_root) |root| try std.testing.expectEqualSlices(u8, &root, &stage.main);
     if (mode == .normal) {
         try std.testing.expect(timing.main_commit_ns > 0 and timing.gkr_ns > 0);
         try std.testing.expect(timing.numerical_requested_peak_bytes > 0);
@@ -306,4 +314,12 @@ test "deferred CPU projection completes after retirement and full parking with b
     }
     _ = try exerciseWithBinding(0, .parked_abort, .fully_parked, false, true);
     _ = try exerciseWithBinding(0, .later_worker_oom, .fully_parked, false, true);
+}
+
+test "CPU MAIN committed before local GKR resumes byte-identically under beta1 and beta2" {
+    inline for ([_]bool{ false, true }) |beta2| {
+        const control = try exerciseWithBinding(0, .unretired, .resident, beta2, false);
+        const early = try exerciseWithBinding(0, .prepared_main, .resident, beta2, false);
+        try std.testing.expectEqualSlices(u8, &control, &early);
+    }
 }

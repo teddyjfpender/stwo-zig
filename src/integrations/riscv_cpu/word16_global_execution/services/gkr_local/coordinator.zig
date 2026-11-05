@@ -37,6 +37,8 @@ pub const WorkerTiming = struct {
     source_ready_ns: u64 = 0,
     seal_native_and_gkr_ns: u64 = 0,
     main_commit_ns: u64 = 0,
+    early_source_and_main_ns: u64 = 0,
+    early_main_commit_before_inventory: bool = false,
     gkr_ns: u64 = 0,
     inputs_ns: u64 = 0,
     numerical_ns: u64 = 0,
@@ -74,6 +76,7 @@ pub const Stream = struct {
     abort: *const fn (context: *anyopaque) void,
 };
 pub const Options = struct {
+    early_cpu0: ?*@import("../../ethereum/early_cpu0.zig").Owner = null,
     stream: ?Stream = null,
     cpu_replay_stage: ?@import("cpu_replay.zig").Stage = null,
     device_source_stage: ?Pipeline.DeviceSourceStage = null,
@@ -245,26 +248,37 @@ const Run = struct {
         };
         if (timing) |t| t.source_begin_ns = sinceEpoch(self.options.epoch);
         if (index < self.setups.len) {
-            var replay: ?@import("cpu_replay.zig").Owner = if (self.options.cpu_replay_stage) |stage| try stage.prepare(stage.context, self.a, .{ .setup = self.setups[index], .request = self.requests[index], .native = self.native[index], .advice = self.advice, .ordinal = index, .first_ids = self.inventory.first_ids[index], .scope = .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(index) } }) else null;
-            errdefer if (replay) |*owner| owner.deinit();
-            self.native[index].device_cpu_projection = self.options.device_cpu_projection;
-            self.native[index].device_cpu_scope = if (self.options.device_cpu_projection != null) .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(self.inventory.workers[index].ordinal) } else null;
-            var source = blk: {
-                // Observation only (lane rusage); never proof authority.
-                var scope = try @import("stwo_prover_api").stage_profile.StageScope.begin(if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index], "source_construction", "CPU witness source from native capture");
-                defer scope.end();
-                if (self.options.device_source_stage) |stage| break :blk try stage.invoke(self.a, .{ .setup = self.setups[index], .request = self.requests[index], .native = self.native[index], .advice = self.advice, .ordinal = index, .first_ids = self.inventory.first_ids[index], .scope = .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(index) } });
-                break :blk try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, self.inventory.first_ids[index], false, null);
-            };
-            if (timer) |*clock| timing.?.source_ns = clock.lap();
-            if (timing) |t| t.source_ready_ns = sinceEpoch(self.options.epoch);
-            var owned = true;
-            errdefer if (owned) source.deinit();
-            const worker = try CPU.CpuWorker.initWithAuthority(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget, if (self.fixed) |authority| authority.at(index) else null);
-            owned = false;
-            self.workers[index] = .{ .cpu = worker };
-            self.workers[index].?.cpu.replay = replay;
-            replay = null;
+            if (index == 0 and self.options.early_cpu0 != null) {
+                const early = self.options.early_cpu0.?;
+                self.workers[index] = .{ .cpu = try early.take(self.setups[index], self.requests[index], self.inventory.workers[index], self.config, self.inventory.first_ids[index]) };
+                if (timing) |value| {
+                    value.source_ns = early.source_end_utc_ns - early.source_begin_utc_ns;
+                    value.early_source_and_main_ns = self.workers[index].?.cpu.main_commit_end_utc_ns - early.source_begin_utc_ns;
+                    value.early_main_commit_before_inventory = true;
+                }
+                if (timer) |*clock| _ = clock.lap();
+            } else {
+                var replay: ?@import("cpu_replay.zig").Owner = if (self.options.cpu_replay_stage) |stage| try stage.prepare(stage.context, self.a, .{ .setup = self.setups[index], .request = self.requests[index], .native = self.native[index], .advice = self.advice, .ordinal = index, .first_ids = self.inventory.first_ids[index], .scope = .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(index) } }) else null;
+                errdefer if (replay) |*owner| owner.deinit();
+                self.native[index].device_cpu_projection = self.options.device_cpu_projection;
+                self.native[index].device_cpu_scope = if (self.options.device_cpu_projection != null) .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(self.inventory.workers[index].ordinal) } else null;
+                var source = blk: {
+                    // Observation only (lane rusage); never proof authority.
+                    var scope = try @import("stwo_prover_api").stage_profile.StageScope.begin(if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index], "source_construction", "CPU witness source from native capture");
+                    defer scope.end();
+                    if (self.options.device_source_stage) |stage| break :blk try stage.invoke(self.a, .{ .pcs_config = self.config, .setup = self.setups[index], .request = self.requests[index], .native = self.native[index], .advice = self.advice, .ordinal = index, .first_ids = self.inventory.first_ids[index], .scope = .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(index) } });
+                    break :blk try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, self.inventory.first_ids[index], false, null);
+                };
+                if (timer) |*clock| timing.?.source_ns = clock.lap();
+                if (timing) |t| t.source_ready_ns = sinceEpoch(self.options.epoch);
+                var owned = true;
+                errdefer if (owned) source.deinit();
+                const worker = try CPU.CpuWorker.initWithAuthority(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget, if (self.fixed) |authority| authority.at(index) else null);
+                owned = false;
+                self.workers[index] = .{ .cpu = worker };
+                self.workers[index].?.cpu.replay = replay;
+                replay = null;
+            }
             self.workers[index].?.cpu.device_trace_commit_stage = if (self.options.device_trace_commit_stage) |stage| stage.* else null;
             self.workers[index].?.cpu.device_global_stage = self.options.device_global_stage;
             self.workers[index].?.cpu.tree_policy = self.cpu_tree_policies[index];

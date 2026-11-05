@@ -23,6 +23,7 @@ fn hostGeometryBytes() usize {
     return if (bytes == 0) Export.GeometryCache.default_bytes else bytes;
 }
 pub const Context = struct {
+    early_allocations: @import("native_stage1_allocations.zig").Guard = .{},
     admission_progress: @import("admission_progress.zig").Registry = .{},
     /// Sibling lane sessions share the loaded module and physical arena, but
     /// own their service lock, streams, scope registry and retained cache.

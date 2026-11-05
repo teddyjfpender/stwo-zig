@@ -62,99 +62,104 @@ pub const CpuLayout = struct {
         return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3, .mul_u8_pairs = v3, .ls_fused_pairs = v3, .alu_fused_tail = v3, .ls_dword_fused_pairs = v3, .compact_decode = profile == .ethereum_services_v3 };
     }
 };
+/// One source-derived class declaration. Whole-inventory planning and early
+/// local class admission share this exact geometry/census authority. The RAM
+/// INITIAL count must be the complete first-pass/collector set, never a guess.
+pub fn cpuForSegment(n: *const @import("../../word16_execution/prepared.zig").Prepared, advice: *const @import("../services/collector.zig").Advice, ordinal: usize, total_segments: usize, initial_count: usize, layout: CpuLayout) !W.CpuDeclaration {
+    if (total_segments == 0 or ordinal >= total_segments or ordinal >= advice.events.len) return error.CanonRosterMismatch;
+    const boundary = try Coverage.minimalBoundaryLog(@intCast(initial_count));
+    var result: W.CpuDeclaration = undefined;
+    const d = &result;
+    var g = n.geometryOmittingEmptyDivision() catch |err| {
+        std.debug.print("RV64_PLAN_CAPACITY cpu_ordinal={d} memory={d} unique_words={d} alu={d} binary={d} shift={d} mul={d} div={d}\n", .{ ordinal, n.raw_counts.memory, n.unique_memory_words, n.alu.facts.len, n.binary.facts.len, n.shift.len, n.multiplication.len, n.division.len });
+        return err;
+    };
+    const events = advice.events[ordinal];
+    const dword: usize = if (layout.ls_dword) @import("../services/pipeline.zig").dwordCount(events) else 0;
+    const ls = try ladder(events.len - dword, 1);
+    g.ls_log = ls.head;
+    g.ls_tail_log = ls.tail;
+    const alu = try ladder(n.alu.facts.len, 0);
+    g.alu_log = alu.head;
+    g.alu_tail_log = alu.tail;
+    const binary = try ladder(n.binary.facts.len, 0);
+    g.binary_log = binary.head;
+    g.binary_tail_log = binary.tail;
+    const shift = try ladder(n.shift.len, 0);
+    g.shift_log = shift.head;
+    g.shift_tail_log = shift.tail;
+    g.boundary_log = 5;
+    g.initial_log = if (ordinal == 0) boundary else 5;
+    g.terminal_log = if (ordinal + 1 == total_segments) boundary else 5;
+    g.cpu_fused_tail = layout.fused_tail;
+    g.cpu_u8_pairs = layout.u8_pairs;
+    g.cpu_compact_decode = layout.compact_decode;
+    g.mul_u8_pairs = layout.mul_u8_pairs;
+    g.ls_fused_pairs = layout.ls_fused_pairs;
+    g.alu_fused_tail = layout.alu_fused_tail;
+    g.ls_dword_fused_pairs = layout.ls_dword_fused_pairs;
+    // A log-23 CPU segment (batch_steps >= 2^22) has only the wide-clock
+    // encoding, which is defined on the fused tail without byte pairs; the
+    // component pair layouts need the CPU pair column, so they go too.
+    if (g.wideClock()) {
+        g.cpu_fused_tail = true;
+        g.cpu_u8_pairs = false;
+        g.cpu_compact_decode = false;
+        g.mul_u8_pairs = false;
+        g.ls_fused_pairs = false;
+        g.ls_dword_fused_pairs = false;
+    }
+    d.* = .{ .geometry = g, .bridges = .{} };
+    // The same two-instance ladder as LS32 (one inactive row per instance).
+    if (dword != 0) {
+        const dl = try ladder(dword, 1);
+        d.bridges.ls_dword = dl.head;
+        d.bridges.ls_dword_tail = dl.tail;
+    }
+    const k = advice.keccak[ordinal].len;
+    const add = advice.secp[ordinal][0].len;
+    const double = advice.secp[ordinal][1].len;
+    if (k != 0) d.bridges.keccak = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, 25, k)));
+    if (add != 0) d.bridges.add = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.add), add)));
+    if (double != 0) d.bridges.double = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.double), double)));
+    const sha256 = advice.sha256[ordinal].len;
+    if (sha256 != 0) d.bridges.sha256 = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.sha256), sha256)));
+    const arith = advice.arith256_mod[ordinal].len;
+    if (arith != 0) d.bridges.arith256_mod = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.arith256_mod), arith)));
+    // v3 curve/field families: coordinates rows per call each.
+    const ST = @import("../services/types.zig");
+    for (advice.curves[ordinal], ST.FIRST_CURVE..) |calls, f| if (calls.len != 0) {
+        const family: ST.Family = @enumFromInt(f);
+        d.bridges.set(family, try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(ST.bridgeKind(family)), calls.len))));
+    };
+    // v3 bulk memory: one descriptor row per call, one body row per word.
+    const bulk = advice.bulk[ordinal].counts();
+    if (bulk.calls != 0) d.bridges.bulk.desc = try Coverage.minimalPrefixLog(bulk.calls);
+    if (bulk.copy_words != 0) d.bridges.bulk.copy = try Coverage.minimalPrefixLog(bulk.copy_words);
+    if (bulk.set_words != 0) d.bridges.bulk.set = try Coverage.minimalPrefixLog(bulk.set_words);
+    if (bulk.jump_calls != 0) {
+        d.bridges.bulk.jdesc = try Coverage.minimalPrefixLog(bulk.jump_calls);
+        d.bridges.bulk.jscan = try Coverage.minimalPrefixLog(bulk.jump_rows);
+        d.bridges.bulk.jtab = @import("stwo_riscv_frontend").rv64_air.crypto.bulk_memory.types.TABLE_LOG;
+    }
+    // Extension: unaligned copy rows, memcmp descriptors and compared words.
+    if (bulk.ucopy_rows != 0) d.bridges.bulk.ucopy = try Coverage.minimalPrefixLog(bulk.ucopy_rows);
+    if (bulk.cmp_calls != 0) d.bridges.bulk.cdesc = try Coverage.minimalPrefixLog(bulk.cmp_calls);
+    if (bulk.cmp_words != 0) d.bridges.bulk.cmp = try Coverage.minimalPrefixLog(bulk.cmp_words);
+    // v3 Keccak sponge: one call row per ECALL, one row per permutation.
+    const sponge = advice.sponge[ordinal].counts();
+    if (sponge.calls != 0) d.bridges.sponge.call = @max(5, try Coverage.minimalPrefixLog(sponge.calls));
+    if (sponge.perms != 0) d.bridges.sponge.perm = @max(5, try Coverage.minimalPrefixLog(sponge.perms));
+    // v3_zbb: one Zbb BINARY row per distinct Zbb FUNCTION fact (pure
+    // truth provider, every row may be active), only when the shard has one.
+    if (n.zbb.facts.len != 0) d.bridges.zbb = try Coverage.minimalLog(@intCast(n.zbb.facts.len));
+    try g.validate();
+    return result;
+}
 pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) ![]W.CpuDeclaration {
     const out = try a.alloc(W.CpuDeclaration, captured.native.items.len);
     errdefer a.free(out);
-    const boundary = Coverage.minimalBoundaryLog(@intCast(captured.advice.initial.len)) catch |err| {
-        std.debug.print("RV64_PLAN_CAPACITY execution_boundary_words={d}\n", .{captured.advice.initial.len});
-        return err;
-    };
-    for (captured.native.items, out, 0..) |n, *d, i| {
-        var g = n.geometryOmittingEmptyDivision() catch |err| {
-            std.debug.print("RV64_PLAN_CAPACITY cpu_ordinal={d} memory={d} unique_words={d} alu={d} binary={d} shift={d} mul={d} div={d}\n", .{ i, n.raw_counts.memory, n.unique_memory_words, n.alu.facts.len, n.binary.facts.len, n.shift.len, n.multiplication.len, n.division.len });
-            return err;
-        };
-        const events = captured.advice.events[i];
-        const dword: usize = if (layout.ls_dword) @import("../services/pipeline.zig").dwordCount(events) else 0;
-        const ls = try ladder(events.len - dword, 1);
-        g.ls_log = ls.head;
-        g.ls_tail_log = ls.tail;
-        const alu = try ladder(n.alu.facts.len, 0);
-        g.alu_log = alu.head;
-        g.alu_tail_log = alu.tail;
-        const binary = try ladder(n.binary.facts.len, 0);
-        g.binary_log = binary.head;
-        g.binary_tail_log = binary.tail;
-        const shift = try ladder(n.shift.len, 0);
-        g.shift_log = shift.head;
-        g.shift_tail_log = shift.tail;
-        g.boundary_log = 5;
-        g.initial_log = if (i == 0) boundary else 5;
-        g.terminal_log = if (i + 1 == out.len) boundary else 5;
-        g.cpu_fused_tail = layout.fused_tail;
-        g.cpu_u8_pairs = layout.u8_pairs;
-        g.cpu_compact_decode = layout.compact_decode;
-        g.mul_u8_pairs = layout.mul_u8_pairs;
-        g.ls_fused_pairs = layout.ls_fused_pairs;
-        g.alu_fused_tail = layout.alu_fused_tail;
-        g.ls_dword_fused_pairs = layout.ls_dword_fused_pairs;
-        // A log-23 CPU segment (batch_steps >= 2^22) has only the wide-clock
-        // encoding, which is defined on the fused tail without byte pairs; the
-        // component pair layouts need the CPU pair column, so they go too.
-        if (g.wideClock()) {
-            g.cpu_fused_tail = true;
-            g.cpu_u8_pairs = false;
-            g.cpu_compact_decode = false;
-            g.mul_u8_pairs = false;
-            g.ls_fused_pairs = false;
-            g.ls_dword_fused_pairs = false;
-        }
-        d.* = .{ .geometry = g, .bridges = .{} };
-        // The same two-instance ladder as LS32 (one inactive row per instance).
-        if (dword != 0) {
-            const dl = try ladder(dword, 1);
-            d.bridges.ls_dword = dl.head;
-            d.bridges.ls_dword_tail = dl.tail;
-        }
-        const k = captured.advice.keccak[i].len;
-        const add = captured.advice.secp[i][0].len;
-        const double = captured.advice.secp[i][1].len;
-        if (k != 0) d.bridges.keccak = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, 25, k)));
-        if (add != 0) d.bridges.add = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.add), add)));
-        if (double != 0) d.bridges.double = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.double), double)));
-        const sha256 = captured.advice.sha256[i].len;
-        if (sha256 != 0) d.bridges.sha256 = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.sha256), sha256)));
-        const arith = captured.advice.arith256_mod[i].len;
-        if (arith != 0) d.bridges.arith256_mod = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.arith256_mod), arith)));
-        // v3 curve/field families: coordinates rows per call each.
-        const ST = @import("../services/types.zig");
-        for (captured.advice.curves[i], ST.FIRST_CURVE..) |calls, f| if (calls.len != 0) {
-            const family: ST.Family = @enumFromInt(f);
-            d.bridges.set(family, try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(ST.bridgeKind(family)), calls.len))));
-        };
-        // v3 bulk memory: one descriptor row per call, one body row per word.
-        const bulk = captured.advice.bulk[i].counts();
-        if (bulk.calls != 0) d.bridges.bulk.desc = try Coverage.minimalPrefixLog(bulk.calls);
-        if (bulk.copy_words != 0) d.bridges.bulk.copy = try Coverage.minimalPrefixLog(bulk.copy_words);
-        if (bulk.set_words != 0) d.bridges.bulk.set = try Coverage.minimalPrefixLog(bulk.set_words);
-        if (bulk.jump_calls != 0) {
-            d.bridges.bulk.jdesc = try Coverage.minimalPrefixLog(bulk.jump_calls);
-            d.bridges.bulk.jscan = try Coverage.minimalPrefixLog(bulk.jump_rows);
-            d.bridges.bulk.jtab = @import("stwo_riscv_frontend").rv64_air.crypto.bulk_memory.types.TABLE_LOG;
-        }
-        // Extension: unaligned copy rows, memcmp descriptors and compared words.
-        if (bulk.ucopy_rows != 0) d.bridges.bulk.ucopy = try Coverage.minimalPrefixLog(bulk.ucopy_rows);
-        if (bulk.cmp_calls != 0) d.bridges.bulk.cdesc = try Coverage.minimalPrefixLog(bulk.cmp_calls);
-        if (bulk.cmp_words != 0) d.bridges.bulk.cmp = try Coverage.minimalPrefixLog(bulk.cmp_words);
-        // v3 Keccak sponge: one call row per ECALL, one row per permutation.
-        const sponge = captured.advice.sponge[i].counts();
-        if (sponge.calls != 0) d.bridges.sponge.call = @max(5, try Coverage.minimalPrefixLog(sponge.calls));
-        if (sponge.perms != 0) d.bridges.sponge.perm = @max(5, try Coverage.minimalPrefixLog(sponge.perms));
-        // v3_zbb: one Zbb BINARY row per distinct Zbb FUNCTION fact (pure
-        // truth provider, every row may be active), only when the shard has one.
-        if (n.zbb.facts.len != 0) d.bridges.zbb = try Coverage.minimalLog(@intCast(n.zbb.facts.len));
-        try g.validate();
-    }
+    for (captured.native.items, out, 0..) |n, *d, i| d.* = try cpuForSegment(n, &captured.advice, i, out.len, captured.advice.initial.len, layout);
     return out;
 }
 pub const KeccakPolicy = A.crypto.keccak.equations.BatchPolicy;
@@ -826,41 +831,47 @@ pub fn canonicalCpus(captured: *const Capture, layout: CpuLayout, decls: []W.Cpu
 /// omitted); a segment no rung holds is an error, never unclassed.
 pub fn canonicalCpusMode(captured: *const Capture, layout: CpuLayout, decls: []W.CpuDeclaration, table: anytype, classes: []CanonClass, strict: bool) !void {
     if (decls.len != captured.native.items.len or classes.len != decls.len) return error.CanonRosterMismatch;
-    for (captured.native.items, decls, classes, 0..) |n, *d, *class, i| {
-        const family = Canon.Family.cpu(i, decls.len);
-        const rungs = for (table.CPU) |e| {
-            if (e.family == family) break e.rungs;
-        } else return error.CanonFamilyMissing;
-        const events = captured.advice.events[i];
-        const dword: usize = if (layout.ls_dword) @import("../services/pipeline.zig").dwordCount(events) else 0;
-        const actual = Canon.cpuVector(d.*);
-        var chosen: ?W.CpuDeclaration = null;
-        for (rungs, 0..) |rung, r| {
-            const counts = [5]usize{ n.alu.facts.len, n.binary.facts.len, n.shift.len, events.len - dword, dword };
-            if (if (strict) canonFitStrict(d.*, actual, rung, counts, layout.ls_dword) else canonFit(d.*, actual, rung, counts)) |padded| {
-                chosen = padded;
-                class.* = .{ .family = family, .rung = @intCast(r) };
-                break;
-            }
+    for (captured.native.items, decls, classes, 0..) |n, *d, *class, i| class.* = try canonicalCpuForSegment(n, captured.advice.events[i], layout, d, i, decls.len, table, strict);
+}
+/// Same receiver-owned rung/role policy for a single known segment. No
+/// producer-selected layout or hypothetical INITIAL capacity is accepted.
+pub fn canonicalCpuForSegment(n: *@import("../../word16_execution/prepared.zig").Prepared, events: []const @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event, layout: CpuLayout, d: *W.CpuDeclaration, ordinal: usize, total_segments: usize, table: anytype, strict: bool) !CanonClass {
+    if (total_segments == 0 or ordinal >= total_segments) return error.CanonRosterMismatch;
+    var result: CanonClass = undefined;
+    const class = &result;
+    const family = Canon.Family.cpu(ordinal, total_segments);
+    const rungs = for (table.CPU) |e| {
+        if (e.family == family) break e.rungs;
+    } else return error.CanonFamilyMissing;
+    const dword: usize = if (layout.ls_dword) @import("../services/pipeline.zig").dwordCount(events) else 0;
+    const actual = Canon.cpuVector(d.*);
+    var chosen: ?W.CpuDeclaration = null;
+    for (rungs, 0..) |rung, r| {
+        const counts = [5]usize{ n.alu.facts.len, n.binary.facts.len, n.shift.len, events.len - dword, dword };
+        if (if (strict) canonFitStrict(d.*, actual, rung, counts, layout.ls_dword) else canonFit(d.*, actual, rung, counts)) |padded| {
+            chosen = padded;
+            class.* = .{ .family = family, .rung = @intCast(r) };
+            break;
         }
-        // No admissible rung (e.g. a short last segment whose cpu_log no rung
-        // carries): keep the planned declaration, reported as unclassed.
-        d.* = chosen orelse {
-            if (strict) {
-                std.debug.print("RV64_CANON_STRICT_NOFIT ordinal={d} family={s} vector={any}\n", .{ i, @tagName(family), actual });
-                return error.NativeChainNotStrict;
-            }
-            class.* = .{ .family = family, .rung = UNCLASSED };
-            continue;
-        };
-        try d.geometry.validate();
-        // The JALR source is the only capture-time sized component (facts only,
-        // MAIN not yet materialized): rebind its log to the padded class.
-        if (n.jalr) |*j| {
-            if (j.main.len != 0 or j.fixed.len != 0 or j.facts.len > (@as(usize, 1) << @intCast(d.geometry.jalr_log))) return error.CanonJalrRebind;
-            j.log_size = d.geometry.jalr_log;
-        } else return error.CanonJalrRebind;
     }
+    // No admissible rung (e.g. a short last segment whose cpu_log no rung
+    // carries): keep the planned declaration, reported as unclassed.
+    d.* = chosen orelse {
+        if (strict) {
+            std.debug.print("RV64_CANON_STRICT_NOFIT ordinal={d} family={s} vector={any}\n", .{ ordinal, @tagName(family), actual });
+            return error.NativeChainNotStrict;
+        }
+        class.* = .{ .family = family, .rung = UNCLASSED };
+        return result;
+    };
+    try d.geometry.validate();
+    // The JALR source is the only capture-time sized component (facts only,
+    // MAIN not yet materialized): rebind its log to the padded class.
+    if (n.jalr) |*j| {
+        if (j.main.len != 0 or j.fixed.len != 0 or j.facts.len > (@as(usize, 1) << @intCast(d.geometry.jalr_log))) return error.CanonJalrRebind;
+        j.log_size = d.geometry.jalr_log;
+    } else return error.CanonJalrRebind;
+    return result;
 }
 const PAIRS = [_]struct { head: usize, tail: usize, reserve: u32 }{
     .{ .head = 1, .tail = 2, .reserve = 0 }, // alu

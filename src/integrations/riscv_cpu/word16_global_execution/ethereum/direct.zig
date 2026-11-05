@@ -52,6 +52,11 @@ pub const Stats = struct {
     /// thread), and how long `capture` then waited for it.
     start_boot_ns: u64 = 0,
     start_join_ns: u64 = 0,
+    fast_ram_words: u64 = 0,
+    fast_ram_derive_ns: u64 = 0,
+    fast_ram_ready_utc_ns: u64 = 0,
+    fast_ram_compared: bool = false,
+    fast_ram_keccak_calls: u64 = 0,
 };
 pub const MAX_READY_TIMES = 32;
 /// Records each segment's ready instant into `Stats`, then forwards to the
@@ -59,6 +64,10 @@ pub const MAX_READY_TIMES = 32;
 const ReadyTap = struct {
     stats: *Stats,
     inner: ?Capture.Ready,
+    fn nativeSegment(raw: *anyopaque, index: usize, native: *const Native, shard: @import("../services/collector.zig").Shard, at_ns: u64) void {
+        const self: *ReadyTap = @ptrCast(@alignCast(raw));
+        if (self.inner) |hook| if (hook.native_segment) |invoke| invoke(hook.context, index, native, shard, at_ns);
+    }
     fn call(context: *anyopaque, index: usize, native: *const Native, events: []const @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event, at_ns: u64) void {
         const self: *ReadyTap = @ptrCast(@alignCast(context));
         if (index < MAX_READY_TIMES) self.stats.segment_ready_ns[index] = at_ns;
@@ -256,6 +265,7 @@ pub fn capture(a: std.mem.Allocator, image: *const Image.Owner, program: *const 
 pub fn captureWithSegments(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, prefix_packets: u32, inflight: u8, segment_workers: u8, stats: *Stats) !Capture.Owner {
     if (prefix_packets > 256) return error.TooManyEthereumPackets;
     if (inflight == 0 or inflight > MAX_INFLIGHT) return error.InvalidEthereumCaptureOptions;
+    if (Segments.ramFirstPassEnabled() and (prefix_packets != 0 or segment_workers == 0)) return error.FirstPassRamRequiresWholeSegmentedBlock;
     var started = try Started.start(a, config, prefix_packets, segment_workers);
     defer started.deinit(stats);
     return started.capture(image, program, inflight, stats);
@@ -352,15 +362,55 @@ pub const Started = struct {
         return run(self.allocator, image, program, self.config, self.prefix_packets, inflight, self.walk.?, &self.source.?, self.ready, stats);
     }
 };
+const RamJob = struct {
+    allocator: std.mem.Allocator,
+    image: *const Image.Owner,
+    source: *Segments.Source,
+    stats: *Stats,
+    hook: ?Capture.Ready,
+    cells: ?[]@import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell = null,
+    failure: ?anyerror = null,
+    thread: ?std.Thread = null,
+    fn run(self: *RamJob) void {
+        self.work() catch |err| {
+            self.failure = err;
+        };
+    }
+    fn join(self: *RamJob) void {
+        if (self.thread) |thread| thread.join();
+        self.thread = null;
+    }
+    fn work(self: *RamJob) !void {
+        const ram = try self.source.globalRam();
+        var timer = try std.time.Timer.start();
+        const a = self.allocator;
+        const keys = try ram.words.sorted(a);
+        defer a.free(keys);
+        const Cell = @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell;
+        const cells = try a.alloc(Cell, keys.len);
+        self.cells = cells;
+        var pages = @import("../collector.zig").OwnerPages{ .owner = self.image };
+        const pinned = @import("../../word16_execution/memory/statement.zig").fromOwner(self.image);
+        for (keys, cells) |key, *cell| cell.* = .{ .address = key, .state = pages.lookup(key) orelse .{ .value = try self.image.initialWord(key), .rights = try pinned.wordRights(key) } };
+        self.stats.fast_ram_words = cells.len;
+        self.stats.fast_ram_derive_ns = timer.read();
+        self.stats.fast_ram_ready_utc_ns = @intCast(std.time.nanoTimestamp());
+        self.stats.fast_ram_keccak_calls = ram.counters.keccak;
+        std.debug.print("GPU_FAST_RAM event=initial_ready utc_ns={} words={} derive_ns={} keccak_calls={}\n", .{ self.stats.fast_ram_ready_utc_ns, cells.len, self.stats.fast_ram_derive_ns, ram.counters.keccak });
+        if (self.hook) |hook| if (hook.global_ram) |call| call(hook.context, cells, .{ .counters = ram.counters, .total_steps = ram.total_steps, .final_pc = ram.final_pc });
+    }
+};
+
 fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, prefix_packets: u32, inflight: u8, walk: *Walk, source: *Segments.Source, ready: ?Capture.Ready, stats: *Stats) !Capture.Owner {
     if (inflight == 0 or inflight > MAX_INFLIGHT) return error.InvalidEthereumCaptureOptions;
+    if (Segments.ramFirstPassEnabled() and (prefix_packets != 0 or source.segments == null)) return error.FirstPassRamRequiresWholeSegmentedBlock;
     var ordered = Capture.Ordered.init(a, image, config, prefix_packets);
     defer ordered.deinit();
     // Queue cleanup below joins all readiness publishers first. Then cancel
     // their asynchronous readers BEFORE ordered.deinit frees captured values.
     errdefer if (ready) |hook| if (hook.cancel) |cancel| cancel(hook.context);
     var tap = ReadyTap{ .stats = stats, .inner = ready };
-    ordered.on_ready = .{ .context = &tap, .call = ReadyTap.call };
+    ordered.on_ready = .{ .context = &tap, .call = ReadyTap.call, .native_segment = ReadyTap.nativeSegment };
     var queue = Queue{};
     var consumer = Consumer{ .queue = &queue, .ordered = &ordered };
     const concurrent = inflight > 1;
@@ -373,6 +423,49 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
         consumer.run(); // frees any job left after an early exit
     }
     var timer = try std.time.Timer.start();
+    var ram_job = RamJob{ .allocator = a, .image = image, .source = source, .stats = stats, .hook = ready };
+    var stack = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.ExternalReservation.empty();
+    defer stack.deinit();
+    if (Segments.ramFirstPassEnabled()) {
+        const stack_bytes: usize = 2 << 20;
+        if (ready) |hook| {
+            if (hook.ram_stack_budget) |budget| stack = try budget.reserveExternal(stack_bytes) else if (hook.require_ram_stack_budget) return error.SharedExternalBudgetRequired;
+        }
+        ram_job.thread = try std.Thread.spawn(.{ .stack_size = stack_bytes }, RamJob.run, .{&ram_job});
+    }
+    // A failed capture can leave the first pass under bounded checkpoint
+    // backpressure. Cancel it before joining this waiter, while all Source
+    // owners still live, so no path waits for a consumer that has stopped.
+    defer {
+        if (ram_job.thread != null) {
+            // A global-RAM consumer may be waiting for local capture. Wake it
+            // before joining; publishers and all input owners still live.
+            if (ready) |hook| if (hook.cancel) |cancel| cancel(hook.context);
+            source.cancelFirstPass();
+        }
+        ram_job.join();
+        if (ram_job.cells) |cells| a.free(cells);
+    }
+    if (ready) |hook| if (hook.first_pass) |early| {
+        const minimal = try source.firstMinimalCpu();
+        const public = @import("stwo_riscv_frontend").rv64_air.word16_execution.types.Boundary{
+            .steps = @intCast(minimal.trace.len),
+            .initial_pc = minimal.initial.pc,
+            .final_pc = minimal.final.pc,
+            .initial_registers = minimal.initial.regs,
+            .final_registers = minimal.final.regs,
+            .register_clocks = minimal.trace.clocks,
+        };
+        const first = @import("../../word16_execution/cpu_source.zig").FirstPass{
+            .program = program,
+            .public = public,
+            .epoch = 1,
+            .log_size = try @import("../../word16_execution/coverage.zig").minimalCpuLog(public.steps),
+            .trace = minimal.trace,
+        };
+        std.debug.print("GPU_CPU_MINIMAL event=before_traced_capture utc_ns={} records={}\n", .{ std.time.nanoTimestamp(), minimal.trace.len });
+        early(hook.context, &first);
+    };
     var failure: ?anyerror = null;
     while (!queue.isStopped()) {
         const started = timer.read();
@@ -425,5 +518,17 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
     if (failure) |err| return err;
     if (consumer.err) |err| return err;
     stats.max_inflight = @max(1, stats.max_inflight);
-    return ordered.finish(.{ .max_inflight_packets = stats.max_inflight, .max_worker_shards = stats.max_inflight });
+    var result = try ordered.finish(.{ .max_inflight_packets = stats.max_inflight, .max_worker_shards = stats.max_inflight });
+    errdefer result.deinit();
+    ram_job.join();
+    if (ram_job.failure) |err| return err;
+    if (ram_job.cells) |cells| {
+        if (cells.len != result.advice.initial.len) {
+            std.debug.print("GPU_FAST_RAM mismatch first_pass={} collector={}\n", .{ cells.len, result.advice.initial.len });
+            return error.FirstPassRamMismatch;
+        }
+        for (cells, result.advice.initial) |early, final| if (!std.meta.eql(early, final)) return error.FirstPassRamMismatch;
+        stats.fast_ram_compared = true;
+    }
+    return result;
 }

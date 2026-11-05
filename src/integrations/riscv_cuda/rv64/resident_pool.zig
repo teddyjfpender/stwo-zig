@@ -34,6 +34,7 @@ pub const Pool = struct {
         composition: @import("resident_composition.zig").Context,
         trace: @import("trace_commit.zig").Context,
         projection: @import("cpu_projection.zig").Context,
+        early_admission: @import("native_stage1_admission.zig").Context,
         core_source: @import("core_witness.zig").Context,
         bridge: @import("bridge_witness.zig").Context,
         bulk_sponge: @import("bulk_sponge.zig").Context,
@@ -57,6 +58,12 @@ pub const Pool = struct {
             errdefer self.trace.deinit();
             self.projection = try @import("cpu_projection.zig").Context.init(&self.native);
             errdefer self.projection.deinit();
+            if (self.trace.freeze_allocation_plan) {
+                // Pool allocator lives through warm requests and cache teardown.
+                self.trace.host_allocator = a;
+                self.projection.host_allocator = a;
+            }
+            self.early_admission = .{ .service = &self.native, .trace = &self.trace, .projection = &self.projection, .physical = id };
             self.global_interaction = try @import("global_stage.zig").Context.init(&self.native);
             errdefer self.global_interaction.deinit();
             self.core_source = try @import("core_witness.zig").Context.init(&self.native, &self.projection);
@@ -69,6 +76,7 @@ pub const Pool = struct {
             self.truth_composition = try self.composition.truthStage();
         }
         fn deinit(self: *Device) void {
+            self.early_admission.deinit();
             self.cpu_replay.deinit();
             self.truth_source.deinit();
             self.global_interaction.deinit();
@@ -143,9 +151,18 @@ pub const Pool = struct {
     }
     pub fn stages(self: *Pool) CPU.rv64_ethereum_gkr_main.ResidentStages {
         var result = CPU.rv64_ethereum_gkr_main.ResidentStages{ .source = self.source, .truth_source = self.truth_source, .truth_composition = self.truth_composition, .global_interaction = self.global_interaction, .pcs = &self.pcs, .numerical = &self.numerical, .resident_composition = &self.composition, .trace_commit = &self.trace_commit, .cpu_projection = self.projection };
+        // host_budget stays unavailable until the request owner supplies its
+        // actual SharedHostBudget. The early orchestrator refuses a null owner.
+        result.early_memory = .{ .context = self, .reserve = reserveEarly };
         if (comptime @hasField(CPU.rv64_ethereum_gkr_main.ResidentStages, "truth_pcs")) result.truth_pcs = &self.truth_pcs;
         if (std.process.hasEnvVarConstant("STWO_RV64_GPU_CPU_REPLAY")) result.cpu_replay = self.router.cpuReplayStage();
         return result;
+    }
+    fn reserveEarly(raw: *anyopaque, a: std.mem.Allocator, request: CPU.rv64_device_source_stage.Request, config: @import("stwo_core").pcs.ForField(D.O).PcsConfig, budget: *@import("stwo_prover_engine").host_budget_allocator.SharedHostBudget) !CPU.rv64_ethereum_gkr_main.EarlyCPU.Ticket {
+        const self: *Pool = @ptrCast(@alignCast(raw));
+        if (request.ordinal != 0 or self.devices.len == 0) return error.EarlyStageAdmissionUnavailable;
+        const stage = self.devices[0].early_admission.stage();
+        return stage.reserve(stage.context, a, request, config, budget);
     }
     pub fn deinit(self: *Pool) void {
         const a = self.allocator;

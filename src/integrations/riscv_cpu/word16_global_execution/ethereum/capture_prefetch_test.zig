@@ -461,6 +461,12 @@ test "fast first pass + parallel segment walks equal the serial walk (native job
                 try same(&serial, &direct);
                 try std.testing.expectEqualDeep(digestOf(&image_owner, &serial), digestOf(&image_owner, &direct));
                 try std.testing.expectEqual(@as(u32, @intCast(serial.native.items.len)), stats.segments.?.segments);
+                if (@import("../../rv64_ethereum_segments.zig").minimalFirstPassEnabled()) {
+                    try std.testing.expect(stats.segments.?.minimal_cpu0_checked);
+                    try std.testing.expectEqual(@as(u64, @min(batch_steps, serial.total_steps)), stats.segments.?.minimal_cpu0_records);
+                    try std.testing.expectEqual(@as(u64, @min(batch_steps, serial.total_steps)) * 16 + 384, stats.segments.?.minimal_cpu0_bytes);
+                    try std.testing.expect(stats.segments.?.minimal_cpu0_ready_utc_ns > 0);
+                }
             };
         }
     };
@@ -794,4 +800,23 @@ test "capture failure joins readiness reader before destroying captured metadata
     try std.testing.expectError(error.MissingEthereumTerminalPacket, started.capture(&image_owner, &program, 2, &stats));
     try std.testing.expectEqual(@as(usize, 1), borrowed.cancellations);
     try std.testing.expect(borrowed.checked);
+}
+
+test "whole fast-pass RAM INITIAL equals final collector including zero-valued words" {
+    if (!@import("../../rv64_ethereum_segments.zig").ramFirstPassEnabled()) return;
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    const config = fixture.config();
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    var program = try Program.initWithAuthority(a, &image_owner.authority);
+    defer program.deinit();
+    for ([_]u8{ 1, 3 }) |workers| {
+        var stats: Direct.Stats = .{};
+        var direct = try Direct.captureWithSegments(a, &image_owner, &program, config, 0, 2, workers, &stats);
+        defer direct.deinit();
+        try std.testing.expect(stats.fast_ram_compared);
+        try std.testing.expectEqual(@as(u64, direct.advice.initial.len), stats.fast_ram_words);
+        try std.testing.expect(stats.fast_ram_ready_utc_ns > 0);
+    }
 }

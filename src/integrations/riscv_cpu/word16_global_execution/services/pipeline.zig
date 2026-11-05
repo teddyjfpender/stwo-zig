@@ -28,6 +28,10 @@ pub const DeviceSourceStage = struct {
         ordinal: usize,
         first_ids: [T.FAMILIES]u32,
         scope: @import("stwo_prover_api").device_pcs.Scope,
+        /// Producer-only, source-owned geometry for global GPU admission.
+        /// Missing configuration refuses before the first Source allocation
+        /// when admission is enabled; it is never inferred from proof bytes.
+        pcs_config: ?@import("gkr_local/worker_protocol.zig").PcsConfig = null,
     };
     context: *anyopaque,
     build: *const fn (*anyopaque, std.mem.Allocator, Request) anyerror!R.Sources,

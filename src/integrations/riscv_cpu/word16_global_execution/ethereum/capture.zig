@@ -40,10 +40,20 @@ pub const Timing = struct {
 /// block here (the ledger of the next segment waits). Scheduling only: the
 /// hook observes data and never changes it, so outputs are byte-identical
 /// with or without it.
+pub const GlobalRamInfo = struct { counters: @import("stwo_riscv_frontend").rv64.checkpoint.Counters, total_steps: u64, final_pc: u64 };
 pub const Ready = struct {
     context: *anyopaque,
     call: *const fn (context: *anyopaque, index: usize, native: *const Native, events: []const LS.native.Event, at_ns: u64) void,
     cancel: ?*const fn (*anyopaque) void = null,
+    /// Runs before source.next waits for traced CPU0. Borrowed for this call
+    /// only, not until Owner.deinit; asynchronous readers must own a copy.
+    first_pass: ?*const fn (*anyopaque, *const @import("../../word16_execution/cpu_source.zig").FirstPass) void = null,
+    /// Whole first-pass GLOBAL INITIAL, derived from the pinned initial image.
+    /// Called on a bounded one-request helper; data borrowed for this call only.
+    global_ram: ?*const fn (*anyopaque, []const @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell, GlobalRamInfo) void = null,
+    native_segment: ?*const fn (*anyopaque, usize, *const Native, Collector.Shard, u64) void = null,
+    ram_stack_budget: ?*@import("stwo_prover_engine").host_budget_allocator.SharedHostBudget = null,
+    require_ram_stack_budget: bool = false,
 };
 pub const Owner = struct {
     capture_schedule: ScheduleStats = .{},
@@ -187,7 +197,10 @@ pub const Ordered = struct {
         // The ledger and service advice own all predecessor/call data.
         // MAIN/INTER generation retains its separate CPU metadata.
         n.cpu.?.releaseCaptureRecords();
-        if (self.on_ready) |ready| ready.call(ready.context, self.next_index, n, self.collector.lastEvents(), ledger_end);
+        if (self.on_ready) |ready| {
+            ready.call(ready.context, self.next_index, n, self.collector.lastEvents(), ledger_end);
+            if (ready.native_segment) |call| call(ready.context, self.next_index, n, try self.collector.lastShard(), ledger_end);
+        }
         self.next_index += 1;
         if ((self.prefix_packets != 0 and self.next_index == self.prefix_packets) or (self.prefix_packets == 0 and self.pc == self.image.terminal_pc)) {
             self.done = true;

@@ -295,7 +295,13 @@ pub const Router = struct {
         return stage.invoke(a, request);
     }
     pub fn projectionStage(self: *Router) Source.ProjectionStage {
-        return .{ .context = self, .project = projection, .prestage = prestage, .join_prestage = joinPrestage, .cancel_prestage = cancelPrestage };
+        return .{ .context = self, .project = projection, .prestage = prestage, .prestage_first_pass = prestageFirstPass, .join_prestage = joinPrestage, .cancel_prestage = cancelPrestage };
+    }
+    fn prestageFirstPass(raw: *anyopaque, source: *const Source.FirstPass, identity: [32]u8) void {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        if (self.endpoints.len == 0) return;
+        const stage = self.endpoints[0].projection;
+        if (stage.prestage_first_pass) |run| run(stage.context, source, identity);
     }
     fn prestage(raw: *anyopaque, source: *const Source.Source, identity: [32]u8) void {
         const self: *Router = @ptrCast(@alignCast(raw));

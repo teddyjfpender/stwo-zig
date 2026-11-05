@@ -217,6 +217,10 @@ pub const CpuWorker = struct {
     gkr_budget: usize,
     tree_policy: ?Child.TreePolicy = null,
     defer_local_binding: bool = false,
+    main_committed: bool = false,
+    main_commit_ns: u64 = 0,
+    main_commit_begin_utc_ns: u64 = 0,
+    main_commit_end_utc_ns: u64 = 0,
     sealed: bool = false,
     consumed: bool = false,
     owns_scheme: bool = true,
@@ -308,11 +312,16 @@ pub const CpuWorker = struct {
     fn mainRoot(self: *const CpuWorker) [32]u8 {
         return if (self.scheme.device_om31_trace_trees[1]) |tree| tree.root else self.scheme.trees.items[1].root();
     }
-    pub fn seal(self: *CpuWorker, a: std.mem.Allocator) !Manifest.StageOne {
+    /// Commit original MAIN using ONLY the locally source-admitted worker.
+    /// No global challenge, physical proof, manifest, bundle or output is
+    /// published here. An early owner must reserve the complete static class
+    /// envelope before calling and discard on global-inventory disagreement.
+    /// seal() resumes from this exact scheme/channel without recommitting.
+    pub fn prepareMain(self: *CpuWorker, a: std.mem.Allocator) ![32]u8 {
         if (!@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, self.allocator)) return error.WideCpuAllocatorMismatch;
-        if (self.sealed or self.consumed) return error.WideCpuPhase;
-        var clock: ?std.time.Timer = if (self.seal_timing != null) try std.time.Timer.start() else null;
-        if (self.seal_timing) |output| output.* = .{};
+        if (self.main_committed or self.sealed or self.consumed) return error.WideCpuPhase;
+        var clock = try std.time.Timer.start();
+        self.main_commit_begin_utc_ns = @intCast(std.time.nanoTimestamp());
         // Failure consumes the worker: owned commitment consumes storage on errors too.
         self.consumed = true;
         if (self.fixed_authority) |*binding| try binding.append(a, &self.setup.key, self.expected.fixed, &self.scheme, &self.channel) else try W.appendFixed(a, &self.setup.key, self.expected.fixed, &self.scheme, &self.channel);
@@ -335,8 +344,26 @@ pub const CpuWorker = struct {
             const main = try self.source.takeMain(self.setup);
             try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, self.native_recorder, &self.channel);
         }
+        self.main_commit_ns = clock.read();
+        self.main_commit_end_utc_ns = @intCast(std.time.nanoTimestamp());
+        self.main_committed = true;
+        self.consumed = false;
+        return self.mainRoot();
+    }
+    pub fn preparedMainRoot(self: *const CpuWorker) ![32]u8 {
+        if (!self.main_committed or self.consumed) return error.WideCpuPhase;
+        return self.mainRoot();
+    }
+    pub fn seal(self: *CpuWorker, a: std.mem.Allocator) !Manifest.StageOne {
+        if (!@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, self.allocator)) return error.WideCpuAllocatorMismatch;
+        if (self.sealed or self.consumed) return error.WideCpuPhase;
+        var clock: ?std.time.Timer = if (self.seal_timing != null) try std.time.Timer.start() else null;
+        if (self.seal_timing) |output| output.* = .{};
+        if (!self.main_committed) _ = try self.prepareMain(a);
+        self.consumed = true;
         const root = self.mainRoot();
-        if (clock) |*timer| self.seal_timing.?.main_commit_ns = timer.lap();
+        if (self.seal_timing) |timing| timing.main_commit_ns = self.main_commit_ns;
+        if (clock) |*timer| _ = timer.lap();
         // Borrow the actual committed coefficients. A numerical device stage
         // reconstructs native physical rows itself; no raw N/D matrices are
         // allocated or uploaded by this seam. The scheme retains every owner

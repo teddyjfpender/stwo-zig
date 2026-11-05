@@ -131,6 +131,61 @@ pub const Trace = struct {
     divisions: u32 = 0,
     multiplications: u32 = 0,
 };
+/// CPU-only first-pass advice. PC is remapped through the receiver-owned ROM;
+/// branches record their taken bit as `result`, like native CPU metadata.
+/// No operands, register clocks, field columns or memory/service ledger live
+/// here. A consumer still needs the segment initial state and ordered advice.
+pub const MinimalRecord = extern struct { result: u64, pc: u32, next_pc: u32 };
+pub const MINIMAL_CHUNK_ROWS: usize = 256;
+/// Architectural state preceding each chunk, captured inside the original
+/// fast pass. Unused registers may be zeroed by a later transport adapter;
+/// retaining them here permits an independent prefix consistency check.
+pub const MinimalSeed = extern struct { values: [32]u64, clocks: [32]u32 };
+pub const MinimalTrace = struct {
+    records: []MinimalRecord,
+    len: usize = 0,
+    seeds: []MinimalSeed = &.{},
+    clocks: [32]u32 = @splat(0),
+    seed_prepared: bool = false,
+    /// Reference fallback calls this BEFORE retirement; a trap publishes no
+    /// record and the same seed may be overwritten on retry.
+    pub fn prepareReference(self: *MinimalTrace, registers: *const [32]u64) void {
+        if (self.seeds.len == 0 or self.len % MINIMAL_CHUNK_ROWS != 0) return;
+        std.debug.assert(self.len / MINIMAL_CHUNK_ROWS < self.seeds.len);
+        self.seeds[self.len / MINIMAL_CHUNK_ROWS] = .{ .values = registers.*, .clocks = self.clocks };
+        self.seeds[self.len / MINIMAL_CHUNK_ROWS].values[0] = 0;
+        self.seed_prepared = true;
+    }
+    fn appendRecord(self: *MinimalTrace, pc: u64, next_pc: u64, result: u64, ids: [3]u8) void {
+        std.debug.assert(self.len < self.records.len);
+        std.debug.assert(self.seeds.len == 0 or self.len % MINIMAL_CHUNK_ROWS != 0 or self.seed_prepared);
+        self.records[self.len] = .{ .result = result, .pc = @intCast(pc), .next_pc = @intCast(next_pc) };
+        if (self.seeds.len != 0) for (ids, 0..) |id, slot| {
+            if (id != 0 and id != SINK) self.clocks[id] = @intCast(4 * self.len + slot + 1);
+        };
+        self.len += 1;
+        self.seed_prepared = false;
+    }
+    fn appendFast(self: *MinimalTrace, pc: u64, next_pc: u64, result: u64, registers: *const [32]u64, ids: [3]u8) void {
+        self.prepareReference(registers);
+        self.appendRecord(pc, next_pc, result, ids);
+    }
+    /// Slow instructions (including services) are retired by the unchanged
+    /// reference session. Append only after successful retirement, never retry.
+    pub fn appendRetirement(self: *MinimalTrace, row: machine.Retirement) !void {
+        if (self.len == self.records.len) return error.MinimalTraceFull;
+        if (self.seeds.len != 0 and self.len % MINIMAL_CHUNK_ROWS == 0 and !self.seed_prepared) return error.MinimalSeedMissing;
+        if (row.pc.toInt() > std.math.maxInt(u32) or row.next_pc.toInt() > std.math.maxInt(u32)) return error.MinimalTracePcRange;
+        const branch = switch (row.opcode) {
+            .BEQ, .BNE, .BLT, .BGE, .BLTU, .BGEU => true,
+            else => false,
+        };
+        self.appendRecord(row.pc.toInt(), row.next_pc.toInt(), if (branch) @intFromBool(row.branch_taken) else row.result.toInt(), .{ row.rs1, row.rs2, row.rd });
+    }
+};
+comptime {
+    std.debug.assert(@sizeOf(MinimalRecord) == 16 and @sizeOf(MinimalSeed) == 384);
+}
 pub const PcCounts = struct { start: u64, end: u64, counts: []u64, outside: *u64 };
 pub const Error = std.mem.Allocator.Error || error{ FastExecutionCodeTooLarge, FastExecutionTableTooLarge, FastExecutionCheckpointOverflow };
 
@@ -484,10 +539,45 @@ pub const Engine = struct {
     /// next instruction must be retired by the reference session (`.slow`).
     pub fn run(self: *Engine, cpu: *machine.Cpu, limit: u64) Exit {
         if (cpu.retired >= limit) return .limit;
-        return if (self.counting) self.runImpl(cpu, limit, true) else self.runImpl(cpu, limit, false);
+        return if (self.counting) self.runImpl(cpu, limit, true, false, false, null, null) else self.runImpl(cpu, limit, false, false, false, null, null);
     }
 
-    fn runImpl(self: *Engine, cpu: *machine.Cpu, limit: u64, comptime counting: bool) Exit {
+    /// Optional first-pass CPU records, emitted by the existing arithmetic and
+    /// page-table loop. Default `run` specializes this entire path away.
+    /// Capacity is checked before any instruction; .limit refers to the
+    /// requested limit or the end of the supplied record span.
+    pub fn runMinimal(self: *Engine, cpu: *machine.Cpu, limit: u64, trace: *MinimalTrace) !Exit {
+        if (trace.len > trace.records.len) return error.MinimalTraceFull;
+        if (trace.seeds.len != 0 and trace.seeds.len < std.math.divCeil(usize, trace.records.len, MINIMAL_CHUNK_ROWS) catch unreachable) return error.MinimalSeedCapacity;
+        if (self.code_lo > std.math.maxInt(u32) or self.code_hi > std.math.maxInt(u32)) return error.MinimalTracePcRange;
+        const bounded = @min(limit, cpu.retired +| (trace.records.len - trace.len));
+        if (cpu.retired >= bounded) return .limit;
+        return if (self.counting) self.runImpl(cpu, bounded, true, true, false, trace, null) else self.runImpl(cpu, bounded, false, true, false, trace, null);
+    }
+
+    pub fn runMinimalRam(self: *Engine, cpu: *machine.Cpu, limit: u64, trace: *MinimalTrace, words: *@import("ram_word_set.zig").Set) !Exit {
+        if (words.failure) |err| return err;
+        if (trace.len > trace.records.len) return error.MinimalTraceFull;
+        if (trace.seeds.len != 0 and trace.seeds.len < std.math.divCeil(usize, trace.records.len, MINIMAL_CHUNK_ROWS) catch unreachable) return error.MinimalSeedCapacity;
+        if (self.code_lo > std.math.maxInt(u32) or self.code_hi > std.math.maxInt(u32)) return error.MinimalTracePcRange;
+        const bounded = @min(limit, cpu.retired +| (trace.records.len - trace.len));
+        if (cpu.retired >= bounded) return .limit;
+        const result = if (self.counting) self.runImpl(cpu, bounded, true, true, true, trace, words) else self.runImpl(cpu, bounded, false, true, true, trace, words);
+        if (words.failure) |err| return err;
+        return result;
+    }
+
+    /// Same first pass with an explicit RAM-key sidecar. Normal run specializes
+    /// all marks away; fetches and failed accesses never publish RAM keys.
+    pub fn runRam(self: *Engine, cpu: *machine.Cpu, limit: u64, words: *@import("ram_word_set.zig").Set) !Exit {
+        if (words.failure) |err| return err;
+        if (cpu.retired >= limit) return .limit;
+        const result = if (self.counting) self.runImpl(cpu, limit, true, false, true, null, words) else self.runImpl(cpu, limit, false, false, true, null, words);
+        if (words.failure) |err| return err;
+        return result;
+    }
+
+    fn runImpl(self: *Engine, cpu: *machine.Cpu, limit: u64, comptime counting: bool, comptime minimal: bool, comptime ram: bool, trace: ?*MinimalTrace, words: ?*@import("ram_word_set.zig").Set) Exit {
         var i: usize = self.slotOf(cpu.pc) orelse return .slow;
         var r: [33]u64 = undefined;
         @memcpy(r[0..32], &cpu.regs);
@@ -516,18 +606,22 @@ pub const Engine = struct {
             },
             .slow => break :sw,
             .nop => {
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, 0, r[0..32], .{ 0, 0, 0 });
                 i += 1;
                 continue :sw slots[i].op;
             },
             .li => {
                 const s = slots[i];
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, s.imm, r[0..32], .{ 0, 0, s.rd });
                 r[s.rd] = s.imm;
                 i += 1;
                 continue :sw slots[i].op;
             },
             inline .add, .sub, .sll, .slt, .sltu, .xor, .srl, .sra, .@"or", .@"and", .addi, .slti, .sltiu, .xori, .ori, .andi, .slli, .srli, .srai, .addw, .subw, .sllw, .srlw, .sraw, .addiw, .slliw, .srliw, .sraiw, .mul, .mulh, .mulhsu, .mulhu, .div, .divu, .rem, .remu, .mulw, .divw, .divuw, .remw, .remuw, .andn, .orn, .xnor, .rev8, .sext_b, .sext_h, .zext_h => |op| {
                 const s = slots[i];
-                r[s.rd] = alu(op, r[s.rs1], r[s.rs2], s.imm);
+                const result = alu(op, r[s.rs1], r[s.rs2], s.imm);
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, result, r[0..32], .{ s.rs1, s.rs2, s.rd });
+                r[s.rd] = result;
                 i += 1;
                 continue :sw slots[i].op;
             },
@@ -544,13 +638,19 @@ pub const Engine = struct {
                 if (address & (@sizeOf(T) - 1) != 0) break :sw;
                 const index = address >> PAGE_SHIFT;
                 const base = (if (index < rd_tab.len) rd_tab[@intCast(index)] else null) orelse self.fill(index, false) orelse break :sw;
+                if (ram) words.?.mark(address & ~@as(u64, 7)) catch |err| {
+                    words.?.failure = err;
+                    break :sw;
+                };
                 const raw = std.mem.readInt(T, base[@intCast(address & (mem.PAGE_SIZE - 1))..][0..@sizeOf(T)], .little);
-                r[s.rd] = switch (op) {
+                const result: u64 = switch (op) {
                     .lb => @bitCast(@as(i64, @as(i8, @bitCast(raw)))),
                     .lh => @bitCast(@as(i64, @as(i16, @bitCast(raw)))),
                     .lw => @bitCast(@as(i64, @as(i32, @bitCast(raw)))),
                     else => raw,
                 };
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, result, r[0..32], .{ s.rs1, 0, s.rd });
+                r[s.rd] = result;
                 i += 1;
                 continue :sw slots[i].op;
             },
@@ -567,7 +667,12 @@ pub const Engine = struct {
                 if (address & (@sizeOf(T) - 1) != 0) break :sw;
                 const index = address >> PAGE_SHIFT;
                 const base = (if (index < wr_tab.len) wr_tab[@intCast(index)] else null) orelse self.fill(index, true) orelse break :sw;
+                if (ram) words.?.mark(address & ~@as(u64, 7)) catch |err| {
+                    words.?.failure = err;
+                    break :sw;
+                };
                 std.mem.writeInt(T, base[@intCast(address & (mem.PAGE_SIZE - 1))..][0..@sizeOf(T)], @truncate(r[s.rs2]), .little);
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, 0, r[0..32], .{ s.rs1, s.rs2, 0 });
                 i += 1;
                 continue :sw slots[i].op;
             },
@@ -586,11 +691,14 @@ pub const Engine = struct {
                     .bgeu => a >= b,
                     else => unreachable,
                 };
-                i = if (taken) s.target else i + 1;
+                const next = if (taken) s.target else i + 1;
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, next), @intFromBool(taken), r[0..32], .{ s.rs1, s.rs2, 0 });
+                i = next;
                 continue :sw .enter;
             },
             .jal => {
                 const s = slots[i];
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, s.target), s.imm, r[0..32], .{ 0, 0, s.rd });
                 r[s.rd] = s.imm;
                 i = s.target;
                 continue :sw .enter;
@@ -599,7 +707,9 @@ pub const Engine = struct {
                 const s = slots[i];
                 const target = (r[s.rs1] +% s.imm) & ~@as(u64, 1);
                 if (target & 3 != 0 or target < self.code_lo or target >= self.code_hi) break :sw;
-                r[s.rd] = self.code_lo + 4 * @as(u64, i) + 4;
+                const link = self.code_lo + 4 * @as(u64, i) + 4;
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), target, link, r[0..32], .{ s.rs1, 0, s.rd });
+                r[s.rd] = link;
                 i = @intCast((target - self.code_lo) / 4);
                 continue :sw .enter;
             },

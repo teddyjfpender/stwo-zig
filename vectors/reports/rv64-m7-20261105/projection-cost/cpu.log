@@ -1,0 +1,7 @@
+1/6 native_cpu_projection_cost.test.CPU projection orders allocations and retires compact input before source owners...OK
+2/6 native_cpu_projection_cost.test.warm raw metadata input omits only new immutable ROM and compact input...OK
+3/6 native_cpu_projection_cost.test.empty compact capture still charges one word and boundary chunk seeds are exact...OK
+4/6 native_cpu_projection_cost.test.geometry mutation changes plan identity and invalid modes fail before work...OK
+5/6 native_cpu_projection_cost.test.layout adapter uses the supplied formatter types instead of fixture widths...OK
+6/6 native_cpu_projection_cost.test.cold retired ROM host reconstruction has its own early lifetime...OK
+All 6 tests passed.

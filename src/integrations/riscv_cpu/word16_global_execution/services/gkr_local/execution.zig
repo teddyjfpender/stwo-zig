@@ -80,18 +80,10 @@ pub const Inventory = struct {
         var next: [@import("../types.zig").FAMILIES]u64 = @splat(1);
         for (setups, requests, 0..) |setup, request, i| {
             for (next, &first_ids[i]) |id, *out| out.* = std.math.cast(u32, id) orelse return error.GlobalGkrManifestOrdinal;
-            instances[i] = try Roster.fromSetup(a, setup);
-            done += 1;
             const binding = if (fixed) |authority| authority.at(i) else null;
-            workers[i] = .{
-                .kind = .cpu,
-                .ordinal = @intCast(i),
-                .statement = CPU.cpuStatementWithAuthority(setup, request, first_ids[i], config, binding),
-                .fixed = if (binding) |authority| authority.root() else setup.key.root,
-                .local_instances = instances[i],
-                .global_relations = .{ .ram = true, .kio = setup.bridges.keccak != null or setup.bridges.sponge.any(), .wire = CPU.wirePresent(setup.bridges) },
-                .mass = try CPU.cpuMass(request),
-            };
+            workers[i] = try localCpuExpected(a, setup, request, @intCast(i), first_ids[i], config, binding);
+            instances[i] = @constCast(workers[i].local_instances.?);
+            done += 1;
             for (&next, request.calls) |*id, calls| id.* = try std.math.add(u64, id.*, calls);
         }
         const base_identity = executionIdentity(config, expected);
@@ -121,6 +113,37 @@ pub const Inventory = struct {
 };
 /// Initial profile supports the two qualified fold schedules and the fixed
 /// trees' blowup. Numeric parameters are receiver inputs, never proof hydration.
+/// One worker's exact source-local expectation. Whole Inventory and early
+/// MAIN construction share this authority; this is not global acceptance.
+/// Caller owns `local_instances` and must free it after constructing a worker.
+pub fn localCpuExpected(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, ordinal: u32, first: [@import("../types.zig").FAMILIES]u32, config: Config, binding: ?*const @import("fixed_authority.zig").Binding) !Manifest.ExpectedWorker {
+    if (ordinal >= 256) return error.GlobalGkrManifestOrdinal;
+    try Scope.setup(setup);
+    try Scope.request(request);
+    const instances = try Roster.fromSetup(a, setup);
+    errdefer a.free(instances);
+    return .{
+        .kind = .cpu,
+        .ordinal = ordinal,
+        .statement = CPU.cpuStatementWithAuthority(setup, request, first, config, binding),
+        .fixed = if (binding) |authority| authority.root() else setup.key.root,
+        .local_instances = instances,
+        .global_relations = .{ .ram = true, .kio = setup.bridges.keccak != null or setup.bridges.sponge.any(), .wire = CPU.wirePresent(setup.bridges) },
+        .mass = try CPU.cpuMass(request),
+    };
+}
+/// Global-inventory handoff checks exact expected class/public/protocol and
+/// roster, before an early worker or its MAIN tree can enter stage two.
+pub fn requireSameCpuExpected(local: Manifest.ExpectedWorker, admitted: Manifest.ExpectedWorker) !void {
+    if (local.kind != .cpu or admitted.kind != .cpu or local.ordinal != admitted.ordinal or
+        !std.mem.eql(u8, &local.statement, &admitted.statement) or !std.mem.eql(u8, &local.fixed, &admitted.fixed) or
+        !std.meta.eql(local.mass, admitted.mass) or !std.meta.eql(local.global_relations, admitted.global_relations)) return error.EarlyCpuInventoryMismatch;
+    const x = local.local_instances orelse return error.EarlyCpuInventoryMismatch;
+    const y = admitted.local_instances orelse return error.EarlyCpuInventoryMismatch;
+    if (x.len != y.len) return error.EarlyCpuInventoryMismatch;
+    for (x, y) |left, right| if (!std.meta.eql(left, right)) return error.EarlyCpuInventoryMismatch;
+}
+
 pub fn validateConfig(config: Config) !void {
     return @import("worker_protocol.zig").validateConfig(config);
 }
