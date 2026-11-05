@@ -1,0 +1,107 @@
+{
+  "schema": "rv64-m7-byte-identity/v1",
+  "label": "M",
+  "receipt": "/workspace/m3/runs/m7-rc-workspace/daemon-26235156-r2-rc-idle0-role-1-enqueue-1/receipt.json",
+  "assets": {
+    "driver": "5345f2fb7977133ec6ceaedbe00ee2d1852caeef034dbb439484479d4e550813",
+    "library": "69f18a25c23c042b7fc00d2477097de64c69ea59fd46d2eee6fc9e154dc665e0",
+    "receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+    "recursive_receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d"
+  },
+  "source_commit": null,
+  "load_avg_before": [
+    24.26318359375,
+    21.78564453125,
+    18.474609375
+  ],
+  "load_avg_after": [
+    18.9091796875,
+    20.7255859375,
+    18.390625
+  ],
+  "producer_process": {
+    "argv": [
+      "/workspace/m3/build/m7-rc-workspace/rv64-word16-ethereum-gpu-combined",
+      "combined-serve",
+      "/workspace/m3/runs/m7-rc-workspace/daemon-26235156-r2-rc-idle0-role-1-enqueue-1/manifest.json",
+      "/workspace/m3/runs/m7-rc-workspace/daemon-26235156-r2-rc-idle0-role-1-enqueue-1/spool"
+    ],
+    "exit_code": 0,
+    "wall_ns": 45059125112,
+    "user_seconds": 153.024528,
+    "system_seconds": 63.725746,
+    "peak_rss_bytes": 24375545856,
+    "minor_faults": 19371457,
+    "major_faults": 0
+  },
+  "physical_gpu_memory": {
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+    "samples": 352,
+    "errors": [],
+    "kernel_activity": {
+      "0": {
+        "samples": 176,
+        "mean_percent": 28.09659090909091,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 176,
+        "mean_percent": 22.198863636363637,
+        "min_percent": 0,
+        "max_percent": 99
+      }
+    },
+    "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
+    "peak_used_bytes": {
+      "0": 31507611648,
+      "1": 31507611648
+    }
+  },
+  "receivers": [],
+  "requests": [
+    {
+      "block": 26235156,
+      "trial": 0,
+      "stages": {
+        "request_wall_s": 27.261,
+        "capture_s": 1.631,
+        "setup_s": 8.835,
+        "native_prove_s": 3.844,
+        "native_verify_s": 1.301,
+        "native_total_before_report_s": 14.401,
+        "recursion_s": 12.835
+      },
+      "proof_bytes_root": 750136,
+      "reference": "/workspace/m3/src/m7-rc-workspace/vectors/reports/rv64-m6-20261105/integrate/26235156-2gpu-c1-bench.json",
+      "matches": {
+        "native": true,
+        "bundle": true,
+        "recursive": true
+      },
+      "byte_identical": true
+    },
+    {
+      "block": 26235156,
+      "trial": 1,
+      "stages": {
+        "request_wall_s": 11.763,
+        "capture_s": 1.81,
+        "setup_s": 0.139,
+        "native_prove_s": 3.262,
+        "native_verify_s": 1.833,
+        "native_total_before_report_s": 5.361,
+        "recursion_s": 6.383
+      },
+      "proof_bytes_root": 750136,
+      "reference": "/workspace/m3/src/m7-rc-workspace/vectors/reports/rv64-m6-20261105/integrate/26235156-2gpu-c1-bench.json",
+      "matches": {
+        "native": true,
+        "bundle": true,
+        "recursive": true
+      },
+      "byte_identical": true
+    }
+  ],
+  "all_byte_identical": true
+}
