@@ -100,7 +100,7 @@ pub const Context = struct {
     pub fn stage(self: *Context) DG.Stage {
         return .{ .context = self, .generate = generate };
     }
-    pub const ClassAllocations = struct { generation_peak: @import("global_admission.zig").Footprint = .{}, outputs: @import("global_admission.zig").Footprint = .{} };
+    pub const ClassAllocations = struct { generation_peak: @import("global_admission.zig").Footprint = .{}, outputs: @import("global_admission.zig").Footprint = .{}, retained: @import("global_admission.zig").Footprint = .{} };
     pub fn cpuClassAllocationPlan(self: *Context, a: std.mem.Allocator, setup: *const @import("stwo_riscv_cpu_integration").rv64_services_roster.CpuSetup) !ClassAllocations {
         var components = try @import("stwo_riscv_cpu_integration").rv64_gkr_cpu_components.Plan.init(a, setup);
         defer components.deinit();
@@ -116,8 +116,9 @@ pub const Context = struct {
             };
             self.mutex.unlock();
             const plan = try InteractionCost.init(.{ .log = slot.log, .fixed_columns = shape.fixed, .main_columns = shape.main, .host_fixed_columns = shape.fixed, .parameters = artifact.artifact.parameter_slots.len, .pairs = artifact.artifact.ram_pairs + artifact.artifact.other_pairs, .groups = 1 + @as(usize, @intFromBool(artifact.artifact.other_pairs != 0)) });
-            result.generation_peak = result.generation_peak.max(try result.outputs.add(plan.temporary));
+            result.generation_peak = result.generation_peak.max(try result.retained.add(plan.temporary));
             result.outputs = try result.outputs.add(plan.output);
+            result.retained = try result.retained.add(plan.retained);
         }
         return result;
     }
@@ -194,7 +195,7 @@ pub const Context = struct {
         // and its consuming TC/RC/PCS phases. A missing class refuses before
         // launch; guessing zero here could deadlock on our own retained rows.
         const successor = try self.service.admissionSuccessor(request.scope, .interaction);
-        const demand = @import("global_admission.zig").Demand{ .progress_key = @import("global_admission.zig").progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = .native_packet, .ordinal = request.scope.ordinal }, .stage = .interaction, .temporary = plan.temporary, .stage_retained_upper = plan.output, .successor = successor, .known = true, .host_known = false };
+        const demand = @import("global_admission.zig").Demand{ .progress_key = @import("global_admission.zig").progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = .native_packet, .ordinal = request.scope.ordinal }, .stage = .interaction, .temporary = plan.temporary, .stage_retained_upper = plan.retained, .successor = successor, .known = true, .host_known = false };
         return if (try self.service.takeGlobalAdmissionDrain(request.scope)) try endpoint.reserveDrain(demand) else try endpoint.reserve(demand);
     }
     fn generateRationalLocked(self: *Context, a: std.mem.Allocator, request: Request, permit: ?*Admission.Permit) !DG.Witness {

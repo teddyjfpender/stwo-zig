@@ -75,9 +75,9 @@ pub const Context = struct {
         const inter_commit = try A.Footprint.allocations(inter_tc.bytes());
         const inter_owner = try A.Footprint.allocation(try std.math.mul(u64, inter_tc.coefficient_words, 4));
         const after_inter = composition.additional_peak.max(try composition.retained_after.add(pcs.additional_upper));
-        const retained_inter = try interaction.outputs.add(numerical.binding.coefficient_owner);
+        const retained_inter = try interaction.retained.add(numerical.binding.coefficient_owner);
         const later = inter_commit.max(try inter_owner.add(after_inter));
-        const after_global = (try interaction.generation_peak.add(numerical.binding.projection_owner)).max(try (try interaction.outputs.add(numerical.binding.finalize)).add(numerical.binding.projection_owner)).max(try retained_inter.add(later));
+        const after_global = (try interaction.generation_peak.add(numerical.binding.projection_owner)).max(try (try interaction.retained.add(numerical.binding.finalize)).add(numerical.binding.projection_owner)).max(try retained_inter.add(later));
         const after_numerical = numerical.binding.project.max(after_global);
         const after_main = numerical.numerical.peak.max(try numerical.numerical.retained.add(after_numerical));
         var plan = Progress.Plan{ .identity = undefined, .gpu_costs_known = true, .after = undefined };

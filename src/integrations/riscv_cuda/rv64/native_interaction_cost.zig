@@ -17,6 +17,8 @@ pub const Input = struct {
 pub const Plan = struct {
     temporary: A.Footprint,
     output: A.Footprint,
+    /// Output plus every independently cached cold FIXED column surviving join.
+    retained: A.Footprint,
     /// source, parameters, output, numerators, scan/claims/status, twiddle,
     /// then one possible immutable upload per nonresident FIXED column.
     allocation_count: usize,
@@ -41,8 +43,12 @@ pub fn init(input: Input) !Plan {
     };
     var temporary = try A.Footprint.allocations(sizes);
     const fixed_upload = try A.Footprint.allocation(try mul(rows, 4));
-    for (0..input.host_fixed_columns) |_| temporary = try temporary.add(fixed_upload);
-    return .{ .temporary = temporary, .output = try A.Footprint.allocation(try mul(output, 4)), .allocation_count = sizes.len + input.host_fixed_columns };
+    var retained = try A.Footprint.allocation(try mul(output, 4));
+    for (0..input.host_fixed_columns) |_| {
+        temporary = try temporary.add(fixed_upload);
+        retained = try retained.add(fixed_upload);
+    }
+    return .{ .temporary = temporary, .output = try A.Footprint.allocation(try mul(output, 4)), .retained = retained, .allocation_count = sizes.len + input.host_fixed_columns };
 }
 test "native interaction separately rounds every possible immutable FIXED miss" {
     const input = Input{ .log = 18, .fixed_columns = 3, .main_columns = 5, .host_fixed_columns = 3, .parameters = 7, .pairs = 2, .groups = 1 };
@@ -55,6 +61,8 @@ test "native interaction separately rounds every possible immutable FIXED miss" 
     try std.testing.expectEqual(@as(usize, 9), cold.allocation_count);
     try std.testing.expectEqual(@as(usize, 6), warm.allocation_count);
     try std.testing.expectEqual(cold.output, warm.output);
+    try std.testing.expectEqual(warm.output, warm.retained);
+    try std.testing.expectEqual(try warm.retained.add(try each.add(try each.add(each))), cold.retained);
 }
 test "native interaction rejects unsupported geometry and arithmetic overflow" {
     var input = Input{ .log = 18, .fixed_columns = 1, .main_columns = 1, .host_fixed_columns = 1, .parameters = 1, .pairs = 1, .groups = 1 };

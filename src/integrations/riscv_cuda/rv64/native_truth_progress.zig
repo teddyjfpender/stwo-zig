@@ -117,7 +117,7 @@ pub fn init(allocator: std.mem.Allocator, service: *@import("pcs_native.zig").Co
     }
     const classes = try a.alloc(RC.ClassRole, roles.len);
     var generation: A.Footprint = .{};
-    var outputs: A.Footprint = .{};
+    var interaction_retained: A.Footprint = .{};
     var max_log: u32 = 0;
     var split: u32 = 1;
     var total: usize = 0;
@@ -131,8 +131,8 @@ pub fn init(allocator: std.mem.Allocator, service: *@import("pcs_native.zig").Co
         var raw = try @import("truth_interaction_codegen.zig").record(a, r.id);
         defer raw.deinit();
         const cost = try IC.init(.{ .log = r.log, .fixed_columns = r.widths[0], .main_columns = r.widths[1], .host_fixed_columns = r.widths[0], .parameters = raw.parameter_slots.len, .pairs = try std.math.add(usize, raw.groups[0], raw.groups[1]), .groups = 1 + @as(usize, @intFromBool(raw.groups[1] != 0)) });
-        generation = generation.max(try outputs.add(cost.temporary));
-        outputs = try outputs.add(cost.output);
+        generation = generation.max(try interaction_retained.add(cost.temporary));
+        interaction_retained = try interaction_retained.add(cost.retained);
     }
     const fixed_words = try coefficientWords(logs[0]);
     var composition_plan = try composition.classAllocationPlan(a, classes, logs, max_log + split, split, total, config.fri_config.log_blowup_factor, fixed_words, false);
@@ -149,7 +149,7 @@ pub fn init(allocator: std.mem.Allocator, service: *@import("pcs_native.zig").Co
     const main_owner = try allocation(main_tc.coefficient_words);
     const after_inter = composition_plan.additional_peak.max(try composition_plan.retained_after.add(pcs.additional_upper));
     const later = (try inter_tc.footprint()).max(try (try allocation(inter_tc.coefficient_words)).add(after_inter));
-    const downstream = generation.max(try outputs.add(later));
+    const downstream = generation.max(try interaction_retained.add(later));
     const initial = try sourcePlan(truth, compact_words, false, 0);
     const replay_source = try sourcePlan(truth, compact_words, true, fixed_words);
     // Post-global replay is admitted at runMain itself. Once that MAIN commit
@@ -159,7 +159,7 @@ pub fn init(allocator: std.mem.Allocator, service: *@import("pcs_native.zig").Co
     progress.after[@intFromEnum(Progress.Step.source)] = main_commit.max(try main_owner.add(after_main));
     progress.after[@intFromEnum(Progress.Step.main_commit)] = after_main;
     progress.after[@intFromEnum(Progress.Step.native_gkr)] = downstream;
-    progress.after[@intFromEnum(Progress.Step.interaction)] = generation.max(try outputs.add(later));
+    progress.after[@intFromEnum(Progress.Step.interaction)] = generation.max(try interaction_retained.add(later));
     progress.after[@intFromEnum(Progress.Step.inter_commit)] = after_inter;
     progress.after[@intFromEnum(Progress.Step.composition)] = pcs.additional_upper;
     progress.after[@intFromEnum(Progress.Step.pcs)] = .{};

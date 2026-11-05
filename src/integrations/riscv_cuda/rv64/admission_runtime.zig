@@ -264,14 +264,23 @@ pub const Endpoint = struct {
         return self.reserveWithPolicy(demand, timeout_ns);
     }
     fn reserveWithPolicy(self: *const Endpoint, demand: A.Demand, drain_timeout_ns: ?u64) !Permit {
+        var logged_epoch: ?u64 = null;
         while (true) {
             const epoch = self.planner.epoch();
             switch (try self.tryReserve(demand)) {
                 .admitted => |permit| return permit,
                 .blocked => |decision| switch (decision.reason) {
-                    .wide_stage_busy => self.planner.waitForChange(epoch),
-                    .capacity_pressure => {
+                    .wide_stage_busy, .capacity_pressure => {
+                        if (logged_epoch == null or logged_epoch.? != epoch) {
+                            const snapshot = try self.planner.snapshot(self.physical);
+                            std.debug.print("GLOBAL_ADMISSION_WAIT runtime={s} physical={} epoch={} reason={s} domain={s} stage={s} ordinal={} required_large={} required_small={} cap_large={} cap_small={} temp_large={} temp_small={} retained_upper_large={} retained_upper_small={} successor_large={} successor_small={} stable_large={} stable_small={} active_temp_large={} active_temp_small={} active_retained_upper_large={} active_retained_upper_small={} max_future_large={} max_future_small={}\n", .{ if (self.api.v2 != null) "v2" else "v1", self.physical, epoch, @tagName(decision.reason), @tagName(demand.owner.domain), @tagName(demand.stage), demand.owner.ordinal, decision.required.large, decision.required.small, decision.capacity.large, decision.capacity.small, demand.temporary.large, demand.temporary.small, demand.stage_retained_upper.large, demand.stage_retained_upper.small, demand.successor.large, demand.successor.small, snapshot.retained.large, snapshot.retained.small, snapshot.active_temporary.large, snapshot.active_temporary.small, snapshot.active_retained_upper.large, snapshot.active_retained_upper.small, snapshot.successor.large, snapshot.successor.small });
+                            logged_epoch = epoch;
+                        }
                         if (drain_timeout_ns) |timeout| {
+                            if (decision.reason == .wide_stage_busy) {
+                                self.planner.waitForChange(epoch);
+                                continue;
+                            }
                             if (!try self.planner.waitForChangeWithin(epoch, timeout)) return error.NativePostGlobalDrainUnavailable;
                         } else self.planner.waitForChange(epoch);
                     },
