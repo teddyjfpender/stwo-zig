@@ -30,7 +30,7 @@
     "STWO_RV64_OUTER_RETIRE_ASYNC": "0",
     "STWO_RV64_OUTER_DEVICE_FS": "0",
     "STWO_ZIG_RV64_SETUP_CACHE": "",
-    "STWO_RV64_CAPTURE_DIGEST": "1"
+    "STWO_RV64_CAPTURE_DIGEST": "0"
   },
   "arms": {
     "baseline": {
@@ -77,6 +77,11 @@
     ],
     "baseline_memory_scope": "Original auto arena without physical canary; no28GBclaim forbaseline.",
     "quiet_resource": "cgroup",
-    "quiet_scope": "Five samples with zero pod cgroup PSI some/full total and cpu.stat throttling deltas, steal<=1%, noforeignGPU/ownedcompiler. Host load recorded only; it covers othercgroups on shared192corehost."
+    "quiet_scope": "Five samples with zero pod cgroup PSI some/full total and cpu.stat throttling deltas, steal<=1%, noforeignGPU/ownedcompiler. Host load recorded only; it covers othercgroups on shared192corehost.",
+    "instrumentation": {
+      "headline": "unprofiled; independent full capture diagnostic SHA256 OFF botharms; native R1privateCaptureSeal stillincluded",
+      "smoke": "independentfullcaptured-valueSHA256 ON botharms andrequiredforparity; allwallsunqualified",
+      "ownership_profile_pair": "Nsight node trace; independentfullcaptureSHA OFF botharms; excludedheadline medians"
+    }
   }
 }

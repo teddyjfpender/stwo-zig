@@ -107,17 +107,17 @@ def command(manifest, arm, round_index, run_root, profile, label="one-stack"):
     return argv, tag
 
 
-def fingerprints(row):
+def fingerprints(row, require_capture=False):
     import rv64_resident_basket as basket
     directory = Path(row['proof'])
     recursive = basket.recursive_snapshot(directory, row['leaves'])
     report = json.loads((directory / 'report.json').read_text())
     captured = report.get('captured_values_sha256')
-    if not captured or len(captured) != 64:
+    if require_capture and (not captured or len(captured) != 64):
         raise RuntimeError('required captured-input SHA256 guard missing')
     return {'native': {p.name: sha(p) for p in sorted(directory.glob('*.bin'))},
             'bundle': sha(directory / 'bundle.json'), 'tree': recursive['tree_sha256'],
-            'recursive': recursive['proof_sha256'], 'captured_values_sha256': captured}
+            'recursive': recursive['proof_sha256'], **({'captured_values_sha256': captured} if require_capture else {})}
 
 
 def guard_verdict(receipt, arm):
@@ -150,7 +150,7 @@ def run(args):
     environment = clean_environment(os.environ)
     result = {'schema': 'rv64-m7-one-stack-experiment/v1', 'manifest_sha256': sha(args.manifest),
               'profiled': False, 'timing_scope': 'UNQUALIFIED_CORRECTNESS_WALLS' if args.smoke else 'six primary services unprofiled; optional ownership pair instrumented separately',
-              'order': (['fullstack', 'fullstack'] if args.reference_run else ['baseline', 'fullstack', 'fullstack']) if args.smoke else manifest['preset']['measurement']['order'] + (['baseline', 'fullstack'] if args.ownership_profile_pair else []), 'services': [], 'receivers_deferred': True,
+              'order': (['fullstack', 'fullstack'] if args.reference_run else ['baseline', 'fullstack', 'fullstack']) if args.smoke else manifest['preset']['measurement']['order'] + (['baseline', 'fullstack'] if args.ownership_profile_pair else []), 'services': [], 'receivers_deferred': True, 'instrumentation': manifest['preset']['measurement'].get('instrumentation'),
               'smoke_only': args.smoke,
               'gpu_seconds_status': 'pending separate ownership pair' if args.ownership_profile_pair else 'unavailable without CUPTI; no surrogate claim',
               'exact_process_peak_gate': 'Root-owned guard required; observer/NVML samples alone are insufficient'}
@@ -161,14 +161,14 @@ def run(args):
         matches = [r for r in reference_receipt['requests'] if r['block'] == manifest['block']]
         if not matches:
             raise RuntimeError('reference block missing')
-        reference = fingerprints(matches[0])
+        reference = fingerprints(matches[0], require_capture=args.smoke)
     for index, arm in enumerate(result['order']):
         validate_manifest(manifest)
         profile = not args.smoke and index >= 6
         argv, tag = command(manifest, arm, index, stream, profile, 'one-stack-v3-smoke' if args.smoke else 'one-stack-v2')
         seed = None
         if args.smoke:
-            argv += ['--quiet-mode', 'diagnostic']
+            argv += ['--quiet-mode', 'diagnostic', '--env', 'STWO_RV64_CAPTURE_DIGEST=1']
         if args.smoke and arm == 'fullstack':
             seed = (17, 29)[index if args.reference_run else index - 1]
             argv += ['--env', f'STWO_RV64_RECURSION_SCRAMBLE_SEED={seed}']
@@ -197,7 +197,7 @@ def run(args):
             entry['scramble_activation_log'] = logged
         entry['service_assets'] = receipt['assets']
         for request in receipt['requests']:
-            actual = fingerprints(request)
+            actual = fingerprints(request, require_capture=args.smoke)
             if reference is None:
                 reference = actual
                 result['payload_reference'] = {'run': str(service), 'ordinal': request['ordinal'], 'fingerprints': reference}
@@ -205,6 +205,7 @@ def run(args):
                 write(output / 'parity-failure.json', {'run': str(service), 'ordinal': request['ordinal'], 'expected': reference, 'actual': actual})
                 raise RuntimeError('proof payload or captured-input SHA256 mismatch across arms/cold/warm')
         entry['payload_byte_parity'] = True
+        entry['captured_sha_parity_required'] = args.smoke
         warm = receipt['requests'][1]
         entry['warm'] = warm
         entry['quiet'] = receipt['quiet_before_requests'][1]

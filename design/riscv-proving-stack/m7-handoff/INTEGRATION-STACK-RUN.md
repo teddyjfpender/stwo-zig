@@ -4,6 +4,7 @@ The runner uses the canonical integration source and one immutable driver,
 receiver, a25 image, Sparse library and observer library for every arm. No
 proof-size candidate is included. The preset is `integration-stack-preset.json`.
 Runtime hooks must be built successfully before preparing an executable manifest.
+Independent full captured-value diagnostic SHA256 is ON and required for correctness smoke, OFF in both headline/profile arms. The required R1 private capture seal remains included in production. The instrumentation matrix is stored in the preset and experiment receipt.
 The final fullstack also selects EARLY_NATIVE_SEGMENTS=1 and FIRST_PASS_RAM=1; baseline explicitly selects both0. Old CPU0_PRESTAGE and EARLY_NATIVE_MAIN stay0 in both arms. R1 is therefore measured as part of the single combined stack, with no per-feature experiment.
 
 The small-block correctness gate runs a lane1 baseline and two lane2 fullstack
