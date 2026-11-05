@@ -33,6 +33,9 @@ import os
 from pathlib import Path
 import re
 import shutil
+import selectors
+import signal
+import threading
 import subprocess
 import sys
 import time
@@ -334,6 +337,135 @@ def serve(args):
     return run
 
 
+class PhysicalBudgetGuard:
+    """Hold physical CUDA allocation under the harness GPU lease, through exit."""
+    def __init__(self, binary, run, environment):
+        self.process = None
+        self.record = None
+        self.stop = threading.Event()
+        self.failure = []
+        self.watcher = None
+        self.stderr = (run / "budget-guard.stderr").open("wb")
+        self.path = run / "budget-guard.json"
+        binary = Path(binary).resolve()
+        self.record = {"binary": str(binary), "sha256": P.sha(binary), "requested_limit_bytes": 28000000000}
+        try:
+            self.process = subprocess.Popen([str(binary), "--limit-bytes", "28000000000", "--devices", "0,1"],
+                                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.stderr,
+                                            env={k:v for k,v in environment.items() if k != "LD_PRELOAD" and not k.startswith("STWO_")})
+            selector = selectors.DefaultSelector()
+            selector.register(self.process.stdout, selectors.EVENT_READ)
+            try:
+                if not selector.select(timeout=60):
+                    raise RuntimeError("physical budget guard ready timeout")
+                line = self.process.stdout.readline()
+            finally:
+                selector.close()
+            ready = json.loads(line)
+            if (ready.get("schema") != "rv64-physical-budget-guard/v1" or not ready.get("ready") or
+                    ready.get("requested_limit_bytes") != 28000000000 or
+                    sorted(d["device"] for d in ready.get("devices", [])) != [0, 1]):
+                raise RuntimeError("invalid physical budget guard ready record")
+            for device in ready["devices"]:
+                held = device["held_physical_bytes"]
+                ceiling = device["prover_physical_ceiling_bytes"]
+                if held <= 0 or ceiling != device["total_bytes"] - held or not 0 < ceiling <= 28000000000:
+                    raise RuntimeError("physical budget ceiling not enforced")
+                environment[f'STWO_RV64_BUDGET_GUARD_BYTES_{device["device"]}'] = str(held)
+            environment['STWO_RV64_BUDGET_GUARD_PID'] = str(self.process.pid)
+            self.record.update(pid=self.process.pid, ready=ready, status="HOLDING", claim="enforced physical ceiling, not a measured peak")
+            B.atomic_json(self.path, self.record)
+            self.check()
+        except BaseException:
+            self.close()
+            raise
+
+    def check(self):
+        if self.process is None or self.process.poll() is not None or self.failure:
+            raise RuntimeError("physical budget guard exited before prover; result invalid")
+
+    def supervise(self, producer):
+        def watch():
+            while not self.stop.wait(0.01):
+                if self.process.poll() is not None:
+                    self.failure.append("guard exited while prover alive")
+                    try:
+                        os.killpg(producer.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    return
+        self.watcher = threading.Thread(target=watch, daemon=True)
+        self.watcher.start()
+
+    def close(self):
+        self.stop.set()
+        if self.watcher:
+            self.watcher.join(timeout=5)
+        if self.process:
+            if self.process.poll() is None:
+                try:
+                    self.process.stdin.write(b"\n")
+                    self.process.stdin.flush()
+                    self.process.stdin.close()
+                    self.process.wait(timeout=30)
+                except (BrokenPipeError, subprocess.TimeoutExpired):
+                    self.process.kill()
+                    self.process.wait(timeout=30)
+            if self.process.returncode != 0:
+                self.failure.append(f"guard terminal exit {self.process.returncode}")
+            if self.record is not None:
+                self.record.update(exit_code=self.process.returncode, status="INVALID" if self.failure else "RELEASED", failure=self.failure)
+                B.atomic_json(self.path, self.record)
+        self.stderr.close()
+
+
+def quiet_checkpoint(process, args, run, index, guard=None):
+    """Read-only admission before a request; never relabel a busy pod as quiet."""
+    limit = getattr(args, "quiet_load_max", None)
+    if limit is None:
+        return None
+    start = time.monotonic()
+    deadline = start + args.quiet_timeout
+    consecutive = 0
+    rows = []
+    def cpu():
+        parts = Path("/proc/stat").read_text().splitlines()[0].split()[1:]
+        values = list(map(int, parts))
+        return sum(values[:8]), values[7]
+    previous = cpu()
+    while True:
+        if guard:
+            guard.check()
+        if process.poll() is not None:
+            raise RuntimeError("service exited during quiet admission")
+        time.sleep(1)
+        current = cpu()
+        total = current[0] - previous[0]
+        steal = (current[1] - previous[1]) / total if total > 0 else None
+        previous = current
+        blockers = []
+        for directory in Path("/proc").iterdir():
+            if not directory.name.isdigit():
+                continue
+            try:
+                command = (directory / "cmdline").read_bytes().split(b"\0")
+                executable = Path(os.fsdecode(command[0])).name if command[0] else ""
+                if executable in ("zig", "nvcc", "cc1", "cc1plus", "cicc", "ptxas", "clang", "clang++", "gcc", "g++") or "recursion-receiver" in executable:
+                    blockers.append({"pid": int(directory.name), "executable": executable})
+            except (FileNotFoundError, ProcessLookupError, PermissionError):
+                pass
+        load = os.getloadavg()
+        okay = load[0] < limit and steal is not None and steal <= args.quiet_steal_max and not blockers
+        consecutive = consecutive + 1 if okay else 0
+        rows.append({"elapsed_s": round(time.monotonic() - start, 3), "loadavg": load, "cpu_steal_fraction": steal, "blocking_processes": blockers, "qualifies": okay})
+        record = {"request_index": index, "load_max": limit, "steal_max": args.quiet_steal_max, "required_stable_samples": args.quiet_stable_samples, "samples": rows, "accepted": consecutive >= args.quiet_stable_samples}
+        B.atomic_json(run / f"quiet-{index:04d}.json", record)
+        if record["accepted"]:
+            return record
+        if time.monotonic() >= deadline:
+            raise RuntimeError("quiet admission timed out; sustained load/steal/compiler activity remains; see quiet receipt")
+
+
 def daemon(args):
     """True resident service: start `combined-serve`, wait READY, submit requests one at a time
     through the spool, then STOP.  Service start (process + CUDA contexts + 686-library load +
@@ -383,20 +515,33 @@ def daemon(args):
                 "-o", str(run / "nsys/timeline")] + argv
     load_before = os.getloadavg()
     timeline = []
+    quiet_records = []
     lock = P.acquire_gpu_lock()
+    guard = None
+    monitor = None
     try:
+        if args.process_budget_guard:
+            guard = PhysicalBudgetGuard(args.process_budget_guard, run, environment)
+            plan["physical_budget_guard"] = guard.record
+            plan["environment"].update({k:v for k,v in environment.items() if k.startswith("STWO_RV64_BUDGET_GUARD_")})
+            B.atomic_json(run / "plan.json", plan)
         monitor = B.DeviceMonitor("0,1")
         monitor.thread.start()
         started = time.monotonic_ns()
         with (run / "producer.stdout").open("wb") as out, (run / "producer.stderr").open("wb") as err:
-            process = subprocess.Popen(argv, stdout=out, stderr=err, env=environment, cwd=plan["producer_cwd"])
+            process = subprocess.Popen(argv, stdout=out, stderr=err, env=environment, cwd=plan["producer_cwd"], start_new_session=True)
+            if guard:
+                guard.supervise(process)
             try:
                 while not (spool / "READY").is_file():
+                    if guard:
+                        guard.check()
                     if process.poll() is not None:
                         raise SystemExit(f"service exited before READY ({process.returncode})")
                     time.sleep(0.01)
                 ready_ns = time.monotonic_ns() - started
                 for index, block in enumerate(order):
+                    quiet_records.append(quiet_checkpoint(process, args, run, index, guard))
                     name = f"{index:04d}-{block}"
                     submitted = time.monotonic_ns()
                     submitted_utc = time.time_ns()
@@ -404,6 +549,8 @@ def daemon(args):
                     os.rename(spool / "inbox" / f"{name}.tmp", spool / "inbox" / f"{name}.request")
                     done = spool / "done" / f"{name}.json"
                     while not done.is_file():
+                        if guard:
+                            guard.check()
                         if process.poll() is not None:
                             raise SystemExit(f"service exited during {name} ({process.returncode})")
                         time.sleep(0.005)
@@ -419,12 +566,23 @@ def daemon(args):
                 _, status, usage = os.wait4(process.pid, 0)
                 code = os.waitstatus_to_exitcode(status)
                 stop_ns = time.monotonic_ns() - stop_at
+                if guard:
+                    guard.check()
             except BaseException:
-                process.kill()
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.wait(timeout=30)
                 raise
         wall_ns = time.monotonic_ns() - started
     finally:
-        memory = monitor.finish()
+        if guard:
+            guard.close()
+        memory = monitor.finish() if monitor else None
+        if guard and memory:
+            memory["includes_external_guard_reservation"] = True
+            memory["guard_held_bytes"] = {str(d["device"]):d["held_physical_bytes"] for d in guard.record["ready"]["devices"]}
         fcntl.flock(lock, fcntl.LOCK_UN)
         lock.close()
     process_usage = {"argv": argv, "exit_code": code, "wall_ns": wall_ns, "user_seconds": usage.ru_utime,
@@ -461,6 +619,8 @@ def daemon(args):
                "service_start_s": round(ready_ns / 1e9, 3), "service_stop_s": round(stop_ns / 1e9, 3),
                "service_ready_record": B.load(spool / "READY"),
                "producer_process": process_usage, "physical_gpu_memory": memory, "cuda_api": api,
+               "quiet_before_requests": quiet_records,
+               "physical_budget_guard": guard.record if guard else None,
                "service_overhead_s": round(wall_ns / 1e9 - sum(r["marker"]["request_wall_ns"] for r in requests) / 1e9, 3),
                "requests": requests, "receivers": []}
     B.atomic_json(run / "receipt.json", receipt)
@@ -710,7 +870,12 @@ def main():
         if action.dest in ("help",):
             continue
         d._add_action(action)
+    d.add_argument("--process-budget-guard", help="physical CUDA reservation executable; held under same GPU lease through driver exit")
     d.add_argument("--gap", type=float, default=0.0, help="idle seconds between requests")
+    d.add_argument("--quiet-load-max", type=float, help="require load1m below this before every request; no timings start while busy")
+    d.add_argument("--quiet-steal-max", type=float, default=0.01, help="maximum CPU steal fraction before a request")
+    d.add_argument("--quiet-timeout", type=float, default=300, help="seconds before refusing a busy pod")
+    d.add_argument("--quiet-stable-samples", type=int, default=5, help="consecutive qualifying one-second samples")
     d.add_argument("--warm", action="store_true", help="pre-warm the session from the store at service boot (before READY)")
     l = sub.add_parser("ledger")
     l.add_argument("receipt")
