@@ -1098,6 +1098,8 @@ const Pipelined = struct {
         // this prep thread, so set it here as the lane path does in prove().
         if (children != null) Outer.Device.class_hint = try Bridge.classKey(kids) else Outer.Device.class_hint = job.leaf.?.class;
         defer Outer.Device.class_hint = null;
+        Outer.Device.class_is_leaf = children == null;
+        defer Outer.Device.class_is_leaf = false;
         // Any lane's factory: host prep reads only immutable library symbols.
         const raw_shape = @import("stwo_circuit_frontend").common.finalize.rawComponentSizes(.fromBuilder(&job.ctx().circuit));
         job.host = try Outer.prepareHost(a, job.ctx(), self.options.lanes[0].factory);
@@ -1129,6 +1131,8 @@ const Pipelined = struct {
         defer Outer.Device.seed_tape = null;
         Outer.Device.class_hint = class;
         defer Outer.Device.class_hint = null;
+        Outer.Device.class_is_leaf = true;
+        defer Outer.Device.class_is_leaf = false;
         const graph_ns = timer.lap();
         const host = (try Outer.prepareHostTape(a, graph.ctx, self.options.lanes[0].factory, class)) orelse return false;
         if (!tape.consumed) {
@@ -1196,7 +1200,7 @@ const Pipelined = struct {
         job.record.host_plan_ns = host.?.host_plan_ns;
         job.record.host_authority_ns = host.?.authority_ns;
         job.record.stamps.prep_end = self.now();
-        std.debug.print("FOLD_SEED_TAPE used node={} class={x} seeds={} record_ns={} authority_ns={} plan_ns={} prep_ns={}\n", .{ job.id, class[0..8], values.len, record_ns, host.?.authority_ns, host.?.host_plan_ns - host.?.authority_ns, job.record.stamps.prep_end - job.record.stamps.prep_start });
+        std.debug.print("FOLD_SEED_TAPE used node={} class={x} seeds={} record_ns={} authority_ns={} plan_ns={} prep_ns={}\n", .{ job.id, class[0..8], values.len, record_ns, host.?.authority_ns, host.?.host_plan_ns, job.record.stamps.prep_end - job.record.stamps.prep_start });
         return true;
     }
     fn deviceLane(self: *Pipelined, lane: usize) void {

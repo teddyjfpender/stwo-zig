@@ -8,3 +8,5 @@ pub const prove = @import("prove.zig");
 pub const wire = @import("wire.zig");
 pub const record = @import("record.zig");
 pub const device_prove = @import("device_prove.zig");
+pub const cache_pack = @import("cache_pack.zig");
+pub const cache_unpack = @import("cache_unpack.zig");

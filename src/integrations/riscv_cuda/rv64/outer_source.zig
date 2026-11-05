@@ -75,7 +75,10 @@ pub const Context = struct {
         self.* = undefined;
     }
     pub fn factory(self: *Context) Dev.Factory {
-        return .{ .context = self, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit, .prepare_host = prepareHost, .stage_host = stageHost, .unstage_host = unstageHost };
+        return .{ .context = self, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit, .prepare_host = prepareHost, .tape_ready = tapeReady, .stage_host = stageHost, .unstage_host = unstageHost };
+    }
+    fn tapeReady(_: *anyopaque, class: [32]u8) bool {
+        return Assignment.ClassCache.tapeReady(class);
     }
     /// Device-free: builds the exact Assignment.Prepared that prepareImpl
     /// would build for this finalized graph. Reads only immutable library

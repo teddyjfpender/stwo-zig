@@ -43,6 +43,9 @@ pub const HostPrepared = struct {
 /// calling thread is about to prove, or null. Device factories may key
 /// topology-only caches (assignment plans) by it; it never enters a proof.
 pub threadlocal var class_hint: ?[32]u8 = null;
+/// Host template reuse and device immutable placement are separate decisions.
+/// Leaf plans remain request-leased, even when their host template is cached.
+pub threadlocal var class_is_leaf: bool = false;
 /// Host-only producer hint (M6 hint-tape v1): the seed-origin values of the
 /// v2 fold graph whose class is `class_hint`, in variable order, recorded from
 /// the fold's guess prologue instead of building the verifier graph. A device
@@ -56,6 +59,7 @@ pub const Factory = struct {
     /// Optional device-free host stage. Thread-safe with respect to this
     /// factory's device work: it never touches device or active-proof state.
     prepare_host: ?*const fn (*anyopaque, std.mem.Allocator, *const circuit.builder.Context(P.Q)) anyerror!HostPrepared = null,
+    tape_ready: ?*const fn (*anyopaque, [32]u8) bool = null,
     /// Moves a HostPrepared into this factory's next trace-only source. Takes
     /// ownership on every path; a refused value is destroyed before returning.
     stage_host: ?*const fn (*anyopaque, HostPrepared) anyerror!void = null,

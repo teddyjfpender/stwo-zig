@@ -8,6 +8,8 @@ pub const Device = @import("stwo_circuit_cpu_integration").om31.device_prove;
 const C = @import("common.zig");
 const PP = circuit.common.preprocessed.PreprocessedCircuit;
 const Finalize = circuit.common.finalize;
+const CachePack = @import("stwo_circuit_cpu_integration").om31.cache_pack;
+const CacheUnpack = @import("stwo_circuit_cpu_integration").om31.cache_unpack;
 /// Outer shape versions (canon-vk M5; binding note §1 `S_out`). The shape is
 /// a function of the outer profile: the M5 canonical profiles
 /// (`Profile.canonical()`) use `uniform_v1`, every other profile `exact`.
@@ -168,7 +170,38 @@ pub const Wrapped = struct {
 pub const PPCache = struct {
     pub const Mode = enum { off, on, check };
     const gpa = std.heap.smp_allocator;
-    const Entry = struct { key: [32]u8, pp: *PP, bytes: usize };
+    const PackedPP = struct {
+        meta: PP,
+        columns: [@import("stwo_circuit_frontend").common.preprocessed.N_PREPROCESSED_COLUMNS]CachePack.Packed,
+        fn destroy(self: *PackedPP) void {
+            for (&self.columns) |*column| column.deinit(gpa);
+            gpa.destroy(self);
+        }
+        fn unpack(self: *const PackedPP, a: std.mem.Allocator) !*PP {
+            const pp = try a.create(PP);
+            errdefer a.destroy(pp);
+            pp.* = self.meta;
+            var done: usize = 0;
+            errdefer for (pp.columns[0..done]) |column| a.free(column.values);
+            for (&pp.columns, self.columns) |*column, encoded| {
+                column.values = try a.alloc(@import("stwo_core").fields.m31.M31, encoded.words);
+                done += 1;
+                try CacheUnpack.unpack(encoded, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(column.values)));
+            }
+            return pp;
+        }
+    };
+    const Entry = struct { key: [32]u8, pp: ?*PP = null, encoded: ?*PackedPP = null, bytes: usize };
+    pub const Lease = struct {
+        pp: *PP,
+        borrowed: bool,
+        fn deinit(self: Lease, a: std.mem.Allocator) void {
+            if (!self.borrowed) {
+                self.pp.deinit(a);
+                a.destroy(self.pp);
+            }
+        }
+    };
     var mutex: std.Thread.Mutex = .{};
     var entries: std.ArrayListUnmanaged(Entry) = .empty;
     var held_bytes: usize = 0;
@@ -188,6 +221,25 @@ pub const PPCache = struct {
         for (entries.items) |e| if (std.mem.eql(u8, &e.key, &key)) return e.pp;
         return null;
     }
+    fn contains(key: [32]u8) bool {
+        mutex.lock();
+        defer mutex.unlock();
+        for (entries.items) |e| if (std.mem.eql(u8, &e.key, &key)) return true;
+        return false;
+    }
+    fn acquire(a: std.mem.Allocator, key: [32]u8) !?Lease {
+        mutex.lock();
+        const hit: ?Entry = for (entries.items) |e| {
+            if (std.mem.eql(u8, &e.key, &key)) break e;
+        } else null;
+        mutex.unlock();
+        const e = hit orelse return null;
+        if (e.pp) |pp| return .{ .pp = pp, .borrowed = true };
+        var timer = try std.time.Timer.start();
+        const pp = try e.encoded.?.unpack(a);
+        std.debug.print("GPU_OUTER_PP_PACK unpack class={x} logical_bytes={} physical_bytes={} ns={}\n", .{ key[0..8], bytesOf(pp), e.bytes, timer.read() });
+        return .{ .pp = pp, .borrowed = false };
+    }
     fn bytesOf(pp: *const PP) usize {
         var bytes: usize = 0;
         for (pp.columns) |column| bytes += column.values.len * @sizeOf(@import("stwo_core").fields.m31.M31);
@@ -203,6 +255,7 @@ pub const PPCache = struct {
         adoptImpl(key, pp) catch |err| std.debug.print("GPU_OUTER_PP_CLASS adopt_error={s}\n", .{@errorName(err)});
     }
     fn adoptImpl(key: [32]u8, pp: *const PP) !void {
+        if (CachePack.compressClass(Device.class_is_leaf)) return adoptPacked(key, pp);
         const bytes = bytesOf(pp);
         mutex.lock();
         defer mutex.unlock();
@@ -219,6 +272,40 @@ pub const PPCache = struct {
         }
         try entries.append(gpa, .{ .key = key, .pp = copy, .bytes = bytes });
         held_bytes += bytes;
+    }
+    fn adoptPacked(key: [32]u8, pp: *const PP) !void {
+        mutex.lock();
+        const exists = for (entries.items) |e| {
+            if (std.mem.eql(u8, &e.key, &key)) break true;
+        } else false;
+        mutex.unlock();
+        if (exists) return;
+        var timer = try std.time.Timer.start();
+        const copy = try gpa.create(PackedPP);
+        errdefer gpa.destroy(copy);
+        copy.meta = pp.*;
+        var done: usize = 0;
+        errdefer for (copy.columns[0..done]) |*column| column.deinit(gpa);
+        var bytes: usize = @sizeOf(PackedPP);
+        for (&copy.columns, pp.columns) |*out, column| {
+            out.* = try CachePack.pack(gpa, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(column.values)), 1);
+            done += 1;
+            bytes += out.heldBytes();
+        }
+        mutex.lock();
+        defer mutex.unlock();
+        for (entries.items) |e| if (std.mem.eql(u8, &e.key, &key)) {
+            copy.destroy();
+            return;
+        };
+        if (held_bytes + bytes > limit()) {
+            copy.destroy();
+            std.debug.print("GPU_OUTER_PP_PACK refused=cap class={x} physical_bytes={} held_bytes={}\n", .{ key[0..8], bytes, held_bytes });
+            return;
+        }
+        try entries.append(gpa, .{ .key = key, .encoded = copy, .bytes = bytes });
+        held_bytes += bytes;
+        std.debug.print("GPU_OUTER_PP_PACK adopt class={x} logical_bytes={} physical_bytes={} held_bytes={} classes={} ns={}\n", .{ key[0..8], bytesOf(pp), bytes, held_bytes, entries.items.len, timer.read() });
     }
 };
 /// Context must already be finalized by its concrete statement authority. Padding follows its exact graph counts; no external registry or legacy
@@ -383,17 +470,18 @@ const ColumnsJob = struct {
     fn runImpl(self: *ColumnsJob) !void {
         var timer = try std.time.Timer.start();
         const mode = PPCache.mode();
-        const shared: ?*PP = if (self.class) |key| (if (mode == .on) PPCache.find(key) else null) else null;
-        const pp = if (shared) |hit| hit else blk: {
+        const shared: ?PPCache.Lease = if (self.class) |key| (if (mode == .on) try PPCache.acquire(self.a, key) else null) else null;
+        const pp = if (shared) |hit| hit.pp else blk: {
             const owned = try self.a.create(PP);
             errdefer self.a.destroy(owned);
             owned.* = try PP.fromBuilderCircuit(self.a, &self.ctx.circuit);
             break :blk owned;
         };
         self.pp = pp;
-        self.pp_borrowed = shared != null;
-        if (self.class) |key| if (mode == .check) if (PPCache.find(key)) |cached| {
-            if (!PPCache.equal(cached, pp)) return error.PPClassMismatch;
+        self.pp_borrowed = if (shared) |hit| hit.borrowed else false;
+        if (self.class) |key| if (mode == .check) if (try PPCache.acquire(self.a, key)) |cached| {
+            defer cached.deinit(self.a);
+            if (!PPCache.equal(cached.pp, pp)) return error.PPClassMismatch;
             std.debug.print("GPU_OUTER_PP_CLASS pipelined check_ok class={x}\n", .{key[0..8]});
         };
         self.columns_ns = timer.lap();
@@ -423,7 +511,10 @@ pub fn prepareHost(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factor
     result.pp_borrowed = columns.pp_borrowed;
     result.authority = columns.authority;
     result.columns_ns = columns.columns_ns;
-    result.authority_ns = columns.authority_ns - columns.columns_ns;
+    // ColumnsJob laps after building columns: authority_ns is already the
+    // authority-only duration. Subtracting columns_ns again underflows on
+    // cold classes and corrupts the host-preparation attribution.
+    result.authority_ns = columns.authority_ns;
     if (plan) |value| {
         result.host = value catch |err| return err;
     }
@@ -441,15 +532,17 @@ pub fn prepareHost(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factor
 /// plan templates are adopted together by the first fold of a class).
 pub fn tapeReady(factory: Device.Factory, class: [32]u8) bool {
     if (factory.precommit_fixed == null or factory.prepare_host == null or PPCache.mode() != .on) return false;
-    return PPCache.find(class) != null;
+    const ready = factory.tape_ready orelse return false;
+    return PPCache.contains(class) and ready(factory.context, class);
 }
 pub fn prepareHostTape(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factory, class: [32]u8) !?HostPrep {
     if (factory.precommit_fixed == null or PPCache.mode() != .on) return null;
     const prepare = factory.prepare_host orelse return null;
     if (Device.seed_tape == null or Device.class_hint == null) return error.MissingSeedTape;
-    const pp = PPCache.find(class) orelse return null;
+    const cached = (try PPCache.acquire(a, class)) orelse return null;
+    const pp = cached.pp;
     var timer = try std.time.Timer.start();
-    var result = HostPrep{ .pp = pp, .pp_borrowed = true };
+    var result = HostPrep{ .pp = pp, .pp_borrowed = cached.borrowed };
     errdefer result.deinit(a);
     result.authority = try Outer.Authority.prepareForDeviceProver(a, pp);
     result.authority_ns = timer.lap();
@@ -535,7 +628,7 @@ pub fn finishProved(a: std.mem.Allocator, proved: *Proved, digest: [32]u8) !Wrap
     proved.* = undefined;
     return result;
 }
-/// Output values must be canonical packed raw-u32 words, not arbitrary QM31s
+/// Output values must be canonical encoded raw-u32 words, not arbitrary QM31s
 /// that happen to reduce to the same field value.
 pub fn requireDigest(outputs: []const C.Q, expected: [32]u8) !void {
     if (outputs.len != 8) return error.CurrentOm31OutputCount;
