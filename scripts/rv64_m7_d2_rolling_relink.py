@@ -90,7 +90,11 @@ def main():
     with (out / 'link.log').open('w') as log:
         N.run_checked(command, log, 180)
     loaded = ctypes.CDLL(str(pending))
-    missing = [name for name in baseline['required_exports'] if not hasattr(loaded, name)]
+    manifest = native / 'rv64/required_symbols.json'
+    if N.sha(manifest) != baseline['required_export_manifest_sha256']:
+        raise RuntimeError('baseline export authority manifest changed')
+    required = json.loads(manifest.read_text())['symbols']
+    missing = [name for name in required if not hasattr(loaded, name)]
     if missing:
         raise RuntimeError('candidate missing baseline ABI: ' + repr(missing))
     output = out / 'libstwo-rv64-native.so'

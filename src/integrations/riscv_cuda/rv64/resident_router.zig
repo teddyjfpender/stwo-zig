@@ -235,7 +235,7 @@ pub const Router = struct {
         return stage.prepare(stage.context, a, request);
     }
     pub fn compositionStage(self: *Router) Worker.ResidentCompositionStage {
-        return .{ .context = self, .evaluate_and_commit = composition };
+        return .{ .context = self, .evaluate_and_commit = composition, .evaluate_and_commit_at_blowup = compositionAtBlowup };
     }
     pub fn traceStage(self: *Router) D.TraceCommitStage {
         return .{ .context = self, .commit = traceCommit };
@@ -270,13 +270,18 @@ pub const Router = struct {
         return stage.prepare(stage.context, a, bounded);
     }
     pub fn truthCompositionStage(self: *Router) CPU.rv64_gkr_truth_device_composition.Stage {
-        return .{ .context = self, .evaluate_and_commit = truthComposition };
+        return .{ .context = self, .evaluate_and_commit = truthComposition, .evaluate_and_commit_at_blowup = truthCompositionAtBlowup };
     }
     fn truthComposition(raw: *anyopaque, a: std.mem.Allocator, roles: CPU.rv64_gkr_truth_device_composition.Roles, alpha: D.O, log: u32, split: u32, total: usize, trace: *const anyopaque, scope: D.Scope) !D.Tree {
+        return truthCompositionAtBlowup(raw, a, roles, alpha, log, split, total, trace, scope, 1);
+    }
+    fn truthCompositionAtBlowup(raw: *anyopaque, a: std.mem.Allocator, roles: CPU.rv64_gkr_truth_device_composition.Roles, alpha: D.O, log: u32, split: u32, total: usize, trace: *const anyopaque, scope: D.Scope, beta: u32) !D.Tree {
         const self: *Router = @ptrCast(@alignCast(raw));
         if (scope.ordinal < self.planned_cpu_workers or zeroRoot(scope.statement) or zeroRoot(scope.fixed) or zeroRoot(scope.main)) return error.InvalidTruthResidentScope;
         const endpoint = self.endpoints[scope.ordinal % self.endpoints.len];
         const stage = endpoint.truth_composition orelse return error.ResidentTruthCompositionRequired;
+        if (stage.evaluate_and_commit_at_blowup) |callback| return callback(stage.context, a, roles, alpha, log, split, total, trace, scope, beta);
+        if (beta != 1) return error.ResidentCompositionBlowupNotSupported;
         return stage.evaluate_and_commit(stage.context, a, roles, alpha, log, split, total, trace, scope);
     }
     pub fn sourceStage(self: *Router) CPU.rv64_device_source_stage {
@@ -335,10 +340,15 @@ pub const Router = struct {
         return result;
     }
     fn composition(raw: *anyopaque, a: std.mem.Allocator, items: []const Items.Item, alpha: D.O, log: u32, split: u32, total: usize, trace: *const anyopaque, scope: D.Scope) !D.Tree {
+        return compositionAtBlowup(raw, a, items, alpha, log, split, total, trace, scope, 1);
+    }
+    fn compositionAtBlowup(raw: *anyopaque, a: std.mem.Allocator, items: []const Items.Item, alpha: D.O, log: u32, split: u32, total: usize, trace: *const anyopaque, scope: D.Scope, beta: u32) !D.Tree {
         const self: *Router = @ptrCast(@alignCast(raw));
         const index = try self.admit(scope, .retained);
         errdefer self.drop(scope);
         const stage = self.endpoints[index].composition;
+        if (stage.evaluate_and_commit_at_blowup) |callback| return callback(stage.context, a, items, alpha, log, split, total, trace, scope, beta);
+        if (beta != 1) return error.ResidentCompositionBlowupNotSupported;
         return stage.evaluate_and_commit(stage.context, a, items, alpha, log, split, total, trace, scope);
     }
     fn pcs(raw: *anyopaque, a: std.mem.Allocator, request: D.Request, channel: *D.Channel) !D.P.ExtendedCommitmentSchemeProof(D.H) {
@@ -560,4 +570,47 @@ test "resident full-family source dispatch stays scoped and fails closed without
     try std.testing.expectError(error.ProbeReached, stage.build(stage.context, std.testing.allocator, request));
     try std.testing.expectEqual(@as(usize, 0), fake[0].calls[5]);
     try std.testing.expectEqual(@as(usize, 1), fake[1].calls[5]);
+}
+
+test "D2 resident router forwards CPU and truth profile beta on the same ordinal endpoint" {
+    const F = struct {
+        beta: u32 = 0,
+        fn cpu(raw: *anyopaque, _: std.mem.Allocator, _: []const Items.Item, _: D.O, _: u32, _: u32, _: usize, _: *const anyopaque, _: D.Scope, beta: u32) !D.Tree {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            self.beta = beta;
+            return .{ .root = @splat(9), .columns = &.{} };
+        }
+        fn truth(raw: *anyopaque, _: std.mem.Allocator, _: CPU.rv64_gkr_truth_device_composition.Roles, _: D.O, _: u32, _: u32, _: usize, _: *const anyopaque, _: D.Scope, beta: u32) !D.Tree {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            self.beta = beta;
+            return .{ .root = @splat(9), .columns = &.{} };
+        }
+        fn legacyTruth(_: *anyopaque, _: std.mem.Allocator, _: CPU.rv64_gkr_truth_device_composition.Roles, _: D.O, _: u32, _: u32, _: usize, _: *const anyopaque, _: D.Scope) !D.Tree {
+            return error.LegacyMustNotRun;
+        }
+    };
+    var fake = [_]Fake{ .{}, .{} };
+    var state = [_]F{ .{}, .{} };
+    var endpoints = [_]Endpoint{ fake[0].endpoint(0), fake[1].endpoint(1) };
+    endpoints[1].composition.context = &state[1];
+    endpoints[1].composition.evaluate_and_commit_at_blowup = F.cpu;
+    endpoints[0].truth_composition = .{ .context = &state[0], .evaluate_and_commit = F.legacyTruth };
+    endpoints[1].truth_composition = .{ .context = &state[1], .evaluate_and_commit = F.legacyTruth, .evaluate_and_commit_at_blowup = F.truth };
+    var router = try Router.init(&endpoints, 2);
+    var cpu = testScope(1);
+    _ = try router.admit(cpu, .capture);
+    try router.promote(cpu, @splat(9));
+    cpu.main = @splat(9);
+    const stage = router.compositionStage();
+    _ = try stage.evaluate_and_commit_at_blowup.?(stage.context, std.testing.allocator, &.{}, D.O.one(), 5, 0, 0, &state, cpu, 2);
+    try std.testing.expectEqual(@as(u32, 2), state[1].beta);
+    try std.testing.expectEqual(@as(u32, 0), state[0].beta);
+    var truth = testScope(3);
+    truth.main = @splat(9);
+    const ts = router.truthCompositionStage();
+    _ = try ts.evaluate_and_commit_at_blowup.?(ts.context, std.testing.allocator, .{ .classic = &.{} }, D.O.one(), 5, 0, 0, &state, truth, 2);
+    try std.testing.expectEqual(@as(u32, 2), state[1].beta);
+    var legacy = testScope(2);
+    legacy.main = @splat(9);
+    try std.testing.expectError(error.ResidentCompositionBlowupNotSupported, ts.evaluate_and_commit_at_blowup.?(ts.context, std.testing.allocator, .{ .classic = &.{} }, D.O.one(), 5, 0, 0, &state, legacy, 2));
 }

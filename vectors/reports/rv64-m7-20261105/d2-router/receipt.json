@@ -1,0 +1,13 @@
+{
+  "schema": "rv64-m7-d2-router/v1",
+  "author": "OpenAI Codex",
+  "status": "integration-unit-pass-production-pending",
+  "tests_passed": 16,
+  "source_sha256": {
+    "src/integrations/riscv_cuda/rv64/resident_router.zig": "6162602ee71a77a86725c6b860883b0a8f2d2cc06caf08011a3998e9c70082ec"
+  },
+  "v2_negative": "ResidentCompositionBlowupNotSupported before nativePCS; no accepted block, memory escape not established",
+  "v3_production_driver": "compiling",
+  "library_sha256": "d1d1642a4d599fb6dde042a53cfd6efab95888a35decf1298b86d5a4c4e2cf40",
+  "library_scope": "Frozen numerical object roster, one PCS TU changed; one source-identical host dispatcher explicitly source/dependency pinned and recorded in relink.json. Required exports pass; production GPU acceptance pending."
+}
