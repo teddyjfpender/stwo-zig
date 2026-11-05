@@ -19,6 +19,8 @@ const Assignment = @import("outer_assignment.zig");
 const Aot = @import("outer_aot.zig");
 const Code = @import("composition_codegen.zig");
 const Abi = @import("abi.zig");
+const Cost = @import("outer_source_cost.zig");
+const Admission = @import("admission_runtime.zig");
 const Base = @import("stwo_cuda_backend").abi.stages.circuit_base;
 pub const BaseFn = *const @TypeOf(Base.stwo_circuit_base_witness_on);
 pub const Memset = *const fn (*anyopaque, *anyopaque, c_int, usize) callconv(.c) c_int;
@@ -69,6 +71,11 @@ pub const Context = struct {
     staged_graph: ?*const anyopaque = null,
     mutex: std.Thread.Mutex = .{},
     pub fn init(a: std.mem.Allocator, service: *Service.Context, trace_commit: *TC.Context, composition: *RC.Context) !Context {
+        if (service.admission) |endpoint| {
+            if (std.posix.getenv("STWO_RV64_OUTER_DEVICE_FS")) |value| if (!std.mem.eql(u8, value, "0")) return error.UnmodeledAdmissionDeviceFsObserver;
+            try endpoint.planner.registerCoverage(endpoint.physical, .recursion_source);
+            try endpoint.planner.registerCoverage(endpoint.physical, .recursion_interaction);
+        }
         return .{ .allocator = a, .service = service, .trace_commit = trace_commit, .composition = composition, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try sym(Native.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .base = try sym(BaseFn, &service.library, "stwo_circuit_base_witness_on"), .clear = try sym(Memset, &service.library, "stwo_exec_context_memset_async"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .fractions = try sym(FractionFn, &service.library, "stwo_circuit_om31_fractions_on"), .cumulative = try sym(CumulativeFn, &service.library, "stwo_circuit_om31_cumulative_on"), .global_pairs = try sym(*const @TypeOf(Abi.stwo_rv64_global_pairs_on), &service.library, "stwo_rv64_global_pairs_on"), .identity = try sym(IdentityFn, &service.library, "stwo_circuit_om31_composition_identity"), .role = try sym(*const @TypeOf(Abi.stwo_rv64_composition_role_on), &service.library, "stwo_circuit_om31_composition_role_on") };
     }
     pub fn deinit(self: *Context) void {
@@ -337,7 +344,11 @@ pub const Context = struct {
         errdefer Owner.release(owner);
         owner.main_columns = try a.alloc(D.TraceColumn, 114);
         owner.inter_columns = try a.alloc(D.TraceColumn, 304);
-        try owner.run(@import("outer_source_main.zig").generate);
+        if (self.service.admission != null) {
+            var plan = try owner.mainAllocationPlan();
+            defer plan.deinit(a);
+            try owner.runAdmitted(@import("outer_source_main.zig").generate, &plan, .witness);
+        } else try owner.run(@import("outer_source_main.zig").generate);
         // MAIN generation joined every metadata upload and witness kernel.
         // INTER/PCS retain device columns only; no CPU plan escapes its budget.
         owner.retireAssignment();
@@ -374,6 +385,7 @@ pub const Owner = struct {
     pcs: D.Stage,
     composition_stage: @import("stwo_prover_api").device_composition.ResidentOm31Stage,
     failure: ?anyerror = null,
+    permit: ?*Admission.Permit = null,
     operation: *const fn (*Owner, *anyopaque, u64) anyerror!void = undefined,
     pub fn completeAdmission(self: *Owner, permit: *@import("admission_runtime.zig").Permit, scope: D.Scope, successor: @import("global_admission.zig").Footprint) !void {
         const endpoint = self.backend.service.admission orelse return error.MissingGlobalAdmissionEndpoint;
@@ -403,13 +415,75 @@ pub const Owner = struct {
         if (status != 0) if (self.backend.service.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
         try checked(status);
     }
+    fn mainAllocationPlan(self: *Owner) !Cost.Plan {
+        const a = self.allocator;
+        var words: u64 = 0;
+        for (self.key.logs.toArray(), circuit.witness.trace.traceWidths()) |log, width| words = try std.math.add(u64, words, try std.math.mul(u64, @as(u64, 1) << @intCast(log), width));
+        const fixed = try a.alloc(u64, self.key.pp.columns.len);
+        defer a.free(fixed);
+        for (fixed, self.key.pp.columns) |*out, column| out.* = column.values.len;
+        var assignment: ?Cost.Assignment = null;
+        var sample_count: u64 = 0;
+        if (self.backend.assignment) |*prepared| {
+            const records = if (prepared.blake_sample_inputs) |inputs| inputs.len else 0;
+            const map = if (prepared.blake_sample_outputs) |outputs| outputs.len else 0;
+            var ends: usize = 0;
+            if (prepared.narrow_plan) |narrow| {
+                var needed = try @import("assignment_graphs.zig").enabled();
+                for (narrow.runs) |run| if (run.kind == .chain) {
+                    needed = true;
+                    break;
+                };
+                if (needed) ends = narrow.ends.len;
+            }
+            assignment = .{ .seeds = prepared.seeds.len, .tasks = prepared.tasks.len, .indices = prepared.indices.len, .chain_ends = ends, .prefill_records = if (map != 0) records else 0, .prefill_map_words = map, .reusable = prepared.reusable };
+            sample_count = records;
+        }
+        const shadow = if (std.posix.getenv("STWO_RV64_FUSED_BLAKE")) |value| std.mem.eql(u8, value, "shadow") or std.mem.eql(u8, value, "check") else false;
+        // All immutable inputs are charged cold. A cache hit can only reduce
+        // allocation, and no unpinned warm-cache prediction opens this gate.
+        return Cost.main(a, .{ .main_words = words, .value_count = self.value_count, .assignment = assignment, .fixed_miss_words = fixed, .sample_check_records = sample_count, .fused_shadow = shadow });
+    }
+    fn interactionAllocationPlan(self: *Owner) !Cost.Plan {
+        var components: [11]Cost.Component = undefined;
+        const kinds = std.enums.values(circuit.common.component_list.ComponentList);
+        for (&components, self.key.logs.toArray(), kinds, 0..) |*component, log, kind, index| {
+            const indices = try lookupIndices(self.allocator, self.key, index);
+            defer self.allocator.free(indices);
+            component.* = .{ .log = log, .pairs = (circuit.witness.trace.RawLookupRows.count(kind) + 1) / 2, .fixed_columns = indices.len };
+        }
+        return Cost.interaction(self.allocator, .{ .components = &components });
+    }
+    fn runAdmitted(self: *Owner, operation: *const fn (*Owner, *anyopaque, u64) anyerror!void, plan: *const Cost.Plan, stage: @import("global_admission.zig").Stage) !void {
+        const endpoint = self.backend.service.admission orelse return error.MissingGlobalAdmissionEndpoint;
+        const scope = if (stage == .witness) self.initial_scope else self.scope;
+        const successor = try self.backend.service.admissionSuccessor(scope, if (stage == .witness) .source else .interaction);
+        var permit = try endpoint.reserve(.{ .owner = .{ .request = std.mem.readInt(u64, scope.statement[0..8], .little), .domain = .recursion_node, .ordinal = scope.ordinal }, .stage = stage, .temporary = plan.additional_peak, .successor = successor, .known = true, .host_known = plan.host_cost_known });
+        defer if (!permit.closed) {
+            endpoint.planner.poisonPhysical(endpoint.physical);
+            permit.finish(.{}) catch {};
+        };
+        self.permit = &permit;
+        defer self.permit = null;
+        try self.run(operation);
+        try self.completeAdmission(&permit, scope, successor);
+    }
     fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *Owner = @ptrCast(@alignCast(data.?));
-        self.operation(self, raw, token) catch |err| {
+        if (self.permit) |permit| permit.enterOwner(raw) catch |err| {
             self.failure = err;
             return 1;
         };
-        return 0;
+        self.operation(self, raw, token) catch |err| {
+            self.failure = err;
+        };
+        if (self.permit) |permit| {
+            if (self.backend.api.sync(raw) != 0 and self.failure == null) self.failure = error.CudaOuterStageJoinFailed;
+            permit.leaveOwner(raw) catch |err| {
+                if (self.failure == null) self.failure = err;
+            };
+        }
+        return if (self.failure == null) 0 else 1;
     }
     pub fn context(self: *Owner, raw: *anyopaque, token: u64, scope: D.Scope) SC.Context {
         return .{ .session = self.backend.service.session, .native_context = raw, .token = token, .scope = @import("pcs_scope.zig").identity(scope), .api = &self.backend.api };
@@ -426,7 +500,11 @@ pub const Owner = struct {
         self.z = z;
         self.alpha = alpha;
         self.device_fs_parameters = try @import("device_fs_check.zig").interactionParameters(self.backend.service, scope);
-        try self.run(@import("outer_source_interaction.zig").generate);
+        if (self.backend.service.admission != null) {
+            var plan = try self.interactionAllocationPlan();
+            defer plan.deinit(a);
+            try self.runAdmitted(@import("outer_source_interaction.zig").generate, &plan, .interaction);
+        } else try self.run(@import("outer_source_interaction.zig").generate);
         // INTER generation has joined all readers. Its commitment consumes only
         // INTER evaluations; MAIN coefficients already have independent custody.
         try self.run(dropMainEvaluations);
