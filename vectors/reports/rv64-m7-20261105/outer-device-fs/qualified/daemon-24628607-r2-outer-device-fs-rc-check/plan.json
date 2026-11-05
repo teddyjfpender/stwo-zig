@@ -1,0 +1,185 @@
+{
+  "schema": "rv64-resident-basket/v1",
+  "recursion_mode": "ready_candidate",
+  "recursion_worker_budget": 8,
+  "recursion_max_pending_authorities": 17,
+  "recursion_device_fixed_candidate": true,
+  "combined": true,
+  "repeat": 1,
+  "strict_recursive_receiver": true,
+  "profile": "d2_native_b4_q54_p20_fold4",
+  "immutable_host_key_bytes": 4294967296,
+  "immutable_device_bytes": 536870912,
+  "combined_immutable_device_bytes": 2147483648,
+  "combined_host_bytes": 51539607552,
+  "runtime_target_sha256": "25295868fe3410dc2f54b366497cb57e260ef9c1f9f74e03d4266f253f7cc809",
+  "assets": {
+    "driver": "/workspace/m3/build/m7-device-fs-p2/rv64-word16-ethereum-gpu-combined",
+    "library": "/workspace/m3/build/m7-combined-residency/cuda/native/libstwo-rv64-native.so",
+    "receiver": "/workspace/m3/build/m7-combined-d2-receiver/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+    "recursive_receiver": "/workspace/m3/build/m7-combined-d2-receiver/zig-out/bin/rv64-word16-ethereum-recursion-receiver"
+  },
+  "asset_sha256": {
+    "driver": "24b2a03e7985db3036cae7350aabd0420b187e65e28d645b636dfcae238841f0",
+    "library": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45",
+    "receiver": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42",
+    "recursive_receiver": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42"
+  },
+  "elf_sha256": "718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903",
+  "jobs": [
+    {
+      "block": 24628607,
+      "set": "scored",
+      "devices": [
+        0,
+        1
+      ],
+      "device_count": 2,
+      "request": "/workspace/m3/runs/m7-device-fs-p2/daemon-24628607-r2-outer-device-fs-rc-check/request-24628607.json",
+      "missing": [],
+      "request_sha256": "386a94836dee8a7015fe84b270a52cd7b0c9c6283f9e9866b2be49d1064b327a",
+      "expected_output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+      "input_sha256": "e549944d05baec739cfead4e19025cdfb378949baedc6e4d891a19aa6d059d56",
+      "segments": 7,
+      "target": "/workspace/m3/runs/m7-device-fs-p2/daemon-24628607-r2-outer-device-fs-rc-check/case",
+      "resources": {
+        "gkr_bytes": 34359738368,
+        "global_bytes": 8589934592,
+        "retained_frontend_bytes": 51539607552,
+        "disk_bytes": 0,
+        "park_main": false,
+        "schedule": {
+          "lanes": 4,
+          "workers_per_lane": 2,
+          "memory_cap_bytes": 38654705664,
+          "lane_workers": [
+            2,
+            2,
+            2,
+            2
+          ],
+          "device_affinity": 2,
+          "heaviest_first": true
+        },
+        "capture_options": {
+          "max_inflight_packets": 4,
+          "packet_heap_bytes": 1073741824,
+          "max_inflight_packet_heap_bytes": 4294967296,
+          "max_inflight_wire_bytes": 4294967296,
+          "execution_workers": 8
+        },
+        "recycler_cache_bytes": 1073741824,
+        "keccak_max_log": 18,
+        "fixed_setup_bytes": 12884901888,
+        "defer_local_binding": true,
+        "keccak_uniform_throughput": true,
+        "coalesce_truth_families": true
+      }
+    }
+  ],
+  "device_cap_bytes": 30064771072,
+  "input_ready": true,
+  "resident_environment": {
+    "CUDA_MODULE_LOADING": "EAGER",
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "STWO_RV64_BLAKE_SAMPLE_PREFILL": "1",
+    "STWO_RV64_COMPOSITION_ENQUEUE": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_CPU_COMPACT_INGRESS": "1",
+    "STWO_RV64_DEVICE_ARENA": "auto",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_GPU_DEVICES": "0,1",
+    "STWO_RV64_GPU_DEVICE_BINDING": "1",
+    "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+    "STWO_RV64_GPU_DEVICE_TRACE": "1",
+    "STWO_RV64_GPU_LIBRARY": "/workspace/m3/build/m7-combined-residency/cuda/native/libstwo-rv64-native.so",
+    "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "7",
+    "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+    "STWO_RV64_LEAF_SEED_TAPE": "1",
+    "STWO_RV64_NVTX": "1",
+    "STWO_RV64_OUTER_ASSIGNMENT_GRAPH": "1",
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_OUTER_DEVICE_FS": "check",
+    "STWO_RV64_OUTER_FS_OPS_LIBRARY": "/workspace/m3/build/m7-outer-fs-ops-v2/libstwo-rv64-outer-fs-ops.so",
+    "STWO_RV64_OUTER_OWNER_CONTROLLER": "1",
+    "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
+    "STWO_RV64_PACK_FOLD_CACHE": "0",
+    "STWO_RV64_PCS_ROLLING_BETA2": "1",
+    "STWO_RV64_PHASE_CACHE_TRIM": "1",
+    "STWO_RV64_RC_ROLE_WORKSPACE": "0",
+    "STWO_ZIG_RV64_SETUP_CACHE": ""
+  },
+  "capacity_qualification": "Production per-device byte admission remains authoritative; input readiness does not establish that all retained MAINs fit.",
+  "measurement_scope": "One process/block/config, 1 fresh complete native plus recursive request(s) with bounded immutable setup. Request wall excludes initial pool creation; process wall includes it. Only requested trials are measured; no resumed proofs or projected timings.",
+  "producer_source_commit": null,
+  "package_helper_source_commit": "5a847212b78a8d0908316a4fb95a3316d3b6eea4",
+  "producer_cwd": "/workspace/m3/src/m7-device-fs-p2",
+  "circuit_air_authority": {
+    "relative_path": "vectors/circuit/official/circuit_air.air_programs_v1.bin",
+    "sha256": "7b8022b09d84db371cc433aa0fcf132f7687f2720e05e4dc9a7650c575dc02c2"
+  },
+  "source_authority_sha256": "d6a9202607159a0d99b481dcaaf0d750dfb65eab6d711a14793f3f9d0f2ead7e",
+  "basket_sha256": "3215638982032bcde32ddc25b97ad92ea30ff29a2ef43551a13e33e2d9d95234",
+  "inputs_sha256": "0c6d7beb15c4eae5d78ff2d3f52405c90d123604b44857d9e16f23fc135ef479",
+  "execution_order": [
+    24628607
+  ],
+  "gpu_lock": null,
+  "package_scripts_sha256": {
+    "rv64_resident_basket.py": "e86ea6af809141aa4e18abc866c0e87f664aa41b14ed459e152e78751c9e221d",
+    "rv64_ethereum_basket.py": "81f92d976044cd79d3e77b43f25175b8b4ea36f52ba65f50dbc192a3cfbe22f8",
+    "produce.py": "6b9406085613c097df735d875d8e44e3a9b0949c8193ef7fdc0488424ad4f9af",
+    "prepare.py": "412f2d13926d8c965116d0d8bd296c99d167194b306f0ebfa6d96ce73128ac91"
+  },
+  "offhost_receiver": {
+    "execution_host": "local Darwin arm64 only",
+    "remote_asset_is_inert": true,
+    "binary_sha256": "0025ac3c498822c9ce1db66c1aad9bbaf76fa6490e4172342ada25167bf30395"
+  },
+  "environment": {
+    "CUDA_MODULE_LOADING": "EAGER",
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "STWO_RV64_BLAKE_SAMPLE_PREFILL": "1",
+    "STWO_RV64_COMPOSITION_ENQUEUE": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_CPU_COMPACT_INGRESS": "1",
+    "STWO_RV64_DEVICE_ARENA": "auto",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_GPU_DEVICES": "0,1",
+    "STWO_RV64_GPU_DEVICE_BINDING": "1",
+    "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+    "STWO_RV64_GPU_DEVICE_TRACE": "1",
+    "STWO_RV64_GPU_LIBRARY": "/workspace/m3/build/m7-combined-residency/cuda/native/libstwo-rv64-native.so",
+    "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "7",
+    "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+    "STWO_RV64_LEAF_SEED_TAPE": "1",
+    "STWO_RV64_NVTX": "1",
+    "STWO_RV64_OUTER_ASSIGNMENT_GRAPH": "1",
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_OUTER_DEVICE_FS": "check",
+    "STWO_RV64_OUTER_FS_OPS_LIBRARY": "/workspace/m3/build/m7-outer-fs-ops-v2/libstwo-rv64-outer-fs-ops.so",
+    "STWO_RV64_OUTER_OWNER_CONTROLLER": "1",
+    "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
+    "STWO_RV64_PACK_FOLD_CACHE": "0",
+    "STWO_RV64_PCS_ROLLING_BETA2": "1",
+    "STWO_RV64_PHASE_CACHE_TRIM": "1",
+    "STWO_RV64_RC_ROLE_WORKSPACE": "0",
+    "STWO_ZIG_RV64_SETUP_CACHE": ""
+  },
+  "store": {
+    "mode": "none",
+    "directory": null,
+    "key": null,
+    "components": {
+      "store_format": "rv64-m4-artifact-store/v1",
+      "driver_sha256": "24b2a03e7985db3036cae7350aabd0420b187e65e28d645b636dfcae238841f0",
+      "library_sha256": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45",
+      "catalogue_sha256": "e1f83a61127c72eac753a8d0a6abb1c5287c05a924eeda8549aea71986dd805f",
+      "catalogue_dir": "/workspace/m3/catalogues-v3",
+      "build_catalogues": null,
+      "elf_sha256": "718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903",
+      "profile": "d2_native_b4_q54_p20_fold4",
+      "field_hash": "m31-circle/blake2s-merkle/om31-recursion"
+    }
+  }
+}
