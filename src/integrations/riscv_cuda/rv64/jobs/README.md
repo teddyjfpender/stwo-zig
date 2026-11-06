@@ -48,7 +48,7 @@ ranges are 256-byte aligned and validate against the exec context's ledger (one 
 | `outer_composition.zig` | RC composition + its commit (streamed or tree) |
 | `outer_fixed_job.zig` | `FixedJob`: FIXED precommit root on the worker; optional coefficient handoff to the node |
 | `outer_graph_cache.zig` | per-worker CUDA graph cache: capture threshold, LRU device budget, request aging, blacklist |
-| `outer_heap.zig` | per-node first-fit work heap; every allocation is checked against the int32 index guard |
+| `outer_heap.zig` | per-node first-fit work heap; trace-commit phases are checked against the int32 index guard |
 | `outer_plan.zig` / `outer_staged.zig` / `outer_kernels.zig` | class plan, staged image, kernel table + `Device` view |
 | `outer_window.zig` | all-or-none reopen of a parked hybrid window |
 | `outer_env.zig` | strict parse of the knobs below |

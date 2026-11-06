@@ -29,8 +29,10 @@ pub const Heap = struct {
     /// actually needs (>= peak; the difference is fragmentation).
     high: usize = 0,
     allocations: u64 = 0,
-    /// Largest single request (words): the margin to Plan.max_indexable_words.
+    /// Largest single request (words) in the guarded phases (the margin to
+    /// Plan.max_indexable_words) and in the unguarded ones (see `guarded`).
     max_alloc: usize = 0,
+    max_unguarded_alloc: usize = 0,
     /// Per-phase live peak and high-water (see `Phase`), for measurement.
     phase: Phase = .held,
     phase_peak: [n_phases]usize = @splat(0),
@@ -53,12 +55,32 @@ pub const Heap = struct {
     }
 
     pub fn alloc(self: *Heap, requested: usize) !api.DeviceBuffer {
+        if (guarded(self.phase)) {
+            try Plan.requireIndexable(&.{requested});
+            self.max_alloc = @max(self.max_alloc, requested);
+        } else self.max_unguarded_alloc = @max(self.max_unguarded_alloc, requested);
+        return self.place(requested);
+    }
+
+    /// Phases whose transients feed the trace-commit kernels (B2N,
+    /// stwo_lde_n2b_columns_on, the tree kernel) the int32 guard exists for:
+    /// held buffers, FIXED, MAIN, INTER, incl. the full-LDE scratch. Not
+    /// guarded: composition (RC role arenas/buckets/accumulator) and the
+    /// native PCS, both legacy deployed code that allocates single buffers
+    /// of 2^31 words or more on folds [M outer-fold-review rg1: a
+    /// guard-everything build refused 26235156 folds 4 and 9 in the
+    /// composition phase; the same allocations were byte-identical to the D2
+    /// golden on every earlier gate]. The composition commit's chunk/banks
+    /// are checked up front (outer_job.zig holdBuffers).
+    pub fn guarded(phase: Phase) bool {
+        return switch (phase) {
+            .held, .fixed, .main, .inter => true,
+            .composition, .pcs => false,
+        };
+    }
+
+    fn place(self: *Heap, requested: usize) !api.DeviceBuffer {
         if (requested == 0) return error.InvalidAllocation;
-        // Every transient (TC full-LDE scratch, RC buffers, PCS rebuild
-        // scratch) goes through here: fail closed before a reused kernel with
-        // signed 32-bit element indices could wrap (outer_plan.zig).
-        try Plan.requireIndexable(&.{requested});
-        self.max_alloc = @max(self.max_alloc, requested);
         const words = std.mem.alignForward(usize, requested, granule);
         for (self.free_spans[0..self.n_free], 0..) |*s, i| {
             if (s.words < words) continue;
@@ -195,7 +217,7 @@ test "heap is deterministic and ignores foreign frees" {
 
 test "heap refuses any single allocation of 2^31 words or more (int32 index guard) and records the largest" {
     // Host bookkeeping only: the region is never dereferenced.
-    var h = Heap.init(.{ .ptr = @ptrFromInt(1 << 20), .words = 1 << 33 });
+    var h = Heap.init(.{ .ptr = @ptrFromInt(1 << 20), .words = 1 << 34 });
     const limit: usize = @intCast(Plan.max_indexable_words);
     try std.testing.expectError(error.OuterBufferExceedsInt32Index, h.alloc(limit));
     try std.testing.expectError(error.OuterBufferExceedsInt32Index, h.alloc(limit + 4096));
@@ -203,4 +225,13 @@ test "heap refuses any single allocation of 2^31 words or more (int32 index guar
     _ = try h.alloc(limit - 1);
     _ = try h.alloc(1000);
     try std.testing.expectEqual(limit - 1, h.max_alloc);
+    // Composition / PCS phases are recorded, not refused.
+    h.enter(.composition);
+    _ = try h.alloc(limit + 64);
+    h.enter(.pcs);
+    _ = try h.alloc(limit);
+    try std.testing.expectEqual(limit + 64, h.max_unguarded_alloc);
+    try std.testing.expectEqual(limit - 1, h.max_alloc);
+    h.enter(.inter);
+    try std.testing.expectError(error.OuterBufferExceedsInt32Index, h.alloc(limit));
 }

@@ -79,8 +79,10 @@ pub const Report = struct {
     heap_high_words: u64 = 0,
     phase_peak_words: [Heap.Heap.n_phases]u64 = @splat(0),
     phase_high_words: [Heap.Heap.n_phases]u64 = @splat(0),
-    /// Largest single heap allocation (words), against the 2^31 index guard.
+    /// Largest single heap allocation (words) of the outer kernels (against
+    /// the 2^31 index guard) and of the native PCS (unguarded).
     max_alloc_words: u64 = 0,
+    max_unguarded_alloc_words: u64 = 0,
     streamed: bool = false,
     /// Region.fixed came from the lane's FIXED precommit (no in-node commit).
     fixed_handoff: bool = false,
@@ -547,6 +549,7 @@ pub const OuterNodeJob = struct {
             self.report.heap_allocations = heap.allocations;
             self.report.heap_high_words = heap.high;
             self.report.max_alloc_words = heap.max_alloc;
+            self.report.max_unguarded_alloc_words = heap.max_unguarded_alloc;
             for (&self.report.phase_peak_words, heap.phase_peak) |*o, v| o.* = v;
             for (&self.report.phase_high_words, heap.phase_high) |*o, v| o.* = v;
         }

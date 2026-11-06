@@ -241,8 +241,10 @@ pub const Section = struct {
 /// INTER of a 26235156 fold is 2.36e9 words; the chunk-bounded node never
 /// holds it: its largest buffer is the in-place INTER coefficient region,
 /// [M] 1.25e9 words on 26235156 folds). Enforced fail-closed on every single
-/// device allocation of a job: outer_heap.Heap.alloc (node transients, PCS
-/// scratch through PcsEnqueue, the full-LDE scratch) and FixedJob's view;
+/// trace-commit allocation: outer_heap.Heap.alloc in the held/FIXED/MAIN/
+/// INTER phases (incl. the full-LDE scratch; Heap.guarded says why
+/// composition and the native PCS are exempt, receipted as
+/// max_unguarded_alloc) and FixedJob's view;
 /// outer_job.zig holdBuffers also refuses a node whose held buffers, stream
 /// scratch or full-LDE images cross it before the body starts.
 pub const max_indexable_words: u64 = 1 << 31;
