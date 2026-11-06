@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+"""M8 T5: relink the admitted resident image with register-scheduled AOT shards.
+
+Takes the frozen image's exact link line (build.json of the combined-residency
+image), replaces the objects of the selected bank-lowered constraint modules by
+objects compiled from `rv64_cuda_aot_register_schedule.py` output, and relinks.
+Every other object (and therefore every other kernel) is byte-for-byte the
+admitted one. Kernel symbols, argument lists and y-grids are unchanged, so the
+catalogue headers and launchers in the admitted objects keep working.
+
+Writes <out>/native/libstwo-rv64-native.so, <out>/build.json (receipt) and
+<out>/runtime.json (rv64-pinned-cuda-runtime/v1, for rv64_gate.sh --runtime).
+"""
+import argparse
+import concurrent.futures
+import ctypes
+import hashlib
+import json
+from pathlib import Path
+import re
+import subprocess
+import sys
+import time
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import rv64_cuda_aot_register_schedule as Schedule  # noqa: E402
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+# Objects of the frozen link line whose original build directories were deleted
+# from the pod (2026-11-06). They are rebuilt from the synced tree with the
+# native-library flags, as the T2/T4 images did; the receipt records them and
+# rv64_gate.sh proves the relinked image byte-identical.
+MISSING_SOURCES = {
+    "rv64-pcs_native.cu.o": "rv64/pcs_native.cu",
+    "runtime-context.cu.o": "runtime/context.cu",
+    "rv64-fused_blake2s.cu.o": "rv64/fused_blake2s.cu",
+    "circuit_fill_chain.o": "rv64/circuit_fill_chain.cu",
+}
+
+
+def symbol_index(link):
+    """Defined extern-C kernel host stubs -> admitted objects (nm), plus rdc slices."""
+    index = {}
+    for obj in link:
+        if not obj.endswith(".o") or not Path(obj).is_file():
+            continue
+        out = subprocess.run(["nm", "-g", "--defined-only", obj], capture_output=True, text=True, check=True).stdout
+        for line in out.splitlines():
+            fields = line.split()
+            if len(fields) == 3 and fields[1] == "T":
+                index.setdefault(fields[2], []).append(obj)
+    return index
+
+
+def admitted_objects(link, index, symbol):
+    objs = index.get(symbol, [])
+    if len(objs) != 1:
+        raise ValueError(f"expected one admitted object defining {symbol}: {objs}")
+    m = re.fullmatch(r"(rv64_aot_[0-9a-f]{16})-entry\.o", Path(objs[0]).name)
+    if m:  # rdc instruction slices of a bank-lowered module travel with the entry
+        return [o for o in link if Path(o).name.startswith(m[1] + "-")]
+    return objs
+
+
+def lower(entry, truth_raw, truth_parts, core_raw=None, core_parts=None):
+    """Return (text, report) for one plan entry. Arithmetic is never changed."""
+    kind, symbol, bounds = entry["kind"], entry["symbol"], entry.get("launch_bounds", "")
+    if kind == "truth-shard":
+        m = re.fullmatch(r"rv64_truth_domain_(\d+)_shard_(\d+)", symbol)
+        admitted = truth_parts / f"role-{m[1]}" / f"{symbol}.cu"
+        raw = truth_raw / f"case-{m[1]}-domain.cu"
+        text, report = Schedule.lower_module(raw.read_text(), admitted.read_text(), bounds)
+        report.update({"raw_source": str(raw), "raw_sha256": sha(raw), "admitted_source": str(admitted), "admitted_sha256": sha(admitted)})
+    elif kind == "core-shard":
+        m = re.fullmatch(r"rv64_joined_domain_(\d+)_shard_(\d+)", symbol)
+        admitted = core_parts / m[1] / f"{symbol}.cu"
+        raw = core_raw / f"case-{m[1]}-domain.cu"
+        text, report = Schedule.lower_module(raw.read_text(), admitted.read_text(), bounds)
+        report.update({"raw_source": str(raw), "raw_sha256": sha(raw), "admitted_source": str(admitted), "admitted_sha256": sha(admitted)})
+    elif kind == "plain":
+        source = Path(entry["source"])
+        text, report = Schedule.lower_plain(source.read_text(), bounds)
+        report.update({"admitted_source": str(source), "admitted_sha256": sha(source)})
+    elif kind == "bounds-only":
+        source = Path(entry["source"])
+        original = source.read_text()
+        text, count = re.subn(r'extern "C" __global__ void ' + re.escape(symbol) + r"\(",
+                              f'extern "C" __global__ void __launch_bounds__({bounds}) {symbol}(', original)
+        if count != 1 or not bounds:
+            raise ValueError("bounds-only entry needs one kernel and explicit bounds: " + symbol)
+        text = Schedule.MARKER + "\n" + text
+        report = {"symbol": symbol, "launch_bounds": bounds, "admitted_source": str(source), "admitted_sha256": sha(source)}
+    else:
+        raise ValueError("unknown plan kind " + kind)
+    if report["symbol"] != symbol:
+        raise ValueError(f"plan symbol {symbol} != emitted {report['symbol']}")
+    report["kind"] = kind
+    if "ab" in entry:
+        report["ab"] = entry["ab"]
+    return text, report
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--source-root", type=Path, required=True)
+    ap.add_argument("--base-link", type=Path, default=Path("/workspace/m3/build/m7-combined-residency/cuda/native/build.json"))
+    ap.add_argument("--base-runtime", type=Path, required=True, help="runtime JSON of the base image (p0-runtime.json)")
+    ap.add_argument("--truth-raw", type=Path, default=Path("/workspace/m3/catalogues-v3/truth"))
+    ap.add_argument("--truth-parts", type=Path, default=Path("/workspace/m3/catalogues-v3/truth-parts"))
+    ap.add_argument("--core-raw", type=Path, default=Path("/workspace/m3/catalogues-v3/core"))
+    ap.add_argument("--core-parts", type=Path, default=Path("/workspace/m3/build/m7-integrate/cuda/core-parts"))
+    ap.add_argument("--plan", type=Path, required=True,
+                    help="JSON list of {kind: truth-shard|core-shard|plain|bounds-only, symbol, source?, launch_bounds, ab}")
+    ap.add_argument("--include", type=Path, action="append", default=[Path("/workspace/m3/build/m7-integrate/cuda")],
+                    help="extra -I for generated headers (projection_fixture.h)")
+    ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--jobs", type=int, default=6)
+    ap.add_argument("--nvcc", default="/usr/local/cuda/bin/nvcc")
+    ap.add_argument("--compile-timeout", type=float, default=3600)
+    args = ap.parse_args()
+
+    base = json.loads(args.base_link.read_text())
+    link = list(base["link_command"])
+    plan = json.loads(args.plan.read_text())
+    out = args.out.resolve()
+    (out / "rebuilt").mkdir(parents=True, exist_ok=True)
+    native = args.source_root.resolve() / "src/backends/cuda/native"
+    native_flags = ["-O3", "-std=c++17", "-lineinfo", "-gencode", "arch=compute_120,code=sm_120", "-Xcompiler=-fPIC,-pthread", f"-I{native}"]
+    rebuilt = []
+    for i, item in enumerate(link):
+        if not item.endswith(".o") or Path(item).is_file():
+            continue
+        name = Path(item).name
+        if name not in MISSING_SOURCES:
+            raise RuntimeError("frozen link object missing and not rebuildable: " + item)
+        target = out / "rebuilt" / name
+        source = native / MISSING_SOURCES[name]
+        if not target.is_file():
+            subprocess.run([args.nvcc, *native_flags, "-c", str(source), "-o", str(target)], check=True, timeout=args.compile_timeout)
+        rebuilt.append({"original": item, "original_sha256": base["all_link_objects_sha256"].get(item), "source": str(source),
+                        "source_sha256": sha(source), "object": str(target), "object_sha256": sha(target)})
+        link[i] = str(target)
+    index = symbol_index(link)
+    if not plan or len({e["symbol"] for e in plan}) != len(plan):
+        ap.error("plan must list distinct symbols")
+    (out / "src").mkdir(parents=True, exist_ok=True)
+    (out / "obj").mkdir(parents=True, exist_ok=True)
+    (out / "native").mkdir(parents=True, exist_ok=True)
+    flags = ["-O3", "-std=c++17", "-lineinfo", "-gencode", "arch=compute_120,code=sm_120", "-Xcompiler=-fPIC,-pthread",
+             f"-I{args.source_root.resolve()}/src/backends/cuda/native"] + [f"-I{p}" for p in args.include]
+
+    def build_one(entry):
+        text, report = lower(entry, args.truth_raw, args.truth_parts, args.core_raw, args.core_parts)
+        source = Path(entry["symbol"] + ".cu")
+        cu = out / "src" / source.name
+        cu.write_text(text)
+        obj = out / "obj" / (source.stem + ".o")
+        log = out / "obj" / (source.stem + ".ptxas.log")
+        start = time.time()
+        if not (obj.is_file() and (out / "obj" / (source.stem + ".src.sha256")).is_file()
+                and (out / "obj" / (source.stem + ".src.sha256")).read_text() == sha(cu)):
+            with open(log, "w") as handle:
+                subprocess.run([args.nvcc, *flags, "-Xptxas", "-v", "-c", str(cu), "-o", str(obj)], check=True,
+                               stderr=handle, timeout=args.compile_timeout)
+            (out / "obj" / (source.stem + ".src.sha256")).write_text(sha(cu))
+        report["compile_seconds"] = round(time.time() - start, 1)
+        usage = log.read_text() if log.is_file() else ""
+        m = re.search(r"Used (\d+) registers", usage)
+        s = re.search(r"(\d+) bytes stack frame, (\d+) bytes spill stores, (\d+) bytes spill loads", usage)
+        report.update({"registers": int(m[1]) if m else None, "stack_frame_bytes": int(s[1]) if s else None,
+                       "spill_store_bytes": int(s[2]) if s else None, "spill_load_bytes": int(s[3]) if s else None,
+                       "source": str(cu), "source_sha256": sha(cu), "object": str(obj), "object_sha256": sha(obj),
+                       "replaced_objects": admitted_objects(link, index, entry["symbol"])})
+        print(json.dumps({"module": source.stem, "registers": report["registers"], "stack": report["stack_frame_bytes"],
+                          "seconds": report["compile_seconds"]}), flush=True)
+        return report
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
+        reports = list(pool.map(build_one, plan))
+    removed = {o for r in reports for o in r["replaced_objects"]}
+    if not removed <= set(link):
+        raise RuntimeError("replacement object missing from base link line")
+    library = out / "native" / "libstwo-rv64-native.so"
+    command, skip = [], False
+    for item in link:
+        if skip:
+            command.append(str(library))
+            skip = False
+            continue
+        if item == "-o":
+            skip = True
+            command.append(item)
+            continue
+        if item in removed:
+            continue
+        command.append(item)
+    # Keep the admitted object order; the new objects take the first removed slot.
+    first = min(link.index(o) for o in removed)
+    insert_at = len([x for x in link[:first] if x not in removed])
+    command[insert_at:insert_at] = [r["object"] for r in reports]
+    start = time.time()
+    subprocess.run(command, check=True)
+    link_seconds = time.time() - start
+    image = ctypes.CDLL(str(library))
+    required = ["stwo_rv64_composition_role_on", "stwo_rv64_truth_composition_role_on"] + [r["symbol"] for r in reports]
+    missing = [name for name in required if not hasattr(image, name)]
+    if missing:
+        raise RuntimeError("relinked image lacks exports: " + repr(missing))
+    receipt = {"schema": "rv64-m8-aot-register-relink/v1", "label": "M",
+               "base_link_receipt": str(args.base_link), "base_link_receipt_sha256": sha(args.base_link),
+               "base_library_sha256": base["library_sha256"], "plan": plan,
+               "modules": reports, "rebuilt_missing_objects": rebuilt, "removed_objects": sorted(removed), "link_command": command,
+               "link_seconds": round(link_seconds, 1), "library": str(library), "library_sha256": sha(library),
+               "status": "relinked; kernel parity by tests/cuda/rv64/aot_register_schedule; proof parity by rv64_gate.sh --runtime"}
+    (out / "build.json").write_text(json.dumps(receipt, indent=1) + "\n")
+    runtime = json.loads(args.base_runtime.read_text())
+    runtime["scope"] = "M8 T5 register-scheduled AOT shards relinked into the accepted image; " + runtime.get("scope", "")
+    runtime["assets"]["library"] = str(library)
+    runtime["asset_sha256"]["library"] = receipt["library_sha256"]
+    (out / "runtime.json").write_text(json.dumps(runtime, indent=2) + "\n")
+    print(json.dumps({"library": str(library), "sha256": receipt["library_sha256"], "modules": len(reports),
+                      "removed_objects": len(removed), "link_seconds": receipt["link_seconds"]}))
+
+
+if __name__ == "__main__":
+    main()
