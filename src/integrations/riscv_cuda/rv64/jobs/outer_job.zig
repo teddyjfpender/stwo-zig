@@ -368,7 +368,7 @@ pub const OuterNodeJob = struct {
             node.after_step_context = &body;
         }
         if (self.graphs) |cache| {
-            const r = try cache.run(.{ .class = self.staged.class_key, .placement = @intFromEnum(e.placement) }, e.stream(), &body);
+            const r = try cache.run(.{ .class = self.staged.graph_key, .placement = @intFromEnum(e.placement) | (@as(u8, @intFromBool(self.whole != null)) << 1) | (@as(u8, @intFromBool(self.fixed_commit != null)) << 2) }, e.stream(), &body);
             self.report.outcome = r.outcome;
             self.report.launches = r.launches;
             self.report.kernel_nodes = r.kernel_nodes;

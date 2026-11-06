@@ -125,6 +125,10 @@ pub const Staged = struct {
     /// Expected public outputs, 4 canonical M31 words each.
     expected: []const u32,
     class_key: [32]u8,
+    /// Enqueue topology (geometry + assignment run structure + Blake sample
+    /// shape), independent of node values: nodes that share it (e.g. leaves of
+    /// one shape, each its own class) share one rebindable CUDA graph.
+    graph_key: [32]u8 = @splat(0),
     ordinal: u32,
     image: Image,
     /// FIXED tree root (host authority) and the PCS sample points of this
