@@ -9,6 +9,7 @@
 #include <random>
 #include <string>
 static cudaStream_t g_stream;
+static unsigned host_arity(uint32_t kind) { return kind == 15 ? 0 : kind <= 3 ? 2 : kind == 4 ? 3 : kind == 6 ? 6 : kind == 9 ? 2 : 1; }
 extern "C" int stwo_exec_context_lane_stream(void*, uint32_t, void** out) { *out = g_stream; return 0; }
 extern "C" int stwo_exec_context_validate_allocation(void*, const void*, size_t) { return 0; }
 extern "C" int stwo_exec_context_identity(void*, uint64_t* id) { *id = 1; return 0; }
@@ -43,10 +44,16 @@ static void release(Dev& d) {
 }
 // Executor: -1 reference chain_run, else chain_flow<Per>.
 // Executor variants: -1 reference chain_run; otherwise chain_flow<kWide[v]>.
+// -DT2_REFERENCE_ONLY builds against the pre-T2 circuit_fill_chain.cu (no
+// chain_flow): the "before" kernel for the A/B.
+#ifdef T2_REFERENCE_ONLY
+#define VARIANTS(X)
+#else
 #define VARIANTS(X) X(0xffffffffu) X(16) X(32) X(64) X(128)
+#endif
 struct Variant { uint32_t wide; void (*launch)(StwoCircuitAssignmentJob, const uint32_t*, uint32_t, uint32_t); };
 #define DEF(V) Variant{V, [](StwoCircuitAssignmentJob j, const uint32_t* e, uint32_t f, uint32_t l) { chain_flow<V><<<1, kChainThreads, 0, g_stream>>>(j, e, f, l); }},
-static const Variant kVariants[] = {VARIANTS(DEF)};
+static const Variant kVariants[] = {VARIANTS(DEF) Variant{0, nullptr}};
 #undef DEF
 static void set_attrs() {}
 static std::string vname(int v) {
@@ -58,7 +65,7 @@ static void launch_chain(int v, StwoCircuitAssignmentJob j, const uint32_t* ends
     else kVariants[v].launch(j, ends, fl, lv);
     CK(cudaPeekAtLastError());
 }
-static std::vector<int> all_variants() { std::vector<int> v{-1}; for (int i = 0; i < int(sizeof kVariants / sizeof kVariants[0]); ++i) v.push_back(i); return v; }
+static std::vector<int> all_variants() { std::vector<int> v{-1}; for (int i = 0; i + 1 < int(sizeof kVariants / sizeof kVariants[0]); ++i) v.push_back(i); return v; }
 struct Timing { double total_ms, chain_ms; };
 static Timing run(const Plan& p, Dev& d, int per, bool time_chain) {
     CK(cudaMemcpyAsync(d.values, d.values0, size_t(p.values) * 16, cudaMemcpyDeviceToDevice, g_stream));
@@ -136,7 +143,7 @@ static Plan random_plan(uint64_t seed, uint32_t levels, int shape) {
             StwoCircuitAssignmentTask t{};
             static const uint32_t kinds[] = {0, 1, 2, 3, 4, 5, 6, 6, 6, 6, 8, 9, 10, 11, 12, 13, 14, 15, 0, 2};
             t.kind = shape == 2 ? (r() % 4 ? 6u : 4u) : kinds[r() % 20];
-            const unsigned ar = arity_of(t.kind);
+            const unsigned ar = host_arity(t.kind);
             for (unsigned a = 0; a < ar; ++a) t.args[a] = pick();
             if (t.kind == 8) t.args[0] = nonzero[r() % nonzero.size()];
             if (t.kind == 9) t.args[1] = nonzero[r() % nonzero.size()];
@@ -162,7 +169,7 @@ static Plan random_plan(uint64_t seed, uint32_t levels, int shape) {
         std::shuffle(level.begin(), level.end(), r);
         for (auto& t : level) {
             t.out = perm[t.out];
-            const unsigned ar = arity_of(t.kind);
+            const unsigned ar = host_arity(t.kind);
             for (unsigned a = 0; a < ar; ++a) if (!((t.kind == 12 || t.kind == 13) && a == 1)) t.args[a] = perm[t.args[a]];
             p.tasks.push_back(t);
         }

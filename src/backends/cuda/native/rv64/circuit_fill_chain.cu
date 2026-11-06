@@ -85,7 +85,7 @@ __device__ __forceinline__ bool eval(const StwoCircuitAssignmentJob& j, const St
 // Byte-for-byte the evaluation of circuit_assignment.cu `at`.
 __device__ void at(const StwoCircuitAssignmentJob& j, const StwoCircuitAssignmentTask& t) {
     if (t.kind > 15 || t.out >= j.value_count) { fail(j.status); return; }
-    const unsigned arity = arity_of(t.kind);
+    unsigned arity = t.kind == 15 ? 0 : t.kind <= 3 ? 2 : t.kind == 4 ? 3 : t.kind == 6 ? 6 : t.kind == 9 ? 2 : 1;
     if (t.kind == 7) {
         const uint32_t base = t.args[0], count = t.args[1];
         if (uint64_t(base) + uint64_t(count) * 2 > j.index_count) { fail(j.status); return; }
@@ -111,8 +111,33 @@ __device__ void at(const StwoCircuitAssignmentJob& j, const StwoCircuitAssignmen
         if (t.args[i] >= j.value_count) { fail(j.status); return; }
         x[i] = load(j.values, t.args[i]);
     }
-    uint4 r;
-    (void)eval(j, t, x, r);
+    q::QM31 v{};
+    switch (t.kind) {
+        case 0: v = q::add(x[0], x[1]); break;
+        case 1: v = q::sub(x[0], x[1]); break;
+        case 2: v = q::mul(x[0], x[1]); break;
+        case 3: v = {{q::mul(x[0].a.a, x[1].a.a), q::mul(x[0].a.b, x[1].a.b)}, {q::mul(x[0].b.a, x[1].b.a), q::mul(x[0].b.b, x[1].b.b)}}; break;
+        case 4: v = packed(word(x[0]) ^ word(x[1]) ^ word(x[2])); break;
+        case 5: v = packed(x[0].a.a); break;
+        case 6: {
+            if (uint64_t(t.out) + 4 > j.value_count) { fail(j.status); return; }
+            uint32_t a = word(x[0]), b = word(x[1]), c = word(x[2]), d = word(x[3]);
+            a = a + b + word(x[4]); d = ror(d ^ a, 16); c += d; b = ror(b ^ c, 12);
+            a = a + b + word(x[5]); d = ror(d ^ a, 8); c += d; b = ror(b ^ c, 7);
+            store(j.values, t.out, packed(a)); store(j.values, t.out + 1, packed(b));
+            store(j.values, t.out + 2, packed(c)); store(j.values, t.out + 3, packed(d));
+            return;
+        }
+        case 8: if (zero(x[0])) { fail(j.status); return; } v = q::inverse(x[0]); break;
+        case 9: if (zero(x[1])) { fail(j.status); return; } v = q::mul(x[0], q::inverse(x[1])); break;
+        case 10: { const auto a = x[0]; v = {{a.a.a ? q::inverse(a.a.a) : 0, a.a.b ? q::inverse(a.a.b) : 0}, {a.b.a ? q::inverse(a.b.a) : 0, a.b.b ? q::inverse(a.b.b) : 0}}; break; }
+        case 11: { const auto a = x[0]; v = {{a.a.a & 1, a.a.b & 1}, {a.b.a & 1, a.b.b & 1}}; break; }
+        case 12: case 13: { if (t.args[1] > 3) { fail(j.status); return; } const auto octet = (word(x[0]) >> (t.args[1] * 8)) & 255u; v = {{t.kind == 12 ? octet : 255u - octet, 0}, {0, 0}}; break; }
+        case 14: v = {{zero(x[0]) ? 0u : 1u, 0}, {0, 0}}; break;
+        case 15: v = q::zero(); break;
+        default: fail(j.status); return;
+    }
+    store(j.values, t.out, v);
 }
 // Out-of-line `at` for chain_flow's per-level paths: one body of the task
 // arithmetic there instead of three inlined copies (chain_run keeps its own
