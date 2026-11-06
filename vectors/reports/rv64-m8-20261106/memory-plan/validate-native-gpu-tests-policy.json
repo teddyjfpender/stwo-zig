@@ -1,0 +1,460 @@
+{
+ "schema": "rv64-m8-memory-plan-sweep/v1",
+ "label": "native-gpu-tests-policy",
+ "harness": "flock -w 3600 /workspace/m3/locks/gpu.lock /workspace/zig/zig build test-rv64-jobs -j8 -Doptimize=ReleaseSafe -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4+sha --cache-dir /workspace/m3/src/m8-memory-plan-p2/.zig-cache --summary all",
+ "allocator": "reuse",
+ "label_kind": "[M]",
+ "persistent": {
+  "budget_words": 8142528,
+  "high_water_words": 256,
+  "evictions": 0,
+  "unbudgeted_regions": 0
+ },
+ "sources": [
+  {
+   "file": "worker-d0-1793954790635460765-f60000.json",
+   "sha256": "c926a36638a4ef7cacee41516694662a4b073f5be3d078f0d3b31daa2b3e194c"
+  },
+  {
+   "file": "worker-d0-1793954790637675415-420000.json",
+   "sha256": "a953cec92bd6dca32344505ca60621409e1c4d83f0f90d571e364ff892a60793"
+  },
+  {
+   "file": "worker-d0-1793954790639684646-660000.json",
+   "sha256": "d00d8edcc68cf92e28f7afba97441854baf94cd5233eef4b1dc87978f248e679"
+  },
+  {
+   "file": "worker-d0-1793954790643193121-a60000.json",
+   "sha256": "0db469c37f9f41a27557c1dbf4acf15b49c47c6b4d48c6f2d9088812684f502f"
+  },
+  {
+   "file": "worker-d0-1793954791240498243-2a0000.json",
+   "sha256": "84479efdce2a1f843143dddb14be58c1aba3906521ce8c07dec57c34201ea3f7"
+  },
+  {
+   "file": "worker-d0-1793954796647888470-de0000.json",
+   "sha256": "d8c0c4a2f628fb39393576ab48e1bbe1c3f5cf8fdf68511b9423d03e6faffa2f"
+  },
+  {
+   "file": "worker-d0-1793954796649131654-4c0000.json",
+   "sha256": "a332227ee79325f0cc58e411ff144ed5a9e3b0dc042a8616f9485e790014867f"
+  },
+  {
+   "file": "worker-d0-1793954796650688937-6e0000.json",
+   "sha256": "661a9160077c67cf82c7436c19fb43bcd3de00539477cb09b3ca5dd9afc3bb33"
+  },
+  {
+   "file": "worker-d0-1793954796651608573-7a0000.json",
+   "sha256": "62b1ea58eaa9dc69241fafe3fa10fd153c9a6dfb51b891f10c69ec47f23160e5"
+  },
+  {
+   "file": "worker-d0-1793954796655762335-fe0000.json",
+   "sha256": "d31eb5ca6d9dd91116df505e24e0593166e2e49903be899029d7208512fdc531"
+  },
+  {
+   "file": "worker-d0-1793954796656766740-160000.json",
+   "sha256": "df52cd33cf0c8ffe649e54311574205bdf7a0927aa0d87f98c1582efebf349c7"
+  },
+  {
+   "file": "worker-d0-1793954796657483457-2a0000.json",
+   "sha256": "d148bbd94c89db715d71538ca80c93b9c116cb0bc54f9fe2b8ed8afa7fb7478f"
+  },
+  {
+   "file": "worker-d0-1793954796658055625-300000.json",
+   "sha256": "5e398e6f082739c22cf9f4ca928a1f9e0457439f1e083fd6a36f5a6c4cc87802"
+  },
+  {
+   "file": "worker-d0-1793954796659268039-3a0000.json",
+   "sha256": "d5c2f48e3d86cc804c7b78fdbca05fa4bf71af367fa16573f97d31f453750e55"
+  },
+  {
+   "file": "worker-d0-1793954796660188775-500000.json",
+   "sha256": "bdfa40667011577aa423846b07937b32ddf8c802c1b7e5ca0e9f72bc2f3efa9e"
+  },
+  {
+   "file": "worker-d0-1793954797476015740-3a0000.json",
+   "sha256": "d4be6fa56a0bd84128d102df6bf41f5c694604370e1e955cf5f0eb17aa4a6a7e"
+  },
+  {
+   "file": "worker-d0-1793954801540664827-c80000.json",
+   "sha256": "965ffb3d44ae26b0d3b3dfb249ead84253ad2622dddfabbf939771087530ed61"
+  },
+  {
+   "file": "worker-d0-1793954802749688228-980000.json",
+   "sha256": "8212ea68863f57d29119335babebcb0a98327643d890ae5de9579c48a859050a"
+  },
+  {
+   "file": "worker-d0-1793954802967789642-bc0000.json",
+   "sha256": "79b532b766f42cc22c222704d96fe273e946fcf1c6bb66030be053bd4ea8b758"
+  },
+  {
+   "file": "worker-d0-1793954802970432110-de0000.json",
+   "sha256": "661a9160077c67cf82c7436c19fb43bcd3de00539477cb09b3ca5dd9afc3bb33"
+  },
+  {
+   "file": "worker-d0-1793954802972101843-ea0000.json",
+   "sha256": "6e8c504bc37f9cf43f704bc0cbec2f475c6aa2a5a503b7d440695359c08830fa"
+  },
+  {
+   "file": "worker-d0-1793954805159434098-240000.json",
+   "sha256": "f1bcc4bdc79a1eb59e8743f7faf2fa8380d54e9e5b9fada007ef87e97036baa2"
+  },
+  {
+   "file": "worker-d0-1793954805184444390-400000.json",
+   "sha256": "d897a68a2b94459ac42202174bcb08556496a5bc8d92bca743f3eb89b16660cf"
+  },
+  {
+   "file": "worker-d0-1793954805277133455-f44000.json",
+   "sha256": "9f23f2089760a7e8a928afbb0204a0762160936b31f7b628678c7e92fb20fdb1"
+  },
+  {
+   "file": "worker-d0-1793954805387784867-ea0000.json",
+   "sha256": "31d06c6a5dac887293e6bcde529164b304ef8ae1cabdd181faee0ef1ca82c4cc"
+  },
+  {
+   "file": "worker-d0-1793954808903551935-240000.json",
+   "sha256": "f64ed5aeaf8c044d8e59d5c5ea52f5954479a532c0a4f1a6c43b174e7a7a26db"
+  },
+  {
+   "file": "worker-d0-1793954809128680335-100000.json",
+   "sha256": "ef03c0471363ffef1a5c6fba4cd424acf92b67c67864fb031e7eb010e6d7fb01"
+  },
+  {
+   "file": "worker-d0-1793954809139691107-ec0000.json",
+   "sha256": "d5c8bcc5513cb2a23fa892bea3728a0d90dc7086d1e2a784850f4fd2f29728e1"
+  },
+  {
+   "file": "worker-d0-1793954809142020199-40000.json",
+   "sha256": "a3c14ca409cb25dd3b6f6a6345478100fa7fb6cb96b08f937730197ebc6a5d41"
+  },
+  {
+   "file": "worker-d0-1793954809143900422-180000.json",
+   "sha256": "d148bbd94c89db715d71538ca80c93b9c116cb0bc54f9fe2b8ed8afa7fb7478f"
+  },
+  {
+   "file": "worker-d0-1793954809145131388-1e0000.json",
+   "sha256": "543d9aabc01e72ede72ee7d194d8ec5a4f3ca9cdc949547a0dc148d5d33cf0b6"
+  },
+  {
+   "file": "worker-d0-1793954809147710568-280000.json",
+   "sha256": "6b81fa806228d59bc4a8b79de9e6e4fc5f253abfcac6ee2f89e18ee7780fe55f"
+  },
+  {
+   "file": "worker-d0-1793954809149504662-3e0000.json",
+   "sha256": "209148584a2eb316c262bdcd4fb286ab0a5868b63c30d37baf88d71d5c182635"
+  },
+  {
+   "file": "worker-d0-1793954811512370624-f40000.json",
+   "sha256": "9eabc694e8aa18a4304a945e305393ea0ed7fa2ace6a928e7f3053b54f5f37aa"
+  },
+  {
+   "file": "worker-d0-1793954811515489363-f20000.json",
+   "sha256": "af19ce2e5903c472c0fb811f4ab462a9bd97a857308b5a5c15130d385d2d2788"
+  },
+  {
+   "file": "worker-d0-1793954811518189714-2a0000.json",
+   "sha256": "661a9160077c67cf82c7436c19fb43bcd3de00539477cb09b3ca5dd9afc3bb33"
+  },
+  {
+   "file": "worker-d0-1793954811519890978-280000.json",
+   "sha256": "53c2508c0bb3fef6d93ba175d58374eea640c34b1e4d48669f36599b1e68d0a8"
+  },
+  {
+   "file": "worker-d0-1793954811530609430-260000.json",
+   "sha256": "bbd1920996757b9f741e7c6276680b819cc3eee89e2e92ccb9af11a5756c4099"
+  },
+  {
+   "file": "worker-d0-1793954811532920972-f60000.json",
+   "sha256": "25f1ba1f056253a5d8c21ef63548b99fb586efff7825d856e8ed964426b498a5"
+  },
+  {
+   "file": "worker-d0-1793954811534678166-e0000.json",
+   "sha256": "d148bbd94c89db715d71538ca80c93b9c116cb0bc54f9fe2b8ed8afa7fb7478f"
+  },
+  {
+   "file": "worker-d0-1793954811535817302-e0000.json",
+   "sha256": "5f461d74e50ebda4518a98bf7f17c552fbf92695423fcb2e8cb8e29a6db0b096"
+  },
+  {
+   "file": "worker-d0-1793954811538221534-f20000.json",
+   "sha256": "e15e803bc54dabf5b3e96308d800115ef3b2236a77fed16571f70d49dadf8feb"
+  },
+  {
+   "file": "worker-d0-1793954811540051937-260000.json",
+   "sha256": "5e929c805c0d9b0d1c91b06fb8c698dfdd10bc4c2048c17dd11433a2571bbfb3"
+  },
+  {
+   "file": "worker-d0-1793954814940244311-b00000.json",
+   "sha256": "04f16160357d0a7d4511091340cf6604bacf9104d2d07884f1f90978deb9a26b"
+  },
+  {
+   "file": "worker-d0-1793954815103870857-860000.json",
+   "sha256": "1ae53105ae9b1a4f81b6268a6a24b5697dda32998264fe3b0c27a879854126a4"
+  },
+  {
+   "file": "worker-d0-1793954820990786248-120000.json",
+   "sha256": "f64ed5aeaf8c044d8e59d5c5ea52f5954479a532c0a4f1a6c43b174e7a7a26db"
+  },
+  {
+   "file": "worker-d0-1793954827104584283-9e0000.json",
+   "sha256": "b5abd79456d9e7807c15194728f601edecfdb7923bb87b0474a4509a307eccac"
+  },
+  {
+   "file": "worker-d1-1793954790636233871-f62000.json",
+   "sha256": "d5f88146c1ed03cb42a288b04b86f814d7937a7b5d8fea14bcc7c3efb68c7eef"
+  },
+  {
+   "file": "worker-d1-1793954790640174254-662000.json",
+   "sha256": "aed2217a072d3fd367044cae25c543eedc9e363144dcbbab9d13ac30577211ba"
+  },
+  {
+   "file": "worker-d1-1793954790643778228-a62000.json",
+   "sha256": "27db6ac81c980dbefc1993ef39c9e6cd17aacd415f6a87bfb5c032f1616c6431"
+  },
+  {
+   "file": "worker-d1-1793954796650068420-600000.json",
+   "sha256": "cbb5294153cb1ee6b8b4fc86df94c154d0f51f8c73726e41a7c5e66f51a0f332"
+  },
+  {
+   "file": "worker-d1-1793954802965778041-c84000.json",
+   "sha256": "91ad22c5fd2f8f97b06666b430321546748df964e20b4ad6532baaf07960ec02"
+  },
+  {
+   "file": "worker-d1-1793954802969289195-d00000.json",
+   "sha256": "cdc8a3998cbe6f3d2d14ece5f0a6e668f1e717eaee23b2ba12057e692b7f674b"
+  },
+  {
+   "file": "worker-d1-1793954811516990548-260000.json",
+   "sha256": "b6584f026270b68da2ea573b849a83b9528e29108f79093c08eb43e919ac5647"
+  },
+  {
+   "file": "worker-d3-1793954796661339370-640000.json",
+   "sha256": "1e27568e9c650a649f48738d4f6d6cfb5f34905bcb68a5007a92b967d427c55f"
+  },
+  {
+   "file": "worker-d3-1793954809152136943-520000.json",
+   "sha256": "08f67559ad7e4663123c84d873f10820fdd307ca4cd7ea05755ba207d565270a"
+  },
+  {
+   "file": "worker-d3-1793954811542669668-2a0000.json",
+   "sha256": "698e92c555f045832c56cc8d4ec1f7f9adc4325623b17b8b57a63bdfcdc711c6"
+  }
+ ],
+ "classes": [
+  {
+   "label": "native-pcs-scale-segment",
+   "class_key": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+   "jobs": 2,
+   "devices": [
+    0
+   ],
+   "declared_device_words": 2684354560,
+   "declared_staged_words": 316919808,
+   "declared_pinned_words": 337945657,
+   "declared_peak_words": 2684654208,
+   "slab_words": 299551,
+   "pinned_words": 338241144,
+   "persistent_words": 0,
+   "over_plan": 0,
+   "serialized": 0,
+   "planned_peak_words": 2184817024,
+   "sides": [
+    {
+     "jobs": 1,
+     "peak_arena_words": 2007759744,
+     "live_peak_words": 2007759744,
+     "staged_words": 316915840,
+     "peak_alloc": 78,
+     "peak_alloc_words": 805306368,
+     "allocs": 78
+    },
+    {
+     "jobs": 1,
+     "peak_arena_words": 2141977472,
+     "live_peak_words": 2141977472,
+     "staged_words": 316915840,
+     "peak_alloc": 79,
+     "peak_alloc_words": 805306368,
+     "allocs": 79
+    }
+   ],
+   "stage_ns": 401870399,
+   "enqueue_ns": 46596893,
+   "wait_ns": 77853106,
+   "peak_arena_words": 2141977472,
+   "live_peak_words": 2141977472,
+   "staged_words": 316915840,
+   "lifo_waste_words": 0,
+   "declared_over_measured": 1.2534
+  },
+  {
+   "label": "native-stage1-probe",
+   "class_key": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
+   "jobs": 2,
+   "devices": [
+    0
+   ],
+   "declared_device_words": 76984,
+   "declared_staged_words": 4096,
+   "declared_pinned_words": 16384,
+   "declared_peak_words": 77112,
+   "slab_words": 40,
+   "pinned_words": 464,
+   "persistent_words": 376,
+   "over_plan": 0,
+   "serialized": 0,
+   "planned_peak_words": 5376,
+   "sides": [
+    {
+     "jobs": 1,
+     "peak_arena_words": 5248,
+     "live_peak_words": 5248,
+     "staged_words": 512,
+     "peak_alloc": 4,
+     "peak_alloc_words": 4352,
+     "allocs": 7
+    },
+    {
+     "jobs": 1,
+     "peak_arena_words": 4992,
+     "live_peak_words": 4992,
+     "staged_words": 320,
+     "peak_alloc": 5,
+     "peak_alloc_words": 3968,
+     "allocs": 5
+    }
+   ],
+   "stage_ns": 159829,
+   "enqueue_ns": 344450,
+   "wait_ns": 111428,
+   "peak_arena_words": 5248,
+   "live_peak_words": 5248,
+   "staged_words": 512,
+   "lifo_waste_words": 0,
+   "declared_over_measured": 14.6936
+  },
+  {
+   "label": "native-stage2-probe",
+   "class_key": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+   "jobs": 1,
+   "devices": [
+    0
+   ],
+   "declared_device_words": 1060440,
+   "declared_staged_words": 4096,
+   "declared_pinned_words": 9794,
+   "declared_peak_words": 1063896,
+   "slab_words": 3369,
+   "pinned_words": 5402,
+   "persistent_words": 256,
+   "over_plan": 0,
+   "serialized": 0,
+   "planned_peak_words": 16704,
+   "sides": [
+    {
+     "jobs": 1,
+     "peak_arena_words": 16320,
+     "live_peak_words": 16320,
+     "staged_words": 832,
+     "peak_alloc": 67,
+     "peak_alloc_words": 192,
+     "allocs": 67
+    },
+    {
+     "jobs": 0,
+     "peak_arena_words": 0,
+     "live_peak_words": 0,
+     "staged_words": 0,
+     "peak_alloc": 0,
+     "peak_alloc_words": 0,
+     "allocs": 0
+    }
+   ],
+   "stage_ns": 129079,
+   "enqueue_ns": 1420876,
+   "wait_ns": 82819,
+   "peak_arena_words": 16320,
+   "live_peak_words": 16320,
+   "staged_words": 832,
+   "lifo_waste_words": 0,
+   "declared_over_measured": 65.1897
+  },
+  {
+   "label": "native-tail-probe",
+   "class_key": "0909090909090909090909090909090909090909090909090909090909090909",
+   "jobs": 1,
+   "devices": [
+    0
+   ],
+   "declared_device_words": 1054496,
+   "declared_staged_words": 4096,
+   "declared_pinned_words": 9705,
+   "declared_peak_words": 1056928,
+   "slab_words": 2321,
+   "pinned_words": 4058,
+   "persistent_words": 128,
+   "over_plan": 0,
+   "serialized": 0,
+   "planned_peak_words": 14464,
+   "sides": [
+    {
+     "jobs": 1,
+     "peak_arena_words": 14144,
+     "live_peak_words": 14144,
+     "staged_words": 384,
+     "peak_alloc": 62,
+     "peak_alloc_words": 256,
+     "allocs": 62
+    },
+    {
+     "jobs": 0,
+     "peak_arena_words": 0,
+     "live_peak_words": 0,
+     "staged_words": 0,
+     "peak_alloc": 0,
+     "peak_alloc_words": 0,
+     "allocs": 0
+    }
+   ],
+   "stage_ns": 101030,
+   "enqueue_ns": 1073306,
+   "wait_ns": 4030,
+   "peak_arena_words": 14144,
+   "live_peak_words": 14144,
+   "staged_words": 384,
+   "lifo_waste_words": 0,
+   "declared_over_measured": 74.7262
+  }
+ ],
+ "run": {
+  "label": "native-gpu-tests-policy",
+  "argv": [
+   "flock",
+   "-w",
+   "3600",
+   "/workspace/m3/locks/gpu.lock",
+   "/workspace/zig/zig",
+   "build",
+   "test-rv64-jobs",
+   "-j8",
+   "-Doptimize=ReleaseSafe",
+   "-Dtarget=x86_64-linux-gnu",
+   "-Dcpu=x86_64_v4+sha",
+   "--cache-dir",
+   "/workspace/m3/src/m8-memory-plan-p2/.zig-cache",
+   "--summary",
+   "all"
+  ],
+  "env": {
+   "STWO_RV64_M8_GPU_BASE": "/workspace/m3/build/m7-combined-residency/cuda/native/libstwo-rv64-native.so",
+   "STWO_RV64_M8_JOBS_LIBRARY": "/workspace/m3/build/m8-memory-plan-p2/jobs-addon-1/libstwo-rv64-jobs.so",
+   "STWO_RV64_M8_PCS_SCALE": "1",
+   "ZIG_GLOBAL_CACHE_DIR": "/workspace/m3/cache/zig-global",
+   "TMPDIR": "/workspace/m3/tmp",
+   "STWO_RV64_M8_JOBS_PLAN": "/workspace/m3/src/m8-memory-plan-p2/vectors/reports/rv64-m8-20261106/memory-plan/policy.json"
+  },
+  "rc": 0,
+  "wall_s": 36.652,
+  "log_sha256": "073bf2300c8d23e387e035dbe0d695ee953ec5c10958dda0de9c698d768d0063"
+ }
+}

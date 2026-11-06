@@ -1,0 +1,320 @@
+{
+ "schema": "rv64-m8-memory-plan-summary/v1",
+ "stream": "memory-plan-p2",
+ "base": "codex/rv64-m7-integrate @ dbe394860",
+ "pod": "rv64-resident-2x5090 (2x RTX 5090, 32607 MiB each)",
+ "frozen_base_sha256_prefix": "a25cc3b2",
+ "scope": "memory layout only; proof bytes compared against legacy/host in every run",
+ "classes": {
+  "outer-leaf-2^21-fixture": {
+   "class_key": "c96e9dd7004b0e5664b9aa7408263f1fe3660aeadfdb94a537983246c9e0ef27",
+   "declared_device_words": 1373718848,
+   "declared_peak_words": 1374107520,
+   "staged_words": 268074112,
+   "slab_words": 388566,
+   "pinned_words": 7282118,
+   "persistent_words": 8141706,
+   "lifo": {
+    "jobs": 12,
+    "peak_arena_words": 613580672,
+    "live_peak_words": 595746432,
+    "peak_by_side": [
+     613580672,
+     609331968
+    ],
+    "peak_alloc_by_side": [
+     [
+      120,
+      120,
+      216295168
+     ],
+     [
+      118,
+      118,
+      216295168
+     ]
+    ]
+   },
+   "reuse": {
+    "jobs": 12,
+    "peak_arena_words": 595746432,
+    "live_peak_words": 595746432,
+    "peak_by_side": [
+     595746432,
+     591497728
+    ],
+    "peak_alloc_by_side": [
+     [
+      120,
+      120,
+      216295168
+     ],
+     [
+      118,
+      118,
+      216295168
+     ]
+    ]
+   },
+   "policy_peak_words": 607661376,
+   "max_concurrent": 2
+  },
+  "native-pcs-scale-segment": {
+   "class_key": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+   "declared_device_words": 2684354560,
+   "declared_peak_words": 2684654208,
+   "staged_words": 316915840,
+   "slab_words": 299551,
+   "pinned_words": 338241144,
+   "persistent_words": 0,
+   "lifo": {
+    "jobs": 2,
+    "peak_arena_words": 2141977472,
+    "live_peak_words": 2141977472,
+    "peak_by_side": [
+     2007759744,
+     2141977472
+    ],
+    "peak_alloc_by_side": [
+     [
+      78,
+      78,
+      805306368
+     ],
+     [
+      79,
+      79,
+      805306368
+     ]
+    ]
+   },
+   "reuse": {
+    "jobs": 2,
+    "peak_arena_words": 2141977472,
+    "live_peak_words": 2141977472,
+    "peak_by_side": [
+     2007759744,
+     2141977472
+    ],
+    "peak_alloc_by_side": [
+     [
+      78,
+      78,
+      805306368
+     ],
+     [
+      79,
+      79,
+      805306368
+     ]
+    ]
+   },
+   "policy_peak_words": 2184817024,
+   "max_concurrent": 2
+  },
+  "native-stage1-probe": {
+   "class_key": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
+   "declared_device_words": 76984,
+   "declared_peak_words": 77112,
+   "staged_words": 512,
+   "slab_words": 40,
+   "pinned_words": 464,
+   "persistent_words": 376,
+   "lifo": {
+    "jobs": 2,
+    "peak_arena_words": 5248,
+    "live_peak_words": 5248,
+    "peak_by_side": [
+     5248,
+     4992
+    ],
+    "peak_alloc_by_side": [
+     [
+      4,
+      7,
+      4352
+     ],
+     [
+      5,
+      5,
+      3968
+     ]
+    ]
+   },
+   "reuse": {
+    "jobs": 2,
+    "peak_arena_words": 5248,
+    "live_peak_words": 5248,
+    "peak_by_side": [
+     5248,
+     4992
+    ],
+    "peak_alloc_by_side": [
+     [
+      4,
+      7,
+      4352
+     ],
+     [
+      5,
+      5,
+      3968
+     ]
+    ]
+   },
+   "policy_peak_words": 5376,
+   "max_concurrent": 2
+  },
+  "native-stage2-probe": {
+   "class_key": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+   "declared_device_words": 1060440,
+   "declared_peak_words": 1063896,
+   "staged_words": 832,
+   "slab_words": 3369,
+   "pinned_words": 5402,
+   "persistent_words": 256,
+   "lifo": {
+    "jobs": 1,
+    "peak_arena_words": 16320,
+    "live_peak_words": 16320,
+    "peak_by_side": [
+     16320,
+     0
+    ],
+    "peak_alloc_by_side": [
+     [
+      67,
+      67,
+      192
+     ],
+     [
+      0,
+      0,
+      0
+     ]
+    ]
+   },
+   "reuse": {
+    "jobs": 1,
+    "peak_arena_words": 16320,
+    "live_peak_words": 16320,
+    "peak_by_side": [
+     16320,
+     0
+    ],
+    "peak_alloc_by_side": [
+     [
+      67,
+      67,
+      192
+     ],
+     [
+      0,
+      0,
+      0
+     ]
+    ]
+   },
+   "policy_peak_words": 16704,
+   "max_concurrent": 2
+  },
+  "native-tail-probe": {
+   "class_key": "0909090909090909090909090909090909090909090909090909090909090909",
+   "declared_device_words": 1054496,
+   "declared_peak_words": 1056928,
+   "staged_words": 384,
+   "slab_words": 2321,
+   "pinned_words": 4058,
+   "persistent_words": 128,
+   "lifo": {
+    "jobs": 1,
+    "peak_arena_words": 14144,
+    "live_peak_words": 14144,
+    "peak_by_side": [
+     14144,
+     0
+    ],
+    "peak_alloc_by_side": [
+     [
+      62,
+      62,
+      256
+     ],
+     [
+      0,
+      0,
+      0
+     ]
+    ]
+   },
+   "reuse": {
+    "jobs": 1,
+    "peak_arena_words": 14144,
+    "live_peak_words": 14144,
+    "peak_by_side": [
+     14144,
+     0
+    ],
+    "peak_alloc_by_side": [
+     [
+      62,
+      62,
+      256
+     ],
+     [
+      0,
+      0,
+      0
+     ]
+    ]
+   },
+   "policy_peak_words": 14464,
+   "max_concurrent": 2
+  }
+ },
+ "policy_gpu": {
+  "arena_words": 2501732864,
+  "persistent_budget_words": 8142528,
+  "max_concurrent_jobs": 2,
+  "max_outstanding": 3,
+  "allocator": "reuse",
+  "device_budget_words": 8010858496
+ },
+ "validation_with_policy": {
+  "outer-leaf-2^21-fixture": {
+   "jobs": 12,
+   "planned_peak_words": 607661376,
+   "peak_arena_words": 595746432,
+   "over_plan": 0,
+   "serialized": 0
+  },
+  "native-pcs-scale-segment": {
+   "jobs": 2,
+   "planned_peak_words": 2184817024,
+   "peak_arena_words": 2141977472,
+   "over_plan": 0,
+   "serialized": 0
+  },
+  "native-stage1-probe": {
+   "jobs": 2,
+   "planned_peak_words": 5376,
+   "peak_arena_words": 5248,
+   "over_plan": 0,
+   "serialized": 0
+  },
+  "native-stage2-probe": {
+   "jobs": 1,
+   "planned_peak_words": 16704,
+   "peak_arena_words": 16320,
+   "over_plan": 0,
+   "serialized": 0
+  },
+  "native-tail-probe": {
+   "jobs": 1,
+   "planned_peak_words": 14464,
+   "peak_arena_words": 14144,
+   "over_plan": 0,
+   "serialized": 0
+  }
+ }
+}

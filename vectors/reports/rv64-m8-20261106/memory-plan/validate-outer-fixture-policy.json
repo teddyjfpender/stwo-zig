@@ -1,0 +1,87 @@
+{
+ "schema": "rv64-m8-memory-plan-sweep/v1",
+ "label": "outer-fixture-policy",
+ "harness": "flock -w 3600 /workspace/m3/locks/gpu.lock /workspace/m3/build/m8-memory-plan-p2/fixture/bin/rv64-m8-outer-job-fixture /workspace/m3/build/m7-combined-residency/cuda/native/libstwo-rv64-native.so /workspace/m3/build/m8-memory-plan-p2/jobs-addon-1/libstwo-rv64-jobs.so /workspace/m3/build/m8-outer-job/outer-fs-ops/libstwo-rv64-outer-fs-ops.so 4",
+ "allocator": "reuse",
+ "label_kind": "[M]",
+ "persistent": {
+  "budget_words": 8142528,
+  "high_water_words": 8141824,
+  "evictions": 0,
+  "unbudgeted_regions": 0
+ },
+ "sources": [
+  {
+   "file": "worker-d0-1793954790164285763-f3f8e0.json",
+   "sha256": "98ecfd42b5a0315626aff7c9de71fb227aead32f92b66603110523eb3887a444"
+  }
+ ],
+ "classes": [
+  {
+   "label": "outer-leaf-2^21-fixture",
+   "class_key": "c96e9dd7004b0e5664b9aa7408263f1fe3660aeadfdb94a537983246c9e0ef27",
+   "jobs": 12,
+   "devices": [
+    0
+   ],
+   "declared_device_words": 1373718848,
+   "declared_staged_words": 217741952,
+   "declared_pinned_words": 10786602,
+   "declared_peak_words": 1374107520,
+   "slab_words": 388566,
+   "pinned_words": 7282118,
+   "persistent_words": 8141706,
+   "over_plan": 0,
+   "serialized": 0,
+   "planned_peak_words": 607661376,
+   "sides": [
+    {
+     "jobs": 6,
+     "peak_arena_words": 595746432,
+     "live_peak_words": 595746432,
+     "staged_words": 268074112,
+     "peak_alloc": 120,
+     "peak_alloc_words": 216295168,
+     "allocs": 120
+    },
+    {
+     "jobs": 6,
+     "peak_arena_words": 591497728,
+     "live_peak_words": 591497728,
+     "staged_words": 263825408,
+     "peak_alloc": 118,
+     "peak_alloc_words": 216295168,
+     "allocs": 118
+    }
+   ],
+   "stage_ns": 3845473,
+   "enqueue_ns": 55316484,
+   "wait_ns": 204322605,
+   "peak_arena_words": 595746432,
+   "live_peak_words": 595746432,
+   "staged_words": 268074112,
+   "lifo_waste_words": 0,
+   "declared_over_measured": 2.3065
+  }
+ ],
+ "run": {
+  "label": "outer-fixture-policy",
+  "argv": [
+   "flock",
+   "-w",
+   "3600",
+   "/workspace/m3/locks/gpu.lock",
+   "/workspace/m3/build/m8-memory-plan-p2/fixture/bin/rv64-m8-outer-job-fixture",
+   "/workspace/m3/build/m7-combined-residency/cuda/native/libstwo-rv64-native.so",
+   "/workspace/m3/build/m8-memory-plan-p2/jobs-addon-1/libstwo-rv64-jobs.so",
+   "/workspace/m3/build/m8-outer-job/outer-fs-ops/libstwo-rv64-outer-fs-ops.so",
+   "4"
+  ],
+  "env": {
+   "STWO_RV64_M8_JOBS_PLAN": "/workspace/m3/src/m8-memory-plan-p2/vectors/reports/rv64-m8-20261106/memory-plan/policy.json"
+  },
+  "rc": 0,
+  "wall_s": 3.372,
+  "log_sha256": "bdfbb9dde90b9463739814617674792acd3546e017ed7608d38a6cd2d6b9b254"
+ }
+}
