@@ -1,0 +1,960 @@
+{
+ "schema": "rv64-m8-census-warm/v1",
+ "run": "/workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-inter-contributions-profile-20261106-01-06-baseline",
+ "block": 24628607,
+ "ordinal": 1,
+ "label": "M (profiled; walls include Nsight overhead)",
+ "window_s": 12.6015,
+ "request_wall_s": 12.5915,
+ "stages": {
+  "request_wall_s": 12.592,
+  "phase_transition_s": 0.003,
+  "capture_s": 2.057,
+  "setup_s": 0.132,
+  "native_prove_s": 4.6,
+  "native_verify_s": 1.509,
+  "native_total_before_report_s": 6.955,
+  "recursion_s": 5.598
+ },
+ "kernel_gpu_s": 10.5788,
+ "kernel_launches": 71915,
+ "families": {
+  "circle fft/lde": {
+   "gpu_s": 3.1748,
+   "pct": 30.01,
+   "launches": 23055
+  },
+  "merkle/blake2s": {
+   "gpu_s": 1.5229,
+   "pct": 14.4,
+   "launches": 9156
+  },
+  "composition/constraints": {
+   "gpu_s": 1.2366,
+   "pct": 11.69,
+   "launches": 1272
+  },
+  "quotients/oods/fri": {
+   "gpu_s": 1.1225,
+   "pct": 10.61,
+   "launches": 1860
+  },
+  "recursion assignment": {
+   "gpu_s": 1.0244,
+   "pct": 9.68,
+   "launches": 9291
+  },
+  "gkr/sumcheck": {
+   "gpu_s": 0.8464,
+   "pct": 8.0,
+   "launches": 16861
+  },
+  "logup/lookup": {
+   "gpu_s": 0.7528,
+   "pct": 7.12,
+   "launches": 3841
+  },
+  "witness generation": {
+   "gpu_s": 0.7213,
+   "pct": 6.82,
+   "launches": 319
+  },
+  "transcript/channel": {
+   "gpu_s": 0.0779,
+   "pct": 0.74,
+   "launches": 726
+  },
+  "other": {
+   "gpu_s": 0.074,
+   "pct": 0.7,
+   "launches": 5435
+  },
+  "pow grind": {
+   "gpu_s": 0.0251,
+   "pct": 0.24,
+   "launches": 99
+  }
+ },
+ "top_kernels": [
+  {
+   "name": "mixed_leaf_kernel",
+   "gpu_s": 1.3418,
+   "pct": 12.68,
+   "mean_us": 1026.61,
+   "family": "merkle/blake2s",
+   "launches": 1307,
+   "grid": 1024,
+   "block": 256,
+   "regs": 56,
+   "smem": 0,
+   "theoretical_occupancy": 0.667,
+   "waves": 1.51,
+   "demangled": "void stwo::cuda::blake2s::mixed_leaf_kernel<(bool)1, (bool)1>(unsigned int, unsigned int, stwo::cuda::blake2s::MixedInputs, unsigned int, unsigned int, const stwo::cuda::blake2s::ProgressiveState *, s"
+  },
+  {
+   "name": "n2b_wide_contiguous",
+   "gpu_s": 1.1217,
+   "pct": 10.6,
+   "mean_us": 618.01,
+   "family": "circle fft/lde",
+   "launches": 1815,
+   "grid": 1024,
+   "block": 256,
+   "regs": 106,
+   "smem": 33792,
+   "theoretical_occupancy": 0.333,
+   "waves": 3.01,
+   "demangled": "void stwo::cuda::transform::n2b_wide_contiguous<(unsigned int)13>(stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *, unsigned int)"
+  },
+  {
+   "name": "chain_run",
+   "gpu_s": 0.9933,
+   "pct": 9.39,
+   "mean_us": 1441.62,
+   "family": "recursion assignment",
+   "launches": 689,
+   "grid": 1,
+   "block": 512,
+   "regs": 64,
+   "smem": 4100,
+   "theoretical_occupancy": 0.667,
+   "waves": 0.0,
+   "demangled": "stwo::cuda::circuit_fill::chain_run(StwoCircuitAssignmentJob, const unsigned int *, unsigned int, unsigned int)"
+  },
+  {
+   "name": "n2b_wide_strided_short",
+   "gpu_s": 0.5331,
+   "pct": 5.04,
+   "mean_us": 425.08,
+   "family": "circle fft/lde",
+   "launches": 1254,
+   "grid": 1024,
+   "block": 256,
+   "regs": 116,
+   "smem": 33792,
+   "theoretical_occupancy": 0.333,
+   "waves": 3.01,
+   "demangled": "void stwo::cuda::transform::n2b_wide_strided_short<(unsigned int)10, (bool)0>(stwo::cuda::transform::ColumnSlab<const unsigned int>, const unsigned int *, stwo::cuda::transform::ColumnSlab<unsigned in"
+  },
+  {
+   "name": "deep_combine",
+   "gpu_s": 0.4801,
+   "pct": 4.54,
+   "mean_us": 14549.47,
+   "family": "quotients/oods/fri",
+   "launches": 33,
+   "grid": 131072,
+   "block": 128,
+   "regs": 168,
+   "smem": 0,
+   "theoretical_occupancy": 0.25,
+   "waves": 257.0,
+   "demangled": "stwo::cuda::rv64::deep_combine(StwoRv64DeepCombine)"
+  },
+  {
+   "name": "n2b_wide_strided",
+   "gpu_s": 0.4774,
+   "pct": 4.51,
+   "mean_us": 850.98,
+   "family": "circle fft/lde",
+   "launches": 561,
+   "grid": 37888,
+   "block": 512,
+   "regs": 113,
+   "smem": 67584,
+   "theoretical_occupancy": 0.333,
+   "waves": 222.87,
+   "demangled": "void stwo::cuda::transform::n2b_wide_strided<(bool)0>(stwo::cuda::transform::ColumnSlab<const unsigned int>, const unsigned int *, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, const "
+  },
+  {
+   "name": "sample_first",
+   "gpu_s": 0.4116,
+   "pct": 3.89,
+   "mean_us": 450.35,
+   "family": "quotients/oods/fri",
+   "launches": 914,
+   "grid": 294912,
+   "block": 128,
+   "regs": 48,
+   "smem": 4096,
+   "theoretical_occupancy": 0.833,
+   "waves": 173.48,
+   "demangled": "stwo::cuda::rv64::sample_first(StwoRv64SampleEvaluation, unsigned int)"
+  },
+  {
+   "name": "global_inverse_contribute",
+   "gpu_s": 0.388,
+   "pct": 3.67,
+   "mean_us": 989.87,
+   "family": "logup/lookup",
+   "launches": 392,
+   "grid": 2048,
+   "block": 128,
+   "regs": 66,
+   "smem": 0,
+   "theoretical_occupancy": 0.583,
+   "waves": 1.72,
+   "demangled": "stwo::cuda::rv64::global_inverse_contribute(StwoRv64GlobalPairs)"
+  },
+  {
+   "name": "keccak_witness",
+   "gpu_s": 0.3425,
+   "pct": 3.24,
+   "mean_us": 57090.44,
+   "family": "witness generation",
+   "launches": 6,
+   "grid": 2428,
+   "block": 128,
+   "regs": 54,
+   "smem": 0,
+   "theoretical_occupancy": 0.75,
+   "waves": 1.59,
+   "demangled": "stwo::cuda::rv64::keccak_witness(StwoRv64KeccakWitness)"
+  },
+  {
+   "name": "b2n_continue",
+   "gpu_s": 0.3014,
+   "pct": 2.85,
+   "mean_us": 265.53,
+   "family": "circle fft/lde",
+   "launches": 1135,
+   "grid": 32,
+   "block": 256,
+   "regs": 40,
+   "smem": 8320,
+   "theoretical_occupancy": 1.0,
+   "waves": 0.03,
+   "demangled": "void stwo::cuda::transform::b2n_continue<(unsigned int)3, (bool)0, (unsigned int)0>(stwo::cuda::transform::ColumnSlab<unsigned int>, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsi"
+  },
+  {
+   "name": "generate",
+   "gpu_s": 0.2975,
+   "pct": 2.81,
+   "mean_us": 978.63,
+   "family": "witness generation",
+   "launches": 304,
+   "grid": 1024,
+   "block": 256,
+   "regs": 22,
+   "smem": 0,
+   "theoretical_occupancy": 1.0,
+   "waves": 1.0,
+   "demangled": "void stwo::cuda::circuit_base::generate<(unsigned int)0>(const unsigned int *, unsigned int, unsigned int, unsigned int, stwo::cuda::circuit_base::Columns, unsigned int *)"
+  },
+  {
+   "name": "rv64_truth_domain_0_shard_47",
+   "gpu_s": 0.2841,
+   "pct": 2.69,
+   "mean_us": 94713.86,
+   "family": "composition/constraints",
+   "launches": 3,
+   "grid": 8192,
+   "block": 128,
+   "regs": 118,
+   "smem": 0,
+   "theoretical_occupancy": 0.333,
+   "waves": 12.05,
+   "demangled": "rv64_truth_domain_0_shard_47"
+  },
+  {
+   "name": "n2b_continue",
+   "gpu_s": 0.2725,
+   "pct": 2.58,
+   "mean_us": 100.95,
+   "family": "circle fft/lde",
+   "launches": 2699,
+   "grid": 32,
+   "block": 512,
+   "regs": 60,
+   "smem": 32768,
+   "theoretical_occupancy": 0.667,
+   "waves": 0.09,
+   "demangled": "void stwo::cuda::transform::n2b_continue<(unsigned int)4, (unsigned int)4, (bool)0>(stwo::cuda::transform::ColumnSlab<const unsigned int>, const unsigned int *, stwo::cuda::transform::ColumnSlab<unsig"
+  },
+  {
+   "name": "child_layer_kernel",
+   "gpu_s": 0.1811,
+   "pct": 1.71,
+   "mean_us": 23.08,
+   "family": "merkle/blake2s",
+   "launches": 7849,
+   "grid": 16384,
+   "block": 256,
+   "regs": 40,
+   "smem": 0,
+   "theoretical_occupancy": 1.0,
+   "waves": 16.06,
+   "demangled": "void stwo::cuda::blake2s::child_layer_kernel<(bool)1>(const stwo::cuda::blake2s::Hash *, unsigned int, stwo::cuda::blake2s::Hash *)"
+  },
+  {
+   "name": "oracles_fold",
+   "gpu_s": 0.1549,
+   "pct": 1.46,
+   "mean_us": 68.86,
+   "family": "gkr/sumcheck",
+   "launches": 2250,
+   "grid": 1,
+   "block": 128,
+   "regs": 54,
+   "smem": 0,
+   "theoretical_occupancy": 0.75,
+   "waves": 0.0,
+   "demangled": "stwo::cuda::rv64::oracles_fold(stwo::cuda::rv64::FoldPacket, unsigned int, const unsigned int *)"
+  },
+  {
+   "name": "batch_round",
+   "gpu_s": 0.1534,
+   "pct": 1.45,
+   "mean_us": 68.19,
+   "family": "gkr/sumcheck",
+   "launches": 2250,
+   "grid": 1,
+   "block": 1,
+   "regs": 177,
+   "smem": 0,
+   "theoretical_occupancy": 0.229,
+   "waves": 0.0,
+   "demangled": "stwo::cuda::rv64::batch_round(unsigned int *, stwo::cuda::rv64::BatchJobs, unsigned int, const unsigned int *, unsigned int *)"
+  },
+  {
+   "name": "oracles_sum",
+   "gpu_s": 0.1504,
+   "pct": 1.42,
+   "mean_us": 66.86,
+   "family": "gkr/sumcheck",
+   "launches": 2250,
+   "grid": 1,
+   "block": 128,
+   "regs": 128,
+   "smem": 256,
+   "theoretical_occupancy": 0.333,
+   "waves": 0.0,
+   "demangled": "stwo::cuda::rv64::oracles_sum(stwo::cuda::rv64::SumPacket, unsigned int, StwoRv64Plane, const unsigned int *, bool)"
+  },
+  {
+   "name": "n2b_final_warp",
+   "gpu_s": 0.131,
+   "pct": 1.24,
+   "mean_us": 108.73,
+   "family": "circle fft/lde",
+   "launches": 1205,
+   "grid": 1969152,
+   "block": 128,
+   "regs": 38,
+   "smem": 0,
+   "theoretical_occupancy": 1.0,
+   "waves": 965.27,
+   "demangled": "void stwo::cuda::transform::n2b_final_warp<(unsigned int)3, (bool)1>(stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *, unsigned int)"
+  },
+  {
+   "name": "deep_aggregate_rows",
+   "gpu_s": 0.1259,
+   "pct": 1.19,
+   "mean_us": 3816.52,
+   "family": "quotients/oods/fri",
+   "launches": 33,
+   "grid": 69632,
+   "block": 256,
+   "regs": 66,
+   "smem": 5120,
+   "theoretical_occupancy": 0.5,
+   "waves": 136.53,
+   "demangled": "stwo::cuda::rv64::deep_aggregate_rows(StwoRv64DeepPrepare)"
+  },
+  {
+   "name": "lift_add",
+   "gpu_s": 0.1207,
+   "pct": 1.14,
+   "mean_us": 477.27,
+   "family": "composition/constraints",
+   "launches": 253,
+   "grid": 65536,
+   "block": 128,
+   "regs": 20,
+   "smem": 0,
+   "theoretical_occupancy": 1.0,
+   "waves": 32.13,
+   "demangled": "<unnamed>::lift_add(const unsigned int *, unsigned int *, unsigned int, unsigned int)"
+  },
+  {
+   "name": "witness",
+   "gpu_s": 0.1179,
+   "pct": 1.11,
+   "mean_us": 1144.27,
+   "family": "witness generation",
+   "launches": 103,
+   "grid": 64,
+   "block": 128,
+   "regs": 116,
+   "smem": 0,
+   "theoretical_occupancy": 0.333,
+   "waves": 0.09,
+   "demangled": "stwo::cuda::rv64::bridge::witness(StwoRv64BridgeWitness)"
+  },
+  {
+   "name": "stwo_rv64_composition_0eb218ba3708414be79080f813fb117f68a1ed80051f9a949386bd1e9ec5e52b",
+   "gpu_s": 0.1066,
+   "pct": 1.01,
+   "mean_us": 5609.92,
+   "family": "composition/constraints",
+   "launches": 19,
+   "grid": 65536,
+   "block": 128,
+   "regs": 99,
+   "smem": 0,
+   "theoretical_occupancy": 0.333,
+   "waves": 96.38,
+   "demangled": "stwo_rv64_composition_0eb218ba3708414be79080f813fb117f68a1ed80051f9a949386bd1e9ec5e52b"
+  },
+  {
+   "name": "rv64_truth_domain_0_shard_48",
+   "gpu_s": 0.0862,
+   "pct": 0.81,
+   "mean_us": 28719.64,
+   "family": "composition/constraints",
+   "launches": 3,
+   "grid": 8192,
+   "block": 128,
+   "regs": 118,
+   "smem": 0,
+   "theoretical_occupancy": 0.333,
+   "waves": 12.05,
+   "demangled": "rv64_truth_domain_0_shard_48"
+  },
+  {
+   "name": "b2n_init_block",
+   "gpu_s": 0.0856,
+   "pct": 0.81,
+   "mean_us": 172.28,
+   "family": "circle fft/lde",
+   "launches": 497,
+   "grid": 64,
+   "block": 128,
+   "regs": 40,
+   "smem": 4096,
+   "theoretical_occupancy": 1.0,
+   "waves": 0.03,
+   "demangled": "void stwo::cuda::transform::b2n_init_block<(unsigned int)2>(stwo::cuda::transform::ColumnSlab<const unsigned int>, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const un"
+  },
+  {
+   "name": "layer",
+   "gpu_s": 0.0802,
+   "pct": 0.76,
+   "mean_us": 20.16,
+   "family": "gkr/sumcheck",
+   "launches": 3977,
+   "grid": 262144,
+   "block": 128,
+   "regs": 44,
+   "smem": 0,
+   "theoretical_occupancy": 0.833,
+   "waves": 154.2,
+   "demangled": "void stwo::cuda::rv64::layer<(bool)1, (unsigned int)1>(StwoRv64Plane, StwoRv64Plane, unsigned int, StwoRv64Plane, StwoRv64Plane)"
+  },
+  {
+   "name": "b2n_init_warp",
+   "gpu_s": 0.0801,
+   "pct": 0.76,
+   "mean_us": 223.79,
+   "family": "circle fft/lde",
+   "launches": 358,
+   "grid": 6768,
+   "block": 128,
+   "regs": 30,
+   "smem": 0,
+   "theoretical_occupancy": 1.0,
+   "waves": 3.32,
+   "demangled": "void stwo::cuda::transform::b2n_init_warp<(unsigned int)2>(stwo::cuda::transform::ColumnSlab<const unsigned int>, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const uns"
+  },
+  {
+   "name": "stage_addressed_lde_columns",
+   "gpu_s": 0.079,
+   "pct": 0.75,
+   "mean_us": 169.43,
+   "family": "circle fft/lde",
+   "launches": 466,
+   "grid": 1024,
+   "block": 256,
+   "regs": 18,
+   "smem": 0,
+   "theoretical_occupancy": 1.0,
+   "waves": 1.0,
+   "demangled": "<unnamed>::stage_addressed_lde_columns(unsigned int *, unsigned long, const <unnamed>::AddressedLdeDescriptor *, unsigned int, unsigned long, unsigned int)"
+  },
+  {
+   "name": "cumulative",
+   "gpu_s": 0.0779,
+   "pct": 0.74,
+   "mean_us": 372.8,
+   "family": "logup/lookup",
+   "launches": 209,
+   "grid": 2048,
+   "block": 128,
+   "regs": 40,
+   "smem": 0,
+   "theoretical_occupancy": 1.0,
+   "waves": 1.0,
+   "demangled": "stwo::cuda::rv64::circuit_outer::cumulative(StwoCircuitOm31Cumulative)"
+  },
+  {
+   "name": "channel_mix",
+   "gpu_s": 0.0771,
+   "pct": 0.73,
+   "mean_us": 212.48,
+   "family": "transcript/channel",
+   "launches": 363,
+   "grid": 1,
+   "block": 1,
+   "regs": 56,
+   "smem": 0,
+   "theoretical_occupancy": 0.667,
+   "waves": 0.0,
+   "demangled": "stwo::cuda::rv64::channel_mix(unsigned int *, unsigned int, unsigned long, unsigned long, const unsigned int *, unsigned int, unsigned int, unsigned int *)"
+  },
+  {
+   "name": "deep_validate",
+   "gpu_s": 0.0745,
+   "pct": 0.7,
+   "mean_us": 2256.78,
+   "family": "quotients/oods/fri",
+   "launches": 33,
+   "grid": 1,
+   "block": 1,
+   "regs": 40,
+   "smem": 0,
+   "theoretical_occupancy": 0.667,
+   "waves": 0.0,
+   "demangled": "stwo::cuda::rv64::deep_validate(StwoRv64DeepPrepare)"
+  }
+ ],
+ "copies": {
+  "memcpy HtoD": {
+   "ns": 1155845168,
+   "count": 11640,
+   "bytes": 28389590992,
+   "gpu_s": 1.1558,
+   "gb_per_s": 24.56
+  },
+  "memcpy DtoH": {
+   "ns": 3237238,
+   "count": 2049,
+   "bytes": 61617412,
+   "gpu_s": 0.0032,
+   "gb_per_s": 19.03
+  },
+  "memcpy DtoD": {
+   "ns": 214213011,
+   "count": 4230,
+   "bytes": 167484271760,
+   "gpu_s": 0.2142,
+   "gb_per_s": 781.86
+  },
+  "memset": {
+   "ns": 28473252,
+   "count": 434,
+   "bytes": 52230188264,
+   "gpu_s": 0.0285,
+   "gb_per_s": 1834.36
+  }
+ },
+ "devices": {
+  "0": {
+   "busy_union_s": 5.7657,
+   "busy_fraction_of_window": 0.4575,
+   "first_activity_s": 2.5717,
+   "last_activity_s": 12.4314,
+   "lead_idle_s": 2.5717,
+   "tail_idle_s": 0.1701,
+   "idle_gaps_ge_threshold": {
+    "count": 176,
+    "sum_s": 3.6304,
+    "largest": [
+     {
+      "at_s": 5.894,
+      "len_ms": 904.31
+     },
+     {
+      "at_s": 11.148,
+      "len_ms": 595.78
+     },
+     {
+      "at_s": 3.929,
+      "len_ms": 416.54
+     },
+     {
+      "at_s": 3.702,
+      "len_ms": 79.05
+     },
+     {
+      "at_s": 8.684,
+      "len_ms": 65.03
+     },
+     {
+      "at_s": 11.865,
+      "len_ms": 61.12
+     },
+     {
+      "at_s": 7.018,
+      "len_ms": 55.5
+     },
+     {
+      "at_s": 9.351,
+      "len_ms": 54.1
+     },
+     {
+      "at_s": 10.597,
+      "len_ms": 50.87
+     },
+     {
+      "at_s": 4.405,
+      "len_ms": 44.59
+     },
+     {
+      "at_s": 5.149,
+      "len_ms": 43.43
+     },
+     {
+      "at_s": 4.346,
+      "len_ms": 42.01
+     }
+    ]
+   }
+  },
+  "1": {
+   "busy_union_s": 6.2148,
+   "busy_fraction_of_window": 0.4932,
+   "first_activity_s": 2.4607,
+   "last_activity_s": 11.4589,
+   "lead_idle_s": 2.4607,
+   "tail_idle_s": 1.1425,
+   "idle_gaps_ge_threshold": {
+    "count": 156,
+    "sum_s": 2.3835,
+    "largest": [
+     {
+      "at_s": 4.06,
+      "len_ms": 285.89
+     },
+     {
+      "at_s": 10.958,
+      "len_ms": 147.37
+     },
+     {
+      "at_s": 2.633,
+      "len_ms": 115.69
+     },
+     {
+      "at_s": 3.278,
+      "len_ms": 96.19
+     },
+     {
+      "at_s": 2.836,
+      "len_ms": 87.12
+     },
+     {
+      "at_s": 8.652,
+      "len_ms": 86.74
+     },
+     {
+      "at_s": 9.354,
+      "len_ms": 73.47
+     },
+     {
+      "at_s": 5.598,
+      "len_ms": 65.06
+     },
+     {
+      "at_s": 3.792,
+      "len_ms": 65.03
+     },
+     {
+      "at_s": 10.19,
+      "len_ms": 64.48
+     },
+     {
+      "at_s": 11.17,
+      "len_ms": 45.12
+     },
+     {
+      "at_s": 3.166,
+      "len_ms": 43.93
+     }
+    ]
+   }
+  }
+ },
+ "cuda_api": {
+  "cudaEventSynchronize_v3020": {
+   "count": 2188,
+   "sum_s": 6.3513,
+   "max_ms": 447.905
+  },
+  "cudaStreamSynchronize_v3020": {
+   "count": 2610,
+   "sum_s": 3.789,
+   "max_ms": 115.084
+  },
+  "cudaLaunchKernel_v7000": {
+   "count": 62643,
+   "sum_s": 0.3361,
+   "max_ms": 50.478
+  },
+  "cuMemUnmap": {
+   "count": 99,
+   "sum_s": 0.1636,
+   "max_ms": 14.831
+  },
+  "cuMemSetAccess": {
+   "count": 40,
+   "sum_s": 0.1555,
+   "max_ms": 16.318
+  },
+  "cudaEventRecord_v3020": {
+   "count": 36637,
+   "sum_s": 0.1066,
+   "max_ms": 8.112
+  },
+  "cudaMemcpyAsync_v3020": {
+   "count": 17919,
+   "sum_s": 0.0807,
+   "max_ms": 0.309
+  },
+  "cudaMemGetInfo_v3020": {
+   "count": 306,
+   "sum_s": 0.056,
+   "max_ms": 6.541
+  },
+  "cudaGraphInstantiate_v12000": {
+   "count": 6,
+   "sum_s": 0.049,
+   "max_ms": 16.457
+  },
+  "cudaEventQuery_v3020": {
+   "count": 62402,
+   "sum_s": 0.0325,
+   "max_ms": 0.029
+  },
+  "cudaGraphLaunch_v10000": {
+   "count": 19,
+   "sum_s": 0.0164,
+   "max_ms": 4.352
+  },
+  "cudaGraphExecKernelNodeSetParams_v10010": {
+   "count": 9272,
+   "sum_s": 0.0093,
+   "max_ms": 0.041
+  },
+  "cudaStreamWaitEvent_v3020": {
+   "count": 13480,
+   "sum_s": 0.0073,
+   "max_ms": 0.011
+  },
+  "cudaMemsetAsync_v3020": {
+   "count": 434,
+   "sum_s": 0.0049,
+   "max_ms": 0.066
+  },
+  "cudaGraphAddKernelNode_v10000": {
+   "count": 2232,
+   "sum_s": 0.0036,
+   "max_ms": 0.066
+  },
+  "cudaEventDestroy_v3020": {
+   "count": 7478,
+   "sum_s": 0.0034,
+   "max_ms": 0.832
+  },
+  "cudaEventCreateWithFlags_v3020": {
+   "count": 7435,
+   "sum_s": 0.0032,
+   "max_ms": 0.009
+  },
+  "cuMemMap": {
+   "count": 2089,
+   "sum_s": 0.0022,
+   "max_ms": 0.03
+  },
+  "cudaEventCreate_v3020": {
+   "count": 66,
+   "sum_s": 0.0001,
+   "max_ms": 0.005
+  },
+  "cudaDeviceGetDefaultMemPool_v11020": {
+   "count": 2,
+   "sum_s": 0.0,
+   "max_ms": 0.004
+  },
+  "cudaMemPoolGetAttribute_v11020": {
+   "count": 4,
+   "sum_s": 0.0,
+   "max_ms": 0.004
+  },
+  "cudaGraphCreate_v10000": {
+   "count": 6,
+   "sum_s": 0.0,
+   "max_ms": 0.006
+  }
+ },
+ "osrt": {},
+ "nvtx_cpu": {
+  "m7/pcs/deep": {
+   "count": 33,
+   "cpu_sum_s": 0.0633,
+   "cpu_max_ms": 50.745
+  },
+  "m7/pcs/final_readback_encode": {
+   "count": 33,
+   "cpu_sum_s": 0.0316,
+   "cpu_max_ms": 1.885
+  },
+  "m7/pcs/fri": {
+   "count": 66,
+   "cpu_sum_s": 0.0115,
+   "cpu_max_ms": 0.585
+  },
+  "m7/pcs/metadata_allocations": {
+   "count": 33,
+   "cpu_sum_s": 0.1322,
+   "cpu_max_ms": 7.117
+  },
+  "m7/pcs/openings": {
+   "count": 33,
+   "cpu_sum_s": 1.6635,
+   "cpu_max_ms": 101.473
+  },
+  "m7/pcs/pow": {
+   "count": 33,
+   "cpu_sum_s": 0.0006,
+   "cpu_max_ms": 0.025
+  },
+  "m7/pcs/retire_deep": {
+   "count": 33,
+   "cpu_sum_s": 1.2698,
+   "cpu_max_ms": 75.023
+  },
+  "m7/pcs/retire_fri": {
+   "count": 33,
+   "cpu_sum_s": 0.03,
+   "cpu_max_ms": 1.352
+  },
+  "m7/pcs/samples": {
+   "count": 33,
+   "cpu_sum_s": 0.0165,
+   "cpu_max_ms": 1.234
+  },
+  "m7/pcs/source_lde": {
+   "count": 33,
+   "cpu_sum_s": 0.0,
+   "cpu_max_ms": 0.001
+  },
+  "m7/pcs/source_trees": {
+   "count": 33,
+   "cpu_sum_s": 0.0,
+   "cpu_max_ms": 0.0
+  },
+  "m7/pcs/trim_unused": {
+   "count": 2,
+   "cpu_sum_s": 0.001,
+   "cpu_max_ms": 0.667
+  },
+  "rv64/TC/FIXED": {
+   "count": 19,
+   "cpu_sum_s": 0.2443,
+   "cpu_max_ms": 22.589
+  },
+  "rv64/TC/INTER": {
+   "count": 33,
+   "cpu_sum_s": 1.1915,
+   "cpu_max_ms": 93.455
+  },
+  "rv64/TC/MAIN": {
+   "count": 40,
+   "cpu_sum_s": 1.1759,
+   "cpu_max_ms": 67.998
+  },
+  "rv64/composition": {
+   "count": 33,
+   "cpu_sum_s": 2.76,
+   "cpu_max_ms": 478.062
+  },
+  "rv64/owner/callback": {
+   "count": 664,
+   "cpu_sum_s": 5.5772,
+   "cpu_max_ms": 478.088
+  },
+  "rv64/owner/controller": {
+   "count": 19,
+   "cpu_sum_s": 8.6549,
+   "cpu_max_ms": 668.841
+  },
+  "rv64/owner/pcs": {
+   "count": 33,
+   "cpu_sum_s": 3.2256,
+   "cpu_max_ms": 176.788
+  },
+  "rv64/recursion/INTER-witness": {
+   "count": 19,
+   "cpu_sum_s": 0.7495,
+   "cpu_max_ms": 76.828
+  },
+  "rv64/recursion/MAIN-assignment": {
+   "count": 19,
+   "cpu_sum_s": 1.7787,
+   "cpu_max_ms": 162.918
+  }
+ },
+ "nvtx_gpu_projection": {
+  "rv64/composition": {
+   "kernel_gpu_s": 2.3244,
+   "kernels": 9794
+  },
+  "m7/pcs/openings": {
+   "kernel_gpu_s": 1.6197,
+   "kernels": 8559
+  },
+  "rv64/owner/callback": {
+   "kernel_gpu_s": 1.5469,
+   "kernels": 22799
+  },
+  "rv64/recursion/MAIN-assignment": {
+   "kernel_gpu_s": 1.2156,
+   "kernels": 9414
+  },
+  "rv64/TC/INTER": {
+   "kernel_gpu_s": 0.9395,
+   "kernels": 3646
+  },
+  "m7/pcs/deep": {
+   "kernel_gpu_s": 0.8049,
+   "kernels": 3829
+  },
+  "rv64/TC/MAIN": {
+   "kernel_gpu_s": 0.7519,
+   "kernels": 3396
+  },
+  "rv64/recursion/INTER-witness": {
+   "kernel_gpu_s": 0.6924,
+   "kernels": 2070
+  },
+  "m7/pcs/samples": {
+   "kernel_gpu_s": 0.5018,
+   "kernels": 3879
+  },
+  "rv64/TC/FIXED": {
+   "kernel_gpu_s": 0.1223,
+   "kernels": 1503
+  },
+  "m7/pcs/fri": {
+   "kernel_gpu_s": 0.0343,
+   "kernels": 2926
+  },
+  "m7/pcs/pow": {
+   "kernel_gpu_s": 0.0251,
+   "kernels": 99
+  },
+  "m7/pcs/metadata_allocations": {
+   "kernel_gpu_s": 0.0001,
+   "kernels": 1
+  }
+ }
+}

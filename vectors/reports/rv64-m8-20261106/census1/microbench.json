@@ -1,0 +1,18 @@
+{
+ "schema": "rv64-m8-census-microbench/v1",
+ "label": "M (CUDA events, GPU 1, RTX 5090, mean of 5-10 back-to-back launches after one warm-up; production nvcc flags -O3 sm_120; sources in this directory; built against /workspace/m3/src/m8-census1 = b22bdfa6e)",
+ "note": "GPU 1 was shared with an idle orphan process holding 30 GB (no kernels). Performance counters are unavailable on this pod (ncu ERR_NVGPUCTRPERM; nsys --gpu-metrics 'not supported'), so bandwidth is bytes/CUDA-event time.",
+ "blake2s_mixed_leaf (stwo_blake2s_mixed_leaf_on, one contiguous segment)": [
+  {"log_rows": 22, "cols": 8,   "ms": 0.243, "input_GBps": 552.4,  "Gcompress_per_s": 17.26},
+  {"log_rows": 22, "cols": 16,  "ms": 0.336, "input_GBps": 798.1,  "Gcompress_per_s": 12.47},
+  {"log_rows": 22, "cols": 32,  "ms": 0.445, "input_GBps": 1205.4, "Gcompress_per_s": 18.83},
+  {"log_rows": 22, "cols": 64,  "ms": 0.751, "input_GBps": 1429.9, "Gcompress_per_s": 22.34},
+  {"log_rows": 20, "cols": 128, "ms": 0.358, "input_GBps": 1500.4, "Gcompress_per_s": 23.44}
+ ],
+ "circle_fft (256 MiB of columns per call; one_pass_equiv_GBps = 2 x bytes / time; launches = passes)": {
+  "n2b": {"12": [12, 4.213, 127], "13": [2, 0.679, 791], "14": [2, 0.675, 795], "15": [2, 0.691, 777], "16": [2, 0.669, 803], "17": [2, 0.708, 759], "18": [2, 0.704, 762], "19": [2, 0.704, 763], "20": [3, 1.025, 524], "21": [2, 0.700, 767], "22": [2, 0.720, 745], "23": [2, 0.775, 693], "24": [2, 0.918, 585]},
+  "b2n": {"12": [12, 4.213, 127], "13": [2, 0.702, 765], "14": [2, 0.699, 768], "15": [2, 0.701, 766], "16": [2, 0.702, 764], "17": [2, 0.701, 766], "18": [2, 0.710, 756], "19": [3, 1.052, 510], "20": [3, 1.055, 509], "21": [3, 1.058, 507], "22": [3, 1.075, 500], "23": [3, 1.142, 470], "24": [3, 1.159, 463]},
+  "columns": "[launches, ms, one_pass_equiv_GBps] by log_n",
+  "derived": "every pass moves ~1.5 TB/s (84% of 1.79 TB/s) [D]; b2n at log_n>=19 and n2b at log_n=20 run 3 passes where n2b 21-23 runs 2 -> 1.5x the bytes; log_n=12 runs 12 single-stage launches (6x slower)"
+ }
+}

@@ -298,7 +298,7 @@ def serve(args):
         # The eager GPU observer belongs in the prover, not in Nsight's
         # launcher/probe helpers. Nsight injects this environment into the app.
         preload = ["--env-var", "LD_PRELOAD=" + environment["LD_PRELOAD"]] if environment.get("LD_PRELOAD") else []
-        argv = ["nsys", "profile", "--trace=cuda,nvtx", "--cuda-graph-trace=node", "--sample=none", "--cpuctxsw=none", "--force-overwrite=true",
+        argv = ["nsys", "profile", "--trace=" + os.environ.get("RV64_NSYS_TRACE", "cuda,nvtx"), "--cuda-graph-trace=node", "--sample=none", "--cpuctxsw=none", "--force-overwrite=true",
                 "-o", str(run / "nsys/timeline")] + preload + argv
     load_before = os.getloadavg()
     lock = P.acquire_gpu_lock()
@@ -628,7 +628,7 @@ def daemon(args):
         # The eager GPU observer belongs in the prover, not in Nsight's
         # launcher/probe helpers. Nsight injects this environment into the app.
         preload = ["--env-var", "LD_PRELOAD=" + environment["LD_PRELOAD"]] if environment.get("LD_PRELOAD") else []
-        argv = ["nsys", "profile", "--trace=cuda,nvtx", "--cuda-graph-trace=node", "--sample=none", "--cpuctxsw=none", "--force-overwrite=true",
+        argv = ["nsys", "profile", "--trace=" + os.environ.get("RV64_NSYS_TRACE", "cuda,nvtx"), "--cuda-graph-trace=node", "--sample=none", "--cpuctxsw=none", "--force-overwrite=true",
                 "-o", str(run / "nsys/timeline")] + preload + argv
     load_before = os.getloadavg()
     timeline = []
