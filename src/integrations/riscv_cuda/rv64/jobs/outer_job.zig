@@ -1,0 +1,445 @@
+//! OuterNodeJob (spec §3.5 item 4): one recursion node (leaf, fold or root)
+//! as an api.Job. Host preparation already happened in the pre-stage
+//! (rv64/outer_job_prestage.zig, on a host pool); this file is the three
+//! phases:
+//!   stage   - upload the node region; the class and twiddle regions only when
+//!             this worker has not seen the class (Stager.persistent);
+//!   enqueue - outer_node.zig on the exec stream, captured per (class,
+//!             placement) once warm and rebound per node (outer_graph_cache);
+//!   finish  - decode the outer slab section: status latches, canonical
+//!             claims, lookupSum == 0, then the tail's proof fields.
+const std = @import("std");
+const api = @import("api.zig");
+const Slab = @import("slab.zig");
+const Plan = @import("outer_plan.zig");
+const K = @import("outer_kernels.zig");
+const St = @import("outer_staged.zig");
+const N = @import("outer_node.zig");
+const Graphs = @import("outer_graph_cache.zig");
+const Outer = @import("stwo_circuit_cpu_integration").om31;
+const Pcs = @import("native_pcs.zig");
+const Comp = @import("outer_composition.zig");
+const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
+const core = @import("stwo_core");
+
+/// Slab field indices (`Slab.Kind.opaque_words`): the outer section, the
+/// native PCS result image and the OODS points (native_pcs.zig).
+pub const section_index: u32 = 0x4f55_5452; // "OUTR"
+pub const pcs_index: u32 = 0x5043_5331; // "PCS1"
+pub const oods_index: u32 = 0x4f4f_4453; // "OODS"
+
+/// Whole-node bindings (composition kernels, enqueue-only PCS symbols).
+pub const Whole = struct {
+    composition: *const Comp.Kernels,
+    pcs: Pcs.Symbols,
+    /// Base image PCS framing version >= 3 (pcs_native.zig wide_pcs_framing).
+    wide: bool,
+};
+
+/// Node buffers that live through PCS, allocated in stage() so the PCS
+/// framing names real addresses.
+const Held = struct {
+    long: N.Long,
+    composition: K.Buffer,
+    composition_tree: K.Buffer,
+    rc_parameters: K.Buffer,
+};
+
+pub const Decoded = struct {
+    claims: Outer.witness.Claims,
+    z: Outer.protocol.O,
+    alpha: Outer.protocol.O,
+    coefficient: Outer.protocol.O,
+    main_root: [32]u8,
+    inter_root: [32]u8,
+};
+
+pub const Report = struct {
+    outcome: Graphs.Outcome = .direct,
+    /// Host-API launches of this node (1 when replayed as a graph).
+    launches: u32 = 0,
+    /// Launches the body issued when recorded (graph kernel nodes, if captured).
+    body_launches: u32 = 0,
+    kernel_nodes: u64 = 0,
+    staged_words: [3]u64 = .{ 0, 0, 0 },
+    receipt: api.Receipt = .{},
+};
+
+pub const OuterNodeJob = struct {
+    staged: *St.Staged,
+    kernels: *const K.Kernels,
+    mode: N.Mode = .full,
+    tail: ?N.Tail = null,
+    /// Per-worker graph cache (the integration layer keeps one per device).
+    graphs: ?*Graphs.Cache = null,
+    /// Steps of the device channel snapshotted into the slab (parity only).
+    snapshots: bool = false,
+    layout: Slab.ProofLayout = .{},
+    bases: St.Bases = undefined,
+    decoded: ?Decoded = null,
+    report: Report = .{},
+    finished: bool = false,
+    /// Slab words retained by finish for the parity harness (caller-owned copy).
+    keep_slab: ?[]u32 = null,
+    whole: ?Whole = null,
+    pcs: ?Pcs.PcsJob = null,
+    pcs_plan: Pcs.Plan = .{},
+    pcs_pinned: []u32 = &.{},
+    held: ?Held = null,
+    /// finish() output of a whole node: PCS proof containers (caller deinit).
+    pcs_proof: ?@import("../hybrid_pcs.zig").Decoded = null,
+    composition_root: [32]u8 = @splat(0),
+    oods: [16]u32 = @splat(0),
+    allocator: std.mem.Allocator = std.heap.c_allocator,
+
+    /// `staged` stays owned by the caller (deinit after finish/abort).
+    /// `snapshots`: also copy the channel state into the slab after every
+    /// prefix step (parity harness; adds one D2D copy per step).
+    pub fn init(staged: *St.Staged, kernels: *const K.Kernels, snapshots: bool) !OuterNodeJob {
+        var out = OuterNodeJob{ .staged = staged, .kernels = kernels, .snapshots = snapshots, .mode = .prefix };
+        _ = try out.layout.add(.opaque_words, section_index, Plan.Section.words);
+        if (snapshots) for (0..N.prefix_steps) |step| {
+            _ = try out.layout.add(.snapshot, @intCast(step), 16);
+        };
+        return out;
+    }
+    /// A whole node through PCS. The PCS framing is shape-only, so its exact
+    /// output and pinned-ingress sizes are planned here at placeholder
+    /// addresses; stage() frames it again at the real ones.
+    pub fn initWhole(staged: *St.Staged, kernels: *const K.Kernels, whole: Whole) !OuterNodeJob {
+        var out = try init(staged, kernels, false);
+        out.mode = .full;
+        out.whole = whole;
+        if (staged.statics.composition == null or staged.pcs_points == null) return error.OuterJobWholeStagingMissing;
+        var placeholder = try out.request(null);
+        defer out.freeRequest(&placeholder);
+        var planned = try Pcs.PcsJob.prepare(out.allocator, whole.pcs, placeholder, try Pcs.placeholderPoint(), whole.wide);
+        defer planned.deinit(out.allocator);
+        out.pcs_plan = planned.plan;
+        _ = try out.layout.add(.opaque_words, pcs_index, @intCast(planned.outputWords()));
+        _ = try out.layout.add(.opaque_words, oods_index, Pcs.oods_field_words);
+        return out;
+    }
+    pub fn deinit(self: *OuterNodeJob) void {
+        if (self.pcs) |*j| j.deinit(self.allocator);
+        self.pcs = null;
+        if (self.pcs_proof) |*d| d.proof.deinit(self.allocator);
+        self.pcs_proof = null;
+    }
+
+    /// The PCS request of this node: FIXED (class region), MAIN, INTER and
+    /// composition coefficients, all device resident; roots are placeholders
+    /// (the PCS echoes them; finish checks them against the committed roots).
+    fn request(self: *OuterNodeJob, held: ?Held) !D.Request {
+        const a = self.allocator;
+        const p = self.staged.plan();
+        const cs = &self.staged.statics.composition.?;
+        const fake: [*]u32 = @ptrFromInt(1 << 20);
+        const trees = try a.alloc(D.Tree, 4);
+        errdefer a.free(trees);
+        var made: usize = 0;
+        errdefer for (trees[0..made]) |t| a.free(t.columns);
+        const Col = struct {
+            fn col(log: u32, ptr: [*]const u32) D.Column {
+                return .{ .log_size = log, .device = .{ .words = ptr, .count = @as(u64, 1) << @intCast(log), .context_token = 1, .generation = 1 } };
+            }
+        };
+        const fixed_base: [*]const u32 = if (held != null) self.bases.at(cs.fixed) else fake;
+        trees[0] = .{ .root = self.staged.fixed_root, .columns = &.{} };
+        const cols0 = try a.alloc(D.Column, cs.fixed_offsets.len);
+        trees[0].columns = cols0;
+        made += 1;
+        for (cols0, cs.fixed_offsets, self.staged.fixed_logs) |*c, off, log| c.* = Col.col(log, fixed_base + @as(usize, @intCast(off)));
+        const main: [*]const u32 = if (held) |h| h.long.main_coef.ptr else fake;
+        trees[1] = .{ .root = @splat(0), .columns = &.{} };
+        const cols1 = try a.alloc(D.Column, p.main.logs.len);
+        trees[1].columns = cols1;
+        made += 1;
+        for (cols1, p.main.logs, p.main.offsets) |*c, log, off| c.* = Col.col(log, main + @as(usize, @intCast(off)));
+        const inter: [*]const u32 = if (held) |h| h.long.inter_coef.ptr else fake;
+        trees[2] = .{ .root = @splat(0), .columns = &.{} };
+        const cols2 = try a.alloc(D.Column, p.inter.logs.len);
+        trees[2].columns = cols2;
+        made += 1;
+        for (cols2, p.inter.logs, p.inter.offsets) |*c, log, off| c.* = Col.col(log, inter + @as(usize, @intCast(off)));
+        const comp: [*]const u32 = if (held) |h| h.composition.ptr else fake;
+        trees[3] = .{ .root = @splat(0), .columns = &.{} };
+        const cols3 = try a.alloc(D.Column, cs.outputColumns());
+        trees[3].columns = cols3;
+        made += 1;
+        for (cols3, 0..) |*c, i| c.* = Col.col(cs.chunkLog(), comp + i * (@as(usize, 1) << @intCast(cs.chunkLog())));
+        const points: *const core.pcs.TreeVec([][]D.Point) = @ptrCast(@alignCast(self.staged.pcs_points.?));
+        return .{ .scope = null, .config = try Outer.protocol.targetConfig(), .lifting_log_size = cs.commitLog(), .trees = trees, .points = points.* };
+    }
+    fn freeRequest(self: *OuterNodeJob, r: *D.Request) void {
+        for (r.trees) |t| self.allocator.free(t.columns);
+        self.allocator.free(r.trees);
+    }
+    pub fn job(self: *OuterNodeJob) api.Job {
+        return api.Job.from(OuterNodeJob, self);
+    }
+    pub fn classKey(self: *OuterNodeJob) [32]u8 {
+        return self.staged.class_key;
+    }
+    /// Static per-node peak from the class plan, in the worker's 64-word
+    /// granules: long-lived buffers plus the largest transient stack.
+    pub fn footprint(self: *OuterNodeJob) api.Footprint {
+        const p = self.staged.plan();
+        const g = struct {
+            fn r(words: u64) u64 {
+                return std.mem.alignForward(u64, @max(words, 1), 64);
+            }
+        }.r;
+        const total: u64 = p.geometry.total_constraints;
+        const long = g(p.main.coefficient_words) + g(p.inter.coefficient_words + p.inter_tail_words) + g(p.main.tree_words + p.main.prefix_words) + g(p.inter.tree_words + p.inter.prefix_words) + g(56) + g(total * 8);
+        var widest_inter: u64 = 0;
+        for (p.geometry.components) |c| {
+            const prefix = (@import("../prefix_plan.zig").Plan.init(c.log) catch unreachable).scratch_words;
+            widest_inter = @max(widest_inter, g(8 * @as(u64, c.pairs) << @intCast(c.log)) + g(prefix));
+        }
+        const eval = g(p.main.coefficient_words);
+        const stack = @max(@max(eval + g(self.staged.assignment.count * 4), eval + g(p.main.evaluation_words)), @max(eval + widest_inter, g(p.inter.evaluation_words)));
+        const node = self.staged.image.words[@intFromEnum(St.Region.node)];
+        var whole: u64 = 0;
+        var pinned_extra: u64 = 0;
+        if (self.staged.statics.composition) |cs| if (self.whole != null) {
+            // Held composition buffers + RC transients (buckets, widest role
+            // arena, accumulator, commit LDE) + a PCS working reserve of four
+            // largest commit evaluations (the PCS allocates through the arena).
+            var widest: u64 = 0;
+            var buckets: u64 = 0;
+            var seen: [29]bool = @splat(false);
+            for (cs.roles) |r| {
+                const cols: u64 = r.widths[0] + r.widths[1] + r.widths[2];
+                widest = @max(widest, g(cols << @intCast(r.eval_log)));
+                if (!seen[r.eval_log]) buckets += g(@as(u64, 8) << @intCast(r.eval_log));
+                seen[r.eval_log] = true;
+            }
+            const commit = g(@as(u64, cs.outputColumns()) << @intCast(cs.commitLog()));
+            whole = g(cs.coefficientWords()) + g(cs.treeWords()) + g(@as(u64, cs.param_total) * 8) + buckets + @max(widest, g(cs.coefficientWords()) + commit) + 4 * @max(commit, p.main.evaluation_words + p.inter.evaluation_words);
+            pinned_extra = self.pcs_plan.ingress_words;
+        };
+        return .{
+            .device_words = @intCast(long + stack + g(node) + whole),
+            .staged_words = @intCast(g(node) + (if (whole != 0) long else 0)),
+            .slab_words = self.layout.words,
+            .pinned_words = @intCast(node + self.staged.image.words[@intFromEnum(St.Region.class)] + self.staged.image.words[@intFromEnum(St.Region.twiddles)] + pinned_extra),
+        };
+    }
+
+    pub fn stage(self: *OuterNodeJob, s: *api.Stager) !void {
+        if (self.mode == .full and self.tail == null and self.whole == null) return error.OuterJobTailUnbound;
+        if (self.staged.plan().geometry.beta != 1) return error.UnsupportedOuterJobBlowup;
+        const words = self.staged.image.words;
+        var regions: [3][*]const u32 = undefined;
+        for (std.enums.values(St.Region)) |region| {
+            const n = words[@intFromEnum(region)];
+            const buffer: api.DeviceBuffer, const fresh = switch (region) {
+                .node => .{ try s.alloc(@intCast(@max(n, 1))), true },
+                .class => blk: {
+                    const p = try s.persistent(self.staged.classRegionKey(), @intCast(@max(n, 1)));
+                    break :blk .{ p.buffer, p.fresh };
+                },
+                .twiddles => blk: {
+                    const p = try s.persistent(self.staged.twiddleRegionKey(), @intCast(@max(n, 1)));
+                    break :blk .{ p.buffer, p.fresh };
+                },
+            };
+            regions[@intFromEnum(region)] = buffer.ptr;
+            if (fresh and n != 0) {
+                const pinned = try s.pinned(@intCast(n));
+                try self.staged.pack(region, pinned);
+                try s.upload(buffer, pinned);
+                self.report.staged_words[@intFromEnum(region)] = n;
+            }
+        }
+        self.bases = .{ .regions = regions };
+        if (self.whole) |whole| {
+            const p = self.staged.plan();
+            const cs = &self.staged.statics.composition.?;
+            const w = N.Long.words(p);
+            var b: [9]K.Buffer = undefined;
+            const sizes = [_]usize{ w[0], w[1], w[2], w[3], w[4], w[5], @intCast(cs.coefficientWords()), @intCast(cs.treeWords()), @as(usize, cs.param_total) * 8 };
+            for (&b, sizes) |*out, n| {
+                const d = try s.alloc(n);
+                out.* = .{ .ptr = d.ptr, .words = d.words };
+            }
+            self.held = .{ .long = .{ .main_coef = b[0], .inter_coef = b[1], .main_tree = b[2], .inter_tree = b[3], .parameters = b[4], .powers = b[5] }, .composition = b[6], .composition_tree = b[7], .rc_parameters = b[8] };
+            var r = try self.request(self.held.?);
+            defer self.freeRequest(&r);
+            self.pcs = try Pcs.PcsJob.prepare(self.allocator, whole.pcs, r, try Pcs.placeholderPoint(), whole.wide);
+            if (self.pcs.?.outputWords() != self.pcs_plan.output_words) return error.OuterPcsPlanChanged;
+            self.pcs_pinned = try s.pinned(@intCast(self.pcs.?.ingressWords()));
+        }
+    }
+
+    const TailState = struct {
+        job: *OuterNodeJob,
+        e: *api.Enqueue,
+        fn enqueue(raw: *anyopaque, device: *K.Device, in: *const N.TailInputs) anyerror!void {
+            const self: *TailState = @ptrCast(@alignCast(raw));
+            const nj = self.job;
+            const whole = nj.whole.?;
+            const held = nj.held.?;
+            const cs = &nj.staged.statics.composition.?;
+            const p = nj.staged.plan();
+            try Comp.enqueue(device, whole.composition, cs, &.{
+                .bases = in.bases,
+                .twiddles = &nj.staged.image.twiddles,
+                .itwiddles = &nj.staged.image.itwiddles,
+                .main = in.main_coefficients,
+                .main_offsets = p.main.offsets,
+                .inter = in.inter_coefficients,
+                .inter_offsets = p.inter.offsets.ptr,
+                .lookup = in.lookup,
+                .claims = in.claims,
+                .powers = in.powers,
+                .parameters = held.rc_parameters.ptr,
+                .output = held.composition,
+                .tree = held.composition_tree,
+                .status = in.section + Plan.Section.status + 2,
+            });
+            const croot = held.composition_tree.at(cs.rootOffset());
+            try device.mix(croot, 8, false);
+            try device.copy(in.section + Plan.Section.composition_root, croot, 8);
+            const oods = try self.e.slab.field(.opaque_words, oods_index);
+            const pcs = try self.e.slab.field(.opaque_words, pcs_index);
+            try nj.pcs.?.enqueueOpening(whole.pcs, self.e, nj.pcs_pinned, oods, pcs);
+            device.counters.api += 3;
+        }
+    };
+
+    const Body = struct {
+        job: *OuterNodeJob,
+        e: *api.Enqueue,
+        device: *K.Device,
+        node: *N.Node,
+        saved: api.DeviceChannel,
+        pub fn enqueue(self: *Body) !u32 {
+            try self.e.channel.initFromCheckpoint(.{ .ptr = @constCast(self.job.bases.at(self.job.staged.image.channel_seed)), .words = 9 });
+            return self.node.enqueue(self.device);
+        }
+        pub fn reset(self: *Body) void {
+            // A discarded capture advanced only the host mirror of the channel.
+            self.e.channel.* = self.saved;
+        }
+        fn snapshot(raw: *anyopaque, step: u32) anyerror!void {
+            const self: *Body = @ptrCast(@alignCast(raw));
+            const f = try self.e.slab.layout.?.get(.snapshot, step);
+            try self.e.channel.snapshot(self.e.slab, f.offset);
+        }
+    };
+
+    pub fn enqueue(self: *OuterNodeJob, e: *api.Enqueue) !void {
+        try e.waitStaged();
+        try e.slab.bind(&self.layout);
+        const section = try e.slab.field(.opaque_words, section_index);
+        var view = EnqueueView{ .e = e };
+        var device = K.Device{ .ctx = e.ctx(), .stream = e.stream(), .impl = &view, .vtable = &EnqueueView.vtable, .kernels = self.kernels };
+        var tail_state = TailState{ .job = self, .e = e };
+        var node = N.Node{ .staged = self.staged, .bases = self.bases, .section = section.ptr, .mode = self.mode, .tail = self.tail, .long = if (self.held) |h| h.long else null };
+        if (self.whole != null) node.tail = .{ .context = &tail_state, .enqueue = TailState.enqueue };
+        var body = Body{ .job = self, .e = e, .device = &device, .node = &node, .saved = e.channel.* };
+        if (self.snapshots) {
+            node.after_step = Body.snapshot;
+            node.after_step_context = &body;
+        }
+        if (self.graphs) |cache| {
+            const r = try cache.run(.{ .class = self.staged.class_key, .placement = @intFromEnum(e.placement) }, e.stream(), &body);
+            self.report.outcome = r.outcome;
+            self.report.launches = r.launches;
+            self.report.kernel_nodes = r.kernel_nodes;
+        } else {
+            self.report.launches = try body.enqueue();
+        }
+        self.report.body_launches = device.counters.total();
+    }
+
+    pub fn finish(self: *OuterNodeJob, view: api.SlabView) !void {
+        self.finished = true;
+        self.report.receipt = view.receipt;
+        if (self.keep_slab) |copy| @memcpy(copy[0..@min(copy.len, view.words.len)], view.words[0..@min(copy.len, view.words.len)]);
+        const section = try Slab.read(view, .opaque_words, section_index);
+        self.decoded = try decode(section, self.staged.expected);
+        if (self.whole != null) {
+            const d = self.decoded.?;
+            self.composition_root = root(section[Plan.Section.composition_root..]);
+            const oods = try Slab.read(view, .opaque_words, oods_index);
+            if (oods[32] != 0) return error.InvalidOuterOodsPoint;
+            @memcpy(&self.oods, oods[0..16]);
+            const roots = [_][32]u8{ self.staged.fixed_root, d.main_root, d.inter_root, self.composition_root };
+            self.pcs_proof = try self.pcs.?.decode(self.allocator, try Slab.read(view, .opaque_words, pcs_index), &roots);
+        }
+    }
+    pub fn abort(self: *OuterNodeJob) void {
+        self.finished = true;
+    }
+    /// Channel snapshot after prefix step `step` (parity mode), from the slab view.
+    pub fn snapshotWords(view: api.SlabView, step: u32) ![]const u32 {
+        return Slab.read(view, .snapshot, step);
+    }
+};
+
+/// Device view over api.Enqueue + its DeviceChannel.
+const EnqueueView = struct {
+    e: *api.Enqueue,
+    const vtable = K.Device.VTable{ .alloc = alloc, .free = free, .mix = mix, .draw = draw };
+    fn of(raw: *anyopaque) *EnqueueView {
+        return @ptrCast(@alignCast(raw));
+    }
+    fn alloc(raw: *anyopaque, words: usize) anyerror!K.Buffer {
+        const b = try of(raw).e.alloc(words);
+        return .{ .ptr = b.ptr, .words = b.words };
+    }
+    fn free(raw: *anyopaque, b: K.Buffer) void {
+        of(raw).e.free(.{ .ptr = b.ptr, .words = b.words });
+    }
+    fn mix(raw: *anyopaque, words: [*]const u32, count: u32, field: bool) anyerror!void {
+        const b = api.DeviceBuffer{ .ptr = @constCast(words), .words = count };
+        const ch = of(raw).e.channel;
+        return if (field) ch.mixFelts(b) else ch.mixWords(b);
+    }
+    fn draw(raw: *anyopaque, felts: u32, out: [*]u32) anyerror!void {
+        return of(raw).e.channel.drawSecureFelts(felts, .{ .ptr = out, .words = @as(usize, felts) * 8 });
+    }
+};
+
+fn felt(words: []const u32) !Outer.protocol.O {
+    var limbs: [8]Outer.protocol.M = undefined;
+    for (&limbs, words[0..8]) |*out, w| {
+        if (w >= @import("stwo_core").fields.m31.Modulus) return error.NoncanonicalOuterClaim;
+        out.* = Outer.protocol.M.fromCanonical(w);
+    }
+    return Outer.protocol.O.fromM31Array(limbs);
+}
+fn root(words: []const u32) [32]u8 {
+    var out: [32]u8 = undefined;
+    for (words[0..8], 0..) |w, i| std.mem.writeInt(u32, out[4 * i ..][0..4], w, .little);
+    return out;
+}
+
+/// Status latches, canonicality and lookupSum == 0, then the typed fields.
+pub fn decode(section: []const u32, expected_words: []const u32) !Decoded {
+    const S = Plan.Section;
+    if (section.len < S.words or expected_words.len % 4 != 0) return error.OuterSlabSectionTooSmall;
+    if (section[S.status] != 0 or section[S.status + 3] != 0) return error.InvalidCircuitDeviceWitness;
+    if (section[S.status + 1] != 0) return error.InvalidCircuitDeviceInteraction;
+    if (section[S.status + 2] != 0) return error.InvalidOuterDeviceFsParameters;
+    var claims: [Plan.n_components]Outer.protocol.O = undefined;
+    for (&claims, 0..) |*c, i| c.* = try felt(section[S.claims + 8 * i ..]);
+    const d = Decoded{
+        .claims = Outer.witness.Claims.fromArray(claims),
+        .z = try felt(section[S.challenges..]),
+        .alpha = try felt(section[S.challenges + 8 ..]),
+        .coefficient = try felt(section[S.challenges + 16 ..]),
+        .main_root = root(section[S.main_root..]),
+        .inter_root = root(section[S.inter_root..]),
+    };
+    var outputs: [64]Outer.protocol.Q = undefined;
+    const n = expected_words.len / 4;
+    if (n > outputs.len) return error.InvalidOm31CircuitOutputCount;
+    for (outputs[0..n], 0..) |*q, i| q.* = Outer.protocol.Q.fromU32Unchecked(expected_words[4 * i], expected_words[4 * i + 1], expected_words[4 * i + 2], expected_words[4 * i + 3]);
+    const elements = Outer.witness.Elements.init(d.z, d.alpha);
+    if (!(try Outer.witness.lookupSum(outputs[0..n], d.claims, &elements)).isZero()) return error.InvalidOm31CircuitLookupSum;
+    return d;
+}

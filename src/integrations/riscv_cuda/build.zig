@@ -77,6 +77,13 @@ pub fn build(b: *std.Build) void {
     const jobs_run = b.addRunArtifact(jobs_tests);
     jobs_run.setCwd(b.path("."));
     b.step("test-rv64-jobs", "Test the M8 job runtime contract, worker pipeline, channel parity model, slab, scheduler and sync lint without a GPU").dependOn(&jobs_run.step);
+    // M8 outer-job (rv64/jobs/outer_*): plan, enqueue-only trace commit, graph
+    // cache policy and staged image, host tests without a GPU.
+    const jobs_outer_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_outer_test_root.zig"), .target = target, .optimize = optimize });
+    jobs_outer_root.addImport("stwo_cuda_backend", backend);
+    const jobs_outer_tests = b.addTest(.{ .root_module = jobs_outer_root });
+    jobs_outer_tests.linkLibC();
+    b.step("test-rv64-jobs-outer", "Test the M8 OuterNodeJob class plan, enqueue-only trace commit, graph cache and staged image without a GPU").dependOn(&b.addRunArtifact(jobs_outer_tests).step);
     const batch_test_root = b.createModule(.{ .root_source_file = b.path("rv64_batch_test_root.zig"), .target = target, .optimize = optimize });
     batch_test_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     batch_test_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
@@ -362,6 +369,12 @@ pub fn build(b: *std.Build) void {
     const outer = b.addExecutable(.{ .name = "rv64-word16-ethereum-gpu-recursion", .root_module = outer_root });
     outer.linkLibC();
     b.step("build-rv64-ethereum-gpu-recursion", "Build explicit CUDA native-OM31 outer recursion, no CPU fallback").dependOn(&b.addInstallArtifact(outer, .{}).step);
+    // M8 outer-job parity fixture (pod): legacy controller vs OuterNodeJob prefix.
+    const outer_job_root = b.createModule(.{ .root_source_file = b.path("rv64_m8_outer_job_main.zig"), .target = target, .optimize = optimize });
+    for ([_][]const u8{ "stwo_core", "stwo_prover_api", "stwo_prover_engine", "stwo_riscv_cpu_integration", "stwo_riscv_frontend", "stwo_cuda_backend", "stwo_circuit_cpu_integration", "stwo_circuit_frontend" }) |name| outer_job_root.addImport(name, outer_root.import_table.get(name) orelse @panic("missing outer job fixture dependency"));
+    const outer_job = b.addExecutable(.{ .name = "rv64-m8-outer-job-fixture", .root_module = outer_job_root });
+    outer_job.linkLibC();
+    b.step("build-rv64-m8-outer-job-fixture", "Build the M8 OuterNodeJob parity fixture (legacy controller vs job prefix)").dependOn(&b.addInstallArtifact(outer_job, .{}).step);
     const outer_check = b.addExecutable(.{ .name = "rv64-outer-gpu-check", .root_module = outer_root });
     outer_check.linkLibC();
     b.step("check-rv64-ethereum-gpu-recursion", "Type-check CUDA outer recursion without a GPU or binary output").dependOn(&outer_check.step);
