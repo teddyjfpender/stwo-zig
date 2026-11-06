@@ -37,6 +37,8 @@ const NComp = @import("rv64/jobs/native_composition.zig");
 const CompRoles = @import("rv64/m8_native_composition_roles.zig");
 const RC = @import("rv64/resident_composition.zig");
 const Worker = CPU.rv64_gkr_cpu_worker;
+const TruthComposition = CPU.rv64_gkr_truth_device_composition;
+const Events = @import("rv64/cuda_events.zig");
 const Trace = @import("stwo_prover_engine").air.component_prover.ForField(O).Trace;
 /// Native PCS blowup seen by the trace-commit wrapper (MAIN precedes the GKR).
 var native_beta = std.atomic.Value(u32).init(0);
@@ -650,7 +652,11 @@ const CommitDecorator = struct {
 
 
 const CompositionRow = struct {
+    kind: []const u8 = "cpu",
     ordinal: u32,
+    device_claims: usize = 0,
+    /// CUDA-event GPU time of the composition producer (mirrors excluded).
+    gpu_ms: f32 = -1,
     roles: usize,
     log: u32,
     split: u32,
@@ -690,8 +696,17 @@ const CompositionParityJob = struct {
     alpha: [8]u32,
     legacy_output: [*]const u32,
     a: std.mem.Allocator,
+    /// Host claim values staged as the "device claims" buffer (claim slots).
+    claims: []const u32 = &.{},
+    /// CUDA events around the producer's enqueued work (after the mirrors,
+    /// before the comparison): GPU time of the composition itself.
+    events: *const Events.Api,
+    begin: *anyopaque,
+    end: *anyopaque,
+    gpu_ms: f32 = -1,
     layout: Slab.ProofLayout = .{},
     staged_alpha: ?api.DeviceBuffer = null,
+    staged_claims: ?api.DeviceBuffer = null,
     staged_host: ?api.DeviceBuffer = null,
     host_offsets: [3][]usize = .{ &.{}, &.{}, &.{} },
     root: [8]u32 = undefined,
@@ -717,15 +732,20 @@ const CompositionParityJob = struct {
     pub fn footprint(self: *CompositionParityJob) api.Footprint {
         const g = 64;
         const host = std.mem.alignForward(usize, self.hostWords(), g);
-        const staged = self.plan.stagedWords() + host + 2 * g;
+        const staged = self.plan.stagedWords() + host + std.mem.alignForward(usize, self.claims.len, g) + 3 * g;
         const mirror = std.mem.alignForward(usize, self.mirrorWords(), g) + std.mem.alignForward(usize, self.plan.coefficientWords(), g);
-        return .{ .device_words = staged + self.plan.persistentWords() + mirror + self.plan.enqueueWords() + 8 * g, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = self.plan.pinnedWords() + self.hostWords() + 64 };
+        return .{ .device_words = staged + self.plan.persistentWords() + mirror + self.plan.enqueueWords() + 8 * g, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = self.plan.pinnedWords() + self.hostWords() + self.claims.len + 64 };
     }
     pub fn stage(self: *CompositionParityJob, s: *api.Stager) !void {
         try self.plan.stage(s);
         const alpha = try s.alloc(8);
         try s.upload(alpha, &self.alpha);
         self.staged_alpha = alpha;
+        if (self.claims.len != 0) {
+            const claims = try s.alloc(self.claims.len);
+            try s.upload(claims, self.claims);
+            self.staged_claims = claims;
+        }
         const words = self.hostWords();
         if (words != 0) {
             const staged = try s.alloc(words);
@@ -779,7 +799,9 @@ const CompositionParityJob = struct {
         }
         const status = try e.slab.field(.status, 0);
         try check(self.sym.memset(e.ctx(), status.ptr, 0, 4));
-        const out = try self.plan.enqueue(self.sym, e, .{ .{ .pointers = pointers[0] }, .{ .pointers = pointers[1] }, .{ .pointers = pointers[2] } }, self.staged_alpha.?.ptr, try e.slab.field(.root, 0), status.ptr);
+        if (self.events.record(self.begin, e.stream()) != 0) return error.CudaTimingFailed;
+        const out = try self.plan.enqueueWithClaims(self.sym, e, .{ .{ .pointers = pointers[0] }, .{ .pointers = pointers[1] }, .{ .pointers = pointers[2] } }, self.staged_alpha.?.ptr, self.staged_claims, try e.slab.field(.root, 0), status.ptr);
+        if (self.events.record(self.end, e.stream()) != 0) return error.CudaTimingFailed;
         const reference = try e.alloc(self.plan.coefficientWords());
         try self.peer.mirror(e, reference.ptr, self.legacy_output, self.plan.coefficientWords());
         try check(self.compare(e.ctx(), 0, reference.ptr, out.coefficients.ptr, self.plan.coefficientWords(), (try e.slab.field(.opaque_words, 0)).ptr));
@@ -788,6 +810,7 @@ const CompositionParityJob = struct {
         @memcpy(&self.root, try Slab.read(view, .root, 0));
         self.status = (try Slab.read(view, .status, 0))[0];
         @memcpy(&self.mismatch, (try Slab.read(view, .opaque_words, 0))[0..2]);
+        if (self.events.elapsed(&self.gpu_ms, self.begin, self.end) != 0) self.gpu_ms = -1;
     }
     pub fn abort(_: *CompositionParityJob) void {}
     fn deinit(self: *CompositionParityJob) void {
@@ -798,6 +821,11 @@ const CompositionParityJob = struct {
 const CompositionDecorator = struct {
     a: std.mem.Allocator,
     inner: *const Worker.ResidentCompositionStage,
+    truth_inner: ?TruthComposition.Stage = null,
+    events: *const Events.Api,
+    /// STWO_RV64_M8_PARITY_DEVICE_CLAIMS=1: claim parameters are zeroed in
+    /// the staged table and patched on the device from a claims buffer.
+    device_claims: bool = false,
     /// The legacy composition backend (kernel metadata) of the pool's device.
     context: *const RC.Context,
     worker: *W.Worker,
@@ -821,17 +849,51 @@ const CompositionDecorator = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         var row = CompositionRow{ .ordinal = scope.ordinal, .roles = items.len, .log = log, .split = split, .beta = beta, .total = total, .columns = .{ 0, 0, 0 }, .host_columns = 0, .legacy_ns = legacy_ns };
-        self.check(items, alpha, log, split, total, @ptrCast(@alignCast(trace_raw)), beta, tree, &row) catch |err| {
-            row.error_name = @errorName(err);
-        };
-        std.debug.print("GPU_M8_NATIVE_COMPOSITION_PARITY ordinal={} roles={} log={} beta={} root_equal={} coefficient_mismatches={} status={} legacy_ns={} job_enqueue_ns={} job_wait_ns={} host_waits={} arena_peak_words={} error={s}\n", .{ row.ordinal, row.roles, row.log, row.beta, row.root_equal, row.coefficient_mismatches, row.status, row.legacy_ns, row.job_enqueue_ns, row.job_wait_ns, row.host_waits, row.arena_peak_words, row.error_name });
+        if (CompRoles.Roles.fromItemsWith(self.a, self.context, items, self.device_claims)) |roles| {
+            var owned = roles;
+            defer owned.deinit();
+            row.device_claims = owned.claims.items.len / 8;
+            self.check(owned.specs, owned.claims.items, alpha, log, split, total, @ptrCast(@alignCast(trace_raw)), beta, tree, &row) catch |err| {
+                row.error_name = @errorName(err);
+            };
+        } else |err| row.error_name = @errorName(err);
+        std.debug.print("GPU_M8_NATIVE_COMPOSITION_PARITY kind={s} ordinal={} roles={} log={} beta={} root_equal={} coefficient_mismatches={} status={} gpu_ms={d:.3} legacy_ns={} job_enqueue_ns={} job_wait_ns={} host_waits={} arena_peak_words={} error={s}\n", .{ row.kind, row.ordinal, row.roles, row.log, row.beta, row.root_equal, row.coefficient_mismatches, row.status, row.gpu_ms, row.legacy_ns, row.job_enqueue_ns, row.job_wait_ns, row.host_waits, row.arena_peak_words, row.error_name });
         try self.rows.append(self.a, row);
         return tree;
     }
-    fn check(self: *CompositionDecorator, items: []const CPU.rv64_gkr_cpu_components.Item, alpha: O, log: u32, split: u32, total: usize, trace: *const Trace, beta: u32, tree: DP.Tree, row: *CompositionRow) !void {
+    fn truthStage(self: *CompositionDecorator) TruthComposition.Stage {
+        return .{ .context = self, .evaluate_and_commit = truthEvaluate, .evaluate_and_commit_at_blowup = truthEvaluateAtBlowup };
+    }
+    fn truthEvaluate(raw: *anyopaque, a: std.mem.Allocator, bound: TruthComposition.Roles, alpha: O, log: u32, split: u32, total: usize, trace: *const anyopaque, scope: DP.Scope) anyerror!DP.Tree {
+        const self: *CompositionDecorator = @ptrCast(@alignCast(raw));
+        return truthEvaluateAtBlowup(raw, a, bound, alpha, log, split, total, trace, scope, self.context.log_blowup);
+    }
+    fn truthEvaluateAtBlowup(raw: *anyopaque, a: std.mem.Allocator, bound: TruthComposition.Roles, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: DP.Scope, beta: u32) anyerror!DP.Tree {
+        const self: *CompositionDecorator = @ptrCast(@alignCast(raw));
+        const inner = self.truth_inner.?;
+        var timer = try std.time.Timer.start();
+        const tree = if (inner.evaluate_and_commit_at_blowup) |f| try f(inner.context, a, bound, alpha, log, split, total, trace_raw, scope, beta) else try inner.evaluate_and_commit(inner.context, a, bound, alpha, log, split, total, trace_raw, scope);
+        const legacy_ns = timer.read();
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const count: usize = switch (bound) {
+            .classic => |v| v.len,
+            .delegated => 1,
+        };
+        var row = CompositionRow{ .kind = if (bound == .classic) "truth-classic" else "truth-delegated", .ordinal = scope.ordinal, .roles = count, .log = log, .split = split, .beta = beta, .total = total, .columns = .{ 0, 0, 0 }, .host_columns = 0, .legacy_ns = legacy_ns };
+        if (CompRoles.Roles.fromTruth(self.a, self.context, bound)) |roles| {
+            var owned = roles;
+            defer owned.deinit();
+            self.check(owned.specs, &.{}, alpha, log, split, total, @ptrCast(@alignCast(trace_raw)), beta, tree, &row) catch |err| {
+                row.error_name = @errorName(err);
+            };
+        } else |err| row.error_name = @errorName(err);
+        std.debug.print("GPU_M8_NATIVE_COMPOSITION_PARITY kind={s} ordinal={} roles={} log={} beta={} root_equal={} coefficient_mismatches={} status={} gpu_ms={d:.3} legacy_ns={} job_enqueue_ns={} job_wait_ns={} host_waits={} arena_peak_words={} error={s}\n", .{ row.kind, row.ordinal, row.roles, row.log, row.beta, row.root_equal, row.coefficient_mismatches, row.status, row.gpu_ms, row.legacy_ns, row.job_enqueue_ns, row.job_wait_ns, row.host_waits, row.arena_peak_words, row.error_name });
+        try self.rows.append(self.a, row);
+        return tree;
+    }
+    fn check(self: *CompositionDecorator, specs: []const NComp.RoleSpec, claims: []const u32, alpha: O, log: u32, split: u32, total: usize, trace: *const Trace, beta: u32, tree: DP.Tree, row: *CompositionRow) !void {
         const a = self.a;
-        var roles = try CompRoles.Roles.fromItems(a, self.context, items);
-        defer roles.deinit();
         if (trace.polys.items.len != 3) return error.CompositionParityTraceShape;
         var logs: [3][]u32 = undefined;
         var device: [3][]?[*]const u32 = undefined;
@@ -864,13 +926,18 @@ const CompositionDecorator = struct {
                 }
             }
         }
-        var plan = try NComp.Plan.init(a, .{ .roles = roles.specs, .log = log, .split = split, .total = @intCast(total), .beta = beta, .tree_logs = .{ logs[0], logs[1], logs[2] } });
+        var plan = try NComp.Plan.init(a, .{ .roles = specs, .log = log, .split = split, .total = @intCast(total), .beta = beta, .tree_logs = .{ logs[0], logs[1], logs[2] } });
         defer plan.deinit();
         if (tree.columns.len != plan.outputColumns()) return error.CompositionParityOutputShape;
         const legacy_output = (tree.columns[0].device orelse return error.CompositionParityLegacyOutputNotDevice).words;
         var alpha_words: [8]u32 = undefined;
         for (alpha.toM31Array(), &alpha_words) |m, *w| w.* = m.v;
-        var job = CompositionParityJob{ .plan = &plan, .sym = self.symbols, .compare = self.compare, .peer = self.peer, .device = .{ device[0], device[1], device[2] }, .host = .{ host[0], host[1], host[2] }, .logs = .{ logs[0], logs[1], logs[2] }, .alpha = alpha_words, .legacy_output = legacy_output, .a = a };
+        var begin: ?*anyopaque = null;
+        var end: ?*anyopaque = null;
+        if (self.events.create(&begin, 0) != 0 or self.events.create(&end, 0) != 0) return error.CudaTimingFailed;
+        defer _ = self.events.destroy(begin.?);
+        defer _ = self.events.destroy(end.?);
+        var job = CompositionParityJob{ .events = self.events, .begin = begin.?, .end = end.?, .plan = &plan, .sym = self.symbols, .compare = self.compare, .peer = self.peer, .device = .{ device[0], device[1], device[2] }, .host = .{ host[0], host[1], host[2] }, .logs = .{ logs[0], logs[1], logs[2] }, .alpha = alpha_words, .legacy_output = legacy_output, .a = a, .claims = claims };
         defer job.deinit();
         _ = try job.layout.add(.root, 0, 8);
         _ = try job.layout.add(.status, 0, 1);
@@ -890,6 +957,7 @@ const CompositionDecorator = struct {
         row.job_wait_ns = r.wait_ns;
         row.host_waits = r.host_waits;
         row.arena_peak_words = r.arena_peak_words;
+        row.gpu_ms = job.gpu_ms;
     }
 };
 
@@ -1000,12 +1068,19 @@ pub fn main() !void {
     const wrapped_commit = commits.stage();
     if (!only_composition) stages.trace_commit = &wrapped_commit;
 
-    var composition = CompositionDecorator{ .a = a, .inner = stages.resident_composition orelse return error.ParityRequiresResidentComposition, .context = &pool.devices[0].composition, .worker = worker, .symbols = try NComp.Symbols.load(&libs.base, &libs.addon), .compare = compare, .peer = peer };
+    const events_api = try Events.Api.load(&libs.base);
+    var composition = CompositionDecorator{ .a = a, .inner = stages.resident_composition orelse return error.ParityRequiresResidentComposition, .context = &pool.devices[0].composition, .events = &events_api, .worker = worker, .symbols = try NComp.Symbols.load(&libs.base, &libs.addon), .compare = compare, .peer = peer };
     defer composition.rows.deinit(a);
     const wrapped_composition = composition.stage();
     const composition_flag = env("STWO_RV64_M8_PARITY_COMPOSITION") orelse "0";
     const check_composition = only_composition or !std.mem.eql(u8, composition_flag, "0");
     if (check_composition) stages.resident_composition = &wrapped_composition;
+    composition.device_claims = std.mem.eql(u8, env("STWO_RV64_M8_PARITY_DEVICE_CLAIMS") orelse "0", "1");
+    // Truth/service compositions through the same producer (truth kernel).
+    if (check_composition and !std.mem.eql(u8, env("STWO_RV64_M8_PARITY_TRUTH") orelse "1", "0")) {
+        composition.truth_inner = stages.truth_composition orelse return error.ParityRequiresTruthComposition;
+        stages.truth_composition = composition.truthStage();
+    }
 
     const resource_json = try std.json.Stringify.valueAlloc(a, manifest.resources, .{});
     defer a.free(resource_json);
@@ -1028,7 +1103,9 @@ pub fn main() !void {
     const wall_ns = timer.read();
     for (pool.devices) |*d| try d.native.endBlock(identity);
 
-    var composition_all = composition.rows.items.len == item.expected_cpu_segments;
+    var cpu_rows: usize = 0;
+    for (composition.rows.items) |row| cpu_rows += @intFromBool(std.mem.eql(u8, row.kind, "cpu"));
+    var composition_all = cpu_rows == item.expected_cpu_segments;
     for (composition.rows.items) |row| composition_all = composition_all and row.root_equal and row.coefficient_mismatches == 0 and row.status == 0 and row.host_waits == 1 and row.error_name.len == 0;
     if (only_composition) {
         var ctext: std.Io.Writer.Allocating = .init(a);

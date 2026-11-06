@@ -98,7 +98,14 @@ pub const RoleSpec = struct {
     /// Program input column indices (geometry masks = column * n).
     mask_columns: []const u32,
     constraints: u32,
+    /// Parameters that are global-interaction claims (ram/kio/wire): their
+    /// staged words are overwritten on the device, before the role kernel,
+    /// from the job's DEVICE claims buffer (8 words per claim), so claims
+    /// produced on the device never round-trip through the host.
+    claim_slots: []const ClaimSlot = &.{},
 };
+
+pub const ClaimSlot = struct { parameter: u32, claim: u32 };
 
 pub const Spec = struct {
     roles: []const RoleSpec,
@@ -208,6 +215,7 @@ pub const Plan = struct {
             const el = rs.eval_log;
             if (rl < 4 or el < rl + 1 or el > rl + 2 or el > spec.log or rs.constraints == 0 or rs.parameters.len % 8 != 0) return error.InvalidNativeCompositionRole;
             if (rs.aux == .hc and rs.hc.len != 16 * rl) return error.InvalidNativeCompositionRole;
+            for (rs.claim_slots) |slot| if (slot.parameter >= rs.parameters.len / 8) return error.InvalidNativeCompositionRole;
             constraints += rs.constraints;
             const n = @as(usize, 1) << @intCast(el);
             const aux: u32 = switch (rs.aux) {
@@ -424,12 +432,22 @@ pub const Plan = struct {
     /// mixed). `status`: 1 caller-cleared device word (noncanonical alpha).
     /// Returns the kept coefficient chunks (free them after the PCS).
     pub fn enqueue(self: *const Plan, sym: Symbols, e: anytype, trees: [3]Columns, alpha: [*]const u32, root_out: api.DeviceBuffer, status: [*]u32) !C.Committed {
+        return self.enqueueWithClaims(sym, e, trees, alpha, null, root_out, status);
+    }
+    /// As `enqueue`; `claims` (device, 8 words per claim) patches every role's
+    /// claim parameters first. Roles with claim slots require it.
+    pub fn enqueueWithClaims(self: *const Plan, sym: Symbols, e: anytype, trees: [3]Columns, alpha: [*]const u32, claims: ?api.DeviceBuffer, root_out: api.DeviceBuffer, status: [*]u32) !C.Committed {
         const table = (self.table_device orelse return error.NativeCompositionNotStaged).ptr;
         if (self.tw_device == null) return error.NativeCompositionNotStaged;
         if (root_out.words < 8) return error.InvalidNativeCompositionOutput;
         const ctx = e.ctx();
         const stream = e.stream();
         var launches: u32 = 0;
+        for (self.roles) |*r| for (r.spec.claim_slots) |slot| {
+            const source = claims orelse return error.NativeCompositionClaimsRequired;
+            if ((@as(usize, slot.claim) + 1) * 8 > source.words) return error.NativeCompositionClaimOutOfRange;
+            try check(sym.copy_d2d(ctx, table + r.t_params + 8 * @as(usize, slot.parameter), source.ptr + 8 * @as(usize, slot.claim), 32));
+        };
         const output = try e.alloc(self.coefficientWords());
         const powers = try e.alloc(8 * @as(usize, self.total));
         try check(sym.powers(ctx, 0, alpha, self.total, powers.ptr, status));
