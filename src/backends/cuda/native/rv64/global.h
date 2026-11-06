@@ -15,6 +15,10 @@ static_assert(sizeof(StwoRv64GlobalPairs) == 72, "global pairs ABI");
 // This primitive publishes a witness/claim, not execution acceptance.
 extern "C" int stwo_rv64_global_pairs_on(void *, uint32_t,
                                          const StwoRv64GlobalPairs *);
+// Circuit-only contribution sum/scan. contributions must equal output
+// exactly; the one validated output spans pair planes plus their prefix.
+// No inversion is performed and no old overlap contract is relaxed.
+extern "C" int stwo_rv64_global_contributions_scan_v1_on(void*,uint32_t,const StwoRv64GlobalPairs*);
 
 // Convert the temporary inverse columns to the native cumulative-per-batch
 // encoding in place. The helper's final centered prefix remains scratch.

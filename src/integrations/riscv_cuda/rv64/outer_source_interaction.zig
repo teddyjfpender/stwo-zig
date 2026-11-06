@@ -85,8 +85,8 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
         // The cumulative-prefix scratch follows this component's live columns.
         // Physical-order generation lets it use only the unwritten suffix or
         // the final tail, never an earlier component's completed evaluations.
-        var numerators = try ctx.allocate(8 * pairs * rows, 0);
-        defer ctx.release(&numerators) catch {};
+        var numerators: ?@import("pcs_native_abi.zig").Lease = if (b.inter_contributions == null) try ctx.allocate(8 * pairs * rows, 0) else null;
+        defer if (numerators) |*lease| ctx.release(lease) catch {};
         const prefix = try Prefix.Plan.init(log);
         var scratch = try ctx.allocate(prefix.scratch_words, 0);
         defer ctx.release(&scratch) catch {};
@@ -98,12 +98,19 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
             try S.checked(b.service.lease_validate_range(b.service.session, input.words, input.count, input.context_token, input.generation, &source_scope));
         }
         const first = owner.main_columns[main_at].device.?;
-        const job = S.Fractions{ .fixed = fixed.words.?, .main = first.words, .parameters = parameters.words.?, .numerators = numerators.words.?, .denominators = output_words, .status = @ptrCast(status_word), .fixed_words = indices.len * rows, .main_words = width * rows, .numerator_words = 8 * pairs * rows, .denominator_words = 8 * pairs * rows, .component = @intCast(ci), .row_log = log };
-        try S.checked(b.fractions(raw, 0, &job));
-        const global = Abi.GlobalPairs{ .output = output_words, .contributions = numerators.words.?, .scan_scratch = scratch.words.?, .claim = claim_words, .status = @ptrCast(status_word), .stride = rows, .scan_words = prefix.scratch_words, .row_log = log, .pairs = @intCast(pairs) };
-        try S.checked(b.global_pairs(raw, 0, &global));
-        const cumulative = S.Cumulative{ .output = output_words, .contributions = numerators.words.?, .claim = claim_words, .stride = rows, .row_log = log, .pairs = @intCast(pairs) };
-        try S.checked(b.cumulative(raw, 0, &cumulative));
+        const contributions = if (numerators) |lease| lease.words.? else output_words;
+        if (b.inter_contributions) |kernels| {
+            const job = S.Contributions{ .fixed = fixed.words.?, .main = first.words, .parameters = parameters.words.?, .output = output_words, .status = @ptrCast(status_word), .fixed_words = indices.len * rows, .main_words = width * rows, .output_words = 8 * pairs * rows, .component = @intCast(ci), .row_log = log };
+            try S.checked(kernels.generate(raw, 0, &job));
+        } else {
+            const job = S.Fractions{ .fixed = fixed.words.?, .main = first.words, .parameters = parameters.words.?, .numerators = contributions, .denominators = output_words, .status = @ptrCast(status_word), .fixed_words = indices.len * rows, .main_words = width * rows, .numerator_words = 8 * pairs * rows, .denominator_words = 8 * pairs * rows, .component = @intCast(ci), .row_log = log };
+            try S.checked(b.fractions(raw, 0, &job));
+        }
+        const global = Abi.GlobalPairs{ .output = output_words, .contributions = contributions, .scan_scratch = scratch.words.?, .claim = claim_words, .status = @ptrCast(status_word), .stride = rows, .scan_words = prefix.scratch_words, .row_log = log, .pairs = @intCast(pairs) };
+        try S.checked(if (b.inter_contributions) |kernels| kernels.scan(raw, 0, &global) else b.global_pairs(raw, 0, &global));
+        const cumulative = S.Cumulative{ .output = output_words, .contributions = contributions, .claim = claim_words, .stride = rows, .row_log = log, .pairs = @intCast(pairs) };
+        try S.checked(if (b.inter_contributions) |kernels| kernels.cumulative(raw, 0, &cumulative) else b.cumulative(raw, 0, &cumulative));
+        if (b.inter_contributions != null) std.debug.print("GPU_INTER_CONTRIBUTIONS ordinal={} component={} rows={} pairs={} numerator_words=0 legacy_numerator_words={} exact_alias=true\n", .{ owner.scope.ordinal, ci, rows, pairs, 8 * pairs * rows });
         // fixed/numerators/scratch are released at the end of this iteration
         // while lane 0 still reads them: an arena range is fenced on the
         // device (reuse waits on lane 0), a pool range is host-joined by free.

@@ -1,0 +1,74 @@
+{
+  "schema": "rv64-p1-fused-inter-contributions-hypothesis/v1",
+  "status": "PRIMARY_AND_GATE_PASS_P1_OPEN_BUSY_AND_PEAK_GATES",
+  "before": "pcs-phase-bound-hypothesis.json",
+  "measured_seconds_to_attack": "The phase-bound two-lane small cold request completes in30.495s (unqualified correctness wall). Its recursion interaction callbacks for nodes4 and9 are67.729ms and60.370ms. Warm then reaches the120s watchdog with no root, still369098752 modeled bytes over capacity. This change removes the full numerator allocation and its HBM round trips; direct arithmetic latency saving is unqualified and expected small. Memory headroom is the primary objective.",
+  "hypothesis": "Generate each paired circuit numerator/denominator from the same lookup authority, perform the existing warp-batched inversion in registers, and write n/d directly into the eventual INTER slab. Sum/scan those contributions and apply the unchanged circuit cumulative encoding in place. The temporary inverse columns are never consumed by circuit AIR and currently are overwritten before commit. No numerator plane is needed.",
+  "expected_allocation_effect": {
+    "label": "D",
+    "largest_pairs": 13,
+    "rows": 8388608,
+    "numerator_bytes_removed": 3489660928,
+    "current_interaction_additional_large": 8858370048,
+    "expected_interaction_additional_large": 5368709120,
+    "scope": "Rounded source allocation model; exact per-node/process peak unmeasured. Packed INTER retained allocation and its tail are unchanged. The PCS phase can still dominate the total node footprint."
+  },
+  "timing_estimate": {
+    "label": "E",
+    "direct_request_seconds_removed": [
+      0.0,
+      0.15
+    ],
+    "overlap_gain_seconds": null,
+    "scope": "Field operations are unchanged; fewer full-plane transfers may help. Completion and matched quiet timing are required before any speed claim."
+  },
+  "obligations": [
+    "Keep legacy fractions, global-pairs and cumulative entries unchanged in contract. RangeCustody rejects write/read overlap, including exact alias: use explicitly named new entries that validate the one permitted exact alias, not a bypass of the old validators.",
+    "Preserve constant-pair tuple dispatch, component roster, row order, challenge words, batch-inverse warp mask, zero/noncanonical failure bits, claim correction and original lookup cumulative representation.",
+    "New contribution descriptor has exact component-bound counts and disjoint source/output/status ranges. New scan and cumulative entries accept only the precise in-place layout, with all claim/status/scratch ranges still disjoint and owned.",
+    "The host cost removes numerators only when all required native entries are loaded from the selected image. All source coefficients and retained INTER padding stay charged.",
+    "GPU numerical comparison with the complete legacy pipeline for all11 components, partial/full warps, both GPUs, zero denominators and malformed descriptors; sanitizer checks before whole proofs.",
+    "Default-off and composed with all existing P1 flags. Intended2-lane small proof parity/freshCPU, then canonical quiet3+3 on24628607. No schedule retry to hide a failed result."
+  ],
+  "proof_format_changed": false,
+  "default_activation": false,
+  "exact_node_peak": null,
+  "flag": "STWO_RV64_RC_INTER_CONTRIBUTIONS=1",
+  "implementation": "Same tuple fraction helper feeds legacy N/D and fused warp-batch inversion. New exact-alias scan/cumulative entries retain old validators. Host skips numerator allocation only when all3 selected-image entry points load. Packed INTER owner/tail stay unchanged. GPU ABI numerical and sanitizer checks pass; whole-prover qualification pending.",
+  "numerical": {
+    "cases": 132,
+    "devices": 2,
+    "components": 11,
+    "row_logs": [
+      4,
+      5,
+      8
+    ],
+    "zero_denominator_cases": true,
+    "invalid_calls_rejected": 2112,
+    "scope": "Complete legacy pipeline parity in same source image; not full proof or speed qualification."
+  },
+  "native_library_sha256": "1adfc38126791c2f0bdec08ac71edc9866079d85fd7fdac32b3956f4c3254a18",
+  "unit_seconds": 113.62174934800714,
+  "host_build": "PASS",
+  "host_build_seconds": 367.52647573687136,
+  "sanitizers": {
+    "memcheck": "PASS_ZERO_ERRORS",
+    "synccheck": "PASS_ZERO_ERRORS",
+    "cases_per_tool": 132,
+    "invalid_calls_per_tool": 2112,
+    "scope": "Selected-image ABI numerical fixture, not whole-prover or performance qualification."
+  },
+  "small": {
+    "block": 26235156,
+    "baseline_cold_s": 28.358851591,
+    "baseline_warm_s": 15.479253111,
+    "candidate_cold_s": 30.860458379,
+    "candidate_warm_s": 15.839329958,
+    "fresh_cpu_accepts": 4,
+    "payload_capture_reference_parity": true,
+    "scope": "M, unqualified correctness walls; capture hashing and seeded scheduling. No latency gain claim.",
+    "receipt": "p1-inter-contributions-small-20261106-01/experiment.json"
+  },
+  "result": "inter-contributions-result.json"
+}

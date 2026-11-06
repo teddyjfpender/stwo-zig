@@ -1,0 +1,129 @@
+{
+  "schema": "rv64-p1-inter-contributions-result/v1",
+  "status": "P1_OPEN_PRIMARY_AND_GATE_PASS_BUSY_BELOW54_EXACT_PEAK_UNMEASURED",
+  "source_commit": "898a38bfe104989cdad21ad8c8571b57ce435cf4+inter-contributions-v1",
+  "gpus": 2,
+  "source_sha256_count": 8483,
+  "proof_format_changed": false,
+  "default_changed": false,
+  "flags": [
+    "STWO_RV64_PCS_PHASE_BOUND=1",
+    "STWO_RV64_RC_INTER_CONTRIBUTIONS=1"
+  ],
+  "headline": {
+    "block": 24628607,
+    "status": "SIX_QUIET_SERVICES_BYTE_IDENTICAL_ALL12_FRESH_CPU_ACCEPTED",
+    "baseline_warm_s": [
+      13.685660935,
+      13.464796338,
+      13.208842394
+    ],
+    "candidate_warm_s": [
+      13.112034194,
+      13.17952826,
+      13.131352881
+    ],
+    "baseline_median_s": 13.464796338,
+    "candidate_median_s": 13.131352881,
+    "delta_s": -0.33344345699999955,
+    "relative_delta_pct": -2.4764092128075066,
+    "baseline_stage_median_s": {
+      "capture": 2.053,
+      "setup": 0.137,
+      "native_prove": 4.785,
+      "native_verify": 1.996,
+      "native_total_before_report": 7.174,
+      "recursion": 6.23
+    },
+    "candidate_stage_median_s": {
+      "capture": 2.134,
+      "setup": 0.144,
+      "native_prove": 5.239,
+      "native_verify": 1.612,
+      "native_total_before_report": 7.691,
+      "recursion": 5.379
+    },
+    "root_proof_bytes": 749688,
+    "fresh_cpu_accepts": 12,
+    "receipt": "p1-inter-contributions-headline-20261106-01/experiment.json",
+    "scope": "M, one frozen interleaved3+3 comparison. Native proving regresses; recursion improves. Stage medians do not sum to the request median. Cross-session absolute deltas are not matched performance evidence."
+  },
+  "small": {
+    "block": 26235156,
+    "baseline_cold_s": 28.358851591,
+    "baseline_warm_s": 15.479253111,
+    "candidate_cold_s": 30.860458379,
+    "candidate_warm_s": 15.839329958,
+    "fresh_cpu_accepts": 4,
+    "payload_capture_reference_parity": true,
+    "root_proof_bytes": 749464,
+    "scope": "M, correctness walls only; capture hashing and seeded scheduling. No latency improvement claim."
+  },
+  "phase_only_predecessor": {
+    "status": "COLD_FRESH_ACCEPTED_WARM120S_WATCHDOG",
+    "fresh_cpu_accepts": 3,
+    "headline": "SKIPPED",
+    "report": "pcs-phase-bound-hypothesis.json"
+  },
+  "interaction_model": {
+    "label": "D",
+    "before_additional_large_bytes": 8858370048,
+    "after_additional_large_bytes": 5368709120,
+    "numerator_allocation_bytes_removed": 3489660928,
+    "scope": "Source-derived separately rounded allocation model; not exact per-node/process peak."
+  },
+  "numerical": {
+    "status": "PASS",
+    "cases": 132,
+    "gpus": 2,
+    "components": 11,
+    "row_logs": [
+      4,
+      5,
+      8
+    ],
+    "invalid_calls_rejected": 2112,
+    "scope": "Complete legacy pipeline comparison in the same selected image; full frozen proof parity is a separate check."
+  },
+  "sanitizers": {
+    "memcheck": "PASS_ZERO_ERRORS",
+    "synccheck": "PASS_ZERO_ERRORS",
+    "cases_per_tool": 132,
+    "invalid_calls_per_tool": 2112
+  },
+  "gate": {
+    "status": "PASS",
+    "frozen_payloads_per_default_proof": 32,
+    "fresh_cpu_accepts": 2,
+    "negative_corpus_cases": 19,
+    "V04_scope": "File-size resource cap only",
+    "receipt": "p1-inter-contributions-gate-20261106-01/gate.json"
+  },
+  "library_sha256": "1adfc38126791c2f0bdec08ac71edc9866079d85fd7fdac32b3956f4c3254a18",
+  "gpu_seconds": {
+    "scope": "M, separate profile warm requests; duration sum and occupied union reported separately",
+    "arms": {
+      "baseline": {
+        "kernel_duration_sum_gpu_s": 10.578837544999999,
+        "kernel_busy_union_gpu_s": 10.578837544999999,
+        "any_busy_union_gpu_s": 11.952016034
+      },
+      "fullstack": {
+        "kernel_duration_sum_gpu_s": 10.597261422,
+        "kernel_busy_union_gpu_s": 10.311834357999999,
+        "any_busy_union_gpu_s": 11.380995072
+      }
+    }
+  },
+  "gpu_busy": {
+    "scope": "D from per-device CUPTI interval unions after exclusive-native end+5ms; one separate pair",
+    "baseline_pct": 53.53982643956674,
+    "candidate_pct": 47.01413861165289
+  },
+  "exact_node_peak": null,
+  "profile_status": "PASS_COMPLETE_FRESH_ACCEPTED_INTEGRITY_CHECKED",
+  "next": "FIRST instrument all19 per-node/stage/lane actual peaks, calibrate model, singlelane composed native-regression audit. No further footprint implementation or2lane run until measured/calibrated fit.",
+  "receipt_policy": "Compact summaryJSON/Markdown under1MB/checkpoint; rawpod files bySHA256.",
+  "compact_receipts": "inter-contributions-summary/summary.json",
+  "reproduction_fixture": "tests/cuda/rv64/inter_contributions_numerical.py"
+}

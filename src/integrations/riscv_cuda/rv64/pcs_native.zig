@@ -40,6 +40,11 @@ pub fn classAllocationPlanWithFixed(a: std.mem.Allocator, request: D.Request, wi
 }
 pub fn allocationOptions() !AllocationCost.Options {
     var result: AllocationCost.Options = .{};
+    if (std.posix.getenv("STWO_RV64_PCS_PHASE_BOUND")) |v| result.phase_retirement = std.mem.eql(u8, v, "1");
+    if (result.phase_retirement) {
+        const cap = std.posix.getenv("STWO_RV64_PCS_IDLE_CACHE_BYTES") orelse return error.PcsPhaseBoundNeedsZeroIdleCache;
+        if (!std.mem.eql(u8, cap, "0")) return error.PcsPhaseBoundNeedsZeroIdleCache;
+    }
     if (std.posix.getenv("STWO_RV64_COMPACT_EAGER_STATE")) |v| result.compact_eager = std.mem.eql(u8, v, "1");
     if (std.posix.getenv("STWO_RV64_PCS_ROLLING_BETA2")) |v| result.rolling_beta2 = std.mem.eql(u8, v, "1");
     if (std.posix.getenv("STWO_RV64_PCS_STREAM")) |v| if (std.mem.eql(u8, v, "0")) {
@@ -630,6 +635,11 @@ pub const Context = struct {
             const capability = library.lookup(Capability, "stwo_rv64_compact_eager_state_capability") orelse return error.MissingCompactEagerPcsCapability;
             if (capability() != 1) return error.MissingCompactEagerPcsCapability;
         }
+        if (pcs_options.phase_retirement) {
+            const Capability = *const fn () callconv(.c) c_int;
+            const capability = library.lookup(Capability, "stwo_rv64_pcs_phase_retirement_capability") orelse return error.MissingPcsPhaseRetirementCapability;
+            if (capability() != 1) return error.MissingPcsPhaseRetirementCapability;
+        }
         const create = library.lookup(Abi.Create, "stwo_rv64_pcs_native_create") orelse return error.MissingGpuPcsSymbol;
         const native_prove = library.lookup(Abi.Prove, "stwo_rv64_pcs_native_prove") orelse return error.MissingGpuPcsSymbol;
         const release = library.lookup(Abi.Release, "stwo_rv64_pcs_native_release") orelse return error.MissingGpuPcsSymbol;
@@ -798,6 +808,7 @@ pub const Context = struct {
             }
             var cost = try classAllocationPlanWithFixed(a, request, self.wide_pcs_framing, options, fixed_cold_words);
             defer cost.deinit(a);
+            if (cost.phase_retirement) std.debug.print("GPU_PCS_ALLOCATION_BOUND ordinal={} phased=true before_late_large={} survivors_large={} late_large={} selected_large={} before_late_small={} survivors_small={} late_small={} selected_small={} requested_sum_bytes={}\n", .{ own_scope.ordinal, cost.before_late_upper.large, cost.late_survivors_upper.large, cost.late_scratch_upper.large, cost.additional_upper.large, cost.before_late_upper.small, cost.late_survivors_upper.small, cost.late_scratch_upper.small, cost.additional_upper.small, cost.requested_upper_bytes });
             const envelope = cost.additional_upper;
             const retained_upper = cost.retained_after_upper;
             const successor = try self.admissionSuccessor(own_scope, .pcs);

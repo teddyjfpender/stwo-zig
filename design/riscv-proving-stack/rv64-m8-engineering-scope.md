@@ -106,6 +106,10 @@ in the P1 reports. The read-only `pcs-phase-lifetime-audit.json` identifies
 existing DEEP/FRI retirements and composition buffers retained beyond last use;
 it changes no bound or admission behavior.
 
+The phase-bound/direct-INTER candidate completes intended two-lane small proofs and the quiet headline 3+3 [M]: request median 13.465 to 13.131 s [M, 2.48% faster D], recursion 6.230 to 5.379 s [M], native proving 4.785 to 5.239 s [M]. All 12 primary proofs and four separate profile proofs match and pass fresh CPU verification; the full preservation gate passes [M]. Kernel-duration sum is essentially flat, 10.579 to 10.597 GPU-s [M]; occupied kernel union falls to 10.312 GPU-s [M]. After-native busy falls from 53.54% to 47.01% [D], below the exit requirement. Exact per-node peaks remain unmeasured. P1 remains open and defaults remain unchanged. See `INTER-CONTRIBUTIONS-CHECKPOINT.md` in the P1 reports.
+
+Owner correction from the latest user instruction: **measure all 19 headline nodes by stage/lane on one lane before further footprint changes**, then calibrate the planner and fix the native regression with a single-lane composed comparison. Two lanes require measured <=11 GB peaks or calibrated two-node fit. The user now authorizes parallel engineering across disjoint files in the one worktree for P1, P3/P5 and P2/P4; GPU qualification remains ordered. Commit only compact summary JSON/Markdown under about 1 MB per checkpoint; retain raw artifacts outside Git with SHA-256 references. Existing raw receipts are scheduled for a follow-up removal, without history rewriting.
+
 The timing preset
 explicitly allows at most 0.5% cgroup CPU pressure in five idle intervals, with
 zero throttling. Absolute-zero and 0.1% admission attempts are retained; they
@@ -123,10 +127,10 @@ admission. No prover feature has changed default.
 - The work behind today's gains was spread across **29 remote branches with commits that never reached integrate**; see §7.
 - Each was A/B-tested alone against a moving baseline, so nothing composed. Every measurement read "no win", and features that only pay off together (memory admission + footprint + 2 lanes + early recursion) were only run together at the very end.
 
-**Single-owner, single-tree practice:**
-- **One engineer or agent at a time owns the tree.** No parallel agents on the same codebase.
+**One integration owner, one tree, explicit file ownership:**
+- **One integration owner coordinates the tree.** The latest user instruction permits parallel agents across explicitly disjoint files; shared files require coordination and GPU builds use frozen source.
 - Today we had half-finished edits in one worktree, commits that depended on uncommitted files (`59864b2b3` imported an untracked `outer_progress_cost.zig`), and two sessions building the same fix.
-- Parallelism belongs in *experiments* (pod runs, measurement), not in concurrent code edits.
+- Parallel engineering follows explicit file ownership. Pod GPU runs remain serialized under the harness lock.
 
 ---
 
@@ -272,7 +276,7 @@ Every request second that isn't proving should be removed:
 
 Standard practice, applied consistently:
 
-1. **One tree, one owner at a time.** One integration branch; topic branches only if they merge back before the next change starts. No parallel agents editing the codebase; parallel work is runs and measurements.
+1. **One tree, one integration owner.** One integration branch, no additional worktrees or feature branches. Parallel agents may edit disjoint assigned files under the latest user instruction; freeze source before builds and GPU qualification.
 2. **Every commit builds and passes the gate script.** Never commit code that depends on uncommitted files. Push at the end of each working block.
 3. **Small, reviewable commits** with the measured result in the message (headline numbers plus the receipt path).
 4. **Feature flags default off, and composed.** A flag is either promoted to default once its matched timing is positive, or deleted. Test the flags that matter together, in one tree.
@@ -294,7 +298,7 @@ Standard practice, applied consistently:
 
 ## 6. Execution order
 
-Run the items as one sequence on one tree. Each step's exit is the entry condition for the next. Steps that don't touch the same code (for example, a Poseidon2 kernel benchmark on the pod) may run as *measurements* in parallel, but code changes land one at a time.
+Run the items as one sequence on one tree. Each step's exit is the entry condition for the next. Steps that don't touch the same code (for example, a Poseidon2 kernel benchmark on the pod) may run as *measurements* in parallel, while engineering may proceed in parallel across assigned files. Qualification and promotion remain ordered.
 
 | step | work | exit |
 |---|---|---|

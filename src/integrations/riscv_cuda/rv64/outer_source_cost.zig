@@ -98,7 +98,7 @@ pub fn main(a: std.mem.Allocator, input: Main) !Plan {
     return p;
 }
 pub const Component = struct { log: u32, pairs: u64, fixed_columns: u64 };
-pub const Interaction = struct { format: Format = .legacy_blake32_m31, components: []const Component, packed_inter: bool = false };
+pub const Interaction = struct { format: Format = .legacy_blake32_m31, components: []const Component, packed_inter: bool = false, fused_contributions: bool = false };
 pub fn interaction(a: std.mem.Allocator, input: Interaction) !Plan {
     if (input.format != .legacy_blake32_m31) return error.AllocationCostFormatUnavailable;
     if (input.components.len != 11) return error.InvalidOuterSourceGeometry;
@@ -117,7 +117,7 @@ pub fn interaction(a: std.mem.Allocator, input: Interaction) !Plan {
         const id: u32 = @intCast(ordinal);
         const fixed = try p.allocate(a, .gather_fixed, id, @max(@as(u64, 1), try mul(component.fixed_columns, rows)), false);
         if (layout == null) _ = try p.allocate(a, .inter, id, try mul(try mul(8, try std.math.add(u64, component.pairs, 1)), rows), true);
-        const numerators = try p.allocate(a, .numerators, id, try mul(try mul(8, component.pairs), rows), false);
+        const numerators = if (!input.fused_contributions) try p.allocate(a, .numerators, id, try mul(try mul(8, component.pairs), rows), false) else A.Footprint{};
         const scratch = try p.allocate(a, .prefix, id, prefix.scratch_words, false);
         p.free(scratch);
         p.free(numerators);
@@ -169,4 +169,22 @@ test "packed INTER model retains one slab including its maximum-height tail" {
         try std.testing.expect(event.retained and event.component == null);
     };
     try std.testing.expectEqual(@as(usize, 1), count);
+}
+
+test "fused circuit contributions remove the logged numerator owner and retain INTER custody" {
+    const logs = [_]u32{ 16, 23, 20, 21, 23, 16, 20, 8, 14, 18, 16 };
+    const pairs = [_]u64{ 1, 2, 6, 3, 13, 1, 8, 1, 1, 1, 1 };
+    const fixed = [_]u64{ 2, 8, 5, 3, 11, 3, 0, 3, 3, 3, 1 };
+    var components: [11]Component = undefined;
+    for (&components, logs, pairs, fixed) |*out, log, count, pp| out.* = .{ .log = log, .pairs = count, .fixed_columns = pp };
+    var old = try interaction(std.testing.allocator, .{ .components = &components, .packed_inter = true });
+    defer old.deinit(std.testing.allocator);
+    var fused = try interaction(std.testing.allocator, .{ .components = &components, .packed_inter = true, .fused_contributions = true });
+    defer fused.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(u64, 8858370048), old.additional_peak.large);
+    try std.testing.expectEqual(@as(u64, 5368709120), fused.additional_peak.large);
+    try std.testing.expectEqual(@as(u64, 3489660928), old.additional_peak.large - fused.additional_peak.large);
+    try std.testing.expectEqual(old.retained_after, fused.retained_after);
+    try std.testing.expectEqual(fused.retained_after, fused.live);
+    for (fused.events.items) |event| try std.testing.expect(event.kind != .numerators);
 }

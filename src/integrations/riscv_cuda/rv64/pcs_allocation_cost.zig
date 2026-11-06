@@ -1,7 +1,8 @@
 //! Source-derived upper bound for the legacy M31/Blake32 native PCS pipeline.
 //! Every C-owned allocation request is rounded separately. Summing requests
 //! deliberately charges phase reuse twice and assumes coefficient copies and a
-//! cold domain cache. This is an envelope, NOT an exact simultaneous peak.
+//! cold domain cache. The opt-in rolling phase bound requires native joined
+//! retirement and zero idle retention. Neither bound is an exact process peak.
 //! No allocations occur here; no device pointers are dereferenced. Host cost
 //! and production plan enforcement remain unqualified, so this cannot enable
 //! the global planner's PCS coverage bit by itself.
@@ -12,8 +13,11 @@ const Stream = @import("trace_stream_plan.zig");
 
 pub const Format = enum { m31_blake32 };
 pub const Kind = enum { immutable_fixed, coefficient_copy, arena, source_twiddles, trace_roots, metadata, domain_cold, transcript, sample_scratch, deep, trace_tree, trace_values, trace_paths, fri, late_trace };
-pub const Allocation = struct { kind: Kind, words: u64, bytes: u64, rounded: Admission.Footprint };
+pub const Lifetime = enum { persistent, before_late, late };
+pub const Allocation = struct { kind: Kind, words: u64, bytes: u64, rounded: Admission.Footprint, lifetime: Lifetime };
 pub const Options = struct {
+    /// Producer checks native retirement capability and frozen zero idle cap.
+    phase_retirement: bool = false,
     compact_eager: bool = false,
     format: Format = .m31_blake32,
     rolling_beta2: bool = false,
@@ -29,6 +33,10 @@ pub const Options = struct {
 pub const Plan = struct {
     allocations: std.ArrayList(Allocation) = .empty,
     additional_upper: Admission.Footprint = .{},
+    before_late_upper: Admission.Footprint = .{},
+    late_survivors_upper: Admission.Footprint = .{},
+    late_scratch_upper: Admission.Footprint = .{},
+    phase_retirement: bool = false,
     retained_after_upper: Admission.Footprint = .{},
     requested_upper_bytes: u64 = 0,
     result_words: u64 = 0,
@@ -44,12 +52,27 @@ pub const Plan = struct {
         if (words != 0) try self.add(a, .immutable_fixed, words);
     }
     fn add(self: *Plan, a: std.mem.Allocator, kind: Kind, words: u64) !void {
+        return self.addLifetime(a, kind, words, .persistent);
+    }
+    fn addLifetime(self: *Plan, a: std.mem.Allocator, kind: Kind, words: u64, lifetime: Lifetime) !void {
         const bytes = try mul(words, 4);
         const rounded = try Admission.Footprint.allocation(bytes);
-        self.additional_upper = try self.additional_upper.add(rounded);
+        const actual_lifetime: Lifetime = if (!self.rolling_sources and lifetime == .before_late) .persistent else lifetime;
+        switch (actual_lifetime) {
+            .persistent => {
+                self.before_late_upper = try self.before_late_upper.add(rounded);
+                self.late_survivors_upper = try self.late_survivors_upper.add(rounded);
+            },
+            .before_late => self.before_late_upper = try self.before_late_upper.add(rounded),
+            .late => self.late_scratch_upper = try self.late_scratch_upper.add(rounded),
+        }
+        self.additional_upper = if (self.phase_retirement)
+            self.before_late_upper.max(try self.late_survivors_upper.add(self.late_scratch_upper))
+        else
+            try self.before_late_upper.add(self.late_scratch_upper);
         if (kind == .domain_cold or kind == .immutable_fixed) self.retained_after_upper = try self.retained_after_upper.add(rounded);
         self.requested_upper_bytes = try sum(self.requested_upper_bytes, bytes);
-        try self.allocations.append(a, .{ .kind = kind, .words = words, .bytes = bytes, .rounded = rounded });
+        try self.allocations.append(a, .{ .kind = kind, .words = words, .bytes = bytes, .rounded = rounded, .lifetime = actual_lifetime });
     }
 };
 fn sum(x: u64, y: u64) !u64 {
@@ -132,7 +155,7 @@ fn initMode(a: std.mem.Allocator, request: *const Abi.Request, options: Options,
     const trees = sections[7];
     const fri = sections[13];
     const rolling = h[21] != 0 and (h[5] == 1 or (h[5] == 2 and options.rolling_beta2));
-    var out: Plan = .{ .rolling_sources = rolling, .selected_stream_budget = if (rolling) options.stream_chunk_words else 0 };
+    var out: Plan = .{ .rolling_sources = rolling, .phase_retirement = rolling and options.phase_retirement, .selected_stream_budget = if (rolling) options.stream_chunk_words else 0 };
     errdefer out.deinit(a);
     const coefficients = request.coefficients[0..@intCast(sc)];
     for (coefficients, 0..) |c, i| {
@@ -214,7 +237,7 @@ fn initMode(a: std.mem.Allocator, request: *const Abi.Request, options: Options,
     var arena = try sum(aggregate[2], aggregate[3]);
     if (!rolling) arena = try sum(arena, try sum(try sum(aggregate[0], aggregate[1]), h[19]));
     arena = try sum(arena, try mul(try sum(sc, gc * 8), 6));
-    try out.add(a, .arena, arena);
+    try out.addLifetime(a, .arena, arena, .before_late);
     if (rolling) {
         try out.add(a, .source_twiddles, h[19]);
         try out.add(a, .trace_roots, nt * 8);
@@ -235,14 +258,17 @@ fn initMode(a: std.mem.Allocator, request: *const Abi.Request, options: Options,
         scratch = @max(scratch, try mul(try mul((n + 1023) / 1024, terms), 8));
         max_terms = @max(max_terms, terms);
     }
-    for ([_]u64{ h[13], @as(u64, h[13]) * 8, sc, 9, sc * 4, tc * 4, gc * 8, gc * 4 }) |n| try out.add(a, .metadata, n);
+    // Match the concrete retirePlanes roster, including mixed lifetimes of
+    // metadata/transcript allocations sharing the same reporting Kind.
+    for ([_]u64{ h[13], @as(u64, h[13]) * 8, sc, 9, sc * 4, tc * 4, gc * 8, gc * 4 }, 0..) |n, i|
+        try out.addLifetime(a, .metadata, n, if (i == 1 or i == 2) .persistent else .before_late);
     // Cold domain is an independent immutable reservation. A hit only lowers cost.
     if (!options.domain_cached) try out.add(a, .domain_cold, try mul(try pow(h[4]), 2));
-    try out.add(a, .metadata, h[20]);
-    for ([_]u64{ 16, 16, if (h[21] != 0) 16 else 8, (gc + 1) * 16, gc * 28 * 8, gc + 1 }) |n| try out.add(a, .transcript, n);
-    for ([_]u64{ scratch, scratch, max_terms }) |n| try out.add(a, .sample_scratch, n);
-    for ([_]u64{ tc * 8, 8, tc * 8, gc * 16, 2 }) |n| try out.add(a, .transcript, n);
-    try out.add(a, .deep, try mul(try pow(h[4]), 8));
+    try out.addLifetime(a, .metadata, h[20], .before_late);
+    for ([_]u64{ 16, 16, if (h[21] != 0) 16 else 8, (gc + 1) * 16, gc * 28 * 8, gc + 1 }, 0..) |n, i| try out.addLifetime(a, .transcript, n, if (i < 2) .persistent else .before_late);
+    for ([_]u64{ scratch, scratch, max_terms }) |n| try out.addLifetime(a, .sample_scratch, n, .before_late);
+    for ([_]u64{ tc * 8, 8, tc * 8, gc * 16, 2 }) |n| try out.addLifetime(a, .transcript, n, .before_late);
+    try out.addLifetime(a, .deep, try mul(try pow(h[4]), 8), .before_late);
     for ([_]u64{ 8, queries, 2, 1, 8, 2, 1 }) |n| try out.add(a, .transcript, n);
     var result: u64 = 14 + 1 + 16 + nt * 8 + @as(u64, h[13]) * 8 + 2 + 8 + queries;
     for (0..@intCast(nt)) |t| {
@@ -254,24 +280,24 @@ fn initMode(a: std.mem.Allocator, request: *const Abi.Request, options: Options,
         try out.add(a, .trace_paths, paths);
         result = try sum(result, try sum(values, paths));
     }
-    try out.add(a, .fri, try mul(try pow(h[5]), 8));
+    try out.addLifetime(a, .fri, try mul(try pow(h[5]), 8), .before_late);
     if (rolling and h[14] != 0) try out.add(a, .fri, @as(u64, h[14]) * 8);
     for (0..h[14]) |i| {
         const d = fri[i * 8 ..][0..8];
         if (d[0] < 2 or !std.math.isPowerOfTwo(d[0]) or d[1] > 28 or d[2] > d[1] or d[2] > std.math.log2_int(u32, d[0])) return error.InvalidPcsCostGeometry;
-        if (i != 0) try out.add(a, .fri, @as(u64, d[0]) * 8);
+        if (i != 0) try out.addLifetime(a, .fri, @as(u64, d[0]) * 8, .before_late);
         const values = try mul(try mul(queries, try pow(d[1])), 8);
         const paths = try mul(try mul(try mul(queries, try pow(d[1] - d[2])), std.math.log2_int(u32, d[0]) - d[2]), 8);
-        try out.add(a, .fri, (@as(u64, d[0] >> @intCast(d[2])) * 2 - 1) * 8);
-        try out.add(a, .fri, 8);
+        try out.addLifetime(a, .fri, (@as(u64, d[0] >> @intCast(d[2])) * 2 - 1) * 8, .before_late);
+        try out.addLifetime(a, .fri, 8, .before_late);
         try out.add(a, .fri, values);
         try out.add(a, .fri, paths);
         result = try sum(result, try sum(8, try sum(values, paths)));
     }
     if (rolling) {
-        if (options.stream_chunk_words != 0) try out.add(a, .late_trace, max_stream) else {
-            try out.add(a, .late_trace, max_evaluations);
-            try out.add(a, .late_trace, max_nodes);
+        if (options.stream_chunk_words != 0) try out.addLifetime(a, .late_trace, max_stream, .late) else {
+            try out.addLifetime(a, .late_trace, max_evaluations, .late);
+            try out.addLifetime(a, .late_trace, max_nodes, .late);
         }
     }
     out.result_words = result;
@@ -350,4 +376,65 @@ test "PCS envelope rejects malformed framed spans before any allocation admissio
     r = f.request(1, true, false);
     f.source_groups[3] = 6;
     try std.testing.expectError(error.InvalidPcsCostGeometry, init(a, &r, .{}));
+}
+
+test "rolling phase bound covers each joined lifetime and preserves the allocation sum" {
+    const a = std.testing.allocator;
+    var f: Fixture = .{};
+    for ([_]u32{ 1, 2 }) |beta| for ([_]usize{ 0, 16, Stream.default_chunk_words }) |budget| for ([_]bool{ false, true }) |compact| for ([_]bool{ false, true }) |cached| {
+        const r = f.request(beta, true, true);
+        const options = Options{ .rolling_beta2 = true, .stream_chunk_words = budget, .compact_eager = compact, .domain_cached = cached };
+        var summed = try init(a, &r, options);
+        defer summed.deinit(a);
+        var phased_options = options;
+        phased_options.phase_retirement = true;
+        var phased = try init(a, &r, phased_options);
+        defer phased.deinit(a);
+        try std.testing.expect(phased.phase_retirement);
+        try std.testing.expectEqual(summed.requested_upper_bytes, phased.requested_upper_bytes);
+        try std.testing.expectEqual(summed.allocations.items.len, phased.allocations.items.len);
+        try std.testing.expectEqual(summed.retained_after_upper, phased.retained_after_upper);
+        var early: Admission.Footprint = .{};
+        var late: Admission.Footprint = .{};
+        var all: Admission.Footprint = .{};
+        var persistent_metadata: usize = 0;
+        for (phased.allocations.items, summed.allocations.items) |event, original| {
+            try std.testing.expect(std.meta.eql(event, original));
+            all = try all.add(event.rounded);
+            if (event.lifetime != .late) early = try early.add(event.rounded);
+            if (event.lifetime != .before_late) late = try late.add(event.rounded);
+            if (event.kind == .metadata and event.lifetime == .persistent) persistent_metadata += 1;
+            if (event.kind == .coefficient_copy or event.kind == .domain_cold) try std.testing.expectEqual(Lifetime.persistent, event.lifetime);
+        }
+        try std.testing.expectEqual(@as(usize, 2), persistent_metadata); // ordered values + coefficient logs
+        try std.testing.expectEqual(all, summed.additional_upper);
+        try std.testing.expectEqual(early.max(late), phased.additional_upper);
+        try std.testing.expect(phased.additional_upper.contains(early));
+        try std.testing.expect(phased.additional_upper.contains(late));
+        try std.testing.expect(summed.additional_upper.contains(phased.additional_upper));
+        try std.testing.expect(phased.additional_upper.large < summed.additional_upper.large or phased.additional_upper.small < summed.additional_upper.small);
+    };
+}
+
+test "phase bound never discounts nonrolling formats and charges late-added cold FIXED in both phases" {
+    const a = std.testing.allocator;
+    var f: Fixture = .{};
+    var r = f.request(2, true, true);
+    var legacy = try init(a, &r, .{});
+    defer legacy.deinit(a);
+    var unavailable = try init(a, &r, .{ .phase_retirement = true });
+    defer unavailable.deinit(a);
+    try std.testing.expect(!unavailable.phase_retirement);
+    try std.testing.expectEqual(legacy.additional_upper, unavailable.additional_upper);
+    for (unavailable.allocations.items) |event| try std.testing.expectEqual(Lifetime.persistent, event.lifetime);
+    r = f.request(1, true, true);
+    var phased = try init(a, &r, .{ .phase_retirement = true });
+    defer phased.deinit(a);
+    const before = phased.additional_upper;
+    const cold_words = 1 << 26;
+    const fixed = try Admission.Footprint.allocation(cold_words * 4);
+    try phased.includeFixedCold(a, cold_words);
+    try std.testing.expectEqual(try before.add(fixed), phased.additional_upper);
+    try std.testing.expect(phased.retained_after_upper.contains(fixed));
+    try std.testing.expectEqual(Lifetime.persistent, phased.allocations.items[phased.allocations.items.len - 1].lifetime);
 }

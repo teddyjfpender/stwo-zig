@@ -117,6 +117,23 @@ extern "C" int stwo_rv64_global_pairs_on(void *ctx, uint32_t lane,
   return stwo_rv64_prefix_scan_on(ctx, lane, &scan);
 }
 
+extern "C" int stwo_rv64_global_contributions_scan_v1_on(void *ctx,uint32_t lane,const StwoRv64GlobalPairs *input) {
+  using namespace stwo::cuda::rv64;
+  if(!input||input->reserved[0]||input->reserved[1]||input->contributions!=input->output||
+     input->row_log<4||input->row_log>27||!input->pairs||input->pairs>13||
+     input->stride<(1u<<input->row_log)||input->stride>SIZE_MAX/(8*uint64_t(input->pairs+1)))return int(cudaErrorInvalidValue);
+  const auto j=*input;const uint32_t rows=1u<<j.row_log;uint64_t need_scan=0;
+  for(uint32_t count=rows;count>1;){count=(count+127)/128;need_scan+=uint64_t(count)*8;}
+  if(j.scan_words<need_scan)return int(cudaErrorInvalidValue);
+  Custody c(ctx,lane);
+  if(!c.range(j.output,uint64_t(j.pairs+1)*8*j.stride,true)||
+     !c.range(j.scan_scratch,need_scan,true)||!c.range(j.claim,8,true)||!c.range(j.status,1,true))return c.status;
+  global_row_sum<<<(rows+127)/128,128,0,c.stream>>>(j);
+  const int dispatched=int(cudaPeekAtLastError());if(dispatched)return dispatched;
+  StwoRv64PrefixScan scan{{j.output+uint64_t(j.pairs)*8*j.stride,j.stride,8,0},j.scan_scratch,need_scan,j.claim,j.status,j.row_log,1,{0,0}};
+  return stwo_rv64_prefix_scan_on(ctx,lane,&scan);
+}
+
 namespace stwo::cuda::rv64 {
 __global__ void global_cumulative(StwoRv64GlobalCumulative j) {
   const uint32_t row=blockIdx.x*blockDim.x+threadIdx.x;

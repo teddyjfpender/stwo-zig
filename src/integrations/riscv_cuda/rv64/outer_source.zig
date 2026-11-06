@@ -25,9 +25,15 @@ const Base = @import("stwo_cuda_backend").abi.stages.circuit_base;
 pub const BaseFn = *const @TypeOf(Base.stwo_circuit_base_witness_on);
 pub const Memset = *const fn (*anyopaque, *anyopaque, c_int, usize) callconv(.c) c_int;
 pub const Fractions = extern struct { fixed: ?[*]const u32, main: [*]const u32, parameters: [*]const u32, numerators: [*]u32, denominators: [*]u32, status: *u32, fixed_words: u64, main_words: u64, numerator_words: u64, denominator_words: u64, component: u32, row_log: u32, reserved: [2]u32 = .{ 0, 0 } };
+pub const Contributions = extern struct { fixed: ?[*]const u32, main: [*]const u32, parameters: [*]const u32, output: [*]u32, status: *u32, fixed_words: u64, main_words: u64, output_words: u64, component: u32, row_log: u32, reserved: [2]u32 = .{ 0, 0 } };
 pub const Cumulative = extern struct { output: [*]u32, contributions: [*]const u32, claim: [*]const u32, stride: u64, row_log: u32, pairs: u32 };
 const FractionFn = *const fn (*anyopaque, u32, *const Fractions) callconv(.c) c_int;
 const CumulativeFn = *const fn (*anyopaque, u32, *const Cumulative) callconv(.c) c_int;
+pub const ContributionKernels = struct {
+    generate: *const fn (*anyopaque, u32, *const Contributions) callconv(.c) c_int,
+    scan: *const @TypeOf(Abi.stwo_rv64_global_pairs_on),
+    cumulative: CumulativeFn,
+};
 const IdentityFn = *const fn (u32, [*]u8) callconv(.c) c_int;
 pub fn checked(status: c_int) !void {
     if (status != 0) {
@@ -49,6 +55,7 @@ pub const Context = struct {
     clear: Memset,
     copy: Native.CopyDevice,
     fractions: FractionFn,
+    inter_contributions: ?ContributionKernels = null,
     cumulative: CumulativeFn,
     global_pairs: *const @TypeOf(Abi.stwo_rv64_global_pairs_on),
     identity: IdentityFn,
@@ -80,7 +87,14 @@ pub const Context = struct {
             try endpoint.planner.registerCoverage(endpoint.physical, .recursion_interaction);
             try endpoint.planner.registerCoverage(endpoint.physical, .outer_gkr);
         }
-        return .{ .allocator = a, .service = service, .trace_commit = trace_commit, .composition = composition, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try sym(Native.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .base = try sym(BaseFn, &service.library, "stwo_circuit_base_witness_on"), .clear = try sym(Memset, &service.library, "stwo_exec_context_memset_async"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .fractions = try sym(FractionFn, &service.library, "stwo_circuit_om31_fractions_on"), .cumulative = try sym(CumulativeFn, &service.library, "stwo_circuit_om31_cumulative_on"), .global_pairs = try sym(*const @TypeOf(Abi.stwo_rv64_global_pairs_on), &service.library, "stwo_rv64_global_pairs_on"), .identity = try sym(IdentityFn, &service.library, "stwo_circuit_om31_composition_identity"), .role = try sym(*const @TypeOf(Abi.stwo_rv64_composition_role_on), &service.library, "stwo_circuit_om31_composition_role_on") };
+        const fused = if (std.posix.getenv("STWO_RV64_RC_INTER_CONTRIBUTIONS")) |v| std.mem.eql(u8, v, "1") else false;
+        if (fused and @import("stwo_riscv_cpu_integration").rv64_om31_outer_wrap.hybridProfileActive()) return error.UnqualifiedHybridInterContributions;
+        const kernels: ?ContributionKernels = if (fused) .{
+            .generate = try sym(@FieldType(ContributionKernels, "generate"), &service.library, "stwo_circuit_om31_contributions_v1_on"),
+            .scan = try sym(@FieldType(ContributionKernels, "scan"), &service.library, "stwo_rv64_global_contributions_scan_v1_on"),
+            .cumulative = try sym(CumulativeFn, &service.library, "stwo_circuit_om31_cumulative_inplace_v1_on"),
+        } else null;
+        return .{ .inter_contributions = kernels, .allocator = a, .service = service, .trace_commit = trace_commit, .composition = composition, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try sym(Native.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .base = try sym(BaseFn, &service.library, "stwo_circuit_base_witness_on"), .clear = try sym(Memset, &service.library, "stwo_exec_context_memset_async"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .fractions = try sym(FractionFn, &service.library, "stwo_circuit_om31_fractions_on"), .cumulative = try sym(CumulativeFn, &service.library, "stwo_circuit_om31_cumulative_on"), .global_pairs = try sym(*const @TypeOf(Abi.stwo_rv64_global_pairs_on), &service.library, "stwo_rv64_global_pairs_on"), .identity = try sym(IdentityFn, &service.library, "stwo_circuit_om31_composition_identity"), .role = try sym(*const @TypeOf(Abi.stwo_rv64_composition_role_on), &service.library, "stwo_circuit_om31_composition_role_on") };
     }
     pub fn deinit(self: *Context) void {
         std.debug.assert(self.active == null and self.fixed_pending == null);
@@ -463,7 +477,7 @@ pub const Owner = struct {
             defer self.allocator.free(indices);
             component.* = .{ .log = log, .pairs = (circuit.witness.trace.RawLookupRows.count(kind) + 1) / 2, .fixed_columns = indices.len };
         }
-        return Cost.interaction(self.allocator, .{ .components = &components, .packed_inter = self.backend.trace_commit.reusesInterInputs((try Outer.protocol.targetConfig()).fri_config.log_blowup_factor) });
+        return Cost.interaction(self.allocator, .{ .components = &components, .packed_inter = self.backend.trace_commit.reusesInterInputs((try Outer.protocol.targetConfig()).fri_config.log_blowup_factor), .fused_contributions = self.backend.inter_contributions != null });
     }
     fn runAdmitted(self: *Owner, operation: *const fn (*Owner, *anyopaque, u64) anyerror!void, plan: *const Cost.Plan, stage: @import("global_admission.zig").Stage) !void {
         const endpoint = self.backend.service.admission orelse return error.MissingGlobalAdmissionEndpoint;
@@ -793,4 +807,10 @@ test "outer INTER retirement preserves headers and failure cleanup retains remai
     try std.testing.expectEqual(@as(usize, 0), owner.leases.items.len);
     try std.testing.expectEqual(@as(usize, 1), owner.inter_columns.len);
     try std.testing.expectEqual(@as(u32, 3), owner.inter_columns[0].log_size);
+}
+
+test "direct contribution descriptor retains its native ABI" {
+    try std.testing.expectEqual(@as(usize, 80), @sizeOf(Contributions));
+    try std.testing.expectEqual(@as(usize, 96), @sizeOf(Fractions));
+    try std.testing.expectEqual(@as(usize, 40), @sizeOf(Cumulative));
 }

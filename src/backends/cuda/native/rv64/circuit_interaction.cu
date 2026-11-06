@@ -34,13 +34,30 @@ inline int validate(const StwoCircuitOm31Fractions &j) {
   }
   return 0;
 }
+inline int validate_contributions(const StwoCircuitOm31Contributions &j) {
+  if(j.component>=11 || j.row_log<4 || j.row_log>27 || j.reserved[0] || j.reserved[1] ||
+     !j.main || !j.parameters || !j.output || !j.status) return 1;
+  const uint64_t rows=uint64_t(1)<<j.row_log;
+  if(j.fixed_words!=rows*tuples::kPpWidths[j.component] ||
+     j.main_words!=rows*tuples::kBaseWidths[j.component] ||
+     j.output_words!=8*rows*tuples::kSecure[j.component] || (j.fixed_words && !j.fixed)) return 1;
+  const uint32_t *outputs[]={j.output,j.status};
+  const uint64_t output_words[]={j.output_words,1};
+  const uint32_t *inputs[]={j.fixed,j.main,j.parameters};
+  const uint64_t input_words[]={j.fixed_words,j.main_words,56};
+  for(unsigned o=0;o<2;++o) {
+    for(unsigned i=0;i<3;++i) if(overlap(outputs[o],output_words[o],inputs[i],input_words[i])) return 1;
+    for(unsigned i=0;i<o;++i) if(overlap(outputs[o],output_words[o],outputs[i],output_words[i])) return 1;
+  }
+  return 0;
+}
 __host__ __device__ __forceinline__ OM31 combine(const tuples::Lookup &lookup,const uint32_t *p) {
   OM31 result=sub(zero(),from_words(p));
   for(unsigned i=0;i<lookup.len;++i) result=add(result,scale(from_words(p+8*(i+1)),lookup.tuple[i]));
   return result;
 }
-template<unsigned Kind>
-__host__ __device__ __forceinline__ void at(const StwoCircuitOm31Fractions &j,unsigned row,unsigned pair) {
+template<unsigned Kind,class Job>
+__host__ __device__ __forceinline__ Fraction fraction(const Job &j,unsigned row,unsigned pair) {
   const unsigned rows=1u<<j.row_log;
   tuples::Columns columns{};
   for(unsigned i=0;i<tuples::pp_width<Kind>();++i) columns.pp[i]=j.fixed+uint64_t(i)*rows;
@@ -62,8 +79,14 @@ __host__ __device__ __forceinline__ void at(const StwoCircuitOm31Fractions &j,un
     *j.status|=failure;
 #endif
   }
-  store(j.numerators+uint64_t(pair)*8*rows,rows,row,n);
-  store(j.denominators+uint64_t(pair)*8*rows,rows,row,d);
+  return {n,d};
+}
+template<unsigned Kind>
+__host__ __device__ __forceinline__ void at(const StwoCircuitOm31Fractions &j,unsigned row,unsigned pair) {
+  const auto f=fraction<Kind>(j,row,pair);
+  const unsigned rows=1u<<j.row_log;
+  store(j.numerators+uint64_t(pair)*8*rows,rows,row,f.n);
+  store(j.denominators+uint64_t(pair)*8*rows,rows,row,f.d);
 }
 #ifndef STWO_CIRCUIT_OM31_HOST_EMULATION
 // Compile-time pair dispatch (kernels stream, M4). lookup_at loads every base
@@ -97,9 +120,75 @@ template<unsigned Kind> __global__ void generate(StwoCircuitOm31Fractions j) {
     default: break;
   }
 }
+__device__ __forceinline__ OM31 contribution_up(OM31 value,unsigned delta,unsigned mask) {
+  uint32_t words[8];
+#pragma unroll
+  for(unsigned i=0;i<8;++i) words[i]=__shfl_up_sync(mask,coordinate(value,i),delta);
+  return from_words(words);
+}
+__device__ __forceinline__ OM31 contribution_down(OM31 value,unsigned delta,unsigned mask) {
+  uint32_t words[8];
+#pragma unroll
+  for(unsigned i=0;i<8;++i) words[i]=__shfl_down_sync(mask,coordinate(value,i),delta);
+  return from_words(words);
+}
+__device__ __forceinline__ OM31 contribution_at(OM31 value,unsigned lane,unsigned mask) {
+  uint32_t words[8];
+#pragma unroll
+  for(unsigned i=0;i<8;++i) words[i]=__shfl_sync(mask,coordinate(value,i),lane);
+  return from_words(words);
+}
+template<unsigned Kind,unsigned Pair>
+__device__ __forceinline__ void contribute_pair(const StwoCircuitOm31Contributions &j,unsigned row,unsigned mask) {
+  if constexpr(Pair<tuples::kSecure[Kind]) {
+    auto f=fraction<Kind>(j,row,Pair);
+    // Match global_inverse_contribute's invalid-input substitution. The
+    // original failure bits were already ORed by fraction().
+    if(!canonical(f.n)||!canonical(f.d)||is_zero(f.d)) f={zero(),one()};
+    OM31 prefix=f.d,suffix=f.d;
+    const unsigned lane=threadIdx.x&31u,rows=1u<<j.row_log;
+    const unsigned active_rows=rows<32?rows:32;
+#pragma unroll
+    for(unsigned delta=1;delta<active_rows;delta<<=1) {
+      const OM31 before=contribution_up(prefix,delta,mask),after=contribution_down(suffix,delta,mask);
+      if(lane>=delta) prefix=mul(prefix,before);
+      if(lane+delta<active_rows) suffix=mul(suffix,after);
+    }
+    const OM31 total=contribution_at(prefix,active_rows-1,mask);
+    const OM31 inv_total=contribution_at(lane==0?inverse_nonzero(total):zero(),0,mask);
+    const OM31 previous=contribution_up(prefix,1,mask),next=contribution_down(suffix,1,mask);
+    const OM31 inverse=mul(inv_total,mul(lane?previous:one(),lane+1<active_rows?next:one()));
+    store(j.output+uint64_t(Pair)*8*rows,rows,row,mul(f.n,inverse));
+  }
+}
+template<unsigned Kind> __global__ void contributions(StwoCircuitOm31Contributions j) {
+  const unsigned row=blockIdx.x*blockDim.x+threadIdx.x;
+  const unsigned mask=__ballot_sync(0xffffffffu,row<(1u<<j.row_log));
+  if(row>=(1u<<j.row_log)) return;
+  static_assert(tuples::kSecure[Kind]<=13,"pair dispatch covers13 pairs");
+#define CONTRIBUTION_PAIR(N) case N: contribute_pair<Kind,N>(j,row,mask);break
+  switch(blockIdx.y) {
+    CONTRIBUTION_PAIR(0);CONTRIBUTION_PAIR(1);CONTRIBUTION_PAIR(2);CONTRIBUTION_PAIR(3);
+    CONTRIBUTION_PAIR(4);CONTRIBUTION_PAIR(5);CONTRIBUTION_PAIR(6);CONTRIBUTION_PAIR(7);
+    CONTRIBUTION_PAIR(8);CONTRIBUTION_PAIR(9);CONTRIBUTION_PAIR(10);CONTRIBUTION_PAIR(11);CONTRIBUTION_PAIR(12);
+  }
+#undef CONTRIBUTION_PAIR
+}
 #endif
 } // namespace
 #ifndef STWO_CIRCUIT_OM31_HOST_EMULATION
+extern "C" int stwo_circuit_om31_contributions_v1_on(void *raw,uint32_t lane,const StwoCircuitOm31Contributions *input) {
+  using namespace stwo::cuda::rv64;
+  if(!input||circuit_outer::validate_contributions(*input)) return int(cudaErrorInvalidValue);
+  const auto j=*input;Custody c(raw,lane);
+  if((j.fixed_words&&!c.range(j.fixed,j.fixed_words,false))||!c.range(j.main,j.main_words,false)||
+     !c.range(j.parameters,56,false)||!c.range(j.output,j.output_words,true)||!c.range(j.status,1,true)) return c.status;
+  const dim3 grid(((1u<<j.row_log)+255)/256,stwo::cuda::circuit_interaction::kSecure[j.component]);
+#define CONTRIBUTION_KIND(K) case K: circuit_outer::contributions<K><<<grid,256,0,c.stream>>>(j);break
+  switch(j.component) {CONTRIBUTION_KIND(0);CONTRIBUTION_KIND(1);CONTRIBUTION_KIND(2);CONTRIBUTION_KIND(3);CONTRIBUTION_KIND(4);CONTRIBUTION_KIND(5);CONTRIBUTION_KIND(6);CONTRIBUTION_KIND(7);CONTRIBUTION_KIND(8);CONTRIBUTION_KIND(9);CONTRIBUTION_KIND(10);}
+#undef CONTRIBUTION_KIND
+  return int(cudaPeekAtLastError());
+}
 extern "C" int stwo_circuit_om31_fractions_on(void *raw,uint32_t lane,const StwoCircuitOm31Fractions *input) {
   using namespace stwo::cuda::rv64;
   if(!input || circuit_outer::validate(*input)) return int(cudaErrorInvalidValue);
@@ -167,6 +256,16 @@ extern "C" int stwo_circuit_om31_cumulative_on(void*raw,uint32_t lane,const Stwo
   if(!input||input->row_log<4||input->row_log>27||!input->pairs||input->pairs>13||input->stride<(1u<<input->row_log)||input->stride>SIZE_MAX/(8*uint64_t(input->pairs+1)))return int(cudaErrorInvalidValue);
   const auto j=*input;Custody c(raw,lane);
   if(!c.range(j.output,8*uint64_t(j.pairs+1)*j.stride,true)||!c.range(j.contributions,8*uint64_t(j.pairs)*j.stride,false)||!c.range(j.claim,8,false))return c.status;
+  circuit_outer::cumulative<<<((1u<<j.row_log)+127)/128,128,0,c.stream>>>(j);
+  return int(cudaPeekAtLastError());
+}
+extern "C" int stwo_circuit_om31_cumulative_inplace_v1_on(void*raw,uint32_t lane,const StwoCircuitOm31Cumulative*input){
+  using namespace stwo::cuda::rv64;
+  if(!input||input->contributions!=input->output||input->row_log<4||input->row_log>27||!input->pairs||input->pairs>13||input->stride<(1u<<input->row_log)||input->stride>SIZE_MAX/(8*uint64_t(input->pairs+1)))return int(cudaErrorInvalidValue);
+  const auto j=*input;Custody c(raw,lane);
+  // Validate the exact alias once as one owned writable span. Claim remains
+  // disjoint; no partially overlapping contribution span is permitted.
+  if(!c.range(j.output,8*uint64_t(j.pairs+1)*j.stride,true)||!c.range(j.claim,8,false))return c.status;
   circuit_outer::cumulative<<<((1u<<j.row_log)+127)/128,128,0,c.stream>>>(j);
   return int(cudaPeekAtLastError());
 }

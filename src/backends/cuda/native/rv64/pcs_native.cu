@@ -106,6 +106,10 @@ struct ResidentOwner {
     // upper-cache blocks; it does not disable or trim the runtime async pool.
     idle_cache = rv64_pcs_idle_cache::parse(
         std::getenv("STWO_RV64_PCS_IDLE_CACHE_BYTES"), cap);
+    const char *phase = std::getenv("STWO_RV64_PCS_PHASE_BOUND");
+    const bool phase_bound = phase && std::strcmp(phase,"1")==0;
+    rv64_pcs_idle_cache::requirePhaseRetirement(idle_cache, phase_bound);
+    if (phase_bound) std::printf("GPU_PCS_PHASE_BOUND enabled=1 zero_idle_cache=true joined_retirement=true\n");
     token = next_token.fetch_add(1);
     if (!token)
       throw std::runtime_error("context token exhausted");
@@ -939,3 +943,7 @@ extern "C" uint32_t stwo_rv64_pcs_request_version() { return 3; }
 
 // The compact numerical entry and PCS stream planner ship in one image.
 extern "C" int stwo_rv64_compact_eager_state_capability(){return 1;}
+
+// Rolling DEEP/FRI temporaries are joined and zero-cap retired before the
+// late source-rebuild allocation. Host phase costing requires this contract.
+extern "C" int stwo_rv64_pcs_phase_retirement_capability(){return 1;}

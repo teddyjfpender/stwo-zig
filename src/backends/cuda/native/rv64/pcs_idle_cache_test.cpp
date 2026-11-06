@@ -42,6 +42,13 @@ void parsing() {
   auto create=[&](const char*text){const auto policy=parse(text,28ull<<30);++created;return policy;};
   rejects([&]{create("not-a-cap");});check(created==0);
 }
+void phase_contract() {
+  requirePhaseRetirement({false,0},false);
+  requirePhaseRetirement({true,128},false);
+  requirePhaseRetirement({true,0},true);
+  rejects([]{requirePhaseRetirement({false,0},true);});
+  rejects([]{requirePhaseRetirement({true,128},true);});
+}
 void custody() {
   Owner o{{true,128},{{1,32,false,0,true},{2,32,false,0,true},{3,48,false,0,true},{4,128,true,128,false}},1960,500,500};
   const auto result=o.retire();
@@ -87,4 +94,4 @@ void exhaustive() {
   }
 }
 }
-int main(){try{parsing();custody();failure();exhaustive();std::printf("PCS_IDLE_CACHE_HOST checks=%u passed=true gpu_qualified=false\n",checks);return 0;}catch(const std::exception&e){std::fprintf(stderr,"%s\n",e.what());return 1;}}
+int main(){try{parsing();phase_contract();custody();failure();exhaustive();std::printf("PCS_IDLE_CACHE_HOST checks=%u passed=true gpu_qualified=false\n",checks);return 0;}catch(const std::exception&e){std::fprintf(stderr,"%s\n",e.what());return 1;}}

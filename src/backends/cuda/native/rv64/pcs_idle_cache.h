@@ -26,6 +26,13 @@ inline Limit parse(const char *text, uint64_t admitted_bytes) {
     throw std::runtime_error("PCS idle cache cap exceeds admitted device bytes");
   return {true, value};
 }
+// A max-of-phases bound is valid only when joined retirement releases every
+// temporary before the late rebuild. A retained upper-cache block is still
+// physically owned even after its last kernel use.
+inline void requirePhaseRetirement(Limit limit, bool enabled) {
+  if (enabled && (!limit.enabled || limit.bytes != 0))
+    throw std::runtime_error("PCS phase bound requires zero idle cache");
+}
 struct Trim { uint64_t before = 0, after = 0; size_t released = 0; };
 template <class Block, class Release>
 Trim trim(Limit limit, std::vector<Block> &blocks, uint64_t &retained,
