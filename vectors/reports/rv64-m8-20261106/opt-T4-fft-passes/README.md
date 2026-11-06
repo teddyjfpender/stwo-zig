@@ -49,3 +49,22 @@ tmux `t4-pipe1` (`/workspace/m3/runs/m8-opt-T4-fft-passes/pipe1.sh`, status in `
 It runs the default gate on 26235156 and 24628607, then the canonical 3+3 on 24628607 with `ab-preset.json`. In that A/B, baseline = the four kill switches (old kernels) and fullstack = new kernels, on the same image.
 Both arms use the canonical fullstack environment with its fixed 22G arena, so the runner's fullstack-only guard cannot change arena sizing.
 [E] On a warm 24628607 request: -0.25 to -0.35 GPU-s in the FFT family, which is about -0.1 s of request time.
+
+## Review (2026-11-07): coverage, DRY, bench fix
+Kernel logic re-derived by hand: every phase map is a bijection over (thread, k) -> tile word, so each shared word is written before it is read; each
+phase reads and writes only its own set, and the sets are split by `__syncthreads`. CTAs own disjoint global words, so the exact alias is safe. Twiddle
+indices stay below 2^(log_n-1). Strided grids put columns on y, which is safe because callers chunk at 65535.
+- **Parity gaps closed:** `kMinLogN` = 3 (fft_small is enabled there) was untested, every stride was dense (== n), and the `launch_b2n_wide`
+  CompactDepth 1/2 variants offered to composition_split had no test at all. `kernel-parity-review.jsonl` now covers **552/552 cases bit-identical [M]**:
+  log 3..24, 1 and many columns, pad 0 and pad 7 (an odd stride, so every column but the first is misaligned), and 24 CompactDepth cases
+  (log 19..24, checked against the chunk-major relayout of the plain output).
+- **Bench bug:** `log_sizes` was a fixed 65536-word buffer, so any bench shape with more than 65536 columns (log <= 9 at 256 MiB) overran it
+  (`invalid argument`). It is now sized per column count. With the fix, log 3 runs [M]: b2n 12.22 -> 1.08 ms, n2b 12.33 -> 1.22 ms, LDE 16.54 -> 5.47 ms.
+- **DRY:** `n2b_wide_pad` (== `wide_tile_pad`), `kB2nWideValues` (== `kWideValues`, now in wide_tile.cuh) and three copies of the >48 KiB
+  `cudaFuncSetAttribute` block (now `wide_allow_shared_bytes`) are deduplicated. `b2n_wide_contiguous<Unused>` becomes `<LowBits = 13>`, with
+  a static_assert and a comment explaining the -rdc merge.
+- **Device code unchanged:** `sass-diff-review.txt` shows all 63 common kernels with identical SASS [M], and the 6 renamed kernels are identical too.
+  The renames are the template argument and the TU-hashed static names. The new-only kernels are the bench's CompactDepth instantiations.
+  `kernel-bench-review.jsonl` (CUDA events, 9 reps, median) reproduces the earlier numbers within 1% [M].
+- Open, not changed: the four kill switches are **default on**, while PROTOCOL-M8 says that new flags land default off. T3 does the same. The
+  integrator should confirm this is intended for kernel-only, bit-identical streams. Request-level A/B is still pending (orphan GPU holder).
