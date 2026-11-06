@@ -117,32 +117,6 @@ const Done = struct {
     }
 };
 
-/// Ops.Libraries.open, except the raw transcript draw (absent from the frozen
-/// a25 base image, and unused by the outer prefix) resolves to a refusing stub.
-fn openLibraries(base_path: []const u8, addon_path: []const u8) !Ops.Libraries {
-    var base = try std.DynLib.open(base_path);
-    errdefer base.close();
-    var addon = try std.DynLib.open(addon_path);
-    errdefer addon.close();
-    const Stub = struct {
-        fn draw(_: [*]u32, _: u32, _: u64, _: u64, _: [*]u32, _: [*]u32, _: [*]u32, _: *anyopaque) callconv(.c) c_int {
-            return 1;
-        }
-    };
-    var out: Ops.Libraries = .{ .base = base, .addon = addon, .ops = undefined };
-    inline for (@typeInfo(Ops.Exec).@"struct".fields) |f| {
-        const names = .{ .alloc_u32 = "stwo_exec_context_alloc_u32", .alloc_u32_long = "stwo_exec_context_alloc_u32_long", .free_u32 = "stwo_exec_context_free_u32", .channel_init_on = "stwo_rv64_channel_init_on", .channel_mix_on = "stwo_rv64_channel_mix_on", .channel_draw_on = "stwo_rv64_channel_draw_on", .channel_queries_on = "stwo_rv64_channel_queries_on", .transcript_draw_u32s_on = "stwo_blake2s_transcript_draw_u32s_on", .pow_persistent_on = "stwo_blake2s_pow_persistent_on", .copy_async = "stwo_rv64_jobs_copy_async", .event_record = "stwo_rv64_jobs_event_record", .stream_wait = "stwo_rv64_jobs_stream_wait", .host_fn = "stwo_rv64_jobs_host_fn" };
-        const name: [:0]const u8 = @field(names, f.name);
-        @field(out.ops.exec, f.name) = out.base.lookup(f.type, name) orelse out.addon.lookup(f.type, name) orelse if (comptime std.mem.eql(u8, f.name, "transcript_draw_u32s_on")) Stub.draw else return error.MissingJobsRuntimeSymbol;
-    }
-    inline for (@typeInfo(Ops.Wait).@"struct".fields) |f| {
-        const names = .{ .context_create = "stwo_exec_context_create_options", .context_destroy = "stwo_exec_context_destroy", .lane_stream = "stwo_exec_context_lane_stream", .stream_create = "stwo_rv64_jobs_stream_create", .stream_destroy = "stwo_rv64_jobs_stream_destroy", .event_create = "stwo_rv64_jobs_event_create", .event_destroy = "stwo_rv64_jobs_event_destroy", .event_sync = "stwo_rv64_jobs_event_wait_host", .host_alloc = "stwo_rv64_jobs_host_alloc", .host_free = "stwo_rv64_jobs_host_free" };
-        const name: [:0]const u8 = @field(names, f.name);
-        @field(out.ops.wait, f.name) = out.base.lookup(f.type, name) orelse out.addon.lookup(f.type, name) orelse return error.MissingJobsRuntimeSymbol;
-    }
-    return out;
-}
-
 pub fn main() !void {
     const a = std.heap.c_allocator;
     const args = try std.process.argsAlloc(a);
@@ -181,7 +155,7 @@ pub fn main() !void {
     };
     const legacy_ns = legacy_timer.read();
 
-    var libs = try openLibraries(args[1], args[2]);
+    var libs = try Ops.Libraries.open(args[1], args[2]);
     defer libs.close();
     var fs = try std.DynLib.open(args[3]);
     defer fs.close();
