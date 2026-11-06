@@ -114,10 +114,11 @@ pub const OuterNodeJob = struct {
         if (staged.statics.composition == null or staged.pcs_points == null) return error.OuterJobWholeStagingMissing;
         var placeholder = try out.request(null);
         defer out.freeRequest(&placeholder);
-        var planned = try Pcs.PcsJob.prepare(out.allocator, whole.pcs, placeholder, try Pcs.placeholderPoint(), whole.wide);
-        defer planned.deinit(out.allocator);
-        out.pcs_plan = planned.plan;
-        _ = try out.layout.add(.opaque_words, pcs_index, @intCast(planned.outputWords()));
+        // Framed once, here on the caller's thread (pre-stage side); stage()
+        // only binds the real coefficient addresses (native_pcs.bindColumn).
+        out.pcs = try Pcs.PcsJob.prepare(out.allocator, whole.pcs, placeholder, try Pcs.placeholderPoint(), whole.wide);
+        out.pcs_plan = out.pcs.?.plan;
+        _ = try out.layout.add(.opaque_words, pcs_index, @intCast(out.pcs.?.outputWords()));
         _ = try out.layout.add(.opaque_words, oods_index, Pcs.oods_field_words);
         return out;
     }
@@ -288,10 +289,10 @@ pub const OuterNodeJob = struct {
                 out.* = .{ .ptr = d.ptr, .words = d.words };
             }
             self.held = .{ .long = .{ .main_coef = b[0], .inter_coef = b[1], .main_tree = b[2], .inter_tree = b[3], .parameters = b[4], .powers = b[5] }, .composition = b[6], .composition_tree = b[7], .rc_parameters = b[8] };
+            _ = whole;
             var r = try self.request(self.held.?);
             defer self.freeRequest(&r);
-            self.pcs = try Pcs.PcsJob.prepare(self.allocator, whole.pcs, r, try Pcs.placeholderPoint(), whole.wide);
-            if (self.pcs.?.outputWords() != self.pcs_plan.output_words) return error.OuterPcsPlanChanged;
+            for (r.trees, 0..) |tree, t| for (tree.columns, 0..) |column, c| try self.pcs.?.bindColumn(t, c, column.device.?.words);
             self.pcs_pinned = try s.pinned(@intCast(self.pcs.?.ingressWords()));
         }
     }
