@@ -39,6 +39,9 @@ pub const Image = struct {
     main_logs: Range = .{},
     inter_logs: Range = .{},
     fixed_logs: Range = .{},
+    /// Expected public outputs (4 words each) for the device lookup check
+    /// (STWO_RV64_M8_OUTER_DEVICE_CHECKS=1 only; empty otherwise).
+    expected: Range = .{},
     /// Forward/inverse twiddle trees per height (twiddle region).
     twiddles: [29]Range = @splat(.{}),
     itwiddles: [29]Range = @splat(.{}),
@@ -113,6 +116,10 @@ pub const Statics = struct {
     /// Composition statics and their packed class-region blob (null: prefix only).
     composition: ?Comp.Static = null,
     rc_blob: []const u32 = &.{},
+    /// `*outer_class_plan.Slot` of a cached class (STWO_RV64_M8_OUTER_CLASS_PLAN=1):
+    /// the whole-node plan every node of the class borrows (outer_job.zig
+    /// WholePlan). Null: each node builds its own (the default path).
+    class_plan: ?*anyopaque = null,
     pub fn table(self: *const Statics, log: u32) !Twiddles {
         return (if (log < 29) self.tables[log] else null) orelse error.MissingOuterTwiddles;
     }
@@ -148,6 +155,8 @@ pub const Staged = struct {
     /// committed on device by a node that keeps the in-node FIXED commit.
     fixed_raw: []const []const u32 = &.{},
     pcs_points: ?*const anyopaque = null,
+    /// Circuit lookup constants for the device lookup_sum check (outer_checks.zig).
+    lookup: ?@import("outer_checks.zig").LookupStatic = null,
     /// Releases the legacy host preparation that owns the slices above.
     owner: *anyopaque,
     release: *const fn (*anyopaque) void,
@@ -193,6 +202,11 @@ pub const Staged = struct {
     /// Lays out every section. Class sections hold a fold's schedule only
     /// when it is reusable; otherwise the node region carries it.
     pub fn layout(assignment: *const Assignment, statics: *const Statics) Image {
+        return layoutWith(assignment, statics, 0);
+    }
+    /// `expected_words` > 0 also stages the expected outputs (node region,
+    /// after every other node section, so the default layout is unchanged).
+    pub fn layoutWith(assignment: *const Assignment, statics: *const Statics, expected_words: usize) Image {
         var i = Image{};
         i.rc_blob = i.take(.class, statics.rc_blob.len);
         i.channel_seed = i.take(.node, 9);
@@ -207,6 +221,7 @@ pub const Staged = struct {
         i.main_logs = i.take(.class, Plan.main_columns);
         i.inter_logs = i.take(.class, Plan.inter_columns);
         i.fixed_logs = i.take(.class, statics.fixed_sorted_logs.len);
+        if (expected_words != 0) i.expected = i.take(.node, expected_words);
         for (statics.tables, 0..) |t, log| if (t) |tw| {
             i.twiddles[log] = i.take(.twiddles, tw.twiddles.len);
             i.itwiddles[log] = i.take(.twiddles, tw.itwiddles.len);
@@ -237,6 +252,7 @@ pub const Staged = struct {
             .{ i.main_logs, &s.main_logs },
             .{ i.inter_logs, &s.inter_logs },
             .{ i.fixed_logs, s.fixed_sorted_logs },
+            .{ i.expected, self.expected },
         };
         for (sections) |entry| {
             const r, const src = entry;

@@ -24,6 +24,8 @@ const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
 const core = @import("stwo_core");
 const TC = @import("outer_trace_commit.zig");
 const Env = @import("outer_env.zig");
+const CP = @import("outer_class_plan.zig");
+const Checks = @import("outer_checks.zig");
 
 /// Slab field indices (`Slab.Kind.opaque_words`): the outer section, the
 /// native PCS result image and the OODS points (native_pcs.zig).
@@ -37,6 +39,8 @@ pub const Whole = struct {
     pcs: Pcs.Symbols,
     /// Base image PCS framing version >= 3 (pcs_native.zig wide_pcs_framing).
     wide: bool,
+    /// Device acceptance checks (outer_checks.zig); null: host checks only.
+    checks: ?Checks.Symbols = null,
 };
 
 /// Node buffers that live through PCS, allocated before the body so the PCS
@@ -159,16 +163,27 @@ pub const OuterNodeJob = struct {
     pcs_reserve_trees: u64 = 11,
     declare_words: ?u64 = null,
     leaf_persistent: bool = false,
+    /// `streams` / `composition_stream` are shallow copies of the class's
+    /// WholePlan (outer_class_plan.zig slot): read only, never freed here.
+    borrowed: bool = false,
+    /// Device lookup_sum check enqueued at the end of the body (whole nodes
+    /// with `whole.checks`); `check_fault`: negative-test corruption.
+    device_checks: bool = false,
+    check_fault: bool = false,
+    check_tag: u32 = 0,
 
     /// `staged` stays owned by the caller (deinit after finish/abort).
     /// `snapshots`: also copy the channel state into the slab after every
     /// prefix step (parity harness; adds one D2D copy per step).
     pub fn init(staged: *St.Staged, kernels: *const K.Kernels, snapshots: bool) !OuterNodeJob {
+        return initBase(staged, kernels, snapshots, true);
+    }
+    fn initBase(staged: *St.Staged, kernels: *const K.Kernels, snapshots: bool, build_streams: bool) !OuterNodeJob {
         var out = OuterNodeJob{ .staged = staged, .kernels = kernels, .snapshots = snapshots, .mode = .prefix };
         out.pcs_reserve_trees = try Env.unsigned(u64, "STWO_RV64_M8_OUTER_PCS_RESERVE_TREES", out.pcs_reserve_trees);
         out.declare_words = try Env.optionalUnsigned(u64, "STWO_RV64_M8_OUTER_DECLARE_WORDS");
         out.leaf_persistent = try Env.flag("STWO_RV64_M8_OUTER_LEAF_PERSISTENT", false);
-        if (try TC.streamSelected(kernels)) {
+        if (build_streams and try TC.streamSelected(kernels)) {
             const fp: ?*const Plan.TreePlan = if (staged.statics.fixed_plan) |*f| f else null;
             out.streams = try N.Streams.init(out.allocator, staged.plan(), fp, try TC.streamChunkWords(), kernels.compact_eager);
         }
@@ -181,8 +196,38 @@ pub const OuterNodeJob = struct {
     }
     /// A whole node through PCS. The PCS framing is shape-only, so its exact
     /// output and pinned-ingress sizes are planned here at placeholder
-    /// addresses; stage() frames it again at the real ones.
+    /// addresses; stage() frames it again at the real ones. A cached class
+    /// (Statics.class_plan) builds that plan once and every node borrows it.
     pub fn initWhole(staged: *St.Staged, kernels: *const K.Kernels, whole: Whole) !OuterNodeJob {
+        if (staged.statics.class_plan) |raw| {
+            const slot: *CP.Slot = @ptrCast(@alignCast(raw));
+            var ctx = WholeBuild{ .staged = staged, .kernels = kernels, .whole = whole };
+            const builder = CP.Slot.Builder{ .ctx = &ctx, .build = WholeBuild.build, .destroy = WholePlan.destroy };
+            if (try slot.acquire(try wholeSignature(kernels, whole), builder)) |plan| return initBorrowed(staged, kernels, whole, @ptrCast(@alignCast(plan)));
+        }
+        return initWholeFresh(staged, kernels, whole);
+    }
+    /// The class products of initWhole, borrowed (never rebuilt): stream
+    /// schedules and composition commit stream by shallow copy, the PCS framing
+    /// as a clone sharing the template's immutable sections (only the column
+    /// table is per node: bindColumn writes it in holdBuffers).
+    fn initBorrowed(staged: *St.Staged, kernels: *const K.Kernels, whole: Whole, plan: *const WholePlan) !OuterNodeJob {
+        var out = try initBase(staged, kernels, false, false);
+        out.borrowed = true;
+        errdefer out.deinit();
+        out.mode = .full;
+        out.whole = whole;
+        if (staged.statics.composition == null or staged.pcs_points == null) return error.OuterJobWholeStagingMissing;
+        out.streams = plan.streams;
+        out.composition_stream = plan.composition_stream;
+        out.pcs = try clonePcs(out.allocator, &plan.pcs);
+        out.pcs_plan = out.pcs.?.plan;
+        _ = try out.layout.add(.opaque_words, pcs_index, @intCast(out.pcs.?.outputWords()));
+        _ = try out.layout.add(.opaque_words, oods_index, Pcs.oods_field_words);
+        try out.initChecks();
+        return out;
+    }
+    fn initWholeFresh(staged: *St.Staged, kernels: *const K.Kernels, whole: Whole) !OuterNodeJob {
         var out = try init(staged, kernels, false);
         errdefer out.deinit();
         out.mode = .full;
@@ -197,12 +242,27 @@ pub const OuterNodeJob = struct {
         out.pcs_plan = out.pcs.?.plan;
         _ = try out.layout.add(.opaque_words, pcs_index, @intCast(out.pcs.?.outputWords()));
         _ = try out.layout.add(.opaque_words, oods_index, Pcs.oods_field_words);
+        try out.initChecks();
         return out;
     }
+    /// STWO_RV64_M8_OUTER_DEVICE_CHECKS=1: the node carries its device checks
+    /// (fail closed when the addon lacks them or the pre-stage did not stage
+    /// the expected outputs and circuit constants).
+    fn initChecks(self: *OuterNodeJob) !void {
+        if (!try Checks.selected()) return;
+        if (self.whole.?.checks == null) return error.MissingOuterCheckKernel;
+        if (self.staged.lookup == null or self.staged.image.expected.words != self.staged.expected.len) return error.OuterCheckInputsNotStaged;
+        self.device_checks = true;
+        self.check_fault = if (try Checks.faultOrdinal()) |n| n == self.staged.ordinal else false;
+        self.check_tag = Checks.tagOf(&self.staged.checkpoint, self.staged.ordinal);
+        _ = try self.layout.add(.opaque_words, Checks.field_index, Checks.field_words);
+    }
     pub fn deinit(self: *OuterNodeJob) void {
-        if (self.streams) |*st| st.deinit(self.allocator);
+        if (!self.borrowed) {
+            if (self.streams) |*st| st.deinit(self.allocator);
+            if (self.composition_stream) |*c| c.deinit(self.allocator);
+        }
         self.streams = null;
-        if (self.composition_stream) |*c| c.deinit(self.allocator);
         self.composition_stream = null;
         if (self.pcs) |*j| j.deinit(self.allocator);
         self.pcs = null;
@@ -513,6 +573,7 @@ pub const OuterNodeJob = struct {
         pub fn enqueue(self: *Body) !u32 {
             try self.e.channel.initFromCheckpoint(.{ .ptr = @constCast(self.job.bases.at(self.job.staged.image.channel_seed)), .words = 9 });
             self.last = try self.node.enqueue(self.device);
+            if (self.job.device_checks) self.last += try self.job.enqueueChecks(self.e, self.device);
             return self.last;
         }
         pub fn reset(self: *Body) void {
@@ -574,6 +635,19 @@ pub const OuterNodeJob = struct {
         self.report.body_launches = body.last;
     }
 
+    /// Device checks after the body (inside the captured graph): lookup_sum
+    /// over the section the body wrote and the staged expected outputs.
+    fn enqueueChecks(self: *OuterNodeJob, e: *api.Enqueue, device: *K.Device) !u32 {
+        const section = try e.slab.field(.opaque_words, section_index);
+        const out = try e.slab.field(.opaque_words, Checks.field_index);
+        const S = Plan.Section;
+        const n: u32 = @intCast(self.staged.expected.len / 4);
+        const c = Checks.constants(self.staged.lookup.?, n, Plan.n_components, self.check_tag, self.check_fault);
+        const expected: ?[*]const u32 = if (n != 0) self.bases.at(self.staged.image.expected) else null;
+        try device.check(self.whole.?.checks.?.lookup(e.ctx(), K.lane, section.ptr + S.claims, section.ptr + S.challenges, expected, &c, out.ptr));
+        return 1;
+    }
+
     pub fn finish(self: *OuterNodeJob, view: api.SlabView) !void {
         self.finished = true;
         var timer = std.time.Timer.start() catch null;
@@ -584,6 +658,12 @@ pub const OuterNodeJob = struct {
         self.report.receipt = view.receipt;
         if (self.keep_slab) |copy| @memcpy(copy[0..@min(copy.len, view.words.len)], view.words[0..@min(copy.len, view.words.len)]);
         const section = try Slab.read(view, .opaque_words, section_index);
+        // Device verdict first (the authority under device checks), then the
+        // host reference: both must accept, so a disagreement fails closed.
+        if (self.device_checks) if (try Checks.verdict(try Slab.read(view, .opaque_words, Checks.field_index), self.check_tag)) |r| {
+            std.log.err("OUTER_JOB device check rejected ordinal={d} check={s} detail={d}", .{ self.staged.ordinal, @tagName(r.check), r.detail });
+            return error.OuterDeviceLookupSumRejected;
+        };
         self.decoded = try decode(section, self.staged.expected);
         if (self.whole != null) {
             const d = self.decoded.?;
@@ -623,6 +703,65 @@ pub const OuterNodeJob = struct {
         return Slab.read(view, .snapshot, step);
     }
 };
+
+/// Class products of initWhole (H20), shared read only by every node of one
+/// cached class: owned by the class's outer_class_plan.Slot (process
+/// allocator), destroyed only with the class statics.
+pub const WholePlan = struct {
+    streams: ?N.Streams,
+    composition_stream: ?Comp.CommitStream,
+    /// Framing template at placeholder addresses (never bound or enqueued).
+    pcs: Pcs.PcsJob,
+    fn destroy(raw: *anyopaque) void {
+        const self: *WholePlan = @ptrCast(@alignCast(raw));
+        const a = std.heap.c_allocator;
+        if (self.streams) |*st| st.deinit(a);
+        if (self.composition_stream) |*c| c.deinit(a);
+        self.pcs.deinit(a);
+        a.destroy(self);
+    }
+};
+
+/// Process constants a WholePlan depends on beyond the class authority.
+fn wholeSignature(kernels: *const K.Kernels, whole: Whole) !CP.Signature {
+    const streamed = try TC.streamSelected(kernels);
+    const chunk: u64 = if (streamed) try TC.streamChunkWords() else 0;
+    return CP.signatureOf(&.{ @intFromBool(streamed), chunk, @intFromBool(kernels.compact_eager), @intFromBool(whole.wide), @intFromPtr(whole.pcs.plan), @intFromPtr(whole.composition) });
+}
+
+const WholeBuild = struct {
+    staged: *St.Staged,
+    kernels: *const K.Kernels,
+    whole: Whole,
+    /// Exactly the per-node initWhole, then its products move into the plan.
+    fn build(raw: *anyopaque) anyerror!*anyopaque {
+        const self: *WholeBuild = @ptrCast(@alignCast(raw));
+        var fresh = try OuterNodeJob.initWholeFresh(self.staged, self.kernels, self.whole);
+        defer fresh.deinit();
+        const a = std.heap.c_allocator;
+        if (!St.sameAllocator(fresh.allocator, a)) return error.OuterClassPlanAllocatorMismatch;
+        const plan = try a.create(WholePlan);
+        plan.* = .{ .streams = fresh.streams, .composition_stream = fresh.composition_stream, .pcs = fresh.pcs.? };
+        fresh.streams = null;
+        fresh.composition_stream = null;
+        fresh.pcs = null;
+        return plan;
+    }
+};
+
+/// A per-node PcsJob over the template's framing: the 17 sections and the
+/// metadata stay the template's (immutable after prepare: the device
+/// substitutes seed, point and roots), only the coefficient column table is
+/// the node's own. Its deinit frees only that table.
+fn clonePcs(a: std.mem.Allocator, template: *const Pcs.PcsJob) !Pcs.PcsJob {
+    var job = template.*;
+    job.prepared.coefficients = try a.dupe(@TypeOf(template.prepared.coefficients[0]), template.prepared.coefficients);
+    job.prepared.section_owned = @splat(false);
+    job.prepared.owns_metadata = false;
+    job.prepared.geometry = null;
+    job.descriptor = job.prepared.descriptor();
+    return job;
+}
 
 /// Device view over api.Enqueue + its DeviceChannel.
 const EnqueueView = struct {
