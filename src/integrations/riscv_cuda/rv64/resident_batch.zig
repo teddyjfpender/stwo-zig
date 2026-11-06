@@ -86,8 +86,14 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     if (combined) try @import("circuit_air_preflight.zig").require(base);
     // M8 native hybrid (STWO_RV64_M8_NATIVE_JOBS=1; unset = today's path):
     // workers boot before the pool (their arenas are carved first).
+    // M8 request feeder (STWO_RV64_M8_JOBS=1, combined only): both hybrids,
+    // every job seam through the feeder's publication ledger (m8_feeder.zig).
+    const Feeder = @import("m8_feeder.zig").Feeder;
+    const feeder: ?*Feeder = if (combined) try Feeder.create(std.heap.smp_allocator) else null;
+    defer if (feeder) |f| f.destroy();
+    if (feeder) |f| f.activate();
     const NativeJobs = @import("native_hybrid.zig");
-    const native_jobs: ?*NativeJobs.Hybrid = if (try NativeJobs.selected()) try NativeJobs.Hybrid.create(std.heap.smp_allocator, library) else null;
+    const native_jobs: ?*NativeJobs.Hybrid = if ((try NativeJobs.selected()) or feeder != null) try NativeJobs.Hybrid.create(std.heap.smp_allocator, library) else null;
     defer if (native_jobs) |h| h.destroy();
     const pool = try Pool.createWithBinding(if (combined) base else a, library, config, cpuCount(first), true);
     defer pool.deinit();
@@ -105,13 +111,14 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     // node proofs run as OuterNodeJobs on per-GPU DeviceWorkers; the legacy
     // orchestration and native proving are unchanged.
     const OuterJobs = @import("outer_job_factory.zig");
-    const outer_jobs: if (combined) ?*OuterJobs.Hybrid else void = if (combined) (if (try OuterJobs.hybridSelected()) blk: {
+    const outer_jobs: if (combined) ?*OuterJobs.Hybrid else void = if (combined) (if ((try OuterJobs.hybridSelected()) or feeder != null) blk: {
         const lanes = (ready orelse return error.M8OuterJobsRequireReadyRecursion).lanes;
         const hybrid = try OuterJobs.Hybrid.create(std.heap.smp_allocator, library);
         errdefer hybrid.destroy();
         var services: [8]*@import("pcs_native.zig").Context = undefined;
         for (pool.devices, 0..) |*device, i| services[i] = &device.native;
         try hybrid.install(lanes, services[0..pool.devices.len]);
+        if (feeder) |f| try f.wrapOuter(lanes);
         break :blk hybrid;
     } else null) else {};
     defer if (combined) {
@@ -182,7 +189,7 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
         const preload = try @import("outer_assignment.zig").ClassCache.Store.preloadAll();
         std.debug.print("GPU_RESIDENT_CLASS_PRELOAD loaded={} ns={}\n", .{ preload.loaded, preload.ns });
     }
-    const svc = .{ .a = a, .base = base, .manifest = &manifest, .pool = pool, .config = &config, .session = &session, .recycler = &recycler, .factory = factory, .ready = ready, .ready_mode = ready_mode, .resource_json = resource_json, .parent = parent, .manifest_sha256 = manifest_sha256, .outer_jobs = outer_jobs, .native_jobs = native_jobs };
+    const svc = .{ .a = a, .base = base, .manifest = &manifest, .pool = pool, .config = &config, .session = &session, .recycler = &recycler, .factory = factory, .ready = ready, .ready_mode = ready_mode, .resource_json = resource_json, .parent = parent, .manifest_sha256 = manifest_sha256, .outer_jobs = outer_jobs, .native_jobs = native_jobs, .feeder = feeder };
     if (combined) {
         if (serve_spool) |spool| return serveSpool(svc, spool, init_timer.read());
     } else if (serve_spool != null) return error.ResidentServiceRequiresCombinedBatch;
@@ -256,6 +263,10 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
         h.install(&stages);
         try h.beginRequest(item.expected_cpu_segments);
     }
+    if (svc.feeder) |f| {
+        f.beginRequest();
+        try f.wrapNative(&stages);
+    }
     defer if (svc.native_jobs) |h| h.endRequest(directory);
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update("stwo/rv64/resident/block-transaction/v1\x00");
@@ -319,6 +330,8 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
         defer combined_audit.deinit();
         const entry = try std.json.Stringify.valueAlloc(base, .{ .schema = 1, .accepted = true, .request_wall_ns = request_wall_ns, .phase_transition_ns = phase_transition_ns, .device_lifecycle_audit = "all request leases released", .device_byte_cap = config.caps[0], .physical_device_ids = config.ids, .device_byte_caps = config.caps, .recursion_mode = @tagName(manifest.recursion_mode), .recursion_execution = combined_audit.value.recursion_execution, .fixed_setup_backend = combined_audit.value.fixed_setup_backend, .recursion_worker_budget = if (ready_mode) manifest.recursion_worker_budget else null, .producer_manifest_sha256 = manifest_sha256, .hardware_parallel_qualified = false, .immutable_device_bytes = manifest.combined_immutable_device_bytes, .host_byte_cap = manifest.combined_host_bytes, .trial = trial, .block = block, .fresh_production = true }, .{ .whitespace = .indent_2 });
         defer base.free(entry);
+        // M8 feeder: every job of the request accepted, else no publication.
+        if (svc.feeder) |f| try f.seal(proof);
         try @import("combined_publication.zig").write(proof, entry);
     }
     std.debug.print("GPU_RESIDENT_BLOCK block={} trial={} iteration={} request_wall_ns={} cached_host_keys={} host_key_cache_hits={} host_key_cache_misses={} host_key_cache_evictions={} gpu_contexts={} setup_cache={} setup_resident_hits={} setup_disk_hits={} setup_misses={} setup_persist_ns={}\n", .{ block, trial, iteration, request_wall_ns, session.keyCount(), session.hits, session.misses, session.evictions, pool.devices.len, setup_stats != null, if (setup_stats) |v| v.resident_hits else 0, if (setup_stats) |v| v.disk_hits else 0, if (setup_stats) |v| v.misses else 0, persist_ns });

@@ -65,10 +65,16 @@ pub const Config = struct {
     }
 };
 
-/// The request provider (capture + native/truth/outer job factories + seal +
-/// publication). Integrated here as the native-job and outer-job streams land.
+pub const feeder = @import("provider.zig");
+
+/// The scheduler-driven request provider (capture + job factories + seal +
+/// publication as one scheduler graph). STWO_RV64_M8_JOBS=1 today runs the
+/// request FEEDER instead (provider.zig + rv64/m8_feeder.zig: the resident
+/// service with every proof a job, legacy orchestration as the driver), and
+/// combined-serve no longer reaches `serve`. This DAG provider stays fail-
+/// closed until the coordinator's capture/seal move under the scheduler.
 fn provider(_: std.mem.Allocator, _: []const *worker.Worker) !request.Provider {
-    std.log.err("STWO_RV64_M8_JOBS=1: the job runtime booted, but the native/outer job providers have not landed yet", .{});
+    std.log.err("STWO_RV64_M8_JOBS=1 via jobs.serve: the scheduler-driven request DAG is not implemented; combined-serve runs the M8 feeder (rv64/m8_feeder.zig)", .{});
     return error.M8RequestProviderNotLanded;
 }
 

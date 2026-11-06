@@ -10,4 +10,5 @@ test {
     _ = @import("rv64/jobs/lint.zig");
     _ = @import("rv64/jobs/scheduler.zig");
     _ = @import("rv64/jobs/mod.zig");
+    _ = @import("rv64/jobs/provider.zig");
 }
