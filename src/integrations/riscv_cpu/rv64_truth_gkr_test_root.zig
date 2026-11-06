@@ -1,4 +1,5 @@
 test {
+    _ = @import("word16_global_execution/ethereum/capture_plan.zig");
     _ = @import("word16_global_execution/ethereum/observations.zig");
     _ = @import("word16_global_execution/services/gkr_local/resident_layout.zig");
     _ = @import("word16_global_execution/ethereum/gkr_receiver_test.zig");
@@ -26,7 +27,9 @@ test {
 test {
     _ = @import("word16_global_execution/services/gkr_local/coordinator.zig");
 }
-test { _ = @import("word16_global_execution/services/gkr_local/truth_v3_test.zig"); }
+test {
+    _ = @import("word16_global_execution/services/gkr_local/truth_v3_test.zig");
+}
 test {
     _ = @import("word16_global_execution/services/gkr_local/conjectured_profile_test.zig");
 }

@@ -1,0 +1,193 @@
+{
+  "schema": "stwo.opstack.mainnet-corpus.v1",
+  "chain_id": 10,
+  "network": "OP Mainnet",
+  "coverage": "historical Ecotone execution; no L1 derivation",
+  "upstream_commit": "85f22e11a0e7e946ae7e26905c21feef23a2a7df",
+  "source": {
+    "bytes": 212257,
+    "sha256": "d870c253f0d05630e98c2c135cffec40eee473c184e9784ee18014347a2b4023"
+  },
+  "fixtures": [
+    {
+      "block": 120794432,
+      "expected_block_hash": "0xc037066dfa979f84bda99016623d1bd4d2168e7a54dfe95b0948b56eda50a2bb",
+      "archive": {
+        "bytes": 69335,
+        "sha256": "5729dcbdf3ecdb70ff16c1f64be9ebf600b3e34b7d4fa017afb80a15fed84f2e"
+      },
+      "preimages": 79,
+      "native": {
+        "block_hashes": [
+          "0xc037066dfa979f84bda99016623d1bd4d2168e7a54dfe95b0948b56eda50a2bb"
+        ],
+        "digest": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb",
+        "gas_used": 43851,
+        "input_bytes": 37323,
+        "input_commitment": "dd071834b6f5c078023f1441c76b97e4920686b833008071401447de5d9918da",
+        "mode": "eager",
+        "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+        "parse_s": 0.000103262,
+        "preimage_hashed_bytes": 31664,
+        "preimage_hashes": 79,
+        "preimage_lookups": 51,
+        "proof_verified": false,
+        "records": 79,
+        "schema": "stwo.opstack.native-execution.v1",
+        "total_s": 0.000532239,
+        "transactions": 1
+      },
+      "input_sha256": "b64e99bcb8561a2278c4cd6a6e97b9017ed410441153939af3354ee791fe6e5d"
+    },
+    {
+      "block": 121003241,
+      "expected_block_hash": "0xd46b61251a4f2b28af3cc4b1b76401381ea7bfd32033b3ec78c9c5068321e49e",
+      "archive": {
+        "bytes": 1088468,
+        "sha256": "fd9f8f94ff4806b6ac390a4f12bfa9e66a1eedf1086f4c94985eb4eff709d466"
+      },
+      "preimages": 770,
+      "native": {
+        "block_hashes": [
+          "0xd46b61251a4f2b28af3cc4b1b76401381ea7bfd32033b3ec78c9c5068321e49e"
+        ],
+        "digest": "4793fdd46272cb4c54c0978d0566787af42fc6307ec2a2c583cab0ee4adec03f",
+        "gas_used": 1243355,
+        "input_bytes": 554929,
+        "input_commitment": "bc46134c2363432c35af1d9b12035cdb22865b4d1ccfe793d14c24d9a578b161",
+        "mode": "eager",
+        "output": "4793fdd46272cb4c54c0978d0566787af42fc6307ec2a2c583cab0ee4adec03f010a000000000000004f50",
+        "parse_s": 0.001936031,
+        "preimage_hashed_bytes": 514973,
+        "preimage_hashes": 770,
+        "preimage_lookups": 771,
+        "proof_verified": false,
+        "records": 770,
+        "schema": "stwo.opstack.native-execution.v1",
+        "total_s": 0.012705001,
+        "transactions": 10
+      },
+      "input_sha256": "1bf7f4fdd524659e5a395da5493a15f40854323ad926cb4dde612f1ce4358906"
+    },
+    {
+      "block": 121049889,
+      "expected_block_hash": "0xfc88d920d2c1f04d31b9e4ad6043eca80cf975c25f66b6d2d818b6602be41e0d",
+      "archive": {
+        "bytes": 364600,
+        "sha256": "cc9b160954b263d7cdeb2a8dfdb52e1882ebb04b77e66e6ba59e20489b5cd3f6"
+      },
+      "preimages": 301,
+      "native": {
+        "block_hashes": [
+          "0xfc88d920d2c1f04d31b9e4ad6043eca80cf975c25f66b6d2d818b6602be41e0d"
+        ],
+        "digest": "7f70e5c65f234c1557c4bddad8c228760582a5fa8811b389069760c60904f6f9",
+        "gas_used": 329122,
+        "input_bytes": 186850,
+        "input_commitment": "b3c8a62b7b1ce5a03424c6cc14985afcf3cc0867ec7a7e2bce842614b19f0515",
+        "mode": "eager",
+        "output": "7f70e5c65f234c1557c4bddad8c228760582a5fa8811b389069760c60904f6f9010a000000000000004f50",
+        "parse_s": 0.001329224,
+        "preimage_hashed_bytes": 170861,
+        "preimage_hashes": 301,
+        "preimage_lookups": 292,
+        "proof_verified": false,
+        "records": 301,
+        "schema": "stwo.opstack.native-execution.v1",
+        "total_s": 0.009228982,
+        "transactions": 3
+      },
+      "input_sha256": "9edba1df301e80664da4ab5fd0a6cef49532d449c0c21259bc44703812efc523"
+    },
+    {
+      "block": 121057303,
+      "expected_block_hash": "0xa564e4024ffc946e3d8bcda13195d95603d2300df749e0efdf6628859af008ea",
+      "archive": {
+        "bytes": 550608,
+        "sha256": "ce0eb3600c65c5b06df0b0eccaf11d0259af35e41c8449be0844f14579cdadea"
+      },
+      "preimages": 356,
+      "native": {
+        "block_hashes": [
+          "0xa564e4024ffc946e3d8bcda13195d95603d2300df749e0efdf6628859af008ea"
+        ],
+        "digest": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289",
+        "gas_used": 423281,
+        "input_bytes": 279991,
+        "input_commitment": "af0d8da29b5c70675d33ade5b31b8ce1c5f9dc50469916b6d0f8618597edbdf2",
+        "mode": "eager",
+        "output": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289010a000000000000004f50",
+        "parse_s": 0.001942843,
+        "preimage_hashed_bytes": 261775,
+        "preimage_hashes": 356,
+        "preimage_lookups": 351,
+        "proof_verified": false,
+        "records": 356,
+        "schema": "stwo.opstack.native-execution.v1",
+        "total_s": 0.008642621,
+        "transactions": 4
+      },
+      "input_sha256": "87ac02ac032049cd005303f28eda6694ebf79d3808c519371b410d01e09ff174"
+    },
+    {
+      "block": 121065789,
+      "expected_block_hash": "0x38f58786d61fff87845b0e1eda4af07d48063891b17309cd43e2d3535993acfa",
+      "archive": {
+        "bytes": 1526513,
+        "sha256": "c1fdfe9ff955c6b8efaa23323bfc80247bebb1e0c34da666ff1264e0283eff66"
+      },
+      "preimages": 1543,
+      "native": {
+        "block_hashes": [
+          "0x38f58786d61fff87845b0e1eda4af07d48063891b17309cd43e2d3535993acfa"
+        ],
+        "digest": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546",
+        "gas_used": 27255387,
+        "input_bytes": 829168,
+        "input_commitment": "d802ddf838d09239fdbbcfcb305994fcfc56a6fd3e6180cfa3853371b0515bb6",
+        "mode": "eager",
+        "output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+        "parse_s": 0.002542942,
+        "preimage_hashed_bytes": 706164,
+        "preimage_hashes": 1543,
+        "preimage_lookups": 1555,
+        "proof_verified": false,
+        "records": 1543,
+        "schema": "stwo.opstack.native-execution.v1",
+        "total_s": 0.470510999,
+        "transactions": 13
+      },
+      "input_sha256": "582ec4bff66474b455ed8c5303068f2f662f192fe91ed268a9242587984b51eb"
+    },
+    {
+      "block": 121135704,
+      "expected_block_hash": "0x6165092c2697f45decd5c00631c427f0b165d54263eb449b4e8009ba1d6a4fb7",
+      "archive": {
+        "bytes": 1307728,
+        "sha256": "33939628263a057bf043900dc5057adba04a783ff42ce88104e8be66edf166bf"
+      },
+      "preimages": 969,
+      "native": {
+        "block_hashes": [
+          "0x6165092c2697f45decd5c00631c427f0b165d54263eb449b4e8009ba1d6a4fb7"
+        ],
+        "digest": "c46204e89c8019e5f6fea8a9429034ab6392a64198b2f87461fb06713197ce17",
+        "gas_used": 1885913,
+        "input_bytes": 666267,
+        "input_commitment": "161c241e8481ecdc52039d51f0d512a2efcb7c3e978db7eeec2cea15fd337d70",
+        "mode": "eager",
+        "output": "c46204e89c8019e5f6fea8a9429034ab6392a64198b2f87461fb06713197ce17010a000000000000004f50",
+        "parse_s": 0.002201739,
+        "preimage_hashed_bytes": 617041,
+        "preimage_hashes": 969,
+        "preimage_lookups": 966,
+        "proof_verified": false,
+        "records": 969,
+        "schema": "stwo.opstack.native-execution.v1",
+        "total_s": 0.018430764,
+        "transactions": 18
+      },
+      "input_sha256": "fa80c31e2f4cb7b2f1745c7dc88dfd1e27d6dfbcc8af7c4ac6e8dec4cf4201db"
+    }
+  ]
+}

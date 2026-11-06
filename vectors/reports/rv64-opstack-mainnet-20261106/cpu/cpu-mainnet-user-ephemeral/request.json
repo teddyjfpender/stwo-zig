@@ -1,0 +1,26 @@
+{
+  "elf": "/workspace/opstack-runs/mainnet-full/guest.elf",
+  "input": "/workspace/opstack-runs/mainnet-full-bench/121057303.opx",
+  "expected_output": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289010a000000000000004f50",
+  "elf_sha256": "04dac8540992cd08f6bdbdb556c960053d5e52255028862c34ba008598c2c7e0",
+  "input_sha256": "87ac02ac032049cd005303f28eda6694ebf79d3808c519371b410d01e09ff174",
+  "max_steps": 6394107,
+  "execution_profile": "ethereum_services_v3",
+  "symbols": {
+    "input_start": 8388608,
+    "input_end": 25165824,
+    "halt_flag": 25165824,
+    "output_len": 25165828,
+    "output_data": 25165832,
+    "output_end": 29360128,
+    "stack_bottom": 29360128,
+    "stack_top": 46137344,
+    "heap_start": 46285792,
+    "heap_end": 268435456
+  },
+  "terminal_pc": 2748,
+  "batch_steps": 262143,
+  "output_directory": "/workspace/opstack-runs/cpu-mainnet-user-ephemeral/proof",
+  "workers": 1,
+  "max_batches": 0
+}

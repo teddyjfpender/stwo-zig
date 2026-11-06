@@ -1,0 +1,18 @@
+{
+  "gkr_bytes": 2147483648,
+  "global_bytes": 1073741824,
+  "retained_frontend_bytes": 4294967296,
+  "disk_bytes": 8589934592,
+  "fixed_setup_bytes": 1073741824,
+  "park_main": true,
+  "recycler_cache_bytes": 67108864,
+  "keccak_max_log": 16,
+  "capture_options": {
+    "execution_workers": 0
+  },
+  "schedule": {
+    "lanes": 1,
+    "workers_per_lane": 1,
+    "memory_cap_bytes": 2147483648
+  }
+}

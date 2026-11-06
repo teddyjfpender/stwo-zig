@@ -1,0 +1,28 @@
+{
+  "schema": "stwo.opstack.cpu-proof.v1",
+  "security_qualified": false,
+  "scope": "native execution/service STARK bundle; no recursive root or L1 derivation",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "runner_sha256": "d00860da4feedca6fe795ac816a1bca2c64872c7821684f7f4c4ee129b398573",
+  "request_sha256": "56132baa68fa968a5ba5d7b137d9b72853cb92a1b93f2144fdcd1610f1a058f0",
+  "elf_sha256": "255089fc41b82e17ee4723d510e4626c0d2d47122551dfdb5caea3ed88eeb3db",
+  "input_sha256": "b64e99bcb8561a2278c4cd6a6e97b9017ed410441153939af3354ee791fe6e5d",
+  "proof_verified": false,
+  "stages": {
+    "plan": {
+      "command": [
+        "/workspace/opstack-tools/bin/rv64-word16-ethereum-gkr",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "plan-candidate",
+        "/workspace/opstack-runs/cpu-small/request.json",
+        "-",
+        "0",
+        "/workspace/opstack-runs/cpu-small/resources.json"
+      ],
+      "wall_ns": 3776263885,
+      "peak_rss_bytes": 1094197248,
+      "returncode": 0
+    }
+  }
+}

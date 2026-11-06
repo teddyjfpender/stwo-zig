@@ -1,0 +1,32 @@
+{
+  "schema": "stwo.opstack.receipt-audit.v1",
+  "passed": true,
+  "checks": [
+    "sha:121065789:exact-output-registers-pc-services",
+    "sha:121003241:exact-output-registers-pc-services",
+    "sha:121135704:exact-output-registers-pc-services",
+    "sha:120794432:exact-output-registers-pc-services",
+    "sha:121057303:exact-output-registers-pc-services",
+    "sha:121049889:exact-output-registers-pc-services",
+    "arithmetic:121065789:exact-output-registers-pc-services",
+    "arithmetic:121003241:exact-output-registers-pc-services",
+    "arithmetic:121135704:exact-output-registers-pc-services",
+    "arithmetic:120794432:exact-output-registers-pc-services",
+    "arithmetic:121057303:exact-output-registers-pc-services",
+    "arithmetic:121049889:exact-output-registers-pc-services",
+    "full:121065789:exact-output-registers-pc-services",
+    "full:121003241:exact-output-registers-pc-services",
+    "full:121135704:exact-output-registers-pc-services",
+    "full:120794432:exact-output-registers-pc-services",
+    "full:121057303:exact-output-registers-pc-services",
+    "full:121049889:exact-output-registers-pc-services",
+    "bn254-packet:121065789:exact-output-registers-pc-services",
+    "bn254-packet:121003241:exact-output-registers-pc-services",
+    "bn254-packet:121135704:exact-output-registers-pc-services",
+    "bn254-packet:120794432:exact-output-registers-pc-services",
+    "bn254-packet:121057303:exact-output-registers-pc-services",
+    "bn254-packet:121049889:exact-output-registers-pc-services",
+    "cpu-small-1g:fresh-receiver-output-plan-actual-cells-and-restored-artifact-hashes",
+    "cpu-mainnet-full:fresh-receiver-output-plan-actual-cells-and-restored-artifact-hashes"
+  ]
+}

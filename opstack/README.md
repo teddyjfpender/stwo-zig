@@ -29,6 +29,22 @@ python3 opstack/cpu.py \
   --artifacts /workspace/kona-mainnet-cpu
 ```
 
+The tested user-transaction block uses a larger batch, four proof workers and a
+separately bounded single setup worker:
+
+```sh
+python3 opstack/cpu.py \
+  --request /workspace/kona-mainnet-bench/121057303-proof-config.json \
+  --execution /workspace/kona-mainnet-bench/121057303-rv64.json \
+  --runner zig-out/bin/rv64-word16-ethereum-native \
+  --artifacts /workspace/kona-user-block-cpu \
+  --resources opstack/presets/cpu-4workers.json \
+  --batch-steps 1048575 --workers 4 --setup-workers 1
+```
+
+The preset admits 4 GiB of retained frontend input, 1 GiB fixed setup and 8 GiB
+of disk parking. These are component admissions, not a 4 GiB process-memory cap.
+
 `software`, `keccak`, `services` and `sponge` retain the upstream EVM/MPT source.
 `lean` additionally uses the existing optimized Revm interpreter/bytecode crates
 and the local capped-length MPT change. `frontier` is that guest with full LTO.
@@ -67,8 +83,14 @@ with no setup files loaded or persisted. `--setup uncached` supplies the older
 control. The receiver has a separate clean environment and always rebuilds its
 own source authority; it never inherits producer cache selections. Use
 `--resources FILE` for explicit admission budgets and `--batch-steps` for geometry.
-Limits, failures and Linux peak RSS are retained beside each stage. A larger
-admission budget does not reserve physical memory.
+Proof workers (`--workers`) and setup-build workers (`--setup-workers`, default 1)
+are independent, so FFT parallelism need not multiply setup memory. A supplied
+resource file owns its lane schedule; that schedule and the native pool size are
+recorded separately. Limits,
+failures and Linux peak RSS are retained beside each stage. A larger
+admission budget does not reserve physical memory. A per-stage heartbeat records
+when the supervisor last observed its child; it is progress metadata, never proof
+authority, and is removed when the stage is reaped.
 
 The native-only executable uses the same statement, source admission, service
 roster and persisted proof receiver as the GPU-linked driver. Its CPU product
@@ -102,7 +124,7 @@ thresholds. Ambient `STWO_ADMITTED_*` compiler settings are cleared. `--bulk-min
 selects a common value of 8..1048576 or `off`; defaults remain 16/16/16/8. Values
 below 8 are rejected before the existing wrapper can peel an unaligned head.
 
-The maintained mainnet report separates guest execution, exact source-cell cost,
+The [maintained mainnet report](../vectors/reports/rv64-opstack-mainnet-20261106/README.md) separates guest execution, exact source-cell cost,
 CPU proof production, fresh reception and negative controls. A diagnostic
 execution receipt's `proof_supported: false` describes that execution command;
 only the separate CPU receipt establishes physical STARK proof verification.

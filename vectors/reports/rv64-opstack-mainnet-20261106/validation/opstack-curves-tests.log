@@ -1,0 +1,31 @@
+test-riscv64-curves-truth
++- riscv test suite guard
+   +- run test stderr
+bn254_g1_add: main 812 interaction 1224 cells/row 2036 constraints 612 byte queries 605
+bn254_g1_double: main 720 interaction 1164 cells/row 1884 constraints 568 byte queries 576
+bn254_fp2_mul: main 478 interaction 648 cells/row 1126 constraints 293 byte queries 316
+bls12_381_fp2_mul: main 912 interaction 1176 cells/row 2088 constraints 586 byte queries 576
+arith384_mont: main 520 interaction 736 cells/row 1256 constraints 309 byte queries 359
+bls12_381_g1_add: main 1416 interaction 2044 cells/row 3460 constraints 1067 byte queries 1011
+bls12_381_g1_double: main 1274 interaction 2228 cells/row 3502 constraints 1019 byte queries 1107
+add: main 1869 interaction 2564 cells/row 4433 constraints 1126 byte queries 1912
+double: main 1447 interaction 2016 cells/row 3463 constraints 907 byte queries 1505
+secp row add: main 1869 interaction 2564 cells/row 4433 byte queries 1912 relations 9 constraints 1126
+  relation 0: group 2 groups 32 carry bytes 2 q bytes 33
+  relation 1: group 2 groups 32 carry bytes 2 q bytes 33
+  relation 2: group 2 groups 32 carry bytes 2 q bytes 33
+  relation 3: group 2 groups 32 carry bytes 2 q bytes 33
+  relation 4: group 2 groups 32 carry bytes 2 q bytes 33
+  relation 5: group 2 groups 32 carry bytes 2 q bytes 33
+  relation 6: group 1 groups 65 carry bytes 3 q bytes 33
+  relation 7: group 1 groups 66 carry bytes 3 q bytes 34
+  relation 8: group 1 groups 64 carry bytes 3 q bytes 33
+secp row double: main 1447 interaction 2016 cells/row 3463 byte queries 1505 relations 8 constraints 907
+  relation 0: group 2 groups 32 carry bytes 2 q bytes 33
+  relation 1: group 2 groups 32 carry bytes 2 q bytes 33
+  relation 2: group 2 groups 32 carry bytes 2 q bytes 33
+  relation 3: group 2 groups 32 carry bytes 2 q bytes 33
+  relation 4: group 2 groups 17 carry bytes 2 q bytes 1
+  relation 5: group 2 groups 32 carry bytes 2 q bytes 33
+  relation 6: group 1 groups 64 carry bytes 3 q bytes 33
+  relation 7: group 1 groups 64 carry bytes 3 q bytes 33

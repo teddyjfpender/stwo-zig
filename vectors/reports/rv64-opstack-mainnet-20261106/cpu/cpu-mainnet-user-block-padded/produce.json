@@ -1,0 +1,16 @@
+{
+  "command": [
+    "/workspace/opstack-tools-final/bin/rv64-word16-ethereum-gkr",
+    "--security-profile",
+    "conjectured128_b2_q108_p20_fold4",
+    "produce-candidate",
+    "/workspace/opstack-runs/cpu-mainnet-user-block-padded/request.json",
+    "-",
+    "/workspace/opstack-runs/cpu-mainnet-user-block-padded/proof",
+    "0",
+    "/workspace/opstack-runs/cpu-mainnet-user-block-padded/resources.json"
+  ],
+  "wall_ns": 142070237723,
+  "peak_rss_bytes": 2945458176,
+  "returncode": -9
+}

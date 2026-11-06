@@ -1,10 +1,11 @@
 # RV64 frontend for the OP Stack in place of SP1: feasibility study
 
 **Implementation update (2026-11-06):** the execution spike is now implemented in
-[`opstack/`](../../opstack/README.md), with pinned real OP Sepolia fixtures,
-independent RV64 instruction/output checks and complete producer trace capture.
+[`opstack/`](../../opstack/README.md), with pinned historical OP Mainnet fixtures,
+independent RV64/Unicorn checks and physical native CPU STARK production/fresh
+reception for blocks 120794432 and 121057303. The Sepolia corpus remains a regression preset.
 See [the implementation contract](rv64-opstack-implementation.md) and the dated
-benchmark report. The historical source census below remains pinned to Nov 4;
+[mainnet benchmark report](../../vectors/reports/rv64-opstack-mainnet-20261106/README.md). The historical source census below remains pinned to Nov 4;
 its original runtime estimates are superseded by measured results. L1 derivation,
 physical OP GPU proofs and settlement are still open. Settlement stays pure
 STARK, as the owner decided: no SNARK wrapping.

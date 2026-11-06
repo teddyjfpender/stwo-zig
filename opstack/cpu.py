@@ -11,6 +11,7 @@ import json
 import os
 import platform
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -24,6 +25,8 @@ def sha(path):
 def measured(command, prefix, timeout, env, allow_failure=False):
     start = time.monotonic_ns()
     timed_out = False
+    heartbeat = prefix.with_suffix(".heartbeat.json")
+    heartbeat_tmp = prefix.with_suffix(".heartbeat.tmp")
     with (
         prefix.with_suffix(".stdout").open("wb") as out,
         prefix.with_suffix(".stderr").open("wb") as err,
@@ -33,6 +36,8 @@ def measured(command, prefix, timeout, env, allow_failure=False):
         )
         try:
             deadline = time.monotonic() + timeout
+            last_update = 0.0
+            last_message = start
             while True:
                 pid, status, usage = os.wait4(process.pid, os.WNOHANG)
                 if pid:
@@ -44,11 +49,37 @@ def measured(command, prefix, timeout, env, allow_failure=False):
                     _, status, usage = os.wait4(process.pid, 0)
                     process.returncode = os.waitstatus_to_exitcode(status)
                     break
+                now = time.monotonic()
+                now_ns = time.monotonic_ns()
+                if now_ns - last_message >= 30_000_000_000:
+                    print(
+                        f"CPU_STAGE {prefix.name} elapsed_s={(now_ns - start) / 1e9:.1f}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    last_message = now_ns
+                if now - last_update >= 1:
+                    heartbeat_tmp.write_text(
+                        json.dumps(
+                            {
+                                "schema": "stwo.opstack.cpu-supervisor.v1",
+                                "child_pid_in_namespace": process.pid,
+                                "last_observed_unix_ns": time.time_ns(),
+                                "elapsed_ns": time.monotonic_ns() - start,
+                                "remaining_s": max(0, deadline - now),
+                            }
+                        )
+                        + "\n"
+                    )
+                    heartbeat_tmp.replace(heartbeat)
+                    last_update = now
                 time.sleep(0.05)
         finally:
             if process.poll() is None:
                 process.kill()
                 process.wait()
+            heartbeat.unlink(missing_ok=True)
+            heartbeat_tmp.unlink(missing_ok=True)
     receipt = {
         "command": [str(x) for x in command],
         "wall_ns": time.monotonic_ns() - start,
@@ -86,6 +117,12 @@ def main():
     p.add_argument("--batch-steps", type=int, default=262143)
     p.add_argument("--workers", type=int, default=1)
     p.add_argument(
+        "--setup-workers",
+        type=int,
+        default=1,
+        help="independent setup-build concurrency; keep bounded separately from proof FFT workers",
+    )
+    p.add_argument(
         "--setup",
         choices=("ephemeral", "uncached"),
         default="ephemeral",
@@ -103,9 +140,10 @@ def main():
     if (
         not 1 <= args.batch_steps < 1 << 23
         or not 1 <= args.workers <= 8
+        or not 1 <= args.setup_workers <= 8
         or not 1 <= args.timeout <= 21600
     ):
-        p.error("batch steps 1..2^23-1, workers 1..8, timeout 1..21600")
+        p.error("batch steps 1..2^23-1, proof/setup workers 1..8, timeout 1..21600")
     config = json.loads(args.request.read_text())
     execution = json.loads(args.execution.read_text())
     if (
@@ -166,7 +204,7 @@ def main():
     # a clean explicit benchmark instead of accidentally inheriting a warm cache.
     if any(key.startswith("STWO_") for key in os.environ):
         raise ValueError("unset STWO_* variables for a cold independent CPU benchmark")
-    env = dict(os.environ, STWO_ZIG_RV64_SETUP_BUILD_THREADS=str(args.workers))
+    env = dict(os.environ, STWO_ZIG_RV64_SETUP_BUILD_THREADS=str(args.setup_workers))
     producer_env = dict(env)
     if args.setup == "ephemeral":
         # An empty directory enables the existing identity-only/shared setup
@@ -180,6 +218,9 @@ def main():
         "scope": "native execution/service STARK bundle; no recursive root or L1 derivation",
         "profile": PROFILE,
         "producer_setup": args.setup,
+        "setup_build_workers": args.setup_workers,
+        "native_pool_workers": args.workers,
+        "service_schedule": resources["schedule"],
         "receiver_setup": "independently rebuilt; no producer cache",
         "runner_sha256": sha(args.runner),
         "harness_sha256": sha(__file__),

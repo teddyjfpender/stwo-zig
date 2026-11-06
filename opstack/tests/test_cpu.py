@@ -1,6 +1,10 @@
 """Fresh receiver reports must bind successful complete mainnet output."""
 
 import importlib.util
+import json
+import os
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -30,6 +34,23 @@ class CPUReceiptTests(unittest.TestCase):
             bad[field] = value
             with self.assertRaises(ValueError):
                 cpu.accept(bad, "ff" * 43)
+
+    def test_timeout_writes_failure_receipt_and_reaps_child(self):
+        with tempfile.TemporaryDirectory() as directory:
+            prefix = Path(directory) / "timeout"
+            receipt = cpu.measured(
+                [sys.executable, "-c", "import time; time.sleep(2)"],
+                prefix,
+                0.01,
+                dict(os.environ),
+                True,
+            )
+            self.assertFalse(prefix.with_suffix(".heartbeat.json").exists())
+            self.assertTrue(receipt["timed_out"])
+            self.assertLess(receipt["returncode"], 0)
+            self.assertEqual(
+                json.loads(prefix.with_suffix(".json").read_text()), receipt
+            )
 
     def test_valid_utf8_wire_output(self):
         cpu.accept(

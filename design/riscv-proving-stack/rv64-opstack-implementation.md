@@ -1,5 +1,16 @@
 # OP Stack execution implementation contract
 
+**Mainnet CPU continuation (2026-11-06):** six historical OP Mainnet cases now
+match native/RV64/Unicorn execution, and mainnet blocks 120794432 and 121057303 have complete
+native CPU STARK bundles with fresh reception and proof-corruption rejection.
+The branch is rebased onto GPU `bf2b6c072d51341f1c733f05f870d70b4c15834b`.
+Use the [current runbook](../../opstack/README.md) and
+[mainnet measurements](../../vectors/reports/rv64-opstack-mainnet-20261106/README.md).
+The initial checkpoint below is historical; L1 derivation/binding, recursive
+closure and settlement remain open, with no SNARK wrapper.
+
+## Initial checkpoint (historical)
+
 2026-11-06. Initial implementation/measurement GPU base:
 `577433230cff23cc26d8e0337e7507dc44ed83af`. Final PR rebase target:
 `6d0d1e56a9d3c2f58a2cb035343fd3c643acffc5` (M8 memory-plan/native-producer integration).
