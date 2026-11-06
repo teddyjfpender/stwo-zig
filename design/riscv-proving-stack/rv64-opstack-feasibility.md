@@ -206,6 +206,9 @@ The "fixed cost per L2 block" column covers derivation, oracle and blob checks, 
 
 ## 5. Settlement path
 
+> **Owner decision (2026-11-04): no SNARK wrap.** The OP Stack path stays pure Stwo STARK. The final proof is the 10x plan's M7 two-stage compressed proof (≤100 KB target), with an EVM-friendly (Keccak) last layer as a new named STARK profile and the M5 constant recursion VK. It is verified directly by a Solidity Circle-STARK verifier behind `IZKVerifier` / `ISP1Verifier`-shaped adapters. Options A and B below (BN254 PLONK/Groth16 wraps) are superseded. Option C is the chosen route; the calldata figures quoted for C are for today's 708 KB proof, not the compressed one. The P3 checklist on PR #322 is authoritative.
+
+
 | Option | How | L1 cost | Verdict |
 |---|---|---|---|
 | **A. Shrink + PLONK/Groth16 over BN254** (the pattern SP1, RISC Zero and OpenVM use) | Fixed-key root → one more recursion layer using a BN254-friendly hash (Poseidon2) → a gnark PLONK circuit exposing `programId` and `sha256(pv)&(2^253−1)` | ~270–300k gas | **Recommended** |
