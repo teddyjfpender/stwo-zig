@@ -345,6 +345,10 @@ const Statics = struct {
     slot: ClassPlan.Slot = .{},
     /// Bytes charged to StaticsCache.budget (0: not charged).
     charged: u64 = 0,
+    /// Class-plan cache only (StaticsCache.mutex): Staged instances borrowing
+    /// this entry, and the cache tick of the last borrow (LRU eviction).
+    refs: u32 = 0,
+    last_use: u64 = 0,
 
     fn init(a: std.mem.Allocator, key: *const Authority, library: *std.DynLib, composition: bool) !*Statics {
         const self = try a.create(Statics);
@@ -462,8 +466,13 @@ const Twiddles = struct {
 /// STWO_RV64_M8_OUTER_CLASS_PLAN=1 every class is cached by authority identity
 /// (statics are a pure function of the authority: identity binds the FIXED
 /// root, the component logs and the output count) within a host-byte budget,
-/// and carries a whole-node plan slot. A class over the budget or the entry
-/// limit stays per node (correct, only slower).
+/// and carries a whole-node plan slot. Under the class plan the cache is
+/// reference counted: a new class that does not fit (entry limit or host
+/// budget) evicts the least recently used classes no node still borrows, and
+/// stays per node (correct, only slower) only when every entry is in use.
+/// Without eviction the cache froze after the first few block shapes (each
+/// block brings its own leaf classes: 15 on 24628607 [M outer-fold-p3]) and
+/// every later leaf rebuilt its statics with up to 64 stale classes pinned.
 const StaticsCache = struct {
     var mutex: std.Thread.Mutex = .{};
     var entries: std.ArrayList(*Statics) = .empty;
@@ -473,29 +482,86 @@ const StaticsCache = struct {
     /// several block shapes (bounded by the host-byte budget anyway).
     const class_plan_limit: usize = 64;
     var budget: ?ClassPlan.Budget = null;
-    fn acquire(key: *const Authority, reusable: bool, library: *std.DynLib, composition: bool) !struct { statics: *Statics, owned: bool } {
+    var tick: u64 = 0;
+    const Acquired = struct { statics: *Statics, owned: bool, counted: bool = false };
+    fn find(key: *const Authority, composition: bool) ?*Statics {
+        for (entries.items) |s| if (std.mem.eql(u8, &s.public.identity, &key.identity) and (s.rc != null) == composition) return s;
+        return null;
+    }
+    fn acquire(key: *const Authority, reusable: bool, library: *std.DynLib, composition: bool) !Acquired {
         const a = std.heap.c_allocator;
-        const class_plan = try ClassPlan.selected();
-        if (!reusable and !class_plan) return .{ .statics = try Statics.init(a, key, library, composition), .owned = true };
+        if (try ClassPlan.selected()) return acquireCounted(a, key, library, composition);
+        if (!reusable) return .{ .statics = try Statics.init(a, key, library, composition), .owned = true };
         mutex.lock();
         defer mutex.unlock();
-        for (entries.items) |s| if (std.mem.eql(u8, &s.public.identity, &key.identity) and (s.rc != null) == composition) return .{ .statics = s, .owned = false };
+        if (find(key, composition)) |s| return .{ .statics = s, .owned = false };
         const s = try Statics.init(a, key, library, composition);
-        if (entries.items.len >= (if (class_plan) class_plan_limit else limit)) return .{ .statics = s, .owned = true };
-        if (class_plan) {
-            if (budget == null) budget = .{ .limit = try ClassPlan.hostBudgetBytes() };
-            const bytes = s.hostBytes();
-            if (!budget.?.reserve(bytes)) return .{ .statics = s, .owned = true };
-            s.charged = bytes;
+        if (entries.items.len >= limit) return .{ .statics = s, .owned = true };
+        entries.append(a, s) catch return .{ .statics = s, .owned = true };
+        return .{ .statics = s, .owned = false };
+    }
+    /// Must hold `mutex`.
+    fn borrow(s: *Statics) Acquired {
+        tick += 1;
+        s.refs += 1;
+        s.last_use = tick;
+        return .{ .statics = s, .owned = false, .counted = true };
+    }
+    /// Must hold `mutex`: destroy the LRU unreferenced entry; false when none.
+    fn evictOne() bool {
+        var refs: [class_plan_limit]u32 = undefined;
+        var last: [class_plan_limit]u64 = undefined;
+        const n = @min(entries.items.len, class_plan_limit);
+        for (entries.items[0..n], refs[0..n], last[0..n]) |s, *r, *t| {
+            r.* = s.refs;
+            t.* = s.last_use;
         }
+        const i = ClassPlan.lruVictim(refs[0..n], last[0..n]) orelse return false;
+        const victim = entries.swapRemove(i);
+        if (victim.charged != 0) budget.?.release(victim.charged);
+        victim.destroy();
+        _ = evictions.fetchAdd(1, .monotonic);
+        return true;
+    }
+    pub var evictions: std.atomic.Value(u64) = .init(0);
+    /// STWO_RV64_M8_OUTER_CLASS_PLAN=1: every class by identity. The miss
+    /// builds OUTSIDE the cache lock (leaf prestages of different classes run
+    /// concurrently on the lanes' threads, 0.18-0.34 s each [M, feeder gate-c
+    /// 24628607]); a racing builder of the same class keeps the first entry.
+    fn acquireCounted(a: std.mem.Allocator, key: *const Authority, library: *std.DynLib, composition: bool) !Acquired {
+        {
+            mutex.lock();
+            defer mutex.unlock();
+            if (find(key, composition)) |s| return borrow(s);
+            // Parsed before the build so no error can leak a built class.
+            if (budget == null) budget = .{ .limit = try ClassPlan.hostBudgetBytes() };
+        }
+        const s = try Statics.init(a, key, library, composition);
+        mutex.lock();
+        defer mutex.unlock();
+        if (find(key, composition)) |hit| {
+            s.destroy();
+            return borrow(hit);
+        }
+        const bytes = s.hostBytes();
+        while (entries.items.len >= class_plan_limit) if (!evictOne()) return .{ .statics = s, .owned = true };
+        while (!budget.?.reserve(bytes)) if (!evictOne()) return .{ .statics = s, .owned = true };
+        s.charged = bytes;
         entries.append(a, s) catch {
-            if (s.charged != 0) budget.?.release(s.charged);
+            budget.?.release(s.charged);
             s.charged = 0;
             return .{ .statics = s, .owned = true };
         };
         // Only a cached class gets a slot: its plan lives as long as the class.
-        if (class_plan and composition) s.public.class_plan = @ptrCast(&s.slot);
-        return .{ .statics = s, .owned = false };
+        if (composition) s.public.class_plan = @ptrCast(&s.slot);
+        return borrow(s);
+    }
+    /// The borrowing Staged is gone (Owner.release / prestage error path).
+    fn unref(s: *Statics) void {
+        mutex.lock();
+        defer mutex.unlock();
+        std.debug.assert(s.refs != 0);
+        s.refs -= 1;
     }
 };
 
@@ -535,6 +601,8 @@ const Owner = struct {
     prepared: Assignment.Prepared,
     statics: *Statics,
     owns_statics: bool,
+    /// A reference counted class-plan cache borrow (StaticsCache.unref on release).
+    counted_statics: bool = false,
     runs: []St.Run,
     expected: []u32,
     fixed_raw: [][]const u32,
@@ -543,7 +611,7 @@ const Owner = struct {
         const self: *Owner = @ptrCast(@alignCast(raw));
         const a = self.allocator;
         self.prepared.deinit();
-        if (self.owns_statics) self.statics.destroy();
+        if (self.owns_statics) self.statics.destroy() else if (self.counted_statics) StaticsCache.unref(self.statics);
         a.free(self.runs);
         a.free(self.expected);
         a.free(self.fixed_raw);
@@ -579,9 +647,10 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
     const prepared = &owner.prepared;
     if (prepared.reference != null or prepared.count == 0 or prepared.count > std.math.maxInt(u32) / 4) return error.TraceOnlySourceRequired;
     const acquired = try StaticsCache.acquire(key, !input.is_leaf and input.class != null, input.library, input.composition);
-    errdefer if (acquired.owned) acquired.statics.destroy();
+    errdefer if (acquired.owned) acquired.statics.destroy() else if (acquired.counted) StaticsCache.unref(acquired.statics);
     owner.statics = acquired.statics;
     owner.owns_statics = acquired.owned;
+    owner.counted_statics = acquired.counted;
     var needs_ends = false;
     var ends: []const u32 = &.{};
     owner.runs = if (prepared.narrow_plan) |narrow| blk: {

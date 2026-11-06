@@ -116,6 +116,21 @@ pub const Budget = struct {
     }
 };
 
+/// The class cache's eviction choice: the least recently used entry no node
+/// still borrows (`refs[i] == 0`), or null when every entry is in use (the
+/// new class then stays per node). Evicting only unreferenced entries is what
+/// makes destruction safe: a node's jobs (and the WholePlan they borrow) end
+/// before its Staged releases its reference (outer_job_factory Prover.prove).
+pub fn lruVictim(refs: []const u32, last_use: []const u64) ?usize {
+    std.debug.assert(refs.len == last_use.len);
+    var best: ?usize = null;
+    for (refs, last_use, 0..) |r, t, i| {
+        if (r != 0) continue;
+        if (best == null or t < last_use[best.?]) best = i;
+    }
+    return best;
+}
+
 /// Signature hashing helper: process constants a class plan was built under.
 pub fn signatureOf(parts: []const u64) Signature {
     var h = std.crypto.hash.sha2.Sha256.init(.{});
@@ -186,6 +201,13 @@ test "class plan slot is built once under concurrent first nodes" {
     for (threads) |t| t.join();
     try std.testing.expectEqual(@as(u32, 1), T.built.load(.monotonic));
     for (outs) |o| try std.testing.expectEqual(outs[0].?, o.?);
+}
+
+test "class cache evicts the least recently used unreferenced entry only" {
+    try std.testing.expectEqual(@as(?usize, 2), lruVictim(&.{ 1, 0, 0, 3 }, &.{ 1, 9, 4, 0 }));
+    try std.testing.expectEqual(@as(?usize, null), lruVictim(&.{ 1, 2 }, &.{ 0, 0 }));
+    try std.testing.expectEqual(@as(?usize, null), lruVictim(&.{}, &.{}));
+    try std.testing.expectEqual(@as(?usize, 0), lruVictim(&.{ 0, 0 }, &.{ 5, 5 }));
 }
 
 test "class statics budget admits up to the limit" {
