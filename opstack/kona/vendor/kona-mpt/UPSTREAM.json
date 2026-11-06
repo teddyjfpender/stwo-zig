@@ -25,6 +25,8 @@
     "LICENSE.md",
     "src/bounded_length_tests.rs",
     "src/node_decode.rs",
-    "src/node_decode_tests.rs"
+    "src/node_decode_tests.rs",
+    "src/node_mutation_tests.rs",
+    "src/node_mutation.rs"
   ]
 }

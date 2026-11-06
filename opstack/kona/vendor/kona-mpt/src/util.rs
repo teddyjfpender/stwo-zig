@@ -1,7 +1,7 @@
 //! Utilities for `kona-mpt`
 
 use alloc::vec::Vec;
-use alloy_rlp::{Buf, BufMut, Encodable, Header};
+use alloy_rlp::{BufMut, Encodable};
 use alloy_trie::{HashBuilder, Nibbles, proof::ProofRetainer};
 
 /// Compute a trie root of the collection of items with a custom encoder.
@@ -48,31 +48,6 @@ pub(crate) const fn adjust_index_for_rlp(i: usize, len: usize) -> usize {
     } else {
         i + 1
     }
-}
-
-/// Walks through a RLP list's elements and returns the total number of elements in the list.
-/// Returns [`alloy_rlp::Error::UnexpectedString`] if the RLP stream is not a list.
-///
-/// ## Takes
-/// - `buf` - The RLP stream to walk through
-///
-/// ## Returns
-/// - `Ok(usize)` - The total number of elements in the list
-/// - `Err(_)` - The RLP stream is not a list
-pub(crate) fn rlp_list_element_length(buf: &mut &[u8]) -> alloy_rlp::Result<usize> {
-    let header = Header::decode(buf)?;
-    if !header.list {
-        return Err(alloy_rlp::Error::UnexpectedString);
-    }
-    let len_after_consume = buf.len() - header.payload_length;
-
-    let mut list_element_length = 0;
-    while buf.len() > len_after_consume {
-        let header = Header::decode(buf)?;
-        buf.advance(header.payload_length);
-        list_element_length += 1;
-    }
-    Ok(list_element_length)
 }
 
 /// Unpack node path to nibbles.

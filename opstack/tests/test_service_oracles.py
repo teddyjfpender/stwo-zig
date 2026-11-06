@@ -2,7 +2,7 @@
 
 import unittest
 
-from opstack.oracle import bn254_affine, jumpdest_bitmap
+from opstack.oracle import bn254_affine, bn254_fp2, jumpdest_bitmap
 
 P = 21888242871839275222246405745257275088696311157297823662689037894645226208583
 
@@ -26,6 +26,18 @@ class ServiceOracles(unittest.TestCase):
             bn254_affine(packet(P, 2), True)
         with self.assertRaisesRegex(ValueError, "size"):
             bn254_affine(bytes(63), True)
+
+    def test_fp2_plain_representation_and_full_width_reduction(self):
+        self.assertEqual(bn254_fp2(packet(1, 2, 3, 4)), packet(P - 5, 10))
+        for a, b, c, d in [
+            (0, 0, 0, 0),
+            (P - 1, P - 1, P - 1, P - 1),
+            ((1 << 256) - 1, 3, P, 4),
+        ]:
+            actual = bn254_fp2(packet(a, b, c, d))
+            self.assertEqual(actual, packet((a * c - b * d) % P, (a * d + b * c) % P))
+        with self.assertRaisesRegex(ValueError, "size"):
+            bn254_fp2(bytes(127))
 
     def test_jumpdest_push_payload_and_word_boundaries(self):
         self.assertEqual(jumpdest_bitmap(b""), b"")

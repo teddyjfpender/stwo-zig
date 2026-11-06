@@ -25,3 +25,6 @@ pub use self::fq12::*;
 
 #[cfg(all(feature = "curve", test))]
 mod tests;
+
+#[cfg(all(test, feature = "stwo-canonical-service"))]
+mod canonical_tests;

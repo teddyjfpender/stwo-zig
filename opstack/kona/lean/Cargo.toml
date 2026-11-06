@@ -20,6 +20,7 @@ services-v3 = ["keccak-service", "stwo-kona-execution/secp-lean"]
 sponge-service = ["services-v3"]
 memory-service = ["stwo-rv64-mem/admitted-bulk"]
 sha-service = ["stwo-kona-execution/sha-service"]
+bn254-canonical = ["dep:ark-bn254", "ark-bn254/stwo-canonical-service"]
 bn254-service = ["dep:ark-bn254", "ark-bn254/stwo-montgomery-service"]
 arithmetic-service = ["dep:revm-interpreter", "revm-interpreter/stwo-arith256-service"]
 precompile-services = ["stwo-kona-execution/precompile-services"]
@@ -35,6 +36,7 @@ stwo-rv64-mem = { path = "../../../autoresearch/benchmarks/guest_runtime/ethereu
 critical-section = { version = "1.2", features = ["restore-state-bool"] }
 
 [patch.crates-io]
+ark-ff = { path = "../vendor/ark-ff" }
 ark-bn254 = { path = "../vendor/ark-bn254" }
 k256 = { path = "../../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256" }
 ecdsa = { path = "../../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa" }

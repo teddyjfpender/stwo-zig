@@ -6,7 +6,22 @@ pub type Fq2 = Fp2<Fq2Config>;
 
 pub struct Fq2Config;
 
+#[cfg(feature = "stwo-canonical-service")]
+#[path = "fq2_canonical.rs"]
+mod canonical;
+
 impl Fp2Config for Fq2Config {
+    #[cfg(feature = "stwo-canonical-service")]
+    #[inline(always)]
+    fn mul_specialized(a: &Fq2, b: &Fq2) -> Option<Fq2> {
+        Some(canonical::product(a, b))
+    }
+    #[cfg(feature = "stwo-canonical-service")]
+    #[inline(always)]
+    fn square_specialized(a: &Fq2) -> Option<Fq2> {
+        Some(canonical::product(a, a))
+    }
+
     type Fp = Fq;
 
     /// NONRESIDUE = -1

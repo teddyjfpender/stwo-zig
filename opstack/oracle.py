@@ -64,6 +64,19 @@ def bn254_affine(packet, double):
     return result_x.to_bytes(32, "little") + result_y.to_bytes(32, "little")
 
 
+def bn254_fp2(packet):
+    """Plain c0+c1*i product with i^2=-1, independently reduced integers."""
+    if len(packet) != 128:
+        raise ValueError("BN254 Fp2 packet size")
+    p = 21888242871839275222246405745257275088696311157297823662689037894645226208583
+    a, b, c, d = [
+        int.from_bytes(packet[i : i + 32], "little") for i in range(0, 128, 32)
+    ]
+    return ((a * c - b * d) % p).to_bytes(32, "little") + (
+        (a * d + b * c) % p
+    ).to_bytes(32, "little")
+
+
 def jumpdest_bitmap(code):
     """Independent byte walk: a PUSH immediate never creates a destination."""
     bitmap = bytearray(((len(code) + 63) // 64) * 8)
@@ -273,11 +286,16 @@ def execute(config, expected_steps, timeout=600):
                     )
                     service_counts["jumpdest_calls"] += 1
                     service_counts["jumpdest_bytes"] += length
-                elif tag in (0x30100, 0x30101):
+                elif tag in (0x30100, 0x30101, 0x30102):
                     if pointer % 32:
                         raise ValueError("unaligned BN254 packet")
                     packet = bytes(uc.mem_read(pointer, 64 if tag == 0x30101 else 128))
-                    uc.mem_write(pointer, bn254_affine(packet, tag == 0x30101))
+                    uc.mem_write(
+                        pointer,
+                        bn254_fp2(packet)
+                        if tag == 0x30102
+                        else bn254_affine(packet, tag == 0x30101),
+                    )
                     service_counts["curve_calls"][tag - 0x30100] += 1
                 elif tag == 0x30121:
                     if pointer % 32:

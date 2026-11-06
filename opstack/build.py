@@ -64,6 +64,12 @@ LEAN_VARIANTS = {
     ),
 }
 
+LEAN_VARIANTS["canonical"] = (
+    "frontier",
+    [*LEAN_VARIANTS["optimized"][1], "bn254-canonical"],
+)
+
+
 BULK_DEFAULTS = {"COPY": 16, "UCOPY": 16, "SET": 16, "CMP": 8}
 
 

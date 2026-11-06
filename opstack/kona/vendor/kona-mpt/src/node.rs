@@ -304,21 +304,29 @@ impl TrieNode {
                 let mut stack = vec![Self::Empty; BRANCH_LIST_LENGTH];
 
                 // Insert the shortened extension into the branch stack.
-                let extension_nibble =
-                    prefix.get(shared_extension_nibbles).ok_or(TrieNodeError::PathTooShort)?
-                        as usize;
+                let extension_nibble = prefix
+                    .get(shared_extension_nibbles)
+                    .ok_or(TrieNodeError::PathTooShort)?
+                    as usize;
                 let new_prefix = prefix.slice(shared_extension_nibbles + BRANCH_NODE_NIBBLES..);
+                // Validate both paths before moving the existing subtree. An error
+                // must leave it intact; a successful split never needs a deep clone.
+                let branch_nibble_new =
+                    path.get(shared_extension_nibbles)
+                        .ok_or(TrieNodeError::PathTooShort)? as usize;
+                let Self::Extension { node, .. } = core::mem::replace(self, Self::Empty) else {
+                    unreachable!("extension matched above")
+                };
                 stack[extension_nibble] = if new_prefix.is_empty() {
-                    // In the case that the extension node no longer has a prefix, insert the node
-                    // verbatim into the branch.
-                    node.as_ref().clone()
+                    *node
                 } else {
-                    Self::Extension { prefix: new_prefix, node: node.clone() }
+                    Self::Extension {
+                        prefix: new_prefix,
+                        node,
+                    }
                 };
 
                 // Insert the new value into the branch stack.
-                let branch_nibble_new =
-                    path.get(shared_extension_nibbles).ok_or(TrieNodeError::PathTooShort)? as usize;
                 stack[branch_nibble_new] = Self::Leaf {
                     prefix: path.slice(shared_extension_nibbles + BRANCH_NODE_NIBBLES..),
                     value,
@@ -402,96 +410,6 @@ impl TrieNode {
                 self.delete(path, fetcher, hinter)
             }
         }
-    }
-
-    /// If applicable, collapses `self` into a more compact form.
-    ///
-    /// ## Takes
-    /// - `self` - The root trie node
-    ///
-    /// ## Returns
-    /// - `Ok(())` - The node was successfully collapsed
-    /// - `Err(_)` - Could not collapse the node
-    fn collapse_if_possible<F: TrieProvider, H: TrieHinter>(
-        &mut self,
-        fetcher: &F,
-        hinter: &H,
-    ) -> TrieNodeResult<()> {
-        match self {
-            Self::Extension { prefix, node } => match node.as_mut() {
-                Self::Extension { prefix: child_prefix, node: child_node } => {
-                    // Double extensions are collapsed into a single extension.
-                    let new_prefix = Nibbles::from_nibbles_unchecked(
-                        [prefix.to_vec(), child_prefix.to_vec()].concat(),
-                    );
-                    *self = Self::Extension { prefix: new_prefix, node: child_node.clone() };
-                }
-                Self::Leaf { prefix: child_prefix, value: child_value } => {
-                    // If the child node is a leaf, convert the extension into a leaf with the full
-                    // path.
-                    let new_prefix = Nibbles::from_nibbles_unchecked(
-                        [prefix.to_vec(), child_prefix.to_vec()].concat(),
-                    );
-                    *self = Self::Leaf { prefix: new_prefix, value: child_value.clone() };
-                }
-                Self::Empty => {
-                    // If the child node is empty, convert the extension into an empty node.
-                    *self = Self::Empty;
-                }
-                _ => {
-                    // If the child is a (blinded?) branch then no need for collapse
-                    // because deletion did not collapse the (blinded?) branch
-                }
-            },
-            Self::Branch { stack } => {
-                // Count non-empty children
-                let mut non_empty_children = stack
-                    .iter_mut()
-                    .enumerate()
-                    .filter(|(_, node)| !matches!(node, Self::Empty))
-                    .collect::<Vec<_>>();
-
-                if non_empty_children.len() == 1 {
-                    let (index, non_empty_node) = &mut non_empty_children[0];
-
-                    // If only one non-empty child and no value, convert to extension or leaf
-                    match non_empty_node {
-                        Self::Leaf { prefix, value } => {
-                            let new_prefix = Nibbles::from_nibbles_unchecked(
-                                [&[*index as u8], prefix.to_vec().as_slice()].concat(),
-                            );
-                            *self = Self::Leaf { prefix: new_prefix, value: value.clone() };
-                        }
-                        Self::Extension { prefix, node } => {
-                            let new_prefix = Nibbles::from_nibbles_unchecked(
-                                [&[*index as u8], prefix.to_vec().as_slice()].concat(),
-                            );
-                            *self = Self::Extension { prefix: new_prefix, node: node.clone() };
-                        }
-                        Self::Branch { .. } => {
-                            *self = Self::Extension {
-                                prefix: Nibbles::from_nibbles_unchecked([*index as u8]),
-                                node: Box::new(non_empty_node.clone()),
-                            };
-                        }
-                        Self::Blinded { commitment } => {
-                            // In this special case, we need to send a hint to fetch the preimage of
-                            // the blinded node, since it is outside of the paths that have been
-                            // traversed so far.
-                            hinter
-                                .hint_trie_node(*commitment)
-                                .map_err(|e| TrieNodeError::Provider(e.to_string()))?;
-
-                            non_empty_node.unblind(fetcher)?;
-                            self.collapse_if_possible(fetcher, hinter)?;
-                        }
-                        _ => {}
-                    };
-                }
-            }
-            _ => {}
-        }
-        Ok(())
     }
 
     /// Attempts to convert a `path` and `value` into a [`TrieNode`], if they correspond to a
@@ -921,3 +839,10 @@ mod test {
 #[cfg(test)]
 #[path = "bounded_length_tests.rs"]
 mod bounded_length_tests;
+
+#[path = "node_mutation.rs"]
+mod mutation;
+
+#[cfg(test)]
+#[path = "node_mutation_tests.rs"]
+mod mutation_tests;

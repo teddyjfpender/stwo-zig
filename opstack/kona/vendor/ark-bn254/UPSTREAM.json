@@ -25,15 +25,21 @@
     "src/constraints/fields.rs": "e5275b8b382ab5457439a931975cb8b11bd024aa361cbdfe67a06136aace101e",
     "src/constraints/curves.rs": "a4688e960eb697c22d017e1ee69ea1eea7bf8967496777e86e85e15c437fc9a6"
   },
-  "changes": "optional stwo-montgomery-service Fq config; original config unchanged without feature; standalone workspace",
+  "changes": "optional stwo-montgomery-service Fq config; original config unchanged without feature; standalone workspace; opt-in canonical Fq/Fp2 adapter via existing admitted relations",
   "modified_files": [
     "Cargo.toml",
     "Cargo.lock",
     "src/lib.rs",
-    "src/fields/fq.rs"
+    "src/fields/fq.rs",
+    "src/fields/fq2.rs",
+    "src/fields/mod.rs",
+    "src/fields/tests.rs"
   ],
   "added_files": [
     "src/fields/fq_service.rs",
-    "UPSTREAM.json"
+    "UPSTREAM.json",
+    "src/fields/fq_canonical.rs",
+    "src/fields/fq2_canonical.rs",
+    "src/fields/canonical_tests.rs"
   ]
 }

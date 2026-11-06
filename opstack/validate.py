@@ -13,7 +13,7 @@ VENDOR = ROOT / "opstack/kona/vendor"
 
 
 def vendors():
-    for name in ("kona-mpt", "op-revm", "ark-bn254"):
+    for name in ("kona-mpt", "op-revm", "ark-bn254", "ark-ff"):
         root = VENDOR / name
         pin = json.loads((root / "UPSTREAM.json").read_text())
         original = pin["upstream_files"]

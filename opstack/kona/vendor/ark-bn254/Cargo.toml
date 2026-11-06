@@ -42,6 +42,7 @@ repository = "https://github.com/arkworks-rs/algebra"
 
 [features]
 stwo-montgomery-service = []
+stwo-canonical-service = []
 asm = ["ark-ff/asm"]
 curve = ["scalar_field"]
 default = ["curve"]
@@ -92,3 +93,6 @@ version = "0.6.0"
 default-features = false
 
 [workspace]
+
+[patch.crates-io]
+ark-ff = { path = "../ark-ff" }

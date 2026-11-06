@@ -1,0 +1,18 @@
+   Compiling kona-mpt v0.3.0 (/workspace/stwo-opstack/opstack/kona/vendor/kona-mpt)
+warning: unused import: `Buf`
+  --> src/node.rs:11:17
+   |
+11 | use alloy_rlp::{Buf, Decodable, EMPTY_STRING_CODE, Encodable, Header, length_of_length};
+   |                 ^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `kona-mpt` (lib test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.00s
+     Running unittests src/lib.rs (opstack/kona/target/debug/deps/kona_mpt-509c92339c5b2eed)
+
+running 2 tests
+test node::mutation_tests::extension_split_short_path_preserves_original_tree_on_error ... ok
+test node::mutation_tests::splitting_and_collapsing_nested_extensions_preserves_values_and_root ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.00s

@@ -9,7 +9,13 @@ use ark_std::{cmp::Ordering, ops::MulAssign};
 use crate::{Fq, Fq12, Fq2, Fq6, Fq6Config, Fr};
 
 test_field!(fr; Fr; mont_prime_field);
+// Canonical storage has R=R2=1 by design. Retain every prime-field semantic
+// test and replace only the raw Montgomery-metadata assertion with the explicit
+// canonical representation differential suite.
+#[cfg(not(feature = "stwo-canonical-service"))]
 test_field!(fq; Fq; mont_prime_field);
+#[cfg(feature = "stwo-canonical-service")]
+test_field!(fq; Fq; prime);
 test_field!(fq2; Fq2);
 test_field!(fq6; Fq6);
 test_field!(fq12; Fq12);

@@ -6,8 +6,8 @@
     nonstandard_style,
     rust_2018_idioms
 )]
-#![cfg_attr(not(feature = "stwo-montgomery-service"), forbid(unsafe_code))]
-#![cfg_attr(feature = "stwo-montgomery-service", deny(unsafe_code))]
+#![cfg_attr(not(any(feature = "stwo-montgomery-service", feature = "stwo-canonical-service")), forbid(unsafe_code))]
+#![cfg_attr(any(feature = "stwo-montgomery-service", feature = "stwo-canonical-service"), deny(unsafe_code))]
 
 //! This library implements the BN254 curve that was sampled as part of the [\[BCTV14\]](https://eprint.iacr.org/2013/879.pdf) paper .
 //! The name denotes that it is a Barreto--Naehrig curve of embedding degree 12,
