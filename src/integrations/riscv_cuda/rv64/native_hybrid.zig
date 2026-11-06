@@ -49,6 +49,8 @@ const Sources = @import("gkr_sources.zig");
 const RC = @import("resident_composition.zig");
 const CompRoles = @import("m8_native_composition_roles.zig");
 const Events = @import("cuda_events.zig");
+const FC = @import("jobs/native_framing_cache.zig");
+const PcsScope = @import("pcs_scope.zig");
 const Child = CPU.rv64_gkr_child;
 const CW = CPU.rv64_gkr_cpu_worker;
 const Manifest = CPU.rv64_gkr_manifest;
@@ -186,6 +188,133 @@ fn fixedKey(fixed_root: [32]u8, host_words: usize) [32]u8 {
     return h.finalResult();
 }
 
+/// Stage-2 class framing (M8 GPU-native §3.1, inventory H9): everything
+/// stageTwoInner built per segment from the class geometry (global plans,
+/// INTER shapes/plan, composition plan, mask points -> PcsJob framing). The
+/// request words inside it (composition parameters/hc, global challenges,
+/// PCS scope identity and expected roots) are rebound on every checkout
+/// (`rebindFraming`). Owned by the Hybrid's framing pool or by one segment.
+const Framing = struct {
+    a: std.mem.Allocator,
+    comp_log: u32,
+    split: u32,
+    total: u32,
+    mask_log: u32,
+    slots: []HJ.Slot = &.{},
+    gplans: std.ArrayListUnmanaged(NGl.Plan) = .empty,
+    inter_shapes: []NC.Shape = &.{},
+    inter_logs: []u32 = &.{},
+    inter_plan: ?NC.CommitPlan = null,
+    comp_plan: ?NComp.Plan = null,
+    pcs: ?NP.PcsJob = null,
+    pub fn destroy(self: *Framing) void {
+        const a = self.a;
+        if (self.pcs) |*p| p.deinit(a);
+        if (self.comp_plan) |*p| p.deinit();
+        if (self.inter_plan) |*p| p.deinit();
+        a.free(self.inter_logs);
+        a.free(self.inter_shapes);
+        for (self.gplans.items) |*p| p.deinit();
+        self.gplans.deinit(a);
+        a.free(self.slots);
+        a.destroy(self);
+    }
+};
+
+/// What the framing builders read for one segment (request values included:
+/// `specs` carry this request's parameters, `pending.shared` its challenges).
+const FramingInputs = struct {
+    worker: *CW.CpuWorker,
+    pending: *const Manifest.PendingManifest,
+    seg: *const Segment,
+    fixed_logs: []const u32,
+    provers: CP.ComponentProvers,
+    specs: []const NComp.RoleSpec,
+    comp_log: u32,
+    split: u32,
+    total: u32,
+    mask_log: u32,
+};
+
+const FramingLease = struct {
+    framing: *Framing,
+    pooled: bool,
+    /// Row.stage2_framing: 0 built, 1 hit, 2 hit + check build.
+    mode: u32,
+};
+
+/// The global item of one slot (null: the slot has no global claims).
+fn globalItem(a: std.mem.Allocator, worker: *CW.CpuWorker, slot: anytype, fixed_coefficients: anytype, main_logs: []const u32, item_fixed: *std.ArrayListUnmanaged(DP.Column), item_main: *std.ArrayListUnmanaged(DP.Column)) !?DG.Item {
+    const n = CPU.rv64_gkr_global_cpu.claimCount(slot.origin);
+    if (n == 0) return null;
+    const descriptor = CPU.rv64_gkr_source.Descriptor{ .origin = slot.origin };
+    const shape = try CPU.rv64_gkr_constraints.shape(descriptor);
+    if (slot.fixed_offset + shape.fixed > fixed_coefficients.len or slot.main_offset + shape.main > main_logs.len) return error.InvalidWideGlobalShape;
+    item_fixed.clearRetainingCapacity();
+    for (fixed_coefficients[slot.fixed_offset..][0..shape.fixed]) |c| try item_fixed.append(a, .{ .log_size = c.logSize(), .coefficients = c.coefficients() });
+    item_main.clearRetainingCapacity();
+    for (main_logs[slot.main_offset..][0..shape.main]) |l| try item_main.append(a, NP.placeholderColumn(l));
+    const sponge_first_id: u32 = if (slot.origin == .sponge) (worker.source.sponge[@intFromEnum(slot.origin.sponge)] orelse return error.MissingLocalGkrBridge).first_id else 0;
+    return DG.Item{ .descriptor = descriptor, .log_size = slot.log, .fixed = item_fixed.items, .fixed_offset = slot.fixed_offset, .main = item_main.items, .sponge_first_id = sponge_first_id };
+}
+
+/// The PCS framing's request words: section 15 (expected tree roots, as
+/// prepareMode packs them) and the worker scope identity (requestScope).
+fn pcsRequestWords(pcs: *NP.PcsJob, scope: anytype, roots: [4][32]u8) !void {
+    const p = &pcs.prepared;
+    if (!p.section_owned[15] or p.section_storage[15].len != roots.len * 8) return error.HybridFramingPcsShape;
+    const s15 = @constCast(p.section_storage[15]);
+    for (roots, 0..) |r, t| for (0..8) |i| {
+        s15[t * 8 + i] = std.mem.readInt(u32, r[4 * i ..][0..4], .little);
+    };
+    p.scope = if (scope) |sc| PcsScope.identity(sc) else @splat(0);
+    pcs.descriptor = p.descriptor();
+}
+
+/// Check mode (N1): a rebound cached framing equals a fresh build, word for
+/// word (every PCS section incl. 15, scope, composition table, global
+/// parameters, INTER shapes, slot wiring). The first difference fails closed.
+fn sameFraming(x: *const Framing, y: *const Framing) !void {
+    const Diff = struct {
+        fn fail(what: []const u8) error{NativeFramingCacheMismatch} {
+            std.debug.print("GPU_M8_NATIVE_HYBRID event=framing_cache_mismatch field={s}\n", .{what});
+            return error.NativeFramingCacheMismatch;
+        }
+    };
+    if (x.comp_log != y.comp_log or x.split != y.split or x.total != y.total or x.mask_log != y.mask_log) return Diff.fail("geometry");
+    if (x.slots.len != y.slots.len) return Diff.fail("slots");
+    for (x.slots, y.slots) |p, q| {
+        if (p.log != q.log or p.inter_offset != q.inter_offset or !std.meta.eql(p.binding_index, q.binding_index) or (p.global == null) != (q.global == null)) return Diff.fail("slot");
+        if (p.global) |g| {
+            const h = q.global.?;
+            if (g.claim_offset != h.claim_offset or g.fixed_first != h.fixed_first or g.main_first != h.main_first) return Diff.fail("slot.global");
+        }
+    }
+    if (x.gplans.items.len != y.gplans.items.len) return Diff.fail("gplans");
+    for (x.gplans.items, y.gplans.items) |p, q| {
+        if (p.entry != q.entry or p.log != q.log or p.fixed_count != q.fixed_count or p.main_count != q.main_count or p.width != q.width or !std.mem.eql(u32, &p.groups, &q.groups)) return Diff.fail("gplan.geometry");
+        if (!std.mem.eql(u32, p.parameters, q.parameters)) return Diff.fail("gplan.parameters");
+    }
+    if (x.inter_shapes.len != y.inter_shapes.len) return Diff.fail("inter_shapes");
+    for (x.inter_shapes, y.inter_shapes) |p, q| if (!std.meta.eql(p, q)) return Diff.fail("inter_shape");
+    if (!std.mem.eql(u32, x.inter_logs, y.inter_logs)) return Diff.fail("inter_logs");
+    const cx = &x.comp_plan.?;
+    const cy = &y.comp_plan.?;
+    if (!std.mem.eql(u8, &cx.key, &cy.key)) return Diff.fail("composition.key");
+    if (!std.mem.eql(u32, cx.table, cy.table)) return Diff.fail("composition.table");
+    const px = &x.pcs.?;
+    const py = &y.pcs.?;
+    for (px.prepared.section_storage, py.prepared.section_storage) |p, q| if (!std.mem.eql(u32, p, q)) return Diff.fail("pcs.section");
+    if (!std.mem.eql(u8, std.mem.asBytes(&px.plan), std.mem.asBytes(&py.plan))) return Diff.fail("pcs.plan");
+    if (!px.base_shift.eql(py.base_shift)) return Diff.fail("pcs.base_shift");
+    if (!std.mem.eql(u32, &px.prepared.scope, &py.prepared.scope) or !std.mem.eql(u32, &px.descriptor.scope, &py.descriptor.scope)) return Diff.fail("pcs.scope");
+    if (px.prepared.coefficients.len != py.prepared.coefficients.len) return Diff.fail("pcs.coefficients");
+    for (px.prepared.coefficients, py.prepared.coefficients) |p, q| if (p.coefficient_log != q.coefficient_log or p.count != q.count) return Diff.fail("pcs.column");
+    for (px.prepared.metadata.shape.trees, py.prepared.metadata.shape.trees) |p, q| {
+        if (!std.mem.eql(u32, p.coefficient_logs, q.coefficient_logs) or !std.mem.eql(u32, p.sorted_to_original, q.sorted_to_original) or !std.mem.eql(u32, p.sample_counts, q.sample_counts)) return Diff.fail("pcs.shape");
+    }
+}
+
 /// Per-segment state between the two stages (one request).
 const Segment = struct {
     a: std.mem.Allocator,
@@ -226,6 +355,15 @@ pub const Row = struct {
     stage2_gpu_ms: f32 = -1,
     stage2_arena_peak_words: u64 = 0,
     stage2_assemble_ns: u64 = 0,
+    /// Split of stage2_prep_ns / stage2_assemble_ns [M] (host, monotonic clock).
+    stage2_restore_ns: u64 = 0,
+    stage2_set_ns: u64 = 0,
+    stage2_framing_ns: u64 = 0,
+    /// 0 = built (policy off or class miss), 1 = cache hit (rebound), 2 = hit + check build.
+    stage2_framing: u32 = 0,
+    stage2_decode_ns: u64 = 0,
+    stage2_oods_ns: u64 = 0,
+    stage2_encode_ns: u64 = 0,
     host_waits: u32 = 0,
     proof_bytes: usize = 0,
 };
@@ -266,6 +404,9 @@ pub const Hybrid = struct {
     expected_cpu: usize = 0,
     completed_cpu: usize = 0,
     numerical: Child.NumericalStage = undefined,
+    /// Stage-2 class framing cache (STWO_RV64_M8_NATIVE_FRAMING_CACHE, H9).
+    framing_policy: FC.Policy = .off,
+    framings: FC.Pool(Framing) = undefined,
 
     /// Boot the workers (before the legacy pool claims device memory).
     pub fn create(a: std.mem.Allocator, library: []const u8) !*Hybrid {
@@ -303,8 +444,13 @@ pub const Hybrid = struct {
             .arena_words = config.arena_words,
         };
         self.timing = .{ .ctx = self, .create = tCreate, .record = tRecord, .elapsed = tElapsed, .destroy = tDestroy };
+        self.framing_policy = try FC.policyFromEnv();
+        // Bounds: one instance per class per job in flight; the hybrid runs one
+        // stage-two window per GPU, so 2 per class covers 2 GPUs. 32 classes
+        // hold the 7 + 4 segment classes of 24628607 and 26235156 with room.
+        self.framings = FC.Pool(Framing).init(a, try envBytes("STWO_RV64_M8_NATIVE_FRAMING_CACHE_MAX", 32), 2);
         self.numerical = .{ .context = self, .prove = prove, .bind = bind, .abort = abortScope, .replay_binding = replay };
-        std.debug.print("GPU_M8_NATIVE_HYBRID event=boot workers={} arena_words={} wide={}\n", .{ set.count, config.arena_words, self.wide });
+        std.debug.print("GPU_M8_NATIVE_HYBRID event=boot workers={} arena_words={} wide={} framing_cache={s}\n", .{ set.count, config.arena_words, self.wide, @tagName(self.framing_policy) });
         return self;
     }
     /// After the pool exists: map router endpoints to workers and composition contexts.
@@ -324,6 +470,7 @@ pub const Hybrid = struct {
         }
     }
     pub fn destroy(self: *Hybrid) void {
+        self.framings.deinit();
         self.dropSegments();
         self.segments.deinit(self.a);
         self.rows.deinit(self.a);
@@ -373,7 +520,7 @@ pub const Hybrid = struct {
         defer self.mutex.unlock();
         var text: std.Io.Writer.Allocating = .init(self.a);
         defer text.deinit();
-        try std.json.Stringify.value(.{ .schema = "rv64-m8-native-hybrid/v1", .request = self.request, .arena_words = self.arena_words, .segments = self.rows.items }, .{ .whitespace = .indent_1 }, &text.writer);
+        try std.json.Stringify.value(.{ .schema = "rv64-m8-native-hybrid/v2", .request = self.request, .arena_words = self.arena_words, .framing_cache = @tagName(self.framing_policy), .framing_stats = self.framings.snapshot(), .segments = self.rows.items }, .{ .whitespace = .indent_1 }, &text.writer);
         const path = try std.fs.path.join(self.a, &.{ dir, "m8-native-hybrid.json" });
         defer self.a.free(path);
         try std.fs.cwd().writeFile(.{ .sub_path = path, .data = text.written() });
@@ -389,7 +536,7 @@ pub const Hybrid = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         for (self.rows.items) |*r| if (r.request == row.request and r.ordinal == row.ordinal) {
-            inline for (.{ "stage2_prep_ns", "stage2_wait_ns", "stage2_enqueue_ns", "stage2_gpu_ms", "stage2_arena_peak_words", "stage2_assemble_ns", "proof_bytes" }) |f| @field(r, f) = @field(row, f);
+            inline for (.{ "stage2_prep_ns", "stage2_wait_ns", "stage2_enqueue_ns", "stage2_gpu_ms", "stage2_arena_peak_words", "stage2_assemble_ns", "stage2_restore_ns", "stage2_set_ns", "stage2_framing_ns", "stage2_framing", "stage2_decode_ns", "stage2_oods_ns", "stage2_encode_ns", "proof_bytes" }) |f| @field(r, f) = @field(row, f);
             r.host_waits += row.host_waits;
             return;
         };
@@ -581,8 +728,185 @@ pub const Hybrid = struct {
         if (self.legacy_numerical.abort) |abort| abort(self.legacy_numerical.context, .{ .statement = scope.statement, .fixed = scope.fixed, .main = scope.main, .ordinal = scope.ordinal });
     }
 
+    // ---------------- stage two: class framing (H9) ----------------
+
+    /// The class key: every input the framing builders read except the
+    /// request values that `rebindFraming` rewrites. Mask offsets and
+    /// component degrees are functions of (case id, trace log, eval log),
+    /// which the role geometry carries; `check` mode verifies the claim.
+    fn framingKey(self: *const Hybrid, in: FramingInputs) FC.ClassKey {
+        var k = FC.Key.init("rv64-m8-native-framing/v1");
+        const worker = in.worker;
+        k.value(self.wide);
+        k.value(worker.config);
+        k.bytes(&worker.expected.fixed);
+        k.value(in.fixed_logs);
+        k.value(@as([]const u32, in.seg.main_logs));
+        k.value(@as([]const @TypeOf(worker.plan.slots[0]), worker.plan.slots));
+        k.value(worker.plan.inter_columns);
+        k.value(worker.plan.claim_count);
+        k.value(worker.plan.binding_count);
+        k.value(in.comp_log);
+        k.value(in.split);
+        k.value(in.total);
+        k.value(in.mask_log);
+        k.value(in.specs.len);
+        for (in.specs) |rs| {
+            k.value(rs.id);
+            k.value(rs.kernel);
+            k.value(rs.trace_log);
+            k.value(rs.eval_log);
+            k.value(rs.widths);
+            k.value(rs.offsets);
+            k.value(rs.fixed_indices);
+            k.value(rs.aux);
+            k.value(rs.hc.len);
+            k.value(rs.parameters.len);
+            k.value(rs.mask_columns);
+            k.value(rs.constraints);
+            k.value(rs.claim_slots);
+        }
+        return k.final();
+    }
+
+    fn framingFor(self: *Hybrid, in: FramingInputs) !FramingLease {
+        if (self.framing_policy == .off) return .{ .framing = try self.buildFraming(in), .pooled = false, .mode = 0 };
+        const key = self.framingKey(in);
+        switch (try self.framings.checkout(key)) {
+            .hit => |fr| {
+                errdefer self.framings.discard(fr);
+                try self.rebindFraming(fr, in);
+                if (self.framing_policy == .check) {
+                    const fresh = try self.buildFraming(in);
+                    defer fresh.destroy();
+                    try sameFraming(fr, fresh);
+                    return .{ .framing = fr, .pooled = true, .mode = 2 };
+                }
+                return .{ .framing = fr, .pooled = true, .mode = 1 };
+            },
+            .miss => {
+                const fr = try self.buildFraming(in);
+                const pooled = self.framings.insert(key, fr) catch |err| {
+                    fr.destroy();
+                    return err;
+                };
+                return .{ .framing = fr, .pooled = pooled, .mode = 0 };
+            },
+        }
+    }
+    fn releaseFraming(self: *Hybrid, lease: FramingLease) void {
+        if (lease.pooled) self.framings.checkin(lease.framing) else lease.framing.destroy();
+    }
+
+    /// Build one segment's framing (the code stageTwoInner ran per segment).
+    fn buildFraming(self: *Hybrid, in: FramingInputs) !*Framing {
+        const ha = self.a;
+        const worker = in.worker;
+        const plan = &worker.plan;
+        const seg = in.seg;
+        const config = worker.config;
+        const beta = config.fri_config.log_blowup_factor;
+        const fixed_coefficients = worker.scheme.trees.items[0].coefficients orelse return error.DeviceGkrCoefficientsRequired;
+        const fr = try ha.create(Framing);
+        fr.* = .{ .a = ha, .comp_log = in.comp_log, .split = in.split, .total = in.total, .mask_log = in.mask_log };
+        errdefer fr.destroy();
+        // Global interaction plans + INTER shapes, in slot order.
+        fr.slots = try ha.alloc(HJ.Slot, plan.slots.len);
+        try fr.gplans.ensureTotalCapacity(ha, plan.slots.len);
+        fr.inter_shapes = try ha.alloc(NC.Shape, plan.inter_columns);
+        var item_fixed: std.ArrayListUnmanaged(DP.Column) = .empty;
+        defer item_fixed.deinit(ha);
+        var item_main: std.ArrayListUnmanaged(DP.Column) = .empty;
+        defer item_main.deinit(ha);
+        for (plan.slots, fr.slots) |slot, *out| {
+            out.* = .{ .log = slot.log, .inter_offset = slot.inter_offset, .binding_index = slot.binding_index };
+            var at = slot.inter_offset;
+            if (slot.binding_index != null) {
+                for (fr.inter_shapes[at..][0..16]) |*s| s.* = .{ .log_size = slot.log, .encoding = .coefficients };
+                at += 16;
+            }
+            const item = (try globalItem(ha, worker, slot, fixed_coefficients, seg.main_logs, &item_fixed, &item_main)) orelse continue;
+            {
+                self.gmutex.lock();
+                defer self.gmutex.unlock();
+                fr.gplans.appendAssumeCapacity(try NGl.Plan.init(ha, &self.gcatalogue, item, in.pending.shared));
+            }
+            const gp = &fr.gplans.items[fr.gplans.items.len - 1];
+            for (fr.inter_shapes[at..][0..gp.width]) |*s| s.* = .{ .log_size = slot.log, .encoding = .evaluations };
+            out.global = .{ .plan = gp, .claim_offset = @intCast(slot.claim_offset), .fixed_first = slot.fixed_offset, .main_first = slot.main_offset };
+        }
+        fr.inter_plan = try NC.CommitPlan.init(ha, fr.inter_shapes, beta);
+        fr.inter_logs = try ha.alloc(u32, fr.inter_shapes.len);
+        for (fr.inter_shapes, fr.inter_logs) |s, *l| l.* = s.log_size;
+        fr.comp_plan = try NComp.Plan.init(ha, .{ .roles = in.specs, .log = in.comp_log, .split = in.split, .total = in.total, .beta = beta, .tree_logs = .{ in.fixed_logs, seg.main_logs, fr.inter_logs } });
+        // The cached plan must not borrow the request's Roles storage.
+        try fr.comp_plan.?.detach();
+        const comp_plan = &fr.comp_plan.?;
+        // PCS framing at the placeholder OODS point (challenge independent).
+        const placeholder = try NP.placeholderPoint();
+        var view = try in.provers.componentsView(ha);
+        defer view.deinit(ha);
+        var points = try view.maskPointsWithWorkCapture(ha, placeholder, in.mask_log, false, null);
+        defer points.deinitDeep(ha);
+        const n_comp = core.verifier_types.compositionColumnCount(in.split, 8) orelse return error.InvalidStructure;
+        if (n_comp != comp_plan.outputColumns() or points.items.len != 3) return error.HybridCompositionShape;
+        const comp_tree = try ha.alloc([]DP.Point, n_comp);
+        var comp_made: usize = 0;
+        defer {
+            for (comp_tree[0..comp_made]) |c| ha.free(c);
+            ha.free(comp_tree);
+        }
+        for (comp_tree) |*c| {
+            c.* = try ha.alloc(DP.Point, 1);
+            c.*[0] = placeholder;
+            comp_made += 1;
+        }
+        var tree_points = [4][][]DP.Point{ points.items[0], points.items[1], points.items[2], comp_tree };
+        var tree_columns: [4][]DP.Column = undefined;
+        var made_trees: usize = 0;
+        defer for (tree_columns[0..made_trees]) |t| ha.free(t);
+        const tree_logs = [4][]const u32{ in.fixed_logs, seg.main_logs, fr.inter_logs, &.{} };
+        for (0..4) |t| {
+            const count = if (t == 3) n_comp else tree_logs[t].len;
+            tree_columns[t] = try ha.alloc(DP.Column, count);
+            made_trees += 1;
+            for (tree_columns[t], 0..) |*c, i| c.* = NP.placeholderColumn(if (t == 3) comp_plan.chunkLog() else tree_logs[t][i]);
+        }
+        const trees = [4]DP.Tree{
+            .{ .root = worker.expected.fixed, .columns = tree_columns[0] },
+            .{ .root = seg.main_root, .columns = tree_columns[1] },
+            .{ .root = @splat(0), .columns = tree_columns[2] },
+            .{ .root = @splat(0), .columns = tree_columns[3] },
+        };
+        const pcs_request = DP.Request{ .scope = worker.scheme.device_om31_scope, .config = config, .lifting_log_size = comp_plan.chunkLog() + beta, .trees = &trees, .points = .{ .items = &tree_points } };
+        fr.pcs = try NP.PcsJob.prepare(ha, self.psym, pcs_request, placeholder, self.wide);
+        return fr;
+    }
+
+    /// A cache hit: rewrite this request's words into the class framing.
+    fn rebindFraming(self: *Hybrid, fr: *Framing, in: FramingInputs) !void {
+        const ha = self.a;
+        const worker = in.worker;
+        const fixed_coefficients = worker.scheme.trees.items[0].coefficients orelse return error.DeviceGkrCoefficientsRequired;
+        try fr.comp_plan.?.rebind(in.specs);
+        var item_fixed: std.ArrayListUnmanaged(DP.Column) = .empty;
+        defer item_fixed.deinit(ha);
+        var item_main: std.ArrayListUnmanaged(DP.Column) = .empty;
+        defer item_main.deinit(ha);
+        var k: usize = 0;
+        for (worker.plan.slots) |slot| {
+            const item = (try globalItem(ha, worker, slot, fixed_coefficients, in.seg.main_logs, &item_fixed, &item_main)) orelse continue;
+            if (k >= fr.gplans.items.len) return error.NativeFramingCacheMismatch;
+            try fr.gplans.items[k].rebind(item, in.pending.shared);
+            k += 1;
+        }
+        if (k != fr.gplans.items.len) return error.NativeFramingCacheMismatch;
+        try pcsRequestWords(&fr.pcs.?, worker.scheme.device_om31_scope, .{ worker.expected.fixed, in.seg.main_root, @splat(0), @splat(0) });
+    }
+
     fn stageTwoInner(self: *Hybrid, a: std.mem.Allocator, worker: *CW.CpuWorker, pending: *const Manifest.PendingManifest, ordinal: u32) !CW.CpuEncoded {
         var timer = try std.time.Timer.start();
+        var restore_ns: u64 = 0;
         const ha = self.a;
         const seg = try self.segment(ordinal);
         const expected = worker.expected;
@@ -592,6 +916,8 @@ pub const Hybrid = struct {
         var legacy_main: []const [*]const u32 = &.{};
         defer if (legacy_main.len != 0) ha.free(legacy_main);
         if (!retained_main) {
+            var restore_timer = try std.time.Timer.start();
+            defer restore_ns = restore_timer.read();
             if (worker.replay) |*owner| try owner.restore(owner.context, worker);
             const tree = worker.scheme.device_om31_trace_trees[1] orelse return error.ResidentGlobalMainRequired;
             if (tree.columns.len != seg.main_logs.len) return error.HybridMainColumnShape;
@@ -615,8 +941,6 @@ pub const Hybrid = struct {
         if (ordinal != expected.ordinal or !std.mem.eql(u8, &pending.entries[ordinal].scope.statement, &expected.statement)) return error.WideCpuStatementMismatch;
         const local = &(pending.entries[ordinal].local orelse return error.WideCpuLocalRequired);
         const plan = &worker.plan;
-        const config = worker.config;
-        const beta = config.fri_config.log_blowup_factor;
         // FIXED: the host tree's coefficients (original order).
         const fixed_coefficients = worker.scheme.trees.items[0].coefficients orelse return error.DeviceGkrCoefficientsRequired;
         const nf = fixed_coefficients.len;
@@ -634,7 +958,11 @@ pub const Hybrid = struct {
             fixed_words += h.len;
         }
         // Components (claims zero: the composition's claim parameters are
-        // patched on device from the Stage2 claims buffer).
+        // patched on device from the Stage2 claims buffer). The Set and the
+        // composition roles carry this request's values (row counts, GKR
+        // artifact hc rows, shared challenges, public inputs); the framing
+        // built from them below is class geometry plus those values.
+        var phase = try std.time.Timer.start();
         const zero_claims = try ha.alloc(O, plan.claim_count);
         defer ha.free(zero_claims);
         @memset(zero_claims, O.zero());
@@ -650,96 +978,16 @@ pub const Hybrid = struct {
         var roles = try CompRoles.Roles.fromItemsWith(ha, self.compositions[seg.device_index], set.items, true);
         defer roles.deinit();
         if (roles.claim_count != plan.claim_count) return error.HybridClaimLayoutMismatch;
-        // Global interaction plans + INTER shapes, in slot order.
-        const slots = try ha.alloc(HJ.Slot, plan.slots.len);
-        defer ha.free(slots);
-        var gplans: std.ArrayListUnmanaged(NGl.Plan) = .empty;
-        defer {
-            for (gplans.items) |*p| p.deinit();
-            gplans.deinit(ha);
-        }
-        try gplans.ensureTotalCapacity(ha, plan.slots.len);
-        const inter_shapes = try ha.alloc(NC.Shape, plan.inter_columns);
-        defer ha.free(inter_shapes);
-        var item_fixed: std.ArrayListUnmanaged(DP.Column) = .empty;
-        defer item_fixed.deinit(ha);
-        var item_main: std.ArrayListUnmanaged(DP.Column) = .empty;
-        defer item_main.deinit(ha);
-        for (plan.slots, slots) |slot, *out| {
-            out.* = .{ .log = slot.log, .inter_offset = slot.inter_offset, .binding_index = slot.binding_index };
-            var at = slot.inter_offset;
-            if (slot.binding_index != null) {
-                for (inter_shapes[at..][0..16]) |*s| s.* = .{ .log_size = slot.log, .encoding = .coefficients };
-                at += 16;
-            }
-            const n = CPU.rv64_gkr_global_cpu.claimCount(slot.origin);
-            if (n == 0) continue;
-            const descriptor = CPU.rv64_gkr_source.Descriptor{ .origin = slot.origin };
-            const shape = try CPU.rv64_gkr_constraints.shape(descriptor);
-            if (slot.fixed_offset + shape.fixed > nf or slot.main_offset + shape.main > seg.main_logs.len) return error.InvalidWideGlobalShape;
-            item_fixed.clearRetainingCapacity();
-            for (fixed_coefficients[slot.fixed_offset..][0..shape.fixed]) |c| try item_fixed.append(ha, .{ .log_size = c.logSize(), .coefficients = c.coefficients() });
-            item_main.clearRetainingCapacity();
-            for (seg.main_logs[slot.main_offset..][0..shape.main]) |l| try item_main.append(ha, NP.placeholderColumn(l));
-            const sponge_first_id: u32 = if (slot.origin == .sponge) (worker.source.sponge[@intFromEnum(slot.origin.sponge)] orelse return error.MissingLocalGkrBridge).first_id else 0;
-            const item = DG.Item{ .descriptor = descriptor, .log_size = slot.log, .fixed = item_fixed.items, .fixed_offset = slot.fixed_offset, .main = item_main.items, .sponge_first_id = sponge_first_id };
-            {
-                self.gmutex.lock();
-                defer self.gmutex.unlock();
-                gplans.appendAssumeCapacity(try NGl.Plan.init(ha, &self.gcatalogue, item, pending.shared));
-            }
-            const gp = &gplans.items[gplans.items.len - 1];
-            for (inter_shapes[at..][0..gp.width]) |*s| s.* = .{ .log_size = slot.log, .encoding = .evaluations };
-            out.global = .{ .plan = gp, .claim_offset = @intCast(slot.claim_offset), .fixed_first = slot.fixed_offset, .main_first = slot.main_offset };
-        }
-        var inter_plan = try NC.CommitPlan.init(ha, inter_shapes, beta);
-        defer inter_plan.deinit();
-        const inter_logs = try ha.alloc(u32, inter_shapes.len);
-        defer ha.free(inter_logs);
-        for (inter_shapes, inter_logs) |s, *l| l.* = s.log_size;
-        var comp_plan = try NComp.Plan.init(ha, .{ .roles = roles.specs, .log = comp_log, .split = split, .total = @intCast(total), .beta = beta, .tree_logs = .{ fixed_logs, seg.main_logs, inter_logs } });
-        defer comp_plan.deinit();
-        // PCS framing at the placeholder OODS point (challenge independent).
-        const placeholder = try NP.placeholderPoint();
-        var view = try provers.componentsView(ha);
-        defer view.deinit(ha);
-        var points = try view.maskPointsWithWorkCapture(ha, placeholder, mask_log, false, null);
-        defer points.deinitDeep(ha);
-        const n_comp = core.verifier_types.compositionColumnCount(split, 8) orelse return error.InvalidStructure;
-        if (n_comp != comp_plan.outputColumns() or points.items.len != 3) return error.HybridCompositionShape;
-        const comp_tree = try ha.alloc([]DP.Point, n_comp);
-        var comp_made: usize = 0;
-        defer {
-            for (comp_tree[0..comp_made]) |c| ha.free(c);
-            ha.free(comp_tree);
-        }
-        for (comp_tree) |*c| {
-            c.* = try ha.alloc(DP.Point, 1);
-            c.*[0] = placeholder;
-            comp_made += 1;
-        }
-        var tree_points = [4][][]DP.Point{ points.items[0], points.items[1], points.items[2], comp_tree };
-        var tree_columns: [4][]DP.Column = undefined;
-        var made_trees: usize = 0;
-        defer for (tree_columns[0..made_trees]) |t| ha.free(t);
-        const tree_logs = [4][]const u32{ fixed_logs, seg.main_logs, inter_logs, &.{} };
-        for (0..4) |t| {
-            const count = if (t == 3) n_comp else tree_logs[t].len;
-            tree_columns[t] = try ha.alloc(DP.Column, count);
-            made_trees += 1;
-            for (tree_columns[t], 0..) |*c, i| c.* = NP.placeholderColumn(if (t == 3) comp_plan.chunkLog() else tree_logs[t][i]);
-        }
-        const trees = [4]DP.Tree{
-            .{ .root = expected.fixed, .columns = tree_columns[0] },
-            .{ .root = seg.main_root, .columns = tree_columns[1] },
-            .{ .root = @splat(0), .columns = tree_columns[2] },
-            .{ .root = @splat(0), .columns = tree_columns[3] },
-        };
-        const pcs_request = DP.Request{ .scope = worker.scheme.device_om31_scope, .config = config, .lifting_log_size = comp_plan.chunkLog() + beta, .trees = &trees, .points = .{ .items = &tree_points } };
-        var pcs = try NP.PcsJob.prepare(ha, self.psym, pcs_request, placeholder, self.wide);
-        defer pcs.deinit(ha);
+        const set_ns = phase.lap();
+        const fin = FramingInputs{ .worker = worker, .pending = pending, .seg = seg, .fixed_logs = fixed_logs, .provers = provers, .specs = roles.specs, .comp_log = @intCast(comp_log), .split = @intCast(split), .total = @intCast(total), .mask_log = @intCast(mask_log) };
+        const lease = try self.framingFor(fin);
+        defer self.releaseFraming(lease);
+        const fr = lease.framing;
+        const framing_ns = phase.lap();
+        const slots = fr.slots;
+        const pcs = &fr.pcs.?;
         // INTER placeholders (every INTER column is device-resident at enqueue).
-        const inter_inputs = try ha.alloc(NC.Input, inter_shapes.len);
+        const inter_inputs = try ha.alloc(NC.Input, fr.inter_shapes.len);
         defer ha.free(inter_inputs);
         @memset(inter_inputs, .{ .device = @ptrFromInt(@alignOf(u32)) });
         self.mutex.lock();
@@ -761,8 +1009,8 @@ pub const Hybrid = struct {
             .main_logs = seg.main_logs,
             .bind_plan = &seg.bind_plan,
             .slots = slots,
-            .stage2 = .{ .inter = &inter_plan, .pcs = &pcs, .csym = self.csym, .nsym = self.psym, .claim_count = @intCast(plan.claim_count) },
-            .composition = &comp_plan,
+            .stage2 = .{ .inter = &fr.inter_plan.?, .pcs = pcs, .csym = self.csym, .nsym = self.psym, .claim_count = @intCast(plan.claim_count) },
+            .composition = &fr.comp_plan.?,
             .comp_sym = self.compsym,
             .gsym = &self.glsym,
             .inter_inputs = inter_inputs,
@@ -804,8 +1052,10 @@ pub const Hybrid = struct {
                 std.debug.print("GPU_M8_NATIVE_HYBRID event=fixed_eval ordinal={} col0_equal={} col1_equal={} points_col0={} host0={any} pcs0={any}\n", .{ ordinal, host0.eql(sv[0]), host1.eql(sv[1]), sv[2], host0.toM31Array(), sv[0].toM31Array() });
             } else std.debug.print("GPU_M8_NATIVE_HYBRID event=fixed_eval unavailable type={s}\n", .{@typeName(C0)});
         }
+        phase.reset();
         var decoded = try pcs.decode(ha, job.pcs_words, &roots);
         defer decoded.proof.deinit(ha);
+        const decode_ns = phase.lap();
         // The engine's final OODS constraint check with the real claims.
         {
             var real = try Components.Set.init(ha, worker.setup, worker.request, worker.first, plan, local, pending.shared, claims);
@@ -824,7 +1074,9 @@ pub const Hybrid = struct {
                 return error.ConstraintsNotSatisfied;
             }
         }
+        const oods_ns = phase.lap();
         const bytes = try WP.encodePhysical(a, .{ .commitment_scheme_proof = decoded.proof });
+        const encode_ns = phase.lap();
         if (std.posix.getenv("STWO_RV64_M8_NATIVE_JOBS_DUMP")) |dir| {
             var name_buf: [64]u8 = undefined;
             const name = try std.fmt.bufPrint(&name_buf, "hybrid-cpu-{d}.bin", .{ordinal});
@@ -835,8 +1087,8 @@ pub const Hybrid = struct {
         // The worker's scheme/channel are consumed exactly as complete() would.
         worker.consumed = true;
         const assemble_ns = timer.read();
-        self.addRow(.{ .request = req, .ordinal = ordinal, .device = w.device_ordinal, .stage2_prep_ns = prep_ns, .stage2_wait_ns = receipt.wait_ns, .stage2_enqueue_ns = receipt.enqueue_ns, .stage2_gpu_ms = job.span.gpu_ms, .stage2_arena_peak_words = receipt.arena_peak_words, .stage2_assemble_ns = assemble_ns, .host_waits = receipt.host_waits, .proof_bytes = bytes.len });
-        std.debug.print("GPU_M8_NATIVE_HYBRID stage=2 request={} ordinal={} device={} gpu_ms={d:.3} enqueue_ns={} wait_ns={} host_prep_ns={} assemble_ns={} arena_peak_words={} slots={} globals={} proof_bytes={} host_waits={}\n", .{ req, ordinal, w.device_ordinal, job.span.gpu_ms, receipt.enqueue_ns, receipt.wait_ns, prep_ns, assemble_ns, receipt.arena_peak_words, plan.slots.len, job.global_count, bytes.len, receipt.host_waits });
+        self.addRow(.{ .request = req, .ordinal = ordinal, .device = w.device_ordinal, .stage2_prep_ns = prep_ns, .stage2_wait_ns = receipt.wait_ns, .stage2_enqueue_ns = receipt.enqueue_ns, .stage2_gpu_ms = job.span.gpu_ms, .stage2_arena_peak_words = receipt.arena_peak_words, .stage2_assemble_ns = assemble_ns, .stage2_restore_ns = restore_ns, .stage2_set_ns = set_ns, .stage2_framing_ns = framing_ns, .stage2_framing = lease.mode, .stage2_decode_ns = decode_ns, .stage2_oods_ns = oods_ns, .stage2_encode_ns = encode_ns, .host_waits = receipt.host_waits, .proof_bytes = bytes.len });
+        std.debug.print("GPU_M8_NATIVE_HYBRID stage=2 request={} ordinal={} device={} gpu_ms={d:.3} enqueue_ns={} wait_ns={} host_prep_ns={} restore_ns={} set_ns={} framing_ns={} framing={} assemble_ns={} decode_ns={} oods_ns={} encode_ns={} arena_peak_words={} slots={} globals={} proof_bytes={} host_waits={}\n", .{ req, ordinal, w.device_ordinal, job.span.gpu_ms, receipt.enqueue_ns, receipt.wait_ns, prep_ns, restore_ns, set_ns, framing_ns, lease.mode, assemble_ns, decode_ns, oods_ns, encode_ns, receipt.arena_peak_words, plan.slots.len, job.global_count, bytes.len, receipt.host_waits });
         return .{ .bytes = bytes, .claims = claims };
     }
 };

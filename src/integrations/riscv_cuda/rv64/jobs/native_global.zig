@@ -130,22 +130,11 @@ pub const Plan = struct {
         if (log < 5 or log > (if (boundary) @as(u32, DG.MAX_PUBLIC_BOUNDARY_LOG) else @as(u32, 22))) return error.InvalidGlobalGeometry;
         for (item.fixed) |c| if (c.log_size != log) return error.InvalidGlobalGeometry;
         for (item.main) |c| if (c.log_size != log) return error.InvalidGlobalGeometry;
-        var semantic: [Gc.P.count]O = @splat(O.zero());
-        semantic[Gc.P.source_public + Gc.Source.Public.sponge_first_id] = O.fromBase(M.fromCanonical(item.sponge_first_id));
-        semantic[Gc.P.ram] = shared.ram.offset;
-        @memcpy(semantic[Gc.P.ram + 1 ..][0..shared.ram.coefficients.len], &shared.ram.coefficients);
-        semantic[Gc.P.kio] = shared.kio.offset;
-        @memcpy(semantic[Gc.P.kio + 1 ..][0..shared.kio.coefficients.len], &shared.kio.coefficients);
-        semantic[Gc.P.wire] = shared.wire.offset;
-        @memcpy(semantic[Gc.P.wire + 1 ..][0..shared.wire.coefficients.len], &shared.wire.coefficients);
         const slots = e.artifact.parameter_slots;
         if (slots.len == 0 or slots.len > 65536) return error.InvalidGlobalGeometry;
         const parameters = try a.alloc(u32, slots.len * 8);
         errdefer a.free(parameters);
-        for (slots, 0..) |slot, i| for (semantic[slot].toM31Array(), 0..) |m, j| {
-            if (m.v >= core.fields.m31.Modulus) return error.NoncanonicalGlobalParameter;
-            parameters[8 * i + j] = m.v;
-        };
+        try fillParameters(parameters, slots, item.sponge_first_id, shared);
         const groups = [2]u32{ e.artifact.ram_pairs, e.artifact.other_pairs };
         if (groups[0] == 0 or groups[0] > 640 or groups[1] > 640) return error.InvalidGlobalGeometry;
         const group_count: usize = 1 + @as(usize, @intFromBool(groups[1] != 0));
@@ -158,6 +147,15 @@ pub const Plan = struct {
     pub fn deinit(self: *Plan) void {
         self.a.free(self.parameters);
         self.* = undefined;
+    }
+    /// Per-request parameters of a cached class plan (M8 GPU-native framing
+    /// cache, H9): the only request words are the sponge first id and the
+    /// shared global challenges (both packed into `parameters`); everything
+    /// else is the slot's class geometry. `item` must be the same class
+    /// (descriptor, log, column counts): a difference fails closed.
+    pub fn rebind(self: *Plan, item: Item, shared: Shared) !void {
+        if (!std.meta.eql(self.entry.artifact.descriptor, item.descriptor) or self.log != item.log_size or self.fixed_count != item.fixed.len or self.main_count != item.main.len) return error.NativeGlobalClassMismatch;
+        try fillParameters(self.parameters, self.entry.artifact.parameter_slots, item.sponge_first_id, shared);
     }
     pub fn outputWords(self: *const Plan) usize {
         return self.width * self.rows;
@@ -192,6 +190,24 @@ pub const Plan = struct {
     }
 };
 
+/// Pack the slot's projection parameters (artifact slot order, 8 canonical
+/// OM31 words each) from the request values (shared challenges, sponge first id).
+fn fillParameters(out: []u32, slots: anytype, sponge_first_id: u32, shared: Shared) !void {
+    if (out.len != slots.len * 8) return error.InvalidGlobalGeometry;
+    var semantic: [Gc.P.count]O = @splat(O.zero());
+    semantic[Gc.P.source_public + Gc.Source.Public.sponge_first_id] = O.fromBase(M.fromCanonical(sponge_first_id));
+    semantic[Gc.P.ram] = shared.ram.offset;
+    @memcpy(semantic[Gc.P.ram + 1 ..][0..shared.ram.coefficients.len], &shared.ram.coefficients);
+    semantic[Gc.P.kio] = shared.kio.offset;
+    @memcpy(semantic[Gc.P.kio + 1 ..][0..shared.kio.coefficients.len], &shared.kio.coefficients);
+    semantic[Gc.P.wire] = shared.wire.offset;
+    @memcpy(semantic[Gc.P.wire + 1 ..][0..shared.wire.coefficients.len], &shared.wire.coefficients);
+    for (slots, 0..) |slot, i| for (semantic[slot].toM31Array(), 0..) |m, j| {
+        if (m.v >= core.fields.m31.Modulus) return error.NoncanonicalGlobalParameter;
+        out[8 * i + j] = m.v;
+    };
+}
+
 /// One slot's global witness inside a job.
 pub const Global = struct {
     plan: *const Plan,
@@ -212,10 +228,18 @@ pub const Global = struct {
         var key: [32]u8 = @splat(0);
         @memcpy(key[0..16], "rv64-m8-glob-twd");
         key[16] = @intCast(p.log);
-        var tw = try engine.poly.twiddles.precomputeM31(a, core.poly.circle.canonic.CanonicCoset.new(p.log).circleDomain().half_coset);
-        defer engine.poly.twiddles.deinitM31(a, &tw);
-        const twiddles = try s.persistent(key, tw.twiddles.len);
-        if (twiddles.fresh) try s.upload(twiddles.buffer, @as([*]const u32, @ptrCast(tw.twiddles.ptr))[0..tw.twiddles.len]);
+        // The forward tower of CanonicCoset(log).circleDomain().half_coset has
+        // 2^(log-1) words (native_composition twLen, tested there): build it on
+        // the host only when the class region is fresh (it was built on every
+        // stage of every slot before, then discarded on a warm region).
+        const tw_len = @as(usize, 1) << @intCast(p.log - 1);
+        const twiddles = try s.persistent(key, tw_len);
+        if (twiddles.fresh) {
+            var tw = try engine.poly.twiddles.precomputeM31(a, core.poly.circle.canonic.CanonicCoset.new(p.log).circleDomain().half_coset);
+            defer engine.poly.twiddles.deinitM31(a, &tw);
+            if (tw.twiddles.len != tw_len) return error.InvalidGlobalGeometry;
+            try s.upload(twiddles.buffer, @as([*]const u32, @ptrCast(tw.twiddles.ptr))[0..tw.twiddles.len]);
+        }
         self.twiddles = twiddles.buffer;
         self.fixed = null;
         if (fixed_host.len != 0) {
@@ -299,6 +323,35 @@ test "global job path is fully analyzed" {
     _ = &Plan.init;
     _ = &Global.stage;
     _ = &Global.enqueue;
+}
+
+test "framing cache: global parameters rebind to new shared challenges" {
+    // fillParameters is the whole request dependence of Plan (init and rebind
+    // both call it): the same slots with different challenges differ, the same
+    // challenges reproduce the same words.
+    const slots = [_]usize{ Gc.P.ram, Gc.P.ram + 1, Gc.P.kio, Gc.P.wire, Gc.P.source_public + Gc.Source.Public.sponge_first_id };
+    var shared_a: Shared = undefined;
+    var shared_b: Shared = undefined;
+    inline for (.{ "ram", "kio", "wire" }, 0..) |name, k| {
+        @field(shared_a, name).offset = O.fromBase(M.fromCanonical(11 + k));
+        @field(shared_b, name).offset = O.fromBase(M.fromCanonical(500 + k));
+        for (&@field(shared_a, name).coefficients, &@field(shared_b, name).coefficients, 0..) |*x, *y, i| {
+            x.* = O.fromBase(M.fromCanonical(@intCast(20 + i + 10 * k)));
+            y.* = O.fromBase(M.fromCanonical(@intCast(700 + i + 10 * k)));
+        }
+    }
+    var p1: [slots.len * 8]u32 = undefined;
+    var p2: [slots.len * 8]u32 = undefined;
+    var p3: [slots.len * 8]u32 = undefined;
+    try fillParameters(&p1, &slots, 3, shared_a);
+    try fillParameters(&p2, &slots, 3, shared_b);
+    try fillParameters(&p3, &slots, 3, shared_a);
+    try std.testing.expect(!std.mem.eql(u32, &p1, &p2));
+    try std.testing.expectEqualSlices(u32, &p1, &p3);
+    try std.testing.expectEqual(@as(u32, 3), p1[8 * 4]);
+    try fillParameters(&p3, &slots, 4, shared_a);
+    try std.testing.expectEqual(@as(u32, 4), p3[8 * 4]);
+    try std.testing.expectError(error.InvalidGlobalGeometry, fillParameters(p1[0..8], &slots, 3, shared_a));
 }
 
 test "finish acceptance mirrors the legacy verdict and canonical-claim checks" {
