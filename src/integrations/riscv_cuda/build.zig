@@ -71,6 +71,8 @@ pub fn build(b: *std.Build) void {
     const jobs_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_test_root.zig"), .target = target, .optimize = optimize });
     jobs_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     const jobs_tests = b.addTest(.{ .root_module = jobs_root });
+    // outer_device.zig (recursion factory registry) defaults to std.heap.c_allocator; Linux needs libc explicitly.
+    jobs_tests.linkLibC();
     const jobs_run = b.addRunArtifact(jobs_tests);
     jobs_run.setCwd(b.path("."));
     const jobs_step = b.step("test-rv64-jobs", "Test the M8 job runtime contract, worker pipeline, channel parity model, slab, scheduler and sync lint without a GPU");
