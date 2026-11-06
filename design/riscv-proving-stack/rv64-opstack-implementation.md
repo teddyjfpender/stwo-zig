@@ -2,7 +2,10 @@
 
 2026-11-06. Initial implementation/measurement GPU base:
 `577433230cff23cc26d8e0337e7507dc44ed83af`. Final PR rebase target:
-`dbe3948600ad87ec96211ba7381613bcb2d72d35` (new outer-job integration).
+`6d0d1e56a9d3c2f58a2cb035343fd3c643acffc5` (M8 memory-plan/native-producer integration).
+The final rebase was completed through GitHub after the execution environment
+became unavailable; upstream changes were disjoint from the OP files. These
+measurements predate that final GPU-only rebase; no new GPU qualification is claimed.
 The M8 job provider remains explicitly unpromoted/fails closed at that target;
 the existing resident producer is the execution handoff used by this work.
 
