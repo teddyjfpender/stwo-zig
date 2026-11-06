@@ -78,6 +78,12 @@ def node_id(row):
     return None if row["ordinal"] < 0 else (row["domain"], row["ordinal"], row["epoch"])
 
 
+def tree_classes(tree):
+    """Recursion node class by structure: leaf, fold<arity>, root."""
+    return {i: "root" if i == tree["root"] else "leaf" if not n["children"] else f"fold{len(n['children'])}"
+            for i, n in enumerate(tree["nodes"])}
+
+
 def class_of(node, classes):
     if node is None:
         return "shared"
@@ -153,7 +159,7 @@ def transform(rows, policy, classes):
             input_bytes[node] = max(input_bytes[node], sum(b for n, b in live_input.values() if n == node))
     events = []
     successor = {nodes_in_order[i]: nodes_in_order[i + 1] for i in range(len(nodes_in_order) - 1)}
-    started = set()
+    started, offloaded = set(), set()
     for index, row in enumerate(rows):
         node = node_id(row)
         if policy != "keep" and node is not None and node not in started:
@@ -167,9 +173,18 @@ def transform(rows, policy, classes):
         if row["op"] == "S":
             events.append(("S", None, 0, False, node))
             continue
-        if policy == "shared_offload" and node is None:
-            continue
-        events.append((row["op"], (row["device"], row["offset"]), row["rounded"], bool(row["small"]), node))
+        key = (row["device"], row["offset"])
+        # Offload is decided by the reservation's BIRTH tag: an idle cache
+        # binding untags a live reservation, so its release row may be
+        # untagged while its reservation row was tagged (and vice versa).
+        if policy == "shared_offload":
+            if row["op"] == "A" and node is None:
+                offloaded.add(key)
+                continue
+            if row["op"] == "F" and key in offloaded:
+                offloaded.discard(key)
+                continue
+        events.append((row["op"], key, row["rounded"], bool(row["small"]), node))
     return events, dict(input_bytes)
 
 
@@ -227,6 +242,11 @@ def replay(rows, policy, arena, small_bytes, chunk, classes):
             if total_large + total_small > s["envelope_peak"]:
                 s["envelope_peak"] = total_large + total_small
                 s["shared_at_peak"] = total_large + total_small - by_node[current]
+                other_recursion = sum(b for n, b in by_node.items() if n != current and n[0] == 1)
+                native = sum(b for n, b in by_node.items() if n != current and n[0] != 1)
+                s["at_peak"] = {"own": by_node[current], "other_recursion_nodes": other_recursion,
+                                "native_packets": native,
+                                "untagged": total_large + total_small - by_node[current] - other_recursion - native}
     large_capacity = arena - small_bytes
     for node, s in node_stats.items():
         s["fits_vmm"] = s["envelope_large_peak"] <= large_capacity and s["envelope_small_peak"] <= small_bytes
@@ -264,6 +284,11 @@ def sweep(paths, arena, chunk, small_chunks, classes):
                 if prev is None or s["envelope_peak"] > prev["envelope_peak"]:
                     row[policy] = dict(s, device=device, node=list(node),
                                        static_fit_device=value["arena_model"]["static_fit"])
+    own_max = defaultdict(int)
+    for device, value in results["keep"].items():
+        for node, st in value["nodes"].items():
+            if node[0] == 1:
+                own_max[st["class"]] = max(own_max[st["class"]], st["own_peak"])
     generated = {}
     for cls, row in sorted(table.items()):
         chosen = next((p for p in POLICIES if row[p] and row[p]["fits_vmm"] and p != "keep"), None)
@@ -272,7 +297,8 @@ def sweep(paths, arena, chunk, small_chunks, classes):
             "keep_envelope_peak": row["keep"]["envelope_peak"] if row["keep"] else None,
             "next_input_envelope_peak": row["next_input"]["envelope_peak"] if row["next_input"] else None,
             "shared_offload_envelope_peak": row["shared_offload"]["envelope_peak"] if row["shared_offload"] else None,
-            "own_peak": row["keep"]["own_peak"] if row["keep"] else None,
+            "own_peak": own_max.get(cls),
+            "keep_at_peak": row["keep"].get("at_peak") if row["keep"] else None,
             "input_bytes": row["keep"]["input_bytes"] if row["keep"] else None,
         }
     return {
@@ -293,10 +319,12 @@ def markdown(policy):
            f"(chunk {policy['layout']['chunk_bytes'] // MiB} MiB, small slab {policy['layout']['small_slab_bytes'] // MiB} MiB). "
            "Envelope = all arena reservations live while the node runs (node + shared + next-input reservation). "
            "Decimal GB.", "",
-           "| Class | Own peak | keep envelope | +next input | shared offload | input bytes | generated policy |",
-           "|---|---:|---:|---:|---:|---:|---|"]
+           "| Class | Max own peak | keep envelope | at keep peak: own / other recursion / native / untagged | +next input | shared offload | input bytes | generated policy |",
+           "|---|---:|---:|---|---:|---:|---:|---|"]
     for cls, row in policy["generated"].items():
-        out.append(f"| {cls} | {g(row['own_peak'])} | {g(row['keep_envelope_peak'])} | {g(row['next_input_envelope_peak'])} | "
+        a = row.get("keep_at_peak") or {}
+        split = " / ".join(g(a.get(k)) for k in ("own", "other_recursion_nodes", "native_packets", "untagged"))
+        out.append(f"| {cls} | {g(row['own_peak'])} | {g(row['keep_envelope_peak'])} | {split} | {g(row['next_input_envelope_peak'])} | "
                    f"{g(row['shared_offload_envelope_peak'])} | {g(row['input_bytes'])} | {row['policy']} |")
     out += ["", "Static (single contiguous allocation, Top/Bottom) model per device:", "",
             "| Policy | Device | Fits | capacity − largest hole, high-water GB | First failure |", "|---|---:|---|---:|---|"]
@@ -333,6 +361,7 @@ def main(argv=None):
     r.add_argument("--chunk", default="32M")
     r.add_argument("--small-chunks", type=int, default=16)
     r.add_argument("--classes", type=Path, help="JSON {ordinal: class} for domain-1 nodes")
+    r.add_argument("--tree", type=Path, help="recursion-om31/tree.json: classes leaf / fold<arity> / root")
     c = sub.add_parser("check")
     c.add_argument("--policy", required=True, type=Path)
     c.add_argument("--arena", default="22G")
@@ -341,6 +370,8 @@ def main(argv=None):
     args = p.parse_args(argv)
     if args.command == "replay":
         classes = {int(k): v for k, v in json.loads(args.classes.read_text()).items()} if args.classes else {}
+        if args.tree:
+            classes.update(tree_classes(json.loads(args.tree.read_text())))
         policy = sweep(args.traces, parse_bytes(args.arena), parse_bytes(args.chunk), args.small_chunks, classes)
         args.out.mkdir(parents=True, exist_ok=True)
         (args.out / "policy.json").write_text(json.dumps(policy, indent=1) + "\n")

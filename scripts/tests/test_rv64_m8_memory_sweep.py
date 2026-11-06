@@ -51,6 +51,14 @@ class SweepTests(unittest.TestCase):
         self.assertEqual(gen['leaf']['policy'], 'next_input')
         self.assertEqual(gen['fold']['keep_envelope_peak'], 6 * G)
 
+    def test_offload_follows_birth_tag_when_release_is_untagged(self):
+        rows = [row('A', 1 << 34, 3 * G, 0), row('F', 1 << 34, 3 * G, -1),   # tagged birth, idle-untagged release
+                row('A', 1 << 34, 2 * G, -1), row('F', 1 << 34, 2 * G, 0),   # untagged birth, tagged release
+                row('A', 1 << 34, 1 * G, 0), row('F', 1 << 34, 1 * G, 0)]
+        with tempfile.TemporaryDirectory() as tmp:
+            stats, _ = sweep.replay(sweep.read_trace(self.write(tmp, rows)), 'shared_offload', 22 * G, 512 << 20, 32 << 20, {})
+        self.assertEqual(stats[(1, 0, 1)]['envelope_peak'], 3 * G)
+
     def test_does_not_fit_is_reported_and_check_rejects(self):
         rows = [row('A', 1 << 34, 30 * G, 0), row('S', 0, 0, 0), row('F', 1 << 34, 30 * G, 0)]
         with tempfile.TemporaryDirectory() as tmp:
@@ -71,6 +79,10 @@ class SweepTests(unittest.TestCase):
             stats, model = sweep.replay(sweep.read_trace(self.write(tmp, rows)), 'keep', 18 * G, 512 << 20, 32 << 20, {})
         self.assertFalse(model['static_fit'])
         self.assertTrue(stats[(1, 0, 1)]['fits_vmm'])
+
+    def test_tree_classes(self):
+        tree = {'root': 3, 'nodes': [{'children': []}, {'children': []}, {'children': [0, 1]}, {'children': [2]}]}
+        self.assertEqual(sweep.tree_classes(tree), {0: 'leaf', 1: 'leaf', 2: 'fold2', 3: 'root'})
 
     def test_pinned_gpu_layout_matches_arena_defaults(self):
         text = ARENA_HEADER.read_text()

@@ -37,9 +37,9 @@ def main():
     p.add_argument('--request-timeout', default='600')
     p.add_argument('--no-trace', action='store_true', help='observer table only (isolation)')
     p.add_argument('--no-observer', action='store_true', help='neither observer nor trace (control)')
-    p.add_argument('--native-schedule', default='{"lanes": 4, "workers_per_lane": 1, "lane_workers": [1, 1, 1, 1], "device_affinity": 2, "heaviest_first": true}',
+    p.add_argument('--native-schedule', default='{"lanes": 2, "workers_per_lane": 1, "lane_workers": [1, 1], "device_affinity": 2, "heaviest_first": true}',
                    help='RV64_NATIVE_SCHEDULE for the diagnostic: the observer models one open stage per context, so '
-                        'concurrent native workers on one lane context fail AllocationObserverBeginFailed [M]. '
+                        'concurrent native segments on one device session context fail AllocationObserverBeginFailed [M]. '
                         'Scheduling only (services/schedule.zig): proof bytes cannot depend on it. Merged onto the M5 template, '
                         'so it restates the M6 default lanes/affinity. "" = default.')
     args = p.parse_args()
