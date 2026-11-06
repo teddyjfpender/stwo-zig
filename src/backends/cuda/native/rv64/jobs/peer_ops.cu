@@ -18,15 +18,17 @@ __global__ void fill_u32(uint32_t *dst, uint32_t value, size_t words) {
         dst[i] = value;
 }
 
-// One verdict word from `count` flag words: accepted (0) when every flag is 1,
+// One verdict word from `count` flag words: accepted (0) when every flag
+// equals `expected` (the request's Exchange.flagTag: replicas are never zeroed
+// per request, so a stale flag of an earlier request carries another tag),
 // else reject_code with the low half = 1 + index of the first unset flag
 // (capped at 0xffff). One block; the flag table is < 64 words per request.
-__global__ void flags_verdict(const uint32_t *flags, uint32_t count, uint32_t *verdict, uint32_t reject_code) {
+__global__ void flags_verdict(const uint32_t *flags, uint32_t count, uint32_t expected, uint32_t *verdict, uint32_t reject_code) {
     __shared__ uint32_t first;
     if (threadIdx.x == 0) first = 0xffffffffu;
     __syncthreads();
     for (uint32_t i = threadIdx.x; i < count; i += blockDim.x)
-        if (flags[i] != 1u) atomicMin(&first, i);
+        if (flags[i] != expected) atomicMin(&first, i);
     __syncthreads();
     if (threadIdx.x == 0) {
         if (first == 0xffffffffu) {
@@ -94,9 +96,11 @@ extern "C" int stwo_rv64_jobs_fill_u32(uint32_t *dst, uint32_t value, size_t wor
 }
 
 // Check.exchange_complete (and any "every flag set" check) as a device kernel.
-extern "C" int stwo_rv64_jobs_flags_verdict(const uint32_t *flags, uint32_t count, uint32_t *verdict, uint32_t reject_code, void *stream) {
+// (Renamed from stwo_rv64_jobs_flags_verdict when `expected` was added, so a
+// stale addon fails the symbol lookup instead of mis-reading arguments.)
+extern "C" int stwo_rv64_jobs_flags_verdict_tag(const uint32_t *flags, uint32_t count, uint32_t expected, uint32_t *verdict, uint32_t reject_code, void *stream) {
     if (flags == nullptr || verdict == nullptr || stream == nullptr) return status(cudaErrorInvalidValue);
-    flags_verdict<<<1, 64, 0, static_cast<cudaStream_t>(stream)>>>(flags, count, verdict, reject_code);
+    flags_verdict<<<1, 64, 0, static_cast<cudaStream_t>(stream)>>>(flags, count, expected, verdict, reject_code);
     return status(cudaGetLastError());
 }
 

@@ -37,9 +37,11 @@ pub const capture = @import("../m8_capture_stream.zig");
 pub const Driver = request.Driver;
 
 /// Host model of `PeerExchange` (tests and the fake device): replicas are
-/// host slices; publish copies the slot and sets its flag word to 1.
+/// host slices; publish copies the slot and sets its flag word to `tag`
+/// (the request's gpu_native.Exchange.flagTag).
 pub const HostExchange = struct {
     replicas: []const []u32,
+    tag: u32 = 1,
     pub fn peer(self: *HostExchange) G.PeerExchange {
         return .{ .ctx = self, .vtable = &vtable };
     }
@@ -54,14 +56,14 @@ pub const HostExchange = struct {
         for (self.replicas, 0..) |r, d| {
             if (d == src) continue;
             @memcpy(r[slot.offset..][0..slot.words], from[slot.offset..][0..slot.words]);
-            r[slot.flag] = 1;
+            r[slot.flag] = self.tag;
         }
-        from[slot.flag] = 1;
+        from[slot.flag] = self.tag;
     }
     fn awaitSlot(raw: *anyopaque, device: u32, _: u32, slot: G.Exchange.Slot) anyerror!void {
         const self = of(raw);
         if (device >= self.replicas.len) return error.GpuNativeExchangeSlot;
-        if (self.replicas[device][slot.flag] != 1) return error.GpuNativeExchangeNotPublished;
+        if (self.replicas[device][slot.flag] != self.tag) return error.GpuNativeExchangeNotPublished;
     }
 };
 

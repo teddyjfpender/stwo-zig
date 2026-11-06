@@ -54,7 +54,9 @@ const FakeJob = struct {
             .node => if (self.id.?.kind == .leaf) k_leaf else if (self.id.?.kind == .fold) k_fold else k_root,
         };
     }
-    pub fn footprint(_: *FakeJob) api.Footprint {
+    pub fn footprint(self: *FakeJob) api.Footprint {
+        // A footprint the arena can never hold: the worker refuses at stage.
+        if (self.kind == .stage1 and self.world.refuse_stage1 != null and self.world.refuse_stage1.? == self.ordinal) return .{ .device_words = 1 << 30 };
         return .{ .device_words = 256 };
     }
     pub fn stage(_: *FakeJob, _: *api.Stager) !void {}
@@ -79,7 +81,7 @@ const FakeJob = struct {
                 for (replica[claims.offset..][0..claims.words], 0..) |*x, i| x.* = @intCast(self.ordinal * 1000 + i);
                 try self.ctx.peer.publish(self.device, claims);
                 // The device's chi/LogUp partial, once per GPU per request.
-                if (!w.partial_done[self.device].swap(true, .acq_rel)) {
+                if (!w.partial_done[self.device].swap(true, .acq_rel) and !(w.withhold_partial != null and w.withhold_partial.? == self.device)) {
                     const part = try ex.partial(self.device);
                     @memset(replica[part.offset..][0..8], 0x9a + self.device);
                     try self.ctx.peer.publish(self.device, part);
@@ -89,6 +91,7 @@ const FakeJob = struct {
                 _ = w.stage1_done.fetchAdd(1, .acq_rel);
             },
             .seal => {
+                w.seal_enqueued = true;
                 // Every root/claims slot must have landed (await is the device wait).
                 var acc: [8]u32 = @splat(0);
                 for (0..ex.segments) |s| {
@@ -201,12 +204,21 @@ const World = struct {
     reject_check: ?G.Check = null,
     overrun: bool = false,
     stale_header: bool = false,
+    /// Device whose chi partial is never published (nobody awaits partials:
+    /// only Check.exchange_complete can notice).
+    withhold_partial: ?u32 = null,
+    /// Segment whose Stage1 the worker refuses at stage (footprint > arena).
+    refuse_stage1: ?u32 = null,
+    seal_enqueued: bool = false,
+    installed_info: ?G.Installed = null,
+    installed_sealed: ?bool = null,
     capture: ?*C.Stream = null,
 
     fn reset(self: *World) void {
         self.stage1_done.store(0, .release);
         for (&self.partial_done) |*p| p.store(false, .release);
         self.seal_ran = false;
+        self.seal_enqueued = false;
     }
     fn make(self: *World, kind: @FieldType(FakeJob, "kind"), ctx: *const G.RequestContext, ordinal: u32, device: u32, id: ?G.ProofId, children: []const G.ProofId) !api.Job {
         const j = try self.a.create(FakeJob);
@@ -423,4 +435,129 @@ test "D1: capture releases Stage1 per sealed segment while capture continues" {
     const t2 = try std.Thread.spawn(.{}, Short.run, .{cap});
     try testing.expectError(error.BatchDependencyFailed, rig.driver.serve(&r));
     t2.join();
+}
+
+test "D1: a stale flag of the previous same-parity request never satisfies exchange_complete" {
+    var world = World{ .a = testing.allocator };
+    var rig = try Rig.init(&world);
+    defer rig.deinit();
+    // Generations 1 (parity 0) and 2 (parity 1) publish every flag.
+    for ([_]u64{ 61, 62 }) |id| {
+        world.reset();
+        var o = try rig.driver.serve(&request(id));
+        o.deinit();
+    }
+    // Generation 3 reuses parity 0, whose replica still holds generation 1's
+    // flags (replicas are never zeroed per request). Device 1's partial is
+    // withheld: only the tag tells the stale flag from a landed one.
+    world.reset();
+    world.withhold_partial = 1;
+    try testing.expectError(error.GpuNativeProofRejected, rig.driver.serve(&request(63)));
+    world.withhold_partial = null;
+    world.reset();
+    var ok = try rig.driver.serve(&request(64));
+    ok.deinit();
+}
+
+test "D1: a Stage1 refused at stage poisons its dependents (the seal never enqueues)" {
+    var world = World{ .a = testing.allocator };
+    var rig = try Rig.init(&world);
+    defer rig.deinit();
+    world.refuse_stage1 = 1;
+    // The first failed job in batch order names the request's error: the
+    // refused Stage1 or a dependent poisoned by it (never a seal that ran).
+    if (rig.driver.serve(&request(71))) |o| {
+        var out = o;
+        out.deinit();
+        return error.TestExpectedRefusal;
+    } else |err| try testing.expect(err == error.JobFootprintExceedsArena or err == error.BatchDependencyFailed);
+    try testing.expect(!world.seal_enqueued);
+    try testing.expect(!world.seal_ran);
+    world.refuse_stage1 = null;
+    world.reset();
+    var ok = try rig.driver.serve(&request(72));
+    ok.deinit();
+    try testing.expect(world.seal_ran);
+}
+
+test "D1: plan phases keep stable arena epochs across requests; a plan worker never parks" {
+    var world = World{ .a = testing.allocator };
+    var rig = try Rig.init(&world);
+    defer rig.deinit();
+    var seen: [2]u64 = undefined;
+    for (0..2) |i| {
+        world.reset();
+        var o = try rig.driver.serve(&request(80 + i));
+        o.deinit();
+        for (rig.workers, 0..) |w, d| {
+            const e = w.planPhaseEpochs();
+            try testing.expect(e[0] != 0 and e[1] != e[0]);
+            const now = w.arenaEpoch();
+            try testing.expect(now == e[0] or now == e[1]);
+            if (i == 0) seen[d] = now else try testing.expectEqual(seen[d], now);
+        }
+    }
+    try testing.expectError(error.WorkerPlanArenaInstalled, rig.workers[0].park(.{}));
+}
+
+test "D1: the installed hook sees the plan (main_resident, phase epochs) before the class cache seals" {
+    var world = World{ .a = testing.allocator };
+    const Hook = struct {
+        fn installed(raw: *anyopaque, cache: *G.ClassCache, info: *const G.Installed) anyerror!void {
+            const w: *World = @ptrCast(@alignCast(raw));
+            w.installed_info = info.*;
+            w.installed_sealed = cache.phase == .request;
+        }
+    };
+    var vt = World.native_vt;
+    vt.installed = Hook.installed;
+    const a = testing.allocator;
+    var ws: [2]*W.Worker = undefined;
+    ws[0] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer ws[0].destroy();
+    ws[1] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 1, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer ws[1].destroy();
+    const drv = try R.Driver.install(a, &F.ops, &F.peer, &ws, .{ .ctx = &world, .vtable = &vt }, world.recursionFactory(), .{ .capacity_words = &.{ 1 << 20, 1 << 20 }, .max_segments = 8, .max_jobs_per_device = 32, .slab_words = 1 << 13, .reserve_words = 1 << 10, .graph_exec_words = 1 << 10, .arena_cap_words = 1 << 15 });
+    defer drv.deinit();
+    const info = world.installed_info.?;
+    try testing.expectEqual(@as(u32, 2), info.devices);
+    try testing.expectEqual(false, world.installed_sealed.?);
+    try testing.expect(drv.classes.phase == .request);
+    for (drv.lanes, 0..) |l, d| {
+        try testing.expectEqual(l.main.ptr, info.main_resident[d].ptr);
+        try testing.expectEqual(ws[d].planPhaseEpochs(), info.arena_epochs[d]);
+    }
+}
+
+test "D1: a capture stream is refused while the other in-flight request holds it; receipts are per request" {
+    var world = World{ .a = testing.allocator };
+    var rig = try Rig.init(&world);
+    defer rig.deinit();
+    const cap = try C.Stream.create(testing.allocator, world.nativeFactory(), null, 8);
+    defer cap.destroy();
+    var r1 = request(91);
+    r1.capture = cap;
+    const Capture = struct {
+        fn run(s: *C.Stream) void {
+            const sink = s.sink();
+            for (0..3) |seg| sink.sealed_segment(sink.ctx, @intCast(seg), 4) catch return;
+            sink.done(sink.ctx, 3) catch {};
+        }
+    };
+    const t = try std.Thread.spawn(.{}, Capture.run, .{cap});
+    const f1 = try rig.driver.begin(&r1);
+    t.join();
+    var r2 = request(92);
+    r2.capture = cap;
+    try testing.expectError(error.GpuNativeCaptureStreamInFlight, rig.driver.begin(&r2));
+    world.reset();
+    const f2 = try rig.driver.begin(&request(93));
+    var o1 = try rig.driver.finish(f1);
+    defer o1.deinit();
+    var o2 = try rig.driver.finish(f2);
+    defer o2.deinit();
+    // Each receipt counts its own request's peer traffic (9 slots each),
+    // although request 93 began before request 91 finished.
+    try testing.expectEqual(@as(u64, 9), o1.receipt.peer_publishes);
+    try testing.expectEqual(@as(u64, 9), o2.receipt.peer_publishes);
 }

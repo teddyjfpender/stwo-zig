@@ -12,7 +12,12 @@
 //!   host plan (µs): classes -> DAG + placement (driver_dag.zig) -> slab layout
 //!   (gpu_native.RequestLayout) -> per-GPU batches of factory jobs;
 //!   preamble per GPU: header/directory h2d from the pinned mirror, status
-//!   words := unset, exchange := 0 (device fills), start event;
+//!   words := unset, encoded lengths := 0 (device fills), start event. The
+//!   exchange replica is NOT zeroed per request: a consumer GPU's fill is
+//!   not ordered against a producer GPU's peer copy (with two requests in
+//!   flight the fill runs after the consumer's previous request and would
+//!   erase slots that already landed). Flags carry the request's
+//!   Exchange.flagTag instead; install zeroes every slab once;
 //!   every job enqueued back to back with device-side dependencies
 //!   (cross-GPU done events; peer slots through driver_peer.zig); Stage1(seg)
 //!   released by the capture stream as each segment seals;
@@ -159,10 +164,12 @@ pub const Driver = struct {
             a.free(self.lanes);
         }
         for (self.lanes, workers) |*l, w| l.* = .{ .worker = w };
-        // 1. classes (install time only)
+        // 1. classes (install time only). Sealed after the `installed` hooks
+        // below: graphs that bake arena addresses are captured only once the
+        // plan arena exists (warm runs on the worker's pre-plan arena, which
+        // installPlanArena frees).
         try native.vtable.warm(native.ctx, &self.classes);
         try recursion.vtable.warm(recursion.ctx, &self.classes);
-        self.classes.seal();
         // 2. peer access + per-GPU resources on each worker thread
         var ordinals: [G.max_devices]u32 = undefined;
         for (workers, 0..) |w, d| {
@@ -185,6 +192,15 @@ pub const Driver = struct {
             try l.worker.call(.{ .ctx = &setup, .run = Setup.run });
             made += 1;
         }
+        // 3. per-class captures over the installed plan, then seal.
+        var info = G.Installed{ .devices = @intCast(workers.len) };
+        for (self.lanes, 0..) |l, d| {
+            info.main_resident[d] = l.main;
+            info.arena_epochs[d] = l.worker.planPhaseEpochs();
+        }
+        if (native.vtable.installed) |hook| try hook(native.ctx, &self.classes, &info);
+        if (recursion.vtable.installed) |hook| try hook(recursion.ctx, &self.classes, &info);
+        self.classes.seal();
         self.installed = true;
         return self;
     }
@@ -247,6 +263,12 @@ pub const Driver = struct {
             self.peer.streams[s.device] = w.execStream();
             for (self.peer.events[s.device]) |*e| try O.check(wt.event_create(e));
             // lint:install-end
+            // Both slab parities zeroed once, and waited here (install, not a
+            // request): no flag word ever holds cudaMalloc garbage, and no
+            // peer copy of a first request can race this fill.
+            try O.check(self.peer_ops.fill_u32(slab.?, 0, 2 * half, w.execStream()));
+            try O.check(ex.event_record(l.done_event[0].?, w.execStream()));
+            _ = try w.requestWait(l.done_event[0].?);
         }
     };
 
@@ -295,6 +317,10 @@ pub const Driver = struct {
         if (!self.installed) return error.GpuNativeDriverNotInstalled;
         const parity: u1 = @truncate(self.generation);
         if (self.in_flight[parity] != null) return error.GpuNativePipelineFull;
+        // A capture stream belongs to one in-flight request: its gates, ctx
+        // attachment and ring buffers are per request (the service rotates
+        // one stream per parity).
+        if (req.capture) |cap| if (self.in_flight[parity ^ 1]) |other| if (other.req.capture == cap) return error.GpuNativeCaptureStreamInFlight;
         self.generation += 1;
         const f = try self.a.create(InFlight);
         errdefer self.a.destroy(f);
@@ -305,6 +331,11 @@ pub const Driver = struct {
         try f.plan();
         try f.make();
         f.run() catch |err| {
+            // Error path only: whatever this request enqueued (job kernels,
+            // peer copies into other GPUs' slabs, mirror D2Hs, capture host
+            // fns) completes BEFORE the jobs abort (an abort may free memory
+            // that enqueued work still reads) and before this parity is reused.
+            f.quiesce();
             f.abortAll();
             return err;
         };
@@ -535,6 +566,10 @@ pub const InFlight = struct {
             self.receipt.device_enqueue_ns[d] = b.enqueue_ns;
             self.receipt.device_gate_ns[d] = b.gate_wait_ns;
         }
+        // Snapshot now: the next request's begin resets the peer counters
+        // before this request's finish runs.
+        self.receipt.peer_publishes = drv.peer.publishes.load(.monotonic);
+        self.receipt.peer_copies = drv.peer.peer_copies.load(.monotonic);
         // A batch whose preamble/tail failed cannot be trusted to have
         // recorded its completion: the final event may never fire. Fail
         // closed before the wait (jobs already enqueued complete on the
@@ -554,9 +589,10 @@ pub const InFlight = struct {
         // Header + directory: host-written prefix (class geometry), one h2d.
         try sl.prefix(l.mirror[f.parity], f.req.id);
         try O.check(drv.ops.exec.copy_async(slab.ptr, l.mirror[f.parity].ptr, sl.status_offset * 4, @intFromEnum(O.CopyKind.h2d), stream));
-        // Status words unset (a check that never runs rejects); exchange zero.
+        // Status words unset (a check that never runs rejects). The exchange
+        // is left alone: other GPUs peer-copy into it with no order against
+        // this stream; flag tags make stale words harmless (gpu_native.Exchange).
         try O.check(drv.peer_ops.fill_u32(slab.ptr + sl.status_offset, G.Verdict.unset, sl.status_words, stream));
-        try O.check(drv.peer_ops.fill_u32(slab.ptr + sl.exchange_offset, 0, sl.exchange_words, stream));
         // Every encoded length word := 0 (an encoder that never runs publishes nothing).
         for (sl.entries) |e| try O.check(drv.peer_ops.fill_u32(slab.ptr + e.encoded_offset, 0, 1, stream));
     }
@@ -581,7 +617,7 @@ pub const InFlight = struct {
             // Check.exchange_complete over this replica's flag words.
             const flags = slab.ptr + sl.exchange_offset + (f.exchange.words() - f.exchange.flagWords());
             const word = try sl.statusWord(.{ .kind = .request, .ordinal = 0 }, .exchange_complete);
-            try O.check(drv.peer_ops.flags_verdict(flags, @intCast(f.exchange.flagWords()), slab.ptr + word, G.Verdict.reject(.exchange_complete, 1), stream));
+            try O.check(drv.peer_ops.flags_verdict(flags, @intCast(f.exchange.flagWords()), G.Exchange.flagTag(f.generation), slab.ptr + word, G.Verdict.reject(.exchange_complete, 1), stream));
         }
         try O.check(drv.ops.exec.copy_async(l.mirror[f.parity].ptr, slab.ptr, sl.words * 4, @intFromEnum(O.CopyKind.d2h), stream));
         try O.check(drv.ops.exec.event_record(l.end_event[f.parity].?, stream));
@@ -589,9 +625,8 @@ pub const InFlight = struct {
         if (h.device != final) f.tail_done[h.device].set();
     }
 
-    /// A request that failed before its single wait: abort every job (no
-    /// device wait: whatever was enqueued completes in stream order before
-    /// the next request's work on the same streams).
+    /// A request that failed before its single wait: abort every job. The
+    /// caller quiesced the devices first.
     fn abortAll(self: *InFlight) void {
         const Fin = struct {
             batch: *W.Batch,
@@ -603,6 +638,25 @@ pub const InFlight = struct {
         for (self.driver.lanes, self.batches) |l, *b| {
             var fin = Fin{ .batch = b };
             l.worker.call(.{ .ctx = &fin, .run = Fin.run }) catch {};
+        }
+    }
+
+    /// Error path of `begin` only (never a successful request): one
+    /// device wait per GPU on a fresh record of its exec stream.
+    fn quiesce(self: *InFlight) void {
+        const Q = struct {
+            f: *InFlight,
+            device: usize,
+            fn run(raw: *anyopaque, w: *W.Worker) anyerror!void {
+                const q: *@This() = @ptrCast(@alignCast(raw));
+                const ev = q.f.driver.lanes[q.device].done_event[q.f.parity].?;
+                try O.check(q.f.driver.ops.exec.event_record(ev, w.execStream()));
+                _ = try w.requestWait(ev);
+            }
+        };
+        for (self.driver.lanes, 0..) |l, d| {
+            var q = Q{ .f = self, .device = d };
+            l.worker.call(.{ .ctx = &q, .run = Q.run }) catch |err| std.log.err("M8 GPU-native quiesce of device {d} failed: {s}", .{ d, @errorName(err) });
         }
     }
 
@@ -625,11 +679,17 @@ pub const InFlight = struct {
                 w.finishBatch(s.batch, s.ok);
             }
         };
+        // Every lane's phase 3 runs even if one lane's call fails, so no job
+        // is left neither finished nor aborted.
+        var call_err: ?anyerror = null;
         for (drv.lanes, self.batches) |l, *b| {
             var fin = Fin{ .batch = b, .ok = device_ok };
-            try l.worker.call(.{ .ctx = &fin, .run = Fin.run });
+            l.worker.call(.{ .ctx = &fin, .run = Fin.run }) catch |err| {
+                call_err = call_err orelse err;
+            };
         }
         self.receipt.finish_ns = timer.read();
+        if (call_err) |err| return err;
         if (!device_ok) return error.CudaDeviceFault;
         for (self.batches) |b| for (b.jobs) |bj| try bj.result;
         for (drv.lanes, 0..) |l, d| {
@@ -639,8 +699,6 @@ pub const InFlight = struct {
             self.receipt.h2d += 1;
             self.receipt.d2h_bytes += self.receipt.slab_words[d] * 4;
         }
-        self.receipt.peer_publishes = drv.peer.publishes.load(.monotonic);
-        self.receipt.peer_copies = drv.peer.peer_copies.load(.monotonic);
         // ---- publication: status words + slicing (host's only per-request computation) ----
         timer.reset();
         const mirrors = try self.alloc().alloc([]const u32, drv.lanes.len);

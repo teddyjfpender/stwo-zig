@@ -346,10 +346,10 @@ fn fillU32(dst: [*]u32, value: u32, words: usize, _: *anyopaque) callconv(.c) c_
     bump("kernels", 1);
     return 0;
 }
-fn flagsVerdict(flags: [*]const u32, count: u32, verdict: [*]u32, reject_code: u32, _: *anyopaque) callconv(.c) c_int {
+fn flagsVerdict(flags: [*]const u32, count: u32, expected: u32, verdict: [*]u32, reject_code: u32, _: *anyopaque) callconv(.c) c_int {
     bump("verdicts", 1);
     bump("kernels", 1);
-    for (flags[0..count], 0..) |f, i| if (f != 1) {
+    for (flags[0..count], 0..) |f, i| if (f != expected) {
         verdict[0] = (reject_code & 0xffff0000) | @as(u32, @intCast(@min(i + 1, 0xffff)));
         return 0;
     };

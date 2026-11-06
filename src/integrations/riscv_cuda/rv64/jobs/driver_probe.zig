@@ -96,7 +96,7 @@ pub const Probe = struct {
                     const flags = rep + (ex.words() - ex.flagWords());
                     const n: u32 = @intCast(2 * ex.segments + ex.devices);
                     const word = try sl.statusWord(.{ .kind = .request, .ordinal = 0 }, .global_seal);
-                    try O.check(p.peer.flags_verdict(flags, n, seg.ptr + word, G.Verdict.reject(.global_seal, 1), s));
+                    try O.check(p.peer.flags_verdict(flags, n, G.Exchange.flagTag(self.ctx.generation), seg.ptr + word, G.Verdict.reject(.global_seal, 1), s));
                     const slot = ex.seal();
                     try O.check(p.peer.fill_u32(rep + slot.offset, 0x5ea1, slot.words, s));
                     try self.ctx.peer.publish(self.device, slot);
@@ -107,7 +107,7 @@ pub const Probe = struct {
                     const id = G.ProofId{ .kind = .native_segment, .ordinal = self.ordinal };
                     // Device check: the seal (other GPU or this one) landed before us.
                     const word = try sl.statusWord(id, .oods_constraint);
-                    try O.check(p.peer.flags_verdict(rep + slot.flag, 1, seg.ptr + word, G.Verdict.reject(.oods_constraint, 1), s));
+                    try O.check(p.peer.flags_verdict(rep + slot.flag, 1, G.Exchange.flagTag(self.ctx.generation), seg.ptr + word, G.Verdict.reject(.oods_constraint, 1), s));
                     try self.accept(e, id, &.{ .channel_order, .global_status, .composition_accept, .public_claims, .pcs_status });
                     try self.encode(e, id);
                 },

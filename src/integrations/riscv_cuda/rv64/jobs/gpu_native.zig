@@ -314,8 +314,19 @@ pub const RequestLayout = struct {
 ///   seal     one 16-word channel checkpoint after the global seal (written
 ///            by the seal device, peer-copied to the others)
 /// Every slot has one "written" flag word (set by the producer's copy, checked
-/// by `Check.exchange_complete`).
+/// by `Check.exchange_complete`). The flag value is the request's
+/// `flagTag(generation)`, not a constant: replicas are never zeroed per
+/// request (a consumer GPU's zero fill is not ordered against a producer
+/// GPU's peer copy, so it could erase a slot that already landed), and a
+/// stale flag of an earlier request in the same slab parity carries another
+/// tag, so it can never satisfy this request's check.
 pub const Exchange = struct {
+    /// Flag value of request `generation`: never 0 (install zeroes the slabs)
+    /// nor `Verdict.unset`; repeats only after 2^32 - 2 requests.
+    pub fn flagTag(generation: u64) u32 {
+        return @as(u32, @intCast(generation % 0xffff_fffe)) + 1;
+    }
+
     segments: u32,
     claims_per_segment: u32,
     devices: u32,
@@ -401,7 +412,9 @@ pub const ClassEntry = struct {
     /// Proof spec constants the driver plans the slab from.
     max_encoded_bytes: usize = 0,
     extra_checks: []const Check = &.{},
-    /// Captured whole-job CUDA graph executable per GPU (opaque; null = direct enqueue).
+    /// Captured whole-job CUDA graph executable per GPU (opaque; null = direct
+    /// enqueue). A graph that bakes arena or main_resident addresses is
+    /// captured in the factory's `installed` hook, never in `warm`.
     graph: [max_devices]?*anyopaque = @splat(null),
     /// Native segment classes: MAIN words kept resident witness -> PCS (the
     /// driver carves them from the main_resident region; 0 = none).
@@ -614,6 +627,19 @@ pub const RequestContext = struct {
     generation: u64 = 0,
 };
 
+/// Handed to the factories' `installed` hook. `warm` runs BEFORE the plan
+/// exists (the plan is sized from the warmed classes), and installing the
+/// plan frees the worker's previous arena: a graph captured in `warm` that
+/// bakes arena addresses would dangle. Such graphs are captured in
+/// `installed` instead (the class cache is sealed only after it). Per device:
+/// the main_resident region and the worker's arena epoch of plan phase A and
+/// phase B (stable for the service's life; key graph executables on them).
+pub const Installed = struct {
+    devices: u32,
+    main_resident: [max_devices]api.DeviceBuffer = undefined,
+    arena_epochs: [max_devices][2]u64 = @splat(.{ 0, 0 }),
+};
+
 /// Stream native implements this (jobs/native_device.zig).
 pub const NativeFactory = struct {
     ctx: *anyopaque,
@@ -621,6 +647,9 @@ pub const NativeFactory = struct {
     pub const VTable = struct {
         /// Install time: warm every class of the manifest's class mix.
         warm: *const fn (*anyopaque, *ClassCache) anyerror!void,
+        /// Install time, after the memory plan is installed (see `Installed`):
+        /// capture every graph that bakes arena / main_resident addresses.
+        installed: ?*const fn (*anyopaque, *ClassCache, *const Installed) anyerror!void = null,
         /// Class of a native segment (from capture geometry).
         class_of: *const fn (*anyopaque, segment: u32, rows: u64) anyerror!ClassKey,
         /// Stage 1 (witness from trace chunks, FIXED adoption, MAIN commit into
@@ -643,6 +672,8 @@ pub const RecursionFactory = struct {
     vtable: *const VTable,
     pub const VTable = struct {
         warm: *const fn (*anyopaque, *ClassCache) anyerror!void,
+        /// See NativeFactory.VTable.installed.
+        installed: ?*const fn (*anyopaque, *ClassCache, *const Installed) anyerror!void = null,
         class_of: *const fn (*anyopaque, ProofId) anyerror!ClassKey,
         truth: *const fn (*anyopaque, *const RequestContext, ordinal: u32, device: u32) anyerror!api.Job,
         /// Leaf/fold/root node: reads its children's encoded regions (device,

@@ -1,7 +1,9 @@
 //! `gpu_native.PeerExchange` over cudaMemcpyPeerAsync + cross-GPU events
 //! (rv64-m8-gpu-native.md §3.6; addon NAT/rv64/jobs/peer_ops.cu).
 //!
-//!   publish(src, slot)       on src's exec stream: flag := 1 locally, then for
+//!   publish(src, slot)       on src's exec stream: flag := flagTag(generation)
+//!                            locally (never a constant: replicas are not
+//!                            zeroed per request, see gpu_native.Exchange), then for
 //!                            every other GPU peer-copy the slot words and the
 //!                            flag word into its replica, then record the
 //!                            slot's event. Called from the producer job's
@@ -93,7 +95,7 @@ pub const Peer = struct {
         const stream = self.streams[src] orelse return error.GpuNativePeerNotInstalled;
         const event = self.events[src][idx] orelse return error.GpuNativePeerNotInstalled;
         const from = self.replicas[src] orelse return error.GpuNativePeerNotInstalled;
-        try O.check(self.peer.fill_u32(from + slot.flag, 1, 1, stream));
+        try O.check(self.peer.fill_u32(from + slot.flag, G.Exchange.flagTag(self.generation), 1, stream));
         for (0..self.devices) |d| {
             if (d == src) continue;
             const to = self.replicas[d] orelse return error.GpuNativePeerNotInstalled;

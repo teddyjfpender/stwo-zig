@@ -115,7 +115,9 @@ pub const Peer = struct {
     peer_enable: *const fn ([*]const u32, u32, *u32) callconv(.c) c_int,
     peer_copy_async: *const fn (*anyopaque, u32, *const anyopaque, u32, usize, *anyopaque) callconv(.c) c_int,
     fill_u32: *const fn ([*]u32, u32, usize, *anyopaque) callconv(.c) c_int,
-    flags_verdict: *const fn ([*]const u32, u32, [*]u32, u32, *anyopaque) callconv(.c) c_int,
+    /// (flags, count, expected, verdict, reject_code, stream): accepted iff
+    /// every flag == expected (the request's Exchange.flagTag).
+    flags_verdict: *const fn ([*]const u32, u32, u32, [*]u32, u32, *anyopaque) callconv(.c) c_int,
     event_create_timed: *const fn (*?*anyopaque) callconv(.c) c_int,
     event_elapsed_us: *const fn (*anyopaque, *anyopaque, *u64) callconv(.c) c_int,
 
@@ -124,7 +126,7 @@ pub const Peer = struct {
             .peer_enable = try sym(addon, @FieldType(Peer, "peer_enable"), "stwo_rv64_jobs_peer_enable"),
             .peer_copy_async = try sym(addon, @FieldType(Peer, "peer_copy_async"), "stwo_rv64_jobs_peer_copy_async"),
             .fill_u32 = try sym(addon, @FieldType(Peer, "fill_u32"), "stwo_rv64_jobs_fill_u32"),
-            .flags_verdict = try sym(addon, @FieldType(Peer, "flags_verdict"), "stwo_rv64_jobs_flags_verdict"),
+            .flags_verdict = try sym(addon, @FieldType(Peer, "flags_verdict"), "stwo_rv64_jobs_flags_verdict_tag"),
             .event_create_timed = try sym(addon, @FieldType(Peer, "event_create_timed"), "stwo_rv64_jobs_event_create_timed"),
             .event_elapsed_us = try sym(addon, @FieldType(Peer, "event_elapsed_us"), "stwo_rv64_jobs_event_elapsed_us"),
         };
