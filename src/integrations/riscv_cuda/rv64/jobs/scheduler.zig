@@ -18,6 +18,15 @@
 //! receives a job only while `Worker.accepts()` (its 3-stage pipeline has a
 //! free slot), so each worker holds one finishing, one enqueued and one
 //! staged job at most.
+//!
+//! Preparation off the scheduler thread (Options.prep_threads > 0, default 0 =
+//! today's synchronous make): a ready node's `Factory.make` (host pre-stage:
+//! tape/plan/witness preparation) runs on a small prep pool, highest priority
+//! first, while the scheduler keeps placing already-made jobs and consuming
+//! completions. One proof per GPU stays the worker's: one enqueued, the next
+//! one's inputs staging (Airbender 3-stage pipeline, top/bottom placement);
+//! async make keeps that next input ready instead of serializing host prep
+//! behind the scheduler loop. `make` must then be thread-safe.
 const std = @import("std");
 const api = @import("api.zig");
 const W = @import("worker.zig");
@@ -34,7 +43,12 @@ pub const Factory = struct {
     host: ?*const fn (*anyopaque, Kind, u32) anyerror!void = null,
 };
 
-pub const State = enum { waiting, ready, running, done, failed };
+pub const State = enum { waiting, preparing, ready, running, done, failed };
+
+pub const Options = struct {
+    /// Threads running Factory.make off the scheduler thread (0 = synchronous).
+    prep_threads: usize = 0,
+};
 
 pub const Node = struct {
     kind: Kind,
@@ -148,16 +162,83 @@ pub const Scheduler = struct {
     affinity_hits: u64 = 0,
     /// Dispatches where no accepting worker fit the job by footprint (it serialized).
     unfit_dispatches: u64 = 0,
+    options: Options = .{},
+    // async preparation (under `mutex`)
+    prep_queue: std.ArrayListUnmanaged(u32) = .empty,
+    prepared: std.ArrayListUnmanaged(Prepared) = .empty,
+    prep_cond: std.Thread.Condition = .{},
+    prep_stop: bool = false,
+    /// Nodes in `.preparing` (queued or in make, or made and not yet consumed).
+    preparing: usize = 0,
+    /// Total ns spent in Factory.make (all prep threads) and by the scheduler thread.
+    make_ns: u64 = 0,
+    max_preparing: usize = 0,
 
     const Finished = struct { id: u32, completion: api.Completion };
+    const Prepared = struct { id: u32, result: anyerror!api.Job };
 
     pub fn init(a: std.mem.Allocator, graph: *Graph, factory: Factory, workers: []const *W.Worker) !Scheduler {
+        return initWith(a, graph, factory, workers, .{});
+    }
+    pub fn initWith(a: std.mem.Allocator, graph: *Graph, factory: Factory, workers: []const *W.Worker, options: Options) !Scheduler {
         if (workers.len == 0 or workers.len > 8) return error.InvalidWorkerSet;
-        return .{ .a = a, .graph = graph, .factory = factory, .workers = workers, .remaining = graph.nodes.items.len };
+        if (options.prep_threads > 8) return error.InvalidPrepThreads;
+        return .{ .a = a, .graph = graph, .factory = factory, .workers = workers, .remaining = graph.nodes.items.len, .options = options };
     }
     pub fn deinit(self: *Scheduler) void {
         self.completions.deinit(self.a);
         self.releases.deinit(self.a);
+        self.prep_queue.deinit(self.a);
+        self.prepared.deinit(self.a);
+    }
+
+    fn prepLoop(self: *Scheduler) void {
+        while (true) {
+            self.mutex.lock();
+            while (self.prep_queue.items.len == 0 and !self.prep_stop) self.prep_cond.wait(&self.mutex);
+            if (self.prep_stop) {
+                self.mutex.unlock();
+                return;
+            }
+            // Highest priority first (lower id on ties): the root chain's inputs are ready first.
+            var pick: usize = 0;
+            const nodes = self.graph.nodes.items;
+            for (self.prep_queue.items, 0..) |id, i| {
+                const b = self.prep_queue.items[pick];
+                if (better(nodes[id], nodes[b], id, b)) pick = i;
+            }
+            const id = self.prep_queue.orderedRemove(pick);
+            const n = nodes[id];
+            self.mutex.unlock();
+            var timer = std.time.Timer.start() catch unreachable;
+            const result = self.factory.make(self.factory.ctx, n.kind, n.index);
+            const ns = timer.read();
+            self.mutex.lock();
+            self.make_ns += ns;
+            self.prepared.append(self.a, .{ .id = id, .result = result }) catch {
+                if (result) |j| j.vtable.abort(j.ctx) else |_| {}
+                self.async_failure = self.async_failure orelse error.OutOfMemory;
+                self.preparing -= 1;
+                self.graph.nodes.items[id].state = .failed;
+            };
+            self.cond.signal();
+            self.mutex.unlock();
+        }
+    }
+
+    /// Scheduler thread: made jobs become ready (or latch the make failure).
+    fn takePrepared(self: *Scheduler, list: []const Prepared) void {
+        for (list) |p| {
+            const n = &self.graph.nodes.items[p.id];
+            if (p.result) |job| {
+                n.job = job;
+                n.key = job.classKey();
+                n.state = .ready;
+            } else |err| {
+                self.failure = self.failure orelse err;
+                n.state = .failed;
+            }
+        }
     }
 
     /// Capture hands a native segment over (any thread).
@@ -192,7 +273,19 @@ pub const Scheduler = struct {
     fn promote(self: *Scheduler) !void {
         for (self.graph.nodes.items, 0..) |*n, id| {
             if (n.state != .waiting or !n.released or !self.depsDone(@intCast(id))) continue;
+            if (n.kind != .seal and self.options.prep_threads != 0) {
+                self.mutex.lock();
+                defer self.mutex.unlock();
+                try self.prep_queue.append(self.a, @intCast(id));
+                self.preparing += 1;
+                self.max_preparing = @max(self.max_preparing, self.preparing);
+                n.state = .preparing;
+                self.prep_cond.signal();
+                continue;
+            }
             if (n.kind != .seal) {
+                var timer = std.time.Timer.start() catch unreachable;
+                defer self.make_ns += timer.read();
                 n.job = self.factory.make(self.factory.ctx, n.kind, n.index) catch |err| {
                     // Never return while jobs are in flight: latch and drain.
                     self.failure = self.failure orelse err;
@@ -304,16 +397,39 @@ pub const Scheduler = struct {
     /// Run the whole request. Returns the first failure after every
     /// dispatched job has completed (no job memory is abandoned in flight).
     pub fn run(self: *Scheduler) !void {
+        var threads: [8]?std.Thread = @splat(null);
+        defer {
+            self.mutex.lock();
+            self.prep_stop = true;
+            self.prep_cond.broadcast();
+            self.mutex.unlock();
+            for (&threads) |*t| if (t.*) |th| {
+                th.join();
+                t.* = null;
+            };
+            // Made but never consumed (request failed): no job is leaked.
+            for (self.prepared.items) |p| if (p.result) |j| j.vtable.abort(j.ctx) else |_| {};
+            self.prepared.clearRetainingCapacity();
+        }
+        for (threads[0..self.options.prep_threads]) |*t| t.* = try std.Thread.spawn(.{}, prepLoop, .{self});
         while (true) {
             self.mutex.lock();
+            const made = self.a.dupe(Prepared, self.prepared.items) catch |err| {
+                self.mutex.unlock();
+                return err;
+            };
+            self.preparing -= made.len;
+            self.prepared.clearRetainingCapacity();
             const finished = try self.a.dupe(Finished, self.completions.items);
             self.completions.clearRetainingCapacity();
             const released = try self.a.dupe(u32, self.releases.items);
             self.releases.clearRetainingCapacity();
             const failed_async = self.async_failure;
             self.mutex.unlock();
+            defer self.a.free(made);
             defer self.a.free(finished);
             defer self.a.free(released);
+            self.takePrepared(made);
             for (released) |id| {
                 if (id >= self.graph.nodes.items.len) return error.InvalidRelease;
                 self.graph.nodes.items[id].released = true;
@@ -321,10 +437,11 @@ pub const Scheduler = struct {
             for (finished) |f| self.finishNode(f);
             if (failed_async) |err| self.failure = self.failure orelse err;
             if (self.failure) |err| {
-                if (self.running == 0) {
+                if (self.running == 0 and self.preparingNow() == 0) {
                     self.abandonReady();
                     return err;
                 }
+                if (self.running == 0) self.dropQueuedPreps();
             } else {
                 if (self.remaining == 0) return;
                 try self.promote();
@@ -348,10 +465,25 @@ pub const Scheduler = struct {
                 if (self.remaining == 0) return;
             }
             self.mutex.lock();
-            if (self.completions.items.len == 0 and self.releases.items.len == 0)
+            if (self.completions.items.len == 0 and self.releases.items.len == 0 and self.prepared.items.len == 0)
                 self.cond.timedWait(&self.mutex, 200 * std.time.ns_per_us) catch {};
             self.mutex.unlock();
         }
+    }
+
+    fn preparingNow(self: *Scheduler) usize {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.preparing;
+    }
+
+    /// After a failure: queued (not started) preparations never run.
+    fn dropQueuedPreps(self: *Scheduler) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        for (self.prep_queue.items) |id| self.graph.nodes.items[id].state = .failed;
+        self.preparing -= self.prep_queue.items.len;
+        self.prep_queue.clearRetainingCapacity();
     }
 };
 

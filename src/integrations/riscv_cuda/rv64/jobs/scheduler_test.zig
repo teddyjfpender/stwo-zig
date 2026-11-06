@@ -60,8 +60,14 @@ const Fac = struct {
     make_fail_kind: ?S.Kind = null,
     staged: usize = 0,
     work: usize = 0,
+    /// Async-prep tests: make is called from prep threads; model slow host prep.
+    mutex: std.Thread.Mutex = .{},
+    make_sleep_us: u64 = 0,
     fn make(raw: *anyopaque, kind: S.Kind, index: u32) anyerror!api.Job {
         const self: *Fac = @ptrCast(@alignCast(raw));
+        if (self.make_sleep_us != 0) std.Thread.sleep(self.make_sleep_us * std.time.ns_per_us);
+        self.mutex.lock();
+        defer self.mutex.unlock();
         if (self.make_fail_kind == kind) return error.InjectedMakeFailure;
         self.trace.add(kind, index, 'm');
         const t = try std.testing.allocator.create(Tiny);
@@ -256,4 +262,83 @@ test "placement by footprint: a request whose classes cannot overlap pairwise co
         for (stats) |e| over += e.stat.over_plan;
     }
     try std.testing.expectEqual(@as(u64, 0), over);
+}
+
+test "async prep: the request DAG completes with make on a prep pool, dependency order intact" {
+    fake.reset();
+    var ws: [2]*W.Worker = undefined;
+    try workers(&ws);
+    defer for (ws) |w| w.destroy();
+    var g = S.Graph{ .a = std.testing.allocator };
+    defer g.deinit();
+    const plan = try Dag.Plan.initArity(6, 2);
+    var fac = Fac{ .make_sleep_us = 300 };
+    defer fac.deinit();
+    var r = try S.buildRequest(&g, .{ .segments = 4, .truths = 1 }, &plan, undefined, leafDeps);
+    defer r.deinit(std.testing.allocator);
+    var s = try S.Scheduler.initWith(std.testing.allocator, &g, fac.factory(), &ws, .{ .prep_threads = 3 });
+    defer s.deinit();
+    const t = try std.Thread.spawn(.{}, Releaser.run, .{ &s, r.stage1 });
+    try s.run();
+    t.join();
+    const tr = &fac.trace;
+    for (0..4) |i| try std.testing.expect(tr.at(.seal, 0, 'h') < tr.at(.native_stage2, @intCast(i), 'm'));
+    for (0..plan.count) |node| {
+        const n = plan.nodes[node];
+        const id: u32 = @intCast(node);
+        if (n.isLeaf()) {
+            try std.testing.expect(tr.at(.native_stage2, @intCast(n.first_leaf % 4), 'd') < tr.at(.leaf, id, 'm'));
+            try std.testing.expect(tr.at(.leaf, id, 'd') != std.math.maxInt(usize));
+        } else for (n.kids()) |kid| {
+            const kk: S.Kind = if (plan.nodes[kid].isLeaf()) .leaf else .fold;
+            try std.testing.expect(tr.at(kk, @intCast(kid), 'd') < tr.at(.fold, id, 'm'));
+        }
+    }
+    try std.testing.expectEqual(@as(usize, 4 + 4 + 1 + plan.count), s.dispatched);
+    try std.testing.expectEqual(s.dispatched, fake.counters.host_waits);
+    try std.testing.expectEqual(@as(usize, 0), s.preparing);
+    // Several makes were in flight at once (stage-2 x4 + truth after the seal).
+    try std.testing.expect(s.max_preparing > 1);
+}
+
+test "async prep: a make failure drains in-flight preparations and jobs; nothing leaks" {
+    fake.reset();
+    var ws: [2]*W.Worker = undefined;
+    try workers(&ws);
+    defer for (ws) |w| w.destroy();
+    var g = S.Graph{ .a = std.testing.allocator };
+    defer g.deinit();
+    const plan = try Dag.Plan.initArity(4, 2);
+    var fac = Fac{ .make_fail_kind = .truth, .make_sleep_us = 200 };
+    defer fac.deinit();
+    var r = try S.buildRequest(&g, .{ .segments = 3, .truths = 1 }, &plan, undefined, leafDeps);
+    defer r.deinit(std.testing.allocator);
+    for (r.stage1) |id| g.nodes.items[id].released = true;
+    var s = try S.Scheduler.initWith(std.testing.allocator, &g, fac.factory(), &ws, .{ .prep_threads = 2 });
+    defer s.deinit();
+    try std.testing.expectError(error.InjectedMakeFailure, s.run());
+    try std.testing.expectEqual(@as(usize, 0), s.running);
+    try std.testing.expectEqual(@as(usize, 0), s.preparing);
+    for (ws) |w| try std.testing.expectEqual(@as(usize, 0), w.load());
+    try std.testing.expectEqual(std.math.maxInt(usize), fac.trace.at(.leaf, 0, 'm'));
+}
+
+test "async prep: an enqueue failure with prep threads returns after everything drained" {
+    fake.reset();
+    var ws: [1]*W.Worker = undefined;
+    try workers(&ws);
+    defer ws[0].destroy();
+    var g = S.Graph{ .a = std.testing.allocator };
+    defer g.deinit();
+    const plan = try Dag.Plan.initArity(2, 2);
+    var fac = Fac{ .fail_kind = .native_stage2 };
+    defer fac.deinit();
+    var r = try S.buildRequest(&g, .{ .segments = 2, .truths = 1 }, &plan, undefined, leafDeps);
+    defer r.deinit(std.testing.allocator);
+    for (r.stage1) |id| g.nodes.items[id].released = true;
+    var s = try S.Scheduler.initWith(std.testing.allocator, &g, fac.factory(), &ws, .{ .prep_threads = 2 });
+    defer s.deinit();
+    try std.testing.expectError(error.InjectedEnqueueFailure, s.run());
+    try std.testing.expectEqual(@as(usize, 0), s.running);
+    try std.testing.expectEqual(@as(usize, 0), s.preparing);
 }
