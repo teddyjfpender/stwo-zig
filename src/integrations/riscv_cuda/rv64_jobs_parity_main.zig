@@ -7,6 +7,12 @@
 //!
 //!   STWO_RV64_GPU_LIBRARY=<base .so> STWO_RV64_M8_JOBS_LIBRARY=<addon .so> \
 //!   rv64-jobs-channel-parity [devices=0,1] [rounds=4]
+//!
+//! `rv64-jobs-channel-parity pipeline <device> <jobs> <upload_mib> <pow_bits>`
+//! measures the worker pipeline itself: each job stages `upload_mib` of inputs
+//! (h2d stream) and enqueues a device PoW grind (exec stream). Run once with the
+//! 3-stage pipeline (depth 3) and once serialized (depth 1: the next job is only
+//! submitted after the previous finished), wall clock per arm.
 const std = @import("std");
 const Raw = @import("stwo_core").channel.raw_mod_m31;
 const api = @import("rv64/jobs/api.zig");
@@ -62,12 +68,94 @@ fn recordedScript(a: std.mem.Allocator, rec: *P.Recorder) !P.Script {
     return rec.script();
 }
 
+const Load = struct {
+    upload_words: usize,
+    bits: u32,
+    seed: api.DeviceBuffer = undefined,
+    nonce: [2]u32 = .{ 0, 0 },
+    pub fn classKey(_: *Load) [32]u8 {
+        return @splat(0x4c);
+    }
+    pub fn footprint(self: *Load) api.Footprint {
+        return .{ .device_words = self.upload_words + 4096, .staged_words = self.upload_words + 64, .slab_words = 16, .pinned_words = self.upload_words + 64 };
+    }
+    pub fn stage(self: *Load, s: *api.Stager) !void {
+        const host = try s.pinned(self.upload_words);
+        @memset(host, 0x1234_5678);
+        host[8] = 0; // seed draws
+        const b = try s.alloc(self.upload_words);
+        try s.upload(b, host);
+        self.seed = try b.slice(0, 9);
+    }
+    pub fn enqueue(self: *Load, e: *api.Enqueue) !void {
+        try e.channel.initFromCheckpoint(self.seed);
+        try e.channel.pow(self.bits, try e.slab.device.slice(0, 16));
+    }
+    pub fn finish(self: *Load, v: api.SlabView) !void {
+        self.nonce = v.words[10..12].*;
+    }
+    pub fn abort(_: *Load) void {}
+};
+
+fn pipeline(a: std.mem.Allocator, libs: *O.Libraries, device: u32, count: usize, upload_mib: usize, bits: u32) !void {
+    const words = upload_mib << 18;
+    const loads = try a.alloc(Load, count);
+    defer a.free(loads);
+    var results: [2]u64 = undefined;
+    var host_waits: [2]u64 = .{ 0, 0 };
+    for ([_]usize{ 3, 1 }, 0..) |depth, arm| {
+        const w = try W.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = std.mem.alignForward(usize, 2 * words + (1 << 16), 64), .pinned_slot_words = words + 4096, .max_outstanding = depth });
+        defer w.destroy();
+        var done = Done{ .a = a };
+        defer done.receipts.deinit(a);
+        for (loads) |*l| l.* = .{ .upload_words = words, .bits = bits };
+        // warm-up job (context, arena, pinned pages)
+        var warm = Load{ .upload_words = words, .bits = 8 };
+        try w.submit(api.Job.from(Load, &warm), done.sink());
+        while (w.load() != 0) std.Thread.sleep(50 * std.time.ns_per_us);
+        var timer = try std.time.Timer.start();
+        for (loads) |*l| while (true) {
+            w.submit(api.Job.from(Load, l), done.sink()) catch |err| switch (err) {
+                error.WorkerBusy => {
+                    std.Thread.sleep(20 * std.time.ns_per_us);
+                    continue;
+                },
+                else => return err,
+            };
+            break;
+        };
+        while (w.load() != 0) std.Thread.sleep(20 * std.time.ns_per_us);
+        results[arm] = timer.read();
+        if (done.failures != 0) return error.PipelineJobFailed;
+        for (done.receipts.items) |r| host_waits[arm] += r.host_waits;
+    }
+    var out: std.Io.Writer.Allocating = .init(a);
+    defer out.deinit();
+    try std.json.Stringify.value(.{
+        .schema = "rv64-m8-jobs-pipeline/v1",
+        .device = device,
+        .jobs = count,
+        .upload_mib = upload_mib,
+        .pow_bits = bits,
+        .pipelined_depth3_ns = results[0],
+        .serialized_depth1_ns = results[1],
+        .host_waits = host_waits,
+        .scope = "synthetic jobs (h2d upload + device PoW grind); wall clock of the job batch after one warm-up job",
+    }, .{ .whitespace = .indent_1 }, &out.writer);
+    std.debug.print("{s}\n", .{out.written()});
+}
+
 pub fn main() !void {
     var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
     defer _ = gpa.deinit();
     const a = gpa.allocator();
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
+    if (args.len == 6 and std.mem.eql(u8, args[1], "pipeline")) {
+        var libs = try O.Libraries.open(std.posix.getenv("STWO_RV64_GPU_LIBRARY") orelse return error.MissingBaseLibrary, std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingJobsAddon);
+        defer libs.close();
+        return pipeline(a, &libs, try std.fmt.parseInt(u32, args[2], 10), try std.fmt.parseInt(usize, args[3], 10), try std.fmt.parseInt(usize, args[4], 10), try std.fmt.parseInt(u32, args[5], 10));
+    }
     const base = std.posix.getenv("STWO_RV64_GPU_LIBRARY") orelse return error.MissingBaseLibrary;
     const addon = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingJobsAddon;
     const devices_text = if (args.len > 1) args[1] else "0,1";
