@@ -67,6 +67,11 @@ pub const Report = struct {
     heap_words: u64 = 0,
     heap_peak_words: u64 = 0,
     heap_allocations: u64 = 0,
+    heap_high_words: u64 = 0,
+    phase_peak_words: [6]u64 = @splat(0),
+    phase_high_words: [6]u64 = @splat(0),
+    staged_regions: [3]u64 = .{ 0, 0, 0 },
+    streamed: bool = false,
     /// The job's declared footprint (class plan).
     footprint: api.Footprint = .{ .device_words = 0 },
 };
@@ -75,6 +80,9 @@ pub const Prover = struct {
     shared: *const Shared,
     worker: *Worker.Worker,
     graphs: Graphs.Cache,
+    /// Fold class regions in worker-persistent memory (outside the arena).
+    /// The hybrid window clears it (see OuterNodeJob.persistent_classes).
+    persistent_classes: bool = true,
 
     /// FIXED tree root of `pp`, committed by a FixedJob on this worker.
     pub fn fixedRoot(self: *Prover, a: std.mem.Allocator, pp: *const @import("stwo_circuit_frontend").common.preprocessed.PreprocessedCircuit, receipt: ?*api.Receipt) ![32]u8 {
@@ -133,6 +141,7 @@ pub const Prover = struct {
         var job = try Job.OuterNodeJob.initWhole(staged, &self.shared.kernels, self.shared.whole());
         defer job.deinit();
         job.graphs = &self.graphs;
+        job.persistent_classes = self.persistent_classes;
         r.footprint = job.footprint();
         {
             const p = staged.plan();
@@ -157,7 +166,6 @@ pub const Prover = struct {
             break;
         }
         done.event.wait();
-        try done.result;
         r.job_ns = timer.lap();
         r.receipt = done.receipt;
         r.outcome = job.report.outcome;
@@ -166,6 +174,12 @@ pub const Prover = struct {
         r.heap_words = job.report.heap_words;
         r.heap_peak_words = job.report.heap_peak_words;
         r.heap_allocations = job.report.heap_allocations;
+        r.heap_high_words = job.report.heap_high_words;
+        r.phase_peak_words = job.report.phase_peak_words;
+        r.phase_high_words = job.report.phase_high_words;
+        r.staged_regions = job.report.staged_words;
+        r.streamed = job.report.streamed;
+        try done.result;
         const produced = try Prestage.assemble(a, input.key, staged, &job);
         r.assemble_ns = timer.read();
         if (report) |out| out.* = r;
@@ -377,22 +391,28 @@ pub const Lane = struct {
         var r: Report = .{};
         var timer = try std.time.Timer.start();
         const produced = prover.prove(a, input, &r) catch |err| {
-            std.debug.print("GPU_M8_OUTER_NODE ordinal={d} device={d} error={s} declared_device_words={d} declared_staged_words={d} slab_words={d} pinned_words={d} plan_words={any}\n", .{ ordinal, self.physical_device, @errorName(err), r.footprint.device_words, r.footprint.staged_words, r.footprint.slab_words, r.footprint.pinned_words, r.plan_words });
+            std.debug.print("GPU_M8_OUTER_NODE ordinal={d} device={d} error={s} declared_device_words={d} declared_staged_words={d} slab_words={d} pinned_words={d} plan_words={any} streamed={} heap_high_words={d} phase_peak_words={any} phase_high_words={any}\n", .{ ordinal, self.physical_device, @errorName(err), r.footprint.device_words, r.footprint.staged_words, r.footprint.slab_words, r.footprint.pinned_words, r.plan_words, r.streamed, r.heap_high_words, r.phase_peak_words, r.phase_high_words });
             return err;
         };
         self.nodes += 1;
         const fp = r.footprint;
         std.debug.print("GPU_M8_OUTER_NODE ordinal={d} device={d} leaf={} adopted_plan={} outcome={s} launches={d} kernel_nodes={d} host_waits={d} d2h_bytes={d} stage_ns={d} enqueue_ns={d} wait_ns={d} prestage_ns={d} job_ns={d} assemble_ns={d} wall_ns={d} declared_device_words={d} declared_staged_words={d} slab_words={d} pinned_words={d} staged_words={d} arena_peak_words={d} heap_words={d} heap_peak_words={d} heap_allocations={d} plan_words={any} sequence={d} placement={s}\n", .{ ordinal, r.receipt.device, input.is_leaf, input.prepared != null, @tagName(r.outcome), r.launches, r.kernel_nodes, r.receipt.host_waits, r.receipt.d2h_bytes, r.receipt.stage_ns, r.receipt.enqueue_ns, r.receipt.wait_ns, r.prestage_ns, r.job_ns, r.assemble_ns, timer.read(), fp.device_words, fp.staged_words, fp.slab_words, fp.pinned_words, r.receipt.staged_words, r.receipt.arena_peak_words, r.heap_words, r.heap_peak_words, r.heap_allocations, r.plan_words, r.receipt.sequence, @tagName(r.receipt.placement) });
+        std.debug.print("GPU_M8_OUTER_NODE_MEM ordinal={d} device={d} streamed={} heap_high_words={d} phase_peak_words={any} phase_high_words={any} staged_regions={any}\n", .{ ordinal, r.receipt.device, r.streamed, r.heap_high_words, r.phase_peak_words, r.phase_high_words, r.staged_regions });
         return produced;
     }
 };
 
 /// The recursion window's devices: booted workers, resolved symbols and one
-/// Prover (graph cache) per lane.
+/// Prover (graph cache) per physical device, shared by every lane on it.
+/// With STWO_RV64_RECURSION_LANES_PER_DEVICE=2 two lane threads prestage and
+/// assemble concurrently against one worker, so the worker's 3-stage loop
+/// stages node k+1 while node k runs (the pair serializes if it does not fit).
 const Window = struct {
     set: *Jobs.WorkerSet,
     shared: Shared,
     provers: []Prover,
+    /// Prover index of each lane.
+    lane_prover: [4]usize = @splat(0),
     started_ns: u64,
 };
 
@@ -440,7 +460,8 @@ pub const Hybrid = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         if (self.window == null) try self.open();
-        return &self.window.?.provers[lane];
+        const w = &self.window.?;
+        return &w.provers[w.lane_prover[lane]];
     }
 
     const Trim = struct {
@@ -494,15 +515,29 @@ pub const Hybrid = struct {
         var shared = try Shared.init(&set.libs.base, &set.libs.addon, self.fs_path);
         errdefer shared.deinit();
         var workers: [4]*Worker.Worker = undefined;
-        for (self.lanes, 0..) |lane, i| workers[i] = for (set.slice()) |candidate| {
-            if (candidate.device_ordinal == lane.physical_device) break candidate;
-        } else return error.M8OuterJobsMissingLaneWorker;
-        const provers = try self.allocator.alloc(Prover, self.lanes.len);
-        self.window = .{ .set = set, .shared = shared, .provers = provers, .started_ns = 0 };
+        var lane_prover: [4]usize = @splat(0);
+        var unique: usize = 0;
+        for (self.lanes, 0..) |lane, i| {
+            const worker = for (set.slice()) |candidate| {
+                if (candidate.device_ordinal == lane.physical_device) break candidate;
+            } else return error.M8OuterJobsMissingLaneWorker;
+            lane_prover[i] = for (workers[0..unique], 0..) |seen, j| {
+                if (seen == worker) break j;
+            } else blk: {
+                workers[unique] = worker;
+                unique += 1;
+                break :blk unique - 1;
+            };
+        }
+        const provers = try self.allocator.alloc(Prover, unique);
+        self.window = .{ .set = set, .shared = shared, .provers = provers, .lane_prover = lane_prover, .started_ns = 0 };
         const w = &self.window.?;
-        for (provers, workers[0..provers.len]) |*p, worker| p.* = Prover.init(self.allocator, &w.shared, worker);
+        for (provers, workers[0..provers.len]) |*p, worker| {
+            p.* = Prover.init(self.allocator, &w.shared, worker);
+            p.persistent_classes = if (std.posix.getenv("STWO_RV64_M8_OUTER_PERSISTENT_CLASSES")) |v| std.mem.eql(u8, v, "1") else false;
+        }
         self.windows += 1;
-        std.debug.print("GPU_M8_OUTER_WINDOW open window={d} arena_words={d} available_bytes={d} reserve_bytes={d} trimmed_bytes={d} trim_ns={d} start_ns={d}\n", .{ self.windows, words, available, reserve, released, trim_ns, timer.read() });
+        std.debug.print("GPU_M8_OUTER_WINDOW open window={d} arena_words={d} available_bytes={d} reserve_bytes={d} trimmed_bytes={d} trim_ns={d} start_ns={d} lanes={d} provers={d}\n", .{ self.windows, words, available, reserve, released, trim_ns, timer.read(), self.lanes.len, unique });
     }
 
     /// Request tail: stop the window's workers (every lane is idle).

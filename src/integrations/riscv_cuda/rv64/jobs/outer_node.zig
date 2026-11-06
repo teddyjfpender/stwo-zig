@@ -32,17 +32,46 @@ const St = @import("outer_staged.zig");
 const S = Plan.Section;
 
 /// Node buffers that outlive the prefix (consumed by composition and PCS).
-/// Whole-node jobs allocate them in stage() (Stager.alloc) so the PCS framing
-/// can name their addresses before enqueue; prefix runs allocate them here.
+/// Whole-node jobs allocate them in the work heap before the body so the PCS
+/// framing can name their addresses; prefix runs allocate them here. The two
+/// trees exist only on the full-LDE path: a streamed commit (`streams`) keeps
+/// no tree, only its root in the slab section.
 pub const Long = struct {
     main_coef: K.Buffer,
     inter_coef: K.Buffer,
-    main_tree: K.Buffer,
-    inter_tree: K.Buffer,
+    main_tree: ?K.Buffer,
+    inter_tree: ?K.Buffer,
     parameters: K.Buffer,
     powers: K.Buffer,
-    pub fn words(p: *const Plan.ClassPlan) [6]usize {
-        return .{ @intCast(p.main.coefficient_words), @intCast(p.inter.coefficient_words + p.inter_tail_words), @intCast(p.main.tree_words + p.main.prefix_words), @intCast(p.inter.tree_words + p.inter.prefix_words), 56, @as(usize, p.geometry.total_constraints) * 8 };
+    /// Words of main_coef, inter_coef, main_tree, inter_tree, parameters,
+    /// powers (trees 0 when streamed).
+    pub fn words(p: *const Plan.ClassPlan, streamed: bool) [6]usize {
+        const t = struct {
+            fn w(tree: *const Plan.TreePlan, s: bool) usize {
+                return if (s) 0 else @intCast(tree.tree_words + tree.prefix_words);
+            }
+        }.w;
+        return .{ @intCast(p.main.coefficient_words), @intCast(p.inter.coefficient_words + p.inter_tail_words), t(&p.main, streamed), t(&p.inter, streamed), 56, @as(usize, p.geometry.total_constraints) * 8 };
+    }
+};
+
+/// Class-static stream schedules of the node's commits (host, pre-stage).
+pub const Streams = struct {
+    main: TC.Stream,
+    inter: TC.Stream,
+    fixed: ?TC.Stream = null,
+    pub fn init(a: std.mem.Allocator, p: *const Plan.ClassPlan, fixed: ?*const Plan.TreePlan, budget: usize, compact: bool) !Streams {
+        var main = try TC.Stream.init(a, &p.main, budget, compact);
+        errdefer main.deinit(a);
+        var inter = try TC.Stream.init(a, &p.inter, budget, compact);
+        errdefer inter.deinit(a);
+        return .{ .main = main, .inter = inter, .fixed = if (fixed) |fp| try TC.Stream.init(a, fp, budget, compact) else null };
+    }
+    pub fn deinit(self: *Streams, a: std.mem.Allocator) void {
+        self.main.deinit(a);
+        self.inter.deinit(a);
+        if (self.fixed) |*f| f.deinit(a);
+        self.* = undefined;
     }
 };
 
@@ -53,8 +82,6 @@ pub const TailInputs = struct {
     section: [*]u32,
     main_coefficients: [*]const u32,
     inter_coefficients: [*]const u32,
-    main_tree: K.Buffer,
-    inter_tree: K.Buffer,
     /// Composition coefficient (8 words) and its `total_constraints` powers.
     coefficient: [*]const u32,
     powers: [*]const u32,
@@ -90,6 +117,8 @@ pub const Node = struct {
     /// First node of a class on this worker: commit FIXED from the staged raw
     /// evaluations into the persistent coefficient region (root -> section).
     fixed: ?FixedCommit = null,
+    /// Streamed (chunk-bounded) commits; null = full-LDE tree commits.
+    streams: ?*const Streams = null,
     /// Snapshot hook after each device channel step (parity mode only).
     after_step: ?*const fn (*anyopaque, u32) anyerror!void = null,
     after_step_context: ?*anyopaque = null,
@@ -124,6 +153,7 @@ pub const Node = struct {
         if (total == 0 or total > (1 << 20)) return error.InvalidOuterCompositionAuthority;
 
         // Long-lived buffers (freed last, in reverse).
+        const streams = self.streams;
         var owned: [6]?K.Buffer = @splat(null);
         defer {
             var i: usize = owned.len;
@@ -133,33 +163,40 @@ pub const Node = struct {
             }
         }
         const long = self.long orelse blk: {
-            const w = Long.words(p);
-            for (&owned, w) |*o, n| o.* = try device.alloc(n);
-            break :blk Long{ .main_coef = owned[0].?, .inter_coef = owned[1].?, .main_tree = owned[2].?, .inter_tree = owned[3].?, .parameters = owned[4].?, .powers = owned[5].? };
+            const w = Long.words(p, streams != null);
+            for (&owned, w) |*o, n| o.* = if (n == 0) null else try device.alloc(n);
+            break :blk Long{ .main_coef = owned[0].?, .inter_coef = owned[1].?, .main_tree = owned[2], .inter_tree = owned[3], .parameters = owned[4].?, .powers = owned[5].? };
         };
+        if ((streams == null) != (long.main_tree != null) or (streams == null) != (long.inter_tree != null)) return error.OuterJobTreeCustodyMismatch;
         const main_coef = long.main_coef;
         const inter_coef = long.inter_coef;
-        const main_tree = long.main_tree;
-        const inter_tree = long.inter_tree;
         const parameters = long.parameters;
         const powers = long.powers;
         try device.clear(self.section, S.words);
+        device.phase(1);
         if (self.fixed) |f| {
             const fp = &(staged.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing);
             const tw = try staged.statics.table(fp.eval_log);
-            const tree = try device.alloc(@intCast(fp.tree_words + fp.prefix_words));
-            defer device.free(tree);
-            try TC.enqueue(device, fp, .{ .evaluations = f.evaluations, .coefficients = f.coefficients, .tree = tree, .statics = .{
+            const fs: TC.Statics = .{
                 .sorted_logs = self.at(img.fixed_logs),
                 .twiddles = self.at(img.twiddles[fp.eval_log]),
                 .twiddle_words = @intCast(tw.twiddles.len),
                 .itwiddles = self.at(img.itwiddles[fp.eval_log]),
                 .itwiddle_words = @intCast(tw.itwiddles.len),
-            } });
-            try device.copy(self.section + S.fixed_root, TC.rootPointer(fp, tree), 8);
+            };
+            const fixed_stream: ?*const TC.Stream = if (streams) |st| (if (st.fixed) |*fs_plan| fs_plan else null) else null;
+            if (fixed_stream) |stream| {
+                try TC.enqueueStreamed(device, fp, stream, .{ .evaluations = f.evaluations, .coefficients = f.coefficients, .root_out = self.section + S.fixed_root, .statics = fs });
+            } else {
+                const tree = try device.alloc(@intCast(fp.tree_words + fp.prefix_words));
+                defer device.free(tree);
+                try TC.enqueue(device, fp, .{ .evaluations = f.evaluations, .coefficients = f.coefficients, .tree = tree, .statics = fs });
+                try device.copy(self.section + S.fixed_root, TC.rootPointer(fp, tree), 8);
+            }
         }
 
         // 1. MAIN assignment (values above the MAIN evaluation image).
+        device.phase(2);
         const main_eval = try device.alloc(@intCast(p.main.coefficient_words));
         var main_eval_live = true;
         defer if (main_eval_live) device.free(main_eval);
@@ -226,13 +263,20 @@ pub const Node = struct {
         device.free(values);
         values_live = false;
 
-        // 3. TC MAIN; the evaluation image stays live for INTER.
-        try TC.enqueue(device, &p.main, .{ .evaluations = main_eval.ptr, .coefficients = main_coef.ptr, .tree = main_tree, .statics = try self.statics(.main) });
+        // 3. TC MAIN; the evaluation image stays live for INTER. Streamed:
+        // the root goes straight to the section, no tree outlives the commit.
+        const main_root: [*]const u32 = if (streams) |st| blk: {
+            try TC.enqueueStreamed(device, &p.main, &st.main, .{ .evaluations = main_eval.ptr, .coefficients = main_coef.ptr, .root_out = self.section + S.main_root, .statics = try self.statics(.main) });
+            break :blk self.section + S.main_root;
+        } else blk: {
+            try TC.enqueue(device, &p.main, .{ .evaluations = main_eval.ptr, .coefficients = main_coef.ptr, .tree = long.main_tree.?, .statics = try self.statics(.main) });
+            break :blk TC.rootPointer(&p.main, long.main_tree.?);
+        };
 
         // 4. MAIN root -> z, alpha -> lookup parameters, all on device.
         const lookup = self.section + S.challenges;
         var step: u32 = 0;
-        try device.mix(TC.rootPointer(&p.main, main_tree), 8, false);
+        try device.mix(main_root, 8, false);
         try self.stepped(step);
         step += 1;
         try device.draw(2, lookup);
@@ -241,6 +285,7 @@ pub const Node = struct {
         try device.check(k.lookup_params(device.ctx, K.lane, lookup, parameters.ptr, status + 2));
 
         // 5. INTER in physical (sorted) order into the packed image + tail.
+        device.phase(3);
         const inter_status = status + 1;
         for (p.inter_order) |ci| {
             const comp = p.geometry.components[ci];
@@ -268,8 +313,14 @@ pub const Node = struct {
         try device.mix(self.section + S.claims, S.claims_words, true);
         try self.stepped(step);
         step += 1;
-        try TC.enqueue(device, &p.inter, .{ .evaluations = inter_coef.ptr, .coefficients = inter_coef.ptr, .tree = inter_tree, .statics = try self.statics(.inter) });
-        try device.mix(TC.rootPointer(&p.inter, inter_tree), 8, false);
+        const inter_root: [*]const u32 = if (streams) |st| blk: {
+            try TC.enqueueStreamed(device, &p.inter, &st.inter, .{ .evaluations = inter_coef.ptr, .coefficients = inter_coef.ptr, .root_out = self.section + S.inter_root, .statics = try self.statics(.inter) });
+            break :blk self.section + S.inter_root;
+        } else blk: {
+            try TC.enqueue(device, &p.inter, .{ .evaluations = inter_coef.ptr, .coefficients = inter_coef.ptr, .tree = long.inter_tree.?, .statics = try self.statics(.inter) });
+            break :blk TC.rootPointer(&p.inter, long.inter_tree.?);
+        };
+        try device.mix(inter_root, 8, false);
         try self.stepped(step);
         step += 1;
 
@@ -279,18 +330,19 @@ pub const Node = struct {
         try self.stepped(step);
         step += 1;
         try device.check(k.powers(device.ctx, K.lane, coefficient, 0, total, powers.ptr, status + 2));
-        try device.copy(self.section + S.main_root, TC.rootPointer(&p.main, main_tree), 8);
-        try device.copy(self.section + S.inter_root, TC.rootPointer(&p.inter, inter_tree), 8);
+        if (streams == null) {
+            try device.copy(self.section + S.main_root, main_root, 8);
+            try device.copy(self.section + S.inter_root, inter_root, 8);
+        }
 
         // 8. Composition, OODS seed and PCS.
+        device.phase(4);
         if (self.mode == .full) try self.tail.?.enqueue(self.tail.?.context, device, &.{
             .staged = staged,
             .bases = self.bases,
             .section = self.section,
             .main_coefficients = main_coef.ptr,
             .inter_coefficients = inter_coef.ptr,
-            .main_tree = main_tree,
-            .inter_tree = inter_tree,
             .coefficient = coefficient,
             .powers = powers.ptr,
             .lookup = lookup,

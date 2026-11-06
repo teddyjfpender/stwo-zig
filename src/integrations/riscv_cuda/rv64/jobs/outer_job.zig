@@ -22,6 +22,7 @@ const Pcs = @import("native_pcs.zig");
 const Comp = @import("outer_composition.zig");
 const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
 const core = @import("stwo_core");
+const TC = @import("outer_trace_commit.zig");
 
 /// Slab field indices (`Slab.Kind.opaque_words`): the outer section, the
 /// native PCS result image and the OODS points (native_pcs.zig).
@@ -37,12 +38,14 @@ pub const Whole = struct {
     wide: bool,
 };
 
-/// Node buffers that live through PCS, allocated in stage() so the PCS
-/// framing names real addresses.
+/// Node buffers that live through PCS, allocated before the body so the PCS
+/// framing names real addresses. Only what the PCS opens (coefficients) and
+/// what composition reads lives this long; trees are transient (streamed) or,
+/// on the full-LDE path, held as before.
 const Held = struct {
     long: N.Long,
     composition: K.Buffer,
-    composition_tree: K.Buffer,
+    composition_tree: ?K.Buffer,
     rc_parameters: K.Buffer,
 };
 
@@ -68,6 +71,12 @@ pub const Report = struct {
     heap_words: u64 = 0,
     heap_peak_words: u64 = 0,
     heap_allocations: u64 = 0,
+    /// Highest heap offset used (region the schedule needs) and per-phase
+    /// live peaks / high-waters (outer_heap.Phase order).
+    heap_high_words: u64 = 0,
+    phase_peak_words: [Heap.Heap.n_phases]u64 = @splat(0),
+    phase_high_words: [Heap.Heap.n_phases]u64 = @splat(0),
+    streamed: bool = false,
 };
 
 pub const OuterNodeJob = struct {
@@ -97,12 +106,34 @@ pub const OuterNodeJob = struct {
     oods: [16]u32 = @splat(0),
     allocator: std.mem.Allocator = std.heap.c_allocator,
     fixed_commit: ?N.FixedCommit = null,
+    /// Streamed commit schedules (null: full-LDE path; STWO_RV64_M8_OUTER_STREAM=0).
+    streams: ?N.Streams = null,
+    composition_stream: ?Comp.CommitStream = null,
+    /// Whole nodes: recommit FIXED from staged raw evaluations inside the node
+    /// and compare its root. Off by default: the PCS rebuilds the FIXED tree
+    /// from the class-region coefficients it opens and finish compares that
+    /// root with the transcript's FIXED root (NativePcsTreeRootMismatch), so
+    /// the in-node recommit only duplicated a check at the cost of the raw
+    /// FIXED upload and its commit scratch. STWO_RV64_M8_OUTER_NODE_FIXED_COMMIT=1
+    /// restores it.
+    node_fixed_commit: bool = false,
+    /// Fold classes keep their class region in worker-persistent memory
+    /// (outside the arena). The hybrid window (whole request, workers per
+    /// request) clears this so every node stages its class region inside its
+    /// own arena window and nothing grows outside the arena across classes.
+    persistent_classes: bool = true,
 
     /// `staged` stays owned by the caller (deinit after finish/abort).
     /// `snapshots`: also copy the channel state into the slab after every
     /// prefix step (parity harness; adds one D2D copy per step).
     pub fn init(staged: *St.Staged, kernels: *const K.Kernels, snapshots: bool) !OuterNodeJob {
         var out = OuterNodeJob{ .staged = staged, .kernels = kernels, .snapshots = snapshots, .mode = .prefix };
+        if (std.posix.getenv("STWO_RV64_M8_OUTER_NODE_FIXED_COMMIT")) |v| out.node_fixed_commit = std.mem.eql(u8, v, "1");
+        if (TC.streamSelected(kernels)) {
+            const fp: ?*const Plan.TreePlan = if (staged.statics.fixed_plan) |*f| f else null;
+            out.streams = try N.Streams.init(out.allocator, staged.plan(), fp, TC.streamChunkWords(), kernels.compact_eager);
+        }
+        errdefer if (out.streams) |*st| st.deinit(out.allocator);
         _ = try out.layout.add(.opaque_words, section_index, Plan.Section.words);
         if (snapshots) for (0..N.prefix_steps) |step| {
             _ = try out.layout.add(.snapshot, @intCast(step), 16);
@@ -114,9 +145,11 @@ pub const OuterNodeJob = struct {
     /// addresses; stage() frames it again at the real ones.
     pub fn initWhole(staged: *St.Staged, kernels: *const K.Kernels, whole: Whole) !OuterNodeJob {
         var out = try init(staged, kernels, false);
+        errdefer out.deinit();
         out.mode = .full;
         out.whole = whole;
         if (staged.statics.composition == null or staged.pcs_points == null) return error.OuterJobWholeStagingMissing;
+        if (out.streams != null) out.composition_stream = try Comp.CommitStream.init(out.allocator, &staged.statics.composition.?, TC.streamChunkWords(), kernels.compact_eager);
         var placeholder = try out.request(null);
         defer out.freeRequest(&placeholder);
         // Framed once, here on the caller's thread (pre-stage side); stage()
@@ -128,6 +161,10 @@ pub const OuterNodeJob = struct {
         return out;
     }
     pub fn deinit(self: *OuterNodeJob) void {
+        if (self.streams) |*st| st.deinit(self.allocator);
+        self.streams = null;
+        if (self.composition_stream) |*c| c.deinit(self.allocator);
+        self.composition_stream = null;
         if (self.pcs) |*j| j.deinit(self.allocator);
         self.pcs = null;
         if (self.pcs_proof) |*d| d.proof.deinit(self.allocator);
@@ -188,8 +225,30 @@ pub const OuterNodeJob = struct {
     pub fn classKey(self: *OuterNodeJob) [32]u8 {
         return self.staged.class_key;
     }
+    /// PCS working set beyond the held coefficients, in words: fitted to the
+    /// measured heap peaks of whole nodes (the PCS rebuilds every tree it
+    /// opens, rolling and streamed; its scratch scales with the lifting
+    /// height, not the column count) [M wire-outer-p2, 26235156 leaves at
+    /// lifting 2^24: 4.920e9 heap peak - 2.05e9 held = 2.87e9 = 10.7 x the
+    /// lifting-height tree]. STWO_RV64_M8_OUTER_PCS_RESERVE_TREES overrides
+    /// the multiplier (measurement sweeps).
+    pub fn pcsReserveWords(cs: *const Comp.Static) u64 {
+        var trees: u64 = 11;
+        if (std.posix.getenv("STWO_RV64_M8_OUTER_PCS_RESERVE_TREES")) |v| trees = std.fmt.parseUnsigned(u64, v, 10) catch trees;
+        return trees * cs.treeWords();
+    }
+
+    /// Whole nodes with the in-node FIXED recommit (first node of a class on
+    /// a worker when persistent, every node otherwise).
+    fn nodeFixed(self: *const OuterNodeJob) bool {
+        return self.whole != null and self.node_fixed_commit;
+    }
+
     /// Static per-node peak from the class plan, in the worker's 64-word
-    /// granules: long-lived buffers plus the largest transient stack.
+    /// granules: staged inputs + buffers held through PCS + the largest phase
+    /// transient (FIXED recommit, MAIN, INTER, composition, PCS). With
+    /// streamed commits no phase holds an LDE image or a tree: the commit
+    /// transient is one chunk + two state banks.
     pub fn footprint(self: *OuterNodeJob) api.Footprint {
         const p = self.staged.plan();
         const g = struct {
@@ -197,22 +256,28 @@ pub const OuterNodeJob = struct {
                 return std.mem.alignForward(u64, @max(words, 1), 64);
             }
         }.r;
-        const total: u64 = p.geometry.total_constraints;
-        const long = g(p.main.coefficient_words) + g(p.inter.coefficient_words + p.inter_tail_words) + g(p.main.tree_words + p.main.prefix_words) + g(p.inter.tree_words + p.inter.prefix_words) + g(56) + g(total * 8);
+        const streamed = self.streams != null;
+        var held: u64 = 0;
+        for (N.Long.words(p, streamed)) |w| if (w != 0) {
+            held += g(w);
+        };
         var widest_inter: u64 = 0;
         for (p.geometry.components) |c| {
             const prefix = (@import("../prefix_plan.zig").Plan.init(c.log) catch unreachable).scratch_words;
             widest_inter = @max(widest_inter, g(8 * @as(u64, c.pairs) << @intCast(c.log)) + g(prefix));
         }
         const eval = g(p.main.coefficient_words);
-        const stack = @max(@max(eval + g(self.staged.assignment.count * 4), eval + g(p.main.evaluation_words)), @max(eval + widest_inter, g(p.inter.evaluation_words)));
+        const main_commit: u64 = if (self.streams) |*st| st.main.scratchWords() else g(p.main.evaluation_words);
+        const inter_commit: u64 = if (self.streams) |*st| st.inter.scratchWords() else g(p.inter.evaluation_words);
+        var phase = @max(@max(eval + g(self.staged.assignment.count * 4), eval + main_commit), @max(eval + widest_inter, inter_commit));
         const node = self.staged.image.words[@intFromEnum(St.Region.node)];
-        var whole: u64 = 0;
+        const class = self.staged.image.words[@intFromEnum(St.Region.class)];
+        var staged: u64 = g(node);
+        if (!self.persistentClass()) staged += g(class);
         var pinned_extra: u64 = 0;
-        if (self.staged.statics.composition) |cs| if (self.whole != null) {
-            // Held composition buffers + RC transients (buckets, widest role
-            // arena, accumulator, commit LDE) + a PCS working reserve of four
-            // largest commit evaluations (the PCS allocates through the arena).
+        if (self.staged.statics.composition) |*cs| if (self.whole != null) {
+            held += g(cs.coefficientWords()) + g(@as(u64, cs.param_total) * 8);
+            if (!streamed) held += g(cs.treeWords());
             var widest: u64 = 0;
             var buckets: u64 = 0;
             var seen: [29]bool = @splat(false);
@@ -222,63 +287,43 @@ pub const OuterNodeJob = struct {
                 if (!seen[r.eval_log]) buckets += g(@as(u64, 8) << @intCast(r.eval_log));
                 seen[r.eval_log] = true;
             }
-            const commit = g(@as(u64, cs.outputColumns()) << @intCast(cs.commitLog()));
-            whole = g(cs.coefficientWords()) + g(cs.treeWords()) + g(@as(u64, cs.param_total) * 8) + buckets + @max(widest, g(cs.coefficientWords()) + commit) + 4 * @max(commit, p.main.evaluation_words + p.inter.evaluation_words);
+            const commit: u64 = if (self.composition_stream) |*c| c.stream.scratchWords() else g(@as(u64, cs.outputColumns()) << @intCast(cs.commitLog()));
+            phase = @max(phase, buckets + @max(widest, g(cs.coefficientWords()) + commit));
+            phase = @max(phase, pcsReserveWords(cs));
             pinned_extra = self.pcs_plan.ingress_words;
-            if (self.staged.statics.fixed_plan) |fp| {
-                // Worst case (first node of a class): staged raw evaluations
-                // + the FIXED commit's tree and LDE scratch.
-                whole += g(fp.coefficient_words) + g(fp.tree_words + fp.prefix_words) + g(fp.evaluation_words);
+            if (self.nodeFixed()) if (self.staged.statics.fixed_plan) |*fp| {
+                // Worst case (first node of a class): raw evaluations staged,
+                // coefficient buffer staged unless persistent, commit scratch.
+                staged += g(fp.coefficient_words);
+                if (!self.persistentClass()) staged += g(fp.coefficient_words);
+                const fixed_commit: u64 = if (self.streams) |*st| (if (st.fixed) |*f| f.scratchWords() else 0) else g(fp.evaluation_words) + g(fp.tree_words + fp.prefix_words);
+                phase = @max(phase, fixed_commit);
                 pinned_extra += fp.coefficient_words;
-            }
-        };
-        // A non-reusable (leaf) node stages its class region and FIXED
-        // coefficients in its own arena window instead of worker-persistent
-        // memory: a leaf is its own class, so persistent regions would grow
-        // without bound across requests.
-        var own: u64 = 0;
-        if (!self.persistentClass()) {
-            own = g(self.staged.image.words[@intFromEnum(St.Region.class)]);
-            if (whole != 0) if (self.staged.statics.fixed_plan) |fp| {
-                own += g(fp.coefficient_words);
             };
-        }
+        };
         // Diagnostic (measurement sweeps only): STWO_RV64_M8_OUTER_DECLARE_WORDS
         // caps the declared device peak so a node can run in an arena smaller
-        // than this conservative bound; the worker still fails the job closed
+        // than this bound; the worker still fails the job closed
         // (JobWorkExceedsArena) if its real allocations do not fit.
-        var device: u64 = long + stack + g(node) + whole + own;
-        // Whole nodes: the analytic sum above is a 2.5-4x over-bound on real
-        // nodes, because the work heap (outer_heap.zig) reuses transient
-        // buffers. Fit to the measured heap peaks [M, 26235156 leaves with
-        // max row log 22 / 23: 3.095e9 / 4.920e9 words]:
-        //   staged + PCS-lifetime buffers + 0.6 x INTER evaluation
-        //   + 8.5 x the eval-height tree (the PCS/RC working set scales with
-        //     the evaluation height),
-        // 1.05x above both measured peaks. A node that still does not fit
-        // fails closed (JobWorkExceedsArena); a node whose bound exceeds the
-        // arena is refused before staging (JobFootprintExceedsArena).
-        if (whole != 0) if (self.staged.statics.composition) |cs| if (self.staged.statics.fixed_plan) |fp| {
-            const held = g(p.main.coefficient_words) + g(p.inter.coefficient_words + p.inter_tail_words) + g(p.main.tree_words) + g(p.inter.tree_words) + g(cs.coefficientWords()) + g(cs.treeWords());
-            const staged_inputs = g(node) + own + g(fp.coefficient_words);
-            const measured = staged_inputs + held + g(p.inter.evaluation_words * 6 / 10) + g(fp.tree_words * 17 / 2);
-            device = @min(device, measured);
-        };
+        var device: u64 = staged + held + phase;
         if (std.posix.getenv("STWO_RV64_M8_OUTER_DECLARE_WORDS")) |v| device = @min(device, std.fmt.parseUnsigned(u64, v, 10) catch device);
         return .{
             .device_words = @intCast(device),
-            .staged_words = @intCast(g(node) + own + (if (whole != 0) (if (self.staged.statics.fixed_plan) |fp| g(fp.coefficient_words) else 0) else 0)),
+            .staged_words = @intCast(staged),
             .slab_words = self.layout.words,
-            .pinned_words = @intCast(node + self.staged.image.words[@intFromEnum(St.Region.class)] + self.staged.image.words[@intFromEnum(St.Region.twiddles)] + pinned_extra),
+            .pinned_words = @intCast(node + class + self.staged.image.words[@intFromEnum(St.Region.twiddles)] + pinned_extra),
         };
     }
 
-    /// Fold classes keep their class region and FIXED coefficients in
-    /// worker-persistent memory (shared by every node of the class); a leaf
-    /// stages them per node. STWO_RV64_M8_OUTER_LEAF_PERSISTENT=1 restores
-    /// the persistent placement for leaves (parity fixtures).
+    /// Fold classes keep their class region (and, with the in-node FIXED
+    /// recommit, FIXED coefficients) in worker-persistent memory shared by
+    /// every node of the class; a leaf stages them per node. The hybrid
+    /// window clears `persistent_classes` (STWO_RV64_M8_OUTER_PERSISTENT_CLASSES=1
+    /// restores it), so persistent memory outside the arena does not grow
+    /// with each fold class. STWO_RV64_M8_OUTER_LEAF_PERSISTENT=1 makes leaves
+    /// persistent too (parity fixtures).
     fn persistentClass(self: *const OuterNodeJob) bool {
-        if (self.staged.assignment.reusable) return true;
+        if (self.staged.assignment.reusable) return self.persistent_classes;
         const v = std.posix.getenv("STWO_RV64_M8_OUTER_LEAF_PERSISTENT") orelse return false;
         return std.mem.eql(u8, v, "1");
     }
@@ -312,7 +357,7 @@ pub const OuterNodeJob = struct {
                 self.report.staged_words[@intFromEnum(region)] = n;
             }
         }
-        if (self.whole != null) {
+        if (self.nodeFixed()) {
             // FIXED coefficients: worker-persistent per FIXED root. The first
             // node of a class commits them on device from the raw evaluations.
             const fp = &(self.staged.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing);
@@ -338,14 +383,15 @@ pub const OuterNodeJob = struct {
     fn holdBuffers(self: *OuterNodeJob, e: *Heap.Heap) !void {
         const p = self.staged.plan();
         const cs = &self.staged.statics.composition.?;
-        const w = N.Long.words(p);
-        var b: [9]K.Buffer = undefined;
-        const sizes = [_]usize{ w[0], w[1], w[2], w[3], w[4], w[5], @intCast(cs.coefficientWords()), @intCast(cs.treeWords()), @as(usize, cs.param_total) * 8 };
-        for (&b, sizes) |*out, n| {
+        const streamed = self.streams != null;
+        const w = N.Long.words(p, streamed);
+        var b: [9]?K.Buffer = @splat(null);
+        const sizes = [_]usize{ w[0], w[1], w[2], w[3], w[4], w[5], @intCast(cs.coefficientWords()), if (streamed) 0 else @intCast(cs.treeWords()), @as(usize, cs.param_total) * 8 };
+        for (&b, sizes) |*out, n| if (n != 0) {
             const d = try e.alloc(n);
             out.* = .{ .ptr = d.ptr, .words = d.words };
-        }
-        self.held = .{ .long = .{ .main_coef = b[0], .inter_coef = b[1], .main_tree = b[2], .inter_tree = b[3], .parameters = b[4], .powers = b[5] }, .composition = b[6], .composition_tree = b[7], .rc_parameters = b[8] };
+        };
+        self.held = .{ .long = .{ .main_coef = b[0].?, .inter_coef = b[1].?, .main_tree = b[2], .inter_tree = b[3], .parameters = b[4].?, .powers = b[5].? }, .composition = b[6].?, .composition_tree = b[7], .rc_parameters = b[8].? };
         var r = try self.request(self.held.?);
         defer self.freeRequest(&r);
         for (r.trees, 0..) |tree, t| for (tree.columns, 0..) |column, c| try self.pcs.?.bindColumn(t, c, column.device.?.words);
@@ -376,11 +422,12 @@ pub const OuterNodeJob = struct {
                 .parameters = held.rc_parameters.ptr,
                 .output = held.composition,
                 .tree = held.composition_tree,
+                .commit = if (nj.composition_stream) |*c| c else null,
+                .root_out = in.section + Plan.Section.composition_root,
                 .status = in.section + Plan.Section.status + 2,
             });
-            const croot = held.composition_tree.at(cs.rootOffset());
-            try device.mix(croot, 8, false);
-            try device.copy(in.section + Plan.Section.composition_root, croot, 8);
+            try device.mix(in.section + Plan.Section.composition_root, 8, false);
+            device.phase(@intFromEnum(Heap.Heap.Phase.pcs));
             const oods = try self.e.slab.field(.opaque_words, oods_index);
             const pcs = try self.e.slab.field(.opaque_words, pcs_index);
             var pe = Heap.PcsEnqueue.init(self.e, self.heap);
@@ -421,14 +468,18 @@ pub const OuterNodeJob = struct {
         if (self.whole != null) try self.holdBuffers(&heap);
         const section = try e.slab.field(.opaque_words, section_index);
         var view = EnqueueView{ .e = e, .heap = &heap };
-        var device = K.Device{ .ctx = e.ctx(), .stream = e.stream(), .impl = &view, .vtable = &EnqueueView.vtable, .kernels = self.kernels };
+        var device = K.Device{ .ctx = e.ctx(), .stream = e.stream(), .impl = &view, .vtable = &EnqueueView.vtable, .kernels = self.kernels, .phase_hook = EnqueueView.phase };
+        self.report.streamed = self.streams != null;
         defer {
             self.report.heap_words = heap.words;
             self.report.heap_peak_words = heap.peak;
             self.report.heap_allocations = heap.allocations;
+            self.report.heap_high_words = heap.high;
+            for (&self.report.phase_peak_words, heap.phase_peak) |*o, v| o.* = v;
+            for (&self.report.phase_high_words, heap.phase_high) |*o, v| o.* = v;
         }
         var tail_state = TailState{ .job = self, .e = e, .heap = &heap };
-        var node = N.Node{ .staged = self.staged, .bases = self.bases, .section = section.ptr, .mode = self.mode, .tail = self.tail, .long = if (self.held) |h| h.long else null, .fixed = self.fixed_commit };
+        var node = N.Node{ .staged = self.staged, .bases = self.bases, .section = section.ptr, .mode = self.mode, .tail = self.tail, .long = if (self.held) |h| h.long else null, .fixed = self.fixed_commit, .streams = if (self.streams) |*st| st else null };
         if (self.whole != null) node.tail = .{ .context = &tail_state, .enqueue = TailState.enqueue };
         var body = Body{ .job = self, .e = e, .device = &device, .node = &node, .saved = e.channel.* };
         if (self.snapshots) {
@@ -436,7 +487,7 @@ pub const OuterNodeJob = struct {
             node.after_step_context = &body;
         }
         if (self.graphs) |cache| {
-            const r = try cache.run(.{ .class = self.staged.graph_key, .placement = @intFromEnum(e.placement) | (@as(u8, @intFromBool(self.whole != null)) << 1) | (@as(u8, @intFromBool(self.fixed_commit != null)) << 2) }, e.stream(), &body);
+            const r = try cache.run(.{ .class = self.staged.graph_key, .placement = @intFromEnum(e.placement) | (@as(u8, @intFromBool(self.whole != null)) << 1) | (@as(u8, @intFromBool(self.fixed_commit != null)) << 2) | (@as(u8, @intFromBool(self.streams != null)) << 3) }, e.stream(), &body);
             self.report.outcome = r.outcome;
             self.report.launches = r.launches;
             self.report.kernel_nodes = r.kernel_nodes;
@@ -479,6 +530,9 @@ const EnqueueView = struct {
     const vtable = K.Device.VTable{ .alloc = alloc, .free = free, .mix = mix, .draw = draw };
     fn of(raw: *anyopaque) *EnqueueView {
         return @ptrCast(@alignCast(raw));
+    }
+    fn phase(raw: *anyopaque, which: u8) void {
+        of(raw).heap.enter(@enumFromInt(which));
     }
     fn alloc(raw: *anyopaque, words: usize) anyerror!K.Buffer {
         const b = try of(raw).heap.alloc(words);

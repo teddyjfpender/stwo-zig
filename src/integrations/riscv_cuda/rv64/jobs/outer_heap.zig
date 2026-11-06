@@ -24,8 +24,24 @@ pub const Heap = struct {
     n_free: usize = 0,
     live: usize = 0,
     peak: usize = 0,
+    /// Highest end offset ever allocated: the region size this schedule
+    /// actually needs (>= peak; the difference is fragmentation).
+    high: usize = 0,
     allocations: u64 = 0,
+    /// Per-phase live peak and high-water (see `Phase`), for measurement.
+    phase: Phase = .held,
+    phase_peak: [n_phases]usize = @splat(0),
+    phase_high: [n_phases]usize = @splat(0),
     const max_spans = 512;
+
+    /// Node phases a measurement attributes the peak to.
+    pub const Phase = enum(u8) { held, fixed, main, inter, composition, pcs };
+    pub const n_phases = @typeInfo(Phase).@"enum".fields.len;
+    pub fn enter(self: *Heap, phase: Phase) void {
+        self.phase = phase;
+        const i = @intFromEnum(phase);
+        self.phase_peak[i] = @max(self.phase_peak[i], self.live);
+    }
 
     pub fn init(region: api.DeviceBuffer) Heap {
         var h = Heap{ .base = @intFromPtr(region.ptr), .words = std.mem.alignBackward(usize, region.words, granule) };
@@ -45,6 +61,10 @@ pub const Heap = struct {
             if (s.words == 0) self.remove(i);
             self.live += words;
             self.peak = @max(self.peak, self.live);
+            self.high = @max(self.high, at + words);
+            const ph = @intFromEnum(self.phase);
+            self.phase_peak[ph] = @max(self.phase_peak[ph], self.live);
+            self.phase_high[ph] = @max(self.phase_high[ph], at + words);
             self.allocations += 1;
             return .{ .ptr = @ptrFromInt(self.base + 4 * at), .words = requested };
         }
@@ -130,6 +150,24 @@ test "heap reuses out-of-order frees and coalesces" {
     try std.testing.expectEqual(@intFromPtr(&backing), @intFromPtr(all.ptr));
     try std.testing.expectError(error.JobWorkExceedsArena, h.alloc(1));
     try std.testing.expectEqual(@as(usize, 64 * 16), h.peak);
+    try std.testing.expectEqual(@as(usize, 64 * 16), h.high);
+}
+
+test "heap attributes peaks to phases" {
+    var backing: [64 * 16]u32 align(256) = undefined;
+    var h = Heap.init(.{ .ptr = &backing, .words = backing.len });
+    const held = try h.alloc(64);
+    h.enter(.main);
+    const t = try h.alloc(64 * 4);
+    h.free(t);
+    h.enter(.pcs);
+    const u = try h.alloc(64 * 2);
+    h.free(u);
+    h.free(held);
+    try std.testing.expectEqual(@as(usize, 64), h.phase_peak[@intFromEnum(Heap.Phase.held)]);
+    try std.testing.expectEqual(@as(usize, 64 * 5), h.phase_peak[@intFromEnum(Heap.Phase.main)]);
+    try std.testing.expectEqual(@as(usize, 64 * 3), h.phase_peak[@intFromEnum(Heap.Phase.pcs)]);
+    try std.testing.expectEqual(@as(usize, 64 * 3), h.phase_high[@intFromEnum(Heap.Phase.pcs)]);
 }
 
 test "heap is deterministic and ignores foreign frees" {

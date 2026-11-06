@@ -33,6 +33,12 @@ pub const ChannelMix = *const @TypeOf(Abi.stwo_rv64_channel_mix_on);
 pub const ChannelDraw = *const @TypeOf(Abi.stwo_rv64_channel_draw_on);
 pub const LookupParams = *const fn (*anyopaque, u32, [*]const u32, [*]u32, [*]u32) callconv(.c) c_int;
 pub const Powers = *const fn (*anyopaque, u32, [*]const u32, u64, u32, [*]u32, [*]u32) callconv(.c) c_int;
+/// Streamed Merkle leaves (trace_commit.zig streamRoot): mixed-height leaf
+/// absorption from an optional seed state into a state bank or leaf hashes,
+/// and one Blake2s layer. All take the exec stream; none synchronizes.
+pub const MixedSeeded = *const fn (u32, u32, [*]const Abi.MixedSegment, u32, u32, ?*const anyopaque, ?*anyopaque, ?*anyopaque, *anyopaque) callconv(.c) c_int;
+pub const MixedCompact = *const fn (u32, u32, [*]const Abi.MixedSegment, u32, u32, ?*const anyopaque, u64, ?*anyopaque, u64, ?*anyopaque, u64, *anyopaque) callconv(.c) c_int;
+pub const Layer = *const fn (*const anyopaque, u32, *anyopaque, *anyopaque) callconv(.c) c_int;
 
 /// The exec stream is lane 0 of the worker's exec context. Every outer
 /// operation is ordered on it: one stream, no cross-lane joins.
@@ -61,6 +67,14 @@ pub const Kernels = struct {
     channel_draw: ChannelDraw,
     lookup_params: LookupParams,
     powers: Powers,
+    /// Optional streamed-commit kernels (outer_trace_commit.zig enqueueStreamed).
+    mixed_seeded: ?MixedSeeded = null,
+    mixed_compact: ?MixedCompact = null,
+    layer: ?Layer = null,
+    /// Compact eager state banks (8 + pending words per row instead of 24):
+    /// only with STWO_RV64_COMPACT_EAGER_STATE=1 and the image capability,
+    /// exactly as the legacy trace_commit.zig selects it.
+    compact_eager: bool = false,
 
     fn sym(comptime T: type, lib: *std.DynLib, name: [:0]const u8) !T {
         return lib.lookup(T, name) orelse {
@@ -94,9 +108,21 @@ pub const Kernels = struct {
             .channel_draw = try sym(ChannelDraw, base, "stwo_rv64_channel_draw_on"),
             .lookup_params = try sym(LookupParams, fs, "stwo_rv64_outer_fs_lookup_params_on"),
             .powers = try sym(Powers, fs, "stwo_rv64_outer_fs_powers_on"),
+            .mixed_seeded = base.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_eager_on") orelse base.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_on"),
+            .mixed_compact = base.lookup(MixedCompact, "stwo_blake2s_mixed_seeded_eager_compact_on"),
+            .layer = base.lookup(Layer, "stwo_blake2s_layer_on"),
+            .compact_eager = compactEager(base),
         };
     }
 };
+
+fn compactEager(base: *std.DynLib) bool {
+    const v = std.posix.getenv("STWO_RV64_COMPACT_EAGER_STATE") orelse return false;
+    if (!std.mem.eql(u8, v, "1")) return false;
+    const Capability = *const fn () callconv(.c) c_int;
+    const capability = base.lookup(Capability, "stwo_rv64_compact_eager_state_capability") orelse return false;
+    return capability() == 1 and base.lookup(MixedCompact, "stwo_blake2s_mixed_seeded_eager_compact_on") != null;
+}
 
 pub const Buffer = struct {
     ptr: [*]u32,
@@ -131,6 +157,12 @@ pub const Device = struct {
     vtable: *const VTable,
     kernels: *const Kernels,
     counters: Counters = .{},
+    /// Optional measurement hook: the body announces its phase (outer_heap
+    /// Phase ordinal) so per-phase memory peaks can be attributed.
+    phase_hook: ?*const fn (*anyopaque, u8) void = null,
+    pub fn phase(self: *Device, which: u8) void {
+        if (self.phase_hook) |hook| hook(self.impl, which);
+    }
 
     pub const VTable = struct {
         alloc: *const fn (*anyopaque, usize) anyerror!Buffer,

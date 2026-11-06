@@ -51,25 +51,7 @@ pub fn enqueue(device: *K.Device, plan: *const Plan.TreePlan, commit: Commit) !v
     if (plan.beta != 1) return error.UnsupportedOuterJobBlowup;
     const s = commit.statics;
     // 1. Coefficients: one compact B2N per height group, in sorted order.
-    for (plan.groups) |group| {
-        const rows: u64 = @as(u64, 1) << @intCast(group.log);
-        if (rows / 2 > s.itwiddle_words) return error.InvalidOuterTwiddles;
-        var launches: u32 = 0;
-        try device.check(device.kernels.b2n(
-            commit.evaluations + group.coefficient_offset,
-            @intCast(rows),
-            commit.coefficients + group.coefficient_offset,
-            @intCast(rows),
-            group.log,
-            group.count,
-            s.itwiddles + (s.itwiddle_words - rows / 2),
-            @intCast(rows / 2),
-            @intCast(rows / 2),
-            device.stream,
-            &launches,
-        ));
-        device.counters.internal += launches -| 1;
-    }
+    try interpolate(device, plan, commit.evaluations, commit.coefficients, s);
     // 2. Evaluations at blowup, one LDE call per height group.
     const capacity = plan.tree_words + plan.prefix_words;
     if (commit.tree.words < capacity) return error.OuterTreeBufferTooSmall;
@@ -102,6 +84,197 @@ pub fn enqueue(device: *K.Device, plan: *const Plan.TreePlan, commit: Commit) !v
     }
     // 3. Merkle tree + prefix banks; the root is the tree's last 8 words.
     try device.check(device.kernels.tree(device.ctx, K.lane, &segments, @intCast(plan.groups.len), plan.eval_log, commit.tree.ptr, capacity));
+}
+
+// ---------------------------------------------------------------------------
+// Streamed (chunk-bounded) commit. Same transforms, same Merkle root as
+// `enqueue`, but the LDE is never materialised: one bounded chunk of
+// evaluations is hashed into an unfinalized per-row Blake2s state at a time
+// (trace_stream_plan.zig; the legacy trace_commit.zig streamRoot schedule,
+// which is the deployed default and byte-identical to stwo_rv64_trace_tree_on
+// because a lifted leaf is one sponge over the columns in commit order and
+// may be split at any column boundary). Peak scratch is
+//   one chunk (<= budget words) + two state banks (rows x 8..24 words),
+// independent of the column count, and the tree is built in the bank that is
+// dead after the final absorption. Only the root survives: it is copied to
+// `root_out` (8 words) before the banks are freed, so nothing tree-sized
+// outlives the commit (the PCS rebuilds every tree it opens and finish
+// checks the rebuilt roots against these).
+
+const StreamPlan = @import("../trace_stream_plan.zig");
+
+/// Default evaluation chunk of the job path (words). The banks, not the
+/// chunk, dominate at large heights; 2^26 keeps the chunk a minor term.
+pub const default_stream_chunk_words: usize = 1 << 26;
+
+/// STWO_RV64_M8_OUTER_STREAM: unset/"1" -> streamed commits when the base
+/// image exports the mixed-leaf kernels; "0" -> the full-LDE tree path.
+/// STWO_RV64_M8_OUTER_STREAM_CHUNK_WORDS bounds one chunk. Neither changes a
+/// committed word.
+pub fn streamSelected(kernels: *const K.Kernels) bool {
+    if (std.posix.getenv("STWO_RV64_M8_OUTER_STREAM")) |v| if (std.mem.eql(u8, v, "0")) return false;
+    return kernels.layer != null and (kernels.mixed_compact != null or kernels.mixed_seeded != null);
+}
+pub fn streamChunkWords() usize {
+    const v = std.posix.getenv("STWO_RV64_M8_OUTER_STREAM_CHUNK_WORDS") orelse return default_stream_chunk_words;
+    const words = std.fmt.parseUnsigned(usize, v, 10) catch return default_stream_chunk_words;
+    return if (words == 0) default_stream_chunk_words else words;
+}
+
+/// Class-static stream schedule of one tree (host only; built in pre-stage).
+pub const Stream = struct {
+    plan: StreamPlan.Plan,
+    /// Sorted-order LDE rows of every column (plan input, kept for enqueue).
+    rows: []u32,
+    compact: bool,
+
+    pub fn init(a: std.mem.Allocator, tree: *const Plan.TreePlan, budget_words: usize, compact: bool) !Stream {
+        const rows = try a.alloc(u32, tree.order.len);
+        errdefer a.free(rows);
+        for (rows, tree.order) |*r, original| r.* = @as(u32, 1) << @intCast(tree.logs[original] + tree.beta);
+        return .{ .plan = try StreamPlan.planSelected(a, rows, budget_words, compact), .rows = rows, .compact = compact };
+    }
+    pub fn deinit(self: *Stream, a: std.mem.Allocator) void {
+        self.plan.deinit(a);
+        a.free(self.rows);
+        self.* = undefined;
+    }
+    /// Device words the commit allocates (chunk + both banks, granule rounded).
+    pub fn scratchWords(self: *const Stream) u64 {
+        const g = struct {
+            fn r(w: usize) u64 {
+                return std.mem.alignForward(u64, @max(w, 1), 64);
+            }
+        }.r;
+        return g(self.plan.chunk_words) + g(self.plan.bank_words[0]) + g(self.plan.bank_words[1]);
+    }
+};
+
+/// How the LDE twiddle arguments are formed for a column of `lde_rows` rows:
+/// `.tail` = the eval-height tree's last rows/2 words (TC convention),
+/// `.whole` = the tree as staged with an explicit domain size (RC commit).
+pub const TwiddleMode = enum { tail, whole };
+
+pub const StreamCommit = struct {
+    evaluations: [*]const u32,
+    coefficients: [*]u32,
+    /// 8 device words that receive the root (e.g. a slab section field).
+    root_out: [*]u32,
+    statics: Statics,
+    twiddle_mode: TwiddleMode = .tail,
+    /// Skip interpolation: `coefficients` already hold coefficients (RC).
+    interpolate: bool = true,
+};
+
+/// Enqueues interpolation (unless disabled), the streamed LDE -> mixed-leaf
+/// absorption and the Merkle layers; copies the root to `root_out`. All
+/// scratch is allocated and freed (stream ordered) inside.
+pub fn enqueueStreamed(device: *K.Device, plan: *const Plan.TreePlan, stream: *const Stream, commit: StreamCommit) !void {
+    if (plan.beta != 1) return error.UnsupportedOuterJobBlowup;
+    const layer = device.kernels.layer orelse return error.MissingOuterStreamKernels;
+    if (stream.compact and device.kernels.mixed_compact == null) return error.MissingOuterStreamKernels;
+    if (!stream.compact and device.kernels.mixed_seeded == null) return error.MissingOuterStreamKernels;
+    if (stream.rows.len != plan.order.len) return error.InvalidOuterTreePlan;
+    const s = commit.statics;
+    if (commit.interpolate) try interpolate(device, plan, commit.evaluations, commit.coefficients, s);
+    const p = &stream.plan;
+    // Chunk first, then the banks: the last-allocated bank (1) is freed first.
+    const chunk = try device.alloc(@max(p.chunk_words, 1));
+    defer device.free(chunk);
+    var banks: [2]K.Buffer = undefined;
+    banks[0] = try device.alloc(@max(p.bank_words[0], 1));
+    defer device.free(banks[0]);
+    banks[1] = try device.alloc(@max(p.bank_words[1], 1));
+    defer device.free(banks[1]);
+    var hashes: [*]u32 = banks[0].ptr;
+    for (p.calls) |c| {
+        var segments: [StreamPlan.max_segments]Abi.MixedSegment = undefined;
+        var count: u32 = 0;
+        var cursor: usize = 0;
+        var i: usize = c.first;
+        while (i < c.end) {
+            // Equal-height sorted columns are contiguous in the packed
+            // coefficient buffer: one LDE call and one segment per run.
+            var j = i + 1;
+            while (j < c.end and stream.rows[j] == stream.rows[i]) : (j += 1) {}
+            const lde_rows: usize = stream.rows[i];
+            const n = lde_rows >> @intCast(plan.beta);
+            const log: u32 = @intCast(std.math.log2_int(usize, lde_rows));
+            const destination = chunk.ptr + cursor;
+            const tw: [*]const u32, const tw_words: u32 = switch (commit.twiddle_mode) {
+                .tail => blk: {
+                    if (lde_rows / 2 > s.twiddle_words) return error.InvalidOuterTwiddles;
+                    break :blk .{ s.twiddles + (s.twiddle_words - lde_rows / 2), @intCast(lde_rows / 2) };
+                },
+                .whole => .{ s.twiddles, s.twiddle_words },
+            };
+            var launches: u32 = 0;
+            try device.check(device.kernels.n2b_columns(
+                commit.coefficients + @as(usize, @intCast(plan.offsets[plan.order[i]])),
+                n,
+                s.sorted_logs + i,
+                destination,
+                lde_rows,
+                log,
+                @intCast(j - i),
+                tw,
+                tw_words,
+                @intCast(lde_rows / 2),
+                device.stream,
+                &launches,
+            ));
+            device.counters.internal += launches -| 1;
+            if (count == segments.len) return error.InvalidOuterTreePlan;
+            segments[count] = .{ .columns = destination, .stride_words = lde_rows, .capacity_words = lde_rows * (j - i), .source_size = @intCast(lde_rows) };
+            count += 1;
+            cursor += lde_rows * (j - i);
+            i = j;
+        }
+        if (cursor > chunk.words) return error.InvalidOuterTreePlan;
+        const seed: ?*const anyopaque = if (c.seed_bank) |bank| @ptrCast(banks[bank].ptr) else null;
+        const out: *anyopaque = @ptrCast(banks[c.out_bank].ptr);
+        if (stream.compact) {
+            const seed_words: u64 = if (c.seed_bank) |bank| p.bank_words[bank] else 0;
+            const out_words: u64 = p.bank_words[c.out_bank];
+            try device.check(device.kernels.mixed_compact.?(c.size, count, &segments, c.absorbed, c.seed_size, seed, seed_words, if (c.final) null else out, if (c.final) 0 else out_words, if (c.final) out else null, if (c.final) out_words else 0, device.stream));
+        } else {
+            try device.check(device.kernels.mixed_seeded.?(c.size, count, &segments, c.absorbed, c.seed_size, seed, if (c.final) null else out, if (c.final) out else null, device.stream));
+        }
+        if (c.final) hashes = banks[c.out_bank].ptr;
+    }
+    // Merkle layers above the leaves, in the dead final bank (legacy
+    // streamRoot / stwo_rv64_trace_tree_on layer loop).
+    var offset: usize = 0;
+    var next_offset: usize = p.leaves;
+    var nodes: usize = p.leaves;
+    while (nodes > 1) : (nodes >>= 1) {
+        try device.check(layer(@ptrCast(hashes + offset * 8), @intCast(nodes / 2), @ptrCast(hashes + next_offset * 8), device.stream));
+        offset = next_offset;
+        next_offset += nodes / 2;
+    }
+    try device.copy(commit.root_out, hashes + (p.tree_words - 8), 8);
+}
+
+fn interpolate(device: *K.Device, plan: *const Plan.TreePlan, evaluations: [*]const u32, coefficients: [*]u32, s: Statics) !void {
+    for (plan.groups) |group| {
+        const rows: u64 = @as(u64, 1) << @intCast(group.log);
+        if (rows / 2 > s.itwiddle_words) return error.InvalidOuterTwiddles;
+        var launches: u32 = 0;
+        try device.check(device.kernels.b2n(
+            evaluations + group.coefficient_offset,
+            @intCast(rows),
+            coefficients + group.coefficient_offset,
+            @intCast(rows),
+            group.log,
+            group.count,
+            s.itwiddles + (s.itwiddle_words - rows / 2),
+            @intCast(rows / 2),
+            @intCast(rows / 2),
+            device.stream,
+            &launches,
+        ));
+        device.counters.internal += launches -| 1;
+    }
 }
 
 // ---------------------------------------------------------------------------
