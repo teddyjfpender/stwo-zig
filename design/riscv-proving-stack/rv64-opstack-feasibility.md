@@ -317,3 +317,92 @@ The "fixed cost per L2 block" column covers derivation, oracle and blob checks, 
     - The instruction set (RV64IM, no A/C/F) [measured].
     - All 19 fences are `fence w,0` and pass `decode.zig:323` [measured + verified-source].
     - revm 42, k256 0.13.4 and our Keccak/SHA services can be reused as-is [verified-source].
+---
+
+## 8. Frontier reference: ZisK proving OP Mainnet live (op.zisk.build), and what it changes for us
+
+*Added 2026-11-05.* Source: the live dashboard [op.zisk.build](https://op.zisk.build/). Its data was read through the page's own `config.js` and `data.js` and the `api/v1/client` and `api/v1/query_range` endpoints it uses. A compact snapshot is committed at `vectors/reports/rv64-opstack-20261105/zisk-op-mainnet-snapshot.json`: 500 range proofs (≈83 min of chain) and 64 batches, captured 2026-11-05T13:41Z.
+
+These are third-party live metrics that we read but did not reproduce, labelled **[M-ext]**. The page publishes no proof system parameters, security level, GPU kernel details or repository links, so anything about ZisK internals below that is not on the page is labelled **[inferred]**.
+
+### 8.1 What it is
+
+- **Chain:** OP Mainnet (`config.js`: `{"name": "OP Mainnet", "genesisL2Block": 105235063, "blockTime": 2}`), proven continuously, "every block as it is made".
+- **Hardware:** **one host with 4 NVIDIA RTX 5090 workers** (`coordinator_workers_connected = 4`, cluster label `workers-1-4`, host `worker-1`) [M-ext]. That matches our 4-GPU standard.
+- **The pipeline, in the page's own words.** "We prove the blocks in ranges as soon as they exist." The chain posts a batch to Ethereum every few minutes. "From the moment the batch is on Ethereum, the clock runs until its validity proof is done." Closing a batch is three jobs:
+  - **Derive** ("proving the batch is exactly what [the chain] posted to Ethereum");
+  - **Bind** ("tying the block proofs and the derivation into one proof");
+  - **SNARK** ("wrapping it into the compact form Ethereum verifies cheaply").
+
+  Range proofs are "aggregated as they come": folded range by range into one running proof of the batch.
+
+### 8.2 Measured numbers [M-ext]
+
+| Metric | Value |
+|---|---|
+| Execution range size | **5 L2 blocks** in every proof (10 s of chain) |
+| Execution range proof time (`zc_recent_proof_prover_seconds`, n = 500) | min 2.70 s, **median 3.41 s**, p90 4.29 s, max 9.83 s |
+| Transactions per 5-block range | min 73, **median 105**, p90 176, max 890 |
+| Per-GPU phases of the last proof (10-min window, 4 workers) | phase 1 median 0.71 s (max 1.19); phase 2 median 2.19 s (max 3.40). All 4 GPUs work on each range. |
+| Implied GPU duty cycle [D] | 3.41 s of proving per 10 s of chain, ≈ **34%**; the page says "the cluster has room to spare" |
+| Blocks per L1 batch (n = 64) | min 16, **median 176**, p90 281, max 329 |
+| Execution proofs per batch | median 36, p90 57, max 66 |
+| **L1 batch timestamp → validity proof** | min 8.71 s, **median 10.38 s**, p90 11.76 s, max 19.0 s |
+| Batch first seen by their node → validity proof | median 7.22 s, p90 7.45 s |
+| Close-out steps, seconds (median / p90 / max) | **channel (derive) 2.83 / 3.02 / 3.57**; **final (bind) 2.44 / 2.48 / 2.56**; **wrap (SNARK) 1.71 / 1.72 / 1.74** |
+| Queueing before each step (`step_waited_seconds`) | ≈0 (channel max 5.2 s once) |
+
+So:
+- The roughly 3 s gap between L1 inclusion and "seen" is L1 sync and download.
+- The rest is a **fixed, batch-size-independent** close-out of about 7 s: derive, bind, wrap.
+- Execution proving is entirely off the latency path.
+
+### 8.3 What we take from it
+
+1. **Prove execution apart from derivation.** This is the biggest structural lesson.
+   - ZisK proves L2 *execution* in short ranges from the sequencer's blocks, before the batch reaches L1 [inferred from "as soon as they exist" and the Witness/Derive split]. After L1 inclusion it proves only that the posted batch derives to exactly those blocks, then binds the two.
+   - OP Succinct's range program, which our P0 currently ports, does derivation **and** execution inside one guest per range. That puts L1 sync, blob/KZG work and derivation on every range proof's critical path.
+   - Splitting them means:
+     - **Execution proofs reuse our L1 pipeline almost unchanged.** OP execution is EVM plus deposit transactions (0x7E), the L1 data fee (FastLZ), the operator fee and OP precompile limits. That's our evmone RV64 guest with OP rules, on the same GPU prover, recursion and campaign as #314. The study's "optional" evmone-with-OP-rules item (≈2.5–3× cheaper execution than Kona-as-is) becomes the main path.
+     - **Derivation becomes a small, separate guest:** L1 header/receipt walk → blob or calldata → channel frames → (span) batches → a commitment to each L2 block's transaction list and attributes. Blob/KZG and brotli costs land only there.
+     - **Latency becomes a fixed close-out cost**, independent of batch size.
+   - **Soundness:** the bind step must enforce exactly what the monolithic range program enforced, including the fix for advisory **GHSA-5jh4-3p33-85xc**. Each executed block's inputs (transactions, deposits, L1 attributes, timestamps, parent hash, and the L1 origin's hash and number) must equal what derivation produced, and the state roots must chain. Write this as a named binding note with a tamper corpus before any split proof ships.
+2. **Aggregate as you go.**
+   - Range proofs are folded into one running proof per batch as they finish (`zc_recent_proof_folded_timestamp_seconds`), so closing a batch is one bind step, not a tree.
+   - This is the comb / running-accumulator topology in the 4-GPU design doc (`codex/rv64-4gpu-realtime-design`, `design/riscv-proving-stack/rv64-4gpu-realtime.md` §6 g).
+   - For us it requires a constant fold VK (M5 canonical / set-v2) and a fold that accepts {accumulator, new range proof}.
+3. **Small ranges keep latency down.** Five blocks keeps each proof near 3.4 s and the backlog near zero. On a light chain, choose range size for latency and queue depth, not for amortised cost. Our earlier "5–30-block ranges" sizing was cost-driven. Re-evaluate it once P0 measures our per-range fixed cost.
+4. **Four GPUs keep up with OP Mainnet with headroom.**
+   - About 21 transactions per 2 s block on average (105 per 5 blocks) [M-ext].
+   - We have not measured OP block cost on our prover, so we do not claim parity.
+   - The comparison to make in P1: ZisK's **3.41 s median per 5 OP Mainnet blocks on 4×5090**, and **≈10.4 s median from L1 inclusion to validity proof**.
+5. **Use their user-facing metric.** For a rollup the number that matters is **"L1 batch inclusion → validity proof"**, with a p99. Adopt it, plus "range proof seconds per N blocks" and GPU duty cycle, as the headline metrics of this PR. Their bar is median 10.4 s, p90 11.8 s.
+6. **Wrap vs pure STARK.**
+   - ZisK spends 1.71 s on a SNARK wrap.
+   - The owner decision for us is a pure Stwo STARK, verified directly (P3), so that slot is our two-stage compression instead: C1/C2 from the 10x plan's M7, with a ≤1.5 s budget in the 4-GPU doc.
+   - The target close-out (derive + bind + compress) should therefore be comparable, about 7 s.
+7. **Unsafe-head reorgs** [inferred requirement]. Proving ahead on blocks that are not yet on L1 means a sequencer reorg, or an unsafe block that differs from the derived one, invalidates range proofs. The coordinator must:
+   - key range proofs by (block hash, parent hash);
+   - have bind reject any mismatch;
+   - re-prove from the fork point.
+
+   Test it with a reorg injection harness.
+8. **Copy the observability model.**
+   - Their page is driven by Prometheus ring buffers:
+     - per proof: first and last block, prover seconds, transactions, ended and folded timestamps;
+     - per batch: L1 block and timestamp, seen time, execution-proof count, and seconds and waited seconds per step;
+     - coordinator: connected workers, per-worker phase seconds, recent jobs.
+   - Any past moment can be replayed (`?since=`).
+   - We should emit the same series from our resident service, which is a cleaner public form of our progress ledger.
+
+### 8.4 Consequences for the phased plan (supersedes §6 where they differ)
+
+- **P0 is re-cut into two measurements:**
+  - **P0a, execution:** OP Mainnet and Base blocks through **evmone with OP rules** on our RV64 emulator, plus a Kona-executor baseline for comparison. Report instructions per gas, and the differential against op-reth over ≥10³ blocks to start.
+  - **P0b, derivation:** a minimal derivation guest (L1 receipts/blobs → frames → channels → batches → per-block input commitments). Report instructions per L1 batch, blob/KZG cost and witness bytes.
+  - Kill criteria carry over per part.
+- **P1:** native proofs of (a) a 5-block execution range on GPU and (b) one batch derivation. Gates:
+  - range-proof seconds per 5 OP Mainnet blocks on 4×5090, compared with ZisK's 3.41 s median;
+  - derivation-proof seconds per batch, compared with their 2.83 s.
+- **P2:** a bind circuit (per-block input equality, root chaining, L1 origin binding, the GHSA-5jh4 case), a running-accumulator fold with a constant VK, a reorg-aware coordinator, and the Prometheus series above. Gate: **L1 inclusion → root proof** measured on live OP Mainnet in shadow mode, against ZisK's median 10.4 s.
+- **P3:** unchanged (pure STARK, two-stage compression, Solidity verifier). The compress step replaces ZisK's 1.71 s wrap in the close-out budget.
