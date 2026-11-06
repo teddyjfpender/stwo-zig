@@ -143,6 +143,4 @@ pub fn writeReceipt(a: std.mem.Allocator, graph: *const S.Graph, scheduler: *con
     try dir.writeFile(.{ .sub_path = "m8-jobs.json", .data = text.written() });
 }
 
-test {
-    _ = @import("request_test.zig");
-}
+// Tests: request_test.zig (separate test binary, see rv64_jobs_sched_test_root.zig).

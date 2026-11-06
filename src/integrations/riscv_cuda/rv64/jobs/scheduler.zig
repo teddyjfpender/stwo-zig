@@ -340,6 +340,4 @@ pub const Scheduler = struct {
     }
 };
 
-test {
-    _ = @import("scheduler_test.zig");
-}
+// Tests: scheduler_test.zig (separate test binary, see rv64_jobs_sched_test_root.zig).
