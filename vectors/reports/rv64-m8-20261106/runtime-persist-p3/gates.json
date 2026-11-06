@@ -1,0 +1,27 @@
+{
+ "schema": "rv64-m8-stream-gates/v1",
+ "stream": "m8-runtime-persist-p3",
+ "source_commit": "03291f578f38fb0d9e096abd9b8f30965b7e3202",
+ "landed_as": "b9a009101 (same tree, rebased onto integrate dfe586711; cbd243482 dropped as the duplicate of dfe586711)",
+ "pod_run": "/workspace/m3/runs/m8-runtime-persist-p3/g1",
+ "jobs_addon_sha256": "7843b49819837d2323c61dc0c53b677485a4befe55948eeea8f0f46be699abda",
+ "outer_fs_sha256": "166556d185cc01333cbe43d2e38dbc3cc12d1b0d35a30b67e0e12d4474bc8e52",
+ "gates": [
+  {"name": "default", "args": "--block 26235156", "status": "PASS", "gate_json_sha256": "9bb460e39a5536c2913981923832396a87baf25955dd99bbde54cc4b823496c4",
+   "frozen_default_sha256": "5987d31c4253ba204e3b782790e0e5871e7b9787e9e26fbb70f65dbfab818d95"},
+  {"name": "jobs", "args": "--env STWO_RV64_M8_JOBS=1 STWO_RV64_M8_JOBS_PINNED_LAZY=1", "status": "FAIL (fail-closed, unchanged vs integrate)",
+   "detail": "workers boot and pass boot parity, then M8RequestProviderNotLanded (same as jobs/SUMMARY.md on integrate)",
+   "gate_json_sha256": "9b8dce194ee831e93ec31525ccd6ea45a0f996439a64bc23b94bf255965347b4"},
+  {"name": "hybrid-26235156", "args": "--env STWO_RV64_M8_OUTER_JOBS=1 (pinned 2365587456, lazy)", "status": "FAIL (fail-closed, unchanged vs integrate)",
+   "detail": "11 job nodes direct; folds 4 and 9 JobFootprintExceedsArena; teardown panic 'host budget heap underflow' (exit -6) - identical to integrate's m8-wire-outer-p2/gate-h2",
+   "gate_json_sha256": "f6ee69ca8af9dc9d8bb6541d81c244046fbc10f914926a6c952eb9f5c6ec1c45"},
+  {"name": "hybrid-24628607", "args": "same as hybrid-26235156", "status": "FAIL (fail-closed)",
+   "detail": "12 job nodes direct; fold 4 JobFootprintExceedsArena; same teardown panic",
+   "gate_json_sha256": "40548356a01249ab98b7965d172ae7cb667799d0f4b39584b7e88cce65ef6289"}
+ ],
+ "host_tests": {"local_debug": "test-rv64-jobs + test-rv64-jobs-outer 254/259, 5 GPU-only skipped",
+                "pod_releasesafe": "17/17 steps, 254/259, 5 skipped (runs/m8-runtime-persist-p3/host-3.log sha256 0743beeb...476dd)"},
+ "channel_parity": {"run": "parity-2 (GPUs 0,1, 4 jobs/worker)", "ok": true, "jobs": 24, "failures": 0, "boundary_snapshots": "896/896",
+                    "stderr_sha256": "4df93ea8949333e9ed439a85c3a0a8ac09b93a5b37aa8355690df1b4899d35a9"},
+ "reachability": "The one new flag reachable is STWO_RV64_M8_JOBS_PINNED_LAZY (default off on WorkerSet.start); both job-flag gates ran with it =1 and fail closed exactly as integrate (eager slots). WorkerSet.startParked/park/unpark have no production caller until outer-fold consumes them; Options.prep_threads defaults to 0 (synchronous)."
+}
