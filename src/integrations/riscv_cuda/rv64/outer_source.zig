@@ -44,6 +44,96 @@ pub fn checked(status: c_int) !void {
 fn sym(comptime T: type, lib: *std.DynLib, name: [:0]const u8) !T {
     return lib.lookup(T, name) orelse error.MissingOm31OuterKernel;
 }
+/// STWO_RV64_M8_OUTER_ASYNC_RETIRE: unset/"0" off (default), "1" on.
+pub fn asyncRetireEnabled() !bool {
+    const value = std.posix.getenv("STWO_RV64_M8_OUTER_ASYNC_RETIRE") orelse return false;
+    if (std.mem.eql(u8, value, "0")) return false;
+    if (std.mem.eql(u8, value, "1")) return true;
+    return error.InvalidOuterAsyncRetireOption;
+}
+/// Frees joined CPU assignment plans off the proof path. A plan holds only
+/// host slices (MAIN generation already joined every upload and kernel that
+/// read them); its allocator is the cross-thread one prepareHost already
+/// uses. The thread is spawned once per lane: a per-node spawn maps a stack,
+/// and both that mmap and the plan's munmap wait on the process mmap lock
+/// that page-faulting host-prep workers hold (measured: the owner-thread
+/// interval was unchanged with a per-node spawn). One slot bounds retained
+/// host memory to one plan per lane; a full slot is waited on, not grown.
+pub const Retirer = struct {
+    mutex: std.Thread.Mutex = .{},
+    cond: std.Thread.Condition = .{},
+    slot: ?Assignment.Prepared = null,
+    stopping: bool = false,
+    thread: ?std.Thread = null,
+    /// Diagnostics for STWO_RV64_M8_OUTER_TRACE (guarded by mutex).
+    last_free_ns: u64 = 0,
+    last_spawn_ns: u64 = 0,
+    last_wait_ns: u64 = 0,
+    attempts: u8 = 0,
+    fn loop(self: *Retirer) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        while (true) {
+            while (self.slot == null and !self.stopping) self.cond.wait(&self.mutex);
+            var plan = self.slot orelse return;
+            self.mutex.unlock();
+            var timer = std.time.Timer.start() catch unreachable;
+            plan.deinit();
+            const free_ns = timer.read();
+            self.mutex.lock();
+            self.last_free_ns = free_ns;
+            self.slot = null;
+            self.cond.broadcast();
+        }
+    }
+    pub fn retire(self: *Retirer, plan: Assignment.Prepared) void {
+        var timer = std.time.Timer.start() catch unreachable;
+        self.mutex.lock();
+        if (self.thread == null and !self.stopping) self.spawnLocked("lazy");
+        self.last_spawn_ns = timer.lap();
+        if (self.thread == null) {
+            self.mutex.unlock();
+            var owned = plan;
+            owned.deinit();
+            return;
+        }
+        while (self.slot != null) self.cond.wait(&self.mutex);
+        self.last_wait_ns = timer.lap();
+        self.slot = plan;
+        self.cond.broadcast();
+        self.mutex.unlock();
+    }
+    fn spawnLocked(self: *Retirer, site: []const u8) void {
+        if (self.thread != null or self.attempts >= 2) return;
+        self.attempts += 1;
+        self.thread = std.Thread.spawn(.{}, loop, .{self}) catch |err| blk: {
+            const errno = std.c._errno().*;
+            std.debug.print("GPU_OUTER_M8_RETIRER_SPAWN_FAILED site={s} error={s} errno={d}\n", .{ site, @errorName(err), errno });
+            break :blk null;
+        };
+    }
+    /// Starts the helper from the lane-setup thread (stable Context address).
+    pub fn start(self: *Retirer) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (!self.stopping) self.spawnLocked("setup");
+    }
+    /// Drains the slot and joins the helper; later retire calls free inline.
+    pub fn stop(self: *Retirer) void {
+        self.mutex.lock();
+        self.stopping = true;
+        self.cond.broadcast();
+        const thread = self.thread;
+        self.thread = null;
+        self.mutex.unlock();
+        if (thread) |t| t.join();
+    }
+};
+/// STWO_RV64_M8_OUTER_TRACE=1 prints per-node M8 host-boundary timings.
+pub fn m8Trace() bool {
+    const value = std.posix.getenv("STWO_RV64_M8_OUTER_TRACE") orelse return false;
+    return std.mem.eql(u8, value, "1");
+}
 pub const Entry = struct { group: Aot.Group, metadata: RC.KernelMetadata };
 pub const Context = struct {
     allocator: std.mem.Allocator,
@@ -76,6 +166,9 @@ pub const Context = struct {
     /// (see prepareHost). Consumed by the next prepareImpl for that graph.
     staged: ?Assignment.Prepared = null,
     staged_graph: ?*const anyopaque = null,
+    /// STWO_RV64_M8_OUTER_ASYNC_RETIRE=1: already-joined CPU assignment
+    /// plans are freed on this persistent helper while the lane proceeds.
+    retirer: Retirer = .{},
     mutex: std.Thread.Mutex = .{},
     pub fn init(a: std.mem.Allocator, service: *Service.Context, trace_commit: *TC.Context, composition: *RC.Context) !Context {
         if (service.admission) |endpoint| {
@@ -98,6 +191,7 @@ pub const Context = struct {
     }
     pub fn deinit(self: *Context) void {
         std.debug.assert(self.active == null and self.fixed_pending == null);
+        joinRetirer(self);
         unstageHost(self);
         if (self.assignment) |*assignment| assignment.deinit();
         self.assignment_graphs.deinit(self.allocator, self.service);
@@ -105,6 +199,12 @@ pub const Context = struct {
         for (self.entries.items) |*e| e.metadata.deinit();
         self.entries.deinit(self.allocator);
         self.* = undefined;
+    }
+    fn joinRetirer(self: *Context) void {
+        self.retirer.stop();
+    }
+    fn retireDetached(self: *Context, plan: Assignment.Prepared) void {
+        self.retirer.retire(plan);
     }
     pub fn factory(self: *Context) Dev.Factory {
         return .{ .context = self, .controller = self.controller(), .requires_native_complete = self.controller() != null and self.service.parent == null, .memory_admission_enabled = globalAdmissionEnabled, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit, .prepare_host = prepareHost, .tape_ready = tapeReady, .stage_host = stageHost, .unstage_host = unstageHost };
@@ -224,6 +324,7 @@ pub const Context = struct {
     /// Explicit candidate: same numerical runtime; no host FIXED commitment.
     /// No default factory or receiver selects this path.
     pub fn factoryWithDeviceFixed(self: *Context) !Dev.Factory {
+        if (try asyncRetireEnabled()) self.retirer.start();
         var result = try self.factoryForTraceOnly();
         result.precommit_fixed = @import("outer_fixed.zig").precommit;
         return result;
@@ -240,6 +341,7 @@ pub const Context = struct {
         return self.hybrid.?.attach(self, self.factory());
     }
     pub fn factoryForTraceOnly(self: *Context) !Dev.Factory {
+        if (try asyncRetireEnabled()) self.retirer.start();
         if (@import("stwo_riscv_cpu_integration").rv64_om31_outer_wrap.hybridProfileActive()) return self.factoryForHybrid();
         try Assignment.requireProductionCapabilities(&self.service.library);
         return self.factory();
@@ -376,10 +478,18 @@ pub const Context = struct {
         } else try owner.run(@import("outer_source_main.zig").generate);
         // MAIN generation joined every metadata upload and witness kernel.
         // INTER/PCS retain device columns only; no CPU plan escapes its budget.
-        owner.retireAssignment();
+        var retire_timer = std.time.Timer.start() catch unreachable;
+        if (try asyncRetireEnabled()) owner.retireAssignmentDetached() else owner.retireAssignment();
+        const retire_ns = retire_timer.read();
         owner.input = &.{};
         const commit = self.trace_commit.stage();
         owner.main = try commit.commit(commit.context, a, .{ .scope = scope, .config = try Outer.protocol.targetConfig(), .tree_index = 1, .columns = owner.main_columns });
+        if (m8Trace()) {
+            self.retirer.mutex.lock();
+            const r = .{ self.retirer.last_spawn_ns, self.retirer.last_wait_ns, self.retirer.last_free_ns };
+            self.retirer.mutex.unlock();
+            std.debug.print("GPU_OUTER_M8_RETIRE ordinal={} retire_ns={} lock_wait_ns={} take_ns={} handoff_ns={} spawn_ns={} slot_wait_ns={} previous_free_ns={} retire_plus_tc_main_ns={} async={}\n", .{ scope.ordinal, retire_ns, Owner.lock_wait_ns, Owner.take_ns, Owner.handoff_ns, r[0], r[1], r[2], retire_timer.read(), try asyncRetireEnabled() });
+        }
         owner.scope.main = owner.main.?.root;
         if (fixed) |setup| try setup.promote(owner.scope);
         return .{ .context = owner, .scope = owner.scope, .main = owner.main.?, .channel_observer = try @import("device_fs_check.zig").create(a, self.service, owner.scope, key.identity, Dev.class_is_leaf), .fixed = if (fixed) |setup| setup.tree else null, .pcs = &owner.pcs, .composition = &owner.composition_stage, .generate = Owner.interact, .release = Owner.release };
@@ -640,6 +750,29 @@ pub const Owner = struct {
         defer self.backend.mutex.unlock();
         self.retireAssignmentLocked();
     }
+    /// Same custody transitions as retireAssignment; only the host free of
+    /// the detached plan runs on the Context's retirement helper.
+    fn retireAssignmentDetached(self: *Owner) void {
+        var timer = std.time.Timer.start() catch unreachable;
+        const plan = blk: {
+            self.backend.mutex.lock();
+            lock_wait_ns = timer.lap();
+            defer self.backend.mutex.unlock();
+            if (!self.owns_assignment) return;
+            std.debug.assert(self.backend.active == self);
+            const assignment = self.backend.assignment orelse @panic("missing owned atomic circuit plan");
+            self.backend.assignment = self.previous_assignment;
+            self.previous_assignment = null;
+            self.owns_assignment = false;
+            break :blk assignment;
+        };
+        take_ns = timer.lap();
+        self.backend.retireDetached(plan);
+        handoff_ns = timer.read();
+    }
+    threadlocal var lock_wait_ns: u64 = 0;
+    threadlocal var handoff_ns: u64 = 0;
+    threadlocal var take_ns: u64 = 0;
     fn retireAssignmentLocked(self: *Owner) void {
         if (!self.owns_assignment) return;
         std.debug.assert(self.backend.active == self);
@@ -741,6 +874,28 @@ test "atomic circuit plan retires after MAIN while restoring persistent legacy p
     try std.testing.expect(owner.previous_assignment == null);
     try std.testing.expectEqual(@as(u8, 1), backend.assignment.?.identity[0]);
     owner.retireAssignment();
+    backend.assignment.?.deinit();
+}
+
+test "detached retirement keeps custody transitions and frees off thread" {
+    const a = std.testing.allocator;
+    var backend: Context = undefined;
+    backend.mutex = .{};
+    backend.retirer = .{};
+    backend.assignment = try testAssignment(a, 2);
+    var owner: Owner = undefined;
+    owner.backend = &backend;
+    owner.owns_assignment = true;
+    owner.previous_assignment = try testAssignment(a, 1);
+    backend.active = &owner;
+    owner.retireAssignmentDetached();
+    try std.testing.expect(backend.active == &owner);
+    try std.testing.expect(!owner.owns_assignment);
+    try std.testing.expect(owner.previous_assignment == null);
+    try std.testing.expectEqual(@as(u8, 1), backend.assignment.?.identity[0]);
+    owner.retireAssignmentDetached();
+    Context.joinRetirer(&backend);
+    try std.testing.expect(backend.retirer.thread == null and backend.retirer.slot == null);
     backend.assignment.?.deinit();
 }
 

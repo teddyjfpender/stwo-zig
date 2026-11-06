@@ -100,7 +100,7 @@ def command(manifest, arm, round_index, run_root, profile, label="one-stack"):
             '--quiet-pressure-max', str(preset['measurement'].get('quiet_pressure_max', 0.0)),
             '--quiet-timeout', str(preset['measurement']['quiet_timeout_s']),
             '--quiet-stable-samples', str(preset['measurement']['quiet_stable_samples'])]
-    if arm == 'fullstack':
+    if arm in guarded_arms(preset):
         argv += ['--process-budget-guard', assets['process_budget_guard']]
     if profile:
         argv.append('--nsys')
@@ -122,9 +122,14 @@ def fingerprints(row, require_capture=False):
             'recursive': recursive['proof_sha256'], **({'captured_values_sha256': captured} if require_capture else {})}
 
 
-def guard_verdict(receipt, arm):
+def guarded_arms(preset):
+    # A same-memory-model candidate preset may declare no guarded arm.
+    return preset['measurement'].get('physical_guard_arms', ['fullstack'])
+
+
+def guard_verdict(receipt, arm, preset=None):
     guard = receipt.get('physical_budget_guard') or {}
-    if arm == 'baseline':
+    if arm == 'baseline' or (preset is not None and arm not in guarded_arms(preset)):
         if guard:
             raise RuntimeError('baseline auto arena must not be altered by a physical canary')
         return {'status': 'ORIGINAL_BASELINE_AUTO_UNGUARDED', 'ceiling_bytes': None, 'observed_exact_process_peak_bytes': None}
@@ -194,7 +199,7 @@ def run(args):
             raise RuntimeError('quiet admission/diagnostic receipt missing or failed')
         if len(receipt.get('quiet_before_requests', [])) != 2:
             raise RuntimeError('both requests require explicit quiet receipts')
-        entry['physical_budget'] = guard_verdict(receipt, arm)
+        entry['physical_budget'] = guard_verdict(receipt, arm, manifest['preset'])
         if seed is not None:
             logged = f'RECURSION_ADMISSION_ORDER policy=seeded_scramble seed={seed}'
             if logged not in (service / 'producer.stderr').read_text(errors='replace'):
