@@ -81,6 +81,9 @@ pub fn build(b: *std.Build) void {
     jobs_native_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     jobs_native_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
     jobs_native_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    // native-producers: the local GKR job reuses rv64/gkr*.zig (stwo_cuda_backend runtime slices, projection catalogue).
+    jobs_native_root.addImport("stwo_cuda_backend", backend);
+    jobs_native_root.addImport("stwo_riscv_frontend", frontend);
     const jobs_native_run = b.addRunArtifact(b.addTest(.{ .root_module = jobs_native_root }));
     jobs_native_run.setCwd(b.path("."));
     jobs_step.dependOn(&jobs_native_run.step);
@@ -438,6 +441,13 @@ pub fn build(b: *std.Build) void {
     const combined = b.addExecutable(.{ .name = "rv64-word16-ethereum-gpu-combined", .root_module = combined_root });
     combined.linkLibC();
     b.step("build-rv64-ethereum-gpu-combined", "Build one-process native GPU proving and GPU OM31 recursion").dependOn(&b.addInstallArtifact(combined, .{}).step);
+    // M8 native-producers real-block parity harness (pod): legacy native pipeline with a
+    // wrapped local-GKR stage that re-proves every segment as a job and compares.
+    const native_parity_root = b.createModule(.{ .root_source_file = b.path("rv64_m8_native_parity_main.zig"), .target = target, .optimize = optimize });
+    for ([_][]const u8{ "stwo_core", "stwo_prover_api", "stwo_prover_engine", "stwo_riscv_cpu_integration", "stwo_riscv_frontend", "stwo_cuda_backend", "stwo_circuit_cpu_integration", "stwo_circuit_frontend" }) |name| native_parity_root.addImport(name, combined_root.import_table.get(name) orelse @panic("missing native parity dependency"));
+    const native_parity = b.addExecutable(.{ .name = "rv64-m8-native-parity", .root_module = native_parity_root });
+    native_parity.linkLibC();
+    b.step("build-rv64-m8-native-parity", "Build the M8 native-producers real-block parity harness (legacy native + job local GKR)").dependOn(&b.addInstallArtifact(native_parity, .{}).step);
     const combined_check = b.addExecutable(.{ .name = "rv64-combined-gpu-check", .root_module = combined_root });
     combined_check.linkLibC();
     b.step("check-rv64-ethereum-gpu-combined", "Type-check combined GPU proving and recursion without emitting a binary").dependOn(&combined_check.step);
