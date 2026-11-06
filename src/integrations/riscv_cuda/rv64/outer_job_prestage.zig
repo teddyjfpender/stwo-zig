@@ -638,3 +638,41 @@ pub fn assembleHook(_: ?*anyopaque, a: std.mem.Allocator, key: *const anyopaque,
     produced.* = try assemble(a, @ptrCast(@alignCast(key)), staged, job);
     return produced;
 }
+
+/// Host inputs of the FIXED precommit job (jobs/outer_fixed_job.zig) for one
+/// preprocessed circuit: the FIXED commit plan in the authority's original
+/// column order (the same TreePlan Statics.init builds for the node job),
+/// its sorted log table, the raw PP columns and the eval-height twiddles.
+pub const FixedPrecommit = struct {
+    allocator: std.mem.Allocator,
+    plan: Plan.TreePlan,
+    sorted: []u32,
+    raw: [][]const u32,
+    pub fn init(a: std.mem.Allocator, pp: *const circuit.common.preprocessed.PreprocessedCircuit) !FixedPrecommit {
+        const logs = try a.alloc(u32, pp.columns.len);
+        defer a.free(logs);
+        for (logs, pp.columns) |*log, column| {
+            if (column.values.len == 0 or !std.math.isPowerOfTwo(column.values.len)) return error.InvalidOuterFixedGeometry;
+            log.* = column.logSize();
+        }
+        var plan = try Plan.TreePlan.init(a, logs, (try Outer.protocol.targetConfig()).fri_config.log_blowup_factor);
+        errdefer plan.deinit(a);
+        const sorted = try a.alloc(u32, plan.order.len);
+        errdefer a.free(sorted);
+        TC.sortedLogs(&plan, sorted);
+        const raw = try a.alloc([]const u32, pp.columns.len);
+        for (raw, pp.columns) |*dst, column| dst.* = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(column.values));
+        return .{ .allocator = a, .plan = plan, .sorted = sorted, .raw = raw };
+    }
+    pub fn inputs(self: *const FixedPrecommit) !@import("jobs/outer_fixed_job.zig").Inputs {
+        const tw = try Twiddles.get(self.plan.eval_log);
+        return .{ .plan = &self.plan, .raw = self.raw, .sorted_logs = self.sorted, .twiddles = tw.twiddles, .itwiddles = tw.itwiddles };
+    }
+    pub fn deinit(self: *FixedPrecommit) void {
+        const a = self.allocator;
+        a.free(self.raw);
+        a.free(self.sorted);
+        self.plan.deinit(a);
+        self.* = undefined;
+    }
+};
