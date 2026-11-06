@@ -46,7 +46,9 @@ pub const Image = struct {
     pub fn take(self: *Image, region: Region, words: u64) Range {
         const at = &self.words[@intFromEnum(region)];
         const r = Range{ .region = region, .offset = at.*, .words = words };
-        at.* = std.mem.alignForward(u64, at.* + words, 2);
+        // 64 words = 256 B, the allocation alignment every legacy upload
+        // had: kernels may use 16-byte vector loads on any staged input.
+        at.* = std.mem.alignForward(u64, at.* + words, 64);
         return r;
     }
 };

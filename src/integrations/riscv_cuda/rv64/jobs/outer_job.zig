@@ -16,6 +16,7 @@ const K = @import("outer_kernels.zig");
 const St = @import("outer_staged.zig");
 const N = @import("outer_node.zig");
 const Graphs = @import("outer_graph_cache.zig");
+const Heap = @import("outer_heap.zig");
 const Outer = @import("stwo_circuit_cpu_integration").om31;
 const Pcs = @import("native_pcs.zig");
 const Comp = @import("outer_composition.zig");
@@ -63,6 +64,10 @@ pub const Report = struct {
     kernel_nodes: u64 = 0,
     staged_words: [3]u64 = .{ 0, 0, 0 },
     receipt: api.Receipt = .{},
+    /// Work heap (outer_heap.zig): region words, peak live words, allocations.
+    heap_words: u64 = 0,
+    heap_peak_words: u64 = 0,
+    heap_allocations: u64 = 0,
 };
 
 pub const OuterNodeJob = struct {
@@ -246,7 +251,7 @@ pub const OuterNodeJob = struct {
         if (std.posix.getenv("STWO_RV64_M8_OUTER_DECLARE_WORDS")) |v| device = @min(device, std.fmt.parseUnsigned(u64, v, 10) catch device);
         return .{
             .device_words = @intCast(device),
-            .staged_words = @intCast(g(node) + own + (if (whole != 0) long + (if (self.staged.statics.fixed_plan) |fp| g(fp.coefficient_words) else 0) else 0)),
+            .staged_words = @intCast(g(node) + own + (if (whole != 0) (if (self.staged.statics.fixed_plan) |fp| g(fp.coefficient_words) else 0) else 0)),
             .slab_words = self.layout.words,
             .pinned_words = @intCast(node + self.staged.image.words[@intFromEnum(St.Region.class)] + self.staged.image.words[@intFromEnum(St.Region.twiddles)] + pinned_extra),
         };
@@ -306,28 +311,34 @@ pub const OuterNodeJob = struct {
             }
         }
         self.bases = .{ .regions = regions };
-        if (self.whole) |whole| {
-            const p = self.staged.plan();
-            const cs = &self.staged.statics.composition.?;
-            const w = N.Long.words(p);
-            var b: [9]K.Buffer = undefined;
-            const sizes = [_]usize{ w[0], w[1], w[2], w[3], w[4], w[5], @intCast(cs.coefficientWords()), @intCast(cs.treeWords()), @as(usize, cs.param_total) * 8 };
-            for (&b, sizes) |*out, n| {
-                const d = try s.alloc(n);
-                out.* = .{ .ptr = d.ptr, .words = d.words };
-            }
-            self.held = .{ .long = .{ .main_coef = b[0], .inter_coef = b[1], .main_tree = b[2], .inter_tree = b[3], .parameters = b[4], .powers = b[5] }, .composition = b[6], .composition_tree = b[7], .rc_parameters = b[8] };
-            _ = whole;
-            var r = try self.request(self.held.?);
-            defer self.freeRequest(&r);
-            for (r.trees, 0..) |tree, t| for (tree.columns, 0..) |column, c| try self.pcs.?.bindColumn(t, c, column.device.?.words);
-            self.pcs_pinned = try s.pinned(@intCast(self.pcs.?.ingressWords()));
+        if (self.whole != null) self.pcs_pinned = try s.pinned(@intCast(self.pcs.?.ingressWords()));
+    }
+
+    /// Node buffers that live through PCS. Allocated in the job's work window
+    /// (enqueue, before the body), not as staged inputs: they are the largest
+    /// part of a real node, and staged inputs of two jobs coexist in the
+    /// two-sided arena. The PCS framing only names their addresses (host
+    /// writes into pinned ingress, read by the PCS upload inside the body).
+    fn holdBuffers(self: *OuterNodeJob, e: *Heap.Heap) !void {
+        const p = self.staged.plan();
+        const cs = &self.staged.statics.composition.?;
+        const w = N.Long.words(p);
+        var b: [9]K.Buffer = undefined;
+        const sizes = [_]usize{ w[0], w[1], w[2], w[3], w[4], w[5], @intCast(cs.coefficientWords()), @intCast(cs.treeWords()), @as(usize, cs.param_total) * 8 };
+        for (&b, sizes) |*out, n| {
+            const d = try e.alloc(n);
+            out.* = .{ .ptr = d.ptr, .words = d.words };
         }
+        self.held = .{ .long = .{ .main_coef = b[0], .inter_coef = b[1], .main_tree = b[2], .inter_tree = b[3], .parameters = b[4], .powers = b[5] }, .composition = b[6], .composition_tree = b[7], .rc_parameters = b[8] };
+        var r = try self.request(self.held.?);
+        defer self.freeRequest(&r);
+        for (r.trees, 0..) |tree, t| for (tree.columns, 0..) |column, c| try self.pcs.?.bindColumn(t, c, column.device.?.words);
     }
 
     const TailState = struct {
         job: *OuterNodeJob,
         e: *api.Enqueue,
+        heap: *Heap.Heap,
         fn enqueue(raw: *anyopaque, device: *K.Device, in: *const N.TailInputs) anyerror!void {
             const self: *TailState = @ptrCast(@alignCast(raw));
             const nj = self.job;
@@ -356,7 +367,8 @@ pub const OuterNodeJob = struct {
             try device.copy(in.section + Plan.Section.composition_root, croot, 8);
             const oods = try self.e.slab.field(.opaque_words, oods_index);
             const pcs = try self.e.slab.field(.opaque_words, pcs_index);
-            try nj.pcs.?.enqueueOpening(whole.pcs, self.e, nj.pcs_pinned, oods, pcs);
+            var pe = Heap.PcsEnqueue.init(self.e, self.heap);
+            try nj.pcs.?.enqueueOpening(whole.pcs, &pe, nj.pcs_pinned, oods, pcs);
             device.counters.api += 3;
         }
     };
@@ -385,10 +397,21 @@ pub const OuterNodeJob = struct {
     pub fn enqueue(self: *OuterNodeJob, e: *api.Enqueue) !void {
         try e.waitStaged();
         try e.slab.bind(&self.layout);
+        // One work-heap region per node: the declared work peak (footprint
+        // less staged inputs), or as much as the window holds.
+        const fp = self.footprint();
+        const region_words = fp.device_words -| fp.staged_words;
+        var heap = Heap.Heap.init(try e.alloc(@max(region_words, Heap.granule)));
+        if (self.whole != null) try self.holdBuffers(&heap);
         const section = try e.slab.field(.opaque_words, section_index);
-        var view = EnqueueView{ .e = e };
+        var view = EnqueueView{ .e = e, .heap = &heap };
         var device = K.Device{ .ctx = e.ctx(), .stream = e.stream(), .impl = &view, .vtable = &EnqueueView.vtable, .kernels = self.kernels };
-        var tail_state = TailState{ .job = self, .e = e };
+        defer {
+            self.report.heap_words = heap.words;
+            self.report.heap_peak_words = heap.peak;
+            self.report.heap_allocations = heap.allocations;
+        }
+        var tail_state = TailState{ .job = self, .e = e, .heap = &heap };
         var node = N.Node{ .staged = self.staged, .bases = self.bases, .section = section.ptr, .mode = self.mode, .tail = self.tail, .long = if (self.held) |h| h.long else null, .fixed = self.fixed_commit };
         if (self.whole != null) node.tail = .{ .context = &tail_state, .enqueue = TailState.enqueue };
         var body = Body{ .job = self, .e = e, .device = &device, .node = &node, .saved = e.channel.* };
@@ -436,16 +459,17 @@ pub const OuterNodeJob = struct {
 /// Device view over api.Enqueue + its DeviceChannel.
 const EnqueueView = struct {
     e: *api.Enqueue,
+    heap: *Heap.Heap,
     const vtable = K.Device.VTable{ .alloc = alloc, .free = free, .mix = mix, .draw = draw };
     fn of(raw: *anyopaque) *EnqueueView {
         return @ptrCast(@alignCast(raw));
     }
     fn alloc(raw: *anyopaque, words: usize) anyerror!K.Buffer {
-        const b = try of(raw).e.alloc(words);
+        const b = try of(raw).heap.alloc(words);
         return .{ .ptr = b.ptr, .words = b.words };
     }
     fn free(raw: *anyopaque, b: K.Buffer) void {
-        of(raw).e.free(.{ .ptr = b.ptr, .words = b.words });
+        of(raw).heap.free(.{ .ptr = b.ptr, .words = b.words });
     }
     fn mix(raw: *anyopaque, words: [*]const u32, count: u32, field: bool) anyerror!void {
         const b = api.DeviceBuffer{ .ptr = @constCast(words), .words = count };

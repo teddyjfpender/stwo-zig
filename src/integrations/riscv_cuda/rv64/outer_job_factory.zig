@@ -60,6 +60,9 @@ pub const Report = struct {
     job_ns: u64 = 0,
     assemble_ns: u64 = 0,
     receipt: api.Receipt = .{},
+    heap_words: u64 = 0,
+    heap_peak_words: u64 = 0,
+    heap_allocations: u64 = 0,
     /// The job's declared footprint (class plan).
     footprint: api.Footprint = .{ .device_words = 0 },
 };
@@ -125,6 +128,9 @@ pub const Prover = struct {
         r.outcome = job.report.outcome;
         r.launches = job.report.launches;
         r.kernel_nodes = job.report.kernel_nodes;
+        r.heap_words = job.report.heap_words;
+        r.heap_peak_words = job.report.heap_peak_words;
+        r.heap_allocations = job.report.heap_allocations;
         const produced = try Prestage.assemble(a, input.key, staged, &job);
         r.assemble_ns = timer.read();
         if (report) |out| out.* = r;
@@ -300,7 +306,7 @@ pub const Lane = struct {
         };
         self.nodes += 1;
         const fp = r.footprint;
-        std.debug.print("GPU_M8_OUTER_NODE ordinal={d} device={d} leaf={} adopted_plan={} outcome={s} launches={d} kernel_nodes={d} host_waits={d} d2h_bytes={d} stage_ns={d} enqueue_ns={d} wait_ns={d} prestage_ns={d} job_ns={d} assemble_ns={d} wall_ns={d} declared_device_words={d} declared_staged_words={d} slab_words={d} pinned_words={d} staged_words={d} arena_peak_words={d} sequence={d} placement={s}\n", .{ ordinal, r.receipt.device, input.is_leaf, input.prepared != null, @tagName(r.outcome), r.launches, r.kernel_nodes, r.receipt.host_waits, r.receipt.d2h_bytes, r.receipt.stage_ns, r.receipt.enqueue_ns, r.receipt.wait_ns, r.prestage_ns, r.job_ns, r.assemble_ns, timer.read(), fp.device_words, fp.staged_words, fp.slab_words, fp.pinned_words, r.receipt.staged_words, r.receipt.arena_peak_words, r.receipt.sequence, @tagName(r.receipt.placement) });
+        std.debug.print("GPU_M8_OUTER_NODE ordinal={d} device={d} leaf={} adopted_plan={} outcome={s} launches={d} kernel_nodes={d} host_waits={d} d2h_bytes={d} stage_ns={d} enqueue_ns={d} wait_ns={d} prestage_ns={d} job_ns={d} assemble_ns={d} wall_ns={d} declared_device_words={d} declared_staged_words={d} slab_words={d} pinned_words={d} staged_words={d} arena_peak_words={d} heap_words={d} heap_peak_words={d} heap_allocations={d} sequence={d} placement={s}\n", .{ ordinal, r.receipt.device, input.is_leaf, input.prepared != null, @tagName(r.outcome), r.launches, r.kernel_nodes, r.receipt.host_waits, r.receipt.d2h_bytes, r.receipt.stage_ns, r.receipt.enqueue_ns, r.receipt.wait_ns, r.prestage_ns, r.job_ns, r.assemble_ns, timer.read(), fp.device_words, fp.staged_words, fp.slab_words, fp.pinned_words, r.receipt.staged_words, r.receipt.arena_peak_words, r.heap_words, r.heap_peak_words, r.heap_allocations, r.receipt.sequence, @tagName(r.receipt.placement) });
         return produced;
     }
 };

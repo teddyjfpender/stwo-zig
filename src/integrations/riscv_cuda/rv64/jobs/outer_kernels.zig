@@ -159,7 +159,7 @@ pub const Device = struct {
     pub fn check(self: *Device, status: Status) !void {
         self.counters.api += 1;
         if (status != 0) {
-            std.log.err("OUTER_JOB enqueue native_status={d}", .{status});
+            std.log.err("OUTER_JOB enqueue native_status={d} api_call={d} return_address=0x{x}", .{ status, self.counters.api, @returnAddress() });
             return error.OuterJobEnqueueFailed;
         }
     }
