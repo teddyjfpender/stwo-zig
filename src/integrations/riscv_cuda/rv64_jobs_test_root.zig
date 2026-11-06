@@ -6,4 +6,6 @@ test {
     _ = @import("rv64/jobs/slab.zig");
     _ = @import("rv64/jobs/channel_parity.zig");
     _ = @import("rv64/jobs/lint.zig");
+    _ = @import("rv64/jobs/scheduler.zig");
+    _ = @import("rv64/jobs/mod.zig");
 }

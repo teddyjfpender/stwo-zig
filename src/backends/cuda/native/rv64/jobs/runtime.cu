@@ -17,14 +17,15 @@ inline int status(cudaError_t s) { return static_cast<int>(s); }
 
 extern "C" uint32_t stwo_rv64_jobs_abi_version(void) { return STWO_RV64_JOBS_ABI_VERSION; }
 
-// Non-blocking h2d stream on `device` (called on the worker thread, whose
-// current device is the exec context's device).
+// Non-blocking h2d stream on `device`, called first on the worker thread
+// (after the exec context is created there).
 extern "C" int stwo_rv64_jobs_stream_create(uint32_t device, void **out) {
     if (out == nullptr) return status(cudaErrorInvalidValue);
     *out = nullptr;
-    int current = -1;
-    cudaError_t s = cudaGetDevice(&current);
-    if (s == cudaSuccess && current != static_cast<int>(device)) s = cudaErrorInvalidDevice;
+    // This addon links its own static cudart, whose per-thread current device
+    // is independent of the base image's: select the worker's device here so
+    // the events created next on this thread belong to the same device.
+    cudaError_t s = cudaSetDevice(static_cast<int>(device));
     cudaStream_t stream = nullptr;
     if (s == cudaSuccess) s = cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking);
     if (s == cudaSuccess) *out = stream;
