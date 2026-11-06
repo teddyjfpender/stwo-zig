@@ -130,6 +130,9 @@ const Slot = struct {
     channel: Channel.DeviceChannel = undefined,
     slab: Slab.ProofSlab = undefined,
     slab_host: []u32 = &.{},
+    /// Persistent entries this job created (fresh); dropped if the job fails.
+    fresh_keys: [8][32]u8 = undefined,
+    fresh_count: usize = 0,
 };
 
 pub const Worker = struct {
@@ -143,6 +146,8 @@ pub const Worker = struct {
     arena_buffer: ?[*]u32 = null,
     slots: [3]Slot = @splat(.{}),
     persistent_map: std.AutoHashMapUnmanaged([32]u8, api.DeviceBuffer) = .empty,
+    /// Buffers of failed fills: possibly still targeted by in-flight copies, freed at shutdown.
+    retired: std.ArrayListUnmanaged(api.DeviceBuffer) = .empty,
     a: std.mem.Allocator,
     // loop state (worker thread only)
     staging: ?*Slot = null,
@@ -289,6 +294,8 @@ pub const Worker = struct {
         var it = self.persistent_map.valueIterator();
         while (it.next()) |b| _ = self.ops.exec.free_u32(self.context, b.ptr);
         self.persistent_map.deinit(self.a);
+        for (self.retired.items) |b| _ = self.ops.exec.free_u32(self.context, b.ptr);
+        self.retired.deinit(self.a);
         if (self.arena_buffer) |p| _ = self.ops.exec.free_u32(self.context, p);
         _ = w.stream_destroy(self.h2d_stream);
         _ = w.context_destroy(self.context);
@@ -378,15 +385,19 @@ pub const Worker = struct {
     }
 
     pub fn persistent(self: *Worker, key: [32]u8, words: usize) !api.Persistent {
-        if (self.staging == null) return error.StagerOutsidePhaseOne;
+        const slot = self.staging orelse return error.StagerOutsidePhaseOne;
         if (self.persistent_map.get(key)) |b| {
             if (b.words != words) return error.PersistentGeometryMismatch;
             return .{ .buffer = b, .fresh = false };
         }
+        if (slot.fresh_count == slot.fresh_keys.len) return error.TooManyPersistentFills;
+        try self.persistent_map.ensureUnusedCapacity(self.a, 1);
         var ptr: ?[*]u32 = null;
         try O.check(self.ops.exec.alloc_u32_long(self.context, words, &ptr));
         const b = api.DeviceBuffer{ .ptr = ptr orelse return error.CudaAllocationFailed, .words = words };
-        try self.persistent_map.put(self.a, key, b);
+        self.persistent_map.putAssumeCapacity(key, b);
+        slot.fresh_keys[slot.fresh_count] = key;
+        slot.fresh_count += 1;
         return .{ .buffer = b, .fresh = true };
     }
 
@@ -396,7 +407,9 @@ pub const Worker = struct {
         self.arena.beginWork(slot.placement, next != null and next.?.placement != slot.placement);
         self.enqueuing = slot;
         defer self.enqueuing = null;
-        self.enqueueBody(slot) catch |err| {
+        if (self.fatal) |err| {
+            slot.failed = err; // staged before a device fault: never enqueue it
+        } else self.enqueueBody(slot) catch |err| {
             slot.failed = err;
         };
         // The done event is recorded even after a failure so later h2d waits
@@ -479,6 +492,13 @@ pub const Worker = struct {
     }
 
     fn report(self: *Worker, slot: *Slot, result: anyerror!void) void {
+        if (result) |_| {} else |_| {
+            // A failed job may have left its fresh persistent buffers unfilled.
+            for (slot.fresh_keys[0..slot.fresh_count]) |key| if (self.persistent_map.fetchRemove(key)) |kv| {
+                self.retired.append(self.a, kv.value) catch {}; // OOM: leak until process exit
+            };
+        }
+        slot.fresh_count = 0;
         slot.sink.done(slot.sink.ctx, .{ .job = slot.job, .result = result, .receipt = slot.receipt });
         self.mutex.lock();
         self.outstanding -= 1;

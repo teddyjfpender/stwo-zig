@@ -245,3 +245,43 @@ test "worker startup failure is reported to the creator" {
     fake.reset();
     try std.testing.expectError(error.InvalidArena, W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = 0, .arena_words = 65, .pinned_slot_words = 64 }));
 }
+
+const Filler = struct {
+    fail: bool,
+    fresh: ?bool = null,
+    pub fn classKey(_: *Filler) [32]u8 {
+        return @splat(1);
+    }
+    pub fn footprint(_: *Filler) api.Footprint {
+        return .{ .device_words = 64 };
+    }
+    pub fn stage(self: *Filler, s: *api.Stager) !void {
+        const p = try s.persistent(@splat(0xfe), 64);
+        self.fresh = p.fresh;
+        if (self.fail) return error.InjectedFillFailure;
+    }
+    pub fn enqueue(_: *Filler, _: *api.Enqueue) !void {}
+    pub fn finish(_: *Filler, _: api.SlabView) !void {}
+    pub fn abort(_: *Filler) void {}
+};
+
+test "a failed fill never leaves a persistent entry that later jobs see as warm" {
+    fake.reset();
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = 0, .arena_words = 1 << 12, .pinned_slot_words = 64 });
+    var c: Collector = .{};
+    var first = Filler{ .fail = true };
+    var second = Filler{ .fail = false };
+    var third = Filler{ .fail = false };
+    submit(w, api.Job.from(Filler, &first), c.sink());
+    c.wait(1);
+    submit(w, api.Job.from(Filler, &second), c.sink());
+    c.wait(2);
+    submit(w, api.Job.from(Filler, &third), c.sink());
+    c.wait(3);
+    w.destroy();
+    try std.testing.expectEqual(@as(usize, 1), c.errors);
+    try std.testing.expect(first.fresh.? and second.fresh.? and !third.fresh.?);
+    // arena + two persistent buffers (the retired one included); frees also count the 3 pinned slots
+    try std.testing.expectEqual(@as(usize, 3), fake.counters.allocations);
+    try std.testing.expectEqual(fake.counters.allocations + 3, fake.counters.frees);
+}
