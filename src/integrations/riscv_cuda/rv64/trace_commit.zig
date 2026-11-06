@@ -169,6 +169,7 @@ pub const Context = struct {
             if (request.tree_index == 0) return error.GlobalFixedTracePlanUnavailable;
             successor = try self.service.admissionSuccessor(request.scope, if (request.tree_index == 1) .main_commit else .inter_commit);
             const plan = &allocation_plan.?;
+            @import("allocation_observer.zig").model(request.scope, if (self.admission_domain == .recursion_node) 1 else 2, if (request.tree_index == 1) .main_commit else .inter_commit, try plan.footprint(), if (owned_inputs != null) Global.Footprint{} else try Global.Footprint.allocation(try std.math.mul(u64, plan.coefficient_words, 4)), successor);
             permit = try endpoint.reserve(.{ .progress_key = Global.progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = self.admission_domain, .ordinal = request.scope.ordinal }, .stage = .trace_commit, .stage_retained_upper = if (owned_inputs != null) .{} else try Global.Footprint.allocation(try std.math.mul(u64, plan.coefficient_words, 4)), .temporary = try plan.footprint(), .successor = successor, .retirement_successor = if (request.retire_input != null) try self.service.admissionRetirementSuccessor(request.scope, .inter_commit) else null, .known = true, .host_known = plan.host_cost_known, .host_peak_bytes = plan.host_peak_bytes });
         }
         defer if (permit) |*active| if (!active.closed) {
@@ -213,6 +214,16 @@ const Job = struct {
             self.failure = err;
             return 1;
         };
+        const Observer = @import("allocation_observer.zig");
+        var observed = Observer.Range.begin(&self.backend.service.library, raw, self.request.scope, if (self.backend.admission_domain == .recursion_node) 1 else 2, switch (self.request.tree_index) {
+            0 => .fixed_commit,
+            1 => .main_commit,
+            else => .inter_commit,
+        }, 0) catch |err| {
+            self.failure = err;
+            return 1;
+        };
+        defer observed.deinit();
         self.run(raw, token) catch |err| {
             self.failure = err;
         };

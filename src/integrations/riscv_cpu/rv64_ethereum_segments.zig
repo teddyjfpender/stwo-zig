@@ -14,6 +14,7 @@ const std = @import("std");
 const rv = @import("stwo_riscv_frontend").rv64;
 const Walk = @import("rv64_ethereum_native_prepare.zig").Walk;
 const Native = @import("rv64_ethereum_batch.zig");
+const ReplayWindow = @import("rv64_capture_replay_window.zig");
 pub const MAX_WORKERS = 32;
 
 /// M6 traced fast engine for segment walks (`STWO_RV64_TRACED_ENGINE`,
@@ -42,6 +43,13 @@ pub fn ramFirstPassEnabled() bool {
 pub const Stats = struct {
     segments: u32 = 0,
     workers: u8 = 0,
+    /// Default-off bounded waiters for not-yet-published later checkpoints.
+    replay_ahead: bool = false,
+    /// First replay-window admission to the last consumed segment, including
+    /// first-pass waits and consumer backpressure; excludes program/image init
+    /// and the capture/ledger tail. Use retired / wall for replay MIPS, never
+    /// retired / summed per-worker durations or as end-to-end capture MIPS.
+    replay_wall_ns: u64 = 0,
     first_pass_ns: u64 = 0,
     first_pass_retired: u64 = 0,
     minimal_cpu0_records: u64 = 0,
@@ -60,6 +68,8 @@ pub const Stats = struct {
     /// report-only emulator throughput baseline (M7).
     walk_ns_total: u64 = 0,
     walk_ns_max: u64 = 0,
+    /// Included in walk_ns_total; split out speculative checkpoint idle time.
+    walk_checkpoint_wait_ns: u64 = 0,
     walk_retired: u64 = 0,
     /// Split of `walk_ns_total`: traced execution and `batch.finish`.
     walk_traced_ns: u64 = 0,
@@ -100,6 +110,7 @@ const Worker = struct {
     completed: bool = false,
     err: ?anyerror = null,
     walk_ns: u64 = 0,
+    checkpoint_wait_ns: u64 = 0,
     retired: u64 = 0,
     traced_ns: u64 = 0,
     finish_ns: u64 = 0,
@@ -117,7 +128,9 @@ const Worker = struct {
     fn work(self: *Worker) !void {
         const owner = self.owner;
         const a = owner.allocator;
+        var checkpoint_timer = try std.time.Timer.start();
         const cp = owner.checkpointAt(self.index) orelse return error.EthereumSegmentContinuity;
+        self.checkpoint_wait_ns = checkpoint_timer.read();
         var walk = try Walk.createSegment(a, owner.main, cp, self.index);
         defer walk.destroy();
         var dirty = rv.checkpoint.Dirty{ .bits = try a.alloc(u64, owner.engine.dirty.bits.len) };
@@ -129,7 +142,9 @@ const Worker = struct {
         errdefer taken.deinit();
         // Continuity: this segment ends exactly where the first pass's next
         // checkpoint (or its end state) begins.
+        checkpoint_timer.reset();
         const next = owner.checkpointAt(self.index + 1) orelse return error.EthereumSegmentContinuity;
+        self.checkpoint_wait_ns += checkpoint_timer.read();
         if (!rv.checkpoint.matches(&walk.session, &dirty, next)) return error.EthereumSegmentContinuity;
         if (self.index == 0) if (owner.minimal_cpu0) |trace| {
             // checkpointAt(1) acquires the first pass publication mutex after
@@ -178,6 +193,7 @@ pub const Segments = struct {
     launched: u32 = 0,
     finished: bool = false,
     stats: Stats = .{},
+    replay_timer: ?std.time.Timer = null,
 
     /// `main` is a fresh walk (no batch taken); the first pass drives its
     /// session and memory to the end. `a` must be thread-safe.
@@ -211,6 +227,7 @@ pub const Segments = struct {
         self.recorder = try rv.checkpoint.Recorder.init(a, &self.engine);
         errdefer self.recorder.deinit();
         self.stats.workers = workers;
+        self.stats.replay_ahead = ReplayWindow.enabled();
         self.pass_thread = try std.Thread.spawn(.{}, firstPass, .{self});
         return self;
     }
@@ -344,19 +361,26 @@ pub const Segments = struct {
     }
 
     /// Keep up to `workers` segments in flight from `next_index`. Blocks only
-    /// for the checkpoint of `next_index` itself.
+    /// for the checkpoint of `next_index` itself. The default-off ahead route
+    /// also starts later checkpoint waiters, inside the same bounded window.
     fn launch(self: *Segments) !void {
-        while (self.launched < self.next_index + self.workers) {
+        if (self.replay_timer == null) self.replay_timer = try std.time.Timer.start();
+        while (true) {
             const j = self.launched;
             {
                 self.pass.mutex.lock();
                 defer self.pass.mutex.unlock();
-                while (j >= self.pass.checkpoints.items.len and !self.pass.done) {
-                    if (j != self.next_index) return;
-                    self.pass.changed.wait(&self.pass.mutex);
+                while (true) {
+                    switch (ReplayWindow.decide(.{ .next = self.next_index, .launched = j, .workers = self.workers, .checkpoints = self.pass.checkpoints.items.len, .bound = self.pass.bound, .done = self.pass.done, .ahead = self.stats.replay_ahead })) {
+                        .stop => return,
+                        .wait_checkpoint => self.pass.changed.wait(&self.pass.mutex),
+                        .launch => break,
+                    }
                 }
-                if (j >= self.pass.checkpoints.items.len or j >= self.pass.bound) return;
             }
+            // The outstanding interval is at most MAX_WORKERS wide. Never
+            // overwrite an unconsumed speculative or completed worker.
+            if (self.ring[j % MAX_WORKERS] != null) return error.EthereumReplayWindowCollision;
             const w = try self.allocator.create(Worker);
             w.* = .{ .owner = self, .index = j };
             self.ring[j % MAX_WORKERS] = w;
@@ -462,6 +486,7 @@ pub const Segments = struct {
         self.stats.segments += 1;
         self.stats.walk_ns_total += w.walk_ns;
         self.stats.walk_ns_max = @max(self.stats.walk_ns_max, w.walk_ns);
+        self.stats.walk_checkpoint_wait_ns += w.checkpoint_wait_ns;
         self.stats.walk_retired += w.retired;
         self.stats.walk_traced_ns += w.traced_ns;
         self.stats.walk_finish_ns += w.finish_ns;
@@ -469,6 +494,7 @@ pub const Segments = struct {
         self.stats.walk_fast_ns += w.fast_ns;
         self.stats.walk_reference_ns += w.reference_ns;
         self.stats.walk_reference_steps += w.reference_steps;
+        if (self.replay_timer) |*replay_clock| self.stats.replay_wall_ns = replay_clock.read();
         self.main.batches = self.next_index;
         if (w.completed) {
             self.main.completed = true;

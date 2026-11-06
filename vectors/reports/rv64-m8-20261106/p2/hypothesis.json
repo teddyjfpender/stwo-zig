@@ -1,0 +1,14 @@
+{
+  "schema": "rv64-m8-p2-engineering-hypothesis/v1",
+  "status": "UNMEASURED",
+  "source_checkpoint": "b68e02081b9e23de646346715c548eae38a63d6d",
+  "hypothesis": "Compile-time indexed rate-12 absorption and unrolled width-24 arithmetic let the compiler keep a permutation in registers, avoiding dynamic Sponge.state[at] indexing.",
+  "candidate": "numerical-register-packed-v1",
+  "default_off": true,
+  "unchanged_protocol": "Pinned M31 W24 RF8 RP22 x5, rate12 capacity12 digest9, additive absorption, mandatory padding, existing leaf/node domains; two permutations per parent.",
+  "controls": ["original numerical prototype", "historical common-rotate generated variant"],
+  "required_measurements": ["official and independent numerical KATs", "every retained tree node versus CPU", "matched large roots", "register and spill inspection", "sanitizer", "matched retained-tree GPU seconds"],
+  "qualification_order": "P1 then P3 then P2 then P4 then P5, owner-controlled",
+  "native_s2_status": "OPEN: no all-Poseidon native runtime, authority, fresh receiver, tamper qualification, or block timing implied",
+  "security_target": "conjectured128; hash-based and post-quantum target unchanged; no certificate claimed"
+}

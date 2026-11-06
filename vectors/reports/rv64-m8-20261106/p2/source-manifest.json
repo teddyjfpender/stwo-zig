@@ -1,0 +1,23 @@
+{
+  "schema": "rv64-m8-p2-standalone-compile-inputs/v1",
+  "status": "SOURCE_ONLY",
+  "frozen_parent": "b68e02081b9e23de646346715c548eae38a63d6d",
+  "source_sha256": {
+    "tests/cuda/rv64/poseidon2_m31_smoke.cu": "f87c368cb638e7c90f598b23e05ce3c8a79dbbba1f0fa0453d9e52fcd4c52f25",
+    "tests/cuda/rv64/poseidon_commit_bench.cu": "730e258b6fed3722323c3181699211f0c4854c79f5940096b5ec4cac4eac996d",
+    "src/backends/cuda/native/rv64/poseidon2_m31.cuh": "c5593b92f42e0a451a6feeadb584b17fab88e6865bd90ce415cd4c477504a291",
+    "src/backends/cuda/native/rv64/poseidon2_m31_register.cuh": "82e9e5455a37bcb85de5691b9d31f7fe68d08d2e189708bd1c85aa15cdcdfd09",
+    "src/backends/cuda/native/common/m31.cuh": "20fb8c44b80c0729275e7109993523ae8402125566ecb1430f26d641b2044c17",
+    "scripts/rv64_m7_poseidon_fast_reduction.py": "989384525d81c7d514b2f2b86bbd73992fa9f17017452e2286452856525580dc",
+    "src/backends/cuda/native/commitment/merkle.cu": "1d9e34a915d92d8c7f3cdf0555077a0fcf5b458eb6e8d8d8ce92d257c76fec59",
+    "src/backends/cuda/native/commitment/progressive.cu": "5f68ad1f47197ade12ab043314dcae7b68de5c2fef4968bd495081588cc99774",
+    "src/backends/cuda/native/commitment/blake2s_core.cuh": "1f35b2fe47b2f3b9b85499e5b9515f42dbdb8a83397f58919e6feffe32f75447",
+    "src/backends/cuda/native/commitment/blake2s_protocol.cuh": "5988ef51326af8b4680422530e036741a2b9c3ee01919b7fd133cd66ae0f709c",
+    "src/backends/cuda/native/commitment/progressive_scalar.cuh": "80bbc807dfbcdc1351cca4f1aef2a7398f1b309dd6a4d25de5e55a8fd64d51b2",
+    "src/backends/cuda/native/commitment/resident_layout.cuh": "2d6b4f93097abdc97f046cd7d9a1c3fa91647478ec07add9fe3459c515681bdc",
+    "src/backends/cuda/native/commitment/blake2s_domain_states.h": "380318f129647f41dec900ebf5543263d20f18acefe079b291fae5fc3c548132",
+    "src/backends/cuda/native/commitment/mixed_layout.h": "4cc34269e60c1145692f35cbb2dcd365e69b226b38ae961e2bb692e945021196"
+  },
+  "cuda_compiled": false,
+  "gpu_executed": false
+}

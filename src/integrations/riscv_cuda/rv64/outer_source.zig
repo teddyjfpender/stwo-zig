@@ -359,7 +359,7 @@ pub const Context = struct {
         std.debug.print("GPU_OUTER fixed_forest_bytes={} immutable_limit_bytes={} device_limit_bytes={} assignment_bytes={} schedule_bytes={} logs={any}\n", .{ fixed_bytes, immutable_limit, self.service.byte_cap, values.len * @sizeOf(Outer.protocol.Q), schedule_bytes, key.logs.toArray() });
         try self.ensureCatalogue(key);
         const owner = try a.create(Owner);
-        owner.* = .{ .allocator = a, .backend = self, .key = key, .input = values, .value_count = value_count, .owns_assignment = owns_assignment, .previous_assignment = previous_assignment, .initial_scope = scope, .scope = scope, .main_columns = &.{}, .inter_columns = &.{}, .pcs = self.service.stage(), .composition_stage = .{ .context = owner, .evaluate_and_commit = Owner.compose } };
+        owner.* = .{ .allocator = a, .backend = self, .key = key, .input = values, .value_count = value_count, .owns_assignment = owns_assignment, .previous_assignment = previous_assignment, .initial_scope = scope, .scope = scope, .main_columns = &.{}, .inter_columns = &.{}, .pcs = .{ .context = owner, .prove = Owner.provePcs }, .composition_stage = .{ .context = owner, .evaluate_and_commit = Owner.compose } };
         self.active = owner;
         owns_assignment = false;
         previous_assignment = null;
@@ -484,6 +484,7 @@ pub const Owner = struct {
         const scope = if (stage == .witness) self.initial_scope else self.scope;
         const successor = try self.backend.service.admissionSuccessor(scope, if (stage == .witness) .source else .interaction);
         const demand = @import("global_admission.zig").Demand{ .progress_key = @import("global_admission.zig").progressKey(scope), .owner = .{ .request = std.mem.readInt(u64, scope.statement[0..8], .little), .domain = .recursion_node, .ordinal = scope.ordinal }, .stage = stage, .stage_retained_upper = plan.retained_after, .temporary = plan.additional_peak, .successor = successor, .retirement_successor = try self.backend.service.admissionRetirementSuccessor(scope, if (stage == .witness) .source else .interaction), .known = true, .host_known = plan.host_cost_known };
+        @import("allocation_observer.zig").model(scope, 1, if (stage == .witness) .main_witness else .inter_witness, demand.temporary, demand.stage_retained_upper, demand.successor);
         var precommitted = false;
         if (stage == .witness) if (self.backend.fixed_pending) |fixed| if (fixed.handoff != null) {
             try fixed.requireSourceFits(demand);
@@ -518,6 +519,13 @@ pub const Owner = struct {
                 return 1;
             };
         }
+        const Observer = @import("allocation_observer.zig");
+        const observed_stage: Observer.Stage = if (self.operation == @import("outer_source_main.zig").generate) .main_witness else if (self.operation == @import("outer_source_interaction.zig").generate) .inter_witness else .retirement;
+        var observed = Observer.Range.begin(&self.backend.service.library, raw, self.initial_scope, 1, observed_stage, 0) catch |err| {
+            self.failure = err;
+            return 1;
+        };
+        defer observed.deinit();
         self.operation(self, raw, token) catch |err| {
             self.failure = err;
         };
@@ -580,6 +588,13 @@ pub const Owner = struct {
         try self.run(dropEvaluations);
         self.backend.service.finishProofScope(self.initial_scope);
         return .{ .tree = tree, .claims = self.claims };
+    }
+    fn provePcs(raw: *anyopaque, a: std.mem.Allocator, request: D.Request, channel: *D.Channel) !D.P.ExtendedCommitmentSchemeProof(D.H) {
+        const self: *Owner = @ptrCast(@alignCast(raw));
+        var observed_request = request;
+        observed_request.allocation_observer_domain = .recursion_node;
+        const stage = self.backend.service.stage();
+        return stage.prove(stage.context, a, observed_request, channel);
     }
     fn compose(raw: *anyopaque, a: std.mem.Allocator, randomness: Outer.protocol.O, log: u32, split: u32, total: usize, trace: *const anyopaque) !D.Tree {
         const self: *Owner = @ptrCast(@alignCast(raw));

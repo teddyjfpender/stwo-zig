@@ -82,6 +82,14 @@ pub const Context = struct {
         return self.buildSource(a, request);
     }
     fn buildSource(self: *Context, a: std.mem.Allocator, request: Stage.Request) !R.Sources {
+        // One native scope spans all synchronous owner submissions below.
+        // Per-contributor begins would reset the same live node repeatedly.
+        var observed = SourceObserver{ .service = self.core.service, .scope = request.scope };
+        if (@import("allocation_observer.zig").enabled()) try observed.invoke();
+        defer if (observed.range != null) {
+            observed.ending = true;
+            observed.invoke() catch |err| std.debug.print("GPU_NODE_ALLOC_CLOSE_FAILED phase=native_source coverage_valid=0 error={s}\n", .{@errorName(err)});
+        };
         const projection = try self.core.buildCore(a, request);
         errdefer projection.deinit();
         const logs = try request.setup.logs(a, 1);
@@ -113,6 +121,28 @@ pub const Context = struct {
         var result = R.Sources{ .core = try projection.takeSource(), .device_generated = true, .device_main = device };
         inline for (std.meta.fields(Headers)) |field| @field(result, field.name) = @field(headers, field.name);
         return result;
+    }
+};
+const SourceObserver = struct {
+    service: *@import("pcs_native.zig").Context,
+    scope: D.Scope,
+    range: ?@import("allocation_observer.zig").Range = null,
+    ending: bool = false,
+    failure: ?anyerror = null,
+    fn callback(raw: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
+        const self: *SourceObserver = @ptrCast(@alignCast(data.?));
+        if (self.ending) {
+            if (self.range) |*range| range.deinit();
+            self.range = null;
+        } else self.range = @import("allocation_observer.zig").Range.begin(&self.service.library, raw, self.scope, 2, .main_witness, 0) catch |err| {
+            self.failure = err;
+            return 1;
+        };
+        return 0;
+    }
+    fn invoke(self: *SourceObserver) !void {
+        if (self.service.submit(self.service.session, callback, self) != 0)
+            return self.failure orelse error.NativeSourceAllocationObserverFailed;
     }
 };
 const SourceControl = struct {

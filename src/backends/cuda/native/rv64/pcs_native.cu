@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include "om31.cuh"
 #include "runtime/context_options.h"
+#include "runtime/allocation_observer.h"
 #include <algorithm>
 #include <atomic>
 #include <condition_variable>
@@ -298,6 +299,9 @@ struct ResidentOwner {
       ptr = allocate(words);
       blocks.push_back({ptr, words, true, words, true});
     }
+    // Reuse transfers observer attribution of the WHOLE reservation. The
+    // active request can be smaller than the cached allocation's capacity.
+    CHECK(stwo_exec_context_allocation_observer_bind_v1(ctx,ptr,words*4));
     allocated_bytes += words * 4;
     return {ptr, count, coordinates, 0};
   }
@@ -325,7 +329,10 @@ struct ResidentOwner {
     }
     sync(); // Join both lanes once before any temporary can be reused.
     uint64_t words=0;
-    for (auto i:selected) { words+=blocks[i].active_words;blocks[i].used=false;blocks[i].active_words=0; }
+    for (auto i:selected) {
+      CHECK(stwo_exec_context_allocation_observer_bind_v1(ctx,blocks[i].ptr,0));
+      words+=blocks[i].active_words;blocks[i].used=false;blocks[i].active_words=0;
+    }
     std::printf("GPU_PCS_PHASE_RETIRE planes=%zu logical_words=%llu\n",selected.size(),static_cast<unsigned long long>(words));
     trimIdleCache();
   }
@@ -337,6 +344,7 @@ struct ResidentOwner {
       CHECK(cudaEventDestroy(event));
     events.clear();
     for (auto &block : blocks) {
+      CHECK(stwo_exec_context_allocation_observer_bind_v1(ctx,block.ptr,0));
       block.used = false;
       block.active_words = 0;
     }

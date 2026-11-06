@@ -14,8 +14,12 @@ pub const DeviceCoefficients = struct { words: [*]const u32, count: u64, context
 pub const Column = struct { log_size: u32, coefficients: []const M = &.{}, device: ?DeviceCoefficients = null };
 pub const Tree = struct { root: H.Hash, columns: []const Column };
 pub const Scope = struct { statement: [32]u8, fixed: [32]u8, main: [32]u8, ordinal: u32 };
+/// Diagnostic classification supplied by the semantic caller. It is not part
+/// of the statement, lease scope, transcript, wire format or admission policy.
+pub const AllocationObserverDomain = enum(u32) { recursion_node = 1, native_packet = 2 };
 pub const Request = struct {
     scope: ?Scope = null,
+    allocation_observer_domain: AllocationObserverDomain = .native_packet,
     config: core.pcs.PcsConfig,
     lifting_log_size: u32,
     trees: []const Tree,

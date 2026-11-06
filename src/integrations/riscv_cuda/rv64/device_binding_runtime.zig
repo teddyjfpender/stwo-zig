@@ -304,6 +304,19 @@ const Call = struct {
     }
     fn callback(ctx: *anyopaque, token: u64, raw: ?*anyopaque) callconv(.c) c_int {
         const self: *Call = @ptrCast(@alignCast(raw.?));
+        const Observer = @import("allocation_observer.zig");
+        var observed: ?Observer.Range = null;
+        if (Observer.enabled()) {
+            const service = self.owner.runtime.service orelse {
+                self.failure = error.MissingNativeAllocationObserverService;
+                return 1;
+            };
+            observed = Observer.Range.begin(&service.library, ctx, physicalScope(self.owner.pending.scope), 2, .native_binding, 0) catch |err| {
+                self.failure = err;
+                return 1;
+            };
+        }
+        defer if (observed) |*range| range.deinit();
         if (self.permit) |p| p.enterOwner(ctx) catch |err| {
             self.failure = err;
             return 1;

@@ -377,6 +377,13 @@ const MainJob = struct {
     permit: ?*Admission.Permit = null,
     fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *MainJob = @ptrCast(@alignCast(data.?));
+        // Replay keeps the compact input live; only the initial witness opens
+        // a new node epoch. A replay must retain that existing attribution.
+        var observed = @import("allocation_observer.zig").Range.begin(&self.owner.backend.service.library, raw, self.owner.scope, 2, if (self.owner.compact != null) .native_main_replay else .main_witness, 0) catch |err| {
+            self.failure = err;
+            return 1;
+        };
+        defer observed.deinit();
         if (self.permit) |p| p.enterOwner(raw) catch |err| {
             self.failure = err;
             return 1;

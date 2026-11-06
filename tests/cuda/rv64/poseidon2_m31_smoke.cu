@@ -4,8 +4,19 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <vector>
+#if defined(STWO_P2_REGISTER_PACKED) && defined(STWO_P2_FAST_REDUCTION)
+#error "Select one numerical Poseidon variant"
+#endif
+#ifdef STWO_P2_REGISTER_PACKED
+#include "poseidon2_m31_register.cuh"
+using namespace stwo::cuda::p2m31_register;
+#elif defined(STWO_P2_FAST_REDUCTION)
+#include "poseidon2_m31_fast.cuh"
+using namespace stwo::cuda::p2m31;
+#else
 #include "poseidon2_m31.cuh"
 using namespace stwo::cuda::p2m31;
+#endif
 #define CU(x) do { auto e=(x); if(e!=cudaSuccess) throw std::runtime_error(cudaGetErrorString(e)); } while(0)
 struct Buffer {uint32_t *p=nullptr;explicit Buffer(size_t n){CU(cudaMalloc(&p,n*4));}~Buffer(){if(p)cudaFree(p);} void set(const std::vector<uint32_t>& v){CU(cudaMemcpy(p,v.data(),v.size()*4,cudaMemcpyHostToDevice));}std::vector<uint32_t> get(size_t n){std::vector<uint32_t> out(n);CU(cudaMemcpy(out.data(),p,n*4,cudaMemcpyDeviceToHost));return out;}};
 void equal(const char *name,const std::vector<uint32_t>&got,const std::vector<uint32_t>&expected){if(got!=expected)throw std::runtime_error(name);std::printf("P2_GPU %s words=%zu exact=true\n",name,got.size());}
@@ -27,7 +38,11 @@ transcript<<<1,1>>>(digest.p,6,nullptr,0,18446744073709551615ull,draw.p,status.p
 payload.set({1u,2u,3u,4u,5u,6u,7u,8u}); transcript<<<1,1>>>(digest.p,4,payload.p,8,0,draw.p,status.p); CU(cudaGetLastError()); equal("mix-fields-or-root",draw.get(9),{296083780u,226338120u,1018261257u,342385814u,1722932249u,1713291032u,615791926u,1394750138u,251460037u});
 payload.set({75302569u,257737695u,1624457975u,1579973030u,1400139966u,1447753837u,28457724u,607448533u,1394666894u}); transcript<<<1,1>>>(digest.p,5,payload.p,9,0,draw.p,status.p); CU(cudaGetLastError()); equal("mix-fields-or-root",draw.get(9),{845491281u,1972551247u,1976653787u,626350377u,1470904135u,229123489u,261208046u,1538002555u,936937865u});
 equal("status-clean",status.get(1),{0});
-for(uint32_t bad: {2147483647u,0xffffffffu}){payload.set({bad}); leaves<<<1,1>>>(payload.p,1,1,draw.p,status.p);CU(cudaGetLastError());equal("reject-noncanonical",status.get(1),{1});status.set({0});}
+for(uint32_t bad: {2147483647u,0xffffffffu}){payload.set({bad}); leaves<<<1,1>>>(payload.p,1,1,draw.p,status.p);CU(cudaGetLastError());equal("reject-noncanonical",status.get(1),{1});status.set({0});
+ Buffer invalid(24);std::vector<uint32_t> words(24,0);words[23]=bad;invalid.set(words);
+ permutations<<<1,1>>>(invalid.p,1,po.p,status.p);CU(cudaGetLastError());equal("reject-permutation-limb23",status.get(1),{1});status.set({0});
+ words[23]=0;words[17]=bad;invalid.set(words);
+ parents<<<1,1>>>(invalid.p,1,draw.p,status.p);CU(cudaGetLastError());equal("reject-parent-limb17",status.get(1),{1});status.set({0});}
 transcript<<<1,1>>>(digest.p,6,payload.p,1,0,draw.p,status.p);CU(cudaGetLastError());equal("reject-draw-payload",status.get(1),{2});status.set({0});
 transcript<<<1,1>>>(digest.p,5,payload.p,1,0,draw.p,status.p);CU(cudaGetLastError());equal("reject-root-shape",status.get(1),{2});
 CU(cudaDeviceSynchronize());std::puts("P2_GPU all independent numerical gates PASS; production_selected=false");return 0;

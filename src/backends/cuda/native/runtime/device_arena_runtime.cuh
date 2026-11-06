@@ -46,6 +46,7 @@
 #include <string.h>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -180,6 +181,7 @@ struct Fence {
   uint64_t offset, bytes;
   cudaEvent_t event;
   cudaStream_t stream;
+  uint64_t observer_node = 0, observer_requested = 0;
 };
 
 struct Driver {
@@ -217,7 +219,33 @@ inline Driver &driver() {
 
 inline cudaError_t cu(CUresult r) { return r == CUDA_SUCCESS ? cudaSuccess : cudaErrorMemoryAllocation; }
 
-struct LiveAllocation { uint64_t tagged_bytes, creator, ticket; };
+inline bool observer_enabled() {
+  static const bool enabled = [] { const char *v = getenv("STWO_RV64_ALLOCATION_OBSERVER"); return v && !strcmp(v,"1"); }();
+  return enabled;
+}
+struct ObserverCounts {
+  uint64_t active = 0, requested = 0, rounded = 0, pending_requested = 0, pending_rounded = 0;
+  uint64_t large = 0, small = 0;
+};
+struct ObserverNode {
+  std::array<uint32_t,8> key{};
+  uint32_t ordinal = 0, domain = 0;
+  uint64_t epoch = 0;
+  ObserverCounts live{}, peak{};
+  uint64_t including_pending_upper = 0;
+};
+struct ObserverStage {
+  uint64_t node = 0;
+  uint32_t stage = 0, lane = 0;
+  ObserverCounts baseline{}, peak{};
+  uint64_t including_pending_upper = 0, global_rounded_peak = 0, gaps_before = 0;
+  uint64_t shared_baseline = 0, shared_rounded_peak = 0;
+};
+struct LiveAllocation {
+  uint64_t tagged_bytes, creator, ticket;
+  uint64_t observer_requested = 0, observer_active = 0, observer_node = 0;
+  bool observer_idle = false;
+};
 struct OwnerLive { uint64_t large = 0, small = 0; };
 struct OwnerWindow {
   uint64_t ticket = 0, baseline_large = 0, baseline_small = 0;
@@ -266,6 +294,11 @@ struct Device {
   uint32_t admission_version = 0;  // V1 singleton and V2 owner ledger never mix.
   std::unordered_map<uint64_t, OwnerLive> owner_live;
   std::unordered_map<uint64_t, OwnerWindow> owner_windows;
+  // Diagnostic tags do not participate in allocation/admission decisions.
+  std::vector<ObserverNode> observer_nodes;
+  std::unordered_map<uint64_t, ObserverStage> observer_stages;
+  std::unordered_map<cudaStream_t,uint64_t> observer_stream_owners;
+  uint64_t observer_gaps = 0;
   uint64_t admission_ticket = 0, admission_owner = 0;
   uint64_t admission_large_ceiling = 0, admission_small_ceiling = 0;
   uint64_t capacity() const { return uint64_t(handles.size()) * chunk; }
@@ -274,6 +307,76 @@ struct Device {
     return reinterpret_cast<CUdeviceptr>(base) + small_bytes + uint64_t(slot) * chunk;
   }
 };
+
+inline const char *observer_stage_name(uint32_t stage) {
+  const char *names[] = {"unknown", "main_witness", "main_commit", "inter_witness", "inter_commit", "composition", "pcs_metadata", "pcs_source_lde", "pcs_source_trees", "pcs_samples", "pcs_deep", "pcs_fri", "pcs_pow", "pcs_openings", "pcs_readback", "retirement", "fixed_commit", "fixed_ingress", "fixed_adoption", "native_gkr", "native_binding", "native_main_replay"};
+  return stage < sizeof(names)/sizeof(names[0]) ? names[stage] : "unknown";
+}
+inline void observer_max(ObserverCounts &peak, const ObserverCounts &live) {
+  peak.active=std::max(peak.active,live.active); peak.requested=std::max(peak.requested,live.requested);
+  peak.rounded=std::max(peak.rounded,live.rounded);
+  peak.large=std::max(peak.large,live.large);peak.small=std::max(peak.small,live.small);
+  peak.pending_requested=std::max(peak.pending_requested,live.pending_requested);
+  peak.pending_rounded=std::max(peak.pending_rounded,live.pending_rounded);
+}
+// Called under arena mutex after EVERY allocation, retirement, reuse binding,
+// and completed-fence purge. A peer's mutation cannot reset this node's peak.
+inline void observer_sample(Device *d) {
+  if (!observer_enabled()) return;
+  for (auto &node:d->observer_nodes) node.live={};
+  for (const auto &entry:d->live_bytes_by_offset) {
+    const auto &a=entry.second;
+    if (!a.observer_node) continue;
+    auto &live=d->observer_nodes[a.observer_node-1].live;
+    live.active+=a.observer_active; live.requested+=a.observer_requested;
+    const uint64_t rounded=a.tagged_bytes&~uint64_t(1);
+    live.rounded+=rounded;
+    if(entry.first<d->small_bytes) live.small+=rounded;else live.large+=rounded;
+  }
+  for (const auto &f:d->fences) if(f.observer_node) {
+    auto &live=d->observer_nodes[f.observer_node-1].live;
+    live.pending_requested+=f.observer_requested; live.pending_rounded+=f.bytes;
+  }
+  for (auto &node:d->observer_nodes) {
+    observer_max(node.peak,node.live);
+    node.including_pending_upper=std::max(node.including_pending_upper,node.live.rounded+node.live.pending_rounded);
+  }
+  uint64_t attributed=0;
+  for(const auto &node:d->observer_nodes) attributed+=node.live.rounded;
+  for (auto &entry:d->observer_stages) {
+    auto &stage=entry.second; const auto &live=d->observer_nodes[stage.node-1].live;
+    stage.shared_rounded_peak=std::max(stage.shared_rounded_peak,d->live-attributed);
+    observer_max(stage.peak,live);
+    stage.including_pending_upper=std::max(stage.including_pending_upper,live.rounded+live.pending_rounded);
+    stage.global_rounded_peak=std::max(stage.global_rounded_peak,d->live);
+  }
+}
+inline void observer_print(Device *d,uint64_t owner,const ObserverStage &stage) {
+  const auto &node=d->observer_nodes[stage.node-1];
+  size_t device_free=0,device_total=0;
+  const int memory_status=int(cudaMemGetInfo(&device_free,&device_total));
+  uint64_t attributed=0, pending=0, idle=0;
+  for(const auto &entry:d->live_bytes_by_offset) if(entry.second.observer_idle) idle+=entry.second.tagged_bytes&~uint64_t(1);
+  for(const auto &n:d->observer_nodes) attributed+=n.live.rounded;
+  for(const auto &f:d->fences) pending+=f.bytes;
+  char key_text[65]{};
+  for(size_t i=0;i<node.key.size();++i) snprintf(key_text+i*8,9,"%08x",node.key[i]);
+  // One stdio call per row: separate devices cannot interleave its key/body.
+  fprintf(stderr,"GPU_NODE_ALLOC_STAGE version=1 device=%d context=%llu ordinal=%u domain=%u stage=%s cuda_lane=%u epoch=%llu key=%s baseline_active_bytes=%llu baseline_requested_bytes=%llu baseline_rounded_bytes=%llu baseline_large_bytes=%llu baseline_small_bytes=%llu active_requested_peak_bytes=%llu requested_reservation_peak_bytes=%llu rounded_reservation_peak_bytes=%llu rounded_large_peak_bytes=%llu rounded_small_peak_bytes=%llu pending_requested_peak_bytes=%llu pending_rounded_peak_bytes=%llu rounded_including_pending_upper_peak_bytes=%llu node_requested_peak_bytes=%llu node_rounded_peak_bytes=%llu node_including_pending_upper_peak_bytes=%llu end_requested_bytes=%llu end_rounded_bytes=%llu end_pending_rounded_bytes=%llu global_rounded_peak_bytes=%llu global_rounded_end_bytes=%llu shared_unattributed_rounded_end_bytes=%llu shared_unattributed_baseline_bytes=%llu shared_unattributed_rounded_peak_bytes=%llu global_pending_fence_bytes=%llu carve_bytes=%llu mapped_bytes=%llu mapped_free_bytes=%llu small_slab_bytes=%llu configured_stack_limit_bytes=%llu actual_stack_limit_bytes=%llu shared_long_rounded_end_bytes=%llu idle_cache_rounded_end_bytes=%llu init_stack_device_delta_bytes=%llu device_free_snapshot_bytes=%llu device_total_snapshot_bytes=%llu device_memory_rc=%llu coverage_gaps=%llu stage_coverage_gaps=%llu diagnostic_host_join=1 timing_qualified=0 physical_node_peak_qualified=0\n",
+      d->ordinal,(unsigned long long)owner,node.ordinal,node.domain,observer_stage_name(stage.stage),stage.lane,(unsigned long long)node.epoch,key_text,
+      (unsigned long long)stage.baseline.active,(unsigned long long)stage.baseline.requested,(unsigned long long)stage.baseline.rounded,(unsigned long long)stage.baseline.large,(unsigned long long)stage.baseline.small,
+      (unsigned long long)stage.peak.active,(unsigned long long)stage.peak.requested,(unsigned long long)stage.peak.rounded,(unsigned long long)stage.peak.large,(unsigned long long)stage.peak.small,
+      (unsigned long long)stage.peak.pending_requested,(unsigned long long)stage.peak.pending_rounded,(unsigned long long)stage.including_pending_upper,
+      (unsigned long long)node.peak.requested,(unsigned long long)node.peak.rounded,(unsigned long long)node.including_pending_upper,
+      (unsigned long long)node.live.requested,(unsigned long long)node.live.rounded,(unsigned long long)node.live.pending_rounded,
+      (unsigned long long)stage.global_rounded_peak,(unsigned long long)d->live,(unsigned long long)(d->live-attributed),
+      (unsigned long long)stage.shared_baseline,(unsigned long long)stage.shared_rounded_peak,
+      (unsigned long long)pending,(unsigned long long)d->capacity(),(unsigned long long)(d->chunks_in_use()*d->chunk),
+      (unsigned long long)(d->mapped_free.size()*d->chunk),(unsigned long long)d->small_bytes,(unsigned long long)config().stack,(unsigned long long)d->stack_after,(unsigned long long)d->live_long,(unsigned long long)idle,
+      (unsigned long long)(d->free_before>=d->free_after_stack ? d->free_before-d->free_after_stack : 0),
+      (unsigned long long)device_free,(unsigned long long)device_total,(unsigned long long)memory_status,
+      (unsigned long long)d->observer_gaps,(unsigned long long)(d->observer_gaps-stage.gaps_before));
+}
 
 inline std::mutex &registry_mutex() {
   static std::mutex m;
@@ -490,6 +593,7 @@ inline cudaError_t purge(Device *d) {
     d->fences[keep++] = d->fences[i];
   }
   d->fences.resize(keep);
+  observer_sample(d);
   return cudaSuccess;
 }
 
@@ -527,10 +631,25 @@ inline cudaError_t order_range(Device *d, uint64_t offset, uint64_t bytes, cudaS
   return cudaSuccess;
 }
 
-inline void account_alloc(Device *d, uint64_t offset, uint64_t bytes, bool long_lived, bool small, uint64_t owner) {
+inline void account_alloc(Device *d, uint64_t offset, uint64_t bytes, bool long_lived, bool small, uint64_t owner, uint64_t requested, cudaStream_t stream) {
   auto window = d->owner_windows.find(owner);
   const uint64_t ticket = window == d->owner_windows.end() ? 0 : window->second.ticket;
-  d->live_bytes_by_offset[offset] = {bytes | (long_lived ? 1u : 0u), owner, ticket};
+  auto &allocation=d->live_bytes_by_offset[offset];
+  allocation={bytes | (long_lived ? 1u : 0u), owner, ticket};
+  if(observer_enabled()) {
+    allocation.observer_requested=requested; allocation.observer_active=requested;
+    uint64_t observer_owner=owner;
+    if(!observer_owner) {
+      const auto found=d->observer_stream_owners.find(stream);
+      if(found!=d->observer_stream_owners.end()) observer_owner=found->second;
+    }
+    const auto stage=d->observer_stages.find(observer_owner);
+    if(!long_lived && stage!=d->observer_stages.end() && !(stage->second.stage>=16 && stage->second.stage<=18)) allocation.observer_node=stage->second.node;
+    if(!observer_owner || (!long_lived && stage==d->observer_stages.end())) {
+      ++d->observer_gaps;
+      fprintf(stderr,"GPU_NODE_ALLOC_COVERAGE_GAP device=%d context=%llu reason=%s requested_bytes=%llu\n",d->ordinal,(unsigned long long)observer_owner,observer_owner ? "unscoped_short_reservation" : "unknown_allocation_owner",(unsigned long long)requested);
+    }
+  }
   auto creator = d->owner_live.find(owner);
   if (creator != d->owner_live.end()) {
     if (small) creator->second.small += bytes; else creator->second.large += bytes;
@@ -550,6 +669,7 @@ inline void account_alloc(Device *d, uint64_t offset, uint64_t bytes, bool long_
   }
   if (d->chunks_in_use() > d->phys_chunks_hw) d->phys_chunks_hw = d->chunks_in_use();
   ++d->allocations;
+  observer_sample(d);
 }
 
 inline cudaError_t allocate_small(Device *d, cudaStream_t stream, const cudaStream_t *lanes,
@@ -566,7 +686,7 @@ inline cudaError_t allocate_small(Device *d, cudaStream_t stream, const cudaStre
     d->small->release(offset);
     return ordered;
   }
-  account_alloc(d, offset, aligned, long_lived, true, owner);
+  account_alloc(d, offset, aligned, long_lived, true, owner, bytes, stream);
   *out = d->base + offset;
   *done = true;
   return cudaSuccess;
@@ -720,7 +840,7 @@ inline cudaError_t allocate_impl(int ordinal, cudaStream_t stream, const cudaStr
   const uint64_t offset = voff + d->small_bytes;
   if (s == cudaSuccess) s = order_range(d, offset, n * d->chunk, stream, lanes, lane_count);
   if (s != cudaSuccess) return s;
-  account_alloc(d, offset, n * d->chunk, long_lived, false, owner);
+  account_alloc(d, offset, n * d->chunk, long_lived, false, owner, bytes, stream);
   if (d->phys_chunks_hw * d->chunk >= d->hw_printed + (uint64_t(1) << 30)) {
     d->hw_printed = d->phys_chunks_hw * d->chunk;
     fprintf(stderr, "GPU_ARENA_HW device=%d physical_high_water_bytes=%llu live_bytes=%llu long_bytes=%llu t_ms=%.1f\n",
@@ -788,10 +908,10 @@ inline cudaError_t release(int ordinal, cudaStream_t stream, void *pointer, bool
   }
   const bool small = offset < d->small_bytes;
   if (small) {
-    if (event) d->fences.push_back({offset, bytes, event, stream});
+    if (event) d->fences.push_back({offset, bytes, event, stream, live->second.observer_node, live->second.observer_requested});
     d->small->release(offset);
   } else {
-    if (event) d->fences.push_back({offset, bytes, event, stream});
+    if (event) d->fences.push_back({offset, bytes, event, stream, live->second.observer_node, live->second.observer_requested});
     const uint32_t first = uint32_t((offset - d->small_bytes) / d->chunk);
     for (uint32_t slot = first; slot < first + bytes / d->chunk; ++slot) d->mapped_free.insert(slot);
     d->arena->release(offset - d->small_bytes);
@@ -811,6 +931,7 @@ inline cudaError_t release(int ordinal, cudaStream_t stream, void *pointer, bool
   if (small) d->live_small -= bytes;
   if (long_lived) d->live_long -= bytes;
   ++d->releases;
+  observer_sample(d);
   return cudaSuccess;
 }
 

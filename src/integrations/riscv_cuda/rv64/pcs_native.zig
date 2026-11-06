@@ -723,6 +723,25 @@ pub const Context = struct {
             return 0;
         }
     };
+    const ObserverBoundary = struct {
+        context: *Context,
+        scope: D.Scope,
+        domain: D.AllocationObserverDomain,
+        range: ?@import("allocation_observer.zig").Range = null,
+        ending: bool = false,
+        failure: ?anyerror = null,
+        fn run(raw: *anyopaque, _: u64, user: ?*anyopaque) callconv(.c) c_int {
+            const job: *@This() = @ptrCast(@alignCast(user orelse return 1));
+            if (job.ending) {
+                if (job.range) |*range| range.deinit();
+                job.range = null;
+            } else job.range = @import("allocation_observer.zig").Range.begin(&job.context.library, raw, job.scope, @intFromEnum(job.domain), .pcs_metadata, 1) catch |err| {
+                job.failure = err;
+                return 1;
+            };
+            return 0;
+        }
+    };
     const PcsBoundary = struct {
         permit: *AdmissionRuntime.Permit,
         ending: bool = false,
@@ -813,6 +832,7 @@ pub const Context = struct {
             const retained_upper = cost.retained_after_upper;
             const successor = try self.admissionSuccessor(own_scope, .pcs);
             if (successor.large != 0 or successor.small != 0) return error.UnexpectedPcsSuccessor;
+            @import("allocation_observer.zig").model(own_scope, @intFromEnum(request.allocation_observer_domain), .pcs_metadata, envelope, retained_upper, successor);
             permit = try endpoint.reserve(.{ .owner = .{ .request = std.mem.readInt(u64, own_scope.statement[0..8], .little), .domain = if (self.parent != null) .recursion_node else .native_packet, .ordinal = own_scope.ordinal }, .progress_key = Admission.progressKey(own_scope), .stage = .pcs, .stage_retained_upper = retained_upper, .temporary = envelope, .successor = successor, .known = true, .host_known = false });
             // The C admission guard deliberately spans several synchronous
             // owner jobs, including FIXED misses and the complete native PCS.
@@ -827,6 +847,15 @@ pub const Context = struct {
             self.closePcsPermit(claim) catch {
                 claim.endpoint.planner.poisonPhysical(claim.endpoint.physical);
             };
+        };
+        var observed: ?ObserverBoundary = null;
+        if (@import("allocation_observer.zig").enabled()) {
+            observed = .{ .context = self, .scope = request.scope orelse return error.MissingResidentScope, .domain = request.allocation_observer_domain };
+            if (self.submit(self.session, ObserverBoundary.run, &observed.?) != 0) return observed.?.failure orelse error.AllocationObserverBeginFailed;
+        }
+        defer if (observed) |*boundary| {
+            boundary.ending = true;
+            if (self.submit(self.session, ObserverBoundary.run, boundary) != 0) std.debug.print("GPU_NODE_ALLOC_CLOSE_FAILED phase=pcs coverage_valid=0\n", .{});
         };
         const trees = try a.dupe(D.Tree, request.trees);
         defer a.free(trees);

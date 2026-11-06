@@ -10,6 +10,7 @@
 #include "rv64/prefix_banks.h"
 #include "rv64/trace_stream_plan.h"
 #include "rv64/pcs_framing.h"
+#include "runtime/allocation_observer.h"
 #include <algorithm>
 #include <array>
 #include <cstdio>
@@ -468,12 +469,16 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   }
   const char *nvtx_phases[] = {"m7/pcs/source_lde", "m7/pcs/source_trees", "m7/pcs/samples", "m7/pcs/deep", "m7/pcs/fri", "m7/pcs/pow", "m7/pcs/openings"};
   auto phase_mark = [&](size_t i) {
-    if (i < 7) profiling.next(nvtx_phases[i]);
+    if (i < 7) {
+      CHECK(stwo_exec_context_allocation_observer_next_v1(o.ctx,uint32_t(7+i),1));
+      profiling.next(nvtx_phases[i]);
+    }
     if (phase_timing) {
       CHECK(cudaEventRecord(phase_events[i], stream));
       phase_host[i] = std::chrono::steady_clock::now();
     }
   };
+  CHECK(stwo_exec_context_allocation_observer_next_v1(o.ctx,7,1));
   CHECK(cudaEventRecord(begin, stream));
   profiling.next(nvtx_phases[0]);
   // Preserve the qualified beta1 call verbatim. Beta2 coefficients have
@@ -809,6 +814,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   CHECK(cudaEventRecord(end, stream));
   if (phase_timing) phase_host[7] = std::chrono::steady_clock::now();
   CHECK(cudaEventSynchronize(end));
+  CHECK(stwo_exec_context_allocation_observer_next_v1(o.ctx,14,1));
   profiling.next("m7/pcs/final_readback_encode");
   // All compute is joined above. Queue every compact D2H slice into one
   // stable result allocation and join once; no value feeds a prover kernel.

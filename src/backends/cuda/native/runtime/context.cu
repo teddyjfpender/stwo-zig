@@ -9,6 +9,7 @@
 #include "context_options.h"
 #include "admission_v2.h"
 #include "pool_trim_policy.h"
+#include "allocation_observer.h"
 #if !defined(STWO_CUMETAL)
 #include "device_arena_runtime.cuh"
 #define STWO_DEVICE_ARENA_HOOK 1
@@ -431,8 +432,13 @@ extern "C" int stwo_exec_context_create_options(
     if (status == cudaSuccess && stwo::cuda::runtime::arena::config().enabled &&
         stwo::cuda::runtime::arena::config().valid) {
         cudaError_t carve = cudaSuccess;
-        (void)stwo::cuda::runtime::arena::device(context->device, &carve);
+        auto *arena_device=stwo::cuda::runtime::arena::device(context->device, &carve);
         status = carve;
+        if(status==cudaSuccess && stwo::cuda::runtime::arena::observer_enabled()) {
+            std::lock_guard<std::mutex> lock(arena_device->mutex);
+            for(uint32_t lane=0;lane<context->lane_count;++lane)
+                arena_device->observer_stream_owners[context->lanes[lane]]=context->identity;
+        }
     }
 #endif
 #if !defined(STWO_CUMETAL)
@@ -505,6 +511,11 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
         if (context->lanes[lane] == nullptr) continue;
 #if STWO_DEVICE_ARENA_HOOK
         stwo::cuda::runtime::arena::release_ring(context->lanes[lane]);
+        if(stwo::cuda::runtime::arena::observer_enabled() && stwo::cuda::runtime::arena::config().enabled) {
+            cudaError_t observer_status=cudaSuccess;
+            auto *d=stwo::cuda::runtime::arena::device(context->device,&observer_status);
+            if(d) { std::lock_guard<std::mutex> lock(d->mutex); d->observer_stream_owners.erase(context->lanes[lane]); }
+        }
 #endif
         status = cudaStreamDestroy(context->lanes[lane]);
         if (status != cudaSuccess) return static_cast<int>(status);
@@ -1034,6 +1045,9 @@ static int alloc_u32_from(void *handle, size_t count, uint32_t **out_pointer, bo
     // capture keeps the pool path so captured graphs own their memory nodes.
     const bool use_arena = status == cudaSuccess &&
         stwo::cuda::runtime::arena::config().enabled && !context->capture_active;
+    if(status==cudaSuccess && !use_arena && stwo::cuda::runtime::arena::observer_enabled())
+        ::fprintf(stderr,"GPU_NODE_ALLOC_COVERAGE_GAP context=%llu reason=non_arena_pool_path requested_bytes=%llu capture_active=%u\n",
+            (unsigned long long)context->identity,(unsigned long long)(count*sizeof(uint32_t)),unsigned(context->capture_active));
     if (!use_arena && status == cudaSuccess && context->capture_active &&
         stwo::cuda::runtime::arena::admission_enforced(context->device)) return int(cudaErrorNotSupported);
     if (use_arena) {
@@ -1639,4 +1653,111 @@ extern "C" int stwo_exec_context_admission_cancel_v2(void *raw, uint64_t identit
 }
 extern "C" int stwo_exec_context_admission_finish_v2(void *raw, uint64_t identity, uint64_t ticket, StwoCudaOwnerSnapshotV2 *out) {
     return admission_close_v2(raw, identity, ticket, out, true);
+}
+
+// Observer APIs are scheduling diagnostics. Their host joins are deliberate;
+// the resulting request walls are NEVER qualified latency measurements.
+extern "C" int stwo_exec_context_allocation_observer_capability_v1() { return 1; }
+extern "C" int stwo_exec_context_allocation_observer_begin_v1(void *raw,
+    const uint32_t key[8], uint32_t ordinal, uint32_t domain, uint32_t stage, uint32_t lane) {
+#if STWO_DEVICE_ARENA_HOOK
+    namespace A=stwo::cuda::runtime::arena;
+    if(!A::observer_enabled()) return 0;
+    StwoNativeCudaContext *context=nullptr;
+    auto status=require_context(raw,&context); if(status!=cudaSuccess) return int(status);
+    if(!key || !stage || stage>21 || lane>=context->lane_count || !A::config().enabled) return int(cudaErrorInvalidValue);
+    status=join_lanes(context); if(status!=cudaSuccess) return int(status);
+    auto *d=A::device(context->device,&status); if(!d) return int(status);
+    std::lock_guard<std::mutex> lock(d->mutex);
+    status=A::purge(d); if(status!=cudaSuccess) return int(status);
+    if(d->observer_stages.count(context->identity)) return int(cudaErrorInvalidValue);
+    std::array<uint32_t,8> stable; std::copy(key,key+8,stable.begin());
+    size_t node=0;
+    for(;node<d->observer_nodes.size();++node) {
+        const auto &n=d->observer_nodes[node];
+        if(n.key==stable && n.ordinal==ordinal && n.domain==domain) break;
+    }
+    if(node==d->observer_nodes.size()) {
+        A::ObserverNode n; n.key=stable;n.ordinal=ordinal;n.domain=domain;
+        d->observer_nodes.push_back(n);
+    }
+    auto &n=d->observer_nodes[node];
+    if(stage==1) {
+        // A repeat request reuses the semantic node key. Never reset while
+        // prior-request reservations or retirement fences remain attributed.
+        if(n.live.rounded || n.live.pending_rounded) return int(cudaErrorInvalidValue);
+        ++n.epoch;n.peak={};n.including_pending_upper=0;
+    } else if(!n.epoch) n.epoch=1;
+    A::ObserverStage s; s.node=node+1;s.stage=stage;s.lane=lane;s.gaps_before=d->observer_gaps;
+    s.baseline=n.live;s.peak=s.baseline;
+    uint64_t attributed=0;for(const auto &entry:d->observer_nodes)attributed+=entry.live.rounded;
+    s.shared_baseline=d->live-attributed;
+    d->observer_stages.emplace(context->identity,s);A::observer_sample(d);
+    return 0;
+#else
+    (void)raw;(void)key;(void)ordinal;(void)domain;(void)stage;(void)lane;return int(cudaErrorNotSupported);
+#endif
+}
+extern "C" int stwo_exec_context_allocation_observer_next_v1(void *raw,uint32_t stage,uint32_t lane) {
+#if STWO_DEVICE_ARENA_HOOK
+    namespace A=stwo::cuda::runtime::arena;
+    if(!A::observer_enabled()) return 0;
+    StwoNativeCudaContext *context=nullptr;auto status=require_context(raw,&context);
+    if(status!=cudaSuccess) return int(status);
+    if(!stage || stage>21 || lane>=context->lane_count) return int(cudaErrorInvalidValue);
+    status=join_lanes(context);if(status!=cudaSuccess)return int(status);
+    auto *d=A::device(context->device,&status);if(!d)return int(status);
+    std::lock_guard<std::mutex> lock(d->mutex);status=A::purge(d);if(status!=cudaSuccess)return int(status);
+    auto found=d->observer_stages.find(context->identity);
+    if(found==d->observer_stages.end()) {++d->observer_gaps;return 0;}
+    A::observer_sample(d);A::observer_print(d,context->identity,found->second);
+    auto &s=found->second;s.stage=stage;s.lane=lane;s.baseline=d->observer_nodes[s.node-1].live;
+    s.peak=s.baseline;s.including_pending_upper=s.baseline.rounded+s.baseline.pending_rounded;
+    s.global_rounded_peak=d->live;s.gaps_before=d->observer_gaps;
+    uint64_t attributed=0;for(const auto &entry:d->observer_nodes)attributed+=entry.live.rounded;
+    s.shared_baseline=d->live-attributed;s.shared_rounded_peak=s.shared_baseline;
+    return 0;
+#else
+    (void)raw;(void)stage;(void)lane;return int(cudaErrorNotSupported);
+#endif
+}
+extern "C" int stwo_exec_context_allocation_observer_end_v1(void *raw) {
+#if STWO_DEVICE_ARENA_HOOK
+    namespace A=stwo::cuda::runtime::arena;
+    if(!A::observer_enabled())return 0;
+    StwoNativeCudaContext *context=nullptr;auto status=require_context(raw,&context);if(status!=cudaSuccess)return int(status);
+    status=join_lanes(context);if(status!=cudaSuccess)return int(status);
+    auto *d=A::device(context->device,&status);if(!d)return int(status);
+    std::lock_guard<std::mutex> lock(d->mutex);status=A::purge(d);if(status!=cudaSuccess)return int(status);
+    auto found=d->observer_stages.find(context->identity);if(found==d->observer_stages.end())return int(cudaErrorInvalidValue);
+    A::observer_sample(d);A::observer_print(d,context->identity,found->second);d->observer_stages.erase(found);return 0;
+#else
+    (void)raw;return int(cudaErrorNotSupported);
+#endif
+}
+extern "C" int stwo_exec_context_allocation_observer_bind_v1(void *raw,const void *pointer,uint64_t active_bytes) {
+#if STWO_DEVICE_ARENA_HOOK
+    namespace A=stwo::cuda::runtime::arena;
+    if(!A::observer_enabled())return 0;
+    StwoNativeCudaContext *context=nullptr;auto status=require_context(raw,&context);if(status!=cudaSuccess)return int(status);
+    // An idle-cache transition is a diagnostic retirement boundary. In the
+    // device-sync preset the normal sync may only enqueue a barrier, so join
+    // before removing the node's tag from still-executing cached storage.
+    if(!active_bytes) {status=join_lanes(context);if(status!=cudaSuccess)return int(status);}
+    auto *d=A::device(context->device,&status);if(!d)return int(status);
+    std::lock_guard<std::mutex> lock(d->mutex);
+    const auto address=reinterpret_cast<uintptr_t>(pointer),base=reinterpret_cast<uintptr_t>(d->base);
+    if(address<base)return int(cudaErrorInvalidValue);
+    auto found=d->live_bytes_by_offset.find(address-base);
+    if(found==d->live_bytes_by_offset.end() || found->second.creator!=context->identity || active_bytes>found->second.observer_requested)
+        return int(cudaErrorInvalidValue);
+    auto &a=found->second;
+    auto stage=d->observer_stages.find(context->identity);
+    if(active_bytes && stage==d->observer_stages.end()) ++d->observer_gaps;
+    a.observer_node=active_bytes && stage!=d->observer_stages.end() ? stage->second.node : 0;
+    a.observer_active=active_bytes;a.observer_idle=!active_bytes;
+    A::observer_sample(d);return 0;
+#else
+    (void)raw;(void)pointer;(void)active_bytes;return int(cudaErrorNotSupported);
+#endif
 }

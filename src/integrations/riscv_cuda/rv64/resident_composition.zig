@@ -239,6 +239,7 @@ pub const Context = struct {
             var plan = try job.preflightPlan(a);
             defer plan.deinit(a);
             const successor = try self.service.admissionSuccessor(job.scope, .composition);
+            @import("allocation_observer.zig").model(job.scope, if (job.outer_workspace) 1 else 2, .composition, plan.additional_peak, plan.retained_after, successor);
             permit = try endpoint.reserve(.{ .owner = .{ .request = std.mem.readInt(u64, job.scope.statement[0..8], .little), .domain = if (job.outer_workspace) .recursion_node else .native_packet, .ordinal = job.scope.ordinal }, .progress_key = Admission.progressKey(job.scope), .stage = .composition, .stage_retained_upper = plan.retained_after, .temporary = plan.additional_peak, .successor = successor, .known = true, .host_known = false });
             job.permit = &permit.?;
         }
@@ -599,6 +600,12 @@ const Job = struct {
             self.failure = err;
             return 1;
         };
+        const Observer = @import("allocation_observer.zig");
+        var observed = Observer.Range.begin(&self.backend.service.library, raw, self.scope, if (self.outer_workspace) 1 else 2, .composition, if (self.backend.enqueue_policy) 0 else 1) catch |err| {
+            self.failure = err;
+            return 1;
+        };
+        defer observed.deinit();
         self.run(raw, token) catch |err| {
             if (self.failure == null) self.failure = err;
         };

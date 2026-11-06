@@ -61,6 +61,11 @@ pub const Owner = struct {
             self.failure = err;
             return 1;
         };
+        var observed = @import("allocation_observer.zig").Range.begin(&self.backend.service.library, raw, self.scope, 1, .fixed_ingress, 0) catch |err| {
+            self.failure = err;
+            return 1;
+        };
+        defer observed.deinit();
         self.uploadImpl(raw, token) catch |err| {
             self.failure = err;
             return 1;
@@ -92,6 +97,12 @@ pub const Owner = struct {
     /// and MAIN generation uploads as before.
     fn adopt(raw: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *Owner = @ptrCast(@alignCast(data.?));
+        var observed = @import("allocation_observer.zig").Range.begin(&self.backend.service.library, raw, self.scope, 1, .fixed_adoption, 0) catch |err| {
+            self.failure = err;
+            std.debug.print("GPU_NODE_ALLOC_COVERAGE_GAP reason=fixed_adoption_begin error={s}\n", .{@errorName(err)});
+            return 1;
+        };
+        defer observed.deinit();
         if (self.raw.words == null) return 0;
         const cache = self.backend.service.immutable_setup orelse return 0;
         if (std.process.hasEnvVarConstant("STWO_RV64_OUTER_FIXED_ADOPT_OFF")) return 0;
@@ -115,6 +126,11 @@ pub const Owner = struct {
         const self: *Owner = @ptrCast(@alignCast(raw));
         if (key.pp != self.pp or !key.device_fixed or !std.mem.eql(u8, &key.fixedRoot(), &self.tree.root) or scope.ordinal != self.scope.ordinal) return error.InvalidOuterFixedAuthority;
         try Dev.validateTree(&key.fixed_logs, self.tree);
+        var alias_words: u64 = 0;
+        for (self.tree.columns) |column| if (column.device) |device| {
+            alias_words = try std.math.add(u64, alias_words, device.count);
+        };
+        @import("allocation_observer.zig").fixedLink(self.scope, scope, alias_words);
         return S.Context.prepareImpl(self.backend, a, key, &.{}, scope, graph, self);
     }
     fn release(raw: *anyopaque) void {

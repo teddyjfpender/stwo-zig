@@ -295,6 +295,19 @@ const Job = struct {
     permit: ?*Admission.Permit = null,
     fn callback(raw_context: *anyopaque, token: u64, raw: ?*anyopaque) callconv(.c) c_int {
         const self: *Job = @ptrCast(@alignCast(raw orelse return 1));
+        const Observer = @import("allocation_observer.zig");
+        var observed: ?Observer.Range = null;
+        if (Observer.enabled()) {
+            const service = self.backend.service orelse {
+                self.failure = error.MissingNativeAllocationObserverService;
+                return 1;
+            };
+            observed = Observer.Range.begin(&service.library, raw_context, physicalScope(self.request.scope), 2, .native_gkr, 0) catch |err| {
+                self.failure = err;
+                return 1;
+            };
+        }
+        defer if (observed) |*range| range.deinit();
         if (self.permit) |p| p.enterOwner(raw_context) catch |err| {
             self.failure = err;
             return 1;

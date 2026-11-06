@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "source_sha256": "d6782d472e0eb04be4db4287fa8f3ca61bb216811e2dbd9f0f77a808ca9ea7a0",
+  "argv": [
+    "/workspace/zig/zig",
+    "test",
+    "/workspace/m3/runs/m7-integrate/p3p5-static-preflight-20261106-01/rv64_capture_replay_window.zig",
+    "-O",
+    "ReleaseSafe",
+    "--cache-dir",
+    "/tmp/rv64-m8-p3-static-cache-20261106-01",
+    "--global-cache-dir",
+    "/workspace/m3/cache/zig-global"
+  ],
+  "scope": "Pure bounded launch policy tests only; not production integration/GPU or throughput qualification.",
+  "exit_code": 0,
+  "seconds": 7.590607529040426,
+  "test_log_sha256": "5807e85f3cbc6dd00fe19a71d51ef2203092cba166c4010d1c3b7485f383c7f9"
+}

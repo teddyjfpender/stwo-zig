@@ -9,6 +9,7 @@ const W = @import("../services/gkr_local/worker_protocol.zig");
 const D = @import("stwo_prover_api").device_pcs;
 const Budget = engine.host_budget_allocator.SharedHostBudget;
 pub const FLAG = "STWO_RV64_EARLY_NATIVE_SEGMENTS";
+pub const PARALLEL_SETUP_FLAG = "STWO_RV64_EARLY_SEGMENT_PARALLEL_SETUP";
 pub const SegmentStages = struct {
     source: Pipeline.DeviceSourceStage,
     projection: @import("../../word16_execution/cpu_source.zig").ProjectionStage,
@@ -74,6 +75,9 @@ pub const Slot = struct {
     transferred: bool = false,
     building: bool = false,
     ready_utc_ns: u64 = 0,
+    setup_wait_begin_utc_ns: u64 = 0,
+    setup_begin_utc_ns: u64 = 0,
+    setup_end_utc_ns: u64 = 0,
     source_begin_utc_ns: u64 = 0,
     source_end_utc_ns: u64 = 0,
 };
@@ -81,6 +85,7 @@ pub const Owner = struct {
     options: Options,
     mutex: std.Thread.Mutex = .{},
     setup_mutex: std.Thread.Mutex = .{},
+    parallel_setup: bool = false,
     changed: std.Thread.Condition = .{},
     slots: [max_segments]Slot = @splat(.{}),
     threads: [4]?std.Thread = @splat(null),
@@ -101,7 +106,7 @@ pub const Owner = struct {
     pub fn create(options: Options) !*Owner {
         if (options.provider.lanes == 0 or options.provider.lanes > 4 or options.provider.host_budget == null or options.memory.host_budget == null or options.provider.host_budget.? != options.memory.host_budget.?) return error.EarlySegmentsHostBudgetRequired;
         const self = try options.allocator.create(Owner);
-        self.* = .{ .options = options };
+        self.* = .{ .options = options, .parallel_setup = if (std.posix.getenv(PARALLEL_SETUP_FLAG)) |value| std.mem.eql(u8, value, "1") else false };
         return self;
     }
     pub fn hook(self: *Owner) Capture.Ready {
@@ -228,10 +233,22 @@ pub const Owner = struct {
         var declaration = try Plan.cpuForShard(&local_native, slot.shard.?, ordinal, self.count, self.initial.len, o.layout);
         if (o.strict_roster or o.canonical_rungs) _ = try Plan.canonicalCpuForSegment(&local_native, slot.shard.?.events, o.layout, &declaration, ordinal, self.count, @import("canon_native_rungs.zig"), o.strict_roster);
         slot.declaration = declaration;
-        self.setup_mutex.lock();
-        const setup_result = Keys.initResident(a, o.image, &.{declaration}, &.{}, true, @import("../../word16_execution/pcs_suite.zig").Suite.experimentalFold4(), o.caches, o.setup_cache);
-        self.setup_mutex.unlock();
-        slot.keys = try setup_result;
+        slot.setup_wait_begin_utc_ns = now();
+        var setup_timer = try std.time.Timer.start();
+        var setup_wait_ns: u64 = 0;
+        slot.keys = blk: {
+            // Cache.obtain serializes equal keys; independent setup builds,
+            // cache leases and the thread-local key seal seam are independent.
+            // Keep the previous outer serialization unless explicitly enabled.
+            if (!self.parallel_setup) self.setup_mutex.lock();
+            defer if (!self.parallel_setup) self.setup_mutex.unlock();
+            slot.setup_begin_utc_ns = now();
+            setup_wait_ns = setup_timer.lap();
+            break :blk try Keys.initResident(a, o.image, &.{declaration}, &.{}, true, @import("../../word16_execution/pcs_suite.zig").Suite.experimentalFold4(), o.caches, o.setup_cache);
+        };
+        const setup_build_ns = setup_timer.read();
+        slot.setup_end_utc_ns = now();
+        std.debug.print("EARLY_NATIVE_SEGMENT event=setup_ready ordinal={} utc_ns={} wait_ns={} build_ns={} parallel_setup={} capture_ready_utc_ns={}\n", .{ ordinal, slot.setup_end_utc_ns, setup_wait_ns, setup_build_ns, self.parallel_setup, slot.ready_utc_ns });
         const setup = slot.keys.?.cpus[0];
         slot.binding = try Fixed.Binding.acquire(o.fixed_cache, &setup.key, o.pcs);
         slot.advice = self.advice.?;
