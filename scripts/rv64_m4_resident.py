@@ -116,7 +116,12 @@ def baseline(block):
 
 def m3_parity(block, proof, leaves):
     """Byte parity against the M3 integrate receipt for this block (the M4 baseline)."""
-    control, path = baseline(block)
+    try:
+        control, path = baseline(block)
+    except FileNotFoundError as error:
+        # 25229951 was accepted at M3 only as a diagnostic run (no -2gpu-scale receipt).
+        # Informational parity: never fail a served request over it.
+        return {"baseline_receipt": None, "byte_identical": None, "unavailable": repr(error)}
     ref = control["proof_sha256"]
     native = {p.name: P.sha(p) for p in sorted(proof.glob("*.bin"))}
     result = {"baseline_receipt": str(path), "native_bins": native == ref["native"],
@@ -236,9 +241,18 @@ def nsys_window_counts(sqlite, windows):
 
 
 def require_measurement_blocks(args):
-    """One explicitly requested M7 scale probe; never open a basket loop."""
+    """One explicitly requested M7 scale probe; never open a basket loop.
+
+    --bench-basket-block: the 15-block benchmark (scripts/rv64_m8_bench15.py) serves
+    exactly one M3-basket block per service, ascending, stopping on the first failure.
+    """
     large = [block for block in args.blocks if block not in P.DEV_BLOCKS]
     if not large:
+        return
+    if getattr(args, "bench_basket_block", False):
+        basket = {job["block"] for job in P.plan_template()["jobs"]}
+        if len(args.blocks) != 1 or large[0] not in basket or args.repeat > 2:
+            raise SystemExit("--bench-basket-block serves one M3-basket block per service, --repeat <= 2")
         return
     if not getattr(args, "allow_scale_probe", False) or large != [24697070] or args.repeat != 1:
         raise SystemExit("owner rule: scale probe requires --allow-scale-probe, block 24697070 once, --repeat 1")
@@ -990,6 +1004,7 @@ def main():
     s.add_argument("blocks", type=int, nargs="+")
     s.add_argument("--repeat", type=int, default=2)
     s.add_argument("--allow-scale-probe", action="store_true", help="permit one 24697070 request only, with --repeat 1")
+    s.add_argument("--bench-basket-block", action="store_true", help="rv64_m8_bench15.py only: one M3-basket block per service, --repeat <= 2")
     s.add_argument("--recursion-max-pending-authorities", type=int, help="source queue admission floor; 4logical lanes atarity4 require21 (2lanes require17)")
     s.add_argument("--coalesce-truth-families", action="store_true", help="opt-in non-Keccak family coalescing; preserves bounded Keccak shards")
     s.add_argument("--security-profile", choices=("conjectured128_b2_q108_p20_fold4", "d2_native_b4_q54_p20_fold4"), help="explicit opt-in native profile; preserves template default when absent")
