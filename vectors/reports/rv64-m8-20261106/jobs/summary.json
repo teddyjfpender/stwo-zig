@@ -1,0 +1,48 @@
+{
+  "schema": "rv64-m8-jobs-integrate-summary/v1",
+  "date": "2026-11-06",
+  "integrate_head": "78e871d48",
+  "pod_stream": "m8-integrate (src /workspace/m3/src/m8-integrate, build /workspace/m3/build/m8-integrate, runs /workspace/m3/runs/m8-integrate); used instead of m7-integrate because build/ and runs/m7-integrate are frozen assets",
+  "landed": {
+    "runtime": ["6b7864839", "ba727ed2a", "fe2d494ac", "929b54eea"],
+    "native-job": ["e991419df", "e6f001066", "c7cdf3fe1", "e688952a5", "8a22fe5b6", "577433230"],
+    "outer-job": {
+      "rebased_from": "codex/rv64-m8-outer-job-r2 @ da93d0e76 (on pre-rebase native-job 095d095ca)",
+      "commits": ["40f811a18", "34402ab73", "6d4eb64c0", "1bfd707bf", "0d99cb8fa", "52f6c4c0c"],
+      "conflicts": "build.zig only: union of native-job's test binaries and outer-job's test-rv64-jobs-outer step",
+      "integration_fix": "78e871d48: fixture uses ops.Libraries.open; Exec has channel_draw_raw_on (addon) instead of transcript_draw_u32s_on"
+    }
+  },
+  "gates": {
+    "default_26235156": {"label": "[M]", "status": "PASS", "source_commit": "78e871d48",
+      "proofs_byte_identical_to_frozen_d2": "2/2 (cold, warm; 32 artifacts each)", "fresh_cpu_receivers": "2/2", "negative_corpus": "19/19",
+      "frozen_default_sha256": "5987d31c4253ba204e3b782790e0e5871e7b9787e9e26fbb70f65dbfab818d95",
+      "asset_sha256": {"library": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45", "driver": "fb2dc142adf88f2fedf4ab2ed5ba60217858e2eca179f4fb8402fc1b03c7babf", "receiver": "792611f94282af0613f10bfbe4ffb64bab29f15b44737cdae4794b57a7ae5abe"},
+      "raw": {"path": "/workspace/m3/runs/m8-integrate/gate-1/gate.json", "sha256": "e40943ead4e3905d23a4917b71976252fc8aee44b9c1a396b06ed0cd8d16cd3d"}},
+    "jobs_26235156": {"label": "[M]", "status": "FAIL", "source_commit": "78e871d48",
+      "extra_env": {"STWO_RV64_M8_JOBS": "1", "STWO_RV64_M8_JOBS_LIBRARY": "/workspace/m3/build/m8-integrate/jobs-addon-1/libstwo-rv64-jobs.so"},
+      "failed_step": "small-block-proof: service exited before READY (1)",
+      "cause": "jobs/mod.zig provider() fails closed with M8RequestProviderNotLanded after both workers boot and pass the boot parity self-test (1 host wait each). Not a byte divergence: no request reaches the job path.",
+      "raw": {"path": "/workspace/m3/runs/m8-integrate/gate-2-jobs/gate.json", "sha256": "59ca729591eee90b2e9db4b94f7589dc657b826b154bad2913787e084ba4ee6f",
+              "producer_stderr": "/workspace/m3/runs/m8-integrate/daemon-26235156-r2-gate-gate-2-jobs-00-baseline/producer.stderr", "producer_stderr_sha256": "229f773c9027403e31c3551b05bbf8239246ca436e02faa52778069a43eceba1"}},
+    "jobs_24628607": {"status": "NOT RUN", "reason": "the fail-closed provider stops the service before READY independent of block; 26235156 must pass first"}
+  },
+  "host_tests": {"label": "[M]", "result": "test-rv64-jobs + test-rv64-jobs-outer: 115/120 pass, 5 GPU-only skips; build-rv64-m8-outer-job-fixture and check-rv64-ethereum-gpu-combined OK", "raw": {"path": "/workspace/m3/runs/m8-integrate/host-1.log", "sha256": "b27538e2fa430dd48bb364872cacd48d806a437fcf5be568839d15cf247b0be0"}},
+  "addon": {"path": "/workspace/m3/build/m8-integrate/jobs-addon-1/libstwo-rv64-jobs.so", "sha256": "8d4d50611c3375f2cd677bd1c10fd0b9589dedb2e7108e06e16cbed5278c9c22", "sources": ["channel_ops.cu", "oods_points.cu", "outer_graph.cu", "outer_rc_params.cu", "pcs_enqueue.cu", "runtime.cu"], "base": "frozen a25cc3b2 (unchanged)"},
+  "channel_parity": {"label": "[M]", "argv": "rv64-jobs-channel-parity 0,1 4", "ok": true, "jobs": 24, "failures": 0, "boundary_snapshots": "896/896", "host_waits_per_job": 1,
+    "scope": "device channel op semantics + worker pipeline on both RTX 5090s; not a proof-byte parity claim",
+    "raw": {"path": "/workspace/m3/runs/m8-integrate/parity-1.err", "sha256": "1c69dd53a84f642d4090732e3470b1b3d09cb4fefd8257bfcec4f6b13c8a2ad0"}},
+  "outer_job_fixture": {"label": "[M]", "scope": "outer_proof_fixture node (114 MAIN / 304 INTER columns), GPU 0, a25 base + integrate addon, profile m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1; integrated head 78e871d48",
+    "prefix": "4/4 runs: roots, claims, challenges, snapshots equal to legacy controller; 184 host-API launches direct -> 1 captured (293 kernel nodes)",
+    "whole_node": "5/5 runs wire-byte identical to legacy (632624 B, sha256 d6e678536ad798b1009a22ce34ee2abb3708e134e22b3d2bbfeb3eb049041dd3), incl. 1 device-precommitted FIXED authority",
+    "per_node": {"host_waits": 1, "slab_d2h_bytes": 1554264, "host_api_launches_direct": 453, "host_api_launches_captured": 1, "graph_kernel_nodes": 1070, "arena_peak_words": "609331968-613580672"},
+    "timing_scope": "diagnostic only (single process, no quiet gate): not a speed claim",
+    "raw": {"path": "/workspace/m3/runs/m8-integrate/fixture-1/fixture.log", "sha256": "12003ccc60631e30bb2b861833cc0ffa644ed154630780b4154a39971890d104"}},
+  "measurement": {"status": "NOT RUN",
+    "reason": "the candidate arm (STWO_RV64_M8_JOBS=1) produces no proofs, so the canonical interleaved 3+3 runner has no candidate to time; no request/capture/native/recursion/tail/GPU-s/busy/launch numbers are claimed for the job path"},
+  "promotion": {"decision": "NOT PROMOTED", "default": "STWO_RV64_M8_JOBS unset/0 (legacy path)"},
+  "blocking": [
+    "Stage A (legacy native + OuterNodeJob recursion): one default-null hook in a legacy file (e.g. Factory.whole_node in circuit_cpu/om31/device_prove.zig, checked first in proveFromCircuit). Outside every stream's ownership: owner decision.",
+    "Stage B (native on the job path): NativeStage1/2/Truth producers not ported: witness source, binding finalize, global interaction + publicClaims device reduction, native composition kernels, local GKR enqueue-only (salt/rejection retry policy). Then request.Provider in jobs/mod.zig provider()."
+  ]
+}
