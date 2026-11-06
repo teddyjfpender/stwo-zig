@@ -25,6 +25,12 @@
 //   STWO_RV64_DEVICE_ARENA_POISON=<0..255>   test only: fill every arena
 //       allocation and every freed range with this byte (synchronously), so
 //       a proof that reads uninitialised or freed memory stops matching.
+//   STWO_RV64_M8_MEM_TRACE=<dir>   M8 memory stream, default off, diagnostic
+//       only (needs STWO_RV64_ALLOCATION_OBSERVER=1 for node/stage tags).
+//       Appends one TSV row per arena reservation (A), release (F) and
+//       observer stage close (S) to <dir>/arena-trace-<pid>.tsv, in the order
+//       the arena mutex serialised them. No allocation decision reads it.
+//       Consumed by scripts/rv64_m8_memory_sweep.py (production-order replay).
 //
 // Cross-context reuse: every context used to own a private async pool, so a
 // freed range was only ever reused by the stream that freed it. The arena is
@@ -44,6 +50,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <algorithm>
 #include <array>
@@ -308,6 +315,43 @@ struct Device {
   }
 };
 
+// ---- M8 allocation event trace (STWO_RV64_M8_MEM_TRACE) -------------------
+inline FILE *mem_trace() {
+  static FILE *file = []() -> FILE * {
+    const char *dir = getenv("STWO_RV64_M8_MEM_TRACE");
+    if (!dir || !*dir || !observer_enabled()) return nullptr;
+    char path[4096];
+    snprintf(path, sizeof(path), "%s/arena-trace-%d.tsv", dir, int(getpid()));
+    FILE *f = fopen(path, "w");
+    if (!f) { fprintf(stderr, "GPU_M8_MEM_TRACE_OPEN_FAILED path=%s\n", path); return nullptr; }
+    setvbuf(f, nullptr, _IOFBF, 1 << 20);
+    fprintf(f, "# rv64-m8-arena-trace/v1\top\tt_us\tdevice\toffset\trounded\trequested\tlong\tsmall\tfenced\tcontext\tordinal\tdomain\tepoch\tstage\n");
+    return f;
+  }();
+  return file;
+}
+inline const char *observer_stage_name(uint32_t stage);
+// Caller holds d->mutex. `node` is the 1-based observer node index (0 = none:
+// long-lived/shared or untagged).
+inline void mem_trace_row(Device *d, char op, uint64_t offset, uint64_t rounded, uint64_t requested,
+                          bool long_lived, bool small, bool fenced, uint64_t context, uint64_t node) {
+  FILE *f = mem_trace();
+  if (!f) return;
+  uint32_t ordinal = UINT32_MAX, domain = 0, stage = 0;
+  uint64_t epoch = 0;
+  if (node && node <= d->observer_nodes.size()) {
+    const auto &n = d->observer_nodes[node - 1];
+    ordinal = n.ordinal; domain = n.domain; epoch = n.epoch;
+  }
+  const auto found = d->observer_stages.find(context);
+  if (found != d->observer_stages.end()) stage = found->second.stage;
+  fprintf(f, "%c\t%.0f\t%d\t%llu\t%llu\t%llu\t%d\t%d\t%d\t%llu\t%d\t%u\t%llu\t%s\n", op, now_ms() * 1000.0, d->ordinal,
+          (unsigned long long)offset, (unsigned long long)rounded, (unsigned long long)requested, int(long_lived), int(small),
+          int(fenced), (unsigned long long)context, ordinal == UINT32_MAX ? -1 : int(ordinal), domain,
+          (unsigned long long)epoch, observer_stage_name(stage));
+  if (op == 'S') fflush(f);  // the driver may exit through exit_group
+}
+
 inline const char *observer_stage_name(uint32_t stage) {
   const char *names[] = {"unknown", "main_witness", "main_commit", "inter_witness", "inter_commit", "composition", "pcs_metadata", "pcs_source_lde", "pcs_source_trees", "pcs_samples", "pcs_deep", "pcs_fri", "pcs_pow", "pcs_openings", "pcs_readback", "retirement", "fixed_commit", "fixed_ingress", "fixed_adoption", "native_gkr", "native_binding", "native_main_replay"};
   return stage < sizeof(names)/sizeof(names[0]) ? names[stage] : "unknown";
@@ -359,6 +403,7 @@ inline void observer_print(Device *d,uint64_t owner,const ObserverStage &stage) 
   for(const auto &entry:d->live_bytes_by_offset) if(entry.second.observer_idle) idle+=entry.second.tagged_bytes&~uint64_t(1);
   for(const auto &n:d->observer_nodes) attributed+=n.live.rounded;
   for(const auto &f:d->fences) pending+=f.bytes;
+  mem_trace_row(d,'S',0,stage.peak.rounded,stage.peak.requested,false,false,false,owner,stage.node);
   char key_text[65]{};
   for(size_t i=0;i<node.key.size();++i) snprintf(key_text+i*8,9,"%08x",node.key[i]);
   // One stdio call per row: separate devices cannot interleave its key/body.
@@ -649,6 +694,7 @@ inline void account_alloc(Device *d, uint64_t offset, uint64_t bytes, bool long_
       ++d->observer_gaps;
       fprintf(stderr,"GPU_NODE_ALLOC_COVERAGE_GAP device=%d context=%llu reason=%s requested_bytes=%llu\n",d->ordinal,(unsigned long long)observer_owner,observer_owner ? "unscoped_short_reservation" : "unknown_allocation_owner",(unsigned long long)requested);
     }
+    mem_trace_row(d,'A',offset,bytes,requested,long_lived,small,false,observer_owner,allocation.observer_node);
   }
   auto creator = d->owner_live.find(owner);
   if (creator != d->owner_live.end()) {
@@ -926,6 +972,9 @@ inline cudaError_t release(int ordinal, cudaStream_t stream, void *pointer, bool
   if (window != d->owner_windows.end() && window->second.ticket == live->second.ticket) {
     if (small) window->second.new_small -= bytes; else window->second.new_large -= bytes;
   }
+  if (observer_enabled())
+    mem_trace_row(d, 'F', offset, bytes, live->second.observer_requested, long_lived, small, event != nullptr,
+                  live->second.creator, live->second.observer_node);
   d->live_bytes_by_offset.erase(live);
   d->live -= bytes;
   if (small) d->live_small -= bytes;
