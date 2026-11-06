@@ -29,8 +29,7 @@ const Job = @import("rv64/jobs/outer_job.zig");
 const Graphs = @import("rv64/jobs/outer_graph_cache.zig");
 const N = @import("rv64/jobs/outer_node.zig");
 const Plan = @import("rv64/jobs/outer_plan.zig");
-const Comp = @import("rv64/jobs/outer_composition.zig");
-const NativePcs = @import("rv64/jobs/native_pcs.zig");
+const Factory = @import("rv64/outer_job_factory.zig");
 const Q = Outer.protocol.Q;
 const Raw = core.channel.raw_mod_m31;
 
@@ -236,40 +235,30 @@ pub fn main() !void {
     if (failures != 0) return error.OuterJobParityMismatch;
     std.debug.print("OUTER_JOB_PARITY_PASS runs={d}\n", .{runs});
 
-    // Whole node: prefix + composition + device OODS + enqueue-only PCS,
-    // assembled and wire-encoded; must equal the legacy proof bytes.
-    const comp_kernels = try Comp.Kernels.load(&libs.base, &libs.addon);
-    const Version = *const fn () callconv(.c) u32;
-    const wide = if (libs.base.lookup(Version, "stwo_rv64_pcs_request_version")) |version| version() >= 3 else false;
-    const whole = Job.Whole{ .composition = &comp_kernels, .pcs = try NativePcs.Symbols.load(&libs.addon), .wide = wide };
-    var whole_cache = Graphs.Cache.init(a, try Graphs.Api.load(&libs.addon), Graphs.Policy.fromEnv());
-    defer whole_cache.deinit();
+    // Whole node through the request-layer adapter (outer_job_factory.zig):
+    // prestage -> OuterNodeJob on the worker -> assemble -> wire bytes, which
+    // must equal the legacy proof bytes.
+    var shared = try Factory.Shared.init(&libs.base, &libs.addon, args[3]);
+    defer shared.deinit();
+    var prover = Factory.Prover.init(a, &shared, worker);
+    defer prover.deinit();
     var whole_failures: usize = 0;
     for (0..runs) |run| {
-        var job = try Job.OuterNodeJob.initWhole(staged, &kernels, whole);
-        defer job.deinit();
-        job.graphs = &whole_cache;
-        const fp = job.footprint();
-        var done = Done{};
         var timer = try std.time.Timer.start();
-        try worker.submit(job.job(), .{ .ctx = &done, .done = Done.done });
-        done.event.wait();
-        const wall_ns = timer.read();
-        done.result catch |err| {
+        var produced = prover.prove(a, .{ .key = &key, .graph = &graph, .expected = &expected, .ordinal = 0, .library = &libs.base }) catch |err| {
             std.debug.print("OUTER_JOB_WHOLE {{\"run\":{d},\"error\":\"{s}\"}}\n", .{ run, @errorName(err) });
             return err;
         };
-        var assemble_timer = try std.time.Timer.start();
-        var produced = try Prestage.assemble(a, &key, staged, &job);
         defer produced.deinit();
+        const wall_ns = timer.read();
         const encoded = try Outer.wire.encode(a, key.identity, produced.outputs, produced.claims, &produced.proof.proof);
         defer a.free(encoded);
-        const assemble_ns = assemble_timer.read();
         const identical = std.mem.eql(u8, encoded, legacy_bytes);
         if (!identical) whole_failures += 1;
         var proof_digest: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash(encoded, &proof_digest, .{});
-        std.debug.print("OUTER_JOB_WHOLE {{\"run\":{d},\"graph\":\"{s}\",\"proof_bytes_identical\":{},\"proof_bytes\":{d},\"proof_sha256\":\"{s}\",\"host_api_launches\":{d},\"body_launches\":{d},\"graph_kernel_nodes\":{d},\"host_waits\":{d},\"d2h_bytes\":{d},\"wait_ns\":{d},\"enqueue_ns\":{d},\"wall_ns\":{d},\"assemble_ns\":{d},\"footprint_device_words\":{d},\"arena_peak_words\":{d}}}\n", .{ run, @tagName(job.report.outcome), identical, encoded.len, std.fmt.bytesToHex(proof_digest, .lower), job.report.launches, job.report.body_launches, job.report.kernel_nodes, job.report.receipt.host_waits, job.report.receipt.d2h_bytes, job.report.receipt.wait_ns, job.report.receipt.enqueue_ns, wall_ns, assemble_ns, fp.device_words, job.report.receipt.arena_peak_words });
+        const r = prover.last;
+        std.debug.print("OUTER_JOB_WHOLE {{\"run\":{d},\"graph\":\"{s}\",\"proof_bytes_identical\":{},\"proof_bytes\":{d},\"proof_sha256\":\"{s}\",\"host_api_launches\":{d},\"graph_kernel_nodes\":{d},\"host_waits\":{d},\"d2h_bytes\":{d},\"wait_ns\":{d},\"enqueue_ns\":{d},\"prestage_ns\":{d},\"job_ns\":{d},\"assemble_ns\":{d},\"wall_ns\":{d},\"arena_peak_words\":{d}}}\n", .{ run, @tagName(r.outcome), identical, encoded.len, std.fmt.bytesToHex(proof_digest, .lower), r.launches, r.kernel_nodes, r.receipt.host_waits, r.receipt.d2h_bytes, r.receipt.wait_ns, r.receipt.enqueue_ns, r.prestage_ns, r.job_ns, r.assemble_ns, wall_ns, r.receipt.arena_peak_words });
     }
     var legacy_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(legacy_bytes, &legacy_digest, .{});
