@@ -72,6 +72,12 @@ pub const ParityJob = struct {
     failure: ?anyerror = null,
     mismatch_op: ?usize = null,
     expected_chain_base: u64 = 0,
+    /// Test knobs: take mix inputs from worker-persistent memory keyed by
+    /// `persistent_key` (uploaded only when fresh), or fail enqueue after n ops.
+    persistent_key: ?[32]u8 = null,
+    used_warm_inputs: bool = false,
+    fail_after_ops: ?usize = null,
+    aborted: bool = false,
 
     pub fn init(script: Script) !ParityJob {
         var self = ParityJob{ .script = script };
@@ -90,7 +96,15 @@ pub const ParityJob = struct {
         return .{ .device_words = staged + 1024, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = self.script.inputWords() };
     }
     pub fn stage(self: *ParityJob, s: *api.Stager) !void {
+        if (self.persistent_key) |key| return self.stagePersistent(s, key);
         const host = try s.pinned(self.script.inputWords());
+        self.fillInputs(host);
+        const device = try s.alloc(host.len);
+        try s.upload(device, host);
+        self.seed = try device.slice(0, 9);
+        self.inputs = try device.slice(9, host.len - 9);
+    }
+    fn fillInputs(self: *ParityJob, host: []u32) void {
         @memcpy(host[0..9], &seedWords(self.script.seed));
         var at: usize = 9;
         for (self.script.ops) |*op| {
@@ -103,10 +117,17 @@ pub const ParityJob = struct {
             @memcpy(host[at..][0..words.len], words);
             at += words.len;
         }
-        const device = try s.alloc(host.len);
-        try s.upload(device, host);
-        self.seed = try device.slice(0, 9);
-        self.inputs = try device.slice(9, host.len - 9);
+    }
+    fn stagePersistent(self: *ParityJob, s: *api.Stager, key: [32]u8) !void {
+        const p = try s.persistent(key, self.script.inputWords());
+        self.used_warm_inputs = !p.fresh;
+        if (p.fresh) {
+            const host = try s.pinned(self.script.inputWords());
+            self.fillInputs(host);
+            try s.upload(p.buffer, host);
+        }
+        self.seed = try p.buffer.slice(0, 9);
+        self.inputs = try p.buffer.slice(9, p.buffer.words - 9);
     }
     pub fn enqueue(self: *ParityJob, e: *api.Enqueue) !void {
         try e.slab.bind(&self.layout);
@@ -115,6 +136,7 @@ pub const ParityJob = struct {
         self.expected_chain_base = ch.chain_base;
         var at: usize = 0;
         for (self.script.ops, 0..) |op, i| {
+            if (self.fail_after_ops) |n| if (i == n) return error.InjectedMidEnqueueFailure;
             const index: u32 = @intCast(i);
             switch (op) {
                 .mix_words => |w| {
@@ -193,7 +215,9 @@ pub const ParityJob = struct {
         self.mismatch_op = op;
         return err;
     }
-    pub fn abort(_: *ParityJob) void {}
+    pub fn abort(self: *ParityJob) void {
+        self.aborted = true;
+    }
 };
 
 /// Records a host Om31Channel's op sequence through `raw_mod_m31.om31_observer`.

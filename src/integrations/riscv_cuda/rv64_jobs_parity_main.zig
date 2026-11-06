@@ -145,12 +145,59 @@ fn pipeline(a: std.mem.Allocator, libs: *O.Libraries, device: u32, count: usize,
     std.debug.print("{s}\n", .{out.written()});
 }
 
+/// Failure isolation on a real GPU: a refused (oversized) job, a job that
+/// fails mid-enqueue after kernels were already enqueued, warm persistent
+/// inputs reused by a later job, and parity jobs in between that must pass.
+fn robust(a: std.mem.Allocator, libs: *O.Libraries, device: u32) !void {
+    var arena_state = std.heap.ArenaAllocator.init(a);
+    defer arena_state.deinit();
+    const arena = arena_state.allocator();
+    const script = try P.coverageScript(arena, true);
+    const w = try W.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = 1 << 20, .pinned_slot_words = 1 << 18 });
+    var done = Done{ .a = a };
+    defer done.receipts.deinit(a);
+    var jobs: [7]P.ParityJob = undefined;
+    for (&jobs) |*j| j.* = try P.ParityJob.init(script);
+    const key: [32]u8 = @splat(0x77);
+    jobs[1].layout.words = 1 << 21; // footprint > arena: refused, never staged
+    jobs[2].fail_after_ops = 9; // kernels already enqueued, then an error
+    jobs[3].persistent_key = key; // fresh: uploads inputs into persistent memory
+    jobs[5].persistent_key = key; // warm: no upload, reads the persistent inputs
+    for (&jobs) |*j| while (true) {
+        w.submit(api.Job.from(P.ParityJob, j), done.sink()) catch |err| switch (err) {
+            error.WorkerBusy => {
+                std.Thread.sleep(20 * std.time.ns_per_us);
+                continue;
+            },
+            else => return err,
+        };
+        break;
+    };
+    while (w.load() != 0) std.Thread.sleep(50 * std.time.ns_per_us);
+    w.destroy();
+    var errors: [7][]const u8 = @splat("");
+    for (done.receipts.items) |r| errors[r.sequence] = r.err;
+    const ok = jobs[0].checked_ops == script.ops.len and jobs[4].checked_ops == script.ops.len and jobs[6].checked_ops == script.ops.len and
+        jobs[3].checked_ops == script.ops.len and jobs[5].checked_ops == script.ops.len and !jobs[3].used_warm_inputs and jobs[5].used_warm_inputs and
+        jobs[1].aborted and jobs[2].aborted and std.mem.eql(u8, errors[1], "JobFootprintExceedsArena") and std.mem.eql(u8, errors[2], "InjectedMidEnqueueFailure") and done.failures == 2;
+    var out: std.Io.Writer.Allocating = .init(a);
+    defer out.deinit();
+    try std.json.Stringify.value(.{ .schema = "rv64-m8-jobs-robust/v1", .ok = ok, .device = device, .errors = errors, .warm_inputs_job5 = jobs[5].used_warm_inputs, .checked = .{ jobs[0].checked_ops, jobs[3].checked_ops, jobs[4].checked_ops, jobs[5].checked_ops, jobs[6].checked_ops }, .ops_per_script = script.ops.len, .receipts = done.receipts.items }, .{ .whitespace = .indent_1 }, &out.writer);
+    std.debug.print("{s}\n", .{out.written()});
+    if (!ok) std.process.exit(1);
+}
+
 pub fn main() !void {
     var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
     defer _ = gpa.deinit();
     const a = gpa.allocator();
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
+    if (args.len == 3 and std.mem.eql(u8, args[1], "robust")) {
+        var libs = try O.Libraries.open(std.posix.getenv("STWO_RV64_GPU_LIBRARY") orelse return error.MissingBaseLibrary, std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingJobsAddon);
+        defer libs.close();
+        return robust(a, &libs, try std.fmt.parseInt(u32, args[2], 10));
+    }
     if (args.len == 6 and std.mem.eql(u8, args[1], "pipeline")) {
         var libs = try O.Libraries.open(std.posix.getenv("STWO_RV64_GPU_LIBRARY") orelse return error.MissingBaseLibrary, std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingJobsAddon);
         defer libs.close();
