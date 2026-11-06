@@ -1,0 +1,14 @@
+{
+  "schema": "rv64-m8-gate-receipt/v1",
+  "stream": "m8-gpu",
+  "source_commit": "b4d03d584",
+  "pod_run": "/workspace/m3/runs/m8-gpu/gate-1",
+  "gate_json_sha256": "0d1eb709e731785c35e17bb8f03710a9b5094b142682507f68135553f31bf7bf",
+  "steps": {"build": 0, "unit-zig": 0, "unit-python": 0, "small-block-proof": 1},
+  "verdict": "INCOMPLETE (environment): build and all unit tests PASS [M]; proof step could not start",
+  "proof_step_failure": "service exited before READY: GpuPcsInitializationFailed, GPU_ARENA_INIT status=2 with 0.92 GB free on device 0 [M]",
+  "cause": "an idle orphan combined-serve from /workspace/m3/runs/m8-native-hybrid/daemon-26235156-r2-gate-gate-n-26235156-00-baseline (pid 3302210, ppid 1, both requests done 19:28) holds 30.1 GB on each GPU outside gpu.lock; not created by this stream, not stopped (cross-stream workload)",
+  "local_host_tests": "zig build test-rv64-jobs test-rv64-jobs-outer PASS under memguard [M]",
+  "proof_bytes_changed": false,
+  "note": "the contract is unreachable from the default and feeder paths (no import from mod.zig/request path); rerun the gate once the GPUs are free"
+}
