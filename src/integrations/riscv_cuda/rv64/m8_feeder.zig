@@ -151,6 +151,10 @@ pub const Feeder = struct {
         if (lanes.len > self.lanes.len) return error.M8FeederTooManyLanes;
         for (lanes, 0..) |*lane, i| {
             const node = lane.factory.whole_node orelse return error.M8FeederOuterStageMissing;
+            // The outer window and the native per-job windows share one
+            // WorkerSet: recursion device work must start after native
+            // completion, or their unparks would collide (fail closed here).
+            if (!lane.factory.requires_native_complete) return error.M8FeederSharedSetRequiresNativeComplete;
             self.lanes[i] = .{ .feeder = self, .inner_node = node, .inner_precommit = lane.factory.precommit_fixed, .inner_context = lane.factory.context };
             lane.factory.whole_node = .{ .context = &self.lanes[i], .prove = wholeNode };
         }

@@ -571,6 +571,11 @@ pub const Hybrid = struct {
     /// A FIXED handoff region was acquired in the open window: park releases
     /// worker-persistent regions so the native window gets the memory back.
     handoff_live: std.atomic.Value(bool) = .init(false),
+    /// M8 feeder (STWO_RV64_M8_JOBS=1): an already-booted, parked WorkerSet
+    /// shared with the native hybrid (one context per GPU for the request).
+    /// The window unparks/parks it like its own persistent set but never
+    /// stops it (its owner does).
+    shared_set: ?*Jobs.WorkerSet = null,
 
     /// Every hybrid knob, parsed strictly once at create (outer_env.zig;
     /// jobs/README.md "Outer job environment").
@@ -609,6 +614,13 @@ pub const Hybrid = struct {
         }
     };
 
+    /// Use `set` (parked, owned by the caller, outliving this Hybrid) for
+    /// every window instead of booting one. Before the first window only.
+    pub fn adoptSet(self: *Hybrid, set: *Jobs.WorkerSet) !void {
+        if (self.window != null or !self.persist) return error.M8OuterSharedSetRequiresPersistentWindow;
+        if (!set.parked()) return error.M8OuterSharedSetNotParked;
+        self.shared_set = set;
+    }
     pub fn create(a: std.mem.Allocator, library: []const u8) !*Hybrid {
         const fs_path = std.posix.getenv("STWO_RV64_M8_OUTER_FS_LIBRARY") orelse return error.MissingM8OuterFsLibrary;
         _ = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingM8JobsLibrary;
@@ -730,8 +742,10 @@ pub const Hybrid = struct {
         // Persistent: boot on a small arena, park, then unpark at the
         // request's size (the same path every later request takes).
         config.arena_words = if (self.persist) @min(words, boot_arena_words) else words;
-        const set = if (self.persist) try Jobs.WorkerSet.startParked(self.allocator, self.library, config) else try Jobs.WorkerSet.startWith(self.allocator, self.library, config);
-        errdefer set.stop(self.allocator);
+        const set = if (self.shared_set) |shared| shared else if (self.persist) try Jobs.WorkerSet.startParked(self.allocator, self.library, config) else try Jobs.WorkerSet.startWith(self.allocator, self.library, config);
+        errdefer if (self.shared_set == null) set.stop(self.allocator) else {
+            _ = set.park(.{}) catch {};
+        };
         const unpark_ns: u64 = if (self.persist) (try set.unpark(words)).ns else 0;
         var shared = try Shared.init(&set.libs.base, &set.libs.addon, self.fs_path);
         errdefer shared.deinit();
@@ -801,7 +815,7 @@ pub const Hybrid = struct {
         for (w.provers) |*p| p.deinit();
         self.allocator.free(w.provers);
         w.shared.deinit();
-        w.set.stop(self.allocator);
+        if (self.shared_set == null) w.set.stop(self.allocator) else _ = w.set.park(.{}) catch |err| std.debug.print("GPU_M8_OUTER_WINDOW shared_park_failed error={s}\n", .{@errorName(err)});
         std.debug.print("GPU_M8_OUTER_WINDOW close window={d} nodes={d} close_ns={d} stopped=true\n", .{ self.windows, nodes, timer.read() });
     }
 

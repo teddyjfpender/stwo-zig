@@ -118,7 +118,12 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
         var services: [8]*@import("pcs_native.zig").Context = undefined;
         for (pool.devices, 0..) |*device, i| services[i] = &device.native;
         try hybrid.install(lanes, services[0..pool.devices.len]);
-        if (feeder) |f| try f.wrapOuter(lanes);
+        if (feeder) |f| {
+            // One parked WorkerSet per GPU for the whole request: the outer
+            // window unparks the native hybrid's set after the native phase.
+            if (native_jobs) |nh| try hybrid.adoptSet(nh.set);
+            try f.wrapOuter(lanes);
+        }
         break :blk hybrid;
     } else null) else {};
     defer if (combined) {
