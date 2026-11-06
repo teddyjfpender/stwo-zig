@@ -1,0 +1,51 @@
+[
+ {
+  "kind": "truth-shard",
+  "symbol": "rv64_truth_domain_0_shard_43",
+  "launch_bounds": "128,4",
+  "ab": "[M] CUDA events, bench_truth.cu, same inputs, 7 reps, median; admitted -> scheduled; bit-exact. 2^16 rows: 1.174 -> (128,4) 0.569 ms; (128,6) 0.590"
+ },
+ {
+  "kind": "truth-shard",
+  "symbol": "rv64_truth_domain_0_shard_44",
+  "launch_bounds": "128,4",
+  "ab": "[M] CUDA events, bench_truth.cu, same inputs, 7 reps, median; admitted -> scheduled; bit-exact. 2^16 rows: 1.962 -> (128,4) 0.857 ms; (128,6) 0.941"
+ },
+ {
+  "kind": "truth-shard",
+  "symbol": "rv64_truth_domain_0_shard_45",
+  "launch_bounds": "128,4",
+  "ab": "[M] CUDA events, bench_truth.cu, same inputs, 7 reps, median; admitted -> scheduled; bit-exact. 2^16 rows: 1.973 -> (128,4) 0.837 ms; (128,6) 0.929"
+ },
+ {
+  "kind": "truth-shard",
+  "symbol": "rv64_truth_domain_0_shard_46",
+  "launch_bounds": "128,4",
+  "ab": "[M] CUDA events, bench_truth.cu, same inputs, 7 reps, median; admitted -> scheduled; bit-exact. 2^16 rows: 1.749 -> (128,4) 0.826 ms; (128,6) 0.911"
+ },
+ {
+  "kind": "truth-shard",
+  "symbol": "rv64_truth_domain_0_shard_47",
+  "launch_bounds": "128,4",
+  "ab": "(128,4) by analogy with 43-46/48/49; admitted kernel needs ~3 GB local memory to launch, A/B blocked by orphan GPU tenant"
+ },
+ {
+  "kind": "truth-shard",
+  "symbol": "rv64_truth_domain_0_shard_48",
+  "launch_bounds": "128,4",
+  "ab": "[M] CUDA events, bench_truth.cu, same inputs, 7 reps, median; admitted -> scheduled; bit-exact. 2^16 rows: 3.850 -> (128,4) 0.832 ms; none 1.279, (128,3) 1.298, (128,5) 1.025, (128,6) 1.026, (128,8) 1.023"
+ },
+ {
+  "kind": "truth-shard",
+  "symbol": "rv64_truth_domain_0_shard_49",
+  "launch_bounds": "128,4",
+  "ab": "[M] CUDA events, bench_truth.cu, same inputs, 7 reps, median; admitted -> scheduled; bit-exact. 2^17 rows: 6.049 -> (128,4) 1.616 ms; none 2.381, (128,3) 2.048"
+ },
+ {
+  "kind": "plain",
+  "symbol": "rv64_joined_domain_20",
+  "source": "/workspace/m3/catalogues-v3/core/case-20-domain.cu",
+  "launch_bounds": "128,4",
+  "ab": "[M] CUDA events, bench_truth.cu, same inputs, 7 reps, median; admitted -> scheduled; bit-exact. 9 reps, 2^20 rows: 1.125 -> rescheduled (128,4) 0.809 ms; rescheduled none 0.853, (128,6) 1.108, (128,8) 1.461; original order + (128,4) 1.412, (128,6) 1.850, (128,8) 2.623"
+ }
+]
