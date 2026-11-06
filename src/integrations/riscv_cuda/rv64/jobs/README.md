@@ -27,7 +27,8 @@ CUDA addon: `NAT/rv64/jobs/*.cu` → `libstwo-rv64-jobs.so` (`scripts/rv64_m8_jo
 - `enqueue`: only enqueue work: `stwo_rv64_*_on(e.ctx(), 0, ...)` / `stwo_*_on(..., e.stream())`, `e.alloc`/`e.free`,
   `e.channel.*`, `e.slab.*`, `e.hostFn` (pinned memory only, no CUDA). No sync, no D2H, no leases, no legacy owner-path
   imports (the lint fails the build of `test-rv64-jobs`).
-- `finish`: read `SlabView.words` (pinned, after the worker's single event wait). Decode/publish.
+- `finish`: read `SlabView.words` (pinned, after the worker's single event wait). Decode/publish. The view is valid
+  only during `finish`: the pinned slot is reused three jobs later, so copy out what later steps (seal, leaves) need.
 - `footprint`: static class plan. A job whose `device_words + slab_words + 32 > arena` is refused, never waited on.
 
 ## Memory model

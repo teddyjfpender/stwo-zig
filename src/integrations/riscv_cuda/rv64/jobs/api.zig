@@ -54,6 +54,7 @@ pub const HostFn = struct {
 };
 
 /// Phase-3 view: the slab after the single event wait, in pinned host memory.
+/// Valid only during `finish` (the pinned slot is reused): copy out what you keep.
 pub const SlabView = struct {
     words: []const u32,
     layout: ?*const ProofLayout = null,
