@@ -144,78 +144,83 @@ pub const Builder = struct {
     /// off this thread by `prepareLocal`, touching only its first-touched
     /// addresses, then patch the placeholder predecessor clocks in its shard.
     /// Takes ownership of `local`. Any disagreement with the global ledger
-    /// (value or rights of a first-touched word, a non-adjacent index, a
-    /// lookup failure) discards `local` and runs the serial `append` for this
-    /// segment from the unchanged global ledger, so outputs and errors are
-    /// exactly the serial ones. `events` is passed through to that fallback.
+    /// found before it is written (value or rights of a first-touched word, a
+    /// non-adjacent index, a lookup or allocation failure) discards `local`
+    /// and runs the serial `append` for this segment from the unchanged
+    /// global ledger, so outputs and errors are exactly the serial ones.
+    /// `events` is passed through to that fallback. A failure once the
+    /// global ledger is being written poisons the builder, as in `append`.
     pub fn appendLocal(self: *Builder, local: *Local, native: *Native, tape: *const front.rv64.compact_tape.Tape, events: *?[]LS.native.Event) !void {
-        if (self.failed or self.finished) {
-            local.deinit(self.allocator);
-            return error.InvalidServiceCollectorPhase;
-        }
-        if (self.shards.items.len >= 65535) {
-            local.deinit(self.allocator);
-            return error.InvalidCombinedServiceRoster;
-        }
-        self.shards.ensureUnusedCapacity(self.allocator, 1) catch |err| {
-            local.deinit(self.allocator);
-            self.failed = true;
-            return err;
+        defer local.deinit(self.allocator);
+        if (self.failed or self.finished) return error.InvalidServiceCollectorPhase;
+        errdefer self.failed = true;
+        if (self.shards.items.len >= 65535) return error.InvalidCombinedServiceRoster;
+        try self.shards.ensureUnusedCapacity(self.allocator, 1);
+        const resolve_at = std.time.Instant.now() catch null;
+        const global = self.resolveLocal(local) orelse {
+            local_stats.fallbacks += 1;
+            return self.appendWithEvents(native, tape, events);
         };
-        if (self.mergeLocal(local) catch false) {
-            self.shards.appendAssumeCapacity(local.shard);
-            local.shard = undefined;
-            local.ledger.deinit();
-            local_stats.merged += 1;
-            return;
-        }
-        local.deinit(self.allocator);
-        local_stats.fallbacks += 1;
-        return self.appendWithEvents(native, tape, events);
+        defer self.allocator.free(global);
+        try self.mergeLocal(local, global, resolve_at);
+        self.shards.appendAssumeCapacity(local.shard);
+        local.shard = Local.empty_shard;
     }
-    /// True once `local` is merged into the global ledger (its shard patched
-    /// and ready to append); false (global ledger untouched) to fall back.
-    fn mergeLocal(self: *Builder, local: *Local) !bool {
-        const a = self.allocator;
-        if (local.index != self.shards.items.len) return false;
+    /// Phase 2 pass A, read only: the global state each first touch of
+    /// `local` stands for (none for segment 0, which is adopted whole), or
+    /// null (global ledger untouched) to fall back to the serial append.
+    fn resolveLocal(self: *Builder, local: *const Local) ?[]A.memory.closed_ram.types.State {
+        const St = A.memory.closed_ram.types.State;
+        if (local.index != self.shards.items.len) return null;
         if (local.index == 0) {
             // Segment 0 ran the serial code on an empty ledger with the same
             // image and first-touch source: adopt it wholesale.
-            if (self.ledger.states.count() != 0 or self.ledger.initial.items.len != 0) return false;
-            std.mem.swap(Old.StateTable, &self.ledger.states, &local.ledger.states);
-            std.mem.swap(std.ArrayList(Cell), &self.ledger.initial, &local.ledger.initial);
-            return true;
+            if (self.ledger.states.count() != 0 or self.ledger.initial.items.len != 0) return null;
+            return self.allocator.alloc(St, 0) catch null;
         }
         const touched = local.ledger.initial.items;
-        if (touched.len >= std.math.maxInt(u24)) return false;
-        const resolved_at = std.time.Instant.now() catch null;
-        // Pass A, read only: the global state each first touch stands for.
-        const global = try a.alloc(A.memory.closed_ram.types.State, touched.len);
-        defer a.free(global);
-        const fresh = try a.alloc(bool, touched.len);
-        defer a.free(fresh);
-        for (touched, global, fresh, 0..) |cell, *g, *f, i| {
-            if (cell.state.epoch != 0 or cell.state.tick != i + 1) return false;
-            if (self.ledger.states.get(cell.address)) |state| {
-                g.* = state;
-                f.* = false;
-            } else {
-                const fast = if (self.ledger.pages) |*pages| pages.lookup(cell.address) else null;
-                g.* = fast orelse .{ .value = try self.ledger.image.initialWord(cell.address), .rights = try self.ledger.image.wordRights(cell.address) };
-                f.* = true;
+        if (touched.len >= std.math.maxInt(u24)) return null;
+        // Reserve pass B's INITIAL appends now, before any global write.
+        self.ledger.initial.ensureUnusedCapacity(self.allocator, touched.len) catch return null;
+        const global = self.allocator.alloc(St, touched.len) catch return null;
+        for (touched, global, 0..) |cell, *g, i| {
+            const ok = cell.state.epoch == 0 and cell.state.tick == i + 1 and local.ledger.states.get(cell.address) != null;
+            g.* = (if (ok) self.globalState(cell.address) else null) orelse {
+                self.allocator.free(global);
+                return null;
+            };
+            if (g.value != cell.state.value or g.rights != cell.state.rights) {
+                self.allocator.free(global);
+                return null;
             }
-            if (g.value != cell.state.value or g.rights != cell.state.rights) return false;
         }
-        // Pass B: global exit states (first-touch order, as the serial ledger
-        // appends new INITIAL cells), then the placeholder clocks.
-        try self.ledger.initial.ensureUnusedCapacity(a, touched.len);
-        for (touched, global, fresh) |cell, g, f| {
-            const exit = local.ledger.states.get(cell.address) orelse return error.InvalidServiceCollectorPhase;
-            const entry = try self.ledger.states.getOrPut(a, cell.address);
-            if (f) {
-                if (entry.found_existing) return error.InvalidServiceCollectorPhase;
-                self.ledger.initial.appendAssumeCapacity(.{ .address = cell.address, .state = g });
-            }
+        return global;
+    }
+    /// The state the serial ledger's `slot` would read at `address` now,
+    /// without inserting it (null on an image lookup failure).
+    fn globalState(self: *Builder, address: u64) ?A.memory.closed_ram.types.State {
+        if (self.ledger.states.get(address)) |state| return state;
+        if (self.ledger.pages) |*pages| if (pages.lookup(address)) |state| return state;
+        const value = self.ledger.image.initialWord(address) catch return null;
+        const rights = self.ledger.image.wordRights(address) catch return null;
+        return .{ .value = value, .rights = rights };
+    }
+    /// Phase 2 pass B: write the global exit states (first-touch order, as
+    /// the serial ledger appends new INITIAL cells), then patch the shard's
+    /// placeholder clocks. `global` is `resolveLocal`'s result, which began
+    /// at `resolve_at` (the merge time covers both passes).
+    fn mergeLocal(self: *Builder, local: *Local, global: []const A.memory.closed_ram.types.State, resolve_at: ?std.time.Instant) !void {
+        if (local.index == 0) {
+            std.mem.swap(Old.StateTable, &self.ledger.states, &local.ledger.states);
+            std.mem.swap(std.ArrayList(Cell), &self.ledger.initial, &local.ledger.initial);
+            return;
+        }
+        const touched = local.ledger.initial.items;
+        for (touched, global) |cell, g| {
+            // Present: `resolveLocal` checked it.
+            const exit = local.ledger.states.get(cell.address).?;
+            const entry = try self.ledger.states.getOrPut(self.allocator, cell.address);
+            if (!entry.found_existing) self.ledger.initial.appendAssumeCapacity(.{ .address = cell.address, .state = g });
             // An exit with epoch 0 was never written by this segment.
             entry.value_ptr.* = if (exit.epoch == 0) g else exit;
         }
@@ -223,10 +228,9 @@ pub const Builder = struct {
         patchShard(&local.shard, global);
         if (patch_at) |t1| if (std.time.Instant.now()) |t2| {
             local_stats.patch_ns += t2.since(t1);
-            if (resolved_at) |t0| local_stats.resolve_ns += t1.since(t0);
+            if (resolve_at) |t0| local_stats.resolve_ns += t1.since(t0);
         } else |_| {};
         local_stats.touched += touched.len;
-        return true;
     }
     pub fn finish(self: *Builder) !Advice {
         if (self.failed or self.finished or self.shards.items.len == 0) return error.InvalidServiceCollectorPhase;
@@ -726,7 +730,9 @@ var first_touch_ns: u64 = 0;
 fn slot(ledger: *Old.Ledger, address: u64) !*A.memory.closed_ram.types.State {
     const entry = try ledger.states.getOrPut(ledger.allocator, address);
     if (!entry.found_existing) {
-        const t0 = if (first_touch_profile) std.time.Instant.now() catch null else null;
+        // Phase 1 (`prepareLocal`) runs on capture job threads: it never
+        // touches these ordered-thread-only counters.
+        const t0 = if (!local_phase and first_touch_profile) std.time.Instant.now() catch null else null;
         defer if (t0) |start| if (std.time.Instant.now()) |t1| {
             first_touch_count += 1;
             first_touch_ns += t1.since(start);
@@ -754,7 +760,7 @@ pub fn localLedgerEnabled() bool {
     return std.mem.eql(u8, value, "1");
 }
 /// Report-only counters of `Builder.appendLocal` (ordered thread only).
-pub var local_stats: struct { merged: u64 = 0, fallbacks: u64 = 0, touched: u64 = 0, resolve_ns: u64 = 0, patch_ns: u64 = 0 } = .{};
+pub var local_stats: struct { fallbacks: u64 = 0, touched: u64 = 0, resolve_ns: u64 = 0, patch_ns: u64 = 0 } = .{};
 /// Phase 1 output: one segment's shard computed on a segment-local ledger.
 /// Every state the segment read before writing it is a placeholder
 /// `{value, rights, epoch 0, tick k + 1}`, where `value` is the word in the
@@ -768,6 +774,8 @@ pub const Local = struct {
     index: usize,
     ledger: Old.Ledger,
     shard: Shard,
+    /// Owns nothing: what `shard` becomes once merged into the builder.
+    const empty_shard = Shard{ .events = &.{}, .keccak = &.{}, .secp = .{ &.{}, &.{} }, .sha256 = &.{}, .arith256_mod = &.{}, .curves = @splat(&.{}) };
     pub fn deinit(self: *Local, a: std.mem.Allocator) void {
         self.shard.deinit(a);
         self.ledger.deinit();
@@ -776,17 +784,22 @@ pub const Local = struct {
 };
 const Checkpoint = front.rv64.checkpoint.Checkpoint;
 threadlocal var local_start: ?*const Checkpoint = null;
+threadlocal var local_phase: bool = false;
 /// Phase 1 (any thread): `one` for segment `index` on a fresh ledger over the
 /// same image. Segment 0 uses the serial first-touch source (the global ledger
 /// is empty then) and is adopted whole. `start` is the memory image before
 /// this segment (the first pass checkpoint); it is only read. `prepared` is
 /// taken as in `appendWithEvents`. `a` must be thread-safe.
-pub fn prepareLocal(a: std.mem.Allocator, image: @import("../../word16_execution/memory/statement.zig").Image, pages: Old.OwnerPages, native: *Native, tape: *const front.rv64.compact_tape.Tape, index: usize, prepared: *?[]LS.native.Event, start: *const Checkpoint) !Local {
+pub fn prepareLocal(a: std.mem.Allocator, image: @import("../../word16_execution/memory/statement.zig").Image, pages: ?Old.OwnerPages, native: *Native, tape: *const front.rv64.compact_tape.Tape, index: usize, prepared: *?[]LS.native.Event, start: *const Checkpoint) !Local {
     var ledger = Old.Ledger.init(a, image);
     errdefer ledger.deinit();
     ledger.pages = pages;
+    local_phase = true;
     local_start = if (index == 0) null else start;
-    defer local_start = null;
+    defer {
+        local_phase = false;
+        local_start = null;
+    }
     const shard = try one(a, &ledger, native, tape, index, null, prepared);
     return .{ .index = index, .ledger = ledger, .shard = shard };
 }

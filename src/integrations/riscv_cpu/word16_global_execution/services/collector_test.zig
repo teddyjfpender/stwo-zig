@@ -69,6 +69,91 @@ test "Retired capture records cannot silently fall back to a closed memory const
     try std.testing.expect(captured.native[0].cpu != null);
 }
 
+/// Segment 1's starting image (the fixture image after segment 0's writes,
+/// as the first pass checkpoints it): the 25 fixture words, two pages.
+const StartImage = struct {
+    const front = @import("stwo_riscv_frontend");
+    const P = front.rv64.memory.PAGE_SIZE;
+    pages: [2][P]u8 = @splat(@splat(0)),
+    entries: [2]front.rv64.checkpoint.Entry = undefined,
+    fn init(self: *StartImage, after_first: *const C.Builder) !front.rv64.checkpoint.Checkpoint {
+        const first_page = F.ADDRESS / P;
+        for (0..25) |i| {
+            const address = F.ADDRESS + 8 * i;
+            const value = if (after_first.ledger.states.get(address)) |state| state.value else try F.image().initialWord(address);
+            const page = &self.pages[@intCast(address / P - first_page)];
+            std.mem.writeInt(u64, page[@intCast(address % P)..][0..8], value, .little);
+        }
+        for (&self.entries, 0..) |*e, i| e.* = .{ .index = first_page + i, .page = &self.pages[i] };
+        return .{ .cpu = undefined, .counters = .{}, .pages = &self.entries, .written = &.{} };
+    }
+};
+fn expectSameAdvice(expected: *const C.Advice, actual: *const C.Advice) !void {
+    inline for (.{ "events", "keccak", "secp", "sha256", "arith256_mod", "curves", "bulk", "sponge", "initial", "terminal" }) |field|
+        try std.testing.expectEqualDeep(@field(expected, field), @field(actual, field));
+}
+test "M8 two-phase ledger merges to exactly the serial advice, and falls back to it on a value disagreement" {
+    const LS = @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2;
+    var captured = try F.Captured.init(a);
+    defer captured.deinit();
+    var serial = C.Builder.init(a, F.image());
+    defer serial.deinit();
+    try serial.append(&captured.native[0], &captured.tapes[0]);
+    var start: StartImage = .{};
+    const checkpoint = try start.init(&serial);
+    try serial.append(&captured.native[1], &captured.tapes[1]);
+    var expected = try serial.finish();
+    defer expected.deinit();
+    // Segment 1 reads words segment 0 wrote: the patch must restore real
+    // (epoch 1) clocks, not just INITIAL ones.
+    var from_first: usize = 0;
+    for (expected.events[1]) |e| from_first += @intFromBool(e.before.epoch == 1);
+    for (expected.keccak[1]) |c| for (c.predecessors) |s| {
+        from_first += @intFromBool(s.epoch == 1);
+    };
+    for (expected.secp[1]) |calls| for (calls) |c| for (c.predecessors) |s| {
+        from_first += @intFromBool(s.epoch == 1);
+    };
+    try std.testing.expect(from_first != 0);
+    for ([_]bool{ false, true }) |disagree| {
+        var builder = C.Builder.init(a, F.image());
+        defer builder.deinit();
+        const before = C.local_stats;
+        for (0..2) |i| {
+            var none: ?[]LS.native.Event = null;
+            var local = try C.prepareLocal(a, F.image(), null, &captured.native[i], &captured.tapes[i], i, &none, &checkpoint);
+            if (disagree and i == 1) local.ledger.initial.items[0].state.value +%= 1;
+            try builder.appendLocal(&local, &captured.native[i], &captured.tapes[i], &none);
+        }
+        try std.testing.expectEqual(@as(u64, @intFromBool(disagree)), C.local_stats.fallbacks - before.fallbacks);
+        try std.testing.expect(disagree or C.local_stats.touched - before.touched >= 24);
+        var advice = try builder.finish();
+        defer advice.deinit();
+        try expectSameAdvice(&expected, &advice);
+    }
+}
+fn allocationTwoPhase(allocator: std.mem.Allocator, captured: *F.Captured, checkpoint: *const @import("stwo_riscv_frontend").rv64.checkpoint.Checkpoint) !void {
+    const LS = @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2;
+    var builder = C.Builder.init(allocator, F.image());
+    defer builder.deinit();
+    for (0..2) |i| {
+        var none: ?[]LS.native.Event = null;
+        var local = try C.prepareLocal(allocator, F.image(), null, &captured.native[i], &captured.tapes[i], i, &none, checkpoint);
+        try builder.appendLocal(&local, &captured.native[i], &captured.tapes[i], &none);
+    }
+    var result = try builder.finish();
+    defer result.deinit();
+}
+test "M8 two-phase ledger cleans every allocation failure (phase 1, fallback and merge)" {
+    var captured = try F.Captured.init(a);
+    defer captured.deinit();
+    var serial = C.Builder.init(a, F.image());
+    defer serial.deinit();
+    try serial.append(&captured.native[0], &captured.tapes[0]);
+    var start: StartImage = .{};
+    const checkpoint = try start.init(&serial);
+    try std.testing.checkAllAllocationFailures(a, allocationTwoPhase, .{ &captured, &checkpoint });
+}
 test {
     // Inline collector.zig tests (THP advice, M8 two-phase ledger patch).
     _ = C;
