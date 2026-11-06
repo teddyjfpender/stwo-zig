@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "/workspace/m3/runs/m7-integrate/p1-compact-state-preflight-20261106-03/worker.py", line 13, in <module>
-    assert set(objects)==set(prev['objects']) and len(objects)==len(set(objects))
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AssertionError

@@ -1,7 +1,0 @@
-GPU_PROCESS_MEMORY_INIT preloaded=1 eager=1 devices=2
-GPU_PROCESS_MEMORY phase=eager_baseline_before_arena_stack device=0 status=0 free_bytes=33149878272 total_bytes=33679736832 stack_limit=1024 default_used_current=0 default_reserved_current=0 default_used_high=0 default_reserved_high=0 driver_status=0 driver_free_bytes=33149878272 driver_total_bytes=33679736832
-GPU_PROCESS_MEMORY phase=eager_baseline_before_arena_stack device=1 status=0 free_bytes=33149878272 total_bytes=33679736832 stack_limit=1024 default_used_current=0 default_reserved_current=0 default_used_high=0 default_reserved_high=0 driver_status=0 driver_free_bytes=33149878272 driver_total_bytes=33679736832
-GPU_ARENA_INIT device=0 status=0 mode=vmm capacity_bytes=27313307648 chunk_bytes=33554432 chunks=814 small_slab_bytes=536870912 va_bytes=109790101504 granularity=2097152 reserve_bytes=2147483648 free_before_bytes=32493469696 free_after_stack_bytes=29486153728 total_bytes=33679736832 stack_before=1024 stack_after=12544 init_ms=89.534 t_ms=0.0
-GPU_ARENA_INIT device=1 status=0 mode=vmm capacity_bytes=27313307648 chunk_bytes=33554432 chunks=814 small_slab_bytes=536870912 va_bytes=109790101504 granularity=2097152 reserve_bytes=2147483648 free_before_bytes=32493469696 free_after_stack_bytes=29486153728 total_bytes=33679736832 stack_before=1024 stack_after=12544 init_ms=190.726 t_ms=273.1
-GPU_RESIDENT_CLASS_PRELOAD loaded=0 ns=0
-GPU_RESIDENT_SERVICE ready init_ns=4346733439

@@ -1,5 +1,0 @@
-{
-  "status": "CORRECTED_BEFORE_PROFILE_START",
-  "reason": "Ownership helper requires explicit --output paths",
-  "terminated_waiter_pid": 2501450
-}

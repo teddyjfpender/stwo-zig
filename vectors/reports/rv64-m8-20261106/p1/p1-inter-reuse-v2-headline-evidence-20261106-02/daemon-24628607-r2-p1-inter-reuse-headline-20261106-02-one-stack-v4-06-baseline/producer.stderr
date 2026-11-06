@@ -1,8 +1,0 @@
-GPU_PROCESS_MEMORY_INIT preloaded=1 eager=1 devices=2
-GPU_PROCESS_MEMORY phase=eager_baseline_before_arena_stack device=0 status=0 free_bytes=33149878272 total_bytes=33679736832 stack_limit=1024 default_used_current=0 default_reserved_current=0 default_used_high=0 default_reserved_high=0 driver_status=0 driver_free_bytes=33149878272 driver_total_bytes=33679736832
-GPU_PROCESS_MEMORY phase=eager_baseline_before_arena_stack device=1 status=0 free_bytes=33149878272 total_bytes=33679736832 stack_limit=1024 default_used_current=0 default_reserved_current=0 default_used_high=0 default_reserved_high=0 driver_status=0 driver_free_bytes=33149878272 driver_total_bytes=33679736832
-terminate called after throwing an instance of 'boost::wrapexcept<QuadDCommon::LogicException>'
-  what():  LogicException
-Failed to probe the process (sync). Timeout: 2 sec
-GPU_PROCESS_MEMORY phase=terminal device=0 status=0 free_bytes=33149878272 total_bytes=33679736832 stack_limit=1024 default_used_current=0 default_reserved_current=0 default_used_high=0 default_reserved_high=0 driver_status=0 driver_free_bytes=33149878272 driver_total_bytes=33679736832
-GPU_PROCESS_MEMORY phase=terminal device=1 status=0 free_bytes=33149878272 total_bytes=33679736832 stack_limit=1024 default_used_current=0 default_reserved_current=0 default_used_high=0 default_reserved_high=0 driver_status=0 driver_free_bytes=33149878272 driver_total_bytes=33679736832

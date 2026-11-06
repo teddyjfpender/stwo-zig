@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "/workspace/m3/src/m7-integrate/scripts/rv64_m7_integration_stack.py", line 279, in <module>
-    main()
-  File "/workspace/m3/src/m7-integrate/scripts/rv64_m7_integration_stack.py", line 275, in main
-    (prepare if args.mode == 'prepare' else run)(args)
-  File "/workspace/m3/src/m7-integrate/scripts/rv64_m7_integration_stack.py", line 189, in run
-    raise RuntimeError(f'integration service failed; stop, preserve logs: {service}')
-RuntimeError: integration service failed; stop, preserve logs: /workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-headline-before-20261106-01-one-stack-v4-00-baseline

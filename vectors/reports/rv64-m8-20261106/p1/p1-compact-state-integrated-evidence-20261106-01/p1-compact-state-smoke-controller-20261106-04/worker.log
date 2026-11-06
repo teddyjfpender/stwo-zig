@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "/workspace/m3/runs/m7-integrate/p1-compact-state-smoke-controller-20261106-04/worker.py", line 22, in <module>
-    assert r.returncode==0,'smoke failure; preserve logs'
-           ^^^^^^^^^^^^^^^
-AssertionError: smoke failure; preserve logs

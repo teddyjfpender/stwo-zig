@@ -1,7 +1,0 @@
-{
-  "status": "TERMINATING_STALLED_PROFILE_WARM",
-  "request_age_s": 161.253307834,
-  "verified_ready_pid": 2476260,
-  "signal": "SIGINT to application only so Nsight can finalize the trace",
-  "reason": "No progress for >120s; admission required_large=23152558080 cap_large=23085449216; cold completed, warm has no root"
-}

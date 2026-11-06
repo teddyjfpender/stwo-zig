@@ -1,2 +1,0 @@
-OUTER_CHUNKS role=4 roots=16 groups=8 columns=116 fills=126 slots=32 whole_roots=true
-OUTER_CHUNKS role=5 roots=5 groups=5 columns=79 fills=79 slots=32 whole_roots=true

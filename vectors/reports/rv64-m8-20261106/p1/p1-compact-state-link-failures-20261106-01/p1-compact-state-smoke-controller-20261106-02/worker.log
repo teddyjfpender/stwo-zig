@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "/workspace/m3/runs/m7-integrate/p1-compact-state-smoke-controller-20261106-02/worker.py", line 8, in <module>
-    if d['status']=='FAIL':raise RuntimeError('preflight failed; no GPU work')
-                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-RuntimeError: preflight failed; no GPU work

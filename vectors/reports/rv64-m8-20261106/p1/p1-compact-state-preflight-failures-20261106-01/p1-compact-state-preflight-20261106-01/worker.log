@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "/workspace/m3/runs/m7-integrate/p1-compact-state-preflight-20261106-01/worker.py", line 16, in <module>
-    run('unit',['/workspace/zig/zig','build','test','test-rv64-recursion-ready','test-rv64-batch-plan','test-rv64-gkr-plan','test-rv64-pcs-geometry','-j2','-Doptimize=ReleaseSafe','-Dtarget=x86_64-linux-gnu','-Dcpu=x86_64_v4+sha','--cache-dir',str(root/'.zig-cache')],root/'src/integrations/riscv_cuda')
-  File "/workspace/m3/runs/m7-integrate/p1-compact-state-preflight-20261106-01/worker.py", line 12, in run
-    if p.returncode:raise RuntimeError(name+' failed')
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-RuntimeError: unit failed

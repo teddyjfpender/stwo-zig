@@ -1,9 +1,0 @@
-{"manifest": "/workspace/m3/runs/m7-integrate/p1-inter-reuse-preflight-20261106-02/headline-artifact.json", "ready": true, "asset_sha256": {"driver": "5682c2f63ba7f78282f6eea1098e3bb51ffdb1b232bb2b680218f9739ac3af4a", "receiver": "69bc6baa0fb089555fd88d61346811fe894d9030f9c7edfc55148d72f0c5e8e8", "library": "4273d53688fc489035a43af159e617757c6d977afbd4fd66caa75148e8542992", "sparse": "e66ab0cfa50e4869351de87a1081792ce1d3385ce44f79ff1f4b3debc06cb278", "observer": "29dba5cc45838a71387a86b2e3c93150a54f157e2e7e6277378f0ec76c1335f5", "process_budget_guard": "773d5f04240e4692c07c26b1c72a43a8090f3df4969c1493c2c7e9923e0d1139"}}
-Traceback (most recent call last):
-  File "/workspace/m3/src/m7-integrate/scripts/rv64_m7_integration_stack.py", line 280, in <module>
-    main()
-  File "/workspace/m3/src/m7-integrate/scripts/rv64_m7_integration_stack.py", line 276, in main
-    (prepare if args.mode == 'prepare' else run)(args)
-  File "/workspace/m3/src/m7-integrate/scripts/rv64_m7_integration_stack.py", line 190, in run
-    raise RuntimeError(f'integration service failed; stop, preserve logs: {service}')
-RuntimeError: integration service failed; stop, preserve logs: /workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-inter-reuse-headline-20261106-02-one-stack-v4-06-baseline

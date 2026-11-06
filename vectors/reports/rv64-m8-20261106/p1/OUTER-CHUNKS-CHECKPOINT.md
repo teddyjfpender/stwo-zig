@@ -1,5 +1,7 @@
 # Bounded outer composition: headline failure remains
 
+Raw evidence links below now resolve through `../raw-artifacts-summary.json`; verified raw copies are retained outside Git under the receipt policy.
+
 **P1 remains incomplete.** The source-bound companion module evaluates the
 unchanged original roots in groups using a 32-column full-domain cache.
 The small block passes cold/warm payload and capture-SHA256 identity, with

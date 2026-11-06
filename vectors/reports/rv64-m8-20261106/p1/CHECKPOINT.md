@@ -1,5 +1,7 @@
 # P1 checkpoint: memory work remains incomplete
 
+Raw evidence links below now resolve through `../raw-artifacts-summary.json`; verified raw copies are retained outside Git under the receipt policy.
+
 **Negative request-time result; no P1 exit.** The default remains D2 + truth
 coalescing, automatic arena and one lane. `STWO_RV64_RC_COMPOSITION_COLUMNS`
 and `STWO_RV64_RC_INTER_REUSE` remain off. Conjectured-128 proof/security

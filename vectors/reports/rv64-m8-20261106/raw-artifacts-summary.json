@@ -1,0 +1,306 @@
+{
+  "schema": "rv64-raw-artifact-retention/v1",
+  "status": "ALL_MOVED_RAW_FILES_HASH_VERIFIED",
+  "policy": "Only summaryJSON/Markdown under about1MB percheckpoint. RawNsight/SQLite/payloads/logs/sourcecopies outsideGit, referencedbySHA256. No history rewriting.",
+  "artifact_root": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106",
+  "directories_and_files": [
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-checkpoint-prune-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-checkpoint-prune-20261106-01",
+      "files": 1,
+      "bytes": 71337,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-checkpoint-prune-20261106-01.manifest.json",
+      "manifest_sha256": "58544ef2d2626c789a2d714249eb02c7f1383a4cdb2657a4c0b2131ee51e14d6",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-columns-evidence-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-columns-evidence-20261106-01",
+      "files": 59,
+      "bytes": 5218400,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-columns-evidence-20261106-01.manifest.json",
+      "manifest_sha256": "95c99d23ebddad7b3437c5d8256d5dbf1b9d9315db3387d773a0d48ffdf4184b",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-columns-prune-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-columns-prune-20261106-01",
+      "files": 53,
+      "bytes": 1094379,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-columns-prune-20261106-01.manifest.json",
+      "manifest_sha256": "4ec7b2cf012b8a138ccaec3d43bbc1dca34320bb80b086ca720d6cca3e93349b",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-columns-source-snapshot-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-columns-source-snapshot-20261106-01",
+      "files": 12,
+      "bytes": 260531,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-columns-source-snapshot-20261106-01.manifest.json",
+      "manifest_sha256": "f8483ad988b559e9f482a8cc498d0d3cef83d2f769383632f1177bf8d31275b3",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-compact-state-evidence-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-compact-state-evidence-20261106-01",
+      "files": 20,
+      "bytes": 99875,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-compact-state-evidence-20261106-01.manifest.json",
+      "manifest_sha256": "87f43a3f96f807d680ebcf3ad159ba5dc6a2ee4a0701f40c14017d68326b5684",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-compact-state-integrated-evidence-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-compact-state-integrated-evidence-20261106-01",
+      "files": 301,
+      "bytes": 13660875,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-compact-state-integrated-evidence-20261106-01.manifest.json",
+      "manifest_sha256": "57b8809ddd8fc1fcf54f2937e803a700e18c1766b7652b3b63be81d1be1281eb",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-compact-state-link-failures-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-compact-state-link-failures-20261106-01",
+      "files": 27,
+      "bytes": 3369041,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-compact-state-link-failures-20261106-01.manifest.json",
+      "manifest_sha256": "f09eb93c40bcef8913477df0706392b868abcda8fb70b52271fc04469addad02",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-compact-state-preflight-failures-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-compact-state-preflight-failures-20261106-01",
+      "files": 14,
+      "bytes": 1129115,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-compact-state-preflight-failures-20261106-01.manifest.json",
+      "manifest_sha256": "c2ab1a02766290bfc897eadf027a3c06c32e5f7399926092f42f2810063e7bed",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-compact-state-prune-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-compact-state-prune-20261106-01",
+      "files": 1,
+      "bytes": 124849,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-compact-state-prune-20261106-01.manifest.json",
+      "manifest_sha256": "a3bc70bc1495064719482e992d5cf1612dff98f3a376c47e119614dcfadde200",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-duplicate-payload-prune-20261106-02",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-duplicate-payload-prune-20261106-02",
+      "files": 1,
+      "bytes": 98622,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-duplicate-payload-prune-20261106-02.manifest.json",
+      "manifest_sha256": "422b8041fe1316552b5cf6a0d5ace2ee9dcb89cc440375712ecaad1a5f8c76c6",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-gate-evidence-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-gate-evidence-20261106-01",
+      "files": 82,
+      "bytes": 2809778,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-gate-evidence-20261106-01.manifest.json",
+      "manifest_sha256": "61f8351ca1770f38a2454b7b91d7021a01d3acfc07ce2b007c7de62b00515eba",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-headline-before-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-headline-before-20261106-01",
+      "files": 3,
+      "bytes": 1119337,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-headline-before-20261106-01.manifest.json",
+      "manifest_sha256": "a9fbc590cdf01241eb82e67fff2b33e27dcbbbdddbfcde86456283210e66eac0",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-headline-before-20261106-05",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-headline-before-20261106-05",
+      "files": 7,
+      "bytes": 1193222,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-headline-before-20261106-05.manifest.json",
+      "manifest_sha256": "7d577548ab51b958d8e044d091b24731f88f4eb428a22060e7daed33c3f8cbeb",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-inter-reuse-evidence-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-inter-reuse-evidence-20261106-01",
+      "files": 51,
+      "bytes": 4387288,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-inter-reuse-evidence-20261106-01.manifest.json",
+      "manifest_sha256": "8811919793079b4ff1cee63065d0be80c2ff560946871046b0d02c8f3cd9a077",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-inter-reuse-prune-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-inter-reuse-prune-20261106-01",
+      "files": 1,
+      "bytes": 29388,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-inter-reuse-prune-20261106-01.manifest.json",
+      "manifest_sha256": "239df017914d1f411eb029aab057ce884c1235ee53c0cb0b102651a99365630b",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-inter-reuse-v1-source-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-inter-reuse-v1-source-20261106-01",
+      "files": 16,
+      "bytes": 348253,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-inter-reuse-v1-source-20261106-01.manifest.json",
+      "manifest_sha256": "e5bf1cd3ef4029449158895ea0bf60d7d7e3e26bb541c7411bd5369e4c0dcc7a",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-inter-reuse-v2-headline-evidence-20261106-02",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-inter-reuse-v2-headline-evidence-20261106-02",
+      "files": 489,
+      "bytes": 18305520,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-inter-reuse-v2-headline-evidence-20261106-02.manifest.json",
+      "manifest_sha256": "1a82574f98aca75a0c73652635f81dba40ae27e4b498bfd174a606a41071d653",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-inter-reuse-v2-smoke-evidence-20261106-02",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-inter-reuse-v2-smoke-evidence-20261106-02",
+      "files": 61,
+      "bytes": 6305818,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-inter-reuse-v2-smoke-evidence-20261106-02.manifest.json",
+      "manifest_sha256": "9d248445381b250e48c37fa7733a0c27e5d7fd665787a27fff8c289378ccbea6",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-inter-reuse-v2-source-20261106-02",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-inter-reuse-v2-source-20261106-02",
+      "files": 22,
+      "bytes": 486401,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-inter-reuse-v2-source-20261106-02.manifest.json",
+      "manifest_sha256": "289226b8d425cceff91dddff30b7e488c12c1cacd426f5425ab484679631f386",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-outer-chunks-accepted-prune-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-outer-chunks-accepted-prune-20261106-01",
+      "files": 1,
+      "bytes": 168079,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-outer-chunks-accepted-prune-20261106-01.manifest.json",
+      "manifest_sha256": "ebac02625d63bcb734d2b9491fb2d654aa644123af244829d3c68c69bb7da5ce",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-outer-chunks-build-evidence-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-outer-chunks-build-evidence-20261106-01",
+      "files": 41,
+      "bytes": 204029,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-outer-chunks-build-evidence-20261106-01.manifest.json",
+      "manifest_sha256": "36c621f488f96a625ed19d7da4926e86ca3e851ff9837da96d64d8a5ea0deec4",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-outer-chunks-evidence-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-outer-chunks-evidence-20261106-01",
+      "files": 619,
+      "bytes": 24305542,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-outer-chunks-evidence-20261106-01.manifest.json",
+      "manifest_sha256": "5bec6e34d34b32b543ae103a431dd2f30b4f1378db0ea15bd9ee648afe676dd2",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-outer-chunks-gate-evidence-20261106-02",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-outer-chunks-gate-evidence-20261106-02",
+      "files": 82,
+      "bytes": 2809490,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-outer-chunks-gate-evidence-20261106-02.manifest.json",
+      "manifest_sha256": "62f9e84abc0f29cd498cb4b51a0ca1b84e479c56766d0eca4e0bb5ef0ce4b072",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-outer-chunks-partial-audit-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-outer-chunks-partial-audit-20261106-01",
+      "files": 1,
+      "bytes": 5918,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-outer-chunks-partial-audit-20261106-01.manifest.json",
+      "manifest_sha256": "f538d1effb13bb1a4da33bf720c7f17d8216da660bce0567a7bab3972373335d",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-premeasurement-evidence-20261106",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-premeasurement-evidence-20261106",
+      "files": 176,
+      "bytes": 15704332,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-premeasurement-evidence-20261106.manifest.json",
+      "manifest_sha256": "765959423253a0548861bf66e09266b5062118ddf0cc40a5e607dacd6add3dcc",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-profile-retry1-evidence-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-profile-retry1-evidence-20261106-01",
+      "files": 19,
+      "bytes": 1920656,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-profile-retry1-evidence-20261106-01.manifest.json",
+      "manifest_sha256": "422e33b08d80e2f74aa66cc0fc39ac90ebb2ad5c19dfc8eb50fa641920d28c3f",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-profile-retry2-evidence-20261106-02",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-profile-retry2-evidence-20261106-02",
+      "files": 157,
+      "bytes": 35428266,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-profile-retry2-evidence-20261106-02.manifest.json",
+      "manifest_sha256": "1ab72d507def19d1d07a3d4129cf414216c95781e5cfbb00a142aa5b400c680e",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-prune-completed-before-20261106",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-prune-completed-before-20261106",
+      "files": 219,
+      "bytes": 6275088,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-prune-completed-before-20261106.manifest.json",
+      "manifest_sha256": "b2d95495695bebadcee3e737f520f3e5e299d6980d152147bb31a4fe6d886ce2",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-root-group-screen-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-root-group-screen-20261106-01",
+      "files": 3,
+      "bytes": 57589,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-root-group-screen-20261106-01.manifest.json",
+      "manifest_sha256": "898272184443bc5c781e801f4d30e1a54a2f22dd1e3aae54e3a5e5ddf3fa65cf",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/p1-small-20261106-01",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-small-20261106-01",
+      "files": 6,
+      "bytes": 1151999,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/p1-small-20261106-01.manifest.json",
+      "manifest_sha256": "678e24347afdf3485196d7f9e2704c34320541bb09319b0e77baf5f9a4d2db57",
+      "verified": true
+    },
+    {
+      "original_directory": "vectors/reports/rv64-m8-20261106/p1/rejected-coset-v1",
+      "artifact_directory": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/rejected-coset-v1",
+      "files": 11,
+      "bytes": 1151765,
+      "manifest": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/rejected-coset-v1.manifest.json",
+      "manifest_sha256": "2a337631869bd8021c0d49d35d4abe488db7aefbcc5c645716a15e6bf059d256",
+      "verified": true
+    },
+    {
+      "original_file": "vectors/reports/rv64-m8-20261106/p1/inter-reuse-v2-profile-retry-worker.py",
+      "artifact_file": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/inter-reuse-v2-profile-retry-worker.py",
+      "files": 1,
+      "bytes": 3987,
+      "sha256": "741bec359b2a440d483a4128621044ddd7f73af4a3acdae69d564cce35dc58fa",
+      "verified": true
+    },
+    {
+      "original_file": "vectors/reports/rv64-m8-20261106/p1/inter-reuse-v2-profile-retry2-worker.py",
+      "artifact_file": "/Users/theodorepender/Coding/ge-artifacts/rv64-m8-20261106/p1/inter-reuse-v2-profile-retry2-worker.py",
+      "files": 1,
+      "bytes": 4044,
+      "sha256": "26a84fc6f5bae8ce3d136c1eb5fdb1b538c07e6fec396c43923a1672c07aff6f",
+      "verified": true
+    }
+  ],
+  "files": 2558,
+  "bytes": 149302813,
+  "gate": "Source unchanged from b68e02081; full pod gate PASS retained in inter-contributions-summary/summary.json. Numerical fixture moved byte-for-byte; no implementation change."
+}

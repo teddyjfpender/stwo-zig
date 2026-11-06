@@ -1,5 +1,7 @@
 # Compact eager state: less trace scratch, two-lane run still fails
 
+Raw evidence links below now resolve through `../raw-artifacts-summary.json`; verified raw copies are retained outside Git under the receipt policy.
+
 **P1 remains open.** Compact storage removes unused pending Blake2s planes
 without changing arithmetic, column order, streaming calls or proof format.
 The intended composed two-lane small-block cold request reaches the 120 s
