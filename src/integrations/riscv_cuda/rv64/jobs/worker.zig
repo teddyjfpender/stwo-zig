@@ -445,6 +445,9 @@ pub const Worker = struct {
     tail_live: bool = false,
     /// Worker thread: the next stage follows a serialized (pair-does-not-fit) enqueue.
     serialize_next: bool = false,
+    /// Per-key persistent allocations made without a budget (counted before shutdown frees them).
+    unbudgeted_regions: usize = 0,
+    shut_down: bool = false,
 
     const Submission = struct { job: api.Job, sink: Sink, index: u64, declared: api.Footprint, resolved: MP.Resolved };
 
@@ -539,7 +542,7 @@ pub const Worker = struct {
             .arena_words = self.config.arena_words,
             .allocator = if (self.config.reuse_frees) "reuse" else "lifo",
             .policy = self.policy != null,
-            .persistent = .{ .budget_words = self.config.persistent_budget_words, .regions = self.regions.entries.items.len, .used_words = self.regions.used(), .high_water_words = self.regions.high_water, .evictions = self.regions.evictions, .evicted_words = self.regions.evicted_words, .unbudgeted_regions = self.persistent_map.count() },
+            .persistent = .{ .budget_words = self.config.persistent_budget_words, .regions = self.regions.entries.items.len, .used_words = self.regions.used(), .high_water_words = self.regions.high_water, .evictions = self.regions.evictions, .evicted_words = self.regions.evicted_words, .unbudgeted_regions = if (self.shut_down) self.unbudgeted_regions else self.persistent_map.count() },
             .completed = self.completed,
             .classes = rows.items,
         }, .{ .whitespace = .indent_1 }, &text.writer);
@@ -682,6 +685,8 @@ pub const Worker = struct {
             if (slot.done_event) |e| _ = w.event_destroy(e);
             if (slot.pinned.len != 0) _ = w.host_free(slot.pinned.ptr);
         }
+        self.unbudgeted_regions = self.persistent_map.count();
+        self.shut_down = true;
         var it = self.persistent_map.valueIterator();
         while (it.next()) |b| _ = self.ops.exec.free_u32(self.context, b.ptr);
         self.persistent_map.deinit(self.a);

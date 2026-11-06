@@ -83,13 +83,13 @@ def fold_rows(files: list[tuple[str, dict]], labels: dict[str, str], default_lab
     for _, doc in files:
         if doc.get('schema') not in PLAN_SCHEMAS:
             raise ValueError(f"unexpected plan schema {doc.get('schema')!r}")
-        p = doc.get('persistent') or {}
-        for k in persistent:
-            persistent[k] = max(persistent[k], int(p.get(k, 0)))
         rows_in = [r for r in doc.get('classes', []) if not only_labeled or r['class_key'] in labels]
         if only_labeled and not rows_in:
             continue  # a worker that ran none of the swept classes (e.g. a host-model test)
         allocators.add(doc.get('allocator', 'lifo'))
+        p = doc.get('persistent') or {}
+        for k in persistent:
+            persistent[k] = max(persistent[k], int(p.get(k, 0)))
         for row in rows_in:
             key = row['class_key']
             s = row['stat']
