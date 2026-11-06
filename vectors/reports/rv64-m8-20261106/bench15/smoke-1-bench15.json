@@ -1,0 +1,246 @@
+{
+  "schema": "rv64-m8-bench15/v1",
+  "arms": [
+    "default"
+  ],
+  "labels": {
+    "M": "measured",
+    "D": "derived",
+    "E": "estimate"
+  },
+  "timing_boundary": "proving_s = service request wall (capture/witness generation through root publish; excludes fetch/submit) [M]; request_s = client latency through the spool [M]; tail_s = proving - capture - setup - native window - recursion after native [D]",
+  "blocks": [
+    {
+      "block": 26235156,
+      "instructions": 15305679,
+      "cpu_segments": 4,
+      "m3_request_s": 34.281,
+      "m7": {
+        "warm_proving_s": 10.5,
+        "label": "M",
+        "note": "M7 default warm",
+        "source": "design/riscv-proving-stack/rv64-m8-engineering-scope.md \u00a71"
+      },
+      "status": "done",
+      "arms": {
+        "default": {
+          "cold": {
+            "n": 1,
+            "proving_s": 23.3347,
+            "request_s": 23.3379,
+            "capture_s": 1.5773,
+            "setup_s": 7.1616,
+            "native_window_s": 4.4197,
+            "recursion_after_native_s": 10.1489,
+            "tail_s": 0.0272
+          },
+          "warm": {
+            "n": 1,
+            "proving_s": 10.2757,
+            "request_s": 10.284,
+            "capture_s": 1.7778,
+            "setup_s": 0.1198,
+            "native_window_s": 3.3592,
+            "recursion_after_native_s": 5.0017,
+            "tail_s": 0.0172
+          },
+          "device_peak_bytes_sampled": 31574720512,
+          "nvml_kernel_active_percent": 24.1,
+          "profile_warm": {
+            "profiled_proving_s": 10.5995,
+            "kernel_gpu_s": 8.1567,
+            "any_busy_gpu_s": 9.2453,
+            "gpu_busy": 0.3848,
+            "launches": 41839,
+            "stream_syncs": 1819,
+            "launches_per_node": 2789.3,
+            "syncs_per_node": 121.27
+          }
+        }
+      },
+      "parity": {
+        "requests_identical": 4,
+        "frozen_d2_golden": true,
+        "reference_run": "/workspace/m3/runs/m8-bench15/daemon-26235156-r2-smoke-1-26235156-default-h0-a1-00-baseline"
+      },
+      "receivers": {
+        "/workspace/m3/runs/m8-bench15/daemon-26235156-r2-smoke-1-26235156-default-h0-a1-00-baseline": [
+          {
+            "trial": 0,
+            "accepted": true,
+            "wall_s": 30.2
+          },
+          {
+            "trial": 1,
+            "accepted": true,
+            "wall_s": 30.1
+          }
+        ]
+      }
+    },
+    {
+      "block": 24647140,
+      "instructions": 24598260,
+      "cpu_segments": 6,
+      "m3_request_s": 48.182,
+      "m7": null,
+      "status": "not_run",
+      "arms": {}
+    },
+    {
+      "block": 24628607,
+      "instructions": 26894777,
+      "cpu_segments": 7,
+      "m3_request_s": 51.114,
+      "m7": {
+        "warm_proving_s": 12.9,
+        "label": "M",
+        "note": "M7 default warm, single profiled run",
+        "source": "design/riscv-proving-stack/rv64-m8-engineering-scope.md \u00a71"
+      },
+      "status": "not_run",
+      "arms": {}
+    },
+    {
+      "block": 25229957,
+      "instructions": 27077168,
+      "cpu_segments": 7,
+      "m3_request_s": 53.773,
+      "m7": null,
+      "status": "not_run",
+      "arms": {}
+    },
+    {
+      "block": 24628608,
+      "instructions": 38600821,
+      "cpu_segments": 10,
+      "m3_request_s": 60.322,
+      "m7": null,
+      "status": "not_run",
+      "arms": {}
+    },
+    {
+      "block": 24626900,
+      "instructions": 49123899,
+      "cpu_segments": 12,
+      "m3_request_s": 68.268,
+      "m7": null,
+      "status": "not_run",
+      "arms": {}
+    },
+    {
+      "block": 24697073,
+      "instructions": 60386659,
+      "cpu_segments": 15,
+      "m3_request_s": 84.597,
+      "m7": null,
+      "status": "not_run",
+      "arms": {}
+    },
+    {
+      "block": 24697070,
+      "instructions": 57790096,
+      "cpu_segments": 14,
+      "m3_request_s": 86.37,
+      "m7": {
+        "cold_proving_s": 69.871,
+        "label": "M",
+        "note": "M7 cold scale probe, one request",
+        "source": "vectors/reports/rv64-m7-20261105/callback-residency/README.md"
+      },
+      "status": "not_run",
+      "arms": {}
+    },
+    {
+      "block": 26235168,
+      "instructions": 113375897,
+      "cpu_segments": 28,
+      "m3_request_s": 145.357,
+      "m7": null,
+      "status": "not_run",
+      "arms": {}
+    },
+    {
+      "block": 25229955,
+      "instructions": 122476661,
+      "cpu_segments": 30,
+      "m3_request_s": 147.659,
+      "m7": null,
+      "status": "not_run",
+      "arms": {}
+    },
+    {
+      "block": 25229951,
+      "instructions": 165910998,
+      "cpu_segments": 40,
+      "m3_request_s": 179.03,
+      "m7": null,
+      "status": "not_run",
+      "arms": {}
+    },
+    {
+      "block": 24628590,
+      "instructions": 157621394,
+      "cpu_segments": 38,
+      "m3_request_s": 185.956,
+      "m7": null,
+      "status": "not_run",
+      "arms": {}
+    },
+    {
+      "block": 24628595,
+      "instructions": 172795370,
+      "cpu_segments": 42,
+      "m3_request_s": 213.298,
+      "m7": null,
+      "status": "not_run",
+      "arms": {}
+    },
+    {
+      "block": 24628611,
+      "instructions": 187659496,
+      "cpu_segments": 45,
+      "m3_request_s": 234.327,
+      "m7": null,
+      "status": "not_run",
+      "arms": {}
+    },
+    {
+      "block": 26235159,
+      "instructions": 204825818,
+      "cpu_segments": 49,
+      "m3_request_s": 250.455,
+      "m7": null,
+      "status": "not_run",
+      "arms": {}
+    }
+  ],
+  "totals": {
+    "default": {
+      "blocks": 1,
+      "warm_proving_s_sum": 10.28,
+      "cold_proving_s_sum": 23.33,
+      "m3_request_s_sum_same_blocks": 34.28,
+      "warm_over_m3": 0.2997,
+      "cold_over_m3": 0.6807
+    }
+  },
+  "config": {
+    "rounds": 1,
+    "profile": "warm",
+    "receivers": "reference",
+    "smoke": true,
+    "stream": "m8-bench15",
+    "source_commit": "c72b51646"
+  },
+  "asset_sha256": {
+    "library": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45",
+    "sparse": "e66ab0cfa50e4869351de87a1081792ce1d3385ce44f79ff1f4b3debc06cb278",
+    "observer": "29dba5cc45838a71387a86b2e3c93150a54f157e2e7e6277378f0ec76c1335f5",
+    "process_budget_guard": "773d5f04240e4692c07c26b1c72a43a8090f3df4969c1493c2c7e9923e0d1139",
+    "driver": "1d5cb14a59b8216508e6711dee2b52422261f15b369bef2796fd4e6265cc68d7",
+    "receiver": "fa5ee44b9cbbe4fd27ec57de35709c5ddf14bc17daa8015ef231ecf0901f97cc",
+    "addon": "12a3a0792a727a76f5bd404ab418a48e9efbe782a9a42dbdef61949f937b90e1",
+    "outer_fs": "166556d185cc01333cbe43d2e38dbc3cc12d1b0d35a30b67e0e12d4474bc8e52"
+  }
+}
