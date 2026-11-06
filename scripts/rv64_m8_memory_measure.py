@@ -58,7 +58,8 @@ def main():
     receipt = {'schema': 'rv64-m8-memory-measure/v1', 'label': '[M] allocator diagnostic; walls not latency',
                'block': args.block, 'service': str(service), 'argv': argv,
                'asset_sha256': {k: stack.sha(v) for k, v in assets.items()},
-               'source_sha256_count': len(stack.source_hashes(ROOT))}
+               'source_root': str(Path('/workspace/m3/src') / args.stream),
+               'source_sha256_count': len(stack.source_hashes(Path('/workspace/m3/src') / args.stream))}
     stack.write(out / 'measure.json', receipt)
     env = stack.clean_environment(os.environ)
     env['TMPDIR'] = '/workspace/m3/tmp'
