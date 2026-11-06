@@ -32,6 +32,9 @@ const NG = @import("rv64/jobs/native_gkr.zig");
 const Sources = @import("rv64/gkr_sources.zig");
 const NGl = @import("rv64/jobs/native_global.zig");
 const NC = @import("rv64/jobs/native_commit.zig");
+const NS1 = @import("rv64/jobs/native_stage1.zig");
+/// Native PCS blowup seen by the trace-commit wrapper (MAIN precedes the GKR).
+var native_beta = std.atomic.Value(u32).init(0);
 const DP = CPU.rv64_device_pcs;
 const Slab = jobs.slab;
 const DG = CPU.rv64_gkr_cpu_worker.DeviceGlobal;
@@ -133,7 +136,63 @@ const Row = struct {
     declared_device_words: u64,
     launches: u64,
     error_name: []const u8 = "",
+    /// Composed NativeStage1 job (FIXED adoption + MAIN commit + local GKR, one job).
+    stage1_fixed_root_equal: bool = false,
+    stage1_main_root_equal: bool = false,
+    stage1_channel_equal: bool = false,
+    stage1_proof_equal: bool = false,
+    stage1_enqueue_ns: u64 = 0,
+    stage1_wait_ns: u64 = 0,
+    stage1_host_waits: u32 = 0,
+    stage1_arena_peak_words: u64 = 0,
+    stage1_error: []const u8 = "",
 };
+
+/// NativeStage1 as one job: seed, FIXED (class-persistent, committed on device
+/// by the first job of the class), MAIN commit (legacy committed coefficients,
+/// mirrored), local GKR on the job's own coefficient views and device MAIN root.
+const Stage1ParityJob = struct {
+    s1: NS1.Stage1,
+    fixed_inputs: []const NC.Input,
+    main_inputs: []const NC.Input,
+    local: []NC.Input,
+    main_logs: []const u32,
+    fixed_host_words: usize,
+    peer: Peer,
+    layout: Slab.ProofLayout = .{},
+    roots: [16]u32 = undefined,
+    section: ?NG.Section = null,
+    pub fn classKey(self: *Stage1ParityJob) [32]u8 {
+        return NG.classKeyOf(self.s1.gkr.?.plan);
+    }
+    pub fn footprint(self: *Stage1ParityJob) api.Footprint {
+        const g = self.s1.gkr.?.plan;
+        const fixed = self.s1.fixed.plan;
+        const mp = self.s1.main;
+        const staged = 64 + fixed.stagedWords(self.fixed_host_words) + mp.stagedWords(0) + g.stagedWords(true) + 8 * 64;
+        const mirror = Peer.deviceWords(NC.Input, self.main_inputs, self.main_logs);
+        const peak = @max(fixed.deviceWords(), @max(mp.deviceWords(), mp.coefficient_cells + 64 + g.enqueueWords()));
+        return .{ .device_words = staged + mirror + peak + 8 * 64, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = self.fixed_host_words + 2 * (fixed.tw.twiddles.len + fixed.tw.itwiddles.len + mp.tw.twiddles.len + mp.tw.itwiddles.len) + 8 * (fixed.logs.len + mp.logs.len) + g.pinnedWords() + 256 };
+    }
+    pub fn stage(self: *Stage1ParityJob, s: *api.Stager) !void {
+        try self.s1.stage(s, self.fixed_inputs, self.main_inputs);
+    }
+    pub fn enqueue(self: *Stage1ParityJob, e: *api.Enqueue) !void {
+        try e.slab.bind(&self.layout);
+        try self.peer.mirrorInputs(e, NC.Input, self.main_inputs, self.main_logs, self.local);
+        _ = try self.s1.enqueue(e, self.fixed_inputs, self.local, try e.slab.field(.root, 0));
+    }
+    pub fn finish(self: *Stage1ParityJob, view: api.SlabView) !void {
+        @memcpy(&self.roots, try Slab.read(view, .root, 0));
+        self.section = try NG.Section.read(self.s1.gkr.?.a, self.s1.gkr.?, view);
+    }
+    pub fn abort(_: *Stage1ParityJob) void {}
+};
+
+fn wordsEqual(words: []const u32, bytes: [32]u8) bool {
+    for (words, 0..) |w, i| if (w != std.mem.readInt(u32, bytes[4 * i ..][0..4], .little)) return false;
+    return true;
+}
 
 const Decorator = struct {
     a: std.mem.Allocator,
@@ -143,6 +202,7 @@ const Decorator = struct {
     catalogue: Sources.Catalogue,
     arena_bytes: usize,
     peer: Peer,
+    csym: NC.Symbols,
     mutex: std.Thread.Mutex = .{},
     rows: std.ArrayListUnmanaged(Row) = .empty,
 
@@ -177,9 +237,81 @@ const Decorator = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         const row = self.compare(request, &legacy, legacy_ns) catch |err| Row{ .ordinal = request.scope.ordinal, .instances = request.instances.len, .columns = 0, .host_columns = 0, .cells = 0, .facts = 0, .channel_equal = false, .proof_equal = false, .legacy_ns = legacy_ns, .job_stage_ns = 0, .job_enqueue_ns = 0, .job_wait_ns = 0, .host_waits = 0, .d2h_bytes = 0, .arena_peak_words = 0, .declared_device_words = 0, .launches = 0, .error_name = @errorName(err) };
+        var full = row;
+        const stage1_flag = std.posix.getenv("STWO_RV64_M8_PARITY_STAGE1") orelse "1";
+        if (!std.mem.eql(u8, stage1_flag, "0")) self.stage1(request, &legacy, &full) catch |err| {
+            full.stage1_error = @errorName(err);
+        };
         std.debug.print("GPU_M8_NATIVE_GKR_PARITY ordinal={} channel_equal={} proof_equal={} legacy_ns={} job_enqueue_ns={} job_wait_ns={} host_waits={} arena_peak_words={} error={s}\n", .{ row.ordinal, row.channel_equal, row.proof_equal, row.legacy_ns, row.job_enqueue_ns, row.job_wait_ns, row.host_waits, row.arena_peak_words, row.error_name });
-        try self.rows.append(self.a, row);
+        std.debug.print("GPU_M8_NATIVE_STAGE1_PARITY ordinal={} fixed_root_equal={} main_root_equal={} channel_equal={} proof_equal={} enqueue_ns={} wait_ns={} host_waits={} arena_peak_words={} error={s}\n", .{ full.ordinal, full.stage1_fixed_root_equal, full.stage1_main_root_equal, full.stage1_channel_equal, full.stage1_proof_equal, full.stage1_enqueue_ns, full.stage1_wait_ns, full.stage1_host_waits, full.stage1_arena_peak_words, full.stage1_error });
+        try self.rows.append(self.a, full);
         return legacy;
+    }
+    fn stage1(self: *Decorator, request: Child.NumericalStage.Request, legacy: *const NG.Proof, row: *Row) !void {
+        const a = self.a;
+        const beta = native_beta.load(.acquire);
+        if (beta == 0) return error.Stage1ParityNeedsCommitBeta;
+        const native = request.native_source orelse return error.NativeGkrSourceRequired;
+        var gplan = try NG.Plan.init(a, &self.catalogue, request.scope, request.instances, native, request.native_fixed_columns, request.native_main_columns, self.arena_bytes, 0);
+        defer gplan.deinit();
+        const nf = request.native_fixed_columns.len;
+        const nm = request.native_main_columns.len;
+        const fixed_shapes = try a.alloc(NC.Shape, nf);
+        defer a.free(fixed_shapes);
+        const fixed_inputs = try a.alloc(NC.Input, nf);
+        defer a.free(fixed_inputs);
+        var fixed_host_words: usize = 0;
+        for (request.native_fixed_columns, fixed_shapes, fixed_inputs) |c, *s, *i| {
+            s.* = .{ .log_size = c.log_size, .encoding = .coefficients };
+            if (c.device != null) return error.Stage1ParityExpectsHostFixed;
+            i.* = .{ .host = @as([*]const u32, @ptrCast(c.coefficients.ptr))[0..c.coefficients.len] };
+            fixed_host_words += c.coefficients.len;
+        }
+        const main_shapes = try a.alloc(NC.Shape, nm);
+        defer a.free(main_shapes);
+        const main_inputs = try a.alloc(NC.Input, nm);
+        defer a.free(main_inputs);
+        const main_logs = try a.alloc(u32, nm);
+        defer a.free(main_logs);
+        for (request.native_main_columns, main_shapes, main_inputs, main_logs) |c, *s, *i, *l| {
+            s.* = .{ .log_size = c.log_size, .encoding = .coefficients };
+            i.* = .{ .device = (c.device orelse return error.Stage1ParityExpectsDeviceMain).words };
+            l.* = c.log_size;
+        }
+        var fixed_plan = try NC.CommitPlan.init(a, fixed_shapes, beta);
+        defer fixed_plan.deinit();
+        var main_plan = try NC.CommitPlan.init(a, main_shapes, beta);
+        defer main_plan.deinit();
+        var key = std.crypto.hash.sha2.Sha256.init(.{});
+        key.update("rv64-m8-stage1-fixed");
+        key.update(&request.scope.fixed);
+        key.update(std.mem.asBytes(&beta));
+        var fixed_tree = NS1.FixedTree{ .plan = &fixed_plan, .key = key.finalResult() };
+        var gkr = try NG.Gkr.init(a, &gplan, &self.symbols);
+        defer gkr.deinit();
+        const local = try a.alloc(NC.Input, nm);
+        defer a.free(local);
+        var job = Stage1ParityJob{ .s1 = .{ .fixed = &fixed_tree, .main = &main_plan, .csym = self.csym, .seed = @splat(0), .gkr = &gkr }, .fixed_inputs = fixed_inputs, .main_inputs = main_inputs, .local = local, .main_logs = main_logs, .fixed_host_words = fixed_host_words, .peer = self.peer };
+        defer if (job.section) |*s| s.deinit();
+        _ = try job.layout.add(.root, 0, 16);
+        try gplan.addFields(&job.layout);
+        var done = Done{};
+        try self.worker.submit(api.Job.from(Stage1ParityJob, &job), .{ .ctx = &done, .done = Done.call });
+        while (!@atomicLoad(bool, &done.done, .acquire)) std.Thread.sleep(50 * std.time.ns_per_us);
+        try done.result;
+        const section = &(job.section orelse return error.NativeGkrSectionMissing);
+        row.stage1_fixed_root_equal = wordsEqual(job.roots[0..8], request.scope.fixed);
+        row.stage1_main_root_equal = wordsEqual(job.roots[8..16], request.scope.main);
+        var channel_equal = section.snapshot.draws == request.channel.inner.n_draws;
+        for (section.snapshot.digest, 0..) |w, i| channel_equal = channel_equal and w == std.mem.readInt(u32, request.channel.inner.digest[4 * i ..][0..4], .little);
+        row.stage1_channel_equal = channel_equal;
+        var proof = try section.proof(a, &gplan);
+        defer proof.deinit(a);
+        row.stage1_proof_equal = deepEql(proof, legacy.*);
+        row.stage1_enqueue_ns = done.receipt.enqueue_ns;
+        row.stage1_wait_ns = done.receipt.wait_ns;
+        row.stage1_host_waits = done.receipt.host_waits;
+        row.stage1_arena_peak_words = done.receipt.arena_peak_words;
     }
     fn compare(self: *Decorator, request: Child.NumericalStage.Request, legacy: *const NG.Proof, legacy_ns: u64) !Row {
         const a = self.a;
@@ -492,6 +624,7 @@ const CommitDecorator = struct {
             }
         }
         const beta = request.config.fri_config.log_blowup_factor;
+        if (request.tree_index == 1) native_beta.store(beta, .release);
         var plan = try NC.CommitPlan.init(a, shapes, beta);
         defer plan.deinit();
         const logs = try a.alloc(u32, shapes.len);
@@ -598,7 +731,7 @@ pub fn main() !void {
     defer pool.deinit();
     try pool.stages().requireFullyResident();
     const peer = Peer{ .copy = libs.addon.lookup(PeerCopy, "stwo_rv64_jobs_native_peer_copy_v1") orelse return error.ParityRequiresPeerCopy, .source_device = std.fmt.parseUnsigned(c_int, env("STWO_RV64_M8_PARITY_SOURCE_DEVICE") orelse "0", 10) catch return error.InvalidParityEnvironment };
-    var decorator = Decorator{ .a = a, .inner = pool.stages().numerical.?.*, .worker = worker, .symbols = try NG.Symbols.load(&libs.base), .catalogue = try Sources.Catalogue.init(a), .arena_bytes = arena_bytes, .peer = peer };
+    var decorator = Decorator{ .a = a, .inner = pool.stages().numerical.?.*, .worker = worker, .symbols = try NG.Symbols.load(&libs.base), .catalogue = try Sources.Catalogue.init(a), .arena_bytes = arena_bytes, .peer = peer, .csym = try NC.Symbols.load(&libs.base) };
     defer decorator.catalogue.deinit();
     defer decorator.rows.deinit(a);
     const wrapped = decorator.stage();
@@ -637,13 +770,15 @@ pub fn main() !void {
 
     var all = decorator.rows.items.len == item.expected_cpu_segments;
     for (decorator.rows.items) |row| all = all and row.channel_equal and row.proof_equal and row.host_waits == 1 and row.error_name.len == 0;
+    var stage1_all = decorator.rows.items.len != 0;
+    for (decorator.rows.items) |row| stage1_all = stage1_all and row.stage1_fixed_root_equal and row.stage1_main_root_equal and row.stage1_channel_equal and row.stage1_proof_equal and row.stage1_host_waits == 1;
     var global_all = global.rows.items.len != 0;
     for (global.rows.items) |row| global_all = global_all and row.claims_equal and row.verdict == 0 and row.witness_mismatches == 0 and row.host_waits == 1 and row.error_name.len == 0;
     var commit_all = commits.rows.items.len != 0;
     for (commits.rows.items) |row| commit_all = commit_all and row.root_equal and row.host_waits == 1 and row.error_name.len == 0;
     var text: std.Io.Writer.Allocating = .init(a);
     defer text.deinit();
-    try std.json.Stringify.value(.{ .schema = "rv64-m8-native-gkr-parity/v1", .block = block, .expected_segments = item.expected_cpu_segments, .legacy_native_wall_ns = wall_ns, .job_device = device, .all_equal = all, .segments = decorator.rows.items, .global_all_equal = global_all, .global_slots = global.rows.items, .commit_all_equal = commit_all, .commits = commits.rows.items }, .{ .whitespace = .indent_1 }, &text.writer);
+    try std.json.Stringify.value(.{ .schema = "rv64-m8-native-gkr-parity/v1", .block = block, .expected_segments = item.expected_cpu_segments, .legacy_native_wall_ns = wall_ns, .job_device = device, .all_equal = all, .stage1_all_equal = stage1_all, .segments = decorator.rows.items, .global_all_equal = global_all, .global_slots = global.rows.items, .commit_all_equal = commit_all, .commits = commits.rows.items }, .{ .whitespace = .indent_1 }, &text.writer);
     const report = try std.fs.path.join(a, &.{ out_dir, "native-gkr-parity.json" });
     defer a.free(report);
     try std.fs.cwd().writeFile(.{ .sub_path = report, .data = text.written() });
@@ -651,4 +786,6 @@ pub fn main() !void {
     if (!all) return error.NativeGkrParityMismatch;
     if (!global_all) return error.NativeGlobalParityMismatch;
     if (!commit_all) return error.NativeCommitParityMismatch;
+    std.debug.print("GPU_M8_NATIVE_STAGE1_PARITY_DONE segments={} all_equal={}\n", .{ decorator.rows.items.len, stage1_all });
+    if (!stage1_all) return error.NativeStage1ParityMismatch;
 }

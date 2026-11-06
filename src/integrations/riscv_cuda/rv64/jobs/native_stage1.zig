@@ -17,6 +17,7 @@
 const std = @import("std");
 const api = @import("api.zig");
 const C = @import("native_commit.zig");
+const G = @import("native_gkr.zig");
 
 pub const FixedTree = struct {
     plan: *C.CommitPlan,
@@ -51,6 +52,9 @@ pub const Stage1 = struct {
     csym: C.Symbols,
     seed: [9]u32,
     staged_seed: ?api.DeviceBuffer = null,
+    /// Local GKR of the segment, fed by this job's FIXED/MAIN commitments and
+    /// the device MAIN root (spec §3.5 item 1); null stops after MAIN.
+    gkr: ?*G.Gkr = null,
 
     pub fn stage(self: *Stage1, s: *api.Stager, fixed_inputs: []const C.Input, main_inputs: []const C.Input) !void {
         const b = try s.alloc(9);
@@ -58,6 +62,7 @@ pub const Stage1 = struct {
         self.staged_seed = b;
         try self.fixed.stage(s, fixed_inputs);
         try self.main.stage(s, main_inputs);
+        if (self.gkr) |gkr| try gkr.stageCommitted(s);
     }
     pub const Committed = struct { fixed: C.Committed, main: C.Committed };
     /// `roots`: slab field of 16 words (FIXED root, MAIN root). MAIN
@@ -66,6 +71,7 @@ pub const Stage1 = struct {
         try e.channel.initFromCheckpoint(self.staged_seed orelse return error.Stage1NotStaged);
         const fixed = try self.fixed.enqueue(self.csym, e, fixed_inputs, try roots.slice(0, 8));
         const main = try self.main.enqueue(self.csym, e, main_inputs, try roots.slice(8, 8), true);
+        if (self.gkr) |gkr| try gkr.enqueueCommitted(e, self.fixed.plan, fixed, self.main, main, try roots.slice(8, 8));
         return .{ .fixed = fixed, .main = main };
     }
 };

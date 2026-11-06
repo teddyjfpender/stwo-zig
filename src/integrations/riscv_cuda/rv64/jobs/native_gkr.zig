@@ -445,6 +445,8 @@ pub const Gkr = struct {
     fractions: []R.Fraction,
     packets: []Projection,
     host_offsets: []usize,
+    /// Input views built at enqueue from committed trees (enqueueCommitted).
+    views: []Input,
     // Phase-1 outputs.
     staged: ?api.DeviceBuffer = null,
     host_columns: ?api.DeviceBuffer = null,
@@ -462,13 +464,35 @@ pub const Gkr = struct {
         const packets = try a.alloc(Projection, plan.source.items.len);
         errdefer a.free(packets);
         const host_offsets = try a.alloc(usize, plan.source.columns.len);
-        return .{ .a = a, .plan = plan, .sym = sym, .fractions = fractions, .packets = packets, .host_offsets = host_offsets };
+        errdefer a.free(host_offsets);
+        const views = try a.alloc(Input, plan.source.columns.len);
+        return .{ .a = a, .plan = plan, .sym = sym, .fractions = fractions, .packets = packets, .host_offsets = host_offsets, .views = views };
     }
     pub fn deinit(self: *Gkr) void {
         self.a.free(self.fractions);
         self.a.free(self.packets);
         self.a.free(self.host_offsets);
+        self.a.free(self.views);
         self.* = undefined;
+    }
+
+    /// Phase 1 when every column is device-resident at enqueue (the segment's
+    /// own FIXED/MAIN commitments in the same job): metadata and twiddles only.
+    pub fn stageCommitted(self: *Gkr, s: *api.Stager) !void {
+        for (self.views) |*v| v.* = .{ .device = @ptrFromInt(@alignOf(u32)) }; // placeholders: "device at enqueue"
+        try self.stage(s, self.views);
+    }
+    /// Phase 2 fed by the job's committed FIXED and MAIN trees (original column
+    /// order, coefficient views) and the device MAIN root they produced.
+    pub fn enqueueCommitted(self: *Gkr, e: *api.Enqueue, fixed_plan: anytype, fixed: anytype, main_plan: anytype, main: anytype, main_root: api.DeviceBuffer) !void {
+        const p = self.plan;
+        if (fixed_plan.shapes.len != p.fixed_count or fixed_plan.shapes.len + main_plan.shapes.len != self.views.len) return error.NativeGkrInputCount;
+        for (self.views, 0..) |*v, i| {
+            const column = if (i < p.fixed_count) fixed.column(fixed_plan, i) else main.column(main_plan, i - p.fixed_count);
+            if (column.words != @as(usize, 1) << @intCast(p.logs[i])) return error.InvalidGkrSourceColumn;
+            v.* = .{ .device = column.ptr };
+        }
+        try self.enqueue(e, self.views, main_root);
     }
 
     /// Phase 1: metadata (prefix checkpoint, constants, instance words, per
