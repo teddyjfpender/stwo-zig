@@ -109,9 +109,9 @@ pub const Stage1Job = struct {
     main_words: usize,
     /// The legacy MAIN root (the child transcript mixes it from device).
     main_root: [8]u32,
-    /// Keep the MAIN copy in a request-retained region for stage two
-    /// (STWO_RV64_M8_NATIVE_JOBS_RETAIN_MAIN=1); default: a window copy, and
-    /// stage two takes MAIN from the legacy owner (replay restore).
+    /// Keep the MAIN copy in a request-retained region for stage two (not
+    /// selected by the service: see native_hybrid.zig); false = a window copy,
+    /// and stage two takes MAIN from the legacy owner (replay restore).
     retain_main: bool = false,
     timing: ?*const Timing = null,
     /// Input views (fixed host + main device inside the retained region).

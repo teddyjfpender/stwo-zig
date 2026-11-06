@@ -462,8 +462,10 @@ pub const Hybrid = struct {
         self.mutex.lock();
         const req = self.request;
         self.mutex.unlock();
-        const retain_main = if (std.posix.getenv("STWO_RV64_M8_NATIVE_JOBS_RETAIN_MAIN")) |v| std.mem.eql(u8, v, "1") else false;
-        var job = HJ.Stage1Job{ .retain_main = retain_main, .a = ha, .request = req, .ordinal = ordinal, .gkr = &gkr, .binding = &binding, .copy = self.copy, .fixed_host = fixed_host, .legacy_main = legacy, .main_logs = logs, .main_offsets = offsets, .main_words = main_words, .main_root = words(request.scope.main), .timing = &self.timing, .inputs = inputs };
+        // MAIN retention across the barrier is not selectable: on 24628607 the
+        // retained copies displaced a 14.75 GB legacy truth-composition lease
+        // (CudaAllocationFailed [M] j24). Stage two takes MAIN from the legacy owner.
+        var job = HJ.Stage1Job{ .retain_main = false, .a = ha, .request = req, .ordinal = ordinal, .gkr = &gkr, .binding = &binding, .copy = self.copy, .fixed_host = fixed_host, .legacy_main = legacy, .main_logs = logs, .main_offsets = offsets, .main_words = main_words, .main_root = words(request.scope.main), .timing = &self.timing, .inputs = inputs };
         try job.init();
         defer job.deinit();
         const prep_ns = host_timer.lap();
@@ -586,7 +588,7 @@ pub const Hybrid = struct {
         const expected = worker.expected;
         // MAIN: the stage-one retained copy, else the legacy owner's device
         // tree (restored by the legacy replay when it parked MAIN at stage one).
-        const retained_main = if (std.posix.getenv("STWO_RV64_M8_NATIVE_JOBS_RETAIN_MAIN")) |v| std.mem.eql(u8, v, "1") else false;
+        const retained_main = false;
         var legacy_main: []const [*]const u32 = &.{};
         defer if (legacy_main.len != 0) ha.free(legacy_main);
         if (!retained_main) {
@@ -819,8 +821,7 @@ pub const Hybrid = struct {
             const expected_eval = try real_view.evalCompositionPolynomialAtPointWithWorkCapture(ha, oods, &decoded.proof.sampled_values, try felt(&job.alpha), mask_log, mask_log + split, split, null);
             if (!extracted.eql(expected_eval)) {
                 std.debug.print("GPU_M8_NATIVE_HYBRID event=oods_mismatch ordinal={} extracted={any} expected={any}\n", .{ ordinal, extracted.toM31Array(), expected_eval.toM31Array() });
-                const strict = if (std.posix.getenv("STWO_RV64_M8_NATIVE_JOBS_OODS_CHECK")) |v| !std.mem.eql(u8, v, "0") else true;
-                if (strict) return error.ConstraintsNotSatisfied;
+                return error.ConstraintsNotSatisfied;
             }
         }
         const bytes = try WP.encodePhysical(a, .{ .commitment_scheme_proof = decoded.proof });
