@@ -32,6 +32,20 @@ pub const Config = struct {
     max_outstanding: usize = 3,
 };
 
+/// Measured per-class plan (spec §3.7 hook): what the class actually used,
+/// next to what it declared. Input for the memory-plan sweep.
+pub const ClassStat = struct {
+    jobs: u64 = 0,
+    declared_device_words: u64 = 0,
+    peak_arena_words: u64 = 0,
+    staged_words: u64 = 0,
+    slab_words: u64 = 0,
+    peak_pinned_words: u64 = 0,
+    stage_ns: u64 = 0,
+    enqueue_ns: u64 = 0,
+    wait_ns: u64 = 0,
+};
+
 pub const Sink = struct {
     ctx: *anyopaque,
     done: *const fn (*anyopaque, api.Completion) void,
@@ -164,6 +178,8 @@ pub const Worker = struct {
     fatal: ?anyerror = null,
     outstanding: usize = 0,
     completed: u64 = 0,
+    /// Guarded by `mutex` (written on the worker thread, read by `classStats`).
+    classes: std.AutoHashMapUnmanaged([32]u8, ClassStat) = .empty,
 
     const Submission = struct { job: api.Job, sink: Sink };
 
@@ -195,6 +211,7 @@ pub const Worker = struct {
         self.cond.broadcast();
         self.mutex.unlock();
         if (self.thread) |t| t.join();
+        self.classes.deinit(self.a);
         self.a.destroy(self);
     }
 
@@ -203,6 +220,17 @@ pub const Worker = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         return self.fatal == null and !self.closing and self.mailbox == null and self.outstanding < self.config.max_outstanding;
+    }
+    /// Snapshot of the measured class plans (caller frees with `a`).
+    pub const ClassEntry = struct { key: [32]u8, stat: ClassStat };
+    pub fn classStats(self: *Worker, a: std.mem.Allocator) ![]ClassEntry {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const out = try a.alloc(ClassEntry, self.classes.count());
+        var it = self.classes.iterator();
+        var i: usize = 0;
+        while (it.next()) |e| : (i += 1) out[i] = .{ .key = e.key_ptr.*, .stat = e.value_ptr.* };
+        return out;
     }
     pub fn load(self: *Worker) usize {
         self.mutex.lock();
@@ -499,8 +527,25 @@ pub const Worker = struct {
             };
         }
         slot.fresh_count = 0;
+        var key: [32]u8 = @splat(0);
+        const ok = if (result) |_| true else |_| false;
+        if (ok) key = slot.job.classKey();
         slot.sink.done(slot.sink.ctx, .{ .job = slot.job, .result = result, .receipt = slot.receipt });
         self.mutex.lock();
+        if (ok) if (self.classes.getOrPut(self.a, key)) |entry| {
+            if (!entry.found_existing) entry.value_ptr.* = .{};
+            const c = entry.value_ptr;
+            const r = slot.receipt;
+            c.jobs += 1;
+            c.declared_device_words = @max(c.declared_device_words, slot.footprint.device_words);
+            c.peak_arena_words = @max(c.peak_arena_words, r.arena_peak_words);
+            c.staged_words = @max(c.staged_words, r.staged_words);
+            c.slab_words = @max(c.slab_words, slot.footprint.slab_words);
+            c.peak_pinned_words = @max(c.peak_pinned_words, slot.pinned_used);
+            c.stage_ns += r.stage_ns;
+            c.enqueue_ns += r.enqueue_ns;
+            c.wait_ns += r.wait_ns;
+        } else |_| {};
         self.outstanding -= 1;
         self.completed += 1;
         self.cond.broadcast();

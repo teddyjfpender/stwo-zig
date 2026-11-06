@@ -43,6 +43,7 @@ pub const Node = struct {
     job: ?api.Job = null,
     key: [32]u8 = @splat(0),
     worker: ?usize = null,
+    receipt: api.Receipt = .{},
 };
 
 pub const Graph = struct {
@@ -247,6 +248,7 @@ pub const Scheduler = struct {
     fn finishNode(self: *Scheduler, f: Finished) void {
         const n = &self.graph.nodes.items[f.id];
         self.running -= 1;
+        n.receipt = f.completion.receipt;
         const ok = if (f.completion.result) |_| true else |err| blk: {
             self.failure = self.failure orelse err;
             break :blk false;

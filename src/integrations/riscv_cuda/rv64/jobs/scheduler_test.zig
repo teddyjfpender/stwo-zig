@@ -132,6 +132,26 @@ test "request DAG: stage-1 on release, seal barrier, stage-2/truth, leaves on na
     try std.testing.expectEqual(@as(usize, 3 + 3 + 1 + plan.count), s.dispatched);
     try std.testing.expect(s.affinity_hits > 0);
     try std.testing.expectEqual(s.dispatched, fake.counters.host_waits); // one wait per job, none per stage
+    // Request receipt and measured class plans serialize (diagnostic outputs).
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const dir = try tmp.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(dir);
+    try @import("request.zig").writeReceipt(std.testing.allocator, &g, &s, 26235156, 1, dir);
+    const text = try tmp.dir.readFileAlloc(std.testing.allocator, "m8-jobs.json", 1 << 20);
+    defer std.testing.allocator.free(text);
+    try std.testing.expect(std.mem.indexOf(u8, text, "\"native_stage1\"") != null);
+    const plans = try std.fs.path.join(std.testing.allocator, &.{ dir, "plans.json" });
+    defer std.testing.allocator.free(plans);
+    try @import("mod.zig").writePlans(std.testing.allocator, &ws, plans);
+    const stats = try ws[0].classStats(std.testing.allocator);
+    defer std.testing.allocator.free(stats);
+    var jobs: u64 = 0;
+    for (stats) |e| jobs += e.stat.jobs;
+    const other = try ws[1].classStats(std.testing.allocator);
+    defer std.testing.allocator.free(other);
+    for (other) |e| jobs += e.stat.jobs;
+    try std.testing.expectEqual(s.dispatched, jobs);
 }
 
 test "a failed job fails the request after in-flight jobs complete; undispatched jobs are aborted" {

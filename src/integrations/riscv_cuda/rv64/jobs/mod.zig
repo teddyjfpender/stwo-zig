@@ -6,6 +6,7 @@
 //!   STWO_RV64_GPU_DEVICES            device ordinals, e.g. "0,1" (default "0")
 //!   STWO_RV64_M8_JOBS_ARENA_BYTES    static arena per GPU (default 8 GiB; §3.7 hook)
 //!   STWO_RV64_M8_JOBS_PINNED_BYTES   pinned bytes per pipeline slot (default 256 MiB)
+//!   STWO_RV64_M8_JOBS_PLAN_OUT       write measured per-class plans (JSON) at stop (§3.7 sweep input)
 const std = @import("std");
 pub const api = @import("api.zig");
 pub const worker = @import("worker.zig");
@@ -97,9 +98,26 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
         workers[made] = try worker.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = config.arena_words, .pinned_slot_words = config.pinned_slot_words });
         made += 1;
     }
+    defer if (std.posix.getenv("STWO_RV64_M8_JOBS_PLAN_OUT")) |path| writePlans(a, workers[0..made], path) catch |err| std.log.err("M8 class plan output failed: {s}", .{@errorName(err)});
     try selfTest(a, workers[0..made]);
     const p = try provider(a, workers[0..made]);
     try request.serve(a, p, workers[0..made], spool, timer.read());
+}
+
+/// Measured class plans of every worker (declared vs measured peak words).
+pub fn writePlans(a: std.mem.Allocator, workers: []const *worker.Worker, path: []const u8) !void {
+    const Row = struct { device: u32, class_key: [64]u8, stat: worker.ClassStat };
+    var rows: std.ArrayListUnmanaged(Row) = .empty;
+    defer rows.deinit(a);
+    for (workers) |w| {
+        const stats = try w.classStats(a);
+        defer a.free(stats);
+        for (stats) |e| try rows.append(a, .{ .device = w.device_ordinal, .class_key = std.fmt.bytesToHex(e.key, .lower), .stat = e.stat });
+    }
+    var text: std.Io.Writer.Allocating = .init(a);
+    defer text.deinit();
+    try std.json.Stringify.value(.{ .schema = "rv64-m8-jobs-class-plans/v1", .classes = rows.items }, .{ .whitespace = .indent_1 }, &text.writer);
+    try std.fs.cwd().writeFile(.{ .sub_path = path, .data = text.written() });
 }
 
 test "selection is explicit and fails closed" {

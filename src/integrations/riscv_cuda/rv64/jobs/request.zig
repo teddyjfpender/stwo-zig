@@ -112,6 +112,33 @@ pub fn runOne(a: std.mem.Allocator, provider: Provider, workers: []const *W.Work
     try provider.started(provider.ctx, &scheduler);
     var timer = try std.time.Timer.start();
     try scheduler.run();
-    std.debug.print("GPU_M8_JOBS request block={} jobs={} affinity_hits={} scheduler_ns={}\n", .{ block, scheduler.dispatched, scheduler.affinity_hits, timer.read() });
+    const scheduler_ns = timer.read();
+    std.debug.print("GPU_M8_JOBS request block={} jobs={} affinity_hits={} scheduler_ns={}\n", .{ block, scheduler.dispatched, scheduler.affinity_hits, scheduler_ns });
     try provider.publish(provider.ctx, block, out);
+    try writeReceipt(a, &graph, &scheduler, block, scheduler_ns, out);
+}
+
+/// out/m8-jobs.json: per-kind job counts, host waits, D2H bytes and phase times.
+/// Diagnostics only (not a proof artifact; the gate's parity ignores it).
+pub fn writeReceipt(a: std.mem.Allocator, graph: *const S.Graph, scheduler: *const S.Scheduler, block: u64, scheduler_ns: u64, out: []const u8) !void {
+    const Kind = struct { kind: []const u8, jobs: u64 = 0, host_waits: u64 = 0, d2h_bytes: u64 = 0, stage_ns: u64 = 0, enqueue_ns: u64 = 0, wait_ns: u64 = 0, max_arena_peak_words: u64 = 0 };
+    var kinds: [std.meta.fields(S.Kind).len]Kind = undefined;
+    inline for (std.meta.fields(S.Kind), 0..) |f, i| kinds[i] = .{ .kind = f.name };
+    for (graph.nodes.items) |n| {
+        if (n.kind == .seal or n.state != .done) continue;
+        const k = &kinds[@intFromEnum(n.kind)];
+        k.jobs += 1;
+        k.host_waits += n.receipt.host_waits;
+        k.d2h_bytes += n.receipt.d2h_bytes;
+        k.stage_ns += n.receipt.stage_ns;
+        k.enqueue_ns += n.receipt.enqueue_ns;
+        k.wait_ns += n.receipt.wait_ns;
+        k.max_arena_peak_words = @max(k.max_arena_peak_words, n.receipt.arena_peak_words);
+    }
+    var text: std.Io.Writer.Allocating = .init(a);
+    defer text.deinit();
+    try std.json.Stringify.value(.{ .schema = "rv64-m8-jobs-request/v1", .block = block, .jobs = scheduler.dispatched, .affinity_hits = scheduler.affinity_hits, .scheduler_ns = scheduler_ns, .kinds = kinds }, .{ .whitespace = .indent_1 }, &text.writer);
+    var dir = try std.fs.cwd().openDir(out, .{});
+    defer dir.close();
+    try dir.writeFile(.{ .sub_path = "m8-jobs.json", .data = text.written() });
 }
