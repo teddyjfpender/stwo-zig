@@ -23,6 +23,7 @@ const O = @import("ops.zig");
 const Channel = @import("channel.zig");
 const Slab = @import("slab.zig");
 const MP = @import("plan.zig");
+const Retained = @import("retained.zig");
 
 pub const Config = struct {
     device: u32,
@@ -53,6 +54,9 @@ pub const Config = struct {
     /// behavior). A persistent service sets it: the allocation is paid once
     /// per process, sized by what jobs really stage.
     pinned_lazy: bool = false,
+    /// Cap on request-scoped retained regions (retained.zig; 0 = accounted,
+    /// uncapped). A policy's gpu.retained_budget_words fills it when 0.
+    retained_budget_words: usize = 0,
 };
 
 /// Lazy pinned slots grow in steps of this many words (16 MiB).
@@ -69,6 +73,8 @@ pub const ParkReceipt = struct {
     epoch: u64 = 0,
     /// unpark: the arena landed at the same base and size as before the park.
     same_base: bool = false,
+    /// Retained (request-scoped) words still live after the control step.
+    retained_words: usize = 0,
 };
 
 pub const ParkOptions = struct {
@@ -76,6 +82,9 @@ pub const ParkOptions = struct {
     /// Their contents are lost (every key is fresh again) and the persistent
     /// epoch advances. Default: keep them (warm class regions across requests).
     release_persistent: bool = false,
+    /// Also release every live request-scoped retained region (all requests).
+    /// Default: retained regions survive a park (they are not in the arena).
+    release_retained: bool = false,
 };
 
 /// Measured per-class plan (spec §3.7 hook): what the class actually used,
@@ -425,6 +434,11 @@ const Slot = struct {
     pinned_keys: [16][32]u8 = undefined,
     pinned_count: usize = 0,
     persistent_words: usize = 0,
+    /// Request-scoped retained regions this job pinned (retained.zig); one
+    /// unpin each at report. `retained_fresh`: created by this job.
+    retained_refs: [16]api.DeviceBuffer = undefined,
+    retained_fresh: [16]bool = undefined,
+    retained_count: usize = 0,
     /// Footprint the worker planned with (plan.zig; declared when unplanned).
     resolved: MP.Resolved = MP.declared(.{ .device_words = 0 }),
     /// The job's own declaration (sweep records declared vs measured).
@@ -509,6 +523,15 @@ pub const Worker = struct {
     /// Pinned host bytes allocated over the worker's life (lazy growth included).
     pinned_allocated_bytes: u64 = 0,
     pinned_allocations: u64 = 0,
+    /// Request-scoped retained regions (retained.zig). Guarded by `mutex`;
+    /// allocated and freed on the worker thread only (exec-context ledger).
+    retained: Retained.Table = .{},
+    /// Released regions with no pins, waiting for the worker thread's free.
+    retained_pending: std.ArrayListUnmanaged(api.DeviceBuffer) = .empty,
+    /// The worker thread's id (set first thing in `run`).
+    thread_id: std.Thread.Id = 0,
+    /// Set under `mutex` once the worker thread finished `shutdown`.
+    stopped: bool = false,
 
     const Submission = struct { job: api.Job, sink: Sink, index: u64, declared: api.Footprint, resolved: MP.Resolved };
     const Control = union(enum) { park: ParkOptions, unpark: usize };
@@ -523,6 +546,7 @@ pub const Worker = struct {
             // STWO_RV64_M8_JOBS_ARENA_BYTES (operator override) still wins.
             if (std.posix.getenv("STWO_RV64_M8_JOBS_ARENA_BYTES") == null) config.arena_words = @intCast(p.gpu.arena_words);
             if (config.persistent_budget_words == 0) config.persistent_budget_words = @intCast(p.gpu.persistent_budget_words);
+            if (config.retained_budget_words == 0) config.retained_budget_words = @intCast(p.gpu.retained_budget_words);
             // Pinned slots only grow (a harness may need more than any swept class);
             // an explicit STWO_RV64_M8_JOBS_PINNED_BYTES still wins.
             if (std.posix.getenv("STWO_RV64_M8_JOBS_PINNED_BYTES") == null) config.pinned_slot_words = @max(config.pinned_slot_words, @as(usize, @intCast(p.gpu.pinned_slot_words)));
@@ -535,6 +559,7 @@ pub const Worker = struct {
         const self = try a.create(Worker);
         errdefer a.destroy(self);
         self.* = .{ .ops = ops, .config = config, .device_ordinal = config.device, .a = a, .policy = policy, .owned_plan = owned };
+        self.retained.budget_words = config.retained_budget_words;
         self.thread = try std.Thread.spawn(.{}, run, .{self});
         // Startup (context creation) runs on the worker thread; report its outcome.
         self.mutex.lock();
@@ -562,6 +587,8 @@ pub const Worker = struct {
         if (std.posix.getenv(MP.env_plan_dir)) |dir| self.writePlanDir(dir) catch |err| std.log.err("M8 worker class plan output failed: {s}", .{@errorName(err)});
         self.classes.deinit(self.a);
         self.regions.deinit(self.a);
+        self.retained.deinit(self.a);
+        self.retained_pending.deinit(self.a);
         if (self.owned_plan) |p| p.deinit();
         self.a.destroy(self);
     }
@@ -614,6 +641,7 @@ pub const Worker = struct {
             .policy = self.policy != null,
             .persistent = .{ .budget_words = self.config.persistent_budget_words, .regions = self.regions.entries.items.len, .used_words = self.regions.used(), .high_water_words = self.regions.high_water, .evictions = self.regions.evictions, .evicted_words = self.regions.evicted_words, .unbudgeted_regions = if (self.shut_down) self.unbudgeted_regions else self.persistent_map.count() },
             .completed = self.completed,
+            .retained = self.retained.stats,
             .service = .{ .parks = self.parks, .unparks = self.unparks, .arena_epoch = self.arena_epoch, .persistent_epoch = self.persistent_epoch, .pinned_allocated_bytes = self.pinned_allocated_bytes, .pinned_allocations = self.pinned_allocations, .pinned_lazy = self.config.pinned_lazy },
             .classes = rows.items,
         }, .{ .whitespace = .indent_1 }, &text.writer);
@@ -668,7 +696,7 @@ pub const Worker = struct {
     fn take(self: *Worker, block: bool) ?Submission {
         self.mutex.lock();
         defer self.mutex.unlock();
-        while (block and self.mailbox == null and !self.closing and self.control == null) self.cond.wait(&self.mutex);
+        while (block and self.mailbox == null and !self.closing and self.control == null and self.retained_pending.items.len == 0) self.cond.wait(&self.mutex);
         const out = self.mailbox;
         self.mailbox = null;
         if (out != null) self.cond.broadcast();
@@ -676,6 +704,7 @@ pub const Worker = struct {
     }
 
     fn run(self: *Worker) void {
+        self.thread_id = std.Thread.getCurrentId();
         const ok = if (self.startup()) |_| true else |err| blk: {
             self.mutex.lock();
             self.fatal = err;
@@ -690,6 +719,8 @@ pub const Worker = struct {
         var staged: ?*Slot = null;
         var running: ?*Slot = null;
         while (true) {
+            // Released retained regions are freed here, on the worker thread.
+            self.drainRetained();
             const idle = staged == null and running == null;
             // Park/unpark run only with an empty pipeline (park drains first).
             if (idle) if (self.takeControl()) |c| {
@@ -718,6 +749,10 @@ pub const Worker = struct {
             staged = newly;
         }
         self.shutdown();
+        self.mutex.lock();
+        self.stopped = true;
+        self.cond.broadcast();
+        self.mutex.unlock();
     }
 
     fn pairFits(self: *Worker, staged: *Slot, next: Submission) bool {
@@ -809,6 +844,8 @@ pub const Worker = struct {
         var timer = std.time.Timer.start() catch unreachable;
         // The pipeline is empty here: retired pinned buffers can go.
         self.freeRetiredPinned();
+        if (c == .park and c.park.release_retained) self.releaseAllRetained();
+        self.drainRetained();
         var result: anyerror!ParkReceipt = switch (c) {
             .park => |o| self.releaseArena(o),
             .unpark => |words| self.acquireArena(words),
@@ -816,6 +853,7 @@ pub const Worker = struct {
         if (result) |*r| {
             r.ns = timer.read();
             r.epoch = self.arena_epoch;
+            r.retained_words = self.retainedWords(null);
         } else |_| {}
         self.mutex.lock();
         defer self.mutex.unlock();
@@ -1008,6 +1046,18 @@ pub const Worker = struct {
         }
         self.freeRetiredPinned();
         self.pinned_retired.deinit(self.a);
+        self.drainRetained();
+        {
+            // Regions the request protocol never released: free and count
+            // them (no job is left, so none is pinned).
+            var leaked: std.ArrayListUnmanaged(api.DeviceBuffer) = .empty;
+            defer leaked.deinit(self.a);
+            self.mutex.lock();
+            for (self.retained.entries.items) |e| leaked.append(self.a, e.buffer) catch {};
+            self.retained.stats.leaked_at_shutdown += leaked.items.len;
+            self.mutex.unlock();
+            self.freeRetained(leaked.items);
+        }
         self.unbudgeted_regions = self.persistent_map.count();
         self.shut_down = true;
         var it = self.persistent_map.valueIterator();
@@ -1089,7 +1139,7 @@ pub const Worker = struct {
         const slot = self.staging orelse return error.StagerOutsidePhaseOne;
         if (src.len == 0) return;
         if (src.len > dst.words) return error.UploadExceedsDestination;
-        if (!self.arena.contains(@intFromPtr(dst.ptr), src.len) and !self.isPersistent(dst, src.len)) return error.UploadOutsideJobMemory;
+        if (!self.arena.contains(@intFromPtr(dst.ptr), src.len) and !self.isPersistent(dst, src.len) and !self.isRetained(dst, src.len)) return error.UploadOutsideJobMemory;
         const pinned_lo = @intFromPtr(slot.pinned.ptr);
         const pinned_hi = pinned_lo + slot.pinned.len * 4;
         const at = @intFromPtr(src.ptr);
@@ -1151,6 +1201,172 @@ pub const Worker = struct {
         slot.fresh_keys[slot.fresh_count] = key;
         slot.fresh_count += 1;
         return .{ .buffer = b, .fresh = true };
+    }
+
+    // ---------------- request-scoped retained regions ----------------
+
+    /// Find-or-create (`create`) or find-only the region (request, name) for
+    /// the job in `slot`, pinning it until the job is reported. Worker thread.
+    fn retainFor(self: *Worker, slot: *Slot, key: Retained.Key, words: usize, may_create: bool) !api.Retained {
+        if (words == 0) return error.InvalidAllocation;
+        if (slot.retained_count == slot.retained_refs.len) return error.TooManyRetainedRegions;
+        self.mutex.lock();
+        if (self.retained.pin(key, words)) |b| {
+            self.mutex.unlock();
+            slot.retained_refs[slot.retained_count] = b;
+            slot.retained_fresh[slot.retained_count] = false;
+            slot.retained_count += 1;
+            return .{ .buffer = b, .fresh = false };
+        } else |err| if (err != error.RetainedRegionNotFound or !may_create) {
+            self.mutex.unlock();
+            return err;
+        }
+        // Only this (worker) thread inserts: live words can only shrink until the insert.
+        if (!self.retained.admits(words)) {
+            self.retained.stats.budget_refusals += 1;
+            self.mutex.unlock();
+            return error.RetainedBudgetExhausted;
+        }
+        self.mutex.unlock();
+        var ptr: ?[*]u32 = null;
+        try O.check(self.ops.exec.alloc_u32_long(self.context, words, &ptr));
+        const b = api.DeviceBuffer{ .ptr = ptr orelse return error.CudaAllocationFailed, .words = words };
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.retained.insert(self.a, key, b) catch |err| {
+            _ = self.ops.exec.free_u32(self.context, b.ptr);
+            return err;
+        };
+        slot.retained_refs[slot.retained_count] = b;
+        slot.retained_fresh[slot.retained_count] = true;
+        slot.retained_count += 1;
+        return .{ .buffer = b, .fresh = true };
+    }
+
+    pub fn stageRetain(self: *Worker, request: u64, name: [32]u8, words: usize, may_create: bool) !api.Retained {
+        const slot = self.staging orelse return error.StagerOutsidePhaseOne;
+        return self.retainFor(slot, .{ .request = request, .name = name }, words, may_create);
+    }
+
+    pub fn enqueueRetain(self: *Worker, request: u64, name: [32]u8, words: usize, may_create: bool) !api.Retained {
+        const slot = self.enqueuing orelse return error.EnqueueOutsidePhaseTwo;
+        return self.retainFor(slot, .{ .request = request, .name = name }, words, may_create);
+    }
+
+    fn isRetained(self: *Worker, dst: api.DeviceBuffer, words: usize) bool {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.retained.contains(@intFromPtr(dst.ptr), words);
+    }
+
+    /// At report (worker thread): one unpin per region the job pinned. A
+    /// region a FAILED job created is released (its contents are undefined).
+    /// Regions whose last pin drops after a release are freed here.
+    fn unpinRetained(self: *Worker, slot: *Slot, ok: bool) void {
+        if (slot.retained_count == 0) return;
+        var free_now: [16]api.DeviceBuffer = undefined;
+        var n: usize = 0;
+        self.mutex.lock();
+        for (slot.retained_refs[0..slot.retained_count], slot.retained_fresh[0..slot.retained_count]) |b, fresh| {
+            if (!ok and fresh) for (self.retained.entries.items) |*e| if (e.buffer.ptr == b.ptr) {
+                e.released = true;
+            };
+            if (self.retained.unpin(b)) |f| {
+                free_now[n] = f;
+                n += 1;
+            }
+        }
+        self.mutex.unlock();
+        slot.retained_count = 0;
+        if (n == 0) return;
+        // A refused job may have h2d uploads in flight into a fresh region:
+        // order the (exec-stream) free after them on the device.
+        if (slot.uploads) if (slot.staged_event) |ev| {
+            if (O.check(self.ops.exec.event_record(ev, self.h2d_stream))) |_| {
+                O.check(self.ops.exec.stream_wait(self.exec_stream, ev)) catch |err| self.markFatal(err);
+            } else |err| self.markFatal(err);
+        };
+        self.freeRetained(free_now[0..n]);
+    }
+
+    /// Worker thread: free released, unpinned regions (stream-ordered free).
+    /// A failed free is never retried (the region is dropped either way).
+    fn freeRetained(self: *Worker, buffers: []const api.DeviceBuffer) void {
+        for (buffers) |b| {
+            O.check(self.ops.exec.free_u32(self.context, b.ptr)) catch |err| std.log.err("M8 retained region free failed: {s}", .{@errorName(err)});
+        }
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        for (buffers) |b| self.retained.drop(b);
+        self.cond.broadcast();
+    }
+
+    fn drainRetained(self: *Worker) void {
+        self.mutex.lock();
+        if (self.retained_pending.items.len == 0) {
+            self.mutex.unlock();
+            return;
+        }
+        const pending = self.retained_pending.toOwnedSlice(self.a) catch {
+            self.mutex.unlock();
+            return;
+        };
+        self.mutex.unlock();
+        defer self.a.free(pending);
+        self.freeRetained(pending);
+    }
+
+    fn releaseAllRetained(self: *Worker) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        for (self.retained.entries.items) |*e| if (!e.released) {
+            e.released = true;
+            if (e.pins == 0) self.retained_pending.append(self.a, e.buffer) catch {};
+        };
+    }
+
+    /// Release one region (any thread, non-blocking). Freed on the worker
+    /// thread once no job pins it. error.RetainedRegionNotLive on a second release.
+    pub fn releaseRetained(self: *Worker, request: u64, name: [32]u8) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        try self.retained_pending.ensureUnusedCapacity(self.a, 1);
+        if (try self.retained.release(.{ .request = request, .name = name })) |b| self.retained_pending.appendAssumeCapacity(b);
+        self.cond.broadcast();
+    }
+
+    /// Release every live region of `request` (end of request or abort; any
+    /// thread, non-blocking, idempotent). Returns how many were released.
+    pub fn releaseRequest(self: *Worker, request: u64) !usize {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const n = try self.retained.releaseRequest(self.a, request, &self.retained_pending);
+        self.cond.broadcast();
+        return n;
+    }
+
+    /// As `releaseRequest`, then wait until every region of `request` is
+    /// freed (jobs that pin one finish first). Never from a Sink callback
+    /// (those run on the worker thread).
+    pub fn releaseRequestAndWait(self: *Worker, request: u64) !usize {
+        if (self.thread_id == std.Thread.getCurrentId()) return error.ReleaseWaitOnWorkerThread;
+        const n = try self.releaseRequest(request);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        while (self.retained.liveWords(request) != 0 and !self.stopped) self.cond.wait(&self.mutex);
+        return n;
+    }
+
+    /// Words held by retained regions (of `request`, or all), released-but-pinned included.
+    pub fn retainedWords(self: *Worker, request: ?u64) usize {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.retained.liveWords(request);
+    }
+    pub fn retainedStats(self: *Worker) Retained.Stats {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.retained.stats;
     }
 
     // ---------------- phase 2 ----------------
@@ -1260,6 +1476,7 @@ pub const Worker = struct {
     fn report(self: *Worker, slot: *Slot, result: anyerror!void) void {
         for (slot.pinned_keys[0..slot.pinned_count]) |key| self.regions.unpin(key);
         slot.pinned_count = 0;
+        self.unpinRetained(slot, if (result) |_| true else |_| false);
         if (result) |_| {} else |_| {
             // A failed job may have left its fresh persistent buffers unfilled.
             if (self.regions_buffer != null) {

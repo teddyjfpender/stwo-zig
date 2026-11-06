@@ -50,6 +50,11 @@ pub const Gpu = struct {
     /// Pinned host words per pipeline slot (0 = keep the configured size). Covers
     /// every class's measured pinned use (Stager.pinned + uploads + slab mirror).
     pinned_slot_words: u64 = 0,
+    /// Cap on request-scoped retained regions per GPU (jobs/retained.zig;
+    /// 0 = accounted, uncapped). They live OUTSIDE the static arena (their
+    /// own exec-context allocations), so arena_words + this is the planned
+    /// device share of the job runtime across a request's barrier.
+    retained_budget_words: u64 = 0,
 };
 
 pub const ClassPolicy = struct {

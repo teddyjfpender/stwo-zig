@@ -111,9 +111,26 @@ pub const Stager = struct {
     pub fn device(self: *Stager) u32 {
         return impl(self.worker).device_ordinal;
     }
+    /// Request-scoped retained region (retained.zig): find-or-create the
+    /// device region (request, name) of `words`. It survives this job (a
+    /// later job of the same request on this worker finds it), is never
+    /// evicted, and lives until `Worker.releaseRetained`/`releaseRequest`.
+    /// `fresh` = this job created it (fill it). Pinned until this job is
+    /// reported, so it is never freed under it. Create a region a LATER job
+    /// stages against in `stage` (stage(k+1) runs before enqueue(k)).
+    /// Addition (native-hybrid, M8-INTERFACES); additive.
+    pub fn retain(self: *Stager, request: u64, name: [32]u8, words: usize) !Retained {
+        return impl(self.worker).stageRetain(request, name, words, true);
+    }
+    /// Find-only (error.RetainedRegionNotFound when absent): a consumer job
+    /// that must never create the region it reads.
+    pub fn retained(self: *Stager, request: u64, name: [32]u8, words: usize) !DeviceBuffer {
+        return (try impl(self.worker).stageRetain(request, name, words, false)).buffer;
+    }
 };
 
 pub const Persistent = struct { buffer: DeviceBuffer, fresh: bool };
+pub const Retained = struct { buffer: DeviceBuffer, fresh: bool };
 
 /// Phase 2: the whole proof on the exec stream; no host waits.
 pub const Enqueue = struct {
@@ -163,6 +180,14 @@ pub const Enqueue = struct {
     /// True when `footprint()` comes from the memory policy (measured class).
     pub fn planned(self: *Enqueue) bool {
         return impl(self.worker).enqueuePlanned();
+    }
+    /// As `Stager.retain`, from phase 2 (stream-ordered allocation outside
+    /// the arena). Addition (native-hybrid); additive.
+    pub fn retain(self: *Enqueue, request: u64, name: [32]u8, words: usize) !Retained {
+        return impl(self.worker).enqueueRetain(request, name, words, true);
+    }
+    pub fn retained(self: *Enqueue, request: u64, name: [32]u8, words: usize) !DeviceBuffer {
+        return (try impl(self.worker).enqueueRetain(request, name, words, false)).buffer;
     }
 };
 
