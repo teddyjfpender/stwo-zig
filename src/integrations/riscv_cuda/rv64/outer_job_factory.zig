@@ -19,6 +19,7 @@ const Graphs = @import("jobs/outer_graph_cache.zig");
 const Job = @import("jobs/outer_job.zig");
 const Worker = @import("jobs/worker.zig");
 const api = @import("jobs/api.zig");
+const Q = Outer.protocol.Q;
 
 pub const Shared = struct {
     kernels: K.Kernels,
@@ -59,6 +60,8 @@ pub const Report = struct {
     job_ns: u64 = 0,
     assemble_ns: u64 = 0,
     receipt: api.Receipt = .{},
+    /// The job's declared footprint (class plan).
+    footprint: api.Footprint = .{ .device_words = 0 },
 };
 
 pub const Prover = struct {
@@ -98,6 +101,11 @@ pub const Prover = struct {
         var job = try Job.OuterNodeJob.initWhole(staged, &self.shared.kernels, self.shared.whole());
         defer job.deinit();
         job.graphs = &self.graphs;
+        r.footprint = job.footprint();
+        // Partial report on failure (e.g. a footprint refusal) for diagnostics.
+        errdefer if (report) |out| {
+            out.* = r;
+        };
         var done = Done{};
         while (true) {
             self.worker.submit(job.job(), .{ .ctx = &done, .done = Done.done }) catch |err| switch (err) {
@@ -121,5 +129,216 @@ pub const Prover = struct {
         r.assemble_ns = timer.read();
         if (report) |out| out.* = r;
         return produced;
+    }
+};
+
+// ---------------------------------------------------------------------------
+// Hybrid mode (M8 Stage A, STWO_RV64_M8_OUTER_JOBS=1): the legacy request
+// orchestration and native proving stay as they are; every leaf/fold/root
+// node prove reaches device_prove.zig's default-null WholeNode hook and runs
+// as an OuterNodeJob on the DeviceWorker of its lane's physical device.
+//
+// One `Hybrid` per service (worker set + resolved symbols), one `Lane` per
+// recursion lane (its Prover = its graph cache). A Lane wraps the lane's
+// legacy om31 Factory: host plan preparation, tape readiness, admission and
+// the FIXED precommit are the legacy ones; the node proof is the job.
+const Dev = Outer.device_prove;
+const Assignment = @import("outer_assignment.zig");
+const Jobs = @import("jobs/mod.zig");
+const Circuit = @import("stwo_circuit_frontend");
+
+/// STWO_RV64_M8_OUTER_JOBS: unset or "0" → legacy; "1" → hybrid; else fail closed.
+pub fn hybridSelected() !bool {
+    const value = std.posix.getenv("STWO_RV64_M8_OUTER_JOBS") orelse return false;
+    if (std.mem.eql(u8, value, "0")) return false;
+    if (std.mem.eql(u8, value, "1")) return true;
+    return error.InvalidM8OuterJobsSelection;
+}
+
+/// A host-prepared assignment plan plus the producer hints that were live
+/// when it was built (they are threadlocals of the prep thread, not of the
+/// device lane that later proves the node).
+const HostBox = struct {
+    allocator: std.mem.Allocator,
+    prepared: Assignment.Prepared,
+    class: ?[32]u8,
+    is_leaf: bool,
+    fn destroy(raw: *anyopaque) void {
+        const self: *HostBox = @ptrCast(@alignCast(raw));
+        self.prepared.deinit();
+        self.allocator.destroy(self);
+    }
+};
+
+pub const Lane = struct {
+    hybrid: *Hybrid,
+    legacy: Dev.Factory,
+    prover: Prover,
+    mutex: std.Thread.Mutex = .{},
+    staged: ?*HostBox = null,
+    staged_graph: ?*const anyopaque = null,
+    nodes: u64 = 0,
+
+    pub fn factory(self: *Lane) Dev.Factory {
+        const l = self.legacy;
+        return .{
+            .extension = l.extension,
+            .controller = null,
+            .whole_node = .{ .context = self, .prove = wholeNode },
+            .requires_native_complete = l.requires_native_complete,
+            .context = self,
+            .prepare_host = prepareHost,
+            .memory_admission_enabled = if (l.memory_admission_enabled != null) memoryAdmission else null,
+            .tape_ready = if (l.tape_ready != null) tapeReady else null,
+            .stage_host = stageHost,
+            .unstage_host = unstageHost,
+            .precommit_fixed = if (l.precommit_fixed != null) precommitFixed else null,
+            .prepare = refuseValues,
+            .prepare_from_circuit = bypassed,
+        };
+    }
+    fn of(raw: *anyopaque) *Lane {
+        return @ptrCast(@alignCast(raw));
+    }
+    fn memoryAdmission(raw: *anyopaque) bool {
+        const self = of(raw);
+        return self.legacy.memory_admission_enabled.?(self.legacy.context);
+    }
+    fn tapeReady(raw: *anyopaque, class: [32]u8) bool {
+        const self = of(raw);
+        return self.legacy.tape_ready.?(self.legacy.context, class);
+    }
+    /// Same plan the legacy prepare_host builds (outer_source.zig prepareHost),
+    /// bound to the job runtime's base image handle.
+    fn prepareHost(raw: *anyopaque, a: std.mem.Allocator, graph: *const Circuit.builder.Context(Q)) !Dev.HostPrepared {
+        const self = of(raw);
+        if (!graph.trace_only or !graph.finalized or !graph.record_gates) return error.TraceOnlyGraphRequired;
+        const box = try a.create(HostBox);
+        errdefer a.destroy(box);
+        box.* = .{ .allocator = a, .prepared = try Assignment.Prepared.init(a, graph, &self.hybrid.set.libs.base), .class = Dev.class_hint, .is_leaf = Dev.class_is_leaf };
+        return .{ .context = box, .graph = graph, .destroy = HostBox.destroy };
+    }
+    fn stageHost(raw: *anyopaque, host: Dev.HostPrepared) !void {
+        const self = of(raw);
+        if (host.destroy != HostBox.destroy) {
+            host.destroy(host.context);
+            return error.ForeignHostPreparedAssignment;
+        }
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.staged != null) {
+            host.destroy(host.context);
+            return error.OuterProofAlreadyActive;
+        }
+        self.staged = @ptrCast(@alignCast(host.context));
+        self.staged_graph = host.graph;
+    }
+    fn unstageHost(raw: *anyopaque) void {
+        const self = of(raw);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.staged) |box| HostBox.destroy(box);
+        self.staged = null;
+        self.staged_graph = null;
+    }
+    fn takeStaged(self: *Lane, graph: *const anyopaque) ?*HostBox {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.staged_graph != graph) return null;
+        const box = self.staged;
+        self.staged = null;
+        self.staged_graph = null;
+        return box;
+    }
+    /// The legacy device FIXED precommit, unchanged (root + legacy tree, which
+    /// outer_wrap releases after the proof); the node itself goes to the job.
+    fn precommitFixed(raw: *anyopaque, a: std.mem.Allocator, pp: *const Circuit.common.preprocessed.PreprocessedCircuit, ordinal: u32) !Dev.PrecommittedFixed {
+        const self = of(raw);
+        var fixed = try self.legacy.precommit_fixed.?(self.legacy.context, a, pp, ordinal);
+        fixed.whole_node = .{ .context = self, .prove = wholeNode };
+        return fixed;
+    }
+    fn refuseValues(_: *anyopaque, _: std.mem.Allocator, _: *const Outer.prove.Authority, _: []const Q, _: @import("stwo_prover_api").device_pcs.Scope) !Dev.Source {
+        return error.M8OuterJobsRequireTraceOnlyNode;
+    }
+    fn bypassed(_: *anyopaque, _: std.mem.Allocator, _: *const Outer.prove.Authority, _: *const Circuit.builder.Context(Q), _: @import("stwo_prover_api").device_pcs.Scope) !Dev.Source {
+        return error.M8OuterWholeNodeBypassed;
+    }
+
+    fn wholeNode(raw: *anyopaque, a: std.mem.Allocator, key: *const Outer.prove.Authority, graph: *const Circuit.builder.Context(Q), expected: []const Q, ordinal: u32) !Outer.prove.Produced {
+        const self = of(raw);
+        var input = Prestage.Input{ .key = key, .graph = graph, .expected = expected, .ordinal = ordinal, .library = &self.hybrid.set.libs.base, .class = Dev.class_hint, .is_leaf = Dev.class_is_leaf, .seed_tape = Dev.seed_tape, .blake_sample_inputs = Dev.blake_sample_inputs };
+        if (self.takeStaged(graph)) |box| {
+            input.prepared = box.prepared;
+            input.class = box.class;
+            input.is_leaf = box.is_leaf;
+            box.allocator.destroy(box);
+        }
+        var r: Report = .{};
+        var timer = try std.time.Timer.start();
+        const produced = self.prover.prove(a, input, &r) catch |err| {
+            std.debug.print("GPU_M8_OUTER_NODE ordinal={d} device={d} error={s} declared_device_words={d} declared_staged_words={d} slab_words={d} pinned_words={d}\n", .{ ordinal, self.prover.worker.device_ordinal, @errorName(err), r.footprint.device_words, r.footprint.staged_words, r.footprint.slab_words, r.footprint.pinned_words });
+            return err;
+        };
+        self.nodes += 1;
+        const fp = r.footprint;
+        std.debug.print("GPU_M8_OUTER_NODE ordinal={d} device={d} leaf={} adopted_plan={} outcome={s} launches={d} kernel_nodes={d} host_waits={d} d2h_bytes={d} stage_ns={d} enqueue_ns={d} wait_ns={d} prestage_ns={d} job_ns={d} assemble_ns={d} wall_ns={d} declared_device_words={d} declared_staged_words={d} slab_words={d} pinned_words={d} staged_words={d} arena_peak_words={d} sequence={d} placement={s}\n", .{ ordinal, r.receipt.device, input.is_leaf, input.prepared != null, @tagName(r.outcome), r.launches, r.kernel_nodes, r.receipt.host_waits, r.receipt.d2h_bytes, r.receipt.stage_ns, r.receipt.enqueue_ns, r.receipt.wait_ns, r.prestage_ns, r.job_ns, r.assemble_ns, timer.read(), fp.device_words, fp.staged_words, fp.slab_words, fp.pinned_words, r.receipt.staged_words, r.receipt.arena_peak_words, r.receipt.sequence, @tagName(r.receipt.placement) });
+        return produced;
+    }
+};
+
+pub const Hybrid = struct {
+    allocator: std.mem.Allocator,
+    set: *Jobs.WorkerSet,
+    shared: Shared,
+    lanes: []Lane = &.{},
+
+    /// Boots one self-tested DeviceWorker per STWO_RV64_GPU_DEVICES entry
+    /// (jobs/mod.zig WorkerSet: STWO_RV64_M8_JOBS_LIBRARY, _ARENA_BYTES,
+    /// _PINNED_BYTES) and resolves the outer symbols
+    /// (STWO_RV64_M8_OUTER_FS_LIBRARY = libstwo-rv64-outer-fs-ops.so).
+    pub fn create(a: std.mem.Allocator, library: []const u8) !*Hybrid {
+        const fs_path = std.posix.getenv("STWO_RV64_M8_OUTER_FS_LIBRARY") orelse return error.MissingM8OuterFsLibrary;
+        const self = try a.create(Hybrid);
+        errdefer a.destroy(self);
+        const set = try Jobs.WorkerSet.start(a, library);
+        errdefer set.stop(a);
+        self.* = .{ .allocator = a, .set = set, .shared = try Shared.init(&set.libs.base, &set.libs.addon, fs_path) };
+        return self;
+    }
+    /// Replaces each lane's factory with a job-backed one on the worker of
+    /// the lane's physical device. `lanes` is a slice of execution_wrap.Lane
+    /// (anything with `physical_device` and `factory`); call once.
+    pub fn install(self: *Hybrid, lanes: anytype) !void {
+        if (self.lanes.len != 0) return error.M8OuterLanesAlreadyInstalled;
+        if (@import("stwo_riscv_cpu_integration").rv64_om31_outer_wrap.hybridProfileActive()) return error.M8OuterJobsUnsupportedHybridProfile;
+        const made = try self.allocator.alloc(Lane, lanes.len);
+        errdefer self.allocator.free(made);
+        for (lanes, made) |*lane, *out| {
+            if (lane.factory.whole_node != null or lane.factory.extension != null) return error.M8OuterJobsUnsupportedLaneFactory;
+            const worker = for (self.set.slice()) |w| {
+                if (w.device_ordinal == lane.physical_device) break w;
+            } else return error.M8OuterJobsMissingLaneWorker;
+            out.* = .{ .hybrid = self, .legacy = lane.factory, .prover = Prover.init(self.allocator, &self.shared, worker) };
+        }
+        self.lanes = made;
+        for (lanes, made) |*lane, *out| lane.factory = out.factory();
+        std.debug.print("GPU_M8_OUTER_JOBS hybrid lanes={d} workers={d}\n", .{ made.len, self.set.count });
+    }
+    /// After the service stops proving (every lane idle).
+    pub fn destroy(self: *Hybrid) void {
+        const a = self.allocator;
+        for (self.lanes) |*lane| {
+            std.debug.print("GPU_M8_OUTER_JOBS lane device={d} nodes={d}\n", .{ lane.prover.worker.device_ordinal, lane.nodes });
+            unstageHost(lane);
+            lane.prover.deinit();
+        }
+        a.free(self.lanes);
+        self.shared.deinit();
+        self.set.stop(a);
+        a.destroy(self);
+    }
+    fn unstageHost(lane: *Lane) void {
+        Lane.unstageHost(lane);
     }
 };

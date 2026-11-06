@@ -128,6 +128,11 @@ pub const Input = struct {
     /// Build the composition statics (whole-node jobs; prefix-only parity
     /// runs may skip them).
     composition: bool = true,
+    /// A host-prepared assignment plan for exactly `graph` (the request
+    /// layer's prepare_host, built on the prep thread with the node's hints
+    /// installed; required for seed-tape stub graphs). Moved into the Staged
+    /// on every path, including failure. Null: Prepared.init here.
+    prepared: ?Assignment.Prepared = null,
 };
 
 /// Process-wide outer composition catalogue (geometry independent: the pinned
@@ -501,6 +506,8 @@ const Owner = struct {
 /// Builds the node's Staged on the calling (pool) thread. The returned
 /// pointer is owned by its own `release` (Staged.deinit).
 pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
+    var adopted = input.prepared;
+    errdefer if (adopted) |*p| p.deinit();
     const key = input.key;
     try key.requireProverData();
     const graph = input.graph;
@@ -510,12 +517,16 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
     const owner = try a.create(Owner);
     errdefer a.destroy(owner);
     owner.allocator = a;
-    const previous = Hints.get();
-    (Hints{ .class_hint = input.class, .class_is_leaf = input.is_leaf, .seed_tape = input.seed_tape, .blake_sample_inputs = input.blake_sample_inputs }).install();
-    owner.prepared = blk: {
+    owner.prepared = if (adopted) |*p| blk: {
+        try p.rebind(input.library);
+        break :blk p.*;
+    } else blk: {
+        const previous = Hints.get();
+        (Hints{ .class_hint = input.class, .class_is_leaf = input.is_leaf, .seed_tape = input.seed_tape, .blake_sample_inputs = input.blake_sample_inputs }).install();
         defer previous.install();
         break :blk try Assignment.Prepared.init(a, graph, input.library);
     };
+    adopted = null;
     errdefer owner.prepared.deinit();
     const prepared = &owner.prepared;
     if (prepared.reference != null or prepared.count == 0 or prepared.count > std.math.maxInt(u32) / 4) return error.TraceOnlySourceRequired;

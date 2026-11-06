@@ -95,6 +95,20 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     defer if (combined) {
         if (ready) |context| context.deinit();
     };
+    // M8 Stage A (STWO_RV64_M8_OUTER_JOBS=1; unset = today's path): recursion
+    // node proofs run as OuterNodeJobs on per-GPU DeviceWorkers; the legacy
+    // orchestration and native proving are unchanged.
+    const OuterJobs = @import("outer_job_factory.zig");
+    const outer_jobs: if (combined) ?*OuterJobs.Hybrid else void = if (combined) (if (try OuterJobs.hybridSelected()) blk: {
+        const lanes = (ready orelse return error.M8OuterJobsRequireReadyRecursion).lanes;
+        const hybrid = try OuterJobs.Hybrid.create(std.heap.smp_allocator, library);
+        errdefer hybrid.destroy();
+        try hybrid.install(lanes);
+        break :blk hybrid;
+    } else null) else {};
+    defer if (combined) {
+        if (outer_jobs) |hybrid| hybrid.destroy();
+    };
     const factory = if (combined) (if (outer) |*context| (if (manifest.recursion_device_fixed_candidate) try context.factoryWithDeviceFixed() else try context.factoryForTraceOnly()) else null) else {};
     try std.fs.cwd().makePath(output);
     if (manifest.recursion_device_fixed_candidate) {

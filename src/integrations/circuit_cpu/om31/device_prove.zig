@@ -30,8 +30,17 @@ pub const Controller = struct {
     /// return; the backend may execute the complete proof on its native owner.
     run: *const fn (*anyopaque, *const fn (*anyopaque) anyerror!void, *anyopaque) anyerror!void,
 };
+/// M8 Stage A (owner-approved, default null): a whole-node prover outside this
+/// module (rv64 OuterNodeJob on a DeviceWorker). When set on the entry's
+/// factory (or precommitted FIXED), a trace-only node is proved by it after
+/// the same entry validation; it must return this module's exact proof.
+pub const WholeNode = struct {
+    context: *anyopaque,
+    prove: *const fn (*anyopaque, std.mem.Allocator, *const Native.Authority, *const circuit.builder.Context(P.Q), []const P.Q, u32) anyerror!Native.Produced,
+};
 pub const PrecommittedFixed = struct {
     controller: ?Controller = null,
+    whole_node: ?WholeNode = null,
     context: *anyopaque,
     tree: D.Tree,
     scope: D.Scope,
@@ -74,6 +83,7 @@ pub const Factory = struct {
     /// Typed by a higher integration layer; this module never interprets it.
     extension: ?FactoryExtension = null,
     controller: ?Controller = null,
+    whole_node: ?WholeNode = null,
     /// A whole-proof owner job cannot overlap native writers using this same
     /// service until host lock ordering and shared metadata caches are audited.
     requires_native_complete: bool = false,
@@ -154,6 +164,10 @@ pub fn proveFromPrecommittedCircuit(a: std.mem.Allocator, key: *const Native.Aut
     return proveOwned(a, key, outputs, &.{}, ordinal, undefined, graph, fixed);
 }
 fn proveOwned(a: std.mem.Allocator, key: *const Native.Authority, outputs: []P.Q, values: []const P.Q, ordinal: u32, factory: Factory, graph: ?*const circuit.builder.Context(P.Q), precommitted: ?*const PrecommittedFixed) !Native.Produced {
+    if (graph) |ctx| if (if (precommitted) |fixed| fixed.whole_node else factory.whole_node) |node| {
+        defer a.free(outputs);
+        return node.prove(node.context, a, key, ctx, outputs, ordinal);
+    };
     const controller = if (precommitted) |fixed| fixed.controller else factory.controller;
     if (controller) |owner| {
         const Job = struct {

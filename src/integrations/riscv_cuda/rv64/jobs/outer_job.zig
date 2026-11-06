@@ -227,12 +227,33 @@ pub const OuterNodeJob = struct {
                 pinned_extra += fp.coefficient_words;
             }
         };
+        // A non-reusable (leaf) node stages its class region and FIXED
+        // coefficients in its own arena window instead of worker-persistent
+        // memory: a leaf is its own class, so persistent regions would grow
+        // without bound across requests.
+        var own: u64 = 0;
+        if (!self.persistentClass()) {
+            own = g(self.staged.image.words[@intFromEnum(St.Region.class)]);
+            if (whole != 0) if (self.staged.statics.fixed_plan) |fp| {
+                own += g(fp.coefficient_words);
+            };
+        }
         return .{
-            .device_words = @intCast(long + stack + g(node) + whole),
-            .staged_words = @intCast(g(node) + (if (whole != 0) long + (if (self.staged.statics.fixed_plan) |fp| g(fp.coefficient_words) else 0) else 0)),
+            .device_words = @intCast(long + stack + g(node) + whole + own),
+            .staged_words = @intCast(g(node) + own + (if (whole != 0) long + (if (self.staged.statics.fixed_plan) |fp| g(fp.coefficient_words) else 0) else 0)),
             .slab_words = self.layout.words,
             .pinned_words = @intCast(node + self.staged.image.words[@intFromEnum(St.Region.class)] + self.staged.image.words[@intFromEnum(St.Region.twiddles)] + pinned_extra),
         };
+    }
+
+    /// Fold classes keep their class region and FIXED coefficients in
+    /// worker-persistent memory (shared by every node of the class); a leaf
+    /// stages them per node. STWO_RV64_M8_OUTER_LEAF_PERSISTENT=1 restores
+    /// the persistent placement for leaves (parity fixtures).
+    fn persistentClass(self: *const OuterNodeJob) bool {
+        if (self.staged.assignment.reusable) return true;
+        const v = std.posix.getenv("STWO_RV64_M8_OUTER_LEAF_PERSISTENT") orelse return false;
+        return std.mem.eql(u8, v, "1");
     }
 
     pub fn stage(self: *OuterNodeJob, s: *api.Stager) !void {
@@ -246,6 +267,7 @@ pub const OuterNodeJob = struct {
             const buffer: api.DeviceBuffer, const fresh = switch (region) {
                 .node => .{ try s.alloc(@intCast(@max(n, 1))), true },
                 .class => blk: {
+                    if (!self.persistentClass()) break :blk .{ try s.alloc(@intCast(@max(n, 1))), true };
                     const p = try s.persistent(self.staged.classRegionKey(), @intCast(@max(n, 1)));
                     break :blk .{ p.buffer, p.fresh };
                 },
@@ -267,7 +289,7 @@ pub const OuterNodeJob = struct {
             // FIXED coefficients: worker-persistent per FIXED root. The first
             // node of a class commits them on device from the raw evaluations.
             const fp = &(self.staged.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing);
-            const fixed = try s.persistent(self.staged.fixedRegionKey(), @intCast(fp.coefficient_words));
+            const fixed: api.Persistent = if (self.persistentClass()) try s.persistent(self.staged.fixedRegionKey(), @intCast(fp.coefficient_words)) else .{ .buffer = try s.alloc(@intCast(fp.coefficient_words)), .fresh = true };
             regions[@intFromEnum(St.Region.fixed)] = fixed.buffer.ptr;
             if (fixed.fresh) {
                 const raw = try s.alloc(@intCast(fp.coefficient_words));
