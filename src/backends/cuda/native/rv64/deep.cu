@@ -1,5 +1,6 @@
 #include "custody.cuh"
 #include "deep.h"
+#include "deep_lazy.cuh"
 #include "om31.cuh"
 #include <cstdio>
 #include <cstdlib>
@@ -393,6 +394,298 @@ __global__ void deep_combine(StwoRv64DeepCombine j) {
   if (!bad)
     store(j.output.words, j.output.stride, row, result);
 }
+// ---------------------------------------------------------------------------
+// M8 T3 kernels. Same ABI, same status bits, bit-identical outputs; the
+// legacy kernels above stay selectable with STWO_RV64_M8_DEEP_LEGACY=1.
+// ---------------------------------------------------------------------------
+// deep_validate with the serial scan order preserved: the first failing check
+// in (group, header, points, term order) wins, exactly as in deep_validate.
+// Terms of one group are checked by the whole CTA and the earliest failing
+// term is selected with a shared atomicMin over key = 2*(t-begin)+check.
+constexpr uint32_t kDeepValidateThreads = 256;
+__global__ __launch_bounds__(kDeepValidateThreads) void deep_validate_parallel(
+    StwoRv64DeepPrepare j) {
+  __shared__ uint32_t verdict, best;
+  const uint32_t lane = threadIdx.x;
+  if (!lane) {
+    *j.valid = 0;
+    j.valid[1] = 0;
+    verdict = 0;
+    if (atomicOr(j.status, 0u) ||
+        !deep_layout(j.groups, j.group_count, j.coefficient_words, UINT64_MAX,
+                     28))
+      verdict = 1;
+    else if (!canonical(from_words(j.alpha)))
+      verdict = 2;
+  }
+  __syncthreads();
+  if (verdict) {
+    if (!lane) atomicOr(j.status, verdict);
+    return;
+  }
+  uint32_t previous = 0;
+  for (uint32_t group = 0; group < j.group_count; ++group) {
+    // Every branch below is CTA-uniform: all threads read the same words.
+    const auto g = j.groups[group];
+    if (g.begin != previous || g.end <= g.begin || g.end > j.term_count) {
+      if (!lane) atomicOr(j.status, 1u);
+      return;
+    }
+    previous = g.end;
+    const OM31 x = from_words(j.points + 16 * group);
+    const OM31 y = from_words(j.points + 16 * group + 8);
+    if (!canonical(x) || !canonical(y)) {
+      if (!lane) atomicOr(j.status, 2u);
+      return;
+    }
+    if (!is_zero(sub(add(mul(x, x), mul(y, y)), one())) || inner_zero(y.c1)) {
+      if (!lane) atomicOr(j.status, 4u);
+      return;
+    }
+    if (!lane) best = UINT32_MAX;
+    __syncthreads();
+    const uint64_t n = uint64_t(1) << g.coefficient_log;
+    for (uint32_t t = g.begin + lane; t < g.end; t += blockDim.x) {
+      const auto term = j.terms[t];
+      uint32_t key = UINT32_MAX;
+      if (term.reserved || term.group != group ||
+          term.source >= j.source_count || term.exponent >= j.term_count) {
+        key = 2 * (t - g.begin);
+      } else {
+        const auto source = j.sources[term.source];
+        if (source.tree >= 4 || source.coefficient_log != g.coefficient_log ||
+            source.offset > j.tree_words[source.tree] ||
+            n > j.tree_words[source.tree] - source.offset)
+          key = 2 * (t - g.begin);
+        else if (!canonical(from_words(j.values + uint64_t(t) * 8)))
+          key = 2 * (t - g.begin) + 1;
+      }
+      if (key != UINT32_MAX) {
+        atomicMin(&best, key);
+        break; // later terms of this thread have larger keys
+      }
+    }
+    __syncthreads();
+    const uint32_t found = best;
+    if (found != UINT32_MAX) {
+      if (!lane) atomicOr(j.status, (found & 1u) ? 2u : 1u);
+      return;
+    }
+    __syncthreads(); // best is reset for the next group only after all reads
+  }
+  if (previous != j.term_count) {
+    if (!lane) atomicOr(j.status, 1u);
+    return;
+  }
+  if (!lane) *j.valid = 1;
+}
+// deep_combine over point classes. Groups whose sample points are equal
+// (word-identical, e.g. the OODS point at every height) share one denominator
+//   d(x, y) = (sx.c0 - x) sy.c1 - (sy.c0 - y) sx.c1 = P - x sy.c1 + y sx.c1,
+// P = sx.c0 sy.c1 - sy.c0 sx.c1, so their numerators are summed first:
+//   sum_g (v_g - a_g y - b_g) = sum_g v_g - A y - B.
+// The class fractions accumulate as N/D (N = N d + n D, D = D d) and the row
+// does ONE QM31 inversion instead of one per eight groups. All arithmetic is
+// exact over the field, so the canonical row value equals deep_combine's
+// sum_g n_g / d_g bit for bit. Status bits: domain (2/4) per row as before;
+// a zero class denominator sets 8 exactly when every group of that class
+// would; non-canonical a/b (2) is decided once per CTA and raised by every
+// row that reaches the group loop, as deep_combine does.
+constexpr uint32_t kDeepCombineThreads = 256, kDeepCombineGroups = 128;
+struct DeepClass {
+  uint32_t p[4], ns1[4], s2[4], na[8], nb[8];
+};
+// [M] A/B (deep_t3_parity_bench, 5090, 2^22 rows x 68 groups, 7 reps,
+// median): min blocks 1 (93 regs) 4.46 ms, 3 (80 regs) 4.43 ms: flat, the
+// kernel is ALU-issue bound, not latency bound. Legacy deep_combine: 11.0 ms.
+#ifndef STWO_RV64_DEEP_COMBINE_MIN_BLOCKS
+#define STWO_RV64_DEEP_COMBINE_MIN_BLOCKS 1
+#endif
+__global__ __launch_bounds__(kDeepCombineThreads, STWO_RV64_DEEP_COMBINE_MIN_BLOCKS) void deep_combine_classes(
+    StwoRv64DeepCombine j) {
+  __shared__ DeepClass classes[kDeepCombineGroups];
+  __shared__ const uint32_t *member_words[kDeepCombineGroups];
+  __shared__ uint32_t member_log[kDeepCombineGroups];
+  __shared__ uint32_t class_end[kDeepCombineGroups];
+  __shared__ uint32_t rep[kDeepCombineGroups], class_of[kDeepCombineGroups];
+  __shared__ uint32_t class_count, lin_bad, enabled;
+  const uint32_t n = 1u << j.output_log, lane = threadIdx.x;
+  const uint32_t stride = gridDim.x * blockDim.x;
+  if (!lane) {
+    enabled = j.valid[1];
+    lin_bad = 0;
+  }
+  __syncthreads();
+  if (!enabled) {
+    for (uint32_t row = blockIdx.x * blockDim.x + lane; row < n; row += stride)
+      store(j.output.words, j.output.stride, row, zero());
+    return;
+  }
+  const uint32_t gc = j.group_count;
+  // Class representative: the first group with a word-identical point.
+  for (uint32_t g = lane; g < gc; g += blockDim.x) {
+    const uint32_t *pg = j.points + uint64_t(g) * 16;
+    uint32_t r = g;
+    for (uint32_t h = 0; h < g; ++h) {
+      const uint32_t *ph = j.points + uint64_t(h) * 16;
+      bool same = true;
+#pragma unroll
+      for (uint32_t k = 0; k < 16; ++k) same = same && pg[k] == ph[k];
+      if (same) {
+        r = h;
+        break;
+      }
+    }
+    rep[g] = r;
+  }
+  __syncthreads();
+  if (!lane) {
+    uint32_t count = 0;
+    for (uint32_t g = 0; g < gc; ++g)
+      class_of[g] = rep[g] == g ? count++ : class_of[rep[g]];
+    class_count = count;
+    // Counting sort of groups by class (stable in group order).
+    for (uint32_t c = 0; c < count; ++c) class_end[c] = 0;
+    for (uint32_t g = 0; g < gc; ++g) ++class_end[class_of[g]];
+    uint32_t running = 0;
+    for (uint32_t c = 0; c < count; ++c) {
+      running += class_end[c];
+      class_end[c] = running - class_end[c]; // temporarily: begin
+    }
+    for (uint32_t g = 0; g < gc; ++g) {
+      const auto group = j.groups[g];
+      const uint32_t slot = class_end[class_of[g]]++;
+      member_words[slot] = j.evaluations + group.evaluation_offset;
+      member_log[slot] = group.evaluation_log;
+    }
+    // class_end[c] is now the end of class c's member range.
+  }
+  __syncthreads();
+  for (uint32_t c = lane; c < class_count; c += blockDim.x) {
+    uint32_t r = 0, seen = 0;
+    OM31 a_sum = zero(), b_sum = zero();
+    bool bad = false;
+    for (uint32_t g = 0; g < gc; ++g) {
+      if (class_of[g] != c) continue;
+      if (!seen++) r = g;
+      const OM31 a = from_words(j.linear + uint64_t(g) * 16);
+      const OM31 b = from_words(j.linear + uint64_t(g) * 16 + 8);
+      bad = bad || !canonical(a) || !canonical(b);
+      a_sum = add(a_sum, a);
+      b_sum = add(b_sum, b);
+    }
+    if (bad) lin_bad = 1;
+    const OM31 sx = from_words(j.points + uint64_t(r) * 16);
+    const OM31 sy = from_words(j.points + uint64_t(r) * 16 + 8);
+    const q::QM31 p = q::sub(q::mul(sx.c0, sy.c1), q::mul(sy.c0, sx.c1));
+    auto &out = classes[c];
+    out.p[0] = p.a.a, out.p[1] = p.a.b, out.p[2] = p.b.a, out.p[3] = p.b.b;
+    out.ns1[0] = lazy::P - sy.c1.a.a, out.ns1[1] = lazy::P - sy.c1.a.b;
+    out.ns1[2] = lazy::P - sy.c1.b.a, out.ns1[3] = lazy::P - sy.c1.b.b;
+    out.s2[0] = sx.c1.a.a, out.s2[1] = sx.c1.a.b, out.s2[2] = sx.c1.b.a,
+    out.s2[3] = sx.c1.b.b;
+    for (uint32_t k = 0; k < 8; ++k) {
+      out.na[k] = lazy::P - coordinate(a_sum, k);
+      out.nb[k] = lazy::P - coordinate(b_sum, k);
+    }
+  }
+  __syncthreads();
+  const uint32_t count = class_count;
+  const bool linear_bad = lin_bad;
+  for (uint32_t row = blockIdx.x * blockDim.x + lane; row < n; row += stride) {
+    const uint32_t x = j.domain_xy[uint64_t(row) * 2],
+                   y = j.domain_xy[uint64_t(row) * 2 + 1];
+    if (x >= q::kPrime || y >= q::kPrime) {
+      store(j.output.words, j.output.stride, row, zero());
+      atomicOr(j.status, 2u);
+      continue;
+    }
+    if (q::add(q::mul(x, x), q::mul(y, y)) != 1) {
+      store(j.output.words, j.output.stride, row, zero());
+      atomicOr(j.status, 4u);
+      continue;
+    }
+    bool bad = linear_bad, bad_value = false;
+    if (linear_bad) atomicOr(j.status, 2u);
+    OM31 numerator = zero();
+    q::QM31 denominator = q::one();
+    uint32_t member = 0;
+    for (uint32_t c = 0; c < count; ++c) {
+      const DeepClass &k = classes[c];
+      q::QM31 d;
+      d.a.a = lazy::reduce64(lazy::mac(lazy::mac(k.p[0], x, k.ns1[0]), y, k.s2[0]));
+      d.a.b = lazy::reduce64(lazy::mac(lazy::mac(k.p[1], x, k.ns1[1]), y, k.s2[1]));
+      d.b.a = lazy::reduce64(lazy::mac(lazy::mac(k.p[2], x, k.ns1[2]), y, k.s2[2]));
+      d.b.b = lazy::reduce64(lazy::mac(lazy::mac(k.p[3], x, k.ns1[3]), y, k.s2[3]));
+      if (inner_zero(d)) {
+        atomicOr(j.status, 8u);
+        d = q::one();
+        bad = true;
+      }
+      uint64_t acc[8];
+#pragma unroll
+      for (uint32_t i = 0; i < 8; ++i) acc[i] = lazy::mac(k.nb[i], y, k.na[i]);
+      for (const uint32_t end = class_end[c]; member < end; ++member) {
+        const uint32_t log = member_log[member];
+        const uint32_t diff = j.output_log - log;
+        const uint32_t index = ((row >> (diff + 1)) << 1) + (row & 1u);
+        const uint32_t *words = member_words[member] + index;
+#pragma unroll
+        for (uint32_t i = 0; i < 8; ++i) {
+          const uint32_t v = words[uint64_t(i) << log];
+          bad_value = bad_value || v >= q::kPrime;
+          acc[i] += v;
+        }
+      }
+      OM31 value;
+      value.c0 = {{lazy::reduce64(acc[0]), lazy::reduce64(acc[1])},
+                  {lazy::reduce64(acc[2]), lazy::reduce64(acc[3])}};
+      value.c1 = {{lazy::reduce64(acc[4]), lazy::reduce64(acc[5])},
+                  {lazy::reduce64(acc[6]), lazy::reduce64(acc[7])}};
+      if (!c) {
+        numerator = value;
+        denominator = d;
+      } else {
+        const lazy::QB dp = lazy::prepare(d), Dp = lazy::prepare(denominator);
+        numerator.c0 = lazy::qmul_add(numerator.c0, dp, value.c0, Dp);
+        numerator.c1 = lazy::qmul_add(numerator.c1, dp, value.c1, Dp);
+        denominator = lazy::qmul(denominator, dp);
+      }
+    }
+    if (bad_value) {
+      atomicOr(j.status, 2u);
+      bad = true;
+    }
+    const lazy::QB inv = lazy::prepare(q::inverse(denominator));
+    const OM31 result{lazy::qmul(numerator.c0, inv),
+                      lazy::qmul(numerator.c1, inv)};
+    store(j.output.words, j.output.stride, row, bad ? zero() : result);
+  }
+}
+// STWO_RV64_M8_DEEP_LEGACY=1 restores the pre-M8 deep_validate/deep_combine
+// kernels (A/B and parity only); any other value or unset selects the M8 ones.
+inline bool deep_legacy() {
+  const char *env = std::getenv("STWO_RV64_M8_DEEP_LEGACY");
+  return env && std::strcmp(env, "1") == 0;
+}
+// Persistent grid for deep_combine_classes: the per-CTA class prologue is
+// paid once per resident CTA, not once per 256 rows.
+inline uint32_t deep_combine_grid(uint32_t rows) {
+  static const uint32_t resident = [] {
+    int device = 0, sms = 0, per_sm = 0;
+    if (cudaGetDevice(&device) ||
+        cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount, device) ||
+        cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+            &per_sm, deep_combine_classes, kDeepCombineThreads, 0) ||
+        sms <= 0 || per_sm <= 0) {
+      cudaGetLastError();
+      return 0u;
+    }
+    return uint32_t(sms) * uint32_t(per_sm);
+  }();
+  const uint32_t needed = (rows + kDeepCombineThreads - 1) / kDeepCombineThreads;
+  return resident && resident < needed ? resident : needed;
+}
 } // namespace stwo::cuda::rv64
 extern "C" int stwo_rv64_deep_prepare_on(void *ctx, uint32_t lane,
                                          const StwoRv64DeepPrepare *input) {
@@ -441,7 +734,13 @@ extern "C" int stwo_rv64_deep_prepare_on(void *ctx, uint32_t lane,
     if (!status) status = int(cudaEventRecord(spans.events[0], c.stream));
     if (status) return status;
   }
-  deep_validate<<<1, 1, 0, c.stream>>>(j);
+  const bool legacy = deep_legacy();
+  // [M] M8 T3 A/B (deep_t3_parity_bench, 5090, 68 groups x 60 terms, 7 reps,
+  // median): whole prepare 1.656 ms (serial <<<1,1>>> validate) -> 0.227 ms.
+  if (legacy)
+    deep_validate<<<1, 1, 0, c.stream>>>(j);
+  else
+    deep_validate_parallel<<<1, kDeepValidateThreads, 0, c.stream>>>(j);
   if (timing) {
     const int status = int(cudaEventRecord(spans.events[1], c.stream));
     if (status) return status;
@@ -513,6 +812,10 @@ extern "C" int stwo_rv64_deep_combine_on(void *ctx, uint32_t lane,
     return c.status;
   deep_combine_validate<<<1, 1, 0, c.stream>>>(
       j, const_cast<uint32_t *>(j.valid) + 1);
-  deep_combine<<<((1u << j.output_log) + 127) / 128, 128, 0, c.stream>>>(j);
+  if (deep_legacy() || j.group_count > kDeepCombineGroups)
+    deep_combine<<<((1u << j.output_log) + 127) / 128, 128, 0, c.stream>>>(j);
+  else
+    deep_combine_classes<<<deep_combine_grid(1u << j.output_log),
+                           kDeepCombineThreads, 0, c.stream>>>(j);
   return int(cudaPeekAtLastError());
 }
