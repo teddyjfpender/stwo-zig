@@ -26,6 +26,14 @@ pub const Counters = struct {
     fail_free_after: ?usize = null,
     /// Frees of a pointer that is not allocated (double frees).
     bad_frees: usize = 0,
+    // GPU-native driver ops (peer_ops.cu model)
+    peer_enables: usize = 0,
+    peer_copies: usize = 0,
+    peer_bytes: usize = 0,
+    fills: usize = 0,
+    verdicts: usize = 0,
+    timed_events: usize = 0,
+    event_records: usize = 0,
 };
 pub var counters: Counters = .{};
 var mutex: std.Thread.Mutex = .{};
@@ -107,6 +115,7 @@ fn eventDestroy(_: *anyopaque) callconv(.c) c_int {
     return 0;
 }
 fn eventRecord(_: *anyopaque, _: *anyopaque) callconv(.c) c_int {
+    bump("event_records", 1);
     return 0;
 }
 fn streamWait(_: *anyopaque, _: *anyopaque) callconv(.c) c_int {
@@ -314,4 +323,51 @@ pub const ops = O.Ops{
         .host_alloc = hostAlloc,
         .host_free = hostFree,
     },
+};
+
+// ---------------- GPU-native driver ops (peer_ops.cu model) ----------------
+fn peerEnable(_: [*]const u32, _: u32) callconv(.c) c_int {
+    bump("peer_enables", 1);
+    return 0;
+}
+fn peerCopy(dst: *anyopaque, _: u32, src: *const anyopaque, _: u32, bytes: usize, _: *anyopaque) callconv(.c) c_int {
+    const d: [*]u8 = @ptrCast(dst);
+    const s: [*]const u8 = @ptrCast(src);
+    @memmove(d[0..bytes], s[0..bytes]);
+    bump("peer_copies", 1);
+    bump("peer_bytes", bytes);
+    return 0;
+}
+fn fillU32(dst: [*]u32, value: u32, words: usize, _: *anyopaque) callconv(.c) c_int {
+    @memset(dst[0..words], value);
+    bump("fills", 1);
+    bump("kernels", 1);
+    return 0;
+}
+fn flagsVerdict(flags: [*]const u32, count: u32, verdict: [*]u32, reject_code: u32, _: *anyopaque) callconv(.c) c_int {
+    bump("verdicts", 1);
+    bump("kernels", 1);
+    for (flags[0..count], 0..) |f, i| if (f != 1) {
+        verdict[0] = (reject_code & 0xffff0000) | @as(u32, @intCast(@min(i + 1, 0xffff)));
+        return 0;
+    };
+    verdict[0] = 0;
+    return 0;
+}
+fn eventCreateTimed(out: *?*anyopaque) callconv(.c) c_int {
+    bump("timed_events", 1);
+    return eventCreate(out);
+}
+fn eventElapsed(_: *anyopaque, _: *anyopaque, out: *u64) callconv(.c) c_int {
+    out.* = 0;
+    return 0;
+}
+
+pub const peer = O.Peer{
+    .peer_enable = peerEnable,
+    .peer_copy_async = peerCopy,
+    .fill_u32 = fillU32,
+    .flags_verdict = flagsVerdict,
+    .event_create_timed = eventCreateTimed,
+    .event_elapsed_us = eventElapsed,
 };
