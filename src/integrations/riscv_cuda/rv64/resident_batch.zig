@@ -84,9 +84,15 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     defer session.deinit();
     // Refuse missing deployment assets before any native work or GPU custody.
     if (combined) try @import("circuit_air_preflight.zig").require(base);
+    // M8 native hybrid (STWO_RV64_M8_NATIVE_JOBS=1; unset = today's path):
+    // workers boot before the pool (their arenas are carved first).
+    const NativeJobs = @import("native_hybrid.zig");
+    const native_jobs: ?*NativeJobs.Hybrid = if (try NativeJobs.selected()) try NativeJobs.Hybrid.create(std.heap.smp_allocator, library) else null;
+    defer if (native_jobs) |h| h.destroy();
     const pool = try Pool.createWithBinding(if (combined) base else a, library, config, cpuCount(first), true);
     defer pool.deinit();
     try pool.stages().requireFullyResident();
+    if (native_jobs) |h| try h.bindPool(pool);
     var outer: if (combined) ?@import("outer_source.zig").Context else void = if (combined) (if (ready_mode) null else try @import("outer_source.zig").Context.init(base, &pool.devices[0].native, &pool.devices[0].trace, &pool.devices[0].composition)) else {};
     defer if (combined) {
         if (outer) |*context| context.deinit();
@@ -176,7 +182,7 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
         const preload = try @import("outer_assignment.zig").ClassCache.Store.preloadAll();
         std.debug.print("GPU_RESIDENT_CLASS_PRELOAD loaded={} ns={}\n", .{ preload.loaded, preload.ns });
     }
-    const svc = .{ .a = a, .base = base, .manifest = &manifest, .pool = pool, .config = &config, .session = &session, .recycler = &recycler, .factory = factory, .ready = ready, .ready_mode = ready_mode, .resource_json = resource_json, .parent = parent, .manifest_sha256 = manifest_sha256, .outer_jobs = outer_jobs };
+    const svc = .{ .a = a, .base = base, .manifest = &manifest, .pool = pool, .config = &config, .session = &session, .recycler = &recycler, .factory = factory, .ready = ready, .ready_mode = ready_mode, .resource_json = resource_json, .parent = parent, .manifest_sha256 = manifest_sha256, .outer_jobs = outer_jobs, .native_jobs = native_jobs };
     if (combined) {
         if (serve_spool) |spool| return serveSpool(svc, spool, init_timer.read());
     } else if (serve_spool != null) return error.ResidentServiceRequiresCombinedBatch;
@@ -245,6 +251,12 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
         arg.* = try a.dupeZ(u8, part);
         made += 1;
     }
+    var stages = pool.stages();
+    if (svc.native_jobs) |h| {
+        h.install(&stages);
+        try h.beginRequest(item.expected_cpu_segments);
+    }
+    defer if (svc.native_jobs) |h| h.endRequest(directory);
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update("stwo/rv64/resident/block-transaction/v1\x00");
     hash.update(request);
@@ -265,13 +277,13 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
         // Same producer and live authority handoff; every trial is fresh.
         a.free(args[3]);
         args[3] = try a.dupeZ(u8, "produce-and-recurse-candidate");
-        try Main.runCombinedResidentArgsWithExecution(recycler, &args, pool.stages(), session, .{
+        try Main.runCombinedResidentArgsWithExecution(recycler, &args, stages, session, .{
             .factory = factory,
             .ready = if (ready) |context| context.options() else null,
             .physical_devices = if (ready) |context| context.physical else config.ids,
             .producer_manifest_sha256 = manifest_sha256,
         });
-    } else try Main.runWithResidentArgs(recycler, &args, pool.stages(), session);
+    } else try Main.runWithResidentArgs(recycler, &args, stages, session);
     if (combined) if (ready) |context| try context.endBlock(identity);
     for (pool.devices) |*device| try device.native.endBlock(identity);
     const request_wall_ns = timer.read();

@@ -8,6 +8,7 @@ test {
     _ = @import("rv64/jobs/native_composition.zig");
     _ = @import("rv64/jobs/native_commit_test.zig");
     _ = @import("rv64/jobs/native_gkr.zig");
+    _ = @import("rv64/jobs/native_hybrid_jobs.zig");
     _ = @import("rv64/jobs/native_global.zig");
     _ = @import("rv64/jobs/native_gpu_support_test.zig");
     _ = @import("rv64/jobs/native_pcs.zig");

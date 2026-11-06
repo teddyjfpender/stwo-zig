@@ -46,6 +46,8 @@ pub const Config = struct {
     pinned_slot_words: usize,
     /// worker.Config.pinned_lazy (grow-only pinned slots; `pinned_slot_words` is the cap).
     pinned_lazy: bool = false,
+    /// worker.Config.reuse_frees (non-LIFO frees reclaimed; native-hybrid).
+    reuse_frees: bool = false,
     pub fn fromEnv() !Config {
         var c = Config{
             .arena_words = std.mem.alignBackward(usize, try envBytes("STWO_RV64_M8_JOBS_ARENA_BYTES", 8 << 30) / 4, worker.Arena.granule),
@@ -127,7 +129,7 @@ pub const WorkerSet = struct {
         self.* = .{ .libs = try ops.Libraries.open(library, addon) };
         errdefer self.stopWorkers();
         for (config.devices[0..config.device_count]) |device| {
-            self.workers[self.count] = try worker.Worker.create(a, &self.libs.ops, .{ .device = device, .arena_words = config.arena_words, .pinned_slot_words = config.pinned_slot_words, .pinned_lazy = config.pinned_lazy });
+            self.workers[self.count] = try worker.Worker.create(a, &self.libs.ops, .{ .device = device, .arena_words = config.arena_words, .pinned_slot_words = config.pinned_slot_words, .pinned_lazy = config.pinned_lazy, .reuse_frees = config.reuse_frees });
             self.count += 1;
         }
         try selfTest(a, self.slice());

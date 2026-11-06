@@ -428,10 +428,11 @@ const Slot = struct {
     slab: Slab.ProofSlab = undefined,
     slab_host: []u32 = &.{},
     /// Persistent entries this job created (fresh); dropped if the job fails.
-    fresh_keys: [8][32]u8 = undefined,
+    // 64: a native-hybrid Stage2 job fills one twiddle key per global log, plus INTER/composition/PCS keys.
+    fresh_keys: [64][32]u8 = undefined,
     fresh_count: usize = 0,
     /// Pool regions this job pinned (one unpin each when it leaves the pipeline).
-    pinned_keys: [16][32]u8 = undefined,
+    pinned_keys: [64][32]u8 = undefined,
     pinned_count: usize = 0,
     persistent_words: usize = 0,
     /// Request-scoped retained regions this job pinned (retained.zig); one
