@@ -37,6 +37,10 @@ def main():
     p.add_argument('--request-timeout', default='600')
     p.add_argument('--no-trace', action='store_true', help='observer table only (isolation)')
     p.add_argument('--no-observer', action='store_true', help='neither observer nor trace (control)')
+    p.add_argument('--native-schedule', default='{"workers_per_lane": 1, "lane_workers": [1, 1, 1, 1]}',
+                   help='RV64_NATIVE_SCHEDULE for the diagnostic: the observer models one open stage per context, so '
+                        'concurrent native workers on one lane context fail AllocationObserverBeginFailed [M]. '
+                        'Scheduling only (services/schedule.zig): proof bytes cannot depend on it. "" = default.')
     args = p.parse_args()
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=False)
@@ -68,6 +72,9 @@ def main():
     stack.write(out / 'measure.json', receipt)
     env = stack.clean_environment(os.environ)
     env['TMPDIR'] = '/workspace/m3/tmp'
+    if args.native_schedule:
+        env['RV64_NATIVE_SCHEDULE'] = args.native_schedule
+    receipt['native_schedule'] = args.native_schedule or None
     with (out / 'service.log').open('w') as log:
         receipt['service_exit'] = subprocess.run(argv, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT).returncode
     stack.write(out / 'measure.json', receipt)
