@@ -278,7 +278,8 @@
   "max_concurrent_jobs": 2,
   "max_outstanding": 3,
   "allocator": "reuse",
-  "device_budget_words": 8010858496
+  "device_budget_words": 8010858496,
+  "pinned_slot_words": 345006016
  },
  "validation_with_policy": {
   "outer-leaf-2^21-fixture": {

@@ -192,6 +192,11 @@ test "policy: validation rejects stale or impossible documents" {
     try std.testing.expectError(error.MemoryPolicyClassPeakBelowParts, P.Policy.parse(a, try policyText(&buf, 64 * g, &.{.{ .k = 1, .peak = 4 * g, .staged = 4 * g, .conc = 2 }}, "")));
     try std.testing.expectError(error.MemoryPolicyInvalidArena, P.Policy.parse(a, try policyText(&buf, 64 * g + 3, &.{}, "")));
     try std.testing.expectError(error.MemoryPolicySchemaMismatch, P.Policy.parse(a, "{\"schema\":\"x\",\"gpu\":{\"arena_words\":64}}"));
+    // Classes pin 0 words in policyText; a slot smaller than a class's pinned use is refused.
+    var buf2: [4096]u8 = undefined;
+    var w = std.Io.Writer.fixed(&buf2);
+    try w.print("{{\"schema\":\"{s}\",\"gpu\":{{\"arena_words\":{d},\"pinned_slot_words\":64}},\"classes\":[{{\"class_key\":\"{s}\",\"peak_words\":{d},\"pinned_words\":65}}]}}", .{ P.schema, 64 * g, std.fmt.bytesToHex(key(1), .lower), 8 * g });
+    try std.testing.expectError(error.MemoryPolicyClassExceedsPinnedSlot, P.Policy.parse(a, w.buffered()));
 }
 
 // ---------------- static layout: every co-resident class pair ----------------
@@ -355,6 +360,7 @@ test "worker with a policy: the same pair serializes instead of failing, both pr
     _ = try P.checkPolicyLayout(p);
     const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 20, .pinned_slot_words = 1 << 12, .plan = p });
     try std.testing.expectEqual(@as(usize, 16 * g), w.config.arena_words); // the policy sized the arena
+    try std.testing.expectEqual(@as(usize, 1 << 12), w.config.pinned_slot_words); // no policy slot: configured size kept
     var a_job: Sized = undefined;
     var b_job: Sized = undefined;
     pairJobs(&a_job, &b_job);

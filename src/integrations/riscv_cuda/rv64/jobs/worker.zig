@@ -464,6 +464,9 @@ pub const Worker = struct {
             // STWO_RV64_M8_JOBS_ARENA_BYTES (operator override) still wins.
             if (std.posix.getenv("STWO_RV64_M8_JOBS_ARENA_BYTES") == null) config.arena_words = @intCast(p.gpu.arena_words);
             if (config.persistent_budget_words == 0) config.persistent_budget_words = @intCast(p.gpu.persistent_budget_words);
+            // Pinned slots only grow (a harness may need more than any swept class);
+            // an explicit STWO_RV64_M8_JOBS_PINNED_BYTES still wins.
+            if (std.posix.getenv("STWO_RV64_M8_JOBS_PINNED_BYTES") == null) config.pinned_slot_words = @max(config.pinned_slot_words, @as(usize, @intCast(p.gpu.pinned_slot_words)));
             config.reuse_frees = config.reuse_frees or p.gpu.allocator == .reuse;
             config.max_outstanding = @min(config.max_outstanding, p.gpu.max_outstanding);
         }

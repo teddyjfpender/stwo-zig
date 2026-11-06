@@ -47,6 +47,9 @@ pub const Gpu = struct {
     allocator: Allocator = .lifo,
     /// Device words the plan was sized against (GPU memory minus reserves), for the record.
     device_budget_words: u64 = 0,
+    /// Pinned host words per pipeline slot (0 = keep the configured size). Covers
+    /// every class's measured pinned use (Stager.pinned + uploads + slab mirror).
+    pinned_slot_words: u64 = 0,
 };
 
 pub const ClassPolicy = struct {
@@ -183,6 +186,7 @@ pub const Policy = struct {
             if (c.peak_words < c.staged_words + state_granule + std.mem.alignForward(u64, c.slab_words, granule)) return error.MemoryPolicyClassPeakBelowParts;
             if (c.max_concurrent < 1 or c.max_concurrent > 2) return error.MemoryPolicyInvalidConcurrency;
             if (g.persistent_budget_words != 0 and std.mem.alignForward(u64, c.persistent_words, granule) > g.persistent_budget_words) return error.MemoryPolicyClassExceedsPersistentBudget;
+            if (g.pinned_slot_words != 0 and c.pinned_words > g.pinned_slot_words) return error.MemoryPolicyClassExceedsPinnedSlot;
         }
         // The generator's concurrency claims must hold in the arena arithmetic.
         for (doc.classes) |r| {

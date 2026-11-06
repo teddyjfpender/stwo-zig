@@ -222,6 +222,8 @@ def generate(sweeps: list[dict], *, device_bytes: int = DEFAULT_DEVICE_BYTES,
     for c in classes:
         c['max_concurrent'] = 2 if all(pair_fits(arena, c['peak_words'], d['staged_words']) for d in classes) else 1
     concurrent = 2 if all(c['max_concurrent'] == 2 for c in classes) else 1
+    # Measured pinned use already includes the slab's host mirror (Worker.pinnedAlloc).
+    pinned_slot = align(max(c['pinned_words'] for c in classes) * (1.0 + margin))
     if persistent and any(align(c['persistent_words']) > persistent for c in classes):
         raise ValueError('a class persistent region exceeds the persistent budget')
     return {
@@ -233,6 +235,7 @@ def generate(sweeps: list[dict], *, device_bytes: int = DEFAULT_DEVICE_BYTES,
         'gpu': {
             'arena_words': arena, 'persistent_budget_words': persistent, 'max_concurrent_jobs': concurrent,
             'max_outstanding': 3, 'allocator': allocator, 'device_budget_words': budget,
+            'pinned_slot_words': pinned_slot,
         },
         'unplanned': unplanned,
         'classes': classes,
@@ -256,6 +259,8 @@ def check(policy: dict) -> list[str]:
             problems.append(f"{c['label']}: peak exceeds arena")
         if c['peak_words'] < c['staged_words'] + STATE_GRANULE + align(c.get('slab_words', 0)):
             problems.append(f"{c['label']}: peak below its parts")
+        if g.get('pinned_slot_words') and c.get('pinned_words', 0) > g['pinned_slot_words']:
+            problems.append(f"{c['label']}: pinned use exceeds the pinned slot")
         fits_all = all(pair_fits(arena, c['peak_words'], d['staged_words']) for d in cs)
         if (c['max_concurrent'] == 2) != fits_all:
             problems.append(f"{c['label']}: max_concurrent {c['max_concurrent']} but fits_all={fits_all}")

@@ -80,6 +80,7 @@ class SweepTests(unittest.TestCase):
         self.assertEqual(p['gpu']['arena_words'], 1300 * G)  # leaf working beside fold's staged inputs
         self.assertEqual(p['gpu']['max_concurrent_jobs'], 2)
         self.assertEqual(p['gpu']['persistent_budget_words'], 50 * G)
+        self.assertEqual(p['gpu']['pinned_slot_words'], G)  # every class pinned G words
         self.assertTrue(all(c['max_concurrent'] == 2 for c in p['classes']))
 
     def test_generate_caps_by_device_budget_and_serializes_what_cannot_overlap(self):

@@ -58,6 +58,7 @@ All figures are words (4 bytes).
 | `allocator` | reuse |
 | `max_concurrent_jobs` | 2 (every class fits beside every class's staged inputs) |
 | `device_budget_words` | 8,010,858,496 (32607 MiB − 2 GiB reserve) |
+| `pinned_slot_words` | 345,006,016 (1.38 GB per pipeline slot, 3 slots per worker), the measured PCS-scale pinned use (338.2M words incl. slab mirror) + 2%. The service default `STWO_RV64_M8_JOBS_PINNED_BYTES` = 256 MiB (67.1M words) would refuse that class (`JobFootprintExceedsPinned`). Slots only grow from the configured size; an explicit env still wins. |
 
 Comparisons [D]:
 - **Default 8 GiB arena** (2,147,483,648 words): too small for a staged neighbour next to the segment-scale PCS (it needs 2.50e9). Without
