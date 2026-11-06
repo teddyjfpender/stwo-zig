@@ -109,6 +109,10 @@ pub const Stage1Job = struct {
     main_words: usize,
     /// The legacy MAIN root (the child transcript mixes it from device).
     main_root: [8]u32,
+    /// Keep the MAIN copy in a request-retained region for stage two
+    /// (STWO_RV64_M8_NATIVE_JOBS_RETAIN_MAIN=1); default: a window copy, and
+    /// stage two takes MAIN from the legacy owner (replay restore).
+    retain_main: bool = false,
     timing: ?*const Timing = null,
     /// Input views (fixed host + main device inside the retained region).
     inputs: []G.Input,
@@ -138,7 +142,7 @@ pub const Stage1Job = struct {
     /// Device words this job allocates OUTSIDE its arena window (retained
     /// regions, fresh persistent regions): the window must leave them room.
     pub fn outsideWords(self: *Stage1Job) usize {
-        return self.main_words + self.binding.plan.output_words + self.gkr.plan.host_column_words + self.gkr.plan.twiddle_words + self.binding.plan.persistentWords();
+        return (if (self.retain_main) self.main_words else 0) + self.binding.plan.output_words + self.gkr.plan.host_column_words + self.gkr.plan.twiddle_words + self.binding.plan.persistentWords();
     }
     pub fn classKey(self: *Stage1Job) [32]u8 {
         var h = std.crypto.hash.sha2.Sha256.init(.{});
@@ -151,17 +155,22 @@ pub const Stage1Job = struct {
         const g = 64;
         const staged = p.stagedWords(self.gkr.host_key != null) + 2 * g;
         const bind = self.binding.plan.enqueueWords() + 4 * g;
-        return .{ .device_words = @min(self.window_words, staged + p.enqueueWords() + bind + 8 * g), .staged_words = staged, .slab_words = self.layout.words, .pinned_words = p.pinnedWords() + self.binding.plan.pinnedWords() + 4 * g };
+        const main = if (self.retain_main) 0 else std.mem.alignForward(usize, self.main_words, g);
+        return .{ .device_words = @min(self.window_words, staged + main + p.enqueueWords() + bind + 8 * g), .staged_words = staged, .slab_words = self.layout.words, .pinned_words = p.pinnedWords() + self.binding.plan.pinnedWords() + 4 * g };
     }
     pub fn stage(self: *Stage1Job, s: *api.Stager) !void {
-        const main = try s.retain(self.request, mainName(self.ordinal), self.main_words);
         const bind = try s.retain(self.request, bindName(self.ordinal), self.binding.plan.output_words);
-        if (!main.fresh or !bind.fresh) return error.HybridStage1RegionNotFresh;
-        self.main_region = main.buffer;
+        if (!bind.fresh) return error.HybridStage1RegionNotFresh;
         self.bind_region = bind.buffer;
+        if (self.retain_main) {
+            const main = try s.retain(self.request, mainName(self.ordinal), self.main_words);
+            if (!main.fresh) return error.HybridStage1RegionNotFresh;
+            self.main_region = main.buffer;
+        }
         const nf = self.fixed_host.len;
         for (self.inputs[0..nf], self.fixed_host) |*i, h| i.* = .{ .host = h };
-        for (self.inputs[nf..], self.main_offsets) |*i, off| i.* = .{ .device = main.buffer.ptr + off };
+        // Device MAIN views are set at enqueue (window copy) or here (retained).
+        for (self.inputs[nf..], self.main_offsets) |*i, off| i.* = .{ .device = if (self.main_region) |m| m.ptr + off else @ptrFromInt(@alignOf(u32)) };
         try self.gkr.stage(s, self.inputs);
         try self.binding.stage(self.a, s);
         const root = try s.alloc(8);
@@ -171,7 +180,9 @@ pub const Stage1Job = struct {
     }
     pub fn enqueue(self: *Stage1Job, e: *api.Enqueue) !void {
         try e.slab.bind(&self.layout);
-        const main = self.main_region orelse return error.HybridStage1NotStaged;
+        const main = self.main_region orelse try e.alloc(self.main_words);
+        const nf = self.fixed_host.len;
+        for (self.inputs[nf..], self.main_offsets) |*i, off| i.* = .{ .device = main.ptr + off };
         try self.span.mark(self.timing, .begin, e.stream());
         try copyColumns(self.copy, e.stream(), main.ptr, self.main_offsets, self.main_logs, self.legacy_main);
         try self.gkr.enqueue(e, self.inputs, self.staged_root.?);
@@ -221,6 +232,10 @@ pub const Stage2Job = struct {
     fixed_words: usize,
     main_offsets: []const usize,
     main_words: usize,
+    /// Non-empty: MAIN comes from the legacy owner's device tree (copied into
+    /// the window at enqueue); empty: the stage-one retained region.
+    legacy_main: []const [*]const u32 = &.{},
+    main_logs: []const u32 = &.{},
     bind_plan: *const B.Plan,
     slots: []const Slot,
     stage2: S2.Stage2,
@@ -297,6 +312,7 @@ pub const Stage2Job = struct {
     pub fn footprint(self: *Stage2Job) api.Footprint {
         const g = 64;
         var staged: usize = 4 * g + self.stage2.inter.stagedWords(0) + self.composition.stagedWords();
+        const main_window = if (self.legacy_main.len != 0) std.mem.alignForward(usize, self.main_words, g) else 0;
         var globals: usize = 0;
         for (self.globals) |gl| {
             staged += gl.plan.stagedWords(false) + g;
@@ -308,7 +324,7 @@ pub const Stage2Job = struct {
         // peak + 7%: the stage-two window must fit beside the legacy truths
         // (a 5.2e9-word window failed to map next to 6-10 GB live [M] h3).
         const pcs: usize = 2_300_000_000;
-        const work = globals + self.stage2.inter.deviceWords() + self.composition.coefficientWords() + self.composition.enqueueWords() + pcs;
+        const work = main_window + globals + self.stage2.inter.deviceWords() + self.composition.coefficientWords() + self.composition.enqueueWords() + pcs;
         // Pinned: the PCS ingress, the composition tables, and every upload a
         // FRESH persistent region may need (Stager.upload copies non-pinned
         // sources into the job's pinned memory): FIXED (if evicted), the
@@ -324,7 +340,7 @@ pub const Stage2Job = struct {
         const fixed = try s.persistent(self.fixed_key, self.fixed_words);
         if (fixed.fresh) for (self.fixed_host, self.fixed_offsets) |h, off| try s.upload(try fixed.buffer.slice(off, h.len), h);
         self.fixed = fixed.buffer;
-        self.main = try s.retained(self.request, mainName(self.ordinal), self.main_words);
+        if (self.legacy_main.len == 0) self.main = try s.retained(self.request, mainName(self.ordinal), self.main_words);
         self.bind = try s.retained(self.request, bindName(self.ordinal), self.bind_plan.output_words);
         self.inter_out = (try s.retain(self.request, interName(self.ordinal), self.stage2.inter.coefficient_cells)).buffer;
         self.comp_out = (try s.retain(self.request, compName(self.ordinal), self.composition.coefficientWords())).buffer;
@@ -336,7 +352,11 @@ pub const Stage2Job = struct {
     pub fn enqueue(self: *Stage2Job, e: *api.Enqueue) !void {
         try e.slab.bind(&self.layout);
         const fixed = self.fixed orelse return error.HybridStage2NotStaged;
-        const main = self.main.?;
+        const main = self.main orelse blk: {
+            const m = try e.alloc(self.main_words);
+            try copyColumns(self.copy, e.stream(), m.ptr, self.main_offsets, self.main_logs, self.legacy_main);
+            break :blk m;
+        };
         const bind = self.bind.?;
         try self.span.mark(self.timing, .begin, e.stream());
         try e.channel.initFromCheckpoint(self.staged_seed.?);

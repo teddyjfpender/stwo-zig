@@ -420,13 +420,14 @@ const Run = struct {
         self.results[index] = switch (worker.*) {
             .cpu => |*v| blk: {
                 if (self.options.native_stage_two) |hook| {
-                    // The hybrid reads its stage-one outputs from retained
-                    // device regions: no MAIN/binding replay is needed.
+                    // The hook owns the replay restore (if it needs MAIN back);
+                    // compact inputs are released after it, as below.
+                    const encoded = try hook.stage_two(hook.context, self.a, v, pending, index, self.options.global_budget);
                     if (v.replay != null) {
                         self.native[index].releaseFacts();
                         if (self.options.consume_memory_events) _ = try self.advice.retireEvents(index);
                     }
-                    break :blk Result{ .cpu = try hook.stage_two(hook.context, self.a, v, pending, index, self.options.global_budget) };
+                    break :blk Result{ .cpu = encoded };
                 }
                 if (v.replay) |*owner| {
                     try owner.restore(owner.context, v);

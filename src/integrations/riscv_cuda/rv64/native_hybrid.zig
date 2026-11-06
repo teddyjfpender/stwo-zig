@@ -462,7 +462,8 @@ pub const Hybrid = struct {
         self.mutex.lock();
         const req = self.request;
         self.mutex.unlock();
-        var job = HJ.Stage1Job{ .a = ha, .request = req, .ordinal = ordinal, .gkr = &gkr, .binding = &binding, .copy = self.copy, .fixed_host = fixed_host, .legacy_main = legacy, .main_logs = logs, .main_offsets = offsets, .main_words = main_words, .main_root = words(request.scope.main), .timing = &self.timing, .inputs = inputs };
+        const retain_main = if (std.posix.getenv("STWO_RV64_M8_NATIVE_JOBS_RETAIN_MAIN")) |v| std.mem.eql(u8, v, "1") else false;
+        var job = HJ.Stage1Job{ .retain_main = retain_main, .a = ha, .request = req, .ordinal = ordinal, .gkr = &gkr, .binding = &binding, .copy = self.copy, .fixed_host = fixed_host, .legacy_main = legacy, .main_logs = logs, .main_offsets = offsets, .main_words = main_words, .main_root = words(request.scope.main), .timing = &self.timing, .inputs = inputs };
         try job.init();
         defer job.deinit();
         const prep_ns = host_timer.lap();
@@ -530,9 +531,14 @@ pub const Hybrid = struct {
         const self: *Hybrid = @ptrCast(@alignCast(raw));
         self.releaseSegment(scope.ordinal);
     }
-    fn replay(_: *anyopaque, _: std.mem.Allocator, _: Child.NumericalStage.Request, _: *Child.DeviceBinding.Owner) anyerror!void {
-        // The hybrid stage two never restores: its inputs are retained.
-        return error.HybridBindingReplayUnsupported;
+    /// The legacy replay restore (MAIN back for stage two) replays the
+    /// binding too: the hybrid's binding output is request-retained, so the
+    /// replay only un-parks the owner.
+    fn replay(raw: *anyopaque, _: std.mem.Allocator, request: Child.NumericalStage.Request, owner: *Child.DeviceBinding.Owner) anyerror!void {
+        const self: *Hybrid = @ptrCast(@alignCast(raw));
+        const seg = try self.segment(request.scope.ordinal);
+        if (owner.context != @as(*anyopaque, seg)) return error.HybridBindingOwnerMismatch;
+        owner.parked = false;
     }
     fn releaseSegment(self: *Hybrid, ordinal: u32) void {
         self.mutex.lock();
@@ -578,6 +584,29 @@ pub const Hybrid = struct {
         const ha = self.a;
         const seg = try self.segment(ordinal);
         const expected = worker.expected;
+        // MAIN: the stage-one retained copy, else the legacy owner's device
+        // tree (restored by the legacy replay when it parked MAIN at stage one).
+        const retained_main = if (std.posix.getenv("STWO_RV64_M8_NATIVE_JOBS_RETAIN_MAIN")) |v| std.mem.eql(u8, v, "1") else false;
+        var legacy_main: []const [*]const u32 = &.{};
+        defer if (legacy_main.len != 0) ha.free(legacy_main);
+        if (!retained_main) {
+            if (worker.replay) |*owner| try owner.restore(owner.context, worker);
+            const tree = worker.scheme.device_om31_trace_trees[1] orelse return error.ResidentGlobalMainRequired;
+            if (tree.columns.len != seg.main_logs.len) return error.HybridMainColumnShape;
+            const ptrs = try ha.alloc([*]const u32, tree.columns.len);
+            for (tree.columns, seg.main_logs, ptrs) |c, l, *p| {
+                const d = c.device orelse {
+                    ha.free(ptrs);
+                    return error.HybridExpectsDeviceMain;
+                };
+                if (c.log_size != l or d.count != @as(u64, 1) << @intCast(l)) {
+                    ha.free(ptrs);
+                    return error.HybridMainColumnShape;
+                }
+                p.* = d.words;
+            }
+            legacy_main = ptrs;
+        }
         // CpuWorker.complete's checks, in its order.
         if (!worker.sealed or worker.consumed) return error.WideCpuPhase;
         try pending.checkPhysicalRoots(ordinal, expected.fixed, seg.main_root);
@@ -726,6 +755,8 @@ pub const Hybrid = struct {
             .fixed_words = fixed_words,
             .main_offsets = seg.main_offsets,
             .main_words = seg.main_words,
+            .legacy_main = legacy_main,
+            .main_logs = seg.main_logs,
             .bind_plan = &seg.bind_plan,
             .slots = slots,
             .stage2 = .{ .inter = &inter_plan, .pcs = &pcs, .csym = self.csym, .nsym = self.psym, .claim_count = @intCast(plan.claim_count) },
