@@ -9,29 +9,56 @@
 //!   composition commit    (producer seam, root mixed on device)
 //!   OODS + base point + enqueue-only PCS             (native_pcs.enqueueOpening)
 //!
-//! What is NOT here yet (stated, not hidden): the producers of the INTER
-//! columns and the claims (binding finalize, global interaction witness and
-//! the publicClaims device reduction) and the native composition kernels.
-//! They plug in as `Producers`: claims and INTER inputs are device buffers
-//! that the producer enqueues before `enqueue` is called (or stages), and the
-//! composition producer receives the DEVICE coefficient (8 words) and must
-//! return its committed composition tree. A producer may not read the
-//! coefficient on the host; the lint covers every file a job imports.
+//! The composition producer is `NativeComposition` (native_composition.zig:
+//! the legacy native composition kernels, powers from the DEVICE
+//! coefficient). The INTER columns and claims come from the global
+//! interaction producer (native_global.zig) and the binding producer; claims
+//! and INTER inputs are device buffers enqueued before `enqueue` is called.
+//! A producer may not read the coefficient on the host; the lint covers
+//! every file a job imports.
 const std = @import("std");
 const api = @import("api.zig");
 const C = @import("native_commit.zig");
 const N = @import("native_pcs.zig");
+const NC = @import("native_composition.zig");
 
 pub const manifest_header = [2]u32{ 0x57474b32, 1 };
 
 /// Composition producer seam: enqueue the composition from the device
-/// coefficient `alpha` (8 words) and commit it (root into `root_out`, NOT
-/// mixed: Stage2 mixes it). Returns the committed tree (coefficient views for
-/// the PCS) and its plan.
+/// coefficient `alpha` (8 words) over the committed FIXED/MAIN/INTER
+/// coefficient views and commit it (root into `root_out`, NOT mixed: Stage2
+/// mixes it). Returns the committed tree (coefficient views for the PCS).
+/// `NativeComposition` (native_composition.zig) is the native producer.
 pub const Composition = struct {
     ctx: *anyopaque,
-    enqueue: *const fn (*anyopaque, *api.Enqueue, alpha: api.DeviceBuffer, root_out: api.DeviceBuffer) anyerror!Committed,
-    pub const Committed = struct { plan: *const C.CommitPlan, tree: C.Committed };
+    enqueue: *const fn (*anyopaque, *api.Enqueue, alpha: api.DeviceBuffer, root_out: api.DeviceBuffer, trees: [3]Committed) anyerror!Committed,
+    /// Coefficient views by original column: `tree.coefficients.ptr + offsets[i]`.
+    pub const Committed = struct {
+        offsets: []const usize,
+        tree: C.Committed,
+        pub fn of(plan: *const C.CommitPlan, tree: C.Committed) Committed {
+            return .{ .offsets = plan.offsets, .tree = tree };
+        }
+        pub fn columns(self: Committed) NC.Columns {
+            return .{ .base = self.tree.coefficients.ptr, .offsets = self.offsets };
+        }
+    };
+};
+
+/// The native composition producer behind the seam: a staged
+/// native_composition.Plan, its symbols and a status word (noncanonical alpha).
+pub const NativeComposition = struct {
+    plan: *const NC.Plan,
+    sym: NC.Symbols,
+    status: api.DeviceBuffer,
+    pub fn producer(self: *NativeComposition) Composition {
+        return .{ .ctx = self, .enqueue = enqueueOf };
+    }
+    fn enqueueOf(raw: *anyopaque, e: *api.Enqueue, alpha: api.DeviceBuffer, root_out: api.DeviceBuffer, trees: [3]Composition.Committed) anyerror!Composition.Committed {
+        const self: *NativeComposition = @ptrCast(@alignCast(raw));
+        const tree = try self.plan.enqueue(self.sym, e, .{ trees[0].columns(), trees[1].columns(), trees[2].columns() }, alpha.ptr, root_out, self.status.ptr);
+        return .{ .offsets = self.plan.offsets, .tree = tree };
+    }
 };
 
 /// Slab fields (word offsets inside the job slab) for this stage's outputs.
@@ -79,11 +106,12 @@ pub const Stage2 = struct {
         const inter = try self.inter.enqueue(self.csym, e, inter_inputs, try fields.roots.slice(16, 8), true);
         // Composition coefficient on device; the producer never sees it on the host.
         try e.channel.drawSecureFelts(1, fields.alpha);
-        const comp = try composition.enqueue(composition.ctx, e, fields.alpha, try fields.roots.slice(24, 8));
+        const inter_views = Composition.Committed.of(self.inter, inter);
+        const comp = try composition.enqueue(composition.ctx, e, fields.alpha, try fields.roots.slice(24, 8), .{ prior[0], prior[1], inter_views });
         try e.channel.mixRootFromTree(try fields.roots.slice(24, 8));
         // Bind all four trees into the stage-time PCS framing, then the tail.
-        const trees = [4]Composition.Committed{ prior[0], prior[1], .{ .plan = self.inter, .tree = inter }, comp };
-        for (trees, 0..) |t, index| for (0..t.plan.shapes.len) |original| try self.pcs.bindColumn(index, original, t.tree.column(t.plan, original).ptr);
+        const trees = [4]Composition.Committed{ prior[0], prior[1], inter_views, comp };
+        for (trees, 0..) |t, index| for (t.offsets, 0..) |offset, original| try self.pcs.bindColumn(index, original, t.tree.coefficients.ptr + offset);
         try self.pcs.enqueueOpening(self.nsym, e, self.pinned, fields.oods, fields.pcs);
         e.free(comp.tree.coefficients);
         e.free(inter.coefficients);

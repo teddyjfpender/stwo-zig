@@ -65,10 +65,11 @@ const Producer = struct {
     csym: C.Symbols,
     inputs: []const C.Input,
     alpha_copy: api.DeviceBuffer = undefined,
-    fn enqueue(raw: *anyopaque, e: *api.Enqueue, alpha: api.DeviceBuffer, root_out: api.DeviceBuffer) anyerror!S2.Composition.Committed {
+    fn enqueue(raw: *anyopaque, e: *api.Enqueue, alpha: api.DeviceBuffer, root_out: api.DeviceBuffer, trees: [3]S2.Composition.Committed) anyerror!S2.Composition.Committed {
+        _ = trees;
         const self: *Producer = @ptrCast(@alignCast(raw));
         if (self.csym.copy_d2d(e.ctx(), self.alpha_copy.ptr, alpha.ptr, 32) != 0) return error.CudaEnqueueFailed;
-        return .{ .plan = self.plan, .tree = try self.plan.enqueue(self.csym, e, self.inputs, root_out, false) };
+        return S2.Composition.Committed.of(self.plan, try self.plan.enqueue(self.csym, e, self.inputs, root_out, false));
     }
 };
 
@@ -107,7 +108,7 @@ const Probe = struct {
         try e.channel.initFromCheckpoint(self.seed_buffer.?);
         const roots = try e.slab.device.slice(0, 32);
         var prior: [2]S2.Composition.Committed = undefined;
-        for (&prior, 0..) |*p, t| p.* = .{ .plan = self.plans[t], .tree = try self.plans[t].enqueue(self.csym, e, self.inputs[t], try roots.slice(8 * t, 8), true) };
+        for (&prior, 0..) |*p, t| p.* = S2.Composition.Committed.of(self.plans[t], try self.plans[t].enqueue(self.csym, e, self.inputs[t], try roots.slice(8 * t, 8), true));
         self.producer.alpha_copy = try e.slab.device.slice(32, 8);
         const fields = S2.Fields{ .roots = roots, .alpha = try e.slab.device.slice(48, 8), .oods = try e.slab.device.slice(64, N.oods_field_words), .pcs = try e.slab.device.slice(128, @intCast(self.stage2.pcs.outputWords())) };
         try self.stage2.enqueue(e, prior, self.claims_buffer.?, self.inputs[2], .{ .ctx = self.producer, .enqueue = Producer.enqueue }, fields);
