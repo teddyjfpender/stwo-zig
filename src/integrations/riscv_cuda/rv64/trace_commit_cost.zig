@@ -12,6 +12,7 @@ pub const Input = struct {
     stream_budget: ?usize = null,
     exact_prefix_banks: bool = false,
     reuse_owned_inputs: bool = false,
+    compact_eager: bool = false,
 };
 pub const Plan = struct {
     format: Format = .legacy_blake32_m31,
@@ -63,7 +64,7 @@ pub fn init(a: std.mem.Allocator, input: Input) !Plan {
     var out = Plan{ .coefficient_words = coefficient_words, .host_peak_bytes = try std.math.add(u64, try std.math.mul(u64, tw_words, 8), host_metadata) };
     if (input.separate_coefficients and !input.reuse_owned_inputs) try out.addWords(coefficient_words);
     if (input.separate_coefficients) if (input.stream_budget) |budget| {
-        var stream = try S.plan(a, rows, budget);
+        var stream = try S.planSelected(a, rows, budget, input.compact_eager);
         defer stream.deinit(a);
         const selection_aux = try std.math.add(u64, 2 * tw_words, 7 * input.logs.len);
         if (input.reuse_owned_inputs or S.alignUp(@intCast(selection_aux)) + stream.scratchWords() < S.legacyScratchWords(rows, @intCast(selection_aux))) {

@@ -20,6 +20,7 @@ const M = D.M;
 const N2b = *const fn ([*]u32, usize, ?*const anyopaque, u32, usize, u32, [*]const u32, u32, u32, *anyopaque, u32, *u32) callconv(.c) c_int;
 const N2bColumns = *const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on);
 const MixedSeeded = *const fn (u32, u32, [*]const A.MixedSegment, u32, u32, ?*const anyopaque, ?*anyopaque, ?*anyopaque, *anyopaque) callconv(.c) c_int;
+const MixedCompact = *const fn (u32, u32, [*]const A.MixedSegment, u32, u32, ?*const anyopaque, u64, ?*anyopaque, u64, ?*anyopaque, u64, *anyopaque) callconv(.c) c_int;
 const Layer = *const fn (*const anyopaque, u32, *anyopaque, *anyopaque) callconv(.c) c_int;
 const PoolCurrent = *const fn (*anyopaque, *usize, *usize) callconv(.c) c_int;
 const LiveLeases = *const fn (*anyopaque, *[5]u64, *u64) callconv(.c) c_int;
@@ -65,6 +66,7 @@ pub const Context = struct {
     prefix_workspace: ?*const fn ([*]const A.MixedSegment, u32, *u64) callconv(.c) c_int = null,
     rebind: Native.LeaseRebind,
     mixed_seeded: ?MixedSeeded = null,
+    mixed_compact: ?MixedCompact = null,
     layer: ?Layer = null,
     pool_current: ?PoolCurrent = null,
     live_leases: ?LiveLeases = null,
@@ -73,7 +75,9 @@ pub const Context = struct {
     mutex: std.Thread.Mutex = .{},
     pub fn init(service: *Service.Context) !Context {
         if (service.admission) |endpoint| try endpoint.planner.registerCoverage(endpoint.physical, .native_trace);
-        return .{ .freeze_allocation_plan = if (std.posix.getenv("STWO_RV64_EARLY_NATIVE_MAIN")) |value| std.mem.eql(u8, value, "1") else false, .service = service, .api = .{
+        const compact = (try Service.allocationOptions()).compact_eager;
+        const compact_call = if (compact) try sym(MixedCompact, &service.library, "stwo_blake2s_mixed_seeded_eager_compact_on") else null;
+        return .{ .mixed_compact = compact_call, .freeze_allocation_plan = if (std.posix.getenv("STWO_RV64_EARLY_NATIVE_MAIN")) |value| std.mem.eql(u8, value, "1") else false, .service = service, .api = .{
             .allocation_guard = &service.early_allocations,
             .allocate = service.lease_allocate,
             .release = service.lease_release,
@@ -129,7 +133,7 @@ pub const Context = struct {
     /// schedule; owner-thread per-session pressure cannot silently change it.
     pub fn allocationOptions(self: *const Context, beta: u32) AdmissionPlan.Input {
         const separate = beta == 1 and self.n2b_columns != null;
-        return .{ .logs = &.{}, .beta = beta, .separate_coefficients = separate, .stream_budget = if (separate and self.mixed_seeded != null and self.layer != null) streamBudget() else null, .exact_prefix_banks = self.prefix_workspace != null };
+        return .{ .logs = &.{}, .beta = beta, .separate_coefficients = separate, .stream_budget = if (separate and self.mixed_seeded != null and self.layer != null) streamBudget() else null, .exact_prefix_banks = self.prefix_workspace != null, .compact_eager = self.mixed_compact != null };
     }
     pub fn allocationPlan(self: *const Context, a: std.mem.Allocator, request: D.TraceCommitRequest) !AdmissionPlan.Plan {
         return self.allocationPlanImpl(a, request, false);
@@ -274,7 +278,7 @@ const Job = struct {
         const rows = try self.a.alloc(u32, order.len);
         defer self.a.free(rows);
         for (order, rows) |original, *row| row.* = @as(u32, 1) << @intCast(self.request.columns[original].log_size + beta);
-        var p = try StreamPlan.plan(self.a, rows, budget);
+        var p = try StreamPlan.planSelected(self.a, rows, budget, self.backend.mixed_compact != null);
         defer p.deinit(self.a);
         const aux = tw.twiddles.len + tw.itwiddles.len + 7 * order.len;
         return StreamPlan.alignUp(aux) + p.scratchWords() < StreamPlan.legacyScratchWords(rows, aux);
@@ -322,12 +326,12 @@ const Job = struct {
         const live = self.liveLeaseBytes();
         const admissible: ?usize = if (live) |bytes| (if (b.service.byte_cap > bytes) @intCast((b.service.byte_cap - bytes) / 4) else 0) else null;
         var chunk_budget = budget;
-        var p = try StreamPlan.plan(a, rows, chunk_budget);
+        var p = try StreamPlan.planSelected(a, rows, chunk_budget, b.mixed_compact != null);
         defer p.deinit(a);
         while (if (self.admission_plan == null) admissible else null) |limit| {
             if (aux_words + p.scratchWords() <= limit or chunk_budget <= rows[0]) break;
             chunk_budget /= 2;
-            const smaller = try StreamPlan.plan(a, rows, chunk_budget);
+            const smaller = try StreamPlan.planSelected(a, rows, chunk_budget, b.mixed_compact != null);
             p.deinit(a);
             p = smaller;
         }
@@ -400,7 +404,11 @@ const Job = struct {
             }
             const seed: ?*const anyopaque = if (c.seed_bank) |bank| @ptrCast(banks[bank]) else null;
             const out: *anyopaque = @ptrCast(banks[c.out_bank]);
-            try check(mixed(c.size, count, &segments, c.absorbed, c.seed_size, seed, if (c.final) null else out, if (c.final) out else null, lane));
+            if (b.mixed_compact) |compact_call| {
+                try check(compact_call(c.size, count, &segments, c.absorbed, c.seed_size, seed, if (c.seed_bank) |bank| p.bank_words[bank] else 0, if (c.final) null else out, if (c.final) 0 else p.bank_words[c.out_bank], if (c.final) out else null, if (c.final) p.bank_words[c.out_bank] else 0, lane));
+            } else {
+                try check(mixed(c.size, count, &segments, c.absorbed, c.seed_size, seed, if (c.final) null else out, if (c.final) out else null, lane));
+            }
             if (c.final) hashes = banks[c.out_bank];
         }
         // Merkle layers above the leaves, in the same dead bank. Identical to
@@ -420,7 +428,7 @@ const Job = struct {
         try ctx.join();
         var root: [32]u8 = undefined;
         for (root_words, 0..) |v, k| std.mem.writeInt(u32, root[4 * k ..][0..4], v, .little);
-        std.debug.print("GPU_TRACE_STREAM tree={} columns={} leaves={} calls={} chunk_budget_words={} chunk_words={} bank_words={any} aux_words={} scratch_words={} legacy_scratch_words={}\n", .{ r.tree_index, order.len, p.leaves, p.calls.len, chunk_budget, p.chunk_words, p.bank_words, aux_words, total, legacy });
+        std.debug.print("GPU_TRACE_STREAM compact_eager={} tree={} columns={} leaves={} calls={} chunk_budget_words={} chunk_words={} bank_words={any} aux_words={} scratch_words={} legacy_scratch_words={}\n", .{ b.mixed_compact != null, r.tree_index, order.len, p.leaves, p.calls.len, chunk_budget, p.chunk_words, p.bank_words, aux_words, total, legacy });
         return root;
     }
     fn publish(self: *Job, ctx: *SC.Context, root: [32]u8, coefficients: *Native.Lease, offsets: []const usize, scope: [8]u32, coefficient_cells: usize, transferred: *bool) !void {

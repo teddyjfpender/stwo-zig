@@ -901,3 +901,63 @@ extern "C" int stwo_blake2s_mixed_seeded_plain_on(uint32_t size, uint32_t count,
     return mixed_seeded_on<false>(size, count, segments, absorbed_before,
                                   seed_size, seed, prefix, result, stream);
 }
+
+// Compact eager SoA storage has exactly eight hash planes plus the live
+// pending planes. Capacities are words, not sizeof(ProgressiveState) rows.
+// The established entry above retains its full-state range contract.
+extern "C" int stwo_blake2s_mixed_seeded_eager_compact_on(
+    uint32_t size, uint32_t count,
+    const stwo::cuda::blake2s::MixedSegment *segments,
+    uint32_t absorbed_before, uint32_t seed_size,
+    const uint32_t *seed, uint64_t seed_capacity_words,
+    uint32_t *prefix, uint64_t prefix_capacity_words,
+    uint32_t *result, uint64_t result_capacity_words, void *stream) {
+    using namespace stwo::cuda::blake2s;
+    if (!stream || !segments || size < 2 || size > (1u << 28) ||
+        (size & (size - 1)) || !count || count > kMaxMixedSegments ||
+        ((prefix == nullptr) == (result == nullptr)) ||
+        (!prefix && prefix_capacity_words) || (!result && result_capacity_words))
+        return int(cudaErrorInvalidValue);
+    MixedInputs inputs{};
+    uint64_t words = absorbed_before;
+    DeviceRange sources[kMaxMixedSegments]{};
+    for (uint32_t i = 0; i < count; ++i) {
+        const auto s = segments[i];
+        uint32_t columns = 0;
+        if (s.reserved || s.source_size < 2 || s.source_size > size ||
+            (s.source_size & (s.source_size - 1)) ||
+            !exact_word_slab_range(s.columns, s.capacity_words,
+                                  s.stride_words, s.source_size,
+                                  &columns, &sources[i]))
+            return int(cudaErrorInvalidValue);
+        words += columns;
+        if (words > UINT32_MAX) return int(cudaErrorInvalidValue);
+        inputs.segments[i] = s;
+    }
+    DeviceRange previous{}, output_range{};
+    const uint64_t needed_output = uint64_t(size) *
+        (prefix ? (8u + uint32_t(words & 15u)) : 8u);
+    const uint64_t output_capacity = prefix ? prefix_capacity_words : result_capacity_words;
+    uint32_t *output = prefix ? prefix : result;
+    if (output_capacity < needed_output || output_capacity > SIZE_MAX / 4 ||
+        !element_range(output, size_t(output_capacity), &output_range))
+        return int(cudaErrorInvalidValue);
+    if (seed) {
+        const uint64_t needed_seed = uint64_t(seed_size) * (8u + (absorbed_before & 15u));
+        if (!absorbed_before || seed_size < 2 || seed_size > size ||
+            (seed_size & (seed_size - 1)) || seed_capacity_words < needed_seed ||
+            seed_capacity_words > SIZE_MAX / 4 ||
+            !element_range(seed, size_t(seed_capacity_words), &previous) ||
+            ranges_overlap(previous, output_range))
+            return int(cudaErrorInvalidValue);
+    } else if (absorbed_before || seed_size || seed_capacity_words) {
+        return int(cudaErrorInvalidValue);
+    }
+    for (uint32_t i = 0; i < count; ++i)
+        if (ranges_overlap(sources[i], output_range)) return int(cudaErrorInvalidValue);
+    mixed_leaf_kernel<true, true><<<blocks_for(size), kBlockSize, 0,
+        reinterpret_cast<cudaStream_t>(stream)>>>(size, count, inputs,
+        absorbed_before, seed_size, reinterpret_cast<const ProgressiveState *>(seed),
+        reinterpret_cast<ProgressiveState *>(prefix), reinterpret_cast<Hash *>(result));
+    return int(cudaPeekAtLastError());
+}

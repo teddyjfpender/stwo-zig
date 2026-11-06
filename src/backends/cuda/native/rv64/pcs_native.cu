@@ -936,3 +936,6 @@ extern "C" int stwo_rv64_gpu_immutable_seal(void *raw,const StwoRv64GpuLease *le
 
 // Metadata framing capability; no CUDA context or proof state is touched.
 extern "C" uint32_t stwo_rv64_pcs_request_version() { return 3; }
+
+// The compact numerical entry and PCS stream planner ship in one image.
+extern "C" int stwo_rv64_compact_eager_state_capability(){return 1;}

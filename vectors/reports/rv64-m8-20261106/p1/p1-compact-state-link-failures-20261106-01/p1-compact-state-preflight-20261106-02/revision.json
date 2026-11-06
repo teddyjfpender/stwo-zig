@@ -1,0 +1,5 @@
+{
+  "prior": "/workspace/m3/runs/m7-integrate/p1-compact-state-preflight-20261106-01",
+  "reason": "Unit expected raw state bytes rather than64-word aligned scratch; corrected32-byte expectation. Also add explicit compact PCS activation log.",
+  "prior_status": "FAIL"
+}

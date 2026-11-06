@@ -84,6 +84,9 @@ pub fn treeWords(leaves: u32) usize {
 /// evaluations, except that one column taller than the budget forms its own
 /// chunk (a single column is the indivisible LDE unit).
 pub fn plan(a: std.mem.Allocator, rows: []const u32, budget_words: usize) !Plan {
+    return planSelected(a, rows, budget_words, false);
+}
+pub fn planSelected(a: std.mem.Allocator, rows: []const u32, budget_words: usize, compact: bool) !Plan {
     if (rows.len == 0 or rows.len > 65535 or budget_words == 0) return error.InvalidTraceStreamPlan;
     var previous: u32 = 0;
     for (rows) |r| {
@@ -114,7 +117,7 @@ pub fn plan(a: std.mem.Allocator, rows: []const u32, budget_words: usize) !Plan 
         const size = rows[end - 1];
         try calls.append(a, .{ .first = @intCast(first), .end = @intCast(end), .size = size, .absorbed = absorbed, .seed_bank = seed, .seed_size = seed_size, .out_bank = out, .final = final, .chunk_words = words });
         result.chunk_words = @max(result.chunk_words, words);
-        const written = if (final) result.tree_words else @as(usize, size) * state_words;
+        const written = if (final) result.tree_words else @as(usize, size) * (if (compact) 8 + (absorbed + @as(u32, @intCast(end - first))) % 16 else state_words);
         result.bank_words[out] = @max(result.bank_words[out], written);
         absorbed += @intCast(end - first);
         first = end;
@@ -201,7 +204,7 @@ test "streaming peak is bounded independently of total evaluation width" {
 test "invalid geometry is rejected" {
     const a = std.testing.allocator;
     try std.testing.expectError(error.InvalidTraceStreamPlan, plan(a, &.{ 8, 4 }, 16));
-    try std.testing.expectError(error.InvalidTraceStreamPlan, plan(a, &.{ 3 }, 16));
+    try std.testing.expectError(error.InvalidTraceStreamPlan, plan(a, &.{3}, 16));
     try std.testing.expectError(error.InvalidTraceStreamPlan, plan(a, &.{}, 16));
 }
 
@@ -236,4 +239,29 @@ test "chunked progressive Blake2s equals one-shot absorption for every schedule"
             try std.testing.expectEqualSlices(u8, &expected[row], &got);
         }
     }
+}
+
+test "compact eager allocation preserves the logged INTER schedule and final tree" {
+    const logs = [_]u32{ 16, 23, 20, 21, 23, 16, 20, 8, 14, 18, 16 };
+    const pairs = [_]usize{ 1, 2, 6, 3, 13, 1, 8, 1, 1, 1, 1 };
+    var rows: [304]u32 = undefined;
+    var at: usize = 0;
+    for (logs, pairs) |log, count| {
+        @memset(rows[at..][0 .. 8 * count], @as(u32, 1) << @intCast(log + 1));
+        at += 8 * count;
+    }
+    std.mem.sort(u32, &rows, {}, std.sort.asc(u32));
+    var legacy = try plan(std.testing.allocator, &rows, default_chunk_words);
+    defer legacy.deinit(std.testing.allocator);
+    var compact = try planSelected(std.testing.allocator, &rows, default_chunk_words, true);
+    defer compact.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 18), compact.calls.len);
+    try std.testing.expectEqual(legacy.calls.len, compact.calls.len);
+    for (legacy.calls, compact.calls) |x, y| try std.testing.expect(std.meta.eql(x, y));
+    try std.testing.expectEqual([2]usize{ 402653184, 402653184 }, legacy.bank_words);
+    try std.testing.expectEqual([2]usize{ 318767104, 268435448 }, compact.bank_words);
+    try std.testing.expectEqual(@as(usize, 872415232), (legacy.scratchWords() - compact.scratchWords()) * 4);
+    const last = compact.calls[compact.calls.len - 1];
+    try std.testing.expect(last.final);
+    try std.testing.expect(compact.bank_words[last.out_bank] >= compact.tree_words);
 }

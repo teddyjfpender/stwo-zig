@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/workspace/m3/runs/m7-integrate/p1-compact-state-headline-controller-20261106-02/worker.py", line 6, in <module>
+    if (smoke/'exit').exists() and (smoke/'exit').read_text().strip()!='0':raise RuntimeError('smoke failed; no headline')
+                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: smoke failed; no headline

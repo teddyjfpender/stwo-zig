@@ -1,0 +1,14 @@
+/workspace/m3/runs/m7-integrate/p1-compact-state-cpp-plan-20261106-01/fixture.cpp: In function ‘int main()’:
+/workspace/m3/runs/m7-integrate/p1-compact-state-cpp-plan-20261106-01/fixture.cpp:29:22: error: inconsistent user-defined literal suffixes ‘status’ and ‘CPP_COMPACT_PLAN_PASS’ in string literal
+   29 |  std::cout<<"{"status":"CPP_COMPACT_PLAN_PASS","trials":"<<trials<<","columns":"<<rows.size()<<","scope":"CPU schedule and byte contract only"}\n";
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/m3/runs/m7-integrate/p1-compact-state-cpp-plan-20261106-01/fixture.cpp:29:55: error: unable to find string literal operator ‘operator""status’ with ‘const char [5]’, ‘long unsigned int’ arguments
+   29 |  std::cout<<"{"status":"CPP_COMPACT_PLAN_PASS","trials":"<<trials<<","columns":"<<rows.size()<<","scope":"CPU schedule and byte contract only"}\n";
+      |                                                       ^~~
+/workspace/m3/runs/m7-integrate/p1-compact-state-cpp-plan-20261106-01/fixture.cpp:29:78: error: unable to find string literal operator ‘operator""columns’ with ‘const char [3]’, ‘long unsigned int’ arguments
+   29 |  std::cout<<"{"status":"CPP_COMPACT_PLAN_PASS","trials":"<<trials<<","columns":"<<rows.size()<<","scope":"CPU schedule and byte contract only"}\n";
+      |                                                                              ^~~
+/workspace/m3/runs/m7-integrate/p1-compact-state-cpp-plan-20261106-01/fixture.cpp:29:104: error: inconsistent user-defined literal suffixes ‘scope’ and ‘CPU’ in string literal
+   29 |  std::cout<<"{"status":"CPP_COMPACT_PLAN_PASS","trials":"<<trials<<","columns":"<<rows.size()<<","scope":"CPU schedule and byte contract only"}\n";
+      |                                                                                                        ^~~~~~
+/workspace/m3/runs/m7-integrate/p1-compact-state-cpp-plan-20261106-01/fixture.cpp:29:104: error: unable to find string literal operator ‘operator""scope’ with ‘const char [3]’, ‘long unsigned int’ arguments

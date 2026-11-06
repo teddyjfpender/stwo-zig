@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "runtime": "rv64",
+  "example": "word16_ethereum_physical",
+  "stages": [
+    {
+      "id": "source_construction",
+      "label": "CPU witness source from native capture",
+      "seconds": 0.582004313,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.931278,
+        "system_seconds": 0.640375,
+        "minor_faults": 240113,
+        "major_faults": 0,
+        "voluntary_switches": 656,
+        "involuntary_switches": 6,
+        "process_peak_resident_bytes_at_end": 12831797248,
+        "process_resident_bytes_at_end": 0,
+        "process_footprint_bytes_at_end": 0,
+        "process_footprint_peak_bytes_at_end": 0,
+        "lane_threads": 0,
+        "lane_user_seconds": null,
+        "lane_system_seconds": null
+      }
+    },
+    {
+      "id": "local_gkr_prove",
+      "label": "Local GKR inputs, layers and sumchecks",
+      "seconds": 0.224735955,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.373781,
+        "system_seconds": 0.104335,
+        "minor_faults": 8224,
+        "major_faults": 0,
+        "voluntary_switches": 205,
+        "involuntary_switches": 3,
+        "process_peak_resident_bytes_at_end": 12831797248,
+        "process_resident_bytes_at_end": 0,
+        "process_footprint_bytes_at_end": 0,
+        "process_footprint_peak_bytes_at_end": 0,
+        "lane_threads": 0,
+        "lane_user_seconds": null,
+        "lane_system_seconds": null
+      }
+    },
+    {
+      "id": "binding_finalize",
+      "label": "Deferred local Eq/prefix completion",
+      "seconds": 0.186142824,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.338193,
+        "system_seconds": 0.062037,
+        "minor_faults": 16939,
+        "major_faults": 0,
+        "voluntary_switches": 196,
+        "involuntary_switches": 6,
+        "process_peak_resident_bytes_at_end": 12831797248,
+        "process_resident_bytes_at_end": 0,
+        "process_footprint_bytes_at_end": 0,
+        "process_footprint_peak_bytes_at_end": 0,
+        "lane_threads": 0,
+        "lane_user_seconds": null,
+        "lane_system_seconds": null
+      }
+    },
+    {
+      "id": "interaction_generation",
+      "label": "CPU global classic interactions",
+      "seconds": 0.666840131,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 1.276643,
+        "system_seconds": 0.1787,
+        "minor_faults": 80225,
+        "major_faults": 0,
+        "voluntary_switches": 447,
+        "involuntary_switches": 10,
+        "process_peak_resident_bytes_at_end": 12831797248,
+        "process_resident_bytes_at_end": 0,
+        "process_footprint_bytes_at_end": 0,
+        "process_footprint_peak_bytes_at_end": 0,
+        "lane_threads": 0,
+        "lane_user_seconds": null,
+        "lane_system_seconds": null
+      }
+    },
+    {
+      "id": "draw_random_coeff",
+      "label": "Draw random coefficient",
+      "seconds": 0.00003079,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.000004,
+        "system_seconds": 0.000001,
+        "minor_faults": 2,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 0,
+        "process_peak_resident_bytes_at_end": 12831797248,
+        "process_resident_bytes_at_end": 0,
+        "process_footprint_bytes_at_end": 0,
+        "process_footprint_peak_bytes_at_end": 0,
+        "lane_threads": 0,
+        "lane_user_seconds": null,
+        "lane_system_seconds": null
+      }
+    },
+    {
+      "id": "oods_point_and_mask_points",
+      "label": "OODS point and mask points",
+      "seconds": 0.001236708,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.002172,
+        "system_seconds": 0.00104,
+        "minor_faults": 393,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 0,
+        "process_peak_resident_bytes_at_end": 12831797248,
+        "process_resident_bytes_at_end": 0,
+        "process_footprint_bytes_at_end": 0,
+        "process_footprint_peak_bytes_at_end": 0,
+        "lane_threads": 0,
+        "lane_user_seconds": null,
+        "lane_system_seconds": null
+      }
+    },
+    {
+      "id": "constraint_check_and_assembly",
+      "label": "Constraint check and assembly",
+      "seconds": 0.011743447,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.032583,
+        "system_seconds": 0.001129,
+        "minor_faults": 351,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 0,
+        "process_peak_resident_bytes_at_end": 12831797248,
+        "process_resident_bytes_at_end": 0,
+        "process_footprint_bytes_at_end": 0,
+        "process_footprint_peak_bytes_at_end": 0,
+        "lane_threads": 0,
+        "lane_user_seconds": null,
+        "lane_system_seconds": null
+      }
+    }
+  ]
+}

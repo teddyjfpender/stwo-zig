@@ -1,0 +1,38 @@
+{
+  "profile": "experimental-om31-local-gkr-d2-b4-q54-p20-fold4-engineering",
+  "security_qualified": false,
+  "config": {
+    "pow_bits": 20,
+    "fri_config": {
+      "log_blowup_factor": 2,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 54,
+      "fold_step": 4
+    },
+    "lifting_log_size": null
+  },
+  "fixed_setup": {
+    "limit_bytes": 12884901888,
+    "live_bytes": 577243536,
+    "peak_bytes": 2146855728,
+    "keys": 10,
+    "hits": 1,
+    "seals": 10,
+    "loads": 0,
+    "refused": false,
+    "native_coefficients": {
+      "limit_bytes": 12884901888,
+      "retained_bytes": 202765568,
+      "native_backing_bytes": 202727552,
+      "groups": 296,
+      "hits": 664,
+      "duplicate_native_bytes_released": 532188928,
+      "observed_individual_owners": 960,
+      "observed_backing_owners": 0,
+      "observed_spans": 960,
+      "owner_leases": 11
+    }
+  },
+  "source_validations": 0,
+  "source_coefficient_cells": 0
+}

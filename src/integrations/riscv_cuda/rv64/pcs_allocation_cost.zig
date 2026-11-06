@@ -14,6 +14,7 @@ pub const Format = enum { m31_blake32 };
 pub const Kind = enum { immutable_fixed, coefficient_copy, arena, source_twiddles, trace_roots, metadata, domain_cold, transcript, sample_scratch, deep, trace_tree, trace_values, trace_paths, fri, late_trace };
 pub const Allocation = struct { kind: Kind, words: u64, bytes: u64, rounded: Admission.Footprint };
 pub const Options = struct {
+    compact_eager: bool = false,
     format: Format = .m31_blake32,
     rolling_beta2: bool = false,
     /// Monotonic per-session fact: canonical domain stays resident to destroy.
@@ -200,7 +201,7 @@ fn initMode(a: std.mem.Allocator, request: *const Abi.Request, options: Options,
         max_evaluations = @max(max_evaluations, evaluations);
         max_nodes = @max(max_nodes, nodes);
         if (rolling and options.stream_chunk_words != 0) {
-            var plan = try Stream.plan(a, rows.items, options.stream_chunk_words);
+            var plan = try Stream.planSelected(a, rows.items, options.stream_chunk_words, options.compact_eager);
             defer plan.deinit(a);
             if (try pow(d[4]) < plan.leaves) return error.InvalidPcsCostGeometry;
             // C++ supports an explicitly lifted tree taller than all columns.

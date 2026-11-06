@@ -30,7 +30,7 @@ struct Plan {
 // rows (>= the tallest column; 0 means the tallest column). Returns false on
 // invalid geometry. A column taller than the budget is its own chunk.
 inline bool plan(const std::vector<uint32_t> &rows, uint64_t budget, Plan *out,
-                 uint32_t leaves = 0) {
+                 uint32_t leaves = 0, bool compact_eager = false) {
   if (rows.empty() || rows.size() > 65535 || !budget || !out) return false;
   if (!leaves) leaves = rows.back();
   if (leaves < rows.back() || (leaves & (leaves - 1))) return false;
@@ -57,7 +57,7 @@ inline bool plan(const std::vector<uint32_t> &rows, uint64_t budget, Plan *out,
            index ? int((index - 1) & 1u) : -1, index & 1u, end == rows.size(), words};
     p.calls.push_back(c);
     if (words > p.chunk_words) p.chunk_words = words;
-    const uint64_t written = c.final ? p.tree_words : uint64_t(c.size) * kStateWords;
+    const uint64_t written = c.final ? p.tree_words : uint64_t(c.size) * (compact_eager ? 8u + ((absorbed + end - first) & 15u) : kStateWords);
     if (written > p.bank_words[c.out_bank]) p.bank_words[c.out_bank] = written;
     absorbed += end - first;
     first = end;

@@ -1,0 +1,89 @@
+{
+  "request_index": 0,
+  "quiet_scope": "bounded pod cgroup PSI during each one-second idle interval; no throttling during idle or inventory; exclusive GPU; observer PSI recorded separately; host load informational",
+  "resource_gate": "cgroup",
+  "load_max": 8.0,
+  "steal_max": 0.01,
+  "idle_pressure_max": 0.005,
+  "required_stable_samples": 5,
+  "samples": [
+    {
+      "elapsed_s": 1.043,
+      "loadavg": [
+        19.33447265625,
+        19.6328125,
+        20.5576171875
+      ],
+      "cpu_steal_fraction": 0.0,
+      "blocking_processes": [],
+      "gpu_processes": [
+        {
+          "pid": 2524348,
+          "name": "/tmp/rv64-m7-compact-state-integrated-v1/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        },
+        {
+          "pid": 2524348,
+          "name": "/tmp/rv64-m7-compact-state-integrated-v1/rv64-word16-ethereum-gpu-combined",
+          "belongs_to_service_or_guard": true
+        }
+      ],
+      "cgroup": {
+        "known": true,
+        "monotonic_ns": 1258136340931882,
+        "cpu_max": "4080000 100000",
+        "cpu_pressure": {
+          "some": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 167723228
+          },
+          "full": {
+            "avg10": 0.0,
+            "avg60": 0.0,
+            "avg300": 0.0,
+            "total": 163807304
+          }
+        },
+        "cpu_stat": {
+          "usage_usec": 683159734078,
+          "user_usec": 575365720766,
+          "system_usec": 107794013312,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1213608,
+          "nr_throttled": 11309,
+          "throttled_usec": 10804881871,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "host_loadavg": [
+          19.33447265625,
+          19.6328125,
+          20.5576171875
+        ]
+      },
+      "cgroup_delta": {
+        "psi_some_total_us": 1746,
+        "psi_full_total_us": 1746,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "idle_pressure_fraction": 0.0017435910406694826,
+      "observer_cgroup_delta": {
+        "psi_some_total_us": 79,
+        "psi_full_total_us": 79,
+        "nr_throttled": 0,
+        "throttled_us": 0,
+        "known": true,
+        "quiet": false
+      },
+      "qualifies": true
+    }
+  ],
+  "accepted": false,
+  "mode": "diagnostic",
+  "timing_qualified": false
+}

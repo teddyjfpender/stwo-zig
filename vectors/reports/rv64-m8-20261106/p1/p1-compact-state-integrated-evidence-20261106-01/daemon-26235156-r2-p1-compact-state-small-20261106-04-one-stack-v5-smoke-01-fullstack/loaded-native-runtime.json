@@ -1,0 +1,9 @@
+{
+  "pid": 2524348,
+  "expected": "/tmp/rv64-m7-compact-state-integrated-v1/libstwo-rv64-native.so",
+  "mapped_native_libraries": [
+    "/tmp/rv64-m7-compact-state-integrated-v1/libstwo-rv64-native.so"
+  ],
+  "exactly_one_selected_native_runtime": true,
+  "checked_utc_ns": 1793925253650966358
+}

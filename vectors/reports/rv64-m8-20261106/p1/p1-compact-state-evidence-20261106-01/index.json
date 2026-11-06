@@ -1,0 +1,101 @@
+{
+  "status": "GPU_NUMERICAL_AND_MEMCHECK_PASS_RUNTIME_PENDING",
+  "files": [
+    {
+      "path": "p1-compact-state-kernel-build-20261106-01/worker.py",
+      "bytes": 1690,
+      "sha256": "597da3cd8c52220d5497b18b25c3e1ba72c34bd38211ee47ca8dd1d22214bba3"
+    },
+    {
+      "path": "p1-compact-state-kernel-build-20261106-01/worker.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "p1-compact-state-kernel-build-20261106-01/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "p1-compact-state-kernel-build-20261106-01/build.json",
+      "bytes": 1624,
+      "sha256": "1f9cd896302639df5fee5cf44cd476d158c8d5687149464220e7eb6782a05a26"
+    },
+    {
+      "path": "p1-compact-state-kernel-build-20261106-01/link.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "p1-compact-state-kernel-build-20261106-01/resources.log",
+      "bytes": 2798,
+      "sha256": "d018b30ecd1b1b16cf7ae1309dd5c2269be7eea77efe5290128d628e4d6f31f4"
+    },
+    {
+      "path": "p1-compact-state-kernel-build-20261106-01/exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "p1-compact-state-kernel-build-20261106-01/progressive.cu",
+      "bytes": 37721,
+      "sha256": "5f68ad1f47197ade12ab043314dcae7b68de5c2fef4968bd495081588cc99774"
+    },
+    {
+      "path": "p1-compact-state-kernel-build-20261106-01/index.json",
+      "bytes": 1251,
+      "sha256": "7ace0ec69f6b5061ab571c9ad2658bcfd4eb91f0feac9ac2179581552f5a05eb"
+    },
+    {
+      "path": "p1-compact-state-numerical-20261106-01/fixture.py",
+      "bytes": 4862,
+      "sha256": "4185154ebe7edcfef61a05ba5ac53286e6d7b1ce1c9b74aff8f081a7ef193328"
+    },
+    {
+      "path": "p1-compact-state-numerical-20261106-01/launch.json",
+      "bytes": 565,
+      "sha256": "080e0120c7f26241038e93a00e6ebc1276eba939154cc9770e724593753a6316"
+    },
+    {
+      "path": "p1-compact-state-numerical-20261106-01/worker.log",
+      "bytes": 488,
+      "sha256": "e42f87b695efa9c0dc6928bf7a66d1b8e7de60676962c01b159d3a9b8d028e4b"
+    },
+    {
+      "path": "p1-compact-state-numerical-20261106-01/receipt.json",
+      "bytes": 19595,
+      "sha256": "d673a2fa891025b46337efffcc55c778d3c85ddc7c35fb817bc09dc92ea58863"
+    },
+    {
+      "path": "p1-compact-state-numerical-20261106-01/exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "p1-compact-state-memcheck-20261106-01/fixture.py",
+      "bytes": 4862,
+      "sha256": "4185154ebe7edcfef61a05ba5ac53286e6d7b1ce1c9b74aff8f081a7ef193328"
+    },
+    {
+      "path": "p1-compact-state-memcheck-20261106-01/launch.json",
+      "bytes": 599,
+      "sha256": "f9bfb4752948993b36cc8d4a5dd57eff4ebccce30e8727d960accd4f3a160a1f"
+    },
+    {
+      "path": "p1-compact-state-memcheck-20261106-01/worker.log",
+      "bytes": 550,
+      "sha256": "70839ab43921c23071b3d5df00f81dc284da672d4dd38e6026d9ba26f304fafe"
+    },
+    {
+      "path": "p1-compact-state-memcheck-20261106-01/receipt.json",
+      "bytes": 19595,
+      "sha256": "d673a2fa891025b46337efffcc55c778d3c85ddc7c35fb817bc09dc92ea58863"
+    },
+    {
+      "path": "p1-compact-state-memcheck-20261106-01/exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    }
+  ],
+  "scope": "Kernel-only evidence, not whole-prover qualification, speed or node-peak claim."
+}

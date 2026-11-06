@@ -50,6 +50,11 @@ extern "C" int stwo_blake2s_mixed_seeded_eager_on(
     uint32_t, uint32_t, const stwo::cuda::blake2s::MixedSegment *, uint32_t,
     uint32_t, const void *, void *, void *, void *);
 extern "C" int stwo_blake2s_layer_on(const void *, uint32_t, void *, void *);
+extern "C" int stwo_blake2s_mixed_seeded_eager_compact_on(uint32_t,uint32_t,const stwo::cuda::blake2s::MixedSegment*,uint32_t,uint32_t,const uint32_t*,uint64_t,uint32_t*,uint64_t,uint32_t*,uint64_t,void*);
+inline bool pcsCompactEager() {
+  const char *v = std::getenv("STWO_RV64_COMPACT_EAGER_STATE");
+  return v && std::strcmp(v,"1")==0;
+}
 // Streaming source rebuild is the default for rolling sources. "0" restores
 // the established max-tree LDE plane; a positive value bounds one chunk.
 inline uint64_t pcsStreamBudget() {
@@ -692,7 +697,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
         for (uint32_t g = t.group; g < t.group + t.groups; ++g)
           rows.insert(rows.end(), source_groups[g * 8 + 5], 1u << source_groups[g * 8 + 3]);
         stwo::cuda::rv64::stream::Plan p;
-        if (!stwo::cuda::rv64::stream::plan(rows, stream_budget, &p, 1u << t.log))
+        if (!stwo::cuda::rv64::stream::plan(rows, stream_budget, &p, 1u << t.log, pcsCompactEager()))
           throw std::runtime_error("streamed source geometry");
         stream_scratch_words = std::max(stream_scratch_words, p.scratchWords());
         stream_plans.push_back(std::move(p));
@@ -746,9 +751,16 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
         CHECK(stwo_rv64_trace_open_values_on(o.ctx, 1, segments, count, &values));
         const void *seed = c.seed_bank < 0 ? nullptr : banks[c.seed_bank];
         auto *out = banks[c.out_bank];
+        if (pcsCompactEager()) {
+          CHECK(stwo_blake2s_mixed_seeded_eager_compact_on(c.size,count,segments,c.absorbed,c.seed_size,
+              reinterpret_cast<const uint32_t*>(seed),c.seed_bank<0?0:p.bank_words[c.seed_bank],
+              c.final?nullptr:out,c.final?0:p.bank_words[c.out_bank],
+              c.final?out:nullptr,c.final?p.bank_words[c.out_bank]:0,stream_raw));
+        } else {
         CHECK(stwo_blake2s_mixed_seeded_eager_on(c.size, count, segments, c.absorbed,
             c.seed_size, seed, c.final ? nullptr : out, c.final ? out : nullptr,
             stream_raw));
+        }
         if (c.final) hashes = out;
       }
       uint64_t offset = 0, next_offset = p.leaves;
@@ -764,9 +776,9 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
                               uint64_t(queries) * t.log * 8, t.log, log,
                               queries, 0};
       CHECK(stwo_rv64_trace_open_paths_on(o.ctx, 1, &paths));
-      std::printf("GPU_PCS_STREAM tree=%zu columns=%u leaves=%u calls=%zu chunk_words=%llu "
+      std::printf("GPU_PCS_STREAM compact_eager=%u tree=%zu columns=%u leaves=%u calls=%zu chunk_words=%llu "
                   "bank_words=%llu,%llu scratch_words=%llu legacy_rebuild_words=%llu\n",
-                  ti, t.columns, p.leaves, p.calls.size(),
+                  unsigned(pcsCompactEager()), ti, t.columns, p.leaves, p.calls.size(),
                   static_cast<unsigned long long>(p.chunk_words),
                   static_cast<unsigned long long>(p.bank_words[0]),
                   static_cast<unsigned long long>(p.bank_words[1]),

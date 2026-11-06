@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/workspace/m3/runs/m7-integrate/p1-compact-state-headline-controller-20261106-01/worker.py", line 7, in <module>
+    if pre['status']=='FAIL':raise RuntimeError('preflight failed; no headline')
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: preflight failed; no headline

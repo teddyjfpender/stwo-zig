@@ -40,6 +40,7 @@ pub fn classAllocationPlanWithFixed(a: std.mem.Allocator, request: D.Request, wi
 }
 pub fn allocationOptions() !AllocationCost.Options {
     var result: AllocationCost.Options = .{};
+    if (std.posix.getenv("STWO_RV64_COMPACT_EAGER_STATE")) |v| result.compact_eager = std.mem.eql(u8, v, "1");
     if (std.posix.getenv("STWO_RV64_PCS_ROLLING_BETA2")) |v| result.rolling_beta2 = std.mem.eql(u8, v, "1");
     if (std.posix.getenv("STWO_RV64_PCS_STREAM")) |v| if (std.mem.eql(u8, v, "0")) {
         result.stream_chunk_words = 0;
@@ -624,6 +625,11 @@ pub const Context = struct {
         const pcs_options = try allocationOptions();
         var library = try std.DynLib.open(path);
         errdefer library.close();
+        if (pcs_options.compact_eager) {
+            const Capability = *const fn () callconv(.c) c_int;
+            const capability = library.lookup(Capability, "stwo_rv64_compact_eager_state_capability") orelse return error.MissingCompactEagerPcsCapability;
+            if (capability() != 1) return error.MissingCompactEagerPcsCapability;
+        }
         const create = library.lookup(Abi.Create, "stwo_rv64_pcs_native_create") orelse return error.MissingGpuPcsSymbol;
         const native_prove = library.lookup(Abi.Prove, "stwo_rv64_pcs_native_prove") orelse return error.MissingGpuPcsSymbol;
         const release = library.lookup(Abi.Release, "stwo_rv64_pcs_native_release") orelse return error.MissingGpuPcsSymbol;

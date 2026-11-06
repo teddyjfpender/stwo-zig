@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "/usr/local/cuda/bin/compute-sanitizer",
+    "--tool",
+    "memcheck",
+    "--error-exitcode",
+    "97",
+    "python3",
+    "/workspace/m3/runs/m7-integrate/p1-compact-state-memcheck-20261106-01/fixture.py",
+    "--base",
+    "/workspace/m3/build/m7-owner-v2/libstwo-rv64-native.so",
+    "--compact",
+    "/workspace/m3/build/m7-integrate/p1-compact-state-v1/libstwo-compact-state.so",
+    "--out",
+    "/workspace/m3/runs/m7-integrate/p1-compact-state-memcheck-20261106-01/receipt.json"
+  ],
+  "scope": "Same64 numerical cases under memcheck; fixture owns GPU lock internally."
+}

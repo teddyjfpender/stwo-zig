@@ -1,0 +1,70 @@
+{
+  "status": "RETAINED_FIRST_FAILED_UNIT_AND_CPP_FIXTURE_PLUS_CORRECTED_CPP_PASS",
+  "files": [
+    {
+      "path": "p1-compact-state-preflight-20261106-01/worker.py",
+      "bytes": 1982,
+      "sha256": "4a22d277e4f13fd63c64934159497c40b377e3e6442a21d7da2298bda6d54ccc"
+    },
+    {
+      "path": "p1-compact-state-preflight-20261106-01/worker.log",
+      "bytes": 694,
+      "sha256": "cb6178099a1b80bb4a0490998ac5fc6826d343c40cb8b8a42312b658f43f0525"
+    },
+    {
+      "path": "p1-compact-state-preflight-20261106-01/preflight.json",
+      "bytes": 1108591,
+      "sha256": "6796ad1cf28057ea36e49af95988ab0e24e63e79653079262bdcb72805276de5"
+    },
+    {
+      "path": "p1-compact-state-preflight-20261106-01/unit.log",
+      "bytes": 10087,
+      "sha256": "a108609296f0e38d985c50f5d575ff76de4b41701017878282e508208a3a6110"
+    },
+    {
+      "path": "p1-compact-state-preflight-20261106-01/exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "p1-compact-state-cpp-plan-20261106-01/fixture.cpp",
+      "bytes": 1615,
+      "sha256": "fbea73040019117d13fd60d4aa010bf4621269d431d39c4903f436f653764d2d"
+    },
+    {
+      "path": "p1-compact-state-cpp-plan-20261106-01/compile.log",
+      "bytes": 2108,
+      "sha256": "5ce8558d68a672f357ccbe6be495b2b574445de39f3d1900bb0257612d23a283"
+    },
+    {
+      "path": "p1-compact-state-cpp-plan-20261106-01/exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "p1-compact-state-cpp-plan-20261106-02/fixture.cpp",
+      "bytes": 1553,
+      "sha256": "e840cb9ab64d388ceb1c906b94c99ba80bf5f7207c63fb5393ee53e046b2968d"
+    },
+    {
+      "path": "p1-compact-state-cpp-plan-20261106-02/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "p1-compact-state-cpp-plan-20261106-02/stdout",
+      "bytes": 28,
+      "sha256": "98345c845695480027867af5b8e4bba1443c3b2b803a1403478834944d5de34b"
+    },
+    {
+      "path": "p1-compact-state-cpp-plan-20261106-02/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "p1-compact-state-cpp-plan-20261106-02/exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    }
+  ]
+}

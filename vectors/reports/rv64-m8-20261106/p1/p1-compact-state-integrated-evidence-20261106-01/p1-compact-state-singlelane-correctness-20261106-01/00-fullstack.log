@@ -1,0 +1,34 @@
+{
+ "run": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-compact-state-singlelane-correctness-20261106-01-one-stack-v5-smoke-00-fullstack",
+ "process_wall_s": 53.7,
+ "service_overhead_s": 8.602,
+ "rss_gib": 19.65,
+ "cuda_api": {},
+ "requests": [
+  {
+   "block": 26235156,
+   "trial": 0,
+   "request_s": 30.35,
+   "capture": 1.66,
+   "setup": 12.027,
+   "native": 5.457,
+   "recursion": 11.083,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  },
+  {
+   "block": 26235156,
+   "trial": 1,
+   "request_s": 14.747,
+   "capture": 1.755,
+   "setup": 4.744,
+   "native": 3.61,
+   "recursion": 4.468,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  }
+ ]
+}
+{"service_start_s": 4.669, "service_stop_s": 1.827, "client_latency_s": [30.361, 14.757]}

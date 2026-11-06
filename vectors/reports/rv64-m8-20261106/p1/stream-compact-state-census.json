@@ -15,9 +15,16 @@
     318767104,
     268435448
   ],
-  "compact_total_scratch_bytes": 2952791264,
-  "compact_inplace_total_scratch_bytes": 2952791264,
-  "compact_derived_saving_bytes": 872415264,
-  "compact_inplace_derived_saving_bytes": 872415264,
-  "next": "Prefer a strictly validated compact eager-state ABI before adding aliasing if the existing disjoint schedule gets the same physical saving. Preserve old full-state entry contract and qualify every pending alignment, expansion and finalization."
+  "compact_total_scratch_bytes": 2952791296,
+  "compact_inplace_total_scratch_bytes": 2952791296,
+  "compact_derived_saving_bytes": 872415232,
+  "compact_inplace_derived_saving_bytes": 872415232,
+  "next": "Prefer a strictly validated compact eager-state ABI before adding aliasing if the existing disjoint schedule gets the same physical saving. Preserve old full-state entry contract and qualify every pending alignment, expansion and finalization.",
+  "alignment_correction": {
+    "status": "CORRECTED_BY_ZIG_PLAN_TEST",
+    "word_alignment": 64,
+    "prior_saving_bytes_unaligned": 872415264,
+    "correct_aligned_saving_bytes": 872415232,
+    "reason": "Final tree bank size268435448 words rounds to268435456 words in scratchWords;32 additional bytes. Raw bank sizes are unchanged."
+  }
 }

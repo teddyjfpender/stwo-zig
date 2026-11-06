@@ -82,6 +82,29 @@ gate passes build, unit tests, frozen-default proof parity, fresh CPU
 receivers and all 19 corpus cases [M]; it does not qualify the failed
 headline experiment. See `OUTER-CHUNKS-CHECKPOINT.md` in the P1 reports. No request-time gain, exact node-peak qualification or P1 exit
 is claimed. See `outer-chunks-hypothesis.json` in the P1 reports.
+The next prototype adds explicit-capacity compact eager Blake2s state
+storage. Its companion builds, matches frozen eager and unchunked hashes
+in 64 numerical cases across both GPUs, rejects 384 invalid calls, and
+passes Compute Sanitizer with zero errors [M, kernel ABI tests only].
+The default-off trace and PCS integration builds and passes all unit targets [M].
+Its intended two-lane small-block cold request stalls at admission until the
+120 s watchdog, without a root [M]; headline timing is skipped. The largest
+logged INTER scratch falls from 3.825 GB to 2.953 GB [M, requested allocation],
+but the remaining admission demand is 24.562 GB against 23.085 GB capacity
+[D, model]. Both completed baseline proofs match the prior reference and
+32 frozen default payloads, with fresh CPU accepts [M]. A separate one-lane
+correctness diagnostic retains the other composed flags, 22 GiB arena, global
+admission and physical guard; its two proofs preserve payload/capture identity
+and are freshly CPU-accepted [M]. Both trace and late PCS compact paths activate
+[M]. This diagnostic does not qualify the failed two-lane configuration.
+The preservation gate passes build, units, frozen-default parity, fresh CPU
+receivers and all 19 corpus cases [M; V04 size cap only]. The integrated
+300-file archive is hash-verified and all 8,483 source hashes match [M].
+No headline speed, exact node peak or P1 exit is claimed. See
+`COMPACT-STATE-CHECKPOINT.md` and `stream-compact-state-hypothesis.json`
+in the P1 reports. The read-only `pcs-phase-lifetime-audit.json` identifies
+existing DEEP/FRI retirements and composition buffers retained beyond last use;
+it changes no bound or admission behavior.
 
 The timing preset
 explicitly allows at most 0.5% cgroup CPU pressure in five idle intervals, with

@@ -1,0 +1,16 @@
+{
+  "schema": "rv64-pinned-cuda-runtime/v1",
+  "scope": "Current compact-state source image; default feature flags remain off in preservation gate.",
+  "assets": {
+    "library": "/tmp/rv64-m7-compact-state-integrated-v1/libstwo-rv64-native.so",
+    "sparse": "/workspace/m3/build/m7-rc-sparse/libstwo-rc-sparse.so",
+    "observer": "/workspace/m3/build/m7-rc-sparse/libstwo-process-memory-v3.so",
+    "process_budget_guard": "/workspace/m3/build/m7-rc-sparse/gpu-budget-guard"
+  },
+  "asset_sha256": {
+    "library": "5fe87033f860ffa1760d931e6edd4cc56d187939a5910fb63b660e88ca208b12",
+    "sparse": "e66ab0cfa50e4869351de87a1081792ce1d3385ce44f79ff1f4b3debc06cb278",
+    "observer": "29dba5cc45838a71387a86b2e3c93150a54f157e2e7e6277378f0ec76c1335f5",
+    "process_budget_guard": "773d5f04240e4692c07c26b1c72a43a8090f3df4969c1493c2c7e9923e0d1139"
+  }
+}
