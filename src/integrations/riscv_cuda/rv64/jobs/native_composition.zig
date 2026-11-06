@@ -379,21 +379,23 @@ pub const Plan = struct {
     /// words, rewritten by `rebind`).
     pub fn detach(self: *Plan) !void {
         if (self.detached) return;
+        // Capacity first: once a copy is appended the plan owns it (deinit
+        // frees it), so no errdefer may free it again (an OOM on a later
+        // dupe used to double free the earlier copies).
+        try self.owned_words.ensureUnusedCapacity(self.a, 2 * self.roles.len);
+        try self.owned_slots.ensureUnusedCapacity(self.a, self.roles.len);
         for (self.roles) |*r| {
             const rs = &r.spec;
             const masks = try self.a.dupe(u32, rs.mask_columns);
-            errdefer self.a.free(masks);
-            try self.owned_words.append(self.a, masks);
+            self.owned_words.appendAssumeCapacity(masks);
             rs.mask_columns = masks;
             if (rs.fixed_indices) |fi| {
                 const copy = try self.a.dupe(u32, fi);
-                errdefer self.a.free(copy);
-                try self.owned_words.append(self.a, copy);
+                self.owned_words.appendAssumeCapacity(copy);
                 rs.fixed_indices = copy;
             }
             const slots = try self.a.dupe(ClaimSlot, rs.claim_slots);
-            errdefer self.a.free(slots);
-            try self.owned_slots.append(self.a, slots);
+            self.owned_slots.appendAssumeCapacity(slots);
             rs.claim_slots = slots;
             rs.parameters = self.table[r.t_params..][0..rs.parameters.len];
             rs.hc = self.table[r.t_hc..][0..rs.hc.len];
@@ -781,6 +783,44 @@ test "framing cache: a detached plan rebound to new parameters equals a fresh pl
     other[0].claim_slots = &.{};
     try std.testing.expectError(error.NativeCompositionClassMismatch, cached.rebind(&other));
     try std.testing.expectError(error.NativeCompositionClassMismatch, cached.rebind(roles_b[0..1]));
+}
+
+test "framing cache: detach under allocation failure neither leaks nor double frees" {
+    const fixed_logs = [_]u32{5};
+    const main_logs = [_]u32{ 4, 3 };
+    const inter_logs = [_]u32{ 5, 5 };
+    var params: [16]u32 = undefined;
+    for (&params, 0..) |*x, i| x.* = @intCast(100 + i);
+    var hc: [16 * 5]u32 = undefined;
+    for (&hc, 0..) |*x, i| x.* = @intCast(i);
+    const masks = [_]u32{ 0, 1, 3 };
+    const fixed_idx = [_]u32{0};
+    const slots = [_]ClaimSlot{.{ .parameter = 1, .claim = 0 }};
+    const roles = [_]RoleSpec{
+        .{ .id = 3, .trace_log = 5, .eval_log = 6, .widths = .{ 1, 2, 1 }, .offsets = .{ 0, 0, 0 }, .fixed_indices = &fixed_idx, .parameters = &params, .mask_columns = &masks, .constraints = 4, .claim_slots = &slots },
+        .{ .id = 7, .trace_log = 5, .eval_log = 7, .widths = .{ 0, 0, 1 }, .offsets = .{ 0, 0, 1 }, .aux = .hc, .hc = &hc, .parameters = params[0..8], .mask_columns = masks[0..1], .constraints = 2 },
+    };
+    const spec = Spec{ .roles = &roles, .log = 8, .split = 1, .total = 6, .beta = 2, .tree_logs = .{ &fixed_logs, &main_logs, &inter_logs } };
+    // Count the allocations of init, then fail every later one in turn.
+    var counting = std.testing.FailingAllocator.init(std.testing.allocator, .{});
+    {
+        var p = try Plan.init(counting.allocator(), spec);
+        p.deinit();
+    }
+    const init_allocs = counting.alloc_index;
+    var fail_at = init_allocs;
+    var failed_detach = false;
+    while (true) : (fail_at += 1) {
+        var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = fail_at });
+        var p = Plan.init(failing.allocator(), spec) catch break;
+        defer p.deinit();
+        p.detach() catch {
+            failed_detach = true;
+            continue;
+        };
+        break;
+    }
+    try std.testing.expect(failed_detach);
 }
 
 test "twiddle region lengths match precomputeM31 (host trees are built only for a fresh region)" {

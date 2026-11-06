@@ -207,8 +207,15 @@ const Framing = struct {
     inter_plan: ?NC.CommitPlan = null,
     comp_plan: ?NComp.Plan = null,
     pcs: ?NP.PcsJob = null,
+    /// The PCS coefficient table as `prepare` left it (placeholder columns).
+    /// Stage2 `bindColumn`s every column to job-arena addresses; a cached
+    /// framing restores this copy on every checkout, so a column the next job
+    /// fails to bind still fails the PCS custody check instead of reading the
+    /// previous job's freed arena.
+    pristine_columns: []PcsColumn = &.{},
     pub fn destroy(self: *Framing) void {
         const a = self.a;
+        a.free(self.pristine_columns);
         if (self.pcs) |*p| p.deinit(a);
         if (self.comp_plan) |*p| p.deinit();
         if (self.inter_plan) |*p| p.deinit();
@@ -236,6 +243,8 @@ const FramingInputs = struct {
     mask_log: u32,
 };
 
+const PcsColumn = @typeInfo(@TypeOf(@as(NP.PcsJob, undefined).prepared.coefficients)).pointer.child;
+
 const FramingLease = struct {
     framing: *Framing,
     pooled: bool,
@@ -260,8 +269,10 @@ fn globalItem(a: std.mem.Allocator, worker: *CW.CpuWorker, slot: anytype, fixed_
 
 /// The PCS framing's request words: section 15 (expected tree roots, as
 /// prepareMode packs them) and the worker scope identity (requestScope).
-fn pcsRequestWords(pcs: *NP.PcsJob, scope: anytype, roots: [4][32]u8) !void {
+fn pcsRequestWords(pcs: *NP.PcsJob, pristine: []const PcsColumn, scope: anytype, roots: [4][32]u8) !void {
     const p = &pcs.prepared;
+    if (pristine.len != p.coefficients.len) return error.HybridFramingPcsShape;
+    @memcpy(p.coefficients, pristine);
     if (!p.section_owned[15] or p.section_storage[15].len != roots.len * 8) return error.HybridFramingPcsShape;
     const s15 = @constCast(p.section_storage[15]);
     for (roots, 0..) |r, t| for (0..8) |i| {
@@ -309,7 +320,9 @@ fn sameFraming(x: *const Framing, y: *const Framing) !void {
     if (!px.base_shift.eql(py.base_shift)) return Diff.fail("pcs.base_shift");
     if (!std.mem.eql(u32, &px.prepared.scope, &py.prepared.scope) or !std.mem.eql(u32, &px.descriptor.scope, &py.descriptor.scope)) return Diff.fail("pcs.scope");
     if (px.prepared.coefficients.len != py.prepared.coefficients.len) return Diff.fail("pcs.coefficients");
-    for (px.prepared.coefficients, py.prepared.coefficients) |p, q| if (p.coefficient_log != q.coefficient_log or p.count != q.count) return Diff.fail("pcs.column");
+    // Whole column records (kind, address, custody token): a rebound framing
+    // carries only `prepare`'s placeholders, never a previous job's bindings.
+    for (px.prepared.coefficients, py.prepared.coefficients) |p, q| if (!std.mem.eql(u8, std.mem.asBytes(&p), std.mem.asBytes(&q))) return Diff.fail("pcs.column");
     for (px.prepared.metadata.shape.trees, py.prepared.metadata.shape.trees) |p, q| {
         if (!std.mem.eql(u32, p.coefficient_logs, q.coefficient_logs) or !std.mem.eql(u32, p.sorted_to_original, q.sorted_to_original) or !std.mem.eql(u32, p.sample_counts, q.sample_counts)) return Diff.fail("pcs.shape");
     }
@@ -422,6 +435,13 @@ pub const Hybrid = struct {
         const set = try jobs.WorkerSet.startParked(a, library, config);
         config.arena_words = cap_words;
         errdefer set.stop(a);
+        // Parsed before the catalogues below (which the errdefers here do not
+        // release): a bad value fails without leaking them.
+        const framing_policy = try FC.policyFromEnv();
+        // Bounds: one instance per class per job in flight; the hybrid runs one
+        // stage-two window per GPU, so 2 per class covers 2 GPUs. 32 classes
+        // hold the 7 + 4 segment classes of 24628607 and 26235156 with room.
+        const framing_max = try envBytes("STWO_RV64_M8_NATIVE_FRAMING_CACHE_MAX", 32);
         const self = try a.create(Hybrid);
         errdefer a.destroy(self);
         const Version = *const fn () callconv(.c) u32;
@@ -444,11 +464,8 @@ pub const Hybrid = struct {
             .arena_words = config.arena_words,
         };
         self.timing = .{ .ctx = self, .create = tCreate, .record = tRecord, .elapsed = tElapsed, .destroy = tDestroy };
-        self.framing_policy = try FC.policyFromEnv();
-        // Bounds: one instance per class per job in flight; the hybrid runs one
-        // stage-two window per GPU, so 2 per class covers 2 GPUs. 32 classes
-        // hold the 7 + 4 segment classes of 24628607 and 26235156 with room.
-        self.framings = FC.Pool(Framing).init(a, try envBytes("STWO_RV64_M8_NATIVE_FRAMING_CACHE_MAX", 32), 2);
+        self.framing_policy = framing_policy;
+        self.framings = FC.Pool(Framing).init(a, framing_max, 2);
         self.numerical = .{ .context = self, .prove = prove, .bind = bind, .abort = abortScope, .replay_binding = replay };
         std.debug.print("GPU_M8_NATIVE_HYBRID event=boot workers={} arena_words={} wide={} framing_cache={s}\n", .{ set.count, config.arena_words, self.wide, @tagName(self.framing_policy) });
         return self;
@@ -880,6 +897,7 @@ pub const Hybrid = struct {
         };
         const pcs_request = DP.Request{ .scope = worker.scheme.device_om31_scope, .config = config, .lifting_log_size = comp_plan.chunkLog() + beta, .trees = &trees, .points = .{ .items = &tree_points } };
         fr.pcs = try NP.PcsJob.prepare(ha, self.psym, pcs_request, placeholder, self.wide);
+        fr.pristine_columns = try ha.dupe(PcsColumn, fr.pcs.?.prepared.coefficients);
         return fr;
     }
 
@@ -901,7 +919,7 @@ pub const Hybrid = struct {
             k += 1;
         }
         if (k != fr.gplans.items.len) return error.NativeFramingCacheMismatch;
-        try pcsRequestWords(&fr.pcs.?, worker.scheme.device_om31_scope, .{ worker.expected.fixed, in.seg.main_root, @splat(0), @splat(0) });
+        try pcsRequestWords(&fr.pcs.?, fr.pristine_columns, worker.scheme.device_om31_scope, .{ worker.expected.fixed, in.seg.main_root, @splat(0), @splat(0) });
     }
 
     fn stageTwoInner(self: *Hybrid, a: std.mem.Allocator, worker: *CW.CpuWorker, pending: *const Manifest.PendingManifest, ordinal: u32) !CW.CpuEncoded {
