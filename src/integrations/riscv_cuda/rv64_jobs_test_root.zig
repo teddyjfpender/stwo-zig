@@ -11,4 +11,5 @@ test {
     _ = @import("rv64/jobs/native_commit.zig");
     _ = @import("rv64/jobs/native_commit_test.zig");
     _ = @import("rv64/jobs/native_tail_test.zig");
+    _ = @import("rv64/jobs/native_pcs_scale_test.zig");
 }
