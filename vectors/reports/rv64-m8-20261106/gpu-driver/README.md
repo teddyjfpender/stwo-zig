@@ -55,3 +55,7 @@ The local run (Debug, under memguard) finished 14/14 build steps, with 388 of 39
 
 - **D4/D5 (real factories, 26235156 and 24628607 under GPU_NATIVE):** these need the native and recursion stream factories. `native_device` and `outer_device` are stubs, so selecting the flag fails closed at warm.
 - **The gate proof step and the JOBS=1 gate:** blocked by the orphan GPU holder. See `gate-1` on the pod.
+
+## Review pass (365a8b632, 22aa860cd, 9a6392a14)
+
+See `review-fixes.json`. The protocol change: exchange flags are now set to `gpu_native.Exchange.flagTag(generation)`, not 1. Replicas are zeroed once at install and never per request (a preamble zero on one GPU is not ordered against another GPU's peer copy). `flags_verdict` became `stwo_rv64_jobs_flags_verdict_tag(flags, count, expected, …)`. D1: 394/399 pass with 5 pre-existing skips [M]. D3 on addon-8: 6/6 byte-exact, 1 host wait and 2 D2H per request [M]. The D3 negative case is a stale flag from generation 1 under generation 3, and it is rejected (`0x0103000b`) [M].

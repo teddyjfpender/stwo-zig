@@ -1,0 +1,24 @@
+{
+  "schema": "rv64-m8-gpu-driver-review/v1",
+  "commits": ["365a8b632", "22aa860cd", "9a6392a14"],
+  "d1_host": "zig build test-rv64-jobs test-rv64-jobs-outer: 394/399 pass, 5 pre-existing skips (Debug, memguard 6 GB, laptop) [M]; +6 regression tests",
+  "d3_pod": {
+    "build": "Debug build-rv64-jobs-parity + addon-8 sm_120 (peer_ops.cu: stwo_rv64_jobs_flags_verdict_tag), base m7-combined-residency, STWO_RV64_DEVICE_ARENA=0 (orphan pid 3302210 still holds 30.1 GB/GPU)",
+    "raw": {
+      "positive": {"path": "/workspace/m3/runs/m8-gpu-driver/d3-8/positive.err", "sha256": "fd90e27dccf040dd6a3a7c5b179a134a54dc556ca7f25c69dff7ce30077aa11d"},
+      "negative": {"path": "/workspace/m3/runs/m8-gpu-driver/d3-8/negative.err", "sha256": "db64e2c0759c97c0c6d4d2bf2b3209583a1b01261b195e8cac95fb66801aa9d0"}
+    },
+    "positive": "6/6 requests byte-exact, host_waits=1, d2h=2, 17 peer publishes / 34 peer copies per request, 0 failures [M]; wall 10.8-12.0 ms Debug [M]",
+    "negative": "generation 3 reuses parity 0 whose replica still holds generation 1's flags (no per-request zero any more); its withheld claims flag is rejected by the tagged device check global_seal word 0x0103000b, request refused [M]"
+  },
+  "fixed": [
+    "exchange zero in each GPU's preamble was unordered against other GPUs' peer copies (could erase landed roots/claims/seal under pipelining) -> install-time zero + per-request flag tags (Exchange.flagTag), flags_verdict checks the tag",
+    "batchStage refusal and failBatch signalled dependents failed=false with no event -> dependents enqueued without a producer; now poisoned",
+    "begin error path aborted jobs and reused the parity with work still in flight -> quiesce every GPU first (error path only)",
+    "complete() left later lanes' jobs unfinished when one lane's call failed",
+    "receipt peer counters read after the next request's begin reset them",
+    "capture: failed capture closed the shared ring forever; begin reset the whole ring under a pipelined request; ownership by segment only crossed requests; a stream could be held by both in-flight requests",
+    "arena epoch bumped on every phase flip (graph caches keyed on it never hit) -> stable per-phase epochs; plan worker refuses park",
+    "warm ran before installPlanArena freed the pre-plan arena -> optional factory `installed` hook (main_resident + phase epochs) before the class cache seals"
+  ]
+}
