@@ -228,7 +228,9 @@ pub const Section = struct {
     pub const main_root = challenges + challenges_words;
     pub const inter_root = main_root + 8;
     pub const composition_root = inter_root + 8;
-    pub const boundaries = composition_root + 8;
+    /// FIXED root the job recommitted (first node of a class on a worker).
+    pub const fixed_root = composition_root + 8;
+    pub const boundaries = fixed_root + 8;
     pub const boundary_words = 16;
     pub const words = boundaries + device_ops.len * boundary_words;
 };

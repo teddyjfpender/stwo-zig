@@ -15,7 +15,9 @@ const Plan = @import("outer_plan.zig");
 const K = @import("outer_kernels.zig");
 const Comp = @import("outer_composition.zig");
 
-pub const Region = enum(u2) { node, class, twiddles };
+pub const Region = enum(u2) { node, class, twiddles, fixed };
+/// Regions packed from host images (FIXED coefficients are produced on device).
+pub const uploaded = [_]Region{ .node, .class, .twiddles };
 
 pub const Range = struct {
     region: Region = .node,
@@ -36,10 +38,11 @@ pub const Image = struct {
     gathered_fixed: Range = .{},
     main_logs: Range = .{},
     inter_logs: Range = .{},
+    fixed_logs: Range = .{},
     /// Forward/inverse twiddle trees per height (twiddle region).
     twiddles: [29]Range = @splat(.{}),
     itwiddles: [29]Range = @splat(.{}),
-    words: [3]u64 = .{ 0, 0, 0 },
+    words: [4]u64 = .{ 0, 0, 0, 0 },
     pub fn take(self: *Image, region: Region, words: u64) Range {
         const at = &self.words[@intFromEnum(region)];
         const r = Range{ .region = region, .offset = at.*, .words = words };
@@ -99,6 +102,13 @@ pub const Statics = struct {
     /// Every height the node transforms at (TC eval height, RC role heights,
     /// composition and commit heights), with its twiddle trees.
     tables: [29]?Twiddles = @splat(null),
+    /// FIXED tree commit geometry (original-order logs = authority fixed_logs),
+    /// its sorted log table (class region) and the raw FIXED evaluations
+    /// (host PP columns, original order), committed on device by the first node
+    /// of a class on a worker into the persistent `.fixed` region.
+    fixed_plan: ?Plan.TreePlan = null,
+    fixed_raw: []const []const u32 = &.{},
+    fixed_sorted_logs: []const u32 = &.{},
     /// Composition statics and their packed class-region blob (null: prefix only).
     composition: ?Comp.Static = null,
     rc_blob: []const u32 = &.{},
@@ -138,6 +148,18 @@ pub const Staged = struct {
     pub fn classRegionKey(self: *const Staged) [32]u8 {
         return regionKey("rv64/m8/outer-job/class-region/v1", &self.statics.identity, self.image.words[@intFromEnum(Region.class)]);
     }
+    pub fn fixedRegionKey(self: *const Staged) [32]u8 {
+        return regionKey("rv64/m8/outer-job/fixed-coefficients/v1", &self.fixed_root, if (self.statics.fixed_plan) |fp| fp.coefficient_words else 0);
+    }
+    /// Raw FIXED evaluations in the FIXED commit's sorted layout.
+    pub fn packFixed(self: *const Staged, out: []u32) !void {
+        const fp = &(self.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing);
+        if (out.len < fp.coefficient_words or self.statics.fixed_raw.len != fp.offsets.len) return error.OuterStagedImageTooSmall;
+        for (self.statics.fixed_raw, fp.offsets, fp.logs) |column, off, log| {
+            if (column.len != @as(usize, 1) << @intCast(log)) return error.InvalidOuterFixedGather;
+            @memcpy(out[@intCast(off)..][0..column.len], column);
+        }
+    }
     pub fn twiddleRegionKey(self: *const Staged) [32]u8 {
         var logs: [29]u8 = undefined;
         for (&logs, self.statics.tables) |*l, t| l.* = @intFromBool(t != null);
@@ -169,6 +191,7 @@ pub const Staged = struct {
         i.gathered_fixed = i.take(.class, statics.gathered_fixed.len);
         i.main_logs = i.take(.class, Plan.main_columns);
         i.inter_logs = i.take(.class, Plan.inter_columns);
+        i.fixed_logs = i.take(.class, statics.fixed_sorted_logs.len);
         for (statics.tables, 0..) |t, log| if (t) |tw| {
             i.twiddles[log] = i.take(.twiddles, tw.twiddles.len);
             i.itwiddles[log] = i.take(.twiddles, tw.itwiddles.len);
@@ -198,6 +221,7 @@ pub const Staged = struct {
             .{ i.gathered_fixed, s.gathered_fixed },
             .{ i.main_logs, &s.main_logs },
             .{ i.inter_logs, &s.inter_logs },
+            .{ i.fixed_logs, s.fixed_sorted_logs },
         };
         for (sections) |entry| {
             const r, const src = entry;
@@ -210,7 +234,7 @@ pub const Staged = struct {
 
 /// Device base pointer of each region, filled by stage().
 pub const Bases = struct {
-    regions: [3][*]const u32,
+    regions: [4][*]const u32,
     pub fn at(self: Bases, r: Range) [*]const u32 {
         return self.regions[@intFromEnum(r.region)] + @as(usize, @intCast(r.offset));
     }
@@ -220,6 +244,7 @@ test "image regions are disjoint, 2-word aligned, and a leaf keeps its schedule 
     var statics: Statics = undefined;
     statics.gathered_fixed = &.{ 1, 2, 3 };
     statics.rc_blob = &.{};
+    statics.fixed_sorted_logs = &.{};
     statics.tables = @splat(null);
     statics.tables[5] = .{ .twiddles = &.{ 1, 2, 3, 4 }, .itwiddles = &.{ 1, 2, 3, 4 } };
     var assignment: Assignment = undefined;

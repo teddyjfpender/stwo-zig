@@ -91,6 +91,7 @@ pub const OuterNodeJob = struct {
     composition_root: [32]u8 = @splat(0),
     oods: [16]u32 = @splat(0),
     allocator: std.mem.Allocator = std.heap.c_allocator,
+    fixed_commit: ?N.FixedCommit = null,
 
     /// `staged` stays owned by the caller (deinit after finish/abort).
     /// `snapshots`: also copy the channel state into the slab after every
@@ -218,10 +219,16 @@ pub const OuterNodeJob = struct {
             const commit = g(@as(u64, cs.outputColumns()) << @intCast(cs.commitLog()));
             whole = g(cs.coefficientWords()) + g(cs.treeWords()) + g(@as(u64, cs.param_total) * 8) + buckets + @max(widest, g(cs.coefficientWords()) + commit) + 4 * @max(commit, p.main.evaluation_words + p.inter.evaluation_words);
             pinned_extra = self.pcs_plan.ingress_words;
+            if (self.staged.statics.fixed_plan) |fp| {
+                // Worst case (first node of a class): staged raw evaluations
+                // + the FIXED commit's tree and LDE scratch.
+                whole += g(fp.coefficient_words) + g(fp.tree_words + fp.prefix_words) + g(fp.evaluation_words);
+                pinned_extra += fp.coefficient_words;
+            }
         };
         return .{
             .device_words = @intCast(long + stack + g(node) + whole),
-            .staged_words = @intCast(g(node) + (if (whole != 0) long else 0)),
+            .staged_words = @intCast(g(node) + (if (whole != 0) long + (if (self.staged.statics.fixed_plan) |fp| g(fp.coefficient_words) else 0) else 0)),
             .slab_words = self.layout.words,
             .pinned_words = @intCast(node + self.staged.image.words[@intFromEnum(St.Region.class)] + self.staged.image.words[@intFromEnum(St.Region.twiddles)] + pinned_extra),
         };
@@ -231,8 +238,9 @@ pub const OuterNodeJob = struct {
         if (self.mode == .full and self.tail == null and self.whole == null) return error.OuterJobTailUnbound;
         if (self.staged.plan().geometry.beta != 1) return error.UnsupportedOuterJobBlowup;
         const words = self.staged.image.words;
-        var regions: [3][*]const u32 = undefined;
-        for (std.enums.values(St.Region)) |region| {
+        var regions: [4][*]const u32 = undefined;
+        regions[@intFromEnum(St.Region.fixed)] = undefined;
+        for (St.uploaded) |region| {
             const n = words[@intFromEnum(region)];
             const buffer: api.DeviceBuffer, const fresh = switch (region) {
                 .node => .{ try s.alloc(@intCast(@max(n, 1))), true },
@@ -244,6 +252,7 @@ pub const OuterNodeJob = struct {
                     const p = try s.persistent(self.staged.twiddleRegionKey(), @intCast(@max(n, 1)));
                     break :blk .{ p.buffer, p.fresh };
                 },
+                .fixed => unreachable,
             };
             regions[@intFromEnum(region)] = buffer.ptr;
             if (fresh and n != 0) {
@@ -251,6 +260,20 @@ pub const OuterNodeJob = struct {
                 try self.staged.pack(region, pinned);
                 try s.upload(buffer, pinned);
                 self.report.staged_words[@intFromEnum(region)] = n;
+            }
+        }
+        if (self.whole != null) {
+            // FIXED coefficients: worker-persistent per FIXED root. The first
+            // node of a class commits them on device from the raw evaluations.
+            const fp = &(self.staged.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing);
+            const fixed = try s.persistent(self.staged.fixedRegionKey(), @intCast(fp.coefficient_words));
+            regions[@intFromEnum(St.Region.fixed)] = fixed.buffer.ptr;
+            if (fixed.fresh) {
+                const raw = try s.alloc(@intCast(fp.coefficient_words));
+                const pinned = try s.pinned(@intCast(fp.coefficient_words));
+                try self.staged.packFixed(pinned);
+                try s.upload(raw, pinned);
+                self.fixed_commit = .{ .evaluations = raw.ptr, .coefficients = fixed.buffer.ptr };
             }
         }
         self.bases = .{ .regions = regions };
@@ -337,7 +360,7 @@ pub const OuterNodeJob = struct {
         var view = EnqueueView{ .e = e };
         var device = K.Device{ .ctx = e.ctx(), .stream = e.stream(), .impl = &view, .vtable = &EnqueueView.vtable, .kernels = self.kernels };
         var tail_state = TailState{ .job = self, .e = e };
-        var node = N.Node{ .staged = self.staged, .bases = self.bases, .section = section.ptr, .mode = self.mode, .tail = self.tail, .long = if (self.held) |h| h.long else null };
+        var node = N.Node{ .staged = self.staged, .bases = self.bases, .section = section.ptr, .mode = self.mode, .tail = self.tail, .long = if (self.held) |h| h.long else null, .fixed = self.fixed_commit };
         if (self.whole != null) node.tail = .{ .context = &tail_state, .enqueue = TailState.enqueue };
         var body = Body{ .job = self, .e = e, .device = &device, .node = &node, .saved = e.channel.* };
         if (self.snapshots) {
@@ -363,6 +386,7 @@ pub const OuterNodeJob = struct {
         self.decoded = try decode(section, self.staged.expected);
         if (self.whole != null) {
             const d = self.decoded.?;
+            if (self.fixed_commit != null and !std.mem.eql(u8, &root(section[Plan.Section.fixed_root..]), &self.staged.fixed_root)) return error.InvalidOm31DeviceFixedRoot;
             self.composition_root = root(section[Plan.Section.composition_root..]);
             const oods = try Slab.read(view, .opaque_words, oods_index);
             if (oods[32] != 0) return error.InvalidOuterOodsPoint;

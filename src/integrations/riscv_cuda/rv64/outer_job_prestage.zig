@@ -196,9 +196,7 @@ const Rc = struct {
         a.free(self.sources);
         a.free(self.fixed_offsets);
     }
-    fn init(a: std.mem.Allocator, key: *const Authority, library: *std.DynLib, plan: *const Plan.ClassPlan) !Rc {
-        const fixed_tree = key.fixed orelse return error.OuterJobRequiresHostFixedTree;
-        const fixed_coefficients = fixed_tree.coefficients orelse return error.OuterJobRequiresHostFixedTree;
+    fn init(a: std.mem.Allocator, key: *const Authority, library: *std.DynLib, fixed_plan: *const Plan.TreePlan) !Rc {
         const groups = try Catalogue.get(key, library);
         var blob: std.ArrayList(u32) = .empty;
         errdefer blob.deinit(a);
@@ -210,16 +208,11 @@ const Rc = struct {
                 return .{ .region = .class, .offset = at, .words = words.len };
             }
         };
-        // FIXED coefficients, original column order.
-        const fixed_offsets = try a.alloc(u64, fixed_coefficients.len);
+        // FIXED coefficients live in the worker-persistent `.fixed` region, in
+        // the FIXED commit's sorted layout (committed on device; any authority).
+        const fixed_offsets = try a.dupe(u64, fixed_plan.offsets);
         errdefer a.free(fixed_offsets);
-        const fixed_first = blob.items.len;
-        for (fixed_coefficients, fixed_offsets) |poly, *off| {
-            off.* = blob.items.len - fixed_first;
-            try blob.appendSlice(a, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(poly.coefficients())));
-        }
-        const fixed = St.Range{ .region = .class, .offset = fixed_first, .words = blob.items.len - fixed_first };
-        while (blob.items.len % 2 != 0) try blob.append(a, 0);
+        const fixed = St.Range{ .region = .fixed, .offset = 0, .words = fixed_plan.coefficient_words };
         const roles = try a.alloc(Comp.RoleStatic, groups.len);
         errdefer a.free(roles);
         var sources: std.ArrayList(Comp.Source) = .empty;
@@ -317,7 +310,6 @@ const Rc = struct {
         static.commit_logs = try Take.take(&blob, a, commit);
         const owned_sources = try sources.toOwnedSlice(a);
         for (roles, 0..) |*role, id| role.sources = owned_sources[source_first[id]..source_first[id + 1]];
-        _ = plan;
         const points = try samplePoints(a, key);
         return .{ .static = static, .points = points, .blob = try blob.toOwnedSlice(a), .roles = roles, .sources = owned_sources, .fixed_offsets = fixed_offsets };
     }
@@ -329,6 +321,9 @@ const Statics = struct {
     gather: [Plan.n_components][]u32,
     gathered: []u32,
     rc: ?Rc = null,
+    fixed_plan: ?Plan.TreePlan = null,
+    fixed_raw: [][]const u32 = &.{},
+    fixed_sorted: []u32 = &.{},
 
     fn init(a: std.mem.Allocator, key: *const Authority, library: *std.DynLib, composition: bool) !*Statics {
         const self = try a.create(Statics);
@@ -373,7 +368,17 @@ const Statics = struct {
         for (&self.public.gather, self.gather) |*dst, src| dst.* = src;
         try self.addTable(plan.main.eval_log);
         if (composition) {
-            self.rc = try Rc.init(a, key, library, &self.public.plan);
+            self.fixed_plan = try Plan.TreePlan.init(a, &key.fixed_logs, geometry.beta);
+            const fp = &self.fixed_plan.?;
+            self.fixed_sorted = try a.alloc(u32, fp.order.len);
+            TC.sortedLogs(fp, self.fixed_sorted);
+            self.fixed_raw = try a.alloc([]const u32, key.pp.columns.len);
+            for (self.fixed_raw, key.pp.columns) |*dst, column| dst.* = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(column.values));
+            self.public.fixed_plan = fp.*;
+            self.public.fixed_raw = self.fixed_raw;
+            self.public.fixed_sorted_logs = self.fixed_sorted;
+            try self.addTable(fp.eval_log);
+            self.rc = try Rc.init(a, key, library, fp);
             errdefer self.rc.?.deinit(a);
             self.public.composition = self.rc.?.static;
             self.public.rc_blob = self.rc.?.blob;
@@ -394,6 +399,9 @@ const Statics = struct {
     fn destroy(self: *Statics) void {
         const a = self.allocator;
         if (self.rc) |*rc| rc.deinit(a);
+        if (self.fixed_plan) |*fp| fp.deinit(a);
+        a.free(self.fixed_raw);
+        a.free(self.fixed_sorted);
         a.free(self.gathered);
         for (self.gather) |g| a.free(g);
         self.public.plan.deinit(a);
