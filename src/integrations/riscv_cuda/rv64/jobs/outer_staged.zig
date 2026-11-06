@@ -246,7 +246,7 @@ pub const Bases = struct {
     }
 };
 
-test "image regions are disjoint, 2-word aligned, and a leaf keeps its schedule node-local" {
+test "image regions are disjoint, 256 B (64-word) aligned, and a leaf keeps its schedule node-local" {
     var statics: Statics = undefined;
     statics.gathered_fixed = &.{ 1, 2, 3 };
     statics.rc_blob = &.{};
@@ -264,12 +264,13 @@ test "image regions are disjoint, 2-word aligned, and a leaf keeps its schedule 
     assignment.reusable = false;
     const leaf = Staged.layout(&assignment, &statics);
     try std.testing.expectEqual(Region.node, leaf.tasks.region);
-    try std.testing.expectEqual(@as(u64, 10), leaf.seeds.offset);
-    try std.testing.expectEqual(@as(u64, 16), leaf.tasks.offset);
+    // channel_seed [0, 9) -> 64; seeds [64, 69) -> 128 (Image.take aligns to 64 words).
+    try std.testing.expectEqual(@as(u64, 64), leaf.seeds.offset);
+    try std.testing.expectEqual(@as(u64, 128), leaf.tasks.offset);
     assignment.reusable = true;
     const fold = Staged.layout(&assignment, &statics);
     try std.testing.expectEqual(Region.class, fold.tasks.region);
     try std.testing.expectEqual(@as(u64, 0), fold.tasks.offset);
     try std.testing.expectEqual(@as(u64, 8), fold.twiddles[5].words + fold.itwiddles[5].words);
-    try std.testing.expectEqual(@as(u64, 4), fold.itwiddles[5].offset);
+    try std.testing.expectEqual(@as(u64, 64), fold.itwiddles[5].offset);
 }
