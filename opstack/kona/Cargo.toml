@@ -15,8 +15,10 @@ host = ["dep:kona-registry"]
 keccak-service = ["alloy-primitives/native-keccak"]
 secp-lean = ["k256/stwo-projective-word-service", "k256/stwo-vartime", "ecdsa/stwo-skip-redundant-recovery-verify"]
 sha-service = ["dep:sha2-rv64", "sha2-rv64/stwo-sha256-service"]
+precompile-services = ["sha-service", "dep:revm-precompile"]
 
 [dependencies]
+revm-precompile = { version = "=42.0.1", default-features = false, optional = true }
 k256 = { version = "=0.13.4", default-features = false, features = ["ecdsa"] }
 ecdsa = { version = "=0.16.9", default-features = false }
 alloy-consensus = { version = "=2.3.0", default-features = false, features = ["serde", "k256"] }

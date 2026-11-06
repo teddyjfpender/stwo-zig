@@ -2549,6 +2549,7 @@ dependencies = [
  "kona-registry",
  "op-alloy-rpc-types-engine",
  "postcard",
+ "revm-precompile",
  "serde",
  "serde_json",
  "sha2 0.10.9",

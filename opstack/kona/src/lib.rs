@@ -7,4 +7,6 @@ pub(crate) use sha2 as statement_sha2;
 pub(crate) use sha2_rv64 as statement_sha2;
 pub mod execution;
 pub mod metadata;
+#[cfg(feature = "precompile-services")]
+pub mod precompiles;
 pub mod witness;

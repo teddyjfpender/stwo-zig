@@ -72,6 +72,8 @@ extern "C" fn guest_main() -> ! {
     } else {
         Validation::Lazy
     };
+    #[cfg(feature = "precompile-services")]
+    assert!(stwo_kona_execution::precompiles::install());
     let witness = Witness::parse(input, mode).expect("invalid OP witness");
     let result = execute(&witness).expect("OP execution rejected");
     let output = result.public_output();

@@ -21,6 +21,7 @@ memory-service = ["stwo-rv64-mem/admitted-bulk"]
 sha-service = ["stwo-kona-execution/sha-service"]
 bn254-service = ["dep:ark-bn254", "ark-bn254/stwo-montgomery-service"]
 arithmetic-service = ["dep:revm-interpreter", "revm-interpreter/stwo-arith256-service"]
+precompile-services = ["stwo-kona-execution/precompile-services"]
 
 [dependencies]
 ark-bn254 = { version = "=0.6.0", default-features = false, optional = true }

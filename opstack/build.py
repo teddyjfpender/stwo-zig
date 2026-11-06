@@ -34,6 +34,10 @@ LEAN_VARIANTS = {
         ["memory-service", "sha-service", "arithmetic-service", "bn254-service"],
     ),
     "full": ("frontier", ["memory-service", "sha-service", "arithmetic-service"]),
+    "precompiles": (
+        "frontier",
+        ["memory-service", "sha-service", "arithmetic-service", "precompile-services"],
+    ),
 }
 
 BULK_DEFAULTS = {"COPY": 16, "UCOPY": 16, "SET": 16, "CMP": 8}
@@ -77,6 +81,12 @@ def main():
     )
     parser.add_argument("--eager", action="store_true")
     parser.add_argument(
+        "--guest-opt-level",
+        choices=("2", "3", "s", "z"),
+        default="3",
+        help="explicit guest LLVM optimization policy; native reference stays unchanged",
+    )
+    parser.add_argument(
         "--bulk-min",
         help="explicit shared copy/set/compare threshold: 8..1048576 or off",
     )
@@ -94,7 +104,7 @@ def main():
     env = dict(
         compiler_env,
         CARGO_TARGET_DIR=str(crate / "target"),
-        RUSTFLAGS="-C passes=lower-atomic",
+        RUSTFLAGS="-C passes=lower-atomic -C opt-level=" + args.guest_opt_level,
     )
     commands = []
     with (artifacts / "build.log").open("w") as log:
@@ -202,6 +212,7 @@ def main():
     report = {
         "schema": "stwo.opstack.build.v1",
         "variant": args.variant,
+        "guest_opt_level": args.guest_opt_level,
         "bulk_threshold_bytes": bulk_thresholds,
         "eager": args.eager,
         "commands": commands,
