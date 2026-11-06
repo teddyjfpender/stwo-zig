@@ -143,7 +143,7 @@ pub const CommitPlan = struct {
     pub fn deviceWords(self: *const CommitPlan) usize {
         // Prefix banks: at most 48 words per row of the largest non-final height (trace_commit.zig).
         // beta >= 2 with caller storage also holds a temporary coefficient region.
-        const extra = if (self.beta == 1) 0 else self.coefficient_cells + self.auxWords() + 3 * 64;
+        const extra = if (self.beta == 1) 0 else self.auxWords() + 3 * 64;
         return self.coefficient_cells + self.eval_cells + self.tree_words + 48 * (@as(usize, 1) << @intCast(self.eval_log - 1)) + 3 * 64 + extra;
     }
     /// Phase-1 arena words (logs + staged host columns); twiddles are persistent.
@@ -197,8 +197,10 @@ pub const CommitPlan = struct {
     fn auxWords(self: *const CommitPlan) usize {
         return self.tw.twiddles.len + 7 * self.order.len;
     }
-    /// Word offsets {coefficients, evaluations, aux} from the lowest of the
-    /// three back-to-back allocations (bottom side grows up, top grows down).
+    /// Word offsets {coefficients, evaluations, aux} inside the one region the
+    /// addressed path allocates. The {evaluations, aux} tail sits on the side
+    /// the arena reclaims first (high end on bottom, low end on top), so it is
+    /// freed after the tree while the coefficients stay for the PCS.
     fn addressedBases(self: *const CommitPlan, placement: api.Placement) [3]usize {
         const c = std.mem.alignForward(usize, self.coefficient_cells, granule());
         const v = std.mem.alignForward(usize, self.eval_cells, granule());
@@ -220,28 +222,37 @@ pub const CommitPlan = struct {
             eval_offset += @as(usize, 1) << @intCast(log + self.beta);
         }
     }
+    fn regionWords(self: *const CommitPlan) usize {
+        return std.mem.alignForward(usize, self.coefficient_cells, granule()) + std.mem.alignForward(usize, self.eval_cells, granule()) + self.auxWords();
+    }
+    fn tail(self: *const CommitPlan, region: api.DeviceBuffer) api.DeviceBuffer {
+        const bases = self.addressedBases(self.placement);
+        return if (self.placement == .bottom) .{ .ptr = region.ptr + bases[1], .words = region.words - bases[1] } else .{ .ptr = region.ptr, .words = bases[0] };
+    }
     /// Phase 2. `root_out`: 8-word slab field. `mix`: mix the root into e.channel.
     pub fn enqueue(self: *const CommitPlan, sym: Symbols, e: anytype, inputs: []const Input, root_out: api.DeviceBuffer, mix: bool) !Committed {
-        const coefficients = try e.alloc(self.coefficient_cells);
-        if (self.beta != 1) return self.enqueueAddressed(sym, e, inputs, coefficients, root_out, mix);
-        return self.enqueueInto(sym, e, inputs, coefficients, root_out, mix);
+        if (self.beta != 1) {
+            const region = try e.alloc(self.regionWords());
+            return self.enqueueAddressed(sym, e, inputs, region, root_out, mix);
+        }
+        return self.enqueueInto(sym, e, inputs, try e.alloc(self.coefficient_cells), root_out, mix);
     }
-    /// beta >= 2 (the D2 native profile, blowup 4): the legacy arena path.
-    /// `coefficients` must be the allocation made immediately before this call.
-    fn enqueueAddressed(self: *const CommitPlan, sym: Symbols, e: anytype, inputs: []const Input, coefficients: api.DeviceBuffer, root_out: api.DeviceBuffer, mix: bool) !Committed {
+    /// beta >= 2 (the D2 native profile, blowup 4): the legacy arena path, in
+    /// one `regionWords` allocation {coefficients, evaluations, aux}. Returns
+    /// the coefficient view; the evaluation/aux tail is freed after the tree.
+    fn enqueueAddressed(self: *const CommitPlan, sym: Symbols, e: anytype, inputs: []const Input, region: api.DeviceBuffer, root_out: api.DeviceBuffer, mix: bool) !Committed {
         const n2b = sym.n2b_addressed orelse return error.MissingTraceCommitSymbol;
         const descriptors = self.descriptors_device orelse return error.TraceCommitNotStaged;
         const tw = self.twiddles orelse return error.TraceCommitNotStaged;
-        if (inputs.len != self.shapes.len or root_out.words < 8 or coefficients.words < self.coefficient_cells) return error.TraceCommitInputCount;
+        if (inputs.len != self.shapes.len or root_out.words < 8 or region.words < self.regionWords()) return error.TraceCommitInputCount;
+        const bases = self.addressedBases(self.placement);
+        const coefficients = try region.slice(bases[0], self.coefficient_cells);
+        const evaluations = try region.slice(bases[1], self.eval_cells);
+        const aux = try region.slice(bases[2], self.auxWords());
         const stream = e.stream();
         try self.ingressAndInterpolate(sym, e.ctx(), stream, inputs, coefficients);
-        const evaluations = try e.alloc(self.eval_cells);
-        const aux = try e.alloc(self.auxWords());
-        const bases = self.addressedBases(self.placement);
-        const lower = @min(@intFromPtr(coefficients.ptr), @min(@intFromPtr(evaluations.ptr), @intFromPtr(aux.ptr)));
-        if (@intFromPtr(coefficients.ptr) != lower + 4 * bases[0] or @intFromPtr(evaluations.ptr) != lower + 4 * bases[1] or @intFromPtr(aux.ptr) != lower + 4 * bases[2]) return error.TraceCommitArenaLayout;
-        const base: [*]u32 = @ptrFromInt(lower);
-        const span = @max(bases[0] + self.coefficient_cells, @max(bases[1] + self.eval_cells, bases[2] + self.auxWords()));
+        const base = region.ptr;
+        const span = region.words;
         const tw_words = self.tw.twiddles.len;
         try check(sym.copy_d2d(e.ctx(), aux.ptr, tw.ptr, tw_words * 4));
         try check(sym.copy_d2d(e.ctx(), aux.ptr + tw_words, descriptors.ptr, 7 * self.order.len * 4));
@@ -263,8 +274,7 @@ pub const CommitPlan = struct {
             first = end;
         }
         try self.treeAndRoot(sym, e, segments[0..segment_count], root_out, mix);
-        e.free(aux);
-        e.free(evaluations);
+        e.free(self.tail(region));
         return .{ .coefficients = coefficients, .root = root_out.ptr };
     }
     fn ingressAndInterpolate(self: *const CommitPlan, sym: Symbols, ctx: *anyopaque, stream: *anyopaque, inputs: []const Input, coefficients: api.DeviceBuffer) !void {
@@ -312,10 +322,10 @@ pub const CommitPlan = struct {
     pub fn enqueueInto(self: *const CommitPlan, sym: Symbols, e: anytype, inputs: []const Input, coefficients: api.DeviceBuffer, root_out: api.DeviceBuffer, mix: bool) !Committed {
         if (inputs.len != self.shapes.len or root_out.words < 8 or coefficients.words < self.coefficient_cells) return error.TraceCommitInputCount;
         if (self.beta != 1) {
-            const scratch = try e.alloc(self.coefficient_cells);
-            _ = try self.enqueueAddressed(sym, e, inputs, scratch, root_out, mix);
-            try check(sym.copy_d2d(e.ctx(), coefficients.ptr, scratch.ptr, self.coefficient_cells * 4));
-            e.free(scratch);
+            const region = try e.alloc(self.regionWords());
+            const scratch = try self.enqueueAddressed(sym, e, inputs, region, root_out, mix);
+            try check(sym.copy_d2d(e.ctx(), coefficients.ptr, scratch.coefficients.ptr, self.coefficient_cells * 4));
+            e.free(.{ .ptr = scratch.coefficients.ptr, .words = std.mem.alignForward(usize, self.coefficient_cells, granule()) });
             return .{ .coefficients = coefficients, .root = root_out.ptr };
         }
         const ctx = e.ctx();
@@ -425,6 +435,22 @@ test "beta 2 descriptors address coefficients and evaluations from the lower buf
     // words, then the coefficients at 128 + 192 = 320.
     try std.testing.expectEqual(@as(usize, 64 + 14), plan.auxWords());
     try std.testing.expectEqualSlices(u32, &.{ 320, 0, 128, 0, 3, 0, 328, 0, 160, 0, 5, 0, 3, 5 }, &top);
+}
+
+test "beta 2 region: the evaluation/aux tail is the side the arena reclaims first" {
+    var plan = try CommitPlan.init(std.testing.allocator, &.{ .{ .log_size = 5, .encoding = .evaluations }, .{ .log_size = 3, .encoding = .coefficients } }, 2);
+    defer plan.deinit();
+    // align64(40) + align64(160) + (64 tw + 14 descriptor words)
+    try std.testing.expectEqual(@as(usize, 64 + 192 + 78), plan.regionWords());
+    const region = api.DeviceBuffer{ .ptr = @ptrFromInt(4096), .words = plan.regionWords() };
+    plan.placement = .bottom;
+    const b = plan.tail(region);
+    try std.testing.expectEqual(@as(usize, 4096 + 4 * 64), @intFromPtr(b.ptr));
+    try std.testing.expectEqual(@as(usize, 192 + 78), b.words);
+    plan.placement = .top;
+    const t = plan.tail(region);
+    try std.testing.expectEqual(@as(usize, 4096), @intFromPtr(t.ptr));
+    try std.testing.expectEqual(@as(usize, 128 + 192), t.words);
 }
 
 test "commit plan paths are analyzed" {
