@@ -15,6 +15,9 @@
 
 namespace stwo::cuda::transform {
 
+// Register values per thread (five "k" bits) in every register-blocked pass.
+constexpr uint32_t kWideValues = 32;
+
 // Padded shared-memory index: conflict-free for every phase mapping below.
 __device__ __forceinline__ uint32_t wide_tile_pad(uint32_t e) {
     return e + (e >> 5);
@@ -60,6 +63,15 @@ struct WideStridedShape {
     static constexpr uint32_t words = 1u << (High + LaneLog);
     static constexpr size_t bytes = sizeof(uint32_t) * (words + words / 32u);
 };
+
+// Opts a kernel in to more than the default 48 KiB of dynamic shared memory.
+// Per device; cheap and idempotent, so the launchers call it every launch.
+template <typename Kernel>
+inline cudaError_t wide_allow_shared_bytes(Kernel kernel, size_t bytes) {
+    if (bytes <= 48u * 1024u) return cudaSuccess;
+    return cudaFuncSetAttribute(
+        kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, int(bytes));
+}
 
 }  // namespace stwo::cuda::transform
 

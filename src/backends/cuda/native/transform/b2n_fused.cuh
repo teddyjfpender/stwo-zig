@@ -560,7 +560,6 @@ inline cudaError_t launch_b2n_continue_compact(
 // M31 arithmetic is canonical, so every schedule of the same butterflies is
 // bit-identical (parity: bench/fft_passes_bench.cu).
 // ---------------------------------------------------------------------------
-constexpr uint32_t kB2nWideValues = 32;
 constexpr uint32_t kB2nWideLowBits = 13;
 constexpr uint32_t kB2nWideContiguousThreads = 256;
 constexpr uint32_t kB2nWideContiguousWords = 1u << kB2nWideLowBits;
@@ -570,7 +569,7 @@ constexpr uint32_t kB2nWideContiguousWords = 1u << kB2nWideLowBits;
 // the global (column) index of value k.
 template <uint32_t Stages, uint32_t BottomBit, typename Index>
 __device__ __forceinline__ void b2n_wide_stages(
-    M31 (&v)[kB2nWideValues], uint32_t first_stage, uint32_t log_n,
+    M31 (&v)[kWideValues], uint32_t first_stage, uint32_t log_n,
     const M31 *twiddles, M31 scale, Index index) {
 #pragma unroll
     for (uint32_t i = 0; i < Stages; ++i) {
@@ -580,7 +579,7 @@ __device__ __forceinline__ void b2n_wide_stages(
             ? 0u
             : (1u << (log_n - 1u)) - (1u << (log_n - stage + 1u));
 #pragma unroll
-        for (uint32_t q = 0; q < kB2nWideValues / 2u; ++q) {
+        for (uint32_t q = 0; q < kWideValues / 2u; ++q) {
             const uint32_t kl =
                 (q & ((1u << kb) - 1u)) | ((q >> kb) << (kb + 1u));
             const uint32_t kr = kl | (1u << kb);
@@ -600,13 +599,16 @@ __device__ __forceinline__ void b2n_wide_stages(
     }
 }
 
-template <uint32_t Unused = 0>
+// A template (like every kernel in these headers) so that the instantiations
+// in b2n_retained.cu and composition_split.cu merge at the -rdc device link.
+template <uint32_t LowBits = kB2nWideLowBits>
 __global__ __launch_bounds__(kB2nWideContiguousThreads) void b2n_wide_contiguous(
     ColumnSlab<const M31> inputs,
     ColumnSlab<M31> outputs,
     uint32_t log_n,
     const M31 *twiddles,
     uint32_t column_fastest) {
+    static_assert(LowBits == kB2nWideLowBits, "the phases below are 5 + 5 + 3");
     __shared__ M31 tile_values[
         kB2nWideContiguousWords + kB2nWideContiguousWords / 32u];
     const uint32_t column_index = column_fastest ? blockIdx.x : blockIdx.y;
@@ -615,25 +617,25 @@ __global__ __launch_bounds__(kB2nWideContiguousThreads) void b2n_wide_contiguous
     const M31 *input = inputs.column(column_index) + base;
     M31 *output = outputs.column(column_index) + base;
     const uint32_t t = threadIdx.x;
-    M31 v[kB2nWideValues];
+    M31 v[kWideValues];
     // Coalesced load. Every read of the tile precedes every write of it, so
     // an exact input/output alias is safe.
     const auto e0 = [&](uint32_t k) { return t | (k << 8); };
 #pragma unroll
-    for (uint32_t k = 0; k < kB2nWideValues; ++k) v[k] = input[e0(k)];
+    for (uint32_t k = 0; k < kWideValues; ++k) v[k] = input[e0(k)];
 #pragma unroll
-    for (uint32_t k = 0; k < kB2nWideValues; ++k)
+    for (uint32_t k = 0; k < kWideValues; ++k)
         tile_values[wide_tile_pad(e0(k))] = v[k];
     __syncthreads();
     // Phase 1: bits 0..4 <- k0..k4 (stages 1..5, the circle stage first).
     const auto e1 = [&](uint32_t k) { return k | (t << 5); };
 #pragma unroll
-    for (uint32_t k = 0; k < kB2nWideValues; ++k)
+    for (uint32_t k = 0; k < kWideValues; ++k)
         v[k] = tile_values[wide_tile_pad(e1(k))];
     b2n_wide_stages<5, 0>(v, 1, log_n, twiddles, 0u,
                           [&](uint32_t k) { return base | e1(k); });
 #pragma unroll
-    for (uint32_t k = 0; k < kB2nWideValues; ++k)
+    for (uint32_t k = 0; k < kWideValues; ++k)
         tile_values[wide_tile_pad(e1(k))] = v[k];
     __syncthreads();
     // Phase 2: bits 5..9 <- k0..k4.
@@ -641,27 +643,27 @@ __global__ __launch_bounds__(kB2nWideContiguousThreads) void b2n_wide_contiguous
         return (t & 31u) | (k << 5) | ((t >> 5) << 10);
     };
 #pragma unroll
-    for (uint32_t k = 0; k < kB2nWideValues; ++k)
+    for (uint32_t k = 0; k < kWideValues; ++k)
         v[k] = tile_values[wide_tile_pad(e2(k))];
     b2n_wide_stages<5, 0>(v, 6, log_n, twiddles, 0u,
                           [&](uint32_t k) { return base | e2(k); });
 #pragma unroll
-    for (uint32_t k = 0; k < kB2nWideValues; ++k)
+    for (uint32_t k = 0; k < kWideValues; ++k)
         tile_values[wide_tile_pad(e2(k))] = v[k];
     __syncthreads();
     // Phase 3: bits 10..12 <- k2..k4 (stages 11..13), coalesced store.
 #pragma unroll
-    for (uint32_t k = 0; k < kB2nWideValues; ++k)
+    for (uint32_t k = 0; k < kWideValues; ++k)
         v[k] = tile_values[wide_tile_pad(e0(k))];
     b2n_wide_stages<3, 2>(v, 11, log_n, twiddles, 0u,
                           [&](uint32_t k) { return base | e0(k); });
 #pragma unroll
-    for (uint32_t k = 0; k < kB2nWideValues; ++k) output[e0(k)] = v[k];
+    for (uint32_t k = 0; k < kWideValues; ++k) output[e0(k)] = v[k];
 }
 
 template <uint32_t High, uint32_t LaneLog, uint32_t Phase, typename Store>
 __device__ __forceinline__ void b2n_wide_strided_phase(
-    M31 (&v)[kB2nWideValues], M31 *tile_values, M31 *column,
+    M31 (&v)[kWideValues], M31 *tile_values, M31 *column,
     uint32_t j, uint32_t lane, uint32_t shift, uint32_t fixed,
     uint32_t log_n, const M31 *twiddles, M31 scale, Store store) {
     constexpr uint32_t phases = wide_phase_count(High);
@@ -674,20 +676,20 @@ __device__ __forceinline__ void b2n_wide_strided_phase(
     const auto g = [&](uint32_t k) { return (h(k) << shift) | fixed; };
     if constexpr (Phase == 0) {
 #pragma unroll
-        for (uint32_t k = 0; k < kB2nWideValues; ++k) v[k] = column[g(k)];
+        for (uint32_t k = 0; k < kWideValues; ++k) v[k] = column[g(k)];
     } else {
 #pragma unroll
-        for (uint32_t k = 0; k < kB2nWideValues; ++k)
+        for (uint32_t k = 0; k < kWideValues; ++k)
             v[k] = tile_values[wide_tile_pad((h(k) << LaneLog) | lane)];
     }
     b2n_wide_stages<count, 0>(v, shift + first_bit + 1u, log_n, twiddles,
                               scale, g);
     if constexpr (Phase + 1u == phases) {
 #pragma unroll
-        for (uint32_t k = 0; k < kB2nWideValues; ++k) store(g(k), v[k]);
+        for (uint32_t k = 0; k < kWideValues; ++k) store(g(k), v[k]);
     } else {
 #pragma unroll
-        for (uint32_t k = 0; k < kB2nWideValues; ++k)
+        for (uint32_t k = 0; k < kWideValues; ++k)
             tile_values[wide_tile_pad((h(k) << LaneLog) | lane)] = v[k];
         __syncthreads();
     }
@@ -728,7 +730,7 @@ void b2n_wide_strided(
             if constexpr (Duplicate) column[index + (1u << log_n)] = value;
         }
     };
-    M31 v[kB2nWideValues];
+    M31 v[kWideValues];
     b2n_wide_strided_phase<High, LaneLog, 0>(
         v, tile_values, column, j, lane, shift, fixed, log_n, twiddles,
         scale, store);
@@ -818,12 +820,8 @@ inline cudaError_t launch_b2n_wide(
     const auto launch = [&](auto kernel, uint32_t high, uint32_t lane_log,
                             uint32_t threads, size_t bytes) {
         const uint32_t tiles = 1u << (log_n - high - lane_log);
-        if (bytes > 48u * 1024u) {
-            const cudaError_t attribute = cudaFuncSetAttribute(
-                kernel, cudaFuncAttributeMaxDynamicSharedMemorySize,
-                int(bytes));
-            if (attribute != cudaSuccess) return attribute;
-        }
+        const cudaError_t attribute = wide_allow_shared_bytes(kernel, bytes);
+        if (attribute != cudaSuccess) return attribute;
         // Tile-fastest: the tiles sharing an L2 line stay in flight together
         // (as n2b_wide_strided); the high-stage twiddle layers are tiny.
         kernel<<<dim3{tiles, column_count}, threads, bytes, stream>>>(

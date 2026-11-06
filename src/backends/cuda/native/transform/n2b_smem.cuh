@@ -162,11 +162,6 @@ inline cudaError_t launch_n2b_smem_pass(
 #ifndef STWO_N2B_WIDE_STRIDED_COLUMN_FASTEST
 #define STWO_N2B_WIDE_STRIDED_COLUMN_FASTEST 0
 #endif
-constexpr uint32_t kWideValues = 32;
-__device__ __forceinline__ uint32_t n2b_wide_pad(uint32_t e) {
-    return e + (e >> 5);
-}
-
 template <uint32_t Stages, uint32_t TopBit, typename Index>
 __device__ __forceinline__ void n2b_wide_stages(
     M31 (&v)[kWideValues], uint32_t first_stage, uint32_t last_stage,
@@ -243,7 +238,7 @@ __global__ __launch_bounds__(kWideStridedThreads) void n2b_wide_strided(
                           [&](uint32_t k) { return (h1(k) << shift) | fixed; });
 #pragma unroll
     for (uint32_t k = 0; k < kWideValues; ++k)
-        tile_values[n2b_wide_pad(h1(k) * 8u + lane)] = v[k];
+        tile_values[wide_tile_pad(h1(k) * 8u + lane)] = v[k];
     __syncthreads();
     // Phase 2: high bits 5..1 <- k4..k0.
     const auto h2 = [&](uint32_t k) {
@@ -251,18 +246,18 @@ __global__ __launch_bounds__(kWideStridedThreads) void n2b_wide_strided(
     };
 #pragma unroll
     for (uint32_t k = 0; k < kWideValues; ++k)
-        v[k] = tile_values[n2b_wide_pad(h2(k) * 8u + lane)];
+        v[k] = tile_values[wide_tile_pad(h2(k) * 8u + lane)];
     n2b_wide_stages<5, 4>(v, 6, log_n, log_n, twiddles,
                           [&](uint32_t k) { return (h2(k) << shift) | fixed; });
 #pragma unroll
     for (uint32_t k = 0; k < kWideValues; ++k)
-        tile_values[n2b_wide_pad(h2(k) * 8u + lane)] = v[k];
+        tile_values[wide_tile_pad(h2(k) * 8u + lane)] = v[k];
     __syncthreads();
     // Phase 3: high bit 0 <- k0, then store (4 rows x 8 words per warp).
     const auto h3 = [&](uint32_t k) { return k | (j << 5); };
 #pragma unroll
     for (uint32_t k = 0; k < kWideValues; ++k)
-        v[k] = tile_values[n2b_wide_pad(h3(k) * 8u + lane)];
+        v[k] = tile_values[wide_tile_pad(h3(k) * 8u + lane)];
     n2b_wide_stages<1, 0>(v, 11, log_n, log_n, twiddles,
                           [&](uint32_t k) { return (h3(k) << shift) | fixed; });
 #pragma unroll
@@ -313,12 +308,12 @@ __global__ __launch_bounds__(8u << (High - 5u)) void n2b_wide_strided_short(
                           [&](uint32_t k) { return (h1(k) << shift) | fixed; });
 #pragma unroll
     for (uint32_t k = 0; k < kWideValues; ++k)
-        tile_values[n2b_wide_pad(h1(k) * 8u + lane)] = v[k];
+        tile_values[wide_tile_pad(h1(k) * 8u + lane)] = v[k];
     __syncthreads();
     const auto h2 = [&](uint32_t k) { return k | (j << 5); };
 #pragma unroll
     for (uint32_t k = 0; k < kWideValues; ++k)
-        v[k] = tile_values[n2b_wide_pad(h2(k) * 8u + lane)];
+        v[k] = tile_values[wide_tile_pad(h2(k) * 8u + lane)];
     n2b_wide_stages<J, J - 1u>(v, 6, log_n, log_n, twiddles,
                                [&](uint32_t k) { return (h2(k) << shift) | fixed; });
 #pragma unroll
@@ -355,7 +350,7 @@ __global__ __launch_bounds__(kWideContiguousThreads) void n2b_wide_contiguous(
                           [&](uint32_t k) { return base | e1(k); });
 #pragma unroll
     for (uint32_t k = 0; k < kWideValues; ++k)
-        tile_values[n2b_wide_pad(e1(k))] = v[k];
+        tile_values[wide_tile_pad(e1(k))] = v[k];
     __syncthreads();
     // Phase 2: bits 7..3 <- k4..k0.
     const auto e2 = [&](uint32_t k) {
@@ -363,28 +358,28 @@ __global__ __launch_bounds__(kWideContiguousThreads) void n2b_wide_contiguous(
     };
 #pragma unroll
     for (uint32_t k = 0; k < kWideValues; ++k)
-        v[k] = tile_values[n2b_wide_pad(e2(k))];
+        v[k] = tile_values[wide_tile_pad(e2(k))];
     n2b_wide_stages<5, 4>(v, first + 5u, last_stage, log_n, twiddles,
                           [&](uint32_t k) { return base | e2(k); });
 #pragma unroll
     for (uint32_t k = 0; k < kWideValues; ++k)
-        tile_values[n2b_wide_pad(e2(k))] = v[k];
+        tile_values[wide_tile_pad(e2(k))] = v[k];
     __syncthreads();
     // Phase 3: bits 2..0 <- k2..k0 (includes the circle stage).
     const auto e3 = [&](uint32_t k) { return k | (t << 5); };
 #pragma unroll
     for (uint32_t k = 0; k < kWideValues; ++k)
-        v[k] = tile_values[n2b_wide_pad(e3(k))];
+        v[k] = tile_values[wide_tile_pad(e3(k))];
     n2b_wide_stages<3, 2>(v, first + 10u, last_stage, log_n, twiddles,
                           [&](uint32_t k) { return base | e3(k); });
 #pragma unroll
     for (uint32_t k = 0; k < kWideValues; ++k)
-        tile_values[n2b_wide_pad(e3(k))] = v[k];
+        tile_values[wide_tile_pad(e3(k))] = v[k];
     __syncthreads();
     // Coalesced store.
 #pragma unroll
     for (uint32_t k = 0; k < kWideValues; ++k)
-        column[e1(k)] = tile_values[n2b_wide_pad(e1(k))];
+        column[e1(k)] = tile_values[wide_tile_pad(e1(k))];
 }
 
 // Strided pass with wide rows (T4 FFT passes, M8 round 1): the tile holds
@@ -580,12 +575,8 @@ inline cudaError_t launch_n2b_wide(
         sizeof(M31) * ((size_t(8) << high) + (size_t(8) << high) / 32u);
     cudaError_t status = cudaSuccess;
     const auto launch_short = [&](auto kernel, uint32_t threads) {
-        if (a_bytes > 48u * 1024u) {
-            const cudaError_t attribute = cudaFuncSetAttribute(
-                kernel, cudaFuncAttributeMaxDynamicSharedMemorySize,
-                int(a_bytes));
-            if (attribute != cudaSuccess) return attribute;
-        }
+        const cudaError_t attribute = wide_allow_shared_bytes(kernel, a_bytes);
+        if (attribute != cudaSuccess) return attribute;
         kernel<<<a_grid, threads, a_bytes, stream>>>(
             inputs, input_log_sizes, columns, log_n, twiddles, a_fast);
         return cudaPeekAtLastError();
@@ -593,12 +584,8 @@ inline cudaError_t launch_n2b_wide(
     const auto launch_rows = [&](auto kernel, uint32_t lane_log,
                                  uint32_t threads, size_t bytes) {
         const uint32_t tiles = 1u << (log_n - high - lane_log);
-        if (bytes > 48u * 1024u) {
-            const cudaError_t attribute = cudaFuncSetAttribute(
-                kernel, cudaFuncAttributeMaxDynamicSharedMemorySize,
-                int(bytes));
-            if (attribute != cudaSuccess) return attribute;
-        }
+        const cudaError_t attribute = wide_allow_shared_bytes(kernel, bytes);
+        if (attribute != cudaSuccess) return attribute;
         kernel<<<dim3{tiles, column_count}, threads, bytes, stream>>>(
             inputs, input_log_sizes, columns, log_n, twiddles, 0u);
         return cudaPeekAtLastError();
