@@ -30,3 +30,13 @@ extern "C" int stwo_rv64_jobs_native_compare_v1(void *ctx, uint32_t lane, const 
   job_native_compare<<<1024, 256, 0, c.stream>>>(a, b, words, out);
   return int(cudaPeekAtLastError());
 }
+
+// Parity harness only: a cross-device copy on the job's exec stream (the
+// legacy stage's outputs live on another GPU). cudaMemcpyPeerAsync works with
+// or without peer access enabled (the driver stages it). Producers never call
+// this: they read job-local device memory only.
+extern "C" int stwo_rv64_jobs_native_peer_copy_v1(void *dst, int dst_device, const void *src,
+                                                  int src_device, size_t bytes, void *stream) {
+  if (dst == nullptr || src == nullptr || bytes == 0 || stream == nullptr) return int(cudaErrorInvalidValue);
+  return int(cudaMemcpyPeerAsync(dst, dst_device, src, src_device, bytes, static_cast<cudaStream_t>(stream)));
+}

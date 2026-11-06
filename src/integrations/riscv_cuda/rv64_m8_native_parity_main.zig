@@ -37,6 +37,71 @@ const Slab = jobs.slab;
 const DG = CPU.rv64_gkr_cpu_worker.DeviceGlobal;
 const O = @import("stwo_core").fields.om31.OM31;
 const Compare = *const fn (*anyopaque, u32, [*]const u32, [*]const u32, u64, [*]u32) callconv(.c) c_int;
+const PeerCopy = *const fn (*anyopaque, c_int, *const anyopaque, c_int, usize, *anyopaque) callconv(.c) c_int;
+
+/// Legacy outputs live on the legacy pool's GPU; the job worker is on another
+/// GPU. A parity job first mirrors them into its own arena on its exec stream.
+const Peer = struct {
+    copy: PeerCopy,
+    source_device: c_int,
+    fn mirror(self: Peer, e: *api.Enqueue, dst: [*]u32, src: [*]const u32, words: usize) !void {
+        if (self.copy(dst, @intCast(e.device()), src, self.source_device, words * 4, e.stream()) != 0) return error.ParityPeerCopyFailed;
+    }
+    /// Replace every device input by an arena mirror (host inputs untouched).
+    fn mirrorInputs(self: Peer, e: *api.Enqueue, comptime T: type, inputs: []const T, logs: []const u32, out: []T) !void {
+        var words: usize = 0;
+        for (inputs, logs) |input, log| if (input.device != null) {
+            words += @as(usize, 1) << @intCast(log);
+        };
+        @memcpy(out, inputs);
+        if (words == 0) return;
+        const buffer = try e.alloc(words);
+        var at: usize = 0;
+        for (inputs, logs, out) |input, log, *o| if (input.device) |d| {
+            const n = @as(usize, 1) << @intCast(log);
+            try self.mirror(e, buffer.ptr + at, d, n);
+            o.* = .{ .device = buffer.ptr + at };
+            at += n;
+        };
+    }
+    fn deviceWords(comptime T: type, inputs: []const T, logs: []const u32) usize {
+        var words: usize = 64;
+        for (inputs, logs) |input, log| if (input.device != null) {
+            words += @as(usize, 1) << @intCast(log);
+        };
+        return words;
+    }
+};
+
+/// NG.GkrJob with the legacy device columns mirrored into the job arena.
+const GkrParityJob = struct {
+    inner: NG.GkrJob,
+    legacy: []const NG.Input,
+    local: []NG.Input,
+    peer: Peer,
+    pub fn classKey(self: *GkrParityJob) [32]u8 {
+        return self.inner.classKey();
+    }
+    pub fn footprint(self: *GkrParityJob) api.Footprint {
+        var f = self.inner.footprint();
+        f.device_words += Peer.deviceWords(NG.Input, self.legacy, self.inner.gkr.plan.logs);
+        return f;
+    }
+    pub fn stage(self: *GkrParityJob, s: *api.Stager) !void {
+        try self.inner.stage(s);
+    }
+    pub fn enqueue(self: *GkrParityJob, e: *api.Enqueue) !void {
+        try self.peer.mirrorInputs(e, NG.Input, self.legacy, self.inner.gkr.plan.logs, self.local);
+        self.inner.inputs = self.local;
+        try self.inner.enqueue(e);
+    }
+    pub fn finish(self: *GkrParityJob, view: api.SlabView) !void {
+        try self.inner.finish(view);
+    }
+    pub fn abort(self: *GkrParityJob) void {
+        self.inner.abort();
+    }
+};
 
 const Block = struct { request: []const u8, jobs: []const u8 = "-", prefix_count: u32 = 0, expected_cpu_segments: usize };
 const Manifest = struct {
@@ -77,6 +142,7 @@ const Decorator = struct {
     symbols: NG.Symbols,
     catalogue: Sources.Catalogue,
     arena_bytes: usize,
+    peer: Peer,
     mutex: std.Thread.Mutex = .{},
     rows: std.ArrayListUnmanaged(Row) = .empty,
 
@@ -135,8 +201,11 @@ const Decorator = struct {
                 main_host = main_host or i >= request.native_fixed_columns.len;
             }
         }
-        var job = try NG.GkrJob.init(a, &plan, &self.symbols, inputs);
-        defer job.deinit();
+        const local = try a.alloc(NG.Input, total);
+        defer a.free(local);
+        var parity = GkrParityJob{ .inner = try NG.GkrJob.init(a, &plan, &self.symbols, inputs), .legacy = inputs, .local = local, .peer = self.peer };
+        defer parity.inner.deinit();
+        const job = &parity.inner;
         var root: [8]u32 = undefined;
         for (&root, 0..) |*w, i| w.* = std.mem.readInt(u32, request.scope.main[4 * i ..][0..4], .little);
         job.main_root_host = root;
@@ -150,8 +219,8 @@ const Decorator = struct {
             job.gkr.host_key = h.finalResult();
         }
         var done = Done{};
-        const footprint = job.footprint();
-        try self.worker.submit(api.Job.from(NG.GkrJob, &job), .{ .ctx = &done, .done = Done.call });
+        const footprint = parity.footprint();
+        try self.worker.submit(api.Job.from(GkrParityJob, &parity), .{ .ctx = &done, .done = Done.call });
         while (!@atomicLoad(bool, &done.done, .acquire)) std.Thread.sleep(50 * std.time.ns_per_us);
         try done.result;
         const section = &(job.section orelse return error.NativeGkrSectionMissing);
@@ -193,6 +262,7 @@ const GlobalParityJob = struct {
     fixed_device: []const [*]const u32,
     main: []const [*]const u32,
     legacy_columns: []const [*]const u32,
+    peer: Peer,
     layout: Slab.ProofLayout = .{},
     claims: [16]u32 = undefined,
     status: u32 = 0,
@@ -207,7 +277,8 @@ const GlobalParityJob = struct {
     pub fn footprint(self: *GlobalParityJob) api.Footprint {
         const p = self.plan;
         const staged = p.stagedWords(self.fixed_host.len != 0) + 64;
-        return .{ .device_words = staged + p.enqueueWords() + 2 * std.mem.alignForward(usize, p.outputWords(), 64) + 256, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = p.parameters.len + p.fixed_count * p.rows + 64 };
+        const mirrors = (self.fixed_device.len + self.main.len) * p.rows + 128;
+        return .{ .device_words = staged + p.enqueueWords() + 2 * std.mem.alignForward(usize, p.outputWords(), 64) + mirrors + 256, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = p.parameters.len + p.fixed_count * p.rows + 64 };
     }
     pub fn stage(self: *GlobalParityJob, s: *api.Stager) !void {
         try self.global.stage(self.a, s, self.fixed_host);
@@ -215,10 +286,23 @@ const GlobalParityJob = struct {
     pub fn enqueue(self: *GlobalParityJob, e: *api.Enqueue) !void {
         try e.slab.bind(&self.layout);
         const p = self.plan;
+        const columns = self.fixed_device.len + self.main.len;
+        const mirror = try e.alloc(columns * p.rows);
+        var local: [256][*]const u32 = undefined;
+        if (columns > local.len) return error.GlobalParityTooManyColumns;
+        for (self.fixed_device, 0..) |c, i| {
+            try self.peer.mirror(e, mirror.ptr + i * p.rows, c, p.rows);
+            local[i] = mirror.ptr + i * p.rows;
+        }
+        for (self.main, 0..) |c, i| {
+            const at = self.fixed_device.len + i;
+            try self.peer.mirror(e, mirror.ptr + at * p.rows, c, p.rows);
+            local[at] = mirror.ptr + at * p.rows;
+        }
         const output = try e.alloc(p.outputWords());
-        try self.global.enqueue(e, self.fixed_device, self.main, .{ .output = output, .claims = try e.slab.field(.claims, 0), .status = try e.slab.field(.status, 0) });
+        try self.global.enqueue(e, local[0..self.fixed_device.len], local[self.fixed_device.len..columns], .{ .output = output, .claims = try e.slab.field(.claims, 0), .status = try e.slab.field(.status, 0) });
         const reference = try e.alloc(p.outputWords());
-        for (self.legacy_columns, 0..) |column, i| try check(self.global.sym.copy_d2d(e.ctx(), reference.ptr + i * p.rows, column, p.rows * 4));
+        for (self.legacy_columns, 0..) |column, i| try self.peer.mirror(e, reference.ptr + i * p.rows, column, p.rows);
         try check(self.compare(e.ctx(), 0, reference.ptr, output.ptr, p.outputWords(), (try e.slab.field(.opaque_words, 0)).ptr));
     }
     pub fn finish(self: *GlobalParityJob, view: api.SlabView) !void {
@@ -240,6 +324,7 @@ const GlobalDecorator = struct {
     symbols: NGl.Symbols,
     catalogue: NGl.Catalogue,
     compare: Compare,
+    peer: Peer,
     mutex: std.Thread.Mutex = .{},
     rows: std.ArrayListUnmanaged(GlobalRow) = .empty,
     fn stage(self: *GlobalDecorator) DG.Stage {
@@ -279,7 +364,7 @@ const GlobalDecorator = struct {
         const legacy_columns = try a.alloc([*]const u32, legacy.columns.len);
         defer a.free(legacy_columns);
         for (legacy.columns, legacy_columns) |c, *m| m.* = (c.device orelse return error.InvalidDeviceGlobalWitness).words;
-        var job = GlobalParityJob{ .global = .{ .plan = &plan, .sym = &self.symbols }, .plan = &plan, .compare = self.compare, .fixed_host = fixed_host, .fixed_device = fixed_device, .main = main_columns, .legacy_columns = legacy_columns, .a = a };
+        var job = GlobalParityJob{ .global = .{ .plan = &plan, .sym = &self.symbols }, .plan = &plan, .compare = self.compare, .fixed_host = fixed_host, .fixed_device = fixed_device, .main = main_columns, .legacy_columns = legacy_columns, .peer = self.peer, .a = a };
         if (fixed_host.len != 0) {
             var h = std.crypto.hash.sha2.Sha256.init(.{});
             h.update("rv64-m8-glob-fixed");
@@ -324,6 +409,9 @@ const CommitParityJob = struct {
     plan: *NC.CommitPlan,
     sym: NC.Symbols,
     inputs: []const NC.Input,
+    local: []NC.Input,
+    logs: []const u32,
+    peer: Peer,
     host_words: usize,
     layout: Slab.ProofLayout = .{},
     root: [8]u32 = undefined,
@@ -336,14 +424,15 @@ const CommitParityJob = struct {
     }
     pub fn footprint(self: *CommitParityJob) api.Footprint {
         const staged = self.plan.stagedWords(self.host_words) + 4 * 64;
-        return .{ .device_words = staged + self.plan.deviceWords() + 4 * 64, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = 8 * self.plan.logs.len + self.host_words + 2 * (self.plan.tw.twiddles.len + self.plan.tw.itwiddles.len) + 64 };
+        return .{ .device_words = staged + self.plan.deviceWords() + Peer.deviceWords(NC.Input, self.inputs, self.logs) + 4 * 64, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = 8 * self.plan.logs.len + self.host_words + 2 * (self.plan.tw.twiddles.len + self.plan.tw.itwiddles.len) + 64 };
     }
     pub fn stage(self: *CommitParityJob, s: *api.Stager) !void {
         try self.plan.stage(s, self.inputs);
     }
     pub fn enqueue(self: *CommitParityJob, e: *api.Enqueue) !void {
         try e.slab.bind(&self.layout);
-        _ = try self.plan.enqueue(self.sym, e, self.inputs, try e.slab.field(.root, 0), false);
+        try self.peer.mirrorInputs(e, NC.Input, self.inputs, self.logs, self.local);
+        _ = try self.plan.enqueue(self.sym, e, self.local, try e.slab.field(.root, 0), false);
     }
     pub fn finish(self: *CommitParityJob, view: api.SlabView) !void {
         @memcpy(&self.root, try Slab.read(view, .root, 0));
@@ -356,6 +445,7 @@ const CommitDecorator = struct {
     inner: *const DP.TraceCommitStage,
     worker: *W.Worker,
     symbols: NC.Symbols,
+    peer: Peer,
     mutex: std.Thread.Mutex = .{},
     rows: std.ArrayListUnmanaged(CommitRow) = .empty,
     fn stage(self: *CommitDecorator) DP.TraceCommitStage {
@@ -404,7 +494,12 @@ const CommitDecorator = struct {
         const beta = request.config.fri_config.log_blowup_factor;
         var plan = try NC.CommitPlan.init(a, shapes, beta);
         defer plan.deinit();
-        var job = CommitParityJob{ .plan = &plan, .sym = self.symbols, .inputs = inputs, .host_words = host_words };
+        const logs = try a.alloc(u32, shapes.len);
+        defer a.free(logs);
+        for (shapes, logs) |s, *l| l.* = s.log_size;
+        const local = try a.alloc(NC.Input, shapes.len);
+        defer a.free(local);
+        var job = CommitParityJob{ .plan = &plan, .sym = self.symbols, .inputs = inputs, .local = local, .logs = logs, .peer = self.peer, .host_words = host_words };
         _ = try job.layout.add(.root, 0, 8);
         var done = Done{};
         try self.worker.submit(api.Job.from(CommitParityJob, &job), .{ .ctx = &done, .done = Done.call });
@@ -502,18 +597,19 @@ pub fn main() !void {
     const pool = try Pool.createWithBinding(a, library, config, item.expected_cpu_segments, true);
     defer pool.deinit();
     try pool.stages().requireFullyResident();
-    var decorator = Decorator{ .a = a, .inner = pool.stages().numerical.?.*, .worker = worker, .symbols = try NG.Symbols.load(&libs.base), .catalogue = try Sources.Catalogue.init(a), .arena_bytes = arena_bytes };
+    const peer = Peer{ .copy = libs.addon.lookup(PeerCopy, "stwo_rv64_jobs_native_peer_copy_v1") orelse return error.ParityRequiresPeerCopy, .source_device = std.fmt.parseUnsigned(c_int, env("STWO_RV64_M8_PARITY_SOURCE_DEVICE") orelse "0", 10) catch return error.InvalidParityEnvironment };
+    var decorator = Decorator{ .a = a, .inner = pool.stages().numerical.?.*, .worker = worker, .symbols = try NG.Symbols.load(&libs.base), .catalogue = try Sources.Catalogue.init(a), .arena_bytes = arena_bytes, .peer = peer };
     defer decorator.catalogue.deinit();
     defer decorator.rows.deinit(a);
     const wrapped = decorator.stage();
     var stages = pool.stages();
     stages.numerical = &wrapped;
     const compare = libs.addon.lookup(Compare, "stwo_rv64_jobs_native_compare_v1") orelse return error.ParityRequiresCompareKernel;
-    var global = GlobalDecorator{ .a = a, .inner = stages.global_interaction orelse return error.ParityRequiresDeviceGlobal, .worker = worker, .symbols = try NGl.Symbols.load(&libs.base), .catalogue = NGl.Catalogue.init(a, &libs.base), .compare = compare };
+    var global = GlobalDecorator{ .a = a, .inner = stages.global_interaction orelse return error.ParityRequiresDeviceGlobal, .worker = worker, .symbols = try NGl.Symbols.load(&libs.base), .catalogue = NGl.Catalogue.init(a, &libs.base), .compare = compare, .peer = peer };
     defer global.catalogue.deinit();
     defer global.rows.deinit(a);
     stages.global_interaction = global.stage();
-    var commits = CommitDecorator{ .a = a, .inner = stages.trace_commit orelse return error.ParityRequiresDeviceTraceCommit, .worker = worker, .symbols = try NC.Symbols.load(&libs.base) };
+    var commits = CommitDecorator{ .a = a, .inner = stages.trace_commit orelse return error.ParityRequiresDeviceTraceCommit, .worker = worker, .symbols = try NC.Symbols.load(&libs.base), .peer = peer };
     defer commits.rows.deinit(a);
     const wrapped_commit = commits.stage();
     stages.trace_commit = &wrapped_commit;
