@@ -41,9 +41,12 @@ pub const N2bColumns = *const fn ([*]const u32, usize, [*]const u32, [*]u32, usi
 pub const Tree = *const fn (*anyopaque, u32, [*]const MixedSegment, u32, u32, [*]u32, u64) callconv(.c) c_int;
 pub const PrefixWorkspace = *const fn ([*]const MixedSegment, u32, *u64) callconv(.c) c_int;
 pub const CopyD2d = *const fn (*anyopaque, *anyopaque, *const anyopaque, usize) callconv(.c) c_int;
+/// Descriptor-addressed LDE (rv64/trace_commit.zig `n2b`, the beta >= 2 path).
+pub const N2bAddressed = *const fn ([*]u32, usize, ?*const anyopaque, u32, usize, u32, [*]const u32, u32, u32, *anyopaque, u32, *u32) callconv(.c) c_int;
 pub const Symbols = struct {
     b2n: B2n,
     n2b_columns: N2bColumns,
+    n2b_addressed: ?N2bAddressed = null,
     tree: Tree,
     prefix_workspace: ?PrefixWorkspace,
     copy_d2d: CopyD2d,
@@ -54,6 +57,7 @@ pub const Symbols = struct {
             .tree = base.lookup(Tree, "stwo_rv64_trace_tree_on") orelse return error.MissingTraceCommitSymbol,
             .prefix_workspace = base.lookup(PrefixWorkspace, "stwo_rv64_trace_prefix_workspace_words"),
             .copy_d2d = base.lookup(CopyD2d, "stwo_exec_context_memcpy_d2d_async") orelse return error.MissingTraceCommitSymbol,
+            .n2b_addressed = base.lookup(N2bAddressed, "stwo_lde_n2b_addressed_on"),
         };
     }
 };
@@ -86,9 +90,14 @@ pub const CommitPlan = struct {
     logs_device: ?api.DeviceBuffer = null,
     host_staged: ?api.DeviceBuffer = null,
     host_offsets: []usize,
+    /// beta >= 2: per-placement LDE descriptors (6 words per sorted column,
+    /// then the sorted logs), addressed from the lower of the coefficient and
+    /// evaluation buffers, which enqueue allocates back to back.
+    descriptors_device: ?api.DeviceBuffer = null,
+    placement: api.Placement = .bottom,
 
     pub fn init(a: std.mem.Allocator, shapes: []const Shape, beta: u32) !CommitPlan {
-        if (shapes.len == 0 or beta != 1) return error.UnsupportedTraceCommitGeometry;
+        if (shapes.len == 0 or beta < 1 or beta > 4) return error.UnsupportedTraceCommitGeometry;
         const own = try a.dupe(Shape, shapes);
         errdefer a.free(own);
         const order = try a.alloc(usize, shapes.len);
@@ -133,11 +142,13 @@ pub const CommitPlan = struct {
     /// Upper bound of enqueue-time arena words (coefficients + LDE + tree + prefix banks).
     pub fn deviceWords(self: *const CommitPlan) usize {
         // Prefix banks: at most 48 words per row of the largest non-final height (trace_commit.zig).
-        return self.coefficient_cells + self.eval_cells + self.tree_words + 48 * (@as(usize, 1) << @intCast(self.eval_log - 1)) + 3 * 64;
+        // beta >= 2 with caller storage also holds a temporary coefficient region.
+        const extra = if (self.beta == 1) 0 else self.coefficient_cells + 64;
+        return self.coefficient_cells + self.eval_cells + self.tree_words + 48 * (@as(usize, 1) << @intCast(self.eval_log - 1)) + 3 * 64 + extra;
     }
     /// Phase-1 arena words (logs + staged host columns); twiddles are persistent.
     pub fn stagedWords(self: *const CommitPlan, host_words: usize) usize {
-        return self.logs.len + host_words;
+        return self.logs.len + host_words + if (self.beta == 1) 0 else 7 * self.logs.len + 64;
     }
     /// Phase 1: class twiddles (persistent, keyed by eval log), the log vector
     /// and every host-encoded column (`inputs[i].host`, original order).
@@ -155,6 +166,14 @@ pub const CommitPlan = struct {
         const logs = try s.alloc(self.logs.len);
         try s.upload(logs, self.logs);
         self.logs_device = logs;
+        self.placement = s.placement;
+        if (self.beta != 1) {
+            const words = try s.pinned(7 * self.logs.len);
+            self.addressedDescriptors(s.placement, words);
+            const d = try s.alloc(words.len);
+            try s.upload(d, words);
+            self.descriptors_device = d;
+        }
         var host_words: usize = 0;
         for (inputs, self.shapes, self.host_offsets) |input, shape, *offset| {
             offset.* = host_words;
@@ -169,14 +188,121 @@ pub const CommitPlan = struct {
             self.host_staged = staged;
         }
     }
+    fn granule() usize {
+        return @import("worker.zig").Arena.granule;
+    }
+    /// Word offsets of the coefficient and evaluation regions from the lower of
+    /// the two back-to-back allocations (bottom side grows up, top grows down).
+    fn addressedBases(self: *const CommitPlan, placement: api.Placement) [2]usize {
+        return if (placement == .bottom) .{ 0, std.mem.alignForward(usize, self.coefficient_cells, granule()) } else .{ std.mem.alignForward(usize, self.eval_cells, granule()), 0 };
+    }
+    /// The legacy descriptor table (trace_commit.zig): per sorted column
+    /// {coefficient offset u64, evaluation offset u64, log, 0}, then the logs.
+    pub fn addressedDescriptors(self: *const CommitPlan, placement: api.Placement, out: []u32) void {
+        const bases = self.addressedBases(placement);
+        const n = self.order.len;
+        var eval_offset: usize = bases[1];
+        for (self.order, 0..) |original, i| {
+            const log = self.shapes[original].log_size;
+            const coefficient = bases[0] + self.offsets[original];
+            out[6 * i ..][0..6].* = .{ @truncate(coefficient), @truncate(@as(u64, coefficient) >> 32), @truncate(eval_offset), @truncate(@as(u64, eval_offset) >> 32), log, 0 };
+            out[6 * n + i] = log;
+            eval_offset += @as(usize, 1) << @intCast(log + self.beta);
+        }
+    }
     /// Phase 2. `root_out`: 8-word slab field. `mix`: mix the root into e.channel.
     pub fn enqueue(self: *const CommitPlan, sym: Symbols, e: anytype, inputs: []const Input, root_out: api.DeviceBuffer, mix: bool) !Committed {
-        return self.enqueueInto(sym, e, inputs, try e.alloc(self.coefficient_cells), root_out, mix);
+        const coefficients = try e.alloc(self.coefficient_cells);
+        if (self.beta != 1) return self.enqueueAddressed(sym, e, inputs, coefficients, root_out, mix);
+        return self.enqueueInto(sym, e, inputs, coefficients, root_out, mix);
+    }
+    /// beta >= 2 (the D2 native profile, blowup 4): the legacy arena path.
+    /// `coefficients` must be the allocation made immediately before this call.
+    fn enqueueAddressed(self: *const CommitPlan, sym: Symbols, e: anytype, inputs: []const Input, coefficients: api.DeviceBuffer, root_out: api.DeviceBuffer, mix: bool) !Committed {
+        const n2b = sym.n2b_addressed orelse return error.MissingTraceCommitSymbol;
+        const descriptors = self.descriptors_device orelse return error.TraceCommitNotStaged;
+        const tw = self.twiddles orelse return error.TraceCommitNotStaged;
+        if (inputs.len != self.shapes.len or root_out.words < 8 or coefficients.words < self.coefficient_cells) return error.TraceCommitInputCount;
+        const stream = e.stream();
+        try self.ingressAndInterpolate(sym, e.ctx(), stream, inputs, coefficients);
+        const evaluations = try e.alloc(self.eval_cells);
+        const bases = self.addressedBases(self.placement);
+        const lower = @min(@intFromPtr(coefficients.ptr), @intFromPtr(evaluations.ptr));
+        if (@intFromPtr(coefficients.ptr) != lower + 4 * bases[0] or @intFromPtr(evaluations.ptr) != lower + 4 * bases[1]) return error.TraceCommitArenaLayout;
+        const base: [*]u32 = @ptrFromInt(lower);
+        const span = @max(bases[0] + self.coefficient_cells, bases[1] + self.eval_cells);
+        var launches: u32 = 0;
+        var segments: [96]MixedSegment = undefined;
+        var segment_count: usize = 0;
+        var eval_offset: usize = 0;
+        var first: usize = 0;
+        while (first < self.order.len) {
+            const log = self.shapes[self.order[first]].log_size + self.beta;
+            var end = first + 1;
+            while (end < self.order.len and self.shapes[self.order[end]].log_size + self.beta == log) : (end += 1) {}
+            const rows = @as(usize, 1) << @intCast(log);
+            try check(n2b(base, span, descriptors.ptr + 6 * first, @intCast(end - first), bases[1] + eval_offset, log, tw.ptr + self.tw.twiddles.len - rows / 2, @intCast(rows / 2), @intCast(rows / 2), stream, 1, &launches));
+            if (segment_count == segments.len) return error.UnsupportedTraceCommitGeometry;
+            segments[segment_count] = .{ .columns = evaluations.ptr + eval_offset, .stride_words = rows, .capacity_words = rows * (end - first), .source_size = @intCast(rows) };
+            segment_count += 1;
+            eval_offset += rows * (end - first);
+            first = end;
+        }
+        try self.treeAndRoot(sym, e, segments[0..segment_count], root_out, mix);
+        e.free(evaluations);
+        return .{ .coefficients = coefficients, .root = root_out.ptr };
+    }
+    fn ingressAndInterpolate(self: *const CommitPlan, sym: Symbols, ctx: *anyopaque, stream: *anyopaque, inputs: []const Input, coefficients: api.DeviceBuffer) !void {
+        const tw = self.twiddles orelse return error.TraceCommitNotStaged;
+        for (self.order) |original| {
+            const count = @as(usize, 1) << @intCast(self.shapes[original].log_size);
+            const source: [*]const u32 = if (inputs[original].device) |d| d else (self.host_staged orelse return error.TraceCommitNotStaged).ptr + self.host_offsets[original];
+            try check(sym.copy_d2d(ctx, coefficients.ptr + self.offsets[original], source, count * 4));
+        }
+        var launches: u32 = 0;
+        const inv = tw.ptr + self.tw.twiddles.len;
+        var first: usize = 0;
+        while (first < self.order.len) {
+            const shape = self.shapes[self.order[first]];
+            if (shape.encoding != .evaluations) {
+                first += 1;
+                continue;
+            }
+            var end = first + 1;
+            while (end < self.order.len and self.shapes[self.order[end]].log_size == shape.log_size and self.shapes[self.order[end]].encoding == .evaluations) : (end += 1) {}
+            const rows = @as(usize, 1) << @intCast(shape.log_size);
+            const at = coefficients.ptr + self.offsets[self.order[first]];
+            try check(sym.b2n(at, rows, at, rows, shape.log_size, @intCast(end - first), inv + self.tw.itwiddles.len - rows / 2, @intCast(rows / 2), @intCast(rows / 2), stream, &launches));
+            first = end;
+        }
+    }
+    fn treeAndRoot(self: *const CommitPlan, sym: Symbols, e: anytype, segments: []const MixedSegment, root_out: api.DeviceBuffer, mix: bool) !void {
+        var prefix_rows: usize = 0;
+        for (segments[0 .. segments.len - 1]) |s| prefix_rows = @max(prefix_rows, s.source_size);
+        var prefix_words = prefix_rows * 48;
+        if (sym.prefix_workspace) |query| {
+            var words: u64 = 0;
+            try check(query(segments.ptr, @intCast(segments.len), &words));
+            if (words > prefix_words) return error.InvalidTracePrefixWorkspace;
+            prefix_words = @intCast(words);
+        }
+        const tree = try e.alloc(self.tree_words + prefix_words);
+        try check(sym.tree(e.ctx(), 0, segments.ptr, @intCast(segments.len), self.eval_log, tree.ptr, tree.words));
+        try check(sym.copy_d2d(e.ctx(), root_out.ptr, tree.ptr + self.tree_words - 8, 32));
+        if (mix) try e.channel.mixRootFromTree(.{ .ptr = root_out.ptr, .words = 8 });
+        e.free(tree);
     }
     /// `enqueue` into caller-owned coefficient storage (e.g. class-persistent
     /// FIXED memory from Stager.persistent) of `coefficient_cells` words.
     pub fn enqueueInto(self: *const CommitPlan, sym: Symbols, e: anytype, inputs: []const Input, coefficients: api.DeviceBuffer, root_out: api.DeviceBuffer, mix: bool) !Committed {
         if (inputs.len != self.shapes.len or root_out.words < 8 or coefficients.words < self.coefficient_cells) return error.TraceCommitInputCount;
+        if (self.beta != 1) {
+            const scratch = try e.alloc(self.coefficient_cells);
+            _ = try self.enqueueAddressed(sym, e, inputs, scratch, root_out, mix);
+            try check(sym.copy_d2d(e.ctx(), coefficients.ptr, scratch.ptr, self.coefficient_cells * 4));
+            e.free(scratch);
+            return .{ .coefficients = coefficients, .root = root_out.ptr };
+        }
         const ctx = e.ctx();
         const stream = e.stream();
         const tw = self.twiddles orelse return error.TraceCommitNotStaged;
@@ -259,5 +385,26 @@ test "commit plan sorts by height stably and lays out the compact coefficient im
     try std.testing.expectEqual(@as(usize, 80), plan.coefficient_cells);
     try std.testing.expectEqual(@as(u32, 6), plan.eval_log);
     try std.testing.expectEqual(@as(usize, (2 * 64 - 1) * 8), plan.tree_words);
-    try std.testing.expectError(error.UnsupportedTraceCommitGeometry, CommitPlan.init(std.testing.allocator, &.{.{ .log_size = 5, .encoding = .coefficients }}, 2));
+    try std.testing.expectError(error.UnsupportedTraceCommitGeometry, CommitPlan.init(std.testing.allocator, &.{.{ .log_size = 5, .encoding = .coefficients }}, 5));
+}
+
+test "beta 2 descriptors address coefficients and evaluations from the lower buffer per placement" {
+    var plan = try CommitPlan.init(std.testing.allocator, &.{ .{ .log_size = 5, .encoding = .evaluations }, .{ .log_size = 3, .encoding = .coefficients } }, 2);
+    defer plan.deinit();
+    try std.testing.expectEqual(@as(usize, 40), plan.coefficient_cells);
+    try std.testing.expectEqual(@as(usize, 160), plan.eval_cells);
+    var bottom: [14]u32 = undefined;
+    plan.addressedDescriptors(.bottom, &bottom);
+    // sorted: [1] (log 3) then [0] (log 5); evaluations start at align64(40) = 64.
+    try std.testing.expectEqualSlices(u32, &.{ 0, 0, 64, 0, 3, 0, 8, 0, 96, 0, 5, 0, 3, 5 }, &bottom);
+    var top: [14]u32 = undefined;
+    plan.addressedDescriptors(.top, &top);
+    // coefficients sit above align64(160) = 192 evaluation words.
+    try std.testing.expectEqualSlices(u32, &.{ 192, 0, 0, 0, 3, 0, 200, 0, 32, 0, 5, 0, 3, 5 }, &top);
+}
+
+test "commit plan paths are analyzed" {
+    _ = &CommitPlan.enqueue;
+    _ = &CommitPlan.enqueueInto;
+    _ = &CommitPlan.stage;
 }

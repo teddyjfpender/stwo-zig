@@ -31,6 +31,8 @@ const api = jobs.api;
 const NG = @import("rv64/jobs/native_gkr.zig");
 const Sources = @import("rv64/gkr_sources.zig");
 const NGl = @import("rv64/jobs/native_global.zig");
+const NC = @import("rv64/jobs/native_commit.zig");
+const DP = CPU.rv64_device_pcs;
 const Slab = jobs.slab;
 const DG = CPU.rv64_gkr_cpu_worker.DeviceGlobal;
 const O = @import("stwo_core").fields.om31.OM31;
@@ -301,6 +303,118 @@ const GlobalDecorator = struct {
     }
 };
 
+const CommitRow = struct {
+    ordinal: u32,
+    tree: u32,
+    beta: u32,
+    columns: usize,
+    host_columns: usize,
+    coefficient_cells: usize,
+    root_equal: bool,
+    legacy_ns: u64,
+    job_enqueue_ns: u64,
+    job_wait_ns: u64,
+    host_waits: u32,
+    arena_peak_words: u64,
+    error_name: []const u8 = "",
+};
+
+/// One trace commitment (MAIN/INTER) as a job; the root goes to the slab.
+const CommitParityJob = struct {
+    plan: *NC.CommitPlan,
+    sym: NC.Symbols,
+    inputs: []const NC.Input,
+    host_words: usize,
+    layout: Slab.ProofLayout = .{},
+    root: [8]u32 = undefined,
+    pub fn classKey(self: *CommitParityJob) [32]u8 {
+        var h = std.crypto.hash.sha2.Sha256.init(.{});
+        h.update("rv64-m8-native-commit-parity");
+        h.update(std.mem.sliceAsBytes(self.plan.logs));
+        h.update(std.mem.asBytes(&self.plan.beta));
+        return h.finalResult();
+    }
+    pub fn footprint(self: *CommitParityJob) api.Footprint {
+        const staged = self.plan.stagedWords(self.host_words) + 4 * 64;
+        return .{ .device_words = staged + self.plan.deviceWords() + 4 * 64, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = 8 * self.plan.logs.len + self.host_words + 2 * (self.plan.tw.twiddles.len + self.plan.tw.itwiddles.len) + 64 };
+    }
+    pub fn stage(self: *CommitParityJob, s: *api.Stager) !void {
+        try self.plan.stage(s, self.inputs);
+    }
+    pub fn enqueue(self: *CommitParityJob, e: *api.Enqueue) !void {
+        try e.slab.bind(&self.layout);
+        _ = try self.plan.enqueue(self.sym, e, self.inputs, try e.slab.field(.root, 0), false);
+    }
+    pub fn finish(self: *CommitParityJob, view: api.SlabView) !void {
+        @memcpy(&self.root, try Slab.read(view, .root, 0));
+    }
+    pub fn abort(_: *CommitParityJob) void {}
+};
+
+const CommitDecorator = struct {
+    a: std.mem.Allocator,
+    inner: *const DP.TraceCommitStage,
+    worker: *W.Worker,
+    symbols: NC.Symbols,
+    mutex: std.Thread.Mutex = .{},
+    rows: std.ArrayListUnmanaged(CommitRow) = .empty,
+    fn stage(self: *CommitDecorator) DP.TraceCommitStage {
+        return .{ .context = self, .commit = commit };
+    }
+    fn commit(raw: *anyopaque, a: std.mem.Allocator, request: DP.TraceCommitRequest) anyerror!DP.Tree {
+        const self: *CommitDecorator = @ptrCast(@alignCast(raw));
+        // The job runs FIRST: a legacy INTER commit may retire its inputs.
+        var job_row: CommitRow = undefined;
+        var job_root: ?[8]u32 = null;
+        {
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            job_row, job_root = self.runJob(request) catch |err| .{ CommitRow{ .ordinal = request.scope.ordinal, .tree = request.tree_index, .beta = request.config.fri_config.log_blowup_factor, .columns = request.columns.len, .host_columns = 0, .coefficient_cells = 0, .root_equal = false, .legacy_ns = 0, .job_enqueue_ns = 0, .job_wait_ns = 0, .host_waits = 0, .arena_peak_words = 0, .error_name = @errorName(err) }, null };
+        }
+        var timer = try std.time.Timer.start();
+        const tree = try self.inner.commit(self.inner.context, a, request);
+        job_row.legacy_ns = timer.read();
+        if (job_root) |root| {
+            var equal = true;
+            for (root, 0..) |w, i| equal = equal and w == std.mem.readInt(u32, tree.root[4 * i ..][0..4], .little);
+            job_row.root_equal = equal;
+        }
+        std.debug.print("GPU_M8_NATIVE_COMMIT_PARITY ordinal={} tree={} beta={} columns={} root_equal={} legacy_ns={} job_wait_ns={} error={s}\n", .{ job_row.ordinal, job_row.tree, job_row.beta, job_row.columns, job_row.root_equal, job_row.legacy_ns, job_row.job_wait_ns, job_row.error_name });
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        try self.rows.append(self.a, job_row);
+        return tree;
+    }
+    fn runJob(self: *CommitDecorator, request: DP.TraceCommitRequest) !struct { CommitRow, ?[8]u32 } {
+        const a = self.a;
+        const shapes = try a.alloc(NC.Shape, request.columns.len);
+        defer a.free(shapes);
+        const inputs = try a.alloc(NC.Input, request.columns.len);
+        defer a.free(inputs);
+        var host_columns: usize = 0;
+        var host_words: usize = 0;
+        for (request.columns, shapes, inputs) |c, *s, *i| {
+            s.* = .{ .log_size = c.log_size, .encoding = if (c.encoding == .evaluations) .evaluations else .coefficients };
+            if (c.device) |d| i.* = .{ .device = d.words } else {
+                i.* = .{ .host = @as([*]const u32, @ptrCast(c.host.ptr))[0..c.host.len] };
+                host_columns += 1;
+                host_words += c.host.len;
+            }
+        }
+        const beta = request.config.fri_config.log_blowup_factor;
+        var plan = try NC.CommitPlan.init(a, shapes, beta);
+        defer plan.deinit();
+        var job = CommitParityJob{ .plan = &plan, .sym = self.symbols, .inputs = inputs, .host_words = host_words };
+        _ = try job.layout.add(.root, 0, 8);
+        var done = Done{};
+        try self.worker.submit(api.Job.from(CommitParityJob, &job), .{ .ctx = &done, .done = Done.call });
+        while (!@atomicLoad(bool, &done.done, .acquire)) std.Thread.sleep(50 * std.time.ns_per_us);
+        try done.result;
+        const r = done.receipt;
+        return .{ .{ .ordinal = request.scope.ordinal, .tree = request.tree_index, .beta = beta, .columns = request.columns.len, .host_columns = host_columns, .coefficient_cells = plan.coefficient_cells, .root_equal = false, .legacy_ns = 0, .job_enqueue_ns = r.enqueue_ns, .job_wait_ns = r.wait_ns, .host_waits = r.host_waits, .arena_peak_words = r.arena_peak_words }, job.root };
+    }
+};
+
 const Done = struct {
     done: bool = false,
     result: anyerror!void = {},
@@ -399,6 +513,10 @@ pub fn main() !void {
     defer global.catalogue.deinit();
     defer global.rows.deinit(a);
     stages.global_interaction = global.stage();
+    var commits = CommitDecorator{ .a = a, .inner = stages.trace_commit orelse return error.ParityRequiresDeviceTraceCommit, .worker = worker, .symbols = try NC.Symbols.load(&libs.base) };
+    defer commits.rows.deinit(a);
+    const wrapped_commit = commits.stage();
+    stages.trace_commit = &wrapped_commit;
 
     const resource_json = try std.json.Stringify.valueAlloc(a, manifest.resources, .{});
     defer a.free(resource_json);
@@ -425,13 +543,16 @@ pub fn main() !void {
     for (decorator.rows.items) |row| all = all and row.channel_equal and row.proof_equal and row.host_waits == 1 and row.error_name.len == 0;
     var global_all = global.rows.items.len != 0;
     for (global.rows.items) |row| global_all = global_all and row.claims_equal and row.verdict == 0 and row.witness_mismatches == 0 and row.host_waits == 1 and row.error_name.len == 0;
+    var commit_all = commits.rows.items.len != 0;
+    for (commits.rows.items) |row| commit_all = commit_all and row.root_equal and row.host_waits == 1 and row.error_name.len == 0;
     var text: std.Io.Writer.Allocating = .init(a);
     defer text.deinit();
-    try std.json.Stringify.value(.{ .schema = "rv64-m8-native-gkr-parity/v1", .block = block, .expected_segments = item.expected_cpu_segments, .legacy_native_wall_ns = wall_ns, .job_device = device, .all_equal = all, .segments = decorator.rows.items, .global_all_equal = global_all, .global_slots = global.rows.items }, .{ .whitespace = .indent_1 }, &text.writer);
+    try std.json.Stringify.value(.{ .schema = "rv64-m8-native-gkr-parity/v1", .block = block, .expected_segments = item.expected_cpu_segments, .legacy_native_wall_ns = wall_ns, .job_device = device, .all_equal = all, .segments = decorator.rows.items, .global_all_equal = global_all, .global_slots = global.rows.items, .commit_all_equal = commit_all, .commits = commits.rows.items }, .{ .whitespace = .indent_1 }, &text.writer);
     const report = try std.fs.path.join(a, &.{ out_dir, "native-gkr-parity.json" });
     defer a.free(report);
     try std.fs.cwd().writeFile(.{ .sub_path = report, .data = text.written() });
-    std.debug.print("GPU_M8_NATIVE_GKR_PARITY_DONE block={} segments={} all_equal={} global_slots={} global_all_equal={} report={s}\n", .{ block, decorator.rows.items.len, all, global.rows.items.len, global_all, report });
+    std.debug.print("GPU_M8_NATIVE_GKR_PARITY_DONE block={} segments={} all_equal={} global_slots={} global_all_equal={} commits={} commit_all_equal={} report={s}\n", .{ block, decorator.rows.items.len, all, global.rows.items.len, global_all, commits.rows.items.len, commit_all, report });
     if (!all) return error.NativeGkrParityMismatch;
     if (!global_all) return error.NativeGlobalParityMismatch;
+    if (!commit_all) return error.NativeCommitParityMismatch;
 }
