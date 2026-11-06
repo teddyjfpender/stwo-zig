@@ -35,6 +35,8 @@ def main():
     p.add_argument('--expected-nodes', type=int, default=19)
     p.add_argument('--arena-sweep', default='22G')
     p.add_argument('--request-timeout', default='600')
+    p.add_argument('--no-trace', action='store_true', help='observer table only (isolation)')
+    p.add_argument('--no-observer', action='store_true', help='neither observer nor trace (control)')
     args = p.parse_args()
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=False)
@@ -52,8 +54,11 @@ def main():
                 'preset': json.loads(stack.DEFAULT_PRESET.read_text())}
     label = 'peaks-' + out.name
     argv, tag = stack.command(manifest, 'baseline', 0, args.stream, False, label)
-    argv += ['--env', 'STWO_RV64_ALLOCATION_OBSERVER=1', '--env', f'STWO_RV64_M8_MEM_TRACE={trace_dir}',
-             '--quiet-mode', 'diagnostic', '--request-timeout', args.request_timeout]
+    if not args.no_observer:
+        argv += ['--env', 'STWO_RV64_ALLOCATION_OBSERVER=1']
+        if not args.no_trace:
+            argv += ['--env', f'STWO_RV64_M8_MEM_TRACE={trace_dir}']
+    argv += ['--quiet-mode', 'diagnostic', '--request-timeout', args.request_timeout]
     service = Path('/workspace/m3/runs') / args.stream / f'daemon-{args.block}-r2-{tag}'
     receipt = {'schema': 'rv64-m8-memory-measure/v1', 'label': '[M] allocator diagnostic; walls not latency',
                'block': args.block, 'service': str(service), 'argv': argv,
