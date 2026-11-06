@@ -317,5 +317,32 @@
    "over_plan": 0,
    "serialized": 0
   }
- }
+ },
+ "gates": [
+  {
+   "gate": "gate-2",
+   "tree": "ceb24ab7f",
+   "env": {},
+   "status": "PASS",
+   "gate_json_sha256": "4fb4e2b486ecfffdb78f80b7c7181a7afb269910304d52772601ad90e8280acf"
+  },
+  {
+   "gate": "gate-3",
+   "tree": "ceb24ab7f",
+   "env": {
+    "STWO_RV64_M8_JOBS": "1",
+    "STWO_RV64_M8_JOBS_PLAN": "policy.json"
+   },
+   "status": "FAIL (expected: M8RequestProviderNotLanded after boot parity on both workers with the policy arena)",
+   "gate_json_sha256": "dded59b4b975fa64b2ba202b5f8e05d00c91a0b04f051fbf71f5720512878b89"
+  },
+  {
+   "gate": "gate-4",
+   "tree": "ad8f3cf9b",
+   "env": {},
+   "status": "PASS",
+   "frozen_default_sha256": "5987d31c4253ba204e3b782790e0e5871e7b9787e9e26fbb70f65dbfab818d95",
+   "gate_json_sha256": "7d2e214a8623b0f1f3858678d14256101d67dafe708872f039d69c4521f61d1d"
+  }
+ ]
 }

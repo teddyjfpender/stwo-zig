@@ -81,6 +81,16 @@ Class-region LRU eviction is covered by host tests: eviction order, pins block e
 nothing, and worker-level refill. It has not been exercised on the GPU, because no current GPU harness has more persistent classes than
 the pool holds.
 
+## Gates (pod `/workspace/m3/runs/m8-memory-plan-p2/`)
+
+| gate | tree | env | result |
+|---|---|---|---|
+| gate-2 | ceb24ab7f | default | [M] **PASS**: 2/2 proofs byte-identical to the frozen D2 golden (32 artifacts each), 2/2 fresh CPU receivers, negative corpus |
+| gate-3 | ceb24ab7f | `STWO_RV64_M8_JOBS=1` + `STWO_RV64_M8_JOBS_PLAN=policy.json` | [M] FAIL, expected: fails closed at `M8RequestProviderNotLanded`, the same as the integrate baseline. Before that, both workers booted with the policy arena (10,066,329,600 B registered per GPU vs the 8 GiB default) and passed boot parity (20 ops, 1 host wait each). |
+| gate-4 | ad8f3cf9b (landing tree) | default | [M] **PASS**: 2/2 byte-identical (32 artifacts each), 2/2 receivers, negative corpus |
+
+The validation receipts `validate-*-policy.json` are from ad8f3cf9b (`sweep-policy-2`).
+
 ## Not claimed
 
 - **No timing:** this stream changes memory layout only.
