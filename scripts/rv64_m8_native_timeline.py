@@ -138,7 +138,11 @@ def main():
             owner_range = {tid: union([(s, e) for s, e, _ in ranges.get(tid, [])]) for tid in owners}
             classes = [(name, {tid: ([s for s, _ in kind[tid]], kind[tid]) for tid in owners})
                        for name, kind in (("host_blocked_in_sync", owner_sync), ("host_in_other_cuda_api", owner_api), ("host_work_in_owner_range", owner_range))]
+            # Innermost open owner label per thread, for host-work idle samples.
+            labelled = {tid: sorted(ranges.get(tid, [])) for tid in owners}
+            label_starts = {tid: [r[0] for r in labelled[tid]] for tid in owners}
             idle = collections.Counter()
+            idle_labels = collections.Counter()
             t = lo
             while t < hi:
                 if not covered(starts, busy, t):
@@ -148,12 +152,18 @@ def main():
                             state = name
                             break
                     idle[state] += sample_ns
+                    if state == "host_work_in_owner_range":
+                        for tid in owners:
+                            open_ranges = [r for r in labelled[tid][:bisect.bisect_right(label_starts[tid], t)] if r[1] > t]
+                            if open_ranges:
+                                idle_labels[max(open_ranges, key=lambda r: r[0])[2]] += sample_ns
                 t += sample_ns
             bins = []
             width = int(args.bin_ms * 1e6)
             for b in range(lo, hi, width):
                 bins.append(round(length(clip(busy, b, min(b + width, hi))) / min(width, hi - b), 3))
             devices[str(device)] = {"busy_s": length(busy) / 1e9, "busy_fraction": length(busy) / (hi - lo), "idle_attribution_s": {k: v / 1e9 for k, v in sorted(idle.items())},
+                                    "host_work_idle_by_innermost_label_s": {k: v / 1e9 for k, v in idle_labels.most_common()},
                                     "enqueue_threads": len(owners), "busy_by_bin": bins}
         threads = []
         for tid, counts in thread_device.items():

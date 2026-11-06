@@ -276,6 +276,12 @@ const Job = struct {
             return 1;
         };
         defer observed.deinit();
+        // Diagnostic only (STWO_RV64_NVTX=1), as in gkr_stage.zig.
+        var nvtx = @import("nvtx_stage.zig").Range.beginUnlessAdmitted(&self.backend.service.library, raw, "rv64/native/inter_witness", self.permit != null) catch |err| {
+            self.failure = err;
+            return 1;
+        };
+        defer nvtx.deinit();
         if (self.permit) |p| p.enterOwner(raw) catch |err| {
             self.failure = err;
             return 1;

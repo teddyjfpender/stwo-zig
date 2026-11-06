@@ -317,6 +317,12 @@ const Call = struct {
             };
         }
         defer if (observed) |*range| range.deinit();
+        // Diagnostic only (STWO_RV64_NVTX=1), as in gkr_stage.zig.
+        var nvtx: ?@import("nvtx_stage.zig").Range = if (self.owner.runtime.service) |service| @import("nvtx_stage.zig").Range.beginUnlessAdmitted(&service.library, ctx, "rv64/native/binding", self.permit != null) catch |err| {
+            self.failure = err;
+            return 1;
+        } else null;
+        defer if (nvtx) |*range| range.deinit();
         if (self.permit) |p| p.enterOwner(ctx) catch |err| {
             self.failure = err;
             return 1;

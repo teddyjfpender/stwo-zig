@@ -308,6 +308,13 @@ const Job = struct {
             };
         }
         defer if (observed) |*range| range.deinit();
+        // Diagnostic only (STWO_RV64_NVTX=1): names this owner callback for
+        // scripts/rv64_m8_native_timeline.py idle attribution.
+        var nvtx: ?@import("nvtx_stage.zig").Range = if (self.backend.service) |service| @import("nvtx_stage.zig").Range.beginUnlessAdmitted(&service.library, raw_context, "rv64/native/gkr", self.permit != null) catch |err| {
+            self.failure = err;
+            return 1;
+        } else null;
+        defer if (nvtx) |*range| range.deinit();
         if (self.permit) |p| p.enterOwner(raw_context) catch |err| {
             self.failure = err;
             return 1;
