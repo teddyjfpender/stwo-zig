@@ -84,7 +84,18 @@ fn selfTest(a: std.mem.Allocator, workers: []const *worker.Worker) !void {
     }
 }
 
-pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, spool: []const u8) !void {
+/// Host-side helpers composed OUTSIDE rv64/jobs/ (their import closures reach
+/// legacy owner-path files, which the sync lint forbids under jobs/). The
+/// combined-serve entry passes them in; jobs/ code only calls the pointers,
+/// in pre-stage/stage, never from enqueue. Typed as each provider lands.
+pub const Hooks = struct {
+    /// outer-job pre-stage (host graph/tape preparation ahead of phase 1).
+    outer_prestage: ?*const anyopaque = null,
+    outer_prestage_ctx: ?*anyopaque = null,
+};
+
+pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, spool: []const u8, hooks: Hooks) !void {
+    _ = hooks;
     _ = manifest_path; // the provider reads the manifest (blocks, profile) when it lands
     var timer = try std.time.Timer.start();
     const addon = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingM8JobsLibrary;

@@ -35,7 +35,7 @@ pub fn main() !void {
         if (arguments.len != 4) return error.ExpectedCombinedServeManifestAndSpool;
         // M8 job runtime (STWO_RV64_M8_JOBS=1). Unset keeps today's path unchanged.
         const jobs = @import("rv64/jobs/mod.zig");
-        if (try jobs.selected()) return jobs.serve(a, library, arguments[2], arguments[3]);
+        if (try jobs.selected()) return jobs.serve(a, library, arguments[2], arguments[3], .{});
         return @import("rv64/resident_batch.zig").runServe(a, library, arguments[2], arguments[3]);
     }
     const planned_text = (try env(a, "STWO_RV64_GPU_PLANNED_CPU_WORKERS")) orelse return error.CombinedRequiresResidentPlan;
