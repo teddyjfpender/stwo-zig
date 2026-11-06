@@ -6,6 +6,7 @@ test {
     _ = @import("rv64/jobs/native_commit_test.zig");
     _ = @import("rv64/jobs/native_gpu_support_test.zig");
     _ = @import("rv64/jobs/native_pcs.zig");
+    _ = @import("rv64/jobs/native_pcs_scale_test.zig");
     _ = @import("rv64/jobs/native_pcs_test.zig");
     _ = @import("rv64/jobs/native_tail_test.zig");
 }

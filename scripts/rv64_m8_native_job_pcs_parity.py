@@ -11,6 +11,7 @@ pinned base image, exports the masked native PCS fixtures (plain + imported OODS
     call invalidates capture), graph replayed twice == legacy;
   * compute-sanitizer memcheck/racecheck/synccheck/initcheck on the device-column rolling arm;
   * the independent native receiver (`verify`) on job outputs (+ its 8 mutation rejections);
+  * the base image's production in-process PCS service emits the same words as the job;
   * a source lint: no sync/D2H/lease symbol in the job TUs;
   * the addon resolves against the pinned base image with RTLD_NOW.
 No speed claim: fixture-scale timings are recorded as diagnostics only.
@@ -148,10 +149,24 @@ def main():
         receivers.append(dict(readback=readback.name, exit=rc,
                               passed=rc == 0 and 'native_verified=true native_proof_byte_parity=true' in text,
                               mutations_rejected=text.count('REJECT masked native PCS mutation=')))
-    receipt.update(arms=results, sanitizers=sanitizers, receivers=receivers)
+    # The production in-process native PCS service of the pinned base image
+    # (stwo_rv64_pcs_native_prove) on the same fixture must emit the job words.
+    production = []
+    with open(a.gpu_lock, 'a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        for fx in fixtures:
+            for vname in ['default', 'beta2']:
+                job_words = a.out / f'{fx}-device-{vname}.job1.bin'
+                rc, text = run([sys.executable, str(ROOT / 'tests/cuda/rv64/pcs_native_fixture_check.py'), str(a.base),
+                                str(fixtures[fx]), str(job_words)], a.out / f'production-{fx}-{vname}.log',
+                               env=dict(env0, **variants[vname]), check=False)
+                production.append(dict(fixture=fx, variant=vname, exit=rc, job_sha256=sha(job_words),
+                                       passed=rc == 0 and text.count('"equal": true') == 2))
+    receipt.update(arms=results, sanitizers=sanitizers, receivers=receivers, production_service_equal=production)
     ok = (receipt['addon_resolves_against_base_rtld_now'] and all(r['passed'] for r in results)
           and all(s['passed'] for s in sanitizers.values())
-          and all(r['passed'] and r['mutations_rejected'] == 8 for r in receivers))
+          and all(r['passed'] and r['mutations_rejected'] == 8 for r in receivers)
+          and all(p['passed'] for p in production))
     receipt['result'] = 'PASS' if ok else 'FAIL'
     (a.out / 'receipt.json').write_text(json.dumps(receipt, indent=1) + '\n')
     print(json.dumps(dict(result=receipt['result'], arms=len(results), receivers=len(receivers),
