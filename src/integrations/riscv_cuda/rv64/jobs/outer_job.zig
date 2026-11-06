@@ -572,6 +572,9 @@ pub const OuterNodeJob = struct {
         last: u32 = 0,
         pub fn enqueue(self: *Body) !u32 {
             try self.e.channel.initFromCheckpoint(.{ .ptr = @constCast(self.job.bases.at(self.job.staged.image.channel_seed)), .words = 9 });
+            // Check words := unset before any body work: a check that never
+            // runs is refused whatever the (arena-reused) slab held.
+            if (self.job.device_checks) try self.device.unset((try self.e.slab.field(.opaque_words, Checks.field_index)).ptr, Checks.field_words);
             self.last = try self.node.enqueue(self.device);
             if (self.job.device_checks) self.last += try self.job.enqueueChecks(self.e, self.device);
             return self.last;

@@ -20,16 +20,45 @@ pub fn unsignedValue(comptime T: type, name: []const u8, value: ?[]const u8, def
     };
 }
 
+/// Every knob is read and parsed ONCE per process (first use) and frozen:
+/// nodes on the request path never pay getenv + parse, and two readers of
+/// the same knob (e.g. a whole-job shared config and a per-node init) can
+/// never disagree because the environment changed mid-process.
+fn Frozen(comptime T: type, comptime name: []const u8, comptime parse: fn (?[]const u8) anyerror!T) type {
+    return struct {
+        var once = std.once(init);
+        var value: anyerror!T = undefined;
+        fn init() void {
+            value = parse(std.posix.getenv(name));
+        }
+        fn get() !T {
+            once.call();
+            return value;
+        }
+    };
+}
+
 pub fn flag(comptime name: []const u8, default: bool) !bool {
-    return flagValue(name, std.posix.getenv(name), default);
+    const P = struct {
+        fn parse(v: ?[]const u8) anyerror!?bool {
+            const x = v orelse return null;
+            return try flagValue(name, x, false);
+        }
+    };
+    return (try Frozen(?bool, name, P.parse).get()) orelse default;
 }
 pub fn unsigned(comptime T: type, comptime name: []const u8, default: T) !T {
-    return unsignedValue(T, name, std.posix.getenv(name), default);
+    return (try optionalUnsigned(T, name)) orelse default;
 }
 /// Unset -> null; otherwise a strictly parsed integer.
 pub fn optionalUnsigned(comptime T: type, comptime name: []const u8) !?T {
-    const v = std.posix.getenv(name) orelse return null;
-    return try unsignedValue(T, name, v, 0);
+    const P = struct {
+        fn parse(v: ?[]const u8) anyerror!?T {
+            const x = v orelse return null;
+            return try unsignedValue(T, name, x, 0);
+        }
+    };
+    return Frozen(?T, name, P.parse).get();
 }
 
 test "outer env knobs: unset is the default, only exact values are accepted" {

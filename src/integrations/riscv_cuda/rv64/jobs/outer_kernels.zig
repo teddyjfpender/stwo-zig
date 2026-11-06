@@ -216,6 +216,11 @@ pub const Device = struct {
         if (words == 0) return;
         try self.check(self.kernels.memset(self.ctx, ptr, 0, @intCast(words * 4)));
     }
+    /// Every word := 0xffff_ffff (gpu_native.Verdict.unset).
+    pub fn unset(self: *Device, ptr: [*]u32, words: u64) !void {
+        if (words == 0) return;
+        try self.check(self.kernels.memset(self.ctx, ptr, 0xff, @intCast(words * 4)));
+    }
     pub fn copy(self: *Device, to: [*]u32, from: [*]const u32, words: u64) !void {
         if (words == 0) return;
         self.counters.copies += 1;

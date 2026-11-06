@@ -15,6 +15,15 @@
 //! STWO_RV64_M8_OUTER_CHECK_FAULT_ORDINAL=n (negative test, default unset):
 //! node n gets one corrupted lookup constant on the device side only; its
 //! check must reject (detail 5, nonzero sum) and the request fail closed.
+//! Fault injection is two-key: the ordinal is honoured only when
+//! STWO_RV64_M8_FAULT_INJECTION=1 is also set (a leftover ordinal alone
+//! cannot corrupt production requests; it fails closed at the first node
+//! with error.M8FaultInjectionNotArmed instead of being silently ignored).
+//!
+//! The check field [verdict, tag] is set to `Verdict.unset` on the device
+//! at the start of the node body, so a check kernel that never ran reads
+//! unset whatever an arena-reused slab held (the tag alone was a 32-bit
+//! XOR a stale accepted word could match).
 const std = @import("std");
 const Env = @import("outer_env.zig");
 const G = @import("gpu_native.zig");
@@ -55,7 +64,9 @@ pub fn selected() !bool {
     return Env.flag("STWO_RV64_M8_OUTER_DEVICE_CHECKS", false);
 }
 pub fn faultOrdinal() !?u32 {
-    return Env.optionalUnsigned(u32, "STWO_RV64_M8_OUTER_CHECK_FAULT_ORDINAL");
+    const n = try Env.optionalUnsigned(u32, "STWO_RV64_M8_OUTER_CHECK_FAULT_ORDINAL") orelse return null;
+    if (!try Env.flag("STWO_RV64_M8_FAULT_INJECTION", false)) return error.M8FaultInjectionNotArmed;
+    return n;
 }
 
 /// Slab field of the node's check words: [lookup verdict, lookup tag].

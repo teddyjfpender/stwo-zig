@@ -608,7 +608,10 @@ pub const Hybrid = struct {
             k.fixed_job = try Env.flag("STWO_RV64_M8_OUTER_FIXED_JOB", k.fixed_job);
             k.fixed_handoff = try Env.flag("STWO_RV64_M8_OUTER_FIXED_HANDOFF", k.fixed_handoff) and k.fixed_job;
             k.persistent_classes = try Env.flag("STWO_RV64_M8_OUTER_PERSISTENT_CLASSES", k.persistent_classes);
+            // Two-key fault injection (outer_checks.zig): a leftover ordinal
+            // alone refuses service start instead of failing production nodes.
             k.fault_ordinal = try Env.optionalUnsigned(u32, "STWO_RV64_M8_OUTER_FAULT_ORDINAL");
+            if (k.fault_ordinal != null and !try Env.flag("STWO_RV64_M8_FAULT_INJECTION", false)) return error.M8FaultInjectionNotArmed;
             k.reserve_bytes = try Env.unsigned(u64, "STWO_RV64_M8_OUTER_RESERVE_BYTES", k.reserve_bytes);
             k.graphs = try Graphs.Policy.fromEnv();
             // Node-job knobs are parsed per job; check them here so a bad

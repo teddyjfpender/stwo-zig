@@ -716,7 +716,8 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
         for (owner.runs) |run| h.update(std.mem.asBytes(&[_]u32{ @intFromEnum(run.kind), run.first_task, run.task_count, run.first_level, run.level_count }));
         h.update(std.mem.asBytes(&[_]u64{ prepared.plan.level_ends.len, prepared.tasks.len, prepared.seeds.len, prepared.indices.len, prepared.count, @intFromBool(sample_tape != null), @intFromBool(prepared.blake_sample_outputs != null), @intFromBool(input.composition) }));
         // The device checks add one kernel to the body (topology).
-        if (device_checks) h.update("device-checks/v1");
+        // v2: the body also clears the check words (one memset node).
+        if (device_checks) h.update("device-checks/v2");
         graph_key = h.finalResult();
     }
     owner.staged = .{

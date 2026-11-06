@@ -77,8 +77,11 @@ anything else fails `Hybrid.create` with `InvalidM8OuterEnvironment`. None of th
 | `STWO_RV64_M8_OUTER_GRAPH_THRESHOLD` | 2 | sightings of a (class, placement) key before capture |
 | `STWO_RV64_M8_OUTER_GRAPH_BUDGET_MB` | 256 | executable device budget per worker (LRU eviction) |
 | `STWO_RV64_M8_OUTER_GRAPH_IDLE_REQUESTS` | 4 | requests a key may go unused before it is dropped (0 = never) |
-| `STWO_RV64_M8_OUTER_FAULT_ORDINAL` | unset | test hook: fail node n where a footprint refusal returns |
+| `STWO_RV64_M8_OUTER_FAULT_ORDINAL` | unset | test hook: fail node n where a footprint refusal returns (requires `STWO_RV64_M8_FAULT_INJECTION=1`, else service start fails) |
 | `STWO_RV64_M8_OUTER_CLASS_PLAN` | `0` | `1` = per-class plans (outer_class_plan.zig): leaf statics cached by authority identity, initWhole's stream schedules / composition stream / PCS framing built once per class and borrowed by every node |
 | `STWO_RV64_M8_OUTER_CLASS_PLAN_HOST_MB` | 65536 | host-byte budget of cached class statics (a class over it stays per node) |
 | `STWO_RV64_M8_OUTER_DEVICE_CHECKS` | `0` | `1` = device `lookup_sum` check (outer_checks.cu) at the end of every whole node body; finish requires its verdict and the host reference to agree (needs an addon with `stwo_rv64_outer_lookup_sum_check_v1_on`) |
-| `STWO_RV64_M8_OUTER_CHECK_FAULT_ORDINAL` | unset | negative test: node n's device check gets one corrupted public limb and must reject (request fails closed) |
+| `STWO_RV64_M8_OUTER_CHECK_FAULT_ORDINAL` | unset | negative test: node n's device check gets one corrupted public limb and must reject (request fails closed); requires `STWO_RV64_M8_FAULT_INJECTION=1`, else service start fails |
+| `STWO_RV64_M8_FAULT_INJECTION` | `0` | second key of every fault-injection knob above (a leftover ordinal alone never corrupts production requests) |
+
+Every `STWO_RV64_M8_OUTER_*` knob is read and parsed once per process (outer_env.zig) and frozen; per-node inits read the frozen value.
