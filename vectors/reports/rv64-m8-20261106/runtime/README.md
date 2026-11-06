@@ -24,3 +24,14 @@ and enqueueing a device PoW grind; same worker with pipeline depth 3 vs depth 1 
 
 The 3-stage loop hides the next job's staging (host fill + h2d) behind the current job's device work; with one host wait per
 job, nothing else is serialized. (Grind length depends on where the deterministic nonce falls, hence 30 < 28 bits.)
+
+## Failure isolation (robust-gpu0.json, robust-gpu1.json) [M]
+`rv64-jobs-channel-parity robust <d>` on each GPU, 7 jobs through one worker: a parity job, a refused oversized job
+(`JobFootprintExceedsArena`, aborted, never staged), a job that fails after 9 enqueued channel ops (aborted after its single
+wait), a parity job filling worker-persistent inputs (fresh), a parity job, a parity job reading those persistent inputs
+warm (no upload), and a final parity job. All five parity jobs: 20/20 boundary snapshots equal to the host.
+
+## Service boot with STWO_RV64_M8_JOBS=1 (service-boot-1.txt) [M]
+`rv64-word16-ethereum-gpu-combined combined-serve` with STWO_RV64_M8_JOBS=1 + addon, devices 0,1: both workers boot and pass
+the channel-parity self-test (incl. PoW; one host wait each), then the service fails closed with
+`M8RequestProviderNotLanded` (native/outer providers pending). STWO_RV64_M8_JOBS=2 → `InvalidM8JobsSelection`.
