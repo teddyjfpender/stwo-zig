@@ -65,7 +65,6 @@ pub const Prover = struct {
     shared: *const Shared,
     worker: *Worker.Worker,
     graphs: Graphs.Cache,
-    last: Report = .{},
 
     pub fn init(a: std.mem.Allocator, shared: *const Shared, worker: *Worker.Worker) Prover {
         return .{ .shared = shared, .worker = worker, .graphs = Graphs.Cache.init(a, shared.graph_api, Graphs.Policy.fromEnv()) };
@@ -86,13 +85,16 @@ pub const Prover = struct {
         }
     };
 
-    /// One node. Not reentrant per Prover (one graph cache per worker); use
-    /// one Prover per worker and serialize its callers.
-    pub fn prove(self: *Prover, a: std.mem.Allocator, input: Prestage.Input) !Outer.prove.Produced {
+    /// One node. Reentrant: concurrent callers (one per recursion lane) run
+    /// their pre-stage and assembly on their own threads while the worker
+    /// pipelines up to `max_outstanding` jobs, so node k+1's host preparation
+    /// overlaps node k's GPU work. The graph cache is touched only by the
+    /// worker thread (inside enqueue); every other shared table is locked.
+    pub fn prove(self: *Prover, a: std.mem.Allocator, input: Prestage.Input, report: ?*Report) !Outer.prove.Produced {
         var timer = try std.time.Timer.start();
         const staged = try Prestage.prestage(a, input);
         defer staged.deinit();
-        self.last = .{ .prestage_ns = timer.lap() };
+        var r = Report{ .prestage_ns = timer.lap() };
         var job = try Job.OuterNodeJob.initWhole(staged, &self.shared.kernels, self.shared.whole());
         defer job.deinit();
         job.graphs = &self.graphs;
@@ -110,13 +112,14 @@ pub const Prover = struct {
         }
         done.event.wait();
         try done.result;
-        self.last.job_ns = timer.lap();
-        self.last.receipt = done.receipt;
-        self.last.outcome = job.report.outcome;
-        self.last.launches = job.report.launches;
-        self.last.kernel_nodes = job.report.kernel_nodes;
+        r.job_ns = timer.lap();
+        r.receipt = done.receipt;
+        r.outcome = job.report.outcome;
+        r.launches = job.report.launches;
+        r.kernel_nodes = job.report.kernel_nodes;
         const produced = try Prestage.assemble(a, input.key, staged, &job);
-        self.last.assemble_ns = timer.read();
+        r.assemble_ns = timer.read();
+        if (report) |out| out.* = r;
         return produced;
     }
 };
