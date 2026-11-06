@@ -77,7 +77,7 @@ const Memset = *const fn (*anyopaque, *anyopaque, c_int, usize) callconv(.c) c_i
 /// Legacy constants (gkr_stage.zig): relation reservoir 10 x 31 felts, the
 /// traversal chain tag, and the projection metadata header.
 const reservoir_felts = 310;
-const traversal_chain: u64 = 0x47524b5300000000;
+pub const traversal_chain: u64 = 0x47524b5300000000;
 const relations = std.enums.values(Source.Fractions.Relation);
 
 /// Base-image entry points (frozen image exports), loaded once per worker.

@@ -2,6 +2,7 @@
 //! commit plan, opening tail, stage transcripts. GPU tests skip without
 //! STWO_RV64_M8_GPU_BASE / STWO_RV64_M8_JOBS_LIBRARY.
 test {
+    _ = @import("rv64/jobs/native_binding.zig");
     _ = @import("rv64/jobs/native_commit.zig");
     _ = @import("rv64/jobs/native_composition.zig");
     _ = @import("rv64/jobs/native_commit_test.zig");

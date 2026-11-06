@@ -33,6 +33,9 @@ const Sources = @import("rv64/gkr_sources.zig");
 const NGl = @import("rv64/jobs/native_global.zig");
 const NC = @import("rv64/jobs/native_commit.zig");
 const NS1 = @import("rv64/jobs/native_stage1.zig");
+const NB = @import("rv64/jobs/native_binding.zig");
+const NP = @import("rv64/jobs/native_pcs.zig");
+const A = @import("rv64/abi.zig");
 const NComp = @import("rv64/jobs/native_composition.zig");
 const CompRoles = @import("rv64/m8_native_composition_roles.zig");
 const RC = @import("rv64/resident_composition.zig");
@@ -153,6 +156,95 @@ const Row = struct {
     stage1_host_waits: u32 = 0,
     stage1_arena_peak_words: u64 = 0,
     stage1_error: []const u8 = "",
+    /// Enqueue-only binding (native_binding.zig) in the Stage1 job, right
+    /// after the traversal; compared at the legacy Owner.finalize with
+    /// per-instance trace-tree roots of the 16 coefficient columns.
+    binding_instances: usize = 0,
+    binding_verdict: u32 = 0xffff_ffff,
+    binding_roots_equal: bool = false,
+    binding_checked: bool = false,
+    binding_launches: u64 = 0,
+    binding_gpu_ms: f32 = -1,
+    binding_error: []const u8 = "",
+};
+
+/// Per-instance root of 16 binding columns (rows words each, contiguous):
+/// the existing trace tree kernel over one mixed segment; root into `out`.
+fn bindingRoots(csym: NC.Symbols, e: *api.Enqueue, plan: *const NB.Plan, columns: [*]const u32, out: api.DeviceBuffer) !void {
+    var tree_words: usize = 0;
+    for (plan.row_logs) |rl| tree_words = @max(tree_words, ((@as(usize, 2) << @intCast(rl)) - 1) * 8);
+    const tree = try e.alloc(tree_words);
+    for (plan.row_logs, 0..) |rl, i| {
+        const rows = @as(usize, 1) << @intCast(rl);
+        const segment = A.MixedSegment{ .columns = columns + plan.offsets[i], .stride_words = rows, .capacity_words = rows * 16, .source_size = @intCast(rows) };
+        const words = (rows * 2 - 1) * 8;
+        if (csym.tree(e.ctx(), 0, @ptrCast(&segment), 1, rl, tree.ptr, words) != 0) return error.CudaEnqueueFailed;
+        if (csym.copy_d2d(e.ctx(), out.ptr + 8 * i, tree.ptr + words - 8, 32) != 0) return error.CudaEnqueueFailed;
+    }
+    e.free(tree);
+}
+fn bindingTreeWords(plan: *const NB.Plan) usize {
+    return ((@as(usize, 2) << @intCast(plan.max_log)) - 1) * 8;
+}
+
+/// Legacy binding columns (Owner.finalize Completion, GPU0) mirrored, rooted.
+const BindingCheckJob = struct {
+    plan: *const NB.Plan,
+    csym: NC.Symbols,
+    peer: Peer,
+    legacy: [*]const u32,
+    layout: Slab.ProofLayout = .{},
+    roots: []u32,
+    pub fn classKey(_: *BindingCheckJob) [32]u8 {
+        var k: [32]u8 = @splat(0);
+        @memcpy(k[0..14], "rv64-m8-bindck");
+        return k;
+    }
+    pub fn footprint(self: *BindingCheckJob) api.Footprint {
+        return .{ .device_words = self.plan.output_words + bindingTreeWords(self.plan) + 4 * 64, .staged_words = 0, .slab_words = self.layout.words, .pinned_words = 64 };
+    }
+    pub fn stage(_: *BindingCheckJob, _: *api.Stager) !void {}
+    pub fn enqueue(self: *BindingCheckJob, e: *api.Enqueue) !void {
+        try e.slab.bind(&self.layout);
+        const local = try e.alloc(self.plan.output_words);
+        try self.peer.mirror(e, local.ptr, self.legacy, self.plan.output_words);
+        try bindingRoots(self.csym, e, self.plan, local.ptr, try e.slab.field(.opaque_words, 0));
+        e.free(local);
+    }
+    pub fn finish(self: *BindingCheckJob, view: api.SlabView) !void {
+        @memcpy(self.roots, try Slab.read(view, .opaque_words, 0));
+    }
+    pub fn abort(_: *BindingCheckJob) void {}
+};
+
+/// The legacy owner, wrapped so its finalize also checks the job binding.
+const BindingOwner = struct {
+    decorator: *Decorator,
+    inner: Child.DeviceBinding.Owner,
+    ordinal: u32,
+    fn wrap(self: *BindingOwner) Child.DeviceBinding.Owner {
+        var out = self.inner;
+        out.context = self;
+        out.park_fn = if (self.inner.park_fn != null) park else null;
+        out.finalize_fn = finalize;
+        out.release_fn = release;
+        return out;
+    }
+    fn park(raw: *anyopaque) anyerror!usize {
+        const self: *BindingOwner = @ptrCast(@alignCast(raw));
+        return self.inner.park_fn.?(self.inner.context);
+    }
+    fn finalize(raw: *anyopaque, a: std.mem.Allocator, request: Child.DeviceBinding.Request) anyerror!Child.DeviceBinding.Completion {
+        const self: *BindingOwner = @ptrCast(@alignCast(raw));
+        const completed = try self.inner.finalize_fn(self.inner.context, a, request);
+        self.decorator.checkBinding(self.ordinal, request, completed);
+        return completed;
+    }
+    fn release(raw: *anyopaque) void {
+        const self: *BindingOwner = @ptrCast(@alignCast(raw));
+        self.inner.release_fn(self.inner.context);
+        self.decorator.a.destroy(self);
+    }
 };
 
 /// NativeStage1 as one job: seed, FIXED (class-persistent, committed on device
@@ -169,6 +261,13 @@ const Stage1ParityJob = struct {
     layout: Slab.ProofLayout = .{},
     roots: [16]u32 = undefined,
     section: ?NG.Section = null,
+    binding: ?*NB.Binding = null,
+    binding_verdict: u32 = 0xffff_ffff,
+    binding_roots: []u32 = &.{},
+    events: ?*const Events.Api = null,
+    begin: ?*anyopaque = null,
+    end: ?*anyopaque = null,
+    binding_gpu_ms: f32 = -1,
     pub fn classKey(self: *Stage1ParityJob) [32]u8 {
         return NG.classKeyOf(self.s1.gkr.?.plan);
     }
@@ -178,20 +277,41 @@ const Stage1ParityJob = struct {
         const mp = self.s1.main;
         const staged = 64 + fixed.stagedWords(self.fixed_host_words) + mp.stagedWords(0) + g.stagedWords(true) + 8 * 64;
         const mirror = Peer.deviceWords(NC.Input, self.main_inputs, self.main_logs);
-        const peak = @max(fixed.deviceWords(), @max(mp.deviceWords(), mp.coefficient_cells + 64 + g.enqueueWords()));
-        return .{ .device_words = staged + mirror + peak + 8 * 64, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = self.fixed_host_words + 2 * (fixed.tw.twiddles.len + fixed.tw.itwiddles.len + mp.tw.twiddles.len + mp.tw.itwiddles.len) + 8 * (fixed.logs.len + mp.logs.len) + g.pinnedWords() + 256 };
+        const bind_words = if (self.binding) |b| b.plan.output_words + b.plan.enqueueWords() + bindingTreeWords(b.plan) + 4 * 64 else 0;
+        const peak = @max(fixed.deviceWords(), @max(mp.deviceWords(), mp.coefficient_cells + 64 + g.enqueueWords() + bind_words));
+        const bind_pinned = if (self.binding) |b| b.plan.pinnedWords() else 0;
+        return .{ .device_words = staged + mirror + peak + 8 * 64, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = self.fixed_host_words + 2 * (fixed.tw.twiddles.len + fixed.tw.itwiddles.len + mp.tw.twiddles.len + mp.tw.itwiddles.len) + 8 * (fixed.logs.len + mp.logs.len) + g.pinnedWords() + bind_pinned + 256 };
     }
     pub fn stage(self: *Stage1ParityJob, s: *api.Stager) !void {
         try self.s1.stage(s, self.fixed_inputs, self.main_inputs);
+        if (self.binding) |b| try b.stage(self.s1.gkr.?.a, s);
+        if (self.events) |ev| if (ev.create(&self.begin, 0) != 0 or ev.create(&self.end, 0) != 0 or self.begin == null or self.end == null) return error.CudaTimingFailed;
     }
     pub fn enqueue(self: *Stage1ParityJob, e: *api.Enqueue) !void {
         try e.slab.bind(&self.layout);
         try self.peer.mirrorInputs(e, NC.Input, self.main_inputs, self.main_logs, self.local);
         _ = try self.s1.enqueue(e, self.fixed_inputs, self.local, try e.slab.field(.root, 0));
+        if (self.binding) |b| {
+            const verdict = try e.slab.field(.opaque_words, 0);
+            try check(self.s1.gkr.?.sym.memset(e.ctx(), verdict.ptr, 0, 4));
+            const out = try e.alloc(b.plan.output_words);
+            if (self.events) |ev| if (ev.record(self.begin.?, e.stream()) != 0) return error.CudaTimingFailed;
+            try b.enqueue(e, self.s1.gkr.?, out, verdict);
+            if (self.events) |ev| if (ev.record(self.end.?, e.stream()) != 0) return error.CudaTimingFailed;
+            try bindingRoots(self.s1.csym, e, b.plan, out.ptr, try e.slab.field(.opaque_words, 1));
+            e.free(out);
+        }
     }
     pub fn finish(self: *Stage1ParityJob, view: api.SlabView) !void {
         @memcpy(&self.roots, try Slab.read(view, .root, 0));
         self.section = try NG.Section.read(self.s1.gkr.?.a, self.s1.gkr.?, view);
+        if (self.binding != null) {
+            self.binding_verdict = (try Slab.read(view, .opaque_words, 0))[0];
+            @memcpy(self.binding_roots, try Slab.read(view, .opaque_words, 1));
+            if (self.events) |ev| if (ev.elapsed(&self.binding_gpu_ms, self.begin.?, self.end.?) != 0) {
+                self.binding_gpu_ms = -1;
+            };
+        }
     }
     pub fn abort(_: *Stage1ParityJob) void {}
 };
@@ -212,6 +332,12 @@ const Decorator = struct {
     csym: NC.Symbols,
     mutex: std.Thread.Mutex = .{},
     rows: std.ArrayListUnmanaged(Row) = .empty,
+    /// STWO_RV64_M8_PARITY_BINDING (default 1 with stage 1): run the
+    /// enqueue-only binding in the Stage1 job; roots kept per ordinal until
+    /// the legacy Owner.finalize of that scope.
+    bsym: ?NB.Symbols = null,
+    events: ?*const Events.Api = null,
+    pending_binding: std.AutoHashMapUnmanaged(u32, []u32) = .empty,
 
     fn stage(self: *Decorator) Child.NumericalStage {
         var out = self.inner;
@@ -225,7 +351,57 @@ const Decorator = struct {
     }
     fn bind(raw: *anyopaque, a: std.mem.Allocator, request: Child.DeviceBinding.Request) anyerror!Child.DeviceBinding.Owner {
         const self: *Decorator = @ptrCast(@alignCast(raw));
-        return self.inner.bind.?(self.inner.context, a, request);
+        const owner = try self.inner.bind.?(self.inner.context, a, request);
+        if (self.bsym == null) return owner;
+        const wrapper = self.a.create(BindingOwner) catch |err| {
+            owner.release_fn(owner.context);
+            return err;
+        };
+        wrapper.* = .{ .decorator = self, .inner = owner, .ordinal = request.scope.ordinal };
+        return wrapper.wrap();
+    }
+    /// At the legacy Owner.finalize: root the legacy columns on the job worker
+    /// and compare with the roots the Stage1 job's binding produced.
+    fn checkBinding(self: *Decorator, ordinal: u32, request: Child.DeviceBinding.Request, completed: Child.DeviceBinding.Completion) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const row = for (self.rows.items) |*r| {
+            if (r.ordinal == ordinal) break r;
+        } else return;
+        if (row.binding_checked) return;
+        row.binding_checked = true;
+        self.checkBindingInner(ordinal, request, completed, row) catch |err| {
+            row.binding_error = @errorName(err);
+        };
+        std.debug.print("GPU_M8_NATIVE_BINDING_PARITY ordinal={} instances={} verdict={} roots_equal={} gpu_ms={d:.3} launches={} error={s}\n", .{ ordinal, row.binding_instances, row.binding_verdict, row.binding_roots_equal, row.binding_gpu_ms, row.binding_launches, row.binding_error });
+    }
+    fn checkBindingInner(self: *Decorator, ordinal: u32, request: Child.DeviceBinding.Request, completed: Child.DeviceBinding.Completion, row: *Row) !void {
+        const job_roots = self.pending_binding.get(ordinal) orelse return error.BindingJobRootsMissing;
+        defer {
+            _ = self.pending_binding.remove(ordinal);
+            self.a.free(job_roots);
+        }
+        if (row.binding_error.len != 0) return error.BindingJobFailed;
+        var plan = try NB.Plan.init(self.a, request.instances, @intCast(request.artifact.ood_point.len));
+        defer plan.deinit();
+        if (completed.columns.len != 16 * request.instances.len) return error.BindingColumnShape;
+        const base = (completed.columns[0].device orelse return error.BindingColumnShape).words;
+        // Legacy Completion columns are one contiguous lease: [Eq 8 | prefix 8] per instance.
+        for (completed.columns, 0..) |c, k| {
+            const i = k / 16;
+            const d = c.device orelse return error.BindingColumnShape;
+            const rows = @as(usize, 1) << @intCast(plan.row_logs[i]);
+            if (d.words != base + plan.offsets[i] + (k % 16) * rows or d.count != rows) return error.BindingColumnNotContiguous;
+        }
+        const roots = try self.a.alloc(u32, 8 * request.instances.len);
+        defer self.a.free(roots);
+        var job = BindingCheckJob{ .plan = &plan, .csym = self.csym, .peer = self.peer, .legacy = base, .roots = roots };
+        _ = try job.layout.add(.opaque_words, 0, roots.len);
+        var done = Done{};
+        try self.worker.submit(api.Job.from(BindingCheckJob, &job), .{ .ctx = &done, .done = Done.call });
+        while (!@atomicLoad(bool, &done.done, .acquire)) std.Thread.sleep(50 * std.time.ns_per_us);
+        try done.result;
+        row.binding_roots_equal = std.mem.eql(u32, roots, job_roots);
     }
     fn abortScope(raw: *anyopaque, scope: NG.Scope) void {
         const self: *Decorator = @ptrCast(@alignCast(raw));
@@ -233,7 +409,20 @@ const Decorator = struct {
     }
     fn replay(raw: *anyopaque, a: std.mem.Allocator, request: Child.NumericalStage.Request, owner: *Child.DeviceBinding.Owner) anyerror!void {
         const self: *Decorator = @ptrCast(@alignCast(raw));
-        return self.inner.replay_binding.?(self.inner.context, a, request, owner);
+        if (owner.finalize_fn != BindingOwner.finalize) return self.inner.replay_binding.?(self.inner.context, a, request, owner);
+        // Parked/replayed legacy owner (memory pressure on the legacy GPU): the
+        // legacy replay must see ITS owner; the wrapper keeps the result.
+        const wrapper: *BindingOwner = @ptrCast(@alignCast(owner.context));
+        var inner = owner.*;
+        inner.context = wrapper.inner.context;
+        inner.park_fn = wrapper.inner.park_fn;
+        inner.finalize_fn = wrapper.inner.finalize_fn;
+        inner.release_fn = wrapper.inner.release_fn;
+        defer {
+            wrapper.inner = inner;
+            owner.* = wrapper.wrap();
+        }
+        return self.inner.replay_binding.?(self.inner.context, a, request, &inner);
     }
     fn prove(raw: *anyopaque, a: std.mem.Allocator, request: Child.NumericalStage.Request) anyerror!NG.Proof {
         const self: *Decorator = @ptrCast(@alignCast(raw));
@@ -302,6 +491,27 @@ const Decorator = struct {
         defer if (job.section) |*s| s.deinit();
         _ = try job.layout.add(.root, 0, 16);
         try gplan.addFields(&job.layout);
+        var bplan: ?NB.Plan = null;
+        defer if (bplan) |*p| p.deinit();
+        var binding: NB.Binding = undefined;
+        defer if (job.begin) |ev| {
+            _ = self.events.?.destroy(ev);
+        };
+        defer if (job.end) |ev| {
+            _ = self.events.?.destroy(ev);
+        };
+        if (self.bsym) |bsym| {
+            bplan = try NB.Plan.init(a, request.instances, gplan.traversal.layers);
+            binding = .{ .plan = &bplan.?, .sym = bsym };
+            job.binding = &binding;
+            job.binding_roots = try a.alloc(u32, 8 * request.instances.len);
+            _ = try job.layout.add(.opaque_words, 0, 1);
+            _ = try job.layout.add(.opaque_words, 1, job.binding_roots.len);
+            row.binding_instances = request.instances.len;
+            job.events = self.events;
+        }
+        var keep_roots = false;
+        defer if (!keep_roots and job.binding_roots.len != 0) a.free(job.binding_roots);
         var done = Done{};
         try self.worker.submit(api.Job.from(Stage1ParityJob, &job), .{ .ctx = &done, .done = Done.call });
         while (!@atomicLoad(bool, &done.done, .acquire)) std.Thread.sleep(50 * std.time.ns_per_us);
@@ -319,6 +529,13 @@ const Decorator = struct {
         row.stage1_wait_ns = done.receipt.wait_ns;
         row.stage1_host_waits = done.receipt.host_waits;
         row.stage1_arena_peak_words = done.receipt.arena_peak_words;
+        if (job.binding != null) {
+            row.binding_verdict = job.binding_verdict;
+            row.binding_launches = binding.launches;
+            row.binding_gpu_ms = job.binding_gpu_ms;
+            try self.pending_binding.put(self.a, request.scope.ordinal, job.binding_roots);
+            keep_roots = true;
+        }
     }
     fn compare(self: *Decorator, request: Child.NumericalStage.Request, legacy: *const NG.Proof, legacy_ns: u64) !Row {
         const a = self.a;
@@ -700,9 +917,10 @@ const CompositionParityJob = struct {
     claims: []const u32 = &.{},
     /// CUDA events around the producer's enqueued work (after the mirrors,
     /// before the comparison): GPU time of the composition itself.
+    /// Created in `stage` (the worker thread: the job device's context is current).
     events: *const Events.Api,
-    begin: *anyopaque,
-    end: *anyopaque,
+    begin: ?*anyopaque = null,
+    end: ?*anyopaque = null,
     gpu_ms: f32 = -1,
     layout: Slab.ProofLayout = .{},
     staged_alpha: ?api.DeviceBuffer = null,
@@ -737,6 +955,7 @@ const CompositionParityJob = struct {
         return .{ .device_words = staged + self.plan.persistentWords() + mirror + self.plan.enqueueWords() + 8 * g, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = self.plan.pinnedWords() + self.hostWords() + self.claims.len + 64 };
     }
     pub fn stage(self: *CompositionParityJob, s: *api.Stager) !void {
+        if (self.events.create(&self.begin, 0) != 0 or self.events.create(&self.end, 0) != 0 or self.begin == null or self.end == null) return error.CudaTimingFailed;
         try self.plan.stage(s);
         const alpha = try s.alloc(8);
         try s.upload(alpha, &self.alpha);
@@ -799,9 +1018,9 @@ const CompositionParityJob = struct {
         }
         const status = try e.slab.field(.status, 0);
         try check(self.sym.memset(e.ctx(), status.ptr, 0, 4));
-        if (self.events.record(self.begin, e.stream()) != 0) return error.CudaTimingFailed;
+        if (self.events.record(self.begin.?, e.stream()) != 0) return error.CudaTimingFailed;
         const out = try self.plan.enqueueWithClaims(self.sym, e, .{ .{ .pointers = pointers[0] }, .{ .pointers = pointers[1] }, .{ .pointers = pointers[2] } }, self.staged_alpha.?.ptr, self.staged_claims, try e.slab.field(.root, 0), status.ptr);
-        if (self.events.record(self.end, e.stream()) != 0) return error.CudaTimingFailed;
+        if (self.events.record(self.end.?, e.stream()) != 0) return error.CudaTimingFailed;
         const reference = try e.alloc(self.plan.coefficientWords());
         try self.peer.mirror(e, reference.ptr, self.legacy_output, self.plan.coefficientWords());
         try check(self.compare(e.ctx(), 0, reference.ptr, out.coefficients.ptr, self.plan.coefficientWords(), (try e.slab.field(.opaque_words, 0)).ptr));
@@ -810,10 +1029,12 @@ const CompositionParityJob = struct {
         @memcpy(&self.root, try Slab.read(view, .root, 0));
         self.status = (try Slab.read(view, .status, 0))[0];
         @memcpy(&self.mismatch, (try Slab.read(view, .opaque_words, 0))[0..2]);
-        if (self.events.elapsed(&self.gpu_ms, self.begin, self.end) != 0) self.gpu_ms = -1;
+        if (self.events.elapsed(&self.gpu_ms, self.begin.?, self.end.?) != 0) self.gpu_ms = -1;
     }
     pub fn abort(_: *CompositionParityJob) void {}
     fn deinit(self: *CompositionParityJob) void {
+        if (self.begin) |ev| _ = self.events.destroy(ev);
+        if (self.end) |ev| _ = self.events.destroy(ev);
         for (self.host_offsets) |o| if (o.len != 0) self.a.free(o);
     }
 };
@@ -932,12 +1153,7 @@ const CompositionDecorator = struct {
         const legacy_output = (tree.columns[0].device orelse return error.CompositionParityLegacyOutputNotDevice).words;
         var alpha_words: [8]u32 = undefined;
         for (alpha.toM31Array(), &alpha_words) |m, *w| w.* = m.v;
-        var begin: ?*anyopaque = null;
-        var end: ?*anyopaque = null;
-        if (self.events.create(&begin, 0) != 0 or self.events.create(&end, 0) != 0) return error.CudaTimingFailed;
-        defer _ = self.events.destroy(begin.?);
-        defer _ = self.events.destroy(end.?);
-        var job = CompositionParityJob{ .events = self.events, .begin = begin.?, .end = end.?, .plan = &plan, .sym = self.symbols, .compare = self.compare, .peer = self.peer, .device = .{ device[0], device[1], device[2] }, .host = .{ host[0], host[1], host[2] }, .logs = .{ logs[0], logs[1], logs[2] }, .alpha = alpha_words, .legacy_output = legacy_output, .a = a, .claims = claims };
+        var job = CompositionParityJob{ .events = self.events, .plan = &plan, .sym = self.symbols, .compare = self.compare, .peer = self.peer, .device = .{ device[0], device[1], device[2] }, .host = .{ host[0], host[1], host[2] }, .logs = .{ logs[0], logs[1], logs[2] }, .alpha = alpha_words, .legacy_output = legacy_output, .a = a, .claims = claims };
         defer job.deinit();
         _ = try job.layout.add(.root, 0, 8);
         _ = try job.layout.add(.status, 0, 1);
@@ -970,6 +1186,222 @@ const Done = struct {
         d.receipt = c.receipt;
         d.result = c.result;
         @atomicStore(bool, &d.done, true, .release);
+    }
+};
+
+// ---------------------------------------------------------------------------
+// OODS point + mask sampling + enqueue-only PCS (native_pcs.enqueueOpening) at
+// the legacy PCS stage, every native proof (CPU segments and truths). The
+// device channel starts at the legacy pre-OODS checkpoint (the PCS request's
+// channel minus the OODS draw), draws the OODS felt, builds the OODS and base
+// points on device and runs the PCS seeded from the device state. The framing
+// is built at a PLACEHOLDER point (mask offsets only: challenge independent).
+// finish decodes with the legacy decoder; proof and post-PCS channel must equal
+// the legacy PCS result.
+const PcsRow = struct {
+    kind: []const u8,
+    ordinal: u32,
+    trees: usize,
+    columns: usize,
+    host_columns: usize,
+    oods_equal: bool = false,
+    proof_equal: bool = false,
+    channel_equal: bool = false,
+    pcs_status: u32 = 0xffff_ffff,
+    gpu_ms: f32 = -1,
+    legacy_ns: u64,
+    job_enqueue_ns: u64 = 0,
+    job_wait_ns: u64 = 0,
+    host_waits: u32 = 0,
+    arena_peak_words: u64 = 0,
+    error_name: []const u8 = "",
+};
+
+const PcsParityJob = struct {
+    a: std.mem.Allocator,
+    pcs: *NP.PcsJob,
+    sym: NP.Symbols,
+    peer: Peer,
+    request: DP.Request,
+    seed: [9]u32,
+    events: *const Events.Api,
+    begin: ?*anyopaque = null,
+    end: ?*anyopaque = null,
+    gpu_ms: f32 = -1,
+    layout: Slab.ProofLayout = .{},
+    staged_seed: ?api.DeviceBuffer = null,
+    staged_host: ?api.DeviceBuffer = null,
+    pinned: []u32 = &.{},
+    host_words: usize = 0,
+    mirror_words: usize = 0,
+    oods: [33]u32 = undefined,
+    decoded: ?@import("rv64/hybrid_pcs.zig").Decoded = null,
+    decode_error: ?anyerror = null,
+    pub fn classKey(_: *PcsParityJob) [32]u8 {
+        var k: [32]u8 = @splat(0);
+        @memcpy(k[0..14], "rv64-m8-pcsprt");
+        return k;
+    }
+    fn count(self: *PcsParityJob) void {
+        self.host_words = 0;
+        self.mirror_words = 0;
+        for (self.request.trees) |t| for (t.columns) |c| {
+            if (c.device != null) self.mirror_words += @as(usize, 1) << @intCast(c.log_size) else self.host_words += c.coefficients.len;
+        };
+    }
+    pub fn footprint(self: *PcsParityJob) api.Footprint {
+        const g = 64;
+        const staged = std.mem.alignForward(usize, self.host_words, g) + 2 * g;
+        return .{ .device_words = staged + std.mem.alignForward(usize, self.mirror_words, g) + (5 << 29), .staged_words = staged, .slab_words = self.layout.words, .pinned_words = @as(usize, @intCast(self.pcs.ingressWords())) + self.host_words + 2 * g };
+    }
+    pub fn stage(self: *PcsParityJob, s: *api.Stager) !void {
+        if (self.events.create(&self.begin, 0) != 0 or self.events.create(&self.end, 0) != 0 or self.begin == null or self.end == null) return error.CudaTimingFailed;
+        const seed = try s.alloc(9);
+        try s.upload(seed, &self.seed);
+        self.staged_seed = seed;
+        if (self.host_words != 0) {
+            const host = try s.alloc(self.host_words);
+            var at: usize = 0;
+            for (self.request.trees, 0..) |t, ti| for (t.columns, 0..) |c, ci| if (c.device == null) {
+                const words = @as([*]const u32, @ptrCast(c.coefficients.ptr))[0..c.coefficients.len];
+                try s.upload(try host.slice(at, words.len), words);
+                try self.pcs.bindColumn(ti, ci, host.ptr + at);
+                at += words.len;
+            };
+            self.staged_host = host;
+        }
+        self.pinned = try s.pinned(@intCast(self.pcs.ingressWords()));
+    }
+    pub fn enqueue(self: *PcsParityJob, e: *api.Enqueue) !void {
+        try e.slab.bind(&self.layout);
+        if (self.mirror_words != 0) {
+            const mirror = try e.alloc(self.mirror_words);
+            var at: usize = 0;
+            for (self.request.trees, 0..) |t, ti| for (t.columns, 0..) |c, ci| if (c.device) |d| {
+                const n = @as(usize, 1) << @intCast(c.log_size);
+                try self.peer.mirror(e, mirror.ptr + at, d.words, n);
+                try self.pcs.bindColumn(ti, ci, mirror.ptr + at);
+                at += n;
+            };
+        }
+        try e.channel.initFromCheckpoint(self.staged_seed.?);
+        if (self.events.record(self.begin.?, e.stream()) != 0) return error.CudaTimingFailed;
+        try self.pcs.enqueueOpening(self.sym, e, self.pinned, try e.slab.field(.opaque_words, 0), try e.slab.field(.opaque_words, 1));
+        if (self.events.record(self.end.?, e.stream()) != 0) return error.CudaTimingFailed;
+    }
+    pub fn finish(self: *PcsParityJob, view: api.SlabView) !void {
+        @memcpy(&self.oods, try Slab.read(view, .opaque_words, 0));
+        if (self.events.elapsed(&self.gpu_ms, self.begin.?, self.end.?) != 0) self.gpu_ms = -1;
+        const words = try Slab.read(view, .opaque_words, 1);
+        const roots = try self.a.alloc([32]u8, self.request.trees.len);
+        defer self.a.free(roots);
+        for (self.request.trees, roots) |t, *r| r.* = t.root;
+        self.decoded = self.pcs.decode(self.a, words, roots) catch |err| blk: {
+            self.decode_error = err;
+            break :blk null;
+        };
+    }
+    pub fn abort(_: *PcsParityJob) void {}
+    fn deinit(self: *PcsParityJob) void {
+        if (self.begin) |ev| _ = self.events.destroy(ev);
+        if (self.end) |ev| _ = self.events.destroy(ev);
+    }
+};
+
+const PcsDecorator = struct {
+    a: std.mem.Allocator,
+    inner: *const DP.Stage,
+    kind: []const u8,
+    worker: *W.Worker,
+    sym: NP.Symbols,
+    peer: Peer,
+    events: *const Events.Api,
+    wide: bool,
+    mutex: *std.Thread.Mutex,
+    rows: *std.ArrayListUnmanaged(PcsRow),
+    fn stage(self: *PcsDecorator) DP.Stage {
+        return .{ .context = self, .prove = prove };
+    }
+    fn prove(raw: *anyopaque, a: std.mem.Allocator, request: DP.Request, channel: *DP.Channel) anyerror!DP.P.ExtendedCommitmentSchemeProof(DP.H) {
+        const self: *PcsDecorator = @ptrCast(@alignCast(raw));
+        const before = channel.*;
+        var timer = try std.time.Timer.start();
+        const legacy = try self.inner.prove(self.inner.context, a, request, channel);
+        const legacy_ns = timer.read();
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        var columns: usize = 0;
+        var host_columns: usize = 0;
+        for (request.trees) |t| for (t.columns) |c| {
+            columns += 1;
+            host_columns += @intFromBool(c.device == null);
+        };
+        var row = PcsRow{ .kind = self.kind, .ordinal = if (request.scope) |sc| sc.ordinal else 0xffff_ffff, .trees = request.trees.len, .columns = columns, .host_columns = host_columns, .legacy_ns = legacy_ns };
+        self.check(request, before, channel.*, &legacy, &row) catch |err| {
+            row.error_name = @errorName(err);
+        };
+        std.debug.print("GPU_M8_NATIVE_PCS_PARITY kind={s} ordinal={} trees={} columns={} host_columns={} oods_equal={} proof_equal={} channel_equal={} gpu_ms={d:.3} legacy_ns={} job_enqueue_ns={} job_wait_ns={} host_waits={} arena_peak_words={} error={s}\n", .{ row.kind, row.ordinal, row.trees, row.columns, row.host_columns, row.oods_equal, row.proof_equal, row.channel_equal, row.gpu_ms, row.legacy_ns, row.job_enqueue_ns, row.job_wait_ns, row.host_waits, row.arena_peak_words, row.error_name });
+        try self.rows.append(self.a, row);
+        return legacy;
+    }
+    fn check(self: *PcsDecorator, request: DP.Request, before: DP.Channel, after: DP.Channel, legacy: *const DP.P.ExtendedCommitmentSchemeProof(DP.H), row: *PcsRow) !void {
+        const a = self.a;
+        // Pre-OODS checkpoint: the OODS draw is the last op before the PCS (one
+        // draw step, digest unchanged).
+        if (before.inner.n_draws == 0) return error.PcsParityNoOodsDraw;
+        var pre = before;
+        pre.inner.n_draws -= 1;
+        var replay = pre;
+        const oods = try @import("stwo_core").circle.randomSecureFieldPointFor(DP.O, &replay);
+        if (!std.meta.eql(replay.inner.digest, before.inner.digest) or replay.inner.n_draws != before.inner.n_draws) return error.PcsParityOodsCheckpoint;
+        // Framing at a placeholder point (same mask offsets).
+        const placeholder = try NP.placeholderPoint();
+        const trees = try a.alloc([][]DP.Point, request.points.items.len);
+        defer a.free(trees);
+        var made: usize = 0;
+        defer for (trees[0..made]) |t| {
+            for (t) |c| a.free(c);
+            a.free(t);
+        };
+        for (request.points.items, trees) |tree, *out| {
+            out.* = try a.alloc([]DP.Point, tree.len);
+            made += 1;
+            for (tree, out.*) |column, *o| {
+                o.* = try a.alloc(DP.Point, column.len);
+                for (column, o.*) |point, *q| q.* = point.sub(oods).add(placeholder);
+            }
+        }
+        const framed = DP.Request{ .scope = request.scope, .allocation_observer_domain = request.allocation_observer_domain, .config = request.config, .lifting_log_size = request.lifting_log_size, .trees = request.trees, .points = .{ .items = trees } };
+        var pcs = try NP.PcsJob.prepare(a, self.sym, framed, placeholder, self.wide);
+        defer pcs.deinit(a);
+        var seed: [9]u32 = undefined;
+        for (0..8) |i| seed[i] = std.mem.readInt(u32, pre.inner.digest[4 * i ..][0..4], .little);
+        seed[8] = pre.inner.n_draws;
+        var job = PcsParityJob{ .a = a, .pcs = &pcs, .sym = self.sym, .peer = self.peer, .request = request, .seed = seed, .events = self.events };
+        defer job.deinit();
+        defer if (job.decoded) |*d| d.proof.deinit(a);
+        job.count();
+        _ = try job.layout.add(.opaque_words, 0, NP.oods_field_words);
+        _ = try job.layout.add(.opaque_words, 1, @intCast(pcs.outputWords()));
+        var done = Done{};
+        try self.worker.submit(api.Job.from(PcsParityJob, &job), .{ .ctx = &done, .done = Done.call });
+        while (!@atomicLoad(bool, &done.done, .acquire)) std.Thread.sleep(50 * std.time.ns_per_us);
+        try done.result;
+        const r = done.receipt;
+        row.job_enqueue_ns = r.enqueue_ns;
+        row.job_wait_ns = r.wait_ns;
+        row.host_waits = r.host_waits;
+        row.arena_peak_words = r.arena_peak_words;
+        row.gpu_ms = job.gpu_ms;
+        row.pcs_status = job.oods[32];
+        var oods_equal = job.oods[32] == 0;
+        for (oods.x.toM31Array(), 0..) |m, i| oods_equal = oods_equal and job.oods[i] == m.v;
+        for (oods.y.toM31Array(), 0..) |m, i| oods_equal = oods_equal and job.oods[8 + i] == m.v;
+        row.oods_equal = oods_equal;
+        if (job.decode_error) |err| return err;
+        const decoded = &(job.decoded orelse return error.PcsParityNotDecoded);
+        row.proof_equal = deepEql(decoded.proof, legacy.proof);
+        row.channel_equal = std.meta.eql(decoded.channel.inner.digest, after.inner.digest) and decoded.channel.inner.n_draws == after.inner.n_draws;
     }
 };
 
@@ -1051,24 +1483,30 @@ pub fn main() !void {
     const peer = Peer{ .copy = libs.addon.lookup(PeerCopy, "stwo_rv64_jobs_native_peer_copy_v1") orelse return error.ParityRequiresPeerCopy, .source_device = std.fmt.parseUnsigned(c_int, env("STWO_RV64_M8_PARITY_SOURCE_DEVICE") orelse "0", 10) catch return error.InvalidParityEnvironment };
     // STWO_RV64_M8_PARITY_ONLY=composition: only the native composition
     // producer is checked (the other decorators are not installed).
-    const only_composition = std.mem.eql(u8, env("STWO_RV64_M8_PARITY_ONLY") orelse "", "composition");
+    const only_mode = env("STWO_RV64_M8_PARITY_ONLY") orelse "";
+    const only_composition = std.mem.eql(u8, only_mode, "composition");
     var stages = pool.stages();
     var decorator = Decorator{ .a = a, .inner = pool.stages().numerical.?.*, .worker = worker, .symbols = try NG.Symbols.load(&libs.base), .catalogue = try Sources.Catalogue.init(a), .arena_bytes = arena_bytes, .peer = peer, .csym = try NC.Symbols.load(&libs.base) };
     defer decorator.catalogue.deinit();
     defer decorator.rows.deinit(a);
+    defer decorator.pending_binding.deinit(a);
+    const events_api = try Events.Api.load(&libs.base);
+    if (!std.mem.eql(u8, env("STWO_RV64_M8_PARITY_BINDING") orelse "1", "0") and !std.mem.eql(u8, env("STWO_RV64_M8_PARITY_STAGE1") orelse "1", "0")) {
+        decorator.bsym = try NB.Symbols.load(&libs.base);
+        decorator.events = &events_api;
+    }
     const wrapped = decorator.stage();
-    if (!only_composition) stages.numerical = &wrapped;
+    if (only_mode.len == 0) stages.numerical = &wrapped;
     const compare = libs.addon.lookup(Compare, "stwo_rv64_jobs_native_compare_v1") orelse return error.ParityRequiresCompareKernel;
     var global = GlobalDecorator{ .a = a, .inner = stages.global_interaction orelse return error.ParityRequiresDeviceGlobal, .worker = worker, .symbols = try NGl.Symbols.load(&libs.base), .catalogue = NGl.Catalogue.init(a, &libs.base), .compare = compare, .peer = peer };
     defer global.catalogue.deinit();
     defer global.rows.deinit(a);
-    if (!only_composition) stages.global_interaction = global.stage();
+    if (only_mode.len == 0) stages.global_interaction = global.stage();
     var commits = CommitDecorator{ .a = a, .inner = stages.trace_commit orelse return error.ParityRequiresDeviceTraceCommit, .worker = worker, .symbols = try NC.Symbols.load(&libs.base), .peer = peer };
     defer commits.rows.deinit(a);
     const wrapped_commit = commits.stage();
-    if (!only_composition) stages.trace_commit = &wrapped_commit;
+    if (only_mode.len == 0) stages.trace_commit = &wrapped_commit;
 
-    const events_api = try Events.Api.load(&libs.base);
     var composition = CompositionDecorator{ .a = a, .inner = stages.resident_composition orelse return error.ParityRequiresResidentComposition, .context = &pool.devices[0].composition, .events = &events_api, .worker = worker, .symbols = try NComp.Symbols.load(&libs.base, &libs.addon), .compare = compare, .peer = peer };
     defer composition.rows.deinit(a);
     const wrapped_composition = composition.stage();
@@ -1080,6 +1518,23 @@ pub fn main() !void {
     if (check_composition and !std.mem.eql(u8, env("STWO_RV64_M8_PARITY_TRUTH") orelse "1", "0")) {
         composition.truth_inner = stages.truth_composition orelse return error.ParityRequiresTruthComposition;
         stages.truth_composition = composition.truthStage();
+    }
+    // STWO_RV64_M8_PARITY_PCS=1 (default 0): OODS + enqueue-only PCS at every
+    // legacy PCS (CPU segments and truths).
+    const check_pcs = std.mem.eql(u8, env("STWO_RV64_M8_PARITY_PCS") orelse "0", "1") or std.mem.eql(u8, env("STWO_RV64_M8_PARITY_ONLY") orelse "", "pcs");
+    var pcs_mutex: std.Thread.Mutex = .{};
+    var pcs_rows: std.ArrayListUnmanaged(PcsRow) = .empty;
+    defer pcs_rows.deinit(a);
+    const Version = *const fn () callconv(.c) u32;
+    const wide = if (libs.base.lookup(Version, "stwo_rv64_pcs_request_version")) |version| version() >= 3 else false;
+    const pcs_sym = try NP.Symbols.load(&libs.addon);
+    var cpu_pcs = PcsDecorator{ .a = a, .inner = stages.pcs orelse return error.ParityRequiresDevicePcs, .kind = "cpu", .worker = worker, .sym = pcs_sym, .peer = peer, .events = &events_api, .wide = wide, .mutex = &pcs_mutex, .rows = &pcs_rows };
+    var truth_pcs = PcsDecorator{ .a = a, .inner = stages.truth_pcs orelse return error.ParityRequiresTruthPcs, .kind = "truth", .worker = worker, .sym = pcs_sym, .peer = peer, .events = &events_api, .wide = wide, .mutex = &pcs_mutex, .rows = &pcs_rows };
+    const wrapped_cpu_pcs = cpu_pcs.stage();
+    const wrapped_truth_pcs = truth_pcs.stage();
+    if (check_pcs) {
+        stages.pcs = &wrapped_cpu_pcs;
+        stages.truth_pcs = &wrapped_truth_pcs;
     }
 
     const resource_json = try std.json.Stringify.valueAlloc(a, manifest.resources, .{});
@@ -1107,6 +1562,19 @@ pub fn main() !void {
     for (composition.rows.items) |row| cpu_rows += @intFromBool(std.mem.eql(u8, row.kind, "cpu"));
     var composition_all = cpu_rows == item.expected_cpu_segments;
     for (composition.rows.items) |row| composition_all = composition_all and row.root_equal and row.coefficient_mismatches == 0 and row.status == 0 and row.host_waits == 1 and row.error_name.len == 0;
+    var pcs_all = pcs_rows.items.len >= item.expected_cpu_segments;
+    for (pcs_rows.items) |row| pcs_all = pcs_all and row.oods_equal and row.proof_equal and row.channel_equal and row.host_waits == 1 and row.error_name.len == 0;
+    if (check_pcs) {
+        var ptext: std.Io.Writer.Allocating = .init(a);
+        defer ptext.deinit();
+        try std.json.Stringify.value(.{ .schema = "rv64-m8-native-pcs-parity/v1", .block = block, .expected_cpu_segments = item.expected_cpu_segments, .legacy_native_wall_ns = wall_ns, .job_device = device, .wide_framing = wide, .pcs_all_equal = pcs_all, .proofs = pcs_rows.items }, .{ .whitespace = .indent_1 }, &ptext.writer);
+        const preport = try std.fs.path.join(a, &.{ out_dir, "native-pcs-parity.json" });
+        defer a.free(preport);
+        try std.fs.cwd().writeFile(.{ .sub_path = preport, .data = ptext.written() });
+        std.debug.print("GPU_M8_NATIVE_PCS_PARITY_DONE block={} proofs={} all_equal={} report={s}\n", .{ block, pcs_rows.items.len, pcs_all, preport });
+        if (!pcs_all) return error.NativePcsParityMismatch;
+        if (std.mem.eql(u8, env("STWO_RV64_M8_PARITY_ONLY") orelse "", "pcs")) return;
+    }
     if (only_composition) {
         var ctext: std.Io.Writer.Allocating = .init(a);
         defer ctext.deinit();
@@ -1122,13 +1590,16 @@ pub fn main() !void {
     for (decorator.rows.items) |row| all = all and row.channel_equal and row.proof_equal and row.host_waits == 1 and row.error_name.len == 0;
     var stage1_all = decorator.rows.items.len != 0;
     for (decorator.rows.items) |row| stage1_all = stage1_all and row.stage1_fixed_root_equal and row.stage1_main_root_equal and row.stage1_channel_equal and row.stage1_proof_equal and row.stage1_host_waits == 1;
+    const binding_checked = decorator.bsym != null;
+    var binding_all = decorator.rows.items.len != 0;
+    for (decorator.rows.items) |row| binding_all = binding_all and row.binding_checked and row.binding_roots_equal and row.binding_verdict == 0 and row.binding_error.len == 0;
     var global_all = global.rows.items.len != 0;
     for (global.rows.items) |row| global_all = global_all and row.claims_equal and row.verdict == 0 and row.witness_mismatches == 0 and row.host_waits == 1 and row.error_name.len == 0;
     var commit_all = commits.rows.items.len != 0;
     for (commits.rows.items) |row| commit_all = commit_all and row.root_equal and row.host_waits == 1 and row.error_name.len == 0;
     var text: std.Io.Writer.Allocating = .init(a);
     defer text.deinit();
-    try std.json.Stringify.value(.{ .schema = "rv64-m8-native-gkr-parity/v1", .block = block, .expected_segments = item.expected_cpu_segments, .legacy_native_wall_ns = wall_ns, .job_device = device, .all_equal = all, .stage1_all_equal = stage1_all, .segments = decorator.rows.items, .global_all_equal = global_all, .global_slots = global.rows.items, .commit_all_equal = commit_all, .commits = commits.rows.items, .composition_checked = check_composition, .composition_all_equal = composition_all, .compositions = composition.rows.items }, .{ .whitespace = .indent_1 }, &text.writer);
+    try std.json.Stringify.value(.{ .schema = "rv64-m8-native-gkr-parity/v1", .block = block, .expected_segments = item.expected_cpu_segments, .legacy_native_wall_ns = wall_ns, .job_device = device, .all_equal = all, .stage1_all_equal = stage1_all, .binding_checked = binding_checked, .binding_all_equal = binding_all, .segments = decorator.rows.items, .global_all_equal = global_all, .global_slots = global.rows.items, .commit_all_equal = commit_all, .commits = commits.rows.items, .composition_checked = check_composition, .composition_all_equal = composition_all, .compositions = composition.rows.items }, .{ .whitespace = .indent_1 }, &text.writer);
     const report = try std.fs.path.join(a, &.{ out_dir, "native-gkr-parity.json" });
     defer a.free(report);
     try std.fs.cwd().writeFile(.{ .sub_path = report, .data = text.written() });
@@ -1138,5 +1609,9 @@ pub fn main() !void {
     if (!commit_all) return error.NativeCommitParityMismatch;
     std.debug.print("GPU_M8_NATIVE_STAGE1_PARITY_DONE segments={} all_equal={}\n", .{ decorator.rows.items.len, stage1_all });
     if (!stage1_all) return error.NativeStage1ParityMismatch;
+    if (binding_checked) {
+        std.debug.print("GPU_M8_NATIVE_BINDING_PARITY_DONE segments={} all_equal={}\n", .{ decorator.rows.items.len, binding_all });
+        if (!binding_all) return error.NativeBindingParityMismatch;
+    }
     if (check_composition and !composition_all) return error.NativeCompositionParityMismatch;
 }
