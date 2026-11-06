@@ -163,7 +163,7 @@ pub const Pool = struct {
         // host_budget stays unavailable until the request owner supplies its
         // actual SharedHostBudget. The early orchestrator refuses a null owner.
         result.early_memory = .{ .context = self, .reserve = reserveEarly };
-        if (self.admission != null) result.early_segments = .{ .context = self, .lanes = self.devices.len, .laneForOrdinal = earlyLaneForOrdinal, .stages = earlyStages, .configure = configureEarly, .abort = abortEarly };
+        if (self.admission != null or earlyLocal()) result.early_segments = .{ .context = self, .lanes = self.devices.len, .laneForOrdinal = earlyLaneForOrdinal, .stages = earlyStages, .configure = configureEarly, .abort = abortEarly, .global = self.admission != null };
         if (comptime @hasField(CPU.rv64_ethereum_gkr_main.ResidentStages, "truth_pcs")) result.truth_pcs = &self.truth_pcs;
         if (std.process.hasEnvVarConstant("STWO_RV64_GPU_CPU_REPLAY")) result.cpu_replay = self.router.cpuReplayStage();
         return result;
@@ -182,9 +182,14 @@ pub const Pool = struct {
             planner.poisonPhysical(endpoint.device);
         };
     }
+    /// M8 capture-window local route (STWO_RV64_M8_CAPTURE_EARLY_LOCAL=1): the
+    /// early segments run without a global planner, see EarlySegments.LOCAL_FLAG.
+    fn earlyLocal() bool {
+        return CPU.rv64_ethereum_gkr_main.EarlySegments.localEnabled();
+    }
     fn configureEarly(raw: *anyopaque, cpu_workers: usize) !void {
         const self: *Pool = @ptrCast(@alignCast(raw));
-        if (self.admission == null) return error.EarlySegmentsRequireGlobalAdmission;
+        if (self.admission == null and !earlyLocal()) return error.EarlySegmentsRequireGlobalAdmission;
         // Replan deliberately refuses live scopes. Call before any early
         // worker starts, and retain this exact routing through later adoption.
         try self.router.replan(cpu_workers);
@@ -199,7 +204,7 @@ pub const Pool = struct {
     }
     fn earlyStages(raw: *anyopaque, ordinal: usize) !CPU.rv64_ethereum_gkr_main.EarlySegments.SegmentStages {
         const self: *Pool = @ptrCast(@alignCast(raw));
-        if (self.admission == null) return error.EarlySegmentsRequireGlobalAdmission;
+        if (self.admission == null and !earlyLocal()) return error.EarlySegmentsRequireGlobalAdmission;
         _ = try earlyLaneForOrdinal(raw, ordinal);
         // Keep routing wrappers: they bind and advance the exact ordinary
         // worker scope. Direct device stages would bypass Router custody.

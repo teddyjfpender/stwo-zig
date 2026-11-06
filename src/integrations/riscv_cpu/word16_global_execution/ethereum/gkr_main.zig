@@ -649,6 +649,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         if (early_segments) {
             var provider = stages.early_segments.?;
             provider.host_budget = early_host_budget;
+            if (!provider.global) memory = EarlySegments.LocalTicket.memory(early_host_budget.?);
             early_segment_owner = try EarlySegments.Owner.create(.{
                 .allocator = a,
                 .image = &image,
@@ -695,7 +696,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
             started.deinit(&direct_stats);
             direct_started = null;
         }
-        break :direct try started.capture(&image, &program, capture_options.max_inflight_packets, &direct_stats);
+        break :direct try started.capture(&image, &program, captureInflight(capture_options.max_inflight_packets), &direct_stats);
     } else capture: {
         var jobs = try std.fs.cwd().openDir(args[3], .{});
         defer jobs.close();
@@ -1212,4 +1213,13 @@ test "combined mode is explicit and cannot be confused with native or cache mode
 test "fresh receiver never admits persisted producer setup roots" {
     try requireIndependentReceiverSetup(false);
     try std.testing.expectError(error.PersistedSetupCacheForbiddenForReceiver, requireIndependentReceiverSetup(true));
+}
+
+/// M8 capture-window: `STWO_RV64_M8_CAPTURE_INFLIGHT=N` (2..16) overrides the
+/// plan's concurrent direct-capture batch window. Scheduling only: batches are
+/// still admitted and ledgered strictly in index order. Default: the plan.
+fn captureInflight(planned: u8) u8 {
+    const text = std.posix.getenv("STWO_RV64_M8_CAPTURE_INFLIGHT") orelse return planned;
+    const value = std.fmt.parseInt(u8, text, 10) catch return planned;
+    return if (value >= 2 and value <= @import("capture.zig").MAX_INFLIGHT) value else planned;
 }

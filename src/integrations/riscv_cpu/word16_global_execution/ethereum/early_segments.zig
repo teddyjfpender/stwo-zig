@@ -10,6 +10,56 @@ const D = @import("stwo_prover_api").device_pcs;
 const Budget = engine.host_budget_allocator.SharedHostBudget;
 pub const FLAG = "STWO_RV64_EARLY_NATIVE_SEGMENTS";
 pub const PARALLEL_SETUP_FLAG = "STWO_RV64_EARLY_SEGMENT_PARALLEL_SETUP";
+/// M8 capture-window: run this all-segment route without the global admission
+/// planner (1-lane auto arena, canonical image). Device memory is then exactly
+/// as unadmitted as the coordinator's own stage 1 in that configuration; the
+/// segments only move earlier, onto a GPU that is otherwise idle during
+/// capture. Ignored when a global planner is active. Default off.
+pub const LOCAL_FLAG = "STWO_RV64_M8_CAPTURE_EARLY_LOCAL";
+/// M8 capture-window: early workers per device lane (1..2; default 1, the
+/// original one-at-a-time lane). Each worker claims the next unclaimed
+/// ordinal of its lane in index order; MAIN roots and adoption are unchanged.
+pub const WORKERS_FLAG = "STWO_RV64_M8_CAPTURE_EARLY_WORKERS";
+fn workersPerLane() usize {
+    const text = std.posix.getenv(WORKERS_FLAG) orelse return 1;
+    const value = std.fmt.parseInt(usize, text, 10) catch return 1;
+    return if (value >= 1 and value <= 2) value else 1;
+}
+pub fn localEnabled() bool {
+    const value = std.posix.getenv(LOCAL_FLAG) orelse return false;
+    return std.mem.eql(u8, value, "1");
+}
+/// Host-only early ticket for the local route: charges the source stage's
+/// bounded pack helper stacks (at most 3 x 1 MiB, cpu_witness.zig) on the
+/// request budget from reserve until the joined MAIN commit, like the global
+/// ticket. GPU memory is not admitted (see LOCAL_FLAG).
+pub const LocalTicket = struct {
+    const pack_stacks: usize = 3 << 20;
+    allocator: std.mem.Allocator,
+    stacks: Budget.ExternalReservation,
+    joined: bool = false,
+    pub fn memory(budget: *Budget) @import("early_cpu0.zig").MemoryAdmission {
+        return .{ .context = budget, .host_budget = budget, .reserve = reserve };
+    }
+    fn reserve(raw: *anyopaque, a: std.mem.Allocator, _: Pipeline.DeviceSourceStage.Request, _: W.PcsConfig, budget: *Budget) !@import("early_cpu0.zig").Ticket {
+        if (@as(*Budget, @ptrCast(@alignCast(raw))) != budget) return error.ForeignEarlyMainHostBudget;
+        const self = try a.create(LocalTicket);
+        errdefer a.destroy(self);
+        self.* = .{ .allocator = a, .stacks = try budget.reserveExternal(pack_stacks) };
+        return .{ .context = self, .finish_joined = finishJoined, .release_destroyed = releaseDestroyed };
+    }
+    fn finishJoined(raw: *anyopaque) !void {
+        const self: *LocalTicket = @ptrCast(@alignCast(raw));
+        if (self.joined) return error.StaleEarlyStageTicket;
+        self.stacks.deinit();
+        self.joined = true;
+    }
+    fn releaseDestroyed(raw: *anyopaque) void {
+        const self: *LocalTicket = @ptrCast(@alignCast(raw));
+        if (!self.joined) self.stacks.deinit();
+        self.allocator.destroy(self);
+    }
+};
 pub const SegmentStages = struct {
     source: Pipeline.DeviceSourceStage,
     projection: @import("../../word16_execution/cpu_source.zig").ProjectionStage,
@@ -26,6 +76,9 @@ pub const StageProvider = struct {
     configure: *const fn (*anyopaque, usize) anyerror!void,
     abort: *const fn (*anyopaque) void,
     host_budget: ?*Budget = null,
+    /// False only on the M8 local route (no global planner): the request then
+    /// uses LocalTicket instead of the per-device Source/TC admission.
+    global: bool = true,
 };
 const Capture = @import("capture.zig");
 const Collector = @import("../services/collector.zig");
@@ -74,6 +127,7 @@ pub const Slot = struct {
     done: bool = false,
     transferred: bool = false,
     building: bool = false,
+    claimed: bool = false,
     ready_utc_ns: u64 = 0,
     setup_wait_begin_utc_ns: u64 = 0,
     setup_begin_utc_ns: u64 = 0,
@@ -88,7 +142,7 @@ pub const Owner = struct {
     parallel_setup: bool = false,
     changed: std.Thread.Condition = .{},
     slots: [max_segments]Slot = @splat(.{}),
-    threads: [4]?std.Thread = @splat(null),
+    threads: [8]?std.Thread = @splat(null),
     stacks: Budget.ExternalReservation = .{},
     count: usize = 0,
     published: usize = 0,
@@ -192,8 +246,10 @@ pub const Owner = struct {
         self.advice = advice;
         owns_heads = false;
         for (0..self.published) |ordinal| self.bindHeads(&self.advice.?, ordinal, self.slots[ordinal].shard.?);
-        self.stacks = try self.options.provider.host_budget.?.reserveExternal(self.options.provider.lanes * (2 << 20));
-        for (self.threads[0..self.options.provider.lanes], 0..) |*thread, lane| thread.* = try std.Thread.spawn(.{ .stack_size = 2 << 20 }, runLane, .{ self, lane });
+        const lanes = self.options.provider.lanes;
+        const workers = lanes * workersPerLane();
+        self.stacks = try self.options.provider.host_budget.?.reserveExternal(workers * (2 << 20));
+        for (self.threads[0..workers], 0..) |*thread, worker| thread.* = try std.Thread.spawn(.{ .stack_size = 2 << 20 }, runLane, .{ self, worker % lanes });
         self.changed.broadcast();
     }
     fn terminalReady(raw: *anyopaque, cells: []const Cell) void {
@@ -211,6 +267,12 @@ pub const Owner = struct {
         for (0..self.count) |ordinal| {
             if (try self.options.provider.laneForOrdinal(self.options.provider.context, ordinal) != lane) continue;
             self.mutex.lock();
+            // Another worker of this lane already owns this ordinal.
+            if (self.slots[ordinal].claimed) {
+                self.mutex.unlock();
+                continue;
+            }
+            self.slots[ordinal].claimed = true;
             while (!self.cancelled and self.failure == null and (self.slots[ordinal].native == null or (ordinal + 1 == self.count and !self.terminal_ready))) self.changed.wait(&self.mutex);
             const stop = self.cancelled or self.failure != null;
             if (!stop) self.slots[ordinal].building = true;
@@ -250,13 +312,17 @@ pub const Owner = struct {
         slot.setup_end_utc_ns = now();
         std.debug.print("EARLY_NATIVE_SEGMENT event=setup_ready ordinal={} utc_ns={} wait_ns={} build_ns={} parallel_setup={} capture_ready_utc_ns={}\n", .{ ordinal, slot.setup_end_utc_ns, setup_wait_ns, setup_build_ns, self.parallel_setup, slot.ready_utc_ns });
         const setup = slot.keys.?.cpus[0];
+        var pre_timer = try std.time.Timer.start();
         slot.binding = try Fixed.Binding.acquire(o.fixed_cache, &setup.key, o.pcs);
+        const binding_ns = pre_timer.lap();
         slot.advice = self.advice.?;
         slot.advice.?.terminal = if (ordinal + 1 == self.count) @constCast(self.terminal) else &.{};
         var request = try Coordinator.requestView(self.natives, &slot.advice.?, ordinal);
         try Coordinator.routeDword(&request, setup.bridges, slot.shard.?.events);
         if (request.sponge.any()) request.sponge.first_id = std.math.cast(u32, try std.math.add(u64, try std.math.add(u64, self.global_info.?.counters.keccak, slot.sponge_before), 1)) orelse return error.CombinedLookupMassExceeded;
+        const request_ns = pre_timer.lap();
         const expected = try Execution.localCpuExpected(a, setup, request, @intCast(ordinal), slot.first_ids, o.pcs, &slot.binding.?);
+        const expected_ns = pre_timer.lap();
         defer a.free(expected.local_instances.?);
         const scope = D.Scope{ .statement = expected.statement, .fixed = expected.fixed, .main = @splat(0), .ordinal = @intCast(ordinal) };
         slot.overlay.?.value.cpu.?.log_size = setup.materials.geometry.cpu_log;
@@ -265,8 +331,9 @@ pub const Owner = struct {
         slot.overlay.?.value.device_cpu_scope = scope;
         const source_request = Pipeline.DeviceSourceStage.Request{ .setup = setup, .request = request, .native = &slot.overlay.?.value, .advice = &slot.advice.?, .ordinal = ordinal, .first_ids = slot.first_ids, .scope = scope, .pcs_config = o.pcs };
         slot.ticket = try o.memory.reserve(o.memory.context, a, source_request, o.pcs, o.memory.host_budget.?);
+        const reserve_ns = pre_timer.lap();
         slot.source_begin_utc_ns = now();
-        std.debug.print("EARLY_NATIVE_SEGMENT event=source_begin ordinal={} utc_ns={} capture_ready_utc_ns={} seal={x}\n", .{ ordinal, slot.source_begin_utc_ns, slot.ready_utc_ns, slot.seal.?.digest });
+        std.debug.print("EARLY_NATIVE_SEGMENT event=source_begin ordinal={} utc_ns={} capture_ready_utc_ns={} seal={x} binding_ns={} request_ns={} expected_ns={} reserve_ns={}\n", .{ ordinal, slot.source_begin_utc_ns, slot.ready_utc_ns, slot.seal.?.digest, binding_ns, request_ns, expected_ns, reserve_ns });
         var source = try stages.source.invoke(a, source_request);
         var owns_source = true;
         errdefer if (owns_source) source.deinit();

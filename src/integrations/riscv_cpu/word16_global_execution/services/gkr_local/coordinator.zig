@@ -263,6 +263,13 @@ const Run = struct {
                 self.workers[index] = .{ .cpu = try early.take(index, self.setups[index], self.requests[index], self.inventory.workers[index], self.config, self.inventory.first_ids[index]) };
                 const slot = &early.slots[index];
                 if (timing) |value| {
+                    // Report-only: place the early Source interval on this
+                    // epoch clock, so source_begin_at_ns is the actual stage-1
+                    // start rather than the post-inventory adoption instant.
+                    const now_utc: u64 = @intCast(std.time.nanoTimestamp());
+                    const now_epoch = sinceEpoch(self.options.epoch);
+                    value.source_begin_ns = now_epoch -| (now_utc -| slot.source_begin_utc_ns);
+                    value.source_ready_ns = now_epoch -| (now_utc -| slot.source_end_utc_ns);
                     value.source_ns = slot.source_end_utc_ns - slot.source_begin_utc_ns;
                     value.early_source_and_main_ns = self.workers[index].?.cpu.main_commit_end_utc_ns - slot.source_begin_utc_ns;
                     value.early_main_commit_before_inventory = self.workers[index].?.cpu.main_commit_end_utc_ns <= self.inventory_admitted_utc_ns;
