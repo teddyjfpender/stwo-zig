@@ -283,6 +283,7 @@ fn service(a: std.mem.Allocator, libs: *O.Libraries, device: u32, arena_mib: usi
             persistent = w;
         }
         for (rows[arm]) |*row| {
+            row.* = .{ .open_ns = 0, .job_ns = 0, .close_ns = 0, .nonce = .{ 0, 0 } };
             var t = try std.time.Timer.start();
             const w = if (persistent) |pw| blk: {
                 const r = try pw.unpark(arena_words);
