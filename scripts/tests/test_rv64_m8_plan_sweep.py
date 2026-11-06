@@ -51,6 +51,15 @@ class SweepTests(unittest.TestCase):
             b = next(c for c in s['classes'] if c['class_key'] == KB)
             self.assertTrue(b['label'].startswith('class-'))
 
+    def test_collect_only_labeled_drops_host_model_workers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write(root, 'gpu.json', worker_doc([(KA, stat(side(8 * G, G), side(8 * G, G)))], allocator='reuse'))
+            self.write(root, 'fake.json', worker_doc([(KB, stat(side(4 * G, G), side(4 * G, G)))], allocator='lifo'))
+            s = sweep.collect(root, 'tests', {KA: 'pcs'}, only_labeled=True)
+            self.assertEqual([c['label'] for c in s['classes']], ['pcs'])
+            self.assertEqual(s['allocator'], 'reuse')  # the fake worker's mode is not mixed in
+
     def test_collect_refuses_mixed_allocator_modes(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

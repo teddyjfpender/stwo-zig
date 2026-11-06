@@ -71,23 +71,30 @@ def _side(stat: dict, i: int) -> dict:
     return {}
 
 
-def fold_rows(files: list[tuple[str, dict]], labels: dict[str, str]) -> tuple[list[dict], str, dict]:
-    """Merge worker plan rows into one row per class (max over workers/runs)."""
+def fold_rows(files: list[tuple[str, dict]], labels: dict[str, str], default_label: str | None = None,
+              only_labeled: bool = False) -> tuple[list[dict], str, dict]:
+    """Merge worker plan rows into one row per class (max over workers/runs).
+
+    only_labeled: keep only classes named in `labels` (a test binary also runs
+    host-model workers whose rows are not job classes)."""
     classes: dict[str, dict] = {}
     allocators = set()
     persistent = {'budget_words': 0, 'high_water_words': 0, 'evictions': 0, 'unbudgeted_regions': 0}
     for _, doc in files:
         if doc.get('schema') not in PLAN_SCHEMAS:
             raise ValueError(f"unexpected plan schema {doc.get('schema')!r}")
-        allocators.add(doc.get('allocator', 'lifo'))
         p = doc.get('persistent') or {}
         for k in persistent:
             persistent[k] = max(persistent[k], int(p.get(k, 0)))
-        for row in doc.get('classes', []):
+        rows_in = [r for r in doc.get('classes', []) if not only_labeled or r['class_key'] in labels]
+        if only_labeled and not rows_in:
+            continue  # a worker that ran none of the swept classes (e.g. a host-model test)
+        allocators.add(doc.get('allocator', 'lifo'))
+        for row in rows_in:
             key = row['class_key']
             s = row['stat']
             c = classes.setdefault(key, {
-                'label': labels.get(key, f'class-{key[:8]}'), 'class_key': key, 'jobs': 0, 'devices': [],
+                'label': labels.get(key, default_label or f'class-{key[:8]}'), 'class_key': key, 'jobs': 0, 'devices': [],
                 'declared_device_words': 0, 'declared_staged_words': 0, 'declared_pinned_words': 0,
                 'declared_peak_words': 0, 'slab_words': 0, 'pinned_words': 0, 'persistent_words': 0,
                 'over_plan': 0, 'serialized': 0, 'planned_peak_words': 0,
@@ -133,13 +140,16 @@ def fold_rows(files: list[tuple[str, dict]], labels: dict[str, str]) -> tuple[li
     return rows, (allocators.pop() if allocators else 'lifo'), persistent
 
 
-def collect(plan_dir: Path, label: str, labels: dict[str, str], harness: str = '') -> dict:
+def collect(plan_dir: Path, label: str, labels: dict[str, str], harness: str = '', default_label: str | None = None,
+            only_labeled: bool = False) -> dict:
     files = []
     for path in sorted(plan_dir.glob('*.json')):
         files.append((path.name, json.loads(path.read_text())))
     if not files:
         raise ValueError(f'no worker plan files in {plan_dir}')
-    rows, allocator, persistent = fold_rows(files, labels)
+    rows, allocator, persistent = fold_rows(files, labels, default_label, only_labeled)
+    if not rows:
+        raise ValueError(f'no swept class rows in {plan_dir}')
     return {
         'schema': SWEEP_SCHEMA, 'label': label, 'harness': harness, 'allocator': allocator,
         'label_kind': '[M]', 'persistent': persistent,
@@ -257,7 +267,9 @@ def check(policy: dict) -> list[str]:
 # ---------------------------------------------------------------- run (pod)
 
 def run_spec(spec: dict, out: Path) -> list[Path]:
-    """spec = {"harnesses": [{"label", "argv", "env": {}, "cwd", "classes": {hex: name}, "timeout_s"}]}"""
+    """spec = {"harnesses": [{"label", "argv", "env": {}, "cwd", "classes": {hex: name}, "default_label",
+    "only_labeled", "timeout_s", "measure_with_policy"}]}. The policy env is dropped unless measure_with_policy
+    (a validation run of a generated policy)."""
     written = []
     for h in spec['harnesses']:
         label = h['label']
@@ -269,7 +281,8 @@ def run_spec(spec: dict, out: Path) -> list[Path]:
         env = dict(os.environ)
         env.update({k: str(v) for k, v in (h.get('env') or {}).items()})
         env['STWO_RV64_M8_JOBS_PLAN_DIR'] = str(plans)
-        env.pop('STWO_RV64_M8_JOBS_PLAN', None)  # measure with declared footprints
+        if not h.get('measure_with_policy'):
+            env.pop('STWO_RV64_M8_JOBS_PLAN', None)  # measure with declared footprints
         t0 = time.time()
         with open(d / 'log.txt', 'wb') as log:
             rc = subprocess.run(h['argv'], cwd=h.get('cwd'), env=env, stdout=log, stderr=subprocess.STDOUT,
@@ -279,7 +292,8 @@ def run_spec(spec: dict, out: Path) -> list[Path]:
         (d / 'run.json').write_text(json.dumps(meta, indent=1))
         if rc != 0:
             raise RuntimeError(f'harness {label} exited {rc} (log {d / "log.txt"})')
-        sweep = collect(plans, label, h.get('classes') or {}, harness=' '.join(h['argv']))
+        sweep = collect(plans, label, h.get('classes') or {}, harness=' '.join(h['argv']),
+                        default_label=h.get('default_label'), only_labeled=bool(h.get('only_labeled')))
         sweep['run'] = meta
         (d / 'sweep.json').write_text(json.dumps(sweep, indent=1))
         written.append(d / 'sweep.json')

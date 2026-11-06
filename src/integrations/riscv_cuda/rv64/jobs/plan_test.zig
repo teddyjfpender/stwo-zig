@@ -451,7 +451,7 @@ test "worker plan output: STWO_RV64_M8_JOBS_PLAN_DIR rows parse back (sweep inpu
     var d = Done{};
     put(w, api.Job.from(Sized, &job), d.sink());
     d.wait(1);
-    var tmp = std.testing.tmpDir(.{});
+    var tmp = std.testing.tmpDir(.{ .iterate = true });
     defer tmp.cleanup();
     const dir = try tmp.dir.realpathAlloc(std.testing.allocator, ".");
     defer std.testing.allocator.free(dir);
