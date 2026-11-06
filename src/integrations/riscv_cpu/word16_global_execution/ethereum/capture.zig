@@ -178,9 +178,17 @@ pub const Ordered = struct {
     /// (`Collector.prepareEvents`); ownership of both `n` and `events` is
     /// taken (also on error). Outputs are identical to `accept`.
     pub fn acceptWithEvents(self: *Ordered, p: *const Packet.Packet, n: *Native, events: ?[]LS.native.Event) !bool {
+        return self.acceptPrepared(p, n, events, null);
+    }
+    /// `acceptWithEvents` with an optional phase-1 segment ledger built off
+    /// this thread (`Collector.prepareLocal`, M8 two-phase ledger); ownership
+    /// of `local` is taken (also on error). Outputs are identical.
+    pub fn acceptPrepared(self: *Ordered, p: *const Packet.Packet, n: *Native, events: ?[]LS.native.Event, local: ?*Collector.Local) !bool {
         const a = self.allocator;
         var prepared = events;
         defer if (prepared) |e| a.free(e);
+        var owned_local = local;
+        defer if (owned_local) |l| l.deinit(a);
         if (self.admitted != self.next_index + 1) {
             n.deinit();
             a.destroy(n);
@@ -193,7 +201,10 @@ pub const Ordered = struct {
         };
         self.native.appendAssumeCapacity(n);
         const ledger_start = self.elapsed();
-        try self.collector.appendWithEvents(n, &p.tape, &prepared);
+        if (owned_local) |l| {
+            owned_local = null;
+            try self.collector.appendLocal(l, n, &p.tape, &prepared);
+        } else try self.collector.appendWithEvents(n, &p.tape, &prepared);
         const ledger_end = self.elapsed();
         self.timing.ledger_ns += ledger_end - ledger_start;
         const now = std.time.Instant.now() catch null;
@@ -245,3 +256,47 @@ pub const Ordered = struct {
         self.* = undefined;
     }
 };
+/// Diagnostic SHA-256 over EVERY advice family (events, keccak, secp, sha256,
+/// arith256_mod, curves, bulk, sponge, initial, terminal), field by field
+/// (never raw struct bytes, so padding cannot leak in). `captured_values_sha256`
+/// covers only events/keccak/secp/initial/terminal; this one carries the M8
+/// two-phase ledger parity for the other families. Report-only.
+pub fn adviceDigest(advice: *const Collector.Advice) [32]u8 {
+    const H = struct {
+        hash: std.crypto.hash.sha2.Sha256 = .init(.{}),
+        buffer: [1 << 16]u8 = undefined,
+        used: usize = 0,
+        fn value(self: *@This(), item: anytype) void {
+            const T = @TypeOf(item);
+            switch (@typeInfo(T)) {
+                .int => |info| {
+                    if (self.used + 8 > self.buffer.len) {
+                        self.hash.update(self.buffer[0..self.used]);
+                        self.used = 0;
+                    }
+                    std.mem.writeInt(u64, self.buffer[self.used..][0..8], @as(std.meta.Int(.unsigned, info.bits), @bitCast(item)), .little);
+                    self.used += 8;
+                },
+                .bool => self.value(@as(u8, @intFromBool(item))),
+                .@"enum" => self.value(@intFromEnum(item)),
+                .array => for (item) |entry| self.value(entry),
+                .pointer => |info| {
+                    if (info.size != .slice) @compileError("advice digest may not follow pointers");
+                    self.value(@as(u64, item.len));
+                    for (item) |entry| self.value(entry);
+                },
+                .@"struct" => |info| inline for (info.fields) |field| {
+                    if (comptime !std.mem.eql(u8, field.name, "allocator")) self.value(@field(item, field.name));
+                },
+                else => @compileError("unsupported advice value " ++ @typeName(T)),
+            }
+        }
+    };
+    const h = std.heap.page_allocator.create(H) catch @panic("advice digest buffer");
+    defer std.heap.page_allocator.destroy(h);
+    h.* = .{};
+    h.hash.update("stwo/rv64/ethereum/advice-all/v1\x00");
+    h.value(advice.*);
+    h.hash.update(h.buffer[0..h.used]);
+    return h.hash.finalResult();
+}

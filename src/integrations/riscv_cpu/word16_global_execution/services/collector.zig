@@ -140,6 +140,87 @@ pub const Builder = struct {
         if (self.shards.items.len == 0) return error.InvalidServiceCollectorPhase;
         return self.shards.items[self.shards.items.len - 1];
     }
+    /// M8 two-phase ledger, phase 2 (ordered thread): merge a segment built
+    /// off this thread by `prepareLocal`, touching only its first-touched
+    /// addresses, then patch the placeholder predecessor clocks in its shard.
+    /// Takes ownership of `local`. Any disagreement with the global ledger
+    /// (value or rights of a first-touched word, a non-adjacent index, a
+    /// lookup failure) discards `local` and runs the serial `append` for this
+    /// segment from the unchanged global ledger, so outputs and errors are
+    /// exactly the serial ones. `events` is passed through to that fallback.
+    pub fn appendLocal(self: *Builder, local: *Local, native: *Native, tape: *const front.rv64.compact_tape.Tape, events: *?[]LS.native.Event) !void {
+        if (self.failed or self.finished) {
+            local.deinit(self.allocator);
+            return error.InvalidServiceCollectorPhase;
+        }
+        if (self.shards.items.len >= 65535) {
+            local.deinit(self.allocator);
+            return error.InvalidCombinedServiceRoster;
+        }
+        self.shards.ensureUnusedCapacity(self.allocator, 1) catch |err| {
+            local.deinit(self.allocator);
+            self.failed = true;
+            return err;
+        };
+        if (self.mergeLocal(local) catch false) {
+            self.shards.appendAssumeCapacity(local.shard);
+            local.shard = undefined;
+            local.ledger.deinit();
+            local_stats.merged += 1;
+            return;
+        }
+        local.deinit(self.allocator);
+        local_stats.fallbacks += 1;
+        return self.appendWithEvents(native, tape, events);
+    }
+    /// True once `local` is merged into the global ledger (its shard patched
+    /// and ready to append); false (global ledger untouched) to fall back.
+    fn mergeLocal(self: *Builder, local: *Local) !bool {
+        const a = self.allocator;
+        if (local.index != self.shards.items.len) return false;
+        if (local.index == 0) {
+            // Segment 0 ran the serial code on an empty ledger with the same
+            // image and first-touch source: adopt it wholesale.
+            if (self.ledger.states.count() != 0 or self.ledger.initial.items.len != 0) return false;
+            std.mem.swap(Old.StateTable, &self.ledger.states, &local.ledger.states);
+            std.mem.swap(std.ArrayList(Cell), &self.ledger.initial, &local.ledger.initial);
+            return true;
+        }
+        const touched = local.ledger.initial.items;
+        if (touched.len >= std.math.maxInt(u24)) return false;
+        // Pass A, read only: the global state each first touch stands for.
+        const global = try a.alloc(A.memory.closed_ram.types.State, touched.len);
+        defer a.free(global);
+        const fresh = try a.alloc(bool, touched.len);
+        defer a.free(fresh);
+        for (touched, global, fresh, 0..) |cell, *g, *f, i| {
+            if (cell.state.epoch != 0 or cell.state.tick != i + 1) return false;
+            if (self.ledger.states.get(cell.address)) |state| {
+                g.* = state;
+                f.* = false;
+            } else {
+                const fast = if (self.ledger.pages) |*pages| pages.lookup(cell.address) else null;
+                g.* = fast orelse .{ .value = try self.ledger.image.initialWord(cell.address), .rights = try self.ledger.image.wordRights(cell.address) };
+                f.* = true;
+            }
+            if (g.value != cell.state.value or g.rights != cell.state.rights) return false;
+        }
+        // Pass B: global exit states (first-touch order, as the serial ledger
+        // appends new INITIAL cells), then the placeholder clocks.
+        try self.ledger.initial.ensureUnusedCapacity(a, touched.len);
+        for (touched, global, fresh) |cell, g, f| {
+            const exit = local.ledger.states.get(cell.address) orelse return error.InvalidServiceCollectorPhase;
+            const entry = try self.ledger.states.getOrPut(a, cell.address);
+            if (f) {
+                if (entry.found_existing) return error.InvalidServiceCollectorPhase;
+                self.ledger.initial.appendAssumeCapacity(.{ .address = cell.address, .state = g });
+            }
+            // An exit with epoch 0 was never written by this segment.
+            entry.value_ptr.* = if (exit.epoch == 0) g else exit;
+        }
+        patchShard(&local.shard, global);
+        return true;
+    }
     pub fn finish(self: *Builder) !Advice {
         if (self.failed or self.finished or self.shards.items.len == 0) return error.InvalidServiceCollectorPhase;
         const a = self.allocator;
@@ -645,10 +726,151 @@ fn slot(ledger: *Old.Ledger, address: u64) !*A.memory.closed_ram.types.State {
         } else |_| {};
         const fast = if (ledger.pages) |*pages| pages.lookup(address) else null;
         entry.value_ptr.* = fast orelse .{ .value = try ledger.image.initialWord(address), .rights = try ledger.image.wordRights(address) };
+        if (local_start) |start| {
+            // Phase 1 placeholder (see `Local`): the starting image's word and
+            // the first-touch ordinal; the image lookup above keeps its errors.
+            const ordinal = ledger.initial.items.len;
+            if (ordinal + 1 >= std.math.maxInt(u24)) return error.LocalLedgerOverflow;
+            entry.value_ptr.* = .{ .value = startWord(start, address), .rights = entry.value_ptr.rights, .epoch = 0, .tick = @intCast(ordinal + 1) };
+        }
         try ledger.initial.append(ledger.allocator, .{ .address = address, .state = entry.value_ptr.* });
     }
     return entry.value_ptr;
 }
 fn get(ledger: *Old.Ledger, address: u64) !A.memory.closed_ram.types.State {
     return (try slot(ledger, address)).*;
+}
+/// M8 two-phase ledger (`STWO_RV64_M8_CAPTURE_LOCAL_LEDGER=1`, default off).
+/// Producer scheduling only: outputs are byte-identical to the serial ledger.
+pub fn localLedgerEnabled() bool {
+    const value = std.posix.getenv("STWO_RV64_M8_CAPTURE_LOCAL_LEDGER") orelse return false;
+    return std.mem.eql(u8, value, "1");
+}
+/// Report-only counters of `Builder.appendLocal` (ordered thread only).
+pub var local_stats: struct { merged: u64 = 0, fallbacks: u64 = 0 } = .{};
+/// Phase 1 output: one segment's shard computed on a segment-local ledger.
+/// Every state the segment read before writing it is a placeholder
+/// `{value, rights, epoch 0, tick k + 1}`, where `value` is the word in the
+/// segment's starting memory image, `rights` the image rights and `k` the
+/// ordinal of the address in `ledger.initial` (first-touch order). Genuine
+/// ledger states never have epoch 0 and tick != 0 (INITIAL cells have tick 0,
+/// written states the CPU's epoch >= 1), so placeholders are unambiguous.
+/// Every validator only orders a predecessor clock against the current
+/// call (epoch >= 1), which epoch 0 and any earlier real epoch satisfy alike.
+pub const Local = struct {
+    index: usize,
+    ledger: Old.Ledger,
+    shard: Shard,
+    pub fn deinit(self: *Local, a: std.mem.Allocator) void {
+        self.shard.deinit(a);
+        self.ledger.deinit();
+        self.* = undefined;
+    }
+};
+const Checkpoint = front.rv64.checkpoint.Checkpoint;
+threadlocal var local_start: ?*const Checkpoint = null;
+/// Phase 1 (any thread): `one` for segment `index` on a fresh ledger over the
+/// same image. Segment 0 uses the serial first-touch source (the global ledger
+/// is empty then) and is adopted whole. `start` is the memory image before
+/// this segment (the first pass checkpoint); it is only read. `prepared` is
+/// taken as in `appendWithEvents`. `a` must be thread-safe.
+pub fn prepareLocal(a: std.mem.Allocator, image: @import("../../word16_execution/memory/statement.zig").Image, pages: Old.OwnerPages, native: *Native, tape: *const front.rv64.compact_tape.Tape, index: usize, prepared: *?[]LS.native.Event, start: *const Checkpoint) !Local {
+    var ledger = Old.Ledger.init(a, image);
+    errdefer ledger.deinit();
+    ledger.pages = pages;
+    local_start = if (index == 0) null else start;
+    defer local_start = null;
+    const shard = try one(a, &ledger, native, tape, index, null, prepared);
+    return .{ .index = index, .ledger = ledger, .shard = shard };
+}
+/// The little-endian u64 at `address` in a checkpoint image (absent pages
+/// read as zero, as an unallocated guest page does).
+fn startWord(cp: *const Checkpoint, address: u64) u64 {
+    const P: u64 = front.rv64.memory.PAGE_SIZE;
+    var bytes: [8]u8 = undefined;
+    if (address % P <= P - 8) {
+        const page = cp.find(address / P) orelse return 0;
+        const offset: usize = @intCast(address % P);
+        return std.mem.readInt(u64, page[offset..][0..8], .little);
+    }
+    for (&bytes, 0..) |*byte, i| {
+        const at = address +% i;
+        byte.* = if (cp.find(at / P)) |page| page[@intCast(at % P)] else 0;
+    }
+    return std.mem.readInt(u64, &bytes, .little);
+}
+fn containsState(comptime T: type) bool {
+    if (T == A.memory.closed_ram.types.State) return true;
+    return switch (@typeInfo(T)) {
+        .@"struct" => |info| blk: {
+            inline for (info.fields) |field| if (containsState(field.type)) break :blk true;
+            break :blk false;
+        },
+        .array => |info| containsState(info.child),
+        .pointer => |info| info.size == .slice and containsState(info.child),
+        else => false,
+    };
+}
+fn patchValue(comptime T: type, value: *T, global: []const A.memory.closed_ram.types.State) void {
+    if (comptime !containsState(T)) return;
+    if (T == A.memory.closed_ram.types.State) {
+        if (value.epoch == 0 and value.tick != 0) {
+            const g = global[value.tick - 1];
+            value.epoch = g.epoch;
+            value.tick = g.tick;
+        }
+        return;
+    }
+    switch (@typeInfo(T)) {
+        .@"struct" => |info| inline for (info.fields) |field| patchValue(field.type, &@field(value, field.name), global),
+        .array => |info| for (value) |*item| patchValue(info.child, item, global),
+        .pointer => |info| for (value.*) |*item| patchValue(info.child, item, global),
+        else => {},
+    }
+}
+/// Replaces every placeholder clock in `shard` (every `State` field, found by
+/// reflection) with the clock of the global state it stands for.
+fn patchShard(shard: *Shard, global: []const A.memory.closed_ram.types.State) void {
+    patchValue(Shard, shard, global);
+}
+test "M8 two-phase ledger: placeholder clocks patch every State field and nothing else" {
+    const a = std.testing.allocator;
+    const St = A.memory.closed_ram.types.State;
+    const global = [_]St{ .{ .value = 7, .epoch = 3, .tick = 40, .rights = 3 }, .{ .value = 9, .rights = 1 } };
+    const events = try a.alloc(LS.native.Event, 2);
+    events[0] = .{ .opcode = .LD, .immediate = 0, .a = 8, .epoch = 5, .tick = 4, .before = .{ .value = 7, .tick = 1, .rights = 3 }, .after = .{ .value = 7, .epoch = 5, .tick = 4, .rights = 3 } };
+    events[1] = .{ .opcode = .LD, .immediate = 0, .a = 8, .epoch = 5, .tick = 8, .before = events[0].after, .after = .{ .value = 7, .epoch = 5, .tick = 8, .rights = 3 } };
+    const keccak = try a.alloc(K.types.Call, 1);
+    keccak[0] = .{ .pointer = 0, .epoch = 5, .tick = 12, .before = @splat(0), .after = @splat(0), .predecessors = @splat(.{ .value = 9, .tick = 2, .rights = 1 }) };
+    keccak[0].predecessors[3] = .{ .value = 0, .rights = 0 };
+    const words = try a.alloc(BM.types.Word, 1);
+    words[0] = .{ .dst = .{ .value = 9, .tick = 2, .rights = 1 } };
+    const sponge_words = try a.alloc(St, 1);
+    sponge_words[0] = .{ .value = 7, .tick = 1, .rights = 3 };
+    var shard = Shard{ .events = events, .keccak = keccak, .secp = .{ try a.alloc(S.types.Call, 0), try a.alloc(S.types.Call, 0) }, .sha256 = try a.alloc(S.types.Call, 0), .arith256_mod = try a.alloc(S.types.Call, 0), .curves = undefined, .bulk = .{ .calls = try a.alloc(BM.types.Call, 0), .words = words }, .sponge = .{ .calls = try a.alloc(A.crypto.keccak_sponge.types.Call, 0), .words = sponge_words, .inputs = try a.alloc([25]u64, 0) } };
+    for (&shard.curves) |*c| c.* = try a.alloc(S.types.Call, 0);
+    defer shard.deinit(a);
+    patchShard(&shard, &global);
+    try std.testing.expectEqualDeep(St{ .value = 7, .epoch = 3, .tick = 40, .rights = 3 }, shard.events[0].before);
+    try std.testing.expectEqualDeep(St{ .value = 7, .epoch = 5, .tick = 4, .rights = 3 }, shard.events[1].before);
+    try std.testing.expectEqualDeep(St{ .value = 7, .epoch = 5, .tick = 8, .rights = 3 }, shard.events[1].after);
+    try std.testing.expectEqualDeep(St{ .value = 9, .epoch = 0, .tick = 0, .rights = 1 }, shard.keccak[0].predecessors[0]);
+    try std.testing.expectEqualDeep(St{ .value = 0, .rights = 0 }, shard.keccak[0].predecessors[3]);
+    try std.testing.expectEqualDeep(St{ .value = 9, .rights = 1 }, shard.bulk.words[0].dst);
+    try std.testing.expectEqualDeep(St{ .value = 0, .rights = 0 }, shard.bulk.words[0].src);
+    try std.testing.expectEqualDeep(St{ .value = 7, .epoch = 3, .tick = 40, .rights = 3 }, shard.sponge.words[0]);
+}
+test "M8 two-phase ledger: starting-image words, page-crossing and absent pages" {
+    const P: usize = front.rv64.memory.PAGE_SIZE;
+    var page0: [front.rv64.memory.PAGE_SIZE]u8 = @splat(0);
+    var page1: [front.rv64.memory.PAGE_SIZE]u8 = @splat(0);
+    std.mem.writeInt(u64, page0[16..24], 0x1122334455667788, .little);
+    page0[P - 2] = 0xaa;
+    page0[P - 1] = 0xbb;
+    page1[0] = 0xcc;
+    const entries = [_]front.rv64.checkpoint.Entry{ .{ .index = 4, .page = &page0 }, .{ .index = 5, .page = &page1 } };
+    const cp = Checkpoint{ .cpu = undefined, .counters = .{}, .pages = &entries, .written = &.{} };
+    try std.testing.expectEqual(@as(u64, 0x1122334455667788), startWord(&cp, 4 * P + 16));
+    try std.testing.expectEqual(@as(u64, 0xccbbaa), startWord(&cp, 5 * P - 2));
+    try std.testing.expectEqual(@as(u64, 0), startWord(&cp, 9 * P + 8));
 }

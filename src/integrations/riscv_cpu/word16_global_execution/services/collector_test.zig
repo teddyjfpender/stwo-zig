@@ -68,3 +68,8 @@ test "Retired capture records cannot silently fall back to a closed memory const
     try std.testing.expectError(error.MissingPreparedMemoryRecords, Source.fromPrepared(a, &c.setups[0].materials, F.image(), &captured.native[0]));
     try std.testing.expect(captured.native[0].cpu != null);
 }
+
+test {
+    // Inline collector.zig tests (THP advice, M8 two-phase ledger patch).
+    _ = C;
+}

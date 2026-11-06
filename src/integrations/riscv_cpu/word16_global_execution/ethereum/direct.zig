@@ -30,6 +30,24 @@ const Program = @import("../../word16_execution/program.zig").Program;
 const Capture = @import("capture.zig");
 const Walk = @import("../../rv64_ethereum_native_prepare.zig").Walk;
 const Segments = @import("../../rv64_ethereum_segments.zig");
+const Collector = @import("../services/collector.zig");
+/// M8 capture concurrency overrides (`STWO_RV64_M8_CAPTURE_INFLIGHT`,
+/// `STWO_RV64_M8_CAPTURE_WORKERS`; unset = the caller's options). Producer
+/// scheduling only. Measured A/B: see `vectors/reports/rv64-m8-20261106/
+/// opt-T1-capture-parallel/README.md`.
+fn envCount(name: []const u8, max: u8) ?u8 {
+    const text = std.posix.getenv(name) orelse return null;
+    const value = std.fmt.parseUnsigned(u8, text, 10) catch return null;
+    if (value == 0 or value > max) return null;
+    return value;
+}
+pub fn inflightOverride(inflight: u8) u8 {
+    return envCount("STWO_RV64_M8_CAPTURE_INFLIGHT", MAX_INFLIGHT) orelse inflight;
+}
+pub fn workersOverride(workers: u8) u8 {
+    if (workers == 0) return 0;
+    return envCount("STWO_RV64_M8_CAPTURE_WORKERS", Segments.MAX_WORKERS) orelse workers;
+}
 pub const MAX_INFLIGHT = @import("capture_prefetch.zig").MAX_INFLIGHT;
 pub const Stats = struct {
     batches: u32 = 0,
@@ -57,6 +75,15 @@ pub const Stats = struct {
     fast_ram_ready_utc_ns: u64 = 0,
     fast_ram_compared: bool = false,
     fast_ram_keccak_calls: u64 = 0,
+    /// M8 two-phase ledger: segments merged from a phase-1 local ledger,
+    /// segments that fell back to the serial ledger, and summed phase-1 ns.
+    local_ledgers: u64 = 0,
+    local_fallbacks: u64 = 0,
+    local_ledger_ns: u64 = 0,
+    /// Summed per-job admission (`Packet.fromNative`) and capture (narrow
+    /// capture, seal, event prefault, phase-1 ledger) durations.
+    job_admit_ns: u64 = 0,
+    job_capture_ns: u64 = 0,
 };
 pub const MAX_READY_TIMES = 32;
 /// Records each segment's ready instant into `Stats`, then forwards to the
@@ -92,6 +119,12 @@ const Job = struct {
     cells: usize,
     chunks: usize,
     seal_native: bool = false,
+    /// M8 two-phase ledger: this batch's starting checkpoint (released by
+    /// `run`/`destroy`) and the phase-1 segment ledger built from it.
+    start: ?*@import("stwo_riscv_frontend").rv64.checkpoint.Checkpoint = null,
+    segments: ?*Segments.Segments = null,
+    local: ?Collector.Local = null,
+    local_ns: u64 = 0,
     // Outputs.
     packet: ?Packet.Packet = null,
     native: ?*Native = null,
@@ -130,7 +163,21 @@ const Job = struct {
         };
         // Best effort: on failure the ordered ledger allocates as before.
         self.events = @import("../services/collector.zig").prepareEvents(self.allocator, self.native.?) catch null;
+        if (self.start) |cp| {
+            // Phase 1 of the two-phase ledger; on any failure the ordered
+            // owner runs the serial ledger for this segment instead.
+            const local_start = std.time.Instant.now() catch null;
+            self.local = Collector.prepareLocal(self.allocator, @import("../../word16_execution/memory/statement.zig").fromOwner(self.image), .{ .owner = self.image }, self.native.?, &self.packet.?.tape, self.index, &self.events, cp) catch null;
+            if (local_start) |t0| if (std.time.Instant.now()) |t1| {
+                self.local_ns = t1.since(t0);
+            } else |_| {};
+            self.releaseStart();
+        }
         if (timer) |*t| self.capture_ns = t.read();
+    }
+    fn releaseStart(self: *Job) void {
+        if (self.start) |cp| self.segments.?.releaseStart(cp);
+        self.start = null;
     }
     fn join(self: *Job) void {
         if (self.thread) |t| t.join();
@@ -138,6 +185,8 @@ const Job = struct {
     }
     fn destroy(self: *Job) void {
         self.join();
+        self.releaseStart();
+        if (self.local) |*l| l.deinit(self.allocator);
         if (self.tape) |*t| t.deinit();
         if (self.native) |n| {
             n.deinit();
@@ -226,6 +275,10 @@ const Consumer = struct {
     join_wait_ns: u64 = 0,
     first_admit_ns: u64 = 0,
     first_capture_ns: u64 = 0,
+    local_ledgers: u64 = 0,
+    local_ns: u64 = 0,
+    admit_ns: u64 = 0,
+    capture_ns: u64 = 0,
     fn run(self: *Consumer) void {
         while (self.runOne()) {}
     }
@@ -235,6 +288,8 @@ const Consumer = struct {
         var timer = std.time.Timer.start() catch null;
         job.join();
         if (timer) |*t| self.join_wait_ns += t.read();
+        self.admit_ns += job.admit_ns;
+        self.capture_ns += job.capture_ns;
         if (job.index == 0) {
             self.first_admit_ns = job.admit_ns;
             self.first_capture_ns = job.capture_ns;
@@ -260,7 +315,14 @@ const Consumer = struct {
         job.native = null;
         const events = job.events;
         job.events = null;
-        if (try self.ordered.acceptWithEvents(p, n, events)) {
+        // Ownership of the phase-1 ledger moves to the ordered owner.
+        var local = job.local;
+        job.local = null;
+        if (local != null) {
+            self.local_ledgers += 1;
+            self.local_ns += job.local_ns;
+        }
+        if (try self.ordered.acceptPrepared(p, n, events, if (local) |*l| l else null)) {
             self.done = true;
             self.queue.halt();
         }
@@ -319,7 +381,7 @@ pub const Started = struct {
         if (prefix_packets != 0 and (walk_config.max_batches == 0 or walk_config.max_batches > prefix_packets)) walk_config.max_batches = prefix_packets;
         const self = try a.create(Started);
         errdefer a.destroy(self);
-        self.* = .{ .allocator = a, .config = config, .walk_config = walk_config, .prefix_packets = prefix_packets, .segment_workers = segment_workers, .ready = null, .authority_provider = provider };
+        self.* = .{ .allocator = a, .config = config, .walk_config = walk_config, .prefix_packets = prefix_packets, .segment_workers = workersOverride(segment_workers), .ready = null, .authority_provider = provider };
         const async_start = if (std.posix.getenv("STWO_RV64_CAPTURE_ASYNC_START")) |v| !std.mem.eql(u8, v, "0") else true;
         if (async_start) {
             if (std.Thread.spawn(.{}, bootThread, .{self})) |t| {
@@ -371,7 +433,7 @@ pub const Started = struct {
         var timer = std.time.Timer.start() catch null;
         try self.joinBoot();
         if (timer) |*t| stats.start_join_ns = t.read();
-        return run(self.allocator, image, program, self.config, self.prefix_packets, inflight, self.walk.?, &self.source.?, self.ready, stats);
+        return run(self.allocator, image, program, self.config, self.prefix_packets, inflightOverride(inflight), self.walk.?, &self.source.?, self.ready, stats);
     }
 };
 const RamJob = struct {
@@ -436,6 +498,9 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
     ordered.on_ready = .{ .context = &tap, .call = ReadyTap.call, .native_segment = ReadyTap.nativeSegment, .terminal_ready = ReadyTap.terminalReady, .seal_native = if (ready) |hook| hook.seal_native else false };
     var queue = Queue{};
     var consumer = Consumer{ .queue = &queue, .ordered = &ordered };
+    const local_ledger = source.segments != null and Collector.localLedgerEnabled();
+    if (source.segments) |segments| segments.retain_starts = local_ledger;
+    const fallbacks_before = Collector.local_stats.fallbacks;
     const concurrent = inflight > 1;
     var consumer_thread: ?std.Thread = if (concurrent) try std.Thread.spawn(.{}, Consumer.run, .{&consumer}) else null;
     // Always close and drain the consumer before `ordered`/`walk` unwind.
@@ -509,6 +574,10 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
             break;
         };
         job.* = .{ .allocator = a, .program = program, .image = image, .config = config, .index = step.index, .tape = tape, .public = finished.public, .metadata = metadata, .cells = finished.cells.len, .chunks = if (finished.openings) |o| o.chunks.len else 0, .seal_native = if (ready) |hook| hook.seal_native else false };
+        if (local_ledger) {
+            job.segments = source.segments;
+            job.start = source.segments.?.takeStart();
+        }
         stats.batches += 1;
         if (!concurrent) {
             job.run();
@@ -534,6 +603,11 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
     if (consumer_thread) |t| t.join();
     consumer_thread = null;
     stats.join_wait_ns = consumer.join_wait_ns;
+    stats.local_ledgers = consumer.local_ledgers;
+    stats.job_admit_ns = consumer.admit_ns;
+    stats.job_capture_ns = consumer.capture_ns;
+    stats.local_ledger_ns = consumer.local_ns;
+    stats.local_fallbacks = Collector.local_stats.fallbacks - fallbacks_before;
     if (stats.batches != 0) {
         stats.first_batch_admit_ns = stats.first_batch_ready_ns + consumer.first_admit_ns;
         stats.first_batch_capture_ns = stats.first_batch_admit_ns + consumer.first_capture_ns;
