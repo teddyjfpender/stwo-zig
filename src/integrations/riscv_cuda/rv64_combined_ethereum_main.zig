@@ -37,6 +37,10 @@ pub fn main() !void {
         // every proof a job (rv64/m8_feeder.zig). Unset keeps today's path.
         // The scheduler-driven request DAG (jobs.serve) is not reachable yet.
         _ = try @import("rv64/jobs/mod.zig").selected();
+        // M8 GPU-native (STWO_RV64_M8_GPU_NATIVE=1, requires JOBS=1): the
+        // jobs/driver_request.zig driver. Fails closed until the native and
+        // recursion factories land; unset keeps the feeder/legacy path.
+        if (try @import("rv64/jobs/driver.zig").selected(posixEnv)) return @import("rv64/jobs/driver_serve.zig").install(a, library);
         return @import("rv64/resident_batch.zig").runServe(a, library, arguments[2], arguments[3]);
     }
     const planned_text = (try env(a, "STWO_RV64_GPU_PLANNED_CPU_WORKERS")) orelse return error.CombinedRequiresResidentPlan;
@@ -100,4 +104,8 @@ test "combined entry publication uses a descriptor that supports durability" {
     const bytes = try temporary.dir.readFileAlloc(a, "combined-entry.json", 1024);
     defer a.free(bytes);
     try std.testing.expectEqualStrings("{\"accepted\":true}", bytes);
+}
+
+fn posixEnv(name: []const u8) ?[]const u8 {
+    return std.posix.getenv(name);
 }

@@ -1,11 +1,16 @@
 //! M8 GPU-native request driver (stream: driver). Contract: gpu_native.zig;
 //! design: design/riscv-proving-stack/rv64-m8-gpu-native.md §3, §6.
 //!
-//! STUB (contract landing): selection + a host model of the peer exchange.
-//! The driver stream replaces this with the JOBS=1 request driver: scheduler
-//! DAG over NativeFactory/RecursionFactory jobs, placement, device seal
-//! barrier + peer exchange, per-GPU memory plan, single wait + single slab
-//! readback per GPU, publication from status words.
+//! Selection (`STWO_RV64_M8_GPU_NATIVE=1`, requires `STWO_RV64_M8_JOBS=1`)
+//! and the pieces of the JOBS=1 GPU-native request driver:
+//!   driver_request.zig  install (class cache, memory plan, slabs, events) and
+//!                       the request: DAG batches per GPU, ONE host wait, one
+//!                       slab D2H per GPU, publication from status words
+//!   driver_dag.zig      request DAG + static placement (+ two-phase marks)
+//!   driver_memory.zig   one two-phase memory plan per GPU
+//!   driver_peer.zig     PeerExchange over peer_ops.cu
+//!   ../m8_capture_stream.zig  capture -> CaptureSink -> Stage1 release
+//! plus a host model of the peer exchange (`HostExchange`) for tests.
 const std = @import("std");
 const api = @import("api.zig");
 const G = @import("gpu_native.zig");
@@ -24,13 +29,12 @@ pub fn selected(env: *const fn ([]const u8) ?[]const u8) !bool {
     return true;
 }
 
-pub const Driver = struct {
-    native: G.NativeFactory,
-    recursion: G.RecursionFactory,
-    pub fn serveRequest(_: *Driver, _: u64) !void {
-        return error.M8GpuNativeDriverNotLanded;
-    }
-};
+pub const request = @import("driver_request.zig");
+pub const dag = @import("driver_dag.zig");
+pub const memory = @import("driver_memory.zig");
+pub const peer = @import("driver_peer.zig");
+pub const capture = @import("../m8_capture_stream.zig");
+pub const Driver = request.Driver;
 
 /// Host model of `PeerExchange` (tests and the fake device): replicas are
 /// host slices; publish copies the slot and sets its flag word to 1.
@@ -62,6 +66,27 @@ pub const HostExchange = struct {
 };
 
 const testing = std.testing;
+
+test {
+    _ = request;
+    _ = dag;
+    _ = memory;
+    _ = capture;
+    // The D3 pod probe compiles with the host tests (it needs real GPUs to run).
+    _ = &@import("driver_probe.zig").run;
+    _ = &@import("driver_serve.zig").install;
+}
+
+test "probe topology: one leaf per artifact, binary folds, root last" {
+    const P = @import("driver_probe.zig");
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const topo = try P.topology(arena.allocator(), 7, 2);
+    try std.testing.expectEqual(@as(usize, 9 + 8), topo.len);
+    var d = try dag.build(std.testing.allocator, .{ .devices = 2, .segments = &(.{dag.Segment{}} ** 7), .truths = &(.{dag.Truth{}} ** 2), .recursion = topo, .root = @intCast(topo.len - 1) });
+    defer d.deinit();
+    try std.testing.expectEqual(G.ProofKind.root, d.nodes[d.recursion[topo.len - 1]].proof.?.kind);
+}
 
 test "selection: default off, requires JOBS=1, strict values" {
     const E = struct {
