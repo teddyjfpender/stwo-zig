@@ -188,6 +188,7 @@ pub const Builder = struct {
         }
         const touched = local.ledger.initial.items;
         if (touched.len >= std.math.maxInt(u24)) return false;
+        const resolved_at = std.time.Instant.now() catch null;
         // Pass A, read only: the global state each first touch stands for.
         const global = try a.alloc(A.memory.closed_ram.types.State, touched.len);
         defer a.free(global);
@@ -218,7 +219,13 @@ pub const Builder = struct {
             // An exit with epoch 0 was never written by this segment.
             entry.value_ptr.* = if (exit.epoch == 0) g else exit;
         }
+        const patch_at = std.time.Instant.now() catch null;
         patchShard(&local.shard, global);
+        if (patch_at) |t1| if (std.time.Instant.now()) |t2| {
+            local_stats.patch_ns += t2.since(t1);
+            if (resolved_at) |t0| local_stats.resolve_ns += t1.since(t0);
+        } else |_| {};
+        local_stats.touched += touched.len;
         return true;
     }
     pub fn finish(self: *Builder) !Advice {
@@ -747,7 +754,7 @@ pub fn localLedgerEnabled() bool {
     return std.mem.eql(u8, value, "1");
 }
 /// Report-only counters of `Builder.appendLocal` (ordered thread only).
-pub var local_stats: struct { merged: u64 = 0, fallbacks: u64 = 0 } = .{};
+pub var local_stats: struct { merged: u64 = 0, fallbacks: u64 = 0, touched: u64 = 0, resolve_ns: u64 = 0, patch_ns: u64 = 0 } = .{};
 /// Phase 1 output: one segment's shard computed on a segment-local ledger.
 /// Every state the segment read before writing it is a placeholder
 /// `{value, rights, epoch 0, tick k + 1}`, where `value` is the word in the

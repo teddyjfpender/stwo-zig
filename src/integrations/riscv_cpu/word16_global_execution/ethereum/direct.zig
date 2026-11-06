@@ -80,6 +80,11 @@ pub const Stats = struct {
     local_ledgers: u64 = 0,
     local_fallbacks: u64 = 0,
     local_ledger_ns: u64 = 0,
+    /// Phase 2 on the ordered thread: first-touched words merged, and the
+    /// time in the merge (both passes) and in the placeholder patch.
+    local_touched: u64 = 0,
+    local_merge_ns: u64 = 0,
+    local_patch_ns: u64 = 0,
     /// Summed per-job admission (`Packet.fromNative`) and capture (narrow
     /// capture, seal, event prefault, phase-1 ledger) durations.
     job_admit_ns: u64 = 0,
@@ -500,7 +505,7 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
     var consumer = Consumer{ .queue = &queue, .ordered = &ordered };
     const local_ledger = source.segments != null and Collector.localLedgerEnabled();
     if (source.segments) |segments| segments.retain_starts = local_ledger;
-    const fallbacks_before = Collector.local_stats.fallbacks;
+    const stats_before = Collector.local_stats;
     const concurrent = inflight > 1;
     var consumer_thread: ?std.Thread = if (concurrent) try std.Thread.spawn(.{}, Consumer.run, .{&consumer}) else null;
     // Always close and drain the consumer before `ordered`/`walk` unwind.
@@ -607,7 +612,10 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
     stats.job_admit_ns = consumer.admit_ns;
     stats.job_capture_ns = consumer.capture_ns;
     stats.local_ledger_ns = consumer.local_ns;
-    stats.local_fallbacks = Collector.local_stats.fallbacks - fallbacks_before;
+    stats.local_fallbacks = Collector.local_stats.fallbacks - stats_before.fallbacks;
+    stats.local_touched = Collector.local_stats.touched - stats_before.touched;
+    stats.local_merge_ns = Collector.local_stats.resolve_ns - stats_before.resolve_ns;
+    stats.local_patch_ns = Collector.local_stats.patch_ns - stats_before.patch_ns;
     if (stats.batches != 0) {
         stats.first_batch_admit_ns = stats.first_batch_ready_ns + consumer.first_admit_ns;
         stats.first_batch_capture_ns = stats.first_batch_admit_ns + consumer.first_capture_ns;
