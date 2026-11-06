@@ -223,7 +223,8 @@ pub const CommitPlan = struct {
         }
     }
     fn regionWords(self: *const CommitPlan) usize {
-        return std.mem.alignForward(usize, self.coefficient_cells, granule()) + std.mem.alignForward(usize, self.eval_cells, granule()) + self.auxWords();
+        // Every part is granule-rounded: the top layout puts aux first.
+        return std.mem.alignForward(usize, self.coefficient_cells, granule()) + std.mem.alignForward(usize, self.eval_cells, granule()) + std.mem.alignForward(usize, self.auxWords(), granule());
     }
     fn tail(self: *const CommitPlan, region: api.DeviceBuffer) api.DeviceBuffer {
         const bases = self.addressedBases(self.placement);
@@ -440,13 +441,18 @@ test "beta 2 descriptors address coefficients and evaluations from the lower buf
 test "beta 2 region: the evaluation/aux tail is the side the arena reclaims first" {
     var plan = try CommitPlan.init(std.testing.allocator, &.{ .{ .log_size = 5, .encoding = .evaluations }, .{ .log_size = 3, .encoding = .coefficients } }, 2);
     defer plan.deinit();
-    // align64(40) + align64(160) + (64 tw + 14 descriptor words)
-    try std.testing.expectEqual(@as(usize, 64 + 192 + 78), plan.regionWords());
+    // align64(40) + align64(160) + align64(64 tw + 14 descriptor words)
+    try std.testing.expectEqual(@as(usize, 64 + 192 + 128), plan.regionWords());
+    // Both layouts fit the region exactly.
+    for ([_]api.Placement{ .bottom, .top }) |side| {
+        const bases = plan.addressedBases(side);
+        try std.testing.expect(bases[0] + plan.coefficient_cells <= plan.regionWords() and bases[1] + plan.eval_cells <= plan.regionWords() and bases[2] + plan.auxWords() <= plan.regionWords());
+    }
     const region = api.DeviceBuffer{ .ptr = @ptrFromInt(4096), .words = plan.regionWords() };
     plan.placement = .bottom;
     const b = plan.tail(region);
     try std.testing.expectEqual(@as(usize, 4096 + 4 * 64), @intFromPtr(b.ptr));
-    try std.testing.expectEqual(@as(usize, 192 + 78), b.words);
+    try std.testing.expectEqual(@as(usize, 192 + 128), b.words);
     plan.placement = .top;
     const t = plan.tail(region);
     try std.testing.expectEqual(@as(usize, 4096), @intFromPtr(t.ptr));
