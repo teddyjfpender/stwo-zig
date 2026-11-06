@@ -32,6 +32,10 @@ __global__ void probe(uint32_t* out, uint32_t k) {
       if (MODE == 9) { asm volatile("{.reg .u64 t; mul.wide.u32 t, %0, %1; xor.b64 t, t, %2; cvt.u32.u64 %0, t;}" : "+r"(x) : "r"(k), "l"(uint64_t(c))); } // wide used
       if (MODE == 10) { uint32_t y; asm volatile("shr.u32 %0, %1, 31;" : "=r"(y) : "r"(x)); asm volatile("add.u32 %0, %0, %1;" : "+r"(x) : "r"(y)); } // shr+add (LEA.HI?)
       if (MODE == 11) { asm volatile("{.reg .pred q; setp.lt.u32 q, %0, %1; selp.u32 %0, %0, %2, q;}" : "+r"(x) : "r"(k), "r"(v[(c+1)%CH])); } // ISETP+SEL
+      if (MODE == 12) { uint64_t w = (uint64_t(v[(c+1)%CH]) << 32) | x;                                            // IMAD.WIDE accumulate
+                        asm volatile("mad.wide.u32 %0, %1, %2, %0;" : "+l"(w) : "r"(x), "r"(k)); x = uint32_t(w >> 32) + uint32_t(w); }
+      if (MODE == 13) { uint64_t w; asm volatile("mul.wide.u32 %0, %1, %2;" : "=l"(w) : "r"(x), "r"(k)); x = uint32_t(w >> 32) + uint32_t(w); } // IMAD.WIDE + IADD3
+      if (MODE == 14) { uint32_t h; asm volatile("mul.lo.u32 %0, %1, %2;" : "=r"(h) : "r"(x), "r"(k)); x = h + x; }                    // IMAD + IADD3
       v[c] = x;
     }
   }
@@ -56,6 +60,7 @@ int main() {
   std::printf("SM clock %d kHz\n", clk);
   run<0>("lop3", out, 1); run<1>("iadd", out, 1); run<2>("imad", out, 1); run<3>("shf", out, 1);
   run<7>("iadd3", out, 1); run<8>("iadd64+x", out, 2); run<9>("wide+x", out, 2); run<10>("shr+add", out, 2); run<11>("isetp+sel", out, 2);
+  run<12>("wideacc+add", out, 2); run<13>("wide+add", out, 2); run<14>("imad+add", out, 2);
   run<4>("imad.hi", out, 1); run<5>("imad.wide", out, 1); run<6>("lop3+imad", out, 2);
   return 0;
 }

@@ -1,0 +1,15 @@
+{
+ "schema": "rv64-m8-sm120-integer-pipe-probe/v1",
+ "label": "M",
+ "device": "NVIDIA GeForce RTX 5090 (sm_120), SM clock 2.55 GHz, 170 SMs",
+ "source": "tests/cuda/rv64/sm_int_pipes_probe.cu",
+ "source_sha256": "f508d782f8ae87e587c2b48be1c154d34093d3b81d34a49d3c86deb5b10be50e",
+ "binary_sha256": "202e2841cb95f84e6d288229cf7e98e1e0e70c0e2d398c0382ff074cf2a79c39",
+ "raw_log": {"path": "pod:/workspace/m3/runs/m8-poseidon-witness/probe2.log", "sha256": "0515ecf4ced569360bfd37d247cc749075506a776d8d53ada1fbb7ab53b170e2"},
+ "method": "2040 blocks x 128 threads, 8 independent chains/thread, 4096 iterations, CUDA events, opaque multiplier argument",
+ "ms_per_step": {"lop3": 0.290, "imad": 0.288, "shf": 0.290, "iadd3": 0.290, "imad.hi": 0.561,
+                 "imad.wide+iadd3": 0.575, "imad+iadd3": 0.288, "lop3+imad": 0.296, "isetp+sel": 0.293,
+                 "iadd.64+mov+lop3": 0.627},
+ "derived_lanes_per_clk_per_sm": {"ALU (LOP3/IADD3/SHF/LEA)": 64, "FMA IMAD": 64, "FMA IMAD.WIDE": 32, "FMA IMAD.HI": 32},
+ "conclusion": "ALU and FMA integer pipes are separate 64-lane pipes that overlap; IMAD.WIDE and IMAD.HI are half rate; IADD.64 costs about two ALU slots."
+}

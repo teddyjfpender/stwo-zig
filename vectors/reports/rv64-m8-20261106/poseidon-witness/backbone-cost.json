@@ -1,0 +1,147 @@
+{
+ "schema": "rv64-m8-poseidon-backbone-cost/v1",
+ "block": 24628607,
+ "inputs": {
+  "kernel_receipt": "vectors/reports/rv64-m8-20261106/poseidon-witness/kernel-ab.json",
+  "variant": "fused2",
+  "baseline_variant": "rotate"
+ },
+ "measured": {
+  "request_kernel_gpu_s": 10.584695335,
+  "recursion_after_native_kernel_gpu_s": 6.204127488,
+  "recursion_trace_commit_kernel_gpu_s": 1.300734781,
+  "recursion_cells": 21658004224,
+  "leaf_cells": 13218250240,
+  "fold_cells": 8439753984,
+  "native_p2_prefix_permutations": 1430743834,
+  "native_blake_prefix_compressions": 942812557
+ },
+ "derived": {
+  "recursion_ns_per_padded_cell": 0.2864588733030621
+ },
+ "rotate": {
+  "rates_M": {
+   "128x2^20": {
+    "p2_perm_per_s": 2556619459.2739506,
+    "p2_cell_ns": 0.039725303947925575,
+    "blake_compress_per_s": 21502877926.787807,
+    "blake_cell_ns": 0.003269910790026188
+   },
+   "479x2^20": {
+    "p2_perm_per_s": 2759919498.9351416,
+    "p2_cell_ns": 0.03177000933748695,
+    "blake_compress_per_s": 23710563324.095467,
+    "blake_cell_ns": 0.002729507517963959
+   }
+  },
+  "native_p2_hash_gpu_s_D": [
+   0.5184005673180044,
+   0.5596233060067196
+  ],
+  "native_blake_hash_gpu_s_D": 0.039763397609447866,
+  "native_hash_delta_gpu_s_D": [
+   0.4786371697085566,
+   0.5198599083972717
+  ],
+  "all_poseidon": {
+   "recursion_cells_E": [
+    4150710759.3755198,
+    6302553863.590792
+   ],
+   "recursion_p2_commit_overhead_gpu_s_E": [
+    0.30263158523551537,
+    0.45952415799208013
+   ],
+   "recursion_gpu_s_E": [
+    1.4916395127731241,
+    2.264946636688159
+   ],
+   "net_delta_gpu_s_E": [
+    -4.233850805518319,
+    -3.4193209429145695
+   ],
+   "request_kernel_gpu_s_E": [
+    6.350844529481681,
+    7.16537439208543
+   ]
+  },
+  "mixed": {
+   "recursion_cells_E": 14343196818.755154,
+   "recursion_gpu_s_E": 4.108736000264666,
+   "net_delta_gpu_s_E": [
+    -1.6167543180267776,
+    -1.5755315793380626
+   ],
+   "request_kernel_gpu_s_E": [
+    8.96794101697322,
+    9.009163755661938
+   ]
+  }
+ },
+ "fused2": {
+  "rates_M": {
+   "128x2^20": {
+    "p2_perm_per_s": 3496314167.020306,
+    "p2_cell_ns": 0.029048443660140037,
+    "blake_compress_per_s": 21430998723.786858,
+    "blake_cell_ns": 0.0032808780148625375
+   },
+   "479x2^20": {
+    "p2_perm_per_s": 3721873975.068234,
+    "p2_cell_ns": 0.02355874187015541,
+    "blake_compress_per_s": 23775493361.973473,
+    "blake_cell_ns": 0.0027220533287350963
+   }
+  },
+  "native_p2_hash_gpu_s_D": [
+   0.3844149059275361,
+   0.40921489478713957
+  ],
+  "native_blake_hash_gpu_s_D": 0.03965480516622778,
+  "native_hash_delta_gpu_s_D": [
+   0.3447601007613083,
+   0.3695600896209118
+  ],
+  "all_poseidon": {
+   "recursion_cells_E": [
+    4150710759.3755198,
+    6302553863.590792
+   ],
+   "recursion_p2_commit_overhead_gpu_s_E": [
+    0.21390742393353662,
+    0.3248029408259461
+   ],
+   "recursion_gpu_s_E": [
+    1.4029153514711452,
+    2.1302254195220254
+   ],
+   "net_delta_gpu_s_E": [
+    -4.456452035767547,
+    -3.704341978857063
+   ],
+   "request_kernel_gpu_s_E": [
+    6.1282432992324525,
+    6.880353356142936
+   ]
+  },
+  "mixed": {
+   "recursion_cells_E": 14343196818.755154,
+   "recursion_gpu_s_E": 4.108736000264666,
+   "net_delta_gpu_s_E": [
+    -1.7506313869740255,
+    -1.7258313981144227
+   ],
+   "request_kernel_gpu_s_E": [
+    8.834063948025971,
+    8.858863936885577
+   ]
+  }
+ },
+ "caveats": [
+  "Recursion GPU-s is modelled linear in padded cells at the measured D2 after-native ns/cell; per-node fixed costs (launches, syncs, graph instantiation) do not shrink with cells.",
+  "Leaf ratios come from one five-step CPU0 census leaf; production leaves verify deeper trees.",
+  "Fold ratio under all-Poseidon is unmeasured and banded between the pure and mixed leaf ratios.",
+  "Native P2 hashing uses the exact M7 prefix-permutation census at retained-tree kernel rates; no prefix-bank runtime, FS, PoW or opening cost is included.",
+  "No proof, receiver, tamper corpus or end-to-end timing is implied."
+ ]
+}

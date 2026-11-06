@@ -1,0 +1,17 @@
+{
+ "schema": "rv64-m8-qm31-straightline-host-proxy/v1",
+ "label": "M (synthetic proxy)",
+ "source": "bench/rv64/qm31_straightline_probe.c",
+ "source_sha256": "c6094a61263f4ad6b4d4f0450a0387cd6ce0fba089d2ded6af5b397b2c1116fe",
+ "binary_sha256": "28d0c35636aa6c2a19a4883a4d6fd5092872f0e3f916a11a5914d22120536ed7",
+ "build": "cc -O2 -march=native (pod, 48 vCPU)",
+ "ops": 1922832,
+ "ops_source": "P2 leaf AST qm31_ops (vectors/reports/rv64-m7-20261105/poseidon2/full-pure-cpu-matched-p20)",
+ "ns_per_op_runs": [36.36, 35.70, 34.83, 35.59, 35.51],
+ "ns_per_op_median": 35.59,
+ "ms_per_leaf_single_thread_D": 68.4,
+ "table_bytes": 30830848,
+ "pod_loadavg_1m": [11.41, 11.22],
+ "raw_log": {"path": "pod:/workspace/m3/runs/m8-poseidon-witness/qm31-probe.log", "sha256": "550485d557901f4ca64a8eca6d0c1e1c69d82e3cc91e5a5eb561d1ec7f203b06"},
+ "scope": "50% QM31 mul / 50% add over a variable table with pseudo-random earlier operands; not the real verifier program or its locality."
+}

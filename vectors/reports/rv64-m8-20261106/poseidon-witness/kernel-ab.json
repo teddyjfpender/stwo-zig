@@ -1,0 +1,685 @@
+{
+ "schema": "rv64-m8-poseidon2-w24-kernel-ab/v1",
+ "label": "M",
+ "status": "PASS",
+ "scope": "retained Merkle tree hashing only; no FFT/transfer/FS/proof",
+ "variants": {},
+ "binaries": {
+  "rotate": {
+   "bench": "3c562585e80691a3a81e0cd08197bbb295b5079b9c7a756a466465a4e7f7641b",
+   "smoke": "3df83cd187f951109e66e89110f48e2f099eca2310b84c83428a79765d1ddd11"
+  },
+  "register": {
+   "bench": "c347a3a603e254c62a05ea13d39c3f9603461859d12d9d878b8006babf92fd7d",
+   "smoke": "87c5c2bf4e65922004d96ab06d1acd26f61bad28fb219d8b6b0569d38798cf87"
+  },
+  "fused": {
+   "bench": "fc555feb87d69de5089dc75555c8d0ecf05a526037a824391da64282e02b38f7",
+   "smoke": "18ccbfda84ced62625f6de345d2b5cd4c16dc12391326f7da8c98bc9a1404658"
+  },
+  "fused2": {
+   "bench": "0e37a6a4f17472019fa05c06ac072c84f19821a56a0b4b1899cea75ed410522b",
+   "smoke": "9337617ad4eb21c959b313cc2d8e1d7d49ee0dab137d14f574ed6b782a172296"
+  }
+ },
+ "parity": {
+  "rotate": {
+   "smoke_kats": "PASS",
+   "all_nodes_vs_cpu_rows8_widths": [
+    1,
+    12,
+    13,
+    47,
+    128,
+    479
+   ]
+  },
+  "register": {
+   "smoke_kats": "PASS",
+   "all_nodes_vs_cpu_rows8_widths": [
+    1,
+    12,
+    13,
+    47,
+    128,
+    479
+   ]
+  },
+  "fused": {
+   "smoke_kats": "PASS",
+   "all_nodes_vs_cpu_rows8_widths": [
+    1,
+    12,
+    13,
+    47,
+    128,
+    479
+   ]
+  },
+  "fused2": {
+   "smoke_kats": "PASS",
+   "all_nodes_vs_cpu_rows8_widths": [
+    1,
+    12,
+    13,
+    47,
+    128,
+    479
+   ]
+  }
+ },
+ "classes": [
+  {
+   "columns": 47,
+   "log_rows": 14,
+   "rotate": {
+    "p2_ms": 0.524991989,
+    "p2_ms_all": [
+     0.525088012,
+     0.526880026,
+     0.524991989,
+     0.524447978,
+     0.524576008
+    ],
+    "blake_ms": 0.0396159999,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "generated-fast-reduction"
+   },
+   "register": {
+    "p2_ms": 0.543168008,
+    "p2_ms_all": [
+     0.542208016,
+     0.542815983,
+     0.543168008,
+     0.544031978,
+     0.543327987
+    ],
+    "blake_ms": 0.0396480002,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "register-packed-v1"
+   },
+   "fused": {
+    "p2_ms": 0.334656,
+    "p2_ms_all": [
+     0.336064011,
+     0.334656,
+     0.336192012,
+     0.334464014,
+     0.33395201
+    ],
+    "blake_ms": 0.0394879989,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-weak-v1"
+   },
+   "fused2": {
+    "p2_ms": 0.328287989,
+    "p2_ms_all": [
+     0.326687992,
+     0.328447998,
+     0.328287989,
+     0.328384012,
+     0.328191996
+    ],
+    "blake_ms": 0.0395199992,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-pipe-balanced-v1"
+   },
+   "p2_root": [
+    195501748,
+    592096379,
+    606868947,
+    435843148,
+    1039286673,
+    272596613,
+    359503324,
+    1236084473,
+    283697751
+   ],
+   "permutations": 98302
+  },
+  {
+   "columns": 128,
+   "log_rows": 14,
+   "rotate": {
+    "p2_ms": 0.614975989,
+    "p2_ms_all": [
+     0.615296006,
+     0.614431977,
+     0.61907202,
+     0.614975989,
+     0.612864017
+    ],
+    "blake_ms": 0.0479039997,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "generated-fast-reduction"
+   },
+   "register": {
+    "p2_ms": 0.655903995,
+    "p2_ms_all": [
+     0.656383991,
+     0.655456007,
+     0.655615985,
+     0.657151997,
+     0.655903995
+    ],
+    "blake_ms": 0.047807999,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "register-packed-v1"
+   },
+   "fused": {
+    "p2_ms": 0.395999998,
+    "p2_ms_all": [
+     0.396192014,
+     0.39568001,
+     0.395999998,
+     0.395200014,
+     0.397567987
+    ],
+    "blake_ms": 0.0479039997,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-weak-v1"
+   },
+   "fused2": {
+    "p2_ms": 0.385535985,
+    "p2_ms_all": [
+     0.385535985,
+     0.385791987,
+     0.385728002,
+     0.385311991,
+     0.385215998
+    ],
+    "blake_ms": 0.0478399992,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-pipe-balanced-v1"
+   },
+   "p2_root": [
+    348340161,
+    210608594,
+    131075836,
+    462863387,
+    988276858,
+    10348717,
+    928821489,
+    1248406873,
+    458931794
+   ],
+   "permutations": 212990
+  },
+  {
+   "columns": 479,
+   "log_rows": 14,
+   "rotate": {
+    "p2_ms": 0.982303977,
+    "p2_ms_all": [
+     0.98694402,
+     0.982303977,
+     0.981216013,
+     0.982240021,
+     0.984000027
+    ],
+    "blake_ms": 0.0805760026,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "generated-fast-reduction"
+   },
+   "register": {
+    "p2_ms": 1.12550402,
+    "p2_ms_all": [
+     1.12697601,
+     1.12550402,
+     1.12505603,
+     1.12572801,
+     1.12502396
+    ],
+    "blake_ms": 0.0794240013,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "register-packed-v1"
+   },
+   "fused": {
+    "p2_ms": 0.653919995,
+    "p2_ms_all": [
+     0.65228802,
+     0.654623985,
+     0.653919995,
+     0.651679993,
+     0.656000018
+    ],
+    "blake_ms": 0.0786240026,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-weak-v1"
+   },
+   "fused2": {
+    "p2_ms": 0.633087993,
+    "p2_ms_all": [
+     0.633664012,
+     0.633087993,
+     0.632896006,
+     0.633247972,
+     0.633055985
+    ],
+    "blake_ms": 0.0803840011,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-pipe-balanced-v1"
+   },
+   "p2_root": [
+    1839998792,
+    933990628,
+    747159280,
+    223739413,
+    1583740628,
+    1979810553,
+    529721450,
+    216330549,
+    935411904
+   ],
+   "permutations": 688126
+  },
+  {
+   "columns": 47,
+   "log_rows": 17,
+   "rotate": {
+    "p2_ms": 0.84147203,
+    "p2_ms_all": [
+     0.840608001,
+     0.839712024,
+     0.84147203,
+     0.842688024,
+     0.841600001
+    ],
+    "blake_ms": 0.0683519989,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "generated-fast-reduction"
+   },
+   "register": {
+    "p2_ms": 0.840448022,
+    "p2_ms_all": [
+     0.84048003,
+     0.840928018,
+     0.840448022,
+     0.838432014,
+     0.839743972
+    ],
+    "blake_ms": 0.0670080036,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "register-packed-v1"
+   },
+   "fused": {
+    "p2_ms": 0.573055983,
+    "p2_ms_all": [
+     0.572384,
+     0.573823988,
+     0.573055983,
+     0.572351992,
+     0.573503971
+    ],
+    "blake_ms": 0.0681919977,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-weak-v1"
+   },
+   "fused2": {
+    "p2_ms": 0.555616021,
+    "p2_ms_all": [
+     0.555903971,
+     0.555552006,
+     0.553727984,
+     0.558495998,
+     0.555616021
+    ],
+    "blake_ms": 0.0680319965,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-pipe-balanced-v1"
+   },
+   "p2_root": [
+    2026639796,
+    2046507161,
+    1098100086,
+    1867995504,
+    555345569,
+    1112028570,
+    1174844196,
+    241626987,
+    598078911
+   ],
+   "permutations": 786430
+  },
+  {
+   "columns": 128,
+   "log_rows": 17,
+   "rotate": {
+    "p2_ms": 1.22332799,
+    "p2_ms_all": [
+     1.22332799,
+     1.22912002,
+     1.22121596,
+     1.22976005,
+     1.22073603
+    ],
+    "blake_ms": 0.0963520035,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "generated-fast-reduction"
+   },
+   "register": {
+    "p2_ms": 1.21942401,
+    "p2_ms_all": [
+     1.21942401,
+     1.22288001,
+     1.217152,
+     1.22374403,
+     1.21884799
+    ],
+    "blake_ms": 0.0957119986,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "register-packed-v1"
+   },
+   "fused": {
+    "p2_ms": 0.867039979,
+    "p2_ms_all": [
+     0.863135993,
+     0.868767977,
+     0.867039979,
+     0.869440019,
+     0.86630398
+    ],
+    "blake_ms": 0.0978560001,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-weak-v1"
+   },
+   "fused2": {
+    "p2_ms": 0.838176012,
+    "p2_ms_all": [
+     0.838079989,
+     0.84217602,
+     0.838176012,
+     0.842432022,
+     0.837823987
+    ],
+    "blake_ms": 0.0970240012,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-pipe-balanced-v1"
+   },
+   "p2_root": [
+    1831216263,
+    1931273336,
+    1365562069,
+    826961268,
+    147484433,
+    1466711079,
+    1235043915,
+    950047846,
+    1791946649
+   ],
+   "permutations": 1703934
+  },
+  {
+   "columns": 304,
+   "log_rows": 17,
+   "rotate": {
+    "p2_ms": 2.08143997,
+    "p2_ms_all": [
+     2.07945609,
+     2.09376001,
+     2.08143997,
+     2.09574389,
+     2.07731199
+    ],
+    "blake_ms": 0.168768004,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "generated-fast-reduction"
+   },
+   "register": {
+    "p2_ms": 2.073632,
+    "p2_ms_all": [
+     2.06774402,
+     2.0794239,
+     2.06713605,
+     2.08572793,
+     2.073632
+    ],
+    "blake_ms": 0.170591995,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "register-packed-v1"
+   },
+   "fused": {
+    "p2_ms": 1.49366403,
+    "p2_ms_all": [
+     1.49078405,
+     1.50726402,
+     1.49366403,
+     1.51036799,
+     1.49116802
+    ],
+    "blake_ms": 0.168768004,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-weak-v1"
+   },
+   "fused2": {
+    "p2_ms": 1.45039999,
+    "p2_ms_all": [
+     1.44832003,
+     1.46812797,
+     1.44867206,
+     1.46796799,
+     1.45039999
+    ],
+    "blake_ms": 0.170911998,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-pipe-balanced-v1"
+   },
+   "p2_root": [
+    883952073,
+    642876713,
+    849061651,
+    1630149813,
+    1962727711,
+    1017558116,
+    869536306,
+    408310458,
+    974830399
+   ],
+   "permutations": 3670014
+  },
+  {
+   "columns": 479,
+   "log_rows": 17,
+   "rotate": {
+    "p2_ms": 2.87305593,
+    "p2_ms_all": [
+     2.87123203,
+     2.88076806,
+     2.87305593,
+     2.88143992,
+     2.87020802
+    ],
+    "blake_ms": 0.236095995,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "generated-fast-reduction"
+   },
+   "register": {
+    "p2_ms": 2.85177588,
+    "p2_ms_all": [
+     2.85177588,
+     2.8577919,
+     2.8448,
+     2.86262393,
+     2.83811212
+    ],
+    "blake_ms": 0.235423997,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "register-packed-v1"
+   },
+   "fused": {
+    "p2_ms": 2.07228804,
+    "p2_ms_all": [
+     2.06848001,
+     2.09094405,
+     2.07228804,
+     2.09449601,
+     2.07209611
+    ],
+    "blake_ms": 0.235839993,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-weak-v1"
+   },
+   "fused2": {
+    "p2_ms": 2.01343989,
+    "p2_ms_all": [
+     2.01343989,
+     2.03340793,
+     2.00889611,
+     2.03299189,
+     2.00886393
+    ],
+    "blake_ms": 0.234175995,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-pipe-balanced-v1"
+   },
+   "p2_root": [
+    1703667939,
+    100598924,
+    1694122376,
+    620382842,
+    1231542363,
+    1588279951,
+    1518443570,
+    1554955404,
+    179870306
+   ],
+   "permutations": 5505022
+  },
+  {
+   "columns": 128,
+   "log_rows": 20,
+   "rotate": {
+    "p2_ms": 5.33184004,
+    "p2_ms_all": [
+     5.33020782,
+     5.3508482,
+     5.32988787,
+     5.34972811,
+     5.33184004
+    ],
+    "blake_ms": 0.438879997,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "generated-fast-reduction"
+   },
+   "register": {
+    "p2_ms": 5.10979223,
+    "p2_ms_all": [
+     5.10979223,
+     5.12134409,
+     5.10665607,
+     5.11974382,
+     5.10086393
+    ],
+    "blake_ms": 0.439103991,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "register-packed-v1"
+   },
+   "fused": {
+    "p2_ms": 4.03302383,
+    "p2_ms_all": [
+     4.02867222,
+     4.0462718,
+     4.03302383,
+     4.04937601,
+     4.02793598
+    ],
+    "blake_ms": 0.443295985,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-weak-v1"
+   },
+   "fused2": {
+    "p2_ms": 3.89881611,
+    "p2_ms_all": [
+     3.89334393,
+     3.91817594,
+     3.89743996,
+     3.91824007,
+     3.89881611
+    ],
+    "blake_ms": 0.440351993,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-pipe-balanced-v1"
+   },
+   "p2_root": [
+    1886760854,
+    707554590,
+    360827379,
+    982293677,
+    639994415,
+    363531043,
+    1148597824,
+    1921127442,
+    1175433905
+   ],
+   "permutations": 13631486
+  },
+  {
+   "columns": 479,
+   "log_rows": 20,
+   "rotate": {
+    "p2_ms": 15.957056,
+    "p2_ms_all": [
+     15.9066877,
+     15.948288,
+     15.9610882,
+     16.1046391,
+     15.957056
+    ],
+    "blake_ms": 1.37094402,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "generated-fast-reduction"
+   },
+   "register": {
+    "p2_ms": 15.1951361,
+    "p2_ms_all": [
+     15.1440315,
+     15.1940479,
+     15.1951361,
+     15.356576,
+     15.2171516
+    ],
+    "blake_ms": 1.36831999,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "register-packed-v1"
+   },
+   "fused": {
+    "p2_ms": 12.2603836,
+    "p2_ms_all": [
+     12.210144,
+     12.2603836,
+     12.2407684,
+     12.265728,
+     12.34688
+    ],
+    "blake_ms": 1.36476803,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-weak-v1"
+   },
+   "fused2": {
+    "p2_ms": 11.8327999,
+    "p2_ms_all": [
+     11.7953596,
+     11.8338556,
+     11.8231039,
+     11.8506241,
+     11.8327999
+    ],
+    "blake_ms": 1.36720002,
+    "device": "NVIDIA GeForce RTX 5090",
+    "p2_variant": "fused-pipe-balanced-v1"
+   },
+   "p2_root": [
+    1501133794,
+    1649474559,
+    1506863960,
+    2064406965,
+    621609021,
+    2097920648,
+    1105554756,
+    904959127,
+    1632450967
+   ],
+   "permutations": 44040190
+  }
+ ]
+}

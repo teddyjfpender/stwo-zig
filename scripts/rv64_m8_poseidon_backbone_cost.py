@@ -64,7 +64,7 @@ def main():
     ns_per_cell = rec_gpu_s / rec_cells * 1e9  # [D] cell-linear recursion cost
 
     result = dict(schema="rv64-m8-poseidon-backbone-cost/v1", block=24628607,
-                  inputs=dict(kernel_receipt=str(a.kernel_receipt.relative_to(ROOT)),
+                  inputs=dict(kernel_receipt=str(a.kernel_receipt.resolve().relative_to(ROOT)),
                               variant=a.variant, baseline_variant=a.baseline_variant),
                   measured=dict(request_kernel_gpu_s=REQUEST_KERNEL_GPU_S,
                                 recursion_after_native_kernel_gpu_s=rec_gpu_s,

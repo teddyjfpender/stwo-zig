@@ -9,9 +9,9 @@
 //
 // Why this shape [M, tests/cuda/rv64/sm_int_pipes_probe.cu, RTX 5090 @2.55
 // GHz]: LOP3/IADD3/SHF/LEA issue at 64 lanes/clk/SM on the integer ALU pipe;
-// IMAD/IMAD.WIDE at 64 lanes/clk/SM on the separate FMA pipe, and the two
-// overlap (LOP3+IMAD pairs 57.8 T inst/s vs 29.1-29.6 T for either alone);
-// IMAD.HI is half rate; IADD.64 costs about two ALU slots. Mask/shift M31
+// IMAD at 64 lanes/clk/SM on the separate FMA pipe, and the two overlap
+// (LOP3+IMAD pairs 57.8 T inst/s vs 29.1-29.6 T for either alone);
+// IMAD.WIDE and IMAD.HI are half rate; IADD.64 costs about two ALU slots. Mask/shift M31
 // arithmetic is ALU-only, which bounded every earlier formulation (v1
 // common-rotate, register-packed, weak-residue rewrites, tree sums, two
 // rows per thread) at 15-16 ms on 479x2^20. Here:
@@ -19,7 +19,9 @@
 //    permutation; digests are canonicalised once;
 //  * folds are x - h p, computed mod 2^32 as x + h * 0x80000001 (IMAD):
 //    exact because every true result is < 2^32;
-//  * u64 sums are IMAD.WIDE accumulates (x * 1 + acc) instead of IADD.64;
+//  * u64 sums are split between IMAD.WIDE accumulates (x * 1 + acc, half
+//    rate on the FMA pipe) and add.cc/addc carry chains on the ALU, never
+//    IADD.64;
 //  * multipliers come from __constant__ so ptxas cannot strength-reduce
 //    them back into ALU shifts (with immediates it did: an IMAD-intent
 //    build measured 18.404 ms vs 15.718 ms, more SHF/IADD3, no extra IMAD);
@@ -38,8 +40,10 @@
 //   + product-fold 2*hi as ALU shift-add         13.562 ms  (rejected)
 //   + rotation sums (a << k) + s on ALU          12.263 ms
 //   + round-constant folds on ALU (alone)        12.414 ms
-//   + both (this file)                           12.192 ms
-//   this file, two rows per thread               12.773 ms  (rejected)
+//   + both                                       12.192 ms
+//   + state sums as ALU carry chains (partial
+//     rounds, 3 of 6 external M4 blocks)         11.814 ms  (this file)
+//   12.192 ms build, two rows per thread         12.773 ms  (rejected)
 //   pipe-balanced, fully unrolled rounds         illegal address in the
 //     smoke (~26k SASS instructions; not investigated, rejected)
 // Round loops stay rolled; one row per thread; 128 threads per block.
@@ -85,6 +89,17 @@ __device__ __forceinline__ uint32_t fold64(uint64_t v) {
     const uint32_t lo = uint32_t(v), hi = uint32_t(v >> 32);
     return fold32(mad_lo(lo >> 31, pipe_k[2], mad_lo(hi, pipe_k[1], lo)));
 }
+// Two-word accumulator on the ALU pipe: add.cc/addc carry chains (IADD3 with
+// a carry predicate), for sums where the FMA pipe is the busier one.
+struct Carry {
+    uint32_t lo, hi;
+};
+__device__ __forceinline__ void carry_add(Carry& w, uint32_t x) {
+    asm("add.cc.u32 %0, %0, %2;\n\taddc.u32 %1, %1, 0;" : "+r"(w.lo), "+r"(w.hi) : "r"(x));
+}
+__device__ __forceinline__ uint32_t fold_carry(Carry w) {
+    return fold64((uint64_t(w.hi) << 32) | w.lo);
+}
 // u64 accumulate of a u32 on the FMA pipe.
 __device__ __forceinline__ uint64_t acc(uint64_t sum, uint32_t x) {
     return mad_wide(x, pipe_k[0], sum);
@@ -121,6 +136,28 @@ __device__ __forceinline__ uint32_t add_rc(uint32_t a, uint32_t rc) {
 
 // M4 = circ(2,3,1,1) on one block of weak inputs z_j <= 2p (u32).
 // out_j = T + z_j + 2 z_{j+1}, with T the block sum: < 14p < 2^35.
+// External M4 blocks summed with ALU carry chains instead of FMA-pipe
+// IMAD.WIDE (which is half rate: IMAD.WIDE+IADD3 pairs 0.575 ms vs 0.288 ms
+// for IMAD+IADD3 in the probe). A/B [M] 479x2^20, with partial-round sums on
+// the ALU: 0 blocks 11.921 ms, 3 blocks 11.814 ms, 6 blocks 12.253 ms.
+static constexpr uint32_t alu_m4_blocks = 3;
+__device__ __forceinline__ void m4_block_alu(uint32_t* s, const uint32_t z0,
+                                             const uint32_t z1, const uint32_t z2,
+                                             const uint32_t z3) {
+    Carry t{z0, 0};
+    carry_add(t, z1);
+    carry_add(t, z2);
+    carry_add(t, z3);
+    const uint32_t z[4] = {z0, z1, z2, z3};
+#pragma unroll
+    for (uint32_t j = 0; j < 4; ++j) {
+        Carry o = t;
+        carry_add(o, z[j]);
+        carry_add(o, z[(j + 1) & 3]);
+        carry_add(o, z[(j + 1) & 3]);
+        s[j] = fold_carry(o);
+    }
+}
 __device__ __forceinline__ void m4_block(uint32_t* s, const uint32_t z0,
                                          const uint32_t z1, const uint32_t z2,
                                          const uint32_t z3) {
@@ -140,9 +177,14 @@ __device__ __forceinline__ void external(uint32_t* s) {
         column[j] = fold64(acc(acc(widen(s[j] + s[4 + j]), s[8 + j] + s[12 + j]),
                                s[16 + j] + s[20 + j]));
 #pragma unroll
-    for (uint32_t b = 0; b < 6; ++b)
-        m4_block(s + 4 * b, s[4 * b] + column[0], s[4 * b + 1] + column[1],
-                 s[4 * b + 2] + column[2], s[4 * b + 3] + column[3]);
+    for (uint32_t b = 0; b < 6; ++b) {
+        if (b < alu_m4_blocks)
+            m4_block_alu(s + 4 * b, s[4 * b] + column[0], s[4 * b + 1] + column[1],
+                         s[4 * b + 2] + column[2], s[4 * b + 3] + column[3]);
+        else
+            m4_block(s + 4 * b, s[4 * b] + column[0], s[4 * b + 1] + column[1],
+                     s[4 * b + 2] + column[2], s[4 * b + 3] + column[3]);
+    }
 }
 
 __device__ __forceinline__ void full_round(uint32_t* s, const uint32_t* rc) {
@@ -154,16 +196,18 @@ __device__ __forceinline__ void full_round(uint32_t* s, const uint32_t* rc) {
 // Internal layer: diag(p-2, 1, 2, ..., 2^22) + J.
 __device__ __forceinline__ void partial_round(uint32_t* s, uint32_t rc) {
     s[0] = wfifth(add_rc(s[0], rc));
-    // Twelve u32 pair sums (<= 2p each), then three IMAD.WIDE chains.
+    // Twelve u32 pair sums (<= 2p each; the total is <= 24p < 2^36).
     uint32_t pair[12];
 #pragma unroll
     for (uint32_t i = 0; i < 12; ++i) pair[i] = s[2 * i] + s[2 * i + 1];
-    uint64_t wide[3];
+    // Twelve pair sums into two ALU carry chains (IMAD.WIDE chains: 12.192
+    // ms vs 11.921 ms [M] at 479x2^20).
+    Carry wide[2] = {{pair[0], 0}, {pair[1], 0}};
 #pragma unroll
-    for (uint32_t i = 0; i < 3; ++i)
-        wide[i] = acc(acc(acc(widen(pair[4 * i]), pair[4 * i + 1]), pair[4 * i + 2]),
-                      pair[4 * i + 3]);
-    const uint32_t sum = fold64(wide[0] + wide[1] + wide[2]);
+    for (uint32_t i = 2; i < 12; ++i) carry_add(wide[i & 1], pair[i]);
+    carry_add(wide[0], wide[1].lo);
+    wide[0].hi += wide[1].hi;
+    const uint32_t sum = fold_carry(wide[0]);
     s[0] = wadd(sum, fold32(mad_lo(s[0], pipe_k[3], pipe_k[4])));  // sum + (2p - 2 s0)
 #pragma unroll
     for (uint32_t i = 1; i < 24; ++i) s[i] = add_rot31(sum, s[i], i - 1);
