@@ -665,8 +665,7 @@ __global__ __launch_bounds__(kDeepCombineThreads, STWO_RV64_DEEP_COMBINE_MIN_BLO
 // STWO_RV64_M8_DEEP_LEGACY=1 restores the pre-M8 deep_validate/deep_combine
 // kernels (A/B and parity only); any other value or unset selects the M8 ones.
 inline bool deep_legacy() {
-  const char *env = std::getenv("STWO_RV64_M8_DEEP_LEGACY");
-  return env && std::strcmp(env, "1") == 0;
+  return m8_env_is_one("STWO_RV64_M8_DEEP_LEGACY");
 }
 // Persistent grid for deep_combine_classes: the per-CTA class prologue is
 // paid once per resident CTA, not once per 256 rows.

@@ -1,8 +1,6 @@
 #include "custody.cuh"
 #include "deep_lazy.cuh"
 #include "om31.cuh"
-#include <cstdlib>
-#include <cstring>
 #include "samples.h"
 namespace stwo::cuda::rv64 {
 constexpr uint32_t sample_threads = 128, sample_tile = 1024, factor_stride = 28;
@@ -255,8 +253,12 @@ constexpr uint32_t sample_fast_threads = 256, sample_fast_slots = 4,
                    sample_basis_none = 0xffffffffu;
 static_assert(sample_fast_threads * sample_fast_slots == sample_tile,
               "tile basis covers one sample_first tile");
+// Tile index bits covered by the basis; the reduction resumes at factor
+// sample_tile_log (the initial "consumed" in stwo_rv64_sample_evaluate_on).
+constexpr uint32_t sample_tile_log = 10;
+static_assert(sample_tile == 1u << sample_tile_log, "tile basis bits");
 __device__ __forceinline__ uint32_t sample_basis_bits(uint32_t coefficient_log) {
-  return min(10u, coefficient_log);
+  return min(sample_tile_log, coefficient_log);
 }
 __global__ __launch_bounds__(512) void sample_basis(StwoRv64SampleEvaluation j,
                                                     uint32_t *basis) {
@@ -477,8 +479,7 @@ stwo_rv64_sample_evaluate_on(void *ctx, uint32_t lane,
   // The basis lives in scratch_b, so it needs a custody-checked bank of at
   // least one tile basis plus its group word; smaller launches (and
   // STWO_RV64_M8_SAMPLE_LEGACY=1) keep the per-sample tree kernel.
-  const char *legacy_env = std::getenv("STWO_RV64_M8_SAMPLE_LEGACY");
-  const bool legacy = legacy_env && std::strcmp(legacy_env, "1") == 0;
+  const bool legacy = m8_env_is_one("STWO_RV64_M8_SAMPLE_LEGACY");
   if (!legacy && scratch_words > sample_basis_words) {
     sample_basis<<<1, 512, 0, c.stream>>>(j, j.scratch_b);
     if (blocks >= sample_chunk_large_tiles)
@@ -492,7 +493,7 @@ stwo_rv64_sample_evaluate_on(void *ctx, uint32_t lane,
   } else {
     sample_first<<<dim3(blocks, j.count), 128, 0, c.stream>>>(j, blocks);
   }
-  uint32_t count = blocks, consumed = 10;
+  uint32_t count = blocks, consumed = sample_tile_log;
   uint32_t *in = j.scratch_a, *out = j.scratch_b;
   while (count > 1) {
     const uint32_t next = (count + 255) / 256;

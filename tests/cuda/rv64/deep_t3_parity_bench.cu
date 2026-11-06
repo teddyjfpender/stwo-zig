@@ -126,6 +126,7 @@ static void expect_same(const char *what, const std::vector<uint32_t> &a,
 struct CombineCase {
   uint32_t output_log = 14, groups = 68, shared = 20, max_eval_log = 14;
   uint32_t fault = 0;
+  bool all_shared = false; // every group uses point 0: a single class
 };
 static void combine_case(const CombineCase &cc, bool bench, int reps) {
   const uint32_t gc = cc.groups, n = 1u << cc.output_log;
@@ -142,7 +143,8 @@ static void combine_case(const CombineCase &cc, bool bench, int reps) {
     uint32_t log = cc.max_eval_log - g % span;
     if (g >= 4 && log + 2 > cc.max_eval_log && log > 4) log -= 2; // few full-height groups
     log = std::max(log, 2u);
-    const bool is_shared = g % 3 == 0 && g / 3 < cc.shared;
+    const bool is_shared =
+        cc.all_shared || (g % 3 == 0 && g / 3 < cc.shared);
     if (is_shared)
       std::copy(base.begin(), base.end(), points.begin() + g * 16);
     else
@@ -212,8 +214,9 @@ static void combine_case(const CombineCase &cc, bool bench, int reps) {
     stats[arm].push_back(down(j.valid, 2)[1]);
   }
   char name[96];
-  std::snprintf(name, sizeof name, "deep_combine[log=%u,g=%u,shared=%u,fault=%u]",
-                cc.output_log, gc, cc.shared, cc.fault);
+  std::snprintf(name, sizeof name,
+                "deep_combine[log=%u,g=%u,shared=%u,fault=%u%s]", cc.output_log,
+                gc, cc.shared, cc.fault, cc.all_shared ? ",one-class" : "");
   expect_same(name, outs[0], outs[1]);
   expect_same(name, stats[0], stats[1]);
   std::printf("CASE %s status=%u valid1=%u\n", name, stats[1][0], stats[1][1]);
@@ -446,6 +449,13 @@ int main(int argc, char **argv) {
     combine_case({12, 128, 40, 12, 0}, false, 0); // fast-path cap
     combine_case({12, 129, 40, 12, 0}, false, 0); // legacy above the cap
     combine_case({2, 3, 1, 2, 0}, false, 0);      // four rows
+    combine_case({2, 1, 0, 2, 0}, false, 0);      // one group, four rows
+    combine_case({12, 40, 0, 12, 0, true}, false, 0); // one class, 40 members
+    combine_case({12, 128, 0, 12, 0, true}, false, 0); // one class at the cap
+    // 2^18 rows = 1024 CTAs of 256: more than resident, so the persistent
+    // grid-stride loop runs several rows per thread in parity mode too.
+    combine_case({18, 68, 20, 18, 0}, false, 0);
+    combine_case({18, 68, 20, 18, 5}, false, 0);  // + non-canonical value
     for (uint32_t fault = 0; fault <= 13; ++fault)
       prepare_case(fault, 68, 60, false, 0);
     prepare_case(0, 1, 1, false, 0);
@@ -455,6 +465,8 @@ int main(int argc, char **argv) {
     sample_case(10, 1100, 5, 0, false, 0);  // one tile, basis path
     sample_case(3, 1500, 5, 0, false, 0);   // n < 1024 basis path
     sample_case(1, 1200, 3, 1, false, 0);   // n = 2, mixed groups
+    sample_case(2, 1100, 3, 6, false, 0);   // n = 4, basis from 2nd sample
+    sample_case(11, 1030, 4, 3, false, 0);  // two tiles + reduce, bad coeff
     sample_case(12, 3, 2, 0, false, 0);     // small scratch -> legacy kernel
     sample_case(17, 70, 20, 3, false, 0);
     sample_case(20, 70, 6, 1, false, 0);    // chunk-32 kernel, mixed groups

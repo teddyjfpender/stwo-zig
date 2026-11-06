@@ -1,6 +1,8 @@
 #ifndef STWO_CUDA_RV64_DEEP_LAZY_CUH
 #define STWO_CUDA_RV64_DEEP_LAZY_CUH
 #include "om31.cuh"
+#include <cstdlib>
+#include <cstring>
 // Lazy-reduction M31/QM31 helpers for the DEEP/OODS kernels (T3, M8).
 // Every helper returns the canonical representative, so results are
 // bit-identical to the reference q::/OM31 arithmetic for canonical inputs:
@@ -10,38 +12,21 @@
 // product (one 64-bit fold, one 32-bit fold, one conditional subtraction).
 namespace stwo::cuda::rv64::lazy {
 constexpr uint32_t P = q::kPrime;
-// STWO_RV64_DEEP_LAZY_FOLD=1 folds via 2^32 = 2 (mod P): x = 2 hi + lo, one
-// IMAD.WIDE on the FMA pipe instead of the 64-bit shift/mask/add ALU chain.
-// [M] A/B (deep_t3_parity_bench, 5090, 7 reps, median): deep_combine 2^22 x
-// 68 groups 4.46 ms (ALU fold, 0) vs 4.68 ms (FMA fold, 1); sample 2^22 x 72
-// 0.912 vs 0.919 ms. The products already load the FMA pipe; keep 0.
-#ifndef STWO_RV64_DEEP_LAZY_FOLD
-#define STWO_RV64_DEEP_LAZY_FOLD 0
-#endif
-__device__ __forceinline__ uint32_t fold_small(uint64_t s) {
-  // s < 2^36: (s & P) + (s >> 31) < P + 33; min() is the conditional subtract.
-  const uint32_t u = (uint32_t(s) & P) + uint32_t(s >> 31);
-  return min(u, u - P);
-}
+// Fold via 2^31 = 1 (mod P) on the ALU pipe. [M] A/B (deep_t3_parity_bench,
+// 5090, 7 reps, median) against folding via 2^32 = 2 (mod P) with one
+// IMAD.WIDE on the FMA pipe: deep_combine 2^22 x 68 groups 4.46 ms (ALU) vs
+// 4.68 ms (FMA); sample 2^22 x 72 0.912 vs 0.919 ms. The products already
+// load the FMA pipe, so only the ALU fold is kept.
 __device__ __forceinline__ uint32_t reduce64(uint64_t x) {
-#if STWO_RV64_DEEP_LAZY_FOLD
-  return fold_small(uint64_t(uint32_t(x >> 32)) * 2u + uint32_t(x)); // < 3 2^32
-#else
   const uint64_t t = (x & P) + (x >> 31);                 // < 2^31 + 2^33
   const uint32_t u = uint32_t(t & P) + uint32_t(t >> 31); // < P + 9
   return u >= P ? u - P : u;
-#endif
 }
 // Sum of two values below 2^64 each, reduced.
 __device__ __forceinline__ uint32_t reduce64x2(uint64_t a, uint64_t b) {
-#if STWO_RV64_DEEP_LAZY_FOLD
-  return fold_small(uint64_t(uint32_t(a >> 32)) * 2u + uint32_t(a) +
-                    uint64_t(uint32_t(b >> 32)) * 2u + uint32_t(b)); // < 6 2^32
-#else
   const uint64_t t = (a & P) + (a >> 31) + (b & P) + (b >> 31); // < 2^35
   const uint32_t u = uint32_t(t & P) + uint32_t(t >> 31);       // < P + 17
   return u >= P ? u - P : u;
-#endif
 }
 __device__ __forceinline__ uint64_t mac(uint64_t acc, uint32_t a, uint32_t b) {
   return acc + uint64_t(a) * b;
@@ -92,4 +77,11 @@ __device__ __forceinline__ q::QM31 qmul_add(q::QM31 x, const QB &y, q::QM31 z,
           {reduce64x2(s.s2, t.s2), reduce64x2(s.s3, t.s3)}};
 }
 } // namespace stwo::cuda::rv64::lazy
+namespace stwo::cuda::rv64 {
+// Host-side kill switch for the M8 T3 kernels: true iff the variable is "1".
+inline bool m8_env_is_one(const char *name) {
+  const char *value = std::getenv(name);
+  return value && std::strcmp(value, "1") == 0;
+}
+} // namespace stwo::cuda::rv64
 #endif
