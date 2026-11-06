@@ -243,9 +243,15 @@ pub fn main() !void {
     var prover = Factory.Prover.init(a, &shared, worker);
     defer prover.deinit();
     var whole_failures: usize = 0;
-    for (0..runs) |run| {
+    // Production folds/leaves use a device-precommitted FIXED authority (no host
+    // FIXED tree): same identity, same proof. The last run uses one.
+    var device_key = try Outer.prove.Authority.initForDeviceProver(a, &pp, key.fixedRoot());
+    defer device_key.deinit();
+    if (!std.mem.eql(u8, &device_key.identity, &key.identity) or device_key.fixed != null) return error.DeviceFixedAuthorityOracleMismatch;
+    for (0..runs + 1) |run| {
+        const node_key = if (run == runs) &device_key else &key;
         var timer = try std.time.Timer.start();
-        var produced = prover.prove(a, .{ .key = &key, .graph = &graph, .expected = &expected, .ordinal = 0, .library = &libs.base }) catch |err| {
+        var produced = prover.prove(a, .{ .key = node_key, .graph = &graph, .expected = &expected, .ordinal = 0, .library = &libs.base }) catch |err| {
             std.debug.print("OUTER_JOB_WHOLE {{\"run\":{d},\"error\":\"{s}\"}}\n", .{ run, @errorName(err) });
             return err;
         };
@@ -258,7 +264,7 @@ pub fn main() !void {
         var proof_digest: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash(encoded, &proof_digest, .{});
         const r = prover.last;
-        std.debug.print("OUTER_JOB_WHOLE {{\"run\":{d},\"graph\":\"{s}\",\"proof_bytes_identical\":{},\"proof_bytes\":{d},\"proof_sha256\":\"{s}\",\"host_api_launches\":{d},\"graph_kernel_nodes\":{d},\"host_waits\":{d},\"d2h_bytes\":{d},\"wait_ns\":{d},\"enqueue_ns\":{d},\"prestage_ns\":{d},\"job_ns\":{d},\"assemble_ns\":{d},\"wall_ns\":{d},\"arena_peak_words\":{d}}}\n", .{ run, @tagName(r.outcome), identical, encoded.len, std.fmt.bytesToHex(proof_digest, .lower), r.launches, r.kernel_nodes, r.receipt.host_waits, r.receipt.d2h_bytes, r.receipt.wait_ns, r.receipt.enqueue_ns, r.prestage_ns, r.job_ns, r.assemble_ns, wall_ns, r.receipt.arena_peak_words });
+        std.debug.print("OUTER_JOB_WHOLE {{\"run\":{d},\"device_fixed_authority\":{},\"graph\":\"{s}\",\"proof_bytes_identical\":{},\"proof_bytes\":{d},\"proof_sha256\":\"{s}\",\"host_api_launches\":{d},\"graph_kernel_nodes\":{d},\"host_waits\":{d},\"d2h_bytes\":{d},\"wait_ns\":{d},\"enqueue_ns\":{d},\"prestage_ns\":{d},\"job_ns\":{d},\"assemble_ns\":{d},\"wall_ns\":{d},\"arena_peak_words\":{d}}}\n", .{ run, run == runs, @tagName(r.outcome), identical, encoded.len, std.fmt.bytesToHex(proof_digest, .lower), r.launches, r.kernel_nodes, r.receipt.host_waits, r.receipt.d2h_bytes, r.receipt.wait_ns, r.receipt.enqueue_ns, r.prestage_ns, r.job_ns, r.assemble_ns, wall_ns, r.receipt.arena_peak_words });
     }
     var legacy_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(legacy_bytes, &legacy_digest, .{});

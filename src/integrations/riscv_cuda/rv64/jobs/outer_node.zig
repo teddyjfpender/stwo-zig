@@ -70,6 +70,8 @@ pub const Tail = struct {
     enqueue: *const fn (*anyopaque, *K.Device, *const TailInputs) anyerror!void,
 };
 
+pub const FixedCommit = struct { evaluations: [*]const u32, coefficients: [*]u32 };
+
 pub const Mode = enum {
     /// Whole node through PCS. Requires a tail.
     full,
@@ -85,6 +87,9 @@ pub const Node = struct {
     mode: Mode,
     tail: ?Tail = null,
     long: ?Long = null,
+    /// First node of a class on this worker: commit FIXED from the staged raw
+    /// evaluations into the persistent coefficient region (root -> section).
+    fixed: ?FixedCommit = null,
     /// Snapshot hook after each device channel step (parity mode only).
     after_step: ?*const fn (*anyopaque, u32) anyerror!void = null,
     after_step_context: ?*anyopaque = null,
@@ -139,6 +144,20 @@ pub const Node = struct {
         const parameters = long.parameters;
         const powers = long.powers;
         try device.clear(self.section, S.words);
+        if (self.fixed) |f| {
+            const fp = &(staged.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing);
+            const tw = try staged.statics.table(fp.eval_log);
+            const tree = try device.alloc(@intCast(fp.tree_words + fp.prefix_words));
+            defer device.free(tree);
+            try TC.enqueue(device, fp, .{ .evaluations = f.evaluations, .coefficients = f.coefficients, .tree = tree, .statics = .{
+                .sorted_logs = self.at(img.fixed_logs),
+                .twiddles = self.at(img.twiddles[fp.eval_log]),
+                .twiddle_words = @intCast(tw.twiddles.len),
+                .itwiddles = self.at(img.itwiddles[fp.eval_log]),
+                .itwiddle_words = @intCast(tw.itwiddles.len),
+            } });
+            try device.copy(self.section + S.fixed_root, TC.rootPointer(fp, tree), 8);
+        }
 
         // 1. MAIN assignment (values above the MAIN evaluation image).
         const main_eval = try device.alloc(@intCast(p.main.coefficient_words));
