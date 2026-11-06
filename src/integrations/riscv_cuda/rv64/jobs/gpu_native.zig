@@ -28,6 +28,12 @@ const std = @import("std");
 const api = @import("api.zig");
 
 pub const contract_version: u32 = 1;
+// Contract additions (driver, M8-INTERFACES "m8-gpu-driver"), all defaulted so
+// existing initializers compile unchanged:
+//   ClassEntry.main_resident_words / arena_peak_words / claims_per_segment /
+//   cost_us  (the driver plans placement, the memory plan and the exchange
+//   from class constants); RequestContext.main_resident / segment_device /
+//   generation (the plan's per-segment MAIN views; where each segment runs).
 pub const slab_magic: u32 = 0x4e475652; // "RVGN" little-endian
 
 // ---------------------------------------------------------------------------
@@ -397,6 +403,15 @@ pub const ClassEntry = struct {
     extra_checks: []const Check = &.{},
     /// Captured whole-job CUDA graph executable per GPU (opaque; null = direct enqueue).
     graph: [max_devices]?*anyopaque = @splat(null),
+    /// Native segment classes: MAIN words kept resident witness -> PCS (the
+    /// driver carves them from the main_resident region; 0 = none).
+    main_resident_words: usize = 0,
+    /// Measured arena peak of one job of this class (plan.zig sweep).
+    arena_peak_words: usize = 0,
+    /// Native segment classes: secure-felt claim blocks this segment publishes.
+    claims_per_segment: u32 = 0,
+    /// Estimated device time of one job of this class (placement weight only).
+    cost_us: u64 = 1,
 };
 
 pub const max_devices = 4;
@@ -590,6 +605,13 @@ pub const RequestContext = struct {
     classes: *ClassCache,
     /// Device segment buffers of the request slab, indexed by device.
     segments: []const api.DeviceBuffer,
+    /// Per native segment: its MAIN view inside its GPU's main_resident
+    /// region (resident witness -> PCS; never allocated per request).
+    main_resident: []const api.DeviceBuffer = &.{},
+    /// Per native segment: the GPU its Stage1 and Stage2 run on.
+    segment_device: []const u32 = &.{},
+    /// Request generation (1-based, unique per driver; peer-slot protocol).
+    generation: u64 = 0,
 };
 
 /// Stream native implements this (jobs/native_device.zig).
