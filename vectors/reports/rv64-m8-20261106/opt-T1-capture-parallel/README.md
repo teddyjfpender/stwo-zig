@@ -51,7 +51,15 @@ aborted with signal 6. The **untouched base tree aborts identically** (2/2 passe
 | 24628607 (7) | 1.90 (1.84, 1.90, 1.92) | 1.93 | **1.83** (1.83, 1.73, 1.88) | −0.07 s (noise-level) |
 | 26235156 (5) | 1.62 (1.62, 1.70, 1.60) | 1.60 | 1.64 (1.56, 1.64, 1.70) | 0 |
 
-These are 3-rep medians from `ab3.jsonl`. With the local ledger the serial ledger on 26235159 drops from 2.7–3.2 s to 0.57–0.79 s
+These are 3-rep medians from `ab3.jsonl`.
+
+Max RSS of the bench process (`ru_maxrss`) [M]:
+- 26235159: 23.8–23.9 GiB at inflight 4; 26.8–27.7 GiB at inflight 16, with or without the local ledger.
+- 24628607 and 26235156: 6.0–6.4 and 3.9–4.1 GiB at every setting.
+
+The per-batch tape heap was not split out separately.
+
+With the local ledger the serial ledger on 26235159 drops from 2.7–3.2 s to 0.57–0.79 s
 (phase 2: merge 0.26 s over 4.71 M first-touched words, plus patch 0.32 s). On 24628607 it drops from 0.37–0.45 s to 0.06–0.09 s.
 
 Sweeps on 26235159 (`sweep1.jsonl`, `sw5.jsonl`, `sw6.jsonl`):
