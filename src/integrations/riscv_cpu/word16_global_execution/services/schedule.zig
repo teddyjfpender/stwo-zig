@@ -29,6 +29,13 @@ pub const Policy = struct {
     /// dispatch heaviest estimate first (stable by ordinal) so the long poles
     /// (keccak truth, first CPU segment) start first. Never changes inputs.
     heaviest_first: bool = false,
+    /// Operational only (M8 native-enqueue, STWO_RV64_M8_NATIVE_DEVICE_ADMISSION).
+    /// With device_affinity N > 1, memory_cap_bytes bounds each device queue's
+    /// in-flight estimates separately instead of their sum, so one device's
+    /// heavy pair cannot hold the other device's lanes behind a shared cap.
+    /// Total admitted estimates are then bounded by N * memory_cap_bytes.
+    /// Ignored without affinity. Never changes inputs or proof bytes.
+    device_admission: bool = false,
     /// Accept both fixed override arrays and the resolved active-lane arrays
     /// emitted by jsonStringify. Parsing copies into the owned fixed array;
     /// no parsed-slice lifetime escapes the configuration object.
@@ -41,10 +48,11 @@ pub const Policy = struct {
             memory_cap_bytes: u64 = defaults.memory_cap_bytes,
             device_affinity: u8 = defaults.device_affinity,
             heaviest_first: bool = defaults.heaviest_first,
+            device_admission: bool = defaults.device_admission,
         };
         const input = try std.json.innerParse(Input, a, source, options);
         if (input.lane_workers.len > MAX_LANES) return error.LengthMismatch;
-        var result = Policy{ .lanes = input.lanes, .workers_per_lane = input.workers_per_lane, .memory_cap_bytes = input.memory_cap_bytes, .device_affinity = input.device_affinity, .heaviest_first = input.heaviest_first };
+        var result = Policy{ .lanes = input.lanes, .workers_per_lane = input.workers_per_lane, .memory_cap_bytes = input.memory_cap_bytes, .device_affinity = input.device_affinity, .heaviest_first = input.heaviest_first, .device_admission = input.device_admission };
         @memcpy(result.lane_workers[0..input.lane_workers.len], input.lane_workers);
         // Semantic admission stays at Policy.validate, as for fixed-array input.
         return result;
@@ -74,6 +82,10 @@ pub const Policy = struct {
             try writer.objectField("heaviest_first");
             try writer.write(true);
         }
+        if (self.device_admission) {
+            try writer.objectField("device_admission");
+            try writer.write(true);
+        }
         try writer.endObject();
     }
     pub fn validate(self: Policy) !void {
@@ -94,6 +106,11 @@ pub const Policy = struct {
     pub fn affinity(self: Policy) usize {
         return if (self.device_affinity > 1) self.device_affinity else 1;
     }
+    /// Number of independent admission budgets: one per device queue when
+    /// device_admission is selected with affinity, otherwise one shared.
+    pub fn admissionPools(self: Policy) usize {
+        return if (self.device_admission) self.affinity() else 1;
+    }
 };
 /// Optional per-index operational trace; never consumed by proof code.
 pub const Trace = struct {
@@ -104,7 +121,8 @@ pub const Trace = struct {
     claimed_ns: u64 = 0,
     started_ns: u64 = 0,
     finished_ns: u64 = 0,
-    /// Estimated in-flight bytes including this index at admission.
+    /// Estimated in-flight bytes including this index at admission, summed
+    /// over this index's admission pool (all lanes unless device_admission).
     in_flight_bytes_at_start: u64 = 0,
 };
 pub const RunOptions = struct {
@@ -193,7 +211,8 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
         lane_errors: [MAX_LANES]?anyerror = @splat(null),
         mutex: std.Thread.Mutex = .{},
         admitted: std.Thread.Condition = .{},
-        in_flight: u64 = 0,
+        /// Summed in-flight estimates per admission pool (index 0 when shared).
+        in_flight: [MAX_LANES]u64 = @splat(0),
         fn fail(self: *@This()) void {
             self.mutex.lock();
             defer self.mutex.unlock();
@@ -201,22 +220,22 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
             self.admitted.broadcast();
         }
         /// Blocks until the estimate fits beside every in-flight index.
-        fn admit(self: *@This(), estimate: u64) ?u64 {
+        fn admit(self: *@This(), pool: usize, estimate: u64) ?u64 {
             self.mutex.lock();
             defer self.mutex.unlock();
             const cap = self.policy.memory_cap_bytes;
-            while (cap != 0 and self.in_flight != 0 and self.in_flight +| estimate > cap) {
+            while (cap != 0 and self.in_flight[pool] != 0 and self.in_flight[pool] +| estimate > cap) {
                 if (self.stop.load(.acquire)) return null;
                 self.admitted.wait(&self.mutex);
             }
             if (self.stop.load(.acquire)) return null;
-            self.in_flight += estimate;
-            return self.in_flight;
+            self.in_flight[pool] += estimate;
+            return self.in_flight[pool];
         }
-        fn release(self: *@This(), estimate: u64) void {
+        fn release(self: *@This(), pool: usize, estimate: u64) void {
             self.mutex.lock();
             defer self.mutex.unlock();
-            self.in_flight -= estimate;
+            self.in_flight[pool] -= estimate;
             self.admitted.broadcast();
         }
         fn lane(self: *@This(), ordinal: usize) void {
@@ -238,16 +257,17 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
             const previous = Usage.bindLane(&threads);
             defer _ = Usage.bindLane(previous);
             const queue = ordinal % self.policy.affinity();
+            const admission_pool = queue % self.policy.admissionPools();
             while (!self.stop.load(.acquire)) {
                 const position = self.next[queue].fetchAdd(1, .monotonic);
                 if (position >= self.queues[queue].len) return;
                 const index = self.queues[queue][position];
                 const claimed = elapsed(self.origin);
                 const estimate = if (self.options.estimates.len != 0) self.options.estimates[index] else 0;
-                const in_flight = self.admit(estimate) orelse return;
+                const in_flight = self.admit(admission_pool, estimate) orelse return;
                 const started = elapsed(self.origin);
                 const result = execute(self.context, index);
-                self.release(estimate);
+                self.release(admission_pool, estimate);
                 if (self.options.trace.len != 0) self.options.trace[index] = .{ .lane = @intCast(ordinal), .workers = self.policy.workers(ordinal), .estimate_bytes = estimate, .claimed_ns = claimed, .started_ns = started, .finished_ns = elapsed(self.origin), .in_flight_bytes_at_start = in_flight };
                 result catch |err| {
                     self.errors[index] = err;

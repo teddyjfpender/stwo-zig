@@ -531,7 +531,8 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .inventory_admitted_utc_ns = inventory_admitted_utc_ns, .fixed = fixed, .config = config, .options = options, .workers = workers, .stages = stages, .results = results, .cpu_tree_policies = estimates.cpu_policies };
     const stage1_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage1 else &.{}, .trace = options.stage1_trace };
     const stage2_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage2 else &.{}, .order = options.stage2_order, .trace = options.stage2_trace };
-    try Schedule.runWithOptions(Run, a, &run, count, options.schedule, stage1_options, Run.stageOne);
+    const schedule = nativeSchedule(options.schedule);
+    try Schedule.runWithOptions(Run, a, &run, count, schedule, stage1_options, Run.stageOne);
     // The complete ordered set of sealed MAINs and local children is joined once.
     var pending = try Manifest.verifyAndSeal(a, inventory.execution_identity, inventory.workers, stages);
     defer pending.deinit(a);
@@ -541,7 +542,7 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     // Runs before stage_bytes, results and requests are freed (reverse order).
     errdefer if (options.stream) |stream| stream.abort(stream.context);
     run.pending = &pending;
-    try Schedule.runWithOptions(Run, a, &run, count, options.schedule, stage2_options, Run.stageTwo);
+    try Schedule.runWithOptions(Run, a, &run, count, schedule, stage2_options, Run.stageTwo);
     const cpus = try a.alloc(CPU.CpuEncoded, setups.len);
     errdefer a.free(cpus);
     const encoded_truths = try a.alloc(Truth.TruthEncoded, truths.len);
@@ -551,6 +552,18 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     for (encoded_truths, results[setups.len..]) |*out, result| out.* = result.?.truth;
     @memset(results, null);
     return .{ .requests = requests, .stage_one_bytes = stage_bytes, .cpus = cpus, .truths = encoded_truths };
+}
+/// STWO_RV64_M8_NATIVE_DEVICE_ADMISSION=1 (default off) admits each device
+/// queue against memory_cap_bytes separately (Schedule.Policy.device_admission).
+/// Measured on 24628607 (vectors/reports/rv64-m8-20261106/native-enqueue/):
+/// the shared cap held device-1 lane 3 for 1.47 s of stage 2 while device 0
+/// had finished. Operational only; every ordinal runs once with the same inputs.
+fn nativeSchedule(policy: Schedule.Policy) Schedule.Policy {
+    var result = policy;
+    if (std.posix.getenv("STWO_RV64_M8_NATIVE_DEVICE_ADMISSION")) |flag| {
+        if (std.mem.eql(u8, flag, "1")) result.device_admission = true;
+    }
+    return result;
 }
 /// Observation clock only; zero when no epoch was supplied or the clock fails.
 fn sinceEpoch(epoch: ?std.time.Instant) u64 {

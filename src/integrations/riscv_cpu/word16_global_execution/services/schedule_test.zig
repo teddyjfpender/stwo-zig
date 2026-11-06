@@ -185,6 +185,55 @@ test "Memory cap bounds summed in-flight estimates and admits an oversized index
     for (trace, 0..) |t, i| if (i != 8) try std.testing.expect(t.in_flight_bytes_at_start <= 13);
     try std.testing.expectError(error.MissingServiceMemoryEstimates, Schedule.runWithOptions(Wide, a, &wide, 12, .{ .lanes = 2, .memory_cap_bytes = 1 }, .{}, Wide.execute));
 }
+const Rendezvous = struct {
+    arrivals: std.atomic.Value(u32) = .init(0),
+    peak: std.atomic.Value(u32) = .init(0),
+    done: [4]std.atomic.Value(u32) = @splat(.init(0)),
+    want: u32,
+    /// Waits (bounded) for `want` concurrent arrivals; never deadlocks a
+    /// schedule that admits fewer, it only records the observed peak.
+    fn execute(self: *Rendezvous, index: usize) !void {
+        const arrived = self.arrivals.fetchAdd(1, .acq_rel) + 1;
+        _ = self.peak.fetchMax(arrived, .acq_rel);
+        var timer = try std.time.Timer.start();
+        while (self.arrivals.load(.acquire) < self.want and timer.read() < 2 * std.time.ns_per_s) std.Thread.yield() catch {};
+        _ = self.peak.fetchMax(self.arrivals.load(.acquire), .acq_rel);
+        if (self.done[index].fetchAdd(1, .acq_rel) != 0) return error.DuplicateWorkerOrdinal;
+    }
+};
+test "Device admission bounds each device queue by the cap so both devices fill their lanes" {
+    const estimates = [_]u64{ 6, 6, 6, 6 };
+    var policy = Schedule.Policy{ .lanes = 4, .workers_per_lane = 1, .memory_cap_bytes = 12, .device_affinity = 2, .device_admission = true };
+    var trace: [4]Schedule.Trace = undefined;
+    var meet = Rendezvous{ .want = 4 };
+    try Schedule.runWithOptions(Rendezvous, a, &meet, 4, policy, .{ .estimates = &estimates, .trace = &trace }, Rendezvous.execute);
+    for (&meet.done) |*n| try std.testing.expectEqual(@as(u32, 1), n.load(.acquire));
+    // Both devices hold two indices each: four in flight, 24 > cap in total.
+    try std.testing.expectEqual(@as(u32, 4), meet.peak.load(.acquire));
+    for (trace, 0..) |t, i| {
+        try std.testing.expectEqual(i % 2, t.lane % 2);
+        try std.testing.expect(t.in_flight_bytes_at_start <= 12);
+    }
+    // The shared cap (flag off) still bounds the global sum.
+    policy.device_admission = false;
+    var shared = Wide{ .estimates = &estimates };
+    try Schedule.runWithOptions(Wide, a, &shared, 4, policy, .{ .estimates = &estimates }, Wide.execute);
+    try std.testing.expect(shared.peak_bytes.load(.acquire) <= 12);
+    // Without affinity the flag is inert: one shared pool.
+    try std.testing.expectEqual(@as(usize, 1), (Schedule.Policy{ .lanes = 2, .device_admission = true }).admissionPools());
+    // JSON: absent field parses off; selected field round-trips; off stays absent.
+    policy.device_admission = true;
+    const text = try std.json.Stringify.valueAlloc(a, policy, .{});
+    defer a.free(text);
+    try std.testing.expect(std.mem.indexOf(u8, text, "\"device_admission\":true") != null);
+    const parsed = try std.json.parseFromSlice(Schedule.Policy, a, text, .{});
+    defer parsed.deinit();
+    try std.testing.expect(parsed.value.device_admission);
+    policy.device_admission = false;
+    const off = try std.json.Stringify.valueAlloc(a, policy, .{});
+    defer a.free(off);
+    try std.testing.expect(std.mem.indexOf(u8, off, "device_admission") == null);
+}
 test "Four memory-capped lanes preserve all proof bytes claims manifest and fresh verification" {
     var expected = try F.Case.init(a);
     defer expected.deinit();
