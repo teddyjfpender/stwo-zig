@@ -89,6 +89,10 @@ pub const Stats = struct {
     /// capture, seal, event prefault, phase-1 ledger) durations.
     job_admit_ns: u64 = 0,
     job_capture_ns: u64 = 0,
+    /// Split of `job_capture_ns`: narrow capture, seal, LS event prefault.
+    job_narrow_ns: u64 = 0,
+    job_seal_ns: u64 = 0,
+    job_events_ns: u64 = 0,
 };
 pub const MAX_READY_TIMES = 32;
 /// Records each segment's ready instant into `Stats`, then forwards to the
@@ -130,6 +134,9 @@ const Job = struct {
     segments: ?*Segments.Segments = null,
     local: ?Collector.Local = null,
     local_ns: u64 = 0,
+    narrow_ns: u64 = 0,
+    seal_ns: u64 = 0,
+    events_ns: u64 = 0,
     // Outputs.
     packet: ?Packet.Packet = null,
     native: ?*Native = null,
@@ -159,6 +166,7 @@ const Job = struct {
             self.err = err;
             return;
         };
+        if (timer) |*t| self.narrow_ns = t.read();
         // Seal alongside the parallel capture work. Ordered publication only
         // reads this cached seal, so hashing cannot serialize every segment's
         // ledger or add a second scan before early MAIN starts.
@@ -166,8 +174,10 @@ const Job = struct {
             self.err = err;
             return;
         };
+        if (timer) |*t| self.seal_ns = t.read() - self.narrow_ns;
         // Best effort: on failure the ordered ledger allocates as before.
         self.events = @import("../services/collector.zig").prepareEvents(self.allocator, self.native.?) catch null;
+        if (timer) |*t| self.events_ns = t.read() - self.narrow_ns - self.seal_ns;
         if (self.start) |cp| {
             // Phase 1 of the two-phase ledger; on any failure the ordered
             // owner runs the serial ledger for this segment instead.
@@ -284,6 +294,9 @@ const Consumer = struct {
     local_ns: u64 = 0,
     admit_ns: u64 = 0,
     capture_ns: u64 = 0,
+    narrow_ns: u64 = 0,
+    seal_ns: u64 = 0,
+    events_ns: u64 = 0,
     fn run(self: *Consumer) void {
         while (self.runOne()) {}
     }
@@ -295,6 +308,9 @@ const Consumer = struct {
         if (timer) |*t| self.join_wait_ns += t.read();
         self.admit_ns += job.admit_ns;
         self.capture_ns += job.capture_ns;
+        self.narrow_ns += job.narrow_ns;
+        self.seal_ns += job.seal_ns;
+        self.events_ns += job.events_ns;
         if (job.index == 0) {
             self.first_admit_ns = job.admit_ns;
             self.first_capture_ns = job.capture_ns;
@@ -611,6 +627,9 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
     stats.local_ledgers = consumer.local_ledgers;
     stats.job_admit_ns = consumer.admit_ns;
     stats.job_capture_ns = consumer.capture_ns;
+    stats.job_narrow_ns = consumer.narrow_ns;
+    stats.job_seal_ns = consumer.seal_ns;
+    stats.job_events_ns = consumer.events_ns;
     stats.local_ledger_ns = consumer.local_ns;
     stats.local_fallbacks = Collector.local_stats.fallbacks - stats_before.fallbacks;
     stats.local_touched = Collector.local_stats.touched - stats_before.touched;
