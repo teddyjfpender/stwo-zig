@@ -663,16 +663,18 @@ pub const Section = struct {
         var main_root: [8]u32 = undefined;
         @memcpy(&main_root, try Slab.read(view, .gkr_section, f.mainRoot()));
         const roots = try a.dupe(u32, try Slab.read(view, .gkr_section, f.roots()));
-        errdefer a.free(roots);
+        // Until `out` owns them, partial copies are released here (exactly once).
+        var owned = false;
+        errdefer if (!owned) a.free(roots);
         const layers = try a.alloc(Results.Layer, p.traversal.layers);
         var made: usize = 0;
-        errdefer {
+        errdefer if (!owned) {
             for (layers[0..made]) |l| {
                 a.free(l.records);
                 a.free(l.masks);
             }
             a.free(layers);
-        }
+        };
         for (layers, 0..) |*layer, depth| {
             const records = try a.dupe(u32, try Slab.read(view, .gkr_section, f.records(@intCast(depth))));
             const masks = a.dupe(u32, try Slab.read(view, .gkr_section, f.masks(@intCast(depth)))) catch |err| {
@@ -683,6 +685,7 @@ pub const Section = struct {
             made += 1;
         }
         var out = Section{ .a = a, .status = status, .header = header, .snapshot = snapshot, .main_root = main_root, .roots = roots, .layers = layers };
+        owned = true;
         errdefer out.deinit();
         try out.verify(gkr);
         return out;

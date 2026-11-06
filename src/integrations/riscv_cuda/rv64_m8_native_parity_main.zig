@@ -410,7 +410,7 @@ const GlobalParityJob = struct {
         const p = self.plan;
         const staged = p.stagedWords(self.fixed_host.len != 0) + 64;
         const mirrors = (self.fixed_device.len + self.main.len) * p.rows + 128;
-        return .{ .device_words = staged + p.enqueueWords() + 2 * std.mem.alignForward(usize, p.outputWords(), 64) + mirrors + 256, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = p.parameters.len + p.fixed_count * p.rows + 64 };
+        return .{ .device_words = staged + p.enqueueWords() + 2 * std.mem.alignForward(usize, p.outputWords(), 64) + mirrors + 256, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = p.pinnedWords(self.fixed_host.len != 0) + 64 };
     }
     pub fn stage(self: *GlobalParityJob, s: *api.Stager) !void {
         try self.global.stage(self.a, s, self.fixed_host);

@@ -165,6 +165,11 @@ pub const Plan = struct {
         const g = @import("worker.zig").Arena.granule;
         return std.mem.alignForward(usize, (self.fixed_count + self.main_count) * self.rows, g) + std.mem.alignForward(usize, self.pairs * 8 * self.rows, g) + std.mem.alignForward(usize, self.scan_words + self.claimWords() + 1, g);
     }
+    /// Pinned words of phase 1: parameters, the forward twiddle tower (when
+    /// fresh) and the host FIXED columns (when host-resident and not warm).
+    pub fn pinnedWords(self: *const Plan, host_fixed: bool) usize {
+        return self.parameters.len + self.rows + if (host_fixed) self.fixed_count * self.rows else 0;
+    }
     pub fn stagedWords(self: *const Plan, host_fixed: bool) usize {
         const g = @import("worker.zig").Arena.granule;
         return std.mem.alignForward(usize, self.parameters.len, g) + if (host_fixed) std.mem.alignForward(usize, self.fixed_count * self.rows, g) else 0;
