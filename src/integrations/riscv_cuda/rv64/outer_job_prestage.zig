@@ -574,12 +574,23 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
         h.update(&prepared.identity);
         class_key = h.finalResult();
     }
+    var graph_key: [32]u8 = undefined;
+    {
+        var h = std.crypto.hash.sha2.Sha256.init(.{});
+        h.update("rv64/m8/outer-job/graph-topology/v1\x00");
+        h.update(std.mem.sliceAsBytes(&key.logs.toArray()));
+        h.update(std.mem.sliceAsBytes(&key.fixed_logs));
+        for (owner.runs) |run| h.update(std.mem.asBytes(&[_]u32{ @intFromEnum(run.kind), run.first_task, run.task_count, run.first_level, run.level_count }));
+        h.update(std.mem.asBytes(&[_]u64{ prepared.plan.level_ends.len, prepared.tasks.len, prepared.seeds.len, prepared.indices.len, prepared.count, @intFromBool(sample_tape != null), @intFromBool(prepared.blake_sample_outputs != null), @intFromBool(input.composition) }));
+        graph_key = h.finalResult();
+    }
     owner.staged = .{
         .assignment = assignment,
         .statics = &owner.statics.public,
         .checkpoint = try hostCheckpoint(a, key, input.expected),
         .expected = owner.expected,
         .class_key = class_key,
+        .graph_key = graph_key,
         .ordinal = input.ordinal,
         .image = St.Staged.layout(&assignment, &owner.statics.public),
         .owner = owner,
