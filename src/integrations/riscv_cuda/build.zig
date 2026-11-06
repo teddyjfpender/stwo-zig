@@ -70,6 +70,9 @@ pub fn build(b: *std.Build) void {
     // directory so the sync lint can read the job sources.
     const jobs_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_test_root.zig"), .target = target, .optimize = optimize });
     jobs_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    // native-job: rv64/jobs/native_pcs.zig reuses the legacy PCS framing/decoder (engine + device_pcs types).
+    jobs_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    jobs_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
     const jobs_tests = b.addTest(.{ .root_module = jobs_root });
     const jobs_run = b.addRunArtifact(jobs_tests);
     jobs_run.setCwd(b.path("."));
