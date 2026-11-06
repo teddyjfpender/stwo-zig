@@ -71,9 +71,11 @@ pub const Kernels = struct {
     mixed_seeded: ?MixedSeeded = null,
     mixed_compact: ?MixedCompact = null,
     layer: ?Layer = null,
-    /// Compact eager state banks (8 + pending words per row instead of 24):
-    /// only with STWO_RV64_COMPACT_EAGER_STATE=1 and the image capability,
-    /// exactly as the legacy trace_commit.zig selects it.
+    /// Compact eager state banks (8 + pending words per row instead of 24)
+    /// with STWO_RV64_COMPACT_EAGER_STATE=1 (same value parse as legacy
+    /// pcs_native.allocationOptions: exactly "1" requests it). Like legacy
+    /// (pcs_native.Context.init / trace_commit.zig), a request the image
+    /// cannot honour fails Kernels.load instead of silently using 24-word banks.
     compact_eager: bool = false,
 
     fn sym(comptime T: type, lib: *std.DynLib, name: [:0]const u8) !T {
@@ -111,18 +113,23 @@ pub const Kernels = struct {
             .mixed_seeded = base.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_eager_on") orelse base.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_on"),
             .mixed_compact = base.lookup(MixedCompact, "stwo_blake2s_mixed_seeded_eager_compact_on"),
             .layer = base.lookup(Layer, "stwo_blake2s_layer_on"),
-            .compact_eager = compactEager(base),
+            .compact_eager = try compactEager(base),
         };
     }
 };
 
-fn compactEager(base: *std.DynLib) bool {
+fn compactEager(base: *std.DynLib) !bool {
     const v = std.posix.getenv("STWO_RV64_COMPACT_EAGER_STATE") orelse return false;
     if (!std.mem.eql(u8, v, "1")) return false;
     const Capability = *const fn () callconv(.c) c_int;
-    const capability = base.lookup(Capability, "stwo_rv64_compact_eager_state_capability") orelse return false;
-    return capability() == 1 and base.lookup(MixedCompact, "stwo_blake2s_mixed_seeded_eager_compact_on") != null;
+    const capability = base.lookup(Capability, "stwo_rv64_compact_eager_state_capability") orelse return error.MissingCompactEagerPcsCapability;
+    if (capability() != 1) return error.MissingCompactEagerPcsCapability;
+    _ = try Kernels.sym(MixedCompact, base, "stwo_blake2s_mixed_seeded_eager_compact_on");
+    return true;
 }
+
+/// Node phases a measurement attributes the heap peak to (outer_heap.zig).
+pub const Phase = enum(u8) { held, fixed, main, inter, composition, pcs };
 
 pub const Buffer = struct {
     ptr: [*]u32,
@@ -133,9 +140,6 @@ pub const Buffer = struct {
     }
 };
 
-/// Host-API launch accounting for one node. `api` counts every host call
-/// that enqueues device work (kernel wrappers, async copies/memsets, channel
-/// steps); `internal` adds launches reported by wrappers that issue several.
 /// Optional stream timing hook (e.g. a pair of CUDA events), marked on the
 /// job's exec stream immediately before and after the body, outside any
 /// graph capture. It never synchronizes; the owner reads it after completion.
@@ -146,6 +150,9 @@ pub const Timing = struct {
     resolve: *const fn (*anyopaque) void,
 };
 
+/// Host-API launch accounting for one node. `api` counts every host call
+/// that enqueues device work (kernel wrappers, async copies/memsets, channel
+/// steps); `internal` adds launches reported by wrappers that issue several.
 pub const Counters = struct {
     api: u32 = 0,
     internal: u32 = 0,
@@ -167,10 +174,10 @@ pub const Device = struct {
     vtable: *const VTable,
     kernels: *const Kernels,
     counters: Counters = .{},
-    /// Optional measurement hook: the body announces its phase (outer_heap
-    /// Phase ordinal) so per-phase memory peaks can be attributed.
-    phase_hook: ?*const fn (*anyopaque, u8) void = null,
-    pub fn phase(self: *Device, which: u8) void {
+    /// Optional measurement hook: the body announces its phase so per-phase
+    /// memory peaks can be attributed (outer_heap.Heap.phase_peak).
+    phase_hook: ?*const fn (*anyopaque, Phase) void = null,
+    pub fn phase(self: *Device, which: Phase) void {
         if (self.phase_hook) |hook| hook(self.impl, which);
     }
 

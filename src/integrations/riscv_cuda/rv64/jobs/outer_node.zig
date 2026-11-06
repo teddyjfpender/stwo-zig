@@ -173,7 +173,7 @@ pub const Node = struct {
         const parameters = long.parameters;
         const powers = long.powers;
         try device.clear(self.section, S.words);
-        device.phase(1);
+        device.phase(.fixed);
         if (self.fixed) |f| {
             const fp = &(staged.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing);
             const tw = try staged.statics.table(fp.eval_log);
@@ -196,7 +196,7 @@ pub const Node = struct {
         }
 
         // 1. MAIN assignment (values above the MAIN evaluation image).
-        device.phase(2);
+        device.phase(.main);
         const main_eval = try device.alloc(@intCast(p.main.coefficient_words));
         var main_eval_live = true;
         defer if (main_eval_live) device.free(main_eval);
@@ -285,7 +285,7 @@ pub const Node = struct {
         try device.check(k.lookup_params(device.ctx, K.lane, lookup, parameters.ptr, status + 2));
 
         // 5. INTER in physical (sorted) order into the packed image + tail.
-        device.phase(3);
+        device.phase(.inter);
         const inter_status = status + 1;
         for (p.inter_order) |ci| {
             const comp = p.geometry.components[ci];
@@ -336,7 +336,7 @@ pub const Node = struct {
         }
 
         // 8. Composition, OODS seed and PCS.
-        device.phase(4);
+        device.phase(.composition);
         if (self.mode == .full) try self.tail.?.enqueue(self.tail.?.context, device, &.{
             .staged = staged,
             .bases = self.bases,

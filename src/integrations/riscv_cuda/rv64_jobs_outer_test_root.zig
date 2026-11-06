@@ -9,4 +9,6 @@ test {
     _ = @import("rv64/jobs/outer_composition.zig");
     _ = @import("rv64/jobs/outer_heap.zig");
     _ = @import("rv64/jobs/outer_fixed_job.zig");
+    _ = @import("rv64/jobs/outer_env.zig");
+    _ = @import("rv64/jobs/outer_window.zig");
 }

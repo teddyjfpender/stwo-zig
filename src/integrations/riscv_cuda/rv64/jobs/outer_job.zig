@@ -23,6 +23,7 @@ const Comp = @import("outer_composition.zig");
 const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
 const core = @import("stwo_core");
 const TC = @import("outer_trace_commit.zig");
+const Env = @import("outer_env.zig");
 
 /// Slab field indices (`Slab.Kind.opaque_words`): the outer section, the
 /// native PCS result image and the OODS points (native_pcs.zig).
@@ -78,8 +79,28 @@ pub const Report = struct {
     heap_high_words: u64 = 0,
     phase_peak_words: [Heap.Heap.n_phases]u64 = @splat(0),
     phase_high_words: [Heap.Heap.n_phases]u64 = @splat(0),
+    /// Largest single heap allocation (words), against the 2^31 index guard.
+    max_alloc_words: u64 = 0,
     streamed: bool = false,
+    /// Region.fixed came from the lane's FIXED precommit (no in-node commit).
+    fixed_handoff: bool = false,
+    /// Worker-thread time inside finish (slab decode, root checks and, unless
+    /// deferred, the PCS proof decode).
+    finish_ns: u64 = 0,
+    /// Lane-thread time of decodeProof (deferred PCS proof decode).
+    decode_ns: u64 = 0,
 };
+
+/// FIXED coefficients a FixedJob of the same lane left in worker-persistent
+/// memory (outer_job_factory.zig Lane.precommitFixed): `key`/`words` name the
+/// Stager.persistent region. The factory sets it only when the precommit's
+/// root equals this node's `staged.fixed_root` (same evaluations, same
+/// commit plan, so the same coefficients); stage() still recommits in the
+/// node when the region turns out fresh (e.g. released). Either way the PCS
+/// rebuilds the FIXED tree from Region.fixed and decode checks its root
+/// against `staged.fixed_root` (native_pcs.checkRoots): a wrong handoff fails
+/// closed (NativePcsTreeRootMismatch), it cannot change a proof byte.
+pub const FixedHandoff = struct { key: [32]u8, words: usize };
 
 pub const OuterNodeJob = struct {
     staged: *St.Staged,
@@ -120,25 +141,34 @@ pub const OuterNodeJob = struct {
     /// Streamed commit schedules (null: full-LDE path; STWO_RV64_M8_OUTER_STREAM=0).
     streams: ?N.Streams = null,
     composition_stream: ?Comp.CommitStream = null,
-    /// Whole nodes: the FIXED coefficients that RC and the PCS read
-    /// (Region.fixed) are produced on device from the staged raw evaluations
-    /// (interpolated in place), and the node checks their root. Required for
-    /// whole nodes; the flag exists only for prefix/parity harnesses.
-    node_fixed_commit: bool = true,
     /// Fold classes keep their class region in worker-persistent memory
-    /// (outside the arena). The hybrid window (whole request, workers per
-    /// request) clears this so every node stages its class region inside its
-    /// own arena window and nothing grows outside the arena across classes.
+    /// (outside the arena). The hybrid window clears this: its workers park
+    /// between requests, and class regions outside the arena would grow with
+    /// every fold class the service sees; each node stages its class region
+    /// inside its own arena window instead.
     persistent_classes: bool = true,
+    /// See FixedHandoff (whole nodes only).
+    fixed_handoff: ?FixedHandoff = null,
+    /// PCS proof decode left to the caller (decodeProof after the completion),
+    /// so the worker thread returns to staging the next job at once.
+    defer_decode: bool = false,
+    pcs_words: []u32 = &.{},
+    /// Environment knobs, parsed strictly once in init (outer_env.zig).
+    pcs_reserve_trees: u64 = 11,
+    declare_words: ?u64 = null,
+    leaf_persistent: bool = false,
 
     /// `staged` stays owned by the caller (deinit after finish/abort).
     /// `snapshots`: also copy the channel state into the slab after every
     /// prefix step (parity harness; adds one D2D copy per step).
     pub fn init(staged: *St.Staged, kernels: *const K.Kernels, snapshots: bool) !OuterNodeJob {
         var out = OuterNodeJob{ .staged = staged, .kernels = kernels, .snapshots = snapshots, .mode = .prefix };
-        if (TC.streamSelected(kernels)) {
+        out.pcs_reserve_trees = try Env.unsigned(u64, "STWO_RV64_M8_OUTER_PCS_RESERVE_TREES", out.pcs_reserve_trees);
+        out.declare_words = try Env.optionalUnsigned(u64, "STWO_RV64_M8_OUTER_DECLARE_WORDS");
+        out.leaf_persistent = try Env.flag("STWO_RV64_M8_OUTER_LEAF_PERSISTENT", false);
+        if (try TC.streamSelected(kernels)) {
             const fp: ?*const Plan.TreePlan = if (staged.statics.fixed_plan) |*f| f else null;
-            out.streams = try N.Streams.init(out.allocator, staged.plan(), fp, TC.streamChunkWords(), kernels.compact_eager);
+            out.streams = try N.Streams.init(out.allocator, staged.plan(), fp, try TC.streamChunkWords(), kernels.compact_eager);
         }
         errdefer if (out.streams) |*st| st.deinit(out.allocator);
         _ = try out.layout.add(.opaque_words, section_index, Plan.Section.words);
@@ -156,7 +186,7 @@ pub const OuterNodeJob = struct {
         out.mode = .full;
         out.whole = whole;
         if (staged.statics.composition == null or staged.pcs_points == null) return error.OuterJobWholeStagingMissing;
-        if (out.streams != null) out.composition_stream = try Comp.CommitStream.init(out.allocator, &staged.statics.composition.?, TC.streamChunkWords(), kernels.compact_eager);
+        if (out.streams != null) out.composition_stream = try Comp.CommitStream.init(out.allocator, &staged.statics.composition.?, try TC.streamChunkWords(), kernels.compact_eager);
         var placeholder = try out.request(null);
         defer out.freeRequest(&placeholder);
         // Framed once, here on the caller's thread (pre-stage side); stage()
@@ -176,6 +206,8 @@ pub const OuterNodeJob = struct {
         self.pcs = null;
         if (self.pcs_proof) |*d| d.proof.deinit(self.proof_allocator);
         self.pcs_proof = null;
+        if (self.pcs_words.len != 0) self.allocator.free(self.pcs_words);
+        self.pcs_words = &.{};
     }
 
     /// The PCS request of this node: FIXED (class region), MAIN, INTER and
@@ -239,16 +271,17 @@ pub const OuterNodeJob = struct {
     /// lifting 2^24: 4.920e9 heap peak - 2.05e9 held = 2.87e9 = 10.7 x the
     /// lifting-height tree]. STWO_RV64_M8_OUTER_PCS_RESERVE_TREES overrides
     /// the multiplier (measurement sweeps).
-    pub fn pcsReserveWords(cs: *const Comp.Static) u64 {
-        var trees: u64 = 11;
-        if (std.posix.getenv("STWO_RV64_M8_OUTER_PCS_RESERVE_TREES")) |v| trees = std.fmt.parseUnsigned(u64, v, 10) catch trees;
-        return trees * cs.treeWords();
+    pub fn pcsReserveWords(self: *const OuterNodeJob, cs: *const Comp.Static) u64 {
+        return self.pcs_reserve_trees * cs.treeWords();
     }
 
-    /// Whole nodes with the in-node FIXED recommit (first node of a class on
-    /// a worker when persistent, every node otherwise).
+    /// Whole nodes own Region.fixed (the FIXED coefficients RC and the PCS
+    /// read). It is committed in the node from the staged raw evaluations,
+    /// unless a warm worker-persistent region holds it (stage(): a
+    /// persistent fold class seen before on this worker, or the lane's
+    /// FIXED precommit handoff). Prefix/parity nodes have no Region.fixed.
     fn nodeFixed(self: *const OuterNodeJob) bool {
-        return self.whole != null and self.node_fixed_commit;
+        return self.whole != null;
     }
 
     /// Static per-node peak from the class plan, in the worker's 64-word
@@ -296,12 +329,14 @@ pub const OuterNodeJob = struct {
             }
             const commit: u64 = if (self.composition_stream) |*c| c.stream.scratchWords() else g(@as(u64, cs.outputColumns()) << @intCast(cs.commitLog()));
             phase = @max(phase, buckets + @max(widest, g(cs.coefficientWords()) + commit));
-            phase = @max(phase, pcsReserveWords(cs));
+            phase = @max(phase, self.pcsReserveWords(cs));
             pinned_extra = self.pcs_plan.ingress_words;
             if (self.nodeFixed()) if (self.staged.statics.fixed_plan) |*fp| {
                 // Coefficient buffer staged (raw evaluations interpolated in
-                // place) unless persistent; commit scratch as a phase.
-                if (!self.persistentClass()) staged += g(fp.coefficient_words);
+                // place) unless worker-persistent (class region or the FIXED
+                // precommit handoff); commit scratch as a phase either way (a
+                // fresh persistent region is still committed in the node).
+                if (!self.persistentClass() and self.fixed_handoff == null) staged += g(fp.coefficient_words);
                 const fixed_commit: u64 = if (self.streams) |*st| (if (st.fixed) |*f| f.scratchWords() else 0) else g(fp.evaluation_words) + g(fp.tree_words + fp.prefix_words);
                 phase = @max(phase, fixed_commit);
                 pinned_extra += fp.coefficient_words;
@@ -312,7 +347,7 @@ pub const OuterNodeJob = struct {
         // than this bound; the worker still fails the job closed
         // (JobWorkExceedsArena) if its real allocations do not fit.
         var device: u64 = staged + held + phase;
-        if (std.posix.getenv("STWO_RV64_M8_OUTER_DECLARE_WORDS")) |v| device = @min(device, std.fmt.parseUnsigned(u64, v, 10) catch device);
+        if (self.declare_words) |cap| device = @min(device, cap);
         return .{
             .device_words = @intCast(device),
             .staged_words = @intCast(staged),
@@ -330,8 +365,7 @@ pub const OuterNodeJob = struct {
     /// persistent too (parity fixtures).
     fn persistentClass(self: *const OuterNodeJob) bool {
         if (self.staged.assignment.reusable) return self.persistent_classes;
-        const v = std.posix.getenv("STWO_RV64_M8_OUTER_LEAF_PERSISTENT") orelse return false;
-        return std.mem.eql(u8, v, "1");
+        return self.leaf_persistent;
     }
 
     pub fn stage(self: *OuterNodeJob, s: *api.Stager) !void {
@@ -364,11 +398,17 @@ pub const OuterNodeJob = struct {
             }
         }
         if (self.nodeFixed()) {
-            // FIXED coefficients: worker-persistent per FIXED root. The first
-            // node of a class commits them on device from the raw evaluations.
+            // FIXED coefficients: the lane's precommit handoff, else
+            // worker-persistent per FIXED root (persistent classes), else in
+            // the node's own staging. A fresh region is committed on device
+            // from the raw evaluations (and its root checked in finish).
             const fp = &(self.staged.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing);
-            const fixed: api.Persistent = if (self.persistentClass()) try s.persistent(self.staged.fixedRegionKey(), @intCast(fp.coefficient_words)) else .{ .buffer = try s.alloc(@intCast(fp.coefficient_words)), .fresh = true };
+            const fixed: api.Persistent = if (self.fixed_handoff) |h| blk: {
+                if (h.words < fp.coefficient_words) return error.OuterFixedHandoffTooSmall;
+                break :blk try s.persistent(h.key, h.words);
+            } else if (self.persistentClass()) try s.persistent(self.staged.fixedRegionKey(), @intCast(fp.coefficient_words)) else .{ .buffer = try s.alloc(@intCast(fp.coefficient_words)), .fresh = true };
             regions[@intFromEnum(St.Region.fixed)] = fixed.buffer.ptr;
+            self.report.fixed_handoff = self.fixed_handoff != null and !fixed.fresh;
             if (fixed.fresh) {
                 // Raw evaluations are uploaded straight into the coefficient
                 // buffer and interpolated in place (B2N with exactly aliased
@@ -396,9 +436,21 @@ pub const OuterNodeJob = struct {
         var b: [9]?K.Buffer = @splat(null);
         const sizes = [_]usize{ w[0], w[1], w[2], w[3], w[4], w[5], @intCast(cs.coefficientWords()), if (streamed) 0 else @intCast(cs.treeWords()), @as(usize, cs.param_total) * 8 };
         for (sizes) |n| try Plan.requireIndexable(&.{n});
-        if (self.streams) |*st| for ([_]?*const TC.Stream{ &st.main, &st.inter, if (st.fixed) |*f| f else null }) |maybe| if (maybe) |s| {
-            try Plan.requireIndexable(&.{ s.plan.chunk_words, s.plan.bank_words[0], s.plan.bank_words[1] });
-        };
+        // Refuse before the body: every commit transient of this node. The
+        // heap also checks each allocation (outer_heap.zig); this names the
+        // node up front, including the full-LDE images (STREAM=0 or a base
+        // image without the mixed-leaf kernels).
+        if (self.streams) |*st| {
+            for ([_]?*const TC.Stream{ &st.main, &st.inter, if (st.fixed) |*f| f else null }) |maybe| if (maybe) |s| {
+                try Plan.requireIndexable(&.{ s.plan.chunk_words, s.plan.bank_words[0], s.plan.bank_words[1] });
+            };
+        } else {
+            try Plan.requireIndexable(&.{ p.main.evaluation_words, p.inter.evaluation_words });
+            if (self.staged.statics.fixed_plan) |*fp| try Plan.requireIndexable(&.{ fp.evaluation_words, fp.tree_words + fp.prefix_words });
+        }
+        if (self.composition_stream) |*c| {
+            try Plan.requireIndexable(&.{ c.stream.plan.chunk_words, c.stream.plan.bank_words[0], c.stream.plan.bank_words[1] });
+        } else try Plan.requireIndexable(&.{@as(u64, cs.outputColumns()) << @intCast(cs.commitLog())});
         for (&b, sizes) |*out, n| if (n != 0) {
             const d = try e.alloc(n);
             out.* = .{ .ptr = d.ptr, .words = d.words };
@@ -439,7 +491,7 @@ pub const OuterNodeJob = struct {
                 .status = in.section + Plan.Section.status + 2,
             });
             try device.mix(in.section + Plan.Section.composition_root, 8, false);
-            device.phase(@intFromEnum(Heap.Heap.Phase.pcs));
+            device.phase(.pcs);
             const oods = try self.e.slab.field(.opaque_words, oods_index);
             const pcs = try self.e.slab.field(.opaque_words, pcs_index);
             var pe = Heap.PcsEnqueue.init(self.e, self.heap);
@@ -454,9 +506,12 @@ pub const OuterNodeJob = struct {
         device: *K.Device,
         node: *N.Node,
         saved: api.DeviceChannel,
+        /// Launches of the last enqueue (recorded or issued).
+        last: u32 = 0,
         pub fn enqueue(self: *Body) !u32 {
             try self.e.channel.initFromCheckpoint(.{ .ptr = @constCast(self.job.bases.at(self.job.staged.image.channel_seed)), .words = 9 });
-            return self.node.enqueue(self.device);
+            self.last = try self.node.enqueue(self.device);
+            return self.last;
         }
         pub fn reset(self: *Body) void {
             // A discarded capture advanced only the host mirror of the channel.
@@ -491,6 +546,7 @@ pub const OuterNodeJob = struct {
             self.report.heap_peak_words = heap.peak;
             self.report.heap_allocations = heap.allocations;
             self.report.heap_high_words = heap.high;
+            self.report.max_alloc_words = heap.max_alloc;
             for (&self.report.phase_peak_words, heap.phase_peak) |*o, v| o.* = v;
             for (&self.report.phase_high_words, heap.phase_high) |*o, v| o.* = v;
         }
@@ -510,11 +566,17 @@ pub const OuterNodeJob = struct {
         } else {
             self.report.launches = try body.enqueue();
         }
-        self.report.body_launches = device.counters.total();
+        // The last enqueue only: a discarded recording plus its direct re-run
+        // must not count twice (device.counters accumulate across both).
+        self.report.body_launches = body.last;
     }
 
     pub fn finish(self: *OuterNodeJob, view: api.SlabView) !void {
         self.finished = true;
+        var timer = std.time.Timer.start() catch null;
+        defer if (timer) |*t| {
+            self.report.finish_ns = t.read();
+        };
         if (self.timing) |t| t.resolve(t.ctx);
         self.report.receipt = view.receipt;
         if (self.keep_slab) |copy| @memcpy(copy[0..@min(copy.len, view.words.len)], view.words[0..@min(copy.len, view.words.len)]);
@@ -527,9 +589,28 @@ pub const OuterNodeJob = struct {
             const oods = try Slab.read(view, .opaque_words, oods_index);
             if (oods[32] != 0) return error.InvalidOuterOodsPoint;
             @memcpy(&self.oods, oods[0..16]);
-            const roots = [_][32]u8{ self.staged.fixed_root, d.main_root, d.inter_root, self.composition_root };
-            self.pcs_proof = try self.pcs.?.decode(self.proof_allocator, try Slab.read(view, .opaque_words, pcs_index), &roots);
+            const words = try Slab.read(view, .opaque_words, pcs_index);
+            if (self.defer_decode) {
+                // The slab is recycled after finish: keep a copy for decodeProof.
+                self.pcs_words = try self.allocator.dupe(u32, words);
+            } else {
+                const roots = [_][32]u8{ self.staged.fixed_root, d.main_root, d.inter_root, self.composition_root };
+                self.pcs_proof = try self.pcs.?.decode(self.proof_allocator, words, &roots);
+            }
         }
+    }
+    /// Deferred PCS proof decode (`defer_decode`), on the caller's thread
+    /// after a successful completion; the roots are those finish checked.
+    pub fn decodeProof(self: *OuterNodeJob) !void {
+        if (self.pcs_proof != null) return;
+        if (!self.defer_decode or self.pcs_words.len == 0) return error.OuterJobNotDecoded;
+        var timer = try std.time.Timer.start();
+        const d = self.decoded orelse return error.OuterJobNotDecoded;
+        const roots = [_][32]u8{ self.staged.fixed_root, d.main_root, d.inter_root, self.composition_root };
+        self.pcs_proof = try self.pcs.?.decode(self.proof_allocator, self.pcs_words, &roots);
+        self.allocator.free(self.pcs_words);
+        self.pcs_words = &.{};
+        self.report.decode_ns = timer.read();
     }
     pub fn abort(self: *OuterNodeJob) void {
         self.finished = true;
@@ -548,8 +629,8 @@ const EnqueueView = struct {
     fn of(raw: *anyopaque) *EnqueueView {
         return @ptrCast(@alignCast(raw));
     }
-    fn phase(raw: *anyopaque, which: u8) void {
-        of(raw).heap.enter(@enumFromInt(which));
+    fn phase(raw: *anyopaque, which: K.Phase) void {
+        of(raw).heap.enter(which);
     }
     fn alloc(raw: *anyopaque, words: usize) anyerror!K.Buffer {
         const b = try of(raw).heap.alloc(words);

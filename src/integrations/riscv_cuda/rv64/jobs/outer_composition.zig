@@ -152,7 +152,7 @@ pub fn enqueue(device: *K.Device, kernels: *const Kernels, st: *const Static, in
     const n2b = device.kernels.n2b_columns;
     if (st.beta != 1) return error.UnsupportedOuterJobBlowup;
     if (in.output.words < st.coefficientWords()) return error.OuterCompositionBufferTooSmall;
-    if ((in.tree == null) == (in.commit == null)) return error.OuterCompositionBufferTooSmall;
+    if ((in.tree == null) == (in.commit == null)) return error.OuterJobTreeCustodyMismatch;
     if (in.tree) |t| if (t.words < st.treeWords()) return error.OuterCompositionBufferTooSmall;
     // Parameters of every role from the device challenges and claims.
     try device.check(kernels.params(device.ctx, K.lane, in.bases.at(st.param_table), st.param_total, in.lookup, in.claims, in.parameters, in.status));
@@ -238,7 +238,7 @@ pub fn enqueue(device: *K.Device, kernels: *const Kernels, st: *const Static, in
         // Streamed: chunk-bounded LDE + mixed leaves; root -> root_out. Same
         // twiddle arguments as the full call below (the commit-height tree as
         // staged, domain size rows/2); logs are the per-column chunk logs.
-        if (c.tree.order.len != count) return error.OuterCompositionBufferTooSmall;
+        if (c.tree.order.len != count) return error.OuterCompositionStreamMismatch;
         return TC.enqueueStreamed(device, &c.tree, &c.stream, .{ .evaluations = in.output.ptr, .coefficients = in.output.ptr, .root_out = in.root_out, .interpolate = false, .twiddle_mode = .whole, .statics = .{
             .sorted_logs = in.bases.at(st.commit_logs),
             .twiddles = in.bases.at(in.twiddles[commit_log]),

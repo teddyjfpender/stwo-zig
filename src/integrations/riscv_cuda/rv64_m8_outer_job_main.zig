@@ -166,7 +166,7 @@ pub fn main() !void {
     const prestage_ns = prestage_timer.read();
     const worker = try Worker.Worker.create(a, &libs.ops, .{ .device = 0, .arena_words = 5 << 30, .pinned_slot_words = 1 << 27 });
     defer worker.destroy();
-    var cache = Graphs.Cache.init(a, try Graphs.Api.load(&libs.addon), Graphs.Policy.fromEnv());
+    var cache = Graphs.Cache.init(a, try Graphs.Api.load(&libs.addon), try Graphs.Policy.fromEnv());
     defer cache.deinit();
 
     var first: ?[]u32 = null;
@@ -214,7 +214,7 @@ pub fn main() !void {
     // must equal the legacy proof bytes.
     var shared = try Factory.Shared.init(&libs.base, &libs.addon, args[3]);
     defer shared.deinit();
-    var prover = Factory.Prover.init(a, &shared, worker);
+    var prover = Factory.Prover.init(a, &shared, worker, try Graphs.Policy.fromEnv());
     defer prover.deinit();
     var whole_failures: usize = 0;
     // Production folds/leaves use a device-precommitted FIXED authority (no host
@@ -226,7 +226,7 @@ pub fn main() !void {
         const node_key = if (run == runs) &device_key else &key;
         var timer = try std.time.Timer.start();
         var r: Factory.Report = .{};
-        var produced = prover.prove(a, .{ .key = node_key, .graph = &graph, .expected = &expected, .ordinal = 0, .library = &libs.base }, &r) catch |err| {
+        var produced = prover.prove(a, .{ .key = node_key, .graph = &graph, .expected = &expected, .ordinal = 0, .library = &libs.base }, null, &r) catch |err| {
             std.debug.print("OUTER_JOB_WHOLE {{\"run\":{d},\"error\":\"{s}\"}}\n", .{ run, @errorName(err) });
             return err;
         };
@@ -251,7 +251,7 @@ pub fn main() !void {
         report: Factory.Report = .{},
         fn run(self: *@This()) void {
             const al = std.heap.c_allocator;
-            var produced = self.prover.prove(al, self.input, &self.report) catch return;
+            var produced = self.prover.prove(al, self.input, null, &self.report) catch return;
             defer produced.deinit();
             const encoded = Outer.wire.encode(al, self.identity, produced.outputs, produced.claims, &produced.proof.proof) catch return;
             defer al.free(encoded);

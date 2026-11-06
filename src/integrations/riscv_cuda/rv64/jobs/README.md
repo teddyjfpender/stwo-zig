@@ -37,3 +37,42 @@ Staged inputs of the job on side S sit at the S end of the arena; its enqueue al
 other end, bounded by inputs staged on the other side. All enqueued work shares one exec stream, so successive jobs may
 reuse addresses; the h2d stream waits (on the device) for the most recently enqueued job before writing a side. Arena
 ranges are 256-byte aligned and validate against the exec context's ledger (one registered allocation).
+
+## Outer job (OuterNodeJob, hybrid recursion)
+
+| file | role |
+|---|---|
+| `outer_job.zig` | `OuterNodeJob`: one leaf/fold/root node as an api.Job (stage/enqueue/finish), footprint, held buffers, PCS tail |
+| `outer_node.zig` | the node body: FIXED (when not handed off), MAIN, INTER, composition, PCS opening |
+| `outer_trace_commit.zig` | enqueue-only trace commit: full-LDE `enqueue` and chunk-bounded `enqueueStreamed` |
+| `outer_composition.zig` | RC composition + its commit (streamed or tree) |
+| `outer_fixed_job.zig` | `FixedJob`: FIXED precommit root on the worker; optional coefficient handoff to the node |
+| `outer_graph_cache.zig` | per-worker CUDA graph cache: capture threshold, LRU device budget, request aging, blacklist |
+| `outer_heap.zig` | per-node first-fit work heap; every allocation is checked against the int32 index guard |
+| `outer_plan.zig` / `outer_staged.zig` / `outer_kernels.zig` | class plan, staged image, kernel table + `Device` view |
+| `outer_window.zig` | all-or-none reopen of a parked hybrid window |
+| `outer_env.zig` | strict parse of the knobs below |
+
+### Outer job environment
+
+Parsed strictly (`outer_env.zig`): unset = default; flags accept exactly `0`/`1`; numbers must parse completely;
+anything else fails `Hybrid.create` with `InvalidM8OuterEnvironment`. None of these changes a proof byte.
+
+| variable | default | effect |
+|---|---|---|
+| `STWO_RV64_M8_OUTER_JOBS` | `0` | `1` = hybrid recursion (every node an OuterNodeJob); else fails closed |
+| `STWO_RV64_M8_OUTER_PERSIST_WINDOW` | `1` | `0` = start/stop the workers per request instead of park/unpark |
+| `STWO_RV64_M8_OUTER_FIXED_JOB` | `1` | `0` = legacy owner FIXED precommit (node recommits FIXED) |
+| `STWO_RV64_M8_OUTER_FIXED_HANDOFF` | `1` | `0` = node recommits FIXED even after a FixedJob precommit |
+| `STWO_RV64_M8_OUTER_PERSISTENT_CLASSES` | `0` | `1` = fold class regions in worker-persistent memory |
+| `STWO_RV64_M8_OUTER_RESERVE_BYTES` | 1 GiB | device headroom left outside the window arena (plus the FIXED handoff regions) |
+| `STWO_RV64_M8_OUTER_STREAM` | `1` | `0` = full-LDE commits (needs < 2^31-word images: the heap guard refuses folds) |
+| `STWO_RV64_M8_OUTER_STREAM_CHUNK_WORDS` | 2^26 | streamed commit chunk (0 = default) |
+| `STWO_RV64_M8_OUTER_PCS_RESERVE_TREES` | 11 | PCS working-set multiplier in the footprint (sweeps) |
+| `STWO_RV64_M8_OUTER_DECLARE_WORDS` | unset | cap on the declared device peak (sweeps; the heap still fails closed) |
+| `STWO_RV64_M8_OUTER_LEAF_PERSISTENT` | `0` | `1` = leaves use persistent class regions too (parity fixtures) |
+| `STWO_RV64_M8_OUTER_GRAPH` | `1` | `0` = direct enqueue, no CUDA graphs |
+| `STWO_RV64_M8_OUTER_GRAPH_THRESHOLD` | 2 | sightings of a (class, placement) key before capture |
+| `STWO_RV64_M8_OUTER_GRAPH_BUDGET_MB` | 256 | executable device budget per worker (LRU eviction) |
+| `STWO_RV64_M8_OUTER_GRAPH_IDLE_REQUESTS` | 4 | requests a key may go unused before it is dropped (0 = never) |
+| `STWO_RV64_M8_OUTER_FAULT_ORDINAL` | unset | test hook: fail node n where a footprint refusal returns |

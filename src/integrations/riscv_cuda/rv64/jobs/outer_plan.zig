@@ -240,8 +240,11 @@ pub const Section = struct {
 /// so a node buffer of 2^31 words or more would wrap silently (the whole-LDE
 /// INTER of a 26235156 fold is 2.36e9 words; the chunk-bounded node never
 /// holds it: its largest buffer is the in-place INTER coefficient region,
-/// [M] 1.25e9 words on 26235156 folds). Enforced fail-closed on every held
-/// buffer and stream scratch (outer_job.zig holdBuffers).
+/// [M] 1.25e9 words on 26235156 folds). Enforced fail-closed on every single
+/// device allocation of a job: outer_heap.Heap.alloc (node transients, PCS
+/// scratch through PcsEnqueue, the full-LDE scratch) and FixedJob's view;
+/// outer_job.zig holdBuffers also refuses a node whose held buffers, stream
+/// scratch or full-LDE images cross it before the body starts.
 pub const max_indexable_words: u64 = 1 << 31;
 pub fn requireIndexable(words: []const u64) !void {
     for (words) |w| if (w >= max_indexable_words) return error.OuterBufferExceedsInt32Index;

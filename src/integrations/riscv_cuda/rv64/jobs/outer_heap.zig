@@ -12,6 +12,7 @@
 //! yields the same addresses (graph re-record / direct re-run safe).
 const std = @import("std");
 const api = @import("api.zig");
+const Plan = @import("outer_plan.zig");
 
 pub const granule: usize = 64;
 
@@ -28,14 +29,15 @@ pub const Heap = struct {
     /// actually needs (>= peak; the difference is fragmentation).
     high: usize = 0,
     allocations: u64 = 0,
+    /// Largest single request (words): the margin to Plan.max_indexable_words.
+    max_alloc: usize = 0,
     /// Per-phase live peak and high-water (see `Phase`), for measurement.
     phase: Phase = .held,
     phase_peak: [n_phases]usize = @splat(0),
     phase_high: [n_phases]usize = @splat(0),
     const max_spans = 512;
 
-    /// Node phases a measurement attributes the peak to.
-    pub const Phase = enum(u8) { held, fixed, main, inter, composition, pcs };
+    pub const Phase = @import("outer_kernels.zig").Phase;
     pub const n_phases = @typeInfo(Phase).@"enum".fields.len;
     pub fn enter(self: *Heap, phase: Phase) void {
         self.phase = phase;
@@ -52,6 +54,11 @@ pub const Heap = struct {
 
     pub fn alloc(self: *Heap, requested: usize) !api.DeviceBuffer {
         if (requested == 0) return error.InvalidAllocation;
+        // Every transient (TC full-LDE scratch, RC buffers, PCS rebuild
+        // scratch) goes through here: fail closed before a reused kernel with
+        // signed 32-bit element indices could wrap (outer_plan.zig).
+        try Plan.requireIndexable(&.{requested});
+        self.max_alloc = @max(self.max_alloc, requested);
         const words = std.mem.alignForward(usize, requested, granule);
         for (self.free_spans[0..self.n_free], 0..) |*s, i| {
             if (s.words < words) continue;
@@ -184,4 +191,16 @@ test "heap is deterministic and ignores foreign frees" {
     }
     try std.testing.expectEqual(x.n_free, y.n_free);
     try std.testing.expectEqual((try x.alloc(64)).ptr, (try y.alloc(64)).ptr);
+}
+
+test "heap refuses any single allocation of 2^31 words or more (int32 index guard) and records the largest" {
+    // Host bookkeeping only: the region is never dereferenced.
+    var h = Heap.init(.{ .ptr = @ptrFromInt(1 << 20), .words = 1 << 33 });
+    const limit: usize = @intCast(Plan.max_indexable_words);
+    try std.testing.expectError(error.OuterBufferExceedsInt32Index, h.alloc(limit));
+    try std.testing.expectError(error.OuterBufferExceedsInt32Index, h.alloc(limit + 4096));
+    try std.testing.expectEqual(@as(usize, 0), h.live);
+    _ = try h.alloc(limit - 1);
+    _ = try h.alloc(1000);
+    try std.testing.expectEqual(limit - 1, h.max_alloc);
 }

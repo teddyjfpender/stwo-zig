@@ -40,16 +40,24 @@ pub const Policy = struct {
     /// a class runs direct (any lazy one-time wrapper init happens outside a
     /// capture), the second is captured. STWO_RV64_M8_OUTER_GRAPH_THRESHOLD.
     threshold: u32 = 2,
-    /// Device bytes all executables of this worker may hold. 0 disables
-    /// capture. STWO_RV64_M8_OUTER_GRAPH_BUDGET_MB (default 256 MiB).
+    /// Device bytes all executables of this worker may hold; the least
+    /// recently launched executables are evicted to admit a new one. 0
+    /// disables capture. STWO_RV64_M8_OUTER_GRAPH_BUDGET_MB (default 256 MiB).
     budget_bytes: u64 = 256 << 20,
+    /// Requests a key may go unused before its executable, sighting count or
+    /// blacklist entry is dropped (the cache lives for the whole service and
+    /// keys follow block shapes). 0 = never age.
+    /// STWO_RV64_M8_OUTER_GRAPH_IDLE_REQUESTS (default 4).
+    idle_requests: u32 = 4,
     /// STWO_RV64_M8_OUTER_GRAPH=0 disables graphs (direct enqueue).
     enabled: bool = true,
-    pub fn fromEnv() Policy {
+    pub fn fromEnv() !Policy {
+        const Env = @import("outer_env.zig");
         var p = Policy{};
-        if (std.posix.getenv("STWO_RV64_M8_OUTER_GRAPH")) |v| p.enabled = !std.mem.eql(u8, v, "0");
-        if (std.posix.getenv("STWO_RV64_M8_OUTER_GRAPH_THRESHOLD")) |v| p.threshold = @max(1, std.fmt.parseInt(u32, v, 10) catch p.threshold);
-        if (std.posix.getenv("STWO_RV64_M8_OUTER_GRAPH_BUDGET_MB")) |v| p.budget_bytes = (std.fmt.parseInt(u64, v, 10) catch (p.budget_bytes >> 20)) << 20;
+        p.enabled = try Env.flag("STWO_RV64_M8_OUTER_GRAPH", p.enabled);
+        p.threshold = @max(1, try Env.unsigned(u32, "STWO_RV64_M8_OUTER_GRAPH_THRESHOLD", p.threshold));
+        p.budget_bytes = (try Env.unsigned(u64, "STWO_RV64_M8_OUTER_GRAPH_BUDGET_MB", p.budget_bytes >> 20)) << 20;
+        p.idle_requests = try Env.unsigned(u32, "STWO_RV64_M8_OUTER_GRAPH_IDLE_REQUESTS", p.idle_requests);
         return p;
     }
 };
@@ -66,24 +74,34 @@ pub const Report = struct {
     /// Kernel nodes in the recorded graph (launches one graph launch replaces).
     kernel_nodes: u64 = 0,
     total_nodes: u64 = 0,
-    /// Host-API launches this node issued: 1 for a graph launch, else the body's.
+    /// Host-API launches this node issued: 1 for a graph launch, else the
+    /// body's launches in its LAST enqueue (a discarded recording excluded).
     launches: u32 = 0,
 };
 
-const Entry = struct { exec: *anyopaque, bytes: u64, kernel_nodes: u64, total_nodes: u64 };
+const Entry = struct { exec: *anyopaque, bytes: u64, kernel_nodes: u64, total_nodes: u64, last_use: u64, request: u64 };
+const Seen = struct { count: u32, request: u64 };
 
 pub const Cache = struct {
     allocator: std.mem.Allocator,
     api: Api,
     policy: Policy,
     entries: std.AutoHashMapUnmanaged(Key, Entry) = .empty,
-    sightings: std.AutoHashMapUnmanaged(Key, u32) = .empty,
-    blacklist: std.AutoHashMapUnmanaged(Key, void) = .empty,
+    sightings: std.AutoHashMapUnmanaged(Key, Seen) = .empty,
+    /// Key -> request it was banned in (aged out like the entries).
+    blacklist: std.AutoHashMapUnmanaged(Key, u64) = .empty,
     used_bytes: u64 = 0,
-    budget_spent: bool = false,
+    disabled: bool = false,
+    /// Launch clock (LRU order) and the request generation the worker thread
+    /// last saw; `noteRequest` (any thread) advances `request_signal`.
+    tick: u64 = 0,
+    request: u64 = 0,
+    request_signal: std.atomic.Value(u64) = .init(0),
+    evictions: u64 = 0,
+    aged: u64 = 0,
 
     pub fn init(a: std.mem.Allocator, api: Api, policy: Policy) Cache {
-        return .{ .allocator = a, .api = api, .policy = policy, .budget_spent = !policy.enabled or policy.budget_bytes == 0 };
+        return .{ .allocator = a, .api = api, .policy = policy, .disabled = !policy.enabled or policy.budget_bytes == 0 };
     }
     pub fn deinit(self: *Cache) void {
         var it = self.entries.valueIterator();
@@ -93,28 +111,91 @@ pub const Cache = struct {
         self.blacklist.deinit(self.allocator);
         self.* = undefined;
     }
+    /// A new request begins (any thread; the worker thread ages on its next run).
+    pub fn noteRequest(self: *Cache) void {
+        _ = self.request_signal.fetchAdd(1, .release);
+    }
+    /// Worker thread: drop executables, sightings and bans idle for more than
+    /// `policy.idle_requests` requests. An executable destroyed while a launch
+    /// of it is still in flight is freed on completion (cuGraphExecDestroy).
+    fn age(self: *Cache) void {
+        const now = self.request_signal.load(.acquire);
+        if (now == self.request) return;
+        self.request = now;
+        const idle = self.policy.idle_requests;
+        if (idle == 0) return;
+        const stale = struct {
+            fn f(last: u64, current: u64, limit: u32) bool {
+                return current > last and current - last > limit;
+            }
+        }.f;
+        var keys: std.ArrayListUnmanaged(Key) = .empty;
+        defer keys.deinit(self.allocator);
+        {
+            var it = self.entries.iterator();
+            while (it.next()) |kv| if (stale(kv.value_ptr.request, now, idle)) keys.append(self.allocator, kv.key_ptr.*) catch return;
+        }
+        for (keys.items) |key| {
+            const old = self.entries.fetchRemove(key).?;
+            self.api.destroy_exec(old.value.exec);
+            self.used_bytes -= old.value.bytes;
+            self.aged += 1;
+        }
+        keys.clearRetainingCapacity();
+        {
+            var it = self.sightings.iterator();
+            while (it.next()) |kv| if (stale(kv.value_ptr.request, now, idle)) keys.append(self.allocator, kv.key_ptr.*) catch return;
+        }
+        for (keys.items) |key| _ = self.sightings.remove(key);
+        keys.clearRetainingCapacity();
+        {
+            var it = self.blacklist.iterator();
+            while (it.next()) |kv| if (stale(kv.value_ptr.*, now, idle)) keys.append(self.allocator, kv.key_ptr.*) catch return;
+        }
+        for (keys.items) |key| _ = self.blacklist.remove(key);
+    }
     fn ban(self: *Cache, key: Key, why: []const u8) void {
         std.log.warn("OUTER_GRAPH blacklist class={x} placement={d} reason={s}", .{ key.class[0..8], key.placement, why });
         if (self.entries.fetchRemove(key)) |old| {
             self.api.destroy_exec(old.value.exec);
             self.used_bytes -= old.value.bytes;
         }
-        self.blacklist.put(self.allocator, key, {}) catch {};
+        self.blacklist.put(self.allocator, key, self.request) catch {};
     }
     fn wantCapture(self: *Cache, key: Key) !bool {
+        if (self.disabled) return false;
         if (self.blacklist.contains(key)) return false;
         if (self.entries.contains(key)) return true;
-        if (self.budget_spent) return false;
         const seen = try self.sightings.getOrPut(self.allocator, key);
-        if (!seen.found_existing) seen.value_ptr.* = 0;
-        seen.value_ptr.* += 1;
-        return seen.value_ptr.* >= self.policy.threshold;
+        if (!seen.found_existing) seen.value_ptr.* = .{ .count = 0, .request = self.request };
+        seen.value_ptr.count +|= 1;
+        seen.value_ptr.request = self.request;
+        return seen.value_ptr.count >= self.policy.threshold;
+    }
+    /// Evict least recently launched executables until `bytes` more fit.
+    fn makeRoom(self: *Cache, bytes: u64) void {
+        while (self.used_bytes + bytes > self.policy.budget_bytes) {
+            var victim: ?Key = null;
+            var oldest: u64 = std.math.maxInt(u64);
+            var it = self.entries.iterator();
+            while (it.next()) |kv| if (kv.value_ptr.last_use < oldest) {
+                oldest = kv.value_ptr.last_use;
+                victim = kv.key_ptr.*;
+            };
+            const v = victim orelse return;
+            const old = self.entries.fetchRemove(v).?;
+            self.api.destroy_exec(old.value.exec);
+            self.used_bytes -= old.value.bytes;
+            self.evictions += 1;
+        }
     }
     /// Runs `body.enqueue()` on `stream`, through a graph when warm.
     /// `body` must provide `enqueue(self) !u32` (host-API launches issued)
     /// and `reset(self) void` (drop node-local allocations of a recorded but
     /// discarded attempt, before a direct re-run).
     pub fn run(self: *Cache, key: Key, stream: *anyopaque, body: anytype) !Report {
+        self.age();
+        self.tick += 1;
         if (!(try self.wantCapture(key))) return .{ .outcome = .direct, .launches = try body.enqueue() };
         if (self.api.begin(stream) != 0) {
             self.ban(key, "begin");
@@ -145,6 +226,8 @@ pub const Cache = struct {
                     body.reset();
                     return .{ .outcome = .fallback, .launches = try body.enqueue() };
                 }
+                entry.last_use = self.tick;
+                entry.request = self.request;
                 return .{ .outcome = .rebound, .kernel_nodes = kernels, .total_nodes = total, .launches = 1 };
             }
             // Topology changed: drop the old executable and instantiate anew.
@@ -160,21 +243,22 @@ pub const Cache = struct {
             body.reset();
             return .{ .outcome = .fallback, .launches = try body.enqueue() };
         }
-        if (charged == std.math.maxInt(u64) or self.used_bytes + charged > self.policy.budget_bytes) {
-            // Unknown or over-budget cost: never keep it; this device stops capturing.
+        if (charged == std.math.maxInt(u64) or charged > self.policy.budget_bytes) {
+            // Unknown cost, or one executable larger than the whole budget:
+            // never kept, this key runs direct (until its ban ages out).
             self.api.destroy_exec(exec.?);
-            self.budget_spent = true;
-            std.log.warn("OUTER_GRAPH budget spent used={d} next={d} budget={d}", .{ self.used_bytes, charged, self.policy.budget_bytes });
+            self.ban(key, if (charged == std.math.maxInt(u64)) "charge-unknown" else "exceeds-budget");
             body.reset();
             return .{ .outcome = .fallback, .launches = try body.enqueue() };
         }
+        self.makeRoom(charged);
         if (self.api.launch(exec.?, stream) != 0) {
             self.api.destroy_exec(exec.?);
             self.ban(key, "first-launch");
             body.reset();
             return .{ .outcome = .fallback, .launches = try body.enqueue() };
         }
-        try self.entries.put(self.allocator, key, .{ .exec = exec.?, .bytes = charged, .kernel_nodes = kernels, .total_nodes = total });
+        try self.entries.put(self.allocator, key, .{ .exec = exec.?, .bytes = charged, .kernel_nodes = kernels, .total_nodes = total, .last_use = self.tick, .request = self.request });
         self.used_bytes += charged;
         return .{ .outcome = outcome, .kernel_nodes = kernels, .total_nodes = total, .launches = 1 };
     }
@@ -273,12 +357,66 @@ test "graph cache: direct below threshold, capture once warm, rebind per node, b
     try testing.expectEqual(Outcome.fallback, failed.outcome);
     try testing.expectEqual(@as(u32, 1), body.resets);
     try testing.expectEqual(Outcome.direct, (try cache.run(other, &stream, &body)).outcome);
-    // Over budget: never kept, device stops capturing.
+    // One executable larger than the whole budget: never kept, only that key is banned.
     FakeCuda.charge = 1 << 40;
     const third = Key{ .class = @splat(9), .placement = 0 };
     _ = try cache.run(third, &stream, &body);
     try testing.expectEqual(Outcome.fallback, (try cache.run(third, &stream, &body)).outcome);
-    try testing.expect(cache.budget_spent);
     try testing.expectEqual(@as(i32, 1), FakeCuda.execs_live);
     FakeCuda.charge = 1 << 20;
+    try testing.expectEqual(Outcome.rebound, (try cache.run(key, &stream, &body)).outcome);
+}
+
+test "graph cache: over budget evicts the least recently launched executable; new keys keep capturing" {
+    FakeCuda.execs_live = 0;
+    FakeCuda.graphs_live = 0;
+    FakeCuda.charge = 1 << 20;
+    // Room for exactly 3 executables of 1 MiB.
+    var cache = Cache.init(testing.allocator, FakeCuda.api, .{ .threshold = 1, .budget_bytes = 3 << 20, .idle_requests = 0 });
+    defer cache.deinit();
+    var body = Body{};
+    var stream: u8 = 0;
+    var k: u8 = 0;
+    while (k < 10) : (k += 1) {
+        const key = Key{ .class = @splat(k), .placement = 0 };
+        try testing.expectEqual(Outcome.captured, (try cache.run(key, &stream, &body)).outcome);
+        // Key 0 stays hot: rebound after every new key.
+        if (k != 0) try testing.expectEqual(Outcome.rebound, (try cache.run(.{ .class = @splat(0), .placement = 0 }, &stream, &body)).outcome);
+        try testing.expect(cache.used_bytes <= 3 << 20);
+    }
+    try testing.expectEqual(@as(usize, 3), cache.entries.count());
+    try testing.expect(cache.entries.contains(.{ .class = @splat(0), .placement = 0 }));
+    try testing.expectEqual(@as(u64, 7), cache.evictions);
+    try testing.expectEqual(@as(i32, 3), FakeCuda.execs_live);
+}
+
+test "graph cache: executables, sightings and bans idle for more than idle_requests requests age out" {
+    FakeCuda.execs_live = 0;
+    FakeCuda.graphs_live = 0;
+    FakeCuda.charge = 1 << 20;
+    var cache = Cache.init(testing.allocator, FakeCuda.api, .{ .threshold = 1, .idle_requests = 2 });
+    defer cache.deinit();
+    var body = Body{};
+    var stream: u8 = 0;
+    const old = Key{ .class = @splat(1), .placement = 0 };
+    const hot = Key{ .class = @splat(2), .placement = 0 };
+    const banned = Key{ .class = @splat(3), .placement = 0 };
+    _ = try cache.run(old, &stream, &body);
+    FakeCuda.fail_end = true;
+    try testing.expectEqual(Outcome.fallback, (try cache.run(banned, &stream, &body)).outcome);
+    FakeCuda.fail_end = false;
+    var r: u32 = 0;
+    while (r < 3) : (r += 1) {
+        cache.noteRequest();
+        _ = try cache.run(hot, &stream, &body);
+        // Still within the idle window after 2 requests.
+        if (r < 2) try testing.expect(cache.entries.contains(old));
+    }
+    try testing.expect(!cache.entries.contains(old));
+    try testing.expect(!cache.blacklist.contains(banned));
+    try testing.expect(cache.entries.contains(hot));
+    try testing.expectEqual(@as(u64, 1), cache.aged);
+    try testing.expectEqual(@as(i32, 1), FakeCuda.execs_live);
+    // An aged-out ban captures again.
+    try testing.expectEqual(Outcome.captured, (try cache.run(banned, &stream, &body)).outcome);
 }
