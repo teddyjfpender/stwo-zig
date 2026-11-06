@@ -16,6 +16,8 @@ untouched and are the parity reference. Selected only by `STWO_RV64_M8_JOBS=1` o
 | `mod.zig` | `combined-serve` entry: selection, workers, boot self-test, provider (fails closed until it lands) |
 | `lint.zig` | sync lint: no sync/D2H/lease symbol reachable (file level, transitive) from job sources |
 | `fake.zig` | host device model for GPU-free tests (`zig build test-rv64-jobs`) |
+| `gpu_native.zig` | GPU-native request contract (`design/riscv-proving-stack/rv64-m8-gpu-native.md`): status words, request slab, peer exchange, class cache, device checks/encoders, memory plan, capture hand-off, factories, `publish` |
+| `driver.zig` / `native_device.zig` / `outer_device.zig` / `truth_job.zig` | GPU-native stream entry points (stubs, fail closed) for streams driver / native / recursion |
 
 CUDA addon: `NAT/rv64/jobs/*.cu` → `libstwo-rv64-jobs.so` (`scripts/rv64_m8_jobs_addon_build.py --base <frozen image>
 --out <dir>`), loaded with `STWO_RV64_M8_JOBS_LIBRARY`. ABI version in `ops.zig` = `runtime.cu`.
