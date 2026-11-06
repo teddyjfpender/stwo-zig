@@ -11,4 +11,6 @@ test {
     _ = @import("rv64/jobs/outer_fixed_job.zig");
     _ = @import("rv64/jobs/outer_env.zig");
     _ = @import("rv64/jobs/outer_window.zig");
+    _ = @import("rv64/jobs/outer_device.zig");
+    _ = @import("rv64/jobs/truth_job.zig");
 }

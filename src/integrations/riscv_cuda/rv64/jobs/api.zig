@@ -14,6 +14,9 @@ const worker = @import("worker.zig");
 pub const DeviceChannel = @import("channel.zig").DeviceChannel;
 pub const ProofSlab = @import("slab.zig").ProofSlab;
 pub const ProofLayout = @import("slab.zig").ProofLayout;
+/// GPU-native request contract (slab regions, status words, class cache,
+/// device checks, peer exchange): rv64-m8-gpu-native.md. Additive.
+pub const gpu_native = @import("gpu_native.zig");
 
 pub const Placement = enum {
     bottom,
