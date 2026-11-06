@@ -64,6 +64,23 @@ def check_corpus(receipt):
         raise RuntimeError('negative corpus crashed or unexpectedly accepted')
 
 
+def extra_environment(items):
+    """--env KEY=VALUE for the proving service (e.g. STWO_RV64_M8_JOBS=1).
+
+    Only STWO_* keys; each key once. The values are recorded in the receipt
+    and appended after the preset's environment, so they override it.
+    """
+    result = {}
+    for item in items:
+        key, sep, value = item.partition('=')
+        if not sep or not key.startswith('STWO_') or not key.replace('_', '').isalnum() or not key.isupper():
+            raise ValueError(f'--env expects STWO_KEY=VALUE, got {item!r}')
+        if key in result:
+            raise ValueError(f'--env {key} given twice')
+        result[key] = value
+    return result
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--stream', default='m7-integrate')
@@ -72,14 +89,21 @@ def main():
     p.add_argument('--block', type=int, choices=(26235156, 24628607), default=26235156)
     p.add_argument('--donor', type=Path, help='accepted opposite dev block; frozen D2 run by default')
     p.add_argument('--source-commit', required=True)
+    p.add_argument('--env', action='append', default=[], metavar='KEY=VALUE',
+                   help='extra STWO_* service environment (repeatable), e.g. STWO_RV64_M8_JOBS=1')
     args = p.parse_args()
+    try:
+        extra_env = extra_environment(args.env)
+    except ValueError as error:
+        p.error(str(error))
     if ROOT != Path('/workspace/m3/src') / args.stream:
         p.error('run only in the synced pod source tree; no laptop builds')
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=False)
     receipt = {'schema': 'rv64-commit-gate/v1', 'status': 'RUNNING',
                'source_commit': args.source_commit, 'source_sha256': stack.source_hashes(ROOT),
-               'block': args.block, 'steps': [], 'timing_scope': 'correctness only; no speed claim'}
+               'block': args.block, 'steps': [], 'timing_scope': 'correctness only; no speed claim',
+               'extra_env': extra_env}
     env = stack.clean_environment(os.environ)
     env['ZIG_GLOBAL_CACHE_DIR'] = '/workspace/m3/cache/zig-global'
     env['TMPDIR'] = '/workspace/m3/tmp'
@@ -109,7 +133,7 @@ def main():
                             '--stream', args.stream, '--only', 'zig'])
         run('unit-zig', lock + ['/workspace/zig/zig', 'build', 'test',
                                'test-rv64-recursion-ready', 'test-rv64-batch-plan',
-                               'test-rv64-gkr-plan', 'test-rv64-pcs-geometry',
+                               'test-rv64-gkr-plan', 'test-rv64-pcs-geometry', 'test-rv64-jobs',
                                '-j2', '-Doptimize=ReleaseSafe', '-Dtarget=x86_64-linux-gnu',
                                '-Dcpu=x86_64_v4+sha', '--cache-dir', str(ROOT / '.zig-cache')],
             ROOT / 'src/integrations/riscv_cuda')
@@ -128,6 +152,8 @@ def main():
         argv, tag = stack.command(manifest, 'baseline', 0, args.stream, False, label)
         # Keep quiet observations but do not call correctness walls matched timings.
         argv += ['--quiet-mode', 'diagnostic', '--request-timeout', '240']
+        for key, value in sorted(extra_env.items()):
+            argv += ['--env', f'{key}={value}']
         run('small-block-proof', argv)
         service = Path('/workspace/m3/runs') / args.stream / f'daemon-{args.block}-r2-{tag}'
         receipt['service'] = str(service)

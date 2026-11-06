@@ -32,6 +32,13 @@ class GateTests(unittest.TestCase):
             proof.unlink()
             with self.assertRaises(RuntimeError): gate.frozen_parity(root, golden)
 
+    def test_extra_environment_accepts_only_unique_stwo_keys(self):
+        self.assertEqual(gate.extra_environment(['STWO_RV64_M8_JOBS=1', 'STWO_X=a=b']),
+                         {'STWO_RV64_M8_JOBS': '1', 'STWO_X': 'a=b'})
+        self.assertEqual(gate.extra_environment([]), {})
+        for bad in (['PATH=/tmp'], ['STWO_RV64_M8_JOBS'], ['stwo_x=1'], ['STWO_A=1', 'STWO_A=2'], ['STWO_A-B=1']):
+            with self.assertRaises(ValueError): gate.extra_environment(bad)
+
     def test_corpus_cannot_pass_by_running_nothing_or_skipping(self):
         good = {'results': [{'id': name, 'passed': True} for name in gate.CASES]}
         gate.check_corpus(good)

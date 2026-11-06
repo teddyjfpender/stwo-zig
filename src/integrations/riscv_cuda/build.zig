@@ -66,6 +66,14 @@ pub fn build(b: *std.Build) void {
     const gkr_plan_tests = b.addTest(.{ .root_module = gkr_plan_root });
     gkr_plan_tests.linkLibC();
     b.step("test-rv64-gkr-plan", "Check consumed-tree GKR workspace custody without CUDA or a full prover build").dependOn(&b.addRunArtifact(gkr_plan_tests).step);
+    // M8 job runtime (rv64/jobs): host tests without a GPU. Runs from this
+    // directory so the sync lint can read the job sources.
+    const jobs_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_test_root.zig"), .target = target, .optimize = optimize });
+    jobs_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    const jobs_tests = b.addTest(.{ .root_module = jobs_root });
+    const jobs_run = b.addRunArtifact(jobs_tests);
+    jobs_run.setCwd(b.path("."));
+    b.step("test-rv64-jobs", "Test the M8 job runtime contract, worker pipeline, channel parity model, slab, scheduler and sync lint without a GPU").dependOn(&jobs_run.step);
     const batch_test_root = b.createModule(.{ .root_source_file = b.path("rv64_batch_test_root.zig"), .target = target, .optimize = optimize });
     batch_test_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     batch_test_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
