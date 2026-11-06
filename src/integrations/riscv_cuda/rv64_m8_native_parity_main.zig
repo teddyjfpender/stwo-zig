@@ -288,8 +288,8 @@ const GlobalParityJob = struct {
         const p = self.plan;
         const columns = self.fixed_device.len + self.main.len;
         const mirror = try e.alloc(columns * p.rows);
-        var local: [256][*]const u32 = undefined;
-        if (columns > local.len) return error.GlobalParityTooManyColumns;
+        const local = try self.a.alloc([*]const u32, columns);
+        defer self.a.free(local);
         for (self.fixed_device, 0..) |c, i| {
             try self.peer.mirror(e, mirror.ptr + i * p.rows, c, p.rows);
             local[i] = mirror.ptr + i * p.rows;

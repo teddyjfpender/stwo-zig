@@ -143,7 +143,7 @@ pub const CommitPlan = struct {
     pub fn deviceWords(self: *const CommitPlan) usize {
         // Prefix banks: at most 48 words per row of the largest non-final height (trace_commit.zig).
         // beta >= 2 with caller storage also holds a temporary coefficient region.
-        const extra = if (self.beta == 1) 0 else self.coefficient_cells + 64;
+        const extra = if (self.beta == 1) 0 else self.coefficient_cells + self.auxWords() + 3 * 64;
         return self.coefficient_cells + self.eval_cells + self.tree_words + 48 * (@as(usize, 1) << @intCast(self.eval_log - 1)) + 3 * 64 + extra;
     }
     /// Phase-1 arena words (logs + staged host columns); twiddles are persistent.
@@ -191,16 +191,26 @@ pub const CommitPlan = struct {
     fn granule() usize {
         return @import("worker.zig").Arena.granule;
     }
-    /// Word offsets of the coefficient and evaluation regions from the lower of
-    /// the two back-to-back allocations (bottom side grows up, top grows down).
-    fn addressedBases(self: *const CommitPlan, placement: api.Placement) [2]usize {
-        return if (placement == .bottom) .{ 0, std.mem.alignForward(usize, self.coefficient_cells, granule()) } else .{ std.mem.alignForward(usize, self.eval_cells, granule()), 0 };
+    /// The addressed LDE reads its descriptors and twiddles from inside its
+    /// arena range (legacy co-locates them), so enqueue allocates an aux region
+    /// {forward twiddles, descriptors} right after the evaluations.
+    fn auxWords(self: *const CommitPlan) usize {
+        return self.tw.twiddles.len + 7 * self.order.len;
+    }
+    /// Word offsets {coefficients, evaluations, aux} from the lowest of the
+    /// three back-to-back allocations (bottom side grows up, top grows down).
+    fn addressedBases(self: *const CommitPlan, placement: api.Placement) [3]usize {
+        const c = std.mem.alignForward(usize, self.coefficient_cells, granule());
+        const v = std.mem.alignForward(usize, self.eval_cells, granule());
+        const x = std.mem.alignForward(usize, self.auxWords(), granule());
+        return if (placement == .bottom) .{ 0, c, c + v } else .{ x + v, x, 0 };
     }
     /// The legacy descriptor table (trace_commit.zig): per sorted column
     /// {coefficient offset u64, evaluation offset u64, log, 0}, then the logs.
     pub fn addressedDescriptors(self: *const CommitPlan, placement: api.Placement, out: []u32) void {
         const bases = self.addressedBases(placement);
         const n = self.order.len;
+        std.debug.assert(out.len == 7 * n);
         var eval_offset: usize = bases[1];
         for (self.order, 0..) |original, i| {
             const log = self.shapes[original].log_size;
@@ -226,11 +236,15 @@ pub const CommitPlan = struct {
         const stream = e.stream();
         try self.ingressAndInterpolate(sym, e.ctx(), stream, inputs, coefficients);
         const evaluations = try e.alloc(self.eval_cells);
+        const aux = try e.alloc(self.auxWords());
         const bases = self.addressedBases(self.placement);
-        const lower = @min(@intFromPtr(coefficients.ptr), @intFromPtr(evaluations.ptr));
-        if (@intFromPtr(coefficients.ptr) != lower + 4 * bases[0] or @intFromPtr(evaluations.ptr) != lower + 4 * bases[1]) return error.TraceCommitArenaLayout;
+        const lower = @min(@intFromPtr(coefficients.ptr), @min(@intFromPtr(evaluations.ptr), @intFromPtr(aux.ptr)));
+        if (@intFromPtr(coefficients.ptr) != lower + 4 * bases[0] or @intFromPtr(evaluations.ptr) != lower + 4 * bases[1] or @intFromPtr(aux.ptr) != lower + 4 * bases[2]) return error.TraceCommitArenaLayout;
         const base: [*]u32 = @ptrFromInt(lower);
-        const span = @max(bases[0] + self.coefficient_cells, bases[1] + self.eval_cells);
+        const span = @max(bases[0] + self.coefficient_cells, @max(bases[1] + self.eval_cells, bases[2] + self.auxWords()));
+        const tw_words = self.tw.twiddles.len;
+        try check(sym.copy_d2d(e.ctx(), aux.ptr, tw.ptr, tw_words * 4));
+        try check(sym.copy_d2d(e.ctx(), aux.ptr + tw_words, descriptors.ptr, 7 * self.order.len * 4));
         var launches: u32 = 0;
         var segments: [96]MixedSegment = undefined;
         var segment_count: usize = 0;
@@ -241,7 +255,7 @@ pub const CommitPlan = struct {
             var end = first + 1;
             while (end < self.order.len and self.shapes[self.order[end]].log_size + self.beta == log) : (end += 1) {}
             const rows = @as(usize, 1) << @intCast(log);
-            try check(n2b(base, span, descriptors.ptr + 6 * first, @intCast(end - first), bases[1] + eval_offset, log, tw.ptr + self.tw.twiddles.len - rows / 2, @intCast(rows / 2), @intCast(rows / 2), stream, 1, &launches));
+            try checkAt(@src().line, n2b(base, span, aux.ptr + tw_words + 6 * first, @intCast(end - first), bases[1] + eval_offset, log, aux.ptr + tw_words - rows / 2, @intCast(rows / 2), @intCast(rows / 2), stream, 1, &launches));
             if (segment_count == segments.len) return error.UnsupportedTraceCommitGeometry;
             segments[segment_count] = .{ .columns = evaluations.ptr + eval_offset, .stride_words = rows, .capacity_words = rows * (end - first), .source_size = @intCast(rows) };
             segment_count += 1;
@@ -249,6 +263,7 @@ pub const CommitPlan = struct {
             first = end;
         }
         try self.treeAndRoot(sym, e, segments[0..segment_count], root_out, mix);
+        e.free(aux);
         e.free(evaluations);
         return .{ .coefficients = coefficients, .root = root_out.ptr };
     }
@@ -287,7 +302,7 @@ pub const CommitPlan = struct {
             prefix_words = @intCast(words);
         }
         const tree = try e.alloc(self.tree_words + prefix_words);
-        try check(sym.tree(e.ctx(), 0, segments.ptr, @intCast(segments.len), self.eval_log, tree.ptr, tree.words));
+        try checkAt(@src().line, sym.tree(e.ctx(), 0, segments.ptr, @intCast(segments.len), self.eval_log, tree.ptr, tree.words));
         try check(sym.copy_d2d(e.ctx(), root_out.ptr, tree.ptr + self.tree_words - 8, 32));
         if (mix) try e.channel.mixRootFromTree(.{ .ptr = root_out.ptr, .words = 8 });
         e.free(tree);
@@ -375,6 +390,13 @@ fn mWords(values: []const core.fields.m31.M31) []const u32 {
 fn check(code: c_int) !void {
     if (code != 0) return error.CudaEnqueueFailed;
 }
+/// Failure-only diagnostic (names the call site and native status).
+fn checkAt(line: u32, code: c_int) !void {
+    if (code != 0) {
+        std.debug.print("M8_NATIVE_COMMIT_ENQUEUE_FAILED line={} status={}\n", .{ line, code });
+        return error.CudaEnqueueFailed;
+    }
+}
 
 test "commit plan sorts by height stably and lays out the compact coefficient image" {
     var plan = try CommitPlan.init(std.testing.allocator, &.{ .{ .log_size = 5, .encoding = .evaluations }, .{ .log_size = 3, .encoding = .coefficients }, .{ .log_size = 5, .encoding = .coefficients }, .{ .log_size = 3, .encoding = .evaluations } }, 1);
@@ -399,8 +421,10 @@ test "beta 2 descriptors address coefficients and evaluations from the lower buf
     try std.testing.expectEqualSlices(u32, &.{ 0, 0, 64, 0, 3, 0, 8, 0, 96, 0, 5, 0, 3, 5 }, &bottom);
     var top: [14]u32 = undefined;
     plan.addressedDescriptors(.top, &top);
-    // coefficients sit above align64(160) = 192 evaluation words.
-    try std.testing.expectEqualSlices(u32, &.{ 192, 0, 0, 0, 3, 0, 200, 0, 32, 0, 5, 0, 3, 5 }, &top);
+    // top: aux (64 tw + 14 descriptor words -> 128) lowest, then 192 evaluation
+    // words, then the coefficients at 128 + 192 = 320.
+    try std.testing.expectEqual(@as(usize, 64 + 14), plan.auxWords());
+    try std.testing.expectEqualSlices(u32, &.{ 320, 0, 128, 0, 3, 0, 328, 0, 160, 0, 5, 0, 3, 5 }, &top);
 }
 
 test "commit plan paths are analyzed" {
