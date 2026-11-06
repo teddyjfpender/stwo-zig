@@ -516,7 +516,6 @@ pub const Worker = struct {
     control: ?Control = null,
     control_done: bool = false,
     control_result: anyerror!ParkReceipt = .{},
-    call_result: anyerror!void = {},
     // ---- GPU-native request batches (rv64-m8-gpu-native.md §3.7-§3.8) ----
     /// Per-parity slot pools (events created at install by `reserveBatches`).
     batch_slots: [2][]Slot = .{ &.{}, &.{} },
@@ -552,7 +551,11 @@ pub const Worker = struct {
     stopped: bool = false,
 
     const Submission = struct { job: api.Job, sink: Sink, index: u64, declared: api.Footprint, resolved: MP.Resolved };
-    const Control = union(enum) { park: ParkOptions, unpark: usize, call: Call };
+    const Control = union(enum) { park: ParkOptions, unpark: usize, call: Posted };
+    /// A call and the completion owned by its caller's frame: concurrent
+    /// callers never consume each other's completion (one shared done flag
+    /// let caller B return A's result and pop its Call while B's was queued).
+    const Posted = struct { call: Call, done: *CallDone };
 
     pub fn create(a: std.mem.Allocator, ops: *const O.Ops, config_in: Config) !*Worker {
         var config = config_in;
@@ -860,11 +863,11 @@ pub const Worker = struct {
 
     fn serviceControl(self: *Worker, c: Control) void {
         if (c == .call) {
-            const result = c.call.run(c.call.ctx, self);
+            const result = c.call.call.run(c.call.call.ctx, self);
             self.mutex.lock();
             defer self.mutex.unlock();
-            self.call_result = result;
-            self.control_done = true;
+            c.call.done.result = result;
+            c.call.done.done = true;
             self.cond.broadcast();
             return;
         }
@@ -979,6 +982,8 @@ pub const Worker = struct {
     fn requestControl(self: *Worker, c: Control) !ParkReceipt {
         self.mutex.lock();
         defer self.mutex.unlock();
+        // The control slot is single: never overwrite (lose) a posted call.
+        while (self.control != null) self.cond.wait(&self.mutex);
         self.control = c;
         self.control_done = false;
         self.cond.broadcast();
@@ -1415,6 +1420,17 @@ pub const Worker = struct {
         } else self.enqueueBody(slot) catch |err| {
             slot.failed = err;
         };
+        // A skipped (or early-failed) body never made the exec stream wait
+        // on its staged uploads: do it now, so this done event — and every
+        // later quiesce/request wait on the exec stream — dominates every
+        // copy the slot issued from the (parity-reused) pinned pool.
+        if (slot.uploads and !slot.waited_staged) {
+            O.check(self.ops.exec.stream_wait(self.exec_stream, slot.staged_event.?)) catch |err| {
+                self.markFatal(err);
+                slot.failed = slot.failed orelse err;
+            };
+            slot.waited_staged = true;
+        }
         // The done event is recorded even after a failure so later h2d waits
         // and this job's completion are well defined.
         O.check(self.ops.exec.event_record(slot.done_event.?, self.exec_stream)) catch |err| {
@@ -1598,19 +1614,36 @@ pub const Worker = struct {
 
     /// Runs `run(ctx, worker)` on the worker thread with the pipeline idle
     /// (the control slot, like park/unpark). Any thread; returns its result.
+    /// Safe for concurrent callers: each waits on its own completion.
     pub fn call(self: *Worker, c: Call) !void {
         if (self.thread_id == std.Thread.getCurrentId()) return c.run(c.ctx, self);
+        var done = CallDone{};
+        try self.post(c, &done);
+        return self.awaitCall(&done);
+    }
+
+    /// Queue `c` for the worker thread and return without waiting for it
+    /// (the driver dispatches one GPU's batch while it enqueues another's,
+    /// with no per-request thread). `c.ctx` and `done` must stay valid until
+    /// `awaitCall(done)` returned. Not from the worker thread itself.
+    pub fn post(self: *Worker, c: Call, done: *CallDone) !void {
+        if (self.thread_id == std.Thread.getCurrentId()) return error.WorkerPostFromWorkerThread;
+        done.* = .{};
         self.mutex.lock();
         defer self.mutex.unlock();
         if (self.fatal) |err| return err;
         if (self.closing) return error.WorkerClosing;
         while (self.control != null or self.unparking or self.parking) self.cond.wait(&self.mutex);
-        self.control = .{ .call = c };
-        self.control_done = false;
+        self.control = .{ .call = .{ .call = c, .done = done } };
         self.cond.broadcast();
-        while (!self.control_done) self.cond.wait(&self.mutex);
-        self.control_done = false;
-        return self.call_result;
+    }
+
+    /// The result of a `post`ed call (blocks until it ran).
+    pub fn awaitCall(self: *Worker, done: *CallDone) anyerror!void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        while (!done.done) self.cond.wait(&self.mutex);
+        return done.result;
     }
 
     /// Install (worker thread, idle): `max_jobs` slots per parity with their
@@ -1690,6 +1723,30 @@ pub const Worker = struct {
         return .{ .ptr = block.? + phase_a_words, .words = phase_b_words - phase_a_words };
     }
 
+    /// Teardown (worker thread, every batch finished or quiesced): free the
+    /// plan block and leave the worker parked (no arena; `unpark` may
+    /// acquire a plain one again). Without it the worker kept the block and
+    /// could never park again (WorkerPlanArenaInstalled).
+    pub fn uninstallPlanArena(self: *Worker) !void {
+        try self.onWorkerThread();
+        if (self.plan_phase_words[1] == 0) return;
+        const words = self.plan_phase_words[0];
+        if (self.arena_buffer) |p| {
+            self.arena_buffer = null;
+            try O.check(self.ops.exec.free_u32(self.context, p));
+        }
+        self.last_base = self.arena.base;
+        self.last_words = words;
+        self.arena = .{ .reuse = self.config.reuse_frees };
+        self.last_enqueued = null;
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.plan_phase_words = .{ 0, 0 };
+        self.plan_phase_b = false;
+        self.arena_epoch = @max(self.arena_epoch, self.plan_phase_epochs[1]) + 1;
+        self.parked = true;
+    }
+
     fn setPhase(self: *Worker, b: bool) void {
         if (self.plan_phase_words[1] == 0 or self.plan_phase_b == b) return;
         self.arena = .{ .base = self.arena.base, .words = self.plan_phase_words[@intFromBool(b)], .reuse = self.config.reuse_frees };
@@ -1738,6 +1795,13 @@ pub const Worker = struct {
                 staged = null;
                 self.setPhase(true);
             }
+            // A gated job (capture) is staged only after its gates latched
+            // (its stage may read the sealed segment). Enqueue the staged
+            // job first so it does not wait behind a later segment's capture.
+            if (!gatesLatched(bj)) {
+                if (staged) |s| self.batchEnqueue(b, s, null);
+                staged = null;
+            }
             const slot = self.batchStage(b, i);
             if (staged) |s| self.batchEnqueue(b, s, slot);
             staged = slot;
@@ -1749,9 +1813,24 @@ pub const Worker = struct {
         b.slots_used = b.jobs.len;
     }
 
+    fn gatesLatched(bj: *const BatchJob) bool {
+        for (bj.gates) |g| if (!g.recorded.isSet()) return false;
+        return true;
+    }
+
+    /// A job settled failed host-side: its `on_fail` hook (e.g. cancel the
+    /// capture whose gates would otherwise never fire), once.
+    fn notifyFailed(bj: *BatchJob) void {
+        if (bj.on_fail) |f| {
+            bj.on_fail = null;
+            f.call(f.user);
+        }
+    }
+
     pub fn failBatch(b: *Batch, err: anyerror, first: usize) void {
         b.result = err;
         for (b.jobs[first..]) |*bj| {
+            notifyFailed(bj);
             bj.job.vtable.abort(bj.job.ctx);
             bj.result = err;
             // Poison dependents (any GPU): a consumer must never enqueue its
@@ -1778,6 +1857,11 @@ pub const Worker = struct {
         slot.footprint = resolved.footprint;
         var timer = std.time.Timer.start() catch unreachable;
         const refused: ?anyerror = blk: {
+            // Host gates first (capture seal): stage may read the segment.
+            var gate_timer = std.time.Timer.start() catch unreachable;
+            for (bj.gates) |g| g.recorded.wait();
+            b.gate_wait_ns += gate_timer.read();
+            for (bj.gates) |g| if (g.failed.load(.acquire)) break :blk error.BatchDependencyFailed;
             if (need > 0 and pinned.len == 0) break :blk error.JobFootprintExceedsBatchPinned;
             if (!resolved.planned) if (self.policy) |p| if (p.unplanned() == .refuse) break :blk error.JobClassNotInMemoryPolicy;
             const fixed = Channel.state_words + slot.footprint.slab_words;
@@ -1794,6 +1878,18 @@ pub const Worker = struct {
         };
         b.pinned_used += pinned.len;
         if (refused) |err| {
+            // Uploads the stage already issued (h2d, from the parity's pinned
+            // pool) must be dominated by the exec stream: no done event of
+            // this slot exists, so order them before every later job here.
+            if (slot.uploads) {
+                const ordered: anyerror!void = blk: {
+                    O.check(self.ops.exec.event_record(slot.staged_event.?, self.h2d_stream)) catch |e| break :blk e;
+                    O.check(self.ops.exec.stream_wait(self.exec_stream, slot.staged_event.?)) catch |e| break :blk e;
+                    break :blk {};
+                };
+                ordered catch |e| self.markFatal(e);
+            }
+            notifyFailed(bj);
             bj.job.vtable.abort(bj.job.ctx);
             self.settle(slot, err);
             bj.result = err;
@@ -1821,10 +1917,22 @@ pub const Worker = struct {
         }
         b.gate_wait_ns += gate_timer.read();
         _ = self.enqueue(slot, next);
-        if (slot.failed == null) if (bj.after) |f| self.enqueueHostFnRaw(f) catch |err| {
-            slot.failed = err;
+        // `after` (capture ring release) runs whatever the body's outcome,
+        // after this slot's done record, as long as every gate succeeded (a
+        // failed gate means the capture may still own its buffers; the
+        // stream's detach returns them once the capture ended). A failed
+        // Stage1 that never released its buffers wedged the capture ring.
+        if (bj.after) |f| if (gatesSucceeded(bj)) self.enqueueHostFnRaw(f) catch |err| {
+            self.markFatal(err);
+            slot.failed = slot.failed orelse err;
         };
+        if (slot.failed != null) notifyFailed(bj);
         bj.done.signal(slot.done_event, slot.failed != null);
+    }
+
+    fn gatesSucceeded(bj: *const BatchJob) bool {
+        for (bj.gates) |g| if (!g.recorded.isSet() or g.failed.load(.acquire)) return false;
+        return true;
     }
 
     fn enqueueHostFnRaw(self: *Worker, f: api.HostFn) !void {
@@ -1885,6 +1993,13 @@ pub const Call = struct {
     run: *const fn (*anyopaque, *Worker) anyerror!void,
 };
 
+/// Completion of one `Worker.post` (owned by the caller; guarded by the
+/// worker's mutex).
+pub const CallDone = struct {
+    done: bool = false,
+    result: anyerror!void = {},
+};
+
 /// A host-visible completion latch of one batch job (or a capture release):
 /// `recorded` is set once the producer's done event was RECORDED (host side,
 /// so a consumer's cudaStreamWaitEvent sees this request's record), `event`
@@ -1902,10 +2017,20 @@ pub const BatchDep = struct {
 
 pub const BatchJob = struct {
     job: api.Job,
-    /// Producers this job waits for (device-side), plus host gates.
+    /// Producers this job waits for (device-side). Latched before ENQUEUE
+    /// only: a job's `stage` must not read a producer's (child's) data.
     deps: []const *BatchDep = &.{},
-    /// Pure host step enqueued on the exec stream after the job (pinned only).
+    /// Host gates (capture seal) latched before STAGE: the job is staged only
+    /// once its segment is final, so its stage may read the sealed trace. A
+    /// failed gate refuses the job (BatchDependencyFailed).
+    gates: []const *BatchDep = &.{},
+    /// Pure host step enqueued on the exec stream after the job's done
+    /// record whenever every gate succeeded (also when the body failed).
     after: ?api.HostFn = null,
+    /// Host call made once (worker thread) when the job settles failed on the
+    /// host (refused, failed dependency, enqueue error, failed batch): e.g.
+    /// cancel the capture so its blocked acquires and later gates fail closed.
+    on_fail: ?api.HostFn = null,
     /// Two-phase plan: the arena grows over main_resident before this job.
     phase_b: bool = false,
     done: BatchDep = .{},

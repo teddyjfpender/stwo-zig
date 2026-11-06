@@ -27,13 +27,22 @@
 const std = @import("std");
 const api = @import("api.zig");
 
-pub const contract_version: u32 = 1;
+pub const contract_version: u32 = 2;
 // Contract additions (driver, M8-INTERFACES "m8-gpu-driver"), all defaulted so
 // existing initializers compile unchanged:
 //   ClassEntry.main_resident_words / arena_peak_words / claims_per_segment /
 //   cost_us  (the driver plans placement, the memory plan and the exchange
 //   from class constants); RequestContext.main_resident / segment_device /
 //   generation (the plan's per-segment MAIN views; where each segment runs).
+// Version 2 (driver review fixes): the exchange region sits at a fixed
+//   offset right after the header and is laid out from install capacities
+//   (flags first), so a flag word only ever holds flags; the directory
+//   follows it; header word `header_completion_word` is device-written by
+//   each GPU's batch tail (publish requires it); Exchange.partial_mask (only
+//   GPUs hosting segments own a partial); ClassEntry.phase_b / held_words /
+//   capture_words; RecursionFactory.class_of takes the node's authority
+//   (children's class keys), never a topology ordinal; publish refuses an
+//   empty proof.
 pub const slab_magic: u32 = 0x4e475652; // "RVGN" little-endian
 
 // ---------------------------------------------------------------------------
@@ -139,18 +148,31 @@ pub const ProofSpec = struct {
 //
 //   header      16 words   magic, version, request, device, n_entries,
 //                          status_words, exchange_offset, exchange_words,
-//                          encoded_offset, encoded_words, segment_words, 0...
+//                          encoded_offset, encoded_words, segment_words,
+//                          directory_offset, completion tag (device), 0...
+//   exchange    Exchange.words() at a FIXED offset (64): peer-copied flags,
+//               roots, claims, chi partials, seal; laid out from install
+//               capacities so every request of a service puts each flag
+//               word at the same address (a flag word only ever holds a
+//               flag tag or 0, never a stale directory/status/data word)
 //   directory   n_entries * 8 words (Entry, below)
 //   status      sum of entry status counts (Verdict words)
-//   exchange    Exchange.words() (peer-copied roots/claims/chi partials)
 //   encoded     per entry: 1 length word (bytes written by the encoder) +
 //               ceil(max_encoded_bytes / 4) words of proof bytes
 //
-// The directory is written by the host at plan time (it is class geometry,
-// identical every request of a class mix); status/length words are written
-// by device kernels; the host reads them after the single wait.
+// The header and directory are written by the host at plan time (class
+// geometry) and uploaded as two copies (the exchange between them is never
+// touched by the host: other GPUs peer-copy into it with no order against
+// this GPU's preamble). Status/length words and the completion tag are
+// written by device work; the host reads them after the single wait.
 
 pub const header_words: usize = 16;
+/// Header word the batch tail of each GPU fills on the device with the
+/// request's `Exchange.flagTag(generation)` after every job of the batch;
+/// `publish` requires it, so a mirror whose D2H never landed (stale data of
+/// an earlier request in that parity) is refused even though the host wrote
+/// the rest of the header itself.
+pub const header_completion_word: usize = 12;
 pub const entry_words: usize = 8;
 pub const region_align: usize = 64;
 
@@ -175,6 +197,7 @@ pub const SegmentLayout = struct {
     /// Check id of each status word, in status order (host side, for decoding).
     checks: []Check,
     ids: []ProofId,
+    directory_offset: usize,
     status_offset: usize,
     status_words: usize,
     exchange_offset: usize,
@@ -208,14 +231,17 @@ pub const SegmentLayout = struct {
     pub fn exchangeBuffer(self: *const SegmentLayout, segment: api.DeviceBuffer) !api.DeviceBuffer {
         return segment.slice(self.exchange_offset, self.exchange_words);
     }
-    /// The host-written prefix (header + directory), uploaded once per class
-    /// mix and re-used across requests.
+    /// The host-written prefix: header (`[0, header_words)`) and directory
+    /// (`[directory_offset, status_offset)`). The exchange region between
+    /// them is left untouched (two uploads, see the layout comment). The
+    /// completion word stays 0 (only the device writes the request's tag).
     pub fn prefix(self: *const SegmentLayout, out: []u32, request: u64) !void {
         if (out.len < self.status_offset) return error.GpuNativeSlabTooSmall;
-        @memset(out[0..self.status_offset], 0);
-        const h = [header_words]u32{ slab_magic, contract_version, @truncate(request), self.device, @intCast(self.entries.len), @intCast(self.status_words), @intCast(self.exchange_offset), @intCast(self.exchange_words), @intCast(self.encoded_offset), @intCast(self.encoded_words), @intCast(self.words), 0, 0, 0, 0, 0 };
+        @memset(out[0..header_words], 0);
+        @memset(out[self.directory_offset..self.status_offset], 0);
+        const h = [header_words]u32{ slab_magic, contract_version, @truncate(request), self.device, @intCast(self.entries.len), @intCast(self.status_words), @intCast(self.exchange_offset), @intCast(self.exchange_words), @intCast(self.encoded_offset), @intCast(self.encoded_words), @intCast(self.words), @intCast(self.directory_offset), 0, 0, 0, 0 };
         @memcpy(out[0..header_words], &h);
-        const dir = std.mem.bytesAsSlice(Entry, std.mem.sliceAsBytes(out[header_words..][0 .. self.entries.len * entry_words]));
+        const dir = std.mem.bytesAsSlice(Entry, std.mem.sliceAsBytes(out[self.directory_offset..][0 .. self.entries.len * entry_words]));
         for (dir, self.entries) |*d, e| d.* = e;
     }
 };
@@ -276,10 +302,13 @@ pub const RequestLayout = struct {
         errdefer a.free(checks);
         const ids = try a.alloc(ProofId, n);
         errdefer a.free(ids);
-        const status_offset = alignUp(header_words + n * entry_words);
-        const exchange_offset = alignUp(status_offset + n_checks);
+        try exchange.validate();
+        // Fixed exchange offset (install capacities make its size fixed too).
+        const exchange_offset = alignUp(header_words);
         const exchange_words = exchange.words();
-        const encoded_offset = alignUp(exchange_offset + exchange_words);
+        const directory_offset = alignUp(exchange_offset + exchange_words);
+        const status_offset = alignUp(directory_offset + n * entry_words);
+        const encoded_offset = alignUp(status_offset + n_checks);
         var at_check: usize = 0;
         var at_encoded = encoded_offset;
         var i: usize = 0;
@@ -297,7 +326,7 @@ pub const RequestLayout = struct {
             i += 1;
         };
         if (at_encoded > std.math.maxInt(u32)) return error.GpuNativeSlabTooLarge;
-        return .{ .device = device, .entries = entries, .checks = checks, .ids = ids, .status_offset = status_offset, .status_words = n_checks, .exchange_offset = exchange_offset, .exchange_words = exchange_words, .encoded_offset = encoded_offset, .encoded_words = at_encoded - encoded_offset, .words = at_encoded };
+        return .{ .device = device, .entries = entries, .checks = checks, .ids = ids, .directory_offset = directory_offset, .status_offset = status_offset, .status_words = n_checks, .exchange_offset = exchange_offset, .exchange_words = exchange_words, .encoded_offset = encoded_offset, .encoded_words = at_encoded - encoded_offset, .words = at_encoded };
     }
 };
 
@@ -310,7 +339,10 @@ pub const RequestLayout = struct {
 /// replicas; a consumer waits (on device) for the producer's event. Slots:
 ///   roots    per native segment: stage-1 MAIN root (8 words)
 ///   claims   per native segment: `claims_per_segment` secure felts (8 words each)
-///   partials per device: the device's global chi / LogUp partial (8 words)
+///   partials per GPU that hosts segments (`partial_mask`): the GPU's global
+///            chi / LogUp partial (8 words). A GPU without segments owns no
+///            partial slot (nobody could publish it), so the seal reads and
+///            `Check.exchange_complete` requires only the hosting GPUs'.
 ///   seal     one 16-word channel checkpoint after the global seal (written
 ///            by the seal device, peer-copied to the others)
 /// Every slot has one "written" flag word (set by the producer's copy, checked
@@ -320,6 +352,14 @@ pub const RequestLayout = struct {
 /// GPU's peer copy, so it could erase a slot that already landed), and a
 /// stale flag of an earlier request in the same slab parity carries another
 /// tag, so it can never satisfy this request's check.
+///
+/// Word layout (from the install capacities, identical for every request of
+/// a service, so a flag word only ever holds a flag):
+///   [0, flagCapacity)  flags: seal, partials (dense by hosting GPU), then
+///                      (root, claims) per segment. The flags of one request
+///                      are the contiguous prefix [0, flagWords()).
+///   then roots (capacity_segments x 8), claims (capacity_segments x
+///   capacity_claims x 8), partials (devices x 8), seal (16).
 pub const Exchange = struct {
     /// Flag value of request `generation`: never 0 (install zeroes the slabs)
     /// nor `Verdict.unset`; repeats only after 2^32 - 2 requests.
@@ -330,41 +370,78 @@ pub const Exchange = struct {
     segments: u32,
     claims_per_segment: u32,
     devices: u32,
+    /// Install capacities (0 = this request's value): fix every offset.
+    capacity_segments: u32 = 0,
+    capacity_claims: u32 = 0,
+    /// GPUs that host segments, bit d = device d (0 = every device).
+    partial_mask: u8 = 0,
+
+    fn capS(self: Exchange) usize {
+        return if (self.capacity_segments == 0) self.segments else self.capacity_segments;
+    }
+    fn capC(self: Exchange) usize {
+        return if (self.capacity_claims == 0) self.claims_per_segment else self.capacity_claims;
+    }
+    pub fn mask(self: Exchange) u8 {
+        if (self.partial_mask != 0) return self.partial_mask;
+        return @truncate((@as(u16, 1) << @intCast(@min(self.devices, 8))) - 1);
+    }
+    pub fn hasPartial(self: Exchange, device: u32) bool {
+        return device < self.devices and device < 8 and (self.mask() >> @intCast(device)) & 1 == 1;
+    }
+    pub fn partials(self: Exchange) usize {
+        return @popCount(self.mask());
+    }
+    pub fn validate(self: Exchange) !void {
+        if (self.segments > self.capS() or self.claims_per_segment > self.capC()) return error.GpuNativeExchangeExceedsCapacity;
+        if (self.devices == 0 or self.devices > max_devices) return error.GpuNativeExchangeDevices;
+        const all: u8 = @truncate((@as(u16, 1) << @intCast(self.devices)) - 1);
+        if (self.mask() & ~all != 0) return error.GpuNativeExchangeDevices;
+    }
+    /// Flag words reserved at install (slot events are indexed by flag).
+    pub fn flagCapacity(self: Exchange) usize {
+        return 1 + @as(usize, self.devices) + 2 * self.capS();
+    }
+    /// This request's flags: the contiguous prefix [flagOffset, +flagWords).
+    pub fn flagWords(self: Exchange) usize {
+        return 1 + self.partials() + 2 * @as(usize, self.segments);
+    }
+    pub const flag_offset: usize = 0;
     pub fn rootWords(self: Exchange) usize {
-        return @as(usize, self.segments) * 8;
+        return self.capS() * 8;
     }
     pub fn claimWords(self: Exchange) usize {
-        return @as(usize, self.segments) * self.claims_per_segment * 8;
+        return self.capS() * self.capC() * 8;
     }
     pub fn partialWords(self: Exchange) usize {
         return @as(usize, self.devices) * 8;
     }
     pub const seal_words: usize = 16;
-    pub fn flagWords(self: Exchange) usize {
-        return @as(usize, self.segments) * 2 + self.devices + 1;
-    }
     pub fn words(self: Exchange) usize {
-        return self.rootWords() + self.claimWords() + self.partialWords() + seal_words + self.flagWords();
+        return std.mem.alignForward(usize, self.flagCapacity(), 8) + self.rootWords() + self.claimWords() + self.partialWords() + seal_words;
+    }
+    fn dataBase(self: Exchange) usize {
+        return std.mem.alignForward(usize, self.flagCapacity(), 8);
     }
     pub const Slot = struct { offset: usize, words: usize, flag: usize };
     pub fn root(self: Exchange, segment: u32) !Slot {
         if (segment >= self.segments) return error.GpuNativeExchangeSlot;
-        return .{ .offset = @as(usize, segment) * 8, .words = 8, .flag = self.flagBase() + segment };
+        return .{ .offset = self.dataBase() + @as(usize, segment) * 8, .words = 8, .flag = 1 + self.partials() + 2 * @as(usize, segment) };
     }
     pub fn claims(self: Exchange, segment: u32) !Slot {
         if (segment >= self.segments) return error.GpuNativeExchangeSlot;
-        const per = @as(usize, self.claims_per_segment) * 8;
-        return .{ .offset = self.rootWords() + segment * per, .words = per, .flag = self.flagBase() + self.segments + segment };
+        const per = self.capC() * 8;
+        return .{ .offset = self.dataBase() + self.rootWords() + segment * per, .words = @as(usize, self.claims_per_segment) * 8, .flag = 2 + self.partials() + 2 * @as(usize, segment) };
     }
+    /// error.GpuNativeExchangeNoPartial: `device` hosts no segment.
     pub fn partial(self: Exchange, device: u32) !Slot {
         if (device >= self.devices) return error.GpuNativeExchangeSlot;
-        return .{ .offset = self.rootWords() + self.claimWords() + @as(usize, device) * 8, .words = 8, .flag = self.flagBase() + 2 * self.segments + device };
+        if (!self.hasPartial(device)) return error.GpuNativeExchangeNoPartial;
+        const rank = @popCount(self.mask() & ((@as(u8, 1) << @intCast(device)) - 1));
+        return .{ .offset = self.dataBase() + self.rootWords() + self.claimWords() + @as(usize, device) * 8, .words = 8, .flag = 1 + @as(usize, rank) };
     }
     pub fn seal(self: Exchange) Slot {
-        return .{ .offset = self.rootWords() + self.claimWords() + self.partialWords(), .words = seal_words, .flag = self.flagBase() + 2 * self.segments + self.devices };
-    }
-    fn flagBase(self: Exchange) usize {
-        return self.rootWords() + self.claimWords() + self.partialWords() + seal_words;
+        return .{ .offset = self.dataBase() + self.rootWords() + self.claimWords() + self.partialWords(), .words = seal_words, .flag = 0 };
     }
 };
 
@@ -425,6 +502,19 @@ pub const ClassEntry = struct {
     claims_per_segment: u32 = 0,
     /// Estimated device time of one job of this class (placement weight only).
     cost_us: u64 = 1,
+    /// The class runs after the plan's phase flip (folds, root): its arena
+    /// peak is budgeted against phase B (arena + main_resident), not phase A.
+    phase_b: bool = false,
+    /// Device words per GPU the factory holds for this class OUTSIDE
+    /// `device` (FIXED trees, statics, tapes it allocated itself). The memory
+    /// plan reserves them; a factory that holds device memory and reports 0
+    /// here makes the plan overcommit the device.
+    held_words: [max_devices]u64 = @splat(0),
+    /// Native segment classes: pinned capture words one segment holds in the
+    /// capture ring until its Stage1 runs (0 = no ring use). The driver
+    /// refuses a request whose ring cannot hold one segment of the class
+    /// (a segment larger than the ring would deadlock its own capture).
+    capture_words: u64 = 0,
 };
 
 pub const max_devices = 4;
@@ -674,7 +764,13 @@ pub const RecursionFactory = struct {
         warm: *const fn (*anyopaque, *ClassCache) anyerror!void,
         /// See NativeFactory.VTable.installed.
         installed: ?*const fn (*anyopaque, *ClassCache, *const Installed) anyerror!void = null,
-        class_of: *const fn (*anyopaque, ProofId) anyerror!ClassKey,
+        /// Class of a recursion proof from its AUTHORITY, never from its
+        /// position in one request's topology: `children` are the class keys
+        /// of what the node verifies (a leaf: its native segments' then its
+        /// truths' classes, in topology order; a fold/root: its children
+        /// nodes' classes). A truth has no children; its ordinal names the
+        /// truth statement kind (fixed per service).
+        class_of: *const fn (*anyopaque, id: ProofId, children: []const ClassKey) anyerror!ClassKey,
         truth: *const fn (*anyopaque, *const RequestContext, ordinal: u32, device: u32) anyerror!api.Job,
         /// Leaf/fold/root node: reads its children's encoded regions (device,
         /// own segment or peer replica) and writes its own.
@@ -697,12 +793,16 @@ pub const Published = struct {
 /// `mirrors[d]` is device d's pinned segment after the request's single wait.
 /// Fails closed: an unset word, a reject code, a header mismatch, or a length
 /// beyond capacity refuses the whole request (`first` names the culprit).
-pub fn publish(a: std.mem.Allocator, layout: *const RequestLayout, request: u64, mirrors: []const []const u32, first: ?*Rejection) ![]Published {
+/// `completion` is the request's `Exchange.flagTag(generation)`: every
+/// segment's device-written completion word must carry it (the host-written
+/// header alone cannot tell a landed D2H from a stale mirror).
+pub fn publish(a: std.mem.Allocator, layout: *const RequestLayout, request: u64, completion: u32, mirrors: []const []const u32, first: ?*Rejection) ![]Published {
     if (mirrors.len != layout.segments.len) return error.GpuNativeMirrorCount;
     var n: usize = 0;
     for (layout.segments, mirrors) |s, m| {
         if (m.len < s.words) return error.GpuNativeMirrorTruncated;
         if (m[0] != slab_magic or m[1] != contract_version or m[2] != @as(u32, @truncate(request)) or m[3] != s.device) return error.GpuNativeSlabHeaderMismatch;
+        if (m[header_completion_word] != completion) return error.GpuNativeSlabNotCompleted;
         for (s.entries, 0..) |e, i| {
             for (0..e.status_count) |k| {
                 const word = m[e.status_first + k];
@@ -713,6 +813,12 @@ pub fn publish(a: std.mem.Allocator, layout: *const RequestLayout, request: u64,
             }
             const len = m[e.encoded_offset];
             if (len > @as(usize, e.encoded_capacity_words) * 4) return error.GpuNativeEncodedOverrun;
+            // Only the request pseudo-proof carries no bytes: an encoder that
+            // accepted its bounds but wrote no length published nothing.
+            if (len == 0 and e.kind != @intFromEnum(ProofKind.request)) {
+                if (first) |f| f.* = .{ .id = s.ids[i], .check = .encode_bounds, .word = 0 };
+                return error.GpuNativeEncodedEmpty;
+            }
             n += 1;
         }
     }

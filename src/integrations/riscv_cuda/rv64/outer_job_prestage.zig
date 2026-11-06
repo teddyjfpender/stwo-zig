@@ -565,6 +565,34 @@ const StaticsCache = struct {
     }
 };
 
+/// A counted borrow of a cached class's statics for a holder outside any
+/// Staged (the GPU-native recursion class registry, jobs/outer_device.zig):
+/// while held, LRU eviction never destroys the entry (lruVictim skips
+/// referenced entries), so a sealed ClassCache entry never dangles.
+pub const ClassPin = struct {
+    statics: *anyopaque,
+    /// `plan` is a cached entry's `public` (St.Statics) pointer;
+    /// error.OuterClassNotCached if no cached entry owns it (an uncached,
+    /// per-node statics can never back a warmed class).
+    pub fn take(plan: *anyopaque) !ClassPin {
+        StaticsCache.mutex.lock();
+        defer StaticsCache.mutex.unlock();
+        for (StaticsCache.entries.items) |s| if (@as(*anyopaque, @ptrCast(&s.public)) == plan) {
+            _ = StaticsCache.borrow(s);
+            return .{ .statics = s };
+        };
+        return error.OuterClassNotCached;
+    }
+    pub fn retain(raw: *anyopaque) void {
+        StaticsCache.mutex.lock();
+        defer StaticsCache.mutex.unlock();
+        _ = StaticsCache.borrow(@ptrCast(@alignCast(raw)));
+    }
+    pub fn release(raw: *anyopaque) void {
+        StaticsCache.unref(@ptrCast(@alignCast(raw)));
+    }
+};
+
 /// Thread-local producer hints Prepared.init reads (outer_source.zig ControllerTls).
 const Hints = struct {
     class_hint: ?[32]u8,

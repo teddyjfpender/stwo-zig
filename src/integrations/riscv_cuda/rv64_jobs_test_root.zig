@@ -17,4 +17,5 @@ test {
     _ = @import("rv64/jobs/driver_dag.zig");
     _ = @import("rv64/jobs/driver_memory.zig");
     _ = @import("rv64/m8_capture_stream.zig");
+    _ = @import("rv64/jobs/outer_device.zig");
 }

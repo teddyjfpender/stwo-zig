@@ -27,9 +27,11 @@ test "request layout: regions aligned, disjoint, every proof once" {
         try testing.expect(s.status_offset % G.region_align == 0);
         try testing.expect(s.exchange_offset % G.region_align == 0);
         try testing.expect(s.encoded_offset % G.region_align == 0);
-        try testing.expect(s.status_offset >= G.header_words + s.entries.len * G.entry_words);
-        try testing.expect(s.exchange_offset >= s.status_offset + s.status_words);
-        try testing.expect(s.encoded_offset >= s.exchange_offset + s.exchange_words);
+        // Exchange at a fixed offset right after the header, then directory, status, encoded.
+        try testing.expectEqual(@as(usize, G.region_align), s.exchange_offset);
+        try testing.expect(s.directory_offset >= s.exchange_offset + s.exchange_words);
+        try testing.expect(s.status_offset >= s.directory_offset + s.entries.len * G.entry_words);
+        try testing.expect(s.encoded_offset >= s.status_offset + s.status_words);
         try testing.expectEqual(exchange.words(), s.exchange_words);
         var prev_end: usize = s.encoded_offset;
         for (s.entries) |e| {
@@ -63,12 +65,15 @@ test "request layout refuses duplicates and bad devices" {
 
 /// Host model of the device side: prefix upload, unset memset, checks and
 /// encoders writing their words.
+const completion: u32 = 0x77;
+
 fn fill(a: std.mem.Allocator, l: *const G.RequestLayout, request: u64) ![][]u32 {
     const mirrors = try a.alloc([]u32, l.segments.len);
     for (l.segments, mirrors) |*s, *m| {
         m.* = try a.alloc(u32, s.words);
         @memset(m.*, 0xdead_beef);
         try s.prefix(m.*, request);
+        m.*[G.header_completion_word] = completion;
         @memset(m.*[s.status_offset..][0..s.status_words], G.Verdict.unset);
         for (s.entries) |e| {
             for (0..e.status_count) |k| m.*[e.status_first + k] = G.Verdict.accepted;
@@ -94,7 +99,7 @@ test "publish: all accepted -> every proof sliced; any bad word refuses the requ
     const m = try fill(a, &l, 9);
     defer freeMirrors(a, m);
     const views = [2][]const u32{ m[0], m[1] };
-    const out = try G.publish(a, &l, 9, &views, null);
+    const out = try G.publish(a, &l, 9, completion, &views, null);
     defer a.free(out);
     try testing.expectEqual(@as(usize, 6), out.len);
     for (out) |p| if (p.id.kind == .native_segment and p.id.ordinal == 1) try testing.expectEqual(@as(usize, 8), p.bytes.len);
@@ -104,21 +109,29 @@ test "publish: all accepted -> every proof sliced; any bad word refuses the requ
     const w = try s1.statusWord(.{ .kind = .truth, .ordinal = 0 }, .truth_status);
     m[1][w] = G.Verdict.unset;
     var why: G.Rejection = undefined;
-    try testing.expectError(error.GpuNativeProofRejected, G.publish(a, &l, 9, &views, &why));
+    try testing.expectError(error.GpuNativeProofRejected, G.publish(a, &l, 9, completion, &views, &why));
     try testing.expectEqual(G.Check.truth_status, why.check);
     // a reject code names its check
     m[1][w] = G.Verdict.reject(.truth_status, 3);
     try testing.expectEqual(G.Check.truth_status, G.Verdict.checkOf(m[1][w]).?);
-    try testing.expectError(error.GpuNativeProofRejected, G.publish(a, &l, 9, &views, null));
+    try testing.expectError(error.GpuNativeProofRejected, G.publish(a, &l, 9, completion, &views, null));
     m[1][w] = G.Verdict.accepted;
     // an encoder overrun rejects
     const e = s1.entries[0];
     m[1][e.encoded_offset] = e.encoded_capacity_words * 4 + 1;
-    try testing.expectError(error.GpuNativeEncodedOverrun, G.publish(a, &l, 9, &views, null));
+    try testing.expectError(error.GpuNativeEncodedOverrun, G.publish(a, &l, 9, completion, &views, null));
+    // an empty proof (length never written) rejects, naming encode_bounds
     m[1][e.encoded_offset] = 0;
+    try testing.expectError(error.GpuNativeEncodedEmpty, G.publish(a, &l, 9, completion, &views, &why));
+    try testing.expectEqual(G.Check.encode_bounds, why.check);
+    m[1][e.encoded_offset] = 4;
+    // a mirror whose D2H never landed (completion word not this request's) rejects
+    m[0][G.header_completion_word] = completion - 1;
+    try testing.expectError(error.GpuNativeSlabNotCompleted, G.publish(a, &l, 9, completion, &views, null));
+    m[0][G.header_completion_word] = completion;
     // a stale request id rejects
-    try testing.expectError(error.GpuNativeSlabHeaderMismatch, G.publish(a, &l, 10, &views, null));
-    const again = try G.publish(a, &l, 9, &views, null);
+    try testing.expectError(error.GpuNativeSlabHeaderMismatch, G.publish(a, &l, 10, completion, &views, null));
+    const again = try G.publish(a, &l, 9, completion, &views, null);
     a.free(again);
 }
 
@@ -152,8 +165,47 @@ test "exchange slots are disjoint and flags distinct" {
         try testing.expect(!used[s.flag]);
         used[s.flag] = true;
     }
-    for (used) |u| try testing.expect(u);
+    // Every flag of the request is in the contiguous prefix [0, flagWords).
+    for (slots.items) |sl| try testing.expect(sl.flag < x.flagWords());
+    try testing.expectEqual(slots.items.len, x.flagWords());
     try testing.expectError(error.GpuNativeExchangeSlot, x.root(7));
+}
+
+test "exchange: offsets come from install capacities; a request never moves a flag onto data" {
+    const cap = G.Exchange{ .segments = 8, .claims_per_segment = 4, .devices = 2 };
+    const small = G.Exchange{ .segments = 2, .claims_per_segment = 1, .devices = 2, .capacity_segments = 8, .capacity_claims = 4 };
+    const big = G.Exchange{ .segments = 7, .claims_per_segment = 3, .devices = 2, .capacity_segments = 8, .capacity_claims = 4 };
+    try testing.expectEqual(cap.words(), small.words());
+    try testing.expectEqual(cap.words(), big.words());
+    try testing.expectEqual(cap.flagCapacity(), big.flagCapacity());
+    // Data slots of one request never overlap the flag capacity of any other.
+    for ([_]G.Exchange{ small, big }) |x| {
+        for (0..x.segments) |sg| {
+            try testing.expect((try x.root(@intCast(sg))).offset >= cap.flagCapacity());
+            try testing.expect((try x.claims(@intCast(sg))).offset >= cap.flagCapacity());
+            try testing.expect((try x.claims(@intCast(sg))).flag < cap.flagCapacity());
+        }
+        try testing.expect(x.seal().offset + G.Exchange.seal_words <= x.words());
+    }
+    // Same slot, same data offset in both requests (fixed per service).
+    try testing.expectEqual((try small.root(1)).offset, (try big.root(1)).offset);
+    try testing.expectEqual((try small.claims(1)).offset, (try big.claims(1)).offset);
+    try testing.expectError(error.GpuNativeExchangeExceedsCapacity, (G.Exchange{ .segments = 9, .claims_per_segment = 1, .devices = 2, .capacity_segments = 8, .capacity_claims = 4 }).validate());
+}
+
+test "exchange: a GPU without segments owns no partial; the request's flags stay contiguous" {
+    const x = G.Exchange{ .segments = 1, .claims_per_segment = 1, .devices = 2, .capacity_segments = 4, .capacity_claims = 1, .partial_mask = 0b01 };
+    try x.validate();
+    try testing.expect(x.hasPartial(0) and !x.hasPartial(1));
+    try testing.expectError(error.GpuNativeExchangeNoPartial, x.partial(1));
+    // seal + 1 partial + root + claims
+    try testing.expectEqual(@as(usize, 4), x.flagWords());
+    var seen = [_]bool{false} ** 4;
+    for ([_]G.Exchange.Slot{ x.seal(), try x.partial(0), try x.root(0), try x.claims(0) }) |sl| {
+        try testing.expect(!seen[sl.flag]);
+        seen[sl.flag] = true;
+    }
+    try testing.expectError(error.GpuNativeExchangeDevices, (G.Exchange{ .segments = 1, .claims_per_segment = 1, .devices = 2, .partial_mask = 0b100 }).validate());
 }
 
 const Built = struct {

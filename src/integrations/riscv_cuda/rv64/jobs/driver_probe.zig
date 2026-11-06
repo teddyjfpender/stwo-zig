@@ -74,7 +74,7 @@ pub const Probe = struct {
                         try O.check(p.peer.fill_u32(rep + claims.offset, 0x100 + self.ordinal, claims.words, s));
                         try self.ctx.peer.publish(self.device, claims);
                     }
-                    if (!p.partial_done[self.device].swap(true, .acq_rel)) {
+                    if (ex.hasPartial(self.device) and !p.partial_done[self.device].swap(true, .acq_rel)) {
                         const part = try ex.partial(self.device);
                         try O.check(p.peer.fill_u32(rep + part.offset, 0x200 + self.device, part.words, s));
                         try self.ctx.peer.publish(self.device, part);
@@ -88,13 +88,14 @@ pub const Probe = struct {
                         if (p.withhold_claims == null or p.withhold_claims.? != i) try self.ctx.peer.awaitSlot(self.device, src, try ex.claims(@intCast(i)));
                     }
                     for (0..ex.devices) |d| {
-                        const part = try ex.partial(@intCast(d));
-                        // A GPU without segments publishes no partial; the probe places on both.
-                        try self.ctx.peer.awaitSlot(self.device, @intCast(d), part);
+                        // A GPU without segments owns no partial slot.
+                        if (!ex.hasPartial(@intCast(d))) continue;
+                        try self.ctx.peer.awaitSlot(self.device, @intCast(d), try ex.partial(@intCast(d)));
                     }
-                    // Device check: every root/claims/partial flag landed here.
-                    const flags = rep + (ex.words() - ex.flagWords());
-                    const n: u32 = @intCast(2 * ex.segments + ex.devices);
+                    // Device check: every root/claims/partial flag landed here
+                    // (the request's flags after the seal's own, flag 0).
+                    const flags = rep + G.Exchange.flag_offset + 1;
+                    const n: u32 = @intCast(ex.flagWords() - 1);
                     const word = try sl.statusWord(.{ .kind = .request, .ordinal = 0 }, .global_seal);
                     try O.check(p.peer.flags_verdict(flags, n, G.Exchange.flagTag(self.ctx.generation), seg.ptr + word, G.Verdict.reject(.global_seal, 1), s));
                     const slot = ex.seal();
@@ -179,7 +180,7 @@ pub const Probe = struct {
     fn rWarm(raw: *anyopaque, c: *G.ClassCache) anyerror!void {
         for ([_]u8{ 4, 5 }) |t| _ = try c.warm(key(t), .{ .ctx = raw, .build = build });
     }
-    fn rClass(_: *anyopaque, id: G.ProofId) anyerror!G.ClassKey {
+    fn rClass(_: *anyopaque, id: G.ProofId, _: []const G.ClassKey) anyerror!G.ClassKey {
         return if (id.kind == .truth) key(4) else key(5);
     }
     fn rTruth(raw: *anyopaque, ctx: *const G.RequestContext, t: u32, d: u32) anyerror!api.Job {

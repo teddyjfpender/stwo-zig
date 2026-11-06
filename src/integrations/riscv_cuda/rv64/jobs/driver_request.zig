@@ -11,17 +11,20 @@
 //! Request (`begin` + `finish`):
 //!   host plan (µs): classes -> DAG + placement (driver_dag.zig) -> slab layout
 //!   (gpu_native.RequestLayout) -> per-GPU batches of factory jobs;
-//!   preamble per GPU: header/directory h2d from the pinned mirror, status
-//!   words := unset, encoded lengths := 0 (device fills), start event. The
-//!   exchange replica is NOT zeroed per request: a consumer GPU's fill is
-//!   not ordered against a producer GPU's peer copy (with two requests in
-//!   flight the fill runs after the consumer's previous request and would
-//!   erase slots that already landed). Flags carry the request's
-//!   Exchange.flagTag instead; install zeroes every slab once;
+//!   preamble per GPU: header and directory h2d from the pinned mirror (two
+//!   copies around the exchange), status words := unset, encoded lengths :=
+//!   0 (device fills), start event. The exchange replica is NOT zeroed per
+//!   request: a consumer GPU's fill is not ordered against a producer GPU's
+//!   peer copy (with two requests in flight the fill runs after the
+//!   consumer's previous request and would erase slots that already landed).
+//!   Flags carry the request's Exchange.flagTag instead, and the exchange
+//!   sits at a fixed offset with install-capacity offsets, so a flag word
+//!   only ever holds a flag; install zeroes every slab once;
 //!   every job enqueued back to back with device-side dependencies
 //!   (cross-GPU done events; peer slots through driver_peer.zig); Stage1(seg)
 //!   released by the capture stream as each segment seals;
-//!   tail per GPU: one D2H of the whole slab segment into its pinned mirror;
+//!   tail per GPU: the completion word := flagTag on the device, then one
+//!   D2H of the whole slab segment into its pinned mirror;
 //!   non-final GPUs record their done event; the final (seal) GPU waits for
 //!   them on the device, runs Check.exchange_complete over its replica's
 //!   flags, D2Hs its segment, records the final event;
@@ -41,7 +44,10 @@ const P = @import("driver_peer.zig");
 const C = @import("../m8_capture_stream.zig");
 
 pub const Config = struct {
-    /// Device capacity in words per driver device (index = worker index).
+    /// Device capacity cap in words per driver device (index = worker
+    /// index). The plan uses min(cap, memory measured at install: free +
+    /// what the worker and the class cache already hold) when the base image
+    /// exports memory_info.
     capacity_words: []const u64,
     /// Largest native segment count / truths / jobs per GPU per request.
     max_segments: u32,
@@ -55,10 +61,13 @@ pub const Config = struct {
     graph_exec_words: u64 = M.default_graph_exec_words,
     /// Cap the arena (0 = everything left in the plan).
     arena_cap_words: u64 = 0,
-    /// Expected class peaks (0 = from the warmed class entries).
+    /// Class arena peaks the plan must hold, at least (the plan always takes
+    /// the max with the warmed classes' `arena_peak_words`: phase A over
+    /// classes without `phase_b`, phase B over every class).
     phase_a_peak_words: u64 = 0,
     phase_b_peak_words: u64 = 0,
-    /// main_resident capacity per GPU (0 = from max_segments x the largest native class).
+    /// main_resident capacity per GPU (0 = ceil(max_segments / devices) x
+    /// the largest native class: what placement can put on one GPU).
     main_resident_words: u64 = 0,
 };
 
@@ -66,7 +75,9 @@ pub const Config = struct {
 /// from the factories).
 pub const Request = struct {
     id: u64,
-    /// Rows per native segment (geometry known at plan time; see m8_capture_stream).
+    /// Rows per native segment (geometry known at plan time; the capture
+    /// stream must be `prepare`d with exactly these and checks every sealed
+    /// segment against them, see m8_capture_stream).
     segment_rows: []const u64,
     truths: u32 = 0,
     truth_after_seal: bool = false,
@@ -141,7 +152,13 @@ pub const Driver = struct {
     peer: P.Peer,
     generation: u64 = 0,
     in_flight: [2]?*InFlight = .{ null, null },
+    /// Next parity tried first (alternates; a failed begin never wastes one).
+    next_parity: u1 = 0,
     installed: bool = false,
+    /// A device fault (sticky CUDA error) or a teardown: no request begins again.
+    poisoned: bool = false,
+    /// Install capacities of the exchange (fixed offsets for every request).
+    exchange_cap: G.Exchange = .{ .segments = 0, .claims_per_segment = 0, .devices = 0 },
     /// Device allocations made by install (accounting for D1).
     install_allocations: usize = 0,
     /// Every GPU pair maps the other's memory (direct peer pointers). False on
@@ -179,18 +196,31 @@ pub const Driver = struct {
         var direct: u32 = 1;
         if (workers.len > 1) try O.check(peer_ops.peer_enable(&ordinals, @intCast(workers.len), &direct));
         self.peer_direct = direct == 1;
-        const exchange_cap = G.Exchange{ .segments = config.max_segments, .claims_per_segment = 1, .devices = @intCast(workers.len) };
-        try self.peer.reserve(a, exchange_cap.flagWords());
+        const claims_cap = @max(1, self.maxClaims());
+        self.exchange_cap = .{ .segments = config.max_segments, .claims_per_segment = claims_cap, .devices = @intCast(workers.len), .capacity_segments = config.max_segments, .capacity_claims = claims_cap };
+        try self.peer.reserve(a, self.exchange_cap.flagCapacity());
         errdefer self.peer.deinitHost(a);
-        const largest_main = self.largestNativeMain();
-        var made: usize = 0;
-        errdefer for (self.lanes[0..made]) |*l| self.releaseLane(l);
+        const largest_main = std.mem.alignForward(u64, self.largestNativeMain(), M.granule);
+        // Placement puts at most ceil(S / devices) segments' MAIN on one GPU
+        // when every GPU's region holds that many (LPT, capacity-bounded).
+        const per_gpu_segments = std.math.divCeil(u64, config.max_segments, workers.len) catch unreachable;
+        const peaks = self.classPeaks();
+        // Lanes whose Setup started (a failed Setup is released too: Release
+        // frees exactly what was allocated).
+        var attempted: usize = 0;
+        errdefer for (self.lanes[0..attempted]) |*l| self.releaseLane(l);
         for (self.lanes, 0..) |*l, d| {
-            const main_words = if (config.main_resident_words != 0) config.main_resident_words else largest_main * config.max_segments;
-            l.plan = try M.plan(.{ .device = @intCast(d), .capacity_words = config.capacity_words[d], .class_cache_words = self.classCacheWords(@intCast(d)), .graph_exec_words = config.graph_exec_words, .main_resident_words = main_words, .phase_a_peak_words = config.phase_a_peak_words, .phase_b_peak_words = config.phase_b_peak_words, .slab_words = config.slab_words, .reserve_words = config.reserve_words, .arena_cap_words = config.arena_cap_words });
+            const main_words = if (config.main_resident_words != 0) config.main_resident_words else largest_main * per_gpu_segments;
+            const class_words = self.classCacheWords(@intCast(d));
+            const capacity = try self.measuredCapacity(l.worker, config.capacity_words[d], class_words);
+            const inputs = M.Inputs{ .device = @intCast(d), .capacity_words = capacity, .class_cache_words = class_words, .graph_exec_words = config.graph_exec_words, .main_resident_words = main_words, .phase_a_peak_words = @max(config.phase_a_peak_words, peaks[0]), .phase_b_peak_words = @max(config.phase_b_peak_words, peaks[1]), .slab_words = config.slab_words, .reserve_words = config.reserve_words, .arena_cap_words = config.arena_cap_words };
+            l.plan = M.plan(inputs) catch |err| {
+                std.log.warn("M8 GPU-native memory plan device {d}: {s} (capacity {d} words; class cache {d}, main_resident {d}, phase A/B peaks {d}/{d}, slab 2x{d}, graph {d}, reserve {d})", .{ d, @errorName(err), capacity, class_words, main_words, inputs.phase_a_peak_words, inputs.phase_b_peak_words, config.slab_words, config.graph_exec_words, config.reserve_words });
+                return err;
+            };
             var setup = Setup{ .driver = self, .lane = l, .device = @intCast(d) };
+            attempted += 1;
             try l.worker.call(.{ .ctx = &setup, .run = Setup.run });
-            made += 1;
         }
         // 3. per-class captures over the installed plan, then seal.
         var info = G.Installed{ .devices = @intCast(workers.len) };
@@ -205,7 +235,18 @@ pub const Driver = struct {
         return self;
     }
 
+    /// Teardown. A request still in flight (begun, never finished) is
+    /// quiesced and aborted first: no slab, mirror or event is freed while a
+    /// GPU still D2Hs into it or peer-copies into its replica.
     pub fn deinit(self: *Driver) void {
+        self.poisoned = true;
+        for (&self.in_flight) |*slot| if (slot.*) |f| {
+            f.quiesce();
+            f.abortAll();
+            f.release();
+            self.a.destroy(f);
+            slot.* = null;
+        };
         for (self.lanes) |*l| self.releaseLane(l);
         self.peer.deinitHost(self.a);
         self.classes.deinit();
@@ -221,15 +262,60 @@ pub const Driver = struct {
         while (it.next()) |e| best = @max(best, e.*.main_resident_words);
         return best;
     }
+    fn maxClaims(self: *Driver) u32 {
+        var best: u32 = 0;
+        self.classes.mutex.lock();
+        defer self.classes.mutex.unlock();
+        var it = self.classes.map.valueIterator();
+        while (it.next()) |e| best = @max(best, e.*.claims_per_segment);
+        return best;
+    }
+    /// Arena peaks of the warmed classes: [phase A (classes without
+    /// `phase_b`), phase B (every class)].
+    fn classPeaks(self: *Driver) [2]u64 {
+        var out: [2]u64 = .{ 0, 0 };
+        self.classes.mutex.lock();
+        defer self.classes.mutex.unlock();
+        var it = self.classes.map.valueIterator();
+        while (it.next()) |e| {
+            if (!e.*.phase_b) out[0] = @max(out[0], e.*.arena_peak_words);
+            out[1] = @max(out[1], e.*.arena_peak_words);
+        }
+        return out;
+    }
+    /// Every device word the class cache holds on `device`: the entries'
+    /// `device` buffers, what the factories report holding outside them,
+    /// and the worker's persistent pool.
     fn classCacheWords(self: *Driver, device: u32) u64 {
         var n: u64 = 0;
         self.classes.mutex.lock();
         defer self.classes.mutex.unlock();
         var it = self.classes.map.valueIterator();
-        while (it.next()) |e| if (e.*.device[device]) |b| {
-            n += b.words;
-        };
+        while (it.next()) |e| {
+            if (e.*.device[device]) |b| n += b.words;
+            n += e.*.held_words[device];
+        }
         return n + self.lanes[device].worker.config.persistent_budget_words;
+    }
+    /// min(cap, measured): free device memory now plus what this plan
+    /// re-counts although it is already allocated (class cache, persistent
+    /// pool) or about to be freed (the worker's pre-plan arena).
+    fn measuredCapacity(self: *Driver, w: *W.Worker, cap_words: u64, class_words: u64) !u64 {
+        const info = self.ops.exec.memory_info orelse return cap_words;
+        const Q = struct {
+            info: *const fn (*anyopaque, *usize, *usize) callconv(.c) c_int,
+            free: usize = 0,
+            total: usize = 0,
+            fn run(raw: *anyopaque, wk: *W.Worker) anyerror!void {
+                const q: *@This() = @ptrCast(@alignCast(raw));
+                try O.check(q.info(wk.context, &q.free, &q.total));
+            }
+        };
+        var q = Q{ .info = info };
+        try w.call(.{ .ctx = &q, .run = Q.run });
+        const measured = q.free / 4 + class_words + w.arenaWords();
+        if (measured < cap_words) std.log.info("M8 GPU-native device {d}: plan capacity {d} words measured (cap {d})", .{ w.device_ordinal, measured, cap_words });
+        return @min(cap_words, measured);
     }
 
     const Setup = struct {
@@ -283,6 +369,11 @@ pub const Driver = struct {
             const r: *Release = @ptrCast(@alignCast(raw));
             const l = r.lane;
             const wt = &r.driver.ops.wait;
+            // Nothing enqueued on this GPU may still read what is freed below.
+            if (l.done_event[0]) |ev| {
+                if (r.driver.ops.exec.event_record(ev, w.execStream()) == 0) _ = w.requestWait(ev) catch {};
+            }
+            w.uninstallPlanArena() catch |err| std.log.err("M8 GPU-native teardown: plan arena free failed: {s}", .{@errorName(err)});
             if (l.slab_allocated) _ = r.driver.ops.exec.free_u32(w.context, l.slab[0].ptr);
             l.slab_allocated = false;
             for (0..2) |p| {
@@ -315,18 +406,25 @@ pub const Driver = struct {
     /// at most two requests are in flight (slab/mirror parities).
     pub fn begin(self: *Driver, req: *const Request) !*InFlight {
         if (!self.installed) return error.GpuNativeDriverNotInstalled;
-        const parity: u1 = @truncate(self.generation);
-        if (self.in_flight[parity] != null) return error.GpuNativePipelineFull;
         // A capture stream belongs to one in-flight request: its gates, ctx
         // attachment and ring buffers are per request (the service rotates
-        // one stream per parity).
-        if (req.capture) |cap| if (self.in_flight[parity ^ 1]) |other| if (other.req.capture == cap) return error.GpuNativeCaptureStreamInFlight;
+        // one stream per parity). Never touch a stream the other holds.
+        if (req.capture) |cap| for (self.in_flight) |o| if (o) |other| if (other.req.capture == cap) return error.GpuNativeCaptureStreamInFlight;
+        // Refused before planning: the request's capture (prepared by the
+        // service, maybe already running) is cancelled and detached.
+        errdefer if (req.capture) |cap| cap.detach();
+        if (self.poisoned) return error.GpuNativeDriverPoisoned;
+        // The parity is a free slot, independent of the generation: a begin
+        // that fails never costs the pipeline its overlap.
+        const parity: u1 = if (self.in_flight[self.next_parity] == null) self.next_parity else if (self.in_flight[self.next_parity ^ 1] == null) self.next_parity ^ 1 else return error.GpuNativePipelineFull;
         self.generation += 1;
         const f = try self.a.create(InFlight);
         errdefer self.a.destroy(f);
         f.* = .{ .driver = self, .parity = parity, .generation = self.generation, .req = req.* };
         f.receipt.request = req.id;
         f.receipt.generation = self.generation;
+        // From here the capture belongs to `f`: release detaches it.
+        f.owns_capture = true;
         errdefer f.release();
         try f.plan();
         try f.make();
@@ -340,6 +438,7 @@ pub const Driver = struct {
             return err;
         };
         self.in_flight[parity] = f;
+        self.next_parity = parity ^ 1;
         return f;
     }
 
@@ -374,8 +473,12 @@ pub const InFlight = struct {
     hooks: []Hook = &.{},
     receipt: Receipt = .{},
     ran: bool = false,
+    /// `release` detaches the capture (set once begin owns it).
+    owns_capture: bool = false,
     /// Host latch per non-final GPU: its tail recorded its done event.
     tail_done: [G.max_devices]std.Thread.ResetEvent = @splat(.{}),
+    /// Completion of each non-final GPU's posted batch (no per-request thread).
+    posted: [G.max_devices]W.CallDone = @splat(.{}),
 
     const Hook = struct { f: *InFlight, device: u32 };
     const Where = struct { device: u32, pos: u32 };
@@ -385,7 +488,8 @@ pub const InFlight = struct {
     }
 
     fn release(self: *InFlight) void {
-        if (self.req.capture) |cap| cap.detach();
+        if (self.owns_capture) if (self.req.capture) |cap| cap.detach();
+        self.owns_capture = false;
         if (!self.arena_live) return;
         if (self.layout) |*l| l.deinit();
         self.layout = null;
@@ -408,26 +512,50 @@ pub const InFlight = struct {
         const devices: u32 = @intCast(drv.lanes.len);
         // classes (fail closed on a miss: never built on the request path)
         const native_cls = try a.alloc(*const G.ClassEntry, S);
+        const native_keys = try a.alloc(G.ClassKey, S);
         var claims: u32 = 1;
         const segs = try a.alloc(D.Segment, S);
+        const ring_words: ?u64 = if (req.capture) |cap| if (cap.ring) |r| r.capacityWords() else null else null;
         for (req.segment_rows, 0..) |rows, s| {
-            const key = try drv.native.vtable.class_of(drv.native.ctx, @intCast(s), rows);
-            native_cls[s] = try drv.classes.get(key);
+            native_keys[s] = try drv.native.vtable.class_of(drv.native.ctx, @intCast(s), rows);
+            native_cls[s] = try drv.classes.get(native_keys[s]);
             claims = @max(claims, native_cls[s].claims_per_segment);
+            // A segment the ring cannot hold would deadlock its own capture
+            // (its buffers return only after its Stage1, gated on its seal).
+            if (ring_words) |rw| if (native_cls[s].capture_words > rw) return error.GpuNativeCaptureRingTooSmall;
             segs[s] = .{ .main_words = native_cls[s].main_resident_words, .stage1_cost = native_cls[s].cost_us, .stage2_cost = native_cls[s].cost_us };
         }
         const truths = try a.alloc(D.Truth, req.truths);
         const truth_cls = try a.alloc(*const G.ClassEntry, req.truths);
+        const truth_keys = try a.alloc(G.ClassKey, req.truths);
         for (truths, 0..) |*t, i| {
-            truth_cls[i] = try drv.classes.get(try drv.recursion.vtable.class_of(drv.recursion.ctx, .{ .kind = .truth, .ordinal = @intCast(i) }));
+            truth_keys[i] = try drv.recursion.vtable.class_of(drv.recursion.ctx, .{ .kind = .truth, .ordinal = @intCast(i) }, &.{});
+            truth_cls[i] = try drv.classes.get(truth_keys[i]);
             t.* = .{ .cost = truth_cls[i].cost_us };
         }
         const rec = try a.dupe(D.RecursionNode, req.recursion);
         const shape_probe = D.Shape{ .devices = devices, .segments = segs, .recursion = rec, .root = req.root };
         const node_cls = try a.alloc(*const G.ClassEntry, rec.len);
+        const node_keys = try a.alloc(G.ClassKey, rec.len);
         for (rec, 0..) |*rn, id| {
             const kind = D.recursionKind(shape_probe, @intCast(id));
-            node_cls[id] = try drv.classes.get(try drv.recursion.vtable.class_of(drv.recursion.ctx, .{ .kind = kind, .ordinal = @intCast(id) }));
+            // The node's authority: the classes of what it verifies (children
+            // before parents, so every child key is known here).
+            const children = try a.alloc(G.ClassKey, rn.segments.len + rn.truths.len + rn.children.len);
+            for (rn.segments, 0..) |sg, k| {
+                if (sg >= S) return error.GpuNativeTopologySegment;
+                children[k] = native_keys[sg];
+            }
+            for (rn.truths, rn.segments.len..) |t, k| {
+                if (t >= req.truths) return error.GpuNativeTopologyTruth;
+                children[k] = truth_keys[t];
+            }
+            for (rn.children, rn.segments.len + rn.truths.len..) |c, k| {
+                if (c >= id) return error.GpuNativeTopologyOrder;
+                children[k] = node_keys[c];
+            }
+            node_keys[id] = try drv.recursion.vtable.class_of(drv.recursion.ctx, .{ .kind = kind, .ordinal = @intCast(id) }, children);
+            node_cls[id] = try drv.classes.get(node_keys[id]);
             rn.cost = node_cls[id].cost_us;
         }
         const main_cap = try a.alloc(u64, devices);
@@ -446,7 +574,12 @@ pub const InFlight = struct {
             };
             spec.* = .{ .id = p.id, .device = p.device, .max_encoded_bytes = if (entry) |e| e.max_encoded_bytes else 0, .extra_checks = if (entry) |e| e.extra_checks else &.{} };
         }
-        self.exchange = .{ .segments = @intCast(S), .claims_per_segment = claims, .devices = devices };
+        // Install capacities fix every exchange offset; only GPUs that host a
+        // segment own a partial slot (a GPU without one could never publish it).
+        var partial_mask: u8 = 0;
+        for (0..S) |s| partial_mask |= @as(u8, 1) << @intCast(dag.nodes[dag.stage1[s]].device);
+        self.exchange = .{ .segments = @intCast(S), .claims_per_segment = claims, .devices = devices, .capacity_segments = drv.exchange_cap.capacity_segments, .capacity_claims = drv.exchange_cap.capacity_claims, .partial_mask = partial_mask };
+        self.exchange.validate() catch |err| return if (err == error.GpuNativeExchangeExceedsCapacity) error.GpuNativeClaimsExceedPlan else err;
         self.layout = try G.RequestLayout.build(drv.a, devices, specs, self.exchange);
         const layout = &self.layout.?;
         self.segment_buffers = try a.alloc(api.DeviceBuffer, devices);
@@ -495,10 +628,9 @@ pub const InFlight = struct {
             self.batches[d].tail = .{ .ctx = &self.hooks[d], .run = tail };
             for (order, 0..) |n, pos| self.where[n] = .{ .device = @intCast(d), .pos = @intCast(pos) };
         }
-        if (self.req.capture) |cap| {
-            try cap.begin(@intCast(self.req.segment_rows.len));
-            cap.attach(&self.ctx);
-        }
+        // The service prepared the stream (before starting its capture
+        // thread) with this request's geometry; bind it to the context.
+        if (self.req.capture) |cap| try cap.bind(self.req.segment_rows, &self.ctx);
         var made: usize = 0;
         errdefer for (dag.order[0..made]) |n| {
             const w = self.where[n];
@@ -515,18 +647,22 @@ pub const InFlight = struct {
                 .truth => try drv.recursion.vtable.truth(drv.recursion.ctx, &self.ctx, nd.ordinal, nd.device),
                 .node => try drv.recursion.vtable.node(drv.recursion.ctx, &self.ctx, nd.proof.?, nd.children, nd.device),
             };
-            const gate_count: usize = if (nd.kind == .stage1 and self.req.capture != null) 1 else 0;
-            const deps = try a.alloc(*W.BatchDep, nd.deps.len + gate_count);
+            const deps = try a.alloc(*W.BatchDep, nd.deps.len);
             for (nd.deps, 0..) |dep, k| {
                 const dw = self.where[dep];
                 deps[k] = &self.batches[dw.device].jobs[dw.pos].done;
             }
-            var after: ?api.HostFn = null;
-            if (gate_count == 1) {
-                deps[nd.deps.len] = self.req.capture.?.gate(nd.ordinal);
-                after = self.req.capture.?.releaseFn(nd.ordinal);
-            }
-            self.batches[w.device].jobs[w.pos] = .{ .job = job, .deps = deps, .after = after, .phase_b = nd.phase_b };
+            var bj = W.BatchJob{ .job = job, .deps = deps, .phase_b = nd.phase_b };
+            if (nd.kind == .stage1) if (self.req.capture) |cap| {
+                // Staged only once its segment sealed; returns its ring
+                // buffers after it; a failed Stage1 cancels the capture.
+                const gates = try a.alloc(*W.BatchDep, 1);
+                gates[0] = cap.gate(nd.ordinal);
+                bj.gates = gates;
+                bj.after = cap.releaseFn(nd.ordinal);
+                bj.on_fail = cap.failFn();
+            };
+            self.batches[w.device].jobs[w.pos] = bj;
             made += 1;
         }
         self.receipt.jobs = @intCast(made);
@@ -538,29 +674,32 @@ pub const InFlight = struct {
         const drv = self.driver;
         const final = self.dag.?.final_device;
         const Runner = struct {
-            fn go(f: *InFlight, d: usize) void {
-                f.driver.lanes[d].worker.call(.{ .ctx = &f.batches[d], .run = runBatch }) catch |err| {
-                    // Never ran: poison its jobs so no consumer latch blocks.
-                    W.Worker.failBatch(&f.batches[d], err, 0);
-                };
-                // Whatever happened, the final GPU's tail must not block on it.
-                f.tail_done[d].set();
-            }
+            /// Worker thread of GPU `h.device`: its whole batch, then release
+            /// the final GPU's device-side join whatever happened.
             fn runBatch(raw: *anyopaque, w: *W.Worker) anyerror!void {
-                w.runBatch(@ptrCast(@alignCast(raw)));
+                const h: *Hook = @ptrCast(@alignCast(raw));
+                w.runBatch(&h.f.batches[h.device]);
+                h.f.tail_done[h.device].set();
             }
         };
-        var threads: [G.max_devices]?std.Thread = @splat(null);
+        // Non-final GPUs: posted to their own worker threads (no thread is
+        // created on the request path); the final GPU's batch runs on its
+        // worker while they enqueue.
+        var was_posted: [G.max_devices]bool = @splat(false);
         for (0..drv.lanes.len) |d| {
             if (d == final) continue;
-            threads[d] = std.Thread.spawn(.{}, Runner.go, .{ self, d }) catch |err| blk: {
+            drv.lanes[d].worker.post(.{ .ctx = &self.hooks[d], .run = Runner.runBatch }, &self.posted[d]) catch |err| {
+                // Never ran: poison its jobs so no consumer latch blocks.
                 W.Worker.failBatch(&self.batches[d], err, 0);
                 self.tail_done[d].set();
-                break :blk null;
+                continue;
             };
+            was_posted[d] = true;
         }
-        Runner.go(self, final);
-        for (threads) |t| if (t) |th| th.join();
+        drv.lanes[final].worker.call(.{ .ctx = &self.hooks[final], .run = Runner.runBatch }) catch |err| {
+            W.Worker.failBatch(&self.batches[final], err, 0);
+        };
+        for (0..drv.lanes.len) |d| if (was_posted[d]) drv.lanes[d].worker.awaitCall(&self.posted[d]) catch {};
         self.ran = true;
         for (self.batches, 0..) |b, d| {
             self.receipt.device_enqueue_ns[d] = b.enqueue_ns;
@@ -586,9 +725,16 @@ pub const InFlight = struct {
         const stream = w.execStream();
         const slab = l.slab[f.parity];
         try O.check(drv.ops.exec.event_record(l.start_event[f.parity].?, stream));
-        // Header + directory: host-written prefix (class geometry), one h2d.
-        try sl.prefix(l.mirror[f.parity], f.req.id);
-        try O.check(drv.ops.exec.copy_async(slab.ptr, l.mirror[f.parity].ptr, sl.status_offset * 4, @intFromEnum(O.CopyKind.h2d), stream));
+        // Header + directory: host-written prefix (class geometry), two h2d
+        // around the exchange (other GPUs peer-copy into it, unordered with
+        // this stream: the host never writes it).
+        const mirror = l.mirror[f.parity];
+        try sl.prefix(mirror, f.req.id);
+        // The mirror's status words read `unset` until this request's D2H
+        // lands (a missing D2H can never publish an earlier request's words).
+        @memset(mirror[sl.status_offset..][0..sl.status_words], G.Verdict.unset);
+        try O.check(drv.ops.exec.copy_async(slab.ptr, mirror.ptr, G.header_words * 4, @intFromEnum(O.CopyKind.h2d), stream));
+        try O.check(drv.ops.exec.copy_async(slab.ptr + sl.directory_offset, mirror.ptr + sl.directory_offset, (sl.status_offset - sl.directory_offset) * 4, @intFromEnum(O.CopyKind.h2d), stream));
         // Status words unset (a check that never runs rejects). The exchange
         // is left alone: other GPUs peer-copy into it with no order against
         // this stream; flag tags make stale words harmless (gpu_native.Exchange).
@@ -614,11 +760,15 @@ pub const InFlight = struct {
                 f.tail_done[d].wait();
                 try O.check(drv.ops.exec.stream_wait(stream, other.done_event[f.parity].?));
             }
-            // Check.exchange_complete over this replica's flag words.
-            const flags = slab.ptr + sl.exchange_offset + (f.exchange.words() - f.exchange.flagWords());
+            // Check.exchange_complete over this replica's flag words (the
+            // request's flags are the contiguous prefix of the flag region).
+            const flags = slab.ptr + sl.exchange_offset + G.Exchange.flag_offset;
             const word = try sl.statusWord(.{ .kind = .request, .ordinal = 0 }, .exchange_complete);
             try O.check(drv.peer_ops.flags_verdict(flags, @intCast(f.exchange.flagWords()), G.Exchange.flagTag(f.generation), slab.ptr + word, G.Verdict.reject(.exchange_complete, 1), stream));
         }
+        // Device-written completion word (publish requires it): only a D2H
+        // that ran after every job of this batch carries this request's tag.
+        try O.check(drv.peer_ops.fill_u32(slab.ptr + G.header_completion_word, G.Exchange.flagTag(f.generation), 1, stream));
         try O.check(drv.ops.exec.copy_async(l.mirror[f.parity].ptr, slab.ptr, sl.words * 4, @intFromEnum(O.CopyKind.d2h), stream));
         try O.check(drv.ops.exec.event_record(l.end_event[f.parity].?, stream));
         try O.check(drv.ops.exec.event_record(l.done_event[f.parity].?, stream));
@@ -641,8 +791,10 @@ pub const InFlight = struct {
         }
     }
 
-    /// Error path of `begin` only (never a successful request): one
-    /// device wait per GPU on a fresh record of its exec stream.
+    /// Error paths only (a failed `begin`, a faulted request wait, teardown;
+    /// never a successful request): one device wait per GPU on a fresh
+    /// record of its exec stream. A faulted GPU's wait fails and is logged;
+    /// every other GPU is still drained.
     fn quiesce(self: *InFlight) void {
         const Q = struct {
             f: *InFlight,
@@ -670,6 +822,14 @@ pub const InFlight = struct {
             break :blk 0;
         };
         self.receipt.host_waits = 1;
+        if (!device_ok) {
+            // The final GPU faulted (its wait may return at once): the other
+            // GPUs may still run this request's kernels, peer copies, capture
+            // host fns and mirror D2H. Drain them before any job aborts or
+            // the arena is freed, and never reuse this driver (sticky fault).
+            self.quiesce();
+            drv.poisoned = true;
+        }
         var timer = std.time.Timer.start() catch unreachable;
         const Fin = struct {
             batch: *W.Batch,
@@ -696,7 +856,7 @@ pub const InFlight = struct {
             var us: u64 = 0;
             if (drv.peer_ops.event_elapsed_us(l.start_event[self.parity].?, l.end_event[self.parity].?, &us) == 0) self.receipt.device_gpu_us[d] = us;
             self.receipt.d2h += 1;
-            self.receipt.h2d += 1;
+            self.receipt.h2d += 2;
             self.receipt.d2h_bytes += self.receipt.slab_words[d] * 4;
         }
         // ---- publication: status words + slicing (host's only per-request computation) ----
@@ -704,7 +864,7 @@ pub const InFlight = struct {
         const mirrors = try self.alloc().alloc([]const u32, drv.lanes.len);
         for (drv.lanes, mirrors) |l, *m| m.* = l.mirror[self.parity];
         var rejection: G.Rejection = undefined;
-        const views = G.publish(self.alloc(), &self.layout.?, self.req.id, mirrors, &rejection) catch |err| {
+        const views = G.publish(self.alloc(), &self.layout.?, self.req.id, G.Exchange.flagTag(self.generation), mirrors, &rejection) catch |err| {
             if (err == error.GpuNativeProofRejected) std.log.warn("M8 GPU-native request {d} rejected: {s} {d} check {s} word 0x{x:0>8}", .{ self.req.id, @tagName(rejection.id.kind), rejection.id.ordinal, @tagName(rejection.check), rejection.word });
             return err;
         };

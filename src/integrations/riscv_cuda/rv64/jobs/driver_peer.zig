@@ -64,7 +64,8 @@ pub const Peer = struct {
     pub fn begin(self: *Peer, generation: u64, exchange: G.Exchange, replicas: []const [*]u32) !void {
         if (generation == 0) return error.GpuNativeExchangeGeneration;
         if (replicas.len != self.devices) return error.GpuNativeMirrorCount;
-        if (exchange.flagWords() > self.events[0].len) return error.GpuNativeExchangeTooLarge;
+        try exchange.validate();
+        if (exchange.flagCapacity() > self.events[0].len) return error.GpuNativeExchangeTooLarge;
         self.exchange = exchange;
         for (replicas, 0..) |r, d| self.replicas[d] = r;
         self.generation = generation;
@@ -81,11 +82,13 @@ pub const Peer = struct {
     fn of(raw: *anyopaque) *Peer {
         return @ptrCast(@alignCast(raw));
     }
+    /// Slot index = its flag word's index in the (fixed, install-capacity)
+    /// flag region; its data must lie after the flag region.
     pub fn slotIndex(self: *const Peer, slot: G.Exchange.Slot) !usize {
-        const base = self.exchange.words() - self.exchange.flagWords();
-        if (slot.flag < base or slot.flag >= self.exchange.words()) return error.GpuNativeExchangeSlot;
-        if (slot.offset + slot.words > base) return error.GpuNativeExchangeSlot;
-        return slot.flag - base;
+        const flags = self.exchange.flagCapacity();
+        if (slot.flag >= self.exchange.flagWords()) return error.GpuNativeExchangeSlot;
+        if (slot.offset < flags or slot.offset + slot.words > self.exchange.words()) return error.GpuNativeExchangeSlot;
+        return G.Exchange.flag_offset + slot.flag;
     }
 
     fn publish(raw: *anyopaque, src: u32, slot: G.Exchange.Slot) anyerror!void {

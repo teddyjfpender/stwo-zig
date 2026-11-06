@@ -27,8 +27,10 @@ pub fn install(a: std.mem.Allocator, library: []const u8) !void {
         made += 1;
     }
     var native = ND.Native{};
-    var recursion = OD.Recursion{};
-    // 28 GiB qualified cap per 5090 (rv64_combined_ethereum_main default).
+    var recursion = OD.Recursion{ .a = a };
+    defer recursion.deinit();
+    // 28 GiB qualified cap per 5090 (rv64_combined_ethereum_main default);
+    // the driver plans against min(cap, measured free memory) per GPU.
     var caps: [8]u64 = @splat((28 << 30) / 4);
     const drv = try R.Driver.install(a, &libs.ops, &peer, workers[0..made], native.factory(), recursion.factory(), .{ .capacity_words = caps[0..made], .max_segments = 64, .slab_words = (24 << 20) / 4 });
     defer drv.deinit();

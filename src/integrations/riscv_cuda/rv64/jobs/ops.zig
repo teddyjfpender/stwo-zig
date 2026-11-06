@@ -32,6 +32,10 @@ pub const Exec = struct {
     event_record: *const fn (*anyopaque, *anyopaque) callconv(.c) c_int,
     stream_wait: *const fn (*anyopaque, *anyopaque) callconv(.c) c_int,
     host_fn: *const fn (*anyopaque, HostCall, ?*anyopaque) callconv(.c) c_int,
+    /// base image (optional): cudaMemGetInfo of the context's device (free,
+    /// total bytes). Install-time only: the GPU-native memory plan is laid
+    /// out against measured free memory, not a constant.
+    memory_info: ?*const fn (*anyopaque, *usize, *usize) callconv(.c) c_int = null,
 };
 
 pub const Wait = struct {
@@ -83,6 +87,7 @@ pub const Libraries = struct {
             .event_record = try sym(&out.addon, @FieldType(Exec, "event_record"), "stwo_rv64_jobs_event_record"),
             .stream_wait = try sym(&out.addon, @FieldType(Exec, "stream_wait"), "stwo_rv64_jobs_stream_wait"),
             .host_fn = try sym(&out.addon, @FieldType(Exec, "host_fn"), "stwo_rv64_jobs_host_fn"),
+            .memory_info = out.base.lookup(*const fn (*anyopaque, *usize, *usize) callconv(.c) c_int, "stwo_exec_context_memory_info"),
         };
         out.ops.wait = .{
             .context_create = try sym(&out.base, @FieldType(Wait, "context_create"), "stwo_exec_context_create_options"),

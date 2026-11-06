@@ -264,7 +264,7 @@ const World = struct {
     fn rWarm(raw: *anyopaque, cache: *G.ClassCache) anyerror!void {
         for ([_]G.ClassKey{ k_truth, k_leaf, k_fold, k_root }) |k| _ = try cache.warm(k, .{ .ctx = raw, .build = build });
     }
-    fn rClass(_: *anyopaque, id: G.ProofId) anyerror!G.ClassKey {
+    fn rClass(_: *anyopaque, id: G.ProofId, _: []const G.ClassKey) anyerror!G.ClassKey {
         return switch (id.kind) {
             .truth => k_truth,
             .leaf => k_leaf,
@@ -318,7 +318,7 @@ test "D1: one host wait and one slab D2H per GPU, no request-path allocation, by
     const after = F.counters;
     try testing.expectEqual(@as(usize, 1), after.host_waits - before.host_waits);
     try testing.expectEqual(@as(usize, 2), after.d2h - before.d2h);
-    try testing.expectEqual(@as(usize, 2), after.h2d - before.h2d); // the two prefix uploads
+    try testing.expectEqual(@as(usize, 4), after.h2d - before.h2d); // header + directory per GPU
     try testing.expectEqual(@as(usize, 0), after.allocations - before.allocations);
     try testing.expectEqual(@as(u32, 1), out.receipt.host_waits);
     try testing.expectEqual(@as(u32, 2), out.receipt.d2h);
@@ -404,20 +404,10 @@ test "D1: capture releases Stage1 per sealed segment while capture continues" {
     world.capture = cap;
     var r = request(9);
     r.capture = cap;
-    const Capture = struct {
-        fn run(s: *C.Stream) void {
-            const sink = s.sink();
-            for (0..3) |seg| {
-                std.Thread.sleep(2 * std.time.ns_per_ms);
-                const words = [_]u32{ 1, 2, 3, 4 };
-                sink.chunk(sink.ctx, .{ .segment = @intCast(seg), .sequence = 0, .first_row = 0, .rows = 4, .last = true, .words = &words }) catch return;
-                sink.sealed_segment(sink.ctx, @intCast(seg), 4) catch return;
-            }
-            sink.done(sink.ctx, 3) catch {};
-        }
-    };
-    // Capture starts before the request is planned (its chunks wait for attach).
-    const t = try std.Thread.spawn(.{}, Capture.run, .{cap});
+    // Capture starts before the request is planned (the service prepares the
+    // stream first; chunks wait for the driver's bind).
+    try cap.prepare(r.segment_rows);
+    const t = try std.Thread.spawn(.{}, Capture.full, .{ cap, r.segment_rows });
     var out = try rig.driver.serve(&r);
     t.join();
     defer out.deinit();
@@ -426,15 +416,176 @@ test "D1: capture releases Stage1 per sealed segment while capture continues" {
     // A short capture poisons the unsealed Stage1s: the request fails closed.
     world.reset();
     const Short = struct {
-        fn run(s: *C.Stream) void {
+        fn run(s: *C.Stream, rows: []const u64) void {
             const sink = s.sink();
-            sink.sealed_segment(sink.ctx, 0, 4) catch return;
-            sink.done(sink.ctx, 1) catch {};
+            defer sink.done(sink.ctx, 1) catch {};
+            sink.chunk(sink.ctx, .{ .segment = 0, .sequence = 0, .first_row = 0, .rows = @intCast(rows[0]), .last = true, .words = &.{} }) catch return;
+            sink.sealed_segment(sink.ctx, 0, rows[0]) catch return;
         }
     };
-    const t2 = try std.Thread.spawn(.{}, Short.run, .{cap});
+    try cap.prepare(r.segment_rows);
+    const t2 = try std.Thread.spawn(.{}, Short.run, .{ cap, r.segment_rows });
     try testing.expectError(error.BatchDependencyFailed, rig.driver.serve(&r));
     t2.join();
+    // A capture whose geometry differs from the plan never reaches Stage1.
+    world.reset();
+    const Wrong = struct {
+        fn run(s: *C.Stream) void {
+            const sink = s.sink();
+            defer sink.done(sink.ctx, 3) catch {};
+            sink.chunk(sink.ctx, .{ .segment = 0, .sequence = 0, .first_row = 0, .rows = 4, .last = true, .words = &.{} }) catch return;
+            sink.sealed_segment(sink.ctx, 0, 4) catch return;
+        }
+    };
+    try cap.prepare(r.segment_rows);
+    const t3 = try std.Thread.spawn(.{}, Wrong.run, .{cap});
+    try testing.expectError(error.BatchDependencyFailed, rig.driver.serve(&r));
+    t3.join();
+    try testing.expect(cap.gate(0).failed.load(.acquire));
+}
+
+const Capture = struct {
+    /// A complete capture of `rows` (one chunk per segment), `done` on every path.
+    fn full(s: *C.Stream, rows: []const u64) void {
+        const sink = s.sink();
+        defer sink.done(sink.ctx, @intCast(rows.len)) catch {};
+        for (rows, 0..) |n, seg| {
+            std.Thread.sleep(2 * std.time.ns_per_ms);
+            const words = [_]u32{ 1, 2, 3, 4 };
+            sink.chunk(sink.ctx, .{ .segment = @intCast(seg), .sequence = 0, .first_row = 0, .rows = @intCast(n), .last = true, .words = &words }) catch return;
+            sink.sealed_segment(sink.ctx, @intCast(seg), n) catch return;
+        }
+    }
+    /// The same through the capture ring: one pinned buffer per segment.
+    fn ringed(s: *C.Stream, rows: []const u64) void {
+        const sink = s.sink();
+        defer sink.done(sink.ctx, @intCast(rows.len)) catch {};
+        for (rows, 0..) |n, seg| {
+            const buf = s.acquire(@intCast(seg)) catch return;
+            sink.chunk(sink.ctx, .{ .segment = @intCast(seg), .sequence = 0, .first_row = 0, .rows = @intCast(n), .last = true, .words = buf[0..4] }) catch return;
+            sink.sealed_segment(sink.ctx, @intCast(seg), n) catch return;
+        }
+    }
+};
+
+test "D1: a failed Stage1 with a ring smaller than the segment count fails closed instead of hanging" {
+    var world = World{ .a = testing.allocator };
+    var rig = try Rig.init(&world);
+    defer rig.deinit();
+    const ring = try C.Ring.init(testing.allocator, &F.ops.wait, 2, 16);
+    defer ring.deinit();
+    const cap = try C.Stream.create(testing.allocator, world.nativeFactory(), ring, 8);
+    defer cap.destroy();
+    world.capture = cap;
+    var r = request(201);
+    r.capture = cap;
+    world.refuse_stage1 = 0;
+    try cap.prepare(r.segment_rows);
+    const t = try std.Thread.spawn(.{}, Capture.ringed, .{ cap, r.segment_rows });
+    if (rig.driver.serve(&r)) |o| {
+        var out = o;
+        out.deinit();
+        return error.TestExpectedRefusal;
+    } else |err| try testing.expect(err == error.JobFootprintExceedsArena or err == error.BatchDependencyFailed);
+    t.join();
+    // Every ring buffer came back (no capture wedged, nothing leaked).
+    try testing.expectEqual(@as(usize, 2), ring.free_count);
+    // The next request through the same stream and ring proves.
+    world.refuse_stage1 = null;
+    world.reset();
+    try cap.prepare(r.segment_rows);
+    const t2 = try std.Thread.spawn(.{}, Capture.ringed, .{ cap, r.segment_rows });
+    var ok = try rig.driver.serve(&r);
+    t2.join();
+    ok.deinit();
+    try testing.expectEqual(@as(usize, 2), ring.free_count);
+}
+
+test "D1: a request whose segments all sit on one GPU proves (the idle GPU owns no partial)" {
+    var world = World{ .a = testing.allocator };
+    var rig = try Rig.init(&world);
+    defer rig.deinit();
+    const one = [_]D.RecursionNode{.{ .segments = &.{0} }};
+    const r = R.Request{ .id = 301, .segment_rows = &.{1 << 10}, .recursion = &one, .root = 0 };
+    var out = try rig.driver.serve(&r);
+    defer out.deinit();
+    try testing.expectEqual(@as(usize, 2), out.proofs.len);
+    // seal + 1 partial + root + claims
+    try testing.expectEqual(@as(u64, 4), out.receipt.peer_publishes);
+}
+
+test "D1: a failed begin never costs the pipeline a parity" {
+    var world = World{ .a = testing.allocator };
+    var rig = try Rig.init(&world);
+    defer rig.deinit();
+    const r1 = request(401);
+    const f1 = try rig.driver.begin(&r1);
+    var bad = request(402);
+    bad.segment_rows = &.{ 1 << 10, 999, 1 << 9 };
+    try testing.expectError(error.GpuNativeClassNotWarmed, rig.driver.begin(&bad));
+    world.reset();
+    const r3 = request(403);
+    const f3 = try rig.driver.begin(&r3);
+    var o1 = try rig.driver.finish(f1);
+    o1.deinit();
+    var o3 = try rig.driver.finish(f3);
+    o3.deinit();
+}
+
+test "D1: teardown with a request in flight quiesces and aborts it" {
+    var world = World{ .a = testing.allocator };
+    var rig = try Rig.init(&world);
+    _ = try rig.driver.begin(&request(501));
+    rig.deinit();
+    try testing.expectEqual(@as(usize, 3 + 1 + 3 + 1 + 5), world.aborted);
+}
+
+test "D1: install sizes main_resident per GPU from placement, and plans against measured memory" {
+    var world = World{ .a = testing.allocator };
+    var rig = try Rig.init(&world);
+    // max_segments 8 on 2 GPUs: at most 4 segments' MAIN per GPU.
+    for (rig.driver.lanes) |l| try testing.expectEqual(@as(usize, 4 * main_words), l.main.words);
+    rig.deinit();
+    // A GPU another tenant holds: the plan refuses at install with the numbers.
+    const saved = F.memory_free_bytes;
+    defer F.memory_free_bytes = saved;
+    F.memory_free_bytes = 4 << 10;
+    const a = testing.allocator;
+    var ws: [2]*W.Worker = undefined;
+    ws[0] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer ws[0].destroy();
+    ws[1] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 1, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer ws[1].destroy();
+    try testing.expectError(error.GpuNativeMemoryPlanExceedsDevice, R.Driver.install(a, &F.ops, &F.peer, &ws, world.nativeFactory(), world.recursionFactory(), .{ .capacity_words = &.{ 1 << 20, 1 << 20 }, .max_segments = 8, .max_jobs_per_device = 32, .slab_words = 1 << 13, .reserve_words = 1 << 10, .graph_exec_words = 1 << 10, .arena_cap_words = 1 << 15 }));
+}
+
+test "worker: concurrent calls each get their own completion" {
+    const a = testing.allocator;
+    const w = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer w.destroy();
+    const Ctx = struct {
+        value: u32,
+        seen: u32 = 0,
+        fn run(raw: *anyopaque, _: *W.Worker) anyerror!void {
+            const c: *@This() = @ptrCast(@alignCast(raw));
+            std.Thread.sleep(std.time.ns_per_ms);
+            c.seen = c.value;
+            if (c.value % 2 == 1) return error.OddCall;
+        }
+        fn caller(wk: *W.Worker, c: *@This(), out: *anyerror!void) void {
+            out.* = wk.call(.{ .ctx = c, .run = run });
+        }
+    };
+    var ctxs: [8]Ctx = undefined;
+    var results: [8]anyerror!void = undefined;
+    var threads: [8]std.Thread = undefined;
+    for (&ctxs, 0..) |*c, i| c.* = .{ .value = @intCast(i + 1) };
+    for (&threads, 0..) |*t, i| t.* = try std.Thread.spawn(.{}, Ctx.caller, .{ w, &ctxs[i], &results[i] });
+    for (threads) |t| t.join();
+    for (ctxs, results) |c, r| {
+        try testing.expectEqual(c.value, c.seen);
+        if (c.value % 2 == 1) try testing.expectError(error.OddCall, r) else try r;
+    }
 }
 
 test "D1: a stale flag of the previous same-parity request never satisfies exchange_complete" {
@@ -537,14 +688,8 @@ test "D1: a capture stream is refused while the other in-flight request holds it
     defer cap.destroy();
     var r1 = request(91);
     r1.capture = cap;
-    const Capture = struct {
-        fn run(s: *C.Stream) void {
-            const sink = s.sink();
-            for (0..3) |seg| sink.sealed_segment(sink.ctx, @intCast(seg), 4) catch return;
-            sink.done(sink.ctx, 3) catch {};
-        }
-    };
-    const t = try std.Thread.spawn(.{}, Capture.run, .{cap});
+    try cap.prepare(r1.segment_rows);
+    const t = try std.Thread.spawn(.{}, Capture.full, .{ cap, r1.segment_rows });
     const f1 = try rig.driver.begin(&r1);
     t.join();
     var r2 = request(92);

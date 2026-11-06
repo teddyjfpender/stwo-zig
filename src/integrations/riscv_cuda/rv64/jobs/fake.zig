@@ -155,6 +155,15 @@ fn copyAsync(dst: *anyopaque, src: *const anyopaque, bytes: usize, kind: u32, _:
     }
     return 0;
 }
+/// Free device bytes `memory_info` reports (tests shrink it to model a GPU
+/// another tenant holds).
+pub var memory_free_bytes: usize = 1 << 40;
+fn memoryInfo(_: *anyopaque, free: *usize, total: *usize) callconv(.c) c_int {
+    free.* = memory_free_bytes;
+    total.* = 1 << 40;
+    return 0;
+}
+
 fn hostFn(_: *anyopaque, f: O.HostCall, user: ?*anyopaque) callconv(.c) c_int {
     bump("host_fns", 1);
     f(user);
@@ -310,6 +319,7 @@ pub const ops = O.Ops{
         .event_record = eventRecord,
         .stream_wait = streamWait,
         .host_fn = hostFn,
+        .memory_info = memoryInfo,
     },
     .wait = .{
         .context_create = contextCreate,
