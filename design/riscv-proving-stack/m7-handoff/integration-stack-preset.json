@@ -97,5 +97,8 @@
     "fullstack": {
       "recursion_max_pending_authorities": 21
     }
+  },
+  "frozen_arms": {
+    "fullstack": "M8 FROZEN (rv64-frontier-gpu-delta.md section 4 item 2): two co-resident lanes + global admission + recursion sessions. Kept for comparison only, default off, not to be extended. The explicit default is the baseline arm: one proof per GPU."
   }
 }

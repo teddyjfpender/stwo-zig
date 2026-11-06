@@ -54,6 +54,11 @@ DEFAULT_PRODUCER_ENV = {
     # fold circuits, on the flat (M5) native format. Receivers take the same selector from the run's plan
     # (format_environment). Old format: --env STWO_RV64_OUTER_PROFILE=r1 (byte-identical to the M5 default) or --no-default-env.
     "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
+    # M8 (rv64-frontier-gpu-delta.md section 4 item 2): one proof per GPU is the explicit default; equal to the code
+    # defaults, so proof-neutral. Two co-resident lanes + global admission are FROZEN (kept, default off).
+    "STWO_RV64_RECURSION_LANES_PER_DEVICE": "1",
+    "STWO_RV64_GLOBAL_ADMISSION": "0",
+    "STWO_RV64_RECURSION_SESSIONS": "0",
 }
 # Proof-format selectors a receiver must share with the producer of the run it checks.
 FORMAT_ENV_KEYS = ("STWO_RV64_OUTER_PROFILE", "STWO_RV64_NATIVE_VERSION")

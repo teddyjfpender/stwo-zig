@@ -1,3 +1,7 @@
+//! FROZEN (M8, rv64-frontier-gpu-delta.md section 4 item 2): kept, default off, not to be
+//! extended. One proof per GPU is the explicit default (STWO_RV64_GLOBAL_ADMISSION=0,
+//! STWO_RV64_RECURSION_LANES_PER_DEVICE=1). Retire once enqueue-only prove() and the
+//! measured memory policy (scripts/rv64_m8_memory_sweep.py) land.
 //! Future consumer headroom follows the allocation owner's final scope.
 //! retireAfterDestruction is called only after checked physical lease cleanup.
 const std = @import("std");

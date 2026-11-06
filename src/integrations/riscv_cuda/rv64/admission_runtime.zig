@@ -1,3 +1,7 @@
+//! FROZEN (M8, rv64-frontier-gpu-delta.md section 4 item 2): kept, default off, not to be
+//! extended. One proof per GPU is the explicit default (STWO_RV64_GLOBAL_ADMISSION=0,
+//! STWO_RV64_RECURSION_LANES_PER_DEVICE=1). Retire once enqueue-only prove() and the
+//! measured memory policy (scripts/rv64_m8_memory_sweep.py) land.
 //! Physical runtime endpoint. Reserve/retry on a HOST caller, never wait inside
 //! a GPU owner callback. The permit crosses submit, bounds allocations before
 //! mutation, and reconciles actual global retained bytes after joined cleanup.
