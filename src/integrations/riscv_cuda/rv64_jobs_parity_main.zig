@@ -13,6 +13,10 @@
 //! (h2d stream) and enqueues a device PoW grind (exec stream). Run once with the
 //! 3-stage pipeline (depth 3) and once serialized (depth 1: the next job is only
 //! submitted after the previous finished), wall clock per arm.
+//!
+//! `rv64-jobs-channel-parity service <device> <arena_mib> <pinned_mib> <cycles>`
+//! measures per-request open/close: today's create/destroy window vs a
+//! persistent worker's unpark/park (runtime-persist).
 const std = @import("std");
 const Raw = @import("stwo_core").channel.raw_mod_m31;
 const api = @import("rv64/jobs/api.zig");
@@ -250,6 +254,79 @@ fn dag(a: std.mem.Allocator, libs: *O.Libraries, segments: u32, leaves: usize) !
     if (!ok) std.process.exit(1);
 }
 
+/// Persistent service cost (runtime-persist, [M] open/close per request).
+/// Arm "window" = today's hybrid model: per request Worker.create (context,
+/// streams, arena, three eager pinned slots of `pinned_mib`) + one job +
+/// destroy. Arm "persistent": one Worker for the process (lazy pinned slots
+/// capped at `pinned_mib`), per request unpark(arena) + the same job + park.
+/// Wall clock (host operations, not GPU kernels). Both arms must produce the
+/// same PoW nonce (deterministic job).
+fn service(a: std.mem.Allocator, libs: *O.Libraries, device: u32, arena_mib: usize, pinned_mib: usize, cycles: usize) !void {
+    const arena_words = std.mem.alignBackward(usize, arena_mib << 18, W.Arena.granule);
+    const pinned_words = pinned_mib << 18;
+    const upload_words: usize = 16 << 18; // 64 MiB staged per job
+    const Cycle = struct { open_ns: u64, job_ns: u64, close_ns: u64, same_base: bool = false, epoch: u64 = 0, nonce: [2]u32 };
+    var rows: [2][]Cycle = undefined;
+    var pinned_bytes: [2]usize = .{ 0, 0 };
+    var pinned_allocs: [2]u64 = .{ 0, 0 };
+    var boot_ns: u64 = 0;
+    var stop_ns: u64 = 0;
+    for (0..2) |arm| {
+        rows[arm] = try a.alloc(Cycle, cycles);
+        var persistent: ?*W.Worker = null;
+        if (arm == 1) {
+            var t = try std.time.Timer.start();
+            // boot on a small arena (self-test sized), then park
+            const w = try W.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = 1 << 20, .pinned_slot_words = pinned_words, .pinned_lazy = true, .plan_from_env = false });
+            _ = try w.park(.{});
+            boot_ns = t.read();
+            persistent = w;
+        }
+        for (rows[arm]) |*row| {
+            var t = try std.time.Timer.start();
+            const w = if (persistent) |pw| blk: {
+                const r = try pw.unpark(arena_words);
+                row.same_base = r.same_base;
+                row.epoch = r.epoch;
+                break :blk pw;
+            } else try W.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = arena_words, .pinned_slot_words = pinned_words, .plan_from_env = false });
+            row.open_ns = t.lap();
+            var done = Done{ .a = a };
+            defer done.receipts.deinit(a);
+            var job = Load{ .upload_words = upload_words, .bits = 12 };
+            try w.submit(api.Job.from(Load, &job), done.sink());
+            while (w.load() != 0) std.Thread.sleep(20 * std.time.ns_per_us);
+            if (done.failures != 0) return error.ServiceJobFailed;
+            row.job_ns = t.lap();
+            row.nonce = job.nonce;
+            pinned_bytes[arm] = w.pinnedBytes();
+            pinned_allocs[arm] = w.pinned_allocations;
+            if (persistent) |pw| _ = try pw.park(.{}) else w.destroy();
+            row.close_ns = t.read();
+        }
+        if (persistent) |pw| {
+            var t = try std.time.Timer.start();
+            pw.destroy();
+            stop_ns = t.read();
+        }
+    }
+    defer for (rows) |r| a.free(r);
+    for (rows[0], rows[1]) |x, y| if (!std.mem.eql(u32, &x.nonce, &y.nonce)) return error.ServiceArmsDisagree;
+    var out: std.Io.Writer.Allocating = .init(a);
+    defer out.deinit();
+    try std.json.Stringify.value(.{
+        .schema = "rv64-m8-jobs-service/v1",
+        .device = device,
+        .arena_mib = arena_mib,
+        .pinned_mib = pinned_mib,
+        .upload_mib = upload_words >> 18,
+        .cycles = cycles,
+        .window = .{ .rows = rows[0], .pinned_bytes = pinned_bytes[0], .pinned_allocations_per_worker = pinned_allocs[0] },
+        .persistent = .{ .boot_ns = boot_ns, .stop_ns = stop_ns, .rows = rows[1], .pinned_bytes = pinned_bytes[1], .pinned_allocations_total = pinned_allocs[1] },
+    }, .{ .whitespace = .indent_1 }, &out.writer);
+    std.debug.print("{s}\n", .{out.written()});
+}
+
 pub fn main() !void {
     var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
     defer _ = gpa.deinit();
@@ -265,6 +342,11 @@ pub fn main() !void {
         var libs = try O.Libraries.open(std.posix.getenv("STWO_RV64_GPU_LIBRARY") orelse return error.MissingBaseLibrary, std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingJobsAddon);
         defer libs.close();
         return robust(a, &libs, try std.fmt.parseInt(u32, args[2], 10));
+    }
+    if (args.len == 6 and std.mem.eql(u8, args[1], "service")) {
+        var libs = try O.Libraries.open(std.posix.getenv("STWO_RV64_GPU_LIBRARY") orelse return error.MissingBaseLibrary, std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingJobsAddon);
+        defer libs.close();
+        return service(a, &libs, try std.fmt.parseInt(u32, args[2], 10), try std.fmt.parseInt(usize, args[3], 10), try std.fmt.parseInt(usize, args[4], 10), try std.fmt.parseInt(usize, args[5], 10));
     }
     if (args.len == 6 and std.mem.eql(u8, args[1], "pipeline")) {
         var libs = try O.Libraries.open(std.posix.getenv("STWO_RV64_GPU_LIBRARY") orelse return error.MissingBaseLibrary, std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingJobsAddon);
