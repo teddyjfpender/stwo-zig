@@ -39,3 +39,27 @@ Feeder gate-c 24628607, warm request [M] (`runs/m8-feeder/daemon-24628607-r2-gat
 - direct enqueue: 0.07–0.16 s.
 
 Every node ran `outcome=direct`. Per-node GPU time is 0.07–0.51 s (CUDA events). Expected with the class plan [E]: prestage ≈ 0 and init a few ms on warm nodes, which removes about 0.4–0.9 s of host time per node from each lane. Unverified until g1 runs.
+
+## Review of 534c2638c (2026-11-07)
+Fixed in d6914617b (`STWO_RV64_M8_OUTER_CLASS_PLAN=1` only; the default path is unchanged):
+- **The statics cache serialized prestage.** It held its global lock across `Statics.init`, so each leaf's first build (0.18–0.34 s [M]) stalled every lane's prestage, cache hits included. The miss now builds outside the lock, and a racing builder of the same class keeps the first entry.
+- **The cache never evicted.** Each block brings its own leaf classes (15 on 24628607 [M]). After about four block shapes, the 64-entry cache would freeze, with stale classes pinned in host memory [D]. Entries are now reference counted (a Staged borrows one; `Owner.release` or the prestage error path releases it). A new class evicts least-recently-used entries that nobody references.
+
+Refuted (checked against the code):
+- **Stale graph parameters.** The tag and fault constants are not stale on graph replay. A warm node re-records its body and rebinds it with `cudaGraphExecUpdate`, and `graph_key` includes the check kernel.
+- **Shared PCS framing race.** The PCS clone shares only const sections. `bindColumn` writes the clone's own coefficient table. Its deinit frees only that table (`section_owned` false, `owns_metadata` false, `geometry` null).
+- **Kernel versus host lookupSum.** The kernel's tuple order, alpha powers and M31 reductions match `witness.zig` `lookupSum`. Its extra canonical-output check can only reject, so it fails closed.
+
+Still on the host on the request path (design H-items; this commit does not remove them):
+- **H18:** `Assignment.Prepared.init` runs per node.
+- **H19:** `hostCheckpoint` runs per node.
+- **H20:** footprint is still computed per node. The WholePlan is built by a request's first node, not at warm.
+- **H22:** host decode, the duplicate host `lookupSum`, PCS decode and assemble (`evalComposition`) all remain. `node_oods_constraint` and `node_pcs_status` are not yet on device.
+- **H23:** one host wait per node.
+- **Verdict path:** the verdict is a job-slab field read in finish, not a request-slab status word read by `gpu_native.publish`.
+
+Evidence for d6914617b:
+- [M] Local `test-rv64-jobs-outer`: 99/99 under memguard.
+- [M] Pod zig driver and receiver build: PASS (driver sha256 b214ddb1…ac05).
+- [M] Pod unit set plus `test-rv64-jobs-outer`: 828/833 passed, 5 skipped.
+- GPU gates: **NOT RUN.** pid 3302210 (m8-native-hybrid orphan) still holds 30.1 GB per GPU [M]. The pipeline was re-armed as tmux `rec-gates2` (`/workspace/m3/runs/m8-gpu-recursion/g2`) at this commit, with the same arms as g1.
