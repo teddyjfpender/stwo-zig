@@ -171,12 +171,16 @@ pub const CommitPlan = struct {
     }
     /// Phase 2. `root_out`: 8-word slab field. `mix`: mix the root into e.channel.
     pub fn enqueue(self: *const CommitPlan, sym: Symbols, e: anytype, inputs: []const Input, root_out: api.DeviceBuffer, mix: bool) !Committed {
-        if (inputs.len != self.shapes.len or root_out.words < 8) return error.TraceCommitInputCount;
+        return self.enqueueInto(sym, e, inputs, try e.alloc(self.coefficient_cells), root_out, mix);
+    }
+    /// `enqueue` into caller-owned coefficient storage (e.g. class-persistent
+    /// FIXED memory from Stager.persistent) of `coefficient_cells` words.
+    pub fn enqueueInto(self: *const CommitPlan, sym: Symbols, e: anytype, inputs: []const Input, coefficients: api.DeviceBuffer, root_out: api.DeviceBuffer, mix: bool) !Committed {
+        if (inputs.len != self.shapes.len or root_out.words < 8 or coefficients.words < self.coefficient_cells) return error.TraceCommitInputCount;
         const ctx = e.ctx();
         const stream = e.stream();
         const tw = self.twiddles orelse return error.TraceCommitNotStaged;
         const logs = self.logs_device orelse return error.TraceCommitNotStaged;
-        const coefficients = try e.alloc(self.coefficient_cells);
         // Ingress in sorted order (the legacy copyInputs order).
         for (self.order) |original| {
             const count = @as(usize, 1) << @intCast(self.shapes[original].log_size);
