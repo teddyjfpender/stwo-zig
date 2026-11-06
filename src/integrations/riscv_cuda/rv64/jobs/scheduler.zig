@@ -10,7 +10,11 @@
 //!
 //! Placement, in order: key affinity (a worker whose previous job had the
 //! same class key: warm class plan / graph), then root-critical (higher
-//! priority first, then lower id), then the least-loaded worker. A worker
+//! priority first, then lower id), then the least-loaded worker. With a
+//! memory policy (plan.zig) every choice is first restricted to workers the
+//! job fits on by footprint (`Worker.fits`: its staged inputs beside the job
+//! that worker would stage it next to); if none fits, the least-loaded
+//! accepting worker still takes it and serializes the pair. A worker
 //! receives a job only while `Worker.accepts()` (its 3-stage pipeline has a
 //! free slot), so each worker holds one finishing, one enqueued and one
 //! staged job at most.
@@ -142,6 +146,8 @@ pub const Scheduler = struct {
     async_failure: ?anyerror = null, // set by worker threads under `mutex`
     dispatched: u64 = 0,
     affinity_hits: u64 = 0,
+    /// Dispatches where no accepting worker fit the job by footprint (it serialized).
+    unfit_dispatches: u64 = 0,
 
     const Finished = struct { id: u32, completion: api.Completion };
 
@@ -214,7 +220,7 @@ pub const Scheduler = struct {
             if (best == null or better(n, nodes[best.?], id, best.?)) best = id;
             for (self.workers, 0..) |w, wi| {
                 const key = self.last_key[wi] orelse continue;
-                if (!std.mem.eql(u8, &key, &n.key) or !w.accepts()) continue;
+                if (!std.mem.eql(u8, &key, &n.key) or !w.accepts() or !w.fits(n.job.?)) continue;
                 if (best_affine == null or better(n, nodes[best_affine.?.id], id, best_affine.?.id)) best_affine = .{ .id = id, .worker = wi };
             }
         }
@@ -223,17 +229,26 @@ pub const Scheduler = struct {
             return self.dispatch(pick.id, pick.worker);
         }
         const id = best orelse return false;
-        var target: ?usize = null;
-        var load: usize = std.math.maxInt(usize);
+        // Least loaded among workers it fits on; else least loaded overall.
+        var fit: ?usize = null;
+        var any: ?usize = null;
+        var fit_load: usize = std.math.maxInt(usize);
+        var any_load: usize = std.math.maxInt(usize);
         for (self.workers, 0..) |w, wi| {
             if (!w.accepts()) continue;
             const l = w.load();
-            if (l < load) {
-                load = l;
-                target = wi;
+            if (l < any_load) {
+                any_load = l;
+                any = wi;
+            }
+            if (l < fit_load and w.fits(nodes[id].job.?)) {
+                fit_load = l;
+                fit = wi;
             }
         }
-        return self.dispatch(id, target orelse return false);
+        const target = fit orelse any orelse return false;
+        if (fit == null) self.unfit_dispatches += 1;
+        return self.dispatch(id, target);
     }
 
     fn dispatch(self: *Scheduler, id: usize, wi: usize) !bool {

@@ -3,6 +3,7 @@
 test {
     _ = @import("rv64/jobs/api.zig");
     _ = @import("rv64/jobs/worker.zig");
+    _ = @import("rv64/jobs/plan.zig");
     _ = @import("rv64/jobs/slab.zig");
     _ = @import("rv64/jobs/channel_parity.zig");
     _ = @import("rv64/jobs/lint.zig");

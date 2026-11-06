@@ -24,15 +24,24 @@ const Tiny = struct {
     index: u32,
     trace: *Trace,
     fail: bool = false,
+    /// Memory-plan tests: staged inputs and work words (0 = the original tiny job).
+    staged: usize = 0,
+    work: usize = 0,
     pub fn classKey(self: *Tiny) [32]u8 {
         return @splat(@intFromEnum(self.kind));
     }
-    pub fn footprint(_: *Tiny) api.Footprint {
+    pub fn footprint(self: *Tiny) api.Footprint {
+        if (self.staged != 0) return .{ .device_words = self.staged + self.work, .staged_words = self.staged, .slab_words = 1 };
         return .{ .device_words = 256, .slab_words = 1 };
     }
-    pub fn stage(_: *Tiny, _: *api.Stager) !void {}
+    pub fn stage(self: *Tiny, s: *api.Stager) !void {
+        if (self.staged == 0) return;
+        const b = try s.alloc(self.staged);
+        try s.upload(b, &.{ self.index, 1, 2, 3 });
+    }
     pub fn enqueue(self: *Tiny, e: *api.Enqueue) !void {
         if (self.fail) return error.InjectedEnqueueFailure;
+        if (self.work != 0) e.free(try e.alloc(self.work));
         e.slab.device.ptr[0] = self.index;
     }
     pub fn finish(self: *Tiny, v: api.SlabView) !void {
@@ -49,12 +58,14 @@ const Fac = struct {
     jobs: std.ArrayListUnmanaged(*Tiny) = .empty,
     fail_kind: ?S.Kind = null,
     make_fail_kind: ?S.Kind = null,
+    staged: usize = 0,
+    work: usize = 0,
     fn make(raw: *anyopaque, kind: S.Kind, index: u32) anyerror!api.Job {
         const self: *Fac = @ptrCast(@alignCast(raw));
         if (self.make_fail_kind == kind) return error.InjectedMakeFailure;
         self.trace.add(kind, index, 'm');
         const t = try std.testing.allocator.create(Tiny);
-        t.* = .{ .kind = kind, .index = index, .trace = &self.trace, .fail = self.fail_kind == kind };
+        t.* = .{ .kind = kind, .index = index, .trace = &self.trace, .fail = self.fail_kind == kind, .staged = self.staged, .work = self.work };
         try self.jobs.append(std.testing.allocator, t);
         return api.Job.from(Tiny, t);
     }
@@ -201,4 +212,48 @@ test "a factory failure drains in-flight jobs before returning" {
     try std.testing.expectError(error.InjectedMakeFailure, s.run());
     try std.testing.expectEqual(@as(usize, 0), s.running);
     for (ws) |w| try std.testing.expectEqual(@as(usize, 0), w.load());
+}
+
+test "placement by footprint: a request whose classes cannot overlap pairwise completes under the policy" {
+    // Every class: 4 granules staged, 8 granules of work → arena peak 14 granules
+    // (staged + channel state + slab + work). Arena 16 granules: no class fits beside
+    // another's staged inputs, so every worker must serialize, never fail a job.
+    const P = @import("plan.zig");
+    const gr = W.Arena.granule;
+    var text: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer text.deinit();
+    try text.writer.print("{{\"schema\":\"{s}\",\"gpu\":{{\"arena_words\":{d},\"max_concurrent_jobs\":1}},\"classes\":[", .{ P.schema, 16 * gr });
+    for ([_]S.Kind{ .native_stage1, .native_stage2, .truth, .leaf, .fold }, 0..) |k, i| {
+        const key: [32]u8 = @splat(@intFromEnum(k));
+        try text.writer.print("{s}{{\"label\":\"{s}\",\"class_key\":\"{s}\",\"peak_words\":{d},\"staged_words\":{d},\"slab_words\":1,\"max_concurrent\":1}}", .{ if (i == 0) "" else ",", @tagName(k), std.fmt.bytesToHex(key, .lower), 14 * gr, 4 * gr });
+    }
+    try text.writer.writeAll("]}");
+    const policy = try P.Policy.parse(std.testing.allocator, text.written());
+    defer policy.deinit();
+    _ = try P.checkPolicyLayout(policy);
+    fake.reset();
+    var ws: [2]*W.Worker = undefined;
+    for (&ws, 0..) |*w, i| w.* = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = @intCast(i), .arena_words = 1 << 20, .pinned_slot_words = 1 << 10, .plan = policy });
+    defer for (ws) |w| w.destroy();
+    var g = S.Graph{ .a = std.testing.allocator };
+    defer g.deinit();
+    const plan = try Dag.Plan.initArity(6, 2);
+    var fac = Fac{ .staged = 4 * gr, .work = 8 * gr };
+    defer fac.deinit();
+    var r = try S.buildRequest(&g, .{ .segments = 4, .truths = 2, .truth_after_seal = false }, &plan, undefined, leafDeps);
+    defer r.deinit(std.testing.allocator);
+    for (r.stage1) |id| g.nodes.items[id].released = true;
+    var s = try S.Scheduler.init(std.testing.allocator, &g, fac.factory(), &ws);
+    defer s.deinit();
+    try s.run();
+    try std.testing.expectEqual(@as(usize, 4 + 4 + 2 + plan.count), s.dispatched);
+    try std.testing.expectEqual(s.dispatched, fake.counters.host_waits);
+    var over: u64 = 0;
+    for (ws) |w| {
+        try std.testing.expectEqual(@as(usize, 16 * gr), w.config.arena_words);
+        const stats = try w.classStats(std.testing.allocator);
+        defer std.testing.allocator.free(stats);
+        for (stats) |e| over += e.stat.over_plan;
+    }
+    try std.testing.expectEqual(@as(u64, 0), over);
 }

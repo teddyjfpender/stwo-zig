@@ -22,6 +22,7 @@ const api = @import("api.zig");
 const O = @import("ops.zig");
 const Channel = @import("channel.zig");
 const Slab = @import("slab.zig");
+const MP = @import("plan.zig");
 
 pub const Config = struct {
     device: u32,
@@ -30,6 +31,15 @@ pub const Config = struct {
     pinned_slot_words: usize,
     /// Scheduler-visible pipeline depth (mailbox + staged + enqueued + finishing ≤ this).
     max_outstanding: usize = 3,
+    /// Memory policy (plan.zig). Null: `Worker.create` loads STWO_RV64_M8_JOBS_PLAN
+    /// if set; unset keeps today's behavior (declared footprints, this arena size).
+    plan: ?*const MP.Policy = null,
+    /// One pool for Stager.persistent with LRU eviction (0 = per-key
+    /// allocations kept for the worker's lifetime, today's behavior).
+    persistent_budget_words: usize = 0,
+    /// Reclaim non-LIFO `Enqueue.free`s inside a job's window (lowers peaks).
+    /// Also STWO_RV64_M8_JOBS_ARENA_REUSE=1 or a policy with allocator=reuse.
+    reuse_frees: bool = false,
 };
 
 /// Measured per-class plan (spec §3.7 hook): what the class actually used,
@@ -44,6 +54,35 @@ pub const ClassStat = struct {
     stage_ns: u64 = 0,
     enqueue_ns: u64 = 0,
     wait_ns: u64 = 0,
+    // v2 (memory-plan sweep): declared parts, per-side measurements, policy outcome.
+    declared_staged_words: u64 = 0,
+    declared_pinned_words: u64 = 0,
+    /// MP.peakOf(declared footprint): what the declaration claims the arena must hold.
+    declared_peak_words: u64 = 0,
+    /// Peak the policy planned with (0 = class not in the policy / no policy).
+    planned_peak_words: u64 = 0,
+    /// Jobs whose measured arena peak exceeded the planned peak (stale policy).
+    over_plan: u64 = 0,
+    /// Jobs the worker staged only after its predecessor was enqueued (pair did not fit).
+    serialized: u64 = 0,
+    /// Largest Stager.persistent total one job referenced (fresh or warm).
+    persistent_words: u64 = 0,
+    sides: [2]SideStat = .{ .{}, .{} },
+};
+
+/// Per placement (0 = bottom, 1 = top) measurements of a class.
+pub const SideStat = struct {
+    jobs: u64 = 0,
+    /// Own staged inputs + bump high-water of the work window (what the window must hold).
+    peak_arena_words: u64 = 0,
+    /// Own staged inputs + high-water of live (allocated, not freed) words:
+    /// the peak a perfect allocator would reach. peak - live_peak is LIFO waste.
+    live_peak_words: u64 = 0,
+    staged_words: u64 = 0,
+    /// Allocation index (1-based, in enqueue order) that set the peak, and its size.
+    peak_alloc: u64 = 0,
+    peak_alloc_words: u64 = 0,
+    allocs: u64 = 0,
 };
 
 pub const Sink = struct {
@@ -51,7 +90,17 @@ pub const Sink = struct {
     done: *const fn (*anyopaque, api.Completion) void,
 };
 
-/// Two-sided bump allocator over one device allocation (pure bookkeeping).
+/// Two-sided allocator over one device allocation (pure bookkeeping).
+///
+/// The work window of the job on side S is addressed by offsets from S's
+/// origin (bottom: grows up from `work_first`; top: grows down from
+/// `work_end`). A bump `bump` marks its high-water; with `reuse` a free that
+/// is not the most recent allocation becomes a hole that later allocations of
+/// the same job take best-fit (stream-ordered: every consumer of the freed
+/// range was enqueued before, on the same exec stream). Without `reuse` only
+/// LIFO frees are reclaimed (today's behavior). Either way the sequence of
+/// addresses is a pure function of the job's allocation sequence and side,
+/// so a captured graph replays for the next job of the class on that side.
 pub const Arena = struct {
     base: usize = 0,
     words: usize = 0,
@@ -59,8 +108,23 @@ pub const Arena = struct {
     work_side: api.Placement = .bottom,
     work_first: usize = 0, // inclusive lower bound of the work window
     work_end: usize = 0, // exclusive upper bound
-    cursor: usize = 0, // bottom: grows up from work_first; top: grows down from work_end
+    bump: usize = 0, // offset high-water mark from the work side's origin
+    /// Own staged inputs + bump high-water (what the window had to hold).
     peak: usize = 0,
+    live: usize = 0,
+    /// Own staged inputs + live high-water (perfect-free bound).
+    live_peak: usize = 0,
+    allocs: usize = 0,
+    peak_alloc: usize = 0,
+    peak_alloc_words: usize = 0,
+    reuse: bool = false,
+    holes: [max_holes]Hole = undefined,
+    hole_count: usize = 0,
+    /// Frees not recorded because the hole table was full (reclaimed at window reset).
+    dropped_holes: usize = 0,
+
+    pub const max_holes = 64;
+    pub const Hole = struct { off: usize, len: usize };
 
     fn side(p: api.Placement) usize {
         return @intFromEnum(p);
@@ -87,40 +151,214 @@ pub const Arena = struct {
         self.work_side = placement;
         self.work_first = self.staged[0];
         self.work_end = self.words - self.staged[1];
-        self.cursor = if (placement == .bottom) self.work_first else self.work_end;
+        self.bump = 0;
+        self.live = 0;
+        self.hole_count = 0;
+        self.dropped_holes = 0;
+        self.allocs = 0;
+        self.peak_alloc = 0;
+        self.peak_alloc_words = 0;
         self.peak = self.staged[side(placement)];
+        self.live_peak = self.peak;
+    }
+    fn limit(self: *const Arena) usize {
+        return self.work_end - self.work_first;
+    }
+    fn wordAt(self: *const Arena, off: usize, words: usize) usize {
+        return if (self.work_side == .bottom) self.work_first + off else self.work_end - off - words;
     }
     pub fn workAlloc(self: *Arena, requested: usize) !usize {
         if (requested == 0) return error.InvalidAllocation;
         const words = std.mem.alignForward(usize, requested, granule);
-        if (self.work_side == .bottom) {
-            if (words > self.work_end - self.cursor) return error.JobWorkExceedsArena;
-            const at = self.cursor;
-            self.cursor += words;
-            self.note();
-            return self.base + 4 * at;
-        }
-        if (words > self.cursor - self.work_first) return error.JobWorkExceedsArena;
-        self.cursor -= words;
-        self.note();
-        return self.base + 4 * self.cursor;
+        const off = if (self.reuse) self.takeHole(words) orelse try self.bumpBy(words) else try self.bumpBy(words);
+        self.allocs += 1;
+        self.live += words;
+        self.note(words);
+        return self.base + 4 * self.wordAt(off, words);
     }
-    /// Stream-ordered LIFO free: only the most recent allocation is reclaimed
-    /// (others are reclaimed when the job's window resets).
+    fn bumpBy(self: *Arena, words: usize) !usize {
+        if (words > self.limit() - self.bump) return error.JobWorkExceedsArena;
+        const at = self.bump;
+        self.bump += words;
+        return at;
+    }
+    /// Best fit (smallest hole that fits; lowest offset on ties), from the hole's start.
+    fn takeHole(self: *Arena, words: usize) ?usize {
+        var best: ?usize = null;
+        for (self.holes[0..self.hole_count], 0..) |h, i| {
+            if (h.len < words) continue;
+            if (best == null or h.len < self.holes[best.?].len) best = i;
+        }
+        const i = best orelse return null;
+        const at = self.holes[i].off;
+        self.holes[i].off += words;
+        self.holes[i].len -= words;
+        if (self.holes[i].len == 0) self.removeHole(i);
+        return at;
+    }
+    fn removeHole(self: *Arena, i: usize) void {
+        std.mem.copyForwards(Hole, self.holes[i .. self.hole_count - 1], self.holes[i + 1 .. self.hole_count]);
+        self.hole_count -= 1;
+    }
+    /// Stream-ordered free. The most recent allocation always retracts the
+    /// bump; with `reuse` any other live range becomes a reusable hole.
     pub fn workFree(self: *Arena, address: usize, requested: usize) void {
         const words = std.mem.alignForward(usize, requested, granule);
         if (address < self.base or (address - self.base) % 4 != 0) return;
         const at = (address - self.base) / 4;
-        if (self.work_side == .bottom) {
-            if (at + words == self.cursor and at >= self.work_first) self.cursor = at;
-        } else if (at == self.cursor and at + words <= self.work_end) self.cursor = at + words;
+        const off = if (self.work_side == .bottom) blk: {
+            if (at < self.work_first) return;
+            break :blk at - self.work_first;
+        } else blk: {
+            if (at > self.work_end or words > self.work_end - at) return;
+            break :blk self.work_end - at - words;
+        };
+        if (off + words > self.bump) return; // never allocated in this window
+        if (off + words == self.bump) {
+            self.bump = off;
+            self.live -|= words;
+            // Holes now touching the bump are free tail: retract over them.
+            while (self.hole_count != 0) {
+                const last = self.holes[self.hole_count - 1];
+                if (last.off + last.len != self.bump) break;
+                self.bump = last.off;
+                self.hole_count -= 1;
+            }
+            return;
+        }
+        if (!self.reuse) {
+            self.live -|= words; // dead, reclaimed when the window resets
+            return;
+        }
+        if (self.insertHole(off, words)) self.live -|= words;
     }
-    fn note(self: *Arena) void {
-        const used = if (self.work_side == .bottom) self.cursor - self.work_first else self.work_end - self.cursor;
-        self.peak = @max(self.peak, used + self.staged[side(self.work_side)]);
+    /// Sorted, coalesced; rejects a range overlapping an existing hole (double free).
+    fn insertHole(self: *Arena, off: usize, len: usize) bool {
+        var i: usize = 0;
+        while (i < self.hole_count and self.holes[i].off < off) : (i += 1) {}
+        if (i > 0 and self.holes[i - 1].off + self.holes[i - 1].len > off) return false;
+        if (i < self.hole_count and off + len > self.holes[i].off) return false;
+        const joins_prev = i > 0 and self.holes[i - 1].off + self.holes[i - 1].len == off;
+        const joins_next = i < self.hole_count and off + len == self.holes[i].off;
+        if (joins_prev and joins_next) {
+            self.holes[i - 1].len += len + self.holes[i].len;
+            self.removeHole(i);
+        } else if (joins_prev) {
+            self.holes[i - 1].len += len;
+        } else if (joins_next) {
+            self.holes[i].off = off;
+            self.holes[i].len += len;
+        } else {
+            if (self.hole_count == max_holes) {
+                self.dropped_holes += 1;
+                return true;
+            }
+            std.mem.copyBackwards(Hole, self.holes[i + 1 .. self.hole_count + 1], self.holes[i..self.hole_count]);
+            self.holes[i] = .{ .off = off, .len = len };
+            self.hole_count += 1;
+        }
+        return true;
+    }
+    fn note(self: *Arena, words: usize) void {
+        const own = self.staged[side(self.work_side)];
+        if (own + self.bump > self.peak) {
+            self.peak = own + self.bump;
+            self.peak_alloc = self.allocs;
+            self.peak_alloc_words = words;
+        }
+        self.live_peak = @max(self.live_peak, own + self.live);
     }
     pub fn contains(self: *const Arena, address: usize, words: usize) bool {
         return address >= self.base and (address - self.base) % 4 == 0 and (address - self.base) / 4 <= self.words and words <= self.words - (address - self.base) / 4;
+    }
+};
+
+/// Class-persistent regions in one pool (Stager.persistent with a budget):
+/// first-fit placement, LRU eviction of regions no in-flight job pins. Pure
+/// bookkeeping over offsets; the worker maps them into one device allocation.
+///
+/// Why eviction is safe without a host wait: a region is evictable only when
+/// no staged, enqueued or finishing job pins it, so every job that touched it
+/// was enqueued before the job now filling its successor. Exec-stream writes
+/// are ordered after them; h2d uploads first wait (on the device) for the most
+/// recently enqueued job (Worker.stageUpload). A failed fill is retired (kept
+/// occupied, never found or reused): its h2d copy may still be in flight.
+pub const Regions = struct {
+    words: usize = 0,
+    entries: std.ArrayListUnmanaged(Entry) = .empty, // sorted by offset
+    tick: u64 = 0,
+    evictions: u64 = 0,
+    evicted_words: u64 = 0,
+    high_water: usize = 0,
+
+    pub const Entry = struct { key: [32]u8, offset: usize, words: usize, requested: usize, last_use: u64, pins: u32 = 0, retired: bool = false };
+    pub const Acquired = struct { offset: usize, fresh: bool };
+
+    pub fn deinit(self: *Regions, a: std.mem.Allocator) void {
+        self.entries.deinit(a);
+    }
+    pub fn find(self: *const Regions, key: [32]u8) ?usize {
+        for (self.entries.items, 0..) |e, i| if (!e.retired and std.mem.eql(u8, &e.key, &key)) return i;
+        return null;
+    }
+    /// Find or place `key`; pins it (one `unpin` per successful acquire).
+    pub fn acquire(self: *Regions, a: std.mem.Allocator, key: [32]u8, requested: usize) !Acquired {
+        if (requested == 0) return error.InvalidAllocation;
+        self.tick += 1;
+        if (self.find(key)) |i| {
+            const e = &self.entries.items[i];
+            if (e.requested != requested) return error.PersistentGeometryMismatch;
+            e.last_use = self.tick;
+            e.pins += 1;
+            return .{ .offset = e.offset, .fresh = false };
+        }
+        const words = std.mem.alignForward(usize, requested, Arena.granule);
+        if (words > self.words) return error.PersistentRegionExceedsBudget;
+        try self.entries.ensureUnusedCapacity(a, 1);
+        // Fail without evicting when even evicting every unpinned region cannot make room.
+        if (self.gap(words, true) == null) return error.PersistentBudgetExhausted;
+        while (true) {
+            if (self.gap(words, false)) |g| {
+                self.entries.insertAssumeCapacity(g.index, .{ .key = key, .offset = g.offset, .words = words, .requested = requested, .last_use = self.tick, .pins = 1 });
+                self.high_water = @max(self.high_water, g.offset + words);
+                return .{ .offset = g.offset, .fresh = true };
+            }
+            var victim: ?usize = null;
+            for (self.entries.items, 0..) |e, i| {
+                if (e.pins != 0 or e.retired) continue;
+                if (victim == null or e.last_use < self.entries.items[victim.?].last_use) victim = i;
+            }
+            const v = victim orelse return error.PersistentBudgetExhausted;
+            self.evictions += 1;
+            self.evicted_words += self.entries.items[v].words;
+            _ = self.entries.orderedRemove(v);
+        }
+    }
+    /// First fit. `evictable_free`: treat unpinned live regions as free (feasibility only).
+    fn gap(self: *const Regions, words: usize, evictable_free: bool) ?struct { index: usize, offset: usize } {
+        var end: usize = 0;
+        for (self.entries.items, 0..) |e, i| {
+            if (evictable_free and e.pins == 0 and !e.retired) continue;
+            if (e.offset - end >= words) return .{ .index = i, .offset = end };
+            end = e.offset + e.words;
+        }
+        if (self.words - end >= words) return .{ .index = self.entries.items.len, .offset = end };
+        return null;
+    }
+    pub fn unpin(self: *Regions, key: [32]u8) void {
+        for (self.entries.items) |*e| if (std.mem.eql(u8, &e.key, &key) and e.pins != 0) {
+            e.pins -= 1;
+            return;
+        };
+    }
+    /// A failed fill: keep the space occupied forever, never hand it out again.
+    pub fn retire(self: *Regions, key: [32]u8) void {
+        if (self.find(key)) |i| self.entries.items[i].retired = true;
+    }
+    pub fn used(self: *const Regions) usize {
+        var n: usize = 0;
+        for (self.entries.items) |e| n += e.words;
+        return n;
     }
 };
 
@@ -147,6 +385,22 @@ const Slot = struct {
     /// Persistent entries this job created (fresh); dropped if the job fails.
     fresh_keys: [8][32]u8 = undefined,
     fresh_count: usize = 0,
+    /// Pool regions this job pinned (one unpin each when it leaves the pipeline).
+    pinned_keys: [16][32]u8 = undefined,
+    pinned_count: usize = 0,
+    persistent_words: usize = 0,
+    /// Footprint the worker planned with (plan.zig; declared when unplanned).
+    resolved: MP.Resolved = MP.declared(.{ .device_words = 0 }),
+    /// The job's own declaration (sweep records declared vs measured).
+    declared: api.Footprint = .{ .device_words = 0 },
+    /// Submission index (scheduler-visible tail tracking for `fits`).
+    submit_index: u64 = 0,
+    serialized: bool = false,
+    // arena measurements of this job's window
+    live_peak: usize = 0,
+    peak_alloc: usize = 0,
+    peak_alloc_words: usize = 0,
+    allocs: usize = 0,
 };
 
 pub const Worker = struct {
@@ -180,13 +434,39 @@ pub const Worker = struct {
     completed: u64 = 0,
     /// Guarded by `mutex` (written on the worker thread, read by `classStats`).
     classes: std.AutoHashMapUnmanaged([32]u8, ClassStat) = .empty,
+    /// Memory policy in force (null = today's behavior); `owned_plan` if loaded from env.
+    policy: ?*const MP.Policy = null,
+    owned_plan: ?*MP.Policy = null,
+    regions: Regions = .{},
+    regions_buffer: ?[*]u32 = null,
+    // tail tracking for `fits` (under `mutex`): the last submitted job until it is enqueued
+    submitted: u64 = 0,
+    tail_peak: usize = 0,
+    tail_live: bool = false,
+    /// Worker thread: the next stage follows a serialized (pair-does-not-fit) enqueue.
+    serialize_next: bool = false,
 
-    const Submission = struct { job: api.Job, sink: Sink };
+    const Submission = struct { job: api.Job, sink: Sink, index: u64, declared: api.Footprint, resolved: MP.Resolved };
 
-    pub fn create(a: std.mem.Allocator, ops: *const O.Ops, config: Config) !*Worker {
+    pub fn create(a: std.mem.Allocator, ops: *const O.Ops, config_in: Config) !*Worker {
+        var config = config_in;
+        const owned: ?*MP.Policy = if (config.plan == null) try MP.Policy.fromEnv(a) else null;
+        errdefer if (owned) |p| p.deinit();
+        const policy: ?*const MP.Policy = config.plan orelse owned;
+        if (policy) |p| {
+            // The policy's arena replaces the configured default; an explicit
+            // STWO_RV64_M8_JOBS_ARENA_BYTES (operator override) still wins.
+            if (std.posix.getenv("STWO_RV64_M8_JOBS_ARENA_BYTES") == null) config.arena_words = @intCast(p.gpu.arena_words);
+            if (config.persistent_budget_words == 0) config.persistent_budget_words = @intCast(p.gpu.persistent_budget_words);
+            config.reuse_frees = config.reuse_frees or p.gpu.allocator == .reuse;
+            config.max_outstanding = @min(config.max_outstanding, p.gpu.max_outstanding);
+        }
+        if (std.posix.getenv("STWO_RV64_M8_JOBS_ARENA_REUSE")) |v| {
+            if (std.mem.eql(u8, v, "1")) config.reuse_frees = true else if (!std.mem.eql(u8, v, "0")) return error.InvalidM8JobsEnvironment;
+        }
         const self = try a.create(Worker);
         errdefer a.destroy(self);
-        self.* = .{ .ops = ops, .config = config, .device_ordinal = config.device, .a = a };
+        self.* = .{ .ops = ops, .config = config, .device_ordinal = config.device, .a = a, .policy = policy, .owned_plan = owned };
         self.thread = try std.Thread.spawn(.{}, run, .{self});
         // Startup (context creation) runs on the worker thread; report its outcome.
         self.mutex.lock();
@@ -211,8 +491,64 @@ pub const Worker = struct {
         self.cond.broadcast();
         self.mutex.unlock();
         if (self.thread) |t| t.join();
+        if (std.posix.getenv(MP.env_plan_dir)) |dir| self.writePlanDir(dir) catch |err| std.log.err("M8 worker class plan output failed: {s}", .{@errorName(err)});
         self.classes.deinit(self.a);
+        self.regions.deinit(self.a);
+        if (self.owned_plan) |p| p.deinit();
         self.a.destroy(self);
+    }
+
+    /// The memory policy this worker plans with (null = none).
+    pub fn plan(self: *const Worker) ?*const MP.Policy {
+        return self.policy;
+    }
+
+    fn resolve(self: *const Worker, job: api.Job) MP.Resolved {
+        return self.resolveFootprint(job, job.footprint());
+    }
+    fn resolveFootprint(self: *const Worker, job: api.Job, fp: api.Footprint) MP.Resolved {
+        const p = self.policy orelse return MP.declared(fp);
+        return p.resolve(job.classKey(), fp);
+    }
+
+    /// Placement by footprint (scheduler): true when `job`'s staged inputs fit
+    /// beside the job this worker would stage it next to (the last submitted
+    /// job, until it is enqueued). Always true without a policy. A job that does
+    /// not fit is still correct on this worker (it serializes), just not overlapped.
+    pub fn fits(self: *Worker, job: api.Job) bool {
+        if (self.policy == null) return true;
+        const r = self.resolve(job);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (!self.tail_live) return true;
+        return MP.pairFits(self.config.arena_words, self.tail_peak, r.staged_words);
+    }
+
+    /// Measured class plans + allocator state (STWO_RV64_M8_JOBS_PLAN_DIR).
+    pub fn writePlanDir(self: *Worker, dir: []const u8) !void {
+        const Row = struct { device: u32, class_key: [64]u8, stat: ClassStat };
+        var rows: std.ArrayListUnmanaged(Row) = .empty;
+        defer rows.deinit(self.a);
+        var it = self.classes.iterator();
+        while (it.next()) |e| try rows.append(self.a, .{ .device = self.device_ordinal, .class_key = std.fmt.bytesToHex(e.key_ptr.*, .lower), .stat = e.value_ptr.* });
+        var text: std.Io.Writer.Allocating = .init(self.a);
+        defer text.deinit();
+        try std.json.Stringify.value(.{
+            .schema = "rv64-m8-jobs-class-plans/v2",
+            .device = self.device_ordinal,
+            .arena_words = self.config.arena_words,
+            .allocator = if (self.config.reuse_frees) "reuse" else "lifo",
+            .policy = self.policy != null,
+            .persistent = .{ .budget_words = self.config.persistent_budget_words, .regions = self.regions.entries.items.len, .used_words = self.regions.used(), .high_water_words = self.regions.high_water, .evictions = self.regions.evictions, .evicted_words = self.regions.evicted_words, .unbudgeted_regions = self.persistent_map.count() },
+            .completed = self.completed,
+            .classes = rows.items,
+        }, .{ .whitespace = .indent_1 }, &text.writer);
+        std.fs.cwd().makePath(dir) catch {};
+        var name_buf: [96]u8 = undefined;
+        const name = try std.fmt.bufPrint(&name_buf, "worker-d{d}-{d}-{x}.json", .{ self.device_ordinal, std.time.nanoTimestamp(), @intFromPtr(self) & 0xffffff });
+        var d = try std.fs.cwd().openDir(dir, .{});
+        defer d.close();
+        try d.writeFile(.{ .sub_path = name, .data = text.written() });
     }
 
     /// True when the scheduler may submit another job to this worker.
@@ -244,7 +580,12 @@ pub const Worker = struct {
         if (self.fatal) |err| return err;
         if (self.closing) return error.WorkerClosing;
         if (self.mailbox != null or self.outstanding >= self.config.max_outstanding) return error.WorkerBusy;
-        self.mailbox = .{ .job = job, .sink = sink };
+        const declared_fp = job.footprint();
+        const r = self.resolveFootprint(job, declared_fp);
+        self.mailbox = .{ .job = job, .sink = sink, .index = self.submitted, .declared = declared_fp, .resolved = r };
+        self.submitted += 1;
+        self.tail_peak = r.peak_words;
+        self.tail_live = true;
         self.outstanding += 1;
         self.cond.broadcast();
     }
@@ -276,6 +617,16 @@ pub const Worker = struct {
         while (true) {
             const next = self.take(staged == null and running == null);
             if (next == null and staged == null and running == null) break;
+            if (next) |sub| if (staged) |s| if (!self.pairFits(s, sub)) {
+                // Memory plan: the staged job does not fit beside this job's
+                // inputs. Enqueue it alone first; `sub` then stages behind it
+                // (its uploads wait on the device for it), never failing either.
+                const alone = self.enqueue(s, null);
+                if (running) |r| self.complete(r);
+                running = alone;
+                staged = null;
+                self.serialize_next = true;
+            };
             const newly: ?*Slot = if (next) |sub| self.stage(sub) else null;
             const enqueued: ?*Slot = if (staged) |s| self.enqueue(s, newly) else null;
             if (running) |r| self.complete(r);
@@ -283,6 +634,11 @@ pub const Worker = struct {
             staged = newly;
         }
         self.shutdown();
+    }
+
+    fn pairFits(self: *Worker, staged: *Slot, next: Submission) bool {
+        if (self.policy == null) return true;
+        return MP.pairFits(self.arena.words, staged.resolved.peak_words, next.resolved.staged_words);
     }
 
     fn startup(self: *Worker) !void {
@@ -302,7 +658,14 @@ pub const Worker = struct {
         var arena: ?[*]u32 = null;
         try O.check(self.ops.exec.alloc_u32(self.context, self.config.arena_words, &arena));
         self.arena_buffer = arena orelse return error.CudaArenaFailed;
-        self.arena = .{ .base = @intFromPtr(arena.?), .words = self.config.arena_words };
+        self.arena = .{ .base = @intFromPtr(arena.?), .words = self.config.arena_words, .reuse = self.config.reuse_frees };
+        if (self.config.persistent_budget_words != 0) {
+            if (self.config.persistent_budget_words % Arena.granule != 0) return error.InvalidPersistentBudget;
+            var pool: ?[*]u32 = null;
+            try O.check(self.ops.exec.alloc_u32_long(self.context, self.config.persistent_budget_words, &pool));
+            self.regions_buffer = pool orelse return error.CudaAllocationFailed;
+            self.regions.words = self.config.persistent_budget_words;
+        }
         for (&self.slots) |*slot| {
             try O.check(w.event_create(&slot.staged_event));
             try O.check(w.event_create(&slot.done_event));
@@ -324,6 +687,7 @@ pub const Worker = struct {
         self.persistent_map.deinit(self.a);
         for (self.retired.items) |b| _ = self.ops.exec.free_u32(self.context, b.ptr);
         self.retired.deinit(self.a);
+        if (self.regions_buffer) |p| _ = self.ops.exec.free_u32(self.context, p);
         if (self.arena_buffer) |p| _ = self.ops.exec.free_u32(self.context, p);
         _ = w.stream_destroy(self.h2d_stream);
         _ = w.context_destroy(self.context);
@@ -337,10 +701,12 @@ pub const Worker = struct {
         const staged_event = slot.staged_event;
         const done_event = slot.done_event;
         const pinned = slot.pinned;
-        slot.* = .{ .job = sub.job, .sink = sub.sink, .seq = seq, .placement = if (seq % 2 == 0) .bottom else .top, .pinned = pinned, .staged_event = staged_event, .done_event = done_event };
+        slot.* = .{ .job = sub.job, .sink = sub.sink, .seq = seq, .placement = if (seq % 2 == 0) .bottom else .top, .pinned = pinned, .staged_event = staged_event, .done_event = done_event, .resolved = sub.resolved, .declared = sub.declared, .submit_index = sub.index, .serialized = self.serialize_next };
+        self.serialize_next = false;
         slot.receipt = .{ .device = self.device_ordinal, .sequence = seq, .placement = slot.placement };
         var timer = std.time.Timer.start() catch unreachable;
-        slot.footprint = sub.job.footprint();
+        slot.footprint = sub.resolved.footprint;
+        if (!sub.resolved.planned) if (self.policy) |p| if (p.unplanned() == .refuse) return self.refuse(slot, error.JobClassNotInMemoryPolicy);
         const fixed = Channel.state_words + slot.footprint.slab_words;
         if (slot.footprint.device_words > self.arena.words or fixed > self.arena.words - slot.footprint.device_words) return self.refuse(slot, error.JobFootprintExceedsArena);
         if (slot.footprint.pinned_words > pinned.len or slot.footprint.slab_words > pinned.len - slot.footprint.pinned_words) return self.refuse(slot, error.JobFootprintExceedsPinned);
@@ -356,7 +722,15 @@ pub const Worker = struct {
         return slot;
     }
 
+    /// The slot no longer waits to be enqueued: it stops being `fits`'s tail.
+    fn leaveTail(self: *Worker, slot: *Slot) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (slot.submit_index + 1 == self.submitted) self.tail_live = false;
+    }
+
     fn refuse(self: *Worker, slot: *Slot, err: anyerror) ?*Slot {
+        self.leaveTail(slot);
         slot.job.vtable.abort(slot.job.ctx);
         self.report(slot, err);
         return null;
@@ -403,6 +777,11 @@ pub const Worker = struct {
     }
 
     fn isPersistent(self: *Worker, dst: api.DeviceBuffer, words: usize) bool {
+        if (self.regions_buffer) |pool| {
+            const lo = @intFromPtr(pool);
+            const at = @intFromPtr(dst.ptr);
+            return at >= lo and (at - lo) / 4 <= self.regions.words and words <= self.regions.words - (at - lo) / 4;
+        }
         var it = self.persistent_map.valueIterator();
         while (it.next()) |b| {
             const lo = @intFromPtr(b.ptr);
@@ -414,6 +793,20 @@ pub const Worker = struct {
 
     pub fn persistent(self: *Worker, key: [32]u8, words: usize) !api.Persistent {
         const slot = self.staging orelse return error.StagerOutsidePhaseOne;
+        if (self.regions_buffer) |pool| {
+            if (slot.pinned_count == slot.pinned_keys.len) return error.TooManyPersistentRegions;
+            if (slot.fresh_count == slot.fresh_keys.len and self.regions.find(key) == null) return error.TooManyPersistentFills;
+            const got = try self.regions.acquire(self.a, key, words);
+            slot.pinned_keys[slot.pinned_count] = key;
+            slot.pinned_count += 1;
+            slot.persistent_words += words;
+            if (got.fresh) {
+                slot.fresh_keys[slot.fresh_count] = key;
+                slot.fresh_count += 1;
+            }
+            return .{ .buffer = .{ .ptr = pool + got.offset, .words = words }, .fresh = got.fresh };
+        }
+        slot.persistent_words += words;
         if (self.persistent_map.get(key)) |b| {
             if (b.words != words) return error.PersistentGeometryMismatch;
             return .{ .buffer = b, .fresh = false };
@@ -447,8 +840,13 @@ pub const Worker = struct {
             slot.failed = slot.failed orelse err;
         };
         self.last_enqueued = slot;
+        self.leaveTail(slot);
         slot.receipt.enqueue_ns = timer.read();
         slot.receipt.arena_peak_words = self.arena.peak;
+        slot.live_peak = self.arena.live_peak;
+        slot.peak_alloc = self.arena.peak_alloc;
+        slot.peak_alloc_words = self.arena.peak_alloc_words;
+        slot.allocs = self.arena.allocs;
         return slot;
     }
 
@@ -520,9 +918,13 @@ pub const Worker = struct {
     }
 
     fn report(self: *Worker, slot: *Slot, result: anyerror!void) void {
+        for (slot.pinned_keys[0..slot.pinned_count]) |key| self.regions.unpin(key);
+        slot.pinned_count = 0;
         if (result) |_| {} else |_| {
             // A failed job may have left its fresh persistent buffers unfilled.
-            for (slot.fresh_keys[0..slot.fresh_count]) |key| if (self.persistent_map.fetchRemove(key)) |kv| {
+            if (self.regions_buffer != null) {
+                for (slot.fresh_keys[0..slot.fresh_count]) |key| self.regions.retire(key);
+            } else for (slot.fresh_keys[0..slot.fresh_count]) |key| if (self.persistent_map.fetchRemove(key)) |kv| {
                 self.retired.append(self.a, kv.value) catch {}; // OOM: leak until process exit
             };
         }
@@ -537,7 +939,6 @@ pub const Worker = struct {
             const c = entry.value_ptr;
             const r = slot.receipt;
             c.jobs += 1;
-            c.declared_device_words = @max(c.declared_device_words, slot.footprint.device_words);
             c.peak_arena_words = @max(c.peak_arena_words, r.arena_peak_words);
             c.staged_words = @max(c.staged_words, r.staged_words);
             c.slab_words = @max(c.slab_words, slot.footprint.slab_words);
@@ -545,6 +946,27 @@ pub const Worker = struct {
             c.stage_ns += r.stage_ns;
             c.enqueue_ns += r.enqueue_ns;
             c.wait_ns += r.wait_ns;
+            const declared_fp = slot.declared;
+            c.declared_device_words = @max(c.declared_device_words, declared_fp.device_words);
+            c.declared_staged_words = @max(c.declared_staged_words, declared_fp.staged_words);
+            c.declared_pinned_words = @max(c.declared_pinned_words, declared_fp.pinned_words);
+            c.declared_peak_words = @max(c.declared_peak_words, MP.peakOf(declared_fp));
+            if (slot.resolved.planned) {
+                c.planned_peak_words = @max(c.planned_peak_words, slot.resolved.peak_words);
+                if (r.arena_peak_words > slot.resolved.peak_words) c.over_plan += 1;
+            }
+            if (slot.serialized) c.serialized += 1;
+            c.persistent_words = @max(c.persistent_words, slot.persistent_words);
+            const sd = &c.sides[@intFromEnum(slot.placement)];
+            sd.jobs += 1;
+            sd.staged_words = @max(sd.staged_words, r.staged_words);
+            sd.allocs = @max(sd.allocs, slot.allocs);
+            sd.live_peak_words = @max(sd.live_peak_words, slot.live_peak);
+            if (r.arena_peak_words >= sd.peak_arena_words) {
+                sd.peak_arena_words = r.arena_peak_words;
+                sd.peak_alloc = slot.peak_alloc;
+                sd.peak_alloc_words = slot.peak_alloc_words;
+            }
         } else |_| {};
         self.outstanding -= 1;
         self.completed += 1;
