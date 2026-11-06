@@ -11,7 +11,7 @@ it does not silently switch to another provider. The reference host is unchanged
 | Modexp | Existing admitted `(a*b+c) mod m` relation | Base and modulus up to 256 bits, arbitrary exponent byte length; even moduli supported |
 | Larger modexp | Pinned software implementation | No truncation or odd-modulus assumption |
 | BN254 G1 add | Existing admitted affine add/double services | Canonical on-curve input validation; infinity, doubling and inverse points handled in guest |
-| BN254 G1 multiply | Same services, four-bit window | Validates point before zero-scalar shortcut; reduces scalar modulo group order |
+| BN254 G1 multiply | Same services, optional four-bit joint GLV window | Validates point before zero-scalar shortcut; reduces scalar modulo group order |
 | Pairing, P256, RIPEMD, Blake2, BLS/KZG | Pinned provider defaults | Full software semantics; not replaced by unchecked hints |
 
 The BN254 window follows the existing evmone integration. Packet construction
@@ -33,7 +33,7 @@ proof/receiver receipts justify promotion.
 `optimized` adds bounded, exact-byte pairing memoization and admitted JUMPDEST
 analysis. The pairing provider validates canonical/on-curve/subgroup inputs;
 even an infinity G1 does not skip G2 validation. It retains up to 16 validated
-G2 values and eight computed results (at most 16 pairs per result). Failed inputs
+G2 values and their lazily prepared line coefficients and eight computed results (at most 16 pairs per result). Failed inputs
 are never cached. Larger inputs follow the pinned implementation. Repeated data
 still pays Revm's fork-specific gas; the cache changes computation only.
 
@@ -48,3 +48,20 @@ oracle agree on the final output and exact instruction count. This validates
 execution of those service paths; a full physical proof of that heavy block is
 still required. Modexp acceleration still needs a mainnet execution fixture that
 actually invokes it. See the round-two receipt directory for exact ELF identities.
+
+## Canonical field and GLV variants
+
+`canonical` replaces only the guest BN254 base field with canonical storage
+(R=R2=1), using the admitted arith256 relation and plain Fp2 service. Scalar Fr,
+default Ark configurations and the native host retain their pinned implementation.
+`canonical-glv` adds a 128-bit joint-window split using Arkworks' BN254 lattice.
+`tools/derive_bn254_glv.py` reproduces constants and bounds; 1,024 random scalars
+and boundary cases check reciprocal quotients against full-width division and
+recombine signed components modulo the group order. No host quotient is trusted.
+
+The combined guest passes all six exact mainnet execution/replay checks. On block
+121065789, it makes 19,465 G1-add and 31,908 G1-double service calls and 928,200
+plain-Fp2 calls. It retires 625,046,890 instructions and uses 40,326,924 service
+RAM words. This is execution evidence; physical proving and recursive-root
+qualification must be reported separately. All precompile fork rules remain in
+Revm, and unsupported acceleration widths still execute the pinned software.

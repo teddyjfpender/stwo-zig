@@ -17,6 +17,13 @@ pub fn verify(a: std.mem.Allocator, image: *const Image.Owner, keys: *const Keys
 pub fn verifyWithAuthority(a: std.mem.Allocator, image: *const Image.Owner, keys: *const Keys.Owner, bundle: *const C.Bundle, max_steps: u64, batch_steps: u32, completed: bool, config: W.PcsConfig, fixed: ?*const FixedSet) !?[43]u8 {
     var program = try Program.initWithAuthority(a, &image.authority);
     defer program.deinit();
+    return verifyWithAuthorityAndProgram(a, image, &program, keys, bundle, max_steps, batch_steps, completed, config, fixed);
+}
+/// The driver already independently decoded this pinned image. Reuse its
+/// immutable program rather than materializing an unused dense ROM a second
+/// time. Producer bytes cannot provide either this view or the keys.
+pub fn verifyWithAuthorityAndProgram(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, keys: *const Keys.Owner, bundle: *const C.Bundle, max_steps: u64, batch_steps: u32, completed: bool, config: W.PcsConfig, fixed: ?*const FixedSet) !?[43]u8 {
+    for (keys.cpus) |key| if (!std.mem.eql(u8, &key.materials.program.identity, &program.identity)) return error.ReceiverProgramKeyMismatch;
     const statement = try Receiver.expectedFromRequests(image, program.identity, bundle.requests, max_steps, batch_steps, completed);
     const accepted = if (fixed) |authority| try bundle.verifyWithAuthority(a, keys.cpus, keys.truths, statement, config, authority) else try bundle.verify(a, keys.cpus, keys.truths, statement, config);
     if (!accepted.completed or accepted.total_steps != statement.total_steps) return error.IncompleteWideExecution;

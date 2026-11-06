@@ -49,6 +49,10 @@ fn cached_pairings_match_reference_for_true_false_infinity_and_eviction() {
         );
     }
     assert!(cache.point_hits > 20);
+    assert_eq!(
+        cache.prepared_builds, 1,
+        "one reusable G2 preparation across distinct G1 requests"
+    );
     assert!(cache.points.len() <= POINTS);
     assert_eq!(cache.results.len(), RESULTS);
     assert!(

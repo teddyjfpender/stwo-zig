@@ -1,0 +1,106 @@
+{
+  "schema": "rv64-native-plan-cost/v1",
+  "scope": "source-derived native FIXED/MAIN/INTERACTION cells including padding; excludes PCS blowup, composition, openings, recursion, proof bytes and timing; no proof or acceptance",
+  "security_qualified": false,
+  "proof_generated": false,
+  "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+  "program_log": 20,
+  "prefix_count": 0,
+  "total_steps": 797331,
+  "final_pc": 2912,
+  "memory_words": 29885,
+  "capture_ns": 2413879509,
+  "cpu": [
+    {
+      "geometry": {
+        "cpu_log": 20,
+        "alu_log": 16,
+        "alu_tail_log": 14,
+        "binary_log": 15,
+        "binary_tail_log": null,
+        "shift_log": 13,
+        "shift_tail_log": null,
+        "jalr_log": 14,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 12,
+        "ls_log": 17,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 15,
+        "terminal_log": 15,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "sha256": 7,
+        "bulk": {
+          "desc": 12,
+          "copy": 15,
+          "set": 15,
+          "ucopy": 14,
+          "cdesc": 7,
+          "cmp": 8,
+          "jdesc": 5,
+          "jscan": 6,
+          "jtab": 14
+        },
+        "sponge": {
+          "call": 7,
+          "perm": 9
+        },
+        "ls_dword": 17,
+        "ls_dword_tail": 16
+      }
+    }
+  ],
+  "truths": [
+    {
+      "family": "keccak",
+      "first_id": 1,
+      "calls": 338,
+      "logs": [
+        13,
+        1770517
+      ]
+    },
+    {
+      "family": "sha256",
+      "first_id": 1,
+      "calls": 34,
+      "logs": [
+        6,
+        0
+      ]
+    }
+  ],
+  "source_shape": {
+    "native_proofs": 3,
+    "max_trace_log": 21,
+    "max_public_boundary_log": 15,
+    "max_columns": 7444,
+    "max_constraints": 7751,
+    "max_samples_per_column": 5,
+    "max_air_degree": 5,
+    "max_local_instances": 30,
+    "max_tuple_arity": 35,
+    "max_gkr_variables": 24,
+    "native_trace_cells": [
+      56048000,
+      87143904,
+      102725120
+    ]
+  },
+  "native_trace_cells": [
+    56048000,
+    87143904,
+    102725120
+  ],
+  "main_interaction_bits": 5885939744,
+  "base_field_bits": 31,
+  "storage_bits_per_cell": 32
+}

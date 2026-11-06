@@ -4,6 +4,7 @@
 use alloc::vec::Vec;
 use alloy_primitives::U256;
 use ark_bn254::{Bn254, Fq, Fq2, G1Affine, G2Affine};
+type PreparedG2 = <Bn254 as Pairing>::G2Prepared;
 use ark_ec::{AffineRepr, pairing::Pairing};
 use ark_ff::{BigInt, One, PrimeField, Zero};
 use revm_precompile::{Crypto, DefaultCrypto, PrecompileHalt};
@@ -18,6 +19,7 @@ struct ResultEntry {
 struct PointEntry {
     bytes: [u8; 128],
     point: G2Affine,
+    prepared: Option<PreparedG2>,
 }
 struct Cache {
     results: Vec<ResultEntry>,
@@ -26,6 +28,8 @@ struct Cache {
     next_point: usize,
     hits: usize,
     point_hits: usize,
+    #[cfg(test)]
+    prepared_builds: usize,
 }
 impl Cache {
     const fn new() -> Self {
@@ -36,13 +40,15 @@ impl Cache {
             next_point: 0,
             hits: 0,
             point_hits: 0,
+            #[cfg(test)]
+            prepared_builds: 0,
         }
     }
-    fn g2(&mut self, bytes: &[u8]) -> Result<G2Affine, PrecompileHalt> {
-        for entry in &self.points {
+    fn g2(&mut self, bytes: &[u8]) -> Result<usize, PrecompileHalt> {
+        for (index, entry) in self.points.iter().enumerate() {
             if entry.bytes == bytes {
                 self.point_hits += 1;
-                return Ok(entry.point);
+                return Ok(index);
             }
         }
         let x = Fq2::new(field(&bytes[32..64])?, field(&bytes[..32])?);
@@ -59,15 +65,34 @@ impl Cache {
         let entry = PointEntry {
             bytes: bytes.try_into().expect("checked pair width"),
             point,
+            prepared: None,
         };
-        if self.points.len() < POINTS {
+        let index = if self.points.len() < POINTS {
             self.points.push(entry);
+            self.points.len() - 1
         } else {
-            self.points[self.next_point] = entry;
-            self.next_point = (self.next_point + 1) % POINTS;
-        }
-        Ok(point)
+            let index = self.next_point;
+            self.points[index] = entry;
+            self.next_point = (index + 1) % POINTS;
+            index
+        };
+        Ok(index)
     }
+    fn prepared(&mut self, index: usize) -> PreparedG2 {
+        let entry = &mut self.points[index];
+        if entry.prepared.is_none() {
+            entry.prepared = Some(PreparedG2::from(entry.point));
+            #[cfg(test)]
+            {
+                self.prepared_builds += 1;
+            }
+        }
+        // Ark's public multi-pairing API consumes prepared values. Clone only
+        // bounded line coefficients; repeated G2 preparation/subgroup work is
+        // never recomputed. The source is guest-computed, validated and RAM-bound.
+        entry.prepared.as_ref().unwrap().clone()
+    }
+
     fn check(&mut self, pairs: &[(&[u8], &[u8])]) -> Result<bool, PrecompileHalt> {
         // Keep large requests on the pinned implementation with bounded cache
         // work. Wrong-width direct trait calls retain its original behavior.
@@ -102,9 +127,9 @@ impl Cache {
             // Validate G2 even when G1 is infinity; invalid pairs cannot be
             // hidden behind a zero pairing contribution.
             let q = self.g2(b)?;
-            if !p.is_zero() && !q.is_zero() {
+            if !p.is_zero() && !self.points[q].point.is_zero() {
                 g1.push(p);
-                g2.push(q);
+                g2.push(self.prepared(q));
             }
         }
         let result = g1.is_empty() || Bn254::multi_pairing(g1, g2).0.is_one();

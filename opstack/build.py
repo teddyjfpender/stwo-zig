@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from opstack.source_identity import compile_sources, require_unchanged
 from scripts.riscv64_csp_compare import elf_info
 
 TOOLCHAIN = "nightly-2026-08-08"
@@ -69,6 +70,10 @@ LEAN_VARIANTS["canonical"] = (
     [*LEAN_VARIANTS["optimized"][1], "bn254-canonical"],
 )
 
+LEAN_VARIANTS["canonical-glv"] = (
+    "frontier",
+    [*LEAN_VARIANTS["canonical"][1], "bn254-glv"],
+)
 
 BULK_DEFAULTS = {"COPY": 16, "UCOPY": 16, "SET": 16, "CMP": 8}
 
@@ -137,6 +142,13 @@ def main():
         CARGO_TARGET_DIR=str(crate / "target"),
         RUSTFLAGS="-C passes=lower-atomic -C opt-level=" + args.guest_opt_level,
     )
+    source_snapshot = compile_sources(ROOT)
+    source_head = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+    ).strip()
+    tracked_diff_sha256 = hashlib.sha256(
+        subprocess.check_output(["git", "diff", "--binary", "HEAD"], cwd=ROOT)
+    ).hexdigest()
     commands = []
     with (artifacts / "build.log").open("w") as log:
 
@@ -223,20 +235,20 @@ def main():
     zig_version = subprocess.check_output([*zig, "version"], text=True).strip()
     if zig_version != "0.15.2":
         raise ValueError("requires Zig 0.15.2; found " + zig_version)
-    subprocess.run(
-        [
-            *zig,
-            "build-exe",
-            "src/frontends/riscv/rv64/ethereum_execution.zig",
-            "-O",
-            "ReleaseFast",
-            "-femit-bin=" + str(runner),
-        ],
-        cwd=ROOT,
-        check=True,
-        timeout=600,
-    )
-    _, symbols, _ = elf_info(guest)
+    runner_cache = crate / "target/stwo-rv64-execution"
+    zig_command = [
+        *zig,
+        "build-exe",
+        "src/frontends/riscv/rv64/ethereum_execution.zig",
+        "-O",
+        "ReleaseFast",
+        "-femit-bin=" + str(runner_cache),
+    ]
+    commands.append(zig_command)
+    subprocess.run(zig_command, cwd=ROOT, check=True, timeout=600)
+    shutil.copy2(runner_cache, runner)
+    require_unchanged(source_snapshot, compile_sources(ROOT))
+    _, symbols, segments = elf_info(guest)
     sources = {
         str(p.relative_to(ROOT)): identity(p)
         for p in (ROOT / "opstack").rglob("*")
@@ -250,12 +262,13 @@ def main():
         "eager": args.eager,
         "allocator_check": args.allocator_check,
         "commands": commands,
-        "source_head": subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
-        ).strip(),
-        "tracked_diff_sha256": hashlib.sha256(
-            subprocess.check_output(["git", "diff", "--binary", "HEAD"], cwd=ROOT)
-        ).hexdigest(),
+        "source_head": source_head,
+        "tracked_diff_sha256": tracked_diff_sha256,
+        "compile_sources": source_snapshot,
+        "compile_sources_unchanged": True,
+        "executable_load_bytes": sum(
+            len(data) for _, _, data, flags in segments if flags & 1
+        ),
         "kona_commit": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
         "cargo_lock_sha256": identity(manifest.parent / "Cargo.lock")["sha256"],
         "guest_rustflags": env["RUSTFLAGS"],

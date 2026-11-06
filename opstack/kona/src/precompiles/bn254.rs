@@ -2,6 +2,9 @@
 //! The 4-bit window follows the already qualified evmone service integration;
 //! input validation and scalar reduction precede partial affine service calls.
 use super::modular::mul_add;
+#[cfg(feature = "bn254-glv")]
+#[path = "bn254_glv.rs"]
+mod glv;
 use alloy_primitives::{U256, uint};
 use revm_precompile::PrecompileHalt;
 #[cfg(not(target_arch = "riscv64"))]
@@ -110,23 +113,30 @@ pub(super) fn mul(point: &[u8], scalar: &[u8]) -> Result<[u8; 64], PrecompileHal
     if p.is_none() || k.is_zero() {
         return Ok([0; 64]);
     }
-    let mut table = [None; 16];
-    table[1] = p;
-    for i in 2..16 {
-        table[i] = sum(table[i - 1], p);
+    #[cfg(feature = "bn254-glv")]
+    {
+        Ok(encode(glv::mul(p.expect("checked finite point"), k)))
     }
-    let mut acc = None;
-    for byte in k.to_be_bytes::<32>() {
-        for digit in [byte >> 4, byte & 15] {
-            if acc.is_some() {
-                for _ in 0..4 {
-                    acc = sum(acc, acc);
+    #[cfg(not(feature = "bn254-glv"))]
+    {
+        let mut table = [None; 16];
+        table[1] = p;
+        for i in 2..16 {
+            table[i] = sum(table[i - 1], p);
+        }
+        let mut acc = None;
+        for byte in k.to_be_bytes::<32>() {
+            for digit in [byte >> 4, byte & 15] {
+                if acc.is_some() {
+                    for _ in 0..4 {
+                        acc = sum(acc, acc);
+                    }
+                }
+                if digit != 0 {
+                    acc = sum(acc, table[digit as usize]);
                 }
             }
-            if digit != 0 {
-                acc = sum(acc, table[digit as usize]);
-            }
         }
+        Ok(encode(acc))
     }
-    Ok(encode(acc))
 }

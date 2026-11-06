@@ -7,6 +7,8 @@ use alloy_primitives::{B256, Bytes};
 use alloy_rlp::{Decodable, Encodable};
 use op_alloy_rpc_types_engine::OpPayloadAttributes;
 use serde::{Deserialize, Serialize};
+#[path = "metadata_stream.rs"]
+mod stream;
 
 #[derive(Serialize, Deserialize)]
 struct Payload {
@@ -24,6 +26,7 @@ struct Payload {
     min_base_fee: Option<u64>,
 }
 impl Payload {
+    #[cfg(test)]
     fn from_attributes(a: &OpPayloadAttributes) -> Self {
         let p = &a.payload_attributes;
         Self {
@@ -93,16 +96,7 @@ pub fn encode(input: &RangeInput) -> Result<Vec<u8>, String> {
     {
         return Err("range size".into());
     }
-    let wire = Range {
-        config_json: serde_json::to_vec(&input.rollup_config).map_err(|_| "config encode")?,
-        parent_rlp: alloy_rlp::encode(&input.parent_header),
-        payloads: input
-            .payloads
-            .iter()
-            .map(Payload::from_attributes)
-            .collect(),
-        expected: input.expected_block_hashes.iter().map(|h| h.0).collect(),
-    };
+    let wire = stream::RangeView::new(input)?;
     postcard::to_allocvec(&wire).map_err(|_| "metadata encode".into())
 }
 pub fn decode(bytes: &[u8]) -> Result<RangeInput, String> {
@@ -123,9 +117,8 @@ pub fn decode(bytes: &[u8]) -> Result<RangeInput, String> {
             .collect::<Result<_, _>>()?,
         expected_block_hashes: wire.expected.into_iter().map(B256::from).collect(),
     };
-    if encode(&input)? != bytes {
-        return Err("noncanonical metadata".into());
-    }
+    postcard::serialize_with_flavor(&stream::RangeView::new(&input)?, stream::Compare(bytes))
+        .map_err(|_| "noncanonical metadata")?;
     Ok(input)
 }
 /// Derivation must bind this value. Expected execution hashes are excluded so
@@ -139,10 +132,12 @@ pub fn input_commitment(input: &RangeInput) -> Result<[u8; 32], String> {
     hash.update(alloy_primitives::Sealable::hash_slow(&input.parent_header));
     hash.update((input.payloads.len() as u32).to_le_bytes());
     for a in &input.payloads {
-        let bytes =
-            postcard::to_allocvec(&Payload::from_attributes(a)).map_err(|_| "payload encode")?;
-        hash.update((bytes.len() as u32).to_le_bytes());
-        hash.update(bytes);
+        let view = stream::PayloadView::new(a);
+        let size = postcard::experimental::serialized_size(&view).map_err(|_| "payload encode")?;
+        let length = u32::try_from(size).map_err(|_| "payload size")?;
+        hash.update(length.to_le_bytes());
+        postcard::serialize_with_flavor(&view, stream::Hash::new(&mut hash))
+            .map_err(|_| "payload encode")?;
     }
     Ok(hash.finalize().into())
 }
@@ -175,3 +170,7 @@ where
     }
     deserializer.deserialize_seq(Visitor(core::marker::PhantomData))
 }
+
+#[cfg(test)]
+#[path = "metadata_stream_tests.rs"]
+mod stream_tests;

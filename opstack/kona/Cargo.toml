@@ -16,6 +16,7 @@ keccak-service = ["alloy-primitives/native-keccak"]
 secp-lean = ["k256/stwo-projective-word-service", "k256/stwo-vartime", "ecdsa/stwo-skip-redundant-recovery-verify"]
 sha-service = ["dep:sha2-rv64", "sha2-rv64/stwo-sha256-service"]
 precompile-services = ["sha-service", "dep:revm-precompile"]
+bn254-glv = ["precompile-services"]
 pairing-cache = ["precompile-services", "dep:ark-bn254", "dep:ark-ec", "dep:ark-ff", "dep:spin"]
 
 [dependencies]

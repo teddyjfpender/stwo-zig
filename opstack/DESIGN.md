@@ -53,10 +53,40 @@ second estimator. The BN254 REDC kernel and its wide-integer differential tests
 are isolated in `ethereum_services/montgomery_bn254.zig`. Guest dependency
 patches and native-only witness diagnostics have their own directories.
 
-`ethereum/gkr_main.zig` remains oversized. The small extra native-only entry
-keeps existing GPU entry points and recursion-policy checks stable while giving
-CPU builds an explicit dependency boundary. Next split its operational resource
-schemas, timeline/report types and linked entry points from the producer/receiver
-orchestrator, preserving allocator ownership and error teardown in separate
-move-only changes. A large mechanical rewrite during the proving changes would
-obscure the authority and lifetime review; this file's residual size is explicit.
+`ethereum/gkr_main.zig` now owns orchestration in 843 lines. Operational schemas
+and their rejection tests live in `resources.zig` / `resources_test.zig`;
+`input_timeline.zig`, `profile_selection.zig`, and `cpu_prestage.zig` own timeline,
+CLI naming, and optional linked-device callbacks. The native-only product retains
+its explicit dependency boundary and all linked recursion-policy checks.
+
+The explicit CPU resident entry lives in `native_batch.zig`. Its closed manifest
+bounds the number of requests, repeats, names and immutable-key admission. It
+reuses the existing `ResidentSession`, never witness or statement data. The
+production index explicitly says independent reception is still required.
+`cpu_batch.py` supplies its own expected request and proof path to a fresh
+receiver for every result, then runs transport and rehashed-proof negatives.
+Neither index contents nor a producer's cached setup can choose receiver authority.
+
+Cold benchmarks preserve the request's batch geometry unless the operator gives
+an explicit override. Changing 1,048,575 steps into 262,143 steps silently creates
+many extra CPU proofs and repeats setup work; tests pin this boundary. Comparisons
+record geometry, proof/service worker counts, wall time, user/system CPU time and
+peak RSS. A single timing sample, especially during compilation, is not a speedup.
+
+## Guest field and allocation costs
+
+`canonical-glv` combines canonical BN254 Fq/Fp2 services, validated prepared-G2
+reuse and a four-bit joint GLV multiplication. Its lattice constants and reciprocal
+bounds are reproduced by `tools/derive_bn254_glv.py`; exact residual correction
+and checked 128-bit conversion replace division without adding a trusted hint.
+Revm retains gas and fork activation, and the native host uses registry Arkworks.
+The plain Fp2 representation avoids the larger Mont384 packets used by the earlier
+experiment. Instruction reductions still carry service RAM and truth costs.
+
+Borrowed postcard views stream transactions during canonicality comparison and
+payload hashing. A legacy owned byte oracle covers boundaries and all six mainnet
+OPX inputs remain byte-identical. Trie mutation transfers subtree ownership;
+failed extension splits preserve the original node. Allocator free-list metadata
+uses volatile stores because physical minimum-size slots can exceed a caller's
+logical Rust allocation size under LTO. These are separate ownership contracts,
+covered by targeted tests and complete execution replay.

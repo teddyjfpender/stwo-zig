@@ -78,7 +78,7 @@ def main():
                 "--manifest-path",
                 crate / "Cargo.toml",
                 "--features",
-                "host",
+                "host,pairing-cache,bn254-glv",
                 "-j1",
             ]
         )
@@ -98,6 +98,23 @@ def main():
                 "-j1",
             ]
         )
+        for feature in ("stwo-montgomery-service", "stwo-canonical-service"):
+            run(
+                [
+                    "cargo",
+                    "+stable",
+                    "test",
+                    "--offline",
+                    "--locked",
+                    "--release",
+                    "--manifest-path",
+                    VENDOR / "ark-bn254/Cargo.toml",
+                    "--features",
+                    feature,
+                    "--lib",
+                    "-j1",
+                ]
+            )
         run(
             [
                 "cargo",
@@ -105,13 +122,13 @@ def main():
                 "test",
                 "--offline",
                 "--locked",
-                "--release",
                 "--manifest-path",
-                VENDOR / "ark-bn254/Cargo.toml",
-                "--features",
-                "stwo-montgomery-service",
+                VENDOR / "kona-mpt/Cargo.toml",
                 "--lib",
                 "-j1",
+                "--",
+                "--skip",
+                "test_online_list_walker",
             ]
         )
 

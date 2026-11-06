@@ -45,6 +45,30 @@ python3 opstack/cpu.py \
 The preset admits 4 GiB of retained frontend input, 1 GiB fixed setup and 8 GiB
 of disk parking. These are component admissions, not a 4 GiB process-memory cap.
 
+Batch geometry comes from the request unless `--batch-steps` overrides it. The
+benchmark-generated request uses 4,194,303; use the measured 1,048,575-step setting
+above on a memory-constrained CPU host. Preserve the same geometry in comparisons.
+`--receiver-setup identity-only` optionally derives exact source coefficients
+without committing an unused historical source Merkle tree; its candidate FIXED
+authority is still independently reconstructed. The default remains `committed`.
+
+For consecutive blocks with bounded process-local setup reuse:
+
+```sh
+python3 opstack/cpu_batch.py --benchmark /workspace/kona-mainnet-bench \
+  --runner zig-out/bin/rv64-word16-ethereum-native \
+  --resources opstack/presets/cpu-4workers.json \
+  --cases 120794432 121057303 --repeat 2 --batch-steps 1048575 \
+  --artifacts /workspace/kona-mainnet-cpu-resident
+```
+
+Every result must pass a separate fresh receiver before this harness records
+`proof_verified=true`. Native `batch-candidate MANIFEST OUT` alone produces an
+explicitly non-accepting index; it does not establish independent reception.
+The key budget and FIXED-setup admission are separate component budgets. This
+mode refuses a nonempty persisted setup directory and never restores producer
+files into a receiver. Failed runs retain receipts and cannot pass as prefixes.
+
 `software`, `keccak`, `services` and `sponge` retain the upstream EVM/MPT source.
 `lean` additionally uses the existing optimized Revm interpreter/bytecode crates
 and the local capped-length MPT change. `frontier` is that guest with full LTO.
@@ -54,6 +78,13 @@ and the local capped-length MPT change. `frontier` is that guest with full LTO.
 service to SHA; `full` combines those with bulk memory. `bn254` additionally
 selects the experimental BN254 Montgomery adapter. The reference host retains
 software SHA-256 and the upstream Ark field implementation.
+
+`precompiles` installs the admitted SHA/modexp/BN254-G1 provider. `pairing` adds
+bounded exact-byte pairing and prepared-G2 reuse; `optimized` also enables the
+admitted JUMPDEST scanner and aligned immutable bytecode storage. `canonical`
+uses the optional guest-only canonical Fq/Fp2 adapter. `canonical-glv` additionally
+uses joint-window GLV for G1 multiplication. All are explicit experimental choices;
+see [precompile boundaries](PRECOMPILES.md) for validation and software fallbacks.
 
 The mainnet corpus contains six nonadjacent Ecotone-era blocks (120794432,
 121003241, 121049889, 121057303, 121065789, 121135704), including a deposit-only
@@ -120,7 +151,11 @@ packages and new test/adapter files are formatted. Dependency deltas are listed
 in [the vendor map](kona/vendor/README.md).
 
 Builds require fresh artifact directories and explicitly record COPY/UCOPY/SET/CMP
-thresholds. Ambient `STWO_ADMITTED_*` compiler settings are cleared. `--bulk-min`
+thresholds. Compiler-input inventories include shared runtime patches and Zig
+sources; a changed or newly added input during a build prevents publication of
+a successful build receipt. The execution runner reuses Cargo's local target
+cache, then copies the exact binary to the fresh artifact directory. Ambient
+`STWO_ADMITTED_*` compiler settings are cleared. `--bulk-min`
 selects a common value of 8..1048576 or `off`; defaults remain 16/16/16/8. Values
 below 8 are rejected before the existing wrapper can peel an unaligned head.
 

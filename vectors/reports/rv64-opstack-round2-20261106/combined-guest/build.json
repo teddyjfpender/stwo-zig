@@ -1,0 +1,187 @@
+{
+  "schema": "stwo.opstack.build.v1",
+  "variant": "canonical-glv",
+  "guest_opt_level": "3",
+  "bulk_threshold_bytes": {
+    "COPY": "16",
+    "UCOPY": "16",
+    "SET": "16",
+    "CMP": "8"
+  },
+  "eager": false,
+  "allocator_check": false,
+  "commands": [
+    [
+      "cargo",
+      "+nightly-2026-08-08",
+      "build",
+      "--manifest-path",
+      "/workspace/stwo-opstack/opstack/kona/Cargo.toml",
+      "--locked",
+      "--release",
+      "--features",
+      "host",
+      "-j",
+      "1"
+    ],
+    [
+      "cargo",
+      "+nightly-2026-08-08",
+      "build",
+      "--manifest-path",
+      "/workspace/stwo-opstack/opstack/kona/lean/Cargo.toml",
+      "--locked",
+      "--profile",
+      "frontier",
+      "--target",
+      "/workspace/stwo-opstack/opstack/kona/guest/riscv64i-stwo.json",
+      "-Z",
+      "json-target-spec",
+      "-Z",
+      "build-std=core,alloc",
+      "-Z",
+      "build-std-features=compiler-builtins-mem",
+      "-j",
+      "1",
+      "--features",
+      "memory-service,sha-service,arithmetic-service,pairing-cache,jumpdest-service,bn254-canonical,bn254-glv"
+    ],
+    [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "-m",
+      "ziglang",
+      "build-exe",
+      "src/frontends/riscv/rv64/ethereum_execution.zig",
+      "-O",
+      "ReleaseFast",
+      "-femit-bin=/workspace/stwo-opstack/opstack/kona/target/stwo-rv64-execution"
+    ]
+  ],
+  "source_head": "3c9617c90bdf8475c55f1c47dd0f9ce33aaf8983",
+  "tracked_diff_sha256": "e75df4068239def47a1fada8e3b61d56b41ba17534790b9320573c2b7cdacbda",
+  "compile_sources_unchanged": true,
+  "executable_load_bytes": 2193428,
+  "kona_commit": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+  "cargo_lock_sha256": "cf3ae157bd6a083e9fc30a611bca026dbdfa9af824a59f271f37e7f096b9ed6a",
+  "guest_rustflags": "-C passes=lower-atomic -C opt-level=3",
+  "zig_version": "0.15.2",
+  "compiler": "rustc 1.99.0-nightly (1a98b1e13 2026-08-07)",
+  "guest": {
+    "bytes": 3212592,
+    "sha256": "3cae14df914ecd7be506e1697b76183e80feab31bae8c444b195ae58ef95f8a1"
+  },
+  "host": {
+    "bytes": 3851000,
+    "sha256": "32bb17dfb4d543945671f33f633ff8af4e0a63e0871703621dd707648206c2e0"
+  },
+  "runner": {
+    "bytes": 3614264,
+    "sha256": "96249a52a693b4ea6566f025ad986d1c7a14c62665deb82e44a493e88f2dc27c"
+  },
+  "proof_verified": false,
+  "snark_wrap": false,
+  "compiler_inventory_files": 7410,
+  "compiler_inventory_sha256": "43bffb563a35a788b8f75c2479a4ec9d7d601f0000488013c3225cda0944a6ed",
+  "modified_compiler_inputs": {
+    "opstack/build.py": {
+      "bytes": 9454,
+      "sha256": "e1ce666336b32534199b2d736b243980a88f8cb2b7245d03bafc57c62b569ecb"
+    },
+    "opstack/kona/Cargo.toml": {
+      "bytes": 3467,
+      "sha256": "2257ebe5d16c65d8ec265c0c0718cd2f28ddf1399e175db4412144624f4f72e1"
+    },
+    "opstack/kona/lean/Cargo.toml": {
+      "bytes": 2312,
+      "sha256": "8c6c01f5bbb80d237d633877d676780fbc58db20ffa8b155e2b75f389c3d4a14"
+    },
+    "opstack/kona/src/metadata.rs": {
+      "bytes": 6996,
+      "sha256": "0cc96c2618619145d86988da321859bb42deaadc55a75266f839832f17fc3ef4"
+    },
+    "opstack/kona/src/metadata_stream.rs": {
+      "bytes": 6096,
+      "sha256": "0366d1b478dfcd6bd19396eddd8125a44715d51ba058ff1fb0aa34d6ea909deb"
+    },
+    "opstack/kona/src/metadata_stream_tests.rs": {
+      "bytes": 3396,
+      "sha256": "d73993a009b38705b8ad07dbe6401a53ac74c05400a0c3050a2f04dcacf9615c"
+    },
+    "opstack/kona/src/precompiles/bn254.rs": {
+      "bytes": 4811,
+      "sha256": "81e52a7bb3302ec783648a7cf447782cc65bef87ae86831aff9c7bb382337adc"
+    },
+    "opstack/kona/src/precompiles/bn254_glv.rs": {
+      "bytes": 2900,
+      "sha256": "8c9d46212f4bd6ec94263cbfb425dd50bbf8601be7e1ccb13af4db7db4ef6e61"
+    },
+    "opstack/kona/src/precompiles/bn254_glv_tests.rs": {
+      "bytes": 1220,
+      "sha256": "eaa8fb43a306910fcff4d47c7a5a2f8e64e623c7b332450771f8fa507081296e"
+    },
+    "opstack/kona/src/precompiles/pairing.rs": {
+      "bytes": 5616,
+      "sha256": "5fa26e7f5ee1058efa366fec176b7d06d5ce18a5ded618085a4c42243147db27"
+    },
+    "opstack/kona/src/precompiles/pairing_tests.rs": {
+      "bytes": 3411,
+      "sha256": "dd09bc0d6af29165821f41011027704124465d794fe2f6e99a602d6be4145331"
+    },
+    "opstack/source_identity.py": {
+      "bytes": 1595,
+      "sha256": "8ee6a7061bdd794edebf78c3d5948e982f43b650742d7abf8fd192cef2c1c3ec"
+    },
+    "src/integrations/riscv_cpu/rv64_truth_gkr_test_root.zig": {
+      "bytes": 1513,
+      "sha256": "bff686c091505e5ee9b9e7aa8e0030061af86c823afa9c628eda21d7f3a7d638"
+    },
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/cpu_prestage.zig": {
+      "bytes": 1339,
+      "sha256": "a614aef5b4298ff0e6c6f8178af00ec0230d79ecf3a87ee78b3c2e7e4525f449"
+    },
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig": {
+      "bytes": 73511,
+      "sha256": "ba0c69bfe44fe129323b7fe88370b69b42d863a1bb1b5e3180844ea238733a00"
+    },
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_receiver.zig": {
+      "bytes": 2963,
+      "sha256": "76dcfe9e86134eb196aaad3bcf80dabe9a3671a0dec1b002f22cca77933a8ad8"
+    },
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/input_timeline.zig": {
+      "bytes": 4192,
+      "sha256": "edaafe0aabc94a4243ebbf8371cf0ea292695094025632173ccc44a4a6b51183"
+    },
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/native_batch.zig": {
+      "bytes": 6551,
+      "sha256": "3baa815739af535fff1dfd7ac70ed64380bce77c836091adb7b971aac70b0bb1"
+    },
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/profile_selection.zig": {
+      "bytes": 1436,
+      "sha256": "e7ab029a8e2fcb6f3ef7f15d83ee6c2a24dd586de68885045eb60264816bbc7f"
+    },
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/receiver_setup.zig": {
+      "bytes": 4341,
+      "sha256": "fce8efd10ec482d9910bed64d9d00eff4ef610ac032182c7ddd6e2aaca34d41f"
+    },
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/resources.zig": {
+      "bytes": 6888,
+      "sha256": "30ad6b869f46872d7df6d57a7e450d04cf3b41a8f19e9ee698e41426313f705a"
+    },
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/resources_test.zig": {
+      "bytes": 12946,
+      "sha256": "834672b1c2b561d5ce1520726194194d71d3ff5ed7943a4ae4ae06f3e3e03fad"
+    },
+    "src/prover/poly/circle/poly.zig": {
+      "bytes": 33363,
+      "sha256": "625cb57b7e3e2c2768cd85cf8ed5b181b1f0a75c60efbf20367bc20798239a8a"
+    },
+    "src/prover/poly/circle/zero_column.zig": {
+      "bytes": 973,
+      "sha256": "2f96d9db037d5d44fb2cda3ffd97b69698758fcf94ce30a2e1e1a9b1b329b30c"
+    },
+    "src/prover/poly/circle/zero_column_test.zig": {
+      "bytes": 3157,
+      "sha256": "5f8d6df66cf563853d3d7efa8e49c0ae9fda8e867dcae8572a1f3bafce7b1afe"
+    }
+  }
+}

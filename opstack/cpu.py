@@ -22,6 +22,14 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def batch_steps(config, override=None):
+    """Preserve declared geometry unless the operator explicitly changes it."""
+    selected = config.get("batch_steps", 1048575) if override is None else override
+    if type(selected) is not int or not 1 <= selected < 1 << 23:
+        raise ValueError("batch steps must be an integer in 1..2^23-1")
+    return selected
+
+
 def measured(command, prefix, timeout, env, allow_failure=False):
     start = time.monotonic_ns()
     timed_out = False
@@ -84,6 +92,8 @@ def measured(command, prefix, timeout, env, allow_failure=False):
         "command": [str(x) for x in command],
         "wall_ns": time.monotonic_ns() - start,
         "peak_rss_bytes": usage.ru_maxrss * 1024,
+        "user_cpu_s": usage.ru_utime,
+        "system_cpu_s": usage.ru_stime,
         "returncode": process.returncode,
         "timed_out": timed_out,
     }
@@ -108,14 +118,60 @@ def accept(report, expected):
         raise ValueError("fresh receiver terminal output mismatch")
 
 
+def corruption_trials(proof_directory, verifier, artifacts, timeout, env, record=None):
+    """Exercise transport and verifier rejection, restoring exact durable bytes."""
+    proof = proof_directory / "cpu-0.bin"
+    data = proof.read_bytes()
+    if not data:
+        raise ValueError("missing CPU proof bytes")
+    mutated = bytearray(data)
+    mutated[len(mutated) // 2] ^= 1
+    metadata_path = proof_directory / "bundle.json"
+    metadata_bytes = metadata_path.read_bytes()
+    results = {}
+    try:
+        proof.write_bytes(mutated)
+        for name, rehash in (("tamper", False), ("tamper-rehashed", True)):
+            if rehash:
+                metadata = json.loads(metadata_bytes)
+                metadata["cpus"][0]["proof"]["sha256"] = list(
+                    hashlib.sha256(mutated).digest()
+                )
+                metadata_path.write_text(json.dumps(metadata) + "\n")
+            row = measured(verifier, artifacts / name, timeout, env, True)
+            results[name] = row
+            if record is not None:
+                record(name, row)
+            expected = "RootMismatch" if rehash else "WideBundleFileChanged"
+            error = (artifacts / (name + ".stderr")).read_text().strip()
+            if row["returncode"] <= 0 or error != "error: " + expected:
+                raise ValueError(
+                    f"corruption did not reach expected rejection {expected}: {error}"
+                )
+    finally:
+        proof.write_bytes(data)
+        metadata_path.write_bytes(metadata_bytes)
+    return results
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--request", type=Path, required=True)
     p.add_argument("--execution", type=Path, required=True)
     p.add_argument("--runner", type=Path, required=True)
     p.add_argument("--artifacts", type=Path, required=True)
-    p.add_argument("--batch-steps", type=int, default=262143)
+    p.add_argument(
+        "--batch-steps",
+        type=int,
+        help="explicit geometry override; otherwise preserve request (fallback 1048575)",
+    )
     p.add_argument("--workers", type=int, default=1)
+    p.add_argument(
+        "--receiver-setup",
+        choices=("committed", "identity-only"),
+        default="committed",
+        help="fresh source-key construction; neither choice loads producer setup files",
+    )
     p.add_argument(
         "--setup-workers",
         type=int,
@@ -138,14 +194,14 @@ def main():
     )
     args = p.parse_args()
     if (
-        not 1 <= args.batch_steps < 1 << 23
-        or not 1 <= args.workers <= 8
+        not 1 <= args.workers <= 8
         or not 1 <= args.setup_workers <= 8
         or not 1 <= args.timeout <= 21600
     ):
         p.error("batch steps 1..2^23-1, proof/setup workers 1..8, timeout 1..21600")
     config = json.loads(args.request.read_text())
     execution = json.loads(args.execution.read_text())
+    selected_batch_steps = batch_steps(config, args.batch_steps)
     if (
         execution.get("status") != "completed"
         or execution.get("verified_output") is not True
@@ -172,7 +228,7 @@ def main():
     args.artifacts.mkdir(parents=True, exist_ok=False)
     root = args.artifacts.resolve()
     config.update(
-        batch_steps=args.batch_steps,
+        batch_steps=selected_batch_steps,
         workers=args.workers,
         max_batches=0,
         max_steps=execution["instructions"] + 1,
@@ -206,6 +262,9 @@ def main():
         raise ValueError("unset STWO_* variables for a cold independent CPU benchmark")
     env = dict(os.environ, STWO_ZIG_RV64_SETUP_BUILD_THREADS=str(args.setup_workers))
     producer_env = dict(env)
+    receiver_env = dict(env)
+    if args.receiver_setup == "identity-only":
+        receiver_env["STWO_ZIG_RV64_RECEIVER_IDENTITY_ONLY_CPU"] = "1"
     if args.setup == "ephemeral":
         # An empty directory enables the existing identity-only/shared setup
         # path without loading or persisting any setup files. Receiver env is
@@ -220,8 +279,14 @@ def main():
         "producer_setup": args.setup,
         "setup_build_workers": args.setup_workers,
         "native_pool_workers": args.workers,
+        "batch_steps": selected_batch_steps,
+        "batch_steps_source": "explicit override"
+        if args.batch_steps is not None
+        else "request or fallback",
+        "guest_instructions": execution["instructions"],
         "service_schedule": resources["schedule"],
         "receiver_setup": "independently rebuilt; no producer cache",
+        "receiver_source_keys": args.receiver_setup,
         "runner_sha256": sha(args.runner),
         "harness_sha256": sha(__file__),
         "platform": platform.platform(),
@@ -268,7 +333,11 @@ def main():
             command,
             root / mode,
             args.timeout,
-            producer_env if mode == "produce" else env,
+            producer_env
+            if mode == "produce"
+            else receiver_env
+            if mode == "receive"
+            else env,
             True,
         )
         checkpoint()
@@ -283,47 +352,22 @@ def main():
         for f in files
         if f.is_file()
     }
-    # Corrupt actual proof bytes in place, run a fresh receiver, then restore.
-    proof = root / "proof/cpu-0.bin"
-    data = proof.read_bytes()
-    if not data:
-        raise ValueError("missing CPU proof bytes")
-    mutated = bytearray(data)
-    mutated[len(mutated) // 2] ^= 1
-    metadata_path = root / "proof/bundle.json"
-    metadata_bytes = metadata_path.read_bytes()
-    try:
-        proof.write_bytes(mutated)
-        verifier = [
-            *tool,
-            "verify-candidate",
-            request,
-            root / "proof",
-            resources["fixed_setup_bytes"],
-            6 << 30,
-        ]
-        for name, rehash in (("tamper", False), ("tamper-rehashed", True)):
-            if rehash:
-                metadata = json.loads(metadata_bytes)
-                metadata["cpus"][0]["proof"]["sha256"] = list(
-                    hashlib.sha256(mutated).digest()
-                )
-                metadata_path.write_text(json.dumps(metadata) + "\n")
-            rejected = measured(verifier, root / name, args.timeout, env, True)
-            receipt["stages"][name] = rejected
-            checkpoint()
-            if rejected["returncode"] <= 0:
-                raise ValueError("tampered proof accepted or receiver crashed")
-            if (
-                rehash
-                and "WideBundleFileChanged" in (root / (name + ".stderr")).read_text()
-            ):
-                raise ValueError(
-                    "rehashed corruption failed at the transport digest rather than the proof verifier"
-                )
-    finally:
-        proof.write_bytes(data)
-        metadata_path.write_bytes(metadata_bytes)
+    verifier = [
+        *tool,
+        "verify-candidate",
+        request,
+        root / "proof",
+        resources["fixed_setup_bytes"],
+        6 << 30,
+    ]
+
+    def record_rejection(name, row):
+        receipt["stages"][name] = row
+        checkpoint()
+
+    corruption_trials(
+        root / "proof", verifier, root, args.timeout, receiver_env, record_rejection
+    )
     receipt["proof_verified"] = True
     receipt["tampered_proof_rejected"] = True
     checkpoint()

@@ -16,6 +16,34 @@ SPEC.loader.exec_module(cpu)
 
 
 class CPUReceiptTests(unittest.TestCase):
+    def test_geometry_is_preserved_and_only_explicitly_overridden(self):
+        self.assertEqual(cpu.batch_steps({"batch_steps": 1048575}), 1048575)
+        self.assertEqual(cpu.batch_steps({"batch_steps": 131071}), 131071)
+        self.assertEqual(cpu.batch_steps({"batch_steps": 1048575}, 262143), 262143)
+        self.assertEqual(cpu.batch_steps({}), 1048575)
+        for bad in [0, -1, 1 << 23, True, "1048575", None]:
+            with self.assertRaises(ValueError):
+                cpu.batch_steps({"batch_steps": bad})
+
+    def test_corruption_never_counts_resource_errors_and_always_restores_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            proof = root / "proof"
+            proof.mkdir()
+            data = b"real proof bytes for custody test"
+            metadata = b'{"cpus":[{"proof":{"sha256":[]}}]}'
+            (proof / "cpu-0.bin").write_bytes(data)
+            (proof / "bundle.json").write_bytes(metadata)
+            command = [
+                sys.executable,
+                "-c",
+                "import sys; print('error: OutOfMemory',file=sys.stderr);sys.exit(1)",
+            ]
+            with self.assertRaisesRegex(ValueError, "expected rejection"):
+                cpu.corruption_trials(proof, command, root, 5, dict(os.environ))
+            self.assertEqual((proof / "cpu-0.bin").read_bytes(), data)
+            self.assertEqual((proof / "bundle.json").read_bytes(), metadata)
+
     def test_accept_complete_output(self):
         report = {
             "accepted": True,

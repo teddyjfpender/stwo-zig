@@ -1,5 +1,6 @@
 test {
     _ = @import("word16_global_execution/ethereum/capture_plan.zig");
+    _ = @import("word16_global_execution/ethereum/receiver_setup.zig");
     _ = @import("word16_global_execution/ethereum/observations.zig");
     _ = @import("word16_global_execution/services/gkr_local/resident_layout.zig");
     _ = @import("word16_global_execution/ethereum/gkr_receiver_test.zig");

@@ -1,0 +1,311 @@
+{
+  "schema": "stwo.opstack.cpu-proof.v1",
+  "security_qualified": false,
+  "scope": "native execution/service STARK bundle; no recursive root or L1 derivation",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "producer_setup": "ephemeral",
+  "setup_build_workers": 1,
+  "native_pool_workers": 4,
+  "batch_steps": 1048575,
+  "batch_steps_source": "explicit override",
+  "guest_instructions": 797331,
+  "service_schedule": {
+    "lanes": 1,
+    "workers_per_lane": 4,
+    "memory_cap_bytes": 2147483648
+  },
+  "receiver_setup": "independently rebuilt; no producer cache",
+  "receiver_source_keys": "committed",
+  "runner_sha256": "ce0d452bdc24a7f8995fe958c6363240eeaf0d23e65ff69a7319c3cfef322d89",
+  "harness_sha256": "eaa65c7fda841a7de24bf532ab483f561ae23bb38240b53058d77977765f26c2",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "logical_cpus": 9,
+  "request_sha256": "2be6ec96d694c9954c180e7d593a65bad17875b9f0a2d623dbc7b20d6be00f65",
+  "elf_sha256": "3cae14df914ecd7be506e1697b76183e80feab31bae8c444b195ae58ef95f8a1",
+  "input_sha256": "b64e99bcb8561a2278c4cd6a6e97b9017ed410441153939af3354ee791fe6e5d",
+  "proof_verified": true,
+  "stages": {
+    "plan": {
+      "command": [
+        "/workspace/opstack-round2/batch-native-tools/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "plan-candidate",
+        "/workspace/opstack-round2/cpu-combined-small/request.json",
+        "-",
+        "0",
+        "/workspace/opstack-round2/cpu-combined-small/resources.json"
+      ],
+      "wall_ns": 2465653727,
+      "peak_rss_bytes": 1344864256,
+      "user_cpu_s": 3.521511,
+      "system_cpu_s": 0.644963,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "produce": {
+      "command": [
+        "/workspace/opstack-round2/batch-native-tools/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "produce-candidate",
+        "/workspace/opstack-round2/cpu-combined-small/request.json",
+        "-",
+        "/workspace/opstack-round2/cpu-combined-small/proof",
+        "0",
+        "/workspace/opstack-round2/cpu-combined-small/resources.json"
+      ],
+      "wall_ns": 47762036582,
+      "peak_rss_bytes": 2931953664,
+      "user_cpu_s": 109.060908,
+      "system_cpu_s": 10.047125,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "receive": {
+      "command": [
+        "/workspace/opstack-round2/batch-native-tools/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-candidate",
+        "/workspace/opstack-round2/cpu-combined-small/request.json",
+        "/workspace/opstack-round2/cpu-combined-small/proof",
+        "1073741824",
+        "6442450944"
+      ],
+      "wall_ns": 8344331079,
+      "peak_rss_bytes": 2291757056,
+      "user_cpu_s": 12.001005,
+      "system_cpu_s": 1.400953,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "tamper": {
+      "command": [
+        "/workspace/opstack-round2/batch-native-tools/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-candidate",
+        "/workspace/opstack-round2/cpu-combined-small/request.json",
+        "/workspace/opstack-round2/cpu-combined-small/proof",
+        "1073741824",
+        "6442450944"
+      ],
+      "wall_ns": 1760499229,
+      "peak_rss_bytes": 593178624,
+      "user_cpu_s": 1.438876,
+      "system_cpu_s": 0.31307199999999996,
+      "returncode": 1,
+      "timed_out": false
+    },
+    "tamper-rehashed": {
+      "command": [
+        "/workspace/opstack-round2/batch-native-tools/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-candidate",
+        "/workspace/opstack-round2/cpu-combined-small/request.json",
+        "/workspace/opstack-round2/cpu-combined-small/proof",
+        "1073741824",
+        "6442450944"
+      ],
+      "wall_ns": 7188833792,
+      "peak_rss_bytes": 2282430464,
+      "user_cpu_s": 11.148223,
+      "system_cpu_s": 1.21728,
+      "returncode": 1,
+      "timed_out": false
+    }
+  },
+  "receiver": {
+    "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+    "security_qualified": false,
+    "security_target": {
+      "label": "128-bit CONJECTURED security (ethSTARK-style FRI conjecture; owner-accepted 2026-11-02)",
+      "target_bits": 128,
+      "profile": "conjectured128_b2_q108_p20_fold4",
+      "assumption_set": "rv64-native-v3-om31-conjectured128-b2-q108-p20-fold4-20261102-v2-boundary23",
+      "conjectured_fri_bits": 128,
+      "scope": "native proof bundle; recursion excluded",
+      "proven_bound": false,
+      "independent_security_audit_complete": false,
+      "whole_protocol_128_certified": false
+    },
+    "security_profile": "conjectured128_b2_q108_p20_fold4",
+    "accepted": true,
+    "completed_ethereum_block": true,
+    "output": [
+      102,
+      249,
+      209,
+      65,
+      38,
+      76,
+      222,
+      71,
+      157,
+      168,
+      232,
+      174,
+      248,
+      118,
+      213,
+      76,
+      241,
+      24,
+      25,
+      53,
+      116,
+      44,
+      40,
+      84,
+      62,
+      217,
+      102,
+      186,
+      141,
+      131,
+      182,
+      203,
+      1,
+      10,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      79,
+      80
+    ],
+    "cpu_proofs": 1,
+    "truth_proofs": 2,
+    "load_and_setup_ns": 7968169798,
+    "setup_breakdown": {
+      "image_ns": 1588235850,
+      "program_ns": 100944172,
+      "native_keys_ns": 4317253209,
+      "fixed_authority_ns": 1945880746,
+      "other_ns": 15853989
+    },
+    "verify_ns": 238171613,
+    "receiver_source_keys": "committed",
+    "fixed_setup": {
+      "limit_bytes": 1073741824,
+      "live_bytes": 199407712,
+      "peak_bytes": 632464128,
+      "keys": 3,
+      "hits": 0,
+      "seals": 3,
+      "loads": 0,
+      "refused": false,
+      "native_coefficients": {
+        "limit_bytes": 1073741824,
+        "retained_bytes": 174216192,
+        "native_backing_bytes": 174196096,
+        "groups": 156,
+        "hits": 73,
+        "duplicate_native_bytes_released": 49995904,
+        "observed_individual_owners": 229,
+        "observed_backing_owners": 0,
+        "observed_spans": 229,
+        "owner_leases": 4
+      }
+    },
+    "source_validations": 3,
+    "source_coefficient_cells": 56048000,
+    "source_accounting_profile": "rv64-source-derived-services-v3-lookup/v1",
+    "source_shape": {
+      "native_proofs": 3,
+      "max_trace_log": 21,
+      "max_public_boundary_log": 15,
+      "max_columns": 7444,
+      "max_constraints": 7751,
+      "max_samples_per_column": 5,
+      "max_air_degree": 5,
+      "max_local_instances": 30,
+      "max_tuple_arity": 35,
+      "max_gkr_variables": 24,
+      "native_trace_cells": [
+        56048000,
+        87143904,
+        102725120
+      ]
+    },
+    "source_lookup_only_conditional_degrees": {
+      "tuple_collision": 973106237776656,
+      "rational_identity": 41990624,
+      "local_rational_identity": 40510624,
+      "global_rational_identity": 1480000,
+      "poles": 41990624
+    },
+    "receiver_budget": {
+      "live_bytes": 1070834732,
+      "peak_live_bytes": 1503891148,
+      "host_live_bytes": 1070834732,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 1503891148,
+      "peak_external_bytes": 0,
+      "limit": 6442450944,
+      "exceeded": false
+    },
+    "receiver_recycler_cache_cap_bytes": 4294967296,
+    "receiver_worker_stack_upper_bound_bytes": 4194304
+  },
+  "artifacts": {
+    "proof/bundle.json": {
+      "bytes": 11492,
+      "sha256": "fd440a74b972e636bb267a0a99c9e7ccfc3b95b7494c4399bf9a9914ea0ece9a"
+    },
+    "proof/candidate-fixed-setup.json": {
+      "bytes": 960,
+      "sha256": "fcbad0ac877de92ccdc99cfb20a942914f709b90f3fdd4ad4028b0109617f509"
+    },
+    "proof/candidate-source-bounds.json": {
+      "bytes": 6855,
+      "sha256": "9cd47f623b3c422b25e6a585538f84d396da6cce629fdabf3e3675ae15f8e0de"
+    },
+    "proof/cells.bin": {
+      "bytes": 1374726,
+      "sha256": "274234f31d6ba55b8e50fc6e4ffbe7d77aec127d1916a2de4730130ff33e6f05"
+    },
+    "proof/cpu-0.bin": {
+      "bytes": 2747768,
+      "sha256": "27ff9ebed29819a06993a3282807953a97aa0546444350c3f42b04e0fa9e0085"
+    },
+    "proof/physical-0000.stages.json": {
+      "bytes": 208056,
+      "sha256": "15d686143cdd3780f0dc933e2e00b1996ad95ee89249c156a452ebb70bcace3d"
+    },
+    "proof/physical-0001.stages.json": {
+      "bytes": 156859,
+      "sha256": "b9f349893d7c41b97f042751f3463e483fa410b52a2a6d08762ed122a78154ec"
+    },
+    "proof/physical-0002.stages.json": {
+      "bytes": 309409,
+      "sha256": "4dffe44299ad29e409759fc4fef836dee793203425a0c83c7bd3115b6d4ac1c3"
+    },
+    "proof/report.json": {
+      "bytes": 10092,
+      "sha256": "e28f74924cddfaf454ac3a311ce94dac382196287e53f86fc5701f2b4a83986c"
+    },
+    "proof/schedule.json": {
+      "bytes": 1565,
+      "sha256": "19d08d35e61647cd97c571eb852e250fde761d6c20b39c6430a0d8a5e1b3d31f"
+    },
+    "proof/stage-one.bin": {
+      "bytes": 100740,
+      "sha256": "8d92e3c31c8784b326cd285a64378ac15c722cf685ea8f17e9c91e8ea5b91141"
+    },
+    "proof/truth-0.bin": {
+      "bytes": 2337608,
+      "sha256": "9df263635d16da6dd3353b07882a650149b7a3031717858a22a761d87db284eb"
+    },
+    "proof/truth-1.bin": {
+      "bytes": 2509184,
+      "sha256": "8e29f069ddeacbb854a1af15f2292a1a38e4d93322014f6c5d03d1b910e3644a"
+    }
+  },
+  "tampered_proof_rejected": true
+}
