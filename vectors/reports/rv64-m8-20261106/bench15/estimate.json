@@ -1,0 +1,489 @@
+{
+ "label": "E",
+ "method": "cold/warm per block linear in M3 request seconds through the two dev-block calibration points",
+ "arms": {
+  "default": {
+   "gpu_wall_s": 6570,
+   "gpu_wall_h": 1.83,
+   "blocks": {
+    "26235156": {
+     "cold_s": 24.0,
+     "warm_s": 10.4,
+     "service_s": 54.5,
+     "arm_wall_s": 245.0
+    },
+    "24647140": {
+     "cold_s": 28.8,
+     "warm_s": 12.4,
+     "service_s": 61.2,
+     "arm_wall_s": 275.3
+    },
+    "24628607": {
+     "cold_s": 29.8,
+     "warm_s": 12.8,
+     "service_s": 62.6,
+     "arm_wall_s": 281.7
+    },
+    "25229957": {
+     "cold_s": 30.7,
+     "warm_s": 13.2,
+     "service_s": 63.9,
+     "arm_wall_s": 287.5
+    },
+    "24628608": {
+     "cold_s": 33.0,
+     "warm_s": 14.1,
+     "service_s": 67.1,
+     "arm_wall_s": 301.8
+    },
+    "24626900": {
+     "cold_s": 35.7,
+     "warm_s": 15.2,
+     "service_s": 70.9,
+     "arm_wall_s": 319.1
+    },
+    "24697073": {
+     "cold_s": 41.3,
+     "warm_s": 17.5,
+     "service_s": 78.8,
+     "arm_wall_s": 354.7
+    },
+    "24697070": {
+     "cold_s": 41.9,
+     "warm_s": 17.7,
+     "service_s": 79.7,
+     "arm_wall_s": 358.5
+    },
+    "26235168": {
+     "cold_s": 62.3,
+     "warm_s": 26.0,
+     "service_s": 108.2,
+     "arm_wall_s": 487.0
+    },
+    "25229955": {
+     "cold_s": 63.1,
+     "warm_s": 26.3,
+     "service_s": 109.3,
+     "arm_wall_s": 492.0
+    },
+    "25229951": {
+     "cold_s": 73.9,
+     "warm_s": 30.7,
+     "service_s": 124.5,
+     "arm_wall_s": 560.4
+    },
+    "24628590": {
+     "cold_s": 76.3,
+     "warm_s": 31.6,
+     "service_s": 127.9,
+     "arm_wall_s": 575.5
+    },
+    "24628595": {
+     "cold_s": 85.7,
+     "warm_s": 35.4,
+     "service_s": 141.1,
+     "arm_wall_s": 635.1
+    },
+    "24628611": {
+     "cold_s": 92.9,
+     "warm_s": 38.4,
+     "service_s": 151.3,
+     "arm_wall_s": 680.9
+    },
+    "26235159": {
+     "cold_s": 98.5,
+     "warm_s": 40.6,
+     "service_s": 159.1,
+     "arm_wall_s": 716.0
+    }
+   }
+  },
+  "outer": {
+   "gpu_wall_s": 9765,
+   "gpu_wall_h": 2.71,
+   "blocks": {
+    "26235156": {
+     "cold_s": 40.7,
+     "warm_s": 16.6,
+     "service_s": 77.4,
+     "arm_wall_s": 348.1
+    },
+    "24647140": {
+     "cold_s": 48.4,
+     "warm_s": 19.5,
+     "service_s": 87.9,
+     "arm_wall_s": 395.6
+    },
+    "24628607": {
+     "cold_s": 50.0,
+     "warm_s": 20.1,
+     "service_s": 90.2,
+     "arm_wall_s": 405.7
+    },
+    "25229957": {
+     "cold_s": 51.5,
+     "warm_s": 20.7,
+     "service_s": 92.2,
+     "arm_wall_s": 414.8
+    },
+    "24628608": {
+     "cold_s": 55.1,
+     "warm_s": 22.0,
+     "service_s": 97.1,
+     "arm_wall_s": 437.2
+    },
+    "24626900": {
+     "cold_s": 59.5,
+     "warm_s": 23.7,
+     "service_s": 103.2,
+     "arm_wall_s": 464.3
+    },
+    "24697073": {
+     "cold_s": 68.5,
+     "warm_s": 27.1,
+     "service_s": 115.6,
+     "arm_wall_s": 520.2
+    },
+    "24697070": {
+     "cold_s": 69.5,
+     "warm_s": 27.4,
+     "service_s": 116.9,
+     "arm_wall_s": 526.2
+    },
+    "26235168": {
+     "cold_s": 102.1,
+     "warm_s": 39.6,
+     "service_s": 161.8,
+     "arm_wall_s": 727.9
+    },
+    "25229955": {
+     "cold_s": 103.4,
+     "warm_s": 40.1,
+     "service_s": 163.5,
+     "arm_wall_s": 735.8
+    },
+    "25229951": {
+     "cold_s": 120.8,
+     "warm_s": 46.6,
+     "service_s": 187.3,
+     "arm_wall_s": 843.0
+    },
+    "24628590": {
+     "cold_s": 124.6,
+     "warm_s": 48.0,
+     "service_s": 192.6,
+     "arm_wall_s": 866.7
+    },
+    "24628595": {
+     "cold_s": 139.7,
+     "warm_s": 53.7,
+     "service_s": 213.4,
+     "arm_wall_s": 960.2
+    },
+    "24628611": {
+     "cold_s": 151.4,
+     "warm_s": 58.0,
+     "service_s": 229.4,
+     "arm_wall_s": 1032.1
+    },
+    "26235159": {
+     "cold_s": 160.3,
+     "warm_s": 61.3,
+     "service_s": 241.6,
+     "arm_wall_s": 1087.3
+    }
+   }
+  },
+  "native": {
+   "gpu_wall_s": 6854,
+   "gpu_wall_h": 1.9,
+   "blocks": {
+    "26235156": {
+     "cold_s": 26.5,
+     "warm_s": 12.1,
+     "service_s": 58.6,
+     "arm_wall_s": 263.9
+    },
+    "24647140": {
+     "cold_s": 31.3,
+     "warm_s": 14.1,
+     "service_s": 65.4,
+     "arm_wall_s": 294.2
+    },
+    "24628607": {
+     "cold_s": 32.3,
+     "warm_s": 14.5,
+     "service_s": 66.8,
+     "arm_wall_s": 300.6
+    },
+    "25229957": {
+     "cold_s": 33.2,
+     "warm_s": 14.9,
+     "service_s": 68.1,
+     "arm_wall_s": 306.4
+    },
+    "24628608": {
+     "cold_s": 35.5,
+     "warm_s": 15.8,
+     "service_s": 71.3,
+     "arm_wall_s": 320.7
+    },
+    "24626900": {
+     "cold_s": 38.2,
+     "warm_s": 16.9,
+     "service_s": 75.1,
+     "arm_wall_s": 338.0
+    },
+    "24697073": {
+     "cold_s": 43.8,
+     "warm_s": 19.2,
+     "service_s": 83.0,
+     "arm_wall_s": 373.6
+    },
+    "24697070": {
+     "cold_s": 44.4,
+     "warm_s": 19.4,
+     "service_s": 83.9,
+     "arm_wall_s": 377.4
+    },
+    "26235168": {
+     "cold_s": 64.8,
+     "warm_s": 27.7,
+     "service_s": 112.4,
+     "arm_wall_s": 505.9
+    },
+    "25229955": {
+     "cold_s": 65.6,
+     "warm_s": 28.0,
+     "service_s": 113.5,
+     "arm_wall_s": 510.9
+    },
+    "25229951": {
+     "cold_s": 76.4,
+     "warm_s": 32.4,
+     "service_s": 128.7,
+     "arm_wall_s": 579.3
+    },
+    "24628590": {
+     "cold_s": 78.8,
+     "warm_s": 33.3,
+     "service_s": 132.1,
+     "arm_wall_s": 594.4
+    },
+    "24628595": {
+     "cold_s": 88.2,
+     "warm_s": 37.1,
+     "service_s": 145.3,
+     "arm_wall_s": 654.0
+    },
+    "24628611": {
+     "cold_s": 95.4,
+     "warm_s": 40.1,
+     "service_s": 155.5,
+     "arm_wall_s": 699.8
+    },
+    "26235159": {
+     "cold_s": 101.0,
+     "warm_s": 42.3,
+     "service_s": 163.3,
+     "arm_wall_s": 734.9
+    }
+   }
+  },
+  "hybrid": {
+   "gpu_wall_s": 8430,
+   "gpu_wall_h": 2.34,
+   "blocks": {
+    "26235156": {
+     "cold_s": 44.2,
+     "warm_s": 17.8,
+     "service_s": 82.0,
+     "arm_wall_s": 369.0
+    },
+    "24647140": {
+     "cold_s": 49.0,
+     "warm_s": 19.7,
+     "service_s": 88.7,
+     "arm_wall_s": 399.3
+    },
+    "24628607": {
+     "cold_s": 50.0,
+     "warm_s": 20.1,
+     "service_s": 90.2,
+     "arm_wall_s": 405.7
+    },
+    "25229957": {
+     "cold_s": 50.9,
+     "warm_s": 20.5,
+     "service_s": 91.4,
+     "arm_wall_s": 411.5
+    },
+    "24628608": {
+     "cold_s": 53.2,
+     "warm_s": 21.4,
+     "service_s": 94.6,
+     "arm_wall_s": 425.7
+    },
+    "24626900": {
+     "cold_s": 55.9,
+     "warm_s": 22.5,
+     "service_s": 98.5,
+     "arm_wall_s": 443.0
+    },
+    "24697073": {
+     "cold_s": 61.6,
+     "warm_s": 24.8,
+     "service_s": 106.4,
+     "arm_wall_s": 478.6
+    },
+    "24697070": {
+     "cold_s": 62.2,
+     "warm_s": 25.1,
+     "service_s": 107.2,
+     "arm_wall_s": 482.5
+    },
+    "26235168": {
+     "cold_s": 82.5,
+     "warm_s": 33.3,
+     "service_s": 135.8,
+     "arm_wall_s": 611.0
+    },
+    "25229955": {
+     "cold_s": 83.3,
+     "warm_s": 33.6,
+     "service_s": 136.9,
+     "arm_wall_s": 616.0
+    },
+    "25229951": {
+     "cold_s": 94.1,
+     "warm_s": 38.0,
+     "service_s": 152.1,
+     "arm_wall_s": 684.4
+    },
+    "24628590": {
+     "cold_s": 96.5,
+     "warm_s": 39.0,
+     "service_s": 155.4,
+     "arm_wall_s": 699.5
+    },
+    "24628595": {
+     "cold_s": 105.9,
+     "warm_s": 42.8,
+     "service_s": 168.7,
+     "arm_wall_s": 759.0
+    },
+    "24628611": {
+     "cold_s": 113.1,
+     "warm_s": 45.7,
+     "service_s": 178.9,
+     "arm_wall_s": 804.9
+    },
+    "26235159": {
+     "cold_s": 118.7,
+     "warm_s": 48.0,
+     "service_s": 186.7,
+     "arm_wall_s": 840.0
+    }
+   }
+  },
+  "jobs": {
+   "gpu_wall_s": 8430,
+   "gpu_wall_h": 2.34,
+   "blocks": {
+    "26235156": {
+     "cold_s": 44.2,
+     "warm_s": 17.8,
+     "service_s": 82.0,
+     "arm_wall_s": 369.0
+    },
+    "24647140": {
+     "cold_s": 49.0,
+     "warm_s": 19.7,
+     "service_s": 88.7,
+     "arm_wall_s": 399.3
+    },
+    "24628607": {
+     "cold_s": 50.0,
+     "warm_s": 20.1,
+     "service_s": 90.2,
+     "arm_wall_s": 405.7
+    },
+    "25229957": {
+     "cold_s": 50.9,
+     "warm_s": 20.5,
+     "service_s": 91.4,
+     "arm_wall_s": 411.5
+    },
+    "24628608": {
+     "cold_s": 53.2,
+     "warm_s": 21.4,
+     "service_s": 94.6,
+     "arm_wall_s": 425.7
+    },
+    "24626900": {
+     "cold_s": 55.9,
+     "warm_s": 22.5,
+     "service_s": 98.5,
+     "arm_wall_s": 443.0
+    },
+    "24697073": {
+     "cold_s": 61.6,
+     "warm_s": 24.8,
+     "service_s": 106.4,
+     "arm_wall_s": 478.6
+    },
+    "24697070": {
+     "cold_s": 62.2,
+     "warm_s": 25.1,
+     "service_s": 107.2,
+     "arm_wall_s": 482.5
+    },
+    "26235168": {
+     "cold_s": 82.5,
+     "warm_s": 33.3,
+     "service_s": 135.8,
+     "arm_wall_s": 611.0
+    },
+    "25229955": {
+     "cold_s": 83.3,
+     "warm_s": 33.6,
+     "service_s": 136.9,
+     "arm_wall_s": 616.0
+    },
+    "25229951": {
+     "cold_s": 94.1,
+     "warm_s": 38.0,
+     "service_s": 152.1,
+     "arm_wall_s": 684.4
+    },
+    "24628590": {
+     "cold_s": 96.5,
+     "warm_s": 39.0,
+     "service_s": 155.4,
+     "arm_wall_s": 699.5
+    },
+    "24628595": {
+     "cold_s": 105.9,
+     "warm_s": 42.8,
+     "service_s": 168.7,
+     "arm_wall_s": 759.0
+    },
+    "24628611": {
+     "cold_s": 113.1,
+     "warm_s": 45.7,
+     "service_s": 178.9,
+     "arm_wall_s": 804.9
+    },
+    "26235159": {
+     "cold_s": 118.7,
+     "warm_s": 48.0,
+     "service_s": 186.7,
+     "arm_wall_s": 840.0
+    }
+   }
+  }
+ },
+ "receivers_cpu_s": 3710,
+ "total_h": 12.16,
+ "max_service_lock_hold_s": 362
+}
