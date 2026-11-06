@@ -1,0 +1,17 @@
+{
+ "schema": "rv64-m8-native-job-gpu-tests/v1",
+ "scope": "real DeviceWorker (runtime worker.zig, 1-lane exec ctx, one host wait) on RTX 5090 dev0; host engine (CPU CommitmentSchemeProver) as reference",
+ "base": "/workspace/m3/build/m7-combined-residency/cuda/native/libstwo-rv64-native.so",
+ "base_sha256": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45",
+ "addon": "/workspace/m3/build/m8-native-job/jobs-addon/libstwo-rv64-jobs.so",
+ "addon_sha256": "bb692ee65dc7413ded7ea5f9a63139a5f67ecd6deb78b9bc7d7830a5ed3c3a57",
+ "test_binary_sha256": "58827ac1eff9289ccac98859e3aa4f92111679480272cc5ff7923235ca116526",
+ "summary": [
+  "All 60 tests passed."
+ ],
+ "results": [
+  "GPU_M8_NATIVE_COMMIT_PARITY columns=6 coefficient_cells=128 eval_log=6 root_equal=1 channel_equal=1 coefficients_equal=1",
+  "GPU_M8_NATIVE_TAIL_PARITY trees=2 columns=7 samples=8 pow_bits=0 pcs_words=2257 proof_json_bytes=13889 proof_sha256=e4dd5372b1a6a3a446bd53b5a9e4d0c7c303ed32f47f42f3ddbca779519a89ab byte_identical=1 channel_equal=1",
+  "pow_bits=4 and pow_bits=10 reruns (STWO_RV64_M8_TAIL_POW_BITS): byte_identical=1 channel_equal=1, all 60 tests passed"
+ ]
+}

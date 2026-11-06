@@ -75,6 +75,11 @@ pub const Symbols = struct {
 /// base x[8] y[8], status (0 = ok).
 pub const oods_field_words = 33;
 
+/// Placeholder device column for `prepare` (bound at enqueue by `bindColumn`).
+pub fn placeholderColumn(log_size: u32) D.Column {
+    return .{ .log_size = log_size, .device = .{ .words = @ptrFromInt(0x1000), .count = @as(u64, 1) << @intCast(log_size), .context_token = 1, .generation = 1 } };
+}
+
 /// Generic, non-degenerate placeholder OODS point used only to build the
 /// challenge-independent framing; never sampled, never mixed.
 pub fn placeholderPoint() !D.Point {
@@ -119,6 +124,23 @@ pub const PcsJob = struct {
             return error.PcsJobPlanFailed;
         }
         return self;
+    }
+    /// Bind tree `tree`, ORIGINAL column `original` to its device coefficient
+    /// words (a job-arena view, e.g. native_commit.Committed.column). The
+    /// request given to `prepare` carries placeholder device columns: their
+    /// addresses exist only at enqueue. An unbound placeholder fails the PCS's
+    /// context-custody check (fail closed).
+    pub fn bindColumn(self: *PcsJob, tree: usize, original: usize, words: [*]const u32) !void {
+        const trees = self.prepared.metadata.shape.trees;
+        if (tree >= trees.len) return error.InvalidPcsColumn;
+        var base: usize = 0;
+        for (trees[0..tree]) |t| base += t.sorted_to_original.len;
+        for (trees[tree].sorted_to_original, 0..) |o, k| if (o == original) {
+            self.prepared.coefficients[base + k].kind = 1;
+            self.prepared.coefficients[base + k].words = words;
+            return;
+        };
+        return error.InvalidPcsColumn;
     }
     pub fn deinit(self: *PcsJob, a: std.mem.Allocator) void {
         self.prepared.deinit(a);
