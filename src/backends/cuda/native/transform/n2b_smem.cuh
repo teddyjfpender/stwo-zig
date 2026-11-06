@@ -17,6 +17,7 @@
 #include "../common/circle_twiddle.cuh"
 #include "../common/provider_compat.cuh"
 #include "transform_internal.cuh"
+#include "wide_tile.cuh"
 
 #include <cstdlib>
 
@@ -386,18 +387,145 @@ __global__ __launch_bounds__(kWideContiguousThreads) void n2b_wide_contiguous(
         column[e1(k)] = tile_values[n2b_wide_pad(e1(k))];
 }
 
+// Strided pass with wide rows (T4 FFT passes, M8 round 1): the tile holds
+// 2^STWO_N2B_WIDE_ROWS_TILE_LOG values in one CTA of 2^(TILE_LOG-5) threads,
+// so a height-High pass reads rows of 2^(TILE_LOG-High) words instead of 8.
+// It covers heights 6..7 (logs 19..20), which the 8-word kernels cannot run
+// efficiently (a 16..32-thread CTA), and is faster at heights 8..9; see the
+// A/B below. STWO_N2B_WIDE_ROWS_HIGHS selects the heights that use it (bit H
+// set = height H).
+template <uint32_t High, uint32_t LaneLog, uint32_t Phase, bool LoadCoefficients>
+__device__ __forceinline__ void n2b_wide_rows_phase(
+    M31 (&v)[kWideValues], M31 *tile_values, const M31 *input, M31 *column,
+    uint32_t input_count, uint32_t j, uint32_t lane, uint32_t shift,
+    uint32_t fixed, uint32_t log_n, const M31 *twiddles) {
+    constexpr uint32_t phases = wide_phase_count(High);
+    constexpr uint32_t count = wide_phase_bits(High, Phase);
+    constexpr uint32_t first_bit = High - 5u * Phase - count;
+    const uint32_t jh = wide_deposit<High>(Phase, first_bit, 0u, j);
+    const auto h = [&](uint32_t k) {
+        return wide_deposit<High>(Phase, first_bit, k, 0u) | jh;
+    };
+    const auto g = [&](uint32_t k) { return (h(k) << shift) | fixed; };
+    if constexpr (Phase == 0) {
+#pragma unroll
+        for (uint32_t k = 0; k < kWideValues; ++k) {
+            if constexpr (LoadCoefficients) {
+                v[k] = g(k) < input_count ? input[g(k)] : 0u;
+            } else {
+                v[k] = input[g(k)];
+            }
+        }
+    } else {
+#pragma unroll
+        for (uint32_t k = 0; k < kWideValues; ++k)
+            v[k] = tile_values[wide_tile_pad((h(k) << LaneLog) | lane)];
+    }
+    n2b_wide_stages<count, count - 1u>(v, 5u * Phase + 1u, log_n, log_n,
+                                       twiddles, g);
+    if constexpr (Phase + 1u == phases) {
+#pragma unroll
+        for (uint32_t k = 0; k < kWideValues; ++k) column[g(k)] = v[k];
+    } else {
+#pragma unroll
+        for (uint32_t k = 0; k < kWideValues; ++k)
+            tile_values[wide_tile_pad((h(k) << LaneLog) | lane)] = v[k];
+        __syncthreads();
+    }
+}
+
+template <uint32_t High, uint32_t LaneLog, bool LoadCoefficients>
+__global__ __launch_bounds__(WideStridedShape<High, LaneLog>::threads)
+void n2b_wide_strided_rows(
+    ColumnSlab<const M31> inputs,
+    const uint32_t *input_log_sizes,
+    ColumnSlab<M31> columns,
+    uint32_t log_n,
+    const M31 *twiddles,
+    uint32_t column_fastest) {
+    extern __shared__ M31 tile_values[];
+    const uint32_t column_index = column_fastest ? blockIdx.x : blockIdx.y;
+    const uint32_t tile = column_fastest ? blockIdx.y : blockIdx.x;
+    const M31 *input = inputs.column(column_index);
+    M31 *column = columns.column(column_index);
+    const uint32_t t = threadIdx.x;
+    const uint32_t lane = t & ((1u << LaneLog) - 1u);
+    const uint32_t j = t >> LaneLog;
+    const uint32_t shift = log_n - High;
+    const uint32_t fixed = (tile << LaneLog) | lane;
+    uint32_t input_count = 0;
+    if constexpr (LoadCoefficients) {
+        const uint32_t input_log_size = input_log_sizes[column_index];
+        const uint32_t requested = input_log_size < 31u ? 1u << input_log_size : 0u;
+        const uint32_t domain = 1u << (log_n - 1u);
+        input_count = requested < domain ? requested : domain;
+    }
+    M31 v[kWideValues];
+    n2b_wide_rows_phase<High, LaneLog, 0, LoadCoefficients>(
+        v, tile_values, input, column, input_count, j, lane, shift, fixed,
+        log_n, twiddles);
+    if constexpr (wide_phase_count(High) > 1u)
+        n2b_wide_rows_phase<High, LaneLog, 1, LoadCoefficients>(
+            v, tile_values, input, column, input_count, j, lane, shift,
+            fixed, log_n, twiddles);
+    if constexpr (wide_phase_count(High) > 2u)
+        n2b_wide_rows_phase<High, LaneLog, 2, LoadCoefficients>(
+            v, tile_values, input, column, input_count, j, lane, shift,
+            fixed, log_n, twiddles);
+}
+
+// [M] A/B, bench/fft_passes_bench.cu, 256 MiB per call, 7 reps, median ms
+// (n2b in place; old = 3-pass 6,6,8 at log 20, 8-word strided kernels at
+// 21..24):
+//   log            20     21     22     23     24
+//   old          1.053  0.715  0.733  0.762  0.891
+//   rows TILE 14 0.715  0.727  0.752  0.754  0.926
+//   rows TILE 13 0.700  0.703  0.719  0.762  0.928   <- TILE 13, heights 6..9
+// Height 10 is neutral and height 11 is 4% slower than the hand-written
+// 8-word kernels, which they keep. LDE (coefficient load) at log 20:
+// 0.971 -> 0.619 ms. Height 6 (log 19) ties the fused 8,11 schedule (0.705
+// vs 0.707), so STWO_N2B_WIDE_MIN_LOG stays 20.
+#ifndef STWO_N2B_WIDE_ROWS_TILE_LOG
+#define STWO_N2B_WIDE_ROWS_TILE_LOG 13
+#endif
+#ifndef STWO_N2B_WIDE_ROWS_HIGHS
+#define STWO_N2B_WIDE_ROWS_HIGHS ((1u << 6) | (1u << 7) | (1u << 8) | (1u << 9))
+#endif
+constexpr uint32_t n2b_wide_rows_lane_log(uint32_t high) {
+    return STWO_N2B_WIDE_ROWS_TILE_LOG - high < 3u
+        ? 3u
+        : STWO_N2B_WIDE_ROWS_TILE_LOG - high;
+}
+
+// Bench/A-B overrides (-1 = compiled default). They only pick between
+// bit-identical schedules.
+inline int g_n2b_wide_min_log_override = -1;
+inline int g_n2b_wide_rows_highs_override = -1;
+inline uint32_t n2b_wide_rows_highs() {
+    return g_n2b_wide_rows_highs_override >= 0
+        ? uint32_t(g_n2b_wide_rows_highs_override)
+        : uint32_t(STWO_N2B_WIDE_ROWS_HIGHS);
+}
+
 #ifndef STWO_N2B_WIDE_MIN_LOG
-#define STWO_N2B_WIDE_MIN_LOG 21
+#define STWO_N2B_WIDE_MIN_LOG 20
 #endif
 inline bool n2b_wide_supported(uint32_t log_n) {
-    return log_n >= STWO_N2B_WIDE_MIN_LOG &&
+    const uint32_t min_log = g_n2b_wide_min_log_override >= 0
+        ? uint32_t(g_n2b_wide_min_log_override)
+        : uint32_t(STWO_N2B_WIDE_MIN_LOG);
+    const uint32_t high = log_n - kWideLowBits;
+    return log_n >= min_log &&
         log_n <= kWideHighBits + kWideLowBits &&
-        log_n >= 6u + kWideLowBits;
+        log_n >= 6u + kWideLowBits &&
+        (high >= 8u || ((n2b_wide_rows_highs() >> high) & 1u) != 0u);
 }
 
 // Production switch: STWO_RV64_N2B_WIDE=0 restores the 3-pass schedule
 // (bit-identical output either way; kept for A/B runs).
+inline int g_n2b_wide_override = -1;
 inline bool n2b_wide_enabled() {
+    if (g_n2b_wide_override >= 0) return g_n2b_wide_override != 0;
     static const bool enabled = [] {
         const char *value = std::getenv("STWO_RV64_N2B_WIDE");
         return !(value && value[0] == '0');
@@ -445,7 +573,35 @@ inline cudaError_t launch_n2b_wide(
             inputs, input_log_sizes, columns, log_n, twiddles, a_fast);
         return cudaPeekAtLastError();
     };
-    switch (high) {
+    const auto launch_rows = [&](auto kernel, uint32_t lane_log,
+                                 uint32_t threads, size_t bytes) {
+        const uint32_t tiles = 1u << (log_n - high - lane_log);
+        if (bytes > 48u * 1024u) {
+            const cudaError_t attribute = cudaFuncSetAttribute(
+                kernel, cudaFuncAttributeMaxDynamicSharedMemorySize,
+                int(bytes));
+            if (attribute != cudaSuccess) return attribute;
+        }
+        kernel<<<dim3{tiles, column_count}, threads, bytes, stream>>>(
+            inputs, input_log_sizes, columns, log_n, twiddles, 0u);
+        return cudaPeekAtLastError();
+    };
+#define STWO_N2B_ROWS_CASE(H)                                                 \
+    {                                                                         \
+        constexpr uint32_t lane_log = n2b_wide_rows_lane_log(H);              \
+        using Shape = WideStridedShape<H, lane_log>;                          \
+        status = launch_rows(                                                 \
+            n2b_wide_strided_rows<H, lane_log, LoadCoefficients>, lane_log,   \
+            Shape::threads, Shape::bytes);                                    \
+    }
+    const bool rows = ((n2b_wide_rows_highs() >> high) & 1u) != 0u;
+    switch (rows ? high + 100u : high) {
+        case 106: STWO_N2B_ROWS_CASE(6) break;
+        case 107: STWO_N2B_ROWS_CASE(7) break;
+        case 108: STWO_N2B_ROWS_CASE(8) break;
+        case 109: STWO_N2B_ROWS_CASE(9) break;
+        case 110: STWO_N2B_ROWS_CASE(10) break;
+        case 111: STWO_N2B_ROWS_CASE(11) break;
         case 11: status = launch_short(n2b_wide_strided<LoadCoefficients>,
                                        kWideStridedThreads); break;
         case 10: status = launch_short(n2b_wide_strided_short<10, LoadCoefficients>, 8u << 5); break;
@@ -453,6 +609,7 @@ inline cudaError_t launch_n2b_wide(
         case 8: status = launch_short(n2b_wide_strided_short<8, LoadCoefficients>, 8u << 3); break;
         default: return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     }
+#undef STWO_N2B_ROWS_CASE
     if (status != cudaSuccess) return status;
     const uint32_t b_fast = column_count > 1u && contiguous_tiles <= 65535u;
     n2b_wide_contiguous<kWideLowBits><<<b_fast ? dim3{column_count, contiguous_tiles}
