@@ -94,25 +94,51 @@ pub const Hooks = struct {
     outer_prestage_ctx: ?*anyopaque = null,
 };
 
+/// The job runtime's devices: libraries + one booted, self-tested worker per
+/// STWO_RV64_GPU_DEVICES entry. Usable by any entry (serve, or a legacy entry
+/// that hands workers to job-backed factories).
+pub const WorkerSet = struct {
+    libs: ops.Libraries,
+    workers: [8]*worker.Worker = undefined,
+    count: usize = 0,
+    /// Heap-pinned so `libs.ops` (referenced by every worker) never moves.
+    pub fn start(a: std.mem.Allocator, library: []const u8) !*WorkerSet {
+        const addon = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingM8JobsLibrary;
+        const config = try Config.fromEnv();
+        const self = try a.create(WorkerSet);
+        errdefer a.destroy(self);
+        self.* = .{ .libs = try ops.Libraries.open(library, addon) };
+        errdefer self.stopWorkers();
+        for (config.devices[0..config.device_count]) |device| {
+            self.workers[self.count] = try worker.Worker.create(a, &self.libs.ops, .{ .device = device, .arena_words = config.arena_words, .pinned_slot_words = config.pinned_slot_words });
+            self.count += 1;
+        }
+        try selfTest(a, self.slice());
+        return self;
+    }
+    pub fn slice(self: *WorkerSet) []const *worker.Worker {
+        return self.workers[0..self.count];
+    }
+    fn stopWorkers(self: *WorkerSet) void {
+        for (self.workers[0..self.count]) |w| w.destroy();
+        self.count = 0;
+        self.libs.close();
+    }
+    pub fn stop(self: *WorkerSet, a: std.mem.Allocator) void {
+        if (std.posix.getenv("STWO_RV64_M8_JOBS_PLAN_OUT")) |path| writePlans(a, self.slice(), path) catch |err| std.log.err("M8 class plan output failed: {s}", .{@errorName(err)});
+        self.stopWorkers();
+        a.destroy(self);
+    }
+};
+
 pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, spool: []const u8, hooks: Hooks) !void {
     _ = hooks;
     _ = manifest_path; // the provider reads the manifest (blocks, profile) when it lands
     var timer = try std.time.Timer.start();
-    const addon = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingM8JobsLibrary;
-    const config = try Config.fromEnv();
-    var libs = try ops.Libraries.open(library, addon);
-    defer libs.close();
-    var workers: [8]*worker.Worker = undefined;
-    var made: usize = 0;
-    defer for (workers[0..made]) |w| w.destroy();
-    for (config.devices[0..config.device_count]) |device| {
-        workers[made] = try worker.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = config.arena_words, .pinned_slot_words = config.pinned_slot_words });
-        made += 1;
-    }
-    defer if (std.posix.getenv("STWO_RV64_M8_JOBS_PLAN_OUT")) |path| writePlans(a, workers[0..made], path) catch |err| std.log.err("M8 class plan output failed: {s}", .{@errorName(err)});
-    try selfTest(a, workers[0..made]);
-    const p = try provider(a, workers[0..made]);
-    try request.serve(a, p, workers[0..made], spool, timer.read());
+    const set = try WorkerSet.start(a, library);
+    defer set.stop(a);
+    const p = try provider(a, set.slice());
+    try request.serve(a, p, set.slice(), spool, timer.read());
 }
 
 /// Measured class plans of every worker (declared vs measured peak words).
@@ -134,4 +160,10 @@ pub fn writePlans(a: std.mem.Allocator, workers: []const *worker.Worker, path: [
 test "selection is explicit and fails closed" {
     // The test process environment does not set STWO_RV64_M8_JOBS.
     try std.testing.expect(!(try selected()));
+}
+
+test "service entry points are analyzed" {
+    _ = &serve;
+    _ = &WorkerSet.start;
+    _ = &WorkerSet.stop;
 }
