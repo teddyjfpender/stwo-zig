@@ -104,7 +104,15 @@ pub const OuterNodeJob = struct {
     pcs_proof: ?@import("../hybrid_pcs.zig").Decoded = null,
     composition_root: [32]u8 = @splat(0),
     oods: [16]u32 = @splat(0),
+    /// Job-internal host containers (stream schedules, PCS framing).
     allocator: std.mem.Allocator = std.heap.c_allocator,
+    /// Allocator of `pcs_proof`. assemble MOVES the decoded proof into the
+    /// caller's om31 Produced, which the request layer frees with ITS
+    /// allocator: the two must be the same allocator (outer_job_factory
+    /// sets it to the prove() allocator). A mismatch freed malloc memory
+    /// through the legacy budgeted recycler: "host budget heap underflow"
+    /// at teardown, smp free-list corruption, corrupted later proofs.
+    proof_allocator: std.mem.Allocator = std.heap.c_allocator,
     fixed_commit: ?N.FixedCommit = null,
     /// Streamed commit schedules (null: full-LDE path; STWO_RV64_M8_OUTER_STREAM=0).
     streams: ?N.Streams = null,
@@ -163,7 +171,7 @@ pub const OuterNodeJob = struct {
         self.composition_stream = null;
         if (self.pcs) |*j| j.deinit(self.allocator);
         self.pcs = null;
-        if (self.pcs_proof) |*d| d.proof.deinit(self.allocator);
+        if (self.pcs_proof) |*d| d.proof.deinit(self.proof_allocator);
         self.pcs_proof = null;
     }
 
@@ -384,6 +392,10 @@ pub const OuterNodeJob = struct {
         const w = N.Long.words(p, streamed);
         var b: [9]?K.Buffer = @splat(null);
         const sizes = [_]usize{ w[0], w[1], w[2], w[3], w[4], w[5], @intCast(cs.coefficientWords()), if (streamed) 0 else @intCast(cs.treeWords()), @as(usize, cs.param_total) * 8 };
+        for (sizes) |n| try Plan.requireIndexable(&.{n});
+        if (self.streams) |*st| for ([_]?*const TC.Stream{ &st.main, &st.inter, if (st.fixed) |*f| f else null }) |maybe| if (maybe) |s| {
+            try Plan.requireIndexable(&.{ s.plan.chunk_words, s.plan.bank_words[0], s.plan.bank_words[1] });
+        };
         for (&b, sizes) |*out, n| if (n != 0) {
             const d = try e.alloc(n);
             out.* = .{ .ptr = d.ptr, .words = d.words };
@@ -510,7 +522,7 @@ pub const OuterNodeJob = struct {
             if (oods[32] != 0) return error.InvalidOuterOodsPoint;
             @memcpy(&self.oods, oods[0..16]);
             const roots = [_][32]u8{ self.staged.fixed_root, d.main_root, d.inter_root, self.composition_root };
-            self.pcs_proof = try self.pcs.?.decode(self.allocator, try Slab.read(view, .opaque_words, pcs_index), &roots);
+            self.pcs_proof = try self.pcs.?.decode(self.proof_allocator, try Slab.read(view, .opaque_words, pcs_index), &roots);
         }
     }
     pub fn abort(self: *OuterNodeJob) void {

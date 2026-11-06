@@ -235,6 +235,18 @@ pub const Section = struct {
     pub const words = boundaries + device_ops.len * boundary_words;
 };
 
+/// Largest single device buffer (words) a job hands to a kernel. Several
+/// reused legacy kernels form element indices in signed 32-bit arithmetic,
+/// so a node buffer of 2^31 words or more would wrap silently (the whole-LDE
+/// INTER of a 26235156 fold is 2.36e9 words; the chunk-bounded node never
+/// holds it: its largest buffer is the in-place INTER coefficient region,
+/// [M] 1.25e9 words on 26235156 folds). Enforced fail-closed on every held
+/// buffer and stream scratch (outer_job.zig holdBuffers).
+pub const max_indexable_words: u64 = 1 << 31;
+pub fn requireIndexable(words: []const u64) !void {
+    for (words) |w| if (w >= max_indexable_words) return error.OuterBufferExceedsInt32Index;
+}
+
 /// Static launch accounting for one node (host-API launches without graph
 /// capture). The tree kernel, LDE and B2N report their internal launches at
 /// enqueue; this is the floor the plan can predict.
@@ -411,4 +423,11 @@ test "device transcript suffix draws four felts and ends at the PCS boundary" {
     const prefix = hostPrefix(8, 1, &buffer);
     try testing.expectEqual(@as(u32, 41), prefix[3].words);
     try testing.expectEqual(@as(usize, Section.boundaries + 7 * 16), Section.words);
+}
+
+test "node buffers stay below the signed 32-bit element index" {
+    // [M] 26235156 fold plan_words: INTER coefficients 1.245e9, LDE 2.356e9.
+    try requireIndexable(&.{ 583745792, 1245317120, 268435448, (1 << 31) - 1 });
+    try testing.expectError(error.OuterBufferExceedsInt32Index, requireIndexable(&.{ 1245317120, 2356416512 }));
+    try testing.expectError(error.OuterBufferExceedsInt32Index, requireIndexable(&.{1 << 31}));
 }

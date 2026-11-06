@@ -142,6 +142,9 @@ pub const Prover = struct {
         defer job.deinit();
         job.graphs = &self.graphs;
         job.persistent_classes = self.persistent_classes;
+        // The PCS proof is decoded on the worker and moved into the Produced
+        // this function returns, which the caller frees with `a`.
+        job.proof_allocator = a;
         r.footprint = job.footprint();
         {
             const p = staged.plan();
@@ -222,6 +225,11 @@ pub fn hybridSelected() !bool {
     if (std.mem.eql(u8, value, "0")) return false;
     if (std.mem.eql(u8, value, "1")) return true;
     return error.InvalidM8OuterJobsSelection;
+}
+
+fn faultOrdinal() ?u32 {
+    const value = std.posix.getenv("STWO_RV64_M8_OUTER_FAULT_ORDINAL") orelse return null;
+    return std.fmt.parseUnsigned(u32, value, 10) catch null;
 }
 
 /// A host-prepared assignment plan plus the producer hints that were live
@@ -388,6 +396,14 @@ pub const Lane = struct {
             if (input.prepared) |*p| p.deinit();
             return err;
         };
+        // Negative-path test hook (default unset): STWO_RV64_M8_OUTER_FAULT_ORDINAL=n
+        // fails node n before its job, exactly where a footprint refusal
+        // returns, so the request error path and teardown can be exercised.
+        if (faultOrdinal() == ordinal) {
+            if (input.prepared) |*p| p.deinit();
+            std.debug.print("GPU_M8_OUTER_NODE ordinal={d} device={d} error=M8OuterInjectedFault\n", .{ ordinal, self.physical_device });
+            return error.M8OuterInjectedFault;
+        }
         var r: Report = .{};
         var timer = try std.time.Timer.start();
         const produced = prover.prove(a, input, &r) catch |err| {
