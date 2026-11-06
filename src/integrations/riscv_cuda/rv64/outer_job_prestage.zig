@@ -593,6 +593,13 @@ pub const ClassPin = struct {
     }
 };
 
+comptime {
+    // Analyzed with this file (its only caller, the GPU-native warm entry, is not landed).
+    _ = &ClassPin.take;
+    _ = &ClassPin.retain;
+    _ = &ClassPin.release;
+}
+
 /// Thread-local producer hints Prepared.init reads (outer_source.zig ControllerTls).
 const Hints = struct {
     class_hint: ?[32]u8,
