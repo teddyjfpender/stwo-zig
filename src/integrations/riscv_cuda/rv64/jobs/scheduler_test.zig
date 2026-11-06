@@ -48,8 +48,10 @@ const Fac = struct {
     trace: Trace = .{},
     jobs: std.ArrayListUnmanaged(*Tiny) = .empty,
     fail_kind: ?S.Kind = null,
+    make_fail_kind: ?S.Kind = null,
     fn make(raw: *anyopaque, kind: S.Kind, index: u32) anyerror!api.Job {
         const self: *Fac = @ptrCast(@alignCast(raw));
+        if (self.make_fail_kind == kind) return error.InjectedMakeFailure;
         self.trace.add(kind, index, 'm');
         const t = try std.testing.allocator.create(Tiny);
         t.* = .{ .kind = kind, .index = index, .trace = &self.trace, .fail = self.fail_kind == kind };
@@ -179,4 +181,24 @@ test "graph rejects forward dependencies" {
     defer g.deinit();
     _ = try g.add(.truth, 0, 1, &.{}, true);
     try std.testing.expectError(error.DependencyNotYetDefined, g.add(.leaf, 0, 1, &.{1}, true));
+}
+
+test "a factory failure drains in-flight jobs before returning" {
+    fake.reset();
+    var ws: [2]*W.Worker = undefined;
+    try workers(&ws);
+    defer for (ws) |w| w.destroy();
+    var g = S.Graph{ .a = std.testing.allocator };
+    defer g.deinit();
+    const plan = try Dag.Plan.initArity(3, 2);
+    var fac = Fac{ .make_fail_kind = .truth };
+    defer fac.deinit();
+    var r = try S.buildRequest(&g, .{ .segments = 3, .truths = 1 }, &plan, undefined, leafDeps);
+    defer r.deinit(std.testing.allocator);
+    for (r.stage1) |id| g.nodes.items[id].released = true;
+    var s = try S.Scheduler.init(std.testing.allocator, &g, fac.factory(), &ws);
+    defer s.deinit();
+    try std.testing.expectError(error.InjectedMakeFailure, s.run());
+    try std.testing.expectEqual(@as(usize, 0), s.running);
+    for (ws) |w| try std.testing.expectEqual(@as(usize, 0), w.load());
 }

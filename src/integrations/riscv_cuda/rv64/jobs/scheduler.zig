@@ -186,11 +186,16 @@ pub const Scheduler = struct {
     fn promote(self: *Scheduler) !void {
         for (self.graph.nodes.items, 0..) |*n, id| {
             if (n.state != .waiting or !n.released or !self.depsDone(@intCast(id))) continue;
-            n.state = .ready;
             if (n.kind != .seal) {
-                n.job = try self.factory.make(self.factory.ctx, n.kind, n.index);
+                n.job = self.factory.make(self.factory.ctx, n.kind, n.index) catch |err| {
+                    // Never return while jobs are in flight: latch and drain.
+                    self.failure = self.failure orelse err;
+                    n.state = .failed;
+                    continue;
+                };
                 n.key = n.job.?.classKey();
             }
+            n.state = .ready;
         }
     }
 
@@ -235,7 +240,13 @@ pub const Scheduler = struct {
         const n = &self.graph.nodes.items[id];
         self.workers[wi].submit(n.job.?, self.sink()) catch |err| switch (err) {
             error.WorkerBusy => return false,
-            else => return err,
+            else => {
+                // Worker closing or device-faulted: this job never ran.
+                n.job.?.vtable.abort(n.job.?.ctx);
+                n.state = .failed;
+                self.failure = self.failure orelse err;
+                return false;
+            },
         };
         n.state = .running;
         n.worker = wi;
@@ -302,6 +313,7 @@ pub const Scheduler = struct {
             } else {
                 if (self.remaining == 0) return;
                 try self.promote();
+                if (self.failure != null) continue;
                 // Host barrier: runs here while workers keep proving queued work.
                 for (self.graph.nodes.items) |*n| if (n.state == .ready and n.kind == .seal) {
                     const step = self.factory.host orelse return error.MissingHostStep;
@@ -316,7 +328,7 @@ pub const Scheduler = struct {
                 };
                 if (self.failure == null) {
                     try self.promote();
-                    while (try self.placeOne()) {}
+                    while (self.failure == null and try self.placeOne()) {}
                 }
                 if (self.remaining == 0) return;
             }
