@@ -99,6 +99,7 @@ pub const Receipt = struct {
     slab_words: [G.max_devices]u64 = @splat(0),
     root_device: u32 = 0,
     final_device: u32 = 0,
+    peer_direct: bool = false,
 };
 
 pub const Outcome = struct {
@@ -138,6 +139,10 @@ pub const Driver = struct {
     installed: bool = false,
     /// Device allocations made by install (accounting for D1).
     install_allocations: usize = 0,
+    /// Every GPU pair maps the other's memory (direct peer pointers). False on
+    /// the M8 pod (5090s behind a chipset without P2P [M]): peer copies still
+    /// work (staged through the host), direct cross-GPU reads do not.
+    peer_direct: bool = false,
 
     /// Install over already-created workers (one per GPU, index = driver
     /// device). Warm both factories, seal the class cache, plan memory,
@@ -164,7 +169,9 @@ pub const Driver = struct {
             ordinals[d] = w.device_ordinal;
             self.peer.ordinals[d] = w.device_ordinal;
         }
-        if (workers.len > 1) try O.check(peer_ops.peer_enable(&ordinals, @intCast(workers.len)));
+        var direct: u32 = 1;
+        if (workers.len > 1) try O.check(peer_ops.peer_enable(&ordinals, @intCast(workers.len), &direct));
+        self.peer_direct = direct == 1;
         const exchange_cap = G.Exchange{ .segments = config.max_segments, .claims_per_segment = 1, .devices = @intCast(workers.len) };
         try self.peer.reserve(a, exchange_cap.flagWords());
         errdefer self.peer.deinitHost(a);
@@ -436,6 +443,7 @@ pub const InFlight = struct {
         self.ctx = .{ .request = self.req.id, .layout = layout, .exchange = self.exchange, .peer = drv.peer.exchangeOf(), .classes = &drv.classes, .segments = self.segment_buffers, .main_resident = self.main_views, .segment_device = self.segment_device, .generation = self.generation };
         self.receipt.root_device = if (rec.len != 0) dag.nodes[dag.recursion[req.root]].device else dag.final_device;
         self.receipt.final_device = dag.final_device;
+        self.receipt.peer_direct = drv.peer_direct;
     }
 
     fn make(self: *InFlight) !void {

@@ -326,7 +326,9 @@ pub const ops = O.Ops{
 };
 
 // ---------------- GPU-native driver ops (peer_ops.cu model) ----------------
-fn peerEnable(_: [*]const u32, _: u32) callconv(.c) c_int {
+pub var peer_direct: u32 = 1;
+fn peerEnable(_: [*]const u32, _: u32, direct: *u32) callconv(.c) c_int {
+    direct.* = peer_direct;
     bump("peer_enables", 1);
     return 0;
 }

@@ -40,10 +40,15 @@ __global__ void flags_verdict(const uint32_t *flags, uint32_t count, uint32_t *v
 }  // namespace
 
 // Enable peer access both ways between every pair of `devices` (install time,
-// any thread). Already-enabled pairs are not an error. Returns
-// cudaErrorPeerAccessUnsupported when a pair cannot map each other.
-extern "C" int stwo_rv64_jobs_peer_enable(const uint32_t *devices, uint32_t count) {
-    if (devices == nullptr && count != 0) return status(cudaErrorInvalidValue);
+// any thread). `*direct` := 1 when every pair maps the other's memory, else 0
+// (e.g. RTX 5090 pairs behind a chipset that refuses P2P: nvidia-smi topo
+// -p2p r shows CNS on the M8 pod [M]). Peer COPIES work either way
+// (cudaMemcpyPeerAsync stages through the host without peer access); only
+// direct peer pointer dereference needs `direct`. Already-enabled pairs are
+// not an error.
+extern "C" int stwo_rv64_jobs_peer_enable(const uint32_t *devices, uint32_t count, uint32_t *direct) {
+    if ((devices == nullptr && count != 0) || direct == nullptr) return status(cudaErrorInvalidValue);
+    *direct = 1u;
     int previous = 0;
     cudaError_t s = cudaGetDevice(&previous);
     if (s != cudaSuccess) return status(s);
@@ -54,8 +59,8 @@ extern "C" int stwo_rv64_jobs_peer_enable(const uint32_t *devices, uint32_t coun
             s = cudaDeviceCanAccessPeer(&can, static_cast<int>(devices[i]), static_cast<int>(devices[j]));
             if (s != cudaSuccess) break;
             if (!can) {
-                s = cudaErrorPeerAccessUnsupported;
-                break;
+                *direct = 0u;
+                continue;
             }
             s = cudaSetDevice(static_cast<int>(devices[i]));
             if (s != cudaSuccess) break;

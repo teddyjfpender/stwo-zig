@@ -112,7 +112,7 @@ pub const Libraries = struct {
 /// every existing caller stay unchanged. All entries only enqueue work or
 /// manage handles; `event_elapsed_us` reads events the request wait passed.
 pub const Peer = struct {
-    peer_enable: *const fn ([*]const u32, u32) callconv(.c) c_int,
+    peer_enable: *const fn ([*]const u32, u32, *u32) callconv(.c) c_int,
     peer_copy_async: *const fn (*anyopaque, u32, *const anyopaque, u32, usize, *anyopaque) callconv(.c) c_int,
     fill_u32: *const fn ([*]u32, u32, usize, *anyopaque) callconv(.c) c_int,
     flags_verdict: *const fn ([*]const u32, u32, [*]u32, u32, *anyopaque) callconv(.c) c_int,

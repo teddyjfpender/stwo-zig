@@ -1516,6 +1516,12 @@ pub const Worker = struct {
     /// Pins, fresh-region retirement and class stats of a finished slot
     /// (shared by the pipeline's `report` and the batch's `finishBatch`).
     fn settle(self: *Worker, slot: *Slot, result: anyerror!void) void {
+        self.settleKeyed(slot, result, null);
+    }
+
+    /// `known_key`: the class key read BEFORE `finish` (a job may free itself
+    /// in finish; batch phase 3 never touches the job after it).
+    fn settleKeyed(self: *Worker, slot: *Slot, result: anyerror!void, known_key: ?[32]u8) void {
         for (slot.pinned_keys[0..slot.pinned_count]) |key| self.regions.unpin(key);
         slot.pinned_count = 0;
         self.unpinRetained(slot, if (result) |_| true else |_| false);
@@ -1530,7 +1536,7 @@ pub const Worker = struct {
         slot.fresh_count = 0;
         var key: [32]u8 = @splat(0);
         const ok = if (result) |_| true else |_| false;
-        if (ok) key = slot.job.classKey();
+        if (ok) key = known_key orelse slot.job.classKey();
         // Class stats are recorded BEFORE the sink fires: a completion waiter
         // may read them (classStats / writePlanDir) as soon as done() returns.
         self.mutex.lock();
@@ -1838,8 +1844,9 @@ pub const Worker = struct {
                 continue;
             }
             const view = api.SlabView{ .words = slot.slab_host, .layout = slot.slab.layout, .receipt = slot.receipt };
+            const class = bj.job.classKey();
             bj.result = bj.job.vtable.finish(bj.job.ctx, view);
-            self.settle(slot, bj.result);
+            self.settleKeyed(slot, bj.result, class);
         }
         if (self.last_enqueued) |le| if (@intFromPtr(le) >= @intFromPtr(b.slots.ptr) and @intFromPtr(le) < @intFromPtr(b.slots.ptr) + b.slots.len * @sizeOf(Slot)) {
             self.last_enqueued = null;

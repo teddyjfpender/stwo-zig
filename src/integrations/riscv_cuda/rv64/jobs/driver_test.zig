@@ -169,11 +169,18 @@ const FakeJob = struct {
     pub fn finish(self: *FakeJob, v: api.SlabView) !void {
         if (v.receipt.host_waits != 0) return error.PerJobHostWait;
         self.world.finished += 1;
-        self.a.destroy(self);
+        self.poisonAndFree();
     }
     pub fn abort(self: *FakeJob) void {
         self.world.aborted += 1;
-        self.a.destroy(self);
+        self.poisonAndFree();
+    }
+    /// A job may free itself in finish/abort: poison first so any later touch
+    /// by the worker (e.g. classKey) panics on an invalid enum in Debug.
+    fn poisonAndFree(self: *FakeJob) void {
+        const a = self.a;
+        @memset(std.mem.asBytes(self), 0xaa);
+        a.destroy(self);
     }
 };
 
