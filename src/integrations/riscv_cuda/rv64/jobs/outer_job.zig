@@ -109,14 +109,11 @@ pub const OuterNodeJob = struct {
     /// Streamed commit schedules (null: full-LDE path; STWO_RV64_M8_OUTER_STREAM=0).
     streams: ?N.Streams = null,
     composition_stream: ?Comp.CommitStream = null,
-    /// Whole nodes: recommit FIXED from staged raw evaluations inside the node
-    /// and compare its root. Off by default: the PCS rebuilds the FIXED tree
-    /// from the class-region coefficients it opens and finish compares that
-    /// root with the transcript's FIXED root (NativePcsTreeRootMismatch), so
-    /// the in-node recommit only duplicated a check at the cost of the raw
-    /// FIXED upload and its commit scratch. STWO_RV64_M8_OUTER_NODE_FIXED_COMMIT=1
-    /// restores it.
-    node_fixed_commit: bool = false,
+    /// Whole nodes: the FIXED coefficients that RC and the PCS read
+    /// (Region.fixed) are produced on device from the staged raw evaluations
+    /// (interpolated in place), and the node checks their root. Required for
+    /// whole nodes; the flag exists only for prefix/parity harnesses.
+    node_fixed_commit: bool = true,
     /// Fold classes keep their class region in worker-persistent memory
     /// (outside the arena). The hybrid window (whole request, workers per
     /// request) clears this so every node stages its class region inside its
@@ -128,7 +125,6 @@ pub const OuterNodeJob = struct {
     /// prefix step (parity harness; adds one D2D copy per step).
     pub fn init(staged: *St.Staged, kernels: *const K.Kernels, snapshots: bool) !OuterNodeJob {
         var out = OuterNodeJob{ .staged = staged, .kernels = kernels, .snapshots = snapshots, .mode = .prefix };
-        if (std.posix.getenv("STWO_RV64_M8_OUTER_NODE_FIXED_COMMIT")) |v| out.node_fixed_commit = std.mem.eql(u8, v, "1");
         if (TC.streamSelected(kernels)) {
             const fp: ?*const Plan.TreePlan = if (staged.statics.fixed_plan) |*f| f else null;
             out.streams = try N.Streams.init(out.allocator, staged.plan(), fp, TC.streamChunkWords(), kernels.compact_eager);
@@ -292,9 +288,8 @@ pub const OuterNodeJob = struct {
             phase = @max(phase, pcsReserveWords(cs));
             pinned_extra = self.pcs_plan.ingress_words;
             if (self.nodeFixed()) if (self.staged.statics.fixed_plan) |*fp| {
-                // Worst case (first node of a class): raw evaluations staged,
-                // coefficient buffer staged unless persistent, commit scratch.
-                staged += g(fp.coefficient_words);
+                // Coefficient buffer staged (raw evaluations interpolated in
+                // place) unless persistent; commit scratch as a phase.
                 if (!self.persistentClass()) staged += g(fp.coefficient_words);
                 const fixed_commit: u64 = if (self.streams) |*st| (if (st.fixed) |*f| f.scratchWords() else 0) else g(fp.evaluation_words) + g(fp.tree_words + fp.prefix_words);
                 phase = @max(phase, fixed_commit);
@@ -364,11 +359,13 @@ pub const OuterNodeJob = struct {
             const fixed: api.Persistent = if (self.persistentClass()) try s.persistent(self.staged.fixedRegionKey(), @intCast(fp.coefficient_words)) else .{ .buffer = try s.alloc(@intCast(fp.coefficient_words)), .fresh = true };
             regions[@intFromEnum(St.Region.fixed)] = fixed.buffer.ptr;
             if (fixed.fresh) {
-                const raw = try s.alloc(@intCast(fp.coefficient_words));
+                // Raw evaluations are uploaded straight into the coefficient
+                // buffer and interpolated in place (B2N with exactly aliased
+                // strides, as TC INTER does): no separate raw buffer.
                 const pinned = try s.pinned(@intCast(fp.coefficient_words));
                 try self.staged.packFixed(pinned);
-                try s.upload(raw, pinned);
-                self.fixed_commit = .{ .evaluations = raw.ptr, .coefficients = fixed.buffer.ptr };
+                try s.upload(fixed.buffer, pinned);
+                self.fixed_commit = .{ .evaluations = fixed.buffer.ptr, .coefficients = fixed.buffer.ptr };
             }
         }
         self.bases = .{ .regions = regions };
