@@ -22,3 +22,8 @@ Branch `codex/rv64-m8-gpu-native` @ fc1e79226 (on contract 065e248e6). Not integ
 1. `rv64_gate.sh --stream m8-gpu-native` default (must stay unchanged), then the same with
    `--env STWO_RV64_M8_JOBS=1 --env STWO_RV64_M8_NATIVE_JOBS=1 --env STWO_RV64_M8_NATIVE_FRAMING_CACHE=check`
    on 26235156 and 24628607 (byte identity + N1 on the warm request), then `=1` for the timings.
+
+## Review 1 (2026-11-07)
+Fixes in 4af2df716 (see `review-1.json`): cached PCS framing restores placeholder column bindings on
+checkout (no stale job-arena addresses), `Plan.detach` OOM double free, `create` env-parse leak.
+Gate gate-review1: build / unit-zig / unit-python PASS [M]; proof step still blocked by orphan pid 3302210.
