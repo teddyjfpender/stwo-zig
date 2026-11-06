@@ -44,10 +44,14 @@ pub const Config = struct {
     /// Host-model tests that assert on a specific arena opt out.
     plan_from_env: bool = true,
     /// Pinned slots are allocated on first need and only grow (to the job's
-    /// pinned + slab words, rounded to `pinned_granule_words`), capped at
-    /// `pinned_slot_words`. Off: three slots of `pinned_slot_words` at start
-    /// (today's behavior). A persistent service sets it: the allocation is
-    /// paid once per process, sized by what jobs really stage.
+    /// pinned + slab words, rounded up to a power of two of at least
+    /// `pinned_granule_words`, so a slot regrows O(log) times), capped at
+    /// `pinned_slot_words`. A grown slot's old buffer is NOT freed in the
+    /// pipeline (cudaFreeHost synchronizes the device): it is retired and
+    /// freed at the next park/unpark or at shutdown, when the pipeline is
+    /// idle. Off: three slots of `pinned_slot_words` at start (today's
+    /// behavior). A persistent service sets it: the allocation is paid once
+    /// per process, sized by what jobs really stage.
     pinned_lazy: bool = false,
 };
 
@@ -448,6 +452,9 @@ pub const Worker = struct {
     persistent_map: std.AutoHashMapUnmanaged([32]u8, api.DeviceBuffer) = .empty,
     /// Buffers of failed fills: possibly still targeted by in-flight copies, freed at shutdown.
     retired: std.ArrayListUnmanaged(api.DeviceBuffer) = .empty,
+    /// Pinned slot buffers replaced by lazy growth, freed when the pipeline is
+    /// idle (park/unpark service, shutdown) instead of inside `stage`.
+    pinned_retired: std.ArrayListUnmanaged([]u32) = .empty,
     a: std.mem.Allocator,
     // loop state (worker thread only)
     staging: ?*Slot = null,
@@ -487,6 +494,8 @@ pub const Worker = struct {
     parked: bool = false,
     /// Under `mutex`: a park is draining the pipeline; `submit` refuses.
     parking: bool = false,
+    /// Under `mutex`: an unpark request is in flight (one control at a time).
+    unparking: bool = false,
     control: ?Control = null,
     control_done: bool = false,
     control_result: anyerror!ParkReceipt = .{},
@@ -762,10 +771,22 @@ pub const Worker = struct {
     fn ensurePinned(self: *Worker, slot: *Slot, needed: usize) !void {
         if (!self.config.pinned_lazy or needed <= slot.pinned.len) return;
         if (needed > self.config.pinned_slot_words) return error.JobFootprintExceedsPinned;
-        const words = @min(self.config.pinned_slot_words, std.mem.alignForward(usize, needed, pinned_granule_words));
+        const words = @min(self.config.pinned_slot_words, pinnedGrowth(needed));
+        if (slot.pinned.len != 0) try self.pinned_retired.ensureUnusedCapacity(self.a, 1);
         const grown = try self.pinnedSlotAlloc(words);
-        if (slot.pinned.len != 0) _ = self.ops.wait.host_free(slot.pinned.ptr);
+        if (slot.pinned.len != 0) self.pinned_retired.appendAssumeCapacity(slot.pinned);
         slot.pinned = grown;
+    }
+
+    /// Lazy slot size for `needed` words: a power of two, at least one granule.
+    pub fn pinnedGrowth(needed: usize) usize {
+        return std.math.ceilPowerOfTwo(usize, @max(needed, pinned_granule_words)) catch std.math.maxInt(usize);
+    }
+
+    /// Pipeline idle only (no job reads the retired buffers any more).
+    fn freeRetiredPinned(self: *Worker) void {
+        for (self.pinned_retired.items) |p| _ = self.ops.wait.host_free(p.ptr);
+        self.pinned_retired.clearRetainingCapacity();
     }
 
     // ---------------- park / unpark ----------------
@@ -786,6 +807,8 @@ pub const Worker = struct {
 
     fn serviceControl(self: *Worker, c: Control) void {
         var timer = std.time.Timer.start() catch unreachable;
+        // The pipeline is empty here: retired pinned buffers can go.
+        self.freeRetiredPinned();
         var result: anyerror!ParkReceipt = switch (c) {
             .park => |o| self.releaseArena(o),
             .unpark => |words| self.acquireArena(words),
@@ -797,16 +820,20 @@ pub const Worker = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         switch (c) {
-            .park => if (result) |_| {
+            // Parked whenever the arena is gone, even if releasing the
+            // persistent regions then failed: the worker must not accept
+            // jobs it cannot stage, and unpark must be able to recover it.
+            .park => if (self.arena_buffer == null) {
                 self.parked = true;
                 self.parks += 1;
-            } else |_| {},
+            },
             .unpark => if (result) |_| {
                 self.parked = false;
                 self.unparks += 1;
             } else |_| {},
         }
         self.parking = false;
+        self.unparking = false;
         self.control_result = result;
         self.control_done = true;
         self.cond.broadcast();
@@ -826,27 +853,40 @@ pub const Worker = struct {
         return r;
     }
 
+    /// Best effort: every buffer is freed once and dropped from its container
+    /// whatever the outcome (a failed free is never retried, so shutdown
+    /// cannot free it twice); the first failure is reported.
     fn releasePersistent(self: *Worker) !usize {
         var words: usize = 0;
+        var first: ?anyerror = null;
         var it = self.persistent_map.valueIterator();
         while (it.next()) |b| {
             words += b.words;
-            try O.check(self.ops.exec.free_u32(self.context, b.ptr));
+            O.check(self.ops.exec.free_u32(self.context, b.ptr)) catch |err| {
+                first = first orelse err;
+            };
         }
         self.persistent_map.clearRetainingCapacity();
-        for (self.retired.items) |b| try O.check(self.ops.exec.free_u32(self.context, b.ptr));
+        for (self.retired.items) |b| O.check(self.ops.exec.free_u32(self.context, b.ptr)) catch |err| {
+            first = first orelse err;
+        };
         self.retired.clearRetainingCapacity();
         if (self.regions_buffer) |p| {
             words += self.regions.words;
-            try O.check(self.ops.exec.free_u32(self.context, p));
+            O.check(self.ops.exec.free_u32(self.context, p)) catch |err| {
+                first = first orelse err;
+            };
             self.regions_buffer = null;
         }
         self.regions.entries.clearRetainingCapacity();
         self.persistent_epoch += 1;
+        if (first) |err| return err;
         return words;
     }
 
     fn acquireArena(self: *Worker, words_in: usize) !ParkReceipt {
+        // Never overwrite (leak) a live static arena.
+        if (self.arena_buffer != null) return error.WorkerNotParked;
         const words = if (words_in == 0) self.last_words else words_in;
         if (words == 0 or words % Arena.granule != 0) return error.InvalidArena;
         var arena: ?[*]u32 = null;
@@ -893,6 +933,7 @@ pub const Worker = struct {
             if (self.closing) return error.WorkerClosing;
             if (self.parked) return error.WorkerAlreadyParked;
             if (self.parking) return error.WorkerParked;
+            if (self.unparking) return error.WorkerBusy;
             self.parking = true;
             while (self.outstanding != 0) self.cond.wait(&self.mutex);
         }
@@ -914,6 +955,9 @@ pub const Worker = struct {
             defer self.mutex.unlock();
             if (self.fatal) |err| return err;
             if (!self.parked) return error.WorkerNotParked;
+            // One control request at a time (the control slot is single).
+            if (self.unparking or self.control != null) return error.WorkerBusy;
+            self.unparking = true;
         }
         return self.requestControl(.{ .unpark = arena_words });
     }
@@ -962,6 +1006,8 @@ pub const Worker = struct {
             if (slot.done_event) |e| _ = w.event_destroy(e);
             if (slot.pinned.len != 0) _ = w.host_free(slot.pinned.ptr);
         }
+        self.freeRetiredPinned();
+        self.pinned_retired.deinit(self.a);
         self.unbudgeted_regions = self.persistent_map.count();
         self.shut_down = true;
         var it = self.persistent_map.valueIterator();

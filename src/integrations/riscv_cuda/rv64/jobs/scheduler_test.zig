@@ -342,3 +342,38 @@ test "async prep: an enqueue failure with prep threads returns after everything 
     try std.testing.expectEqual(@as(usize, 0), s.running);
     try std.testing.expectEqual(@as(usize, 0), s.preparing);
 }
+
+test "an allocation failure in run returns OutOfMemory (never deadlocks with the mutex held, never strands made jobs)" {
+    var successes: usize = 0;
+    var fail_index: usize = 0;
+    while (fail_index < 12) : (fail_index += 1) {
+        fake.reset();
+        var ws: [2]*W.Worker = undefined;
+        try workers(&ws);
+        defer for (ws) |w| w.destroy();
+        var g = S.Graph{ .a = std.testing.allocator };
+        defer g.deinit();
+        const plan = try Dag.Plan.initArity(4, 2);
+        var fac = Fac{ .make_sleep_us = 50 };
+        defer fac.deinit();
+        var r = try S.buildRequest(&g, .{ .segments = 3, .truths = 1 }, &plan, undefined, leafDeps);
+        defer r.deinit(std.testing.allocator);
+        for (r.stage1) |id| g.nodes.items[id].released = true;
+        var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = fail_index });
+        var s = try S.Scheduler.initWith(failing.allocator(), &g, fac.factory(), &ws, .{ .prep_threads = 2 });
+        defer s.deinit();
+        if (s.run()) |_| {
+            successes += 1;
+            try std.testing.expectEqual(@as(usize, 0), s.remaining);
+        } else |err| {
+            try std.testing.expectEqual(error.OutOfMemory, err);
+            // Failed before any job started: nothing made, nothing in flight.
+            try std.testing.expectEqual(@as(usize, 0), fac.jobs.items.len);
+        }
+        try std.testing.expectEqual(@as(usize, 0), s.running);
+        try std.testing.expectEqual(@as(usize, 0), s.preparing);
+        for (ws) |w| try std.testing.expectEqual(@as(usize, 0), w.load());
+    }
+    // Every reservation is up front: past them, the request completes.
+    try std.testing.expect(successes >= 6);
+}

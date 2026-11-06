@@ -16,9 +16,28 @@
 //!
 //! usage: rv64-m8-native-parity <manifest.json> <out-dir>
 //! env:   the gate's service environment (STWO_RV64_GPU_LIBRARY, ...), plus
-//!        STWO_RV64_M8_JOBS_LIBRARY (addon), STWO_RV64_M8_PARITY_DEVICE (job
-//!        GPU, default 1; the legacy pool should use STWO_RV64_GPU_DEVICES=0),
-//!        STWO_RV64_M8_JOBS_ARENA_BYTES, STWO_RV64_M8_JOBS_PINNED_BYTES.
+//!   STWO_RV64_M8_JOBS_LIBRARY       the jobs addon (required)
+//!   STWO_RV64_M8_PARITY_DEVICE      job GPU (default 1; the legacy pool should
+//!                                   use STWO_RV64_GPU_DEVICES=0)
+//!   STWO_RV64_M8_PARITY_SOURCE_DEVICE  legacy GPU the peer copies read (default 0)
+//!   STWO_RV64_M8_JOBS_ARENA_BYTES   job arena (default 20 GiB: the legacy global
+//!                                   kernels native_global reuses allocate OUTSIDE
+//!                                   the arena; 23 GiB failed 10/127 slots on
+//!                                   24628607, 20 GiB passes 127/127)
+//!   STWO_RV64_M8_JOBS_PINNED_BYTES  pinned slot size (default 1 GiB)
+//!   STWO_RV64_M8_PARITY_ONLY        "" (default: GKR/Stage1/binding, global,
+//!                                   commits; + composition/PCS when enabled),
+//!                                   "composition" (composition only; with
+//!                                   DEVICE_CLAIMS=1 also the global decorator,
+//!                                   the source of the device claims) or "pcs"
+//!   STWO_RV64_M8_PARITY_STAGE1      1 (default) / 0: Stage1 job checks
+//!   STWO_RV64_M8_PARITY_BINDING     1 (default) / 0: binding tail in Stage1
+//!   STWO_RV64_M8_PARITY_COMPOSITION 0 (default) / 1: composition parity
+//!   STWO_RV64_M8_PARITY_DEVICE_CLAIMS 0 (default) / 1: composition claim slots
+//!                                   patched from the native_global jobs' claims
+//!                                   (Stage2 layout, jobs/native_claims.zig)
+//!   STWO_RV64_M8_PARITY_TRUTH       1 (default) / 0: truth compositions too
+//!   STWO_RV64_M8_PARITY_PCS         0 (default) / 1: OODS + PCS parity
 const std = @import("std");
 const CPU = @import("stwo_riscv_cpu_integration");
 const Main = CPU.rv64_ethereum_gkr_main;
@@ -37,6 +56,8 @@ const NB = @import("rv64/jobs/native_binding.zig");
 const NP = @import("rv64/jobs/native_pcs.zig");
 const A = @import("rv64/abi.zig");
 const NComp = @import("rv64/jobs/native_composition.zig");
+const S2 = @import("rv64/jobs/native_stage2.zig");
+const NClaims = @import("rv64/jobs/native_claims.zig");
 const CompRoles = @import("rv64/m8_native_composition_roles.zig");
 const RC = @import("rv64/resident_composition.zig");
 const Worker = CPU.rv64_gkr_cpu_worker;
@@ -686,6 +707,26 @@ const GlobalDecorator = struct {
     peer: Peer,
     mutex: std.Thread.Mutex = .{},
     rows: std.ArrayListUnmanaged(GlobalRow) = .empty,
+    /// Per segment ordinal: the claims the native_global JOBS produced (slab
+    /// readback), appended in slot order = the Stage2 claims buffer layout
+    /// (native_claims.Layout: generate runs once per slot with claims, in
+    /// slot order). The composition parity consumes them as its device claims.
+    produced: std.AutoHashMapUnmanaged(u32, Produced) = .empty,
+    const Produced = struct { words: std.ArrayListUnmanaged(u32) = .empty, slots: u32 = 0, complete: bool = true };
+    fn deinit(self: *GlobalDecorator) void {
+        var it = self.produced.valueIterator();
+        while (it.next()) |p| p.words.deinit(self.a);
+        self.produced.deinit(self.a);
+        self.catalogue.deinit();
+        self.rows.deinit(self.a);
+    }
+    /// The produced claims of `ordinal` (caller owns), or null.
+    fn take(self: *GlobalDecorator, ordinal: u32) ?Produced {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const kv = self.produced.fetchRemove(ordinal) orelse return null;
+        return kv.value;
+    }
     fn stage(self: *GlobalDecorator) DG.Stage {
         return .{ .context = self, .generate = generate };
     }
@@ -697,12 +738,18 @@ const GlobalDecorator = struct {
         const legacy_ns = timer.read();
         self.mutex.lock();
         defer self.mutex.unlock();
-        const row = self.check(scope, item, shared, &legacy, legacy_ns) catch |err| GlobalRow{ .ordinal = scope.ordinal, .origin = @tagName(item.descriptor.origin), .log = item.log_size, .width = legacy.columns.len, .claims_equal = false, .verdict = 0xffffffff, .witness_mismatches = 0xffffffff, .first_mismatch = 0, .legacy_ns = legacy_ns, .job_enqueue_ns = 0, .job_wait_ns = 0, .host_waits = 0, .arena_peak_words = 0, .error_name = @errorName(err) };
+        var produced: [16]u32 = undefined;
+        var produced_words: usize = 0;
+        const row = self.check(scope, item, shared, &legacy, legacy_ns, &produced, &produced_words) catch |err| GlobalRow{ .ordinal = scope.ordinal, .origin = @tagName(item.descriptor.origin), .log = item.log_size, .width = legacy.columns.len, .claims_equal = false, .verdict = 0xffffffff, .witness_mismatches = 0xffffffff, .first_mismatch = 0, .legacy_ns = legacy_ns, .job_enqueue_ns = 0, .job_wait_ns = 0, .host_waits = 0, .arena_peak_words = 0, .error_name = @errorName(err) };
         std.debug.print("GPU_M8_NATIVE_GLOBAL_PARITY ordinal={} origin={s} log={} width={} claims_equal={} verdict={} mismatches={} job_wait_ns={} error={s}\n", .{ row.ordinal, row.origin, row.log, row.width, row.claims_equal, row.verdict, row.witness_mismatches, row.job_wait_ns, row.error_name });
         try self.rows.append(self.a, row);
+        const entry = try self.produced.getOrPut(self.a, scope.ordinal);
+        if (!entry.found_existing) entry.value_ptr.* = .{};
+        entry.value_ptr.slots += 1;
+        if (row.error_name.len != 0 or produced_words != 8 * NClaims.Slot.of(item.descriptor.origin, 0).count) entry.value_ptr.complete = false else try entry.value_ptr.words.appendSlice(self.a, produced[0..produced_words]);
         return legacy;
     }
-    fn check(self: *GlobalDecorator, scope: @import("stwo_riscv_cpu_integration").rv64_device_pcs.Scope, item: DG.Item, shared: DG.Shared, legacy: *const DG.Witness, legacy_ns: u64) !GlobalRow {
+    fn check(self: *GlobalDecorator, scope: @import("stwo_riscv_cpu_integration").rv64_device_pcs.Scope, item: DG.Item, shared: DG.Shared, legacy: *const DG.Witness, legacy_ns: u64, produced: *[16]u32, produced_words: *usize) !GlobalRow {
         const a = self.a;
         var plan = try NGl.Plan.init(a, &self.catalogue, item, shared);
         defer plan.deinit();
@@ -738,6 +785,8 @@ const GlobalDecorator = struct {
         try self.worker.submit(api.Job.from(GlobalParityJob, &job), .{ .ctx = &done, .done = Done.call });
         while (!@atomicLoad(bool, &done.done, .acquire)) std.Thread.sleep(50 * std.time.ns_per_us);
         try done.result;
+        @memcpy(produced[0..plan.claimWords()], job.claims[0..plan.claimWords()]);
+        produced_words.* = plan.claimWords();
         var claims_equal = legacy.claims.len == plan.group_count;
         if (claims_equal) for (legacy.claims, 0..) |claim, g| for (claim.toM31Array(), 0..) |m, j| {
             claims_equal = claims_equal and m.v == job.claims[8 * g + j];
@@ -874,7 +923,20 @@ const CommitDecorator = struct {
 const CompositionRow = struct {
     kind: []const u8 = "cpu",
     ordinal: u32,
+    /// Claim slots patched on the device (roles x claim parameters present).
     device_claims: usize = 0,
+    /// Claims in the Stage2 claims buffer (native_claims.Layout.count).
+    claim_count: u32 = 0,
+    /// Where the device claims buffer came from: "native_global" (the
+    /// native_global jobs' output for this segment, in the Stage2 layout),
+    /// "host" (the roles builder's host mirror) or "none".
+    claims_source: []const u8 = "none",
+    /// The native_global claims equal the host claims of the items, word for
+    /// word, in the Stage2 layout (only with claims_source=native_global).
+    claims_match_host: bool = false,
+    /// The job ran the producer through Stage2's composition seam
+    /// (S2.NativeComposition.producer(), S2.Composition.Inputs).
+    through_seam: bool = false,
     /// CUDA-event GPU time of the composition producer (mirrors excluded).
     gpu_ms: f32 = -1,
     roles: usize,
@@ -916,7 +978,8 @@ const CompositionParityJob = struct {
     alpha: [8]u32,
     legacy_output: [*]const u32,
     a: std.mem.Allocator,
-    /// Host claim values staged as the "device claims" buffer (claim slots).
+    /// The device claims buffer contents (Stage2 layout), staged in phase 1:
+    /// the native_global jobs' output for this segment, or the host mirror.
     claims: []const u32 = &.{},
     /// CUDA events around the producer's enqueued work (after the mirrors,
     /// before the comparison): GPU time of the composition itself.
@@ -930,6 +993,9 @@ const CompositionParityJob = struct {
     staged_claims: ?api.DeviceBuffer = null,
     staged_host: ?api.DeviceBuffer = null,
     host_offsets: [3][]usize = .{ &.{}, &.{}, &.{} },
+    /// Per tree, per original column: offset in the job's combined column
+    /// buffer (S2.Composition.Committed views, as Stage2 hands them over).
+    view_offsets: [3][]usize = .{ &.{}, &.{}, &.{} },
     root: [8]u32 = undefined,
     status: u32 = 0xffffffff,
     mismatch: [2]u32 = .{ 0xffffffff, 0 },
@@ -954,7 +1020,7 @@ const CompositionParityJob = struct {
         const g = 64;
         const host = std.mem.alignForward(usize, self.hostWords(), g);
         const staged = self.plan.stagedWords() + host + std.mem.alignForward(usize, self.claims.len, g) + 3 * g;
-        const mirror = std.mem.alignForward(usize, self.mirrorWords(), g) + std.mem.alignForward(usize, self.plan.coefficientWords(), g);
+        const mirror = std.mem.alignForward(usize, self.mirrorWords() + self.hostWords(), g) + std.mem.alignForward(usize, self.plan.coefficientWords(), g);
         return .{ .device_words = staged + self.plan.persistentWords() + mirror + self.plan.enqueueWords() + 8 * g, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = self.plan.pinnedWords() + self.hostWords() + self.claims.len + 64 };
     }
     pub fn stage(self: *CompositionParityJob, s: *api.Stager) !void {
@@ -985,7 +1051,11 @@ const CompositionParityJob = struct {
     }
     pub fn enqueue(self: *CompositionParityJob, e: *api.Enqueue) !void {
         try e.slab.bind(&self.layout);
-        const mirror = try e.alloc(@max(self.mirrorWords(), 1));
+        // One buffer holds every column (legacy device columns peer-mirrored,
+        // host columns copied from their staged words), so each tree is a
+        // Committed view (base + offsets) exactly as Stage2 passes it.
+        const mirror = try e.alloc(@max(self.mirrorWords() + self.hostWords(), 1));
+        var host_at = self.mirrorWords();
         var pointers: [3][][*]const u32 = undefined;
         var made: usize = 0;
         defer for (pointers[0..made]) |p| self.a.free(p);
@@ -993,6 +1063,7 @@ const CompositionParityJob = struct {
         for (0..3) |t| {
             pointers[t] = try self.a.alloc([*]const u32, self.device[t].len);
             made += 1;
+            self.view_offsets[t] = try self.a.alloc(usize, self.device[t].len);
             var c: usize = 0;
             while (c < self.device[t].len) {
                 const log = self.logs[t][c];
@@ -1014,15 +1085,27 @@ const CompositionParityJob = struct {
                     at += words;
                     c = end;
                 } else {
-                    pointers[t][c] = (self.staged_host orelse return error.CompositionParityHostNotStaged).ptr + self.host_offsets[t][c];
+                    const words = @as(usize, 1) << @intCast(log);
+                    const from = (self.staged_host orelse return error.CompositionParityHostNotStaged).ptr + self.host_offsets[t][c];
+                    try check(self.sym.copy_d2d(e.ctx(), mirror.ptr + host_at, from, words * 4));
+                    pointers[t][c] = mirror.ptr + host_at;
+                    host_at += words;
                     c += 1;
                 }
             }
+            for (pointers[t], self.view_offsets[t]) |p, *o| o.* = (@intFromPtr(p) - @intFromPtr(mirror.ptr)) / 4;
         }
         const status = try e.slab.field(.status, 0);
-        try check(self.sym.memset(e.ctx(), status.ptr, 0, 4));
+        // Poison the status: the producer must clear it itself.
+        try check(self.sym.memset(e.ctx(), status.ptr, 0xff, 4));
+        var views: [3]S2.Composition.Committed = undefined;
+        for (&views, self.view_offsets) |*v, offsets| v.* = .{ .offsets = offsets, .tree = .{ .coefficients = mirror, .root = mirror.ptr } };
+        var producer = S2.NativeComposition{ .plan = self.plan, .sym = self.sym };
+        const seam = producer.producer();
+        const claims = self.staged_claims orelse api.DeviceBuffer{ .ptr = mirror.ptr, .words = 0 };
         if (self.events.record(self.begin.?, e.stream()) != 0) return error.CudaTimingFailed;
-        const out = try self.plan.enqueueWithClaims(self.sym, e, .{ .{ .pointers = pointers[0] }, .{ .pointers = pointers[1] }, .{ .pointers = pointers[2] } }, self.staged_alpha.?.ptr, self.staged_claims, try e.slab.field(.root, 0), status.ptr);
+        const committed = try seam.enqueue(seam.ctx, e, .{ .alpha = self.staged_alpha.?, .claims = claims, .status = status, .root_out = try e.slab.field(.root, 0), .trees = views });
+        const out = committed.tree;
         if (self.events.record(self.end.?, e.stream()) != 0) return error.CudaTimingFailed;
         const reference = try e.alloc(self.plan.coefficientWords());
         try self.peer.mirror(e, reference.ptr, self.legacy_output, self.plan.coefficientWords());
@@ -1039,6 +1122,7 @@ const CompositionParityJob = struct {
         if (self.begin) |ev| _ = self.events.destroy(ev);
         if (self.end) |ev| _ = self.events.destroy(ev);
         for (self.host_offsets) |o| if (o.len != 0) self.a.free(o);
+        for (self.view_offsets) |o| if (o.len != 0) self.a.free(o);
     }
 };
 
@@ -1048,8 +1132,12 @@ const CompositionDecorator = struct {
     truth_inner: ?TruthComposition.Stage = null,
     events: *const Events.Api,
     /// STWO_RV64_M8_PARITY_DEVICE_CLAIMS=1: claim parameters are zeroed in
-    /// the staged table and patched on the device from a claims buffer.
+    /// the staged table and patched on the device from the Stage2 claims
+    /// buffer (native_claims.Layout).
     device_claims: bool = false,
+    /// Source of that buffer: the native_global jobs of the same segment
+    /// (installed decorator), else the roles builder's host mirror.
+    global: ?*GlobalDecorator = null,
     /// The legacy composition backend (kernel metadata) of the pool's device.
     context: *const RC.Context,
     worker: *W.Worker,
@@ -1073,15 +1161,33 @@ const CompositionDecorator = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         var row = CompositionRow{ .ordinal = scope.ordinal, .roles = items.len, .log = log, .split = split, .beta = beta, .total = total, .columns = .{ 0, 0, 0 }, .host_columns = 0, .legacy_ns = legacy_ns };
+        var produced: ?GlobalDecorator.Produced = if (self.device_claims) if (self.global) |g| g.take(scope.ordinal) else null else null;
+        defer if (produced) |*p| p.words.deinit(self.a);
         if (CompRoles.Roles.fromItemsWith(self.a, self.context, items, self.device_claims)) |roles| {
             var owned = roles;
             defer owned.deinit();
-            row.device_claims = owned.claims.items.len / 8;
-            self.check(owned.specs, owned.claims.items, alpha, log, split, total, @ptrCast(@alignCast(trace_raw)), beta, tree, &row) catch |err| {
+            for (owned.specs) |spec| row.device_claims += spec.claim_slots.len;
+            row.claim_count = owned.claim_count;
+            var claims: []const u32 = &.{};
+            if (self.device_claims) {
+                claims = owned.claims.items;
+                row.claims_source = "host";
+                if (produced) |p| {
+                    if (!p.complete or p.words.items.len != owned.claims.items.len) {
+                        row.error_name = "CompositionParityProducedClaimsShape";
+                    } else {
+                        claims = p.words.items;
+                        row.claims_source = "native_global";
+                        row.claims_match_host = std.mem.eql(u32, p.words.items, owned.claims.items);
+                    }
+                }
+            }
+            row.through_seam = true;
+            if (row.error_name.len == 0) self.check(owned.specs, claims, alpha, log, split, total, @ptrCast(@alignCast(trace_raw)), beta, tree, &row) catch |err| {
                 row.error_name = @errorName(err);
             };
         } else |err| row.error_name = @errorName(err);
-        std.debug.print("GPU_M8_NATIVE_COMPOSITION_PARITY kind={s} ordinal={} roles={} log={} beta={} root_equal={} coefficient_mismatches={} status={} gpu_ms={d:.3} legacy_ns={} job_enqueue_ns={} job_wait_ns={} host_waits={} arena_peak_words={} error={s}\n", .{ row.kind, row.ordinal, row.roles, row.log, row.beta, row.root_equal, row.coefficient_mismatches, row.status, row.gpu_ms, row.legacy_ns, row.job_enqueue_ns, row.job_wait_ns, row.host_waits, row.arena_peak_words, row.error_name });
+        std.debug.print("GPU_M8_NATIVE_COMPOSITION_PARITY kind={s} ordinal={} roles={} log={} beta={} claim_slots={} claim_count={} claims_source={s} claims_match_host={} through_seam={} root_equal={} coefficient_mismatches={} status={} gpu_ms={d:.3} legacy_ns={} job_enqueue_ns={} job_wait_ns={} host_waits={} arena_peak_words={} error={s}\n", .{ row.kind, row.ordinal, row.roles, row.log, row.beta, row.device_claims, row.claim_count, row.claims_source, row.claims_match_host, row.through_seam, row.root_equal, row.coefficient_mismatches, row.status, row.gpu_ms, row.legacy_ns, row.job_enqueue_ns, row.job_wait_ns, row.host_waits, row.arena_peak_words, row.error_name });
         try self.rows.append(self.a, row);
         return tree;
     }
@@ -1108,6 +1214,7 @@ const CompositionDecorator = struct {
         if (CompRoles.Roles.fromTruth(self.a, self.context, bound)) |roles| {
             var owned = roles;
             defer owned.deinit();
+            row.through_seam = true;
             self.check(owned.specs, &.{}, alpha, log, split, total, @ptrCast(@alignCast(trace_raw)), beta, tree, &row) catch |err| {
                 row.error_name = @errorName(err);
             };
@@ -1476,7 +1583,8 @@ pub fn main() !void {
     var libs = try jobs.ops.Libraries.open(library, addon);
     defer libs.close();
     const device = std.fmt.parseUnsigned(u32, env("STWO_RV64_M8_PARITY_DEVICE") orelse "1", 10) catch return error.InvalidParityEnvironment;
-    const arena_bytes = try envBytes("STWO_RV64_M8_JOBS_ARENA_BYTES", 24 << 30);
+    // 20 GiB: headroom for the legacy global kernels' out-of-arena scratch (see header).
+    const arena_bytes = try envBytes("STWO_RV64_M8_JOBS_ARENA_BYTES", 20 << 30);
     const worker = try W.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = std.mem.alignBackward(usize, arena_bytes / 4, W.Arena.granule), .pinned_slot_words = try envBytes("STWO_RV64_M8_JOBS_PINNED_BYTES", 1 << 30) / 4 });
     defer worker.destroy();
 
@@ -1491,10 +1599,12 @@ pub fn main() !void {
     defer pool.deinit();
     try pool.stages().requireFullyResident();
     const peer = Peer{ .copy = libs.addon.lookup(PeerCopy, "stwo_rv64_jobs_native_peer_copy_v1") orelse return error.ParityRequiresPeerCopy, .source_device = std.fmt.parseUnsigned(c_int, env("STWO_RV64_M8_PARITY_SOURCE_DEVICE") orelse "0", 10) catch return error.InvalidParityEnvironment };
-    // STWO_RV64_M8_PARITY_ONLY=composition: only the native composition
-    // producer is checked (the other decorators are not installed).
+    // STWO_RV64_M8_PARITY_ONLY (parsed once): see the header.
+    const Only = enum { all, composition, pcs };
     const only_mode = env("STWO_RV64_M8_PARITY_ONLY") orelse "";
-    const only_composition = std.mem.eql(u8, only_mode, "composition");
+    const only: Only = if (only_mode.len == 0) .all else std.meta.stringToEnum(Only, only_mode) orelse return error.InvalidParityEnvironment;
+    const only_composition = only == .composition;
+    const device_claims = std.mem.eql(u8, env("STWO_RV64_M8_PARITY_DEVICE_CLAIMS") orelse "0", "1");
     var stages = pool.stages();
     var decorator = Decorator{ .a = a, .inner = pool.stages().numerical.?.*, .worker = worker, .symbols = try NG.Symbols.load(&libs.base), .catalogue = try Sources.Catalogue.init(a), .arena_bytes = arena_bytes, .peer = peer, .csym = try NC.Symbols.load(&libs.base) };
     defer decorator.catalogue.deinit();
@@ -1506,16 +1616,16 @@ pub fn main() !void {
         decorator.events = &events_api;
     }
     const wrapped = decorator.stage();
-    if (only_mode.len == 0) stages.numerical = &wrapped;
+    if (only == .all) stages.numerical = &wrapped;
     const compare = libs.addon.lookup(Compare, "stwo_rv64_jobs_native_compare_v1") orelse return error.ParityRequiresCompareKernel;
     var global = GlobalDecorator{ .a = a, .inner = stages.global_interaction orelse return error.ParityRequiresDeviceGlobal, .worker = worker, .symbols = try NGl.Symbols.load(&libs.base), .catalogue = NGl.Catalogue.init(a, &libs.base), .compare = compare, .peer = peer };
-    defer global.catalogue.deinit();
-    defer global.rows.deinit(a);
-    if (only_mode.len == 0) stages.global_interaction = global.stage();
+    defer global.deinit();
+    // The global decorator is also the source of the composition's device claims.
+    if (only == .all or (only_composition and device_claims)) stages.global_interaction = global.stage();
     var commits = CommitDecorator{ .a = a, .inner = stages.trace_commit orelse return error.ParityRequiresDeviceTraceCommit, .worker = worker, .symbols = try NC.Symbols.load(&libs.base), .peer = peer };
     defer commits.rows.deinit(a);
     const wrapped_commit = commits.stage();
-    if (only_mode.len == 0) stages.trace_commit = &wrapped_commit;
+    if (only == .all) stages.trace_commit = &wrapped_commit;
 
     var composition = CompositionDecorator{ .a = a, .inner = stages.resident_composition orelse return error.ParityRequiresResidentComposition, .context = &pool.devices[0].composition, .events = &events_api, .worker = worker, .symbols = try NComp.Symbols.load(&libs.base, &libs.addon), .compare = compare, .peer = peer };
     defer composition.rows.deinit(a);
@@ -1523,7 +1633,8 @@ pub fn main() !void {
     const composition_flag = env("STWO_RV64_M8_PARITY_COMPOSITION") orelse "0";
     const check_composition = only_composition or !std.mem.eql(u8, composition_flag, "0");
     if (check_composition) stages.resident_composition = &wrapped_composition;
-    composition.device_claims = std.mem.eql(u8, env("STWO_RV64_M8_PARITY_DEVICE_CLAIMS") orelse "0", "1");
+    composition.device_claims = device_claims;
+    if (only == .all or only_composition) composition.global = &global;
     // Truth/service compositions through the same producer (truth kernel).
     if (check_composition and !std.mem.eql(u8, env("STWO_RV64_M8_PARITY_TRUTH") orelse "1", "0")) {
         composition.truth_inner = stages.truth_composition orelse return error.ParityRequiresTruthComposition;
@@ -1531,7 +1642,7 @@ pub fn main() !void {
     }
     // STWO_RV64_M8_PARITY_PCS=1 (default 0): OODS + enqueue-only PCS at every
     // legacy PCS (CPU segments and truths).
-    const check_pcs = std.mem.eql(u8, env("STWO_RV64_M8_PARITY_PCS") orelse "0", "1") or std.mem.eql(u8, env("STWO_RV64_M8_PARITY_ONLY") orelse "", "pcs");
+    const check_pcs = std.mem.eql(u8, env("STWO_RV64_M8_PARITY_PCS") orelse "0", "1") or only == .pcs;
     var pcs_mutex: std.Thread.Mutex = .{};
     var pcs_rows: std.ArrayListUnmanaged(PcsRow) = .empty;
     defer pcs_rows.deinit(a);
@@ -1571,7 +1682,12 @@ pub fn main() !void {
     var cpu_rows: usize = 0;
     for (composition.rows.items) |row| cpu_rows += @intFromBool(std.mem.eql(u8, row.kind, "cpu"));
     var composition_all = cpu_rows == item.expected_cpu_segments;
-    for (composition.rows.items) |row| composition_all = composition_all and row.root_equal and row.coefficient_mismatches == 0 and row.status == 0 and row.host_waits == 1 and row.error_name.len == 0;
+    for (composition.rows.items) |row| {
+        composition_all = composition_all and row.through_seam and row.root_equal and row.coefficient_mismatches == 0 and row.status == 0 and row.host_waits == 1 and row.error_name.len == 0;
+        // Device claims: every CPU row's buffer is native_global's output and
+        // equals the host claims in the Stage2 layout.
+        if (device_claims and std.mem.eql(u8, row.kind, "cpu")) composition_all = composition_all and std.mem.eql(u8, row.claims_source, "native_global") and row.claims_match_host and row.device_claims != 0;
+    }
     var pcs_all = pcs_rows.items.len >= item.expected_cpu_segments;
     for (pcs_rows.items) |row| pcs_all = pcs_all and row.oods_equal and row.proof_equal and row.channel_equal and row.host_waits == 1 and row.error_name.len == 0;
     if (check_pcs) {
@@ -1583,12 +1699,12 @@ pub fn main() !void {
         try std.fs.cwd().writeFile(.{ .sub_path = preport, .data = ptext.written() });
         std.debug.print("GPU_M8_NATIVE_PCS_PARITY_DONE block={} proofs={} all_equal={} report={s}\n", .{ block, pcs_rows.items.len, pcs_all, preport });
         if (!pcs_all) return error.NativePcsParityMismatch;
-        if (std.mem.eql(u8, env("STWO_RV64_M8_PARITY_ONLY") orelse "", "pcs")) return;
+        if (only == .pcs) return;
     }
     if (only_composition) {
         var ctext: std.Io.Writer.Allocating = .init(a);
         defer ctext.deinit();
-        try std.json.Stringify.value(.{ .schema = "rv64-m8-native-composition-parity/v1", .block = block, .expected_segments = item.expected_cpu_segments, .legacy_native_wall_ns = wall_ns, .job_device = device, .composition_all_equal = composition_all, .compositions = composition.rows.items }, .{ .whitespace = .indent_1 }, &ctext.writer);
+        try std.json.Stringify.value(.{ .schema = "rv64-m8-native-composition-parity/v2", .block = block, .device_claims = device_claims, .arena_bytes = arena_bytes, .expected_segments = item.expected_cpu_segments, .legacy_native_wall_ns = wall_ns, .job_device = device, .composition_all_equal = composition_all, .compositions = composition.rows.items }, .{ .whitespace = .indent_1 }, &ctext.writer);
         const creport = try std.fs.path.join(a, &.{ out_dir, "native-composition-parity.json" });
         defer a.free(creport);
         try std.fs.cwd().writeFile(.{ .sub_path = creport, .data = ctext.written() });

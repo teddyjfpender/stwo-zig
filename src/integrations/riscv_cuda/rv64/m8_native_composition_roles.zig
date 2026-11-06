@@ -8,13 +8,18 @@
 //!
 //! Custody note (stated, not hidden): the parameters are host values here
 //! (lookup challenges, eta, claims from the host items). Only the composition
-//! coefficient and its powers are device-resident on this path.
+//! coefficient and its powers are device-resident on this path, plus, with
+//! `device_claims`, the global claims: their parameters are zeroed and patched
+//! on the device from the Stage2 claims buffer (jobs/native_claims.zig Layout,
+//! the buffer native_global writes and Stage2 mixes). Truth roles have no
+//! global claim parameters (fromTruth makes no claim slots).
 const std = @import("std");
 const CPU = @import("stwo_riscv_cpu_integration");
 const RC = @import("resident_composition.zig");
 const Hybrid = @import("real_composition.zig");
 const G = @import("joined_codegen.zig");
 const NC = @import("jobs/native_composition.zig");
+const Claims = @import("jobs/native_claims.zig");
 const Items = CPU.rv64_gkr_cpu_components;
 const P = G.Parameters;
 pub const TruthRoles = CPU.rv64_gkr_truth_device_composition.Roles;
@@ -22,15 +27,21 @@ pub const TruthRoles = CPU.rv64_gkr_truth_device_composition.Roles;
 pub const Roles = struct {
     a: std.mem.Allocator,
     specs: []NC.RoleSpec,
-    /// Host values of every claim parameter, in ClaimSlot.claim order (the
-    /// parity harness uploads them as the device claims buffer).
+    /// `device_claims`: the host claim values laid out exactly as the Stage2
+    /// claims buffer (native_claims.Layout over the items' origins,
+    /// `claim_count * 8` words). A cross-check for the device buffer, not an
+    /// input of the job path.
     claims: std.ArrayListUnmanaged(u32) = .empty,
+    claim_count: u32 = 0,
     /// Backing storage of every spec's slices.
     words: std.ArrayListUnmanaged([]u32) = .empty,
     slots: std.ArrayListUnmanaged([]NC.ClaimSlot) = .empty,
 
-    /// `device_claims`: claim parameters (P.claims..+2) are zeroed in the
-    /// staged table and recorded as claim slots patched from device claims.
+    /// `device_claims`: claim parameters (P.claims + r, r = ram/kio/wire) are
+    /// zeroed in the staged table and recorded as claim slots whose index is
+    /// the claim's place in the Stage2 claims buffer. `items` must be the
+    /// whole cpu_components Set (one item per Plan slot, in slot order), as
+    /// the composition stage receives it.
     pub fn fromItems(a: std.mem.Allocator, context: *const RC.Context, items: []const Items.Item) !Roles {
         return fromItemsWith(a, context, items, false);
     }
@@ -38,7 +49,22 @@ pub const Roles = struct {
         if (context.artifact_count != @import("joined_fixture_support.zig").count) return error.CpuCompositionNotInitialized;
         var self = Roles{ .a = a, .specs = try a.alloc(NC.RoleSpec, items.len) };
         errdefer self.deinit();
-        for (items, self.specs) |*item, *spec| switch (item.*) {
+        var layout: ?Claims.Layout = null;
+        defer if (layout) |*l| l.deinit();
+        if (device_claims) {
+            const origins = try a.alloc(Claims.Origin, items.len);
+            defer a.free(origins);
+            for (items, origins) |*item, *o| switch (item.*) {
+                inline else => |*c| o.* = Hybrid.descriptor(@TypeOf(c.*), c).origin,
+            };
+            layout = try Claims.Layout.init(a, origins);
+            self.claim_count = layout.?.count;
+            try self.claims.appendNTimes(a, 0, layout.?.words());
+        }
+        var written = try a.alloc(bool, if (layout) |l| l.count else 0);
+        defer a.free(written);
+        @memset(written, false);
+        for (items, self.specs, 0..) |*item, *spec, item_index| switch (item.*) {
             inline else => |*c| {
                 const T = @TypeOf(c.*);
                 const d = Hybrid.descriptor(T, c);
@@ -53,15 +79,28 @@ pub const Roles = struct {
                 const masks = try self.own(artifact.program.inputs.len);
                 for (artifact.program.inputs, masks) |input, *m| m.* = input.column;
                 var claim_slots: []NC.ClaimSlot = &.{};
-                if (device_claims) {
+                if (layout) |l| {
+                    const where = l.slots[item_index];
                     var n: usize = 0;
-                    for (artifact.parameter_slots) |slot| n += @intFromBool(slot >= P.claims and slot < P.claims + 3);
+                    for (artifact.parameter_slots) |slot| if (slot >= P.claims and slot < P.claims + 3) {
+                        n += @intFromBool(where.index[slot - P.claims] != null);
+                    };
                     claim_slots = try self.ownSlots(n);
                     var k: usize = 0;
                     for (artifact.parameter_slots, 0..) |slot, i| if (slot >= P.claims and slot < P.claims + 3) {
-                        claim_slots[k] = .{ .parameter = @intCast(i), .claim = @intCast(self.claims.items.len / 8) };
-                        try self.claims.appendSlice(a, parameters[8 * i ..][0..8]);
-                        @memset(parameters[8 * i ..][0..8], 0);
+                        const value = parameters[8 * i ..][0..8];
+                        // Absent relation (layout): the claim is zero by the
+                        // authority (global_cpu.validateClaims); keep the zero.
+                        const index = where.index[slot - P.claims] orelse {
+                            for (value) |w| if (w != 0) return error.NonzeroAbsentCompositionClaim;
+                            continue;
+                        };
+                        claim_slots[k] = .{ .parameter = @intCast(i), .claim = index };
+                        const at = self.claims.items[8 * @as(usize, index) ..][0..8];
+                        if (written[index] and !std.mem.eql(u32, at, value)) return error.InconsistentCompositionClaim;
+                        @memcpy(at, value);
+                        written[index] = true;
+                        @memset(value, 0);
                         k += 1;
                     };
                 }

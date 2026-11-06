@@ -21,6 +21,11 @@ pub const Counters = struct {
     kernels: usize = 0,
     fail_alloc_after: ?usize = null,
     fail_event_sync: bool = false,
+    /// Frees (device or host) after this many succeed fail with code 4 and
+    /// leave the block allocated (a CUDA error: the state is unknown).
+    fail_free_after: ?usize = null,
+    /// Frees of a pointer that is not allocated (double frees).
+    bad_frees: usize = 0,
 };
 pub var counters: Counters = .{};
 var mutex: std.Thread.Mutex = .{};
@@ -70,12 +75,17 @@ fn allocU32(_: *anyopaque, count: usize, out: *?[*]u32) callconv(.c) c_int {
 fn freeU32(_: *anyopaque, p: [*]u32) callconv(.c) c_int {
     mutex.lock();
     defer mutex.unlock();
+    if (counters.fail_free_after) |n| if (counters.frees >= n) {
+        counters.fail_free_after = null; // one injected failure
+        return 4;
+    };
     for (blocks.items, 0..) |b, i| if (@intFromPtr(b.ptr) == @intFromPtr(p)) {
         page.free(b.ptr[0..b.bytes]);
         _ = blocks.swapRemove(i);
         counters.frees += 1;
         return 0;
     };
+    counters.bad_frees += 1;
     return 3;
 }
 fn streamCreate(device: u32, out: *?*anyopaque) callconv(.c) c_int {

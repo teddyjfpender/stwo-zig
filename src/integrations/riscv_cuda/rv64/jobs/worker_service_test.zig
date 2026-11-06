@@ -282,3 +282,88 @@ test "park waits for in-flight jobs submitted from another thread" {
     _ = try w.unpark(0);
     try std.testing.expectEqual(@as(usize, 0), d.errors);
 }
+
+test "a park whose persistent release fails still parks (arena-less); unpark recovers; nothing is freed twice" {
+    fake.reset();
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 64 * g, .pinned_slot_words = 1 << 12 });
+    var d = Done{};
+    var a = Job{ .k = 1, .persistent = g };
+    var b = Job{ .k = 2, .persistent = g };
+    try put(w, api.Job.from(Job, &a), d.sink());
+    try put(w, api.Job.from(Job, &b), d.sink());
+    d.wait(2);
+    // Free #1 is the arena, #2 the first persistent buffer: fail #3 (the second one).
+    fake.counters.fail_free_after = fake.counters.frees + 2;
+    try std.testing.expectError(error.CudaEnqueueFailed, w.park(.{ .release_persistent = true }));
+    try std.testing.expect(w.isParked());
+    try std.testing.expectEqual(@as(usize, 0), w.arenaWords());
+    var refused = Job{ .k = 3 };
+    try std.testing.expectError(error.WorkerParked, w.submit(api.Job.from(Job, &refused), d.sink()));
+    _ = try w.unpark(0);
+    var c = Job{ .k = 1, .persistent = g };
+    try put(w, api.Job.from(Job, &c), d.sink());
+    d.wait(3);
+    try std.testing.expectEqual(@as(usize, 0), d.errors);
+    try std.testing.expect(c.fresh.?); // the released regions are gone
+    w.destroy();
+    try std.testing.expectEqual(@as(usize, 0), fake.counters.bad_frees);
+}
+
+test "concurrent unparks: exactly one acquires the arena, the others are refused, no arena leaks" {
+    fake.reset();
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 64 * g, .pinned_slot_words = 1 << 12 });
+    _ = try w.park(.{});
+    const before = fake.counters.allocations;
+    const Racer = struct {
+        fn run(worker: *W.Worker, ok: *std.atomic.Value(usize), refused: *std.atomic.Value(usize)) void {
+            if (worker.unpark(0)) |_| {
+                _ = ok.fetchAdd(1, .seq_cst);
+            } else |err| switch (err) {
+                error.WorkerBusy, error.WorkerNotParked => _ = refused.fetchAdd(1, .seq_cst),
+                else => unreachable,
+            }
+        }
+    };
+    var ok = std.atomic.Value(usize).init(0);
+    var refused = std.atomic.Value(usize).init(0);
+    var threads: [6]std.Thread = undefined;
+    for (&threads) |*t| t.* = try std.Thread.spawn(.{}, Racer.run, .{ w, &ok, &refused });
+    for (threads) |t| t.join();
+    try std.testing.expectEqual(@as(usize, 1), ok.load(.seq_cst));
+    try std.testing.expectEqual(@as(usize, 5), refused.load(.seq_cst));
+    try std.testing.expectEqual(before + 1, fake.counters.allocations); // one arena
+    try std.testing.expect(!w.isParked());
+    w.destroy();
+    try std.testing.expectEqual(fake.counters.allocations + 3, fake.counters.frees);
+}
+
+test "lazy pinned growth frees nothing in the pipeline: replaced slots are retired until the next park" {
+    fake.reset();
+    const cap: usize = 8 * W.pinned_granule_words;
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 64 * g, .pinned_slot_words = cap, .pinned_lazy = true });
+    var d = Done{};
+    var small: [3]Job = .{ .{ .k = 1 }, .{ .k = 2 }, .{ .k = 3 } };
+    for (&small) |*j| try put(w, api.Job.from(Job, j), d.sink());
+    d.wait(3);
+    const frees = fake.counters.frees;
+    // Rising classes regrow slots; nothing is host-freed while jobs run.
+    var rising: [3]Job = .{ .{ .k = 4, .pinned = W.pinned_granule_words + 1 }, .{ .k = 5, .pinned = 3 * W.pinned_granule_words }, .{ .k = 6, .pinned = 5 * W.pinned_granule_words } };
+    for (&rising) |*j| try put(w, api.Job.from(Job, j), d.sink());
+    d.wait(6);
+    try std.testing.expectEqual(@as(usize, 0), d.errors);
+    try std.testing.expectEqual(frees, fake.counters.frees);
+    try std.testing.expectEqual(@as(u64, 6), w.pinned_allocations);
+    // Power-of-two growth: 2, 4 and 8 granules.
+    try std.testing.expectEqual((2 + 4 + 8) * W.pinned_granule_words * 4, w.pinnedBytes());
+    _ = try w.park(.{}); // pipeline idle: the arena and the 3 retired slots are freed
+    try std.testing.expectEqual(frees + 1 + 3, fake.counters.frees);
+    w.destroy();
+    try std.testing.expectEqual(@as(usize, 0), fake.counters.bad_frees);
+}
+
+test "pinned growth sizes are powers of two of at least one granule" {
+    try std.testing.expectEqual(W.pinned_granule_words, W.Worker.pinnedGrowth(1));
+    try std.testing.expectEqual(W.pinned_granule_words, W.Worker.pinnedGrowth(W.pinned_granule_words));
+    try std.testing.expectEqual(2 * W.pinned_granule_words, W.Worker.pinnedGrowth(W.pinned_granule_words + 1));
+    try std.testing.expectEqual(8 * W.pinned_granule_words, W.Worker.pinnedGrowth(5 * W.pinned_granule_words));
+}

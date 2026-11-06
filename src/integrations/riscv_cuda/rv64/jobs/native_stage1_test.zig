@@ -81,7 +81,7 @@ fn hostCommit(a: std.mem.Allocator, ar: std.mem.Allocator, scheme: *Scheme, chan
 }
 
 test "GPU: NativeStage1 prologue (staged seed, class-persistent FIXED, MAIN) equals the host for two jobs of one class" {
-    var gpu = (try @import("native_gpu_support_test.zig").Gpu.open()) orelse return error.SkipZigTest;
+    var gpu = (try @import("native_gpu_support_test.zig").Gpu.openNamed("native_stage1_test")) orelse return error.SkipZigTest;
     defer gpu.close();
     const a = std.testing.allocator;
     var arena_state = std.heap.ArenaAllocator.init(a);

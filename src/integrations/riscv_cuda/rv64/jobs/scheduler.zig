@@ -276,7 +276,13 @@ pub const Scheduler = struct {
             if (n.kind != .seal and self.options.prep_threads != 0) {
                 self.mutex.lock();
                 defer self.mutex.unlock();
-                try self.prep_queue.append(self.a, @intCast(id));
+                // Capacity is reserved for every node in `run`; never return
+                // with jobs in flight: latch and drain.
+                self.prep_queue.append(self.a, @intCast(id)) catch |err| {
+                    self.failure = self.failure orelse err;
+                    n.state = .failed;
+                    continue;
+                };
                 self.preparing += 1;
                 self.max_preparing = @max(self.max_preparing, self.preparing);
                 n.state = .preparing;
@@ -396,7 +402,28 @@ pub const Scheduler = struct {
 
     /// Run the whole request. Returns the first failure after every
     /// dispatched job has completed (no job memory is abandoned in flight).
+    /// Every list the loop hands between threads is reserved up front for
+    /// all nodes, and the loop takes them by swapping under the mutex: no
+    /// allocation (so no early return) ever happens while the mutex is held
+    /// or while jobs are in flight.
     pub fn run(self: *Scheduler) !void {
+        const nodes = self.graph.nodes.items.len;
+        var made: std.ArrayListUnmanaged(Prepared) = .empty;
+        defer made.deinit(self.a);
+        var finished: std.ArrayListUnmanaged(Finished) = .empty;
+        defer finished.deinit(self.a);
+        var released: std.ArrayListUnmanaged(u32) = .empty;
+        defer released.deinit(self.a);
+        try made.ensureTotalCapacity(self.a, nodes);
+        try finished.ensureTotalCapacity(self.a, nodes);
+        {
+            // Nothing is in flight yet (no thread or job started).
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            try self.prepared.ensureTotalCapacity(self.a, nodes);
+            try self.prep_queue.ensureTotalCapacity(self.a, nodes);
+            try self.completions.ensureTotalCapacity(self.a, self.completions.items.len + nodes);
+        }
         var threads: [8]?std.Thread = @splat(null);
         defer {
             self.mutex.lock();
@@ -413,28 +440,27 @@ pub const Scheduler = struct {
         }
         for (threads[0..self.options.prep_threads]) |*t| t.* = try std.Thread.spawn(.{}, prepLoop, .{self});
         while (true) {
+            made.clearRetainingCapacity();
+            finished.clearRetainingCapacity();
+            released.clearRetainingCapacity();
             self.mutex.lock();
-            const made = self.a.dupe(Prepared, self.prepared.items) catch |err| {
-                self.mutex.unlock();
-                return err;
-            };
-            self.preparing -= made.len;
-            self.prepared.clearRetainingCapacity();
-            const finished = try self.a.dupe(Finished, self.completions.items);
-            self.completions.clearRetainingCapacity();
-            const released = try self.a.dupe(u32, self.releases.items);
-            self.releases.clearRetainingCapacity();
+            // Swap, never copy: both sides keep their reserved capacity.
+            std.mem.swap(std.ArrayListUnmanaged(Prepared), &made, &self.prepared);
+            std.mem.swap(std.ArrayListUnmanaged(Finished), &finished, &self.completions);
+            std.mem.swap(std.ArrayListUnmanaged(u32), &released, &self.releases);
+            self.preparing -= made.items.len;
             const failed_async = self.async_failure;
             self.mutex.unlock();
-            defer self.a.free(made);
-            defer self.a.free(finished);
-            defer self.a.free(released);
-            self.takePrepared(made);
-            for (released) |id| {
-                if (id >= self.graph.nodes.items.len) return error.InvalidRelease;
+            self.takePrepared(made.items);
+            for (released.items) |id| {
+                // Latch (never return with jobs in flight).
+                if (id >= self.graph.nodes.items.len) {
+                    self.failure = self.failure orelse error.InvalidRelease;
+                    continue;
+                }
                 self.graph.nodes.items[id].released = true;
             }
-            for (finished) |f| self.finishNode(f);
+            for (finished.items) |f| self.finishNode(f);
             if (failed_async) |err| self.failure = self.failure orelse err;
             if (self.failure) |err| {
                 if (self.running == 0 and self.preparingNow() == 0) {

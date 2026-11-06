@@ -22,9 +22,12 @@
 //! `rows` words, instances back to back (exactly the legacy `Owner.finalize`
 //! Completion column order). The verdict is one device word (0 = accepted);
 //! a nonzero verdict is the legacy terminal `DeviceBindingWitnessRejected`.
-//! The host authority check of the legacy path (artifact point/claims and eta
-//! against the device state) is a finish-time check of the slab against the
-//! host partial verification of the decoded GKR proof; it changes no bytes.
+//! The host authority check of the legacy path (device_binding_runtime.zig
+//! validateArtifact: artifact point/claims and eta against the device state)
+//! moves to finish: `enqueueWithAuthority` copies the device words it compares
+//! (eta seed, per-instance claims, OOD point) into a caller field
+//! (`Plan.authorityWords`), and finish calls `checkAuthority` with the host
+//! partial verification of the decoded GKR proof. It changes no bytes.
 //! No join, no lease, no D2H.
 const std = @import("std");
 const core = @import("stwo_core");
@@ -36,10 +39,13 @@ const A = @import("../abi.zig");
 const N = @import("../runtime_api.zig");
 const Prefix = @import("../prefix_plan.zig");
 
-const Deferred = extern struct { n: A.Plane, d: A.Plane, output: A.Plane, metadata: [*]const u32, status: [*]u32, row_log: u32, lane_log: u32, reserved: [2]u32 = @splat(0) };
-const Finalize = extern struct { projection: A.Plane, eq: A.Plane, output: A.Plane, metadata: [*]const u32, status: [*]u32, row_log: u32, reserved: [3]u32 = @splat(0) };
+/// The CUDA packets StwoRv64BindingDeferred / StwoRv64BindingFinalize
+/// (NAT/rv64/binding.h; also mirrored in device_binding_runtime.zig, the
+/// legacy owner path, so not imported). The field ORDER is pinned against
+/// binding.h by the test "binding packets match binding.h field for field".
+pub const Deferred = extern struct { n: A.Plane, d: A.Plane, output: A.Plane, metadata: [*]const u32, status: [*]u32, row_log: u32, lane_log: u32, reserved: [2]u32 = @splat(0) };
+pub const Finalize = extern struct { projection: A.Plane, eq: A.Plane, output: A.Plane, metadata: [*]const u32, status: [*]u32, row_log: u32, reserved: [3]u32 = @splat(0) };
 comptime {
-    // Mirrors device_binding_runtime.zig (not imported: it is the legacy owner path).
     if (@sizeOf(Deferred) != 104 or @sizeOf(Finalize) != 104) @compileError("deferred binding ABI changed");
 }
 const DeferredFn = *const fn (*anyopaque, u32, *const Deferred) callconv(.c) c_int;
@@ -48,7 +54,13 @@ const B2n = *const fn ([*]const u32, usize, [*]u32, usize, u32, u32, [*]const u3
 const Memset = *const fn (*anyopaque, *anyopaque, u8, usize) callconv(.c) c_int;
 const CopyD2d = *const fn (*anyopaque, *anyopaque, *const anyopaque, usize) callconv(.c) c_int;
 
-const metadata_words = 260 * 8;
+/// Binding metadata scratch (the `metadata` packet field; resident.zig
+/// deriveBindingMetadata's `reservoir`): 260 OM31 words.
+pub const metadata_words = 260 * 8;
+/// Largest binding row log (the row point / carry buffers' capacity).
+pub const max_row_log = 22;
+pub const point_words = max_row_log * 8;
+pub const carry_words = max_row_log * 16;
 
 pub const Symbols = struct {
     deferred: DeferredFn,
@@ -117,7 +129,7 @@ pub const Plan = struct {
     /// (metadata, row point, carry, seed, claim, prefix scratch, one P plane set).
     pub fn enqueueWords(self: *const Plan) usize {
         const g = 64;
-        return std.mem.alignForward(usize, metadata_words, g) + 2 * std.mem.alignForward(usize, 22 * 16, g) + 2 * g +
+        return std.mem.alignForward(usize, metadata_words, g) + std.mem.alignForward(usize, point_words, g) + std.mem.alignForward(usize, carry_words, g) + 2 * g +
             std.mem.alignForward(usize, self.scratch_words, g) + std.mem.alignForward(usize, 8 * self.max_rows, g) + 4 * g;
     }
     /// Class-persistent inverse twiddles (half coset of the largest log).
@@ -127,7 +139,32 @@ pub const Plan = struct {
     pub fn pinnedWords(self: *const Plan) usize {
         return self.twiddle_words;
     }
+    /// Device authority words (`enqueueWithAuthority`): the post-traversal
+    /// channel state (digest 8 + draws 1, the eta seed), then 2 claims per
+    /// instance (16 words each), then the OOD point (8 words per layer).
+    pub fn authorityWords(self: *const Plan) usize {
+        return 9 + 16 * self.row_logs.len + 8 * @as(usize, self.layers);
+    }
 };
+
+/// Finish-time legacy authority check (device_binding_runtime.zig
+/// validateArtifact) of the authority words against the host partial
+/// verification: `claims[i]` = claims_to_verify_by_instance[i] (2 each),
+/// `ood_point` (one per layer), `eta` the host draw.
+pub fn checkAuthority(plan: *const Plan, words: []const u32, claims: []const []const core.fields.om31.OM31, ood_point: []const core.fields.om31.OM31, eta: core.fields.om31.OM31) !void {
+    if (words.len < plan.authorityWords() or claims.len != plan.row_logs.len or ood_point.len != plan.layers) return error.NativeBindingAuthorityMismatch;
+    const claims_at = 9;
+    const point_at = claims_at + 16 * plan.row_logs.len;
+    for (claims, 0..) |pair, i| {
+        if (pair.len != 2) return error.NativeBindingAuthorityMismatch;
+        for (pair, 0..) |value, c| for (value.toM31Array(), 0..) |m, k| if (m.v != words[claims_at + 16 * i + 8 * c + k]) return error.NativeBindingAuthorityMismatch;
+    }
+    for (ood_point, 0..) |value, i| for (value.toM31Array(), 0..) |m, k| if (m.v != words[point_at + 8 * i + k]) return error.NativeBindingAuthorityMismatch;
+    var channel = core.channel.raw_mod_m31.Om31Channel.init();
+    for (0..8) |i| std.mem.writeInt(u32, channel.inner.digest[4 * i ..][0..4], words[i], .little);
+    channel.inner.n_draws = words[8];
+    if (!channel.drawSecureFelt().eql(eta)) return error.NativeBindingAuthorityMismatch;
+}
 
 pub const Binding = struct {
     plan: *const Plan,
@@ -157,16 +194,22 @@ pub const Binding = struct {
     /// (caller-owned). `verdict`: one device word, OR-ed by the kernels; the
     /// caller clears it first.
     pub fn enqueue(self: *Binding, e: *api.Enqueue, gkr: *const G.Gkr, output: api.DeviceBuffer, verdict: api.DeviceBuffer) !void {
+        return self.enqueueWithAuthority(e, gkr, output, verdict, null);
+    }
+    /// As `enqueue`; `authority` (`plan.authorityWords()`, e.g. a slab field)
+    /// receives the device words of the legacy authority check (`checkAuthority`).
+    pub fn enqueueWithAuthority(self: *Binding, e: *api.Enqueue, gkr: *const G.Gkr, output: api.DeviceBuffer, verdict: api.DeviceBuffer, authority: ?api.DeviceBuffer) !void {
         const p = self.plan;
         const traversal = gkr.traversal orelse return error.NativeGkrNotEnqueued;
         const tw = self.twiddles orelse return error.NativeBindingNotStaged;
         if (output.words < p.output_words or verdict.words < 1) return error.InvalidNativeBindingOutput;
+        if (authority) |out| if (out.words < p.authorityWords()) return error.InvalidNativeBindingOutput;
         if (gkr.fractions.len != p.row_logs.len or traversal.traversal.layers != p.layers) return error.InvalidNativeBindingGeometry;
         const ctx = e.ctx();
         const stream = e.stream();
         const metadata = try e.alloc(metadata_words);
-        const point = try e.alloc(22 * 8);
-        const carry = try e.alloc(22 * 16);
+        const point = try e.alloc(point_words);
+        const carry = try e.alloc(carry_words);
         const seed = try e.alloc(9);
         const claim = try e.alloc(8);
         const scratch = try e.alloc(@max(1, p.scratch_words));
@@ -176,6 +219,15 @@ pub const Binding = struct {
         const S = G.DeviceContext.slice;
         const status = S(verdict);
         var launches: u32 = 0;
+        if (authority) |out| {
+            // The terminal GKR state the binding derives from (eta seed,
+            // claims, OOD point), before anything else reads it.
+            const state: [*]const u32 = @ptrFromInt(traversal.traversal.state.address);
+            const claims_words = 16 * p.row_logs.len;
+            if (self.sym.copy_d2d(ctx, out.ptr, state, 9 * 4) != 0) return error.CudaEnqueueFailed;
+            if (self.sym.copy_d2d(ctx, out.ptr + 9, state + A.gkr_claims_word, claims_words * 4) != 0) return error.CudaEnqueueFailed;
+            if (self.sym.copy_d2d(ctx, out.ptr + 9 + claims_words, state + A.gkr_point_word, 8 * @as(usize, p.layers) * 4) != 0) return error.CudaEnqueueFailed;
+        }
         for (p.row_logs, p.lane_logs, gkr.fractions, 0..) |row_log, lane_log, fraction, i| {
             const rows: u32 = @as(u32, 1) << @intCast(row_log);
             try commands.deriveBindingMetadata(traversal.traversal.state, S(metadata), S(point), S(carry), S(seed), status, @intCast(i), row_log, lane_log, @intCast(p.row_logs.len), p.layers, G.traversal_chain);
@@ -224,4 +276,77 @@ test "binding enqueue type-checks against api.Enqueue" {
     _ = &Binding.enqueue;
     _ = &Binding.stage;
     _ = &Symbols.load;
+}
+
+test "binding packets match binding.h field for field (order pins same-type fields)" {
+    const text = std.fs.cwd().readFileAlloc(std.testing.allocator, "../../backends/cuda/native/rv64/binding.h", 1 << 20) catch |err| switch (err) {
+        error.FileNotFound => return error.SkipZigTest, // not run from the riscv_cuda directory
+        else => return err,
+    };
+    defer std.testing.allocator.free(text);
+    inline for (.{ .{ Deferred, "StwoRv64BindingDeferred" }, .{ Finalize, "StwoRv64BindingFinalize" } }) |pair| {
+        const open = std.mem.indexOf(u8, text, "struct " ++ pair[1] ++ " {") orelse return error.BindingHeaderStructMissing;
+        const body_start = open + ("struct " ++ pair[1] ++ " {").len;
+        const body = text[body_start .. std.mem.indexOfScalarPos(u8, text, body_start, '}') orelse return error.BindingHeaderStructMissing];
+        // Declarator names in order: split on , ; and whitespace, drop types and stars.
+        var names: [16][]const u8 = undefined;
+        var count: usize = 0;
+        var decls = std.mem.tokenizeScalar(u8, body, ';');
+        while (decls.next()) |decl| {
+            var parts = std.mem.tokenizeAny(u8, decl, ", \n\t");
+            var first = true;
+            while (parts.next()) |raw| {
+                if (first and !std.mem.eql(u8, raw, "const")) {
+                    first = false; // the type name
+                    continue;
+                }
+                if (std.mem.eql(u8, raw, "const")) continue;
+                var name = std.mem.trimLeft(u8, raw, "*");
+                if (std.mem.indexOfScalar(u8, name, '[')) |b| name = name[0..b];
+                if (name.len == 0) continue;
+                names[count] = name;
+                count += 1;
+            }
+        }
+        const fields = @typeInfo(pair[0]).@"struct".fields;
+        try std.testing.expectEqual(fields.len, count);
+        inline for (fields, 0..) |f, i| try std.testing.expectEqualStrings(f.name, names[i]);
+    }
+}
+
+test "authority words: layout and the legacy validateArtifact comparison" {
+    const a = std.testing.allocator;
+    const O = core.fields.om31.OM31;
+    const M = core.fields.m31.M31;
+    const I = G.Instance;
+    var instances: [2]I = undefined;
+    instances[0] = .{ .origin = .{ .core = .initial }, .row_log = 6, .terms = 4, .fixed_offset = 0, .main_offset = 0 };
+    instances[1] = .{ .origin = .{ .core = .initial }, .row_log = 5, .terms = 1, .fixed_offset = 0, .main_offset = 0 };
+    var plan = try Plan.init(a, &instances, 8);
+    defer plan.deinit();
+    try std.testing.expectEqual(@as(usize, 9 + 32 + 64), plan.authorityWords());
+    var words: [9 + 32 + 64]u32 = undefined;
+    for (&words, 0..) |*w, i| w.* = @intCast(i + 1);
+    const felt = struct {
+        fn at(ws: []const u32) O {
+            var limbs: [8]M = undefined;
+            for (&limbs, ws[0..8]) |*l, w| l.* = M.fromCanonical(w);
+            return O.fromM31Array(limbs);
+        }
+    }.at;
+    const c0 = [_]O{ felt(words[9..]), felt(words[17..]) };
+    const c1 = [_]O{ felt(words[25..]), felt(words[33..]) };
+    var point: [8]O = undefined;
+    for (&point, 0..) |*p, i| p.* = felt(words[41 + 8 * i ..]);
+    var channel = core.channel.raw_mod_m31.Om31Channel.init();
+    for (0..8) |i| std.mem.writeInt(u32, channel.inner.digest[4 * i ..][0..4], words[i], .little);
+    channel.inner.n_draws = words[8];
+    const eta = channel.drawSecureFelt();
+    try checkAuthority(&plan, &words, &.{ &c0, &c1 }, &point, eta);
+    var bad = words;
+    bad[41] +%= 1;
+    try std.testing.expectError(error.NativeBindingAuthorityMismatch, checkAuthority(&plan, &bad, &.{ &c0, &c1 }, &point, eta));
+    bad = words;
+    bad[3] +%= 1;
+    try std.testing.expectError(error.NativeBindingAuthorityMismatch, checkAuthority(&plan, &bad, &.{ &c0, &c1 }, &point, eta));
 }

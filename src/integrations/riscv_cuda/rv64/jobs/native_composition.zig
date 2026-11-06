@@ -35,7 +35,6 @@ const C = @import("native_commit.zig");
 const Abi = @import("../abi.zig");
 
 const M = core.fields.m31.M31;
-const Twiddles = engine.poly.twiddles.TwiddleTree([]M);
 
 pub const RoleKernel = *const @TypeOf(Abi.stwo_rv64_composition_role_on);
 pub const Finish = *const @TypeOf(Abi.stwo_rv64_composition_finish_on);
@@ -100,11 +99,15 @@ pub const RoleSpec = struct {
     constraints: u32,
     /// Parameters that are global-interaction claims (ram/kio/wire): their
     /// staged words are overwritten on the device, before the role kernel,
-    /// from the job's DEVICE claims buffer (8 words per claim), so claims
-    /// produced on the device never round-trip through the host.
+    /// from the job's DEVICE claims buffer (8 words per claim). That buffer is
+    /// the one Stage2 mixes, in the native_claims.zig Layout (the producer,
+    /// native_global, writes each slot's claims at the same place).
     claim_slots: []const ClaimSlot = &.{},
 };
 
+/// `parameter`: the role's parameter index; `claim`: the claim index in the
+/// Stage2 claims buffer (native_claims.Slot.index[relation]), not an index
+/// private to one role.
 pub const ClaimSlot = struct { parameter: u32, claim: u32 };
 
 pub const Spec = struct {
@@ -150,8 +153,8 @@ pub const Plan = struct {
     beta: u32,
     roles: []RolePlan,
     /// Distinct twiddle logs held in the class twiddle region (log → offset).
+    /// The host trees are built only by `stage` when the region is fresh.
     tw_offsets: [29]?usize = @splat(null),
-    twiddles: [29]?Twiddles = @splat(null),
     tw_words: usize = 0,
     table: []u32,
     /// Offsets of the global table entries.
@@ -188,7 +191,7 @@ pub const Plan = struct {
         // Separate coefficients (beta 1 or 2): evaluations at 0, then the
         // commit twiddles, then one log per output column.
         const tw = self.commitEvalWords();
-        const desc = std.mem.alignForward(usize, tw + self.twiddles[self.commitLog()].?.twiddles.len, 2);
+        const desc = std.mem.alignForward(usize, tw + twLen(self.commitLog()), 2);
         return .{ .tw = tw, .desc = desc, .words = desc + self.outputColumns() };
     }
 
@@ -253,12 +256,9 @@ pub const Plan = struct {
                     staging += @as(usize, 1) << @intCast(log);
                 } else staging += @as(usize, 1) << @intCast(rl);
             }
-            const tw_len = (try twiddleFor(a, &self, el)).twiddles.len;
+            const tw_len = twLen(el);
             needed[el] = true;
-            if (aux != 0) {
-                _ = try twiddleFor(a, &self, rl);
-                needed[rl] = true;
-            }
+            if (aux != 0) needed[rl] = true;
             const tw_base = staging + columns * n;
             const desc_base = std.mem.alignForward(usize, tw_base + tw_len, 2);
             r.* = .{ .spec = rs, .sources = sources, .columns = columns, .aux_count = aux, .direct = direct, .staging_offsets = staging_offsets, .staging_words = staging, .tw_base = tw_base, .desc_base = desc_base, .arena_words = desc_base + columns * 6, .t_logs = 0, .t_params = 0, .t_masks = 0, .t_denoms = 0, .t_hc = 0, .t_desc = 0, .denominator_words = @as(usize, 1) << @intCast(el - rl) };
@@ -284,15 +284,12 @@ pub const Plan = struct {
             made += 1;
         }
         if (constraints != spec.total) return error.WrongNativeCompositionConstraintCount;
-        _ = try twiddleFor(a, &self, self.commitLog());
         needed[self.commitLog()] = true;
-        _ = try twiddleFor(a, &self, self.log);
         needed[self.log] = true;
         // Class twiddle region: twiddles ++ itwiddles of every needed log.
         for (needed, 0..) |want, log| if (want) {
             self.tw_offsets[log] = self.tw_words;
-            const t = self.twiddles[log].?;
-            self.tw_words += t.twiddles.len + t.itwiddles.len;
+            self.tw_words += 2 * twLen(@intCast(log));
             key.update(std.mem.asBytes(&@as(u32, @intCast(log))));
         };
         self.t_one = table_words;
@@ -308,9 +305,11 @@ pub const Plan = struct {
         return self;
     }
 
-    fn twiddleFor(a: std.mem.Allocator, self: *Plan, log: u32) !*const Twiddles {
-        if (self.twiddles[log] == null) self.twiddles[log] = try engine.poly.twiddles.precomputeM31(a, core.poly.circle.canonic.CanonicCoset.new(log).circleDomain().half_coset);
-        return &self.twiddles[log].?;
+    /// Length of the forward (and of the inverse) twiddles of
+    /// precomputeM31(CanonicCoset(log).circleDomain().half_coset): the half
+    /// coset's size. `stage` checks it against the trees it builds.
+    fn twLen(log: u32) usize {
+        return @as(usize, 1) << @intCast(log - 1);
     }
 
     fn fillTable(self: *Plan) !void {
@@ -352,10 +351,6 @@ pub const Plan = struct {
     }
 
     fn freeShared(self: *Plan) void {
-        for (&self.twiddles) |*t| if (t.*) |*v| {
-            engine.poly.twiddles.deinitM31(self.a, v);
-            t.* = null;
-        };
         if (self.table.len != 0) self.a.free(self.table);
         if (self.offsets.len != 0) self.a.free(self.offsets);
         self.table = &.{};
@@ -400,15 +395,19 @@ pub const Plan = struct {
     }
 
     /// Phase 1: the class twiddle region (persistent, filled by the first job
-    /// of the class) and the role table (parameters, masks, denominators, hc,
-    /// LDE logs and descriptors).
+    /// of the class: only then are the host trees built) and the role table
+    /// (parameters, masks, denominators, hc, LDE logs and descriptors).
     pub fn stage(self: *Plan, s: *api.Stager) !void {
         const region = try s.persistent(self.key, self.tw_words);
         if (region.fresh) {
             const pinned = try s.pinned(self.tw_words);
-            for (self.twiddles, 0..) |maybe, log| if (maybe) |t| if (self.tw_offsets[log]) |o| {
-                @memcpy(pinned[o..][0..t.twiddles.len], mWords(t.twiddles));
-                @memcpy(pinned[o + t.twiddles.len ..][0..t.itwiddles.len], mWords(t.itwiddles));
+            for (self.tw_offsets, 0..) |maybe, log| if (maybe) |o| {
+                var t = try engine.poly.twiddles.precomputeM31(self.a, core.poly.circle.canonic.CanonicCoset.new(@intCast(log)).circleDomain().half_coset);
+                defer engine.poly.twiddles.deinitM31(self.a, &t);
+                const n = twLen(@intCast(log));
+                if (t.twiddles.len != n or t.itwiddles.len != n) return error.InvalidNativeCompositionTwiddles;
+                @memcpy(pinned[o..][0..n], mWords(t.twiddles));
+                @memcpy(pinned[o + n ..][0..n], mWords(t.itwiddles));
             };
             try s.upload(region.buffer, pinned);
         }
@@ -422,15 +421,17 @@ pub const Plan = struct {
 
     fn twOf(self: *const Plan, log: u32) struct { fwd: [*]const u32, fwd_len: usize, inv: [*]const u32, inv_len: usize } {
         const base = self.tw_device.?.ptr + self.tw_offsets[log].?;
-        const t = self.twiddles[log].?;
-        return .{ .fwd = base, .fwd_len = t.twiddles.len, .inv = base + t.twiddles.len, .inv_len = t.itwiddles.len };
+        const n = twLen(log);
+        return .{ .fwd = base, .fwd_len = n, .inv = base + n, .inv_len = n };
     }
 
     /// Phase 2. `trees`: FIXED, MAIN, INTER coefficient views (device, job
     /// exec context), indexed by original column. `alpha`: the device-drawn
     /// composition coefficient (8 words). `root_out`: 8-word slab field (not
-    /// mixed). `status`: 1 caller-cleared device word (noncanonical alpha).
-    /// Returns the kept coefficient chunks (free them after the PCS).
+    /// mixed). `status`: 1 device word (cleared here; bit 0 = noncanonical
+    /// alpha, then no powers are written): the job's finish must reject a
+    /// nonzero status (native_stage2.accept). Returns the kept coefficient
+    /// chunks (free them after the PCS).
     pub fn enqueue(self: *const Plan, sym: Symbols, e: anytype, trees: [3]Columns, alpha: [*]const u32, root_out: api.DeviceBuffer, status: [*]u32) !C.Committed {
         return self.enqueueWithClaims(sym, e, trees, alpha, null, root_out, status);
     }
@@ -450,6 +451,7 @@ pub const Plan = struct {
         };
         const output = try e.alloc(self.coefficientWords());
         const powers = try e.alloc(8 * @as(usize, self.total));
+        try check(sym.memset(ctx, status, 0, 4));
         try check(sym.powers(ctx, 0, alpha, self.total, powers.ptr, status));
         var buckets: [29]?api.DeviceBuffer = @splat(null);
         for (self.buckets, 0..) |used, log| if (used) {
@@ -644,4 +646,14 @@ test "native composition plan mirrors the legacy role arena layout and power ord
     try std.testing.expect(plan.tw_offsets[6] != null and plan.tw_offsets[7] != null and plan.tw_offsets[5] != null and plan.tw_offsets[9] != null and plan.tw_offsets[8] != null);
     try std.testing.expectEqual(@as(u32, 7), plan.table[plan.t_commit_desc]);
     try std.testing.expectError(error.WrongNativeCompositionConstraintCount, Plan.init(a, .{ .roles = roles[0..1], .log = 8, .split = 1, .total = 6, .beta = 2, .tree_logs = .{ &fixed_logs, &main_logs, &inter_logs } }));
+}
+
+test "twiddle region lengths match precomputeM31 (host trees are built only for a fresh region)" {
+    const a = std.testing.allocator;
+    for ([_]u32{ 4, 5, 9, 13 }) |log| {
+        var t = try engine.poly.twiddles.precomputeM31(a, core.poly.circle.canonic.CanonicCoset.new(log).circleDomain().half_coset);
+        defer engine.poly.twiddles.deinitM31(a, &t);
+        try std.testing.expectEqual(Plan.twLen(log), t.twiddles.len);
+        try std.testing.expectEqual(Plan.twLen(log), t.itwiddles.len);
+    }
 }

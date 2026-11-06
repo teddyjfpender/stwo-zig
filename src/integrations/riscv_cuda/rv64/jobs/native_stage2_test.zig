@@ -65,11 +65,19 @@ const Producer = struct {
     csym: C.Symbols,
     inputs: []const C.Input,
     alpha_copy: api.DeviceBuffer = undefined,
-    fn enqueue(raw: *anyopaque, e: *api.Enqueue, alpha: api.DeviceBuffer, root_out: api.DeviceBuffer, trees: [3]S2.Composition.Committed) anyerror!S2.Composition.Committed {
-        _ = trees;
+    /// The claims the producer was handed (copied into the slab) and the
+    /// status word it must write.
+    claims_copy: api.DeviceBuffer = undefined,
+    zero: api.DeviceBuffer = undefined,
+    status_ptr: ?[*]u32 = null,
+    fn enqueue(raw: *anyopaque, e: *api.Enqueue, in: S2.Composition.Inputs) anyerror!S2.Composition.Committed {
         const self: *Producer = @ptrCast(@alignCast(raw));
-        if (self.csym.copy_d2d(e.ctx(), self.alpha_copy.ptr, alpha.ptr, 32) != 0) return error.CudaEnqueueFailed;
-        return S2.Composition.Committed.of(self.plan, try self.plan.enqueue(self.csym, e, self.inputs, root_out, false));
+        if (self.csym.copy_d2d(e.ctx(), self.alpha_copy.ptr, in.alpha.ptr, 32) != 0) return error.CudaEnqueueFailed;
+        if (in.claims.words != self.claims_copy.words) return error.Stage2ClaimsNotForwarded;
+        if (self.csym.copy_d2d(e.ctx(), self.claims_copy.ptr, in.claims.ptr, in.claims.words * 4) != 0) return error.CudaEnqueueFailed;
+        if (self.csym.copy_d2d(e.ctx(), in.status.ptr, self.zero.ptr, 4) != 0) return error.CudaEnqueueFailed;
+        self.status_ptr = in.status.ptr;
+        return S2.Composition.Committed.of(self.plan, try self.plan.enqueue(self.csym, e, self.inputs, in.root_out, false));
     }
 };
 
@@ -84,6 +92,7 @@ const Probe = struct {
     inputs: [4][]C.Input,
     seed_buffer: ?api.DeviceBuffer = null,
     claims_buffer: ?api.DeviceBuffer = null,
+    zero_buffer: ?api.DeviceBuffer = null,
     slab_words: usize,
     result: []u32,
     pub fn classKey(_: *Probe) [32]u8 {
@@ -101,6 +110,9 @@ const Probe = struct {
         const c = try s.alloc(self.claims.len);
         try s.upload(c, self.claims);
         self.claims_buffer = c;
+        const z = try s.alloc(1);
+        try s.upload(z, &[_]u32{0});
+        self.zero_buffer = z;
         for ([_]usize{ 0, 1, 3 }) |t| try self.plans[t].stage(s, self.inputs[t]);
         try self.stage2.stage(s, self.manifest, self.inputs[2]);
     }
@@ -110,7 +122,10 @@ const Probe = struct {
         var prior: [2]S2.Composition.Committed = undefined;
         for (&prior, 0..) |*p, t| p.* = S2.Composition.Committed.of(self.plans[t], try self.plans[t].enqueue(self.csym, e, self.inputs[t], try roots.slice(8 * t, 8), true));
         self.producer.alpha_copy = try e.slab.device.slice(32, 8);
-        const fields = S2.Fields{ .roots = roots, .alpha = try e.slab.device.slice(48, 8), .oods = try e.slab.device.slice(64, N.oods_field_words), .pcs = try e.slab.device.slice(128, @intCast(self.stage2.pcs.outputWords())) };
+        const pcs_words: usize = @intCast(self.stage2.pcs.outputWords());
+        self.producer.claims_copy = try e.slab.device.slice(128 + pcs_words, self.claims.len);
+        self.producer.zero = self.zero_buffer.?;
+        const fields = S2.Fields{ .roots = roots, .alpha = try e.slab.device.slice(48, 8), .status = try e.slab.device.slice(56, 1), .oods = try e.slab.device.slice(64, N.oods_field_words), .pcs = try e.slab.device.slice(128, pcs_words) };
         try self.stage2.enqueue(e, prior, self.claims_buffer.?, self.inputs[2], .{ .ctx = self.producer, .enqueue = Producer.enqueue }, fields);
         for (prior) |p| e.free(p.tree.coefficients);
     }
@@ -130,7 +145,7 @@ const Done = struct {
 };
 
 test "GPU: NativeStage2 transcript (manifest+claims mix, INTER, device coefficient, composition, OODS, PCS) equals the host" {
-    var gpu = (try @import("native_gpu_support_test.zig").Gpu.open()) orelse return error.SkipZigTest;
+    var gpu = (try @import("native_gpu_support_test.zig").Gpu.openNamed("native_stage2_test")) orelse return error.SkipZigTest;
     defer gpu.close();
     const a = std.testing.allocator;
     var arena_state = std.heap.ArenaAllocator.init(a);
@@ -214,7 +229,7 @@ test "GPU: NativeStage2 transcript (manifest+claims mix, INTER, device coefficie
     }
     var stage2 = S2.Stage2{ .inter = &plans[2], .pcs = &pcs, .csym = csym, .nsym = nsym, .claim_count = claim_count };
     var producer = Producer{ .plan = &plans[3], .csym = csym, .inputs = inputs[3] };
-    const slab_words = 128 + @as(usize, @intCast(pcs.outputWords()));
+    const slab_words = 128 + @as(usize, @intCast(pcs.outputWords())) + claim_words.len;
     const result = try a.alloc(u32, slab_words);
     defer a.free(result);
     var probe = Probe{ .plans = .{ &plans[0], &plans[1], &plans[2], &plans[3] }, .csym = csym, .stage2 = &stage2, .producer = &producer, .manifest = manifest, .seed = seed, .claims = claim_words, .inputs = inputs, .slab_words = slab_words, .result = result };
@@ -230,7 +245,12 @@ test "GPU: NativeStage2 transcript (manifest+claims mix, INTER, device coefficie
         try std.testing.expectEqual(v.v, result[32 + i]); // what the composition producer saw
         try std.testing.expectEqual(v.v, result[48 + i]); // the slab field
     }
-    var decoded = try pcs.decode(a, result[128..], &roots);
+    // The producer was handed exactly the claims Stage2 mixed, and the
+    // status field it wrote is the one finish accepts.
+    const pcs_end = 128 + @as(usize, @intCast(pcs.outputWords()));
+    try std.testing.expectEqualSlices(u32, claim_words, result[pcs_end..][0..claim_words.len]);
+    try S2.accept(result[56]);
+    var decoded = try pcs.decode(a, result[128..pcs_end], &roots);
     defer decoded.proof.deinit(a);
     const job_json = try std.json.Stringify.valueAlloc(a, decoded.proof, .{});
     defer a.free(job_json);

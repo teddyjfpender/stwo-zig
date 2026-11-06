@@ -87,7 +87,7 @@ const Done = struct {
 
 test "GPU scale: enqueue-only PCS equals the production PCS service on a native-segment-sized request" {
     if (std.posix.getenv("STWO_RV64_M8_PCS_SCALE") == null) return error.SkipZigTest;
-    var gpu = (try @import("native_gpu_support_test.zig").Gpu.open()) orelse return error.SkipZigTest;
+    var gpu = (try @import("native_gpu_support_test.zig").Gpu.openNamed("native_pcs_scale_test")) orelse return error.SkipZigTest;
     defer gpu.close();
     const a = std.heap.page_allocator;
     var arena_state = std.heap.ArenaAllocator.init(a);

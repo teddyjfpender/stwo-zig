@@ -26,6 +26,7 @@ const Abi = @import("../abi.zig");
 const Gc = @import("../global_codegen.zig");
 const Aot = @import("../global_aot.zig");
 const Prefix = @import("../prefix_plan.zig");
+const Claims = @import("native_claims.zig");
 
 const DG = CPU.rv64_gkr_cpu_worker.DeviceGlobal;
 const D = CPU.rv64_device_pcs;
@@ -112,6 +113,7 @@ pub const Plan = struct {
     main_count: usize,
     groups: [2]u32,
     group_count: usize,
+    origin: Claims.Origin,
     pairs: usize,
     width: usize,
     scan_words: usize,
@@ -147,8 +149,11 @@ pub const Plan = struct {
         const groups = [2]u32{ e.artifact.ram_pairs, e.artifact.other_pairs };
         if (groups[0] == 0 or groups[0] > 640 or groups[1] > 640) return error.InvalidGlobalGeometry;
         const group_count: usize = 1 + @as(usize, @intFromBool(groups[1] != 0));
+        // The groups are the slot's claims in the Stage2 claims layout ([ram | other]).
+        const layout = Claims.Slot.of(item.descriptor.origin, 0);
+        if (layout.count != group_count or layout.claim(.ram) == null) return error.GlobalClaimLayoutMismatch;
         const pairs = @as(usize, groups[0]) + groups[1];
-        return .{ .entry = e, .log = log, .rows = @as(usize, 1) << @intCast(log), .fixed_count = item.fixed.len, .main_count = item.main.len, .groups = groups, .group_count = group_count, .pairs = pairs, .width = 8 * (pairs + group_count), .scan_words = (try Prefix.Plan.init(log)).scratch_words, .parameters = parameters, .a = a };
+        return .{ .entry = e, .log = log, .rows = @as(usize, 1) << @intCast(log), .fixed_count = item.fixed.len, .main_count = item.main.len, .groups = groups, .group_count = group_count, .origin = item.descriptor.origin, .pairs = pairs, .width = 8 * (pairs + group_count), .scan_words = (try Prefix.Plan.init(log)).scratch_words, .parameters = parameters, .a = a };
     }
     pub fn deinit(self: *Plan) void {
         self.a.free(self.parameters);
@@ -159,6 +164,11 @@ pub const Plan = struct {
     }
     pub fn claimWords(self: *const Plan) usize {
         return 8 * self.group_count;
+    }
+    /// This slot's `Outputs.claims` inside the request's Stage2 claims buffer
+    /// (`claim_offset`: cpu_components.Slot.claim_offset = native_claims.Layout).
+    pub fn claimsIn(self: *const Plan, claims: api.DeviceBuffer, claim_offset: u32) !api.DeviceBuffer {
+        return Claims.Slot.of(self.origin, claim_offset).buffer(claims);
     }
     /// Enqueue-time arena words other than the caller-owned output (64-word granules).
     pub fn enqueueWords(self: *const Plan) usize {

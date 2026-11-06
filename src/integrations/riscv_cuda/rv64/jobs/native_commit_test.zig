@@ -82,7 +82,7 @@ const Done = struct {
 };
 
 test "GPU: enqueue-only trace commit root, device root mix and coefficients equal the host engine" {
-    var gpu = (try @import("native_gpu_support_test.zig").Gpu.open()) orelse return error.SkipZigTest;
+    var gpu = (try @import("native_gpu_support_test.zig").Gpu.openNamed("native_commit_test")) orelse return error.SkipZigTest;
     defer gpu.close();
     const libs = &gpu.libs;
     const a = std.testing.allocator;

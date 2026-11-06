@@ -125,7 +125,7 @@ const Done = struct {
 };
 
 test "GPU: native job tail (device commits + device OODS + enqueue-only PCS) equals the host engine proof" {
-    var gpu = (try @import("native_gpu_support_test.zig").Gpu.open()) orelse return error.SkipZigTest;
+    var gpu = (try @import("native_gpu_support_test.zig").Gpu.openNamed("native_tail_test")) orelse return error.SkipZigTest;
     defer gpu.close();
     const a = std.testing.allocator;
     var arena_state = std.heap.ArenaAllocator.init(a);

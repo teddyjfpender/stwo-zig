@@ -75,24 +75,45 @@ pub const Stage1 = struct {
     }
     /// `binding`: the binding output (job arena, `B.Plan.output_words`; the
     /// caller frees it after the INTER commit), null without a binding.
+    /// REQUIRED at finish when a binding ran: the binding verdict word is 0,
+    /// and the authority words (enqueueBound) pass `B.checkAuthority` against
+    /// the host partial verification of the decoded GKR proof.
     pub const Committed = struct { fixed: C.Committed, main: C.Committed, binding: ?api.DeviceBuffer = null };
     /// `roots`: slab field of 16 words (FIXED root, MAIN root). MAIN
     /// coefficients are job-arena memory owned by the caller after return.
+    /// A Stage1 with a `binding` must use `enqueueWithBinding` (refused here
+    /// before any work is enqueued).
     pub fn enqueue(self: *Stage1, e: *api.Enqueue, fixed_inputs: []const C.Input, main_inputs: []const C.Input, roots: api.DeviceBuffer) !Committed {
+        if (self.binding != null) return error.Stage1BindingVerdictRequired;
         return self.enqueueWithBinding(e, fixed_inputs, main_inputs, roots, null);
     }
     /// As `enqueue`; `binding_verdict` (one caller-cleared device word, e.g. a
     /// slab field) is required when `binding` is set.
     pub fn enqueueWithBinding(self: *Stage1, e: *api.Enqueue, fixed_inputs: []const C.Input, main_inputs: []const C.Input, roots: api.DeviceBuffer, binding_verdict: ?api.DeviceBuffer) !Committed {
-        try e.channel.initFromCheckpoint(self.staged_seed orelse return error.Stage1NotStaged);
+        return self.enqueueBound(e, fixed_inputs, main_inputs, roots, binding_verdict, null);
+    }
+    /// As `enqueueWithBinding`; `authority` (B.Plan.authorityWords, a slab
+    /// field) receives the device GKR terminal state the legacy host authority
+    /// check compares (eta seed, claims, OOD point): finish must pass it to
+    /// `B.checkAuthority` with the host partial verification of the decoded
+    /// GKR proof (the legacy validateArtifact, moved to finish).
+    pub fn enqueueBound(self: *Stage1, e: *api.Enqueue, fixed_inputs: []const C.Input, main_inputs: []const C.Input, roots: api.DeviceBuffer, binding_verdict: ?api.DeviceBuffer, authority: ?api.DeviceBuffer) !Committed {
+        // Validate every precondition before any work is enqueued.
+        const staged_seed = self.staged_seed orelse return error.Stage1NotStaged;
+        if (self.binding) |b| {
+            if (self.gkr == null) return error.Stage1BindingRequiresGkr;
+            const verdict = binding_verdict orelse return error.Stage1BindingVerdictRequired;
+            if (verdict.words < 1) return error.InvalidNativeBindingOutput;
+            if (authority) |out| if (out.words < b.plan.authorityWords()) return error.InvalidNativeBindingOutput;
+        } else if (authority != null) return error.Stage1AuthorityRequiresBinding;
+        try e.channel.initFromCheckpoint(staged_seed);
         const fixed = try self.fixed.enqueue(self.csym, e, fixed_inputs, try roots.slice(0, 8));
         const main = try self.main.enqueue(self.csym, e, main_inputs, try roots.slice(8, 8), true);
         if (self.gkr) |gkr| try gkr.enqueueCommitted(e, self.fixed.plan, fixed, self.main, main, try roots.slice(8, 8));
         var out = Committed{ .fixed = fixed, .main = main };
         if (self.binding) |b| {
-            const verdict = binding_verdict orelse return error.Stage1BindingVerdictRequired;
             const output = try e.alloc(b.plan.output_words);
-            try b.enqueue(e, self.gkr.?, output, verdict);
+            try b.enqueueWithAuthority(e, self.gkr.?, output, binding_verdict.?, authority);
             out.binding = output;
         }
         return out;
@@ -109,5 +130,24 @@ pub fn seedOf(channel: anytype) [9]u32 {
 
 test "stage1 enqueueWithBinding type-checks against api.Enqueue" {
     _ = &Stage1.enqueueWithBinding;
+    _ = &Stage1.enqueueBound;
     _ = &Stage1.stage;
+}
+
+test "a Stage1 with a binding refuses before any work is enqueued" {
+    var binding: B.Binding = undefined;
+    var stage = Stage1{ .fixed = undefined, .main = undefined, .csym = undefined, .seed = @splat(0), .binding = &binding };
+    var e: api.Enqueue = undefined; // never touched: every refusal precedes the first enqueue
+    var seed_words: [9]u32 = @splat(0);
+    const seed = api.DeviceBuffer{ .ptr = &seed_words, .words = 9 };
+    const roots = api.DeviceBuffer{ .ptr = &seed_words, .words = 0 };
+    try std.testing.expectError(error.Stage1BindingVerdictRequired, stage.enqueue(&e, &.{}, &.{}, roots));
+    try std.testing.expectError(error.Stage1NotStaged, stage.enqueueWithBinding(&e, &.{}, &.{}, roots, seed));
+    stage.staged_seed = seed;
+    try std.testing.expectError(error.Stage1BindingRequiresGkr, stage.enqueueWithBinding(&e, &.{}, &.{}, roots, seed));
+    var gkr: G.Gkr = undefined;
+    stage.gkr = &gkr;
+    try std.testing.expectError(error.Stage1BindingVerdictRequired, stage.enqueueWithBinding(&e, &.{}, &.{}, roots, null));
+    stage.binding = null;
+    try std.testing.expectError(error.Stage1AuthorityRequiresBinding, stage.enqueueBound(&e, &.{}, &.{}, roots, null, seed));
 }
