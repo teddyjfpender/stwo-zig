@@ -136,6 +136,16 @@ pub const Buffer = struct {
 /// Host-API launch accounting for one node. `api` counts every host call
 /// that enqueues device work (kernel wrappers, async copies/memsets, channel
 /// steps); `internal` adds launches reported by wrappers that issue several.
+/// Optional stream timing hook (e.g. a pair of CUDA events), marked on the
+/// job's exec stream immediately before and after the body, outside any
+/// graph capture. It never synchronizes; the owner reads it after completion.
+pub const Timing = struct {
+    ctx: *anyopaque,
+    mark: *const fn (*anyopaque, end: bool, stream: *anyopaque) void,
+    /// Called from finish (the worker thread, after the completion wait).
+    resolve: *const fn (*anyopaque) void,
+};
+
 pub const Counters = struct {
     api: u32 = 0,
     internal: u32 = 0,

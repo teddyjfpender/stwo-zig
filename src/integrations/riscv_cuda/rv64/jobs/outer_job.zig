@@ -58,6 +58,8 @@ pub const Decoded = struct {
     inter_root: [32]u8,
 };
 
+pub const Timing = K.Timing;
+
 pub const Report = struct {
     outcome: Graphs.Outcome = .direct,
     /// Host-API launches of this node (1 when replayed as a graph).
@@ -113,6 +115,7 @@ pub const OuterNodeJob = struct {
     /// through the legacy budgeted recycler: "host budget heap underflow"
     /// at teardown, smp free-list corruption, corrupted later proofs.
     proof_allocator: std.mem.Allocator = std.heap.c_allocator,
+    timing: ?Timing = null,
     fixed_commit: ?N.FixedCommit = null,
     /// Streamed commit schedules (null: full-LDE path; STWO_RV64_M8_OUTER_STREAM=0).
     streams: ?N.Streams = null,
@@ -481,6 +484,8 @@ pub const OuterNodeJob = struct {
         var view = EnqueueView{ .e = e, .heap = &heap };
         var device = K.Device{ .ctx = e.ctx(), .stream = e.stream(), .impl = &view, .vtable = &EnqueueView.vtable, .kernels = self.kernels, .phase_hook = EnqueueView.phase };
         self.report.streamed = self.streams != null;
+        if (self.timing) |t| t.mark(t.ctx, false, e.stream());
+        defer if (self.timing) |t| t.mark(t.ctx, true, e.stream());
         defer {
             self.report.heap_words = heap.words;
             self.report.heap_peak_words = heap.peak;
@@ -510,6 +515,7 @@ pub const OuterNodeJob = struct {
 
     pub fn finish(self: *OuterNodeJob, view: api.SlabView) !void {
         self.finished = true;
+        if (self.timing) |t| t.resolve(t.ctx);
         self.report.receipt = view.receipt;
         if (self.keep_slab) |copy| @memcpy(copy[0..@min(copy.len, view.words.len)], view.words[0..@min(copy.len, view.words.len)]);
         const section = try Slab.read(view, .opaque_words, section_index);

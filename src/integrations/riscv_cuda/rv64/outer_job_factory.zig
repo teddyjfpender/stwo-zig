@@ -21,6 +21,7 @@ const FixedJob = @import("jobs/outer_fixed_job.zig");
 const Worker = @import("jobs/worker.zig");
 const api = @import("jobs/api.zig");
 const Q = Outer.protocol.Q;
+const Events = @import("cuda_events.zig");
 
 pub const Shared = struct {
     kernels: K.Kernels,
@@ -29,6 +30,8 @@ pub const Shared = struct {
     wide: bool,
     graph_api: Graphs.Api,
     fs: std.DynLib,
+    /// Base-image CUDA event symbols (cuda_events.zig); null: no GPU timing.
+    events: ?Events.Api = null,
     /// `base` = frozen base image, `addon` = libstwo-rv64-jobs.so, both owned by
     /// the caller (ops.Libraries); `fs_path` = libstwo-rv64-outer-fs-ops.so.
     pub fn init(base: *std.DynLib, addon: *std.DynLib, fs_path: []const u8) !Shared {
@@ -42,6 +45,7 @@ pub const Shared = struct {
             .wide = if (base.lookup(Version, "stwo_rv64_pcs_request_version")) |version| version() >= 3 else false,
             .graph_api = try Graphs.Api.load(addon),
             .fs = fs,
+            .events = Events.Api.load(base) catch null,
         };
     }
     pub fn deinit(self: *Shared) void {
@@ -53,9 +57,46 @@ pub const Shared = struct {
     }
 };
 
+/// GPU time of one job body: two CUDA events on the worker's exec stream,
+/// created and recorded on the worker thread (its device is current there)
+/// outside any graph capture, resolved in finish after the completion wait.
+/// Never synchronizes. 0 when the events are unavailable.
+const GpuTimer = struct {
+    api: *const Events.Api,
+    events: [2]?*anyopaque = .{ null, null },
+    ns: u64 = 0,
+    fn timing(self: *GpuTimer) K.Timing {
+        return .{ .ctx = self, .mark = mark, .resolve = resolve };
+    }
+    fn mark(raw: *anyopaque, end: bool, stream: *anyopaque) void {
+        const self: *GpuTimer = @ptrCast(@alignCast(raw));
+        const slot = &self.events[@intFromBool(end)];
+        if (slot.* == null and self.api.create(slot, 0) != 0) slot.* = null;
+        if (slot.*) |event| if (self.api.record(event, stream) != 0) {
+            _ = self.api.destroy(event);
+            slot.* = null;
+        };
+    }
+    fn resolve(raw: *anyopaque) void {
+        const self: *GpuTimer = @ptrCast(@alignCast(raw));
+        const begin = self.events[0] orelse return;
+        const end = self.events[1] orelse return;
+        var ms: f32 = 0;
+        if (self.api.elapsed(&ms, begin, end) == 0 and std.math.isFinite(ms) and ms >= 0) self.ns = @intFromFloat(@as(f64, ms) * 1e6);
+    }
+    fn deinit(self: *GpuTimer) void {
+        for (self.events) |event| if (event) |e| {
+            _ = self.api.destroy(e);
+        };
+        self.events = .{ null, null };
+    }
+};
+
 pub const Report = struct {
     outcome: Graphs.Outcome = .direct,
     launches: u32 = 0,
+    /// GPU time of the node body (CUDA events), 0 if unavailable.
+    gpu_ns: u64 = 0,
     kernel_nodes: u64 = 0,
     prestage_ns: u64 = 0,
     job_ns: u64 = 0,
@@ -85,14 +126,19 @@ pub const Prover = struct {
     persistent_classes: bool = true,
 
     /// FIXED tree root of `pp`, committed by a FixedJob on this worker.
-    pub fn fixedRoot(self: *Prover, a: std.mem.Allocator, pp: *const @import("stwo_circuit_frontend").common.preprocessed.PreprocessedCircuit, receipt: ?*api.Receipt) ![32]u8 {
+    pub const FixedReport = struct { receipt: api.Receipt = .{}, launches: u32 = 0, body_launches: u32 = 0, outcome: Graphs.Outcome = .direct, gpu_ns: u64 = 0 };
+    pub fn fixedRoot(self: *Prover, a: std.mem.Allocator, pp: *const @import("stwo_circuit_frontend").common.preprocessed.PreprocessedCircuit, report: ?*FixedReport) ![32]u8 {
         var host = try Prestage.FixedPrecommit.init(a, pp);
         defer host.deinit();
         var job = try FixedJob.FixedJob.init(try host.inputs(), &self.shared.kernels);
+        job.graphs = &self.graphs;
+        var timer: ?GpuTimer = if (self.shared.events) |*ev| GpuTimer{ .api = ev } else null;
+        defer if (timer) |*t| t.deinit();
+        if (timer) |*t| job.timing = t.timing();
         var done = Done{};
         try self.submitWait(job.job(), &done);
         try done.result;
-        if (receipt) |out| out.* = done.receipt;
+        if (report) |out| out.* = .{ .receipt = done.receipt, .launches = job.launches, .body_launches = job.body_launches, .outcome = job.outcome, .gpu_ns = if (timer) |t| t.ns else 0 };
         return job.root orelse error.OuterFixedJobNoRoot;
     }
     fn submitWait(self: *Prover, job: api.Job, done: *Done) !void {
@@ -145,6 +191,9 @@ pub const Prover = struct {
         // The PCS proof is decoded on the worker and moved into the Produced
         // this function returns, which the caller frees with `a`.
         job.proof_allocator = a;
+        var gpu: ?GpuTimer = if (self.shared.events) |*ev| GpuTimer{ .api = ev } else null;
+        defer if (gpu) |*t| t.deinit();
+        if (gpu) |*t| job.timing = t.timing();
         r.footprint = job.footprint();
         {
             const p = staged.plan();
@@ -171,6 +220,7 @@ pub const Prover = struct {
         done.event.wait();
         r.job_ns = timer.lap();
         r.receipt = done.receipt;
+        if (gpu) |t| r.gpu_ns = t.ns;
         r.outcome = job.report.outcome;
         r.launches = job.report.launches;
         r.kernel_nodes = job.report.kernel_nodes;
@@ -359,8 +409,9 @@ pub const Lane = struct {
         }
         var timer = try std.time.Timer.start();
         const prover = try self.hybrid.prover(self.index);
-        var receipt: api.Receipt = .{};
-        const root = try prover.fixedRoot(a, pp, &receipt);
+        var fr: Prover.FixedReport = .{};
+        const root = try prover.fixedRoot(a, pp, &fr);
+        const receipt = fr.receipt;
         const owner = try a.create(FixedOwner);
         errdefer a.destroy(owner);
         const columns = try a.alloc(@import("stwo_prover_api").device_pcs.Column, pp.columns.len);
@@ -373,7 +424,7 @@ pub const Lane = struct {
             h.update(&root);
             statement = h.finalResult();
         }
-        std.debug.print("GPU_M8_OUTER_FIXED ordinal={d} device={d} columns={d} stage_ns={d} enqueue_ns={d} wait_ns={d} host_waits={d} wall_ns={d}\n", .{ ordinal, self.physical_device, columns.len, receipt.stage_ns, receipt.enqueue_ns, receipt.wait_ns, receipt.host_waits, timer.read() });
+        std.debug.print("GPU_M8_OUTER_FIXED ordinal={d} device={d} columns={d} outcome={s} launches={d} body_launches={d} stage_ns={d} enqueue_ns={d} wait_ns={d} gpu_ns={d} host_waits={d} wall_ns={d}\n", .{ ordinal, self.physical_device, columns.len, @tagName(fr.outcome), fr.launches, fr.body_launches, receipt.stage_ns, receipt.enqueue_ns, receipt.wait_ns, fr.gpu_ns, receipt.host_waits, timer.read() });
         return .{ .context = owner, .whole_node = .{ .context = self, .prove = wholeNode }, .tree = .{ .root = root, .columns = columns }, .scope = .{ .statement = statement, .fixed = @splat(0), .main = @splat(0), .ordinal = ordinal }, .prepare_from_circuit = bypassed, .release = FixedOwner.release };
     }
     fn refuseValues(_: *anyopaque, _: std.mem.Allocator, _: *const Outer.prove.Authority, _: []const Q, _: @import("stwo_prover_api").device_pcs.Scope) !Dev.Source {
@@ -412,7 +463,7 @@ pub const Lane = struct {
         };
         self.nodes += 1;
         const fp = r.footprint;
-        std.debug.print("GPU_M8_OUTER_NODE ordinal={d} device={d} leaf={} adopted_plan={} outcome={s} launches={d} kernel_nodes={d} host_waits={d} d2h_bytes={d} stage_ns={d} enqueue_ns={d} wait_ns={d} prestage_ns={d} job_ns={d} assemble_ns={d} wall_ns={d} declared_device_words={d} declared_staged_words={d} slab_words={d} pinned_words={d} staged_words={d} arena_peak_words={d} heap_words={d} heap_peak_words={d} heap_allocations={d} plan_words={any} sequence={d} placement={s}\n", .{ ordinal, r.receipt.device, input.is_leaf, input.prepared != null, @tagName(r.outcome), r.launches, r.kernel_nodes, r.receipt.host_waits, r.receipt.d2h_bytes, r.receipt.stage_ns, r.receipt.enqueue_ns, r.receipt.wait_ns, r.prestage_ns, r.job_ns, r.assemble_ns, timer.read(), fp.device_words, fp.staged_words, fp.slab_words, fp.pinned_words, r.receipt.staged_words, r.receipt.arena_peak_words, r.heap_words, r.heap_peak_words, r.heap_allocations, r.plan_words, r.receipt.sequence, @tagName(r.receipt.placement) });
+        std.debug.print("GPU_M8_OUTER_NODE ordinal={d} device={d} leaf={} adopted_plan={} outcome={s} launches={d} kernel_nodes={d} host_waits={d} d2h_bytes={d} stage_ns={d} enqueue_ns={d} wait_ns={d} gpu_ns={d} prestage_ns={d} job_ns={d} assemble_ns={d} wall_ns={d} declared_device_words={d} declared_staged_words={d} slab_words={d} pinned_words={d} staged_words={d} arena_peak_words={d} heap_words={d} heap_peak_words={d} heap_allocations={d} plan_words={any} sequence={d} placement={s}\n", .{ ordinal, r.receipt.device, input.is_leaf, input.prepared != null, @tagName(r.outcome), r.launches, r.kernel_nodes, r.receipt.host_waits, r.receipt.d2h_bytes, r.receipt.stage_ns, r.receipt.enqueue_ns, r.receipt.wait_ns, r.gpu_ns, r.prestage_ns, r.job_ns, r.assemble_ns, timer.read(), fp.device_words, fp.staged_words, fp.slab_words, fp.pinned_words, r.receipt.staged_words, r.receipt.arena_peak_words, r.heap_words, r.heap_peak_words, r.heap_allocations, r.plan_words, r.receipt.sequence, @tagName(r.receipt.placement) });
         std.debug.print("GPU_M8_OUTER_NODE_MEM ordinal={d} device={d} streamed={} heap_high_words={d} phase_peak_words={any} phase_high_words={any} staged_regions={any}\n", .{ ordinal, r.receipt.device, r.streamed, r.heap_high_words, r.phase_peak_words, r.phase_high_words, r.staged_regions });
         return produced;
     }
