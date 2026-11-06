@@ -93,7 +93,7 @@ fn leafDeps(_: *anyopaque, a: std.mem.Allocator, ordinal: u32, r: *const S.Reque
 }
 
 fn workers(out: []*W.Worker) !void {
-    for (out, 0..) |*w, i| w.* = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = @intCast(i), .arena_words = 1 << 14, .pinned_slot_words = 1 << 10 });
+    for (out, 0..) |*w, i| w.* = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = @intCast(i), .arena_words = 1 << 14, .pinned_slot_words = 1 << 10 });
 }
 
 const Releaser = struct {
@@ -233,7 +233,7 @@ test "placement by footprint: a request whose classes cannot overlap pairwise co
     _ = try P.checkPolicyLayout(policy);
     fake.reset();
     var ws: [2]*W.Worker = undefined;
-    for (&ws, 0..) |*w, i| w.* = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = @intCast(i), .arena_words = 1 << 20, .pinned_slot_words = 1 << 10, .plan = policy });
+    for (&ws, 0..) |*w, i| w.* = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = @intCast(i), .arena_words = 1 << 20, .pinned_slot_words = 1 << 10, .plan = policy });
     defer for (ws) |w| w.destroy();
     var g = S.Graph{ .a = std.testing.allocator };
     defer g.deinit();

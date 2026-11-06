@@ -330,7 +330,7 @@ fn pairJobs(a_job: *Sized, b_job: *Sized) void {
 
 test "worker without a policy: a pair that does not fit fails the working job (today's hazard)" {
     fake.reset();
-    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = 0, .arena_words = 16 * g, .pinned_slot_words = 1 << 12 });
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 16 * g, .pinned_slot_words = 1 << 12 });
     var a_job: Sized = undefined;
     var b_job: Sized = undefined;
     pairJobs(&a_job, &b_job);
@@ -353,7 +353,7 @@ test "worker with a policy: the same pair serializes instead of failing, both pr
     const p = try P.Policy.parse(std.testing.allocator, text);
     defer p.deinit();
     _ = try P.checkPolicyLayout(p);
-    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = 0, .arena_words = 1 << 20, .pinned_slot_words = 1 << 12, .plan = p });
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 20, .pinned_slot_words = 1 << 12, .plan = p });
     try std.testing.expectEqual(@as(usize, 16 * g), w.config.arena_words); // the policy sized the arena
     var a_job: Sized = undefined;
     var b_job: Sized = undefined;
@@ -391,13 +391,13 @@ test "worker with a policy: the measured peak replaces an inflated declaration (
     var job = Sized{ .k = 2, .staged = 4 * g, .work = g, .declared_device = 1 << 30 }; // hand-declared, far above the arena
     var d = Done{};
     {
-        const w0 = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = 0, .arena_words = 32 * g, .pinned_slot_words = 1 << 12 });
+        const w0 = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 32 * g, .pinned_slot_words = 1 << 12 });
         put(w0, api.Job.from(Sized, &job), d.sink());
         d.wait(1);
         w0.destroy();
         try std.testing.expectEqual(error.JobFootprintExceedsArena, d.last.?);
     }
-    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = 0, .arena_words = 32 * g, .pinned_slot_words = 1 << 12, .plan = p });
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 32 * g, .pinned_slot_words = 1 << 12, .plan = p });
     put(w, api.Job.from(Sized, &job), d.sink());
     d.wait(2);
     w.destroy();
@@ -407,7 +407,7 @@ test "worker with a policy: the measured peak replaces an inflated declaration (
 
 test "worker with a persistent budget: class regions are evicted LRU and refilled fresh" {
     fake.reset();
-    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = 0, .arena_words = 64 * g, .pinned_slot_words = 1 << 12, .persistent_budget_words = 4 * g });
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 64 * g, .pinned_slot_words = 1 << 12, .persistent_budget_words = 4 * g });
     var jobs: [5]Sized = undefined;
     // Classes 1, 2, 3, 1, 2 each holding a 2g persistent region; the budget holds two.
     for (&jobs, [_]u8{ 1, 2, 3, 1, 2 }) |*j, k| j.* = .{ .k = k, .staged = g, .work = g, .declared_device = 4 * g, .persistent = .{ .k = 100 + k, .words = 2 * g } };
@@ -430,7 +430,7 @@ test "worker with a persistent budget: class regions are evicted LRU and refille
 
 test "worker with a persistent budget: a warm class keeps its region (no refill)" {
     fake.reset();
-    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = 0, .arena_words = 64 * g, .pinned_slot_words = 1 << 12, .persistent_budget_words = 4 * g });
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 64 * g, .pinned_slot_words = 1 << 12, .persistent_budget_words = 4 * g });
     var jobs: [4]Sized = undefined;
     for (&jobs, [_]u8{ 1, 2, 1, 2 }) |*j, k| j.* = .{ .k = k, .staged = g, .work = g, .declared_device = 4 * g, .persistent = .{ .k = 100 + k, .words = 2 * g } };
     var d = Done{};
@@ -446,7 +446,7 @@ test "worker with a persistent budget: a warm class keeps its region (no refill)
 test "worker plan output: STWO_RV64_M8_JOBS_PLAN_DIR rows parse back (sweep input)" {
     // The env var is read at destroy; write directly through the same code path.
     fake.reset();
-    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = 3, .arena_words = 64 * g, .pinned_slot_words = 1 << 12, .reuse_frees = true });
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 3, .arena_words = 64 * g, .pinned_slot_words = 1 << 12, .reuse_frees = true });
     var job = Sized{ .k = 7, .staged = g, .work = 2 * g, .declared_device = 6 * g };
     var d = Done{};
     put(w, api.Job.from(Sized, &job), d.sink());

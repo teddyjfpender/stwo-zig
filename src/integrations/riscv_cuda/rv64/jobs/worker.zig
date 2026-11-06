@@ -40,6 +40,9 @@ pub const Config = struct {
     /// Reclaim non-LIFO `Enqueue.free`s inside a job's window (lowers peaks).
     /// Also STWO_RV64_M8_JOBS_ARENA_REUSE=1 or a policy with allocator=reuse.
     reuse_frees: bool = false,
+    /// Honor STWO_RV64_M8_JOBS_PLAN / STWO_RV64_M8_JOBS_ARENA_REUSE (process-wide).
+    /// Host-model tests that assert on a specific arena opt out.
+    plan_from_env: bool = true,
 };
 
 /// Measured per-class plan (spec §3.7 hook): what the class actually used,
@@ -453,7 +456,7 @@ pub const Worker = struct {
 
     pub fn create(a: std.mem.Allocator, ops: *const O.Ops, config_in: Config) !*Worker {
         var config = config_in;
-        const owned: ?*MP.Policy = if (config.plan == null) try MP.Policy.fromEnv(a) else null;
+        const owned: ?*MP.Policy = if (config.plan == null and config.plan_from_env) try MP.Policy.fromEnv(a) else null;
         errdefer if (owned) |p| p.deinit();
         const policy: ?*const MP.Policy = config.plan orelse owned;
         if (policy) |p| {
@@ -464,9 +467,9 @@ pub const Worker = struct {
             config.reuse_frees = config.reuse_frees or p.gpu.allocator == .reuse;
             config.max_outstanding = @min(config.max_outstanding, p.gpu.max_outstanding);
         }
-        if (std.posix.getenv("STWO_RV64_M8_JOBS_ARENA_REUSE")) |v| {
+        if (config.plan_from_env) if (std.posix.getenv("STWO_RV64_M8_JOBS_ARENA_REUSE")) |v| {
             if (std.mem.eql(u8, v, "1")) config.reuse_frees = true else if (!std.mem.eql(u8, v, "0")) return error.InvalidM8JobsEnvironment;
-        }
+        };
         const self = try a.create(Worker);
         errdefer a.destroy(self);
         self.* = .{ .ops = ops, .config = config, .device_ordinal = config.device, .a = a, .policy = policy, .owned_plan = owned };

@@ -176,7 +176,7 @@ fn submit(w: *W.Worker, job: api.Job, sink: W.Sink) void {
 test "worker runs the 3-stage pipeline: stage(k+1) before enqueue(k) before finish(k-1)" {
     fake.reset();
     // Depth 4 lets the test hold job k+2 in the mailbox while job k+1 stages.
-    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = 0, .arena_words = 1 << 16, .pinned_slot_words = 1 << 12, .max_outstanding = 4 });
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 16, .pinned_slot_words = 1 << 12, .max_outstanding = 4 });
     var log: Log = .{};
     var gates: [4]Gate = @splat(.{});
     var probes: [4]Probe = undefined;
@@ -220,7 +220,7 @@ test "worker runs the 3-stage pipeline: stage(k+1) before enqueue(k) before fini
 
 test "worker refuses (does not wait on) a job whose footprint exceeds the arena" {
     fake.reset();
-    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = 1, .arena_words = 1 << 14, .pinned_slot_words = 1 << 12 });
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 1, .arena_words = 1 << 14, .pinned_slot_words = 1 << 12 });
     var log: Log = .{};
     var big = Probe{ .id = 7, .log = &log, .footprint_words = 1 << 15 };
     var small = Probe{ .id = 8, .log = &log };
@@ -238,7 +238,7 @@ test "worker refuses (does not wait on) a job whose footprint exceeds the arena"
 
 test "a device fault is terminal for the worker and fails later submissions" {
     fake.reset();
-    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = 0, .arena_words = 1 << 14, .pinned_slot_words = 1 << 12 });
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 14, .pinned_slot_words = 1 << 12 });
     fake.counters.fail_event_sync = true;
     var log: Log = .{};
     var p = Probe{ .id = 1, .log = &log };
@@ -254,7 +254,7 @@ test "a device fault is terminal for the worker and fails later submissions" {
 
 test "worker startup failure is reported to the creator" {
     fake.reset();
-    try std.testing.expectError(error.InvalidArena, W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = 0, .arena_words = 65, .pinned_slot_words = 64 }));
+    try std.testing.expectError(error.InvalidArena, W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 65, .pinned_slot_words = 64 }));
 }
 
 const Filler = struct {
@@ -278,7 +278,7 @@ const Filler = struct {
 
 test "a failed fill never leaves a persistent entry that later jobs see as warm" {
     fake.reset();
-    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .device = 0, .arena_words = 1 << 12, .pinned_slot_words = 64 });
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 12, .pinned_slot_words = 64 });
     var c: Collector = .{};
     var first = Filler{ .fail = true };
     var second = Filler{ .fail = false };
