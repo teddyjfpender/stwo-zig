@@ -41,7 +41,7 @@ pub const Script = struct {
     pub fn outputWords(op: Op) usize {
         return switch (op) {
             .draw_felts => |n| @as(usize, n) * 8,
-            .draw_raw => 16,
+            .draw_raw => 8,
             .queries => |q| q.count,
             .pow => Ch.DeviceChannel.pow_workspace_words,
             else => 0,
@@ -168,7 +168,7 @@ pub const ParityJob = struct {
                 },
                 .draw_raw => {
                     const v = host.drawU32s();
-                    if (!std.mem.eql(u32, &v, out[0..8]) or !std.mem.eql(u32, &v, out[8..16])) return self.fail(i, error.ParityDrawMismatch);
+                    if (!std.mem.eql(u32, &v, out[0..8])) return self.fail(i, error.ParityDrawMismatch);
                 },
                 .queries => |q| {
                     const positions = try @import("stwo_core").queries.drawQueries(&host, std.heap.page_allocator, q.log, q.count);

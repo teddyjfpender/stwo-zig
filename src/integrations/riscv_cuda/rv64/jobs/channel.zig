@@ -113,11 +113,11 @@ pub const DeviceChannel = struct {
         try self.begin();
         try self.done(self.exec.channel_draw_on(self.ctx, 0, self.state, self.step, self.chain(), self.chain() +% 1, n, out.ptr, self.boundary));
     }
-    /// Host `drawU32s`: one raw 8-word draw. `out` needs 16 words (8 output + 8 snapshot).
+    /// Host `drawU32s`: one raw (unreduced) 8-word draw into `out`.
     pub fn drawRaw(self: *DeviceChannel, out: api.DeviceBuffer) !void {
-        try need(out, 16);
+        try need(out, 8);
         try self.begin();
-        try self.done(self.exec.transcript_draw_u32s_on(self.state, self.step, self.chain(), self.chain() +% 1, out.ptr, out.ptr + 8, self.boundary, self.stream));
+        try self.done(self.exec.channel_draw_raw_on(self.ctx, 0, self.state, self.step, self.chain(), self.chain() +% 1, out.ptr, self.boundary));
     }
     pub fn drawQueries(self: *DeviceChannel, log: u32, count: u32, out: api.DeviceBuffer) !void {
         if (log == 0 or log > 28 or count == 0 or count > 1024) return error.InvalidGeometry;

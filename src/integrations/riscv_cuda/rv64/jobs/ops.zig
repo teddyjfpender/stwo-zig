@@ -23,8 +23,9 @@ pub const Exec = struct {
     channel_mix_on: *const fn (*anyopaque, u32, [*]u32, u32, u64, u64, ?[*]const u32, u32, u32, [*]u32) callconv(.c) c_int,
     channel_draw_on: *const fn (*anyopaque, u32, [*]u32, u32, u64, u64, u32, [*]u32, [*]u32) callconv(.c) c_int,
     channel_queries_on: *const fn (*anyopaque, u32, [*]u32, u32, u64, u64, u32, u32, [*]u32, [*]u32) callconv(.c) c_int,
-    // stream-level transcript / PoW (NAT/transcript, NAT/pow)
-    transcript_draw_u32s_on: *const fn ([*]u32, u32, u64, u64, [*]u32, [*]u32, [*]u32, *anyopaque) callconv(.c) c_int,
+    // addon: raw 8-word draw (host drawU32s); the base image does not export transcript.cu
+    channel_draw_raw_on: *const fn (*anyopaque, u32, [*]u32, u32, u64, u64, [*]u32, [*]u32) callconv(.c) c_int,
+    // stream-level PoW (NAT/pow)
     pow_persistent_on: *const fn ([*]const u32, u32, c_ulonglong, [*]u32, [*]c_ulonglong, [*]u32, [*]u32, *anyopaque) callconv(.c) c_int,
     // addon: explicit-stream async copy, events, host functions
     copy_async: *const fn (*anyopaque, *const anyopaque, usize, u32, *anyopaque) callconv(.c) c_int,
@@ -76,7 +77,7 @@ pub const Libraries = struct {
             .channel_mix_on = try sym(&out.base, @FieldType(Exec, "channel_mix_on"), "stwo_rv64_channel_mix_on"),
             .channel_draw_on = try sym(&out.base, @FieldType(Exec, "channel_draw_on"), "stwo_rv64_channel_draw_on"),
             .channel_queries_on = try sym(&out.base, @FieldType(Exec, "channel_queries_on"), "stwo_rv64_channel_queries_on"),
-            .transcript_draw_u32s_on = try sym(&out.base, @FieldType(Exec, "transcript_draw_u32s_on"), "stwo_blake2s_transcript_draw_u32s_on"),
+            .channel_draw_raw_on = try sym(&out.addon, @FieldType(Exec, "channel_draw_raw_on"), "stwo_rv64_jobs_channel_draw_raw_on"),
             .pow_persistent_on = try sym(&out.base, @FieldType(Exec, "pow_persistent_on"), "stwo_blake2s_pow_persistent_on"),
             .copy_async = try sym(&out.addon, @FieldType(Exec, "copy_async"), "stwo_rv64_jobs_copy_async"),
             .event_record = try sym(&out.addon, @FieldType(Exec, "event_record"), "stwo_rv64_jobs_event_record"),
@@ -106,7 +107,7 @@ pub const Libraries = struct {
 };
 
 /// Must equal STWO_RV64_JOBS_ABI_VERSION in NAT/rv64/jobs/runtime.cu.
-pub const abi_version: u32 = 1;
+pub const abi_version: u32 = 2;
 
 fn sym(lib: *std.DynLib, comptime T: type, name: [:0]const u8) !T {
     return lib.lookup(T, name) orelse {

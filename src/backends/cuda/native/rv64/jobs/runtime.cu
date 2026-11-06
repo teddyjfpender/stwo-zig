@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define STWO_RV64_JOBS_ABI_VERSION 1u
+#define STWO_RV64_JOBS_ABI_VERSION 2u  // 2: + stwo_rv64_jobs_channel_draw_raw_on (channel_ops.cu)
 
 namespace {
 inline int status(cudaError_t s) { return static_cast<int>(s); }

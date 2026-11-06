@@ -257,14 +257,18 @@ fn channelQueries(_: *anyopaque, _: u32, s: [*]u32, step: u32, chain: u64, next:
     finishStep(s, next, boundary);
     return 0;
 }
-fn drawU32s(s: [*]u32, step: u32, chain: u64, next: u64, out: [*]u32, snap: [*]u32, boundary: [*]u32, _: *anyopaque) callconv(.c) c_int {
+fn drawRaw(_: *anyopaque, _: u32, s: [*]u32, step: u32, chain: u64, next: u64, out: [*]u32, boundary: [*]u32) callconv(.c) c_int {
     bump("kernels", 1);
     if (beginStep(s, step, chain)) {
-        const raw = hashDraw(s, s[S.draws]);
-        s[S.draws] += 1;
-        @memcpy(out[0..8], &raw);
-        @memcpy(snap[0..8], &raw);
+        if (s[S.reserved] != 0 or step == std.math.maxInt(u32) or s[S.draws] == std.math.maxInt(u32)) {
+            s[S.status] = 1;
+        } else {
+            const raw = hashDraw(s, s[S.draws]);
+            s[S.draws] += 1;
+            @memcpy(out[0..8], &raw);
+        }
     }
+    if (s[S.status] != 0) @memset(out[0..8], 0);
     finishStep(s, next, boundary);
     return 0;
 }
@@ -281,7 +285,7 @@ pub const ops = O.Ops{
         .channel_mix_on = channelMix,
         .channel_draw_on = channelDraw,
         .channel_queries_on = channelQueries,
-        .transcript_draw_u32s_on = drawU32s,
+        .channel_draw_raw_on = drawRaw,
         .pow_persistent_on = powUnsupported,
         .copy_async = copyAsync,
         .event_record = eventRecord,
