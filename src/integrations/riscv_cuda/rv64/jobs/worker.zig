@@ -526,6 +526,11 @@ pub const Worker = struct {
     /// main_resident region above it; phase B grows over it.
     plan_phase_words: [2]usize = .{ 0, 0 },
     plan_phase_b: bool = false,
+    /// Stable arena identity per plan phase (A, B): the phase flip happens
+    /// twice per request, and both (base, words) pairs are fixed after
+    /// install, so a graph cache keyed on `arenaEpoch` stays warm across
+    /// requests instead of missing on every flip.
+    plan_phase_epochs: [2]u64 = .{ 0, 0 },
     /// Advances whenever the arena's (base, words) differ from the previous
     /// arena's: device addresses baked into captured graphs are stale.
     arena_epoch: u64 = 0,
@@ -967,7 +972,7 @@ pub const Worker = struct {
         self.arena = .{ .base = @intFromPtr(arena.?), .words = words, .reuse = self.config.reuse_frees };
         self.config.arena_words = words;
         const same = self.arena.base == self.last_base and words == self.last_words;
-        if (!same) self.arena_epoch += 1;
+        if (!same) self.arena_epoch = @max(self.arena_epoch, self.plan_phase_epochs[1]) + 1;
         return .{ .arena_words = words, .same_base = same };
     }
 
@@ -996,6 +1001,9 @@ pub const Worker = struct {
             if (self.parked) return error.WorkerAlreadyParked;
             if (self.parking) return error.WorkerParked;
             if (self.unparking) return error.WorkerBusy;
+            // The GPU-native plan block holds main_resident (driver views
+            // into it) and fixes both phase windows: it is never parked.
+            if (self.plan_phase_words[1] != 0) return error.WorkerPlanArenaInstalled;
             self.parking = true;
             while (self.outstanding != 0) self.cond.wait(&self.mutex);
         }
@@ -1675,7 +1683,10 @@ pub const Worker = struct {
         self.plan_phase_words = .{ phase_a_words, phase_b_words };
         self.plan_phase_b = false;
         self.last_enqueued = null;
-        self.arena_epoch += 1;
+        self.mutex.lock();
+        self.plan_phase_epochs = .{ self.arena_epoch + 1, self.arena_epoch + 2 };
+        self.arena_epoch = self.plan_phase_epochs[0];
+        self.mutex.unlock();
         return .{ .ptr = block.? + phase_a_words, .words = phase_b_words - phase_a_words };
     }
 
@@ -1683,7 +1694,17 @@ pub const Worker = struct {
         if (self.plan_phase_words[1] == 0 or self.plan_phase_b == b) return;
         self.arena = .{ .base = self.arena.base, .words = self.plan_phase_words[@intFromBool(b)], .reuse = self.config.reuse_frees };
         self.plan_phase_b = b;
-        self.arena_epoch += 1;
+        self.mutex.lock();
+        self.arena_epoch = self.plan_phase_epochs[@intFromBool(b)];
+        self.mutex.unlock();
+    }
+
+    /// The arena epochs of plan phases A and B (install-time constants; 0
+    /// before `installPlanArena`). Any thread.
+    pub fn planPhaseEpochs(self: *Worker) [2]u64 {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.plan_phase_epochs;
     }
 
     fn onWorkerThread(self: *Worker) !void {
@@ -1733,7 +1754,9 @@ pub const Worker = struct {
         for (b.jobs[first..]) |*bj| {
             bj.job.vtable.abort(bj.job.ctx);
             bj.result = err;
-            bj.done.signal(null, false);
+            // Poison dependents (any GPU): a consumer must never enqueue its
+            // body without its producer's done event.
+            bj.done.signal(null, true);
         }
         b.slots = &.{};
     }
@@ -1775,7 +1798,9 @@ pub const Worker = struct {
             self.settle(slot, err);
             bj.result = err;
             bj.settled = true;
-            bj.done.signal(null, false);
+            // Refused before enqueue: no done event exists for dependents to
+            // wait on, so they must fail (BatchDependencyFailed), not run.
+            bj.done.signal(null, true);
             return null;
         }
         slot.receipt.staged_words = self.arena.staged[@intFromEnum(slot.placement)];
