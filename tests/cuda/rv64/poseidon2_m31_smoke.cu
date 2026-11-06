@@ -4,12 +4,12 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <vector>
-#if defined(STWO_P2_REGISTER_PACKED) && defined(STWO_P2_FAST_REDUCTION)
+#if defined(STWO_P2_FAST_REDUCTION) && defined(STWO_P2_FUSED)
 #error "Select one numerical Poseidon variant"
 #endif
-#ifdef STWO_P2_REGISTER_PACKED
-#include "poseidon2_m31_register.cuh"
-using namespace stwo::cuda::p2m31_register;
+#ifdef STWO_P2_FUSED
+#include "poseidon2_m31_fused.cuh"
+using namespace stwo::cuda::p2m31_fused;
 #elif defined(STWO_P2_FAST_REDUCTION)
 #include "poseidon2_m31_fast.cuh"
 using namespace stwo::cuda::p2m31;

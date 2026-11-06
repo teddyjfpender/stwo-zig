@@ -108,7 +108,7 @@ def main():
     children = [rng.randrange(P) for _ in range(18)]
     assert packed(2, children) == reference.sponge(2, children)
     sources = ["src/backends/cuda/native/rv64/poseidon2_m31.cuh",
-               "src/backends/cuda/native/rv64/poseidon2_m31_register.cuh",
+               "src/backends/cuda/native/rv64/poseidon2_m31_fused.cuh",
                "src/backends/cuda/native/common/m31.cuh",
                "tests/cuda/rv64/poseidon_commit_bench.cu",
                "tests/cuda/rv64/poseidon2_m31_smoke.cu",

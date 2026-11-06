@@ -7,6 +7,14 @@ this change, and no runtime call selects the new Keccak policy.
 
 ## P2 numerical kernel pass
 
+**Superseded (2026-11-06, M8 poseidon-witness).** The register-packed variant
+measured 15.140 ms on the 479x2^20 retained tree against 15.882 ms for the
+common-rotate control [M] and was deleted. The kernel is now
+`poseidon2_m31_fused.cuh` (pipe-balanced, 12.19 ms [M], byte-identical
+roots); see `rv64-m8-recursion-backbone.md` and
+`vectors/reports/rv64-m8-20261106/poseidon-witness/`. The text below is the
+original hypothesis record.
+
 Hypothesis, recorded before source changes:
 `vectors/reports/rv64-m8-20261106/p2/hypothesis.json`.
 `poseidon2_m31_register.cuh` packs each rate block with constant state indices,

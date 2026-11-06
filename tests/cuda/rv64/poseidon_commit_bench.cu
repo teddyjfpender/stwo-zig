@@ -8,20 +8,20 @@
 #include <stdexcept>
 #include <vector>
 #include <cstring>
-#if defined(STWO_P2_REGISTER_PACKED) && defined(STWO_P2_FAST_REDUCTION)
+#if defined(STWO_P2_FAST_REDUCTION) && defined(STWO_P2_FUSED)
 #error "Select one numerical Poseidon variant"
 #endif
-#ifdef STWO_P2_REGISTER_PACKED
-#include "poseidon2_m31_register.cuh"
+#ifdef STWO_P2_FUSED
+#include "poseidon2_m31_fused.cuh"
 #elif defined(STWO_P2_FAST_REDUCTION)
 #include "poseidon2_m31_fast.cuh"
 #else
 #include "poseidon2_m31.cuh"
 #endif
 #include "blake2s_core.cuh"
-#ifdef STWO_P2_REGISTER_PACKED
-namespace P=stwo::cuda::p2m31_register;
-static constexpr const char* p2_variant="register-packed-v1";
+#ifdef STWO_P2_FUSED
+namespace P=stwo::cuda::p2m31_fused;
+static constexpr const char* p2_variant="fused-pipe-balanced-v1";
 #elif defined(STWO_P2_FAST_REDUCTION)
 namespace P=stwo::cuda::p2m31;
 static constexpr const char* p2_variant="generated-fast-reduction";
@@ -38,7 +38,7 @@ struct Buffer{uint32_t*p=nullptr;size_t words;explicit Buffer(size_t n):words(n)
 __global__ void fill(uint32_t*p,uint64_t n){uint64_t i=uint64_t(blockIdx.x)*blockDim.x+threadIdx.x;if(i<n)p[i]=uint32_t((i*17ull+13ull)%2147483647ull);}
 __global__ void p2_tail(const uint32_t*previous,uint32_t n,uint32_t*out,uint32_t levels){
  for(uint32_t level=0;level<levels;++level){uint32_t next=n/2;for(uint32_t i=threadIdx.x;i<next;i+=blockDim.x){
-#ifdef STWO_P2_REGISTER_PACKED
+#ifdef STWO_P2_FUSED
  P::hash_parent(previous+uint64_t(i)*18,out+uint64_t(i)*9);
 #else
  P::Sponge s(2);for(uint32_t j=0;j<18;++j)s.absorb(previous[uint64_t(i)*18+j]);s.finish(out+uint64_t(i)*9);
