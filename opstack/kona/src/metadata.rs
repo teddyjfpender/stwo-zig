@@ -1,12 +1,12 @@
 //! Explicit binary payload attributes; JSON is confined to the small rollup config.
 //! Field completeness is pinned to the Optimism revision in Cargo.lock.
+use crate::statement_sha2::{Digest, Sha256};
 use crate::{execution::RangeInput, witness::MAX_BLOCKS};
 use alloc::{string::String, vec::Vec};
 use alloy_primitives::{B256, Bytes};
 use alloy_rlp::{Decodable, Encodable};
 use op_alloy_rpc_types_engine::OpPayloadAttributes;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 #[derive(Serialize, Deserialize)]
 struct Payload {

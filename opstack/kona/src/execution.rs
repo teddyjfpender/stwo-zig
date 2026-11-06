@@ -1,4 +1,5 @@
 //! One builder per range retains authenticated trie state between adjacent blocks.
+use crate::statement_sha2::{Digest, Sha256};
 use crate::witness::{Error, MAX_BLOCKS, Stats, Witness};
 use alloc::{format, string::String, vec::Vec};
 use alloy_consensus::Header;
@@ -7,10 +8,14 @@ use alloy_primitives::{B256, Bytes, Sealable};
 use alloy_rlp::Decodable;
 use kona_executor::{StatelessL2Builder, TrieDBProvider};
 use kona_genesis::RollupConfig;
-use kona_mpt::{NoopTrieHinter, TrieNode, TrieProvider};
+#[cfg(not(feature = "host"))]
+use kona_mpt::NoopTrieHinter;
+use kona_mpt::{TrieNode, TrieProvider};
+#[cfg(feature = "host")]
+#[path = "host/hints.rs"]
+mod hints;
 use op_alloy_rpc_types_engine::OpPayloadAttributes;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RangeInput {
@@ -80,12 +85,18 @@ pub fn execute(witness: &Witness<'_>) -> Result<ResultSummary, String> {
     let mut digest = Sha256::new();
     digest.update(b"stwo/opstack/execution-range/v1\0");
     digest.update(input_commitment);
+    #[cfg(feature = "host")]
+    let last_hint = core::cell::Cell::new(None);
+    #[cfg(feature = "host")]
+    let hinter = hints::Hints(&last_hint);
+    #[cfg(not(feature = "host"))]
+    let hinter = NoopTrieHinter;
     let mut builder = StatelessL2Builder::new(
         &input.rollup_config,
         OpEvmFactory::<OpTx>::default(),
         OpAlloyReceiptBuilder::default(),
         Provider(witness),
-        NoopTrieHinter,
+        hinter,
         input.parent_header.seal_slow(),
     );
     let mut hashes = Vec::with_capacity(count);
@@ -93,9 +104,18 @@ pub fn execute(witness: &Witness<'_>) -> Result<ResultSummary, String> {
     let mut transactions = 0usize;
     for (payload, expected) in input.payloads.into_iter().zip(input.expected_block_hashes) {
         transactions += payload.transactions.as_ref().map_or(0, Vec::len);
-        let outcome = builder
-            .build_block(payload)
-            .map_err(|e| format!("Kona execution: {e}"))?;
+        let outcome = builder.build_block(payload).map_err(|e| {
+            #[cfg(feature = "host")]
+            return format!(
+                "Kona execution: {e}; last witness hint: {}",
+                last_hint
+                    .get()
+                    .map(|hint| format!("{hint}"))
+                    .unwrap_or_default()
+            );
+            #[cfg(not(feature = "host"))]
+            format!("Kona execution: {e}")
+        })?;
         if outcome.header.hash() != expected {
             return Err("block hash mismatch".into());
         }

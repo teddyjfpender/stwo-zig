@@ -1,2 +1,6 @@
 rocksdict==0.3.29
 unicorn==2.1.4
+
+pycryptodome==4.3.0
+ruff==0.17.4
+ziglang==0.15.2

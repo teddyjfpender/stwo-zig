@@ -96,7 +96,7 @@ fn missing_key_fails_and_empty_preimage_is_authenticated() {
     let empty = keccak256([]);
     let bytes = witness::encode(&[], &[(empty, vec![])]).unwrap();
     let w = Witness::parse(&bytes, Validation::Lazy).unwrap();
-    assert_eq!(w.get(B256::ZERO), Err(Error::Missing));
+    assert_eq!(w.get(B256::ZERO), Err(Error::Missing(B256::ZERO)));
     assert!(w.get(empty).unwrap().is_empty());
     assert_eq!(w.stats().hashes, 1);
 }

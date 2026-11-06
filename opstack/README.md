@@ -1,7 +1,7 @@
 # Kona on the RV64 proving stack
 
 This is a runnable OP execution guest, not a completed OP validity prover. It
-executes real OP Sepolia blocks with pinned Kona, checks every resulting block
+executes historical OP Mainnet and OP Sepolia blocks with pinned Kona, checks every resulting block
 hash against an independent upstream fixture, and emits requests for the existing
 native/recursive GPU pipeline. It uses no SP1 SDK or SNARK wrapper.
 
@@ -14,19 +14,67 @@ used only to import the upstream host fixtures, never in the guest.
 ```sh
 rustup toolchain install nightly-2026-08-08 --profile minimal --component rust-src
 python3 -m pip install -r opstack/requirements-host.txt
-python3 opstack/prepare_fixtures.py --output /tmp/kona-fixtures
-python3 opstack/build.py --variant software --artifacts /tmp/kona-software
-python3 opstack/build.py --variant frontier --artifacts /tmp/kona-frontier
-python3 opstack/benchmark.py --fixtures /tmp/kona-fixtures \
-  --artifacts /tmp/kona-bench --host /tmp/kona-frontier/host \
-  --guest /tmp/kona-frontier/guest.elf --runner /tmp/kona-frontier/rv64-execution \
+python3 opstack/build.py --variant sha --artifacts /workspace/kona-sha
+python3 opstack/mainnet.py --output /workspace/kona-mainnet \
+  --cache /workspace/kona-archive-cache --host /workspace/kona-sha/host
+python3 opstack/benchmark.py --fixtures /workspace/kona-mainnet \
+  --artifacts /workspace/kona-mainnet-bench --host /workspace/kona-sha/host \
+  --guest /workspace/kona-sha/guest.elf --runner /workspace/kona-sha/rv64-execution \
   --profile ethereum_services_v3 --oracle
+python3 -m ziglang build rv64-word16-ethereum-native -Doptimize=ReleaseFast -j1
+python3 opstack/cpu.py \
+  --request /workspace/kona-mainnet-bench/120794432-proof-config.json \
+  --execution /workspace/kona-mainnet-bench/120794432-rv64.json \
+  --runner zig-out/bin/rv64-word16-ethereum-native \
+  --artifacts /workspace/kona-mainnet-cpu
 ```
 
 `software`, `keccak`, `services` and `sponge` retain the upstream EVM/MPT source.
 `lean` additionally uses the existing optimized Revm interpreter/bytecode crates
 and the local capped-length MPT change. `frontier` is that guest with full LTO.
 `memory` additionally enables the existing constrained bulk-memory services.
+`sha` uses the admitted SHA-256 compression service for statement hashing;
+`memory-sha` combines both. `arithmetic` adds the admitted EVM ADDMOD/MULMOD
+service to SHA; `full` combines those with bulk memory. `bn254` additionally
+selects the experimental BN254 Montgomery adapter. The reference host retains
+software SHA-256 and the upstream Ark field implementation.
+
+The mainnet corpus contains six nonadjacent Ecotone-era blocks (120794432,
+121003241, 121049889, 121057303, 121065789, 121135704), including a deposit-only
+block and blocks with user transactions. Its source and preimage archives are
+pinned in `mainnet-fixtures.json`. Import requires every Keccak preimage hash,
+canonical headers, parent linkage, the actual Kona chain 10 registry, and native
+execution reproducing the complete expected block hash. Downloaded Rust source
+is parsed as data, never executed. This is historical mainnet coverage, not a
+current-head or all-forks claim. Outputs publish only after all selected replays
+pass. The cache can be populated offline with the same hash-pinned source bytes.
+
+`benchmark.py` defaults to this mainnet corpus and isolated blocks. For the old
+four-block regression corpus use `prepare_fixtures.py` and explicitly select
+`benchmark.py --network sepolia`; adjacent range benchmarks remain available.
+
+`cpu.py` pins the current native conjectured-128 profile, uses all v3 services,
+measures source-derived planning, proof production and fresh reception separately,
+and requires rejection after corrupting actual persisted CPU proof bytes. It
+uses fresh subprocesses, one lane, explicit worker
+counts and resource admissions. Linux `wait4` reports peak RSS, which is measured
+rather than an enforced process cap. The source-derived plan reports exact
+FIXED/MAIN/INTERACTION cells and MAIN+INTERACTION payload bits; it excludes PCS,
+composition and recursion, and is never called a proof or proof-size estimate.
+No compilation enters the proof wall time. A prefix cannot pass this harness.
+Producer setup defaults to process-local identity-only sharing (`--setup ephemeral`),
+with no setup files loaded or persisted. `--setup uncached` supplies the older
+control. The receiver has a separate clean environment and always rebuilds its
+own source authority; it never inherits producer cache selections. Use
+`--resources FILE` for explicit admission budgets and `--batch-steps` for geometry.
+Limits, failures and Linux peak RSS are retained beside each stage. A larger
+admission budget does not reserve physical memory.
+
+The native-only executable uses the same statement, source admission, service
+roster and persisted proof receiver as the GPU-linked driver. Its CPU product
+has no recursion-module dependency. The existing linked driver and its recursion
+policy checks are preserved. Recursive modes are unavailable in the native-only
+product.
 All choices are explicit. A lower guest instruction count is not a measured GPU
 speedup: service calls, permutations and bytes remain proving work.
 
@@ -35,6 +83,29 @@ match its output and the fixture's block hashes. The optional independent oracle
 checks completion at exactly N instructions (N-1 then 1), all 32 registers, PC,
 43 output bytes and service counters. The production RV64 diagnostic is reused;
 there is no OP-specific implementation of the VM or crypto executor.
+
+## Validation and dependency ownership
+
+```sh
+python3 opstack/validate.py --fast
+python3 opstack/validate.py  # offline Rust/field/property checks too
+```
+
+Run the builds once to populate pinned dependencies before the offline gate.
+The fast gate checks Python formatting, rejection tests and unchanged vendored
+source identities. Imported Rust files retain upstream formatting; only owned
+packages and new test/adapter files are formatted. Dependency deltas are listed
+in [the vendor map](kona/vendor/README.md).
+
+Builds require fresh artifact directories and explicitly record COPY/UCOPY/SET/CMP
+thresholds. Ambient `STWO_ADMITTED_*` compiler settings are cleared. `--bulk-min`
+selects a common value of 8..1048576 or `off`; defaults remain 16/16/16/8. Values
+below 8 are rejected before the existing wrapper can peel an unaligned head.
+
+The maintained mainnet report separates guest execution, exact source-cell cost,
+CPU proof production, fresh reception and negative controls. A diagnostic
+execution receipt's `proof_supported: false` describes that execution command;
+only the separate CPU receipt establishes physical STARK proof verification.
 
 ## Architecture
 
@@ -46,6 +117,8 @@ there is no OP-specific implementation of the VM or crypto executor.
 | `kona/guest` | RV64IM runtime, existing allocator/atomics/memory ABI, explicit constrained crypto features, OP output schema. |
 | `kona/lean` | Separate dependency/optimization policy; no change to the reference host. |
 | `kona/vendor/kona-mpt` | Pinned source with capped RLP reference sizing, source hashes and byte-level differential tests. |
+| `mainnet.py`, `kona/src/host/mainnet.rs` | Authenticated historical mainnet import and actual registry configuration. |
+| `cpu.py` | Cold CPU production, fresh reception, tamper rejection and separate stage receipts. |
 | `prepare_fixtures.py` | SHA-pinned upstream fixture import, separate from guest execution. |
 | `build.py`, `benchmark.py` | Reproducible binaries, receipts, native/RV64/oracle comparisons and proving requests. |
 

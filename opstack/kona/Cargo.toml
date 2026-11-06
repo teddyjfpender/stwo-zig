@@ -11,9 +11,10 @@ resolver = "2"
 
 [features]
 default = []
-host = []
+host = ["dep:kona-registry"]
 keccak-service = ["alloy-primitives/native-keccak"]
 secp-lean = ["k256/stwo-projective-word-service", "k256/stwo-vartime", "ecdsa/stwo-skip-redundant-recovery-verify"]
+sha-service = ["dep:sha2-rv64", "sha2-rv64/stwo-sha256-service"]
 
 [dependencies]
 k256 = { version = "=0.13.4", default-features = false, features = ["ecdsa"] }
@@ -23,6 +24,7 @@ alloy-primitives = { version = "=1.6.1", default-features = false, features = ["
 alloy-rlp = { version = "0.3.16", default-features = false }
 alloy-op-evm = { git = "https://github.com/ethereum-optimism/optimism", rev = "a271fd6b3feb76e49f3453e5a27be4b33a3c7211", default-features = false }
 kona-executor = { git = "https://github.com/ethereum-optimism/optimism", rev = "a271fd6b3feb76e49f3453e5a27be4b33a3c7211", default-features = false }
+kona-registry = { git = "https://github.com/ethereum-optimism/optimism", rev = "a271fd6b3feb76e49f3453e5a27be4b33a3c7211", optional = true }
 kona-genesis = { git = "https://github.com/ethereum-optimism/optimism", rev = "a271fd6b3feb76e49f3453e5a27be4b33a3c7211", default-features = false, features = ["serde"] }
 kona-mpt = { git = "https://github.com/ethereum-optimism/optimism", rev = "a271fd6b3feb76e49f3453e5a27be4b33a3c7211", default-features = false }
 op-alloy-rpc-types-engine = { git = "https://github.com/ethereum-optimism/optimism", rev = "a271fd6b3feb76e49f3453e5a27be4b33a3c7211", default-features = false, features = ["serde"] }
@@ -30,6 +32,7 @@ postcard = { version = "=1.1.3", default-features = false, features = ["alloc"] 
 serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 sha2 = { version = "=0.10.9", default-features = false }
+sha2-rv64 = { package = "sha2", path = "../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/sha2-rv64", default-features = false, optional = true }
 
 [dev-dependencies]
 keccak = "=0.2.2"
@@ -52,3 +55,6 @@ panic = "abort"
 [patch.crates-io]
 k256 = { path = "../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256" }
 ecdsa = { path = "../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa" }
+
+[patch."https://github.com/ethereum-optimism/optimism"]
+op-revm = { path = "vendor/op-revm" }

@@ -50,6 +50,7 @@ const FixedAuthority = @import("../services/gkr_local/fixed_authority.zig");
 const FixedSet = @import("../services/gkr_local/fixed_authority_set.zig").Set;
 const Candidate = @import("../../word16_execution/om31_security_candidate.zig");
 const SourceBounds = @import("../services/gkr_local/source_bounds.zig");
+const CapturePlan = @import("capture_plan.zig");
 const SetupCache = @import("setup_cache.zig");
 /// Producer-owned trusted setup acceleration; forbidden to fresh receivers.
 const SETUP_CACHE_ENV = "STWO_ZIG_RV64_SETUP_CACHE";
@@ -306,7 +307,16 @@ pub fn mainWithResidentPipeline(stages: ResidentStages) !void {
     const base = recycler.allocator();
     const all_args = try std.process.argsAlloc(base);
     defer std.process.argsFree(base, all_args);
-    return runArguments(&recycler, all_args, stages, null, false, {});
+    return runArguments(&recycler, all_args, stages, null, false, {}, true);
+}
+/// CPU native-only product: no recursive proving or policy dependency. Native
+/// source admission, proof format and independent receiver remain the same.
+pub fn mainNativeOnly() !void {
+    var recycler = Recycler.init(std.heap.smp_allocator, ReceiverBudget.RECYCLER_CACHE_BYTES);
+    defer recycler.deinit();
+    const args = try std.process.argsAlloc(recycler.allocator());
+    defer std.process.argsFree(recycler.allocator(), args);
+    return runArguments(&recycler, args, .{}, null, false, {}, false);
 }
 /// Separate linked product: the resident native executable does not pull the
 /// circuit stack into every GPU build merely to expose an unavailable mode.
@@ -319,7 +329,7 @@ pub fn mainWithRecursionFactory(factory: ?@import("stwo_circuit_cpu_integration"
     defer recycler.deinit();
     const all_args = try std.process.argsAlloc(recycler.allocator());
     defer std.process.argsFree(recycler.allocator(), all_args);
-    return runArguments(&recycler, all_args, .{}, null, true, .{ .factory = factory });
+    return runArguments(&recycler, all_args, .{}, null, true, .{ .factory = factory }, true);
 }
 /// Explicit linked product: production and recursion share independently derived
 /// live authorities and the in-memory bundle. No receiver handoff is reloaded.
@@ -380,7 +390,7 @@ pub fn runCombinedResidentArgsWithExecution(recycler: *Recycler, all_args: []con
     if (session.active) return error.ResidentRequestAlreadyActive;
     session.active = true;
     defer session.active = false;
-    return runArguments(recycler, all_args, stages, session, true, execution);
+    return runArguments(recycler, all_args, stages, session, true, execution, true);
 }
 fn isCombinedProducer(mode: []const u8) bool {
     return std.mem.eql(u8, mode, "produce-and-recurse-candidate");
@@ -391,13 +401,13 @@ pub fn runWithResidentArgs(recycler: *Recycler, all_args: []const [:0]u8, stages
     if (session.active) return error.ResidentRequestAlreadyActive;
     session.active = true;
     defer session.active = false;
-    return runArguments(recycler, all_args, stages, session, false, {});
+    return runArguments(recycler, all_args, stages, session, false, {}, true);
 }
-fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: ?*ResidentSession, comptime enable_recursion: bool, recursion_execution: if (enable_recursion) CombinedRecursion else void) !void {
+fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: ?*ResidentSession, comptime enable_recursion: bool, recursion_execution: if (enable_recursion) CombinedRecursion else void, comptime check_recursion_policy: bool) !void {
     const process_start = try std.time.Instant.now();
     // canon-vk M5: outer profile / shape / fold arity env must parse, or the
     // process exits with a clean error before any work (never a panic, P03).
-    try @import("../../rv64_recursion/om31_native/execution_wrap.zig").checkPolicyEnv();
+    if (comptime check_recursion_policy) try @import("../../rv64_recursion/om31_native/execution_wrap.zig").checkPolicyEnv();
     const recursion_factory = if (enable_recursion) recursion_execution.factory else {};
     const base = recycler.allocator();
     const device_pcs_stage = stages.pcs;
@@ -408,7 +418,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const security_profile = selection.profile;
     const args = selection.args;
     if (args.len == 2 and std.mem.eql(u8, args[1], "describe")) return emit(base, .{ .profile = PROFILE, .security_qualified = false, .pcs = try config(), .usage = "produce-control CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON | verify-control CONFIG OUT [RECEIVER_BYTES] | verify-prefix-control CONFIG OUT [RECEIVER_BYTES] | plan CONFIG JOBS PREFIX_COUNT | capture CONFIG JOBS PREFIX_COUNT RESOURCE_JSON" });
-    if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(base, .{ .profile = candidateLabel(security_profile), .security_profile = security_profile.name(), .security_qualified = false, .security_target = Candidate.assumptionTarget(security_profile), .pcs = Candidate.configFor(security_profile), .scope = if (security_profile.conjectured()) "native 128-bit CONJECTURED target (ethSTARK-style FRI accounting); no proven bound and no whole-protocol certificate" else "native 128-bit target under documented assumptions; no whole-protocol certificate", .usage = "[--security-profile proven_beta2_q256_p0_fold4|conjectured128_b2_q108_p20_fold4 (default)|d2_native_b4_q54_p20_fold4] produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes; JOBS=- executes in process) | inspect-recursion-schedule CONFIG OUT [ORDINAL] (CPU-only diagnostic; no acceptance,24GiB live/12GiB subset fixed cache) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-recursion-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] (CPU recursion receiver only; existing proofs, no proving fallback)" });
+    if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(base, .{ .profile = candidateLabel(security_profile), .security_profile = security_profile.name(), .security_qualified = false, .security_target = Candidate.assumptionTarget(security_profile), .pcs = Candidate.configFor(security_profile), .scope = if (security_profile.conjectured()) "native 128-bit CONJECTURED target (ethSTARK-style FRI accounting); no proven bound and no whole-protocol certificate" else "native 128-bit target under documented assumptions; no whole-protocol certificate", .usage = "[--security-profile proven_beta2_q256_p0_fold4|conjectured128_b2_q108_p20_fold4 (default)|d2_native_b4_q54_p20_fold4] produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes; JOBS=- executes in process) | plan-candidate CONFIG JOBS PREFIX_COUNT RESOURCE_JSON (CPU-only source-derived native column cost; no proof or acceptance) | inspect-recursion-schedule CONFIG OUT [ORDINAL] (CPU-only diagnostic; no acceptance,24GiB live/12GiB subset fixed cache) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-recursion-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] (CPU recursion receiver only; existing proofs, no proving fallback)" });
     if (args.len < 4) return error.ExpectedModeConfigAndDirectory;
     const inspect_schedule = std.mem.eql(u8, args[1], "inspect-recursion-schedule");
     const inspection_ordinal = if (inspect_schedule) try @import("schedule_inspection.zig").ordinal(args) else 0;
@@ -431,7 +441,8 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     // warm-setup-candidate: inputs-candidate stopped right after keys + FIXED
     // (resident-service pre-warm; no source build, no proof).
     const warm_setup = std.mem.eql(u8, args[1], "warm-setup-candidate");
-    const candidate = std.mem.eql(u8, args[1], "inputs-candidate") or warm_setup or inspect_schedule or combined or recurse or std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
+    const plan_candidate = std.mem.eql(u8, args[1], "plan-candidate");
+    const candidate = plan_candidate or std.mem.eql(u8, args[1], "inputs-candidate") or warm_setup or inspect_schedule or combined or recurse or std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
     const verify = inspect_schedule or recurse or std.mem.eql(u8, args[1], "verify-control") or std.mem.eql(u8, args[1], "verify-candidate");
     // Persisted roots are operator-trusted acceleration, never independent
     // receiver authority. Fresh receivers always derive setup from source.
@@ -439,7 +450,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const prefix = std.mem.eql(u8, args[1], "verify-prefix-control") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
     if (prefix) try requireIndependentReceiverSetup(std.process.hasEnvVarConstant(SETUP_CACHE_ENV));
     const produce = combined or std.mem.eql(u8, args[1], "produce-control") or std.mem.eql(u8, args[1], "produce-candidate");
-    const plan = std.mem.eql(u8, args[1], "plan");
+    const plan = plan_candidate or std.mem.eql(u8, args[1], "plan");
     // Session-scoped setup warm-up (inputs-candidate) is producer-side too.
     if (session != null and !produce and !std.mem.eql(u8, args[1], "inputs-candidate") and !warm_setup) return error.ResidentSessionRequiresProducer;
     const capture_only = std.mem.eql(u8, args[1], "capture");
@@ -452,7 +463,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const receiver_bytes: ?usize = if (inspect_schedule) @import("schedule_inspection.zig").live_bytes else if (verify or prefix) try ReceiverBudget.limit(args, candidate) else null;
     if (produce and args.len != 7) return error.ExpectedModeConfigJobsOutputPrefixAndResources;
     if (capture_only and args.len != 6) return error.ExpectedCaptureConfigJobsPrefixAndResources;
-    if (plan and args.len != 5) return error.ExpectedModeConfigJobsAndPrefix;
+    if (plan and args.len != (if (plan_candidate) @as(usize, 6) else 5)) return error.ExpectedModeConfigJobsPrefixAndOptionalResources;
     const pcs = if (candidate) Candidate.configFor(security_profile) else try config();
     const selected_profile = if (candidate) candidateLabel(security_profile) else PROFILE;
     const security_target = Candidate.assumptionTarget(security_profile);
@@ -494,8 +505,8 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     defer if (control_resource_owner) |*owner| owner.deinit();
     var candidate_resource_owner: ?std.json.Parsed(CandidateResources) = null;
     defer if (candidate_resource_owner) |*owner| owner.deinit();
-    if (produce or capture_only or inputs_only) {
-        const limits_bytes = try std.fs.cwd().readFileAlloc(a, args[if (capture_only or inputs_only) 5 else 6], 16384);
+    if (produce or capture_only or inputs_only or plan_candidate) {
+        const limits_bytes = try std.fs.cwd().readFileAlloc(a, args[if (capture_only or inputs_only or plan_candidate) 5 else 6], 16384);
         defer a.free(limits_bytes);
         if (candidate) {
             candidate_resource_owner = try std.json.parseFromSlice(CandidateResources, a, limits_bytes, .{});
@@ -625,7 +636,8 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     }
     var b2i = BlockToInputs{ .scope = if (inputs_only) "inputs-candidate diagnostic: sequential per-worker source build after setup; no proof" else "produce: per-worker source timestamps inside the scheduled prove" };
     b2i.init_done_at_ns = since(process_start);
-    const cpu_layout = Plan.CpuLayout.forGkrProfile(request.value.execution_profile);
+    var cpu_layout = Plan.CpuLayout.forGkrProfile(request.value.execution_profile);
+    cpu_layout.reserve_arithmetic_row = candidate;
     // The capture's AUIPC/JAL FUNCTION facts depend on the decode layout.
     if (cpu_layout.compact_decode) try program.makeCompact();
     var early_owner: ?*EarlyCPU.Owner = null;
@@ -757,6 +769,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         const digest = @import("capture_digest.zig").digest(image.identity, &captured);
         return emit(a, .{ .scope = "producer capture diagnostic only; no proof or acceptance", .security_qualified = false, .total_steps = captured.total_steps, .final_pc = captured.final_pc, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_options = resources.?.capture_options, .capture_selection = captured.capture_schedule, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .image_and_import_ns = capture_ns, .capture_breakdown = capture_breakdown, .capture_inputs = capture_inputs, .captured_values_sha256 = std.fmt.bytesToHex(digest, .lower), .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .diagnostic_digest_ns = timer.read() - digest_start });
     }
+    if (plan_candidate) return emit(a, try CapturePlan.result(a, selected_profile, program.log_size, cpu, truths, &captured, count, capture_ns));
     if (plan) return emit(a, .{ .profile = PROFILE, .security_qualified = false, .scope = "geometry advice only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
     const operational = resources.?;
     const resident = blk: {
@@ -768,15 +781,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     var source_bounds: ?SourceBounds.Report = null;
     defer if (source_bounds) |*value| value.deinit();
     if (candidate) {
-        _ = try SourceBounds.validateInventory(cpu.len, truths.len);
-        const requests = try a.alloc(P.Request, captured.native.items.len);
-        defer a.free(requests);
-        for (requests, 0..) |*value, i| {
-            value.* = try C.requestView(captured.native.items, &captured.advice, i);
-            try C.routeDword(value, cpu[i].bridges, captured.advice.events[i]);
-        }
-        try C.assignSpongeIds(requests);
-        source_bounds = try SourceBounds.derive(a, program.log_size, cpu, truths, requests);
+        source_bounds = try CapturePlan.sourceBounds(a, program.log_size, cpu, truths, &captured);
     }
     b2i.plan_done_at_ns = since(process_start);
     if (prestage != null) std.debug.print("GPU_CPU_PRESTAGE event=inventory_plan_ready utc_ns={} process_at_ns={}\n", .{ std.time.nanoTimestamp(), b2i.plan_done_at_ns });

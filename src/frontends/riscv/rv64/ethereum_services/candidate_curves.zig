@@ -1,8 +1,9 @@
 //! Execution-only CANDIDATE curve, field and sponge services for profile
 //! `ethereum_services_v3_candidate` (dispatched from candidate_services.zig).
 //!
-//! Like every candidate service these exist only in the execution tool; the
-//! prover does not admit them and results that use them are never promotable.
+//! The pointer-packet dispatch below is execution-only. Its pure arithmetic
+//! helpers are also reused by the separately admitted inline-packet v3 roster
+//! in curves.zig; that admission never enables this candidate dispatch.
 //! ABI: autoresearch/guest_efficiency/notes/candidate-curves-abi.md. Granularity
 //! mirrors ZisK's precompiles (Bn254CurveAdd/Dbl, Bn254ComplexMul,
 //! Bls12_381CurveAdd/Dbl, Bls12_381ComplexMul, Arith384Mod) plus a Montgomery
@@ -20,6 +21,10 @@
 //!   unsatisfiable; the guest must not issue such a call).
 const std = @import("std");
 const memory = @import("../memory.zig");
+const BnMontgomery = @import("montgomery_bn254.zig");
+comptime {
+    if (BnMontgomery.MODULUS != BN254_P) @compileError("BN254 Montgomery modulus drift");
+}
 
 pub const BN254_G1_ADD_TAG: u64 = 0x0003_0100;
 pub const BN254_G1_DOUBLE_TAG: u64 = 0x0003_0101;
@@ -143,13 +148,26 @@ pub fn fp2Mul(comptime F: type, comptime T: type, a: [2]T, b: [2]T) [2]T {
     return .{ F.sub(F.mul(a[0], b[0]), F.mul(a[1], b[1])), F.add(F.mul(a[0], b[1]), F.mul(a[1], b[0])) };
 }
 
+fn inverseRadix(comptime modulus: u384) u384 {
+    @setEvalBranchQuota(100000);
+    return invMod(u384, @intCast((@as(u768, 1) << 384) % modulus), modulus);
+}
+const BN254_RADIX_INVERSE = inverseRadix(BN254_P);
+const BLS12_RADIX_INVERSE = inverseRadix(BLS12_381_P);
+
 /// a * b * 2^-384 mod m for odd m (m = 1 gives 0). Any a, b < 2^384.
 pub fn mont384(a: u384, b: u384, m: u384) u384 {
     std.debug.assert(m & 1 == 1);
     if (m == 1) return 0;
+    // Ark BN254 uses a 256-bit Montgomery radix. Its admitted inline packet
+    // shifts the first residue by 128 bits to match this service's radix.
+    // Recognize only that bounded shape; all other inputs stay generic.
+    if (m == BN254_P and @as(u128, @truncate(a)) == 0 and a >> 128 < BN254_P and b < BN254_P)
+        return BnMontgomery.product(@intCast(a >> 128), @intCast(b));
     const t: u384 = @intCast(@as(u768, a) * b % m);
-    const r_mod: u384 = @intCast((@as(u768, 1) << 384) % m);
-    const r_inv = invMod(u384, r_mod, m);
+    // Public fixed-field specializations avoid a repeated binary-GCD inverse
+    // on every admitted call. Arbitrary odd moduli retain the generic path.
+    const r_inv = if (m == BN254_P) BN254_RADIX_INVERSE else if (m == BLS12_381_P) BLS12_RADIX_INVERSE else invMod(u384, @intCast((@as(u768, 1) << 384) % m), m);
     return @intCast(@as(u768, t) * r_inv % m);
 }
 
@@ -530,4 +548,18 @@ test "candidate keccak_sponge equals Keccak-256 for every length and alignment" 
     try testing.expectError(error.CandidateDomain, run(&mem, .keccak_sponge, BASE, &.{ state, input, 136, 4 }));
     try testing.expectError(error.UnmappedAddress, run(&mem, .keccak_sponge, BASE, &.{ state, BASE + SIZE + memory.PAGE_SIZE - 8, 136, 0 }));
     try testing.expectEqual(lane0, try mem.load(state, 8));
+}
+
+test "Montgomery fixed-field inverses preserve arbitrary operand residues" {
+    const moduli = [_]u384{ 1, 3, BN254_P, BLS12_381_P };
+    const values = [_]u384{ 0, 1, BN254_P - 1, BLS12_381_P - 1, std.math.maxInt(u384) };
+    for (moduli) |m| for (values) |a| for (values) |b| {
+        const reference: u384 = if (m == 1) 0 else blk: {
+            const radix: u384 = @intCast((@as(u768, 1) << 384) % m);
+            const inverse = invMod(u384, radix, m);
+            const product: u384 = @intCast(@as(u768, a) * b % m);
+            break :blk @intCast(@as(u768, product) * inverse % m);
+        };
+        try testing.expectEqual(reference, mont384(a, b, m));
+    };
 }

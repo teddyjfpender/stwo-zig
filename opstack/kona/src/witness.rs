@@ -20,7 +20,7 @@ pub enum Error {
     Limit,
     Order,
     Offset,
-    Missing,
+    Missing(B256),
     Hash,
     Metadata,
     Rlp,
@@ -153,7 +153,7 @@ impl<'a> Witness<'a> {
                 core::cmp::Ordering::Equal => return self.authenticate(mid),
             }
         }
-        Err(Error::Missing)
+        Err(Error::Missing(hash))
     }
 }
 

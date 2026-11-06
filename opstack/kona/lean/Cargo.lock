@@ -165,7 +165,7 @@ dependencies = [
  "either",
  "serde",
  "serde_with",
- "sha2 0.10.9",
+ "sha2 0.10.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -467,8 +467,6 @@ dependencies = [
 [[package]]
 name = "ark-bn254"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bc66f96ebe2a17a499475b4f94791d379817592ef494171586967ffdc6f95db"
 dependencies = [
  "ark-ec",
  "ark-ff",
@@ -1364,7 +1362,7 @@ dependencies = [
  "ecdsa",
  "elliptic-curve",
  "serdect",
- "sha2 0.10.9",
+ "sha2 0.10.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "stwo-rv64-service-abi",
 ]
 
@@ -1723,14 +1721,13 @@ dependencies = [
  "alloy-serde",
  "op-alloy-consensus",
  "serde",
- "sha2 0.10.9",
+ "sha2 0.10.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
 ]
 
 [[package]]
 name = "op-revm"
 version = "20.0.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=a271fd6b3feb76e49f3453e5a27be4b33a3c7211#a271fd6b3feb76e49f3453e5a27be4b33a3c7211"
 dependencies = [
  "alloy-eips",
  "auto_impl",
@@ -1747,7 +1744,7 @@ dependencies = [
  "ecdsa",
  "elliptic-curve",
  "primeorder",
- "sha2 0.10.9",
+ "sha2 0.10.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2369,6 +2366,13 @@ dependencies = [
 [[package]]
 name = "sha2"
 version = "0.10.9"
+dependencies = [
+ "digest 0.10.7",
+]
+
+[[package]]
+name = "sha2"
+version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
 dependencies = [
@@ -2490,13 +2494,16 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "sha2 0.10.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "stwo-kona-rv64-lean"
 version = "0.1.0"
 dependencies = [
+ "ark-bn254",
  "critical-section",
+ "revm-interpreter",
  "stwo-kona-execution",
  "stwo-rv64-mem",
 ]

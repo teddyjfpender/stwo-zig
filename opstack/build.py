@@ -22,6 +22,45 @@ VARIANTS = {
     "sponge": "sponge-service",
 }
 
+LEAN_VARIANTS = {
+    "lean": ("release", []),
+    "frontier": ("frontier", []),
+    "memory": ("frontier", ["memory-service"]),
+    "sha": ("frontier", ["sha-service"]),
+    "memory-sha": ("frontier", ["memory-service", "sha-service"]),
+    "arithmetic": ("frontier", ["sha-service", "arithmetic-service"]),
+    "bn254": (
+        "frontier",
+        ["memory-service", "sha-service", "arithmetic-service", "bn254-service"],
+    ),
+    "full": ("frontier", ["memory-service", "sha-service", "arithmetic-service"]),
+}
+
+BULK_DEFAULTS = {"COPY": 16, "UCOPY": 16, "SET": 16, "CMP": 8}
+
+
+def bulk_environment(environment, minimum=None):
+    """A reproducible compiler environment; ambient thresholds never leak in."""
+    if (
+        minimum is not None
+        and minimum != "off"
+        and (not minimum.isdecimal() or not 8 <= int(minimum) <= 1 << 20)
+    ):
+        raise ValueError("bulk minimum must be off or 8..1048576 bytes")
+    thresholds = {
+        name: str(value) if minimum is None else minimum
+        for name, value in BULK_DEFAULTS.items()
+    }
+    clean = {
+        key: value
+        for key, value in environment.items()
+        if not key.startswith("STWO_ADMITTED_")
+    }
+    clean.update(
+        {"STWO_ADMITTED_" + name + "_MIN": value for name, value in thresholds.items()}
+    )
+    return clean, thresholds
+
 
 def identity(path):
     data = path.read_bytes()
@@ -33,19 +72,27 @@ def main():
     parser.add_argument("--artifacts", type=Path, required=True)
     parser.add_argument(
         "--variant",
-        choices=(*VARIANTS, "lean", "frontier", "memory"),
+        choices=(*VARIANTS, *LEAN_VARIANTS),
         default="software",
     )
     parser.add_argument("--eager", action="store_true")
+    parser.add_argument(
+        "--bulk-min",
+        help="explicit shared copy/set/compare threshold: 8..1048576 or off",
+    )
     parser.add_argument("--jobs", type=int, default=2)
     args = parser.parse_args()
     if not 1 <= args.jobs <= 8:
         parser.error("jobs 1..8")
-    args.artifacts.mkdir(parents=True, exist_ok=True)
+    try:
+        compiler_env, bulk_thresholds = bulk_environment(os.environ, args.bulk_min)
+    except ValueError as error:
+        parser.error(str(error))
+    args.artifacts.mkdir(parents=True, exist_ok=False)
     artifacts = args.artifacts.resolve()
     crate = ROOT / "opstack/kona"
     env = dict(
-        os.environ,
+        compiler_env,
         CARGO_TARGET_DIR=str(crate / "target"),
         RUSTFLAGS="-C passes=lower-atomic",
     )
@@ -66,7 +113,7 @@ def main():
 
         # Same compiler revision, independent native execution backend.
         host_env = dict(
-            os.environ, CARGO_TARGET_DIR=str(crate / "target"), RUSTFLAGS=""
+            compiler_env, CARGO_TARGET_DIR=str(crate / "target"), RUSTFLAGS=""
         )
         run(
             [
@@ -84,9 +131,9 @@ def main():
             ],
             host_env,
         )
-        lean = args.variant in ("lean", "frontier", "memory")
+        lean = args.variant in LEAN_VARIANTS
         manifest = crate / ("lean/Cargo.toml" if lean else "Cargo.toml")
-        profile = "frontier" if args.variant in ("frontier", "memory") else "release"
+        profile, lean_features = LEAN_VARIANTS.get(args.variant, ("release", []))
         command = [
             "cargo",
             "+" + TOOLCHAIN,
@@ -110,12 +157,10 @@ def main():
         if not lean:
             command += ["-p", "stwo-kona-rv64-guest"]
         features = (
-            []
-            if lean or VARIANTS.get(args.variant) is None
-            else [VARIANTS[args.variant]]
+            list(lean_features)
+            if lean
+            else ([VARIANTS[args.variant]] if VARIANTS.get(args.variant) else [])
         )
-        if args.variant == "memory":
-            features.append("memory-service")
         if args.eager:
             features.append("eager-preimages")
         if features:
@@ -157,6 +202,7 @@ def main():
     report = {
         "schema": "stwo.opstack.build.v1",
         "variant": args.variant,
+        "bulk_threshold_bytes": bulk_thresholds,
         "eager": args.eager,
         "commands": commands,
         "source_head": subprocess.check_output(

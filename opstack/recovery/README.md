@@ -1,3 +1,10 @@
+# Superseded recovery notes
+
+The SHA and candidate-cost drafts were promoted to maintained source during the
+mainnet continuation. Their patch files have been removed. Use the current
+[OP runbook](../README.md); the observations below are historical, unpromoted
+measurements from the interrupted session. Current raw receipts supersede them.
+
 # Interrupted follow-up and recovery
 
 2026-11-06. The execution environment became unavailable after roughly 2½ hours of execution work, cutting short the requested 5–6 hour session. No GPU was available before that interruption.
@@ -33,8 +40,6 @@ SHA compression was checked through the public OpenSSL 3 `SHA256_Transform` ABI,
 Start from the PR head, read the main [OP README](../README.md), and keep each experiment isolated. The patch source paths are the same as at `7839beb080167711a70dea303e509a92b41d8556`; the later GPU-only rebase did not alter them.
 
 ```sh
-git apply --check opstack/recovery/sha-service.patch
-git apply opstack/recovery/sha-service.patch
 # Resolve only the added optional path dependency; inspect both lockfile diffs.
 cargo +stable check --manifest-path opstack/kona/Cargo.toml --features host,sha-service -j1
 cargo +nightly-2026-08-08 update --manifest-path opstack/kona/lean/Cargo.toml \\

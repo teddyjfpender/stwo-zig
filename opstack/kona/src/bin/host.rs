@@ -5,9 +5,17 @@ use stwo_kona_execution::{
     execution::{self, Fixture, RangeInput},
     witness::{self, Validation, Witness},
 };
+#[path = "../host/mainnet.rs"]
+mod mainnet;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     match args.get(1).map(String::as_str) {
+        Some("import-mainnet") => {
+            if args.len() != 4 {
+                return Err("import-mainnet REPLAY_JSON FIXTURE_JSON".into());
+            }
+            mainnet::import(&args[2], &args[3])?;
+        }
         Some("pack") => {
             if args.len() < 4 {
                 return Err("pack OUT FIXTURE_DIR...".into());

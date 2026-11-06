@@ -7,9 +7,35 @@ the independent Python Keccak/RCB reference and rejects every other service tag.
 import hashlib
 import struct
 import time
+from functools import lru_cache
 from pathlib import Path
 
 from scripts.riscv64_csp_compare import elf_info
+
+
+@lru_cache(maxsize=16)
+def montgomery_inverse(modulus):
+    return pow(1 << 384, -1, modulus)
+
+
+def mont384(packet):
+    """Independent mathematical interpretation of the admitted Montgomery packet."""
+    if len(packet) != 160:
+        raise ValueError("Montgomery packet size")
+    a, b, modulus = (int.from_bytes(packet[i : i + 48], "little") for i in (0, 48, 96))
+    if modulus & 1 == 0:
+        raise ValueError("Montgomery modulus must be odd")
+    return (a * b * montgomery_inverse(modulus) % modulus).to_bytes(48, "little")
+
+
+def arith256(packet):
+    """Independent full-precision integers; no guest or producer arithmetic code."""
+    if len(packet) != 160:
+        raise ValueError("arith256 packet size")
+    a, b, c, modulus = (
+        int.from_bytes(packet[i : i + 32], "little") for i in range(0, 128, 32)
+    )
+    return ((a * b + c) % modulus if modulus else 0).to_bytes(32, "little")
 
 
 def execute(config, expected_steps, timeout=600):
@@ -129,7 +155,11 @@ def execute(config, expected_steps, timeout=600):
 
     uc.hook_add(U.UC_HOOK_MEM_WRITE, halt, begin=s["halt_flag"], end=s["halt_flag"] + 3)
     service_error = []
+    sha_compressor = None
     service_counts = {
+        "curve_calls": [0] * 7,
+        "sha256_calls": 0,
+        "arith256_mod_calls": 0,
         "keccak_calls": 0,
         "secp_add_calls": 0,
         "secp_double_calls": 0,
@@ -152,6 +182,7 @@ def execute(config, expected_steps, timeout=600):
         )
 
         def service(uc, intno, _):
+            nonlocal sha_compressor
             pc = uc.reg_read(R.UC_RISCV_REG_PC)
             tag = uc.reg_read(R.UC_RISCV_REG_A7)
             pointer = uc.reg_read(R.UC_RISCV_REG_A0)
@@ -161,7 +192,31 @@ def execute(config, expected_steps, timeout=600):
                     or bytes(uc.mem_read(pc - 4, 4)) != b"\x73\x00\x00\x00"
                 ):
                     raise ValueError("unexpected service interrupt")
-                if tag == 0x10001:
+                if tag == 0x30010:
+                    if pointer % 32:
+                        raise ValueError("unaligned SHA compression packet")
+                    if sha_compressor is None:
+                        from opstack.sha_oracle import Compressor
+
+                        sha_compressor = Compressor()
+                    packet = bytes(uc.mem_read(pointer, 96))
+                    state = struct.unpack("<8I", packet[:32])
+                    result = sha_compressor.compress(state, packet[32:])
+                    uc.mem_write(pointer, struct.pack("<8I", *result))
+                    service_counts["sha256_calls"] += 1
+                elif tag == 0x30121:
+                    if pointer % 32:
+                        raise ValueError("unaligned Montgomery packet")
+                    packet = bytes(uc.mem_read(pointer, 160))
+                    uc.mem_write(pointer, mont384(packet))
+                    service_counts["curve_calls"][4] += 1
+                elif tag == 0x30021:
+                    if pointer % 32:
+                        raise ValueError("unaligned arith256 packet")
+                    packet = bytes(uc.mem_read(pointer, 160))
+                    uc.mem_write(pointer + 128, arith256(packet))
+                    service_counts["arith256_mod_calls"] += 1
+                elif tag == 0x10001:
                     if pointer % 8:
                         raise ValueError("unaligned Keccak")
                     lanes = struct.unpack("<25Q", uc.mem_read(pointer, 200))
@@ -273,7 +328,13 @@ def execute(config, expected_steps, timeout=600):
                 else:
                     raise ValueError(f"unsupported service tag {tag:#x}")
                 uc.reg_write(R.UC_RISCV_REG_PC, pc)
-            except (ValueError, struct.error, U.UcError) as error:
+            except (
+                ValueError,
+                struct.error,
+                OSError,
+                AttributeError,
+                U.UcError,
+            ) as error:
                 service_error.append(str(error))
                 uc.emu_stop()
 
@@ -297,6 +358,9 @@ def execute(config, expected_steps, timeout=600):
         "completed": True,
         "proof_verified": False,
         "services": service_counts,
+        "sha256_oracle": sha_compressor.version
+        if service_counts["sha256_calls"]
+        else None,
         "exact_steps_verified": expected_steps,
         "elapsed_ns": time.monotonic_ns() - start,
         "elf_sha256": config["elf_sha256"],

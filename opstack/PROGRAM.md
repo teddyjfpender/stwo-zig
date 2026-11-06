@@ -30,3 +30,18 @@ validation binding the exact payload commitment in `metadata.rs`. Join that with
 execution in recursion, then anchored L1/reorg handling and a running accumulator.
 The settlement route is STARK compression and direct STARK verification; no
 SNARK wrapping. Never replace a missing bind or verifier with a success flag.
+
+## Mainnet CPU continuation
+
+Replay six pinned historical OP Mainnet blocks with actual chain 10 registry
+configuration. Require full expected block hash parity with upstream native Kona
+before RV64 measurement. A CPU proof receipt must distinguish execution, capture,
+planning, proof production, and fresh durable reception; use the existing native
+service/profile without changing soundness parameters. Record timeout and memory
+failures as failures. Compilation is outside proof timing. Historical Ecotone
+coverage does not establish current-head fork coverage or L1 derivation.
+
+SHA statement hashing reuses the admitted service; compare independent oracle
+outputs and exact native column costs before selecting it or bulk memory by
+default. Keep ownership within opstack unless a shared driver needs a small,
+reviewable change. Remove reconstruction drafts once validated.

@@ -1,0 +1,39 @@
+{
+  "repository": "https://github.com/arkworks-rs/algebra",
+  "commit": "bffa52711f225e888c1a91e1ec9fc59f2d9d5c94",
+  "path": "curves/bn254",
+  "crate": "ark-bn254 0.6.0",
+  "upstream_files": {
+    "LICENSE-MIT": "8f71659370c5268d9a1dc962a46232540e8fca63462586d8efaa95aab492a208",
+    "LICENSE-APACHE": "e8d77d4bbe96e1b46ec0f40d1f12e19825e718c764bb3e9a695633ade9289f9e",
+    "Cargo.toml.orig": "13edeecdd8241b44d26034ec178ab93f0321e6bcfe74e47d02038275956723fb",
+    "Cargo.toml": "4a5835afa01b9b51f6d1abd167ad4fa2be7d0033eb1f1f214363a42e4649e008",
+    "Cargo.lock": "b233971005fa3301d0fd18f692f8c63e3fb3574a42c7267e2affea69d887c583",
+    "src/lib.rs": "8e2ff595fd80ff5396672ec1c3202a98b83f472c6b3c75fda71cf8a79cdbd53b",
+    "src/fields/tests.rs": "c2745bb9b8ad17efc0e302f0309c7023891e7b2e0dd376718573f323ad67030f",
+    "src/fields/mod.rs": "44cc73b290f69ec7217620761c52afb91cea4dcb8348f8425551b4a6a701bd5b",
+    "src/fields/fr.rs": "05bd67486b5fc6ed6ed5e70e2e6673794797502e671aaf0e9108e8ebb7f18fbf",
+    "src/fields/fq6.rs": "e41425906891a632b132bda0a635d241de03a30849e38aa0e75c603fc6b4c549",
+    "src/fields/fq2.rs": "9716b0b50dd2a9e1b498a417bf6f978e9c37944af4f1d071f9096fffff22eee7",
+    "src/fields/fq12.rs": "16e5643f3fcfabe2c1c8b6478f4e8c341d1eba1ca8bc4eb3f2413a9cf7f61cbd",
+    "src/fields/fq.rs": "7c65f9d074c6f807fb95b17b339487bc69a952d4741fc119a70436b3338c5ddb",
+    "src/curves/tests.rs": "251bd52592a825db6488624ffab1ecc4f64a6fb06e49a8cf944fa26ff9b6e1c8",
+    "src/curves/mod.rs": "274aeb949f0a8660e5dbbbba3f23172ebcdd38805acb9408f21de27de439d4a1",
+    "src/curves/g2.rs": "d8423e33bc3aafb2511769ed946450d4d7454357908ba6de9a64fba48586fc02",
+    "src/curves/g1.rs": "dabf1b825d366fd08b07c0dcb6dbed221c385cf202cca65d90bb069c15aa4ab0",
+    "src/constraints/mod.rs": "5fd74674e11ea8fe8f0dfb9a01ad02a7cb3bc37784ddcc0d6acca4016776f3d9",
+    "src/constraints/fields.rs": "e5275b8b382ab5457439a931975cb8b11bd024aa361cbdfe67a06136aace101e",
+    "src/constraints/curves.rs": "a4688e960eb697c22d017e1ee69ea1eea7bf8967496777e86e85e15c437fc9a6"
+  },
+  "changes": "optional stwo-montgomery-service Fq config; original config unchanged without feature; standalone workspace",
+  "modified_files": [
+    "Cargo.toml",
+    "Cargo.lock",
+    "src/lib.rs",
+    "src/fields/fq.rs"
+  ],
+  "added_files": [
+    "src/fields/fq_service.rs",
+    "UPSTREAM.json"
+  ]
+}

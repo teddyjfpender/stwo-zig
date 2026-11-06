@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure real OP-Sepolia execution; never label execution as a STARK proof."""
+"""Measure admitted OP Mainnet or OP-Sepolia execution; never label execution as a STARK proof."""
 
 import argparse
 import hashlib
@@ -41,11 +41,12 @@ def main():
     parser.add_argument("--guest", type=Path)
     parser.add_argument("--runner", type=Path)
     parser.add_argument("--samples", type=int, default=3)
+    parser.add_argument("--network", choices=("mainnet", "sepolia"), default="mainnet")
     parser.add_argument(
         "--blocks",
         type=int,
         nargs="+",
-        default=[26207960, 26207961, 26207962, 26207963],
+        default=None,
     )
     parser.add_argument("--oracle", action="store_true")
     parser.add_argument("--isolated-only", action="store_true")
@@ -53,11 +54,28 @@ def main():
         "--profile", choices=("software", "ethereum_services_v3"), default="software"
     )
     args = parser.parse_args()
+    if args.blocks is None:
+        args.blocks = (
+            [120794432, 121003241, 121049889, 121057303, 121065789, 121135704]
+            if args.network == "mainnet"
+            else [26207960, 26207961, 26207962, 26207963]
+        )
+    expected_chain = 10 if args.network == "mainnet" else 11155420
+    for block in args.blocks:
+        fixture = json.loads(
+            (args.fixtures / f"block-{block}" / "fixture.json").read_text()
+        )
+        chain = fixture["rollup_config"]["l2_chain_id"]
+        chain = {"optimism": 10, "optimism-sepolia": 11155420}.get(str(chain), chain)
+        if int(str(chain), 0) != expected_chain:
+            parser.error("fixture chain does not match selected network")
+    if args.network == "mainnet":
+        args.isolated_only = True  # Historical archive blocks are nonadjacent.
     if not 1 <= args.samples <= 9 or not 1 <= len(args.blocks) <= 32:
         parser.error("samples 1..9; blocks 1..32")
     if bool(args.guest) != bool(args.runner):
         parser.error("guest and runner are required together")
-    args.artifacts.mkdir(parents=True, exist_ok=True)
+    args.artifacts.mkdir(parents=True, exist_ok=False)
     cases = [(str(block), [block]) for block in args.blocks]
     if len(args.blocks) > 1 and not args.isolated_only:
         cases.append((f"range-{len(args.blocks)}", args.blocks))
@@ -175,6 +193,8 @@ def main():
     }
     provenance = {
         "schema": "stwo.opstack.benchmark.v1",
+        "network": args.network,
+        "chain_id": expected_chain,
         "source_head": run(["git", "rev-parse", "HEAD"]).stdout.strip(),
         "source_hashes": sources,
         "host_sha256": sha(args.host),
