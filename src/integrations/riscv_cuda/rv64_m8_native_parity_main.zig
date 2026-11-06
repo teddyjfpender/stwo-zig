@@ -164,7 +164,7 @@ const Row = struct {
     binding_roots_equal: bool = false,
     binding_checked: bool = false,
     binding_launches: u64 = 0,
-    binding_gpu_ms: f32 = -1,
+    stage1_gpu_ms: f32 = -1,
     binding_error: []const u8 = "",
 };
 
@@ -267,7 +267,7 @@ const Stage1ParityJob = struct {
     events: ?*const Events.Api = null,
     begin: ?*anyopaque = null,
     end: ?*anyopaque = null,
-    binding_gpu_ms: f32 = -1,
+    stage1_gpu_ms: f32 = -1,
     pub fn classKey(self: *Stage1ParityJob) [32]u8 {
         return NG.classKeyOf(self.s1.gkr.?.plan);
     }
@@ -284,23 +284,25 @@ const Stage1ParityJob = struct {
     }
     pub fn stage(self: *Stage1ParityJob, s: *api.Stager) !void {
         try self.s1.stage(s, self.fixed_inputs, self.main_inputs);
-        if (self.binding) |b| try b.stage(self.s1.gkr.?.a, s);
         if (self.events) |ev| if (ev.create(&self.begin, 0) != 0 or ev.create(&self.end, 0) != 0 or self.begin == null or self.end == null) return error.CudaTimingFailed;
     }
     pub fn enqueue(self: *Stage1ParityJob, e: *api.Enqueue) !void {
         try e.slab.bind(&self.layout);
         try self.peer.mirrorInputs(e, NC.Input, self.main_inputs, self.main_logs, self.local);
-        _ = try self.s1.enqueue(e, self.fixed_inputs, self.local, try e.slab.field(.root, 0));
         if (self.binding) |b| {
+            // Stage1's own binding step (enqueueWithBinding). CUDA events span
+            // the whole Stage1 enqueue (FIXED, MAIN, GKR, binding; not the mirrors).
             const verdict = try e.slab.field(.opaque_words, 0);
             try check(self.s1.gkr.?.sym.memset(e.ctx(), verdict.ptr, 0, 4));
-            const out = try e.alloc(b.plan.output_words);
             if (self.events) |ev| if (ev.record(self.begin.?, e.stream()) != 0) return error.CudaTimingFailed;
-            try b.enqueue(e, self.s1.gkr.?, out, verdict);
+            const committed = try self.s1.enqueueWithBinding(e, self.fixed_inputs, self.local, try e.slab.field(.root, 0), verdict);
             if (self.events) |ev| if (ev.record(self.end.?, e.stream()) != 0) return error.CudaTimingFailed;
+            const out = committed.binding orelse return error.Stage1BindingMissing;
             try bindingRoots(self.s1.csym, e, b.plan, out.ptr, try e.slab.field(.opaque_words, 1));
             e.free(out);
+            return;
         }
+        _ = try self.s1.enqueue(e, self.fixed_inputs, self.local, try e.slab.field(.root, 0));
     }
     pub fn finish(self: *Stage1ParityJob, view: api.SlabView) !void {
         @memcpy(&self.roots, try Slab.read(view, .root, 0));
@@ -308,8 +310,8 @@ const Stage1ParityJob = struct {
         if (self.binding != null) {
             self.binding_verdict = (try Slab.read(view, .opaque_words, 0))[0];
             @memcpy(self.binding_roots, try Slab.read(view, .opaque_words, 1));
-            if (self.events) |ev| if (ev.elapsed(&self.binding_gpu_ms, self.begin.?, self.end.?) != 0) {
-                self.binding_gpu_ms = -1;
+            if (self.events) |ev| if (ev.elapsed(&self.stage1_gpu_ms, self.begin.?, self.end.?) != 0) {
+                self.stage1_gpu_ms = -1;
             };
         }
     }
@@ -373,7 +375,7 @@ const Decorator = struct {
         self.checkBindingInner(ordinal, request, completed, row) catch |err| {
             row.binding_error = @errorName(err);
         };
-        std.debug.print("GPU_M8_NATIVE_BINDING_PARITY ordinal={} instances={} verdict={} roots_equal={} gpu_ms={d:.3} launches={} error={s}\n", .{ ordinal, row.binding_instances, row.binding_verdict, row.binding_roots_equal, row.binding_gpu_ms, row.binding_launches, row.binding_error });
+        std.debug.print("GPU_M8_NATIVE_BINDING_PARITY ordinal={} instances={} verdict={} roots_equal={} stage1_gpu_ms={d:.3} launches={} error={s}\n", .{ ordinal, row.binding_instances, row.binding_verdict, row.binding_roots_equal, row.stage1_gpu_ms, row.binding_launches, row.binding_error });
     }
     fn checkBindingInner(self: *Decorator, ordinal: u32, request: Child.DeviceBinding.Request, completed: Child.DeviceBinding.Completion, row: *Row) !void {
         const job_roots = self.pending_binding.get(ordinal) orelse return error.BindingJobRootsMissing;
@@ -487,7 +489,7 @@ const Decorator = struct {
         defer gkr.deinit();
         const local = try a.alloc(NC.Input, nm);
         defer a.free(local);
-        var job = Stage1ParityJob{ .s1 = .{ .fixed = &fixed_tree, .main = &main_plan, .csym = self.csym, .seed = @splat(0), .gkr = &gkr }, .fixed_inputs = fixed_inputs, .main_inputs = main_inputs, .local = local, .main_logs = main_logs, .fixed_host_words = fixed_host_words, .peer = self.peer };
+        var job = Stage1ParityJob{ .s1 = .{ .fixed = &fixed_tree, .main = &main_plan, .csym = self.csym, .seed = @splat(0), .gkr = &gkr, .binding = null }, .fixed_inputs = fixed_inputs, .main_inputs = main_inputs, .local = local, .main_logs = main_logs, .fixed_host_words = fixed_host_words, .peer = self.peer };
         defer if (job.section) |*s| s.deinit();
         _ = try job.layout.add(.root, 0, 16);
         try gplan.addFields(&job.layout);
@@ -504,6 +506,7 @@ const Decorator = struct {
             bplan = try NB.Plan.init(a, request.instances, gplan.traversal.layers);
             binding = .{ .plan = &bplan.?, .sym = bsym };
             job.binding = &binding;
+            job.s1.binding = &binding;
             job.binding_roots = try a.alloc(u32, 8 * request.instances.len);
             _ = try job.layout.add(.opaque_words, 0, 1);
             _ = try job.layout.add(.opaque_words, 1, job.binding_roots.len);
@@ -532,7 +535,7 @@ const Decorator = struct {
         if (job.binding != null) {
             row.binding_verdict = job.binding_verdict;
             row.binding_launches = binding.launches;
-            row.binding_gpu_ms = job.binding_gpu_ms;
+            row.stage1_gpu_ms = job.stage1_gpu_ms;
             try self.pending_binding.put(self.a, request.scope.ordinal, job.binding_roots);
             keep_roots = true;
         }
@@ -1325,9 +1328,8 @@ const PcsDecorator = struct {
     fn prove(raw: *anyopaque, a: std.mem.Allocator, request: DP.Request, channel: *DP.Channel) anyerror!DP.P.ExtendedCommitmentSchemeProof(DP.H) {
         const self: *PcsDecorator = @ptrCast(@alignCast(raw));
         const before = channel.*;
-        var timer = try std.time.Timer.start();
-        const legacy = try self.inner.prove(self.inner.context, a, request, channel);
-        const legacy_ns = timer.read();
+        // The job runs FIRST: the legacy PCS is the last consumer of these
+        // trees and the owner may recycle them as soon as it returns.
         self.mutex.lock();
         defer self.mutex.unlock();
         var columns: usize = 0;
@@ -1336,15 +1338,24 @@ const PcsDecorator = struct {
             columns += 1;
             host_columns += @intFromBool(c.device == null);
         };
-        var row = PcsRow{ .kind = self.kind, .ordinal = if (request.scope) |sc| sc.ordinal else 0xffff_ffff, .trees = request.trees.len, .columns = columns, .host_columns = host_columns, .legacy_ns = legacy_ns };
-        self.check(request, before, channel.*, &legacy, &row) catch |err| {
+        var row = PcsRow{ .kind = self.kind, .ordinal = if (request.scope) |sc| sc.ordinal else 0xffff_ffff, .trees = request.trees.len, .columns = columns, .host_columns = host_columns, .legacy_ns = 0 };
+        var job_result: ?@import("rv64/hybrid_pcs.zig").Decoded = null;
+        defer if (job_result) |*d| d.proof.deinit(self.a);
+        self.check(request, before, &row, &job_result) catch |err| {
             row.error_name = @errorName(err);
         };
+        var timer = try std.time.Timer.start();
+        const legacy = try self.inner.prove(self.inner.context, a, request, channel);
+        row.legacy_ns = timer.read();
+        if (job_result) |*decoded| {
+            row.proof_equal = deepEql(decoded.proof, legacy.proof);
+            row.channel_equal = std.meta.eql(decoded.channel.inner.digest, channel.inner.digest) and decoded.channel.inner.n_draws == channel.inner.n_draws;
+        }
         std.debug.print("GPU_M8_NATIVE_PCS_PARITY kind={s} ordinal={} trees={} columns={} host_columns={} oods_equal={} proof_equal={} channel_equal={} gpu_ms={d:.3} legacy_ns={} job_enqueue_ns={} job_wait_ns={} host_waits={} arena_peak_words={} error={s}\n", .{ row.kind, row.ordinal, row.trees, row.columns, row.host_columns, row.oods_equal, row.proof_equal, row.channel_equal, row.gpu_ms, row.legacy_ns, row.job_enqueue_ns, row.job_wait_ns, row.host_waits, row.arena_peak_words, row.error_name });
         try self.rows.append(self.a, row);
         return legacy;
     }
-    fn check(self: *PcsDecorator, request: DP.Request, before: DP.Channel, after: DP.Channel, legacy: *const DP.P.ExtendedCommitmentSchemeProof(DP.H), row: *PcsRow) !void {
+    fn check(self: *PcsDecorator, request: DP.Request, before: DP.Channel, row: *PcsRow, result: *?@import("rv64/hybrid_pcs.zig").Decoded) !void {
         const a = self.a;
         // Pre-OODS checkpoint: the OODS draw is the last op before the PCS (one
         // draw step, digest unchanged).
@@ -1399,9 +1410,8 @@ const PcsDecorator = struct {
         for (oods.y.toM31Array(), 0..) |m, i| oods_equal = oods_equal and job.oods[8 + i] == m.v;
         row.oods_equal = oods_equal;
         if (job.decode_error) |err| return err;
-        const decoded = &(job.decoded orelse return error.PcsParityNotDecoded);
-        row.proof_equal = deepEql(decoded.proof, legacy.proof);
-        row.channel_equal = std.meta.eql(decoded.channel.inner.digest, after.inner.digest) and decoded.channel.inner.n_draws == after.inner.n_draws;
+        result.* = job.decoded orelse return error.PcsParityNotDecoded;
+        job.decoded = null;
     }
 };
 

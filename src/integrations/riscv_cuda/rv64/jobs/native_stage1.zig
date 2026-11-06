@@ -10,14 +10,17 @@
 //!
 //! The FIXED root the device computed is copied to a slab field; finish must
 //! compare it with the setup key root (the legacy appendFixed authority check).
-//! Not here yet: the witness source producer of the MAIN inputs and the local
-//! GKR (its own child channel; spec: channel kept on device, section into the
-//! slab). MAIN inputs are device buffers produced before `enqueue`, or staged
-//! host columns.
+//! After MAIN: the local GKR (native_gkr.zig, its own child channel kept on
+//! device, section into the slab) and, right after its traversal on the same
+//! stream, the local Eq/prefix binding (native_binding.zig): 16 coefficient
+//! columns per instance for the INTER tree, verdict word in the slab.
+//! Not here yet: the witness source producer of the MAIN inputs. MAIN inputs
+//! are device buffers produced before `enqueue`, or staged host columns.
 const std = @import("std");
 const api = @import("api.zig");
 const C = @import("native_commit.zig");
 const G = @import("native_gkr.zig");
+const B = @import("native_binding.zig");
 
 pub const FixedTree = struct {
     plan: *C.CommitPlan,
@@ -55,6 +58,8 @@ pub const Stage1 = struct {
     /// Local GKR of the segment, fed by this job's FIXED/MAIN commitments and
     /// the device MAIN root (spec §3.5 item 1); null stops after MAIN.
     gkr: ?*G.Gkr = null,
+    /// Local binding after the GKR traversal (requires `gkr`); null skips it.
+    binding: ?*B.Binding = null,
 
     pub fn stage(self: *Stage1, s: *api.Stager, fixed_inputs: []const C.Input, main_inputs: []const C.Input) !void {
         const b = try s.alloc(9);
@@ -63,16 +68,34 @@ pub const Stage1 = struct {
         try self.fixed.stage(s, fixed_inputs);
         try self.main.stage(s, main_inputs);
         if (self.gkr) |gkr| try gkr.stageCommitted(s);
+        if (self.binding) |binding| {
+            if (self.gkr == null) return error.Stage1BindingRequiresGkr;
+            try binding.stage(self.gkr.?.a, s);
+        }
     }
-    pub const Committed = struct { fixed: C.Committed, main: C.Committed };
+    /// `binding`: the binding output (job arena, `B.Plan.output_words`; the
+    /// caller frees it after the INTER commit), null without a binding.
+    pub const Committed = struct { fixed: C.Committed, main: C.Committed, binding: ?api.DeviceBuffer = null };
     /// `roots`: slab field of 16 words (FIXED root, MAIN root). MAIN
     /// coefficients are job-arena memory owned by the caller after return.
     pub fn enqueue(self: *Stage1, e: *api.Enqueue, fixed_inputs: []const C.Input, main_inputs: []const C.Input, roots: api.DeviceBuffer) !Committed {
+        return self.enqueueWithBinding(e, fixed_inputs, main_inputs, roots, null);
+    }
+    /// As `enqueue`; `binding_verdict` (one caller-cleared device word, e.g. a
+    /// slab field) is required when `binding` is set.
+    pub fn enqueueWithBinding(self: *Stage1, e: *api.Enqueue, fixed_inputs: []const C.Input, main_inputs: []const C.Input, roots: api.DeviceBuffer, binding_verdict: ?api.DeviceBuffer) !Committed {
         try e.channel.initFromCheckpoint(self.staged_seed orelse return error.Stage1NotStaged);
         const fixed = try self.fixed.enqueue(self.csym, e, fixed_inputs, try roots.slice(0, 8));
         const main = try self.main.enqueue(self.csym, e, main_inputs, try roots.slice(8, 8), true);
         if (self.gkr) |gkr| try gkr.enqueueCommitted(e, self.fixed.plan, fixed, self.main, main, try roots.slice(8, 8));
-        return .{ .fixed = fixed, .main = main };
+        var out = Committed{ .fixed = fixed, .main = main };
+        if (self.binding) |b| {
+            const verdict = binding_verdict orelse return error.Stage1BindingVerdictRequired;
+            const output = try e.alloc(b.plan.output_words);
+            try b.enqueue(e, self.gkr.?, output, verdict);
+            out.binding = output;
+        }
+        return out;
     }
 };
 
@@ -82,4 +105,9 @@ pub fn seedOf(channel: anytype) [9]u32 {
     for (seed[0..8], 0..) |*w, i| w.* = std.mem.readInt(u32, channel.inner.digest[i * 4 ..][0..4], .little);
     seed[8] = channel.inner.n_draws;
     return seed;
+}
+
+test "stage1 enqueueWithBinding type-checks against api.Enqueue" {
+    _ = &Stage1.enqueueWithBinding;
+    _ = &Stage1.stage;
 }
