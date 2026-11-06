@@ -35,3 +35,9 @@ warm (no upload), and a final parity job. All five parity jobs: 20/20 boundary s
 `rv64-word16-ethereum-gpu-combined combined-serve` with STWO_RV64_M8_JOBS=1 + addon, devices 0,1: both workers boot and pass
 the channel-parity self-test (incl. PoW; one host wait each), then the service fails closed with
 `M8RequestProviderNotLanded` (native/outer providers pending). STWO_RV64_M8_JOBS=2 → `InvalidM8JobsSelection`.
+
+## Scheduler on both GPUs (dag-gpu-2.json) [M]
+`rv64-jobs-channel-parity dag 12 12`: request-shaped DAG (12 stage-1 → host seal → 12 stage-2 + 2 truth (seal-independent)
+→ 12 recursion leaves + 11 binary folds), every node a ParityJob with per-kind persistent inputs, over two DeviceWorkers.
+49 jobs + 1 seal, 980/980 boundary snapshots equal to the host, 27/22 jobs on GPU 0/1, 47 key-affinity placements.
+Synthetic jobs; wall clock (36.7 ms) is not a prover timing.

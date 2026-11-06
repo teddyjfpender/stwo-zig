@@ -81,6 +81,7 @@ pub fn build(b: *std.Build) void {
     jobs_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = jobs_sched_root })).step);
     const jobs_parity_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_parity_main.zig"), .target = target, .optimize = optimize });
     jobs_parity_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    jobs_parity_root.addImport("rv64_ready_dag", b.createModule(.{ .root_source_file = b.path("../riscv_cpu/rv64_recursion/om31_native/ready_dag.zig"), .target = target, .optimize = optimize }));
     const jobs_parity = b.addExecutable(.{ .name = "rv64-jobs-channel-parity", .root_module = jobs_parity_root });
     jobs_parity.linkLibC();
     b.step("build-rv64-jobs-parity", "Build the M8 job runtime GPU channel parity harness (pod)").dependOn(&b.addInstallArtifact(jobs_parity, .{}).step);

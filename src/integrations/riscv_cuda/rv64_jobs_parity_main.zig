@@ -19,6 +19,7 @@ const api = @import("rv64/jobs/api.zig");
 const W = @import("rv64/jobs/worker.zig");
 const O = @import("rv64/jobs/ops.zig");
 const P = @import("rv64/jobs/channel_parity.zig");
+const S = @import("rv64/jobs/scheduler.zig");
 
 const Done = struct {
     mutex: std.Thread.Mutex = .{},
@@ -187,12 +188,79 @@ fn robust(a: std.mem.Allocator, libs: *O.Libraries, device: u32) !void {
     if (!ok) std.process.exit(1);
 }
 
+/// The scheduler on real GPUs: a request-shaped DAG (segments stage-1 →
+/// seal → stage-2 + truth → binary recursion over `leaves`) whose every node
+/// is a ParityJob (classes differ per kind so key affinity matters).
+const DagRun = struct {
+    a: std.mem.Allocator,
+    script: P.Script,
+    jobs: std.ArrayListUnmanaged(*P.ParityJob) = .empty,
+    seals: usize = 0,
+    failures: usize = 0,
+    per_device: [8]u64 = @splat(0),
+    fn make(raw: *anyopaque, kind: S.Kind, _: u32) anyerror!api.Job {
+        const self: *DagRun = @ptrCast(@alignCast(raw));
+        const j = try self.a.create(P.ParityJob);
+        j.* = try P.ParityJob.init(self.script);
+        j.persistent_key = @splat(@intFromEnum(kind)); // per-kind warm inputs
+        try self.jobs.append(self.a, j);
+        return api.Job.from(P.ParityJob, j);
+    }
+    fn done(raw: *anyopaque, _: S.Kind, _: u32, c: api.Completion) anyerror!void {
+        const self: *DagRun = @ptrCast(@alignCast(raw));
+        self.per_device[c.receipt.device] += 1;
+        try c.result;
+    }
+    fn seal(raw: *anyopaque, _: S.Kind, _: u32) anyerror!void {
+        const self: *DagRun = @ptrCast(@alignCast(raw));
+        self.seals += 1;
+    }
+    fn leafDeps(_: *anyopaque, a: std.mem.Allocator, ordinal: u32, r: *const S.Request, out: *std.ArrayListUnmanaged(u32)) anyerror!void {
+        try out.append(a, r.stage2[ordinal % r.stage2.len]);
+    }
+};
+
+fn dag(a: std.mem.Allocator, libs: *O.Libraries, segments: u32, leaves: usize) !void {
+    var arena_state = std.heap.ArenaAllocator.init(a);
+    defer arena_state.deinit();
+    const arena = arena_state.allocator();
+    var run = DagRun{ .a = arena, .script = try P.coverageScript(arena, true) };
+    var workers: [2]*W.Worker = undefined;
+    for (&workers, 0..) |*w, d| w.* = try W.Worker.create(a, &libs.ops, .{ .device = @intCast(d), .arena_words = 1 << 22, .pinned_slot_words = 1 << 18 });
+    defer for (workers) |w| w.destroy();
+    var graph = S.Graph{ .a = a };
+    defer graph.deinit();
+    const Plan = @import("rv64_ready_dag").Plan;
+    const plan = try Plan.initArity(leaves, 2);
+    var r = try S.buildRequest(&graph, .{ .segments = segments, .truths = 2, .truth_after_seal = false }, &plan, &run, DagRun.leafDeps);
+    defer r.deinit(a);
+    var sched = try S.Scheduler.init(a, &graph, .{ .ctx = &run, .make = DagRun.make, .done = DagRun.done, .host = DagRun.seal }, &workers);
+    defer sched.deinit();
+    for (r.stage1) |id| try sched.release(id);
+    var timer = try std.time.Timer.start();
+    try sched.run();
+    const wall = timer.read();
+    var checked: usize = 0;
+    for (run.jobs.items) |j| checked += j.checked_ops;
+    const ok = checked == run.jobs.items.len * run.script.ops.len and run.seals == 1;
+    var out: std.Io.Writer.Allocating = .init(a);
+    defer out.deinit();
+    try std.json.Stringify.value(.{ .schema = "rv64-m8-jobs-dag/v1", .ok = ok, .nodes = graph.nodes.items.len, .jobs = sched.dispatched, .affinity_hits = sched.affinity_hits, .per_device = run.per_device[0..2], .snapshots_checked = checked, .wall_ns = wall }, .{ .whitespace = .indent_1 }, &out.writer);
+    std.debug.print("{s}\n", .{out.written()});
+    if (!ok) std.process.exit(1);
+}
+
 pub fn main() !void {
     var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
     defer _ = gpa.deinit();
     const a = gpa.allocator();
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
+    if (args.len == 4 and std.mem.eql(u8, args[1], "dag")) {
+        var libs = try O.Libraries.open(std.posix.getenv("STWO_RV64_GPU_LIBRARY") orelse return error.MissingBaseLibrary, std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingJobsAddon);
+        defer libs.close();
+        return dag(a, &libs, try std.fmt.parseInt(u32, args[2], 10), try std.fmt.parseInt(usize, args[3], 10));
+    }
     if (args.len == 3 and std.mem.eql(u8, args[1], "robust")) {
         var libs = try O.Libraries.open(std.posix.getenv("STWO_RV64_GPU_LIBRARY") orelse return error.MissingBaseLibrary, std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingJobsAddon);
         defer libs.close();

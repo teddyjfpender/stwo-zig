@@ -100,8 +100,8 @@ pub const priority_stage2: u32 = (1 << 20) - 1;
 pub const priority_truth: u32 = (1 << 20) - 2;
 
 /// `plan` is a `ready_dag.Plan` (duck-typed: nodes, count, root, priority);
-/// `leaf_deps(ctx, ordinal, request, out)` fills the native node ids of a leaf.
-pub fn buildRequest(g: *Graph, shape: Shape, plan: anytype, leaf_ctx: *anyopaque, leaf_deps: *const fn (*anyopaque, u32, *const Request, *std.ArrayListUnmanaged(u32)) anyerror!void) !Request {
+/// `leaf_deps(ctx, a, ordinal, request, out)` appends (with `a`) the native node ids of a leaf.
+pub fn buildRequest(g: *Graph, shape: Shape, plan: anytype, leaf_ctx: *anyopaque, leaf_deps: *const fn (*anyopaque, std.mem.Allocator, u32, *const Request, *std.ArrayListUnmanaged(u32)) anyerror!void) !Request {
     const a = g.a;
     var r: Request = .{ .stage1 = try a.alloc(u32, shape.segments), .seal = 0, .stage2 = try a.alloc(u32, shape.segments), .truth = try a.alloc(u32, shape.truths), .recursion = try a.alloc(u32, plan.count) };
     errdefer r.deinit(a);
@@ -116,7 +116,7 @@ pub fn buildRequest(g: *Graph, shape: Shape, plan: anytype, leaf_ctx: *anyopaque
         deps.clearRetainingCapacity();
         const n = plan.nodes[node];
         if (n.isLeaf()) {
-            try leaf_deps(leaf_ctx, @intCast(n.first_leaf), &r, &deps);
+            try leaf_deps(leaf_ctx, a, @intCast(n.first_leaf), &r, &deps);
             r.recursion[node] = try g.add(.leaf, @intCast(node), plan.priority(node), deps.items, true);
         } else {
             for (n.kids()) |kid| try deps.append(a, r.recursion[kid]);

@@ -40,8 +40,8 @@ const Fake = struct {
         if (block != 26235156) return error.MissingResidentBatchBlock;
         return block;
     }
-    fn leafDeps(_: *anyopaque, ordinal: u32, r: *const S.Request, out: *std.ArrayListUnmanaged(u32)) anyerror!void {
-        try out.append(std.testing.allocator, r.stage2[ordinal % 2]);
+    fn leafDeps(_: *anyopaque, a: std.mem.Allocator, ordinal: u32, r: *const S.Request, out: *std.ArrayListUnmanaged(u32)) anyerror!void {
+        try out.append(a, r.stage2[ordinal % 2]);
     }
     fn begin(raw: *anyopaque, _: u64, g: *S.Graph, _: []const *W.Worker, _: []const u8) anyerror!S.Factory {
         const self = of(raw);

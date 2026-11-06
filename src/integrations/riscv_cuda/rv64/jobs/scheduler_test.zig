@@ -76,9 +76,9 @@ const Fac = struct {
     }
 };
 
-fn leafDeps(_: *anyopaque, ordinal: u32, r: *const S.Request, out: *std.ArrayListUnmanaged(u32)) anyerror!void {
-    try out.append(std.testing.allocator, r.stage2[ordinal % r.stage2.len]);
-    if (ordinal == 0) try out.append(std.testing.allocator, r.truth[0]);
+fn leafDeps(_: *anyopaque, a: std.mem.Allocator, ordinal: u32, r: *const S.Request, out: *std.ArrayListUnmanaged(u32)) anyerror!void {
+    try out.append(a, r.stage2[ordinal % r.stage2.len]);
+    if (ordinal == 0) try out.append(a, r.truth[0]);
 }
 
 fn workers(out: []*W.Worker) !void {
