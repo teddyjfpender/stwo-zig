@@ -1,0 +1,17 @@
+[package]
+name = "stwo-kona-rv64-guest"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+default = []
+eager-preimages = []
+keccak-service = ["stwo-kona-execution/keccak-service"]
+services-v3 = ["keccak-service", "stwo-kona-execution/secp-lean"]
+sponge-service = ["services-v3"]
+
+[dependencies]
+stwo-kona-execution = { path = ".." }
+stwo-rv64-mem = { path = "../../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/mem" }
+critical-section = { version = "1.2", features = ["restore-state-bool"] }

@@ -1,0 +1,2 @@
+rocksdict==0.3.29
+unicorn==2.1.4

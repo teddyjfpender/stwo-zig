@@ -1,0 +1,28 @@
+{
+  "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+  "security_profile": "conjectured128_b2_q108_p20_fold4",
+  "security_qualified": false,
+  "security_target": {
+    "label": "128-bit CONJECTURED security (ethSTARK-style FRI conjecture; owner-accepted 2026-11-02)",
+    "target_bits": 128,
+    "profile": "conjectured128_b2_q108_p20_fold4",
+    "assumption_set": "rv64-native-v3-om31-conjectured128-b2-q108-p20-fold4-20261102-v2-boundary23",
+    "conjectured_fri_bits": 128,
+    "scope": "native proof bundle; recursion excluded",
+    "proven_bound": false,
+    "independent_security_audit_complete": false,
+    "whole_protocol_128_certified": false
+  },
+  "pcs": {
+    "pow_bits": 20,
+    "fri_config": {
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 108,
+      "fold_step": 4
+    },
+    "lifting_log_size": null
+  },
+  "scope": "native 128-bit CONJECTURED target (ethSTARK-style FRI accounting); no proven bound and no whole-protocol certificate",
+  "usage": "[--security-profile proven_beta2_q256_p0_fold4|conjectured128_b2_q108_p20_fold4 (default)|d2_native_b4_q54_p20_fold4] produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes; JOBS=- executes in process) | inspect-recursion-schedule CONFIG OUT [ORDINAL] (CPU-only diagnostic; no acceptance,24GiB live/12GiB subset fixed cache) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-recursion-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] (CPU recursion receiver only; existing proofs, no proving fallback)"
+}

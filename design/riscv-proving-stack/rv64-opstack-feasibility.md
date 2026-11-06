@@ -1,5 +1,13 @@
 # RV64 frontend for the OP Stack in place of SP1: feasibility study
 
+**Implementation update (2026-11-06):** the execution spike is now implemented in
+[`opstack/`](../../opstack/README.md), with pinned real OP Sepolia fixtures,
+independent RV64 instruction/output checks and complete producer trace capture.
+See [the implementation contract](rv64-opstack-implementation.md) and the dated
+benchmark report. The historical source census below remains pinned to Nov 4;
+its original runtime estimates are superseded by measured results. L1 derivation,
+physical OP GPU proofs and settlement are still open. Settlement stays pure
+STARK, as the owner decided: no SNARK wrapping.
 
 
 Date: 2026-11-04. Tags:
@@ -24,8 +32,8 @@ Scratch work is in `/Users/theodorepender/Coding/ge-cache/rv64-opstack/{src,scra
 ## 1. Answer in three sentences
 
 1. **Can we?** Yes. OP Succinct's range program already compiles to plain RV64IM, which is the instruction set we prove [measured]. Every gap is in the runtime and proof plumbing around it, so the right approach is to rebuild the Kona crates against our own guest interface and services, as we did with evmone, rather than emulate SP1.
-2. **How hard?** About 3–4 weeks of CPU-only work gets real instructions-per-gas numbers, and about 6–9 engineer-months gets native proofs of OP block ranges with aggregation and statement binding. Replacing SP1 *on L1* also needs a SNARK wrap that we don't have. That brings the total to about **18–26 engineer-months plus 3–6 months of external audit**, with a first mainnet settlement about 12–18 months out [estimate].
-3. **What we think.** Run the measurement spike now: it is cheap and it settles the cost question. Pitch the result as a *second `verifierType`* for OP's multi-proof Stage 2 (Optimism's `IZKVerifier` interface is already vendor-neutral), not as a replacement for SP1. Don't commit to the wrap until the spike shows we are clearly cheaper (≥1.5×) than current SP1 Hypercube.
+2. **Current implementation.** A separate no_std Kona execution guest now runs real OP blocks on our RV64 executor, reusing constrained crypto services and retaining trie state across a range. Instruction counts and independent execution checks are measured; they do not establish a proof-time advantage over SP1.
+3. **Remaining scope.** Complete Kona L1 derivation/KZG, bind derivation and execution in recursion, qualify physical GPU proofs and implement direct STARK settlement behind a vendor-neutral verifier adapter. No SNARK wrapper is part of this plan. The old engineering estimates below describe the original study, not a delivery commitment.
 
 ---
 
@@ -134,7 +142,7 @@ These are SP1 RV32IM figures from Dec 2024. No breakdown has been published for 
 | **Proof aggregation in the guest** (`verify_sp1_proof`) | VERIFY_SP1_PROOF | none [verified-source] | Add a deferred-statement mechanism plus OP aggregation logic | 5–9 wk | Medium |
 | **Program identity (vkeys)** | SP1 vkey format | the fold hashes identity and fixed roots | `programId = H(domain, ELF commitment, recursion VK root)` | 1–2 wk | Low |
 | **Fixed-key root proof** | constant-VK recursion | The verifier rebuilds child authorities and checks adjacency/coverage off-circuit (`om31_outer.zig:1-16`) | Move those checks into the circuit | 3–6 wk | Medium–High |
-| **Proof verifiable on L1** | Groth16 ~270k gas, PLONK ~300k gas | none; a SNARK wrap is explicitly "out of scope" (`rv64-aggregation.md:98`) | Shrink layer + gnark PLONK wrap + Solidity adapters | 8–12 eng-mo | **Highest** |
+| **Proof verifiable on L1** | Groth16 ~270k gas, PLONK ~300k gas | direct STARK settlement remains open | STARK compression + EVM-friendly final hash profile + Solidity STARK verifier/adapters; no SNARK wrap | requires new estimate | **Highest** |
 | **Host / proposer** | `sp1_sdk`, `ProofProvider` | none | `ProofProvider::StwoZig`, input conversion, range sizing for our limits | 3–6 wk | Low–Medium |
 | **Security level** | ~100-bit, conjectured | 96-bit nominal, not composed-proven (`rv64-composed-security-analysis-20261102.md:15`) | Composed soundness analysis | weeks + review | High for L1 |
 
@@ -266,18 +274,18 @@ The "fixed cost per L2 block" column covers derivation, oracle and blob checks, 
   - proposer adapter.
 - **Gate:** a root proof that verifies from public values and a constant verifying key alone, plus a passed design review.
 
-**P3: SNARK wrap and on-chain verification.** 8–12 eng-mo plus audit.
+**P3: pure-STARK compression and on-chain verification.** Replaces the original wrap proposal; requires a new estimate and audit.
 - **Work:**
-  - BN254-friendly hashing in prover, verifier and recursion;
-  - gnark PLONK wrap;
+  - two-stage STARK compression and a named EVM-friendly final hash profile;
+  - direct Solidity Circle-STARK verification;
   - Solidity adapters with Foundry tests;
   - composed soundness case;
   - external audit.
-- **Gate:** the owner funds it as a separate track, or a customer accepts off-chain verification in the meantime.
+- **Gate:** independent acceptance of the compressed STARK and on-chain verification with measured gas, calldata and composed soundness. No SNARK wrapper.
 
 **Optional after P1, if a customer pays:** P2-level guest cost (evmone with OP rules) and the derivation/execution split.
 
-**Total to an L1-verifiable replacement:** about 18–26 engineer-months plus audit [estimate].
+**Original total estimate:** 18–26 engineer-months plus audit included the now-rejected wrapper and must be re-estimated for the selected pure-STARK route.
 
 ---
 

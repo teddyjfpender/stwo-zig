@@ -1,0 +1,1397 @@
+{
+  "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+  "security_qualified": false,
+  "scope": "geometry advice only; no proof or acceptance",
+  "total_steps": 8276623,
+  "cpu": [
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 16,
+        "alu_tail_log": 15,
+        "binary_log": 12,
+        "binary_tail_log": 11,
+        "shift_log": 11,
+        "shift_tail_log": null,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 9,
+        "ls_log": 15,
+        "ls_tail_log": 14,
+        "boundary_log": 5,
+        "initial_log": 18,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 8,
+          "copy": 12,
+          "set": 13,
+          "ucopy": 9,
+          "cdesc": 9,
+          "cmp": 9
+        },
+        "ls_dword": 16
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 16,
+        "alu_tail_log": null,
+        "binary_log": 16,
+        "binary_tail_log": 12,
+        "shift_log": 16,
+        "shift_tail_log": null,
+        "jalr_log": 9,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 8,
+        "ls_log": 14,
+        "ls_tail_log": 13,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 7,
+          "copy": 11,
+          "set": 7,
+          "ucopy": 8
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 5
+        },
+        "ls_dword": 15
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 15,
+        "alu_tail_log": 14,
+        "binary_log": 16,
+        "binary_tail_log": null,
+        "shift_log": 16,
+        "shift_tail_log": null,
+        "jalr_log": 10,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 14,
+        "ls_log": 13,
+        "ls_tail_log": 12,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 8,
+          "copy": 14,
+          "set": 10,
+          "ucopy": 9,
+          "cdesc": 5,
+          "cmp": 7
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 5
+        },
+        "ls_dword": 15,
+        "ls_dword_tail": 13
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 16,
+        "alu_tail_log": null,
+        "binary_log": 14,
+        "binary_tail_log": 13,
+        "shift_log": 15,
+        "shift_tail_log": null,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 14,
+        "ls_log": 12,
+        "ls_tail_log": 8,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": 11,
+        "double": 10,
+        "bulk": {
+          "desc": 9,
+          "copy": 13,
+          "set": 8,
+          "ucopy": 9,
+          "cdesc": 8,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 5
+        },
+        "ls_dword": 15,
+        "ls_dword_tail": 14
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 16,
+        "alu_tail_log": 8,
+        "binary_log": 14,
+        "binary_tail_log": 13,
+        "shift_log": 15,
+        "shift_tail_log": 11,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 15,
+        "ls_log": 11,
+        "ls_tail_log": 10,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": 11,
+        "double": 9,
+        "bulk": {
+          "desc": 8,
+          "copy": 13,
+          "set": 7,
+          "ucopy": 8,
+          "cdesc": 7,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 5
+        },
+        "ls_dword": 15,
+        "ls_dword_tail": 14
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 16,
+        "alu_tail_log": null,
+        "binary_log": 14,
+        "binary_tail_log": 13,
+        "shift_log": 15,
+        "shift_tail_log": 10,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 15,
+        "ls_log": 12,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": 11,
+        "double": 10,
+        "bulk": {
+          "desc": 9,
+          "copy": 13,
+          "set": 8,
+          "ucopy": 8,
+          "cdesc": 7,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 5
+        },
+        "ls_dword": 15,
+        "ls_dword_tail": 14
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 16,
+        "alu_tail_log": null,
+        "binary_log": 14,
+        "binary_tail_log": 13,
+        "shift_log": 15,
+        "shift_tail_log": null,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 15,
+        "ls_log": 12,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": 11,
+        "double": 10,
+        "bulk": {
+          "desc": 9,
+          "copy": 13,
+          "set": 7,
+          "ucopy": 8,
+          "cdesc": 7,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 5
+        },
+        "ls_dword": 15,
+        "ls_dword_tail": 14
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 16,
+        "alu_tail_log": 12,
+        "binary_log": 14,
+        "binary_tail_log": 13,
+        "shift_log": 15,
+        "shift_tail_log": 12,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 15,
+        "ls_log": 11,
+        "ls_tail_log": 10,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": 10,
+        "double": 9,
+        "bulk": {
+          "desc": 8,
+          "copy": 13,
+          "set": 7,
+          "ucopy": 8,
+          "cdesc": 7,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 5
+        },
+        "ls_dword": 15,
+        "ls_dword_tail": 13
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 15,
+        "alu_tail_log": null,
+        "binary_log": 13,
+        "binary_tail_log": null,
+        "shift_log": 12,
+        "shift_tail_log": 11,
+        "jalr_log": 12,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": 10,
+        "double": 9,
+        "bulk": {
+          "desc": 11,
+          "copy": 14,
+          "set": 10,
+          "ucopy": 11,
+          "cdesc": 8,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 6,
+          "perm": 7
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 11
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 15,
+        "alu_tail_log": null,
+        "binary_log": 13,
+        "binary_tail_log": null,
+        "shift_log": 12,
+        "shift_tail_log": 9,
+        "jalr_log": 12,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": 13,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 10,
+          "copy": 14,
+          "set": 13,
+          "ucopy": 11,
+          "cdesc": 7,
+          "cmp": 9
+        },
+        "sponge": {
+          "call": 6,
+          "perm": 7
+        },
+        "ls_dword": 16
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 15,
+        "alu_tail_log": 14,
+        "binary_log": 12,
+        "binary_tail_log": 10,
+        "shift_log": 12,
+        "shift_tail_log": null,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 9,
+        "ls_log": 16,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 10,
+          "copy": 14,
+          "set": 10,
+          "ucopy": 12,
+          "cdesc": 6,
+          "cmp": 7
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 8
+        },
+        "ls_dword": 15,
+        "ls_dword_tail": 14
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 10,
+        "binary_log": 12,
+        "binary_tail_log": 11,
+        "shift_log": 11,
+        "shift_tail_log": 10,
+        "jalr_log": 12,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": 13,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 11,
+          "copy": 14,
+          "set": 11,
+          "ucopy": 11,
+          "cdesc": 6,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 6,
+          "perm": 7
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 12
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 12,
+        "binary_log": 12,
+        "binary_tail_log": 11,
+        "shift_log": 12,
+        "shift_tail_log": null,
+        "jalr_log": 12,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": 14,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 11,
+          "copy": 14,
+          "set": 11,
+          "ucopy": 12,
+          "cdesc": 7,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 6,
+          "perm": 8
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 10
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 15,
+        "alu_tail_log": null,
+        "binary_log": 12,
+        "binary_tail_log": 11,
+        "shift_log": 12,
+        "shift_tail_log": null,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 10,
+        "ls_log": 15,
+        "ls_tail_log": 14,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 10,
+          "copy": 14,
+          "set": 10,
+          "ucopy": 11,
+          "cdesc": 6,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 7
+        },
+        "ls_dword": 16
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 13,
+        "binary_log": 13,
+        "binary_tail_log": null,
+        "shift_log": 12,
+        "shift_tail_log": 7,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": 9,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 10,
+          "copy": 13,
+          "set": 13,
+          "ucopy": 10,
+          "cdesc": 7,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 6
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 13
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 13,
+        "binary_log": 13,
+        "binary_tail_log": null,
+        "shift_log": 12,
+        "shift_tail_log": 5,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": 6,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 10,
+          "copy": 13,
+          "set": 13,
+          "ucopy": 10,
+          "cdesc": 7,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 6
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 12
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 13,
+        "binary_log": 12,
+        "binary_tail_log": 11,
+        "shift_log": 12,
+        "shift_tail_log": 5,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 10,
+          "copy": 13,
+          "set": 13,
+          "ucopy": 10,
+          "cdesc": 7,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 6
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 13
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 13,
+        "binary_log": 13,
+        "binary_tail_log": null,
+        "shift_log": 12,
+        "shift_tail_log": 7,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 10,
+          "copy": 13,
+          "set": 13,
+          "ucopy": 10,
+          "cdesc": 7,
+          "cmp": 9
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 6
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 12
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 12,
+        "binary_log": 12,
+        "binary_tail_log": 11,
+        "shift_log": 11,
+        "shift_tail_log": 10,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": 10,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 10,
+          "copy": 13,
+          "set": 10,
+          "ucopy": 10,
+          "cdesc": 7,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 6,
+          "perm": 7
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 13
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 15,
+        "alu_tail_log": 14,
+        "binary_log": 12,
+        "binary_tail_log": 10,
+        "shift_log": 12,
+        "shift_tail_log": 8,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 10,
+        "ls_log": 16,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 9,
+          "copy": 13,
+          "set": 13,
+          "ucopy": 13,
+          "cdesc": 6,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 9
+        },
+        "ls_dword": 15,
+        "ls_dword_tail": 13
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 15,
+        "alu_tail_log": null,
+        "binary_log": 12,
+        "binary_tail_log": 11,
+        "shift_log": 12,
+        "shift_tail_log": null,
+        "jalr_log": 11,
+        "division_log": 6,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": 11,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 9,
+          "copy": 13,
+          "set": 10,
+          "ucopy": 10,
+          "cdesc": 6,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 6,
+          "perm": 7
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 10
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 13,
+        "binary_log": 12,
+        "binary_tail_log": 11,
+        "shift_log": 12,
+        "shift_tail_log": null,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": 10,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 10,
+          "copy": 13,
+          "set": 11,
+          "ucopy": 11,
+          "cdesc": 7,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 6,
+          "perm": 7
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 11
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 13,
+        "binary_log": 13,
+        "binary_tail_log": null,
+        "shift_log": 12,
+        "shift_tail_log": null,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 10,
+          "copy": 13,
+          "set": 13,
+          "ucopy": 10,
+          "cdesc": 7,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 6
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 13
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 13,
+        "binary_log": 13,
+        "binary_tail_log": null,
+        "shift_log": 12,
+        "shift_tail_log": 7,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 10,
+          "copy": 13,
+          "set": 13,
+          "ucopy": 10,
+          "cdesc": 7,
+          "cmp": 9
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 6
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 13
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 13,
+        "binary_log": 13,
+        "binary_tail_log": null,
+        "shift_log": 12,
+        "shift_tail_log": 8,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 10,
+          "copy": 13,
+          "set": 13,
+          "ucopy": 10,
+          "cdesc": 7,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 6
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 13
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 11,
+        "binary_log": 13,
+        "binary_tail_log": null,
+        "shift_log": 12,
+        "shift_tail_log": null,
+        "jalr_log": 12,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 14,
+        "ls_tail_log": 13,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 10,
+          "copy": 13,
+          "set": 11,
+          "ucopy": 12,
+          "cdesc": 8,
+          "cmp": 9
+        },
+        "sponge": {
+          "call": 6,
+          "perm": 7
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 14
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 13,
+        "alu_tail_log": 12,
+        "binary_log": 11,
+        "binary_tail_log": 9,
+        "shift_log": 11,
+        "shift_tail_log": null,
+        "jalr_log": 13,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 9,
+        "ls_log": 14,
+        "ls_tail_log": 9,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 11,
+          "copy": 10,
+          "set": 11,
+          "ucopy": 13,
+          "cdesc": 5,
+          "cmp": 5
+        },
+        "sponge": {
+          "call": 7,
+          "perm": 8
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 14
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 13,
+        "alu_tail_log": 12,
+        "binary_log": 11,
+        "binary_tail_log": null,
+        "shift_log": 11,
+        "shift_tail_log": null,
+        "jalr_log": 13,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 9,
+        "ls_log": 14,
+        "ls_tail_log": 10,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 11,
+          "copy": 10,
+          "set": 11,
+          "ucopy": 13,
+          "cdesc": 5,
+          "cmp": 5
+        },
+        "sponge": {
+          "call": 7,
+          "perm": 8
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 14
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 13,
+        "alu_tail_log": 12,
+        "binary_log": 11,
+        "binary_tail_log": null,
+        "shift_log": 10,
+        "shift_tail_log": 9,
+        "jalr_log": 13,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 9,
+        "ls_log": 14,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 11,
+          "copy": 10,
+          "set": 11,
+          "ucopy": 13,
+          "cdesc": 5,
+          "cmp": 5
+        },
+        "sponge": {
+          "call": 6,
+          "perm": 8
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 14
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 13,
+        "alu_tail_log": 12,
+        "binary_log": 10,
+        "binary_tail_log": null,
+        "shift_log": 9,
+        "shift_tail_log": 7,
+        "jalr_log": 13,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 9,
+        "ls_log": 14,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 11,
+          "copy": 10,
+          "set": 11,
+          "ucopy": 13
+        },
+        "sponge": {
+          "call": 7,
+          "perm": 8
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 14
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": null,
+        "binary_log": 11,
+        "binary_tail_log": null,
+        "shift_log": 10,
+        "shift_tail_log": 7,
+        "jalr_log": 13,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 10,
+        "ls_log": 14,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 11,
+          "copy": 12,
+          "set": 11,
+          "ucopy": 13,
+          "cdesc": 5,
+          "cmp": 5
+        },
+        "sponge": {
+          "call": 7,
+          "perm": 8
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 13
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 12,
+        "binary_log": 12,
+        "binary_tail_log": null,
+        "shift_log": 11,
+        "shift_tail_log": 8,
+        "jalr_log": 13,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 10,
+        "ls_log": 13,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 18,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 8,
+          "copy": 12,
+          "set": 11,
+          "ucopy": 10,
+          "cdesc": 5,
+          "cmp": 5
+        },
+        "sponge": {
+          "call": 7,
+          "perm": 7
+        },
+        "ls_dword": 16
+      }
+    }
+  ],
+  "truths": [
+    {
+      "family": "keccak",
+      "first_id": 1,
+      "calls": 606,
+      "logs": [
+        13,
+        1770517
+      ]
+    },
+    {
+      "family": "keccak",
+      "first_id": 607,
+      "calls": 2345,
+      "logs": [
+        15,
+        1770517
+      ]
+    },
+    {
+      "family": "add",
+      "first_id": 1,
+      "calls": 1023,
+      "logs": [
+        10,
+        0
+      ]
+    },
+    {
+      "family": "add",
+      "first_id": 1024,
+      "calls": 295,
+      "logs": [
+        9,
+        0
+      ]
+    },
+    {
+      "family": "double",
+      "first_id": 1,
+      "calls": 1023,
+      "logs": [
+        10,
+        0
+      ]
+    },
+    {
+      "family": "double",
+      "first_id": 1024,
+      "calls": 101,
+      "logs": [
+        8,
+        0
+      ]
+    }
+  ],
+  "memory_words": 136570,
+  "capture_ns": 5927893674
+}

@@ -11,6 +11,7 @@ const riscv_cpu_tests = @import("riscv_cpu_tests.zig");
 const test_filter = @import("riscv_test_filter.zig");
 
 const roots = [_]struct { step: []const u8, source: []const u8, description: []const u8 }{
+    .{ .step = "rv64-word16-ethereum-gkr", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_gkr_main.zig", .description = "Prove or inspect native OM31 Ethereum/OP guest execution with explicit recursion dependencies" },
     .{ .step = "rv64-poseidon-graph-fixture", .source = "src/integrations/riscv_cpu/rv64_poseidon_graph_fixture_main.zig", .description = "Real source-owned five-roster P2 v2 graph STARK and fresh receiver" },
     .{ .step = "rv64-poseidon-row-fixture", .source = "src/integrations/riscv_cpu/rv64_poseidon_row_fixture_main.zig", .description = "Scoped dedicated Poseidon row STARK and fresh receiver" },
     .{ .step = "rv64-word16-ethereum-gkr-recursion", .source = "src/integrations/riscv_cpu/rv64_om31_recursion_main.zig", .description = "Wrap current OM31 Ethereum CPU/truth proofs, fold and freshly verify their execution root" },
