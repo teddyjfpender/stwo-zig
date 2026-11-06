@@ -33,6 +33,15 @@ const Code = @import("composition_codegen.zig");
 const RvAir = @import("stwo_riscv_frontend").rv64_air;
 const NativePcs = @import("jobs/native_pcs.zig");
 const Job = @import("jobs/outer_job.zig");
+const ClassPlan = @import("jobs/outer_class_plan.zig");
+const Checks = @import("jobs/outer_checks.zig");
+
+/// Circuit constants of the om31 LogUp closure (witness.zig lookupSum).
+fn lookupStatic() Checks.LookupStatic {
+    const T = circuit.witness.trace;
+    const u = T.U_VALUE.toM31Array();
+    return .{ .relation = circuit.common.component_list.GATE_RELATION_ID, .u_index = @intCast(T.U_VAR_IDX), .u_value = .{ u[0].v, u[1].v, u[2].v, u[3].v } };
+}
 const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
 const CP = engine.air.component_prover.ForField(Outer.protocol.O);
 const O = Outer.protocol.O;
@@ -331,11 +340,20 @@ const Statics = struct {
     rc: ?Rc = null,
     fixed_plan: ?Plan.TreePlan = null,
     fixed_sorted: []u32 = &.{},
+    /// Whole-node plan of the class (outer_class_plan.zig), attached only to
+    /// cached statics under STWO_RV64_M8_OUTER_CLASS_PLAN=1.
+    slot: ClassPlan.Slot = .{},
+    /// Bytes charged to StaticsCache.budget (0: not charged).
+    charged: u64 = 0,
+    /// Class-plan cache only (StaticsCache.mutex): Staged instances borrowing
+    /// this entry, and the cache tick of the last borrow (LRU eviction).
+    refs: u32 = 0,
+    last_use: u64 = 0,
 
     fn init(a: std.mem.Allocator, key: *const Authority, library: *std.DynLib, composition: bool) !*Statics {
         const self = try a.create(Statics);
         errdefer a.destroy(self);
-        self.allocator = a;
+        self.* = .{ .public = undefined, .allocator = a, .gather = undefined, .gathered = &.{} };
         var made: usize = 0;
         errdefer for (self.gather[0..made]) |g| a.free(g);
         for (&self.gather, 0..) |*g, c| {
@@ -403,8 +421,16 @@ const Statics = struct {
         const tw = try Twiddles.get(log);
         self.public.tables[log] = .{ .twiddles = tw.twiddles, .itwiddles = tw.itwiddles };
     }
+    /// Host bytes this class keeps alive while cached (the large parts).
+    fn hostBytes(self: *const Statics) u64 {
+        var n: u64 = self.gathered.len;
+        for (self.gather) |g| n += g.len;
+        if (self.rc) |*rc| n += rc.blob.len;
+        return 4 * n;
+    }
     fn destroy(self: *Statics) void {
         const a = self.allocator;
+        self.slot.deinit();
         if (self.rc) |*rc| rc.deinit(a);
         if (self.fixed_plan) |*fp| fp.deinit(a);
         a.free(self.fixed_sorted);
@@ -436,21 +462,106 @@ const Twiddles = struct {
     }
 };
 
-/// Fold classes reuse statics; a leaf is its own class and owns its statics.
+/// Fold classes reuse statics; by default a leaf owns its statics. Under
+/// STWO_RV64_M8_OUTER_CLASS_PLAN=1 every class is cached by authority identity
+/// (statics are a pure function of the authority: identity binds the FIXED
+/// root, the component logs and the output count) within a host-byte budget,
+/// and carries a whole-node plan slot. Under the class plan the cache is
+/// reference counted: a new class that does not fit (entry limit or host
+/// budget) evicts the least recently used classes no node still borrows, and
+/// stays per node (correct, only slower) only when every entry is in use.
+/// Without eviction the cache froze after the first few block shapes (each
+/// block brings its own leaf classes: 15 on 24628607 [M outer-fold-p3]) and
+/// every later leaf rebuilt its statics with up to 64 stale classes pinned.
 const StaticsCache = struct {
     var mutex: std.Thread.Mutex = .{};
     var entries: std.ArrayList(*Statics) = .empty;
-    const limit = 16;
-    fn acquire(key: *const Authority, reusable: bool, library: *std.DynLib, composition: bool) !struct { statics: *Statics, owned: bool } {
+    const limit: usize = 16;
+    /// Entry limit under the class plan: 24628607 has 15 leaves + 4 fold
+    /// classes + root [M outer-fold-p3]; 64 leaves headroom for a class mix of
+    /// several block shapes (bounded by the host-byte budget anyway).
+    const class_plan_limit: usize = 64;
+    var budget: ?ClassPlan.Budget = null;
+    var tick: u64 = 0;
+    const Acquired = struct { statics: *Statics, owned: bool, counted: bool = false };
+    fn find(key: *const Authority, composition: bool) ?*Statics {
+        for (entries.items) |s| if (std.mem.eql(u8, &s.public.identity, &key.identity) and (s.rc != null) == composition) return s;
+        return null;
+    }
+    fn acquire(key: *const Authority, reusable: bool, library: *std.DynLib, composition: bool) !Acquired {
         const a = std.heap.c_allocator;
+        if (try ClassPlan.selected()) return acquireCounted(a, key, library, composition);
         if (!reusable) return .{ .statics = try Statics.init(a, key, library, composition), .owned = true };
         mutex.lock();
         defer mutex.unlock();
-        for (entries.items) |s| if (std.mem.eql(u8, &s.public.identity, &key.identity) and (s.rc != null) == composition) return .{ .statics = s, .owned = false };
+        if (find(key, composition)) |s| return .{ .statics = s, .owned = false };
         const s = try Statics.init(a, key, library, composition);
         if (entries.items.len >= limit) return .{ .statics = s, .owned = true };
         entries.append(a, s) catch return .{ .statics = s, .owned = true };
         return .{ .statics = s, .owned = false };
+    }
+    /// Must hold `mutex`.
+    fn borrow(s: *Statics) Acquired {
+        tick += 1;
+        s.refs += 1;
+        s.last_use = tick;
+        return .{ .statics = s, .owned = false, .counted = true };
+    }
+    /// Must hold `mutex`: destroy the LRU unreferenced entry; false when none.
+    fn evictOne() bool {
+        var refs: [class_plan_limit]u32 = undefined;
+        var last: [class_plan_limit]u64 = undefined;
+        const n = @min(entries.items.len, class_plan_limit);
+        for (entries.items[0..n], refs[0..n], last[0..n]) |s, *r, *t| {
+            r.* = s.refs;
+            t.* = s.last_use;
+        }
+        const i = ClassPlan.lruVictim(refs[0..n], last[0..n]) orelse return false;
+        const victim = entries.swapRemove(i);
+        if (victim.charged != 0) budget.?.release(victim.charged);
+        victim.destroy();
+        _ = evictions.fetchAdd(1, .monotonic);
+        return true;
+    }
+    pub var evictions: std.atomic.Value(u64) = .init(0);
+    /// STWO_RV64_M8_OUTER_CLASS_PLAN=1: every class by identity. The miss
+    /// builds OUTSIDE the cache lock (leaf prestages of different classes run
+    /// concurrently on the lanes' threads, 0.18-0.34 s each [M, feeder gate-c
+    /// 24628607]); a racing builder of the same class keeps the first entry.
+    fn acquireCounted(a: std.mem.Allocator, key: *const Authority, library: *std.DynLib, composition: bool) !Acquired {
+        {
+            mutex.lock();
+            defer mutex.unlock();
+            if (find(key, composition)) |s| return borrow(s);
+            // Parsed before the build so no error can leak a built class.
+            if (budget == null) budget = .{ .limit = try ClassPlan.hostBudgetBytes() };
+        }
+        const s = try Statics.init(a, key, library, composition);
+        mutex.lock();
+        defer mutex.unlock();
+        if (find(key, composition)) |hit| {
+            s.destroy();
+            return borrow(hit);
+        }
+        const bytes = s.hostBytes();
+        while (entries.items.len >= class_plan_limit) if (!evictOne()) return .{ .statics = s, .owned = true };
+        while (!budget.?.reserve(bytes)) if (!evictOne()) return .{ .statics = s, .owned = true };
+        s.charged = bytes;
+        entries.append(a, s) catch {
+            budget.?.release(s.charged);
+            s.charged = 0;
+            return .{ .statics = s, .owned = true };
+        };
+        // Only a cached class gets a slot: its plan lives as long as the class.
+        if (composition) s.public.class_plan = @ptrCast(&s.slot);
+        return borrow(s);
+    }
+    /// The borrowing Staged is gone (Owner.release / prestage error path).
+    fn unref(s: *Statics) void {
+        mutex.lock();
+        defer mutex.unlock();
+        std.debug.assert(s.refs != 0);
+        s.refs -= 1;
     }
 };
 
@@ -490,6 +601,8 @@ const Owner = struct {
     prepared: Assignment.Prepared,
     statics: *Statics,
     owns_statics: bool,
+    /// A reference counted class-plan cache borrow (StaticsCache.unref on release).
+    counted_statics: bool = false,
     runs: []St.Run,
     expected: []u32,
     fixed_raw: [][]const u32,
@@ -498,7 +611,7 @@ const Owner = struct {
         const self: *Owner = @ptrCast(@alignCast(raw));
         const a = self.allocator;
         self.prepared.deinit();
-        if (self.owns_statics) self.statics.destroy();
+        if (self.owns_statics) self.statics.destroy() else if (self.counted_statics) StaticsCache.unref(self.statics);
         a.free(self.runs);
         a.free(self.expected);
         a.free(self.fixed_raw);
@@ -534,9 +647,10 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
     const prepared = &owner.prepared;
     if (prepared.reference != null or prepared.count == 0 or prepared.count > std.math.maxInt(u32) / 4) return error.TraceOnlySourceRequired;
     const acquired = try StaticsCache.acquire(key, !input.is_leaf and input.class != null, input.library, input.composition);
-    errdefer if (acquired.owned) acquired.statics.destroy();
+    errdefer if (acquired.owned) acquired.statics.destroy() else if (acquired.counted) StaticsCache.unref(acquired.statics);
     owner.statics = acquired.statics;
     owner.owns_statics = acquired.owned;
+    owner.counted_statics = acquired.counted;
     var needs_ends = false;
     var ends: []const u32 = &.{};
     owner.runs = if (prepared.narrow_plan) |narrow| blk: {
@@ -584,6 +698,7 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
         .reusable = prepared.reusable and !input.is_leaf,
     };
     if (sample_tape != null and prepared.blake_sample_span == null) return error.MissingBlakeSampleClassSpan;
+    const device_checks = try Checks.selected();
     var class_key: [32]u8 = undefined;
     {
         var h = std.crypto.hash.sha2.Sha256.init(.{});
@@ -600,6 +715,8 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
         h.update(std.mem.sliceAsBytes(&key.fixed_logs));
         for (owner.runs) |run| h.update(std.mem.asBytes(&[_]u32{ @intFromEnum(run.kind), run.first_task, run.task_count, run.first_level, run.level_count }));
         h.update(std.mem.asBytes(&[_]u64{ prepared.plan.level_ends.len, prepared.tasks.len, prepared.seeds.len, prepared.indices.len, prepared.count, @intFromBool(sample_tape != null), @intFromBool(prepared.blake_sample_outputs != null), @intFromBool(input.composition) }));
+        // The device checks add one kernel to the body (topology).
+        if (device_checks) h.update("device-checks/v1");
         graph_key = h.finalResult();
     }
     owner.staged = .{
@@ -610,7 +727,8 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
         .class_key = class_key,
         .graph_key = graph_key,
         .ordinal = input.ordinal,
-        .image = St.Staged.layout(&assignment, &owner.statics.public),
+        .image = St.Staged.layoutWith(&assignment, &owner.statics.public, if (device_checks) owner.expected.len else 0),
+        .lookup = if (device_checks) lookupStatic() else null,
         .owner = owner,
         .release = Owner.release,
         .fixed_root = key.fixedRoot(),

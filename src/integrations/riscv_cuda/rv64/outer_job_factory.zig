@@ -25,6 +25,8 @@ const Events = @import("cuda_events.zig");
 const Heap = @import("jobs/outer_heap.zig");
 const Env = @import("jobs/outer_env.zig");
 const OuterWindow = @import("jobs/outer_window.zig");
+const CP = @import("jobs/outer_class_plan.zig");
+const Checks = @import("jobs/outer_checks.zig");
 
 pub const Shared = struct {
     kernels: K.Kernels,
@@ -35,6 +37,8 @@ pub const Shared = struct {
     fs: std.DynLib,
     /// Base-image CUDA event symbols (cuda_events.zig); null: no GPU timing.
     events: ?Events.Api = null,
+    /// Device acceptance checks from the addon (STWO_RV64_M8_OUTER_DEVICE_CHECKS=1).
+    checks: ?Checks.Symbols = null,
     /// `base` = frozen base image, `addon` = libstwo-rv64-jobs.so, both owned by
     /// the caller (ops.Libraries); `fs_path` = libstwo-rv64-outer-fs-ops.so.
     pub fn init(base: *std.DynLib, addon: *std.DynLib, fs_path: []const u8) !Shared {
@@ -49,6 +53,7 @@ pub const Shared = struct {
             .graph_api = try Graphs.Api.load(addon),
             .fs = fs,
             .events = Events.Api.load(base) catch null,
+            .checks = if (try Checks.selected()) try Checks.Symbols.load(addon) else null,
         };
     }
     pub fn deinit(self: *Shared) void {
@@ -56,7 +61,7 @@ pub const Shared = struct {
         self.* = undefined;
     }
     pub fn whole(self: *const Shared) Job.Whole {
-        return .{ .composition = &self.composition, .pcs = self.pcs, .wide = self.wide };
+        return .{ .composition = &self.composition, .pcs = self.pcs, .wide = self.wide, .checks = self.checks };
     }
 };
 
@@ -127,6 +132,8 @@ pub const Report = struct {
     fixed_handoff: bool = false,
     /// The job's declared footprint (class plan).
     footprint: api.Footprint = .{ .device_words = 0 },
+    /// initWhole borrowed the class's cached WholePlan (STWO_RV64_M8_OUTER_CLASS_PLAN=1).
+    borrowed_plan: bool = false,
 };
 
 pub const Prover = struct {
@@ -218,6 +225,7 @@ pub const Prover = struct {
         defer if (gpu) |*t| t.deinit();
         if (gpu) |*t| job.timing = t.timing();
         r.footprint = job.footprint();
+        r.borrowed_plan = job.borrowed;
         r.init_ns = timer.lap();
         {
             const p = staged.plan();
@@ -527,7 +535,7 @@ pub const Lane = struct {
         self.nodes += 1;
         const fp = r.footprint;
         std.debug.print("GPU_M8_OUTER_NODE ordinal={d} device={d} leaf={} adopted_plan={} outcome={s} launches={d} kernel_nodes={d} host_waits={d} d2h_bytes={d} stage_ns={d} enqueue_ns={d} wait_ns={d} gpu_ns={d} prestage_ns={d} job_ns={d} assemble_ns={d} wall_ns={d} declared_device_words={d} declared_staged_words={d} slab_words={d} pinned_words={d} staged_words={d} arena_peak_words={d} heap_words={d} heap_peak_words={d} heap_allocations={d} plan_words={any} sequence={d} placement={s}\n", .{ ordinal, r.receipt.device, input.is_leaf, input.prepared != null, @tagName(r.outcome), r.launches, r.kernel_nodes, r.receipt.host_waits, r.receipt.d2h_bytes, r.receipt.stage_ns, r.receipt.enqueue_ns, r.receipt.wait_ns, r.gpu_ns, r.prestage_ns, r.job_ns, r.assemble_ns, timer.read(), fp.device_words, fp.staged_words, fp.slab_words, fp.pinned_words, r.receipt.staged_words, r.receipt.arena_peak_words, r.heap_words, r.heap_peak_words, r.heap_allocations, r.plan_words, r.receipt.sequence, @tagName(r.receipt.placement) });
-        std.debug.print("GPU_M8_OUTER_NODE_HOST ordinal={d} device={d} prestage_ns={d} init_ns={d} job_ns={d} stage_ns={d} enqueue_ns={d} wait_ns={d} finish_ns={d} decode_ns={d} assemble_ns={d} fixed_handoff={}\n", .{ ordinal, r.receipt.device, r.prestage_ns, r.init_ns, r.job_ns, r.receipt.stage_ns, r.receipt.enqueue_ns, r.receipt.wait_ns, r.finish_ns, r.decode_ns, r.assemble_ns, r.fixed_handoff });
+        std.debug.print("GPU_M8_OUTER_NODE_HOST ordinal={d} device={d} prestage_ns={d} init_ns={d} job_ns={d} stage_ns={d} enqueue_ns={d} wait_ns={d} finish_ns={d} decode_ns={d} assemble_ns={d} fixed_handoff={} class_plan={} class_plan_builds={d} class_plan_hits={d} class_plan_build_ns={d}\n", .{ ordinal, r.receipt.device, r.prestage_ns, r.init_ns, r.job_ns, r.receipt.stage_ns, r.receipt.enqueue_ns, r.receipt.wait_ns, r.finish_ns, r.decode_ns, r.assemble_ns, r.fixed_handoff, r.borrowed_plan, CP.stats.builds.load(.monotonic), CP.stats.hits.load(.monotonic), CP.stats.build_ns.load(.monotonic) });
         std.debug.print("GPU_M8_OUTER_NODE_MEM ordinal={d} device={d} streamed={} heap_high_words={d} max_alloc_words={d} max_unguarded_alloc_words={d} phase_peak_words={any} phase_high_words={any} staged_regions={any}\n", .{ ordinal, r.receipt.device, r.streamed, r.heap_high_words, r.max_alloc_words, r.max_unguarded_alloc_words, r.phase_peak_words, r.phase_high_words, r.staged_regions });
         return produced;
     }
@@ -610,6 +618,10 @@ pub const Hybrid = struct {
             _ = try Env.unsigned(u64, "STWO_RV64_M8_OUTER_PCS_RESERVE_TREES", 0);
             _ = try Env.optionalUnsigned(u64, "STWO_RV64_M8_OUTER_DECLARE_WORDS");
             _ = try Env.flag("STWO_RV64_M8_OUTER_LEAF_PERSISTENT", false);
+            _ = try CP.selected();
+            _ = try CP.hostBudgetBytes();
+            _ = try Checks.selected();
+            _ = try Checks.faultOrdinal();
             return k;
         }
     };
