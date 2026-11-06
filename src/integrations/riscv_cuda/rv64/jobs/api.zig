@@ -151,6 +151,19 @@ pub const Enqueue = struct {
     pub fn device(self: *Enqueue) u32 {
         return impl(self.worker).device_ordinal;
     }
+    /// The footprint the worker planned this job with (plan.zig Resolved):
+    /// device_words is the class's MEASURED peak share when the memory policy
+    /// plans the class, else the job's own declaration. A job that carves one
+    /// work region from its window should size it from this, not from its own
+    /// `footprint()`, so a fitted declaration and the measured policy agree.
+    /// Addition (runtime-persist, M8-INTERFACES); additive.
+    pub fn footprint(self: *Enqueue) Footprint {
+        return impl(self.worker).enqueueFootprint();
+    }
+    /// True when `footprint()` comes from the memory policy (measured class).
+    pub fn planned(self: *Enqueue) bool {
+        return impl(self.worker).enqueuePlanned();
+    }
 };
 
 pub const Job = struct {
