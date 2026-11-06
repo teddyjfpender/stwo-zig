@@ -501,19 +501,36 @@ constexpr uint32_t n2b_wide_rows_lane_log(uint32_t high) {
 // bit-identical schedules.
 inline int g_n2b_wide_min_log_override = -1;
 inline int g_n2b_wide_rows_highs_override = -1;
+// STWO_RV64_M8_N2B_WIDE_ROWS=0 keeps the 8-word strided kernels at every
+// height (with STWO_RV64_M8_N2B_WIDE_MIN_LOG=21: the previous kernel set).
 inline uint32_t n2b_wide_rows_highs() {
-    return g_n2b_wide_rows_highs_override >= 0
-        ? uint32_t(g_n2b_wide_rows_highs_override)
-        : uint32_t(STWO_N2B_WIDE_ROWS_HIGHS);
+    if (g_n2b_wide_rows_highs_override >= 0)
+        return uint32_t(g_n2b_wide_rows_highs_override);
+    static const uint32_t highs = [] {
+        const char *value = std::getenv("STWO_RV64_M8_N2B_WIDE_ROWS");
+        return value && value[0] == '0' ? 0u : uint32_t(STWO_N2B_WIDE_ROWS_HIGHS);
+    }();
+    return highs;
 }
 
 #ifndef STWO_N2B_WIDE_MIN_LOG
 #define STWO_N2B_WIDE_MIN_LOG 20
 #endif
+// STWO_RV64_M8_N2B_WIDE_MIN_LOG overrides the first wide log (A/B only;
+// every value selects bit-identical schedules).
+inline uint32_t n2b_wide_min_log() {
+    if (g_n2b_wide_min_log_override >= 0)
+        return uint32_t(g_n2b_wide_min_log_override);
+    static const uint32_t min_log = [] {
+        const char *value = std::getenv("STWO_RV64_M8_N2B_WIDE_MIN_LOG");
+        const unsigned long parsed = value ? std::strtoul(value, nullptr, 10) : 0ul;
+        return parsed >= 19ul && parsed <= 25ul ? uint32_t(parsed)
+                                                : uint32_t(STWO_N2B_WIDE_MIN_LOG);
+    }();
+    return min_log;
+}
 inline bool n2b_wide_supported(uint32_t log_n) {
-    const uint32_t min_log = g_n2b_wide_min_log_override >= 0
-        ? uint32_t(g_n2b_wide_min_log_override)
-        : uint32_t(STWO_N2B_WIDE_MIN_LOG);
+    const uint32_t min_log = n2b_wide_min_log();
     const uint32_t high = log_n - kWideLowBits;
     return log_n >= min_log &&
         log_n <= kWideHighBits + kWideLowBits &&
