@@ -462,7 +462,9 @@ pub const OuterNodeJob = struct {
         try e.slab.bind(&self.layout);
         // One work-heap region per node: the declared work peak (footprint
         // less staged inputs), or as much as the window holds.
-        const fp = self.footprint();
+        // The worker's planned footprint: the memory policy's measured class
+        // peak when the class is planned, else exactly self.footprint().
+        const fp = e.footprint();
         const region_words = fp.device_words -| fp.staged_words;
         var heap = Heap.Heap.init(try e.alloc(@max(region_words, Heap.granule)));
         if (self.whole != null) try self.holdBuffers(&heap);

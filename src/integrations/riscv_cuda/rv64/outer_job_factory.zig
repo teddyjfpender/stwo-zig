@@ -428,6 +428,14 @@ pub const Hybrid = struct {
     mutex: std.Thread.Mutex = .{},
     window: ?Window = null,
     windows: u64 = 0,
+    /// The window's arena is live (between the request's first node and
+    /// endRequest). With a persistent window the WorkerSet, Shared symbols
+    /// and Provers (graph caches) outlive requests: endRequest parks the
+    /// workers (frees only their static arenas), the next request unparks.
+    open_now: bool = false,
+    /// STWO_RV64_M8_OUTER_PERSIST_WINDOW: unset/"1" -> persistent (boot once,
+    /// park/unpark per request); "0" -> create/destroy the workers per request.
+    persist: bool = true,
 
     pub fn create(a: std.mem.Allocator, library: []const u8) !*Hybrid {
         const fs_path = std.posix.getenv("STWO_RV64_M8_OUTER_FS_LIBRARY") orelse return error.MissingM8OuterFsLibrary;
@@ -435,6 +443,7 @@ pub const Hybrid = struct {
         const self = try a.create(Hybrid);
         errdefer a.destroy(self);
         self.* = .{ .allocator = a, .base = try std.DynLib.open(library), .library = library, .fs_path = fs_path };
+        if (std.posix.getenv("STWO_RV64_M8_OUTER_PERSIST_WINDOW")) |v| self.persist = !std.mem.eql(u8, v, "0");
         return self;
     }
     /// Replaces each lane's factory with a job-backed one. `lanes`: a slice of
@@ -459,7 +468,7 @@ pub const Hybrid = struct {
     fn prover(self: *Hybrid, lane: usize) !*Prover {
         self.mutex.lock();
         defer self.mutex.unlock();
-        if (self.window == null) try self.open();
+        if (!self.open_now) try self.open();
         const w = &self.window.?;
         return &w.provers[w.lane_prover[lane]];
     }
@@ -489,6 +498,9 @@ pub const Hybrid = struct {
     /// STWO_RV64_M8_OUTER_RESERVE_BYTES (default 1 GiB: worker-persistent
     /// twiddle/class regions live outside the worker arena; with
     /// STWO_RV64_M8_OUTER_FIXED_JOB=0 the legacy FIXED precommit needs ~4 GiB).
+    /// Boot arena of a persistent window (words): enough for the workers'
+    /// boot self-test; every request unparks at its measured size.
+    const boot_arena_words: usize = 1 << 26;
     fn open(self: *Hybrid) !void {
         var timer = try std.time.Timer.start();
         var config = try Jobs.Config.fromEnv();
@@ -508,10 +520,23 @@ pub const Hybrid = struct {
         const cap: usize = if (std.posix.getenv("STWO_RV64_M8_JOBS_ARENA_BYTES") != null) config.arena_words else std.math.maxInt(usize);
         const words = std.mem.alignBackward(usize, @min(cap, @as(usize, @intCast(usable / 4))), Jobs.worker.Arena.granule);
         if (words == 0) return error.M8OuterNoArenaHeadroom;
-        config.arena_words = words;
         const trim_ns = timer.lap();
-        const set = try Jobs.WorkerSet.startWith(self.allocator, self.library, config);
+        if (self.persist) if (self.window) |*w| {
+            // Parked window from an earlier request: re-acquire the arenas only.
+            const r = try w.set.unpark(words);
+            self.open_now = true;
+            self.windows += 1;
+            var moved = false;
+            for (r.same_base[0..r.workers]) |same| moved = moved or !same;
+            std.debug.print("GPU_M8_OUTER_WINDOW open window={d} arena_words={d} available_bytes={d} reserve_bytes={d} trimmed_bytes={d} trim_ns={d} start_ns={d} unpark_ns={d} moved={} persistent=true lanes={d} provers={d}\n", .{ self.windows, words, available, reserve, released, trim_ns, timer.read(), r.ns, moved, self.lanes.len, w.provers.len });
+            return;
+        };
+        // Persistent: boot on a small arena, park, then unpark at the
+        // request's size (the same path every later request takes).
+        config.arena_words = if (self.persist) @min(words, boot_arena_words) else words;
+        const set = if (self.persist) try Jobs.WorkerSet.startParked(self.allocator, self.library, config) else try Jobs.WorkerSet.startWith(self.allocator, self.library, config);
         errdefer set.stop(self.allocator);
+        const unpark_ns: u64 = if (self.persist) (try set.unpark(words)).ns else 0;
         var shared = try Shared.init(&set.libs.base, &set.libs.addon, self.fs_path);
         errdefer shared.deinit();
         var workers: [4]*Worker.Worker = undefined;
@@ -532,26 +557,43 @@ pub const Hybrid = struct {
         const provers = try self.allocator.alloc(Prover, unique);
         self.window = .{ .set = set, .shared = shared, .provers = provers, .lane_prover = lane_prover, .started_ns = 0 };
         const w = &self.window.?;
+        self.open_now = true;
         for (provers, workers[0..provers.len]) |*p, worker| {
             p.* = Prover.init(self.allocator, &w.shared, worker);
             p.persistent_classes = if (std.posix.getenv("STWO_RV64_M8_OUTER_PERSISTENT_CLASSES")) |v| std.mem.eql(u8, v, "1") else false;
         }
         self.windows += 1;
-        std.debug.print("GPU_M8_OUTER_WINDOW open window={d} arena_words={d} available_bytes={d} reserve_bytes={d} trimmed_bytes={d} trim_ns={d} start_ns={d} lanes={d} provers={d}\n", .{ self.windows, words, available, reserve, released, trim_ns, timer.read(), self.lanes.len, unique });
+        std.debug.print("GPU_M8_OUTER_WINDOW open window={d} arena_words={d} available_bytes={d} reserve_bytes={d} trimmed_bytes={d} trim_ns={d} start_ns={d} unpark_ns={d} moved=false persistent={} lanes={d} provers={d}\n", .{ self.windows, words, available, reserve, released, trim_ns, timer.read(), unpark_ns, self.persist, self.lanes.len, unique });
     }
 
     /// Request tail: stop the window's workers (every lane is idle).
     pub fn endRequest(self: *Hybrid) void {
         self.mutex.lock();
         defer self.mutex.unlock();
-        var w = self.window orelse return;
-        self.window = null;
+        if (!self.open_now) return;
+        self.open_now = false;
         var timer = std.time.Timer.start() catch unreachable;
         var nodes: u64 = 0;
         for (self.lanes) |*lane| {
             nodes += lane.nodes;
             lane.nodes = 0;
         }
+        if (self.persist) {
+            // Park: free only the static arenas (legacy native window of the
+            // next request needs them); contexts, pinned slots, persistent
+            // regions and graph caches stay. A failed park tears down.
+            if (self.window.?.set.park(.{})) |r| {
+                std.debug.print("GPU_M8_OUTER_WINDOW close window={d} nodes={d} stop_ns={d} park_ns={d} persistent=true\n", .{ self.windows, nodes, timer.read(), r.ns });
+                return;
+            } else |err| std.debug.print("GPU_M8_OUTER_WINDOW park_failed error={s}; stopping workers\n", .{@errorName(err)});
+        }
+        self.teardown(nodes, timer);
+    }
+    fn teardown(self: *Hybrid, nodes: u64, timer_in: std.time.Timer) void {
+        var timer = timer_in;
+        var w = self.window orelse return;
+        self.window = null;
+        self.open_now = false;
         for (w.provers) |*p| p.deinit();
         self.allocator.free(w.provers);
         w.shared.deinit();
@@ -561,6 +603,11 @@ pub const Hybrid = struct {
 
     pub fn destroy(self: *Hybrid) void {
         self.endRequest();
+        {
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            self.teardown(0, std.time.Timer.start() catch unreachable);
+        }
         const a = self.allocator;
         for (self.lanes) |*lane| Lane.unstageHost(lane);
         a.free(self.lanes);
