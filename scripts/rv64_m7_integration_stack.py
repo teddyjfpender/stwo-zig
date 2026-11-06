@@ -154,6 +154,7 @@ def run(args):
               'profiled': False, 'timing_scope': 'UNQUALIFIED_CORRECTNESS_WALLS' if args.smoke else 'six primary services unprofiled; optional ownership pair instrumented separately',
               'order': ((['fullstack'] * len(args.smoke_seeds)) if args.reference_run else ['baseline'] + ['fullstack'] * len(args.smoke_seeds)) if args.smoke else manifest['preset']['measurement']['order'] + (['baseline', 'fullstack'] if args.ownership_profile_pair else []), 'services': [], 'receivers_deferred': True, 'instrumentation': manifest['preset']['measurement'].get('instrumentation'),
               'smoke_only': args.smoke, 'global_admission_off_diagnostic': args.global_admission_off_diagnostic,
+              'quiet_mode': 'diagnostic' if args.smoke else args.quiet_mode,
               'gpu_seconds_status': 'pending separate ownership pair' if args.ownership_profile_pair else 'unavailable without CUPTI; no surrogate claim',
               'exact_process_peak_gate': 'Root-owned guard required; observer/NVML samples alone are insufficient'}
     write(output / 'experiment.json', result)
@@ -171,6 +172,9 @@ def run(args):
         seed = None
         if args.smoke:
             argv += ['--quiet-mode', 'diagnostic', '--request-timeout', str(args.smoke_request_timeout), '--env', 'STWO_RV64_CAPTURE_DIGEST=1']
+        elif args.quiet_mode == 'diagnostic':
+            # Paired stream A/B under shared pod load (M8-INTERFACES coordinator rule): quiet samples are recorded, not gating.
+            argv += ['--quiet-mode', 'diagnostic']
         if args.global_admission_off_diagnostic:
             if not args.smoke or arm != 'fullstack':
                 raise RuntimeError('GLOBAL0fallback is a fullstack correctness diagnostic only')
@@ -190,7 +194,8 @@ def run(args):
             raise RuntimeError(f'integration service failed; stop, preserve logs: {service}')
         receipt = json.loads((service / 'receipt.json').read_text())
         quiet = receipt.get('quiet_before_requests', [])
-        if len(receipt['requests']) != 2 or any(not q or (q.get('mode') != 'diagnostic' if args.smoke else not q['accepted']) for q in quiet):
+        diagnostic_quiet = args.smoke or args.quiet_mode == 'diagnostic'
+        if len(receipt['requests']) != 2 or any(not q or (q.get('mode') != 'diagnostic' if diagnostic_quiet else not q['accepted']) for q in quiet):
             raise RuntimeError('quiet admission/diagnostic receipt missing or failed')
         if len(receipt.get('quiet_before_requests', [])) != 2:
             raise RuntimeError('both requests require explicit quiet receipts')
@@ -272,6 +277,7 @@ def main():
     p.add_argument('--smoke-seeds', nargs='+', type=int, choices=(17,29), default=[17,29], help='explicit seeded admission correctness cases; first activation may select17 only')
     p.add_argument('--smoke-request-timeout', type=float, default=120, help='terminate blocked correctness request with all producer/guard resources drained')
     p.add_argument('--reference-run', type=Path, help='proof-neutral accepted reference payload comparison, including capture SHA256')
+    p.add_argument('--quiet-mode', choices=('gate', 'diagnostic'), default='gate', help='diagnostic: record quiet samples without gating (paired A/B under shared load; never a qualified headline)')
     args = parser.parse_args()
     (prepare if args.mode == 'prepare' else run)(args)
 
