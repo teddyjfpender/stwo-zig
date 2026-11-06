@@ -7,6 +7,8 @@
 //!   STWO_RV64_M8_JOBS_ARENA_BYTES    static arena per GPU (default 8 GiB; §3.7 hook)
 //!   STWO_RV64_M8_JOBS_PINNED_BYTES   pinned bytes per pipeline slot (default 256 MiB)
 //!   STWO_RV64_M8_JOBS_PLAN_OUT       write measured per-class plans (JSON) at stop (§3.7 sweep input)
+//!   STWO_RV64_M8_JOBS_PINNED_LAZY    "1": pinned slots allocated on first need, grow-only, capped at
+//!                                    STWO_RV64_M8_JOBS_PINNED_BYTES (default "0" = eager; persistent sets default 1)
 const std = @import("std");
 pub const api = @import("api.zig");
 pub const worker = @import("worker.zig");
@@ -30,15 +32,25 @@ fn envBytes(name: []const u8, default: usize) !usize {
     return std.fmt.parseUnsigned(usize, text, 10) catch error.InvalidM8JobsEnvironment;
 }
 
+fn envFlag(name: []const u8, default: bool) !bool {
+    const text = std.posix.getenv(name) orelse return default;
+    if (std.mem.eql(u8, text, "1")) return true;
+    if (std.mem.eql(u8, text, "0")) return false;
+    return error.InvalidM8JobsEnvironment;
+}
+
 pub const Config = struct {
     devices: [8]u32 = undefined,
     device_count: usize = 0,
     arena_words: usize,
     pinned_slot_words: usize,
+    /// worker.Config.pinned_lazy (grow-only pinned slots; `pinned_slot_words` is the cap).
+    pinned_lazy: bool = false,
     pub fn fromEnv() !Config {
         var c = Config{
             .arena_words = std.mem.alignBackward(usize, try envBytes("STWO_RV64_M8_JOBS_ARENA_BYTES", 8 << 30) / 4, worker.Arena.granule),
             .pinned_slot_words = try envBytes("STWO_RV64_M8_JOBS_PINNED_BYTES", 256 << 20) / 4,
+            .pinned_lazy = try envFlag("STWO_RV64_M8_JOBS_PINNED_LAZY", false),
         };
         var it = std.mem.tokenizeScalar(u8, std.posix.getenv("STWO_RV64_GPU_DEVICES") orelse "0", ',');
         while (it.next()) |d| {
@@ -115,7 +127,7 @@ pub const WorkerSet = struct {
         self.* = .{ .libs = try ops.Libraries.open(library, addon) };
         errdefer self.stopWorkers();
         for (config.devices[0..config.device_count]) |device| {
-            self.workers[self.count] = try worker.Worker.create(a, &self.libs.ops, .{ .device = device, .arena_words = config.arena_words, .pinned_slot_words = config.pinned_slot_words });
+            self.workers[self.count] = try worker.Worker.create(a, &self.libs.ops, .{ .device = device, .arena_words = config.arena_words, .pinned_slot_words = config.pinned_slot_words, .pinned_lazy = config.pinned_lazy });
             self.count += 1;
         }
         try selfTest(a, self.slice());
@@ -123,6 +135,95 @@ pub const WorkerSet = struct {
     }
     pub fn slice(self: *WorkerSet) []const *worker.Worker {
         return self.workers[0..self.count];
+    }
+
+    // ---- persistent service (runtime-persist; M8-INTERFACES) ----
+    // Boot ONCE per process: contexts, streams, events, pinned slots and the
+    // boot self-test happen here; per request only the static arena moves
+    // (park → the legacy owner may use the memory; unpark → the job window).
+    // Persistent class regions and class stats survive a park; captured
+    // graphs survive when `Receipt.same_base` (else key them on arenaEpoch).
+
+    /// startWith + park: the set boots on `config.arena_words` (a small boot
+    /// arena is enough for the self-test), then releases it. Pinned slots are
+    /// lazy (grow-only to what jobs stage) unless STWO_RV64_M8_JOBS_PINNED_LAZY=0.
+    pub fn startParked(a: std.mem.Allocator, library: []const u8, config_in: Config) !*WorkerSet {
+        var config = config_in;
+        config.pinned_lazy = try envFlag("STWO_RV64_M8_JOBS_PINNED_LAZY", true);
+        const self = try startWith(a, library, config);
+        errdefer self.stop(a);
+        _ = try self.park(.{});
+        return self;
+    }
+
+    pub const Receipt = struct {
+        workers: usize = 0,
+        /// Wall time of the whole call (workers run their part concurrently).
+        ns: u64 = 0,
+        max_worker_ns: u64 = 0,
+        arena_words: [8]usize = @splat(0),
+        same_base: [8]bool = @splat(false),
+        epoch: [8]u64 = @splat(0),
+    };
+
+    const Op = struct {
+        w: *worker.Worker,
+        words: usize = 0,
+        park: bool,
+        options: worker.ParkOptions = .{},
+        result: anyerror!worker.ParkReceipt = .{},
+        fn run(self: *Op) void {
+            self.result = if (self.park) self.w.park(self.options) else self.w.unpark(self.words);
+        }
+    };
+
+    fn each(self: *WorkerSet, ops_: []Op) !Receipt {
+        var timer = try std.time.Timer.start();
+        var threads: [8]?std.Thread = @splat(null);
+        for (ops_[1..], 1..) |*op, i| threads[i] = std.Thread.spawn(.{}, Op.run, .{op}) catch null;
+        for (ops_, 0..) |*op, i| if (threads[i] == null) op.run();
+        for (threads[1..ops_.len]) |t| if (t) |th| th.join();
+        var r = Receipt{ .workers = self.count };
+        var first_err: ?anyerror = null;
+        for (ops_, 0..) |op, i| {
+            if (op.result) |pr| {
+                r.max_worker_ns = @max(r.max_worker_ns, pr.ns);
+                r.arena_words[i] = pr.arena_words;
+                r.same_base[i] = pr.same_base;
+                r.epoch[i] = pr.epoch;
+            } else |err| first_err = first_err orelse err;
+        }
+        r.ns = timer.read();
+        if (first_err) |err| return err;
+        return r;
+    }
+
+    /// Release every worker's static arena (waits for submitted jobs).
+    pub fn park(self: *WorkerSet, options: worker.ParkOptions) !Receipt {
+        var ops_: [8]Op = undefined;
+        for (self.slice(), 0..) |w, i| ops_[i] = .{ .w = w, .park = true, .options = options };
+        return self.each(ops_[0..self.count]);
+    }
+
+    /// Re-acquire every worker's static arena: `arena_words` for all (0 = the
+    /// size before the park).
+    pub fn unpark(self: *WorkerSet, arena_words: usize) !Receipt {
+        var words: [8]usize = @splat(arena_words);
+        return self.unparkEach(words[0..self.count]);
+    }
+
+    /// Per-worker arena sizes (index = slice() order).
+    pub fn unparkEach(self: *WorkerSet, arena_words: []const usize) !Receipt {
+        if (arena_words.len != self.count) return error.InvalidM8JobsEnvironment;
+        var ops_: [8]Op = undefined;
+        for (self.slice(), arena_words, 0..) |w, words, i| ops_[i] = .{ .w = w, .park = false, .words = words };
+        const r = try self.each(ops_[0..self.count]);
+        return r;
+    }
+
+    pub fn parked(self: *WorkerSet) bool {
+        for (self.slice()) |w| if (!w.isParked()) return false;
+        return self.count != 0;
     }
     fn stopWorkers(self: *WorkerSet) void {
         for (self.workers[0..self.count]) |w| w.destroy();
@@ -172,4 +273,8 @@ test "service entry points are analyzed" {
     _ = &WorkerSet.start;
     _ = &WorkerSet.startWith;
     _ = &WorkerSet.stop;
+    _ = &WorkerSet.startParked;
+    _ = &WorkerSet.park;
+    _ = &WorkerSet.unpark;
+    _ = &WorkerSet.unparkEach;
 }

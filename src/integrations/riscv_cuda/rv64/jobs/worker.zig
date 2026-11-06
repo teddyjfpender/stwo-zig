@@ -43,6 +43,35 @@ pub const Config = struct {
     /// Honor STWO_RV64_M8_JOBS_PLAN / STWO_RV64_M8_JOBS_ARENA_REUSE (process-wide).
     /// Host-model tests that assert on a specific arena opt out.
     plan_from_env: bool = true,
+    /// Pinned slots are allocated on first need and only grow (to the job's
+    /// pinned + slab words, rounded to `pinned_granule_words`), capped at
+    /// `pinned_slot_words`. Off: three slots of `pinned_slot_words` at start
+    /// (today's behavior). A persistent service sets it: the allocation is
+    /// paid once per process, sized by what jobs really stage.
+    pinned_lazy: bool = false,
+};
+
+/// Lazy pinned slots grow in steps of this many words (16 MiB).
+pub const pinned_granule_words: usize = 4 << 20;
+
+/// Outcome of `Worker.park` / `Worker.unpark` (host wall clock on the worker thread).
+pub const ParkReceipt = struct {
+    /// Arena words released (park) or acquired (unpark).
+    arena_words: usize = 0,
+    /// Persistent pool words released (park with release_persistent).
+    persistent_words: usize = 0,
+    ns: u64 = 0,
+    /// Arena epoch after the operation (see `Worker.arenaEpoch`).
+    epoch: u64 = 0,
+    /// unpark: the arena landed at the same base and size as before the park.
+    same_base: bool = false,
+};
+
+pub const ParkOptions = struct {
+    /// Also release the persistent region pool / per-key persistent buffers.
+    /// Their contents are lost (every key is fresh again) and the persistent
+    /// epoch advances. Default: keep them (warm class regions across requests).
+    release_persistent: bool = false,
 };
 
 /// Measured per-class plan (spec §3.7 hook): what the class actually used,
@@ -451,8 +480,29 @@ pub const Worker = struct {
     /// Per-key persistent allocations made without a budget (counted before shutdown frees them).
     unbudgeted_regions: usize = 0,
     shut_down: bool = false,
+    last_base: usize = 0,
+    last_words: usize = 0,
+    // park / unpark (spec §3.2 persistent service; M8-INTERFACES runtime-persist)
+    /// Under `mutex`: the arena is released; `submit` refuses with WorkerParked.
+    parked: bool = false,
+    /// Under `mutex`: a park is draining the pipeline; `submit` refuses.
+    parking: bool = false,
+    control: ?Control = null,
+    control_done: bool = false,
+    control_result: anyerror!ParkReceipt = .{},
+    /// Advances whenever the arena's (base, words) differ from the previous
+    /// arena's: device addresses baked into captured graphs are stale.
+    arena_epoch: u64 = 0,
+    /// Advances when persistent regions are released (their contents are gone).
+    persistent_epoch: u64 = 0,
+    parks: u64 = 0,
+    unparks: u64 = 0,
+    /// Pinned host bytes allocated over the worker's life (lazy growth included).
+    pinned_allocated_bytes: u64 = 0,
+    pinned_allocations: u64 = 0,
 
     const Submission = struct { job: api.Job, sink: Sink, index: u64, declared: api.Footprint, resolved: MP.Resolved };
+    const Control = union(enum) { park: ParkOptions, unpark: usize };
 
     pub fn create(a: std.mem.Allocator, ops: *const O.Ops, config_in: Config) !*Worker {
         var config = config_in;
@@ -538,8 +588,13 @@ pub const Worker = struct {
         const Row = struct { device: u32, class_key: [64]u8, stat: ClassStat };
         var rows: std.ArrayListUnmanaged(Row) = .empty;
         defer rows.deinit(self.a);
-        var it = self.classes.iterator();
-        while (it.next()) |e| try rows.append(self.a, .{ .device = self.device_ordinal, .class_key = std.fmt.bytesToHex(e.key_ptr.*, .lower), .stat = e.value_ptr.* });
+        {
+            // The worker thread records class stats under the mutex.
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            var it = self.classes.iterator();
+            while (it.next()) |e| try rows.append(self.a, .{ .device = self.device_ordinal, .class_key = std.fmt.bytesToHex(e.key_ptr.*, .lower), .stat = e.value_ptr.* });
+        }
         var text: std.Io.Writer.Allocating = .init(self.a);
         defer text.deinit();
         try std.json.Stringify.value(.{
@@ -550,6 +605,7 @@ pub const Worker = struct {
             .policy = self.policy != null,
             .persistent = .{ .budget_words = self.config.persistent_budget_words, .regions = self.regions.entries.items.len, .used_words = self.regions.used(), .high_water_words = self.regions.high_water, .evictions = self.regions.evictions, .evicted_words = self.regions.evicted_words, .unbudgeted_regions = if (self.shut_down) self.unbudgeted_regions else self.persistent_map.count() },
             .completed = self.completed,
+            .service = .{ .parks = self.parks, .unparks = self.unparks, .arena_epoch = self.arena_epoch, .persistent_epoch = self.persistent_epoch, .pinned_allocated_bytes = self.pinned_allocated_bytes, .pinned_allocations = self.pinned_allocations, .pinned_lazy = self.config.pinned_lazy },
             .classes = rows.items,
         }, .{ .whitespace = .indent_1 }, &text.writer);
         std.fs.cwd().makePath(dir) catch {};
@@ -564,7 +620,7 @@ pub const Worker = struct {
     pub fn accepts(self: *Worker) bool {
         self.mutex.lock();
         defer self.mutex.unlock();
-        return self.fatal == null and !self.closing and self.mailbox == null and self.outstanding < self.config.max_outstanding;
+        return self.fatal == null and !self.closing and !self.parked and !self.parking and self.mailbox == null and self.outstanding < self.config.max_outstanding;
     }
     /// Snapshot of the measured class plans (caller frees with `a`).
     pub const ClassEntry = struct { key: [32]u8, stat: ClassStat };
@@ -588,6 +644,7 @@ pub const Worker = struct {
         defer self.mutex.unlock();
         if (self.fatal) |err| return err;
         if (self.closing) return error.WorkerClosing;
+        if (self.parked or self.parking) return error.WorkerParked;
         if (self.mailbox != null or self.outstanding >= self.config.max_outstanding) return error.WorkerBusy;
         const declared_fp = job.footprint();
         const r = self.resolveFootprint(job, declared_fp);
@@ -602,7 +659,7 @@ pub const Worker = struct {
     fn take(self: *Worker, block: bool) ?Submission {
         self.mutex.lock();
         defer self.mutex.unlock();
-        while (block and self.mailbox == null and !self.closing) self.cond.wait(&self.mutex);
+        while (block and self.mailbox == null and !self.closing and self.control == null) self.cond.wait(&self.mutex);
         const out = self.mailbox;
         self.mailbox = null;
         if (out != null) self.cond.broadcast();
@@ -624,8 +681,17 @@ pub const Worker = struct {
         var staged: ?*Slot = null;
         var running: ?*Slot = null;
         while (true) {
-            const next = self.take(staged == null and running == null);
-            if (next == null and staged == null and running == null) break;
+            const idle = staged == null and running == null;
+            // Park/unpark run only with an empty pipeline (park drains first).
+            if (idle) if (self.takeControl()) |c| {
+                self.serviceControl(c);
+                continue;
+            };
+            const next = self.take(idle);
+            if (next == null and idle) {
+                if (self.isClosing()) break;
+                continue; // woken for a control request
+            }
             if (next) |sub| if (staged) |s| if (!self.pairFits(s, sub)) {
                 // Memory plan: the staged job does not fit beside this job's
                 // inputs. Enqueue it alone first; `sub` then stages behind it
@@ -678,10 +744,215 @@ pub const Worker = struct {
         for (&self.slots) |*slot| {
             try O.check(w.event_create(&slot.staged_event));
             try O.check(w.event_create(&slot.done_event));
-            var host: ?*anyopaque = null;
-            try O.check(w.host_alloc(self.config.pinned_slot_words * 4, &host));
-            slot.pinned = @as([*]u32, @ptrCast(@alignCast(host orelse return error.PinnedAllocationFailed)))[0..self.config.pinned_slot_words];
+            if (!self.config.pinned_lazy) slot.pinned = try self.pinnedSlotAlloc(self.config.pinned_slot_words);
         }
+        self.arena_epoch = 1;
+    }
+
+    fn pinnedSlotAlloc(self: *Worker, words: usize) ![]u32 {
+        var host: ?*anyopaque = null;
+        try O.check(self.ops.wait.host_alloc(words * 4, &host));
+        self.pinned_allocated_bytes += words * 4;
+        self.pinned_allocations += 1;
+        return @as([*]u32, @ptrCast(@alignCast(host orelse return error.PinnedAllocationFailed)))[0..words];
+    }
+
+    /// Lazy pinned slots: grow `slot` to hold `needed` words. Legal here: the
+    /// slot's previous job completed (its event was waited) before this stage.
+    fn ensurePinned(self: *Worker, slot: *Slot, needed: usize) !void {
+        if (!self.config.pinned_lazy or needed <= slot.pinned.len) return;
+        if (needed > self.config.pinned_slot_words) return error.JobFootprintExceedsPinned;
+        const words = @min(self.config.pinned_slot_words, std.mem.alignForward(usize, needed, pinned_granule_words));
+        const grown = try self.pinnedSlotAlloc(words);
+        if (slot.pinned.len != 0) _ = self.ops.wait.host_free(slot.pinned.ptr);
+        slot.pinned = grown;
+    }
+
+    // ---------------- park / unpark ----------------
+
+    fn isClosing(self: *Worker) bool {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.closing;
+    }
+
+    fn takeControl(self: *Worker) ?Control {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const c = self.control;
+        self.control = null;
+        return c;
+    }
+
+    fn serviceControl(self: *Worker, c: Control) void {
+        var timer = std.time.Timer.start() catch unreachable;
+        var result: anyerror!ParkReceipt = switch (c) {
+            .park => |o| self.releaseArena(o),
+            .unpark => |words| self.acquireArena(words),
+        };
+        if (result) |*r| {
+            r.ns = timer.read();
+            r.epoch = self.arena_epoch;
+        } else |_| {}
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        switch (c) {
+            .park => if (result) |_| {
+                self.parked = true;
+                self.parks += 1;
+            } else |_| {},
+            .unpark => if (result) |_| {
+                self.parked = false;
+                self.unparks += 1;
+            } else |_| {},
+        }
+        self.parking = false;
+        self.control_result = result;
+        self.control_done = true;
+        self.cond.broadcast();
+    }
+
+    fn releaseArena(self: *Worker, o: ParkOptions) !ParkReceipt {
+        var r = ParkReceipt{ .arena_words = self.arena.words };
+        // Every job completed (its done event was waited): nothing on the
+        // device still reads the arena, so the free needs no further wait.
+        if (self.arena_buffer) |p| try O.check(self.ops.exec.free_u32(self.context, p));
+        self.arena_buffer = null;
+        self.last_base = self.arena.base;
+        self.last_words = self.arena.words;
+        self.arena = .{ .reuse = self.config.reuse_frees };
+        self.last_enqueued = null;
+        if (o.release_persistent) r.persistent_words = try self.releasePersistent();
+        return r;
+    }
+
+    fn releasePersistent(self: *Worker) !usize {
+        var words: usize = 0;
+        var it = self.persistent_map.valueIterator();
+        while (it.next()) |b| {
+            words += b.words;
+            try O.check(self.ops.exec.free_u32(self.context, b.ptr));
+        }
+        self.persistent_map.clearRetainingCapacity();
+        for (self.retired.items) |b| try O.check(self.ops.exec.free_u32(self.context, b.ptr));
+        self.retired.clearRetainingCapacity();
+        if (self.regions_buffer) |p| {
+            words += self.regions.words;
+            try O.check(self.ops.exec.free_u32(self.context, p));
+            self.regions_buffer = null;
+        }
+        self.regions.entries.clearRetainingCapacity();
+        self.persistent_epoch += 1;
+        return words;
+    }
+
+    fn acquireArena(self: *Worker, words_in: usize) !ParkReceipt {
+        const words = if (words_in == 0) self.last_words else words_in;
+        if (words == 0 or words % Arena.granule != 0) return error.InvalidArena;
+        var arena: ?[*]u32 = null;
+        try O.check(self.ops.exec.alloc_u32(self.context, words, &arena));
+        self.arena_buffer = arena orelse return error.CudaArenaFailed;
+        errdefer {
+            _ = self.ops.exec.free_u32(self.context, self.arena_buffer.?);
+            self.arena_buffer = null;
+        }
+        if (self.config.persistent_budget_words != 0 and self.regions_buffer == null) {
+            var pool: ?[*]u32 = null;
+            try O.check(self.ops.exec.alloc_u32_long(self.context, self.config.persistent_budget_words, &pool));
+            self.regions_buffer = pool orelse return error.CudaAllocationFailed;
+            self.regions.words = self.config.persistent_budget_words;
+        }
+        self.arena = .{ .base = @intFromPtr(arena.?), .words = words, .reuse = self.config.reuse_frees };
+        self.config.arena_words = words;
+        const same = self.arena.base == self.last_base and words == self.last_words;
+        if (!same) self.arena_epoch += 1;
+        return .{ .arena_words = words, .same_base = same };
+    }
+
+    fn requestControl(self: *Worker, c: Control) !ParkReceipt {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.control = c;
+        self.control_done = false;
+        self.cond.broadcast();
+        while (!self.control_done) self.cond.wait(&self.mutex);
+        self.control_done = false;
+        return self.control_result;
+    }
+
+    /// Release the static arena (back to the process-wide device arena, so
+    /// the legacy owner may use it) and keep everything else: context,
+    /// streams, events, pinned slots, class stats, persistent regions (unless
+    /// `o.release_persistent`). Waits until every submitted job completed;
+    /// `submit` refuses (error.WorkerParked) from the call on. Any thread.
+    pub fn park(self: *Worker, o: ParkOptions) !ParkReceipt {
+        {
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            if (self.fatal) |err| return err;
+            if (self.closing) return error.WorkerClosing;
+            if (self.parked) return error.WorkerAlreadyParked;
+            if (self.parking) return error.WorkerParked;
+            self.parking = true;
+            while (self.outstanding != 0) self.cond.wait(&self.mutex);
+        }
+        const r = self.requestControl(.{ .park = o }) catch |err| {
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            self.parking = false;
+            return err;
+        };
+        return r;
+    }
+
+    /// Re-acquire a static arena of `arena_words` (0 = the size before the
+    /// park). `same_base` / `arenaEpoch` tell graph caches whether device
+    /// addresses they captured are still valid. Any thread.
+    pub fn unpark(self: *Worker, arena_words: usize) !ParkReceipt {
+        {
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            if (self.fatal) |err| return err;
+            if (!self.parked) return error.WorkerNotParked;
+        }
+        return self.requestControl(.{ .unpark = arena_words });
+    }
+
+    pub fn isParked(self: *Worker) bool {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.parked;
+    }
+
+    /// Identity of the current arena's (base, words); a graph cache that
+    /// captured device addresses keys or flushes on it.
+    pub fn arenaEpoch(self: *Worker) u64 {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.arena_epoch;
+    }
+
+    /// Advances when persistent regions were released by a park.
+    pub fn persistentEpoch(self: *Worker) u64 {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.persistent_epoch;
+    }
+
+    /// Current static arena size in words (0 while parked).
+    pub fn arenaWords(self: *Worker) usize {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return if (self.parked) 0 else self.config.arena_words;
+    }
+
+    /// Pinned host bytes currently held by the three slots.
+    pub fn pinnedBytes(self: *Worker) usize {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        var n: usize = 0;
+        for (self.slots) |s| n += s.pinned.len * 4;
+        return n;
     }
 
     fn shutdown(self: *Worker) void {
@@ -711,6 +982,7 @@ pub const Worker = struct {
         const slot = &self.slots[seq % 3];
         const staged_event = slot.staged_event;
         const done_event = slot.done_event;
+        const grow = self.ensurePinned(slot, sub.resolved.footprint.pinned_words +| sub.resolved.footprint.slab_words);
         const pinned = slot.pinned;
         slot.* = .{ .job = sub.job, .sink = sub.sink, .seq = seq, .placement = if (seq % 2 == 0) .bottom else .top, .pinned = pinned, .staged_event = staged_event, .done_event = done_event, .resolved = sub.resolved, .declared = sub.declared, .submit_index = sub.index, .serialized = self.serialize_next };
         self.serialize_next = false;
@@ -722,6 +994,8 @@ pub const Worker = struct {
         if (slot.footprint.device_words > self.arena.words or fixed > self.arena.words - slot.footprint.device_words) return self.refuse(slot, error.JobFootprintExceedsArena);
         if (slot.footprint.pinned_words > pinned.len or slot.footprint.slab_words > pinned.len - slot.footprint.pinned_words) return self.refuse(slot, error.JobFootprintExceedsPinned);
         if (self.fatal) |err| return self.refuse(slot, err);
+        grow catch |err| return self.refuse(slot, err);
+        if (self.arena_buffer == null) return self.refuse(slot, error.WorkerParked);
         self.arena.beginStage(slot.placement);
         var stager = api.Stager{ .worker = self.handle(), .placement = slot.placement };
         self.staging = slot;
@@ -894,6 +1168,15 @@ pub const Worker = struct {
         self.arena.workFree(@intFromPtr(b.ptr), b.words);
     }
 
+    pub fn enqueueFootprint(self: *Worker) api.Footprint {
+        const slot = self.enqueuing orelse return .{ .device_words = 0 };
+        return slot.footprint;
+    }
+    pub fn enqueuePlanned(self: *Worker) bool {
+        const slot = self.enqueuing orelse return false;
+        return slot.resolved.planned;
+    }
+
     pub fn enqueueHostFn(self: *Worker, f: api.HostFn) !void {
         if (self.enqueuing == null) return error.EnqueueOutsidePhaseTwo;
         try O.check(self.ops.exec.host_fn(self.exec_stream, f.call, f.user));
@@ -943,7 +1226,8 @@ pub const Worker = struct {
         var key: [32]u8 = @splat(0);
         const ok = if (result) |_| true else |_| false;
         if (ok) key = slot.job.classKey();
-        slot.sink.done(slot.sink.ctx, .{ .job = slot.job, .result = result, .receipt = slot.receipt });
+        // Class stats are recorded BEFORE the sink fires: a completion waiter
+        // may read them (classStats / writePlanDir) as soon as done() returns.
         self.mutex.lock();
         if (ok) if (self.classes.getOrPut(self.a, key)) |entry| {
             if (!entry.found_existing) entry.value_ptr.* = .{};
@@ -979,6 +1263,9 @@ pub const Worker = struct {
                 sd.peak_alloc_words = slot.peak_alloc_words;
             }
         } else |_| {};
+        self.mutex.unlock();
+        slot.sink.done(slot.sink.ctx, .{ .job = slot.job, .result = result, .receipt = slot.receipt });
+        self.mutex.lock();
         self.outstanding -= 1;
         self.completed += 1;
         self.cond.broadcast();
@@ -988,4 +1275,5 @@ pub const Worker = struct {
 
 test {
     _ = @import("worker_test.zig");
+    _ = @import("worker_service_test.zig");
 }
