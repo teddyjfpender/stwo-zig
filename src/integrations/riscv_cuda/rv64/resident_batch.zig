@@ -103,7 +103,9 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
         const lanes = (ready orelse return error.M8OuterJobsRequireReadyRecursion).lanes;
         const hybrid = try OuterJobs.Hybrid.create(std.heap.smp_allocator, library);
         errdefer hybrid.destroy();
-        try hybrid.install(lanes);
+        var services: [8]*@import("pcs_native.zig").Context = undefined;
+        for (pool.devices, 0..) |*device, i| services[i] = &device.native;
+        try hybrid.install(lanes, services[0..pool.devices.len]);
         break :blk hybrid;
     } else null) else {};
     defer if (combined) {
@@ -174,7 +176,7 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
         const preload = try @import("outer_assignment.zig").ClassCache.Store.preloadAll();
         std.debug.print("GPU_RESIDENT_CLASS_PRELOAD loaded={} ns={}\n", .{ preload.loaded, preload.ns });
     }
-    const svc = .{ .a = a, .base = base, .manifest = &manifest, .pool = pool, .config = &config, .session = &session, .recycler = &recycler, .factory = factory, .ready = ready, .ready_mode = ready_mode, .resource_json = resource_json, .parent = parent, .manifest_sha256 = manifest_sha256 };
+    const svc = .{ .a = a, .base = base, .manifest = &manifest, .pool = pool, .config = &config, .session = &session, .recycler = &recycler, .factory = factory, .ready = ready, .ready_mode = ready_mode, .resource_json = resource_json, .parent = parent, .manifest_sha256 = manifest_sha256, .outer_jobs = outer_jobs };
     if (combined) {
         if (serve_spool) |spool| return serveSpool(svc, spool, init_timer.read());
     } else if (serve_spool != null) return error.ResidentServiceRequiresCombinedBatch;
@@ -211,6 +213,11 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
     const resource_json = svc.resource_json;
     const parent = svc.parent;
     const manifest_sha256 = svc.manifest_sha256;
+    // M8 Stage A: the recursion window's workers return their memory before
+    // the next request's native window.
+    defer if (combined) {
+        if (svc.outer_jobs) |hybrid| hybrid.endRequest();
+    };
     var name_buf: [24]u8 = undefined;
     const name = try std.fmt.bufPrint(&name_buf, "{d}", .{block});
     const item = manifest.blocks.map.get(name) orelse return error.MissingResidentBatchBlock;

@@ -103,8 +103,13 @@ pub const WorkerSet = struct {
     count: usize = 0,
     /// Heap-pinned so `libs.ops` (referenced by every worker) never moves.
     pub fn start(a: std.mem.Allocator, library: []const u8) !*WorkerSet {
+        return startWith(a, library, try Config.fromEnv());
+    }
+    /// As `start`, with an explicit config (hybrid mode sizes the arena from
+    /// the measured free process arena; outer_job_factory.zig Hybrid).
+    pub fn startWith(a: std.mem.Allocator, library: []const u8, config: Config) !*WorkerSet {
         const addon = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingM8JobsLibrary;
-        const config = try Config.fromEnv();
+        if (config.device_count == 0 or config.arena_words == 0 or config.arena_words % worker.Arena.granule != 0) return error.InvalidM8JobsEnvironment;
         const self = try a.create(WorkerSet);
         errdefer a.destroy(self);
         self.* = .{ .libs = try ops.Libraries.open(library, addon) };
@@ -165,5 +170,6 @@ test "selection is explicit and fails closed" {
 test "service entry points are analyzed" {
     _ = &serve;
     _ = &WorkerSet.start;
+    _ = &WorkerSet.startWith;
     _ = &WorkerSet.stop;
 }

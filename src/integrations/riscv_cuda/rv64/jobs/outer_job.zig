@@ -238,8 +238,14 @@ pub const OuterNodeJob = struct {
                 own += g(fp.coefficient_words);
             };
         }
+        // Diagnostic (measurement sweeps only): STWO_RV64_M8_OUTER_DECLARE_WORDS
+        // caps the declared device peak so a node can run in an arena smaller
+        // than this conservative bound; the worker still fails the job closed
+        // (JobWorkExceedsArena) if its real allocations do not fit.
+        var device: u64 = long + stack + g(node) + whole + own;
+        if (std.posix.getenv("STWO_RV64_M8_OUTER_DECLARE_WORDS")) |v| device = @min(device, std.fmt.parseUnsigned(u64, v, 10) catch device);
         return .{
-            .device_words = @intCast(long + stack + g(node) + whole + own),
+            .device_words = @intCast(device),
             .staged_words = @intCast(g(node) + own + (if (whole != 0) long + (if (self.staged.statics.fixed_plan) |fp| g(fp.coefficient_words) else 0) else 0)),
             .slab_words = self.layout.words,
             .pinned_words = @intCast(node + self.staged.image.words[@intFromEnum(St.Region.class)] + self.staged.image.words[@intFromEnum(St.Region.twiddles)] + pinned_extra),
