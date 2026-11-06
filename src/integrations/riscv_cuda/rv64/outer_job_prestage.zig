@@ -593,3 +593,18 @@ comptime {
         if (@offsetOf(K.AssignmentJob, f) != @offsetOf(Assignment.Job, f)) @compileError("Job field drifted: " ++ f);
     }
 }
+
+/// jobs/mod.zig Hooks.outer_prestage (M8-INTERFACES outer-job R4): type-erased
+/// so nothing under rv64/jobs/ imports this file. `input` is a *const Input.
+pub fn prestageHook(_: ?*anyopaque, a: std.mem.Allocator, input: *const anyopaque) anyerror!*St.Staged {
+    const typed: *const Input = @ptrCast(@alignCast(input));
+    return prestage(a, typed.*);
+}
+/// Hooks.outer_assemble: heap Outer.prove.Produced (caller deinit + destroy).
+/// `key` is a *const Authority.
+pub fn assembleHook(_: ?*anyopaque, a: std.mem.Allocator, key: *const anyopaque, staged: *const St.Staged, job: *Job.OuterNodeJob) anyerror!*anyopaque {
+    const produced = try a.create(Outer.prove.Produced);
+    errdefer a.destroy(produced);
+    produced.* = try assemble(a, @ptrCast(@alignCast(key)), staged, job);
+    return produced;
+}
