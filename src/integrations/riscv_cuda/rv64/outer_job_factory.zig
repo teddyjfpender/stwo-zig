@@ -465,12 +465,13 @@ pub const Hybrid = struct {
 
     /// Arena of the window: STWO_RV64_M8_JOBS_ARENA_BYTES caps it; the
     /// smallest free large arena range after trimming, less
-    /// STWO_RV64_M8_OUTER_RESERVE_BYTES (default 2 GiB: the legacy FIXED
-    /// precommit and immutable setup keep allocating during recursion).
+    /// STWO_RV64_M8_OUTER_RESERVE_BYTES (default 1 GiB: worker-persistent
+    /// twiddle/class regions live outside the worker arena; with
+    /// STWO_RV64_M8_OUTER_FIXED_JOB=0 the legacy FIXED precommit needs ~4 GiB).
     fn open(self: *Hybrid) !void {
         var timer = try std.time.Timer.start();
         var config = try Jobs.Config.fromEnv();
-        const reserve: u64 = if (std.posix.getenv("STWO_RV64_M8_OUTER_RESERVE_BYTES")) |v| std.fmt.parseUnsigned(u64, v, 10) catch return error.InvalidM8JobsEnvironment else 2 << 30;
+        const reserve: u64 = if (std.posix.getenv("STWO_RV64_M8_OUTER_RESERVE_BYTES")) |v| std.fmt.parseUnsigned(u64, v, 10) catch return error.InvalidM8JobsEnvironment else 1 << 30;
         var available: u64 = std.math.maxInt(u64);
         var released: u64 = 0;
         for (self.services) |service| {

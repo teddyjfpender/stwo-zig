@@ -248,6 +248,22 @@ pub const OuterNodeJob = struct {
         // than this conservative bound; the worker still fails the job closed
         // (JobWorkExceedsArena) if its real allocations do not fit.
         var device: u64 = long + stack + g(node) + whole + own;
+        // Whole nodes: the analytic sum above is a 2.5-4x over-bound on real
+        // nodes, because the work heap (outer_heap.zig) reuses transient
+        // buffers. Fit to the measured heap peaks [M, 26235156 leaves with
+        // max row log 22 / 23: 3.095e9 / 4.920e9 words]:
+        //   staged + PCS-lifetime buffers + 0.6 x INTER evaluation
+        //   + 8.5 x the eval-height tree (the PCS/RC working set scales with
+        //     the evaluation height),
+        // 1.05x above both measured peaks. A node that still does not fit
+        // fails closed (JobWorkExceedsArena); a node whose bound exceeds the
+        // arena is refused before staging (JobFootprintExceedsArena).
+        if (whole != 0) if (self.staged.statics.composition) |cs| if (self.staged.statics.fixed_plan) |fp| {
+            const held = g(p.main.coefficient_words) + g(p.inter.coefficient_words + p.inter_tail_words) + g(p.main.tree_words) + g(p.inter.tree_words) + g(cs.coefficientWords()) + g(cs.treeWords());
+            const staged_inputs = g(node) + own + g(fp.coefficient_words);
+            const measured = staged_inputs + held + g(p.inter.evaluation_words * 6 / 10) + g(fp.tree_words * 17 / 2);
+            device = @min(device, measured);
+        };
         if (std.posix.getenv("STWO_RV64_M8_OUTER_DECLARE_WORDS")) |v| device = @min(device, std.fmt.parseUnsigned(u64, v, 10) catch device);
         return .{
             .device_words = @intCast(device),
