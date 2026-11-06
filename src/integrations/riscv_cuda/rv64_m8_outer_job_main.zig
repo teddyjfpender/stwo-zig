@@ -251,7 +251,8 @@ pub fn main() !void {
     for (0..runs + 1) |run| {
         const node_key = if (run == runs) &device_key else &key;
         var timer = try std.time.Timer.start();
-        var produced = prover.prove(a, .{ .key = node_key, .graph = &graph, .expected = &expected, .ordinal = 0, .library = &libs.base }) catch |err| {
+        var r: Factory.Report = .{};
+        var produced = prover.prove(a, .{ .key = node_key, .graph = &graph, .expected = &expected, .ordinal = 0, .library = &libs.base }, &r) catch |err| {
             std.debug.print("OUTER_JOB_WHOLE {{\"run\":{d},\"error\":\"{s}\"}}\n", .{ run, @errorName(err) });
             return err;
         };
@@ -263,9 +264,40 @@ pub fn main() !void {
         if (!identical) whole_failures += 1;
         var proof_digest: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash(encoded, &proof_digest, .{});
-        const r = prover.last;
         std.debug.print("OUTER_JOB_WHOLE {{\"run\":{d},\"device_fixed_authority\":{},\"graph\":\"{s}\",\"proof_bytes_identical\":{},\"proof_bytes\":{d},\"proof_sha256\":\"{s}\",\"host_api_launches\":{d},\"graph_kernel_nodes\":{d},\"host_waits\":{d},\"d2h_bytes\":{d},\"wait_ns\":{d},\"enqueue_ns\":{d},\"prestage_ns\":{d},\"job_ns\":{d},\"assemble_ns\":{d},\"wall_ns\":{d},\"arena_peak_words\":{d}}}\n", .{ run, run == runs, @tagName(r.outcome), identical, encoded.len, std.fmt.bytesToHex(proof_digest, .lower), r.launches, r.kernel_nodes, r.receipt.host_waits, r.receipt.d2h_bytes, r.receipt.wait_ns, r.receipt.enqueue_ns, r.prestage_ns, r.job_ns, r.assemble_ns, wall_ns, r.receipt.arena_peak_words });
     }
+    // Concurrent callers on one worker (pipelined: pre-stage of one node
+    // overlaps another's GPU work); every proof must still equal legacy.
+    const Concurrent = struct {
+        prover: *Factory.Prover,
+        input: Prestage.Input,
+        legacy: []const u8,
+        identity: [32]u8,
+        ok: bool = false,
+        report: Factory.Report = .{},
+        fn run(self: *@This()) void {
+            const al = std.heap.c_allocator;
+            var produced = self.prover.prove(al, self.input, &self.report) catch return;
+            defer produced.deinit();
+            const encoded = Outer.wire.encode(al, self.identity, produced.outputs, produced.claims, &produced.proof.proof) catch return;
+            defer al.free(encoded);
+            self.ok = std.mem.eql(u8, encoded, self.legacy);
+        }
+    };
+    var lanes: [3]Concurrent = undefined;
+    var threads: [3]std.Thread = undefined;
+    var concurrent_timer = try std.time.Timer.start();
+    for (&lanes, &threads) |*lane, *thread| {
+        lane.* = .{ .prover = &prover, .input = .{ .key = &key, .graph = &graph, .expected = &expected, .ordinal = 0, .library = &libs.base }, .legacy = legacy_bytes, .identity = key.identity };
+        thread.* = try std.Thread.spawn(.{}, Concurrent.run, .{lane});
+    }
+    for (threads) |t| t.join();
+    const concurrent_ns = concurrent_timer.read();
+    for (lanes, 0..) |lane, i| {
+        if (!lane.ok) whole_failures += 1;
+        std.debug.print("OUTER_JOB_CONCURRENT {{\"lane\":{d},\"proof_bytes_identical\":{},\"graph\":\"{s}\",\"prestage_ns\":{d},\"job_ns\":{d},\"assemble_ns\":{d},\"wait_ns\":{d}}}\n", .{ i, lane.ok, @tagName(lane.report.outcome), lane.report.prestage_ns, lane.report.job_ns, lane.report.assemble_ns, lane.report.receipt.wait_ns });
+    }
+    std.debug.print("OUTER_JOB_CONCURRENT_WALL nodes=3 wall_ns={d}\n", .{concurrent_ns});
     var legacy_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(legacy_bytes, &legacy_digest, .{});
     std.debug.print("OUTER_JOB_LEGACY proof_bytes={d} proof_sha256={s}\n", .{ legacy_bytes.len, std.fmt.bytesToHex(legacy_digest, .lower) });
