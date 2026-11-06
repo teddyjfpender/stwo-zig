@@ -1,0 +1,20 @@
+{
+ "schema": "rv64-m8-measure/v1",
+ "stream": "native-seq",
+ "head": "b51a235edf6d77a6d2759e5b9a12f75f5feaac68",
+ "code_commit": "914f4273c",
+ "measured": false,
+ "promoted": false,
+ "skip_reason": "STWO_RV64_M8_JOBS=1 gate fails closed on both blocks: jobs/mod.zig provider() returns error.M8RequestProviderNotLanded; jobs/provider.zig absent",
+ "gate_evidence": "/workspace/m3/runs/m8-native-review-fixes/g1 (source 914f4273c)",
+ "gates": {
+  "default-26235156": {"status": "PASS", "byte_identical": true, "frozen_sha256": "5987d31c4253ba204e3b782790e0e5871e7b9787e9e26fbb70f65dbfab818d95"},
+  "default-24628607": {"status": "PASS", "byte_identical": true, "frozen_sha256": "bd6bc79381f1c0c801d1db3814d2483b0a32295730bdb19a84360196d999dc29"},
+  "jobs-26235156": {"status": "FAIL_CLOSED", "error": "M8RequestProviderNotLanded"},
+  "jobs-24628607": {"status": "FAIL_CLOSED", "error": "M8RequestProviderNotLanded"}
+ },
+ "pod_idle_at_check": {"gpu0": "0% 2MiB", "gpu1": "0% 2MiB", "tmux": "none"},
+ "pruned": ["m8-native-finish-p3/gate-1", "m8-native-finish-p3/gate-1.log", "m8-runtime-persist-p3/host-1.log", "m8-runtime-persist-p3/host-2.log", "m8-runtime-persist-p3/parity-1.err", "m8-runtime-persist-p3/parity-1.json"],
+ "pod_disk": {"size": "80G", "used": "64G", "avail": "17G", "use_pct": 80},
+ "blockers_remaining": ["cross-job retained device memory (Stage1->seal->Stage2)", "witness source without joins", "TruthJob", "request.Provider (jobs/provider.zig)"]
+}
