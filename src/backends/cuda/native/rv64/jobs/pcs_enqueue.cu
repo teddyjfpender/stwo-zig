@@ -143,8 +143,19 @@ struct JobOwner {
   const StwoRv64PcsJobMemory &memory;
   const StwoRv64PcsJobIo &io;
   uint64_t pinned_used = 0, allocated_bytes = 0;
-  std::vector<StwoRv64Plane> live;
+  // Same reuse policy as the resident owner (pcs_native.cu ResidentOwner):
+  // a retired plane's block returns to a best-fit cache and later planes of
+  // this proof reuse it. Legal without a join: every producer and consumer is
+  // on this one stream. Blocks go back to the job arena (stream-ordered, in
+  // reverse allocation order for its LIFO reclaim) when the enqueue ends.
+  struct Block {
+    uint32_t *ptr;
+    uint64_t words, active;
+    bool used;
+  };
+  std::vector<Block> blocks;
   std::vector<uint32_t *> borrowed;
+  uint64_t block_words = 0;
   JobOwner(void *context, uint32_t l, const StwoRv64PcsJobMemory &m, const StwoRv64PcsJobIo &i)
       : ctx(context), lane(l), memory(m), io(i) {
     void *raw = nullptr;
@@ -155,18 +166,28 @@ struct JobOwner {
   JobOwner(const JobOwner &) = delete;
   ~JobOwner() {
     // Stream-ordered: every enqueued reader precedes these releases.
-    for (const auto &p : live)
-      memory.release(memory.user, p.words, p.stride * p.coordinates);
+    for (auto b = blocks.rbegin(); b != blocks.rend(); ++b)
+      memory.release(memory.user, b->ptr, b->words);
   }
   StwoRv64Plane plane(uint64_t count, uint32_t coordinates) {
     if (!coordinates || !count || count > SIZE_MAX / 4 / coordinates)
       throw std::runtime_error("plane overflow");
     const uint64_t words = count * coordinates;
-    uint32_t *p = memory.alloc(memory.user, words);
-    if (!p) throw std::runtime_error("job arena allocation failed");
-    live.push_back({p, count, coordinates, 0});
+    size_t selected = blocks.size();
+    for (size_t i = 0; i < blocks.size(); ++i)
+      if (!blocks[i].used && blocks[i].words >= words &&
+          (selected == blocks.size() || blocks[i].words < blocks[selected].words))
+        selected = i;
+    if (selected == blocks.size()) {
+      uint32_t *p = memory.alloc(memory.user, words);
+      if (!p) throw std::runtime_error("job arena allocation failed");
+      blocks.push_back({p, words, 0, false});
+      block_words += words;
+    }
+    blocks[selected].used = true;
+    blocks[selected].active = words;
     allocated_bytes += words * 4;
-    return {p, count, coordinates, 0};
+    return {blocks[selected].ptr, count, coordinates, 0};
   }
   StwoRv64Plane sourcePlane(uint64_t count, uint32_t coordinates) { return plane(count, coordinates); }
   StwoRv64Plane borrow(const uint32_t *p, uint64_t count) {
@@ -180,16 +201,15 @@ struct JobOwner {
     for (const auto &p : planes) {
       if (std::find(borrowed.begin(), borrowed.end(), p.words) != borrowed.end()) continue;
       size_t i = 0;
-      for (; i < live.size() && live[i].words != p.words; ++i) {}
-      if (i == live.size() || live[i].stride != p.stride || live[i].coordinates != p.coordinates ||
+      for (; i < blocks.size() && blocks[i].ptr != p.words; ++i) {}
+      if (i == blocks.size() || !blocks[i].used || blocks[i].active != p.stride * p.coordinates ||
           std::find(selected.begin(), selected.end(), i) != selected.end())
         throw std::runtime_error("foreign, duplicate or partial temporary retirement");
       selected.push_back(i);
     }
-    std::sort(selected.rbegin(), selected.rend());
     for (auto i : selected) {
-      memory.release(memory.user, live[i].words, live[i].stride * live[i].coordinates);
-      live.erase(live.begin() + i);
+      blocks[i].used = false;
+      blocks[i].active = 0;
     }
   }
   const uint32_t *stage(const uint32_t *data, size_t words) {
