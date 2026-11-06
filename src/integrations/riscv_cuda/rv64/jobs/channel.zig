@@ -54,7 +54,11 @@ pub const DeviceChannel = struct {
 
     pub fn init(worker: *api.DeviceWorker, exec: *const O.Exec, ctx: *anyopaque, stream: *anyopaque, words: api.DeviceBuffer, sequence: u64) DeviceChannel {
         std.debug.assert(words.words >= state_words);
-        return .{ .worker = worker, .exec = exec, .ctx = ctx, .stream = stream, .state = words.ptr, .boundary = words.ptr + snapshot_words, .chain_base = chain_tag | (sequence & 0xffff_ffff) << 0 };
+        _ = sequence;
+        // The chain is a per-job ordering guard only. It is deliberately the same
+        // for every job, so a class's enqueue sequence has identical kernel
+        // arguments per (class key, placement) and a captured graph replays.
+        return .{ .worker = worker, .exec = exec, .ctx = ctx, .stream = stream, .state = words.ptr, .boundary = words.ptr + snapshot_words, .chain_base = chain_tag };
     }
 
     fn chain(self: *const DeviceChannel) u64 {

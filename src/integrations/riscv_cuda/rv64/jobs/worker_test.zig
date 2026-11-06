@@ -82,6 +82,8 @@ const Probe = struct {
     result: u32 = 0,
     host_ran: bool = false,
     aborted: bool = false,
+    slab_at: usize = 0,
+    state_at: usize = 0,
     pub fn classKey(self: *Probe) [32]u8 {
         var k: [32]u8 = @splat(0);
         k[0] = @intCast(self.id % 2);
@@ -112,6 +114,8 @@ const Probe = struct {
         scratch.ptr[0] = sum + @as(u32, @intCast(self.id));
         e.free(scratch);
         e.slab.device.ptr[0] = scratch.ptr[0];
+        self.slab_at = @intFromPtr(e.slab.device.ptr);
+        self.state_at = @intFromPtr(e.channel.state);
         try e.hostFn(.{ .call = hostStep, .user = self });
     }
     pub fn finish(self: *Probe, v: api.SlabView) !void {
@@ -198,6 +202,13 @@ test "worker runs the 3-stage pipeline: stage(k+1) before enqueue(k) before fini
         try std.testing.expect(p.host_ran);
         try std.testing.expectEqual(@as(api.Placement, if (i % 2 == 0) .bottom else .top), p.placement.?);
     }
+    // Same class + same placement → identical addresses (graph replay needs no rebinding).
+    for (0..2) |i| {
+        try std.testing.expectEqual(probes[i].slab_at, probes[i + 2].slab_at);
+        try std.testing.expectEqual(probes[i].state_at, probes[i + 2].state_at);
+        try std.testing.expectEqual(@intFromPtr(probes[i].staged.?.ptr), @intFromPtr(probes[i + 2].staged.?.ptr));
+    }
+    try std.testing.expect(probes[0].slab_at != probes[1].slab_at);
     try std.testing.expectEqual(@as(usize, 4), fake.counters.host_waits); // exactly one per job
     try std.testing.expectEqual(@as(usize, 4), fake.counters.d2h); // exactly one slab D2H per job
     try std.testing.expectEqual(@as(usize, 4), fake.counters.h2d);
