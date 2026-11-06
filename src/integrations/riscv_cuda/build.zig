@@ -75,6 +75,15 @@ pub fn build(b: *std.Build) void {
     jobs_run.setCwd(b.path("."));
     const jobs_step = b.step("test-rv64-jobs", "Test the M8 job runtime contract, worker pipeline, channel parity model, slab, scheduler and sync lint without a GPU");
     jobs_step.dependOn(&jobs_run.step);
+    // native-job: rv64/jobs/native_*.zig tests in their own binary (they reuse the legacy PCS framing and
+    // decoder through stwo_riscv_cpu_integration, which must not share a binary with rv64_ready_dag).
+    const jobs_native_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_native_test_root.zig"), .target = target, .optimize = optimize });
+    jobs_native_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    jobs_native_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    jobs_native_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    const jobs_native_run = b.addRunArtifact(b.addTest(.{ .root_module = jobs_native_root }));
+    jobs_native_run.setCwd(b.path("."));
+    jobs_step.dependOn(&jobs_native_run.step);
     const jobs_sched_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_sched_test_root.zig"), .target = target, .optimize = optimize });
     jobs_sched_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     jobs_sched_root.addImport("rv64_ready_dag", b.createModule(.{ .root_source_file = b.path("../riscv_cpu/rv64_recursion/om31_native/ready_dag.zig"), .target = target, .optimize = optimize }));
