@@ -16,8 +16,13 @@ keccak-service = ["alloy-primitives/native-keccak"]
 secp-lean = ["k256/stwo-projective-word-service", "k256/stwo-vartime", "ecdsa/stwo-skip-redundant-recovery-verify"]
 sha-service = ["dep:sha2-rv64", "sha2-rv64/stwo-sha256-service"]
 precompile-services = ["sha-service", "dep:revm-precompile"]
+pairing-cache = ["precompile-services", "dep:ark-bn254", "dep:ark-ec", "dep:ark-ff", "dep:spin"]
 
 [dependencies]
+ark-bn254 = { version = "=0.6.0", default-features = false, features = ["curve"], optional = true }
+ark-ec = { version = "=0.6.0", default-features = false, optional = true }
+ark-ff = { version = "=0.6.0", default-features = false, optional = true }
+spin = { version = "=0.9.9", default-features = false, features = ["mutex", "spin_mutex"], optional = true }
 revm-precompile = { version = "=42.0.1", default-features = false, optional = true }
 k256 = { version = "=0.13.4", default-features = false, features = ["ecdsa"] }
 ecdsa = { version = "=0.16.9", default-features = false }

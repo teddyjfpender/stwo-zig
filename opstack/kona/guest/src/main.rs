@@ -9,6 +9,8 @@ mod allocator;
 #[path = "../../../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/single_thread_atomics.rs"]
 mod single_thread_atomics;
 extern crate stwo_rv64_mem;
+#[cfg(feature = "allocator-check")]
+mod allocator_checks;
 #[cfg(all(feature = "keccak-service", not(feature = "sponge-service")))]
 #[rustfmt::skip]
 #[path = "../../../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/keccak_service.rs"]
@@ -61,6 +63,8 @@ extern "C" fn guest_main() -> ! {
         let begin = ptr::addr_of!(__heap_start) as usize;
         HEAP.initialize(begin as *mut u8, ptr::addr_of!(__heap_end) as usize - begin);
     }
+    #[cfg(feature = "allocator-check")]
+    allocator_checks::check();
     let input = unsafe {
         let start = ptr::addr_of!(__input_start);
         let len = ptr::read_volatile(start.cast::<u32>()) as usize;

@@ -4,7 +4,7 @@
 use crate::{
     TrieHinter, TrieNodeError, TrieProvider,
     errors::TrieNodeResult,
-    util::{rlp_list_element_length, unpack_path_to_nibbles},
+    util::unpack_path_to_nibbles,
 };
 use alloc::{boxed::Box, string::ToString, vec, vec::Vec};
 use alloy_primitives::{B256, Bytes, keccak256};
@@ -501,7 +501,12 @@ impl TrieNode {
     /// of the [`TrieNode::Leaf`] or [`TrieNode::Extension`] node.
     fn try_decode_leaf_or_extension_payload(buf: &mut &[u8]) -> TrieNodeResult<Self> {
         // Decode the path and value of the leaf or extension node.
-        let path = Bytes::decode(buf).map_err(TrieNodeError::RLPError)?;
+        // The path is consumed immediately; borrowing avoids an allocation and
+        // copy for every decoded node. Values still retain their owned Bytes.
+        let path = Header::decode_bytes(buf, false).map_err(TrieNodeError::RLPError)?;
+        if path.is_empty() {
+            return Err(TrieNodeError::RLPError(alloy_rlp::Error::UnexpectedLength));
+        }
         let first_nibble = path[0] >> NIBBLE_WIDTH;
         let first = match first_nibble {
             PREFIX_EXTENSION_ODD | PREFIX_LEAF_ODD => Some(path[0] & 0x0F),
@@ -509,6 +514,9 @@ impl TrieNode {
             _ => return Err(TrieNodeError::InvalidNodeType),
         };
 
+        if (path.len() - 1) * 2 + usize::from(first.is_some()) > 64 {
+            return Err(TrieNodeError::RLPError(alloy_rlp::Error::UnexpectedLength));
+        }
         // Check the high-order nibble of the path to determine the type of node.
         match first_nibble {
             PREFIX_EXTENSION_EVEN | PREFIX_EXTENSION_ODD => {
@@ -653,45 +661,8 @@ impl Encodable for TrieNode {
     }
 }
 
-impl Decodable for TrieNode {
-    /// Attempts to decode the [`TrieNode`].
-    fn decode(buf: &mut &[u8]) -> alloy_rlp::Result<Self> {
-        // Peek at the header to determine the type of Trie node we're currently decoding.
-        let header = Header::decode(&mut (**buf).as_ref())?;
-
-        if header.list {
-            // Peek at the RLP stream to determine the number of elements in the list.
-            let list_length = rlp_list_element_length(&mut (**buf).as_ref())?;
-
-            match list_length {
-                BRANCH_LIST_LENGTH => {
-                    let list = Vec::<Self>::decode(buf)?;
-                    Ok(Self::Branch { stack: list })
-                }
-                LEAF_OR_EXTENSION_LIST_LENGTH => {
-                    // Advance the buffer to the start of the list payload.
-                    buf.advance(header.length());
-                    // Decode the leaf or extension node's raw payload.
-                    Self::try_decode_leaf_or_extension_payload(buf)
-                        .map_err(|_| alloy_rlp::Error::UnexpectedList)
-                }
-                _ => Err(alloy_rlp::Error::UnexpectedLength),
-            }
-        } else {
-            match header.payload_length {
-                0 => {
-                    buf.advance(header.length());
-                    Ok(Self::Empty)
-                }
-                32 => {
-                    let commitment = B256::decode(buf)?;
-                    Ok(Self::new_blinded(commitment))
-                }
-                _ => Err(alloy_rlp::Error::UnexpectedLength),
-            }
-        }
-    }
-}
+#[path = "node_decode.rs"]
+mod decode;
 
 #[cfg(test)]
 mod test {

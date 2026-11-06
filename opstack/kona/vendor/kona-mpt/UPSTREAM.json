@@ -13,5 +13,18 @@
     "src/traits.rs": "0067d51c86d5eeeead6c5027c0446b6cf72f1e2943bd683ff4e66e94aae7efbd",
     "src/util.rs": "fdcff36b539e4cc11ff99b201acf1a30a388b9f2f254cb1769a405f767705969"
   },
-  "changes": "standalone manifest; capped reference length; bounded single-pass branch/extension reference encoding for hashing; independent differential tests; original RPC tests retained and excluded explicitly from offline gate"
+  "changes": "standalone manifest; capped reference length; bounded single-pass branch/extension reference encoding for hashing; independent differential tests; original RPC tests retained and excluded explicitly from offline gate; bounded branch decode with one allocation, borrowed compact paths, packed nibble construction",
+  "modified_files": [
+    "Cargo.toml",
+    "src/node.rs",
+    "src/util.rs"
+  ],
+  "added_files": [
+    "Cargo.lock",
+    "UPSTREAM.json",
+    "LICENSE.md",
+    "src/bounded_length_tests.rs",
+    "src/node_decode.rs",
+    "src/node_decode_tests.rs"
+  ]
 }

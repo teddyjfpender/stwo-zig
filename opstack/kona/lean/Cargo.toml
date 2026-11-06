@@ -14,6 +14,7 @@ path = "../guest/src/main.rs"
 [features]
 default = ["sponge-service"]
 eager-preimages = []
+allocator-check = []
 keccak-service = ["stwo-kona-execution/keccak-service"]
 services-v3 = ["keccak-service", "stwo-kona-execution/secp-lean"]
 sponge-service = ["services-v3"]
@@ -22,8 +23,11 @@ sha-service = ["stwo-kona-execution/sha-service"]
 bn254-service = ["dep:ark-bn254", "ark-bn254/stwo-montgomery-service"]
 arithmetic-service = ["dep:revm-interpreter", "revm-interpreter/stwo-arith256-service"]
 precompile-services = ["stwo-kona-execution/precompile-services"]
+pairing-cache = ["precompile-services", "stwo-kona-execution/pairing-cache"]
+jumpdest-service = ["dep:revm-bytecode", "revm-bytecode/stwo-jumpdest-service"]
 
 [dependencies]
+revm-bytecode = { version = "=42.0.0", default-features = false, optional = true }
 ark-bn254 = { version = "=0.6.0", default-features = false, optional = true }
 revm-interpreter = { version = "=42.0.0", default-features = false, optional = true }
 stwo-kona-execution = { path = ".." }

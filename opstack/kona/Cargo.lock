@@ -2536,6 +2536,9 @@ dependencies = [
 name = "stwo-kona-execution"
 version = "0.1.0"
 dependencies = [
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff",
  "alloy-consensus",
  "alloy-op-evm",
  "alloy-primitives",
@@ -2552,6 +2555,7 @@ dependencies = [
  "revm-precompile",
  "serde",
  "serde_json",
+ "spin",
  "sha2 0.10.9",
  "sha2 0.10.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha3",

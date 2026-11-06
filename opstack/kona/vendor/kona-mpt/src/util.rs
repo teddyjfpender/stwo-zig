@@ -85,6 +85,12 @@ pub(crate) fn rlp_list_element_length(buf: &mut &[u8]) -> alloy_rlp::Result<usiz
 /// ## Returns
 /// - `Nibbles` - unpacked nibbles
 pub(crate) fn unpack_path_to_nibbles(first: Option<u8>, rest: &[u8]) -> Nibbles {
-    let rest = Nibbles::unpack(rest);
-    Nibbles::from_iter_unchecked(first.into_iter().chain(rest.to_vec()))
+    // Nibbles is a packed, fixed-size value. Do not allocate an intermediate
+    // byte-per-nibble Vec only to pack it immediately again.
+    let mut path = Nibbles::default();
+    if let Some(first) = first {
+        path.push(first);
+    }
+    path.extend(&Nibbles::unpack(rest));
+    path
 }

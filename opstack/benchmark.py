@@ -130,6 +130,11 @@ def main():
             config_path = args.artifacts / f"{name}-config.json"
             config_path.write_text(json.dumps(config, indent=2) + "\n")
             record = json.loads(run([args.runner, config_path]).stdout)
+            # Retain trapping/incomplete candidates as evidence too. Promotion
+            # and proof-config generation still require complete exact output.
+            (args.artifacts / f"{name}-rv64.json").write_text(
+                json.dumps(record, indent=2) + "\n"
+            )
             if (
                 record.get("status") != "completed"
                 or record.get("verified_output") is not True

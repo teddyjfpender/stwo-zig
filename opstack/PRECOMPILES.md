@@ -27,3 +27,24 @@ Unicorn. Those blocks do not exercise BN254 G1 or modexp, so that execution
 checkpoint does not qualify their RV64 service paths or physical proof cost.
 The default guest remains unchanged until explicit service-path and complete
 proof/receiver receipts justify promotion.
+
+## Explicit optimized variant
+
+`optimized` adds bounded, exact-byte pairing memoization and admitted JUMPDEST
+analysis. The pairing provider validates canonical/on-curve/subgroup inputs;
+even an infinity G1 does not skip G2 validation. It retains up to 16 validated
+G2 values and eight computed results (at most 16 pairs per result). Failed inputs
+are never cached. Larger inputs follow the pinned implementation. Repeated data
+still pays Revm's fork-specific gas; the cache changes computation only.
+
+JUMPDEST uses the existing service for 256-byte through 1-MiB code. A dedicated
+64-aligned immutable byte owner provides initialized PUSH/STOP lookahead padding;
+logical bytecode length and destination bitmap length stay unchanged. Smaller
+and larger code retains the original scanner. No borrowed source is overwritten.
+
+The 27,255,387-gas historical OP Mainnet block 121065789 exercises 19,622 admitted
+G1 additions and 63,408 doublings. Native Kona, RV64 and the independent Unicorn
+oracle agree on the final output and exact instruction count. This validates
+execution of those service paths; a full physical proof of that heavy block is
+still required. Modexp acceleration still needs a mainnet execution fixture that
+actually invokes it. See the round-two receipt directory for exact ELF identities.

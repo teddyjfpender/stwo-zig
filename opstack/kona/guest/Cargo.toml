@@ -7,6 +7,7 @@ publish = false
 [features]
 default = []
 eager-preimages = []
+allocator-check = []
 keccak-service = ["stwo-kona-execution/keccak-service"]
 services-v3 = ["keccak-service", "stwo-kona-execution/secp-lean"]
 sponge-service = ["services-v3"]

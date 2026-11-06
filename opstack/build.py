@@ -38,6 +38,30 @@ LEAN_VARIANTS = {
         "frontier",
         ["memory-service", "sha-service", "arithmetic-service", "precompile-services"],
     ),
+    "pairing": (
+        "frontier",
+        ["memory-service", "sha-service", "arithmetic-service", "pairing-cache"],
+    ),
+    "pairing-bn254": (
+        "frontier",
+        [
+            "memory-service",
+            "sha-service",
+            "arithmetic-service",
+            "pairing-cache",
+            "bn254-service",
+        ],
+    ),
+    "optimized": (
+        "frontier",
+        [
+            "memory-service",
+            "sha-service",
+            "arithmetic-service",
+            "pairing-cache",
+            "jumpdest-service",
+        ],
+    ),
 }
 
 BULK_DEFAULTS = {"COPY": 16, "UCOPY": 16, "SET": 16, "CMP": 8}
@@ -80,6 +104,7 @@ def main():
         default="software",
     )
     parser.add_argument("--eager", action="store_true")
+    parser.add_argument("--allocator-check", action="store_true")
     parser.add_argument(
         "--guest-opt-level",
         choices=("2", "3", "s", "z"),
@@ -173,6 +198,8 @@ def main():
         )
         if args.eager:
             features.append("eager-preimages")
+        if args.allocator_check:
+            features.append("allocator-check")
         if features:
             command += ["--features", ",".join(features)]
         run(command)
@@ -215,6 +242,7 @@ def main():
         "guest_opt_level": args.guest_opt_level,
         "bulk_threshold_bytes": bulk_thresholds,
         "eager": args.eager,
+        "allocator_check": args.allocator_check,
         "commands": commands,
         "source_head": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True

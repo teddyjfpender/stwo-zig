@@ -38,6 +38,44 @@ def arith256(packet):
     return ((a * b + c) % modulus if modulus else 0).to_bytes(32, "little")
 
 
+def bn254_affine(packet, double):
+    """Independent affine equations for the admitted partial G1 services."""
+    p = 21888242871839275222246405745257275088696311157297823662689037894645226208583
+    if len(packet) != (64 if double else 128):
+        raise ValueError("BN254 packet size")
+    values = [
+        int.from_bytes(packet[i : i + 32], "little") for i in range(0, len(packet), 32)
+    ]
+    if any(x >= p for x in values):
+        raise ValueError("noncanonical BN254 input")
+    x, y = values[:2]
+    if double:
+        if not y:
+            raise ValueError("BN254 zero doubling denominator")
+        u, v = x, y
+        slope = 3 * x * x * pow(2 * y, -1, p) % p
+    else:
+        u, v = values[2:]
+        if x == u:
+            raise ValueError("BN254 zero addition denominator")
+        slope = (v - y) * pow((u - x) % p, -1, p) % p
+    result_x = (slope * slope - x - u) % p
+    result_y = (slope * (x - result_x) - y) % p
+    return result_x.to_bytes(32, "little") + result_y.to_bytes(32, "little")
+
+
+def jumpdest_bitmap(code):
+    """Independent byte walk: a PUSH immediate never creates a destination."""
+    bitmap = bytearray(((len(code) + 63) // 64) * 8)
+    pc = 0
+    while pc < len(code):
+        opcode = code[pc]
+        if opcode == 0x5B:
+            bitmap[pc // 8] |= 1 << (pc % 8)
+        pc += opcode - 0x5F + 1 if 0x60 <= opcode <= 0x7F else 1
+    return bytes(bitmap)
+
+
 def execute(config, expected_steps, timeout=600):
     import unicorn as U
     from unicorn import riscv_const as R
@@ -157,6 +195,8 @@ def execute(config, expected_steps, timeout=600):
     service_error = []
     sha_compressor = None
     service_counts = {
+        "jumpdest_calls": 0,
+        "jumpdest_bytes": 0,
         "curve_calls": [0] * 7,
         "sha256_calls": 0,
         "arith256_mod_calls": 0,
@@ -204,6 +244,41 @@ def execute(config, expected_steps, timeout=600):
                     result = sha_compressor.compress(state, packet[32:])
                     uc.mem_write(pointer, struct.pack("<8I", *result))
                     service_counts["sha256_calls"] += 1
+                elif tag == 0x30040:
+                    if pointer % 8:
+                        raise ValueError("unaligned jumpdest packet")
+                    code, length, bitmap = struct.unpack(
+                        "<3Q", uc.mem_read(pointer, 24)
+                    )
+                    if (
+                        code % 64
+                        or bitmap % 8
+                        or not 0 < length <= 1 << 20
+                        or length % 8
+                    ):
+                        raise ValueError("jumpdest bounds")
+                    spans = [
+                        (pointer, pointer + 24),
+                        (code, code + length),
+                        (bitmap, bitmap + ((length + 63) // 64) * 8),
+                    ]
+                    for i, a in enumerate(spans):
+                        if not 0 <= a[0] < a[1] <= 1 << 64:
+                            raise ValueError("jumpdest address overflow")
+                        for b in spans[i + 1 :]:
+                            if a[0] < b[1] and b[0] < a[1]:
+                                raise ValueError("jumpdest overlap")
+                    uc.mem_write(
+                        bitmap, jumpdest_bitmap(bytes(uc.mem_read(code, length)))
+                    )
+                    service_counts["jumpdest_calls"] += 1
+                    service_counts["jumpdest_bytes"] += length
+                elif tag in (0x30100, 0x30101):
+                    if pointer % 32:
+                        raise ValueError("unaligned BN254 packet")
+                    packet = bytes(uc.mem_read(pointer, 64 if tag == 0x30101 else 128))
+                    uc.mem_write(pointer, bn254_affine(packet, tag == 0x30101))
+                    service_counts["curve_calls"][tag - 0x30100] += 1
                 elif tag == 0x30121:
                     if pointer % 32:
                         raise ValueError("unaligned Montgomery packet")

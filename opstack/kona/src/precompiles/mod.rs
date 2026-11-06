@@ -6,6 +6,8 @@ use alloc::vec::Vec;
 use revm_precompile::{Crypto, DefaultCrypto, PrecompileHalt};
 mod bn254;
 mod modular;
+#[cfg(feature = "pairing-cache")]
+mod pairing;
 
 #[derive(Debug)]
 pub struct Services;
@@ -36,6 +38,11 @@ impl Crypto for Services {
 
     fn bn254_g1_mul(&self, point: &[u8], scalar: &[u8]) -> Result<[u8; 64], PrecompileHalt> {
         bn254::mul(point, scalar)
+    }
+
+    #[cfg(feature = "pairing-cache")]
+    fn bn254_pairing_check(&self, pairs: &[(&[u8], &[u8])]) -> Result<bool, PrecompileHalt> {
+        pairing::check(pairs)
     }
 }
 
