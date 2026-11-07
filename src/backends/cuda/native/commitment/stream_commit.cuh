@@ -61,8 +61,13 @@ struct StreamCommitParams {
   uint32_t value_column;
   uint32_t *paths;               // paths[(qi * path_log + level) * 8 + w]
   uint32_t path_log;             // tree log used for the path layout
-  uint32_t *status;              // bit 4: CTA query overflow
+  uint32_t *status;              // bit 4: CTA query overflow; bit 5: query row >= 2^log_n
   uint32_t low_bits;             // fused tile height (0 = default for log_n)
+  // Review fix: 1 = `intermediate` is the finished LDE chunk (production W1 + W2
+  // already ran). The kernel then only hashes (no FFT, no cluster, no
+  // twiddles), so partial trees and on-chip openings are available at every
+  // height without the fused tail's log 22-24 loss.
+  uint32_t lde_input;
 };
 
 constexpr uint32_t kGroup = 16;             // columns per group = one Blake2s block
@@ -123,10 +128,11 @@ __host__ __device__ constexpr uint32_t tc_off(uint32_t bit) { return 1024u - (20
   stwo::cuda::blake2s::progressive_compress(h0, h1, h2, h3, h4, h5, h6, h7, p0, p1, \
       p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, counter, last)
 
-template <uint32_t LowBits>
+template <uint32_t LowBits, bool LdeInput = false>
 __global__ void __launch_bounds__(kRows, 1) stream_commit_kernel(StreamCommitParams p) {
   namespace cg = cooperative_groups;
   static_assert(LowBits >= 10 && LowBits <= 13, "fused tile height");
+  static_assert(!LdeInput || LowBits == 10, "LDE input mode is single-CTA");
   constexpr uint32_t kCrossBits = LowBits - 10u;
   constexpr uint32_t kCluster = 1u << kCrossBits;
   constexpr uint32_t kSlice = kRows / kCluster;        // l values per CTA in the cross step
@@ -152,13 +158,13 @@ __global__ void __launch_bounds__(kRows, 1) stream_commit_kernel(StreamCommitPar
   const M31 *tw = p.twiddles;
 
   // ---- twiddle caches (column independent) ----
-  if (t < 1023u) {
+  if (!LdeInput && t < 1023u) {
     uint32_t bit = 0;
     while (t >= tc_off(bit + 1u)) ++bit;
     const uint32_t i = t - tc_off(bit);
     tcache[t] = stage_twiddle(tw, log_n, bit, row0 | (i << (bit + 1u)));
   }
-  if (t < kCrossBits * 8u) {
+  if (!LdeInput && t < kCrossBits * 8u) {
     const uint32_t hb = t / 8u, i = t % 8u, bit = 10u + hb;
     if (i < (1u << (kCrossBits - 1u - hb)))
       xcache[t] = stage_twiddle(tw, log_n, bit, tile_base | (i << (bit + 1u)));
@@ -170,6 +176,11 @@ __global__ void __launch_bounds__(kRows, 1) stream_commit_kernel(StreamCommitPar
   else __syncthreads();
   for (uint32_t i = t; i < p.query_count; i += kRows) {
     const uint32_t r = p.query_rows[i];
+    if (r >= size) {
+      // No CTA owns it: fail closed instead of leaving values/paths unwritten.
+      if (blockIdx.x == 0) atomicOr(p.status, 32u);
+      continue;
+    }
     if ((r >> 10) == (row0 >> 10)) {
       const uint32_t slot = atomicAdd(qcount, 1u);
       if (slot < kMaxCtaQueries) {
@@ -229,6 +240,7 @@ __global__ void __launch_bounds__(kRows, 1) stream_commit_kernel(StreamCommitPar
     const bool active = j < count;
     const uint32_t *column = p.intermediate + size_t(start + j) * p.column_stride_words + tile_base;
     uint32_t v[16];
+    if constexpr (!LdeInput) {
     if constexpr (kCluster > 1) {
       // Cross-CTA stages (bits LowBits-1..10) on a column slice, in registers.
       if (active) {
@@ -327,6 +339,7 @@ __global__ void __launch_bounds__(kRows, 1) stream_commit_kernel(StreamCommitPar
       for (uint32_t k = 0; k < 16; ++k) col_buf[pad(e2(k))] = v[k];
     }
     __syncthreads();
+    }  // !LdeInput
     // ---- hash layout: thread t = row t; one Blake2s block per full group ----
     // Every earlier block is compressed, so no message word is live here:
     // resetting them lets the compiler drop them across the FFT phases.
@@ -341,7 +354,8 @@ __global__ void __launch_bounds__(kRows, 1) stream_commit_kernel(StreamCommitPar
       }
     }
     for (uint32_t c = 0; c < count; ++c) {
-      const uint32_t word = buf[c * kPad + pad(t)];
+      const uint32_t word = LdeInput ? p.intermediate[size_t(start + c) * p.column_stride_words + row]
+                                     : buf[c * kPad + pad(t)];
       if (qa >= 0) {
         const size_t base = size_t(p.value_column + start + c) * p.query_count;
         p.values[base + uint32_t(qa)] = word;

@@ -141,10 +141,10 @@ extern "C" size_t stwo_m9_stream_commit_smem_bytes(uint32_t) {
   return sizeof(uint32_t) * m9::kSmemWords;
 }
 
-template <uint32_t Low>
+template <uint32_t Low, bool LdeInput = false>
 static int launch(const m9::StreamCommitParams &p, cudaStream_t stream) {
   constexpr uint32_t cluster = 1u << (Low - 10);
-  auto kernel = m9::stream_commit_kernel<Low>;
+  auto kernel = m9::stream_commit_kernel<Low, LdeInput>;
   const size_t bytes = stwo_m9_stream_commit_smem_bytes(Low);
   cudaError_t status = cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, int(bytes));
   if (status != cudaSuccess) return int(status);
@@ -169,9 +169,11 @@ static int launch(const m9::StreamCommitParams &p, cudaStream_t stream) {
 extern "C" int stwo_m9_stream_commit_on(const m9::StreamCommitParams *params, void *stream_raw) {
   if (!params || !stream_raw) return int(cudaErrorInvalidValue);
   m9::StreamCommitParams p = *params;
-  const uint32_t low = p.low_bits ? p.low_bits : stwo_m9_stream_commit_low_bits(p.log_n);
+  if (p.lde_input > 1 || (p.lde_input && p.low_bits && p.low_bits != 10)) return int(cudaErrorInvalidValue);
+  const uint32_t low = p.lde_input ? 10u : p.low_bits ? p.low_bits : stwo_m9_stream_commit_low_bits(p.log_n);
   const uint32_t size = 1u << p.log_n;
-  if (!valid_split(p.log_n, low) || !p.intermediate || !p.columns || !p.twiddles || !p.status ||
+  if (!valid_split(p.log_n, low) || !p.intermediate || !p.columns || (!p.twiddles && !p.lde_input) || !p.status ||
+      (p.paths && p.path_log < p.log_n) ||
       p.column_stride_words < size || ((p.prefix == nullptr) == (p.nodes == nullptr)) ||
       p.subtree_levels > m9::kMaxSubtreeLevels || (p.prefix && p.subtree_levels) ||
       (p.query_count && (!p.query_rows || !p.values)) || (p.paths && !p.query_count) ||
@@ -184,6 +186,7 @@ extern "C" int stwo_m9_stream_commit_on(const m9::StreamCommitParams *params, vo
     return int(cudaErrorInvalidValue);
   }
   auto stream = reinterpret_cast<cudaStream_t>(stream_raw);
+  if (p.lde_input) return launch<10, true>(p, stream);
   switch (low) {
     case 10: return launch<10>(p, stream);
     case 11: return launch<11>(p, stream);
