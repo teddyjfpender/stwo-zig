@@ -166,6 +166,34 @@ class AggregationTests(unittest.TestCase):
         self.assertIn('| outer | 1 |', text)
         self.assertEqual(text.count('\n| 24628607 | default |'), 1)
 
+    def test_distribution_is_nearest_rank(self):
+        values = list(range(1, 16))  # 15 blocks
+        self.assertEqual(bench.distribution(values), {'n': 15, 'p50': 8, 'p90': 14, 'max': 15})
+        self.assertEqual(bench.distribution([3.0]), {'n': 1, 'p50': 3.0, 'p90': 3.0, 'max': 3.0})
+        self.assertIsNone(bench.distribution([None]))
+
+    def test_arm_failure_reason_prefers_the_named_error(self):
+        log = 'GATE boot\nsomething failed here\nerror: GpuNativeNativeShapeHookMissing\n/x/driver_serve.zig:103: in install\n'
+        self.assertEqual(bench.arm_failure_reason(log), 'error: GpuNativeNativeShapeHookMissing')
+        self.assertEqual(bench.arm_failure_reason('a\nservice never READY: M8RequestProviderNotLanded\n'),
+                         'service never READY: M8RequestProviderNotLanded')
+
+    def test_arm_failures_are_reported_and_excluded_from_totals(self):
+        rows = bench.basket()
+        small = rows[0]
+        failure = {'kind': 'service', 'reason': 'error: GpuNativeNativeShapeHookMissing', 'run': 'r', 'log': 'l'}
+        blocks = {small['block']: {'block': small['block'], 'status': 'done', 'arm_failures': {'gpu-native': failure},
+                                   'services': [service('default', 'headline', 10.0),
+                                                dict(arm='gpu-native', role='headline', status='failed')]}}
+        result = bench.aggregate(blocks, ['default', 'gpu-native'], rows)
+        self.assertEqual(result['arm_failures'], {'gpu-native': [small['block']]})
+        self.assertNotIn('gpu-native', result['totals'])
+        self.assertEqual(result['totals']['default']['warm_proving_s'], {'n': 1, 'p50': 10.0, 'p90': 10.0, 'max': 10.0})
+        text = bench.markdown(result)
+        self.assertIn('10.00 / 20.00 | FAIL |', text)
+        self.assertIn('gpu-native FAILED (service)', text)
+        self.assertNotIn('| gpu-native | -', text)
+
     def test_estimate_is_monotonic_in_block_size_and_labelled(self):
         rows = bench.basket()
         estimate = bench.estimate_walls(rows, ['default', 'outer', 'native', 'hybrid', 'jobs'], 3)
@@ -177,6 +205,63 @@ class AggregationTests(unittest.TestCase):
         self.assertGreater(estimate['arms']['outer']['gpu_wall_s'], estimate['arms']['default']['gpu_wall_s'])
         lighter = bench.estimate_walls(rows, ['default'], 1, profile=False)
         self.assertLess(lighter['arms']['default']['gpu_wall_s'], estimate['arms']['default']['gpu_wall_s'])
+
+
+class ToleratedArmTests(unittest.TestCase):
+    def setUp(self):
+        self.free_bytes = bench.free_bytes
+        bench.free_bytes = lambda path: 1 << 50
+
+    def tearDown(self):
+        bench.free_bytes = self.free_bytes
+
+    def bench(self, tmp, outcomes):
+        b = object.__new__(bench.Bench)
+        b.out = Path(tmp)
+        b.args = argparse.Namespace(rounds=3, arms=['default', 'gpu-native'], tolerate_arm_failure=['gpu-native'],
+                                    receivers='reference', profile='warm', quiet_retries=0, min_free_gb=0)
+        calls = []
+
+        def fake_service(block, row, arm, role, round_index, attempt):
+            calls.append((arm, role, round_index))
+            log = Path(tmp) / f'{arm}-{role}-{round_index}.log'
+            status = outcomes(arm, role)
+            log.write_text('error: GpuNativeNativeShapeHookMissing\n' if status != 'ok' else 'ok\n')
+            return {'arm': arm, 'role': role, 'round': round_index, 'run': str(Path(tmp) / 'none' / f'{arm}{round_index}'),
+                    'status': status, 'log': str(log), 'exit_code': 0 if status == 'ok' else 1,
+                    'requests': [{'proving_s': 1.0, 'nodes': 1}, {'proving_s': 1.0, 'nodes': 1}]}
+
+        def fake_parity(block, entry, state):
+            state['reference'] = state.get('reference') or {'run': entry['run']}
+
+        b.service = fake_service
+        b.parity = fake_parity
+        b.receive = lambda block, run: [{'accepted': True}]
+        b.gpu_seconds = lambda entry, ref: {'kernel_gpu_s': 1.0}
+        b.prune = lambda run, keep_proofs=False: None
+        return b, calls
+
+    def test_failed_tolerated_arm_is_recorded_once_and_the_block_completes(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'blocks').mkdir()
+            b, calls = self.bench(tmp, lambda arm, role: 'failed' if arm == 'gpu-native' else 'ok')
+            state = b.block({'block': 26235156})
+        self.assertEqual(state['status'], 'done')
+        self.assertEqual(calls.count(('gpu-native', 'headline', 0)), 1)
+        self.assertNotIn(('gpu-native', 'headline', 1), calls)
+        self.assertNotIn(('gpu-native', 'profile', 0), calls)
+        self.assertEqual([c for c in calls if c[0] == 'default'],
+                         [('default', 'headline', 0), ('default', 'headline', 1), ('default', 'headline', 2), ('default', 'profile', 0)])
+        self.assertEqual(state['arm_failures']['gpu-native']['reason'], 'error: GpuNativeNativeShapeHookMissing')
+
+    def test_untolerated_arm_failure_still_stops(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'blocks').mkdir()
+            b, _ = self.bench(tmp, lambda arm, role: 'failed' if arm == 'default' else 'ok')
+            with self.assertRaises(bench.Stop):
+                b.block({'block': 26235156})
 
 
 if __name__ == '__main__':

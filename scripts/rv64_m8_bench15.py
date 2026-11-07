@@ -88,6 +88,8 @@ ARMS = {
     'hybrid': dict(OUTER, **NATIVE),
     'jobs': {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}',
              'STWO_RV64_M8_OUTER_FS_LIBRARY': '{outer_fs}', 'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456'},
+    # The GPU-native request path (m8-gpu gate-10 env): fails closed at install today (GpuNativeNativeShapeHookMissing).
+    'gpu-native': {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_GPU_NATIVE': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}'},
 }
 ASSET_NAMES = ('driver', 'receiver', 'library', 'sparse', 'observer', 'process_budget_guard', 'addon', 'outer_fs')
 # M3 found blocks with >= 40 CPU segments OOM in resident composition unless the
@@ -207,6 +209,25 @@ def profile_metrics(gpu_row, api_row, nodes, proving_s):
     return out
 
 
+def distribution(values):
+    """p50/p90/max over blocks; p50/p90 are nearest-rank (ceil(q*n)-th smallest), so every value is a measured one."""
+    values = sorted(v for v in values if isinstance(v, (int, float)))
+    if not values:
+        return None
+    rank = lambda q: values[max(0, -(-int(q * 100) * len(values) // 100) - 1)]
+    return {'n': len(values), 'p50': round(rank(0.5), 4), 'p90': round(rank(0.9), 4), 'max': round(values[-1], 4)}
+
+
+def arm_failure_reason(text):
+    """The most specific error line of a failed service log (fail-closed install, OOM, ...)."""
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    for pattern in (r'error: \w+', r'\b[A-Z][A-Za-z]+(Missing|Unavailable|Failed|NotLanded|Refused)\b', r'(?i)error|failed'):
+        hits = [l for l in lines if re.search(pattern, l)]
+        if hits:
+            return hits[-1][-400:]
+    return lines[-1][-400:] if lines else 'no output'
+
+
 METRICS = ('proving_s', 'request_s', 'capture_s', 'setup_s', 'native_window_s', 'recursion_after_native_s', 'tail_s')
 
 
@@ -259,6 +280,10 @@ def aggregate(blocks, arms, rows):
         if state:
             entry['parity'] = state.get('parity')
             entry['receivers'] = state.get('receivers')
+            if state.get('arm_failures'):
+                entry['arm_failures'] = state['arm_failures']
+            if state.get('error'):
+                entry['error'] = state['error']
             for arm in arms:
                 services = [s for s in state.get('services', []) if s['arm'] == arm]
                 if services:
@@ -271,9 +296,17 @@ def aggregate(blocks, arms, rows):
         warm = sum(b['arms'][arm]['warm']['proving_s'] for b in done)
         cold = sum(b['arms'][arm]['cold']['proving_s'] for b in done)
         base = sum(m3[b['block']]['request_s'] for b in done)
+        pick = lambda kind, key: [b['arms'][arm][kind][key] for b in done]
         result['totals'][arm] = {'blocks': len(done), 'warm_proving_s_sum': round(warm, 2), 'cold_proving_s_sum': round(cold, 2),
+                                 'warm_request_s_sum': round(sum(v for v in pick('warm', 'request_s') if v), 2),
                                  'm3_request_s_sum_same_blocks': round(base, 2),
-                                 'warm_over_m3': round(warm / base, 4), 'cold_over_m3': round(cold / base, 4)}
+                                 'warm_over_m3': round(warm / base, 4), 'cold_over_m3': round(cold / base, 4),
+                                 'warm_proving_s': distribution(pick('warm', 'proving_s')),
+                                 'cold_proving_s': distribution(pick('cold', 'proving_s')),
+                                 'warm_request_s': distribution(pick('warm', 'request_s')),
+                                 'warm_over_m3_per_block': distribution([b['arms'][arm]['warm']['proving_s'] / m3[b['block']]['request_s'] for b in done])}
+    failed = {arm: [b['block'] for b in result['blocks'] if arm in (b.get('arm_failures') or {})] for arm in arms}
+    result['arm_failures'] = {arm: blocks for arm, blocks in failed.items() if blocks}
     return result
 
 
@@ -295,31 +328,45 @@ def markdown(result):
         cells = []
         for a in arms:
             arm = b['arms'].get(a)
-            cells.append(f"{fmt(arm['warm']['proving_s'], 2)} / {fmt(arm['cold']['proving_s'], 2)}" if arm else '-')
+            if a in (b.get('arm_failures') or {}):
+                cells.append('FAIL')
+            elif arm and arm['warm']['proving_s'] is not None:
+                cells.append(f"{fmt(arm['warm']['proving_s'], 2)} / {fmt(arm['cold']['proving_s'], 2)}")
+            else:
+                cells.append('-')
         lines.append(f"| {b['block']} | {b['instructions'] / 1e6:.1f} | {b['cpu_segments']} | {fmt(b['m3_request_s'])} | "
                      f"{fmt(m7s)}{' (cold)' if m7 and not m7.get('warm_proving_s') else ''} | " + ' | '.join(cells) + f" | {b['status']} |")
     if result['totals']:
         lines += ['', '| arm | blocks | warm sum s | cold sum s | M3 sum s (same blocks) | warm / M3 [D] |', '|---|---:|---:|---:|---:|---:|']
         for a, t in result['totals'].items():
             lines.append(f"| {a} | {t['blocks']} | {t['warm_proving_s_sum']:.1f} | {t['cold_proving_s_sum']:.1f} | {t['m3_request_s_sum_same_blocks']:.1f} | {t['warm_over_m3']:.3f} |")
+        lines += ['', '| arm | warm p50 / p90 / max s | cold p50 / p90 / max s | warm request p50 / p90 / max s |', '|---|---:|---:|---:|']
+        q = lambda d: '-' if not d else f"{d['p50']:.2f} / {d['p90']:.2f} / {d['max']:.2f}"
+        for a, t in result['totals'].items():
+            lines.append(f"| {a} | {q(t.get('warm_proving_s'))} | {q(t.get('cold_proving_s'))} | {q(t.get('warm_request_s'))} |")
+    for b in result['blocks']:
+        for a, failure in (b.get('arm_failures') or {}).items():
+            lines.append(f"\n- {b['block']} {a} FAILED ({failure.get('kind')}): `{failure.get('reason')}`")
     lines += ['', '## Warm critical path per arm', '',
-              '| block | arm | capture | setup | native window | recursion after native | tail [D] | kernel GPU-s | GPU busy [D] | per-node peak GB | launches/node | syncs/node |',
-              '|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|']
+              '| block | arm | warm request s | capture | setup | native window | recursion after native | tail [D] | kernel GPU-s | GPU busy [D] | device peak GB | per-node peak GB | launches/node | syncs/node |',
+              '|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|']
     for b in result['blocks']:
         for a in arms:
             arm = b['arms'].get(a)
-            if not arm:
+            if not arm or arm['warm']['proving_s'] is None:
                 continue
             w, p = arm['warm'], arm.get('profile_warm') or {}
             launches = arm.get('job_launches_per_node', p.get('launches_per_node'))
             syncs = arm.get('job_syncs_per_node', p.get('syncs_per_node'))
             peak = arm.get('per_node_peak_bytes')
-            lines.append(f"| {b['block']} | {a} | {fmt(w['capture_s'], 2)} | {fmt(w['setup_s'], 2)} | {fmt(w['native_window_s'], 2)} | "
+            device = arm.get('device_peak_bytes_sampled')
+            lines.append(f"| {b['block']} | {a} | {fmt(w['request_s'], 2)} | {fmt(w['capture_s'], 2)} | {fmt(w['setup_s'], 2)} | {fmt(w['native_window_s'], 2)} | "
                          f"{fmt(w['recursion_after_native_s'], 2)} | {fmt(w['tail_s'], 2)} | {fmt(p.get('kernel_gpu_s'), 2)} | "
                          f"{fmt(p.get('gpu_busy') and p['gpu_busy'] * 100, 0)}{'%' if p.get('gpu_busy') else ''} | "
-                         f"{fmt(peak and peak / 1e9, 1)} | {fmt(launches, 0)} | {fmt(syncs, 1)} |")
+                         f"{fmt(device and device / 1e9, 1)} | {fmt(peak and peak / 1e9, 1)} | {fmt(launches, 0)} | {fmt(syncs, 1)} |")
     lines += ['', 'launches/syncs per node: job receipts (`GPU_M8_OUTER_NODE launches/host_waits`) where the arm runs OuterNodeJobs [M], '
               'else Nsight `cudaLaunchKernel`/`cudaStreamSynchronize` in the profiled warm window / nodes [D]. '
+              'device peak: NVML-sampled max used bytes over both GPUs in the headline services [M]. '
               'per-node peak: job arena peak words x 4 B [D]. GPU busy: CUPTI kernel union / (2 GPUs x profiled window) [D].', '']
     return '\n'.join(lines)
 
@@ -642,10 +689,20 @@ class Bench:
                 if s.get('status') == 'ok' and (s['role'] != 'profile' or 'profile' in s)}
         retained = {s['run'] for s in state['services'] if s.get('retained')}
         plan = [(arm, 'headline', r) for r in range(self.args.rounds) for arm in self.args.arms]
+        failures = state.setdefault('arm_failures', {})
         for arm, role, round_index in plan:
-            if (arm, role, round_index) in done:
+            if (arm, role, round_index) in done or arm in failures:
                 continue
             entry = self.attempt(block, row, arm, role, round_index, state, save)
+            if entry['status'] != 'ok':  # only a tolerated arm gets here: record it, skip its other services on this block
+                text = entry.get('error') or Path(entry['log']).read_text(errors='replace')
+                failures[arm] = {'kind': 'parity' if entry['status'] == 'parity_failed' else 'service', 'run': entry['run'],
+                                 'log': entry['log'], 'exit_code': entry.get('exit_code'),
+                                 'reason': entry.get('error') or arm_failure_reason(text)}
+                if Path(entry['run']).is_dir():
+                    self.prune(entry['run'])
+                save()
+                continue
             first_of_arm = not any(s['run'] in retained and s['arm'] == arm for s in state['services'])
             keep = entry['run'] == state['reference']['run'] or (self.args.receivers == 'per-arm' and first_of_arm)
             entry['retained'] = keep
@@ -659,9 +716,16 @@ class Bench:
             save()
         if self.args.profile == 'warm':
             for arm in self.args.arms:
-                if (arm, 'profile', 0) in done:
+                if (arm, 'profile', 0) in done or arm in failures:
                     continue
                 entry = self.attempt(block, row, arm, 'profile', 0, state, save)
+                if entry['status'] != 'ok':
+                    failures[arm] = {'kind': 'profile', 'run': entry['run'], 'log': entry['log'],
+                                     'reason': entry.get('error') or arm_failure_reason(Path(entry['log']).read_text(errors='replace'))}
+                    if Path(entry['run']).is_dir():
+                        self.prune(entry['run'])
+                    save()
+                    continue
                 entry['profile'] = self.gpu_seconds(entry, state['reference']['run'])
                 self.prune(entry['run'])
                 save()
@@ -680,10 +744,18 @@ class Bench:
             state['services'].append(entry)
             save()
             if entry['status'] == 'ok':
-                self.parity(block, entry, state)
+                try:
+                    self.parity(block, entry, state)
+                except Stop as error:
+                    if arm not in self.args.tolerate_arm_failure:
+                        raise
+                    entry['status'] = 'parity_failed'
+                    entry['error'] = str(error)
                 save()
                 return entry
             if entry['status'] != 'quiet_timeout':
+                if arm in self.args.tolerate_arm_failure:
+                    return entry
                 raise Stop(f'{block} {arm} {role}: service failed ({entry["log"]})')
         raise Stop(f'{block} {arm}: quiet gate refused {self.args.quiet_retries + 1} attempts (busy pod)')
 
@@ -694,11 +766,16 @@ class Bench:
         elif self.args.blocks:
             wanted = set(self.args.blocks)
             rows = [r for r in rows if r['block'] in wanted]
+        unknown = [a for a in self.args.tolerate_arm_failure if a not in self.args.arms]
+        if unknown:
+            raise SystemExit('--tolerate-arm-failure names arms not in --arms: ' + ','.join(unknown))
+        if self.args.arms[0] in self.args.tolerate_arm_failure:
+            raise SystemExit('the first arm sets the block reference proof and cannot be a tolerated-failure arm')
         if not self.args.wait_for_gpu and not gpu_lock_free():
             raise SystemExit('gpu.lock is held (a gate or another stream); not starting. Retry later or pass --wait-for-gpu')
         self.out.mkdir(parents=True, exist_ok=True)
         config = {'schema': SCHEMA, 'arms': self.args.arms, 'rounds': self.args.rounds, 'profile': self.args.profile,
-                  'receivers': self.args.receivers, 'smoke': self.args.smoke, 'blocks': [r['block'] for r in rows],
+                  'receivers': self.args.receivers, 'tolerate_arm_failure': self.args.tolerate_arm_failure, 'smoke': self.args.smoke, 'blocks': [r['block'] for r in rows],
                   'assets': self.assets, 'preset_sha256': stack.sha(stack.DEFAULT_PRESET), 'stream': self.stream,
                   'source_commit': self.args.source_commit}
         previous = load(self.out / 'config.json')
@@ -773,6 +850,8 @@ def main():
     r.add_argument('--receivers', choices=('reference', 'per-arm'), default='reference',
                    help='fresh CPU receivers on the block reference service, or on the first service of every arm')
     r.add_argument('--receiver-workers', type=int, default=16)
+    r.add_argument('--tolerate-arm-failure', type=lambda t: [a for a in t.split(',') if a], default=[],
+                   help='arms whose service or parity failure is recorded per block (arm skipped there) instead of stopping the bench')
     r.add_argument('--quiet-retries', type=int, default=2)
     r.add_argument('--min-free-gb', type=float, default=3.0)
     r.add_argument('--wait-for-gpu', action='store_true', help='start even if gpu.lock is held now (the harness waits for it)')
