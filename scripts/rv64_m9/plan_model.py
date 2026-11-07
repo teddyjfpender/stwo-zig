@@ -49,8 +49,24 @@ CAP_B = (5.76 - 2.07) / (204.825818 - 26.894777)
 
 # --- IO (rv64-m9-io-streaming.md s1.2, s5): H2D 0.614 link-s on the slower GPU, 24628607 warm [M];
 #     after M8 removes geometry + fold statics, leaf statics stay per node [E]
-IO_LINK_607_POST_M8 = 0.30  # s per GPU [E: about half of 0.614 survives M8]
-IO_EXPOSED = 0.5            # fraction not overlapped by kernels after M8 [E]
+IO_LINK_607_POST_M8 = 0.31  # s per GPU: 7.6 GB leaf statics/GPU at the in-request 24.6 GB/s [D, packed-ingress review]
+IO_EXPOSED = 0.46           # share of H2D copy time exposed (packed-ingress review x0.46) [D]
+DECODE_PER_LEAF = 0.004     # GPU-s per leaf node to decode packed statics on device (2.85-4.48 ms/node, ~4.0 at 0.83 GB) [M/E]
+
+# --- k-leaf fan-in (codex/rv64-m9-fewer-leaves a056cee67, vectors/reports/rv64-m9-prep/m9-fewer-leaves/model.json,
+#     option leafk_blake23_same = recommended): recursion-cell ratio and leaves after, per basket block [D/E] ---
+FANIN_SAME = {  # block: (cell ratio, leaves, folds, depth) after fan-in
+    26235156: (0.795, 7, 3, 2), 24647140: (0.858, 9, 3, 2), 24628607: (0.822, 9, 3, 2), 25229957: (0.822, 9, 3, 2),
+    24628608: (0.853, 11, 4, 2), 24626900: (0.811, 12, 4, 2), 24697070: (0.754, 16, 5, 2), 24697073: (0.767, 14, 5, 2),
+    26235168: (0.761, 24, 9, 3), 25229955: (0.762, 24, 9, 3), 24628590: (0.786, 28, 10, 3), 25229951: (0.774, 29, 10, 3),
+    24628595: (0.760, 32, 11, 3), 24628611: (0.762, 32, 11, 3), 26235159: (0.757, 36, 12, 3)}
+FANIN_LEAF_SHARE = 0.72     # leaf share of recursion cells after fan-in (26235168: 41.45 of 57.5 G) [D]
+
+# --- Poseidon2 leaves (codex/rv64-m9-poseidon2-leaves 37e581cfc, m9-poseidon2-leaves/model.json projection_E.p50,
+#     reviewed): recursion factor, native hashing GPU-s per Minstr, serial transcript GPU-s per Minstr ---
+P2_AS_BUILT = (15.34 / 17.61, 4.12 / 103.3, 6.83 / 103.3)   # sponge node, x9.95 kernel, transcript x23.9 [M/D]
+P2_2TO1_K06 = (8.91 / 17.61, 1.90 / 103.3, 6.83 / 103.3)    # 2-to-1 node + P2 kernels x0.6, transcript as built [E]
+P2_ENGINEERED = (8.91 / 17.61, 1.90 / 103.3, 0.60 / 103.3)  # + parallel transcript at x3 Blake (protocol change) [E]
 
 
 def fit(xs, ys):
@@ -89,14 +105,14 @@ def _bench15_truths():
     return {r['block']: r['truth_proofs'] for r in rd['rows']}
 
 
-def shape(mi, truths=None):
+def shape(mi, truths=None, block=None):
     seg = math.ceil(mi * 1e6 / (1 << 22))
     if truths is None:  # basket fit truths ~ segments (M3 receipts) [D]
         truths = round(7.6 + 0.37 * seg)
     tl = max(2, math.ceil(0.7 * truths))  # coalesced truth leaves (24628607: 10 truths -> 7 leaves) [E]
     L = seg + tl
     F, lv = folds(L)
-    return dict(seg=seg, truths=truths, truth_leaves=tl, leaves=L, folds=F, levels=lv)
+    return dict(block=block, seg=seg, truths=truths, truth_leaves=tl, leaves=L, folds=F, levels=lv)
 
 
 # Recursion GPU-s fit on recursion NODES, not instructions [D]: R_obs = kernel - native(Minstr) on the 6 bench15-1 rows.
@@ -120,12 +136,11 @@ SC = {
     'head': (0.5, 0.4, 0.3),          # first segment ready [E, M8 s5]
     'fixed': (0.4, 0.3, 0.2),         # admission, warm setup, publish, readback [E; bench15 setup 0.11-0.21 + tail 0.03-0.07 M]
     # levers
-    'p2_rec': (0.55, 0.30, 0.22),     # Poseidon2: recursion GPU-s factor [E; pure-P2 leaf cells x0.19 D (source-exact AST, not accepted); accepted mixed P2+Blake leaf x0.447 M -> pess 0.55; GPU hash 11.7-13.4x/elem M]
-    'p2_nat': (0.056, 0.037, 0.019),  # + native GPU-s per M instr (GO-NOGO 0.52-1.53 GPU-s on 24628607) [D]
-    'leaf_grow': (1.15, 1.10, 1.05),  # per-leaf cost growth at 2^23 rungs [E]
+    'p2': (P2_AS_BUILT, P2_2TO1_K06, P2_ENGINEERED),  # Poseidon2 (rec factor, native/Minstr, transcript/Minstr) [M/D/E]
+    'fanin_d': (0.04, 0.0, -0.03),    # k-leaf cell ratio offset: pess ~ k2 policy (0.79-0.80), opt ~ any-family (0.72-0.75) [D]
     'stream': (0.80, 0.70, 0.60),     # streaming commit + partial/leafless trees on FFT+Merkle share [E]
     'wit': (0.40, 0.20, 0.10),        # recursion witness without DAG: residual of the chain share [E]
-    'io_cut': (0.30, 0.10, 0.05),     # packed ingress + copy stream: residual IO exposure [E]
+    'io_cut': (0.10, 0.03, 0.02),     # packed ingress: residual link bytes 0.455 / 15.86 GB = 0.029 [D]; pess keeps fold/geometry copies [E]
     'd2d': (0.5, 0.7, 0.9),           # in-place coset/D2D: fraction of D2D copy time removed [E]
     'occ': (0.80, 0.85, 0.90),        # busy after graphs per class + 2 jobs/GPU (needs memory cuts) [E]
     'cap_mips': (120, 160, 250),      # GPU capture replay: fast pass + GPU replay aggregate [E; fast pass 168 MIPS M]
@@ -138,18 +153,23 @@ SC = {
     'd2_leaf': (0.60, 0.55, 0.50),    # D2 leaf cost factor; reverting divides by it (levers.py; M4.0 item 6: 0.60-0.73) [E]
     'miss_cpu_s': (1.2, 0.84, 0.5),   # host class build per leaf on a class miss: (13.2 plan + 2.72 pack) CPU-s / 19 nodes [D]
     'miss_par': (3, 4, 6),            # host threads building classes concurrently [E]
-    # integration costs added in review [E]
-    'truth_b16': (2.0, 1.5, 1.2),     # truth native cost factor when truths are batched at b16 (LDE x4 vs b4, q54->q27) [E]
-    'occ_23': (0.72, 0.78, 0.85),     # busy with OCC when 2^23 rungs are on: native 2^23 jobs (<=28 GB) cannot pair on 32 GB [E]
-    'canon_pad': (1.08, 1.04, 1.01),  # native padding tax of a canonical shape catalog (L4) [E]
+    # canonical leaf catalog R=4, HELD-OUT native tax (codex/rv64-m9-canon-leaf 64a2cb991 review s9) [D]:
+    # CPU cells +61.2%, truth rows +2.5% -> x1.55 central; 26235168 +107% (pess); 24628607 +22.4% (opt)
+    'canon_pad': (2.07, 1.55, 1.22),
+    'fold_miss': (1.0, 0.97, 0.79),   # share of folds that are new classes on a new block: 204/210 exact leaves [D/E]
+    'fold_miss_canon': (0.85, 0.79, 0.6),  # with canonical leaves, exact outer shape: 165/210 [D/E]
 }
 D2D_PER_MI = 0.11 / 26.894777  # s/GPU per M instr (IO doc L5: <=0.11 s/GPU 607, <=0.75 s/GPU 159) [D]
 
 # proposed landing order after GPU-native (doc s4): proof-neutral wave, profile wave, hash backbone, M10
-LEVER_ORDER = ['IO', 'INPLACE', 'STREAM', 'WITNESS', 'OCC', 'LEAVES', 'CANON', 'NGKR', 'P2', 'OGKR', 'D2REV', 'GPUCAP', 'GPU4']
+# Recommended landing order after the stream results (doc s4). Off the order, evaluated alone and in the search:
+#  P2 (reviewed: net loss once recursion is cut; transcript x23.9), D2REV (only pays after a large recursion cut, which
+#  P2 no longer delivers), CANON (catalog R=4: held-out padding tax x1.55 native, fold classes still miss).
+LEVER_ORDER = ['IO', 'INPLACE', 'STREAM', 'WITNESS', 'OCC', 'LEAVES', 'NGKR', 'OGKR', 'GPUCAP', 'GPU4']
+EXTRA_LEVERS = ['P2', 'D2REV', 'CANON']
 LEVER_NAME = {
     'P2': 'Poseidon2-M31-W24 leaves (S2-S4)',
-    'LEAVES': 'fewer/bigger leaves (truth early/late batches b16 + 2^23 rungs)',
+    'LEAVES': 'k-leaf fan-in: one leaf verifies 2-4 same-family natives (blake_g <= 2^23, <= 2.2 G cells)',
     'CANON': 'canonical leaf classes (L4)',
     'IO': 'packed class ingress + copy stream (L1a + L3)',
     'INPLACE': 'in-place coset / D2D (L5) + partial Merkle trees',
@@ -172,24 +192,30 @@ def model(mi, sh, p, on=(), gpus=2, production=False):
     wl = LEAF_K * L / (LEAF_K * L + FOLD_K * F)
     Rl, Rf = R0 * wl, R0 * (1 - wl)          # leaf / fold recursion GPU-s: D2 and native-GKR factors touch leaves only
     io = IO_LINK_607_POST_M8 * (L / L607) * IO_EXPOSED
+    tx = 0.0  # serial transcript GPU-s (Poseidon2 channel) [M/E]
     d2d = D2D_PER_MI * mi
     cap = CAP_A + CAP_B * mi
     busy = p['busy']; G = gpus; eff = 1.0
     chain_frac = K607_CHAIN / (K607 * (1 - NATIVE_FRAC_607))  # share of recursion GPU-s in the witness DAG
     pcs_frac = (K607_FFT + K607_MERKLE) / K607                 # FFT + Merkle share of all kernel GPU-s
-    if 'LEAVES' in on:
-        cpu_l = math.ceil(seg / 2); tl = 2
-        L2 = cpu_l + tl; F2, lv2 = folds(L2)
-        Rl = Rl / L * p['leaf_grow'] * L2; Rf = (Rf / F * F2) if F else 0.0
-        N += N * truth_native_share(mi, sh['truths']) * (p['truth_b16'] - 1)
-        io *= L2 / L; L, F, lv, seg = L2, F2, lv2, cpu_l
+    if 'LEAVES' in on:  # k-leaf fan-in; natives unchanged, recursion cells x ratio [D, fewer-leaves receipt]
+        blk = sh.get('block')
+        if blk in FANIN_SAME:
+            ratio, L2, F2, lv2 = FANIN_SAME[blk]
+        else:  # synthetic p50/p95 shapes: small trees 0.82, >= 34 nodes 0.76 [D]
+            ratio = 0.82 if L + F < 34 else 0.76; L2 = math.ceil(0.5 * L) + 1; F2, lv2 = folds(L2)
+        ratio += p['fanin_d']
+        R2 = (Rl + Rf) * ratio
+        Rl, Rf = R2 * FANIN_LEAF_SHARE, R2 * (1 - FANIN_LEAF_SHARE)
+        io *= L2 / L; L, F, lv = L2, F2, lv2
     nodes = L + F
     if 'CANON' in on:
         N *= p['canon_pad']
     if 'NGKR' in on:
         N *= p['ngkr_nat']; Rl *= p['ngkr_rec']
     if 'P2' in on:
-        Rl *= p['p2_rec']; Rf *= p['p2_rec']; N += p['p2_nat'] * mi
+        f2, n2, t2 = p['p2']
+        Rl *= f2; Rf *= f2; N += n2 * mi; tx = t2 * mi
         chain_frac *= 0.5   # the Blake-G DAG is most of the chain; Poseidon rows are row-parallel [E]
     if 'OGKR' in on:
         f = p['ogkr_p2'] if 'P2' in on else p['ogkr_alone']; Rl *= f; Rf *= f
@@ -201,16 +227,18 @@ def model(mi, sh, p, on=(), gpus=2, production=False):
     if 'WITNESS' in on:
         c = 1 - min(0.9, chain_frac) * (1 - p['wit']); Rl *= c; Rf *= c
     if 'IO' in on:
-        io *= p['io_cut']
+        io *= p['io_cut']; Rl += DECODE_PER_LEAF * L
     if 'INPLACE' in on:
         d2d *= 1 - p['d2d']
     if 'OCC' in on:
-        busy = p['occ_23'] if 'LEAVES' in on else p['occ']
+        busy = p['occ']  # k-leaf pair leaves are 12.4-13.4 GB post-P1: two fit per 32 GB GPU [E, fewer-leaves]
     if 'GPUCAP' in on:
         cap = p['head'] + mi / p['cap_mips'] + 0.2
     if 'GPU4' in on:
         G = 4; eff = p['four_gpu_eff']
-    R = Rl + Rf
+    if 'OCC' in on:
+        tx *= 0.5  # one-thread serial channel: half hidden when 2 jobs share a GPU; fully exposed at 1 job/GPU [E]
+    R = Rl + Rf + tx
     K2 = N + R
     tail_gpu = Rl / L + lv * (Rf / F if F else 0.0)   # last leaf + one fold per level
     tail = tail_gpu / p['busy_tail']
@@ -220,8 +248,9 @@ def model(mi, sh, p, on=(), gpus=2, production=False):
     post = (K2 - s1 - tail_gpu) / (G * busy * eff) + io + d2d
     wall = p['fixed'] + pre_seal + post + tail
     miss = 0.0
-    if production and 'CANON' not in on:  # every request is a new block: leaf classes miss [E]
-        miss = L * p['miss_cpu_s'] / p['miss_par']
+    if production:  # every request is a new block: leaf classes miss, and most fold classes too (exact outer shape) [D/E]
+        new = (0 if 'CANON' in on else L) + F * (p['fold_miss_canon'] if 'CANON' in on else p['fold_miss'])
+        miss = new * p['miss_cpu_s'] / p['miss_par']
     wall += miss
     return dict(kernel_gpu_s=K2, native_gpu_s=N, recursion_gpu_s=R, leaves=L, nodes=nodes, capture_s=cap,
                 pre_seal_s=pre_seal, post_seal_s=post, tail_s=tail, io_s=io, miss_s=miss, wall_s=wall)
@@ -258,15 +287,16 @@ def run(gas_pct, out=None, gas_list=None):
     for name, g in cases.items():
         mi = g * ipg; blocks[name] = (mi, shape(mi))
     for r in bk:
-        blocks[str(r['block'])] = (r['mi'], shape(r['mi'], r['truths']))
+        blocks[str(r['block'])] = (r['mi'], shape(r['mi'], r['truths'], r['block']))
     # per-lever table on p50/p95, central (+ pess/opt)
     for name in list(cases) + ['26235168', '26235159', '24628607']:
         mi, sh = blocks[name]
         row = dict(minstr=mi, shape=sh, bench15_extrap_warm_s=bench15_extrapolated(mi),
                    baseline={n: model(mi, sh, P[n]) for n in P},
                    production_baseline={n: model(mi, sh, P[n], production=True) for n in P},
-                   production_all_2gpu={n: model(mi, sh, P[n], on=tuple(l for l in LEVER_ORDER if l != 'GPU4'), production=True) for n in P})
-        single = {}; cum = {}; on = []
+                   production_all_2gpu={n: model(mi, sh, P[n], on=tuple(l for l in LEVER_ORDER if l != 'GPU4'), production=True) for n in P},
+                   production_all_2gpu_canon={n: model(mi, sh, P[n], on=tuple(l for l in LEVER_ORDER if l != 'GPU4') + ('CANON',), production=True) for n in P})
+        single = {lv: {n: model(mi, sh, P[n], on=(lv,)) for n in P} for lv in EXTRA_LEVERS}; cum = {}; on = []
         for lv in LEVER_ORDER:
             single[lv] = {n: model(mi, sh, P[n], on=(lv,)) for n in P}
             on.append(lv)
@@ -285,8 +315,8 @@ def run(gas_pct, out=None, gas_list=None):
     res['basket_totals'] = tot
     # minimal 2-GPU lever sets reaching >=60% cut vs post-M8 baseline on p50, p95 and the basket (central)
     import itertools
-    cand = [l for l in LEVER_ORDER if l not in ('GPU4', 'CANON', 'INPLACE', 'IO')]  # IO/INPLACE are small: always on
-    base_on = ('IO', 'INPLACE', 'CANON')  # CANON is required in production; its padding tax is charged on the bench [E]
+    cand = [l for l in LEVER_ORDER if l not in ('GPU4', 'INPLACE', 'IO')] + ['P2', 'D2REV']  # IO/INPLACE always on
+    base_on = ('IO', 'INPLACE')  # CANON excluded: as built it is a bench loss and keeps fold misses (canon-leaf review) [D/E]
     res['best_2gpu'] = {}
     for n in P:
         ok = []; best = (None, -1.0)
@@ -348,6 +378,11 @@ def main():
               % (b['pess']['wall_s'], b['central']['wall_s'], b['opt']['wall_s'], b['central']['kernel_gpu_s'], b['central']['native_gpu_s'],
                  b['central']['recursion_gpu_s'], b['central']['capture_s'], b['central']['pre_seal_s'], b['central']['post_seal_s'],
                  b['central']['tail_s'], b['central']['io_s']))
+        pc = row['production_all_2gpu_canon']
+        print('  production all 2-GPU levers + CANON p/c/o %.2f / %.2f / %.2f' % (pc['pess']['wall_s'], pc['central']['wall_s'], pc['opt']['wall_s']))
+        for lv in EXTRA_LEVERS:
+            s = row['single'][lv]['central']
+            print('  %-8s alone (not in order): GPU-s %+6.2f wall %+6.2f' % (lv, s['kernel_gpu_s'] - b['central']['kernel_gpu_s'], s['wall_s'] - b['central']['wall_s']))
         for lv in LEVER_ORDER:
             s = row['single'][lv]['central']; c = row['cumulative'][lv]
             print('  %-8s alone: GPU-s %6.2f (%+6.2f) wall %6.2f (%+6.2f) | cumulative wall p/c/o %6.2f %6.2f %6.2f  cut central %4.0f%%'

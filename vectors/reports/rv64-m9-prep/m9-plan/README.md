@@ -34,3 +34,12 @@ python3 -I scripts/rv64_m9/plan_model.py --gas-sample <gas_sample.json> --json v
 `model.json` was regenerated after the adversarial review (design doc §8): per-node recursion fit (`fits.recursion_gpu_s_per_node`),
 leaf-only D2 / native-GKR factors, K607 with T2 off (8.333), last-segment Stage 1 at the seal, and three [E] integration costs
 (`truth_b16`, `occ_23`, `canon_pad`). Headline: central M9-only −56% (basket); with GPU capture −63%; pessimistic has no 2-GPU set.
+
+## Stream revision r3 (2026-11-07)
+
+`model.json` regenerated with the reviewed prep-stream results (design doc §3): k-leaf fan-in ratios and tree shapes per basket
+block (`FANIN_SAME`, codex/rv64-m9-fewer-leaves a056cee67), Poseidon2 scenarios as built / 2-to-1 + x0.6 / engineered
+(codex/rv64-m9-poseidon2-leaves 37e581cfc), canonical-leaf held-out tax x1.55 and fold-class misses (codex/rv64-m9-canon-leaf
+64a2cb991), packed-ingress exposure 0.46, residual x0.03, decode 0.004 GPU-s per leaf (codex/rv64-m9-packed-ingress 805d1a105).
+`truth_b16` and `occ_23` are removed; P2, D2REV and CANON are off the landing order (`levers.*.single` only) but in the search.
+Headline: best central 2-GPU set −58% (p50 −59.4, p95 −58.1, basket −58.8); no 2-GPU set reaches 60% centrally; 4 GPUs −73 to −75%.

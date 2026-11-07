@@ -22,12 +22,28 @@ class PlanModelTest(unittest.TestCase):
         self.assertEqual(b['over40m_blocks'], 5)
         self.assertGreater(b['over40m_gas_share'], 0.6)
 
-    def test_m9_levers_reach_60pct_central(self):
-        # Review 2026-11-07: with the per-node recursion fit and leaf-only D2/native-GKR factors, M9 alone (through the
-        # D2 revert) stays below 60% on the basket; GPU capture replay is needed to cross it (central).
-        t = self.res['basket_totals']
-        self.assertLess(1 - t['D2REV']['central'] / t['baseline']['central'], 0.60)
-        self.assertGreaterEqual(1 - t['GPUCAP']['central'] / t['baseline']['central'], 0.60)
+    def test_no_central_2gpu_set_reaches_60pct(self):
+        # Stream results 2026-11-07 (k-leaf fan-in, reviewed Poseidon2, held-out canonical tax): the best central 2-GPU
+        # set stays below 60% on min(p50, p95, basket); only the optimistic case has sets.
+        self.assertEqual(self.res['combos']['central'], [])
+        self.assertGreater(self.res['best_2gpu']['central']['min_cut'], 0.55)
+        self.assertLess(self.res['best_2gpu']['central']['min_cut'], 0.60)
+        self.assertTrue(self.res['combos']['opt'])
+
+    def test_fanin_matches_receipt_on_607(self):
+        p = self.P['central']; mi, sh = self.blocks['24628607']
+        base = pm.model(mi, sh, p); k = pm.model(mi, sh, p, on=('LEAVES',))
+        self.assertAlmostEqual(k['recursion_gpu_s'] / base['recursion_gpu_s'], 0.822, places=3)
+        self.assertEqual(k['leaves'], 9); self.assertEqual(k['nodes'], 12)
+
+    def test_p2_loses_after_recursion_cuts(self):
+        p = self.P['central']; mi, sh = self.blocks['p50 (29.1M gas)']
+        on = ('STREAM', 'WITNESS', 'OCC', 'LEAVES', 'NGKR', 'OGKR')
+        self.assertGreater(pm.model(mi, sh, p, on=on + ('P2',))['wall_s'], pm.model(mi, sh, p, on=on)['wall_s'])
+
+    def test_canon_as_built_is_bench_loss(self):
+        p = self.P['central']; mi, sh = self.blocks['26235168']
+        self.assertGreater(pm.model(mi, sh, p, on=('CANON',))['wall_s'], pm.model(mi, sh, p)['wall_s'] + 3.0)
 
     def test_pessimistic_has_no_2gpu_set(self):
         self.assertEqual(self.res['combos']['pess'], [])
@@ -48,12 +64,12 @@ class PlanModelTest(unittest.TestCase):
         self.assertAlmostEqual(pm.K607, 8.333, places=3)
 
     def test_d2_revert_sign(self):
+        # Alone the revert loses; with the stream-corrected recursion levers (no P2) it still loses in the central case.
         p = self.P['central']; mi, sh = self.blocks['p95 (55.8M gas)']
         base = pm.model(mi, sh, p)['wall_s']
         self.assertGreater(pm.model(mi, sh, p, on=('D2REV',))['wall_s'], base)
-        before = ('LEAVES', 'NGKR', 'P2', 'OGKR')
-        self.assertLess(pm.model(mi, sh, p, on=before + ('D2REV',))['wall_s'], pm.model(mi, sh, p, on=before)['wall_s'])
-
+        before = ('STREAM', 'WITNESS', 'OCC', 'LEAVES', 'NGKR', 'OGKR')
+        self.assertGreater(pm.model(mi, sh, p, on=before + ('D2REV',))['wall_s'], pm.model(mi, sh, p, on=before)['wall_s'])
 
 if __name__ == '__main__':
     unittest.main()
