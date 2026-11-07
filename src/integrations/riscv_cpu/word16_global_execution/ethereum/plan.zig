@@ -741,6 +741,50 @@ test "truth split plans refused coalesced families as bounded admitted spans" {
     };
     try std.testing.expectEqual(@as(usize, 1), arith);
 }
+test "truth split plans the M3 basket family totals the coalesced profile refuses" {
+    const ST = @import("../services/types.zig");
+    // Per-family call totals of the M3 basket bundles (runs/integrate/<block>-2gpu-*/
+    // bundle.json): families 0..4 then the curve families 5..9; refused = the
+    // bench15-1 D2 coalesced refusal (24697070 is the admitted control).
+    const Case = struct { block: u32, calls: [10]u32, refused: bool };
+    const cases = [_]Case{
+        .{ .block = 24626900, .calls = .{ 56377, 32313, 30376, 8435, 156, 0, 0, 0, 0, 0 }, .refused = true },
+        .{ .block = 24697073, .calls = .{ 61612, 51545, 48626, 12328, 399, 0, 0, 0, 6767, 7303 }, .refused = true },
+        .{ .block = 26235168, .calls = .{ 85653, 42223, 39751, 12042, 24705, 1140, 3732, 58848, 6767, 7303 }, .refused = true },
+        .{ .block = 25229955, .calls = .{ 94286, 46095, 43501, 15797, 8366, 3042, 10542, 24976, 0, 0 }, .refused = true },
+        .{ .block = 25229951, .calls = .{ 123870, 62451, 58751, 19431, 2900, 1514, 5277, 12488, 0, 0 }, .refused = true },
+        .{ .block = 24628590, .calls = .{ 146822, 80632, 75751, 23823, 595, 0, 0, 0, 0, 0 }, .refused = true },
+        .{ .block = 24628595, .calls = .{ 166402, 98980, 93122, 23237, 1823, 158, 506, 12488, 0, 0 }, .refused = true },
+        .{ .block = 24628611, .calls = .{ 176023, 95860, 90251, 29434, 1264, 0, 0, 0, 6767, 7303 }, .refused = true },
+        .{ .block = 26235159, .calls = .{ 151832, 86324, 81251, 27732, 10915, 4530, 15695, 12488, 13534, 14606 }, .refused = true },
+        .{ .block = 24697070, .calls = .{ 58880, 37465, 35251, 7807, 2273, 368, 1253, 12488, 0, 0 }, .refused = false },
+    };
+    const base = KeccakTruthOptions{ .v3 = true, .uniform_throughput = true, .coalesce_families = true };
+    for (cases) |case| {
+        var total: [ST.FAMILIES]u32 = @splat(0);
+        @memcpy(total[0..10], &case.calls);
+        const off = coalesceTruthFamilies(std.testing.allocator, total, base, 18);
+        if (case.refused) {
+            try std.testing.expect(std.meta.isError(off));
+        } else {
+            std.testing.allocator.free(try off);
+        }
+        inline for (.{ false, true }) |rung_bound| {
+            var split = base;
+            split.split_families = true;
+            split.rung_bound = rung_bound;
+            const truth = try coalesceTruthFamilies(std.testing.allocator, total, split, 18);
+            defer std.testing.allocator.free(truth);
+            try expectReceiverSpans(truth, total);
+            for (truth) |d| if (d.family != .keccak) try @import("../services/gkr_local/service_scope.zig").truthDeclaration(d);
+            if (!case.refused) {
+                const control = try coalesceTruthFamilies(std.testing.allocator, total, base, 18);
+                defer std.testing.allocator.free(control);
+                try std.testing.expectEqualSlices(W.TruthDeclaration, control, truth);
+            }
+        }
+    }
+}
 test "one truth per family preserves exact dev call spans within existing source authority" {
     const ST = @import("../services/types.zig");
     for ([_][5]u32{ .{ 20994, 14855, 14001, 3157, 25 }, .{ 29998, 10358, 9751, 2901, 319 } }) |counts| {
