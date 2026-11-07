@@ -1,0 +1,10 @@
+{"kind":"bench_pairs","row_log":23,"pairs":2,"reps":9,"old_ms":{"median":7.2877,"min":7.2793,"max":7.3028},"new_ms":{"median":2.2820,"min":2.2757,"max":2.2891},"speedup":3.194}
+{"kind":"bench_pairs","row_log":22,"pairs":2,"reps":9,"old_ms":{"median":3.7022,"min":3.6928,"max":3.7068},"new_ms":{"median":1.1545,"min":1.1504,"max":1.1606},"speedup":3.207}
+{"kind":"bench_pairs","row_log":20,"pairs":13,"reps":9,"old_ms":{"median":3.4831,"min":3.4728,"max":3.4913},"new_ms":{"median":1.3900,"min":1.3859,"max":1.3962},"speedup":2.506}
+{"kind":"bench_pairs","row_log":20,"pairs":8,"reps":9,"old_ms":{"median":2.2850,"min":2.2799,"max":2.2891},"new_ms":{"median":0.8842,"min":0.8801,"max":0.8903},"speedup":2.584}
+{"kind":"bench_pairs","row_log":20,"pairs":6,"reps":9,"old_ms":{"median":1.8017,"min":1.7996,"max":1.8058},"new_ms":{"median":0.6794,"min":0.6773,"max":0.6834},"speedup":2.652}
+{"kind":"bench_pairs","row_log":20,"pairs":3,"reps":9,"old_ms":{"median":1.0726,"min":1.0726,"max":1.0767},"new_ms":{"median":0.3578,"min":0.3558,"max":0.3599},"speedup":2.997}
+{"kind":"bench_pairs","row_log":19,"pairs":6,"reps":9,"old_ms":{"median":0.9148,"min":0.9108,"max":0.9169},"new_ms":{"median":0.3455,"min":0.3414,"max":0.3496},"speedup":2.648}
+{"kind":"bench_pairs","row_log":17,"pairs":143,"reps":9,"old_ms":{"median":4.3207,"min":4.3186,"max":4.3278},"new_ms":{"median":2.0064,"min":2.0034,"max":2.0136},"speedup":2.153}
+{"kind":"bench_pairs","row_log":16,"pairs":50,"reps":9,"old_ms":{"median":0.7838,"min":0.7817,"max":0.7858},"new_ms":{"median":0.3312,"min":0.3291,"max":0.3353},"speedup":2.367}
+{"kind":"bench_pairs","row_log":14,"pairs":13,"reps":9,"old_ms":{"median":0.0658,"min":0.0653,"max":0.0661},"new_ms":{"median":0.0286,"min":0.0284,"max":0.0292},"speedup":2.301}
