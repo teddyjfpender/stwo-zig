@@ -28,7 +28,7 @@ program -> CPU status 3; a dropped chunk and a corrupted record tag -> refused a
 coverage hole, column overlap, upload gap/overlap, ref out of range / undeclared buffer, bad magic.
 
 **Gates**: `rv64_gate.sh` PASS with the recorder ON: gate-rec-26235156 (32/32 byte-identical to frozen D2, receivers 2/2, corpus),
-gate-rec-24628607 (39/39), gate-rec2-24628607 at 2abac0259 (39/39). Default gate 26235156 at 2abac0259: see below / gate-default.
+gate-rec-24628607 (39/39), gate-rec2-24628607 at 2abac0259 (39/39). **Default gate (no env) 26235156 at 2abac0259: PASS** (32/32, receivers 2/2, corpus).
 `zig build test-rv64-jobs` with GPU: 531/532 passed, 1 skipped.
 
 | per request | 26235156 | 24628607 |
@@ -62,4 +62,4 @@ bridges + bulk/sponge 5–28 ms; Zbb/LS-D64/tables 10–24 ms. Data per segment 
 
 ## Pod paths (raw, not in git)
 Logs `/workspace/m3/runs/m8-gn-pack/{p3-f,p3-e,p3-c,p2,p4}/`, gates `/workspace/m3/runs/m8-gn-pack/gate-rec-*`, `gate-rec2-24628607`,
-recordings `/dev/shm/m8-gn-pack/` (deleted after the receipt).
+recordings kept for re-runs in RAM: `/dev/shm/m8-gn-pack/{rec-26235156,rec2-24628607}` (2.2 GB tmpfs, not pod disk; harness: `STWO_RV64_M8_GN_PACK_RECORDS=<dir>[:<dir>]`).

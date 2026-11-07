@@ -400,6 +400,7 @@
  "gates": {
   "gate-rec-26235156": "PASS (recorder on; 32/32 byte-identical to frozen D2, receivers 2/2, corpus)",
   "gate-rec-24628607": "PASS (recorder on; 39/39)",
-  "gate-rec2-24628607": "PASS (recorder on, final source 2abac0259; 39/39)"
+  "gate-rec2-24628607": "PASS (recorder on, final source 2abac0259; 39/39)",
+  "gate-default-26235156": "PASS (no env, 2abac0259; 32/32, receivers 2/2, corpus)"
  }
 }
