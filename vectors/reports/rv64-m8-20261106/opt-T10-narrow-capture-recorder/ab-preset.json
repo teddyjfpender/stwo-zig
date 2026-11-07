@@ -37,7 +37,7 @@
  },
  "arms": {
   "baseline": {
-   "STWO_RV64_DEVICE_ARENA": "auto",
+   "STWO_RV64_DEVICE_ARENA": "22G",
    "STWO_RV64_TRUTH_SPARSE_RC": "0",
    "STWO_RV64_GLOBAL_ADMISSION": "0",
    "STWO_RV64_RECURSION_SESSIONS": "0",
@@ -47,7 +47,7 @@
    "STWO_RV64_M8_CAPTURE_RECORDER": "0"
   },
   "fullstack": {
-   "STWO_RV64_DEVICE_ARENA": "auto",
+   "STWO_RV64_DEVICE_ARENA": "22G",
    "STWO_RV64_TRUTH_SPARSE_RC": "0",
    "STWO_RV64_GLOBAL_ADMISSION": "0",
    "STWO_RV64_RECURSION_SESSIONS": "0",
@@ -89,7 +89,7 @@
   "pending_authority_floor": "SourcePlan max_leaves256 arity4 carryBound12; minimumLimit=max(9+2lanes,12+2lanes+1):17 for2logical lanes,21 for4logical lanes.",
   "timed_scope": "R1PARKED: timedfullstackdiffonlySparse22G+globalGPUadmission+siblingrecursionsessions+2lanes/device+earlyleafcapability+sourcependingbound21. BaselineoriginalD2+coalescingauto/global0/sessions0/lanes1/pending17. AllR1flags0botharms.",
   "quiet_pressure_max": 0.005,
-  "t10_scope": "T10 narrow-capture recorder A/B, same memory model: BOTH arms are the canonical BASELINE env (the canonical a25 image has no global-admission v2 runtime, so the fullstack env cannot run on it: MissingGlobalAdmissionRuntimeV2) and differ only by STWO_RV64_M8_CAPTURE_RECORDER (0 = legacy narrow capture, 1 = recorder route); the runner still adds its physical guard to the 'fullstack' arm only. Prepared outputs identical (T10DIGEST parity)."
+  "t10_scope": "T10 narrow-capture recorder A/B, same memory model: BOTH arms are the canonical BASELINE env with the canonical fullstack device arena (STWO_RV64_DEVICE_ARENA=22G: the runner's physical guard on the 'fullstack' arm cannot coexist with the baseline 'auto' arena, CudaAllocationFailed in native stage two) (the canonical a25 image has no global-admission v2 runtime, so the fullstack env cannot run on it: MissingGlobalAdmissionRuntimeV2) and differ only by STWO_RV64_M8_CAPTURE_RECORDER (0 = legacy narrow capture, 1 = recorder route); the runner still adds its physical guard to the 'fullstack' arm only. Prepared outputs identical (T10DIGEST parity)."
  },
  "operational": {
   "baseline": {
