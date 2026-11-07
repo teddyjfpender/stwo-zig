@@ -231,8 +231,10 @@ pub const Class = struct {
     a: std.mem.Allocator,
     key: G.ClassKey = @splat(0),
     rows: u64 = 0,
-    /// Host wall of this class's build at install [M].
+    /// Host wall of this class's build at install, and of it the setup keys
+    /// + FIXED authority (CPU FIXED commit) [M].
     build_ns: u64 = 0,
+    setup_ns: u64 = 0,
     // ---- Stage 1 ----
     gkr: NG.Plan,
     instances: []NG.Instance,
@@ -413,6 +415,7 @@ pub fn build(env: *const Env, in: Inputs) !*Class {
     cl.framing = null;
     cl.key = @splat(0);
     cl.build_ns = 0;
+    cl.setup_ns = 0;
     errdefer {
         // Stage-1 parts are released by the errdefers above.
         for (cl.global_patches) |*p| p.deinit(a);
@@ -983,16 +986,29 @@ const LocalRoster = CPU.rv64_gkr_local_roster;
 const Suite = CPU.rv64_pcs_suite.Suite;
 const RequestConfig = CPU.rv64_ethereum_request.Config;
 
-/// One block's install-time inventory: gkr_main's declarations -> keys ->
-/// FIXED authority -> request views, for the block's warm capture (the
-/// same calls, the same order; truths are not needed for the native classes).
+/// One block's install-time inventory: gkr_main's declarations (+ canonical
+/// rungs) and request views (requestView / routeDword / assignSpongeIds,
+/// first ids), sequentially; then per segment, in the parallel class build,
+/// its setup keys and FIXED authority (`prepare`: Keys over the one
+/// declaration + FixedSet over the one setup, as early_segments.zig builds
+/// them per segment). Truths are not needed for the native classes.
 pub const Inventory = struct {
     a: std.mem.Allocator,
-    keys: Keys,
+    config: Config,
+    image: *const Image.Owner,
+    decls: []Decl,
     fixed_cache: FixedAuthority.Fixed.Cache,
-    fixed_set: FixedSet,
     requests: []Request,
     first_ids: []FirstIds,
+    segs: []Seg,
+
+    pub const Decl = std.meta.Child(@typeInfo(@typeInfo(@TypeOf(Plan.cpus)).@"fn".return_type.?).error_union.payload);
+    pub const Seg = struct {
+        keys: ?Keys = null,
+        fixed: ?FixedSet = null,
+        /// Host wall of this segment's keys + FIXED authority [M].
+        setup_ns: u64 = 0,
+    };
 
     pub fn init(a: std.mem.Allocator, capture: G.CaptureEnd, config: Config, fixed_setup_bytes: usize) !*Inventory {
         const owner: *const Capture.Owner = @ptrCast(@alignCast(capture.owner));
@@ -1000,7 +1016,7 @@ pub const Inventory = struct {
         const rconfig: *const RequestConfig = @ptrCast(@alignCast(capture.config));
         const layout = Plan.CpuLayout.forGkrProfile(rconfig.execution_profile);
         const cpu = try Plan.cpus(a, owner, layout);
-        defer a.free(cpu);
+        errdefer a.free(cpu);
         const strict = (try CPU.rv64_native_policy.current()).strictRoster();
         const canon_flag = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false;
         if (strict or canon_flag) {
@@ -1008,22 +1024,20 @@ pub const Inventory = struct {
             defer a.free(classes);
             try Plan.canonicalCpusMode(owner, layout, cpu, CPU.rv64_ethereum_canon_rungs, classes, strict);
         }
+        const n = owner.native.items.len;
+        if (n != cpu.len or n != capture.segments) return error.GnShapeInventoryShape;
         const self = try a.create(Inventory);
         errdefer a.destroy(self);
-        self.a = a;
-        self.keys = try Keys.initWithSuiteAndCaches(a, image, cpu, &.{}, true, Suite.experimentalFold4(), .{});
-        errdefer self.keys.deinit();
+        self.* = .{ .a = a, .config = config, .image = image, .decls = cpu, .fixed_cache = undefined, .requests = &.{}, .first_ids = &.{}, .segs = &.{} };
         self.fixed_cache = try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes);
         errdefer self.fixed_cache.deinit();
-        self.fixed_set = try FixedSet.init(a, &self.fixed_cache, self.keys.cpus, self.keys.truths, config);
-        errdefer self.fixed_set.deinit();
-        const n = owner.native.items.len;
-        if (n != self.keys.cpus.len or n != capture.segments) return error.GnShapeInventoryShape;
         self.requests = try a.alloc(Request, n);
         errdefer a.free(self.requests);
+        // The declaration's bridges ARE the setup's (early_segments.take
+        // requires {geometry, bridges} equal), so routing needs no keys.
         for (self.requests, 0..) |*r, i| {
             r.* = try Coordinator.requestView(owner.native.items, &owner.advice, i);
-            try Coordinator.routeDword(r, self.keys.cpus[i].bridges, owner.advice.events[i]);
+            try Coordinator.routeDword(r, cpu[i].bridges, owner.advice.events[i]);
         }
         try Coordinator.assignSpongeIds(self.requests);
         self.first_ids = try a.alloc(FirstIds, n);
@@ -1034,15 +1048,41 @@ pub const Inventory = struct {
             for (next, f) |id, *out| out.* = std.math.cast(u32, id) orelse return error.GlobalGkrManifestOrdinal;
             for (&next, r.calls) |*id, calls| id.* = try std.math.add(u64, id.*, calls);
         }
+        self.segs = try a.alloc(Seg, n);
+        @memset(self.segs, .{});
         return self;
+    }
+    /// Segment `i`'s setup keys and FIXED authority (thread safe across
+    /// segments: the FIXED cache is internally locked).
+    pub fn prepare(self: *Inventory, i: usize) !void {
+        const seg = &self.segs[i];
+        if (seg.fixed != null) return;
+        var t = try std.time.Timer.start();
+        seg.keys = try Keys.initWithSuiteAndCaches(self.a, self.image, self.decls[i .. i + 1], &.{}, true, Suite.experimentalFold4(), .{});
+        errdefer {
+            seg.keys.?.deinit();
+            seg.keys = null;
+        }
+        seg.fixed = try FixedSet.init(self.a, &self.fixed_cache, seg.keys.?.cpus, seg.keys.?.truths, self.config);
+        seg.setup_ns = t.read();
+    }
+    pub fn setup(self: *const Inventory, i: usize) *const Setup {
+        return self.segs[i].keys.?.cpus[0];
+    }
+    pub fn binding(self: *const Inventory, i: usize) *const FixedAuthority.Binding {
+        return self.segs[i].fixed.?.at(0);
     }
     pub fn deinit(self: *Inventory) void {
         const a = self.a;
+        for (self.segs) |*seg| {
+            if (seg.fixed) |*f| f.deinit();
+            if (seg.keys) |*k| k.deinit();
+        }
+        a.free(self.segs);
         a.free(self.first_ids);
         a.free(self.requests);
-        self.fixed_set.deinit();
         self.fixed_cache.deinit();
-        self.keys.deinit();
+        a.free(self.decls);
         a.destroy(self);
     }
     pub fn count(self: *const Inventory) usize {
@@ -1052,10 +1092,11 @@ pub const Inventory = struct {
 
 /// Build segment `i` of an inventory (FIXED via the authority binding into a
 /// throwaway scheme, exactly CpuWorker.prepareMain's append).
-pub fn buildFromInventory(env: *const Env, inv: *const Inventory, i: usize) !*Class {
+pub fn buildFromInventory(env: *const Env, inv: *Inventory, i: usize) !*Class {
     const a = env.a;
-    const setup = inv.keys.cpus[i];
-    const binding = inv.fixed_set.at(i);
+    try inv.prepare(i);
+    const setup = inv.setup(i);
+    const binding = inv.binding(i);
     var scheme = try WP.Prover.init(a, env.config);
     defer scheme.deinit(a);
     scheme.setCompactPolynomialStorage(1);
@@ -1099,10 +1140,10 @@ pub const BlockRecord = struct {
     rows: []u64,
     /// Host wall of the block's class build at install [M].
     build_ns: u64,
-    /// Of which: the inventory (declarations, setup keys, FIXED authority
-    /// incl. the CPU FIXED commits, request views) [M].
+    /// Of which: the sequential inventory (declarations, request views) [M].
     inventory_ns: u64 = 0,
-    /// Of which: the per-segment class builds, `threads` in parallel [M].
+    /// Of which: the per-segment setup keys + FIXED authority (CPU FIXED
+    /// commit) + class builds, `threads` in parallel [M].
     classes_ns: u64 = 0,
     threads: u32 = 1,
     miss: bool,
@@ -1171,13 +1212,14 @@ pub const Builder = struct {
     const BuildSlot = struct {
         cl: ?*Class = null,
         err: ?anyerror = null,
-        fn run(env: *const Env, inv: *const Inventory, i: usize, slot: *BuildSlot) void {
+        fn run(env: *const Env, inv: *Inventory, i: usize, slot: *BuildSlot) void {
             var t = std.time.Timer.start() catch unreachable;
             slot.cl = buildFromInventory(env, inv, i) catch |err| {
                 slot.err = err;
                 return;
             };
             slot.cl.?.build_ns = t.read();
+            slot.cl.?.setup_ns = inv.segs[i].setup_ns;
         }
     };
 

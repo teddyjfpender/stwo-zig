@@ -376,6 +376,7 @@ const SegmentRow = struct {
 const ClassRow = struct {
     class_key: [64]u8,
     build_ns: u64,
+    setup_ns: u64,
     /// Cold WarmJob on a fresh persistent region (full device FIXED commit +
     /// root copy), CUDA events [M]; then the steady (region already filled).
     cold_gpu_ms: f32,
@@ -615,7 +616,7 @@ pub fn main() !void {
         const receipt = try run(worker, api.Job.from(TimedWarm, &timed));
         const host_ns = t.read();
         timed.span.close(&timer_api.timing);
-        try classes.append(a, .{ .class_key = hex(cl.key), .build_ns = cl.build_ns, .cold_gpu_ms = cold.span.gpu_ms, .cold_host_ns = cold_host_ns, .warm_gpu_ms = timed.span.gpu_ms, .warm_host_ns = host_ns, .warm_arena_peak_words = receipt.arena_peak_words, .held_words = entry.held_words[0], .main_resident_words = entry.main_resident_words, .arena_peak_words = entry.arena_peak_words });
+        try classes.append(a, .{ .class_key = hex(cl.key), .build_ns = cl.build_ns, .setup_ns = cl.setup_ns, .cold_gpu_ms = cold.span.gpu_ms, .cold_host_ns = cold_host_ns, .warm_gpu_ms = timed.span.gpu_ms, .warm_host_ns = host_ns, .warm_arena_peak_words = receipt.arena_peak_words, .held_words = entry.held_words[0], .main_resident_words = entry.main_resident_words, .arena_peak_words = entry.arena_peak_words });
     }
 
     // ---- 5. negatives (fail closed) ----
