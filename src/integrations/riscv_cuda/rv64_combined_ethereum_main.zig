@@ -41,7 +41,7 @@ pub fn main() !void {
         // jobs/driver_ge.zig service (streamed GE capture -> driver, one host
         // wait per request). Fails closed while a factory hook is missing;
         // unset keeps the feeder/legacy path.
-        if (try @import("rv64/jobs/driver.zig").selected(posixEnv)) return @import("rv64/jobs/driver_ge.zig").run(a, library, arguments[2], arguments[3]);
+        if (try @import("rv64/jobs/driver.zig").selected(posixEnv)) return @import("rv64/jobs/driver_ge.zig").serve(a, library, arguments[2], arguments[3]);
         return @import("rv64/resident_batch.zig").runServe(a, library, arguments[2], arguments[3]);
     }
     const planned_text = (try env(a, "STWO_RV64_GPU_PLANNED_CPU_WORKERS")) orelse return error.CombinedRequiresResidentPlan;

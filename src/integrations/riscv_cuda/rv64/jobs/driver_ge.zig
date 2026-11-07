@@ -295,7 +295,7 @@ const default_ring_bytes: u64 = 4 << 20;
 /// Batch pinned pool per GPU for Stage1 GKR metadata (n-stage1: small per job).
 const default_batch_pinned_bytes: u64 = 1 << 20;
 
-pub fn run(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, spool: []const u8) !void {
+pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, spool: []const u8) !void {
     var timer = try std.time.Timer.start();
     const addon = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingJobsAddon;
     var libs = try O.Libraries.open(library, addon);
