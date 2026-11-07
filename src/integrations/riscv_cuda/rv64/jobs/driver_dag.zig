@@ -24,7 +24,10 @@
 const std = @import("std");
 const G = @import("gpu_native.zig");
 
-pub const Kind = enum(u8) { stage1, seal, stage2, truth, node };
+/// `truth2`: stage 2 of a two-stage truth (Shape.truth_two_stage): `truth`
+/// is its stage 1 (MAIN root into the exchange, before the seal, which frames
+/// it), `truth2` runs after the seal on the same GPU and publishes the proof.
+pub const Kind = enum(u8) { stage1, seal, stage2, truth, node, truth2 };
 
 pub const Node = struct {
     kind: Kind,
@@ -67,6 +70,10 @@ pub const Shape = struct {
     truths: []const Truth = &.{},
     /// Truth/service proofs that need the sealed global relation.
     truth_after_seal: bool = false,
+    /// Truths run as stage 1 (before the seal, which waits for them: their
+    /// MAIN roots are framed in the manifest) + stage 2 (after the seal, same
+    /// GPU). Exclusive with `truth_after_seal`.
+    truth_two_stage: bool = false,
     recursion: []const RecursionNode = &.{},
     /// Recursion root node id (must be the last node). Ignored when empty.
     root: u32 = 0,
@@ -90,6 +97,8 @@ pub const Dag = struct {
     stage1: []u32,
     stage2: []u32,
     truth: []u32,
+    /// Two-stage truths: stage-2 node per truth (empty otherwise).
+    truth2: []u32,
     recursion: []u32,
     final_device: u32,
     edges: []u32,
@@ -106,6 +115,7 @@ pub const Dag = struct {
         a.free(self.stage1);
         a.free(self.stage2);
         a.free(self.truth);
+        a.free(self.truth2);
         a.free(self.recursion);
         a.free(self.edges);
         a.free(self.child_ids);
@@ -143,14 +153,18 @@ pub fn build(a: std.mem.Allocator, shape: Shape) !Dag {
     if (shape.segments.len == 0) return error.GpuNativeNoSegments;
     if (shape.main_capacity.len != 0 and shape.main_capacity.len != shape.devices) return error.GpuNativeMainCapacityShape;
     if (shape.recursion.len != 0 and shape.root + 1 != shape.recursion.len) return error.GpuNativeRecursionRootNotLast;
+    if (shape.truth_two_stage and shape.truth_after_seal) return error.GpuNativeTruthStagesConflict;
     const S: u32 = @intCast(shape.segments.len);
     const T: u32 = @intCast(shape.truths.len);
     const R: u32 = @intCast(shape.recursion.len);
-    const n_nodes = 2 * S + 1 + T + R;
+    const T2: u32 = if (shape.truth_two_stage) T else 0;
+    const n_nodes = 2 * S + 1 + T + T2 + R;
 
     // ---- edges ----
     var n_edges: usize = S + S; // seal <- stage1, stage2 <- seal
     if (shape.truth_after_seal) n_edges += T;
+    // two-stage: seal <- truth1, truth2 <- (seal, truth1)
+    n_edges += 3 * @as(usize, T2);
     var n_children: usize = 0;
     for (shape.recursion, 0..) |rn, id| {
         if (rn.children.len == 0) {
@@ -177,6 +191,8 @@ pub fn build(a: std.mem.Allocator, shape: Shape) !Dag {
     errdefer a.free(stage2);
     const truth = try a.alloc(u32, T);
     errdefer a.free(truth);
+    const truth2 = try a.alloc(u32, T2);
+    errdefer a.free(truth2);
     const recursion = try a.alloc(u32, R);
     errdefer a.free(recursion);
     const loads = try a.alloc(u64, shape.devices);
@@ -195,9 +211,12 @@ pub fn build(a: std.mem.Allocator, shape: Shape) !Dag {
         at += 1;
     }
     const seal = at;
-    nodes[seal] = .{ .kind = .seal, .ordinal = 0, .proof = null, .device = shape.seal_device, .deps = edges[e..][0..S], .cost = shape.seal_cost, .rank = 2 };
+    // Node ids of the truths (stage 1) are fixed now: after the S Stage2s.
+    const truth_base = seal + 1 + S;
+    nodes[seal] = .{ .kind = .seal, .ordinal = 0, .proof = null, .device = shape.seal_device, .deps = edges[e..][0 .. S + T2], .cost = shape.seal_cost, .rank = 2 };
     @memcpy(edges[e..][0..S], stage1);
-    e += S;
+    for (0..T2) |t| edges[e + S + t] = truth_base + @as(u32, @intCast(t));
+    e += S + T2;
     at += 1;
     for (0..S) |s| {
         stage2[s] = at;
@@ -214,7 +233,17 @@ pub fn build(a: std.mem.Allocator, shape: Shape) !Dag {
             deps = edges[e..][0..1];
             e += 1;
         }
-        nodes[at] = .{ .kind = .truth, .ordinal = @intCast(t), .proof = .{ .kind = .truth, .ordinal = @intCast(t) }, .deps = deps, .cost = shape.truths[t].cost, .rank = if (shape.truth_after_seal) 3 else 1 };
+        const proof: ?G.ProofId = if (shape.truth_two_stage) null else .{ .kind = .truth, .ordinal = @intCast(t) };
+        nodes[at] = .{ .kind = .truth, .ordinal = @intCast(t), .proof = proof, .deps = deps, .cost = shape.truths[t].cost, .rank = if (shape.truth_after_seal) 3 else 1 };
+        at += 1;
+    }
+    std.debug.assert(T == 0 or truth[0] == truth_base);
+    for (0..T2) |t| {
+        truth2[t] = at;
+        edges[e] = seal;
+        edges[e + 1] = truth[t];
+        nodes[at] = .{ .kind = .truth2, .ordinal = @intCast(t), .proof = .{ .kind = .truth, .ordinal = @intCast(t) }, .deps = edges[e..][0..2], .cost = shape.truths[t].cost, .rank = 3 };
+        e += 2;
         at += 1;
     }
     for (shape.recursion, 0..) |rn, id| {
@@ -229,7 +258,7 @@ pub fn build(a: std.mem.Allocator, shape: Shape) !Dag {
                 c += 1;
             }
             for (rn.truths) |t| {
-                edges[e] = truth[t];
+                edges[e] = if (T2 != 0) truth2[t] else truth[t];
                 child_ids[c] = .{ .kind = .truth, .ordinal = t };
                 e += 1;
                 c += 1;
@@ -273,10 +302,15 @@ pub fn build(a: std.mem.Allocator, shape: Shape) !Dag {
         mains[d] += seg.main_words;
     }
     loads[shape.seal_device] += shape.seal_cost;
-    for (truth) |id| {
+    for (truth, 0..) |id, t| {
         const d = argmin(loads);
         nodes[id].device = d;
         loads[d] += nodes[id].cost;
+        // Stage 2 of a truth stays on its stage-1 GPU.
+        if (T2 != 0) {
+            nodes[truth2[t]].device = d;
+            loads[d] += nodes[truth2[t]].cost;
+        }
     }
     var votes: [G.max_devices]u32 = undefined;
     for (recursion) |id| {
@@ -336,10 +370,10 @@ pub fn build(a: std.mem.Allocator, shape: Shape) !Dag {
         };
         for (device_order[d], 0..) |i, pos| {
             const after = if (last_stage2) |l| pos > l else true;
-            nodes[i].phase_b = after and (nodes[i].kind == .node or nodes[i].kind == .truth);
+            nodes[i].phase_b = after and (nodes[i].kind == .node or nodes[i].kind == .truth or nodes[i].kind == .truth2);
         }
     }
-    return .{ .a = a, .nodes = nodes, .order = order, .device_order = device_order, .loads = loads, .main_words = mains, .seal = seal, .stage1 = stage1, .stage2 = stage2, .truth = truth, .recursion = recursion, .final_device = shape.seal_device, .edges = edges, .child_ids = child_ids };
+    return .{ .a = a, .nodes = nodes, .order = order, .device_order = device_order, .loads = loads, .main_words = mains, .seal = seal, .stage1 = stage1, .stage2 = stage2, .truth = truth, .truth2 = truth2, .recursion = recursion, .final_device = shape.seal_device, .edges = edges, .child_ids = child_ids };
 }
 
 fn kindRank(k: Kind) u8 {
@@ -348,6 +382,7 @@ fn kindRank(k: Kind) u8 {
         .truth => 1,
         .seal => 2,
         .stage2 => 3,
+        .truth2 => 3,
         .node => 4,
     };
 }

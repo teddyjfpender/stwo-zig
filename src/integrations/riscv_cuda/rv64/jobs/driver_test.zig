@@ -39,7 +39,7 @@ fn noopDestroy(_: *anyopaque) void {}
 /// A device job built from closures over host-model device memory.
 const FakeJob = struct {
     a: std.mem.Allocator,
-    kind: enum { stage1, seal, stage2, truth, node },
+    kind: enum { stage1, seal, stage2, truth, node, truth2 },
     ctx: *const G.RequestContext,
     world: *World,
     ordinal: u32,
@@ -51,7 +51,7 @@ const FakeJob = struct {
     pub fn classKey(self: *FakeJob) [32]u8 {
         return switch (self.kind) {
             .stage1, .seal, .stage2 => k_native,
-            .truth => k_truth,
+            .truth, .truth2 => k_truth,
             .node => if (self.id.?.kind == .leaf) k_leaf else if (self.id.?.kind == .fold) k_fold else k_root,
         };
     }
@@ -103,6 +103,13 @@ const FakeJob = struct {
                     for (&acc, replica[root.offset..][0..8]) |*x, y| x.* ^= y;
                 }
                 if (w.stage1_done.load(.acquire) != ex.segments) return error.SealBeforeStage1;
+                // Two-stage truths: the seal frames every truth's MAIN root.
+                for (0..ex.truths) |t| {
+                    const tr = try ex.truthRoot(@intCast(t));
+                    try self.ctx.peer.awaitSlot(self.device, w.truth_device[t], tr);
+                    if (replica[tr.offset] != 0x7700 + t) return error.SealWithoutTruthRoot;
+                    for (&acc, replica[tr.offset..][0..8]) |*x, y| x.* ^= y;
+                }
                 const slot = ex.seal();
                 @memcpy(replica[slot.offset..][0..8], &acc);
                 try self.ctx.peer.publish(self.device, slot);
@@ -133,7 +140,21 @@ const FakeJob = struct {
                 try self.verdict(id, .oods_constraint, if (intact) G.Verdict.accepted else G.Verdict.reject(.oods_constraint, 2));
                 try self.encode(id);
             },
-            .truth => {
+            .truth2 => {
+                try self.ctx.peer.awaitSlot(self.device, 0, ex.seal());
+                if (w.truth1_done.load(.acquire) & (@as(u32, 1) << @intCast(self.ordinal)) == 0) return error.TruthStage2BeforeStage1;
+                const id = G.ProofId{ .kind = .truth, .ordinal = self.ordinal };
+                for ([_]G.Check{ .channel_order, .truth_status, .pcs_status }) |c| try self.verdict(id, c, G.Verdict.accepted);
+                try self.encode(id);
+            },
+            .truth => if (w.two_stage) {
+                if (w.seal_ran) return error.TruthStage1AfterSeal;
+                const tr = try ex.truthRoot(self.ordinal);
+                for (replica[tr.offset..][0..8], 0..) |*x, i| x.* = @intCast(0x7700 + self.ordinal + i * 0x10000);
+                w.truth_device[self.ordinal] = self.device;
+                try self.ctx.peer.publish(self.device, tr);
+                _ = w.truth1_done.fetchOr(@as(u32, 1) << @intCast(self.ordinal), .acq_rel);
+            } else {
                 if (w.truth_end) if (w.capture) |cap| if (!cap.endGate().recorded.isSet()) return error.TruthBeforeCaptureEnd;
                 const id = G.ProofId{ .kind = .truth, .ordinal = self.ordinal };
                 for ([_]G.Check{ .channel_order, .truth_status, .pcs_status }) |c| try self.verdict(id, c, G.Verdict.accepted);
@@ -234,12 +255,17 @@ const World = struct {
     published: [2]usize = .{ 0, 0 },
     publish_order: [2]u8 = .{ 0, 0 },
     publish_at: u8 = 0,
+    /// Two-stage truths (RecursionFactory.truth_stage2 bound).
+    two_stage: bool = false,
+    truth_device: [8]u32 = @splat(0),
+    truth1_done: std.atomic.Value(u32) = .init(0),
 
     fn reset(self: *World) void {
         self.stage1_done.store(0, .release);
         for (&self.partial_done) |*p| p.store(false, .release);
         self.seal_ran = false;
         self.seal_enqueued = false;
+        self.truth1_done.store(0, .release);
     }
     fn make(self: *World, kind: @FieldType(FakeJob, "kind"), ctx: *const G.RequestContext, ordinal: u32, device: u32, id: ?G.ProofId, children: []const G.ProofId) !api.Job {
         const j = try self.a.create(FakeJob);
@@ -312,6 +338,14 @@ const World = struct {
         return .{ .ctx = self, .vtable = &rec_vt };
     }
     const rec_vt = G.RecursionFactory.VTable{ .warm = rWarm, .class_of = rClass, .truth = rTruth, .node = rNode, .captured = rCaptured, .publish = rPublish };
+    const rec_vt2 = blk: {
+        var v = rec_vt;
+        v.truth_stage2 = rTruth2;
+        break :blk v;
+    };
+    fn rTruth2(raw: *anyopaque, ctx: *const G.RequestContext, t: u32, d: u32) anyerror!api.Job {
+        return of(raw).make(.truth2, ctx, t, d, .{ .kind = .truth, .ordinal = t }, &.{});
+    }
     fn rCaptured(raw: *anyopaque, _: *const G.RequestContext, _: G.CaptureEnd) anyerror!void {
         of(raw).captured_recursion += 1;
     }
@@ -884,4 +918,65 @@ test "D1: a stage-one region the seal never filled refuses publication; a failed
     var ok = try rig.driver.serve(&r);
     t2.join();
     ok.deinit();
+}
+
+test "DAG: two-stage truths frame the seal (stage 1 before, stage 2 after, same GPU); leaves read stage 2" {
+    const segs = [_]D.Segment{ .{}, .{} };
+    const rec = [_]D.RecursionNode{ .{ .segments = &.{0} }, .{ .segments = &.{1}, .truths = &.{ 0, 1 } }, .{ .children = &.{ 0, 1 } } };
+    var dag = try D.build(testing.allocator, .{ .devices = 2, .segments = &segs, .truths = &.{ .{}, .{} }, .truth_two_stage = true, .recursion = &rec, .root = 2 });
+    defer dag.deinit();
+    const seal = dag.nodes[dag.seal];
+    try testing.expectEqual(@as(usize, 4), seal.deps.len);
+    for (dag.truth, dag.truth2) |t1, t2| {
+        try testing.expect(std.mem.indexOfScalar(u32, seal.deps, t1) != null);
+        try testing.expect(dag.nodes[t1].proof == null);
+        try testing.expectEqual(G.ProofKind.truth, dag.nodes[t2].proof.?.kind);
+        try testing.expectEqual(dag.nodes[t1].device, dag.nodes[t2].device);
+        try testing.expect(std.mem.indexOfScalar(u32, dag.nodes[t2].deps, dag.seal) != null);
+        try testing.expect(std.mem.indexOfScalar(u32, dag.nodes[t2].deps, t1) != null);
+    }
+    const leaf = dag.nodes[dag.recursion[1]];
+    for (dag.truth2) |t2| try testing.expect(std.mem.indexOfScalar(u32, leaf.deps, t2) != null);
+    // Global order: both truth stage 1s before the seal, stage 2s after.
+    const pos = struct {
+        fn of(order: []const u32, n: u32) usize {
+            return std.mem.indexOfScalar(u32, order, n).?;
+        }
+    };
+    for (dag.truth, dag.truth2) |t1, t2| {
+        try testing.expect(pos.of(dag.order, t1) < pos.of(dag.order, dag.seal));
+        try testing.expect(pos.of(dag.order, t2) > pos.of(dag.order, dag.seal));
+    }
+    try testing.expectError(error.GpuNativeTruthStagesConflict, D.build(testing.allocator, .{ .devices = 2, .segments = &segs, .truths = &.{.{}}, .truth_two_stage = true, .truth_after_seal = true }));
+}
+
+test "D1: two-stage truths: roots exchanged before the seal, proofs after it, one host wait" {
+    var world = World{ .a = testing.allocator, .two_stage = true };
+    const a = testing.allocator;
+    var ws: [2]*W.Worker = undefined;
+    ws[0] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer ws[0].destroy();
+    ws[1] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 1, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer ws[1].destroy();
+    const drv = try R.Driver.install(a, &F.ops, &F.peer, &ws, world.nativeFactory(), .{ .ctx = &world, .vtable = &World.rec_vt2 }, .{ .capacity_words = &.{ 1 << 20, 1 << 20 }, .max_segments = 8, .max_truths = 4, .max_jobs_per_device = 32, .slab_words = 1 << 13, .reserve_words = 1 << 10, .graph_exec_words = 1 << 10, .arena_cap_words = 1 << 15 });
+    defer drv.deinit();
+    const before = F.counters;
+    const rec = [_]D.RecursionNode{ .{ .segments = &.{0} }, .{ .segments = &.{1}, .truths = &.{ 0, 1 } }, .{ .children = &.{ 0, 1 } } };
+    const r = R.Request{ .id = 701, .segment_rows = &.{ 1 << 10, 1 << 9 }, .truths = 2, .recursion = &rec, .root = 2 };
+    var out = try drv.serve(&r);
+    defer out.deinit();
+    try testing.expectEqual(@as(usize, 1), F.counters.host_waits - before.host_waits);
+    try testing.expectEqual(@as(usize, 2), F.counters.d2h - before.d2h);
+    try testing.expect(world.seal_ran);
+    var truths: usize = 0;
+    for (out.proofs) |p| if (p.id.kind == .truth) {
+        truths += 1;
+        try testing.expectEqual(@as(usize, encoded_bytes), p.bytes.len);
+    };
+    try testing.expectEqual(@as(usize, 2), truths);
+    // 2 segments x 2 slots + 2 partials + 2 truth roots + seal.
+    try testing.expectEqual(@as(u64, 2 * 2 + 2 + 2 + 1), out.receipt.peer_publishes);
+    // Too many truths for the install capacity fails before device work.
+    const r5 = R.Request{ .id = 702, .segment_rows = &.{ 1 << 10, 1 << 9 }, .truths = 5, .recursion = &.{.{ .segments = &.{0} }}, .root = 0 };
+    try testing.expectError(error.GpuNativeTruthsExceedPlan, drv.serve(&r5));
 }

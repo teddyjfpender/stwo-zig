@@ -388,9 +388,17 @@ pub const Exchange = struct {
     capacity_claims: u32 = 0,
     /// GPUs that host segments, bit d = device d (0 = every device).
     partial_mask: u8 = 0,
+    /// Two-stage truths (r-truth): each truth's stage-1 MAIN root (8 words +
+    /// flag), framed by the seal. Appended after every other slot, so layouts
+    /// without truths are unchanged.
+    truths: u32 = 0,
+    capacity_truths: u32 = 0,
 
     fn capS(self: Exchange) usize {
         return if (self.capacity_segments == 0) self.segments else self.capacity_segments;
+    }
+    fn capT(self: Exchange) usize {
+        return if (self.capacity_truths == 0) self.truths else self.capacity_truths;
     }
     fn capC(self: Exchange) usize {
         return if (self.capacity_claims == 0) self.claims_per_segment else self.capacity_claims;
@@ -406,18 +414,18 @@ pub const Exchange = struct {
         return @popCount(self.mask());
     }
     pub fn validate(self: Exchange) !void {
-        if (self.segments > self.capS() or self.claims_per_segment > self.capC()) return error.GpuNativeExchangeExceedsCapacity;
+        if (self.segments > self.capS() or self.claims_per_segment > self.capC() or self.truths > self.capT()) return error.GpuNativeExchangeExceedsCapacity;
         if (self.devices == 0 or self.devices > max_devices) return error.GpuNativeExchangeDevices;
         const all: u8 = @truncate((@as(u16, 1) << @intCast(self.devices)) - 1);
         if (self.mask() & ~all != 0) return error.GpuNativeExchangeDevices;
     }
     /// Flag words reserved at install (slot events are indexed by flag).
     pub fn flagCapacity(self: Exchange) usize {
-        return 1 + @as(usize, self.devices) + 2 * self.capS();
+        return 1 + @as(usize, self.devices) + 2 * self.capS() + self.capT();
     }
     /// This request's flags: the contiguous prefix [flagOffset, +flagWords).
     pub fn flagWords(self: Exchange) usize {
-        return 1 + self.partials() + 2 * @as(usize, self.segments);
+        return 1 + self.partials() + 2 * @as(usize, self.segments) + self.truths;
     }
     pub const flag_offset: usize = 0;
     pub fn rootWords(self: Exchange) usize {
@@ -431,7 +439,7 @@ pub const Exchange = struct {
     }
     pub const seal_words: usize = 16;
     pub fn words(self: Exchange) usize {
-        return std.mem.alignForward(usize, self.flagCapacity(), 8) + self.rootWords() + self.claimWords() + self.partialWords() + seal_words;
+        return std.mem.alignForward(usize, self.flagCapacity(), 8) + self.rootWords() + self.claimWords() + self.partialWords() + seal_words + self.capT() * 8;
     }
     fn dataBase(self: Exchange) usize {
         return std.mem.alignForward(usize, self.flagCapacity(), 8);
@@ -455,6 +463,11 @@ pub const Exchange = struct {
     }
     pub fn seal(self: Exchange) Slot {
         return .{ .offset = self.dataBase() + self.rootWords() + self.claimWords() + self.partialWords(), .words = seal_words, .flag = 0 };
+    }
+    /// Truth `t`'s stage-1 MAIN root (two-stage truths).
+    pub fn truthRoot(self: Exchange, t: u32) !Slot {
+        if (t >= self.truths) return error.GpuNativeExchangeSlot;
+        return .{ .offset = self.seal().offset + seal_words + @as(usize, t) * 8, .words = 8, .flag = 1 + self.partials() + 2 * @as(usize, self.segments) + t };
     }
 };
 
@@ -893,7 +906,12 @@ pub const RecursionFactory = struct {
         /// nodes' classes). A truth has no children; its ordinal names the
         /// truth statement kind (fixed per service).
         class_of: *const fn (*anyopaque, id: ProofId, children: []const ClassKey) anyerror!ClassKey,
+        /// The truth job; with `truth_stage2` set it is truth STAGE 1
+        /// (witness -> MAIN root -> Exchange.truthRoot, before the seal).
         truth: *const fn (*anyopaque, *const RequestContext, ordinal: u32, device: u32) anyerror!api.Job,
+        /// Two-stage truths (r-truth): stage 2 after the seal, on the stage-1
+        /// GPU; it publishes the truth proof. Null: `truth` is the whole proof.
+        truth_stage2: ?*const fn (*anyopaque, *const RequestContext, ordinal: u32, device: u32) anyerror!api.Job = null,
         /// Leaf/fold/root node: reads its children's encoded regions (device,
         /// own segment or peer replica) and writes its own.
         node: *const fn (*anyopaque, *const RequestContext, id: ProofId, children: []const ProofId, device: u32) anyerror!api.Job,

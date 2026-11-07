@@ -51,6 +51,8 @@ pub const Config = struct {
     capacity_words: []const u64,
     /// Largest native segment count / truths / jobs per GPU per request.
     max_segments: u32,
+    /// Largest truth count per request (two-stage truths' exchange slots).
+    max_truths: u32 = 16,
     max_jobs_per_device: usize = 256,
     /// Pinned pool per parity for jobs that stage from pinned memory (GPU-native jobs: 0).
     batch_pinned_words: usize = 0,
@@ -211,7 +213,8 @@ pub const Driver = struct {
         if (workers.len > 1) try O.check(peer_ops.peer_enable(&ordinals, @intCast(workers.len), &direct));
         self.peer_direct = direct == 1;
         const claims_cap = @max(1, self.maxClaims());
-        self.exchange_cap = .{ .segments = config.max_segments, .claims_per_segment = claims_cap, .devices = @intCast(workers.len), .capacity_segments = config.max_segments, .capacity_claims = claims_cap };
+        const truth_cap: u32 = if (recursion.vtable.truth_stage2 != null) config.max_truths else 0;
+        self.exchange_cap = .{ .segments = config.max_segments, .claims_per_segment = claims_cap, .devices = @intCast(workers.len), .capacity_segments = config.max_segments, .capacity_claims = claims_cap, .truths = truth_cap, .capacity_truths = truth_cap };
         try self.peer.reserve(a, self.exchange_cap.flagCapacity());
         errdefer self.peer.deinitHost(a);
         const largest_main = std.mem.alignForward(u64, self.largestNativeMain(), M.granule);
@@ -575,7 +578,9 @@ pub const InFlight = struct {
         }
         const main_cap = try a.alloc(u64, devices);
         for (drv.lanes, main_cap) |l, *m| m.* = l.main.words;
-        self.dag = try D.build(drv.a, .{ .devices = devices, .seal_device = drv.config.seal_device, .segments = segs, .truths = truths, .truth_after_seal = req.truth_after_seal, .recursion = rec, .root = req.root, .main_capacity = main_cap });
+        const two_stage = drv.recursion.vtable.truth_stage2 != null;
+        if (two_stage and req.truths > drv.exchange_cap.capacity_truths) return error.GpuNativeTruthsExceedPlan;
+        self.dag = try D.build(drv.a, .{ .devices = devices, .seal_device = drv.config.seal_device, .segments = segs, .truths = truths, .truth_after_seal = req.truth_after_seal, .truth_two_stage = two_stage, .recursion = rec, .root = req.root, .main_capacity = main_cap });
         const dag = &self.dag.?;
         // slab layout from class constants
         const placed = try dag.proofIds(a);
@@ -598,7 +603,7 @@ pub const InFlight = struct {
         // segment own a partial slot (a GPU without one could never publish it).
         var partial_mask: u8 = 0;
         for (0..S) |s| partial_mask |= @as(u8, 1) << @intCast(dag.nodes[dag.stage1[s]].device);
-        self.exchange = .{ .segments = @intCast(S), .claims_per_segment = claims, .devices = devices, .capacity_segments = drv.exchange_cap.capacity_segments, .capacity_claims = drv.exchange_cap.capacity_claims, .partial_mask = partial_mask };
+        self.exchange = .{ .segments = @intCast(S), .claims_per_segment = claims, .devices = devices, .capacity_segments = drv.exchange_cap.capacity_segments, .capacity_claims = drv.exchange_cap.capacity_claims, .partial_mask = partial_mask, .truths = if (two_stage) req.truths else 0, .capacity_truths = drv.exchange_cap.capacity_truths };
         self.exchange.validate() catch |err| return if (err == error.GpuNativeExchangeExceedsCapacity) error.GpuNativeClaimsExceedPlan else err;
         self.layout = try G.RequestLayout.build(drv.a, devices, specs, self.exchange);
         const layout = &self.layout.?;
@@ -666,6 +671,7 @@ pub const InFlight = struct {
                 .seal => try drv.native.vtable.seal(drv.native.ctx, &self.ctx, nd.device),
                 .stage2 => try drv.native.vtable.stage2(drv.native.ctx, &self.ctx, nd.ordinal, nd.device),
                 .truth => try drv.recursion.vtable.truth(drv.recursion.ctx, &self.ctx, nd.ordinal, nd.device),
+                .truth2 => try drv.recursion.vtable.truth_stage2.?(drv.recursion.ctx, &self.ctx, nd.ordinal, nd.device),
                 .node => try drv.recursion.vtable.node(drv.recursion.ctx, &self.ctx, nd.proof.?, nd.children, nd.device),
             };
             const deps = try a.alloc(*W.BatchDep, nd.deps.len);
