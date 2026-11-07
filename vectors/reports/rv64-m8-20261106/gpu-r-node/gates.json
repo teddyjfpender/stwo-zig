@@ -1,0 +1,106 @@
+{
+ "schema": "rv64-m8-gpu-r-node-gates/v1",
+ "label": "[M]",
+ "source_commit": "c25698ca5",
+ "addon": {
+  "path": "/workspace/m3/build/m8-gpu-r-node/jobs-addon-d3/libstwo-rv64-jobs.so",
+  "sha256": "dc7b9ee3f813a8a97f9622043b7503925e526a45a765befc860d2b86a57abf39"
+ },
+ "arms": [
+  {
+   "arm": "d-26235156",
+   "env": "default",
+   "status": "PASS",
+   "run": "/workspace/m3/runs/m8-gpu-r-node/g2/gate-d-26235156",
+   "producer_stderr_sha256": "a42998a98a45bd4c131ff4d758dd5d24e625a12e4a3467ed80559510fb79d767"
+  },
+  {
+   "arm": "e-26235156",
+   "env": "STWO_RV64_M8_OUTER_JOBS=1 OUTER_DEVICE_CHECKS=1 OUTER_DEVICE_ENCODE=check",
+   "status": "PASS",
+   "run": "/workspace/m3/runs/m8-gpu-r-node/g3/gate-e-26235156",
+   "producer_stderr_sha256": "dc8ad76089154178c21870e6af79ca7d5fc475fd5750f84d3e4739f49bb92378",
+   "device_encode_identical": "15/15 cold + 15/15 warm",
+   "oods_identical": "15/15 cold + 15/15 warm"
+  },
+  {
+   "arm": "e-24628607",
+   "env": "same as e-26235156",
+   "status": "PASS",
+   "run": "/workspace/m3/runs/m8-gpu-r-node/g3/gate-e-24628607",
+   "producer_stderr_sha256": "6e2df3d73672256913b367b0397b16b911f9239cd9d7f77e232e968d0f187942",
+   "device_encode_identical": "19/19 cold + 19/19 warm",
+   "oods_identical": "19/19 cold + 19/19 warm"
+  },
+  {
+   "arm": "n-26235156-4",
+   "env": "e + FAULT_INJECTION=1 OUTER_ENCODE_FAULT_ORDINAL=4",
+   "status": "FAIL (expected)",
+   "evidence": "node 4 node_pcs_status=0x03040008 encode_bounds=0x01040002 -> OuterDeviceEncodeRejected",
+   "producer_stderr_sha256": "62f70b48e9efe26d89f75cfb9f5d5546f87c6979de9b2323504f47d9257677d8"
+  },
+  {
+   "arm": "o-26235156-4",
+   "env": "e + FAULT_INJECTION=1 OUTER_OODS_FAULT_ORDINAL=4",
+   "status": "FAIL (expected)",
+   "evidence": "node 4 node_oods_constraint=0x03030004 -> OuterDeviceOodsRejected",
+   "producer_stderr_sha256": "1d532cec0810009a100c2e3c65db84539d162208ca764e59ce2a95f7a30a7003"
+  }
+ ],
+ "warm_request": {
+  "26235156": {
+   "nodes": 15,
+   "encoded_bytes": 10873888,
+   "encode_gpu_ms_sum": 54.920823,
+   "oods_gpu_ms_sum": 20.452791,
+   "node_body_gpu_s_sum": 5.258879669,
+   "host_s_sum_over_nodes": {
+    "prestage_ns": 2.785197517,
+    "init_ns": 7.414210761,
+    "stage_ns": 1.703696691,
+    "enqueue_ns": 1.632583021,
+    "wait_ns": 4.024144401,
+    "finish_ns": 0.00381419,
+    "decode_ns": 0.144048128,
+    "assemble_ns": 0.290777373
+   },
+   "launches_per_node": [
+    489,
+    1273
+   ],
+   "graph_outcomes": [
+    "direct"
+   ]
+  },
+  "24628607": {
+   "nodes": 19,
+   "encoded_bytes": 13761664,
+   "encode_gpu_ms_sum": 69.425013,
+   "oods_gpu_ms_sum": 25.919639,
+   "node_body_gpu_s_sum": 6.512069503,
+   "host_s_sum_over_nodes": {
+    "prestage_ns": 2.933989109,
+    "init_ns": 6.422693956,
+    "stage_ns": 1.773143605,
+    "enqueue_ns": 2.079205852,
+    "wait_ns": 4.918188748,
+    "finish_ns": 0.033753917,
+    "decode_ns": 0.09343113,
+    "assemble_ns": 0.2341086
+   },
+   "launches_per_node": [
+    492,
+    1273
+   ],
+   "graph_outcomes": [
+    "direct"
+   ]
+  }
+ },
+ "notes": [
+  "host_s_sum_over_nodes are sums over nodes of lane-thread times (lanes overlap); not critical-path seconds",
+  "check mode keeps the host decode/assemble/wire bytes as the published bytes; device bytes are compared, not yet published",
+  "STWO_RV64_M8_NATIVE_JOBS=1 OOMs on 26235156 and STWO_RV64_M8_OUTER_CLASS_PLAN=1 fails OuterClassPlanAllocatorMismatch on 24628607 at this base (not this stream's code); arms run without them",
+  "graph cache: 0 of 68 node bodies replayed as graphs over two requests per block: body launch counts differ between requests for the same node (data-dependent verifier topology)"
+ ]
+}
