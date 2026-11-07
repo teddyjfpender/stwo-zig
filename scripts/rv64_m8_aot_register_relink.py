@@ -216,7 +216,10 @@ def main():
     ap.add_argument("--jobs", type=int, default=6)
     ap.add_argument("--nvcc", default="/usr/local/cuda/bin/nvcc")
     ap.add_argument("--compile-timeout", type=float, default=3600)
-    ap.add_argument("--rss-cap-gb", type=float, default=40, help="kill a module compile whose process tree exceeds this RSS")
+    ap.add_argument("--rss-cap-gb", type=float, default=40,
+                    help="aggregate RSS budget for all concurrent module compiles; each of the --jobs compiles is killed "
+                         "above rss-cap-gb/jobs (the pod's 93 GB cgroup is shared; 4 jobs x a 40 GB per-compile cap could "
+                         "reach 160 GB). Measured need: sliced shard 47 peaks at 4.68 GB [M]")
     args = ap.parse_args()
 
     base = json.loads(args.base_link.read_text())
@@ -266,7 +269,7 @@ def main():
         if not (obj.is_file() and (out / "obj" / (source.stem + ".src.sha256")).is_file()
                 and (out / "obj" / (source.stem + ".src.sha256")).read_text() == key):
             capped = subprocess.run([sys.executable, str(Path(__file__).resolve().parent / "rv64_m8_rss_cap.py"),
-                                     str(args.rss_cap_gb), str(log), "--", args.nvcc, *flags, *entry.get("nvcc_flags", []), "-Xptxas", "-v", "-c", str(cu), "-o", str(obj)],
+                                     str(args.rss_cap_gb / args.jobs), str(log), "--", args.nvcc, *flags, *entry.get("nvcc_flags", []), "-Xptxas", "-v", "-c", str(cu), "-o", str(obj)],
                                     capture_output=True, text=True, timeout=args.compile_timeout)
             report["compile_rss"] = capped.stdout.strip()
             if capped.returncode:

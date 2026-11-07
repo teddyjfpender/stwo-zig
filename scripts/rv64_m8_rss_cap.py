@@ -11,8 +11,8 @@ def tree_rss(root):
     for pid in os.listdir("/proc"):
         if not pid.isdigit(): continue
         try:
-            stat = open(f"/proc/{pid}/stat").read().split()
-            if int(stat[4]) == root:  # same session/process group
+            stat = open(f"/proc/{pid}/stat").read().rsplit(")", 1)[1].split()  # fields after "(comm)"
+            if int(stat[2]) == root:  # pgrp: same process group as the capped command
                 total += int(open(f"/proc/{pid}/statm").read().split()[1]) * 4096
         except Exception: pass
     return total
