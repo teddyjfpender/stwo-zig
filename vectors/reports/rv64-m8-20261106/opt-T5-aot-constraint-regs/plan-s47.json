@@ -1,8 +1,0 @@
-[
- {
-  "kind": "truth-shard",
-  "symbol": "rv64_truth_domain_0_shard_47",
-  "launch_bounds": "",
-  "ab": "Deferred from plan-img1: the 16,255-op group's compile peaks above 40 GB RSS in ptxas even uncapped [M, 3 attempts under rv64_m8_rss_cap.py]; the pod's 92 GB container cgroup is shared. Plain scheduled SSA, 255 registers, 1,752 B stack."
- }
-]

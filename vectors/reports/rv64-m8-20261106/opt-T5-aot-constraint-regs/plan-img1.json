@@ -25,6 +25,13 @@
  },
  {
   "kind": "truth-shard",
+  "symbol": "rv64_truth_domain_0_shard_47",
+  "launch_bounds": "128,4",
+  "slice_ops": 2500,
+  "ab": "Sliced (7 noinline slices, 137 words carried per cut) because the 16,255-op group cannot compile as one function under the 40 GB RSS cap [M, 3 attempts]; sliced: 394 s, 4.68 GB peak, 128 registers, 2,464 B stack [M]. Slicing alone on peers [M, bit-exact]: shard 48 0.834 -> 0.864 ms, shard 49 1.626 -> 1.436 ms. Kernel A/B of this object vs admitted runs in pipe2 (the admitted kernel needs ~3 GB local memory to launch)."
+ },
+ {
+  "kind": "truth-shard",
   "symbol": "rv64_truth_domain_0_shard_48",
   "launch_bounds": "128,4",
   "ab": "[M] CUDA events, bench_truth.cu, same inputs, 7 reps, median; admitted -> scheduled; bit-exact. 2^16 rows: 3.850 -> (128,4) 0.832 ms; none 1.279, (128,3) 1.298, (128,5) 1.025, (128,6) 1.026, (128,8) 1.023"

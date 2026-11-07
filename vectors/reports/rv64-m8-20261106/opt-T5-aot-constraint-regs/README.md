@@ -64,9 +64,25 @@ Labels: **[M]** measured (receipt in this directory or the pod path named), **[D
 | joined_domain_20 | 2^20 | 1.125 | **0.809** | none 0.853; original order + bounds 1.41–2.62 |
 | projection_case_20 | 2^20 | 1.676 | not changed | (128,4) 1.937, (128,5) 2.369, (128,6) 3.595 |
 
-- **Shard 47** compiles with `--maxrregcount=128` passed to ptxas only. With `__launch_bounds__` in the source, cicc grew
-  past 40 GB of RSS [M]. Its A/B runs once GPU memory is free: the admitted kernel alone needs about 3 GB of local memory
-  to launch.
+- **Shard 47 (16,255 ops in one group)** could not be compiled as one function: cicc (with `__launch_bounds__`) or ptxas
+  (with `--maxrregcount=128`, and even with no cap) went past the 40 GB RSS cap [M, 3 attempts]. The pod's 92 GB container
+  cgroup is shared, and one uncapped attempt triggered the cgroup OOM.
+  - Fix: `--slice-ops` cuts the scheduled order into noinline slices at minimal-live boundaries. Values live across a cut
+    travel through small ping-pong local arrays, and each slice returns its partial fold.
+  - Shard 47: 7 slices of about 2.3k ops, with 137 words carried per cut. It compiles in 394 s at 4.68 GB peak RSS
+    [M], with 128 registers and a 2,464 B stack.
+  - Cost of slicing on its own [M, bit-exact]: shard 48 0.834 → 0.864 ms; shard 49 1.626 → 1.436 ms.
+- **Image size bound.** The admitted `.so` is 1.975 GB, and x86-64 RIP-relative relocations cap it at 2 GiB. The flag-gated
+  image keeps both kernel copies, so the 80 curve-role shards (0.47 GB of new objects [M]) do not fit; the link fails with
+  "relocation truncated to fit". They are deferred to round 2 in `plan-roles-5-6-10-14.json`.
+  - Their representative A/B [M, 2^16 rows, bit-exact, admitted → (128,4)] is 0.20–0.40× of the admitted time:
+    5_24 0.927 → 0.375 ms, 6_11 0.938 → 0.378, 5_33 0.765 → 0.298, 6_26 0.786 → 0.284, 14_6 1.048 → 0.332,
+    12_6 0.630 → 0.148, 13_12 0.939 → 0.241, 10_4 0.231 → 0.046, 11_10 0.761 → 0.264.
+  - About 42 ms per request of these run on 24628607 [M trace].
+  - Round-2 options: replace mode once the gated A/B has proven the kernels; dropping `-lineinfo` (object size ×0.53 [M]);
+    or a second library.
+- **Core split shards** (joined 44 shard 26 etc., 54 ms per request): `c44_26` reads 298 distinct parameters and still
+  spills 13.9 KB even with shared-memory parameter staging (r2 branch). Left as admitted.
 
 ## Expected effect (24628607, warm)
 
