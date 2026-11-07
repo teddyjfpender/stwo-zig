@@ -7,4 +7,5 @@ test {
     _ = @import("rv64/jobs/truth_interaction.zig");
     _ = @import("rv64/jobs/truth_class.zig");
     _ = @import("rv64/jobs/truth_job.zig");
+    _ = @import("rv64/jobs/truth_factory.zig");
 }
