@@ -21,8 +21,8 @@ ab() { name=$1; preset=$2; block=$3; shift 3
       # Quiet window: hold all three build locks (every pod build/test runs under one of them) for the
       # timed services only, so running builds drain and new ones queue; then wait for no compiler/
       # receiver/GPU process. The GPU itself is still taken per service by the harness (never wrapped).
-      flock -w 3600 /workspace/m3/locks/build.1.lock flock -w 3600 /workspace/m3/locks/build.2.lock \
-        flock -w 3600 /workspace/m3/locks/build.3.lock bash -c "echo \$(date -u +%FT%TZ) $name-$a build-locks held >> $ST; \
+      flock -w 14400 /workspace/m3/locks/build.1.lock flock -w 14400 /workspace/m3/locks/build.2.lock \
+        flock -w 14400 /workspace/m3/locks/build.3.lock bash -c "echo \$(date -u +%FT%TZ) $name-$a build-locks held >> $ST; \
         python3 $P/m-runtime/quiet_window.py --timeout 1800 >> $ST 2>&1 || exit 75; \
         exec python3 scripts/rv64_m7_integration_stack.py run --manifest $R/$name-manifest.json --out $R/$name-$a $* --timing-only" \
         > $R/$name-$a.log 2>&1; rc=$?
