@@ -1,0 +1,14 @@
+{
+ "scope": "M9 GPU replay prototype, CPU half (diagnostic only)",
+ "prefault": true,
+ "chunk": 256,
+ "segments": 49,
+ "retired": 204825818,
+ "plain": {"exec_ns": 2492251512, "total_ns": 2576788937, "fast": 204266762, "host_steps": 559056, "mips": 82.2},
+ "seeded": {"exec_ns": 2630958954, "total_ns": 3844627318, "fast": 204266744, "host_steps": 559074, "mips": 77.9, "seeds": 0, "memory_words": 0, "bytes_per_step": 0.153},
+ "cpu_recorder": {"steps": 0, "next_taking_ns": 0, "traced_ns": 0, "fast_ns": 0, "finish_ns": 0, "ns_per_step": 0.00},
+ "host_steps_by_kind": {"ordinary": {"n": 118754, "ns": 14710790}, "keccak": {"n": 13228, "ns": 7898375}, "secp": {"n": 167575, "ns": 173142115}, "sha256": {"n": 27732, "ns": 9676992}, "arith256_mod": {"n": 10915, "ns": 3120045}, "bulk": {"n": 127588, "ns": 88688334}, "sponge": {"n": 32411, "ns": 75774215}, "curve.bn254_g1_add": {"n": 4530, "ns": 62253319}, "curve.bn254_g1_double": {"n": 15695, "ns": 265729530}, "curve.bn254_fp2_mul": {"n": 12488, "ns": 133693898}, "curve.bls12_381_fp2_mul": {"n": 13534, "ns": 721453144}, "curve.arith384_mont": {"n": 14606, "ns": 322473079}},
+ "reference_skipped": true,
+ "cpu_parity_mismatches": 0,
+ "op_census": {}
+}

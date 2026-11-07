@@ -1,0 +1,12 @@
+{
+ "scope": "M9 GPU replay prototype, CPU half (diagnostic only)",
+ "prefault": true,
+ "chunk": 256,
+ "segments": 49,
+ "retired": 204825818,
+ "plain": {"exec_ns": 2471085247, "total_ns": 2553336572, "fast": 204266762, "host_steps": 559056, "mips": 82.9},
+ "seeded": {"exec_ns": 2650150989, "total_ns": 3944207448, "fast": 204266744, "host_steps": 559074, "mips": 77.3, "seeds": 1099938, "memory_words": 77300731, "bytes_per_step": 4.676},
+ "cpu_recorder": {"steps": 204825818, "next_taking_ns": 9386732957, "traced_ns": 8671356412, "fast_ns": 6121047093, "finish_ns": 715041506, "ns_per_step": 45.83},
+ "cpu_parity_mismatches": 0,
+ "op_census": {"add": 14578226, "sub": 2923963, "sll": 903980, "sltu": 5409322, "xor": 1032546, "srl": 1099067, "or": 9622760, "and": 6073129, "addi": 29435431, "slti": 2431, "sltiu": 146764, "xori": 555255, "ori": 19399, "andi": 4422698, "slli": 10383369, "srli": 5166700, "srai": 333977, "addw": 34815, "subw": 667236, "sllw": 43705, "srlw": 31498, "addiw": 932452, "slliw": 100616, "srliw": 152840, "li": 3447357, "mul": 2144640, "mulhu": 720893, "div": 532, "divu": 8582, "remu": 20504, "mulw": 1, "lb": 158454, "lh": 172068, "lw": 288518, "ld": 38444204, "lbu": 8087563, "lhu": 212567, "lwu": 140717, "sb": 1608410, "sh": 360865, "sw": 195481, "sd": 27513390, "beq": 5539813, "bne": 5221380, "blt": 1498390, "bge": 1531402, "bltu": 2731756, "bgeu": 2528952, "jal": 1139239, "jalr": 6478887, "host": 559074}
+}

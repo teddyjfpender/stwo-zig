@@ -1,0 +1,14 @@
+{
+ "scope": "M9 GPU replay prototype, CPU half (diagnostic only)",
+ "prefault": true,
+ "chunk": 256,
+ "segments": 10,
+ "retired": 38600821,
+ "plain": {"exec_ns": 220990346, "total_ns": 237943577, "fast": 38479825, "host_steps": 120996, "mips": 174.7},
+ "seeded": {"exec_ns": 242725843, "total_ns": 475187036, "fast": 38479818, "host_steps": 121003, "mips": 159.0, "seeds": 0, "memory_words": 0, "bytes_per_step": 0.176},
+ "cpu_recorder": {"steps": 0, "next_taking_ns": 0, "traced_ns": 0, "fast_ns": 0, "finish_ns": 0, "ns_per_step": 0.00},
+ "host_steps_by_kind": {"ordinary": {"n": 34740, "ns": 4058623}, "keccak": {"n": 2915, "ns": 1748027}, "secp": {"n": 38121, "ns": 39493457}, "sha256": {"n": 4101, "ns": 1425359}, "arith256_mod": {"n": 386, "ns": 134470}, "bulk": {"n": 32091, "ns": 26592253}, "sponge": {"n": 8642, "ns": 21006619}},
+ "reference_skipped": true,
+ "cpu_parity_mismatches": 0,
+ "op_census": {}
+}
