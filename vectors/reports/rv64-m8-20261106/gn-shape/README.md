@@ -54,8 +54,8 @@ the factory's `warm` / `installed` hooks on the job GPU (GPU1), and negatives.
   15.31 s, register + warm 2.16 s); every segment resolves by `class_of_block`, registry and cache hold all 14 classes.
 - [M] host (unit) `zig build test-rv64-jobs`: 520/530 (10 skipped GPU), incl. the sync lint and 6 new gn-shape tests.
 - [M] `rv64_gate.sh --stream m8-gn-shape` default: **PASS** at 277fd08dd (`gate-2.json`: 26235156 cold + warm 32/32 artifacts
-  byte-identical to the frozen D2 golden, 2/2 fresh CPU receivers accepted, negative corpus). The later commits touch only
-  native_class_build.zig and the harness (default path unchanged); gate-3 on the head: see `gate-3.json` when present.
+  byte-identical to the frozen D2 golden, 2/2 fresh CPU receivers accepted, negative corpus), and **PASS** again at
+  868a3ceea (`gate-3.json`, the class-miss path included: 32/32 byte-identical cold + warm, receivers 2/2, corpus).
 
 | install, host wall [M] | 26235156 (4 seg) | 24628607 (7 seg) |
 |---|---|---|
