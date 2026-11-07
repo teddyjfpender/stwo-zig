@@ -2,7 +2,7 @@
   "schema": "stwo.opstack.pairing-hints.v1",
   "control_commit": "aa467d7049471cfd531632d0229597c92754ed7e",
   "scope": "mainnet execution and independent oracle; no whole-block STARK",
-  "compiler_inputs_sha256": null,
+  "compiler_inputs_sha256": "f4673d8bebeb4af6cee9e62cc174a210a0f97d3cfcfe3b928fe1c848669ef85b",
   "rows": [
     {
       "case": "120794432",
@@ -562,5 +562,6 @@
         "oracle_source_sha256": "acd9744406337626f644f3206e3eb6274e9adc2c8705bbca6ce84f35408ac7ac"
       }
     }
-  ]
+  ],
+  "compiler_inputs_count": 7415
 }
