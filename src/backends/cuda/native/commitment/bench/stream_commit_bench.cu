@@ -93,6 +93,11 @@ struct Shape {
   uint32_t log, columns, chunk, k, queries;
   uint32_t lifted_columns, lifted_log;  // lower-height group absorbed first
   uint32_t low = 0;                     // fused tile height override (0 = default)
+  // Second arm (review): 0 = fused on every call; 1 = production non-final
+  // calls + fused final call (integration step 2 as written); 2 = production
+  // non-final calls + production LDE + stream_commit(lde_input) final call.
+  uint32_t arm = 0;
+  bool full_pool = false;  // distinct coefficients per column (chunk-invariance check)
 };
 
 struct Device {
@@ -113,7 +118,7 @@ struct Lifted {
 
 static void setup(const Shape &s, Device &d, cudaStream_t st, uint32_t seed) {
   const size_t n = n_of(s.log), half = n / 2;
-  d.pool_columns = std::min<size_t>(2 * size_t(s.chunk), s.columns + 1);
+  d.pool_columns = s.full_pool ? s.columns : std::min<size_t>(2 * size_t(s.chunk), s.columns + 1);
   CK(cudaMalloc(&d.coeffs, d.pool_columns * half * 4));
   CK(cudaMalloc(&d.logs, d.pool_columns * 4));
   CK(cudaMalloc(&d.tw, n * 4));
@@ -200,7 +205,7 @@ static ArmTimes run_ref(const Shape &s, Device &d, cudaStream_t st, bool extract
   for (uint32_t first = 0; first < s.columns; first += s.chunk) {
     const uint32_t kc = std::min(s.chunk, s.columns - first);
     const bool final = first + kc == s.columns;
-    const size_t pool = (first / s.chunk) % 2 ? std::min<size_t>(s.chunk, d.pool_columns - kc) : 0;
+    const size_t pool = s.full_pool ? first : (first / s.chunk) % 2 ? std::min<size_t>(s.chunk, d.pool_columns - kc) : 0;
     CK(cudaEventRecord(ev[0], st));
     uint32_t launches = 0;
     CKI(stwo_lde_n2b_columns_on(d.coeffs + pool * half, half, d.logs + pool, d.chunk, n, s.log, kc, d.tw,
@@ -257,9 +262,11 @@ static ArmTimes run_ref(const Shape &s, Device &d, cudaStream_t st, bool extract
     next += nodes / 2;
   }
   CK(cudaEventRecord(ev[1], st));
-  CK(cudaEventRecord(stop, st));
+  // Openings are timed in both arms when queries are requested (review fix:
+  // the fused arm's in-kernel values used to be timed against an untimed REF).
   if (extract)
     gather_paths<<<dim3{(s.log * 8 + 127) / 128, nq}, 128, 0, st>>>(d.tree, s.log, d.rows, d.ref_paths);
+  CK(cudaEventRecord(stop, st));
   CK(cudaEventSynchronize(stop));
   CK(cudaEventElapsedTime(&times.parts[2], ev[0], ev[1]));
   CK(cudaEventElapsedTime(&times.total, start, stop));
@@ -300,12 +307,43 @@ static ArmTimes run_fused(const Shape &s, Device &d, cudaStream_t st, bool extra
   for (uint32_t first = 0; first < s.columns; first += s.chunk) {
     const uint32_t kc = std::min(s.chunk, s.columns - first);
     const bool final = first + kc == s.columns;
-    const size_t pool = (first / s.chunk) % 2 ? std::min<size_t>(s.chunk, d.pool_columns - kc) : 0;
-    CK(cudaEventRecord(ev[0], st));
-    CKI(stwo_m9_lde_first_pass_split_on(d.coeffs + pool * half, half, d.logs + pool, d.chunk, n, s.log, kc,
-                                        d.tw, uint32_t(n), s.low, st));
-    CK(cudaEventRecord(ev[1], st));
+    const size_t pool = s.full_pool ? first : (first / s.chunk) % 2 ? std::min<size_t>(s.chunk, d.pool_columns - kc) : 0;
+    const bool production_call = s.arm != 0 && !final;
+    const bool lde_final = s.arm == 2 && final;
     const uint32_t out_bank = has_seed ? 1 - seed_bank : 0;
+    CK(cudaEventRecord(ev[0], st));
+    if (production_call || lde_final) {
+      uint32_t launches = 0;
+      CKI(stwo_lde_n2b_columns_on(d.coeffs + pool * half, half, d.logs + pool, d.chunk, n, s.log, kc, d.tw,
+                                  uint32_t(n), uint32_t(half), st, &launches));
+    } else {
+      CKI(stwo_m9_lde_first_pass_split_on(d.coeffs + pool * half, half, d.logs + pool, d.chunk, n, s.log, kc,
+                                          d.tw, uint32_t(n), s.low, st));
+    }
+    CK(cudaEventRecord(ev[1], st));
+    if (production_call) {
+      b::MixedSegment seg{d.chunk, n, kc * n, uint32_t(n), 0};
+      const uint64_t seed_cap = has_seed ? uint64_t(seed_size) * (8 + (absorbed & 15)) : 0;
+      CKI(stwo_blake2s_mixed_seeded_eager_compact_on(uint32_t(n), 1, &seg, absorbed, has_seed ? seed_size : 0,
+                                                     has_seed ? d.bank[seed_bank] : nullptr, seed_cap,
+                                                     d.bank[out_bank], n * (8 + ((absorbed + kc) & 15)),
+                                                     nullptr, 0, st));
+      if (nq)
+        gather_values<<<dim3{(kc + 127) / 128, nq}, 128, 0, st>>>(d.chunk, n, kc, d.rows, nq,
+                                                                  s.lifted_columns + first, d.values);
+      CK(cudaEventRecord(ev[2], st));
+      CK(cudaEventSynchronize(ev[2]));
+      float a = 0, c = 0;
+      CK(cudaEventElapsedTime(&a, ev[0], ev[1]));
+      CK(cudaEventElapsedTime(&c, ev[1], ev[2]));
+      times.parts[0] += a;
+      times.parts[1] += c;
+      absorbed += kc;
+      seed_size = uint32_t(n);
+      seed_bank = out_bank;
+      has_seed = true;
+      continue;
+    }
     m9::StreamCommitParams p{};
     p.intermediate = d.chunk;
     p.column_stride_words = n;
@@ -327,7 +365,8 @@ static ArmTimes run_fused(const Shape &s, Device &d, cudaStream_t st, bool extra
     p.paths = (final && nq && s.k) ? d.paths : nullptr;
     p.path_log = s.log;
     p.status = d.status;
-    p.low_bits = s.low;
+    p.low_bits = lde_final ? 0 : s.low;
+    p.lde_input = lde_final ? 1 : 0;
     CKI(stwo_m9_stream_commit_on(&p, st));
     CK(cudaEventRecord(ev[2], st));
     CK(cudaEventSynchronize(ev[2]));
@@ -351,8 +390,8 @@ static ArmTimes run_fused(const Shape &s, Device &d, cudaStream_t st, bool extra
     next += nodes / 2;
   }
   CK(cudaEventRecord(ev[1], st));
-  CK(cudaEventRecord(stop, st));
   if (nq) CKI(stwo_m9_stream_commit_upper_paths_on(d.partial, s.log, s.k, d.rows, nq, d.paths, st));
+  CK(cudaEventRecord(stop, st));
   CK(cudaEventSynchronize(stop));
   CK(cudaEventElapsedTime(&times.parts[2], ev[0], ev[1]));
   CK(cudaEventElapsedTime(&times.total, start, stop));
@@ -395,9 +434,9 @@ static size_t parity_case(const Shape &s, cudaStream_t st, uint32_t seed, bool v
   const auto status = down(d.status, 1);
   const auto root = down(d.partial + (((2 * n) >> s.k) - 2) * 8, 8);
   if (verbose || bad || bad_values || bad_paths || status[0])
-    std::printf("parity log=%u cols=%u chunk=%u k=%u q=%u lifted=%u@%u low=%u: tree_words=%zu bad=%zu "
+    std::printf("parity arm=%u log=%u cols=%u chunk=%u k=%u q=%u lifted=%u@%u low=%u: tree_words=%zu bad=%zu "
                 "values=%zu bad=%zu paths=%zu bad=%zu status=%u root=%08x%08x\n",
-                s.log, s.columns, s.chunk, s.k, s.queries, s.lifted_columns, s.lifted_log,
+                s.arm, s.log, s.columns, s.chunk, s.k, s.queries, s.lifted_columns, s.lifted_log,
                 s.low ? s.low : stwo_m9_stream_commit_low_bits(s.log), ref_tree.size(), bad, rv.size(), bad_values,
                 rp.size(), bad_paths, status[0], root[0], root[1]);
   teardown(d);
@@ -427,7 +466,55 @@ int main(int argc, char **argv) {
       total += parity_case(s, st, 1000 + uint32_t(cases), true);
       ++cases;
     }
-    std::printf("PARITY %s cases=%zu mismatching_words=%zu\n", total ? "FAIL" : "PASS", cases, total);
+    // Review additions. (a) Integration step 2 chains: production non-final
+    // calls feeding a fused (arm 1) or LDE-input (arm 2) final call, incl. an
+    // aligned production seed (pending 0) and every fused height. (b) Aligned
+    // lifted seeds (16 / 32 lower-height words, pending 0) into the fused arm.
+    Shape extra[] = {
+        {24, 40, 16, 10, 108, 0, 0},    {24, 39, 16, 10, 108, 7, 22},   {24, 33, 8, 5, 216, 3, 22},
+        {23, 32, 16, 0, 108, 0, 0},     {22, 37, 16, 10, 108, 5, 20},   {21, 48, 16, 10, 108, 0, 0},
+        {20, 21, 5, 1, 108, 17, 18},    {18, 33, 16, 4, 108, 16, 16},   {16, 40, 16, 10, 64, 0, 0},
+        {24, 40, 16, 10, 108, 16, 22},  {22, 20, 16, 3, 108, 32, 20},   {19, 17, 16, 0, 108, 16, 17},
+    };
+    for (uint32_t arm = 1; arm <= 2; ++arm)
+      for (uint32_t i = 0; i < 9; ++i) {
+        Shape s = extra[i];
+        s.arm = arm;
+        total += parity_case(s, st, 2000 + uint32_t(cases), true);
+        ++cases;
+      }
+    for (uint32_t i = 9; i < 12; ++i) {
+      total += parity_case(extra[i], st, 2000 + uint32_t(cases), true);
+      ++cases;
+    }
+    // (c) Chunk invariance of the production root (the aligned-plan claim):
+    // the same columns committed with different call boundaries.
+    size_t inv_bad = 0;
+    const Shape inv[] = {{16, 37, 37, 0, 0, 5, 13}, {20, 40, 40, 0, 0, 7, 18}, {24, 40, 40, 0, 0, 0, 0}};
+    for (const auto &base : inv) {
+      std::vector<uint32_t> roots;
+      for (uint32_t chunk : {base.columns, 1u, 4u, 7u, 9u, 16u, 32u}) {
+        if (base.log == 24 && chunk == 1) continue;
+        Shape s = base;
+        s.chunk = chunk;
+        s.full_pool = true;
+        Device d;
+        setup(s, d, st, 77);
+        run_ref(s, d, st, false);
+        CK(cudaStreamSynchronize(st));
+        const auto root = down(d.tree + (2 * n_of(s.log) - 2) * 8, 8);
+        teardown(d);
+        if (roots.empty()) roots = root;
+        size_t diff = 0;
+        for (int w = 0; w < 8; ++w) diff += root[w] != roots[w];
+        inv_bad += diff;
+        std::printf("chunk-invariance log=%u cols=%u lifted=%u chunk=%u root=%08x%08x diff_words=%zu\n", s.log,
+                    s.columns, s.lifted_columns, chunk, root[0], root[1], diff);
+      }
+    }
+    total += inv_bad;
+    std::printf("PARITY %s cases=%zu mismatching_words=%zu (chunk-invariance diff_words=%zu)\n",
+                total ? "FAIL" : "PASS", cases, total, inv_bad);
     return total ? 1 : 0;
   }
   if (!std::strcmp(mode, "occupancy")) {
@@ -448,6 +535,7 @@ int main(int argc, char **argv) {
             uint32_t(std::atoi(argv[6])), argc > 7 ? uint32_t(std::atoi(argv[7])) : 0, 0, 0};
     const int reps = std::atoi(argv[5]);
     if (const char *o = std::getenv("SC_LOW")) s.low = uint32_t(std::atoi(o));
+    if (const char *o = std::getenv("SC_ARM")) s.arm = uint32_t(std::atoi(o));
     if (const char *o = std::getenv("SC_OFFSET")) {  // lower-height words first: unaligned chains
       s.lifted_columns = uint32_t(std::atoi(o));
       s.lifted_log = s.log - 2;
@@ -455,11 +543,11 @@ int main(int argc, char **argv) {
     Device d;
     setup(s, d, st, 42);
     const bool extract = s.queries != 0;
-    run_ref(s, d, st, false);  // warm
+    run_ref(s, d, st, extract);  // warm
     run_fused(s, d, st, extract);
     std::vector<ArmTimes> ref, fused;
     for (int r = 0; r < reps; ++r) {
-      ref.push_back(run_ref(s, d, st, false));
+      ref.push_back(run_ref(s, d, st, extract));
       fused.push_back(run_fused(s, d, st, extract));
     }
     auto median = [](std::vector<ArmTimes> v, int part) {
@@ -469,7 +557,8 @@ int main(int argc, char **argv) {
       return x[x.size() / 2];
     };
     const double gb = double(s.columns) * n_of(s.log) * 4 / 1e9;
-    std::printf("BENCH low=%u offset=%u ", s.low ? s.low : stwo_m9_stream_commit_low_bits(s.log), s.lifted_columns);
+    std::printf("BENCH arm=%u low=%u offset=%u ", s.arm, s.low ? s.low : stwo_m9_stream_commit_low_bits(s.log),
+                s.lifted_columns);
     std::printf("log=%u cols=%u chunk=%u k=%u q=%u reps=%d lde_gb=%.3f | ref total=%.3f lde=%.3f leaf=%.3f "
                 "layers=%.3f | fused total=%.3f w1=%.3f fused=%.3f layers=%.3f | ratio=%.3f pair_ratio=%.3f\n",
                 s.log, s.columns, s.chunk, s.k, s.queries, reps, gb, median(ref, -1), median(ref, 0),
