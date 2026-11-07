@@ -60,6 +60,21 @@ pub const rv64_ethereum_direct = @import("word16_global_execution/ethereum/direc
 pub const rv64_ethereum_capture = @import("word16_global_execution/ethereum/capture.zig");
 pub const rv64_ethereum_capture_options = @import("word16_global_execution/ethereum/capture_options.zig");
 pub const rv64_ethereum_plan = @import("word16_global_execution/ethereum/plan.zig");
+/// M8 GPU-native install-time class builder (riscv_cuda rv64/jobs/
+/// native_class_build.zig, stream gn-shape): the warm capture's setup, FIXED
+/// authority and per-segment request views, built exactly as gkr_main's
+/// inventory does. Exports only; no behaviour change.
+pub const rv64_ethereum_keys = @import("word16_global_execution/ethereum/keys.zig");
+pub const rv64_ethereum_canon_rungs = @import("word16_global_execution/ethereum/canon_native_rungs.zig");
+pub const rv64_gkr_coordinator = @import("word16_global_execution/services/gkr_local/coordinator.zig");
+pub const rv64_gkr_execution = @import("word16_global_execution/services/gkr_local/execution.zig");
+pub const rv64_gkr_fixed_authority = @import("word16_global_execution/services/gkr_local/fixed_authority.zig");
+pub const rv64_gkr_fixed_authority_set = @import("word16_global_execution/services/gkr_local/fixed_authority_set.zig");
+pub const rv64_gkr_local_roster = @import("word16_global_execution/services/gkr_local/roster.zig");
+pub const rv64_services_protocol = @import("word16_global_execution/services/protocol.zig");
+pub const rv64_native_policy = @import("word16_execution/native_policy.zig");
+pub const rv64_pcs_suite = @import("word16_execution/pcs_suite.zig");
+pub const rv64_om31_security_candidate = @import("word16_execution/om31_security_candidate.zig");
 pub const rv64 = @import("rv64.zig");
 pub const rv64_full = @import("rv64_full.zig");
 const frontend = @import("stwo_riscv_frontend");

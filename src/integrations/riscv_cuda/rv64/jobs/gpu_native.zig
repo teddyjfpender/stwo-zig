@@ -56,6 +56,8 @@ pub const contract_version: u32 = 2;
 //   Publication + NativeFactory.publish / RecursionFactory.publish (each
 //   stream writes its own legacy-format artifacts from the published bytes
 //   after the single wait).
+// gn-shape addition (M8-INTERFACES "m8-gn-shape", defaulted, no layout
+//   change): NativeFactory.VTable.class_of_block (block-qualified class_of).
 // r-truth additions (M8-INTERFACES "m8-gpu-r-truth", all defaulted): Check
 //   truth_root; Exchange.truths/capacity_truths + truthRoot slot (after the
 //   seal; 0 truths = the version-2 layout word for word); the seal slot's
@@ -884,6 +886,11 @@ pub const NativeFactory = struct {
         installed: ?*const fn (*anyopaque, *ClassCache, *const Installed) anyerror!void = null,
         /// Class of a native segment (from capture geometry).
         class_of: *const fn (*anyopaque, segment: u32, rows: u64) anyerror!ClassKey,
+        /// gn-shape addition (optional): the class of segment `segment` of
+        /// `block` (Request.block / the install loop's block). `class_of`
+        /// alone is ambiguous when two blocks (or two segments) share a row
+        /// count but not a class; callers that know the block prefer this.
+        class_of_block: ?*const fn (*anyopaque, block: u64, segment: u32, rows: u64) anyerror!ClassKey = null,
         /// Stage 1 (witness from trace chunks, FIXED adoption, MAIN commit into
         /// main_resident, local GKR, binding): publishes root + claims slots.
         stage1: *const fn (*anyopaque, *const RequestContext, segment: u32, device: u32) anyerror!api.Job,
