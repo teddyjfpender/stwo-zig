@@ -127,6 +127,17 @@ pub const EncodedNode = struct {
     /// the request slab segment of its GPU. Null: a field of the node's own
     /// job slab (check mode, read back in finish).
     target: ?Target = null,
+    /// GPU-native (gn-node): the node's outputs are device data (the seed
+    /// fill's statement kernel wrote them); the encoder reads them here and
+    /// no host outputs are uploaded.
+    outputs_device: ?api.DeviceBuffer = null,
+    /// With `outputs_device` bound after stage: never upload host outputs.
+    outputs_on_device: bool = false,
+    /// GPU-native (gn-node child seed source): after the bytes, copy the
+    /// node's PCS readback image into the LAST image words of the target
+    /// region (a parent's seed fill reads it there; publish slices only the
+    /// length-word bytes). Needs `target` and `copy` (d2d).
+    image_tail: bool = false,
     pub const Target = struct { region: api.DeviceBuffer, pcs_status: api.DeviceBuffer, encode_status: api.DeviceBuffer, layout_status_oods: ?api.DeviceBuffer = null };
     /// The request-slab target of proof `id` (layout of its GPU's segment).
     pub fn targetOf(layout: *const G.SegmentLayout, segment: api.DeviceBuffer, id: G.ProofId) !Target {
@@ -204,7 +215,7 @@ pub const EncodedNode = struct {
             try s.upload(p.buffer, pinned);
         }
         const outputs = self.inner.staged.expected;
-        if (outputs.len != 0) {
+        if (self.outputs_device != null or self.outputs_on_device) {} else if (outputs.len != 0) {
             const b = try s.alloc(outputs.len);
             const pinned = try s.pinned(outputs.len);
             @memcpy(pinned, outputs);
@@ -260,7 +271,7 @@ pub const EncodedNode = struct {
             .roots = .{ fixed_root, section.ptr + S.main_root, section.ptr + S.inter_root, section.ptr + S.composition_root },
             .claims = section.ptr + S.claims,
             .latches = section.ptr + S.status,
-            .outputs = if (self.outputs_buf) |b| b.ptr else null,
+            .outputs = if (self.outputs_device) |b| b.ptr else if (self.outputs_on_device) return error.OuterEncodeOutputsUnbound else if (self.outputs_buf) |b| b.ptr else null,
             .claims_words = 8 * Plan.n_components,
             .latches_words = S.status_words,
             .outputs_words = @intCast(self.inner.staged.expected.len),
@@ -284,6 +295,13 @@ pub const EncodedNode = struct {
             return error.OuterEncodeEnqueueFailed;
         }
         self.launches = 1;
+        if (self.image_tail) {
+            const t = self.target orelse return error.OuterEncodeImageTailNeedsTarget;
+            if (t.region.words < 1 + @as(usize, self.desc[E.D.max_payload_words]) + pcs.words) return error.OuterEncodeRegionTooSmall;
+            const at = t.region.words - pcs.words;
+            if (self.inner.kernels.d2d(e.ctx(), @ptrCast(t.region.ptr + at), @ptrCast(pcs.ptr), pcs.words * 4) != 0) return error.OuterEncodeEnqueueFailed;
+            self.launches += 1;
+        }
         if (self.oods) |*o| {
             const im = E.Image.of(self.desc);
             if (self.oods_fault) {
