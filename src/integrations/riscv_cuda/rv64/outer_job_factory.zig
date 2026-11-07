@@ -260,7 +260,12 @@ pub const Prover = struct {
             if (entry.program.len == 0) try entry.programFor(region_words[0..nk]);
         }
         const program_ns = timer.lap();
-        var w = try GnJob.init(a, entry, g, region_words[0..nk], self.shared, image);
+        // This worker's graph cache: every node of the class replays the
+        // class's captured body (STWO_RV64_M8_OUTER_GRAPH_THRESHOLD=1: from
+        // the second node of the class on this GPU).
+        const dev = self.worker.device_ordinal;
+        if (dev < entry.graphs.len and entry.graphs[dev] == null) entry.graphs[dev] = &self.graphs;
+        var w = try GnJob.init(a, entry, g, region_words[0..nk], self.shared, image, dev);
         defer w.deinit(a);
         var done = Done{};
         try self.submitWait(w.job(), &done);
@@ -1117,7 +1122,7 @@ const GnJob = struct {
     target: api.DeviceBuffer = undefined,
     words: api.DeviceBuffer = undefined,
 
-    fn init(a: std.mem.Allocator, entry: *NodeClasses.Entry, g: *const GnCheck, region_words: []const u32, shared: *const Shared, own_image: []const u32) !GnJob {
+    fn init(a: std.mem.Allocator, entry: *NodeClasses.Entry, g: *const GnCheck, region_words: []const u32, shared: *const Shared, own_image: []const u32, device: u32) !GnJob {
         const nk = g.regions.len;
         var self = GnJob{ .node = undefined, .made = undefined, .regions = undefined, .n_children = nk, .region_words = undefined, .target_words = 1 + entry.max_encoded_bytes / 4, .field_words = 0, .d2d = shared.kernels.d2d, .host_image = &.{}, .allocator = a };
         // Children regions in the slab convention (image in the last words;
@@ -1142,7 +1147,7 @@ const GnJob = struct {
         // The node job (production code path) over placeholder buffers; stage
         // binds the real device addresses before anything runs.
         const fake: [*]u32 = @ptrFromInt(64);
-        const target = OuterDevice.Target{ .device = 0, .region = .{ .ptr = fake, .words = self.target_words }, .pcs_status = .{ .ptr = fake, .words = 1 }, .encode_status = .{ .ptr = fake, .words = 1 }, .oods_status = .{ .ptr = fake, .words = 1 } };
+        const target = OuterDevice.Target{ .device = device, .region = .{ .ptr = fake, .words = self.target_words }, .pcs_status = .{ .ptr = fake, .words = 1 }, .encode_status = .{ .ptr = fake, .words = 1 }, .oods_status = .{ .ptr = fake, .words = 1 } };
         const m = try entry.node.make(entry.node.ctx, a, target);
         errdefer m.destroy(m.ctx);
         self.made = @ptrCast(@alignCast(m.ctx));
