@@ -48,6 +48,10 @@ the factory's `warm` / `installed` hooks on the job GPU (GPU1), and negatives.
   on the GPU; register after seal -> `GpuNativeClassBuildOnRequestPath`; unknown block / wrong rows -> `GpuNativeClassNotWarmed`;
   out-of-bounds patch table -> `NativeStage2PatchTable`; one flipped FIXED word -> exactly field `s1.fixed_host` differs.
   Miss path: a new block after the seal builds (no fail-closed), receipted (`misses=1`), its class keys equal the warm ones.
+- [M] class miss on a genuinely new block (`miss-26235156-then-24628607.json`): 26235156 installed and sealed, then 24628607
+  (never warmed) through the same shape hook: 7 new classes built, registry + class cache reopened, registered, host-warmed and
+  device-warmed (WarmJob per class: FIXED commit + root check), resealed; 17.80 s wall after its 4.20 s capture (classes
+  15.31 s, register + warm 2.16 s); every segment resolves by `class_of_block`, registry and cache hold all 14 classes.
 - [M] host (unit) `zig build test-rv64-jobs`: 520/530 (10 skipped GPU), incl. the sync lint and 6 new gn-shape tests.
 
 | install, host wall [M] | 26235156 (4 seg) | 24628607 (7 seg) |
@@ -58,7 +62,7 @@ the factory's `warm` / `installed` hooks on the job GPU (GPU1), and negatives.
 |  of which per-class build (plans, PCS framing, program, patches) | 1.24-1.43 s | 0.69-1.34 s |
 | factory warm (S1 Class.init + S2 cache insert) | 1.17 s | 2.18 s |
 | installed (device WarmJobs, host wall) | 0.17 s | 0.29 s |
-| miss path for a new block (same build) | 12.13 s | 15.06 s |
+| miss path, same block again (build only, no new class) | 12.13 s | 15.06 s |
 
 Sequential shape before the per-segment parallel setup: 17.98 / 34.50 s [M] (inventory alone 16.06 s on 26235156).
 
@@ -78,5 +82,7 @@ Sequential shape before the per-segment parallel setup: 17.98 / 34.50 s [M] (inv
 - Install / miss path: per-segment setup keys + CPU FIXED authority (3-14 s/segment [M]) is the cost; the device commits the
   same FIXED tree in 3.8-5.7 ms [M]. Levers: a resident setup cache across blocks (the legacy SetupCache), or canonical rungs
   (strict roster) so classes repeat across blocks.
-- Not done here: `ClassFraming.oods` (gn-s2's `NO.fromPlan`, not on this base), device warm of a class first seen on the miss
-  path after the seal (needs ClassCache/Registry reopen in the driver), `capture_words` (gn-pack's ring format).
+- Not done here: `ClassFraming.oods` (gn-s2's `NO.fromPlan`, not on this base), `capture_words` (gn-pack's ring format), the
+  driver calling the shape hook for an unknown block at request time (today Service.begin refuses GpuNativeBlockNotWarmed;
+  with `Builder.miss_cache` bound the hook does the whole miss path). The miss path writes `Registry.sealed` directly (no
+  unseal API in native_device_stage1.zig) and must not run while a request of the same service is mid-enqueue.
