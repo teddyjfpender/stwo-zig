@@ -355,6 +355,9 @@ fn run(worker: *W.Worker, job: api.Job) !api.Receipt {
 
 const SegmentRow = struct {
     ordinal: u32,
+    /// RAM boundary claim slots of the class framing (device public_claims).
+    initial_claim: ?u32 = null,
+    terminal_claim: ?u32 = null,
     class_key: [64]u8,
     rows: u64,
     instances: usize,
@@ -521,7 +524,9 @@ pub fn main() !void {
     registry.devices = 1;
     var factory = S2.Factory{ .a = a, .sym = &s2sym, .identity = @splat(0) };
     defer factory.deinit();
-    var builder = NCB.Builder{ .a = a, .env = build_env, .registry = &registry, .factory = &factory, .framing_instances = S2.Factory.instances_per_device, .fixed_setup_bytes = fixed_setup_bytes };
+    // Production pool size: instances_per_device x 2 GPUs.
+    const framing_instances = std.fmt.parseUnsigned(usize, env("STWO_RV64_M8_GN_SHAPE_FRAMING_INSTANCES") orelse "4", 10) catch return error.InvalidParityEnvironment;
+    var builder = NCB.Builder{ .a = a, .env = build_env, .registry = &registry, .factory = &factory, .framing_instances = framing_instances, .fixed_setup_bytes = fixed_setup_bytes };
     defer builder.deinit();
     var native = ND.Native{ .stage1_hooks = registry.hooks(), .stage2_hooks = factory.hooks(), .shape_hooks = builder.hooks() };
     const nf = native.factory();
@@ -550,7 +555,7 @@ pub fn main() !void {
         // classOf through the factory vtable (block-qualified and not).
         const k1 = try nf.vtable.class_of_block.?(nf.ctx, block, @intCast(i), r);
         if (!std.mem.eql(u8, &k1, &key)) return error.ParityClassOfDiffers;
-        var row = SegmentRow{ .ordinal = @intCast(i), .class_key = hex(key), .rows = r, .instances = cl.instances.len, .fixed_columns = cl.fixed_shapes.len, .main_columns = cl.main_shapes.len, .globals = cl.gplans.items.len, .composition_roles = cl.comp_plan.?.roles.len, .patch_entries = patches, .semantic_words = cl.semantic_words, .max_encoded_bytes = cl.program.?.max_encoded_bytes, .class_fields = class_fields, .request_fields = fp.fields.items.len - class_fields };
+        var row = SegmentRow{ .ordinal = @intCast(i), .class_key = hex(key), .rows = r, .instances = cl.instances.len, .fixed_columns = cl.fixed_shapes.len, .main_columns = cl.main_shapes.len, .globals = cl.gplans.items.len, .composition_roles = cl.comp_plan.?.roles.len, .patch_entries = patches, .semantic_words = cl.semantic_words, .max_encoded_bytes = cl.program.?.max_encoded_bytes, .class_fields = class_fields, .request_fields = fp.fields.items.len - class_fields, .initial_claim = cl.initial_claim, .terminal_claim = cl.terminal_claim };
         if (run_legacy) {
             if (recorder.stage1.get(@intCast(i))) |legacy| {
                 legacy.capture_words = cl.capture_words;
@@ -588,6 +593,24 @@ pub fn main() !void {
     const installed_ns = timer.lap();
     cache.seal();
     std.debug.print("GPU_M8_GN_SHAPE event=installed classes={} cache_entries={} warm_ns={} installed_ns={}\n", .{ builder.classes.count(), cache.count(), warm_ns, installed_ns });
+    // Every Stage-2 pool instance owns its mutable Stage-2 state (Stage2Job
+    // stage/enqueue write per-job state into the INTER CommitPlan, the
+    // composition Plan, the PcsJob and the global plans).
+    var framing_exclusive = true;
+    var framing_pool_sizes: std.ArrayListUnmanaged(usize) = .empty;
+    for (builder.classes.values()) |cl| {
+        const pool = factory.classes.get(NCB.Class.framingKey(cl.key)) orelse return error.ParityFramingPoolMissing;
+        const insts = pool.instances.items;
+        try framing_pool_sizes.append(a, insts.len);
+        if (insts.len != framing_instances) framing_exclusive = false;
+        for (insts, 0..) |x, i| for (insts[i + 1 ..]) |y| {
+            if (x.pcs == y.pcs or x.inter == y.inter or x.composition == y.composition or x.slots.ptr == y.slots.ptr) framing_exclusive = false;
+            for (x.slots, y.slots) |sx, sy| if (sx.global) |gx| if (gx.plan == sy.global.?.plan) {
+                framing_exclusive = false;
+            };
+        };
+    }
+    std.debug.print("GPU_M8_GN_SHAPE event=framing_pool instances={} exclusive={}\n", .{ framing_instances, framing_exclusive });
     // Per class, one CUDA-event-timed WarmJob (the region is already fresh:
     // the measurement is the root copy; a second, cold measurement on a
     // fresh persistent key is the full FIXED commit).
@@ -748,10 +771,13 @@ pub fn main() !void {
         .classes = classes.items,
         .negatives = negs.items,
         .negatives_all_fired = negatives_all,
+        .framing_instances = framing_instances,
+        .framing_pool_sizes = framing_pool_sizes.items,
+        .framing_instances_exclusive = framing_exclusive,
         .scope = "class fields compared by SHA-256 digest per field (NCB.Fingerprint); per-request fields (GKR prefix + publics, PCS section 15 + scope, patched parameter words) listed only. Times: host wall [M] (std.time.Timer), warm_gpu_ms CUDA events around the WarmJob enqueue [M].",
     }, .{ .whitespace = .indent_1 }, &text.writer);
     const report = try std.fs.path.join(a, &.{ out_dir, "class-build-parity.json" });
     try std.fs.cwd().writeFile(.{ .sub_path = report, .data = text.written() });
     std.debug.print("GPU_M8_GN_SHAPE done block={} stage1_all_equal={} full_all_equal={} negatives_all_fired={} report={s}\n", .{ block, all_stage1, all_full, negatives_all, report });
-    if ((run_legacy and !(all_stage1 and all_full)) or !negatives_all) std.process.exit(2);
+    if ((run_legacy and !(all_stage1 and all_full)) or !negatives_all or !framing_exclusive) std.process.exit(2);
 }
