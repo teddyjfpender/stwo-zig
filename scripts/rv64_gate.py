@@ -81,6 +81,32 @@ def extra_environment(items):
     return result
 
 
+JOBS_FLAGS = ('STWO_RV64_M8_JOBS', 'STWO_RV64_M8_NATIVE_JOBS', 'STWO_RV64_M8_OUTER_JOBS')
+
+
+def jobs_environment(runtime, extra_env):
+    """Job-path environment a runtime JSON ships (`jobs_env`: STWO_* key -> path
+    or value, `jobs_env_sha256`: key -> sha256 for every path entry).
+
+    Applied only when --env selects a job path (one of JOBS_FLAGS = 1), so the
+    default gate is unchanged; an explicit --env of the same key wins. Every
+    shipped library is pinned by SHA-256 like the runtime assets (gate-14
+    MissingM8OuterFsLibrary was a JOBS=1 gate without the outer-fs addon).
+    """
+    if not any(extra_env.get(flag) == '1' for flag in JOBS_FLAGS):
+        return {}
+    shipped = dict(runtime.get('jobs_env', {}))
+    pins = runtime.get('jobs_env_sha256', {})
+    for key, value in shipped.items():
+        if not key.startswith('STWO_'):
+            raise RuntimeError('runtime jobs_env key must be STWO_*: ' + key)
+        if key in pins and stack.sha(value) != pins[key]:
+            raise RuntimeError('pinned runtime changed: jobs_env ' + key)
+        if key.endswith('_LIBRARY') and key not in pins:
+            raise RuntimeError('runtime jobs_env library without sha256: ' + key)
+    return {k: v for k, v in shipped.items() if k not in extra_env}
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--stream', default='m7-integrate')
@@ -128,6 +154,9 @@ def main():
             if stack.sha(path) != runtime['asset_sha256'][name]:
                 raise RuntimeError('pinned runtime changed: ' + name)
         receipt['runtime'] = runtime
+        jobs_env = jobs_environment(runtime, extra_env)
+        receipt['jobs_env'] = jobs_env
+        extra_env = {**jobs_env, **extra_env}
         lock = ['flock', '-w', '7200', '/workspace/m3/locks/build.1.lock']
         run('build', lock + [sys.executable, 'scripts/rv64_m3_pod.py', 'build',
                             '--stream', args.stream, '--only', 'zig'])

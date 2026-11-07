@@ -39,6 +39,24 @@ class GateTests(unittest.TestCase):
         for bad in (['PATH=/tmp'], ['STWO_RV64_M8_JOBS'], ['stwo_x=1'], ['STWO_A=1', 'STWO_A=2'], ['STWO_A-B=1']):
             with self.assertRaises(ValueError): gate.extra_environment(bad)
 
+    def test_jobs_environment_only_on_job_paths_and_pinned(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lib = Path(tmp) / 'libjobs.so'
+            lib.write_bytes(b'addon')
+            runtime = {'jobs_env': {'STWO_RV64_M8_JOBS_LIBRARY': str(lib), 'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '1'},
+                       'jobs_env_sha256': {'STWO_RV64_M8_JOBS_LIBRARY': gate.stack.sha(lib)}}
+            self.assertEqual(gate.jobs_environment(runtime, {}), {})
+            self.assertEqual(gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '0'}), {})
+            self.assertEqual(gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '1'}), runtime['jobs_env'])
+            # An explicit --env wins over the shipped value.
+            got = gate.jobs_environment(runtime, {'STWO_RV64_M8_OUTER_JOBS': '1', 'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '2'})
+            self.assertEqual(got, {'STWO_RV64_M8_JOBS_LIBRARY': str(lib)})
+            self.assertEqual(gate.jobs_environment({}, {'STWO_RV64_M8_JOBS': '1'}), {})
+            lib.write_bytes(b'changed')
+            with self.assertRaises(RuntimeError): gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '1'})
+            unpinned = {'jobs_env': {'STWO_RV64_M8_JOBS_LIBRARY': str(lib)}}
+            with self.assertRaises(RuntimeError): gate.jobs_environment(unpinned, {'STWO_RV64_M8_JOBS': '1'})
+
     def test_corpus_cannot_pass_by_running_nothing_or_skipping(self):
         good = {'results': [{'id': name, 'passed': True} for name in gate.CASES]}
         gate.check_corpus(good)
