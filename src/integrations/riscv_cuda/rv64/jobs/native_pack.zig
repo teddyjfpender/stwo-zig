@@ -421,6 +421,23 @@ pub const Writer = struct {
         self.data_words += n;
         return out;
     }
+    /// As `reserve`, in whole units of `unit` words (records never split a
+    /// unit): at most `max_units` units, at least one.
+    pub fn reserveUnits(self: *Writer, buffer: u16, offset: usize, max_units: usize, unit: usize) ![]u32 {
+        if (self.buf.len == 0) try self.open();
+        if (self.at + record_header_words + unit > self.buf.len) {
+            try self.flush(0, false);
+            try self.open();
+            if (record_header_words + unit > self.buf.len - chunk_header_words) return error.GnPackRecordTooLarge;
+        }
+        const n = @min(max_units, (self.buf.len - self.at - record_header_words) / unit) * unit;
+        if (offset > std.math.maxInt(u32)) return error.GnPackOffsetTooLarge;
+        self.header(.data, n, buffer, @intCast(offset));
+        const out = self.buf[self.at..][0..n];
+        self.at += n;
+        self.data_words += n;
+        return out;
+    }
     pub fn launch(self: *Writer, comptime op: Op, job: op.Type(), main_column: u32, main_columns: u32) !void {
         const n = opWords(op);
         try self.room(2 + n);

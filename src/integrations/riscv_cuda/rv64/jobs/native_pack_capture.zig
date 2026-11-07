@@ -68,6 +68,12 @@ pub const Stats = struct {
     compact_ns: u64 = 0,
     /// Of pack_ns: ROM reconstruction (first request of a program only).
     rom_ns: u64 = 0,
+    /// Phases of pack_ns [M]: CPU (incl. compact + ROM), core roles, service
+    /// bridges + bulk/sponge, Zbb/LS-D64 + tables + end.
+    cpu_ns: u64 = 0,
+    core_ns: u64 = 0,
+    services_ns: u64 = 0,
+    ext_ns: u64 = 0,
 };
 
 /// The ROM key (= legacy immutable-ROM cache identity, cpu_projection.zig rom()).
@@ -200,6 +206,7 @@ pub fn pack(a: std.mem.Allocator, req: Stage.Request, roms: *P.Roms, out: G.Chun
     try w.launch(.cpu_witness, .{ .metadata = if (metadata_words != 0) P.ref(scratch, 0) else 0, .rom = P.ref(rom, 0), .main = P.column(cpu_column.?), .counts16 = P.ref(scratch, count_base), .counts8 = P.ref(scratch, c8_base), .rom_counts = P.ref(scratch, rom_base), .status = P.ref(scratch, status_base), .count = @intCast(src.public.steps), .log = src.log_size, .rom_log = program.log_size, .final_pc = @intCast(src.public.final_pc), .pair_counts = P.ref(scratch, pair_base) }, @intCast(cpu_column.?), @intCast(cpu_width));
     try w.status(P.ref(scratch, status_base));
 
+    stats.cpu_ns = timer.read();
     // ---- core ledgers (core_witness.zig BuildJob.run) ----
     const ledger = Ledger{ .id = try w.declare((Ledger{ .id = 0, .rom_count = rom_rows }).words(), .zero), .rom_count = rom_rows };
     try w.status(ledger.at(ledger.status()));
@@ -219,10 +226,12 @@ pub fn pack(a: std.mem.Allocator, req: Stage.Request, roms: *P.Roms, out: G.Chun
     if (jalr.log_size != g.jalr_log) return error.PreparedGeometryMismatch;
 
     // core_witness.zig Context.buildCore: the general LS events.
+    // Routed straight into the ring (no host Event arrays): same stable
+    // partition as memory_input.zig routedEvents.
     const events = req.advice.events[req.ordinal];
-    const general = try Memory.routedEvents(a, events, setup.bridges.ls_dword != null, false);
-    defer a.free(general);
-    if (general.len != statement.ls_count or events.len - general.len != req.request.ls_dword) return error.InvalidCombinedServiceCount;
+    const route = Route{ .events = events, .dword_enabled = setup.bridges.ls_dword != null };
+    const general_len = route.count(false);
+    if (general_len != statement.ls_count or events.len - general_len != req.request.ls_dword) return error.InvalidCombinedServiceCount;
 
     // DIV creates its two MUL support facts on device; only guest MUL facts upload.
     const raw_mul: usize = p.raw_counts.multiplication;
@@ -276,8 +285,8 @@ pub fn pack(a: std.mem.Allocator, req: Stage.Request, roms: *P.Roms, out: G.Chun
             .ls, .ls_tail => {
                 const start: usize = if (shape.role == .ls) 0 else ls_counts.head;
                 const count: usize = if (shape.role == .ls) ls_counts.head else ls_counts.tail;
-                if (start + count > general.len) return error.InvalidCombinedServiceCount;
-                try memory(&w, ledger, general[start..][0..count], shape.log, false, g.ls_fused_pairs, col, width);
+                if (start + count > general_len) return error.InvalidCombinedServiceCount;
+                try memoryRouted(&w, ledger, route, false, start, count, shape.log, false, g.ls_fused_pairs, col, width);
             },
             .initial, .terminal => {
                 const cells = if (shape.role == .initial) statement.initial else statement.terminal;
@@ -317,6 +326,7 @@ pub fn pack(a: std.mem.Allocator, req: Stage.Request, roms: *P.Roms, out: G.Chun
         }
     }
 
+    stats.core_ns = timer.read() - stats.cpu_ns;
     // ---- service bridges (bridge_witness.zig format) ----
     for (0..T.FAMILIES) |index| {
         const fam: T.Family = @enumFromInt(index);
@@ -371,6 +381,7 @@ pub fn pack(a: std.mem.Allocator, req: Stage.Request, roms: *P.Roms, out: G.Chun
     if (setup.bridges.bulk.any()) try bulk(a, &w, req, ledger);
     if (setup.bridges.sponge.any()) try sponge(a, &w, req, ledger);
 
+    stats.services_ns = timer.read() - stats.cpu_ns - stats.core_ns;
     // ---- local extensions (device_source.zig appendLocalExtensions) ----
     if (setup.bridges.zbb) |log| {
         var batch = try Inputs.Batch.zbb(a, p.zbb.facts, p.zbb.weights, log);
@@ -382,18 +393,17 @@ pub fn pack(a: std.mem.Allocator, req: Stage.Request, roms: *P.Roms, out: G.Chun
         if (mass >= @import("stwo_core").fields.m31.Modulus) return error.DeviceFamilyMultiplicityMassExceeded;
         try family(&w, ledger, &batch, @intCast(col), 32);
     } else if (p.zbb.facts.len != 0) return error.MissingZbbComponent;
-    const dword_events = try Memory.routedEvents(a, events, setup.bridges.ls_dword != null, true);
-    defer a.free(dword_events);
+    const dword_len = events.len - general_len;
     const counts = try T.dwordCounts(setup.bridges, req.request.ls_dword);
     var at: usize = 0;
     for (counts, 0..) |count, k| if (setup.bridges.dwordLog(k)) |log| {
-        if (at > dword_events.len or count > dword_events.len - at) return error.InvalidCombinedServiceCount;
+        if (at > dword_len or count > dword_len - at) return error.InvalidCombinedServiceCount;
         const col = setup.dwordOffset(k, 1);
         if (col + 39 > logs.len) return error.InvalidDeviceDwordWidth;
-        try memory(&w, ledger, dword_events[at..][0..count], log, true, g.ls_dword_fused_pairs, @intCast(col), 39);
+        try memoryRouted(&w, ledger, route, true, at, count, log, true, g.ls_dword_fused_pairs, @intCast(col), 39);
         at += count;
     };
-    if (at != dword_events.len) return error.InvalidCombinedServiceCount;
+    if (at != dword_len) return error.InvalidCombinedServiceCount;
 
     // ---- tables last (core_witness.zig Finish.run), then the end record ----
     for (tables.items, table_columns.items) |t, tc| try w.launch(.table, t, tc[0], tc[1]);
@@ -407,6 +417,7 @@ pub fn pack(a: std.mem.Allocator, req: Stage.Request, roms: *P.Roms, out: G.Chun
     stats.data_words = w.data_words;
     stats.arena_words = w.arena_words;
     stats.pack_ns = timer.read();
+    stats.ext_ns = stats.pack_ns - stats.cpu_ns - stats.core_ns - stats.services_ns;
     return stats;
 }
 
@@ -415,6 +426,52 @@ fn family(w: *P.Writer, ledger: Ledger, batch: *const Inputs.Batch, col: u32, wi
     const buf = try w.declare(words.len, .upload);
     try w.data(buf, 0, if (words.len == 0) &.{0} else words);
     try w.launch(.family, .{ .facts = if (batch.facts.len == 0) 0 else P.ref(buf, 0), .main = P.column(col), .range16 = ledger.at(Ledger.range16), .and_ = ledger.at(Ledger.and_), .shift = ledger.at(Ledger.shift), .status = ledger.at(ledger.status()), .count = @intCast(batch.facts.len), .log = batch.log, .kind = @intFromEnum(batch.kind) }, col, width);
+}
+
+const NativeEvent = Front.memory.load_store_v2.native.Event;
+const Route = struct {
+    events: []const NativeEvent,
+    dword_enabled: bool,
+    fn isDword(self: Route, e: NativeEvent) bool {
+        return self.dword_enabled and Front.memory.load_store_dword.source.admits(e);
+    }
+    fn count(self: Route, want_dword: bool) usize {
+        var n: usize = 0;
+        for (self.events) |e| n += @intFromBool(self.isDword(e) == want_dword);
+        return n;
+    }
+};
+/// memory_input.zig routedEvents + events encoding, written into ring
+/// slices: matched events [skip, skip + count) of the `want_dword` partition.
+fn memoryRouted(w: *P.Writer, ledger: Ledger, route: Route, want_dword: bool, skip: usize, count: usize, log: u32, dword: bool, fused_pairs: bool, col: u32, width: u32) !void {
+    if (width != (if (dword) @as(u32, 39) else 70)) return error.InvalidDeviceCoreWidth;
+    const ew = @sizeOf(Memory.Event) / 4;
+    const buf = try w.declare(count * ew, .upload);
+    if (count == 0) try w.data(buf, 0, &.{0}) else {
+        var seen: usize = 0;
+        var written: usize = 0;
+        var slice: []u32 = &.{};
+        var si: usize = 0;
+        for (route.events) |e| {
+            if (route.isDword(e) != want_dword) continue;
+            if (seen < skip) {
+                seen += 1;
+                continue;
+            }
+            if (written == count) break;
+            if (si == slice.len) {
+                slice = try w.reserveUnits(buf, written * ew, count - written, ew);
+                si = 0;
+            }
+            const spec = try Front.memory.load_store_v2.native.describe(e.opcode);
+            const v = Memory.Event{ .a = e.a, .immediate = e.immediate, .b = e.b, .c = e.c, .before_value = e.before.value, .before_epoch = e.before.epoch, .epoch = e.epoch, .before_tick = e.before.tick, .tick = e.tick, .rights = e.before.rights, .flag = @intCast(spec.flag) };
+            @memcpy(std.mem.sliceAsBytes(slice[si..][0..ew]), std.mem.asBytes(&v));
+            si += ew;
+            written += 1;
+        }
+        if (written != count or si != slice.len) return error.InvalidCombinedServiceCount;
+    }
+    try w.launch(.memory, .{ .events = if (count == 0) 0 else P.ref(buf, 0), .main = P.column(col), .range16 = ledger.at(Ledger.range16), .range8 = ledger.at(Ledger.range8), .pairs = ledger.at(Ledger.pairs), .selection = ledger.at(Ledger.selection), .status = ledger.at(ledger.status()), .count = @intCast(count), .log = log, .dword = @intFromBool(dword), .fused_pairs = @intFromBool(fused_pairs) }, col, width);
 }
 
 fn memory(w: *P.Writer, ledger: Ledger, events: []const Memory.Event, log: u32, dword: bool, fused_pairs: bool, col: u32, width: u32) !void {

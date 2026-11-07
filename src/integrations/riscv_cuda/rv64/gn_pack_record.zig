@@ -25,6 +25,9 @@ pub const chunk_words: usize = 1 << 20; // 4 MiB, the driver ring buffer size
 
 var mutex: std.Thread.Mutex = .{};
 var roms_state: ?P.Roms = null;
+/// Reused chunk buffers (pre-faulted, like the pinned ring): pack timings
+/// then exclude first-touch page faults after the first segment.
+var pool: std.ArrayListUnmanaged([]u32) = .empty;
 
 pub fn directory() ?[]const u8 {
     return std.posix.getenv("STWO_RV64_M8_GN_PACK_RECORD");
@@ -38,7 +41,7 @@ const Mem = struct {
     fn buffer(raw: *anyopaque) anyerror![]u32 {
         const self: *Mem = @ptrCast(@alignCast(raw));
         if (self.current != null) return error.GnPackRecordBufferTwice;
-        self.current = try self.a.alloc(u32, chunk_words);
+        self.current = pool.pop() orelse try std.heap.page_allocator.alloc(u32, chunk_words);
         return self.current.?;
     }
     fn emit(raw: *anyopaque, words: usize, rows: u32, last: bool) anyerror!void {
@@ -51,9 +54,9 @@ const Mem = struct {
         return .{ .ctx = self, .buffer = buffer, .emit = emit };
     }
     fn deinit(self: *Mem) void {
-        for (self.chunks.items) |c| self.a.free(c.words);
+        for (self.chunks.items) |c| pool.append(std.heap.page_allocator, c.words) catch std.heap.page_allocator.free(c.words);
         self.chunks.deinit(self.a);
-        if (self.current) |b| self.a.free(b);
+        if (self.current) |b| pool.append(std.heap.page_allocator, b) catch std.heap.page_allocator.free(b);
     }
 };
 
@@ -124,7 +127,7 @@ fn beginIn(a: std.mem.Allocator, path: []const u8, req: PC.Stage.Request) !?*Rec
         try rf.writeAll(std.mem.sliceAsBytes(&key));
         try rf.writeAll(std.mem.sliceAsBytes(words));
     }
-    std.debug.print("GN_PACK_RECORD ordinal={} chunks={} chunk_bytes={} data_bytes={} launches={} buffers={} arena_bytes={} cpu_records={} pack_ns={} compact_ns={} rom_ns={} columns={}\n", .{ req.ordinal, stats.chunks, stats.chunk_words * 4, stats.data_words * 4, stats.launches, stats.buffers, stats.arena_words * 4, stats.cpu_records, stats.pack_ns, stats.compact_ns, stats.rom_ns, logs.len });
+    std.debug.print("GN_PACK_RECORD ordinal={} chunks={} chunk_bytes={} data_bytes={} launches={} buffers={} arena_bytes={} cpu_records={} pack_ns={} compact_ns={} rom_ns={} cpu_ns={} core_ns={} services_ns={} ext_ns={} columns={}\n", .{ req.ordinal, stats.chunks, stats.chunk_words * 4, stats.data_words * 4, stats.launches, stats.buffers, stats.arena_words * 4, stats.cpu_records, stats.pack_ns, stats.compact_ns, stats.rom_ns, stats.cpu_ns, stats.core_ns, stats.services_ns, stats.ext_ns, logs.len });
     const r = try a.create(Recording);
     r.* = .{ .a = a, .dir = dir, .ordinal = req.ordinal, .logs = logs };
     return r;
