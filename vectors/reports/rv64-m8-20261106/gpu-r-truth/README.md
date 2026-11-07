@@ -37,6 +37,9 @@ The legacy truth composition lease is 14.75 GB outside the job windows [M]; here
 arena (22 GiB arena; peak 23.03 GB = 5.76e9 words incl. staged). Declared stage-2 footprints undershoot measured
 peaks by up to 48% (keccak log13/14); the factory budgets 3/2 x declared until a measured peak is registered.
 
+- [M] `rv64_gate.sh --stream m8-gpu-r-truth` default: **PASS** at df6086a6b (26235156 32/32 byte-identical x2, fresh CPU
+  receivers accepted, negative corpus) — `runs/m8-gpu-r-truth/gate-1`.
+
 ## Remaining host work (per request)
 - finish assembly 0.63-0.72 s [M] (moves to the shared device encoder + device OODS check);
 - stage-2 host enqueue 0.44-0.54 s [M] (launch-bound: composition roles + PCS; whole-job graph capture);
