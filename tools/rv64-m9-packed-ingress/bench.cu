@@ -138,6 +138,31 @@ int main(int argc, char **argv) {
     failures += !(st == 0 && bad == 0);
     release(d);
   }
+  // Multi-device (M9_BENCH_MULTI=1): one process decoding on every GPU, as a
+  // 2-GPU service does. Catches per-device launch state (the >48 KiB dynamic
+  // shared-memory opt-in of scan_pass is a per-device attribute).
+  int n_dev = 0;
+  CK(cudaGetDeviceCount(&n_dev));
+  if (getenv("M9_BENCH_MULTI") && n_dev > 1) {
+    for (int dev = 1; dev < n_dev; ++dev) {
+      CK(cudaSetDevice(dev));
+      cudaStream_t s2; CK(cudaStreamCreate(&s2));
+      Device d = stage(vals, all, 0);
+      CK(cudaMemsetAsync(d.status, 0, 4, s2));
+      const int rc = stwo_rv64_m9_class_unpack_passes(s2, d.djobs, uint32_t(d.jobs.size()), d.total_blocks, d.status, 3);
+      uint32_t st = 0;
+      CK(cudaMemcpyAsync(&st, d.status, 4, cudaMemcpyDeviceToHost, s2));
+      CK(cudaStreamSynchronize(s2));
+      const uint64_t bad = rc ? 0 : compare(d, vals, all);
+      const bool ok = rc == 0 && st == 0 && bad == 0;
+      printf("M9_BENCH multi_device dev=%d launch_rc=%d status=%u mismatched_words=%llu %s\n", dev, rc, st, (unsigned long long)bad, ok ? "PASS" : "FAIL");
+      failures += !ok;
+      (void)cudaGetLastError();
+      release(d);
+      CK(cudaStreamDestroy(s2));
+    }
+    CK(cudaSetDevice(0));
+  }
   // Throughput: whole batch (one node), then FIXED-only and tasks-only.
   struct Section { const char *name; std::vector<size_t> *pick; } sections[] = {{"batch", &all}, {"fixed", &fixed}, {"tasks", &tasks}};
   cudaEvent_t e0, e1;
@@ -211,17 +236,23 @@ int main(int argc, char **argv) {
     release(d);
   }
   // Negative tests on the first multi-block LZ4 value: each corruption must be
-  // refused by status or (for payload bit flips the LZ4 grammar accepts)
-  // surface as a mismatch; never an out-of-bounds access (run under
-  // compute-sanitizer for the latter).
+  // refused by STATUS (production has no expected words to compare against);
+  // never an out-of-bounds access (run under compute-sanitizer for the latter).
   for (size_t i : all) {
     Value v = vals[i];
     size_t lz = SIZE_MAX;
     for (size_t b = 1; b < v.blocks.size(); ++b) if (!v.blocks[b].raw && v.blocks[b].bytes > 8) { lz = b; break; }
     if (lz == SIZE_MAX) continue;
-    struct Case { const char *name; int kind; } cases[] = {{"chain", 0}, {"offset_zero", 1}, {"truncate", 2}, {"flip", 3}, {"shape", 4}};
+    // kind 5/6 corrupt the job TABLE, not the payload: total_blocks one short
+    // (last block never launched) and a first_block prefix that undercounts
+    // job 0 by one (its last block is never decoded). Both used to pass with
+    // status 0 and stale words, which only this bench's compare could see.
+    // Every case except `flip` must be refused by STATUS; a grammar-valid flip
+    // is undetectable by design (no checksum, same as the host unpack).
+    struct Case { const char *name; int kind; } cases[] = {{"chain", 0}, {"offset_zero", 1}, {"truncate", 2}, {"flip", 3}, {"shape", 4}, {"total_short", 5}, {"prefix_short", 6}};
     for (auto &c : cases) {
       std::vector<Value> m{v};
+      if (c.kind == 6) m.push_back(v);
       Value &x = m[0];
       if (c.kind == 0) x.blocks[lz].offset += 1;
       if (c.kind == 1) {  // first sequence's match offset -> 0 (token + literals known)
@@ -235,12 +266,20 @@ int main(int argc, char **argv) {
       if (c.kind == 3) x.data[x.blocks[lz].offset + x.blocks[lz].bytes / 2] ^= 0x40;
       if (c.kind == 4) x.channels = 3;
       std::vector<size_t> one{0};
+      if (c.kind == 6) one.push_back(1);
       Device d = stage(m, one, 0);
+      CK(cudaMemset(d.output, 0xa5, d.out_words * 4));
+      if (c.kind == 5) d.total_blocks -= 1;
+      if (c.kind == 6) {
+        d.jobs[1].first_block -= 1;
+        d.total_blocks -= 1;
+        CK(cudaMemcpy(d.djobs, d.jobs.data(), d.jobs.size() * sizeof(StwoRv64M9PackedJob), cudaMemcpyHostToDevice));
+      }
       const uint32_t st = run(d, s);
-      const uint64_t bad = st ? 0 : compare(d, m, one);
-      const bool refused = st != 0 || bad != 0;
-      printf("M9_BENCH negative case=%s status=%u mismatched_words=%llu %s\n", c.name, st, (unsigned long long)bad, refused ? "REFUSED" : "ACCEPTED-FAIL");
-      failures += !refused;
+      const uint64_t bad = compare(d, m, one);
+      const char *verdict = st != 0 ? "REFUSED" : (c.kind == 3 ? (bad ? "UNDETECTED-BY-STATUS(expected:no-checksum)" : "FLIP-BENIGN") : "ACCEPTED-FAIL");
+      printf("M9_BENCH negative case=%s status=%u mismatched_words=%llu %s\n", c.name, st, (unsigned long long)bad, verdict);
+      failures += st == 0 && c.kind != 3;
       release(d);
     }
     break;

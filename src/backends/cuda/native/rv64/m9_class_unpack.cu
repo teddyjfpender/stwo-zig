@@ -141,8 +141,26 @@ __device__ uint32_t lz4_warp(const uint8_t *__restrict__ ip, const uint8_t *iend
   }
 }
 
+// Job-table coverage (warp 0 of CTA 0). Per-block checks catch a block that
+// maps past its job's end, but not one that is never launched: a first_block
+// prefix that undercounts job j (its tail blocks are then attributed to job
+// j+1) or a total_blocks below the sum. Those would leave stale output words
+// with status 0, so the table itself must be the exact exclusive prefix.
+__device__ void check_table(const StwoRv64M9PackedJob *jobs, uint32_t n_jobs, uint32_t total_blocks, uint32_t *status) {
+  const uint32_t lane = threadIdx.x & 31;
+  bool bad = false;
+  for (uint32_t j = lane; j < n_jobs; j += 32) {
+    const uint64_t nb = (jobs[j].words + kBlockWords - 1) / kBlockWords;
+    const uint64_t expect = j == 0 ? 0 : uint64_t(jobs[j - 1].first_block) + (jobs[j - 1].words + kBlockWords - 1) / kBlockWords;
+    bad |= nb == 0 || jobs[j].first_block != expect;
+    if (j + 1 == n_jobs) bad |= uint64_t(jobs[j].first_block) + nb != total_blocks;
+  }
+  if (__any_sync(0xffffffffu, bad) && lane == 0) atomicOr(status, STWO_RV64_M9_UNPACK_SHAPE);
+}
+
 __global__ void __launch_bounds__(kLz4Warps * 32)
 lz4_pass(const StwoRv64M9PackedJob *jobs, uint32_t n_jobs, uint32_t total_blocks, uint32_t *status) {
+  if (blockIdx.x == 0 && threadIdx.x < 32) check_table(jobs, n_jobs, total_blocks, status);
   const uint32_t gblock = blockIdx.x * kLz4Warps + threadIdx.x / 32;
   if (gblock >= total_blocks) return;
   const uint32_t lane = threadIdx.x & 31;
@@ -273,11 +291,12 @@ extern "C" int stwo_rv64_m9_class_unpack_passes(void *stream, const StwoRv64M9Pa
                                                 uint32_t total_blocks, uint32_t *status, uint32_t passes) {
   using namespace stwo::cuda::rv64::m9;
   if (!jobs || !status || !n_jobs || !total_blocks || !passes || passes > 3) return int(cudaErrorInvalidValue);
-  static bool configured = false;  // per-process attribute; idempotent
-  if (!configured) {
+  // The opt-in is per device (a process-wide "configured" flag left the second
+  // GPU at the 48 KiB default, so scan_pass failed to launch there) and is
+  // cheap and idempotent: set it on every launch, as transform/wide_tile.cuh.
+  if (passes & 2) {
     const cudaError_t e = cudaFuncSetAttribute(scan_pass, cudaFuncAttributeMaxDynamicSharedMemorySize, int(kScanSmemBytes));
     if (e != cudaSuccess) return int(e);
-    configured = true;
   }
   const cudaStream_t s = static_cast<cudaStream_t>(stream);
   if (passes & 1) lz4_pass<<<(total_blocks + kLz4Warps - 1) / kLz4Warps, kLz4Warps * 32, 0, s>>>(jobs, n_jobs, total_blocks, status);

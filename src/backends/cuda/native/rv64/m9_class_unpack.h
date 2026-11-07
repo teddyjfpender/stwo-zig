@@ -15,6 +15,14 @@
 // Producer cache only: no proof, wire or verifier depends on this encoding.
 // Malformed input sets a status bit and leaves that block's output undefined;
 // the caller must refuse the node (never prove from a nonzero status).
+// "Malformed" = LZ4 grammar / end-rule violations, payload-chain or shape
+// errors, and a job table that is not the exact block prefix (status 1). The
+// accept set equals LZ4_decompress_safe's (plus: offset 0 is refused). There
+// is NO integrity check: a corruption that stays grammar-valid (e.g. a flipped
+// literal byte) decodes to wrong words with status 0, exactly as the host
+// cache_pack unpack would. Integrity is the class store's job (the task tape
+// re-derives schedule_identity on load); a wrong word can only make the
+// node's proof fail to verify, never verify a false statement.
 #define STWO_RV64_M9_BLOCK_WORDS 16384u
 struct StwoRv64M9PackedBlock {
   uint64_t offset;  // byte offset of the payload inside the job's data
