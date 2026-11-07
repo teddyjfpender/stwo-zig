@@ -94,3 +94,6 @@ Driver b11 (ad0eba90f), addon b6; cold + warm request per block (`job-<block>.tx
 3. `Recursion.device = .{ .seed = outer_seed_device.Symbols.load(&addon), .d2d = <base stwo_exec_context_memcpy_d2d_async>, .peer = ops.Peer.open(&addon) }`.
 4. Per request: the driver already calls `class_of` (plan) then `node(ctx, id, children, device)` (make); after publication `Recursion.end(request)`.
 5. Producers: om31 nodes write their PCS image tail themselves (`EncodedNode.image_tail`); native Stage 2 and TruthJob must write `[image][leaf statement tail][leaf outputs]` after their bytes (M8-INTERFACES "m8-gn-node").
+
+## Review (2026-11-07)
+See `review/README.md`. It fixes a NodeJob use-after-free across pipelined requests and adds warm-time kernel-bound checks on seed programs. It also re-runs the default gate, the production node job (both blocks), check mode and the negative arm on the 25d0e62f base: all byte-identical to frozen D2 [M].
