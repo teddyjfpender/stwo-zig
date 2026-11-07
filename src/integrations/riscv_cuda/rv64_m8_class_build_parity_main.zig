@@ -677,6 +677,44 @@ pub fn main() !void {
         const k_any = nf.vtable.class_of(nf.ctx, 0, rows[0]);
         try negs.append(a, .{ .name = "class_of_rows_only_two_equal_blocks", .expected = "ok", .got = if (k_any) |_| "ok" else |err| @errorName(err), .fired = if (k_any) |k| std.mem.eql(u8, &k, &rec.keys[0]) else |_| false });
     }
+    // ---- 6. a genuinely new block after install: the class-miss path ----
+    const MissRow = struct { block: u64, segments: usize, new_classes: u32, wall_ns: u64, capture_ns: u64, classes_ns: u64, register_and_warm_ns: u64, resolved: bool, registry_has_all: bool, cache_has_all: bool };
+    var miss_row: ?MissRow = null;
+    if (env("STWO_RV64_M8_GN_SHAPE_MISS_REQUEST")) |miss_request| {
+        const miss_block = std.fmt.parseUnsigned(u64, env("STWO_RV64_M8_GN_SHAPE_MISS_BLOCK") orelse "0", 10) catch return error.InvalidParityEnvironment;
+        builder.miss_cache = &cache;
+        builder.miss_devices = 1;
+        const warm2 = try Warm.init(a, miss_request, manifest.resources);
+        defer warm2.deinit();
+        var mt = try std.time.Timer.start();
+        const before = builder.classes.count();
+        const mrows = try nf.vtable.shape.?(nf.ctx, a, .{ .block = miss_block, .capture = warm2.end() });
+        defer a.free(mrows);
+        const wall = mt.read();
+        const mrec = builder.blocks.items[builder.blocks.items.len - 1];
+        var resolved = true;
+        var reg_all = true;
+        var cache_all = true;
+        for (mrec.keys, mrows, 0..) |k, r, i| {
+            const kk = nf.vtable.class_of_block.?(nf.ctx, miss_block, @intCast(i), r) catch {
+                resolved = false;
+                continue;
+            };
+            resolved = resolved and std.mem.eql(u8, &kk, &k);
+            _ = registry.class(k) catch {
+                reg_all = false;
+            };
+            _ = cache.get(k) catch {
+                cache_all = false;
+            };
+            _ = cache.get(NCB.Class.framingKey(k)) catch {
+                cache_all = false;
+            };
+        }
+        miss_row = .{ .block = miss_block, .segments = mrows.len, .new_classes = @intCast(builder.classes.count() - before), .wall_ns = wall, .capture_ns = warm2.capture_ns, .classes_ns = mrec.classes_ns, .register_and_warm_ns = mrec.register_ns, .resolved = resolved, .registry_has_all = reg_all, .cache_has_all = cache_all };
+        std.debug.print("GPU_M8_GN_SHAPE event=miss_new_block block={} segments={} new_classes={} wall_ns={} register_and_warm_ns={} resolved={} registry_has_all={} cache_has_all={} misses={}\n", .{ miss_block, mrows.len, miss_row.?.new_classes, wall, mrec.register_ns, resolved, reg_all, cache_all, builder.misses });
+        try negs.append(a, .{ .name = "class_miss_new_block_warmed_on_device", .expected = "ok", .got = if (resolved and reg_all and cache_all and mrec.miss) "ok" else "incomplete", .fired = resolved and reg_all and cache_all and mrec.miss and miss_row.?.new_classes != 0 });
+    }
     var negatives_all = true;
     for (negs.items) |n| negatives_all = negatives_all and n.fired;
 
@@ -702,6 +740,7 @@ pub fn main() !void {
         .install_warm_ns = warm_ns,
         .install_installed_ns = installed_ns,
         .miss_block_wall_ns = miss_wall_ns,
+        .miss_new_block = miss_row,
         .segments = segs.items,
         .unique_classes = builder.classes.count(),
         .stage1_all_equal = all_stage1,

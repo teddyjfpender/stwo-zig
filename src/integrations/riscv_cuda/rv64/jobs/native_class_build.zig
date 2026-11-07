@@ -33,9 +33,11 @@
 //!
 //! Class miss on a new block: `Builder.shape` builds and registers the
 //! block's classes from its capture while the registry is open (install);
-//! after the registry sealed, `Builder.missBlock` builds the class on the
-//! miss path and records it (`misses`), never failing closed for a new block
-//! (the device warm of a missed class is the factory's next `installed`).
+//! after the registry sealed, `Builder.missBlock` (or `shape`) builds the
+//! block's classes on the miss path, reopens the registry + class cache,
+//! warms the new classes on host and device (WarmJob per class and GPU) and
+//! reseals, receipted (`misses`, `missed_classes`, BlockRecord) - a new
+//! block never fails closed for lack of a warmed class.
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
@@ -1147,6 +1149,10 @@ pub const BlockRecord = struct {
     classes_ns: u64 = 0,
     threads: u32 = 1,
     miss: bool,
+    /// Classes first seen in this block, and the wall of registering them
+    /// (on the miss path incl. their host + device warm) [M].
+    new_classes: u32 = 0,
+    register_ns: u64 = 0,
 };
 
 /// The native factory's install-time class builder. Owns every class it
@@ -1168,6 +1174,13 @@ pub const Builder = struct {
     extra: std.ArrayListUnmanaged(*S2.ClassFraming) = .empty,
     blocks: std.ArrayListUnmanaged(BlockRecord) = .empty,
     misses: u64 = 0,
+    missed_classes: u64 = 0,
+    /// Miss path after install: the service's class cache (reopened to warm
+    /// a new block's classes) and the GPUs to warm them on (0 = the
+    /// registry's warmed devices). Null: a miss with new classes fails
+    /// closed with GnShapeMissWarmNotBound (the build is still receipted).
+    miss_cache: ?*G.ClassCache = null,
+    miss_devices: u32 = 0,
 
     pub fn deinit(self: *Builder) void {
         for (self.blocks.items) |b| {
@@ -1198,7 +1211,8 @@ pub const Builder = struct {
     /// NativeFactory.shape: build (or reuse) every segment class of the
     /// block from its warm capture, register them, return the segment rows.
     pub fn shape(self: *Builder, a: std.mem.Allocator, wb: G.WarmBlock) ![]u64 {
-        const rec = try self.buildBlock(wb, false);
+        // After install (registry sealed) a new block is a class miss.
+        const rec = try self.buildBlock(wb, if (self.registry) |r| r.sealed else false);
         return a.dupe(u64, rec.rows);
     }
 
@@ -1257,6 +1271,8 @@ pub const Builder = struct {
         const classes_ns = timer.read() - inventory_ns;
         errdefer for (slots) |sl| if (sl.cl) |c| c.deinit();
         for (slots) |sl| if (sl.err) |err| return err;
+        var fresh: std.ArrayListUnmanaged(*Class) = .empty;
+        defer fresh.deinit(self.a);
         for (0..n) |i| {
             const cl = slots[i].cl.?;
             slots[i].cl = null;
@@ -1273,22 +1289,63 @@ pub const Builder = struct {
             }
             try self.classes.put(self.a, cl.key, cl);
             owned = false;
-            try self.registerClass(cl, miss);
+            try fresh.append(self.a, cl);
         }
-        const rec = BlockRecord{ .block = wb.block, .keys = keys, .rows = rows, .build_ns = timer.read(), .inventory_ns = inventory_ns, .classes_ns = classes_ns, .threads = @intCast(threads), .miss = miss };
+        var warm_ns: u64 = 0;
+        if (fresh.items.len != 0) {
+            var wt = try std.time.Timer.start();
+            try self.registerFresh(fresh.items);
+            warm_ns = wt.read();
+        }
+        const rec = BlockRecord{ .block = wb.block, .keys = keys, .rows = rows, .build_ns = timer.read(), .inventory_ns = inventory_ns, .classes_ns = classes_ns, .threads = @intCast(threads), .miss = miss, .new_classes = @intCast(fresh.items.len), .register_ns = warm_ns };
         self.mutex.lock();
         defer self.mutex.unlock();
         try self.blocks.append(self.a, rec);
-        if (miss) self.misses += 1;
+        if (miss) {
+            self.misses += 1;
+            self.missed_classes += fresh.items.len;
+        }
         return rec;
     }
 
-    fn registerClass(self: *Builder, cl: *Class, miss: bool) !void {
+    /// Register classes first seen in this block. At install (registry
+    /// open) that is all; after the registry sealed (a class miss on a new
+    /// block) the classes are also warmed on the miss path: registry and
+    /// class cache reopened, Stage-1 warm (host plans + entries), Stage-2
+    /// cache insert, one WarmJob per (class, GPU) (device FIXED commit +
+    /// root check; already-warm classes only copy their root), resealed.
+    fn registerFresh(self: *Builder, fresh: []const *Class) !void {
+        const r = self.registry orelse {
+            for (fresh) |cl| try self.registerClass(cl);
+            return;
+        };
+        if (!r.sealed) {
+            for (fresh) |cl| try self.registerClass(cl);
+            return;
+        }
+        const cache = self.miss_cache orelse return error.GnShapeMissWarmNotBound;
+        const devices: u32 = if (self.miss_devices != 0) self.miss_devices else r.warmed_devices;
+        if (devices == 0 or r.workers.len < devices) return error.GnShapeMissWarmNotBound;
+        {
+            r.mutex.lock();
+            defer r.mutex.unlock();
+            r.sealed = false;
+        }
+        defer r.seal();
+        cache.reopen();
+        defer cache.seal();
+        for (fresh) |cl| try self.registerClass(cl);
+        try r.warm(cache, devices);
+        if (self.factory) |f| try f.warm(cache);
+        try r.warmDevices(r.workers[0..devices]);
+    }
+
+    fn registerClass(self: *Builder, cl: *Class) !void {
         if (self.registry) |r| {
             // Registry.by_rows is keyed by rows only: classes are resolved
             // through `classOf` (block, segment) here, so the registry gets
             // a per-class token instead of the (ambiguous) row count.
-            r.register(cl.spec(), rowsToken(cl.key)) catch |err| if (!(miss and err == error.GpuNativeClassBuildOnRequestPath)) return err;
+            try r.register(cl.spec(), rowsToken(cl.key));
         }
         if (self.factory) |f| {
             try f.register(&cl.framing.?);
