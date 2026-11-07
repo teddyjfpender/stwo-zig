@@ -60,6 +60,11 @@ pub const contract_version: u32 = 2;
 //   truth_root; Exchange.truths/capacity_truths + truthRoot slot (after the
 //   seal; 0 truths = the version-2 layout word for word); the seal slot's
 //   digest convention (seal_digest_words); RecursionFactory.truth_stage2.
+// gn-s2 addition (M8-INTERFACES "m8-gn-s2", defaulted): Exchange.receipts +
+//   receipt(segment) slot (each segment's local-GKR receipt digest, 8 words +
+//   flag, appended after the truth roots; receipts=false = the previous layout
+//   word for word). The flat (v1-flat, the D2 profile) manifest digest frames
+//   it per CPU entry; Stage 1 publishes it, the device seal reads it.
 pub const slab_magic: u32 = 0x4e475652; // "RVGN" little-endian
 
 // ---------------------------------------------------------------------------
@@ -401,6 +406,9 @@ pub const Exchange = struct {
     /// without truths are unchanged.
     truths: u32 = 0,
     capacity_truths: u32 = 0,
+    /// Per-segment local-GKR receipt digest slots (gn-s2): 8 words + flag per
+    /// segment, after the truth roots. false: no slot, layout unchanged.
+    receipts: bool = false,
 
     fn capS(self: Exchange) usize {
         return if (self.capacity_segments == 0) self.segments else self.capacity_segments;
@@ -429,11 +437,14 @@ pub const Exchange = struct {
     }
     /// Flag words reserved at install (slot events are indexed by flag).
     pub fn flagCapacity(self: Exchange) usize {
-        return 1 + @as(usize, self.devices) + 2 * self.capS() + self.capT();
+        return 1 + @as(usize, self.devices) + 2 * self.capS() + self.capT() + self.capR();
     }
     /// This request's flags: the contiguous prefix [flagOffset, +flagWords).
     pub fn flagWords(self: Exchange) usize {
-        return 1 + self.partials() + 2 * @as(usize, self.segments) + self.truths;
+        return 1 + self.partials() + 2 * @as(usize, self.segments) + self.truths + (if (self.receipts) @as(usize, self.segments) else 0);
+    }
+    fn capR(self: Exchange) usize {
+        return if (self.receipts) self.capS() else 0;
     }
     pub const flag_offset: usize = 0;
     pub fn rootWords(self: Exchange) usize {
@@ -456,7 +467,7 @@ pub const Exchange = struct {
         return self.capT() * 8;
     }
     pub fn words(self: Exchange) usize {
-        return std.mem.alignForward(usize, self.flagCapacity(), 8) + self.rootWords() + self.claimWords() + self.partialWords() + seal_words + self.capT() * 8;
+        return std.mem.alignForward(usize, self.flagCapacity(), 8) + self.rootWords() + self.claimWords() + self.partialWords() + seal_words + self.capT() * 8 + self.capR() * 8;
     }
     fn dataBase(self: Exchange) usize {
         return std.mem.alignForward(usize, self.flagCapacity(), 8);
@@ -485,6 +496,11 @@ pub const Exchange = struct {
     pub fn truthRoot(self: Exchange, t: u32) !Slot {
         if (t >= self.truths) return error.GpuNativeExchangeSlot;
         return .{ .offset = self.seal().offset + seal_words + @as(usize, t) * 8, .words = 8, .flag = 1 + self.partials() + 2 * @as(usize, self.segments) + t };
+    }
+    /// Segment `segment`'s local-GKR receipt digest (receipts only).
+    pub fn receipt(self: Exchange, segment: u32) !Slot {
+        if (!self.receipts or segment >= self.segments) return error.GpuNativeExchangeSlot;
+        return .{ .offset = self.seal().offset + seal_words + self.capT() * 8 + @as(usize, segment) * 8, .words = 8, .flag = 1 + self.partials() + 2 * @as(usize, self.segments) + self.truths + segment };
     }
 };
 
