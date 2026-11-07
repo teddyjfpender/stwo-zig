@@ -53,3 +53,11 @@ Every node of both recorded blocks, children from their recorded regions; compar
 | `OuterNodeJob.finish`: outer section decode (status latches, claims) + a 1.5 MB copy of the PCS image (`defer_decode`) | `jobs/outer_job.zig` | small; publish-only path should skip both (the device words carry the verdicts) |
 | Class products need one warm legacy request (`NodeClasses` harvest under GN_NODE=check) + authority registration by the binder | gn-bind / driver install | API in place (`NodeClasses.get`, `Entry.programFor`, `Recursion.register(.node)`) |
 | Children found by MAIN-root search in the host seeds (check mode only) | `GnCheck` | production gets children from the driver DAG (`RecursionFactory.node(children)`) |
+
+## Binding (for gn-bind / the driver)
+
+1. Install: one warm request proved through the hybrid recursion with `STWO_RV64_M8_OUTER_JOBS=1 STWO_RV64_M8_OUTER_DEVICE_CHECKS=1 STWO_RV64_M8_GN_NODE=check` harvests one `outer_job_factory.NodeClasses.Entry` per node class (class Staged template, seed-program inputs, encoder descriptor, OODS program).
+2. For each entry: `entry.programFor(child_region_words)` with each child's request-slab region words (1 + the child class's encoded capacity; om31 children: `entry.max_encoded_bytes / 4 + 1` of the child entry), set `entry.graphs[d]` to device d's Prover graph cache, then `outer_device.Recursion.register(id, child_class_keys, key, .{ .plan, .node = &entry.node, .max_encoded_bytes = entry.max_encoded_bytes })`.
+3. `Recursion.device = .{ .seed = outer_seed_device.Symbols.load(&addon), .d2d = <base stwo_exec_context_memcpy_d2d_async>, .peer = ops.Peer.open(&addon) }`.
+4. Per request: the driver already calls `class_of` (plan) then `node(ctx, id, children, device)` (make); after publication `Recursion.end(request)`.
+5. Producers: om31 nodes write their PCS image tail themselves (`EncodedNode.image_tail`); native Stage 2 and TruthJob must write `[image][leaf statement tail][leaf outputs]` after their bytes (M8-INTERFACES "m8-gn-node").
