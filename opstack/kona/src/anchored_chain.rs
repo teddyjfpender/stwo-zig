@@ -1,12 +1,13 @@
 //! Hash-addressed headers and ordered tries rooted at a fixed trusted head.
 use crate::{execution::decode_exact, witness::Witness};
-use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
+use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 use alloy_consensus::Header;
 use alloy_eips::eip2718::Decodable2718;
 use alloy_primitives::B256;
 use kona_derive::{PipelineError, PipelineErrorKind};
 use kona_mpt::{OrderedListWalker, TrieNode, TrieProvider};
 use kona_protocol::BlockInfo;
+use spin::{Mutex, MutexGuard};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AnchorError {
@@ -26,6 +27,10 @@ pub enum AnchorError {
     SystemConfig(#[from] kona_protocol::OpBlockConversionError),
     #[error("rollup config differs from the pinned configuration")]
     RollupConfig,
+    #[error("Kona execution: {0}")]
+    Execution(alloc::string::String),
+    #[error("Kona output-root computation: {0}")]
+    OutputRootComputation(alloc::string::String),
 }
 
 impl From<AnchorError> for PipelineErrorKind {
@@ -36,7 +41,7 @@ impl From<AnchorError> for PipelineErrorKind {
 
 #[derive(Debug, Clone)]
 pub(crate) struct AnchoredChain<'a> {
-    witness: Witness<'a>,
+    witness: Arc<Mutex<Witness<'a>>>,
     oldest: BlockInfo,
     head_number: u64,
     headers: BTreeMap<u64, (B256, Header)>,
@@ -51,11 +56,19 @@ impl<'a> AnchoredChain<'a> {
         }
         let oldest = block_info(hash, &header);
         Ok(Self {
-            witness,
+            witness: Arc::new(Mutex::new(witness)),
             oldest,
             head_number: number,
             headers: BTreeMap::from([(number, (hash, header))]),
         })
+    }
+
+    pub(crate) fn head(&self) -> &(B256, Header) {
+        &self.headers[&self.head_number]
+    }
+
+    pub(crate) fn witness(&self) -> MutexGuard<'_, Witness<'a>> {
+        self.witness.lock()
     }
 
     pub(crate) fn ancestor(&mut self, number: u64) -> Result<&(B256, Header), AnchorError> {
@@ -64,7 +77,7 @@ impl<'a> AnchoredChain<'a> {
         }
         while self.oldest.number > number {
             let hash = self.oldest.parent_hash;
-            let header: Header = decode_exact(self.witness.get(hash)?)?;
+            let header: Header = decode_exact(self.witness.lock().get(hash)?)?;
             if header.number != self.oldest.number - 1 {
                 return Err(AnchorError::Ancestry);
             }
@@ -77,7 +90,7 @@ impl<'a> AnchoredChain<'a> {
     pub(crate) fn authenticated_header(&mut self, hash: B256) -> Result<Header, AnchorError> {
         // A hash-addressed preimage can be from a competing fork. Its height
         // is only a lookup hint until the anchored chain agrees with its hash.
-        let candidate: Header = decode_exact(self.witness.get(hash)?)?;
+        let candidate: Header = decode_exact(self.witness.lock().get(hash)?)?;
         let (canonical_hash, header) = self.ancestor(candidate.number)?;
         if *canonical_hash != hash {
             return Err(AnchorError::Ancestry);
@@ -116,6 +129,6 @@ impl TrieProvider for AnchoredChain<'_> {
     type Error = AnchorError;
 
     fn trie_node_by_hash(&self, hash: B256) -> Result<TrieNode, Self::Error> {
-        Ok(decode_exact(self.witness.get(hash)?)?)
+        Ok(decode_exact(self.witness.lock().get(hash)?)?)
     }
 }

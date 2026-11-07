@@ -32,7 +32,7 @@ pub struct Fixture {
     pub expected_block_hash: B256,
 }
 #[derive(Debug)]
-struct Provider<'w, 'a>(&'w Witness<'a>);
+pub(crate) struct Provider<'w, 'a>(pub(crate) &'w Witness<'a>);
 pub(crate) fn decode_exact<T: Decodable>(bytes: &[u8]) -> Result<T, Error> {
     let mut remaining = bytes;
     let value = T::decode(&mut remaining).map_err(|_| Error::Rlp)?;

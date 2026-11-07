@@ -116,3 +116,18 @@ The integration test reconstructs the transaction trie for OP Mainnet block
 121057303 and checks the header, transaction root, L1 origin and gas limit
 against the pinned Kona replay corpus. The test checkpoint uses a synthetic
 withdrawal root to isolate safe-head authentication.
+
+The anchor test also uses Ethereum Mainnet headers 20,035,799 and 20,035,800
+from PublicNode. The earlier hash matches the origin in the OP block's L1-info
+deposit. The test recomputes both hashes from header RLP and opens the earlier
+header through the successor's parent link.
+
+`AnchoredL2::execute_prepared` consumes Kona's exact prepared attributes,
+checks their parent and next height, executes using the anchored parent state,
+and checks the OP V0 output root computed by Kona. The pipeline must supply the
+prepared attributes, and the transition relation must still bind the returned
+L1 origin to the public anchor and statement. The existing OP replay witnesses
+cover block execution but lack account-trie nodes needed to open
+`L2ToL1MessagePasser` for the output root. The block 121057303 probe reaches the
+missing node `55b88d8d3ce0ca3c4073bc95277af8960db21669a01ebe48ca3a1fc5615776b1`.
+Supply authenticated archive account proofs when collecting a transition fixture.

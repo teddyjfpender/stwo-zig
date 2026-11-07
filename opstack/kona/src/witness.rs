@@ -44,7 +44,7 @@ pub struct Stats {
     pub hashed_bytes: u64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Witness<'a> {
     metadata: &'a [u8],
     descriptors: &'a [u8],

@@ -1,12 +1,21 @@
 //! Safe L2 history from the previous OP output commitment.
-use crate::{anchored_chain::AnchoredChain, witness::Witness};
-use alloc::{boxed::Box, sync::Arc};
-use alloy_consensus::{BlockBody, Header};
+use crate::{
+    anchored_chain::{AnchoredChain, block_info},
+    execution::Provider,
+    witness::Witness,
+};
+use alloc::{boxed::Box, string::ToString, sync::Arc};
+use alloy_consensus::{BlockBody, Header, Sealed};
+use alloy_op_evm::{OpEvmFactory, OpTx, block::OpAlloyReceiptBuilder};
 use alloy_primitives::B256;
 use async_trait::async_trait;
 use kona_derive::L2ChainProvider;
+use kona_executor::StatelessL2Builder;
 use kona_genesis::{RollupConfig, SystemConfig};
-use kona_protocol::{BatchValidationProvider, L2BlockInfo, OutputRoot, to_system_config};
+use kona_mpt::NoopTrieHinter;
+use kona_protocol::{
+    BatchValidationProvider, L2BlockInfo, OpAttributesWithParent, OutputRoot, to_system_config,
+};
 use op_alloy_consensus::OpBlock;
 
 pub use crate::anchored_chain::AnchorError;
@@ -35,6 +44,55 @@ impl<'a> AnchoredL2<'a> {
             return Err(AnchorError::OutputRoot);
         }
         Ok(Self { chain, config })
+    }
+
+    /// Execute the exact attributes returned by the authenticated derivation pipeline.
+    /// The caller must obtain `prepared` from that pipeline, then bind the
+    /// resulting L1 origin to the public anchor and transition statement.
+    pub fn execute_prepared(
+        &self,
+        prepared: OpAttributesWithParent,
+        next_number: u64,
+        next_root: B256,
+    ) -> Result<L2BlockInfo, AnchorError> {
+        let (parent_hash, parent) = self.chain.head();
+        if prepared.parent.block_info != block_info(*parent_hash, parent)
+            || parent.number.checked_add(1) != Some(next_number)
+        {
+            return Err(AnchorError::Ancestry);
+        }
+        let attributes = prepared.take_inner();
+        let first_tx = attributes
+            .transactions
+            .as_ref()
+            .and_then(|txs| txs.first())
+            .cloned();
+        let witness = self.chain.witness();
+        let mut builder = StatelessL2Builder::new(
+            &self.config,
+            OpEvmFactory::<OpTx>::default(),
+            OpAlloyReceiptBuilder::default(),
+            Provider(&witness),
+            NoopTrieHinter,
+            Sealed::new_unchecked(parent.clone(), *parent_hash),
+        );
+        let outcome = builder
+            .build_block(attributes)
+            .map_err(|error| AnchorError::Execution(error.to_string()))?;
+        if outcome.header.number != next_number || outcome.header.parent_hash != *parent_hash {
+            return Err(AnchorError::Ancestry);
+        }
+        let output = builder
+            .compute_output_root()
+            .map_err(|error| AnchorError::OutputRootComputation(error.to_string()))?;
+        if output != next_root {
+            return Err(AnchorError::OutputRoot);
+        }
+        Ok(L2BlockInfo::from_header_and_first_tx(
+            &outcome.header,
+            first_tx.as_ref(),
+            &self.config.genesis,
+        )?)
     }
 
     fn block(&self, header: Header) -> Result<OpBlock, AnchorError> {

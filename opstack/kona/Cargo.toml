@@ -12,7 +12,7 @@ resolver = "2"
 [features]
 default = []
 host = ["dep:kona-registry"]
-derivation = ["dep:alloy-eips", "dep:async-trait", "dep:kona-derive", "dep:kona-protocol", "dep:op-alloy-consensus", "dep:thiserror"]
+derivation = ["dep:alloy-eips", "dep:async-trait", "dep:kona-derive", "dep:kona-protocol", "dep:op-alloy-consensus", "dep:thiserror", "dep:spin"]
 keccak-service = ["alloy-primitives/native-keccak"]
 secp-lean = ["k256/stwo-projective-word-service", "k256/stwo-vartime", "ecdsa/stwo-skip-redundant-recovery-verify"]
 sha-service = ["dep:sha2-rv64", "sha2-rv64/stwo-sha256-service"]

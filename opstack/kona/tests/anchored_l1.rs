@@ -212,6 +212,21 @@ fn opens_mainnet_safe_head_and_its_system_config_from_the_checkpoint() {
         AnchoredL2::new(witness(), header.number, checkpoint.hash(), config.clone()).unwrap();
     let info = ready(provider.l2_block_info_by_number(header.number)).unwrap();
     assert_eq!(info.hash(), hash);
+    let payload: stwo_kona_execution::execution::Fixture =
+        serde_json::from_str(include_str!("fixture.json")).unwrap();
+    let mut other_parent = info;
+    other_parent.block_info.hash = B256::ZERO;
+    let prepared = kona_protocol::OpAttributesWithParent::new(
+        payload.executing_payload,
+        other_parent,
+        None,
+        false,
+    );
+    assert!(matches!(
+        provider.execute_prepared(prepared, header.number + 1, B256::ZERO),
+        Err(AnchorError::Ancestry)
+    ));
+
     assert_eq!(
         info.l1_origin.hash,
         "0xc10a3bb5847ad354f9a70b56f253baaea1c3841647851c4c62e10b22fe4e8694"
@@ -230,5 +245,39 @@ fn opens_mainnet_safe_head_and_its_system_config_from_the_checkpoint() {
             .unwrap()
             .gas_limit,
         header.gas_limit
+    );
+}
+
+#[test]
+fn authenticates_the_mainnet_l1_origin_from_its_successor() {
+    // Canonical execution headers from Ethereum Mainnet JSON-RPC. The origin
+    // hash is also committed by the first deposit in the OP Mainnet fixture.
+    let headers: Vec<serde_json::Value> =
+        serde_json::from_str(include_str!("eth-mainnet-20035800-anchor.json")).unwrap();
+    let mut records = BTreeMap::new();
+    for header in &headers {
+        let hash: B256 = header["hash"].as_str().unwrap().parse().unwrap();
+        let rlp = alloy_primitives::hex::decode(header["rlp"].as_str().unwrap()).unwrap();
+        assert_eq!(keccak256(&rlp), hash);
+        records.insert(hash, rlp);
+    }
+    let input = encode(b"", &records.into_iter().collect::<Vec<_>>()).unwrap();
+    let anchor = headers[1]["hash"].as_str().unwrap().parse().unwrap();
+    let origin = headers[0]["hash"]
+        .as_str()
+        .unwrap()
+        .parse::<B256>()
+        .unwrap();
+    let witness = Witness::parse(&input, Validation::Lazy).unwrap();
+    let mut provider = AnchoredL1::new(witness, 20_035_800, anchor).unwrap();
+    assert_eq!(
+        ready(provider.block_info_by_number(20_035_799))
+            .unwrap()
+            .hash,
+        origin
+    );
+    assert_eq!(
+        ready(provider.header_by_hash(origin)).unwrap().number,
+        20_035_799
     );
 }
