@@ -241,7 +241,7 @@ pub const Prover = struct {
     /// GPU-native node job (outer_device.NodeJob over its NodeClasses
     /// template, children from a node-local stand-in of the request slab) and
     /// require its device-encoded bytes == the published host bytes.
-    fn gnJob(self: *Prover, a: std.mem.Allocator, input: Prestage.Input, class_key: [32]u8, g: *const GnCheck, wire: []const u8, image: []const u32) !void {
+    fn gnJob(self: *Prover, a: std.mem.Allocator, input: Prestage.Input, class_key: [32]u8, g: *const GnCheck, wire: []const u8, image: []const u32, handoff: ?Job.FixedHandoff) !void {
         const entry = NodeClasses.get(class_key) orelse return error.GnNodeClassNotHarvested;
         var timer = try std.time.Timer.start();
         // Children regions in the slab convention: image in the last words.
@@ -266,6 +266,10 @@ pub const Prover = struct {
         const dev = self.worker.device_ordinal;
         if (dev < entry.graphs.len and entry.graphs[dev] == null) entry.graphs[dev] = &self.graphs;
         var w = try GnJob.init(a, entry, g, region_words[0..nk], self.shared, image, dev);
+        // The FIXED coefficients the node just used (the lane's precommit
+        // handoff region): in the hybrid window a second class-persistent
+        // FIXED copy does not fit next to the legacy pipeline's live memory.
+        w.made.job.fixed_handoff = handoff;
         defer w.deinit(a);
         var done = Done{};
         try self.submitWait(w.job(), &done);
@@ -403,7 +407,7 @@ pub const Prover = struct {
                 std.debug.print("GN_NODE_CLASS ordinal={d} harvest_error={s}\n", .{ input.ordinal, @errorName(err) });
                 break :blk false;
             };
-            if (GnRecord.jobSelected()) try self.gnJob(a, input, staged.class_key, g, wire, image);
+            if (GnRecord.jobSelected()) try self.gnJob(a, input, staged.class_key, g, wire, image, job.fixed_handoff);
             if (report) |out| out.* = r;
         }
         if (record_image) |image| if (Recorder.dir() != null) Recorder.write(a, input, staged, &job, &produced, image) catch |err| {
