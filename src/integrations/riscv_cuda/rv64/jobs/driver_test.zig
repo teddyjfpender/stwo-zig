@@ -17,6 +17,7 @@ const F = @import("fake.zig");
 const R = @import("driver_request.zig");
 const D = @import("driver_dag.zig");
 const C = @import("../m8_capture_stream.zig");
+const S = @import("driver_serve.zig");
 
 const testing = std.testing;
 
@@ -32,6 +33,8 @@ const k_fold = key(4);
 const k_root = key(5);
 const encoded_bytes = 96;
 const stage_one_written = 300;
+/// Generations a test runs at most (fake per-request state slots).
+const gens = 64;
 const main_words = 256;
 
 fn noopDestroy(_: *anyopaque) void {}
@@ -82,14 +85,14 @@ const FakeJob = struct {
                 for (replica[claims.offset..][0..claims.words], 0..) |*x, i| x.* = @intCast(self.ordinal * 1000 + i);
                 try self.ctx.peer.publish(self.device, claims);
                 // The device's chi/LogUp partial, once per GPU per request.
-                if (!w.partial_done[self.device].swap(true, .acq_rel) and !(w.withhold_partial != null and w.withhold_partial.? == self.device)) {
+                if (!w.partial_done[self.ctx.generation % gens][self.device].swap(true, .acq_rel) and !(w.withhold_partial != null and w.withhold_partial.? == self.device)) {
                     const part = try ex.partial(self.device);
                     @memset(replica[part.offset..][0..8], 0x9a + self.device);
                     try self.ctx.peer.publish(self.device, part);
                 }
                 const id = G.ProofId{ .kind = .native_segment, .ordinal = self.ordinal };
                 for ([_]G.Check{ .witness_status, .binding_authority, .root_match }) |c| try self.verdict(id, c, G.Verdict.accepted);
-                _ = w.stage1_done.fetchAdd(1, .acq_rel);
+                _ = w.stage1_done[self.ctx.generation % gens].fetchAdd(1, .acq_rel);
             },
             .seal => {
                 w.seal_enqueued = true;
@@ -102,7 +105,7 @@ const FakeJob = struct {
                     const root = try ex.root(@intCast(s));
                     for (&acc, replica[root.offset..][0..8]) |*x, y| x.* ^= y;
                 }
-                if (w.stage1_done.load(.acquire) != ex.segments) return error.SealBeforeStage1;
+                if (w.stage1_done[self.ctx.generation % gens].load(.acquire) != ex.segments) return error.SealBeforeStage1;
                 // Two-stage truths: the seal frames every truth's MAIN root.
                 for (0..ex.truths) |t| {
                     const tr = try ex.truthRoot(@intCast(t));
@@ -225,8 +228,9 @@ fn findProof(ctx: *const G.RequestContext, id: G.ProofId) ?usize {
 
 const World = struct {
     a: std.mem.Allocator,
-    stage1_done: std.atomic.Value(u32) = .init(0),
-    partial_done: [2]std.atomic.Value(bool) = .{ .init(false), .init(false) },
+    /// Per request generation (two requests may be in flight).
+    stage1_done: [gens]std.atomic.Value(u32) = @splat(.init(0)),
+    partial_done: [gens][2]std.atomic.Value(bool) = @splat(.{ .init(false), .init(false) }),
     seal_ran: bool = false,
     finished: usize = 0,
     aborted: usize = 0,
@@ -261,8 +265,8 @@ const World = struct {
     truth1_done: std.atomic.Value(u32) = .init(0),
 
     fn reset(self: *World) void {
-        self.stage1_done.store(0, .release);
-        for (&self.partial_done) |*p| p.store(false, .release);
+        for (&self.stage1_done) |*x| x.store(0, .release);
+        for (&self.partial_done) |*g| for (g) |*p| p.store(false, .release);
         self.seal_ran = false;
         self.seal_enqueued = false;
         self.truth1_done.store(0, .release);
@@ -277,7 +281,13 @@ const World = struct {
     fn nativeFactory(self: *World) G.NativeFactory {
         return .{ .ctx = self, .vtable = &native_vt };
     }
-    const native_vt = G.NativeFactory.VTable{ .warm = nWarm, .class_of = nClass, .stage1 = nStage1, .stage2 = nStage2, .seal = nSeal, .chunk = nChunk, .pack = nPack, .captured = nCaptured, .publish = nPublish };
+    const native_vt = G.NativeFactory.VTable{ .warm = nWarm, .class_of = nClass, .stage1 = nStage1, .stage2 = nStage2, .seal = nSeal, .chunk = nChunk, .pack = nPack, .captured = nCaptured, .publish = nPublish, .shape = nShape };
+    fn nShape(_: *anyopaque, a: std.mem.Allocator, wb: G.WarmBlock) anyerror![]u64 {
+        // The warm capture's segment count; the block number picks the rows.
+        const rows = try a.alloc(u64, wb.capture.segments);
+        for (rows, 0..) |*r, i| r.* = if (i + 1 == rows.len) 1 << 9 else 1 << 10;
+        return rows;
+    }
     fn of(raw: *anyopaque) *World {
         return @ptrCast(@alignCast(raw));
     }
@@ -337,7 +347,11 @@ const World = struct {
     fn recursionFactory(self: *World) G.RecursionFactory {
         return .{ .ctx = self, .vtable = &rec_vt };
     }
-    const rec_vt = G.RecursionFactory.VTable{ .warm = rWarm, .class_of = rClass, .truth = rTruth, .node = rNode, .captured = rCaptured, .publish = rPublish };
+    const rec_vt = G.RecursionFactory.VTable{ .warm = rWarm, .class_of = rClass, .truth = rTruth, .node = rNode, .captured = rCaptured, .publish = rPublish, .shape = rShape };
+    fn rShape(_: *anyopaque, _: G.WarmBlock, keys: []const G.ClassKey) anyerror!G.RecursionShape {
+        for (keys) |k| if (!std.mem.eql(u8, &k, &k_native)) return error.UnexpectedNativeClass;
+        return .{ .truths = 1, .fold_arity = 2 };
+    }
     const rec_vt2 = blk: {
         var v = rec_vt;
         v.truth_stage2 = rTruth2;
@@ -979,4 +993,189 @@ test "D1: two-stage truths: roots exchanged before the seal, proofs after it, on
     // Too many truths for the install capacity fails before device work.
     const r5 = R.Request{ .id = 702, .segment_rows = &.{ 1 << 10, 1 << 9 }, .truths = 5, .recursion = &.{.{ .segments = &.{0} }}, .root = 0 };
     try testing.expectError(error.GpuNativeTruthsExceedPlan, drv.serve(&r5));
+}
+
+/// The service's capture source on the host model: warm captures report a
+/// segment count per block; a request capture is a thread driving the Feed.
+const FakeSource = struct {
+    segments: u32 = 3,
+    warmed: std.ArrayListUnmanaged(u64) = .empty,
+    released: usize = 0,
+    started: usize = 0,
+    joined: usize = 0,
+    fail_start: bool = false,
+    rows: [8]u64 = undefined,
+    const Run = struct { thread: std.Thread };
+    fn of(raw: *anyopaque) *FakeSource {
+        return @ptrCast(@alignCast(raw));
+    }
+    fn warm(raw: *anyopaque, block: u64) anyerror!G.CaptureEnd {
+        const self = of(raw);
+        if (block == 13) return error.WarmCaptureFailed;
+        try self.warmed.append(testing.allocator, block);
+        return captureEnd(self.segments);
+    }
+    fn releaseWarm(raw: *anyopaque, _: u64) void {
+        of(raw).released += 1;
+    }
+    fn start(raw: *anyopaque, _: u64, stream: *C.Stream) anyerror!*anyopaque {
+        const self = of(raw);
+        if (self.fail_start) return error.CaptureStartFailed;
+        for (self.rows[0..self.segments], 0..) |*r, i| r.* = if (i + 1 == self.segments) 1 << 9 else 1 << 10;
+        const run = try testing.allocator.create(Run);
+        run.thread = try std.Thread.spawn(.{}, feedCapture, .{ stream, self.rows[0..self.segments] });
+        self.started += 1;
+        return run;
+    }
+    fn join(raw: *anyopaque, h: *anyopaque) void {
+        const run: *Run = @ptrCast(@alignCast(h));
+        run.thread.join();
+        testing.allocator.destroy(run);
+        of(raw).joined += 1;
+    }
+    const vt = S.CaptureSource.VTable{ .warm = warm, .release_warm = releaseWarm, .start = start, .join = join };
+    fn source(self: *FakeSource) S.CaptureSource {
+        return .{ .ctx = self, .vtable = &vt };
+    }
+};
+
+fn serviceConfig() R.Config {
+    return .{ .capacity_words = &.{ 1 << 20, 1 << 20 }, .max_segments = 8, .max_jobs_per_device = 32, .slab_words = 1 << 13, .reserve_words = 1 << 10, .graph_exec_words = 1 << 10, .arena_cap_words = 1 << 15, .stage_one_base_bytes = 512 };
+}
+
+test "serve: install shapes every block from its warm capture; streamed requests pipeline two deep, one wait each" {
+    var world = World{ .a = testing.allocator, .stage_one = true, .truth_end = true };
+    var src = FakeSource{};
+    defer src.warmed.deinit(testing.allocator);
+    const a = testing.allocator;
+    var ws: [2]*W.Worker = undefined;
+    ws[0] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer ws[0].destroy();
+    ws[1] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 1, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer ws[1].destroy();
+    const svc = try S.Service.install(a, &F.ops, &F.peer, &ws, world.nativeFactory(), world.recursionFactory(), src.source(), &.{ 26235156, 24628607 }, serviceConfig(), .{ .buffers = 8, .words = 16 });
+    defer svc.deinit();
+    try testing.expectEqualSlices(u64, &.{ 26235156, 24628607 }, src.warmed.items);
+    try testing.expectEqual(@as(usize, 2), src.released);
+    const shape = svc.shapeOf(26235156).?;
+    try testing.expectEqualSlices(u64, &.{ 1 << 10, 1 << 10, 1 << 9 }, shape.rows);
+    try testing.expectEqual(@as(u32, 1), shape.truths);
+    // 3 segments + 1 truth leaves, binary carry: 4 leaves + 3 folds.
+    try testing.expectEqual(@as(usize, 7), shape.topology.nodes.len);
+    try testing.expectError(error.GpuNativeBlockNotWarmed, svc.begin(1, null));
+    var tmp = testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.makePath("r0");
+    try tmp.dir.makePath("r1");
+    var d0 = try tmp.dir.openDir("r0", .{});
+    defer d0.close();
+    var d1 = try tmp.dir.openDir("r1", .{});
+    defer d1.close();
+    const before = F.counters;
+    // Two in flight: the second capture + enqueue start before the first finishes.
+    const p0 = try svc.begin(26235156, d0);
+    const p1 = try svc.begin(24628607, d1);
+    try testing.expectError(error.GpuNativePipelineFull, svc.begin(26235156, null));
+    var r0 = try svc.finish(p0);
+    defer r0.outcome.deinit();
+    var r1 = try svc.finish(p1);
+    defer r1.outcome.deinit();
+    try testing.expectEqual(@as(usize, 2), F.counters.host_waits - before.host_waits);
+    try testing.expectEqual(@as(usize, 4), F.counters.d2h - before.d2h);
+    for ([_]S.Result{ r0, r1 }) |r| {
+        try testing.expectEqual(@as(u32, 1), r.outcome.receipt.host_waits);
+        try testing.expectEqual(@as(u32, 2), r.outcome.receipt.d2h);
+        try testing.expectEqual(@as(u32, 1), r.outcome.receipt.capture_end_gated);
+        try testing.expectEqual(@as(u64, stage_one_written), r.outcome.receipt.stage_one_bytes);
+        // 3 natives + 1 truth + 7 nodes.
+        try testing.expectEqual(@as(usize, 11), r.outcome.proofs.len);
+    }
+    try testing.expectEqual(@as(usize, 2), src.started);
+    try testing.expectEqual(@as(usize, 2), src.joined);
+    for ([_]std.fs.Dir{ d0, d1 }) |d| {
+        try d.access("stage-one.bin", .{});
+        try d.access("cpu-2.bin", .{});
+        try d.access("truth-0.bin", .{});
+        try d.access("recursion-om31/root.proof", .{});
+    }
+    const receipt = try S.receiptJson(a, 26235156, 0, r0);
+    defer a.free(receipt);
+    try testing.expect(std.mem.indexOf(u8, receipt, "\"host_waits\": 1") != null);
+    // A capture that cannot start refuses the request and frees its stream.
+    src.fail_start = true;
+    try testing.expectError(error.CaptureStartFailed, svc.begin(26235156, null));
+    src.fail_start = false;
+    var again = try svc.serve(26235156, null);
+    again.outcome.deinit();
+    try testing.expectEqual(@as(usize, 3), src.joined);
+}
+
+test "serve: install refuses a missing shape hook and a failed warm capture" {
+    var world = World{ .a = testing.allocator };
+    var src = FakeSource{};
+    defer src.warmed.deinit(testing.allocator);
+    const a = testing.allocator;
+    var ws: [2]*W.Worker = undefined;
+    ws[0] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer ws[0].destroy();
+    ws[1] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 1, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer ws[1].destroy();
+    var bare = World.native_vt;
+    bare.shape = null;
+    try testing.expectError(error.GpuNativeNativeShapeHookMissing, S.Service.install(a, &F.ops, &F.peer, &ws, .{ .ctx = &world, .vtable = &bare }, world.recursionFactory(), src.source(), &.{1}, serviceConfig(), .{}));
+    try testing.expectError(error.WarmCaptureFailed, S.Service.install(a, &F.ops, &F.peer, &ws, world.nativeFactory(), world.recursionFactory(), src.source(), &.{ 1, 13 }, serviceConfig(), .{}));
+    try testing.expectError(error.GpuNativeServiceDuplicateBlock, S.Service.install(a, &F.ops, &F.peer, &ws, world.nativeFactory(), world.recursionFactory(), src.source(), &.{ 1, 1 }, serviceConfig(), .{}));
+    src.segments = 9;
+    try testing.expectError(error.GpuNativeSegmentsExceedPlan, S.Service.install(a, &F.ops, &F.peer, &ws, world.nativeFactory(), world.recursionFactory(), src.source(), &.{2}, serviceConfig(), .{}));
+}
+
+test "serve: the spool answers requests in order, refuses malformed and reused names, stops on STOP" {
+    var world = World{ .a = testing.allocator, .stage_one = true, .truth_end = true };
+    var src = FakeSource{};
+    defer src.warmed.deinit(testing.allocator);
+    const a = testing.allocator;
+    var ws: [2]*W.Worker = undefined;
+    ws[0] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer ws[0].destroy();
+    ws[1] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 1, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer ws[1].destroy();
+    const svc = try S.Service.install(a, &F.ops, &F.peer, &ws, world.nativeFactory(), world.recursionFactory(), src.source(), &.{26235156}, serviceConfig(), .{ .buffers = 8, .words = 16 });
+    defer svc.deinit();
+    var tmp = testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.makePath("spool/inbox");
+    try tmp.dir.makePath("spool/out/0003-26235156");
+    try tmp.dir.writeFile(.{ .sub_path = "spool/inbox/0000-26235156.request", .data = "26235156\n" });
+    try tmp.dir.writeFile(.{ .sub_path = "spool/inbox/0001-26235156.request", .data = "26235156\n" });
+    try tmp.dir.writeFile(.{ .sub_path = "spool/inbox/0002-bad.request", .data = "not-a-block\n" });
+    try tmp.dir.writeFile(.{ .sub_path = "spool/inbox/0003-26235156.request", .data = "26235156\n" });
+    try tmp.dir.writeFile(.{ .sub_path = "spool/inbox/0004-7.request", .data = "7\n" });
+    try tmp.dir.writeFile(.{ .sub_path = "spool/inbox/STOP", .data = "" });
+    const path = try tmp.dir.realpathAlloc(a, "spool");
+    defer a.free(path);
+    try S.serveSpool(svc, path, 1);
+    try tmp.dir.access("spool/READY", .{});
+    const Expect = struct { name: []const u8, ok: bool, needle: []const u8 };
+    for ([_]Expect{
+        .{ .name = "0000-26235156", .ok = true, .needle = "\"sequence\":0" },
+        .{ .name = "0001-26235156", .ok = true, .needle = "\"sequence\":1" },
+        .{ .name = "0002-bad", .ok = false, .needle = "ResidentRequestMalformed" },
+        .{ .name = "0003-26235156", .ok = false, .needle = "ResidentRequestNameReused" },
+        .{ .name = "0004-7", .ok = false, .needle = "GpuNativeBlockNotWarmed" },
+    }) |e| {
+        var buf: [128]u8 = undefined;
+        const done = try tmp.dir.readFileAlloc(a, try std.fmt.bufPrint(&buf, "spool/done/{s}.json", .{e.name}), 4096);
+        defer a.free(done);
+        try testing.expect(std.mem.indexOf(u8, done, if (e.ok) "\"ok\":true" else "\"ok\":false") != null);
+        try testing.expect(std.mem.indexOf(u8, done, e.needle) != null);
+        if (e.ok) {
+            try testing.expect(std.mem.indexOf(u8, done, "\"host_waits\":1,\"d2h\":2") != null);
+            const jobs = try tmp.dir.readFileAlloc(a, try std.fmt.bufPrint(&buf, "spool/out/{s}/m8-jobs.json", .{e.name}), 1 << 16);
+            defer a.free(jobs);
+            try testing.expect(std.mem.indexOf(u8, jobs, "rv64-m8-gpu-native-request/v1") != null);
+            try tmp.dir.access(try std.fmt.bufPrint(&buf, "spool/out/{s}/26235156/proof/stage-one.bin", .{e.name}), .{});
+        }
+        try testing.expectError(error.FileNotFound, tmp.dir.access(try std.fmt.bufPrint(&buf, "spool/inbox/{s}.request", .{e.name}), .{}));
+    }
+    try testing.expectEqual(@as(usize, 2), src.joined);
 }

@@ -38,9 +38,10 @@ pub fn main() !void {
         // The scheduler-driven request DAG (jobs.serve) is not reachable yet.
         _ = try @import("rv64/jobs/mod.zig").selected();
         // M8 GPU-native (STWO_RV64_M8_GPU_NATIVE=1, requires JOBS=1): the
-        // jobs/driver_request.zig driver. Fails closed until the native and
-        // recursion factories land; unset keeps the feeder/legacy path.
-        if (try @import("rv64/jobs/driver.zig").selected(posixEnv)) return @import("rv64/jobs/driver_serve.zig").install(a, library);
+        // jobs/driver_ge.zig service (streamed GE capture -> driver, one host
+        // wait per request). Fails closed while a factory hook is missing;
+        // unset keeps the feeder/legacy path.
+        if (try @import("rv64/jobs/driver.zig").selected(posixEnv)) return @import("rv64/jobs/driver_ge.zig").run(a, library, arguments[2], arguments[3]);
         return @import("rv64/resident_batch.zig").runServe(a, library, arguments[2], arguments[3]);
     }
     const planned_text = (try env(a, "STWO_RV64_GPU_PLANNED_CPU_WORKERS")) orelse return error.CombinedRequiresResidentPlan;

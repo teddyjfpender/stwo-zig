@@ -76,7 +76,7 @@ test {
     _ = capture;
     // The D3 pod probe compiles with the host tests (it needs real GPUs to run).
     _ = &@import("driver_probe.zig").run;
-    _ = &@import("driver_serve.zig").install;
+    _ = &@import("driver_serve.zig").serveSpool;
 }
 
 test "probe topology: one leaf per artifact, binary folds, root last" {

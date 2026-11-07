@@ -741,7 +741,9 @@ pub const CaptureSink = struct {
 ///   native  *const word16_execution/prepared.zig Prepared
 ///   events  *const []const load_store_v2.native.Event (ledger shard events)
 ///   shard   *const services/collector.zig Shard (null if the capture has none)
-/// All stay owned by the capture and immutable until the request detaches.
+/// The pointers themselves are valid during `pack` only (GE hands the shard by
+/// value); the data they reference (Prepared, the event array) stays owned by
+/// the capture and immutable until the request detaches.
 pub const CapturedSegment = struct {
     segment: u32,
     native: *const anyopaque,

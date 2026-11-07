@@ -411,9 +411,12 @@ pub const Topology = struct {
     nodes: []RecursionNode,
     children: []u32,
     root: u32,
+    /// Leaf input ordinals the leaves' slices point into (carry only).
+    ids: []u32 = &.{},
     pub fn deinit(self: *Topology) void {
         self.a.free(self.nodes);
         self.a.free(self.children);
+        self.a.free(self.ids);
     }
     /// From any ready_dag.Plan-shaped value (nodes, count, root; children
     /// precede parents) plus a leaf-input callback. Node ids are kept.
@@ -441,6 +444,98 @@ pub const Topology = struct {
         if (plan.root + 1 != plan.count) return error.GpuNativeRecursionRootNotLast;
         return .{ .a = a, .nodes = nodes, .children = children, .root = @intCast(plan.root) };
     }
+    /// The legacy recursion tree (rv64_recursion/om31_native/ready_dag.zig
+    /// Plan.initArity, ported verbatim: streaming k-ary carry, children before
+    /// parents, root last) over `segments + truths` leaves in legacy leaf
+    /// order: leaf i < segments verifies native segment i, the rest truth
+    /// i - segments. Node ids equal ready_dag's, so recursion publishes
+    /// fold-<id>.proof / leaf-<first_leaf>.proof under the golden names.
+    pub fn carry(a: std.mem.Allocator, segments: u32, truths: u32, arity: u32) !Topology {
+        const plan = try CarryPlan.init(segments + truths, arity);
+        const ids = try a.alloc(u32, segments + truths);
+        errdefer a.free(ids);
+        for (ids, 0..) |*x, i| x.* = if (i < segments) @intCast(i) else @intCast(i - segments);
+        const Leaf = struct {
+            ids: []const u32,
+            segments: u32,
+            pub fn of(self: @This(), first: usize) struct { segments: []const u32, truths: []const u32 } {
+                const one = self.ids[first..][0..1];
+                return if (first < self.segments) .{ .segments = one, .truths = &.{} } else .{ .segments = &.{}, .truths = one };
+            }
+        };
+        var t = try Topology.fromPlan(a, &plan, Leaf{ .ids = ids, .segments = segments });
+        t.ids = ids;
+        return t;
+    }
+};
+
+/// Port of ready_dag.Plan.initArity (see Topology.carry); the CPU integration
+/// is not a dependency of the driver.
+pub const CarryPlan = struct {
+    pub const max_leaves = 256;
+    pub const max_arity = 4;
+    pub const CarryNode = struct {
+        first_leaf: usize,
+        leaf_count: usize,
+        arity: u8 = 0,
+        children: [max_arity]usize = @splat(0),
+        pub fn kids(self: *const CarryNode) []const usize {
+            return self.children[0..self.arity];
+        }
+    };
+    nodes: [2 * max_leaves - 1]CarryNode = undefined,
+    count: usize = 0,
+    root: usize = 0,
+    arity: usize = 2,
+
+    pub fn init(leaves: usize, arity: usize) !CarryPlan {
+        if (leaves == 0 or leaves > max_leaves) return error.InvalidRecursionLeaves;
+        if (arity < 2 or arity > max_arity) return error.InvalidRecursiveFoldArity;
+        var self: CarryPlan = .{ .arity = arity };
+        var stack: [9][max_arity]usize = undefined;
+        var depth = [_]usize{0} ** 9;
+        for (0..leaves) |ordinal| {
+            var current = self.append(.{ .first_leaf = ordinal, .leaf_count = 1 });
+            var level: usize = 0;
+            while (depth[level] + 1 == arity) : (level += 1) {
+                var group: [max_arity]usize = undefined;
+                @memcpy(group[0 .. arity - 1], stack[level][0 .. arity - 1]);
+                group[arity - 1] = current;
+                current = self.parent(group[0..arity]);
+                depth[level] = 0;
+            }
+            stack[level][depth[level]] = current;
+            depth[level] += 1;
+        }
+        var carry_id: ?usize = null;
+        for (&stack, depth) |*entries, n| {
+            var group: [max_arity]usize = undefined;
+            @memcpy(group[0..n], entries[0..n]);
+            var m = n;
+            if (carry_id) |c| {
+                group[m] = c;
+                m += 1;
+            }
+            if (m == 1) carry_id = group[0] else if (m >= 2) carry_id = self.parent(group[0..m]);
+        }
+        self.root = carry_id.?;
+        return self;
+    }
+    fn append(self: *CarryPlan, node: CarryNode) usize {
+        const id = self.count;
+        self.nodes[id] = node;
+        self.count += 1;
+        return id;
+    }
+    fn parent(self: *CarryPlan, group: []const usize) usize {
+        var node = CarryNode{ .first_leaf = self.nodes[group[0]].first_leaf, .leaf_count = 0, .arity = @intCast(group.len) };
+        for (group, 0..) |id, i| {
+            node.leaf_count += self.nodes[id].leaf_count;
+            node.children[i] = id;
+        }
+        return self.append(node);
+    }
+
 };
 
 const testing = std.testing;
@@ -554,4 +649,52 @@ test "dag: recursion nodes follow their children; independent truths fill the se
     // leaf 0 sits with segment 0.
     try testing.expectEqual(dag.nodes[dag.stage2[0]].device, dag.nodes[dag.recursion[0]].device);
     try testing.expectError(error.GpuNativeRecursionOrder, build(testing.allocator, .{ .devices = 1, .segments = &segs, .recursion = &.{ .{ .children = &.{1} }, .{ .segments = &.{0} } }, .root = 1 }));
+}
+
+test "carry topology reproduces the D2 golden recursion names (26235156: 4+7 leaves, 24628607: 7+7)" {
+    // Golden recursion-om31/ file sets (artifact-fingerprints.json): every
+    // internal node as fold-<id>.proof (the root too, also as root.proof).
+    const Case = struct { segments: u32, truths: u32, folds: []const u32, nodes: usize };
+    for ([_]Case{
+        .{ .segments = 4, .truths = 7, .folds = &.{ 4, 9, 13, 14 }, .nodes = 15 },
+        .{ .segments = 7, .truths = 7, .folds = &.{ 4, 9, 14, 17, 18 }, .nodes = 19 },
+    }) |c| {
+        // The D2 profile folds 4-ary (ready_dag.policyArity: log blowup != 1).
+        var t = try Topology.carry(testing.allocator, c.segments, c.truths, 4);
+        defer t.deinit();
+        try testing.expectEqual(c.nodes, t.nodes.len);
+        try testing.expectEqual(@as(u32, @intCast(c.nodes - 1)), t.root);
+        var folds: [8]u32 = undefined;
+        var n: usize = 0;
+        var leaf_seen: u32 = 0;
+        for (t.nodes, 0..) |nd, id| {
+            if (nd.children.len != 0) {
+                folds[n] = @intCast(id);
+                n += 1;
+                for (nd.children) |k| try testing.expect(k < id);
+            } else {
+                // Leaves in legacy order: segments first, then truths.
+                if (leaf_seen < c.segments) {
+                    try testing.expectEqualSlices(u32, &.{leaf_seen}, nd.segments);
+                } else try testing.expectEqualSlices(u32, &.{leaf_seen - c.segments}, nd.truths);
+                leaf_seen += 1;
+            }
+        }
+        try testing.expectEqualSlices(u32, c.folds, folds[0..n]);
+        try testing.expectEqual(c.segments + c.truths, leaf_seen);
+        // And it plans as a request DAG.
+        const segs = try testing.allocator.alloc(Segment, c.segments);
+        defer testing.allocator.free(segs);
+        @memset(segs, .{});
+        const truths = try testing.allocator.alloc(Truth, c.truths);
+        defer testing.allocator.free(truths);
+        @memset(truths, .{});
+        var dag = try build(testing.allocator, .{ .devices = 2, .segments = segs, .truths = truths, .recursion = t.nodes, .root = t.root });
+        dag.deinit();
+    }
+    var two = try Topology.carry(testing.allocator, 4, 7, 2);
+    defer two.deinit();
+    try testing.expectEqual(@as(usize, 21), two.nodes.len);
+    try testing.expectEqual(two.root + 1, @as(u32, @intCast(two.nodes.len)));
+    try testing.expectError(error.InvalidRecursiveFoldArity, Topology.carry(testing.allocator, 4, 7, 5));
 }

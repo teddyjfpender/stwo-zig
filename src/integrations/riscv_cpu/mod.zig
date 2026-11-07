@@ -46,6 +46,17 @@ pub const rv64_gkr_manifest = @import("word16_global_execution/services/gkr_loca
 /// the authority of the Stage2 claims buffer layout (M8 jobs/native_claims.zig).
 pub const rv64_gkr_global_cpu = @import("word16_global_execution/services/gkr_local/global_cpu.zig");
 pub const rv64_gkr_worker_protocol = @import("word16_global_execution/services/gkr_local/worker_protocol.zig");
+/// M8 GPU-native request driver (riscv_cuda rv64/jobs/driver_ge.zig): the
+/// direct capture with a per-segment readiness hook, run outside the legacy
+/// gkr_main pipeline. Exports only; no behaviour change.
+pub const rv64_ethereum_request = @import("rv64_ethereum_request.zig");
+pub const rv64_expected_image = @import("word16_execution/expected_image.zig");
+pub const rv64_program = @import("word16_execution/program.zig");
+pub const rv64_program_metadata = @import("word16_execution/program_metadata.zig");
+pub const rv64_ethereum_direct = @import("word16_global_execution/ethereum/direct.zig");
+pub const rv64_ethereum_capture = @import("word16_global_execution/ethereum/capture.zig");
+pub const rv64_ethereum_capture_options = @import("word16_global_execution/ethereum/capture_options.zig");
+pub const rv64_ethereum_plan = @import("word16_global_execution/ethereum/plan.zig");
 pub const rv64 = @import("rv64.zig");
 pub const rv64_full = @import("rv64_full.zig");
 const frontend = @import("stwo_riscv_frontend");
