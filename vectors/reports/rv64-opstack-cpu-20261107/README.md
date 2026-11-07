@@ -130,3 +130,13 @@ The run uses 13 batches of 1,048,575 steps, one eight-worker lane,
 scratch-backed capture and deferred lookup binding. The earlier
 14-batch trial with immediate binding was killed at 5.632 GiB.
 [Pairing-prefix proof and failure receipts](pairing-prefix-proof.json)
+
+## Full mainnet proof on the integrated GPU base
+
+Block 121057303 completed in 149.531 s with the 2,097,151-step geometry,
+one eight-worker lane and detailed stage profiling disabled. It used
+5.021 GiB peak RSS. The fresh receiver took 17.535 s, including 0.427 s
+of proof checks. All twelve binary artifacts matched the prior larger
+shard proof. Both exact corruption checks passed. The two timings are
+individual samples and use different profiling settings.
+[Integrated-tree full proof](cpu-merged-unprofiled.json)
