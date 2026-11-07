@@ -706,7 +706,8 @@ test "truth split plans refused coalesced families as bounded admitted spans" {
     total[ST.FIRST_CURVE] = 9000; // bn254 g1 add: top rung 13
     total[ST.FIRST_CURVE + 2] = 70000; // bn254 fp2 mul: source cap 16
     const base = KeccakTruthOptions{ .v3 = true, .uniform_throughput = true, .coalesce_families = true };
-    try std.testing.expectError(error.OneTruthPerFamilySourceCapacity, coalesceTruthFamilies(std.testing.allocator, total, base, 18));
+    // Refused today: secp add (family 1) fails first, as on the 4 largest blocks.
+    try std.testing.expectError(error.V3TruthShapeExceeded, coalesceTruthFamilies(std.testing.allocator, total, base, 18));
     var split = base;
     split.split_families = true;
     split.rung_bound = true;
