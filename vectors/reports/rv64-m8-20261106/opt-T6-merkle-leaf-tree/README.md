@@ -17,13 +17,13 @@ int stwo_blake2s_merkle_layers_plain_on(...same...);
 ```
 
 It builds every layer above the leaves of a contiguous tree. Layer 0 is `tree[0..leaves)`, each next layer follows the previous one, and the root lands at `tree[2*leaves-2]`. This is exactly the layout and the result of the loop that all callers run today: `pcs_enqueue.cu:856`, `pcs_pipeline.cuh:772`, `trace.cu:220`, `fri.cu:94` and `trace_commit.zig`. With the flag off, the entry point runs that same `child_layer_kernel` loop. With the flag on:
-- `subtree_levels_kernel<L>` (L ≤ 3): each thread owns 2^L consecutive nodes and writes the L layers above them from registers. Every compression slot is used, and the input layer is read once instead of once per layer.
+- `subtree_levels_kernel<L>` (L = 3, or 2 for one pass): each thread owns 2^L consecutive nodes and writes the L layers above them from registers. Every compression slot is used, and the input layer is read once instead of once per layer.
 - Layers of ≤ 2048 nodes are built by one 1024-thread CTA (`fused_tail_kernel`).
 - A 2^24-leaf tree needs 6 launches instead of 24.
 
 **Parity [M]** (`kernel-parity.jsonl`): 55/55 cases pass. Leaves 2^1..2^22 for both protocols are byte-identical to the callers' `stwo_blake2s_layer_on` loop for mode 0 and mode 1; the whole buffer is compared, including 2 guard hashes past the root. 11 contract cases also pass: non-power-of-two input, fewer than 2 leaves, short capacity, null tree or stream, and an invalid flag all return `cudaErrorInvalidValue`.
 
-**SASS [M]** (`sass-diff.txt`): all 8 kernels of the frozen `m7-integrate/cuda/native/commitment-merkle.cu.o` are SASS-identical in the T6 object. The only additions are the 8 new kernels and the 3 new host entry points (`merkle_layers_on`, `merkle_layers_plain_on`, `m8_merkle_fused_override`). The default path therefore runs exactly the frozen device code.
+**SASS [M]** (`sass-diff.txt`): all 8 kernels of the frozen `m7-integrate/cuda/native/commitment-merkle.cu.o` are SASS-identical in the T6 object. The only additions are the new kernels (6 after the review, `review/`) and the 3 new host entry points (`merkle_layers_on`, `merkle_layers_plain_on`, `m8_merkle_fused_override`). The default path therefore runs exactly the frozen device code.
 
 **A/B [M]** (`kernel-bench.jsonl`, 9 reps, ms):
 
