@@ -1,0 +1,374 @@
+{
+ "schema": "rv64-m9-outer-gkr-review/v1",
+ "labels": {
+  "M": "measured",
+  "D": "derived",
+  "E": "estimate"
+ },
+ "rk_fit_D": {
+  "rk_ns": 0.261562981690253,
+  "se_ns": 0.05343214930473768,
+  "corr_a_rk": -0.9946987235114457,
+  "loo_min_ns": 0.2127512369517648,
+  "loo_max_ns": 0.28255942519163596,
+  "n_blocks": 6,
+  "dof": 4
+ },
+ "rk_band_ns_D": {
+  "loo_min": 0.2127512369517648,
+  "fit": 0.261562981690253,
+  "loo_max": 0.28255942519163596,
+  "plus_1sigma": 0.31499513099499066,
+  "plus_2sigma": 0.3684272802997284,
+  "ci95_low": 0.11323533522030121,
+  "ci95_high": 0.4098906281602048
+ },
+ "gkr_ns_per_fact": {
+  "central_kernel_D": 0.8186917294035461,
+  "stage_wall_all_in_M": 1.5781687934156663
+ },
+ "blocks": {
+  "24628607": {
+   "baseline": {
+    "rk_sensitivity_central": {
+     "loo_min": {
+      "rk_ns": 0.2127512369517648,
+      "kernel_factor": 1.1694448001265432,
+      "break_even_ns_per_fact": 0.5514054158054034
+     },
+     "fit": {
+      "rk_ns": 0.261562981690253,
+      "kernel_factor": 1.0725902608300684,
+      "break_even_ns_per_fact": 0.677914952432988
+     },
+     "loo_max": {
+      "rk_ns": 0.28255942519163596,
+      "kernel_factor": 1.0412210436319154,
+      "break_even_ns_per_fact": 0.7323332149314553
+     },
+     "plus_1sigma": {
+      "rk_ns": 0.31499513099499066,
+      "kernel_factor": 1.0009814362252256,
+      "break_even_ns_per_fact": 0.8163995832482491
+     },
+     "plus_2sigma": {
+      "rk_ns": 0.3684272802997284,
+      "kernel_factor": 0.9501431333076478,
+      "break_even_ns_per_fact": 0.9548842140635103
+     },
+     "ci95_low": {
+      "rk_ns": 0.11323533522030121,
+      "kernel_factor": 1.625568291717107,
+      "break_even_ns_per_fact": 0.29348161728982364
+     },
+     "ci95_high": {
+      "rk_ns": 0.4098906281602048,
+      "kernel_factor": 0.9198259661741719,
+      "break_even_ns_per_fact": 1.0623482875761532
+     }
+    },
+    "critical_path_E": {
+     "gkr_wall_0.82": {
+      "makespan_classic_s": 5.469523637760001,
+      "makespan_hybrid_s": 4.884897596563343,
+      "makespan_factor": 0.8931120733877865,
+      "node_wall_sum_factor_with_comp_tax": 0.8931185781831162
+     },
+     "gkr_wall_1.58_M": {
+      "makespan_classic_s": 5.469523637760001,
+      "makespan_hybrid_s": 6.121062031666597,
+      "makespan_factor": 1.1191215976120048,
+      "node_wall_sum_factor_with_comp_tax": 1.118245215581161
+     }
+    },
+    "rk_needed_for_break_even_at_central_ns": 0.3158795200775705,
+    "kernel_factor_central_plus_binding_pass_E": 1.198489707115926,
+    "kernel_factor_free_gkr_central_witness_D": 0.6504393389542816
+   },
+   "fanin_same": {
+    "rk_sensitivity_central": {
+     "loo_min": {
+      "rk_ns": 0.2127512369517648,
+      "kernel_factor": 1.1657466658049127,
+      "break_even_ns_per_fact": 0.5503316975306274
+     },
+     "fit": {
+      "rk_ns": 0.261562981690253,
+      "kernel_factor": 1.071385038667911,
+      "break_even_ns_per_fact": 0.6765948898215105
+     },
+     "loo_max": {
+      "rk_ns": 0.28255942519163596,
+      "kernel_factor": 1.040823225062346,
+      "break_even_ns_per_fact": 0.7309071869426864
+     },
+     "plus_1sigma": {
+      "rk_ns": 0.31499513099499066,
+      "kernel_factor": 1.0016193337648367,
+      "break_even_ns_per_fact": 0.8148098579265043
+     },
+     "plus_2sigma": {
+      "rk_ns": 0.3684272802997284,
+      "kernel_factor": 0.9520895438444891,
+      "break_even_ns_per_fact": 0.9530248260314987
+     },
+     "ci95_low": {
+      "rk_ns": 0.11323533522030121,
+      "kernel_factor": 1.610130121185848,
+      "break_even_ns_per_fact": 0.2929101383620466
+     },
+     "ci95_high": {
+      "rk_ns": 0.4098906281602048,
+      "kernel_factor": 0.9225527018783911,
+      "break_even_ns_per_fact": 1.060279641280974
+     }
+    },
+    "critical_path_E": {
+     "gkr_wall_0.82": {
+      "makespan_classic_s": 4.610318236160001,
+      "makespan_hybrid_s": 4.150462385964735,
+      "makespan_factor": 0.9002550742401056,
+      "node_wall_sum_factor_with_comp_tax": 0.8995625095613099
+     },
+     "gkr_wall_1.58_M": {
+      "makespan_classic_s": 4.610318236160001,
+      "makespan_hybrid_s": 5.142738685619206,
+      "makespan_factor": 1.115484533211457,
+      "node_wall_sum_factor_with_comp_tax": 1.1124720780856063
+     }
+    },
+    "rk_needed_for_break_even_at_central_ns": 0.31649581315110503,
+    "kernel_factor_central_plus_binding_pass_E": 1.194043993978366,
+    "kernel_factor_free_gkr_central_witness_D": 0.6600997424398349
+   }
+  },
+  "26235168": {
+   "baseline": {
+    "rk_sensitivity_central": {
+     "loo_min": {
+      "rk_ns": 0.2127512369517648,
+      "kernel_factor": 1.1673915730532276,
+      "break_even_ns_per_fact": 0.5519945909862446
+     },
+     "fit": {
+      "rk_ns": 0.261562981690253,
+      "kernel_factor": 1.0714992831124226,
+      "break_even_ns_per_fact": 0.6786393027082055
+     },
+     "loo_max": {
+      "rk_ns": 0.28255942519163596,
+      "kernel_factor": 1.0404417189277066,
+      "break_even_ns_per_fact": 0.7331157109715299
+     },
+     "plus_1sigma": {
+      "rk_ns": 0.31499513099499066,
+      "kernel_factor": 1.0006018918160942,
+      "break_even_ns_per_fact": 0.8172719039732764
+     },
+     "plus_2sigma": {
+      "rk_ns": 0.3684272802997284,
+      "kernel_factor": 0.9502686671796287,
+      "break_even_ns_per_fact": 0.9559045052383475
+     },
+     "ci95_low": {
+      "rk_ns": 0.11323533522030121,
+      "kernel_factor": 1.6189834800729794,
+      "break_even_ns_per_fact": 0.29379520159636835
+     },
+     "ci95_high": {
+      "rk_ns": 0.4098906281602048,
+      "kernel_factor": 0.9202527009475441,
+      "break_even_ns_per_fact": 1.0634834038200427
+     }
+    },
+    "critical_path_E": {
+     "gkr_wall_0.82": {
+      "makespan_classic_s": 17.887171993600003,
+      "makespan_hybrid_s": 15.99086714261036,
+      "makespan_factor": 0.8939852061763516,
+      "node_wall_sum_factor_with_comp_tax": 0.8938106507204456
+     },
+     "gkr_wall_1.58_M": {
+      "makespan_classic_s": 17.887171993600003,
+      "makespan_hybrid_s": 19.987447086282895,
+      "makespan_factor": 1.1174179514477955,
+      "node_wall_sum_factor_with_comp_tax": 1.1167006561200938
+     }
+    },
+    "rk_needed_for_break_even_at_central_ns": 0.31554236392349766,
+    "kernel_factor_central_plus_binding_pass_E": 1.1961479190392843,
+    "kernel_factor_free_gkr_central_witness_D": 0.6535424284999892
+   },
+   "fanin_same": {
+    "rk_sensitivity_central": {
+     "loo_min": {
+      "rk_ns": 0.2127512369517648,
+      "kernel_factor": 1.2313388899872235,
+      "break_even_ns_per_fact": 0.4665499581101507
+     },
+     "fit": {
+      "rk_ns": 0.261562981690253,
+      "kernel_factor": 1.1309698990319006,
+      "break_even_ns_per_fact": 0.5735910159639679
+     },
+     "loo_max": {
+      "rk_ns": 0.28255942519163596,
+      "kernel_factor": 1.0984624223549493,
+      "break_even_ns_per_fact": 0.6196348837994032
+     },
+     "plus_1sigma": {
+      "rk_ns": 0.31499513099499066,
+      "kernel_factor": 1.0567626856034809,
+      "break_even_ns_per_fact": 0.6907643277483434
+     },
+     "plus_2sigma": {
+      "rk_ns": 0.3684272802997284,
+      "kernel_factor": 1.0040796704058228,
+      "break_even_ns_per_fact": 0.807937639532719
+     },
+     "ci95_low": {
+      "rk_ns": 0.11323533522030121,
+      "kernel_factor": 1.704013221355706,
+      "break_even_ns_per_fact": 0.24831790245054167
+     },
+     "ci95_high": {
+      "rk_ns": 0.4098906281602048,
+      "kernel_factor": 0.9726624183501766,
+      "break_even_ns_per_fact": 0.8988641294773942
+     }
+    },
+    "critical_path_E": {
+     "gkr_wall_0.82": {
+      "makespan_classic_s": 14.02245796224,
+      "makespan_hybrid_s": 13.228258162714333,
+      "makespan_factor": 0.9433622977038472,
+      "node_wall_sum_factor_with_comp_tax": 0.9538210841144898
+     },
+     "gkr_wall_1.58_M": {
+      "makespan_classic_s": 14.02245796224,
+      "makespan_hybrid_s": 16.3655229179822,
+      "makespan_factor": 1.1670937407729558,
+      "node_wall_sum_factor_with_comp_tax": 1.1782123666695652
+     }
+    },
+    "rk_needed_for_break_even_at_central_ns": 0.3733312479939421,
+    "kernel_factor_central_plus_binding_pass_E": 1.2614377168268411,
+    "kernel_factor_free_gkr_central_witness_D": 0.693500861779722
+   }
+  },
+  "26235159": {
+   "baseline": {
+    "rk_sensitivity_central": {
+     "loo_min": {
+      "rk_ns": 0.2127512369517648,
+      "kernel_factor": 1.1665612369574465,
+      "break_even_ns_per_fact": 0.5519072827299792
+     },
+     "fit": {
+      "rk_ns": 0.261562981690253,
+      "kernel_factor": 1.0711758412844472,
+      "break_even_ns_per_fact": 0.6785319632249566
+     },
+     "loo_max": {
+      "rk_ns": 0.28255942519163596,
+      "kernel_factor": 1.0402824498530046,
+      "break_even_ns_per_fact": 0.7329997550266515
+     },
+     "plus_1sigma": {
+      "rk_ns": 0.31499513099499066,
+      "kernel_factor": 1.0006532192346629,
+      "break_even_ns_per_fact": 0.8171426371543696
+     },
+     "plus_2sigma": {
+      "rk_ns": 0.3684272802997284,
+      "kernel_factor": 0.9505860600249814,
+      "break_even_ns_per_fact": 0.9557533110837824
+     },
+     "ci95_low": {
+      "rk_ns": 0.11323533522030121,
+      "kernel_factor": 1.6157659932563522,
+      "break_even_ns_per_fact": 0.2937487323969063
+     },
+     "ci95_high": {
+      "rk_ns": 0.4098906281602048,
+      "kernel_factor": 0.920728760576588,
+      "break_even_ns_per_fact": 1.0633151940530066
+     }
+    },
+    "critical_path_E": {
+     "gkr_wall_0.82": {
+      "makespan_classic_s": 27.460354871040003,
+      "makespan_hybrid_s": 24.559576023946978,
+      "makespan_factor": 0.8943648448566767,
+      "node_wall_sum_factor_with_comp_tax": 0.8944264851290618
+     },
+     "gkr_wall_1.58_M": {
+      "makespan_classic_s": 27.460354871040003,
+      "makespan_hybrid_s": 30.653593932479023,
+      "makespan_factor": 1.116285425896176,
+      "node_wall_sum_factor_with_comp_tax": 1.1161382762410126
+     }
+    },
+    "rk_needed_for_break_even_at_central_ns": 0.31559228073821294,
+    "kernel_factor_central_plus_binding_pass_E": 1.1951655746125691,
+    "kernel_factor_free_gkr_central_witness_D": 0.6554283398319388
+   },
+   "fanin_same": {
+    "rk_sensitivity_central": {
+     "loo_min": {
+      "rk_ns": 0.2127512369517648,
+      "kernel_factor": 1.2495505257871886,
+      "break_even_ns_per_fact": 0.4443776605215705
+     },
+     "fit": {
+      "rk_ns": 0.261562981690253,
+      "kernel_factor": 1.1476935462235773,
+      "break_even_ns_per_fact": 0.5463317043318224
+     },
+     "loo_max": {
+      "rk_ns": 0.28255942519163596,
+      "kernel_factor": 1.1147041402722653,
+      "break_even_ns_per_fact": 0.5901873856246803
+     },
+     "plus_1sigma": {
+      "rk_ns": 0.31499513099499066,
+      "kernel_factor": 1.0723861973132398,
+      "break_even_ns_per_fact": 0.6579364773280982
+     },
+     "plus_2sigma": {
+      "rk_ns": 0.3684272802997284,
+      "kernel_factor": 1.0189221468006082,
+      "break_even_ns_per_fact": 0.7695412503243745
+     },
+     "ci95_low": {
+      "rk_ns": 0.11323533522030121,
+      "kernel_factor": 1.729232340381436,
+      "break_even_ns_per_fact": 0.23651685449416063
+     },
+     "ci95_high": {
+      "rk_ns": 0.4098906281602048,
+      "kernel_factor": 0.9870391282495778,
+      "break_even_ns_per_fact": 0.8561465541694838
+     }
+    },
+    "critical_path_E": {
+     "gkr_wall_0.82": {
+      "makespan_classic_s": 22.22224088448,
+      "makespan_hybrid_s": 21.481511718005045,
+      "makespan_factor": 0.9666672155015528,
+      "node_wall_sum_factor_with_comp_tax": 0.9692427250104164
+     },
+     "gkr_wall_1.58_M": {
+      "makespan_classic_s": 22.22224088448,
+      "makespan_hybrid_s": 26.523923804953046,
+      "makespan_factor": 1.1935755688562146,
+      "node_wall_sum_factor_with_comp_tax": 1.1958898231237287
+     }
+    },
+    "rk_needed_for_break_even_at_central_ns": 0.3919586729637799,
+    "kernel_factor_central_plus_binding_pass_E": 1.2800955732277497,
+    "kernel_factor_free_gkr_central_witness_D": 0.7037389506558868
+   }
+  }
+ }
+}

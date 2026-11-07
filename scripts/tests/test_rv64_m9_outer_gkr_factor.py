@@ -52,6 +52,28 @@ class OuterGkrFactor(unittest.TestCase):
         self.assertLess(c["cell_factor"], 0.60)
         self.assertGreater(c["kernel_factor"], 1.0)
 
+    def test_review_receipt_reproduces_and_pins_corrections(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "review.json"
+            subprocess.run([sys.executable, str(ROOT / "scripts/rv64_m9/outer_gkr_review.py"), "--gates",
+                            str(RECEIPT / "gates.json"), "--out", str(out)], check=True, capture_output=True, cwd=ROOT)
+            got = json.loads(out.read_text())
+        want = json.loads((RECEIPT / "review.json").read_text())
+        self.assertAlmostEqual(got["rk_fit_D"]["se_ns"], want["rk_fit_D"]["se_ns"], 12)
+        for block in ("24628607", "26235168", "26235159"):
+            for tree in ("baseline", "fanin_same"):
+                g, w = got["blocks"][block][tree], want["blocks"][block][tree]
+                self.assertAlmostEqual(g["kernel_factor_free_gkr_central_witness_D"],
+                                       w["kernel_factor_free_gkr_central_witness_D"], 9)
+                # R3: x0.57 is unreachable even with a free GKR prover.
+                self.assertGreater(g["kernel_factor_free_gkr_central_witness_D"], 0.60)
+                # R1: break-even needs r_k above the fit (the loss holds only at the fitted r_k) ...
+                self.assertGreater(g["rk_needed_for_break_even_at_central_ns"], got["rk_fit_D"]["rk_ns"])
+                # ... but inside its 95% CI: the verdict is "no gain", not a firm loss.
+                self.assertLess(g["rk_needed_for_break_even_at_central_ns"], got["rk_band_ns_D"]["ci95_high"])
+                # R2: at the measured all-in GKR stage wall the 2-GPU makespan gets worse.
+                self.assertGreater(g["critical_path_E"]["gkr_wall_1.58_M"]["makespan_factor"], 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -16,7 +16,7 @@
  },
  "python": {
   "command": "python3 -m unittest scripts/tests/test_rv64_m9_outer_gkr_factor.py",
-  "result": "OK"
+  "result": "OK (4/4, incl. review receipt reproduction)"
  },
  "source_sha256": {
   "src/integrations/riscv_cpu/outer_gkr/m9_node.zig": "ed7650fb3eb3775d91b51f489fe8587f85526d7dc565f2454359c8cbc9db71bc",
@@ -27,11 +27,17 @@
   "build_support/products/catalog.zig": "a84f231f665c776544e1a9ce2a8ba37dfbb33cdaae9668f6780b6f02d07f8016",
   "scripts/rv64_m9/outer_gkr_factor.py": "38b8cc8f40b428e748fb5ed3da4e3a0a8c9606920b9f6042987661292663d7af",
   "scripts/rv64_m9_leaf_fanin_model.py": "c5dad91bd6c61741e41ef8413bb20fd22839ba6140687d52b616e2dc47de09f3",
-  "scripts/tests/test_rv64_m9_outer_gkr_factor.py": "32ef061d258f377eabca7092b32d6eee93c836e18a54f0f063dc52c1ebd1cb73",
+  "scripts/tests/test_rv64_m9_outer_gkr_factor.py": "eb1e5397227dc58d9525723d647022c3aa2559306d8c8dbbb5fc1b530a4ecc84",
   "src/integrations/riscv_cpu/outer_gkr/profile.zig": "1080f735933193feb83c30ac36c1d902e720018db2156bc7dd237c086b2fcada",
   "src/integrations/riscv_cpu/outer_gkr/section.zig": "290664c40ceb23e82aa1c0912daab5bb7993feb1334247510ab2db36dcb78a8e",
   "src/integrations/riscv_cpu/outer_gkr/circuit.zig": "9a7eaa7601467a7aec23807de679172e292611cd4687869ecc49d6c2bd6e61c2",
   "src/integrations/riscv_cpu/outer_gkr/binding_v2.zig": "a99967d73e83465d740306a48cafc5e132107a4a78c4e9d97105905c9e969478",
-  "src/integrations/riscv_cpu/outer_gkr/tuples.zig": "848235559a3902e102f38fc421e9f7e8538bc5e346d77f79e8116210f9c9d2e9"
+  "src/integrations/riscv_cpu/outer_gkr/tuples.zig": "848235559a3902e102f38fc421e9f7e8538bc5e346d77f79e8116210f9c9d2e9",
+  "scripts/rv64_m9/outer_gkr_review.py": "3c09c59b8fb7bced446a3b03f4b9d809ebee598e52daf65ad21382b908322c46"
+ },
+ "review_rerun_2026_11_07": {
+  "label": "M",
+  "zig": "memguard run --gb 6 -- zig build test-riscv64-m9-outer-gkr -Doptimize=ReleaseSafe: 6/6 pass, 19 s, MaxRSS 1 GB",
+  "python": "4/4 OK"
  }
 }
