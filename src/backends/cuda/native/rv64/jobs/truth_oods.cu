@@ -222,10 +222,43 @@ __global__ void __launch_bounds__(kThreads) truth_oods_role(StwoRv64TruthOodsIo 
     if (fail) break;
   }
   __syncthreads();
-  if (tid) return;
   if (fail) {
+    if (tid == 0) {
+      partial[8] = 1;
+      partial[9] = fail;
+    }
+    return;
+  }
+  // Horner over the roots in parallel: thread t folds a contiguous chunk
+  //   P_t = sum_{k in chunk t} alpha^(end_t - 1 - k) * v_k,
+  // thread 0 joins the chunks (acc = acc * alpha^len_t + P_t) and scales by
+  // the role's 1/vanishing once. Exact field arithmetic: identical to the
+  // host's per-constraint sum of alpha^(n-1-k) * (v_k * inv).
+  __shared__ uint32_t chunk_words[kThreads * 8];
+  __shared__ uint32_t bad_root;
+  if (tid == 0) bad_root = 0;
+  __syncthreads();
+  const OM31 alpha = from_words(io.alpha);
+  const uint32_t *roots = d + row[rRootsAt];
+  const uint32_t n_roots = row[rNRoots];
+  const uint32_t per = (n_roots + kThreads - 1) / kThreads;
+  {
+    const uint32_t begin = tid * per, end = begin + per < n_roots ? begin + per : n_roots;
+    OM31 h = zero();
+    for (uint32_t k = begin; k < end; ++k) {
+      if (roots[k] >= n_nodes) {
+        bad_root = 1;
+        break;
+      }
+      h = add(mul(h, alpha), from_words(regs + 8ull * roots[k]));
+    }
+    store8(chunk_words + 8 * tid, h);
+  }
+  __syncthreads();
+  if (tid) return;
+  if (bad_root) {
     partial[8] = 1;
-    partial[9] = fail;
+    partial[9] = dDescriptor;
     return;
   }
   const OM31 vanishing = coset_vanishing(row, local);
@@ -234,18 +267,15 @@ __global__ void __launch_bounds__(kThreads) truth_oods_role(StwoRv64TruthOodsIo 
     partial[9] = dZeroInverse;
     return;
   }
-  const OM31 inv = inverse_nonzero(vanishing), alpha = from_words(io.alpha);
-  OM31 h = zero();
-  const uint32_t *roots = d + row[rRootsAt];
-  for (uint32_t k = 0; k < row[rNRoots]; ++k) {
-    if (roots[k] >= n_nodes) {
-      partial[8] = 1;
-      partial[9] = dDescriptor;
-      return;
-    }
-    h = add(mul(h, alpha), mul(from_words(regs + 8ull * roots[k]), inv));
+  const OM31 step = power(alpha, per);
+  OM31 acc = zero();
+  for (uint32_t t = 0; t < kThreads; ++t) {
+    const uint32_t begin = t * per;
+    if (begin >= n_roots) break;
+    const uint32_t len = begin + per < n_roots ? per : n_roots - begin;
+    acc = add(mul(acc, len == per ? step : power(alpha, len)), from_words(chunk_words + 8 * t));
   }
-  store8(partial, h);
+  store8(partial, mul(acc, inverse_nonzero(vanishing)));
   partial[9] = 0;
   partial[8] = 1;
 }

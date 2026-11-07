@@ -144,7 +144,7 @@ fn trace(comptime what: []const u8, ordinal: u32) void {
         var value: ?bool = null;
     };
     if (on.value == null) on.value = if (std.posix.getenv("STWO_RV64_M8_TRUTH_TRACE")) |v| std.mem.eql(u8, v, "1") else false;
-    if (on.value.?) std.debug.print("GPU_M8_TRUTH_TRACE ordinal={} at={s}\n", .{ ordinal, what });
+    if (on.value.?) std.debug.print("GPU_M8_TRUTH_TRACE ordinal={} at={s} host_ns={}\n", .{ ordinal, what, std.time.nanoTimestamp() });
 }
 fn feltWords(n: u32) usize {
     return @as(usize, n) * 8;
@@ -502,6 +502,8 @@ pub const Stage2 = struct {
     device_equal: bool = false,
     /// CUDA-event GPU span of the device OODS check + encoder.
     device_span: Span = .{},
+    /// CUDA-event GPU span of the device OODS check alone (inside device_span).
+    oods_span: Span = .{},
     /// Host time of finish (verdict reads + copies; + assembly on the host path).
     finish_ns: u64 = 0,
     channel_steps: u32 = 0,
@@ -565,6 +567,7 @@ pub const Stage2 = struct {
     pub fn deinit(self: *Stage2) void {
         self.span.close(self.timing);
         self.device_span.close(self.timing);
+        self.oods_span.close(self.timing);
         if (!self.live) return;
         K.freeJobPlan(self.a, &self.fixed_plan);
         K.freeJobPlan(self.a, &self.main_plan);
@@ -632,6 +635,7 @@ pub const Stage2 = struct {
             if (ep.fresh) try s.upload(ep.buffer, c.encode.words);
             self.encode_program = ep.buffer;
             try self.device_span.open(self.timing);
+            try self.oods_span.open(self.timing);
         }
     }
 
@@ -641,6 +645,7 @@ pub const Stage2 = struct {
         const ctx = e.ctx();
         const t = self.table;
         try e.slab.bind(&self.layout);
+        trace("s2.begin", self.ordinal);
         const staged = self.staged orelse return error.TruthJobNotStaged;
         const compact = self.staged_compact.?;
         const roots = try e.slab.field(.root, 0);
@@ -776,7 +781,9 @@ pub const Stage2 = struct {
         // The launcher reads the expectation on the host (by value into the kernel).
         const pcs_verdict = if (self.encode == .host) self.verdicts.pcs_status orelse try own.slice(Own.pcs_status, 1) else try own.slice(Own.pcs_truth, 1);
         try check(sym.pcs_status(ctx, 0, pcs_out.ptr, pcs_out.words, roots.ptr, &self.expect, pcs_verdict.ptr));
+        trace("s2.checks", self.ordinal);
         if (self.encode != .host) try self.enqueueDevice(e, pcs_out, own);
+        trace("s2.device_encode", self.ordinal);
         if (self.encode == .device) e.free(pcs_out);
         try self.span.mark(self.timing, true, e.stream());
     }
@@ -804,6 +811,7 @@ pub const Stage2 = struct {
         const table = (self.composition.table_device orelse return error.NativeCompositionNotStaged);
         var params: [TO.max_roles]?api.DeviceBuffer = @splat(null);
         for (self.composition.roles, 0..) |rp, i| params[i] = try table.slice(rp.t_params, rp.spec.parameters.len);
+        try self.oods_span.mark(self.timing, false, e.stream());
         try TO.enqueue(&osym, ctx, &c.oods, .{
             .desc = self.oods_program orelse return error.TruthJobNotStaged,
             .pcs = pcs_out,
@@ -815,6 +823,7 @@ pub const Stage2 = struct {
             .verdict = self.verdicts.truth_oods orelse try own.slice(Own.truth_oods, 1),
             .diag = try e.slab.field(.opaque_words, 5),
         });
+        try self.oods_span.mark(self.timing, true, e.stream());
         e.free(scratch);
         // Encoder: WP.encodePhysical bytes into the encoded region.
         const escratch = try e.alloc(NE.scratch_words);
@@ -855,6 +864,7 @@ pub const Stage2 = struct {
         defer self.finish_ns = finish_timer.read();
         self.span.read(self.timing);
         self.device_span.read(self.timing);
+        self.oods_span.read(self.timing);
         @memcpy(&self.roots, try Slab.read(view, .root, 0));
         @memcpy(&self.alpha, try Slab.read(view, .opaque_words, 0));
         const st = try Slab.read(view, .status, 0);

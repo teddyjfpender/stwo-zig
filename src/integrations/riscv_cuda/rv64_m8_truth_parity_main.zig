@@ -251,6 +251,7 @@ const Row = struct {
     device_bytes_equal: bool = false,
     device_runs: u32 = 0,
     device_gpu_ms: [4]f32 = @splat(-1),
+    oods_gpu_ms: [4]f32 = @splat(-1),
     finish_ns: [4]u64 = @splat(0),
     oods_nodes: usize = 0,
     oods_levels: usize = 0,
@@ -401,7 +402,7 @@ pub fn main() !void {
         proveOne(a, worker, &sym, &events, wide, &libs.base, rec, manifest_digest, proof, &classes, &row, repeat, negatives, &negative_done) catch |err| {
             row.error_name = @errorName(err);
         };
-        std.debug.print("GPU_M8_TRUTH_PARITY ordinal={} family={s} log={} calls={} stage1_root_equal={} fixed={} main={} inter={} claims={} local={} shared={} verdicts={any} bytes_equal={} device_check_equal={} device_bytes_equal={} legacy_bytes={} job_bytes={} stage1_gpu_ms={d:.3} stage2_gpu_ms={any} device_gpu_ms={any} finish_ns={any} assemble_ns={} oods_nodes={} oods_levels={} arena_peak={} declared={} error={s}\n", .{ row.ordinal, row.family, row.log, row.calls, row.stage1_root_equal, row.fixed_root_equal, row.main_root_equal, row.inter_root_equal, row.claims_equal, row.local_equal, row.shared_equal, row.verdicts, row.bytes_equal, row.device_check_equal, row.device_bytes_equal, row.legacy_bytes, row.job_bytes, row.stage1_gpu_ms, row.stage2_gpu_ms, row.device_gpu_ms, row.finish_ns, row.stage2_assemble_ns, row.oods_nodes, row.oods_levels, row.stage2_arena_peak_words, row.stage2_declared_words, row.error_name });
+        std.debug.print("GPU_M8_TRUTH_PARITY ordinal={} family={s} log={} calls={} stage1_root_equal={} fixed={} main={} inter={} claims={} local={} shared={} verdicts={any} bytes_equal={} device_check_equal={} device_bytes_equal={} legacy_bytes={} job_bytes={} stage1_gpu_ms={d:.3} stage2_gpu_ms={any} device_gpu_ms={any} oods_gpu_ms={any} finish_ns={any} assemble_ns={} oods_nodes={} oods_levels={} arena_peak={} declared={} error={s}\n", .{ row.ordinal, row.family, row.log, row.calls, row.stage1_root_equal, row.fixed_root_equal, row.main_root_equal, row.inter_root_equal, row.claims_equal, row.local_equal, row.shared_equal, row.verdicts, row.bytes_equal, row.device_check_equal, row.device_bytes_equal, row.legacy_bytes, row.job_bytes, row.stage1_gpu_ms, row.stage2_gpu_ms, row.device_gpu_ms, row.oods_gpu_ms, row.finish_ns, row.stage2_assemble_ns, row.oods_nodes, row.oods_levels, row.stage2_arena_peak_words, row.stage2_declared_words, row.error_name });
         try rows.append(a, row);
     }
     var all = rows.items.len != 0;
@@ -494,6 +495,7 @@ fn proveOne(a: std.mem.Allocator, worker: *W.Worker, sym: *const TJ.Symbols, eve
         const r2 = try run(worker, s2.job());
         row.stage2_gpu_ms[k] = s2.span.gpu_ms;
         row.device_gpu_ms[k] = s2.device_span.gpu_ms;
+        row.oods_gpu_ms[k] = s2.oods_span.gpu_ms;
         row.finish_ns[k] = s2.finish_ns;
         row.stage2_stage_ns[k] = r2.stage_ns;
         row.stage2_enqueue_ns[k] = r2.enqueue_ns;
