@@ -82,7 +82,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-retained-storage", "src/integrations/riscv_cpu/rv64_word16_retained_storage_test_root.zig", 6 },
         .{ "word16-ethereum-terminal", "src/integrations/riscv_cpu/rv64_word16_ethereum_terminal_test_root.zig", 12 },
         .{ "m5-canon-native", "src/integrations/riscv_cpu/rv64_m5_canon_native_test_root.zig", 10 },
-        .{ "m9-canon-leaf", "src/integrations/riscv_cpu/rv64_m9_canon_leaf_test_root.zig", 6 },
+        .{ "m9-canon-leaf", "src/integrations/riscv_cpu/rv64_m9_canon_leaf_test_root.zig", 10 },
         .{ "word16-global-execution", "src/integrations/riscv_cpu/rv64_word16_global_execution_test_root.zig", 18 },
         .{ "word16-shift-weighted", "src/integrations/riscv_cpu/rv64_word16_shift_weighted_test_root.zig", 6 },
         .{ "word16-shift-native-fill", "src/integrations/riscv_cpu/rv64_word16_shift_native_fill_test_root.zig", 5 },

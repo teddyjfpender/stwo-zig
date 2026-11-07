@@ -2,4 +2,5 @@
 test {
     _ = @import("rv64_recursion/canon_leaf.zig");
     _ = @import("rv64_recursion/canon_leaf_test.zig");
+    _ = @import("rv64_recursion/canon_leaf_bounds_test.zig");
 }
