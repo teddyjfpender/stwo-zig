@@ -34,8 +34,8 @@ waitquiet() {  # 6 consecutive 10 s samples: 1-min load < 8 and no compiler/rece
 }
 waitfree; log gpus-free
 if has gate5; then
-bash scripts/rv64_gate.sh --stream $S --block 24628607 --out $R/gate-5-def-24628607 --source-commit $C --runtime $RT > $R/gate-5.log 2>&1
-rc=$?; log gate-5-def-24628607 rc=$rc; [ $rc -eq 0 ] || { log STOP; exit 1; }
+bash scripts/rv64_gate.sh --stream $S --block 24628607 --out $R/${G5:-gate-5-def-24628607} --source-commit $C --runtime $RT > $R/${G5:-gate-5-def-24628607}.log 2>&1
+rc=$?; log ${G5:-gate-5-def-24628607} rc=$rc; [ $rc -eq 0 ] || { log STOP; exit 1; }
 fi
 if has gates; then
 bash scripts/rv64_gate.sh --stream $S --block 24628607 --out $R/gate-3-def-24628607 --source-commit $C --runtime $RT > $R/gate-3.log 2>&1
