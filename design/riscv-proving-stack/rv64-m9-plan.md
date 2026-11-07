@@ -23,8 +23,8 @@ Inputs:
 
 1. **The headline block is wrong for M9.**
    - 24628607 (7.37 M gas) is in the smallest **4%** of mainnet blocks. The mainnet median is **29.1 M gas** and p95 is **55.8 M** [M, 2,897-block sample].
-   - The basket is bimodal: 8 of 15 blocks sit below p21, 6 sit at or above p79, and only 26235168 is near the median [D].
-   - Weighted by mainnet, three middle blocks (24697073, **26235168**, 25229955) carry **72%** of the weight. Two of them are refused today by the D2 coalesced-truth profile [M, bench15-1].
+   - The basket is bimodal: 8 of 15 blocks sit at or below p21, 6 sit at or above p79, and only 26235168 is near the median [D].
+   - Weighted by mainnet, three middle blocks (24697073, **26235168**, 25229955) carry **72%** of the weight. All three are refused today by the D2 coalesced-truth profile (`OneTruthPerFamilySourceCapacity`) [M, bench15-1].
 2. **New targets** (2×5090, warm request, Ethproofs proving boundary). Each is a ≥60% cut from the post-M8 GPU-native baseline [E]:
    - p50 block: **≤ 8.4 s**, from about 21 s;
    - p95 block: **≤ 14.9 s**, from about 37 s;
@@ -128,7 +128,7 @@ The targets sit at about −60%; the M9-only composition reaches them with rough
 - **3+3 set: 24628607 (continuity) + 26235168 (mainnet p50).** 26235168 is the only basket block between p21 and p79, and it alone carries 33% of the mainnet weight.
   - Cost: a warm request of about 21–25 s post-M8 [E]. A 3+3 is about 6 services × (cold + warm), roughly 10 GPU-minutes [E].
 - **Second median block, for scale probes and the weekly run: 25229955** (p79, 39.1 M gas, 30 seg). Together with 26235168 it covers 52% of the weight. Use 24697073 (p21, 0.20 weight) when a cheaper probe is needed.
-- **Prerequisite:** 26235168 and 25229955 are both refused today by `OneTruthPerFamilySourceCapacity` (bench15-1 [M]). The round-3 p-truth-split fix must land before either can be a gate block.
+- **Prerequisite:** 26235168, 25229955 and 24697073 are all refused today by `OneTruthPerFamilySourceCapacity` (bench15-1 [M]). The round-3 p-truth-split fix must land before either can be a gate block.
 - **Owner-rule change:** `rv64_m4_resident.py` and the canonical runner refuse non-dev blocks (`opt-combined/README.md`). Allow 26235168 in the 3+3 runner once it proves.
 - **Reporting:**
   - bench15 keeps the full basket total;
