@@ -417,4 +417,64 @@ test("reconstructs the native DEEP and FRI commitment transcript", async () => {
   await assert.rejects(harness.derivePcs(prefix, 11, 2, Buffer.alloc(32), roots, last));
   await assert.rejects(harness.derivePcs(prefix, 11, 0, "0x", roots.slice(1), last));
   await assert.rejects(harness.derivePcs(prefix, 11, 0, "0x", roots, Buffer.alloc(64)));
+  await assert.rejects(harness.derivePcs(prefix, 11, 0, "0x", roots, "0x"));
+});
+
+test("folds native OM31 FRI subgroups in bit-reversed pair order", async () => {
+  const p = 0x7fffffffn;
+  const mod = (x) => ((x % p) + p) % p;
+  const add = (a, b) => a.map((x, i) => mod(x + b[i]));
+  const subtract = (a, b) => a.map((x, i) => mod(x - b[i]));
+  const complexMul = ([ar, ai], [br, bi]) => [mod(ar * br - ai * bi), mod(ar * bi + ai * br)];
+  const towerMul = (innerMul, nonresidue) => (a, b) => {
+    const n = a.length / 2;
+    const [a0, a1, b0, b1] = [a.slice(0, n), a.slice(n), b.slice(0, n), b.slice(n)];
+    return add(innerMul(a0, b0), innerMul(nonresidue, innerMul(a1, b1)))
+      .concat(add(innerMul(a0, b1), innerMul(a1, b0)));
+  };
+  const quarticMul = towerMul(complexMul, [2n, 1n]);
+  const octicMul = towerMul(quarticMul, [0n, 0n, 1n, 0n]);
+  const alpha = [p - 1n, 3n, 123n, 7n, 11n, p - 9n, 17n, 19n];
+  for (const size of [2, 4, 8, 16]) {
+    const values = Array.from({ length: size }, (_, i) =>
+      Array.from({ length: 8 }, (_, j) => mod(p - BigInt(i * 11 + 1) ** BigInt(j + 1))));
+    const inverses = Array.from({ length: size - 1 }, (_, i) => BigInt(i + 3));
+    let current = values;
+    let challenge = alpha;
+    let at = 0;
+    while (current.length > 1) {
+      current = Array.from({ length: current.length / 2 }, (_, i) => {
+        const left = current[2 * i];
+        const right = current[2 * i + 1];
+        const inverse = inverses[at++];
+        return add(add(left, right), octicMul(challenge, subtract(left, right).map((x) => mod(x * inverse))));
+      });
+      challenge = octicMul(challenge, challenge);
+    }
+    assert.deepEqual(Array.from(await harness.foldFri(values, alpha, inverses)), current[0]);
+  }
+  const zero = Array(8).fill(0);
+  await assert.rejects(harness.foldFri([zero, zero], alpha, [0]));
+  await assert.rejects(harness.foldFri([zero, zero], alpha, []));
+  await assert.rejects(harness.foldFri([zero, zero, zero], alpha, [1, 1]));
+  await assert.rejects(harness.foldFri([zero, zero], [p, ...alpha.slice(1)], [1]));
+});
+
+test("replays the DEEP/FRI commitment suffix from a native OP Mainnet proof", async () => {
+  const fixture = JSON.parse(readFileSync(new URL("../fixtures/native-pcs-121057303-truth-4.json", import.meta.url)));
+  const native = JSON.parse(readFileSync(new URL("../fixtures/native-queries-121057303.json", import.meta.url)))[fixture.worker];
+  assert.equal(native.workerSha256, fixture.workerSha256);
+  assert.equal(native.domainLog, fixture.domainLog);
+  const result = await harness.derivePcs(
+    fixture.prefix, fixture.domainLog, fixture.sampleCount, fixture.samples,
+    fixture.friRoots, fixture.lastCoefficient, { gasLimit: 100_000_000 },
+  );
+  assert.equal(result.prePowDigest, native.prePowDigest);
+  const opening = loadOpening("truth-4");
+  const queryVerifier = await deploy("src/NativeQueryOpening.sol", "NativeQueryOpening");
+  assert.equal(await queryVerifier.verifyQueriedOpening(
+    opening.root, opening.depth,
+    [{ prePowDigest: result.prePowDigest, nonce: native.nonce, domainLog: native.domainLog }],
+    opening.positions, opening.rows, opening.rowBytes, opening.witness,
+  ), true);
 });

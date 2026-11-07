@@ -12,7 +12,7 @@ library NativePcsTranscript {
 
     uint32 private constant M31 = 0x7fffffff;
     uint256 private constant FOLD_STEP = 4;
-    uint256 private constant BLOWUP_LOG = 2;
+    uint256 private constant BLOWUP_LOG = 1; // b2 is a factor of two.
 
     struct Challenges {
         uint32[8] deep;
@@ -29,8 +29,7 @@ library NativePcsTranscript {
         bytes calldata lastCoefficient
     ) internal pure returns (Challenges memory result) {
         if (domainLog < BLOWUP_LOG + FOLD_STEP || domainLog > 30 || samples.length % 32 != 0
-            || samples.length / 32 != sampleCount || lastCoefficient.length > 32
-            || lastCoefficient.length % 32 != 0) revert InvalidPcsShape();
+            || samples.length / 32 != sampleCount || lastCoefficient.length != 32) revert InvalidPcsShape();
         uint256 degreeLog = domainLog - BLOWUP_LOG;
         uint256 layerCount = (degreeLog + FOLD_STEP - 1) / FOLD_STEP;
         if (friRoots.length != layerCount) revert InvalidPcsShape();

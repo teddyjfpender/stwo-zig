@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {Blake2sLifted} from "../src/Blake2sLifted.sol";
+import {NativeFriFold} from "../src/NativeFriFold.sol";
 import {NativePcsTranscript} from "../src/NativePcsTranscript.sol";
 import {IKonaTransitionVerifier} from "../src/KonaCheckpoint.sol";
 import {LiftedOpeningVerifier} from "../src/LiftedOpeningVerifier.sol";
@@ -29,6 +30,12 @@ contract Harness {
         bytes calldata lastCoefficient
     ) external pure returns (NativePcsTranscript.Challenges memory) {
         return NativePcsTranscript.derive(prefix, domainLog, sampleCount, samples, roots, lastCoefficient);
+    }
+
+    function foldFri(uint32[8][] calldata values, uint32[8] calldata alpha, uint32[] calldata inverses)
+        external pure returns (uint32[8] memory)
+    {
+        return NativeFriFold.fold(values, alpha, inverses);
     }
 
     function checkSeparately(

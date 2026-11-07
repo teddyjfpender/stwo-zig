@@ -125,7 +125,8 @@ python3 tools/check_invariants.py
 `NativePcsTranscript` reconstructs the native DEEP challenge, each FRI
 folding challenge and the pre-PoW digest for the b2/q108/p20/fold4 profile.
 It absorbs canonical little-endian OM31 samples, mixes roots in native
-order and validates the layer count and final polynomial size. The
+order and validates the layer count and final polynomial size. In this
+profile `b2` means a blowup factor of two (`log_blowup_factor = 1`). The
 caller owns the OODS prefix, sample count and domain. This suffix is
 available to a future full verifier alongside the existing query checks.
 The checkpoint still has no complete transition backend.
@@ -133,6 +134,27 @@ The checkpoint still has no complete transition backend.
 The tests compare digest and challenge bytes with Node's independent
 BLAKE2s at multiple block boundaries, reject malformed field and layer
 encodings, and rerun the real Mainnet commitment opening tests.
+
+`NativeFriFold` evaluates the native unnormalized OM31 butterflies for
+2, 4, 8 or 16 values. Its test uses independent quadratic tower arithmetic.
+The surrounding verifier still needs to derive the coordinates from the
+query positions, authenticate the opened subgroup, connect each fold to
+the next layer and check the final polynomial.
+
+The Solidity suite also replays the 5,532 samples, three FRI roots and final
+coefficient of `truth-4.bin` from the accepted block 121057303 bundle. The
+reconstructed digest matches the native PoW/query fixture. This case uses
+an elevated local gas limit and a prefix captured from the native receiver.
+
+To reproduce, apply `tools/native-pcs-capture.patch` in a disposable worktree,
+use `STWO_EXPORT_PCS_SUFFIX=1` in the native receive command below and set the
+request's proof workers to one for contiguous capture records. Run:
+
+```sh
+python3 tools/export_pcs_suffix.py pcs.log receive.json \
+  fixtures/native-queries-121057303.json truth-4.bin \
+  fixtures/native-pcs-121057303-truth-4.json
+```
 
 ## Mainnet provenance
 
