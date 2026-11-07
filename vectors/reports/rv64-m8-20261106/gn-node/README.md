@@ -55,6 +55,19 @@ Proof-only runner (`pod/gn_prove.py`: the gate's small-block-proof step + frozen
 ### In-service: the production GPU-native node job (`STWO_RV64_M8_GN_NODE=job`)
 Every node is proved a second time through `outer_device.NodeJob` over its `NodeClasses` template (children in a node-local stand-in of the request slab: image in the last region words), device encoder into the node's region (image tail on, outputs from device memory, `device_publish`: no host decode in finish), and the bytes are compared with the published host bytes.
 
+
+Cold request of each block (driver b9, addon b6; `job-cold-<block>.txt` = the GN_NODE_JOB lines):
+
+| block | nodes through the production node job | device-encoded bytes == published host bytes | own PCS image tail == node image | all 7 slab verdict words accepted | host launches / node | NodeJob host stage+enqueue / node |
+|---|---|---|---|---|---|---|
+| 24628607 | 19 (14 leaves, 5 folds incl. root) | 19/19 | 19/19 | 19/19 | 7 (seed fill 4 + lookup copy + channel verdict + 1 graph launch of the body; encoder/OODS/tail inside the made job) | 42–87 us [M] |
+| 26235156 | 15 (11 leaves, 4 folds incl. root) | 15/15 | 15/15 | 15/15 | 7 | 37–74 us [M] |
+
+- Verdict words read back from the node's region: seed_tape, child_binding, lookup_sum, channel_order, node_pcs_status, encode_bounds, node_oods_constraint.
+- [M] Worker stage of the made job (hybrid window): leaves 27–192 ms, folds 138–322 ms per node — the template's node region (zeroed seeds, up to 24 MB) and, under the hybrid window's per-job class-region policy, the class schedule are re-packed and uploaded per node, plus the check-mode child-region upload. With persistent class regions (the GPU-native install) the schedule is uploaded once per worker; the seeds section needs the `device_inputs` flag requested in M8-INTERFACES.
+- [M] Body GPU wait 77–422 ms (leaves) / 243–533 ms (folds) per node: the whole-node prove itself.
+- Warm request of the same services failed in job mode (`InvalidDevicePcsColumn`): the class template borrowed its node's Authority-owned FIXED log table, freed after the cold request. Fixed in 131005f81 (templates own it; the Blake sample tape is handed over per node). Re-run below.
+
 ### Host tests (laptop, memguard 6 GB)
 - [M] `zig build test-rv64-jobs-outer` and `test-rv64-jobs` PASS. `outer_seed_device.zig`: synthetic children with real Merkle trees (trace + FRI), caps and full-path roots verified, five negative classes. `outer_device.zig`: the GPU-native node job end to end on the fake device (2 GPUs, the fold's second child on the peer GPU: one peer copy; seeds/outputs/checkpoint == mirror; seed_tape / child_binding / lookup_sum / channel_order words accepted in the request slab), and its negatives (corrupted peer child path → seed_tape reject, bad channel latch → channel_order reject, publish refuses; unknown child / wrong child count / unplanned class fail at plan time).
 
