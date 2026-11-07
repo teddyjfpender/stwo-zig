@@ -157,6 +157,10 @@ def classify(segs, cpu_table, truth_table):
 
 
 ENVELOPE_CAP = 23      # largest component log admitted anywhere in the basket (initial_log 23); never exceeded by the envelope
+# Receiver source-bounds caps (om31_security_candidate.zig MAX_TRACE_LOG / MAX_PUBLIC_BOUNDARY_LOG, enforced by
+# gkr_local/source_bounds.zig includeRole): only initial/terminal may reach 23; every other component is refused above 22.
+MAX_TRACE_LOG = 22
+BOUNDARY_COMPONENTS = (13, 14)  # initial_log, terminal_log
 UNSEEN_LOG = 12        # [E] log given to a component no training segment uses (so an unseen bridge still has a class)
 LAST_CPU_LOGS = range(16, 23)  # cpu_last envelope ladder; capture pads a shorter final segment up to 2^16 rows (design sec. 3.2)
 
@@ -169,7 +173,8 @@ def envelope_vector(cpu_segs, all_segs):
     for c in range(len(COMP)):
         mine = [s["vec"][c] + 1 for s in cpu_segs if s["vec"][c]]
         every = [s["vec"][c] for s in all_segs if s["vec"][c]]
-        env[c] = min(max(mine + every), ENVELOPE_CAP) if every else UNSEEN_LOG
+        cap = ENVELOPE_CAP if c in BOUNDARY_COMPONENTS else min(ENVELOPE_CAP, MAX_TRACE_LOG)
+        env[c] = min(max(mine + every), cap) if every else UNSEEN_LOG
     env[12] = 5
     env[40] = 0
     return env
@@ -243,7 +248,14 @@ def tax(segs, cpu_table, truth_table, widths, which="cells"):
         e[0] += r
         e[1] += q
     return {f"cpu_{which}_tax": round(pad / real - 1, 4) if real else 0.0, "truth_rows_tax": round(tpad / treal - 1, 4) if treal else 0.0,
-            f"cpu_{which}_real": real, f"cpu_{which}_padded": pad, f"block_{which}_tax": {k: round(v[1] / v[0] - 1, 4) for k, v in sorted(per.items())}}
+            f"cpu_{which}_real": real, f"cpu_{which}_padded": pad, "truth_rows_real": treal, "truth_rows_padded": tpad, f"block_{which}_tax": {k: round(v[1] / v[0] - 1, 4) for k, v in sorted(per.items())}}
+
+
+def is_envelope(v, family_rungs):
+    """Envelope rungs share every component but cpu_log (envelope_vector); DP rungs are group maxima. An envelope is a rung
+    whose non-cpu_log part equals the family's componentwise-largest rung."""
+    top = [max(r[c] for r in family_rungs) for c in range(len(COMP))]
+    return list(v[1:]) == top[1:]
 
 
 def presence_classes(segs):
@@ -307,6 +319,9 @@ def main():
         row["presence_preserving_classes"] = presence_classes(segs)
         del row["block_cells_tax"]
         lobo_miss, lobo_blocks = 0, []
+        # Held-out (out-of-sample) padding tax: the in-sample tax above is fitted on the very blocks it is measured on (many
+        # leaves sit on a DP rung equal to their own max vector); a production block is unseen, so this is the honest tax.
+        lo = {"cpu_real": 0, "cpu_pad": 0, "truth_real": 0, "truth_pad": 0, "block_cells_tax": {}, "envelope_leaves": 0}
         for b in BASKET_ORDER:
             train = [s for s in segs if s["block"] != b]
             test = [dict(s) for s in segs if s["block"] == b]
@@ -315,7 +330,19 @@ def main():
             if m2:
                 lobo_blocks.append({"block": b, "misses": len(m2), "first": m2[0]})
             lobo_miss += len(m2)
-        row["leave_one_block_out"] = {"misses": lobo_miss, "of": len(segs), "blocks_with_misses": lobo_blocks[:15]}
+            t2 = tax(test, ct2, tt2, widths)
+            lo["cpu_real"] += t2["cpu_cells_real"]
+            lo["cpu_pad"] += t2["cpu_cells_padded"]
+            lo["truth_real"] += t2["truth_rows_real"]
+            lo["truth_pad"] += t2["truth_rows_padded"]
+            lo["block_cells_tax"][str(b)] = t2["block_cells_tax"].get(str(b))
+            env = {fam: {tuple(v) for v in vs[-len(vs):] if is_envelope(v, vs)} for fam, vs in ct2.items()}
+            lo["envelope_leaves"] += sum(1 for s in test if s["kind"] == "cpu" and s.get("class") is not None and tuple(ct2[s["family"]][s["class"][3]]) in env[s["family"]])
+        row["leave_one_block_out"] = {"misses": lobo_miss, "of": len(segs), "blocks_with_misses": lobo_blocks[:15],
+                                      "blocks_refused": len(lobo_blocks), "blocks": len(BASKET_ORDER),
+                                      "heldout_cpu_cells_tax": round(lo["cpu_pad"] / lo["cpu_real"] - 1, 4),
+                                      "heldout_truth_rows_tax": round(lo["truth_pad"] / lo["truth_real"] - 1, 4),
+                                      "heldout_envelope_cpu_leaves": lo["envelope_leaves"], "heldout_block_cells_tax": lo["block_cells_tax"]}
         sweep[str(R)] = row
     out["catalog_sweep"] = sweep
     ct, tt = build_catalog(segs, widths, a.rungs)
@@ -331,7 +358,9 @@ def main():
     brief = {k: out[k] for k in ("leaves", "cpu_leaves", "truth_leaves")}
     brief["exact_classes"] = out["exact"]["classes"]
     brief["v1_strict"] = {k: out["v1_strict"][k] for k in ("catalog_classes", "classes_used", "misses", "miss_blocks", "miss_reasons")}
-    brief["sweep"] = {R: {k: v[k] for k in ("catalog_classes", "classes_used", "misses", "cpu_cells_tax", "cpu_main_tax", "truth_rows_tax", "presence_preserving_classes")} | {"lobo_misses": v["leave_one_block_out"]["misses"]} for R, v in sweep.items()}
+    brief["sweep"] = {R: {k: v[k] for k in ("catalog_classes", "classes_used", "misses", "cpu_cells_tax", "cpu_main_tax", "truth_rows_tax", "presence_preserving_classes")}
+                      | {"lobo_" + k: v["leave_one_block_out"][k] for k in ("misses", "blocks_refused", "heldout_cpu_cells_tax", "heldout_truth_rows_tax", "heldout_envelope_cpu_leaves")}
+                      for R, v in sweep.items()}
     print(json.dumps(brief, indent=1))
     if a.zig:
         write_zig(a.zig, ct, tt, a.rungs)

@@ -1,0 +1,149 @@
+{
+ "schema": "rv64-m9-canon-leaf-fold-classes/v1",
+ "label": "D on the basket declarations; tree model E (bundle order, 4-ary consecutive folds)",
+ "rungs": 4,
+ "per_block": [
+  {
+   "block": 26235156,
+   "leaves": 11,
+   "exact_new_leaf": 11,
+   "exact_new_fold": 4,
+   "folds": 4,
+   "canon_new_leaf": 10,
+   "canon_new_fold": 4
+  },
+  {
+   "block": 24647140,
+   "leaves": 15,
+   "exact_new_leaf": 10,
+   "exact_new_fold": 5,
+   "folds": 5,
+   "canon_new_leaf": 3,
+   "canon_new_fold": 4
+  },
+  {
+   "block": 24628607,
+   "leaves": 17,
+   "exact_new_leaf": 12,
+   "exact_new_fold": 8,
+   "folds": 8,
+   "canon_new_leaf": 3,
+   "canon_new_fold": 8
+  },
+  {
+   "block": 25229957,
+   "leaves": 17,
+   "exact_new_leaf": 10,
+   "exact_new_fold": 8,
+   "folds": 8,
+   "canon_new_leaf": 3,
+   "canon_new_fold": 5
+  },
+  {
+   "block": 24628608,
+   "leaves": 20,
+   "exact_new_leaf": 12,
+   "exact_new_fold": 8,
+   "folds": 8,
+   "canon_new_leaf": 1,
+   "canon_new_fold": 7
+  },
+  {
+   "block": 24626900,
+   "leaves": 20,
+   "exact_new_leaf": 15,
+   "exact_new_fold": 8,
+   "folds": 8,
+   "canon_new_leaf": 4,
+   "canon_new_fold": 8
+  },
+  {
+   "block": 24697073,
+   "leaves": 28,
+   "exact_new_leaf": 18,
+   "exact_new_fold": 10,
+   "folds": 10,
+   "canon_new_leaf": 4,
+   "canon_new_fold": 9
+  },
+  {
+   "block": 24697070,
+   "leaves": 31,
+   "exact_new_leaf": 20,
+   "exact_new_fold": 11,
+   "folds": 11,
+   "canon_new_leaf": 5,
+   "canon_new_fold": 10
+  },
+  {
+   "block": 26235168,
+   "leaves": 49,
+   "exact_new_leaf": 33,
+   "exact_new_fold": 18,
+   "folds": 18,
+   "canon_new_leaf": 6,
+   "canon_new_fold": 17
+  },
+  {
+   "block": 25229955,
+   "leaves": 49,
+   "exact_new_leaf": 34,
+   "exact_new_fold": 18,
+   "folds": 18,
+   "canon_new_leaf": 5,
+   "canon_new_fold": 16
+  },
+  {
+   "block": 25229951,
+   "leaves": 58,
+   "exact_new_leaf": 39,
+   "exact_new_fold": 18,
+   "folds": 20,
+   "canon_new_leaf": 4,
+   "canon_new_fold": 13
+  },
+  {
+   "block": 24628590,
+   "leaves": 56,
+   "exact_new_leaf": 38,
+   "exact_new_fold": 18,
+   "folds": 19,
+   "canon_new_leaf": 1,
+   "canon_new_fold": 14
+  },
+  {
+   "block": 24628595,
+   "leaves": 66,
+   "exact_new_leaf": 44,
+   "exact_new_fold": 24,
+   "folds": 25,
+   "canon_new_leaf": 1,
+   "canon_new_fold": 20
+  },
+  {
+   "block": 24628611,
+   "leaves": 67,
+   "exact_new_leaf": 43,
+   "exact_new_fold": 24,
+   "folds": 25,
+   "canon_new_leaf": 0,
+   "canon_new_fold": 18
+  },
+  {
+   "block": 26235159,
+   "leaves": 75,
+   "exact_new_leaf": 50,
+   "exact_new_fold": 26,
+   "folds": 27,
+   "canon_new_leaf": 3,
+   "canon_new_fold": 16
+  }
+ ],
+ "after_first_block": {
+  "folds": 210,
+  "exact_new_fold": 204,
+  "canon_new_fold": 165,
+  "exact_new_leaf": 378,
+  "canon_new_leaf": 43
+ }
+}
