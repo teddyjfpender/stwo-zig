@@ -132,7 +132,8 @@ pub const Service = struct {
             if (rows.len != warm.segments) return error.GpuNativeCaptureSegmentCountChanged;
             const keys = try a.alloc(G.ClassKey, rows.len);
             defer a.free(keys);
-            for (rows, keys, 0..) |r, *k, s| k.* = try native.vtable.class_of(native.ctx, @intCast(s), r);
+            // gn-shape: the block-qualified class (rows alone are ambiguous).
+            for (rows, keys, 0..) |r, *k, s| k.* = if (native.vtable.class_of_block) |cob| try cob(native.ctx, block, @intCast(s), r) else try native.vtable.class_of(native.ctx, @intCast(s), r);
             const rs = try rshape_hook(recursion.ctx, wb, keys);
             var topo = try D.Topology.carry(a, @intCast(rows.len), rs.truths, rs.fold_arity);
             errdefer topo.deinit();

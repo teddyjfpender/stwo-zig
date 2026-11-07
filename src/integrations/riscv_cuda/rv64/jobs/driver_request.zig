@@ -538,7 +538,7 @@ pub const InFlight = struct {
         const segs = try a.alloc(D.Segment, S);
         const ring_words: ?u64 = if (req.capture) |cap| if (cap.ring) |r| r.capacityWords() else null else null;
         for (req.segment_rows, 0..) |rows, s| {
-            native_keys[s] = try drv.native.vtable.class_of(drv.native.ctx, @intCast(s), rows);
+            native_keys[s] = if (drv.native.vtable.class_of_block) |cob| try cob(drv.native.ctx, self.req.block, @intCast(s), rows) else try drv.native.vtable.class_of(drv.native.ctx, @intCast(s), rows);
             native_cls[s] = try drv.classes.get(native_keys[s]);
             claims = @max(claims, native_cls[s].claims_per_segment);
             // A segment the ring cannot hold would deadlock its own capture

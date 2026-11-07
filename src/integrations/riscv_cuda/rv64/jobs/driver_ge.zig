@@ -34,6 +34,10 @@ const S = @import("driver_serve.zig");
 const C = @import("../m8_capture_stream.zig");
 const mod = @import("mod.zig");
 const B = @import("driver_bind.zig");
+const NCB = @import("native_class_build.zig");
+const NGl = @import("native_global.zig");
+const NP = @import("native_pcs.zig");
+const Sources = @import("../gkr_sources.zig");
 
 const Request = CPU.rv64_ethereum_request;
 const Image = CPU.rv64_expected_image;
@@ -54,6 +58,7 @@ const Shard = @typeInfo(SegmentFn).@"fn".params[3].type.?;
 const ManifestBlock = struct { request: []const u8, jobs: []const u8 = "-", prefix_count: u32 = 0, expected_cpu_segments: usize = 0 };
 const Manifest = struct {
     schema: []const u8,
+    profile: []const u8 = "d2_native_b4_q54_p20_fold4",
     blocks: std.json.ArrayHashMap(ManifestBlock),
     execution_order: []const u64,
     resources: std.json.Value,
@@ -68,6 +73,10 @@ pub const Source = struct {
     blocks: []Block,
     metadata: Metadata.Cache,
     options: CaptureOptions,
+    /// Service constants of the native class builder (manifest).
+    profile: CPU.rv64_om31_security_candidate.Profile,
+    gkr_bytes: usize,
+    fixed_setup_bytes: usize,
     /// One capture work pool per in-flight request (TLS-bound on its capture
     /// thread) plus one for install-time warm captures.
     pools: [3]*engine.work_pool.WorkPool,
@@ -98,7 +107,7 @@ pub const Source = struct {
         try options.validate();
         const self = try a.create(Source);
         errdefer a.destroy(self);
-        self.* = .{ .a = a, .blocks = &.{}, .metadata = try Metadata.Cache.init(a, 64 << 20), .options = options, .pools = undefined };
+        self.* = .{ .a = a, .blocks = &.{}, .metadata = try Metadata.Cache.init(a, 64 << 20), .options = options, .pools = undefined, .profile = try CPU.rv64_om31_security_candidate.Profile.parse(m.profile), .gkr_bytes = resourceUsize(m.resources, "gkr_bytes") orelse return error.GpuNativeManifestNoGkrBytes, .fixed_setup_bytes = resourceUsize(m.resources, "fixed_setup_bytes") orelse (4 << 30) };
         errdefer self.metadata.deinit();
         var unique: std.ArrayListUnmanaged(u64) = .empty;
         defer unique.deinit(a);
@@ -289,6 +298,15 @@ pub const Source = struct {
     }
 };
 
+fn resourceUsize(resources: std.json.Value, name: []const u8) ?usize {
+    if (resources != .object) return null;
+    const v = resources.object.get(name) orelse return null;
+    return switch (v) {
+        .integer => |i| if (i < 0) null else @intCast(i),
+        else => null,
+    };
+}
+
 fn envUnsigned(name: []const u8, default: u64) !u64 {
     const v = std.posix.getenv(name) orelse return default;
     return std.fmt.parseUnsigned(u64, v, 10) catch error.InvalidM8GpuNativeEnvironment;
@@ -305,7 +323,10 @@ const default_ring_bytes: u64 = 4 << 20;
 /// Batch pinned pool per GPU for Stage1 GKR metadata (n-stage1: small per job).
 const default_batch_pinned_bytes: u64 = 1 << 20;
 
-pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, spool: []const u8) !void {
+/// `Host`: rv64/m8_class_build_composition.zig, handed in by the combined
+/// entry (it reads the legacy composition Context, which the sync lint keeps
+/// out of rv64/jobs/ imports).
+pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, spool: []const u8, comptime Host: type) !void {
     var timer = try std.time.Timer.start();
     const addon = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingJobsAddon;
     var libs = try O.Libraries.open(library, addon);
@@ -333,6 +354,26 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
     var fallback_state = Fallbacks{ .truths = @intCast(try envUnsigned("STWO_RV64_M8_GPU_NATIVE_TRUTHS", 5)) };
     const binding = try B.Binding.init(a, &libs, workers[0..made], .{ .identity = identity }, fallback_state.hooks());
     defer binding.deinit();
+    // gn-shape: the install-time native class builder (shape + class_of_block).
+    var catalogue = try Sources.Catalogue.init(a);
+    defer catalogue.deinit();
+    var gcatalogue = NGl.Catalogue.init(a, &libs.base);
+    defer gcatalogue.deinit();
+    var gmutex = std.Thread.Mutex{};
+    const host = try Host.HostArtifacts.init(a);
+    defer host.deinit(a);
+    const Version = *const fn () callconv(.c) u32;
+    const wide = if (libs.base.lookup(Version, "stwo_rv64_pcs_request_version")) |version| version() >= 3 else false;
+    var builder = NCB.Builder{
+        .a = a,
+        .env = .{ .a = a, .catalogue = &catalogue, .gcatalogue = &gcatalogue, .gmutex = &gmutex, .psym = try NP.Symbols.load(&libs.addon), .composition = Host.of(&host.context), .wide = wide, .config = CPU.rv64_om31_security_candidate.configFor(source.profile), .byte_cap = source.gkr_bytes },
+        .registry = &binding.registry,
+        .factory = &binding.stage2,
+        .framing_instances = @import("native_device_stage2.zig").Factory.instances_per_device * made,
+        .fixed_setup_bytes = source.fixed_setup_bytes,
+    };
+    defer builder.deinit();
+    binding.bindShape(builder.hooks());
     {
         var text: std.Io.Writer.Allocating = .init(a);
         defer text.deinit();

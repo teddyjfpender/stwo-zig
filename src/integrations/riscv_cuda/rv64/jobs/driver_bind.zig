@@ -39,6 +39,7 @@ const NE = @import("native_encode.zig");
 const NC = @import("native_commit.zig");
 const NP = @import("native_pcs.zig");
 const NComp = @import("native_composition.zig");
+const NO = @import("native_encode_oods.zig");
 const Gl = @import("native_global.zig");
 const HJ = @import("native_hybrid_jobs.zig");
 const TF = @import("truth_factory.zig");
@@ -122,6 +123,8 @@ pub const Binding = struct {
                 .pcs = try NP.Symbols.load(&libs.addon),
                 .composition = try NComp.Symbols.load(&libs.base, &libs.addon),
                 .global = try Gl.Symbols.load(&libs.base),
+                // gn-s2: Check.oods_constraint kernel (an older addon leaves the word unset).
+                .oods = NO.Symbols.load(&libs.addon) catch null,
             },
             .truth_sym = if (options.truths) try TJ.Symbols.load(&libs.base, &libs.addon) else null,
             .events = try Events.load(&libs.base),
@@ -144,6 +147,13 @@ pub const Binding = struct {
         return self;
     }
 
+    /// gn-shape: the install-time class builder (native_class_build
+    /// Builder.hooks()); re-resolves the composed native vtable.
+    pub fn bindShape(self: *Binding, hooks: ND.ShapeHooks) void {
+        self.native.shape_hooks = hooks;
+        self.compose();
+    }
+
     pub fn deinit(self: *Binding) void {
         if (self.truth) |*t| t.deinit();
         self.stage2.deinit();
@@ -159,7 +169,11 @@ pub const Binding = struct {
         const rv = self.inner_recursion.vtable;
         var r = Resolution{};
         self.native_vt = .{ .warm = nWarm, .installed = nInstalled, .class_of = nClassOf, .stage1 = nStage1, .stage2 = nStage2, .seal = nSeal, .chunk = nChunk };
-        if (nv.shape != null) {
+        if (nv.class_of_block != null) self.native_vt.class_of_block = nClassOfBlock;
+        // native_device.Native always exposes `shape` (unbound it fails with
+        // GpuNativeNativeShapeHookMissing): the stream's hook counts only
+        // when its shape_hooks are bound.
+        if (nv.shape != null and self.native.shape_hooks != null) {
             self.native_vt.shape = nShape;
             r.native_shape = .stream;
         } else if (self.fallback.native_shape != null) {
@@ -276,10 +290,14 @@ pub const Binding = struct {
         const n = of(raw).inner_native;
         return n.vtable.chunk(n.ctx, ctx, c, device);
     }
+    fn nClassOfBlock(raw: *anyopaque, block: u64, segment: u32, rows: u64) anyerror!G.ClassKey {
+        const n = of(raw).inner_native;
+        return n.vtable.class_of_block.?(n.ctx, block, segment, rows);
+    }
     fn nShape(raw: *anyopaque, a: std.mem.Allocator, wb: G.WarmBlock) anyerror![]u64 {
         const self = of(raw);
         const n = self.inner_native;
-        if (n.vtable.shape) |h| return h(n.ctx, a, wb);
+        if (self.native.shape_hooks != null) return n.vtable.shape.?(n.ctx, a, wb);
         return self.fallback.native_shape.?(self.fallback.ctx, a, wb);
     }
     fn nPack(raw: *anyopaque, ctx: *const G.RequestContext, cs: G.CapturedSegment, w: G.ChunkWriter) anyerror!u64 {
