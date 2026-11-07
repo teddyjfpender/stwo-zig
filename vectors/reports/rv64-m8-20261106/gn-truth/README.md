@@ -50,30 +50,59 @@ Branch `codex/rv64-m8-gn-truth` (from `origin/codex/rv64-m8-gpu` @ b289b021f). L
       encode_value → 0x01040004.
     - The r-truth faults each fire exactly their own check, except `parameter_program`: a corrupted gather
       makes the statement itself wrong, so truth_oods correctly rejects too.
-- Assets: addon `build/m8-gn-truth/addon-2/libstwo-rv64-jobs.so` (sha256 c39f6328…), linked against the
-  frozen m7-combined-residency base (a25cc3b2…), which is the same recording recipe as r-truth.
-  `addon-1` (c2ee537b…) is linked against the shared opt-combined base (25d0e62f…). Harness
-  `zig-out/bin/rv64-m8-truth-parity` (fd17f3ae…). Run dirs: `runs/m8-gn-truth/parity-{6,7}` (stdout/stderr).
+- [M] `rv64_gate.sh --stream m8-gn-truth` (default env) **PASS** at c53885fd9. It covers build, unit tests,
+  small-block cold + warm proofs byte-identical to the frozen D2 golden, fresh CPU receivers and the negative
+  corpus. Summary: `gate-1.json` (`runs/m8-gn-truth/gate-1`).
+- [M] after the parallel root Horner (bc9820a06), `parity-10.json` (26235156) and `parity-9.json`
+  (24628607): again **14/14 byte-identical** and **40/40 negatives**. The OODS check now takes
+  0.18–0.79 ms GPU per truth (separate CUDA-event span), down from up to about 7 ms with a sequential root
+  fold.
+- Assets: the parity-6/7 runs used `build/m8-gn-truth/addon-2/libstwo-rv64-jobs.so` and the parity-9/10 runs
+  used `addon-3`. Both are linked against the frozen m7-combined-residency base (a25cc3b2…), which is
+  r-truth's recording recipe. `addon-1` (c2ee537b…) is linked against the shared opt-combined base
+  (25d0e62f…). The harness is `zig-out/bin/rv64-m8-truth-parity`. Run dirs: `runs/m8-gn-truth/parity-{6,7,9,10}`.
+- One legacy recording (parity-8, 26235156) died in the legacy GPU-0 pipeline with
+  `CudaGlobalWitnessFailed` / `CudaAllocationFailed`: the arena overran with 25.75 GB live, and no other GPU
+  process was running. The rerun (parity-10) passed. This is a single-GPU legacy-recording flake, not
+  TruthJob code.
 
-| per request [M] (CUDA events / host timers; warm run 2, 7 truths) | 26235156 | 24628607 |
+| per request [M] (CUDA events / host timers; warm run 2, 7 truths; parity-10 / parity-9) | 26235156 | 24628607 |
 |---|---|---|
-| device OODS + encoder + merge, GPU | **42.2 ms** | **42.1 ms** |
-| host assembly it replaces (decode + engine OODS + encodePhysical) | 630.7 ms | 635.8 ms |
-| finish host time, `.device` (harness: includes copying the bytes out of the job slab) | 5.4 ms | 5.7 ms |
-| finish host time, `.check` (with host assembly) | 637.1 ms | 643.4 ms |
-| stage 1 GPU | 272.9 ms | 349.5 ms |
-| stage 2 GPU (incl. the device encode) | 1471.4 ms | 1767.0 ms |
-| stage 2 host enqueue (overlaps GPU) | 454.7 ms | 558.2 ms |
-| stage 2 host stage (fillTable etc.) | 1.9 ms | 2.0 ms |
+| device OODS + encoder + merge, GPU | **17.6 ms** | **17.7 ms** |
+| of which the OODS check, GPU | 3.5 ms | 3.5 ms |
+| host assembly it replaces (decode + engine OODS + encodePhysical) | 651.6 ms | 679.8 ms |
+| finish host time, `.device` (harness: includes copying the bytes out of the job slab) | 4.9 ms | 5.8 ms |
+| stage 1 GPU | 273.1 ms | 350.8 ms |
+| stage 2 GPU (incl. the device encode) | 1444.1 ms | 1738.6 ms |
+| stage 2 host enqueue (overlaps GPU) | 438.1 ms | 535.5 ms |
+| stage 2 host stage (fillTable etc.) | 1.9 ms | 2.1 ms |
 
-Per truth, device OODS + encode GPU [M]:
-- keccak (45,898 nodes, 200 levels): 7.5–7.8 ms
-- sha256 (133,523 nodes, 45 levels): 10.7 ms
-- secp_row add (73,615 nodes): 4.2 ms
-- secp_row double (47,035 nodes): 3.4 ms
-- arith256_mod: 1.0 ms
+The first build used a sequential root fold (parity-6/7, 42 ms/request device): there, keccak took 7.5–7.8 ms
+and sha256 10.7 ms per truth.
+
+Per truth, device OODS / OODS + encode GPU [M, parity-10]:
+
+| family | nodes | levels | OODS | OODS + encode |
+|---|---|---|---|---|
+| keccak | 45,898 | 200 | 0.51–0.53 ms | 2.33–2.46 ms |
+| sha256 | 133,523 | 45 | 0.78 ms | 3.64 ms |
+| secp_row add | 73,615 | 42 | 0.54 ms | 3.32 ms |
+| secp_row double | 47,035 | 42 | 0.42 ms | 2.68 ms |
+| arith256_mod | 11,317 | 41 | 0.18 ms | 0.85–0.88 ms |
 
 Encoded capacity per class: 0.57–2.25 MB.
+
+Stage-2 host enqueue by phase [M] (`STWO_RV64_M8_TRUTH_TRACE=1` host_ns, parity-10, warm, 7 truths, 437.6 ms
+in total):
+- witness + MAIN commit (replay): 197.8 ms
+- interaction roles: 102.4 ms
+- INTER commit: 95.4 ms
+- PCS: 38.7 ms
+- composition: 2.1 ms
+- device OODS + encode: 0.2 ms
+
+The cost is launch-bound in the per-column commit/role launches. For keccak log 18 alone: MAIN 117 ms, roles
+58 ms, INTER 51 ms.
 
 ## Finding (opt-combined image, single-GPU legacy recording)
 On the shared opt-combined base (25d0e62f), the single-GPU legacy recording run fails in truth stage two, so
@@ -86,8 +115,12 @@ The process-wide arena size (`STWO_RV64_DEVICE_ARENA` has no per-device form) al
 GPU 1, whose keccak log-18 stage-2 peak is 5.76e9 words.
 
 ## Remaining host work (per request, truths)
-- Stage-2 host enqueue: 0.45–0.56 s [M], launch-bound. It overlaps the GPU but is host CPU on the request
-  path. The fix is a whole-job graph capture per class (the composition roles + PCS launches).
+- Stage-2 host enqueue: 0.44–0.54 s [M], launch-bound (breakdown above). It overlaps the GPU (stage 2 GPU
+  1.44–1.74 s) but is host CPU on the request path. Fixes:
+  - drop the MAIN replay by retaining stage 1's MAIN over the seal (−198 ms host, −273–351 ms GPU, at the
+    cost of MAIN residency);
+  - a whole-job graph capture per class, or batched per-tree commit launches (native_commit.zig, native
+    stream).
 - Per-job host table (`fillTable`: scripts, spans, programs, PCS expectation): 1.9–2.0 ms [M]. The static
   words could be class-cached.
 - Compact input packing from the capture advice, and the stage-2 seed (worker_protocol.begin: a few Blake2s).
