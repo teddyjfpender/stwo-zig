@@ -3,7 +3,7 @@
 # gates on the new default runtime -> T1+T10 3+3 on 24628607 -> T1+T10 3+3 on 26235159 (--allow-block) -> T2 isolation 3+3.
 set -u
 S=m8-m-runtime; R=/workspace/m3/runs/$S; SRC=/workspace/m3/src/$S; B=/workspace/m3/build/$S
-C=${C:?commit}; ST=$R/pipe1.status; P=$SRC/vectors/reports/rv64-m8-20261106
+C=${C:?commit}; ST=$R/${PIPE:-pipe1}.status; P=$SRC/vectors/reports/rv64-m8-20261106
 STEPS=${STEPS:-"gate-def-26235156 gate-def-24628607 gate-on-24628607 ab-24628607 ab-26235159 t2-24628607"}
 log() { echo "$(date -u +%FT%TZ) $*" >> $ST; }
 ON="--env STWO_RV64_M8_CAPTURE_LOCAL_LEDGER=1 --env STWO_RV64_M8_CAPTURE_INFLIGHT=16 --env STWO_RV64_M8_CAPTURE_RECORDER=1"
@@ -16,7 +16,8 @@ ab() { name=$1; preset=$2; block=$3; shift 3
     --driver $B/zig-out/bin/rv64-word16-ethereum-gpu-combined --receiver $B/zig-out/bin/rv64-word16-ethereum-recursion-receiver \
     --native-hooks-commit c72b51646 --device-hooks-commit c72b51646 --preset $preset --block $block $PREP \
     --out $R/$name-manifest.json > $R/$name-prepare.log 2>&1; log $name prepare rc=$?
-  for a in 1 2 3; do
+  for a in $(seq ${FIRST_ATTEMPT:-1} ${LAST_ATTEMPT:-3}); do
+    [ -n "${QUIET_WAIT:-}" ] && { python3 $P/m-runtime/quiet_window.py >> $ST 2>&1 || { log $name quiet-window-timeout; return 1; }; }
     python3 scripts/rv64_m7_integration_stack.py run --manifest $R/$name-manifest.json --out $R/$name-$a "$@" > $R/$name-$a.log 2>&1; rc=$?
     log $name-$a rc=$rc; [ $rc -eq 0 ] && return 0
     grep -q "quiet admission timed out" $R/$name-$a/*.log 2>/dev/null || return $rc
