@@ -12,8 +12,18 @@
 const std = @import("std");
 const api = @import("api.zig");
 const G = @import("gpu_native.zig");
+/// Stage 2 + device seal (piece n-stage2) seam: native_device_stage2.zig
+/// `Factory.hooks()`. Not imported here (the light driver test root that
+/// builds this file cannot build the Stage-2 dependencies).
+pub const Stage2Hooks = struct {
+    ctx: *anyopaque,
+    seal: *const fn (*anyopaque, *const G.RequestContext, u32) anyerror!api.Job,
+    stage2: *const fn (*anyopaque, *const G.RequestContext, u32, u32) anyerror!api.Job,
+};
 
 pub const Native = struct {
+    /// Stage-2 / seal factory (n-stage2); null = those entries fail closed.
+    stage2_hooks: ?Stage2Hooks = null,
     pub fn factory(self: *Native) G.NativeFactory {
         return .{ .ctx = self, .vtable = &vtable };
     }
@@ -27,11 +37,15 @@ pub const Native = struct {
     fn stage1(_: *anyopaque, _: *const G.RequestContext, _: u32, _: u32) anyerror!api.Job {
         return error.M8GpuNativeNativeNotLanded;
     }
-    fn stage2(_: *anyopaque, _: *const G.RequestContext, _: u32, _: u32) anyerror!api.Job {
-        return error.M8GpuNativeNativeNotLanded;
+    fn stage2(raw: *anyopaque, ctx: *const G.RequestContext, segment: u32, device: u32) anyerror!api.Job {
+        const self: *Native = @ptrCast(@alignCast(raw));
+        const h = self.stage2_hooks orelse return error.M8GpuNativeNativeNotLanded;
+        return h.stage2(h.ctx, ctx, segment, device);
     }
-    fn seal(_: *anyopaque, _: *const G.RequestContext, _: u32) anyerror!api.Job {
-        return error.M8GpuNativeNativeNotLanded;
+    fn seal(raw: *anyopaque, ctx: *const G.RequestContext, device: u32) anyerror!api.Job {
+        const self: *Native = @ptrCast(@alignCast(raw));
+        const h = self.stage2_hooks orelse return error.M8GpuNativeNativeNotLanded;
+        return h.seal(h.ctx, ctx, device);
     }
     fn chunk(_: *anyopaque, _: *const G.RequestContext, _: G.TraceChunk, _: u32) anyerror!void {
         return error.M8GpuNativeNativeNotLanded;

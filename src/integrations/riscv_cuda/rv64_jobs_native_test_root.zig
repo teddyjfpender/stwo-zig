@@ -21,4 +21,6 @@ test {
     _ = @import("rv64/jobs/native_tail_test.zig");
     _ = @import("rv64/jobs/native_device.zig");
     _ = @import("rv64/jobs/native_framing_cache.zig");
+    _ = @import("rv64/jobs/native_encode.zig");
+    _ = @import("rv64/jobs/native_device_stage2.zig");
 }

@@ -42,6 +42,9 @@ pub const rv64_gkr_source = @import("word16_global_execution/services/gkr_local/
 pub const rv64_gkr_cpu_components = @import("word16_global_execution/services/gkr_local/cpu_components.zig");
 pub const rv64_gkr_cpu_worker = @import("word16_global_execution/services/gkr_local/cpu_worker.zig");
 pub const rv64_gkr_manifest = @import("word16_global_execution/services/gkr_local/manifest.zig");
+/// Native chain policy / version identity (M8 GPU-native device seal: the
+/// chi chain IV is chainIv(versionIdentity(version)), a host constant).
+pub const rv64_gkr_chain = @import("word16_global_execution/services/gkr_local/chain.zig");
 /// Global RAM/KIO/Wire claim layout per origin (claimCount / claimsFromVector):
 /// the authority of the Stage2 claims buffer layout (M8 jobs/native_claims.zig).
 pub const rv64_gkr_global_cpu = @import("word16_global_execution/services/gkr_local/global_cpu.zig");
