@@ -6,7 +6,10 @@
 //!   request  persistent region NOT fresh (adopted), witness from two chunks
 //!            (h2d + scatter, one column split across them), FIXED root mixed,
 //!            MAIN committed into a caller view: MAIN root and the post-MAIN
-//!            channel equal the host; root_match and witness_status accept;
+//!            channel equal the host; root_match (incl. the v2 constant run
+//!            over the post-MAIN channel guard: draws 0, cursor, chain,
+//!            status) and witness_status accept; a guard one step off rejects
+//!            at detail 0x20;
 //!   negative a class whose stored authority root is corrupted -> root_match
 //!            rejects (0x0208 << 16 | 0x10); a chunk run past the image ->
 //!            witness status 1 and witness_status rejects (0x0201 << 16 | 1),
@@ -94,9 +97,16 @@ const Probe = struct {
                 const root_out = try e.slab.device.slice(8, 8);
                 const pro = try S1.enqueuePrologue(c, self.sym, e, self.seed_buf.?, region, .{ .chunks = self.chunks }, self.runs[0..self.chunks.len], &self.main, self.inputs, main_view, root_out);
                 try e.channel.snapshot(e.slab, 16);
+                const cursor = e.channel.step;
+                const chain = e.channel.expectedChain(cursor);
                 var r = S1.CheckSpec{ .check = @intFromEnum(G.Check.root_match) };
                 try r.mustEqual(pro.fixed_root, pro.class_root);
+                try r.mustMatch(try e.slab.device.slice(16 + 8, 8), &S1.snapshotGuard(0, cursor, chain));
                 try cuda(self.sym.check(e.ctx(), 0, &r, e.slab.device.ptr + 40));
+                // v2 constant run negative: a cursor one step off rejects at 0x20.
+                var off = S1.CheckSpec{ .check = @intFromEnum(G.Check.root_match) };
+                try off.mustMatch(try e.slab.device.slice(16 + 8, 8), &S1.snapshotGuard(0, cursor + 1, chain +% 1));
+                try cuda(self.sym.check(e.ctx(), 0, &off, e.slab.device.ptr + 43));
                 var w = S1.CheckSpec{ .check = @intFromEnum(G.Check.witness_status) };
                 try w.mustBeZero(pro.witness_status);
                 try cuda(self.sym.check(e.ctx(), 0, &w, e.slab.device.ptr + 41));
@@ -245,7 +255,8 @@ test "GPU: native Stage-1 prologue (warm FIXED, adopted root, chunk witness, MAI
     try std.testing.expectEqual(@as(u32, 0), req.result[40]); // root_match accepted
     try std.testing.expectEqual(@as(u32, 0), req.result[41]); // witness_status accepted
     try std.testing.expectEqual(@as(u32, 0), req.result[42]);
-    std.debug.print("GPU_M8_N1_PROLOGUE_PARITY fixed_root_equal=1 main_root_equal=1 channel_equal=1 root_match=0x{x} witness_status=0x{x}\n", .{ req.result[40], req.result[41] });
+    try std.testing.expectEqual(G.Verdict.reject(.root_match, 0x20), req.result[43]); // off-by-one cursor guard
+    std.debug.print("GPU_M8_N1_PROLOGUE_PARITY fixed_root_equal=1 main_root_equal=1 channel_equal=1 root_match=0x{x} witness_status=0x{x} cursor_guard_negative=0x{x} main_cursor={}\n", .{ req.result[40], req.result[41], req.result[43], req.result[25] });
 
     // Negative 1: corrupted class authority root -> root_match rejects.
     var bad_root = fixed_root;

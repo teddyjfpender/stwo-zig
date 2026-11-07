@@ -14,13 +14,50 @@ test "resident layout: 64-word aligned regions in order, views bounded" {
     try testing.expectEqual(@as(usize, 1024), l.binding);
     try testing.expectEqual(@as(usize, 1024 + 192), l.section);
     try testing.expectEqual(@as(usize, 1024 + 192 + 128), l.authority);
-    try testing.expectEqual(@as(usize, 1024 + 192 + 128 + 64), l.words);
-    var backing: [1408]u32 = undefined;
+    try testing.expectEqual(@as(usize, 1024 + 192 + 128 + 64), l.checkpoint);
+    try testing.expectEqual(@as(usize, 1024 + 192 + 128 + 64 + 64), l.words);
+    var backing: [1472]u32 = undefined;
     const r = api.DeviceBuffer{ .ptr = &backing, .words = backing.len };
     try testing.expectEqual(@as(usize, 1000), (try l.mainView(r)).words);
     try testing.expectEqual(@as(usize, 65), (try l.sectionView(r)).words);
     try testing.expect((try l.authorityView(r)).ptr == r.ptr + l.authority);
     try testing.expectError(error.GpuNativeMainResidentTooSmall, l.bindingView(.{ .ptr = &backing, .words = l.words - 1 }));
+    const ck = try l.checkpointView(r);
+    try testing.expectEqual(@as(usize, 16), ck.words);
+    try testing.expect(ck.ptr == r.ptr + 1408);
+    try testing.expectError(error.GpuNativeMainResidentTooSmall, l.checkpointView(.{ .ptr = &backing, .words = l.words - 1 }));
+}
+
+test "guards: snapshot words [8,16) and traversal header words [8,20) as the legacy validators read them" {
+    // channel.zig Snapshot: digest 8, draws, cursor, status, reserved, chain (u64 LE), padding 2.
+    const chain: u64 = 0x4a4f4253_0000_0011;
+    try testing.expectEqualSlices(u32, &.{ 3, 17, 0, 0, 0x11, 0x4a4f4253, 0, 0 }, &S1.snapshotGuard(3, 17, chain));
+    const DC = @import("channel.zig");
+    var snap: DC.Snapshot = .{ .digest = @splat(9), .draws = 3, .cursor = 17, .status = 0, .reserved = 0, .chain = chain, .padding = .{ 0, 0 } };
+    const words = std.mem.bytesAsSlice(u32, std.mem.asBytes(&snap));
+    try testing.expectEqualSlices(u32, words[8..16], &S1.snapshotGuard(3, 17, chain));
+    // gkr.zig Header.validate: cursor 2L, draws 1, layers L, count, next_layer L, phase 2.
+    const hg = S1.headerGuard(5, 3, 0x47524b53_0000_0000);
+    try testing.expectEqualSlices(u32, &.{ 1, 10, 0, 0, 0, 0x47524b53, 0, 0, 5, 3, 5, 2 }, &hg);
+    snap.status = 1;
+    try testing.expect(!std.mem.eql(u32, words[8..16], &S1.snapshotGuard(3, 17, chain)));
+}
+
+test "witness coverage: chunk runs must tile the image exactly" {
+    const a = testing.allocator;
+    const d = [_]u32{ 0, 0, 0, 0, 0, 0, 0, 0 };
+    const c0 = try chunkWords(a, &.{ .{ .dst = 4, .src = 0, .words = 4 }, .{ .dst = 0, .src = 4, .words = 2 } }, &d);
+    defer a.free(c0);
+    const c1 = try chunkWords(a, &.{.{ .dst = 2, .src = 0, .words = 2 }}, &d);
+    defer a.free(c1);
+    const ch = [_]G.TraceChunk{ .{ .segment = 0, .sequence = 0, .first_row = 0, .rows = 1, .last = false, .words = c0 }, .{ .segment = 0, .sequence = 1, .first_row = 1, .rows = 1, .last = true, .words = c1 } };
+    try S1.validateCoverage(a, &ch, 8);
+    try testing.expectError(error.NativeStage1WitnessCoverage, S1.validateCoverage(a, &ch, 9)); // tail gap
+    try testing.expectError(error.NativeStage1WitnessCoverage, S1.validateCoverage(a, ch[0..1], 8)); // hole [2,4)
+    const c2 = try chunkWords(a, &.{.{ .dst = 3, .src = 0, .words = 1 }}, &d);
+    defer a.free(c2);
+    const over = [_]G.TraceChunk{ ch[0], ch[1], .{ .segment = 0, .sequence = 2, .first_row = 2, .rows = 1, .last = true, .words = c2 } };
+    try testing.expectError(error.NativeStage1WitnessCoverage, S1.validateCoverage(a, &over, 8)); // overlap
 }
 
 fn chunkWords(a: std.mem.Allocator, runs: []const S1.Run, data: []const u32) ![]u32 {
@@ -66,7 +103,14 @@ test "check spec: at most 8 zero words and 4 equal pairs of equal nonzero length
     const eight = api.DeviceBuffer{ .ptr = &words, .words = 8 };
     for (0..4) |_| try c.mustEqual(eight, eight);
     try testing.expectError(error.NativeStage1CheckShape, c.mustEqual(eight, eight));
+    for (0..4) |_| try c.mustMatch(eight, &.{ 1, 2, 3, 4, 5, 6, 7, 8 });
+    try testing.expectError(error.NativeStage1CheckShape, c.mustMatch(eight, &.{ 1, 2, 3, 4, 5, 6, 7, 8 }));
+    try testing.expectEqual(@as(u32, 8), c.consts[3].words);
+    try testing.expectEqual(@as(u32, 8), c.consts[3].values[7]);
     var d = S1.CheckSpec{ .check = @intFromEnum(G.Check.binding_authority) };
+    try testing.expectError(error.NativeStage1CheckShape, d.mustMatch(eight, &.{1})); // length mismatch
+    const seventeen = [_]u32{0} ** 17;
+    try testing.expectError(error.NativeStage1CheckShape, d.mustMatch(.{ .ptr = &words, .words = 16 }, seventeen[0..16 + 1]));
     try testing.expectError(error.NativeStage1CheckShape, d.mustEqual(eight, one));
     try testing.expectError(error.NativeStage1CheckShape, d.mustEqual(.{ .ptr = &words, .words = 0 }, .{ .ptr = &words, .words = 0 }));
     try testing.expectError(error.NativeStage1CheckShape, d.mustBeZero(.{ .ptr = &words, .words = 0 }));
@@ -126,6 +170,17 @@ test "registry: one rows value maps to one class" {
     other.key = @splat(2);
     try testing.expectError(error.GpuNativeClassKeyMismatch, r.register(other, 1 << 21));
     try testing.expectEqualSlices(u8, &spec.key, &(try r.classOf(1 << 21)));
+}
+
+test "registry: a registered class refuses to warm without a device count; install needs every device warmed" {
+    var r = S1.Registry.init(testing.allocator);
+    defer r.deinit();
+    var plan: @import("native_gkr.zig").Plan = undefined;
+    try r.register(.{ .key = @splat(3), .gkr = &plan, .instances = &.{}, .fixed_shapes = &.{}, .fixed_host = &.{}, .fixed_root = @splat(0), .main_shapes = &.{}, .beta = 2 }, 1 << 20);
+    var cache = G.ClassCache.init(testing.allocator);
+    defer cache.deinit();
+    const h = r.hooks();
+    try testing.expectError(error.NativeStage1DevicesNotBound, h.warm(h.ctx, &cache));
 }
 
 test "native factory routes Stage 1 to a bound registry; unbound stays fail-closed" {
