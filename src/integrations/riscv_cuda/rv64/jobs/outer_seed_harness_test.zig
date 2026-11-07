@@ -459,3 +459,9 @@ fn negatives(a: std.mem.Allocator, gpu_opt: *?Gpu, prog: S.Program, regions: []c
         try std.testing.expect(seed_ok and bind_ok and dev_ok);
     }
 }
+
+test "gn-node: outer_device restates the outer kernels / checks constants exactly" {
+    const D = @import("outer_device.zig");
+    try std.testing.expectEqual(@import("outer_checks.zig").field_index, D.lookup_field_index);
+    try std.testing.expect(D.Copy == @import("outer_kernels.zig").Copy);
+}

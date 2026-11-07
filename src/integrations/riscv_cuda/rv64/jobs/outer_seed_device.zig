@@ -933,7 +933,7 @@ test "seed program: trace.position matches lifting" {
 
 /// Synthetic child (tests): a PCS image whose trace trees are real Merkle
 /// trees over pseudo-random rows, with `queries` raw queries.
-const Synthetic = struct {
+pub const Synthetic = struct {
     shape: Shape,
     image: []u32,
     region: []u32,
@@ -941,7 +941,7 @@ const Synthetic = struct {
     logs: [2][3]u32,
     s2o: [2][3]u32,
     sc: [2][3]u32,
-    fn init(self: *Synthetic, a: std.mem.Allocator, seed: u64, wire_words: u32) !void {
+    pub fn init(self: *Synthetic, a: std.mem.Allocator, seed: u64, wire_words: u32) !void {
         var rng = std.Random.DefaultPrng.init(seed);
         const r = rng.random();
         self.logs = .{ .{ 3, 2, 3 }, .{ 3, 3, 1 } };
@@ -989,7 +989,7 @@ const Synthetic = struct {
         self.region[0] = 4 * (wire_words - 1);
         @memcpy(self.region[wire_words..], self.image);
     }
-    fn deinit(self: *Synthetic, a: std.mem.Allocator) void {
+    pub fn deinit(self: *Synthetic, a: std.mem.Allocator) void {
         a.free(self.image);
         a.free(self.region);
     }
