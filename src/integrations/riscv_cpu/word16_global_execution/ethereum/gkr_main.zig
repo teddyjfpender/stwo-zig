@@ -28,6 +28,7 @@ const NativeCache = @import("../../word16_execution/fixed_native_cache.zig");
 const MetadataCache = @import("../../word16_execution/program_metadata.zig");
 pub const Recycler = @import("../../rv64_large_block_recycler.zig").LargeBlockRecycler;
 const ReceiverBudget = @import("receiver_budget.zig");
+const ReceiverSetup = @import("receiver_setup.zig");
 const FixedAuthority = @import("../services/gkr_local/fixed_authority.zig");
 const FixedSet = @import("../services/gkr_local/fixed_authority_set.zig").Set;
 const Candidate = @import("../../word16_execution/om31_security_candidate.zig");
@@ -131,7 +132,7 @@ pub fn mainWithResidentPipeline(stages: ResidentStages) !void {
     const base = recycler.allocator();
     const all_args = try std.process.argsAlloc(base);
     defer std.process.argsFree(base, all_args);
-    return runArguments(&recycler, all_args, stages, null, false, {}, true);
+    return runArguments(&recycler, all_args, stages, null, null, false, {}, true);
 }
 /// CPU native-only product: no recursive proving or policy dependency. Native
 /// source admission, proof format and independent receiver remain the same.
@@ -143,7 +144,11 @@ pub fn mainNativeOnly() !void {
     const selection = try selectProfile(args);
     if (selection.args.len >= 2 and std.mem.eql(u8, selection.args[1], "batch-candidate"))
         return @import("native_batch.zig").run(@This(), &recycler, selection.profile, selection.args);
-    return runArguments(&recycler, args, .{}, null, false, {}, false);
+    if (selection.args.len >= 2 and std.mem.eql(u8, selection.args[1], "verify-batch-candidate")) {
+        try requireIndependentReceiverSetup(std.process.hasEnvVarConstant(SETUP_CACHE_ENV));
+        return @import("receiver_batch.zig").run(@This(), &recycler, selection.profile, selection.args);
+    }
+    return runArguments(&recycler, args, .{}, null, null, false, {}, false);
 }
 /// Separate linked product: the resident native executable does not pull the
 /// circuit stack into every GPU build merely to expose an unavailable mode.
@@ -156,7 +161,7 @@ pub fn mainWithRecursionFactory(factory: ?@import("stwo_circuit_cpu_integration"
     defer recycler.deinit();
     const all_args = try std.process.argsAlloc(recycler.allocator());
     defer std.process.argsFree(recycler.allocator(), all_args);
-    return runArguments(&recycler, all_args, .{}, null, true, .{ .factory = factory }, true);
+    return runArguments(&recycler, all_args, .{}, null, null, true, .{ .factory = factory }, true);
 }
 /// Explicit linked product: production and recursion share independently derived
 /// live authorities and the in-memory bundle. No receiver handoff is reloaded.
@@ -217,7 +222,7 @@ pub fn runCombinedResidentArgsWithExecution(recycler: *Recycler, all_args: []con
     if (session.active) return error.ResidentRequestAlreadyActive;
     session.active = true;
     defer session.active = false;
-    return runArguments(recycler, all_args, stages, session, true, execution, true);
+    return runArguments(recycler, all_args, stages, session, null, true, execution, true);
 }
 fn isCombinedProducer(mode: []const u8) bool {
     return std.mem.eql(u8, mode, "produce-and-recurse-candidate");
@@ -228,16 +233,21 @@ pub fn runWithResidentArgs(recycler: *Recycler, all_args: []const [:0]u8, stages
     if (session.active) return error.ResidentRequestAlreadyActive;
     session.active = true;
     defer session.active = false;
-    return runArguments(recycler, all_args, stages, session, false, {}, true);
+    return runArguments(recycler, all_args, stages, session, null, false, {}, true);
 }
 /// CPU-only persistent producer. It has no recursion-policy/module dependency.
 pub fn runNativeResidentArgs(recycler: *Recycler, args: []const [:0]u8, session: *ResidentSession) !void {
     if (session.active) return error.ResidentRequestAlreadyActive;
     session.active = true;
     defer session.active = false;
-    return runArguments(recycler, args, .{}, session, false, {}, false);
+    return runArguments(recycler, args, .{}, session, null, false, {}, false);
 }
-fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: ?*ResidentSession, comptime enable_recursion: bool, recursion_execution: if (enable_recursion) CombinedRecursion else void, comptime check_recursion_policy: bool) !void {
+pub fn runNativeReceiverArgs(recycler: *Recycler, args: []const [:0]u8, session: *ReceiverSetup.Session) !void {
+    const selection = try selectProfile(args);
+    if (selection.args.len < 2 or !std.mem.eql(u8, selection.args[1], "verify-candidate")) return error.ReceiverSessionRequiresVerifier;
+    return runArguments(recycler, args, .{}, null, session, false, {}, false);
+}
+fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: ?*ResidentSession, receiver_session: ?*ReceiverSetup.Session, comptime enable_recursion: bool, recursion_execution: if (enable_recursion) CombinedRecursion else void, comptime check_recursion_policy: bool) !void {
     const process_start = try std.time.Instant.now();
     // canon-vk M5: outer profile / shape / fold arity env must parse, or the
     // process exits with a clean error before any work (never a panic, P03).
@@ -397,15 +407,15 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     defer if (direct_started) |value| value.deinit(&direct_stats);
     // M5 platform: a resident session reuses the receiver-derived
     // ProgramAuthority of the same guest (keyed by its executable words).
-    var image = if (session) |shared| try Image.Owner.initShared(a, request.value, &shared.authorities) else try Image.Owner.init(a, request.value);
+    var image = if (session) |shared| try Image.Owner.initShared(a, request.value, &shared.authorities) else if (receiver_session) |shared| try Image.Owner.initShared(a, request.value, &shared.images) else try Image.Owner.init(a, request.value);
     defer image.deinit();
     const image_load_ns = timer.read();
     if (prestage) |*p| p.image_identity = image.identity;
-    var local_native: ?NativeCache.Cache = if (session == null) try NativeCache.Cache.init(a, 256 << 20) else null;
+    var local_native: ?NativeCache.Cache = if (session == null and receiver_session == null) try NativeCache.Cache.init(a, 256 << 20) else null;
     defer if (local_native) |*cache| cache.deinit();
-    var local_metadata: ?MetadataCache.Cache = if (session == null) try MetadataCache.Cache.init(a, 64 << 20) else null;
+    var local_metadata: ?MetadataCache.Cache = if (session == null and receiver_session == null) try MetadataCache.Cache.init(a, 64 << 20) else null;
     defer if (local_metadata) |*cache| cache.deinit();
-    const caches = if (session) |shared| shared.caches() else @import("../../word16_execution/setup.zig").ImmutableCaches{ .native = &local_native.?, .program = &local_metadata.? };
+    const caches = if (session) |shared| shared.caches() else if (receiver_session) |shared| shared.caches() else @import("../../word16_execution/setup.zig").ImmutableCaches{ .native = &local_native.?, .program = &local_metadata.? };
     const compact_capture_program = if (std.posix.getenv("STWO_RV64_CAPTURE_PROGRAM_VIEW")) |v| !std.mem.eql(u8, v, "0") else true;
     var program = if (compact_capture_program) try Program.initCaptureWithAuthorityAndMetadataCache(a, &image.authority, caches.program.?) else try Program.initWithAuthorityAndMetadataCache(a, &image.authority, caches.program.?);
     defer program.deinit();
@@ -420,7 +430,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         var source_bounds: ?SourceBounds.Report = if (candidate) try SourceBounds.derive(a, program.log_size, loaded.cpu_declarations, loaded.truth_declarations, loaded.bundle.requests) else null;
         defer if (source_bounds) |*value| value.deinit();
         const native_keys_start_ns = timer.read();
-        const setup = try @import("receiver_setup.zig").Owner.create(a, &image, request.value, loaded.cpu_declarations, loaded.truth_declarations, pcs, caches, candidate, fixed_setup_bytes, try @import("receiver_setup.zig").identityOnly());
+        const setup = try ReceiverSetup.Owner.create(a, &image, request.value, loaded.cpu_declarations, loaded.truth_declarations, pcs, caches, candidate, fixed_setup_bytes, receiver_session != null or try ReceiverSetup.identityOnly(), receiver_session);
         defer setup.destroy();
         const keys = &setup.keys;
         const fixed_cache = setup.fixedCache();
@@ -462,7 +472,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
             return emit(a, .{ .accepted = true, .completed_ethereum_block = true, .output = output, .native_profile = selected_profile, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.domainName(), .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .recursive = recursion });
         }
         const output = try Receiver.verifyWithAuthorityAndProgram(a, &image, &program, keys, &loaded.bundle, request.value.max_steps, request.value.batch_steps, verify, pcs, fixed_set);
-        if (fixed_cache) |owner| return emit(a, .{ .profile = selected_profile, .security_qualified = false, .security_target = security_target, .security_profile = security_profile.name(), .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .verify_ns = timer.read() - setup_ns, .receiver_source_keys = if (setup.identity_only) @as([]const u8, "identity-only") else "committed", .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells, .source_accounting_profile = source_bounds.?.accounting_profile, .source_shape = source_bounds.?.shape, .source_lookup_only_conditional_degrees = source_bounds.?.conditional_degrees, .receiver_budget = receiver_budget.?.snapshot(), .receiver_recycler_cache_cap_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES, .receiver_worker_stack_upper_bound_bytes = try ReceiverBudget.stackBytes(try Request.effectiveWorkers(request.value)) });
+        if (fixed_cache) |owner| return emit(a, .{ .profile = selected_profile, .security_qualified = false, .security_target = security_target, .security_profile = security_profile.name(), .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .verify_ns = timer.read() - setup_ns, .receiver_session_setup = if (receiver_session) |shared| shared.cache.stats else null, .receiver_session_budget = if (receiver_session) |shared| shared.budget.snapshot() else null, .receiver_source_keys = if (setup.identity_only) @as([]const u8, "identity-only") else "committed", .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells, .source_accounting_profile = source_bounds.?.accounting_profile, .source_shape = source_bounds.?.shape, .source_lookup_only_conditional_degrees = source_bounds.?.conditional_degrees, .receiver_budget = receiver_budget.?.snapshot(), .receiver_recycler_cache_cap_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES, .receiver_worker_stack_upper_bound_bytes = try ReceiverBudget.stackBytes(try Request.effectiveWorkers(request.value)) });
         return emit(a, .{ .profile = PROFILE, .security_qualified = false, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .verify_ns = timer.read() - setup_ns });
     }
     var b2i = BlockToInputs{ .scope = if (inputs_only) "inputs-candidate diagnostic: sequential per-worker source build after setup; no proof" else "produce: per-worker source timestamps inside the scheduled prove" };
@@ -840,4 +850,8 @@ test "fresh receiver never admits persisted producer setup roots" {
 test {
     _ = @import("resources.zig");
     _ = @import("native_batch.zig");
+}
+
+test {
+    _ = @import("receiver_batch.zig");
 }

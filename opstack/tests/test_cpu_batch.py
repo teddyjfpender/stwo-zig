@@ -4,7 +4,7 @@ import copy
 import unittest
 
 from opstack.cpu import PROFILE
-from opstack.cpu_batch import validate_index
+from opstack.cpu_batch import reports_from_stream, validate_index
 
 
 class CpuResidentIndex(unittest.TestCase):
@@ -42,3 +42,18 @@ class CpuResidentIndex(unittest.TestCase):
             bad["requests"][3][key] = value
             with self.assertRaises(ValueError):
                 validate_index(bad, names, 2)
+
+
+class ReceiverStreamTests(unittest.TestCase):
+    def test_accepts_exact_count_of_complete_json_values(self):
+        first = {"accepted": True, "ordinal": 0}
+        second = {"accepted": True, "ordinal": 1}
+        self.assertEqual(
+            reports_from_stream(
+                '{"accepted":true,"ordinal":0}\n  {"accepted":true,"ordinal":1}', 2
+            ),
+            [first, second],
+        )
+        for bad in ('{"accepted":true}', '{"accepted":true} {"accepted":', "{} {} {}"):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                reports_from_stream(bad, 2)

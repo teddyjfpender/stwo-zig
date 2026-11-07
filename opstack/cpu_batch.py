@@ -36,6 +36,20 @@ def validate_index(index, names, repeat):
             raise ValueError("resident production order or timing mismatch")
 
 
+def reports_from_stream(stream, expected_count):
+    decoder = json.JSONDecoder()
+    reports = []
+    while stream := stream.lstrip():
+        report, end = decoder.raw_decode(stream)
+        reports.append(report)
+        if len(reports) > expected_count:
+            raise ValueError("unexpected receiver reports")
+        stream = stream[end:]
+    if len(reports) != expected_count:
+        raise ValueError("incomplete receiver reports")
+    return reports
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--benchmark", type=Path, required=True)
@@ -50,7 +64,15 @@ def main():
     p.add_argument("--key-bytes", type=int, default=1 << 30)
     p.add_argument("--timeout", type=int, default=7200)
     p.add_argument(
-        "--receiver-setup", choices=("committed", "identity-only"), default="committed"
+        "--receiver-setup",
+        choices=("committed", "identity-only", "resident"),
+        default="committed",
+    )
+    p.add_argument(
+        "--receiver-key-bytes",
+        type=int,
+        default=3 << 30,
+        help="independent process-local setup admission for resident reception",
     )
     args = p.parse_args()
     if (
@@ -66,6 +88,11 @@ def main():
         or not 1 <= args.timeout <= 21600
     ):
         p.error("workers 1..8, positive key budget up to 4 GiB, timeout 1..21600")
+    if args.receiver_setup == "resident" and (
+        args.repeat * len(args.cases) > 32
+        or not 1 <= args.receiver_key_bytes <= 4 << 30
+    ):
+        p.error("resident reception allows up to 32 bundles and 4 GiB of setup")
     if any(key.startswith("STWO_") for key in os.environ):
         raise ValueError("unset ambient STWO_* selections")
     resources = json.loads(args.resources.read_text())
@@ -113,7 +140,7 @@ def main():
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
     receipt = {
         "schema": "stwo.opstack.cpu-resident.v1",
-        "scope": "complete native STARK production and separate fresh durable reception; no recursive root or L1 derivation",
+        "scope": "complete native STARK production and separate durable reception; no recursive root or L1 derivation",
         "security_qualified": False,
         "profile": PROFILE,
         "platform": platform.platform(),
@@ -152,28 +179,67 @@ def main():
     index = json.loads((output / "index.json").read_text())
     validate_index(index, args.cases, args.repeat)
     receipt["production_index"] = index
+    jobs = []
     for ordinal in range(args.repeat * len(cases)):
         case, request = cases[ordinal % len(cases)]
         # Receiver authority and paths come from this harness's own plan.
         # A producer index never supplies configuration or trusted proof paths.
         proof = output / f"{ordinal:06d}-{case}"
-        verifier = [
-            *tool,
-            "verify-candidate",
-            root / f"request-{case}.json",
-            proof,
-            resources["fixed_setup_bytes"],
-            6 << 30,
-        ]
-        prefix = root / f"receive-{ordinal:06d}"
-        row = measured(verifier, prefix, args.timeout, receiver_env, True)
-        receipt["receivers"].append(row)
+        jobs.append((root / f"request-{case}.json", proof, request["expected_output"]))
+    if args.receiver_setup == "resident":
+        receive_manifest = root / "receiver-manifest.json"
+        receive_manifest.write_text(
+            json.dumps(
+                {
+                    "schema": "rv64-cpu-receiver-inputs/v1",
+                    "setup_bytes": args.receiver_key_bytes,
+                    "fixed_setup_bytes": resources["fixed_setup_bytes"],
+                    "request_bytes": 6 << 30,
+                    "requests": [
+                        {"request": str(path), "proof": str(proof)}
+                        for path, proof, _ in jobs
+                    ],
+                },
+                indent=2,
+            )
+            + "\n"
+        )
+        verifier = [*tool, "verify-batch-candidate", receive_manifest]
+        prefix = root / "receive-batch"
+        receipt["receive_batch"] = measured(
+            verifier, prefix, args.timeout, receiver_env, True
+        )
         checkpoint()
-        if row["returncode"]:
-            raise RuntimeError("fresh resident-bundle reception failed")
-        report = json.loads(prefix.with_suffix(".stdout").read_text())
-        accept(report, request["expected_output"])
-        row["report"] = report
+        if receipt["receive_batch"]["returncode"]:
+            raise RuntimeError("independent receiver batch failed")
+        reports = reports_from_stream(
+            prefix.with_suffix(".stdout").read_text(), len(jobs)
+        )
+        for report, (_, _, expected) in zip(reports, jobs, strict=True):
+            accept(report, expected)
+            if report.get("receiver_session_setup") is None:
+                raise ValueError("missing resident receiver setup receipt")
+            receipt["receivers"].append({"report": report})
+        proof = jobs[-1][1]
+    else:
+        for ordinal, (request_path, proof, expected) in enumerate(jobs):
+            verifier = [
+                *tool,
+                "verify-candidate",
+                request_path,
+                proof,
+                resources["fixed_setup_bytes"],
+                6 << 30,
+            ]
+            prefix = root / f"receive-{ordinal:06d}"
+            row = measured(verifier, prefix, args.timeout, receiver_env, True)
+            receipt["receivers"].append(row)
+            checkpoint()
+            if row["returncode"]:
+                raise RuntimeError("fresh resident-bundle reception failed")
+            report = json.loads(prefix.with_suffix(".stdout").read_text())
+            accept(report, expected)
+            row["report"] = report
     receipt["corruption"] = corruption_trials(
         proof, verifier, root, args.timeout, receiver_env
     )
