@@ -26,6 +26,12 @@ and 1.178 s in verification. The subsequent requests took 1.367, 1.238 and
 warm path rejected a modified proof at transport admission and rejected it
 again after recomputing its outer digest.
 
+With four physical verification workers the same warm requests took
+0.583, 0.489 and 0.485 s including loading. Their proof checks took
+0.421–0.427 s and still reject both mutations. The cold parallel request
+spent 29.985 s independently deriving setup while a separate compile was
+running. [Receiver comparison](receiver-parallel.json)
+
 The borrowed BN254 Miller loop candidate completed all six OP Mainnet
 execution and Unicorn comparisons. On 121065789 it reduced 625,036,497
 instructions to 621,225,921 and service RAM word transitions from 40,325,354
