@@ -390,3 +390,31 @@ test("projects native queries into larger and depth-zero trees", async () => {
   assert.equal(await contract.verifyQueriedOpening(leaves[0].digest, 0, [context], [0], leaves[0].row, 4, []), true);
   assert.equal(await contract.verifyQueriedOpening(root, 3, [context], positions, rows, 4, [b, d]), true);
 });
+
+test("reconstructs the native DEEP and FRI commitment transcript", async () => {
+  const rawHash = (...pieces) => createHash("blake2s256").update(Buffer.concat(pieces)).digest();
+  const draw = (digest) => {
+    const block = rawHash(digest, Buffer.alloc(5));
+    return Array.from({ length: 8 }, (_, i) => BigInt(block.readUInt32LE(4 * i) % 0x7fffffff));
+  };
+  const prefix = id("verified OODS prefix");
+  const roots = [id("circle layer"), id("line layer one"), id("line layer two")];
+  const last = Buffer.alloc(32, 11);
+  for (const count of [0, 1, 2, 3, 4, 5, 8]) {
+    const samples = Buffer.alloc(count * 32, 7);
+    let digest = rawHash(binary(prefix), samples);
+    const deep = draw(digest);
+    const folding = roots.map((root) => {
+      digest = rawHash(digest, binary(root));
+      return draw(digest);
+    });
+    const result = await harness.derivePcs(prefix, 11, count, samples, roots, last);
+    assert.deepEqual(Array.from(result.deep), deep);
+    assert.deepEqual(result.folding.map((alpha) => Array.from(alpha)), folding);
+    assert.equal(result.prePowDigest, "0x" + rawHash(digest, last).toString("hex"));
+  }
+  await assert.rejects(harness.derivePcs(prefix, 11, 1, Buffer.alloc(32, 255), roots, last));
+  await assert.rejects(harness.derivePcs(prefix, 11, 2, Buffer.alloc(32), roots, last));
+  await assert.rejects(harness.derivePcs(prefix, 11, 0, "0x", roots.slice(1), last));
+  await assert.rejects(harness.derivePcs(prefix, 11, 0, "0x", roots, Buffer.alloc(64)));
+});

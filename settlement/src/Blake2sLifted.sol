@@ -28,31 +28,41 @@ library Blake2sLifted {
 
     /// @dev row must contain at least one word. The caller checks its shape.
     function leaf(bytes calldata row) internal pure returns (bytes32) {
-        uint256 lo = LEAF_0;
-        uint256 hi = LEAF_1;
+        return hashTail(LEAF_0, LEAF_1, 64, row);
+    }
+
+    /// @dev Raw BLAKE2s of a 32-byte channel digest and an unpadded calldata slice.
+    function absorb(bytes32 prefix, bytes calldata data) internal pure returns (bytes32) {
+        if (data.length <= 32) return shortDigest(prefix, loadPadded(data, 0), uint8(32 + data.length));
+        (uint256 lo, uint256 hi) = compress(IV_0, IV_1, prefix, loadPadded(data, 0), 64, false);
+        return hashTail(lo, hi, 64, data[32:]);
+    }
+
+    function hashTail(uint256 lo, uint256 hi, uint256 prefixBytes, bytes calldata data)
+        private
+        pure
+        returns (bytes32)
+    {
         for (uint256 offset; ; offset += 64) {
-            uint256 remaining = row.length - offset;
-            bytes32 left;
-            bytes32 right;
-            assembly ("memory-safe") {
-                let start := add(row.offset, offset)
-                left := calldataload(start)
-                right := calldataload(add(start, 32))
-                // A calldata slice can be followed by arbitrary bytes.
-                if lt(remaining, 32) {
-                    left := shl(mul(sub(32, remaining), 8), shr(mul(sub(32, remaining), 8), left))
-                    right := 0
-                }
-                if and(gt(remaining, 32), lt(remaining, 64)) {
-                    right := shl(mul(sub(64, remaining), 8), shr(mul(sub(64, remaining), 8), right))
-                }
-                if eq(remaining, 32) { right := 0 }
-            }
+            uint256 remaining = data.length - offset;
+            bytes32 left = loadPadded(data, offset);
+            bytes32 right = remaining > 32 ? loadPadded(data, offset + 32) : bytes32(0);
             if (remaining <= 64) {
-                (lo, hi) = compress(lo, hi, left, right, 64 + row.length, true);
+                (lo, hi) = compress(lo, hi, left, right, prefixBytes + data.length, true);
                 return digest(lo, hi);
             }
-            (lo, hi) = compress(lo, hi, left, right, 128 + offset, false);
+            (lo, hi) = compress(lo, hi, left, right, prefixBytes + offset + 64, false);
+        }
+    }
+
+    function loadPadded(bytes calldata data, uint256 offset) private pure returns (bytes32 word) {
+        uint256 remaining = data.length - offset;
+        assembly ("memory-safe") {
+            word := calldataload(add(data.offset, offset))
+            if lt(remaining, 32) {
+                let padding := mul(sub(32, remaining), 8)
+                word := shl(padding, shr(padding, word))
+            }
         }
     }
 

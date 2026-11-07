@@ -120,6 +120,20 @@ python3 -m pip install z3-solver==4.15.4.0
 python3 tools/check_invariants.py
 ```
 
+## Native DEEP and FRI transcript suffix
+
+`NativePcsTranscript` reconstructs the native DEEP challenge, each FRI
+folding challenge and the pre-PoW digest for the b2/q108/p20/fold4 profile.
+It absorbs canonical little-endian OM31 samples, mixes roots in native
+order and validates the layer count and final polynomial size. The
+caller owns the OODS prefix, sample count and domain. This suffix is
+available to a future full verifier alongside the existing query checks.
+The checkpoint still has no complete transition backend.
+
+The tests compare digest and challenge bytes with Node's independent
+BLAKE2s at multiple block boundaries, reject malformed field and layer
+encodings, and rerun the real Mainnet commitment opening tests.
+
 ## Mainnet provenance
 
 The fixtures come from `truth-3.bin` and `truth-4.bin` of the complete

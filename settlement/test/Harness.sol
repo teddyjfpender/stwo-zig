@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {Blake2sLifted} from "../src/Blake2sLifted.sol";
+import {NativePcsTranscript} from "../src/NativePcsTranscript.sol";
 import {IKonaTransitionVerifier} from "../src/KonaCheckpoint.sol";
 import {LiftedOpeningVerifier} from "../src/LiftedOpeningVerifier.sol";
 
@@ -17,6 +18,17 @@ contract Harness {
 
     function shortDigest(bytes32 left, bytes32 right, uint8 length) external pure returns (bytes32) {
         return Blake2sLifted.shortDigest(left, right, length);
+    }
+
+    function derivePcs(
+        bytes32 prefix,
+        uint8 domainLog,
+        uint256 sampleCount,
+        bytes calldata samples,
+        bytes32[] calldata roots,
+        bytes calldata lastCoefficient
+    ) external pure returns (NativePcsTranscript.Challenges memory) {
+        return NativePcsTranscript.derive(prefix, domainLog, sampleCount, samples, roots, lastCoefficient);
     }
 
     function checkSeparately(
