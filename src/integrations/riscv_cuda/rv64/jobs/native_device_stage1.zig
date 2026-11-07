@@ -71,6 +71,8 @@ const Slab = @import("slab.zig");
 const Sources = @import("../gkr_sources.zig");
 const W = @import("worker.zig");
 const ND = @import("native_device.zig");
+/// gn-pack: compact TraceChunk v2 + the device witness program.
+pub const NP = @import("native_pack.zig");
 
 pub const granule: usize = 64;
 fn up(x: usize) usize {
@@ -146,8 +148,11 @@ pub const Symbols = struct {
     /// (Stage1Job, WarmJob), not by the prologue.
     gkr: ?*const NG.Symbols,
     binding: NB.Symbols,
+    /// v2 compact ingress kernels (base-library *_witness_on; null = v2 refused).
+    pack: ?NP.Symbols = null,
     pub fn load(base: *std.DynLib, addon: *std.DynLib, gkr: ?*const NG.Symbols) !Symbols {
         return .{
+            .pack = NP.Symbols.load(base, addon) catch null,
             .check = addon.lookup(CheckFn, "stwo_rv64_n1_check_v2_on") orelse return error.MissingNativeStage1Kernel,
             .scatter = addon.lookup(ScatterFn, "stwo_rv64_n1_scatter_v1_on") orelse return error.MissingNativeStage1Kernel,
             .copy = addon.lookup(HJ.CopyAsync, "stwo_rv64_jobs_copy_async") orelse return error.MissingNativeStage1Kernel,
@@ -187,6 +192,9 @@ pub const Spec = struct {
     cost_us: u64 = 1,
     /// Pinned capture words one segment holds in the ring (driver ring check).
     capture_words: u64 = 0,
+    /// gn-pack: arena words of the class's largest v2 witness program (its
+    /// compact inputs, CPU scratch and ledgers), planned on top of jobWords.
+    compact_words: u64 = 0,
 };
 
 pub const ResidentLayout = struct {
@@ -307,7 +315,7 @@ pub const Class = struct {
     pub fn jobWords(self: *const Class) usize {
         const commit = @max(self.main.deviceWords(), self.main.coefficient_cells + self.main.eval_cells) + 8 * granule;
         const witness = up(self.image_words) + up(max_chunk_runs * 6) + granule;
-        return up(9) + self.spec.gkr.stagedWords(true) + up(self.main.stagedWords(0)) + witness + commit + self.spec.gkr.enqueueWords() + self.bind.enqueueWords() + 8 * granule;
+        return up(9) + self.spec.gkr.stagedWords(true) + up(self.main.stagedWords(0)) + witness + @as(usize, @intCast(self.spec.compact_words)) + commit + self.spec.gkr.enqueueWords() + self.bind.enqueueWords() + 8 * granule;
     }
     /// Stage-1 fields of the class's ClassEntry (Stage 2 adds its own).
     pub fn fill(self: *const Class, entry: *G.ClassEntry, devices: u32) void {
@@ -403,7 +411,27 @@ pub const Witness = union(enum) {
     /// coefficient encoding as the class shapes declare): parity harnesses and
     /// a device witness producer upstream of this job.
     device: []const [*]const u32,
+    /// gn-pack: compact TraceChunk v2 (native_pack.zig): compact facts/events
+    /// + a launch program of the base-library witness kernels, run into the
+    /// MAIN image on the exec stream. `program`/`bound` are the job's own
+    /// (set by Stage1Job.init/stage); harnesses may set them directly.
+    compact: Compact,
 };
+
+pub const Compact = struct {
+    chunks: []const G.TraceChunk,
+    roms: ?*NP.Roms = null,
+    program: ?*const NP.Program = null,
+    bound: ?*const NP.Bound = null,
+};
+
+/// True when a segment's chunks are format v2 (all or none).
+pub fn chunksAreV2(chunks: []const G.TraceChunk) !bool {
+    if (chunks.len == 0) return false;
+    const v2 = NP.isV2(chunks[0].words);
+    for (chunks[1..]) |ch| if (NP.isV2(ch.words) != v2) return error.NativeStage1ChunkFormat;
+    return v2;
+}
 
 // ---------------------------------------------------------------------------
 // Warm job: one per (class, GPU), at install, outside any request batch
@@ -537,6 +565,9 @@ pub const Stage1Job = struct {
     seed: ?api.DeviceBuffer = null,
     fixed: ?api.DeviceBuffer = null,
     runs: []?api.DeviceBuffer = &.{},
+    /// gn-pack v2 witness program (parsed at init) and its device buffers.
+    program: ?NP.Program = null,
+    bound: NP.Bound = .{},
     span: Span = .{},
     initialized: bool = false,
 
@@ -554,7 +585,13 @@ pub const Stage1Job = struct {
                 try validateCoverage(self.a, chunks, c.image_words);
             },
             .device => |cols| if (cols.len != c.main.shapes.len) return error.NativeStage1WitnessShape,
+            .compact => |cw| {
+                if (self.sym.pack == null) return error.MissingGnPackKernel;
+                for (cw.chunks) |ch| if (ch.segment != self.segment) return error.NativeStage1ChunkSegment;
+                self.program = try NP.Program.parse(self.a, cw.chunks, c.main.shapes.len);
+            },
         }
+        errdefer if (self.program) |*p| p.deinit();
         self.main = c.main;
         self.gplan = c.spec.gkr.*;
         self.gplan.prefix = self.words.prefix;
@@ -569,7 +606,7 @@ pub const Stage1Job = struct {
         errdefer self.a.free(self.inputs);
         self.runs = try self.a.alloc(?api.DeviceBuffer, switch (self.witness) {
             .chunks => |chunks| chunks.len,
-            .device => 0,
+            .device, .compact => 0,
         });
         @memset(self.runs, null);
         self.initialized = true;
@@ -578,6 +615,8 @@ pub const Stage1Job = struct {
         if (!self.initialized) return;
         self.span.close(self.timing);
         self.a.free(self.runs);
+        if (self.program) |*p| p.deinit();
+        self.program = null;
         self.a.free(self.inputs);
         self.gkr.deinit();
         self.a.free(self.items);
@@ -599,6 +638,9 @@ pub const Stage1Job = struct {
                 chunk_words += up(ch.words.len);
             },
             .device => {},
+            .compact => if (self.program) |*p| {
+                chunk_words += p.arenaWords();
+            },
         }
         const staged = up(9) + c.spec.gkr.stagedWords(true) + up(c.main.stagedWords(0)) + chunk_words;
         return .{ .device_words = c.jobWords() + chunk_words, .staged_words = staged, .slab_words = 0, .pinned_words = c.spec.gkr.pinnedWords() - c.spec.gkr.twiddle_words + c.main.logs.len + 9 + 4 * granule };
@@ -623,6 +665,12 @@ pub const Stage1Job = struct {
                 r.* = try s.alloc(ch.words.len);
             },
             .device => {},
+            .compact => |*cw| {
+                const prog = if (self.program) |*pp| pp else return error.NativeStage1NotStaged;
+                try self.bound.stage(prog, s, cw.roms);
+                cw.program = prog;
+                cw.bound = &self.bound;
+            },
         }
         try self.span.open(self.timing);
     }
@@ -696,6 +744,7 @@ pub const Stage1Job = struct {
         const child = try e.slab.field(.snapshot, c.spec.gkr.fields.base);
         var w = CheckSpec{ .check = @intFromEnum(G.Check.witness_status) };
         try w.mustBeZero(wstatus);
+        for (pro.compact_status[0..pro.compact_status_len]) |st| try w.mustBeZero(st);
         try cuda(sym.check(ectx, 0, &w, st_witness.ptr));
         var b = CheckSpec{ .check = @intFromEnum(G.Check.binding_authority) };
         try b.mustBeZero(try e.slab.field(.status, c.spec.gkr.fields.status()));
@@ -725,6 +774,10 @@ pub const Prologue = struct {
     class_root: api.DeviceBuffer,
     /// Witness ingress status (0 = every chunk run in range), job arena.
     witness_status: api.DeviceBuffer,
+    /// gn-pack v2: the program's device status words (CPU witness verdict,
+    /// shared ledger status); every one must be 0 (`witness_status`).
+    compact_status: [NP.max_status]api.DeviceBuffer = undefined,
+    compact_status_len: usize = 0,
 };
 
 /// Stage 1 up to the MAIN root, on `e`'s exec stream and device channel:
@@ -741,6 +794,8 @@ pub fn enqueuePrologue(c: *const Class, sym: *const Symbols, e: *api.Enqueue, se
     const wstatus = try e.alloc(1);
     try cuda(sym.memset(ectx, wstatus.ptr, 0, 4));
     var image: ?api.DeviceBuffer = null;
+    var compact_status: [NP.max_status]api.DeviceBuffer = undefined;
+    var compact_len: usize = 0;
     switch (witness) {
         .chunks => |chunks| {
             if (runs.len != chunks.len) return error.NativeStage1NotStaged;
@@ -759,13 +814,26 @@ pub fn enqueuePrologue(c: *const Class, sym: *const Symbols, e: *api.Enqueue, se
             if (cols.len != inputs.len) return error.NativeStage1WitnessShape;
             for (inputs, cols) |*i, col| i.* = .{ .device = col };
         },
+        .compact => |cw| {
+            const psym = &(sym.pack orelse return error.MissingGnPackKernel);
+            const program = cw.program orelse return error.NativeStage1NotStaged;
+            const bound = cw.bound orelse return error.NativeStage1NotStaged;
+            const img = try e.alloc(c.image_words);
+            image = img;
+            // Zero first: a kernel that leaves padding rows untouched commits
+            // zeros exactly as the legacy fresh MAIN leases did.
+            try cuda(sym.memset(ectx, @ptrCast(img.ptr), 0, img.words * 4));
+            try bound.enqueue(program, psym, e, img, c.image_offsets);
+            for (inputs, c.image_offsets) |*i, off| i.* = .{ .device = img.ptr + off };
+            compact_len = (try bound.statusWords(program, &compact_status)).len;
+        },
     }
     const fixed_root = try fixed_region.slice(c.fixed.coefficient_cells, 8);
     try e.channel.mixRootFromTree(fixed_root);
     const fixed = C.Committed{ .coefficients = try fixed_region.slice(0, c.fixed.coefficient_cells), .root = fixed_root.ptr };
     const committed = try main.enqueueInto(sym.commit, e, inputs, main_view, root_out, true);
     if (image) |img| e.free(img);
-    return .{ .fixed = fixed, .main = committed, .fixed_root = fixed_root, .class_root = try fixed_region.slice(c.fixed.coefficient_cells + 8, 8), .witness_status = wstatus };
+    return .{ .fixed = fixed, .main = committed, .fixed_root = fixed_root, .class_root = try fixed_region.slice(c.fixed.coefficient_cells + 8, 8), .witness_status = wstatus, .compact_status = compact_status, .compact_status_len = compact_len };
 }
 
 // ---------------------------------------------------------------------------
@@ -807,6 +875,9 @@ pub const Registry = struct {
     requests: std.AutoHashMapUnmanaged(u64, *Pending) = .empty,
     sym: ?*const Symbols = null,
     timing: ?*const HJ.Timing = null,
+    /// gn-pack: host ROM words for the v2 programs' persistent ROM regions
+    /// (filled by native_pack_capture.pack on the capture thread).
+    roms: ?*NP.Roms = null,
     /// Workers by driver device index (WarmJob per class and GPU at install).
     workers: []const *W.Worker = &.{},
     /// GPUs the service runs (set before warm): `held_words` is reserved on
@@ -982,7 +1053,9 @@ pub const Registry = struct {
         if (p.device != null) return error.NativeStage1WitnessTwice;
         if (p.job != null) return error.GpuNativeCaptureChunkAfterSeal;
         if (c.sequence != p.chunks.items.len) return error.GpuNativeCaptureGeometryMismatch;
-        _ = try chunkRuns(c.words);
+        if (NP.isV2(c.words)) {
+            if (c.words[1] != NP.version) return error.NativeStage1ChunkFormat;
+        } else _ = try chunkRuns(c.words);
         try p.chunks.append(self.a, c);
     }
     /// NativeFactory.stage1: the job (owned by the registry until `release`).
@@ -994,7 +1067,10 @@ pub const Registry = struct {
         if (p.job != null) return error.NativeStage1JobTwice;
         const words = p.words orelse return error.NativeStage1RequestWordsMissing;
         const cl = self.classes.get(p.key.?) orelse return error.GpuNativeClassNotWarmed;
-        const witness: Witness = if (p.device) |d| .{ .device = d } else if (p.chunks.items.len != 0) .{ .chunks = p.chunks.items } else return error.NativeStage1WitnessMissing;
+        const witness: Witness = if (p.device) |d| .{ .device = d } else if (p.chunks.items.len != 0)
+            (if (try chunksAreV2(p.chunks.items)) .{ .compact = .{ .chunks = p.chunks.items, .roms = self.roms } } else .{ .chunks = p.chunks.items })
+        else
+            return error.NativeStage1WitnessMissing;
         const job = try self.a.create(Stage1Job);
         errdefer self.a.destroy(job);
         job.* = .{ .a = self.a, .class = cl, .sym = sym, .ctx = ctx, .segment = segment, .device = device, .words = words, .witness = witness, .timing = self.timing };
@@ -1023,4 +1099,7 @@ pub const Registry = struct {
 
 test {
     _ = @import("native_device_stage1_test.zig");
+    _ = @import("native_pack.zig");
+    _ = @import("native_pack_capture.zig");
+    _ = @import("native_pack_gpu_test.zig");
 }

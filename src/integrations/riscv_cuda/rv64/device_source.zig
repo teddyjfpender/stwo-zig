@@ -90,6 +90,9 @@ pub const Context = struct {
             observed.ending = true;
             observed.invoke() catch |err| std.debug.print("GPU_NODE_ALLOC_CLOSE_FAILED phase=native_source coverage_valid=0 error={s}\n", .{@errorName(err)});
         };
+        // gn-pack recorder (STWO_RV64_M8_GN_PACK_RECORD, default off): packs
+        // the unconsumed request as TraceChunk v2, then hashes the legacy MAIN.
+        const recording = @import("gn_pack_record.zig").begin(a, request);
         const projection = try self.core.buildCore(a, request);
         errdefer projection.deinit();
         const logs = try request.setup.logs(a, 1);
@@ -118,6 +121,7 @@ pub const Context = struct {
         try projection.finishTables();
         const device = CPU.rv64_device_main.Owner{ .context = owner, .scope = request.scope, .columns = owner.columns, .release_fn = CompleteOwner.release };
         try device.validate(request.scope, logs);
+        if (recording) |r| @import("gn_pack_record.zig").finish(r, self.core.service, owner.columns);
         var result = R.Sources{ .core = try projection.takeSource(), .device_generated = true, .device_main = device };
         inline for (std.meta.fields(Headers)) |field| @field(result, field.name) = @field(headers, field.name);
         return result;
