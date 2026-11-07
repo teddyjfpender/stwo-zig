@@ -53,6 +53,9 @@ the factory's `warm` / `installed` hooks on the job GPU (GPU1), and negatives.
   device-warmed (WarmJob per class: FIXED commit + root check), resealed; 17.80 s wall after its 4.20 s capture (classes
   15.31 s, register + warm 2.16 s); every segment resolves by `class_of_block`, registry and cache hold all 14 classes.
 - [M] host (unit) `zig build test-rv64-jobs`: 520/530 (10 skipped GPU), incl. the sync lint and 6 new gn-shape tests.
+- [M] `rv64_gate.sh --stream m8-gn-shape` default: **PASS** at 277fd08dd (`gate-2.json`: 26235156 cold + warm 32/32 artifacts
+  byte-identical to the frozen D2 golden, 2/2 fresh CPU receivers accepted, negative corpus), and **PASS** again at
+  868a3ceea (`gate-3.json`, the class-miss path included: 32/32 byte-identical cold + warm, receivers 2/2, corpus).
 
 | install, host wall [M] | 26235156 (4 seg) | 24628607 (7 seg) |
 |---|---|---|
@@ -86,3 +89,31 @@ Sequential shape before the per-segment parallel setup: 17.98 / 34.50 s [M] (inv
   driver calling the shape hook for an unknown block at request time (today Service.begin refuses GpuNativeBlockNotWarmed;
   with `Builder.miss_cache` bound the hook does the whole miss path). The miss path writes `Registry.sealed` directly (no
   unseal API in native_device_stage1.zig) and must not run while a request of the same service is mid-enqueue.
+
+## Review (2026-11-07, fix 7fc107c95)
+Findings verified against the code and fixed:
+1. **Shared Stage-2 state across pool instances (race).** `registerClass` registered `framing_instances - 1` shallow copies of
+   the prototype `ClassFraming`; all shared one INTER `CommitPlan`, composition `Plan`, `PcsJob` and the global plans, which
+   `Stage2Job.stage`/`enqueue` write per-job state into (`PcsJob.bindColumn`, `CommitPlan.stage`; native_device_stage2.zig
+   Stage2Job.lease doc). Fixed: each extra instance is a replica rebuilt by `buildStage2` on the same inputs (`Class.replicas`,
+   Stage-1 borrowed from the prototype), fail-closed unless its Stage-2 fingerprint equals the prototype's.
+2. **RAM boundary claims not checked on device.** `ClassFraming.initial_claim/terminal_claim` were never set, so the device
+   `public_claims` check skipped the RAM boundary relations. [M] every segment of both blocks has core initial = claim 1,
+   terminal = claim 2. Fixed: taken from the `Components.Plan` core slots (exactly `cpu_worker.publicClaims`), fingerprinted.
+3. **Non-retryable registration.** A failed registration / miss-path warm left classes in the builder map but unregistered;
+   a retry treated them as known and never registered them. Fixed: idempotent per-class registration state; known classes not
+   fully registered (or, after install, not in the service cache) are re-registered. Whole block builds serialised.
+
+Evidence [M] (`review-parity-26235156-miss-24628607.json`, `review-parity-24628607.json`; binary sha256 9052d520…, stderr
+62f3b12b… / c895d63e…; framing_instances = 4 = instances_per_device x 2 GPUs):
+- Specs + framings equal the legacy ones field by field 4/4 and 7/7 (now incl. `s2.boundary_claims`); all negatives fire.
+- every Factory pool holds 4 instances with pairwise-distinct pcs / inter / composition / slots / global plans.
+- shape-hook host wall 11.08 -> 14.90 s (4 seg), 15.38 -> 18.49 s (7 seg): +3-4 s for 3 replicas per class (parallel);
+  class miss 24628607 after 26235156: 17.80 -> 20.66 s, 7 new classes, registry + cache hold all.
+- host tests 521/531 (10 skipped GPU).
+
+Open (not in this stream's files): driver_request.zig l.541 and driver_serve.zig l.122 still call the row-only `class_of`,
+which fails closed with `GnShapeClassAmbiguous` once two installed blocks share (segment, rows) with different classes
+(always, for real blocks) - gn-bind must call `class_of_block`. driver_ge.serve still builds `ND.Native{}` with no hooks
+(the Builder binding is gn-bind's). The miss path adds classes' `held_words` after the install memory plan (bounded by the
+worker persistent pool, not re-planned).

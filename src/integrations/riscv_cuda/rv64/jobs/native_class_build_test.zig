@@ -122,3 +122,50 @@ test "class build: legacy-side builders are analysed" {
     _ = &NCB.buildFromInventory;
     _ = &NCB.Inventory.init;
 }
+
+const NComp = @import("native_composition.zig");
+
+/// A host-only Class shell with just what registration reads (framing
+/// fields + replica links); never deinit'd through Class.deinit.
+fn shellClass(a: std.mem.Allocator, key: G.ClassKey, plan: *NComp.Plan) NCB.Class {
+    var cl: NCB.Class = undefined;
+    cl.a = a;
+    cl.key = key;
+    cl.replicas = &.{};
+    cl.proto = null;
+    cl.s1_registered = false;
+    cl.s2_registered = 0;
+    cl.framing = .{ .a = a, .key = NCB.Class.framingKey(key), .claim_count = 0, .slots = &.{}, .inter = undefined, .composition = plan, .pcs = undefined, .program = .{ .a = a, .words = &.{}, .max_encoded_bytes = 0, .pcs_words = 0 }, .fixed_root = @splat(0), .fixed_key = @splat(0), .fixed_host = &.{}, .fixed_offsets = &.{}, .fixed_words = 0, .main_offsets = &.{}, .main_words = 0, .bind_plan = undefined, .global_patches = &.{}, .comp_patches = .{} };
+    return cl;
+}
+
+test "class build: registration registers prototype + every replica once, and is retry-idempotent" {
+    const a = testing.allocator;
+    var f = S2.Factory{ .a = a, .sym = undefined, .identity = @splat(0) };
+    defer f.deinit();
+    var plans: [3]NComp.Plan = undefined;
+    for (&plans) |*p| p.table = &.{};
+    const key: G.ClassKey = @splat(0x42);
+    var proto = shellClass(a, key, &plans[0]);
+    var r1 = shellClass(a, key, &plans[1]);
+    var r2 = shellClass(a, key, &plans[2]);
+    r1.proto = &proto;
+    r2.proto = &proto;
+    var reps = [_]*NCB.Class{ &r1, &r2 };
+    proto.replicas = &reps;
+    try testing.expectEqual(@as(usize, 3), proto.framingInstances());
+    var b = NCB.Builder{ .a = a, .env = undefined, .factory = &f, .framing_instances = 3 };
+    defer b.deinit();
+    try b.registerClassForTest(&proto);
+    try b.registerClassForTest(&proto); // retry: nothing registered twice
+    const pool = f.classes.get(NCB.Class.framingKey(key)).?;
+    try testing.expectEqual(@as(usize, 3), pool.instances.items.len);
+    // Exclusive leases hand out three DIFFERENT instances, each with its own
+    // composition plan (no shared per-job Stage-2 state), then fail closed.
+    const x = try f.acquire(&proto.framing.?);
+    const y = try f.acquire(&proto.framing.?);
+    const z = try f.acquire(&proto.framing.?);
+    try testing.expect(x != y and y != z and x != z);
+    try testing.expect(x.composition != y.composition and y.composition != z.composition and x.composition != z.composition);
+    try testing.expectError(error.NativeStage2FramingBusy, f.acquire(&proto.framing.?));
+}

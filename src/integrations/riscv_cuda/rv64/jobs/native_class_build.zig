@@ -118,6 +118,9 @@ pub const Env = struct {
     /// Pinned capture words per segment row (ClassEntry.capture_words =
     /// rows * this; 0 = the class uses no ring; gn-pack's format sets it).
     capture_words_per_row: u64 = 0,
+    /// Stage-2 framing instances per class (prototype + replicas; Builder
+    /// sets it from Builder.framing_instances).
+    framing_instances: usize = 1,
 };
 
 // ---------------------------------------------------------------------------
@@ -275,17 +278,49 @@ pub const Class = struct {
     global_patches: []S2.PatchSet = &.{},
     comp_patches: S2.PatchSet = .{},
     semantic_words: usize = 0,
+    /// RAM boundary claim slots of the class (Components.Plan core slots
+    /// with role initial / terminal: their claim_offset), the device
+    /// `public_claims` check's boundary relations (cpu_worker.publicClaims).
+    initial_claim: ?u32 = null,
+    terminal_claim: ?u32 = null,
     framing: ?S2.ClassFraming = null,
+    /// Extra Stage-2 framing instances (Factory pool members beyond this
+    /// prototype). Each owns its Stage-2 mutable state (INTER CommitPlan,
+    /// composition Plan, PcsJob, global plans: Stage2Job.stage/enqueue
+    /// write per-job state into them, so pool instances must not share
+    /// them); its Stage-1 fields are borrowed from `proto`.
+    replicas: []*Class = &.{},
+    /// Set on a replica: the prototype whose Stage-1 fields it borrows.
+    proto: ?*const Class = null,
+    /// Registration state (Builder.registerClass is idempotent, so a block
+    /// whose registration or miss-path warm failed can be retried).
+    s1_registered: bool = false,
+    s2_registered: usize = 0,
 
     pub fn deinit(self: *Class) void {
         const a = self.a;
-        if (self.framing) |*f| f.global_patches = &.{};
+        for (self.replicas) |r| r.deinit();
+        a.free(self.replicas);
+        self.deinitStage2();
+        if (self.proto == null) {
+            a.free(self.main_offsets);
+            a.free(self.fixed_offsets);
+            self.bind_plan.deinit();
+            a.free(self.fixed_storage);
+            a.free(self.fixed_host);
+            a.free(self.main_shapes);
+            a.free(self.fixed_shapes);
+            a.free(self.instances);
+            self.gkr.deinit();
+        }
+        a.destroy(self);
+    }
+    /// Releases the Stage-2 fields (each empty / null when unbuilt).
+    fn deinitStage2(self: *Class) void {
+        const a = self.a;
         for (self.global_patches) |*p| p.deinit(a);
         a.free(self.global_patches);
         self.comp_patches.deinit(a);
-        a.free(self.main_offsets);
-        a.free(self.fixed_offsets);
-        self.bind_plan.deinit();
         if (self.program) |*p| p.deinit();
         a.free(self.pristine_columns);
         if (self.pcs) |*p| p.deinit(a);
@@ -298,13 +333,33 @@ pub const Class = struct {
         self.gplans.deinit(a);
         a.free(self.gslots);
         a.free(self.slots);
-        a.free(self.fixed_storage);
-        a.free(self.fixed_host);
-        a.free(self.main_shapes);
-        a.free(self.fixed_shapes);
-        a.free(self.instances);
-        self.gkr.deinit();
-        a.destroy(self);
+    }
+    /// Every Stage-2 field empty (deinitStage2-safe), before buildStage2.
+    fn resetStage2(self: *Class) void {
+        self.slots = &.{};
+        self.gplans = .empty;
+        self.gslots = &.{};
+        self.inter_shapes = &.{};
+        self.inter_logs = &.{};
+        self.inter_plan = null;
+        self.comp_plan = null;
+        self.role_slots = &.{};
+        self.pcs = null;
+        self.pristine_columns = &.{};
+        self.program = null;
+        self.global_patches = &.{};
+        self.comp_patches = .{};
+        self.semantic_words = 0;
+        self.initial_claim = null;
+        self.terminal_claim = null;
+        self.framing = null;
+    }
+    /// The prototype plus its replicas: the Stage-2 framing instances.
+    pub fn framingInstances(self: *const Class) usize {
+        return 1 + self.replicas.len;
+    }
+    pub fn framingInstance(self: *Class, i: usize) *S2.ClassFraming {
+        return if (i == 0) &self.framing.? else &self.replicas[i - 1].framing.?;
     }
 
     pub fn spec(self: *const Class) S1.Spec {
@@ -401,41 +456,16 @@ pub fn build(env: *const Env, in: Inputs) !*Class {
     cl.bind_plan = try NB.Plan.init(a, in.instances, cl.gkr.traversal.layers);
     errdefer cl.bind_plan.deinit();
     // Remaining Stage-2 fields start empty (deinit-safe from here on).
-    cl.slots = &.{};
-    cl.gplans = .empty;
-    cl.gslots = &.{};
-    cl.inter_shapes = &.{};
-    cl.inter_logs = &.{};
-    cl.inter_plan = null;
-    cl.comp_plan = null;
-    cl.role_slots = &.{};
-    cl.pcs = null;
-    cl.pristine_columns = &.{};
-    cl.program = null;
-    cl.global_patches = &.{};
-    cl.comp_patches = .{};
-    cl.framing = null;
+    cl.resetStage2();
+    cl.replicas = &.{};
+    cl.proto = null;
+    cl.s1_registered = false;
+    cl.s2_registered = 0;
     cl.key = @splat(0);
     cl.build_ns = 0;
     cl.setup_ns = 0;
-    errdefer {
-        // Stage-1 parts are released by the errdefers above.
-        for (cl.global_patches) |*p| p.deinit(a);
-        a.free(cl.global_patches);
-        cl.comp_patches.deinit(a);
-        if (cl.program) |*p| p.deinit();
-        a.free(cl.pristine_columns);
-        if (cl.pcs) |*p| p.deinit(a);
-        a.free(cl.role_slots);
-        if (cl.comp_plan) |*p| p.deinit();
-        if (cl.inter_plan) |*p| p.deinit();
-        a.free(cl.inter_logs);
-        a.free(cl.inter_shapes);
-        for (cl.gplans.items) |*p| p.deinit();
-        cl.gplans.deinit(a);
-        a.free(cl.gslots);
-        a.free(cl.slots);
-    }
+    // Stage-1 parts are released by the errdefers above.
+    errdefer cl.deinitStage2();
     try buildStage2(env, in, cl);
     var fp = try Fingerprint.of(a, cl);
     defer fp.deinit();
@@ -489,6 +519,16 @@ fn buildStage2(env: *const Env, in: Inputs, cl: *Class) !void {
     defer roles.release(roles.ctx);
     if (roles.claim_count != plan.claim_count) return error.HybridClaimLayoutMismatch;
     cl.comp_log = @intCast(comp_log);
+    // RAM boundary relations of the device public_claims check (exactly
+    // the slots cpu_worker.publicClaims checks against the request memory).
+    for (plan.slots) |slot| switch (slot.origin) {
+        .core => |role| if (role == .initial or role == .terminal) {
+            const at: *?u32 = if (role == .initial) &cl.initial_claim else &cl.terminal_claim;
+            if (at.* != null) return error.GnShapeBoundaryClaimTwice;
+            at.* = std.math.cast(u32, slot.claim_offset) orelse return error.GnShapeBoundaryClaimTwice;
+        },
+        else => {},
+    };
     cl.split = @intCast(split);
     cl.total = @intCast(total);
     cl.mask_log = @intCast(mask_log);
@@ -635,11 +675,82 @@ pub fn classFraming(self: *Class) S2.ClassFraming {
         .fixed_words = self.fixed_words,
         .main_offsets = self.main_offsets,
         .main_words = self.main_words,
-        .bind_plan = &self.bind_plan,
+        .bind_plan = if (self.proto) |p| &p.bind_plan else &self.bind_plan,
         .global_patches = self.global_patches,
         .comp_patches = self.comp_patches,
         .semantic_words = self.semantic_words,
+        .initial_claim = self.initial_claim,
+        .terminal_claim = self.terminal_claim,
     };
+}
+
+/// One extra Stage-2 framing instance of `proto` (see Class.replicas):
+/// buildStage2 rerun on the same inputs into the replica's own state, its
+/// Stage-1 fields borrowed. Fails closed unless every Stage-2 class field
+/// equals the prototype's.
+pub fn buildReplica(env: *const Env, in: Inputs, proto: *Class) !*Class {
+    const a = env.a;
+    const r = try a.create(Class);
+    errdefer a.destroy(r);
+    r.* = proto.*;
+    r.proto = proto;
+    r.replicas = &.{};
+    r.s1_registered = false;
+    r.s2_registered = 0;
+    r.resetStage2();
+    errdefer r.deinitStage2();
+    try buildStage2(env, in, r);
+    var fr = Fingerprint{ .a = a };
+    defer fr.deinit();
+    try fr.addStage2(r);
+    var fp = Fingerprint{ .a = a };
+    defer fp.deinit();
+    try fp.addStage2(proto);
+    var mm: [1]Mismatch = undefined;
+    if (try compare(&fp, &fr, &mm) != 0) return error.GnShapeReplicaMismatch;
+    r.framing = classFraming(r);
+    try r.framing.?.validate();
+    return r;
+}
+
+/// `n` replicas of `cl` (built in parallel; the inputs are read-only).
+pub fn addReplicas(env: *const Env, in: Inputs, cl: *Class, n: usize) !void {
+    if (n == 0) return;
+    const a = env.a;
+    const out = try a.alloc(?*Class, n);
+    defer a.free(out);
+    @memset(out, null);
+    const errs = try a.alloc(?anyerror, n);
+    defer a.free(errs);
+    @memset(errs, null);
+    const threads = try a.alloc(?std.Thread, n);
+    defer a.free(threads);
+    @memset(threads, null);
+    const Run = struct {
+        fn run(e: *const Env, inputs: *const Inputs, proto: *Class, slot: *?*Class, err: *?anyerror) void {
+            slot.* = buildReplica(e, inputs.*, proto) catch |x| {
+                err.* = x;
+                return;
+            };
+        }
+    };
+    for (threads, out, errs) |*t, *o, *e| t.* = std.Thread.spawn(.{ .stack_size = 64 << 20 }, Run.run, .{ env, &in, cl, o, e }) catch blk: {
+        Run.run(env, &in, cl, o, e);
+        break :blk null;
+    };
+    for (threads) |t| if (t) |th| th.join();
+    var failed: ?anyerror = null;
+    for (errs) |e| if (e) |x| {
+        failed = x;
+        break;
+    };
+    if (failed) |x| {
+        for (out) |o| if (o) |r| r.deinit();
+        return x;
+    }
+    const owned = try a.alloc(*Class, n);
+    for (out, owned) |o, *d| d.* = o.?;
+    cl.replicas = owned;
 }
 
 // ---------------------------------------------------------------------------
@@ -770,6 +881,8 @@ pub const Fingerprint = struct {
         const a = fp.a;
         // ---- Stage 2: framing ----
         try fp.value("s2.geometry", true, [_]u32{ cl.comp_log, cl.split, cl.total, cl.mask_log, cl.claim_count });
+        const none = std.math.maxInt(u32);
+        try fp.value("s2.boundary_claims", true, [2]u32{ cl.initial_claim orelse none, cl.terminal_claim orelse none });
         {
             var k = FC.Key.init("s2.slots");
             for (cl.slots) |s| {
@@ -1117,7 +1230,7 @@ pub fn buildFromInventory(env: *const Env, inv: *Inventory, i: usize) !*Class {
     var native = stubSource(setup, inv.requests[i]);
     var pending = try placeholderPending(a, instances);
     defer pending.deinit(a);
-    return build(env, .{
+    const in = Inputs{
         .ordinal = @intCast(i),
         .setup = setup,
         .request = inv.requests[i],
@@ -1129,7 +1242,11 @@ pub fn buildFromInventory(env: *const Env, inv: *Inventory, i: usize) !*Class {
         .native = &native,
         .pending = &pending,
         .shared = placeholderShared(),
-    });
+    };
+    const cl = try build(env, in);
+    errdefer cl.deinit();
+    try addReplicas(env, in, cl, env.framing_instances -| 1);
+    return cl;
 }
 
 // ---------------------------------------------------------------------------
@@ -1170,8 +1287,9 @@ pub const Builder = struct {
     fixed_setup_bytes: usize = 4 << 30,
     mutex: std.Thread.Mutex = .{},
     classes: std.AutoArrayHashMapUnmanaged(G.ClassKey, *Class) = .empty,
-    /// Extra Stage-2 framing instances (pool members beyond the prototype).
-    extra: std.ArrayListUnmanaged(*S2.ClassFraming) = .empty,
+    /// Serialises whole block builds (install and miss path): one block's
+    /// inventory, class build and registration at a time.
+    build_mutex: std.Thread.Mutex = .{},
     blocks: std.ArrayListUnmanaged(BlockRecord) = .empty,
     misses: u64 = 0,
     missed_classes: u64 = 0,
@@ -1188,8 +1306,6 @@ pub const Builder = struct {
             self.a.free(b.rows);
         }
         self.blocks.deinit(self.a);
-        for (self.extra.items) |f| self.a.destroy(f);
-        self.extra.deinit(self.a);
         for (self.classes.values()) |c| c.deinit();
         self.classes.deinit(self.a);
     }
@@ -1237,9 +1353,19 @@ pub const Builder = struct {
         }
     };
 
+    fn knownBlock(self: *Builder, block: u64) ?BlockRecord {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        for (self.blocks.items) |b| if (b.block == block) return b;
+        return null;
+    }
+
     fn buildBlock(self: *Builder, wb: G.WarmBlock, miss: bool) !BlockRecord {
+        self.build_mutex.lock();
+        defer self.build_mutex.unlock();
         var timer = try std.time.Timer.start();
-        for (self.blocks.items) |b| if (b.block == wb.block) return b;
+        if (self.knownBlock(wb.block)) |b| return b;
+        self.env.framing_instances = @max(1, if (self.factory != null) self.framing_instances else 1);
         const inv = try Inventory.init(self.a, wb.capture, self.env.config, self.fixed_setup_bytes);
         defer inv.deinit();
         const inventory_ns = timer.read();
@@ -1282,9 +1408,12 @@ pub const Builder = struct {
             rows[i] = cl.rows;
             self.mutex.lock();
             defer self.mutex.unlock();
-            if (self.classes.get(cl.key)) |_| {
+            if (self.classes.get(cl.key)) |old| {
                 cl.deinit();
                 owned = false;
+                // Known but not fully registered (an earlier build of a block
+                // failed in registration / the miss warm): register it now.
+                if (!self.registered(old) and std.mem.indexOfScalar(*Class, fresh.items, old) == null) try fresh.append(self.a, old);
                 continue;
             }
             try self.classes.put(self.a, cl.key, cl);
@@ -1340,23 +1469,42 @@ pub const Builder = struct {
         try r.warmDevices(r.workers[0..devices]);
     }
 
+    fn registered(self: *const Builder, cl: *const Class) bool {
+        if (self.registry != null and !cl.s1_registered) return false;
+        if (self.factory != null and cl.s2_registered < cl.framingInstances()) return false;
+        // After install (miss path) a class is done only once warmed into
+        // the service's class cache (a failed miss warm is retried).
+        if (self.registry) |r| if (r.sealed) if (self.miss_cache) |c| {
+            if (!cacheHas(c, cl.key)) return false;
+            if (self.factory != null and !cacheHas(c, Class.framingKey(cl.key))) return false;
+        };
+        return true;
+    }
+    /// Lookup without ClassCache.get's request-miss accounting.
+    fn cacheHas(c: *G.ClassCache, key: G.ClassKey) bool {
+        c.mutex.lock();
+        defer c.mutex.unlock();
+        return c.map.contains(key);
+    }
+
+    pub fn registerClassForTest(self: *Builder, cl: *Class) !void {
+        if (!@import("builtin").is_test) @compileError("test only");
+        return self.registerClass(cl);
+    }
+    /// Idempotent: registers what is not yet registered (a retry after a
+    /// failed registration never registers an instance twice).
     fn registerClass(self: *Builder, cl: *Class) !void {
-        if (self.registry) |r| {
+        if (self.registry) |r| if (!cl.s1_registered) {
             // Registry.by_rows is keyed by rows only: classes are resolved
             // through `classOf` (block, segment) here, so the registry gets
             // a per-class token instead of the (ambiguous) row count.
             try r.register(cl.spec(), rowsToken(cl.key));
-        }
+            cl.s1_registered = true;
+        };
         if (self.factory) |f| {
-            try f.register(&cl.framing.?);
-            // Pool members beyond the prototype (Stage2Job leases one each).
-            for (1..self.framing_instances) |_| {
-                const copy = try self.a.create(S2.ClassFraming);
-                errdefer self.a.destroy(copy);
-                copy.* = cl.framing.?;
-                try f.register(copy);
-                try self.extra.append(self.a, copy);
-            }
+            // The prototype, then each replica: exclusive pool instances
+            // (Stage2Job leases one each; none shares mutable Stage-2 state).
+            while (cl.s2_registered < cl.framingInstances()) : (cl.s2_registered += 1) try f.register(cl.framingInstance(cl.s2_registered));
         }
     }
 
