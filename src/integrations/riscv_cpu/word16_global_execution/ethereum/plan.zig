@@ -249,36 +249,32 @@ pub fn secpRcbCells(kind: A.crypto.secp256k1.program.Kind, calls_total: u32) !u6
     return cells;
 }
 pub fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
-    if (options.one_per_family and options.coalesce_families) return error.ConflictingTruthFamilyPlans;
-    if (options.one_per_family or options.coalesce_families) {
-        const ST = @import("../services/types.zig");
-        var total: [ST.FAMILIES]u32 = @splat(0);
-        for (captured.advice.keccak, captured.advice.secp, captured.advice.sha256, captured.advice.arith256_mod, captured.advice.curves, captured.advice.sponge) |keccak, secp, sha256, arith, curves, sponge| {
-            total[0] = try std.math.add(u32, total[0], try std.math.add(u32, @intCast(keccak.len), @intCast(sponge.inputs.len)));
-            total[1] = try std.math.add(u32, total[1], @intCast(secp[0].len));
-            total[2] = try std.math.add(u32, total[2], @intCast(secp[1].len));
-            total[3] = try std.math.add(u32, total[3], @intCast(sha256.len));
-            total[4] = try std.math.add(u32, total[4], @intCast(arith.len));
-            for (curves, 0..) |calls, index| total[ST.FIRST_CURVE + index] = try std.math.add(u32, total[ST.FIRST_CURVE + index], @intCast(calls.len));
-        }
-        return if (options.one_per_family) oneTruthPerFamily(a, total, options) else coalesceTruthFamilies(a, total, options, max_log);
+    const ST = @import("../services/types.zig");
+    var total: [ST.FAMILIES]u32 = @splat(0);
+    for (captured.advice.keccak, captured.advice.secp) |keccak, secp| {
+        total[0] = try std.math.add(u32, total[0], @intCast(keccak.len));
+        total[1] = try std.math.add(u32, total[1], @intCast(secp[0].len));
+        total[2] = try std.math.add(u32, total[2], @intCast(secp[1].len));
     }
+    for (captured.advice.sponge) |sponge| total[0] = try std.math.add(u32, total[0], @intCast(sponge.inputs.len));
+    for (captured.advice.sha256) |calls| total[3] = try std.math.add(u32, total[3], @intCast(calls.len));
+    for (captured.advice.arith256_mod) |calls| total[4] = try std.math.add(u32, total[4], @intCast(calls.len));
+    for (captured.advice.curves) |shard| for (shard, total[ST.FIRST_CURVE..]) |calls, *sum| {
+        sum.* = try std.math.add(u32, sum.*, @intCast(calls.len));
+    };
+    return truthsForServiceCounts(a, total, options, max_log);
+}
 
-    var total: [3]u32 = @splat(0);
-    for (captured.advice.keccak, captured.advice.secp) |k, s| {
-        total[0] = try std.math.add(u32, total[0], @intCast(k.len));
-        total[1] = try std.math.add(u32, total[1], @intCast(s[0].len));
-        total[2] = try std.math.add(u32, total[2], @intCast(s[1].len));
-    }
-    // Keccak-sponge permutations follow the Keccak-f calls in the IO11 ID space.
-    for (captured.advice.sponge) |z| total[0] = try std.math.add(u32, total[0], @intCast(z.inputs.len));
+pub fn truthsForServiceCounts(a: std.mem.Allocator, total: [@import("../services/types.zig").FAMILIES]u32, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
+    if (options.one_per_family and options.coalesce_families) return error.ConflictingTruthFamilyPlans;
+    if (options.one_per_family) return oneTruthPerFamily(a, total, options);
+    if (options.coalesce_families) return coalesceTruthFamilies(a, total, options, max_log);
     var out: std.ArrayList(W.TruthDeclaration) = .{};
     errdefer out.deinit(a);
-    try appendKeccakSecp(a, &out, total, max_log, options);
+    try appendKeccakSecp(a, &out, total[0..3].*, max_log, options);
     var next: u32 = 1;
     // SHA-256: one compression per row plus a padding row; bounded log13 spans.
-    var sha256: u32 = 0;
-    for (captured.advice.sha256) |calls| sha256 = try std.math.add(u32, sha256, @intCast(calls.len));
+    const sha256 = total[3];
     const capacity: u32 = (@as(u32, 1) << @intCast(@import("../sha256/roster.zig").MAX_LOG)) - 1;
     next = 1;
     while (next <= sha256) {
@@ -288,8 +284,7 @@ pub fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options
     }
     // arith256_mod: one call per row plus a padding row (>= 256 rows for the
     // local BYTE table); bounded log16 spans.
-    var arith: u32 = 0;
-    for (captured.advice.arith256_mod) |calls| arith = try std.math.add(u32, arith, @intCast(calls.len));
+    const arith = total[4];
     const arith_capacity: u32 = (@as(u32, 1) << @intCast(@import("../arith256/roster.zig").MAX_LOG)) - 1;
     next = 1;
     while (next <= arith) {
@@ -303,8 +298,7 @@ pub fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options
     const CR = @import("../curves/roster.zig");
     const curve_capacity: u32 = (@as(u32, 1) << @intCast(CR.MAX_LOG)) - 1;
     for (0..ST.CURVES) |c| {
-        var curve_total: u32 = 0;
-        for (captured.advice.curves) |shard| curve_total = try std.math.add(u32, curve_total, @intCast(shard[c].len));
+        const curve_total = total[ST.FIRST_CURVE + c];
         const family: ST.Family = @enumFromInt(ST.FIRST_CURVE + c);
         next = 1;
         while (next <= curve_total) {

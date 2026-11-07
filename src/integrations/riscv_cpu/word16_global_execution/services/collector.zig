@@ -140,6 +140,13 @@ pub const Builder = struct {
         if (self.shards.items.len == 0) return error.InvalidServiceCollectorPhase;
         return self.shards.items[self.shards.items.len - 1];
     }
+    /// Planning retains ordinals and the live RAM ledger, then releases the
+    /// normalized witness once its census has been recorded.
+    pub fn releaseLastShard(self: *Builder) void {
+        const shard = &self.shards.items[self.shards.items.len - 1];
+        shard.deinit(self.allocator);
+        shard.* = .{};
+    }
     pub fn finish(self: *Builder) !Advice {
         if (self.failed or self.finished or self.shards.items.len == 0) return error.InvalidServiceCollectorPhase;
         const a = self.allocator;
@@ -217,12 +224,12 @@ fn mark(profile: ?*Profile) ?std.time.Instant {
     return std.time.Instant.now() catch null;
 }
 pub const Shard = struct {
-    events: []LS.native.Event,
-    keccak: []K.types.Call,
-    secp: [2][]S.types.Call,
-    sha256: []S.types.Call,
-    arith256_mod: []S.types.Call,
-    curves: CurveCalls,
+    events: []LS.native.Event = &.{},
+    keccak: []K.types.Call = &.{},
+    secp: [2][]S.types.Call = @splat(&.{}),
+    sha256: []S.types.Call = &.{},
+    arith256_mod: []S.types.Call = &.{},
+    curves: CurveCalls = @splat(&.{}),
     bulk: BulkShard = .{},
     sponge: SpongeShard = .{},
     fn deinit(self: Shard, a: std.mem.Allocator) void {

@@ -77,3 +77,9 @@ so this is a byte-parity check with timings from separate host conditions.
 The scratch path matches the complete in-memory plan for block 121057303.
 The heavy block exhausted its 40 GiB backing cap after 955.248 s and exited
 with a controlled allocation error. [Capacity receipts](capture-backing.json)
+
+The census planner on block 121057303 reproduced all CPU and service
+declarations, source bounds, final PC, memory words and 32,232,733,600
+MAIN+INTERACTION bits. Peak RSS was 1.323 GiB versus 1.731 GiB for the
+retained planner. The census run overlapped tests.
+[Exact plan comparison](capture-census.json)

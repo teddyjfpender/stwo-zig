@@ -58,6 +58,12 @@ These modes preserve the transcript and have different memory admissions.
 without committing an unused historical source Merkle tree; its candidate FIXED
 authority is still independently reconstructed. The default remains `committed`.
 
+The direct native `plan-candidate` command normally keeps a geometry census
+and releases each completed witness shard. It still derives the chronological
+RAM ledger and exact initial and terminal boundaries. The plan is a
+producer-side trace-size diagnostic. Packet-directory plans, canonical rung
+selection, and explicit capture digests use the retained capture path.
+
 To use scratch-backed capture for direct native candidate production, add the
 following field to the resource JSON on Linux or macOS.
 

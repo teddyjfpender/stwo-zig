@@ -547,6 +547,17 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
             direct_started.?.ready = early_owner.?.hook();
         }
     }
+    const strict_roster = (try @import("../../word16_execution/native_policy.zig").current()).strictRoster();
+    const canon_flag = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false;
+    const digest_capture = if (std.posix.getenv("STWO_RV64_CAPTURE_DIGEST")) |flag| std.mem.eql(u8, flag, "1") else false;
+    const truth_options = Plan.KeccakTruthOptions.fromResources(request.value.execution_profile == .ethereum_services_v3, uniform_throughput, resources);
+    const truth_max_log = if (resources) |limits| limits.keccak_max_log else 18;
+    var plan_census: ?CapturePlan.Census = if (plan_candidate and direct_capture and capture_spill == null and !strict_roster and !canon_flag and !digest_capture)
+        .{ .allocator = a, .layout = cpu_layout }
+    else
+        null;
+    defer if (plan_census) |*census| census.deinit();
+    if (plan_census) |*census| direct_started.?.ready = census.hook();
     const import_start = timer.read();
     var captured = if (direct_started) |started| direct: {
         defer {
@@ -579,10 +590,14 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     if (prestage) |*p| try p.stage.join_prestage.?(p.stage.context);
     const packet_import_ns = timer.read() - import_start;
     const capture_ns = timer.read();
+    if (plan_census) |*census| {
+        const result = try census.finish(selected_profile, program.log_size, &captured, truth_options, truth_max_log, count, capture_ns);
+        defer a.free(result.truths);
+        return emit(a, result);
+    }
     const capture_breakdown = .{ .image_load_ns = image_load_ns, .program_ns = program_ns, .pre_import_ns = import_start - image_load_ns - program_ns, .import_ns = packet_import_ns };
     b2i.capture_done_at_ns = since(process_start);
     const capture_inputs = CaptureInputs.of(&timer, import_start, capture_ns, &captured);
-    const digest_capture = if (std.posix.getenv("STWO_RV64_CAPTURE_DIGEST")) |flag| std.mem.eql(u8, flag, "1") else false;
     const captured_values_sha256: ?[64]u8 = if (digest_capture) std.fmt.bytesToHex(@import("capture_digest.zig").digest(image.identity, &captured), .lower) else null;
     b2i.capture = capture_inputs;
     // Early Source callbacks may still borrow immutable ROM columns. Keep this
@@ -593,15 +608,13 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     try @import("../services/gkr_local/service_scope.zig").advice(&captured.advice);
     const cpu = try Plan.cpus(a, &captured, cpu_layout);
     defer a.free(cpu);
-    const truths = try Plan.truthsWithOptions(a, &captured, Plan.KeccakTruthOptions.fromResources(request.value.execution_profile == .ethereum_services_v3, uniform_throughput, resources), if (resources) |limits| limits.keccak_max_log else 18);
+    const truths = try Plan.truthsWithOptions(a, &captured, truth_options, truth_max_log);
     defer a.free(truths);
     // M5 canon-native (opt-in, producer geometry only): pad every declaration
     // to its canonical class rung. The padded declarations are ordinary
     // admitted geometries; the receiver policy is unchanged.
     // M6 native-format: rv64-m6-native/v2 (strict roster) ALWAYS pads every
     // declaration to exactly its class rung vector (fails closed otherwise).
-    const strict_roster = (try @import("../../word16_execution/native_policy.zig").current()).strictRoster();
-    const canon_flag = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false;
     if (strict_roster or canon_flag) {
         const Rungs = @import("canon_native_rungs.zig");
         const classes = try a.alloc(Plan.CanonClass, cpu.len + truths.len);
