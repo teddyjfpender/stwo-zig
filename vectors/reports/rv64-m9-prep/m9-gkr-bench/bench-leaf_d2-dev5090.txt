@@ -1,0 +1,4 @@
+==PROF== Connected to process 4113 (/workspace/m3/build/m9-gkr-bench/m9_gkr_bench)
+==ERROR== ERR_NVGPUCTRPERM - The user does not have permission to access NVIDIA GPU Performance Counters on the target device 0. For instructions on enabling permissions and to get more information see https://developer.nvidia.com/ERR_NVGPUCTRPERM
+{"class":"leaf_d2","shift":0,"route":"B","S":2,"J":2,"graph":false,"facts":137363456,"layers":26,"device":"NVIDIA GeForce RTX 5090","reps_ms":[104.610],"median_ms":104.610,"best_ms":104.610,"ns_per_fact_median":0.7616,"ns_per_fact_best":0.7616,"workspace_bytes":4415742224,"workspace_B_per_fact":32.15,"trace_bytes":1205862400,"log_words":16384,"log_fnv64":"719cc39b8dab4059","log_stable_across_reps":true,"source_status":0,"binding_ms":-1.000,"verify":{"ok":true,"why":"skipped","terminal":true,"terminal_s":0.00},"cpu_ref":null}
+==PROF== Disconnected from process 4113
