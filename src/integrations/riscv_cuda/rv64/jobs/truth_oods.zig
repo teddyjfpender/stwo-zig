@@ -473,7 +473,7 @@ pub fn evaluate(a: std.mem.Allocator, desc: []const u32, samples: []const u32, p
                 const w = d[row[R.nodes_at] + node_words * i ..][0..node_words];
                 values[i] = switch (w[0]) {
                     @intFromEnum(Op.input) => if (w[1] >= d[H.samples]) return reject(.descriptor) else felt(samples[8 * @as(usize, w[1]) ..]),
-                    @intFromEnum(Op.anchor) => anchor,
+                    @intFromEnum(Op.anchor) => if (row[R.anchor] == 0) return reject(.descriptor) else anchor,
                     @intFromEnum(Op.constant) => if (w[1] >= d[H.n_consts]) return reject(.descriptor) else felt(d[d[H.consts_at] + 8 * @as(usize, w[1]) ..]),
                     @intFromEnum(Op.parameter) => if (w[1] >= row[R.n_params]) return reject(.descriptor) else felt(params[r][8 * @as(usize, w[1]) ..]),
                     @intFromEnum(Op.add), @intFromEnum(Op.sub), @intFromEnum(Op.mul) => blk: {
@@ -749,7 +749,20 @@ test "descriptor refuses a corrupted header and a forward operand" {
     const last_level = desc.words[row[R.levels_at] + row[R.n_levels] - 1];
     const node = desc.words[row[R.nodes_at] + node_words * last_level ..][0..node_words];
     if (node[0] == @intFromEnum(Op.add) or node[0] == @intFromEnum(Op.mul) or node[0] == @intFromEnum(Op.sub)) {
+        const lhs = node[1];
         node[1] = last_level;
         try testing.expectEqual(G.Verdict.reject(.truth_oods, @intFromEnum(Detail.descriptor)), (try evaluate(a, desc.words, samples, &.{params}, &alpha, &point)).verdict);
+        node[1] = lhs;
     }
+    // An anchor read in a role without the anchor flag is refused (the
+    // kernel would otherwise read its never-written anchor value).
+    const nodes = desc.words[row[R.nodes_at]..][0 .. node_words * row[R.n_nodes]];
+    var anchored = false;
+    var i: usize = 0;
+    while (i < nodes.len) : (i += node_words) anchored = anchored or nodes[i] == @intFromEnum(Op.anchor);
+    try testing.expect(anchored);
+    try testing.expectEqual(@as(u32, 1), row[R.anchor]);
+    try testing.expect((try evaluate(a, desc.words, samples, &.{params}, &alpha, &point)).verdict != G.Verdict.reject(.truth_oods, @intFromEnum(Detail.descriptor)));
+    row[R.anchor] = 0;
+    try testing.expectEqual(G.Verdict.reject(.truth_oods, @intFromEnum(Detail.descriptor)), (try evaluate(a, desc.words, samples, &.{params}, &alpha, &point)).verdict);
 }
