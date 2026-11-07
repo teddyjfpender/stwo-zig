@@ -126,7 +126,10 @@ pub const Source = struct {
             if (item.prefix_count != 0 or !std.mem.eql(u8, item.jobs, "-")) return error.CombinedRequiresCompleteDirectExecution;
             const text = try std.fs.cwd().readFileAlloc(a, item.request, 16384);
             defer a.free(text);
-            var config = try std.json.parseFromSlice(Request.Config, a, text, .{});
+            // alloc_always: the config's strings (elf/input/output paths) must
+            // not borrow `text`, which is freed below while the block (and its
+            // warm and per-request captures) keeps the config.
+            var config = try std.json.parseFromSlice(Request.Config, a, text, .{ .allocate = .alloc_always });
             errdefer config.deinit();
             // The capture writes its artifacts under output_directory (the
             // legacy resident path creates it before its first request).
