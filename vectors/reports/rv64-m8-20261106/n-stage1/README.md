@@ -25,3 +25,8 @@ Branch `codex/rv64-m8-gpu-n-stage1`. Code: `src/integrations/riscv_cuda/rv64/job
 Per-segment byte identity vs the frozen golden on 26235156 / 24628607, CUDA-event GPU time of Stage 1 per segment and remaining host
 time per request: they need the service wiring (Registry.register per class from setup, setRequest per request, driver
 batch_pinned_words) and a capture that emits chunks. The `Span` CUDA-event hooks are in Stage1Job (Registry.gpuMs).
+
+## Gate [M]
+`rv64_gate.sh --stream m8-gpu-n-stage1` default path, source 54623155a: **PASS** (build, unit-zig, unit-python, small-block
+cold/warm proofs byte-identical to the frozen D2 golden, fresh CPU receivers, negative corpus). Run dir
+`/workspace/m3/runs/m8-gpu-n-stage1/gate-1` (gate.json). The new code is not on the default path (unbound hooks fail closed).
