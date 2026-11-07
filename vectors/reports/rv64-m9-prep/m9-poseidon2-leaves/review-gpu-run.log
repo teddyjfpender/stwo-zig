@@ -1,0 +1,21 @@
+# review re-run 2026-11-07 (adversarial review), gpu.lock hold 14:43:10Z-14:43:38Z
+2026-11-07T14:43:10Z
+0, 54 %, 2 MiB, 32119 MiB
+1, 0 %, 2 MiB, 32119 MiB
+gpu=1 free_mib=32119 util=0
+MIX {"device":"NVIDIA GeForce RTX 5090","count":8,"iters":200,"blake_us_per_mix":1.002,"p2_us_per_mix":25.404,"ratio":25.35,"blake_compressions":1,"p2_perms":2,"blake_us_per_comp":1.002,"p2_us_per_perm":12.702}
+MIX {"device":"NVIDIA GeForce RTX 5090","count":64,"iters":200,"blake_us_per_mix":3.756,"p2_us_per_mix":89.444,"ratio":23.81,"blake_compressions":5,"p2_perms":7,"blake_us_per_comp":0.751,"p2_us_per_perm":12.778}
+MIX {"device":"NVIDIA GeForce RTX 5090","count":256,"iters":200,"blake_us_per_mix":12.356,"p2_us_per_mix":295.318,"ratio":23.90,"blake_compressions":17,"p2_perms":23,"blake_us_per_comp":0.727,"p2_us_per_perm":12.840}
+MIX {"device":"NVIDIA GeForce RTX 5090","count":1024,"iters":200,"blake_us_per_mix":46.728,"p2_us_per_mix":1118.889,"ratio":23.94,"blake_compressions":65,"p2_perms":87,"blake_us_per_comp":0.719,"p2_us_per_perm":12.861}
+MIX {"device":"NVIDIA GeForce RTX 5090","count":4096,"iters":200,"blake_us_per_mix":184.268,"p2_us_per_mix":4414.275,"ratio":23.96,"blake_compressions":257,"p2_perms":343,"blake_us_per_comp":0.717,"p2_us_per_perm":12.870}
+rc_mix=0
+PARITY {"device":"NVIDIA GeForce RTX 5090","cases":168,"runs_pass":336,"runs_fail":0,"digest_rows_checked":344064,"prefix_rows_checked":3984,"parents_checked":2688,"roots_checked":46,"refuses_bad_geometry":true,"noncanonical_status":1}
+rc_parity=0
+0, 0 %, 522 MiB
+1, 7 %, 506 MiB
+2026-11-07T14:43:38Z
+526aad18f9156951dc43d1a8e897fa8986c1cd99631d03409439789b969f2714  build/m9p2
+0956b82115a7fc79025f8a75d123364f7137932ce85a57f79845bb9bfde1d758  build/m9mix
+56eeb898749050b66cb5000f11649f8ba3bb486bdd69ade57be156701dfb31e3  tests/cuda/rv64/m9_poseidon2/m9_p2_serial_mix.cu
+47edbe3720f9e751451208f54513e0acc2246735979f900b06a9e3d208559f10  tests/cuda/rv64/m9_poseidon2/m9_poseidon2_leaves.cu
+e79115fe7a45953ea958f624db2374a96ffa264d08960853e20cf592ec2b719c  tests/cuda/rv64/m9_poseidon2/poseidon2_mixed_leaf.cu

@@ -1,5 +1,5 @@
 {
- "schema": "rv64-m9-poseidon2-leaves-model/v1",
+ "schema": "rv64-m9-poseidon2-leaves-model/v2-reviewed",
  "labels": "[M] measured, [D] derived from code/census, [E] estimate",
  "kernel_M": {
   "rows": [
@@ -553,273 +553,580 @@
   "c_pessimistic": 0.3083118942731278,
   "c_optimistic": 0.19164788760988286
  },
+ "recursion_merkle_share_D": {
+  "merkle_kernels_gpu_s": 1.5204499999999999,
+  "merkle_share_request": 0.17933219855892105,
+  "native_merkle_gpu_s_E": 0.11973824000000001,
+  "recursion_merkle_gpu_s": 1.4007117599999999,
+  "m_by_recursion_share": {
+   "0.5": 0.3304189147530478,
+   "0.573": 0.2883236603429737,
+   "0.6": 0.27534909562753984
+  },
+  "note": "builder's m=0.18 divided by request-wide time; native Merkle is ~0.12 of 1.52 GPU-s, so recursion's own share is 0.27-0.33"
+ },
+ "transcript": {
+  "channel_mix_gpu_s_M": 0.07754,
+  "calls": 363,
+  "serial_mix_rows_M": [
+   {
+    "device": "NVIDIA GeForce RTX 5090",
+    "count": 8,
+    "iters": 200,
+    "blake_us_per_mix": 1.002,
+    "p2_us_per_mix": 25.404,
+    "ratio": 25.35,
+    "blake_compressions": 1,
+    "p2_perms": 2,
+    "blake_us_per_comp": 1.002,
+    "p2_us_per_perm": 12.702
+   },
+   {
+    "device": "NVIDIA GeForce RTX 5090",
+    "count": 64,
+    "iters": 200,
+    "blake_us_per_mix": 3.756,
+    "p2_us_per_mix": 89.444,
+    "ratio": 23.81,
+    "blake_compressions": 5,
+    "p2_perms": 7,
+    "blake_us_per_comp": 0.751,
+    "p2_us_per_perm": 12.778
+   },
+   {
+    "device": "NVIDIA GeForce RTX 5090",
+    "count": 256,
+    "iters": 200,
+    "blake_us_per_mix": 12.356,
+    "p2_us_per_mix": 295.318,
+    "ratio": 23.9,
+    "blake_compressions": 17,
+    "p2_perms": 23,
+    "blake_us_per_comp": 0.727,
+    "p2_us_per_perm": 12.84
+   },
+   {
+    "device": "NVIDIA GeForce RTX 5090",
+    "count": 1024,
+    "iters": 200,
+    "blake_us_per_mix": 46.728,
+    "p2_us_per_mix": 1118.889,
+    "ratio": 23.94,
+    "blake_compressions": 65,
+    "p2_perms": 87,
+    "blake_us_per_comp": 0.719,
+    "p2_us_per_perm": 12.861
+   },
+   {
+    "device": "NVIDIA GeForce RTX 5090",
+    "count": 4096,
+    "iters": 200,
+    "blake_us_per_mix": 184.268,
+    "p2_us_per_mix": 4414.275,
+    "ratio": 23.96,
+    "blake_compressions": 257,
+    "p2_perms": 343,
+    "blake_us_per_comp": 0.717,
+    "p2_us_per_perm": 12.87
+   }
+  ],
+  "p2_over_blake_serial_ratio": 23.933333333333334,
+  "pow_search_gpu_s_M": 0.02507,
+  "pow_note": "p20 everywhere at D2/outer: 2^20 P2 perms at ~3e9/s = 0.35 ms per proof; +~0.01 GPU-s per request [E], negligible"
+ },
  "projection_E": {
   "p50": {
    "as_measured_sponge_nodes": {
     "params": {
      "c": 0.243,
+     "m": 0.288,
+     "k_rec": 9.955,
+     "k_nat": 9.955,
+     "rshare": 0.573,
+     "nat_factor": 2.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 103.3,
+    "kernel_gpu_s": 30.74,
+    "recursion_gpu_s": 17.61,
+    "recursion_after": 15.34,
+    "recursion_cut": 2.27,
+    "native_hash_delta": 4.12,
+    "transcript_delta": 6.83,
+    "net_cut": -8.68,
+    "net_cut_pct_of_kernel": -28.2,
+    "break_even_k_rec": 11.79
+   },
+   "with_2to1_nodes": {
+    "params": {
+     "c": 0.231,
+     "m": 0.288,
+     "k_rec": 8.553,
+     "k_nat": 8.553,
+     "rshare": 0.573,
+     "nat_factor": 2.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 103.3,
+    "kernel_gpu_s": 30.74,
+    "recursion_gpu_s": 17.61,
+    "recursion_after": 12.92,
+    "recursion_cut": 4.69,
+    "native_hash_delta": 3.47,
+    "transcript_delta": 6.83,
+    "net_cut": -5.62,
+    "net_cut_pct_of_kernel": -18.3,
+    "break_even_k_rec": 12.55
+   },
+   "2to1_plus_kernel_x0.6": {
+    "params": {
+     "c": 0.231,
+     "m": 0.288,
+     "k_rec": 5.132,
+     "k_nat": 5.132,
+     "rshare": 0.573,
+     "nat_factor": 2.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 103.3,
+    "kernel_gpu_s": 30.74,
+    "recursion_gpu_s": 17.61,
+    "recursion_after": 8.91,
+    "recursion_cut": 8.7,
+    "native_hash_delta": 1.9,
+    "transcript_delta": 6.83,
+    "net_cut": -0.03,
+    "net_cut_pct_of_kernel": -0.1,
+    "break_even_k_rec": 12.55
+   },
+   "pessimistic": {
+    "params": {
+     "c": 0.308,
+     "m": 0.33,
+     "k_rec": 11.1,
+     "k_nat": 9.955,
+     "rshare": 0.5,
+     "nat_factor": 2.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 103.3,
+    "kernel_gpu_s": 30.74,
+    "recursion_gpu_s": 15.37,
+    "recursion_after": 20.55,
+    "recursion_cut": -5.18,
+    "native_hash_delta": 4.12,
+    "transcript_delta": 6.83,
+    "net_cut": -16.13,
+    "net_cut_pct_of_kernel": -52.5,
+    "break_even_k_rec": 7.79
+   },
+   "engineered_target": {
+    "params": {
+     "c": 0.231,
+     "m": 0.288,
+     "k_rec": 5.132,
+     "k_nat": 5.132,
+     "rshare": 0.573,
+     "nat_factor": 2.0
+    },
+    "r_mix": 3.0,
+    "minstr": 103.3,
+    "kernel_gpu_s": 30.74,
+    "recursion_gpu_s": 17.61,
+    "recursion_after": 8.91,
+    "recursion_cut": 8.7,
+    "native_hash_delta": 1.9,
+    "transcript_delta": 0.6,
+    "net_cut": 6.2,
+    "net_cut_pct_of_kernel": 20.2,
+    "break_even_k_rec": 12.55
+   },
+   "optimistic_b2_retune": {
+    "params": {
+     "c": 0.192,
+     "m": 0.275,
+     "k_rec": 5.132,
+     "k_nat": 5.132,
+     "rshare": 0.6,
+     "nat_factor": 1.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 103.3,
+    "kernel_gpu_s": 30.74,
+    "recursion_gpu_s": 18.44,
+    "recursion_after": 7.56,
+    "recursion_cut": 10.89,
+    "native_hash_delta": 0.95,
+    "transcript_delta": 6.83,
+    "net_cut": 3.1,
+    "net_cut_pct_of_kernel": 10.1,
+    "break_even_k_rec": 16.32
+   },
+   "builder_original_central": {
+    "params": {
+     "c": 0.243,
      "m": 0.18,
      "k_rec": 9.955,
      "k_nat": 9.955,
-     "rshare": 0.573
+     "rshare": 0.573,
+     "nat_factor": 1.0
     },
+    "r_mix": null,
     "minstr": 103.3,
     "kernel_gpu_s": 30.74,
     "recursion_gpu_s": 17.61,
     "recursion_after": 11.19,
     "recursion_cut": 6.42,
     "native_hash_delta": 2.06,
+    "transcript_delta": 0.0,
     "net_cut": 4.36,
-    "net_cut_pct_of_kernel": 14.2
-   },
-   "with_2to1_nodes": {
-    "params": {
-     "c": 0.231,
-     "m": 0.18,
-     "k_rec": 8.553,
-     "k_nat": 8.553,
-     "rshare": 0.573
-    },
-    "minstr": 103.3,
-    "kernel_gpu_s": 30.74,
-    "recursion_gpu_s": 17.61,
-    "recursion_after": 9.59,
-    "recursion_cut": 8.02,
-    "native_hash_delta": 1.74,
-    "net_cut": 6.28,
-    "net_cut_pct_of_kernel": 20.4
-   },
-   "2to1_plus_kernel_x0.6": {
-    "params": {
-     "c": 0.231,
-     "m": 0.18,
-     "k_rec": 5.132,
-     "k_nat": 5.132,
-     "rshare": 0.573
-    },
-    "minstr": 103.3,
-    "kernel_gpu_s": 30.74,
-    "recursion_gpu_s": 17.61,
-    "recursion_after": 7.09,
-    "recursion_cut": 10.52,
-    "native_hash_delta": 0.95,
-    "net_cut": 9.57,
-    "net_cut_pct_of_kernel": 31.1
-   },
-   "pessimistic": {
-    "params": {
-     "c": 0.308,
-     "m": 0.22,
-     "k_rec": 11.1,
-     "k_nat": 9.955,
-     "rshare": 0.5
-    },
-    "minstr": 103.3,
-    "kernel_gpu_s": 30.74,
-    "recursion_gpu_s": 15.37,
-    "recursion_after": 15.27,
-    "recursion_cut": 0.1,
-    "native_hash_delta": 2.06,
-    "net_cut": -1.96,
-    "net_cut_pct_of_kernel": -6.4
-   },
-   "optimistic": {
-    "params": {
-     "c": 0.192,
-     "m": 0.14,
-     "k_rec": 5.132,
-     "k_nat": 5.132,
-     "rshare": 0.6
-    },
-    "minstr": 103.3,
-    "kernel_gpu_s": 30.74,
-    "recursion_gpu_s": 18.44,
-    "recursion_after": 5.58,
-    "recursion_cut": 12.86,
-    "native_hash_delta": 0.95,
-    "net_cut": 11.91,
-    "net_cut_pct_of_kernel": 38.8
+    "net_cut_pct_of_kernel": 14.2,
+    "break_even_k_rec": 18.29
    }
   },
   "p95": {
    "as_measured_sponge_nodes": {
     "params": {
      "c": 0.243,
+     "m": 0.288,
+     "k_rec": 9.955,
+     "k_nat": 9.955,
+     "rshare": 0.573,
+     "nat_factor": 2.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 198.2,
+    "kernel_gpu_s": 57.29,
+    "recursion_gpu_s": 32.82,
+    "recursion_after": 28.6,
+    "recursion_cut": 4.23,
+    "native_hash_delta": 7.9,
+    "transcript_delta": 13.1,
+    "net_cut": -16.77,
+    "net_cut_pct_of_kernel": -29.3,
+    "break_even_k_rec": 11.79
+   },
+   "with_2to1_nodes": {
+    "params": {
+     "c": 0.231,
+     "m": 0.288,
+     "k_rec": 8.553,
+     "k_nat": 8.553,
+     "rshare": 0.573,
+     "nat_factor": 2.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 198.2,
+    "kernel_gpu_s": 57.29,
+    "recursion_gpu_s": 32.82,
+    "recursion_after": 24.08,
+    "recursion_cut": 8.74,
+    "native_hash_delta": 6.66,
+    "transcript_delta": 13.1,
+    "net_cut": -11.02,
+    "net_cut_pct_of_kernel": -19.2,
+    "break_even_k_rec": 12.55
+   },
+   "2to1_plus_kernel_x0.6": {
+    "params": {
+     "c": 0.231,
+     "m": 0.288,
+     "k_rec": 5.132,
+     "k_nat": 5.132,
+     "rshare": 0.573,
+     "nat_factor": 2.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 198.2,
+    "kernel_gpu_s": 57.29,
+    "recursion_gpu_s": 32.82,
+    "recursion_after": 16.61,
+    "recursion_cut": 16.22,
+    "native_hash_delta": 3.64,
+    "transcript_delta": 13.1,
+    "net_cut": -0.53,
+    "net_cut_pct_of_kernel": -0.9,
+    "break_even_k_rec": 12.55
+   },
+   "pessimistic": {
+    "params": {
+     "c": 0.308,
+     "m": 0.33,
+     "k_rec": 11.1,
+     "k_nat": 9.955,
+     "rshare": 0.5,
+     "nat_factor": 2.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 198.2,
+    "kernel_gpu_s": 57.29,
+    "recursion_gpu_s": 28.64,
+    "recursion_after": 38.3,
+    "recursion_cut": -9.66,
+    "native_hash_delta": 7.9,
+    "transcript_delta": 13.1,
+    "net_cut": -30.66,
+    "net_cut_pct_of_kernel": -53.5,
+    "break_even_k_rec": 7.79
+   },
+   "engineered_target": {
+    "params": {
+     "c": 0.231,
+     "m": 0.288,
+     "k_rec": 5.132,
+     "k_nat": 5.132,
+     "rshare": 0.573,
+     "nat_factor": 2.0
+    },
+    "r_mix": 3.0,
+    "minstr": 198.2,
+    "kernel_gpu_s": 57.29,
+    "recursion_gpu_s": 32.82,
+    "recursion_after": 16.61,
+    "recursion_cut": 16.22,
+    "native_hash_delta": 3.64,
+    "transcript_delta": 1.14,
+    "net_cut": 11.43,
+    "net_cut_pct_of_kernel": 20.0,
+    "break_even_k_rec": 12.55
+   },
+   "optimistic_b2_retune": {
+    "params": {
+     "c": 0.192,
+     "m": 0.275,
+     "k_rec": 5.132,
+     "k_nat": 5.132,
+     "rshare": 0.6,
+     "nat_factor": 1.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 198.2,
+    "kernel_gpu_s": 57.29,
+    "recursion_gpu_s": 34.37,
+    "recursion_after": 14.08,
+    "recursion_cut": 20.29,
+    "native_hash_delta": 1.82,
+    "transcript_delta": 13.1,
+    "net_cut": 5.37,
+    "net_cut_pct_of_kernel": 9.4,
+    "break_even_k_rec": 16.32
+   },
+   "builder_original_central": {
+    "params": {
+     "c": 0.243,
      "m": 0.18,
      "k_rec": 9.955,
      "k_nat": 9.955,
-     "rshare": 0.573
+     "rshare": 0.573,
+     "nat_factor": 1.0
     },
+    "r_mix": null,
     "minstr": 198.2,
     "kernel_gpu_s": 57.29,
     "recursion_gpu_s": 32.82,
     "recursion_after": 20.85,
     "recursion_cut": 11.97,
     "native_hash_delta": 3.95,
+    "transcript_delta": 0.0,
     "net_cut": 8.02,
-    "net_cut_pct_of_kernel": 14.0
-   },
-   "with_2to1_nodes": {
-    "params": {
-     "c": 0.231,
-     "m": 0.18,
-     "k_rec": 8.553,
-     "k_nat": 8.553,
-     "rshare": 0.573
-    },
-    "minstr": 198.2,
-    "kernel_gpu_s": 57.29,
-    "recursion_gpu_s": 32.82,
-    "recursion_after": 17.88,
-    "recursion_cut": 14.94,
-    "native_hash_delta": 3.33,
-    "net_cut": 11.61,
-    "net_cut_pct_of_kernel": 20.3
-   },
-   "2to1_plus_kernel_x0.6": {
-    "params": {
-     "c": 0.231,
-     "m": 0.18,
-     "k_rec": 5.132,
-     "k_nat": 5.132,
-     "rshare": 0.573
-    },
-    "minstr": 198.2,
-    "kernel_gpu_s": 57.29,
-    "recursion_gpu_s": 32.82,
-    "recursion_after": 13.22,
-    "recursion_cut": 19.61,
-    "native_hash_delta": 1.82,
-    "net_cut": 17.79,
-    "net_cut_pct_of_kernel": 31.0
-   },
-   "pessimistic": {
-    "params": {
-     "c": 0.308,
-     "m": 0.22,
-     "k_rec": 11.1,
-     "k_nat": 9.955,
-     "rshare": 0.5
-    },
-    "minstr": 198.2,
-    "kernel_gpu_s": 57.29,
-    "recursion_gpu_s": 28.64,
-    "recursion_after": 28.45,
-    "recursion_cut": 0.19,
-    "native_hash_delta": 3.95,
-    "net_cut": -3.76,
-    "net_cut_pct_of_kernel": -6.6
-   },
-   "optimistic": {
-    "params": {
-     "c": 0.192,
-     "m": 0.14,
-     "k_rec": 5.132,
-     "k_nat": 5.132,
-     "rshare": 0.6
-    },
-    "minstr": 198.2,
-    "kernel_gpu_s": 57.29,
-    "recursion_gpu_s": 34.37,
-    "recursion_after": 10.4,
-    "recursion_cut": 23.97,
-    "native_hash_delta": 1.82,
-    "net_cut": 22.15,
-    "net_cut_pct_of_kernel": 38.7
+    "net_cut_pct_of_kernel": 14.0,
+    "break_even_k_rec": 18.29
    }
   },
   "24628607": {
    "as_measured_sponge_nodes": {
     "params": {
      "c": 0.243,
+     "m": 0.288,
+     "k_rec": 9.955,
+     "k_nat": 9.955,
+     "rshare": 0.573,
+     "nat_factor": 2.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 26.9,
+    "kernel_gpu_s": 9.33,
+    "recursion_gpu_s": 5.35,
+    "recursion_after": 4.66,
+    "recursion_cut": 0.69,
+    "native_hash_delta": 1.07,
+    "transcript_delta": 1.78,
+    "net_cut": -2.16,
+    "net_cut_pct_of_kernel": -23.2,
+    "break_even_k_rec": 11.79
+   },
+   "with_2to1_nodes": {
+    "params": {
+     "c": 0.231,
+     "m": 0.288,
+     "k_rec": 8.553,
+     "k_nat": 8.553,
+     "rshare": 0.573,
+     "nat_factor": 2.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 26.9,
+    "kernel_gpu_s": 9.33,
+    "recursion_gpu_s": 5.35,
+    "recursion_after": 3.92,
+    "recursion_cut": 1.42,
+    "native_hash_delta": 0.9,
+    "transcript_delta": 1.78,
+    "net_cut": -1.26,
+    "net_cut_pct_of_kernel": -13.5,
+    "break_even_k_rec": 12.55
+   },
+   "2to1_plus_kernel_x0.6": {
+    "params": {
+     "c": 0.231,
+     "m": 0.288,
+     "k_rec": 5.132,
+     "k_nat": 5.132,
+     "rshare": 0.573,
+     "nat_factor": 2.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 26.9,
+    "kernel_gpu_s": 9.33,
+    "recursion_gpu_s": 5.35,
+    "recursion_after": 2.71,
+    "recursion_cut": 2.64,
+    "native_hash_delta": 0.49,
+    "transcript_delta": 1.78,
+    "net_cut": 0.37,
+    "net_cut_pct_of_kernel": 4.0,
+    "break_even_k_rec": 12.55
+   },
+   "pessimistic": {
+    "params": {
+     "c": 0.308,
+     "m": 0.33,
+     "k_rec": 11.1,
+     "k_nat": 9.955,
+     "rshare": 0.5,
+     "nat_factor": 2.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 26.9,
+    "kernel_gpu_s": 9.33,
+    "recursion_gpu_s": 4.67,
+    "recursion_after": 6.24,
+    "recursion_cut": -1.57,
+    "native_hash_delta": 1.07,
+    "transcript_delta": 1.78,
+    "net_cut": -4.42,
+    "net_cut_pct_of_kernel": -47.4,
+    "break_even_k_rec": 7.79
+   },
+   "engineered_target": {
+    "params": {
+     "c": 0.231,
+     "m": 0.288,
+     "k_rec": 5.132,
+     "k_nat": 5.132,
+     "rshare": 0.573,
+     "nat_factor": 2.0
+    },
+    "r_mix": 3.0,
+    "minstr": 26.9,
+    "kernel_gpu_s": 9.33,
+    "recursion_gpu_s": 5.35,
+    "recursion_after": 2.71,
+    "recursion_cut": 2.64,
+    "native_hash_delta": 0.49,
+    "transcript_delta": 0.16,
+    "net_cut": 1.99,
+    "net_cut_pct_of_kernel": 21.3,
+    "break_even_k_rec": 12.55
+   },
+   "optimistic_b2_retune": {
+    "params": {
+     "c": 0.192,
+     "m": 0.275,
+     "k_rec": 5.132,
+     "k_nat": 5.132,
+     "rshare": 0.6,
+     "nat_factor": 1.0
+    },
+    "r_mix": 23.933333333333334,
+    "minstr": 26.9,
+    "kernel_gpu_s": 9.33,
+    "recursion_gpu_s": 5.6,
+    "recursion_after": 2.29,
+    "recursion_cut": 3.31,
+    "native_hash_delta": 0.25,
+    "transcript_delta": 1.78,
+    "net_cut": 1.28,
+    "net_cut_pct_of_kernel": 13.7,
+    "break_even_k_rec": 16.32
+   },
+   "builder_original_central": {
+    "params": {
+     "c": 0.243,
      "m": 0.18,
      "k_rec": 9.955,
      "k_nat": 9.955,
-     "rshare": 0.573
+     "rshare": 0.573,
+     "nat_factor": 1.0
     },
+    "r_mix": null,
     "minstr": 26.9,
     "kernel_gpu_s": 9.33,
     "recursion_gpu_s": 5.35,
     "recursion_after": 3.4,
     "recursion_cut": 1.95,
     "native_hash_delta": 0.54,
+    "transcript_delta": 0.0,
     "net_cut": 1.41,
-    "net_cut_pct_of_kernel": 15.2
-   },
-   "with_2to1_nodes": {
-    "params": {
-     "c": 0.231,
-     "m": 0.18,
-     "k_rec": 8.553,
-     "k_nat": 8.553,
-     "rshare": 0.573
-    },
-    "minstr": 26.9,
-    "kernel_gpu_s": 9.33,
-    "recursion_gpu_s": 5.35,
-    "recursion_after": 2.91,
-    "recursion_cut": 2.43,
-    "native_hash_delta": 0.45,
-    "net_cut": 1.98,
-    "net_cut_pct_of_kernel": 21.2
-   },
-   "2to1_plus_kernel_x0.6": {
-    "params": {
-     "c": 0.231,
-     "m": 0.18,
-     "k_rec": 5.132,
-     "k_nat": 5.132,
-     "rshare": 0.573
-    },
-    "minstr": 26.9,
-    "kernel_gpu_s": 9.33,
-    "recursion_gpu_s": 5.35,
-    "recursion_after": 2.15,
-    "recursion_cut": 3.19,
-    "native_hash_delta": 0.25,
-    "net_cut": 2.95,
-    "net_cut_pct_of_kernel": 31.6
-   },
-   "pessimistic": {
-    "params": {
-     "c": 0.308,
-     "m": 0.22,
-     "k_rec": 11.1,
-     "k_nat": 9.955,
-     "rshare": 0.5
-    },
-    "minstr": 26.9,
-    "kernel_gpu_s": 9.33,
-    "recursion_gpu_s": 4.67,
-    "recursion_after": 4.64,
-    "recursion_cut": 0.03,
-    "native_hash_delta": 0.54,
-    "net_cut": -0.51,
-    "net_cut_pct_of_kernel": -5.4
-   },
-   "optimistic": {
-    "params": {
-     "c": 0.192,
-     "m": 0.14,
-     "k_rec": 5.132,
-     "k_nat": 5.132,
-     "rshare": 0.6
-    },
-    "minstr": 26.9,
-    "kernel_gpu_s": 9.33,
-    "recursion_gpu_s": 5.6,
-    "recursion_after": 1.69,
-    "recursion_cut": 3.91,
-    "native_hash_delta": 0.25,
-    "net_cut": 3.66,
-    "net_cut_pct_of_kernel": 39.2
+    "net_cut_pct_of_kernel": 15.2,
+    "break_even_k_rec": 18.29
    }
   }
  },
+ "wall_24628607_E": {
+  "as_measured_sponge_nodes": {
+   "native_wall_delta_s": 1.93,
+   "recursion_wall_delta_s": 0.34,
+   "request_wall_delta_s": 2.27
+  },
+  "with_2to1_nodes": {
+   "native_wall_delta_s": 1.75,
+   "recursion_wall_delta_s": -0.41,
+   "request_wall_delta_s": 1.35
+  },
+  "2to1_plus_kernel_x0.6": {
+   "native_wall_delta_s": 1.32,
+   "recursion_wall_delta_s": -1.65,
+   "request_wall_delta_s": -0.33
+  },
+  "pessimistic": {
+   "native_wall_delta_s": 1.93,
+   "recursion_wall_delta_s": 3.02,
+   "request_wall_delta_s": 4.95
+  },
+  "engineered_target": {
+   "native_wall_delta_s": 0.59,
+   "recursion_wall_delta_s": -2.59,
+   "request_wall_delta_s": -2.0
+  },
+  "optimistic_b2_retune": {
+   "native_wall_delta_s": 1.07,
+   "recursion_wall_delta_s": -2.23,
+   "request_wall_delta_s": -1.16
+  },
+  "builder_original_central": {
+   "native_wall_delta_s": 0.57,
+   "recursion_wall_delta_s": -1.98,
+   "request_wall_delta_s": -1.41
+  }
+ },
  "notes": [
-  "native delta is measured at M6 geometry (log blowup 1, 17 proofs); D2 b4 roughly doubles native LDE hashing [E]",
+  "REVIEW: m is now derived from the ab8 kernel table (recursion Merkle / recursion kernel GPU-s), 0.27-0.33; the original 0.18 used the request-wide denominator",
+  "REVIEW: native delta uses the production D2 b4 LDE (2x the measured b1 replay) except in the optimistic b2-retune row",
+  "REVIEW: transcript_delta = channel_mix GPU-s x (P2/Blake single-thread ratio - 1), measured in serial-mix.jsonl; on every proof's critical path",
   "recursion GPU-s assumed proportional to committed cells; recursion-prover trees switch to P2 too (they are verified in-circuit by the next layer)",
   "c_central/c_2to1: hash share 0.80 x mean per-decommitment P2/Blake cell ratio; pessimistic: share 0.74 x max ratio; optimistic: accepted whole-leaf census ratio 0.192 [M/D]",
-  "m=0.18 Merkle share of recursion kernel time [E] (request-wide Merkle share 0.14 [M]); k_rec/k_nat = measured P2/Blake tree cost 9.95 (8.55 with 2-to-1 [E]); x0.6 = a kernel-tuning target, not measured"
+  "k_rec/k_nat = measured standalone P2/Blake tree cost 9.95 (8.55 with 2-to-1 [E]); in-request Blake may run below its standalone HBM roofline, which would lower the effective k (unmeasured); x0.6 = a kernel-tuning target, not measured",
+  "wall_24628607_E scales each phase wall by its own GPU-s change at constant busy: an upper bound for the recursion gain, not a measurement"
  ]
 }

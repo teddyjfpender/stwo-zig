@@ -1,0 +1,5 @@
+{"device":"NVIDIA GeForce RTX 5090","count":8,"iters":200,"blake_us_per_mix":1.002,"p2_us_per_mix":25.404,"ratio":25.35,"blake_compressions":1,"p2_perms":2,"blake_us_per_comp":1.002,"p2_us_per_perm":12.702}
+{"device":"NVIDIA GeForce RTX 5090","count":64,"iters":200,"blake_us_per_mix":3.756,"p2_us_per_mix":89.444,"ratio":23.81,"blake_compressions":5,"p2_perms":7,"blake_us_per_comp":0.751,"p2_us_per_perm":12.778}
+{"device":"NVIDIA GeForce RTX 5090","count":256,"iters":200,"blake_us_per_mix":12.356,"p2_us_per_mix":295.318,"ratio":23.90,"blake_compressions":17,"p2_perms":23,"blake_us_per_comp":0.727,"p2_us_per_perm":12.840}
+{"device":"NVIDIA GeForce RTX 5090","count":1024,"iters":200,"blake_us_per_mix":46.728,"p2_us_per_mix":1118.889,"ratio":23.94,"blake_compressions":65,"p2_perms":87,"blake_us_per_comp":0.719,"p2_us_per_perm":12.861}
+{"device":"NVIDIA GeForce RTX 5090","count":4096,"iters":200,"blake_us_per_mix":184.268,"p2_us_per_mix":4414.275,"ratio":23.96,"blake_compressions":257,"p2_perms":343,"blake_us_per_comp":0.717,"p2_us_per_perm":12.870}

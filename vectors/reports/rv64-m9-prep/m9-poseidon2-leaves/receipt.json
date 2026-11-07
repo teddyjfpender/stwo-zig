@@ -28,10 +28,40 @@
   "parity": "parity.log",
   "single_height_bench": "bench-single.jsonl",
   "real_trees_24628607": "chain-24628607-trees.jsonl",
-  "model": "model.json"
+  "model": "model.json",
+  "review_parity": "review-gpu-run.log",
+  "serial_mix": "serial-mix.jsonl",
+  "review": "REVIEW.md"
  },
  "earlier_binaries": {
   "1dc4e0c4...": "bench-single.jsonl + chain-24628607-trees.jsonl; kernel staged at native/commitment/ then; identical device code apart from include paths and comments. Re-check on the final binary: 20:200 P2 leaf 6.026 -> 5.924 ms, 24:16 11.126 -> 10.914 ms, identical roots (parity.log)"
  },
- "staging": "kernel lives in tests/cuda/rv64/m9_poseidon2/ because the CUDA and CuMetal product builds compile every .cu under src/backends/cuda/native (scripts/cuda_build_lib/native_closure.py)"
+ "staging": "kernel lives in tests/cuda/rv64/m9_poseidon2/ because the CUDA and CuMetal product builds compile every .cu under src/backends/cuda/native (scripts/cuda_build_lib/native_closure.py)",
+ "review": {
+  "date": "2026-11-07",
+  "kind": "adversarial review",
+  "gpu_policy": "one gpu.lock hold 14:43:10Z-14:43:38Z (28 s), GPU1 idle at entry (0%, 32,119 MiB free); standalone kernels only; pod dir removed",
+  "binary_sha256": {
+   "m9p2": "526aad18f9156951dc43d1a8e897fa8986c1cd99631d03409439789b969f2714",
+   "m9mix": "0956b82115a7fc79025f8a75d123364f7137932ce85a57f79845bb9bfde1d758"
+  },
+  "vectors": {
+   "sha256": "2f3567a31b8279eee701ef989bb1dc2a17113ba67a32cc095e415659006cfba7",
+   "bytes": 18262146,
+   "cases": 168,
+   "in_git": false
+  },
+  "parity": "336/336 runs; 344,064 digest rows, 3,984 prefix states, 2,688 parents, 46 roots (review-gpu-run.log)",
+  "zig_tests": "90/90 pass (zig test src/core/m9_poseidon2_leaves_test_root.zig)",
+  "serial_mix": "serial-mix.jsonl: one-thread P2 sponge x23.9 Blake2s per mix (12.9 us/perm vs 0.72 us/compression)",
+  "files": {
+   "src/core/vcs_lifted/poseidon2_m31_mixed_leaf.zig": "41bc2a42f784d6522595ca7fcea98a692cefd193209599d626dbb331b70804fa",
+   "src/core/m9_poseidon2_leaves_vectors.zig": "a5067347f7624af45ac5341aeefe9ef64dc036d50a8c0d92bef84a5328594613",
+   "tests/cuda/rv64/m9_poseidon2/m9_poseidon2_leaves.cu": "47edbe3720f9e751451208f54513e0acc2246735979f900b06a9e3d208559f10",
+   "tests/cuda/rv64/m9_poseidon2/m9_p2_serial_mix.cu": "56eeb898749050b66cb5000f11649f8ba3bb486bdd69ade57be156701dfb31e3",
+   "tests/cuda/rv64/m9_poseidon2/poseidon2_mixed_leaf.cu": "e79115fe7a45953ea958f624db2374a96ffa264d08960853e20cf592ec2b719c (unchanged)",
+   "scripts/rv64_m9/poseidon2_leaves_model.py": "82751fefc95bc9cd8e4d9671a90f2b1a8f7419a92b7d40163dfeb84c7923471d"
+  },
+  "findings": "REVIEW.md"
+ }
 }
