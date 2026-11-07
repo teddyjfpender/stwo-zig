@@ -19,7 +19,7 @@ ab() { name=$1; preset=$2; block=$3; shift 3
   for a in 1 2 3; do
     python3 scripts/rv64_m7_integration_stack.py run --manifest $R/$name-manifest.json --out $R/$name-$a "$@" > $R/$name-$a.log 2>&1; rc=$?
     log $name-$a rc=$rc; [ $rc -eq 0 ] && return 0
-    grep -q "quiet admission timed out\|quiet" $R/$name-$a/*.log 2>/dev/null || return $rc
+    grep -q "quiet admission timed out" $R/$name-$a/*.log 2>/dev/null || return $rc
   done; return 1; }
 for step in $STEPS; do case $step in
   gate-def-26235156) gate $step --block 26235156 || { log STOP; exit 1; } ;;
