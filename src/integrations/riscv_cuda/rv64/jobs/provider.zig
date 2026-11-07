@@ -153,11 +153,61 @@ pub const Ledger = struct {
     }
 };
 
+/// Device tenancy: per physical-device index (ordinal mod devices, the
+/// router's mapping) one big tenant at a time. The native hybrid's job
+/// windows (sized from the free process arena) and the legacy truth stages'
+/// large leases (MAIN commit, global interaction, ~15 GB composition, PCS)
+/// share one card: run concurrently, a window taken first starves the later
+/// lease (CudaAllocationFailed / PCS out of memory [M] c0 26235156, truth
+/// ordinal 4). Tenants on different devices still run in parallel; the native
+/// hybrid already serializes its own windows per device, so only native-vs-
+/// truth pairs on one device lose overlap. Wait time is receipted.
+pub const Tenancy = struct {
+    pub const max_devices = 8;
+    devices: usize = 1,
+    locks: [max_devices]std.Thread.Mutex = @splat(.{}),
+    wait_ns: [max_devices]std.atomic.Value(u64) = @splat(.init(0)),
+    holds: [max_devices]std.atomic.Value(u64) = @splat(.init(0)),
+    pub const Guard = struct {
+        t: *Tenancy,
+        index: usize,
+        pub fn release(self: Guard) void {
+            self.t.locks[self.index].unlock();
+        }
+    };
+    pub fn init(devices: usize) !Tenancy {
+        if (devices == 0 or devices > max_devices) return error.InvalidM8FeederDevices;
+        return .{ .devices = devices };
+    }
+    pub fn indexOf(self: *const Tenancy, ordinal: u64) usize {
+        return @intCast(ordinal % self.devices);
+    }
+    pub fn hold(self: *Tenancy, ordinal: u64) Guard {
+        const i = self.indexOf(ordinal);
+        var timer = std.time.Timer.start() catch null;
+        self.locks[i].lock();
+        if (timer) |*t| _ = self.wait_ns[i].fetchAdd(t.read(), .monotonic);
+        _ = self.holds[i].fetchAdd(1, .monotonic);
+        return .{ .t = self, .index = i };
+    }
+    pub const Stats = struct { holds: [max_devices]u64 = @splat(0), wait_ns: [max_devices]u64 = @splat(0) };
+    /// Read and clear (per request).
+    pub fn take(self: *Tenancy) Stats {
+        var s = Stats{};
+        for (0..self.devices) |i| {
+            s.holds[i] = self.holds[i].swap(0, .monotonic);
+            s.wait_ns[i] = self.wait_ns[i].swap(0, .monotonic);
+        }
+        return s;
+    }
+};
+
 /// Process-wide feeder state (one per service).
 pub const Feeder = struct {
     a: std.mem.Allocator,
     selection: Selection,
     ledger: Ledger,
+    tenancy: Tenancy = .{},
     requests: u64 = 0,
     /// Wall clock of the current request (begin → publish).
     timer: ?std.time.Timer = null,
@@ -195,7 +245,8 @@ pub const Feeder = struct {
     fn writeReceipt(self: *Feeder, dir: []const u8, s: Ledger.Summary, wall: u64) !void {
         var text: std.Io.Writer.Allocating = .init(self.a);
         defer text.deinit();
-        try std.json.Stringify.value(.{ .schema = "rv64-m8-feeder-request/v1", .request = self.requests, .selection = self.selection, .ledger = s, .wall_ns = wall }, .{ .whitespace = .indent_1 }, &text.writer);
+        const t = self.tenancy.take();
+        try std.json.Stringify.value(.{ .schema = "rv64-m8-feeder-request/v1", .request = self.requests, .selection = self.selection, .ledger = s, .wall_ns = wall, .devices = self.tenancy.devices, .tenancy_holds = t.holds[0..self.tenancy.devices], .tenancy_wait_ns = t.wait_ns[0..self.tenancy.devices] }, .{ .whitespace = .indent_1 }, &text.writer);
         var d = try std.fs.cwd().openDir(dir, .{});
         defer d.close();
         try d.writeFile(.{ .sub_path = "m8-feeder.json", .data = text.written() });
@@ -299,6 +350,38 @@ test "negative: a corrupted status word or failed check rejects the request; not
     try testing.expect(p.published);
     const receipt = try tmp.dir.readFileAlloc(arena.allocator(), "m8-feeder.json", 1 << 16);
     try testing.expect(std.mem.indexOf(u8, receipt, "\"accepted\": 1") != null);
+}
+
+test "tenancy: one big tenant per device, devices independent" {
+    var t = try Tenancy.init(2);
+    try testing.expectError(error.InvalidM8FeederDevices, Tenancy.init(0));
+    const g0 = t.hold(4); // device 0
+    const g1 = t.hold(3); // device 1: not blocked by device 0
+    try testing.expect(!t.locks[0].tryLock());
+    g0.release();
+    try testing.expect(t.locks[0].tryLock());
+    t.locks[0].unlock();
+    g1.release();
+    const Racer = struct {
+        fn run(tt: *Tenancy, inside: *std.atomic.Value(u32), max: *std.atomic.Value(u32)) void {
+            for (0..200) |_| {
+                const g = tt.hold(2);
+                const now = inside.fetchAdd(1, .acq_rel) + 1;
+                _ = max.fetchMax(now, .acq_rel);
+                _ = inside.fetchSub(1, .acq_rel);
+                g.release();
+            }
+        }
+    };
+    var inside = std.atomic.Value(u32).init(0);
+    var max = std.atomic.Value(u32).init(0);
+    var threads: [4]std.Thread = undefined;
+    for (&threads) |*th| th.* = try std.Thread.spawn(.{}, Racer.run, .{ &t, &inside, &max });
+    for (threads) |th| th.join();
+    try testing.expectEqual(@as(u32, 1), max.load(.acquire));
+    const st = t.take();
+    try testing.expectEqual(@as(u64, 801), st.holds[0]);
+    try testing.expectEqual(@as(u64, 0), t.take().holds[0]);
 }
 
 test "ledger is safe across threads" {
