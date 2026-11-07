@@ -241,8 +241,17 @@ pub const Prover = struct {
     /// GPU-native node job (outer_device.NodeJob over its NodeClasses
     /// template, children from a node-local stand-in of the request slab) and
     /// require its device-encoded bytes == the published host bytes.
-    fn gnJob(self: *Prover, a: std.mem.Allocator, input: Prestage.Input, class_key: [32]u8, g: *const GnCheck, wire: []const u8, image: []const u32, handoff: ?Job.FixedHandoff) !void {
-        const entry = NodeClasses.get(class_key) orelse return error.GnNodeClassNotHarvested;
+    fn gnJob(self: *Prover, a: std.mem.Allocator, input: Prestage.Input, cur: *const @import("jobs/outer_staged.zig").Staged, g: *const GnCheck, wire: []const u8, image: []const u32, handoff: ?Job.FixedHandoff) !void {
+        const entry = NodeClasses.get(cur.class_key) orelse return error.GnNodeClassNotHarvested;
+        // A leaf's Blake sample prefill tape is a per-node HOST input today
+        // (leaf_graph): hand this node's to the template (same class, same
+        // length; remaining host work, see the receipt).
+        if (entry.staged.assignment.sample_tape) |t| {
+            const c = cur.assignment.sample_tape orelse return error.GnNodeSampleTapeMissing;
+            if (c.len != t.len) return error.GnNodeSampleTapeShape;
+            entry.staged.assignment.sample_tape = c;
+            entry.staged.assignment.sample_map = cur.assignment.sample_map;
+        }
         var timer = try std.time.Timer.start();
         // Children regions in the slab convention: image in the last words.
         var region_words: [Seed.max_children]u32 = undefined;
@@ -411,7 +420,7 @@ pub const Prover = struct {
                 std.debug.print("GN_NODE_CLASS ordinal={d} harvest_error={s}\n", .{ input.ordinal, @errorName(err) });
                 break :blk false;
             };
-            if (GnRecord.jobSelected()) try self.gnJob(a, input, staged.class_key, g, wire, image, job.fixed_handoff);
+            if (GnRecord.jobSelected()) try self.gnJob(a, input, staged, g, wire, image, job.fixed_handoff);
             if (report) |out| out.* = r;
         }
         if (record_image) |image| if (Recorder.dir() != null) Recorder.write(a, input, staged, &job, &produced, image) catch |err| {
@@ -955,6 +964,8 @@ pub const NodeClasses = struct {
         statement: Seed.Statement,
         program: []u32 = &.{},
         max_encoded_bytes: usize,
+        /// Owned copy of the Authority's FIXED column logs (Staged.fixed_logs).
+        fixed_logs: []u32 = &.{},
         /// Per device: the worker's whole-node graph cache (the Prover of that
         /// GPU; set by the binder). With it every node of the class replays
         /// the class's captured body graph (rebinding only node buffers).
@@ -1048,6 +1059,13 @@ pub const NodeClasses = struct {
             e.max_encoded_bytes = 4 * (@as(usize, desc[Enc.D.max_payload_words]) + (try Seed.Layout.of(own)).words);
         }
         for (e.shapes, g.harvest.shapes[0..nk]) |*dst, src| dst.* = try a.dupe(u32, src);
+        // The template outlives the node's Authority / PP: own what the
+        // Staged borrowed from them. FIXED raw evaluations are not kept (the
+        // class FIXED tree comes from its persistent region or the lane's
+        // precommit handoff; packFixed refuses rather than read freed PP).
+        e.fixed_logs = try a.dupe(u32, staged.fixed_logs);
+        staged.fixed_logs = e.fixed_logs;
+        staged.fixed_raw = &.{};
         // The template carries no host value: the device writes seeds,
         // checkpoint and outputs per node.
         @memset(@constCast(staged.expected), 0);
