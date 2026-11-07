@@ -124,7 +124,7 @@ fn beginIn(a: std.mem.Allocator, path: []const u8, req: PC.Stage.Request) !?*Rec
         try rf.writeAll(std.mem.sliceAsBytes(&key));
         try rf.writeAll(std.mem.sliceAsBytes(words));
     }
-    std.debug.print("GN_PACK_RECORD ordinal={} chunks={} chunk_bytes={} data_bytes={} launches={} buffers={} cpu_records={} pack_ns={} compact_ns={} rom_ns={} columns={}\n", .{ req.ordinal, stats.chunks, stats.chunk_words * 4, stats.data_words * 4, stats.launches, stats.buffers, stats.cpu_records, stats.pack_ns, stats.compact_ns, stats.rom_ns, logs.len });
+    std.debug.print("GN_PACK_RECORD ordinal={} chunks={} chunk_bytes={} data_bytes={} launches={} buffers={} arena_bytes={} cpu_records={} pack_ns={} compact_ns={} rom_ns={} columns={}\n", .{ req.ordinal, stats.chunks, stats.chunk_words * 4, stats.data_words * 4, stats.launches, stats.buffers, stats.arena_words * 4, stats.cpu_records, stats.pack_ns, stats.compact_ns, stats.rom_ns, logs.len });
     const r = try a.create(Recording);
     r.* = .{ .a = a, .dir = dir, .ordinal = req.ordinal, .logs = logs };
     return r;

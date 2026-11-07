@@ -60,6 +60,8 @@ pub const Stats = struct {
     buffers: u32 = 0,
     chunk_words: u64 = 0,
     data_words: u64 = 0,
+    /// Stage-1 arena words of the program buffers (Spec.compact_words bound).
+    arena_words: u64 = 0,
     cpu_records: u64 = 0,
     pack_ns: u64 = 0,
     /// Of pack_ns: the CompactRecord/seed pack (cpu_witness Compact.fromCapture).
@@ -403,6 +405,7 @@ pub fn pack(a: std.mem.Allocator, req: Stage.Request, roms: *P.Roms, out: G.Chun
     stats.buffers = w.buffers;
     stats.chunk_words = w.words_out;
     stats.data_words = w.data_words;
+    stats.arena_words = w.arena_words;
     stats.pack_ns = timer.read();
     return stats;
 }

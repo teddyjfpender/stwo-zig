@@ -327,6 +327,8 @@ pub const Writer = struct {
     words_out: u64 = 0,
     data_words: u64 = 0,
     chunks: u32 = 0,
+    /// Arena words Stage 1 allocates for the declared buffers (= Program.arenaWords).
+    arena_words: u64 = 0,
 
     pub fn init(out: G.ChunkWriter) Writer {
         return .{ .out = out };
@@ -381,6 +383,7 @@ pub const Writer = struct {
         self.at += body;
         self.next_id += 1;
         self.buffers += 1;
+        if (init_kind != .persistent) self.arena_words += std.mem.alignForward(u64, n, 64);
         return id;
     }
     /// Data words into `buffer` at word `offset` (split across buffers).
