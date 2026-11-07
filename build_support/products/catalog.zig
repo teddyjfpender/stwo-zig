@@ -37,6 +37,8 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-poseidon-full-leaf-census", .description = "Exact complete mixed P2 CPU recursive leaf census", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-poseidon2-gadgets", .description = "Qualify dedicated Poseidon transcript and Merkle gadgets", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-poseidon2-circuit", .description = "Measure exact pinned Poseidon2 circuit arithmetic before profile activation", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-m9-outer-gkr", .description = "M9 outer GKR node prototype: real D2 leaf roster, node round, shape-only verifier cost", .scope = .riscv_cpu },
+    .{ .name = "rv64-m9-outer-gkr-tool", .description = "M9 outer GKR CPU prototype and shape-only in-circuit verifier cost oracle", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-outer-gkr", .description = "Qualify the outer LogUp-GKR section: CPU reference, tamper corpus, in-circuit gadget", .scope = .riscv_cpu },
     .{ .name = "rv64-outer-gkr-tool", .description = "Outer LogUp-GKR producer/receiver/cost tool (fresh-process receiver for the tamper corpus)", .scope = .riscv_cpu },
     .{ .name = "rv64-logup-gkr-prototype", .description = "Build isolated experimental LS-range LogUp-GKR prover and receiver", .scope = .riscv_cpu },

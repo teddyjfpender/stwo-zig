@@ -37,6 +37,11 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
     // M4 diet stream (measurement-only prototype).
     const diet_gkr_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_outer_gkr_diet_test_root.zig"), .filters = &.{"outer LogUp-GKR"} });
     context.b.step("test-riscv64-outer-gkr-diet", "Measure the outer LogUp-GKR in-circuit verifier cost (M7 diet prototype)").dependOn(&context.b.addRunArtifact(diet_gkr_tests).step);
+    // M9 stream m9-outer-gkr (STWO_RV64_M9_OUTER_GKR, default off; CPU prototype + cost oracle, new files only).
+    const m9_outer_gkr_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_m9_outer_gkr_test_root.zig"), .filters = &.{"outer GKR m9"} });
+    context.b.step("test-riscv64-m9-outer-gkr", "M9 outer GKR node prototype: real D2 leaf roster, node round, shape-only verifier cost").dependOn(&context.b.addRunArtifact(m9_outer_gkr_tests).step);
+    const m9_outer_gkr_tool = context.b.addExecutable(.{ .name = "rv64-m9-outer-gkr-tool", .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_m9_outer_gkr_tool_main.zig") });
+    context.b.step("rv64-m9-outer-gkr-tool", "M9 outer GKR CPU prototype and shape-only in-circuit verifier cost oracle").dependOn(&context.b.addInstallArtifact(m9_outer_gkr_tool, .{}).step);
     // M5 stream outer-gkr (profile outer_gkr_om31_strict_v1; off by default, new files only).
     const outer_gkr_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_outer_gkr_test_root.zig"), .filters = &.{"outer GKR"} });
     context.b.step("test-riscv64-outer-gkr", "Qualify the outer LogUp-GKR section: CPU reference, tamper corpus, in-circuit gadget").dependOn(&context.b.addRunArtifact(outer_gkr_tests).step);
