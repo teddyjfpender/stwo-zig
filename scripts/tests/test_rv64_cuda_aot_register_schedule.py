@@ -222,6 +222,18 @@ class Scheduler(unittest.TestCase):
         self.assertEqual(region.count("folded=add(folded,t_part_0_s"), report["slices"])
         self.assertEqual(lowered.count("t_part_0_s0(tree0"), 1)
 
+    def test_parameter_staging_precedes_row_check(self):
+        raw, part = synthetic(5)
+        lowered, report = S.lower_module(raw, raw, "128,4", stage=True)
+        kernel = lowered[lowered.index('extern "C"'):]
+        self.assertEqual(report["staged_parameter_words"], 24)  # parameters+16u is the largest OM31 read
+        self.assertLess(kernel.index("__syncthreads();"), kernel.index("if(i>=rows)return;"))
+        self.assertIn("t_part_0(a,b,c,offsets,t5_parameters,powers", kernel)
+        self.assertIn("t5_parameters[j]=p[j]", kernel)
+        start = lowered.index("t_part_0(")
+        scheduled = lowered[lowered.rfind("__device__", 0, start):lowered.index('extern "C"', start)]
+        self.assertEqual(evaluate(part, Machine(2)), evaluate(scheduled, Machine(2)))
+
     def test_plain_kernel(self):
         raw, part = synthetic(3)
         body = part[part.index("{\n") + 2:part.rindex(" const OM31 result=")]

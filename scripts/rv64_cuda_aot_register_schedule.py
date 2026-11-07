@@ -312,7 +312,31 @@ def split_module(text):
     return parts, entry
 
 
-def lower_module(raw_text, admitted_text, launch_bounds, slice_ops=0):
+def stage_parameters(kernel, body):
+    """Copy the group's parameter prefix into shared memory once per block.
+
+    The copy and barrier run before the row bound check, so every thread of the
+    block reaches __syncthreads(). The part receives the shared copy as its
+    `parameters` argument; the words are the same, only the address space differs.
+    """
+    used = [int(x) for x in re.findall(r"from_words\(parameters\+(\d+)u\)", body)]
+    if not used:
+        return kernel, 0
+    words = max(used) + 8
+    head = re.match(r'(extern "C" __global__ void [^{]*\{)uint32_t i=blockIdx\.x\*blockDim\.x\+threadIdx\.x;if\(i>=rows\)return;', kernel)
+    if not head:
+        raise ValueError("unexpected dispatcher shape for parameter staging")
+    staged = (head[1] + f"__shared__ uint32_t t5_parameters[{words}];"
+              f"for(uint32_t j=threadIdx.x;j<{words}u;j+=blockDim.x)t5_parameters[j]=p[j];__syncthreads();"
+              "uint32_t i=blockIdx.x*blockDim.x+threadIdx.x;if(i>=rows)return;")
+    kernel = staged + kernel[head.end():]
+    kernel, count = re.subn(r"(_part_\d+\(a,b,c,offsets,)p,", r"\1t5_parameters,", kernel)
+    if count != 1:
+        raise ValueError("expected one group call in the dispatcher")
+    return kernel, words
+
+
+def lower_module(raw_text, admitted_text, launch_bounds, slice_ops=0, stage=False):
     """Return the scheduled module for one admitted single-group shard.
 
     `raw_text` is the original case-N-domain.cu (never lowered). The admitted
@@ -330,6 +354,8 @@ def lower_module(raw_text, admitted_text, launch_bounds, slice_ops=0):
     function = raw_text[parts[group].start():end]
     body, report = schedule_group(function, slice_ops)
     kernel = admitted_text[admitted_text.index('extern "C" __global__ void'):]
+    if stage:
+        kernel, report["staged_parameter_words"] = stage_parameters(kernel, body)
     if launch_bounds:
         kernel = kernel.replace('extern "C" __global__ void', f'extern "C" __global__ void __launch_bounds__({launch_bounds})', 1)
     # The single group is called exactly once by the dispatcher; inlining it lets
@@ -361,11 +387,12 @@ def main():
     ap.add_argument("output", type=Path)
     ap.add_argument("--launch-bounds", default="", help="e.g. '128' or '128,2'")
     ap.add_argument("--slice-ops", type=int, default=0, help="cut the group into noinline slices of about this many operations")
+    ap.add_argument("--stage-parameters", action="store_true", help="copy the group's parameters to shared memory per block")
     args = ap.parse_args()
     if str(args.admitted) == "-":
         text, report = lower_plain(args.raw.read_text(), args.launch_bounds)
     else:
-        text, report = lower_module(args.raw.read_text(), args.admitted.read_text(), args.launch_bounds, args.slice_ops)
+        text, report = lower_module(args.raw.read_text(), args.admitted.read_text(), args.launch_bounds, args.slice_ops, args.stage_parameters)
     args.output.write_text(text)
     report["output_sha256"] = hashlib.sha256(text.encode()).hexdigest()
     print(json.dumps(report))
