@@ -1,21 +1,27 @@
 #!/usr/bin/env python3
-"""M8 opt-combined image: T2..T9 kernel objects + T5 register-scheduled AOT shards in ONE image.
+"""M8 opt-combined image: ONE coherent CUDA image from THIS tree + T5 register-scheduled AOT shards.
 
-Recipe (the union of the T2/T4/T6/T7/T8/T9 compose scripts and T5's relink):
-  1. Start from the frozen m7-combined-residency link line (build.json, 958 items).
-  2. Recompile from THIS tree every link object whose source an opt branch changed
-     (plus the four frozen objects whose build dirs are gone, as every T* image did),
-     and write a derived base receipt with those objects swapped in.
-  3. Run scripts/rv64_m8_aot_register_relink.py (T5) on the derived receipt with T5's
-     plan-img1.json: it adds the `_t5` kernels and the flag-gated dispatcher and links.
-Every other object is byte-for-byte the frozen one. All opt kernels are flag-selected at
-run time, so flags off this image runs the frozen kernels except T3/T4 (default-on kill
-switches; see the receipt README).
+Why not the T* recipe (relink the frozen m7-combined-residency link line with a few objects
+recompiled): that line is no longer reproducible [M, 2026-11-07]. 4 of its objects are gone
+and 6 more (commitment-progressive, rv64-composition_finalize, rv64-binding, rv64-global,
+rv64-circuit_interaction, core_composition_dispatch) were overwritten by later m7-integrate
+builds. Also runtime/context.cu and rv64/pcs_native.cu changed after the frozen build
+(0eeaad6fd, 898a38bfe, b68e02081, 5a93c2449), so "recompile the missing four from the tree"
+mixes revisions: that image fails service start with `error: Unexpected` even with every
+flag off (attempt 1, lib afe02a0c…).
 
-usage: compose_image.py <src-root> <out-dir> [--jobs N]
+Recipe:
+  1. (separately) `scripts/rv64_m3_pod.py build --stream m8-opt-combined --only cuda`: the
+     harness's full source build of this tree (catalogues-v3, shared object store), i.e. what
+     PROTOCOL-M8 prescribes for a CUDA change. Every T2/T3/T4/T6/T7/T8/T9 kernel is in it.
+  2. this script: T5's relink (`scripts/rv64_m8_aot_register_relink.py`) on THAT build's own
+     link line (receipt converted to the relink's base-link schema), adding the `_t5`
+     kernels and the flag-gated dispatcher.
+All opt kernels are run-time flag-selected (T3/T4: default-on kill switches).
+
+usage: compose_image.py <src-root> <build-dir>   (build-dir = /workspace/m3/build/m8-opt-combined)
 """
 import argparse
-import concurrent.futures
 import ctypes
 import hashlib
 import json
@@ -24,27 +30,6 @@ import subprocess
 import sys
 import time
 
-BASE = Path('/workspace/m3/build/m7-combined-residency/cuda/native/build.json')
-BASE_LIBRARY_SHA = 'a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45'
-# link-object basename -> source under src/backends/cuda/native (who changed it)
-SOURCES = {
-    'rv64-pcs_native.cu.o': 'rv64/pcs_native.cu',            # frozen object gone (unchanged source)
-    'runtime-context.cu.o': 'runtime/context.cu',            # frozen object gone (unchanged source)
-    'rv64-fused_blake2s.cu.o': 'rv64/fused_blake2s.cu',      # frozen object gone (unchanged source)
-    'circuit_fill_chain.o': 'rv64/circuit_fill_chain.cu',    # T2 (frozen object also gone)
-    'rv64-deep.cu.o': 'rv64/deep.cu',                        # T3
-    'rv64-samples.cu.o': 'rv64/samples.cu',                  # T3
-    'transform-lde.cu.o': 'transform/lde.cu',                # T4 (n2b_smem.cuh)
-    'transform-n2b.cu.o': 'transform/n2b.cu',                # T4
-    'transform-b2n_retained.cu.o': 'transform/b2n_retained.cu',  # T4
-    'commitment-merkle.cu.o': 'commitment/merkle.cu',        # T6
-    'rv64-batch.cu.o': 'rv64/batch.cu',                      # T7
-    'rv64-global.cu.o': 'rv64/global.cu',                    # T8
-    'rv64-binding.cu.o': 'rv64/binding.cu',                  # T8
-    'rv64-keccak_witness.cu.o': 'rv64/keccak_witness.cu',    # T9
-    'rv64-bridge_witness.cu.o': 'rv64/bridge_witness.cu',    # T9
-    'circuit-base_witness.cu.o': 'circuit/base_witness.cu',  # T9
-}
 EXPORTS = ['stwo_exec_context_arena_snapshot_v1', 'stwo_rv64_gpu_session_controller', 'stwo_assignment_graph_create_v1',
            'stwo_circuit_assignment_chain_run_on', 'stwo_rv64_keccak_witness_on', 'stwo_rv64_bridge_witness_on',
            'stwo_circuit_base_witness_on', 'stwo_blake2s_merkle_layers_on', 'stwo_rv64_batch_round_on',
@@ -59,60 +44,39 @@ def sha(path):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('root', type=Path)
-    ap.add_argument('out', type=Path)
-    ap.add_argument('--jobs', type=int, default=6)
+    ap.add_argument('build', type=Path)
     args = ap.parse_args()
-    root, out = args.root.resolve(), args.out.resolve()
-    native = root / 'src/backends/cuda/native'
-    (out / 'rebuilt').mkdir(parents=True, exist_ok=True)
-    base = json.loads(BASE.read_text())
-    assert base['library_sha256'] == BASE_LIBRARY_SHA
-    link = list(base['link_command'])
-    nvcc = '/usr/local/cuda/bin/nvcc'
-    flags = ['-O3', '-std=c++17', '-lineinfo', '-gencode', 'arch=compute_120,code=sm_120', '-Xcompiler=-fPIC,-pthread', f'-I{native}']
+    root, build = args.root.resolve(), args.build.resolve()
     started = time.monotonic()
-    slots = {Path(x).name: i for i, x in enumerate(link) if x.endswith('.o')}
-    assert set(SOURCES) <= set(slots), sorted(set(SOURCES) - set(slots))
-
-    def build(name):
-        source, target = native / SOURCES[name], out / 'rebuilt' / name
-        key_file, key = target.with_suffix('.key'), ' '.join([sha(source), *flags])
-        if not (target.is_file() and key_file.is_file() and key_file.read_text() == key):
-            subprocess.run([nvcc, *flags, '-c', str(source), '-o', str(target)], check=True)
-            key_file.write_text(key)
-        return name, {'original': link[slots[name]], 'original_sha256': base['all_link_objects_sha256'].get(link[slots[name]]),
-                      'source': SOURCES[name], 'source_sha256': sha(source), 'object': str(target), 'object_sha256': sha(target)}
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
-        replacements = dict(pool.map(build, sorted(SOURCES)))
-    derived = dict(base)
-    for name, r in replacements.items():
-        link[slots[name]] = r['object']
-    derived['link_command'] = link
-    derived['all_link_objects_sha256'] = dict(base['all_link_objects_sha256'], **{r['object']: r['object_sha256'] for r in replacements.values()})
-    derived['opt_combined_replacements'] = replacements
-    derived_path = out / 'base-link.json'
+    source = json.loads((build / 'cuda/native/build.json').read_text())
+    objects = list(source['objects'])  # post-localization, in link order (rv64_cuda_native_library_build.py)
+    plain = build / 'cuda/native/libstwo-rv64-native.so'
+    assert sha(plain) == source['library_sha256']
+    link = ['/usr/local/cuda/bin/nvcc', '-shared', '-Xcompiler=-pthread', '-Xlinker=-Bsymbolic', '-rdc=true', '-gencode',
+            'arch=compute_120,code=sm_120', *objects, '-o', str(plain)]
+    derived = {'schema': 'rv64-m8-opt-combined-base-link/v1', 'library_sha256': source['library_sha256'], 'link_command': link,
+               'all_link_objects_sha256': dict(source['objects']), 'source_build_receipt': str(build / 'cuda/native/build.json')}
+    derived_path = build / 'base-link.json'
     derived_path.write_text(json.dumps(derived, indent=1) + '\n')
-    compile_seconds = round(time.monotonic() - started, 1)
-    # T5 relink on the derived line: nothing is missing any more, so it only adds the _t5 modules + dispatcher.
     subprocess.run([sys.executable, str(root / 'scripts/rv64_m8_aot_register_relink.py'), '--source-root', str(root),
                     '--base-link', str(derived_path), '--base-runtime', str(root / 'design/riscv-proving-stack/m7-handoff/p0-runtime.json'),
                     '--plan', str(root / 'vectors/reports/rv64-m8-20261106/opt-T5-aot-constraint-regs/plan-img1.json'),
-                    '--out', str(out / 'img'), '--jobs', '4', '--rss-cap-gb', '40'], check=True)
-    relink = json.loads((out / 'img/build.json').read_text())
+                    '--core-parts', str(build / 'cuda/core-parts'), '--include', str(build / 'cuda'),
+                    '--out', str(build / 'img'), '--jobs', '4', '--rss-cap-gb', '40'], check=True)
+    relink = json.loads((build / 'img/build.json').read_text())
     image = ctypes.CDLL(relink['library'])
     missing = [n for n in EXPORTS if not hasattr(image, n)]
     assert not missing, missing
-    runtime = json.loads((out / 'img/runtime.json').read_text())
-    runtime['scope'] = ('M8 opt-combined image: T2/T3/T4/T6/T7/T8/T9 objects recompiled + T5 register-scheduled AOT shards, '
-                        'all on m7-combined-residency; ' + runtime.get('scope', ''))
-    (out / 'img/runtime.json').write_text(json.dumps(runtime, indent=2) + '\n')
-    receipt = {'schema': 'rv64-m8-opt-combined-image/v1', 'label': 'M', 'base_link_receipt': str(BASE), 'base_library_sha256': BASE_LIBRARY_SHA,
-               'replacements': replacements, 'replacement_compile_seconds': compile_seconds,
-               't5_relink_receipt': str(out / 'img/build.json'), 't5_modules': [m.get('symbol', m.get('source')) for m in relink['modules']],
+    runtime = json.loads((build / 'img/runtime.json').read_text())
+    runtime['scope'] = ('M8 opt-combined image: full source build of the merged tree (T2/T3/T4/T6/T7/T8/T9 kernels, flag-selected) '
+                        '+ T5 register-scheduled AOT shards behind STWO_RV64_M8_AOT_REGISTER_SCHEDULE; frozen sparse/observer/guard addons')
+    (build / 'img/runtime.json').write_text(json.dumps(runtime, indent=2) + '\n')
+    receipt = {'schema': 'rv64-m8-opt-combined-image/v1', 'label': 'M', 'source_build_receipt': str(build / 'cuda/native/build.json'),
+               'source_library_sha256': source['library_sha256'], 'source_objects': len(objects),
+               't5_relink_receipt': str(build / 'img/build.json'), 't5_modules': [m.get('symbol', m.get('source')) for m in relink['modules']],
                'library': relink['library'], 'library_sha256': relink['library_sha256'],
                'library_bytes': Path(relink['library']).stat().st_size, 'seconds': round(time.monotonic() - started, 1)}
-    (out / 'build.json').write_text(json.dumps(receipt, indent=1) + '\n')
+    (build / 'opt-combined-image.json').write_text(json.dumps(receipt, indent=1) + '\n')
     print(json.dumps({'library': receipt['library'], 'sha256': receipt['library_sha256'], 'bytes': receipt['library_bytes'], 'seconds': receipt['seconds']}))
 
 
