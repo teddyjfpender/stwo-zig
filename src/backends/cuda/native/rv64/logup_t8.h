@@ -19,9 +19,11 @@ namespace stwo::cuda::rv64::t8 {
 inline int mode() {
   static const int value = [] {
     const char *v = std::getenv("STWO_RV64_M8_LOGUP_BLOCK_INVERSE");
-    if (!v || !*v || !std::strcmp(v, "0"))
-      return 0;
-    return std::strcmp(v, "1") ? -1 : 1;
+    // Unset/empty or 1 = T8 kernels, 0 = original kernels.
+    // Default ON since M8 opt-combined (vectors/reports/rv64-m8-20261106/opt-combined/): kernel-parity bit-exact, rv64_gate PASS on 26235156+24628607 flags on, and in the qualified 3+3 (24628607 warm, nsys CUPTI, both GPUs) global_inverse_contribute 0.391 -> inverse_contribute(_sum) 0.180 GPU-s, level-0 scan tiled [M].
+    if (!v || !*v || !std::strcmp(v, "1"))
+      return 1;
+    return std::strcmp(v, "0") ? -1 : 0;
   }();
   return value;
 }
