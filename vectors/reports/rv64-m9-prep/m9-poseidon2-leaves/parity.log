@@ -1,0 +1,15 @@
+tests/cuda/rv64/m9_poseidon2/m9_poseidon2_leaves.cu(273): warning #550-D: variable "prev_rows" was set but never used
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+d5372221fc7fd528748c3502a4840e50e5695598eb2dcb6a7149e9ead8b22ec9  build/m9p2
+0ab0e39e19a639324fee1705c8646cc15935d2ad969a9c93f692c4d3fad2549b  tests/cuda/rv64/m9_poseidon2/m9_poseidon2_leaves.cu
+e79115fe7a45953ea958f624db2374a96ffa264d08960853e20cf592ec2b719c  tests/cuda/rv64/m9_poseidon2/poseidon2_mixed_leaf.cu
+2026-11-07T14:29:48Z
+0, 80 %, 2 MiB
+1, 0 %, 2 MiB
+PARITY {"device":"NVIDIA GeForce RTX 5090","cases":165,"runs_pass":330,"runs_fail":0,"digest_rows_checked":337920,"prefix_rows_checked":2832,"refuses_bad_geometry":true,"noncanonical_status":1}
+rc=0
+BENCH {"device":"NVIDIA GeForce RTX 5090","spec":"20:200","log_size":20,"segments":1,"leaf_words":200,"input_cells":209715200,"reps":5,"blake_leaf_ms":0.570880,"blake_tree_ms":0.107904,"p2v1_leaf_ms":5.923872,"p2v1_tree_ms":1.225632,"p2v2_leaf_ms":6.342176,"p2v2_tree_ms":1.516032,"trees":true,"p2_leaf_perms":17825792,"p2_node_perms":2097150,"blake_leaf_compressions_model":13631488,"status":0,"p2_root0":177056795,"blake_root0":1774215776}
+BENCH {"device":"NVIDIA GeForce RTX 5090","spec":"24:16","log_size":24,"segments":1,"leaf_words":16,"input_cells":268435456,"reps":5,"blake_leaf_ms":1.317568,"blake_tree_ms":1.044384,"p2v1_leaf_ms":10.913504,"p2v1_tree_ms":11.381632,"p2v2_leaf_ms":11.627424,"p2v2_tree_ms":14.995328,"trees":true,"p2_leaf_perms":33554432,"p2_node_perms":33554430,"blake_leaf_compressions_model":16777216,"status":0,"p2_root0":2101065083,"blake_root0":4088932227}
+0, 0 %, 2 MiB
+1, 1 %, 2 MiB
+cleaned

@@ -1,0 +1,37 @@
+{
+ "schema": "rv64-m9-prep-poseidon2-leaves-receipt/v1",
+ "flag": "STWO_RV64_M9_POSEIDON2_LEAVES (default off; nothing reads it in the prover yet)",
+ "base": "origin/codex/rv64-m7-integrate @ 95e3d7e15",
+ "device": "NVIDIA GeForce RTX 5090, driver 570.195.03, nvcc 12.8 (cuda_12.8.r12.8/compiler.35583870_0), -O3 -arch=sm_120",
+ "gpu_policy": "standalone kernels only, flock /workspace/m3/locks/gpu.lock, each hold < 5 min; GPU util 0-24% at entry (other GPU idle) and 0-1% at exit, see bench-gpu-state.txt",
+ "binary_sha256": "d5372221fc7fd528748c3502a4840e50e5695598eb2dcb6a7149e9ead8b22ec9 (final layout; parity.log)",
+ "vectors": {
+  "generator": "zig run -OReleaseFast src/core/m9_poseidon2_leaves_vectors.zig -- vectors.txt (zig 0.15.2)",
+  "sha256": "7099daaa21ca41ccc4f4b461c0d5a9c61ddbb9bc262400862d9b29c058d30f9c",
+  "bytes": 17670767,
+  "in_git": false,
+  "cases": 165
+ },
+ "zig_tests": "zig test src/core/m9_poseidon2_leaves_test_root.zig: 89/89 pass incl. 3 new (expansion-model parity, seeded chaining at every split, parent vs Merkle hasher)",
+ "files": {
+  "src/core/vcs_lifted/poseidon2_m31_mixed_leaf.zig": "1ab634a656d4a4cc36c0dc31c8eae94600052d77c4493926bddc05e15bdb5ca9",
+  "src/core/m9_poseidon2_leaves_vectors.zig": "cfed4e1d94bbbbe89925afca2714a004ffbe182a682278a6592a0c2240631714",
+  "src/core/m9_poseidon2_leaves_test_root.zig": "99cb00cf639519d391674b476c536cefd0a440a8442ec7115cf4c4a402ae1da6",
+  "tests/cuda/rv64/m9_poseidon2/poseidon2_mixed_leaf.cu": "e79115fe7a45953ea958f624db2374a96ffa264d08960853e20cf592ec2b719c",
+  "tests/cuda/rv64/m9_poseidon2/m9_poseidon2_leaves.cu": "0ab0e39e19a639324fee1705c8646cc15935d2ad969a9c93f692c4d3fad2549b",
+  "src/backends/cuda/native/rv64/poseidon2_m31_register.cuh": "82e9e5455a37bcb85de5691b9d31f7fe68d08d2e189708bd1c85aa15cdcdfd09",
+  "src/backends/cuda/native/commitment/progressive.cu": "5f68ad1f47197ade12ab043314dcae7b68de5c2fef4968bd495081588cc99774",
+  "src/backends/cuda/native/commitment/merkle.cu": "cf1cf23da0850e626c1b4a83814f8324319a9d4fb6267d99af2820ad30789d98",
+  "scripts/rv64_m9/poseidon2_leaves_model.py": "f080938fb75c38647fb2efb004cd3266242b6376d66b8dfa8c98571024c8f247"
+ },
+ "results": {
+  "parity": "parity.log",
+  "single_height_bench": "bench-single.jsonl",
+  "real_trees_24628607": "chain-24628607-trees.jsonl",
+  "model": "model.json"
+ },
+ "earlier_binaries": {
+  "1dc4e0c4...": "bench-single.jsonl + chain-24628607-trees.jsonl; kernel staged at native/commitment/ then; identical device code apart from include paths and comments. Re-check on the final binary: 20:200 P2 leaf 6.026 -> 5.924 ms, 24:16 11.126 -> 10.914 ms, identical roots (parity.log)"
+ },
+ "staging": "kernel lives in tests/cuda/rv64/m9_poseidon2/ because the CUDA and CuMetal product builds compile every .cu under src/backends/cuda/native (scripts/cuda_build_lib/native_closure.py)"
+}
