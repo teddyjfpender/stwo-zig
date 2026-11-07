@@ -56,3 +56,22 @@ Pod tmux `t2-pipe2` (`runs/m8-opt-T2-assignment-chain/pipe2.sh`, status in `pipe
 Image: `build/m8-opt-T2-assignment-chain/img2`, lib sha256 9e56412b..., from source ff821a8c7.
 It is composed by `compose_image.py`: the m7-combined-residency recipe with 4 objects recompiled from the tree, because the frozen replacement objects are gone.
 Not landed: landing requires a gate PASS and a 3+3 that is not slower.
+
+## Real-node replay and removal (k-merkle stream, 2026-11-07) [M]
+The dump was taken on the pod by the k-merkle gate-2 (24628607, `STWO_RV64_OUTER_ASSIGNMENT_GRAPH=1`, image
+`build/m8-k-merkle/img1`, lib 4ec3f61c). One outer node: 120,241 levels, 13,394,712 tasks, 26,738,688 values, 562 graph steps;
+119,727 chain levels (5.19M tasks), widths <=32: 90,357 levels. Dump sha256 58e5b599...1ccca1 (856,942,028 bytes; deleted after the replay).
+`chain_flow_bench dump`, CUDA events, 7 reps, spread <= 0.3 %, all variants bit-exact (fnv 7ff15699deabfa56):
+
+| executor | node ms (median) |
+|---|---|
+| chain_run | **116.46** |
+| chain_flow<wide=16> | 129.23 |
+| chain_flow<wide=32> (was the [E] default) | 130.52 |
+| chain_flow<wide=64> | 130.77 |
+| chain_flow<wide=128> | 137.56 |
+| chain_flow<wide=never> | 147.79 |
+
+No width beats chain_run: the synthetic i.i.d. win did not carry over to the real DAG. chain_flow, `at_ni`, `run_levels`, `eval`
+and `STWO_RV64_M8_ASSIGNMENT_FLOW` were removed from `circuit_fill_chain.cu` (back to the pre-T2 text plus the dump hook).
+`chain_flow_bench.cu` builds only against the T2 commits (f23375f71) now.
