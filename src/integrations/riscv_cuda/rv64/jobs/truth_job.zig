@@ -135,6 +135,36 @@ pub const Verdicts = struct {
 };
 const verdict_names = [_][]const u8{ "truth_status", "root_match", "channel_order", "pcs_status" };
 
+pub const Fault = enum { none, parameter_program, class_root, stage1_root, absent_claim, channel_cursor, pcs_header };
+
+const Events = @import("../cuda_events.zig");
+/// CUDA events around a job's enqueue (exec stream); read after the worker's wait.
+pub const Span = struct {
+    begin: ?*anyopaque = null,
+    end: ?*anyopaque = null,
+    gpu_ms: f32 = -1,
+    fn open(self: *Span, events: ?*const Events.Api) !void {
+        const ev = events orelse return;
+        if (self.begin == null and ev.create(&self.begin, 0) != 0) return error.CudaTimingFailed;
+        if (self.end == null and ev.create(&self.end, 0) != 0) return error.CudaTimingFailed;
+    }
+    fn mark(self: *Span, events: ?*const Events.Api, end: bool, stream: *anyopaque) !void {
+        const ev = events orelse return;
+        if (ev.record((if (end) self.end else self.begin) orelse return error.CudaTimingFailed, stream) != 0) return error.CudaTimingFailed;
+    }
+    fn read(self: *Span, events: ?*const Events.Api) void {
+        const ev = events orelse return;
+        if (self.begin == null or self.end == null or ev.elapsed(&self.gpu_ms, self.begin.?, self.end.?) != 0) self.gpu_ms = -1;
+    }
+    fn close(self: *Span, events: ?*const Events.Api) void {
+        const ev = events orelse return;
+        if (self.begin) |b| _ = ev.destroy(b);
+        if (self.end) |b| _ = ev.destroy(b);
+        self.begin = null;
+        self.end = null;
+    }
+};
+
 /// Stage-1 root publication (Exchange.truthRoot slot) once the root landed.
 pub const Publish = struct {
     peer: G.PeerExchange,
@@ -219,6 +249,8 @@ pub const Stage1 = struct {
     root_out: ?api.DeviceBuffer = null,
     publish: ?Publish = null,
     verdicts: Verdicts = .{},
+    timing: ?*const Events.Api = null,
+    span: Span = .{},
     // phase state
     main_plan: C.CommitPlan = undefined,
     plan_live: bool = false,
@@ -236,6 +268,7 @@ pub const Stage1 = struct {
         _ = try self.layout.add(.status, 0, 2); // [0] witness status, [1] own verdict
     }
     pub fn deinit(self: *Stage1) void {
+        self.span.close(self.timing);
         if (self.plan_live) K.freeJobPlan(self.a, &self.main_plan);
         self.plan_live = false;
     }
@@ -255,9 +288,11 @@ pub const Stage1 = struct {
         const inputs = try placeholders(self.a, self.class.main_logs.len);
         defer self.a.free(inputs);
         try self.main_plan.stage(s, inputs);
+        try self.span.open(self.timing);
     }
     pub fn enqueue(self: *Stage1, e: *api.Enqueue) !void {
         try e.slab.bind(&self.layout);
+        try self.span.mark(self.timing, false, e.stream());
         const compact = self.staged_compact orelse return error.TruthJobNotStaged;
         const status = try e.slab.field(.status, 0);
         try check(self.sym.memset(e.ctx(), status.ptr, 0, 4));
@@ -275,8 +310,10 @@ pub const Stage1 = struct {
         const verdict = self.verdicts.truth_root orelse try status.slice(1, 1);
         try statusVerdict(self.sym, e, try status.slice(0, 1), null, null, .{ .n_status = 1, .n_claims = 0, .n_zero = 0, .classic = 0, .check = @intFromEnum(G.Check.truth_root) }, verdict);
         if (self.publish) |p| try p.peer.publish(p.device, p.slot);
+        try self.span.mark(self.timing, true, e.stream());
     }
     pub fn finish(self: *Stage1, view: api.SlabView) !void {
+        self.span.read(self.timing);
         @memcpy(&self.root, try Slab.read(view, .root, 0));
         const st = try Slab.read(view, .status, 0);
         if (self.verdicts.truth_root == null) {
@@ -319,6 +356,8 @@ const Table = struct {
     programs: [6]usize = @splat(0),
     roots: usize = 0, // 16 words: class FIXED root, then the expected MAIN root (filled on device)
     expect: usize = 0,
+    host_digest: usize = 0, // 8 words (Stage2.digest_words)
+    host_root: usize = 0, // 8 words (Stage2.stage1_root_words)
     words: usize = 0,
 };
 
@@ -332,11 +371,20 @@ pub const Stage2 = struct {
     compact: []const u32,
     /// worker_protocol.begin(config, expected) [+ binding] (K.seed).
     seed: [9]u32,
-    /// Device manifest digest (8 words: the seal slot's first words).
-    digest: api.DeviceBuffer,
+    /// Device manifest digest (8 words: the seal slot's first words), or
+    /// null with `digest_words` (host words staged with the job: harnesses
+    /// and the hybrid driver, where the seal ran on the host).
+    digest: ?api.DeviceBuffer = null,
+    digest_words: ?[8]u32 = null,
     /// Device stage-1 MAIN root (8 words) the replay must reproduce; null =
     /// compared on the host instead (parity harness vs the legacy root).
     stage1_root: ?api.DeviceBuffer = null,
+    /// As `stage1_root`, from host words (staged).
+    stage1_root_words: ?[8]u32 = null,
+    /// CUDA-event GPU span of the job's enqueue (begin..end on the exec stream).
+    timing: ?*const Events.Api = null,
+    /// Negative tests: corrupt exactly one check input (each must fire its check).
+    fault: Fault = .none,
     verdicts: Verdicts = .{},
     /// Skip the host assembly in finish (device encoder path / timing runs).
     assemble_on_finish: bool = true,
@@ -370,11 +418,17 @@ pub const Stage2 = struct {
     /// finish output: the legacy proof bytes and claims (caller frees).
     bytes: []u8 = &.{},
     out_claims: []O = &.{},
+    span: Span = .{},
+    /// Host finish (assembly) time of the last finish.
+    assemble_ns: u64 = 0,
 
     pub fn init(self: *Stage2) !void {
         const c = self.class;
         if (self.compact.len != c.compactWords(self.calls) or self.calls == 0) return error.TruthCompactShape;
-        if (self.digest.words < G.Exchange.seal_digest_words) return error.TruthDigestShape;
+        if (self.digest) |d| {
+            if (d.words < G.Exchange.seal_digest_words) return error.TruthDigestShape;
+        } else if (self.digest_words == null) return error.TruthDigestRequired;
+        if (self.stage1_root != null and self.stage1_root_words != null) return error.TruthStage1RootAmbiguous;
         self.fixed_plan = try K.jobPlan(self.a, &c.fixed_plan);
         errdefer K.freeJobPlan(self.a, &self.fixed_plan);
         self.main_plan = try K.jobPlan(self.a, &c.main_plan);
@@ -405,6 +459,7 @@ pub const Stage2 = struct {
         _ = try self.layout.add(.channel_state, 0, @import("channel.zig").snapshot_words);
     }
     pub fn deinit(self: *Stage2) void {
+        self.span.close(self.timing);
         if (!self.live) return;
         K.freeJobPlan(self.a, &self.fixed_plan);
         K.freeJobPlan(self.a, &self.main_plan);
@@ -428,6 +483,17 @@ pub const Stage2 = struct {
         const t = self.table;
         const table = try s.pinned(t.words);
         try fillTable(c, &self.pcs, t, self.calls, self.first_id, table);
+        if (self.digest_words) |w| @memcpy(table[t.host_digest..][0..8], &w);
+        if (self.stage1_root_words) |w| @memcpy(table[t.host_root..][0..8], &w);
+        switch (self.fault) {
+            .none, .absent_claim, .channel_cursor => {},
+            .parameter_program => table[t.programs[0] + 1] = c.bounds().staged + 1000, // out-of-range gather entry
+            .class_root => table[t.roots] ^= 1,
+            .stage1_root => table[t.host_root] ^= 1,
+            .pcs_header => table[t.expect] ^= 1,
+        }
+        if (self.fault == .stage1_root and self.stage1_root_words == null) return error.TruthFaultNeedsStage1Root;
+        try self.span.open(self.timing);
         const staged = try s.alloc(t.words);
         try s.upload(staged, table);
         self.staged = staged;
@@ -470,6 +536,9 @@ pub const Stage2 = struct {
         try check(sym.memset(ctx, claims.ptr, 0, claims.words * 4));
         try check(sym.memset(ctx, zero.ptr, 0, zero.words * 4));
         // Transcript prefix: begin [+ binding] (host seed), FIXED root, MAIN root.
+        const digest = self.digest orelse try staged.slice(t.host_digest, 8);
+        const stage1_root: ?api.DeviceBuffer = self.stage1_root orelse if (self.stage1_root_words != null) try staged.slice(t.host_root, 8) else null;
+        try self.span.mark(self.timing, false, e.stream());
         try e.channel.initFromCheckpoint(self.staged_seed.?);
         const fixed_inputs = try self.a.alloc(C.Input, c.fixed_host.len);
         defer self.a.free(fixed_inputs);
@@ -487,7 +556,7 @@ pub const Stage2 = struct {
         try X.run(c.localScript(), e.channel, try staged.slice(t.local, X.stagedWords(c.localScript())), null, local);
         const state = try e.alloc(@import("channel.zig").state_words);
         var fresh = api.DeviceChannel.init(e.channel.worker, e.channel.exec, ctx, e.stream(), state, 0);
-        try X.run(X.shared, &fresh, try staged.slice(t.shared, X.stagedWords(X.shared)), self.digest, shared);
+        try X.run(X.shared, &fresh, try staged.slice(t.shared, X.stagedWords(X.shared)), digest, shared);
         e.free(state);
         // Interaction witnesses.
         const consts = try staged.slice(t.consts, feltWords(c.stagedFelts()));
@@ -516,7 +585,7 @@ pub const Stage2 = struct {
         }
         // mixManifestAndClaims (worker_protocol): header, digest, claims.
         try e.channel.mixWords(try staged.slice(t.header, 3));
-        try e.channel.mixWords(try self.digest.slice(0, 8));
+        try e.channel.mixWords(try digest.slice(0, 8));
         try e.channel.mixFelts(claims);
         // INTER commit over the roles' published columns; the witnesses die after it.
         const inter_inputs = try self.a.alloc(C.Input, c.inter_logs.len);
@@ -560,20 +629,29 @@ pub const Stage2 = struct {
         e.free(comp.coefficients);
         e.free(inter.coefficients);
         e.free(main.coefficients);
+        if (self.fault == .absent_claim) {
+            // A nonzero word in the absent claim (classic) / the local closing
+            // group (delegated): truth_status must reject it.
+            const target = if (c.kind == .classic) try claims.slice(32, 1) else try zero.slice(0, 1);
+            try check(sym.memset(ctx, target.ptr, 1, 1));
+        }
         // Device acceptance checks (one Verdict word each).
         try statusVerdict(sym, e, status, claims, if (c.zero_count != 0) zero else null, .{ .n_status = @intCast(status.words), .n_claims = c.claim_count, .n_zero = c.zero_count, .classic = @intFromBool(c.kind == .classic), .check = @intFromEnum(G.Check.truth_status) }, self.verdicts.truth_status orelse try own.slice(0, 1));
         // Expected roots: the class FIXED root (staged), then the stage-1 MAIN
         // root (device) or, without one, the replay itself (host-compared).
         const expected = try staged.slice(t.roots, 16);
-        try check(sym.copy_d2d(ctx, expected.ptr + 8, (self.stage1_root orelse try roots.slice(8, 8)).ptr, 32));
+        try check(sym.copy_d2d(ctx, expected.ptr + 8, (stage1_root orelse try roots.slice(8, 8)).ptr, 32));
         try check(sym.root_match(ctx, 0, roots.ptr, expected.ptr, 2, @intFromEnum(G.Check.root_match), (self.verdicts.root_match orelse try own.slice(1, 1)).ptr));
         self.channel_steps = e.channel.step;
         try e.channel.snapshot(e.slab, (try self.layout.get(.channel_state, 0)).offset);
-        try check(sym.order(ctx, 0, e.channel.stateBuffer().ptr, e.channel.step, e.channel.expectedChain(e.channel.step), (self.verdicts.channel_order orelse try own.slice(2, 1)).ptr));
+        const cursor = e.channel.step + @intFromBool(self.fault == .channel_cursor);
+        try check(sym.order(ctx, 0, e.channel.stateBuffer().ptr, cursor, e.channel.expectedChain(e.channel.step), (self.verdicts.channel_order orelse try own.slice(2, 1)).ptr));
         try check(sym.pcs_status(ctx, 0, pcs_out.ptr, pcs_out.words, roots.ptr, @ptrCast(staged.ptr + t.expect), (self.verdicts.pcs_status orelse try own.slice(3, 1)).ptr));
+        try self.span.mark(self.timing, true, e.stream());
     }
 
     pub fn finish(self: *Stage2, view: api.SlabView) !void {
+        self.span.read(self.timing);
         @memcpy(&self.roots, try Slab.read(view, .root, 0));
         @memcpy(&self.alpha, try Slab.read(view, .opaque_words, 0));
         const st = try Slab.read(view, .status, 0);
@@ -593,7 +671,11 @@ pub const Stage2 = struct {
                 return error.DeviceTruthCheckRejected;
             }
         }
-        if (self.assemble_on_finish) try self.assemble();
+        if (self.assemble_on_finish) {
+            var timer = try std.time.Timer.start();
+            try self.assemble();
+            self.assemble_ns = timer.read();
+        }
     }
 
     /// Host assembly (the legacy W.Prover tail): PCS decode, the engine's
@@ -671,6 +753,10 @@ fn tableOf(c: *const K.Class) Table {
     n += 16;
     t.expect = n;
     n += @sizeOf(PcsExpect) / 4;
+    t.host_digest = n;
+    n += 8;
+    t.host_root = n;
+    n += 8;
     t.words = n;
     return t;
 }
