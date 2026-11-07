@@ -181,6 +181,10 @@ __global__ void scan_claim(const uint32_t *total, uint32_t *claim,
 // local scan + carry + centring) replace scan_chunks + scan_carries at level
 // 0 with the same launch count and bit-identical data, totals and claim.
 constexpr uint32_t tile_cols = 32, tile_rows = 64, tile_pitch = tile_cols + 1;
+// One block covers tile_cols column pairs x tile_rows rows = 2^tile_min_log
+// values, so the level-0 grid is rows >> tile_min_log blocks (M/64 >= 1).
+constexpr uint32_t tile_min_log = 12;
+static_assert((1u << tile_min_log) == 2 * tile_cols * tile_rows, "tile geometry");
 __device__ __forceinline__ uint32_t brev_bits(uint32_t v, uint32_t bits) {
   return bits ? __brev(v) >> (32u - bits) : 0u;
 }
@@ -189,6 +193,11 @@ __device__ __forceinline__ uint32_t tile_chunk(uint32_t column, uint32_t log) {
   const uint32_t high_bits = log - 6, high = brev_bits(column, high_bits);
   const uint32_t half = 1u << (high_bits - 1);
   return high < half ? high : (2u * half - 1u - high);
+}
+// Tile row holding logical value t (0..127) of a chunk, within its even (t
+// even) or odd (t odd) column.
+__device__ __forceinline__ uint32_t tile_slot(uint32_t t) {
+  return t & 1u ? brev_bits(63u - (t >> 1), 6) : brev_bits(t >> 1, 6);
 }
 __device__ __forceinline__ uint32_t tile_load(const uint32_t *p, uint32_t *status) {
   uint32_t v = *p;
@@ -254,8 +263,7 @@ __global__ void __launch_bounds__(256) scan_tile_apply(uint32_t *data, uint64_t 
 #pragma unroll
   for (uint32_t i = 0; i < 16; ++i) {
     const uint32_t t = 16 * g + i;
-    const uint32_t s = t & 1u ? brev_bits(63u - (t >> 1), 6) : brev_bits(t >> 1, 6);
-    run = q::add(run, (t & 1u ? odd : even)[s * tile_pitch]);
+    run = q::add(run, (t & 1u ? odd : even)[tile_slot(t) * tile_pitch]);
     values[i] = run;
   }
   uint32_t carry = run;
@@ -275,8 +283,7 @@ __global__ void __launch_bounds__(256) scan_tile_apply(uint32_t *data, uint64_t 
 #pragma unroll
   for (uint32_t i = 0; i < 16; ++i) {
     const uint32_t t = 16 * g + i;
-    const uint32_t s = t & 1u ? brev_bits(63u - (t >> 1), 6) : brev_bits(t >> 1, 6);
-    (t & 1u ? odd : even)[s * tile_pitch] = q::add(values[i], carry);
+    (t & 1u ? odd : even)[tile_slot(t) * tile_pitch] = q::add(values[i], carry);
   }
   __syncthreads();
   {
@@ -290,8 +297,8 @@ __global__ void __launch_bounds__(256) scan_tile_apply(uint32_t *data, uint64_t 
     }
   }
 }
-// Tiled level 0 needs M/2 >= 32 columns (2^12 rows). The tile grid is
-// rows/4096 blocks, so small scans under-fill the GPU while the gather is
+// Tiled level 0 needs M/2 >= 32 columns (2^tile_min_log rows). The tile grid
+// is rows/4096 blocks, so small scans under-fill the GPU while the gather is
 // still cache resident: scanbench median old -> tiled [M, 7-9 reps, 5090]:
 // 2^12 0.0107 -> 0.0159 ms, 2^13 0.0128 -> 0.0162, 2^14 0.0135 -> 0.0154,
 // 2^15 0.0238 -> 0.0196, 2^16 0.0340 -> 0.0196, 2^18 0.109 -> 0.024,
@@ -299,7 +306,7 @@ __global__ void __launch_bounds__(256) scan_tile_apply(uint32_t *data, uint64_t 
 #ifndef STWO_T8_SCAN_TILE_MIN_LOG
 #define STWO_T8_SCAN_TILE_MIN_LOG 15
 #endif
-constexpr uint32_t tile_min_log = 12, tile_use_log = STWO_T8_SCAN_TILE_MIN_LOG;
+constexpr uint32_t tile_use_log = STWO_T8_SCAN_TILE_MIN_LOG;
 static_assert(tile_use_log >= tile_min_log, "tile geometry needs 2^12 rows");
 } // namespace stwo::cuda::rv64
 using namespace stwo::cuda::rv64;

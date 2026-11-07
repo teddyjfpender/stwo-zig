@@ -8,7 +8,7 @@
 //   nvcc -O3 -std=c++17 -arch=sm_120 -I src/backends/cuda/native \
 //     tests/cuda/rv64/t8_logup_parity_bench.cu \
 //     src/backends/cuda/native/rv64/global.cu src/backends/cuda/native/rv64/binding.cu
-// Usage: t8 parity | t8 bench <reps> [rows_log pairs]... | t8 scanbench <reps> [rows_log]...
+// Usage: t8 parity [max_log] | t8 parity-at [p:LOG:PAIRS | s:LOG]... | t8 bench <reps> [rows_log pairs]... | t8 scanbench <reps> [rows_log]...
 // Output: one JSON object per line.
 #include "rv64/logup_t8.h"
 #include <algorithm>
@@ -343,6 +343,24 @@ int main(int argc, char **argv) {
     std::printf("{\"kind\":\"parity_summary\",\"failures\":%d}\n", g_failures);
     return g_failures ? 1 : 0;
   }
+  if (cmd == "parity-at") {
+    // Explicit large shapes (production 2^20..2^24) the sweep cannot allocate
+    // next to other tenants: p:LOG:PAIRS (pad 7, injected) or s:LOG (both
+    // centring modes, pad 5, injected).
+    uint64_t seed = 1000;
+    for (int i = 2; i < argc; ++i) {
+      unsigned log = 0, pairs = 0;
+      if (std::sscanf(argv[i], "p:%u:%u", &log, &pairs) == 2)
+        parity_pairs(log, pairs, 7, 101, 211, seed++);
+      else if (std::sscanf(argv[i], "s:%u", &log) == 1)
+        for (uint32_t center : {0u, 1u})
+          parity_scan(log, 5, center, 4099, seed++);
+      else
+        return 2;
+    }
+    std::printf("{\"kind\":\"parity_summary\",\"failures\":%d}\n", g_failures);
+    return g_failures ? 1 : 0;
+  }
   const int reps = argc > 2 ? std::atoi(argv[2]) : 7;
   if (cmd == "bench") {
     for (int i = 3; i + 1 < argc; i += 2)
@@ -354,6 +372,6 @@ int main(int argc, char **argv) {
       bench_scan(uint32_t(std::atoi(argv[i])), reps);
     return 0;
   }
-  std::fprintf(stderr, "usage: %s parity [max_log] | bench reps [log pairs]... | scanbench reps [log]...\n", argv[0]);
+  std::fprintf(stderr, "usage: %s parity [max_log] | parity-at [p:LOG:PAIRS | s:LOG]... | bench reps [log pairs]... | scanbench reps [log]...\n", argv[0]);
   return 2;
 }

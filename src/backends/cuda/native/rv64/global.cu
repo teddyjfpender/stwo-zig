@@ -216,6 +216,8 @@ int stwo::cuda::rv64::t8::global_pairs(void *ctx, uint32_t lane,
                                        const StwoRv64GlobalPairs *input,
                                        int mode) {
   using namespace stwo::cuda::rv64;
+  if (mode != 0 && mode != 1)
+    return int(cudaErrorInvalidValue);
   if (!input || input->reserved[0] || input->reserved[1] ||
       input->row_log < 4 || input->row_log > 27 || !input->pairs ||
       input->pairs > 640 || input->stride < (1u << input->row_log) ||
@@ -236,8 +238,6 @@ int stwo::cuda::rv64::t8::global_pairs(void *ctx, uint32_t lane,
       !c.range(j.scan_scratch, need_scan, true) || !c.range(j.claim, 8, true) ||
       !c.range(j.status, 1, true))
     return c.status;
-  if (mode != 0 && mode != 1)
-    return int(cudaErrorInvalidValue);
   constexpr uint32_t K = STWO_T8_ROWS_PER_THREAD;
   const uint32_t t8_blocks = (rows + K * 128 - 1) / (K * 128);
   if (mode == 1 && t8_blocks >= STWO_T8_FUSED_MIN_BLOCKS) {
