@@ -12,6 +12,17 @@
 //!
 //! The legacy pipeline (gkr_main, coordinator, admission, owner callbacks)
 //! is not instantiated on this path.
+//!
+//! Factories: driver_bind.Binding (S1 Registry + S2 Factory into
+//! native_device.Native, truth_factory as the two-stage truths, outer_device
+//! for nodes). Hooks a stream has not landed are filled here with fallbacks
+//! that FAIL CLOSED at the point the missing piece is needed:
+//!   native shape    rows from the warm capture (1 << cpu log per segment),
+//!                   no class registered -> class_of refuses at install
+//!                   (GpuNativeClassNotWarmed) until the class builder lands;
+//!   recursion shape the D2 profile's 4-ary tree over the coalesced truths
+//!                   (STWO_RV64_M8_GPU_NATIVE_TRUTHS, default 5 [D2 golden
+//!                   26235156: truth-0..4]).
 const std = @import("std");
 const CPU = @import("stwo_riscv_cpu_integration");
 const engine = @import("stwo_prover_engine");
@@ -22,8 +33,7 @@ const R = @import("driver_request.zig");
 const S = @import("driver_serve.zig");
 const C = @import("../m8_capture_stream.zig");
 const mod = @import("mod.zig");
-const ND = @import("native_device.zig");
-const OD = @import("outer_device.zig");
+const B = @import("driver_bind.zig");
 
 const Request = CPU.rv64_ethereum_request;
 const Image = CPU.rv64_expected_image;
@@ -314,10 +324,21 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
     defer source.deinit();
     const blocks = try source.blockNumbers(a);
     defer a.free(blocks);
-    // The real device factories (sibling pieces bind their stage hooks here).
-    var native = ND.Native{};
-    var recursion = OD.Recursion{ .a = a };
-    defer recursion.deinit();
+    // The real device factories (gn-bind: driver_bind.zig).
+    const Chain = CPU.rv64_gkr_chain;
+    const identity: [32]u8 = Chain.versionIdentity(try Chain.version()) catch |err| blk: {
+        std.debug.print("GPU_M8_GN_BIND identity=none error={s} (flat native policy: no chain IV)\n", .{@errorName(err)});
+        break :blk @splat(0);
+    };
+    var fallback_state = Fallbacks{ .truths = @intCast(try envUnsigned("STWO_RV64_M8_GPU_NATIVE_TRUTHS", 5)) };
+    const binding = try B.Binding.init(a, &libs, workers[0..made], .{ .identity = identity }, fallback_state.hooks());
+    defer binding.deinit();
+    {
+        var text: std.Io.Writer.Allocating = .init(a);
+        defer text.deinit();
+        try binding.report(&text.writer);
+        std.debug.print("GPU_M8_GN_BIND binding={s}\n", .{text.written()});
+    }
     // 28 GiB qualified cap per 5090 (rv64_combined_ethereum_main default);
     // the driver plans against min(cap, measured free memory) per GPU.
     var caps: [G.max_devices]u64 = @splat((28 << 30) / 4);
@@ -328,7 +349,44 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
         .batch_pinned_words = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES", default_batch_pinned_bytes) / 4,
     };
     const ring = S.RingConfig{ .buffers = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS", default_ring_buffers), .words = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_RING_BYTES", default_ring_bytes) / 4 };
-    const svc = try S.Service.install(a, &libs.ops, &peer, workers[0..made], native.factory(), recursion.factory(), source.source(), blocks, rc, ring);
+    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks, rc, ring) catch |err| {
+        std.debug.print("GPU_M8_GN_BIND install_failed error={s}\n", .{@errorName(err)});
+        return err;
+    };
+    svc.hooks = .{ .ctx = binding, .publishing = publishing, .ended = ended };
     defer svc.deinit();
     try S.serveSpool(svc, spool, timer.read());
 }
+
+fn publishing(raw: *anyopaque, topology: *const @import("driver_dag.zig").Topology) void {
+    const binding: *B.Binding = @ptrCast(@alignCast(raw));
+    binding.topology = topology;
+}
+fn ended(raw: *anyopaque, request: u64, generation: u64) void {
+    const binding: *B.Binding = @ptrCast(@alignCast(raw));
+    binding.endRequest(request, generation);
+}
+
+/// Fallback hooks for factory entries no stream has landed (see the header).
+const Fallbacks = struct {
+    truths: u32,
+    fn hooks(self: *Fallbacks) B.Fallback {
+        return .{ .ctx = self, .native_shape = nativeShape, .recursion_shape = recursionShape };
+    }
+    /// Rows per native segment of the warm capture: 1 << the segment's CPU
+    /// log (Prepared.geometry().cpu_log). Registers no class: the install
+    /// then refuses at class_of until the native class builder lands.
+    fn nativeShape(_: ?*anyopaque, a: std.mem.Allocator, wb: G.WarmBlock) anyerror![]u64 {
+        const owner: *const Capture.Owner = @ptrCast(@alignCast(wb.capture.owner));
+        const rows = try a.alloc(u64, owner.native.items.len);
+        errdefer a.free(rows);
+        for (owner.native.items, rows) |n, *r| r.* = @as(u64, 1) << @intCast((try n.geometry()).cpu_log);
+        std.debug.print("GPU_M8_GN_BIND fallback=native_shape block={d} segments={d}\n", .{ wb.block, rows.len });
+        return rows;
+    }
+    fn recursionShape(raw: ?*anyopaque, wb: G.WarmBlock, keys: []const G.ClassKey) anyerror!G.RecursionShape {
+        const self: *Fallbacks = @ptrCast(@alignCast(raw.?));
+        std.debug.print("GPU_M8_GN_BIND fallback=recursion_shape block={d} segments={d} truths={d} fold_arity=4\n", .{ wb.block, keys.len, self.truths });
+        return .{ .truths = self.truths, .fold_arity = 4 };
+    }
+};

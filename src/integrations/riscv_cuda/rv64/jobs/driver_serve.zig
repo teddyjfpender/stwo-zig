@@ -71,6 +71,8 @@ pub const Shape = struct {
 
 pub const Pending = struct {
     block: u64,
+    request: u64 = 0,
+    generation: u64 = 0,
     stream: *C.Stream,
     handle: ?*anyopaque,
     flight: *R.InFlight,
@@ -86,8 +88,19 @@ pub const Result = struct {
     begin_ns: u64,
 };
 
+/// Per-request service hooks of the binding (driver_bind.zig): `publishing`
+/// right before the request's finish (the block's recursion topology, for
+/// artifact names), `ended` after the driver finished it (published or
+/// failed) so every factory drops the request's state.
+pub const RequestHooks = struct {
+    ctx: *anyopaque,
+    publishing: *const fn (*anyopaque, *const D.Topology) void,
+    ended: *const fn (*anyopaque, request: u64, generation: u64) void,
+};
+
 pub const Service = struct {
     a: std.mem.Allocator,
+    hooks: ?RequestHooks = null,
     driver: *R.Driver,
     native: G.NativeFactory,
     recursion: G.RecursionFactory,
@@ -184,10 +197,12 @@ pub const Service = struct {
         // join its thread.
         const flight = self.driver.begin(&req) catch |err| {
             self.source.vtable.join(self.source.ctx, handle);
+            // The capture may have handed segments to the factories already.
+            if (self.hooks) |h| h.ended(h.ctx, req.id, self.driver.generation);
             return err;
         };
         self.busy[slot] = true;
-        p.* = .{ .block = block, .stream = stream, .handle = handle, .flight = flight, .timer = timer, .begin_ns = timer.read() };
+        p.* = .{ .block = block, .request = req.id, .generation = flight.generation, .stream = stream, .handle = handle, .flight = flight, .timer = timer, .begin_ns = timer.read() };
         return p;
     }
 
@@ -199,9 +214,11 @@ pub const Service = struct {
             };
             self.a.destroy(p);
         }
+        if (self.hooks) |h| if (self.shapeOf(p.block)) |shape| h.publishing(h.ctx, &shape.topology);
         const out = self.driver.finish(p.flight);
         // The driver detached the stream (capture done): join its thread.
         if (p.handle) |h| self.source.vtable.join(self.source.ctx, h);
+        if (self.hooks) |h| h.ended(h.ctx, p.request, p.generation);
         return .{ .outcome = try out, .request_wall_ns = p.timer.read(), .begin_ns = p.begin_ns };
     }
 
