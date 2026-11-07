@@ -39,6 +39,8 @@ V1_GKR_GROWTH = 1.20
 # (24628607-leaf-model.json cpu-0: 134.7 M / 1,400 columns), x0.55 for D2's b4/q54 leaf (plan_model d2_leaf), at the
 # post-M8 recursion cost 5.56 GPU-s / 21.7 G cells (plan_model central on 24628607) [D].
 LEAF_CELLS_PER_COL = 96228 * 0.55
+ZBB_INSTR_FACTOR = 2.934248313418029 / 3.130023801238801   # zbb-prefix-24628607-v2.json basket scored instr/gas [M]
+DISPATCH_REMOVABLE = {'pess': 1.5, 'central': 2.5, 'opt': 5.0}  # instructions per dispatched EVM op removed [E], see guest note
 REC_NS_PER_CELL = 5.56 / 21.7
 
 CLASS = [  # (regex on component name, instruction class)
@@ -101,7 +103,7 @@ def census(cells_dir, out):
         f = chosen[key]
         d = json.load(open(f))
         b = key[1] if isinstance(key, tuple) else key
-        comp = defaultdict(lambda: dict(rows=0, main=0, binding=0, classic=0, v2share=0, main_cols=0, cols_today=0, n=0))
+        comp = defaultdict(lambda: dict(rows=0, main=0, binding=0, classic=0, v1_binding=0, v2share=0, main_cols=0, cols_today=0, n=0))
         proofs = []
         for i, c in enumerate(d['cpus']):
             groups = defaultdict(int)
@@ -112,8 +114,9 @@ def census(cells_dir, out):
                 e['binding'] += rows * (BIND if s['binding'] else 0)
                 e['classic'] += rows * (s['today_cols'] - (BIND if s['binding'] else 0))
                 e['cols_today'] += s['today_cols']
-                if s['share_group'] is not None:
+                if s['share_group'] is not None:  # every plan slot owns a v1 pair (native_roster.cpu), incl. global-only slots
                     groups[s['log']] += 1
+                    e['v1_binding'] += rows * BIND
             proofs.append(dict(proof='cpu-%d' % i, kind='cpu', main=c['main_cells'], main_cols=c['main_cols'],
                                today=c['today'], logup3=c['logup3'], v1=c['v1'], v2share=c['v2share'],
                                binding_components=c['binding_components'], distinct_logs=c['distinct_binding_logs']))
@@ -165,16 +168,26 @@ def stage_gpu(scn, basis):
     return s
 
 
-def native_factor(before, after, scn, basis):
+# binding kernels that do NOT shrink when same-log components share one pair (V2SHARE): project_binding 0.044 +
+# finalize_binding 0.003 run per component row (every component still projects its own N + gamma*D); derive_binding
+# 0.072 (prefix) and binding_eq_expand/seed 0.019 shrink with the pairs [M names, ab8-kernels.json fullstack]
+BINDING_PER_COMPONENT_FRAC = 0.047 / 0.137
+
+
+def native_factor(before, after, scn, basis, shared=False):
     """Native GPU-s factor of a change from `before` to `after` cell dicts (main, inter, classic, binding) [D].
     Drivers: PCS and composition ~ committed cells; witness ~ MAIN; LogUp ~ classic INTER; binding kernels ~ binding cells;
-    GKR traversal ~ facts (unchanged by column levers); channel fixed."""
+    GKR traversal ~ facts (unchanged by column levers); channel fixed.
+    shared=True (V2SHARE, review fix): composition is NOT scaled - the shared residual still evaluates every component's
+    rho-weighted projection term, only the prefix transition terms go - and the per-component binding kernels stay."""
     s = stage_gpu(scn, basis)
     tot0 = sum(s.values())
     r = lambda k: (after[k] / before[k]) if before[k] else 1.0
     cells0 = before['main'] + before['inter']; cells1 = after['main'] + after['inter']
-    new = (s['pcs'] + s['composition']) * (cells1 / cells0) + s['witness'] * r('main') + s['logup'] * r('classic') \
-        + s['binding'] * r('binding') + s['gkr'] + s['channel']
+    comp = s['composition'] * (1.0 if shared else cells1 / cells0)
+    fb = BINDING_PER_COMPONENT_FRAC if shared else 0.0
+    new = s['pcs'] * (cells1 / cells0) + comp + s['witness'] * r('main') + s['logup'] * r('classic') \
+        + s['binding'] * (fb + (1 - fb) * r('binding')) + s['gkr'] + s['channel']
     return new / tot0
 
 
@@ -219,15 +232,15 @@ def model(blocks_path, out=None):
     for b in basket.values():
         for name, e in b['components'].items():
             a = agg[name]
-            for f in ('rows', 'main', 'binding', 'classic'):
-                a[f] += e[f]
+            for f in ('rows', 'main', 'binding', 'classic', 'v1_binding'):
+                a[f] += e.get(f, 0)
             a['main_cols'] = max(a['main_cols'], e['main_cols'] / max(1, e['n']))
     tot_today = sum(a['main'] + a['binding'] + a['classic'] for a in agg.values())
     tot_v1 = sum(b_['v1']['cells'] for b_ in rows if not b_['block'].startswith('current'))
     comps = []
     for name, a in sorted(agg.items(), key=lambda x: -(x[1]['main'] + x[1]['binding'] + x[1]['classic'])):
         today = a['main'] + a['binding'] + a['classic']
-        v1 = a['main'] + (a['binding'] if not name.startswith('truth.') else 0)
+        v1 = a['main'] + (a['v1_binding'] if not name.startswith('truth.') else 0)  # truth v1 pairs are added per proof below
         comps.append(dict(component=name, klass=klass(name), main_cols=round(a['main_cols'], 1), main=a['main'], binding=a['binding'],
                           classic=a['classic'], today=today, today_share=today / tot_today,
                           cells_per_instr_today=today / n_instr, v1_main_plus_binding=v1, v1_cells_per_instr=v1 / n_instr))
@@ -278,7 +291,7 @@ def model(blocks_path, out=None):
     k_tot = sum(p['rows'] * (p['main_cols'] + BIND) for p in kpad)
     res['padding'] = dict(cpu_prefix_waste_share_of_cpu_v1=pad_waste / pad_total, cpu_prefix_top=sorted(pad_by.items(), key=lambda x: -x[1])[:8],
                           keccak_truth_waste_share_of_keccak_v1=k_waste / k_tot, keccak_truth_waste_cells_basket=k_waste,
-                          label='M (exact active rows: prefix roster for CPU, ceil(calls/2)*29 for keccak)')
+                          label='M (exact active rows: 4-packet prefix roster of 24628607 for CPU, extrapolated to the basket; ceil(calls/2)*27 (pair27) for keccak)')
 
     # 5. levers -----------------------------------------------------------------------------------------------
     S = {}
@@ -301,8 +314,8 @@ def model(blocks_path, out=None):
     kmain = sum(c['main'] for c in comps if c['component'] == 'truth.keccak')
     core_main = sum(c['main'] for c in comps if c['component'] == 'core.cpu')
 
-    def lever(name, label, before, after, basis, cols_removed=0, what='', soundness='', extra=None):
-        f = {s: native_factor(before, after, s, basis) for s in ('pess', 'central', 'opt')}
+    def lever(name, label, before, after, basis, cols_removed=0, what='', soundness='', extra=None, shared=False):
+        f = {s: native_factor(before, after, s, basis, shared) for s in ('pess', 'central', 'opt')}
         leaf = cols_removed * LEAF_CELLS_PER_COL * REC_NS_PER_CELL * 1e-9
         L = dict(lever=name, label=label, basis=basis, what=what, soundness=soundness,
                  cells_before=before['main'] + before['inter'], cells_after=after['main'] + after['inter'],
@@ -322,7 +335,8 @@ def model(blocks_path, out=None):
                         'same LogUp argument; constraint degree 3 -> 4; changes the proof'))
     levers.append(lever('V2SHARE', 'M (declaration census of the real Plan) / D (GPU-s)', v1, v2, 'v1', S['v1']['cols'] - S['v2share']['cols'],
                         'on top of v1: ONE eq + prefix pair per distinct row log of a proof; prefixes of same-log components combined with a fresh rho',
-                        'needs the shared-row-point lemma (one batch per proof, lane-major); rho drawn after all instance claims; error +k/|OM31|; changes the proof'))
+                        'needs the shared-row-point lemma (one batch per proof, lane-major); rho drawn after all instance claims; error +k/|OM31|; changes the proof',
+                        shared=True))
     # padding: recover half of the measured waste with a second tail height / exact keccak shard sizing [E on M]
     cpu_pad = res['padding']['cpu_prefix_waste_share_of_cpu_v1'] * cpu_v1
     for scn_rec, tag in ((0.5, 'central'),):
@@ -345,13 +359,21 @@ def model(blocks_path, out=None):
                  bits_per_gas=(33695.394597325794, 32187.44336049941), instr_factor=2.934248313418029 / 3.130023801238801,
                  native_cells_factor=32187.44336049941 / 33695.394597325794,
                  note='opt-in ethereum_services_v3_zbb profile: proven prefix + fresh verify; driver/class work left to make it default'),
-        dispatch=dict(label='M (cost) / E (cut)', dispatch_instr_per_gas=(1.12, 1.36), instr_per_dispatched_op=28.1,
-                      note='autoresearch/guest_efficiency/notes/client3-20261102.md: dispatch_cgoto 1.26-1.36 instr/gas, 28.1 instructions per EVM opcode; '
-                           'PUSH1 16, POP 10, SWAP1 25, ADD 36 instructions each. Block-level gas/stack checks (evmone advanced-style basic-block '
-                           'analysis) would take per-opcode overhead from ~28 to ~14-18 [E]: -0.35..-0.65 instr/gas = x0.80..0.89 instructions',
-                      instr_factor=dict(pess=0.92, central=0.85, opt=0.79)),
+        dispatch=dict(label='M (cost, client3 note) / E (cut)', dispatch_instr_per_gas=(1.12, 1.36), instr_per_dispatched_op=28.1,
+                      ops_basket=17.7e6, ops_per_gas=17.7e6 / sum(b['gas'] for b in basket.values()),
+                      removable_instr_per_op=DISPATCH_REMOVABLE,
+                      note='autoresearch/guest_efficiency/notes/client3-20261102.md: 28.1 instructions per dispatched opcode is the WHOLE '
+                           'per-opcode cost inside dispatch_cgoto (handler bodies included: PUSH1 16, POP 10, SWAP1 25, ADD 36), 17.7 M ops '
+                           'on the 15 blocks. The overhead is 6 dispatch + 1-2 stack-check + 2 gas instructions per op, and patch 0030 '
+                           'already removed the gas branch of pure opcodes (28.1 -> 27.2). Review fix: the first cut took 28 -> 14-18 per op '
+                           '(x0.92/0.85/0.79), i.e. removed handler work. A basic-block (evmone advanced-style) gas + stack check removes '
+                           '~1.5 / 2.5 / 5 instructions per op (pess: stack checks only; opt: + a cheaper threaded dispatch) [E], on the '
+                           'post-Zbb instruction count (DISPATCH is stacked on ZBB).',
+                      instr_factor={k: 1 - v * 17.7e6 / (n_instr * ZBB_INSTR_FACTOR) for k, v in DISPATCH_REMOVABLE.items()}),
         cpu_share_of_native_cells=sum(r_['cpu_cells_today'] for r_ in rows if not r_['block'].startswith('current')) /
-        sum(r_['today']['cells'] for r_ in rows if not r_['block'].startswith('current')))
+        sum(r_['today']['cells'] for r_ in rows if not r_['block'].startswith('current')),
+        # guest levers are stacked on the NGKR best set, so the v1-basis CPU share applies there (review fix) [D]
+        cpu_share_of_native_cells_v1=cpu_v1 / tot_v1)
 
     # combined prover-side factor on top of v1 (V2SHARE x PAD x CORE_NARROW), per scenario [D/E]
     comb = {}
@@ -403,9 +425,10 @@ def show(res):
     c = res['combined_prover_side_on_v1']['native_gpu_s_factor']
     print('  combined prover-side on v1: x%.3f / x%.3f / x%.3f' % (c['pess'], c['central'], c['opt']))
     g = res['guest']
-    print('\nguest: zbb instr x%.3f, native cells x%.3f [M]; dispatch instr x%.2f/%.2f/%.2f [E]; CPU share of native cells %.2f'
+    print('\nguest: zbb instr x%.3f, native cells x%.3f [M]; dispatch instr x%.3f/%.3f/%.3f [E]; CPU share of native cells %.2f today, %.2f v1'
           % (g['zbb']['instr_factor'], g['zbb']['native_cells_factor'], g['dispatch']['instr_factor']['pess'],
-             g['dispatch']['instr_factor']['central'], g['dispatch']['instr_factor']['opt'], g['cpu_share_of_native_cells']))
+             g['dispatch']['instr_factor']['central'], g['dispatch']['instr_factor']['opt'], g['cpu_share_of_native_cells'],
+             g['cpu_share_of_native_cells_v1']))
 
 
 def main():

@@ -27,3 +27,9 @@ python3 -I scripts/rv64_m9/native_cells_plan.py --json vectors/reports/rv64-m9-p
 Reconciliation [M]: for the current 24628607 request, declared INTER of the 14 native proofs equals the measured
 `GPU_TRACE_OWNERSHIP tree=2 coefficient_words` of `m8-census2/.../producer.stderr` exactly. The raw tool outputs (6.7 MB)
 are not in git.
+
+Review (2026-11-07, design note §8): receipts regenerated after two fixes. (1) v1/v2share now give every plan slot
+a binding pair, as `native_roster.cpu` does (the tool checks this at run time; v1 equals the M5 exact
+`<block>-v1-shape.json` proof for proof on 24628607 and 26235156). (2) The V2SHARE GPU-s, DISPATCH and stacked
+CPU-share factors were corrected in `native_cells.py`. Bundle copies were named `scale-<block>.json`,
+`diag-idle0-25229951.json` and `m8-census2-24628607.json`; the census picks by those tags.

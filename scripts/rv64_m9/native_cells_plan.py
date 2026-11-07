@@ -9,7 +9,8 @@ scripts/rv64_m9/native_cells.py (receipt vectors/reports/rv64-m9-prep/m9-native-
            and only together with NGKR (it is defined on the v1 basis).
   ZBB      guest Zbb profile: instructions x0.937, native cells x0.955 [M basket]; capture and CPU segments scale
            with instructions, truth proofs do not.
-  DISPATCH guest interpreter dispatch cut: instructions x0.92/0.85/0.79 [E]; native = CPU share x instr factor + truths.
+  DISPATCH guest per-opcode overhead cut (basic-block gas/stack checks): 1.5/2.5/5 instructions per EVM op of 17.7 M ops
+           [E on M], instructions x0.980/0.967/0.934 of the post-Zbb count; native = v1 CPU share x instr factor + truths.
 Guest variants change the block shape (fewer CPU segments -> fewer CPU leaves). Basket blocks are re-shaped with the
 plan's synthetic shape rule for both arms of a comparison (block id dropped), and the relative change is applied to
 the plan's own per-block result, so no per-block receipt (fan-in, first pass) is extrapolated.
@@ -30,7 +31,7 @@ def factors():
     res = NC.model(os.path.join(NC.REC, 'blocks.json'))
     nc = res['combined_prover_side_on_v1']['native_gpu_s_factor']
     g = res['guest']
-    cpu = g['cpu_share_of_native_cells']
+    cpu = g['cpu_share_of_native_cells_v1']  # stacked on NGKR (BEST): v1-basis CPU share (review fix)
     z_i, z_n = g['zbb']['instr_factor'], g['zbb']['native_cells_factor']
     d = g['dispatch']['instr_factor']
     return dict(NCELLS={s: dict(instr=1.0, native=nc[s], needs='NGKR') for s in SCN},

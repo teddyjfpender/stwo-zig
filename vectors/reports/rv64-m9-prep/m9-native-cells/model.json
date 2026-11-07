@@ -32,15 +32,15 @@
    },
    "v1": {
     "main": 5123296672,
-    "inter": 1513289216,
-    "cells": 6636585888,
-    "cols": 67950
+    "inter": 1580409344,
+    "cells": 6703706016,
+    "cols": 68334
    },
    "v2share": {
     "main": 5123296672,
-    "inter": 1251381248,
-    "cells": 6374677920,
-    "cols": 64238
+    "inter": 1318490112,
+    "cells": 6441786784,
+    "cols": 64270
    },
    "cpu_cells_today": 5316750240,
    "truth_cells_today": 3321332224,
@@ -66,15 +66,15 @@
    },
    "v1": {
     "main": 15173745920,
-    "inter": 4778628096,
-    "cells": 19952374016,
-    "cols": 182037
+    "inter": 5047101440,
+    "cells": 20220847360,
+    "cols": 183253
    },
    "v2share": {
     "main": 15173745920,
-    "inter": 3980996608,
-    "cells": 19154742528,
-    "cols": 171013
+    "inter": 4249432064,
+    "cells": 19423177984,
+    "cols": 171045
    },
    "cpu_cells_today": 16924800512,
    "truth_cells_today": 8408071168,
@@ -100,15 +100,15 @@
    },
    "v1": {
     "main": 16746642528,
-    "inter": 5259552256,
-    "cells": 22006194784,
-    "cols": 194338
+    "inter": 5528029696,
+    "cells": 22274672224,
+    "cols": 195682
    },
    "v2share": {
     "main": 16746642528,
-    "inter": 4391030784,
-    "cells": 21137673312,
-    "cols": 182754
+    "inter": 4659466240,
+    "cells": 21406108768,
+    "cols": 182786
    },
    "cpu_cells_today": 18425883232,
    "truth_cells_today": 9678097152,
@@ -134,15 +134,15 @@
    },
    "v1": {
     "main": 2703036256,
-    "inter": 869823488,
-    "cells": 3572859744,
-    "cols": 47435
+    "inter": 903384064,
+    "cells": 3606420320,
+    "cols": 47659
    },
    "v2share": {
     "main": 2703036256,
-    "inter": 715543040,
-    "cells": 3418579296,
-    "cols": 45243
+    "inter": 732320256,
+    "cells": 3435356512,
+    "cols": 45259
    },
    "cpu_cells_today": 2859490144,
    "truth_cells_today": 1697597184,
@@ -168,15 +168,15 @@
    },
    "v1": {
     "main": 3807592512,
-    "inter": 1194510336,
-    "cells": 5002102848,
-    "cols": 56711
+    "inter": 1261628416,
+    "cells": 5069220928,
+    "cols": 57031
    },
    "v2share": {
     "main": 3807592512,
-    "inter": 987421696,
-    "cells": 4795014208,
-    "cols": 53751
+    "inter": 1054530560,
+    "cells": 4862123072,
+    "cols": 53783
    },
    "cpu_cells_today": 4104660800,
    "truth_cells_today": 2300678400,
@@ -202,15 +202,15 @@
    },
    "v1": {
     "main": 18129797376,
-    "inter": 5717123072,
-    "cells": 23846920448,
-    "cols": 214986
+    "inter": 5985603584,
+    "cells": 24115400960,
+    "cols": 216426
    },
    "v2share": {
     "main": 18129797376,
-    "inter": 4755457536,
-    "cells": 22885254912,
-    "cols": 202282
+    "inter": 5023892992,
+    "cells": 23153690368,
+    "cols": 202314
    },
    "cpu_cells_today": 20068123648,
    "truth_cells_today": 10198103040,
@@ -236,15 +236,15 @@
    },
    "v1": {
     "main": 2703701216,
-    "inter": 848494592,
-    "cells": 3552195808,
-    "cols": 44127
+    "inter": 915608576,
+    "cells": 3619309792,
+    "cols": 44319
    },
    "v2share": {
     "main": 2703701216,
-    "inter": 711495680,
-    "cells": 3415196896,
-    "cols": 42143
+    "inter": 778604544,
+    "cells": 3482305760,
+    "cols": 42175
    },
    "cpu_cells_today": 2754011616,
    "truth_cells_today": 1900560640,
@@ -270,15 +270,15 @@
    },
    "v1": {
     "main": 5885018528,
-    "inter": 1862589952,
-    "cells": 7747608480,
-    "cols": 79727
+    "inter": 1929712128,
+    "cells": 7814730656,
+    "cols": 80175
    },
    "v2share": {
     "main": 5885018528,
-    "inter": 1565813760,
-    "cells": 7450832288,
-    "cols": 75535
+    "inter": 1632922624,
+    "cells": 7517941152,
+    "cols": 75567
    },
    "cpu_cells_today": 6426279328,
    "truth_cells_today": 3513602816,
@@ -304,15 +304,15 @@
    },
    "v1": {
     "main": 6262839008,
-    "inter": 1937408512,
-    "cells": 8200247520,
-    "cols": 76434
+    "inter": 2004531712,
+    "cells": 8267370720,
+    "cols": 76914
    },
    "v2share": {
     "main": 6262839008,
-    "inter": 1629672960,
-    "cells": 7892511968,
-    "cols": 72210
+    "inter": 1663227392,
+    "cells": 7926066400,
+    "cols": 72226
    },
    "cpu_cells_today": 6677741792,
    "truth_cells_today": 3987440128,
@@ -338,9 +338,9 @@
    },
    "v1": {
     "main": 14799379232,
-    "inter": 4985180672,
-    "cells": 19784559904,
-    "cols": 166921
+    "inter": 5119438336,
+    "cells": 19918817568,
+    "cols": 168201
    },
    "v2share": {
     "main": 14799379232,
@@ -372,15 +372,15 @@
    },
    "v1": {
     "main": 11219453632,
-    "inter": 3753958400,
-    "cells": 14973412032,
-    "cols": 126719
+    "inter": 3888205824,
+    "cells": 15107659456,
+    "cols": 127679
    },
    "v2share": {
     "main": 11219453632,
-    "inter": 3185285120,
-    "cells": 14404738752,
-    "cols": 118639
+    "inter": 3252393984,
+    "cells": 14471847616,
+    "cols": 118655
    },
    "cpu_cells_today": 13111942848,
    "truth_cells_today": 5556463104,
@@ -406,15 +406,15 @@
    },
    "v1": {
     "main": 2959724672,
-    "inter": 918652928,
-    "cells": 3878377600,
-    "cols": 47807
+    "inter": 985767936,
+    "cells": 3945492608,
+    "cols": 48031
    },
    "v2share": {
     "main": 2959724672,
-    "inter": 767654400,
-    "cells": 3727379072,
-    "cols": 45535
+    "inter": 801208832,
+    "cells": 3760933504,
+    "cols": 45551
    },
    "cpu_cells_today": 2999542912,
    "truth_cells_today": 2072920064,
@@ -440,9 +440,9 @@
    },
    "v1": {
     "main": 1823866752,
-    "inter": 578134016,
-    "cells": 2402000768,
-    "cols": 32628
+    "inter": 611691520,
+    "cells": 2435558272,
+    "cols": 32756
    },
    "v2share": {
     "main": 1823866752,
@@ -474,15 +474,15 @@
    },
    "v1": {
     "main": 18610562336,
-    "inter": 6176944128,
-    "cells": 24787506464,
-    "cols": 222973
+    "inter": 6445428736,
+    "cells": 25055991072,
+    "cols": 224541
    },
    "v2share": {
     "main": 18610562336,
-    "inter": 5172787712,
-    "cells": 23783350048,
-    "cols": 209581
+    "inter": 5441223168,
+    "cells": 24051785504,
+    "cols": 209613
    },
    "cpu_cells_today": 21831809568,
    "truth_cells_today": 9039456768,
@@ -508,15 +508,15 @@
    },
    "v1": {
     "main": 10571815232,
-    "inter": 3577725952,
-    "cells": 14149541184,
-    "cols": 138527
+    "inter": 3711971328,
+    "cells": 14283786560,
+    "cols": 139423
    },
    "v2share": {
     "main": 10571815232,
-    "inter": 3073381376,
-    "cells": 13645196608,
-    "cols": 130655
+    "inter": 3140490240,
+    "cells": 13712305472,
+    "cols": 130671
    },
    "cpu_cells_today": 12486825280,
    "truth_cells_today": 5143820544,
@@ -542,15 +542,15 @@
    },
    "v1": {
     "main": 2722931296,
-    "inter": 870016000,
-    "cells": 3592947296,
-    "cols": 42202
+    "inter": 903576576,
+    "cells": 3626507872,
+    "cols": 42426
    },
    "v2share": {
     "main": 2722931296,
-    "inter": 715735552,
-    "cells": 3438666848,
-    "cols": 40010
+    "inter": 732512768,
+    "cells": 3455444064,
+    "cols": 40026
    },
    "cpu_cells_today": 2859490144,
    "truth_cells_today": 1772458496,
@@ -700,8 +700,8 @@
    "today": 1824840960.0,
    "today_share": 0.007986701273518824,
    "cells_per_instr_today": 1.2810909028775712,
-   "v1_main_plus_binding": 851592448.0,
-   "v1_cells_per_instr": 0.5978424213428666
+   "v1_main_plus_binding": 1824840960.0,
+   "v1_cells_per_instr": 1.2810909028775712
   },
   {
    "component": "core.terminal",
@@ -713,8 +713,8 @@
    "today": 1824840960.0,
    "today_share": 0.007986701273518824,
    "cells_per_instr_today": 1.2810909028775712,
-   "v1_main_plus_binding": 851592448.0,
-   "v1_cells_per_instr": 0.5978424213428666
+   "v1_main_plus_binding": 1824840960.0,
+   "v1_cells_per_instr": 1.2810909028775712
   },
   {
    "component": "truth.sha256",
@@ -1353,8 +1353,8 @@
    "today": 3649681920.0,
    "today_share": 0.01597340254703765,
    "today_cells_per_instr": 2.5621818057551424,
-   "v1": 1703184896.0,
-   "v1_cells_per_instr": 1.1956848426857332,
+   "v1": 3649681920.0,
+   "v1_cells_per_instr": 2.5621818057551424,
    "main": 1703184896.0,
    "binding": 0.0,
    "classic": 1946497024.0,
@@ -1497,9 +1497,9 @@
   "instructions": 1424442993,
   "gas": 445399117,
   "today": 228484939840.0,
-  "v1": 180492487488,
+  "v1": 182438984512,
   "today_cells_per_instr": 160.4030073248428,
-  "v1_cells_per_instr": 126.71092376106061,
+  "v1_cells_per_instr": 128.07742072413004,
   "today_cells_per_gas": 512.9892070262007,
   "label": "M (declaration census) / D (v1)"
  },
@@ -1541,7 +1541,7 @@
   ],
   "keccak_truth_waste_share_of_keccak_v1": 0.004848098856160949,
   "keccak_truth_waste_cells_basket": 163157155,
-  "label": "M (exact active rows: prefix roster for CPU, ceil(calls/2)*29 for keccak)"
+  "label": "M (exact active rows: 4-packet prefix roster of 24628607 for CPU, extrapolated to the basket; ceil(calls/2)*27 (pair27) for keccak)"
  },
  "levers": [
   {
@@ -1551,15 +1551,15 @@
    "what": "native GKR v1: classic RAM/KIO/Wire + truth classic LogUp move into one stage-two GKR; one eq+prefix pair per component (plan lever NGKR)",
    "soundness": "changes the proof (new section, receiver, leaf); rv64-native-gkr.md sec 9 review; REQUIRED_BITS 151 gate",
    "cells_before": 228484939840,
-   "cells_after": 180492487488,
-   "cells_factor": 0.7899535418587875,
+   "cells_after": 182438984512,
+   "cells_factor": 0.7984726898838743,
    "native_gpu_s_factor": {
-    "pess": 0.7750796571306724,
-    "central": 0.7763516541142628,
-    "opt": 0.7774232314050602
+    "pess": 0.7812867682395485,
+    "central": 0.782756487878459,
+    "opt": 0.7839946340448519
    },
-   "leaf_columns_removed_basket": 896776,
-   "leaf_recursion_gpu_s_saved_basket": 12.160829056120923
+   "leaf_columns_removed_basket": 885672,
+   "leaf_recursion_gpu_s_saved_basket": 12.01025204933309
   },
   {
    "lever": "LOGUP3",
@@ -1573,7 +1573,7 @@
    "native_gpu_s_factor": {
     "pess": 0.9664103827716806,
     "central": 0.9665397549954289,
-    "opt": 0.9666487429402251
+    "opt": 0.9666487429402252
    },
    "leaf_columns_removed_basket": 235272,
    "leaf_recursion_gpu_s_saved_basket": 3.190431694973641
@@ -1584,16 +1584,16 @@
    "basis": "v1",
    "what": "on top of v1: ONE eq + prefix pair per distinct row log of a proof; prefixes of same-log components combined with a fresh rho",
    "soundness": "needs the shared-row-point lemma (one batch per proof, lane-major); rho drawn after all instance claims; error +k/|OM31|; changes the proof",
-   "cells_before": 180492487488,
-   "cells_after": 173421631296,
-   "cells_factor": 0.9608246509846007,
+   "cells_before": 182438984512,
+   "cells_after": 174981912384,
+   "cells_factor": 0.959125665230232,
    "native_gpu_s_factor": {
-    "pess": 0.9713404511132819,
-    "central": 0.9703593165612497,
-    "opt": 0.9695456396900558
+    "pess": 0.9808691045209484,
+    "central": 0.9788404201310702,
+    "opt": 0.9771579867037926
    },
-   "leaf_columns_removed_basket": 98016,
-   "leaf_recursion_gpu_s_saved_basket": 1.3291566910407377
+   "leaf_columns_removed_basket": 108784,
+   "leaf_recursion_gpu_s_saved_basket": 1.4751773330698619
   },
   {
    "lever": "PAD",
@@ -1601,17 +1601,17 @@
    "basis": "v1",
    "what": "tighter power-of-two packing: a second tail height for alu/ls_dword/bulk/sponge and exact keccak shard logs; recover ~half of the measured waste",
    "soundness": "prover-side shape only; roster/class change, no new argument",
-   "cells_before": 173421631296,
-   "cells_after": 169938102545.38538,
-   "cells_factor": 0.9799129513165007,
+   "cells_before": 174981912384,
+   "cells_after": 171450779329.51953,
+   "cells_factor": 0.9798200110721652,
    "native_gpu_s_factor": {
-    "pess": 0.9850253615298213,
-    "central": 0.9845483686007934,
-    "opt": 0.9841527876753544
+    "pess": 0.9849549590643237,
+    "central": 0.9844758633382408,
+    "opt": 0.9840785385160803
    },
    "leaf_columns_removed_basket": 0,
    "leaf_recursion_gpu_s_saved_basket": 0.0,
-   "waste_cells_basket": 6967057501.229259
+   "waste_cells_basket": 7062266108.960923
   },
   {
    "lever": "CORE_NARROW",
@@ -1619,13 +1619,13 @@
    "basis": "v1",
    "what": "CPU row 37 -> 34 MAIN columns (candidate: derive the three enabled flags; not verified sound)",
    "soundness": "AIR change; needs the decode/enable authority re-derived; changes the proof",
-   "cells_before": 173421631296,
-   "cells_after": 169114736448.0,
-   "cells_factor": 0.9751651808611528,
+   "cells_before": 174981912384,
+   "cells_after": 170675017536.0,
+   "cells_factor": 0.9753866283130541,
    "native_gpu_s_factor": {
-    "pess": 0.9815667935215828,
-    "central": 0.9809695167292306,
-    "opt": 0.9804741817003794
+    "pess": 0.9816876424260126,
+    "central": 0.9810997515776306,
+    "opt": 0.9806122005224526
    },
    "leaf_columns_removed_basket": 1041,
    "leaf_recursion_gpu_s_saved_basket": 0.01411659438635945
@@ -1647,26 +1647,34 @@
    "note": "opt-in ethereum_services_v3_zbb profile: proven prefix + fresh verify; driver/class work left to make it default"
   },
   "dispatch": {
-   "label": "M (cost) / E (cut)",
+   "label": "M (cost, client3 note) / E (cut)",
    "dispatch_instr_per_gas": [
     1.12,
     1.36
    ],
    "instr_per_dispatched_op": 28.1,
-   "note": "autoresearch/guest_efficiency/notes/client3-20261102.md: dispatch_cgoto 1.26-1.36 instr/gas, 28.1 instructions per EVM opcode; PUSH1 16, POP 10, SWAP1 25, ADD 36 instructions each. Block-level gas/stack checks (evmone advanced-style basic-block analysis) would take per-opcode overhead from ~28 to ~14-18 [E]: -0.35..-0.65 instr/gas = x0.80..0.89 instructions",
+   "ops_basket": 17700000.0,
+   "ops_per_gas": 0.03973963872945891,
+   "removable_instr_per_op": {
+    "pess": 1.5,
+    "central": 2.5,
+    "opt": 5.0
+   },
+   "note": "autoresearch/guest_efficiency/notes/client3-20261102.md: 28.1 instructions per dispatched opcode is the WHOLE per-opcode cost inside dispatch_cgoto (handler bodies included: PUSH1 16, POP 10, SWAP1 25, ADD 36), 17.7 M ops on the 15 blocks. The overhead is 6 dispatch + 1-2 stack-check + 2 gas instructions per op, and patch 0030 already removed the gas branch of pure opcodes (28.1 -> 27.2). Review fix: the first cut took 28 -> 14-18 per op (x0.92/0.85/0.79), i.e. removed handler work. A basic-block (evmone advanced-style) gas + stack check removes ~1.5 / 2.5 / 5 instructions per op (pess: stack checks only; opt: + a cheaper threaded dispatch) [E], on the post-Zbb instruction count (DISPATCH is stacked on ZBB).",
    "instr_factor": {
-    "pess": 0.92,
-    "central": 0.85,
-    "opt": 0.79
+    "pess": 0.9801175349099782,
+    "central": 0.966862558183297,
+    "opt": 0.933725116366594
    }
   },
-  "cpu_share_of_native_cells": 0.6701883149901702
+  "cpu_share_of_native_cells": 0.6701883149901702,
+  "cpu_share_of_native_cells_v1": 0.7731306433725651
  },
  "combined_prover_side_on_v1": {
   "native_gpu_s_factor": {
-   "pess": 0.9567949790264003,
-   "central": 0.9371846114467265,
-   "opt": 0.9355498783878154
+   "pess": 0.9661118886908906,
+   "central": 0.945431642178854,
+   "opt": 0.9429568915326335
   },
   "levers": "V2SHARE x PAD (+ CORE_NARROW central/opt)",
   "label": "D/E"
