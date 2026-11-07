@@ -1,0 +1,4935 @@
+{
+ "calibration": {
+  "native_gpu_s_per_minstr": 0.11914479894867476,
+  "rk_ns_per_cell": 0.261562981690253
+ },
+ "check_fanin_same": {
+  "24626900": {
+   "ours": 0.81,
+   "plan": 0.811
+  },
+  "24628590": {
+   "ours": 0.785,
+   "plan": 0.786
+  },
+  "24628595": {
+   "ours": 0.76,
+   "plan": 0.76
+  },
+  "24628607": {
+   "ours": 0.822,
+   "plan": 0.822
+  },
+  "24628608": {
+   "ours": 0.853,
+   "plan": 0.853
+  },
+  "24628611": {
+   "ours": 0.763,
+   "plan": 0.762
+  },
+  "24647140": {
+   "ours": 0.814,
+   "plan": 0.858
+  },
+  "24697070": {
+   "ours": 0.754,
+   "plan": 0.754
+  },
+  "24697073": {
+   "ours": 0.767,
+   "plan": 0.767
+  },
+  "25229951": {
+   "ours": 0.774,
+   "plan": 0.774
+  },
+  "25229955": {
+   "ours": 0.762,
+   "plan": 0.762
+  },
+  "25229957": {
+   "ours": 0.822,
+   "plan": 0.822
+  },
+  "26235156": {
+   "ours": 0.795,
+   "plan": 0.795
+  },
+  "26235159": {
+   "ours": 0.758,
+   "plan": 0.757
+  },
+  "26235168": {
+   "ours": 0.761,
+   "plan": 0.761
+  }
+ },
+ "fits": {
+  "kernel_vs_1_minstr_nodes": {
+   "a": -1.1364374604466736,
+   "label": "D (n=6; Minstr and nodes collinear, coefficients unstable)",
+   "native_per_minstr": 0.09140093259826806,
+   "per_node": 0.3947322856726588,
+   "r2": 0.9956705250930132
+  },
+  "kernel_vs_minstr": {
+   "a": 1.4506256786702174,
+   "b": 0.2836692772691264,
+   "label": "D (bench15-1 n=6) = plan_model KFIT",
+   "r2": 0.980159092652768
+  },
+  "kernel_vs_minstr_nodes_no_intercept": {
+   "label": "D (n=6)",
+   "native_per_minstr": 0.1547000438028029,
+   "per_node": 0.25329481082599326,
+   "r2": 0.9932290501965745
+  },
+  "kernel_vs_minstr_segments_no_intercept": {
+   "label": "D (n=6; segments ~ Minstr/4.19, collinear)",
+   "per_minstr": 0.28512480741994467,
+   "per_segment": 0.14909166056380407,
+   "r2": 0.9587010718124711
+  },
+  "native_wall_vs_minstr_15": {
+   "a_s": -0.6077012870382354,
+   "b_s_per_minstr": 0.1908134519170817,
+   "label": "D (same 15 walls)",
+   "r2": 0.9912784437752692
+  },
+  "recursion_wall_vs_nodes_15": {
+   "a_s": 0.48975455156678827,
+   "b_s_per_node": 0.2783984806066551,
+   "label": "D (bench15 6 [M] + p-truth-split 9 [M unqualified])",
+   "r2": 0.9971408070948486
+  },
+  "segment_composition_ms": {
+   "a_ms": -1.9328063534533868,
+   "b_ms_per_mcell": 0.1722282305794426,
+   "r2": 0.9335166192778764
+  },
+  "segment_job_ms_vs_mcells": {
+   "a_ms": 35.57985451270525,
+   "b_ms_per_mcell": 1.0929397000940493,
+   "fixed_share_at_310m": 0.09503390615893875,
+   "label": "D (job-path CUDA events [M])",
+   "n": 11,
+   "r2": 0.8680912539407655
+  },
+  "segment_pcs_ms": {
+   "a_ms": 4.353886400336222,
+   "b_ms_per_mcell": 0.4313393673781276,
+   "r2": 0.7459902336426624
+  },
+  "segment_stage1_ms": {
+   "a_ms": 33.158774465822376,
+   "b_ms_per_mcell": 0.48937210213647914,
+   "r2": 0.6039296425842808
+  }
+ },
+ "labels": "M measured, D derived, E estimate",
+ "memory": {
+  "22": {
+   "arena_free_gb_24628607": 23.9,
+   "arena_free_gb_p50": 15.5,
+   "arena_free_gb_p95": 5.0,
+   "gkr_workspace_gb": 10.2,
+   "label": "22 [M]; 23/24 [D] scaled by the exact stage-1 lower bound, PCS by rows",
+   "pcs_job_peak_gb": [
+    11.7,
+    12.9
+   ],
+   "stage1_fits_24628607": true,
+   "stage1_fits_p50": false,
+   "stage1_fits_p95": false,
+   "stage1_fits_post_p1_24628607": true,
+   "stage1_fits_post_p1_p50": true,
+   "stage1_fits_post_p1_p95": true,
+   "stage1_job_peak_gb": [
+    13.2,
+    18.6
+   ],
+   "stage1_lower_bound_gb": 16.01,
+   "stage1_post_p1_gb": 4.3
+  },
+  "23": {
+   "arena_free_gb_24628607": 23.9,
+   "arena_free_gb_p50": 15.5,
+   "arena_free_gb_p95": 5.0,
+   "gkr_workspace_gb": 15.34,
+   "label": "22 [M]; 23/24 [D] scaled by the exact stage-1 lower bound, PCS by rows",
+   "pcs_job_peak_gb": [
+    23.5,
+    25.9
+   ],
+   "stage1_fits_24628607": false,
+   "stage1_fits_p50": false,
+   "stage1_fits_p95": false,
+   "stage1_fits_post_p1_24628607": true,
+   "stage1_fits_post_p1_p50": true,
+   "stage1_fits_post_p1_p95": false,
+   "stage1_job_peak_gb": [
+    21.9,
+    30.9
+   ],
+   "stage1_lower_bound_gb": 26.64,
+   "stage1_post_p1_gb": 6.6
+  },
+  "24": {
+   "arena_free_gb_24628607": 23.9,
+   "arena_free_gb_p50": 15.5,
+   "arena_free_gb_p95": 5.0,
+   "gkr_workspace_gb": 31.38,
+   "label": "22 [M]; 23/24 [D] scaled by the exact stage-1 lower bound, PCS by rows",
+   "pcs_job_peak_gb": [
+    46.9,
+    51.7
+   ],
+   "stage1_fits_24628607": false,
+   "stage1_fits_p50": false,
+   "stage1_fits_p95": false,
+   "stage1_fits_post_p1_24628607": true,
+   "stage1_fits_post_p1_p50": true,
+   "stage1_fits_post_p1_p95": false,
+   "stage1_job_peak_gb": [
+    35.1,
+    49.5
+   ],
+   "stage1_lower_bound_gb": 42.69,
+   "stage1_post_p1_gb": 11.2
+  }
+ },
+ "near_empty_last_segment_share": {
+  "22": 0.09250949257852951,
+  "23": 0.09699689333793579,
+  "24": 0.10355540214014498
+ },
+ "per_segment": {
+  "fixed_share": 0.5236128088721195,
+  "fold_share_gpu_s": 0.16267151741329539,
+  "label": "D: native = plan N_PER_MI x 4.194 Minstr; leaf/fold = padded cells x 0.262 ns/cell (fan-in calibration)",
+  "leaf_gpu_s": 0.2869070535634952,
+  "native_fixed_gpu_s": 0.04749123573220274,
+  "native_gpu_s": 0.49972938766482333,
+  "recursion_gpu_s": 0.4495785709767906,
+  "total_gpu_s": 0.949307958641614
+ },
+ "plan": {
+  "LEAVES": {
+   "central": {
+    "basket": {
+     "base_wall_s": 293.617012070124,
+     "cut": 0.10527497925767337,
+     "wall_s": 262.7064872147417
+    },
+    "levers": [
+     "LEAVES"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 24.522879836443266,
+     "base_wall_s": 19.65936920855667,
+     "cut": 0.11513302003913961,
+     "kernel_gpu_s": 21.16659337630577,
+     "kernel_vs_rev4": 1.3127896610262717,
+     "leaves": 19,
+     "native_gpu_s": 10.538352919203696,
+     "nodes": 27,
+     "production_cut": 0.22395513596720829,
+     "production_wall_s": 23.015526659511067,
+     "recursion_gpu_s": 10.628240457102075,
+     "wall_s": 17.39592665951107
+    },
+    "p95": {
+     "base_kernel_gpu_s": 43.48445374886002,
+     "base_wall_s": 32.850112225022215,
+     "cut": 0.11590662227793402,
+     "kernel_gpu_s": 37.89768645748717,
+     "kernel_vs_rev4": 1.3075191042656824,
+     "leaves": 31,
+     "native_gpu_s": 20.206256701473144,
+     "nodes": 42,
+     "production_cut": 0.23687139501162713,
+     "production_wall_s": 37.79326667556882,
+     "recursion_gpu_s": 17.691429756014028,
+     "wall_s": 29.04256667556882
+    }
+   },
+   "opt": {
+    "basket": {
+     "base_wall_s": 259.07912141158977,
+     "cut": 0.11763143500087991,
+     "wall_s": 228.60327258117727
+    },
+    "levers": [
+     "LEAVES"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 23.23220195031468,
+     "base_wall_s": 17.37631128781436,
+     "cut": 0.12738129088696626,
+     "kernel_gpu_s": 19.655107170431293,
+     "kernel_vs_rev4": 1.6353606361541255,
+     "leaves": 19,
+     "native_gpu_s": 9.983702765561398,
+     "nodes": 27,
+     "production_cut": 0.18326878565174032,
+     "production_wall_s": 17.272894325118806,
+     "recursion_gpu_s": 9.671404404869895,
+     "wall_s": 15.162894325118804
+    },
+    "p95": {
+     "base_kernel_gpu_s": 41.1957982883937,
+     "base_wall_s": 28.870865248283557,
+     "cut": 0.1284178381944977,
+     "kernel_gpu_s": 35.24148051732527,
+     "kernel_vs_rev4": 1.6300047117917176,
+     "leaves": 31,
+     "native_gpu_s": 19.14276950665877,
+     "nodes": 42,
+     "production_cut": 0.19088297482444772,
+     "production_wall_s": 28.470831146294334,
+     "recursion_gpu_s": 16.098711010666506,
+     "wall_s": 25.163331146294333
+    }
+   },
+   "pess": {
+    "basket": {
+     "base_wall_s": 361.2296819924473,
+     "cut": 0.08584055678623503,
+     "wall_s": 330.221524962501
+    },
+    "levers": [
+     "LEAVES"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 25.813557722571865,
+     "base_wall_s": 23.840460347183896,
+     "cut": 0.09675132099860728,
+     "kernel_gpu_s": 22.86944679262669,
+     "kernel_vs_rev4": 1.1614306225082072,
+     "leaves": 19,
+     "native_gpu_s": 11.093003072845997,
+     "nodes": 27,
+     "production_cut": 0.24875654083252574,
+     "production_wall_s": 32.33386431537894,
+     "recursion_gpu_s": 11.776443719780694,
+     "wall_s": 21.53386431537894
+    },
+    "p95": {
+     "base_kernel_gpu_s": 45.77310920932634,
+     "base_wall_s": 41.074966407441586,
+     "cut": 0.09511047787809779,
+     "kernel_gpu_s": 40.872436146718584,
+     "kernel_vs_rev4": 1.1590100482393688,
+     "leaves": 31,
+     "native_gpu_s": 21.269743896287522,
+     "nodes": 42,
+     "production_cut": 0.26146655446006284,
+     "production_wall_s": 53.96830672360301,
+     "recursion_gpu_s": 19.60269225043106,
+     "wall_s": 37.168306723603
+    }
+   }
+  },
+  "SEG23": {
+   "central": {
+    "basket": {
+     "base_wall_s": 293.617012070124,
+     "cut": 0.13917473095605593,
+     "wall_s": 252.7529434111435
+    },
+    "levers": [
+     "SEG23"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 24.522879836443266,
+     "base_wall_s": 19.65936920855667,
+     "cut": 0.1351825024155816,
+     "kernel_gpu_s": 20.278241748441445,
+     "kernel_vs_rev4": 1.2576925175378146,
+     "leaves": 25,
+     "native_gpu_s": 10.713464857931191,
+     "nodes": 34,
+     "production_cut": 0.1878920512852389,
+     "production_wall_s": 24.085066483032147,
+     "recursion_gpu_s": 9.564776890510252,
+     "wall_s": 17.001766483032146
+    },
+    "p95": {
+     "base_kernel_gpu_s": 43.48445374886002,
+     "base_wall_s": 32.850112225022215,
+     "cut": 0.14922747484610088,
+     "kernel_gpu_s": 36.26549315541958,
+     "kernel_vs_rev4": 1.2512063283736268,
+     "leaves": 43,
+     "native_gpu_s": 20.54357992123395,
+     "nodes": 58,
+     "production_cut": 0.1916367375275415,
+     "production_wall_s": 40.03347292927112,
+     "recursion_gpu_s": 15.721913234185632,
+     "wall_s": 27.94797292927112
+    }
+   },
+   "opt": {
+    "basket": {
+     "base_wall_s": 259.07912141158977,
+     "cut": 0.1513265773812168,
+     "wall_s": 219.87356469744117
+    },
+    "levers": [
+     "SEG23"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 23.23220195031468,
+     "base_wall_s": 17.37631128781436,
+     "cut": 0.14711668141890888,
+     "kernel_gpu_s": 18.53145022799588,
+     "kernel_vs_rev4": 1.5418691931278266,
+     "leaves": 25,
+     "native_gpu_s": 9.470082647512482,
+     "nodes": 34,
+     "production_cut": 0.17272894768968206,
+     "production_wall_s": 17.495799369182517,
+     "recursion_gpu_s": 9.061367580483397,
+     "wall_s": 14.819966035849184
+    },
+    "p95": {
+     "base_kernel_gpu_s": 41.1957982883937,
+     "base_wall_s": 28.870865248283557,
+     "cut": 0.16188796475793987,
+     "kernel_gpu_s": 33.055359488222564,
+     "kernel_vs_rev4": 1.5288912646358142,
+     "leaves": 43,
+     "native_gpu_s": 18.160915371625652,
+     "nodes": 58,
+     "production_cut": 0.18244186505309135,
+     "production_wall_s": 28.76785296577153,
+     "recursion_gpu_s": 14.894444116596915,
+     "wall_s": 24.1970196324382
+    }
+   },
+   "pess": {
+    "basket": {
+     "base_wall_s": 361.2296819924473,
+     "cut": 0.08647200487379425,
+     "wall_s": 329.99342717063723
+    },
+    "levers": [
+     "SEG23"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 25.813557722571865,
+     "base_wall_s": 23.840460347183896,
+     "cut": 0.08667712728090482,
+     "kernel_gpu_s": 23.06186014113318,
+     "kernel_vs_rev4": 1.1712023829342981,
+     "leaves": 25,
+     "native_gpu_s": 12.993673940596075,
+     "nodes": 34,
+     "production_cut": 0.17812129689383838,
+     "production_wall_s": 35.374037731235674,
+     "recursion_gpu_s": 10.068186200537108,
+     "wall_s": 21.774037731235673
+    },
+    "p95": {
+     "base_kernel_gpu_s": 45.77310920932634,
+     "base_wall_s": 41.074966407441586,
+     "cut": 0.08411758549693138,
+     "kernel_gpu_s": 41.46347596316629,
+     "kernel_vs_rev4": 1.1757700251517662,
+     "leaves": 43,
+     "native_gpu_s": 24.91409361139194,
+     "nodes": 58,
+     "production_cut": 0.16770622828933057,
+     "production_wall_s": 60.81983940888003,
+     "recursion_gpu_s": 16.54938235177435,
+     "wall_s": 37.61983940888003
+    }
+   }
+  },
+  "SEG23+LEAVES": {
+   "central": {
+    "basket": {
+     "base_wall_s": 293.617012070124,
+     "cut": 0.2260728085726984,
+     "wall_s": 227.2381895067072
+    },
+    "levers": [
+     "SEG23",
+     "LEAVES"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 24.522879836443266,
+     "base_wall_s": 19.65936920855667,
+     "cut": 0.23417251931894711,
+     "kernel_gpu_s": 17.891240373495357,
+     "kernel_vs_rev4": 1.1096464588181079,
+     "leaves": 14,
+     "native_gpu_s": 10.713464857931191,
+     "nodes": 19,
+     "production_cut": 0.35887364295798674,
+     "production_wall_s": 19.014185192767616,
+     "recursion_gpu_s": 7.177775515564168,
+     "wall_s": 15.055685192767617
+    },
+    "p95": {
+     "base_kernel_gpu_s": 43.48445374886002,
+     "base_wall_s": 32.850112225022215,
+     "cut": 0.24203888467360246,
+     "kernel_gpu_s": 32.205854425359234,
+     "kernel_vs_rev4": 1.1111435516675807,
+     "leaves": 22,
+     "native_gpu_s": 20.54357992123395,
+     "nodes": 31,
+     "production_cut": 0.36692640630851603,
+     "production_wall_s": 31.352407700675165,
+     "recursion_gpu_s": 11.662274504125286,
+     "wall_s": 24.899107700675167
+    }
+   },
+   "opt": {
+    "basket": {
+     "base_wall_s": 259.07912141158977,
+     "cut": 0.2526444461660945,
+     "wall_s": 193.6242202693603
+    },
+    "levers": [
+     "SEG23",
+     "LEAVES"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 23.23220195031468,
+     "base_wall_s": 17.37631128781436,
+     "cut": 0.2608052690325282,
+     "kernel_gpu_s": 15.872625528820148,
+     "kernel_vs_rev4": 1.32064744074748,
+     "leaves": 14,
+     "native_gpu_s": 9.470082647512482,
+     "nodes": 19,
+     "production_cut": 0.32193299728391855,
+     "production_wall_s": 14.340311080936313,
+     "recursion_gpu_s": 6.402542881307666,
+     "wall_s": 12.84447774760298
+    },
+    "p95": {
+     "base_kernel_gpu_s": 41.1957982883937,
+     "base_wall_s": 28.870865248283557,
+     "cut": 0.26893701510462886,
+     "kernel_gpu_s": 28.547795091029137,
+     "kernel_vs_rev4": 1.320405381004512,
+     "leaves": 22,
+     "native_gpu_s": 18.160915371625652,
+     "nodes": 31,
+     "production_cut": 0.3312331676136303,
+     "production_wall_s": 23.532254258255552,
+     "recursion_gpu_s": 10.386879719403485,
+     "wall_s": 21.10642092492222
+    }
+   },
+   "pess": {
+    "basket": {
+     "base_wall_s": 361.2296819924473,
+     "cut": 0.1518838391932561,
+     "wall_s": 306.3647310608754
+    },
+    "levers": [
+     "SEG23",
+     "LEAVES"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 25.813557722571865,
+     "base_wall_s": 23.840460347183896,
+     "cut": 0.16456686006477828,
+     "kernel_gpu_s": 21.13804930086318,
+     "kernel_vs_rev4": 1.0735011642706616,
+     "leaves": 14,
+     "native_gpu_s": 12.993673940596075,
+     "nodes": 19,
+     "production_cut": 0.36066876554331717,
+     "production_wall_s": 27.51711064534899,
+     "recursion_gpu_s": 8.144375360267107,
+     "wall_s": 19.917110645348988
+    },
+    "p95": {
+     "base_kernel_gpu_s": 45.77310920932634,
+     "base_wall_s": 41.074966407441586,
+     "cut": 0.15483254414153158,
+     "kernel_gpu_s": 38.17030664930853,
+     "kernel_vs_rev4": 1.0823863983081503,
+     "leaves": 22,
+     "native_gpu_s": 24.91409361139194,
+     "nodes": 31,
+     "production_cut": 0.355248080507479,
+     "production_wall_s": 47.11522485804946,
+     "recursion_gpu_s": 13.256213037916591,
+     "wall_s": 34.71522485804946
+    }
+   }
+  },
+  "SEG24": {
+   "central": {
+    "basket": {
+     "base_wall_s": 293.617012070124,
+     "cut": 0.17744515883783873,
+     "wall_s": 241.51609472584926
+    },
+    "levers": [
+     "SEG24"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 24.522879836443266,
+     "base_wall_s": 19.65936920855667,
+     "cut": 0.17544351773618783,
+     "kernel_gpu_s": 18.797701019112598,
+     "kernel_vs_rev4": 1.165866755704692,
+     "leaves": 19,
+     "native_gpu_s": 11.56973230202305,
+     "nodes": 26,
+     "production_cut": 0.2708022331219857,
+     "production_wall_s": 21.626160318132992,
+     "recursion_gpu_s": 7.227968717089548,
+     "wall_s": 16.210260318132992
+    },
+    "p95": {
+     "base_kernel_gpu_s": 43.48445374886002,
+     "base_wall_s": 32.850112225022215,
+     "cut": 0.20848961374202957,
+     "kernel_gpu_s": 33.42001892357259,
+     "kernel_vs_rev4": 1.1530337942003537,
+     "leaves": 32,
+     "native_gpu_s": 22.194014070408144,
+     "nodes": 43,
+     "production_cut": 0.29404277138802715,
+     "production_wall_s": 34.961905015845005,
+     "recursion_gpu_s": 11.226004853164447,
+     "wall_s": 26.00120501584501
+    }
+   },
+   "opt": {
+    "basket": {
+     "base_wall_s": 259.07912141158977,
+     "cut": 0.21050824397762735,
+     "wall_s": 204.5408305119695
+    },
+    "levers": [
+     "SEG24"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 23.23220195031468,
+     "base_wall_s": 17.37631128781436,
+     "cut": 0.20707399480820832,
+     "kernel_gpu_s": 16.427226044264703,
+     "kernel_vs_rev4": 1.366791775850025,
+     "leaves": 19,
+     "native_gpu_s": 9.579676733337761,
+     "nodes": 26,
+     "production_cut": 0.25185886120233514,
+     "production_wall_s": 15.822295761082344,
+     "recursion_gpu_s": 6.847549310926941,
+     "wall_s": 13.778129094415677
+    },
+    "p95": {
+     "base_kernel_gpu_s": 41.1957982883937,
+     "base_wall_s": 28.870865248283557,
+     "cut": 0.24243381515641693,
+     "kernel_gpu_s": 29.022556666981295,
+     "kernel_vs_rev4": 1.342364265660315,
+     "leaves": 32,
+     "native_gpu_s": 18.387394174509716,
+     "nodes": 43,
+     "production_cut": 0.2820631855149984,
+     "production_wall_s": 25.262424572608694,
+     "recursion_gpu_s": 10.635162492471581,
+     "wall_s": 21.87159123927536
+    }
+   },
+   "pess": {
+    "basket": {
+     "base_wall_s": 361.2296819924473,
+     "cut": 0.04762132218520643,
+     "wall_s": 344.0274469234253
+    },
+    "levers": [
+     "SEG24"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 25.813557722571865,
+     "base_wall_s": 23.840460347183896,
+     "cut": 0.05908306465179325,
+     "kernel_gpu_s": 23.733918734640973,
+     "kernel_vs_rev4": 1.205333048083199,
+     "leaves": 19,
+     "native_gpu_s": 16.125530611388818,
+     "nodes": 26,
+     "production_cut": 0.23718536878263474,
+     "production_wall_s": 32.83189288716272,
+     "recursion_gpu_s": 7.608388123252157,
+     "wall_s": 22.431892887162718
+    },
+    "p95": {
+     "base_kernel_gpu_s": 45.77310920932634,
+     "base_wall_s": 41.074966407441586,
+     "cut": 0.05769052324685442,
+     "kernel_gpu_s": 42.73596839715192,
+     "kernel_vs_rev4": 1.211853793489033,
+     "leaves": 32,
+     "native_gpu_s": 30.91912118329461,
+     "nodes": 43,
+     "production_cut": 0.23495920899450207,
+     "production_wall_s": 55.90533010304931,
+     "recursion_gpu_s": 11.816847213857313,
+     "wall_s": 38.70533010304931
+    }
+   }
+  },
+  "baseline": {
+   "central": {
+    "basket": {
+     "base_wall_s": 293.617012070124,
+     "cut": 0.0,
+     "wall_s": 293.617012070124
+    },
+    "levers": [],
+    "p50": {
+     "base_kernel_gpu_s": 24.522879836443266,
+     "base_wall_s": 19.65936920855667,
+     "cut": 0.0,
+     "kernel_gpu_s": 24.522879836443266,
+     "kernel_vs_rev4": 1.5209524997966914,
+     "leaves": 35,
+     "native_gpu_s": 10.538352919203696,
+     "nodes": 48,
+     "production_cut": 0.0,
+     "production_wall_s": 29.65746920855667,
+     "recursion_gpu_s": 13.984526917239572,
+     "wall_s": 19.65936920855667
+    },
+    "p95": {
+     "base_kernel_gpu_s": 43.48445374886002,
+     "base_wall_s": 32.850112225022215,
+     "cut": 0.0,
+     "kernel_gpu_s": 43.48445374886002,
+     "kernel_vs_rev4": 1.500269787681437,
+     "leaves": 60,
+     "native_gpu_s": 20.206256701473144,
+     "nodes": 80,
+     "production_cut": 0.0,
+     "production_wall_s": 49.524112225022215,
+     "recursion_gpu_s": 23.27819704738688,
+     "wall_s": 32.850112225022215
+    }
+   },
+   "opt": {
+    "basket": {
+     "base_wall_s": 259.07912141158977,
+     "cut": 0.0,
+     "wall_s": 259.07912141158977
+    },
+    "levers": [],
+    "p50": {
+     "base_kernel_gpu_s": 23.23220195031468,
+     "base_wall_s": 17.37631128781436,
+     "cut": 0.0,
+     "kernel_gpu_s": 23.23220195031468,
+     "kernel_vs_rev4": 1.9329850624210076,
+     "leaves": 35,
+     "native_gpu_s": 9.983702765561398,
+     "nodes": 48,
+     "production_cut": 0.0,
+     "production_wall_s": 21.14881128781436,
+     "recursion_gpu_s": 13.24849918475328,
+     "wall_s": 17.37631128781436
+    },
+    "p95": {
+     "base_kernel_gpu_s": 41.1957982883937,
+     "base_wall_s": 28.870865248283557,
+     "cut": 0.0,
+     "kernel_gpu_s": 41.1957982883937,
+     "kernel_vs_rev4": 1.9054064792508143,
+     "leaves": 60,
+     "native_gpu_s": 19.14276950665877,
+     "nodes": 80,
+     "production_cut": 0.0,
+     "production_wall_s": 35.18753191495023,
+     "recursion_gpu_s": 22.053028781734938,
+     "wall_s": 28.870865248283557
+    }
+   },
+   "pess": {
+    "basket": {
+     "base_wall_s": 361.2296819924473,
+     "cut": 0.0,
+     "wall_s": 361.2296819924473
+    },
+    "levers": [],
+    "p50": {
+     "base_kernel_gpu_s": 25.813557722571865,
+     "base_wall_s": 23.840460347183896,
+     "cut": 0.0,
+     "kernel_gpu_s": 25.813557722571865,
+     "kernel_vs_rev4": 1.3109480385220427,
+     "leaves": 35,
+     "native_gpu_s": 11.093003072845997,
+     "nodes": 48,
+     "production_cut": 0.0,
+     "production_wall_s": 43.040460347183895,
+     "recursion_gpu_s": 14.720554649725866,
+     "wall_s": 23.840460347183896
+    },
+    "p95": {
+     "base_kernel_gpu_s": 45.77310920932634,
+     "base_wall_s": 41.074966407441586,
+     "cut": 0.0,
+     "kernel_gpu_s": 45.77310920932634,
+     "kernel_vs_rev4": 1.2979772803933154,
+     "leaves": 60,
+     "native_gpu_s": 21.269743896287522,
+     "nodes": 80,
+     "production_cut": 0.0,
+     "production_wall_s": 73.0749664074416,
+     "recursion_gpu_s": 24.50336531303882,
+     "wall_s": 41.074966407441586
+    }
+   }
+  },
+  "mainnet_note": "plan_model mainnet view is unchanged (no SEG lever in its fixed m9_all_2gpu set)",
+  "rev4_best": {
+   "central": {
+    "basket": {
+     "base_wall_s": 293.617012070124,
+     "cut": 0.43247379305516864,
+     "wall_s": 166.63534915463225
+    },
+    "levers": [
+     "STREAM",
+     "WITNESS",
+     "OCC",
+     "LEAVES",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "IO",
+     "INPLACE"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 24.522879836443266,
+     "base_wall_s": 19.65936920855667,
+     "cut": 0.43829639688294697,
+     "kernel_gpu_s": 16.12336995384227,
+     "kernel_vs_rev4": 1.0,
+     "leaves": 19,
+     "native_gpu_s": 8.497613017068089,
+     "nodes": 27,
+     "production_cut": 0.42749124891769474,
+     "production_wall_s": 16.979160656852702,
+     "recursion_gpu_s": 7.625756936774181,
+     "wall_s": 11.042738519454728
+    },
+    "p95": {
+     "base_kernel_gpu_s": 43.48445374886002,
+     "base_wall_s": 32.850112225022215,
+     "cut": 0.426604536225792,
+     "kernel_gpu_s": 28.984422739100964,
+     "kernel_vs_rev4": 1.0,
+     "leaves": 31,
+     "native_gpu_s": 16.293338369771732,
+     "nodes": 42,
+     "production_cut": 0.4327653976181359,
+     "production_wall_s": 28.09179010627529,
+     "recursion_gpu_s": 12.691084369329234,
+     "wall_s": 18.836105334301394
+    }
+   },
+   "opt": {
+    "basket": {
+     "base_wall_s": 259.07912141158977,
+     "cut": 0.5553667567321932,
+     "wall_s": 115.19519001620904
+    },
+    "levers": [
+     "STREAM",
+     "WITNESS",
+     "OCC",
+     "LEAVES",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "P2",
+     "D2REV",
+     "IO",
+     "INPLACE"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 23.23220195031468,
+     "base_wall_s": 17.37631128781436,
+     "cut": 0.5628175364757779,
+     "kernel_gpu_s": 12.018821253184967,
+     "kernel_vs_rev4": 1.0,
+     "leaves": 19,
+     "native_gpu_s": 6.124477313047399,
+     "nodes": 27,
+     "production_cut": 0.5339092012963712,
+     "production_wall_s": 9.857266344769716,
+     "recursion_gpu_s": 5.894343940137567,
+     "wall_s": 7.59661857577043
+    },
+    "p95": {
+     "base_kernel_gpu_s": 41.1957982883937,
+     "base_wall_s": 28.870865248283557,
+     "cut": 0.5490698493644559,
+     "kernel_gpu_s": 21.620477697016888,
+     "kernel_vs_rev4": 1.0,
+     "leaves": 31,
+     "native_gpu_s": 11.743083734107406,
+     "nodes": 42,
+     "production_cut": 0.5291256283861908,
+     "production_wall_s": 16.568906979093043,
+     "recursion_gpu_s": 9.87739396290948,
+     "wall_s": 13.018743615386999
+    }
+   },
+   "pess": {
+    "basket": {
+     "base_wall_s": 361.2296819924473,
+     "cut": 0.393106832151088,
+     "wall_s": 219.2278260254514
+    },
+    "levers": [
+     "STREAM",
+     "WITNESS",
+     "OCC",
+     "LEAVES",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "IO",
+     "INPLACE"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 25.813557722571865,
+     "base_wall_s": 23.840460347183896,
+     "cut": 0.38920071341000173,
+     "kernel_gpu_s": 19.690755822537376,
+     "kernel_vs_rev4": 1.0,
+     "leaves": 19,
+     "native_gpu_s": 9.85176285591812,
+     "nodes": 27,
+     "production_cut": 0.4039453727447877,
+     "production_wall_s": 25.65446554913344,
+     "recursion_gpu_s": 9.838992966619259,
+     "wall_s": 14.561736172037067
+    },
+    "p95": {
+     "base_kernel_gpu_s": 45.77310920932634,
+     "base_wall_s": 41.074966407441586,
+     "cut": 0.3994621707149243,
+     "kernel_gpu_s": 35.26495409492537,
+     "kernel_vs_rev4": 1.0,
+     "leaves": 31,
+     "native_gpu_s": 18.889787688355543,
+     "nodes": 42,
+     "production_cut": 0.4261902624125957,
+     "production_wall_s": 41.93112729846244,
+     "recursion_gpu_s": 16.37516640656983,
+     "wall_s": 24.667071164282376
+    }
+   }
+  },
+  "rev4_best+SEG23": {
+   "central": {
+    "basket": {
+     "base_wall_s": 293.617012070124,
+     "cut": 0.505278513347958,
+     "wall_s": 145.25864471766232
+    },
+    "levers": [
+     "STREAM",
+     "WITNESS",
+     "OCC",
+     "LEAVES",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "IO",
+     "INPLACE",
+     "SEG23"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 24.522879836443266,
+     "base_wall_s": 19.65936920855667,
+     "cut": 0.5122981182274358,
+     "kernel_gpu_s": 13.793411399698838,
+     "kernel_vs_rev4": 0.8554918381942732,
+     "leaves": 14,
+     "native_gpu_s": 8.638814730598027,
+     "nodes": 19,
+     "production_cut": 0.5358806162237426,
+     "production_wall_s": 13.764606333438651,
+     "recursion_gpu_s": 5.154596669100812,
+     "wall_s": 9.587911357474693
+    },
+    "p95": {
+     "base_kernel_gpu_s": 43.48445374886002,
+     "base_wall_s": 32.850112225022215,
+     "cut": 0.5016371573941671,
+     "kernel_gpu_s": 24.930457540891936,
+     "kernel_vs_rev4": 0.8601329674666905,
+     "leaves": 22,
+     "native_gpu_s": 16.56533933663775,
+     "nodes": 31,
+     "production_cut": 0.532246981510027,
+     "production_wall_s": 23.165052981290316,
+     "recursion_gpu_s": 8.365118204254186,
+     "wall_s": 16.371275308382693
+    }
+   },
+   "opt": {
+    "basket": {
+     "base_wall_s": 259.07912141158977,
+     "cut": 0.6249141047950613,
+     "wall_s": 97.17692418357514
+    },
+    "levers": [
+     "STREAM",
+     "WITNESS",
+     "OCC",
+     "LEAVES",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "P2",
+     "D2REV",
+     "IO",
+     "INPLACE",
+     "SEG23"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 23.23220195031468,
+     "base_wall_s": 17.37631128781436,
+     "cut": 0.6314295100359908,
+     "kernel_gpu_s": 9.864918891619956,
+     "kernel_vs_rev4": 0.8207892174954985,
+     "leaves": 14,
+     "native_gpu_s": 5.86502714101165,
+     "nodes": 19,
+     "production_cut": 0.621635800942179,
+     "production_wall_s": 8.001953043938885,
+     "recursion_gpu_s": 3.999891750608306,
+     "wall_s": 6.404395565116883
+    },
+    "p95": {
+     "base_kernel_gpu_s": 41.1957982883937,
+     "base_wall_s": 28.870865248283557,
+     "cut": 0.6213694854669214,
+     "kernel_gpu_s": 17.85213764794095,
+     "kernel_vs_rev4": 0.8257050513922789,
+     "leaves": 22,
+     "native_gpu_s": 11.247109734459494,
+     "nodes": 31,
+     "production_cut": 0.6158276897184394,
+     "production_wall_s": 13.518075428872578,
+     "recursion_gpu_s": 6.605027913481457,
+     "wall_s": 10.93139056397278
+    }
+   },
+   "pess": {
+    "basket": {
+     "base_wall_s": 361.2296819924473,
+     "cut": 0.43137500655394667,
+     "wall_s": 205.40422555547528
+    },
+    "levers": [
+     "STREAM",
+     "WITNESS",
+     "OCC",
+     "LEAVES",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "IO",
+     "INPLACE",
+     "SEG23"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 25.813557722571865,
+     "base_wall_s": 23.840460347183896,
+     "cut": 0.4310971080129069,
+     "kernel_gpu_s": 18.347566171939672,
+     "kernel_vs_rev4": 0.9317857748730836,
+     "leaves": 14,
+     "native_gpu_s": 11.539760103666275,
+     "nodes": 19,
+     "production_cut": 0.5034942466656516,
+     "production_wall_s": 21.369836188535693,
+     "recursion_gpu_s": 6.807806068273397,
+     "wall_s": 13.562906837816536
+    },
+    "p95": {
+     "base_kernel_gpu_s": 45.77310920932634,
+     "base_wall_s": 41.074966407441586,
+     "cut": 0.4345213736832303,
+     "kernel_gpu_s": 33.19828504504051,
+     "kernel_vs_rev4": 0.9413959523576337,
+     "leaves": 22,
+     "native_gpu_s": 22.126356624780637,
+     "nodes": 31,
+     "production_cut": 0.5080545280003231,
+     "production_wall_s": 35.948898840669386,
+     "recursion_gpu_s": 11.07192842025987,
+     "wall_s": 23.22701558008753
+    }
+   }
+  },
+  "rev4_best+SEG24": {
+   "central": {
+    "basket": {
+     "base_wall_s": 293.617012070124,
+     "cut": 0.5144707120355811,
+     "wall_s": 142.5596588046475
+    },
+    "levers": [
+     "STREAM",
+     "WITNESS",
+     "OCC",
+     "LEAVES",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "IO",
+     "INPLACE",
+     "SEG24"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 24.522879836443266,
+     "base_wall_s": 19.65936920855667,
+     "cut": 0.522941944903774,
+     "kernel_gpu_s": 13.156273476317185,
+     "kernel_vs_rev4": 0.8159754141957145,
+     "leaves": 10,
+     "native_gpu_s": 9.329266970601052,
+     "nodes": 14,
+     "production_cut": 0.5797396352807587,
+     "production_wall_s": 12.463858826237697,
+     "recursion_gpu_s": 3.8270065057161338,
+     "wall_s": 9.378660439052677
+    },
+    "p95": {
+     "base_kernel_gpu_s": 43.48445374886002,
+     "base_wall_s": 32.850112225022215,
+     "cut": 0.5225428406052234,
+     "kernel_gpu_s": 23.662243557645787,
+     "kernel_vs_rev4": 0.8163779479287204,
+     "leaves": 16,
+     "native_gpu_s": 17.896168814200557,
+     "nodes": 21,
+     "production_cut": 0.5900206601112701,
+     "production_wall_s": 20.303862838589986,
+     "recursion_gpu_s": 5.766074743445229,
+     "wall_s": 15.684521268758733
+    }
+   },
+   "opt": {
+    "basket": {
+     "base_wall_s": 259.07912141158977,
+     "cut": 0.6464648285728958,
+     "wall_s": 91.59358160142993
+    },
+    "levers": [
+     "STREAM",
+     "WITNESS",
+     "OCC",
+     "LEAVES",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "P2",
+     "D2REV",
+     "IO",
+     "INPLACE",
+     "SEG24"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 23.23220195031468,
+     "base_wall_s": 17.37631128781436,
+     "cut": 0.6534587155399052,
+     "kernel_gpu_s": 8.87853546364439,
+     "kernel_vs_rev4": 0.7387193200241324,
+     "leaves": 10,
+     "native_gpu_s": 5.920387520058876,
+     "nodes": 14,
+     "production_cut": 0.6598162251440924,
+     "production_wall_s": 7.194482457603918,
+     "recursion_gpu_s": 2.958147943585515,
+     "wall_s": 6.021609232857633
+    },
+    "p95": {
+     "base_kernel_gpu_s": 41.1957982883937,
+     "base_wall_s": 28.870865248283557,
+     "cut": 0.6532852631736885,
+     "kernel_gpu_s": 15.984236497456726,
+     "kernel_vs_rev4": 0.739310052324245,
+     "leaves": 16,
+     "native_gpu_s": 11.361513283514254,
+     "nodes": 21,
+     "production_cut": 0.6651267278203796,
+     "production_wall_s": 11.783363952284208,
+     "recursion_gpu_s": 4.622723213942471,
+     "wall_s": 10.009954446506534
+    }
+   },
+   "pess": {
+    "basket": {
+     "base_wall_s": 361.2296819924473,
+     "cut": 0.39166495555529757,
+     "wall_s": 219.74867464962114
+    },
+    "levers": [
+     "STREAM",
+     "WITNESS",
+     "OCC",
+     "LEAVES",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "IO",
+     "INPLACE",
+     "SEG24"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 25.813557722571865,
+     "base_wall_s": 23.840460347183896,
+     "cut": 0.393285387708022,
+     "kernel_gpu_s": 19.500295089724016,
+     "kernel_vs_rev4": 0.9903274036542892,
+     "leaves": 10,
+     "native_gpu_s": 14.321180880056577,
+     "nodes": 14,
+     "production_cut": 0.529953849660542,
+     "production_wall_s": 20.23100269503188,
+     "recursion_gpu_s": 5.179114209667439,
+     "wall_s": 14.464355656403951
+    },
+    "p95": {
+     "base_kernel_gpu_s": 45.77310920932634,
+     "base_wall_s": 41.074966407441586,
+     "cut": 0.40138421699536886,
+     "kernel_gpu_s": 35.344564799607255,
+     "kernel_vs_rev4": 1.002257502008016,
+     "leaves": 16,
+     "native_gpu_s": 27.45945778712052,
+     "nodes": 21,
+     "production_cut": 0.5453417409328953,
+     "production_wall_s": 33.224137008194546,
+     "recursion_gpu_s": 7.885107012486734,
+     "wall_s": 24.588123177879567
+    }
+   }
+  },
+  "rev4_best-LEAVES+SEG23": {
+   "central": {
+    "basket": {
+     "base_wall_s": 293.617012070124,
+     "cut": 0.4527792659504686,
+     "wall_s": 160.6733168744434
+    },
+    "levers": [
+     "STREAM",
+     "WITNESS",
+     "OCC",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "IO",
+     "INPLACE",
+     "SEG23"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 24.522879836443266,
+     "base_wall_s": 19.65936920855667,
+     "cut": 0.4503290301636004,
+     "kernel_gpu_s": 15.585379299265725,
+     "kernel_vs_rev4": 0.9666328654545112,
+     "leaves": 25,
+     "native_gpu_s": 8.638814730598027,
+     "nodes": 34,
+     "production_cut": 0.3870216506321599,
+     "production_wall_s": 18.17938652188861,
+     "recursion_gpu_s": 6.946564568667698,
+     "wall_s": 10.806184539239197
+    },
+    "p95": {
+     "base_kernel_gpu_s": 43.48445374886002,
+     "base_wall_s": 32.850112225022215,
+     "cut": 0.4460809263751244,
+     "kernel_gpu_s": 27.98940030882462,
+     "kernel_vs_rev4": 0.9656704416978426,
+     "leaves": 43,
+     "native_gpu_s": 16.56533933663775,
+     "nodes": 58,
+     "production_cut": 0.3795128278091925,
+     "production_wall_s": 30.729076349764235,
+     "recursion_gpu_s": 11.42406097218687,
+     "wall_s": 18.196303732157507
+    }
+   },
+   "opt": {
+    "basket": {
+     "base_wall_s": 259.07912141158977,
+     "cut": 0.5860812291892841,
+     "wall_s": 107.23771147740545
+    },
+    "levers": [
+     "STREAM",
+     "WITNESS",
+     "OCC",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "P2",
+     "D2REV",
+     "IO",
+     "INPLACE",
+     "SEG23"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 23.23220195031468,
+     "base_wall_s": 17.37631128781436,
+     "cut": 0.5876298712586188,
+     "kernel_gpu_s": 11.12163527567419,
+     "kernel_vs_rev4": 0.9253515832700295,
+     "leaves": 25,
+     "native_gpu_s": 5.86502714101165,
+     "nodes": 34,
+     "production_cut": 0.5284760813314775,
+     "production_wall_s": 9.97217037361131,
+     "recursion_gpu_s": 5.2566081346625415,
+     "wall_s": 7.1654717228063225
+    },
+    "p95": {
+     "base_kernel_gpu_s": 41.1957982883937,
+     "base_wall_s": 28.870865248283557,
+     "cut": 0.5803174173696455,
+     "kernel_gpu_s": 19.98019010306772,
+     "kernel_vs_rev4": 0.924132684904761,
+     "leaves": 43,
+     "native_gpu_s": 11.247109734459494,
+     "nodes": 58,
+     "production_cut": 0.5198938442588485,
+     "production_wall_s": 16.89375067770583,
+     "recursion_gpu_s": 8.733080368608228,
+     "wall_s": 12.116599290172594
+    }
+   },
+   "pess": {
+    "basket": {
+     "base_wall_s": 361.2296819924473,
+     "cut": 0.3913331124576688,
+     "wall_s": 219.86854622624898
+    },
+    "levers": [
+     "STREAM",
+     "WITNESS",
+     "OCC",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "IO",
+     "INPLACE",
+     "SEG23"
+    ],
+    "p50": {
+     "base_kernel_gpu_s": 25.813557722571865,
+     "base_wall_s": 23.840460347183896,
+     "cut": 0.37957512135060845,
+     "kernel_gpu_s": 20.02595592315096,
+     "kernel_vs_rev4": 1.0170232216393607,
+     "leaves": 25,
+     "native_gpu_s": 11.539760103666275,
+     "nodes": 34,
+     "production_cut": 0.33443517647306265,
+     "production_wall_s": 28.646216395491592,
+     "recursion_gpu_s": 8.486195819484683,
+     "wall_s": 14.791214717847199
+    },
+    "p95": {
+     "base_kernel_gpu_s": 45.77310920932634,
+     "base_wall_s": 41.074966407441586,
+     "cut": 0.3914925886662072,
+     "kernel_gpu_s": 36.08160952801854,
+     "kernel_vs_rev4": 1.0231577058315435,
+     "leaves": 43,
+     "native_gpu_s": 22.126356624780637,
+     "nodes": 58,
+     "production_cut": 0.33513838267327867,
+     "production_wall_s": 48.58474035174745,
+     "recursion_gpu_s": 13.955252903237902,
+     "wall_s": 24.99442147921478
+    }
+   }
+  },
+  "search_best_2gpu": {
+   "central": {
+    "levers": [
+     "STREAM",
+     "WITNESS",
+     "OCC",
+     "LEAVES",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "SEG23",
+     "IO",
+     "INPLACE"
+    ],
+    "min_cut": 0.5016371573941671
+   },
+   "opt": {
+    "levers": [
+     "STREAM",
+     "OCC",
+     "LEAVES",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "P2",
+     "D2REV",
+     "SEG23",
+     "IO",
+     "INPLACE"
+    ],
+    "min_cut": 0.6155467331004785
+   },
+   "pess": {
+    "levers": [
+     "STREAM",
+     "WITNESS",
+     "OCC",
+     "LEAVES",
+     "NGKR",
+     "OGKR_ENG",
+     "GPUCAP",
+     "SEG23",
+     "IO",
+     "INPLACE"
+    ],
+    "min_cut": 0.4310971080129069
+   }
+  },
+  "search_combos_60": {
+   "central": [],
+   "opt": [
+    {
+     "cut_basket": 0.6188248550358368,
+     "cut_p50": 0.6252912210823449,
+     "cut_p95": 0.6155467331004785,
+     "levers": [
+      "STREAM",
+      "OCC",
+      "LEAVES",
+      "NGKR",
+      "OGKR_ENG",
+      "GPUCAP",
+      "P2",
+      "D2REV",
+      "SEG23"
+     ]
+    },
+    {
+     "cut_basket": 0.6069045660603605,
+     "cut_p50": 0.6134659368210518,
+     "cut_p95": 0.6021778563223075,
+     "levers": [
+      "WITNESS",
+      "OCC",
+      "LEAVES",
+      "NGKR",
+      "OGKR_ENG",
+      "GPUCAP",
+      "P2",
+      "D2REV",
+      "SEG23"
+     ]
+    },
+    {
+     "cut_basket": 0.6044116566563572,
+     "cut_p50": 0.6107619473790551,
+     "cut_p95": 0.6017643316075866,
+     "levers": [
+      "STREAM",
+      "WITNESS",
+      "OCC",
+      "LEAVES",
+      "NGKR",
+      "GPUCAP",
+      "P2",
+      "D2REV",
+      "OGKR",
+      "SEG23"
+     ]
+    }
+   ],
+   "pess": []
+  }
+ },
+ "schema": "rv64-m9-segment-shape/v1",
+ "shapes": {
+  "24626900": {
+   "base_cells_g": 31.32829952,
+   "k22_all_central": {
+    "cell_ratio": 0.8098565513204082,
+    "cpu_segments": 12,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.8098565513204082,
+    "cpu_segments": 12,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.8098565513204082,
+    "cpu_segments": 12,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 12,
+    "folds": 7,
+    "leaves": 19,
+    "levels": 3
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.9184105614679721,
+    "cpu_segments": 12,
+    "folds": 6,
+    "leaves": 17,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.9184105614679721,
+    "cpu_segments": 12,
+    "folds": 6,
+    "leaves": 17,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.9184105614679721,
+    "cpu_segments": 12,
+    "folds": 6,
+    "leaves": 17,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.5212751060929591,
+    "cpu_segments": 6,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.0160131952159808
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.5212751060929591,
+    "cpu_segments": 6,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 0.9473472709008182
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.5212751060929591,
+    "cpu_segments": 6,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.6406734333980219,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 1.0160131952159808
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.6406734333980219,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 0.9473472709008182
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.6406734333980219,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.6165640173246147,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.0160131952159808
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.6165640173246147,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 0.9473472709008182
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.6165640173246147,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.4207937705518975,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.0977752914950902
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.4207937705518975,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 0.9593437765161448
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.4207937705518975,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.507255865255466,
+    "cpu_segments": 3,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 1.0977752914950902
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.507255865255466,
+    "cpu_segments": 3,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 0.9593437765161448
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.507255865255466,
+    "cpu_segments": 3,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.4246288390950624,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.0977752914950902
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.4246288390950624,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 0.9593437765161448
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.4246288390950624,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 49.123899,
+   "truths": 8
+  },
+  "24628590": {
+   "base_cells_g": 87.93160064,
+   "k22_all_central": {
+    "cell_ratio": 0.7852897007380122,
+    "cpu_segments": 38,
+    "folds": 10,
+    "leaves": 27,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.7852897007380122,
+    "cpu_segments": 38,
+    "folds": 10,
+    "leaves": 27,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.7852897007380122,
+    "cpu_segments": 38,
+    "folds": 10,
+    "leaves": 27,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 38,
+    "folds": 18,
+    "leaves": 53,
+    "levels": 3
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.9319065060067124,
+    "cpu_segments": 38,
+    "folds": 16,
+    "leaves": 46,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.9319065060067124,
+    "cpu_segments": 38,
+    "folds": 16,
+    "leaves": 46,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.9319065060067124,
+    "cpu_segments": 38,
+    "folds": 16,
+    "leaves": 46,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.4848466174355768,
+    "cpu_segments": 19,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 1.0162546353517319
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.4848466174355768,
+    "cpu_segments": 19,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 0.9478301511723204
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.4848466174355768,
+    "cpu_segments": 19,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.6356761633038323,
+    "cpu_segments": 19,
+    "folds": 12,
+    "leaves": 34,
+    "levels": 3,
+    "native_factor": 1.0162546353517319
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.6356761633038323,
+    "cpu_segments": 19,
+    "folds": 12,
+    "leaves": 34,
+    "levels": 3,
+    "native_factor": 0.9478301511723204
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.6356761633038323,
+    "cpu_segments": 19,
+    "folds": 12,
+    "leaves": 34,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.5672129972499498,
+    "cpu_segments": 19,
+    "folds": 10,
+    "leaves": 27,
+    "levels": 3,
+    "native_factor": 1.0162546353517319
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.5672129972499498,
+    "cpu_segments": 19,
+    "folds": 10,
+    "leaves": 27,
+    "levels": 3,
+    "native_factor": 0.9478301511723204
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.5672129972499498,
+    "cpu_segments": 19,
+    "folds": 10,
+    "leaves": 27,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.3452345148621191,
+    "cpu_segments": 10,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 1.0986166908127402
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.3452345148621191,
+    "cpu_segments": 10,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 0.9610265751514444
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.3452345148621191,
+    "cpu_segments": 10,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.45938177722224616,
+    "cpu_segments": 10,
+    "folds": 9,
+    "leaves": 25,
+    "levels": 3,
+    "native_factor": 1.0986166908127402
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.45938177722224616,
+    "cpu_segments": 10,
+    "folds": 9,
+    "leaves": 25,
+    "levels": 3,
+    "native_factor": 0.9610265751514444
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.45938177722224616,
+    "cpu_segments": 10,
+    "folds": 9,
+    "leaves": 25,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.3815471263096525,
+    "cpu_segments": 10,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 1.0986166908127402
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.3815471263096525,
+    "cpu_segments": 10,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 0.9610265751514444
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.3815471263096525,
+    "cpu_segments": 10,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 157.621394,
+   "truths": 18
+  },
+  "24628595": {
+   "base_cells_g": 103.932326912,
+   "k22_all_central": {
+    "cell_ratio": 0.7597606109488815,
+    "cpu_segments": 42,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.7597606109488815,
+    "cpu_segments": 42,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.7597606109488815,
+    "cpu_segments": 42,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 42,
+    "folds": 21,
+    "leaves": 63,
+    "levels": 3
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.8928899906048896,
+    "cpu_segments": 42,
+    "folds": 17,
+    "leaves": 52,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.8928899906048896,
+    "cpu_segments": 42,
+    "folds": 17,
+    "leaves": 52,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.8928899906048896,
+    "cpu_segments": 42,
+    "folds": 17,
+    "leaves": 52,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.48883494286640455,
+    "cpu_segments": 21,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.0161052172168734
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.48883494286640455,
+    "cpu_segments": 21,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 0.9475313149026036
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.48883494286640455,
+    "cpu_segments": 21,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.6670995185810162,
+    "cpu_segments": 21,
+    "folds": 15,
+    "leaves": 42,
+    "levels": 3,
+    "native_factor": 1.0161052172168734
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.6670995185810162,
+    "cpu_segments": 21,
+    "folds": 15,
+    "leaves": 42,
+    "levels": 3,
+    "native_factor": 0.9475313149026036
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.6670995185810162,
+    "cpu_segments": 21,
+    "folds": 15,
+    "leaves": 42,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.5593639895431576,
+    "cpu_segments": 21,
+    "folds": 11,
+    "leaves": 31,
+    "levels": 3,
+    "native_factor": 1.0161052172168734
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.5593639895431576,
+    "cpu_segments": 21,
+    "folds": 11,
+    "leaves": 31,
+    "levels": 3,
+    "native_factor": 0.9475313149026036
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.5593639895431576,
+    "cpu_segments": 21,
+    "folds": 11,
+    "leaves": 31,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.3507651767949671,
+    "cpu_segments": 11,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 1.0983504793647088
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.3507651767949671,
+    "cpu_segments": 11,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 0.9604941522553818
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.3507651767949671,
+    "cpu_segments": 11,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.48975335463333075,
+    "cpu_segments": 11,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.0983504793647088
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.48975335463333075,
+    "cpu_segments": 11,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 0.9604941522553818
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.48975335463333075,
+    "cpu_segments": 11,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.3917280628429696,
+    "cpu_segments": 11,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.0983504793647088
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.3917280628429696,
+    "cpu_segments": 11,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 0.9604941522553818
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.3917280628429696,
+    "cpu_segments": 11,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 172.79537,
+   "truths": 24
+  },
+  "24628607": {
+   "base_cells_g": 21.658004224,
+   "k22_all_central": {
+    "cell_ratio": 0.8217429133326223,
+    "cpu_segments": 7,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.8217429133326223,
+    "cpu_segments": 7,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.8217429133326223,
+    "cpu_segments": 7,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 7,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.9215300343271371,
+    "cpu_segments": 7,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.9215300343271371,
+    "cpu_segments": 7,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.9215300343271371,
+    "cpu_segments": 7,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.6383484048211441,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.017613749895817
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.6383484048211441,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 0.9505483802604906
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.6383484048211441,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.8014640837850083,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.017613749895817
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.8014640837850083,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 0.9505483802604906
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.8014640837850083,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.6819441041401839,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.017613749895817
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.6819441041401839,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 0.9505483802604906
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.6819441041401839,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.5184828169696455,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 1.0973674615500453
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.5184828169696455,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 0.958528116626055
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.5184828169696455,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.6365019262820142,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.0973674615500453
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.6365019262820142,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 0.958528116626055
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.6365019262820142,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.5620785162886853,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.0973674615500453
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.5620785162886853,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 0.958528116626055
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.5620785162886853,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 26.894777,
+   "truths": 10
+  },
+  "24628608": {
+   "base_cells_g": 26.814451456,
+   "k22_all_central": {
+    "cell_ratio": 0.8527535399156367,
+    "cpu_segments": 10,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.8527535399156367,
+    "cpu_segments": 10,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.8527535399156367,
+    "cpu_segments": 10,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 10,
+    "folds": 6,
+    "leaves": 17,
+    "levels": 3
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.9354076399123039,
+    "cpu_segments": 10,
+    "folds": 5,
+    "leaves": 15,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.9354076399123039,
+    "cpu_segments": 10,
+    "folds": 5,
+    "leaves": 15,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.9354076399123039,
+    "cpu_segments": 10,
+    "folds": 5,
+    "leaves": 15,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.5713862273535968,
+    "cpu_segments": 5,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.014896620495895
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.5713862273535968,
+    "cpu_segments": 5,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 0.9451141214606464
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.5713862273535968,
+    "cpu_segments": 5,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.7076152397573775,
+    "cpu_segments": 5,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 1.014896620495895
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.7076152397573775,
+    "cpu_segments": 5,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 0.9451141214606464
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.7076152397573775,
+    "cpu_segments": 5,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.6475035298219751,
+    "cpu_segments": 5,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 1.014896620495895
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.6475035298219751,
+    "cpu_segments": 5,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 0.9451141214606464
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.6475035298219751,
+    "cpu_segments": 5,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.4916286764855758,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.098057339533833
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.4916286764855758,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 0.9599078725936305
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.4916286764855758,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.5926454884253889,
+    "cpu_segments": 3,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 1.098057339533833
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.5926454884253889,
+    "cpu_segments": 3,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 0.9599078725936305
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.5926454884253889,
+    "cpu_segments": 3,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.4961093266378695,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.098057339533833
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.4961093266378695,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 0.9599078725936305
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.4961093266378695,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 38.600821,
+   "truths": 10
+  },
+  "24628611": {
+   "base_cells_g": 105.860283648,
+   "k22_all_central": {
+    "cell_ratio": 0.7630009666380296,
+    "cpu_segments": 45,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.7630009666380296,
+    "cpu_segments": 45,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.7630009666380296,
+    "cpu_segments": 45,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 45,
+    "folds": 21,
+    "leaves": 64,
+    "levels": 3
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.9138141865712602,
+    "cpu_segments": 45,
+    "folds": 19,
+    "leaves": 54,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.9138141865712602,
+    "cpu_segments": 45,
+    "folds": 19,
+    "leaves": 54,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.9138141865712602,
+    "cpu_segments": 45,
+    "folds": 19,
+    "leaves": 54,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.4828771100781549,
+    "cpu_segments": 23,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.016754457889505
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.4828771100781549,
+    "cpu_segments": 23,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 0.9488297962478665
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.4828771100781549,
+    "cpu_segments": 23,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.6578950820836553,
+    "cpu_segments": 23,
+    "folds": 15,
+    "leaves": 42,
+    "levels": 3,
+    "native_factor": 1.016754457889505
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.6578950820836553,
+    "cpu_segments": 23,
+    "folds": 15,
+    "leaves": 42,
+    "levels": 3,
+    "native_factor": 0.9488297962478665
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.6578950820836553,
+    "cpu_segments": 23,
+    "folds": 15,
+    "leaves": 42,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.5532566127136626,
+    "cpu_segments": 23,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.016754457889505
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.5532566127136626,
+    "cpu_segments": 23,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 0.9488297962478665
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.5532566127136626,
+    "cpu_segments": 23,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.3377880744671099,
+    "cpu_segments": 12,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 1.0988871855053763
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.3377880744671099,
+    "cpu_segments": 12,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 0.9615675645367171
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.3377880744671099,
+    "cpu_segments": 12,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.4731100107622489,
+    "cpu_segments": 12,
+    "folds": 11,
+    "leaves": 31,
+    "levels": 3,
+    "native_factor": 1.0988871855053763
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.4731100107622489,
+    "cpu_segments": 12,
+    "folds": 11,
+    "leaves": 31,
+    "levels": 3,
+    "native_factor": 0.9615675645367171
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.4731100107622489,
+    "cpu_segments": 12,
+    "folds": 11,
+    "leaves": 31,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.3780049331159714,
+    "cpu_segments": 12,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.0988871855053763
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.3780049331159714,
+    "cpu_segments": 12,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 0.9615675645367171
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.3780049331159714,
+    "cpu_segments": 12,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 187.659496,
+   "truths": 22
+  },
+  "24647140": {
+   "base_cells_g": 20.071209216,
+   "k22_all_central": {
+    "cell_ratio": 0.8136362129583015,
+    "cpu_segments": 6,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.8136362129583015,
+    "cpu_segments": 6,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.8136362129583015,
+    "cpu_segments": 6,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.9623686346013524,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.9623686346013524,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.9623686346013524,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.6567991563503416,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.0160404337467688
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.6567991563503416,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 0.9474017479623941
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.6567991563503416,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.7917541742991714,
+    "cpu_segments": 3,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 1.0160404337467688
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.7917541742991714,
+    "cpu_segments": 3,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 0.9474017479623941
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.7917541742991714,
+    "cpu_segments": 3,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.662785152246604,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.0160404337467688
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.662785152246604,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 0.9474017479623941
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.662785152246604,
+    "cpu_segments": 3,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.6065154694464423,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.100887030614246
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.6065154694464423,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 0.9655672547544564
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.6065154694464423,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.6868226652239187,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.100887030614246
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.6868226652239187,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 0.9655672547544564
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.6868226652239187,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.6065154694464423,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.100887030614246
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.6065154694464423,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 0.9655672547544564
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.6065154694464423,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 24.59826,
+   "truths": 9
+  },
+  "24697070": {
+   "base_cells_g": 45.73900544,
+   "k22_all_central": {
+    "cell_ratio": 0.753948617208936,
+    "cpu_segments": 14,
+    "folds": 5,
+    "leaves": 15,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.753948617208936,
+    "cpu_segments": 14,
+    "folds": 5,
+    "leaves": 15,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.753948617208936,
+    "cpu_segments": 14,
+    "folds": 5,
+    "leaves": 15,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 14,
+    "folds": 10,
+    "leaves": 28,
+    "levels": 3
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.8729248871048474,
+    "cpu_segments": 14,
+    "folds": 9,
+    "leaves": 22,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.8729248871048474,
+    "cpu_segments": 14,
+    "folds": 9,
+    "leaves": 22,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.8729248871048474,
+    "cpu_segments": 14,
+    "folds": 9,
+    "leaves": 22,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.5536609439665158,
+    "cpu_segments": 7,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 1.0161661029928006
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.5536609439665158,
+    "cpu_segments": 7,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 0.9476530864544578
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.5536609439665158,
+    "cpu_segments": 7,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.7311080457109301,
+    "cpu_segments": 7,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.0161661029928006
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.7311080457109301,
+    "cpu_segments": 7,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 0.9476530864544578
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.7311080457109301,
+    "cpu_segments": 7,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.5994900597471321,
+    "cpu_segments": 7,
+    "folds": 5,
+    "leaves": 15,
+    "levels": 2,
+    "native_factor": 1.0161661029928006
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.5994900597471321,
+    "cpu_segments": 7,
+    "folds": 5,
+    "leaves": 15,
+    "levels": 2,
+    "native_factor": 0.9476530864544578
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.5994900597471321,
+    "cpu_segments": 7,
+    "folds": 5,
+    "leaves": 15,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.4848376421540311,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.0993117687811635
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.4848376421540311,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 0.9624167310882914
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.4848376421540311,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.6183717240004771,
+    "cpu_segments": 4,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 1.0993117687811635
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.6183717240004771,
+    "cpu_segments": 4,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 0.9624167310882914
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.6183717240004771,
+    "cpu_segments": 4,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.4874644193400284,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 1.0993117687811635
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.4874644193400284,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 0.9624167310882914
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.4874644193400284,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 57.790096,
+   "truths": 17
+  },
+  "24697073": {
+   "base_cells_g": 40.686760448,
+   "k22_all_central": {
+    "cell_ratio": 0.7667636628841883,
+    "cpu_segments": 15,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.7667636628841883,
+    "cpu_segments": 15,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.7667636628841883,
+    "cpu_segments": 15,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 15,
+    "folds": 9,
+    "leaves": 25,
+    "levels": 3
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.897560758091644,
+    "cpu_segments": 15,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.897560758091644,
+    "cpu_segments": 15,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.897560758091644,
+    "cpu_segments": 15,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.5618589415398816,
+    "cpu_segments": 8,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.0169529674028563
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.5618589415398816,
+    "cpu_segments": 8,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 0.949226815274569
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.5618589415398816,
+    "cpu_segments": 8,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.6985175381638681,
+    "cpu_segments": 8,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 1.0169529674028563
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.6985175381638681,
+    "cpu_segments": 8,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 0.949226815274569
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.6985175381638681,
+    "cpu_segments": 8,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.5931253411743733,
+    "cpu_segments": 8,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 1.0169529674028563
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.5931253411743733,
+    "cpu_segments": 8,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 0.949226815274569
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.5931253411743733,
+    "cpu_segments": 8,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.4012303814864784,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.0979340387552778
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.4012303814864784,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 0.9596612710365202
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.4012303814864784,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.5327819975174642,
+    "cpu_segments": 4,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 1.0979340387552778
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.5327819975174642,
+    "cpu_segments": 4,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 0.9596612710365202
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.5327819975174642,
+    "cpu_segments": 4,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.4513951940575989,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 1.0979340387552778
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.4513951940575989,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 0.9596612710365202
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.4513951940575989,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 60.386659,
+   "truths": 13
+  },
+  "25229951": {
+   "base_cells_g": 91.958647296,
+   "k22_all_central": {
+    "cell_ratio": 0.7741570523416847,
+    "cpu_segments": 40,
+    "folds": 10,
+    "leaves": 28,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.7741570523416847,
+    "cpu_segments": 40,
+    "folds": 10,
+    "leaves": 28,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.7741570523416847,
+    "cpu_segments": 40,
+    "folds": 10,
+    "leaves": 28,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 40,
+    "folds": 19,
+    "leaves": 55,
+    "levels": 3
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.9246208381286017,
+    "cpu_segments": 40,
+    "folds": 16,
+    "leaves": 48,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.9246208381286017,
+    "cpu_segments": 40,
+    "folds": 16,
+    "leaves": 48,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.9246208381286017,
+    "cpu_segments": 40,
+    "folds": 16,
+    "leaves": 48,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.4745893379175267,
+    "cpu_segments": 20,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 1.016253948354997
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.4745893379175267,
+    "cpu_segments": 20,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 0.9478287771788505
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.4745893379175267,
+    "cpu_segments": 20,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.6290813802620641,
+    "cpu_segments": 20,
+    "folds": 12,
+    "leaves": 35,
+    "levels": 3,
+    "native_factor": 1.016253948354997
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.6290813802620641,
+    "cpu_segments": 20,
+    "folds": 12,
+    "leaves": 35,
+    "levels": 3,
+    "native_factor": 0.9478287771788505
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.6290813802620641,
+    "cpu_segments": 20,
+    "folds": 12,
+    "leaves": 35,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.5546552589428816,
+    "cpu_segments": 20,
+    "folds": 10,
+    "leaves": 28,
+    "levels": 3,
+    "native_factor": 1.016253948354997
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.5546552589428816,
+    "cpu_segments": 20,
+    "folds": 10,
+    "leaves": 28,
+    "levels": 3,
+    "native_factor": 0.9478287771788505
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.5546552589428816,
+    "cpu_segments": 20,
+    "folds": 10,
+    "leaves": 28,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.3185418917452276,
+    "cpu_segments": 10,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 1.0981364212036144
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.3185418917452276,
+    "cpu_segments": 10,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 0.9600660359331932
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.3185418917452276,
+    "cpu_segments": 10,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.43926456253730756,
+    "cpu_segments": 10,
+    "folds": 9,
+    "leaves": 25,
+    "levels": 3,
+    "native_factor": 1.0981364212036144
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.43926456253730756,
+    "cpu_segments": 10,
+    "folds": 9,
+    "leaves": 25,
+    "levels": 3,
+    "native_factor": 0.9600660359331932
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.43926456253730756,
+    "cpu_segments": 10,
+    "folds": 9,
+    "leaves": 25,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.36483844121812514,
+    "cpu_segments": 10,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 1.0981364212036144
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.36483844121812514,
+    "cpu_segments": 10,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 0.9600660359331932
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.36483844121812514,
+    "cpu_segments": 10,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 165.910998,
+   "truths": 18
+  },
+  "25229955": {
+   "base_cells_g": 75.879132672,
+   "k22_all_central": {
+    "cell_ratio": 0.761890109549617,
+    "cpu_segments": 30,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.761890109549617,
+    "cpu_segments": 30,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.761890109549617,
+    "cpu_segments": 30,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 30,
+    "folds": 16,
+    "leaves": 46,
+    "levels": 3
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.9010031893686641,
+    "cpu_segments": 30,
+    "folds": 14,
+    "leaves": 38,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.9010031893686641,
+    "cpu_segments": 30,
+    "folds": 14,
+    "leaves": 38,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.9010031893686641,
+    "cpu_segments": 30,
+    "folds": 14,
+    "leaves": 38,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.48463250331233304,
+    "cpu_segments": 15,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 1.0159630118797647
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.48463250331233304,
+    "cpu_segments": 15,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 0.9472469042283859
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.48463250331233304,
+    "cpu_segments": 15,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.6662067723219218,
+    "cpu_segments": 15,
+    "folds": 11,
+    "leaves": 31,
+    "levels": 3,
+    "native_factor": 1.0159630118797647
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.6662067723219218,
+    "cpu_segments": 15,
+    "folds": 11,
+    "leaves": 31,
+    "levels": 3,
+    "native_factor": 0.9472469042283859
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.6662067723219218,
+    "cpu_segments": 15,
+    "folds": 11,
+    "leaves": 31,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.5672099616905858,
+    "cpu_segments": 15,
+    "folds": 9,
+    "leaves": 23,
+    "levels": 3,
+    "native_factor": 1.0159630118797647
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.5672099616905858,
+    "cpu_segments": 15,
+    "folds": 9,
+    "leaves": 23,
+    "levels": 3,
+    "native_factor": 0.9472469042283859
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.5672099616905858,
+    "cpu_segments": 15,
+    "folds": 9,
+    "leaves": 23,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.36347317388588507,
+    "cpu_segments": 8,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 1.098316773484261
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.36347317388588507,
+    "cpu_segments": 8,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 0.9604267404944862
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.36347317388588507,
+    "cpu_segments": 8,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.5045504081536163,
+    "cpu_segments": 8,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 1.098316773484261
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.5045504081536163,
+    "cpu_segments": 8,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 0.9604267404944862
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.5045504081536163,
+    "cpu_segments": 8,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.3915267896434819,
+    "cpu_segments": 8,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 1.098316773484261
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.3915267896434819,
+    "cpu_segments": 8,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 0.9604267404944862
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.3915267896434819,
+    "cpu_segments": 8,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 122.476661,
+   "truths": 19
+  },
+  "25229957": {
+   "base_cells_g": 21.658004224,
+   "k22_all_central": {
+    "cell_ratio": 0.8217429133326223,
+    "cpu_segments": 7,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.8217429133326223,
+    "cpu_segments": 7,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.8217429133326223,
+    "cpu_segments": 7,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 7,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.9215300343271371,
+    "cpu_segments": 7,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.9215300343271371,
+    "cpu_segments": 7,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.9215300343271371,
+    "cpu_segments": 7,
+    "folds": 4,
+    "leaves": 12,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.6383484048211441,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.0177272642776214
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.6383484048211441,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 0.9507754090240992
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.6383484048211441,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.8014640837850083,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.0177272642776214
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.8014640837850083,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 0.9507754090240992
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.8014640837850083,
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.6819441041401839,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.0177272642776214
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.6819441041401839,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 0.9507754090240992
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.6819441041401839,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.5184828169696455,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 1.0975566521863858
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.5184828169696455,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 0.9589064978987358
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.5184828169696455,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.6365019262820142,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.0975566521863858
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.6365019262820142,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 0.9589064978987358
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.6365019262820142,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.5620785162886853,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.0975566521863858
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.5620785162886853,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 0.9589064978987358
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.5620785162886853,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 27.077168,
+   "truths": 10
+  },
+  "26235156": {
+   "base_cells_g": 17.84491392,
+   "k22_all_central": {
+    "cell_ratio": 0.7952970657983426,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.7952970657983426,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.7952970657983426,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 4,
+    "folds": 4,
+    "leaves": 11,
+    "levels": 2
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.8549410641259064,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.8549410641259064,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.8549410641259064,
+    "cpu_segments": 4,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.6292719085304503,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 1.0147244642829232
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.6292719085304503,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 0.9447698090347031
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.6292719085304503,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.7725092690164123,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.0147244642829232
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.7725092690164123,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 0.9447698090347031
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.7725092690164123,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 9,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.6821831102450059,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.0147244642829232
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.6821831102450059,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 0.9447698090347031
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.6821831102450059,
+    "cpu_segments": 2,
+    "folds": 3,
+    "leaves": 7,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.572714930753782,
+    "cpu_segments": 1,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 1.095842195095504
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.572714930753782,
+    "cpu_segments": 1,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 0.9554775837169721
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.572714930753782,
+    "cpu_segments": 1,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.6630410895251884,
+    "cpu_segments": 1,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.095842195095504
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.6630410895251884,
+    "cpu_segments": 1,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 0.9554775837169721
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.6630410895251884,
+    "cpu_segments": 1,
+    "folds": 3,
+    "leaves": 8,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.572714930753782,
+    "cpu_segments": 1,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 1.095842195095504
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.572714930753782,
+    "cpu_segments": 1,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 0.9554775837169721
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.572714930753782,
+    "cpu_segments": 1,
+    "folds": 3,
+    "leaves": 6,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 15.305679,
+   "truths": 7
+  },
+  "26235159": {
+   "base_cells_g": 119.69686144,
+   "k22_all_central": {
+    "cell_ratio": 0.7584149540086721,
+    "cpu_segments": 49,
+    "folds": 12,
+    "leaves": 36,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.7584149540086721,
+    "cpu_segments": 49,
+    "folds": 12,
+    "leaves": 36,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.7584149540086721,
+    "cpu_segments": 49,
+    "folds": 12,
+    "leaves": 36,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 49,
+    "folds": 25,
+    "leaves": 72,
+    "levels": 4
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.9006866230493537,
+    "cpu_segments": 49,
+    "folds": 20,
+    "leaves": 60,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.9006866230493537,
+    "cpu_segments": 49,
+    "folds": 20,
+    "leaves": 60,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.9006866230493537,
+    "cpu_segments": 49,
+    "folds": 20,
+    "leaves": 60,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.485649227194975,
+    "cpu_segments": 25,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 1.0167636555019228
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.485649227194975,
+    "cpu_segments": 25,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 0.948848191472702
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.485649227194975,
+    "cpu_segments": 25,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.6546340674377502,
+    "cpu_segments": 25,
+    "folds": 16,
+    "leaves": 48,
+    "levels": 3,
+    "native_factor": 1.0167636555019228
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.6546340674377502,
+    "cpu_segments": 25,
+    "folds": 16,
+    "leaves": 48,
+    "levels": 3,
+    "native_factor": 0.948848191472702
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.6546340674377502,
+    "cpu_segments": 25,
+    "folds": 16,
+    "leaves": 48,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.5560528761012098,
+    "cpu_segments": 25,
+    "folds": 12,
+    "leaves": 36,
+    "levels": 3,
+    "native_factor": 1.0167636555019228
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.5560528761012098,
+    "cpu_segments": 25,
+    "folds": 12,
+    "leaves": 36,
+    "levels": 3,
+    "native_factor": 0.948848191472702
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.5560528761012098,
+    "cpu_segments": 25,
+    "folds": 12,
+    "leaves": 36,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.34890027098107346,
+    "cpu_segments": 13,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 1.0989009819240032
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.34890027098107346,
+    "cpu_segments": 13,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 0.9615951573739706
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.34890027098107346,
+    "cpu_segments": 13,
+    "folds": 7,
+    "leaves": 18,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.4823171939636782,
+    "cpu_segments": 13,
+    "folds": 12,
+    "leaves": 36,
+    "levels": 3,
+    "native_factor": 1.0989009819240032
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.4823171939636782,
+    "cpu_segments": 13,
+    "folds": 12,
+    "leaves": 36,
+    "levels": 3,
+    "native_factor": 0.9615951573739706
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.4823171939636782,
+    "cpu_segments": 13,
+    "folds": 12,
+    "leaves": 36,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.38446818824124385,
+    "cpu_segments": 13,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 1.0989009819240032
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.38446818824124385,
+    "cpu_segments": 13,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 0.9615951573739706
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.38446818824124385,
+    "cpu_segments": 13,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 204.825818,
+   "truths": 26
+  },
+  "26235168": {
+   "base_cells_g": 75.56737792,
+   "k22_all_central": {
+    "cell_ratio": 0.7609077823617569,
+    "cpu_segments": 28,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.7609077823617569,
+    "cpu_segments": 28,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.7609077823617569,
+    "cpu_segments": 28,
+    "folds": 9,
+    "leaves": 24,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 28,
+    "folds": 16,
+    "leaves": 46,
+    "levels": 3
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.8865101002567644,
+    "cpu_segments": 28,
+    "folds": 13,
+    "leaves": 37,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.8865101002567644,
+    "cpu_segments": 28,
+    "folds": 13,
+    "leaves": 37,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.8865101002567644,
+    "cpu_segments": 28,
+    "folds": 13,
+    "leaves": 37,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.49586203326611333,
+    "cpu_segments": 14,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 1.015810315219106
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.49586203326611333,
+    "cpu_segments": 14,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 0.9469415109070684
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.49586203326611333,
+    "cpu_segments": 14,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.6797753118069284,
+    "cpu_segments": 14,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.015810315219106
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.6797753118069284,
+    "cpu_segments": 14,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 0.9469415109070684
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.6797753118069284,
+    "cpu_segments": 14,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.5787801666256359,
+    "cpu_segments": 14,
+    "folds": 9,
+    "leaves": 23,
+    "levels": 3,
+    "native_factor": 1.015810315219106
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.5787801666256359,
+    "cpu_segments": 14,
+    "folds": 9,
+    "leaves": 23,
+    "levels": 3,
+    "native_factor": 0.9469415109070684
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.5787801666256359,
+    "cpu_segments": 14,
+    "folds": 9,
+    "leaves": 23,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.37420285856598373,
+    "cpu_segments": 7,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 1.097470971499778
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.37420285856598373,
+    "cpu_segments": 7,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 0.95873513652552
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.37420285856598373,
+    "cpu_segments": 7,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.5283568643901942,
+    "cpu_segments": 7,
+    "folds": 9,
+    "leaves": 25,
+    "levels": 3,
+    "native_factor": 1.097470971499778
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.5283568643901942,
+    "cpu_segments": 7,
+    "folds": 9,
+    "leaves": 25,
+    "levels": 3,
+    "native_factor": 0.95873513652552
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.5283568643901942,
+    "cpu_segments": 7,
+    "folds": 9,
+    "leaves": 25,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.4023722100850155,
+    "cpu_segments": 7,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 1.097470971499778
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.4023722100850155,
+    "cpu_segments": 7,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 0.95873513652552
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.4023722100850155,
+    "cpu_segments": 7,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 113.375897,
+   "truths": 21
+  },
+  "p50": {
+   "base_cells_g": 58.803826688,
+   "k22_all_central": {
+    "cell_ratio": 0.7724156688134207,
+    "cpu_segments": 23,
+    "folds": 7,
+    "leaves": 19,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.7724156688134207,
+    "cpu_segments": 23,
+    "folds": 7,
+    "leaves": 19,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.7724156688134207,
+    "cpu_segments": 23,
+    "folds": 7,
+    "leaves": 19,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 23,
+    "folds": 12,
+    "leaves": 36,
+    "levels": 3
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.9011579754692035,
+    "cpu_segments": 23,
+    "folds": 11,
+    "leaves": 30,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.9011579754692035,
+    "cpu_segments": 23,
+    "folds": 11,
+    "leaves": 30,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.9011579754692035,
+    "cpu_segments": 23,
+    "folds": 11,
+    "leaves": 30,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.5132655225337434,
+    "cpu_segments": 12,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 1.0166166326056887
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.5132655225337434,
+    "cpu_segments": 12,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 0.9485541456802341
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.5132655225337434,
+    "cpu_segments": 12,
+    "folds": 5,
+    "leaves": 14,
+    "levels": 2,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.6839542693946388,
+    "cpu_segments": 12,
+    "folds": 9,
+    "leaves": 25,
+    "levels": 3,
+    "native_factor": 1.0166166326056887
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.6839542693946388,
+    "cpu_segments": 12,
+    "folds": 9,
+    "leaves": 25,
+    "levels": 3,
+    "native_factor": 0.9485541456802341
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.6839542693946388,
+    "cpu_segments": 12,
+    "folds": 9,
+    "leaves": 25,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.5836218602250159,
+    "cpu_segments": 12,
+    "folds": 7,
+    "leaves": 19,
+    "levels": 3,
+    "native_factor": 1.0166166326056887
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.5836218602250159,
+    "cpu_segments": 12,
+    "folds": 7,
+    "leaves": 19,
+    "levels": 3,
+    "native_factor": 0.9485541456802341
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.5836218602250159,
+    "cpu_segments": 12,
+    "folds": 7,
+    "leaves": 19,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.3808753400834457,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 1.097869125348792
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.3808753400834457,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 0.9595314442235483
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.3808753400834457,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 10,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.516854718065521,
+    "cpu_segments": 6,
+    "folds": 7,
+    "leaves": 19,
+    "levels": 3,
+    "native_factor": 1.097869125348792
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.516854718065521,
+    "cpu_segments": 6,
+    "folds": 7,
+    "leaves": 19,
+    "levels": 3,
+    "native_factor": 0.9595314442235483
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.516854718065521,
+    "cpu_segments": 6,
+    "folds": 7,
+    "leaves": 19,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.4004656014810952,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 1.097869125348792
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.4004656014810952,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 0.9595314442235483
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.4004656014810952,
+    "cpu_segments": 6,
+    "folds": 4,
+    "leaves": 13,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 93.10522297850908,
+   "truths": 16
+  },
+  "p95": {
+   "base_cells_g": 105.548528896,
+   "k22_all_central": {
+    "cell_ratio": 0.7623009514351384,
+    "cpu_segments": 43,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_opt": {
+    "cell_ratio": 0.7623009514351384,
+    "cpu_segments": 43,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_all_pess": {
+    "cell_ratio": 0.7623009514351384,
+    "cpu_segments": 43,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_base": {
+    "cpu_segments": 43,
+    "folds": 21,
+    "leaves": 64,
+    "levels": 3
+   },
+   "k22_truth_central": {
+    "cell_ratio": 0.9034757113285915,
+    "cpu_segments": 43,
+    "folds": 18,
+    "leaves": 53,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_opt": {
+    "cell_ratio": 0.9034757113285915,
+    "cpu_segments": 43,
+    "folds": 18,
+    "leaves": 53,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k22_truth_pess": {
+    "cell_ratio": 0.9034757113285915,
+    "cpu_segments": 43,
+    "folds": 18,
+    "leaves": 53,
+    "levels": 3,
+    "native_factor": 1.0
+   },
+   "k23_all_central": {
+    "cell_ratio": 0.5009956089118357,
+    "cpu_segments": 22,
+    "folds": 9,
+    "leaves": 22,
+    "levels": 3,
+    "native_factor": 1.0166939985344348
+   },
+   "k23_all_opt": {
+    "cell_ratio": 0.5009956089118357,
+    "cpu_segments": 22,
+    "folds": 9,
+    "leaves": 22,
+    "levels": 3,
+    "native_factor": 0.948708877537726
+   },
+   "k23_all_pess": {
+    "cell_ratio": 0.5009956089118357,
+    "cpu_segments": 22,
+    "folds": 9,
+    "leaves": 22,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_none_central": {
+    "cell_ratio": 0.6753922222662221,
+    "cpu_segments": 22,
+    "folds": 15,
+    "leaves": 43,
+    "levels": 3,
+    "native_factor": 1.0166939985344348
+   },
+   "k23_none_opt": {
+    "cell_ratio": 0.6753922222662221,
+    "cpu_segments": 22,
+    "folds": 15,
+    "leaves": 43,
+    "levels": 3,
+    "native_factor": 0.948708877537726
+   },
+   "k23_none_pess": {
+    "cell_ratio": 0.6753922222662221,
+    "cpu_segments": 22,
+    "folds": 15,
+    "leaves": 43,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k23_truth_central": {
+    "cell_ratio": 0.5614990774376013,
+    "cpu_segments": 22,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.0166939985344348
+   },
+   "k23_truth_opt": {
+    "cell_ratio": 0.5614990774376013,
+    "cpu_segments": 22,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 0.948708877537726
+   },
+   "k23_truth_pess": {
+    "cell_ratio": 0.5614990774376013,
+    "cpu_segments": 22,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.1713396142837673
+   },
+   "k24_all_central": {
+    "cell_ratio": 0.345394117808321,
+    "cpu_segments": 11,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 1.0983733602072907
+   },
+   "k24_all_opt": {
+    "cell_ratio": 0.345394117808321,
+    "cpu_segments": 11,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 0.9605399139405456
+   },
+   "k24_all_pess": {
+    "cell_ratio": 0.345394117808321,
+    "cpu_segments": 11,
+    "folds": 5,
+    "leaves": 16,
+    "levels": 2,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_none_central": {
+    "cell_ratio": 0.4822540521635732,
+    "cpu_segments": 11,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.0983733602072907
+   },
+   "k24_none_opt": {
+    "cell_ratio": 0.4822540521635732,
+    "cpu_segments": 11,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 0.9605399139405456
+   },
+   "k24_none_pess": {
+    "cell_ratio": 0.4822540521635732,
+    "cpu_segments": 11,
+    "folds": 11,
+    "leaves": 32,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "k24_truth_central": {
+    "cell_ratio": 0.38572976349216476,
+    "cpu_segments": 11,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.0983733602072907
+   },
+   "k24_truth_opt": {
+    "cell_ratio": 0.38572976349216476,
+    "cpu_segments": 11,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 0.9605399139405456
+   },
+   "k24_truth_pess": {
+    "cell_ratio": 0.38572976349216476,
+    "cpu_segments": 11,
+    "folds": 8,
+    "leaves": 21,
+    "levels": 3,
+    "native_factor": 1.4536668299373043
+   },
+   "minstr": 178.52012076037084,
+   "truths": 24
+  }
+ },
+ "tail": {
+  "absorb_extra_native": 0.22967167414465053,
+  "tail_fold_child": 0.1000536571341086,
+  "tail_leaf": 0.15957782579600183,
+  "tail_native": 0.04182895978973496,
+  "tail_total": 0.3014604427198454
+ }
+}
