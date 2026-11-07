@@ -45,10 +45,16 @@ pub const Seed = extern struct {
     /// GPU checks its end registers/pc against that seed (continuity).
     check_next: u32,
 };
-/// One host-retired step, at its segment-local position.
-pub const SlowStep = extern struct { pos: u32, reserved: u32 = 0, step: Step };
+/// One host-retired step, at its segment-local position. `pc_slot` is the ROM slot of the
+/// step's own pc (`NO_SLOT` when outside the code table) and `rd` the register it writes
+/// (`NO_RD`: none). The GPU checks that the chunk ending at this step stops exactly there,
+/// with `r[rd] == step.previous_rd` and, when the next seed follows the step directly,
+/// every other register equal to that seed's (end-of-chunk continuity, see `finish`).
+pub const SlowStep = extern struct { pos: u32, pc_slot: u32 = NO_SLOT, step: Step, rd: u8 = NO_RD, reserved: [7]u8 = @splat(0) };
+pub const NO_SLOT: u32 = 0xffff_ffff;
+pub const NO_RD: u8 = 0xff;
 comptime {
-    std.debug.assert(@sizeOf(Seed) == 280 and @sizeOf(SlowStep) == 56 and @sizeOf(Step) == 48);
+    std.debug.assert(@sizeOf(Seed) == 280 and @sizeOf(SlowStep) == 64 and @sizeOf(Step) == 48);
 }
 
 /// GPU opcode numbering: index into `OP_NAMES` (same names as the engine's private `Op`).
@@ -89,6 +95,12 @@ pub const SegmentTape = struct {
     /// Absolute retirement count at the segment start / last seed.
     start: u64 = 0,
     last_seed: u64 = 0,
+    code_lo: u64 = 0,
+    /// ROM length (`Engine.slots.len`, including the trailing slow sentinel), the GPU's `slots`.
+    slots: usize = 0,
+    /// ROM slot of the pc after the segment's last step (`NO_SLOT` outside the table);
+    /// the GPU checks the segment's last chunk against it. Set by `finish`.
+    end_slot: u32 = NO_SLOT,
 
     pub fn init(a: std.mem.Allocator, chunk: u32) SegmentTape {
         return .{ .allocator = a, .chunk = @max(chunk, 1) };
@@ -100,7 +112,10 @@ pub const SegmentTape = struct {
         self.* = undefined;
     }
     /// Begin a segment at `cpu` (absolute clock `cpu.retired`), at most `budget` steps.
-    pub fn begin(self: *SegmentTape, cpu: *const machine.Cpu, budget: u64) !void {
+    pub fn begin(self: *SegmentTape, e: *const fast.Engine, cpu: *const machine.Cpu, budget: u64) !void {
+        self.code_lo = e.code_lo;
+        self.slots = e.slots.len;
+        self.end_slot = NO_SLOT;
         self.seeds.clearRetainingCapacity();
         self.memory.clearRetainingCapacity();
         self.slow.clearRetainingCapacity();
@@ -125,12 +140,21 @@ pub const SegmentTape = struct {
             memory_index = @intCast(self.memory.items.len);
             try self.memory.append(self.allocator, effect.before_word.toInt());
         }
-        try self.slow.append(self.allocator, .{ .pos = pos, .step = .{ .next_pc = record.next_pc.toInt(), .lhs = record.lhs.toInt(), .rhs = record.rhs.toInt(), .previous_rd = record.previous_rd.toInt(), .result = record.result.toInt(), .memory_index = memory_index, .flags = @intFromBool(record.branch_taken) } });
+        try self.slow.append(self.allocator, .{ .pos = pos, .pc_slot = self.slot(record.pc.toInt()), .rd = if (record.writes_rd and record.rd != 0) record.rd else NO_RD, .step = .{ .next_pc = record.next_pc.toInt(), .lhs = record.lhs.toInt(), .rhs = record.rhs.toInt(), .previous_rd = record.previous_rd.toInt(), .result = record.result.toInt(), .memory_index = memory_index, .flags = @intFromBool(record.branch_taken) } });
         try self.seeds.ensureUnusedCapacity(self.allocator, 1);
         self.seedAt(&cpu.regs, cpu.pc, cpu.retired);
     }
-    /// Close the segment at absolute clock `end`: fill chunk lengths, drop empty chunks.
-    pub fn finish(self: *SegmentTape, end: u64) void {
+    pub fn slot(self: *const SegmentTape, pc: u64) u32 {
+        // Same rule as the GPU's end check: a slot index inside the exported ROM.
+        if (pc < self.code_lo or pc & 3 != 0 or (pc - self.code_lo) / 4 >= self.slots) return NO_SLOT;
+        return @intCast((pc - self.code_lo) / 4);
+    }
+    /// Close the segment at absolute clock `end` with the cpu at `end_pc`: fill chunk
+    /// lengths, drop empty chunks. Every chunk ends at the next kept seed (`check_next`),
+    /// at a host step (GPU checks `pc_slot`, memory cursor and registers) or at the segment end
+    /// (GPU checks `end_slot` and the memory-tape length).
+    pub fn finish(self: *SegmentTape, end: u64, end_pc: u64) void {
+        self.end_slot = self.slot(end_pc);
         const total: u32 = @intCast(end - self.start);
         var j: usize = 0; // next slow step at or after the seed
         var w: usize = 0;
@@ -155,6 +179,26 @@ pub const SegmentTape = struct {
             s.check_next = @intFromBool(next.first_step == s.first_step + s.steps);
         }
     }
+    /// Structural check of a finished segment: chunks and host steps partition
+    /// [0, total) in order, and every chunk end is a seed, a host step or the end.
+    pub fn verifyPartition(self: *const SegmentTape, end: u64) error{M9BadPartition}!void {
+        const total = end - self.start;
+        var at: u64 = 0;
+        var j: usize = 0;
+        var k: usize = 0;
+        const seeds = self.seeds.items;
+        const slow = self.slow.items;
+        while (at < total) {
+            if (j < slow.len and slow[j].pos == at) {
+                j += 1;
+                at += 1;
+            } else if (k < seeds.len and seeds[k].first_step == at and seeds[k].steps > 0) {
+                at += seeds[k].steps;
+                k += 1;
+            } else return error.M9BadPartition;
+        }
+        if (at != total or j != slow.len or k != seeds.len) return error.M9BadPartition;
+    }
 };
 
 inline fn fillPage(e: *fast.Engine, index: u64, write: bool) ?[*]u8 {
@@ -178,7 +222,9 @@ noinline fn fillCold(e: *fast.Engine, index: u64, write: bool) ?[*]u8 {
 }
 
 /// `Engine.run` (no counting) that also records seeds and memory-before words into `t`.
-/// Same stop rules: it stops before any instruction `run` would stop before.
+/// Stops before any instruction `run` would stop before; near the step limit it can stop
+/// a few steps earlier than `run` (whole blocks only), so those steps become host steps
+/// (24628607: 5 of 26.9 M; 26235159: 18 of 204.8 M) [M]. Retired totals are identical.
 pub fn runSeeded(e: *fast.Engine, cpu: *machine.Cpu, limit: u64, t: *SegmentTape) fast.Exit {
     if (cpu.retired >= limit) return .limit;
     const Slot = std.meta.Child(@TypeOf(e.slots));

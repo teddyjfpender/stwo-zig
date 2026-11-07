@@ -28,6 +28,8 @@ pub fn main() !void {
     const a = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
+    // `rv64-m9-gpu-replay-dump --op-corpus OUT_DIR`: synthetic per-opcode corpus (see the file).
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--op-corpus")) return @import("rv64_m9_gpu_replay_opcorpus.zig").run(a, args[2]);
     if (args.len < 5) return error.Usage;
     const raw = try std.fs.cwd().readFileAlloc(a, args[1], 16384);
     defer a.free(raw);
@@ -128,7 +130,7 @@ pub fn main() !void {
             try tapes.append(a, R.SegmentTape.init(a, chunk));
             const t = &tapes.items[tapes.items.len - 1];
             const limit = cpu.retired +| config.batch_steps;
-            try t.begin(cpu, limit - cpu.retired);
+            try t.begin(&e, cpu, limit - cpu.retired);
             // STWO_RV64_M9_PREFAULT=1: touch the reserved tape first (production would recycle
             // already-faulted per-segment buffers), so the timing isolates the recording work.
             if (prefault) {
@@ -147,7 +149,8 @@ pub fn main() !void {
                 if (cpu.pc == config.terminal_pc or cpu.retired == limit) break;
             }
             seeded.exec_ns += timer.read() - s0;
-            t.finish(cpu.retired);
+            t.finish(cpu.retired, cpu.pc);
+            try t.verifyPartition(cpu.retired);
             try ends.append(a, cpu.retired);
             if (cpu.pc == config.terminal_pc) done = true;
         }
@@ -222,7 +225,7 @@ pub fn main() !void {
         try writeFile(out, try std.fmt.bufPrint(&name_buf, "seg{d}.mem", .{k}), std.mem.sliceAsBytes(t.memory.items));
         try writeFile(out, try std.fmt.bufPrint(&name_buf, "seg{d}.slow", .{k}), std.mem.sliceAsBytes(t.slow.items));
         if (ref_segment == @as(i64, @intCast(k))) try writeFile(out, try std.fmt.bufPrint(&name_buf, "seg{d}.ref", .{k}), std.mem.sliceAsBytes(steps));
-        try meta.print(a, "seg {d} {d} {d} {d} {d} {s}\n", .{ k, steps.len, t.seeds.items.len, t.memory.items.len, t.slow.items.len, &std.fmt.bytesToHex(digest, .lower) });
+        try meta.print(a, "seg {d} {d} {d} {d} {d} {s} {d}\n", .{ k, steps.len, t.seeds.items.len, t.memory.items.len, t.slow.items.len, &std.fmt.bytesToHex(digest, .lower), t.end_slot });
         seeds_total += t.seeds.items.len;
         words_total += t.memory.items.len;
     }

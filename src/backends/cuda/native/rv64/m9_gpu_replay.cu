@@ -25,15 +25,17 @@ struct Seed {
   uint32_t first_step, steps, first_mem, check_next;
 };
 struct SlowStep {
-  uint32_t pos, reserved;
+  uint32_t pos, pc_slot;  // pc_slot: ROM slot of the step's own pc (NO_SLOT outside the table)
   Step step;
+  uint8_t rd;             // register the host step writes (NO_RD: none)
+  uint8_t reserved[7];
 };
 struct Slot {
   uint8_t op, rd, rs1, rs2;
   uint32_t target;
   uint64_t imm;
 };
-static_assert(sizeof(Step) == 48 && sizeof(Seed) == 280 && sizeof(SlowStep) == 56 && sizeof(Slot) == 16, "ABI");
+static_assert(sizeof(Step) == 48 && sizeof(Seed) == 280 && sizeof(SlowStep) == 64 && sizeof(Slot) == 16, "ABI");
 
 // Index into OP_NAMES of rv64_m9_gpu_replay.zig.
 enum Op : uint8_t {
@@ -45,12 +47,26 @@ enum Op : uint8_t {
 static_assert(OP_COUNT == 70, "op table");
 
 constexpr uint32_t NO_MEMORY = 0xffffffffu;
-constexpr uint32_t ST_SLOW_SLOT = 1, ST_MISALIGNED = 2, ST_CONTINUITY = 4, ST_PC_RANGE = 8;
+constexpr uint32_t NO_SLOT = 0xffffffffu;
+constexpr uint8_t NO_RD = 0xff;
+// ST_CONTINUITY: a chunk's end state disagrees with what follows it (next seed: regs, pc,
+// memory cursor; host step: pc, memory cursor, r[rd] == previous_rd and, when the next seed
+// follows the host step directly, every other register, its pc and memory cursor;
+// segment end: pc and tape length).
+// ST_BOUNDS: a seed points outside its segment's steps or memory tape (never read/written).
+constexpr uint32_t ST_SLOW_SLOT = 1, ST_MISALIGNED = 2, ST_CONTINUITY = 4, ST_PC_RANGE = 8, ST_BOUNDS = 16;
 
 struct Segment {
-  uint64_t out_base;  // first global step index of the segment
-  uint64_t mem_base;  // first global memory-tape word of the segment
+  uint64_t out_base;    // first global step index of the segment
+  uint64_t mem_base;    // first global memory-tape word of the segment
+  uint32_t steps;       // segment length
+  uint32_t mem_words;   // memory-tape length
+  uint32_t slow_base;   // first host step of the segment in Job::slow (sorted by pos)
+  uint32_t slow_count;
+  uint32_t end_slot;    // ROM slot of the pc after the segment's last step (NO_SLOT outside)
+  uint32_t reserved;
 };
+static_assert(sizeof(Segment) == 40, "ABI");
 struct Job {
   const Slot *rom;
   uint64_t code_lo;
@@ -60,6 +76,7 @@ struct Job {
   const uint32_t *chunk_seg;  // segment of each chunk
   const Segment *segs;
   const uint64_t *mem;        // all memory tapes, concatenated
+  const SlowStep *slow;       // all host steps, concatenated per segment, sorted by pos
   Step *out;                  // all segments' steps, concatenated
   uint32_t *status;
 };
@@ -99,6 +116,10 @@ __global__ void __launch_bounds__(128) replay(Job j) {
     atomicOr(j.status, ST_PC_RANGE);
     return;
   }
+  if (uint64_t(seed.first_step) + seed.steps > seg.steps || seed.first_mem > seg.mem_words) {
+    atomicOr(j.status, ST_BOUNDS);
+    return;
+  }
   uint32_t i = uint32_t((seed.pc - j.code_lo) >> 2);
   uint32_t m = seed.first_mem;
   const uint64_t *mem = j.mem + seg.mem_base;
@@ -106,6 +127,7 @@ __global__ void __launch_bounds__(128) replay(Job j) {
   const uint32_t n = seed.steps;
   uint32_t bad = 0;
   for (uint32_t k = 0; k < n; ++k) {
+    if (i >= j.slots) { bad |= ST_PC_RANGE; break; }  // fallthrough off the table
     const uint4 raw = __ldg(reinterpret_cast<const uint4 *>(j.rom + i));
     const uint8_t op = raw.x & 0xff, rd = (raw.x >> 8) & 0xff, rs1 = (raw.x >> 16) & 0xff, rs2 = raw.x >> 24;
     const uint32_t target = raw.y;
@@ -183,6 +205,7 @@ __global__ void __launch_bounds__(128) replay(Job j) {
         const uint32_t width = (op == LB || op == LBU) ? 1 : (op == LH || op == LHU) ? 2 : (op == LW || op == LWU) ? 4 : 8;
         const uint64_t address = x + imm;
         if (address & (width - 1)) bad |= ST_MISALIGNED;
+        if (m >= seg.mem_words) { bad |= ST_BOUNDS; break; }
         const uint64_t word = mem[m];
         s.memory_index = m++;
         s.rhs = 0;
@@ -201,6 +224,7 @@ __global__ void __launch_bounds__(128) replay(Job j) {
       case SB: case SH: case SW: case SD: {
         const uint32_t width = op == SB ? 1 : op == SH ? 2 : op == SW ? 4 : 8;
         if ((x + imm) & (width - 1)) bad |= ST_MISALIGNED;
+        if (m >= seg.mem_words) { bad |= ST_BOUNDS; break; }
         s.memory_index = m++;
         s.previous_rd = 0;
         write = false;
@@ -247,6 +271,35 @@ __global__ void __launch_bounds__(128) replay(Job j) {
     if (j.code_lo + 4ull * i != nx.pc || m != nx.first_mem) bad |= ST_CONTINUITY;
     for (int k = 1; k < 32; ++k)
       if (r[k] != nx.regs[k]) bad |= ST_CONTINUITY;
+  } else if (!bad) {
+    // The chunk ends at a host step or at the segment end: check the pc it stops at and
+    // the memory cursor there; at a host step also the registers it leaves alone.
+    const uint32_t end = seed.first_step + n;
+    const uint32_t got = i < j.slots ? i : NO_SLOT;
+    if (end == seg.steps) {
+      if (got != seg.end_slot || m != seg.mem_words) bad |= ST_CONTINUITY;
+    } else {
+      uint32_t lo = seg.slow_base, hi = seg.slow_base + seg.slow_count;  // first pos >= end
+      while (lo < hi) {
+        const uint32_t mid = (lo + hi) >> 1;
+        if (j.slow[mid].pos < end) lo = mid + 1; else hi = mid;
+      }
+      if (lo == seg.slow_base + seg.slow_count || j.slow[lo].pos != end) bad |= ST_CONTINUITY;  // ends at nothing
+      else {
+        const SlowStep &h = j.slow[lo];
+        if (got != h.pc_slot) bad |= ST_CONTINUITY;
+        if (h.step.memory_index != NO_MEMORY && h.step.memory_index != m) bad |= ST_CONTINUITY;
+        if (h.rd < 32 && r[h.rd] != h.step.previous_rd) bad |= ST_CONTINUITY;
+        // hostStep seeds the state right after every host step; it survives in `seeds`
+        // unless another host step follows at once.
+        if (c + 1 < j.chunks && j.chunk_seg[c + 1] == j.chunk_seg[c] && j.seeds[c + 1].first_step == end + 1) {
+          const Seed &nx = j.seeds[c + 1];
+          if (nx.pc != h.step.next_pc || nx.first_mem != m + (h.step.memory_index != NO_MEMORY)) bad |= ST_CONTINUITY;
+          for (int k = 1; k < 32; ++k)
+            if (k != h.rd && r[k] != nx.regs[k]) bad |= ST_CONTINUITY;
+        }
+      }
+    }
   }
   if (bad) atomicOr(j.status, bad);
 }
@@ -254,7 +307,7 @@ __global__ void __launch_bounds__(128) replay(Job j) {
 __global__ void scatter_slow(const SlowStep *slow, const uint64_t *slow_out_base, uint32_t n, Step *out) {
   const uint32_t t = blockIdx.x * blockDim.x + threadIdx.x;
   if (t >= n) return;
-  // SlowStep is 56 B: its embedded step is only 8 B aligned, so copy it out first.
+  // SlowStep is 64 B: its embedded step (offset 8) is only 8 B aligned, so copy it out first.
   const Step s = slow[t].step;
   store_step(out + slow_out_base[t] + slow[t].pos, s);
 }
@@ -263,7 +316,7 @@ __global__ void scatter_slow(const SlowStep *slow, const uint64_t *slow_out_base
 
 extern "C" int stwo_rv64_m9_gpu_replay_on(cudaStream_t stream, const m9::Job *job, const m9::SlowStep *slow,
                                           const uint64_t *slow_out_base, uint32_t slow_count) {
-  if (!job || !job->rom || !job->seeds || !job->out || !job->status) return int(cudaErrorInvalidValue);
+  if (!job || !job->rom || !job->seeds || !job->segs || !job->out || !job->status || (slow_count && !job->slow)) return int(cudaErrorInvalidValue);
   if (job->chunks) m9::replay<<<(job->chunks + 127) / 128, 128, 0, stream>>>(*job);
   if (slow_count) m9::scatter_slow<<<(slow_count + 255) / 256, 256, 0, stream>>>(slow, slow_out_base, slow_count, job->out);
   return int(cudaPeekAtLastError());
@@ -360,15 +413,15 @@ int main(int argc, char **argv) {
   std::vector<uint8_t> meta = slurp(dir + "/meta.txt");
   meta.push_back(0);
   uint64_t code_lo = 0, slots = 0, chunk = 0, nseg = 0;
-  struct SegMeta { uint64_t steps, seeds, words, slow; std::string sha; };
+  struct SegMeta { uint64_t steps, seeds, words, slow; std::string sha; uint64_t end_slot; };
   std::vector<SegMeta> sm;
   {
     char *save = nullptr;
     for (char *line = strtok_r(reinterpret_cast<char *>(meta.data()), "\n", &save); line; line = strtok_r(nullptr, "\n", &save)) {
       char key[32], shabuf[80];
-      unsigned long long a0, a1, a2, a3, a4;
-      if (sscanf(line, "seg %llu %llu %llu %llu %llu %70s", &a0, &a1, &a2, &a3, &a4, shabuf) == 6) {
-        sm.push_back({a1, a2, a3, a4, shabuf});
+      unsigned long long a0, a1, a2, a3, a4, a5;
+      if (sscanf(line, "seg %llu %llu %llu %llu %llu %70s %llu", &a0, &a1, &a2, &a3, &a4, shabuf, &a5) == 7) {
+        sm.push_back({a1, a2, a3, a4, shabuf, a5});
       } else if (sscanf(line, "%31s %llu", key, &a0) == 2) {
         if (!strcmp(key, "code_lo")) code_lo = a0;
         if (!strcmp(key, "slots")) slots = a0;
@@ -388,12 +441,12 @@ int main(int argc, char **argv) {
   std::vector<uint64_t> slow_base;
   uint64_t out_total = 0;
   for (uint64_t k = 0; k < nseg; ++k) {
-    if (only >= 0 && int(k) != only) { segs.push_back({0, 0}); continue; }
+    if (only >= 0 && int(k) != only) { segs.push_back({0, 0, 0, 0, 0, 0, m9::NO_SLOT, 0}); continue; }
     auto sb = slurp(dir + "/seg" + std::to_string(k) + ".seeds");
     auto mb = slurp(dir + "/seg" + std::to_string(k) + ".mem");
     auto lb = slurp(dir + "/seg" + std::to_string(k) + ".slow");
-    segs.push_back({out_total, mem.size()});
     const size_t s0 = seeds.size(), l0 = slow.size(), m0 = mem.size();
+    segs.push_back({out_total, m0, uint32_t(sm[k].steps), uint32_t(mb.size() / 8), uint32_t(l0), uint32_t(lb.size() / sizeof(m9::SlowStep)), uint32_t(sm[k].end_slot), 0});
     seeds.resize(s0 + sb.size() / sizeof(m9::Seed));
     memcpy(seeds.data() + s0, sb.data(), sb.size());
     chunk_seg.resize(seeds.size(), uint32_t(k));
@@ -403,6 +456,49 @@ int main(int argc, char **argv) {
     memcpy(slow.data() + l0, lb.data(), lb.size());
     slow_base.resize(slow.size(), out_total);
     out_total += sm[k].steps;
+  }
+  // M9_INJECT=<kind>: corrupt one input to show the status guard fires (expects status != 0).
+  //   pc / mem: the host step right after the first chunk that ends at a host step (with a
+  //   memory word, for mem): its pc_slot / memory index; end: end_slot of the first
+  //   segment whose last chunk ends at the segment end; reg / regh: see below.
+  if (const char *inj = getenv("M9_INJECT")) {
+    const std::string w = inj;
+    bool done = false;
+    for (size_t c = 0; c < seeds.size() && !done && (w == "pc" || w == "mem"); ++c) {
+      if (seeds[c].check_next) continue;
+      const m9::Segment &sg = segs[chunk_seg[c]];
+      const uint32_t end = seeds[c].first_step + seeds[c].steps;
+      for (uint32_t h = sg.slow_base; h < sg.slow_base + sg.slow_count; ++h) {
+        if (slow[h].pos != end) continue;
+        if (w == "pc") { slow[h].pc_slot ^= 1; done = true; }
+        if (w == "mem" && slow[h].step.memory_index != m9::NO_MEMORY) { slow[h].step.memory_index += 1; done = true; }
+        break;
+      }
+    }
+    for (size_t c = 0; c < seeds.size() && !done && w == "end"; ++c) {
+      m9::Segment &sg = segs[chunk_seg[c]];
+      if (!seeds[c].check_next && seeds[c].first_step + seeds[c].steps == sg.steps) { sg.end_slot ^= 1; done = true; }
+    }
+    // reg: a0 of a seed that a continuity-checked chunk ends at; regh: of a seed right
+    // after a host step that a chunk ends at (checks the registers across host steps).
+    for (size_t c = 0; c + 1 < seeds.size() && !done && (w == "reg" || w == "regh"); ++c) {
+      if (chunk_seg[c] != chunk_seg[c + 1]) continue;
+      const uint32_t end = seeds[c].first_step + seeds[c].steps;
+      if (w == "reg" && seeds[c].check_next) { seeds[c + 1].regs[10] ^= 1; done = true; }
+      if (w == "regh" && !seeds[c].check_next && seeds[c + 1].first_step == end + 1) {
+        const m9::Segment &sg = segs[chunk_seg[c]];
+        for (uint32_t h = sg.slow_base; h < sg.slow_base + sg.slow_count; ++h)
+          if (slow[h].pos == end && slow[h].rd != 10) { seeds[c + 1].regs[10] ^= 1; done = true; break; }
+      }
+    }
+    fprintf(stderr, "M9_INJECT=%s applied=%d\n", inj, int(done));
+  }
+  // Count the chunks each guard covers (for the report).
+  uint64_t ends_seed = 0, ends_host = 0, ends_segment = 0;
+  for (auto &sd : seeds) {
+    if (sd.check_next) ++ends_seed;
+    else if (sd.first_step + sd.steps == segs[chunk_seg[&sd - seeds.data()]].steps) ++ends_segment;
+    else ++ends_host;
   }
   // Chunk-step histogram (for the report).
   uint64_t chunk_steps = 0, max_chunk = 0;
@@ -422,6 +518,7 @@ int main(int argc, char **argv) {
   j.mem = upload(mem);
   const m9::SlowStep *d_slow = upload(slow);
   const uint64_t *d_slow_base = upload(slow_base);
+  j.slow = d_slow;
   m9::Step *d_out = nullptr;
   CK(cudaMalloc(&d_out, out_total * sizeof(m9::Step)));
   j.out = d_out;
@@ -481,9 +578,10 @@ int main(int argc, char **argv) {
   }
   const double in_bytes = double(seeds.size() * sizeof(m9::Seed) + mem.size() * 8 + slow.size() * sizeof(m9::SlowStep));
   printf("{\"scope\": \"M9 GPU replay prototype kernel (thread per chunk)\", \"gpu\": \"%s\", \"dump\": \"%s\", \"chunk_target\": %llu, \"segment\": %d, \"steps\": %llu, \"chunks\": %zu, \"mean_chunk_steps\": %.1f, \"max_chunk_steps\": %llu, \"host_steps\": %zu,"
-         " \"iters\": %zu, \"kernel_ms_median\": %.3f, \"kernel_ms_min\": %.3f, \"kernel_ms_max\": %.3f, \"gpu_mips\": %.0f, \"input_bytes\": %.0f, \"output_bytes\": %llu, \"status\": %u, \"segments_sha_match\": \"%d/%d\", \"rows\": [%s]}\n",
+         " \"iters\": %zu, \"kernel_ms_median\": %.3f, \"kernel_ms_min\": %.3f, \"kernel_ms_max\": %.3f, \"gpu_mips\": %.0f, \"input_bytes\": %.0f, \"output_bytes\": %llu, \"status\": %u, \"chunk_ends\": {\"seed\": %llu, \"host_step\": %llu, \"segment_end\": %llu}, \"segments_sha_match\": \"%d/%d\", \"rows\": [%s]}\n",
          prop.name, dir.c_str(), (unsigned long long)chunk, only, (unsigned long long)out_total, seeds.size(), double(chunk_steps) / std::max<size_t>(1, seeds.size()), (unsigned long long)max_chunk, slow.size(),
-         ms.size(), med, ms.front(), ms.back(), double(out_total) / (med * 1e3), in_bytes, (unsigned long long)(out_total * sizeof(m9::Step)), status, ok, checked, rows.c_str());
+         ms.size(), med, ms.front(), ms.back(), double(out_total) / (med * 1e3), in_bytes, (unsigned long long)(out_total * sizeof(m9::Step)), status,
+         (unsigned long long)ends_seed, (unsigned long long)ends_host, (unsigned long long)ends_segment, ok, checked, rows.c_str());
   return (status == 0 && ok == checked) ? 0 : 1;
 }
 #endif
