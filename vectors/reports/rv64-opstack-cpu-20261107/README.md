@@ -83,3 +83,11 @@ declarations, source bounds, final PC, memory words and 32,232,733,600
 MAIN+INTERACTION bits. Peak RSS was 1.323 GiB versus 1.731 GiB for the
 retained planner. The census run overlapped tests.
 [Exact plan comparison](capture-census.json)
+
+The complete census for heavy block 121065789 took 251.246 s at 2.040 GiB
+peak RSS. It covered 425,529,933 retired instructions, 539,388 public RAM
+words and 126 planned proofs across 102 CPU and 24 service declarations.
+The padded MAIN and INTERACTION trace contains 1,657,146,610,432 bits.
+MAIN alone corresponds to about 122.5 GiB at four bytes per cell, before
+coefficient parking and PCS. The result qualifies capture and planning.
+[Heavy mainnet plan](heavy-mainnet-plan.json)
