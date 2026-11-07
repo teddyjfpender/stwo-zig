@@ -63,6 +63,27 @@ class SegmentShape(unittest.TestCase):
         self.assertFalse(m['23']['stage1_fits_p50'])
         self.assertGreater(m['24']['gkr_workspace_gb'], 28)
 
+    def test_central_cells_use_the_existing_wide47_class(self):
+        # review: soundness is argued for the existing wide-clock (wide47) CPU23 class, so central cells must not be
+        # below its census (x1.017..x1.050); the compact37 extension (new source mode) is the opt case only
+        self.assertGreaterEqual(S.CELLS[23]['central'], 1.017)
+        self.assertLess(S.CELLS[23]['opt'], 1.0)
+        self.assertGreater(S.native_factor(23, 93.1, 'central', P.N_PER_MI, 16), 1.03)
+
+    def test_fft_growth_skips_truths_and_small_tails(self):
+        # truth proofs and a block below 2^22 instr keep their log: no FFT growth there
+        self.assertEqual(S.grown_share(3.0, 23, 10), 0.0)
+        g = S.grown_share(93.1, 23, 16)
+        self.assertLess(g, 0.95)
+        self.assertGreater(g, 0.75)
+
+    def test_p95_seg23_needs_main_spill_where_2_22_fits(self):
+        # review: post-P1, one 2^22 job fits the p95 arena but one 2^23 job does not; two jobs (OCC) fit at neither
+        m = S.memory_table({'p95': 43})
+        self.assertTrue(m['22']['stage1_fits_post_p1_p95'])
+        self.assertFalse(m['23']['stage1_fits_post_p1_cc_p95'])
+        self.assertFalse(m['22']['two_jobs_fit_post_p1_p95'])
+
 
 if __name__ == '__main__':
     unittest.main()

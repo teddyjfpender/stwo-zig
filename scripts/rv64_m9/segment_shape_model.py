@@ -132,20 +132,25 @@ def entry(mi, truths, k, fanin, sc='central', truth_only=False):
 
 # ---------------------------------------------------------------------------------------------------------------
 # 3. Native GPU-s factor per doubling [D/E].
-# Cells: exact source census on the two dev blocks (vectors/reports/rv64-m7-20261105/native-layout/model.json,
-# total coefficient cells vs one_truth_per_family at 2^22): CPU23 compact37-extension x0.989 (24628607) / x0.967
-# (26235156); CPU23 wide47 (the only CPU23 class that exists today) x1.050 / x1.017; CPU24 compact x1.075 / x0.979.
-# Central 1.00: the compact37 extension (design only, CPU23-WIDENING.md) is the target, but its ladder head-instance
-# padding is unmodelled, so central sits between it and wide47 [E]; pess = wide47 on 24628607, opt = compact on 26235156.
-CELLS = {23: {'pess': 1.050, 'central': 1.000, 'opt': 0.967}, 24: {'pess': 1.150, 'central': 1.050, 'opt': 0.979}}
+# Cells: exact source census on the two dev blocks (vectors/reports/rv64-m7-20261105/native-layout/model.json on
+# codex/rv64-m7-integrate, native_gkr total_coefficient_cells vs one_truth_per_family at 2^22): CPU23 wide47 (the only
+# CPU23 class that exists, and the one whose clock soundness is checked) x1.050 (24628607) / x1.017 (26235156); CPU23
+# compact37 extension (design only, CPU23-WIDENING.md: needs its own authenticated source mode) x0.989 / x0.967; CPU24
+# wide47 x1.150 / x1.030, compact x1.075 / x0.979 [D]. Review fix: central = the wide47 mean, because section 6 argues
+# soundness for the existing wide-clock class; the compact37 extension is the opt case (new source mode, new soundness
+# argument) [E]. The seg23 CPU prototype measured +2.3% committed cells on a 4-segment prefix [M, segment-size s7].
+CELLS = {23: {'pess': 1.050, 'central': 1.034, 'opt': 0.967}, 24: {'pess': 1.150, 'central': 1.090, 'opt': 0.979}}
 # FFT per-element growth: T4 CUDA-event bench, 256 MiB per call, RTX 5090 (codex/rv64-m8-gpu
 # vectors/reports/rv64-m8-20261106/opt-T4-fft-passes/README.md) [M]: b2n 22->23 0.733->0.793 (+8.2%), 23->24
 # 0.793->0.920 (+16%); n2b 0.719->0.760 (+5.7%), ->0.891 (+17%); LDE 23->24 0.682->0.748 (+9.7%). The 2-pass wide
 # n2b/LDE stops at log 24 (n2b_smem.cuh kWideHighBits 11 + kWideLowBits 13; b2n STWO_B2N_WIDE_MAX_LOG 24), so the
 # b4 LDE of a 2^23 segment (log 25) falls back to 3 passes: old/new 3-pass/2-pass = 1.06/0.70 = x1.5 [M ratio at log 20-22].
-# Central assumes the wide kernel is extended to log 25/26 at the 23->24 twiddle trend (+10% LDE, +7% b2n/n2b per
-# doubling); pess = the 3-pass fallback; opt = +4% (segment-size-analysis 1/22.5 per doubling).
-FFT_GROWTH = {'pess': 0.5 * 1.07 + 0.5 * 1.50, 'central': 0.5 * 1.07 + 0.5 * 1.10, 'opt': 1.044}  # per doubling, LDE ~half [E]
+# Central assumes the wide kernel is extended to log 25/26. b2n/n2b at the trace log: +7% per doubling (measured 22->23
+# +8.2% / +5.7%). LDE at the evaluation log 24 -> 25 is unmeasured; review fix: +15%, because the measured per-element
+# cost steps up at log 24 (b2n 23->24 +16%, n2b +17%: twiddle traffic at 4-8 columns per call) and the LDE 23->24 +9.7%
+# is the floor, not the trend [E]. pess = the 3-pass fallback; opt = +4.4% (segment-size-analysis 1/22.5 per doubling).
+# The growth applies only to the CPU proofs whose log rises (truth proofs and the minimal-log tail are unchanged).
+FFT_GROWTH = {'pess': 0.5 * 1.07 + 0.5 * 1.50, 'central': 0.5 * 1.07 + 0.5 * 1.15, 'opt': 1.044}  # per doubling, LDE ~half [E]
 # FFT share of native kernel GPU-s: all FFT/LDE kernels over the census total minus the recursion-only witness DAG
 # (chain_run), 24628607 opt-combined (plan_model K607_FFT / (K607 - K607_CHAIN)) [D]; native is LDE-heavy.
 NATIVE_FFT_SHARE = 2.975 / (8.333 - 0.996)
@@ -154,11 +159,24 @@ NATIVE_FFT_SHARE = 2.975 / (8.333 - 0.996)
 FIXED_SEG_S = {'pess': 0.0, 'central': 0.018, 'opt': 0.036}
 
 
-def native_factor(k, mi, sc='central', n_per_mi=None):
+def grown_share(mi, k, truths=None):
+    """Share of native GPU-s in CPU proofs whose log exceeds 22 at segment size 2^k [D]: CPU instructions in those
+    proofs / all instructions, times the CPU share of native (M3 native fit truth term, plan_model.truth_native_share)."""
+    n, last = segments(mi, k)
+    big = (n - 1) * cap_minstr(k) + (last if last > cap_minstr(22) else 0.0)
+    cpu = 1.0
+    if truths is not None:
+        a, b, c = 1.11, 0.192, 0.141  # plan_model.M3_NAT [D]
+        cpu = 1 - c * truths / (a + b * mi + c * truths)
+    return min(1.0, big / mi) * cpu
+
+
+def native_factor(k, mi, sc='central', n_per_mi=None, truths=None):
     if k == 22:
         return 1.0
     d = k - 22
-    f = CELLS[k][sc] * (1 + NATIVE_FFT_SHARE * (FFT_GROWTH[sc] ** d - 1))
+    g = grown_share(mi, k, truths)
+    f = CELLS[k][sc] * (1 + g * NATIVE_FFT_SHARE * (FFT_GROWTH[sc] ** d - 1))
     if n_per_mi:
         saved = (segments(mi, 22)[0] - segments(mi, k)[0]) * FIXED_SEG_S[sc]
         f -= saved / (n_per_mi * mi)
@@ -174,6 +192,7 @@ MEM = dict(
     pcs_peak22_gb=(11.73, 12.93),          # SEG_JOBS PCS arena peaks [M]
     # exact consumed-Eq GKR workspace / stage-1 lower bound incl. same-GPU MAIN, max CPU proof (native-layout model.json) [D]
     gkr_ws_gb={22: 10.20, 23: 15.34, 24: 31.38}, stage1_lower_gb={22: 16.01, 23: 26.64, 24: 42.69},
+    class_cache_extra_gb={23: 0.9, 24: 1.8},  # [E] see memory_table
     leaf_peak_gb=(3.1, 18.2), fold_peak_gb=21.8,   # [M] s3.7; leaf classes do not change with segment size [D]
 )
 
@@ -198,6 +217,13 @@ def memory_table(seg22_counts):
             p1 = 2.0 + 1.0 * s * 1.2 + 1.1 * s  # GKR chunk + MAIN coeff (1.2 GB/2^22 seg) + one LDE bank/tree [E]
             row['stage1_post_p1_gb'] = round(p1, 1)
             row['stage1_fits_post_p1_' + name] = arena >= p1
+            # review: a CPU2^k class adds its FIXED trees + log-(k+2) twiddles to the class cache next to the CPU22
+            # tail classes (FIXED 53.3 M cells per CPU23 proof, seg23 prototype [M], x4 LDE x 4 B) [E, upper bound];
+            # OCC (2 jobs/GPU) needs two post-P1 job peaks in the arena [E]
+            cc = 0.0 if k == 22 else MEM['class_cache_extra_gb'][k]
+            row['class_cache_extra_gb'] = cc
+            row['stage1_fits_post_p1_cc_' + name] = arena - cc >= p1
+            row['two_jobs_fit_post_p1_' + name] = arena - cc >= 2 * p1
         out[str(k)] = row
     return out
 
@@ -267,7 +293,13 @@ def per_segment_decomposition(P, rk):
     fold_child = (FM.cells(FM.add(FM.add(FM.CHILD[23], FM.CHILD[23]), FM.add(FM.CHILD[23], FM.CHILD[23]))) / 4) * rk * (4 / 3)
     rec = leaf + fold_child
     tot = native + rec
-    return dict(native_gpu_s=native, native_fixed_gpu_s=native * fx, leaf_gpu_s=leaf, fold_share_gpu_s=fold_child,
+    # review: cross-check against the bench15 kernel fits (1.33 nodes per segment): the not-row-proportional share is
+    # fit-dependent because Minstr and nodes are collinear on 6 blocks [D]
+    f = fits(); m = cap_minstr(22); npn = 4 / 3
+    a2 = f['kernel_vs_minstr_nodes_no_intercept']; a3 = f['kernel_vs_1_minstr_nodes']
+    fit_range = sorted(x['per_node'] * npn / (x['per_node'] * npn + x['native_per_minstr'] * m) for x in (a2, a3))
+    return dict(fixed_share_fit_range=fit_range,
+                native_gpu_s=native, native_fixed_gpu_s=native * fx, leaf_gpu_s=leaf, fold_share_gpu_s=fold_child,
                 recursion_gpu_s=rec, total_gpu_s=tot, fixed_share=(native * fx + rec) / tot,
                 label='D: native = plan N_PER_MI x 4.194 Minstr; leaf/fold = padded cells x %.3f ns/cell (fan-in calibration)' % (rk * 1e9))
 
@@ -332,7 +364,7 @@ def main():
                 for sc in ('pess', 'central', 'opt'):
                     e = entry(mi, truths, k, fan != 'none', sc, fan == 'truth')
                     row['k%d_%s_%s' % (k, fan, sc)] = dict(cell_ratio=e[0], leaves=e[1], folds=e[2], levels=e[3], cpu_segments=e[4],
-                                                           native_factor=native_factor(k, mi, sc, P.N_PER_MI))
+                                                           native_factor=native_factor(k, mi, sc, P.N_PER_MI, truths))
         row['k22_base'] = dict(leaves=base['leaves'], folds=base['folds'], levels=base['levels'], cpu_segments=segments(mi, 22)[0])
         shapes[name] = row
     res['shapes'] = shapes
@@ -419,6 +451,7 @@ def report(res):
     p = res['per_segment']
     print('one full 2^22 segment: native %.3f GPU-s (fixed %.3f) + leaf %.3f + fold share %.3f = %.3f GPU-s; fixed (not rows) share %.0f%% [D]'
           % (p['native_gpu_s'], p['native_fixed_gpu_s'], p['leaf_gpu_s'], p['fold_share_gpu_s'], p['total_gpu_s'], 100 * p['fixed_share']))
+    print('  fixed share from the bench15 kernel fits: %.0f%%..%.0f%% [D]' % tuple(100 * x for x in p['fixed_share_fit_range']))
     print('\nshape (central): cell ratio vs 2^22 one-per-leaf | leaves/folds | native factor')
     for name, row in res['shapes'].items():
         if name not in ('p50', 'p95', '24628607', '26235168', '25229955', '26235159'):

@@ -263,7 +263,7 @@ def model(mi, sh, p, on=(), gpus=2, production=False):
         R2 = (Rl + Rf) * ratio
         Rl, Rf = R2 * lshare, R2 * (1 - lshare)
         io *= L2 / L; L, F, lv, seg = L2, F2, lv2, seg2
-        N *= S.native_factor(seg_k, mi, p['seg_sc'], N_PER_MI)
+        N *= S.native_factor(seg_k, mi, p['seg_sc'], N_PER_MI, sh['truths'])
         head += (S.cap_minstr(seg_k) - S.cap_minstr(22)) * CAP_B  # first segment is captured later [D]
     if 'LEAVES' in on and seg_k == 22:  # k-leaf fan-in; natives unchanged, recursion cells x ratio [D, fewer-leaves receipt]
         blk = sh.get('block')
