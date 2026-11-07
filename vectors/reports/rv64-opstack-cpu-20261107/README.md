@@ -94,3 +94,12 @@ The padded MAIN and INTERACTION trace contains 1,657,146,610,432 bits.
 MAIN alone corresponds to about 122.5 GiB at four bytes per cell, before
 coefficient parking and PCS. The result qualifies capture and planning.
 [Heavy mainnet plan](heavy-mainnet-plan.json)
+
+## Larger CPU shards
+
+Block 121057303 at 2,097,151 steps per shard completed in 158.389 s with
+one eight-worker lane and 5.016 GiB peak RSS. The independent cold receiver
+took 22.828 s, of which 0.410 s checked proofs. The bundle contains three
+CPU and seven service proofs. Both exact corruption checks passed.
+The two-lane trial at this geometry was killed at 5.633 GiB peak RSS.
+[Larger-batch receipts](cpu-large-batch.json)

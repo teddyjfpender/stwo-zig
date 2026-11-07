@@ -45,7 +45,9 @@ python3 opstack/cpu.py \
 The preset admits 4 GiB of retained frontend input, 1 GiB fixed setup and 8 GiB
 of disk parking. These are component admissions, not a 4 GiB process-memory cap.
 The verified two-lane preset uses `opstack/presets/cpu-8workers-2lanes.json`
-with `--workers 8 --setup-workers 2`. See the
+with `--workers 8 --setup-workers 2`. The larger 2,097,151-step geometry on
+block 121057303 uses `opstack/presets/cpu-8workers-single-lane.json` with
+`--batch-steps 2097151 --workers 8 --setup-workers 2`. See the
 [mainnet checkpoint](../vectors/reports/rv64-opstack-cpu-20261107/README.md).
 
 Batch geometry comes from the request unless `--batch-steps` overrides it. The
