@@ -257,6 +257,19 @@ pub const Binding = struct {
         if (self.truth) |*t| t.end(request) catch {};
     }
 
+    /// Install receipt: the Stage-1 arena footprint terms of every
+    /// registered native class (S1.Class.jobWords, words), so the plan's
+    /// phase peaks can be attributed.
+    pub fn reportStage1(self: *Binding) void {
+        self.registry.mutex.lock();
+        defer self.registry.mutex.unlock();
+        var it = self.registry.classes.iterator();
+        while (it.next()) |kv| {
+            const c = kv.value_ptr.*;
+            std.debug.print("GPU_M8_GN_BIND s1_class={x} job_words={d} image_words={d} gkr_staged={d} main_staged={d} compact_words={d} main_device={d} main_coeff_eval={d} gkr_enqueue={d} bind_enqueue={d} resident_words={d}\n", .{ kv.key_ptr.*[0..6].*, c.jobWords(), c.image_words, c.spec.gkr.stagedWords(true), c.main.stagedWords(0), c.spec.compact_words, c.main.deviceWords(), c.main.coefficient_cells + c.main.eval_cells, c.spec.gkr.enqueueWords(), c.bind.enqueueWords(), c.resident.words });
+        }
+    }
+
     pub fn report(self: *const Binding, w: *std.Io.Writer) !void {
         try std.json.Stringify.value(.{ .schema = "rv64-m8-gn-bind/v1", .resolution = self.resolution, .truth_factory = self.truth != null }, .{}, w);
     }

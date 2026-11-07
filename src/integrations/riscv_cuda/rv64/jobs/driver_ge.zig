@@ -410,8 +410,10 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
     const ring = S.RingConfig{ .buffers = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS", default_ring_buffers), .words = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_RING_BYTES", default_ring_bytes) / 4 };
     const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks, rc, ring) catch |err| {
         std.debug.print("GPU_M8_GN_BIND install_failed error={s}\n", .{@errorName(err)});
+        binding.reportStage1();
         return err;
     };
+    binding.reportStage1();
     svc.hooks = .{ .ctx = binding, .publishing = publishing, .ended = ended };
     defer svc.deinit();
     try S.serveSpool(svc, spool, timer.read());
