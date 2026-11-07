@@ -1,0 +1,95 @@
+{
+ "schema": "rv64-m8-rnode-summary/v1",
+ "label": "e-26235156",
+ "source": "daemon-26235156-r2-gate-gate-e-26235156-00-baseline/producer.stderr",
+ "requests": [
+  {
+   "request": 0,
+   "nodes": 15,
+   "encoded_nodes": 15,
+   "encode_identical": 15,
+   "encoded_bytes": 10873888,
+   "encode_gpu_ns_sum": 54905272,
+   "encode_gpu_ns_max": 3895296,
+   "oods_nodes": 15,
+   "oods_identical": 15,
+   "oods_gpu_ns_sum": 20485623,
+   "node_gpu_ns_sum": 5399270897,
+   "launches": [
+    918,
+    918,
+    1118,
+    1114,
+    1119,
+    918,
+    1104,
+    744,
+    735,
+    565,
+    690,
+    1359,
+    1333,
+    1311,
+    1333
+   ],
+   "outcomes": [
+    "direct"
+   ],
+   "host_ns_sum": {
+    "prestage_ns": 4494073079,
+    "init_ns": 9327531415,
+    "stage_ns": 2429859086,
+    "enqueue_ns": 2104542002,
+    "wait_ns": 4013035365,
+    "finish_ns": 1283246267,
+    "decode_ns": 91612267,
+    "assemble_ns": 556796134
+   },
+   "mirror_ns_sum": 461018889
+  },
+  {
+   "request": 1,
+   "nodes": 15,
+   "encoded_nodes": 15,
+   "encode_identical": 15,
+   "encoded_bytes": 10873888,
+   "encode_gpu_ns_sum": 54920823,
+   "encode_gpu_ns_max": 3859071,
+   "oods_nodes": 15,
+   "oods_identical": 15,
+   "oods_gpu_ns_sum": 20452791,
+   "node_gpu_ns_sum": 5258879669,
+   "launches": [
+    1032,
+    1028,
+    1033,
+    1018,
+    837,
+    837,
+    837,
+    1273,
+    663,
+    654,
+    489,
+    609,
+    1247,
+    1230,
+    1247
+   ],
+   "outcomes": [
+    "direct"
+   ],
+   "host_ns_sum": {
+    "prestage_ns": 2785197517,
+    "init_ns": 7414210761,
+    "stage_ns": 1703696691,
+    "enqueue_ns": 1632583021,
+    "wait_ns": 4024144401,
+    "finish_ns": 3814190,
+    "decode_ns": 144048128,
+    "assemble_ns": 290777373
+   },
+   "mirror_ns_sum": 142861157
+  }
+ ]
+}

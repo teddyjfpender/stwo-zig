@@ -24,6 +24,7 @@
 const std = @import("std");
 const api = @import("api.zig");
 const G = @import("gpu_native.zig");
+const Enc = @import("outer_encode.zig");
 
 /// A counted reference on a class plan (outer_job_prestage.ClassPin in the
 /// service; a counter in tests). `retain`/`release` are balanced.
@@ -42,7 +43,12 @@ pub const ClassInfo = struct {
     /// ClassCache it warms.
     pin: ?Pin = null,
     /// Upper bound of the class's encoded proof bytes (0: not yet measured).
+    /// With `encode_descriptor` it is at least the device encoder's class
+    /// bound (outer_encode.maxEncodedBytes), so the slab entry holds it.
     max_encoded_bytes: usize = 0,
+    /// Device encoder descriptor of the class (outer_encode.buildDescriptor
+    /// over the class PCS framing), owned by the caller like `plan`.
+    encode_descriptor: ?[]const u32 = null,
     /// GPUs that hold this class's warm state (bit d = device d).
     devices: u8 = 0,
     /// Device words per GPU this class's statics hold (FIXED trees, tapes):
@@ -85,8 +91,13 @@ pub const Recursion = struct {
     /// (largest encoded bound / peaks, union of devices). Re-registering an
     /// authority under another class is refused. Takes ownership of
     /// `info.pin` (one reference) on success, releases it on error.
-    pub fn register(self: *Recursion, id: G.ProofId, children: []const G.ClassKey, key: G.ClassKey, info: ClassInfo) !void {
-        errdefer if (info.pin) |p| p.release(p.ctx);
+    pub fn register(self: *Recursion, id: G.ProofId, children: []const G.ClassKey, key: G.ClassKey, info_in: ClassInfo) !void {
+        errdefer if (info_in.pin) |p| p.release(p.ctx);
+        var info = info_in;
+        if (info.encode_descriptor) |d| {
+            if (d.len < Enc.D.tables or d[Enc.D.magic] != Enc.descriptor_magic or d[Enc.D.words] != d.len) return error.GpuNativeEncodeDescriptorInvalid;
+            info.max_encoded_bytes = @max(info.max_encoded_bytes, Enc.maxEncodedBytes(d));
+        }
         if (id.kind == .request or id.kind == .native_segment) return error.GpuNativeNotARecursionProof;
         const auth = authority(id, children);
         self.mutex.lock();
@@ -257,4 +268,25 @@ test "recursion factory: classes are keyed by authority, not by topology ordinal
     r.deinit();
     try t.expectEqual(@as(i32, 0), c_leaf.refs);
     try t.expectEqual(@as(i32, 0), c_fold.refs);
+}
+
+test "recursion factory: the encoder descriptor sets the class's encoded bound" {
+    const t = std.testing;
+    var r = Recursion{ .a = t.allocator };
+    defer r.deinit();
+    var plan: u32 = 0;
+    const logs = [_]u32{ 3, 4 };
+    const cfg = Enc.Config{ .pow_bits = 1, .log_blowup = 1, .log_last_layer = 0, .n_queries = 8, .fold_step = 2, .lifting = null };
+    const desc = try Enc.buildDescriptor(t.allocator, .{ .config = cfg, .degree_log = 4, .trees = &.{.{ .coefficient_logs = &logs, .sorted_to_original = &.{ 0, 1 }, .sample_counts = &.{ 1, 1 } }} }, null, null);
+    defer t.allocator.free(desc);
+    try r.register(.{ .kind = .leaf, .ordinal = 0 }, &.{@splat(1)}, @splat(7), .{ .plan = @ptrCast(&plan), .max_encoded_bytes = 4, .encode_descriptor = desc });
+    var cache = G.ClassCache.init(t.allocator);
+    defer cache.deinit();
+    const f = r.factory();
+    try f.vtable.warm(f.ctx, &cache);
+    try t.expectEqual(Enc.maxEncodedBytes(desc), (try cache.get(@splat(7))).max_encoded_bytes);
+    const bad = try t.allocator.dupe(u32, desc);
+    defer t.allocator.free(bad);
+    bad[Enc.D.magic] = 0;
+    try t.expectError(error.GpuNativeEncodeDescriptorInvalid, r.register(.{ .kind = .leaf, .ordinal = 1 }, &.{@splat(2)}, @splat(8), .{ .plan = @ptrCast(&plan), .encode_descriptor = bad }));
 }
