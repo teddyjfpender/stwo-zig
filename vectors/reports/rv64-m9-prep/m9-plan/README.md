@@ -27,3 +27,10 @@ python3 -I scripts/rv64_m9/plan_model.py --gas-sample <gas_sample.json> --json v
   alone and cumulative, for pessimistic, central and optimistic scenarios.
 - `basket_totals`: the 15-block total per cumulative step.
 - `combos`: minimal 2-GPU lever sets reaching ≥60% on p50, p95 and the basket at once.
+- `best_2gpu`: the best 2-GPU lever set per scenario and its minimum cut over p50/p95/basket.
+
+## Review revision (2026-11-07)
+
+`model.json` was regenerated after the adversarial review (design doc §8): per-node recursion fit (`fits.recursion_gpu_s_per_node`),
+leaf-only D2 / native-GKR factors, K607 with T2 off (8.333), last-segment Stage 1 at the seal, and three [E] integration costs
+(`truth_b16`, `occ_23`, `canon_pad`). Headline: central M9-only −56% (basket); with GPU capture −63%; pessimistic has no 2-GPU set.

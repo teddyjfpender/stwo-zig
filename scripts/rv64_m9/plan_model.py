@@ -28,15 +28,20 @@ BENCH15 = {  # block: (Minstr, segs, warm_proving_s, capture_s, native_window_s,
 }
 
 # --- 24628607 kernel census, opt-combined warm (vectors/reports/rv64-m8-20261106/opt-combined/README.md) [M] ---
-K607 = 8.478           # kernel GPU-s, CUPTI union, both GPUs
+# The ab8 'fullstack' total 8.478 includes T2 (chain_flow 1.141). T2 is default OFF (chain_run 0.996), so the
+# default-consistent total is 8.478 - 0.145 = 8.333 [D] (bench15-1 measured 8.43 on the default image [M]).
+K607 = 8.478 - (1.141 - 0.996)  # kernel GPU-s, CUPTI union, both GPUs, T2 off [D]
 K607_FFT = 2.975       # all b2n/n2b/lde/fft kernels
 K607_MERKLE = 1.430    # mixed_leaf_kernel 1.250 + child_layer_kernel 0.180
-K607_CHAIN = 1.0       # recursion witness DAG: chain_run 0.996 (T2 chain_flow 1.141 is off by default)
+K607_CHAIN = 0.996     # recursion witness DAG: chain_run (T2 chain_flow 1.141 is off by default)
 # native/recursion split [D]: M7 exact cells (engineering scope s1, 4-GPU doc s2.1) times M6 ns/cell
 #   native 5.454 G x 0.72 ns = 3.93 GPU-s; recursion 21.7 G x 0.29 ns = 6.29 GPU-s; sum 10.22 vs 10.58 [M]
 NATIVE_FRAC_607 = 3.93 / (3.93 + 6.29)
 STAGE1_FRAC = 1.04 / (1.04 + 1.78)   # M8 gpu-native s5: Stage1 1.04 / Stage2 1.78 job GPU-s on 24628607 [M]
 L607, F607 = 14, 5                    # leaves / folds on 24628607 at M7 default (14 leaves / 19 nodes) [M]
+LEAF_K, FOLD_K = 0.47, 0.42           # relative GPU-s per leaf / per fold (levers.py, M6 recursion window by cells) [D]
+# native truth share, M3 native fit 1.11 + 0.192*Minstr + 0.141*truths s (4-GPU doc s1.2, R2 0.994) [D]
+M3_NAT = (1.11, 0.192, 0.141)
 
 # --- capture with T1 (opt-T1-capture-parallel/README.md: 26235159 5.76 s; 24628607 2.07 s) [M] ---
 CAP_A = 2.07 - (5.76 - 2.07) / (204.825818 - 26.894777) * 26.894777
@@ -79,6 +84,11 @@ WFIT = fit([v[0] for v in BENCH15.values()], [v[2] for v in BENCH15.values()])
 N_PER_MI = K607 * NATIVE_FRAC_607 / 26.894777  # native kernel GPU-s per M instr [D]
 
 
+def _bench15_truths():
+    rd = json.load(open(os.path.join(ROOT, 'vectors/reports/rv64-m3-20261104/summary.json')))
+    return {r['block']: r['truth_proofs'] for r in rd['rows']}
+
+
 def shape(mi, truths=None):
     seg = math.ceil(mi * 1e6 / (1 << 22))
     if truths is None:  # basket fit truths ~ segments (M3 receipts) [D]
@@ -89,6 +99,19 @@ def shape(mi, truths=None):
     return dict(seg=seg, truths=truths, truth_leaves=tl, leaves=L, folds=F, levels=lv)
 
 
+# Recursion GPU-s fit on recursion NODES, not instructions [D]: R_obs = kernel - native(Minstr) on the 6 bench15-1 rows.
+# M3 recursion time tracks leaves (6.49 + 1.196*leaves, R2 0.997 over 15 blocks, 4-GPU doc s1.2); on bench15-1
+# nodes fit R2 0.953 vs Minstr 0.942. The Minstr fit over-charges recursion on big blocks (truths grow sub-linearly).
+_T = _bench15_truths()
+_NODES = [(lambda sh: sh['leaves'] + sh['folds'])(shape(v[0], _T[b])) for b, v in BENCH15.items()]
+RFIT = fit(_NODES, [v[6] - N_PER_MI * v[0] for v in BENCH15.values()])
+
+
+def truth_native_share(mi, truths):
+    a, b, c = M3_NAT
+    return c * truths / (a + b * mi + c * truths)
+
+
 # Scenario parameters (pess, central, opt). Baseline = post-M8 GPU-native.
 SC = {
     'k_m8': (1.0, 0.95, 0.90),        # kernel GPU-s after GPU-native vs bench15 (setup/replay moved to warm) [E]
@@ -97,7 +120,7 @@ SC = {
     'head': (0.5, 0.4, 0.3),          # first segment ready [E, M8 s5]
     'fixed': (0.4, 0.3, 0.2),         # admission, warm setup, publish, readback [E; bench15 setup 0.11-0.21 + tail 0.03-0.07 M]
     # levers
-    'p2_rec': (0.40, 0.30, 0.22),     # Poseidon2 leaves: recursion GPU-s factor [E; cells x0.19 M, GPU hash 11.7-13.4x/elem M]
+    'p2_rec': (0.55, 0.30, 0.22),     # Poseidon2: recursion GPU-s factor [E; pure-P2 leaf cells x0.19 D (source-exact AST, not accepted); accepted mixed P2+Blake leaf x0.447 M -> pess 0.55; GPU hash 11.7-13.4x/elem M]
     'p2_nat': (0.056, 0.037, 0.019),  # + native GPU-s per M instr (GO-NOGO 0.52-1.53 GPU-s on 24628607) [D]
     'leaf_grow': (1.15, 1.10, 1.05),  # per-leaf cost growth at 2^23 rungs [E]
     'stream': (0.80, 0.70, 0.60),     # streaming commit + partial/leafless trees on FFT+Merkle share [E]
@@ -115,6 +138,10 @@ SC = {
     'd2_leaf': (0.60, 0.55, 0.50),    # D2 leaf cost factor; reverting divides by it (levers.py; M4.0 item 6: 0.60-0.73) [E]
     'miss_cpu_s': (1.2, 0.84, 0.5),   # host class build per leaf on a class miss: (13.2 plan + 2.72 pack) CPU-s / 19 nodes [D]
     'miss_par': (3, 4, 6),            # host threads building classes concurrently [E]
+    # integration costs added in review [E]
+    'truth_b16': (2.0, 1.5, 1.2),     # truth native cost factor when truths are batched at b16 (LDE x4 vs b4, q54->q27) [E]
+    'occ_23': (0.72, 0.78, 0.85),     # busy with OCC when 2^23 rungs are on: native 2^23 jobs (<=28 GB) cannot pair on 32 GB [E]
+    'canon_pad': (1.08, 1.04, 1.01),  # native padding tax of a canonical shape catalog (L4) [E]
 }
 D2D_PER_MI = 0.11 / 26.894777  # s/GPU per M instr (IO doc L5: <=0.11 s/GPU 607, <=0.75 s/GPU 159) [D]
 
@@ -139,53 +166,58 @@ LEVER_NAME = {
 
 def model(mi, sh, p, on=(), gpus=2, production=False):
     """Post-M8 GPU-native request model with a set of levers switched on. Returns dict of GPU-s and wall."""
-    K = (KFIT[0] + KFIT[1] * mi) * p['k_m8']
     N = N_PER_MI * mi * p['k_m8']
-    R = max(0.0, K - N)
-    L, F, lv = sh['leaves'], sh['folds'], sh['levels']
+    L, F, lv, seg = sh['leaves'], sh['folds'], sh['levels'], sh['seg']
+    R0 = max(0.0, RFIT[0] + RFIT[1] * (L + F)) * p['k_m8']
+    wl = LEAF_K * L / (LEAF_K * L + FOLD_K * F)
+    Rl, Rf = R0 * wl, R0 * (1 - wl)          # leaf / fold recursion GPU-s: D2 and native-GKR factors touch leaves only
     io = IO_LINK_607_POST_M8 * (L / L607) * IO_EXPOSED
     d2d = D2D_PER_MI * mi
     cap = CAP_A + CAP_B * mi
     busy = p['busy']; G = gpus; eff = 1.0
     chain_frac = K607_CHAIN / (K607 * (1 - NATIVE_FRAC_607))  # share of recursion GPU-s in the witness DAG
     pcs_frac = (K607_FFT + K607_MERKLE) / K607                 # FFT + Merkle share of all kernel GPU-s
-    nodes = L + F
     if 'LEAVES' in on:
-        cpu_l = math.ceil(sh['seg'] / 2); tl = 2
+        cpu_l = math.ceil(seg / 2); tl = 2
         L2 = cpu_l + tl; F2, lv2 = folds(L2)
-        R = R * (L2 + F2) / nodes * p['leaf_grow']; L, F, lv = L2, F2, lv2; nodes = L + F
-        io *= L2 / sh['leaves']
+        Rl = Rl / L * p['leaf_grow'] * L2; Rf = (Rf / F * F2) if F else 0.0
+        N += N * truth_native_share(mi, sh['truths']) * (p['truth_b16'] - 1)
+        io *= L2 / L; L, F, lv, seg = L2, F2, lv2, cpu_l
+    nodes = L + F
+    if 'CANON' in on:
+        N *= p['canon_pad']
     if 'NGKR' in on:
-        N *= p['ngkr_nat']; R *= p['ngkr_rec']
+        N *= p['ngkr_nat']; Rl *= p['ngkr_rec']
     if 'P2' in on:
-        R *= p['p2_rec']; N += p['p2_nat'] * mi
+        Rl *= p['p2_rec']; Rf *= p['p2_rec']; N += p['p2_nat'] * mi
         chain_frac *= 0.5   # the Blake-G DAG is most of the chain; Poseidon rows are row-parallel [E]
     if 'OGKR' in on:
-        R *= p['ogkr_p2'] if 'P2' in on else p['ogkr_alone']
+        f = p['ogkr_p2'] if 'P2' in on else p['ogkr_alone']; Rl *= f; Rf *= f
     if 'D2REV' in on:
-        N /= p['d2_nat']; R /= p['d2_leaf']
+        N /= p['d2_nat']; Rl /= p['d2_leaf']
     if 'STREAM' in on:
-        cut = pcs_frac * (1 - p['stream'])
-        N *= 1 - cut; R *= 1 - cut
+        cut = 1 - pcs_frac * (1 - p['stream'])
+        N *= cut; Rl *= cut; Rf *= cut
     if 'WITNESS' in on:
-        R *= 1 - min(0.9, chain_frac) * (1 - p['wit'])
+        c = 1 - min(0.9, chain_frac) * (1 - p['wit']); Rl *= c; Rf *= c
     if 'IO' in on:
         io *= p['io_cut']
     if 'INPLACE' in on:
         d2d *= 1 - p['d2d']
     if 'OCC' in on:
-        busy = p['occ']
+        busy = p['occ_23'] if 'LEAVES' in on else p['occ']
     if 'GPUCAP' in on:
         cap = p['head'] + mi / p['cap_mips'] + 0.2
     if 'GPU4' in on:
         G = 4; eff = p['four_gpu_eff']
+    R = Rl + Rf
     K2 = N + R
-    node = R / max(1, nodes)
-    tail_gpu = node * (1 + lv)                 # last leaf + one node per fold level
+    tail_gpu = Rl / L + lv * (Rf / F if F else 0.0)   # last leaf + one fold per level
     tail = tail_gpu / p['busy_tail']
     s1 = N * STAGE1_FRAC
-    pre_seal = max(p['head'] + s1 / (G * busy * eff), cap)  # Stage 1 overlaps capture; the seal waits for both
-    post = (K2 - s1 - tail_gpu) / (G * busy * eff) + io + d2d / 1.0
+    # Stage 1 overlaps capture; the seal waits for both, and for the last segment's Stage 1 after capture ends
+    pre_seal = max(p['head'] + s1 / (G * busy * eff), cap + s1 / max(1, seg) / busy)
+    post = (K2 - s1 - tail_gpu) / (G * busy * eff) + io + d2d
     wall = p['fixed'] + pre_seal + post + tail
     miss = 0.0
     if production and 'CANON' not in on:  # every request is a new block: leaf classes miss [E]
@@ -213,6 +245,7 @@ def run(gas_pct, out=None, gas_list=None):
     ipg = sum(r['mi'] for r in bk) / sum(r['gas'] / 1e6 for r in bk)  # instr per gas, basket gas-weighted [D]
     res = dict(labels='M measured, D derived, E estimate', fits={}, mainnet={}, basket={}, targets={}, levers={}, combos={})
     res['fits'] = dict(kernel_gpu_s=dict(a=KFIT[0], b_per_minstr=KFIT[1], r2=KFIT[2], label='D (bench15-1, n=6)'),
+                       recursion_gpu_s_per_node=dict(a=RFIT[0], b_per_node=RFIT[1], r2=RFIT[2], label='D (bench15-1, n=6; used by the model)'),
                        warm_proving_s=dict(a=WFIT[0], b_per_minstr=WFIT[1], r2=WFIT[2], label='D (bench15-1, n=6)'),
                        instr_per_gas=ipg, native_gpu_s_per_minstr=N_PER_MI, capture_s=dict(a=CAP_A, b=CAP_B))
     over40 = [r for r in bk if r['gas'] > 40e6]
@@ -253,9 +286,10 @@ def run(gas_pct, out=None, gas_list=None):
     # minimal 2-GPU lever sets reaching >=60% cut vs post-M8 baseline on p50, p95 and the basket (central)
     import itertools
     cand = [l for l in LEVER_ORDER if l not in ('GPU4', 'CANON', 'INPLACE', 'IO')]  # IO/INPLACE are small: always on
-    base_on = ('IO', 'INPLACE')
+    base_on = ('IO', 'INPLACE', 'CANON')  # CANON is required in production; its padding tax is charged on the bench [E]
+    res['best_2gpu'] = {}
     for n in P:
-        ok = []
+        ok = []; best = (None, -1.0)
         for k in range(1, len(cand) + 1):
             for c in itertools.combinations(cand, k):
                 if any(set(o) <= set(c) for o, _ in ok):
@@ -265,8 +299,11 @@ def run(gas_pct, out=None, gas_list=None):
                     mi, sh = blocks[name]
                     b = model(mi, sh, P[n])['wall_s']; w = model(mi, sh, P[n], on=c + base_on)['wall_s']; cuts.append(1 - w / b)
                 cuts.append(1 - total(c + base_on, n) / tot['baseline'][n])
+                if min(cuts) > best[1]:
+                    best = (c, min(cuts))
                 if min(cuts) >= 0.60:
                     ok.append((c, cuts))
+        res['best_2gpu'][n] = dict(levers=list(best[0]) + list(base_on), min_cut=best[1])
         res['combos'][n] = [dict(levers=list(c), cut_p50=x[0], cut_p95=x[1], cut_basket=x[2]) for c, x in ok[:10]]
     # mainnet-weighted view: model every sampled block (instr = gas x basket instr/gas) [E]
     if gas_list:
@@ -296,6 +333,7 @@ def main():
         pct = {p: g[min(n - 1, int(round(p / 100 * (n - 1))))] / 1e6 for p in GAS_PCT_EMBEDDED}
     res, blocks, P = run(pct, a.json, g)
     f = res['fits']
+    print('recursion fit: %.3f + %.3f*nodes GPU-s (R2 %.3f)' % RFIT)
     print('fits: kernel GPU-s = %.2f + %.3f*Minstr (R2 %.3f); warm proving = %.2f + %.3f*Minstr (R2 %.3f); instr/gas %.3f; native %.3f GPU-s/Minstr'
           % (f['kernel_gpu_s']['a'], f['kernel_gpu_s']['b_per_minstr'], f['kernel_gpu_s']['r2'], f['warm_proving_s']['a'],
              f['warm_proving_s']['b_per_minstr'], f['warm_proving_s']['r2'], f['instr_per_gas'], f['native_gpu_s_per_minstr']))
@@ -331,7 +369,9 @@ def main():
         print('basket weights:', {b: round(v, 3) for b, v in bw.items()})
         print('basket mainnet percentiles:', {b: round(v, 2) for b, v in m['basket_mainnet_percentile'].items()})
     for n, cs in res['combos'].items():
-        print('\nminimal 2-GPU sets with >=60%% cut on p50, p95 and basket (%s):' % n)
+        b = res['best_2gpu'][n]
+        print('\nbest 2-GPU set (%s): min cut over p50/p95/basket %.0f%% with %s' % (n, 100 * b['min_cut'], '+'.join(b['levers'])))
+        print('minimal 2-GPU sets with >=60%% cut on p50, p95 and basket (%s):' % n)
         for c in cs:
             print('  %-45s p50 %.0f%% p95 %.0f%% basket %.0f%%' % ('+'.join(c['levers']), 100 * c['cut_p50'], 100 * c['cut_p95'], 100 * c['cut_basket']))
 
