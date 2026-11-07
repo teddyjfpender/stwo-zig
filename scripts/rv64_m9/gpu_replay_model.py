@@ -13,6 +13,11 @@ This script replaces it with three measured/derived variants:
                inverse / u768 %): curve/bulk/sponge/secp host time cut to an [E] floor.
   replay_only: only the compact-tape replay moves to the GPU (this prototype); narrow capture, ledger,
                boundary capture stay on CPU workers. cap = CAP_A + CAP_B * Minstr * (1 - walk_share).
+  replay_only_net: replay_only minus what it leaves out (review 2026-11-07): the CPU workers must now read the
+               GPU tape back (D2H 48 B/step, then DRAM reads instead of an in-cache walk). Charged as a per-step
+               CPU cost of 48 B at ~10 GB/s per worker = 4.8 ns [E] (2.4-7.2), out of 184.5 ns of capture CPU per
+               step [D]: walk_share - (0.039, 0.026, 0.013). PCIe time (48 B/step at 24.6 GB/s = 1.95 ns/step on
+               one link [D]) overlaps the CPU-bound capture and is not charged; it competes with proving H2D.
 
 Usage:
   python3 -I scripts/rv64_m9/gpu_replay_model.py --plan-root DIR --first-pass FP.json [--json OUT]
@@ -53,6 +58,7 @@ def main():
         return r['seeded_s'] - r['curve_s'] + r['curve_calls'] * 1e-6
     a_f, b_f = fit([r['minstr'] for _, r in rows], [fixed_s(r) for _, r in rows])
     walk_share = (0.30, 0.23, 0.15)  # [D/E] share of per-step capture CPU that is the traced walk (see design doc s5)
+    d2h_read_share = (0.039, 0.026, 0.013)  # [E] tape read-back cost as a share of capture CPU (replay_only_net)
 
     by_block = {str(k): v for k, v in fp.items()}
     variant = {'name': 'plan'}
@@ -65,8 +71,9 @@ def main():
             return orig_model(mi, sh, p, on=on, gpus=gpus, production=production)
         k = {0.5: 0, 0.4: 1, 0.3: 2}[p['head']]  # pess / central / opt (head is (0.5, 0.4, 0.3) in SC)
         blk = str(sh.get('block')) if sh.get('block') else None
-        if v == 'replay_only':
-            pm.CAP_B = orig_cap_b * (1 - walk_share[k])
+        if v in ('replay_only', 'replay_only_net'):
+            ws = walk_share[k] - (d2h_read_share[k] if v == 'replay_only_net' else 0.0)
+            pm.CAP_B = orig_cap_b * (1 - ws)
             try:
                 return orig_model(mi, sh, p, on=tuple(x for x in on if x != 'GPUCAP'), gpus=gpus, production=production)
             finally:
@@ -82,9 +89,10 @@ def main():
 
     pm.model = model
     out = {'labels': 'M measured, D derived, E estimate', 'seeded_fit_s': {'a': a_s, 'b_per_minstr': b_s, 'mips_marginal': 1 / b_s},
-           'fixed_fit_s': {'a': a_f, 'b_per_minstr': b_f, 'mips_marginal': 1 / b_f}, 'walk_share': walk_share, 'variants': {}}
+           'fixed_fit_s': {'a': a_f, 'b_per_minstr': b_f, 'mips_marginal': 1 / b_f}, 'walk_share': walk_share,
+           'd2h_read_share': d2h_read_share, 'variants': {}}
     names = ['p50 (29.1M gas)', 'p95 (55.8M gas)', '26235168', '26235159', '24628607']
-    for v in ('plan', 'full_now', 'full_fixed', 'replay_only'):
+    for v in ('plan', 'full_now', 'full_fixed', 'replay_only', 'replay_only_net'):
         variant['name'] = v
         res, blocks, P = pm.run(dict(pm.GAS_PCT_EMBEDDED))
         row = {}
