@@ -147,7 +147,27 @@ test("checkpoint binds state, instance, output and L1 origin before persisting",
   await assert.rejects(deploy(path, "KonaCheckpoint", ...params.slice(0, -1), id("wrong code")));
   const checkpoint = await deploy(path, "KonaCheckpoint", ...params);
   const other = await deploy(path, "KonaCheckpoint", ...params);
-  const proof = await checkpoint.transitionDigest(121057303, next, origin);
+  const anchorBlock = await provider.getBlock("latest");
+  const anchor = [anchorBlock.number, anchorBlock.hash];
+  await provider.send("evm_mine", []);
+  const proof = await checkpoint.transitionDigest(121057303, next, origin, anchor);
+  // A proof matching the statement is insufficient if the anchor is fabricated.
+  for (const invalid of [
+    [anchorBlock.number, id("fake anchor")],
+    [anchorBlock.number, "0x" + "00".repeat(32)],
+    [anchorBlock.number + 1, anchorBlock.hash],
+  ]) {
+    const matchingProof = await checkpoint.transitionDigest(121057303, next, origin, invalid);
+    await assert.rejects(
+      checkpoint.advance.staticCall(121057303, next, origin, invalid, matchingProof),
+      (error) => error.revert?.name === "InvalidL1Anchor",
+    );
+  }
+  const earlier = await provider.getBlock(anchorBlock.number - 1);
+  await assert.rejects(
+    checkpoint.advance.staticCall(121057303, next, origin, [earlier.number, earlier.hash], proof),
+    (error) => error.revert?.name === "InvalidProof",
+  );
 
   for (const [target, number, output, l1] of [
     [checkpoint, 121057304, next, origin],
@@ -155,16 +175,23 @@ test("checkpoint binds state, instance, output and L1 origin before persisting",
     [checkpoint, 121057303, next, id("other origin")],
     [other, 121057303, next, origin],
   ]) {
-    await assert.rejects(target.advance.staticCall(number, output, l1, proof));
+    await assert.rejects(target.advance.staticCall(number, output, l1, anchor, proof));
   }
   assert.equal(await checkpoint.outputRoot(), initial);
   assert.equal(await checkpoint.blockNumber(), 121057302n);
-  const receipt = await (await checkpoint.advance(121057303, next, origin, proof)).wait();
+  const receipt = await (await checkpoint.advance(121057303, next, origin, anchor, proof)).wait();
   assert.equal(receipt.status, 1);
   assert.equal(await checkpoint.outputRoot(), next);
   assert.equal(await checkpoint.blockNumber(), 121057303n);
-  await assert.rejects(checkpoint.advance.staticCall(121057303, next, origin, proof));
-  await assert.rejects(checkpoint.advance.staticCall(121057304, next, origin, proof));
+  await assert.rejects(checkpoint.advance.staticCall(121057303, next, origin, anchor, proof));
+  await assert.rejects(checkpoint.advance.staticCall(121057304, next, origin, anchor, proof));
+  await provider.send("anvil_mine", ["0x101"]);
+  const expiredProof = await checkpoint.transitionDigest(121057304, next, origin, anchor);
+  await assert.rejects(
+    checkpoint.advance.staticCall(121057304, next, origin, anchor, expiredProof),
+    (error) => error.revert?.name === "InvalidL1Anchor",
+  );
+  assert.equal(await checkpoint.blockNumber(), 121057303n);
   console.log(JSON.stringify({ checkpointMockGas: Number(receipt.gasUsed) }));
 });
 
@@ -286,7 +313,11 @@ test("binds both native Mainnet openings to PoW and the exact union of sampled q
   const checkpoint = await deploy(
     "src/KonaCheckpoint.sol", "KonaCheckpoint", 10, id("rollup"), 121057302, initialRoot, address, codeHash,
   );
-  await assert.rejects(checkpoint.advance.staticCall(121057303, id("next"), id("l1 origin"), "0x"));
+  const block = await provider.getBlock("latest");
+  await provider.send("evm_mine", []);
+  await assert.rejects(
+    checkpoint.advance.staticCall(121057303, id("next"), id("l1 origin"), [block.number, block.hash], "0x"),
+  );
   assert.equal(await checkpoint.outputRoot(), initialRoot);
 
   const contexts = JSON.parse(readFileSync(new URL("../fixtures/native-queries-121057303.json", import.meta.url)));

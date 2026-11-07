@@ -2,7 +2,8 @@
 pragma solidity ^0.8.26;
 
 /// @notice A verifier for the complete Kona transition relation. Implementations
-/// must authenticate the L1 origin and bind every field of the statement digest
+/// must authenticate the L1 origin and derivation data from the canonical L1
+/// anchor, and bind every field of the statement digest
 /// to the proven derivation and execution. An opening checker cannot implement it.
 interface IKonaTransitionVerifier {
     function verifyTransition(bytes32 statement, bytes calldata proof) external view returns (bool);
@@ -15,9 +16,15 @@ contract KonaCheckpoint {
     error InvalidConfiguration();
     error InvalidTransition();
     error InvalidProof();
+    error InvalidL1Anchor();
+
+    struct L1Anchor {
+        uint64 number;
+        bytes32 hash;
+    }
 
     bytes32 public constant STATEMENT_TYPEHASH = keccak256(
-        "KonaTransition(uint256 settlementChainId,address checkpoint,uint256 rollupChainId,bytes32 rollupConfig,uint64 previousNumber,bytes32 previousRoot,uint64 nextNumber,bytes32 nextRoot,bytes32 l1Origin)"
+        "KonaTransition(uint256 settlementChainId,address checkpoint,uint256 rollupChainId,bytes32 rollupConfig,uint64 previousNumber,bytes32 previousRoot,uint64 nextNumber,bytes32 nextRoot,bytes32 l1Origin,uint64 l1AnchorNumber,bytes32 l1AnchorHash)"
     );
 
     uint256 public immutable rollupChainId;
@@ -51,7 +58,11 @@ contract KonaCheckpoint {
         outputRoot = initialRoot;
     }
 
-    function transitionDigest(uint64 nextNumber, bytes32 nextRoot, bytes32 l1Origin) public view returns (bytes32) {
+    function transitionDigest(uint64 nextNumber, bytes32 nextRoot, bytes32 l1Origin, L1Anchor calldata anchor)
+        public
+        view
+        returns (bytes32)
+    {
         return keccak256(
             abi.encode(
                 STATEMENT_TYPEHASH,
@@ -63,18 +74,29 @@ contract KonaCheckpoint {
                 outputRoot,
                 nextNumber,
                 nextRoot,
-                l1Origin
+                l1Origin,
+                anchor.number,
+                anchor.hash
             )
         );
     }
 
-    function advance(uint64 nextNumber, bytes32 nextRoot, bytes32 l1Origin, bytes calldata proof) external {
+    function advance(
+        uint64 nextNumber,
+        bytes32 nextRoot,
+        bytes32 l1Origin,
+        L1Anchor calldata anchor,
+        bytes calldata proof
+    ) external {
         if (uint256(nextNumber) != uint256(blockNumber) + 1 || nextRoot == 0 || l1Origin == 0) {
             revert InvalidTransition();
         }
+        // BLOCKHASH returns zero for the current block, future blocks and
+        // blocks outside its history window. Reject an unavailable anchor.
+        if (anchor.hash == 0 || blockhash(anchor.number) != anchor.hash) revert InvalidL1Anchor();
         if (
             address(verifier).codehash != verifierCodeHash
-                || !verifier.verifyTransition(transitionDigest(nextNumber, nextRoot, l1Origin), proof)
+                || !verifier.verifyTransition(transitionDigest(nextNumber, nextRoot, l1Origin, anchor), proof)
         ) revert InvalidProof();
         blockNumber = nextNumber;
         outputRoot = nextRoot;

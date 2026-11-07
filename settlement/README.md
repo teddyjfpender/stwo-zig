@@ -167,10 +167,16 @@ nonce and match the exact projected query set to its worker.
 
 `KonaCheckpoint` pins a rollup ID and configuration, the transition
 verifier address and its runtime code hash, and the initial height and
-output root. Advancement requires the next consecutive height and a
-proof over a statement digest binding the settlement chain ID, contract,
-configuration, previous and next checkpoints, and L1 origin. Writes occur
-after the verifier returns true. Deployments require a standalone,
+output root. Advancement requires the next consecutive height and a recent
+canonical L1 anchor. The checkpoint must run on the settlement L1. It
+authenticates the anchor number and hash with `BLOCKHASH`, which
+exposes the 256 preceding blocks. Expired anchors require a fresh
+statement and proof. The statement digest binds the settlement chain
+ID, contract, rollup configuration, previous and next checkpoints, L2
+origin, and L1 anchor. The transition verifier must prove that the
+origin and derivation data are authenticated by that anchor. The L2
+origin can precede the anchor. Writes occur after proof verification.
+Deployments require a standalone,
 non-upgradeable backend with the intended verification key and a trusted
 initial checkpoint. Pinning a proxy's runtime hash would not pin its
 implementation.
