@@ -188,9 +188,15 @@ def run(args):
     if args.smoke and manifest['block'] != 26235156:
         raise RuntimeError('first whole-stack correctness smoke is restricted to small development block26235156')
     output = args.out.resolve()
+    root = Path(manifest['source_root'])
+    if args.receivers_only:
+        # Second half of a --timing-only run: same manifest, same output, timing already complete.
+        result = json.loads((output / 'experiment.json').read_text())
+        if result.get('status') != 'TIMED_RECEIVERS_PENDING' or result['manifest_sha256'] != sha(args.manifest):
+            raise RuntimeError('--receivers-only needs a finished --timing-only run of this manifest')
+        return verify(args, result, output, root, clean_environment(os.environ))
     output.mkdir(parents=True, exist_ok=False)
     write(output / 'artifact.json', manifest)
-    root = Path(manifest['source_root'])
     # P.src_root expects /workspace/m3/src/STREAM. Reuse canonical source; all
     # service names/output dirs remain unique below /workspace/m3/runs/STREAM.
     stream = root.name
@@ -264,6 +270,15 @@ def run(args):
         entry['warm'] = warm
         entry['quiet'] = receipt['quiet_before_requests'][1]
         write(output / 'experiment.json', result)
+    if args.timing_only:
+        result['status'] = 'TIMED_RECEIVERS_PENDING'
+        write(output / 'experiment.json', result)
+        print(json.dumps({'status': result['status'], 'out': str(output)}))
+        return
+    verify(args, result, output, root, environment)
+
+
+def verify(args, result, output, root, environment):
     # Do not contaminate interleaved timings/quiet state with CPU receivers.
     verification = list(result['services'])
     which = 'all'
@@ -332,6 +347,8 @@ def main():
     p.add_argument('--fresh-receivers', choices=('all', 'reference'), default='all',
                    help='reference: large-block disk mode - one fresh receiver on the retained reference proof; payloads of '
                         'every other request are pruned once verified byte-identical to it')
+    p.add_argument('--timing-only', action='store_true', help='stop after the timed services (parity checked); status TIMED_RECEIVERS_PENDING')
+    p.add_argument('--receivers-only', action='store_true', help='finish a --timing-only run: fresh receivers (+ gpu-seconds) and medians')
     p.add_argument('--ownership-profile-pair', action='store_true', help='after six unprofiled services, one baseline/fullstack CUPTI pair; never included in headline medians')
     p.add_argument('--smoke', action='store_true', help='small-block lane1 control then lane2 seeds17/29 cold/warm correctness services before headline experiment')
     p.add_argument('--global-admission-off-diagnostic', action='store_true', help='required same-day fallback diagnosis; allotherfullstackflags/guard unchanged, no performance qualification')
