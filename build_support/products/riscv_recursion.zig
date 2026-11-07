@@ -59,6 +59,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
         .{ .name = "test-riscv64-om31-native-pcs", .source = "src/integrations/riscv_cpu/rv64_om31_native_pcs_test_root.zig" },
         .{ .name = "test-riscv64-om31-services-root", .source = "src/integrations/riscv_cpu/rv64_om31_services_root_test_root.zig" },
         .{ .name = "test-riscv64-recursion-circuit", .source = "src/integrations/riscv_cpu/rv64_recursion_circuit_test_root.zig" },
+        .{ .name = "test-riscv64-m9-recursion-census", .source = "src/integrations/riscv_cpu/rv64_m9_recursion_census_test_root.zig" },
         .{ .name = "test-riscv64-shift-merged-circuit", .source = "src/integrations/riscv_cpu/rv64_shift_merged_circuit_test_root.zig" },
         .{ .name = "test-riscv64-alu-merged-circuit", .source = "src/integrations/riscv_cpu/rv64_alu_merged_circuit_test_root.zig" },
         .{ .name = "test-riscv64-multiplication-degree3-circuit", .source = "src/integrations/riscv_cpu/rv64_multiplication_degree3_circuit_test_root.zig" },

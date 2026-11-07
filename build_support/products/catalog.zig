@@ -63,6 +63,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-m5-rootverify", .description = "M5 rootverify: receiver VK table, root-only tree digest and refusals", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-om31-native-pcs", .description = "Verify native OM31 proof captures in circuit with all eight coordinates", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-recursion-circuit", .description = "Test the RV64 recursion leaf statement against the circuit builder", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-m9-recursion-census", .description = "M9 recursion-arch: per-child verifier rows by phase and PCS variant (diagnostics)", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-recursion-shape", .description = "Inspect bounded native-verified Word16 shape and opening costs without recursive acceptance", .scope = .riscv_cpu },
     .{ .name = "rv64-v3-truth-leaf", .description = "Wrap the v3 truth proofs (SHA-256, arith256_mod) of a native-verified Word16 bundle into in-circuit leaves; report gates and timings", .scope = .riscv_cpu },
     .{ .name = "check-rv64-ethereum-recursion", .description = "Type-check current OM31 execution recursion without LLVM output", .scope = .riscv_cpu },
