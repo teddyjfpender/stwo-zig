@@ -67,6 +67,8 @@ pub fn main() !void {
     var plan = try Plan.build(a, node.tasks, node.indices, node.n_vars, node.ends, options);
     defer plan.deinit();
     const plan_ns = timer.lap();
+    // Custody check of exactly what the GPU will index (unchecked there).
+    try Plan.validatePlan(a, node.tasks, node.indices, node.n_vars, plan.level_ends, plan.strand_ends, plan.units, plan.blake);
     var dag_ok = true;
     var rowpar_ok = true;
     if (check) {

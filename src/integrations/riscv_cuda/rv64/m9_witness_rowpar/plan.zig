@@ -113,7 +113,7 @@ pub const Plan = struct {
     }
 };
 
-pub const Error = error{ RowparDuplicateProducer, RowparStaticFailure, RowparCycle, RowparBadLevels, OutOfMemory };
+pub const Error = error{ RowparDuplicateProducer, RowparStaticFailure, RowparCycle, RowparBadLevels, RowparBadPlan, OutOfMemory };
 
 /// Outputs of record t (permutation outputs through `indices`).
 fn outputsOf(t: Task, indices: []const u32, buf: *[4]u32) []const u32 {
@@ -201,7 +201,7 @@ pub fn build(a: std.mem.Allocator, tasks: []const Task, indices: []const u32, n_
     if (options.blake) {
         for (tasks, 0..) |t0, first| {
             if (t0.kind != 6 or unit_of[first] != none) continue;
-            if (matchCompression(tasks, producer, cons_start, cons, @intCast(first))) |m| {
+            if (matchCompression(tasks, producer, cons_start, cons, unit_of, @intCast(first))) |m| {
                 const id: u32 = @intCast(blake.items.len);
                 for (m.records) |r| unit_of[r] = blake_flag | id;
                 try blake.append(a, m.unit);
@@ -525,7 +525,7 @@ const Match = struct { unit: BlakeUnit, records: [88]u32 };
 /// (round 0, g 0): 80 G records at out = base + 4k in gadget order, wired
 /// through g_state / sigma, and one triple-xor per output word i over
 /// {init[i], v[i], v[i + 8]}.
-fn matchCompression(tasks: []const Task, producer: []const u32, cons_start: []const u32, cons: []const u32, first: u32) ?Match {
+fn matchCompression(tasks: []const Task, producer: []const u32, cons_start: []const u32, cons: []const u32, unit_of: []const u32, first: u32) ?Match {
     const base = tasks[first].out;
     if (@as(u64, base) + 320 > producer.len) return null;
     var m: Match = undefined;
@@ -538,6 +538,9 @@ fn matchCompression(tasks: []const Task, producer: []const u32, cons_start: []co
         if (ti == none) return null;
         const t = tasks[ti];
         if (t.kind != 6 or t.out != out) return null;
+        // Never claim a record another compression already owns (an
+        // overlapping match would execute it twice).
+        if (unit_of[ti] != none) return null;
         if (r == 0 and g < 4) {
             for (0..4) |j| {
                 v[g_state[g][j]] = t.args[j];
@@ -572,7 +575,7 @@ fn matchCompression(tasks: []const Task, producer: []const u32, cons_start: []co
                 found = c;
             }
         }
-        if (found == none) return null;
+        if (found == none or unit_of[found] != none) return null;
         m.unit.xout[i] = tasks[found].out;
         m.records[80 + i] = found;
     }
@@ -606,6 +609,61 @@ fn sameSet(x: [3]u32, y: [3]u32) bool {
         if (!hit) return false;
     }
     return true;
+}
+
+/// Structural custody check of a plan that crosses a trust boundary (loaded
+/// from the persisted ClassCache store, or uploaded to the device): the GPU
+/// executor indexes `values`, `records` and `blake` WITHOUT per-access range
+/// checks (plain records go through `eval`, not `at`), so every index it
+/// will touch is checked here, on the host, before
+/// upload. It also checks that every record runs exactly once (each plain
+/// record once, each compression once, plain + 88 x compressions = tasks).
+/// It does NOT prove that the plan computes the DAG's values; a plan that
+/// passes but is wrong yields a MAIN the verifier rejects (completeness, not
+/// soundness). The class key must therefore bind the plan to the records.
+pub fn validatePlan(a: std.mem.Allocator, tasks: []const Task, indices: []const u32, n_vars: u32, level_ends: []const u32, strand_ends: []const u32, units: []const u32, blake: []const BlakeUnit) Error!void {
+    // The rowpar plain path runs `eval` + unchecked loads (not `at`), so the
+    // static record checks of `at` must hold for every record up front.
+    try validate(tasks, indices, n_vars);
+    const n_tasks: u32 = @intCast(tasks.len);
+    var prev: u32 = 0;
+    for (level_ends) |e| {
+        if (e <= prev) return error.RowparBadPlan;
+        prev = e;
+    }
+    if (prev != strand_ends.len) return error.RowparBadPlan;
+    prev = 0;
+    for (strand_ends) |e| {
+        if (e <= prev) return error.RowparBadPlan;
+        prev = e;
+    }
+    if (prev != units.len) return error.RowparBadPlan;
+    const seen_plain = try a.alloc(bool, n_tasks);
+    defer a.free(seen_plain);
+    @memset(seen_plain, false);
+    const seen_blake = try a.alloc(bool, blake.len);
+    defer a.free(seen_blake);
+    @memset(seen_blake, false);
+    var n_plain: u64 = 0;
+    for (units) |u| {
+        if (u & blake_flag != 0) {
+            const i = u & ~blake_flag;
+            if (i >= blake.len or seen_blake[i]) return error.RowparBadPlan;
+            seen_blake[i] = true;
+        } else {
+            if (u >= n_tasks or seen_plain[u]) return error.RowparBadPlan;
+            seen_plain[u] = true;
+            n_plain += 1;
+        }
+    }
+    for (seen_blake) |x| if (!x) return error.RowparBadPlan;
+    if (n_plain + 88 * @as(u64, blake.len) != n_tasks) return error.RowparBadPlan;
+    for (blake) |b| {
+        if (@as(u64, b.base) + 320 > n_vars or b.flags & ~blake_inline_stores != 0) return error.RowparBadPlan;
+        for (b.init) |v| if (v >= n_vars) return error.RowparBadPlan;
+        for (b.msg) |v| if (v >= n_vars) return error.RowparBadPlan;
+        for (b.xout) |v| if (v >= n_vars) return error.RowparBadPlan;
+    }
 }
 
 // ---------------------------------------------------------------------------

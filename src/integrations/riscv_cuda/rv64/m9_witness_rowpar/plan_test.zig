@@ -201,3 +201,113 @@ test "rowpar: a compression with one miswired G stays plain and exact" {
     const s = try runBoth(a, &b, .{});
     try std.testing.expectEqual(@as(usize, 0), s.blake_units);
 }
+
+test "rowpar: a G output read outside its compression forces inline stores, exact" {
+    const a = std.testing.allocator;
+    var b = Builder{ .a = a };
+    defer b.deinit();
+    var h: [8]u32 = undefined;
+    var iv: [8]u32 = undefined;
+    var msg: [16]u32 = undefined;
+    for (&h, 0..) |*w, i| w.* = try b.seed(.{ @intCast(i * 7 + 1), 5, 0, 0 });
+    for (&iv, 0..) |*w, i| w.* = try b.seed(.{ @intCast(i + 3), 9, 0, 0 });
+    for (&msg, 0..) |*w, i| w.* = try b.seed(.{ @intCast(i + 41), 13, 0, 0 });
+    const base = b.n_vars;
+    const out = try b.compress(h, iv, msg);
+    // An outside consumer of a mid-compression G output (round 4, g 3, c).
+    const mid = base + 4 * (4 * 8 + 3) + 2;
+    const x = try b.op(4, &.{ mid, out[0], out[1] }, 0);
+    _ = try b.op(5, &.{x}, 0);
+    for ([_]bool{ false, true }) |strands| {
+        const s = try runBoth(a, &b, .{ .strands = strands });
+        try std.testing.expectEqual(@as(usize, 1), s.blake_units);
+        try std.testing.expectEqual(@as(usize, 1), s.blake_inline);
+    }
+}
+
+test "rowpar: permutation records stay plain, never strand, exact" {
+    const a = std.testing.allocator;
+    // vars 0..3 seeds; 4: add(0,1); perm over {4,2,3} -> {5,6,7}; 8: mul(5,7).
+    const indices = [_]u32{ 4, 2, 3, 5, 6, 7 };
+    const tasks = [_]Task{
+        .{ .kind = 0, .out = 4, .args = .{ 0, 1, 0, 0, 0, 0 } },
+        .{ .kind = 7, .out = 5, .args = .{ 0, 3, 0, 0, 0, 0 } },
+        .{ .kind = 2, .out = 8, .args = .{ 5, 7, 0, 0, 0, 0 } },
+    };
+    const ends = [_]u32{ 1, 2, 3 };
+    for ([_]bool{ false, true }) |strands| {
+        var plan = try Plan.build(a, &tasks, &indices, 9, &ends, .{ .strands = strands });
+        defer plan.deinit();
+        try std.testing.expectEqual(@as(usize, 3), plan.stats.levels);
+        try Plan.validatePlan(a, &tasks, &indices, 9, plan.level_ends, plan.strand_ends, plan.units, plan.blake);
+        var x: [9]V4 = @splat(.{ 0, 0, 0, 0 });
+        x[0] = .{ 5, 0, 9, 0 };
+        x[1] = .{ 6, 0, 1, 0 };
+        x[2] = .{ 7, 1, 3, 0 };
+        x[3] = .{ 8, 2, 3, 1 };
+        var y = x;
+        var sx: u32 = 0;
+        var sy: u32 = 0;
+        Plan.executeDag(&tasks, &indices, &x, &sx);
+        Plan.execute(&plan, &tasks, &indices, &y, &sy);
+        try std.testing.expectEqual(sx, sy);
+        try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(&x), std.mem.sliceAsBytes(&y));
+    }
+}
+
+test "rowpar: validatePlan accepts built plans and refuses corrupted ones" {
+    const a = std.testing.allocator;
+    var b = Builder{ .a = a };
+    defer b.deinit();
+    var h: [8]u32 = undefined;
+    var iv: [8]u32 = undefined;
+    var msg: [16]u32 = undefined;
+    for (&h, 0..) |*w, i| w.* = try b.seed(.{ @intCast(i), 1, 0, 0 });
+    for (&iv, 0..) |*w, i| w.* = try b.seed(.{ @intCast(i + 9), 2, 0, 0 });
+    for (&msg, 0..) |*w, i| w.* = try b.seed(.{ @intCast(i + 99), 3, 0, 0 });
+    const out = try b.compress(h, iv, msg);
+    _ = try b.op(0, &.{ out[0], out[7] }, 0);
+    _ = try b.op(1, &.{ out[1], out[2] }, 0);
+    const ends = try levelize(a, &b);
+    defer a.free(ends);
+    var plan = try Plan.build(a, b.tasks.items, &.{}, b.n_vars, ends, .{ .strands = false });
+    defer plan.deinit();
+    const t = b.tasks.items;
+    const nv = b.n_vars;
+    try Plan.validatePlan(a, t, &.{}, nv, plan.level_ends, plan.strand_ends, plan.units, plan.blake);
+    const E = error.RowparBadPlan;
+    // Out-of-range variable in a compression (device writes there unchecked).
+    var bl = try a.dupe(Plan.BlakeUnit, plan.blake);
+    defer a.free(bl);
+    bl[0].xout[3] = nv;
+    try std.testing.expectError(E, Plan.validatePlan(a, t, &.{}, nv, plan.level_ends, plan.strand_ends, plan.units, bl));
+    bl[0] = plan.blake[0];
+    bl[0].base = nv - 319;
+    try std.testing.expectError(E, Plan.validatePlan(a, t, &.{}, nv, plan.level_ends, plan.strand_ends, plan.units, bl));
+    // A record run twice / a record skipped.
+    var un = try a.dupe(u32, plan.units);
+    defer a.free(un);
+    var first_plain: ?usize = null;
+    for (un, 0..) |u, i| if (u & Plan.blake_flag == 0) {
+        if (first_plain) |f| {
+            un[i] = un[f];
+            break;
+        }
+        first_plain = i;
+    };
+    try std.testing.expect(first_plain != null and !std.mem.eql(u32, un, plan.units));
+    try std.testing.expectError(E, Plan.validatePlan(a, t, &.{}, nv, plan.level_ends, plan.strand_ends, un, plan.blake));
+    // Non-monotone CSR.
+    var se = try a.dupe(u32, plan.strand_ends);
+    defer a.free(se);
+    std.mem.swap(u32, &se[0], &se[se.len - 1]);
+    try std.testing.expectError(E, Plan.validatePlan(a, t, &.{}, nv, plan.level_ends, se, plan.units, plan.blake));
+    // A record with an out-of-range argument (the plain path loads unchecked).
+    const bad = try a.dupe(Plan.Task, t);
+    defer a.free(bad);
+    for (bad) |*r| if (r.kind == 0) {
+        r.args[1] = nv;
+        break;
+    };
+    try std.testing.expectError(error.RowparStaticFailure, Plan.validatePlan(a, bad, &.{}, nv, plan.level_ends, plan.strand_ends, plan.units, plan.blake));
+}
