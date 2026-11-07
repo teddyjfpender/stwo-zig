@@ -15,6 +15,8 @@ const std = @import("std");
 const Abi = @import("../abi.zig");
 const K = @import("outer_kernels.zig");
 const St = @import("outer_staged.zig");
+const Plan = @import("outer_plan.zig");
+const TC = @import("outer_trace_commit.zig");
 
 pub const Role = *const @TypeOf(Abi.stwo_rv64_composition_role_on);
 pub const Finish = *const @TypeOf(Abi.stwo_rv64_composition_finish_on);
@@ -91,6 +93,27 @@ pub const Static = struct {
     }
 };
 
+/// Streamed composition commit schedule (host, pre-stage): the split
+/// coefficient chunks are one equal-height tree, committed chunk-bounded
+/// exactly like a trace tree (same root as the full-LDE tree kernel).
+pub const CommitStream = struct {
+    tree: Plan.TreePlan,
+    stream: TC.Stream,
+    pub fn init(a: std.mem.Allocator, st: *const Static, budget: usize, compact: bool) !CommitStream {
+        const logs = try a.alloc(u32, st.outputColumns());
+        defer a.free(logs);
+        @memset(logs, st.chunkLog());
+        var tree = try Plan.TreePlan.init(a, logs, st.beta);
+        errdefer tree.deinit(a);
+        return .{ .tree = tree, .stream = try TC.Stream.init(a, &tree, budget, compact) };
+    }
+    pub fn deinit(self: *CommitStream, a: std.mem.Allocator) void {
+        self.stream.deinit(a);
+        self.tree.deinit(a);
+        self.* = undefined;
+    }
+};
+
 /// Device inputs of one node's composition.
 pub const Inputs = struct {
     bases: St.Bases,
@@ -106,9 +129,14 @@ pub const Inputs = struct {
     powers: [*]const u32,
     /// Node parameter output (param_total * 8 words), job lifetime.
     parameters: [*]u32,
-    /// Composition coefficients (coefficientWords, kept for PCS) and tree.
+    /// Composition coefficients (coefficientWords, kept for PCS).
     output: K.Buffer,
-    tree: K.Buffer,
+    /// Full-LDE path: the tree buffer (root at rootOffset). Streamed path:
+    /// null, and `commit` names the schedule.
+    tree: ?K.Buffer = null,
+    commit: ?*const CommitStream = null,
+    /// 8 device words receiving the composition root.
+    root_out: [*]u32,
     status: [*]u32,
 };
 
@@ -123,7 +151,9 @@ fn source(st: *const Static, in: *const Inputs, s: Source) [*]const u32 {
 pub fn enqueue(device: *K.Device, kernels: *const Kernels, st: *const Static, in: *const Inputs) !void {
     const n2b = device.kernels.n2b_columns;
     if (st.beta != 1) return error.UnsupportedOuterJobBlowup;
-    if (in.output.words < st.coefficientWords() or in.tree.words < st.treeWords()) return error.OuterCompositionBufferTooSmall;
+    if (in.output.words < st.coefficientWords()) return error.OuterCompositionBufferTooSmall;
+    if ((in.tree == null) == (in.commit == null)) return error.OuterJobTreeCustodyMismatch;
+    if (in.tree) |t| if (t.words < st.treeWords()) return error.OuterCompositionBufferTooSmall;
     // Parameters of every role from the device challenges and claims.
     try device.check(kernels.params(device.ctx, K.lane, in.bases.at(st.param_table), st.param_total, in.lookup, in.claims, in.parameters, in.status));
     var buckets: [29]?K.Buffer = @splat(null);
@@ -194,21 +224,37 @@ pub fn enqueue(device: *K.Device, kernels: *const Kernels, st: *const Static, in
         list[listed] = .{ .words = b.ptr, .log = @intCast(log) };
         listed += 1;
     };
-    const accumulator = try device.alloc(@intCast(st.coefficientWords()));
-    defer device.free(accumulator);
     var launches: u32 = 0;
-    try device.check(kernels.finish(device.ctx, K.lane, &list, listed, accumulator.ptr, in.output.ptr, st.log, st.split, in.bases.at(in.itwiddles[st.log]), @intCast(in.itwiddles[st.log].words), &launches));
+    {
+        const accumulator = try device.alloc(@intCast(st.coefficientWords()));
+        defer device.free(accumulator);
+        try device.check(kernels.finish(device.ctx, K.lane, &list, listed, accumulator.ptr, in.output.ptr, st.log, st.split, in.bases.at(in.itwiddles[st.log]), @intCast(in.itwiddles[st.log].words), &launches));
+    }
     // Commit: LDE of the split coefficients, one Merkle segment.
     const count = st.outputColumns();
     const commit_log = st.commitLog();
     const rows = @as(u64, 1) << @intCast(commit_log);
+    if (in.commit) |c| {
+        // Streamed: chunk-bounded LDE + mixed leaves; root -> root_out. Same
+        // twiddle arguments as the full call below (the commit-height tree as
+        // staged, domain size rows/2); logs are the per-column chunk logs.
+        if (c.tree.order.len != count) return error.OuterCompositionStreamMismatch;
+        return TC.enqueueStreamed(device, &c.tree, &c.stream, .{ .evaluations = in.output.ptr, .coefficients = in.output.ptr, .root_out = in.root_out, .interpolate = false, .twiddle_mode = .whole, .statics = .{
+            .sorted_logs = in.bases.at(st.commit_logs),
+            .twiddles = in.bases.at(in.twiddles[commit_log]),
+            .twiddle_words = @intCast(in.twiddles[commit_log].words),
+            .itwiddles = undefined,
+            .itwiddle_words = 0,
+        } });
+    }
     const scratch = try device.alloc(@intCast(count * rows));
     defer device.free(scratch);
     launches = 0;
     try device.check(n2b(in.output.ptr, @as(usize, 1) << @intCast(st.chunkLog()), in.bases.at(st.commit_logs), scratch.ptr, @intCast(rows), commit_log, count, in.bases.at(in.twiddles[commit_log]), @intCast(in.twiddles[commit_log].words), @intCast(rows / 2), device.stream, &launches));
     device.counters.internal += launches -| 1;
     const segment = Abi.MixedSegment{ .columns = scratch.ptr, .stride_words = rows, .capacity_words = count * rows, .source_size = @intCast(rows) };
-    try device.check(device.kernels.tree(device.ctx, K.lane, @ptrCast(&segment), 1, commit_log, in.tree.ptr, st.treeWords()));
+    try device.check(device.kernels.tree(device.ctx, K.lane, @ptrCast(&segment), 1, commit_log, in.tree.?.ptr, st.treeWords()));
+    try device.copy(in.root_out, in.tree.?.at(st.rootOffset()), 8);
 }
 
 test "composition geometry follows resident_composition.zig finish/commit sizing" {

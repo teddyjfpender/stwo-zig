@@ -12,6 +12,7 @@
 //! yields the same addresses (graph re-record / direct re-run safe).
 const std = @import("std");
 const api = @import("api.zig");
+const Plan = @import("outer_plan.zig");
 
 pub const granule: usize = 64;
 
@@ -24,8 +25,27 @@ pub const Heap = struct {
     n_free: usize = 0,
     live: usize = 0,
     peak: usize = 0,
+    /// Highest end offset ever allocated: the region size this schedule
+    /// actually needs (>= peak; the difference is fragmentation).
+    high: usize = 0,
     allocations: u64 = 0,
+    /// Largest single request (words) in the guarded phases (the margin to
+    /// Plan.max_indexable_words) and in the unguarded ones (see `guarded`).
+    max_alloc: usize = 0,
+    max_unguarded_alloc: usize = 0,
+    /// Per-phase live peak and high-water (see `Phase`), for measurement.
+    phase: Phase = .held,
+    phase_peak: [n_phases]usize = @splat(0),
+    phase_high: [n_phases]usize = @splat(0),
     const max_spans = 512;
+
+    pub const Phase = @import("outer_kernels.zig").Phase;
+    pub const n_phases = @typeInfo(Phase).@"enum".fields.len;
+    pub fn enter(self: *Heap, phase: Phase) void {
+        self.phase = phase;
+        const i = @intFromEnum(phase);
+        self.phase_peak[i] = @max(self.phase_peak[i], self.live);
+    }
 
     pub fn init(region: api.DeviceBuffer) Heap {
         var h = Heap{ .base = @intFromPtr(region.ptr), .words = std.mem.alignBackward(usize, region.words, granule) };
@@ -35,6 +55,31 @@ pub const Heap = struct {
     }
 
     pub fn alloc(self: *Heap, requested: usize) !api.DeviceBuffer {
+        if (guarded(self.phase)) {
+            try Plan.requireIndexable(&.{requested});
+            self.max_alloc = @max(self.max_alloc, requested);
+        } else self.max_unguarded_alloc = @max(self.max_unguarded_alloc, requested);
+        return self.place(requested);
+    }
+
+    /// Phases whose transients feed the trace-commit kernels (B2N,
+    /// stwo_lde_n2b_columns_on, the tree kernel) the int32 guard exists for:
+    /// held buffers, FIXED, MAIN, INTER, incl. the full-LDE scratch. Not
+    /// guarded: composition (RC role arenas/buckets/accumulator) and the
+    /// native PCS, both legacy deployed code that allocates single buffers
+    /// of 2^31 words or more on folds [M outer-fold-review rg1: a
+    /// guard-everything build refused 26235156 folds 4 and 9 in the
+    /// composition phase; the same allocations were byte-identical to the D2
+    /// golden on every earlier gate]. The composition commit's chunk/banks
+    /// are checked up front (outer_job.zig holdBuffers).
+    pub fn guarded(phase: Phase) bool {
+        return switch (phase) {
+            .held, .fixed, .main, .inter => true,
+            .composition, .pcs => false,
+        };
+    }
+
+    fn place(self: *Heap, requested: usize) !api.DeviceBuffer {
         if (requested == 0) return error.InvalidAllocation;
         const words = std.mem.alignForward(usize, requested, granule);
         for (self.free_spans[0..self.n_free], 0..) |*s, i| {
@@ -45,6 +90,10 @@ pub const Heap = struct {
             if (s.words == 0) self.remove(i);
             self.live += words;
             self.peak = @max(self.peak, self.live);
+            self.high = @max(self.high, at + words);
+            const ph = @intFromEnum(self.phase);
+            self.phase_peak[ph] = @max(self.phase_peak[ph], self.live);
+            self.phase_high[ph] = @max(self.phase_high[ph], at + words);
             self.allocations += 1;
             return .{ .ptr = @ptrFromInt(self.base + 4 * at), .words = requested };
         }
@@ -130,6 +179,24 @@ test "heap reuses out-of-order frees and coalesces" {
     try std.testing.expectEqual(@intFromPtr(&backing), @intFromPtr(all.ptr));
     try std.testing.expectError(error.JobWorkExceedsArena, h.alloc(1));
     try std.testing.expectEqual(@as(usize, 64 * 16), h.peak);
+    try std.testing.expectEqual(@as(usize, 64 * 16), h.high);
+}
+
+test "heap attributes peaks to phases" {
+    var backing: [64 * 16]u32 align(256) = undefined;
+    var h = Heap.init(.{ .ptr = &backing, .words = backing.len });
+    const held = try h.alloc(64);
+    h.enter(.main);
+    const t = try h.alloc(64 * 4);
+    h.free(t);
+    h.enter(.pcs);
+    const u = try h.alloc(64 * 2);
+    h.free(u);
+    h.free(held);
+    try std.testing.expectEqual(@as(usize, 64), h.phase_peak[@intFromEnum(Heap.Phase.held)]);
+    try std.testing.expectEqual(@as(usize, 64 * 5), h.phase_peak[@intFromEnum(Heap.Phase.main)]);
+    try std.testing.expectEqual(@as(usize, 64 * 3), h.phase_peak[@intFromEnum(Heap.Phase.pcs)]);
+    try std.testing.expectEqual(@as(usize, 64 * 3), h.phase_high[@intFromEnum(Heap.Phase.pcs)]);
 }
 
 test "heap is deterministic and ignores foreign frees" {
@@ -146,4 +213,25 @@ test "heap is deterministic and ignores foreign frees" {
     }
     try std.testing.expectEqual(x.n_free, y.n_free);
     try std.testing.expectEqual((try x.alloc(64)).ptr, (try y.alloc(64)).ptr);
+}
+
+test "heap refuses any single allocation of 2^31 words or more (int32 index guard) and records the largest" {
+    // Host bookkeeping only: the region is never dereferenced.
+    var h = Heap.init(.{ .ptr = @ptrFromInt(1 << 20), .words = 1 << 34 });
+    const limit: usize = @intCast(Plan.max_indexable_words);
+    try std.testing.expectError(error.OuterBufferExceedsInt32Index, h.alloc(limit));
+    try std.testing.expectError(error.OuterBufferExceedsInt32Index, h.alloc(limit + 4096));
+    try std.testing.expectEqual(@as(usize, 0), h.live);
+    _ = try h.alloc(limit - 1);
+    _ = try h.alloc(1000);
+    try std.testing.expectEqual(limit - 1, h.max_alloc);
+    // Composition / PCS phases are recorded, not refused.
+    h.enter(.composition);
+    _ = try h.alloc(limit + 64);
+    h.enter(.pcs);
+    _ = try h.alloc(limit);
+    try std.testing.expectEqual(limit + 64, h.max_unguarded_alloc);
+    try std.testing.expectEqual(limit - 1, h.max_alloc);
+    h.enter(.inter);
+    try std.testing.expectError(error.OuterBufferExceedsInt32Index, h.alloc(limit));
 }

@@ -80,6 +80,9 @@ fn samplePoints(a: std.mem.Allocator, key: *const Authority) !*core.pcs.TreeVec(
 /// and the same composition OODS consistency check prove_family.zig runs
 /// before returning a proof (ConstraintsNotSatisfied otherwise).
 pub fn assemble(a: std.mem.Allocator, key: *const Authority, staged: *const St.Staged, job: *Job.OuterNodeJob) !Outer.prove.Produced {
+    // The decoded PCS proof moves into the Produced below, which its owner
+    // frees with `a`: it must have been decoded with `a`.
+    if (!St.sameAllocator(job.proof_allocator, a)) return error.OuterProofAllocatorMismatch;
     const d = job.decoded orelse return error.OuterJobNotDecoded;
     const pcs = job.pcs_proof orelse return error.OuterJobNotDecoded;
     job.pcs_proof = null;
@@ -327,7 +330,6 @@ const Statics = struct {
     gathered: []u32,
     rc: ?Rc = null,
     fixed_plan: ?Plan.TreePlan = null,
-    fixed_raw: [][]const u32 = &.{},
     fixed_sorted: []u32 = &.{},
 
     fn init(a: std.mem.Allocator, key: *const Authority, library: *std.DynLib, composition: bool) !*Statics {
@@ -356,6 +358,9 @@ const Statics = struct {
         defer a.free(inter_logs);
         var plan = try Plan.ClassPlan.init(a, geometry);
         errdefer plan.deinit(a);
+        // Validated by init; never read later. Fold statics are cached past
+        // the authority that `key` is, so keep no pointer into it.
+        plan.geometry.fixed_logs = &.{};
         // The plan's rosters must be the authority's own tree logs.
         if (!std.mem.eql(u32, plan.main.logs, main_logs) or !std.mem.eql(u32, plan.inter.logs, inter_logs)) return error.OuterPlanRosterMismatch;
         if (plan.main.eval_log != plan.inter.eval_log) return error.OuterTreeHeightsDiffer;
@@ -377,10 +382,7 @@ const Statics = struct {
             const fp = &self.fixed_plan.?;
             self.fixed_sorted = try a.alloc(u32, fp.order.len);
             TC.sortedLogs(fp, self.fixed_sorted);
-            self.fixed_raw = try a.alloc([]const u32, key.pp.columns.len);
-            for (self.fixed_raw, key.pp.columns) |*dst, column| dst.* = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(column.values));
             self.public.fixed_plan = fp.*;
-            self.public.fixed_raw = self.fixed_raw;
             self.public.fixed_sorted_logs = self.fixed_sorted;
             try self.addTable(fp.eval_log);
             self.rc = try Rc.init(a, key, library, fp);
@@ -405,7 +407,6 @@ const Statics = struct {
         const a = self.allocator;
         if (self.rc) |*rc| rc.deinit(a);
         if (self.fixed_plan) |*fp| fp.deinit(a);
-        a.free(self.fixed_raw);
         a.free(self.fixed_sorted);
         a.free(self.gathered);
         for (self.gather) |g| a.free(g);
@@ -491,6 +492,7 @@ const Owner = struct {
     owns_statics: bool,
     runs: []St.Run,
     expected: []u32,
+    fixed_raw: [][]const u32,
     staged: St.Staged,
     fn release(raw: *anyopaque) void {
         const self: *Owner = @ptrCast(@alignCast(raw));
@@ -499,6 +501,7 @@ const Owner = struct {
         if (self.owns_statics) self.statics.destroy();
         a.free(self.runs);
         a.free(self.expected);
+        a.free(self.fixed_raw);
         a.destroy(self);
     }
 };
@@ -552,6 +555,10 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
     errdefer a.free(owner.runs);
     owner.expected = try a.alloc(u32, input.expected.len * 4);
     errdefer a.free(owner.expected);
+    // This node's raw FIXED evaluations (its own PP; never the class statics').
+    owner.fixed_raw = try a.alloc([]const u32, if (owner.statics.fixed_plan != null) key.pp.columns.len else 0);
+    errdefer a.free(owner.fixed_raw);
+    for (owner.fixed_raw, key.pp.columns[0..owner.fixed_raw.len]) |*dst, column| dst.* = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(column.values));
     for (input.expected, 0..) |q, i| for (q.toM31Array(), 0..) |m, j| {
         owner.expected[4 * i + j] = m.v;
     };
@@ -608,6 +615,7 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
         .release = Owner.release,
         .fixed_root = key.fixedRoot(),
         .fixed_logs = &key.fixed_logs,
+        .fixed_raw = owner.fixed_raw,
         .pcs_points = if (owner.statics.rc) |*rc| @ptrCast(rc.points) else null,
     };
     return &owner.staged;

@@ -104,12 +104,11 @@ pub const Statics = struct {
     /// Every height the node transforms at (TC eval height, RC role heights,
     /// composition and commit heights), with its twiddle trees.
     tables: [29]?Twiddles = @splat(null),
-    /// FIXED tree commit geometry (original-order logs = authority fixed_logs),
-    /// its sorted log table (class region) and the raw FIXED evaluations
-    /// (host PP columns, original order), committed on device by the first node
-    /// of a class on a worker into the persistent `.fixed` region.
+    /// FIXED tree commit geometry (original-order logs = authority fixed_logs)
+    /// and its sorted log table (class region). The raw FIXED evaluations are
+    /// per node (`Staged.fixed_raw`): class statics outlive the node whose PP
+    /// built them, so they must not borrow PP memory.
     fixed_plan: ?Plan.TreePlan = null,
-    fixed_raw: []const []const u32 = &.{},
     fixed_sorted_logs: []const u32 = &.{},
     /// Composition statics and their packed class-region blob (null: prefix only).
     composition: ?Comp.Static = null,
@@ -118,6 +117,13 @@ pub const Statics = struct {
         return (if (log < 29) self.tables[log] else null) orelse error.MissingOuterTwiddles;
     }
 };
+
+/// Same allocator instance (vtable and context): a free through one is a
+/// free through the other. Ownership that moves from a job into a caller
+/// container (the decoded PCS proof -> om31 Produced) requires it.
+pub fn sameAllocator(x: std.mem.Allocator, y: std.mem.Allocator) bool {
+    return x.vtable == y.vtable and x.ptr == y.ptr;
+}
 
 pub const Staged = struct {
     assignment: Assignment,
@@ -138,6 +144,9 @@ pub const Staged = struct {
     /// for whole-node jobs; null for prefix-only staging.
     fixed_root: [32]u8 = @splat(0),
     fixed_logs: []const u32 = &.{},
+    /// Raw FIXED evaluations of THIS node's PP (original column order),
+    /// committed on device by a node that keeps the in-node FIXED commit.
+    fixed_raw: []const []const u32 = &.{},
     pcs_points: ?*const anyopaque = null,
     /// Releases the legacy host preparation that owns the slices above.
     owner: *anyopaque,
@@ -160,8 +169,8 @@ pub const Staged = struct {
     /// Raw FIXED evaluations in the FIXED commit's sorted layout.
     pub fn packFixed(self: *const Staged, out: []u32) !void {
         const fp = &(self.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing);
-        if (out.len < fp.coefficient_words or self.statics.fixed_raw.len != fp.offsets.len) return error.OuterStagedImageTooSmall;
-        for (self.statics.fixed_raw, fp.offsets, fp.logs) |column, off, log| {
+        if (out.len < fp.coefficient_words or self.fixed_raw.len != fp.offsets.len) return error.OuterStagedImageTooSmall;
+        for (self.fixed_raw, fp.offsets, fp.logs) |column, off, log| {
             if (column.len != @as(usize, 1) << @intCast(log)) return error.InvalidOuterFixedGather;
             @memcpy(out[@intCast(off)..][0..column.len], column);
         }
@@ -273,4 +282,17 @@ test "image regions are disjoint, 256 B (64-word) aligned, and a leaf keeps its 
     try std.testing.expectEqual(@as(u64, 0), fold.tasks.offset);
     try std.testing.expectEqual(@as(u64, 8), fold.twiddles[5].words + fold.itwiddles[5].words);
     try std.testing.expectEqual(@as(u64, 64), fold.itwiddles[5].offset);
+}
+
+test "moved proof ownership requires the identical allocator instance" {
+    // Regression (outer-fold): the PCS proof was decoded with c_allocator and
+    // freed by the request layer through its budgeted recycler -> "host budget
+    // heap underflow" at teardown and smp free-list corruption.
+    var arena_a = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena_a.deinit();
+    var arena_b = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena_b.deinit();
+    try std.testing.expect(sameAllocator(arena_a.allocator(), arena_a.allocator()));
+    try std.testing.expect(!sameAllocator(arena_a.allocator(), arena_b.allocator()));
+    try std.testing.expect(!sameAllocator(std.heap.c_allocator, std.heap.page_allocator));
 }
