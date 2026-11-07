@@ -43,6 +43,10 @@ pub const contract_version: u32 = 2;
 //   capture_words; RecursionFactory.class_of takes the node's authority
 //   (children's class keys), never a topology ordinal; publish refuses an
 //   empty proof.
+// r-truth additions (M8-INTERFACES "m8-gpu-r-truth", all defaulted): Check
+//   truth_root; Exchange.truths/capacity_truths + truthRoot slot (after the
+//   seal; 0 truths = the version-2 layout word for word); the seal slot's
+//   digest convention (seal_digest_words); RecursionFactory.truth_stage2.
 pub const slab_magic: u32 = 0x4e475652; // "RVGN" little-endian
 
 // ---------------------------------------------------------------------------
@@ -93,6 +97,10 @@ pub const Check = enum(u16) {
     node_pcs_status = 0x0304,
     seed_tape = 0x0305, // device seed fill from child slab matches class template
     child_binding = 0x0306, // node statement binds its children's encoded proofs
+    // r-truth addition (M8-INTERFACES "m8-gpu-r-truth"): a truth's stage 1
+    // (witness accepted, MAIN root published to Exchange.truthRoot). Stage 2
+    // re-derives MAIN and its truth_status rejects a root that differs.
+    truth_root = 0x0307,
 };
 
 /// Status checks every proof of a kind must carry (the driver reserves these
@@ -375,6 +383,11 @@ pub const Exchange = struct {
     capacity_claims: u32 = 0,
     /// GPUs that host segments, bit d = device d (0 = every device).
     partial_mask: u8 = 0,
+    /// r-truth addition: truth proofs of the request (their stage-1 MAIN
+    /// roots are framed in the manifest digest, exactly like segment roots)
+    /// and the install capacity. 0/0 = the version-2 layout, word for word.
+    truths: u32 = 0,
+    capacity_truths: u32 = 0,
 
     fn capS(self: Exchange) usize {
         return if (self.capacity_segments == 0) self.segments else self.capacity_segments;
@@ -392,19 +405,22 @@ pub const Exchange = struct {
     pub fn partials(self: Exchange) usize {
         return @popCount(self.mask());
     }
+    fn capT(self: Exchange) usize {
+        return if (self.capacity_truths == 0) self.truths else self.capacity_truths;
+    }
     pub fn validate(self: Exchange) !void {
-        if (self.segments > self.capS() or self.claims_per_segment > self.capC()) return error.GpuNativeExchangeExceedsCapacity;
+        if (self.segments > self.capS() or self.claims_per_segment > self.capC() or self.truths > self.capT()) return error.GpuNativeExchangeExceedsCapacity;
         if (self.devices == 0 or self.devices > max_devices) return error.GpuNativeExchangeDevices;
         const all: u8 = @truncate((@as(u16, 1) << @intCast(self.devices)) - 1);
         if (self.mask() & ~all != 0) return error.GpuNativeExchangeDevices;
     }
     /// Flag words reserved at install (slot events are indexed by flag).
     pub fn flagCapacity(self: Exchange) usize {
-        return 1 + @as(usize, self.devices) + 2 * self.capS();
+        return 1 + @as(usize, self.devices) + 2 * self.capS() + self.capT();
     }
     /// This request's flags: the contiguous prefix [flagOffset, +flagWords).
     pub fn flagWords(self: Exchange) usize {
-        return 1 + self.partials() + 2 * @as(usize, self.segments);
+        return 1 + self.partials() + 2 * @as(usize, self.segments) + self.truths;
     }
     pub const flag_offset: usize = 0;
     pub fn rootWords(self: Exchange) usize {
@@ -417,8 +433,17 @@ pub const Exchange = struct {
         return @as(usize, self.devices) * 8;
     }
     pub const seal_words: usize = 16;
+    /// Seal slot convention (r-truth reads it; the native seal writes it):
+    /// words [0, 8) are the manifest digest (little-endian words, the bytes
+    /// worker_protocol.mixManifestAndClaims digests). Stage-2 consumers mix
+    /// these words and derive the shared challenges (manifest.drawShared)
+    /// from them on device.
+    pub const seal_digest_words: usize = 8;
+    pub fn truthRootWords(self: Exchange) usize {
+        return self.capT() * 8;
+    }
     pub fn words(self: Exchange) usize {
-        return std.mem.alignForward(usize, self.flagCapacity(), 8) + self.rootWords() + self.claimWords() + self.partialWords() + seal_words;
+        return std.mem.alignForward(usize, self.flagCapacity(), 8) + self.rootWords() + self.claimWords() + self.partialWords() + seal_words + self.truthRootWords();
     }
     fn dataBase(self: Exchange) usize {
         return std.mem.alignForward(usize, self.flagCapacity(), 8);
@@ -442,6 +467,12 @@ pub const Exchange = struct {
     }
     pub fn seal(self: Exchange) Slot {
         return .{ .offset = self.dataBase() + self.rootWords() + self.claimWords() + self.partialWords(), .words = seal_words, .flag = 0 };
+    }
+    /// r-truth addition: truth `t`'s stage-1 MAIN root (8 words). Data after
+    /// the seal slot; flag after the request's segment flags.
+    pub fn truthRoot(self: Exchange, t: u32) !Slot {
+        if (t >= self.truths) return error.GpuNativeExchangeSlot;
+        return .{ .offset = self.dataBase() + self.rootWords() + self.claimWords() + self.partialWords() + seal_words + @as(usize, t) * 8, .words = 8, .flag = 1 + self.partials() + 2 * @as(usize, self.segments) + t };
     }
 };
 
@@ -771,10 +802,18 @@ pub const RecursionFactory = struct {
         /// nodes' classes). A truth has no children; its ordinal names the
         /// truth statement kind (fixed per service).
         class_of: *const fn (*anyopaque, id: ProofId, children: []const ClassKey) anyerror!ClassKey,
+        /// Truth stage 1 (fills the seal barrier): compact inputs -> device
+        /// witness -> MAIN root into Exchange.truthRoot(ordinal) (published
+        /// to the peers). Writes Check.truth_root.
         truth: *const fn (*anyopaque, *const RequestContext, ordinal: u32, device: u32) anyerror!api.Job,
         /// Leaf/fold/root node: reads its children's encoded regions (device,
         /// own segment or peer replica) and writes its own.
         node: *const fn (*anyopaque, *const RequestContext, id: ProofId, children: []const ProofId, device: u32) anyerror!api.Job,
+        /// r-truth addition: truth stage 2, after the device seal, same GPU as
+        /// stage 1 (local challenges, interactions, mixManifestAndClaims from
+        /// the seal slot, INTER, composition, PCS, checks). null = the factory
+        /// has no two-stage truths (truth proves in one job).
+        truth_stage2: ?*const fn (*anyopaque, *const RequestContext, ordinal: u32, device: u32) anyerror!api.Job = null,
     };
 };
 

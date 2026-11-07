@@ -87,6 +87,18 @@ pub fn build(b: *std.Build) void {
     const jobs_native_run = b.addRunArtifact(b.addTest(.{ .root_module = jobs_native_root }));
     jobs_native_run.setCwd(b.path("."));
     jobs_step.dependOn(&jobs_native_run.step);
+    // r-truth (recursion): GPU-native TruthJob + device seed fill host tests
+    // (rv64/jobs/truth_*.zig, outer_seed_*.zig); same imports as the native root.
+    const jobs_truth_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_truth_test_root.zig"), .target = target, .optimize = optimize });
+    jobs_truth_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    jobs_truth_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    jobs_truth_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    jobs_truth_root.addImport("stwo_cuda_backend", backend);
+    jobs_truth_root.addImport("stwo_riscv_frontend", frontend);
+    const jobs_truth_run = b.addRunArtifact(b.addTest(.{ .root_module = jobs_truth_root }));
+    jobs_truth_run.setCwd(b.path("."));
+    jobs_step.dependOn(&jobs_truth_run.step);
+    b.step("test-rv64-jobs-truth", "Test the M8 GPU-native TruthJob plan, challenge scripts, parameter programs and seed programs without a GPU").dependOn(&jobs_truth_run.step);
     const jobs_sched_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_sched_test_root.zig"), .target = target, .optimize = optimize });
     jobs_sched_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     jobs_sched_root.addImport("rv64_ready_dag", b.createModule(.{ .root_source_file = b.path("../riscv_cpu/rv64_recursion/om31_native/ready_dag.zig"), .target = target, .optimize = optimize }));
