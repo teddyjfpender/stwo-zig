@@ -339,7 +339,8 @@ pub const NodeJob = struct {
     pub const Child = struct { device: u32, region: api.DeviceBuffer };
     pub const Verdicts = struct { seed_tape: api.DeviceBuffer, child_binding: api.DeviceBuffer, lookup_sum: api.DeviceBuffer, channel_order: api.DeviceBuffer };
     a: std.mem.Allocator,
-    request: u64,
+    /// Request that made the job (Recursion.node); 0 for a standalone job.
+    request: u64 = 0,
     /// Set (release) after `finish` / `abort` returned; Recursion frees the
     /// job only then (or at `end` / `deinit`).
     settled: std.atomic.Value(bool) = .init(false),
