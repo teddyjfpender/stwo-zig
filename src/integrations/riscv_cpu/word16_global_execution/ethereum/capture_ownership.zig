@@ -26,6 +26,7 @@ pub fn native(p: *const Native) NativePayload {
         result.cpu_capture_records_capacity = cpu.functions.capacity * @sizeOf(@TypeOf(cpu.functions.items[0])) + cpu.memory.capacity * @sizeOf(@TypeOf(cpu.memory.items[0])) + cpu.services.capacity * @sizeOf(@TypeOf(cpu.services.items[0]));
     }
     result.family_facts = bytes(p.alu.facts) + bytes(p.alu.weights) + bytes(p.binary.facts) + bytes(p.binary.weights) + bytes(p.shift) + bytes(p.shift_weights) + bytes(p.division) + bytes(p.multiplication);
+    result.family_facts += bytes(p.zbb.facts) + bytes(p.zbb.weights);
     if (p.jalr) |j| result.jalr_payload = bytes(j.facts) + bytes(j.fixed) + bytes(j.main) + bytes(j.interaction);
     return result;
 }
@@ -39,11 +40,18 @@ pub const AdvicePayload = struct {
     }
 };
 pub fn advice(a: *const Advice) AdvicePayload {
-    var result = AdvicePayload{ .public_cells = bytes(a.initial) + bytes(a.terminal), .outer_slice_headers = bytes(a.events) + bytes(a.keccak) + bytes(a.secp) };
+    var result = AdvicePayload{ .public_cells = bytes(a.initial) + bytes(a.terminal), .outer_slice_headers = bytes(a.events) + bytes(a.keccak) + bytes(a.secp) + bytes(a.sha256) + bytes(a.arith256_mod) + bytes(a.curves) + bytes(a.bulk) + bytes(a.sponge) };
     for (a.events) |events| result.ordinary_events += bytes(events);
     for (a.keccak) |calls| result.service_calls += bytes(calls);
     for (a.secp) |families| for (families) |calls| {
         result.service_calls += bytes(calls);
     };
+    for (a.sha256) |calls| result.service_calls += bytes(calls);
+    for (a.arith256_mod) |calls| result.service_calls += bytes(calls);
+    for (a.curves) |families| for (families) |calls| {
+        result.service_calls += bytes(calls);
+    };
+    for (a.bulk) |shard| result.service_calls += bytes(shard.calls) + bytes(shard.words);
+    for (a.sponge) |shard| result.service_calls += bytes(shard.calls) + bytes(shard.words) + bytes(shard.inputs);
     return result;
 }

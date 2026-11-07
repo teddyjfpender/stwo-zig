@@ -1,0 +1,117 @@
+{
+ "source": "https://op.zisk.build/ (live dashboard; data via its api/v1/client and api/v1/query_range endpoints)",
+ "captured_utc": "2026-11-05T13:41:50Z",
+ "chain": {
+  "name": "OP Mainnet",
+  "block_time_s": 2
+ },
+ "cluster": {
+  "gpu": "NVIDIA RTX 5090",
+  "workers_connected": 4,
+  "cluster_label": "workers-1-4 (single host worker-1)"
+ },
+ "execution_range_proofs": {
+  "blocks_per_proof": [
+   5.0
+  ],
+  "prover_seconds": {
+   "n": 500,
+   "min": 2.696,
+   "median": 3.412,
+   "p90": 4.293,
+   "max": 9.828
+  },
+  "transactions_per_proof": {
+   "n": 500,
+   "min": 73.0,
+   "median": 105.0,
+   "p90": 176.0,
+   "max": 890.0
+  },
+  "window_s": 4989.1
+ },
+ "per_gpu_phase_seconds_last_proof_10min_window": {
+  "phase1_median": 0.71,
+  "phase1_max": 1.19,
+  "phase2_median": 2.19,
+  "phase2_max": 3.4,
+  "note": "coordinator_last_proof_worker_phase_seconds, 4 worker_ids"
+ },
+ "batches": {
+  "blocks_per_batch": {
+   "n": 64,
+   "min": 16.0,
+   "median": 175.5,
+   "p90": 281.0,
+   "max": 329.0
+  },
+  "execution_proofs_per_batch": {
+   "n": 64,
+   "min": 4.0,
+   "median": 36.0,
+   "p90": 57.0,
+   "max": 66.0
+  },
+  "l1_timestamp_to_validity_proof_s": {
+   "n": 64,
+   "min": 8.706,
+   "median": 10.382,
+   "p90": 11.755,
+   "max": 19.004
+  },
+  "seen_to_validity_proof_s": {
+   "n": 64,
+   "min": 6.815,
+   "median": 7.221,
+   "p90": 7.454,
+   "max": 15.839
+  },
+  "step_seconds": {
+   "channel": {
+    "n": 64,
+    "min": 2.449,
+    "median": 2.827,
+    "p90": 3.015,
+    "max": 3.566
+   },
+   "final": {
+    "n": 64,
+    "min": 2.297,
+    "median": 2.441,
+    "p90": 2.478,
+    "max": 2.556
+   },
+   "wrap": {
+    "n": 64,
+    "min": 1.691,
+    "median": 1.707,
+    "p90": 1.719,
+    "max": 1.738
+   }
+  },
+  "step_waited_seconds": {
+   "channel": {
+    "n": 64,
+    "min": 0.0,
+    "median": 0.001,
+    "p90": 0.005,
+    "max": 5.2
+   },
+   "final": {
+    "n": 64,
+    "min": 0.001,
+    "median": 0.004,
+    "p90": 0.006,
+    "max": 0.009
+   },
+   "wrap": {
+    "n": 64,
+    "min": 0.006,
+    "median": 0.006,
+    "p90": 0.006,
+    "max": 0.007
+   }
+  }
+ },
+ "labels": "[M-ext] third-party live metrics, read-only snapshot; not reproduced by us"
+}

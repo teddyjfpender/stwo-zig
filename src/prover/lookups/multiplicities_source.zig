@@ -8,6 +8,9 @@ pub fn ForField(comptime S: type) type {
     return struct {
         context: *const anyopaque,
         variables: u32,
+        /// Opt in to reads of up to 512 consecutive facts. Legacy callbacks
+        /// keep the original tile sizes (at most 64 facts).
+        wide_reads: bool = false,
         read_fn: *const fn (*const anyopaque, usize, []M, []S) Error!void,
         pub fn validate(self: @This()) Error!void {
             if (self.variables == 0 or self.variables > 30) return error.InvalidLayerStructure;

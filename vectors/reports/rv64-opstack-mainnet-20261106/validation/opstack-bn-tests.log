@@ -1,0 +1,290 @@
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded zmij v1.0.21
+  Downloaded num-integer v0.1.46
+  Downloaded oorandom v11.1.5
+  Downloaded plotters-svg v0.3.7
+  Downloaded serde_derive v1.0.228
+  Downloaded clap_lex v1.1.0
+  Downloaded generic-array v0.14.7
+  Downloaded rayon v1.12.0
+  Downloaded alloca v0.4.0
+  Downloaded ciborium-ll v0.2.2
+  Downloaded same-file v1.0.6
+  Downloaded page_size v0.6.0
+  Downloaded serde_core v1.0.228
+  Downloaded equivalent v1.0.2
+  Downloaded ciborium-io v0.2.2
+  Downloaded serde v1.0.228
+  Downloaded plotters-backend v0.3.7
+  Downloaded anstyle v1.0.14
+  Downloaded shlex v1.3.0
+  Downloaded crypto-common v0.1.7
+  Downloaded enum-ordinalize v4.3.2
+  Downloaded anes v0.1.6
+  Downloaded autocfg v1.5.0
+  Downloaded tinytemplate v1.2.1
+  Downloaded walkdir v2.5.0
+  Downloaded enum-ordinalize-derive v4.3.2
+  Downloaded crossbeam-epoch v0.9.18
+  Downloaded cast v0.3.0
+  Downloaded criterion-plot v0.8.2
+  Downloaded quote v1.0.45
+  Downloaded find-msvc-tools v0.1.9
+  Downloaded either v1.15.0
+  Downloaded proc-macro2 v1.0.106
+  Downloaded zeroize v1.8.2
+  Downloaded crossbeam-deque v0.8.6
+  Downloaded crossbeam-utils v0.8.21
+  Downloaded half v2.7.1
+  Downloaded ciborium v0.2.2
+  Downloaded rayon-core v1.13.0
+  Downloaded rand v0.8.6
+  Downloaded unicode-ident v1.0.24
+  Downloaded clap v4.6.1
+  Downloaded zerocopy-derive v0.8.48
+  Downloaded cc v1.2.61
+  Downloaded memchr v2.8.0
+  Downloaded indexmap v2.14.0
+  Downloaded typenum v1.20.0
+  Downloaded hashbrown v0.17.0
+  Downloaded num-bigint v0.4.6
+  Downloaded criterion v0.8.2
+  Downloaded plotters v0.3.7
+  Downloaded clap_builder v4.6.0
+  Downloaded regex v1.12.3
+  Downloaded serde_json v1.0.149
+  Downloaded aho-corasick v1.1.4
+  Downloaded syn v2.0.117
+  Downloaded zerocopy v0.8.48
+  Downloaded regex-syntax v0.8.10
+  Downloaded libc v0.2.186
+  Downloaded regex-automata v0.4.14
+  Downloaded ark-algebra-bench-templates v0.6.0
+  Downloaded ark-algebra-test-templates v0.6.0
+   Compiling proc-macro2 v1.0.106
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.45
+   Compiling syn v2.0.117
+   Compiling autocfg v1.5.0
+   Compiling zerocopy v0.8.48
+   Compiling zerocopy-derive v0.8.48
+   Compiling num-traits v0.2.19
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.0
+   Compiling cfg-if v1.0.4
+   Compiling ppv-lite86 v0.2.21
+   Compiling rand_chacha v0.3.1
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling serde_core v1.0.228
+   Compiling digest v0.10.7
+   Compiling num-integer v0.1.46
+   Compiling rand v0.8.6
+   Compiling enum-ordinalize-derive v4.3.2
+   Compiling either v1.15.0
+   Compiling crossbeam-utils v0.8.21
+   Compiling enum-ordinalize v4.3.2
+   Compiling num-bigint v0.4.6
+   Compiling ark-std v0.6.0
+   Compiling ark-serialize-derive v0.6.0
+   Compiling serde v1.0.228
+   Compiling zmij v1.0.21
+   Compiling hashbrown v0.17.0
+   Compiling ark-serialize v0.6.0
+   Compiling ark-ff-macros v0.6.0
+   Compiling educe v0.6.0
+   Compiling serde_derive v1.0.228
+   Compiling ark-ff-asm v0.6.0
+   Compiling zeroize v1.8.2
+   Compiling find-msvc-tools v0.1.9
+   Compiling once_cell v1.21.4
+   Compiling serde_json v1.0.149
+   Compiling shlex v1.3.0
+   Compiling cc v1.2.61
+   Compiling ahash v0.8.12
+   Compiling ark-ff v0.6.0
+   Compiling crossbeam-epoch v0.9.18
+   Compiling libc v0.2.186
+   Compiling rayon-core v1.13.0
+   Compiling memchr v2.8.0
+   Compiling crossbeam-deque v0.8.6
+   Compiling ark-poly v0.6.0
+   Compiling alloca v0.4.0
+   Compiling half v2.7.1
+   Compiling ciborium-io v0.2.2
+   Compiling clap_lex v1.1.0
+   Compiling anstyle v1.0.14
+   Compiling regex-syntax v0.8.10
+   Compiling plotters-backend v0.3.7
+   Compiling plotters-svg v0.3.7
+   Compiling regex-automata v0.4.14
+   Compiling clap_builder v4.6.0
+   Compiling ciborium-ll v0.2.2
+   Compiling itertools v0.14.0
+   Compiling itertools v0.13.0
+   Compiling cast v0.3.0
+   Compiling same-file v1.0.6
+   Compiling walkdir v2.5.0
+   Compiling criterion-plot v0.8.2
+   Compiling ark-ec v0.6.0
+   Compiling page_size v0.6.0
+   Compiling rayon v1.12.0
+   Compiling ciborium v0.2.2
+   Compiling clap v4.6.1
+   Compiling regex v1.12.3
+   Compiling plotters v0.3.7
+   Compiling tinytemplate v1.2.1
+   Compiling tracing-attributes v0.1.31
+   Compiling oorandom v11.1.5
+   Compiling equivalent v1.0.2
+   Compiling anes v0.1.6
+   Compiling tracing v0.1.44
+   Compiling criterion v0.8.2
+   Compiling indexmap v2.14.0
+   Compiling sha2 v0.10.9
+   Compiling foldhash v0.1.5
+   Compiling hex v0.4.3
+   Compiling ark-algebra-test-templates v0.6.0
+   Compiling ark-relations v0.6.0
+   Compiling ark-algebra-bench-templates v0.6.0
+   Compiling ark-bn254 v0.6.0 (/workspace/stwo-opstack/opstack/kona/vendor/ark-bn254)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2m 25s
+     Running unittests src/lib.rs (opstack/kona/target/debug/deps/ark_bn254-664860b3036283d6)
+
+running 110 tests
+test curves::tests::g1::test_cofactor_ops ... ok
+test curves::tests::g1::test_mixed_addition ... ok
+test curves::tests::g1::test_sub_properties ... ok
+test curves::tests::g1::test_sw_properties ... ok
+test curves::tests::g1::test_serialization ... ok
+test curves::tests::g1::test_add_properties ... ok
+test curves::tests::g1_glv::test_endomorphism_eigenvalue ... ok
+test curves::tests::g1::test_hashmap_pippenger ... ok
+test curves::tests::g1_glv::test_scalar_decomposition ... ok
+test curves::tests::g1::test_chunked_pippenger ... ok
+test curves::tests::g1_glv::test_glv_mul ... ok
+test curves::tests::g1::test_var_base_msm ... ok
+test curves::tests::g1::test_affine_conversion ... ok
+test curves::tests::g1::test_var_base_msm_specialized ... ok
+test curves::tests::g1::test_var_base_msm_mixed_scalars ... ok
+test curves::g2::test::test_is_in_subgroup_assuming_on_curve ... ok
+test curves::tests::g2::test_add_properties ... ok
+test curves::tests::g2::test_mixed_addition ... ok
+test curves::tests::g2::test_sub_properties ... ok
+test curves::tests::g2::test_sw_properties ... ok
+test curves::tests::g2::test_hashmap_pippenger ... ok
+test curves::tests::g2::test_var_base_msm ... ok
+test curves::tests::g2_glv::test_endomorphism_eigenvalue ... ok
+test curves::tests::g2_glv::test_glv_mul ... ok
+test curves::tests::g2_glv::test_scalar_decomposition ... ok
+test curves::tests::g1::test_mul_properties has been running for over 60 seconds
+test curves::tests::g2::test_affine_conversion has been running for over 60 seconds
+test curves::tests::g2::test_chunked_pippenger has been running for over 60 seconds
+test curves::tests::g2::test_cofactor_ops has been running for over 60 seconds
+test curves::tests::g2::test_mul_properties has been running for over 60 seconds
+test curves::tests::g2::test_serialization has been running for over 60 seconds
+test curves::tests::pairing::test_bilinearity ... ok
+test curves::tests::pairing::test_final_exp ... ok
+test curves::tests::g2::test_cofactor_ops ... ok
+test curves::tests::g2::test_var_base_msm_mixed_scalars has been running for over 60 seconds
+test curves::tests::g2::test_chunked_pippenger ... ok
+test curves::tests::pairing::test_multi_pairing ... ok
+test curves::tests::g2::test_var_base_msm_specialized has been running for over 60 seconds
+test curves::tests::pairing_output::test_chunked_pippenger has been running for over 60 seconds
+test curves::tests::g2::test_serialization ... ok
+test curves::tests::pairing_output::test_hashmap_pippenger has been running for over 60 seconds
+test curves::tests::pairing_output::test_var_base_msm has been running for over 60 seconds
+test curves::tests::pairing_output::test_var_base_msm ... ok
+test curves::tests::pairing_output::test_var_base_msm_mixed_scalars has been running for over 60 seconds
+test curves::tests::pairing_output::test_var_base_msm_specialized has been running for over 60 seconds
+test curves::tests::pairing_output::test_hashmap_pippenger ... ok
+test fields::fq::service::tests::montgomery_adapter_preserves_field_operations_and_constants ... ok
+test curves::tests::g2::test_var_base_msm_mixed_scalars ... ok
+test curves::tests::g2::test_affine_conversion ... ok
+test fields::tests::fq12::test_mul_by_base_field_elem ... ok
+test fields::tests::fq12::test_add_properties has been running for over 60 seconds
+test fields::tests::fq12::test_frobenius has been running for over 60 seconds
+test curves::tests::g1::test_mul_properties ... ok
+test curves::tests::g2::test_var_base_msm_specialized ... ok
+test fields::tests::fq12::test_serialization ... ok
+test fields::tests::fq12::test_sqrt ... ok
+test fields::tests::fq12::test_mul_properties ... ok
+test curves::tests::pairing_output::test_chunked_pippenger ... ok
+test fields::tests::fq12::test_pow has been running for over 60 seconds
+test fields::tests::fq12::test_sub_properties has been running for over 60 seconds
+test fields::tests::fq12::test_sum_of_products_tests has been running for over 60 seconds
+test fields::tests::fq12::test_sum_of_products_tests ... ok
+test fields::tests::fq2::test_add_properties has been running for over 60 seconds
+test fields::tests::fq2::test_frobenius ... ok
+test fields::tests::fq2::test_mul_by_base_field_elem ... ok
+test fields::tests::fq2::test_mul_properties ... ok
+test fields::tests::fq2::test_pow ... ok
+test fields::tests::fq2::test_serialization ... ok
+test fields::tests::fq2::test_sqrt ... ok
+test fields::tests::fq12::test_pow ... ok
+test fields::tests::fq2::test_sum_of_products_tests ... ok
+test fields::tests::fq2::test_add_properties ... ok
+test fields::tests::fq2::test_sub_properties ... ok
+test fields::tests::fq6::test_mul_by_base_field_elem ... ok
+test fields::tests::fq6::test_mul_properties ... ok
+test fields::tests::fq6::test_add_properties has been running for over 60 seconds
+test fields::tests::fq6::test_frobenius has been running for over 60 seconds
+test fields::tests::fq6::test_frobenius ... ok
+test fields::tests::fq6::test_serialization ... ok
+test fields::tests::fq6::test_sqrt ... ok
+test curves::tests::g2::test_mul_properties ... ok
+test fields::tests::fq6::test_sum_of_products_tests ... ok
+test fields::tests::fq12::test_sub_properties ... ok
+test fields::tests::fq::test_constants ... ok
+test fields::tests::fq::test_fft ... ok
+test fields::tests::fq::test_frobenius ... ok
+test fields::tests::fq::test_montgomery_config ... ok
+test fields::tests::fq::test_mul_by_base_field_elem ... ok
+test fields::tests::fq::test_mul_properties ... ok
+test fields::tests::fq6::test_pow has been running for over 60 seconds
+test fields::tests::fq::test_pow ... ok
+test fields::tests::fq::test_serialization ... ok
+test fields::tests::fq::test_sqrt ... ok
+test fields::tests::fq::test_add_properties ... ok
+test fields::tests::fq::test_sum_of_products_edge_case ... ok
+test fields::tests::fq::test_sum_of_products_tests ... ok
+test fields::tests::fr::test_add_properties ... ok
+test fields::tests::fr::test_constants ... ok
+test fields::tests::fr::test_fft ... ok
+test fields::tests::fr::test_frobenius ... ok
+test fields::tests::fr::test_montgomery_config ... ok
+test fields::tests::fr::test_mul_by_base_field_elem ... ok
+test fields::tests::fr::test_mul_properties ... ok
+test fields::tests::fr::test_pow ... ok
+test fields::tests::fr::test_serialization ... ok
+test fields::tests::fr::test_sqrt ... ok
+test fields::tests::fq6::test_pow ... ok
+test fields::tests::fr::test_sum_of_products_edge_case ... ok
+test fields::tests::fr::test_sub_properties ... ok
+test fields::tests::test_fq12_mul_by_014 ... ok
+test fields::tests::test_fq12_mul_by_034 ... ok
+test fields::tests::test_fq2_basics ... ok
+test fields::tests::test_fq2_legendre ... ok
+test fields::tests::test_fq2_ordering ... ok
+test fields::tests::test_fq6_mul_by_01 ... ok
+test fields::tests::test_fq6_mul_by_1 ... ok
+test fields::tests::test_fq_legendre ... ok
+test fields::tests::test_fq_num_bits ... ok
+test fields::tests::test_fq_ordering ... ok
+test fields::tests::test_fq_repr_from ... ok
+test fields::tests::test_fq_repr_is_odd ... ok
+test fields::tests::test_fq_repr_is_zero ... ok
+test fields::tests::test_fq_repr_num_bits ... ok
+test fields::tests::test_fq_root_of_unity ... ok
+test fields::tests::fq::test_sub_properties ... ok
+test fields::tests::fr::test_sum_of_products_tests ... ok
+test fields::tests::fq6::test_add_properties ... ok
+test curves::tests::pairing_output::test_var_base_msm_specialized ... ok
+test fields::tests::fq6::test_sub_properties ... ok
+test fields::tests::fq12::test_add_properties ... ok
+test fields::tests::fq12::test_frobenius ... ok
+test curves::tests::pairing_output::test_var_base_msm_mixed_scalars ... ok
+
+test result: ok. 110 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 814.85s
+

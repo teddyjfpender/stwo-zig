@@ -547,6 +547,23 @@ pub const Prepared = struct {
         result.omit_empty_division = self.division.len == 0;
         return result;
     }
+    /// Move the active shard from scratch backing into the prover heap before
+    /// projecting MAIN. Normalized memory and service advice has its own owner.
+    pub fn moveRetiredCpuCapture(self: *Prepared, a: std.mem.Allocator) !void {
+        const cpu = if (self.cpu) |*value| value else return error.PreparedExecutionConsumed;
+        const jalr = if (self.jalr) |*value| value else return error.PreparedExecutionConsumed;
+        const same = A.memory.ownership.same;
+        if (same(cpu.allocator, a) and same(jalr.allocator, a)) return;
+        if (!cpu.capture_records_retired or jalr.fixed.len != 0 or jalr.main.len != 0 or jalr.interaction.len != 0)
+            return error.CaptureSpillRequiresUnmaterializedCpu;
+        var heap_cpu = try cpu.cloneCapture(a);
+        errdefer heap_cpu.deinit();
+        const heap_jalr = try J.Source.capture(a, jalr.facts, jalr.log_size);
+        cpu.deinit();
+        jalr.deinit();
+        cpu.* = heap_cpu;
+        jalr.* = heap_jalr;
+    }
     /// Validate/rebind before projection. A projection failure leaves the CPU
     /// and grouped facts here for retry; no ownership moves on this barrier.
     pub fn ensureCpuMain(self: *Prepared, program: *const Program, expected_cpu_log: u32) !void {

@@ -2,7 +2,9 @@
 const std = @import("std");
 pub const DEFAULT_BYTES: usize = 32 << 30;
 pub const RECYCLER_CACHE_BYTES: usize = 4 << 30;
-pub const WORKER_STACK_BYTES: usize = 1024 * 1024;
+/// Native physical verification evaluates CPU and delegation AIR on helpers.
+/// Keep their stack reservation explicit in the receiver budget.
+pub const WORKER_STACK_BYTES: usize = 8 << 20;
 /// Original command forms remain valid. The one optional final argument is a
 /// requested-live allocation cap, never a proof/profile selector or RSS bound.
 pub fn limit(args: anytype, candidate: bool) !usize {
@@ -27,6 +29,6 @@ test "receiver cap has explicit positive operational authority and preserves old
     const zero = a ++ [_][]const u8{"0"};
     try std.testing.expectError(error.InvalidReceiverMemoryBudget, limit(&zero, false));
     try std.testing.expectError(error.VerifierNeedsNoExecutionPackets, limit(&explicit, false));
-    try std.testing.expectEqual(@as(usize, 8 << 20), try stackBytes(8));
+    try std.testing.expectEqual(@as(usize, 64 << 20), try stackBytes(8));
     try std.testing.expectError(error.Overflow, stackBytes(std.math.maxInt(usize)));
 }

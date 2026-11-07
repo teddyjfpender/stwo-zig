@@ -1,0 +1,582 @@
+{
+  "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+  "security_qualified": false,
+  "accounting_profile": "rv64-source-derived-services-v3-lookup/v1",
+  "shape": {
+    "native_proofs": 6,
+    "max_trace_log": 21,
+    "max_public_boundary_log": 15,
+    "max_columns": 7444,
+    "max_constraints": 7751,
+    "max_samples_per_column": 5,
+    "max_air_degree": 5,
+    "max_local_instances": 28,
+    "max_tuple_arity": 35,
+    "max_gkr_variables": 22,
+    "native_trace_cells": [
+      162393344,
+      89314528,
+      163214336
+    ]
+  },
+  "cpu_scopes": [
+    {
+      "namespace_count": 10,
+      "relations": [
+        {
+          "model": "unit_consistency",
+          "arity": 6,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 0,
+          "valid_provider_support": 0,
+          "unit_positive_mass": 786464,
+          "unit_negative_mass": 786464,
+          "denominator_slots": 1572928
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 30,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 262144,
+          "valid_provider_support": 1048576,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 1310720
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 13,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 266304,
+          "valid_provider_support": 80416,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 346720
+        },
+        {
+          "model": "unit_consistency",
+          "arity": 19,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 0,
+          "valid_provider_support": 0,
+          "unit_positive_mass": 263360,
+          "unit_negative_mass": 141184,
+          "denominator_slots": 404544
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 1,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 2202304,
+          "valid_provider_support": 65536,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 2267840
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 1,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 537600,
+          "valid_provider_support": 256,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 537856
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 3,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 69888,
+          "valid_provider_support": 65536,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 135424
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 6,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 12800,
+          "valid_provider_support": 1048576,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 1061376
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 5,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 49152,
+          "valid_provider_support": 131072,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 180224
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 4,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 524288,
+          "valid_provider_support": 65536,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 589824
+        }
+      ],
+      "owner_table": {
+        "model": "unit_membership_valid_support",
+        "arity": 19,
+        "consumer_sign": "negative",
+        "unit_consumer_mass": 0,
+        "valid_provider_support": 0,
+        "unit_positive_mass": 0,
+        "unit_negative_mass": 0,
+        "denominator_slots": 0
+      }
+    },
+    {
+      "namespace_count": 10,
+      "relations": [
+        {
+          "model": "unit_consistency",
+          "arity": 6,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 0,
+          "valid_provider_support": 0,
+          "unit_positive_mass": 786464,
+          "unit_negative_mass": 786464,
+          "denominator_slots": 1572928
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 30,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 262144,
+          "valid_provider_support": 1048576,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 1310720
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 13,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 270400,
+          "valid_provider_support": 38944,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 309344
+        },
+        {
+          "model": "unit_consistency",
+          "arity": 19,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 0,
+          "valid_provider_support": 0,
+          "unit_positive_mass": 266432,
+          "unit_negative_mass": 137728,
+          "denominator_slots": 404160
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 1,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 1740896,
+          "valid_provider_support": 65536,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 1806432
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 1,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 451200,
+          "valid_provider_support": 256,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 451456
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 3,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 83968,
+          "valid_provider_support": 65536,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 149504
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 6,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 15360,
+          "valid_provider_support": 1048576,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 1063936
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 5,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 49152,
+          "valid_provider_support": 131072,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 180224
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 4,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 524288,
+          "valid_provider_support": 65536,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 589824
+        }
+      ],
+      "owner_table": {
+        "model": "unit_membership_valid_support",
+        "arity": 19,
+        "consumer_sign": "negative",
+        "unit_consumer_mass": 0,
+        "valid_provider_support": 0,
+        "unit_positive_mass": 0,
+        "unit_negative_mass": 0,
+        "denominator_slots": 0
+      }
+    },
+    {
+      "namespace_count": 10,
+      "relations": [
+        {
+          "model": "unit_consistency",
+          "arity": 6,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 0,
+          "valid_provider_support": 0,
+          "unit_positive_mass": 786464,
+          "unit_negative_mass": 786464,
+          "denominator_slots": 1572928
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 30,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 262144,
+          "valid_provider_support": 1048576,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 1310720
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 13,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 270400,
+          "valid_provider_support": 35872,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 306272
+        },
+        {
+          "model": "unit_consistency",
+          "arity": 19,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 0,
+          "valid_provider_support": 0,
+          "unit_positive_mass": 266560,
+          "unit_negative_mass": 133888,
+          "denominator_slots": 400448
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 1,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 1739232,
+          "valid_provider_support": 65536,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 1804768
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 1,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 388096,
+          "valid_provider_support": 256,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 388352
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 3,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 83968,
+          "valid_provider_support": 65536,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 149504
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 6,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 20480,
+          "valid_provider_support": 1048576,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 1069056
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 5,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 32768,
+          "valid_provider_support": 131072,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 163840
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 4,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 524288,
+          "valid_provider_support": 65536,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 589824
+        }
+      ],
+      "owner_table": {
+        "model": "unit_membership_valid_support",
+        "arity": 19,
+        "consumer_sign": "negative",
+        "unit_consumer_mass": 0,
+        "valid_provider_support": 0,
+        "unit_positive_mass": 0,
+        "unit_negative_mass": 0,
+        "denominator_slots": 0
+      }
+    },
+    {
+      "namespace_count": 10,
+      "relations": [
+        {
+          "model": "unit_consistency",
+          "arity": 6,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 0,
+          "valid_provider_support": 0,
+          "unit_positive_mass": 196640,
+          "unit_negative_mass": 196640,
+          "denominator_slots": 393280
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 30,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 65536,
+          "valid_provider_support": 1048576,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 1114112
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 13,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 67584,
+          "valid_provider_support": 8224,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 75808
+        },
+        {
+          "model": "unit_consistency",
+          "arity": 19,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 0,
+          "valid_provider_support": 0,
+          "unit_positive_mass": 65888,
+          "unit_negative_mass": 18368,
+          "denominator_slots": 84256
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 1,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 348768,
+          "valid_provider_support": 65536,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 414304
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 1,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 88736,
+          "valid_provider_support": 256,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 88992
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 3,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 12544,
+          "valid_provider_support": 65536,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 78080
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 6,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 2720,
+          "valid_provider_support": 1048576,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 1051296
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 5,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 2176,
+          "valid_provider_support": 131072,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 133248
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 4,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 131072,
+          "valid_provider_support": 65536,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 196608
+        }
+      ],
+      "owner_table": {
+        "model": "unit_membership_valid_support",
+        "arity": 19,
+        "consumer_sign": "negative",
+        "unit_consumer_mass": 0,
+        "valid_provider_support": 0,
+        "unit_positive_mass": 0,
+        "unit_negative_mass": 0,
+        "denominator_slots": 0
+      }
+    }
+  ],
+  "truth_scopes": [
+    {
+      "relations": [
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 6,
+          "consumer_sign": "negative",
+          "unit_consumer_mass": 13107200,
+          "valid_provider_support": 2097152,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 15204352
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 6,
+          "consumer_sign": "negative",
+          "unit_consumer_mass": 2621440,
+          "valid_provider_support": 65536,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 2686976
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 1,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 0,
+          "valid_provider_support": 0,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 0
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 6,
+          "consumer_sign": "negative",
+          "unit_consumer_mass": 0,
+          "valid_provider_support": 0,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 0
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 6,
+          "consumer_sign": "negative",
+          "unit_consumer_mass": 0,
+          "valid_provider_support": 0,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 0
+        },
+        {
+          "model": "unit_membership_valid_support",
+          "arity": 1,
+          "consumer_sign": "positive",
+          "unit_consumer_mass": 0,
+          "valid_provider_support": 0,
+          "unit_positive_mass": 0,
+          "unit_negative_mass": 0,
+          "denominator_slots": 0
+        }
+      ]
+    }
+  ],
+  "global_signed": {
+    "ram": {
+      "positive": 454821,
+      "negative": 454821
+    },
+    "kio": {
+      "positive": 40000,
+      "negative": 23100
+    },
+    "wire": {
+      "positive": 136,
+      "negative": 136
+    }
+  },
+  "global_denominator_slots": [
+    1092928,
+    451200,
+    576
+  ],
+  "lookup_only_conditional_degrees": {
+    "tuple_collision": 872369791672848,
+    "rational_identity": 47067712,
+    "local_rational_identity": 45523008,
+    "global_rational_identity": 1544704,
+    "poles": 47067712
+  },
+  "transcript_round_bound_qualified": false,
+  "secp_polynomial_error_budget_qualified": false
+}

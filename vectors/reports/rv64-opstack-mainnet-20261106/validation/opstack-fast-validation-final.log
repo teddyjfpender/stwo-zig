@@ -1,0 +1,34 @@
+vendor source ownership: passed
++ /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 -m ruff check opstack
+All checks passed!
++ /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 -m ruff format --check opstack
+26 files already formatted
++ /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 -m unittest discover -s opstack/tests -v
+test_full_width_and_zero_modulus (test_arithmetic.ArithmeticOracle.test_full_width_and_zero_modulus) ... ok
+test_bn254_residue_shift_and_noncanonical_operands (test_arithmetic.MontgomeryOracle.test_bn254_residue_shift_and_noncanonical_operands) ... ok
+test_single_root_and_regular_files_are_admitted (test_boundaries.ArchiveBoundaries.test_single_root_and_regular_files_are_admitted) ... ok
+test_traversal_absolute_links_and_multiple_roots_reject (test_boundaries.ArchiveBoundaries.test_traversal_absolute_links_and_multiple_roots_reject) ... ok
+test_uncompressed_size_and_member_count_reject_before_extraction (test_boundaries.ArchiveBoundaries.test_uncompressed_size_and_member_count_reject_before_extraction) ... ok
+test_complete_capture_digest_is_returned_without_proof_acceptance (test_boundaries.CaptureBoundaries.test_complete_capture_digest_is_returned_without_proof_acceptance) ... ok
+test_prefix_other_terminal_and_missing_or_noncanonical_digest_reject (test_boundaries.CaptureBoundaries.test_prefix_other_terminal_and_missing_or_noncanonical_digest_reject) ... ok
+test_explicit_thresholds_and_ambient_cleanup (test_build.BuildEnvironment.test_explicit_thresholds_and_ambient_cleanup) ... ok
+test_accept_complete_output (test_cpu.CPUReceiptTests.test_accept_complete_output) ... ok
+test_timeout_writes_failure_receipt_and_reaps_child (test_cpu.CPUReceiptTests.test_timeout_writes_failure_receipt_and_reaps_child) ... ok
+test_valid_utf8_wire_output (test_cpu.CPUReceiptTests.test_valid_utf8_wire_output) ... ok
+test_authentication (test_mainnet.MainnetImportTests.test_authentication) ... ok
+test_duplicate_key (test_mainnet.MainnetImportTests.test_duplicate_key) ... ok
+test_missing_source_section (test_mainnet.MainnetImportTests.test_missing_source_section) ... ok
+test_normalized_duplicate (test_mainnet.MainnetImportTests.test_normalized_duplicate) ... ok
+test_size_and_identity (test_mainnet.MainnetImportTests.test_size_and_identity) ... ok
+test_valid_preimage (test_mainnet.MainnetImportTests.test_valid_preimage) ... ok
+test_closed_multi_gpu_policy_and_invalid_cases_cannot_be_bypassed (test_resident.ResidentInputs.test_closed_multi_gpu_policy_and_invalid_cases_cannot_be_bypassed) ... ok
+test_independent_count_register_service_and_identity_changes_reject (test_resident.ResidentInputs.test_independent_count_register_service_and_identity_changes_reject) ... ok
+test_legacy_schema_prefix_and_tampered_asset_reject_before_publication (test_resident.ResidentInputs.test_legacy_schema_prefix_and_tampered_asset_reject_before_publication) ... ok
+test_portable_assets_pins_and_exact_segment_coverage (test_resident.ResidentInputs.test_portable_assets_pins_and_exact_segment_coverage) ... ok
+test_input_bounds_and_state_ownership (test_sha_oracle.ShaCompression.test_input_bounds_and_state_ownership) ... ok
+test_public_compression_abi_matches_full_hash_at_padding_boundaries (test_sha_oracle.ShaCompression.test_public_compression_abi_matches_full_hash_at_padding_boundaries) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 0.076s
+
+OK

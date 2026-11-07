@@ -182,16 +182,30 @@ pub fn configured(comptime options: CommitmentOptions) type {
             return riscv_composition.telemetrySnapshot();
         }
 
-        /// Interpolates the four independent secure-field coordinates in place
-        /// on the existing prover pool. The generic path duplicates and transforms
-        /// them serially; owned composition evaluations need neither cost.
+        /// Preserves the established quartic backend interface.
         pub fn interpolateSecureComposition(
             allocator: std.mem.Allocator,
             values: *prover_impl.secure_column.SecureColumnByCoords,
             domain: core_poly.circle.domain.CircleDomain,
             twiddle_tree: prover_impl.poly.twiddles.TwiddleTree([]const M31),
         ) !work_profile.M31InterpolationBackendResult {
+            return interpolateSecureCompositionForField(qm31_mod.QM31, allocator, values, domain, twiddle_tree);
+        }
+
+        /// The secure coordinates are independent disjoint columns. Interpolate
+        /// owned octic evaluations in place on the same proof pool.
+        pub fn interpolateSecureCompositionForField(
+            comptime Secure: type,
+            allocator: std.mem.Allocator,
+            values: *prover_impl.secure_column.SecureColumnByCoordsFor(Secure),
+            domain: core_poly.circle.domain.CircleDomain,
+            twiddle_tree: prover_impl.poly.twiddles.TwiddleTree([]const M31),
+        ) !work_profile.M31InterpolationBackendResult {
             _ = allocator;
+            const coordinates = @typeInfo(@TypeOf(values.columns)).array.len;
+            if (comptime Secure != qm31_mod.QM31) {
+                if (!values.owns_columns or values.resident_storage != null) return .declined;
+            }
             if (values.representation == .coefficients)
                 return .already_coefficients;
             for (values.columns) |coordinate| {
@@ -216,7 +230,7 @@ pub fn configured(comptime options: CommitmentOptions) type {
                 }
             };
 
-            var jobs: [qm31_mod.SECURE_EXTENSION_DEGREE]Job = undefined;
+            var jobs: [coordinates]Job = undefined;
             for (values.columns, &jobs) |coordinate, *job| {
                 job.* = .{
                     .values = coordinate,
@@ -238,9 +252,8 @@ pub fn configured(comptime options: CommitmentOptions) type {
             return .{
                 .transformed = .{
                     .log_size = domain.logSize(),
-                    .column_count = qm31_mod.SECURE_EXTENSION_DEGREE,
-                    // The CPU path runs four independent one-column jobs.
-                    .batch_count = qm31_mod.SECURE_EXTENSION_DEGREE,
+                    .column_count = coordinates,
+                    .batch_count = coordinates,
                 },
             };
         }

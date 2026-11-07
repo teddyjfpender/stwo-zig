@@ -1,0 +1,44 @@
+{
+  "schema": "stwo.opstack.cpu-proof.v1",
+  "security_qualified": false,
+  "scope": "native execution/service STARK bundle; no recursive root or L1 derivation",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "runner_sha256": "c22db86c5a97abdf9d12f594da29a48377d348b3ca25168064f08992f887b559",
+  "request_sha256": "ae880fcd77974ca3d87109d09fd3dc903775ae1569f5a1cb0ad57fda8031ec33",
+  "elf_sha256": "04dac8540992cd08f6bdbdb556c960053d5e52255028862c34ba008598c2c7e0",
+  "input_sha256": "87ac02ac032049cd005303f28eda6694ebf79d3808c519371b410d01e09ff174",
+  "proof_verified": false,
+  "stages": {
+    "plan": {
+      "command": [
+        "/workspace/opstack-tools-final/bin/rv64-word16-ethereum-gkr",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "plan-candidate",
+        "/workspace/opstack-runs/cpu-mainnet-user-block-padded/request.json",
+        "-",
+        "0",
+        "/workspace/opstack-runs/cpu-mainnet-user-block-padded/resources.json"
+      ],
+      "wall_ns": 4730827958,
+      "peak_rss_bytes": 1783189504,
+      "returncode": 0
+    },
+    "produce": {
+      "command": [
+        "/workspace/opstack-tools-final/bin/rv64-word16-ethereum-gkr",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "produce-candidate",
+        "/workspace/opstack-runs/cpu-mainnet-user-block-padded/request.json",
+        "-",
+        "/workspace/opstack-runs/cpu-mainnet-user-block-padded/proof",
+        "0",
+        "/workspace/opstack-runs/cpu-mainnet-user-block-padded/resources.json"
+      ],
+      "wall_ns": 142070237723,
+      "peak_rss_bytes": 2945458176,
+      "returncode": -9
+    }
+  }
+}

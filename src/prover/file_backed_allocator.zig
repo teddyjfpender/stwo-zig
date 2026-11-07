@@ -7,8 +7,10 @@ const builtin = @import("builtin");
 
 pub const FileBackedAllocator = struct {
     dir: std.fs.Dir,
+    limit_bytes: usize = std.math.maxInt(usize),
     live_bytes: std.atomic.Value(usize) = .init(0),
     total_bytes: std.atomic.Value(usize) = .init(0),
+    peak_bytes: std.atomic.Value(usize) = .init(0),
 
     pub fn init(path: []const u8) !FileBackedAllocator {
         if (comptime builtin.os.tag != .macos and builtin.os.tag != .linux)
@@ -38,11 +40,20 @@ pub const FileBackedAllocator = struct {
     }
 
     fn map(self: *FileBackedAllocator, len: usize) ![*]u8 {
+        const size = try ReservedFile.roundedLength(len);
+        var live = self.live_bytes.load(.monotonic);
+        while (true) {
+            if (size > self.limit_bytes - live) return error.FileBackedAllocationBudget;
+            const reserved = live + size;
+            live = self.live_bytes.cmpxchgWeak(live, reserved, .monotonic, .monotonic) orelse {
+                _ = self.peak_bytes.fetchMax(reserved, .monotonic);
+                break;
+            };
+        }
+        errdefer _ = self.live_bytes.fetchSub(size, .monotonic);
         var owned = try ReservedFile.init(self.dir, len);
         defer owned.deinit();
-        const size = owned.size;
         const memory = try owned.map(false);
-        _ = self.live_bytes.fetchAdd(size, .monotonic);
         _ = self.total_bytes.fetchAdd(size, .monotonic);
         return memory.ptr;
     }

@@ -256,14 +256,16 @@ pub fn ForField(comptime Secure: type) type {
                 return result;
             }
 
-            if (comptime B != void and (Secure == @import("stwo_core").fields.qm31.QM31 and @hasDecl(B, "interpolateSecureComposition"))) {
-                const dispatch: work_profile.M31InterpolationBackendResult =
-                    try B.interpolateSecureComposition(
-                        allocator,
-                        values,
-                        domain,
-                        twiddle_tree,
-                    );
+            const legacy_backend = B != void and Secure == qm31.QM31 and @hasDecl(B, "interpolateSecureComposition");
+            const octic_backend = B != void and Secure == @import("stwo_core").fields.om31.OM31 and @hasDecl(B, "interpolateSecureCompositionForField");
+            const constant = if (comptime octic_backend) evaluationIsConstant(values) else false;
+            if (legacy_backend or (octic_backend and !constant)) {
+                const dispatch: work_profile.M31InterpolationBackendResult = if (comptime octic_backend)
+                    try B.interpolateSecureCompositionForField(Secure, allocator, values, domain, twiddle_tree)
+                else if (comptime legacy_backend)
+                    try B.interpolateSecureComposition(allocator, values, domain, twiddle_tree)
+                else
+                    unreachable;
                 try dispatch.validate();
                 switch (dispatch) {
                     .declined => {
@@ -283,7 +285,7 @@ pub fn ForField(comptime Secure: type) type {
                 }
             }
 
-            if (!evaluationIsConstant(values)) {
+            if (!(if (comptime octic_backend) constant else evaluationIsConstant(values))) {
                 var polynomial = try interpolateFromEvaluationWithTwiddles(
                     allocator,
                     domain,

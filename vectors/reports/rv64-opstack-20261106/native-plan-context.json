@@ -1,0 +1,41 @@
+{
+  "request": {
+    "elf": "/tmp/opstack-elfs/memory-v1.elf",
+    "input": "/tmp/opstack-memory-v2/26207960.opx",
+    "expected_output": "7193612a08406268c6333ddb08247a55d1acbe94a5dc20fc2fe1f38a39629fab01dc37aa00000000004f50",
+    "elf_sha256": "eeb68f4e1492dcf5039dd77aec30873547af80c07c43859efe112401e323e330",
+    "input_sha256": "e53f5d15e4f790d3fea218dff370c173591ed04978b1b7f5f44e738bc2973f68",
+    "max_steps": 8276624,
+    "execution_profile": "ethereum_services_v3",
+    "symbols": {
+      "input_start": 8388608,
+      "input_end": 25165824,
+      "halt_flag": 25165824,
+      "output_len": 25165828,
+      "output_data": 25165832,
+      "output_end": 29360128,
+      "stack_bottom": 29360128,
+      "stack_top": 46137344,
+      "heap_start": 46284976,
+      "heap_end": 268435456
+    },
+    "terminal_pc": 2748,
+    "batch_steps": 262143,
+    "output_directory": "/tmp/opstack-memory-v2/26207960-proof",
+    "workers": 1
+  },
+  "runner_sha256": "bd9345562111d819819b03a8b98bde61a772f2bd7b62b76d68ff17d6ccea6c2a",
+  "argv": [
+    "rv64-word16-ethereum-gkr",
+    "plan",
+    "REQUEST",
+    "-",
+    "0"
+  ],
+  "proof_verified": false,
+  "scope": "Older memory candidate, 8276623 instructions, 262143-step batch; geometry only; no proof",
+  "environment": {
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CAPTURE_ASYNC_START": "0"
+  }
+}

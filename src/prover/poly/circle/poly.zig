@@ -9,6 +9,7 @@ const poly_utils = @import("stwo_core").poly.utils;
 const eval_mod = @import("evaluation.zig");
 const point_evaluation = @import("point_evaluation.zig");
 const transforms = @import("transforms.zig");
+const zero_column = @import("zero_column.zig");
 const twiddles_mod = @import("../twiddles.zig");
 
 const M31 = m31.M31;
@@ -283,6 +284,10 @@ pub const CircleCoefficients = struct {
         if (!domain.half_coset.isDoublingOf(twiddle_tree.root_coset)) return PolyError.InvalidLogSize;
         const values = try allocator.alloc(M31, domain.size());
         errdefer allocator.free(values);
+        if (zero_column.isZero(self.coeffs)) {
+            @memset(values, M31.zero());
+            return eval_mod.CircleEvaluation.init(domain, values);
+        }
         @memcpy(values[0..self.coeffs.len], self.coeffs);
         if (self.coeffs.len * 2 == values.len) {
             transforms.evaluateExtensionBufferWithTwiddles(values, domain, twiddle_tree);
@@ -372,6 +377,7 @@ pub fn interpolateFromEvaluationWithTwiddles(
     if (!evaluation.domain.half_coset.isDoublingOf(twiddle_tree.root_coset)) return PolyError.InvalidLogSize;
     const coeffs = try allocator.dupe(M31, evaluation.values);
     errdefer allocator.free(coeffs);
+    if (zero_column.isZero(coeffs)) return CircleCoefficients.initOwned(coeffs);
     try transforms.interpolateIntoBufferWithTwiddles(
         coeffs,
         evaluation.domain,
@@ -394,6 +400,7 @@ pub fn interpolateOwnedValuesWithTwiddles(
     if (n == 0 or !std.math.isPowerOfTwo(n)) return PolyError.InvalidLength;
     if (domain.size() != n) return PolyError.InvalidLength;
     if (!domain.half_coset.isDoublingOf(twiddle_tree.root_coset)) return PolyError.InvalidLogSize;
+    if (zero_column.isZero(owned_values)) return CircleCoefficients.initOwned(owned_values);
     try transforms.interpolateIntoBufferWithTwiddles(
         owned_values,
         domain,
@@ -427,6 +434,7 @@ pub fn evaluateManyWithTwiddles(
     domain: CircleDomain,
     twiddle_tree: M31TwiddleTree,
 ) (std.mem.Allocator.Error || PolyError || eval_mod.EvaluationError)![][]M31 {
+    if (!domain.half_coset.isDoublingOf(twiddle_tree.root_coset)) return PolyError.InvalidLogSize;
     const out = try allocator.alloc([]M31, polys.len);
     errdefer allocator.free(out);
 
@@ -435,26 +443,37 @@ pub fn evaluateManyWithTwiddles(
         for (out[0..initialized]) |values| allocator.free(values);
     }
 
+    const active = try allocator.alloc([]M31, polys.len);
+    defer allocator.free(active);
+    var active_count: usize = 0;
     var all_extension = polys.len > 0;
     for (polys, 0..) |poly, i| {
         if (domain.logSize() < poly.log_size) return PolyError.InvalidLogSize;
         const values = try allocator.alloc(M31, domain.size());
+        out[i] = values;
+        initialized += 1;
+        if (zero_column.isZero(poly.coeffs)) {
+            @memset(values, M31.zero());
+            continue;
+        }
+        active[active_count] = values;
+        active_count += 1;
         @memcpy(values[0..poly.coeffs.len], poly.coeffs);
         if (poly.coeffs.len * 2 != values.len) {
             all_extension = false;
             if (poly.coeffs.len < values.len) @memset(values[poly.coeffs.len..], M31.zero());
         }
-        out[i] = values;
-        initialized += 1;
     }
 
+    if (active_count == 0) return out;
+
     if (all_extension) {
-        try transforms.evaluateExtensionBuffersWithTwiddles(out, domain, twiddle_tree);
+        try transforms.evaluateExtensionBuffersWithTwiddles(active[0..active_count], domain, twiddle_tree);
     } else {
         for (out, polys) |values, poly| {
             if (poly.coeffs.len * 2 == values.len) @memset(values[poly.coeffs.len..], M31.zero());
         }
-        try evaluateBuffersWithTwiddles(out, domain, twiddle_tree);
+        try evaluateBuffersWithTwiddles(active[0..active_count], domain, twiddle_tree);
     }
     return out;
 }
@@ -469,7 +488,11 @@ pub const evaluateExtensionBuffersWithTwiddles = transforms.evaluateExtensionBuf
 pub const evaluateExtensionBuffersWithTwiddlesWithPool = transforms.evaluateExtensionBuffersWithTwiddlesWithPool;
 pub const evaluateDyadicExtensionBuffersWithTwiddlesWithPool = transforms.evaluateDyadicExtensionBuffersWithTwiddlesWithPool;
 
-test { _ = @import("dyadic_extension_test.zig"); }
+test {
+    _ = @import("dyadic_extension_test.zig");
+    _ = @import("zero_column.zig");
+    _ = @import("zero_column_test.zig");
+}
 
 fn checkedPow2(log_size: u32) PolyError!usize {
     if (log_size >= @bitSizeOf(usize)) return PolyError.InvalidLogSize;

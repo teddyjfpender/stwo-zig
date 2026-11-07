@@ -1,0 +1,384 @@
+{
+  "schema": "stwo.opstack.cpu-proof.v1",
+  "security_qualified": false,
+  "scope": "native execution/service STARK bundle; no recursive root or L1 derivation",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "producer_setup": "ephemeral",
+  "setup_build_workers": 1,
+  "native_pool_workers": 4,
+  "service_schedule": {
+    "lanes": 1,
+    "workers_per_lane": 4,
+    "memory_cap_bytes": 2147483648
+  },
+  "receiver_setup": "independently rebuilt; no producer cache",
+  "runner_sha256": "56d3e5dd2d6832e66db9a952fce890fb7cfb30bdf4ed20a6ae22fbbc46841c8a",
+  "harness_sha256": "1243ba15f316dcd39ed028ef7c4c1abe53e9466f4b3eaf8246c05fbed70f9cce",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "logical_cpus": 9,
+  "request_sha256": "f50daa686d526841b1df51571d8023b20278d8c4514ee04de6879b417a2fe6d2",
+  "elf_sha256": "04dac8540992cd08f6bdbdb556c960053d5e52255028862c34ba008598c2c7e0",
+  "input_sha256": "87ac02ac032049cd005303f28eda6694ebf79d3808c519371b410d01e09ff174",
+  "proof_verified": true,
+  "stages": {
+    "plan": {
+      "command": [
+        "/workspace/opstack-native-tools/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "plan-candidate",
+        "/workspace/opstack-runs/cpu-mainnet-user-4workers/request.json",
+        "-",
+        "0",
+        "/workspace/opstack-runs/cpu-mainnet-user-4workers/resources.json"
+      ],
+      "wall_ns": 3517089023,
+      "peak_rss_bytes": 1704640512,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "produce": {
+      "command": [
+        "/workspace/opstack-native-tools/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "produce-candidate",
+        "/workspace/opstack-runs/cpu-mainnet-user-4workers/request.json",
+        "-",
+        "/workspace/opstack-runs/cpu-mainnet-user-4workers/proof",
+        "0",
+        "/workspace/opstack-runs/cpu-mainnet-user-4workers/resources.json"
+      ],
+      "wall_ns": 268611112442,
+      "peak_rss_bytes": 4384141312,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "receive": {
+      "command": [
+        "/workspace/opstack-native-tools/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-candidate",
+        "/workspace/opstack-runs/cpu-mainnet-user-4workers/request.json",
+        "/workspace/opstack-runs/cpu-mainnet-user-4workers/proof",
+        "1073741824",
+        "6442450944"
+      ],
+      "wall_ns": 34897274294,
+      "peak_rss_bytes": 2732662784,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "tamper": {
+      "command": [
+        "/workspace/opstack-native-tools/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-candidate",
+        "/workspace/opstack-runs/cpu-mainnet-user-4workers/request.json",
+        "/workspace/opstack-runs/cpu-mainnet-user-4workers/proof",
+        "1073741824",
+        "6442450944"
+      ],
+      "wall_ns": 1160174728,
+      "peak_rss_bytes": 480698368,
+      "returncode": 1,
+      "timed_out": false
+    },
+    "tamper-rehashed": {
+      "command": [
+        "/workspace/opstack-native-tools/bin/rv64-word16-ethereum-native",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-candidate",
+        "/workspace/opstack-runs/cpu-mainnet-user-4workers/request.json",
+        "/workspace/opstack-runs/cpu-mainnet-user-4workers/proof",
+        "1073741824",
+        "6442450944"
+      ],
+      "wall_ns": 46289484992,
+      "peak_rss_bytes": 2716065792,
+      "returncode": 1,
+      "timed_out": false
+    }
+  },
+  "receiver": {
+    "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+    "security_qualified": false,
+    "security_target": {
+      "label": "128-bit CONJECTURED security (ethSTARK-style FRI conjecture; owner-accepted 2026-11-02)",
+      "target_bits": 128,
+      "profile": "conjectured128_b2_q108_p20_fold4",
+      "assumption_set": "rv64-native-v3-om31-conjectured128-b2-q108-p20-fold4-20261102-v2-boundary23",
+      "conjectured_fri_bits": 128,
+      "scope": "native proof bundle; recursion excluded",
+      "proven_bound": false,
+      "independent_security_audit_complete": false,
+      "whole_protocol_128_certified": false
+    },
+    "security_profile": "conjectured128_b2_q108_p20_fold4",
+    "accepted": true,
+    "completed_ethereum_block": true,
+    "output": [
+      170,
+      184,
+      43,
+      190,
+      44,
+      200,
+      243,
+      95,
+      145,
+      135,
+      6,
+      31,
+      210,
+      100,
+      93,
+      159,
+      185,
+      106,
+      11,
+      232,
+      218,
+      235,
+      206,
+      192,
+      57,
+      119,
+      171,
+      113,
+      14,
+      205,
+      162,
+      137,
+      1,
+      10,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      79,
+      80
+    ],
+    "cpu_proofs": 7,
+    "truth_proofs": 7,
+    "load_and_setup_ns": 32474994654,
+    "setup_breakdown": {
+      "image_ns": 879618697,
+      "program_ns": 87628021,
+      "native_keys_ns": 20738877190,
+      "fixed_authority_ns": 10709750716,
+      "other_ns": 59119844
+    },
+    "verify_ns": 2221025748,
+    "fixed_setup": {
+      "limit_bytes": 1073741824,
+      "live_bytes": 275463536,
+      "peak_bytes": 793072016,
+      "keys": 13,
+      "hits": 0,
+      "seals": 13,
+      "loads": 0,
+      "refused": false,
+      "native_coefficients": {
+        "limit_bytes": 1073741824,
+        "retained_bytes": 181939200,
+        "native_backing_bytes": 181906560,
+        "groups": 254,
+        "hits": 1044,
+        "duplicate_native_bytes_released": 1074745600,
+        "observed_individual_owners": 1298,
+        "observed_backing_owners": 0,
+        "observed_spans": 1298,
+        "owner_leases": 14
+      }
+    },
+    "source_validations": 13,
+    "source_coefficient_cells": 314163040,
+    "source_accounting_profile": "rv64-source-derived-services-v3-lookup/v1",
+    "source_shape": {
+      "native_proofs": 14,
+      "max_trace_log": 21,
+      "max_public_boundary_log": 18,
+      "max_columns": 7444,
+      "max_constraints": 7751,
+      "max_samples_per_column": 5,
+      "max_air_degree": 5,
+      "max_local_instances": 29,
+      "max_tuple_arity": 35,
+      "max_gkr_variables": 24,
+      "native_trace_cells": [
+        314165088,
+        567231360,
+        543180544
+      ]
+    },
+    "source_lookup_only_conditional_degrees": {
+      "tuple_collision": 12186500872702848,
+      "rational_identity": 259212352,
+      "local_rational_identity": 248934720,
+      "global_rational_identity": 10277632,
+      "poles": 259212352
+    },
+    "receiver_budget": {
+      "live_bytes": 1331873141,
+      "peak_live_bytes": 1849481621,
+      "host_live_bytes": 1331873141,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 1849481621,
+      "peak_external_bytes": 0,
+      "limit": 6442450944,
+      "exceeded": false
+    },
+    "receiver_recycler_cache_cap_bytes": 4294967296,
+    "receiver_worker_stack_upper_bound_bytes": 4194304
+  },
+  "artifacts": {
+    "proof/bundle.json": {
+      "bytes": 60754,
+      "sha256": "20526607f9067a9a64be41b4caf60c5e1ca5d399384c44920e1dba00006e00ab"
+    },
+    "proof/candidate-fixed-setup.json": {
+      "bytes": 971,
+      "sha256": "07fada331ad54d2a2d15ed6be583a533e67616280d7f212a4d734ef67debeaa4"
+    },
+    "proof/candidate-source-bounds.json": {
+      "bytes": 33565,
+      "sha256": "15d6942a0ddbebb0d7162dc4d2b728b36f9076642b63ae3158b5c4da6fcfabf7"
+    },
+    "proof/cells.bin": {
+      "bytes": 6992614,
+      "sha256": "758a1e04b7515b97eb69acbfb848ffe200bda682cbdb3506810978028c44dfef"
+    },
+    "proof/cpu-0.bin": {
+      "bytes": 2643104,
+      "sha256": "d43a23e28c6965538e5cfd00e0b46530280bc5b918496f7bdaae97e074446fde"
+    },
+    "proof/cpu-1.bin": {
+      "bytes": 2410160,
+      "sha256": "d6853b6c4d83bf3e554668dc267abe5048ed1b922caa7182181d79ca7d297bef"
+    },
+    "proof/cpu-2.bin": {
+      "bytes": 2544720,
+      "sha256": "038fa6ca0f2ae41ca7bd666d9410dc5dc3eb9afcf65f8db6db1ae3b524d399b3"
+    },
+    "proof/cpu-3.bin": {
+      "bytes": 2544368,
+      "sha256": "026e6d52138ecca111d429a2f45f3e2a41cf14e045523d4bb1c6c1cdac7fe60c"
+    },
+    "proof/cpu-4.bin": {
+      "bytes": 2505064,
+      "sha256": "15934ad9efcbe2f55997fb50f57e15ee66f5f8367bdbf1a9f7a771695d384273"
+    },
+    "proof/cpu-5.bin": {
+      "bytes": 2535888,
+      "sha256": "e2d43233bb4e1cb949c20e5b84c155cf42a16cf30005d69e497a2ad49c01718a"
+    },
+    "proof/cpu-6.bin": {
+      "bytes": 1000104,
+      "sha256": "0851026ac20f68e745aae16002453a0f585ce46bc38e199a1df7c4f183f7e914"
+    },
+    "proof/physical-0000.stages.json": {
+      "bytes": 200568,
+      "sha256": "95191424d958fdd9737ae891aed9cbdc9b6216f69e3e7e0b05f93c8f42116339"
+    },
+    "proof/physical-0001.stages.json": {
+      "bytes": 182921,
+      "sha256": "a2a687bb1f0f6b2cd12be10fb55047d340d9fb05bffd4eb64aecd374c3b99deb"
+    },
+    "proof/physical-0002.stages.json": {
+      "bytes": 192757,
+      "sha256": "a63ab9bec4c455c2d32a8cbb8d0f03bf92cd6abc3872709a8f60bc88e3d4de95"
+    },
+    "proof/physical-0003.stages.json": {
+      "bytes": 192802,
+      "sha256": "38cf34b578361d27244bbc987f1faf78d4e37f89289aa6cd9a2dbb69e89dc045"
+    },
+    "proof/physical-0004.stages.json": {
+      "bytes": 190154,
+      "sha256": "8d6c0f73add06adee039bfc7a4802aeba787d7e788f9f173222c37675e9b2e89"
+    },
+    "proof/physical-0005.stages.json": {
+      "bytes": 192828,
+      "sha256": "caf948e8996ec0d12a99f059e8dc4b52977354bae0579da19ef680344778b919"
+    },
+    "proof/physical-0006.stages.json": {
+      "bytes": 60821,
+      "sha256": "40da899b07fe345299c679e987dd34631f59a19d1639d59a8f4572450ea80974"
+    },
+    "proof/physical-0007.stages.json": {
+      "bytes": 156948,
+      "sha256": "bc65a6eb777b1fc4434d6e4b19365cb422a4add05ed01e841e2a8700876febd6"
+    },
+    "proof/physical-0008.stages.json": {
+      "bytes": 158024,
+      "sha256": "0913a90a7dfc5fd49cb582843ef46509253d2d84551a368c4236b5393a3323c0"
+    },
+    "proof/physical-0009.stages.json": {
+      "bytes": 303651,
+      "sha256": "5bda0661c9c660c4e039d527f8b6c1e040c72269c38e2d90dc55fbd8acaac369"
+    },
+    "proof/physical-0010.stages.json": {
+      "bytes": 293745,
+      "sha256": "9a62a9b0a817f03161d2ca5375e58dcf15f07daeae6c6b09e2496374f529e58c"
+    },
+    "proof/physical-0011.stages.json": {
+      "bytes": 230841,
+      "sha256": "3b781c847793949db25cefdbc0d0c617e5dec02d09d6b07c5e1f1f46bcd0ccae"
+    },
+    "proof/physical-0012.stages.json": {
+      "bytes": 309375,
+      "sha256": "4482f39a0fe21e3847368c10b3cb417ef65fa018b283c39a836be1ebbfe8edc4"
+    },
+    "proof/physical-0013.stages.json": {
+      "bytes": 70851,
+      "sha256": "6534950c7003babbfeee8d7e61babc8375d7a6837c0596860f1cdb856c011568"
+    },
+    "proof/report.json": {
+      "bytes": 27157,
+      "sha256": "ddeb1ec7821af6ad662caae238a9b7bdf039c8873042c1ad6b538ee656fcf6d7"
+    },
+    "proof/schedule.json": {
+      "bytes": 6682,
+      "sha256": "03eb27c9a8627b69f4126541875fc426e3f4e9c5b440b11a5f2e7c5f150c8533"
+    },
+    "proof/stage-one.bin": {
+      "bytes": 647876,
+      "sha256": "39701c8211d4b3b5ed8fa594e79b93ede4bda24efcf2c9c0a45d530a0ac272bc"
+    },
+    "proof/truth-0.bin": {
+      "bytes": 2346600,
+      "sha256": "475ce037de8de3d89eed5513fb8ece89042afa29ba49c1cfe16f00ddc646a517"
+    },
+    "proof/truth-1.bin": {
+      "bytes": 2345576,
+      "sha256": "1c93cd36aa8145142251d63a0bba9a2f29444645cce4c94f3f8386af435f2520"
+    },
+    "proof/truth-2.bin": {
+      "bytes": 3853368,
+      "sha256": "186e94388630962edbf0c023943442d1c809757b888067b7db47a3b482db679e"
+    },
+    "proof/truth-3.bin": {
+      "bytes": 3178628,
+      "sha256": "d04bc4ca7e44548eb098cfbdacbc00e8a9eff61dc54ea3d6bb8c0fc3c08292f8"
+    },
+    "proof/truth-4.bin": {
+      "bytes": 2462180,
+      "sha256": "c411bbe43b6b8ce2cff8b1a2bab8e6638a74c4e18536105a828c48008b25b059"
+    },
+    "proof/truth-5.bin": {
+      "bytes": 2448928,
+      "sha256": "3f70f9a4feb939ec079f226981af591aa76ccb2bf5abd223c05e1f95557d5de8"
+    },
+    "proof/truth-6.bin": {
+      "bytes": 641968,
+      "sha256": "28cbbc02a0147010d34be6f8b1e172c79acc5b58e4e940e0994cf4a8b1b7272a"
+    }
+  },
+  "tampered_proof_rejected": true
+}

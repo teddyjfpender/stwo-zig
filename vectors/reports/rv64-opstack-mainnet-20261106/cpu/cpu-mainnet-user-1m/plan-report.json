@@ -1,0 +1,392 @@
+{
+  "schema": "rv64-native-plan-cost/v1",
+  "scope": "source-derived native FIXED/MAIN/INTERACTION cells including padding; excludes PCS blowup, composition, openings, recursion, proof bytes and timing; no proof or acceptance",
+  "security_qualified": false,
+  "proof_generated": false,
+  "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+  "program_log": 20,
+  "prefix_count": 0,
+  "total_steps": 6394106,
+  "final_pc": 2748,
+  "memory_words": 152013,
+  "capture_ns": 3378913762,
+  "cpu": [
+    {
+      "geometry": {
+        "cpu_log": 20,
+        "alu_log": 18,
+        "alu_tail_log": null,
+        "binary_log": 16,
+        "binary_tail_log": null,
+        "shift_log": 16,
+        "shift_tail_log": null,
+        "jalr_log": 13,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 17,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 18,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": 12,
+        "double": 11,
+        "sha256": 8,
+        "bulk": {
+          "desc": 12,
+          "copy": 16,
+          "set": 13,
+          "ucopy": 12,
+          "cdesc": 9,
+          "cmp": 10
+        },
+        "sponge": {
+          "call": 6,
+          "perm": 8
+        },
+        "ls_dword": 18
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 20,
+        "alu_log": 17,
+        "alu_tail_log": null,
+        "binary_log": 14,
+        "binary_tail_log": 12,
+        "shift_log": 13,
+        "shift_tail_log": null,
+        "jalr_log": 14,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 12,
+        "ls_log": 17,
+        "ls_tail_log": 16,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 12,
+          "copy": 16,
+          "set": 13,
+          "ucopy": 14,
+          "cdesc": 8,
+          "cmp": 9
+        },
+        "sponge": {
+          "call": 8,
+          "perm": 10
+        },
+        "ls_dword": 18
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 20,
+        "alu_log": 17,
+        "alu_tail_log": null,
+        "binary_log": 14,
+        "binary_tail_log": 10,
+        "shift_log": 13,
+        "shift_tail_log": 10,
+        "jalr_log": 13,
+        "division_log": 7,
+        "omit_empty_division": false,
+        "multiplication_log": 12,
+        "ls_log": 17,
+        "ls_tail_log": 16,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "arith256_mod": 6,
+        "bulk": {
+          "desc": 12,
+          "copy": 15,
+          "set": 12,
+          "ucopy": 13,
+          "cdesc": 7,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 7,
+          "perm": 10
+        },
+        "ls_dword": 18
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 20,
+        "alu_log": 17,
+        "alu_tail_log": null,
+        "binary_log": 14,
+        "binary_tail_log": 10,
+        "shift_log": 13,
+        "shift_tail_log": 10,
+        "jalr_log": 13,
+        "division_log": 7,
+        "omit_empty_division": false,
+        "multiplication_log": 13,
+        "ls_log": 17,
+        "ls_tail_log": 15,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "arith256_mod": 6,
+        "bulk": {
+          "desc": 12,
+          "copy": 15,
+          "set": 12,
+          "ucopy": 13,
+          "cdesc": 7,
+          "cmp": 8
+        },
+        "sponge": {
+          "call": 7,
+          "perm": 9
+        },
+        "ls_dword": 18
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 20,
+        "alu_log": 16,
+        "alu_tail_log": 14,
+        "binary_log": 14,
+        "binary_tail_log": 12,
+        "shift_log": 13,
+        "shift_tail_log": 10,
+        "jalr_log": 13,
+        "division_log": 7,
+        "omit_empty_division": false,
+        "multiplication_log": 13,
+        "ls_log": 17,
+        "ls_tail_log": 10,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 12,
+          "copy": 15,
+          "set": 14,
+          "ucopy": 13,
+          "cdesc": 9,
+          "cmp": 10
+        },
+        "sponge": {
+          "call": 8,
+          "perm": 9
+        },
+        "ls_dword": 18,
+        "ls_dword_tail": 14
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 20,
+        "alu_log": 15,
+        "alu_tail_log": 13,
+        "binary_log": 13,
+        "binary_tail_log": 10,
+        "shift_log": 13,
+        "shift_tail_log": null,
+        "jalr_log": 15,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 11,
+        "ls_log": 16,
+        "ls_tail_log": 14,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "sha256": 5,
+        "bulk": {
+          "desc": 14,
+          "copy": 13,
+          "set": 17,
+          "ucopy": 15,
+          "cdesc": 5,
+          "cmp": 6
+        },
+        "sponge": {
+          "call": 9,
+          "perm": 10
+        },
+        "ls_dword": 18,
+        "ls_dword_tail": 15
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 17,
+        "alu_log": 14,
+        "alu_tail_log": null,
+        "binary_log": 8,
+        "binary_tail_log": null,
+        "shift_log": 6,
+        "shift_tail_log": null,
+        "jalr_log": 13,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 9,
+        "ls_log": 12,
+        "ls_tail_log": 9,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 18,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 5,
+          "copy": 5,
+          "set": null
+        },
+        "ls_dword": 15,
+        "ls_dword_tail": 14
+      }
+    }
+  ],
+  "truths": [
+    {
+      "family": "keccak",
+      "first_id": 1,
+      "calls": 606,
+      "logs": [
+        13,
+        1770517
+      ]
+    },
+    {
+      "family": "keccak",
+      "first_id": 607,
+      "calls": 2426,
+      "logs": [
+        15,
+        1770517
+      ]
+    },
+    {
+      "family": "keccak",
+      "first_id": 3033,
+      "calls": 207,
+      "logs": [
+        12,
+        0
+      ]
+    },
+    {
+      "family": "add",
+      "first_id": 1,
+      "calls": 444,
+      "logs": [
+        9,
+        0
+      ]
+    },
+    {
+      "family": "double",
+      "first_id": 1,
+      "calls": 376,
+      "logs": [
+        9,
+        0
+      ]
+    },
+    {
+      "family": "sha256",
+      "first_id": 1,
+      "calls": 57,
+      "logs": [
+        6,
+        0
+      ]
+    },
+    {
+      "family": "arith256_mod",
+      "first_id": 1,
+      "calls": 22,
+      "logs": [
+        8,
+        0
+      ]
+    }
+  ],
+  "source_shape": {
+    "native_proofs": 14,
+    "max_trace_log": 21,
+    "max_public_boundary_log": 18,
+    "max_columns": 7444,
+    "max_constraints": 7751,
+    "max_samples_per_column": 5,
+    "max_air_degree": 5,
+    "max_local_instances": 29,
+    "max_tuple_arity": 35,
+    "max_gkr_variables": 24,
+    "native_trace_cells": [
+      314165088,
+      567231360,
+      543180544
+    ]
+  },
+  "native_trace_cells": [
+    314165088,
+    567231360,
+    543180544
+  ],
+  "main_interaction_bits": 34422769024,
+  "base_field_bits": 31,
+  "storage_bits_per_cell": 32
+}

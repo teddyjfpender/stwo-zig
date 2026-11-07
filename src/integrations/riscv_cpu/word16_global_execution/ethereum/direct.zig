@@ -72,6 +72,11 @@ const ReadyTap = struct {
         const self: *ReadyTap = @ptrCast(@alignCast(raw));
         if (self.inner) |hook| if (hook.native_segment) |invoke| invoke(hook.context, index, native, shard, at_ns);
     }
+    fn consumeShard(raw: *anyopaque, index: usize, native: *Native, shard: @import("../services/collector.zig").Shard) anyerror!void {
+        const self: *ReadyTap = @ptrCast(@alignCast(raw));
+        const hook = self.inner.?;
+        try hook.consume_shard.?(hook.context, index, native, shard);
+    }
     fn call(context: *anyopaque, index: usize, native: *const Native, events: []const @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event, at_ns: u64) void {
         const self: *ReadyTap = @ptrCast(@alignCast(context));
         if (index < MAX_READY_TIMES) self.stats.segment_ready_ns[index] = at_ns;
@@ -433,7 +438,14 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
     // their asynchronous readers BEFORE ordered.deinit frees captured values.
     errdefer if (ready) |hook| if (hook.cancel) |cancel| cancel(hook.context);
     var tap = ReadyTap{ .stats = stats, .inner = ready };
-    ordered.on_ready = .{ .context = &tap, .call = ReadyTap.call, .native_segment = ReadyTap.nativeSegment, .terminal_ready = ReadyTap.terminalReady, .seal_native = if (ready) |hook| hook.seal_native else false };
+    ordered.on_ready = .{
+        .context = &tap,
+        .call = ReadyTap.call,
+        .native_segment = ReadyTap.nativeSegment,
+        .terminal_ready = ReadyTap.terminalReady,
+        .seal_native = if (ready) |hook| hook.seal_native else false,
+        .consume_shard = if (ready != null and ready.?.consume_shard != null) ReadyTap.consumeShard else null,
+    };
     var queue = Queue{};
     var consumer = Consumer{ .queue = &queue, .ordered = &ordered };
     const concurrent = inflight > 1;

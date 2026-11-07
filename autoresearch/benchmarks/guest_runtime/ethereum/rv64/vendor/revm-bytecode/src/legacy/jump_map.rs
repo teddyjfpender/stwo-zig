@@ -113,7 +113,7 @@ impl JumpTable {
     }
 
     #[inline]
-    fn from_vec(slice: Vec<u8>, bit_len: usize) -> Self {
+    pub(super) fn from_vec(slice: Vec<u8>, bit_len: usize) -> Self {
         #[cfg(debug_assertions)]
         Self::size_assert(slice.len(), bit_len);
         Self {

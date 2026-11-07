@@ -1,0 +1,80 @@
+{
+  "schema": "stwo.opstack.interrupted-followup.v1",
+  "date": "2026-11-06",
+  "status": "observed locally before environment loss; not promoted; exact ELF/source receipts unavailable",
+  "applied_runtime_commit": "56a750b10224ddbc54115e5dc4940ef72167cf29",
+  "proof_verified": false,
+  "gpu_measurement": null,
+  "gas": 22094683,
+  "scope": "Kona execution only, not L1 derivation or OP validity proof",
+  "observations": [
+    {
+      "variant": "bounded-mpt-sha",
+      "instructions": 160265366,
+      "instructions_per_gas": 7.253571639837512,
+      "sha256_calls": 1892,
+      "service_ram_word_transitions": 1487298,
+      "fixtures": "four default isolated blocks plus range, and four additional fixtures; exact machine/oracle checks observed"
+    },
+    {
+      "variant": "bounded-mpt-memory-sha",
+      "instructions": 144106647,
+      "instructions_per_gas": 6.522231932451803,
+      "sha256_calls": 1892,
+      "service_ram_word_transitions": 12204927,
+      "fixtures": "four default isolated blocks plus range; exact machine/oracle checks observed"
+    },
+    {
+      "variant": "memory-sha-all-thresholds-64",
+      "instructions": 150080552,
+      "instructions_per_gas": 6.792609425534641,
+      "service_ram_word_transitions": 9624042,
+      "bulk_calls": 111737,
+      "fixtures": "four-block range; exact machine/oracle check observed"
+    }
+  ],
+  "threshold_runs": {
+    "64": "completed with observed numerical results",
+    "128": "completion observed; numerical artifacts unavailable",
+    "256": "completion observed; numerical artifacts unavailable",
+    "512": "interrupted by workspace cleanup"
+  },
+  "sha_capture": {
+    "instructions": 8887336,
+    "execution_workers": [
+      0,
+      1,
+      2
+    ],
+    "captured_value_digests_matched": true,
+    "peak_child_rss_bytes": [
+      2090086400,
+      2115321856,
+      2136264704
+    ],
+    "scope": "complete producer capture only; no proof"
+  },
+  "tests": {
+    "rust_host_sha": "14 passed",
+    "python_with_sha": "11 passed; later 12 with threshold guard",
+    "sha_negative_controls": "reserved header, wrong computed hash and poisoned used preimage rejected by native eager/lazy and RV64",
+    "ethereum_chain": "unfiltered step passed; summary reported 2/2 build steps succeeded",
+    "candidate_cost_build": "first import error fixed; subsequent build completion not observed"
+  },
+  "profile": {
+    "case": 26207961,
+    "instructions": 73436354,
+    "attributed_function_instructions": 73436348,
+    "unknown_instructions": 6,
+    "top_function_percentages": {
+      "OP handler execution": 19.63,
+      "memcpy": 16.68,
+      "TrieNode decode": 7.49,
+      "mload": 3.89,
+      "memset": 3.86,
+      "memcmp": 2.84,
+      "mstore": 2.73,
+      "legacy bytecode analysis": 2.69
+    }
+  }
+}

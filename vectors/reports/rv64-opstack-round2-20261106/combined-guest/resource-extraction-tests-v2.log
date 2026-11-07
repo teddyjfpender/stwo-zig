@@ -1,0 +1,5 @@
+
+Build Summary: 2/2 steps succeeded
+test-riscv64-truth-gkr success
++- run /home/agent/.local/lib/python3.12/site-packages/ziglang/zig success 17s MaxRSS:396M
+

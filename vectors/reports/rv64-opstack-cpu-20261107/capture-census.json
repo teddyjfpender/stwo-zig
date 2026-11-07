@@ -1,0 +1,39 @@
+{
+  "schema": "stwo.opstack.capture-census.v1",
+  "block": 121057303,
+  "scope": "exact source planning; no STARK proof",
+  "compared_fields": [
+    "cpu",
+    "truths",
+    "main_interaction_bits",
+    "memory_words",
+    "final_pc",
+    "total_steps",
+    "native_trace_cells",
+    "source_shape"
+  ],
+  "exact_plan_parity": true,
+  "plan_authority_sha256": "b549449cfd846d1edd168c87af9e26dddcbbf2882194e9820d5b713eebd4d3d8",
+  "guest_instructions": 5926093,
+  "cpu_proofs": 6,
+  "service_proofs": 7,
+  "main_interaction_bits": 32232733600,
+  "retained_control": {
+    "wall_ns": 4846242758,
+    "peak_rss_bytes": 1858740224,
+    "user_cpu_s": 5.311795,
+    "system_cpu_s": 2.51703,
+    "returncode": 0,
+    "timed_out": false,
+    "runner_sha256": "c84c43810004ed1260b86a1ae79c1a76a5aacd92f17dcbe29185911498025dff"
+  },
+  "streaming_census": {
+    "wall_ns": 6772450729,
+    "peak_rss_bytes": 1421049856,
+    "user_cpu_s": 7.220653,
+    "system_cpu_s": 4.324042,
+    "returncode": 0,
+    "timed_out": false,
+    "runner_sha256": "dfc699ba3797436d57bf6802229ba84bb8b6295acfca9c83379e89c890f73ca4"
+  }
+}

@@ -22,6 +22,11 @@ fn packedSecure(values: [][]const M, start: usize, row: usize) S {
     for (&coords, 0..) |*v, c| v.* = F.load(values[start + c].ptr + row);
     return E.secureFromCoordinatesForField(O, F, coords);
 }
+inline fn gather(values: []const M, indices: [E.LANES]usize) F {
+    var lanes: [E.LANES]M = undefined;
+    for (&lanes, indices) |*value, index| value.* = values[index];
+    return F.fromLanes(lanes);
+}
 pub const MAX_ROW_SCRATCH_BYTES: usize = 8 * 1024 * 1024;
 pub const MIN_PACKED_BLOCKS_PER_SHARD: usize = 256;
 fn ScratchFor(comptime Component: type) type {
@@ -123,6 +128,7 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
         inverse: F,
         fresh: bool,
         prepared: ?*const PreparedProjection,
+        has_previous: bool,
         errors: [engine.lookups.row_work.MAX_SHARDS]?anyerror = @splat(null),
         pub fn runRange(ctx: *@This(), index: usize, first: usize, end: usize) void {
             ctx.execute(index, first, end) catch |err| {
@@ -145,45 +151,40 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
             const vanishing_inverse = ctx.inverse;
             var row: usize = first * E.LANES;
             while (row < end * E.LANES) : (row += E.LANES) {
+                var previous_rows: [E.LANES]usize = undefined;
+                if (ctx.has_previous) {
+                    for (&previous_rows, 0..) |*index_, lane| index_.* = view.previousRow(coset, row + lane);
+                }
                 for (scratch.fixed[0..column_shape.fixed], 0..) |*v, c| v.* = F.load(view.current_values[c].ptr + row);
                 for (scratch.main[0..column_shape.main], 0..) |*v, c| {
                     v.* = F.load(view.current_values[main_offset + c].ptr + row);
-                    if (component.previousMain(c)) {
-                        var prior: [E.LANES]M = undefined;
-                        for (&prior, 0..) |*x, lane| x.* = view.previous_values[main_offset + c][view.previousRow(coset, row + lane)];
-                        scratch.previous[c] = F.fromLanes(prior);
-                    }
+                    const prior = view.previous_values[main_offset + c];
+                    if (prior.len != 0) scratch.previous[c] = gather(prior, previous_rows);
                 }
                 var weighted = E.WeightedAccumulatorFor(F){ .powers = destination.random_coeff_powers };
                 var sink = E.SinkFor(F){ .weighted_accumulator = &weighted };
                 try component.emitMainFor(F, scratch.fixed[0..column_shape.fixed], scratch.main[0..column_shape.main], scratch.previous[0..column_shape.main], &sink);
                 for (scratch.inter[0..interaction_count], scratch.previous_inter[0..interaction_count], 0..) |*value, *prior, c| {
                     value.* = F.load(view.current_values[inter_offset + c].ptr + row);
-                    prior.* = F.zero();
-                    if (Geo.previousInter(component, c)) {
-                        var previous_lanes: [E.LANES]M = undefined;
-                        for (&previous_lanes, 0..) |*v, lane| v.* = view.previous_values[inter_offset + c][view.previousRow(coset, row + lane)];
-                        prior.* = F.fromLanes(previous_lanes);
-                    }
+                    const source = view.previous_values[inter_offset + c];
+                    prior.* = if (source.len != 0) gather(source, previous_rows) else F.zero();
                 }
                 if (comptime local_binding) {
                     var projection = ctx.prepared.?.projection();
                     if (comptime @hasDecl(Component, "emitLocalWithPreviousFor")) component.emitLocalWithPreviousFor(F, scratch.fixed[0..column_shape.fixed], scratch.main[0..column_shape.main], scratch.previous[0..column_shape.main], &projection) else component.emitLocalFor(F, scratch.fixed[0..column_shape.fixed], scratch.main[0..column_shape.main], &projection);
                     try projection.finish();
+                    var next_rows: [E.LANES]usize = undefined;
+                    for (&next_rows, 0..) |*next, lane| {
+                        const global = view.globalRow(coset, row + lane);
+                        const shifted = core.utils.offsetBitReversedCircleDomainIndex(global, trace_log, trace_log + 1, 2);
+                        if (shifted / row_count != coset) return error.InvalidLocalGkrNextMask;
+                        next.* = shifted % row_count;
+                    }
                     var next_coords: [8]F = undefined;
                     var prior_coords: [8]F = undefined;
-                    for (0..8) |c| {
-                        var next: [E.LANES]M = undefined;
-                        var prior: [E.LANES]M = undefined;
-                        for (&next, &prior, 0..) |*n, *p, lane| {
-                            const global = view.globalRow(coset, row + lane);
-                            const shifted = core.utils.offsetBitReversedCircleDomainIndex(global, trace_log, trace_log + 1, 2);
-                            if (shifted / row_count != coset) return error.InvalidLocalGkrNextMask;
-                            n.* = view.current_values[inter_offset + c][shifted % row_count];
-                            p.* = view.previous_values[inter_offset + 8 + c][view.previousRow(coset, row + lane)];
-                        }
-                        next_coords[c] = F.fromLanes(next);
-                        prior_coords[c] = F.fromLanes(prior);
+                    for (&next_coords, &prior_coords, 0..) |*next, *prior, c| {
+                        next.* = gather(view.current_values[inter_offset + c], next_rows);
+                        prior.* = gather(view.previous_values[inter_offset + 8 + c], previous_rows);
                     }
                     B.emitFor(F, .{ .eq = packedSecure(view.current_values, inter_offset, row), .eq_next2 = E.secureFromCoordinatesForField(O, F, next_coords), .prefix = packedSecure(view.current_values, inter_offset + 8, row), .prefix_previous = E.secureFromCoordinatesForField(O, F, prior_coords) }, .{ .first = S.fromBase(F.load(view.current_values[aux_offset + 8].ptr + row)), .second = S.fromBase(F.load(view.current_values[aux_offset + 9].ptr + row)), .carry = packedSecure(view.current_values, aux_offset, row), .eq0 = S.splat(component.data.point.eq0), .eq1 = S.splat(component.data.point.eq1) }, projection.combine(S.splat(component.data.eta)), S.splat(component.data.target_per_row), &sink);
                 }
@@ -200,6 +201,7 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
     };
     const prep_ns = if (timer) |*clock| clock.lap() else 0;
     var actual_jobs: usize = 1;
+    const has_previous = std.mem.indexOfScalar(bool, previous[0..total], true) != null;
     for (0..(@as(usize, 1) << @intCast(split))) |part| {
         if (timer) |*clock| clock.reset();
         try evaluation.evaluatePartWithPool(part, active_pool);
@@ -207,7 +209,7 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
         if (timer) |*clock| fft_ns += clock.lap();
         const start = evaluation.globalRow(part, 0);
         const fresh = if (output.next_fresh_index) |next| next == start else false;
-        var work = Work{ .component = self, .evaluation = &evaluation, .output = output, .scratch = scratches, .part = part, .rows = rows, .log = log, .shape = shape, .main_at = main_at, .inter_at = inter_at, .aux_at = aux_at, .inter_width = inter_width, .inverse = inverse, .fresh = fresh, .prepared = if (prepared) |*owned| owned else null };
+        var work = Work{ .component = self, .evaluation = &evaluation, .output = output, .scratch = scratches, .part = part, .rows = rows, .log = log, .shape = shape, .main_at = main_at, .inter_at = inter_at, .aux_at = aux_at, .inter_width = inter_width, .inverse = inverse, .fresh = fresh, .prepared = if (prepared) |*owned| owned else null, .has_previous = has_previous };
         const jobs = engine.lookups.row_work.forEachRange(rows / E.LANES, &work, .{ .max_shards = scratch_plan.jobs, .min_rows_per_shard = MIN_PACKED_BLOCKS_PER_SHARD });
         actual_jobs = @max(actual_jobs, jobs);
         for (work.errors[0..jobs]) |failure| if (failure) |err| {

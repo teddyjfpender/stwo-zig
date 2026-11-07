@@ -1,0 +1,2 @@
+RV64_GKR_RETAINED_ADMISSION requested_bytes=3505687308 limit_bytes=2147483648 cpu_workers=25 truth_workers=7 cpu_replay=false truth_device_source=false
+error: BoundedWideCoordinatorRetainedLimit

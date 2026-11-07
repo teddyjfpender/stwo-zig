@@ -9,28 +9,11 @@ const Program = @import("../../word16_execution/program.zig").Program;
 const Driver = @import("../../word16_execution/driver.zig");
 const Capture = @import("capture.zig").Owner;
 const CaptureOptions = @import("capture_options.zig").Options;
+const CaptureSpill = @import("capture_spill.zig");
 const DirectCapture = @import("direct.zig");
 pub const EarlyCPU = @import("early_cpu0.zig");
 pub const EarlySegments = @import("early_segments.zig");
-const CpuPrestage = struct {
-    stage: @import("../../word16_execution/cpu_source.zig").ProjectionStage,
-    image_identity: [32]u8 = undefined,
-    first_pass: bool = false,
-    fn firstPass(raw: *anyopaque, source: *const @import("../../word16_execution/cpu_source.zig").FirstPass) void {
-        const self: *CpuPrestage = @ptrCast(@alignCast(raw));
-        self.stage.prestage_first_pass.?(self.stage.context, source, self.image_identity);
-    }
-    fn ready(raw: *anyopaque, index: usize, native: *const @import("../../word16_execution/prepared.zig").Prepared, _: []const @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event, at_ns: u64) void {
-        const self: *CpuPrestage = @ptrCast(@alignCast(raw));
-        if (index != 0 or self.first_pass) return;
-        std.debug.print("GPU_CPU_PRESTAGE event=capture_ready ordinal=0 utc_ns={} ordered_ready_ns={}\n", .{ std.time.nanoTimestamp(), at_ns });
-        if (native.cpu) |*source| self.stage.prestage.?(self.stage.context, source, self.image_identity);
-    }
-    fn cancel(raw: *anyopaque) void {
-        const self: *CpuPrestage = @ptrCast(@alignCast(raw));
-        self.stage.cancel_prestage.?(self.stage.context);
-    }
-};
+const CpuPrestage = @import("cpu_prestage.zig").CpuPrestage;
 const Plan = @import("plan.zig");
 const Keys = @import("keys.zig").Owner;
 const Admission = @import("receiver.zig");
@@ -46,10 +29,12 @@ const NativeCache = @import("../../word16_execution/fixed_native_cache.zig");
 const MetadataCache = @import("../../word16_execution/program_metadata.zig");
 pub const Recycler = @import("../../rv64_large_block_recycler.zig").LargeBlockRecycler;
 const ReceiverBudget = @import("receiver_budget.zig");
+const ReceiverSetup = @import("receiver_setup.zig");
 const FixedAuthority = @import("../services/gkr_local/fixed_authority.zig");
 const FixedSet = @import("../services/gkr_local/fixed_authority_set.zig").Set;
 const Candidate = @import("../../word16_execution/om31_security_candidate.zig");
 const SourceBounds = @import("../services/gkr_local/source_bounds.zig");
+const CapturePlan = @import("capture_plan.zig");
 const SetupCache = @import("setup_cache.zig");
 /// Producer-owned trusted setup acceleration; forbidden to fresh receivers.
 const SETUP_CACHE_ENV = "STWO_ZIG_RV64_SETUP_CACHE";
@@ -89,176 +74,18 @@ fn setupCacheOptions(a: std.mem.Allocator, mode: SetupCache.Mode, fixed_setup_by
     const directory: ?[]const u8 = if (dir) |d| (if (d.len == 0) null else d) else null;
     return .{ .options = .{ .mode = mode, .directory = directory, .fixed_setup_bytes = fixed_setup_bytes, .identity_only_cpu = identity_only, .max_build_threads = threads }, .owned = dir };
 }
-/// block_to_inputs phase report (observation only; never proof authority).
-/// Every *_at_ns is nanoseconds since gkr_main entry on the monotonic clock.
-const BlockToInputs = struct {
-    clock: []const u8 = "ns since gkr_main entry (monotonic)",
-    scope: []const u8,
-    init_done_at_ns: u64 = 0,
-    capture_done_at_ns: u64 = 0,
-    plan_done_at_ns: u64 = 0,
-    keys_done_at_ns: u64 = 0,
-    setup_done_at_ns: u64 = 0,
-    coordinator_admitted_at_ns: u64 = 0,
-    t_first_ns: u64 = 0,
-    t_first_any_ns: u64 = 0,
-    t_all_cpu_ns: u64 = 0,
-    t_all_ns: u64 = 0,
-    stages: struct { init_ns: u64 = 0, capture_import_ns: u64 = 0, plan_ns: u64 = 0, setup_ns: u64 = 0, setup_keys_ns: u64 = 0, setup_fixed_ns: u64 = 0, coordinator_admission_ns: u64 = 0 } = .{},
-    segments: []const Segment = &.{},
-    setup_cache: ?SetupCache.Stats = null,
-    /// Capture-relative timeline (init, segment 0 / last / all inputs, ledger).
-    capture: ?CaptureInputs = null,
-    const Segment = struct { ordinal: usize, kind: []const u8, source_begin_at_ns: u64, source_ready_at_ns: u64, source_ns: u64 };
-    fn finish(self: *BlockToInputs, a: std.mem.Allocator, timings: []const C.WorkerTiming, cpu_count: usize) !void {
-        const segments = try a.alloc(Segment, timings.len);
-        var first_any: u64 = std.math.maxInt(u64);
-        for (segments, timings, 0..) |*out, t, i| {
-            out.* = .{ .ordinal = i, .kind = if (i < cpu_count) "cpu" else "truth", .source_begin_at_ns = t.source_begin_ns, .source_ready_at_ns = t.source_ready_ns, .source_ns = t.source_ready_ns -| t.source_begin_ns };
-            if (i < cpu_count) {
-                self.t_all_cpu_ns = @max(self.t_all_cpu_ns, t.source_ready_ns);
-                first_any = @min(first_any, t.source_ready_ns);
-            }
-            self.t_all_ns = @max(self.t_all_ns, t.source_ready_ns);
-        }
-        self.segments = segments;
-        self.t_first_ns = if (timings.len != 0) timings[0].source_ready_ns else 0;
-        self.t_first_any_ns = if (first_any == std.math.maxInt(u64)) 0 else first_any;
-        self.stages = .{
-            .init_ns = self.init_done_at_ns,
-            .capture_import_ns = self.capture_done_at_ns -| self.init_done_at_ns,
-            .plan_ns = self.plan_done_at_ns -| self.capture_done_at_ns,
-            .setup_ns = self.setup_done_at_ns -| self.plan_done_at_ns,
-            .setup_keys_ns = self.keys_done_at_ns -| self.plan_done_at_ns,
-            .setup_fixed_ns = self.setup_done_at_ns -| self.keys_done_at_ns,
-            .coordinator_admission_ns = self.coordinator_admitted_at_ns -| self.setup_done_at_ns,
-        };
-    }
-};
+const BlockToInputs = @import("input_timeline.zig").BlockToInputs;
 fn since(origin: std.time.Instant) u64 {
     const now = std.time.Instant.now() catch return 0;
     return now.since(origin);
 }
-const CANDIDATE_PROFILE = "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering";
-const CONJECTURED_PROFILE = "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering";
-/// Report label of a receiver-selected candidate profile (historical label for proven).
-fn candidateLabel(profile: Candidate.Profile) []const u8 {
-    return switch (profile) {
-        .proven_beta2_q256_p0_fold4 => CANDIDATE_PROFILE,
-        .conjectured128_b2_q108_p20_fold4 => CONJECTURED_PROFILE,
-        .d2_native_b4_q54_p20_fold4 => "experimental-om31-local-gkr-d2-b4-q54-p20-fold4-engineering",
-    };
-}
-/// The receiver's/producer's OWN policy: `--security-profile NAME` before the
-/// mode, candidate modes only; default Candidate.DEFAULT_PROFILE. Proof bytes
-/// and bundle metadata never select it.
-const ProfileSelection = struct { profile: Candidate.Profile, explicit: bool, args: []const [:0]u8 };
-fn selectProfile(all: []const [:0]u8) !ProfileSelection {
-    if (all.len >= 3 and std.mem.eql(u8, all[1], "--security-profile"))
-        return .{ .profile = try Candidate.Profile.parse(all[2]), .explicit = true, .args = all[2..] };
-    return .{ .profile = Candidate.DEFAULT_PROFILE, .explicit = false, .args = all };
-}
+const candidateLabel = @import("profile_selection.zig").candidateLabel;
+const selectProfile = @import("profile_selection.zig").selectProfile;
 const PROFILE = "experimental-om31-local-gkr-q70-p26-fold4";
-/// Operational admission only. These limits never enter statement authority.
-/// The coordinator's accounting is not a complete bound on process RSS.
-const Resources = struct {
-    gkr_bytes: usize,
-    global_bytes: usize,
-    retained_frontend_bytes: usize,
-    disk_bytes: usize,
-    /// Explicit operational choice: small inventories may retain MAIN in RAM.
-    park_main: bool = true,
-    /// Operational cache only; never changes live proof ownership or protocol.
-    recycler_cache_bytes: usize = ReceiverBudget.RECYCLER_CACHE_BYTES,
-    /// Producer geometry experiment. The default preserves the admitted roster.
-    keccak_max_log: u32 = 18,
-    one_truth_per_family: bool = false,
-    coalesce_truth_families: bool = false,
-    checkpoint_above_gkr_bytes: usize = 0,
-    defer_local_binding: bool = false,
-    capture_options: CaptureOptions = .{},
-    stage2_order: []const usize = &.{},
-    schedule: Schedule.Policy,
-    fn validate(self: Resources) !void {
-        if (self.gkr_bytes == 0 or self.global_bytes == 0 or self.retained_frontend_bytes == 0 or (self.park_main and self.disk_bytes == 0) or self.schedule.memory_cap_bytes == 0) return error.MissingWideResourceAdmission;
-        try self.capture_options.validate();
-        try self.schedule.validate();
-        if (self.recycler_cache_bytes > ReceiverBudget.RECYCLER_CACHE_BYTES) return error.UnsupportedRecyclerCacheLimit;
-        if (self.keccak_max_log < 16 or self.keccak_max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
-        try Schedule.validateOrder(self.stage2_order, self.stage2_order.len);
-    }
-    pub fn jsonStringify(self: Resources, writer: anytype) !void {
-        try writer.beginObject();
-        inline for (.{ "gkr_bytes", "global_bytes", "retained_frontend_bytes", "disk_bytes", "park_main", "schedule" }) |name| {
-            try writer.objectField(name);
-            try writer.write(@field(self, name));
-        }
-        // Preserve historical default report schema; only explicit opt-in emits order.
-        if (self.stage2_order.len != 0) {
-            try writer.objectField("stage2_order");
-            try writer.write(self.stage2_order);
-        }
-        if (!self.capture_options.isDefault()) {
-            try writer.objectField("capture_options");
-            try writer.write(self.capture_options);
-        }
-        if (self.recycler_cache_bytes != ReceiverBudget.RECYCLER_CACHE_BYTES) {
-            try writer.objectField("recycler_cache_bytes");
-            try writer.write(self.recycler_cache_bytes);
-        }
-        if (self.coalesce_truth_families) {
-            try writer.objectField("coalesce_truth_families");
-            try writer.write(true);
-        }
-        if (self.one_truth_per_family) {
-            try writer.objectField("one_truth_per_family");
-            try writer.write(true);
-        }
-        if (self.keccak_max_log != 18) {
-            try writer.objectField("keccak_max_log");
-            try writer.write(self.keccak_max_log);
-        }
-        if (self.checkpoint_above_gkr_bytes != 0) {
-            try writer.objectField("checkpoint_above_gkr_bytes");
-            try writer.write(self.checkpoint_above_gkr_bytes);
-        }
-        if (self.defer_local_binding) {
-            try writer.objectField("defer_local_binding");
-            try writer.write(true);
-        }
-        try writer.endObject();
-    }
-};
-/// Separate operational schema keeps historical control resource/report bytes
-/// unchanged. No field in either schema selects a security construction.
-const CandidateResources = struct {
-    /// Geometry-only producer option. Every emitted policy/shape remains bound
-    /// by the existing statement and independently rebuilt by the receiver.
-    keccak_uniform_throughput: bool = false,
-    gkr_bytes: usize,
-    global_bytes: usize,
-    retained_frontend_bytes: usize,
-    disk_bytes: usize,
-    fixed_setup_bytes: usize,
-    park_main: bool = true,
-    recycler_cache_bytes: usize = ReceiverBudget.RECYCLER_CACHE_BYTES,
-    /// Producer geometry experiment. The default preserves the admitted roster.
-    keccak_max_log: u32 = 18,
-    one_truth_per_family: bool = false,
-    coalesce_truth_families: bool = false,
-    checkpoint_above_gkr_bytes: usize = 0,
-    defer_local_binding: bool = false,
-    capture_options: CaptureOptions = .{},
-    stage2_order: []const usize = &.{},
-    schedule: Schedule.Policy,
-    fn operational(self: CandidateResources) Resources {
-        return .{ .gkr_bytes = self.gkr_bytes, .global_bytes = self.global_bytes, .retained_frontend_bytes = self.retained_frontend_bytes, .disk_bytes = self.disk_bytes, .park_main = self.park_main, .recycler_cache_bytes = self.recycler_cache_bytes, .keccak_max_log = self.keccak_max_log, .one_truth_per_family = self.one_truth_per_family, .coalesce_truth_families = self.coalesce_truth_families, .checkpoint_above_gkr_bytes = self.checkpoint_above_gkr_bytes, .defer_local_binding = self.defer_local_binding, .capture_options = self.capture_options, .stage2_order = self.stage2_order, .schedule = self.schedule };
-    }
-    fn validate(self: CandidateResources) !void {
-        if (self.fixed_setup_bytes == 0) return error.MissingCandidateFixedSetupAdmission;
-        try self.operational().validate();
-    }
-};
+const producerWorkerLimit = @import("resources.zig").producerWorkerLimit;
+const residentWorkerLimit = @import("resources.zig").residentWorkerLimit;
+const Resources = @import("resources.zig").Resources;
+const CandidateResources = @import("resources.zig").CandidateResources;
 fn config() !Worker.PcsConfig {
     var value = Worker.PcsConfig{ .pow_bits = 26, .fri_config = try core.fri.ForField(Worker.O).FriConfig.init(0, 1, 70) };
     value.fri_config.fold_step = 4;
@@ -306,7 +133,23 @@ pub fn mainWithResidentPipeline(stages: ResidentStages) !void {
     const base = recycler.allocator();
     const all_args = try std.process.argsAlloc(base);
     defer std.process.argsFree(base, all_args);
-    return runArguments(&recycler, all_args, stages, null, false, {});
+    return runArguments(&recycler, all_args, stages, null, null, false, {}, true);
+}
+/// CPU native-only product: no recursive proving or policy dependency. Native
+/// source admission, proof format and independent receiver remain the same.
+pub fn mainNativeOnly() !void {
+    var recycler = Recycler.init(std.heap.smp_allocator, ReceiverBudget.RECYCLER_CACHE_BYTES);
+    defer recycler.deinit();
+    const args = try std.process.argsAlloc(recycler.allocator());
+    defer std.process.argsFree(recycler.allocator(), args);
+    const selection = try selectProfile(args);
+    if (selection.args.len >= 2 and std.mem.eql(u8, selection.args[1], "batch-candidate"))
+        return @import("native_batch.zig").run(@This(), &recycler, selection.profile, selection.args);
+    if (selection.args.len >= 2 and std.mem.eql(u8, selection.args[1], "verify-batch-candidate")) {
+        try requireIndependentReceiverSetup(std.process.hasEnvVarConstant(SETUP_CACHE_ENV));
+        return @import("receiver_batch.zig").run(@This(), &recycler, selection.profile, selection.args);
+    }
+    return runArguments(&recycler, args, .{}, null, null, false, {}, false);
 }
 /// Separate linked product: the resident native executable does not pull the
 /// circuit stack into every GPU build merely to expose an unavailable mode.
@@ -319,7 +162,7 @@ pub fn mainWithRecursionFactory(factory: ?@import("stwo_circuit_cpu_integration"
     defer recycler.deinit();
     const all_args = try std.process.argsAlloc(recycler.allocator());
     defer std.process.argsFree(recycler.allocator(), all_args);
-    return runArguments(&recycler, all_args, .{}, null, true, .{ .factory = factory });
+    return runArguments(&recycler, all_args, .{}, null, null, true, .{ .factory = factory }, true);
 }
 /// Explicit linked product: production and recursion share independently derived
 /// live authorities and the in-memory bundle. No receiver handoff is reloaded.
@@ -380,7 +223,7 @@ pub fn runCombinedResidentArgsWithExecution(recycler: *Recycler, all_args: []con
     if (session.active) return error.ResidentRequestAlreadyActive;
     session.active = true;
     defer session.active = false;
-    return runArguments(recycler, all_args, stages, session, true, execution);
+    return runArguments(recycler, all_args, stages, session, null, true, execution, true);
 }
 fn isCombinedProducer(mode: []const u8) bool {
     return std.mem.eql(u8, mode, "produce-and-recurse-candidate");
@@ -391,13 +234,25 @@ pub fn runWithResidentArgs(recycler: *Recycler, all_args: []const [:0]u8, stages
     if (session.active) return error.ResidentRequestAlreadyActive;
     session.active = true;
     defer session.active = false;
-    return runArguments(recycler, all_args, stages, session, false, {});
+    return runArguments(recycler, all_args, stages, session, null, false, {}, true);
 }
-fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: ?*ResidentSession, comptime enable_recursion: bool, recursion_execution: if (enable_recursion) CombinedRecursion else void) !void {
+/// CPU-only persistent producer. It has no recursion-policy/module dependency.
+pub fn runNativeResidentArgs(recycler: *Recycler, args: []const [:0]u8, session: *ResidentSession) !void {
+    if (session.active) return error.ResidentRequestAlreadyActive;
+    session.active = true;
+    defer session.active = false;
+    return runArguments(recycler, args, .{}, session, null, false, {}, false);
+}
+pub fn runNativeReceiverArgs(recycler: *Recycler, args: []const [:0]u8, session: *ReceiverSetup.Session) !void {
+    const selection = try selectProfile(args);
+    if (selection.args.len < 2 or !std.mem.eql(u8, selection.args[1], "verify-candidate")) return error.ReceiverSessionRequiresVerifier;
+    return runArguments(recycler, args, .{}, null, session, false, {}, false);
+}
+fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: ?*ResidentSession, receiver_session: ?*ReceiverSetup.Session, comptime enable_recursion: bool, recursion_execution: if (enable_recursion) CombinedRecursion else void, comptime check_recursion_policy: bool) !void {
     const process_start = try std.time.Instant.now();
     // canon-vk M5: outer profile / shape / fold arity env must parse, or the
     // process exits with a clean error before any work (never a panic, P03).
-    try @import("../../rv64_recursion/om31_native/execution_wrap.zig").checkPolicyEnv();
+    if (comptime check_recursion_policy) try @import("../../rv64_recursion/om31_native/execution_wrap.zig").checkPolicyEnv();
     const recursion_factory = if (enable_recursion) recursion_execution.factory else {};
     const base = recycler.allocator();
     const device_pcs_stage = stages.pcs;
@@ -408,7 +263,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const security_profile = selection.profile;
     const args = selection.args;
     if (args.len == 2 and std.mem.eql(u8, args[1], "describe")) return emit(base, .{ .profile = PROFILE, .security_qualified = false, .pcs = try config(), .usage = "produce-control CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON | verify-control CONFIG OUT [RECEIVER_BYTES] | verify-prefix-control CONFIG OUT [RECEIVER_BYTES] | plan CONFIG JOBS PREFIX_COUNT | capture CONFIG JOBS PREFIX_COUNT RESOURCE_JSON" });
-    if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(base, .{ .profile = candidateLabel(security_profile), .security_profile = security_profile.name(), .security_qualified = false, .security_target = Candidate.assumptionTarget(security_profile), .pcs = Candidate.configFor(security_profile), .scope = if (security_profile.conjectured()) "native 128-bit CONJECTURED target (ethSTARK-style FRI accounting); no proven bound and no whole-protocol certificate" else "native 128-bit target under documented assumptions; no whole-protocol certificate", .usage = "[--security-profile proven_beta2_q256_p0_fold4|conjectured128_b2_q108_p20_fold4 (default)|d2_native_b4_q54_p20_fold4] produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes; JOBS=- executes in process) | inspect-recursion-schedule CONFIG OUT [ORDINAL] (CPU-only diagnostic; no acceptance,24GiB live/12GiB subset fixed cache) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-recursion-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] (CPU recursion receiver only; existing proofs, no proving fallback)" });
+    if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(base, .{ .profile = candidateLabel(security_profile), .security_profile = security_profile.name(), .security_qualified = false, .security_target = Candidate.assumptionTarget(security_profile), .pcs = Candidate.configFor(security_profile), .scope = if (security_profile.conjectured()) "native 128-bit CONJECTURED target (ethSTARK-style FRI accounting); no proven bound and no whole-protocol certificate" else "native 128-bit target under documented assumptions; no whole-protocol certificate", .usage = "[--security-profile proven_beta2_q256_p0_fold4|conjectured128_b2_q108_p20_fold4 (default)|d2_native_b4_q54_p20_fold4] produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes; JOBS=- executes in process) | plan-candidate CONFIG JOBS PREFIX_COUNT RESOURCE_JSON (CPU-only source-derived native column cost; no proof or acceptance) | inspect-recursion-schedule CONFIG OUT [ORDINAL] (CPU-only diagnostic; no acceptance,24GiB live/12GiB subset fixed cache) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-recursion-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] (CPU recursion receiver only; existing proofs, no proving fallback)" });
     if (args.len < 4) return error.ExpectedModeConfigAndDirectory;
     const inspect_schedule = std.mem.eql(u8, args[1], "inspect-recursion-schedule");
     const inspection_ordinal = if (inspect_schedule) try @import("schedule_inspection.zig").ordinal(args) else 0;
@@ -431,7 +286,8 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     // warm-setup-candidate: inputs-candidate stopped right after keys + FIXED
     // (resident-service pre-warm; no source build, no proof).
     const warm_setup = std.mem.eql(u8, args[1], "warm-setup-candidate");
-    const candidate = std.mem.eql(u8, args[1], "inputs-candidate") or warm_setup or inspect_schedule or combined or recurse or std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
+    const plan_candidate = std.mem.eql(u8, args[1], "plan-candidate");
+    const candidate = plan_candidate or std.mem.eql(u8, args[1], "inputs-candidate") or warm_setup or inspect_schedule or combined or recurse or std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
     const verify = inspect_schedule or recurse or std.mem.eql(u8, args[1], "verify-control") or std.mem.eql(u8, args[1], "verify-candidate");
     // Persisted roots are operator-trusted acceleration, never independent
     // receiver authority. Fresh receivers always derive setup from source.
@@ -439,7 +295,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const prefix = std.mem.eql(u8, args[1], "verify-prefix-control") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
     if (prefix) try requireIndependentReceiverSetup(std.process.hasEnvVarConstant(SETUP_CACHE_ENV));
     const produce = combined or std.mem.eql(u8, args[1], "produce-control") or std.mem.eql(u8, args[1], "produce-candidate");
-    const plan = std.mem.eql(u8, args[1], "plan");
+    const plan = plan_candidate or std.mem.eql(u8, args[1], "plan");
     // Session-scoped setup warm-up (inputs-candidate) is producer-side too.
     if (session != null and !produce and !std.mem.eql(u8, args[1], "inputs-candidate") and !warm_setup) return error.ResidentSessionRequiresProducer;
     const capture_only = std.mem.eql(u8, args[1], "capture");
@@ -452,7 +308,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const receiver_bytes: ?usize = if (inspect_schedule) @import("schedule_inspection.zig").live_bytes else if (verify or prefix) try ReceiverBudget.limit(args, candidate) else null;
     if (produce and args.len != 7) return error.ExpectedModeConfigJobsOutputPrefixAndResources;
     if (capture_only and args.len != 6) return error.ExpectedCaptureConfigJobsPrefixAndResources;
-    if (plan and args.len != 5) return error.ExpectedModeConfigJobsAndPrefix;
+    if (plan and args.len != (if (plan_candidate) @as(usize, 6) else 5)) return error.ExpectedModeConfigJobsPrefixAndOptionalResources;
     const pcs = if (candidate) Candidate.configFor(security_profile) else try config();
     const selected_profile = if (candidate) candidateLabel(security_profile) else PROFILE;
     const security_target = Candidate.assumptionTarget(security_profile);
@@ -494,8 +350,8 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     defer if (control_resource_owner) |*owner| owner.deinit();
     var candidate_resource_owner: ?std.json.Parsed(CandidateResources) = null;
     defer if (candidate_resource_owner) |*owner| owner.deinit();
-    if (produce or capture_only or inputs_only) {
-        const limits_bytes = try std.fs.cwd().readFileAlloc(a, args[if (capture_only or inputs_only) 5 else 6], 16384);
+    if (produce or capture_only or inputs_only or plan_candidate) {
+        const limits_bytes = try std.fs.cwd().readFileAlloc(a, args[if (capture_only or inputs_only or plan_candidate) 5 else 6], 16384);
         defer a.free(limits_bytes);
         if (candidate) {
             candidate_resource_owner = try std.json.parseFromSlice(CandidateResources, a, limits_bytes, .{});
@@ -522,6 +378,10 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const direct_capture = !(verify or prefix) and std.mem.eql(u8, args[3], "-");
     const capture_options = if (resources) |r| r.capture_options else CaptureOptions{};
     if (!direct_capture and capture_options.execution_workers != 0) return error.ExecutionWorkersRequireDirectCapture;
+    if (capture_options.spill != null and (combined or !direct_capture or !candidate)) return error.CaptureSpillRequiresNativeDirectCandidate;
+    var capture_spill = if (capture_options.spill) |options| try CaptureSpill.Owner.init(a, options) else null;
+    defer if (capture_spill) |*owner| owner.deinit();
+    const capture_allocator = if (capture_spill) |*owner| owner.allocator() else a;
     var timer = try std.time.Timer.start();
     // JOBS="-": execution (and the first segment walks) overlaps the expected
     // image/program init below; admission still happens batch by batch in
@@ -547,20 +407,20 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     if (prestage) |*p| if (p.stage.prestage == null or p.stage.join_prestage == null or p.stage.cancel_prestage == null) return error.CpuPrestageStageUnavailable;
     defer if (prestage) |*p| CpuPrestage.cancel(p);
     const walk_authority: ?Request.AuthorityProvider = if (shared_walk_authority and session != null) session.?.authorities.provider() else null;
-    var direct_started: ?*DirectCapture.Started = if (direct_capture) try DirectCapture.Started.startWithAuthority(a, request.value, count, capture_options.execution_workers, walk_authority) else null;
+    var direct_started: ?*DirectCapture.Started = if (direct_capture) try DirectCapture.Started.startWithAuthority(capture_allocator, request.value, count, capture_options.execution_workers, walk_authority) else null;
     if (prestage) |*p| direct_started.?.ready = .{ .context = p, .call = CpuPrestage.ready, .cancel = CpuPrestage.cancel, .first_pass = if (early_first) CpuPrestage.firstPass else null };
     defer if (direct_started) |value| value.deinit(&direct_stats);
     // M5 platform: a resident session reuses the receiver-derived
     // ProgramAuthority of the same guest (keyed by its executable words).
-    var image = if (session) |shared| try Image.Owner.initShared(a, request.value, &shared.authorities) else try Image.Owner.init(a, request.value);
+    var image = if (session) |shared| try Image.Owner.initShared(a, request.value, &shared.authorities) else if (receiver_session) |shared| try Image.Owner.initShared(a, request.value, &shared.images) else try Image.Owner.init(a, request.value);
     defer image.deinit();
     const image_load_ns = timer.read();
     if (prestage) |*p| p.image_identity = image.identity;
-    var local_native: ?NativeCache.Cache = if (session == null) try NativeCache.Cache.init(a, 256 << 20) else null;
+    var local_native: ?NativeCache.Cache = if (session == null and receiver_session == null) try NativeCache.Cache.init(a, 256 << 20) else null;
     defer if (local_native) |*cache| cache.deinit();
-    var local_metadata: ?MetadataCache.Cache = if (session == null) try MetadataCache.Cache.init(a, 64 << 20) else null;
+    var local_metadata: ?MetadataCache.Cache = if (session == null and receiver_session == null) try MetadataCache.Cache.init(a, 64 << 20) else null;
     defer if (local_metadata) |*cache| cache.deinit();
-    const caches = if (session) |shared| shared.caches() else @import("../../word16_execution/setup.zig").ImmutableCaches{ .native = &local_native.?, .program = &local_metadata.? };
+    const caches = if (session) |shared| shared.caches() else if (receiver_session) |shared| shared.caches() else @import("../../word16_execution/setup.zig").ImmutableCaches{ .native = &local_native.?, .program = &local_metadata.? };
     const compact_capture_program = if (std.posix.getenv("STWO_RV64_CAPTURE_PROGRAM_VIEW")) |v| !std.mem.eql(u8, v, "0") else true;
     var program = if (compact_capture_program) try Program.initCaptureWithAuthorityAndMetadataCache(a, &image.authority, caches.program.?) else try Program.initWithAuthorityAndMetadataCache(a, &image.authority, caches.program.?);
     defer program.deinit();
@@ -575,19 +435,16 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         var source_bounds: ?SourceBounds.Report = if (candidate) try SourceBounds.derive(a, program.log_size, loaded.cpu_declarations, loaded.truth_declarations, loaded.bundle.requests) else null;
         defer if (source_bounds) |*value| value.deinit();
         const native_keys_start_ns = timer.read();
-        var keys = try Keys.initWithSuiteAndCaches(a, &image, loaded.cpu_declarations, loaded.truth_declarations, true, Suite.experimentalFold4(), caches);
-        defer keys.deinit();
-        const native_keys_ns = timer.read() - native_keys_start_ns;
-        const fixed_setup_start_ns = timer.read();
-        var fixed_cache: ?FixedAuthority.Fixed.Cache = if (candidate) try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes) else null;
-        defer if (fixed_cache) |*owner| owner.deinit();
-        var fixed_set: ?FixedSet = if (fixed_cache) |*owner| try FixedSet.init(a, owner, keys.cpus, keys.truths, pcs) else null;
-        defer if (fixed_set) |*owner| owner.deinit();
+        const setup = try ReceiverSetup.Owner.create(a, &image, request.value, loaded.cpu_declarations, loaded.truth_declarations, pcs, caches, candidate, fixed_setup_bytes, receiver_session != null or try ReceiverSetup.identityOnly(), receiver_session);
+        defer setup.destroy();
+        const keys = &setup.keys;
+        const fixed_cache = setup.fixedCache();
+        const fixed_set = setup.fixedSet();
         const setup_ns = timer.read();
-        const setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = native_keys_ns, .fixed_authority_ns = setup_ns - fixed_setup_start_ns, .other_ns = native_keys_start_ns - image_load_ns - program_ns };
+        const setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = setup.keys_ns, .fixed_authority_ns = setup.fixed_ns, .other_ns = native_keys_start_ns - image_load_ns - program_ns };
         if (inspect_schedule) {
             if (comptime !enable_recursion) return error.RecursionProductRequired;
-            const inspection = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").inspectLeafSchedule(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, if (fixed_set) |*authority| authority else null, inspection_ordinal);
+            const inspection = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").inspectLeafSchedule(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, fixed_set, inspection_ordinal);
             return emit(a, .{ .schema = "rv64-recursion-schedule-inspection/v1", .diagnostic = true, .accepted = false, .scope = "Selected native leaf capture and original graph schedule census only; no complete-block or recursive-root acceptance", .selected_native_leaf_verified = true, .recursion_proof_generated = false, .gpu_context_created = false, .profile = selected_profile, .security_qualified = false, .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .inspection = inspection, .task_kind_order = .{ "add", "sub", "mul", "pointwise_mul", "triple_xor", "m31_to_u32", "blake_g", "permutation", "hint" }, .hint_kind_order = .{ "seed", "inverse", "divide", "pointwise_inverse_or_zero", "pointwise_lsb", "byte", "byte_complement", "is_nonzero", "zero" }, .width_bucket_upper_bounds = @import("../../rv64_recursion/om31_native/schedule_census.zig").bucket_upper_bounds, .receiver_requested_live_cap_bytes = @import("schedule_inspection.zig").live_bytes, .receiver_budget = receiver_budget.?.snapshot(), .fixed_cache_cap_bytes = fixed_setup_bytes, .fixed_cache_is_subset_of_live_cap = true, .recycler_cache_cap_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES, .recycler_cached_bytes_outside_requested_live_cap = true, .requested_live_plus_recycler_cap_bytes = @import("schedule_inspection.zig").live_bytes + ReceiverBudget.RECYCLER_CACHE_BYTES, .budget_scope = "Requested live 24 GiB includes fixed cache 12 GiB and native/metadata caches; up to 4 GiB freed recycler blocks plus worker stacks outside live count; not an RSS cap", .worker_stack_upper_bound_bytes = try ReceiverBudget.stackBytes(native_workers), .operational_workers = native_workers, .device_capacity_values_are_estimates_only = true });
         }
         if (recurse) {
@@ -598,13 +455,13 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
                 // The existing-only recursion path cannot generate a proof or
                 // materialize a host assignment even when a file is missing.
                 const native_start_ns = timer.read();
-                const output = try Receiver.verifyWithAuthority(a, &image, &keys, &loaded.bundle, request.value.max_steps, request.value.batch_steps, true, pcs, if (fixed_set) |*authority| authority else null);
+                const output = try Receiver.verifyWithAuthorityAndProgram(a, &image, &program, keys, &loaded.bundle, request.value.max_steps, request.value.batch_steps, true, pcs, fixed_set);
                 const native_verify_ns = timer.read() - native_start_ns;
                 const last = loaded.bundle.requests[loaded.bundle.requests.len - 1].base;
                 _ = try @import("terminal.zig").require(&image, last.cpu, last.memory.terminal);
                 var recursive_dir = try dir.openDir("recursion-om31", .{});
                 defer recursive_dir.close();
-                const recursion = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").verifyExisting(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir);
+                const recursion = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").verifyExisting(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, fixed_set, recursive_dir);
                 return emit(a, .{ .accepted = true, .completed_ethereum_block = true, .output = output, .native_profile = selected_profile, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.domainName(), .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .shared_fresh_native_authority = true, .native_verified_before_recursion = true, .existing_recursive_proofs_only = true, .trace_only_recursive_graphs = true, .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .native_verify_ns = native_verify_ns, .total_after_setup_ns = timer.read() - setup_ns, .native = .{ .accepted = true, .completed_ethereum_block = true, .security_profile = security_profile.name(), .profile = selected_profile, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .verify_ns = native_verify_ns }, .recursive = recursion });
             }
             dir.makeDir("recursion-om31") catch |err| {
@@ -616,16 +473,17 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
             const output = try @import("terminal.zig").require(&image, last.cpu, last.memory.terminal);
             // Reject an unexpected Ethereum endpoint before producing durable
             // recursive proofs or an accepted execution-root report.
-            const recursion = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").run(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir, resume_recursion, recursion_factory);
+            const recursion = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").run(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, fixed_set, recursive_dir, resume_recursion, recursion_factory);
             return emit(a, .{ .accepted = true, .completed_ethereum_block = true, .output = output, .native_profile = selected_profile, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.domainName(), .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .recursive = recursion });
         }
-        const output = try Receiver.verifyWithAuthority(a, &image, &keys, &loaded.bundle, request.value.max_steps, request.value.batch_steps, verify, pcs, if (fixed_set) |*authority| authority else null);
-        if (fixed_cache) |*owner| return emit(a, .{ .profile = selected_profile, .security_qualified = false, .security_target = security_target, .security_profile = security_profile.name(), .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .verify_ns = timer.read() - setup_ns, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells, .source_accounting_profile = source_bounds.?.accounting_profile, .source_shape = source_bounds.?.shape, .source_lookup_only_conditional_degrees = source_bounds.?.conditional_degrees, .receiver_budget = receiver_budget.?.snapshot(), .receiver_recycler_cache_cap_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES, .receiver_worker_stack_upper_bound_bytes = try ReceiverBudget.stackBytes(try Request.effectiveWorkers(request.value)) });
+        const output = try Receiver.verifyWithPool(a, &image, &program, keys, &loaded.bundle, request.value.max_steps, request.value.batch_steps, verify, pcs, fixed_set, native_workers);
+        if (fixed_cache) |owner| return emit(a, .{ .profile = selected_profile, .security_qualified = false, .security_target = security_target, .security_profile = security_profile.name(), .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .verify_ns = timer.read() - setup_ns, .physical_verify_workers = native_workers, .receiver_session_setup = if (receiver_session) |shared| shared.cache.stats else null, .receiver_session_budget = if (receiver_session) |shared| shared.budget.snapshot() else null, .receiver_source_keys = if (setup.identity_only) @as([]const u8, "identity-only") else "committed", .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells, .source_accounting_profile = source_bounds.?.accounting_profile, .source_shape = source_bounds.?.shape, .source_lookup_only_conditional_degrees = source_bounds.?.conditional_degrees, .receiver_budget = receiver_budget.?.snapshot(), .receiver_recycler_cache_cap_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES, .receiver_worker_stack_upper_bound_bytes = try ReceiverBudget.stackBytes(try Request.effectiveWorkers(request.value)) });
         return emit(a, .{ .profile = PROFILE, .security_qualified = false, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .verify_ns = timer.read() - setup_ns });
     }
     var b2i = BlockToInputs{ .scope = if (inputs_only) "inputs-candidate diagnostic: sequential per-worker source build after setup; no proof" else "produce: per-worker source timestamps inside the scheduled prove" };
     b2i.init_done_at_ns = since(process_start);
-    const cpu_layout = Plan.CpuLayout.forGkrProfile(request.value.execution_profile);
+    var cpu_layout = Plan.CpuLayout.forGkrProfile(request.value.execution_profile);
+    cpu_layout.reserve_arithmetic_row = candidate;
     // The capture's AUIPC/JAL FUNCTION facts depend on the decode layout.
     if (cpu_layout.compact_decode) try program.makeCompact();
     var early_owner: ?*EarlyCPU.Owner = null;
@@ -689,6 +547,17 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
             direct_started.?.ready = early_owner.?.hook();
         }
     }
+    const strict_roster = (try @import("../../word16_execution/native_policy.zig").current()).strictRoster();
+    const canon_flag = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false;
+    const digest_capture = if (std.posix.getenv("STWO_RV64_CAPTURE_DIGEST")) |flag| std.mem.eql(u8, flag, "1") else false;
+    const truth_options = Plan.KeccakTruthOptions.fromResources(request.value.execution_profile == .ethereum_services_v3, uniform_throughput, resources);
+    const truth_max_log = if (resources) |limits| limits.keccak_max_log else 18;
+    var plan_census: ?CapturePlan.Census = if (plan_candidate and direct_capture and capture_spill == null and !strict_roster and !canon_flag and !digest_capture)
+        .{ .allocator = a, .layout = cpu_layout }
+    else
+        null;
+    defer if (plan_census) |*census| census.deinit();
+    if (plan_census) |*census| direct_started.?.ready = census.hook();
     const import_start = timer.read();
     var captured = if (direct_started) |started| direct: {
         defer {
@@ -721,10 +590,14 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     if (prestage) |*p| try p.stage.join_prestage.?(p.stage.context);
     const packet_import_ns = timer.read() - import_start;
     const capture_ns = timer.read();
+    if (plan_census) |*census| {
+        const result = try census.finish(selected_profile, program.log_size, &captured, truth_options, truth_max_log, count, capture_ns);
+        defer a.free(result.truths);
+        return emit(a, result);
+    }
     const capture_breakdown = .{ .image_load_ns = image_load_ns, .program_ns = program_ns, .pre_import_ns = import_start - image_load_ns - program_ns, .import_ns = packet_import_ns };
     b2i.capture_done_at_ns = since(process_start);
     const capture_inputs = CaptureInputs.of(&timer, import_start, capture_ns, &captured);
-    const digest_capture = if (std.posix.getenv("STWO_RV64_CAPTURE_DIGEST")) |flag| std.mem.eql(u8, flag, "1") else false;
     const captured_values_sha256: ?[64]u8 = if (digest_capture) std.fmt.bytesToHex(@import("capture_digest.zig").digest(image.identity, &captured), .lower) else null;
     b2i.capture = capture_inputs;
     // Early Source callbacks may still borrow immutable ROM columns. Keep this
@@ -735,15 +608,13 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     try @import("../services/gkr_local/service_scope.zig").advice(&captured.advice);
     const cpu = try Plan.cpus(a, &captured, cpu_layout);
     defer a.free(cpu);
-    const truths = try Plan.truthsWithOptions(a, &captured, Plan.KeccakTruthOptions.fromResources(request.value.execution_profile == .ethereum_services_v3, uniform_throughput, resources), if (resources) |limits| limits.keccak_max_log else 18);
+    const truths = try Plan.truthsWithOptions(a, &captured, truth_options, truth_max_log);
     defer a.free(truths);
     // M5 canon-native (opt-in, producer geometry only): pad every declaration
     // to its canonical class rung. The padded declarations are ordinary
     // admitted geometries; the receiver policy is unchanged.
     // M6 native-format: rv64-m6-native/v2 (strict roster) ALWAYS pads every
     // declaration to exactly its class rung vector (fails closed otherwise).
-    const strict_roster = (try @import("../../word16_execution/native_policy.zig").current()).strictRoster();
-    const canon_flag = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false;
     if (strict_roster or canon_flag) {
         const Rungs = @import("canon_native_rungs.zig");
         const classes = try a.alloc(Plan.CanonClass, cpu.len + truths.len);
@@ -757,6 +628,11 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         const digest = @import("capture_digest.zig").digest(image.identity, &captured);
         return emit(a, .{ .scope = "producer capture diagnostic only; no proof or acceptance", .security_qualified = false, .total_steps = captured.total_steps, .final_pc = captured.final_pc, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_options = resources.?.capture_options, .capture_selection = captured.capture_schedule, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .image_and_import_ns = capture_ns, .capture_breakdown = capture_breakdown, .capture_inputs = capture_inputs, .captured_values_sha256 = std.fmt.bytesToHex(digest, .lower), .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .diagnostic_digest_ns = timer.read() - digest_start });
     }
+    if (plan_candidate) {
+        var result = try CapturePlan.result(a, selected_profile, program.log_size, cpu, truths, &captured, count, capture_ns);
+        if (capture_spill) |*owner| result.capture_backing_peak_bytes = owner.backing.peak_bytes.load(.monotonic);
+        return emit(a, result);
+    }
     if (plan) return emit(a, .{ .profile = PROFILE, .security_qualified = false, .scope = "geometry advice only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
     const operational = resources.?;
     const resident = blk: {
@@ -768,15 +644,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     var source_bounds: ?SourceBounds.Report = null;
     defer if (source_bounds) |*value| value.deinit();
     if (candidate) {
-        _ = try SourceBounds.validateInventory(cpu.len, truths.len);
-        const requests = try a.alloc(P.Request, captured.native.items.len);
-        defer a.free(requests);
-        for (requests, 0..) |*value, i| {
-            value.* = try C.requestView(captured.native.items, &captured.advice, i);
-            try C.routeDword(value, cpu[i].bridges, captured.advice.events[i]);
-        }
-        try C.assignSpongeIds(requests);
-        source_bounds = try SourceBounds.derive(a, program.log_size, cpu, truths, requests);
+        source_bounds = try CapturePlan.sourceBounds(a, program.log_size, cpu, truths, &captured);
     }
     b2i.plan_done_at_ns = since(process_start);
     if (prestage != null) std.debug.print("GPU_CPU_PRESTAGE event=inventory_plan_ready utc_ns={} process_at_ns={}\n", .{ std.time.nanoTimestamp(), b2i.plan_done_at_ns });
@@ -913,7 +781,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         try side_verify.start();
     } else {
         const verify_start = timer.read();
-        output = try Receiver.verifyWithAuthority(a, &image, &keys, &bundle, request.value.max_steps, request.value.batch_steps, completed, pcs, if (fixed_set) |*authority| authority else null);
+        output = try Receiver.verifyWithPool(a, &image, &program, &keys, &bundle, request.value.max_steps, request.value.batch_steps, completed, pcs, if (fixed_set) |*authority| authority else null, native_workers);
         verify_ns = timer.read() - verify_start;
     }
     const publish_start_ns = timer.read();
@@ -922,7 +790,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     try b2i.finish(a, worker_timings, keys.cpus.len);
     defer a.free(b2i.segments);
     const native_publish_ns = timer.read() - publish_start_ns;
-    const native_report = .{ .captured_values_sha256 = captured_values_sha256, .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = &output, .keccak_uniform_throughput = uniform_throughput, .one_truth_per_family = one_truth_per_family, .coalesce_truth_families = coalesce_truth_families, .resources = operational, .capture_ns = capture_ns, .capture_breakdown = capture_breakdown, .block_to_inputs = b2i, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = &verify_ns, .native_verify_overlapped_with_recursion = overlap_verify, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null };
+    const native_report = .{ .captured_values_sha256 = captured_values_sha256, .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = &output, .keccak_uniform_throughput = uniform_throughput, .one_truth_per_family = one_truth_per_family, .coalesce_truth_families = coalesce_truth_families, .resources = operational, .capture_ns = capture_ns, .capture_breakdown = capture_breakdown, .block_to_inputs = b2i, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_backing_peak_bytes = if (capture_spill) |*owner| owner.backing.peak_bytes.load(.monotonic) else null, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = &verify_ns, .native_verify_overlapped_with_recursion = overlap_verify, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null };
     if (!overlap_verify) try Driver.writeJson(a, dir, "report.json", native_report);
     if (fixed_cache) |owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
     // A session persists new artifacts between requests, off the request wall.
@@ -983,225 +851,12 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         return emit(a, report);
     }
 }
-/// Producer block-to-inputs timeline, nanoseconds on this CLI's clock (started
-/// after request parse and pool start). Report-only; no protocol effect. On the
-/// packet route it excludes the separate `nativeprepare` process.
-const CaptureInputs = struct {
-    /// Expected image + program init (and compact decode), before capture.
-    init_ns: u64,
-    /// Segment 0 inputs ready: captured, admitted and its ledger shard built.
-    first_inputs_ns: ?u64,
-    /// Last segment's ledger shard built.
-    last_inputs_ns: ?u64,
-    /// All segment inputs ready, including the global boundary cells.
-    all_inputs_ns: u64,
-    /// Serial ordered ledger, summed over segments; and its `finish`.
-    ledger_ns: u64,
-    ledger_finish_ns: u64,
-    fn of(timer: *const std.time.Timer, init_ns: u64, all_ns: u64, captured: *const Capture) CaptureInputs {
-        return .{ .init_ns = init_ns, .first_inputs_ns = sinceTimer(timer, captured.first_inputs_at), .last_inputs_ns = sinceTimer(timer, captured.last_inputs_at), .all_inputs_ns = all_ns, .ledger_ns = captured.timing.ledger_ns, .ledger_finish_ns = captured.timing.finish_ns };
-    }
-    fn sinceTimer(timer: *const std.time.Timer, at: ?std.time.Instant) ?u64 {
-        return if (at) |value| value.since(timer.started) else null;
-    }
-};
+const CaptureInputs = @import("input_timeline.zig").CaptureInputs;
 fn emit(a: std.mem.Allocator, value: anytype) !void {
     const json = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });
     defer a.free(json);
     try std.fs.File.stdout().writeAll(json);
     try std.fs.File.stdout().writeAll("\n");
-}
-
-test "candidate operational budget cannot select protocol and control resource schema stays exact" {
-    const a = std.testing.allocator;
-    const control_json = "{\"gkr_bytes\":1,\"global_bytes\":2,\"retained_frontend_bytes\":3,\"disk_bytes\":4,\"park_main\":true,\"schedule\":{\"memory_cap_bytes\":5}}";
-    const parsed = try std.json.parseFromSlice(Resources, a, control_json, .{});
-    defer parsed.deinit();
-    try parsed.value.validate();
-    const encoded = try std.json.Stringify.valueAlloc(a, parsed.value, .{});
-    defer a.free(encoded);
-    try std.testing.expect(std.mem.indexOf(u8, encoded, "fixed_setup_bytes") == null);
-    try std.testing.expect(std.mem.indexOf(u8, encoded, "stage2_order") == null);
-    try std.testing.expect(std.mem.indexOf(u8, encoded, "capture_options") == null);
-    try std.testing.expectEqual(@as(u8, 1), parsed.value.capture_options.max_inflight_packets);
-    var capture_resources = parsed.value;
-    capture_resources.capture_options.max_inflight_packets = 2;
-    try capture_resources.validate();
-    const capture_json = try std.json.Stringify.valueAlloc(a, capture_resources, .{});
-    defer a.free(capture_json);
-    try std.testing.expect(std.mem.indexOf(u8, capture_json, "capture_options") != null);
-    // Schedule reports resolve lane_workers to an active-length numeric list;
-    // they are deliberately not the input Policy schema. Round-trip only the
-    // newly introduced numeric operational subobject.
-    const options_json = try std.json.Stringify.valueAlloc(a, capture_resources.capture_options, .{});
-    defer a.free(options_json);
-    const capture_roundtrip = try std.json.parseFromSlice(CaptureOptions, a, options_json, .{});
-    defer capture_roundtrip.deinit();
-    try std.testing.expectEqualDeep(capture_resources.capture_options, capture_roundtrip.value);
-    for ([_]u8{ 1, 2, 3, 4, 8, @import("capture_prefetch.zig").MAX_INFLIGHT }) |window| {
-        capture_resources.capture_options.max_inflight_packets = window;
-        try capture_resources.validate();
-    }
-    capture_resources.capture_options.max_inflight_packets = 0;
-    try std.testing.expectError(error.InvalidEthereumCaptureOptions, capture_resources.validate());
-    capture_resources.capture_options.max_inflight_packets = @import("capture_prefetch.zig").MAX_INFLIGHT + 1;
-    try std.testing.expectError(error.InvalidEthereumCaptureOptions, capture_resources.validate());
-    const forbidden_capture = "{\"max_inflight_packets\":2,\"security_qualified\":true}";
-    try std.testing.expectError(error.UnknownField, std.json.parseFromSlice(CaptureOptions, a, forbidden_capture, .{}));
-    try std.testing.expectError(error.MissingField, std.json.parseFromSlice(CandidateResources, a, control_json, .{}));
-    var candidate = CandidateResources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .fixed_setup_bytes = 0, .schedule = .{ .memory_cap_bytes = 5 } };
-    try std.testing.expectError(error.MissingCandidateFixedSetupAdmission, candidate.validate());
-    candidate.fixed_setup_bytes = 6;
-    try candidate.validate();
-    try std.testing.expectEqualDeep(parsed.value, candidate.operational());
-    candidate.capture_options.max_inflight_packets = 2;
-    try candidate.validate();
-    try std.testing.expectEqual(@as(u8, 2), candidate.operational().capture_options.max_inflight_packets);
-    const bad = "{\"gkr_bytes\":1,\"global_bytes\":2,\"retained_frontend_bytes\":3,\"disk_bytes\":4,\"fixed_setup_bytes\":6,\"schedule\":{\"memory_cap_bytes\":5},\"security_qualified\":true}";
-    try std.testing.expectError(error.UnknownField, std.json.parseFromSlice(CandidateResources, a, bad, .{}));
-}
-
-test "explicit stage2 resource order remains owner-backed and serializes only when selected" {
-    const a = std.testing.allocator;
-    const parsed = try std.json.parseFromSlice(Resources, a, "{\"gkr_bytes\":1,\"global_bytes\":2,\"retained_frontend_bytes\":3,\"disk_bytes\":0,\"park_main\":false,\"stage2_order\":[2,0,1],\"schedule\":{\"memory_cap_bytes\":5}}", .{});
-    defer parsed.deinit();
-    const operational = parsed.value;
-    try operational.validate();
-    try Schedule.validateOrder(operational.stage2_order, 3);
-    try std.testing.expectEqualSlices(usize, &.{ 2, 0, 1 }, operational.stage2_order);
-    const encoded = try std.json.Stringify.valueAlloc(a, operational, .{});
-    defer a.free(encoded);
-    try std.testing.expect(std.mem.indexOf(u8, encoded, "\"stage2_order\":[2,0,1]") != null);
-    try std.testing.expectError(error.InvalidServiceOrder, Schedule.validateOrder(operational.stage2_order, 5));
-}
-
-test "explicit recycler cache ceiling remains an operational bounded option" {
-    const a = std.testing.allocator;
-    var limits = Resources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 0, .park_main = false, .schedule = .{ .memory_cap_bytes = 5 } };
-    try limits.validate();
-    const old = try std.json.Stringify.valueAlloc(a, limits, .{});
-    defer a.free(old);
-    try std.testing.expect(std.mem.indexOf(u8, old, "recycler_cache_bytes") == null);
-    limits.recycler_cache_bytes = 0;
-    try limits.validate();
-    const encoded = try std.json.Stringify.valueAlloc(a, limits, .{});
-    defer a.free(encoded);
-    try std.testing.expect(std.mem.indexOf(u8, encoded, "\"recycler_cache_bytes\":0") != null);
-    const decoded = try std.json.parseFromSlice(Resources, a, encoded, .{});
-    defer decoded.deinit();
-    try decoded.value.validate();
-    try std.testing.expectEqual(@as(usize, 0), decoded.value.recycler_cache_bytes);
-    limits.recycler_cache_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES + 1;
-    try std.testing.expectError(error.UnsupportedRecyclerCacheLimit, limits.validate());
-    const candidate = CandidateResources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 0, .fixed_setup_bytes = 6, .park_main = false, .recycler_cache_bytes = 1024, .schedule = .{ .memory_cap_bytes = 5 } };
-    try candidate.validate();
-    try std.testing.expectEqual(@as(usize, 1024), candidate.operational().recycler_cache_bytes);
-}
-
-// Worker admission is an operational bound, independent of scheduler threads.
-// Parked coefficients and Merkle trees are bounded by explicit byte/disk
-// admission. Their roster must fit the existing receiver security envelope.
-// No-store retention keeps its smaller resident bound.
-fn residentWorkerLimit(park_main: bool, count: usize, keccak_max_log: u32) !usize {
-    if (park_main) return error.ResidentPipelineCannotParkMain;
-    if (keccak_max_log < 16 or keccak_max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
-    if (count == 0 or count > Candidate.MAX_PROOFS or count > @import("../services/gkr_local/manifest.zig").MAX_WORKERS) return error.BoundedWideCoordinatorLimit;
-    return count;
-}
-fn producerWorkerLimit(park_main: bool, count: usize, keccak_max_log: u32) !usize {
-    if (keccak_max_log < 16 or keccak_max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
-    const cap: usize = if (park_main) @intCast(Candidate.MAX_PROOFS) else 8;
-    if (count == 0 or count > cap or count > @import("../services/gkr_local/manifest.zig").MAX_WORKERS) return error.BoundedWideCoordinatorLimit;
-    return if (park_main) @max(@as(usize, 32), count) else 8;
-}
-test "Keccak shard operational resource remains explicit bounded and default-schema preserving" {
-    const a = std.testing.allocator;
-    var limits = Resources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .schedule = .{ .memory_cap_bytes = 5 } };
-    const old = try std.json.Stringify.valueAlloc(a, limits, .{});
-    defer a.free(old);
-    try std.testing.expect(std.mem.indexOf(u8, old, "keccak_max_log") == null);
-    limits.keccak_max_log = 16;
-    try limits.validate();
-    const encoded = try std.json.Stringify.valueAlloc(a, limits, .{});
-    defer a.free(encoded);
-    const parsed = try std.json.parseFromSlice(Resources, a, encoded, .{});
-    defer parsed.deinit();
-    try parsed.value.validate();
-    try std.testing.expectEqual(@as(u32, 16), parsed.value.keccak_max_log);
-    limits.keccak_max_log = 15;
-    try std.testing.expectError(error.UnsupportedEthereumKeccakShardLog, limits.validate());
-    const candidate = CandidateResources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .fixed_setup_bytes = 5, .keccak_max_log = 17, .schedule = .{ .memory_cap_bytes = 6 } };
-    try candidate.validate();
-    try std.testing.expectEqual(@as(u32, 17), candidate.operational().keccak_max_log);
-    try std.testing.expectEqual(@as(usize, 32), try producerWorkerLimit(true, 30, 18));
-    try std.testing.expectEqual(@as(usize, 36), try producerWorkerLimit(true, 36, 18));
-    try std.testing.expectEqual(@as(usize, 36), try producerWorkerLimit(true, 36, 16));
-    try std.testing.expectEqual(@as(usize, 64), try producerWorkerLimit(true, 64, 16));
-    try std.testing.expectEqual(@as(usize, 65), try producerWorkerLimit(true, 65, 16));
-    try std.testing.expectEqual(@as(usize, Candidate.MAX_PROOFS), try producerWorkerLimit(true, Candidate.MAX_PROOFS, 18));
-    try std.testing.expectError(error.BoundedWideCoordinatorLimit, producerWorkerLimit(true, Candidate.MAX_PROOFS + 1, 18));
-    try std.testing.expectEqual(@as(usize, 8), try producerWorkerLimit(false, 8, 16));
-    try std.testing.expectError(error.BoundedWideCoordinatorLimit, producerWorkerLimit(false, 9, 16));
-}
-
-test "hybrid checkpoint resource is optional operational metadata and candidate forwarded" {
-    var limits = Resources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .schedule = .{ .memory_cap_bytes = 5 } };
-    const before = try std.json.Stringify.valueAlloc(std.testing.allocator, limits, .{});
-    defer std.testing.allocator.free(before);
-    try std.testing.expect(std.mem.indexOf(u8, before, "checkpoint_above_gkr_bytes") == null);
-    limits.checkpoint_above_gkr_bytes = 12 << 30;
-    const encoded = try std.json.Stringify.valueAlloc(std.testing.allocator, limits, .{});
-    defer std.testing.allocator.free(encoded);
-    const decoded = try std.json.parseFromSlice(Resources, std.testing.allocator, encoded, .{});
-    defer decoded.deinit();
-    try std.testing.expectEqual(limits.checkpoint_above_gkr_bytes, decoded.value.checkpoint_above_gkr_bytes);
-    const candidate = CandidateResources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .fixed_setup_bytes = 6, .checkpoint_above_gkr_bytes = 7, .schedule = .{ .memory_cap_bytes = 5 } };
-    try std.testing.expectEqual(@as(usize, 7), candidate.operational().checkpoint_above_gkr_bytes);
-}
-
-test "deferred local binding resource defaults off and candidate forwards operational flag" {
-    var value = Resources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .schedule = .{ .memory_cap_bytes = 5 } };
-    const old = try std.json.Stringify.valueAlloc(std.testing.allocator, value, .{});
-    defer std.testing.allocator.free(old);
-    try std.testing.expect(std.mem.indexOf(u8, old, "defer_local_binding") == null);
-    value.defer_local_binding = true;
-    const encoded = try std.json.Stringify.valueAlloc(std.testing.allocator, value, .{});
-    defer std.testing.allocator.free(encoded);
-    const decoded = try std.json.parseFromSlice(Resources, std.testing.allocator, encoded, .{});
-    defer decoded.deinit();
-    try std.testing.expect(decoded.value.defer_local_binding);
-    const candidate = CandidateResources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .fixed_setup_bytes = 6, .defer_local_binding = true, .schedule = .{ .memory_cap_bytes = 5 } };
-    try std.testing.expect(candidate.operational().defer_local_binding);
-}
-
-test "direct execution worker count is explicit bounded operational metadata" {
-    var options: CaptureOptions = .{};
-    try std.testing.expectEqual(@as(u8, 0), options.execution_workers);
-    options.execution_workers = 2;
-    try options.validate();
-    try std.testing.expect(!options.isDefault());
-    options.execution_workers = 33;
-    try std.testing.expectError(error.InvalidEthereumCaptureOptions, options.validate());
-}
-
-test "uniform resident Keccak resource is opt-in and cannot select security" {
-    const a = std.testing.allocator;
-    const original = "{\"gkr_bytes\":1,\"global_bytes\":2,\"retained_frontend_bytes\":3,\"disk_bytes\":4,\"fixed_setup_bytes\":5,\"schedule\":{\"memory_cap_bytes\":6}}";
-    const parsed = try std.json.parseFromSlice(CandidateResources, a, original, .{});
-    defer parsed.deinit();
-    try parsed.value.validate();
-    try std.testing.expect(!parsed.value.keccak_uniform_throughput);
-    var selected = parsed.value;
-    selected.keccak_uniform_throughput = true;
-    const encoded = try std.json.Stringify.valueAlloc(a, selected, .{});
-    defer a.free(encoded);
-    const reloaded = try std.json.parseFromSlice(CandidateResources, a, encoded, .{});
-    defer reloaded.deinit();
-    try reloaded.value.validate();
-    try std.testing.expect(reloaded.value.keccak_uniform_throughput);
-    try std.testing.expectEqualDeep(parsed.value.operational(), selected.operational());
-    const injection = "{\"gkr_bytes\":1,\"global_bytes\":2,\"retained_frontend_bytes\":3,\"disk_bytes\":4,\"fixed_setup_bytes\":5,\"keccak_uniform_throughput\":true,\"security_profile\":\"weaker\",\"schedule\":{\"memory_cap_bytes\":6}}";
-    try std.testing.expectError(error.UnknownField, std.json.parseFromSlice(CandidateResources, a, injection, .{}));
 }
 
 test "combined mode is explicit and cannot be confused with native or cache modes" {
@@ -1212,4 +867,13 @@ test "combined mode is explicit and cannot be confused with native or cache mode
 test "fresh receiver never admits persisted producer setup roots" {
     try requireIndependentReceiverSetup(false);
     try std.testing.expectError(error.PersistedSetupCacheForbiddenForReceiver, requireIndependentReceiverSetup(true));
+}
+
+test {
+    _ = @import("resources.zig");
+    _ = @import("native_batch.zig");
+}
+
+test {
+    _ = @import("receiver_batch.zig");
 }

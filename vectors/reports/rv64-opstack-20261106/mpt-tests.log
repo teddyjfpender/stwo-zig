@@ -1,0 +1,23 @@
+   Compiling kona-mpt v0.3.0 (/workspace/scratch/8764ebc80ad4/stwo-zig/opstack/kona/vendor/kona-mpt)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.59s
+     Running unittests src/lib.rs (opstack/kona/vendor/kona-mpt/target/debug/deps/kona_mpt-509c92339c5b2eed)
+
+running 15 tests
+test list_walker::test::test_empty_list_walker ... ok
+test list_walker::test::test_list_walker ... ok
+test node::test::test_empty_blinded ... ok
+test node::test::test_decode_leaf ... ok
+test node::test::test_decode_branch ... ok
+test node::test::test_encode_decode_extension_open_short ... ok
+test node::test::test_extension_open_path_shorter_than_prefix_no_panic ... ok
+test node::test::test_encode_decode_extension_blinded_long ... ok
+test node::test::test_insert_static ... ok
+test node::test::test_retrieve_from_trie_simple ... ok
+test node::bounded_length_tests::bounded_scratch_and_general_fallback_preserve_arbitrary_values_and_branch_lengths ... ok
+test node::bounded_length_tests::deep_open_trees_match_reference_without_mutable_caches ... ok
+test node::bounded_length_tests::exact_inline_thresholds_and_path_prefix_lengths ... ok
+test node::test::diff_hash_builder_insert ... ok
+test node::test::diff_hash_builder_delete ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 29.81s
+

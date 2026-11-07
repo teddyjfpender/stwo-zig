@@ -1,0 +1,228 @@
+{
+  "schema": "rv64-native-plan-cost/v1",
+  "scope": "source-derived native FIXED/MAIN/INTERACTION cells including padding; excludes PCS blowup, composition, openings, recursion, proof bytes and timing; no proof or acceptance",
+  "security_qualified": false,
+  "proof_generated": false,
+  "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+  "program_log": 20,
+  "prefix_count": 0,
+  "total_steps": 821721,
+  "final_pc": 2748,
+  "memory_words": 30670,
+  "capture_ns": 3782059178,
+  "cpu": [
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 16,
+        "alu_tail_log": null,
+        "binary_log": 13,
+        "binary_tail_log": null,
+        "shift_log": 11,
+        "shift_tail_log": 9,
+        "jalr_log": 11,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 11,
+        "ls_log": 15,
+        "ls_tail_log": 14,
+        "boundary_log": 5,
+        "initial_log": 15,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "sha256": 7,
+        "bulk": {
+          "desc": 9,
+          "copy": 14,
+          "set": 13,
+          "ucopy": 10,
+          "cdesc": 5,
+          "cmp": 7
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 5
+        },
+        "ls_dword": 16
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 13,
+        "binary_log": 12,
+        "binary_tail_log": 11,
+        "shift_log": 11,
+        "shift_tail_log": 10,
+        "jalr_log": 12,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 10,
+        "ls_log": 15,
+        "ls_tail_log": 14,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 11,
+          "copy": 14,
+          "set": 11,
+          "ucopy": 11,
+          "cdesc": 6,
+          "cmp": 6
+        },
+        "sponge": {
+          "call": 6,
+          "perm": 8
+        },
+        "ls_dword": 16
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 18,
+        "alu_log": 14,
+        "alu_tail_log": 12,
+        "binary_log": 12,
+        "binary_tail_log": 11,
+        "shift_log": 12,
+        "shift_tail_log": null,
+        "jalr_log": 12,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 10,
+        "ls_log": 15,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "bulk": {
+          "desc": 11,
+          "copy": 13,
+          "set": 14,
+          "ucopy": 13,
+          "cdesc": 6,
+          "cmp": 7
+        },
+        "sponge": {
+          "call": 7,
+          "perm": 8
+        },
+        "ls_dword": 16,
+        "ls_dword_tail": 7
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 16,
+        "alu_log": 12,
+        "alu_tail_log": 10,
+        "binary_log": 10,
+        "binary_tail_log": null,
+        "shift_log": 9,
+        "shift_tail_log": 5,
+        "jalr_log": 10,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 9,
+        "ls_log": 11,
+        "ls_tail_log": 7,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 15,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true,
+        "cpu_compact_decode": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null,
+        "sha256": 5,
+        "bulk": {
+          "desc": 7,
+          "copy": 11,
+          "set": 10,
+          "ucopy": 9,
+          "cdesc": 5,
+          "cmp": 5
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 5
+        },
+        "ls_dword": 13,
+        "ls_dword_tail": 12
+      }
+    }
+  ],
+  "truths": [
+    {
+      "family": "keccak",
+      "first_id": 1,
+      "calls": 338,
+      "logs": [
+        13,
+        1770517
+      ]
+    },
+    {
+      "family": "sha256",
+      "first_id": 1,
+      "calls": 34,
+      "logs": [
+        6,
+        0
+      ]
+    }
+  ],
+  "source_shape": {
+    "native_proofs": 6,
+    "max_trace_log": 21,
+    "max_public_boundary_log": 15,
+    "max_columns": 7444,
+    "max_constraints": 7751,
+    "max_samples_per_column": 5,
+    "max_air_degree": 5,
+    "max_local_instances": 28,
+    "max_tuple_arity": 35,
+    "max_gkr_variables": 22,
+    "native_trace_cells": [
+      162393344,
+      89314528,
+      163214336
+    ]
+  },
+  "native_trace_cells": [
+    162393344,
+    89314528,
+    163214336
+  ],
+  "main_interaction_bits": 7828394784,
+  "base_field_bits": 31,
+  "storage_bits_per_cell": 32
+}
