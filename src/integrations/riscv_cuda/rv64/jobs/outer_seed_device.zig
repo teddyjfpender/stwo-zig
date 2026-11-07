@@ -470,8 +470,27 @@ pub fn leafTapeLength(a: std.mem.Allocator, child: ChildClass, cap_log: u32) !u3
     return b.tape;
 }
 
+/// Fixed-size arrays of outer_seed.cu `seed_caps` (shared `at_of`/`nodes`
+/// per query, the 64-bit cap coverage mask + `layer[64]`, the FRI coset
+/// `level[16]`). A program outside them would index past those arrays on
+/// the device, so `finish` refuses it at warm time instead.
+pub const kernel_max_queries: u32 = 1024;
+pub const kernel_max_cap_log: u32 = 6;
+pub const kernel_max_coset_leaves: u32 = 16;
+pub fn capFitsKernel(c: Cap) bool {
+    if (c.nq > kernel_max_queries or c.cl > kernel_max_cap_log or c.cl > c.height) return false;
+    if (c.kind == 0) return true;
+    const per: u32 = if (c.pack != 0) 4 else 1;
+    if (c.width == 0 or c.width % per != 0) return false;
+    const leaves = c.width / per;
+    const reduce: u32 = if (c.pack != 0) 2 else 0;
+    if (leaves > kernel_max_coset_leaves or c.to_log < reduce or c.to_log - reduce >= 32) return false;
+    return leaves == (@as(u32, 1) << @intCast(c.to_log - reduce));
+}
+
 fn finish(a: std.mem.Allocator, b: *Builder, children: []const ChildClass, cap_log: u32, vars: []const u32, constants: []const [4]u32, statement: ?Statement) !Program {
     if (vars.len < b.tape or constants.len != vars.len - b.tape) return error.GnSeedProgramLayout;
+    for (b.caps.items) |c| if (!capFitsKernel(c)) return error.GnSeedProgramKernelBounds;
     const n_ops = b.ops.items.len;
     const n_caps = b.caps.items.len;
     var at: usize = P.header_words;
@@ -1095,4 +1114,29 @@ test "seed program: synthetic children fill, caps verified, negatives fail close
     try t.expectEqual((@as(u32, 0x0305) << 16 | @intFromEnum(SeedDetail.image_header)), fillHost(prog, &regions_bad, scratch, out));
     // Wrong child count or a corrupted program.
     try t.expectEqual((@as(u32, 0x0305) << 16 | @intFromEnum(SeedDetail.program)), fillHost(prog, regions[0..1], scratch, out));
+}
+
+test "seed program: caps outside the kernel's fixed arrays are refused" {
+    const t = std.testing;
+    const ok = Cap{ .kind = 1, .child = 0, .height = 10, .cl = 3, .values = 0, .width = 8, .paths = 0, .path_stride = 0, .level0 = 0, .root = 0, .scratch = 0, .queries = 0, .nq = 70, .from_log = 0, .to_log = 3, .layer_log = 13, .pack = 0 };
+    try t.expect(capFitsKernel(ok));
+    var c = ok;
+    c.nq = kernel_max_queries + 1;
+    try t.expect(!capFitsKernel(c));
+    c = ok;
+    c.cl = kernel_max_cap_log + 1;
+    c.height = 12;
+    try t.expect(!capFitsKernel(c));
+    c = ok;
+    c.width = 32;
+    c.to_log = 5; // 32 unpacked leaves > level[16]
+    try t.expect(!capFitsKernel(c));
+    c.pack = 1; // 8 packed leaves of 4, 3 folds
+    try t.expect(capFitsKernel(c));
+    c.to_log = 4; // leaves != 2^(to_log - 2)
+    try t.expect(!capFitsKernel(c));
+    var tr = ok;
+    tr.kind = 0;
+    tr.width = 300; // trace leaves stream their columns: any width
+    try t.expect(capFitsKernel(tr));
 }

@@ -40,6 +40,39 @@ Every node of both recorded blocks, children from their recorded regions; compar
 - [M] Negatives (fold 4 of each block; device word == mirror word on every case): Merkle path sibling flipped → seed_tape 0x03050006; queried value := p → 0x03050005; raw query out of range → 0x03050004; image header → 0x03050003; empty region → 0x03050002 (+ child_binding 0x03060001); wire magic → child_binding 0x03060002; child identity → 0x03060004; child output count → 0x03060005; child FIXED root → seed_tape 0x03050008 + child_binding 0x03060006. 9/9 fail closed per block.
 - Machine-readable: `harness-24628607.json`, `harness-26235156.json` (`scripts/rv64_m8_gn_node_summary.py harness <log>`).
 
+### In-service: every node proved from device-filled inputs (`STWO_RV64_M8_GN_NODE=check`)
+Proof-only runner (`pod/gn_prove.py`: the gate's small-block-proof step + frozen-D2 parity) with `STWO_RV64_M8_OUTER_JOBS=1 OUTER_DEVICE_CHECKS=1 GN_NODE=check OUTER_GRAPH_THRESHOLD=1`, driver b6, addon b6 (a25 base). Before staging, every node's host seed limbs and transcript checkpoint are ERASED (and the staged expected outputs); the device seed fill + statement kernel writes them from the children's sources (legacy natives' PCS images via the recorder hook, proved nodes' wire + PCS image), and the node body proves from them.
+
+| block | node proofs from device inputs (cold + warm) | device outputs == legacy | device checkpoint == legacy | seed_tape / child_binding accepted | request artifacts vs frozen D2 | seed-fill GPU (CUDA events) |
+|---|---|---|---|---|---|---|
+| 24628607 | 38 / 38 | 38 / 38 | 38 / 38 | 38 / 38 | **39/39 + 39/39 byte-identical** | 0.37–1.99 ms / node, 34.1 ms over 38 nodes [M] |
+| 26235156 | 30 / 30 | 30 / 30 | 30 / 30 | 30 / 30 | **32/32 + 32/32 byte-identical** | 27.3 ms over 30 nodes [M] |
+
+- [M] Negative arm (`STWO_RV64_M8_FAULT_INJECTION=1 GN_NODE_FAULT_ORDINAL=4`, 24628607): one MAIN-tree Merkle path word of fold 4's first child flipped → `seed_tape` 0x03050006 on device → node refused (`GnNodeDeviceRejected`), request fails as intended (`arm-n-24628607-4`).
+- Check-mode host costs (child-source assembly, MAIN-root child search, program build per node: 2–620 ms [M]) are harness scaffolding: production builds programs at warm and reads children from the slab.
+- Machine-readable: `service-g-24628607.json`, `service-g-26235156.json`.
+
+### In-service: the production GPU-native node job (`STWO_RV64_M8_GN_NODE=job`)
+Every node is proved a second time through `outer_device.NodeJob` over its `NodeClasses` template (children in a node-local stand-in of the request slab: image in the last region words), device encoder into the node's region (image tail on, outputs from device memory, `device_publish`: no host decode in finish), and the bytes are compared with the published host bytes.
+
+
+Driver b11 (ad0eba90f), addon b6; cold + warm request per block (`job-<block>.txt` = the GN_NODE_JOB lines, `job-summary.json`, `job-proof-<block>.json`):
+
+| block | node jobs (cold + warm) | device-encoded bytes == published host bytes | own PCS image tail == node image | all 7 slab verdict words accepted | request artifacts vs frozen D2 | host launches / node | NodeJob own host stage+enqueue / node (seed fill + verdicts; EXCLUDES the body's stage/enqueue, see below) |
+|---|---|---|---|---|---|---|---|
+| 24628607 | 38 (28 leaves, 10 folds incl. root) | 38/38 | 38/38 | 38/38 | **39/39 + 39/39** | 7 | 36–89 us, median 45 us [M] |
+| 26235156 | 30 (22 leaves, 8 folds incl. root) | 30/30 | 30/30 | 30/30 | **32/32 + 32/32** | 7 | 38–105 us, median 49 us [M] |
+
+- Host launches per node = seed fill 4 + lookup_sum copy + channel_order verdict + 1 launch of the body graph (the encoder, image tail and OODS check run inside the made job after the body). Design target ≤ 50 [E]: met for the launch COUNT only. Every body graph in these runs was captured (not replayed), so the body's host enqueue still issued every kernel call into the capture; that host cost is not in the NodeJob column (review note, gn-node review).
+- Verdict words read back from the node's region: seed_tape, child_binding, lookup_sum, channel_order, node_pcs_status, encode_bounds, node_oods_constraint.
+- [M] Worker stage of the made job (hybrid window): leaves 17–260 ms, folds 70–307 ms per node — the template's node region (zeroed seeds, up to 24 MB) and, under the hybrid window's per-job class-region policy, the class schedule and FIXED raw evaluations are re-packed/uploaded per node, plus the check-mode child-region upload. With persistent class regions (GPU-native install) the schedule and FIXED are uploaded once per worker; the seeds section needs the `device_inputs` flag requested in M8-INTERFACES. Not a request-path number of the GPU-native driver.
+- [M] Body GPU wait 75–423 ms (leaves) / 242–542 ms (folds) per node: the whole-node prove itself.
+- Graph outcome `captured` on both requests: the hybrid window parks its workers between requests (arena epoch changes), so every node body is captured and launched once; replay of a class graph across requests needs the GPU-native install's stable arena.
+- Fixes found by these runs: template lifetime (Authority-borrowed FIXED log table: InvalidDevicePcsColumn on the warm request), hybrid-window memory (FIXED handoff + per-job class regions: arena overrun on folds), child wire capacity (759,512 B wires).
+
+### Default gate
+- [M] `rv64_gate.sh --stream m8-gn-node` default (26235156) at 131005f81: **PASS** — build, unit (Zig + Python), cold + warm small-block proofs 32/32 + 32/32 byte-identical to the frozen D2 golden, 2/2 fresh CPU receivers, 19-case negative corpus (`gate-default-26235156.json`; run `/workspace/m3/runs/m8-gn-node/gate5`). ad0eba90f after it changes job-mode check code only (default off).
+
 ### Host tests (laptop, memguard 6 GB)
 - [M] `zig build test-rv64-jobs-outer` and `test-rv64-jobs` PASS. `outer_seed_device.zig`: synthetic children with real Merkle trees (trace + FRI), caps and full-path roots verified, five negative classes. `outer_device.zig`: the GPU-native node job end to end on the fake device (2 GPUs, the fold's second child on the peer GPU: one peer copy; seeds/outputs/checkpoint == mirror; seed_tape / child_binding / lookup_sum / channel_order words accepted in the request slab), and its negatives (corrupted peer child path → seed_tape reject, bad channel latch → channel_order reject, publish refuses; unknown child / wrong child count / unplanned class fail at plan time).
 
@@ -53,3 +86,11 @@ Every node of both recorded blocks, children from their recorded regions; compar
 | `OuterNodeJob.finish`: outer section decode (status latches, claims) + a 1.5 MB copy of the PCS image (`defer_decode`) | `jobs/outer_job.zig` | small; publish-only path should skip both (the device words carry the verdicts) |
 | Class products need one warm legacy request (`NodeClasses` harvest under GN_NODE=check) + authority registration by the binder | gn-bind / driver install | API in place (`NodeClasses.get`, `Entry.programFor`, `Recursion.register(.node)`) |
 | Children found by MAIN-root search in the host seeds (check mode only) | `GnCheck` | production gets children from the driver DAG (`RecursionFactory.node(children)`) |
+
+## Binding (for gn-bind / the driver)
+
+1. Install: one warm request proved through the hybrid recursion with `STWO_RV64_M8_OUTER_JOBS=1 STWO_RV64_M8_OUTER_DEVICE_CHECKS=1 STWO_RV64_M8_GN_NODE=check` harvests one `outer_job_factory.NodeClasses.Entry` per node class (class Staged template, seed-program inputs, encoder descriptor, OODS program).
+2. For each entry: `entry.programFor(child_region_words)` with each child's request-slab region words (1 + the child class's encoded capacity; om31 children: `entry.max_encoded_bytes / 4 + 1` of the child entry), set `entry.graphs[d]` to device d's Prover graph cache, then `outer_device.Recursion.register(id, child_class_keys, key, .{ .plan, .node = &entry.node, .max_encoded_bytes = entry.max_encoded_bytes })`.
+3. `Recursion.device = .{ .seed = outer_seed_device.Symbols.load(&addon), .d2d = <base stwo_exec_context_memcpy_d2d_async>, .peer = ops.Peer.open(&addon) }`.
+4. Per request: the driver already calls `class_of` (plan) then `node(ctx, id, children, device)` (make); after publication `Recursion.end(request)`.
+5. Producers: om31 nodes write their PCS image tail themselves (`EncodedNode.image_tail`); native Stage 2 and TruthJob must write `[image][leaf statement tail][leaf outputs]` after their bytes (M8-INTERFACES "m8-gn-node").

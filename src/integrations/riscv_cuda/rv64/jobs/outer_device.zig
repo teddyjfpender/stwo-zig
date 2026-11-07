@@ -137,9 +137,13 @@ pub const Recursion = struct {
     /// request being planned (the driver plans, then makes, one request at
     /// a time: driver_request.zig plan -> make).
     planned: std.AutoHashMapUnmanaged(u64, G.ClassKey) = .empty,
-    /// The open request's node jobs (freed at `end`).
+    /// Node jobs of the requests in flight. A job is freed only once it
+    /// settled (its `finish` or `abort` returned: the worker never touches a
+    /// job after that), at `end(request)` (publication) or at `deinit`. The
+    /// driver keeps two requests in flight (slab parities), so request N+1
+    /// makes its jobs while N's batches still run: freeing N's jobs on N+1's
+    /// first `node` (the pre-review rule) was a use-after-free.
     jobs: std.ArrayListUnmanaged(*NodeJob) = .empty,
-    request: u64 = 0,
 
     const Registered = struct { info: ClassInfo, phase_b: bool };
 
@@ -148,22 +152,38 @@ pub const Recursion = struct {
         while (it.next()) |r| if (r.info.pin) |p| p.release(p.ctx);
         self.classes.deinit(self.a);
         self.authorities.deinit(self.a);
-        self.releaseJobs();
+        self.releaseWhere(null, false);
         self.jobs.deinit(self.a);
         self.planned.deinit(self.a);
     }
-    fn releaseJobs(self: *Recursion) void {
+    /// Free the jobs of `request` (null: every job), or with `settled_only`
+    /// only the jobs that settled. Caller holds the mutex (or tears down).
+    fn releaseWhere(self: *Recursion, request: ?u64, settled_only: bool) void {
+        var keep: usize = 0;
         for (self.jobs.items) |j| {
-            j.deinit();
-            self.a.destroy(j);
+            const mine = if (request) |r| j.request == r else true;
+            if (mine and (!settled_only or j.settled.load(.acquire))) {
+                j.deinit();
+                self.a.destroy(j);
+            } else {
+                self.jobs.items[keep] = j;
+                keep += 1;
+            }
         }
-        self.jobs.clearRetainingCapacity();
+        self.jobs.shrinkRetainingCapacity(keep);
     }
-    /// After publication of `request`: free its node jobs.
+    /// After publication of `request` (its single wait returned): free its
+    /// node jobs.
     pub fn end(self: *Recursion, request: u64) void {
         self.mutex.lock();
         defer self.mutex.unlock();
-        if (request == self.request) self.releaseJobs();
+        self.releaseWhere(request, false);
+    }
+    /// Node jobs held (tests, receipts).
+    pub fn heldJobs(self: *Recursion) usize {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.jobs.items.len;
     }
     fn idKey(id: G.ProofId) u64 {
         return (@as(u64, @intFromEnum(id.kind)) << 32) | id.ordinal;
@@ -278,11 +298,9 @@ pub const Recursion = struct {
         defer self.mutex.unlock();
         const ops = self.device orelse return error.M8GpuNativeNodeDeviceUnbound;
         if (id.kind != .leaf and id.kind != .fold and id.kind != .root) return error.GpuNativeNotARecursionProof;
-        if (rc.request != self.request) {
-            // A new request: the previous request's jobs were published.
-            self.releaseJobs();
-            self.request = rc.request;
-        }
+        // Reclaim settled jobs of earlier requests; a job of a request still
+        // in flight (the other parity) stays until it settles or `end`.
+        self.releaseWhere(null, true);
         const key = self.planned.get(idKey(id)) orelse return error.GpuNativeClassNotWarmed;
         const entry = try rc.classes.get(key);
         const nc = (@as(*const Held, @ptrCast(@alignCast(entry.plan)))).node orelse return error.GpuNativeNodeClassMissing;
@@ -293,7 +311,7 @@ pub const Recursion = struct {
         const target = Target{ .device = device, .region = try seg.encodedBuffer(buf, id), .pcs_status = try seg.statusBuffer(buf, id, .node_pcs_status), .encode_status = try seg.statusBuffer(buf, id, .encode_bounds), .oods_status = try seg.statusBuffer(buf, id, .node_oods_constraint) };
         const job = try self.a.create(NodeJob);
         errdefer self.a.destroy(job);
-        job.* = .{ .a = self.a, .ops = ops, .class = nc, .device = device, .verdicts = .{
+        job.* = .{ .a = self.a, .request = rc.request, .ops = ops, .class = nc, .device = device, .verdicts = .{
             .seed_tape = try seg.statusBuffer(buf, id, .seed_tape),
             .child_binding = try seg.statusBuffer(buf, id, .child_binding),
             .lookup_sum = try seg.statusBuffer(buf, id, .lookup_sum),
@@ -321,6 +339,11 @@ pub const NodeJob = struct {
     pub const Child = struct { device: u32, region: api.DeviceBuffer };
     pub const Verdicts = struct { seed_tape: api.DeviceBuffer, child_binding: api.DeviceBuffer, lookup_sum: api.DeviceBuffer, channel_order: api.DeviceBuffer };
     a: std.mem.Allocator,
+    /// Request that made the job (Recursion.node); 0 for a standalone job.
+    request: u64 = 0,
+    /// Set (release) after `finish` / `abort` returned; Recursion frees the
+    /// job only then (or at `end` / `deinit`).
+    settled: std.atomic.Value(bool) = .init(false),
     ops: DeviceOps,
     class: *const NodeClass,
     device: u32,
@@ -426,10 +449,12 @@ pub const NodeJob = struct {
         self.host_ns += t.read();
     }
     pub fn finish(self: *NodeJob, view: api.SlabView) !void {
+        defer self.settled.store(true, .release);
         // GPU-native: publish() reads the request slab's status words.
         return self.made.job.vtable.finish(self.made.job.ctx, view);
     }
     pub fn abort(self: *NodeJob) void {
+        defer self.settled.store(true, .release);
         self.made.job.vtable.abort(self.made.job.ctx);
     }
 };
@@ -712,6 +737,12 @@ test "gn-node: node job reads children from the request slab (own + peer GPU), f
     _ = try f.vtable.class_of(f.ctx, fold_id, &.{ leaf_key, leaf_key });
     try t.expectError(error.GpuNativeNodeChildCount, f.vtable.node(f.ctx, &rc, fold_id, &.{specs[0].id}, 0));
     const job = try f.vtable.node(f.ctx, &rc, fold_id, &.{ specs[0].id, specs[1].id }, 0);
+    // Pipelined parities: the next request makes its node job while this
+    // request's job has not run yet; this request's job must stay alive.
+    const rc_pipe = G.RequestContext{ .request = 11, .layout = &layout, .exchange = exch, .peer = undefined, .classes = &cache, .segments = &segs };
+    const early = try f.vtable.node(f.ctx, &rc_pipe, fold_id, &.{ specs[0].id, specs[1].id }, 0);
+    try t.expectEqual(@as(usize, 2), r.heldJobs());
+    early.vtable.abort(early.ctx); // settles; reclaimed by a later node()
 
     const w = try W.Worker.create(a, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 22, .pinned_slot_words = 1 << 16 });
     var done = std.Thread.ResetEvent{};
@@ -748,6 +779,7 @@ test "gn-node: node job reads children from the request slab (own + peer GPU), f
     const sl = &layout.segments[0];
     for ([_]G.Check{ .seed_tape, .child_binding, .lookup_sum, .channel_order }) |c| try t.expectEqual(G.Verdict.accepted, seg_mem[0][try sl.statusWord(fold_id, c)]);
     r.end(9);
+    try t.expectEqual(@as(usize, 1), r.heldJobs()); // the settled pipelined job
 
     // Negatives on the next request: a corrupted peer child's Merkle path and
     // a bad device channel latch are refused in the request slab's words
@@ -759,6 +791,7 @@ test "gn-node: node job reads children from the request slab (own + peer GPU), f
     const rc2 = G.RequestContext{ .request = 10, .layout = &layout, .exchange = exch, .peer = undefined, .classes = &cache, .segments = &segs };
     try t.expectError(error.GpuNativeUnknownProof, f.vtable.node(f.ctx, &rc2, fold_id, &.{ specs[0].id, .{ .kind = .leaf, .ordinal = 9 } }, 0));
     const job2 = try f.vtable.node(f.ctx, &rc2, fold_id, &.{ specs[0].id, specs[1].id }, 0);
+    try t.expectEqual(@as(usize, 1), r.heldJobs()); // settled job reclaimed, job2 held
     const w2 = try W.Worker.create(a, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 22, .pinned_slot_words = 1 << 16 });
     done.reset();
     while (true) {

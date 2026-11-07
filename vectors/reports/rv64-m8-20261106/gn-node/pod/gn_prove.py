@@ -10,7 +10,10 @@ import rv64_gate as gate
 out = Path(sys.argv[1]).resolve(); block = int(sys.argv[2])
 extra = gate.extra_environment([a.split('=', 1)[0] + '=' + a.split('=', 1)[1] for a in sys.argv[3:]])
 out.mkdir(parents=True, exist_ok=False)
-runtime = json.loads(gate.RUNTIME.read_text())
+# GN_RUNTIME=<runtime.json>: the pinned image to prove on (default: the gate's p0 runtime).
+import os
+runtime_path = Path(os.environ.get('GN_RUNTIME', str(gate.RUNTIME)))
+runtime = json.loads(runtime_path.read_text())
 assets = dict(runtime['assets'])
 bins = Path('/workspace/m3/build/m8-gn-node/zig-out/bin')
 assets.update(driver=str(bins / 'rv64-word16-ethereum-gpu-combined'), receiver=str(bins / 'rv64-word16-ethereum-recursion-receiver'))
@@ -20,7 +23,7 @@ argv, tag = stack.command(manifest, 'baseline', 0, 'm8-gn-node', False, label)
 argv += ['--quiet-mode', 'diagnostic', '--request-timeout', '600']
 for k, v in sorted(extra.items()):
     argv += ['--env', f'{k}={v}']
-receipt = {'schema': 'rv64-m8-gn-node-proof/v1', 'block': block, 'extra_env': extra, 'argv': argv, 'asset_sha256': {n: stack.sha(p) for n, p in assets.items()}, 'started_ns': time.time_ns()}
+receipt = {'schema': 'rv64-m8-gn-node-proof/v1', 'block': block, 'runtime': str(runtime_path), 'extra_env': extra, 'argv': argv, 'asset_sha256': {n: stack.sha(p) for n, p in assets.items()}, 'started_ns': time.time_ns()}
 env = stack.clean_environment(__import__('os').environ)
 env['ZIG_GLOBAL_CACHE_DIR'] = '/workspace/m3/cache/zig-global'; env['TMPDIR'] = '/workspace/m3/tmp'
 with (out / 'proof.log').open('w') as log:

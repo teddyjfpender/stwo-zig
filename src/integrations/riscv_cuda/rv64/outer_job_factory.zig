@@ -241,8 +241,28 @@ pub const Prover = struct {
     /// GPU-native node job (outer_device.NodeJob over its NodeClasses
     /// template, children from a node-local stand-in of the request slab) and
     /// require its device-encoded bytes == the published host bytes.
-    fn gnJob(self: *Prover, a: std.mem.Allocator, input: Prestage.Input, class_key: [32]u8, g: *const GnCheck, wire: []const u8, image: []const u32) !void {
-        const entry = NodeClasses.get(class_key) orelse return error.GnNodeClassNotHarvested;
+    fn gnJob(self: *Prover, a: std.mem.Allocator, input: Prestage.Input, cur: *const @import("jobs/outer_staged.zig").Staged, g: *const GnCheck, wire: []const u8, image: []const u32, handoff: ?Job.FixedHandoff) !void {
+        const entry = NodeClasses.get(cur.class_key) orelse return error.GnNodeClassNotHarvested;
+        // A leaf's Blake sample prefill tape is a per-node HOST input today
+        // (leaf_graph): hand this node's to the template (same class, same
+        // length; remaining host work, see the receipt).
+        if (entry.staged.assignment.sample_tape) |t| {
+            const c = cur.assignment.sample_tape orelse return error.GnNodeSampleTapeMissing;
+            if (c.len != t.len) return error.GnNodeSampleTapeShape;
+            entry.staged.assignment.sample_tape = c;
+            entry.staged.assignment.sample_map = cur.assignment.sample_map;
+        }
+        // Under the hybrid window's per-job class-region policy (and with no
+        // lane handoff of the same FIXED size) the node recommits its FIXED
+        // tree from its own PP's raw evaluations: hand them over too (same
+        // class: same layout and values). With persistent class regions the
+        // FIXED tree is committed once per worker instead.
+        if (cur != entry.staged and cur.fixed_raw.len != 0) {
+            if (!std.mem.eql(u32, cur.fixed_logs, entry.fixed_logs)) return error.GnNodeFixedLayout;
+            entry.staged.fixed_raw = cur.fixed_raw;
+        }
+        // Never keep a pointer into a PP that dies with this node.
+        defer entry.staged.fixed_raw = &.{};
         var timer = try std.time.Timer.start();
         // Children regions in the slab convention: image in the last words.
         var region_words: [Seed.max_children]u32 = undefined;
@@ -260,7 +280,20 @@ pub const Prover = struct {
             if (entry.program.len == 0) try entry.programFor(region_words[0..nk]);
         }
         const program_ns = timer.lap();
-        var w = try GnJob.init(a, entry, g, region_words[0..nk], self.shared, image);
+        // This worker's graph cache: every node of the class replays the
+        // class's captured body (STWO_RV64_M8_OUTER_GRAPH_THRESHOLD=1: from
+        // the second node of the class on this GPU).
+        const dev = self.worker.device_ordinal;
+        if (dev < entry.graphs.len and entry.graphs[dev] == null) entry.graphs[dev] = &self.graphs;
+        var w = try GnJob.init(a, entry, g, region_words[0..nk], self.shared, image, dev);
+        // The FIXED coefficients the node just used (the lane's precommit
+        // handoff region): in the hybrid window a second class-persistent
+        // FIXED copy does not fit next to the legacy pipeline's live memory.
+        w.made.job.fixed_handoff = handoff;
+        // Class regions follow the Prover's policy: the hybrid window stages
+        // them per job (its workers park between requests; persistent class
+        // regions would sit next to the legacy pipeline's live memory).
+        w.made.job.persistent_classes = self.persistent_classes;
         defer w.deinit(a);
         var done = Done{};
         try self.submitWait(w.job(), &done);
@@ -398,7 +431,7 @@ pub const Prover = struct {
                 std.debug.print("GN_NODE_CLASS ordinal={d} harvest_error={s}\n", .{ input.ordinal, @errorName(err) });
                 break :blk false;
             };
-            if (GnRecord.jobSelected()) try self.gnJob(a, input, staged.class_key, g, wire, image);
+            if (GnRecord.jobSelected()) try self.gnJob(a, input, staged, g, wire, image, job.fixed_handoff);
             if (report) |out| out.* = r;
         }
         if (record_image) |image| if (Recorder.dir() != null) Recorder.write(a, input, staged, &job, &produced, image) catch |err| {
@@ -942,6 +975,8 @@ pub const NodeClasses = struct {
         statement: Seed.Statement,
         program: []u32 = &.{},
         max_encoded_bytes: usize,
+        /// Owned copy of the Authority's FIXED column logs (Staged.fixed_logs).
+        fixed_logs: []u32 = &.{},
         /// Per device: the worker's whole-node graph cache (the Prover of that
         /// GPU; set by the binder). With it every node of the class replays
         /// the class's captured body graph (rebinding only node buffers).
@@ -1035,9 +1070,25 @@ pub const NodeClasses = struct {
             e.max_encoded_bytes = 4 * (@as(usize, desc[Enc.D.max_payload_words]) + (try Seed.Layout.of(own)).words);
         }
         for (e.shapes, g.harvest.shapes[0..nk]) |*dst, src| dst.* = try a.dupe(u32, src);
+        // The template outlives the node's Authority / PP: own what the
+        // Staged borrowed from them. FIXED raw evaluations are not kept (the
+        // class FIXED tree comes from its persistent region or the lane's
+        // precommit handoff; packFixed refuses rather than read freed PP).
+        e.fixed_logs = try a.dupe(u32, staged.fixed_logs);
+        staged.fixed_logs = e.fixed_logs;
+        // (fixed_raw stays this node's until its job-mode check ends; see
+        // Prover.gnJob, which then erases it.)
         // The template carries no host value: the device writes seeds,
         // checkpoint and outputs per node.
         @memset(@constCast(staged.expected), 0);
+        // A leaf's schedule (tasks, indices, chain ends) is a class constant
+        // of the template too: move it from the node region (re-packed and
+        // uploaded per node, ~75 MB for a 2.4 M-task leaf) to the class
+        // region (uploaded once per worker). Layout only, proof-neutral.
+        if (!staged.assignment.reusable) {
+            staged.assignment.reusable = true;
+            staged.image = @import("jobs/outer_staged.zig").Staged.layoutWith(&staged.assignment, staged.statics, if (staged.lookup != null) staged.expected.len else 0);
+        }
         mutex.lock();
         defer mutex.unlock();
         try entries.append(a, e);
@@ -1117,7 +1168,7 @@ const GnJob = struct {
     target: api.DeviceBuffer = undefined,
     words: api.DeviceBuffer = undefined,
 
-    fn init(a: std.mem.Allocator, entry: *NodeClasses.Entry, g: *const GnCheck, region_words: []const u32, shared: *const Shared, own_image: []const u32) !GnJob {
+    fn init(a: std.mem.Allocator, entry: *NodeClasses.Entry, g: *const GnCheck, region_words: []const u32, shared: *const Shared, own_image: []const u32, device: u32) !GnJob {
         const nk = g.regions.len;
         var self = GnJob{ .node = undefined, .made = undefined, .regions = undefined, .n_children = nk, .region_words = undefined, .target_words = 1 + entry.max_encoded_bytes / 4, .field_words = 0, .d2d = shared.kernels.d2d, .host_image = &.{}, .allocator = a };
         // Children regions in the slab convention (image in the last words;
@@ -1142,7 +1193,7 @@ const GnJob = struct {
         // The node job (production code path) over placeholder buffers; stage
         // binds the real device addresses before anything runs.
         const fake: [*]u32 = @ptrFromInt(64);
-        const target = OuterDevice.Target{ .device = 0, .region = .{ .ptr = fake, .words = self.target_words }, .pcs_status = .{ .ptr = fake, .words = 1 }, .encode_status = .{ .ptr = fake, .words = 1 }, .oods_status = .{ .ptr = fake, .words = 1 } };
+        const target = OuterDevice.Target{ .device = device, .region = .{ .ptr = fake, .words = self.target_words }, .pcs_status = .{ .ptr = fake, .words = 1 }, .encode_status = .{ .ptr = fake, .words = 1 }, .oods_status = .{ .ptr = fake, .words = 1 } };
         const m = try entry.node.make(entry.node.ctx, a, target);
         errdefer m.destroy(m.ctx);
         self.made = @ptrCast(@alignCast(m.ctx));
