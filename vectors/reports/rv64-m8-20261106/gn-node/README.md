@@ -58,12 +58,12 @@ Every node is proved a second time through `outer_device.NodeJob` over its `Node
 
 Driver b11 (ad0eba90f), addon b6; cold + warm request per block (`job-<block>.txt` = the GN_NODE_JOB lines, `job-summary.json`, `job-proof-<block>.json`):
 
-| block | node jobs (cold + warm) | device-encoded bytes == published host bytes | own PCS image tail == node image | all 7 slab verdict words accepted | request artifacts vs frozen D2 | host launches / node | NodeJob host stage+enqueue / node |
+| block | node jobs (cold + warm) | device-encoded bytes == published host bytes | own PCS image tail == node image | all 7 slab verdict words accepted | request artifacts vs frozen D2 | host launches / node | NodeJob own host stage+enqueue / node (seed fill + verdicts; EXCLUDES the body's stage/enqueue, see below) |
 |---|---|---|---|---|---|---|---|
 | 24628607 | 38 (28 leaves, 10 folds incl. root) | 38/38 | 38/38 | 38/38 | **39/39 + 39/39** | 7 | 36–89 us, median 45 us [M] |
 | 26235156 | 30 (22 leaves, 8 folds incl. root) | 30/30 | 30/30 | 30/30 | **32/32 + 32/32** | 7 | 38–105 us, median 49 us [M] |
 
-- Host launches per node = seed fill 4 + lookup_sum copy + channel_order verdict + 1 launch of the body graph (the encoder, image tail and OODS check run inside the made job after the body). Design target ≤ 50 [E]: met.
+- Host launches per node = seed fill 4 + lookup_sum copy + channel_order verdict + 1 launch of the body graph (the encoder, image tail and OODS check run inside the made job after the body). Design target ≤ 50 [E]: met for the launch COUNT only. Every body graph in these runs was captured (not replayed), so the body's host enqueue still issued every kernel call into the capture; that host cost is not in the NodeJob column (review note, gn-node review).
 - Verdict words read back from the node's region: seed_tape, child_binding, lookup_sum, channel_order, node_pcs_status, encode_bounds, node_oods_constraint.
 - [M] Worker stage of the made job (hybrid window): leaves 17–260 ms, folds 70–307 ms per node — the template's node region (zeroed seeds, up to 24 MB) and, under the hybrid window's per-job class-region policy, the class schedule and FIXED raw evaluations are re-packed/uploaded per node, plus the check-mode child-region upload. With persistent class regions (GPU-native install) the schedule and FIXED are uploaded once per worker; the seeds section needs the `device_inputs` flag requested in M8-INTERFACES. Not a request-path number of the GPU-native driver.
 - [M] Body GPU wait 75–423 ms (leaves) / 242–542 ms (folds) per node: the whole-node prove itself.
