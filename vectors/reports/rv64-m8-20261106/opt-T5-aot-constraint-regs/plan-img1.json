@@ -27,10 +27,7 @@
   "kind": "truth-shard",
   "symbol": "rv64_truth_domain_0_shard_47",
   "launch_bounds": "",
-  "ab": "128-register cap applied in ptxas only: with __launch_bounds__(128,4) in source, cicc grew past 35 GB RSS [M] (unbounded source: ~2 GB). Same 128-register target as shards 43-46/48/49, whose (128,4) A/B is recorded. Kernel A/B for this object runs in pipe1 (admitted kernel needs ~3 GB local memory to launch).",
-  "nvcc_flags": [
-   "-Xptxas=--maxrregcount=128"
-  ]
+  "ab": "No register cap: plain scheduled SSA, 255 registers, 1,752 B stack [M ptxas]. A 128-register cap (__launch_bounds__(128,4) or ptxas --maxrregcount=128) drove cicc resp. ptxas past the 40 GB RSS cap on this 16,255-op group [M, twice]. Uncapped peers: shard 48 3.85 -> 1.28 ms, shard 49 6.05 -> 2.38 ms (2^16/2^17). Kernel A/B of this object runs in pipe (admitted kernel needs ~3 GB local memory to launch)."
  },
  {
   "kind": "truth-shard",
