@@ -8,6 +8,7 @@ const Admission = @import("global_admission.zig");
 const AdmissionRuntime = @import("admission_runtime.zig");
 const AllocationCost = @import("pcs_allocation_cost.zig");
 const Decode = @import("hybrid_pcs.zig");
+const GnRecord = @import("outer_seed_record.zig");
 const CachedColumn = struct { host: usize, tree: u32, column: usize, count: usize, log: u32, device: D.DeviceCoefficients };
 const Cached = struct { scope: [8]u32, lease: Abi.Lease, columns: []CachedColumn, in_use: bool = false, extra: std.ArrayList(Abi.Lease) = .empty };
 pub const BlockBudget = struct { device_bytes: u64, immutable_bytes: u64, max_scopes: usize };
@@ -904,6 +905,8 @@ pub const Context = struct {
             try self.closePcsPermit(claim);
         }
         if (result.words == null or result.count > (1 << 28)) return error.InvalidGpuPcsProof;
+        // gn-node piece-harness recorder (default off; proof-neutral).
+        if (GnRecord.dir() != null) GnRecord.pcsImage(prepared.metadata.shape, result.words.?[0..@intCast(result.count)]);
         var decoded = try Decode.decodeWords(a, prepared.metadata.shape, result.words.?[0..@intCast(result.count)]);
         errdefer decoded.proof.deinit(a);
         channel.* = decoded.channel;

@@ -302,6 +302,10 @@ pub const Prover = struct {
         try done.result;
         // The host mirror reads the PCS image decodeProof releases.
         if (encode) |*c| try c.mirror(a, &job, staged);
+        // gn-node recorder (STWO_RV64_M8_GN_NODE_RECORD=<dir>): keep the PCS
+        // image decodeProof releases; written with the node's proof below.
+        const record_image: ?[]u32 = if (Recorder.dir() != null and job.pcs_words.len != 0) try a.dupe(u32, job.pcs_words) else null;
+        defer if (record_image) |w| a.free(w);
         try job.decodeProof();
         r.decode_ns = job.report.decode_ns;
         var produced = try Prestage.assembleWithOods(a, input.key, staged, &job, if (encode) |*c| &c.host_oods else null);
@@ -316,7 +320,61 @@ pub const Prover = struct {
             r.encode_identical = true;
         }
         if (report) |out| out.* = r;
+        if (record_image) |image| Recorder.write(a, input, staged, &job, &produced, image) catch |err| {
+            std.debug.print("GN_NODE_RECORD ordinal={d} error={s}\n", .{ input.ordinal, @errorName(err) });
+            return err;
+        };
         return produced;
+    }
+};
+
+/// gn-node piece harness recorder (STWO_RV64_M8_GN_NODE_RECORD=<dir>, default
+/// off, diagnostics only: never changes a proof). One file per proved node,
+/// `node-<ordinal>-<sha256(wire)[0..8]>.gnr`: the legacy path's inputs and
+/// outputs the GPU-native node job must reproduce on the device (host seeds,
+/// host transcript checkpoint, expected outputs) and the node's own products
+/// a parent's device seed fill reads (PCS readback image + its shape, claims,
+/// the om31 wire bytes). Format (u32 LE): see jobs/outer_seed_device.zig
+/// Record.parse.
+pub const Recorder = struct {
+    const Rec = @import("outer_seed_record.zig");
+    pub const magic = Rec.node_magic;
+    pub const dir = Rec.dir;
+    fn words8(bytes: [32]u8) [8]u32 {
+        var w: [8]u32 = undefined;
+        for (&w, 0..) |*x, i| x.* = std.mem.readInt(u32, bytes[4 * i ..][0..4], .little);
+        return w;
+    }
+    fn write(a: std.mem.Allocator, input: Prestage.Input, staged: *const @import("jobs/outer_staged.zig").Staged, job: *Job.OuterNodeJob, produced: *const Outer.prove.Produced, image: []const u32) !void {
+        const path = dir() orelse return;
+        const wire = try Outer.wire.encode(a, input.key.identity, produced.outputs, produced.claims, &produced.proof.proof);
+        defer a.free(wire);
+        var digest: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(wire, &digest, .{});
+        var out: std.ArrayListUnmanaged(u32) = .empty;
+        defer out.deinit(a);
+        try out.appendSlice(a, &.{ magic, 1, input.ordinal, @intFromBool(input.is_leaf) });
+        try out.appendSlice(a, &words8(input.key.identity));
+        try out.appendSlice(a, &words8(staged.fixed_root));
+        try out.appendSlice(a, &words8(input.class orelse @splat(0)));
+        try out.appendSlice(a, &staged.checkpoint);
+        try out.append(a, @intCast(staged.expected.len));
+        try out.appendSlice(a, staged.expected);
+        try out.append(a, @intCast(staged.assignment.seeds.len));
+        try out.appendSlice(a, staged.assignment.seeds);
+        try Rec.appendShape(a, &out, job.pcs.?.prepared.metadata.shape);
+        try out.append(a, @intCast(image.len));
+        try out.appendSlice(a, image);
+        const claims = produced.claims.toArray();
+        try out.append(a, @intCast(claims.len * 8));
+        for (claims) |cl| for (cl.toM31Array()) |m| try out.append(a, m.v);
+        try out.append(a, @intCast(wire.len));
+        const at = out.items.len;
+        try out.appendNTimes(a, 0, (wire.len + 3) / 4);
+        @memcpy(std.mem.sliceAsBytes(out.items[at..])[0..wire.len], wire);
+        var name_buf: [96]u8 = undefined;
+        const name = try std.fmt.bufPrint(&name_buf, "node-{d:0>4}-{x}.gnr", .{ input.ordinal, digest[0..8].* });
+        if (try Rec.writeOnce(path, name, out.items)) std.debug.print("GN_NODE_RECORD ordinal={d} leaf={} seeds={d} image_words={d} wire_bytes={d} file={s}\n", .{ input.ordinal, input.is_leaf, staged.assignment.seeds.len / 5, image.len, wire.len, name });
     }
 };
 
