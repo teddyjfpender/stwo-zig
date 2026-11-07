@@ -1,4 +1,5 @@
 #include "custody.cuh"
+#include "deep_lazy.cuh"
 #include "om31.cuh"
 #include "samples.h"
 namespace stwo::cuda::rv64 {
@@ -227,6 +228,180 @@ __global__ void sample_store(StwoRv64SampleEvaluation j,
              j.valid[sample] ? from_words(input + uint64_t(sample) * 8)
                              : zero());
 }
+// ---------------------------------------------------------------------------
+// M8 T3: sample_first as a dot product against a shared tile basis.
+// sample_first evaluates sum_j c_j prod_{k<10, bit k of j} f_k over each
+// 1024-coefficient tile with a per-sample OM31 tree. The tile basis
+// L_j = prod_{k<10, bit k of j} f_k depends only on the group's factors, so
+// it is built once per launch (sample_basis, into scratch_b, which the
+// reduction does not touch until sample_first has finished) and every sample
+// becomes 8 lazily-reduced base x OM31 products per coefficient. The tile
+// partial is the same field element, so scratch_a, the reduction and the
+// sample values are bit-identical. A sample whose group differs from the
+// basis group (never produced by the PCS planner, still legal in the ABI)
+// recomputes its weights from its own factors.
+// Samples per CTA (the basis registers are reused that many times).
+// [M] A/B (deep_t3_parity_bench, 5090, 7 reps, median ms; chunk 4/8/16/32):
+//   2^22 x 72: 1.119 / 0.990 / 0.912 / 0.848
+//   2^18 x 72: 0.094 / 0.084 / 0.079 / 0.085
+//   2^14 x 200: 0.040 / 0.040 / 0.042 / 0.048
+// => 32 from 1024 tiles (2^20 coefficients) up, 16 below.
+constexpr uint32_t sample_chunk_small = 16, sample_chunk_large = 32,
+                   sample_chunk_large_tiles = 1024;
+constexpr uint32_t sample_fast_threads = 256, sample_fast_slots = 4,
+                   sample_basis_words = sample_tile * 8,
+                   sample_basis_none = 0xffffffffu;
+static_assert(sample_fast_threads * sample_fast_slots == sample_tile,
+              "tile basis covers one sample_first tile");
+// Tile index bits covered by the basis; the reduction resumes at factor
+// sample_tile_log (the initial "consumed" in stwo_rv64_sample_evaluate_on).
+constexpr uint32_t sample_tile_log = 10;
+static_assert(sample_tile == 1u << sample_tile_log, "tile basis bits");
+__device__ __forceinline__ uint32_t sample_basis_bits(uint32_t coefficient_log) {
+  return min(sample_tile_log, coefficient_log);
+}
+__global__ __launch_bounds__(512) void sample_basis(StwoRv64SampleEvaluation j,
+                                                    uint32_t *basis) {
+  __shared__ OM31 table[sample_tile];
+  __shared__ uint32_t group;
+  const uint32_t lane = threadIdx.x;
+  if (!lane) {
+    group = sample_basis_none;
+    for (uint32_t i = 0; i < j.count; ++i)
+      if (j.valid[i]) {
+        group = j.terms[j.first + i].group;
+        break;
+      }
+    basis[sample_basis_words] = group;
+  }
+  __syncthreads();
+  if (group == sample_basis_none) return;
+  const uint32_t *factors = j.factors + uint64_t(group) * factor_stride * 8;
+  const uint32_t bits = sample_basis_bits(j.coefficient_log);
+  if (!lane) table[0] = one();
+  for (uint32_t k = 0; k < bits; ++k) {
+    __syncthreads();
+    const OM31 f = from_words(factors + k * 8);
+    for (uint32_t i = lane; i < (1u << k); i += blockDim.x)
+      table[i + (1u << k)] = mul(table[i], f);
+  }
+  __syncthreads();
+  for (uint32_t i = lane; i < (1u << bits) * 8; i += blockDim.x)
+    basis[i] = coordinate(table[i / 8], i % 8);
+}
+__device__ OM31 sample_weight(const uint32_t *factors, uint32_t index,
+                              uint32_t bits) {
+  OM31 w = one();
+  for (uint32_t k = 0; k < bits; ++k)
+    if (index >> k & 1u) w = mul(w, from_words(factors + k * 8));
+  return w;
+}
+// Eight canonical coordinates per lane -> warp sum. Butterfly transpose:
+// 4+2+1 exchanges split the coordinates, 2 more finish the sum. Lane l ends
+// with coordinate ((l>>4)&1)*4 + ((l>>3)&1)*2 + ((l>>2)&1).
+__device__ __forceinline__ uint32_t sample_warp_sum8(const uint32_t (&v)[8],
+                                                     uint32_t lane) {
+  const bool h16 = lane & 16u, h8 = lane & 8u, h4 = lane & 4u;
+  uint32_t w4[4], w2[2];
+#pragma unroll
+  for (uint32_t i = 0; i < 4; ++i) {
+    const uint32_t send = h16 ? v[i] : v[i + 4], keep = h16 ? v[i + 4] : v[i];
+    w4[i] = q::add(keep, __shfl_xor_sync(0xffffffffu, send, 16));
+  }
+#pragma unroll
+  for (uint32_t i = 0; i < 2; ++i) {
+    const uint32_t send = h8 ? w4[i] : w4[i + 2], keep = h8 ? w4[i + 2] : w4[i];
+    w2[i] = q::add(keep, __shfl_xor_sync(0xffffffffu, send, 8));
+  }
+  const uint32_t send = h4 ? w2[0] : w2[1], keep = h4 ? w2[1] : w2[0];
+  uint32_t w = q::add(keep, __shfl_xor_sync(0xffffffffu, send, 4));
+  w = q::add(w, __shfl_xor_sync(0xffffffffu, w, 2));
+  return q::add(w, __shfl_xor_sync(0xffffffffu, w, 1));
+}
+// [M] A/B (deep_t3_parity_bench, 5090, 2^22 coefficients x 72 samples, 7
+// reps, median): min blocks 1 (140 regs) 1.460 ms, 2 (128 regs) 0.914 ms.
+// Legacy sample_first tree: 3.102 ms.
+#ifndef STWO_RV64_SAMPLE_MIN_BLOCKS
+#define STWO_RV64_SAMPLE_MIN_BLOCKS 2
+#endif
+template <uint32_t sample_fast_chunk>
+__global__ __launch_bounds__(sample_fast_threads, STWO_RV64_SAMPLE_MIN_BLOCKS) void sample_first_basis(
+    StwoRv64SampleEvaluation j, uint32_t blocks, const uint32_t *basis) {
+  constexpr uint32_t warps = sample_fast_threads / 32;
+  __shared__ uint32_t partial[sample_fast_chunk][warps][8];
+  const uint32_t lane = threadIdx.x, tile = blockIdx.x,
+                 first_sample = blockIdx.y * sample_fast_chunk;
+  const uint32_t n = 1u << j.coefficient_log, bits = sample_basis_bits(j.coefficient_log);
+  const uint32_t limit = min(n, sample_tile), base_index = tile * sample_tile;
+  const uint32_t basis_group = basis[sample_basis_words];
+  uint32_t weights[sample_fast_slots][8];
+#pragma unroll
+  for (uint32_t r = 0; r < sample_fast_slots; ++r) {
+    const uint32_t index = lane + r * sample_fast_threads;
+#pragma unroll
+    for (uint32_t k = 0; k < 8; ++k)
+      weights[r][k] = basis_group != sample_basis_none && index < limit
+                          ? basis[index * 8 + k]
+                          : 0u;
+  }
+  bool bad = false;
+  const uint32_t chunk = min(sample_fast_chunk, j.count - first_sample);
+  for (uint32_t s = 0; s < chunk; ++s) {
+    const uint32_t sample = first_sample + s;
+    // Invalid samples were zeroed by sample_validate; never dereference
+    // their descriptors (sample_first writes their tile partial as zero).
+    if (!j.valid[sample]) continue;
+    const auto term = j.terms[j.first + sample];
+    const auto source = j.sources[term.source];
+    const uint32_t *column = j.trees[source.tree] + source.offset + base_index;
+    uint64_t acc[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    if (term.group == basis_group) {
+#pragma unroll
+      for (uint32_t r = 0; r < sample_fast_slots; ++r) {
+        const uint32_t index = lane + r * sample_fast_threads;
+        uint32_t c = index < limit ? column[index] : 0u;
+        if (c >= q::kPrime) {
+          bad = true;
+          c = 0;
+        }
+#pragma unroll
+        for (uint32_t k = 0; k < 8; ++k) acc[k] = lazy::mac(acc[k], weights[r][k], c);
+      }
+    } else {
+      const uint32_t *factors =
+          j.factors + uint64_t(term.group) * factor_stride * 8;
+      for (uint32_t r = 0; r < sample_fast_slots; ++r) {
+        const uint32_t index = lane + r * sample_fast_threads;
+        if (index >= limit) continue;
+        uint32_t c = column[index];
+        if (c >= q::kPrime) {
+          bad = true;
+          c = 0;
+        }
+        const OM31 w = sample_weight(factors, index, bits);
+        for (uint32_t k = 0; k < 8; ++k)
+          acc[k] = lazy::mac(acc[k], coordinate(w, k), c);
+      }
+    }
+    // Four products below 2^62 each: acc < 2^64.
+    uint32_t v[8];
+#pragma unroll
+    for (uint32_t k = 0; k < 8; ++k) v[k] = lazy::reduce64(acc[k]);
+    const uint32_t sum = sample_warp_sum8(v, lane & 31u);
+    if (!(lane & 3u))
+      partial[s][lane / 32][((lane >> 4) & 1u) * 4 + ((lane >> 3) & 1u) * 2 +
+                            ((lane >> 2) & 1u)] = sum;
+  }
+  if (bad) atomicOr(j.status, 2u);
+  __syncthreads();
+  for (uint32_t i = lane; i < chunk * 8; i += blockDim.x) {
+    const uint32_t s = i / 8, k = i % 8, sample = first_sample + s;
+    uint32_t value = 0;
+    if (j.valid[sample])
+      for (uint32_t w = 0; w < warps; ++w) value = q::add(value, partial[s][w][k]);
+    j.scratch_a[(uint64_t(sample) * blocks + tile) * 8 + k] = value;
+  }
+}
 } // namespace stwo::cuda::rv64
 static int sample_points_dispatch(void *ctx, uint32_t lane,
                                   const StwoRv64SamplePoints *input,
@@ -301,8 +476,24 @@ stwo_rv64_sample_evaluate_on(void *ctx, uint32_t lane,
       !c.range(j.valid, j.count, true) || !c.range(j.status, 1, true))
     return c.status;
   sample_validate<<<(j.count + 127) / 128, 128, 0, c.stream>>>(j);
-  sample_first<<<dim3(blocks, j.count), 128, 0, c.stream>>>(j, blocks);
-  uint32_t count = blocks, consumed = 10;
+  // The basis lives in scratch_b, so it needs a custody-checked bank of at
+  // least one tile basis plus its group word; smaller launches (and
+  // STWO_RV64_M8_SAMPLE_LEGACY=1) keep the per-sample tree kernel.
+  const bool legacy = m8_env_is_one("STWO_RV64_M8_SAMPLE_LEGACY");
+  if (!legacy && scratch_words > sample_basis_words) {
+    sample_basis<<<1, 512, 0, c.stream>>>(j, j.scratch_b);
+    if (blocks >= sample_chunk_large_tiles)
+      sample_first_basis<sample_chunk_large>
+          <<<dim3(blocks, (j.count + sample_chunk_large - 1) / sample_chunk_large),
+             sample_fast_threads, 0, c.stream>>>(j, blocks, j.scratch_b);
+    else
+      sample_first_basis<sample_chunk_small>
+          <<<dim3(blocks, (j.count + sample_chunk_small - 1) / sample_chunk_small),
+             sample_fast_threads, 0, c.stream>>>(j, blocks, j.scratch_b);
+  } else {
+    sample_first<<<dim3(blocks, j.count), 128, 0, c.stream>>>(j, blocks);
+  }
+  uint32_t count = blocks, consumed = sample_tile_log;
   uint32_t *in = j.scratch_a, *out = j.scratch_b;
   while (count > 1) {
     const uint32_t next = (count + 255) / 256;
