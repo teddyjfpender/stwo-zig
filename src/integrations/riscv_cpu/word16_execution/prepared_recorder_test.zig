@@ -50,6 +50,9 @@ const Fixture = struct {
     tape: front.rv64.compact_tape.Tape,
     boundary: X.types.Boundary,
     fn init() !@This() {
+        return initSteps(STEPS);
+    }
+    fn initSteps(steps: u32) !@This() {
         var memory = front.rv64.memory.Memory.init(a, .{});
         defer memory.deinit();
         try memory.map(.{ .start = 4096, .size = 4 * WORDS.len, .permissions = .{ .read = true, .execute = true } });
@@ -62,10 +65,10 @@ const Fixture = struct {
         var cpu = front.rv64.machine.Cpu.init(4096, 0);
         cpu.regs[9] = DATA;
         const initial = cpu.regs;
-        var tape = try front.rv64.compact_tape.Tape.init(a, STEPS, 4096, 0, .ethereum_services_v2);
+        var tape = try front.rv64.compact_tape.Tape.init(a, steps, 4096, 0, .ethereum_services_v2);
         errdefer tape.deinit();
         var clocks: [32]u32 = @splat(0);
-        for (0..STEPS) |k| {
+        for (0..steps) |k| {
             const record = try cpu.step(&memory);
             try tape.append(record);
             const tick: u32 = @intCast(4 * k);
@@ -73,7 +76,7 @@ const Fixture = struct {
             if (record.rs2 != 0) clocks[record.rs2] = tick + 2;
             if (record.writes_rd and record.rd != 0) clocks[record.rd] = tick + 3;
         }
-        return .{ .tape = tape, .boundary = .{ .steps = STEPS, .initial_pc = 4096, .final_pc = cpu.pc, .initial_registers = initial, .final_registers = cpu.regs, .register_clocks = clocks } };
+        return .{ .tape = tape, .boundary = .{ .steps = steps, .initial_pc = 4096, .final_pc = cpu.pc, .initial_registers = initial, .final_registers = cpu.regs, .register_clocks = clocks } };
     }
     fn deinit(self: *@This()) void {
         self.tape.deinit();
@@ -146,6 +149,27 @@ test "recorder route reports the legacy error for invalid advice and invalid pro
         for ([_]usize{ 1, 3 }) |chunks| {
             try std.testing.expectError(error.InvalidAluFact, capture(&program, &f, .{}, .{ .recorder = false, .chunks = chunks }));
             try std.testing.expectError(error.InvalidAluFact, capture(&program, &f, .{}, .{ .recorder = true, .chunks = chunks }));
+        }
+    }
+}
+test "recorder route equals legacy on the threaded grouping path" {
+    // 8000 loop iterations: ALU + BINARY facts + memory records exceed
+    // PARALLEL_GROUPING_MIN (1 << 16), so both routes run their groupings
+    // (and the recorder's SHIFT grouping) on helper threads.
+    const steps: u32 = WORDS.len * 8000;
+    var f = try Fixture.initSteps(steps);
+    defer f.deinit();
+    var program = try Program.init(a, .{ .base = 4096, .words = &WORDS });
+    defer program.deinit();
+    const log = try Coverage.minimalCpuLog(steps);
+    for ([_]P.Options{ .{ .deduplicate_shift = true }, .{ .deduplicate_binary = false } }) |options| {
+        for ([_]?usize{ 1, 7, null }) |chunks| {
+            var legacy = try P.Prepared.captureRoute(a, &program, f.boundary, 1, log, &f.tape, options, .none, .{ .recorder = false, .chunks = chunks });
+            defer legacy.deinit();
+            var recorder = try P.Prepared.captureRoute(a, &program, f.boundary, 1, log, &f.tape, options, .none, .{ .recorder = true, .chunks = chunks });
+            defer recorder.deinit();
+            try std.testing.expect(legacy.raw_counts.alu + legacy.raw_counts.binary + legacy.raw_counts.memory >= 1 << 16);
+            try expectSame(&legacy, &recorder);
         }
     }
 }

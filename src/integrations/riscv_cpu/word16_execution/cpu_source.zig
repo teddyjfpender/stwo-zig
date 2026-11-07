@@ -512,8 +512,11 @@ pub const Source = struct {
                 totals[2] += scan.services.items.len;
             }
             // Recorder: step-count size class (recycled across segments).
-            try functions.ensureTotalCapacityPrecise(a, if (recorder) steps else totals[0]);
-            try memory.ensureTotalCapacityPrecise(a, if (recorder) steps else totals[1]);
+            // At most one FUNCTION or memory record per step, so `steps`
+            // covers the totals; @max keeps `items.len = totals` in bounds
+            // even if that per-step bound ever changes.
+            try functions.ensureTotalCapacityPrecise(a, if (recorder) @max(steps, totals[0]) else totals[0]);
+            try memory.ensureTotalCapacityPrecise(a, if (recorder) @max(steps, totals[1]) else totals[1]);
             try services.ensureTotalCapacityPrecise(a, totals[2]);
             functions.items.len = totals[0];
             memory.items.len = totals[1];

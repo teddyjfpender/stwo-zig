@@ -22,6 +22,11 @@ pub const Options = struct {
     /// Legacy wrapper keeps its caller-declared padded JALR geometry.
     jalr_log: ?u32 = null,
 };
+/// Grouping input size (ALU + BINARY facts + memory records) below which the
+/// concurrent groupings run on the calling thread: small inputs are not worth
+/// a thread. Pre-T10 legacy value, shared by both routes; not re-tuned by T10
+/// (no A/B on record).
+const PARALLEL_GROUPING_MIN = 1 << 16;
 /// Concurrent provider grouping for `captureInternal` (producer scheduling
 /// only: each result is exactly the serial function's result).
 const Grouping = struct {
@@ -37,8 +42,7 @@ const Grouping = struct {
     words: anyerror!u32 = error.Unstarted,
     const Part = enum { alu, binary, zbb };
     fn run(self: *Grouping) void {
-        // Small inputs are not worth a thread.
-        const parallel = self.af.len + self.bf.len + self.memory.len >= 1 << 16;
+        const parallel = self.af.len + self.bf.len + self.memory.len >= PARALLEL_GROUPING_MIN;
         var threads: [2]?std.Thread = @splat(null);
         if (parallel) {
             threads[0] = std.Thread.spawn(.{}, runBinaryZbb, .{self}) catch null;
@@ -103,7 +107,7 @@ const RecorderGrouping = struct {
     shift: anyerror!?ShiftResult = error.Unstarted,
     adopted: bool = false,
     fn run(self: *RecorderGrouping) void {
-        const parallel = self.n_alu + self.n_binary + self.memory.len >= 1 << 16;
+        const parallel = self.n_alu + self.n_binary + self.memory.len >= PARALLEL_GROUPING_MIN;
         var threads: [2]?std.Thread = @splat(null);
         if (parallel) {
             threads[0] = std.Thread.spawn(.{}, runBinaryZbbShift, .{self}) catch null;
@@ -289,10 +293,7 @@ pub const Prepared = struct {
         }
         if (route.recorder) {
             const result = try captureRecorder(a, program, &cpu, options, service == .combined_words_v3 and A.word16_execution.features.zbbProfile(program.profile));
-            if (std.posix.getenv("STWO_RV64_M8_CAPTURE_RECORDER_DIGEST") != null) {
-                const d = result.diagnosticDigest();
-                std.debug.print("T10DIGEST epoch={d} steps={d} sha={s}\n", .{ epoch, public.steps, std.fmt.bytesToHex(d, .lower) });
-            }
+            reportDigest(&result, epoch, public.steps);
             return result;
         }
         var af: std.ArrayList(B.operations.AluFact) = .empty;
@@ -367,11 +368,15 @@ pub const Prepared = struct {
         // second copy until all execution shards have sealed their MAIN.
         cpu.releaseFunctionFacts();
         const result: Prepared = .{ .allocator = a, .program_identity = program.identity, .cpu = cpu, .jalr = jalr, .alu = alu, .binary = binary, .shift = shift, .shift_weights = shift_weights, .division = division, .multiplication = multiplication, .zbb = zbb, .raw_counts = .{ .alu = @intCast(af.items.len), .binary = @intCast(bf.items.len), .shift = raw_shift_count, .jalr = @intCast(jf.items.len), .division = @intCast(division.len), .multiplication = raw_mul_count, .memory = @intCast(cpu.memory.items.len), .service = @intCast(cpu.services.items.len) }, .unique_memory_words = unique_memory_words };
-        if (std.posix.getenv("STWO_RV64_M8_CAPTURE_RECORDER_DIGEST") != null) {
-            const d = result.diagnosticDigest();
-            std.debug.print("T10DIGEST epoch={d} steps={d} sha={s}\n", .{ epoch, public.steps, std.fmt.bytesToHex(d, .lower) });
-        }
+        reportDigest(&result, epoch, public.steps);
         return result;
+    }
+    /// STWO_RV64_M8_CAPTURE_RECORDER_DIGEST set: report-only per-segment
+    /// parity line on stderr (both routes), compared across A/B arms.
+    fn reportDigest(result: *const Prepared, epoch: u16, steps: usize) void {
+        if (std.posix.getenv("STWO_RV64_M8_CAPTURE_RECORDER_DIGEST") == null) return;
+        const d = result.diagnosticDigest();
+        std.debug.print("T10DIGEST epoch={d} steps={d} sha={s}\n", .{ epoch, steps, std.fmt.bytesToHex(d, .lower) });
     }
     /// Report-only parity digest over every capture output this module
     /// produces (CPU metadata/ROM counts/records, JALR facts, grouped facts and

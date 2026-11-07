@@ -1,7 +1,7 @@
 //! M8 T10 (STWO_RV64_M8_CAPTURE_RECORDER): presized open-addressing stable
 //! grouping for narrow-capture provider facts. Producer scheduling only.
 //!
-//! Output contract (pinned by stable_dedup_test.zig against the std
+//! Output contract (pinned by prepared_recorder_test.zig against the std
 //! AutoHashMap groupers in alu_dedup.zig / binary_dedup.zig /
 //! shift_dedup.zig): unique facts in FIRST-OCCURRENCE order, each with its
 //! occurrence count; equality is field equality, exactly the AutoHashMap key

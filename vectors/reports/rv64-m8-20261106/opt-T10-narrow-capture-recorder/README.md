@@ -120,3 +120,13 @@ Earlier attempts were also refused by the quiet gate while other streams compile
 - GPU-seconds: not measured; the runner reports "unavailable without CUPTI". The change is CPU-only (0 GPU-s by construction).
 
 Land: byte-identical and not slower. The [E] 24628607 estimate of about −0.3 s is met: **−0.31 s [M] request, −0.31 s capture**.
+
+## Review (2026-11-07)
+
+- **How to read the request delta.** The −0.31 s request median is within the run-to-run spread: recorder 12.344–13.069 s overlaps legacy 12.777–13.040 s. The capture delta is the separated, attributable effect: all three recorder runs (≤ 1.898 s) are below all three legacy runs (≥ 2.074 s). The verdict stays "byte-identical and not slower", with −0.31 s capture [M]. The −0.31 s request figure is [M] as a median only and is not a resolved request-level win.
+- **Fixes (review commit).**
+  - The stitched recorder capacity is now `@max(steps, totals)`, so `items.len = totals` stays in bounds even if the one-record-per-step bound changes.
+  - The `T10DIGEST` print is factored into `Prepared.reportDigest`.
+  - Both routes share `PARALLEL_GROUPING_MIN`. It is the inherited legacy value and was not re-tuned.
+  - A stale test-file reference in `stable_dedup.zig` is corrected.
+  - A new unit test runs legacy == recorder on a 136 k-step tape. It is above the threaded-grouping threshold that the 696-step fixture never reached, at chunks 1/7/auto.
