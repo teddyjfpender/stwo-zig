@@ -1,12 +1,14 @@
 //! Bounded, exact-byte reuse of results and validated G2 points. Every entry
 //! originates from computations in this execution; no host-supplied hint or
 //! digest-only equality can create an admitted result. VM RAM binds reuse.
-use alloc::vec::Vec;
+use alloc::{sync::Arc, vec::Vec};
 use alloy_primitives::U256;
-use ark_bn254::{Bn254, Fq, Fq2, G1Affine, G2Affine};
+use ark_bn254::{Bn254, Fq, Fq2, G1Affine, G1Projective, G2Affine};
 type PreparedG2 = <Bn254 as Pairing>::G2Prepared;
+#[path = "pairing_miller.rs"]
+mod miller;
 use ark_ec::{AffineRepr, pairing::Pairing};
-use ark_ff::{BigInt, One, PrimeField, Zero};
+use ark_ff::{BigInt, PrimeField, Zero};
 use revm_precompile::{Crypto, DefaultCrypto, PrecompileHalt};
 
 const RESULTS: usize = 8;
@@ -19,7 +21,7 @@ struct ResultEntry {
 struct PointEntry {
     bytes: [u8; 128],
     point: G2Affine,
-    prepared: Option<PreparedG2>,
+    prepared: Option<Arc<PreparedG2>>,
 }
 struct Cache {
     results: Vec<ResultEntry>,
@@ -78,19 +80,18 @@ impl Cache {
         };
         Ok(index)
     }
-    fn prepared(&mut self, index: usize) -> PreparedG2 {
+    fn prepared(&mut self, index: usize) -> Arc<PreparedG2> {
         let entry = &mut self.points[index];
         if entry.prepared.is_none() {
-            entry.prepared = Some(PreparedG2::from(entry.point));
+            entry.prepared = Some(Arc::new(PreparedG2::from(entry.point)));
             #[cfg(test)]
             {
                 self.prepared_builds += 1;
             }
         }
-        // Ark's public multi-pairing API consumes prepared values. Clone only
-        // bounded line coefficients; repeated G2 preparation/subgroup work is
-        // never recomputed. The source is guest-computed, validated and RAM-bound.
-        entry.prepared.as_ref().unwrap().clone()
+        // The caller borrows the lines through this owner. Cache eviction
+        // during the same request cannot invalidate a previous pair.
+        Arc::clone(entry.prepared.as_ref().unwrap())
     }
 
     fn check(&mut self, pairs: &[(&[u8], &[u8])]) -> Result<bool, PrecompileHalt> {
@@ -99,19 +100,20 @@ impl Cache {
         if pairs.len() > MAX_PAIRS || pairs.iter().any(|(a, b)| a.len() != 64 || b.len() != 128) {
             return DefaultCrypto.bn254_pairing_check(pairs);
         }
-        let mut bytes = Vec::with_capacity(pairs.len() * 192);
-        for (a, b) in pairs {
-            bytes.extend_from_slice(a);
-            bytes.extend_from_slice(b);
-        }
         for entry in &self.results {
-            if entry.bytes == bytes {
+            if entry.bytes.len() == pairs.len() * 192
+                && entry
+                    .bytes
+                    .chunks_exact(192)
+                    .zip(pairs)
+                    .all(|(cached, (a, b))| &cached[..64] == *a && &cached[64..] == *b)
+            {
                 self.hits += 1;
                 return Ok(entry.result);
             }
         }
-        let mut g1 = Vec::with_capacity(pairs.len());
-        let mut g2 = Vec::with_capacity(pairs.len());
+        let mut groups: Vec<(G1Affine, Option<G1Projective>, Arc<PreparedG2>)> =
+            Vec::with_capacity(pairs.len());
         for (a, b) in pairs {
             let x = field(&a[..32])?;
             let y = field(&a[32..])?;
@@ -128,11 +130,23 @@ impl Cache {
             // hidden behind a zero pairing contribution.
             let q = self.g2(b)?;
             if !p.is_zero() && !self.points[q].point.is_zero() {
-                g1.push(p);
-                g2.push(self.prepared(q));
+                let prepared = self.prepared(q);
+                if let Some((first, sum, _)) = groups
+                    .iter_mut()
+                    .find(|(_, _, q)| Arc::ptr_eq(q, &prepared))
+                {
+                    *sum.get_or_insert_with(|| first.into_group()) += p;
+                } else {
+                    groups.push((p, None, prepared));
+                }
             }
         }
-        let result = g1.is_empty() || Bn254::multi_pairing(g1, g2).0.is_one();
+        let result = miller::check(&mut groups);
+        let mut bytes = Vec::with_capacity(pairs.len() * 192);
+        for (a, b) in pairs {
+            bytes.extend_from_slice(a);
+            bytes.extend_from_slice(b);
+        }
         let entry = ResultEntry { bytes, result };
         if self.results.len() < RESULTS {
             self.results.push(entry);

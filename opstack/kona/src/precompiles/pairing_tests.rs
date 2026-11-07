@@ -105,3 +105,34 @@ fn invalid_points_are_not_hidden_by_infinity_or_admitted_into_cache() {
     }
     assert_eq!(cache.points.len(), POINTS);
 }
+
+#[test]
+fn borrowed_miller_checks_multi_chunk_cancellation_and_pins_evicted_lines() {
+    let mut cache = Cache::new();
+    let p = g1(G1Affine::generator());
+    let n = g1(-G1Affine::generator());
+    let points: Vec<_> = (1..=24u64)
+        .map(|i| g2((G2Projective::generator() * Fr::from(i)).into_affine()))
+        .collect();
+    for q in &points[..16] {
+        assert_eq!(cache.check(&[(&p, q)]), Ok(false));
+    }
+    let mut pairs = alloc::vec![(&p[..], &points[0][..])];
+    // New points evict the first slot, while its coefficient owner must live.
+    for q in &points[16..22] {
+        pairs.push((&p, q));
+    }
+    assert_eq!(
+        cache.check(&pairs),
+        DefaultCrypto.bn254_pairing_check(&pairs)
+    );
+    for q in &points[16..22] {
+        pairs.push((&n, q));
+    }
+    pairs.push((&n, &points[0]));
+    assert_eq!(cache.check(&pairs), Ok(true));
+    assert_eq!(
+        cache.check(&pairs),
+        DefaultCrypto.bn254_pairing_check(&pairs)
+    );
+}
