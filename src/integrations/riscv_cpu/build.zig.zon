@@ -11,5 +11,6 @@
         .stwo_prover_engine = .{ .path = "../../prover" },
         .stwo_cpu_backend = .{ .path = "../../backends/cpu_scalar" },
         .stwo_riscv_frontend = .{ .path = "../../frontends/riscv" },
+        .stwo_circuit_cpu_integration = .{ .path = "../circuit_cpu" },
     },
 }

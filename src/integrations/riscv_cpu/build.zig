@@ -89,6 +89,11 @@ pub fn build(b: *std.Build) void {
     var d2_circuit_imports = native_gkr_root.import_table.iterator();
     while (d2_circuit_imports.next()) |entry| d2_circuit_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
     d2_circuit_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", dependency_options).module("stwo_circuit_frontend"));
+    // leaf_graph.zig reaches outer_wrap.zig (lazy stwo_circuit_cpu_integration import), as riscv_cuda wires it.
+    const census_circuit_cpu = b.dependency("stwo_circuit_cpu_integration", dependency_options).module("stwo_circuit_cpu_integration");
+    census_circuit_cpu.addImport("stwo_proof_wire", d2_circuit_root.import_table.get("stwo_proof_wire") orelse @panic("census root is missing stwo_proof_wire"));
+    d2_circuit_root.addImport("stwo_circuit_cpu_integration", census_circuit_cpu);
+    d2_circuit_root.addImport("stwo_cairo_frontend", census_circuit_cpu.import_table.get("stwo_cairo_frontend") orelse @panic("circuit cpu integration is missing stwo_cairo_frontend"));
     const d2_circuit_tests = b.addTest(.{ .root_module = d2_circuit_root, .filters = &.{"D2 actual native CPU recursive"} });
     b.step("test-d2-circuit-census", "Construct and census actual native default/D2 CPU recursive verifier graphs").dependOn(&b.addRunArtifact(d2_circuit_tests).step);
     const census_root = b.createModule(.{ .root_source_file = b.path("rv64_native_gkr_census_main.zig"), .target = target, .optimize = optimize });
