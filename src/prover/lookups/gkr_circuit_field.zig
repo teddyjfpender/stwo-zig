@@ -575,7 +575,7 @@ pub fn ForField(comptime Secure: type) type {
             errdefer a.free(d);
             var first: usize = 0;
             while (first < n.len) {
-                const end = @min(first + 4 * REDUCED_TILE, n.len);
+                const end = @min(first + 4 * sourceTile(source), n.len);
                 try source.read(first, n[first..end], d[first..end]);
                 first = end;
             }
@@ -583,9 +583,9 @@ pub fn ForField(comptime Secure: type) type {
         }
         /// Bounded source read plus exactly the original adjacent fraction add.
         fn readSourceReduced(source: MultiplicitiesSource, first: usize, n: []Secure, d: []Secure) !void {
-            if (n.len != d.len or n.len > 2 * REDUCED_TILE) return error.ShapeMismatch;
-            var ms: [4 * REDUCED_TILE]M31 = undefined;
-            var ds: [4 * REDUCED_TILE]Secure = undefined;
+            if (n.len != d.len or n.len > 2 * sourceTile(source)) return error.ShapeMismatch;
+            var ms: [4 * SOURCE_TILE]M31 = undefined;
+            var ds: [4 * SOURCE_TILE]Secure = undefined;
             try source.read(2 * first, ms[0 .. 2 * n.len], ds[0 .. 2 * n.len]);
             const tail = Packed.nextLogup(M31, ms[0 .. 2 * n.len], ds[0 .. 2 * n.len], n, d, 0, n.len);
             for (tail..n.len) |i| {
@@ -614,11 +614,11 @@ pub fn ForField(comptime Secure: type) type {
                     };
                 }
                 fn process(ctx: *@This(), first: usize, end: usize) GkrProverError!void {
-                    var ns: [2 * REDUCED_TILE]Secure = undefined;
-                    var ds: [2 * REDUCED_TILE]Secure = undefined;
+                    var ns: [2 * SOURCE_TILE]Secure = undefined;
+                    var ds: [2 * SOURCE_TILE]Secure = undefined;
                     var start = first;
                     while (start < end) {
-                        const count: usize = @min(REDUCED_TILE, end - start);
+                        const count: usize = @min(sourceTile(ctx.source), end - start);
                         const on = ctx.n[start..][0..count];
                         const od = ctx.d[start..][0..count];
                         if (ctx.levels == 1) try readSourceReduced(ctx.source, start, on, od) else {
@@ -655,25 +655,23 @@ pub fn ForField(comptime Secure: type) type {
                     };
                 }
                 fn process(ctx: *@This(), first: usize, end: usize) GkrProverError![2]Secure {
-                    var ns: [4 * REDUCED_TILE]F = undefined;
-                    var ds: [4 * REDUCED_TILE]Secure = undefined;
-                    var es: [REDUCED_TILE]Secure = undefined;
+                    var ns: [4 * SOURCE_TILE]F = undefined;
+                    var ds: [4 * SOURCE_TILE]Secure = undefined;
                     var sum = [2]Secure{ Secure.zero(), Secure.zero() };
                     var start = first;
                     while (start < end) {
-                        const count: usize = @min(REDUCED_TILE, end - start);
+                        const count: usize = @min(sourceTile(ctx.source), end - start);
                         if (reduced) {
                             try readSourceReduced(ctx.source, 2 * start, ns[0 .. 2 * count], ds[0 .. 2 * count]);
-                            try readSourceReduced(ctx.source, 2 * (ctx.terms + start), ns[2 * REDUCED_TILE ..][0 .. 2 * count], ds[2 * REDUCED_TILE ..][0 .. 2 * count]);
+                            try readSourceReduced(ctx.source, 2 * (ctx.terms + start), ns[2 * count ..][0 .. 2 * count], ds[2 * count ..][0 .. 2 * count]);
                         } else {
                             try ctx.source.read(2 * start, ns[0 .. 2 * count], ds[0 .. 2 * count]);
-                            try ctx.source.read(2 * (ctx.terms + start), ns[2 * REDUCED_TILE ..][0 .. 2 * count], ds[2 * REDUCED_TILE ..][0 .. 2 * count]);
+                            try ctx.source.read(2 * (ctx.terms + start), ns[2 * count ..][0 .. 2 * count], ds[2 * count ..][0 .. 2 * count]);
                         }
-                        @memcpy(es[0..count], ctx.eq.evals.evals[start..][0..count]);
-                        const le = EqEvals{ .y = &.{}, .owns_y = false, .evals = .{ .evals = &es, .owns_evals = false } };
+                        const le = EqEvals{ .y = &.{}, .owns_y = false, .evals = .{ .evals = ctx.eq.evals.evals[start..][0..count], .owns_evals = false } };
                         const ln = mle_mod.MleFor(Secure, F){ .evals = &ns, .owns_evals = false };
                         const ld = MleSecure{ .evals = &ds, .owns_evals = false };
-                        const value = evalLogupSumRange(F, &le, &ln, &ld, REDUCED_TILE, ctx.lambda, 0, count);
+                        const value = evalLogupSumRange(F, &le, &ln, &ld, count, ctx.lambda, 0, count);
                         sum[0] = sum[0].add(value[0]);
                         sum[1] = sum[1].add(value[1]);
                         start += count;
@@ -710,11 +708,11 @@ pub fn ForField(comptime Secure: type) type {
                     };
                 }
                 fn process(ctx: *@This(), first: usize, end: usize) GkrProverError!void {
-                    var ns: [2 * REDUCED_TILE]F = undefined;
-                    var ds: [2 * REDUCED_TILE]Secure = undefined;
+                    var ns: [2 * SOURCE_TILE]F = undefined;
+                    var ds: [2 * SOURCE_TILE]Secure = undefined;
                     var start = first;
                     while (start < end) {
-                        const count: usize = @min(REDUCED_TILE, end - start);
+                        const count: usize = @min(sourceTile(ctx.source), end - start);
                         if (reduced) {
                             try readSourceReduced(ctx.source, start, ns[0..count], ds[0..count]);
                             try readSourceReduced(ctx.source, ctx.n.len + start, ns[count..][0..count], ds[count..][0..count]);
@@ -736,6 +734,14 @@ pub fn ForField(comptime Secure: type) type {
             const jobs = rows.forEachRange(len, &context, .{});
             for (context.errors[0..jobs]) |err| if (err) |failure| return failure;
             return .{ .LogUpGeneric = .{ .numerators = try MleSecure.initOwned(n), .denominators = try MleSecure.initOwned(d) } };
+        }
+
+        // A full 128-fact tile avoids decoding the same row for every
+        // narrow callback on RV64's wide lookup instances. The largest
+        // temporary span is 512 facts; helper stacks remain pool-owned.
+        const SOURCE_TILE = 128;
+        fn sourceTile(source: MultiplicitiesSource) usize {
+            return if (source.wide_reads) SOURCE_TILE else REDUCED_TILE;
         }
 
         const REDUCED_TILE = 16;

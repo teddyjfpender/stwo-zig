@@ -20,7 +20,7 @@ pub fn Batch(comptime Provider: type) type {
             lanes: usize,
             fn read(ctx: *const anyopaque, first: usize, n: []M, d: []O) error{ OutOfMemory, ShapeMismatch, InvalidLayerStructure }!void {
                 const self: *const @This() = @ptrCast(@alignCast(ctx));
-                if (n.len != d.len or n.len > 64) return error.ShapeMismatch;
+                if (n.len != d.len or n.len > 512) return error.ShapeMismatch;
                 var ns: [Frame.MAX_LOCAL_TERMS]M = undefined;
                 var ds: [Frame.MAX_LOCAL_TERMS]O = undefined;
                 var at: usize = 0;
@@ -28,15 +28,20 @@ pub fn Batch(comptime Provider: type) type {
                     const fact = first + at;
                     const physical = fact / self.lanes;
                     const lane = fact % self.lanes;
-                    @memset(ns[0..self.lanes], M.zero());
-                    @memset(ds[0..self.lanes], O.one());
+                    const count = @min(self.lanes - lane, n.len - at);
+                    const whole_row = lane == 0 and count == self.lanes;
+                    const row_n = if (whole_row) n[at..][0..count] else ns[0..self.lanes];
+                    const row_d = if (whole_row) d[at..][0..count] else ds[0..self.lanes];
                     const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(physical, self.instance.row_log), self.instance.row_log);
-                    var sink = Sink{ .challenges = self.challenges, .numerator = ns[0..self.instance.terms], .denominator = ds[0..self.instance.terms] };
+                    var sink = Sink{ .challenges = self.challenges, .numerator = row_n[0..self.instance.terms], .denominator = row_d[0..self.instance.terms] };
                     self.provider.emit(self.instance, logical, &sink) catch |err| return if (err == error.OutOfMemory) error.OutOfMemory else error.InvalidLayerStructure;
                     if (sink.invalid or sink.count != self.instance.terms) return error.ShapeMismatch;
-                    const count = @min(self.lanes - lane, n.len - at);
-                    @memcpy(n[at..][0..count], ns[lane..][0..count]);
-                    @memcpy(d[at..][0..count], ds[lane..][0..count]);
+                    @memset(row_n[self.instance.terms..], M.zero());
+                    @memset(row_d[self.instance.terms..], O.one());
+                    if (!whole_row) {
+                        @memcpy(n[at..][0..count], row_n[lane..][0..count]);
+                        @memcpy(d[at..][0..count], row_d[lane..][0..count]);
+                    }
                     at += count;
                 }
             }
@@ -49,7 +54,7 @@ pub fn Batch(comptime Provider: type) type {
             for (instances, readers, sources) |instance, *reader, *source| {
                 const variables = try instance.variables();
                 reader.* = .{ .instance = instance, .challenges = challenges, .provider = provider, .lanes = @as(usize, 1) << @intCast(try instance.laneLog()) };
-                source.* = .{ .variables = variables, .context = reader, .read_fn = Reader.read };
+                source.* = .{ .variables = variables, .context = reader, .wide_reads = true, .read_fn = Reader.read };
             }
             return .{ .allocator = a, .readers = readers, .sources = sources };
         }

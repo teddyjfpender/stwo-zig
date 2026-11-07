@@ -17,10 +17,11 @@ fn Reader(comptime S: type) type {
         variables: u32,
         seed: usize = 0,
         zero_den: bool = false,
+        wide_reads: bool = false,
         fail_len: usize = 0,
         oom: bool = false,
         fn source(self: *const @This()) GP.ForField(S).MultiplicitiesSource {
-            return .{ .variables = self.variables, .context = self, .read_fn = read };
+            return .{ .variables = self.variables, .context = self, .wide_reads = self.wide_reads, .read_fn = read };
         }
         fn numerator(_: @This(), i: usize) M {
             return if (i % 3 == 0) M.zero() else if (i % 3 == 1) M.one().neg() else M.fromCanonical(@intCast(i % 19));
@@ -30,7 +31,7 @@ fn Reader(comptime S: type) type {
         }
         fn read(ctx: *const anyopaque, first: usize, n: []M, d: []S) @import("multiplicities_source.zig").Error!void {
             const self: *const @This() = @ptrCast(@alignCast(ctx));
-            if (n.len > 64 or n.len != d.len) return error.ShapeMismatch;
+            if (n.len > (if (self.wide_reads) @as(usize, 512) else 64) or n.len != d.len) return error.ShapeMismatch;
             if (self.fail_len != 0 and n.len == self.fail_len) return if (self.oom) error.OutOfMemory else error.ShapeMismatch;
             for (n, d, first..) |*nv, *dv, i| {
                 nv.* = self.numerator(i);
@@ -57,7 +58,7 @@ pub fn checkWithBaseline(comptime S: type, comptime Baseline: type, workers: ?us
     const Channel = if (S == core.fields.om31.OM31) core.channel.raw_mod_m31.Om31Channel else core.channel.raw_mod_m31.Qm31Channel;
     const G = GP.ForField(S);
     const V = GV.ForField(S);
-    var readers = [_]Reader(S){ .{ .variables = 1 }, .{ .variables = 2, .seed = 31 }, .{ .variables = 16, .seed = 61 }, .{ .variables = 13, .seed = 91 } };
+    var readers = [_]Reader(S){ .{ .variables = 1 }, .{ .variables = 2, .seed = 31 }, .{ .variables = 16, .seed = 61, .wide_reads = true }, .{ .variables = 13, .seed = 91 } };
     var sources: [readers.len]G.MultiplicitiesSource = undefined;
     var layers: [readers.len]G.Layer = undefined;
     var done: usize = 0;
