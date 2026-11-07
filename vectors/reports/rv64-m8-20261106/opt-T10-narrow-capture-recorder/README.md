@@ -44,7 +44,7 @@ The recorder route produces the same `Prepared`, field for field, and the same e
   - error parity for a scan failure (`InvalidExecutionAdvice`) and a grouping failure (`InvalidAluFact`);
   - `checkAllAllocationFailures` on the recorder route;
   - the grouper and word counter vs std `AutoHashMap` on random, heavily duplicated inputs.
-- **`rv64_gate.sh`:** pending; see "Gate" below.
+- **`rv64_gate.sh`:** PASS ×3, byte-identical to the frozen D2 golden; see "Gate" below.
 
 ## Capture time [M] (`image_and_import_ns`, seconds; 3-rep medians, interleaved; clean commit binary `r4` unless noted)
 
@@ -86,13 +86,37 @@ Per step, in ticks; each phase includes about 20 ticks of rdtsc overhead:
 
 The rest is first touch of the 235 MB per-segment metadata (about 93 ms per segment). Metadata is retained past capture, so the recycler cannot reuse it unless its owner retires it earlier; that is outside these files. The next lever in this file is a fused `restore` + check step, which must preserve the error order exactly.
 
-## Gate
+## Gate [M] (`gates.json`)
 
-`rv64_gate.sh`: **not run yet.** Both GPUs are still held by orphan pid 3302210 (30 GB each, m8-native-hybrid combined-serve), which blocks every opt stream.
+`rv64_gate.sh` **PASS ×3** on `64381bbb6`; the code is identical to `76d1b6763`, later commits change receipts/scripts only. Every gate passed all steps (build, unit-zig, unit-python, small-block proof cold+warm byte-identical to the frozen D2 golden `5987d31c…`, 2 fresh CPU receivers, negative corpus):
+- flag off, 26235156;
+- flag on (`--env STWO_RV64_M8_CAPTURE_RECORDER=1`), 24628607;
+- flag on, 26235156.
 
-`pipe1.sh` (pod tmux `t10-pipe1`) runs by itself once both GPUs are below 2 GB and ≥ 2 GB of disk is free. Steps:
-- gate flag off on 26235156;
-- gate flag on (`--env STWO_RV64_M8_CAPTURE_RECORDER=1`) on 24628607 and 26235156;
-- canonical 3+3 on 24628607 (`ab-preset.json`: the T5-style one-image preset; arms differ only by this flag plus the runner's physical guard on the fullstack arm).
+Extra suites:
+- `test-riscv64-word16-execution-prepared`: 64/64 in ReleaseFast and ReleaseSafe, and 64/64 with the flag forced on, so every pre-existing Prepared test also runs the recorder route.
+- `test-riscv64-word16-combined-services`: 80/83 with the flag off and with it on, the same 3 failures either way: wire_test "Combined compact transport…", execution_test "Combined mapped CPU and all truth MAIN…", sha256_test "v3 SHA-256 calls…". These are **pre-existing**: the untouched base `c72b51646` fails the same 3 (75/78).
 
-Status: `/workspace/m3/runs/m8-opt-T10-narrow-capture-recorder/pipe1.status`. Landing on `codex/rv64-m7-integrate` waits for gate PASS (flag off and on) and a 3+3 that is not slower.
+## Canonical 3+3 on 24628607 [M] (`canonical-3x3-24628607.json`, `scripts/rv64_m7_integration_stack.py`, quiet gate accepted on all 6)
+
+**Preset (`ab-preset.json`).** Both arms use the canonical baseline env plus the canonical fullstack device arena `STWO_RV64_DEVICE_ARENA=22G`, and differ only by `STWO_RV64_M8_CAPTURE_RECORDER` (0 = legacy, 1 = recorder). The runner still guards the "fullstack" arm only.
+
+Two preset variants failed first:
+- **T5's both-arms-fullstack preset** needs the global-admission v2 runtime, which the canonical a25 image lacks (`MissingGlobalAdmissionRuntimeV2`).
+- **The baseline `auto` arena under the runner's guard** failed native stage two with `CudaAllocationFailed`.
+
+Earlier attempts were also refused by the quiet gate while other streams compiled or ran receivers. `pipe2.sh` waits those out.
+
+| (warm, s) | legacy (3 services) | recorder (3 services) | median Δ |
+|---|---|---|---|
+| **request** | 12.914, 12.777, 13.040 → **12.914** | 12.600, 13.069, 12.344 → **12.600** | **−0.31 s (ratio 0.976)** |
+| capture | 2.074, 2.118, 2.128 → 2.118 | 1.788, 1.898, 1.806 → 1.806 | −0.31 s |
+| native total before report | 7.187, 7.015, 7.100 → 7.100 | 6.758, 6.880, 6.813 → 6.813 | −0.29 s |
+| native prove | 4.751, 4.512, 4.697 → 4.697 | 4.692, 4.687, 4.681 → 4.687 | ≈0 |
+| recursion | 5.639, 5.695, 5.905 → 5.695 | 5.816, 6.163, 5.499 → 5.816 | +0.12 (noise; GPU stage, untouched) |
+
+- Payload byte parity: true on all 6 services, with the same proof root and output pin match.
+- Fresh receivers: 12/12 accepted.
+- GPU-seconds: not measured; the runner reports "unavailable without CUPTI". The change is CPU-only (0 GPU-s by construction).
+
+Land: byte-identical and not slower. The [E] 24628607 estimate of about −0.3 s is met: **−0.31 s [M] request, −0.31 s capture**.
