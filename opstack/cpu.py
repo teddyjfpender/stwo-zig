@@ -167,6 +167,12 @@ def main():
     )
     p.add_argument("--workers", type=int, default=1)
     p.add_argument(
+        "--gkr-storage",
+        choices=("default", "streamed-dense", "materialized-checkpointed"),
+        default="default",
+        help="producer storage strategy; proof and transcript stay identical",
+    )
+    p.add_argument(
         "--receiver-setup",
         choices=("committed", "identity-only"),
         default="committed",
@@ -263,6 +269,11 @@ def main():
     env = dict(os.environ, STWO_ZIG_RV64_SETUP_BUILD_THREADS=str(args.setup_workers))
     producer_env = dict(env)
     receiver_env = dict(env)
+    if args.gkr_storage == "streamed-dense":
+        producer_env["STWO_ZIG_GKR_TREE_CHECKPOINTS"] = "1"
+    elif args.gkr_storage == "materialized-checkpointed":
+        producer_env["STWO_ZIG_GKR_STREAM_BOTTOM"] = "0"
+        producer_env["STWO_ZIG_GKR_TREE_CHECKPOINTS"] = "2"
     if args.receiver_setup == "identity-only":
         receiver_env["STWO_ZIG_RV64_RECEIVER_IDENTITY_ONLY_CPU"] = "1"
     if args.setup == "ephemeral":
@@ -277,6 +288,7 @@ def main():
         "scope": "native execution/service STARK bundle; no recursive root or L1 derivation",
         "profile": PROFILE,
         "producer_setup": args.setup,
+        "gkr_storage": args.gkr_storage,
         "setup_build_workers": args.setup_workers,
         "native_pool_workers": args.workers,
         "batch_steps": selected_batch_steps,

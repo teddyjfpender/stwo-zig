@@ -57,3 +57,13 @@ The exact Miller factor cache keeps the same hinted input bytes on all six
 cases. Block 121065789 falls further to 425,529,933 instructions, 678,888
 Fp2 calls and 29,341,602 service RAM word transitions. All six runs match
 the independent oracle. [Factor cache receipts](pairing-factors.json)
+
+## CPU kernel validation
+
+The tuned runner completed block 120794432 (796,226 instructions) with one CPU
+proof and two service proofs. Producer wall was 64.585 s and independent cold
+reception was 9.828 s, including 0.123 s of proof verification. The run
+overlapped compilation and both corruption checks passed.
+The 2,097,151-step plan for 121057303 derives three CPU and seven service
+proofs with 30.240 billion MAIN+INTERACTION bits. Its first producer attempt
+overlapped compilation and was killed. [Kernel run receipts](cpu-kernels.json)

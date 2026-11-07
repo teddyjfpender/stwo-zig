@@ -44,10 +44,16 @@ python3 opstack/cpu.py \
 
 The preset admits 4 GiB of retained frontend input, 1 GiB fixed setup and 8 GiB
 of disk parking. These are component admissions, not a 4 GiB process-memory cap.
+The verified two-lane preset uses `opstack/presets/cpu-8workers-2lanes.json`
+with `--workers 8 --setup-workers 2`. See the
+[mainnet checkpoint](../vectors/reports/rv64-opstack-cpu-20261107/README.md).
 
 Batch geometry comes from the request unless `--batch-steps` overrides it. The
 benchmark-generated request uses 4,194,303; use the measured 1,048,575-step setting
 above on a memory-constrained CPU host. Preserve the same geometry in comparisons.
+The producer harness also accepts `--gkr-storage streamed-dense` and
+`--gkr-storage materialized-checkpointed` for controlled storage experiments.
+These modes preserve the transcript and have different memory admissions.
 `--receiver-setup identity-only` optionally derives exact source coefficients
 without committing an unused historical source Merkle tree; its candidate FIXED
 authority is still independently reconstructed. The default remains `committed`.
@@ -92,7 +98,8 @@ software SHA-256 and the upstream Ark field implementation.
 bounded exact-byte pairing and prepared-G2 reuse; `optimized` also enables the
 admitted JUMPDEST scanner and aligned immutable bytecode storage. `canonical`
 uses the optional guest-only canonical Fq/Fp2 adapter. `canonical-glv` additionally
-uses joint-window GLV for G1 multiplication. All are explicit experimental choices;
+uses joint-window GLV for G1 multiplication. `canonical-glv-hinted` adds the
+optional checked pairing residue path. All are explicit experimental choices;
 see [precompile boundaries](PRECOMPILES.md) for validation and software fallbacks.
 
 The mainnet corpus contains six nonadjacent Ecotone-era blocks (120794432,

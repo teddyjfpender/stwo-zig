@@ -145,6 +145,17 @@ pub fn affineDouble(comptime F: type, comptime T: type, x: T, y: T) [2]T {
 
 /// Fp2 = Fp[u]/(u^2 + 1) product on canonical coefficients.
 pub fn fp2Mul(comptime F: type, comptime T: type, a: [2]T, b: [2]T) [2]T {
+    if (comptime F == Bn254) {
+        // Canonical coefficients are below the 254-bit prime. Both the
+        // signed real correction by p² and the imaginary sum fit in u512.
+        // Reduce the two outputs instead of reducing every product.
+        const real_left = @as(u512, a[0]) * b[0];
+        const real_right = @as(u512, a[1]) * b[1];
+        const modulus_squared = @as(u512, BN254_P) * BN254_P;
+        const real = if (real_left >= real_right) real_left - real_right else modulus_squared + real_left - real_right;
+        const imaginary = @as(u512, a[0]) * b[1] + @as(u512, a[1]) * b[0];
+        return .{ @intCast(real % BN254_P), @intCast(imaginary % BN254_P) };
+    }
     return .{ F.sub(F.mul(a[0], b[0]), F.mul(a[1], b[1])), F.add(F.mul(a[0], b[1]), F.mul(a[1], b[0])) };
 }
 
@@ -562,4 +573,24 @@ test "Montgomery fixed-field inverses preserve arbitrary operand residues" {
         };
         try testing.expectEqual(reference, mont384(a, b, m));
     };
+}
+
+test "canonical BN254 Fp2 fused reduction matches the four-product field formula" {
+    var rng = std.Random.DefaultPrng.init(0x9670_5141_d2b0_50ee);
+    const random = rng.random();
+    for (0..128) |i| {
+        const a = [2]u256{
+            if (i == 0) 0 else random.int(u256) % BN254_P,
+            if (i < 2) BN254_P - 1 else random.int(u256) % BN254_P,
+        };
+        const b = [2]u256{
+            if (i == 0) 0 else random.int(u256) % BN254_P,
+            if (i < 2) BN254_P - 1 else random.int(u256) % BN254_P,
+        };
+        const expected = [2]u256{
+            Bn254.sub(Bn254.mul(a[0], b[0]), Bn254.mul(a[1], b[1])),
+            Bn254.add(Bn254.mul(a[0], b[1]), Bn254.mul(a[1], b[0])),
+        };
+        try std.testing.expectEqual(expected, fp2Mul(Bn254, u256, a, b));
+    }
 }
