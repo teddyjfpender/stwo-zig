@@ -10,6 +10,17 @@ library Blake2sLifted {
     uint256 private constant NODE_0 = 0xfc5d8d28000000007b4acada00000000841cea3000000000e5cf8926;
     uint256 private constant NODE_1 = 0x8ae795c800000000c0d319c700000000b29da52800000000fc6ef857;
 
+    // BLAKE2s IV with the unkeyed 32-byte digest parameter in the first lane.
+    uint256 private constant IV_0 = 0xa54ff53a000000003c6ef37200000000bb67ae85000000006b08e647;
+    uint256 private constant IV_1 = 0x5be0cd19000000001f83d9ab000000009b05688c00000000510e527f;
+
+    /// @dev Hashes one unprefixed block. The caller supplies zero padding.
+    function shortDigest(bytes32 left, bytes32 right, uint8 length) internal pure returns (bytes32) {
+        assert(length <= 64);
+        (uint256 lo, uint256 hi) = compress(IV_0, IV_1, left, right, length, true);
+        return digest(lo, hi);
+    }
+
     function node(bytes32 left, bytes32 right) internal pure returns (bytes32) {
         (uint256 lo, uint256 hi) = compress(NODE_0, NODE_1, left, right, 128, true);
         return digest(lo, hi);
@@ -92,11 +103,18 @@ library Blake2sLifted {
             }
 
             let words := mload(0x40)
-            for { let i := 0 } lt(i, 8) { i := add(i, 1) } {
-                let shift := sub(224, shl(5, i))
-                mstore(add(words, shl(5, i)), swap32(and(shr(shift, left), 0xffffffff)))
-                mstore(add(words, shl(5, add(i, 8))), swap32(and(shr(shift, right), 0xffffffff)))
+            function loadMessage(ptr, blockWord) {
+                mstore(ptr, swap32(shr(224, blockWord)))
+                mstore(add(ptr, 32), swap32(and(shr(192, blockWord), 0xffffffff)))
+                mstore(add(ptr, 64), swap32(and(shr(160, blockWord), 0xffffffff)))
+                mstore(add(ptr, 96), swap32(and(shr(128, blockWord), 0xffffffff)))
+                mstore(add(ptr, 128), swap32(and(shr(96, blockWord), 0xffffffff)))
+                mstore(add(ptr, 160), swap32(and(shr(64, blockWord), 0xffffffff)))
+                mstore(add(ptr, 192), swap32(and(shr(32, blockWord), 0xffffffff)))
+                mstore(add(ptr, 224), swap32(and(blockWord, 0xffffffff)))
             }
+            loadMessage(words, left)
+            loadMessage(add(words, 256), right)
 
             let a := h0
             let b := h1
@@ -126,12 +144,15 @@ library Blake2sLifted {
                 let pairs := or(shl(8, and(x, 0x00ff00ff)), and(shr(8, x), 0x00ff00ff))
                 y := or(and(shl(16, pairs), 0xffffffff), shr(16, pairs))
             }
-            for { let i := 0 } lt(i, 4) { i := add(i, 1) } {
-                let shift := shl(6, i)
-                let dst := sub(224, shl(5, i))
-                result := or(result, shl(dst, encodeWord(and(shr(shift, lo), 0xffffffff))))
-                result := or(result, shl(sub(dst, 128), encodeWord(and(shr(shift, hi), 0xffffffff))))
+            function encodeRow(row) -> encoded {
+                encoded := or(
+                    or(shl(96, encodeWord(and(row, 0xffffffff))),
+                       shl(64, encodeWord(and(shr(64, row), 0xffffffff)))),
+                    or(shl(32, encodeWord(and(shr(128, row), 0xffffffff))),
+                       encodeWord(shr(192, row)))
+                )
             }
+            result := or(shl(128, encodeRow(lo)), encodeRow(hi))
         }
     }
 }

@@ -15,6 +15,10 @@ contract Harness {
         return Blake2sLifted.node(left, right);
     }
 
+    function shortDigest(bytes32 left, bytes32 right, uint8 length) external pure returns (bytes32) {
+        return Blake2sLifted.shortDigest(left, right, length);
+    }
+
     function checkSeparately(
         LiftedOpeningVerifier verifier,
         bytes32 root,

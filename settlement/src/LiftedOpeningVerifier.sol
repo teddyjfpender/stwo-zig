@@ -16,7 +16,7 @@ contract LiftedOpeningVerifier {
         bytes calldata rows,
         uint32 rowBytes,
         bytes32[] calldata witness
-    ) external pure returns (bool) {
+    ) public pure returns (bool) {
         uint256 count = positions.length;
         if (
             depth > 30 || count == 0 || count > 256 || rowBytes == 0 || rowBytes > 65_536

@@ -1,8 +1,8 @@
 # Stwo settlement verifier components
 
-This directory contains a Solidity verifier for compressed Stwo lifted BLAKE2s
-openings and a stateful checkpoint contract for the eventual complete Kona
-transition verifier. The two interfaces are deliberately separate. The opening
+This directory contains Solidity verification for compressed Stwo lifted BLAKE2s
+openings and the native proof-of-work and query stage, plus a stateful checkpoint
+contract for the eventual complete Kona transition verifier. The two interfaces are deliberately separate. The opening
 verifier authenticates rows against a supplied root. The checkpoint advances
 only through its immutable transition verifier, which must verify derivation
 and execution under the configured rollup rules.
@@ -38,6 +38,8 @@ Use the compiler's emitted runtime bytecode for size and gas comparisons.
 The benchmark transactions include intrinsic and calldata gas.
 Anvil's elevated test gas limit allows the separate-path comparison.
 
+The initial opening-only measurements provide a historical baseline.
+
 | Compiler | Worker | Queries | Compressed gas | Separate-path gas | Reduction | Runtime bytes |
 |---|---|---:|---:|---:|---:|---:|
 | solc 0.8.30 | truth-3 | 102 | 8,194,326 | 19,677,339 | 2.40× | 4,948 |
@@ -62,6 +64,53 @@ positions must be sorted and unique, with exactly one row per position.
 Sibling hashes are consumed in increasing index order at each level,
 starting at the leaves. Rows are the Stwo commitment's little-endian
 M31 words in commitment column order.
+
+## Native query binding and shared roots
+
+`NativeQueryOpening` uses the native 20-bit PoW and 108-query profile. It
+verifies each nonce against its pre-PoW transcript digest, mixes the
+nonce, and derives all query words. It preserves the native even/odd
+coset bit when projecting into a tree of a different height. Every
+derived position must appear in the sorted calldata set, and every
+supplied position must be derived. For workers with the same authenticated
+root and tree geometry, a single compressed opening can cover their
+union.
+
+The root, domain sizes and pre-PoW digests come from the surrounding
+verifier. The contract does not derive or authenticate that earlier
+transcript. Its return value is an opening check and cannot authorize a
+checkpoint. The tests exercise replay across workers, missing and surplus
+rows, changed nonce, digest and domain, modified row data and failure to
+advance when an opening checker is installed as the checkpoint backend.
+
+| Solc 0.8.30 on block 121057303 | Gas | Sibling hashes |
+|---|---:|---:|
+| Two query-bound openings | 16,143,948 | 538 |
+| One shared-root query-bound opening | 13,234,957 | 367 |
+
+The shared call covers 194 distinct rows and reduces gas by 18.0%.
+Unrolling message loading and digest encoding also reduces the two
+opening-only calls to 7,641,890 and 7,323,662 gas, about 6.7% below the
+initial measurements. Solar's shared call uses 17,340,129 gas. It
+passes with the elevated local limit and exceeds the EIP-7825 cap.
+See the [query benchmark receipt](fixtures/query-gas-benchmark.json).
+
+To reproduce the solc shared-root check under Osaka's transaction cap:
+
+```sh
+ANVIL=./node_modules/.bin/anvil ANVIL_HARDFORK=osaka \
+  node --test --test-name-pattern='binds both native' test/settlement.test.mjs
+```
+
+The SMT checks cover the packed 32-bit additions and rotations, query
+projection parity and range, the exact-set bitmask, and the in-place
+Merkle write bound. These are local invariants, separate from end-to-end
+proof soundness and contract review.
+
+```sh
+python3 -m pip install z3-solver==4.15.4.0
+python3 tools/check_invariants.py
+```
 
 ## Mainnet provenance
 
@@ -99,6 +148,13 @@ independently recomputes the commitment. It can also export smaller
 query subsets using `--queries`. See the [Kona runbook](../opstack/README.md)
 for native proof generation.
 
+To capture the pre-PoW state, apply `tools/native-query-capture.patch` in
+a disposable worktree, rebuild the receiver, and run the same command
+with `STWO_EXPORT_SETTLEMENT_QUERIES=1`. After native acceptance, run
+`tools/export_queries.py` with the diagnostics log, output JSON path, and
+the two opening fixtures. The exporter uses Python BLAKE2s to check each
+nonce and match the exact projected query set to its worker.
+
 ## Checkpoint authority and remaining verifier work
 
 `KonaCheckpoint` pins a rollup ID and configuration, the transition
@@ -112,8 +168,8 @@ initial checkpoint. Pinning a proxy's runtime hash would not pin its
 implementation.
 
 The fixtures exercise commitment openings from a verified proof. Full
-Kona verification on the EVM still requires Fiat–Shamir, GKR, OODS, FRI
-folding and verifier-owned AIR, plus authenticated L1 derivation and
+Kona verification on the EVM still requires reconstruction of the earlier
+Fiat–Shamir transcript, GKR, OODS, FRI folding and verifier-owned AIR, plus authenticated L1 derivation and
 binding to the OP output root. The checkpoint's mock tests establish
 storage behavior only. There is no production transition backend here.
 
