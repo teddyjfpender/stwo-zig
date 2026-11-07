@@ -1043,6 +1043,14 @@ pub const NodeClasses = struct {
         // The template carries no host value: the device writes seeds,
         // checkpoint and outputs per node.
         @memset(@constCast(staged.expected), 0);
+        // A leaf's schedule (tasks, indices, chain ends) is a class constant
+        // of the template too: move it from the node region (re-packed and
+        // uploaded per node, ~75 MB for a 2.4 M-task leaf) to the class
+        // region (uploaded once per worker). Layout only, proof-neutral.
+        if (!staged.assignment.reusable) {
+            staged.assignment.reusable = true;
+            staged.image = @import("jobs/outer_staged.zig").Staged.layoutWith(&staged.assignment, staged.statics, if (staged.lookup != null) staged.expected.len else 0);
+        }
         mutex.lock();
         defer mutex.unlock();
         try entries.append(a, e);
