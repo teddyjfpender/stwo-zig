@@ -261,7 +261,7 @@ airbender re-uploads setup columns and partial Merkle caches from pinned host me
 
 Columns: bytes per warm 24628607 request; per-GPU link-s ≈ total / 2 / 24.6 GB/s [D] (dev0 carries 53%; simultaneous two-GPU bandwidth unmeasured, E9); wall on 24628607 after M8; wall on 26235159 [E, H2D unmeasured, every lever capped at its byte share of 4–5.5 link-s/GPU]. Host CPU savings are listed separately and are CPU-s summed over concurrent work, not wall.
 
-None of these levers changes proof bytes. Each must pass the frozen D2 golden (32/32, 39/39 artifacts) and the channel parity harness (M8 §4).
+None of these levers except L4 (a circuit change with its own soundness review) changes proof bytes. Each must pass the frozen D2 golden (32/32, 39/39 artifacts) and the channel parity harness (M8 §4).
 
 | rank | flag | lever | bytes saved (24628607) | 24628607 wall (post-M8) | 26235159 wall | effort | risk | M8 dependency |
 |---:|---|---|---:|---:|---:|---|---|---|
