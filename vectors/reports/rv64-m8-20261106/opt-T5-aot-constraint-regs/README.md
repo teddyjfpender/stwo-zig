@@ -39,8 +39,10 @@ Labels: **[M]** measured (receipt in this directory or the pod path named), **[D
   - **Kept:** every admitted kernel.
   - **Added:** the scheduled kernels, as `<symbol>_t5`.
   - **Dispatcher:** one generated TU replaces the two catalogue dispatchers. It dispatches the admitted catalogue unless
-    **`STWO_RV64_M8_AOT_REGISTER_SCHEDULE=1`**, and any other value fails closed. Its headers are checked byte-identical to
-    the admitted objects' recorded dependencies.
+    **`STWO_RV64_M8_AOT_REGISTER_SCHEDULE=1`**, and any other value fails closed. Its two
+    function bodies are the admitted dispatcher TUs themselves (each sha-checked against the admitted object's recorded
+    dependencies, as are all headers), with only the mode check and the catalogue selection edited in; the review
+    regeneration reproduces img1's `t5_composition_dispatch.cu` byte for byte (sha256 b6f163da…) [M].
   - **Rebuilt objects:** the four frozen-link objects whose build directories were deleted are rebuilt from source, as the
     T2/T4 images did.
 - Kernel names, arguments, y-grids and catalogue geometry are unchanged. The GPU-native path picks the change up by
