@@ -252,6 +252,17 @@ pub const Prover = struct {
             entry.staged.assignment.sample_tape = c;
             entry.staged.assignment.sample_map = cur.assignment.sample_map;
         }
+        // Under the hybrid window's per-job class-region policy (and with no
+        // lane handoff of the same FIXED size) the node recommits its FIXED
+        // tree from its own PP's raw evaluations: hand them over too (same
+        // class: same layout and values). With persistent class regions the
+        // FIXED tree is committed once per worker instead.
+        if (cur != entry.staged and cur.fixed_raw.len != 0) {
+            if (!std.mem.eql(u32, cur.fixed_logs, entry.fixed_logs)) return error.GnNodeFixedLayout;
+            entry.staged.fixed_raw = cur.fixed_raw;
+        }
+        // Never keep a pointer into a PP that dies with this node.
+        defer entry.staged.fixed_raw = &.{};
         var timer = try std.time.Timer.start();
         // Children regions in the slab convention: image in the last words.
         var region_words: [Seed.max_children]u32 = undefined;
@@ -1065,7 +1076,8 @@ pub const NodeClasses = struct {
         // precommit handoff; packFixed refuses rather than read freed PP).
         e.fixed_logs = try a.dupe(u32, staged.fixed_logs);
         staged.fixed_logs = e.fixed_logs;
-        staged.fixed_raw = &.{};
+        // (fixed_raw stays this node's until its job-mode check ends; see
+        // Prover.gnJob, which then erases it.)
         // The template carries no host value: the device writes seeds,
         // checkpoint and outputs per node.
         @memset(@constCast(staged.expected), 0);
