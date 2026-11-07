@@ -76,7 +76,8 @@ pub const Io = extern struct {
     /// claims (8 x desc claims words), z | alpha | coefficient (24 words).
     claims: [*]const u32,
     challenges: [*]const u32,
-    /// OODS point x[8], y[8] (native_pcs oods field).
+    /// native_pcs OODS field (oods_field_words = 33): point x[8], y[8],
+    /// base x[8], y[8], status. A nonzero status refuses (detail point).
     point: [*]const u32,
     scratch: [*]u32,
     scratch_words: u64,

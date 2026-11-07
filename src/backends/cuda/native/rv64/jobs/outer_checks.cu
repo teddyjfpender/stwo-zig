@@ -137,7 +137,7 @@ struct StwoRv64OuterOodsIo {
   uint64_t sample_words;
   const uint32_t *claims;      // 11 claims x 8 words (om31 outer: header claims == 11)
   const uint32_t *challenges;  // z | alpha | coefficient (24 words)
-  const uint32_t *point;       // OODS point x[8] | y[8]
+  const uint32_t *point;       // native_pcs OODS field (33 words): x[8] | y[8] | base x[8] y[8] | status
   uint32_t *scratch;           // header scratch words + 9 per part
   uint64_t scratch_words;
   uint32_t *verdict;  // 1 word
@@ -327,6 +327,8 @@ __global__ void __launch_bounds__(kOodsThreads) outer_oods_check(StwoRv64OuterOo
     bool ok = canonical(point.x) && canonical(point.y) && canonical(z) && canonical(alpha) && canonical(coeff);
     for (uint32_t i = 0; i < d[oClaims] && ok; ++i) ok = canonical(from_words(io.claims + 8 * i));
     if (!ok) oods_refuse(&fail, oNoncanonical);
+    // The device point build's status word (host finish: InvalidOuterOodsPoint).
+    if (io.point[32]) oods_refuse(&fail, oPoint);
   }
   uint32_t *partials = io.scratch + d[oScratch];
   for (uint32_t p = tid; p < d[oParts]; p += kOodsThreads) {
@@ -386,7 +388,7 @@ extern "C" int stwo_rv64_outer_oods_check_v1_on(void *context, uint32_t lane, co
   RangeCustody<9> custody(context, lane);
   const bool ok = custody.range(io->desc, io->desc_words, false) && custody.range(io->samples, io->sample_words, false) &&
                   custody.range(io->claims, 88, false) && custody.range(io->challenges, 24, false) &&
-                  custody.range(io->point, 16, false) && custody.range(io->scratch, io->scratch_words, true) &&
+                  custody.range(io->point, 33, false) && custody.range(io->scratch, io->scratch_words, true) &&
                   custody.range(io->verdict, 1, true) && (!io->diag || custody.range(io->diag, 16, true));
   if (!ok) return custody.status ? custody.status : int(cudaErrorInvalidValue);
   outer_oods_check<<<1, kOodsThreads, 0, custody.stream>>>(*io);

@@ -61,6 +61,7 @@ enum : uint32_t {
   dConfig = 24, dPhysMagic = 30, dEnvelope = 32, dFixedRoot = 50, dFri = 64,
   dTreeTable = 64 + 4 * 28, dTables = 64 + 4 * 28 + 4 * 4,
 };
+constexpr uint32_t kFlagFixedRoot = 2u;  // outer_encode.zig D.flag_fixed_root
 constexpr uint32_t kDescMagic = 0x434e454fu, kDescVersion = 1, kImageMagic = 0x52564d4fu;
 // Detail codes and their rank in the host check order (outer_encode.zig detail_order).
 enum : uint32_t {
@@ -248,6 +249,13 @@ __device__ bool validate_head(Shared &s, const StwoRv64OuterEncodeIo &io) {
       refuse(s, kRoot);
       return false;
     }
+  // flag_fixed_root: the expected tree-0 root (the root the node mixed into
+  // its transcript) must also equal the class's FIXED root (host
+  // InvalidOm31DeviceFixedRoot).
+  if ((d[dFlags] & kFlagFixedRoot) && io.roots[0] && !eq8(io.roots[0], d + dFixedRoot)) {
+    refuse(s, kRoot);
+    return false;
+  }
   if (s.envelope)
     for (uint32_t i = 0; i < d[dLatches]; ++i)
       if (io.latches[i]) {

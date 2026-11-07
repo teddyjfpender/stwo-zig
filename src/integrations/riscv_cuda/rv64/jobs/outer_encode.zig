@@ -45,7 +45,7 @@ pub const D = struct {
     pub const magic = 0;
     pub const version = 1;
     pub const words = 2;
-    pub const flags = 3; // bit 0: om31 wire envelope
+    pub const flags = 3; // bit 0: om31 wire envelope; bit 1: fixed_root is set
     pub const trees = 4;
     pub const queries = 5;
     pub const degree_log = 6;
@@ -69,6 +69,11 @@ pub const D = struct {
     pub const tree_table = fri + 4 * max_layers; // max_trees x 4: columns, tree_log, table offset, samples
     pub const tables = tree_table + 4 * max_trees; // per tree 4 x columns: logs_sorted, sorted_to_original, original_to_sorted, sample_counts
     pub const flag_envelope: u32 = 1;
+    /// `fixed_root` holds the class's FIXED root: an expected tree-0 root
+    /// (Inputs.roots[0], e.g. the root the node committed and mixed into its
+    /// transcript) must equal it, as must the image's tree-0 root. This is
+    /// the device form of the host's InvalidOm31DeviceFixedRoot check.
+    pub const flag_fixed_root: u32 = 2;
 };
 comptime {
     if (D.envelope + 18 > D.fixed_root or D.fixed_root + 8 > D.fri) @compileError("descriptor header overlap");
@@ -293,7 +298,10 @@ pub fn buildDescriptor(a: std.mem.Allocator, shape: Shape, envelope: ?Envelope, 
         d[D.claims] = e.n_claims;
         d[D.latches] = e.latches;
     }
-    if (fixed_root) |r| d[D.fixed_root..][0..8].* = r;
+    if (fixed_root) |r| {
+        d[D.flags] |= D.flag_fixed_root;
+        d[D.fixed_root..][0..8].* = r;
+    }
     for (fri[0..layers], 0..) |f, l| d[D.fri + 4 * l ..][0..4].* = .{ f.count, f.fold_step, f.leaf_log, f.shift };
     var at: u32 = D.tables;
     for (shape.trees, 0..) |t, ti| {
@@ -437,6 +445,9 @@ const Mirror = struct {
         if (s[9] != h[13] or s[10] != 0 or s[11] != 0 or s[12] != 17 +% h[13] or !std.mem.allEqual(u32, s[13..], 0)) return self.fail(.channel);
         for (0..d[D.trees]) |t| if (self.in.roots[t]) |r| {
             if (!std.mem.eql(u32, r[0..8], self.image[self.im.roots + 8 * t ..][0..8])) return self.fail(.root);
+        };
+        if (d[D.flags] & D.flag_fixed_root != 0) if (self.in.roots[0]) |r| {
+            if (!std.mem.eql(u32, r[0..8], d[D.fixed_root..][0..8])) return self.fail(.root);
         };
         for (self.in.latches) |w| if (w != 0) return self.fail(.section_latch);
         for (self.in.claims) |w| if (w >= modulus) return self.fail(.noncanonical_public);
@@ -866,6 +877,17 @@ pub fn oodsFaultOrdinal() !?u32 {
     return n;
 }
 
+/// STWO_RV64_M8_OUTER_OODS_POINT_FAULT_ORDINAL=n (two-key like faultOrdinal):
+/// node n's OODS point status word is set nonzero on the device; the device
+/// node_oods_constraint check must refuse it (detail point).
+pub fn oodsPointFaultOrdinal() !?u32 {
+    const v = std.posix.getenv("STWO_RV64_M8_OUTER_OODS_POINT_FAULT_ORDINAL") orelse return null;
+    const n = std.fmt.parseUnsigned(u32, v, 10) catch return error.InvalidOuterOodsPointFaultOrdinal;
+    const armed = std.posix.getenv("STWO_RV64_M8_FAULT_INJECTION") orelse return error.M8FaultInjectionNotArmed;
+    if (!std.mem.eql(u8, armed, "1")) return error.M8FaultInjectionNotArmed;
+    return n;
+}
+
 // ---------------------------------------------------------------------------
 // Tests: the mirror against a transliteration of the host assembler +
 // stwo_proof_wire writer + om31 wire.encode (hash maps, its own sort), on
@@ -1244,6 +1266,17 @@ test "outer encode: host mirror equals the reference assembler + wire writer on 
             in.latches = &latches;
         }
         in.roots[0] = img[Image.of(desc).roots..][0..8];
+        // flag_fixed_root: the expected tree-0 root must equal the class
+        // root as well; a different one is refused (detail root).
+        try t.expect(desc[D.flags] & D.flag_fixed_root != 0);
+        {
+            if (!std.mem.eql(u32, in.roots[0].?, &root0)) {
+                const probe = try a.alloc(u32, desc[D.max_payload_words] + 1);
+                defer a.free(probe);
+                try t.expectEqual(G.Verdict.reject(.node_pcs_status, @intFromEnum(PcsDetail.root)), (try encodeHost(a, desc, img, in, probe)).pcs);
+            }
+        }
+        desc[D.fixed_root..][0..8].* = img[Image.of(desc).roots..][0..8].*;
         const expected = try Ref.encode(a, desc, img, in);
         defer a.free(expected);
         const out = try a.alloc(u32, desc[D.max_payload_words] + 1);

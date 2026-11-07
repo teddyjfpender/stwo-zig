@@ -252,6 +252,7 @@ pub const Prover = struct {
             encode.?.arm();
             encode.?.node.fault = if (try Enc.faultOrdinal()) |n| n == input.ordinal else false;
             encode.?.node.oods_fault = if (try Enc.oodsFaultOrdinal()) |n| n == input.ordinal else false;
+            encode.?.node.oods_point_fault = if (try Enc.oodsPointFaultOrdinal()) |n| n == input.ordinal else false;
         }
         const submitted = if (encode) |*c| c.node.job() else job.job();
         r.footprint = submitted.footprint();
@@ -782,6 +783,7 @@ pub const Hybrid = struct {
             _ = try Enc.mode();
             _ = try Enc.faultOrdinal();
             _ = try Enc.oodsFaultOrdinal();
+            _ = try Enc.oodsPointFaultOrdinal();
             return k;
         }
     };

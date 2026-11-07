@@ -25,6 +25,7 @@ const K = @import("outer_kernels.zig");
 const E = @import("outer_encode.zig");
 const G = @import("gpu_native.zig");
 const OO = @import("outer_encode_oods.zig");
+const Pcs = @import("native_pcs.zig");
 const Outer = @import("stwo_circuit_cpu_integration").om31;
 
 /// Slab field: [length word | payload (max_payload_words)] then the two
@@ -116,6 +117,10 @@ pub const EncodedNode = struct {
     /// first coordinate is zeroed on the device (still canonical, so the PCS
     /// checks pass and node_oods_constraint must refuse the node).
     oods_fault: bool = false,
+    /// Negative test (outer_encode.oodsPointFaultOrdinal): the OODS field's
+    /// status word is set nonzero on the device; node_oods_constraint must
+    /// refuse it (detail point).
+    oods_point_fault: bool = false,
 
     /// GPU-native publication target (gpu_native.RequestLayout): the node's
     /// encoded region (length word + capacity) and its two status words in
@@ -241,7 +246,12 @@ pub const EncodedNode = struct {
             pcs_status = out.ptr + region_words;
             encode_status = out.ptr + region_words + 1;
         }
-        const fixed_root: [*]const u32 = self.desc_buf.ptr + E.D.fixed_root;
+        // Tree 0's expected root: when the node commits FIXED itself, the root
+        // it mixed into the transcript (section), which the encoder also
+        // requires to equal the class root (D.flag_fixed_root, host check
+        // InvalidOm31DeviceFixedRoot); otherwise the class root.
+        const fixed_root: [*]const u32 = if (self.inner.fixed_commit != null) section.ptr + S.fixed_root else self.desc_buf.ptr + E.D.fixed_root;
+        if (self.desc[E.D.flags] & E.D.flag_fixed_root == 0) return error.OuterEncodeFixedRootMissing;
         const io = E.Io{
             .desc = self.desc_buf.ptr,
             .desc_words = self.desc.len,
@@ -284,6 +294,11 @@ pub const EncodedNode = struct {
                 if (self.inner.kernels.memset(e.ctx(), @ptrCast(pcs.ptr + at), 0, 4) != 0) return error.OuterEncodeEnqueueFailed;
             }
             const point = try e.slab.field(.opaque_words, Job.oods_index);
+            // The kernel reads the whole field (point + its status word).
+            if (point.words < Pcs.oods_field_words) return error.OuterOodsPointFieldTooSmall;
+            if (self.oods_point_fault) {
+                if (self.inner.kernels.memset(e.ctx(), @ptrCast(point.ptr + Pcs.oods_field_words - 1), 0x01, 4) != 0) return error.OuterEncodeEnqueueFailed;
+            }
             var verdict: [*]u32 = undefined;
             var diag: ?[*]u32 = null;
             if (o.status) |st| verdict = st.ptr else {
@@ -317,9 +332,11 @@ pub const EncodedNode = struct {
     pub fn finish(self: *EncodedNode, view: api.SlabView) !void {
         if (self.timing) |t| t.resolve(t.ctx);
         if (self.oods_timing) |t| t.resolve(t.ctx);
-        try self.inner.finish(view);
         // GPU-native: gpu_native.publish reads the request slab mirror.
-        if (self.target != null) return;
+        if (self.target != null) return self.inner.finish(view);
+        // Device verdicts first (the authority on the GPU-native path), then
+        // the host reference in inner.finish: a device refusal is reported
+        // as the device's, even where a host check would also refuse.
         if (self.oods) |*o| {
             const w = try Slab.read(view, .opaque_words, oods_field_index);
             o.verdict = w[0];
@@ -329,7 +346,15 @@ pub const EncodedNode = struct {
         const payload_words = words.len - 2;
         self.pcs_verdict = words[payload_words];
         self.bounds_verdict = words[payload_words + 1];
-        if (self.pcs_verdict != G.Verdict.accepted or self.bounds_verdict != G.Verdict.accepted) return;
+        if (self.pcs_verdict != G.Verdict.accepted or self.bounds_verdict != G.Verdict.accepted) {
+            std.debug.print("GPU_M8_OUTER_ENCODE rejected ordinal={d} pcs=0x{x} bounds=0x{x}\n", .{ self.inner.staged.ordinal, self.pcs_verdict, self.bounds_verdict });
+            return error.OuterDeviceEncodeRejected;
+        }
+        if (self.oods) |o| if (o.verdict != G.Verdict.accepted) {
+            std.debug.print("GPU_M8_OUTER_OODS rejected ordinal={d} verdict=0x{x}\n", .{ self.inner.staged.ordinal, o.verdict });
+            return error.OuterDeviceOodsRejected;
+        };
+        try self.inner.finish(view);
         const n = words[0];
         if (n % 4 != 0 or n / 4 > payload_words - 1) return error.OuterEncodeLengthOutOfRange;
         const bytes = try self.allocator.alloc(u8, n);
