@@ -12,8 +12,9 @@
 //!   channel <- the segment's Stage-1 checkpoint (handoff region)
 //!   shared  <- drawShared(seal chi) on device (native_seal_chi.cu)
 //!   patch   global projection parameters and the composition table's
-//!           shared / local / binding / hc parameters on device from the
-//!           shared draws and the Stage-1 semantic handoff (class tables)
+//!           shared / local / binding / hc / public parameters on device from
+//!           the shared draws, the Stage-1 semantic handoff and the segment's
+//!           public statement input (class tables, validated at warm)
 //!   globals -> claims; mixManifestAndClaims(chi, claims) on the device channel
 //!   INTER commit, alpha, composition, OODS, enqueue-only PCS (job arena)
 //!   checks  global_status, composition_accept, public_claims, root_match,
@@ -246,8 +247,8 @@ pub const semantic_felts: u32 = JP.eta + 4 - JP.local;
 
 /// A patch table: out[dst[i] .. +8] = src[8 * index[i] .. +8].
 pub const Patch = struct {
-    dst: []u32,
-    index: []u32,
+    dst: []u32 = &.{},
+    index: []u32 = &.{},
     pub fn deinit(self: *Patch, a: std.mem.Allocator) void {
         a.free(self.dst);
         a.free(self.index);
@@ -255,14 +256,61 @@ pub const Patch = struct {
     pub fn len(self: Patch) usize {
         return self.dst.len;
     }
+    /// Fail closed at warm on a table the patch kernel would skip or that
+    /// writes outside its target (the kernel's bounds guard only keeps a bad
+    /// table in memory; a skipped entry would leave a warm-time value in a
+    /// per-request parameter, i.e. a wrong proof with every check accepting).
+    pub fn check(self: Patch, src_felts: usize, target_words: usize) !void {
+        if (self.dst.len != self.index.len) return error.NativeStage2PatchTable;
+        for (self.dst, self.index) |d, i| if (i >= src_felts or @as(usize, d) + 8 > target_words) return error.NativeStage2PatchTable;
+    }
 };
-pub const Source = enum { shared, semantic };
-/// Which parameter slots come from which device source.
+/// Device sources of per-request parameter values:
+///   shared    drawShared(chi) on device (JP.ram .. JP.claims)
+///   semantic  the Stage-1 semantic handoff (JP.local .. JP.eta + 4, then hc rows)
+///   public    the segment's public namespace (JP slots < JP.local: cpu_steps,
+///             pcs, epoch, rows, calls, first ids, source public such as the
+///             sponge first id), request statement data uploaded with the job
+pub const Source = enum { shared, semantic, public };
+pub const sources = [_]Source{ .shared, .semantic, .public };
+/// Felts of the public request input (JP slots [0, JP.local)).
+pub const public_felts: u32 = JP.local;
+const m31_modulus: u32 = 0x7fff_ffff;
+/// Which parameter slots come from which device source. Every slot of a
+/// per-request namespace maps to a source; only the claims namespace (mixed,
+/// never a parameter value here) returns null.
 pub fn sourceOf(slot: u32) ?struct { source: Source, index: u32 } {
+    if (slot < JP.local) return .{ .source = .public, .index = slot };
     if (slot >= JP.ram and slot < JP.claims) return .{ .source = .shared, .index = slot - JP.ram };
     if (slot >= JP.local and slot < JP.eta + 4) return .{ .source = .semantic, .index = slot - JP.local };
     return null;
 }
+/// The patch tables of one parameter vector, one per source.
+pub const PatchSet = struct {
+    shared: Patch = .{},
+    semantic: Patch = .{},
+    public: Patch = .{},
+    pub fn get(self: PatchSet, source: Source) Patch {
+        return switch (source) {
+            .shared => self.shared,
+            .semantic => self.semantic,
+            .public => self.public,
+        };
+    }
+    pub fn words(self: PatchSet) usize {
+        return 2 * (self.shared.len() + self.semantic.len() + self.public.len());
+    }
+    pub fn deinit(self: *PatchSet, a: std.mem.Allocator) void {
+        self.shared.deinit(a);
+        self.semantic.deinit(a);
+        self.public.deinit(a);
+    }
+    pub fn check(self: PatchSet, semantic_words: usize, target_words: usize) !void {
+        try self.shared.check(shared_felts, target_words);
+        try self.semantic.check(semantic_words / 8, target_words);
+        try self.public.check(public_felts, target_words);
+    }
+};
 /// Patches of one packed parameter vector (`slots` = artifact parameter
 /// slots, 8 words per slot starting at `base`), for one source.
 pub fn appendSlots(a: std.mem.Allocator, dst: *std.ArrayListUnmanaged(u32), index: *std.ArrayListUnmanaged(u32), slots: []const u32, base: u32, source: Source) !void {
@@ -300,12 +348,15 @@ pub const ClassFraming = struct {
     main_offsets: []const usize,
     main_words: usize,
     bind_plan: *const B.Plan,
-    /// Per global plan (slot order of `slots` with a global), the shared
-    /// patches of its parameter vector.
-    global_patches: []Patch,
-    /// Composition table patches from the shared draws / Stage-1 semantic.
-    comp_shared: Patch,
-    comp_semantic: Patch,
+    /// Per global plan (slot order of `slots` with a global), the patches of
+    /// its parameter vector (shared draws, public request values).
+    global_patches: []PatchSet,
+    /// Composition table patches (shared draws, Stage-1 semantic incl. hc
+    /// rows, public request values).
+    comp_patches: PatchSet,
+    /// Words of the Stage-1 semantic handoff region of this class: the
+    /// `semantic_felts` namespace felts, then every hc role's rows.
+    semantic_words: usize = 8 * @as(usize, semantic_felts),
     /// RAM boundary claim slots (core initial / terminal), or null.
     initial_claim: ?u32 = null,
     terminal_claim: ?u32 = null,
@@ -313,50 +364,73 @@ pub const ClassFraming = struct {
     /// see `deviceWords` / `writeDevice`.
     destroy_fn: ?*const fn (*ClassFraming) void = null,
 
+    /// Every patch table in bounds of its source and target (warm, once).
+    pub fn validate(self: *const ClassFraming) !void {
+        if (self.semantic_words < 8 * @as(usize, semantic_felts) or self.semantic_words % 8 != 0) return error.NativeStage2PatchTable;
+        var k: usize = 0;
+        for (self.slots) |s| if (s.global) |g| {
+            if (k >= self.global_patches.len) return error.NativeStage2PatchTable;
+            try self.global_patches[k].check(self.semantic_words, g.plan.parameters.len);
+            k += 1;
+        };
+        if (k != self.global_patches.len) return error.NativeStage2PatchTable;
+        try self.comp_patches.check(self.semantic_words, self.composition.table.len);
+    }
+    pub fn uses(self: *const ClassFraming, source: Source) bool {
+        if (self.comp_patches.get(source).len() != 0) return true;
+        for (self.global_patches) |p| if (p.get(source).len() != 0) return true;
+        return false;
+    }
     pub fn deviceWords(self: *const ClassFraming) usize {
         var n = self.program.words.len;
-        for (self.global_patches) |p| n += 2 * p.len();
-        n += 2 * (self.comp_shared.len() + self.comp_semantic.len());
-        return n;
+        for (self.global_patches) |p| n += p.words();
+        return n + self.comp_patches.words();
     }
-    /// The class-cache image: program, then (dst, index) per patch table.
+    /// The class-cache image: program, then per patch set (globals in order,
+    /// then the composition) per source (`sources` order) the dst and index
+    /// tables.
     pub fn image(self: *const ClassFraming, a: std.mem.Allocator) ![]u32 {
         const out = try a.alloc(u32, self.deviceWords());
         var at: usize = 0;
         @memcpy(out[0..self.program.words.len], self.program.words);
         at += self.program.words.len;
-        const all = [_][]const Patch{ self.global_patches, &.{ self.comp_shared, self.comp_semantic } };
-        for (all) |group| for (group) |p| {
+        const all = [_][]const PatchSet{ self.global_patches, &.{self.comp_patches} };
+        for (all) |group| for (group) |set| for (sources) |source| {
+            const p = set.get(source);
             @memcpy(out[at..][0..p.len()], p.dst);
             at += p.len();
             @memcpy(out[at..][0..p.len()], p.index);
             at += p.len();
         };
+        std.debug.assert(at == out.len);
         return out;
     }
+    pub const PatchView = struct { dst: api.DeviceBuffer, index: api.DeviceBuffer };
+    pub const SetView = [sources.len]PatchView;
     pub const Views = struct {
         program: api.DeviceBuffer,
-        globals: []PatchView,
-        comp_shared: PatchView,
-        comp_semantic: PatchView,
+        globals: []SetView,
+        composition: SetView,
     };
-    pub const PatchView = struct { dst: api.DeviceBuffer, index: api.DeviceBuffer };
     pub fn views(self: *const ClassFraming, a: std.mem.Allocator, device: api.DeviceBuffer) !Views {
         if (device.words < self.deviceWords()) return error.NativeStage2ClassImage;
         var at: usize = self.program.words.len;
-        const g = try a.alloc(PatchView, self.global_patches.len);
+        const g = try a.alloc(SetView, self.global_patches.len);
         errdefer a.free(g);
         const take = struct {
-            fn f(d: api.DeviceBuffer, cursor: *usize, n: usize) !PatchView {
-                const v = PatchView{ .dst = try d.slice(cursor.*, n), .index = try d.slice(cursor.* + n, n) };
-                cursor.* += 2 * n;
+            fn f(d: api.DeviceBuffer, cursor: *usize, set: PatchSet) !SetView {
+                var v: SetView = undefined;
+                for (sources, &v) |source, *pv| {
+                    const n = set.get(source).len();
+                    pv.* = .{ .dst = try d.slice(cursor.*, n), .index = try d.slice(cursor.* + n, n) };
+                    cursor.* += 2 * n;
+                }
                 return v;
             }
         }.f;
-        for (self.global_patches, g) |p, *v| v.* = try take(device, &at, p.len());
-        const cs = try take(device, &at, self.comp_shared.len());
-        const cm = try take(device, &at, self.comp_semantic.len());
-        return .{ .program = try device.slice(0, self.program.words.len), .globals = g, .comp_shared = cs, .comp_semantic = cm };
+        for (self.global_patches, g) |p, *v| v.* = try take(device, &at, p);
+        const comp = try take(device, &at, self.comp_patches);
+        return .{ .program = try device.slice(0, self.program.words.len), .globals = g, .composition = comp };
     }
 };
 
@@ -366,6 +440,10 @@ pub const ClassFraming = struct {
 pub const RequestInputs = struct {
     initial_tuples: []const u32 = &.{},
     terminal_tuples: []const u32 = &.{},
+    /// The segment's public parameter namespace (`public_felts` x 8 canonical
+    /// words, JP slot order): its statement values from capture. Required
+    /// when the class patches any public slot (ClassFraming.uses(.public)).
+    public: []const u32 = &.{},
 };
 
 pub const Symbols = struct {
@@ -383,7 +461,14 @@ pub const Stage2Job = struct {
     a: std.mem.Allocator,
     sym: *const Symbols,
     ctx: *const G.RequestContext,
+    /// The class prototype: read-only class constants (footprint, key).
     class: *ClassFraming,
+    /// The instance this job stages and enqueues with, held EXCLUSIVELY from
+    /// `stage` to the end of `enqueue` (CommitPlan.stage, Plan.stage and
+    /// PcsJob.bindColumn write per-job state into it; the worker stages job
+    /// N+1 before it enqueues job N, and both GPUs run the same classes).
+    /// From the owner's pool; `class` itself when there is no owner.
+    lease: ?*ClassFraming = null,
     /// The class image on this GPU (worker-persistent, keyed by class: filled
     /// by the first job of the class on the GPU, never per request).
     class_device: api.DeviceBuffer = undefined,
@@ -402,6 +487,7 @@ pub const Stage2Job = struct {
     semantic: ?api.DeviceBuffer = null,
     fixed: ?api.DeviceBuffer = null,
     tuples: [2]?api.DeviceBuffer = .{ null, null },
+    public: ?api.DeviceBuffer = null,
     globals: []Gl.Global = &.{},
     inter_inputs: []C.Input = &.{},
     pinned: []u32 = &.{},
@@ -420,7 +506,7 @@ pub const Stage2Job = struct {
     pub fn footprint(self: *Stage2Job) api.Footprint {
         const g = 64;
         const c = self.class;
-        var staged: usize = 4 * g + c.inter.stagedWords(0) + c.composition.stagedWords() + std.mem.alignForward(usize, (self.inputs.initial_tuples.len + self.inputs.terminal_tuples.len), g);
+        var staged: usize = 4 * g + c.inter.stagedWords(0) + c.composition.stagedWords() + std.mem.alignForward(usize, self.inputs.initial_tuples.len, g) + std.mem.alignForward(usize, self.inputs.terminal_tuples.len, g) + std.mem.alignForward(usize, self.inputs.public.len, g);
         var globals: usize = 0;
         for (c.slots) |s| if (s.global) |gs| {
             staged += gs.plan.stagedWords(false) + g;
@@ -429,19 +515,41 @@ pub const Stage2Job = struct {
         // PCS peak: measured segment-scale class 2.14e9 words [M]
         // (memory-plan-p2) + 7%, as native_hybrid_jobs.Stage2Job.
         const pcs: usize = 2_300_000_000;
-        const fields = 8 * g + @as(usize, c.claim_count) * 8 + @as(usize, @intCast(c.pcs.outputWords())) + NE.scratch_words + 8 * shared_felts + 8 * (1 + self.globalCount()) + 4096;
+        // public_claims scratch grows with the boundary cells (8 + 8 per
+        // 256-cell block, up to 4104 words): sized here, not in the slack.
+        const pscratch = std.mem.alignForward(usize, @intCast(self.sym.encode.public_scratch(@intCast(self.inputs.initial_tuples.len / 14), @intCast(self.inputs.terminal_tuples.len / 14))), g);
+        const fields = 8 * g + @as(usize, c.claim_count) * 8 + @as(usize, @intCast(c.pcs.outputWords())) + NE.scratch_words + 8 * shared_felts + 8 * (1 + self.globalCount()) + pscratch + 4096;
         const work = globals + c.inter.deviceWords() + c.composition.coefficientWords() + c.composition.enqueueWords() + pcs + fields;
         const fresh = c.fixed_words + c.composition.persistentWords();
-        return .{ .device_words = staged + work + 16 * g, .staged_words = staged, .slab_words = 0, .pinned_words = @as(usize, @intCast(c.pcs.ingressWords())) + c.composition.pinnedWords() + fresh + 64 * g + self.inputs.initial_tuples.len + self.inputs.terminal_tuples.len };
+        return .{ .device_words = staged + work + 16 * g, .staged_words = staged, .slab_words = 0, .pinned_words = @as(usize, @intCast(c.pcs.ingressWords())) + c.composition.pinnedWords() + fresh + 64 * g + self.inputs.initial_tuples.len + self.inputs.terminal_tuples.len + self.inputs.public.len };
+    }
+
+    fn acquire(self: *Stage2Job) !*ClassFraming {
+        if (self.lease) |l| return l;
+        const l = if (self.owner) |f| try f.acquire(self.class) else self.class;
+        self.lease = l;
+        return l;
+    }
+    fn releaseLease(self: *Stage2Job) void {
+        const l = self.lease orelse return;
+        self.lease = null;
+        if (self.owner) |f| f.releaseFraming(l);
     }
 
     pub fn stage(self: *Stage2Job, s: *api.Stager) !void {
-        const c = self.class;
+        const c = try self.acquire();
         const ctx = self.ctx;
         const req = ctx.request;
         self.checkpoint = try s.retained(req, handoffName(.checkpoint, self.segment), checkpoint_words);
         self.bind = try s.retained(req, handoffName(.binding, self.segment), c.bind_plan.output_words);
-        if (c.comp_semantic.len() != 0) self.semantic = try s.retained(req, handoffName(.semantic, self.segment), 8 * @as(usize, semantic_felts));
+        if (c.uses(.semantic)) self.semantic = try s.retained(req, handoffName(.semantic, self.segment), c.semantic_words);
+        if (c.uses(.public)) {
+            if (self.inputs.public.len != 8 * @as(usize, public_felts)) return error.NativeStage2NoPublic;
+            for (self.inputs.public) |w| if (w >= m31_modulus) return error.NativeStage2NoncanonicalPublic;
+            const b = try s.alloc(self.inputs.public.len);
+            try s.upload(b, self.inputs.public);
+            self.public = b;
+        }
         const image = try s.persistent(imageKey(c.key), c.deviceWords());
         if (image.fresh) {
             const words = try c.image(self.a);
@@ -485,8 +593,25 @@ pub const Stage2Job = struct {
         return ctx.layout.segments[self.device].statusBuffer(ctx.segments[self.device], self.id(), check);
     }
 
+    /// out <- every source's patch of one parameter vector (stream order).
+    fn applyPatches(self: *const Stage2Job, e: *api.Enqueue, set: ClassFraming.SetView, shared: api.DeviceBuffer, out: api.DeviceBuffer) !void {
+        for (sources, set) |source, v| {
+            if (v.dst.words == 0) continue;
+            const src = switch (source) {
+                .shared => shared,
+                .semantic => self.semantic orelse return error.NativeStage2NoSemantic,
+                .public => self.public orelse return error.NativeStage2NoPublic,
+            };
+            try NE.patchFelts(&self.sym.encode, e.ctx(), src, v.index, v.dst, out);
+        }
+    }
+
     pub fn enqueue(self: *Stage2Job, e: *api.Enqueue) !void {
-        const c = self.class;
+        // The lease ends with the enqueue: everything below reads the
+        // instance's host state at call time only (device work captured the
+        // pointers it staged), so the next job may restage the instance.
+        defer self.releaseLease();
+        const c = self.lease orelse return error.NativeStage2NotStaged;
         const ctx = self.ctx;
         const sym = self.sym;
         const fixed = self.fixed orelse return error.NativeStage2NotStaged;
@@ -503,15 +628,13 @@ pub const Stage2Job = struct {
         const chi = try x.slice(seal.offset, 8);
         const shared = try e.alloc(8 * shared_felts);
         try rc(sym.seal.shared(e.ctx(), 0, chi.ptr, &self.constants, shared.ptr, shared.words));
-        // ---- device parameters: globals (shared), composition (shared + Stage-1 semantic)
-        var k: usize = 0;
-        for (self.globals) |*gl| {
-            if (views.globals[k].dst.words != 0) try NE.patchFelts(&sym.encode, e.ctx(), shared, views.globals[k].index, views.globals[k].dst, gl.staged.?);
-            k += 1;
-        }
+        // ---- device parameters: globals and composition table, from the
+        // shared draws, the Stage-1 semantic handoff and the public inputs
+        if (views.globals.len != self.globals.len) return error.NativeStage2PatchTable;
+        for (self.globals, views.globals) |*gl, set| try self.applyPatches(e, set, shared, gl.staged.?);
         const table = c.composition.table_device orelse return error.NativeStage2NotStaged;
-        if (views.comp_shared.dst.words != 0) try NE.patchFelts(&sym.encode, e.ctx(), shared, views.comp_shared.index, views.comp_shared.dst, table);
-        if (views.comp_semantic.dst.words != 0) try NE.patchFelts(&sym.encode, e.ctx(), self.semantic orelse return error.NativeStage2NoSemantic, views.comp_semantic.index, views.comp_semantic.dst, table);
+        try self.applyPatches(e, views.composition, shared, table);
+        var k: usize = 0;
         // ---- transcript from the Stage-1 checkpoint
         try e.channel.initFromCheckpoint(self.checkpoint.?);
         const claims = try e.alloc(@max(1, @as(usize, c.claim_count) * 8));
@@ -609,6 +732,7 @@ pub const Stage2Job = struct {
     }
     fn release(self: *Stage2Job) void {
         const owner = self.owner;
+        self.releaseLease(); // abort between stage and enqueue
         self.deinit();
         if (owner) |f| f.releaseStage2(self);
     }
@@ -643,11 +767,29 @@ pub const Factory = struct {
     a: std.mem.Allocator,
     sym: *const Symbols,
     mutex: std.Thread.Mutex = .{},
-    classes: std.AutoHashMapUnmanaged(G.ClassKey, *ClassFraming) = .empty,
+    classes: std.AutoHashMapUnmanaged(G.ClassKey, *Pool) = .empty,
     segment_class: std.AutoHashMapUnmanaged(u32, G.ClassKey) = .empty,
     requests: std.AutoHashMapUnmanaged(u64, *Request) = .empty,
     /// chain.versionIdentity of the service policy (seal chain IV input).
     identity: [32]u8,
+    /// The GPU the driver runs the seal on (driver Config.seal_device): the
+    /// publisher of the seal slot every Stage-2 job awaits.
+    seal_device: u32 = 0,
+
+    /// Exclusive instances of one class (see Stage2Job.lease). A job holds
+    /// one from its `stage` to the end of its `enqueue`, and each worker has
+    /// at most two jobs in that window (one staged, one enqueuing), so warm
+    /// registers `instances_per_device * devices` instances per class.
+    /// Exhaustion fails closed (never blocks a worker thread).
+    pub const Pool = struct {
+        instances: std.ArrayListUnmanaged(*ClassFraming) = .empty,
+        busy: std.ArrayListUnmanaged(bool) = .empty,
+        fn deinit(self: *Pool, a: std.mem.Allocator) void {
+            self.instances.deinit(a);
+            self.busy.deinit(a);
+        }
+    };
+    pub const instances_per_device: usize = 2;
 
     pub const Request = struct {
         roster: []const RosterEntry,
@@ -656,18 +798,63 @@ pub const Factory = struct {
     };
 
     pub fn deinit(self: *Factory) void {
+        var it = self.classes.valueIterator();
+        while (it.next()) |p| {
+            p.*.deinit(self.a);
+            self.a.destroy(p.*);
+        }
         self.classes.deinit(self.a);
         self.segment_class.deinit(self.a);
         self.requests.deinit(self.a);
     }
-    /// Warm: register a segment class (the framing stays owned by the caller
-    /// for the factory's life).
+    /// Warm: register one instance of a segment class (the framing stays
+    /// owned by the caller for the factory's life). Register
+    /// `instances_per_device * devices` instances of every class; the first
+    /// is the class prototype the class cache hands out.
     pub fn register(self: *Factory, framing: *ClassFraming) !void {
+        try framing.validate();
+        try self.registerUnchecked(framing);
+    }
+    fn registerUnchecked(self: *Factory, framing: *ClassFraming) !void {
         self.mutex.lock();
         defer self.mutex.unlock();
         const got = try self.classes.getOrPut(self.a, framing.key);
-        if (got.found_existing and got.value_ptr.* != framing) return error.NativeStage2ClassConflict;
-        got.value_ptr.* = framing;
+        if (!got.found_existing) {
+            const p = self.a.create(Pool) catch |err| {
+                self.classes.removeByPtr(got.key_ptr);
+                return err;
+            };
+            p.* = .{};
+            got.value_ptr.* = p;
+        }
+        const pool = got.value_ptr.*;
+        for (pool.instances.items) |f| if (f == framing) return error.NativeStage2ClassConflict;
+        if (pool.instances.items.len != 0 and pool.instances.items[0].deviceWords() != framing.deviceWords()) return error.NativeStage2ClassConflict;
+        try pool.instances.append(self.a, framing);
+        pool.busy.append(self.a, false) catch |err| {
+            _ = pool.instances.pop();
+            return err;
+        };
+    }
+    /// An exclusive instance of `class`'s class (Stage2Job.stage).
+    pub fn acquire(self: *Factory, class: *const ClassFraming) !*ClassFraming {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const pool = self.classes.get(class.key) orelse return error.GpuNativeClassNotWarmed;
+        for (pool.instances.items, pool.busy.items) |f, *b| if (!b.*) {
+            b.* = true;
+            return f;
+        };
+        return error.NativeStage2FramingBusy;
+    }
+    pub fn releaseFraming(self: *Factory, framing: *ClassFraming) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const pool = self.classes.get(framing.key) orelse return;
+        for (pool.instances.items, pool.busy.items) |f, *b| if (f == framing) {
+            b.* = false;
+            return;
+        };
     }
     pub fn bindSegment(self: *Factory, segment: u32, key: G.ClassKey) !void {
         self.mutex.lock();
@@ -679,7 +866,8 @@ pub const Factory = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         var it = self.classes.valueIterator();
-        while (it.next()) |f| {
+        while (it.next()) |p| {
+            const f = p.*.instances.items[0];
             const Builder = struct {
                 fn build(raw: *anyopaque, _: std.mem.Allocator, key: G.ClassKey) anyerror!G.ClassEntry {
                     const fr: *ClassFraming = @ptrCast(@alignCast(raw));
@@ -687,7 +875,7 @@ pub const Factory = struct {
                 }
                 fn noop(_: *anyopaque) void {}
             };
-            _ = try cache.warm(f.*.key, .{ .ctx = f.*, .build = Builder.build });
+            _ = try cache.warm(f.key, .{ .ctx = f, .build = Builder.build });
         }
     }
     pub fn beginRequest(self: *Factory, request: u64, r: *Request) !void {
@@ -714,6 +902,8 @@ pub const Factory = struct {
         return @ptrCast(@alignCast(entry.plan));
     }
     pub fn seal(self: *Factory, ctx: *const G.RequestContext, device: u32) !api.Job {
+        // The Stage-2 jobs await the seal slot from `seal_device`.
+        if (device != self.seal_device) return error.GpuNativeSealDeviceMismatch;
         const r = try self.requestOf(ctx.request);
         const job = try self.a.create(SealOwned);
         errdefer self.a.destroy(job);
@@ -725,8 +915,9 @@ pub const Factory = struct {
         const r = try self.requestOf(ctx.request);
         const class = try self.classFor(ctx, segment);
         if (segment >= r.inputs.len) return error.NativeStage2NoRequestInputs;
+        if (self.seal_device >= ctx.segments.len or device >= ctx.segments.len) return error.GpuNativeSealDeviceOutOfRange;
         const job = try self.a.create(Stage2Job);
-        job.* = .{ .a = self.a, .sym = self.sym, .ctx = ctx, .class = class, .segment = segment, .device = device, .constants = sealConstants(self.identity, r.execution, @intCast(r.roster.len), G.Exchange.flagTag(ctx.generation)), .inputs = r.inputs[segment], .owner = self };
+        job.* = .{ .a = self.a, .sym = self.sym, .ctx = ctx, .class = class, .segment = segment, .device = device, .seal_device = self.seal_device, .constants = sealConstants(self.identity, r.execution, @intCast(r.roster.len), G.Exchange.flagTag(ctx.generation)), .inputs = r.inputs[segment], .owner = self };
         return api.Job.from(Stage2Job, job);
     }
     /// The native_device.zig seam (no import of this file from there: the
@@ -869,7 +1060,10 @@ test "handoff names are distinct per kind and segment; patch sources partition t
     try std.testing.expectEqual(Source.shared, sourceOf(JP.ram).?.source);
     try std.testing.expectEqual(@as(u32, shared_felts - 1), sourceOf(JP.claims - 1).?.index);
     try std.testing.expect(sourceOf(JP.claims) == null);
-    try std.testing.expect(sourceOf(JP.cpu_steps) == null);
+    // Per-segment statement values are patched from the public input.
+    try std.testing.expectEqual(Source.public, sourceOf(JP.cpu_steps).?.source);
+    try std.testing.expectEqual(@as(u32, JP.local - 1), sourceOf(JP.local - 1).?.index);
+    for (0..JP.claims) |slot| try std.testing.expect(sourceOf(@intCast(slot)) != null);
     try std.testing.expectEqual(Source.semantic, sourceOf(JP.local).?.source);
     try std.testing.expectEqual(semantic_felts - 1, sourceOf(JP.eta + 3).?.index);
     const a = std.testing.allocator;
@@ -880,6 +1074,87 @@ test "handoff names are distinct per kind and segment; patch sources partition t
     defer p.deinit(a);
     try std.testing.expectEqualSlices(u32, &.{ 40 + 8, 40 + 24 }, p.dst);
     try std.testing.expectEqualSlices(u32, &.{ 2, JP.wire - JP.ram }, p.index);
+    try appendSlots(a, &dst, &idx, &.{ JP.cpu_steps, JP.ram + 2, JP.first_id }, 0, .public);
+    var q = try patchOf(a, &dst, &idx);
+    defer q.deinit(a);
+    try std.testing.expectEqualSlices(u32, &.{ 0, 16 }, q.dst);
+    try std.testing.expectEqualSlices(u32, &.{ JP.cpu_steps, JP.first_id }, q.index);
+}
+
+test "patch tables fail closed on an out-of-range source felt or target word" {
+    var dst = [_]u32{ 0, 16 };
+    var idx = [_]u32{ 1, shared_felts - 1 };
+    const p = Patch{ .dst = &dst, .index = &idx };
+    try p.check(shared_felts, 24);
+    try std.testing.expectError(error.NativeStage2PatchTable, p.check(shared_felts, 23));
+    try std.testing.expectError(error.NativeStage2PatchTable, p.check(shared_felts - 1, 24));
+    // hc rows beyond the namespace felts are in range only when the class
+    // declares them in semantic_words.
+    var hdst = [_]u32{0};
+    var hidx = [_]u32{semantic_felts + 3};
+    const set = PatchSet{ .semantic = .{ .dst = &hdst, .index = &hidx } };
+    try std.testing.expectError(error.NativeStage2PatchTable, set.check(8 * @as(usize, semantic_felts), 8));
+    try set.check(8 * (@as(usize, semantic_felts) + 4), 8);
+}
+
+test "factory framing pool: exclusive leases per instance, exhaustion fails closed" {
+    const a = std.testing.allocator;
+    var f = Factory{ .a = a, .sym = undefined, .identity = @splat(0) };
+    defer f.deinit();
+    var inst: [2]ClassFraming = undefined;
+    for (&inst) |*x| {
+        x.key = @splat(7);
+        x.program = .{ .a = a, .words = &.{}, .max_encoded_bytes = 0, .pcs_words = 0 };
+        x.global_patches = &.{};
+        x.comp_patches = .{};
+    }
+    try f.registerUnchecked(&inst[0]);
+    try f.registerUnchecked(&inst[1]);
+    try std.testing.expectError(error.NativeStage2ClassConflict, f.registerUnchecked(&inst[1]));
+    const x = try f.acquire(&inst[0]);
+    const y = try f.acquire(&inst[0]);
+    try std.testing.expect(x != y);
+    try std.testing.expectError(error.NativeStage2FramingBusy, f.acquire(&inst[0]));
+    f.releaseFraming(x);
+    try std.testing.expectEqual(x, try f.acquire(&inst[0]));
+    var other = inst[0];
+    other.key = @splat(8);
+    try std.testing.expectError(error.GpuNativeClassNotWarmed, f.acquire(&other));
+}
+
+test "class image and views agree on the per-set, per-source table layout" {
+    const a = std.testing.allocator;
+    var prog = [_]u32{ 1, 2, 3 };
+    var d0 = [_]u32{ 8, 16 };
+    var x0 = [_]u32{ 4, 5 };
+    var d1 = [_]u32{24};
+    var x1 = [_]u32{6};
+    var d2 = [_]u32{ 32, 40, 48 };
+    var x2 = [_]u32{ 7, 8, 9 };
+    var globals = [_]PatchSet{.{ .shared = .{ .dst = &d0, .index = &x0 }, .public = .{ .dst = &d1, .index = &x1 } }};
+    var fr: ClassFraming = undefined;
+    fr.program = .{ .a = a, .words = &prog, .max_encoded_bytes = 0, .pcs_words = 0 };
+    fr.global_patches = &globals;
+    fr.comp_patches = .{ .semantic = .{ .dst = &d2, .index = &x2 } };
+    const img = try fr.image(a);
+    defer a.free(img);
+    try std.testing.expectEqual(fr.deviceWords(), img.len);
+    const v = try fr.views(a, .{ .ptr = img.ptr, .words = img.len });
+    defer a.free(v.globals);
+    const at = struct {
+        fn f(b: api.DeviceBuffer) []const u32 {
+            return b.ptr[0..b.words];
+        }
+    }.f;
+    try std.testing.expectEqualSlices(u32, &prog, at(v.program));
+    try std.testing.expectEqualSlices(u32, &d0, at(v.globals[0][0].dst));
+    try std.testing.expectEqualSlices(u32, &x0, at(v.globals[0][0].index));
+    try std.testing.expectEqual(@as(usize, 0), v.globals[0][1].dst.words);
+    try std.testing.expectEqualSlices(u32, &d1, at(v.globals[0][2].dst));
+    try std.testing.expectEqualSlices(u32, &x1, at(v.globals[0][2].index));
+    try std.testing.expectEqualSlices(u32, &d2, at(v.composition[1].dst));
+    try std.testing.expectEqualSlices(u32, &x2, at(v.composition[1].index));
+    try std.testing.expectEqual(@as(usize, 0), v.composition[0].dst.words);
 }
 
 test "stage2 / seal jobs and the factory seam type-check against the api" {
