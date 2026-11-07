@@ -184,8 +184,25 @@ SC = {
     'ogkr_fanin': (1.35, 1.13, 0.95),
     'ogkr_eng': (0.90, 0.81, 0.78),
     'ogkr_p2': (1.28, 1.07, 0.90),    # on top of Poseidon2: no better basis than alone (the x0.57 cell basis is gone) [E]
-    'd2_nat': (1.30, 1.40, 1.50),     # D2 (native b4) native cost factor; reverting divides by it (levers.py) [E]
-    'd2_leaf': (0.60, 0.55, 0.50),    # D2 leaf cost factor; reverting divides by it (levers.py; M4.0 item 6: 0.60-0.73) [E]
+    # D2 (native b4) native cost factor; reverting divides by it. m9-proof-params: measured nsys A/B b2->b4 x1.140-1.144 on
+    # 24628607/26235156 (M7 era) [M]; post-M8 blowup share 0.25-0.39 -> 1/(1-phi/2) = 1.14-1.24 [D]. Was (1.30, 1.40, 1.50) [E].
+    'd2_nat': (1.14, 1.18, 1.24),
+    # D2 leaf cost factor; reverting divides by it. Measured leaf cells x0.626 (26235156) / x0.629 (24628607) [M rows, D cells];
+    # proof_params.py leaf GPU-s x1/1.641 = 0.609 [D]. Was (0.60, 0.55, 0.50) [E].
+    'd2_leaf': (0.60, 0.61, 0.63),
+    # m9-proof-params (codex/rv64-m9-proof-params, vectors/reports/rv64-m9-prep/m9-proof-params/model.json), lever PARAMS = set
+    # A_caps67: in-circuit Merkle cap 6 on native proofs in leaf circuits, fold cap 3 -> 7; no child proof changes [D/E].
+    # (leaf, fold) factors packed (with k-leaf fan-in) / padded (exact pow2 rows). Model cap savings are scaled by the exact CPU
+    # census (m9_leaf_cap_census_test: leaf cap 3 saves 86,800 Blake-G rows on the D2 mini fixture vs 124,000 modelled -> x0.70 [M]):
+    # leaf savings x(0.6, 0.7, 0.9), fold savings x(0.7, 0.85, 1.0) [E] (production natives/folds have more FRI trees than the mini).
+    'pp_packed': ((0.970, 0.9335), (0.965, 0.919), (0.955, 0.905)),
+    'pp_padded': ((0.940, 0.977), (0.930, 0.972), (0.910, 0.967)),
+    # PARAMS_POW = set B_caps67_pow24: A + PoW 24 on every layer (native q52, leaf/fold q104); the query part is uncalibrated [D].
+    # PoW p20 -> p24 extra GPU-s per proof [M dev-5090, pow-bench-dev5090.jsonl]: pess = grind kernel as built (+3.89 ms),
+    # central/opt = engineered check-every-64 kernel (+0.28 ms; same minimal nonce on 28/28 grinds).
+    'ppp_packed': ((0.9475, 0.9055), (0.9425, 0.891), (0.9325, 0.877)),
+    'ppp_padded': ((0.933, 0.967), (0.923, 0.962), (0.903, 0.957)),
+    'ppp_pow_s': (0.00389, 0.00028, 0.00028),
     'miss_cpu_s': (1.2, 0.84, 0.5),   # host class build per leaf on a class miss: (13.2 plan + 2.72 pack) CPU-s / 19 nodes [D]
     'miss_par': (3, 4, 6),            # host threads building classes concurrently [E]
     # canonical leaf catalog R=4, HELD-OUT native tax (codex/rv64-m9-canon-leaf 64a2cb991 review s9) [D]:
@@ -203,7 +220,7 @@ D2D_PER_MI = 0.11 / 26.894777  # s/GPU per M instr (IO doc L5: <=0.11 s/GPU 607,
 # r4 (wave-2 streams): outer GKR as built is a recursion GPU-s loss -> off the order; OGKR_ENG (gated on a standalone
 # fused-kernel bench <= 0.3 ns/fact) takes its slot in the search. REPLAY = the replay prototype alone (no narrow-capture port).
 LEVER_ORDER = ['IO', 'INPLACE', 'STREAM', 'WITNESS', 'OCC', 'LEAVES', 'NGKR', 'OGKR_ENG', 'GPUCAP', 'GPU4']
-EXTRA_LEVERS = ['P2', 'D2REV', 'CANON', 'OGKR', 'REPLAY']
+EXTRA_LEVERS = ['P2', 'D2REV', 'CANON', 'OGKR', 'REPLAY', 'PARAMS', 'PARAMS_POW']
 LEVER_NAME = {
     'P2': 'Poseidon2-M31-W24 leaves (S2-S4)',
     'LEAVES': 'k-leaf fan-in: one leaf verifies 2-4 same-family natives (blake_g <= 2^23, <= 2.2 G cells)',
@@ -220,6 +237,8 @@ LEVER_NAME = {
     'OGKR_ENG': 'outer GKR with an engineered 0.25 ns/fact kernel + fused v2 binding pass',
     'REPLAY': 'GPU capture replay only (narrow capture + ledger stay on CPU)',
     'D2REV': 'revert D2: native blowup b4 -> b2 once recursion is cheap',
+    'PARAMS': 'proof params set A: leaf-circuit native Merkle cap 6 + fold cap 7 (m9-proof-params)',
+    'PARAMS_POW': 'proof params set B: set A + PoW 24 on native/leaf/fold (q52 / q104 / q104)',
 }
 
 
@@ -266,6 +285,12 @@ def model(mi, sh, p, on=(), gpus=2, production=False):
         Rl *= f; Rf *= f
     if 'D2REV' in on:
         N /= p['d2_nat']; Rl /= p['d2_leaf']
+    if 'PARAMS' in on or 'PARAMS_POW' in on:  # m9-proof-params: packed rows when k-leaf fan-in packs leaves, else exact pow2 [D/E]
+        key = ('ppp_' if 'PARAMS_POW' in on else 'pp_') + ('packed' if 'LEAVES' in on else 'padded')
+        fl, ff = p[key]
+        Rl *= fl; Rf *= ff
+        if 'PARAMS_POW' in on:
+            N += p['ppp_pow_s'] * (sh['seg'] + sh['truths']); Rl += p['ppp_pow_s'] * L; Rf += p['ppp_pow_s'] * F
     if 'STREAM' in on:
         cut = 1 - pcs_frac * (1 - p['stream'])
         N *= cut; Rl *= cut; Rf *= cut
@@ -368,8 +393,8 @@ def run(gas_pct, out=None, gas_list=None):
     res['basket_totals'] = tot
     # minimal 2-GPU lever sets reaching >=60% cut vs post-M8 baseline on p50, p95 and the basket (central)
     import itertools
-    cand = [l for l in LEVER_ORDER if l not in ('GPU4', 'INPLACE', 'IO')] + ['P2', 'D2REV', 'OGKR', 'OGKR_ENG', 'REPLAY']
-    excl = ({'OGKR', 'OGKR_ENG'}, {'GPUCAP', 'REPLAY'})  # variants of one lever
+    cand = [l for l in LEVER_ORDER if l not in ('GPU4', 'INPLACE', 'IO')] + ['P2', 'D2REV', 'OGKR', 'OGKR_ENG', 'REPLAY', 'PARAMS', 'PARAMS_POW']
+    excl = ({'OGKR', 'OGKR_ENG'}, {'GPUCAP', 'REPLAY'}, {'PARAMS', 'PARAMS_POW'})  # variants of one lever
     base_on = ('IO', 'INPLACE')  # CANON excluded: as built it is a bench loss and keeps fold misses (canon-leaf review) [D/E]
     res['best_2gpu'] = {}
     for n in P:
@@ -400,6 +425,23 @@ def run(gas_pct, out=None, gas_list=None):
                               m10_4gpu={n: dist(tuple(LEVER_ORDER), n) for n in P},
                               basket_weights=basket_weights(bk, gas_list),
                               basket_mainnet_percentile={str(r['block']): sum(1 for g in gas_list if g < r['gas']) / len(gas_list) for r in bk})
+    # m9-proof-params: the PARAMS variants on top of the best 2-GPU set (#1-#9) and the 4-GPU set (#1-#10) [D/E]
+    res['params_on_best'] = {}
+    all9 = tuple(l for l in LEVER_ORDER if l != 'GPU4')
+    for tag, on in (('2gpu_1_9', all9), ('4gpu_1_10', tuple(LEVER_ORDER))):
+        for var in ('', 'PARAMS', 'PARAMS_POW'):
+            o = on + ((var,) if var else ())
+            row = {}
+            for n in P:
+                cuts = {}
+                for name in cases:
+                    mi, sh = blocks[name]
+                    b = model(mi, sh, P[n]); w = model(mi, sh, P[n], on=o)
+                    cuts[name] = dict(wall_s=w['wall_s'], cut=1 - w['wall_s'] / b['wall_s'], kernel_gpu_s=w['kernel_gpu_s'])
+                t = total(o, n)
+                cuts['basket'] = dict(wall_s=t, cut=1 - t / tot['baseline'][n])
+                row[n] = cuts
+            res['params_on_best'][tag + ('+' + var if var else '')] = row
     if out:
         os.makedirs(os.path.dirname(out), exist_ok=True)
         json.dump(res, open(out, 'w'), indent=1, sort_keys=True)
@@ -457,6 +499,10 @@ def main():
             print('mainnet-weighted basket mean %-12s %s' % (k, ' '.join('%s %.1f' % (n, sum(bw[b] * model(*blocks[b], P[n], on=on)['wall_s'] for b in bw)) for n in P)))
         print('basket weights:', {b: round(v, 3) for b, v in bw.items()})
         print('basket mainnet percentiles:', {b: round(v, 2) for b, v in m['basket_mainnet_percentile'].items()})
+    print('\n== m9-proof-params: PARAMS variants on the best sets (wall s and cut vs post-M8 baseline; p50 / p95 / basket)')
+    for tag, row in res['params_on_best'].items():
+        print('  %-26s ' % tag + ' | '.join('%s %.2f (%.1f%%) %.2f (%.1f%%) %.1f (%.1f%%) K50 %.2f' % (n, v['p50 (29.1M gas)']['wall_s'], 100 * v['p50 (29.1M gas)']['cut'],
+              v['p95 (55.8M gas)']['wall_s'], 100 * v['p95 (55.8M gas)']['cut'], v['basket']['wall_s'], 100 * v['basket']['cut'], v['p50 (29.1M gas)']['kernel_gpu_s']) for n, v in row.items()))
     for n, cs in res['combos'].items():
         b = res['best_2gpu'][n]
         print('\nbest 2-GPU set (%s): min cut over p50/p95/basket %.0f%% with %s' % (n, 100 * b['min_cut'], '+'.join(b['levers'])))
