@@ -5,6 +5,11 @@
 using StwoFriHash = stwo::cuda::blake2s::Hash;
 extern "C" int stwo_blake2s_layer_on(const StwoFriHash *, uint32_t,
                                      StwoFriHash *, void *);
+// T6 contiguous-tree layers (commitment/merkle.cu): STWO_RV64_M8_MERKLE_FUSED
+// unset/0 runs exactly the per-layer loop; =1 the fused schedule (bit-identical).
+// Weak: an image without the entry keeps the loop.
+extern "C" int stwo_blake2s_merkle_layers_on(StwoFriHash *, uint32_t, uint64_t, void *)
+    __attribute__((weak));
 namespace stwo::cuda::rv64 {
 __global__ void fri_terminal(StwoRv64Plane input, uint32_t count,
                              uint32_t *output, uint32_t *status) {
@@ -90,6 +95,11 @@ extern "C" int stwo_rv64_fri_tree_on(void *ctx, uint32_t lane,
                                        tree, leaves);
   if (status)
     return status;
+  if (&stwo_blake2s_merkle_layers_on && leaves >= 2 && c.stream) {
+    status = stwo_blake2s_merkle_layers_on(reinterpret_cast<StwoFriHash *>(tree), leaves,
+                                           uint64_t(2) * leaves - 1, c.stream);
+    return status ? status : int(cudaPeekAtLastError());
+  }
   uint64_t offset = 0;
   for (uint32_t n = leaves; n > 1; n >>= 1) {
     status = stwo_blake2s_layer_on(

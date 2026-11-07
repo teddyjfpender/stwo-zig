@@ -51,6 +51,27 @@ extern "C" int stwo_blake2s_mixed_seeded_eager_on(
     uint32_t, uint32_t, const stwo::cuda::blake2s::MixedSegment *, uint32_t,
     uint32_t, const void *, void *, void *, void *);
 extern "C" int stwo_blake2s_layer_on(const void *, uint32_t, void *, void *);
+// T6 contiguous-tree layers (commitment/merkle.cu). STWO_RV64_M8_MERKLE_FUSED
+// unset/0: the entry runs exactly the per-layer loop below (same kernels and
+// launches); =1: fused 3-level subtrees + one tail CTA, bit-identical nodes.
+// Weak: an image without the entry (frozen a25 line) keeps the loop.
+extern "C" int stwo_blake2s_merkle_layers_on(void *, uint32_t, uint64_t, void *)
+    __attribute__((weak));
+// Builds every layer above `leaves` contiguous 8-word hashes in place (root at
+// word 8 * (2 * leaves - 2)). Shared by the PCS pipeline and the PCS job.
+inline int pcsMerkleLayers(uint32_t *hashes, uint32_t leaves, void *stream) {
+  if (&stwo_blake2s_merkle_layers_on && leaves >= 2 && stream)
+    return stwo_blake2s_merkle_layers_on(hashes, leaves, uint64_t(2) * leaves - 1, stream);
+  uint64_t offset = 0, next_offset = leaves;
+  for (uint32_t nodes = leaves; nodes > 1; nodes >>= 1) {
+    if (const int status = stwo_blake2s_layer_on(hashes + offset * 8, nodes / 2,
+                                                 hashes + next_offset * 8, stream))
+      return status;
+    offset = next_offset;
+    next_offset += nodes / 2;
+  }
+  return 0;
+}
 extern "C" int stwo_blake2s_mixed_seeded_eager_compact_on(uint32_t,uint32_t,const stwo::cuda::blake2s::MixedSegment*,uint32_t,uint32_t,const uint32_t*,uint64_t,uint32_t*,uint64_t,uint32_t*,uint64_t,void*);
 inline bool pcsCompactEager() {
   const char *v = std::getenv("STWO_RV64_COMPACT_EAGER_STATE");
@@ -768,12 +789,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
         }
         if (c.final) hashes = out;
       }
-      uint64_t offset = 0, next_offset = p.leaves;
-      for (uint32_t nodes = p.leaves; nodes > 1; nodes >>= 1) {
-        CHECK(stwo_blake2s_layer_on(hashes + offset * 8, nodes / 2, hashes + next_offset * 8, stream_raw));
-        offset = next_offset;
-        next_offset += nodes / 2;
-      }
+      CHECK(pcsMerkleLayers(hashes, p.leaves, stream_raw));
       CHECK(cudaMemcpyAsync(trace_roots.words + ti * 8, hashes + p.tree_words - 8,
                             8 * sizeof(uint32_t), cudaMemcpyDeviceToDevice, stream));
       StwoRv64TraceOpen paths{hashes, raw.words, nullptr, t.paths.words,

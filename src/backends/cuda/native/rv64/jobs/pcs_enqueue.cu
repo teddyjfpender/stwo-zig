@@ -852,12 +852,7 @@ void enqueueBody(JobOwner &o, const Input &input, const StwoRv64PcsJobPlan &job_
         }
         if (c.final) hashes = out;
       }
-      uint64_t offset = 0, next_offset = p.leaves;
-      for (uint32_t nodes = p.leaves; nodes > 1; nodes >>= 1) {
-        CHECK(stwo_blake2s_layer_on(hashes + offset * 8, nodes / 2, hashes + next_offset * 8, stream_raw));
-        offset = next_offset;
-        next_offset += nodes / 2;
-      }
+      CHECK(pcsMerkleLayers(hashes, p.leaves, stream_raw));
       CHECK(cudaMemcpyAsync(trace_roots.words + ti * 8, hashes + p.tree_words - 8,
                             8 * sizeof(uint32_t), cudaMemcpyDeviceToDevice, stream));
       StwoRv64TraceOpen paths{hashes, raw.words, nullptr, t.paths.words,
