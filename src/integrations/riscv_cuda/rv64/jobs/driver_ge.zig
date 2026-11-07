@@ -374,6 +374,7 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
     };
     defer builder.deinit();
     binding.bindShape(builder.hooks());
+    binding.bindNodeOps(&libs, peer);
     {
         var text: std.Io.Writer.Allocating = .init(a);
         defer text.deinit();

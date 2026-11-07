@@ -40,6 +40,7 @@ const NC = @import("native_commit.zig");
 const NP = @import("native_pcs.zig");
 const NComp = @import("native_composition.zig");
 const NO = @import("native_encode_oods.zig");
+const Seed = @import("outer_seed_device.zig");
 const Gl = @import("native_global.zig");
 const HJ = @import("native_hybrid_jobs.zig");
 const TF = @import("truth_factory.zig");
@@ -147,6 +148,21 @@ pub const Binding = struct {
         return self;
     }
 
+    /// gn-node: the GPU-native node job's device entry points (seed fill
+    /// kernel from the addon, D2D copy from the base, peer copies). An addon
+    /// without the seed kernel leaves `node` failing closed.
+    pub fn bindNodeOps(self: *Binding, libs: *O.Libraries, peer: O.Peer) void {
+        const seed = Seed.Symbols.load(&libs.addon) catch |err| {
+            std.debug.print("GPU_M8_GN_BIND node_ops=unbound error={s}\n", .{@errorName(err)});
+            return;
+        };
+        const d2d = libs.base.lookup(OD.Copy, "stwo_exec_context_memcpy_d2d_async") orelse {
+            std.debug.print("GPU_M8_GN_BIND node_ops=unbound error=MissingD2dCopy\n", .{});
+            return;
+        };
+        self.recursion.device = .{ .seed = seed, .d2d = d2d, .peer = peer };
+    }
+
     /// gn-shape: the install-time class builder (native_class_build
     /// Builder.hooks()); re-resolves the composed native vtable.
     pub fn bindShape(self: *Binding, hooks: ND.ShapeHooks) void {
@@ -234,6 +250,7 @@ pub const Binding = struct {
     /// After the driver finished a request (published or failed).
     pub fn endRequest(self: *Binding, request: u64, generation: u64) void {
         self.registry.release(generation);
+        self.recursion.end(request);
         self.stage2.endRequest(request);
         if (self.truth) |*t| t.end(request) catch {};
     }
