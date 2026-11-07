@@ -70,9 +70,12 @@ pub const SealConstants = extern struct {
     wire_draws: u32 = JP.wire_count,
     entries: u32,
     tag: u32,
+    /// secp256k1 equations WireFor.draw mixes this word before drawing.
+    wire_pre: u32 = 0x53575031,
+    reserved: u32 = 0,
 };
 comptime {
-    if (@sizeOf(SealEntry) != 48 * 4 or @sizeOf(SealConstants) != 56 * 4) @compileError("seal ABI changed");
+    if (@sizeOf(SealEntry) != 48 * 4 or @sizeOf(SealConstants) != 58 * 4) @compileError("seal ABI changed");
 }
 /// Shared felts drawn per request, in the joined-parameter shared namespace
 /// order (RAM offset+14, KIO offset+arity, Wire offset+arity) = JP.ram..JP.claims.

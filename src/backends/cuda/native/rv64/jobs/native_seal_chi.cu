@@ -19,7 +19,7 @@
 // Om31Channel.init() digest, host constant):
 //   mix {0x53474d31, 1, 8}; mix chi; mix {0x52414d31, 14}; draw 15 (RAM);
 //   mix {0x4b494f31, kio_header}; draw 1 + kio_arity; mix {0x53574952,
-//   wire_header}; draw 1 + wire_arity.
+//   wire_header}; mix {0x53575031} (WireFor.draw); draw 1 + wire_arity.
 // Outputs: the 16-word seal checkpoint slot (chi[8], then 0) that every
 // Stage-2 transcript mixes (mixManifestAndClaims) and the request's
 // Check.global_seal verdict (every root slot this seal read carries this
@@ -48,8 +48,10 @@ struct StwoRv64SealConstants {
   uint32_t ram_header, kio_header, wire_header;  // 14, 11, 35 (manifest.drawShared)
   uint32_t ram_draws, kio_draws, wire_draws;     // 15, 1 + IO_ARITY, 1 + WIRE_ARITY
   uint32_t entries, tag;                         // roster size; request flag tag
+  uint32_t wire_pre;   // WireFor.draw mixes {0x53575031} before its draws (0: none)
+  uint32_t reserved;
 };
-static_assert(sizeof(StwoRv64SealConstants) == 56 * 4, "seal constants ABI");
+static_assert(sizeof(StwoRv64SealConstants) == 58 * 4, "seal constants ABI");
 
 namespace stwo::cuda::rv64::seal {
 namespace t = stwo::cuda::transcript;
@@ -132,6 +134,7 @@ __global__ void shared_kernel(const uint32_t *chi_words, StwoRv64SealConstants c
   const uint32_t counts[3] = {c.ram_draws, c.kio_draws, c.wire_draws};
   for (uint32_t r = 0; r < 3; ++r) {
     mix(digest, draws, heads[r], 2);
+    if (r == 2 && c.wire_pre) mix(digest, draws, &c.wire_pre, 1);
     for (uint32_t i = 0; i < counts[r]; ++i, ++at) draw(digest, draws, shared + 8 * at);
   }
 }
