@@ -134,6 +134,7 @@ pub const steps = [_]Step{
     .{ .name = "rv64-om-classic-control", .description = "Benchmark-only ordinary CPU0 OM classic local proof and independent receiver", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-ethereum-gkr", .description = "Experimental OM GKR services Ethereum control and independent durable receiver", .scope = .riscv_cpu },
     .{ .name = "rv64-capture-bench", .description = "CPU-only Ethereum producer capture diagnostic (timeline and captured-values digest)", .scope = .riscv_cpu },
+    .{ .name = "rv64-m9-gpu-replay-dump", .description = "M9 GPU capture replay prototype: seeded first pass, CPU recorder parity, GPU inputs", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-combined-services-fixture", .description = "Actual one CPU per shard with all LE services and shared RAM", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-setup-audit", .description = "Check unique setup payload accounting and shared custody", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-csp", .description = "Qualify CSP32 and Sail independent image output and compact capture authority", .scope = .riscv_cpu },
