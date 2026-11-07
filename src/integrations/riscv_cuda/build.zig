@@ -87,6 +87,18 @@ pub fn build(b: *std.Build) void {
     const jobs_native_run = b.addRunArtifact(b.addTest(.{ .root_module = jobs_native_root }));
     jobs_native_run.setCwd(b.path("."));
     jobs_step.dependOn(&jobs_native_run.step);
+    // r-truth (recursion): GPU-native TruthJob + device seed fill host tests
+    // (rv64/jobs/truth_*.zig, outer_seed_*.zig); same imports as the native root.
+    const jobs_truth_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_truth_test_root.zig"), .target = target, .optimize = optimize });
+    jobs_truth_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    jobs_truth_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    jobs_truth_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    jobs_truth_root.addImport("stwo_cuda_backend", backend);
+    jobs_truth_root.addImport("stwo_riscv_frontend", frontend);
+    const jobs_truth_run = b.addRunArtifact(b.addTest(.{ .root_module = jobs_truth_root }));
+    jobs_truth_run.setCwd(b.path("."));
+    jobs_step.dependOn(&jobs_truth_run.step);
+    b.step("test-rv64-jobs-truth", "Test the M8 GPU-native TruthJob plan, challenge scripts, parameter programs and seed programs without a GPU").dependOn(&jobs_truth_run.step);
     const jobs_sched_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_sched_test_root.zig"), .target = target, .optimize = optimize });
     jobs_sched_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     jobs_sched_root.addImport("rv64_ready_dag", b.createModule(.{ .root_source_file = b.path("../riscv_cpu/rv64_recursion/om31_native/ready_dag.zig"), .target = target, .optimize = optimize }));
@@ -448,6 +460,12 @@ pub fn build(b: *std.Build) void {
     const native_parity = b.addExecutable(.{ .name = "rv64-m8-native-parity", .root_module = native_parity_root });
     native_parity.linkLibC();
     b.step("build-rv64-m8-native-parity", "Build the M8 native-producers real-block parity harness (legacy native + job local GKR)").dependOn(&b.addInstallArtifact(native_parity, .{}).step);
+    // r-truth (recursion): GPU-native TruthJob real-block parity harness.
+    const truth_parity_root = b.createModule(.{ .root_source_file = b.path("rv64_m8_truth_parity_main.zig"), .target = target, .optimize = optimize });
+    for ([_][]const u8{ "stwo_core", "stwo_prover_api", "stwo_prover_engine", "stwo_riscv_cpu_integration", "stwo_riscv_frontend", "stwo_cuda_backend", "stwo_circuit_cpu_integration", "stwo_circuit_frontend" }) |name| truth_parity_root.addImport(name, combined_root.import_table.get(name) orelse @panic("missing truth parity dependency"));
+    const truth_parity = b.addExecutable(.{ .name = "rv64-m8-truth-parity", .root_module = truth_parity_root });
+    truth_parity.linkLibC();
+    b.step("build-rv64-m8-truth-parity", "Build the M8 GPU-native TruthJob real-block parity harness (legacy truths recorded, TruthJob proves post hoc)").dependOn(&b.addInstallArtifact(truth_parity, .{}).step);
     const combined_check = b.addExecutable(.{ .name = "rv64-combined-gpu-check", .root_module = combined_root });
     combined_check.linkLibC();
     b.step("check-rv64-ethereum-gpu-combined", "Type-check combined GPU proving and recursion without emitting a binary").dependOn(&combined_check.step);

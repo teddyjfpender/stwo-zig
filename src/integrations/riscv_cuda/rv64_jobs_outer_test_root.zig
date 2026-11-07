@@ -14,5 +14,4 @@ test {
     _ = @import("rv64/jobs/outer_class_plan.zig");
     _ = @import("rv64/jobs/outer_checks.zig");
     _ = @import("rv64/jobs/outer_device.zig");
-    _ = @import("rv64/jobs/truth_job.zig");
 }

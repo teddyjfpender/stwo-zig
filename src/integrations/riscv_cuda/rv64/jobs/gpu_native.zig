@@ -56,6 +56,10 @@ pub const contract_version: u32 = 2;
 //   Publication + NativeFactory.publish / RecursionFactory.publish (each
 //   stream writes its own legacy-format artifacts from the published bytes
 //   after the single wait).
+// r-truth additions (M8-INTERFACES "m8-gpu-r-truth", all defaulted): Check
+//   truth_root; Exchange.truths/capacity_truths + truthRoot slot (after the
+//   seal; 0 truths = the version-2 layout word for word); the seal slot's
+//   digest convention (seal_digest_words); RecursionFactory.truth_stage2.
 pub const slab_magic: u32 = 0x4e475652; // "RVGN" little-endian
 
 // ---------------------------------------------------------------------------
@@ -106,6 +110,10 @@ pub const Check = enum(u16) {
     node_pcs_status = 0x0304,
     seed_tape = 0x0305, // device seed fill from child slab matches class template
     child_binding = 0x0306, // node statement binds its children's encoded proofs
+    // r-truth addition (M8-INTERFACES "m8-gpu-r-truth"): a truth's stage 1
+    // (witness accepted, MAIN root published to Exchange.truthRoot). Stage 2
+    // re-derives MAIN and its truth_status rejects a root that differs.
+    truth_root = 0x0307,
 };
 
 /// Status checks every proof of a kind must carry (the driver reserves these
@@ -438,6 +446,15 @@ pub const Exchange = struct {
         return @as(usize, self.devices) * 8;
     }
     pub const seal_words: usize = 16;
+    /// Seal slot convention (r-truth reads it; the native seal writes it):
+    /// words [0, 8) are the manifest digest (little-endian words, the bytes
+    /// worker_protocol.mixManifestAndClaims digests). Stage-2 consumers mix
+    /// these words and derive the shared challenges (manifest.drawShared)
+    /// from them on device.
+    pub const seal_digest_words: usize = 8;
+    pub fn truthRootWords(self: Exchange) usize {
+        return self.capT() * 8;
+    }
     pub fn words(self: Exchange) usize {
         return std.mem.alignForward(usize, self.flagCapacity(), 8) + self.rootWords() + self.claimWords() + self.partialWords() + seal_words + self.capT() * 8;
     }
