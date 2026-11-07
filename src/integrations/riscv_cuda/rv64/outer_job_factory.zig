@@ -27,6 +27,8 @@ const Env = @import("jobs/outer_env.zig");
 const OuterWindow = @import("jobs/outer_window.zig");
 const CP = @import("jobs/outer_class_plan.zig");
 const Checks = @import("jobs/outer_checks.zig");
+const Enc = @import("jobs/outer_encode.zig");
+const EncJob = @import("jobs/outer_encode_job.zig");
 
 pub const Shared = struct {
     kernels: K.Kernels,
@@ -39,6 +41,9 @@ pub const Shared = struct {
     events: ?Events.Api = null,
     /// Device acceptance checks from the addon (STWO_RV64_M8_OUTER_DEVICE_CHECKS=1).
     checks: ?Checks.Symbols = null,
+    /// Device proof encoder (STWO_RV64_M8_OUTER_DEVICE_ENCODE=check|1).
+    encode: ?Enc.Symbols = null,
+    encode_mode: Enc.Mode = .off,
     /// `base` = frozen base image, `addon` = libstwo-rv64-jobs.so, both owned by
     /// the caller (ops.Libraries); `fs_path` = libstwo-rv64-outer-fs-ops.so.
     pub fn init(base: *std.DynLib, addon: *std.DynLib, fs_path: []const u8) !Shared {
@@ -54,6 +59,8 @@ pub const Shared = struct {
             .fs = fs,
             .events = Events.Api.load(base) catch null,
             .checks = if (try Checks.selected()) try Checks.Symbols.load(addon) else null,
+            .encode = if (try Enc.mode() != .off) try Enc.Symbols.load(addon) else null,
+            .encode_mode = try Enc.mode(),
         };
     }
     pub fn deinit(self: *Shared) void {
@@ -134,6 +141,13 @@ pub const Report = struct {
     footprint: api.Footprint = .{ .device_words = 0 },
     /// initWhole borrowed the class's cached WholePlan (STWO_RV64_M8_OUTER_CLASS_PLAN=1).
     borrowed_plan: bool = false,
+    /// Device encoding (STWO_RV64_M8_OUTER_DEVICE_ENCODE=check): bytes, GPU
+    /// time of the encoder launch (CUDA events), host mirror time.
+    encoded_bytes: u64 = 0,
+    encode_gpu_ns: u64 = 0,
+    encode_mirror_ns: u64 = 0,
+    encode_launches: u32 = 0,
+    encode_identical: bool = false,
 };
 
 pub const Prover = struct {
@@ -224,7 +238,18 @@ pub const Prover = struct {
         var gpu: ?GpuTimer = if (self.shared.events) |*ev| GpuTimer{ .api = ev } else null;
         defer if (gpu) |*t| t.deinit();
         if (gpu) |*t| job.timing = t.timing();
-        r.footprint = job.footprint();
+        // Device encoding (check mode): the encoder runs after the body on the
+        // same stream; its bytes are compared with the host's below.
+        var encode: ?EncodeCheck = null;
+        defer if (encode) |*c| c.deinit(a);
+        if (self.shared.encode_mode != .off) {
+            if (self.shared.encode_mode != .check) return error.M8OuterDeviceEncodePublishNotLanded;
+            encode = try EncodeCheck.init(a, &job, self.shared, input.key, staged);
+            encode.?.arm();
+            encode.?.node.fault = if (try Enc.faultOrdinal()) |n| n == input.ordinal else false;
+        }
+        const submitted = if (encode) |*c| c.node.job() else job.job();
+        r.footprint = submitted.footprint();
         r.borrowed_plan = job.borrowed;
         r.init_ns = timer.lap();
         {
@@ -239,7 +264,7 @@ pub const Prover = struct {
         };
         var done = Done{};
         while (true) {
-            self.worker.submit(job.job(), .{ .ctx = &done, .done = Done.done }) catch |err| switch (err) {
+            self.worker.submit(submitted, .{ .ctx = &done, .done = Done.done }) catch |err| switch (err) {
                 // Mailbox occupied: the pipeline is full; back off briefly.
                 error.WorkerBusy => {
                     std.Thread.sleep(50 * std.time.ns_per_us);
@@ -269,12 +294,110 @@ pub const Prover = struct {
         r.fixed_handoff = job.report.fixed_handoff;
         r.finish_ns = job.report.finish_ns;
         try done.result;
+        // The host mirror reads the PCS image decodeProof releases.
+        if (encode) |*c| try c.mirror(a, &job, staged);
         try job.decodeProof();
         r.decode_ns = job.report.decode_ns;
-        const produced = try Prestage.assemble(a, input.key, staged, &job);
+        var produced = try Prestage.assemble(a, input.key, staged, &job);
+        errdefer produced.deinit();
         r.assemble_ns = timer.read();
+        if (encode) |*c| {
+            try c.compare(a, input.key, &produced, input.ordinal);
+            r.encoded_bytes = c.host_bytes;
+            r.encode_gpu_ns = if (c.timer) |t| t.ns else 0;
+            r.encode_mirror_ns = c.mirror_ns;
+            r.encode_launches = c.node.launches;
+            r.encode_identical = true;
+        }
         if (report) |out| out.* = r;
         return produced;
+    }
+};
+
+/// STWO_RV64_M8_OUTER_DEVICE_ENCODE=check: one node's device encoding next
+/// to the host bytes. Three byte strings must be identical: the device
+/// encoder's (outer_encode.cu, in-stream after the body), the host mirror's
+/// (outer_encode.encodeHost over the same PCS image words) and the host
+/// serialisation of the assembled proof (om31 wire.encode, the bytes the
+/// request publishes and the pipeline writes as the node file). Any
+/// difference or a non-accepted device verdict fails the node closed.
+const EncodeCheck = struct {
+    desc: []u32,
+    node: EncJob.EncodedNode,
+    timer: ?GpuTimer = null,
+    mirror_bytes: ?[]u8 = null,
+    mirror_ns: u64 = 0,
+    host_bytes: u64 = 0,
+    fn init(a: std.mem.Allocator, job: *Job.OuterNodeJob, shared: *const Shared, key: *const Prestage.Authority, staged: *const @import("jobs/outer_staged.zig").Staged) !EncodeCheck {
+        const shape = job.pcs.?.prepared.metadata.shape;
+        const desc = try EncJob.descriptorFor(a, shape, try EncJob.envelopeFor(key.identity, staged.expected.len / 4), staged.fixed_root);
+        errdefer a.free(desc);
+        return .{ .desc = desc, .node = try EncJob.EncodedNode.init(a, job, shared.encode.?, desc), .timer = if (shared.events) |*ev| GpuTimer{ .api = ev } else null };
+    }
+    /// After init has been moved to its final address (the timer pointer).
+    fn arm(self: *EncodeCheck) void {
+        if (self.timer) |*t| self.node.timing = t.timing();
+    }
+    fn deinit(self: *EncodeCheck, a: std.mem.Allocator) void {
+        self.node.deinit();
+        if (self.timer) |*t| t.deinit();
+        if (self.mirror_bytes) |b| a.free(b);
+        a.free(self.desc);
+    }
+    fn words8(root: [32]u8) [8]u32 {
+        var w: [8]u32 = undefined;
+        for (&w, 0..) |*x, i| x.* = std.mem.readInt(u32, root[4 * i ..][0..4], .little);
+        return w;
+    }
+    fn mirror(self: *EncodeCheck, a: std.mem.Allocator, job: *Job.OuterNodeJob, staged: anytype) !void {
+        if (self.node.pcs_verdict != 0 or self.node.bounds_verdict != 0) {
+            std.debug.print("GPU_M8_OUTER_ENCODE rejected ordinal={d} pcs=0x{x} bounds=0x{x}\n", .{ staged.ordinal, self.node.pcs_verdict, self.node.bounds_verdict });
+            return error.OuterDeviceEncodeRejected;
+        }
+        var timer = try std.time.Timer.start();
+        const d = job.decoded orelse return error.OuterJobNotDecoded;
+        const fixed = words8(staged.fixed_root);
+        const main = words8(d.main_root);
+        const inter = words8(d.inter_root);
+        const comp = words8(job.composition_root);
+        var claims: [8 * @import("jobs/outer_plan.zig").n_components]u32 = undefined;
+        for (d.claims.toArray(), 0..) |c, i| for (c.toM31Array(), 0..) |m, k| {
+            claims[8 * i + k] = m.v;
+        };
+        const latches: [4]u32 = @splat(0);
+        const out = try a.alloc(u32, self.desc[Enc.D.max_payload_words] + 1);
+        defer a.free(out);
+        const v = try Enc.encodeHost(a, self.desc, job.pcs_words, .{ .roots = .{ &fixed, &main, &inter, &comp }, .claims = &claims, .latches = &latches, .outputs = staged.expected }, out);
+        if (v.pcs != 0 or v.bounds != 0) {
+            std.debug.print("GPU_M8_OUTER_ENCODE mirror_rejected ordinal={d} pcs=0x{x} bounds=0x{x}\n", .{ staged.ordinal, v.pcs, v.bounds });
+            return error.OuterHostEncodeRejected;
+        }
+        const bytes = try a.alloc(u8, out[0]);
+        for (0..out[0] / 4) |i| std.mem.writeInt(u32, bytes[4 * i ..][0..4], out[1 + i], .little);
+        self.mirror_bytes = bytes;
+        self.mirror_ns = timer.read();
+    }
+    fn compare(self: *EncodeCheck, a: std.mem.Allocator, key: *const Prestage.Authority, produced: *const Outer.prove.Produced, ordinal: u32) !void {
+        const host = try Outer.wire.encode(a, key.identity, produced.outputs, produced.claims, &produced.proof.proof);
+        defer a.free(host);
+        self.host_bytes = host.len;
+        const device = self.node.bytes orelse return error.OuterDeviceEncodeMissing;
+        const mirror_bytes = self.mirror_bytes orelse return error.OuterDeviceEncodeMissing;
+        const dev_eq = std.mem.eql(u8, device, host);
+        const mir_eq = std.mem.eql(u8, mirror_bytes, host);
+        var digest: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(host, &digest, .{});
+        std.debug.print("GPU_M8_OUTER_ENCODE ordinal={d} host_bytes={d} device_bytes={d} mirror_bytes={d} device_identical={} mirror_identical={} sha256={x} encode_gpu_ns={d} mirror_ns={d} launches={d}\n", .{ ordinal, host.len, device.len, mirror_bytes.len, dev_eq, mir_eq, digest[0..8].*, if (self.timer) |t| t.ns else 0, self.mirror_ns, self.node.launches });
+        if (!dev_eq or !mir_eq) {
+            const n = @min(@min(device.len, host.len), mirror_bytes.len);
+            var first: usize = n;
+            for (0..n) |i| if (device[i] != host[i] or mirror_bytes[i] != host[i]) {
+                first = i;
+                break;
+            };
+            std.debug.print("GPU_M8_OUTER_ENCODE mismatch ordinal={d} first_byte={d}\n", .{ ordinal, first });
+            return error.OuterDeviceEncodeMismatch;
+        }
     }
 };
 
@@ -625,6 +748,8 @@ pub const Hybrid = struct {
             _ = try CP.hostBudgetBytes();
             _ = try Checks.selected();
             _ = try Checks.faultOrdinal();
+            _ = try Enc.mode();
+            _ = try Enc.faultOrdinal();
             return k;
         }
     };
