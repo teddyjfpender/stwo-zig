@@ -80,8 +80,16 @@ fn pcsImageInner(path: []const u8, shape: anytype, image: []const u32) !void {
 pub fn liveSelected() !bool {
     const v = std.posix.getenv("STWO_RV64_M8_GN_NODE") orelse return false;
     if (std.mem.eql(u8, v, "0")) return false;
-    if (std.mem.eql(u8, v, "check")) return true;
+    if (std.mem.eql(u8, v, "check") or std.mem.eql(u8, v, "job")) return true;
     return error.InvalidGnNodeSelection;
+}
+/// STWO_RV64_M8_GN_NODE=job: check mode, plus every node is proved a second
+/// time through the production GPU-native node job (outer_device.NodeJob over
+/// its NodeClasses template) and its device-encoded bytes must equal the
+/// published host bytes.
+pub fn jobSelected() bool {
+    const v = std.posix.getenv("STWO_RV64_M8_GN_NODE") orelse return false;
+    return std.mem.eql(u8, v, "job");
 }
 pub const Live = struct {
     pub const Entry = struct {
