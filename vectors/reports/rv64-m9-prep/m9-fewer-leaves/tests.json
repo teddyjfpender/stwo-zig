@@ -1,0 +1,28 @@
+{
+ "schema": "rv64-m9-fewer-leaves-tests/v1",
+ "label": "M (CPU unit tests; no GPU, no proof)",
+ "host": "local macOS, zig 0.15.2 via memguard --gb 6",
+ "base": "codex/rv64-m7-integrate @ 786429aca",
+ "zig": {
+  "argv": "zig test src/integrations/riscv_cpu/rv64_recursion/om31_native/leaf_fanin.zig",
+  "exit": 0,
+  "result": "All 20 tests passed (7 leaf_fanin + 13 ready_dag)",
+  "log_sha256": "b9487ccd6761adc6b7364db23911abb619f4abd9d14b9fa6667346363da3c9e7"
+ },
+ "python": {
+  "argv": "python3 -I scripts/tests/test_rv64_m9_leaf_fanin_model.py",
+  "exit": 0,
+  "result": "Ran 3 tests OK",
+  "log_sha256": "7f651a454b7b284efe70fac28605ab5d9c389d39a8b6c9aae1f2193f021e78e2"
+ },
+ "model": {
+  "argv": "python3 -I scripts/rv64_m9_leaf_fanin_model.py --out vectors/reports/rv64-m9-prep/m9-fewer-leaves/model.json",
+  "model_json_sha256": "e11b454d94c7d6c398da28e05e5c0bea890c6aa5614f537aaf44fc2355d74f3b"
+ },
+ "source_sha256": {
+  "src/integrations/riscv_cpu/rv64_recursion/om31_native/leaf_fanin.zig": "e5fd1a0ecfcb74bb827d3c38fbe521b8049c95722cead3048b16412c95f69c8c",
+  "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig": "f1fc9c7a25afba3f47961a883150b355847c134c8a903f30dd72b55d631e00f8",
+  "scripts/rv64_m9_leaf_fanin_model.py": "5c1cd6817b3a493416a2a3f28f8504714e8b7a9d0b85084de586fe93a90ed091",
+  "scripts/tests/test_rv64_m9_leaf_fanin_model.py": "dc5e4569a3a47e97f07e80fd2ed7a2a716b8f09e1d29c492fef539674a83a5a4"
+ }
+}
