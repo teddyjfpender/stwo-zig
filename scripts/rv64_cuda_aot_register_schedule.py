@@ -185,8 +185,110 @@ class Group:
         out.extend(self.tail)
         return "\n".join(out) + "\n"
 
+    def emit_sliced(self, ops, target_ops):
+        """Cut the scheduled order into noinline slices at minimal-live boundaries.
 
-def schedule_group(function_text):
+        ptxas allocates each slice separately, which bounds its memory on very
+        large groups (shard 47: > 40 GB RSS as one function). Values live across
+        a cut travel through small ping-pong local arrays; each slice returns its
+        partial fold (exact, order-independent addition). Operations, operands
+        and roots are unchanged.
+        """
+        self.check_topological(ops)
+        n = len(ops)
+        pieces = max(1, round(n / target_ops))
+        pos = {v: i for i, v in enumerate(ops)}
+        root_values = {v for v, _ in self.roots}
+        last = {}
+        for i, v in enumerate(ops):
+            for c in self.nodes[v][3]:
+                if self.nodes[c][1] == "op":
+                    last[c] = max(last.get(c, -1), i)
+        delta = [0] * (n + 2)
+        for v, i in pos.items():
+            if v in last:
+                delta[i + 1] += self.width(v)
+                delta[last[v] + 1] -= self.width(v)
+        cost, running = [0] * (n + 1), 0
+        for b in range(n + 1):
+            running += delta[b]
+            cost[b] = running
+        cuts = [0]
+        for k in range(1, pieces):
+            ideal, window = k * n // pieces, max(1, n // (4 * pieces))
+            lo, hi = max(cuts[-1] + 1, ideal - window), min(n - 1, ideal + window)
+            if lo <= hi:
+                cuts.append(min(range(lo, hi + 1), key=lambda b: (cost[b], abs(b - ideal))))
+        cuts.append(n)
+
+        def carried(b):
+            return [v for v in ops[:b] if v in last and last[v] >= b]
+
+        boundary = {b: carried(b) for b in cuts[1:-1]}
+        slots = {}
+        width_b = width_e = 1
+        for b, values in boundary.items():
+            base = [v for v in values if self.width(v) == 1]
+            ext = [v for v in values if self.width(v) == 8]
+            slots[b] = {**{v: i for i, v in enumerate(base)}, **{v: i for i, v in enumerate(ext)}}
+            width_b, width_e = max(width_b, len(base)), max(width_e, len(ext))
+        header_name = re.search(r"void ([A-Za-z0-9_]+)\(", self.header)[1]
+        roots_by_value = collections.defaultdict(list)
+        for v, line in self.roots:
+            roots_by_value[v].append(line)
+        args = ("const uint32_t *tree0,const uint32_t *tree1,const uint32_t *tree2,const uint64_t *column_offsets,"
+                "const uint32_t *parameters,const uint32_t *powers,uint32_t trace_log,uint32_t eval_log,uint32_t row,"
+                "const uint32_t *t5_bi,const OM31 *t5_ei,uint32_t *t5_bo,OM31 *t5_eo")
+        functions, calls, reload = [], [], 0
+        for k in range(len(cuts) - 1):
+            a, b = cuts[k], cuts[k + 1]
+            body = []
+            text_ops = []
+            loaded = set()
+            for v in ops[a:b]:
+                kind, _, expression, children = self.nodes[v]
+                rename = {}
+                for c in dict.fromkeys(children):
+                    ckind, cop, cexpr, _ = self.nodes[c]
+                    if cop in ("input", "param"):
+                        name = f"{c}_r{reload}"
+                        reload += 1
+                        text_ops.append(f" const {ckind} {name}={cexpr};")
+                        rename[c] = name
+                    elif cop == "op" and pos[c] < a and c not in loaded:
+                        array = "t5_bi" if self.width(c) == 1 else "t5_ei"
+                        text_ops.append(f" const {ckind} {c}={array}[{slots[a][c]}];")
+                        loaded.add(c)
+                expression = VALUE.sub(lambda m: rename.get(m[0], m[0]), expression)
+                text_ops.append(f" const {kind} {v}={expression};")
+                text_ops.extend(roots_by_value.pop(v, []))
+            if b in boundary:
+                for v in boundary[b]:
+                    out_array = "t5_bo" if self.width(v) == 1 else "t5_eo"
+                    if pos[v] >= a or v in loaded:
+                        text_ops.append(f" {out_array}[{slots[b][v]}]={v};")
+                    else:  # passes through this slice untouched
+                        in_array = "t5_bi" if self.width(v) == 1 else "t5_ei"
+                        text_ops.append(f" {out_array}[{slots[b][v]}]={in_array}[{slots[a][v]}];")
+            used = set(VALUE.findall("\n".join(text_ops)))
+            consts = [line for cname, line in self.const_arrays.items() if re.search(r"\b" + cname + r"\b", "\n".join(text_ops + [self.nodes[u][2] for u in used if u in self.nodes and self.nodes[u][1] == "const"]))]
+            for u in self.order:
+                if self.nodes[u][1] in ("const", "bconst") and u in used:
+                    body.append(f" const {self.nodes[u][0]} {u}={self.nodes[u][2]};")
+            name = f"{header_name}_s{k}"
+            functions.append(f"__device__ __noinline__ OM31 {name}({args}){{\n OM31 folded=zero();\n" + "\n".join(consts + body + text_ops) + "\n return folded;\n}\n")
+            src, dst = (k + 1) % 2, k % 2
+            calls.append(f" folded=add(folded,{name}(tree0,tree1,tree2,column_offsets,parameters,powers,trace_log,eval_log,row,"
+                         f"t5_b[{src}],t5_e[{src}],t5_b[{dst}],t5_e[{dst}]));")
+        if roots_by_value:
+            raise ValueError("root left outside every slice")
+        part = [self.header, f" uint32_t t5_b[2][{width_b}]; OM31 t5_e[2][{width_e}];", *calls, *self.tail]
+        report = {"slices": len(cuts) - 1, "carried_words_at_cuts": [cost[b] for b in cuts[1:-1]],
+                  "carry_slots": [width_b, width_e]}
+        return "".join(functions) + "\n".join(part) + "\n", report
+
+
+def schedule_group(function_text, slice_ops=0):
     group = Group(function_text)
     best = None
     report = {}
@@ -197,6 +299,10 @@ def schedule_group(function_text):
             best = (name, peak, loads, ops)
     report["selected"] = best[0]
     report["operations"] = len(best[3])
+    if slice_ops:
+        text, sliced = group.emit_sliced(best[3], slice_ops)
+        report.update(sliced)
+        return text, report
     return group.emit(best[3]), report
 
 
@@ -206,7 +312,7 @@ def split_module(text):
     return parts, entry
 
 
-def lower_module(raw_text, admitted_text, launch_bounds):
+def lower_module(raw_text, admitted_text, launch_bounds, slice_ops=0):
     """Return the scheduled module for one admitted single-group shard.
 
     `raw_text` is the original case-N-domain.cu (never lowered). The admitted
@@ -222,7 +328,7 @@ def lower_module(raw_text, admitted_text, launch_bounds):
         raise ValueError("raw group does not match admitted source")
     end = parts[group + 1].start() if group + 1 < len(parts) else entry
     function = raw_text[parts[group].start():end]
-    body, report = schedule_group(function)
+    body, report = schedule_group(function, slice_ops)
     kernel = admitted_text[admitted_text.index('extern "C" __global__ void'):]
     if launch_bounds:
         kernel = kernel.replace('extern "C" __global__ void', f'extern "C" __global__ void __launch_bounds__({launch_bounds})', 1)
@@ -254,11 +360,12 @@ def main():
     ap.add_argument("admitted", type=Path, help="admitted single-group shard (raw or bank-lowered), or '-' for a plain kernel")
     ap.add_argument("output", type=Path)
     ap.add_argument("--launch-bounds", default="", help="e.g. '128' or '128,2'")
+    ap.add_argument("--slice-ops", type=int, default=0, help="cut the group into noinline slices of about this many operations")
     args = ap.parse_args()
     if str(args.admitted) == "-":
         text, report = lower_plain(args.raw.read_text(), args.launch_bounds)
     else:
-        text, report = lower_module(args.raw.read_text(), args.admitted.read_text(), args.launch_bounds)
+        text, report = lower_module(args.raw.read_text(), args.admitted.read_text(), args.launch_bounds, args.slice_ops)
     args.output.write_text(text)
     report["output_sha256"] = hashlib.sha256(text.encode()).hexdigest()
     print(json.dumps(report))

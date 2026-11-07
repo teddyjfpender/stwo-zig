@@ -168,7 +168,7 @@ def lower(entry, truth_raw, truth_parts, core_raw=None, core_parts=None, gated=T
         m = re.fullmatch(r"rv64_truth_domain_(\d+)_shard_(\d+)", symbol)
         admitted = truth_parts / f"role-{m[1]}" / f"{symbol}.cu"
         raw = truth_raw / f"case-{m[1]}-domain.cu"
-        text, report = Schedule.lower_module(raw.read_text(), admitted.read_text(), bounds)
+        text, report = Schedule.lower_module(raw.read_text(), admitted.read_text(), bounds, entry.get("slice_ops", 0))
         report.update({"raw_source": str(raw), "raw_sha256": sha(raw), "admitted_source": str(admitted), "admitted_sha256": sha(admitted)})
     elif kind == "core-shard":
         m = re.fullmatch(r"rv64_joined_domain_(\d+)_shard_(\d+)", symbol)
@@ -215,7 +215,7 @@ def main():
     ap.add_argument("--core-raw", type=Path, default=Path("/workspace/m3/catalogues-v3/core"))
     ap.add_argument("--core-parts", type=Path, default=Path("/workspace/m3/build/m7-integrate/cuda/core-parts"))
     ap.add_argument("--plan", type=Path, required=True,
-                    help="JSON list of {kind: truth-shard|core-shard|plain|bounds-only, symbol, source?, launch_bounds, nvcc_flags?, ab}")
+                    help="JSON list of {kind: truth-shard|core-shard|plain|bounds-only, symbol, source?, launch_bounds, nvcc_flags?, slice_ops?, ab}")
     ap.add_argument("--include", type=Path, action="append", default=[Path("/workspace/m3/build/m7-integrate/cuda")],
                     help="extra -I for generated headers (projection_fixture.h)")
     ap.add_argument("--out", type=Path, required=True)

@@ -198,6 +198,30 @@ class Scheduler(unittest.TestCase):
         with self.assertRaises(ValueError):
             S.lower_module(raw.replace("t_part_0", "u_part_0"), raw, "")
 
+    def test_slices_keep_every_operation_and_root(self):
+        raw, part = synthetic(24)
+        lowered, report = S.lower_module(raw, raw, "128,4", slice_ops=40)
+        self.assertGreater(report["slices"], 2)
+        region = lowered[lowered.index("__device__ __noinline__ OM31"):lowered.index('extern "C"')]
+        def ops(text):
+            out = collections.Counter()
+            for line in text.splitlines():
+                m = S.DECL.match(line)
+                if m and not re.match(r"(tree|from_words\(parameters|t5_[be]i\[|\d+u$|from_words\(c\d+\)$)", m[3]):
+                    out[(m[1], re.sub(r"\b(v\d+)_r\d+\b", r"\1", m[3]))] += 1
+            return out
+        self.assertEqual(ops(part), ops(region))
+        roots = lambda text: sorted(re.sub(r"\b(v\d+)_r\d+\b", r"\1", x) for x in re.findall(r"folded=add\(folded,(?:mul|scale)\(from_words\(powers\+\d+u\),v[0-9_r]+\)\);", text))
+        self.assertEqual(roots(part), roots(region))
+        # every carried load in slice k reads a slot that slice k-1 stored (ping-pong arrays)
+        slices = re.split(r"__device__ __noinline__ OM31 ", region)[1:]
+        for k in range(1, len(slices)):
+            stored = set(re.findall(r"t5_([be])o\[(\d+)\]=", slices[k - 1]))
+            loaded = set(re.findall(r"=t5_([be])i\[(\d+)\]", slices[k]))
+            self.assertLessEqual(loaded, stored)
+        self.assertEqual(region.count("folded=add(folded,t_part_0_s"), report["slices"])
+        self.assertEqual(lowered.count("t_part_0_s0(tree0"), 1)
+
     def test_plain_kernel(self):
         raw, part = synthetic(3)
         body = part[part.index("{\n") + 2:part.rindex(" const OM31 result=")]
