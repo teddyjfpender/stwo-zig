@@ -37,13 +37,11 @@
  },
  "arms": {
   "baseline": {
-   "STWO_RV64_DEVICE_ARENA": "22G",
-   "STWO_RV64_TRUTH_SPARSE_RC": "1",
-   "STWO_RV64_GLOBAL_ADMISSION": "1",
-   "STWO_RV64_GLOBAL_ADMISSION_HOST_POLICY": "observe_only",
-   "STWO_RV64_PCS_IDLE_CACHE_BYTES": "0",
-   "STWO_RV64_RECURSION_SESSIONS": "1",
-   "STWO_RV64_RECURSION_LANES_PER_DEVICE": "2",
+   "STWO_RV64_DEVICE_ARENA": "auto",
+   "STWO_RV64_TRUTH_SPARSE_RC": "0",
+   "STWO_RV64_GLOBAL_ADMISSION": "0",
+   "STWO_RV64_RECURSION_SESSIONS": "0",
+   "STWO_RV64_RECURSION_LANES_PER_DEVICE": "1",
    "STWO_RV64_EARLY_NATIVE_SEGMENTS": "0",
    "STWO_RV64_FIRST_PASS_RAM": "0",
    "STWO_RV64_M8_CAPTURE_LOCAL_LEDGER": "0",
@@ -61,13 +59,11 @@
    "STWO_RV64_M8_WITNESS_COALESCE": "0"
   },
   "fullstack": {
-   "STWO_RV64_DEVICE_ARENA": "22G",
-   "STWO_RV64_TRUTH_SPARSE_RC": "1",
-   "STWO_RV64_GLOBAL_ADMISSION": "1",
-   "STWO_RV64_GLOBAL_ADMISSION_HOST_POLICY": "observe_only",
-   "STWO_RV64_PCS_IDLE_CACHE_BYTES": "0",
-   "STWO_RV64_RECURSION_SESSIONS": "1",
-   "STWO_RV64_RECURSION_LANES_PER_DEVICE": "2",
+   "STWO_RV64_DEVICE_ARENA": "auto",
+   "STWO_RV64_TRUTH_SPARSE_RC": "0",
+   "STWO_RV64_GLOBAL_ADMISSION": "0",
+   "STWO_RV64_RECURSION_SESSIONS": "0",
+   "STWO_RV64_RECURSION_LANES_PER_DEVICE": "1",
    "STWO_RV64_EARLY_NATIVE_SEGMENTS": "0",
    "STWO_RV64_FIRST_PASS_RAM": "0",
    "STWO_RV64_M8_CAPTURE_LOCAL_LEDGER": "1",
@@ -120,14 +116,14 @@
   "pending_authority_floor": "SourcePlan max_leaves256 arity4 carryBound12; minimumLimit=max(9+2lanes,12+2lanes+1):17 for2logical lanes,21 for4logical lanes.",
   "timed_scope": "R1PARKED: timedfullstackdiffonlySparse22G+globalGPUadmission+siblingrecursionsessions+2lanes/device+earlyleafcapability+sourcependingbound21. BaselineoriginalD2+coalescingauto/global0/sessions0/lanes1/pending17. AllR1flags0botharms.",
   "quiet_pressure_max": 0.005,
-  "opt_combined_scope": "M8 opt-combined A/B on ONE image (build/m8-opt-combined/img): both arms the canonical fullstack env (22G arena, pending 21). 'baseline' = integrate-head behaviour: every T1..T9 flag off and the T3/T4 kill switches set (legacy kernels, serial capture ledger, inflight 4, default chunk words). 'fullstack' = every opt flag on, T6 chunk knobs 2^28 words. Kernels bit-identical; proofs byte-identical (runner checks)."
+  "opt_combined_scope": "M8 opt-combined A/B on ONE image (build/m8-opt-combined/img, lib b181cdd9): both arms the canonical BASELINE env (the explicit default: auto arena, global admission off, 1 lane/GPU, pending 17 - the env every rv64_gate run proves). 'baseline' = integrate-head behaviour: every T1..T9 flag off + T3/T4 kill switches (legacy kernels, serial capture ledger, inflight 4, default chunk words). 'fullstack' = every opt flag on + T6 chunk knobs 2^28 words. Only the flags differ, except that the runner always puts its physical canary (<=28e9 B/GPU) on the 'fullstack' arm, which can only shrink that arm's auto arena (bias against the flags). The canonical fullstack env (22G + global admission v2 + sessions + 2 lanes) is NOT used: on this image it fails the warm request with NativePostGlobalDrainUnavailable in the flags-OFF arm (ab4, 06:38Z) - an image/admission-v2 issue, not a T* flag."
  },
  "operational": {
   "baseline": {
-   "recursion_max_pending_authorities": 21
+   "recursion_max_pending_authorities": 17
   },
   "fullstack": {
-   "recursion_max_pending_authorities": 21
+   "recursion_max_pending_authorities": 17
   }
  }
 }
