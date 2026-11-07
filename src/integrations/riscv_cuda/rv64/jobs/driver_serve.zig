@@ -95,6 +95,7 @@ pub const Result = struct {
 pub const RequestHooks = struct {
     ctx: *anyopaque,
     publishing: *const fn (*anyopaque, *const D.Topology) void,
+    /// `generation` 0: the request never took a driver generation.
     ended: *const fn (*anyopaque, request: u64, generation: u64) void,
 };
 
@@ -143,16 +144,30 @@ pub const Service = struct {
             shape.* = .{ .block = block, .rows = rows, .truths = rs.truths, .fold_arity = rs.fold_arity, .topology = topo };
             made += 1;
         }
-        const driver = R.Driver.install(a, ops, peer, workers, native, recursion, config) catch |err| {
+        // The service serves exactly the installed blocks: size the driver
+        // (exchange capacity, and main_resident = ceil(max_segments / GPUs) x
+        // the largest native class) from their shapes, not from the config's
+        // upper bound. [M] gn-bind rev3 26235156 (4 segments, 2 GPUs): the
+        // bound 64 asked 32 x 433M = 13.87G main_resident words per GPU
+        // (GpuNativeMemoryPlanExceedsDevice); the shapes need 2 x 433M.
+        var sized = config;
+        sized.max_segments = 0;
+        sized.max_truths = 0;
+        for (shapes) |sh| {
+            sized.max_segments = @max(sized.max_segments, @as(u32, @intCast(sh.rows.len)));
+            sized.max_truths = @max(sized.max_truths, sh.truths);
+        }
+        if (sized.max_truths > config.max_truths) return error.GpuNativeTruthsExceedPlan;
+        const driver = R.Driver.install(a, ops, peer, workers, native, recursion, sized) catch |err| {
             std.debug.print("GPU_RESIDENT_SERVICE install_stage=driver error={s}\n", .{@errorName(err)});
             return err;
         };
         errdefer driver.deinit();
         const ring: ?*C.Ring = if (ring_config.buffers != 0) try C.Ring.init(a, &ops.wait, ring_config.buffers, ring_config.words) else null;
         errdefer if (ring) |r| r.deinit();
-        const s0 = try C.Stream.create(a, native, ring, config.max_segments);
+        const s0 = try C.Stream.create(a, native, ring, sized.max_segments);
         errdefer s0.destroy();
-        const s1 = try C.Stream.create(a, native, ring, config.max_segments);
+        const s1 = try C.Stream.create(a, native, ring, sized.max_segments);
         errdefer s1.destroy();
         s0.recursion = recursion;
         s1.recursion = recursion;
@@ -202,10 +217,15 @@ pub const Service = struct {
         self.next_id += 1;
         // A failed begin detached the capture (cancelled; it reported done):
         // join its thread.
+        const generation_before = self.driver.generation;
         const flight = self.driver.begin(&req) catch |err| {
             self.source.vtable.join(self.source.ctx, handle);
             // The capture may have handed segments to the factories already.
-            if (self.hooks) |h| h.ended(h.ctx, req.id, self.driver.generation);
+            // Only a begin that took a generation owns one: a begin refused
+            // earlier (pipeline full, poisoned, stream in flight) must not
+            // release the generation of the request still in flight.
+            const generation: u64 = if (self.driver.generation != generation_before) self.driver.generation else 0;
+            if (self.hooks) |h| h.ended(h.ctx, req.id, generation);
             return err;
         };
         self.busy[slot] = true;

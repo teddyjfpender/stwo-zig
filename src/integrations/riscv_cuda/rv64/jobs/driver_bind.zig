@@ -248,8 +248,10 @@ pub const Binding = struct {
     }
 
     /// After the driver finished a request (published or failed).
+    /// `generation` 0 = the request never took a driver generation (its
+    /// begin was refused before planning): no Stage-1 records exist for it.
     pub fn endRequest(self: *Binding, request: u64, generation: u64) void {
-        self.registry.release(generation);
+        if (generation != 0) self.registry.release(generation);
         self.recursion.end(request);
         self.stage2.endRequest(request);
         if (self.truth) |*t| t.end(request) catch {};
