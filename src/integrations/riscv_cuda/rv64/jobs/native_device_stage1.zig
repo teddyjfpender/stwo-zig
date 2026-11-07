@@ -94,14 +94,18 @@ pub const Symbols = struct {
     check: CheckFn,
     scatter: ScatterFn,
     copy: HJ.CopyAsync,
+    memset: *const fn (*anyopaque, *anyopaque, c_int, usize) callconv(.c) c_int,
     commit: C.Symbols,
-    gkr: *const NG.Symbols,
+    /// Local GKR symbols (native_gkr.Symbols.load); required by the GKR half
+    /// (Stage1Job, WarmJob), not by the prologue.
+    gkr: ?*const NG.Symbols,
     binding: NB.Symbols,
-    pub fn load(base: *std.DynLib, addon: *std.DynLib, gkr: *const NG.Symbols) !Symbols {
+    pub fn load(base: *std.DynLib, addon: *std.DynLib, gkr: ?*const NG.Symbols) !Symbols {
         return .{
             .check = addon.lookup(CheckFn, "stwo_rv64_n1_check_v1_on") orelse return error.MissingNativeStage1Kernel,
             .scatter = addon.lookup(ScatterFn, "stwo_rv64_n1_scatter_v1_on") orelse return error.MissingNativeStage1Kernel,
             .copy = addon.lookup(HJ.CopyAsync, "stwo_rv64_jobs_copy_async") orelse return error.MissingNativeStage1Kernel,
+            .memset = base.lookup(*const fn (*anyopaque, *anyopaque, c_int, usize) callconv(.c) c_int, "stwo_exec_context_memset_async") orelse return error.MissingNativeStage1Kernel,
             .commit = try C.Symbols.load(base),
             .gkr = gkr,
             .binding = try NB.Symbols.load(base),
@@ -349,7 +353,7 @@ pub const WarmJob = struct {
     pub fn init(self: *WarmJob) !void {
         self.fixed = self.class.fixed;
         self.main = self.class.main;
-        self.gkr = try NG.Gkr.init(self.a, self.class.spec.gkr, self.sym.gkr);
+        self.gkr = try NG.Gkr.init(self.a, self.class.spec.gkr, self.sym.gkr orelse return error.NativeStage1SymbolsNotBound);
         self.binding = .{ .plan = &self.class.bind, .sym = self.sym.binding };
         self.inputs = try self.a.alloc(C.Input, self.class.spec.fixed_host.len);
         for (self.inputs, self.class.spec.fixed_host) |*i, h| i.* = .{ .host = h };
@@ -476,7 +480,7 @@ pub const Stage1Job = struct {
         errdefer self.a.free(self.items);
         for (self.items, self.words.publics) |*it, pw| it.public = pw;
         self.gplan.source.items = self.items;
-        self.gkr = try NG.Gkr.init(self.a, &self.gplan, self.sym.gkr);
+        self.gkr = try NG.Gkr.init(self.a, &self.gplan, self.sym.gkr orelse return error.NativeStage1SymbolsNotBound);
         errdefer self.gkr.deinit();
         self.binding = .{ .plan = &c.bind, .sym = self.sym.binding };
         self.inputs = try self.a.alloc(C.Input, c.main.shapes.len);
@@ -591,7 +595,7 @@ pub const Stage1Job = struct {
         // Local GKR + binding.
         try self.gkr.enqueueCommitted(e, &c.fixed, fixed, &self.main, main, root_out);
         const bverdict = try e.alloc(1);
-        try cuda(sym.gkr.memset(ectx, bverdict.ptr, 0, 4));
+        try cuda(sym.memset(ectx, bverdict.ptr, 0, 4));
         try self.binding.enqueueWithAuthority(e, &self.gkr, bind_view, bverdict, authority_view);
         // Terminal claims (authority words [9, 9 + 16n)) -> exchange claims slot.
         const claims = try authority_view.slice(9, claims_out.words);
@@ -642,7 +646,7 @@ pub fn enqueuePrologue(c: *const Class, sym: *const Symbols, e: *api.Enqueue, se
     if (fixed_region.words < c.fixedRegionWords() or inputs.len != c.main.shapes.len or root_out.words < 8 or main_view.words < c.main.coefficient_cells) return error.NativeStage1PrologueShape;
     try e.channel.initFromCheckpoint(seed);
     const wstatus = try e.alloc(1);
-    try cuda(sym.gkr.memset(ectx, wstatus.ptr, 0, 4));
+    try cuda(sym.memset(ectx, wstatus.ptr, 0, 4));
     var image: ?api.DeviceBuffer = null;
     switch (witness) {
         .chunks => |chunks| {

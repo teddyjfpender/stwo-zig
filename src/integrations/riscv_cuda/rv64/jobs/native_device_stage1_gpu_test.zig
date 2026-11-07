@@ -17,7 +17,6 @@ const engine = @import("stwo_prover_engine");
 const api = @import("api.zig");
 const W = @import("worker.zig");
 const C = @import("native_commit.zig");
-const NG = @import("native_gkr.zig");
 const S1 = @import("native_device_stage1.zig");
 const G = @import("gpu_native.zig");
 const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
@@ -57,7 +56,7 @@ const Probe = struct {
         return self.cls.fixed_key;
     }
     pub fn footprint(_: *Probe) api.Footprint {
-        return .{ .device_words = 1 << 21, .staged_words = 1 << 14, .slab_words = 64, .pinned_words = 1 << 16 };
+        return .{ .device_words = 1 << 21, .staged_words = 1 << 14, .slab_words = 64, .pinned_words = 1 << 15 };
     }
     pub fn stage(self: *Probe, s: *api.Stager) !void {
         const p = try s.persistent(self.cls.fixed_key, self.cls.fixedRegionWords());
@@ -198,8 +197,7 @@ test "GPU: native Stage-1 prologue (warm FIXED, adopted root, chunk witness, MAI
     var arena_state = std.heap.ArenaAllocator.init(a);
     defer arena_state.deinit();
     const ar = arena_state.allocator();
-    const gsym = try NG.Symbols.load(&gpu.libs.base);
-    const sym = try S1.Symbols.load(&gpu.libs.base, &gpu.libs.addon, &gsym);
+    const sym = try S1.Symbols.load(&gpu.libs.base, &gpu.libs.addon, null);
     const config = core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = .{ .log_blowup_factor = 1, .log_last_layer_degree_bound = 0, .n_queries = 2, .fold_step = 1 } };
     var prng = std.Random.DefaultPrng.init(0x6e31_7374);
     const fixed = try columnsOf(ar, &prng, &fixed_shapes);
