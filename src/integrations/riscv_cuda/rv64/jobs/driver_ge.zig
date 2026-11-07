@@ -194,10 +194,16 @@ pub const Source = struct {
     /// Run one capture of `b` on the calling thread (`ready` = streaming hook).
     fn captureBlock(self: *Source, b: *Block, ready: ?Capture.Ready) !Capture.Owner {
         var stats: Direct.Stats = .{};
-        const started = try Direct.Started.startWithAuthority(self.a, b.config.value, 0, self.options.execution_workers, null);
+        const started = Direct.Started.startWithAuthority(self.a, b.config.value, 0, self.options.execution_workers, null) catch |err| {
+            std.debug.print("GPU_M8_GN_BIND capture_stage=start block={d} error={s}\n", .{ b.number, @errorName(err) });
+            return err;
+        };
         defer started.deinit(&stats);
         started.ready = ready;
-        return started.capture(&b.image, &b.program, self.options.max_inflight_packets, &stats);
+        return started.capture(&b.image, &b.program, self.options.max_inflight_packets, &stats) catch |err| {
+            std.debug.print("GPU_M8_GN_BIND capture_stage=capture block={d} error={s}\n", .{ b.number, @errorName(err) });
+            return err;
+        };
     }
     fn endOf(b: *Block, owner: *const Capture.Owner) G.CaptureEnd {
         return .{ .segments = @intCast(owner.native.items.len), .owner = owner, .image = &b.image, .program = &b.program, .config = &b.config.value };

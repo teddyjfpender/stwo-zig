@@ -1,0 +1,175 @@
+{
+ "gate-1": {
+  "status": "FAIL",
+  "block": 26235156,
+  "source_commit": "38924b967",
+  "extra_env": {
+   "STWO_RV64_M8_JOBS": "1"
+  },
+  "jobs_env": {
+   "STWO_RV64_M8_JOBS_LIBRARY": "/workspace/m3/build/m8-gn-bind/addon-1/libstwo-rv64-jobs.so",
+   "STWO_RV64_M8_OUTER_FS_LIBRARY": "/workspace/m3/build/m8-gn-bind/addon-1/libstwo-rv64-outer-fs-ops.so",
+   "STWO_RV64_M8_JOBS_PINNED_BYTES": "2365587456",
+   "STWO_RV64_M8_NATIVE_JOBS_HEADROOM": "4294967296"
+  },
+  "error": "small-block-proof failed (1); see /workspace/m3/runs/m8-gn-bind/gate-1/small-block-proof.log",
+  "runtime_jobs_sha256": {
+   "STWO_RV64_M8_JOBS_LIBRARY": "3bfd18406279e8f9539416742bf49ea7b27fa90d2143400fcc4aac07d7f803f9",
+   "STWO_RV64_M8_OUTER_FS_LIBRARY": "571e7a0fc9055ee87c2b8229941b7957cff6eb553930fd8d4aec9f375e092f83"
+  },
+  "parity_byte_identical": [],
+  "artifacts": [],
+  "receivers_accepted": [],
+  "request_wall_s_cold_warm_diagnostic": [],
+  "gate_json_sha256": "1befc11549a539c59e6d66b98096b055bb4d2e3c2cf0ee7db4f0584a9c28694f",
+  "service": null,
+  "failure_point": "native hybrid stage-1 window shrunk to 2.68G words under HEADROOM=4 GiB -> JobWorkExceedsArena"
+ },
+ "gate-2": {
+  "status": "PASS",
+  "block": 26235156,
+  "source_commit": "b8dd86d22",
+  "extra_env": {
+   "STWO_RV64_M8_JOBS": "1"
+  },
+  "jobs_env": {
+   "STWO_RV64_M8_JOBS_LIBRARY": "/workspace/m3/build/m8-gn-bind/addon-1/libstwo-rv64-jobs.so",
+   "STWO_RV64_M8_OUTER_FS_LIBRARY": "/workspace/m3/build/m8-gn-bind/addon-1/libstwo-rv64-outer-fs-ops.so",
+   "STWO_RV64_M8_JOBS_PINNED_BYTES": "2365587456",
+   "STWO_RV64_M8_NATIVE_JOBS_HEADROOM": "2147483648"
+  },
+  "error": null,
+  "runtime_jobs_sha256": {
+   "STWO_RV64_M8_JOBS_LIBRARY": "3bfd18406279e8f9539416742bf49ea7b27fa90d2143400fcc4aac07d7f803f9",
+   "STWO_RV64_M8_OUTER_FS_LIBRARY": "571e7a0fc9055ee87c2b8229941b7957cff6eb553930fd8d4aec9f375e092f83"
+  },
+  "parity_byte_identical": [
+   true,
+   true
+  ],
+  "artifacts": [
+   32,
+   32
+  ],
+  "receivers_accepted": [
+   true,
+   true
+  ],
+  "request_wall_s_cold_warm_diagnostic": [
+   43.581435011,
+   16.448889104
+  ],
+  "gate_json_sha256": "0c99f08f27203a0b095213657b962ec3cfa77820b207675282e053bbf8eaabd0",
+  "service": "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-2-00-baseline"
+ },
+ "gate-3": {
+  "status": "PASS",
+  "block": 24628607,
+  "source_commit": "44d4d8702",
+  "extra_env": {
+   "STWO_RV64_M8_JOBS": "1"
+  },
+  "jobs_env": {
+   "STWO_RV64_M8_JOBS_LIBRARY": "/workspace/m3/build/m8-gn-bind/addon-2/libstwo-rv64-jobs.so",
+   "STWO_RV64_M8_OUTER_FS_LIBRARY": "/workspace/m3/build/m8-gn-bind/addon-2/libstwo-rv64-outer-fs-ops.so",
+   "STWO_RV64_M8_JOBS_PINNED_BYTES": "2365587456",
+   "STWO_RV64_M8_NATIVE_JOBS_HEADROOM": "2147483648"
+  },
+  "error": null,
+  "runtime_jobs_sha256": {
+   "STWO_RV64_M8_JOBS_LIBRARY": "2acfd7f31db836f137f28f5129c28cc67407172034961a21cca8f644b1ef6815",
+   "STWO_RV64_M8_OUTER_FS_LIBRARY": "0eaa25cb101d32155b1641253c83832c17b6f117950692c9af9832903b767f45"
+  },
+  "parity_byte_identical": [
+   true,
+   true
+  ],
+  "artifacts": [
+   39,
+   39
+  ],
+  "receivers_accepted": [
+   true,
+   true
+  ],
+  "request_wall_s_cold_warm_diagnostic": [
+   64.474655215,
+   23.112631392
+  ],
+  "gate_json_sha256": "0fd90544f39b1ec8c66c12dbf88c633d31a316513165ed344eae3d920a29157c",
+  "service": "/workspace/m3/runs/m8-gn-bind/daemon-24628607-r2-gate-gate-3-00-baseline"
+ },
+ "gate-4": {
+  "status": "FAIL",
+  "block": 26235156,
+  "source_commit": "44d4d8702",
+  "extra_env": {
+   "STWO_RV64_M8_JOBS": "1",
+   "STWO_RV64_M8_GPU_NATIVE": "1"
+  },
+  "jobs_env": {
+   "STWO_RV64_M8_JOBS_LIBRARY": "/workspace/m3/build/m8-gn-bind/addon-2/libstwo-rv64-jobs.so",
+   "STWO_RV64_M8_OUTER_FS_LIBRARY": "/workspace/m3/build/m8-gn-bind/addon-2/libstwo-rv64-outer-fs-ops.so",
+   "STWO_RV64_M8_JOBS_PINNED_BYTES": "2365587456",
+   "STWO_RV64_M8_NATIVE_JOBS_HEADROOM": "2147483648"
+  },
+  "error": "small-block-proof failed (1); see /workspace/m3/runs/m8-gn-bind/gate-4/small-block-proof.log",
+  "runtime_jobs_sha256": {
+   "STWO_RV64_M8_JOBS_LIBRARY": "2acfd7f31db836f137f28f5129c28cc67407172034961a21cca8f644b1ef6815",
+   "STWO_RV64_M8_OUTER_FS_LIBRARY": "0eaa25cb101d32155b1641253c83832c17b6f117950692c9af9832903b767f45"
+  },
+  "parity_byte_identical": [],
+  "artifacts": [],
+  "receivers_accepted": [],
+  "request_wall_s_cold_warm_diagnostic": [],
+  "gate_json_sha256": "3af8ef8c4858b114288a912f9edaf5936dba73aebdbe81dc775550a0d9558f5b",
+  "service": null,
+  "failure_point": "Service.install: warm capture FileNotFound (before the output_directory fix; node ops unbound: addon-2 had no outer_seed kernel)"
+ },
+ "gate-5": {
+  "status": "PASS",
+  "block": 26235156,
+  "source_commit": "44d4d8702",
+  "extra_env": {},
+  "jobs_env": {},
+  "error": null,
+  "runtime_jobs_sha256": {
+   "STWO_RV64_M8_JOBS_LIBRARY": "2acfd7f31db836f137f28f5129c28cc67407172034961a21cca8f644b1ef6815",
+   "STWO_RV64_M8_OUTER_FS_LIBRARY": "0eaa25cb101d32155b1641253c83832c17b6f117950692c9af9832903b767f45"
+  },
+  "parity_byte_identical": [
+   true,
+   true
+  ],
+  "artifacts": [
+   32,
+   32
+  ],
+  "receivers_accepted": [
+   true,
+   true
+  ],
+  "request_wall_s_cold_warm_diagnostic": [
+   24.700605945,
+   10.03297749
+  ],
+  "gate_json_sha256": "15e5fc6693a52eaafe30f8c31f1a48e56e48d22c37f1130df82d7595a81796ce",
+  "service": "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-5-00-baseline"
+ },
+ "gate-6": {
+  "status": "FAIL",
+  "block": 26235156,
+  "source_commit": "11ddb4e27",
+  "extra_env": {
+   "STWO_RV64_M8_JOBS": "1",
+   "STWO_RV64_M8_GPU_NATIVE": "1"
+  },
+  "runtime_jobs_sha256": {
+   "STWO_RV64_M8_JOBS_LIBRARY": "32c52c90b370b7822932ca541b911ed0430f5262db3488334103ee46bd370336",
+   "STWO_RV64_M8_OUTER_FS_LIBRARY": "f421d4350d286a05637bd2f3b2701eec6aa64e8f22007d4bbbbe9bf26916a5da"
+  },
+  "failure_point": "Service.install -> CaptureSource.warm(26235156) -> Direct.Started.capture: FileNotFound (start OK; reproduced 3x outside the gate with repro.py, driver sha256 419a665e)",
+  "gate_json_sha256": "57bef80521a4d1df70a44ddbbf0850cdf45966947ea4d095977c70d871e83ed3",
+  "service": "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-6-00-baseline"
+ }
+}
