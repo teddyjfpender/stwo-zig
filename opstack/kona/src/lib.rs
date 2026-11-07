@@ -13,6 +13,8 @@ pub mod anchored_l1;
 pub mod anchored_l2;
 pub mod execution;
 pub mod metadata;
+#[cfg(feature = "derivation")]
+pub mod transition;
 #[cfg(feature = "precompile-services")]
 pub mod precompiles;
 pub mod witness;

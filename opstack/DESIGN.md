@@ -104,10 +104,7 @@ all EIP-2718 entries in order. Missing or malformed data is a critical error.
 Run `cargo test --locked --manifest-path opstack/kona/Cargo.toml --features
 host,derivation` for the provider and existing execution tests. The provider tests
 cover fork substitution, a corrupt trie node and mismatched anchor height.
-The integration still needs the L2 safe-head provider, blob authentication,
-pipeline initialization from authenticated state, and execution and output-root
-binding in the guest. The execution benchmark entry point retains its current
-statement and fixtures.
+The execution benchmark entry point retains its execution statement and fixtures.
 
 `AnchoredL2` opens the previous checkpoint's V0 output preimage, checks its
 number and state commitment against the authenticated header, and exposes
@@ -131,3 +128,18 @@ cover block execution but lack account-trie nodes needed to open
 `L2ToL1MessagePasser` for the output root. The block 121057303 probe reaches the
 missing node `55b88d8d3ce0ca3c4073bc95277af8960db21669a01ebe48ca3a1fc5615776b1`.
 Supply authenticated archive account proofs when collecting a transition fixture.
+
+`transition::verify_calldata_transition` connects these providers to the pinned
+Kona pipeline. The caller supplies the trusted anchor, pinned chain configs and
+transition claim separately from the witness. The pipeline resets from the
+checkpoint, authenticates L1 origins during its L2 history walk, and executes
+only the attributes it derives. It checks the executed output root and L1
+origin against the claim. It bounds pipeline steps and rejects blob-backed DA,
+Alt-DA and interop until those inputs can be authenticated.
+
+The mainnet provider test exercises this entry point against OP 121057303 and
+Ethereum anchor 20035800. It rejects a substituted origin and reaches the
+missing safe history during Kona's reset with the correct origin. A positive
+mainnet transition needs that history, the L1 DA and the execution/output-root
+witnesses in one fixture. Guest statement encoding and recursive admission of
+the transition remain separate work.

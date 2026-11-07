@@ -155,13 +155,16 @@ fn authenticates_ordered_data_from_the_anchor_and_rejects_other_forks() {
 #[test]
 fn opens_mainnet_safe_head_and_its_system_config_from_the_checkpoint() {
     use alloy_consensus::proofs::calculate_transaction_root;
-    use alloy_eips::eip2718::Decodable2718;
+    use alloy_eips::{BlockNumHash, eip2718::Decodable2718};
     use alloy_rlp::Decodable;
     use kona_derive::L2ChainProvider;
     use kona_protocol::{BatchValidationProvider, OutputRoot};
     use op_alloy_consensus::OpTxEnvelope;
     use std::sync::Arc;
-    use stwo_kona_execution::anchored_l2::AnchoredL2;
+    use stwo_kona_execution::{
+        anchored_l2::AnchoredL2,
+        transition::{Transition, TransitionError, verify_calldata_transition},
+    };
 
     // Header and body imported from the pinned Kona replay corpus, block 121057303.
     let fixture: serde_json::Value =
@@ -201,6 +204,14 @@ fn opens_mainnet_safe_head_and_its_system_config_from_the_checkpoint() {
     records.insert(checkpoint.hash(), checkpoint.encode().to_vec());
     let wrong = OutputRoot::from_parts(B256::ZERO, B256::ZERO, hash);
     records.insert(wrong.hash(), wrong.encode().to_vec());
+    let headers: Vec<serde_json::Value> =
+        serde_json::from_str(include_str!("eth-mainnet-20035800-anchor.json")).unwrap();
+    for header in &headers {
+        records.insert(
+            header["hash"].as_str().unwrap().parse().unwrap(),
+            alloy_primitives::hex::decode(header["rlp"].as_str().unwrap()).unwrap(),
+        );
+    }
     let input = encode(b"", &records.into_iter().collect::<Vec<_>>()).unwrap();
     let witness = || Witness::parse(&input, Validation::Lazy).unwrap();
     let config = Arc::new(kona_registry::ROLLUP_CONFIGS.get(&10).unwrap().clone());
@@ -233,6 +244,44 @@ fn opens_mainnet_safe_head_and_its_system_config_from_the_checkpoint() {
             .parse::<B256>()
             .unwrap()
     );
+    let claim = Transition {
+        anchor: BlockNumHash {
+            number: 20_035_800,
+            hash: headers[1]["hash"].as_str().unwrap().parse().unwrap(),
+        },
+        previous_number: header.number,
+        previous_root: checkpoint.hash(),
+        next_number: header.number + 1,
+        next_root: B256::ZERO,
+        next_origin: info.l1_origin,
+    };
+    let l1_config = Arc::new(kona_registry::L1_CONFIGS.get(&1).unwrap().clone());
+    let verify = |claim| {
+        ready(verify_calldata_transition(
+            &input,
+            claim,
+            config.clone(),
+            l1_config.clone(),
+        ))
+    };
+    assert!(matches!(
+        verify(Transition {
+            next_origin: BlockNumHash {
+                hash: B256::ZERO,
+                ..claim.next_origin
+            },
+            ..claim
+        }),
+        Err(TransitionError::Origin)
+    ));
+    // The mainnet fixture opens the safe head and canonical L1 origin, but
+    // lacks the parent block required by Kona's reset walkback.
+    assert!(matches!(
+        verify(claim),
+        Err(TransitionError::Pipeline(kona_derive::PipelineErrorKind::Critical(
+            kona_derive::PipelineError::Provider(message)
+        ))) if message.contains(&format!("{:?}", header.parent_hash))
+    ));
     assert_eq!(
         ready(provider.block_by_number(header.number))
             .unwrap()

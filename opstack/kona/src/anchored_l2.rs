@@ -1,6 +1,7 @@
 //! Safe L2 history from the previous OP output commitment.
 use crate::{
     anchored_chain::{AnchoredChain, block_info},
+    anchored_l1::AnchoredL1,
     execution::Provider,
     witness::Witness,
 };
@@ -9,7 +10,7 @@ use alloy_consensus::{BlockBody, Header, Sealed};
 use alloy_op_evm::{OpEvmFactory, OpTx, block::OpAlloyReceiptBuilder};
 use alloy_primitives::B256;
 use async_trait::async_trait;
-use kona_derive::L2ChainProvider;
+use kona_derive::{ChainProvider, L2ChainProvider};
 use kona_executor::StatelessL2Builder;
 use kona_genesis::{RollupConfig, SystemConfig};
 use kona_mpt::NoopTrieHinter;
@@ -24,6 +25,7 @@ pub use crate::anchored_chain::AnchorError;
 pub struct AnchoredL2<'a> {
     chain: AnchoredChain<'a>,
     config: Arc<RollupConfig>,
+    l1: Option<AnchoredL1<'a>>,
 }
 
 impl<'a> AnchoredL2<'a> {
@@ -43,7 +45,26 @@ impl<'a> AnchoredL2<'a> {
         if chain.ancestor(number)?.1.state_root.as_slice() != &bytes[32..64] {
             return Err(AnchorError::OutputRoot);
         }
-        Ok(Self { chain, config })
+        Ok(Self {
+            chain,
+            config,
+            l1: None,
+        })
+    }
+
+    pub(crate) fn bind_l1_history(&mut self, l1: AnchoredL1<'a>) {
+        self.l1 = Some(l1);
+    }
+
+    async fn authenticated_info(&mut self, block: &OpBlock) -> Result<L2BlockInfo, AnchorError> {
+        let info = L2BlockInfo::from_block_and_genesis(block, &self.config.genesis)?;
+        if let Some(l1) = &mut self.l1 {
+            let origin = l1.block_info_by_number(info.l1_origin.number).await?;
+            if origin.hash != info.l1_origin.hash {
+                return Err(AnchorError::Ancestry);
+            }
+        }
+        Ok(info)
     }
 
     /// Execute the exact attributes returned by the authenticated derivation pipeline.
@@ -128,18 +149,12 @@ impl BatchValidationProvider for AnchoredL2<'_> {
 
     async fn l2_block_info_by_number(&mut self, number: u64) -> Result<L2BlockInfo, Self::Error> {
         let block = self.block_by_number(number).await?;
-        Ok(L2BlockInfo::from_block_and_genesis(
-            &block,
-            &self.config.genesis,
-        )?)
+        self.authenticated_info(&block).await
     }
 
     async fn l2_block_info_by_hash(&mut self, hash: B256) -> Result<L2BlockInfo, Self::Error> {
         let block = self.block_by_hash(hash)?;
-        Ok(L2BlockInfo::from_block_and_genesis(
-            &block,
-            &self.config.genesis,
-        )?)
+        self.authenticated_info(&block).await
     }
 }
 
