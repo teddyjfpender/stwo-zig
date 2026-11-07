@@ -52,7 +52,9 @@ pub fn run(comptime Main: type, recycler: *Main.Recycler, profile: Profile, args
     }
     if (std.fs.path.dirname(args[3])) |parent| try std.fs.cwd().makePath(parent);
     try std.fs.cwd().makeDir(args[3]); // Refuse to overwrite an earlier batch.
-    var directory = try std.fs.cwd().openDir(args[3], .{});
+    // Linux can use an O_PATH descriptor for the default open options.
+    // The batch index needs a directory descriptor that supports fsync.
+    var directory = try std.fs.cwd().openDir(args[3], .{ .iterate = true });
     defer directory.close();
     var session = try Main.ResidentSession.init(a, manifest.immutable_host_key_bytes);
     defer session.deinit();
