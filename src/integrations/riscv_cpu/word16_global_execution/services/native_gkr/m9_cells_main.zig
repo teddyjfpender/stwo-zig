@@ -6,7 +6,10 @@
 //!   * `today`   : the M4 production INTER (local-GKR binding pairs + classic RAM/KIO/Wire + truth classic);
 //!   * `logup3`  : today's protocol with three fractions per classic LogUp column instead of two
 //!                 (keccak truth local columns are already three per column and stay unchanged);
-//!   * `v1`      : native GKR v1 (rv64-native-gkr.md): one 16-column eq+prefix pair per component, no classic;
+//!   * `v1`      : native GKR v1 (rv64-native-gkr.md): one 16-column eq+prefix pair per component, no classic.
+//!                 "Component" = every slot of the production Plan, as `native_roster.cpu` builds it
+//!                 (`inter_offset = 16 * index` for every slot), including the global-only slots without a
+//!                 local binding today (core.initial / core.terminal: RAM terms only);
 //!   * `v2share` : v1 plus ONE eq+prefix pair per distinct row log of a proof (SharedBindingPlan below):
 //!                 all components of one row log read the same eq column (shared row point, rv64-native-gkr.md
 //!                 3.2 lemma; one stage-two batch per proof) and one prefix of the rho-combined projections.
@@ -21,6 +24,7 @@ const Slot = @import("../gkr_local/cpu_components.zig").Slot;
 const Global = @import("../gkr_local/global_cpu.zig");
 const TruthShapes = @import("../gkr_local/truth_components.zig");
 const V3 = @import("../gkr_local/truth_v3_catalog.zig");
+const NativeRoster = @import("native_roster.zig");
 
 const Input = struct { cpus: []struct { declaration: Wire.CpuDeclaration }, truths: []struct { declaration: Wire.TruthDeclaration }, memory_words: u32 };
 
@@ -32,8 +36,11 @@ pub fn widthThreePerColumn(queries: usize) usize {
 }
 
 /// The column-count change this stream prototypes: re-plan the binding pairs of a production Plan so that
-/// every distinct row log owns one pair. Returns per-slot group indices (null = no binding) and the
-/// binding INTER column count. Classic global columns are dropped (v1 semantics).
+/// every distinct row log owns one pair. Returns per-slot group indices and the binding INTER column count.
+/// v1 semantics: classic global columns are dropped and EVERY plan slot is a native-GKR component with a
+/// binding pair (native_roster.cpu), so slots without a local binding today (global-only RAM slots such as
+/// core.initial / core.terminal) are grouped too. Review fix: the first cut skipped them (null group), which
+/// under-counted v1 by one pair per such slot (24628607 cpu-0: 16.78 M cells) against the M5 exact v1 roster.
 pub const SharedBindingPlan = struct {
     group_of_slot: []?usize,
     group_logs: []u32,
@@ -42,10 +49,6 @@ pub const SharedBindingPlan = struct {
         var logs = std.ArrayList(u32).empty;
         const group_of_slot = try a.alloc(?usize, plan.slots.len);
         for (plan.slots, group_of_slot) |slot, *g| {
-            if (slot.binding_index == null) {
-                g.* = null;
-                continue;
-            }
             const found: ?usize = for (logs.items, 0..) |l, i| {
                 if (l == slot.log) break i;
             } else null;
@@ -121,8 +124,9 @@ pub fn cpuCensus(a: std.mem.Allocator, declaration: Wire.CpuDeclaration, rom_log
         out.main_cols += mc;
         add(&out.today, rows, bind + l.width());
         add(&out.logup3, rows, l3);
-        add(&out.v1, rows, bind);
-        out.binding_components += @intFromBool(bind != 0);
+        // v1: one pair per plan slot (native_roster.cpu), with or without a local binding today.
+        add(&out.v1, rows, BINDING_COLUMNS);
+        out.binding_components += 1;
         try slots.append(a, .{ .name = try originName(a, slot.origin), .log = slot.log, .main_cols = mc, .binding = bind != 0, .ram_queries = l.ram_queries, .other_queries = l.other_queries, .today_cols = bind + l.width(), .logup3_cols = l3, .share_group = group });
     }
     // MAIN of components without an interaction slot (no local terms, no global query).
@@ -138,6 +142,14 @@ pub fn cpuCensus(a: std.mem.Allocator, declaration: Wire.CpuDeclaration, rom_log
         }
     }
     out.v2share = .{ .inter_cells = shared.cells(), .inter_cols = shared.binding_columns };
+    // Parity with the production native-GKR receiver roster (review fix): v1 must own exactly one 16-column
+    // pair per native_roster.cpu component, at the component's row log.
+    var native = try NativeRoster.cpu(a, &setup);
+    defer native.deinit();
+    if (native.roster.components.len != plan.slots.len) return error.M9V1RosterMismatch;
+    var v1_cells: u64 = 0;
+    for (native.roster.components) |c| v1_cells += BINDING_COLUMNS * (@as(u64, 1) << @intCast(c.row_log));
+    if (v1_cells != out.v1.inter_cells or BINDING_COLUMNS * native.roster.components.len != out.v1.inter_cols) return error.M9V1RosterMismatch;
     out.slots = try slots.toOwnedSlice(a);
     return out;
 }
@@ -173,6 +185,12 @@ pub fn truthCensus(a: std.mem.Allocator, d: Wire.TruthDeclaration) !TruthOut {
         if (!found) try logs.append(a, p.log);
     }
     for (logs.items) |l| add(&out.v2share, @as(u64, 1) << @intCast(l), BINDING_COLUMNS);
+    // Parity with native_roster.truth (review fix): one v1 pair per receiver component at its row log.
+    var native = try NativeRoster.truth(a, d);
+    defer native.deinit();
+    var v1_cells: u64 = 0;
+    for (native.roster.components) |c| v1_cells += BINDING_COLUMNS * (@as(u64, 1) << @intCast(c.row_log));
+    if (v1_cells != out.v1.inter_cells) return error.M9V1RosterMismatch;
     out.parts = try parts.toOwnedSlice(a);
     return out;
 }
@@ -203,7 +221,8 @@ pub fn main() !void {
 }
 
 test "shared binding plan: one pair per distinct log" {
-    // Synthetic slot list: three binding components at log 16, one at 22, one without binding.
+    // Synthetic slot list: three binding components at log 16, one at 22, one global-only slot (no local
+    // binding today) at log 20 that still owns a v1 pair, as native_roster.cpu gives every slot one.
     var slots = [_]Slot{
         .{ .origin = .{ .dword = 0 }, .log = 22, .fixed_offset = 0, .main_offset = 0, .inter_offset = 0, .binding_index = 0, .claim_offset = 0 },
         .{ .origin = .{ .dword = 0 }, .log = 16, .fixed_offset = 0, .main_offset = 0, .inter_offset = 0, .binding_index = 1, .claim_offset = 0 },
@@ -215,10 +234,11 @@ test "shared binding plan: one pair per distinct log" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const s = try SharedBindingPlan.init(arena.allocator(), &plan);
-    try std.testing.expectEqual(@as(usize, 2), s.group_logs.len);
-    try std.testing.expectEqual(@as(usize, 32), s.binding_columns);
-    try std.testing.expectEqual(@as(u64, 16 * ((1 << 22) + (1 << 16))), s.cells());
-    try std.testing.expectEqual(@as(?usize, null), s.group_of_slot[3]);
+    try std.testing.expectEqual(@as(usize, 3), s.group_logs.len);
+    try std.testing.expectEqual(@as(usize, 48), s.binding_columns);
+    try std.testing.expectEqual(@as(u64, 16 * ((1 << 22) + (1 << 20) + (1 << 16))), s.cells());
+    try std.testing.expect(s.group_of_slot[3] != null);
+    try std.testing.expect(s.group_of_slot[3].? != s.group_of_slot[1].?);
     try std.testing.expectEqual(s.group_of_slot[1], s.group_of_slot[4]);
     try std.testing.expectEqual(@as(usize, 48), widthThreePerColumn(13)); // ceil(13/3)=5 batched + 1 cumulative
     try std.testing.expectEqual(Global.Layout.ramWidth(.{ .ram_queries = 2 }), widthThreePerColumn(2)); // no gain at q=2
