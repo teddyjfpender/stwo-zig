@@ -39,4 +39,20 @@ Bit-exact against `chain_run` (values and status) on:
 | synthetic 64-128-wide Blake, 2k levels | 2.66 ms | 2.58-2.60 ms |
 | synthetic i.i.d. mixed widths, 20k levels | 39.56 ms | 34.3 ms (wide=never 29.9 ms) |
 
-Real node: see below (pending GPU).
+Ablation [M, synthetic width-1]: with the producer map disabled (no dependency waits; values not exact) the run takes 0.93 ms against 2.81 ms.
+So about 94 ns per level is the dependency hop itself (poll, fence, task arithmetic, store), and the per-chunk build is the smaller share.
+
+## Not yet measured (GPU blocked)
+Orphan pid 3302210 (m8-native-hybrid combined-serve) has held 30.1 GB on each GPU since 19:27Z; at 01:41Z it was still there. Not measured yet:
+- a real-node dump and replay (the WideWidth threshold of 32 is an [E] until then);
+- rv64_gate default and FLOW=1;
+- the canonical 3+3.
+
+Pod tmux `t2-pipe2` (`runs/m8-opt-T2-assignment-chain/pipe2.sh`, status in `pipe2.status`) starts by itself once both GPUs are below 2 GB. Its steps:
+1. Gate on 24628607, default path, with the dump env (`gate-1`).
+2. Replay the real node: chain_run vs chain_flow<never,16,32,64,128> (`bench2/dump-bench.log`), then delete the dump.
+3. Gate with STWO_RV64_M8_ASSIGNMENT_FLOW=1 (`gate-2`).
+
+Image: `build/m8-opt-T2-assignment-chain/img2`, lib sha256 9e56412b..., from source ff821a8c7.
+It is composed by `compose_image.py`: the m7-combined-residency recipe with 4 objects recompiled from the tree, because the frozen replacement objects are gone.
+Not landed: landing requires a gate PASS and a 3+3 that is not slower.
