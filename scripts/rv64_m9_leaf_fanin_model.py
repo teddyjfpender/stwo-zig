@@ -236,41 +236,78 @@ def depths(nodes, root):
     return d
 
 
-def schedule(nodes, root, gpus, t0, rw, arrivals=None):
-    """List scheduling, one node per GPU at a time, ready_dag priority (depth*2 + leaf) then id. `arrivals[i]` is the
-    time native proof i is ready (None = all at 0, the default after-native window). Returns makespan."""
+def node_time(node, t0, rw):
+    """Node wall [E]. `rw` is fitted on nodes whose max log is <= 23 only. A node whose largest padded log is 24 also
+    doubles the max-log domain work the per-trace-cell fit cannot see (composition polynomial, FRI first layers, OODS
+    over the 2^(maxlog+1) domain). Review sensitivity: COMP_TAX_CELLS cells-equivalent per extra log [E, unvalidated]."""
+    extra = COMP_TAX_CELLS * ((1 << node.log) - (1 << 23)) / (1 << 23) if node.log > 23 else 0.0
+    return t0 + rw * (node.cells + extra)
+
+
+# OM31 composition = 8 M31 coords x 2 split pieces x 2^maxlog rows [E]: +134 M cells-equivalent going 2^23 -> 2^24.
+COMP_TAX_CELLS = 8 * 2 * (1 << 23)
+
+
+def schedule(nodes, root, gpus, t0, rw, arrivals=None, native_s=None, eager=True):
+    """List scheduling, one job per GPU at a time, ready_dag priority (depth*2 + leaf) then id. Returns makespan.
+
+    * `native_s=None`: the after-native window. All natives are done at t = 0 and every GPU is free (bench15
+      `recursion after native`, the calibration target).
+    * `native_s=[d_i]` (review fix): the JOINT request schedule. Native proof i is a job of d_i seconds on the SAME
+      GPUs (one native or one node per GPU at a time, as today's lanes; a node peaks 22-28 GB of a 32 GB card, so a
+      node cannot co-reside with a native). A leaf is ready when its last native finishes. `eager=True` lets a ready
+      recursion node pre-empt the native queue (streaming); `eager=False` runs every native first (today).
+    `arrivals` is the pre-review model (natives land on a fixed clock while recursion runs on all GPUs): it
+    double-books the GPUs and is kept only to reproduce the retracted `stream_tail` numbers."""
     d = depths(nodes, root)
-    leaf_ready = {}
-    native_cursor = 0
+    prio = lambda i: d[i] * 2 + (nodes[i].kind == "leaf")
+    leaf_natives = {}
+    cursor = 0
     for i, n in enumerate(nodes):
         if n.kind == "leaf":
-            last = native_cursor + n.natives - 1
-            leaf_ready[i] = 0.0 if arrivals is None else arrivals[last]
-            native_cursor += n.natives
+            leaf_natives[i] = (cursor, cursor + n.natives - 1)
+            cursor += n.natives
+    n_nat = cursor
+    nat_done = [None] * n_nat
+    if native_s is None:
+        nat_done = [0.0 if arrivals is None else arrivals[j] for j in range(n_nat)]
     finish = [None] * len(nodes)
     free = [0.0] * gpus
     pending = set(range(len(nodes)))
-    while pending:
+    next_native = 0 if native_s is not None else n_nat
+    while pending or next_native < n_nat:
+        g = min(range(gpus), key=lambda j: free[j])
+        now = free[g]
         cands = []
         for i in pending:
             n = nodes[i]
             if n.kind == "leaf":
-                cands.append((leaf_ready[i], i))
+                last = nat_done[leaf_natives[i][1]]
+                if last is not None:
+                    cands.append((last, i))
             elif all(finish[c] is not None for c in n.children):
                 cands.append((max(finish[c] for c in n.children), i))
-        g = min(range(gpus), key=lambda j: free[j])
-        now = free[g]
         ready_now = [c for c in cands if c[0] <= now + 1e-12]
+        run_native = next_native < n_nat and (not eager or not ready_now)
+        if run_native:
+            nat_done[next_native] = now + native_s[next_native]
+            free[g] = nat_done[next_native]
+            next_native += 1
+            continue
         if ready_now:
-            _, i = max(ready_now, key=lambda c: (d[c[1]] * 2 + (nodes[c[1]].kind == "leaf"), -c[1]))
+            _, i = max(ready_now, key=lambda c: (prio(c[1]), -c[1]))
             start = now
-        else:
-            t, i = min(cands, key=lambda c: (c[0], -(d[c[1]] * 2 + (nodes[c[1]].kind == "leaf")), c[1]))
+        elif cands:
+            t, i = min(cands, key=lambda c: (c[0], -prio(c[1]), c[1]))
             start = t
-        finish[i] = start + t0 + rw * nodes[i].cells
+        else:  # nothing ready on this GPU yet: idle it until the next event
+            free[g] = min(x for x in free if x > now) if any(x > now for x in free) else now
+            continue
+        finish[i] = start + node_time(nodes[i], t0, rw)
         free[g] = finish[i]
         pending.remove(i)
     return finish[root]
+
 
 
 # Per-node memory [E]. Today: one node peaks ~22 GB live at fold size (1.866 G cells) [M/D, rv64-m8-engineering-scope.md
@@ -310,12 +347,20 @@ def summarize(block, opts, cal):
     out["leaf_classes"] = sorted({"+".join(items[f:f + k]) for f, k in groups})
     for g in (2, 4):
         out[f"window_{g}gpu_s"] = round(schedule(nodes, root, g, cal["t0"], cal["rw"]), 2)
-        # Streaming: natives finish uniformly across the native window (bench15 native window, else 0.10 s/Minstr
-        # 2-GPU fit / (g/2)) and leaves start as soon as their last native is ready [E].
-        window = (b[5][0] if b[5] else 0.10 * b[1]) * 2 / g
+        # Native wall per proof [E]: bench15 2-GPU native window (else the 0.10 s/Minstr 2-GPU fit) x 2 GPU-slots / n.
+        w2 = b[5][0] if b[5] else 0.10 * b[1]
         n = len(items)
+        native_s = [w2 * 2 / n] * n
+        window = w2 * 2 / g
+        serial = schedule(nodes, root, g, cal["t0"], cal["rw"], native_s=native_s, eager=False)
+        eager = schedule(nodes, root, g, cal["t0"], cal["rw"], native_s=native_s, eager=True)
+        out[f"native_window_{g}gpu_s"] = round(window, 2)
+        out[f"request_{g}gpu_s"] = round(min(serial, eager), 2)  # native + recursion makespan, shared GPUs [E]
+        out[f"request_policy_{g}gpu"] = "eager" if eager < serial else "natives_first"
+        out[f"tail_{g}gpu_s"] = round(min(serial, eager) - window, 2)
+        # Retracted pre-review number (GPUs double-booked by natives and recursion); kept for the audit trail only.
         arrivals = [window * (i + 1) / n for i in range(n)]
-        out[f"stream_tail_{g}gpu_s"] = round(schedule(nodes, root, g, cal["t0"], cal["rw"], arrivals) - window, 2)
+        out[f"retracted_stream_tail_{g}gpu_s"] = round(schedule(nodes, root, g, cal["t0"], cal["rw"], arrivals) - window, 2)
     out["root_chain_nodes"] = critical_chain(nodes, root)
     return out
 
@@ -416,14 +461,14 @@ def main():
 
 def focus_table(result):
     lines = ["| block | gas | option | natives | leaves | folds | nodes | depth | cells G | rec GPU-s | 2-GPU window s | "
-             "4-GPU window s | 4-GPU stream tail s | max node G | max node GB today/post-P1 |", "|" + "---|" * 15]
+             "4-GPU window s | 2-GPU request s | 4-GPU request s | max node G | max node GB today/post-P1 |", "|" + "---|" * 16]
     for block in FOCUS:
         row = result["blocks"][str(block)]
         for name in OPTIONS:
             s = row[name]
             lines.append(f"| {block} | {row['gas_m']}M | {name} | {s['natives']} | {s['leaves']} | {s['folds']} | {s['nodes']} | "
                          f"{s['tree_depth']} | {s['cells_g']} | {s['recursion_gpu_s']} | {s['window_2gpu_s']} | "
-                         f"{s['window_4gpu_s']} | {s['stream_tail_4gpu_s']} | {s['max_node_cells_g']} | "
+                         f"{s['window_4gpu_s']} | {s['request_2gpu_s']} | {s['request_4gpu_s']} | {s['max_node_cells_g']} | "
                          f"{s['max_node_mem']['today_prop_gb']}/{s['max_node_mem']['post_p1_gb']} |")
     return "\n".join(lines)
 
@@ -445,7 +490,8 @@ def print_table(result):
             s = row[name]
             print(f"  {name:24s} L={s['leaves']:3d} F={s['folds']:3d} N={s['nodes']:3d} cells={s['cells_g']:7.2f}G "
                   f"gpu={s['recursion_gpu_s']:6.2f}s win2={s['window_2gpu_s']:6.2f} win4={s['window_4gpu_s']:6.2f} "
-                  f"tail2={s['stream_tail_2gpu_s']:5.2f} tail4={s['stream_tail_4gpu_s']:5.2f} "
+                  f"req2={s['request_2gpu_s']:6.2f}({s['request_policy_2gpu'][0]}) req4={s['request_4gpu_s']:6.2f}({s['request_policy_4gpu'][0]}) "
+                  f"tail2={s['tail_2gpu_s']:5.2f} tail4={s['tail_4gpu_s']:5.2f} old_tail2={s['retracted_stream_tail_2gpu_s']:5.2f} "
                   f"maxnode={s['max_node_cells_g']:.2f}G {s['max_node_mem']} pad={s['padding_waste']} groups={s['groups']}")
 
 

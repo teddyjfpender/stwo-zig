@@ -45,6 +45,27 @@ class LeafFaninModel(unittest.TestCase):
             fan = sum(n.cells for n in m.plan(block, **SAME)[2])
             self.assertLess(fan, base, block)
 
+    def test_joint_schedule_never_double_books_gpus(self):
+        """Review fix: natives and recursion share the GPUs, so the request makespan is bounded below by the native
+        window and by total work / GPUs, and natives-first equals native window + after-native window."""
+        cal = m.calibrate()
+        for block in (24628607, 26235168, 26235159):
+            b = next(r for r in m.BASKET if r[0] == block)
+            for opts in ({}, SAME):
+                _, _, nodes, root = m.plan(block, **opts)
+                n = sum(x.natives for x in nodes if x.kind == "leaf")
+                w2 = b[5][0] if b[5] else 0.10 * b[1]
+                native_s = [w2 * 2 / n] * n
+                for g in (2, 4):
+                    work = sum(native_s) + sum(m.node_time(x, cal["t0"], cal["rw"]) for x in nodes)
+                    for eager in (False, True):
+                        t = m.schedule(nodes, root, g, cal["t0"], cal["rw"], native_s=native_s, eager=eager)
+                        self.assertGreaterEqual(t + 1e-9, work / g)
+                        self.assertGreaterEqual(t + 1e-9, w2 * 2 / g)
+                    serial = m.schedule(nodes, root, g, cal["t0"], cal["rw"], native_s=native_s, eager=False)
+                    after = m.schedule(nodes, root, g, cal["t0"], cal["rw"])
+                    self.assertAlmostEqual(serial, w2 * 2 / g + after, delta=0.01 + w2 * 2 / n)
+
 
 if __name__ == "__main__":
     unittest.main()
