@@ -202,6 +202,15 @@ pub const KeccakTruthOptions = struct {
     one_per_family: bool = false,
     /// Coalesce non-Keccak families while keeping the bounded Keccak partition.
     coalesce_families: bool = false,
+    /// M8 p-truth-split (`STWO_RV64_M8_TRUTH_SPLIT=1`, default off; coalesced
+    /// plans only): a family whose single coalesced truth the profile refuses
+    /// (source MAX_LOG, V3 shape, or no admissible canonical rung) is split
+    /// into consecutive bounded spans instead. Families that fit keep their
+    /// single truth, so every plan the profile admits today is unchanged.
+    split_families: bool = false,
+    /// Bound split spans by the top canonical rung of their family (set when
+    /// the producer pads to rungs: strict roster or STWO_RV64_CANON_RUNGS=1).
+    rung_bound: bool = false,
     /// Throughput tables cleared four per degree-five batch
     /// (`throughput_quartet_v1`, 456 instead of 608 interaction columns).
     /// v3 default since it proved and fresh-verified a real 4-packet prefix
@@ -215,13 +224,25 @@ pub const KeccakTruthOptions = struct {
     /// Shared producer resource mapping: keep every partition preference on
     /// the actual capture-to-truth path, rather than only in reporting.
     pub fn fromResources(v3: bool, uniform: bool, resources: anytype) KeccakTruthOptions {
-        return .{ .v3 = v3, .uniform_throughput = uniform, .one_per_family = if (resources) |r| r.one_truth_per_family else false, .coalesce_families = if (resources) |r| r.coalesce_truth_families else false };
+        return .{ .v3 = v3, .uniform_throughput = uniform, .one_per_family = if (resources) |r| r.one_truth_per_family else false, .coalesce_families = if (resources) |r| r.coalesce_truth_families else false, .split_families = truthSplitEnabled(), .rung_bound = canonRungsEnabled() };
     }
     pub fn throughput(self: KeccakTruthOptions) KeccakPolicy {
         if (self.quartet and self.r27) return .throughput_r27_v1;
         return if (self.quartet) .throughput_quartet_v1 else .throughput_v1;
     }
 };
+fn envFlag(name: []const u8) bool {
+    const flag = std.posix.getenv(name) orelse return false;
+    return std.mem.eql(u8, flag, "1");
+}
+/// `STWO_RV64_M8_TRUTH_SPLIT=1` (default off): see `KeccakTruthOptions.split_families`.
+pub fn truthSplitEnabled() bool {
+    return envFlag("STWO_RV64_M8_TRUTH_SPLIT");
+}
+/// Same predicate gkr_main uses to pad declarations to canonical rungs.
+fn canonRungsEnabled() bool {
+    return @import("../../word16_execution/native_policy.zig").strictRoster() or envFlag("STWO_RV64_CANON_RUNGS");
+}
 pub fn keccakTruthPolicyFor(options: KeccakTruthOptions, log: u32) KeccakPolicy {
     if (!options.v3) return .triple_v2;
     const throughput = options.throughput();
@@ -493,24 +514,90 @@ pub fn oneTruthPerFamily(a: std.mem.Allocator, total: [@import("../services/type
                 const piece = keccakSingle(options, calls, 22) orelse return error.OneTruthPerFamilySourceCapacity;
                 break :block .{ piece.log, W.keccakProfileWord(piece.policy) };
             },
-            .add, .double => .{ try SecpRow.logSize(if (family == .add) .add else .double, calls), SecpRow.PROFILE_WORD },
-            .sha256 => block: {
-                const log = try A.crypto.sha256.layout.logSize(calls);
-                if (log > @import("../sha256/roster.zig").MAX_LOG) return error.OneTruthPerFamilySourceCapacity;
-                break :block .{ log, 0 };
-            },
-            .arith256_mod => block: {
-                const log = try A.crypto.arith256.layout.logSize(calls);
-                if (log > @import("../arith256/roster.zig").MAX_LOG) return error.OneTruthPerFamilySourceCapacity;
-                break :block .{ log, 0 };
-            },
-            else => .{ try @import("../curves/roster.zig").logSize(ST.curveOp(family).?, calls), 0 },
+            else => try nonKeccakLogs(family, calls),
         };
         const declaration = W.TruthDeclaration{ .family = family, .first_id = 1, .calls = calls, .logs = logs };
         try @import("../services/gkr_local/service_scope.zig").truthDeclaration(declaration);
         try out.append(a, declaration);
     }
     return out.toOwnedSlice(a);
+}
+/// Wire logs of one non-Keccak V3 truth over `calls` (the single-truth sizing
+/// of `oneTruthPerFamily`; source caps return OneTruthPerFamilySourceCapacity).
+fn nonKeccakLogs(family: @import("../services/types.zig").Family, calls: u32) ![2]u32 {
+    const ST = @import("../services/types.zig");
+    return switch (family) {
+        .keccak => error.NotV3Truth,
+        .add, .double => .{ try SecpRow.logSize(if (family == .add) .add else .double, calls), SecpRow.PROFILE_WORD },
+        .sha256 => block: {
+            const log = try A.crypto.sha256.layout.logSize(calls);
+            if (log > @import("../sha256/roster.zig").MAX_LOG) return error.OneTruthPerFamilySourceCapacity;
+            break :block .{ log, 0 };
+        },
+        .arith256_mod => block: {
+            const log = try A.crypto.arith256.layout.logSize(calls);
+            if (log > @import("../arith256/roster.zig").MAX_LOG) return error.OneTruthPerFamilySourceCapacity;
+            break :block .{ log, 0 };
+        },
+        else => .{ try @import("../curves/roster.zig").logSize(ST.curveOp(family).?, calls), 0 },
+    };
+}
+/// Source cap (roster MAX_LOG) of one V3 truth of `family`.
+fn sourceMaxLog(family: @import("../services/types.zig").Family) u32 {
+    return switch (family) {
+        .keccak => 22,
+        .sha256 => @import("../sha256/roster.zig").MAX_LOG,
+        .arith256_mod => @import("../arith256/roster.zig").MAX_LOG,
+        .add, .double => SecpRow.MAX_LOG,
+        else => @import("../curves/roster.zig").MAX_LOG,
+    };
+}
+/// Top canonical rung log of `family` with wire aux `aux` (null: no entry).
+pub fn topRungLog(table: anytype, family: @import("../services/types.zig").Family, aux: u32) ?u32 {
+    const canon = Canon.Family.truth(family);
+    for (table.TRUTH) |e| {
+        if (e.family == canon and e.aux == aux) return e.logs[e.logs.len - 1];
+    }
+    return null;
+}
+/// The single coalesced truth of `family`, or null where the D2 profile
+/// refuses it: source capacity, V3 shape/geometry, or (rung_bound) no
+/// admissible canonical rung. The returned declaration is exactly the one
+/// `oneTruthPerFamily` emits.
+fn admittedSingle(family: @import("../services/types.zig").Family, calls: u32, rung_bound: bool) ?W.TruthDeclaration {
+    const logs = nonKeccakLogs(family, calls) catch return null;
+    const declaration = W.TruthDeclaration{ .family = family, .first_id = 1, .calls = calls, .logs = logs };
+    @import("../services/gkr_local/service_scope.zig").truthDeclaration(declaration) catch return null;
+    if (rung_bound) {
+        const top = topRungLog(@import("canon_native_rungs.zig"), family, logs[1]) orelse return null;
+        if (logs[0] > top) return null;
+    }
+    return declaration;
+}
+/// Consecutive spans of `family` covering IDs 1..calls in order: full spans of
+/// 2^cap - 1 calls (one padding row each; cap = source MAX_LOG, also bounded
+/// by the family's top canonical rung when `rung_bound`), then the remainder
+/// at its own smallest log. Each span is an ordinary admitted V3 geometry
+/// (validated by the same `truthDeclaration` the single truth passes).
+pub fn appendSplitFamily(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), family: @import("../services/types.zig").Family, calls: u32, rung_bound: bool) !void {
+    var cap = sourceMaxLog(family);
+    if (rung_bound) {
+        // Every non-Keccak V3 truth has wire aux 0.
+        const top = topRungLog(@import("canon_native_rungs.zig"), family, 0) orelse return error.CanonFamilyMissing;
+        cap = @min(cap, top);
+    }
+    const capacity: u32 = (@as(u32, 1) << @intCast(cap)) - 1;
+    var next: u32 = 1;
+    var left = calls;
+    while (left > 0) {
+        const span = @min(capacity, left);
+        const logs = try nonKeccakLogs(family, span);
+        const declaration = W.TruthDeclaration{ .family = family, .first_id = next, .calls = span, .logs = logs };
+        try @import("../services/gkr_local/service_scope.zig").truthDeclaration(declaration);
+        try out.append(a, declaration);
+        next = try std.math.add(u32, next, span);
+        left -= span;
+    }
 }
 /// Preserve Keccak's admitted bounded shards; combine each other family into
 /// one physical proof. This explicit partial plan does not claim one Keccak proof.
@@ -519,6 +606,19 @@ pub fn coalesceTruthFamilies(a: std.mem.Allocator, total: [@import("../services/
     var out: std.ArrayList(W.TruthDeclaration) = .empty;
     errdefer out.deinit(a);
     try appendKeccakSecp(a, &out, .{ total[0], 0, 0 }, max_log, options);
+    if (options.split_families) {
+        // Per family, in family order (the receiver's span order): the single
+        // admitted truth where the profile plans it today, bounded spans only
+        // where it refuses.
+        const ST = @import("../services/types.zig");
+        for (std.enums.values(ST.Family)[1..], total[1..]) |family, calls| {
+            if (calls == 0) continue;
+            if (admittedSingle(family, calls, options.rung_bound)) |declaration| {
+                try out.append(a, declaration);
+            } else try appendSplitFamily(a, &out, family, calls, options.rung_bound);
+        }
+        return out.toOwnedSlice(a);
+    }
     var remainder = total;
     remainder[0] = 0;
     const rest = try oneTruthPerFamily(a, remainder, options);
@@ -561,6 +661,129 @@ test "one truth per family partial coalescing preserves bounded Keccak and admit
         try canonicalTruths(truth[3..], @import("canon_native_rungs.zig"), &classes);
         try std.testing.expectEqual(@as(u32, 14), truth[3].logs[0]);
         try std.testing.expectEqual(@as(u32, 14), truth[4].logs[0]);
+    }
+}
+test "truth split leaves every plan the coalesced profile admits unchanged" {
+    const ST = @import("../services/types.zig");
+    for ([_][5]u32{ .{ 20994, 14855, 14001, 3157, 25 }, .{ 29998, 10358, 9751, 2901, 319 }, .{ 1, 1, 1, 1, 1 }, .{ 40000, 0, 0, 8191, 32767 } }) |counts| {
+        var total: [ST.FAMILIES]u32 = @splat(0);
+        @memcpy(total[0..5], &counts);
+        total[ST.FIRST_CURVE] = 300;
+        total[ST.FIRST_CURVE + 2] = 9000;
+        const base = KeccakTruthOptions{ .v3 = true, .uniform_throughput = true, .coalesce_families = true };
+        const off = try coalesceTruthFamilies(std.testing.allocator, total, base, 18);
+        defer std.testing.allocator.free(off);
+        inline for (.{ false, true }) |rung_bound| {
+            var split = base;
+            split.split_families = true;
+            split.rung_bound = rung_bound;
+            const on = try coalesceTruthFamilies(std.testing.allocator, total, split, 18);
+            defer std.testing.allocator.free(on);
+            try std.testing.expectEqualSlices(W.TruthDeclaration, off, on);
+        }
+    }
+}
+/// Receiver span rule (services/protocol.zig): family order, contiguous IDs
+/// from 1, exact coverage, non-empty spans.
+fn expectReceiverSpans(truth: []const W.TruthDeclaration, total: [@import("../services/types.zig").FAMILIES]u32) !void {
+    const ST = @import("../services/types.zig");
+    var next: [ST.FAMILIES]u32 = @splat(1);
+    var previous: u8 = 0;
+    for (truth) |d| {
+        const family = @intFromEnum(d.family);
+        try std.testing.expect(family >= previous and d.calls != 0 and d.first_id == next[family]);
+        previous = family;
+        next[family] += d.calls;
+    }
+    for (next, total) |n, t| try std.testing.expectEqual(t + 1, n);
+}
+test "truth split plans refused coalesced families as bounded admitted spans" {
+    const ST = @import("../services/types.zig");
+    var total: [ST.FAMILIES]u32 = @splat(0);
+    // sha256 > 2^13-1 (OneTruthPerFamilySourceCapacity), secp rows > 2^16-1
+    // (V3TruthShapeExceeded), arith256 log16 (source ok, no log16 rung).
+    @memcpy(total[0..5], &[_]u32{ 120000, 150001, 131070, 20000, 40000 });
+    total[ST.FIRST_CURVE] = 9000; // bn254 g1 add: top rung 13
+    total[ST.FIRST_CURVE + 2] = 70000; // bn254 fp2 mul: source cap 16
+    const base = KeccakTruthOptions{ .v3 = true, .uniform_throughput = true, .coalesce_families = true };
+    // Refused today: secp add (family 1) fails first, as on the 4 largest blocks.
+    try std.testing.expectError(error.V3TruthShapeExceeded, coalesceTruthFamilies(std.testing.allocator, total, base, 18));
+    var split = base;
+    split.split_families = true;
+    split.rung_bound = true;
+    const truth = try coalesceTruthFamilies(std.testing.allocator, total, split, 18);
+    defer std.testing.allocator.free(truth);
+    try expectReceiverSpans(truth, total);
+    // Every span is source-admitted and lands on an existing canonical rung.
+    const Rungs = @import("canon_native_rungs.zig");
+    const padded = try std.testing.allocator.dupe(W.TruthDeclaration, truth);
+    defer std.testing.allocator.free(padded);
+    var first_non_keccak: usize = 0;
+    while (padded[first_non_keccak].family == .keccak) first_non_keccak += 1;
+    const classes = try std.testing.allocator.alloc(CanonClass, padded.len - first_non_keccak);
+    defer std.testing.allocator.free(classes);
+    try canonicalTruths(padded[first_non_keccak..], Rungs, classes);
+    for (padded[first_non_keccak..]) |d| try @import("../services/gkr_local/service_scope.zig").truthDeclaration(d);
+    // Spans per family: add 3 (65535, 65535, 18931), double 2 (65535 x 2),
+    // sha256 3 (8191, 8191, 3618), arith 2 (32767, 7233), bn254 add 2, fp2 2.
+    var spans: [ST.FAMILIES]usize = @splat(0);
+    for (truth) |d| spans[@intFromEnum(d.family)] += 1;
+    try std.testing.expectEqualSlices(usize, &.{ 3, 2, 3, 2, 2, 0, 2 }, spans[1..8]);
+    for (truth) |d| if (d.family == .add) try std.testing.expect(d.logs[0] <= 16);
+    // Without the rung bound only the source caps apply: arith 40000 fits log16.
+    split.rung_bound = false;
+    const loose = try coalesceTruthFamilies(std.testing.allocator, total, split, 18);
+    defer std.testing.allocator.free(loose);
+    try expectReceiverSpans(loose, total);
+    var arith: usize = 0;
+    for (loose) |d| if (d.family == .arith256_mod) {
+        arith += 1;
+        try std.testing.expectEqual(@as(u32, 16), d.logs[0]);
+    };
+    try std.testing.expectEqual(@as(usize, 1), arith);
+}
+test "truth split plans the M3 basket family totals the coalesced profile refuses" {
+    const ST = @import("../services/types.zig");
+    // Per-family call totals of the M3 basket bundles (runs/integrate/<block>-2gpu-*/
+    // bundle.json): families 0..4 then the curve families 5..9; refused = the
+    // bench15-1 D2 coalesced refusal (24697070 is the admitted control).
+    const Case = struct { block: u32, calls: [10]u32, refused: bool };
+    const cases = [_]Case{
+        .{ .block = 24626900, .calls = .{ 56377, 32313, 30376, 8435, 156, 0, 0, 0, 0, 0 }, .refused = true },
+        .{ .block = 24697073, .calls = .{ 61612, 51545, 48626, 12328, 399, 0, 0, 0, 6767, 7303 }, .refused = true },
+        .{ .block = 26235168, .calls = .{ 85653, 42223, 39751, 12042, 24705, 1140, 3732, 58848, 6767, 7303 }, .refused = true },
+        .{ .block = 25229955, .calls = .{ 94286, 46095, 43501, 15797, 8366, 3042, 10542, 24976, 0, 0 }, .refused = true },
+        .{ .block = 25229951, .calls = .{ 123870, 62451, 58751, 19431, 2900, 1514, 5277, 12488, 0, 0 }, .refused = true },
+        .{ .block = 24628590, .calls = .{ 146822, 80632, 75751, 23823, 595, 0, 0, 0, 0, 0 }, .refused = true },
+        .{ .block = 24628595, .calls = .{ 166402, 98980, 93122, 23237, 1823, 158, 506, 12488, 0, 0 }, .refused = true },
+        .{ .block = 24628611, .calls = .{ 176023, 95860, 90251, 29434, 1264, 0, 0, 0, 6767, 7303 }, .refused = true },
+        .{ .block = 26235159, .calls = .{ 151832, 86324, 81251, 27732, 10915, 4530, 15695, 12488, 13534, 14606 }, .refused = true },
+        .{ .block = 24697070, .calls = .{ 58880, 37465, 35251, 7807, 2273, 368, 1253, 12488, 0, 0 }, .refused = false },
+    };
+    const base = KeccakTruthOptions{ .v3 = true, .uniform_throughput = true, .coalesce_families = true };
+    for (cases) |case| {
+        var total: [ST.FAMILIES]u32 = @splat(0);
+        @memcpy(total[0..10], &case.calls);
+        const off = coalesceTruthFamilies(std.testing.allocator, total, base, 18);
+        if (case.refused) {
+            try std.testing.expect(std.meta.isError(off));
+        } else {
+            std.testing.allocator.free(try off);
+        }
+        inline for (.{ false, true }) |rung_bound| {
+            var split = base;
+            split.split_families = true;
+            split.rung_bound = rung_bound;
+            const truth = try coalesceTruthFamilies(std.testing.allocator, total, split, 18);
+            defer std.testing.allocator.free(truth);
+            try expectReceiverSpans(truth, total);
+            for (truth) |d| if (d.family != .keccak) try @import("../services/gkr_local/service_scope.zig").truthDeclaration(d);
+            if (!case.refused) {
+                const control = try coalesceTruthFamilies(std.testing.allocator, total, base, 18);
+                defer std.testing.allocator.free(control);
+                try std.testing.expectEqualSlices(W.TruthDeclaration, control, truth);
+            }
+        }
     }
 }
 test "one truth per family preserves exact dev call spans within existing source authority" {

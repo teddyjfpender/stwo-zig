@@ -240,12 +240,24 @@ def nsys_window_counts(sqlite, windows):
         db.close()
 
 
-def require_measurement_blocks(args):
-    """One explicitly requested M7 scale probe; never open a basket loop.
+ALLOW_BLOCKS_ENV = "STWO_RV64_HARNESS_ALLOW_BLOCKS"
 
-    --bench-basket-block: the 15-block benchmark (scripts/rv64_m8_bench15.py) serves
-    exactly one M3-basket block per service, ascending, stopping on the first failure.
-    """
+
+def allowed_blocks(args, environ=None):
+    """Explicit owner opt-in for non-development blocks: --allow-block N (repeatable) or
+    STWO_RV64_HARNESS_ALLOW_BLOCKS=N[,M]. Harness-only: STWO_RV64_* keys never reach the producer."""
+    environ = os.environ if environ is None else environ
+    result = set(getattr(args, "allow_block", None) or [])
+    for item in environ.get(ALLOW_BLOCKS_ENV, "").replace(",", " ").split():
+        result.add(int(item))
+    return result
+
+
+def require_measurement_blocks(args, environ=None):
+    """Development blocks by default. A non-development block needs an explicit opt-in
+    (allowed_blocks), one block per service and --repeat <= 2; or the M7 scale probe.
+    Never opens a basket loop. --bench-basket-block: the 15-block benchmark
+    (scripts/rv64_m8_bench15.py) serves exactly one M3-basket block per service."""
     large = [block for block in args.blocks if block not in P.DEV_BLOCKS]
     if not large:
         return
@@ -253,6 +265,12 @@ def require_measurement_blocks(args):
         basket = {job["block"] for job in P.plan_template()["jobs"]}
         if len(args.blocks) != 1 or large[0] not in basket or args.repeat > 2:
             raise SystemExit("--bench-basket-block serves one M3-basket block per service, --repeat <= 2")
+        return
+    opted = allowed_blocks(args, environ)
+    if opted:
+        if len(args.blocks) != 1 or large[0] not in opted or args.repeat > 2:
+            raise SystemExit(f"owner rule: --allow-block admits exactly one opted-in block per service with --repeat <= 2 "
+                             f"(blocks {args.blocks}, opted in {sorted(opted)}, repeat {args.repeat})")
         return
     if not getattr(args, "allow_scale_probe", False) or large != [24697070] or args.repeat != 1:
         raise SystemExit("owner rule: scale probe requires --allow-scale-probe, block 24697070 once, --repeat 1")
@@ -1005,6 +1023,9 @@ def main():
     s.add_argument("--repeat", type=int, default=2)
     s.add_argument("--allow-scale-probe", action="store_true", help="permit one 24697070 request only, with --repeat 1")
     s.add_argument("--bench-basket-block", action="store_true", help="rv64_m8_bench15.py only: one M3-basket block per service, --repeat <= 2")
+    s.add_argument("--allow-block", type=int, action="append", default=[],
+                   help="explicit owner opt-in for one non-development block (e.g. 26235159): one block per service, --repeat <= 2; "
+                        "also STWO_RV64_HARNESS_ALLOW_BLOCKS")
     s.add_argument("--recursion-max-pending-authorities", type=int, help="source queue admission floor; 4logical lanes atarity4 require21 (2lanes require17)")
     s.add_argument("--coalesce-truth-families", action="store_true", help="opt-in non-Keccak family coalescing; preserves bounded Keccak shards")
     s.add_argument("--security-profile", choices=("conjectured128_b2_q108_p20_fold4", "d2_native_b4_q54_p20_fold4"), help="explicit opt-in native profile; preserves template default when absent")

@@ -7,6 +7,8 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import rv64_gate as gate
 import rv64_m5_negative_corpus as corpus
+import rv64_m4_resident as resident
+from types import SimpleNamespace
 
 
 class GateTests(unittest.TestCase):
@@ -80,6 +82,55 @@ class GateTests(unittest.TestCase):
                 {'block': 26235156, 'trial': 1, 'proof': 'not-cold'}]}))
             self.assertEqual(corpus.proof_dir(root)[2], proof)
 
+
+    def test_default_runtime_is_the_source_built_image(self):
+        self.assertEqual(gate.RUNTIME, gate.stack.DEFAULT_RUNTIME)
+        default = json.loads(gate.stack.DEFAULT_RUNTIME.read_text())
+        frozen = json.loads(gate.stack.FROZEN_P0_RUNTIME.read_text())
+        self.assertEqual(default['schema'], frozen['schema'])
+        self.assertEqual(set(default['assets']), set(frozen['assets']))
+        self.assertTrue(default['asset_sha256']['library'].startswith('25d0e62f'))
+        self.assertTrue(frozen['asset_sha256']['library'].startswith('a25cc3b2'))
+
+    def test_runner_owner_rule_needs_explicit_block_opt_in(self):
+        stack = gate.stack
+        self.assertFalse(stack.check_block(24628607, []))
+        self.assertFalse(stack.check_block(26235156, [26235159]))
+        with self.assertRaises(RuntimeError): stack.check_block(26235159, [])
+        with self.assertRaises(RuntimeError): stack.check_block(26235159, [24697070])
+        self.assertTrue(stack.check_block(26235159, [26235159]))
+        preset = json.loads(stack.DEFAULT_PRESET.read_text())
+        assets = {k: '/x/' + k for k in ('driver', 'receiver', 'library', 'sparse', 'observer', 'process_budget_guard')}
+        manifest = {'source_root': '/s', 'assets': assets, 'preset': preset, 'block': 26235159, 'allowed_block': True}
+        argv, _ = stack.command(manifest, 'baseline', 0, 'r', False)
+        self.assertEqual(argv[argv.index('--allow-block') + 1], '26235159')
+        self.assertIn('--coalesce-truth-families', argv)
+        argv, _ = stack.command(dict(manifest, block=24628607, allowed_block=False,
+                                     preset=dict(preset, coalesce_truth_families=False)), 'baseline', 0, 'r', False)
+        self.assertNotIn('--allow-block', argv)
+        self.assertNotIn('--coalesce-truth-families', argv)
+
+    def test_large_block_prune_keeps_reports(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'recursion-om31').mkdir()
+            (root / 'recursion-om31/root.proof').write_bytes(b'12345')
+            (root / 'cells.bin').write_bytes(b'123')
+            (root / 'report.json').write_text('{}')
+            self.assertEqual(gate.stack.prune_verified_payload(root), 8)
+            self.assertEqual(sorted(p.name for p in root.rglob('*') if p.is_file()), ['report.json'])
+
+    def test_daemon_owner_rule_needs_explicit_block_opt_in(self):
+        def args(blocks, repeat=2, allow=(), probe=False):
+            return SimpleNamespace(blocks=list(blocks), repeat=repeat, allow_block=list(allow), allow_scale_probe=probe)
+        resident.require_measurement_blocks(args([24628607]), {})
+        with self.assertRaises(SystemExit): resident.require_measurement_blocks(args([26235159]), {})
+        resident.require_measurement_blocks(args([26235159], allow=[26235159]), {})
+        resident.require_measurement_blocks(args([26235159]), {resident.ALLOW_BLOCKS_ENV: '26235159,24697070'})
+        for bad in (args([26235159], repeat=3, allow=[26235159]), args([26235159, 24628611], allow=[26235159, 24628611]),
+                    args([26235159], allow=[24697070]), args([26235159, 24628607], allow=[26235159])):
+            with self.assertRaises(SystemExit): resident.require_measurement_blocks(bad, {})
+        resident.require_measurement_blocks(args([24697070], repeat=1, probe=True), {})
 
 if __name__ == '__main__':
     unittest.main()

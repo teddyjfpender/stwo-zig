@@ -19,7 +19,10 @@ import rv64_m7_integration_stack as stack
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / 'vectors/reports/rv64-m7-20261105/d2-composed/combined-d2-package'
-RUNTIME = ROOT / 'design/riscv-proving-stack/m7-handoff/p0-runtime.json'
+# Canonical default runtime: the source-built opt-combined image (owner decision
+# 2026-11-07). Pass --runtime design/riscv-proving-stack/m7-handoff/p0-runtime.json
+# for the frozen a25 control.
+RUNTIME = stack.DEFAULT_RUNTIME
 # A positive control plus byte, statement, cross-block, and coherent mutations.
 # Coherent mutations rewrite bundle hashes and exercise semantic verification.
 CASES = ('C00-control', 'S08-coherent-permute-native', 'S09-coherent-drop-native',
@@ -111,7 +114,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--stream', default='m7-integrate')
     p.add_argument('--out', required=True, type=Path, help='new unique receipt directory')
-    p.add_argument('--runtime', default=RUNTIME, type=Path)
+    p.add_argument('--runtime', default=RUNTIME, type=Path, help='pinned CUDA runtime JSON (default: default-runtime.json)')
     p.add_argument('--block', type=int, choices=(26235156, 24628607), default=26235156)
     p.add_argument('--donor', type=Path, help='accepted opposite dev block; frozen D2 run by default')
     p.add_argument('--source-commit', required=True)
