@@ -215,7 +215,7 @@ def main():
     ap.add_argument("--core-raw", type=Path, default=Path("/workspace/m3/catalogues-v3/core"))
     ap.add_argument("--core-parts", type=Path, default=Path("/workspace/m3/build/m7-integrate/cuda/core-parts"))
     ap.add_argument("--plan", type=Path, required=True,
-                    help="JSON list of {kind: truth-shard|core-shard|plain|bounds-only, symbol, source?, launch_bounds, ab}")
+                    help="JSON list of {kind: truth-shard|core-shard|plain|bounds-only, symbol, source?, launch_bounds, nvcc_flags?, ab}")
     ap.add_argument("--include", type=Path, action="append", default=[Path("/workspace/m3/build/m7-integrate/cuda")],
                     help="extra -I for generated headers (projection_fixture.h)")
     ap.add_argument("--out", type=Path, required=True)
@@ -265,15 +265,17 @@ def main():
         obj = out / "obj" / (source.stem + ".o")
         log = out / "obj" / (source.stem + ".ptxas.log")
         start = time.time()
+        key = " ".join([sha(cu), *entry.get("nvcc_flags", [])])
+        report["nvcc_flags"] = entry.get("nvcc_flags", [])
         if not (obj.is_file() and (out / "obj" / (source.stem + ".src.sha256")).is_file()
-                and (out / "obj" / (source.stem + ".src.sha256")).read_text() == sha(cu)):
+                and (out / "obj" / (source.stem + ".src.sha256")).read_text() == key):
             capped = subprocess.run([sys.executable, str(Path(__file__).resolve().parent / "rv64_m8_rss_cap.py"),
-                                     str(args.rss_cap_gb), str(log), "--", args.nvcc, *flags, "-Xptxas", "-v", "-c", str(cu), "-o", str(obj)],
+                                     str(args.rss_cap_gb), str(log), "--", args.nvcc, *flags, *entry.get("nvcc_flags", []), "-Xptxas", "-v", "-c", str(cu), "-o", str(obj)],
                                     capture_output=True, text=True, timeout=args.compile_timeout)
             report["compile_rss"] = capped.stdout.strip()
             if capped.returncode:
                 raise RuntimeError(f"compile failed for {source.stem}: {capped.stdout.strip()} (see {log})")
-            (out / "obj" / (source.stem + ".src.sha256")).write_text(sha(cu))
+            (out / "obj" / (source.stem + ".src.sha256")).write_text(key)
         report["compile_seconds"] = round(time.time() - start, 1)
         usage = log.read_text() if log.is_file() else ""
         m = re.search(r"Used (\d+) registers", usage)
