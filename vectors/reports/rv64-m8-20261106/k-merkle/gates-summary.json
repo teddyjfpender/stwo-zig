@@ -1,0 +1,132 @@
+{
+ "schema": "rv64-m8-k-merkle-gates/v1",
+ "label": "M",
+ "scope": "rv64_gate.sh correctness gates (no timing claim); pod runs under /workspace/m3/runs/m8-k-merkle/<gate>/gate.json",
+ "images": {
+  "img1": {
+   "library_sha256": "4ec3f61ce2b442917e76651c91ee0fdc1b7095b4fe856a2bf58962200a5957a0",
+   "recompiled": [
+    "rv64/trace.cu",
+    "rv64/fri.cu",
+    "rv64/pcs_native.cu"
+   ],
+   "base": "opt-combined 25d0e62f"
+  },
+  "img2": {
+   "library_sha256": "9175bcb076e47b53deb38e862f6f083346a15eaccaa405f5ff188dcff9a4998f",
+   "library_bytes": 2055377512,
+   "recompiled": [
+    "rv64/trace.cu",
+    "rv64/fri.cu",
+    "rv64/pcs_native.cu",
+    "rv64/circuit_fill_chain.cu"
+   ],
+   "base": "opt-combined 25d0e62f"
+  }
+ },
+ "notes": {
+  "gate-5-def-24628607": "after rebase onto integrate 786429aca (harness/runtime-only changes); source ba9757375 = this branch minus receipts"
+ },
+ "gates": [
+  {
+   "gate": "gate-1-def-26235156",
+   "status": "PASS",
+   "block": 26235156,
+   "source_commit": "e86105e09",
+   "extra_env": {},
+   "assignment_dump": false,
+   "byte_identical": [
+    true,
+    true
+   ],
+   "receivers_accepted": [
+    true,
+    true
+   ],
+   "library_sha256": "4ec3f61ce2b442917e76651c91ee0fdc1b7095b4fe856a2bf58962200a5957a0",
+   "gate_json_sha256": "666085009840fb099c6169a10b0fe977043af738551e925635ec18abd974605b"
+  },
+  {
+   "gate": "gate-2-on-24628607",
+   "status": "PASS",
+   "block": 24628607,
+   "source_commit": "e86105e09",
+   "extra_env": {
+    "STWO_RV64_M8_MERKLE_FUSED": "1",
+    "STWO_RV64_PCS_STREAM_CHUNK_WORDS": "268435456",
+    "STWO_RV64_TRACE_STREAM_CHUNK_WORDS": "268435456",
+    "STWO_RV64_OUTER_ASSIGNMENT_GRAPH": "1"
+   },
+   "assignment_dump": true,
+   "byte_identical": [
+    true,
+    true
+   ],
+   "receivers_accepted": [
+    true,
+    true
+   ],
+   "library_sha256": "4ec3f61ce2b442917e76651c91ee0fdc1b7095b4fe856a2bf58962200a5957a0",
+   "gate_json_sha256": "8495c09ef60fd05cfdb333c2101b7be255ff6051f1aaee82d97a23e9e1c4ad27"
+  },
+  {
+   "gate": "gate-3-def-24628607",
+   "status": "PASS",
+   "block": 24628607,
+   "source_commit": "f7d22ccc8",
+   "extra_env": {},
+   "assignment_dump": false,
+   "byte_identical": [
+    true,
+    true
+   ],
+   "receivers_accepted": [
+    true,
+    true
+   ],
+   "library_sha256": "9175bcb076e47b53deb38e862f6f083346a15eaccaa405f5ff188dcff9a4998f",
+   "gate_json_sha256": "31f4da3612e447b2f2a3954b9b56562a06fed4c5d56c1813c0f3f660c9e9c01a"
+  },
+  {
+   "gate": "gate-4-on-26235156",
+   "status": "PASS",
+   "block": 26235156,
+   "source_commit": "f7d22ccc8",
+   "extra_env": {
+    "STWO_RV64_M8_MERKLE_FUSED": "1",
+    "STWO_RV64_PCS_STREAM_CHUNK_WORDS": "268435456",
+    "STWO_RV64_TRACE_STREAM_CHUNK_WORDS": "268435456",
+    "STWO_RV64_OUTER_ASSIGNMENT_GRAPH": "1"
+   },
+   "assignment_dump": false,
+   "byte_identical": [
+    true,
+    true
+   ],
+   "receivers_accepted": [
+    true,
+    true
+   ],
+   "library_sha256": "9175bcb076e47b53deb38e862f6f083346a15eaccaa405f5ff188dcff9a4998f",
+   "gate_json_sha256": "46961afff020f293e3f1d669c4cca4019dfe5a798aa26b40bb7940dfe9eb1b56"
+  },
+  {
+   "gate": "gate-5-def-24628607",
+   "status": "PASS",
+   "block": 24628607,
+   "source_commit": "ba9757375",
+   "extra_env": {},
+   "assignment_dump": false,
+   "byte_identical": [
+    true,
+    true
+   ],
+   "receivers_accepted": [
+    true,
+    true
+   ],
+   "library_sha256": "9175bcb076e47b53deb38e862f6f083346a15eaccaa405f5ff188dcff9a4998f",
+   "gate_json_sha256": "111cb68c8c9e68e27626490c30d1a95039c24aa45b1158f0dc0fb44e569ad415"
+  }
+ ]
+}
