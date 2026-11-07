@@ -42,8 +42,10 @@ Labels: [M] measured, [D] derived from measured values, [E] estimate.
     - pole at y = 1, 1/2 and 1/3;
     - a non-canonical y.
   - Final-status coverage: ok 75, order 94, field 63, pole 72.
-- **Tail cases.** 48 cases compare state, records, masks and every fold bank: `batch_tail<false>` vs `<true>`.
+- **Tail cases.** 192 cases compare state, records, masks and every fold bank: `batch_tail<false>` vs `<true>`.
   - Remaining rounds 1 to 4, base and OM31 numerators.
+  - Poisons (review): pole y = 1/2 or non-canonical y at a random tail round (later rounds take the block-uniform early exit), and a state that enters the tail already failed. Final status ok/order/field/pole 48/0/96/48.
+- **Bench validity (review).** After every timed rep the bench asserts `next_round == variables` and `status == ok`, so every timed launch is a full transition, not an early exit. Re-run after the review cleanup: the numbers below were reproduced within 0.1 µs (128 active 21.15, 1 active 20.43 µs).
 - **Result: 0 mismatched words.**
   - The selftest also caught a draft bug: idle tail warps wrote warp partials out of bounds. It was fixed before commit.
 

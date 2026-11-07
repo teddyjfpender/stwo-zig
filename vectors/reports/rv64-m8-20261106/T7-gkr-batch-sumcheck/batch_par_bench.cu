@@ -101,7 +101,11 @@ static int run_round_case(const Case &cs, int poison) {
 }
 
 // Tail: random fractions, the last R rounds of a V-variable batch fused in one CTA.
-static int run_tail_case(const Case &cs, uint32_t R) {
+// poison: 0 clean; 1 pole (y = 1/2) or 2 non-canonical y at a random tail round
+// (later rounds must take the block-uniform early exit in every round, no
+// barrier divergence); 3 the state enters the tail already failed (round_field).
+static int tail_status_seen[4] = {0, 0, 0, 0};
+static int run_tail_case(const Case &cs, uint32_t R, int poison) {
   const uint32_t n = cs.count, V = cs.variables, first = V - R;
   Dev<uint32_t> seed(9), claims(8 * n), alpha(8), point(8 * V), raw(16 * n), lambda(8);
   Dev<uint32_t> state0(STWO_RV64_BATCH_STATE_WORDS), rec(round_record_words);
@@ -119,6 +123,14 @@ static int run_tail_case(const Case &cs, uint32_t R) {
     batch_round<<<1, 1>>>(state0.p, jobs, r, point.p, rec.p);
   }
   CK(cudaDeviceSynchronize());
+  if (poison == 1 || poison == 2) {
+    std::vector<uint32_t> y(8, 0);
+    if (poison == 1) y[0] = 1073741824u; else y[5] = 2147483647u;
+    CK(cudaMemcpy(point.p + 8 * (first + uint32_t(rng() % R)), y.data(), 32, cudaMemcpyHostToDevice));
+  } else if (poison == 3) {
+    const uint32_t field = round_field; // RoundState: digest[8], draws, next_round, status
+    CK(cudaMemcpy(state0.p + 10, &field, 4, cudaMemcpyHostToDevice));
+  }
   const uint32_t eq_rows = 1u << (R - 1);
   Dev<uint32_t> eq(8 * eq_rows); h.assign(eq.n, 0); for (auto &x : h) x = rm31(); eq.put(h);
   std::vector<std::vector<uint32_t>> outs[2];
@@ -149,7 +161,8 @@ static int run_tail_case(const Case &cs, uint32_t R) {
     outs[arm].push_back(state.get()); outs[arm].push_back(records.get());
     for (auto *b : bufs) { outs[arm].push_back(b->get()); delete b; }
   }
-  if (outs[0] != outs[1]) { std::printf("TAIL MISMATCH count=%u V=%u R=%u\n", n, V, R); return 1; }
+  if (outs[0] != outs[1]) { std::printf("TAIL MISMATCH count=%u V=%u R=%u poison=%d\n", n, V, R, poison); return 1; }
+  if (outs[0][0][10] < 4) ++tail_status_seen[outs[0][0][10]];
   return 0;
 }
 
@@ -164,16 +177,18 @@ static int selftest() {
       }
   int tails = 0;
   for (uint32_t c : counts)
-    for (uint32_t R = 1; R <= 4; ++R) {
-      const uint32_t V = R + uint32_t(rng() % 6);
-      bad += run_tail_case(make_case(c, V, true), R); ++tails;
-    }
+    for (uint32_t R = 1; R <= 4; ++R)
+      for (int poison = 0; poison <= 3; ++poison) {
+        const uint32_t V = R + uint32_t(rng() % 6);
+        bad += run_tail_case(make_case(c, V, true), R, poison); ++tails;
+      }
   for (int k = 0; k < 40; ++k) { // long clean sumchecks at random shapes
     const uint32_t c = 1 + uint32_t(rng() % 128), V = 1 + uint32_t(rng() % 26);
     bad += run_round_case(make_case(c, V, k & 1), 0); ++cases;
   }
-  std::printf("selftest round_cases=%d (final status ok/order/field/pole = %d/%d/%d/%d) tail_cases=%d mismatches=%d %s\n", cases,
-              status_seen[0], status_seen[1], status_seen[2], status_seen[3], tails, bad, bad ? "FAIL" : "PASS");
+  std::printf("selftest round_cases=%d (final status ok/order/field/pole = %d/%d/%d/%d) tail_cases=%d (ok/order/field/pole = %d/%d/%d/%d) mismatches=%d %s\n",
+              cases, status_seen[0], status_seen[1], status_seen[2], status_seen[3], tails, tail_status_seen[0],
+              tail_status_seen[1], tail_status_seen[2], tail_status_seen[3], bad, bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }
 
@@ -231,6 +246,12 @@ static void bench(int reps) {
           if (rep) { per.push_back(ms * 1000); sum += ms * 1000; } // rep 0 = warm-up
         }
         if (rep) rep_mean.push_back(sum / V);
+        // Every timed launch must be a full transition, not an early exit.
+        const auto final_state = st.get();
+        if (final_state[9] != V || final_state[10] != round_ok) {
+          std::printf("BENCH INVALID shape=%s arm=%d next_round=%u status=%u\n", sh.name, arm, final_state[9], final_state[10]);
+          std::exit(3);
+        }
       }
       for (auto &e : ev) cudaEventDestroy(e);
       std::sort(per.begin(), per.end()); std::sort(rep_mean.begin(), rep_mean.end());

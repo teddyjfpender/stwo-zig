@@ -126,7 +126,7 @@ __device__ __forceinline__ bool advance_round_with_constant(RoundState* s, uint3
 // status, order, field, then pole; no state changes before all checks pass.
 struct RoundPrelude {
     OM31 y, prefix, k0, k2, p0, p2, ps;
-    uint32_t pole, reserved[3];
+    uint32_t pole;
 };
 // Transcript part of advance_round_with_constant given the prelude and the
 // raw-dependent products (computed in parallel by the caller). On success the

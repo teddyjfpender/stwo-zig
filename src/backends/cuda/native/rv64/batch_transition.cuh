@@ -138,7 +138,6 @@ __device__ __forceinline__ void cooperative_prelude(OM31 prefix_in, OM31 y, Roun
     out->p2 = p2;
     out->ps = sub(cb, cc);
     out->pole = is_zero(prefix) || is_zero(denominator) || is_zero(cubic_denominator);
-    out->reserved[0] = out->reserved[1] = out->reserved[2] = 0;
   }
 }
 template <uint32_t OracleThreads, uint32_t BlockThreads>
@@ -266,12 +265,10 @@ __device__ __forceinline__ void advance_batch_round_block(BatchState *s, const B
     const OM31 v = group_mul(g == 0 ? challenge : g == 1 ? c[1] : c[3], challenge);
     const OM31 x2 = from_group(v, 0), c1x = from_group(v, 1), c3x = from_group(v, 2);
     const OM31 tail = from_group(group_mul(add(c[2], c3x), x2), 0);
-    if (t == OracleThreads) {
+    // s->round.correction is already one() (thread 0 sets it before the
+    // transcript step; the serial path multiplies by eq and then resets it).
+    if (t == OracleThreads)
       s->round.claim = add(add(c[0], c1x), tail);
-      // advance_round_with_constant multiplies correction by eq; the batch
-      // transition then resets it to one().
-      s->round.correction = one();
-    }
   }
   if (t < OracleThreads) {
     // (1-x)(1-y) + x y == (1-y) - x (1-2y), one multiplication (exact).
