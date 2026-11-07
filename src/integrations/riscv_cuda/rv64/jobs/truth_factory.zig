@@ -266,7 +266,9 @@ pub const Factory = struct {
     }
 
     /// The truth's legacy proof bytes after its stage-2 finish (host
-    /// assembly), null before; valid until `end`.
+    /// assembly), null before; valid until `end`. Always null in the default
+    /// `encode = .device`: the bytes are the truth's request-slab encoded
+    /// region (gpu_native publication), never assembled on the host.
     pub fn bytes(self: *Factory, ordinal: u32) ?[]const u8 {
         self.mutex.lock();
         defer self.mutex.unlock();

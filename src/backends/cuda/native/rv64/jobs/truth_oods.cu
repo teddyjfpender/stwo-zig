@@ -191,7 +191,11 @@ __global__ void __launch_bounds__(kThreads) truth_oods_role(StwoRv64TruthOodsIo 
           else v = from_words(io.samples + 8ull * a);
           break;
         case opAnchor:
-          v = anchor;
+          // anchor_words is only written for an anchored role: an anchor
+          // read in any other role is a malformed descriptor (never read
+          // uninitialized shared memory).
+          if (!row[rAnchor]) bad = true;
+          else v = anchor;
           break;
         case opConstant:
           if (a >= d[hNConsts]) bad = true;

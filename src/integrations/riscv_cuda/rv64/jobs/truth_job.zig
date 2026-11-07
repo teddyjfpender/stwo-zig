@@ -519,6 +519,9 @@ pub const Stage2 = struct {
     pub fn init(self: *Stage2) !void {
         const c = self.class;
         if (self.compact.len != c.compactWords(self.calls) or self.calls == 0) return error.TruthCompactShape;
+        // `.check` compares the device bytes it copies out of the job slab;
+        // a request-slab region would leave nothing to compare.
+        if (self.encode == .check and self.encoded != null) return error.TruthCheckNeedsJobSlabRegion;
         if (self.encoded) |r| if (r.words < c.encode.regionWords()) {
             // A region below the class capacity: the encoder fails closed
             // (encode_bounds); `.encode_capacity` negatives exercise it.
@@ -1051,9 +1054,11 @@ pub fn stage2Footprint(c: *const K.Class, calls: u32, slab_words: usize, pcs_out
     const pcs_estimate = 2 * @max(c.main_plan.eval_cells, @max(c.inter_plan.eval_cells, c.fixed_plan.eval_cells)) + pcs_output;
     const phase_pcs = main_coeffs + al(c.inter_plan.coefficient_cells) + al(c.composition.coefficientWords()) + pcs_estimate;
     const small = 4 * al(feltWords(X.shared_felts)) + @import("channel.zig").state_words + 16 * g;
-    // gn-truth device encode, after the trees are freed: PCS image (arena in
-    // `.device`), OODS node scratch, encoder scratch.
-    const phase_device = al(pcs_output) + al(c.oods.scratch_words) + al(NE.scratch_words) + 4 * g;
+    // gn-truth device encode. The arena is LIFO by default (worker
+    // reuse_frees off): the tree coefficients are freed before the device
+    // phase but sit beneath the PCS image (allocated after them in `.device`),
+    // so they stay resident under the OODS node scratch and encoder scratch.
+    const phase_device = main_coeffs + al(c.inter_plan.coefficient_cells) + al(c.composition.coefficientWords()) + al(pcs_output) + al(c.oods.scratch_words) + al(NE.scratch_words) + 4 * g;
     const peak = @max(@max(@max(phase_witness, phase_interactions), phase_device), @max(@max(phase_inter, phase_comp), phase_pcs));
     return .{ .device_words = staged + peak + small, .staged_words = staged, .slab_words = slab_words, .pinned_words = pcs_ingress + c.composition.pinnedWords() + t.words + c.compactWords(calls) + c.fixed_words + 2 * (@as(usize, 1) << @intCast(c.inter_plan.eval_log)) + 64 * g };
 }
