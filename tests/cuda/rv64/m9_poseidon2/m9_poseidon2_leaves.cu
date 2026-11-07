@@ -58,7 +58,8 @@ struct Seg { uint32_t log, width, base; };
 struct Case {
     std::string name; char kind; uint64_t seed; uint32_t log, split;
     std::vector<Seg> segs;
-    std::vector<std::pair<uint32_t, std::vector<uint32_t>>> rows, prefix;
+    std::vector<std::pair<uint32_t, std::vector<uint32_t>>> rows, prefix, parents;
+    std::vector<uint32_t> root;  // empty unless every leaf row is listed
 };
 
 static std::vector<Case> parse(const char* path) {
@@ -75,11 +76,14 @@ static std::vector<Case> parse(const char* path) {
         } else if (!std::strcmp(tag, "SEG")) {
             Seg s; if (std::fscanf(f, "%u %u %u", &s.log, &s.width, &s.base) != 3) throw std::runtime_error("SEG");
             out.back().segs.push_back(s);
-        } else if (!std::strcmp(tag, "R") || !std::strcmp(tag, "P")) {
-            const bool r = tag[0] == 'R'; unsigned row; std::vector<uint32_t> v(r ? 9 : 24);
+        } else if (!std::strcmp(tag, "R") || !std::strcmp(tag, "P") || !std::strcmp(tag, "N")) {
+            const bool r = tag[0] != 'P'; unsigned row; std::vector<uint32_t> v(r ? 9 : 24);
             if (std::fscanf(f, "%u", &row) != 1) throw std::runtime_error("row");
             for (auto& x : v) if (std::fscanf(f, "%u", &x) != 1) throw std::runtime_error("word");
-            (r ? out.back().rows : out.back().prefix).push_back({row, v});
+            (tag[0] == 'R' ? out.back().rows : tag[0] == 'N' ? out.back().parents : out.back().prefix).push_back({row, v});
+        } else if (!std::strcmp(tag, "T")) {
+            out.back().root.resize(9);
+            for (auto& x : out.back().root) if (std::fscanf(f, "%u", &x) != 1) throw std::runtime_error("root");
         } else if (std::strcmp(tag, "END")) throw std::runtime_error("tag");
     }
     std::fclose(f);
@@ -110,7 +114,9 @@ static std::vector<MixedSegment> materialise(Device& d, const std::vector<Seg>& 
 static int parity(const char* path) {
     auto cases = parse(path);
     cudaStream_t st; CU(cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking));
-    unsigned pass = 0, fail = 0; uint64_t rows_checked = 0, prefix_checked = 0;
+    unsigned pass = 0, fail = 0; uint64_t rows_checked = 0, prefix_checked = 0, parents_checked = 0, roots_checked = 0;
+    // Generator fingerprint pinned on both sides (Zig test pins the same value).
+    if (column_word(1, 2, 3) != 1026837563u) throw std::runtime_error("column_word fingerprint");
     for (auto& c : cases) {
         for (uint32_t variant = 1; variant <= 2; ++variant) {
             Device d;
@@ -139,6 +145,24 @@ static int parity(const char* path) {
             CU(cudaStreamSynchronize(st));
             bool ok = flag == 0;
             for (auto& [row, want] : c.rows) { ok &= !std::memcmp(&host[size_t(row) * 9], want.data(), 36); ++rows_checked; }
+            // Review fix: GPU parent layer against the Zig hashParent, and the
+            // full root when every leaf row is in the vectors.
+            if (!c.parents.empty() || !c.root.empty()) {
+                const uint32_t first = c.root.empty() ? 16u : size;
+                auto* tree = d.alloc<uint32_t>(size_t(first) * 9);
+                uint32_t* prev = digests; uint32_t* o = tree;
+                std::vector<uint32_t> level0(8 * 9);
+                for (uint32_t n = first; n > 1; n /= 2) {
+                    CU(cudaError_t(stwo_p2m31_parent_layer_on(prev, n / 2, o, variant, st)));
+                    if (n == first) CU(cudaMemcpyAsync(level0.data(), o, level0.size() * 4, cudaMemcpyDeviceToHost, st));
+                    prev = o; o += size_t(n / 2) * 9;
+                }
+                std::vector<uint32_t> top(9);
+                CU(cudaMemcpyAsync(top.data(), prev, 36, cudaMemcpyDeviceToHost, st));
+                CU(cudaStreamSynchronize(st));
+                for (auto& [i, want] : c.parents) { ok &= !std::memcmp(&level0[size_t(i) * 9], want.data(), 36); ++parents_checked; }
+                if (!c.root.empty()) { ok &= top == c.root; ++roots_checked; }
+            }
             for (auto& [row, want] : c.prefix) {
                 for (uint32_t k = 0; k < 24; ++k) ok &= host_prefix[size_t(k) * seed_size + row] == want[k];
                 ++prefix_checked;
@@ -158,8 +182,8 @@ static int parity(const char* path) {
     CU(cudaError_t(stwo_p2m31_mixed_seeded_on(2, 1, &nc, 0, 0, nullptr, 0, nullptr, 0, o2, 18, st32, 2, st)));
     uint32_t flag = 0; CU(cudaMemcpyAsync(&flag, st32, 4, cudaMemcpyDeviceToHost, st)); CU(cudaStreamSynchronize(st));
     cudaDeviceProp prop; CU(cudaGetDeviceProperties(&prop, 0));
-    std::printf("PARITY {\"device\":\"%s\",\"cases\":%zu,\"runs_pass\":%u,\"runs_fail\":%u,\"digest_rows_checked\":%llu,\"prefix_rows_checked\":%llu,\"refuses_bad_geometry\":%s,\"noncanonical_status\":%u}\n",
-                prop.name, cases.size(), pass, fail, (unsigned long long)rows_checked, (unsigned long long)prefix_checked, refuses ? "true" : "false", flag);
+    std::printf("PARITY {\"device\":\"%s\",\"cases\":%zu,\"runs_pass\":%u,\"runs_fail\":%u,\"digest_rows_checked\":%llu,\"prefix_rows_checked\":%llu,\"parents_checked\":%llu,\"roots_checked\":%llu,\"refuses_bad_geometry\":%s,\"noncanonical_status\":%u}\n",
+                prop.name, cases.size(), pass, fail, (unsigned long long)rows_checked, (unsigned long long)prefix_checked, (unsigned long long)parents_checked, (unsigned long long)roots_checked, refuses ? "true" : "false", flag);
     CU(cudaStreamDestroy(st));
     return fail == 0 && refuses && flag == 1 ? 0 : 1;
 }

@@ -9,6 +9,8 @@
 //!   SEG source_log n_columns col_base
 //!   R row d0..d8            expected leaf digest (full chain)
 //!   P row s0..s23           expected prefix state of segments[0..split]
+//!   N i d0..d8              expected parent of leaf rows 2i, 2i+1 (i < 8)
+//!   T d0..d8                expected Merkle root (only when every row is listed)
 //!   END
 const std = @import("std");
 const X = @import("vcs_lifted/poseidon2_m31_mixed_leaf.zig");
@@ -84,6 +86,26 @@ fn emit(a: std.mem.Allocator, w: anytype, slabs: *Slabs, rng: std.Random, case: 
         for (p) |x| try w.print(" {d}", .{x});
         try w.writeByte('\n');
     }
+    // Review fix: the GPU parent layer was never compared with the reference.
+    // sampleRows always lists rows 0..15 first, so parents 0..7 are known.
+    if (rows.len >= 16) for (0..8) |i| {
+        std.debug.assert(rows[2 * i] == 2 * i and rows[2 * i + 1] == 2 * i + 1);
+        const parent = X.hashParent(digests[2 * i], digests[2 * i + 1]);
+        try w.print("N {d}", .{i});
+        for (parent) |x| try w.print(" {d}", .{x});
+        try w.writeByte('\n');
+    };
+    if (rows.len == @as(usize, 1) << log_size) {
+        var layer = try a.dupe([X.DIGEST_WORDS]u32, digests);
+        while (layer.len > 1) {
+            const next = try a.alloc([X.DIGEST_WORDS]u32, layer.len / 2);
+            for (next, 0..) |*n, i| n.* = X.hashParent(layer[2 * i], layer[2 * i + 1]);
+            layer = next;
+        }
+        try w.writeAll("T");
+        for (layer[0]) |x| try w.print(" {d}", .{x});
+        try w.writeByte('\n');
+    }
     try w.writeAll("END\n");
 }
 
@@ -156,6 +178,10 @@ pub fn main() !void {
     try cases.append(a, .{ .name = "cpu0-fixed-24628607", .kind = 'D', .seed = 0x3000, .segs = fixed });
     try cases.append(a, .{ .name = "cpu0-fixed-24628607-chain-l19", .kind = 'C', .seed = 0x3000, .segs = fixed, .split = 10 });
     try cases.append(a, .{ .name = "composition-l23-w16", .kind = 'D', .seed = 0x3001, .segs = &.{.{ .log = 23, .width = 16, .base = 0 }} });
+    // Review fix: seeded chains whose split lands exactly on a rate boundary.
+    try cases.append(a, .{ .name = "chain-rate-boundary-12", .kind = 'C', .seed = 0x3002, .segs = &.{ .{ .log = 6, .width = 12, .base = 0 }, .{ .log = 10, .width = 7, .base = 12 } }, .split = 1 });
+    try cases.append(a, .{ .name = "chain-rate-boundary-24", .kind = 'C', .seed = 0x3003, .segs = &.{ .{ .log = 3, .width = 5, .base = 0 }, .{ .log = 8, .width = 19, .base = 5 }, .{ .log = 12, .width = 12, .base = 24 } }, .split = 2 });
+    try cases.append(a, .{ .name = "chain-rate-boundary-36", .kind = 'C', .seed = 0x3004, .segs = &.{ .{ .log = 9, .width = 36, .base = 0 }, .{ .log = 10, .width = 1, .base = 36 } }, .split = 1 });
     var slabs = Slabs.init(a);
     for (cases.items) |case| {
         try emit(a, w, &slabs, rng, case);
