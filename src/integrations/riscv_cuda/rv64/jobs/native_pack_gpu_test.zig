@@ -114,9 +114,15 @@ const Done = struct {
 };
 fn run(w: *W.Worker, probe: *Probe) !void {
     var done: Done = .{};
-    try w.submit(api.Job.from(Probe, probe), .{ .ctx = &done, .done = Done.onDone });
+    w.submit(api.Job.from(Probe, probe), .{ .ctx = &done, .done = Done.onDone }) catch |err| {
+        std.debug.print("GN_PACK_GPU_ERROR step=submit seg={} error={s}\n", .{ probe.seg.ordinal, @errorName(err) });
+        return err;
+    };
     while (done.n.load(.seq_cst) == 0) std.Thread.yield() catch {};
-    if (done.err) |err| return err;
+    if (done.err) |err| {
+        std.debug.print("GN_PACK_GPU_ERROR step=job seg={} error={s}\n", .{ probe.seg.ordinal, @errorName(err) });
+        return err;
+    }
 }
 
 fn readU64(lo: u32, hi: u32) u64 {
@@ -198,6 +204,13 @@ fn firstDataWord(p: *const P.Program, comptime op: P.Op, comptime field: []const
 }
 
 test "GPU: gn-pack v2 witness program on recorded real segments is byte-identical to the legacy MAIN; negatives fail closed" {
+    gpuParity() catch |err| {
+        std.debug.print("GN_PACK_GPU_ERROR step=test error={s}\n", .{@errorName(err)});
+        if (@errorReturnTrace()) |t| std.debug.dumpStackTrace(t.*);
+        return err;
+    };
+}
+fn gpuParity() !void {
     const dirs = std.posix.getenv("STWO_RV64_M8_GN_PACK_RECORDS") orelse return error.SkipZigTest;
     var gpu = (try @import("native_gpu_support_test.zig").Gpu.openNamed("native_pack_gpu_test")) orelse return error.SkipZigTest;
     defer gpu.close();

@@ -820,12 +820,15 @@ pub const Bound = struct {
             const dst = try d.slice(@intCast(pc.offset), pc.host.len);
             try cuda(sym.h2d(@ptrCast(dst.ptr), @ptrCast(pc.host.ptr), pc.host.len * 4, 1, stream));
         }
-        for (p.launches.items) |l| switch (l.op) {
+        for (p.launches.items, 0..) |l, index| switch (l.op) {
             inline else => |op| {
                 const T = op.Type();
                 var job = std.mem.bytesToValue(T, std.mem.sliceAsBytes(l.body));
                 inline for (T.refs) |name| @field(job, name) = self.resolve(image.ptr, offsets, @field(job, name));
-                try self.call(op, sym, ectx, &job);
+                self.call(op, sym, ectx, &job) catch |err| {
+                    std.debug.print("GN_PACK_LAUNCH_FAILED op={s} index={} main_column={}\n", .{ @tagName(op), index, l.main_column });
+                    return err;
+                };
             },
         };
     }
