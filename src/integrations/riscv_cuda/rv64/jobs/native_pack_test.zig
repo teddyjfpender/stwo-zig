@@ -87,12 +87,11 @@ test "gn-pack v2: structural refusals (truncation, coverage, overlap, gaps, refs
     // truncated: last chunk missing
     try testing.expectError(error.GnPackTruncated, P.Program.parse(a, chunks[0 .. chunks.len - 1], 7));
     // a lost middle chunk: the upload buffer has a gap
-    var holed = try a.dupe(G.TraceChunk, chunks);
+    const holed = try a.dupe(G.TraceChunk, chunks);
     defer a.free(holed);
     const middle = chunks.len / 2;
     std.mem.copyForwards(G.TraceChunk, holed[middle .. holed.len - 1], holed[middle + 1 ..]);
-    holed = holed[0 .. holed.len - 1];
-    try testing.expect(std.meta.isError(P.Program.parse(a, holed, 7)));
+    try testing.expect(std.meta.isError(P.Program.parse(a, holed[0 .. holed.len - 1], 7)));
     // bad magic
     const last = chunks[chunks.len - 1];
     const copy = try a.dupe(u32, last.words);
