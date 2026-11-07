@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 
 namespace stwo::cuda::circuit_base {
 
@@ -62,9 +63,16 @@ __device__ __forceinline__ std::uint32_t word(const std::uint32_t *limbs) {
     return limbs[0] | (limbs[1] << 16);
 }
 
+// rel2: when non-null, the 16 relation-2 table pointers (counts[2..17]) staged
+// in shared memory by generate_shared (M8 T9). Indexing columns.counts with
+// the runtime column makes ptxas copy the whole 680 B Columns parameter to a
+// per-thread stack frame ([M] generate<4>: 680 B stack; 8.79 ms at 2^22 rows
+// vs 1.54 ms with the relation-2 atomics removed). nullptr keeps the original
+// parameter indexing (default path, host emulation).
 __device__ __forceinline__ void xor_count(
     Columns columns, unsigned relation, unsigned bits, std::uint32_t a,
-    std::uint32_t b, std::uint32_t expected, std::uint32_t *error) {
+    std::uint32_t b, std::uint32_t expected, std::uint32_t *error,
+    std::uint32_t *const *rel2 = nullptr) {
     const std::uint32_t limit = 1u << bits;
     if (a >= limit || b >= limit || (a ^ b) != expected) {
         fail(error);
@@ -73,7 +81,7 @@ __device__ __forceinline__ void xor_count(
     if (relation == 2) {
         const unsigned column = 2u + ((a >> 10u) << 2u) + (b >> 10u);
         const unsigned row = ((a & 1023u) << 10u) | (b & 1023u);
-        atomicAdd(columns.counts[column] + row, 1u);
+        atomicAdd((rel2 ? rel2[column - 2u] : columns.counts[column]) + row, 1u);
     } else {
         atomicAdd(columns.counts[relation] + (a << bits) + b, 1u);
     }
@@ -83,7 +91,8 @@ template <unsigned Kind>
 __device__ void generate_row(
     const std::uint32_t *values, std::uint32_t value_count,
     std::uint32_t row_count, std::uint32_t first_permutation_row,
-    Columns columns, std::uint32_t *error, unsigned row) {
+    Columns columns, std::uint32_t *error, unsigned row,
+    std::uint32_t *const *rel2 = nullptr) {
     (void)row_count;
     std::uint32_t result[kMaxOutput] = {};
     std::uint32_t limbs[4];
@@ -183,9 +192,9 @@ __device__ void generate_row(
         xor_count(columns, 0, 8, result[22], result[24], result[27], error);
         xor_count(columns, 1, 8, result[21] & 255u, result[7] & 255u, result[28], error);
         xor_count(columns, 1, 8, result[23], result[25], result[29], error);
-        xor_count(columns, 2, 12, result[2] & 0xfffu, result[30] & 0xfffu, result[36], error);
+        xor_count(columns, 2, 12, result[2] & 0xfffu, result[30] & 0xfffu, result[36], error, rel2);
         xor_count(columns, 18, 4, result[32], result[34], result[37], error);
-        xor_count(columns, 2, 12, result[3] & 0xfffu, result[31] & 0xfffu, result[38], error);
+        xor_count(columns, 2, 12, result[3] & 0xfffu, result[31] & 0xfffu, result[38], error, rel2);
         xor_count(columns, 18, 4, result[33], result[35], result[39], error);
         xor_count(columns, 0, 8, result[40], result[42], (result[18] & 255u), error);
         xor_count(columns, 0, 8, result[13] & 255u, (xr16 >> 16u) & 255u,
@@ -217,13 +226,42 @@ __global__ void generate(
             first_permutation_row, columns, error, row);
 }
 
+// M8 T9 (STWO_RV64_M8_WITNESS_COALESCE=1): component 4 with the relation-2
+// pointers in shared memory; same rows, same atomics, bit-identical.
+__global__ void __launch_bounds__(kThreads) generate_shared(
+    const std::uint32_t *values, std::uint32_t value_count,
+    std::uint32_t row_count, std::uint32_t first_permutation_row,
+    Columns columns, std::uint32_t *error) {
+    __shared__ std::uint32_t *rel2[16];
+    if (threadIdx.x < 16) rel2[threadIdx.x] = columns.counts[2 + threadIdx.x];
+    __syncthreads();
+    const unsigned row = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row < row_count)
+        generate_row<4>(values, value_count, row_count,
+            first_permutation_row, columns, error, row, rel2);
+}
+
+// -1 = read STWO_RV64_M8_WITNESS_COALESCE once; tests may set 0/1 directly.
+static int base_coalesce = -1;
+static bool witness_coalesce() {
+    if (base_coalesce < 0) {
+        const char *v = getenv("STWO_RV64_M8_WITNESS_COALESCE");
+        base_coalesce = v && v[0] == '1' && !v[1];
+    }
+    return base_coalesce == 1;
+}
+
 template <unsigned Kind>
 int launch(const std::uint32_t *values, std::uint32_t value_count,
     std::uint32_t row_count, std::uint32_t first_permutation_row,
     Columns columns, std::uint32_t *error, cudaStream_t stream) {
     const unsigned blocks = 1u + (row_count - 1u) / kThreads;
-    generate<Kind><<<blocks, kThreads, 0, stream>>>(values, value_count,
-        row_count, first_permutation_row, columns, error);
+    if (Kind == 4 && witness_coalesce())
+        generate_shared<<<blocks, kThreads, 0, stream>>>(values, value_count,
+            row_count, first_permutation_row, columns, error);
+    else
+        generate<Kind><<<blocks, kThreads, 0, stream>>>(values, value_count,
+            row_count, first_permutation_row, columns, error);
     return static_cast<int>(cudaGetLastError());
 }
 #endif
