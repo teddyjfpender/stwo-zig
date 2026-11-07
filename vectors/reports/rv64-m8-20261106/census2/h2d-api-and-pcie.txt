@@ -1,0 +1,7 @@
+('cudaMemcpyAsync_v3020', 1, 663131, 0) GB 15.076 copy_s 0.614 n 6475 api_cpu_s 0.025
+('cudaMemcpyAsync_v3020', 1, 663188, 1) GB 13.314 copy_s 0.541 n 5165 api_cpu_s 0.021
+D2D cudaMemcpyAsync_v3020 4230 167.48 GB 0.214 s
+index, name, pcie.link.gen.max, pcie.link.width.current, pcie.link.width.max
+0, NVIDIA GeForce RTX 5090, 5, 8, 16
+1, NVIDIA GeForce RTX 5090, 5, 8, 16
+04573fd8c0eed3955332e9accbf2441befa68f4af1f338decf60f7d5add6b531  /workspace/m3/runs/m7-integrate/daemon-24628607-r2-p1-inter-contributions-profile-20261106-01-06-baseline/nsys/timeline.sqlite

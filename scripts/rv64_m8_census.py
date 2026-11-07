@@ -114,6 +114,25 @@ def union(intervals):
     return total, gaps
 
 
+def gap_cause(db, names, dev, a, b):
+    """[M] what surrounds one idle gap on device `dev`: the kernel that ended it / started after it, and the
+    shortest host NVTX ranges (any thread) that cover the whole gap (= the host work the GPU waited on)."""
+    def kernel(sql, t):
+        row = db.execute(sql, (dev, t)).fetchone()
+        return (names.get(row[0]) or '?')[:90] if row else None
+    before = kernel('SELECT shortName FROM CUPTI_ACTIVITY_KIND_KERNEL WHERE deviceId = ? AND end <= ? ORDER BY end DESC LIMIT 1', a)
+    after = kernel('SELECT shortName FROM CUPTI_ACTIVITY_KIND_KERNEL WHERE deviceId = ? AND start >= ? ORDER BY start LIMIT 1', b)
+    covering = []
+    try:
+        for text, s0, e0 in db.execute('SELECT COALESCE(e.text, st.value), e.start, e.end FROM NVTX_EVENTS e LEFT JOIN StringIds st '
+                                       'ON e.textId = st.id WHERE e.end IS NOT NULL AND e.start <= ? AND e.end >= ? '
+                                       'ORDER BY e.end - e.start LIMIT 4', (a, b)):
+            covering.append({'range': (text or '?')[:80], 'len_ms': round((e0 - s0) / 1e6, 1)})
+    except sqlite3.OperationalError:
+        pass
+    return {'kernel_before': before, 'kernel_after': after, 'host_ranges_covering': covering}
+
+
 def analyze(args):
     receipt = json.loads((args.run / 'receipt.json').read_text())
     request = receipt['requests'][args.request]
@@ -169,7 +188,8 @@ def analyze(args):
                              'first_activity_s': round((first - lo) / 1e9, 4), 'last_activity_s': round((last - lo) / 1e9, 4),
                              'lead_idle_s': round((first - lo) / 1e9, 4), 'tail_idle_s': round((hi - last) / 1e9, 4),
                              'idle_gaps_ge_threshold': {'count': len(gaps), 'sum_s': round(sum(b - a for a, b in gaps) / 1e9, 4),
-                                                        'largest': [{'at_s': round((a - lo) / 1e9, 3), 'len_ms': round((b - a) / 1e6, 2)}
+                                                        'largest': [dict({'at_s': round((a - lo) / 1e9, 3), 'len_ms': round((b - a) / 1e6, 2)},
+                                                                         **gap_cause(db, names, dev, a, b))
                                                                     for a, b in sorted(gaps, key=lambda g: g[0] - g[1])[:12]]}}
     runtime = {}
     for name_id, n, total, mx in db.execute('SELECT nameId, COUNT(*), SUM(end-start), MAX(end-start) FROM CUPTI_ACTIVITY_KIND_RUNTIME '
