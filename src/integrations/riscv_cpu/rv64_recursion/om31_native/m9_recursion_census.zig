@@ -94,6 +94,14 @@ pub const Variant = struct {
     /// Sibling circuits proven as ONE batch proof (shared trees, one FRI);
     /// the parent verifies it once. 1 = production (one proof per circuit).
     batch: usize = 1,
+    /// Batch only: put the B copies' FIXED (preprocessed) columns side by side
+    /// in ONE tree 0. Not admissible as is: a child's FIXED root is admitted
+    /// per circuit in T_rec and bound into the fold digest
+    /// (`om31_outer.verifyChild` returns `commitments[0]`), and sibling
+    /// circuits of one class have distinct FIXED roots, so a shared tree-0 root
+    /// matches no admitted entry. Default (false): one FIXED tree per copy,
+    /// each root = that circuit's admitted FIXED root (B tree-0 openings).
+    batch_shared_fixed: bool = false,
     pub fn config(self: Variant) !core.pcs.ForField(O).PcsConfig {
         var fri = try core.fri.ForField(O).FriConfig.init(self.log_last_layer, self.log_blowup, self.n_queries);
         fri.fold_step = self.fold_step;
@@ -728,16 +736,27 @@ fn friDecommitPhased(ctx: *C.Context, meter: *Meter, proof: *const V.Proof, lift
 
 pub const Result = struct { census: Census, total: Rows };
 
-/// B sibling circuits of one class proven as ONE outer proof: trees 0..2 hold
+/// B sibling circuits of one class proven as ONE outer proof: trees 1..2 hold
 /// the B copies' columns side by side (lifted, one path per query), one
-/// composition tree (16 columns), one FRI. Census-only geometry.
-pub fn batchShape(a: std.mem.Allocator, one: *const V.Shape, copies: usize) !V.Shape {
-    const logs = try a.alloc([]const u32, one.nTrees());
-    const masks = try a.alloc([]const []const i32, one.nTrees());
+/// composition tree (16 columns), one FRI. FIXED columns: one tree per copy
+/// (trees 0..B-1, each root = the circuit's admitted FIXED root), or with
+/// `shared_fixed` one side-by-side tree 0 (not admissible, see `Variant`).
+/// Census-only geometry.
+pub fn batchShape(a: std.mem.Allocator, one: *const V.Shape, copies: usize, shared_fixed: bool) !V.Shape {
+    const n_fixed: usize = if (shared_fixed) 1 else copies;
+    const n_trees = one.nTrees() - 1 + n_fixed;
+    const logs = try a.alloc([]const u32, n_trees);
+    const masks = try a.alloc([]const []const i32, n_trees);
+    if (!shared_fixed) for (0..copies) |i| {
+        logs[i] = one.tree_column_log_sizes[0];
+        masks[i] = one.mask_offsets[0];
+    };
     for (0..one.nTrees()) |t| {
+        if (!shared_fixed and t == 0) continue;
+        const out = t + n_fixed - 1;
         if (t == one.compositionTree()) {
-            logs[t] = one.tree_column_log_sizes[t];
-            masks[t] = one.mask_offsets[t];
+            logs[out] = one.tree_column_log_sizes[t];
+            masks[out] = one.mask_offsets[t];
             continue;
         }
         const n = one.tree_column_log_sizes[t].len;
@@ -747,8 +766,8 @@ pub fn batchShape(a: std.mem.Allocator, one: *const V.Shape, copies: usize) !V.S
             @memcpy(l[i * n ..][0..n], one.tree_column_log_sizes[t]);
             @memcpy(m[i * n ..][0..n], one.mask_offsets[t]);
         }
-        logs[t] = l;
-        masks[t] = m;
+        logs[out] = l;
+        masks[out] = m;
     }
     const result = V.Shape{ .tree_column_log_sizes = logs, .mask_offsets = masks, .global_log = one.global_log, .composition_log_split = one.composition_log_split, .pcs = one.pcs };
     try result.validate();
@@ -759,11 +778,13 @@ pub fn batchShape(a: std.mem.Allocator, one: *const V.Shape, copies: usize) !V.S
 const BatchStatement = struct {
     inner: []const Statement,
     widths: [3]usize,
+    /// FIXED trees before the main tree: 1 (shared) or one per copy.
+    n_fixed: usize,
     pub fn mixPublic(self: @This(), ctx: *C.Context, channel: *C.Channel) !void {
         for (self.inner) |s| try s.mixPublic(ctx, channel);
     }
-    pub fn nTreesBeforeChallenges(_: @This()) usize {
-        return 2;
+    pub fn nTreesBeforeChallenges(self: @This()) usize {
+        return self.n_fixed + 1;
     }
     pub fn drawChallenges(self: @This(), ctx: *C.Context, channel: *C.Channel) !Statement.Challenges {
         const c = try self.inner[0].drawChallenges(ctx, channel);
@@ -777,8 +798,10 @@ const BatchStatement = struct {
         var total = F.zero();
         for (self.inner, 0..) |s, i| {
             var view: [4][]const []const F = undefined;
-            for (0..3) |t| view[t] = masks[t][i * self.widths[t] ..][0..self.widths[t]];
-            view[3] = masks[3];
+            const f = self.n_fixed;
+            view[0] = if (f == 1) masks[0][i * self.widths[0] ..][0..self.widths[0]] else masks[i];
+            for (1..3) |t| view[t] = masks[t + f - 1][i * self.widths[t] ..][0..self.widths[t]];
+            view[3] = masks[f + 2];
             total = total.add(try s.evalComposition(ctx, point, &view, randomness, challenges));
         }
         return total;
@@ -797,7 +820,7 @@ pub fn measureChild(a: std.mem.Allocator, padded: Fin.ComponentSizes, n_outputs:
     var arena = std.heap.ArenaAllocator.init(a);
     defer arena.deinit();
     const one = try shape(arena.allocator(), &child.key, try variant.config());
-    const geometry = if (variant.batch > 1) try batchShape(arena.allocator(), &one, variant.batch) else one;
+    const geometry = if (variant.batch > 1) try batchShape(arena.allocator(), &one, variant.batch, variant.batch_shared_fixed) else one;
     active_hash = variant.hash;
     defer active_hash = .blake2s;
     var result = Result{ .census = .{}, .total = .{} };
@@ -818,7 +841,7 @@ pub fn measureChild(a: std.mem.Allocator, padded: Fin.ComponentSizes, n_outputs:
         result.census.phases[@intFromEnum(Phase.ingress)] = Rows.of(&ctx).sub(start);
         if (variant.batch > 1) {
             const widths = [3]usize{ one.tree_column_log_sizes[0].len, one.tree_column_log_sizes[1].len, one.tree_column_log_sizes[2].len };
-            try verifyPhased(&ctx, &geometry, &guessed, BatchStatement{ .inner = statements, .widths = widths }, &result.census, variant.fri_coset_leaf);
+            try verifyPhased(&ctx, &geometry, &guessed, BatchStatement{ .inner = statements, .widths = widths, .n_fixed = if (variant.batch_shared_fixed) 1 else variant.batch }, &result.census, variant.fri_coset_leaf);
         } else {
             try verifyPhased(&ctx, &geometry, &guessed, statements[0], &result.census, variant.fri_coset_leaf);
         }

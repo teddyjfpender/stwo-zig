@@ -54,11 +54,16 @@ const cases = [_]Case{
     .{ .name = "combo_q102_p26_blake3_coset_ll8", .v = .{ .n_queries = 102, .pow_bits = 26, .hash = .blake3, .fri_coset_leaf = true, .log_last_layer = 8 } },
     .{ .name = "batch4_q102_p26_cosetleaf", .v = .{ .batch = 4, .n_queries = 102, .pow_bits = 26, .fri_coset_leaf = true } },
     .{ .name = "batch4_combo", .v = .{ .batch = 4, .n_queries = 102, .pow_bits = 26, .hash = .blake3, .fri_coset_leaf = true }, .all_children = true },
+    // Reference only (not admissible: one shared FIXED tree for B circuits whose
+    // FIXED roots are admitted per circuit). The batch cases above open one
+    // FIXED tree per circuit.
+    .{ .name = "batch2_sharedfixed_cap3", .v = .{ .batch = 2, .batch_shared_fixed = true } },
+    .{ .name = "batch2_combo_ll4_sharedfixed", .v = .{ .batch = 2, .n_queries = 102, .pow_bits = 26, .hash = .blake3, .fri_coset_leaf = true, .log_last_layer = 4, .batch_shared_fixed = true } },
 };
 
 fn emit(child: []const u8, case: Case, r: K.Result, prod: ?K.Rows) void {
     const names = [_][]const u8{ "ingress", "transcript", "composition", "trace_leaf", "trace_path", "deep", "fri_leaf", "fri_path", "fri_fold" };
-    std.debug.print("M9_RECURSION_CENSUS {{\"child\":\"{s}\",\"variant\":\"{s}\",\"log_blowup\":{},\"queries\":{},\"pow\":{},\"fold_step\":{},\"last_layer_log\":{},\"cap_log\":{},\"hash\":\"{s}\",\"fri_coset_leaf\":{},\"batch\":{},\"lifting_log\":{},\"fri_layers\":{},", .{ child, case.name, case.v.log_blowup, case.v.n_queries, case.v.pow_bits, case.v.fold_step, case.v.log_last_layer, case.v.cap_log, @tagName(case.v.hash), case.v.fri_coset_leaf, case.v.batch, r.census.lifting_log, r.census.n_fri_layers });
+    std.debug.print("M9_RECURSION_CENSUS {{\"child\":\"{s}\",\"variant\":\"{s}\",\"log_blowup\":{},\"queries\":{},\"pow\":{},\"fold_step\":{},\"last_layer_log\":{},\"cap_log\":{},\"hash\":\"{s}\",\"fri_coset_leaf\":{},\"batch\":{},\"batch_shared_fixed\":{},\"lifting_log\":{},\"fri_layers\":{},", .{ child, case.name, case.v.log_blowup, case.v.n_queries, case.v.pow_bits, case.v.fold_step, case.v.log_last_layer, case.v.cap_log, @tagName(case.v.hash), case.v.fri_coset_leaf, case.v.batch, case.v.batch_shared_fixed, r.census.lifting_log, r.census.n_fri_layers });
     std.debug.print("\"hash_calls\":{{\"trace_leaf\":{},\"trace_path\":{},\"fri_leaf\":{},\"fri_path\":{}}},", .{ r.census.trace_leaf_hashes, r.census.trace_path_nodes, r.census.fri_leaf_hashes, r.census.fri_path_nodes });
     std.debug.print("\"phases\":{{", .{});
     for (r.census.phases, names, 0..) |p, n, i| std.debug.print("{s}\"{s}\":[{},{},{},{},{},{}]", .{ if (i == 0) "" else ",", n, p.eq, p.qm31_ops, p.triple_xor, p.m31_to_u32, p.blake_g_gate, p.cells() });
