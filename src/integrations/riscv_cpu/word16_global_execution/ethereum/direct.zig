@@ -44,7 +44,11 @@ const Collector = @import("../services/collector.zig");
 ///     raised for the probe only); workers 4: 6.36,6.71.
 ///   24628607 and 26235156: flat within noise at every setting (1.73-1.97,
 ///     1.56-1.70): 7 and 5 segments never fill a window of 4.
-/// Recommended pair: INFLIGHT=16 with LOCAL_LEDGER=1.
+/// Recommended pair: INFLIGHT=16 with LOCAL_LEDGER=1. Default since m-runtime:
+/// with the local ledger on (now the default) and INFLIGHT unset, the window
+/// of a windowed caller (inflight > 1; production 4) is LOCAL_LEDGER_INFLIGHT
+/// (16); with LOCAL_LEDGER=0, or a serial caller (1), it is the caller's.
+pub const LOCAL_LEDGER_INFLIGHT: u8 = 16;
 fn envCount(name: []const u8, max: u8) ?u8 {
     const text = std.posix.getenv(name) orelse return null;
     const value = std.fmt.parseUnsigned(u8, text, 10) catch return null;
@@ -52,7 +56,8 @@ fn envCount(name: []const u8, max: u8) ?u8 {
     return value;
 }
 pub fn inflightOverride(inflight: u8) u8 {
-    return envCount("STWO_RV64_M8_CAPTURE_INFLIGHT", MAX_INFLIGHT) orelse inflight;
+    return envCount("STWO_RV64_M8_CAPTURE_INFLIGHT", MAX_INFLIGHT) orelse
+        if (inflight > 1 and Collector.localLedgerEnabled()) @max(inflight, LOCAL_LEDGER_INFLIGHT) else inflight;
 }
 pub fn workersOverride(workers: u8) u8 {
     if (workers == 0) return 0;

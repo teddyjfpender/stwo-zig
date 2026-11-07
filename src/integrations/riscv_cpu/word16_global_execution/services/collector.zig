@@ -753,11 +753,13 @@ fn slot(ledger: *Old.Ledger, address: u64) !*A.memory.closed_ram.types.State {
 fn get(ledger: *Old.Ledger, address: u64) !A.memory.closed_ram.types.State {
     return (try slot(ledger, address)).*;
 }
-/// M8 two-phase ledger (`STWO_RV64_M8_CAPTURE_LOCAL_LEDGER=1`, default off).
-/// Producer scheduling only: outputs are byte-identical to the serial ledger.
+/// M8 two-phase ledger (`STWO_RV64_M8_CAPTURE_LOCAL_LEDGER`, default ON since
+/// m-runtime; `=0` restores the serial ledger). Producer scheduling only:
+/// outputs are byte-identical to the serial ledger.
+/// [M m-runtime canonical 3+3, vectors/reports/rv64-m8-20261106/m-runtime/]: T1 pair + T10 on vs off, 24628607 warm request 11.735 -> 11.658 s, capture 2.089 -> 1.839 s; 26235159: see README.
 pub fn localLedgerEnabled() bool {
-    const value = std.posix.getenv("STWO_RV64_M8_CAPTURE_LOCAL_LEDGER") orelse return false;
-    return std.mem.eql(u8, value, "1");
+    const value = std.posix.getenv("STWO_RV64_M8_CAPTURE_LOCAL_LEDGER") orelse return true;
+    return !std.mem.eql(u8, value, "0");
 }
 /// Report-only counters of `Builder.appendLocal` (ordered thread only).
 pub var local_stats: struct { fallbacks: u64 = 0, touched: u64 = 0, resolve_ns: u64 = 0, patch_ns: u64 = 0 } = .{};

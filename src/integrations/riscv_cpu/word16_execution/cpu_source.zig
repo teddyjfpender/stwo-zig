@@ -111,9 +111,11 @@ pub const ProjectionStage = struct {
 /// tried and REJECTED: capture 8.50 -> 11.66 s (THP direct compaction under
 /// the pod's 93 GB cgroup; compact_stall 359k), vs 7.09 s without it.
 /// Same Source, same errors; producer scheduling only.
+/// Default ON since m-runtime (`STWO_RV64_M8_CAPTURE_RECORDER=0` restores the
+/// old capture). [M m-runtime canonical 3+3, vectors/reports/rv64-m8-20261106/m-runtime/]: T1 pair + T10 on vs off, 24628607 warm request 11.735 -> 11.658 s, capture 2.089 -> 1.839 s; 26235159: see README.
 pub fn recorderEnabled() bool {
-    const text = std.posix.getenv("STWO_RV64_M8_CAPTURE_RECORDER") orelse return false;
-    return std.mem.eql(u8, text, "1");
+    const text = std.posix.getenv("STWO_RV64_M8_CAPTURE_RECORDER") orelse return true;
+    return !std.mem.eql(u8, text, "0");
 }
 /// Upper bound on parallel capture ranges per tape.
 pub const MAX_CAPTURE_CHUNKS = 16;
