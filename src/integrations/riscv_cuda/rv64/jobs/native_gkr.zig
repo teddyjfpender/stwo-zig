@@ -431,7 +431,6 @@ pub const Plan = struct {
     }
 };
 
-
 /// One segment's local GKR inside a job: `stage`, then `enqueue`; after the
 /// worker's wait, `Section.read` decodes and verifies the slab fields.
 pub const Gkr = struct {

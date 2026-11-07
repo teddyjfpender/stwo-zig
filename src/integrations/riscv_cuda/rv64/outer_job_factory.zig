@@ -29,6 +29,7 @@ const CP = @import("jobs/outer_class_plan.zig");
 const Checks = @import("jobs/outer_checks.zig");
 const Enc = @import("jobs/outer_encode.zig");
 const EncJob = @import("jobs/outer_encode_job.zig");
+const OodsAbi = @import("jobs/outer_encode_oods.zig");
 
 pub const Shared = struct {
     kernels: K.Kernels,
@@ -44,6 +45,8 @@ pub const Shared = struct {
     /// Device proof encoder (STWO_RV64_M8_OUTER_DEVICE_ENCODE=check|1).
     encode: ?Enc.Symbols = null,
     encode_mode: Enc.Mode = .off,
+    /// Device node_oods_constraint check (with the encoder, check mode).
+    oods: ?OodsAbi.Symbols = null,
     /// `base` = frozen base image, `addon` = libstwo-rv64-jobs.so, both owned by
     /// the caller (ops.Libraries); `fs_path` = libstwo-rv64-outer-fs-ops.so.
     pub fn init(base: *std.DynLib, addon: *std.DynLib, fs_path: []const u8) !Shared {
@@ -61,6 +64,7 @@ pub const Shared = struct {
             .checks = if (try Checks.selected()) try Checks.Symbols.load(addon) else null,
             .encode = if (try Enc.mode() != .off) try Enc.Symbols.load(addon) else null,
             .encode_mode = try Enc.mode(),
+            .oods = if (try Enc.mode() != .off) try OodsAbi.Symbols.load(addon) else null,
         };
     }
     pub fn deinit(self: *Shared) void {
@@ -247,6 +251,7 @@ pub const Prover = struct {
             encode = try EncodeCheck.init(a, &job, self.shared, input.key, staged);
             encode.?.arm();
             encode.?.node.fault = if (try Enc.faultOrdinal()) |n| n == input.ordinal else false;
+            encode.?.node.oods_fault = if (try Enc.oodsFaultOrdinal()) |n| n == input.ordinal else false;
         }
         const submitted = if (encode) |*c| c.node.job() else job.job();
         r.footprint = submitted.footprint();
@@ -298,7 +303,7 @@ pub const Prover = struct {
         if (encode) |*c| try c.mirror(a, &job, staged);
         try job.decodeProof();
         r.decode_ns = job.report.decode_ns;
-        var produced = try Prestage.assemble(a, input.key, staged, &job);
+        var produced = try Prestage.assembleWithOods(a, input.key, staged, &job, if (encode) |*c| &c.host_oods else null);
         errdefer produced.deinit();
         r.assemble_ns = timer.read();
         if (encode) |*c| {
@@ -323,6 +328,9 @@ pub const Prover = struct {
 /// difference or a non-accepted device verdict fails the node closed.
 const EncodeCheck = struct {
     desc: []u32,
+    program: ?[]u32 = null,
+    oods_timer: ?GpuTimer = null,
+    host_oods: [16]u32 = @splat(0),
     node: EncJob.EncodedNode,
     timer: ?GpuTimer = null,
     mirror_bytes: ?[]u8 = null,
@@ -332,15 +340,29 @@ const EncodeCheck = struct {
         const shape = job.pcs.?.prepared.metadata.shape;
         const desc = try EncJob.descriptorFor(a, shape, try EncJob.envelopeFor(key.identity, staged.expected.len / 4), staged.fixed_root);
         errdefer a.free(desc);
-        return .{ .desc = desc, .node = try EncJob.EncodedNode.init(a, job, shared.encode.?, desc), .timer = if (shared.events) |*ev| GpuTimer{ .api = ev } else null };
+        var out = EncodeCheck{ .desc = desc, .node = try EncJob.EncodedNode.init(a, job, shared.encode.?, desc), .timer = if (shared.events) |*ev| GpuTimer{ .api = ev } else null, .oods_timer = if (shared.events) |*ev| GpuTimer{ .api = ev } else null };
+        errdefer out.node.deinit();
+        if (shared.oods) |sym| {
+            const counts = try a.alloc([]const u32, shape.trees.len);
+            defer a.free(counts);
+            for (counts, shape.trees) |*c, t| c.* = t.sample_counts;
+            const program = try Prestage.oodsProgram(a, key, counts);
+            errdefer a.free(program);
+            try out.node.withOods(sym, program);
+            out.program = program;
+        }
+        return out;
     }
     /// After init has been moved to its final address (the timer pointer).
     fn arm(self: *EncodeCheck) void {
         if (self.timer) |*t| self.node.timing = t.timing();
+        if (self.oods_timer) |*t| self.node.oods_timing = t.timing();
     }
     fn deinit(self: *EncodeCheck, a: std.mem.Allocator) void {
         self.node.deinit();
         if (self.timer) |*t| t.deinit();
+        if (self.oods_timer) |*t| t.deinit();
+        if (self.program) |p| a.free(p);
         if (self.mirror_bytes) |b| a.free(b);
         a.free(self.desc);
     }
@@ -354,6 +376,10 @@ const EncodeCheck = struct {
             std.debug.print("GPU_M8_OUTER_ENCODE rejected ordinal={d} pcs=0x{x} bounds=0x{x}\n", .{ staged.ordinal, self.node.pcs_verdict, self.node.bounds_verdict });
             return error.OuterDeviceEncodeRejected;
         }
+        if (self.node.oods) |o| if (o.verdict != 0) {
+            std.debug.print("GPU_M8_OUTER_OODS rejected ordinal={d} verdict=0x{x}\n", .{ staged.ordinal, o.verdict });
+            return error.OuterDeviceOodsRejected;
+        };
         var timer = try std.time.Timer.start();
         const d = job.decoded orelse return error.OuterJobNotDecoded;
         const fixed = words8(staged.fixed_root);
@@ -388,6 +414,11 @@ const EncodeCheck = struct {
         var digest: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash(host, &digest, .{});
         std.debug.print("GPU_M8_OUTER_ENCODE ordinal={d} host_bytes={d} device_bytes={d} mirror_bytes={d} device_identical={} mirror_identical={} sha256={x} encode_gpu_ns={d} mirror_ns={d} launches={d}\n", .{ ordinal, host.len, device.len, mirror_bytes.len, dev_eq, mir_eq, digest[0..8].*, if (self.timer) |t| t.ns else 0, self.mirror_ns, self.node.launches });
+        if (self.node.oods) |o| {
+            const values_eq = std.mem.eql(u32, &o.diag, &self.host_oods);
+            std.debug.print("GPU_M8_OUTER_OODS ordinal={d} verdict=0x{x} values_identical={} oods_gpu_ns={d} parts={d}\n", .{ ordinal, o.verdict, values_eq, if (self.oods_timer) |t| t.ns else 0, if (self.program) |p| p[OodsAbi.H.parts] else 0 });
+            if (o.verdict != 0 or !values_eq) return error.OuterDeviceOodsMismatch;
+        }
         if (!dev_eq or !mir_eq) {
             const n = @min(@min(device.len, host.len), mirror_bytes.len);
             var first: usize = n;
@@ -750,6 +781,7 @@ pub const Hybrid = struct {
             _ = try Checks.faultOrdinal();
             _ = try Enc.mode();
             _ = try Enc.faultOrdinal();
+            _ = try Enc.oodsFaultOrdinal();
             return k;
         }
     };

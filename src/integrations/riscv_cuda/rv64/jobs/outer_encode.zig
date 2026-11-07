@@ -855,6 +855,17 @@ pub fn faultOrdinal() !?u32 {
     return n;
 }
 
+/// STWO_RV64_M8_OUTER_OODS_FAULT_ORDINAL=n (two-key like faultOrdinal):
+/// node n's first composition sample coordinate is zeroed on the device; the
+/// device node_oods_constraint check must refuse it.
+pub fn oodsFaultOrdinal() !?u32 {
+    const v = std.posix.getenv("STWO_RV64_M8_OUTER_OODS_FAULT_ORDINAL") orelse return null;
+    const n = std.fmt.parseUnsigned(u32, v, 10) catch return error.InvalidOuterOodsFaultOrdinal;
+    const armed = std.posix.getenv("STWO_RV64_M8_FAULT_INJECTION") orelse return error.M8FaultInjectionNotArmed;
+    if (!std.mem.eql(u8, armed, "1")) return error.M8FaultInjectionNotArmed;
+    return n;
+}
+
 // ---------------------------------------------------------------------------
 // Tests: the mirror against a transliteration of the host assembler +
 // stwo_proof_wire writer + om31 wire.encode (hash maps, its own sort), on
