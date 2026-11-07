@@ -460,6 +460,64 @@ test("folds native OM31 FRI subgroups in bit-reversed pair order", async () => {
   await assert.rejects(harness.foldFri([zero, zero], [p, ...alpha.slice(1)], [1]));
 });
 
+test("binds FRI inverse coordinates to the canonical circle and line subgroups", async () => {
+  const fixture = JSON.parse(readFileSync(new URL("../fixtures/native-pcs-121057303-truth-4.json", import.meta.url)));
+  const { folding } = await harness.derivePcs(
+    fixture.prefix, fixture.domainLog, fixture.sampleCount, fixture.samples, fixture.friRoots, fixture.lastCoefficient,
+  );
+  const p = 0x7fffffffn;
+  const mod = (value) => (value % p + p) % p;
+  const product = ([x, y], [u, v]) => [mod(x * u - y * v), mod(x * v + y * u)];
+  const double = (point) => product(point, point);
+  function inverse(value) {
+    let result = 1n;
+    for (let exponent = p - 2n; exponent !== 0n; exponent >>= 1n) {
+      if (exponent & 1n) result = mod(result * value);
+      value = mod(value * value);
+    }
+    return result;
+  }
+  function coset(log, circle) {
+    let first = [2n, 1_268_011_823n];
+    for (let i = log; i < (circle ? 30 : 29); i++) first = double(first);
+    const step = double(double(first));
+    const points = [first];
+    for (let i = 1; i < (1 << (log - Number(circle))); i++) points.push(product(points[i - 1], step));
+    return points;
+  }
+  function subgroupInverses(log, query, length, circle) {
+    const result = [];
+    let base = query - (query % length);
+    while (length > 1) {
+      const points = coset(log, circle);
+      length /= 2;
+      for (let i = 0; i < length; i++) {
+        const index = Number.parseInt((base + 2 * i).toString(2).padStart(log, "0").split("").reverse().join(""), 2);
+        result.push(inverse(points[index][Number(circle)]));
+      }
+      circle = false;
+      base >>= 1;
+      log--;
+    }
+    return result;
+  }
+  for (const [log, query, count, circle, challenge] of [
+    [fixture.domainLog, 117, 16, true, Array.from(folding[0])],
+    [fixture.domainLog - 4, 17, 16, false, Array.from(folding[1])],
+    [1, 1, 2, false, Array.from(folding[2])],
+  ]) {
+    const values = Array.from({ length: count }, (_, i) => Array.from({ length: 8 }, (_, j) => i * 17 + j));
+    const inverses = subgroupInverses(log, query, count, circle);
+    const expected = await harness.foldFri(values, challenge, inverses);
+    const actual = await harness.foldCanonicalFri(values, challenge, inverses, log, query, circle);
+    assert.deepEqual(Array.from(actual), Array.from(expected));
+    const modified = [mod(inverses[0] + 1n), ...inverses.slice(1)];
+    await assert.rejects(harness.foldCanonicalFri(values, challenge, modified, log, query, circle));
+    await assert.rejects(harness.foldCanonicalFri(values, challenge, inverses, log, 1 << log, circle));
+    await assert.rejects(harness.foldCanonicalFri(values, challenge, inverses, log, query, !circle));
+  }
+});
+
 test("replays the DEEP/FRI commitment suffix from a native OP Mainnet proof", async () => {
   const fixture = JSON.parse(readFileSync(new URL("../fixtures/native-pcs-121057303-truth-4.json", import.meta.url)));
   const native = JSON.parse(readFileSync(new URL("../fixtures/native-queries-121057303.json", import.meta.url)))[fixture.worker];

@@ -38,6 +38,17 @@ contract Harness {
         return NativeFriFold.fold(values, alpha, inverses);
     }
 
+    function foldCanonicalFri(
+        uint32[8][] calldata values,
+        uint32[8] calldata alpha,
+        uint32[] calldata inverses,
+        uint8 domainLog,
+        uint32 query,
+        bool circleLayer
+    ) external pure returns (uint32[8] memory) {
+        return NativeFriFold.foldCanonical(values, alpha, inverses, domainLog, query, circleLayer);
+    }
+
     function checkSeparately(
         LiftedOpeningVerifier verifier,
         bytes32 root,

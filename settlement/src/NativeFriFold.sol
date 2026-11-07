@@ -2,13 +2,90 @@
 pragma solidity ^0.8.26;
 
 /// @notice Native OM31 FRI butterfly for one authenticated query subgroup.
-/// @dev The caller owns subgroup indexing, openings and inverse coordinates.
-///      The first circle step uses inverse y. Line steps use inverse x.
+/// @dev The caller owns query and opening authentication. foldCanonical
+///      checks the supplied inverses against the canonical domain.
 library NativeFriFold {
     error InvalidSubgroup();
     error NonCanonicalField();
+    error InvalidInverseCoordinate();
 
     uint32 private constant P = 0x7fffffff;
+
+    struct Point {
+        uint256 x;
+        uint256 y;
+    }
+
+    /// @param query A bit-reversed query position in the source layer.
+    /// @param circleLayer True for the initial circle layer, false for line layers.
+    function foldCanonical(
+        uint32[8][] memory values,
+        uint32[8] memory alpha,
+        uint32[] calldata inverses,
+        uint8 domainLog,
+        uint32 query,
+        bool circleLayer
+    ) internal pure returns (uint32[8] memory) {
+        uint256 length = values.length;
+        uint256 maxLog = circleLayer ? 30 : 29;
+        if (
+            length < 2 || length > 16 || (length & (length - 1)) != 0 || inverses.length != length - 1
+                || domainLog > maxLog || length > (uint256(1) << domainLog) || query >= (uint256(1) << domainLog)
+        ) revert InvalidSubgroup();
+
+        uint256 base = uint256(query) & ~(length - 1);
+        uint256 initial = uint256(1) << (maxLog - domainLog);
+        uint256 foldLog;
+        for (uint256 width = length; width > 1; width >>= 1) ++foldLog;
+        Point memory first = circlePoint(initial * (1 + 4 * reverseBits(base, domainLog)));
+        Point memory step = circlePoint(uint256(1) << ((circleLayer ? 32 : 31) - foldLog));
+        uint256 at;
+        while (length > 1) {
+            length >>= 1;
+            --foldLog;
+            Point memory point = first;
+            for (uint256 i; i < length; ++i) {
+                uint256 inverse = inverses[at + reverseBits(i, foldLog)];
+                if (inverse >= P || mulmod(circleLayer ? point.y : point.x, inverse, P) != 1) {
+                    revert InvalidInverseCoordinate();
+                }
+                point = circleMultiply(point, step);
+            }
+            at += length;
+            // Circle-to-line projects the same half-coset. Subsequent
+            // line folds double its generator exponents.
+            if (circleLayer) circleLayer = false;
+            else {
+                first = circleMultiply(first, first);
+                step = circleMultiply(step, step);
+            }
+        }
+        return fold(values, alpha, inverses);
+    }
+
+    function reverseBits(uint256 index, uint256 bits) private pure returns (uint256 reversed) {
+        for (uint256 i; i < bits; ++i) {
+            reversed = (reversed << 1) | (index & 1);
+            index >>= 1;
+        }
+    }
+
+    function circlePoint(uint256 exponent) private pure returns (Point memory point) {
+        point = Point(1, 0);
+        Point memory power = Point(2, 1_268_011_823);
+        while (exponent != 0) {
+            if ((exponent & 1) != 0) point = circleMultiply(point, power);
+            power = circleMultiply(power, power);
+            exponent >>= 1;
+        }
+    }
+
+    function circleMultiply(Point memory a, Point memory b) private pure returns (Point memory) {
+        return Point(
+            addmod(mulmod(a.x, b.x, P), P - mulmod(a.y, b.y, P), P),
+            addmod(mulmod(a.x, b.y, P), mulmod(a.y, b.x, P), P)
+        );
+    }
 
     /// @dev Coefficients are in the native basis [1,i,u,iu,v,iv,uv,iuv].
     /// Inverse coordinates are ordered by fold round, then by butterfly index.

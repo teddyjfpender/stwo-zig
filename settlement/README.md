@@ -201,6 +201,14 @@ nonce and match the exact projected query set to its worker.
 
 ## Checkpoint authority and remaining verifier work
 
+`NativeFriFold.foldCanonical` checks each inverse against the canonical M31
+circle or line domain at the bit-reversed query position. The circle round
+uses y, projects onto the same half-coset, then uses x for the line rounds.
+The tests exercise independent coset enumeration with challenges from the
+mainnet transcript and reject modified inverses, an out-of-range query and a
+substituted layer kind. The surrounding verifier must supply authenticated
+queries, layer geometry and opened evaluations before calling the fold.
+
 `KonaCheckpoint` pins a rollup ID and configuration, the transition
 verifier address and its runtime code hash, and the initial height and
 output root. Advancement requires the next consecutive height and a recent
