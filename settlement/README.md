@@ -137,9 +137,13 @@ encodings, and rerun the real Mainnet commitment opening tests.
 
 `NativeFriFold` evaluates the native unnormalized OM31 butterflies for
 2, 4, 8 or 16 values. Its test uses independent quadratic tower arithmetic.
-The surrounding verifier still needs to derive the coordinates from the
-query positions, authenticate the opened subgroup, connect each fold to
-the next layer and check the final polynomial.
+`foldCanonical` also checks each inverse against the canonical M31 circle or
+line domain at the bit-reversed query position. The circle round uses y and
+projects onto the same half-coset before line rounds use x. Tests enumerate
+cosets independently with challenges from the mainnet transcript and reject
+modified inverses, out-of-range queries and a substituted layer kind. The
+surrounding verifier still needs to authenticate the query and opened subgroup,
+connect each fold to the next layer and check the final polynomial.
 
 The Solidity suite also replays the 5,532 samples, three FRI roots and final
 coefficient of `truth-4.bin` from the accepted block 121057303 bundle. The
@@ -200,14 +204,6 @@ the two opening fixtures. The exporter uses Python BLAKE2s to check each
 nonce and match the exact projected query set to its worker.
 
 ## Checkpoint authority and remaining verifier work
-
-`NativeFriFold.foldCanonical` checks each inverse against the canonical M31
-circle or line domain at the bit-reversed query position. The circle round
-uses y, projects onto the same half-coset, then uses x for the line rounds.
-The tests exercise independent coset enumeration with challenges from the
-mainnet transcript and reject modified inverses, an out-of-range query and a
-substituted layer kind. The surrounding verifier must supply authenticated
-queries, layer geometry and opened evaluations before calling the fold.
 
 `KonaCheckpoint` pins a rollup ID and configuration, the transition
 verifier address and its runtime code hash, and the initial height and

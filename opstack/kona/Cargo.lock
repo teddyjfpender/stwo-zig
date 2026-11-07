@@ -2587,6 +2587,7 @@ dependencies = [
  "alloy-op-evm",
  "alloy-primitives",
  "alloy-rlp",
+ "ark-bls12-381",
  "ark-bn254",
  "ark-ec",
  "ark-ff",

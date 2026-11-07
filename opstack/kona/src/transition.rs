@@ -1,4 +1,4 @@
-//! One checkpoint transition through Kona's authenticated calldata pipeline.
+//! One checkpoint transition through Kona's authenticated derivation pipeline.
 use crate::{
     anchored_l1::{AnchorError, AnchoredL1},
     anchored_l2::AnchoredL2,
@@ -73,6 +73,31 @@ pub async fn verify_calldata_transition(
     config: Arc<RollupConfig>,
     l1_config: Arc<L1ChainConfig>,
 ) -> Result<L2BlockInfo, TransitionError> {
+    verify_transition(input, claim, config, l1_config, RejectBlobs).await
+}
+
+/// Verify a transition with EIP-4844 data authenticated against the blob
+/// versioned hashes in canonical L1 transactions. The caller supplies the
+/// same public checkpoint and configuration authority as the calldata path.
+#[cfg(feature = "blob-derivation")]
+pub async fn verify_blob_transition(
+    input: &[u8],
+    claim: Transition,
+    config: Arc<RollupConfig>,
+    l1_config: Arc<L1ChainConfig>,
+    sidecars: &[crate::anchored_blobs::BlobSidecar<'_>],
+) -> Result<L2BlockInfo, TransitionError> {
+    let blobs = crate::anchored_blobs::AnchoredBlobs::new(sidecars)?;
+    verify_transition(input, claim, config, l1_config, blobs).await
+}
+
+async fn verify_transition<B: BlobProvider + Send + Sync + Clone + core::fmt::Debug>(
+    input: &[u8],
+    claim: Transition,
+    config: Arc<RollupConfig>,
+    l1_config: Arc<L1ChainConfig>,
+    blobs: B,
+) -> Result<L2BlockInfo, TransitionError> {
     if claim.previous_number.checked_add(1) != Some(claim.next_number) {
         return Err(AnchorError::Ancestry.into());
     }
@@ -108,7 +133,7 @@ pub async fn verify_calldata_transition(
         return Err(TransitionError::Origin);
     }
 
-    let data = EthereumDataSource::new_from_parts(l1.clone(), RejectBlobs, &config);
+    let data = EthereumDataSource::new_from_parts(l1.clone(), blobs, &config);
     let attributes =
         StatefulAttributesBuilder::new(config.clone(), l1_config, l2.clone(), l1.clone(), None);
     let mut pipeline = PipelineBuilder::new()

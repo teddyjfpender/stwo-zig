@@ -78,7 +78,7 @@ def main():
                 "--manifest-path",
                 crate / "Cargo.toml",
                 "--features",
-                "host,pairing-cache,bn254-glv",
+                "host,blob-derivation,pairing-cache,bn254-glv",
                 "-j1",
             ]
         )

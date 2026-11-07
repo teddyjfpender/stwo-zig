@@ -282,6 +282,19 @@ fn opens_mainnet_safe_head_and_its_system_config_from_the_checkpoint() {
             kona_derive::PipelineError::Provider(message)
         ))) if message.contains(&format!("{:?}", header.parent_hash))
     ));
+    #[cfg(feature = "blob-derivation")]
+    assert!(matches!(
+        ready(stwo_kona_execution::transition::verify_blob_transition(
+            &input,
+            claim,
+            config.clone(),
+            l1_config,
+            &[],
+        )),
+        Err(TransitionError::Pipeline(kona_derive::PipelineErrorKind::Critical(
+            kona_derive::PipelineError::Provider(message)
+        ))) if message.contains(&format!("{:?}", header.parent_hash))
+    ));
     assert_eq!(
         ready(provider.block_by_number(header.number))
             .unwrap()
