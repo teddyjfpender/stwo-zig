@@ -7,7 +7,7 @@
   "CUDA_MODULE_LOADING": "EAGER",
   "LD_PRELOAD": "{library}:{observer}:{sparse}",
   "LD_LIBRARY_PATH": "{library_dir}:/usr/local/cuda/lib64",
-  "STWO_RV64_GLOBAL_ADMISSION_RUNTIME": "v1",
+  "STWO_RV64_GLOBAL_ADMISSION_RUNTIME": "v2",
   "STWO_RV64_TRUTH_SPARSE_LIBRARY": "{sparse}",
   "STWO_RV64_PROCESS_MEMORY_LIBRARY": "{observer}",
   "STWO_RV64_PROCESS_MEMORY_OBSERVE": "1",
@@ -38,12 +38,10 @@
  "arms": {
   "baseline": {
    "STWO_RV64_DEVICE_ARENA": "22G",
-   "STWO_RV64_TRUTH_SPARSE_RC": "1",
-   "STWO_RV64_GLOBAL_ADMISSION": "1",
-   "STWO_RV64_GLOBAL_ADMISSION_HOST_POLICY": "observe_only",
-   "STWO_RV64_PCS_IDLE_CACHE_BYTES": "0",
-   "STWO_RV64_RECURSION_SESSIONS": "1",
-   "STWO_RV64_RECURSION_LANES_PER_DEVICE": "2",
+   "STWO_RV64_TRUTH_SPARSE_RC": "0",
+   "STWO_RV64_GLOBAL_ADMISSION": "0",
+   "STWO_RV64_RECURSION_SESSIONS": "0",
+   "STWO_RV64_RECURSION_LANES_PER_DEVICE": "1",
    "STWO_RV64_EARLY_NATIVE_SEGMENTS": "0",
    "STWO_RV64_FIRST_PASS_RAM": "0",
    "STWO_RV64_M8_CAPTURE_LOCAL_LEDGER": "0",
@@ -62,12 +60,10 @@
   },
   "fullstack": {
    "STWO_RV64_DEVICE_ARENA": "22G",
-   "STWO_RV64_TRUTH_SPARSE_RC": "1",
-   "STWO_RV64_GLOBAL_ADMISSION": "1",
-   "STWO_RV64_GLOBAL_ADMISSION_HOST_POLICY": "observe_only",
-   "STWO_RV64_PCS_IDLE_CACHE_BYTES": "0",
-   "STWO_RV64_RECURSION_SESSIONS": "1",
-   "STWO_RV64_RECURSION_LANES_PER_DEVICE": "2",
+   "STWO_RV64_TRUTH_SPARSE_RC": "0",
+   "STWO_RV64_GLOBAL_ADMISSION": "0",
+   "STWO_RV64_RECURSION_SESSIONS": "0",
+   "STWO_RV64_RECURSION_LANES_PER_DEVICE": "1",
    "STWO_RV64_EARLY_NATIVE_SEGMENTS": "0",
    "STWO_RV64_FIRST_PASS_RAM": "0",
    "STWO_RV64_M8_CAPTURE_LOCAL_LEDGER": "1",
@@ -120,14 +116,14 @@
   "pending_authority_floor": "SourcePlan max_leaves256 arity4 carryBound12; minimumLimit=max(9+2lanes,12+2lanes+1):17 for2logical lanes,21 for4logical lanes.",
   "timed_scope": "R1PARKED: timedfullstackdiffonlySparse22G+globalGPUadmission+siblingrecursionsessions+2lanes/device+earlyleafcapability+sourcependingbound21. BaselineoriginalD2+coalescingauto/global0/sessions0/lanes1/pending17. AllR1flags0botharms.",
   "quiet_pressure_max": 0.005,
-  "opt_combined_scope": "M8 opt-combined A/B on ONE image (build/m8-opt-combined/img, lib b181cdd9): both arms the canonical FULLSTACK env (fixed 22G arena, sparse RC, global admission, sessions, 2 lanes/GPU, pending 21) with STWO_RV64_GLOBAL_ADMISSION_RUNTIME=v1, as T4/T5/T9 presets. 'baseline' = integrate-head behaviour: every T1..T9 flag off + T3/T4 kill switches (legacy kernels, serial capture ledger, inflight 4, default chunk words). 'fullstack' = every opt flag on + T6 chunk knobs 2^28 words. Only the flags differ; the fixed arena means the runner's fullstack-only physical canary cannot resize the arena. Why v1: on this image (admission v2 exports present, unlike frozen a25) runtime v2 fails the flags-OFF warm request (NativePostGlobalDrainUnavailable, ab4 06:38Z); the canonical baseline env (auto arena) cannot carry the canary (CudaAllocationFailed, ab5 06:42Z)."
+  "opt_combined_scope": "M8 opt-combined A/B on ONE image (build/m8-opt-combined/img, lib b181cdd9): both arms = the canonical BASELINE (default) env (global admission off, sessions off, 1 lane/GPU, pending 17: the env rv64_gate proves) with a FIXED 22G arena instead of auto, so the runner's fullstack-only physical canary (<=28e9 B/GPU) cannot resize either arm. 'baseline' = integrate-head behaviour: every T1..T9 flag off + T3/T4 kill switches (legacy kernels, serial capture ledger, inflight 4, default chunk words). 'fullstack' = every opt flag on + T6 chunk knobs 2^28 words. Only the flags differ. Rejected envs [M]: canonical fullstack env with admission runtime v2 fails the flags-OFF warm request (NativePostGlobalDrainUnavailable, ab4); with v1 the flags-OFF warm request deadlocks (ab6, service stopped after 20 min idle); default env with auto arena + canary OOMs the fullstack arm (CudaAllocationFailed, ab5)."
  },
  "operational": {
   "baseline": {
-   "recursion_max_pending_authorities": 21
+   "recursion_max_pending_authorities": 17
   },
   "fullstack": {
-   "recursion_max_pending_authorities": 21
+   "recursion_max_pending_authorities": 17
   }
  }
 }
