@@ -171,6 +171,17 @@ def guard_verdict(receipt, arm):
             'scope': 'successful proof under physical availability ceiling; not an observed peak'}
 
 
+def prune_verified_payload(proof):
+    """Delete proof payload files (*.bin, *.proof) of a request already verified byte-identical
+    to the retained reference; report/stage JSON stays. Large-block disk mode only."""
+    removed = 0
+    for path in sorted(Path(proof).rglob('*')):
+        if path.is_file() and path.name.endswith(('.bin', '.proof')):
+            removed += path.stat().st_size
+            path.unlink()
+    return removed
+
+
 def run(args):
     manifest = json.loads(args.manifest.read_text())
     validate_manifest(manifest)
@@ -240,11 +251,14 @@ def run(args):
             actual = fingerprints(request, require_capture=args.smoke)
             if reference is None:
                 reference = actual
-                result['payload_reference'] = {'run': str(service), 'ordinal': request['ordinal'], 'fingerprints': reference}
+                result['payload_reference'] = {'run': str(service), 'ordinal': request['ordinal'], 'proof': request['proof'], 'fingerprints': reference}
             if actual != reference:
                 write(output / 'parity-failure.json', {'run': str(service), 'ordinal': request['ordinal'], 'expected': reference, 'actual': actual})
                 raise RuntimeError('proof payload or captured-input SHA256 mismatch across arms/cold/warm')
         entry['payload_byte_parity'] = True
+        if args.fresh_receivers == 'reference':
+            entry['pruned_payload_bytes'] = sum(prune_verified_payload(request['proof']) for request in receipt['requests']
+                                                if request['proof'] != result['payload_reference']['proof'])
         entry['captured_sha_parity_required'] = args.smoke
         warm = receipt['requests'][1]
         entry['warm'] = warm
@@ -252,15 +266,24 @@ def run(args):
         write(output / 'experiment.json', result)
     # Do not contaminate interleaved timings/quiet state with CPU receivers.
     verification = list(result['services'])
+    which = 'all'
+    if args.fresh_receivers == 'reference':
+        # Every request is byte-identical to the retained reference proof (checked above),
+        # so one fresh receiver on that proof covers every request's bytes.
+        if args.reference_run or result['payload_reference']['ordinal'] != 0:
+            raise RuntimeError('--fresh-receivers reference needs the first service cold request as reference')
+        verification = [entry for entry in result['services'] if entry['run'] == result['payload_reference']['run']]
+        which = 'first'
+        result['fresh_receiver_scope'] = 'reference proof only; all other requests byte-identical to it, payloads pruned'
     if args.reference_run:
         verification.append({'order_index':'reference','arm':'reference','run':str(args.reference_run)})
     for entry in verification:
         argv = [sys.executable, str(root / 'scripts/rv64_m4_resident.py'), 'receive', '--run', entry['run'],
-                '--which', 'all', '--receiver-workers', str(args.receiver_workers)]
+                '--which', which, '--receiver-workers', str(args.receiver_workers)]
         with (output / f'{entry["order_index"]}-{entry["arm"]}-receiver.log').open('w') as log:
             code = subprocess.run(argv, cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT).returncode
         receipt = json.loads((Path(entry['run']) / 'receipt.json').read_text())
-        if code or not receipt['receivers'] or not all(v.get('accepted') for v in receipt['receivers']):
+        if code or len(receipt['receivers']) != (1 if which == 'first' else len(receipt['requests'])) or not all(v.get('accepted') for v in receipt['receivers']):
             raise RuntimeError('fresh isolated receiver rejected: ' + entry['run'])
         entry['fresh_receivers'] = receipt['receivers']
         if entry['arm'] == 'reference':
@@ -306,6 +329,9 @@ def main():
     p.add_argument('--manifest', required=True, type=Path)
     p.add_argument('--out', required=True, type=Path)
     p.add_argument('--receiver-workers', type=int, default=16)
+    p.add_argument('--fresh-receivers', choices=('all', 'reference'), default='all',
+                   help='reference: large-block disk mode - one fresh receiver on the retained reference proof; payloads of '
+                        'every other request are pruned once verified byte-identical to it')
     p.add_argument('--ownership-profile-pair', action='store_true', help='after six unprofiled services, one baseline/fullstack CUPTI pair; never included in headline medians')
     p.add_argument('--smoke', action='store_true', help='small-block lane1 control then lane2 seeds17/29 cold/warm correctness services before headline experiment')
     p.add_argument('--global-admission-off-diagnostic', action='store_true', help='required same-day fallback diagnosis; allotherfullstackflags/guard unchanged, no performance qualification')

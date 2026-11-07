@@ -92,6 +92,16 @@ class GateTests(unittest.TestCase):
         self.assertNotIn('--allow-block', argv)
         self.assertNotIn('--coalesce-truth-families', argv)
 
+    def test_large_block_prune_keeps_reports(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'recursion-om31').mkdir()
+            (root / 'recursion-om31/root.proof').write_bytes(b'12345')
+            (root / 'cells.bin').write_bytes(b'123')
+            (root / 'report.json').write_text('{}')
+            self.assertEqual(gate.stack.prune_verified_payload(root), 8)
+            self.assertEqual(sorted(p.name for p in root.rglob('*') if p.is_file()), ['report.json'])
+
     def test_daemon_owner_rule_needs_explicit_block_opt_in(self):
         def args(blocks, repeat=2, allow=(), probe=False):
             return SimpleNamespace(blocks=list(blocks), repeat=repeat, allow_block=list(allow), allow_scale_probe=probe)
