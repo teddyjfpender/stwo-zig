@@ -376,6 +376,7 @@ fn gpuParity() !void {
         for (segs.items, programs) |*s, *p| {
             var t = try std.time.Timer.start();
             p.* = try P.Program.parse(a, s.chunks, s.logs.len);
+            try p.checkMainLogs(s.logs);
             const parse_ns = t.read();
             max_words = @max(max_words, std.mem.alignForward(usize, s.image_words, 64) + p.arenaWords() + (1 << 16));
             std.debug.print("GN_PACK_PROGRAM dir={s} seg={} chunks={} chunk_bytes={} data_bytes={} launches={} arena_bytes={} image_bytes={} parse_ns={} capture_pack_ns={} capture_compact_ns={}\n", .{ path, s.ordinal, s.chunks.len, p.chunk_words * 4, p.data_words * 4, p.launches.items.len, p.arenaWords() * 4, s.image_words * 4, parse_ns, s.pack_ns, s.compact_ns });

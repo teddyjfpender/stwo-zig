@@ -592,6 +592,11 @@ pub const Stage1Job = struct {
             },
         }
         errdefer if (self.program) |*p| p.deinit();
+        if (self.program) |*p| {
+            try p.checkMainLogs(c.spec.gkr.logs[c.spec.gkr.fixed_count..]);
+            // The plan bound (arena_peak_words via jobWords) must hold the program.
+            if (c.spec.compact_words != 0 and p.arenaWords() > c.spec.compact_words) return error.GnPackArenaExceedsPlan;
+        }
         self.main = c.main;
         self.gplan = c.spec.gkr.*;
         self.gplan.prefix = self.words.prefix;
@@ -642,8 +647,12 @@ pub const Stage1Job = struct {
                 chunk_words += p.arenaWords();
             },
         }
+        // jobWords() already carries Spec.compact_words (the class's planned
+        // v2 program bound, checked >= this program's arena at init): only an
+        // unplanned program (compact_words 0) adds its arena on top.
+        const planned: usize = if (self.witness == .compact and c.spec.compact_words != 0) chunk_words else 0;
         const staged = up(9) + c.spec.gkr.stagedWords(true) + up(c.main.stagedWords(0)) + chunk_words;
-        return .{ .device_words = c.jobWords() + chunk_words, .staged_words = staged, .slab_words = 0, .pinned_words = c.spec.gkr.pinnedWords() - c.spec.gkr.twiddle_words + c.main.logs.len + 9 + 4 * granule };
+        return .{ .device_words = c.jobWords() + chunk_words - planned, .staged_words = staged, .slab_words = 0, .pinned_words = c.spec.gkr.pinnedWords() - c.spec.gkr.twiddle_words + c.main.logs.len + 9 + 4 * granule };
     }
     pub fn stage(self: *Stage1Job, s: *api.Stager) !void {
         const c = self.class;

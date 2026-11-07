@@ -45,7 +45,9 @@ pub const record_header_words: usize = 4;
 pub const max_buffers: usize = 256;
 pub const image_buffer: u16 = 1;
 pub const first_buffer: u16 = 2;
-pub const max_status: usize = 8;
+/// Program status words: Stage 1's witness_status CheckSpec holds 8 zero
+/// words and spends one on the ingress status, so a program may name 7.
+pub const max_status: usize = 7;
 
 pub const Tag = enum(u32) { declare = 1, data = 2, launch = 3, status = 4, end = 5 };
 pub const Init = enum(u32) {
@@ -665,8 +667,41 @@ pub const Program = struct {
         for (self.status[0..self.status_len]) |s| {
             try self.checkRef(s, false);
             if (refBuffer(s) == image_buffer) return error.GnPackStatusInImage;
+            // A status word starts at 0 on device (a stale arena word or an
+            // uploaded value would decide the verdict, not the kernels).
+            if (self.buffers[refBuffer(s)].init != .zero) return error.GnPackStatusNotZeroed;
         }
         if (self.status_len == 0) return error.GnPackNoStatus;
+        // Every kernel's status word is one `witness_status` checks: a launch
+        // reporting into an unchecked word would let its failure publish.
+        for (self.launches.items) |l| switch (l.op) {
+            inline else => |op| {
+                const T = op.Type();
+                if (@hasField(T, "status")) {
+                    const job = std.mem.bytesToValue(T, std.mem.sliceAsBytes(l.body));
+                    if (std.mem.indexOfScalar(Ref, self.status[0..self.status_len], job.status) == null) return error.GnPackStatusUnchecked;
+                }
+            },
+        };
+    }
+
+    /// The MAIN-writing launches against the class column logs (`logs[i]` =
+    /// log2 rows of image column i): a kernel writes 2^log rows into each of
+    /// its columns, so a log that disagrees with the class would write past
+    /// its columns' image span. Stage 1 runs this right after `parse`.
+    pub fn checkMainLogs(self: *const Program, logs: []const u32) !void {
+        if (logs.len != self.columns) return error.GnPackColumnCount;
+        for (self.launches.items) |l| switch (l.op) {
+            inline else => |op| {
+                const T = op.Type();
+                if (@hasField(T, "main") and l.main_columns != 0) {
+                    const job = std.mem.bytesToValue(T, std.mem.sliceAsBytes(l.body));
+                    if (job.log >= 32) return error.GnPackMainLog;
+                    for (logs[l.main_column..][0..l.main_columns]) |cl| if (cl != job.log) return error.GnPackMainLog;
+                    if (op == .bridge and job.main_words != (@as(u64, 1) << @intCast(job.log)) * l.main_columns) return error.GnPackMainLog;
+                }
+            },
+        };
     }
 };
 
@@ -786,7 +821,8 @@ pub const Roms = struct {
             stored = dst;
         }
         self.map.put(self.a, key, stored) catch |err| {
-            if (self.pinned != null) self.release(stored);
+            // Ownership was taken: free the words on every path.
+            self.release(stored);
             return err;
         };
     }

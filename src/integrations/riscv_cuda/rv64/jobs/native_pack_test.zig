@@ -34,6 +34,11 @@ const Ring = struct {
         self.buffers.deinit(self.a);
         self.chunks.deinit(self.a);
     }
+    fn destroy(self: *Ring) void {
+        const a = self.a;
+        self.deinit();
+        a.destroy(self);
+    }
 };
 
 /// A small program: CPU-like launch over columns [0,4), a family over [4,6),
@@ -133,4 +138,45 @@ test "gn-pack v2: structural refusals (truncation, coverage, overlap, gaps, refs
 test "gn-pack v2: a non-v2 chunk is not mistaken for v2" {
     try testing.expect(!P.isV2(&.{ 1, 0, 0, 0, 0, 0, 0, 0 }));
     try testing.expect(P.isV2(&.{ P.magic, P.version, 0, 4 }));
+}
+
+test "gn-pack v2: status words are zeroed and checked; MAIN logs match the class" {
+    const a = testing.allocator;
+    var r = Ring{ .a = a, .words = 4096 };
+    defer r.deinit();
+    try build(&r, 100);
+    var p = try P.Program.parse(a, r.chunks.items, 7);
+    defer p.deinit();
+    // build(): cpu_witness [0,4) log 5, family [4,6) log 5, table [6,7) log 16.
+    try p.checkMainLogs(&.{ 5, 5, 5, 5, 5, 5, 16 });
+    try testing.expectError(error.GnPackMainLog, p.checkMainLogs(&.{ 5, 5, 5, 5, 5, 6, 16 }));
+    try testing.expectError(error.GnPackMainLog, p.checkMainLogs(&.{ 5, 5, 5, 5, 5, 5, 15 }));
+    try testing.expectError(error.GnPackColumnCount, p.checkMainLogs(&.{ 5, 5, 5, 5, 5, 5 }));
+
+    // A launch reporting into a word no status record lists.
+    const unchecked = try statusVariant(a, false);
+    defer unchecked.destroy();
+    try testing.expectError(error.GnPackStatusUnchecked, P.Program.parse(a, unchecked.chunks.items, 7));
+    // A status word in an upload buffer (its value would come from the host).
+    const uploaded = try statusVariant(a, true);
+    defer uploaded.destroy();
+    try testing.expectError(error.GnPackStatusNotZeroed, P.Program.parse(a, uploaded.chunks.items, 7));
+}
+
+fn statusVariant(a: std.mem.Allocator, upload_status: bool) !*Ring {
+    const r = try a.create(Ring);
+    r.* = .{ .a = a, .words = 4096 };
+    errdefer {
+        r.deinit();
+        a.destroy(r);
+    }
+    var w = P.Writer.init(r.writer());
+    const scratch = try w.declare(1000, .zero);
+    const up = try w.declare(4, .upload);
+    try w.data(up, 0, &.{ 0, 0, 0, 0 });
+    const status: P.Ref = if (upload_status) P.ref(up, 0) else P.ref(scratch, 999);
+    try w.launch(.table, .{ .counts = P.ref(scratch, 0), .pairs = 0, .main = P.column(0), .status = if (upload_status) status else P.ref(scratch, 998), .log = 5, .kind = 0 }, 0, 7);
+    try w.status(status);
+    try w.end(7, 1 << 5);
+    return r;
 }
