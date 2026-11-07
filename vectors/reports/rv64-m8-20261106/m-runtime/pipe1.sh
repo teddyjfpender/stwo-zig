@@ -37,6 +37,8 @@ for step in $STEPS; do case $step in
   gate-def-26235156) gate $step --block 26235156 || { log STOP; exit 1; } ;;
   gate-def-24628607) gate $step --block 24628607 || { log STOP; exit 1; } ;;
   gate-on-24628607) gate $step --block 24628607 $ON || { log STOP; exit 1; } ;;
+  gate2-def-26235156) gate $step --block 26235156 || { log STOP; exit 1; } ;;
+  gate2-def-24628607) gate $step --block 24628607 || { log STOP; exit 1; } ;;
   ab-24628607) PREP="" ab $step $P/m-runtime/ab-preset-t1t10.json 24628607 ;;
   ab-26235159) PREP="--allow-block 26235159" ab $step $P/m-runtime/ab-preset-t1t10-26235159.json 26235159 --fresh-receivers reference ;;
   t2-24628607) PREP="" ab $step $P/opt-combined/ab-preset-t2-off.json 24628607 ;;
