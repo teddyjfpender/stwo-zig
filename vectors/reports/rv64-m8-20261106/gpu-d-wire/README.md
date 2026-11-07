@@ -24,7 +24,9 @@ Design: `design/riscv-proving-stack/rv64-m8-gpu-native.md` §1, §2 H1/H8/H13/H2
 - Negative: a withheld claims publish is rejected by the seal's device check (`global_seal` word `0x0103000a`) and the request is refused.
 - Peer ping-pong 26.8–27.3 µs per hop (no P2P on this pod: copies stage through the host).
 
-**Gate default:** see `gate-1.json` (pod `/workspace/m3/runs/m8-gpu-d-wire/gate-1`).
+**Gate default (`rv64_gate.sh --stream m8-gpu-d-wire`, 26235156, source 5063fa785, sibling merges included): PASS [M]** (`gate-2.json`): build, Zig + Python unit tests, cold and warm proofs byte-identical to the frozen D2 golden (32/32 and 32/32), 2 fresh CPU receivers accepted, 19 corpus cases. gate-1 (649d35088) failed at build: a shadowed `run` in driver_ge.zig, fixed in 5063fa785.
+
+**Request switch smoke (pod, `smoke-1.json`) [M]:** `combined-serve` with `STWO_RV64_M8_JOBS=1 STWO_RV64_M8_GPU_NATIVE=1` on the gate manifest parses the manifest, builds the per-block config/image/capture program, then refuses at install with `GpuNativeNativeShapeHookMissing` (exit 1, no READY, no proof): it fails closed, never falls back to the feeder or legacy path.
 
 ## Not done (blocked on the sibling factories)
 

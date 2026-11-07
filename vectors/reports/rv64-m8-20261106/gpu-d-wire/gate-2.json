@@ -1,0 +1,60 @@
+{
+ "schema": "rv64-commit-gate/v1",
+ "status": "PASS",
+ "source_commit": "5063fa785",
+ "block": 26235156,
+ "extra_env": {},
+ "frozen_default_sha256": "5987d31c4253ba204e3b782790e0e5871e7b9787e9e26fbb70f65dbfab818d95",
+ "service": "/workspace/m3/runs/m8-gpu-d-wire/daemon-26235156-r2-gate-gate-2-00-baseline",
+ "parity": [
+  {
+   "byte_identical": true,
+   "artifact_count": 32
+  },
+  {
+   "byte_identical": true,
+   "artifact_count": 32
+  }
+ ],
+ "receivers": [
+  {
+   "accepted": true
+  },
+  {
+   "accepted": true
+  }
+ ],
+ "steps": [
+  {
+   "name": "build",
+   "exit_code": 0,
+   "seconds": 1200.9
+  },
+  {
+   "name": "unit-zig",
+   "exit_code": 0,
+   "seconds": 699.7
+  },
+  {
+   "name": "unit-python",
+   "exit_code": 0,
+   "seconds": 0.5
+  },
+  {
+   "name": "small-block-proof",
+   "exit_code": 0,
+   "seconds": 47.2
+  },
+  {
+   "name": "fresh-cpu-receiver",
+   "exit_code": 0,
+   "seconds": 65.7
+  },
+  {
+   "name": "negative-corpus",
+   "exit_code": 0,
+   "seconds": 275.5
+  }
+ ],
+ "raw": "/workspace/m3/runs/m8-gpu-d-wire/gate-2/gate.json"
+}
