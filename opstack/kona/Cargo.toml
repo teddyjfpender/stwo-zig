@@ -12,7 +12,7 @@ resolver = "2"
 [features]
 default = []
 host = ["dep:kona-registry"]
-derivation = ["dep:alloy-eips", "dep:async-trait", "dep:kona-derive", "dep:kona-protocol", "dep:thiserror"]
+derivation = ["dep:alloy-eips", "dep:async-trait", "dep:kona-derive", "dep:kona-protocol", "dep:op-alloy-consensus", "dep:thiserror"]
 keccak-service = ["alloy-primitives/native-keccak"]
 secp-lean = ["k256/stwo-projective-word-service", "k256/stwo-vartime", "ecdsa/stwo-skip-redundant-recovery-verify"]
 sha-service = ["dep:sha2-rv64", "sha2-rv64/stwo-sha256-service"]
@@ -28,6 +28,7 @@ async-trait = { version = "=0.1.92", optional = true }
 thiserror = { version = "2", default-features = false, optional = true }
 kona-derive = { git = "https://github.com/ethereum-optimism/optimism", rev = "a271fd6b3feb76e49f3453e5a27be4b33a3c7211", default-features = false, optional = true }
 kona-protocol = { git = "https://github.com/ethereum-optimism/optimism", rev = "a271fd6b3feb76e49f3453e5a27be4b33a3c7211", default-features = false, optional = true }
+op-alloy-consensus = { git = "https://github.com/ethereum-optimism/optimism", rev = "a271fd6b3feb76e49f3453e5a27be4b33a3c7211", default-features = false, optional = true }
 ark-bn254 = { version = "=0.6.0", default-features = false, features = ["curve"], optional = true }
 ark-ec = { version = "=0.6.0", default-features = false, optional = true }
 ark-ff = { version = "=0.6.0", default-features = false, optional = true }

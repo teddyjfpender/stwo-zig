@@ -150,3 +150,85 @@ fn authenticates_ordered_data_from_the_anchor_and_rejects_other_forks() {
         Err(AnchorError::Trie(_))
     ));
 }
+
+#[cfg(feature = "host")]
+#[test]
+fn opens_mainnet_safe_head_and_its_system_config_from_the_checkpoint() {
+    use alloy_consensus::proofs::calculate_transaction_root;
+    use alloy_eips::eip2718::Decodable2718;
+    use alloy_rlp::Decodable;
+    use kona_derive::L2ChainProvider;
+    use kona_protocol::{BatchValidationProvider, OutputRoot};
+    use op_alloy_consensus::OpTxEnvelope;
+    use std::sync::Arc;
+    use stwo_kona_execution::anchored_l2::AnchoredL2;
+
+    // Header and body imported from the pinned Kona replay corpus, block 121057303.
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("op-mainnet-121057303-body.json")).unwrap();
+    let header_rlp =
+        alloy_primitives::hex::decode(fixture["expected_rlp"].as_str().unwrap()).unwrap();
+    let header = Header::decode(&mut header_rlp.as_slice()).unwrap();
+    let hash: B256 = fixture["expected_block_hash"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    assert_eq!(hash, keccak256(&header_rlp));
+    assert_eq!(header.number, 121057303);
+    let txs: Vec<_> = fixture["transactions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tx| {
+            let bytes = alloy_primitives::hex::decode(tx.as_str().unwrap()).unwrap();
+            OpTxEnvelope::decode_2718_exact(&bytes).unwrap()
+        })
+        .collect();
+    assert_eq!(header.transactions_root, calculate_transaction_root(&txs));
+    let mut trie = ordered_trie_with_encoder(&txs, Encodable2718::encode_2718);
+    assert_eq!(trie.root(), header.transactions_root);
+    let mut records: BTreeMap<_, _> = trie
+        .take_proof_nodes()
+        .into_inner()
+        .into_values()
+        .map(|data| (keccak256(&data), data.to_vec()))
+        .collect();
+    records.insert(hash, header_rlp);
+    // This test checkpoint uses a synthetic withdrawal root. The actual header,
+    // state commitment, and every transaction are pinned to the mainnet hash.
+    let checkpoint = OutputRoot::from_parts(header.state_root, B256::ZERO, hash);
+    records.insert(checkpoint.hash(), checkpoint.encode().to_vec());
+    let wrong = OutputRoot::from_parts(B256::ZERO, B256::ZERO, hash);
+    records.insert(wrong.hash(), wrong.encode().to_vec());
+    let input = encode(b"", &records.into_iter().collect::<Vec<_>>()).unwrap();
+    let witness = || Witness::parse(&input, Validation::Lazy).unwrap();
+    let config = Arc::new(kona_registry::ROLLUP_CONFIGS.get(&10).unwrap().clone());
+    assert!(matches!(
+        AnchoredL2::new(witness(), header.number, wrong.hash(), config.clone()),
+        Err(AnchorError::OutputRoot)
+    ));
+    let mut provider =
+        AnchoredL2::new(witness(), header.number, checkpoint.hash(), config.clone()).unwrap();
+    let info = ready(provider.l2_block_info_by_number(header.number)).unwrap();
+    assert_eq!(info.hash(), hash);
+    assert_eq!(
+        info.l1_origin.hash,
+        "0xc10a3bb5847ad354f9a70b56f253baaea1c3841647851c4c62e10b22fe4e8694"
+            .parse::<B256>()
+            .unwrap()
+    );
+    assert_eq!(
+        ready(provider.block_by_number(header.number))
+            .unwrap()
+            .body
+            .transactions,
+        txs
+    );
+    assert_eq!(
+        ready(provider.system_config_by_l2_hash(hash, config))
+            .unwrap()
+            .gas_limit,
+        header.gas_limit
+    );
+}

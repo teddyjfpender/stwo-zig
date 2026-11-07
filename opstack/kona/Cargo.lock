@@ -2600,6 +2600,7 @@ dependencies = [
  "kona-mpt",
  "kona-protocol",
  "kona-registry",
+ "op-alloy-consensus",
  "op-alloy-rpc-types-engine",
  "postcard",
  "revm-precompile",

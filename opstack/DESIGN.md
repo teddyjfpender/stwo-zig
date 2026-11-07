@@ -108,3 +108,11 @@ The integration still needs the L2 safe-head provider, blob authentication,
 pipeline initialization from authenticated state, and execution and output-root
 binding in the guest. The execution benchmark entry point retains its current
 statement and fixtures.
+
+`AnchoredL2` opens the previous checkpoint's V0 output preimage, checks its
+number and state commitment against the authenticated header, and exposes
+only that safe history to Kona's batch validation and system-config lookup.
+The integration test reconstructs the transaction trie for OP Mainnet block
+121057303 and checks the header, transaction root, L1 origin and gas limit
+against the pinned Kona replay corpus. The test checkpoint uses a synthetic
+withdrawal root to isolate safe-head authentication.
