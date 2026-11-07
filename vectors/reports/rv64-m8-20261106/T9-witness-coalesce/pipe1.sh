@@ -11,10 +11,12 @@ grep -q "^EXIT 0" $R/img1.log || { log img1-failed; exit 1; }
 log img1 $(grep -v EXIT $R/img1.log | tail -1)
 # Keep only the linked image: the recompiled objects are recorded by sha in build.json.
 rm -f $B/img1/*.cu.o
-log waiting-for-gpus
+log waiting-for-gpus-and-3GB-disk
 while true; do
   u=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits | sort -n | tail -1)
-  [ "$u" -lt 2048 ] && break; sleep 30
+  # The gate's zig build + service runs need ~1 GB; do not fill the shared disk.
+  free=$(df -BG --output=avail /workspace | tail -1 | tr -dc 0-9)
+  [ "$u" -lt 2048 ] && [ "$free" -ge 3 ] && break; sleep 30
 done
 log gpus-free
 cd $SRC
