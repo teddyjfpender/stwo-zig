@@ -121,6 +121,11 @@ pub const Check = enum(u16) {
     // (witness accepted, MAIN root published to Exchange.truthRoot). Stage 2
     // re-derives MAIN and its truth_status rejects a root that differs.
     truth_root = 0x0307,
+    // gn-truth addition (M8-INTERFACES "m8-gn-truth"): a truth's composition
+    // at the OODS point (device point program over the PCS samples) equals
+    // the value its composition samples reconstruct (was the host
+    // evalCompositionPolynomialAtPoint in truth finish). Truth extra check.
+    truth_oods = 0x0308,
 };
 
 /// Status checks every proof of a kind must carry (the driver reserves these

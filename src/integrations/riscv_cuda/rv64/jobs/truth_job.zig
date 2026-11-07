@@ -23,9 +23,15 @@
 //!     OODS + enqueue-only PCS
 //!     checks: truth_status, root_match (FIXED vs class, MAIN vs stage 1),
 //!     channel_order, pcs_status.
-//!   finish (host, after the single wait): PCS decode, the engine's OODS
-//!     constraint check and WP.encodePhysical (the legacy assembly; device
-//!     encoding is the native encoder's format and lands with it).
+//!   device encode (gn-truth; `encode = .device`): the OODS constraint
+//!     check on device (truth_oods.zig: Check.truth_oods) and the exact
+//!     WP.encodePhysical bytes written on device (native_encode.zig Encoder:
+//!     Check.encode_bounds, its pcs_status merged into Check.pcs_status) into
+//!     the truth's request-slab encoded region. The PCS image stays in the
+//!     job arena; finish reads verdict words only.
+//!   finish (`encode = .host`, the r-truth path): PCS decode, the engine's
+//!     OODS constraint check and WP.encodePhysical on the host. `.check`
+//!     runs both and compares (parity harness).
 //!
 //! No value the transcript depends on reaches the host before finish.
 const std = @import("std");
@@ -44,6 +50,8 @@ const P = @import("truth_params.zig");
 const I = @import("truth_interaction.zig");
 const K = @import("truth_class.zig");
 const T = @import("../truth_codegen.zig");
+const TO = @import("truth_oods.zig");
+const NE = @import("native_encode.zig");
 
 const D = CPU.rv64_device_pcs;
 const WP = CPU.rv64_gkr_worker_protocol;
@@ -71,6 +79,8 @@ const StatusFn = *const fn (*anyopaque, u32, [*]const u32, ?[*]const u32, ?[*]co
 const RootMatchFn = *const fn (*anyopaque, u32, [*]const u32, [*]const u32, u32, u32, [*]u32) callconv(.c) c_int;
 const OrderFn = *const fn (*anyopaque, u32, [*]const u32, u32, u64, [*]u32) callconv(.c) c_int;
 const PcsStatusFn = *const fn (*anyopaque, u32, [*]const u32, u64, [*]const u32, *const PcsExpect, [*]u32) callconv(.c) c_int;
+// NAT/rv64/jobs/truth_oods.cu: out = the first non-accepted word of `words` (unset rejects).
+const MergeFn = *const fn (*anyopaque, u32, [*]const u32, u32, u32, [*]u32) callconv(.c) c_int;
 
 pub const StatusConstants = extern struct { n_status: u32, n_claims: u32, n_zero: u32, classic: u32, check: u32, reserved: [3]u32 = @splat(0) };
 pub const PcsExpect = extern struct { header: [14]u32, header_mask: u32, trees: u32, reserved: [2]u32 = @splat(0) };
@@ -95,6 +105,11 @@ pub const Symbols = struct {
     root_match: RootMatchFn,
     order: OrderFn,
     pcs_status: PcsStatusFn,
+    /// gn-truth device encode (null with an addon that predates it; the
+    /// `.device` / `.check` modes then refuse at init).
+    oods: ?TO.Symbols = null,
+    encode: ?NE.Symbols = null,
+    merge: ?MergeFn = null,
     pub fn load(base: *std.DynLib, addon: *std.DynLib) !Symbols {
         return .{
             .keccak = base.lookup(KeccakFn, "stwo_rv64_keccak_witness_on"),
@@ -113,6 +128,9 @@ pub const Symbols = struct {
             .root_match = addon.lookup(RootMatchFn, "stwo_rv64_truth_root_match_v1_on") orelse return error.MissingTruthOpsSymbol,
             .order = addon.lookup(OrderFn, "stwo_rv64_truth_channel_order_v1_on") orelse return error.MissingTruthOpsSymbol,
             .pcs_status = addon.lookup(PcsStatusFn, "stwo_rv64_truth_pcs_status_v1_on") orelse return error.MissingTruthOpsSymbol,
+            .oods = TO.Symbols.load(addon) catch null,
+            .encode = NE.Symbols.load(addon) catch null,
+            .merge = addon.lookup(MergeFn, "stwo_rv64_truth_verdict_merge_v1_on"),
         };
     }
 };
@@ -140,10 +158,51 @@ pub const Verdicts = struct {
     root_match: ?api.DeviceBuffer = null,
     channel_order: ?api.DeviceBuffer = null,
     pcs_status: ?api.DeviceBuffer = null,
+    truth_oods: ?api.DeviceBuffer = null,
+    encode_bounds: ?api.DeviceBuffer = null,
 };
-const verdict_names = [_][]const u8{ "truth_status", "root_match", "channel_order", "pcs_status" };
+const verdict_names = [_][]const u8{ "truth_status", "root_match", "channel_order", "pcs_status", "truth_oods", "encode_bounds" };
+/// Own (job-slab) status words of stage 2: the published checks (when no
+/// request-slab word is given), then the two raw PCS words the device-encode
+/// path merges into pcs_status (truth_pcs_status kernel, encoder).
+pub const Own = struct {
+    pub const truth_status = 0;
+    pub const root_match = 1;
+    pub const channel_order = 2;
+    pub const pcs_status = 3;
+    pub const truth_oods = 4;
+    pub const encode_bounds = 5;
+    pub const pcs_truth = 6;
+    pub const pcs_encoder = 7;
+    pub const words = 8;
+};
 
-pub const Fault = enum { none, parameter_program, class_root, stage1_root, absent_claim, channel_cursor, pcs_header };
+pub const Fault = enum {
+    none,
+    parameter_program,
+    class_root,
+    stage1_root,
+    absent_claim,
+    channel_cursor,
+    pcs_header,
+    // gn-truth (device encode): one read trace sample (truth_oods), one
+    // composition sample (truth_oods), an encoded region one word short
+    // (encode_bounds), a noncanonical queried value (encode_bounds).
+    oods_sample,
+    oods_composition,
+    encode_capacity,
+    encode_value,
+};
+
+/// Where finish's proof bytes come from.
+pub const Encode = enum {
+    /// r-truth: host PCS decode + engine OODS check + WP.encodePhysical.
+    host,
+    /// gn-truth: device OODS check + device encoder; no host assembly.
+    device,
+    /// Both; finish compares device bytes / OODS values with the host's.
+    check,
+};
 
 const Events = @import("../cuda_events.zig");
 /// CUDA events around a job's enqueue (exec stream); read after the worker's wait.
@@ -396,8 +455,14 @@ pub const Stage2 = struct {
     /// Negative tests: corrupt exactly one check input (each must fire its check).
     fault: Fault = .none,
     verdicts: Verdicts = .{},
-    /// Skip the host assembly in finish (device encoder path / timing runs).
+    /// Skip the host assembly in finish (timing runs of the host path).
     assemble_on_finish: bool = true,
+    /// gn-truth: device OODS + device encoder (`.device`), or both paths
+    /// compared (`.check`). `.host` is the r-truth path unchanged.
+    encode: Encode = .host,
+    /// Request-slab encoded region of this truth (length word + bytes);
+    /// null = a job-slab field (finish copies the bytes: harnesses).
+    encoded: ?api.DeviceBuffer = null,
     // per-job plan copies
     fixed_plan: C.CommitPlan = undefined,
     main_plan: C.CommitPlan = undefined,
@@ -414,6 +479,9 @@ pub const Stage2 = struct {
     staged_compact: ?api.DeviceBuffer = null,
     pinned: []u32 = &.{},
     twiddles: [3]?api.DeviceBuffer = @splat(null),
+    /// Class-persistent device programs (device modes).
+    oods_program: ?api.DeviceBuffer = null,
+    encode_program: ?api.DeviceBuffer = null,
     // finish copies
     roots: [32]u32 = undefined,
     alpha: [8]u32 = undefined,
@@ -423,7 +491,19 @@ pub const Stage2 = struct {
     local_felts: [X.classic_felts * 8]u32 = @splat(0),
     shared_felts: [X.shared_felts * 8]u32 = undefined,
     pcs_words: []u32 = &.{},
-    verdict_words: [4]u32 = @splat(G.Verdict.unset),
+    verdict_words: [verdict_names.len]u32 = @splat(G.Verdict.unset),
+    /// Device OODS diagnostic [evaluated(8) | extracted(8)] (device modes).
+    oods_diag: [16]u32 = @splat(0),
+    /// Host OODS values (`.check`): evaluated, extracted.
+    host_oods: [16]u32 = @splat(0),
+    /// Device-encoded bytes copied from the job slab (`encoded == null`;
+    /// caller frees) and whether they equal the host bytes (`.check`).
+    device_bytes: []u8 = &.{},
+    device_equal: bool = false,
+    /// CUDA-event GPU span of the device OODS check + encoder.
+    device_span: Span = .{},
+    /// Host time of finish (verdict reads + copies; + assembly on the host path).
+    finish_ns: u64 = 0,
     channel_steps: u32 = 0,
     /// finish output: the legacy proof bytes and claims (caller frees).
     bytes: []u8 = &.{},
@@ -437,6 +517,11 @@ pub const Stage2 = struct {
     pub fn init(self: *Stage2) !void {
         const c = self.class;
         if (self.compact.len != c.compactWords(self.calls) or self.calls == 0) return error.TruthCompactShape;
+        if (self.encoded) |r| if (r.words < c.encode.regionWords()) {
+            // A region below the class capacity: the encoder fails closed
+            // (encode_bounds); `.encode_capacity` negatives exercise it.
+            if (self.fault != .encode_capacity) return error.TruthEncodedRegionTooSmall;
+        };
         if (self.digest) |d| {
             if (d.words < G.Exchange.seal_digest_words) return error.TruthDigestShape;
         } else if (self.digest_words == null) return error.TruthDigestRequired;
@@ -461,17 +546,25 @@ pub const Stage2 = struct {
         _ = try self.layout.add(.root, 0, 32);
         _ = try self.layout.add(.opaque_words, 0, 8); // alpha
         _ = try self.layout.add(.status, 0, n_status);
-        _ = try self.layout.add(.status, 1, verdict_names.len); // own verdicts
+        _ = try self.layout.add(.status, 1, Own.words); // own verdicts + raw PCS words
         _ = try self.layout.add(.claims, 0, feltWords(c.claim_count));
         _ = try self.layout.add(.claims, 1, @max(8, feltWords(c.zero_count)));
         _ = try self.layout.add(.opaque_words, 1, NP.oods_field_words);
-        _ = try self.layout.add(.opaque_words, 2, self.pcs_words.len);
+        if (self.encode != .host) {
+            const sym = self.sym;
+            if (sym.oods == null or sym.encode == null or sym.merge == null) return error.TruthDeviceEncodeSymbolsMissing;
+            _ = try self.layout.add(.opaque_words, 5, 16); // OODS diagnostic
+            if (self.encoded == null) _ = try self.layout.add(.opaque_words, 6, c.encode.regionWords());
+        }
+        // The PCS image enters the job slab only for host decoding.
+        if (self.encode != .device) _ = try self.layout.add(.opaque_words, 2, self.pcs_words.len);
         _ = try self.layout.add(.opaque_words, 3, feltWords(c.localScript().felts));
         _ = try self.layout.add(.opaque_words, 4, feltWords(X.shared_felts));
         _ = try self.layout.add(.channel_state, 0, @import("channel.zig").snapshot_words);
     }
     pub fn deinit(self: *Stage2) void {
         self.span.close(self.timing);
+        self.device_span.close(self.timing);
         if (!self.live) return;
         K.freeJobPlan(self.a, &self.fixed_plan);
         K.freeJobPlan(self.a, &self.main_plan);
@@ -503,6 +596,7 @@ pub const Stage2 = struct {
             .class_root => table[t.roots] ^= 1,
             .stage1_root => table[t.host_root] ^= 1,
             .pcs_header => {},
+            .oods_sample, .oods_composition, .encode_capacity, .encode_value => if (self.encode == .host) return error.TruthFaultNeedsDeviceEncode,
         }
         self.expect = pcsExpect(&self.pcs);
         if (self.fault == .pcs_header) self.expect.header[0] ^= 1;
@@ -529,6 +623,16 @@ pub const Stage2 = struct {
         for (c.roles, 0..) |r, i| self.twiddles[i] = try I.stageTwiddles(self.a, s, r.interaction.log);
         try self.composition.stage(s);
         self.pinned = try s.pinned(@intCast(self.pcs.ingressWords()));
+        if (self.encode != .host) {
+            // Class-persistent per worker: uploaded by the first job of the class.
+            const od = try s.persistent(c.oods.key(c.key), c.oods.words.len);
+            if (od.fresh) try s.upload(od.buffer, c.oods.words);
+            self.oods_program = od.buffer;
+            const ep = try s.persistent(encodeKey(c), c.encode.words.len);
+            if (ep.fresh) try s.upload(ep.buffer, c.encode.words);
+            self.encode_program = ep.buffer;
+            try self.device_span.open(self.timing);
+        }
     }
 
     pub fn enqueue(self: *Stage2, e: *api.Enqueue) !void {
@@ -646,7 +750,7 @@ pub const Stage2 = struct {
             .{ .base = comp.coefficients.ptr, .offsets = self.composition.offsets },
         };
         for (trees, 0..) |tree, index| for (tree.offsets, 0..) |offset, original| try self.pcs.bindColumn(index, original, tree.base + offset);
-        const pcs_out = try e.slab.field(.opaque_words, 2);
+        const pcs_out = if (self.encode == .device) try e.alloc(self.pcs_words.len) else try e.slab.field(.opaque_words, 2);
         try self.pcs.enqueueOpening(sym.pcs, e, self.pinned, try e.slab.field(.opaque_words, 1), pcs_out);
         trace("s2.pcs", self.ordinal);
         e.free(comp.coefficients);
@@ -670,12 +774,87 @@ pub const Stage2 = struct {
         const cursor = e.channel.step + @intFromBool(self.fault == .channel_cursor);
         try check(sym.order(ctx, 0, e.channel.stateBuffer().ptr, cursor, e.channel.expectedChain(e.channel.step), (self.verdicts.channel_order orelse try own.slice(2, 1)).ptr));
         // The launcher reads the expectation on the host (by value into the kernel).
-        try check(sym.pcs_status(ctx, 0, pcs_out.ptr, pcs_out.words, roots.ptr, &self.expect, (self.verdicts.pcs_status orelse try own.slice(3, 1)).ptr));
+        const pcs_verdict = if (self.encode == .host) self.verdicts.pcs_status orelse try own.slice(Own.pcs_status, 1) else try own.slice(Own.pcs_truth, 1);
+        try check(sym.pcs_status(ctx, 0, pcs_out.ptr, pcs_out.words, roots.ptr, &self.expect, pcs_verdict.ptr));
+        if (self.encode != .host) try self.enqueueDevice(e, pcs_out, own);
+        if (self.encode == .device) e.free(pcs_out);
         try self.span.mark(self.timing, true, e.stream());
     }
 
+    /// Device OODS constraint check + device encoder (gn-truth), after the
+    /// PCS and its status check. Verdicts: truth_oods, encode_bounds, and
+    /// pcs_status = merge(truth_pcs_status, encoder pcs_status).
+    fn enqueueDevice(self: *Stage2, e: *api.Enqueue, pcs_out: api.DeviceBuffer, own: api.DeviceBuffer) !void {
+        const c = self.class;
+        const sym = self.sym;
+        const ctx = e.ctx();
+        const osym = sym.oods.?;
+        const esym = sym.encode.?;
+        try self.device_span.mark(self.timing, false, e.stream());
+        switch (self.fault) {
+            .oods_sample, .oods_composition, .encode_value => {
+                const word = try self.faultWord();
+                try check(sym.memset(ctx, pcs_out.ptr + word, if (self.fault == .encode_value) 0xff else 0x01, 4));
+            },
+            else => {},
+        }
+        // OODS constraint check over the PCS samples and the gathered parameters.
+        const scratch = try e.alloc(c.oods.scratch_words);
+        try check(sym.memset(ctx, scratch.ptr + c.oods.words[TO.H.partials_at], 0, TO.partial_words * TO.max_roles * 4));
+        const table = (self.composition.table_device orelse return error.NativeCompositionNotStaged);
+        var params: [TO.max_roles]?api.DeviceBuffer = @splat(null);
+        for (self.composition.roles, 0..) |rp, i| params[i] = try table.slice(rp.t_params, rp.spec.parameters.len);
+        try TO.enqueue(&osym, ctx, &c.oods, .{
+            .desc = self.oods_program orelse return error.TruthJobNotStaged,
+            .pcs = pcs_out,
+            .trees = 4,
+            .params = params,
+            .alpha = try e.slab.field(.opaque_words, 0),
+            .point = try e.slab.field(.opaque_words, 1),
+            .scratch = scratch,
+            .verdict = self.verdicts.truth_oods orelse try own.slice(Own.truth_oods, 1),
+            .diag = try e.slab.field(.opaque_words, 5),
+        });
+        e.free(scratch);
+        // Encoder: WP.encodePhysical bytes into the encoded region.
+        const escratch = try e.alloc(NE.scratch_words);
+        var region = self.encoded orelse try e.slab.field(.opaque_words, 6);
+        if (self.fault == .encode_capacity) region = try region.slice(0, 2);
+        var enc = NE.Encoder{ .sym = &esym, .program = self.encode_program orelse return error.TruthJobNotStaged, .host = &c.encode, .pcs = pcs_out, .scratch = escratch, .pcs_status = try own.slice(Own.pcs_encoder, 1) };
+        try enc.enqueue(ctx, region, self.verdicts.encode_bounds orelse try own.slice(Own.encode_bounds, 1));
+        e.free(escratch);
+        try check(sym.merge.?(ctx, 0, (try own.slice(Own.pcs_truth, 2)).ptr, 2, @intFromEnum(G.Check.pcs_status), (self.verdicts.pcs_status orelse try own.slice(Own.pcs_status, 1)).ptr));
+        try self.device_span.mark(self.timing, true, e.stream());
+    }
+
+    /// The PCS-image word a device-encode fault corrupts.
+    fn faultWord(self: *const Stage2) !usize {
+        const d = self.class.oods.words;
+        return switch (self.fault) {
+            .oods_sample => blk: {
+                const row = d[TO.H.header_words..][0..TO.R.words];
+                for (0..row[TO.R.n_nodes]) |i| {
+                    const w = d[row[TO.R.nodes_at] + TO.node_words * i ..][0..TO.node_words];
+                    if (w[0] == @intFromEnum(TO.Op.input)) break :blk TO.samplesOffset(4) + 8 * @as(usize, w[1]);
+                }
+                return error.TruthFaultNoInput;
+            },
+            .oods_composition => TO.samplesOffset(4) + 8 * (@as(usize, d[TO.H.composition_sample]) + 9),
+            .encode_value => blk: {
+                // native_encode Program tree table, tree 0 record word 4: the
+                // PCS offset of tree 0's queried values.
+                const p = self.class.encode.words;
+                break :blk p[p[@intFromEnum(NE.H.tree_table)] + 4];
+            },
+            else => error.TruthFaultNotDevice,
+        };
+    }
+
     pub fn finish(self: *Stage2, view: api.SlabView) !void {
+        var finish_timer = try std.time.Timer.start();
+        defer self.finish_ns = finish_timer.read();
         self.span.read(self.timing);
+        self.device_span.read(self.timing);
         @memcpy(&self.roots, try Slab.read(view, .root, 0));
         @memcpy(&self.alpha, try Slab.read(view, .opaque_words, 0));
         const st = try Slab.read(view, .status, 0);
@@ -683,22 +862,34 @@ pub const Stage2 = struct {
         const cl = try Slab.read(view, .claims, 0);
         @memcpy(self.claims[0..cl.len], cl);
         @memcpy(&self.oods, try Slab.read(view, .opaque_words, 1));
-        @memcpy(self.pcs_words, try Slab.read(view, .opaque_words, 2));
+        if (self.encode != .device) @memcpy(self.pcs_words, try Slab.read(view, .opaque_words, 2));
         const lf = try Slab.read(view, .opaque_words, 3);
         @memcpy(self.local_felts[0..lf.len], lf);
         @memcpy(&self.shared_felts, try Slab.read(view, .opaque_words, 4));
         @memcpy(&self.verdict_words, (try Slab.read(view, .status, 1))[0..verdict_names.len]);
-        // Own verdict words (request-slab ones are gpu_native.publish's).
-        inline for (.{ "truth_status", "root_match", "channel_order", "pcs_status" }, 0..) |name, i| {
-            if (@field(self.verdicts, name) == null and self.verdict_words[i] != G.Verdict.accepted) {
+        if (self.encode != .host) {
+            @memcpy(&self.oods_diag, try Slab.read(view, .opaque_words, 5));
+            if (self.encoded == null) {
+                const region = try Slab.read(view, .opaque_words, 6);
+                const len: usize = region[0];
+                if (len > 4 * (region.len - 1)) return error.TruthEncodedLengthOverrun;
+                self.device_bytes = try self.a.dupe(u8, std.mem.sliceAsBytes(region[1..])[0..len]);
+            }
+        }
+        // Own verdict words (request-slab ones are gpu_native.publish's); the
+        // device-encode words exist only in the device modes.
+        const ran = if (self.encode == .host) 4 else verdict_names.len;
+        inline for (verdict_names, 0..) |name, i| {
+            if (i < ran and @field(self.verdicts, name) == null and self.verdict_words[i] != G.Verdict.accepted) {
                 std.debug.print("GPU_M8_TRUTH_JOB event=rejected ordinal={} check={s} word=0x{x}\n", .{ self.ordinal, name, self.verdict_words[i] });
                 return error.DeviceTruthCheckRejected;
             }
         }
-        if (self.assemble_on_finish) {
+        if (self.encode != .device and self.assemble_on_finish) {
             var timer = try std.time.Timer.start();
             try self.assemble();
             self.assemble_ns = timer.read();
+            if (self.encode == .check) self.device_equal = std.mem.eql(u8, self.device_bytes, self.bytes) and std.mem.eql(u32, &self.oods_diag, &self.host_oods);
         }
     }
 
@@ -744,6 +935,8 @@ pub const Stage2 = struct {
         const proof = WP.Proof{ .commitment_scheme_proof = decoded.proof };
         const extracted = proof.extractCompositionOodsEvalWithSplit(oods, c.mask_log + c.split, c.split) orelse return error.InvalidStructure;
         const expected_eval = try view.evalCompositionPolynomialAtPointWithWorkCapture(a, oods, &decoded.proof.sampled_values, try felt(&self.alpha), c.mask_log, c.mask_log + c.split, c.split, null);
+        @memcpy(self.host_oods[0..8], &X.words(expected_eval));
+        @memcpy(self.host_oods[8..16], &X.words(extracted));
         if (!extracted.eql(expected_eval)) return error.ConstraintsNotSatisfied;
         self.bytes = try WP.encodePhysical(a, .{ .commitment_scheme_proof = decoded.proof });
         self.out_claims = claims;
@@ -753,6 +946,14 @@ pub const Stage2 = struct {
         return api.Job.from(Stage2, self);
     }
 };
+
+/// Persistent-region key of a class's encode program on a worker.
+pub fn encodeKey(c: *const K.Class) [32]u8 {
+    var h = std.crypto.hash.sha2.Sha256.init(.{});
+    h.update("rv64-m8-gn-truth-encode/v1\x00");
+    h.update(&c.key);
+    return h.finalResult();
+}
 
 /// Staged word table offsets of a class.
 fn tableOf(c: *const K.Class) Table {
@@ -840,7 +1041,10 @@ pub fn stage2Footprint(c: *const K.Class, calls: u32, slab_words: usize, pcs_out
     const pcs_estimate = 2 * @max(c.main_plan.eval_cells, @max(c.inter_plan.eval_cells, c.fixed_plan.eval_cells)) + pcs_output;
     const phase_pcs = main_coeffs + al(c.inter_plan.coefficient_cells) + al(c.composition.coefficientWords()) + pcs_estimate;
     const small = 4 * al(feltWords(X.shared_felts)) + @import("channel.zig").state_words + 16 * g;
-    const peak = @max(@max(phase_witness, phase_interactions), @max(@max(phase_inter, phase_comp), phase_pcs));
+    // gn-truth device encode, after the trees are freed: PCS image (arena in
+    // `.device`), OODS node scratch, encoder scratch.
+    const phase_device = al(pcs_output) + al(c.oods.scratch_words) + al(NE.scratch_words) + 4 * g;
+    const peak = @max(@max(@max(phase_witness, phase_interactions), phase_device), @max(@max(phase_inter, phase_comp), phase_pcs));
     return .{ .device_words = staged + peak + small, .staged_words = staged, .slab_words = slab_words, .pinned_words = pcs_ingress + c.composition.pinnedWords() + t.words + c.compactWords(calls) + c.fixed_words + 2 * (@as(usize, 1) << @intCast(c.inter_plan.eval_log)) + 64 * g };
 }
 

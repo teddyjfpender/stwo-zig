@@ -20,6 +20,13 @@
 //!            pipeline's truth-<t>.bin (byte identity);
 //!   negatives (first truth of each kind): each injected fault makes exactly
 //!            its check reject.
+//! gn-truth (device encode): stage 2 run 0 is `.check` (host assembly AND the
+//! device OODS check + device encoder; device bytes == host bytes == legacy,
+//! device OODS evaluated/extracted == the host engine's), runs 1.. are
+//! `.device` (no host assembly; CUDA-event GPU time of the device OODS +
+//! encoder, finish host time); negatives run in `.device` over all six
+//! stage-2 verdicts, plus the device faults (oods_sample, oods_composition,
+//! encode_capacity, encode_value).
 //! Results: <out>/truth-parity.json.
 //!
 //! usage: rv64-m8-truth-parity <manifest.json> <out-dir>
@@ -234,8 +241,22 @@ const Row = struct {
     claims_equal: bool = false,
     local_equal: bool = false,
     shared_equal: bool = false,
-    verdicts: [4]u32 = @splat(G.Verdict.unset),
+    verdicts: [6]u32 = @splat(G.Verdict.unset),
     bytes_equal: bool = false,
+    /// gn-truth: device bytes == host bytes and device OODS == host engine (run 0, `.check`).
+    device_check_equal: bool = false,
+    device_oods_evaluated: [8]u32 = @splat(0),
+    host_oods_evaluated: [8]u32 = @splat(0),
+    /// Every `.device` run's bytes == legacy truth-<t>.bin.
+    device_bytes_equal: bool = false,
+    device_runs: u32 = 0,
+    device_gpu_ms: [4]f32 = @splat(-1),
+    finish_ns: [4]u64 = @splat(0),
+    oods_nodes: usize = 0,
+    oods_levels: usize = 0,
+    oods_descriptor_words: usize = 0,
+    encode_program_words: usize = 0,
+    max_encoded_bytes: usize = 0,
     legacy_bytes: usize = 0,
     job_bytes: usize = 0,
     stage2_gpu_ms: [4]f32 = @splat(-1),
@@ -380,18 +401,18 @@ pub fn main() !void {
         proveOne(a, worker, &sym, &events, wide, &libs.base, rec, manifest_digest, proof, &classes, &row, repeat, negatives, &negative_done) catch |err| {
             row.error_name = @errorName(err);
         };
-        std.debug.print("GPU_M8_TRUTH_PARITY ordinal={} family={s} log={} calls={} stage1_root_equal={} fixed={} main={} inter={} claims={} local={} shared={} verdicts={any} bytes_equal={} legacy_bytes={} job_bytes={} stage1_gpu_ms={d:.3} stage2_gpu_ms={any} assemble_ns={} arena_peak={} declared={} error={s}\n", .{ row.ordinal, row.family, row.log, row.calls, row.stage1_root_equal, row.fixed_root_equal, row.main_root_equal, row.inter_root_equal, row.claims_equal, row.local_equal, row.shared_equal, row.verdicts, row.bytes_equal, row.legacy_bytes, row.job_bytes, row.stage1_gpu_ms, row.stage2_gpu_ms, row.stage2_assemble_ns, row.stage2_arena_peak_words, row.stage2_declared_words, row.error_name });
+        std.debug.print("GPU_M8_TRUTH_PARITY ordinal={} family={s} log={} calls={} stage1_root_equal={} fixed={} main={} inter={} claims={} local={} shared={} verdicts={any} bytes_equal={} device_check_equal={} device_bytes_equal={} legacy_bytes={} job_bytes={} stage1_gpu_ms={d:.3} stage2_gpu_ms={any} device_gpu_ms={any} finish_ns={any} assemble_ns={} oods_nodes={} oods_levels={} arena_peak={} declared={} error={s}\n", .{ row.ordinal, row.family, row.log, row.calls, row.stage1_root_equal, row.fixed_root_equal, row.main_root_equal, row.inter_root_equal, row.claims_equal, row.local_equal, row.shared_equal, row.verdicts, row.bytes_equal, row.device_check_equal, row.device_bytes_equal, row.legacy_bytes, row.job_bytes, row.stage1_gpu_ms, row.stage2_gpu_ms, row.device_gpu_ms, row.finish_ns, row.stage2_assemble_ns, row.oods_nodes, row.oods_levels, row.stage2_arena_peak_words, row.stage2_declared_words, row.error_name });
         try rows.append(a, row);
     }
     var all = rows.items.len != 0;
     var negatives_all = true;
     for (rows.items) |r| {
-        all = all and r.error_name.len == 0 and r.seed_resolved and r.stage1_root_equal and r.fixed_root_equal and r.main_root_equal and r.inter_root_equal and r.claims_equal and r.local_equal and r.shared_equal and r.bytes_equal and r.stage2_host_waits == 1 and r.stage1_host_waits == 1;
+        all = all and r.error_name.len == 0 and r.seed_resolved and r.stage1_root_equal and r.fixed_root_equal and r.main_root_equal and r.inter_root_equal and r.claims_equal and r.local_equal and r.shared_equal and r.bytes_equal and r.device_check_equal and r.device_bytes_equal and r.stage2_host_waits == 1 and r.stage1_host_waits == 1;
         for (r.verdicts) |v| all = all and v == G.Verdict.accepted;
         for (r.negatives) |n| negatives_all = negatives_all and n.fired;
     }
     var text: std.Io.Writer.Allocating = .init(a);
-    try std.json.Stringify.value(.{ .schema = "rv64-m8-truth-parity/v1", .block = block, .legacy_native_wall_ns = legacy_ns, .job_device = device, .wide_framing = wide, .classes = classes.items.len, .all_equal = all, .negatives_all_fired = negatives_all, .truths = rows.items }, .{ .whitespace = .indent_1 }, &text.writer);
+    try std.json.Stringify.value(.{ .schema = "rv64-m8-truth-parity/v2", .block = block, .legacy_native_wall_ns = legacy_ns, .job_device = device, .wide_framing = wide, .classes = classes.items.len, .all_equal = all, .negatives_all_fired = negatives_all, .truths = rows.items }, .{ .whitespace = .indent_1 }, &text.writer);
     const report = try std.fs.path.join(a, &.{ out_dir, "truth-parity.json" });
     try std.fs.cwd().writeFile(.{ .sub_path = report, .data = text.written() });
     std.debug.print("GPU_M8_TRUTH_PARITY_DONE block={} truths={} classes={} all_equal={} negatives_all_fired={} report={s}\n", .{ block, rows.items.len, classes.items.len, all, negatives_all, report });
@@ -456,20 +477,31 @@ fn proveOne(a: std.mem.Allocator, worker: *W.Worker, sym: *const TJ.Symbols, eve
     };
     defer a.free(legacy_bytes);
     row.legacy_bytes = legacy_bytes.len;
-    for (0..@max(1, @min(repeat, 4))) |k| {
-        var s2 = TJ.Stage2{ .a = a, .class = class, .sym = sym, .ordinal = rec.expected.ordinal, .calls = rec.truth.count(), .first_id = rec.truth.first(), .compact = rec.compact, .seed = resolved.seed, .digest_words = digestWords(digest), .stage1_root_words = s1.root, .timing = events };
+    row.oods_nodes = class.oods.nodes;
+    row.oods_levels = class.oods.levels;
+    row.oods_descriptor_words = class.oods.words.len;
+    row.encode_program_words = class.encode.words.len;
+    row.max_encoded_bytes = class.encode.max_encoded_bytes;
+    var device_all = true;
+    for (0..@max(2, @min(repeat, 4))) |k| {
+        // Run 0: `.check` (host assembly + device OODS/encoder, compared);
+        // runs 1..: `.device` (the GPU-native stage 2: no host assembly).
+        const mode: TJ.Encode = if (k == 0) .check else .device;
+        var s2 = TJ.Stage2{ .a = a, .class = class, .sym = sym, .ordinal = rec.expected.ordinal, .calls = rec.truth.count(), .first_id = rec.truth.first(), .compact = rec.compact, .seed = resolved.seed, .digest_words = digestWords(digest), .stage1_root_words = s1.root, .timing = events, .encode = mode };
         try s2.init();
         defer s2.deinit();
         row.stage2_declared_words = s2.footprint().device_words;
         const r2 = try run(worker, s2.job());
         row.stage2_gpu_ms[k] = s2.span.gpu_ms;
+        row.device_gpu_ms[k] = s2.device_span.gpu_ms;
+        row.finish_ns[k] = s2.finish_ns;
         row.stage2_stage_ns[k] = r2.stage_ns;
         row.stage2_enqueue_ns[k] = r2.enqueue_ns;
         row.stage2_wait_ns[k] = r2.wait_ns;
         row.stage2_host_waits = r2.host_waits;
         row.stage2_arena_peak_words = @max(row.stage2_arena_peak_words, r2.arena_peak_words);
-        row.stage2_assemble_ns = s2.assemble_ns;
         if (k == 0) {
+            row.stage2_assemble_ns = s2.assemble_ns;
             row.fixed_root_equal = std.mem.eql(u32, s2.roots[0..8], &rootWords(rec.fixed.?.root));
             row.main_root_equal = std.mem.eql(u32, s2.roots[8..16], &legacy_main);
             row.inter_root_equal = std.mem.eql(u32, s2.roots[16..24], &rootWords(rec.inter_root.?));
@@ -485,46 +517,69 @@ fn proveOne(a: std.mem.Allocator, worker: *W.Worker, sym: *const TJ.Symbols, eve
             row.verdicts = s2.verdict_words;
             row.job_bytes = s2.bytes.len;
             row.bytes_equal = std.mem.eql(u8, s2.bytes, legacy_bytes);
-            if (!row.bytes_equal) {
+            row.device_check_equal = s2.device_equal;
+            @memcpy(&row.device_oods_evaluated, s2.oods_diag[0..8]);
+            @memcpy(&row.host_oods_evaluated, s2.host_oods[0..8]);
+            if (!row.bytes_equal or !s2.device_equal) {
                 var nb: [64]u8 = undefined;
-                const file = try std.fmt.bufPrint(&nb, "job-truth-{d}.bin", .{row.truth_index});
-                const path = try std.fs.path.join(a, &.{ proof_dir, "..", file });
-                defer a.free(path);
-                try std.fs.cwd().writeFile(.{ .sub_path = path, .data = s2.bytes });
+                for ([_]struct { name: []const u8, bytes: []const u8 }{ .{ .name = "job", .bytes = s2.bytes }, .{ .name = "device", .bytes = s2.device_bytes } }) |x| {
+                    const file = try std.fmt.bufPrint(&nb, "{s}-truth-{d}.bin", .{ x.name, row.truth_index });
+                    const path = try std.fs.path.join(a, &.{ proof_dir, "..", file });
+                    defer a.free(path);
+                    try std.fs.cwd().writeFile(.{ .sub_path = path, .data = x.bytes });
+                }
             }
+        } else {
+            device_all = device_all and std.mem.eql(u8, s2.device_bytes, legacy_bytes);
+            for (s2.verdict_words) |w| device_all = device_all and w == G.Verdict.accepted;
+            row.device_runs += 1;
         }
-        a.free(s2.bytes);
-        a.free(s2.out_claims);
+        if (s2.bytes.len != 0) a.free(s2.bytes);
+        if (s2.out_claims.len != 0) a.free(s2.out_claims);
+        if (s2.device_bytes.len != 0) a.free(s2.device_bytes);
     }
+    row.device_bytes_equal = device_all and row.device_runs != 0;
     // Negatives: once per kind, each fault must fire exactly its check.
     const kind_index: usize = @intFromEnum(class.kind);
     if (!negatives or negative_done[kind_index]) return;
     negative_done[kind_index] = true;
-    const cases = [_]struct { fault: TJ.Fault, check: []const u8, slot: usize }{
-        .{ .fault = .parameter_program, .check = "truth_status", .slot = 0 },
+    // Slots: verdict_names order (truth_status, root_match, channel_order,
+    // pcs_status, truth_oods, encode_bounds). `also`: a word that may fire
+    // too because the fault invalidates the statement itself (a corrupted
+    // gather makes the composition use wrong parameters: the OODS check
+    // then legitimately rejects as well).
+    const cases = [_]struct { fault: TJ.Fault, check: []const u8, slot: usize, also: ?usize = null }{
+        .{ .fault = .parameter_program, .check = "truth_status", .slot = 0, .also = 4 },
         .{ .fault = .absent_claim, .check = "truth_status", .slot = 0 },
         .{ .fault = .class_root, .check = "root_match", .slot = 1 },
         .{ .fault = .stage1_root, .check = "root_match", .slot = 1 },
         .{ .fault = .channel_cursor, .check = "channel_order", .slot = 2 },
         .{ .fault = .pcs_header, .check = "pcs_status", .slot = 3 },
+        .{ .fault = .oods_sample, .check = "truth_oods", .slot = 4 },
+        .{ .fault = .oods_composition, .check = "truth_oods", .slot = 4 },
+        .{ .fault = .encode_capacity, .check = "encode_bounds", .slot = 5 },
+        .{ .fault = .encode_value, .check = "encode_bounds", .slot = 5 },
     };
     var out: std.ArrayListUnmanaged(NegativeRow) = .empty;
     for (cases) |case| {
         if (case.fault == .absent_claim and class.kind == .delegated and class.zero_count == 0) continue;
-        var s2 = TJ.Stage2{ .a = a, .class = class, .sym = sym, .ordinal = rec.expected.ordinal, .calls = rec.truth.count(), .first_id = rec.truth.first(), .compact = rec.compact, .seed = resolved.seed, .digest_words = digestWords(digest), .stage1_root_words = s1.root, .fault = case.fault, .assemble_on_finish = false };
+        var s2 = TJ.Stage2{ .a = a, .class = class, .sym = sym, .ordinal = rec.expected.ordinal, .calls = rec.truth.count(), .first_id = rec.truth.first(), .compact = rec.compact, .seed = resolved.seed, .digest_words = digestWords(digest), .stage1_root_words = s1.root, .fault = case.fault, .assemble_on_finish = false, .encode = .device };
         try s2.init();
         defer s2.deinit();
+        defer if (s2.device_bytes.len != 0) a.free(s2.device_bytes);
         var neg = NegativeRow{ .fault = @tagName(case.fault), .expected_check = case.check, .fired = false, .word = 0, .error_name = "" };
         if (run(worker, s2.job())) |_| {
             neg.error_name = "AcceptedUnderFault";
         } else |err| {
             neg.error_name = @errorName(err);
             neg.word = s2.verdict_words[case.slot];
-            // Exactly the expected word rejects; every other check accepts.
+            // Exactly the expected word rejects (plus `also`); every other check accepts.
             var only = err == error.DeviceTruthCheckRejected and neg.word != G.Verdict.accepted and neg.word != G.Verdict.unset;
-            for (s2.verdict_words, 0..) |w, i| if (i != case.slot) {
+            for (s2.verdict_words, 0..) |w, i| if (i != case.slot and (case.also == null or i != case.also.?)) {
                 only = only and w == G.Verdict.accepted;
             };
+            // A rejected encode publishes no bytes (length word 0).
+            if (case.slot == 5) only = only and s2.device_bytes.len == 0;
             neg.fired = only;
         }
         std.debug.print("GPU_M8_TRUTH_NEGATIVE ordinal={} fault={s} check={s} fired={} word=0x{x} words={any} error={s}\n", .{ rec.expected.ordinal, neg.fault, neg.expected_check, neg.fired, neg.word, s2.verdict_words, neg.error_name });
