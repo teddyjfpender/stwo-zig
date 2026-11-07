@@ -90,6 +90,8 @@ pub const NodeClass = struct {
     make: *const fn (ctx: *anyopaque, a: std.mem.Allocator, target: Target) anyerror!Made,
 };
 pub const Target = struct {
+    /// GPU the node runs on (its whole-node graph cache is per device).
+    device: u32 = 0,
     region: api.DeviceBuffer,
     pcs_status: api.DeviceBuffer,
     encode_status: api.DeviceBuffer,
@@ -102,6 +104,7 @@ pub const Made = struct {
     inputs: *const fn (*anyopaque) anyerror!Inputs,
     destroy: *const fn (*anyopaque) void,
 };
+pub const max_graph_devices = G.max_devices;
 pub const Inputs = struct { seeds: api.DeviceBuffer, channel_seed: api.DeviceBuffer, outputs: api.DeviceBuffer };
 /// Device entry points the node job needs (bound by the service).
 pub const DeviceOps = struct {
@@ -287,7 +290,7 @@ pub const Recursion = struct {
         if (device >= rc.segments.len or device >= rc.layout.segments.len) return error.GpuNativeProofDeviceOutOfRange;
         const seg = &rc.layout.segments[device];
         const buf = rc.segments[device];
-        const target = Target{ .region = try seg.encodedBuffer(buf, id), .pcs_status = try seg.statusBuffer(buf, id, .node_pcs_status), .encode_status = try seg.statusBuffer(buf, id, .encode_bounds), .oods_status = try seg.statusBuffer(buf, id, .node_oods_constraint) };
+        const target = Target{ .device = device, .region = try seg.encodedBuffer(buf, id), .pcs_status = try seg.statusBuffer(buf, id, .node_pcs_status), .encode_status = try seg.statusBuffer(buf, id, .encode_bounds), .oods_status = try seg.statusBuffer(buf, id, .node_oods_constraint) };
         const job = try self.a.create(NodeJob);
         errdefer self.a.destroy(job);
         job.* = .{ .a = self.a, .ops = ops, .class = nc, .device = device, .verdicts = .{
@@ -576,6 +579,7 @@ const TestBody = struct {
         f.ptr[0] = self.lookup_word;
         // A healthy device channel latch (the real body runs the transcript).
         e.channel.stateBuffer().ptr[10] = self.channel_status;
+        if (self.got_seeds.len != 0) self.a.free(self.got_seeds);
         self.got_seeds = try self.a.dupe(u32, self.seeds.ptr[0..self.seeds_words]);
         @memcpy(&self.got_cp, self.channel_seed.ptr[0..9]);
         @memcpy(self.got_out[0..self.out_words], self.outputs.ptr[0..self.out_words]);
@@ -744,4 +748,39 @@ test "gn-node: node job reads children from the request slab (own + peer GPU), f
     const sl = &layout.segments[0];
     for ([_]G.Check{ .seed_tape, .child_binding, .lookup_sum, .channel_order }) |c| try t.expectEqual(G.Verdict.accepted, seg_mem[0][try sl.statusWord(fold_id, c)]);
     r.end(9);
+
+    // Negatives on the next request: a corrupted peer child's Merkle path and
+    // a bad device channel latch are refused in the request slab's words
+    // (publish refuses the request); an unknown child fails at plan time.
+    for (layout.segments, seg_mem) |sg, m| @memset(m[sg.status_offset..][0..sg.status_words], G.Verdict.unset);
+    const r1 = try layout.segments[1].encodedBuffer(segs[1], specs[1].id);
+    r1.ptr[wire_words + L0.trees[1].paths] ^= 1;
+    body.channel_status = 7;
+    const rc2 = G.RequestContext{ .request = 10, .layout = &layout, .exchange = exch, .peer = undefined, .classes = &cache, .segments = &segs };
+    try t.expectError(error.GpuNativeUnknownProof, f.vtable.node(f.ctx, &rc2, fold_id, &.{ specs[0].id, .{ .kind = .leaf, .ordinal = 9 } }, 0));
+    const job2 = try f.vtable.node(f.ctx, &rc2, fold_id, &.{ specs[0].id, specs[1].id }, 0);
+    const w2 = try W.Worker.create(a, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 22, .pinned_slot_words = 1 << 16 });
+    done.reset();
+    while (true) {
+        w2.submit(job2, .{ .ctx = &sink, .done = Sink.onDone }) catch |err| switch (err) {
+            error.WorkerBusy => continue,
+            else => return err,
+        };
+        break;
+    }
+    done.wait();
+    w2.destroy();
+    try result; // the job itself completes; the verdict words refuse it
+    const seed_word = seg_mem[0][try sl.statusWord(fold_id, .seed_tape)];
+    try t.expectEqual(G.Check.seed_tape, G.Verdict.checkOf(seed_word).?);
+    try t.expectEqual(G.Check.channel_order, G.Verdict.checkOf(seg_mem[0][try sl.statusWord(fold_id, .channel_order)]).?);
+    // publish() refuses on the first non-accepted word (header written as the driver does).
+    for (layout.segments, seg_mem) |*sg, m| {
+        try sg.prefix(m, 10);
+        m[G.header_completion_word] = G.Exchange.flagTag(1);
+    }
+    var first: G.Rejection = undefined;
+    const mirrors = [2][]const u32{ seg_mem[0], seg_mem[1] };
+    try t.expectError(error.GpuNativeProofRejected, G.publish(a, &layout, 10, G.Exchange.flagTag(1), &mirrors, &first));
+    r.end(10);
 }
