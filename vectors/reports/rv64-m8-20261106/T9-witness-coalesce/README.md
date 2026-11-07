@@ -58,13 +58,13 @@ Each bench binary includes the product `.cu` and toggles the flag in-process.
 
 | bench | inputs | compared | result |
 |---|---|---|---|
-| `keccak_bench.cu selftest` | 100 shapes: both policies; log 5–17; calls 1, 2, 3, 7, 8, 9, max−1, max; all-zero and all-ones states; MAIN poisoned with 0xab before the coalesced run (tests the dropped memset) | MAIN, chi, xor5, status | bit-exact |
+| `keccak_bench.cu selftest` | 94 distinct shapes: both policies; log 5, 6, 9 (small bitrev), 10, 11 (tiled, m = brev(m) only), 12, 15, 17 (tiled, m ≠ brev(m)); calls 1, 2, 3, 7, 8, 9, max−1, max (duplicates at small logs skipped); all-zero and all-ones states; MAIN poisoned with 0xab before the coalesced run (tests the dropped memset) | MAIN, chi, xor5, status | bit-exact |
 | `bridge_bench.cu selftest` | valid synthetic predecessors (uniform and zero-heavy "skew"); kinds 0 and 1; 1/4/6 coordinates; 0/1/max calls; log 5–16; plus 2 corrupted inputs | MAIN, range16, range8, status | bit-exact (status 1/1 on the corrupted cases) |
 | `base_bench.cu selftest` | all 5 components; log 4–18; random, local and skewed address/value patterns | every out column, all 22 count tables, error | bit-exact, error 0 |
 
 In `base_bench.cu`, comp 2 rows satisfy w3 = w0^w1^w2. Comp 4 rows satisfy the Blake G relations (w9 = rotr8(w6^xr16), w7 = rotr7(xr12^w8)), so every lookup is counted.
 
-## Microbenchmarks (CUDA events; reference and T9 interleaved in one process on the same inputs; RTX 5090, GPU 0) [M]
+## Microbenchmarks (CUDA events; the split uses the product's launch configuration (count grid cap 2 × SMs, small bitrev below log 10); reference and T9 interleaved in one process on the same inputs; RTX 5090, GPU 0) [M]
 
 | kernel / shape | reference median (min–max) | T9 median (min–max) | × |
 |---|---|---|---|
@@ -96,6 +96,14 @@ Notes:
 - **This kernel** has to emit stwo's column-major, bit-reversed circle MAIN. So pass 1 emits column-major in circle order, where consecutive logical rows are contiguous, and pass 2 is the tiled bit reversal.
 - **sppark** `ntt/kernels.cu` `bit_rev_permutation_z` is the same idea: shared-memory exchange tiles, for bit-reversal at bandwidth. Its simple `bit_rev_permutation` is the per-element version.
 - **pil2-proofman** (`starkpil/witness_hints_slot.cu`) generates witnesses row-parallel, with no bit-reversed target.
+
+## Review (2026-11-07) [M]
+
+Re-run of the fixed benches on GPU 0 against the unchanged product sources (sha256 keccak cfe82030…, bridge 95cf4a81…):
+keccak selftest 94/94 bit-exact, bridge selftest 53/53; keccak policy 1 log 17 53.21 → 3.63 ms (counts 1.18 + staged 1.02 + bitrev 1.32);
+policy 1 log 9 0.793 → 0.461 ms; bridge kind 1 2^16 0.741 → 0.083 ms. No product-code defect was found. The reference kernels are
+deliberately left verbatim beside the new ones (flag-off path unchanged); delete them, and the duplicated row/event code with them, when
+the flag is promoted.
 
 ## Request-level (pending)
 

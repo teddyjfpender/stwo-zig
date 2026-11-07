@@ -92,13 +92,16 @@ static void bench(const Shape& s, int reps) {
     {  // Pass split of the coalesced path (CUDA events per kernel).
         const auto& p = d.p;
         const uint32_t pairs = (p.calls + 1) / 2, active = pairs * (p.policy ? 29 : 27), ee = (active + 1) / 2, ob = (1u << p.log) - active / 2;
+        // Same launch configuration as stwo_rv64_keccak_witness_on (count grid cap 2 x SMs, small bitrev below log 10).
+        int sms = 0, device = 0; CK(cudaGetDevice(&device)); CK(cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount, device));
+        const uint32_t cgrid_cap = uint32_t(2 * sms);
         cudaEvent_t m, mc; CK(cudaEventCreate(&m)); CK(cudaEventCreate(&mc));
         std::vector<float> ta, tb, tc;
         for (int r = 0; r < reps; ++r) {
             CK(cudaEventRecord(e0, g_stream));
             const uint32_t grid = (pairs + keccak_stage_warps - 1) / keccak_stage_warps;
             if (p.policy) {
-                keccak_witness_counts<<<std::min((pairs + keccak_count_warps - 1) / keccak_count_warps, 340u), 32 * keccak_count_warps, 0, g_stream>>>(p);
+                keccak_witness_counts<<<std::min((pairs + keccak_count_warps - 1) / keccak_count_warps, cgrid_cap), 32 * keccak_count_warps, 0, g_stream>>>(p);
                 CK(cudaEventRecord(mc, g_stream));
                 keccak_witness_staged<false><<<grid, 32 * keccak_stage_warps, 0, g_stream>>>(p);
             } else {
@@ -107,6 +110,7 @@ static void bench(const Shape& s, int reps) {
             }
             CK(cudaEventRecord(m, g_stream));
             if (p.log >= 10) keccak_bitrev<<<dim3(1u << (p.log - 10), 1923), 256, 0, g_stream>>>(p.main, p.log, ee, ob);
+            else keccak_bitrev_small<<<1923, 256, 0, g_stream>>>(p.main, p.log, ee, ob);
             CK(cudaEventRecord(e1, g_stream)); CK(cudaEventSynchronize(e1));
             float a, b, c; CK(cudaEventElapsedTime(&c, e0, mc)); CK(cudaEventElapsedTime(&a, mc, m)); CK(cudaEventElapsedTime(&b, m, e1)); ta.push_back(a); tb.push_back(b); tc.push_back(c);
         }
@@ -131,8 +135,10 @@ int main(int argc, char** argv) {
         for (uint32_t policy : {0u, 1u})
             for (uint32_t log : {5u, 6u, 9u, 10u, 11u, 12u, 15u}) {
                 const uint32_t mc = max_calls(policy, log);
+                uint32_t done[8]; uint32_t ndone = 0;  // small logs: mc - 1 / mc repeat earlier counts
                 for (uint32_t calls : {1u, 2u, 3u, 7u, 8u, 9u, mc - 1, mc}) {
-                    if (calls < 1 || calls > mc) continue;
+                    if (calls < 1 || calls > mc || std::find(done, done + ndone, calls) != done + ndone) continue;
+                    done[ndone++] = calls;
                     ok &= parity(random_shape(policy, log, calls, 1000 * log + calls + 77 * policy));
                 }
             }

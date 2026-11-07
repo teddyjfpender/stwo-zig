@@ -47,7 +47,7 @@ static Shape make(uint32_t kind, uint32_t log, uint32_t coordinates, uint32_t ca
     return s;
 }
 struct Out { std::vector<uint32_t> main, r16, r8; uint32_t status; };
-static Out run(const Shape& s, int mode, float* ms_out = nullptr, int reps = 0, std::vector<float>* times = nullptr) {
+static Out run(const Shape& s, int mode, int reps = 0, std::vector<float>* times = nullptr) {
     const bool k = s.kind == 0; const uint64_t n = 1ull << s.log, width = k ? 66 : 134;
     uint32_t *in = nullptr, *main, *r16, *r8, *st;
     if (!s.inputs.empty()) { CK(cudaMalloc(&in, s.inputs.size() * 4)); CK(cudaMemcpy(in, s.inputs.data(), s.inputs.size() * 4, cudaMemcpyHostToDevice)); }
@@ -71,7 +71,6 @@ static Out run(const Shape& s, int mode, float* ms_out = nullptr, int reps = 0, 
     CK(cudaMemcpy(o.r8.data(), r8, 1024, cudaMemcpyDeviceToHost));
     CK(cudaMemcpy(&o.status, st, 4, cudaMemcpyDeviceToHost));
     for (void* x : {(void*)in, (void*)main, (void*)r16, (void*)r8, (void*)st}) if (x) cudaFree(x);
-    (void)ms_out;
     return o;
 }
 static bool parity(const Shape& s, bool expect_status = false) {
@@ -109,7 +108,7 @@ int main(int argc, char** argv) {
         if (!parity(s)) return 1;
         // Interleave A/B: alternate single-rep batches.
         std::vector<float> t[2];
-        for (int r = 0; r < reps; ++r) for (int mode = 0; mode < 2; ++mode) run(s, mode, nullptr, 1, &t[mode]);
+        for (int r = 0; r < reps; ++r) for (int mode = 0; mode < 2; ++mode) run(s, mode, 1, &t[mode]);
         const char* names[2] = {"reference witness", "witness_private"};
         for (int mode = 0; mode < 2; ++mode) {
             auto v = t[mode]; std::sort(v.begin(), v.end());
