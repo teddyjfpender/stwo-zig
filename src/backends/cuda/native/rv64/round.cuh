@@ -112,6 +112,69 @@ __device__ __forceinline__ bool advance_round_with_constant(RoundState* s, uint3
     ++s->next_round;
     return true;
 }
+// STWO_RV64_M8_GKR_BATCH_PAR split of advance_round_with_constant for the
+// cooperative mixed-oracle round (batch_transition.cuh). The arithmetic is an
+// exact re-association of the same field expressions (canonical M31 results
+// do not depend on association order), so records, digests, challenges and
+// claims are bit-identical; batch_par_bench.cu checks it against the serial
+// transition. Everything that depends only on y and the incoming prefix (the
+// batch round always enters with correction == one()) is precomputed:
+//   r0 = raw0 k0, r2 = raw2 k2, k0 = (1-y) a, k2 = (3y-1) a,
+//   cubic = raw0 p0 + raw2 p2 + (claim - 2 constant) ps,
+// which is the serial Newton/interpolation cubic expanded linearly in r0, r2
+// and r1 = claim - 2 constant - r0. Status precedence is unchanged: state
+// status, order, field, then pole; no state changes before all checks pass.
+struct RoundPrelude {
+    OM31 y, prefix, k0, k2, p0, p2, ps;
+    uint32_t pole, reserved[3];
+};
+// Transcript part of advance_round_with_constant given the prelude and the
+// raw-dependent products (computed in parallel by the caller). On success the
+// caller finishes s->claim = eval_poly(coefficients, record->challenge) and
+// resets s->correction; the batch round leaves correction at one().
+__device__ __forceinline__ bool advance_round_with_terms(RoundState* s, uint32_t expected_round,
+                                                         Pair raw, const RoundPrelude& p,
+                                                         OM31 r0, OM31 r2, OM31 cubic,
+                                                         RoundRecord* record, OM31 constant,
+                                                         OM31 coefficients[4]) {
+    if (s->status != round_ok) return false;
+    if (s->next_round != expected_round || expected_round >= s->variables) {
+        s->status = round_order;
+        return false;
+    }
+    if (!canonical(p.y) || !canonical(raw.at0) || !canonical(raw.at2)) {
+        s->status = round_field;
+        return false;
+    }
+    if (p.pole) {
+        s->status = round_pole;
+        return false;
+    }
+    const OM31 r1 = sub(sub(s->claim, scale(constant, 2)), r0);
+    const OM31 delta = sub(r1, r0);
+    const OM31 quadratic = scale(add(sub(r2, add(r1, r1)), r0), 1073741824u);
+    coefficients[0] = add(r0, constant);
+    coefficients[1] = add(sub(delta, quadratic), add(cubic, cubic));
+    coefficients[2] = sub(quadratic, scale(cubic, 3));
+    coefficients[3] = cubic;
+    uint32_t length = 4;
+    while (length && is_zero(coefficients[length - 1])) --length;
+    uint32_t words[32];
+    for (uint32_t i = 0; i < 4; ++i) {
+        record->coefficients[i] = coefficients[i];
+        for (uint32_t c = 0; c < 8; ++c) words[8 * i + c] = coordinate(coefficients[i], c);
+    }
+    record->length = length;
+    record->ordinal = expected_round;
+    record->reserved[0] = record->reserved[1] = 0;
+    const auto hash = transcript::hash_digest_and_words(s->digest, words, 8 * length);
+    for (uint32_t i = 0; i < 8; ++i) s->digest[i] = hash.words[i];
+    s->draws = 0;
+    record->challenge = draw_raw_om(s->digest, &s->draws);
+    s->prefix = p.prefix;
+    ++s->next_round;
+    return true;
+}
 // The single-oracle path is exactly the zero-constant specialization.
 __device__ __forceinline__ bool advance_round(RoundState* s, uint32_t expected_round, Pair raw,
                                               OM31 y, RoundRecord* record) {

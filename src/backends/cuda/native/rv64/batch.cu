@@ -5,7 +5,26 @@
 #include "custody.cuh"
 #include "round.cuh"
 #include <algorithm>
+#include <cstdlib>
+#include <cstring>
 namespace stwo::cuda::rv64 {
+// STWO_RV64_M8_GKR_BATCH_PAR (default off; read once per process): 1 runs the
+// mixed-oracle round transition on one CTA (advance_batch_round_block) for both
+// batch_round and batch_tail; 0/unset keeps the serial <<<1,1>>> transition.
+// Any other value rejects. Records, state and status words are bit-identical.
+inline int batch_par_mode() {
+  static const int mode = [] {
+    const char *v = std::getenv("STWO_RV64_M8_GKR_BATCH_PAR");
+    if (!v || !std::strcmp(v, "0")) return 0;
+    if (!std::strcmp(v, "1")) return 1;
+    return -1;
+  }();
+  return mode;
+}
+// One thread per oracle slot (max_oracles = 128) plus four helper warps
+// (advance_batch_round_block).
+constexpr uint32_t batch_par_oracle_threads = max_oracles,
+                   batch_par_threads = batch_par_oracle_threads + 128;
 __global__ void batch_init(uint32_t *words, const uint32_t *seed,
                            const uint32_t *claims, const uint32_t *alpha_words,
                            BatchJobs jobs) {
@@ -46,6 +65,13 @@ __global__ void batch_round(uint32_t *words, BatchJobs jobs, uint32_t expected,
                             const uint32_t *point, uint32_t *record_words) {
   advance_batch_round(reinterpret_cast<BatchState *>(words), jobs, expected,
                       point, reinterpret_cast<RoundRecord *>(record_words));
+}
+__global__ void __launch_bounds__(batch_par_threads)
+batch_round_par(uint32_t *words, const __grid_constant__ BatchJobs jobs, uint32_t expected,
+                const uint32_t *point, uint32_t *record_words) {
+  advance_batch_round_block<batch_par_oracle_threads, batch_par_threads>(
+      reinterpret_cast<BatchState *>(words), jobs, expected, point,
+      reinterpret_cast<RoundRecord *>(record_words));
 }
 __device__ __forceinline__ void write_batch_mask(StwoRv64Plane n, StwoRv64Plane d, uint32_t *output) {
   const uint32_t c = threadIdx.x;
@@ -120,6 +146,9 @@ stwo_rv64_batch_round_on(void *ctx, uint32_t lane, uint32_t *state,
                          const uint32_t *point, uint32_t *record) {
   if (!variables || expected >= variables)
     return int(cudaErrorInvalidValue);
+  const int par = batch_par_mode();
+  if (par < 0)
+    return int(cudaErrorInvalidValue);
   BatchCustody c(ctx, lane);
   BatchJobs jobs;
   if (const int status = jobs_for(c, oracles, count, variables, &jobs))
@@ -128,7 +157,10 @@ stwo_rv64_batch_round_on(void *ctx, uint32_t lane, uint32_t *state,
       !c.range(point, 8ull * variables, false) ||
       !c.range(record, round_record_words, true))
     return c.status;
-  batch_round<<<1, 1, 0, c.stream>>>(state, jobs, expected, point, record);
+  if (par)
+    batch_round_par<<<1, batch_par_threads, 0, c.stream>>>(state, jobs, expected, point, record);
+  else
+    batch_round<<<1, 1, 0, c.stream>>>(state, jobs, expected, point, record);
   return int(cudaPeekAtLastError());
 }
 extern "C" int stwo_rv64_batch_mask_on(void *ctx, uint32_t lane,
@@ -170,6 +202,7 @@ struct BatchTailPacket {
 // SumPacket already relies on it at 64 oracles).
 static_assert(sizeof(BatchTailPacket) <= 32764, "bounded tail launch");
 struct TailCursor { StwoRv64Plane n, d, out_n, out_d; uint32_t count; };
+template <bool Par>
 __global__ void batch_tail(const __grid_constant__ BatchTailPacket packet) {
   __shared__ BatchState owner;
   __shared__ BatchJobs jobs;
@@ -216,7 +249,8 @@ __global__ void batch_tail(const __grid_constant__ BatchTailPacket packet) {
       }
     }
     __syncthreads();
-    if (!threadIdx.x) advance_batch_round(&owner,jobs,r,packet.point,&record);
+    if constexpr (Par) advance_batch_round_block<max_oracles,batch_tail_threads>(&owner,jobs,r,packet.point,&record);
+    else if (!threadIdx.x) advance_batch_round(&owner,jobs,r,packet.point,&record);
     __syncthreads();
     for (uint32_t i=threadIdx.x;i<round_record_words;i+=blockDim.x)
       packet.records[(r-packet.first)*round_record_words+i]=reinterpret_cast<const uint32_t *>(&record)[i];
@@ -245,6 +279,8 @@ extern "C" int stwo_rv64_batch_tail_on(void *context,uint32_t lane,uint32_t *sta
     const StwoRv64BatchTailOracle *oracles,uint32_t count,uint32_t variables,uint32_t first,
     const uint32_t *point,StwoRv64Plane eq,const uint32_t *lambda,uint32_t *records) {
   using namespace stwo::cuda::rv64;
+  const int par=batch_par_mode();
+  if (par<0) return int(cudaErrorInvalidValue);
   if (!oracles||!count||count>max_oracles||!variables||variables>27||first>=variables||variables-first>batch_tail_rounds)
     return int(cudaErrorInvalidValue);
   BatchTailPacket packet{};packet.count=count;packet.variables=variables;packet.first=first;
@@ -264,6 +300,7 @@ extern "C" int stwo_rv64_batch_tail_on(void *context,uint32_t lane,uint32_t *sta
     } else if(o.out_n||o.out_d||o.output_stride) return int(cudaErrorInvalidValue);
     packet.oracles[j]=o;
   }
-  batch_tail<<<1,batch_tail_threads,0,c.stream>>>(packet);
+  if (par) batch_tail<true><<<1,batch_tail_threads,0,c.stream>>>(packet);
+  else batch_tail<false><<<1,batch_tail_threads,0,c.stream>>>(packet);
   return int(cudaPeekAtLastError());
 }
